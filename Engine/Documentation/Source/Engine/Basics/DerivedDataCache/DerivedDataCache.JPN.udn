@@ -1,0 +1,91 @@
+﻿INTSourceChangelist:2560162
+Availability:Public
+Title:派生データのキャッシュ
+Crumbs:%ROOT%, Engine
+Description:派生データのキャッシュ (DDC) 、UE4 およびターゲット プラットフォームで使われるフォーマットでのアセット格納の概要です。 
+
+エディタへインポートされて「.uasset」ファイルに保存されるアーティストが作成するソースフォーマットとは対照的に、 
+ **Derived Data Cache** (DDC) は、エンジンとターゲット プラットフォームが使用するフォーマットで 
+アセットのバージョンを保存します。DDC に保存されるコンテンツは _使い捨て_ ですが、 
+`.uasset` ファイルに格納されたデータを利用していつでも再生成することができます。内部に _派生_ フォーマットを保存することにより、 
+ソース アセット ファイルの修正を必要とせずに、エンジンが使用するフォーマットの 
+追加や変更を簡単に行うことができます。
+
+## 共有 DDC の使用
+
+スタジオは、特定場所の全ユーザーがアクセス可能な共有 DDC を使用するべきです。この方法で、 
+派生したアセット フォーマットのビルドはユーザー 1 人のみが実行し、その後自動的に全ユーザー間で 
+利用可能となります。時には、アセットの処理が必要な時に行き詰る場合もあります。 
+ただし、結果は記憶され共有されます。少人数の開発者の場合、ほとんどの開発者は影響を受けていることに気づきません。
+
+[REGION:warning]
+DDC 全体をインターネット上へ絶対にコピーしないでください。 DDC をバックアップ、またはバックアップから DDC を復元してください。有害な影響はありませんが、 
+DDC に保存されたデータ量の移行は、ローカルでゼロから生成するよりも一般的にかなり時間がかかるため、 
+時間の無駄となります。
+[/REGION]
+
+共有 DDC の設定は、ゲームの `DefaultEngine.ini` にこのセクションを宣言して、 
+[DerivedDataBackendGraph] のパスをオーバーライドします。このセクションは本来は `BaseEngine.ini` で宣言されます。 
+パスが Epic の内部 DDC 共有に設定される場所です。セクションを再び宣言して、パスを 
+ネットワーク上の共有 DDC へポイントさせるため変更します (例： `Path=\\mystudio.net\DDC`) ：
+
+	[DerivedDataBackendGraph]
+	MinimumDaysToKeepFile=7
+	Root=(Type=KeyLength, Length=120, Inner=AsyncPut)
+	AsyncPut=(Type=AsyncPut, Inner=Hierarchy)
+	Hierarchy=(Type=Hierarchical, Inner=Boot, Inner=Pak, Inner=EnginePak, Inner=Local, Inner=Shared)
+	Boot=(Type=Boot, Filename=\%GAMEDIR\%DerivedDataCache/Boot.ddc, MaxCacheSize=256)
+	Local=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, PurgeTransient=true, DeleteUnused=true, UnusedFileAge=17, FoldersToClean=-1, Path=../../../Engine/DerivedDataCache)
+	Shared=(Type=FileSystem, ReadOnly=false, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC, EnvPathOverride=UE-SharedDataCachePath)
+	AltShared=(Type=FileSystem, ReadOnly=true, Clean=false, Flush=false, DeleteUnused=true, UnusedFileAge=19, FoldersToClean=-1, Path=\\mystudio.net\DDC2, EnvPathOverride=UE-SharedDataCachePath2)
+	Pak=(Type=ReadPak, Filename=\%GAMEDIR\%DerivedDataCache/DDC.ddp)
+	EnginePak=(Type=ReadPak, Filename=../../../Engine/DerivedDataCache/DDC.ddp)
+
+
+単一の共有コードをベースに作業を進めているサテライトオフィスは、パスに `UE-SharedDataCachePath` 環境変数を設定することができます。 
+各ロケーションの全ユーザーが読み書きできるパスです。この設定によって、各ロケーションは 
+独自の共有 DDC を持つことができます。 
+
+例:
+
+	UE-SharedDataCachePath=\\mystudio.net\DDC
+
+## ローカル DDC の使用
+
+単独またはリモートで作業を行っている開発者は、大抵はローカル DDC のみを使用します。 
+以下の手法のいずれかで、エンジンが共有 DDC を使用しないよう指示します。
+
+* コマンドラインで `-ddc=noshared` を渡します。
+* ローカルのハードドライブに環境変数を設定します。 
+    
+		UE-SharedDataCachePath=c:\DDC
+
+
+## 派生データのビルド
+
+一般的に、アセットをインポートする開発者がエンジンでアセットを使用したりテストをする可能性が高いため、 
+同一ユーザーが派生データのビルドを行います。しかし、場合によっては新アセットの 
+処理が必要となります。これは必要に応じて自然に発生し、高速のハードウェアを実行時には大した影響を及ぼしませんが、 
+ときおり進行が行き詰まるかもしれません。
+ 
+以下の引数を実行ファイルへ引き渡すことによって、いつでも派生したデータキャッシュへ書き込むことができます。
+ 
+	UE4\Engine\Binaries\Win64\UE4Editor.exe MyGame -run=DerivedDataCache -fill 
+
+DDC の事前準備を常に整えるため、我々はこの作業は毎夜行っていますが、 
+自動キャッシュが _機能_ するため通常は必要ありません。
+
+## DDC の配布
+ 
+クックされたビルドは DDC は不要または使用しないため、パッケージゲームには一般的にクックが推奨メソッドです。 
+しかし必要に応じて DDC を配布用にパッケージ化することも出来ます。
+
+**DDC のパッケージ化**
+ 
+1. `UE4/Engine/Binaries/Win64` ディレクトリから `UE4Editor.exe` を実行して、以下に示す引数を渡します。
+
+		UE4Editor.exe [GameName] -run=DerivedDataCache -fill -DDC=CreatePak
+ 
+1. UE4\[GameName]\DerivedDataCache に `DDC.ddp` ファイルを作成します。
+
+1. エンジンは自動的に検出して `.ddp` ファイルを使用します。
