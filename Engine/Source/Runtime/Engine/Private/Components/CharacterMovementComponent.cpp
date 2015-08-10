@@ -1152,15 +1152,22 @@ void UCharacterMovementComponent::SimulateRootMotion(float DeltaSeconds, const F
 
 FVector UCharacterMovementComponent::CalcRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const
 {
-	FVector RootMotionVelocity = RootMotionDeltaMove / DeltaSeconds;
-	
-	// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
-	if (IsFalling())
+	if (ensure(DeltaSeconds > 0.f))
 	{
-		RootMotionVelocity.Z = CurrentVelocity.Z;
+		FVector RootMotionVelocity = RootMotionDeltaMove / DeltaSeconds;
+
+		// Do not override Velocity.Z if in falling physics, we want to keep the effect of gravity.
+		if (IsFalling())
+		{
+			RootMotionVelocity.Z = CurrentVelocity.Z;
+		}
+
+		return RootMotionVelocity;
 	}
-	
-	return RootMotionVelocity;
+	else
+	{
+		return CurrentVelocity;
+	}
 }
 
 
