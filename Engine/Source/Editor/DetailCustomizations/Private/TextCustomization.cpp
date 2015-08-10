@@ -193,12 +193,16 @@ namespace
 
 void FTextCustomization::CustomizeHeader( TSharedRef<class IPropertyHandle> InPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& PropertyTypeCustomizationUtils )
 {
+	const bool bIsMultiLine = InPropertyHandle->GetProperty()->GetBoolMetaData("MultiLine");
+
 	HeaderRow.FilterString(InPropertyHandle->GetPropertyDisplayName())
 		.NameContent()
 		[
 			InPropertyHandle->CreatePropertyNameWidget()
 		]
 		.ValueContent()
+		.MinDesiredWidth(bIsMultiLine ? 250.f : 125.f)
+		.MaxDesiredWidth(600.f)
 		[
 			SNew(STextPropertyWidget, InPropertyHandle, PropertyTypeCustomizationUtils.GetPropertyUtilities())
 		];
