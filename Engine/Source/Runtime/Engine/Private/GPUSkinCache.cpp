@@ -481,18 +481,18 @@ void FGPUSkinCache::DispatchSkinCacheProcess(FRHICommandListImmediate& RHICmdLis
 	if (bUseExtraBoneInfluences)
 	{
 		TShaderMapRef<FGPUSkinCacheCS<true> > SkinCacheCS(GetGlobalShaderMap(FeatureLevel));
+		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());
 		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 
-		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());
 		RHICmdList.DispatchComputeShader(VertexCountAlign64, 1, 1);
 		SkinCacheCS->UnsetParameters(RHICmdList);
 	}
 	else
 	{
 		TShaderMapRef<FGPUSkinCacheCS<false> > SkinCacheCS(GetGlobalShaderMap(FeatureLevel));
+		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());
 		SkinCacheCS->SetParameters(RHICmdList, VertexStride, InputStreamFloatOffset, VertexCount, OutputBufferFloatOffset, BoneBuffer, UniformBuffer, VBInfo->VertexBufferSRV, SkinCacheBufferRW, MeshOrigin, MeshExtension);
 
-		RHICmdList.SetComputeShader(SkinCacheCS->GetComputeShader());
 		RHICmdList.DispatchComputeShader(VertexCountAlign64, 1, 1);
 		SkinCacheCS->UnsetParameters(RHICmdList);
 	}
