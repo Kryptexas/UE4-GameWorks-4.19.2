@@ -4564,7 +4564,7 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 		{
 			Package->PackageFlags |= PKG_ReloadingForCooker;
 		}
-
+	}
 
 	/*FString Name = Package->GetName();
 
