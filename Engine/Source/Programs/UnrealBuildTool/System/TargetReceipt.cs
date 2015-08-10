@@ -402,25 +402,26 @@ namespace UnrealBuildTool
 		/// Read a receipt from disk.
 		/// </summary>
 		/// <param name="FileName">Filename to read from</param>
-		public static TargetReceipt Read(string FileName)
+		public static bool TryRead(string FileName, out TargetReceipt Receipt)
 		{
-			if (File.Exists(FileName))
+			if (!File.Exists(FileName))
 			{
-				try
+				Receipt = null;
+				return false;
+			}
+
+			try
+			{
+				using (StreamReader Reader = new StreamReader(FileName))
 				{
-					using (StreamReader Reader = new StreamReader(FileName))
-					{
-						return (TargetReceipt)Serializer.Deserialize(Reader);
-					}
-				}
-				catch(Exception)
-				{
-					return null;
+					Receipt = (TargetReceipt)Serializer.Deserialize(Reader);
+					return true;
 				}
 			}
-			else
+			catch(Exception)
 			{
-				return null;
+				Receipt = null;
+				return false;
 			}
 		}
 

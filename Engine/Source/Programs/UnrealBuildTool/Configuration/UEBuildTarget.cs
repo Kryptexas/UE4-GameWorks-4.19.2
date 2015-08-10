@@ -1139,8 +1139,8 @@ namespace UnrealBuildTool
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
 			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			TargetReceipt ReceiptWithFullPaths = TargetReceipt.Read(ReceiptFileName);
-			if (ReceiptWithFullPaths == null)
+			TargetReceipt ReceiptWithFullPaths;
+			if(!TargetReceipt.TryRead(ReceiptFileName, out ReceiptWithFullPaths))
 			{
 				ReceiptWithFullPaths = new TargetReceipt(Receipt);
 			}
@@ -1402,8 +1402,8 @@ namespace UnrealBuildTool
 			ReceiptWithFullPaths.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
 			IUEBuildPlatform BuildPlatform = UEBuildPlatform.GetBuildPlatform(Platform);
 			// Expand all the paths in the receipt; they'll currently use variables for the engine and project directories
-			TargetReceipt BuiltReceiptWithFullPaths = TargetReceipt.Read(ReceiptFileName);
-			if (BuiltReceiptWithFullPaths == null)
+			TargetReceipt BuiltReceiptWithFullPaths;
+			if(!TargetReceipt.TryRead(ReceiptFileName, out BuiltReceiptWithFullPaths))
 			{
 				return;
 			}

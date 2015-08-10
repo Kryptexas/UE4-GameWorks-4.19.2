@@ -115,7 +115,11 @@ class BuildPlugin : BuildCommand
 		List<BuildProduct> BuildProducts = new List<BuildProduct>();
 		foreach(string ReceiptFileName in ReceiptFileNames)
 		{
-			TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
+			TargetReceipt Receipt;
+			if(!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+			{
+				throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
+			}
 			BuildProducts.AddRange(Receipt.BuildProducts);
 		}
 		return BuildProducts;

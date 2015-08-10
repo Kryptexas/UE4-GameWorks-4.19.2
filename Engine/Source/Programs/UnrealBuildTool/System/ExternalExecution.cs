@@ -269,16 +269,7 @@ namespace UnrealBuildTool
 				}
 
 				TargetReceipt Receipt;
-				try
-				{
-					Receipt = TargetReceipt.Read(ReceiptPath);
-					if(Receipt == null)
-					{
-						Timestamp = DateTime.MaxValue;
-						return false;
-					}
-				}
-				catch(Exception)
+				if(!TargetReceipt.TryRead(ReceiptPath, out Receipt))
 				{
 					Timestamp = DateTime.MaxValue;
 					return false;

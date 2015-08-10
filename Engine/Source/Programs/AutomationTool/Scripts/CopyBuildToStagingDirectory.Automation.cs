@@ -1561,8 +1561,14 @@ public partial class Project : CommandUtils
 
 						}
 
+						// Read the receipt for this target
+						TargetReceipt Receipt;
+						if(!TargetReceipt.TryRead(ReceiptFileName, out Receipt))
+						{
+							throw new AutomationException("Missing or invalid target receipt ({0})", ReceiptFileName);
+						}
+
 						// Convert the paths to absolute
-						TargetReceipt Receipt = TargetReceipt.Read(ReceiptFileName);
 						Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
 						Receipt.SetDependenciesToBeRequired(bRequireStagedFilesToExist);
 						TargetsToStage.Add(Receipt);
