@@ -304,12 +304,6 @@ public:
 	UPROPERTY()
 	class UTexture2D* Bad;
 
-	UPROPERTY()
-	class UTexture2D* Bkgnd;
-
-	UPROPERTY()
-	class UTexture2D* BkgndHi;
-
 	// Font used by Canvas-based editors
 	UPROPERTY()
 	class UFont* EditorFont;

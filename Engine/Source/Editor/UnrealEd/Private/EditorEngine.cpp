@@ -213,8 +213,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 		struct FConstructorStatics
 		{
 			ConstructorHelpers::FObjectFinder<UTexture2D> BadTexture;
-			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundTexture;
-			ConstructorHelpers::FObjectFinder<UTexture2D> BackgroundHiTexture;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorCubeMesh;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorSphereMesh;
 			ConstructorHelpers::FObjectFinder<UStaticMesh> EditorPlaneMesh;
@@ -222,8 +220,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 			ConstructorHelpers::FObjectFinder<UFont> SmallFont;
 			FConstructorStatics()
 				: BadTexture(TEXT("/Engine/EditorResources/Bad"))
-				, BackgroundTexture(TEXT("/Engine/EditorResources/Bkgnd"))
-				, BackgroundHiTexture(TEXT("/Engine/EditorResources/BkgndHi"))
 				, EditorCubeMesh(TEXT("/Engine/EditorMeshes/EditorCube"))
 				, EditorSphereMesh(TEXT("/Engine/EditorMeshes/EditorSphere"))
 				, EditorPlaneMesh(TEXT("/Engine/EditorMeshes/EditorPlane"))
@@ -235,8 +231,6 @@ UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 		static FConstructorStatics ConstructorStatics;
 
 		Bad = ConstructorStatics.BadTexture.Object;
-		Bkgnd = ConstructorStatics.BackgroundTexture.Object;
-		BkgndHi = ConstructorStatics.BackgroundHiTexture.Object;
 		EditorCube = ConstructorStatics.EditorCubeMesh.Object;
 		EditorSphere = ConstructorStatics.EditorSphereMesh.Object;
 		EditorPlane = ConstructorStatics.EditorPlaneMesh.Object;

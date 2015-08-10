@@ -82,7 +82,7 @@ FFontEditorViewportClient::FFontEditorViewportClient(TWeakPtr<SFontEditorViewpor
 void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
 	UFont* Font = FontEditorViewportPtr.Pin()->GetFontEditor().Pin()->GetFont();
-	
+
 	if (!FontEditorViewportPtr.Pin()->IsPreviewViewport())
 	{
 		FVector2D Ratio = FVector2D(GetViewportHorizontalScrollBarRatio(), GetViewportVerticalScrollBarRatio());
@@ -141,7 +141,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 							Canvas->SetHitProxy(new HObject(Texture));
 						
 							// Draw a simple tile
-							Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, GEditor->BkgndHi->Resource);
+							Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, nullptr );
 						
 							Canvas->SetHitProxy(NULL);
 						}
@@ -151,7 +151,7 @@ void FFontEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 							// Draw a selected background
 							if (Texture->IsSelected())
 							{
-								Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor::White, GEditor->BkgndHi->Resource);
+								Canvas->DrawTile( XPos, YPos, Width, Height, 0.0f, 0.0f, 1.0f, 1.0f, FLinearColor(0.084f, .127f, 0.098f), nullptr );
 							}
 							else
 							{
