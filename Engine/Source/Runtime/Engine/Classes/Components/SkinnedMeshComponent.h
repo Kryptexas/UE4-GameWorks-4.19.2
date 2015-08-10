@@ -294,7 +294,7 @@ public:
 	uint32 bDisplayBones:1;
 
 	/** Disable Morphtarget for this component. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = SkeletalMesh)
 	uint32 bDisableMorphTarget:1;
 
 	/** Don't bother rendering the skin. */
