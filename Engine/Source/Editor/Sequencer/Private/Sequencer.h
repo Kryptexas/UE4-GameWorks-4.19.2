@@ -72,6 +72,8 @@ public:
 	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) override;
 	virtual bool GetKeyAllEnabled() const override;
 	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) override;
+	virtual bool GetKeyInterpPropertiesOnly() const override;
+	virtual void SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly) override;
 	virtual bool IsRecordingLive() const override;
 	virtual float GetCurrentLocalTime(UMovieSceneSequence& InMovieSceneSequence) override;
 	virtual float GetGlobalTime() override;

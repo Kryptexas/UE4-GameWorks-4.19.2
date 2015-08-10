@@ -54,6 +54,11 @@ public:
 	/** Sets whether or not key all is enabled. */
 	void SetKeyAllEnabled(bool InbKeyAllEnabled);
 
+	/** Gets whether or not to key interp properties only. */
+	bool GetKeyInterpPropertiesOnly() const;
+	/** Sets whether or not to key interp properties only. */
+	void SetKeyInterpPropertiesOnly(bool InbKeyInterpPropertiesOnly); 
+
 	/** Gets whether or not to show frame numbers. */
 	bool GetShowFrameNumbers() const;
 	/** Sets whether or not to show frame numbers. */
@@ -151,6 +156,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bKeyAllEnabled;
+
+	UPROPERTY( config )
+	bool bKeyInterpPropertiesOnly;
 
 	UPROPERTY( config )
 	bool bShowFrameNumbers;

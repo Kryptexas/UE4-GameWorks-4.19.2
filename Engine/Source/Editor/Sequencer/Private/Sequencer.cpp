@@ -549,6 +549,16 @@ void FSequencer::SetKeyAllEnabled(bool bKeyAllEnabled)
 	Settings->SetKeyAllEnabled(bKeyAllEnabled);
 }
 
+bool FSequencer::GetKeyInterpPropertiesOnly() const 
+{
+	return Settings->GetKeyInterpPropertiesOnly();
+}
+
+void FSequencer::SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly) 
+{
+	Settings->SetKeyInterpPropertiesOnly(bKeyInterpPropertiesOnly);
+}
+
 bool FSequencer::IsRecordingLive() const 
 {
 	return PlaybackState == EMovieScenePlayerStatus::Recording && GIsPlayInEditorWorld;

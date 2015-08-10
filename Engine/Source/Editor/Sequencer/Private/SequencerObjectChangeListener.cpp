@@ -137,6 +137,16 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectCla
 		if( Function && !Function->HasMetaData(DeprecatedFunctionName) )
 		{
 			bFound = true;
+
+			if (Sequencer.IsValid() && Sequencer.Pin()->GetKeyInterpPropertiesOnly())
+			{
+				UProperty* Property = ObjectClass.FindPropertyByName(FName(*InPropertyVarName));
+
+				if (!Property || !Property->HasAnyPropertyFlags(CPF_Interp))
+				{
+					bFound = false;
+				}
+			}
 		}
 		else
 		{
