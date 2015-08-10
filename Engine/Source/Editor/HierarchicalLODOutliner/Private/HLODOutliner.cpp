@@ -4,7 +4,7 @@
 #include "HLODOutliner.h"
 
 #include "Engine.h"
-#include "Engine/LodActor.h"
+#include "Engine/LODActor.h"
 #include "Engine/World.h"
 #include "HierarchicalLOD.h"
 
@@ -19,7 +19,7 @@
 #include "LODActorItem.h"
 #include "LODLevelItem.h"
 #include "StaticMeshActorItem.h"
-#include "HLODTreeWidgetitem.h"
+#include "HLODTreeWidgetItem.h"
 #include "HLODSelectionActor.h"
 #include "TreeItemID.h"
 

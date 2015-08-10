@@ -6,7 +6,7 @@
 #include "Engine/StaticMesh.h"
 #include "MeshUtilities.h"
 
-#include "Asyncwork.h"
+#include "AsyncWork.h"
 
 #if WITH_EDITOR
 #include "AssetData.h"

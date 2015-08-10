@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
-#include "Engine/LodActor.h"
+#include "Engine/LODActor.h"
 #include "HLODOutlinerDragDrop.h"
 
 class FMenuBuilder;

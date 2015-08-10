@@ -3,7 +3,7 @@
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "LevelEditor.h"
 #include "LODActorItem.h"
-#include "Engine/LodActor.h"
+#include "Engine/LODActor.h"
 #include "HLODOutliner.h"
 #include "HierarchicalLODUtils.h"
 #include "ScopedTransaction.h"
