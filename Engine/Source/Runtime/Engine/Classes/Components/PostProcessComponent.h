@@ -63,6 +63,10 @@ protected:
 
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
+
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
 };
 
 
