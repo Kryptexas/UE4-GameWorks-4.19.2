@@ -354,6 +354,15 @@ public:
 	 * Checks if a package name contains characters that are invalid for package names.
 	 */
 	static bool DoesPackageNameContainInvalidCharacters(const FString& InLongPackageName, FText* OutReason = NULL);
+	
+	/**
+	* Checks if a package can be found using known package extensions.
+	*
+	* @param InPackageFilename Package filename without the extension.
+	* @param OutFilename If the package could be found, filename with the extension.
+	* @return true if the package could be found on disk.
+	*/
+	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
 
 private:
 
@@ -366,15 +375,6 @@ private:
 	 * @return Long package name.
 	 */
 	static FString InternalFilenameToLongPackageName(const FString& InFilename);
-
-	/**
-	 * Checks if a package can be found using known package extensions.
-	 *
-	 * @param InPackageFilename Package filename without the extension.
-	 * @param OutFilename If the package could be found, filename with the extension.
-	 * @return true if the package could be found on disk.
-	 */
-	static bool FindPackageFileWithoutExtension(const FString& InPackageFilename, FString& OutFilename);
 
 	/** Event that is triggered when a new content path is mounted */
 	static FOnContentPathMountedEvent OnContentPathMountedEvent;

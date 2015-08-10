@@ -746,6 +746,8 @@ bool FChunkManifestGenerator::SaveCookedPackageAssetRegistry( const FString& San
 
 			FString PlatformSandboxPath = SandboxPath.Replace(TEXT("[Platform]"), *Platform->PlatformName());
 			
+			FPackageName::FindPackageFileWithoutExtension(PlatformSandboxPath, PlatformSandboxPath);
+
 			FDateTime TimeStamp = IFileManager::Get().GetTimeStamp( *PlatformSandboxPath );
 			int64 FileSize = IFileManager::Get().FileSize(*PlatformSandboxPath);
 
