@@ -202,6 +202,7 @@ namespace AutomationTool
             this.GeneratePatch = InParams.GeneratePatch;
             this.DLCName = InParams.DLCName;
             this.DLCIncludeEngineContent = InParams.DLCIncludeEngineContent;
+            this.DiffCookedContentPath = InParams.DiffCookedContentPath;
             this.NewCook = InParams.NewCook;
             this.OldCook = InParams.OldCook;
             this.AdditionalCookerOptions = InParams.AdditionalCookerOptions;
@@ -355,6 +356,7 @@ namespace AutomationTool
             string CreateReleaseVersion = null,
             bool? GeneratePatch = null,
             string DLCName = null,
+            string DiffCookedContentPath = null,
             bool? DLCIncludeEngineContent = null,
             bool? NewCook = null,
             bool? OldCook = null,
@@ -463,6 +465,7 @@ namespace AutomationTool
             this.GeneratePatch = GetParamValueIfNotSpecified(Command, GeneratePatch, this.GeneratePatch, "GeneratePatch");
             this.AdditionalCookerOptions = ParseParamValueIfNotSpecified(Command, AdditionalCookerOptions, "AdditionalCookerOptions", String.Empty);
             this.DLCName = ParseParamValueIfNotSpecified(Command, DLCName, "DLCName", String.Empty);
+            this.DiffCookedContentPath = ParseParamValueIfNotSpecified(Command, DiffCookedContentPath, "DiffCookedContentPath", String.Empty);
             this.DLCIncludeEngineContent = GetParamValueIfNotSpecified(Command, DLCIncludeEngineContent, this.DLCIncludeEngineContent, "DLCIncludeEngineContent");
 			this.SkipCook = GetParamValueIfNotSpecified(Command, SkipCook, this.SkipCook, "skipcook");
 			if (this.SkipCook)
@@ -1077,6 +1080,12 @@ namespace AutomationTool
         ///  not included in original release but is referenced by current cook
         /// </summary>
         public bool DLCIncludeEngineContent;
+
+        /// <summary>
+        /// After cook completes diff the cooked content against another cooked content directory.
+        ///  report all errors to the log
+        /// </summary>
+        public string DiffCookedContentPath;
 
         /// <summary>
         /// Cook: Additional cooker options to include on the cooker commandline
@@ -1728,6 +1737,11 @@ namespace AutomationTool
             get { return !String.IsNullOrEmpty(DLCName); }
         }
 
+        public bool HasDiffCookedContentPath
+        {
+            get { return !String.IsNullOrEmpty(DiffCookedContentPath); }
+        }
+
         public bool HasCreateReleaseVersion
         {
             get { return !String.IsNullOrEmpty(CreateReleaseVersion); }
@@ -2067,6 +2081,7 @@ namespace AutomationTool
                 CommandUtils.Log("BasedOnReleaseVersion={0}", BasedOnReleaseVersion);
                 CommandUtils.Log("DLCName={0}", DLCName);
                 CommandUtils.Log("DLCIncludeEngineContent={0}", DLCIncludeEngineContent);
+                CommandUtils.Log("DiffCookedContentPath={0}", DiffCookedContentPath);
                 CommandUtils.Log("AdditionalCookerOptions={0}", AdditionalCookerOptions);
 				CommandUtils.Log("DedicatedServer={0}", DedicatedServer);
 				CommandUtils.Log("DirectoriesToCook={0}", DirectoriesToCook.ToString());

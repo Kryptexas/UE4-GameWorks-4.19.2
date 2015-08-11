@@ -117,6 +117,16 @@ namespace AutomationTool
 			throw new AutomationException("{0} does not yet implement Packaging.", PlatformType);
 		}
 
+        /// <summary>
+        /// Does the reverse of the output from the package process
+        /// </summary>
+        /// <param name="SourcePath"></param>
+        /// <param name="DestinationPath"></param>
+        public virtual void ExtractPackage(ProjectParams Params, string SourcePath, string DestinationPath)
+        {
+            throw new AutomationException("{0} does not yet implement ExtractPackage.", PlatformType);
+        }
+
 		/// <summary>
 		/// Allow platform to do platform specific work on archived project before it's deployed.
 		/// </summary>

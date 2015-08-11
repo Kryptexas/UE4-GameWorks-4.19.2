@@ -246,10 +246,118 @@ public partial class Project : CommandUtils
 					throw new AutomationException(ErrorCodes.Error_UnknownCookFailure, Ex, "Cook failed.");
 				}
 			}
+
+            if (Params.HasDiffCookedContentPath)
+            {
+                try
+                {
+                    DiffCookedContent(Params);
+                }
+                catch ( Exception Ex )
+                {
+                    // Delete cooked data (if any) as it may be incomplete / corrupted.
+                    LogConsole("Cook failed. Deleting cooked data.");
+                    CleanupCookedData(PlatformsToCook.ToList(), Params);
+                    throw new AutomationException(ErrorCodes.Error_UnknownCookFailure, Ex, "Cook failed.");
+                }
+            }
+            
 		}
+
 
 		LogConsole("********** COOK COMMAND COMPLETED **********");
 	}
+
+    private static void DiffCookedContent( ProjectParams Params)
+    {
+        List<UnrealTargetPlatform> PlatformsToCook = Params.ClientTargetPlatforms;
+        string ProjectPath = Path.GetFullPath(Params.RawProjectPath);
+
+        var CookedSandboxesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Cooked");
+
+        for (int CookPlatformIndex = 0; CookPlatformIndex < PlatformsToCook.Count; ++CookPlatformIndex)
+        {
+            // temporary directory to save the pak file to (pak file is usually not local and on network drive)
+            var TemporaryPakPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Temp", "LocalPKG");
+            // extracted files from pak file
+            var TemporaryFilesPath = CombinePaths(GetDirectoryName(ProjectPath), "Saved", "Temp", "LocalFiles");
+
+            
+
+            try
+            {
+                Directory.Delete(TemporaryPakPath, true);
+                Directory.Delete(TemporaryFilesPath, true);
+            }
+            catch(Exception )
+            {
+                LogConsole("Failed deleting temporary directories "+TemporaryPakPath+" "+TemporaryFilesPath+" continuing.");
+            }
+
+            Directory.CreateDirectory(TemporaryPakPath);
+            Directory.CreateDirectory(TemporaryFilesPath);
+
+            Platform CurrentPlatform = Params.GetTargetPlatformInstance(PlatformsToCook[CookPlatformIndex]);
+
+            if (Params.DiffCookedContentPath.EndsWith(".pak"))
+            {
+                string TemporaryPakFilename = CombinePaths( TemporaryPakPath, Path.GetFileName(Params.DiffCookedContentPath) );
+                File.Copy(Params.DiffCookedContentPath, TemporaryPakFilename);
+            }
+            else
+            {
+                CurrentPlatform.ExtractPackage(Params, Params.DiffCookedContentPath, TemporaryPakPath);
+            }
+
+            
+
+            string FullCookPath = CombinePaths(CookedSandboxesPath, PlatformsToCook[CookPlatformIndex].ToString());
+
+            
+
+            var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
+
+            // find the pak file
+            var PakFiles = Directory.EnumerateFiles(TemporaryPakPath, "*.pak");
+            foreach (var Name in PakFiles)
+            {
+                string UnrealPakParams = Name + " -Extract " + " " + TemporaryFilesPath;
+
+                RunAndLog(CmdEnv, UnrealPakExe, UnrealPakParams, Options: ERunOptions.Default | ERunOptions.UTF8Output);
+            }
+
+            // diff the content
+            List<string> AllFiles = Directory.EnumerateFiles(FullCookPath, "*.uasset", System.IO.SearchOption.AllDirectories).ToList();
+            AllFiles.AddRange(Directory.EnumerateFiles(FullCookPath, "*.map", System.IO.SearchOption.AllDirectories).ToList());
+            foreach (string SourceFilename in AllFiles)
+            {
+                // Filename.StartsWith( CookedSandboxesPath );
+                string RelativeFilename = SourceFilename.Remove(0, FullCookPath.Length);
+                
+                string DestFilename = TemporaryFilesPath + RelativeFilename;
+
+                byte[] SourceFile = File.ReadAllBytes(SourceFilename);
+
+                byte[] DestFile = File.ReadAllBytes(DestFilename);
+
+                if ( SourceFile.LongLength == DestFile.LongLength )
+                {
+                    for ( long Index = 0; Index < SourceFile.LongLength; ++Index )
+                    {
+                        if ( SourceFile[Index] != DestFile[Index] )
+                        {
+					        LogConsole("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " at offset " + Index.ToString() );
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    LogConsole("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " files are different sizes " + SourceFile.LongLength.ToString() + " " + DestFile.LongLength.ToString() );
+                }
+            } 
+        }
+    }
 
 	private static void CleanupCookedData(List<string> PlatformsToCook, ProjectParams Params)
 	{
