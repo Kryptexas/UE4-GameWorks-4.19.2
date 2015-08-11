@@ -2725,6 +2725,12 @@ private:
 	/** Utility function to handle Exec/Console Commands related to stopping demo playback */
 	bool HandleDemoStopCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld );
 
+	/** Utility function to handle Exec/Console Command for scrubbing to a specific time */
+	bool HandleDemoScrubCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
+
+	/** Utility function to handle Exec/Console Command for pausing and unpausing a replay */
+	bool HandleDemoPauseCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
+
 public:
 
 	// Destroys the current demo net driver
