@@ -655,6 +655,9 @@ private:
 	/** Sets show flags for perspective viewports */
 	void SetViewportShowFlags( const bool bAllowColorViewModes, FEditorViewportClient& Viewport );
 
+	/** Gets the vertex from the mesh, taking spline modifications into account */
+	FVector GetMeshVertex( UStaticMeshComponent* StaticMeshComponent, FStaticMeshLODResources&, int32 );
+
 	/** Starts painting a texture */
 	void StartPaintingTexture(UMeshComponent* InMeshComponent, const IMeshPaintGeometryAdapter& GeometryInfo);
 

@@ -47,7 +47,13 @@ FSplineMeshSceneProxy::FSplineMeshSceneProxy(USplineMeshComponent* InComponent) 
 
 		LODResources.Add(VertexFactory);
 
-		InitResources(InComponent, LODIndex);
+		if( InComponent->LODData.IsValidIndex( LODIndex ))
+		{
+			const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[ LODIndex ];
+			InitResources( InComponent, LODIndex, ComponentLODInfo.OverrideVertexColors );
+		}
+		else
+			InitResources( InComponent, LODIndex, NULL );
 	}
 }
 

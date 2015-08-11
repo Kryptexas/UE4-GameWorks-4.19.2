@@ -88,16 +88,15 @@ FVertexFactoryShaderParameters* FSplineMeshVertexFactory::ConstructShaderParamet
 //////////////////////////////////////////////////////////////////////////
 // SplineMeshSceneProxy
 
-
-
-void FSplineMeshSceneProxy::InitResources(USplineMeshComponent* InComponent, int32 InLODIndex)
+void FSplineMeshSceneProxy::InitResources( USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer* InOverrideColorVertexBuffer )
 {
 	// Initialize the static mesh's vertex factory.
-	ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
 		InitSplineMeshVertexFactory,
 		FSplineMeshVertexFactory*, VertexFactory, LODResources[InLODIndex].VertexFactory,
-		const FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
+		FStaticMeshLODResources*, RenderData, &InComponent->StaticMesh->RenderData->LODResources[InLODIndex],
 		UStaticMesh*, Parent, InComponent->StaticMesh,
+		FColorVertexBuffer*, OverrideColorVertexBuffer, InOverrideColorVertexBuffer,
 		{
 		FLocalVertexFactory::DataType Data;
 
@@ -119,13 +118,19 @@ void FSplineMeshSceneProxy::InitResources(USplineMeshComponent* InComponent, int
 			RenderData->VertexBuffer.GetStride(),
 			VET_PackedNormal
 			);
-
-		if (RenderData->ColorVertexBuffer.GetNumVertices() > 0)
+		
+		FColorVertexBuffer* LODColorVertexBuffer = &RenderData->ColorVertexBuffer;
+		// Override the buffer if it has been changed
+		if ( OverrideColorVertexBuffer != NULL )
+		{
+			LODColorVertexBuffer = OverrideColorVertexBuffer;
+		}
+		if ( LODColorVertexBuffer->GetNumVertices() > 0 )
 		{
 			Data.ColorComponent = FVertexStreamComponent(
-				&RenderData->ColorVertexBuffer,
+				LODColorVertexBuffer,
 				0,	// Struct offset to color
-				RenderData->ColorVertexBuffer.GetStride(),
+				LODColorVertexBuffer->GetStride(),
 				VET_Color
 				);
 		}

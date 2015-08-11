@@ -149,7 +149,7 @@ public:
 
 	virtual ~FSplineMeshSceneProxy() override;
 
-	void InitResources(USplineMeshComponent* InComponent, int32 InLODIndex);
+	void InitResources(USplineMeshComponent* InComponent, int32 InLODIndex, FColorVertexBuffer*);
 
 	void ReleaseResources();
 

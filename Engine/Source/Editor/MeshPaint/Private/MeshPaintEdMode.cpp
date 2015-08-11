@@ -30,6 +30,7 @@
 #include "Engine/StaticMeshActor.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "MeshPaintAdapterFactory.h"
+#include "Components/SplineMeshComponent.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -1508,7 +1509,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 					for( int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum )
 					{
 						VertexIndices[ TriVertexNum ] = Indices[ TriIndex * 3 + TriVertexNum ];
-						TriVertices[ TriVertexNum ] = LODModel.PositionVertexBuffer.VertexPosition( VertexIndices[ TriVertexNum ] );
+						TriVertices[ TriVertexNum ] = GetMeshVertex( StaticMeshComponent, LODModel, VertexIndices[ TriVertexNum ] );
 					}
 
 					// Check to see if the triangle is front facing
@@ -1527,7 +1528,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 				{
 					// Grab the mesh vertex and transform it to world space
 					const int32 VertexIndex = CurIndexIt.GetIndex();
-					const FVector& ModelSpaceVertexPosition = LODModel.PositionVertexBuffer.VertexPosition( VertexIndex );
+					FVector	ModelSpaceVertexPosition = GetMeshVertex(StaticMeshComponent, LODModel, VertexIndex);
 					FVector WorldSpaceVertexPosition = ComponentToWorldMatrix.TransformPosition( ModelSpaceVertexPosition );
 
 					FColor OriginalVertexColor = FColor( 255, 255, 255 );
@@ -1705,7 +1706,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 			FBox Bounds; 
 			for (int32 VertIndex = 0; VertIndex < Indices.Num(); ++VertIndex)
 			{
-				FVector CurVector = LODModel.PositionVertexBuffer.VertexPosition( Indices[VertIndex] );
+				FVector	CurVector = GetMeshVertex( StaticMeshComponent, LODModel, Indices[ VertIndex ] );
 				if(VertIndex > 0)
 				{
 					Bounds.Min.X = FMath::Min<float>( Bounds.Min.X, CurVector.X );
@@ -1731,7 +1732,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 				for( int32 TriVertexNum = 0; TriVertexNum < 3; ++TriVertexNum )
 				{
 					const int32 VertexIndex = Indices[ TriIndex * 3 + TriVertexNum ];
-					MeshTri.Vertices[ TriVertexNum ] = LODModel.PositionVertexBuffer.VertexPosition( VertexIndex );
+					MeshTri.Vertices[ TriVertexNum ] = GetMeshVertex( StaticMeshComponent, LODModel, VertexIndex );
 				}
 				MeshTri.Index = TriIndex;
 				FBox TriBox;
@@ -1810,7 +1811,21 @@ void FEdModeMeshPaint::PaintMeshTexture( UMeshComponent* MeshComponent, const FM
 	}
 }
 
+/** Gets the vertex from the mesh, taking spline modifications into account */
+FVector FEdModeMeshPaint::GetMeshVertex( UStaticMeshComponent* StaticMeshComponent, FStaticMeshLODResources& LODModel, int32 VertexIndex )
+{
+	FVector OutPosition = LODModel.PositionVertexBuffer.VertexPosition( VertexIndex );
 
+	// Spline meshes must be shifted along the spline
+	if ( USplineMeshComponent* SplineMeshComponent = Cast<USplineMeshComponent>( StaticMeshComponent ))
+	{
+		const FTransform SliceTransform = SplineMeshComponent->CalcSliceTransform( USplineMeshComponent::GetAxisValue(OutPosition, SplineMeshComponent->ForwardAxis ));
+		USplineMeshComponent::GetAxisValue( OutPosition, SplineMeshComponent->ForwardAxis ) = 0;
+		OutPosition = SliceTransform.TransformPosition( OutPosition );
+	}
+
+	return OutPosition;
+}
 
 
 /** Starts painting a texture */
