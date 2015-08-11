@@ -20,6 +20,9 @@ struct FPluginTemplateDescription
 	/** Name of the directory containing template files */
 	FString OnDiskPath;
 
+	/** Whether to copy the whole template directory rather than create new files from .template files */
+	bool bCopyWholeDirectory;
+
 	/** Whether this template needs the UI files generated (commands, etc...) */
 	bool bIncludeUI;
 
@@ -33,10 +36,11 @@ struct FPluginTemplateDescription
 	TSharedPtr< FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
 
 	/** Constructor */
-	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool bInIncludeUI, bool bInMakeEditorMode, bool bInAddBPLibrary)
+	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool bInCopyWholeDirectory, bool bInIncludeUI, bool bInMakeEditorMode, bool bInAddBPLibrary)
 		: Name(InName)
 		, Description(InDescription)
 		, OnDiskPath(InOnDiskPath)
+		, bCopyWholeDirectory(bInCopyWholeDirectory)
 		, bIncludeUI(bInIncludeUI)
 		, bMakeEditorMode(bInMakeEditorMode)
 		, bAddBPLibrary(bInAddBPLibrary)
