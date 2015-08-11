@@ -221,6 +221,31 @@ bool FPerfCounters::Tick(float DeltaTime)
 	return true;
 }
 
+bool FPerfCounters::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	// ignore everything that doesn't start with PerfCounters
+	if (!FParse::Command(&Cmd, TEXT("perfcounters")))
+	{
+		return false;
+	}
+
+	if (FParse::Command(&Cmd, TEXT("clear")))
+	{
+		UE_LOG(LogPerfCounters, Verbose, TEXT("Clearing perf counters."));
+		for (TMap<FString, FJsonVariant>::TIterator It(PerfCounterMap); It; ++It)
+		{
+			if (It.Value().Flags & IPerfCounters::Flags::Transient)
+			{
+				UE_LOG(LogPerfCounters, Verbose, TEXT("  Removed '%s'"), *It.Key());
+				It.RemoveCurrent();
+			}
+		}
+		return true;
+	}
+
+	return false;
+}
+
 bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Response)
 {
 	bool bSuccess = false;
@@ -245,9 +270,24 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 				Response.Body = FString::Printf(TEXT("{ \"error\": \"Method %s not allowed\" }"), *Tokens[0]);
 				Response.Code = 405;
 			}
-			else if (Tokens[1] == TEXT("/stats"))
+			else if (Tokens[1].StartsWith(TEXT("/stats")))
 			{
 				Response.Body = ToJson();
+
+				// retrieving stats resets them by default, unless ?peek parameter is passed
+				const int kStatsTokenLength = 6; // strlen("/stats");
+				FString TokenRemainder = Tokens[1].Mid(kStatsTokenLength);
+				if (TokenRemainder != TEXT("?peek"))
+				{
+					if (ExecCmdCallback.IsBound())
+					{
+						ExecCmdCallback.Execute(TEXT("perfcounters clear"), *GLog);
+					}
+					else
+					{
+						Exec(nullptr, TEXT("perfcounters clear"), *GLog);
+					}
+				}
 			}
 			else if (Tokens[1].StartsWith(TEXT("/exec?c=")))
 			{
@@ -294,23 +334,45 @@ bool FPerfCounters::ProcessRequest(uint8* Buffer, int32 BufferLen, FResponse& Re
 	return bSuccess;
 }
 
-void FPerfCounters::SetNumber(const FString& Name, double Value) 
+double FPerfCounters::GetNumber(const FString& Name, double DefaultValue)
+{
+	FJsonVariant * JsonValue = PerfCounterMap.Find(Name);
+	if (JsonValue == nullptr)
+	{
+		return DefaultValue;
+	}
+
+	if (JsonValue->Format != FJsonVariant::Number)
+	{
+		UE_LOG(LogPerfCounters, Warning, TEXT("Attempting to get PerfCounter '%s' as number, but it is not (Json format=%d). Default value %f will be returned"), 
+			*Name, static_cast<int32>(JsonValue->Format), DefaultValue);
+
+		return DefaultValue;
+	}
+
+	return JsonValue->NumberValue;
+}
+
+void FPerfCounters::SetNumber(const FString& Name, double Value, uint32 Flags)
 {
 	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
 	JsonValue.Format = FJsonVariant::Number;
+	JsonValue.Flags = Flags;
 	JsonValue.NumberValue = Value;
 }
 
-void FPerfCounters::SetString(const FString& Name, const FString& Value)
+void FPerfCounters::SetString(const FString& Name, const FString& Value, uint32 Flags)
 {
 	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
 	JsonValue.Format = FJsonVariant::String;
+	JsonValue.Flags = Flags;
 	JsonValue.StringValue = Value;
 }
 
-void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback)
+void FPerfCounters::SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback, uint32 Flags)
 {
 	FJsonVariant& JsonValue = PerfCounterMap.FindOrAdd(Name);
 	JsonValue.Format = FJsonVariant::Callback;
+	JsonValue.Flags = Flags;
 	JsonValue.CallbackValue = InCallback;
 }

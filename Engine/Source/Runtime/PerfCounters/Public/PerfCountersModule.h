@@ -34,64 +34,96 @@ class IPerfCounters
 {
 public:
 
+	enum Flags : uint32
+	{
+		/** Perf counter with this flag will be removed by "perfcounters clear" command */
+		Transient = (1 << 0)
+	};
+
 	virtual ~IPerfCounters() {};
 
 	/** Get the unique identifier for this perf counter instance */
 	virtual const FString& GetInstanceName() const = 0;
 
+	/** Returns currently held value, or DefaultValue if none */
+	virtual double GetNumber(const FString& Name, double DefaultValue = 0.0) = 0;
+
 	/** Maps value to a numeric holder */
-	virtual void SetNumber(const FString& Name, double Value) = 0;
+	virtual void SetNumber(const FString& Name, double Value, uint32 Flags = 0) = 0;
 
 	/** Maps value to a string holder */
-	virtual void SetString(const FString& Name, const FString& Value) = 0;
+	virtual void SetString(const FString& Name, const FString& Value, uint32 Flags = 0) = 0;
 
 	/** Make a callback so we can request more extensive types on demand (presumably backed by some struct locally) */
-	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback) = 0;
+	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& Callback, uint32 Flags = 0) = 0;
 
 	/** @return delegate called when an exec command is to be executed */
 	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() = 0;
 
 public:
+
+	/** Get overloads */
+	int32 Get(const FString& Name, int32 Val = 0)
+	{
+		return static_cast<int32>(GetNumber(Name, static_cast<double>(Val)));
+	}
+
+	uint32 Get(const FString& Name, uint32 Val = 0)
+	{
+		return static_cast<uint32>(GetNumber(Name, static_cast<double>(Val)));
+	}
+
+	float Get(const FString& Name, float Val = 0.0f)
+	{
+		return static_cast<float>(GetNumber(Name, static_cast<double>(Val)));
+	}
+
+	double Get(const FString& Name, double Val = 0.0)
+	{
+		return GetNumber(Name, Val);
+	}
+
+
 	/** Set overloads (use these) */
 
-	void Set(const FString& Name, int32 Val)
+	void Set(const FString& Name, int32 Val, uint32 Flags = 0)
 	{
-		SetNumber(Name, (double)Val);
+		SetNumber(Name, (double)Val, Flags);
 	}
 
-	void Set(const FString& Name, uint32 Val)
+	void Set(const FString& Name, uint32 Val, uint32 Flags = 0)
 	{
-		SetNumber(Name, (double)Val);
+		SetNumber(Name, (double)Val, Flags);
 	}
 
-	void Set(const FString& Name, float Val)
+	void Set(const FString& Name, float Val, uint32 Flags = 0)
 	{
-		SetNumber(Name, (double)Val);
+		SetNumber(Name, (double)Val, Flags);
 	}
 
-	void Set(const FString& Name, double Val)
+	void Set(const FString& Name, double Val, uint32 Flags = 0)
 	{
-		SetNumber(Name, Val);
+		SetNumber(Name, Val, Flags);
 	}
 
-	void Set(const FString& Name, int64 Val)
+	void Set(const FString& Name, int64 Val, uint32 Flags = 0)
 	{
-		SetString(Name, FString::Printf(TEXT("%lld"), Val));
+		SetString(Name, FString::Printf(TEXT("%lld"), Val), Flags);
 	}
 
-	void Set(const FString& Name, uint64 Val)
+	void Set(const FString& Name, uint64 Val, uint32 Flags = 0)
 	{
-		SetString(Name, FString::Printf(TEXT("%llu"), Val));
+		SetString(Name, FString::Printf(TEXT("%llu"), Val), Flags);
 	}
 
-	void Set(const FString& Name, const FString& Val)
+	void Set(const FString& Name, const FString& Val, uint32 Flags = 0)
 	{
-		SetString(Name, Val);
+		SetString(Name, Val, Flags);
 	}
 
-	void Set(const FString& Name, const FProduceJsonCounterValue& Callback)
+	void Set(const FString& Name, const FProduceJsonCounterValue& Callback, uint32 Flags = 0)
 	{
-		SetJson(Name, Callback);
+		SetJson(Name, Callback, Flags);
 	}
 };
 

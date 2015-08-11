@@ -290,8 +290,9 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 		if (PerfCounters)
 		{
 			// Update total connections
-			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num());
+			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num(), IPerfCounters::Flags::Transient);
 
+			const int kNumBuckets = 4;	// 0-50, 50-100, 100-200, 200+
 			if (ClientConnections.Num() > 0)
 			{
 				// Update per connection statistics
@@ -299,6 +300,8 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				float AvgPing = 0;
 				float MaxPing = -MAX_FLT;
 				float PingCount = 0;
+
+				int32 Buckets[kNumBuckets] = { 0 };
 
 				for (int32 i = 0; i < ClientConnections.Num(); i++)
 				{
@@ -310,6 +313,21 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 						{
 							// Ping value calculated per client
 							float ConnPing = Connection->PlayerController->PlayerState->ExactPing;
+
+							int Bucket = 3;
+							if (ConnPing < 50)
+							{
+								Bucket = 0;
+							}
+							else if (ConnPing < 100)
+							{
+								Bucket = 1;
+							}
+							else if (ConnPing < 200)
+							{
+								Bucket = 2;
+							}
+							++Buckets[Bucket];
 
 							if (ConnPing < MinPing)
 							{
@@ -328,14 +346,43 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 				}
 
 				PerfCounters->Set(TEXT("AvgPing"), AvgPing / PingCount);
-				PerfCounters->Set(TEXT("MaxPing"), MaxPing);
-				PerfCounters->Set(TEXT("MinPing"), MinPing);
+				float CurrentMaxPing = PerfCounters->Get(TEXT("MaxPing"), MaxPing);
+				PerfCounters->Set(TEXT("MaxPing"), FMath::Max(MaxPing, CurrentMaxPing), IPerfCounters::Flags::Transient);
+				float CurrentMinPing = PerfCounters->Get(TEXT("MinPing"), MinPing);
+				PerfCounters->Set(TEXT("MinPing"), FMath::Min(MinPing, CurrentMinPing), IPerfCounters::Flags::Transient);
+
+				// update buckets
+				int TotalRecords = 0;
+				for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
+				{
+					Buckets[BucketIdx] += PerfCounters->Get(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0);
+					TotalRecords += Buckets[BucketIdx];
+				}
+
+				float NormalizedBuckets[kNumBuckets] = { 0 };
+
+				for (int BucketIdx = 0; BucketIdx < ARRAY_COUNT(Buckets); ++BucketIdx)
+				{
+					if (TotalRecords > 0)
+					{
+						NormalizedBuckets[BucketIdx] = static_cast<float>(Buckets[BucketIdx]) / static_cast<float>(TotalRecords);
+					}
+
+					PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), Buckets[BucketIdx], IPerfCounters::Flags::Transient);
+					PerfCounters->Set(FString::Printf(TEXT("PingBucket%d"), BucketIdx), NormalizedBuckets[BucketIdx], IPerfCounters::Flags::Transient);
+				}
 			}
 			else
 			{
 				PerfCounters->Set(TEXT("AvgPing"), 0.0f);
-				PerfCounters->Set(TEXT("MaxPing"), 0);
-				PerfCounters->Set(TEXT("MinPing"), 0);
+				PerfCounters->Set(TEXT("MaxPing"), -FLT_MAX, IPerfCounters::Flags::Transient);
+				PerfCounters->Set(TEXT("MinPing"), FLT_MAX, IPerfCounters::Flags::Transient);
+
+				for (int BucketIdx = 0; BucketIdx < kNumBuckets; ++BucketIdx)
+				{
+					PerfCounters->Set(FString::Printf(TEXT("PingBucketInt%d"), BucketIdx), 0, IPerfCounters::Flags::Transient);
+					PerfCounters->Set(FString::Printf(TEXT("PingBucket%d"), BucketIdx), 0.0f, IPerfCounters::Flags::Transient);
+				}
 			}
 		}
 #endif // USE_SERVER_PERF_COUNTERS
@@ -2751,6 +2798,15 @@ void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 	UE_LOG( LogNet, Log, TEXT( "AddClientConnection: Added client connection: %s" ), *NewConnection->Describe() );
 
 	ClientConnections.Add(NewConnection);
+
+#if USE_SERVER_PERF_COUNTERS
+	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
+	if (PerfCounters)
+	{
+		// Update total connections
+		PerfCounters->Set(TEXT("AddedConnections"), PerfCounters->Get(TEXT("AddedConnections"), int(0)) + 1, IPerfCounters::Flags::Transient);
+	}
+#endif // USE_SERVER_PERF_COUNTERS
 
 	for (auto It = DestroyedStartupOrDormantActors.CreateIterator(); It; ++It)
 	{

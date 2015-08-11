@@ -11,6 +11,7 @@ DECLARE_LOG_CATEGORY_EXTERN(LogPerfCounters, Verbose, All);
 
 class FPerfCounters 
 	: public FTickerObjectBase
+	, public FSelfRegisteringExec
 	, public IPerfCounters
 {
 public:
@@ -24,11 +25,16 @@ public:
 	/** FTickerObjectBase */
 	virtual bool Tick(float DeltaTime) override;
 
+	// Begin Exec Interface
+	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
+	// End Exec Interface
+
 	// IPerfCounters interface
 	const FString& GetInstanceName() const override { return UniqueInstanceId; }
-	virtual void SetNumber(const FString& Name, double Value) override;
-	virtual void SetString(const FString& Name, const FString& Value) override;
-	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback) override;
+	virtual double GetNumber(const FString& Name, double DefaultValue = 0.0) override;
+	virtual void SetNumber(const FString& Name, double Value, uint32 Flags) override;
+	virtual void SetString(const FString& Name, const FString& Value, uint32 Flags) override;
+	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback, uint32 Flags) override;
 	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() override { return ExecCmdCallback; }
 	// IPerfCounters interface end
 
@@ -101,6 +107,7 @@ private:
 		FString		StringValue;
 		double		NumberValue;
 		FProduceJsonCounterValue CallbackValue;
+		uint32		Flags;
 
 		FJsonVariant() : Format(Null), NumberValue(0) {}
 	};
