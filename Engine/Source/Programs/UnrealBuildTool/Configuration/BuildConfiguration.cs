@@ -434,10 +434,28 @@ namespace UnrealBuildTool
 		public static bool bAllowDistccLocalFallback;
 
 		/// <summary>
+		/// When true enable verbose distcc output to aid debugging.
+		/// </summary>
+		[XmlConfig]
+		public static bool bVerboseDistccOutput;
+
+		/// <summary>
 		/// Path to the Distcc & DMUCS executables.
 		/// </summary>
 		[XmlConfig]
 		public static string DistccExecutablesPath;
+
+		/// <summary>
+		/// DMUCS coordinator hostname or IP address.
+		/// </summary>
+		[XmlConfig]
+		public static string DMUCSCoordinator;
+
+		/// <summary>
+		/// The DMUCS distinguishing property value to request for compile hosts.
+		/// </summary>
+		[XmlConfig]
+		public static string DMUCSDistProp;
 
 		/// <summary>
 		/// Run UnrealCodeAnalyzer instead of regular compilation. Requires setting UCA mode by bUCACheckUObjectThreadSafety or bUCACheckPCHFiles.
@@ -591,9 +609,14 @@ namespace UnrealBuildTool
 			// Distcc requires some setup - so by default disable it so we don't break local or remote building
 			bAllowDistcc = false;
 			bAllowDistccLocalFallback = true;
+			bVerboseDistccOutput = false;
 
 			// The normal Posix place to install distcc/dmucs would be /usr/local so start there
 			DistccExecutablesPath = "/usr/local/bin";
+
+			// The standard coordinator is localhost and the default distprop is empty
+			DMUCSCoordinator = "localhost";
+			DMUCSDistProp = "";
 
 			// By default compile code instead of analyzing it.
 			bRunUnrealCodeAnalyzer = false;
@@ -613,6 +636,31 @@ namespace UnrealBuildTool
 				if (System.IO.Directory.Exists (MacDistccExecutablesPath)) 
 				{
 					DistccExecutablesPath = MacDistccExecutablesPath;
+				}
+
+				if (System.IO.File.Exists (UserDir + "/Library/Preferences/com.marksatt.DistCode.plist"))
+				{
+					using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
+					{
+						try
+						{
+							DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+							DefaultsProcess.StartInfo.CreateNoWindow = true;
+							DefaultsProcess.StartInfo.UseShellExecute = false;
+							DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+							DefaultsProcess.StartInfo.Arguments = "read com.marksatt.DistCode DistProp";
+							DefaultsProcess.Start();
+							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+							DefaultsProcess.WaitForExit();
+							if(DefaultsProcess.ExitCode == 0)
+							{
+								DMUCSDistProp = Output;
+							}
+						}
+						catch (Exception e)
+						{
+						}
+					}
 				}
 			}
 		}

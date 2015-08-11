@@ -22,27 +22,70 @@ namespace UnrealBuildTool
 				const float LoopSleepTime = 0.1f;
 
 				int MaxActionsToExecuteInParallel = 0;
+
 				string UserDir = Environment.GetEnvironmentVariable("HOME");
 				string HostsInfo = UserDir + "/.dmucs/hosts-info";
-				System.IO.StreamReader File = new System.IO.StreamReader(HostsInfo);
-				string Line = null;
-				while((Line = File.ReadLine()) != null)
+				string NumUBTBuildTasks = Environment.GetEnvironmentVariable("NumUBTBuildTasks");
+				Int32 MaxUBTBuildTasks = MaxActionsToExecuteInParallel;
+				if(Int32.TryParse(NumUBTBuildTasks, out MaxUBTBuildTasks))
 				{
-					var HostInfo = Line.Split(' ');
-					if (HostInfo.Count () == 3) 
+					MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
+				}
+				else if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+				{
+					using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
 					{
-						int NumCPUs = 0;
-						if (System.Int32.TryParse (HostInfo [1], out NumCPUs)) 
+						try
 						{
-							MaxActionsToExecuteInParallel += NumCPUs;
+							DefaultsProcess.StartInfo.FileName = "/usr/bin/defaults";
+							DefaultsProcess.StartInfo.CreateNoWindow = true;
+							DefaultsProcess.StartInfo.UseShellExecute = false;
+							DefaultsProcess.StartInfo.RedirectStandardOutput = true;
+							DefaultsProcess.StartInfo.Arguments = "com.apple.dt.Xcode IDEBuildOperationMaxNumberOfConcurrentCompileTasks";
+							DefaultsProcess.Start();
+							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
+							DefaultsProcess.WaitForExit();
+							if(DefaultsProcess.ExitCode == 0 && Int32.TryParse(Output, out MaxUBTBuildTasks))
+							{
+								MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
+							}
+						}
+						catch (Exception e)
+						{
 						}
 					}
 				}
-				File.Close();
+				else if (System.IO.File.Exists (HostsInfo))
+				{
+					System.IO.StreamReader File = new System.IO.StreamReader(HostsInfo);
+					string Line = null;
+					while((Line = File.ReadLine()) != null)
+					{
+						var HostInfo = Line.Split(' ');
+						if (HostInfo.Count () == 3) 
+						{
+							int NumCPUs = 0;
+							if (System.Int32.TryParse (HostInfo [1], out NumCPUs)) 
+							{
+								MaxActionsToExecuteInParallel += NumCPUs;
+							}
+						}
+					}
+					File.Close();
+				}
+				else
+				{
+					MaxActionsToExecuteInParallel = System.Environment.ProcessorCount;
+				}
 
-				if (BuildConfiguration.bAllowDistccLocalFallback == false) 
+				if (BuildConfiguration.bAllowDistccLocalFallback == false)
 				{
 					Environment.SetEnvironmentVariable("DISTCC_FALLBACK", "0");
+				}
+
+				if (BuildConfiguration.bVerboseDistccOutput == true)
+				{
+					Environment.SetEnvironmentVariable("DISTCC_VERBOSE", "1");
 				}
 
 				string DistccExecutable = BuildConfiguration.DistccExecutablesPath + "/distcc";
@@ -144,7 +187,8 @@ namespace UnrealBuildTool
 									{
 										if ((Action.ActionType == ActionType.Compile || Action.ActionType == ActionType.Link) && DistccExecutable != null && GetHostExecutable != null) 
 										{
-											string NewCommandArguments = "--wait -1 \"" + DistccExecutable + "\" " + Action.CommandPath + " " + Action.CommandArguments;
+											string TypeCommand = String.IsNullOrEmpty(BuildConfiguration.DMUCSDistProp) ? "" : (" --type " + BuildConfiguration.DMUCSDistProp);
+											string NewCommandArguments = "--server " + BuildConfiguration.DMUCSCoordinator + TypeCommand + " --wait -1 \"" + DistccExecutable + "\" " + Action.CommandPath + " " + Action.CommandArguments;
 											Action.CommandPath = GetHostExecutable;
 											Action.CommandArguments = NewCommandArguments;
 										}
