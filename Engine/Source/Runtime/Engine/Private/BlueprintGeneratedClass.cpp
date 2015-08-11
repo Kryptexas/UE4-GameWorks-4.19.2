@@ -328,44 +328,74 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 	return Archetype;
 }
 
-UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(UClass* Class) const
+UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(const UClass* ThisClass, UClass* BindingClass)
 {
-	UDynamicBlueprintBinding* DynamicBindingObject = NULL;
-	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
+	check(ThisClass);
+	UDynamicBlueprintBinding* DynamicBlueprintBinding = nullptr;
+	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		if (DynamicBindingObjects[Index]->GetClass() == Class)
+		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
-			DynamicBindingObject = DynamicBindingObjects[Index];
-			break;
+			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
+			{
+				DynamicBlueprintBinding = DynamicBindingObject;
+				break;
+			}
 		}
 	}
-	return DynamicBindingObject;
+	else
+	{
+		for (auto MiscObj : ThisClass->MiscObjects)
+		{
+			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
+			{
+				DynamicBlueprintBinding = DynamicBindingObject;
+				break;
+			}
+		}
+	}
+	return DynamicBlueprintBinding;
 }
 
-void UBlueprintGeneratedClass::BindDynamicDelegates(UObject* InInstance) const
+void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UObject* InInstance)
 {
-	if(!InInstance->IsA(this))
+	check(ThisClass && InInstance);
+	if (!InInstance->IsA(ThisClass))
 	{
-		UE_LOG(LogBlueprint, Warning, TEXT("BindComponentDelegates: '%s' is not an instance of '%s'."), *InInstance->GetName(), *GetName());
+		UE_LOG(LogBlueprint, Warning, TEXT("BindComponentDelegates: '%s' is not an instance of '%s'."), *InInstance->GetName(), *ThisClass->GetName());
 		return;
 	}
 
-	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
+	if (auto BPGC = Cast<UBlueprintGeneratedClass>(ThisClass))
 	{
-		if ( ensure(DynamicBindingObjects[Index] != NULL) )
+		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
 		{
-			DynamicBindingObjects[Index]->BindDynamicDelegates(InInstance);
+			if (ensure(DynamicBindingObject))
+			{
+				DynamicBindingObject->BindDynamicDelegates(InInstance);
+			}
+		}
+	}
+	else
+	{
+		for (auto MiscObj : ThisClass->MiscObjects)
+		{
+			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
+			if (DynamicBindingObject)
+			{
+				DynamicBindingObject->BindDynamicDelegates(InInstance);
+			}
 		}
 	}
 
-	// call on super class, if it's a BlueprintGeneratedClass
-	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetSuperStruct());
-	if(BGClass != NULL)
+	if (auto TheSuperClass = ThisClass->GetSuperClass())
 	{
-		BGClass->BindDynamicDelegates(InInstance);
+		BindDynamicDelegates(TheSuperClass, InInstance);
 	}
 }
 
+#if WITH_EDITOR
 void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInstance, const UObjectProperty* InObjectProperty)
 {
 	for (int32 Index = 0; Index < DynamicBindingObjects.Num(); ++Index)
@@ -376,6 +406,7 @@ void UBlueprintGeneratedClass::UnbindDynamicDelegatesForProperty(UObject* InInst
 		}
 	}
 }
+#endif
 
 bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClass, TArray<const UBlueprintGeneratedClass*>& OutBPGClasses)
 {
@@ -520,21 +551,33 @@ void UBlueprintGeneratedClass::CreateTimelineComponent(AActor* Actor, const UTim
 	}
 }
 
-void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
+void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass, AActor* Actor)
 {
-	check(Actor != NULL);
+	check(ThisClass && Actor);
 	check(!Actor->IsTemplate());
 	check(!Actor->IsPendingKill());
 
-	// Iterate over each timeline template
-	for(int32 i=0; i<Timelines.Num(); i++)
+	if (auto BPGC = Cast<const UBlueprintGeneratedClass>(ThisClass))
 	{
-		const UTimelineTemplate* TimelineTemplate = Timelines[i];
-
-		// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
-		if(TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+		for (auto TimelineTemplate : BPGC->Timelines)
 		{
-			CreateTimelineComponent(Actor, TimelineTemplate);
+			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+			{
+				CreateTimelineComponent(Actor, TimelineTemplate);
+			}
+		}
+	}
+	else
+	{
+		for (auto MiscObj : ThisClass->MiscObjects)
+		{
+			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
+			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+			{
+				CreateTimelineComponent(Actor, TimelineTemplate);
+			}
 		}
 	}
 }

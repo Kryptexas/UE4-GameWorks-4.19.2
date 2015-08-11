@@ -2816,11 +2816,9 @@ void AActor::EnableInput(APlayerController* PlayerController)
 			InputComponent->bBlockInput = bBlockInput;
 			InputComponent->Priority = InputPriority;
 
-			// Only do this if this actor is of a blueprint class
-			UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
-			if(BGClass != NULL)
+			if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
 			{
-				UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+				UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
 			}
 		}
 		else

@@ -6,6 +6,7 @@
 #include "EdGraphSchema_K2.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "Engine/InheritableComponentHandler.h"
+#include "Engine/DynamicBlueprintBinding.h"
 
 FString FSafeContextScopedEmmitter::GetAdditionalIndent() const
 {
@@ -532,10 +533,11 @@ FString FEmitHelper::LiteralTerm(const FEdGraphPinType& Type, const FString& Cus
 		else
 		{
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
-			ensure(CustomValue.IsEmpty());
+			const bool bEmptyCustomValue = CustomValue.IsEmpty() || (CustomValue == TEXT("()"));
+			ensure(bEmptyCustomValue);
 			
 			const FString StructName = FString(TEXT("F")) + StructType->GetName();
-			const FString ConstructBody = CustomValue.IsEmpty()
+			const FString ConstructBody = bEmptyCustomValue
 				? (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"))
 				: CustomValue;
 			return StructName + ConstructBody;
@@ -1041,6 +1043,15 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 				HandleClassSubobject(Context, TimelineTemplate);
 			}
 		}
+
+		for (auto DynamicBindingObject : BPGC->DynamicBindingObjects)
+		{
+			if (DynamicBindingObject)
+			{
+				HandleClassSubobject(Context, DynamicBindingObject);
+			}
+		}
+
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 
@@ -1071,23 +1082,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	// TIMELINES
 	TSet<const UProperty*> HandledProperties;
 	const bool bIsActor = BPGC->IsChildOf<AActor>();
-	if (bIsActor)
-	{
-		for (auto TimelineTemplate : BPGC->Timelines)
-		{
-			FString NativeName;
-			if (Context.FindObject(TimelineTemplate, NativeName))
-			{
-				Context.AddLine(FString::Printf(TEXT("UBlueprintGeneratedClass::CreateTimelineComponent(this, %s);"), *NativeName));
-				auto Prop = FindField<UObjectPropertyBase>(BPGC, *UTimelineTemplate::TimelineTemplateNameToVariableName(TimelineTemplate->GetFName()));
-				if (Prop)
-				{
-					HandledProperties.Add(Prop);
-				}
-			}
-		}
-	}
-	
+
 	// COMPONENTS
 	for (auto Property : TFieldRange<const UProperty>(BPGC))
 	{

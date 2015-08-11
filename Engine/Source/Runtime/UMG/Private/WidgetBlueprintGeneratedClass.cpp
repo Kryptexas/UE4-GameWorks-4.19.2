@@ -126,7 +126,7 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 		});
 
 		// Bind any delegates on widgets
-		BindDynamicDelegates(UserWidget);
+		BindDynamicDelegates(this, UserWidget);
 
 		//TODO UMG Add OnWidgetInitialized?
 	}

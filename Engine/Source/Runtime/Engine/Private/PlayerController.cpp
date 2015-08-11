@@ -2207,12 +2207,10 @@ void APlayerController::SetupInputComponent()
 		InputComponent->RegisterComponent();
 	}
 
-	// Only do this if this actor is of a blueprint class
-	UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
-	if(BGClass != NULL)
+	if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
 	{
 		InputComponent->bBlockInput = bBlockInput;
-		UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+		UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
 	}
 }
 

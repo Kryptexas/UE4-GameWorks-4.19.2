@@ -360,12 +360,12 @@ void APawn::PawnClientRestart()
 			{
 				SetupPlayerInputComponent(InputComponent);
 				InputComponent->RegisterComponent();
-				UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
-				if(BGClass != NULL)
+				if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
 				{
 					InputComponent->bBlockInput = bBlockInput;
-					UInputDelegateBinding::BindInputDelegates(BGClass, InputComponent);
+					UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
 				}
+
 			}
 		}
 	}

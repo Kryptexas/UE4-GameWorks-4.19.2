@@ -445,7 +445,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 					CurrentBPGClass->SimpleConstructionScript->ExecuteScriptOnActor(this, Transform, bIsDefaultTransform);
 				}
 				// Now that the construction scripts have been run, we can create timelines and hook them up
-				CurrentBPGClass->CreateComponentsForActor(this);
+				UBlueprintGeneratedClass::CreateComponentsForActor(CurrentBPGClass, this);
 			}
 
 			// If we passed in cached data, we apply it now, so that the UserConstructionScript can use the updated values
@@ -478,7 +478,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			}
 
 			// Bind any delegates on components			
-			((UBlueprintGeneratedClass*)GetClass())->BindDynamicDelegates(this); // We have a BP stack, we must have a UBlueprintGeneratedClass...
+			UBlueprintGeneratedClass::BindDynamicDelegates(GetClass(), this); // We have a BP stack, we must have a UBlueprintGeneratedClass...
 
 			// Apply any cached data procedural components
 			// @TODO Don't re-apply to components we already applied to above
@@ -508,6 +508,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 	}
 	else
 	{
+		UBlueprintGeneratedClass::CreateComponentsForActor(GetClass(), this);
 #if WITH_EDITOR
 		bool bDoUserConstructionScript;
 		GConfig->GetBool(TEXT("Kismet"), TEXT("bTurnOffEditorConstructionScript"), bDoUserConstructionScript, GEngineIni);
@@ -517,6 +518,7 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 			// Then run the user script, which is responsible for calling its own super, if desired
 			ProcessUserConstructionScript();
 		}
+		UBlueprintGeneratedClass::BindDynamicDelegates(GetClass(), this);
 	}
 
 	GetWorld()->UpdateCullDistanceVolumes(this);

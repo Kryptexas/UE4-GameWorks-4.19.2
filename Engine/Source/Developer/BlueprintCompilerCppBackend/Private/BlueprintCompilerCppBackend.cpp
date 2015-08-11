@@ -230,7 +230,7 @@ void FBlueprintCompilerCppBackend::EmitCallDelegateStatment(FKismetFunctionConte
 
 	Emit(Body, TEXT("\t\t\t"));
 	Emit(Body, *SafeContextScope.GetAdditionalIndent());
-	Emit(Body, *FString::Printf(TEXT("%s.Broadcast(%s)"), *TermToText(Statement.FunctionContext, false), *EmitMethodInputParameterList(Statement)));
+	Emit(Body, *FString::Printf(TEXT("%s.Broadcast(%s);"), *TermToText(Statement.FunctionContext, false), *EmitMethodInputParameterList(Statement)));
 }
 
 FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FBlueprintCompiledStatement& Statement)
