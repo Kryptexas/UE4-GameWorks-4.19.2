@@ -194,7 +194,7 @@ Docked tab:
 
 ## Developer tools
 
-The **Slate Widget Inspector** provides a means of debugging and analyzing the UI and associated code. This helps track down bugs and undesirable behavior as well as profile and optimize your user interface.
+The **Slate Widget Reflector** provides a means of debugging and analyzing the UI and associated code. This helps track down bugs and undesirable behavior as well as profile and optimize your user interface.
 
 [REGION:fullwidth]
 ![Widget Inspector](widget_inspector.png)
