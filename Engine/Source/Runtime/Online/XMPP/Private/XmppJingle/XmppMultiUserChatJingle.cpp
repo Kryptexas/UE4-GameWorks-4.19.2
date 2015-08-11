@@ -161,7 +161,6 @@ private:
 		XForm->AddElement(FormTypeField);
 
 		// Setup other feature fields
-		FRoomFeatureValuePairs::const_iterator FeaturePairIt = RoomFeatureValuePairs.begin();
 		for (FRoomFeatureValuePairs::const_iterator FeaturePairIt = RoomFeatureValuePairs.begin()
 			; FeaturePairIt != RoomFeatureValuePairs.end()
 			; ++FeaturePairIt)
