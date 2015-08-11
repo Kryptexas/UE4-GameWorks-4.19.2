@@ -100,7 +100,7 @@ void UImage::SetBrushFromTexture(UTexture2D* Texture, bool bMatchSize)
 {
 	Brush.SetResourceObject(Texture);
 
-	if (bMatchSize)
+	if (bMatchSize && Texture)
 	{
 		Brush.ImageSize.X = Texture->GetSizeX();
 		Brush.ImageSize.Y = Texture->GetSizeY();
