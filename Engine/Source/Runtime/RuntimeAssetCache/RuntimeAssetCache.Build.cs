@@ -13,7 +13,5 @@ public class RuntimeAssetCache : ModuleRules
 				"CoreUObject",
 				"Engine",
 			});
-
-		SharedPCHHeaderFile = "Runtime/RuntimeAssetCache/Public/RuntimeAssetCachePublicPCH.h";
 	}
 }
