@@ -50,7 +50,7 @@ namespace UnrealBuildTool
 								MaxActionsToExecuteInParallel = MaxUBTBuildTasks;
 							}
 						}
-						catch (Exception e)
+						catch (Exception)
 						{
 						}
 					}

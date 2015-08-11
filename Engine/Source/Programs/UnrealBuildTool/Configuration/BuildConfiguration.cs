@@ -657,7 +657,7 @@ namespace UnrealBuildTool
 								DMUCSDistProp = Output;
 							}
 						}
-						catch (Exception e)
+						catch (Exception)
 						{
 						}
 					}
