@@ -151,6 +151,7 @@ FReply FAssetImportDataCustomization::OnChangePathClicked(int32 Index) const
 	if (OpenFilenames.Num() == 1)
 	{
 		ImportData->UpdateFilenameOnly(FPaths::ConvertRelativePathToFull(OpenFilenames[0]), Index);
+		ImportData->MarkPackageDirty();
 	}
 	return FReply::Handled();
 }

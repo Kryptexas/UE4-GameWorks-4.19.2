@@ -41,8 +41,6 @@ UDataTable::UDataTable(const FObjectInitializer& ObjectInitializer)
 			UPackage::GetTypeSpecificLocalizationDataGatheringCallbacks().Add(UDataTable::StaticClass(), &GatherDataTableForLocalization);
 		}
 	} AutomaticRegistrationOfLocalizationGatherer;
-
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
 #endif
 }
 
@@ -167,6 +165,16 @@ void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UDataTable::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
 }
 
 void UDataTable::PostLoad()

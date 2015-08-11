@@ -111,6 +111,8 @@
 #include "Engine/SimpleConstructionScript.h"
 #include "K2Node_AddComponent.h"
 
+#include "AutoReimport/AutoReimportUtilities.h"
+
 #include "Settings/EditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd.Editor"
@@ -407,6 +409,16 @@ void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFi
 
 	FileTypes = FString::Printf(TEXT("All Files (%s)|%s|%s"),*AllExtensions,*AllExtensions,*FileTypes);
 
+	FString DefaultFolder;
+	FString DefaultFile;
+	
+	TArray<FString> ExistingPaths = Utils::ExtractSourceFilePaths(Obj);
+	if (ExistingPaths.Num() > 0)
+	{
+		DefaultFolder = FPaths::GetPath(ExistingPaths[0]);
+		DefaultFile = FPaths::GetCleanFilename(ExistingPaths[0]);
+	}
+
 	// Prompt the user for the filenames
 	TArray<FString> OpenFilenames;
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
@@ -426,8 +438,8 @@ void FReimportManager::GetNewReimportPath(UObject* Obj, TArray<FString>& InOutFi
 		bOpened = DesktopPlatform->OpenFileDialog(
 			ParentWindowWindowHandle,
 			Title,
-			TEXT(""),
-			TEXT(""),
+			*DefaultFolder,
+			*DefaultFile,
 			FileTypes,
 			bAllowMultiSelect ? EFileDialogFlags::Multiple : EFileDialogFlags::None,
 			OpenFilenames

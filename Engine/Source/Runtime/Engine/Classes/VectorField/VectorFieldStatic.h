@@ -37,7 +37,7 @@ public:
 	UPROPERTY()
 	FString SourceFilePath_DEPRECATED;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 #endif // WITH_EDITORONLY_DATA
 
@@ -50,6 +50,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void PostInitProperties() override;
 #endif
 	// End UObject interface.
 
