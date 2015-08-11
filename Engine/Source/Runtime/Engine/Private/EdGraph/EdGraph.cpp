@@ -95,6 +95,21 @@ void UEdGraph::PostInitProperties()
 		GraphGuid = FGuid::NewGuid();
 	}
 }
+
+void UEdGraph::PostLoad()
+{
+	Super::PostLoad();
+
+	// Strip out null nodes (likely from missing node classes) as they will cause crashes 
+	for (int32 i = Nodes.Num() - 1; i >= 0; i--)
+	{
+		if (Nodes[i] == nullptr)
+		{
+			Nodes.RemoveAt(i);
+			UE_LOG(LogBlueprint, Warning, TEXT("Found NULL Node in EdGraph Nodes array. A node type may have been deleted without creating an ActiveClassRedictor to K2Node_DeadClass."));
+		}
+	}
+}
 #endif
 
 const UEdGraphSchema* UEdGraph::GetSchema() const
