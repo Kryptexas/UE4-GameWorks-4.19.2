@@ -700,7 +700,7 @@ struct TStructOpsTypeTraits<FGameplayEffectContextHandle> : public TStructOpsTyp
 
 
 USTRUCT(BlueprintType)
-struct FGameplayCueParameters
+struct GAMEPLAYABILITIES_API FGameplayCueParameters
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -708,7 +708,14 @@ struct FGameplayCueParameters
 	: NormalizedMagnitude(0.0f)
 	, RawMagnitude(0.0f)
 	, MatchedTagName(NAME_None)
+	, Location(ForceInitToZero)
+	, Normal(ForceInitToZero)
 	{}
+
+	/** Projects can override this via UAbilitySystemGlobals */
+	FGameplayCueParameters(const struct FGameplayEffectSpecForRPC &Spec);
+
+	FGameplayCueParameters(const struct FGameplayEffectContextHandle& EffectContext);
 
 	/** Magnitude of source gameplay effect, normalzed from 0-1. Use this for "how strong is the gameplay effect" (0=min, 1=,max) */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
@@ -737,6 +744,45 @@ struct FGameplayCueParameters
 	/** The aggregated target tags taken from the effect spec */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	FGameplayTagContainer AggregatedTargetTags;
+
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	FVector_NetQuantize10 Location;
+
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	FVector_NetQuantizeNormal Normal;
+
+	/** Instigator actor, the actor that owns the ability system component */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	TWeakObjectPtr<AActor> Instigator;
+
+	/** The physical actor that actually did the damage, can be a weapon or projectile */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	TWeakObjectPtr<AActor> EffectCauser;
+
+	/** Object this effect was created from, can be an actor or static object. Useful to bind an effect to a gameplay object */
+	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
+	TWeakObjectPtr<const UObject> SourceObject;
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
+
+	bool IsInstigatorLocallyControlled() const;
+
+	bool IsInstigatorLocallyControlledPlayer() const;
+
+	AActor* GetInstigator() const;
+
+	AActor* GetEffectCauser() const;
+
+	const UObject* GetSourceObject() const;
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayCueParameters> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithNetSerializer = true		
+	};
 };
 
 UENUM(BlueprintType)
@@ -771,7 +817,7 @@ namespace EGameplayTagEventType
 {
 	enum Type
 	{		
-		/** Event only happens when tag is branch new or removed */
+		/** Event only happens when tag is new or completely removed */
 		NewOrRemoved,
 
 		/** Event happens any time tag "count" changes */

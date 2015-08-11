@@ -25,6 +25,9 @@ public:
 	/** Simple accessor to owning gameplay spec */
 	const FGameplayEffectSpec& GetOwningSpec() const;
 
+	/** Non const access. Be careful with this, especially when modifying a spec after attribute capture. */
+	FGameplayEffectSpec* GetOwningSpecForPreExecuteMod() const;
+
 	/** Simple accessor to target ability system component */
 	UAbilitySystemComponent* GetTargetAbilitySystemComponent() const;
 

@@ -54,26 +54,7 @@ void UAbilitySystemComponent::UninitializeComponent()
 
 void UAbilitySystemComponent::OnComponentDestroyed()
 {
-	// If we haven't already begun being destroyed
-	if ((GetFlags() & RF_BeginDestroyed) == 0)
-	{
-		// Cancel all abilities before we are destroyed.
-		CancelAbilities();
-
-		// Mark pending kill any remaining instanced abilities
-		// (CancelAbilities() will only MarkPending kill InstancePerExecution abilities).
-		for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
-		{
-			TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
-			for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
-			{
-				if (InstanceAbility)
-				{
-					InstanceAbility->MarkPendingKill();
-				}
-			}
-		}
-	}
+	DestroyActiveState();
 
 	// Call the super at the end, after we've done what we needed to do
 	Super::OnComponentDestroyed();
@@ -554,6 +535,17 @@ FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromInputID(int32 
 	return nullptr;
 }
 
+FGameplayEffectContextHandle UAbilitySystemComponent::GetEffectContextFromActiveGEHandle(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveGE)
+	{
+		return ActiveGE->Spec.GetEffectContext();
+	}
+
+	return FGameplayEffectContextHandle();
+}
+
 UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, const UGameplayAbility* Ability)
 {
 	check(Ability);
@@ -712,6 +704,30 @@ void UAbilitySystemComponent::CancelAllAbilities(UGameplayAbility* Ignore)
 		if (Spec.Ability && Spec.Ability->IsActive())
 		{
 			CancelAbilitySpec(Spec, Ignore);
+		}
+	}
+}
+
+void UAbilitySystemComponent::DestroyActiveState()
+{
+	// If we haven't already begun being destroyed
+	if ((GetFlags() & RF_BeginDestroyed) == 0)
+	{
+		// Cancel all abilities before we are destroyed.
+		CancelAbilities();
+
+		// Mark pending kill any remaining instanced abilities
+		// (CancelAbilities() will only MarkPending kill InstancePerExecution abilities).
+		for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
+		{
+			TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
+			for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
+			{
+				if (InstanceAbility)
+				{
+					InstanceAbility->MarkPendingKill();
+				}
+			}
 		}
 	}
 }
@@ -982,8 +998,6 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		ABILITY_LOG(Warning, TEXT("InternalTryActivateAbility called with invalid Ability"));
 		return false;
 	}
-
-	
 
 	// Check to see if this a local only or server only ability, if so don't execute
 	if (!bIsLocal)
@@ -1691,6 +1705,11 @@ int32 UAbilitySystemComponent::HandleGameplayEvent(FGameplayTag EventTag, const 
 				TriggeredCount++;
 			}
 		}
+	}
+
+	if (FGameplayEventMulticastDelegate* Delegate = GenericGameplayEventCallbacks.Find(EventTag))
+	{
+		Delegate->Broadcast(Payload);
 	}
 
 	return TriggeredCount;

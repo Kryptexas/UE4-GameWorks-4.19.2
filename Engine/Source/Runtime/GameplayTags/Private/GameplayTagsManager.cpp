@@ -2,12 +2,14 @@
 
 #include "GameplayTagsModulePrivatePCH.h"
 #include "GameplayTagsSettings.h"
-//#include "AssetRegistryModule.h"
-
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+
+#define LOCTEXT_NAMESPACE "GameplayTagManager"
 
 UGameplayTagsManager::UGameplayTagsManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer),
@@ -524,6 +526,72 @@ void UGameplayTagsManager::OnObjectReimported(UFactory* ImportFactory, UObject* 
 		ConstructGameplayTagTree();
 	}
 }
+
+TSharedPtr<FGameplayTagNode> UGameplayTagsManager::FindTagNode(FName TagName) const
+{
+	return FindTagNode(GameplayRootTag, TagName);
+}
+
+void UGameplayTagsManager::AddNewGameplayTagToINI(FString NewTag)
+{
+	if(NewTag.IsEmpty())
+	{
+		return;
+	}
+
+	if (ShouldImportTagsFromINI() == false)
+	{
+		return;
+	}
+
+	UGameplayTagsSettings* Settings = GetMutableDefault<UGameplayTagsSettings>();
+	if (Settings)
+	{
+
+		FString RelativeConfigFilePath = Settings->GetDefaultConfigFilename();
+		FString ConfigPath = FPaths::ConvertRelativePathToFull(RelativeConfigFilePath);
+
+		if (ISourceControlModule::Get().IsEnabled())
+		{
+			FText ErrorMessage;
+
+			if (!SourceControlHelpers::CheckoutOrMarkForAdd(ConfigPath, FText::FromString(ConfigPath), NULL, ErrorMessage))
+			{
+				FNotificationInfo Info(ErrorMessage);
+				Info.ExpireDuration = 3.0f;
+				FSlateNotificationManager::Get().AddNotification(Info);
+			}
+		}
+		else
+		{
+			if (!FPlatformFileManager::Get().GetPlatformFile().SetReadOnly(*ConfigPath, false))
+			{
+				FText NotificationErrorText = FText::Format(LOCTEXT("FailedToMakeWritable", "Could not make {0} writable."), FText::FromString(ConfigPath));
+
+				FNotificationInfo Info(NotificationErrorText);
+				Info.ExpireDuration = 3.0f;
+
+				FSlateNotificationManager::Get().AddNotification(Info);
+			}
+		}
+
+		Settings->GameplayTags.Add(NewTag);
+		Settings->SortTags();
+		IGameplayTagsModule::Get().GetGameplayTagsManager().DestroyGameplayTagTree();
+
+		{
+#if STATS
+			FString PerfMessage = FString::Printf(TEXT("ConstructGameplayTagTree GameplayTag tables"));
+			SCOPE_LOG_TIME_IN_SECONDS(*PerfMessage, nullptr)
+#endif
+			IGameplayTagsModule::Get().GetGameplayTagsManager().ConstructGameplayTagTree();
+		}
+
+		Settings->UpdateDefaultConfigFile();
+	}
+	
+}
+
 #endif // WITH_EDITOR
 
 FGameplayTag UGameplayTagsManager::RequestGameplayTag(FName TagName, bool ErrorIfNotFound) const
@@ -872,3 +940,5 @@ void FGameplayTagNode::ResetNode()
 	ChildTags.Empty();
 	ParentNode.Reset();
 }
+
+#undef LOCTEXT_NAMESPACE

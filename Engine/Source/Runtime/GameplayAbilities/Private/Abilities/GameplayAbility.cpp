@@ -148,7 +148,8 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 
 bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemComponent& AbilitySystemComponent, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
-	bool bBlocked = false, bMissing = false;
+	bool bBlocked = false;
+	bool bMissing = false;
 
 	const FGameplayTag& BlockedTag = UAbilitySystemGlobals::Get().ActivateFailTagsBlockedTag;
 	const FGameplayTag& MissingTag = UAbilitySystemGlobals::Get().ActivateFailTagsMissingTag;
@@ -746,16 +747,18 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 {
 	SCOPE_CYCLE_COUNTER(STAT_GameplayAbilityGetCooldownTimeRemaining);
 
-	check(ActorInfo->AbilitySystemComponent.IsValid());
-	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
-	if (CooldownTags && CooldownTags->Num() > 0)
+	if (ActorInfo->AbilitySystemComponent.IsValid())
 	{
-		FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(*CooldownTags);
-		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
-		if (Durations.Num() > 0)
+		const FGameplayTagContainer* CooldownTags = GetCooldownTags();
+		if (CooldownTags && CooldownTags->Num() > 0)
 		{
-			Durations.Sort();
-			return Durations[Durations.Num()-1];
+			FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(*CooldownTags);
+			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
+			if (Durations.Num() > 0)
+			{
+				Durations.Sort();
+				return Durations[Durations.Num() - 1];
+			}
 		}
 	}
 
@@ -1193,6 +1196,22 @@ FGameplayAbilitySpec* UGameplayAbility::GetCurrentAbilitySpec() const
 	check(IsInstantiated()); // You should not call this on non instanced abilities.
 	check(CurrentActorInfo);
 	return CurrentActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(CurrentSpecHandle);
+}
+
+FGameplayEffectContextHandle UGameplayAbility::GetGrantedByEffectContext() const
+{
+	check(IsInstantiated()); // You should not call this on non instanced abilities.
+	check(CurrentActorInfo);
+	if (CurrentActorInfo)
+	{
+		FActiveGameplayEffectHandle ActiveHandle = CurrentActorInfo->AbilitySystemComponent->FindActiveGameplayEffectHandle(GetCurrentAbilitySpecHandle());
+		if (ActiveHandle.IsValid())
+		{
+			return CurrentActorInfo->AbilitySystemComponent->GetEffectContextFromActiveGEHandle(ActiveHandle);
+		}
+	}
+
+	return FGameplayEffectContextHandle();
 }
 
 UObject* UGameplayAbility::GetSourceObject(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const

@@ -35,7 +35,7 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
-					// ... add private dependencies that you statically link with here ...
+
 				}
 				);
 
@@ -50,6 +50,7 @@ namespace UnrealBuildTool.Rules
 			{
 				PrivateDependencyModuleNames.Add("UnrealEd");
                 PrivateDependencyModuleNames.Add("GameplayTagsEditor");
+                PrivateDependencyModuleNames.Add("Slate");
 			}
 		}
 	}

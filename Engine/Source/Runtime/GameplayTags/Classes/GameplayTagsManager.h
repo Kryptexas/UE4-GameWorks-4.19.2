@@ -167,6 +167,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	void OnObjectReimported(class UFactory* ImportFactory, UObject* InObject);
 
+	TSharedPtr<FGameplayTagNode> FindTagNode(FName TagName) const;
+
+	static void AddNewGameplayTagToINI(FString NewTag);
+
 #endif //WITH_EDITOR
 
 	/** 

@@ -382,11 +382,19 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	void OnGameplayEffectAppliedToSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
 
+	void OnPeriodicGameplayEffectExecuteOnTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
+
+	void OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle);
+
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnGameplayEffectAppliedDelegate, UAbilitySystemComponent*, const FGameplayEffectSpec&, FActiveGameplayEffectHandle);
 
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToSelf;
 
 	FOnGameplayEffectAppliedDelegate OnGameplayEffectAppliedDelegateToTarget;
+
+	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnSelf;
+
+	FOnGameplayEffectAppliedDelegate OnPeriodicGameplayEffectExecuteDelegateOnTarget;
 
 	// --------------------------------------------
 	// Tags
@@ -638,6 +646,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	/** Cancels all abilities regardless of tags. Will not cancel the ignore instance */
 	void CancelAllAbilities(UGameplayAbility* Ignore=nullptr);
 
+	/** Cancels all abilities and kills any remaining instanced abilities */
+	virtual void DestroyActiveState();
+
 	// ----------------------------------------------------------------------------------------------------------------
 	/** 
 	 * Called from ability activation or native code, will apply the correct ability blocking tags and cancel existing abilities. Subclasses can override the behavior 
@@ -678,6 +689,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 
 	/** Returns an ability spec from a handle. If modifying call MarkAbilitySpecDirty */
 	FGameplayAbilitySpec* FindAbilitySpecFromInputID(int32 InputID);
+
+	/** Retrieves the EffectContext of the GameplayEffect of the active GameplayEffect. */
+	FGameplayEffectContextHandle GetEffectContextFromActiveGEHandle(FActiveGameplayEffectHandle Handle);
 
 	/** Call to mark that an ability spec has been modified */
 	void MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec);
@@ -829,6 +843,9 @@ public:
 
 	/** Executes a gameplay event. Returns the number of successful ability activations triggered by the event */
 	virtual int32 HandleGameplayEvent(FGameplayTag EventTag, const FGameplayEventData* Payload);
+
+	/** Generic callbacks for gameplay events. See UAbilityTask_WaitGameplayEvent */
+	TMap<FGameplayTag, FGameplayEventMulticastDelegate> GenericGameplayEventCallbacks;
 
 	virtual void NotifyAbilityCommit(UGameplayAbility* Ability);
 	virtual void NotifyAbilityActivated(const FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
@@ -1109,6 +1126,7 @@ protected:
 	// ---------------------------------------------
 
 	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
 	const UAttributeSet*	GetAttributeSubobject(const TSubclassOf<UAttributeSet> AttributeClass) const;
 	const UAttributeSet*	GetAttributeSubobjectChecked(const TSubclassOf<UAttributeSet> AttributeClass) const;

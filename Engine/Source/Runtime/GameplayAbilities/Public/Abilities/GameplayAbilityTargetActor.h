@@ -97,4 +97,7 @@ public:
 
 	FDelegateHandle GenericConfirmHandle;
 	FDelegateHandle GenericCancelHandle;
+
+	UPROPERTY()
+	UAbilitySystemComponent* GenericDelegateBoundASC;
 };

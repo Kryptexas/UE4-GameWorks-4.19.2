@@ -245,6 +245,10 @@ void UAbilityTask_WaitTargetData::OnTargetDataReplicatedCancelledCallback()
 void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTargetDataHandle Data)
 {
 	check(AbilitySystemComponent.IsValid());
+	if (Ability.IsValid() == false)
+	{
+		return;
+	}
 
 	FScopedPredictionWindow	ScopedPrediction(AbilitySystemComponent.Get(), ShouldReplicateDataToServer());
 	
@@ -327,8 +331,10 @@ void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 
 bool UAbilityTask_WaitTargetData::ShouldReplicateDataToServer() const
 {
-	check(Ability.IsValid());
-	check(TargetActor.IsValid()); // Target actor should always be valid on client
+	if (Ability.IsValid() == false || TargetActor.IsValid() == false)
+	{
+		return false;
+	}
 
 	// Send TargetData to the server IFF we are the client and this isn't a GameplayTargetActor that can produce data on the server	
 	const FGameplayAbilityActorInfo* Info = Ability->GetCurrentActorInfo();

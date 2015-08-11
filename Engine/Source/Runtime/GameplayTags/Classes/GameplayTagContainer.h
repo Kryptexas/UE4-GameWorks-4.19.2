@@ -279,6 +279,8 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 
 	/** An empty Gameplay Tag Container */
 	static const FGameplayTagContainer EmptyContainer;
+		
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess);
 
 protected:
 	/**
@@ -309,6 +311,8 @@ protected:
 	// Allow the redirection helper class access to RemoveTagByExplicitName.  It can then (through friendship) allow
 	// access to others without exposing everything the Container has privately to everyone.
 	friend class FGameplayTagRedirectHelper;
+	friend struct FGameplayTagQuery;
+	friend struct FGameplayTagQueryExpression;
 
 private:
 
@@ -342,6 +346,7 @@ struct TStructOpsTypeTraits<FGameplayTagContainer> : public TStructOpsTypeTraits
 	{
 		WithSerializer = true,
 		WithIdenticalViaEquality = true,
+		WithNetSerializer = true,
 		WithCopy = true
 	};
 };
@@ -440,6 +445,23 @@ private:
 	}
 
 public:
+
+	/** Replaces existing tags with passed in tags. Does not modify the tag query expression logic. Useful when you need to cache off and update often used query. Must use same sized tag container! */
+	void ReplaceTagsFast(FGameplayTagContainer const& Tags)
+	{
+		ensure(Tags.Num() == TagDictionary.Num());
+		TagDictionary.Reset();
+		TagDictionary.Append(Tags.GameplayTags);
+	}
+
+	/** Replaces existing tags with passed in tag. Does not modify the tag query expression logic. Useful when you need to cache off and update often used query. */		 
+	void ReplaceTagFast(FGameplayTag const& Tag)
+	{
+		ensure(1 == TagDictionary.Num());
+		TagDictionary.Reset();
+		TagDictionary.Add(Tag);
+	}
+
 	/** Returns true if the given tags match this query, or false otherwise. */
 	bool Matches(FGameplayTagContainer const& Tags) const;
 
@@ -541,10 +563,7 @@ struct GAMEPLAYTAGS_API FGameplayTagQueryExpression
 	FGameplayTagQueryExpression& AddTags(FGameplayTagContainer const& Tags)
 	{
 		ensure(UsesTagSet());
-		for (auto T : Tags)
-		{
-			TagSet.Add(T);
-		}
+		TagSet.Append(Tags.GameplayTags);
 		return *this;
 	}
 

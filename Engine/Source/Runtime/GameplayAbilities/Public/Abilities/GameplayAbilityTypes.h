@@ -331,6 +331,9 @@ struct GAMEPLAYABILITIES_API FGameplayEventData
 	float EventMagnitude;
 };
 
+/** Used for cleaning up predicted data on network clients */
+DECLARE_MULTICAST_DELEGATE_OneParam(FGameplayEventMulticastDelegate, const FGameplayEventData*);
+
 /** 
  *	Structure that tells AbilitySystemComponent what to bind to an InputComponent (see BindAbilityActivationToInputComponent) 
  *	

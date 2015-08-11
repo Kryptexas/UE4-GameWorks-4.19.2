@@ -42,7 +42,7 @@ void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
 		if (AbilitySystemComponent->IsAnimatingAbility(Ability.Get())
 			&& AbilitySystemComponent->GetCurrentMontage() == MontageToPlay)
 		{
-			// Unbind the delegate in this case so OnMontageEnded does not get called as well
+			// Unbind delegates so they don't get called as well
 			BlendingOutDelegate.Unbind();
 
 			AbilitySystemComponent->CurrentMontageStop();

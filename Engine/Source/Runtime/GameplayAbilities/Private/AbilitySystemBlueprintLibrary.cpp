@@ -260,6 +260,11 @@ FHitResult UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(FGameplayA
 
 bool UAbilitySystemBlueprintLibrary::TargetDataHasOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
+	if (TargetData.Data.IsValidIndex(Index) == false)
+	{
+		return false;
+	}
+
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
@@ -270,6 +275,11 @@ bool UAbilitySystemBlueprintLibrary::TargetDataHasOrigin(FGameplayAbilityTargetD
 
 FTransform UAbilitySystemBlueprintLibrary::GetTargetDataOrigin(FGameplayAbilityTargetDataHandle TargetData, int32 Index)
 {
+	if (TargetData.Data.IsValidIndex(Index) == false)
+	{
+		return FTransform::Identity;
+	}
+
 	FGameplayAbilityTargetData* Data = TargetData.Data[Index].Get();
 	if (Data)
 	{
@@ -342,6 +352,10 @@ FTransform UAbilitySystemBlueprintLibrary::GetTargetDataEndPointTransform(FGamep
 
 // -------------------------------------------------------------------------------------
 
+bool UAbilitySystemBlueprintLibrary::EffectContextIsValid(FGameplayEffectContextHandle EffectContext)
+{
+	return EffectContext.IsValid();
+}
 
 bool UAbilitySystemBlueprintLibrary::EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext)
 {
@@ -395,12 +409,12 @@ FVector UAbilitySystemBlueprintLibrary::EffectContextGetOrigin(FGameplayEffectCo
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueParameters Parameters)
 {
-	return Parameters.EffectContext.IsLocallyControlled();
+	return Parameters.IsInstigatorLocallyControlled();
 }
 
 bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters)
 {
-	return Parameters.EffectContext.IsLocallyControlledPlayer();
+	return Parameters.IsInstigatorLocallyControlledPlayer();
 }
 
 int32 UAbilitySystemBlueprintLibrary::GetActorCount(FGameplayCueParameters Parameters)
@@ -443,7 +457,7 @@ void UAbilitySystemBlueprintLibrary::ForwardGameplayCueToTarget(TScriptInterface
 
 AActor*	UAbilitySystemBlueprintLibrary::GetInstigatorActor(FGameplayCueParameters Parameters)
 {
-	return Parameters.EffectContext.GetInstigator();
+	return Parameters.GetInstigator();
 }
 
 FTransform UAbilitySystemBlueprintLibrary::GetInstigatorTransform(FGameplayCueParameters Parameters)
@@ -465,15 +479,19 @@ FVector UAbilitySystemBlueprintLibrary::GetOrigin(FGameplayCueParameters Paramet
 		return Parameters.EffectContext.GetOrigin();
 	}
 
-	return FVector::ZeroVector;
+	return Parameters.Location;
 }
 
 bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Location, FVector& Normal)
 {
 	FGameplayEffectContext* Data = Parameters.EffectContext.Get();
-	if (Data && Data->GetHitResult())
+	if (Parameters.Location.IsNearlyZero() == false)
 	{
-		
+		Location = Parameters.Location;
+		Normal = Parameters.Normal;
+	}
+	else if (Data && Data->GetHitResult())
+	{
 		Location = Data->GetHitResult()->Location;
 		Normal = Data->GetHitResult()->Normal;
 		return true;
@@ -490,6 +508,12 @@ bool UAbilitySystemBlueprintLibrary::GetGameplayCueEndLocationAndNormal(AActor* 
 
 bool UAbilitySystemBlueprintLibrary::GetGameplayCueDirection(AActor* TargetActor, FGameplayCueParameters Parameters, FVector& Direction)
 {
+	if (Parameters.Normal.IsNearlyZero() == false)
+	{
+		Direction = Parameters.Normal;
+		return true;
+	}
+
 	if (FGameplayEffectContext* Ctx = Parameters.EffectContext.Get())
 	{
 		if (Ctx->GetHitResult())
@@ -670,4 +694,21 @@ int32 UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectStackCount(FActiveG
 		return ASC->GetCurrentStackCount(ActiveHandle);
 	}
 	return 0;
+}
+
+float UAbilitySystemBlueprintLibrary::GetModifiedAttributeMagnitude(FGameplayEffectSpecHandle SpecHandle, FGameplayAttribute Attribute)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	float Delta = 0.f;
+	if (Spec)
+	{
+		for (FGameplayEffectModifiedAttribute &Mod : Spec->ModifiedAttributes)
+		{
+			if (Mod.Attribute == Attribute)
+			{
+				Delta += Mod.TotalMagnitude;
+			}
+		}
+	}
+	return Delta;
 }

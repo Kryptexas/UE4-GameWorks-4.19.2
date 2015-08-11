@@ -209,6 +209,7 @@ void FScalableFloat::UnRegisterOnCurveTablePostReimport() const
 	if (GIsEditor && OnCurveTablePostReimportHandle.IsValid())
 	{
 		FReimportManager::Instance()->OnPostReimport().Remove(OnCurveTablePostReimportHandle);
+		OnCurveTablePostReimportHandle.Reset();
 	}
 #endif // WITH_EDITOR
 }
@@ -243,6 +244,21 @@ bool FScalableFloat::operator!=(const FScalableFloat& Other) const
 {
 	return ((Other.Curve != Curve) || (Other.Value != Value));
 }
+
+void FScalableFloat::operator=(const FScalableFloat& Src)
+{
+	Value = Src.Value;
+	Curve = Src.Curve;
+
+#if WITH_EDITOR
+	if (Src.OnCurveTablePostReimportHandle.IsValid())
+	{
+		RegisterOnCurveTablePostReimport();
+	}
+#endif
+	FinalCurve = Src.FinalCurve;
+}
+
 
 // ------------------------------------------------------------------------------------
 //
@@ -317,7 +333,7 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 
 		if (!ensure(!ClassName.IsEmpty() && !SetName.IsEmpty() && !AttributeName.IsEmpty()))
 		{
-			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to parse row %s in %s"), *RowName, *CurveData->GetName());
+			ABILITY_LOG(Verbose, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to parse row %s in %s"), *RowName, *CurveData->GetName());
 			continue;
 		}
 
@@ -336,7 +352,7 @@ void FAttributeSetInitter::PreloadAttributeSetData(UCurveTable* CurveData)
 		UNumericProperty* Property = FindField<UNumericProperty>(*Set, *AttributeName);
 		if (!Property)
 		{
-			ABILITY_LOG(Warning, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match Attribute from %s (row: %s)"), *AttributeName, *RowName);
+			ABILITY_LOG(Verbose, TEXT("FAttributeSetInitter::PreloadAttributeSetData Unable to match Attribute from %s (row: %s)"), *AttributeName, *RowName);
 			continue;
 		}
 
@@ -420,5 +436,52 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 		}		
 	}
 	
+	AbilitySystemComponent->ForceReplication();
+}
+
+void FAttributeSetInitter::ApplyAttributeDefault(UAbilitySystemComponent* AbilitySystemComponent, FGameplayAttribute& InAttribute, FName GroupName, int32 Level) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_InitAttributeSetDefaults);
+
+	const FAttributeSetDefaulsCollection* Collection = Defaults.Find(GroupName);
+	if (!Collection)
+	{
+		ABILITY_LOG(Warning, TEXT("Unable to find DefaultAttributeSet Group %s. Failing back to Defaults"), *GroupName.ToString());
+		Collection = Defaults.Find(FName(TEXT("Default")));
+		if (!Collection)
+		{
+			ABILITY_LOG(Error, TEXT("FAttributeSetInitter::InitAttributeSetDefaults Default DefaultAttributeSet not found! Skipping Initialization"));
+			return;
+		}
+	}
+
+	if (!Collection->LevelData.IsValidIndex(Level - 1))
+	{
+		// We could eventually extrapolate values outside of the max defined levels
+		ABILITY_LOG(Warning, TEXT("Attribute defaults for Level %d are not defined! Skipping"), Level);
+		return;
+	}
+
+	const FAttributeSetDefaults& SetDefaults = Collection->LevelData[Level - 1];
+	for (const UAttributeSet* Set : AbilitySystemComponent->SpawnedAttributes)
+	{
+		const FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(Set->GetClass());
+		if (DefaultDataList)
+		{
+			ABILITY_LOG(Log, TEXT("Initializing Set %s"), *Set->GetName());
+
+			for (auto& DataPair : DefaultDataList->List)
+			{
+				check(DataPair.Property);
+
+				if (DataPair.Property == InAttribute.GetUProperty())
+				{
+					FGameplayAttribute AttributeToModify(DataPair.Property);
+					AbilitySystemComponent->SetNumericAttributeBase(AttributeToModify, DataPair.Value);
+				}
+			}
+		}
+	}
+
 	AbilitySystemComponent->ForceReplication();
 }

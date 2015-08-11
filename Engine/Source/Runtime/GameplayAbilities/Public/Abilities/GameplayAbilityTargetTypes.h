@@ -69,6 +69,8 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray);
 
+	virtual void AddTargetDataToGameplayCueParameters(FGameplayCueParameters& Parameters);
+
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{
 		return TArray<TWeakObjectPtr<AActor> >();

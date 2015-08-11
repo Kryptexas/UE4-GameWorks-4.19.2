@@ -28,33 +28,18 @@ GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(VLogAbilitySystem, Warning, Al
 	UE_VLOG(Actor, VLogAbilitySystem, Verbosity, Format, ##__VA_ARGS__); \
 }
 
-#define ABILITY_LOG_SCOPE( Format, ... ) 
-
 #else
 
 #define ABILITY_LOG(Verbosity, Format, ...) \
 { \
-	UE_LOG(LogAbilitySystem, Verbosity, TEXT("%s"), *AbilitySystemLog::Log(ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__))); \
+	UE_LOG(LogAbilitySystem, Verbosity, Format, ##__VA_ARGS__); \
 }
 
-#if ENABLE_VISUAL_LOG
-#	define ABILITY_VLOG(Actor, Verbosity, Format, ...) \
-	{ \
-		if(FVisualLogger::IsRecording() || LogAbilitySystem.IsSuppressed(ELogVerbosity::Verbosity) == false ) \
-		{ \
-			const FString Str = AbilitySystemLog::Log(ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__)); \
-			UE_LOG(LogAbilitySystem, Verbosity, TEXT("%s"), *Str); \
-			UE_VLOG(Actor, VLogAbilitySystem, Verbosity, TEXT("%s"), *Str); \
-		} \
-	}
-#else //ENABLE_VISUAL_LOG
-#	define ABILITY_VLOG(Actor, Verbosity, Format, ...) \
-	{ \
-		UE_LOG(LogAbilitySystem, Verbosity, TEXT("%s"), *AbilitySystemLog::Log(ELogVerbosity::Verbosity, FString::Printf(Format, ##__VA_ARGS__))); \
-	}
-#endif  //ENABLE_VISUAL_LOG
-
-#define ABILITY_LOG_SCOPE( Format, ... ) AbilitySystemLogScope PREPROCESSOR_JOIN(LogScope,__LINE__)( FString::Printf(Format, ##__VA_ARGS__));
+#define ABILITY_VLOG(Actor, Verbosity, Format, ...) \
+{ \
+	UE_LOG(LogAbilitySystem, Verbosity, Format, ##__VA_ARGS__); \
+	UE_VLOG(Actor, VLogAbilitySystem, Verbosity, Format, ##__VA_ARGS__); \
+}
 
 #endif //NO_LOGGING
 
@@ -79,47 +64,3 @@ GAMEPLAYABILITIES_API DECLARE_LOG_CATEGORY_EXTERN(VLogAbilitySystem, Warning, Al
 #define ABILITY_VLOG_ATTRIBUTE_GRAPH(Actor, Verbosity, AttributeName, OldValue, NewValue)
 
 #endif //ENABLE_VISUAL_LOG
-
-struct AbilitySystemLogScope
-{
-	AbilitySystemLogScope()
-	{
-		Init();
-	}
-
-	AbilitySystemLogScope(const FString& InScopeName) :
-		ScopeName(InScopeName)
-	{
-		Init();
-	}
-
-	~AbilitySystemLogScope();
-	
-	FString ScopeName;
-	bool PrintedInThisScope;
-
-private:
-
-	void Init();
-};
-
-class GAMEPLAYABILITIES_API AbilitySystemLog
-{
-public:
-
-	AbilitySystemLog()
-	{
-		Indent = 0;
-		NeedNewLine = false;
-	}
-
-	static FString Log(ELogVerbosity::Type, const FString& Str);
-
-	static void PushScope(AbilitySystemLogScope* Scope);
-
-	static void PopScope();	
-
-	int32	Indent;
-	TArray<AbilitySystemLogScope*>	ScopeStack;
-	bool NeedNewLine;
-};

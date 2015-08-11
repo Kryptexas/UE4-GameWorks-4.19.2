@@ -588,7 +588,7 @@ void FGameplayTagContainer::AppendMatchingTags(FGameplayTagContainer const& Othe
 {
 	for(TArray<FGameplayTag>::TConstIterator It(OtherA.GameplayTags); It; ++It)
 	{
-		if (OtherB.HasTag(*It, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit))
+		if (OtherB.HasTag(*It, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::IncludeParentTags))
 		{
 			AddTag(*It);		
 		}
@@ -711,6 +711,12 @@ FString FGameplayTagContainer::ToStringSimple() const
 		}
 	}
 	return RetString;
+}
+
+bool FGameplayTagContainer::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+{
+	Ar << GameplayTags;
+	return true;
 }
 
 FText FGameplayTagContainer::ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const

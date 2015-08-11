@@ -969,9 +969,6 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpec
 	/** Adds a new modified attribute struct, will always add so check to see if it exists first */
 	FGameplayEffectModifiedAttribute* AddModifiedAttribute(const FGameplayAttribute& Attribute);
 
-	/** Deletes any modified attributes that aren't needed. Call before replication */
-	void PruneModifiedAttributes();
-
 	/**
 	 * Helper function to attempt to calculate the duration of the spec from its GE definition
 	 * 
@@ -1138,6 +1135,8 @@ struct GAMEPLAYABILITIES_API FGameplayEffectSpecForRPC
 	FGameplayEffectSpecForRPC();
 
 	FGameplayEffectSpecForRPC(const FGameplayEffectSpec& InSpec);
+
+	void InitFromSpec(const FGameplayEffectSpec& InSpec);
 
 	/** GameplayEfect definition. The static data that this spec points to. */
 	UPROPERTY()
@@ -1723,7 +1722,7 @@ private:
 	bool HandleActiveGameplayEffectStackOverflow(const FActiveGameplayEffect& ActiveStackableGE, const FGameplayEffectSpec& OldSpec, const FGameplayEffectSpec& OverflowingSpec);
 
 	/** After application has gone through, give stacking rules a chance to do something as the source of the gameplay effect (E.g., remove an old version) */
-	void ApplyStackingLogicPostApplyAsSource(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle);
+	virtual void ApplyStackingLogicPostApplyAsSource(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecApplied, FActiveGameplayEffectHandle ActiveHandle) { }
 
 	mutable int32 ScopedLockCount;
 	int32 PendingRemoves;

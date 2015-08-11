@@ -17,6 +17,9 @@ struct FGameplayEffectContext;
 struct FGameplayTag;
 struct FAttributeSetInitter;
 struct FGameplayEffectSpec;
+struct FGameplayEffectSpecForRPC;
+struct FGameplayCueParameters;
+struct FGameplayEffectContextHandle;
 
 /** Holds global data for the ability system. Can be configured per project via config file */
 UCLASS(config=Game)
@@ -159,6 +162,10 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 			ActivateFailNetworkingTag = IGameplayTagsModule::RequestGameplayTag(ActivateFailNetworkingName);
 		}
 	}
+
+	// GameplayCue Parameters
+	virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectSpecForRPC &Spec);
+	virtual void InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectContextHandle& EffectContext);
 
 protected:
 

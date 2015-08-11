@@ -119,3 +119,34 @@ protected:
 	bool CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
 };
 
+//For searching through lists of ability instances
+struct FAbilityInstanceNamePredicate
+{
+	FAbilityInstanceNamePredicate(FName DesiredInstanceName)
+	{
+		InstanceName = DesiredInstanceName;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && !A.Get()->GetInstanceName().IsNone() && A.Get()->GetInstanceName().IsValid() && (A.Get()->GetInstanceName() == InstanceName));
+	}
+
+	FName InstanceName;
+};
+
+
+struct FAbilityInstanceClassPredicate
+{
+	FAbilityInstanceClassPredicate(TSubclassOf<UAbilityTask> Class)
+	{
+		TaskClass = Class;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && (A.Get()->GetClass() == TaskClass));
+	}
+
+	TSubclassOf<UAbilityTask> TaskClass;
+};

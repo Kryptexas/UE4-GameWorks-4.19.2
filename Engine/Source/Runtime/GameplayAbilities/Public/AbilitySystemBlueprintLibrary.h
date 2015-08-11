@@ -105,6 +105,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	//		GameplayEffectContext
 	// -------------------------------------------------------------------------------
 
+	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "IsValid"))
+	static bool EffectContextIsValid(FGameplayEffectContextHandle EffectContext);
+
 	UFUNCTION(BlueprintPure, Category = "Ability|EffectContext", Meta = (DisplayName = "IsInstigatorLocallyControlled"))
 	static bool EffectContextIsInstigatorLocallyControlled(FGameplayEffectContextHandle EffectContext);
 
@@ -220,6 +223,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	/** Sets the GameplayEffectSpec's StackCount to the max stack count defined in the GameplayEffect definition */
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle SetStackCountToMax(FGameplayEffectSpecHandle SpecHandle);
+
+	// -------------------------------------------------------------------------------
+	//		GameplayEffectSpec
+	// -------------------------------------------------------------------------------
+
+	/** Gets the magnitude of change for an attribute on an APPLIED GameplayEffectSpec. */
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static float GetModifiedAttributeMagnitude(FGameplayEffectSpecHandle SpecHandle, FGameplayAttribute Attribute);
 
 	// -------------------------------------------------------------------------------
 	//		FActiveGameplayEffectHandle

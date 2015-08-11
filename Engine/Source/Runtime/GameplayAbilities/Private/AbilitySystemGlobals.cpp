@@ -10,7 +10,6 @@
 #include "GameplayCueManager.h"
 #include "GameplayTagResponseTable.h"
 
-
 UAbilitySystemGlobals::UAbilitySystemGlobals(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -195,6 +194,25 @@ UFunction* UAbilitySystemGlobals::GetGameplayCueFunction(const FGameplayTag& Chi
 	}
 
 	return nullptr;
+}
+
+// --------------------------------------------------------------------
+
+void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectSpecForRPC &Spec)
+{
+	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
+	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
+
+	InitGameplayCueParameters(CueParameters, Spec.GetContext());
+}
+
+void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& CueParameters, const FGameplayEffectContextHandle& EffectContext)
+{
+	if (EffectContext.IsValid())
+	{
+		// Copy Context over wholesale. Projects may want to override this and not copy over all data
+		CueParameters.EffectContext = EffectContext;
+	}
 }
 
 // --------------------------------------------------------------------

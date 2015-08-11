@@ -11,6 +11,9 @@
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
+#include "SNotificationList.h"
+#include "NotificationManager.h"
+#define LOCTEXT_NAMESPACE "GameplayCueManager"
 #endif
 
 int32 DisplayGameplayCues = 0;
@@ -153,8 +156,8 @@ AGameplayCueNotify_Actor* UGameplayCueManager::GetInstancedCueActor(AActor* Targ
 
 	AGameplayCueNotify_Actor* CDO = Cast<AGameplayCueNotify_Actor>(CueClass->ClassDefaultObject);
 	FGCNotifyActorKey	NotifyKey(TargetActor, CueClass, 
-							CDO->bUniqueInstancePerInstigator ? Parameters.EffectContext.GetInstigator() : nullptr, 
-							CDO->bUniqueInstancePerSourceObject ? Parameters.EffectContext.GetSourceObject() : nullptr);
+							CDO->bUniqueInstancePerInstigator ? Parameters.GetInstigator() : nullptr, 
+							CDO->bUniqueInstancePerSourceObject ? Parameters.GetSourceObject() : nullptr);
 
 	AGameplayCueNotify_Actor* SpawnedCue = nullptr;
 	if (TWeakObjectPtr<AGameplayCueNotify_Actor>* WeakPtrPtr = NotifyMapActor.Find(NotifyKey))
@@ -211,6 +214,7 @@ void UGameplayCueManager::LoadObjectLibraryFromPaths(const TArray<FString>& InPa
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
 		AssetRegistryModule.Get().OnInMemoryAssetCreated().AddUObject(this, &UGameplayCueManager::HandleAssetAdded);
 		AssetRegistryModule.Get().OnInMemoryAssetDeleted().AddUObject(this, &UGameplayCueManager::HandleAssetDeleted);
+		AssetRegistryModule.Get().OnAssetRenamed().AddUObject(this, &UGameplayCueManager::HandleAssetRenamed);
 		FWorldDelegates::OnPreWorldInitialization.AddUObject(this, &UGameplayCueManager::ReloadObjectLibrary);
 		RegisteredEditorCallbacks = true;
 	}
@@ -376,6 +380,12 @@ void UGameplayCueManager::HandleAssetAdded(UObject *Object)
 				GlobalCueSet->AddCues(CuesToAdd);
 
 				OnGameplayCueNotifyAddOrRemove.Broadcast();
+
+			
+			}
+			else
+			{
+				VerifyNotifyAssetIsInValidPath(Blueprint->GetOuter()->GetPathName());
 			}
 		}
 	}
@@ -405,6 +415,59 @@ void UGameplayCueManager::HandleAssetDeleted(UObject *Object)
 		GlobalCueSet->RemoveCuesByStringRefs(StringRefs);
 
 		OnGameplayCueNotifyAddOrRemove.Broadcast();
+	}
+}
+
+/** Handles cleaning up an object library if it matches the passed in object */
+void UGameplayCueManager::HandleAssetRenamed(const FAssetData& Data, const FString& String)
+{
+	const FString* ParentClassNamePtr = Data.TagsAndValues.Find(TEXT("ParentClass"));
+	if (ParentClassNamePtr)
+	{
+		FString ParentClassName = *ParentClassNamePtr;
+		
+		UClass* DataClass = FindObject<UClass>(nullptr, *ParentClassName);
+		if (DataClass)
+		{
+			UGameplayCueNotify_Static* StaticCDO = Cast<UGameplayCueNotify_Static>(DataClass->ClassDefaultObject);
+			AGameplayCueNotify_Actor* ActorCDO = Cast<AGameplayCueNotify_Actor>(DataClass->ClassDefaultObject);
+			if (StaticCDO || ActorCDO)
+			{
+				VerifyNotifyAssetIsInValidPath(Data.PackagePath.ToString());
+			}
+		}
+	}
+}
+
+void UGameplayCueManager::VerifyNotifyAssetIsInValidPath(FString Path)
+{
+	bool ValidPath = false;
+	for (FString& str: LoadedPaths)
+	{
+		if (Path.Contains(str))
+		{
+			ValidPath = true;
+		}
+	}
+
+	if (!ValidPath)
+	{
+		FString MessageTry = FString::Printf(TEXT("Warning: Invalid GameplayCue Path %s"));
+		MessageTry += TEXT("\n\nGameplayCue Notifies should only be saved in the following folders:");
+
+		ABILITY_LOG(Warning, TEXT("Warning: Invalid GameplayCuePath: %s"), *Path);
+		ABILITY_LOG(Warning, TEXT("Valid Paths: "));
+		for (FString& str: LoadedPaths)
+		{
+			ABILITY_LOG(Warning, TEXT("  %s"), *str);
+			MessageTry += FString::Printf(TEXT("\n  %s"), *str);
+		}
+
+		MessageTry += FString::Printf(TEXT("\n\nThis asset must be moved to a valid location to work in game."));
+
+		const FText MessageText = FText::FromString(MessageTry);
+		const FText TitleText = NSLOCTEXT("GameplayCuePathWarning", "GameplayCuePathWarningTitle", "Invalid GameplayCue Path");
+		FMessageDialog::Open(EAppMsgType::Ok, MessageText, &TitleText);
 	}
 }
 
@@ -470,10 +533,10 @@ void UGameplayCueManager::InvokeGameplayCueExecuted_FromSpec(UAbilitySystemCompo
 void UGameplayCueManager::InvokeGameplayCueExecuted(UAbilitySystemComponent* OwningComponent, const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
 {
 	FGameplayCuePendingExecute PendingCue;
-	PendingCue.PayloadType = EGameplayCuePayloadType::EffectContext;
+	PendingCue.PayloadType = EGameplayCuePayloadType::CueParameters;
 	PendingCue.GameplayCueTag = GameplayCueTag;
 	PendingCue.OwningComponent = OwningComponent;
-	PendingCue.CueParameters.EffectContext = EffectContext;
+	UAbilitySystemGlobals::Get().InitGameplayCueParameters(PendingCue.CueParameters, EffectContext);
 	PendingCue.PredictionKey = PredictionKey;
 
 	if (ProcessPendingCueExecute(PendingCue))
@@ -633,3 +696,6 @@ bool UGameplayCueManager::DoesPendingCueExecuteMatch(FGameplayCuePendingExecute&
 	return true;
 }
 
+#if WITH_EDITOR
+#undef LOCTEXT_NAMESPACE
+#endif

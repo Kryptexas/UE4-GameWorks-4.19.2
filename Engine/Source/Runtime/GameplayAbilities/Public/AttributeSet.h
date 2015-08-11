@@ -218,6 +218,9 @@ public:
 	bool operator==(const FScalableFloat& Other) const;
 	bool operator!=(const FScalableFloat& Other) const;
 
+	//copy operator to prevent duplicate handles
+	void operator=(const FScalableFloat& Src);
+
 private:
 
 	/** Conditionally register the OnCurveTablePostReimport function with the re-import manager */
@@ -318,7 +321,7 @@ struct GAMEPLAYABILITIES_API FAttributeSetInitter
 	void PreloadAttributeSetData(UCurveTable* CurveData);
 
 	void InitAttributeSetDefaults(UAbilitySystemComponent* AbilitySystemComponent, FName GroupName, int32 Level, bool bInitialInit) const;
-
+	void ApplyAttributeDefault(UAbilitySystemComponent* AbilitySystemComponent, FGameplayAttribute& InAttribute, FName GroupName, int32 Level) const;
 private:
 
 	struct FAttributeDefaultValueList

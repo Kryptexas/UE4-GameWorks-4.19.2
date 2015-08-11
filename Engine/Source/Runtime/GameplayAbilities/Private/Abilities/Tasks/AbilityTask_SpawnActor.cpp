@@ -56,7 +56,7 @@ void UAbilityTask_SpawnActor::FinishSpawningActor(UObject* WorldContextObject, F
 			}
 			else if (LocationData->HasEndPoint())
 			{
-				SpawnTransform.SetLocation(LocationData->GetEndPoint());
+				SpawnTransform = LocationData->GetEndPointTransform();
 			}
 		}
 

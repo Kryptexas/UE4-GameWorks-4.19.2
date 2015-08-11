@@ -29,6 +29,9 @@ UAbilitySystemComponent::UAbilitySystemComponent(const FObjectInitializer& Objec
 	bWantsInitializeComponent = true;
 
 	PrimaryComponentTick.bStartWithTickEnabled = true; // FIXME! Just temp until timer manager figured out
+	bAutoActivate = true;	// Forcing AutoActivate since above we manually force tick enabled.
+							// if we don't have this, UpdateShouldTick() fails to have any effect
+							// because we'll be receiving ticks but bIsActive starts as false
 
 	ActiveGameplayCues.Owner = this;
 
@@ -125,6 +128,13 @@ void UAbilitySystemComponent::OnRegister()
 
 	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
 	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
+}
+
+void UAbilitySystemComponent::OnUnregister()
+{
+	Super::OnUnregister();
+
+	DestroyActiveState();
 }
 
 // ---------------------------------------------------------
@@ -756,29 +766,6 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 		ActiveGameplayEffects.RemoveActiveEffects(ClearQuery, -1);
 	}
 	
-
-	// ------------------------------------------------------
-	//	Apply Granted Abilities
-	//	
-	//	Note: Doing this before apply TargetEffectSpecs, but we could just as easily apply after.
-	//	Hedging bet for now that we are more likely to want to have 'passive ability that reacts to linked GE'
-	//	over 'need ability to activate after linked GE is applied'.
-	//	
-	//	Note2: This is allowing instant GEs to permanently grant abilities. This could be disallowed if needed.
-	// ------------------------------------------------------
-	if (bIsNetAuthority)
-	{
-		for (FGameplayAbilitySpecDef& AbilitySpecDef : OurCopyOfSpec->GrantedAbilitySpecs)
-		{
-			// Only do this is we havent assigned the ability yet! This prevents cases where stacking GEs
-			// would regrant the ability every time the stack was applied
-			if (AbilitySpecDef.AssignedHandle.IsValid() == false)
-			{
-				GiveAbility( FGameplayAbilitySpec(AbilitySpecDef, MyHandle) );
-			}
-		}	
-	}
-
 	// ------------------------------------------------------
 	// Apply Linked effects
 	// todo: this is ignoring the returned handles, should we put them into a TArray and return all of the handles?
@@ -964,10 +951,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 	
 	float ExecuteLevel = Spec.GetLevel();
 
-	FGameplayCueParameters CueParameters;
-	CueParameters.EffectContext = Spec.GetContext();
-	CueParameters.AggregatedSourceTags = Spec.AggregatedSourceTags;
-	CueParameters.AggregatedTargetTags = Spec.AggregatedTargetTags;
+	FGameplayCueParameters CueParameters(Spec);
 
 	for (FGameplayEffectCue CueInfo : Spec.Def->GameplayCues)
 	{
@@ -995,12 +979,7 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecFo
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag GameplayCueTag, EGameplayCueEvent::Type EventType, FGameplayEffectContextHandle EffectContext)
 {
-	FGameplayCueParameters CueParameters;
-
-	if (EffectContext.IsValid())
-	{
-		CueParameters.EffectContext = EffectContext;
-	}
+	FGameplayCueParameters CueParameters(EffectContext);
 
 	CueParameters.NormalizedMagnitude = 1.f;
 	CueParameters.RawMagnitude = 0.f;
@@ -1301,7 +1280,6 @@ bool UAbilitySystemComponent::HasAuthorityOrPredictionKey(const FGameplayAbility
 
 void UAbilitySystemComponent::PrintAllGameplayEffects() const
 {
-	ABILITY_LOG_SCOPE(TEXT("PrintAllGameplayEffects %s"), *GetName());
 	ABILITY_LOG(Log, TEXT("Owner: %s. Avatar: %s"), *GetOwner()->GetName(), *AbilityActorInfo->AvatarActor->GetName());
 	ActiveGameplayEffects.PrintAllGameplayEffects();
 }
@@ -1329,6 +1307,16 @@ void UAbilitySystemComponent::OnGameplayEffectAppliedToSelf(UAbilitySystemCompon
 	OnGameplayEffectAppliedDelegateToSelf.Broadcast(Source, SpecApplied, ActiveHandle);
 }
 
+void UAbilitySystemComponent::OnPeriodicGameplayEffectExecuteOnTarget(UAbilitySystemComponent* Target, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnPeriodicGameplayEffectExecuteDelegateOnTarget.Broadcast(Target, SpecExecuted, ActiveHandle);
+}
+
+void UAbilitySystemComponent::OnPeriodicGameplayEffectExecuteOnSelf(UAbilitySystemComponent* Source, const FGameplayEffectSpec& SpecExecuted, FActiveGameplayEffectHandle ActiveHandle)
+{
+	OnPeriodicGameplayEffectExecuteDelegateOnSelf.Broadcast(Source, SpecExecuted, ActiveHandle);
+}
+
 TArray<TWeakObjectPtr<UGameplayTask> >&	UAbilitySystemComponent::GetAbilityActiveTasks(UGameplayAbility* Ability)
 {
 	return Ability->ActiveTasks;
@@ -1349,31 +1337,91 @@ FString ASC_CleanupName(FString Str)
 	return Str;
 }
 
+void AccumulateScreenPos(float& XPos, float& YPos, float AdditionalY, float OriginalY, float MaxY, const float NewColumnYPadding, UCanvas* Canvas)
+{
+	const float ColumnWidth = Canvas->ClipX * 0.4f;
+
+	float NewY = YPos + AdditionalY;
+	if (NewY > MaxY)
+	{
+		// Need new column, reset Y to original height
+		NewY = NewColumnYPadding;
+		XPos += ColumnWidth;
+	}
+	YPos = NewY;
+}
+
 void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
-
 	bool bShowAttributes = true;
 	bool bShowGameplayEffects = true;
 	bool bShowAbilities = true;
 
+	if (DebugDisplay.IsDisplayOn(FName(TEXT("Attributes"))))
+	{
+		bShowAbilities = false;
+		bShowAttributes = true;
+		bShowGameplayEffects = false;
+	}
 	if (DebugDisplay.IsDisplayOn(FName(TEXT("Ability"))))
 	{
 		bShowAbilities = true;
 		bShowAttributes = false;
 		bShowGameplayEffects = false;
 	}
+	else if (DebugDisplay.IsDisplayOn(FName(TEXT("GameplayEffects"))))
+	{
+		bShowAbilities = false;
+		bShowAttributes = false;
+		bShowGameplayEffects = true;
+	}
+
+	float XPos = 0.f;
+	const float OriginalX = XPos;
+	const float OriginalY = YPos;
+	const float MaxY = Canvas->ClipY - 150.f; // Give some padding for any non-columnizing debug output following this output
+	float NewColumnYPadding = 30.f;
+
+	// Draw title at top of screen (default HUD debug text starts at 50 ypos, we can position this on top)*
+	//   *until someone changes it unknowingly
+	{
+		FString DebugTitle("");
+		// Category
+		if (bShowAbilities) DebugTitle += TEXT("ABILITIES ");
+		if (bShowAttributes) DebugTitle += TEXT("ATTRIBUTES ");
+		if (bShowGameplayEffects) DebugTitle += TEXT("GAMEPLAYEFFECTS ");
+		// Avatar info
+		if (AvatarActor)
+		{
+			DebugTitle += FString::Printf(TEXT("for avatar %s "), *AvatarActor->GetName());
+			if (AvatarActor->Role == ROLE_AutonomousProxy) DebugTitle += TEXT("(local player) ");
+			else if (AvatarActor->Role == ROLE_SimulatedProxy) DebugTitle += TEXT("(simulated) ");
+			else if (AvatarActor->Role == ROLE_Authority) DebugTitle += TEXT("(authority) ");
+		}
+		// Owner info
+		if (OwnerActor && OwnerActor != AvatarActor)
+		{
+			DebugTitle += FString::Printf(TEXT("for owner %s "), *OwnerActor->GetName());
+			if (OwnerActor->Role == ROLE_AutonomousProxy) DebugTitle += TEXT("(autonomous) ");
+			else if (OwnerActor->Role == ROLE_SimulatedProxy) DebugTitle += TEXT("(simulated) ");
+			else if (OwnerActor->Role == ROLE_Authority) DebugTitle += TEXT("(authority) ");
+		}
+
+		Canvas->SetDrawColor(FColor::White);
+		Canvas->DrawText(GEngine->GetLargeFont(), DebugTitle, XPos+4.f, 10.f, 1.5f, 1.5f);
+	}
 
 	FGameplayTagContainer OwnerTags;
 	GetOwnedGameplayTags(OwnerTags);
 
 	Canvas->SetDrawColor(FColor::White);
-	YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), 4.f, YPos);
-	YPos += YL;
+	YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Owned Tags: %s"), *OwnerTags.ToStringSimple()), XPos+4.f, YPos);
+	AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 
 	if (BlockedAbilityTags.GetExplicitGameplayTags().Num() > 0)
 	{
-		YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("BlockedAbilityTags: %s"), *BlockedAbilityTags.GetExplicitGameplayTags().ToStringSimple()), 4.f, YPos);
-		YPos += YL;
+		YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("BlockedAbilityTags: %s"), *BlockedAbilityTags.GetExplicitGameplayTags().ToStringSimple()), XPos+4.f, YPos);
+		AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 	}
 
 	TSet<FGameplayAttribute> DrawAttributes;
@@ -1383,7 +1431,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 	// -------------------------------------------------------------
 
 
-	if (bShowGameplayEffects || bShowAttributes)
+	if (bShowAttributes)
 	{
 		// Draw the attribute aggregator map.
 		for (auto It = ActiveGameplayEffects.AttributeAggregatorMap.CreateConstIterator(); It; ++It)
@@ -1393,6 +1441,17 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 			if(AggregatorRef.Get())
 			{
 				FAggregator& Aggregator = *AggregatorRef.Get();
+
+				bool HasActiveMod = false;
+				for (int32 ModOpIdx = 0; ModOpIdx < ARRAY_COUNT(Aggregator.Mods); ++ModOpIdx)
+				{
+					if(Aggregator.Mods[ModOpIdx].Num() > 0)
+					{
+						HasActiveMod = true;
+					}
+				}
+				if (HasActiveMod == false)
+					continue;
 
 				float FinalValue = GetNumericAttribute(Attribute);
 				float BaseValue = Aggregator.GetBaseValue();
@@ -1404,8 +1463,8 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				}
 
 				Canvas->SetDrawColor(FColor::White);
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), AttributeString, 4.f, YPos);
-				YPos += YL;
+				YL = Canvas->DrawText(GEngine->GetTinyFont(), AttributeString, XPos+4.f, YPos);
+				AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 
 				DrawAttributes.Add(Attribute);
 
@@ -1426,12 +1485,12 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 							if (Mod.TargetTagReqs) SrcName += FString::Printf(TEXT("TargetTags: [%s]"), *Mod.TargetTagReqs->ToString());
 						}
 
-						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), 7.f, YPos);
-						YPos += YL;
-
+						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("   %s\t %.2f - %s"), *EGameplayModOpToString(ModOpIdx), Mod.EvaluatedMagnitude, *SrcName), XPos+7.f, YPos);
+						AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
+						NewColumnYPadding = FMath::Max<float>(NewColumnYPadding, YPos+YL);
 					}
 				}
-				YPos += MaxCharHeight;
+				AccumulateScreenPos(XPos, YPos, MaxCharHeight, OriginalY, MaxY, NewColumnYPadding, Canvas);
 			}
 		}
 	}
@@ -1469,17 +1528,23 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				}
 			}
 
+			FString LevelString;
+			if (ActiveGE.Spec.GetLevel() > 1.f)
+			{
+				LevelString = FString::Printf(TEXT("Level: %.2f"), ActiveGE.Spec.GetLevel() );
+			}
+
 			Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
 
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString ), 4.f, YPos);
-			YPos += YL;
+			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s %s"), *ASC_CleanupName(GetNameSafe(ActiveGE.Spec.Def)), *DurationStr, *StackString, *LevelString ), XPos+4.f, YPos);
+			AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 
 			FGameplayTagContainer GrantedTags;
 			ActiveGE.Spec.GetAllGrantedTags(GrantedTags);
 			if (GrantedTags.Num() > 0)
 			{
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Granted Tags: %s"), *GrantedTags.ToStringSimple() ), 7.f, YPos);
-				YPos += YL;
+				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Granted Tags: %s"), *GrantedTags.ToStringSimple() ), XPos+7.f, YPos);
+				AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 			}
 
 			for (int32 ModIdx=0; ModIdx < ActiveGE.Spec.Modifiers.Num(); ++ModIdx)
@@ -1501,13 +1566,13 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 					Canvas->SetDrawColor(FColor(128, 128, 128) );
 				}
 
-				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude() ), 7.f, YPos);
-				YPos += YL;
+				YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("Mod: %s. %s. %.2f"), *ModInfo.Attribute.GetName(), *EGameplayModOpToString(ModInfo.ModifierOp), ModSpec.GetEvaluatedMagnitude() ), XPos+7.f, YPos);
+				AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 
 				Canvas->SetDrawColor(ActiveGE.bIsInhibited ? FColor(128, 128, 128): FColor::White );
 			}
 
-			YPos += MaxCharHeight;
+			AccumulateScreenPos(XPos, YPos, MaxCharHeight, OriginalY, MaxY, NewColumnYPadding, Canvas);
 		}
 	}
 
@@ -1528,12 +1593,12 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				if (Attribute.IsValid())
 				{
 					float Value = GetNumericAttribute(Attribute);
-					YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), Value ), 4.f, YPos);
-					YPos += YL;
+					YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %.2f"), *Attribute.GetName(), Value ), XPos+4.f, YPos);
+					AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 				}
 			}
 		}
-		YPos += MaxCharHeight;
+		AccumulateScreenPos(XPos, YPos, MaxCharHeight, OriginalY, MaxY, NewColumnYPadding, Canvas);
 	}
 
 	// -------------------------------------------------------------
@@ -1571,8 +1636,8 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 			FString InputPressedStr = AbilitySpec.InputPressed ? TEXT("(InputPressed)") : TEXT("");
 
 			Canvas->SetDrawColor(AbilityTextColor);
-			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), 4.f, YPos);
-			YPos += YL;
+			YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s %s %s"), *ASC_CleanupName(GetNameSafe(AbilitySpec.Ability)), *StatusText, *InputPressedStr), XPos+4.f, YPos);
+			AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 	
 			if (AbilitySpec.IsActive())
 			{
@@ -1589,23 +1654,28 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 						UGameplayTask* Task = TaskPtr.Get();
 						if (Task)
 						{
-							YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *Task->GetDebugString()), 7.f, YPos);
-							YPos += YL;
+							YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("%s"), *Task->GetDebugString()), XPos+7.f, YPos);
+							AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 						}
 					}
 
 					if (InstanceIdx < Instances.Num() - 2)
 					{
 						Canvas->SetDrawColor(FColor(128, 128, 128));
-						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("--------")), 7.f, YPos);
-						YPos += YL;
+						YL = Canvas->DrawText(GEngine->GetTinyFont(), FString::Printf(TEXT("--------")), XPos+7.f, YPos);
+						AccumulateScreenPos(XPos, YPos, YL, OriginalY, MaxY, NewColumnYPadding, Canvas);
 					}
 				}
 			}
 		}
-		YPos += MaxCharHeight;
+		AccumulateScreenPos(XPos, YPos, MaxCharHeight, OriginalY, MaxY, NewColumnYPadding, Canvas);
 	}
 
+	if (XPos > OriginalX)
+	{
+		// We flooded to new columns, returned YPos should be max Y (and some padding)
+		YPos = MaxY + MaxCharHeight*2.f;
+	}
 	YL = MaxCharHeight;
 }
 

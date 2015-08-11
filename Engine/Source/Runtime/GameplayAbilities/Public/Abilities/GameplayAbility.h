@@ -192,6 +192,10 @@ public:
 	/** Retrieves the actual AbilitySpec for this ability. Can only be called on instanced abilities. */
 	FGameplayAbilitySpec* GetCurrentAbilitySpec() const;
 
+	/** Retrieves the EffectContext of the GameplayEffect that granted this ability. Can only be called on instanced abilities. */
+	UFUNCTION(BlueprintCallable, Category = Ability)
+	FGameplayEffectContextHandle GetGrantedByEffectContext() const;
+
 	/** Returns an effect context, given a specified actor info */
 	virtual FGameplayEffectContextHandle GetEffectContext(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo *ActorInfo) const;
 
