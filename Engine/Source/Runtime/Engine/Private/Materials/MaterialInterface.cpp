@@ -53,7 +53,7 @@ FMaterialRelevance UMaterialInterface::GetRelevance_Internal(const UMaterial* Ma
 {
 	if(Material)
 	{
-		const FMaterialResource* MaterialResource = GetMaterialResource(InFeatureLevel);
+		const FMaterialResource* MaterialResource = Material->GetMaterialResource(InFeatureLevel);
 		const bool bIsTranslucent = IsTranslucentBlendMode((EBlendMode)GetBlendMode());
 
 		EMaterialShadingModel ShadingModel = GetShadingModel();
