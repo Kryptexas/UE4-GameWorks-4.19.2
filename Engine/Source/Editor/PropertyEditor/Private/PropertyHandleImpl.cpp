@@ -1430,7 +1430,7 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 
 bool FPropertyValueImpl::HasValidProperty() const
 {
-	return PropertyNode.IsValid();
+	return PropertyNode.IsValid() && PropertyNode.Pin()->GetProperty() != nullptr;
 }
 
 FText FPropertyValueImpl::GetDisplayName() const
