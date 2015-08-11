@@ -61,6 +61,8 @@ float FSkeletalAnimationSection::GetSectionHeight() const
 
 int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(&Section);
 	
 	FTimeToPixel TimeToPixelConverter( AllottedGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
@@ -72,7 +74,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 		AllottedGeometry.ToPaintGeometry(),
 		FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
 		SectionClippingRect,
-		ESlateDrawEffect::None,
+		DrawEffects,
 		FLinearColor(0.7f, 0.4f, 0.7f, 1.f)
 	);
 
@@ -91,7 +93,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 			AllottedGeometry.ToPaintGeometry(FVector2D(StartPixels, 0), FVector2D(EndPixels - StartPixels, AllottedGeometry.Size.Y)),
 			FEditorStyle::GetBrush("WhiteTexture"),
 			SectionClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FLinearColor(0.f, 0.f, 0.f, 0.3f)
 		);
 	}
@@ -113,7 +115,8 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 				LayerId + 2,
 				AllottedGeometry.ToPaintGeometry(),
 				Points,
-				SectionClippingRect
+				SectionClippingRect,
+				DrawEffects
 			);
 		}
 		CurrentTime += AnimSection->GetAnimationDuration();

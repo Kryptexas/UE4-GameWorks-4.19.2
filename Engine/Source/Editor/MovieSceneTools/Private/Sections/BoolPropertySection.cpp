@@ -13,6 +13,8 @@ void FBoolPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& L
 
 int32 FBoolPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ?
 		FTimeToPixel( AllottedGeometry, Sequencer->GetViewRange() ) :
 		FTimeToPixel( AllottedGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
@@ -58,7 +60,7 @@ int32 FBoolPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, c
 				AllottedGeometry.ToPaintGeometry( FVector2D( FirstTimeInPixels, 0 ), FVector2D( NextTimeInPixels - FirstTimeInPixels, AllottedGeometry.Size.Y ) ),
 				FEditorStyle::GetBrush( "Sequencer.GenericSection.Background" ),
 				SectionClippingRect,
-				ESlateDrawEffect::None,
+				DrawEffects,
 				FLinearColor( 0.f, 1.f, 0.f, 1.f )
 				);
 		}
@@ -70,7 +72,7 @@ int32 FBoolPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, c
 				AllottedGeometry.ToPaintGeometry( FVector2D( FirstTimeInPixels, 0 ), FVector2D( NextTimeInPixels - FirstTimeInPixels, AllottedGeometry.Size.Y ) ),
 				FEditorStyle::GetBrush( "Sequencer.GenericSection.Background" ),
 				SectionClippingRect,
-				ESlateDrawEffect::None,
+				DrawEffects,
 				FLinearColor( 1.f, 0.f, 0.f, 1.f )
 				);
 		}

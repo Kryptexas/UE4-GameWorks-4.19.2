@@ -73,12 +73,12 @@ private:
 	 * @param OutDrawElements	List of draw elements to add to
 	 * @param LayerId			The starting draw area
 	 */
-	void PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle ) const;
+	void PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 
 	/**
 	 * Draw the borders around each section.  The borders are the areas which can be used to expand or collapse the size of the section.
 	 */
-	void DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles ) const;
+	void DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles, bool bParentEnabled ) const;
 
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );

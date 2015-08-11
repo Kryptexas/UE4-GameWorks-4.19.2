@@ -352,6 +352,8 @@ float FAudioSection::GetSectionHeight() const
 
 int32 FAudioSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	// Add a box for the section
 	FSlateDrawElement::MakeBox(
 		OutDrawElements,
@@ -359,7 +361,7 @@ int32 FAudioSection::OnPaintSection( const FGeometry& AllottedGeometry, const FS
 		AllottedGeometry.ToPaintGeometry(),
 		FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
 		SectionClippingRect,
-		ESlateDrawEffect::None,
+		DrawEffects,
 		FLinearColor(0.4f, 0.8f, 0.4f, 1.f)
 	);
 
@@ -374,7 +376,7 @@ int32 FAudioSection::OnPaintSection( const FGeometry& AllottedGeometry, const FS
 			SectionClippingRect,
 			false,
 			false,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FLinearColor(1.f, 1.f, 1.f, 0.9f)
 		);
 	}

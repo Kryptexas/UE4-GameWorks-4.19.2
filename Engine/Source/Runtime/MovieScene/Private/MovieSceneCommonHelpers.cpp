@@ -36,7 +36,7 @@ UMovieSceneSection* MovieSceneHelpers::FindSectionAtTime( const TArray<UMovieSce
 		UMovieSceneSection* Section = Sections[SectionIndex];
 
 		//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
-		if( Section->IsTimeWithinSection( Time ) )
+		if( Section->IsTimeWithinSection( Time ) && Section->IsActive() )
 		{
 			return Section;
 		}
@@ -59,28 +59,31 @@ UMovieSceneSection* MovieSceneHelpers::FindNearestSectionAtTime( const TArray<UM
 	{
 		UMovieSceneSection* Section = Sections[SectionIndex];
 
-		//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
-		if( Section->IsTimeWithinSection( Time ) )
+		if (Section->IsActive())
 		{
-			return Section;
-		}
-
-		float EndTime = Section->GetEndTime();
-		if (EndTime < Time)
-		{
-			float ClosestTime = Time - EndTime;
-			if (!ClosestSection || ClosestTime < ClosestSectionTime)
+			//@todo Sequencer - There can be multiple sections overlapping in time. Returning instantly does not account for that.
+			if( Section->IsTimeWithinSection( Time ) )
 			{
-				ClosestSection = Section;
-				ClosestSectionTime = ClosestTime;
+				return Section;
 			}
-		}
 
-		float StartTime = Section->GetStartTime();
-		if (!EarliestSection || StartTime < EarliestSectionTime)
-		{
-			EarliestSection = Section;
-			EarliestSectionTime = StartTime;
+			float EndTime = Section->GetEndTime();
+			if (EndTime < Time)
+			{
+				float ClosestTime = Time - EndTime;
+				if (!ClosestSection || ClosestTime < ClosestSectionTime)
+				{
+					ClosestSection = Section;
+					ClosestSectionTime = ClosestTime;
+				}
+			}
+
+			float StartTime = Section->GetStartTime();
+			if (!EarliestSection || StartTime < EarliestSectionTime)
+			{
+				EarliestSection = Section;
+				EarliestSectionTime = StartTime;
+			}
 		}
 	}
 

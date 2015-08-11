@@ -176,6 +176,10 @@ public:
 	 */
 	virtual MOVIESCENE_API void InitialPlacement(const TArray<UMovieSceneSection*>& Sections, float InStartTime, float InEndTime, bool bAllowMultipleRows);
 
+	/** Whether or not this section is active. */
+	void SetIsActive(bool bInIsActive) { bIsActive = bInIsActive; }
+	bool IsActive() const { return bIsActive; }
+
 	/** Whether or not this section is infinite. An infinite section will draw the entire width of the track. StartTime and EndTime will be ignored but not discarded. */
 	void SetIsInfinite(bool bInIsInfinite) { bIsInfinite = bInIsInfinite; }
 	bool IsInfinite() const { return bIsInfinite; }
@@ -192,6 +196,10 @@ private:
 	/** The row index that this section sits on */
 	UPROPERTY()
 	int32 RowIndex;
+
+	/** Toggle whether this section is active/inactive */
+	UPROPERTY()
+	uint32 bIsActive : 1;
 
 	/** Toggle to set this section to be infinite */
 	UPROPERTY()

@@ -442,6 +442,38 @@ void FSequencer::DeleteSelectedKeys()
 	Selection.EmptySelectedKeys();
 }
 
+void FSequencer::ToggleSectionActive()
+{
+	FScopedTransaction ToggleSectionActiveTransaction( NSLOCTEXT("Sequencer", "ToggleSectionActive_Transaction", "Toggle Section Active") );
+
+	bool bIsActive = !IsToggleSectionActive();
+
+	for (auto Section : Selection.GetSelectedSections())
+	{
+		Section->Modify();
+		Section->SetIsActive(bIsActive);
+	}
+}
+
+bool FSequencer::CanToggleSectionActive() const
+{
+	return Selection.GetSelectedSections().Num() > 0;
+}
+
+bool FSequencer::IsToggleSectionActive() const
+{
+	// Active only if all are active
+	for (auto Section : Selection.GetSelectedSections())
+	{
+		if (!Section->IsActive())
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance )
 {
 	UMovieSceneSequence* Sequence = MovieSceneInstance->GetSequence();

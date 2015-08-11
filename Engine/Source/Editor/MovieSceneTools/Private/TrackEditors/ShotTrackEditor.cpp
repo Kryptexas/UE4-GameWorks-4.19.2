@@ -306,6 +306,8 @@ void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
 
 int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	if (Camera.IsValid())
 	{
 		FGeometry ThumbnailAreaGeometry = AllottedGeometry.MakeChild( FVector2D(GetSectionGripSize(), 0.0f), AllottedGeometry.GetDrawSize() - FVector2D( GetSectionGripSize()*2, 0.0f ) );
@@ -315,7 +317,8 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 				LayerId,
 				ThumbnailAreaGeometry.ToPaintGeometry(),
 				FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-				SectionClippingRect
+				SectionClippingRect,
+				DrawEffects
 			);
 
 		// @todo Sequencer: Need a way to visualize the key here
@@ -336,7 +339,7 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 				SectionClippingRect,
 				false,
 				false,
-				ESlateDrawEffect::None,
+				DrawEffects,
 				FLinearColor::White
 			);
 
@@ -348,7 +351,7 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 					TruncatedGeometry.ToPaintGeometry(),
 					WhiteBrush,
 					SectionClippingRect,
-					ESlateDrawEffect::None,
+					DrawEffects,
 					FLinearColor(1.0f, 1.0f, 1.0f, Thumbnail->GetFadeInCurve())
 					);
 			}
@@ -363,7 +366,8 @@ int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSl
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
-			SectionClippingRect
+			SectionClippingRect,
+			DrawEffects
 		); 
 	}
 

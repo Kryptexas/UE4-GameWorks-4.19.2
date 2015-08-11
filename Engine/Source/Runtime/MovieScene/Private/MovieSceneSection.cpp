@@ -5,11 +5,12 @@
 
 UMovieSceneSection::UMovieSceneSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
+	, StartTime(0.0f)
+	, EndTime(0.0f)
+	, RowIndex(0)
+	, bIsActive(true)
+	, bIsInfinite(false)
 {
-
-	StartTime = 0.0f;
-	EndTime = 0.0f;
-	RowIndex = 0;
 }
 
 const UMovieSceneSection* UMovieSceneSection::OverlapsWithSections(const TArray<UMovieSceneSection*>& Sections, int32 TrackDelta, float TimeDelta) const

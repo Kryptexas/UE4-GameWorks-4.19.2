@@ -18,6 +18,8 @@ void FColorPropertySection::GenerateSectionLayout( class ISectionLayoutBuilder& 
 
 int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	const UMovieSceneColorSection* ColorSection = Cast<const UMovieSceneColorSection>( &SectionObject );
 
 	float StartTime = ColorSection->GetStartTime();
@@ -34,7 +36,7 @@ int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, 
 
 		// If we are showing a background pattern and the colors is transparent, draw a checker pattern
 		const FSlateBrush* CheckerBrush = FEditorStyle::GetBrush( "Checker" );
-		FSlateDrawElement::MakeBox( OutDrawElements, LayerId, PaintGeometry, CheckerBrush, SectionClippingRect );
+		FSlateDrawElement::MakeBox( OutDrawElements, LayerId, PaintGeometry, CheckerBrush, SectionClippingRect, DrawEffects );
 
 		TArray<FSlateGradientStop> GradientStops;
 
@@ -59,7 +61,8 @@ int32 FColorPropertySection::OnPaintSection( const FGeometry& AllottedGeometry, 
 				PaintGeometry,
 				GradientStops,
 				Orient_Vertical,
-				SectionClippingRect
+				SectionClippingRect,
+				DrawEffects
 				);
 		}
 	}

@@ -130,6 +130,13 @@ public:
 	void DeleteSelectedKeys();
 
 	/**
+	* Section active/inactive toggle
+	*/
+	void ToggleSectionActive();
+	bool CanToggleSectionActive() const;
+	bool IsToggleSectionActive() const;
+
+	/**
 	 * @return Movie scene tools used by the sequencer
 	 */
 	const TArray< TSharedPtr<FMovieSceneTrackEditor> >& GetTrackEditors() const { return TrackEditors; }

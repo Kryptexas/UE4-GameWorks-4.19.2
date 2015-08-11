@@ -50,6 +50,8 @@ public:
 
 	virtual int32 OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const override 
 	{
+		const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 		// Add a box for the section
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
@@ -57,7 +59,7 @@ public:
 			AllottedGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush("Sequencer.GenericSection.Background"),
 			SectionClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FColor( 220, 120, 120 )
 		);
 

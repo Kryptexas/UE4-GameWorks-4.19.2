@@ -165,20 +165,26 @@ FSequencer& SSection::GetSequencer() const
 
 int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
+	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
+
+	bool bEnabled = bParentEnabled && SectionObject.IsActive();
+
+	const ESlateDrawEffect::Type DrawEffects = bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
+	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bEnabled );
 
 	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
 
 	FSlateRect SectionClipRect = SectionGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
 
 	// Ask the interface to draw the section
-	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bParentEnabled );
+	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bEnabled );
 
 	const bool bDisplaySectionHandles = true;
 
-	DrawSectionHandlesAndSelection(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, bDisplaySectionHandles );
+	DrawSectionHandlesAndSelection(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, bDisplaySectionHandles, bEnabled );
 
-	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
+	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle, bEnabled );
 
 	// Section name with drop shadow
 	FText SectionTitle = SectionInterface->GetSectionTitle();
@@ -191,7 +197,7 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FLinearColor::Black
 			);
 
@@ -202,7 +208,7 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 			SectionTitle,
 			FEditorStyle::GetFontStyle("NormalFont"),
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FLinearColor::White
 			);
 	}
@@ -210,8 +216,10 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 	return LayerId;
 }
 
-void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle ) const
+void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	UMovieSceneSection& SectionObject = *SectionInterface->GetSectionObject();
 
 	FSequencer& Sequencer = ParentSectionArea->GetSequencer();
@@ -255,7 +263,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 			KeyAreaGeometry.ToPaintGeometry(),
 			BackgroundBrush,
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			FLinearColor( .1f, .1f, .1f, 0.7f ) ); 
 
 
@@ -320,7 +328,7 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 					KeyAreaGeometry.ToPaintGeometry( FVector2D( KeyPosition - FMath::CeilToFloat(SequencerSectionConstants::KeySize.X/2.0f), ((KeyAreaGeometry.Size.Y*.5f)-(SequencerSectionConstants::KeySize.Y*.5f)) ), SequencerSectionConstants::KeySize ),
 					BrushToUse,
 					MyClippingRect,
-					ESlateDrawEffect::None,
+					DrawEffects,
 					KeyColor
 					);
 			}
@@ -328,8 +336,10 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 	}
 }
 
-void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles ) const
+void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bDisplaySectionHandles, bool bParentEnabled ) const
 {
+	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
+
 	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
 
 	FSequencerSelection& Selection = ParentSectionArea->GetSequencer().GetSelection();
@@ -354,7 +364,7 @@ void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry
 			AllottedGeometry.ToPaintGeometry(FVector2D(0.0f, 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
 			LeftGripBrush,
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : LeftGripBrush->GetTint(FWidgetStyle())
 		);
 		
@@ -367,7 +377,7 @@ void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry
 			AllottedGeometry.ToPaintGeometry(FVector2D(AllottedGeometry.Size.X-SectionInterface->GetSectionGripSize(), 0.0f), FVector2D(SectionInterface->GetSectionGripSize(), AllottedGeometry.GetDrawSize().Y)),
 			RightGripBrush,
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : RightGripBrush->GetTint(FWidgetStyle())
 		);
 	}
@@ -384,7 +394,7 @@ void SSection::DrawSectionHandlesAndSelection( const FGeometry& AllottedGeometry
 			AllottedGeometry.ToPaintGeometry(),
 			FEditorStyle::GetBrush(SelectionBorder),
 			MyClippingRect,
-			ESlateDrawEffect::None,
+			DrawEffects,
 			bActive ? SelectionColor : SelectionInactiveColor
 			);
 	}
@@ -415,6 +425,18 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 	else
 	{
 		SectionInterface->BuildSectionContextMenu(MenuBuilder);
+
+		MenuBuilder.AddMenuEntry(
+			NSLOCTEXT("Sequencer", "ToggleSectionActive", "Active"),
+			NSLOCTEXT("Sequencer", "ToggleSectionActiveTooltip", "Toggle section active/inactive."),
+			FSlateIcon(),
+			FUIAction(
+				FExecuteAction::CreateSP(&Sequencer, &FSequencer::ToggleSectionActive),
+				FCanExecuteAction::CreateSP(&Sequencer, &FSequencer::CanToggleSectionActive),
+				FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsToggleSectionActive)),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 
 		// @todo Sequencer this should delete all selected sections
 		// delete/selection needs to be rethought in general
