@@ -26,6 +26,7 @@ public:
 
 public:
 	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End of UObject interface
 
