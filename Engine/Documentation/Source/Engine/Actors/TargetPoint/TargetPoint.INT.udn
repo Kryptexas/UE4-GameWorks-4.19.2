@@ -3,6 +3,7 @@ Title:Target Point Actors
 Crumbs: %ROOT%, Engine, Engine/Actors
 Description:Guide to creating and using Target Actors.
 Related: Gameplay/HowTo/SpawnAndDestroyActors/Blueprints
+version: 4.9
 
 ![](Target_Point_Actors.png)
 
