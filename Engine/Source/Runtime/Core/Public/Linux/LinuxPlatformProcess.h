@@ -247,6 +247,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* ComputerName();
 	static void CleanFileCache();
 	static const TCHAR* BaseDir();
+	static const TCHAR* UserName(bool bOnlyAlphaNumeric = true);
 	static const TCHAR* UserDir();
 	static const TCHAR* UserSettingsDir();
 	static const TCHAR* ApplicationSettingsDir();

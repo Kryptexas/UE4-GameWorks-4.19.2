@@ -73,7 +73,8 @@ namespace PlatformProcessLimits
 	{
 		MaxComputerName	= 128,
 		MaxBaseDirLength= MAX_PATH + 1,
-		MaxArgvParameters = 256
+		MaxArgvParameters = 256,
+		MaxUserName = LOGIN_NAME_MAX
 	};
 };
 
@@ -147,6 +148,45 @@ const TCHAR* FLinuxPlatformProcess::BaseDir()
 		bHaveResult = true;
 	}
 	return CachedResult;
+}
+
+const TCHAR* FLinuxPlatformProcess::UserName(bool bOnlyAlphaNumeric)
+{
+	static TCHAR Name[PlatformProcessLimits::MaxUserName] = { 0 };
+	static bool bHaveResult = false;
+
+	if (!bHaveResult)
+	{
+		struct passwd * UserInfo = getpwuid(geteuid());
+		if (nullptr != UserInfo && nullptr != UserInfo->pw_name)
+		{
+			FString TempName(UTF8_TO_TCHAR(UserInfo->pw_name));
+			if (bOnlyAlphaNumeric)
+			{
+				const TCHAR *Src = *TempName;
+				TCHAR * Dst = Name;
+				for (; *Src != 0 && (Dst - Name) < ARRAY_COUNT(Name) - 1; ++Src)
+				{
+					if (FChar::IsAlnum(*Src))
+					{
+						*Dst++ = *Src;
+					}
+				}
+				*Dst++ = 0;
+			}
+			else
+			{
+				FCString::Strncpy(Name, *TempName, ARRAY_COUNT(Name) - 1);
+			}
+		}
+		else
+		{
+			FCString::Sprintf(Name, TEXT("euid%d"), geteuid());
+		}
+		bHaveResult = true;
+	}
+
+	return Name;
 }
 
 const TCHAR* FLinuxPlatformProcess::UserDir()
