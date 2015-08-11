@@ -2,6 +2,8 @@
 
 #define SPHERICAL_OPACITY_FOR_SHADOW_DEPTHS 1
 
+#define SCENE_TEXTURES_DISABLED 1
+
 #include "Common.usf"
 #include "Material.usf"
 #include "VertexFactory.usf"

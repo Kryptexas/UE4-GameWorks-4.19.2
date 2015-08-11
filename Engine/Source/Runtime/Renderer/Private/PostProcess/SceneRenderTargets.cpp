@@ -2213,14 +2213,6 @@ void FSceneTextureShaderParameters::Set(
 			&& !SceneColorSurfaceParameter.IsBound()
 			&& !SceneDepthSurfaceParameter.IsBound());
 	}
-	else if( TextureMode == ESceneRenderTargetsMode::NonSceneAlignedPass )
-	{
-		FSamplerStateRHIParamRef DefaultSampler = TStaticSamplerState<SF_Point,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
-		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorTextureParameter, SceneColorTextureParameterSampler, DefaultSampler, GBlackTexture->TextureRHI);
-		SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthTextureParameter, SceneDepthTextureParameterSampler, DefaultSampler, GBlackTexture->TextureRHI);
-		SetTextureParameter(RHICmdList, ShaderRHI, SceneColorSurfaceParameter, GBlackTexture->TextureRHI);
-		SetTextureParameter(RHICmdList, ShaderRHI, SceneDepthSurfaceParameter, GBlackTexture->TextureRHI);
-	}
 
 	if( DirectionalOcclusionSampler.IsBound() )
 	{
