@@ -377,6 +377,7 @@ private: // Methods
 		TRefCountPtr<ID3D12DescriptorHeap> Heap;
 		VERIFYD3D11RESULT( m_pDevice->CreateDescriptorHeap(&m_Desc, IID_PPV_ARGS(Heap.GetInitReference())) );
 		HeapOffset HeapBase = Heap->GetCPUDescriptorHandleForHeapStart();
+		check(HeapBase.ptr != 0);
 
 		// Allocate and initialize a single new entry in the map
 		m_Heaps.SetNum(m_Heaps.Num() + 1); 

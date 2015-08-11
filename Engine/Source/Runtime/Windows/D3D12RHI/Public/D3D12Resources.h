@@ -1995,9 +1995,6 @@ public:
         // If no descriptor and heap index were provided...
         if(InDescriptor.ptr == 0)
         {
-            // Allocate a new heap slot
-            AllocateHeapSlot();
-
 			// Create a new view
             CreateView();
         }
