@@ -2,7 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatNotificationService.h"
-#include "Claninfo.h"
+#include "ClanInfo.h"
 
 #define LOCTEXT_NAMESPACE ""
 
