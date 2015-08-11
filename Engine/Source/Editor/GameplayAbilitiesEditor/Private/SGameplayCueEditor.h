@@ -20,4 +20,7 @@ public:
 	virtual FReply OnNewGameplayCueButtonPressed() = 0;
 	
 	static FString GetPathNameForGameplayCueTag(FString Tag);
+
+	static void CreateNewGameplayCueNotifyDialogue(FString GameplayCue);
+	static void OpenEditorForNotify(FString NotifyFullPath);
 };

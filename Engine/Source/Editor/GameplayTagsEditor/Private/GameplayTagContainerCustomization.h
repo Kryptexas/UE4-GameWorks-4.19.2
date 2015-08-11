@@ -70,5 +70,8 @@ private:
 
 	/** The Window for the GameplayTagWidget */
 	TSharedPtr<SWindow> GameplayTagWidgetWindow;
+
+	/** The widget */
+	TSharedPtr<SGameplayTagWidget> GameplayTagWidget;
 };
 

@@ -146,7 +146,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 	.Title(Title)
 	.ClientSize(FVector2D(600, 400))
 	[
-		SNew(SGameplayTagWidget, EditableContainers)
+		SAssignNew(GameplayTagWidget, SGameplayTagWidget, EditableContainers)
 		.Filter( Categories )
 		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
 		.ReadOnly(bReadOnly)
@@ -248,7 +248,10 @@ void FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate()
 {
 	if( GameplayTagWidgetWindow.IsValid() )
 	{
-		GameplayTagWidgetWindow->RequestDestroyWindow();
+		if (GameplayTagWidget.IsValid() && GameplayTagWidget->IsAddingNewTag() == false)
+		{
+			GameplayTagWidgetWindow->RequestDestroyWindow();
+		}
 	}
 }
 
