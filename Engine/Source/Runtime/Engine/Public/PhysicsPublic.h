@@ -580,9 +580,6 @@ public:
 	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
 #endif
 
-	/** DeferredCommandHandler - this is mainly used for scene specific APEX calls that need to be deferred */
-	FPhysCommandHandler DeferredCommandHandler;
-
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
 	void InitPhysScene(uint32 SceneType);

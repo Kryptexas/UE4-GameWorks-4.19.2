@@ -1493,7 +1493,7 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		GPhysCommandHandler->DeferredDeleteSimEventCallback(SimEventCallback[SceneType]);
 
 		// Commands may have accumulated as the scene is terminated - flush any commands for this scene.
-		DeferredCommandHandler.Flush();
+		GPhysCommandHandler->Flush();
 
 		// Remove from the map
 		GPhysXSceneMap.Remove(PhysXSceneIndex[SceneType]);

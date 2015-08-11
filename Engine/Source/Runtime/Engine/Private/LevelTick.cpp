@@ -1168,7 +1168,7 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		}
 		if ( PhysicsScene != NULL )
 		{
-			PhysicsScene->DeferredCommandHandler.Flush();
+			GPhysCommandHandler->Flush();
 		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PreCloth);
