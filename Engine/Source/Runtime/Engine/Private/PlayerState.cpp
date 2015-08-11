@@ -96,6 +96,17 @@ void APlayerState::CopyProperties(APlayerState* PlayerState)
 	PlayerState->SavedNetworkAddress = SavedNetworkAddress;
 }
 
+void APlayerState::OnDeactivated()
+{
+	// By default we duplicate the inactive player state and destroy the old one
+	Destroy();
+}
+
+void APlayerState::OnReactivated()
+{
+	// Stub
+}
+
 void APlayerState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();

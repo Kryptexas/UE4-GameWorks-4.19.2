@@ -1550,7 +1550,7 @@ void AGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* 
 		}
 	}
 
-	PlayerState->Destroy();
+	PlayerState->OnDeactivated();
 }
 
 
@@ -1592,6 +1592,7 @@ bool AGameMode::FindInactivePlayer(APlayerController* PC)
 			// in UnregisterPlayerWithSession()
 			OldPlayerState->SetUniqueId(NULL);
 			OldPlayerState->Destroy();
+			PC->PlayerState->OnReactivated();
 			return true;
 		}
 	}

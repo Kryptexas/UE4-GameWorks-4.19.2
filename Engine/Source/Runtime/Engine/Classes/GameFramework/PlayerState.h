@@ -182,6 +182,12 @@ public:
 	/** Copy properties which need to be saved in inactive PlayerState */
 	virtual void CopyProperties(class APlayerState* PlayerState);
 
+	/** Called on the server when the owning player has disconnected, by default this method destroys this player state */
+	virtual void OnDeactivated();
+
+	/** Called on the server when the owning player has reconnected and this player state is added to the active players array */
+	virtual void OnReactivated();
+
 	/** called by seamless travel when initializing a player on the other side - copy properties to the new PlayerState that should persist */
 	virtual void SeamlessTravelTo(class APlayerState* NewPlayerState);
 
