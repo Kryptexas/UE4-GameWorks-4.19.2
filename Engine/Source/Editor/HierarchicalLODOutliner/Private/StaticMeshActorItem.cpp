@@ -6,6 +6,7 @@
 #include "LevelEditor.h"
 #include "SlateBasics.h"
 #include "TreeItemID.h"
+#include "GameFramework/Actor.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshActorItem"
 

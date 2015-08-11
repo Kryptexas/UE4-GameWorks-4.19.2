@@ -2,7 +2,9 @@
 #pragma once
 
 #include "ITreeItem.h"
+#include "TreeItemID.h"
 
+class AActor;
 
 namespace HLODOutliner
 {
