@@ -897,6 +897,16 @@ void UPostProcessComponent::OnUnregister()
 	GetWorld()->PostProcessVolumes.RemoveSingle(this);
 }
 
+void UPostProcessComponent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		Settings.OnAfterLoad();
+	}
+}
+
 /**
 *	Starts a new rendering frame. Called from the game thread thread.
 */
