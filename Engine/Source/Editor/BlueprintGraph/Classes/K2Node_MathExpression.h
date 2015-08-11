@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = Expression)
 	FString Expression;
 
+	UPROPERTY()
+	bool bMadeAfterRotChange;
+
 public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
