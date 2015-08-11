@@ -1,7 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HLODOutlinerDragDrop.h"
 #include "HierarchicalLODUtils.h"
