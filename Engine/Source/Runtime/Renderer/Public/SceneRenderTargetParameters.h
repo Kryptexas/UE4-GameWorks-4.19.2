@@ -13,7 +13,6 @@ namespace ESceneRenderTargetsMode
 		SetTextures,
 		DontSet,
 		DontSetIgnoreBoundByEditorCompositing,
-		NonSceneAlignedPass,
 	};
 }
 
