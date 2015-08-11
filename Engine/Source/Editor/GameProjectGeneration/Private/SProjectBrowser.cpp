@@ -1055,6 +1055,15 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 		}
 		if(Selection != SkipConversionButton)
 		{
+			// Update the game project to the latest version. This will prompt to check-out as necessary. We don't need to write the engine identifier directly, because it won't use the right .uprojectdirs logic.
+			if(!GameProjectUtils::UpdateGameProject(ProjectFile, CurrentIdentifier, FailReason))
+			{
+				if(FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ProjectUpgradeFailure", "The project file could not be updated to latest version. Attempt to open anyway?")) != EAppReturnType::Yes)
+				{
+					return false;
+				}
+			}
+
 			// If it's a code-based project, generate project files and open visual studio after an upgrade
 			if(ProjectStatus.bCodeBasedProject)
 			{
@@ -1076,15 +1085,6 @@ bool SProjectBrowser::OpenProject( const FString& InProjectFile )
 
 				// Try to compile the project
 				if(!GameProjectUtils::BuildCodeProject(ProjectFile))
-				{
-					return false;
-				}
-			}
-
-			// Update the game project to the latest version. This will prompt to check-out as necessary. We don't need to write the engine identifier directly, because it won't use the right .uprojectdirs logic.
-			if(!GameProjectUtils::UpdateGameProject(ProjectFile, CurrentIdentifier, FailReason))
-			{
-				if(FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("ProjectUpgradeFailure", "The project file could not be updated to latest version. Attempt to open anyway?")) != EAppReturnType::Yes)
 				{
 					return false;
 				}
