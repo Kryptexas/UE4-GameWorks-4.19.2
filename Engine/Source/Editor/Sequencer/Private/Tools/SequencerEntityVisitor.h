@@ -8,11 +8,33 @@ class IKeyArea;
 class FSectionKeyAreaNode;
 class ISequencerSection;
 
+/** Enum of different types of entities that are available in the sequencer */
+namespace ESequencerEntity
+{
+	enum Type
+	{
+		Key			= 1<<0,
+		Section		= 1<<1,
+	};
+
+	static const uint32 Everything = (uint32)-1;
+};
+
 /** Visitor class used to handle specific sequencer entities */
 struct ISequencerEntityVisitor
 {
+	ISequencerEntityVisitor(uint32 InEntityMask = ESequencerEntity::Everything) : EntityMask(InEntityMask) {}
+
 	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const { }
 	virtual void VisitSection(UMovieSceneSection* Section) const { }
+	
+	/** Check if the specified type of entity is applicable to this visitor */
+	bool CheckEntityMask(ESequencerEntity::Type Type) const { return (EntityMask & Type) != 0; }
+
+protected:
+
+	/** Bitmask of allowable entities */
+	uint32 EntityMask;
 };
 
 /** A range specifying time (and possibly vertical) bounds in the sequencer */

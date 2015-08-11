@@ -107,13 +107,19 @@ void FSequencerEntityWalker::HandleNode(const ISequencerEntityVisitor& Visitor, 
 				UMovieSceneSection* Section = InSections[SectionIndex]->GetSectionObject();
 				if (Range.IntersectSection(Section))
 				{
-					Visitor.VisitSection(Section);
-
-					// Only handle grouped keys if we actually have children
-					if (InNode.GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
+					if (Visitor.CheckEntityMask(ESequencerEntity::Section))
 					{
-						TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
-						HandleKeyArea(Visitor, KeyArea, Section);
+						Visitor.VisitSection(Section);
+					}
+
+					if (Visitor.CheckEntityMask(ESequencerEntity::Key))
+					{
+						// Only handle grouped keys if we actually have children
+						if (InNode.GetChildNodes().Num() != 0 && Range.IntersectKeyArea(InNode, VirtualKeySize.X))
+						{
+							TSharedRef<IKeyArea> KeyArea = InNode.UpdateKeyGrouping(SectionIndex);
+							HandleKeyArea(Visitor, KeyArea, Section);
+						}
 					}
 				}
 			}
@@ -142,12 +148,18 @@ void FSequencerEntityWalker::HandleKeyAreaNode(const ISequencerEntityVisitor& Vi
 		// If the section is at all within the marquee, we check its keys
 		if (Range.IntersectSection(Section))
 		{
-			Visitor.VisitSection(Section);
-
-			if (Range.IntersectKeyArea(InOwnerNode, VirtualKeySize.X))
+			if (Visitor.CheckEntityMask(ESequencerEntity::Section))
 			{
-				TSharedRef<IKeyArea> KeyArea = InKeyAreaNode.GetKeyArea(SectionIndex);
-				HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
+				Visitor.VisitSection(Section);
+			}
+
+			if (Visitor.CheckEntityMask(ESequencerEntity::Key))
+			{
+				if (Range.IntersectKeyArea(InOwnerNode, VirtualKeySize.X))
+				{
+					TSharedRef<IKeyArea> KeyArea = InKeyAreaNode.GetKeyArea(SectionIndex);
+					HandleKeyArea(Visitor, KeyArea, InSections[SectionIndex]->GetSectionObject());
+				}
 			}
 		}
 	}

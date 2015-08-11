@@ -43,7 +43,7 @@ protected:
 class FResizeSection : public FEditToolDragOperation
 {
 public:
-	FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd );
+	FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> Sections, bool bInDraggingByEnd );
 
 	/** FEditToolDragOperation interface */
 	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
@@ -53,8 +53,6 @@ public:
 private:
 	/** The sections we are interacting with */
 	TArray<FSectionHandle> Sections;
-	/** Optional cardinal section that the user is directly interacting with */
-	TOptional<FSectionHandle> CardinalSection;
 	/** true if dragging  the end of the section, false if dragging the start */
 	bool bDraggingByEnd;
 	/** Time where the mouse is pressed */
@@ -63,6 +61,8 @@ private:
 	TMap<TWeakObjectPtr<UMovieSceneSection>, float> SectionInitTimes;
 	/** The exact key handles that we're dragging */
 	TSet<FKeyHandle> DraggedKeyHandles;
+	/** Optional snap field to use when dragging */
+	TOptional<FSequencerSnapField> SnapField;
 };
 
 /** Operation to move the currently selected sections */
@@ -80,12 +80,13 @@ public:
 private:
 	/** The sections we are interacting with */
 	TArray<FSectionHandle> Sections;
-	/** Optional cardinal section that the user is directly interacting with */
-	TOptional<FSectionHandle> CardinalSection;
-	/** Time where the mouse is pressed */
-	float MouseDownTime;
 	/** The exact key handles that we're dragging */
 	TSet<FKeyHandle> DraggedKeyHandles;
+	/** Array of desired offsets relative to the mouse position. Representes a contiguous array of start/end times directly corresponding to Sections array */
+	struct FRelativeOffset { float StartTime, EndTime; };
+	TArray<FRelativeOffset> RelativeOffsets;
+	/** Optional snap field to use when dragging */
+	TOptional<FSequencerSnapField> SnapField;
 };
 
 /**
@@ -104,11 +105,6 @@ public:
 	virtual void OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
 	virtual void OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea) override;
-
-protected:
-
-	/** Gets all potential snap times for this drag operation */
-	void GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNode> SequencerNode);
 
 private:	
 	/** The selected keys being moved. */

@@ -15,5 +15,5 @@ TSharedPtr<IEditToolDragOperation> FSectionResizeHotspot::InitiateDrag(ISequence
 	{
 		SectionHandles.Add(Section);
 	}
-	return MakeShareable( new FResizeSection(static_cast<FSequencer&>(Sequencer), SectionHandles, Section, HandleType == Right) );
+	return MakeShareable( new FResizeSection(static_cast<FSequencer&>(Sequencer), SectionHandles, HandleType == Right) );
 }

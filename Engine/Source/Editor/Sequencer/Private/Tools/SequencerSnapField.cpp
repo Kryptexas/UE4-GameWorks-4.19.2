@@ -10,8 +10,9 @@
 
 struct FSnapGridVisitor : ISequencerEntityVisitor
 {
-	FSnapGridVisitor(ISequencerSnapCandidate& InCandidate)
-		: Candidate(InCandidate)
+	FSnapGridVisitor(ISequencerSnapCandidate& InCandidate, uint32 EntityMask)
+		: ISequencerEntityVisitor(EntityMask)
+		, Candidate(InCandidate)
 	{}
 
 	virtual void VisitKey(FKeyHandle KeyHandle, float KeyTime, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) const
@@ -44,7 +45,7 @@ struct FSnapGridVisitor : ISequencerEntityVisitor
 	mutable TArray<FSequencerSnapPoint> Snaps;
 };
 
-FSequencerSnapField::FSequencerSnapField(const ISequencer& InSequencer, ISequencerSnapCandidate& Candidate)
+FSequencerSnapField::FSequencerSnapField(const ISequencer& InSequencer, ISequencerSnapCandidate& Candidate, uint32 EntityMask)
 {
 	TSharedPtr<SSequencerTreeView> TreeView = StaticCastSharedRef<SSequencer>(InSequencer.GetSequencerWidget())->GetTreeView();
 
@@ -58,7 +59,7 @@ FSequencerSnapField::FSequencerSnapField(const ISequencer& InSequencer, ISequenc
 	FSequencerEntityWalker Walker(ViewRange);
 
 	// Traverse the visible space, collecting snapping times as we go
-	FSnapGridVisitor Visitor(Candidate);
+	FSnapGridVisitor Visitor(Candidate, EntityMask);
 	Walker.Traverse(Visitor, VisibleNodes);
 
 	// Sort

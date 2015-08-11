@@ -14,21 +14,35 @@
 
 struct FDefaultKeySnappingCandidates : ISequencerSnapCandidate
 {
-	FDefaultKeySnappingCandidates(const TSet<FSelectedKey>& InSelectedKeys)
-		: SelectedKeys(InSelectedKeys)
+	FDefaultKeySnappingCandidates(const TSet<FSelectedKey>& InKeysToExclude)
+		: KeysToExclude(InKeysToExclude)
 	{}
 
-	bool IsKeyApplicable(FKeyHandle KeyHandle, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section)
+	virtual bool IsKeyApplicable(FKeyHandle KeyHandle, const TSharedPtr<IKeyArea>& KeyArea, UMovieSceneSection* Section) override
 	{
-		return !SelectedKeys.Contains(FSelectedKey(*Section, KeyArea, KeyHandle));
+		return !KeysToExclude.Contains(FSelectedKey(*Section, KeyArea, KeyHandle));
 	}
 
-	bool AreSectionBoundsApplicable(UMovieSceneSection* Section) { return true; }
-	bool AreGridLinesApplicable() { return true; }
-
-	const TSet<FSelectedKey>& SelectedKeys;
+	const TSet<FSelectedKey>& KeysToExclude;
 };
 
+struct FDefaultSectionSnappingCandidates : ISequencerSnapCandidate
+{
+	FDefaultSectionSnappingCandidates(const TArray<FSectionHandle>& InSectionsToIgnore)
+	{
+		for (auto& SectionHandle : InSectionsToIgnore)
+		{
+			SectionsToIgnore.Add(SectionHandle.GetSectionObject());
+		}
+	}
+
+	virtual bool AreSectionBoundsApplicable(UMovieSceneSection* Section) override
+	{
+		return !SectionsToIgnore.Contains(Section);
+	}
+
+	TSet<UMovieSceneSection*> SectionsToIgnore;
+};
 
 TOptional<FSequencerSnapField::FSnapResult> SnapToInterval(const TArray<float>& InTimes, float Threshold, const USequencerSettings& Settings)
 {
@@ -81,82 +95,6 @@ TRange<float> GetSectionBoundaries(UMovieSceneSection* Section, TSharedPtr<FTrac
 	return TRange<float>(LowerBound, UpperBound);
 }
 
-void GetSectionSnapTimes(TArray<float>& OutSnapTimes, UMovieSceneSection* Section, TSharedPtr<FTrackNode> SequencerNode, bool bIgnoreOurSectionCustomSnaps)
-{
-	// @todo Sequencer handle dilation snapping better
-
-	// Collect all the potential snap times from other section borders
-	const TArray< TSharedRef<ISequencerSection> >& Sections = SequencerNode->GetSections();
-	for (int32 SectionIndex = 0; SectionIndex < Sections.Num(); ++SectionIndex)
-	{
-		const UMovieSceneSection* InSection = Sections[SectionIndex]->GetSectionObject();
-		bool bIsThisSection = Section == InSection;
-		if (!bIgnoreOurSectionCustomSnaps || !bIsThisSection)
-		{
-			InSection->GetSnapTimes(OutSnapTimes, Section != InSection);
-		}
-	}
-
-	// snap to shots if it exists, and we are not the director track
-	UMovieSceneTrack* OuterTrack = Cast<UMovieSceneTrack>(Section->GetOuter());
-	UMovieScene* MovieScene = Cast<UMovieScene>(OuterTrack->GetOuter());
-	UMovieSceneTrack* ShotTrack = MovieScene->FindMasterTrack(UMovieSceneShotTrack::StaticClass());
-	if (ShotTrack && OuterTrack != ShotTrack)
-	{
-		const TArray<UMovieSceneSection*>& ShotSections = ShotTrack->GetAllSections();
-		for (int32 SectionIndex = 0; SectionIndex < ShotSections.Num(); ++SectionIndex)
-		{
-			auto Shot = ShotSections[SectionIndex];
-			Shot->GetSnapTimes(OutSnapTimes, true);
-		}
-	}
-}
-
-bool SnapToTimes(TArray<float> InitialTimes, const TArray<float>& SnapTimes, const FTimeToPixel& TimeToPixelConverter, float& OutInitialTime, float& OutSnapTime)
-{
-	bool bSuccess = false;
-	float ClosestTimePixelDistance = PixelSnapWidth;
-	
-	for (int32 InitialTimeIndex = 0; InitialTimeIndex < InitialTimes.Num(); ++InitialTimeIndex)
-	{
-		float InitialTime = InitialTimes[InitialTimeIndex];
-		float PixelXOfTime = TimeToPixelConverter.TimeToPixel(InitialTime);
-
-		for (int32 SnapTimeIndex = 0; SnapTimeIndex < SnapTimes.Num(); ++SnapTimeIndex)
-		{
-			float SnapTime = SnapTimes[SnapTimeIndex];
-			float PixelXOfSnapTime = TimeToPixelConverter.TimeToPixel(SnapTime);
-
-			float PixelDistance = FMath::Abs(PixelXOfTime - PixelXOfSnapTime);
-			if (PixelDistance < ClosestTimePixelDistance)
-			{
-				ClosestTimePixelDistance = PixelDistance;
-				OutInitialTime = InitialTime;
-				OutSnapTime = SnapTime;
-				bSuccess = true;
-			}
-		}
-	}
-
-	return bSuccess;
-}
-
-TOptional<float> SnapToTimes(float InitialTime, const TArray<float>& SnapTimes, const FTimeToPixel& TimeToPixelConverter)
-{
-	TArray<float> InitialTimes;
-	InitialTimes.Add(InitialTime);
-
-	float OutSnapTime = 0.f;
-	float OutInitialTime = 0.f;
-	bool bSuccess = SnapToTimes(InitialTimes, SnapTimes, TimeToPixelConverter, OutInitialTime, OutSnapTime);
-	if (bSuccess)
-	{
-		return TOptional<float>(OutSnapTime);
-	}
-	return TOptional<float>();
-}
-
-
 FEditToolDragOperation::FEditToolDragOperation( FSequencer& InSequencer )
 	: Sequencer(InSequencer)
 {
@@ -184,12 +122,11 @@ void FEditToolDragOperation::EndTransaction()
 	Sequencer.UpdateRuntimeInstances();
 }
 
-FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, TOptional<FSectionHandle> InCardinalSection, bool bInDraggingByEnd )
+FResizeSection::FResizeSection( FSequencer& InSequencer, TArray<FSectionHandle> InSections, bool bInDraggingByEnd )
 	: FEditToolDragOperation( InSequencer )
 	, Sections( MoveTemp(InSections) )
-	, CardinalSection(InCardinalSection)
 	, bDraggingByEnd(bInDraggingByEnd)
-	, MouseDownTime(ForceInit)
+	, MouseDownTime(0.f)
 {
 }
 
@@ -198,6 +135,10 @@ void FResizeSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D Loca
 	BeginTransaction( Sections, NSLOCTEXT("Sequencer", "DragSectionEdgeTransaction", "Resize section") );
 
 	MouseDownTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
+
+	// Construct a snap field of unselected sections
+	FDefaultSectionSnappingCandidates SnapCandidates(Sections);
+	SnapField = FSequencerSnapField(Sequencer, SnapCandidates, ESequencerEntity::Section);
 
 	DraggedKeyHandles.Empty();
 	SectionInitTimes.Empty();
@@ -222,40 +163,44 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 {
 	bool bIsDilating = MouseEvent.IsControlDown();
 
+	// Convert the current mouse position to a time
+	float DeltaTime = VirtualTrackArea.PixelToTime(LocalMousePos.X) - MouseDownTime;
+
+	// Snapping
+	if ( Settings->GetIsSnapEnabled() )
+	{
+		TArray<float> SectionTimes;
+		for (auto& Handle : Sections)
+		{
+			UMovieSceneSection* Section = Handle.GetSectionObject();
+			SectionTimes.Add(SectionInitTimes[Section] + DeltaTime);
+		}
+
+		float SnapThresold = VirtualTrackArea.PixelToTime(PixelSnapWidth) - VirtualTrackArea.PixelToTime(0.f);
+
+		TOptional<FSequencerSnapField::FSnapResult> SnappedTime;
+
+		if (Settings->GetSnapSectionTimesToSections())
+		{
+			SnappedTime = SnapField->Snap(SectionTimes, SnapThresold);
+		}
+
+		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
+		{
+			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
+		}
+
+		if (SnappedTime.IsSet())
+		{
+			// Add the snapped amopunt onto the delta
+			DeltaTime += SnappedTime->Snapped - SnappedTime->Original;
+		}
+	}
+
 	for (auto& Handle : Sections)
 	{
 		UMovieSceneSection* Section = Handle.GetSectionObject();
-
-		// Convert the current mouse position to a time
-		float DeltaTime = VirtualTrackArea.PixelToTime(LocalMousePos.X) - MouseDownTime;
 		float NewTime = SectionInitTimes[Section] + DeltaTime;
-
-		// Find the borders of where you can drag to
-		TRange<float> SectionBoundaries = GetSectionBoundaries(Section, Handle.TrackNode);
-		
-		// Snapping
-		if ( Settings->GetIsSnapEnabled() )
-		{
-			bool bSnappedToSection = false;
-			if ( Settings->GetSnapSectionTimesToSections() )
-			{
-				TArray<float> TimesToSnapTo;
-				GetSectionSnapTimes(TimesToSnapTo, Section, Handle.TrackNode, bIsDilating);
-
-				TOptional<float> NewSnappedTime = SnapToTimes(NewTime, TimesToSnapTo, VirtualTrackArea);
-
-				if (NewSnappedTime.IsSet())
-				{
-					NewTime = NewSnappedTime.GetValue();
-					bSnappedToSection = true;
-				}
-			}
-
-			if ( bSnappedToSection == false && Settings->GetSnapSectionTimesToInterval() )
-			{
-				NewTime = Settings->SnapTimeToInterval(NewTime);
-			}
-		}
 
 		if( bDraggingByEnd )
 		{
@@ -274,7 +219,7 @@ void FResizeSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMous
 				Section->SetEndTime( NewTime );
 			}
 		}
-		else if( !bDraggingByEnd )
+		else
 		{
 			// Dragging the start of a section
 			// Ensure we arent expanding past the end time
@@ -311,13 +256,21 @@ void FMoveSection::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalM
 {
 	BeginTransaction( Sections, NSLOCTEXT("Sequencer", "MoveSectionTransaction", "Move Section") );
 
-	MouseDownTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
+	// Construct a snap field of unselected sections
+	FDefaultSectionSnappingCandidates SnapCandidates(Sections);
+	SnapField = FSequencerSnapField(Sequencer, SnapCandidates, ESequencerEntity::Section);
 
 	DraggedKeyHandles.Empty();
 
-	for (auto Section : Sections)
+	const FVector2D InitialPosition = VirtualTrackArea.PhysicalToVirtual(LocalMousePos);
+
+	RelativeOffsets.Reserve(Sections.Num());
+	for (int32 Index = 0; Index < Sections.Num(); ++Index)
 	{
-		Section.GetSectionObject()->GetKeyHandles(DraggedKeyHandles);
+		auto* Section = Sections[Index].GetSectionObject();
+
+		Section->GetKeyHandles(DraggedKeyHandles);
+		RelativeOffsets.Add(FRelativeOffset{ Section->GetStartTime() - InitialPosition.X, Section->GetEndTime() - InitialPosition.X });
 	}
 }
 
@@ -342,16 +295,52 @@ void FMoveSection::OnEndDrag(const FPointerEvent& MouseEvent, FVector2D LocalMou
 	EndTransaction();
 }
 
-
 void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
 {
-	float NewMouseDownTime = VirtualTrackArea.PixelToTime(LocalMousePos.X);
-	float DistanceMoved =  NewMouseDownTime - MouseDownTime;
-	float DeltaTime = DistanceMoved;
+	LocalMousePos.Y = FMath::Clamp(LocalMousePos.Y, 0.f, VirtualTrackArea.GetPhysicalSize().Y);
 
-	for (auto& Handle : Sections)
+	// Convert the current mouse position to a time
+	FVector2D VirtualMousePos = VirtualTrackArea.PhysicalToVirtual(LocalMousePos);
+
+	// Snapping
+	if ( Settings->GetIsSnapEnabled() )
 	{
+		TArray<float> SectionTimes;
+		SectionTimes.Reserve(RelativeOffsets.Num());
+		for (const auto& Offset : RelativeOffsets)
+		{
+			SectionTimes.Add(VirtualMousePos.X + Offset.StartTime);
+			SectionTimes.Add(VirtualMousePos.X + Offset.EndTime);
+		}
+
+		float SnapThresold = VirtualTrackArea.PixelToTime(PixelSnapWidth) - VirtualTrackArea.PixelToTime(0.f);
+
+		TOptional<FSequencerSnapField::FSnapResult> SnappedTime;
+
+		if (Settings->GetSnapSectionTimesToSections())
+		{
+			SnappedTime = SnapField->Snap(SectionTimes, SnapThresold);
+		}
+
+		if (!SnappedTime.IsSet() && Settings->GetSnapSectionTimesToInterval())
+		{
+			SnappedTime = SnapToInterval(SectionTimes, SnapThresold, *Settings);
+		}
+
+		if (SnappedTime.IsSet())
+		{
+			// Add the snapped amopunt onto the delta
+			VirtualMousePos.X += SnappedTime->Snapped - SnappedTime->Original;
+		}
+	}
+
+	for (int32 Index = 0; Index < Sections.Num(); ++Index)
+	{
+		auto& Handle = Sections[Index];
 		UMovieSceneSection* Section = Handle.GetSectionObject();
+
+		// *2 because we store start/end times
+		const float DeltaTime = VirtualMousePos.X + RelativeOffsets[Index].StartTime - Section->GetStartTime();
 
 		auto SequencerNodeSections = Handle.TrackNode->GetSections();
 		
@@ -360,58 +349,44 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 		{
 			MovieSceneSections.Add(SequencerNodeSections[i]->GetSectionObject());
 		}
-		
-		if ( Settings->GetIsSnapEnabled() )
-		{
-			bool bSnappedToSection = false;
-			if ( Settings->GetSnapSectionTimesToSections() )
-			{
-				TArray<float> TimesToSnapTo;
-				GetSectionSnapTimes(TimesToSnapTo, Section, Handle.TrackNode, true);
-
-				TArray<float> TimesToSnap;
-				TimesToSnap.Add(DistanceMoved + Section->GetStartTime());
-				TimesToSnap.Add(DistanceMoved + Section->GetEndTime());
-
-				float OutSnappedTime = 0.f;
-				float OutNewTime = 0.f;
-				if (SnapToTimes(TimesToSnap, TimesToSnapTo, VirtualTrackArea, OutSnappedTime, OutNewTime))
-				{
-					DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
-					bSnappedToSection = true;
-				}
-			}
-
-			if ( bSnappedToSection == false && Settings->GetSnapSectionTimesToInterval() )
-			{
-				float NewStartTime = DistanceMoved + Section->GetStartTime();
-				DeltaTime = Settings->SnapTimeToInterval( NewStartTime ) - Section->GetStartTime();
-			}
-		}
 
 		int32 TargetRowIndex = Section->GetRowIndex();
 
 		// vertical dragging - master tracks only
 		if (Handle.TrackNode->GetTrack()->SupportsMultipleRows() && SequencerNodeSections.Num() > 1)
 		{
-			float TrackHeight = SequencerNodeSections[0]->GetSectionHeight();
-
-			if (LocalMousePos.Y < 0.f || LocalMousePos.Y > TrackHeight)
+			int32 NumRows = 0;
+			for (auto* Sec : MovieSceneSections)
 			{
-				int32 MaxRowIndex = 0;
-				for (int32 i = 0; i < SequencerNodeSections.Num(); ++i)
+				if (Sec != Section)
 				{
-					if (SequencerNodeSections[i]->GetSectionObject() != Section)
-					{
-						MaxRowIndex = FMath::Max(MaxRowIndex, SequencerNodeSections[i]->GetSectionObject()->GetRowIndex());
-					}
+					NumRows = FMath::Max(Sec->GetRowIndex() + 1, NumRows);
+				}
+			}
+			
+			// Compute the max row index whilst disregarding the one we're dragging
+			const int32 MaxRowIndex = NumRows;
+
+			// Now factor in the row index of the one we're dragging
+			NumRows = FMath::Max(Section->GetRowIndex() + 1, NumRows);
+
+			const float VirtualSectionHeight = Handle.TrackNode->GetVirtualBottom() - Handle.TrackNode->GetVirtualTop();
+			const float VirtualRowHeight = VirtualSectionHeight / NumRows;
+			const float MouseOffsetWithinRow = VirtualMousePos.Y - (Handle.TrackNode->GetVirtualTop() + VirtualRowHeight * TargetRowIndex);
+
+			if (MouseOffsetWithinRow < 0 || MouseOffsetWithinRow > VirtualRowHeight)
+			{
+				const int32 NewIndex = FMath::FloorToInt((VirtualMousePos.Y - Handle.TrackNode->GetVirtualTop()) / VirtualRowHeight);
+
+				if (NewIndex < 0)
+				{
+					// todo: Move everything else down?
 				}
 
-				TargetRowIndex = FMath::Clamp(Section->GetRowIndex() + FMath::FloorToInt(LocalMousePos.Y / TrackHeight),
-					0, MaxRowIndex + 1);
+				TargetRowIndex = FMath::Clamp(NewIndex,	0, MaxRowIndex);
 			}
 		}
-		
+
 		bool bDeltaX = !FMath::IsNearlyZero(DeltaTime);
 		bool bDeltaY = TargetRowIndex != Section->GetRowIndex();
 
@@ -449,8 +424,6 @@ void FMoveSection::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMouseP
 			}
 		}
 	}
-
-	MouseDownTime = NewMouseDownTime;
 }
 
 void FMoveKeys::OnBeginDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos, const FVirtualTrackArea& VirtualTrackArea)
@@ -507,7 +480,7 @@ void FMoveKeys::OnDrag(const FPointerEvent& MouseEvent, FVector2D LocalMousePos,
 			KeyTimes.Add(MouseTime + RelativeOffsets.FindRef(SelectedKey));
 		}
 
-		float SnapThresold = VirtualTrackArea.PixelToTime(10.f) - VirtualTrackArea.PixelToTime(0.f);
+		float SnapThresold = VirtualTrackArea.PixelToTime(PixelSnapWidth) - VirtualTrackArea.PixelToTime(0.f);
 
 		TOptional<FSequencerSnapField::FSnapResult> SnappedTime;
 

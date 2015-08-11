@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "SequencerEntityVisitor.h"
+
 struct FKeyHandle;
 
 class ISequencer;
@@ -47,8 +49,8 @@ public:
 		float Snapped;
 	};
 
-	/** Construction from a sequencer and a snap canidate implementation */
-	FSequencerSnapField(const ISequencer& InSequencer, ISequencerSnapCandidate& Candidate);
+	/** Construction from a sequencer and a snap canidate implementation. Optionally provide an entity mask to completely ignore some entity types */
+	FSequencerSnapField(const ISequencer& InSequencer, ISequencerSnapCandidate& Candidate, uint32 EntityMask = ESequencerEntity::Everything);
 
 	/** Move construction / assignment */
 	FSequencerSnapField(FSequencerSnapField&& In) : SortedSnaps(MoveTemp(In.SortedSnaps)) {}
