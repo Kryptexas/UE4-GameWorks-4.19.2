@@ -286,10 +286,10 @@
 		Request = [[SKReceiptRefreshRequest alloc] init];
 		Request.delegate = self;
 		[Request start];
-	}
-	else
+    }
 #endif
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
+	else
 	{
 		[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
 	}
