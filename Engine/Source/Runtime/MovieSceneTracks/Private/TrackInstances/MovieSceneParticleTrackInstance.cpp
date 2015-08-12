@@ -23,22 +23,25 @@ void FMovieSceneParticleTrackInstance::Update( float Position, float LastPositio
 		for (int32 i = 0; i < Sections.Num(); ++i)
 		{
 			UMovieSceneParticleSection* Section = Cast<UMovieSceneParticleSection>(Sections[i]);
-			if (Section->GetKeyType() == EParticleKey::Trigger)
+			if (Section->IsActive())
 			{
-				if (Position > Section->GetStartTime() && LastPosition < Section->GetStartTime())
+				if (Section->GetKeyType() == EParticleKey::Trigger)
 				{
-					bTrigger = true;
+					if (Position > Section->GetStartTime() && LastPosition < Section->GetStartTime())
+					{
+						bTrigger = true;
+					}
 				}
-			}
-			else if (Section->GetKeyType() == EParticleKey::Toggle)
-			{
-				if (Position >= Section->GetStartTime() && Position <= Section->GetEndTime())
+				else if (Section->GetKeyType() == EParticleKey::Toggle)
 				{
-					bOn = true;
-				}
-				else if (Position >= Section->GetEndTime() && LastPosition < Section->GetEndTime())
-				{
-					bOff = true;
+					if (Position >= Section->GetStartTime() && Position <= Section->GetEndTime())
+					{
+						bOn = true;
+					}
+					else if (Position >= Section->GetEndTime() && LastPosition < Section->GetEndTime())
+					{
+						bOff = true;
+					}
 				}
 			}
 		}

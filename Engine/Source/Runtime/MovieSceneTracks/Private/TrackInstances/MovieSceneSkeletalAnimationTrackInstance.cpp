@@ -27,7 +27,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 		if (AnimInterface)
 		{
 			UMovieSceneSkeletalAnimationSection* AnimSection = Cast<UMovieSceneSkeletalAnimationSection>(AnimationTrack->GetAnimSectionAtTime(Position));
-			if (AnimSection)
+			if (AnimSection && AnimSection->IsActive())
 			{
 				int32 ChannelIndex = 0;
 				FName SlotName = FName("AnimationSlot");
