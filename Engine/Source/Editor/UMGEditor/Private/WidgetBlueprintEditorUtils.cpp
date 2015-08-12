@@ -103,6 +103,11 @@ bool FWidgetBlueprintEditorUtils::VerifyWidgetRename(TSharedRef<class FWidgetBlu
 	}
 	else
 	{
+		if (!FName(*NewNameString).IsValidObjectName(OutErrorMessage))
+		{
+			return false;
+		}
+
 		// Not an existing widget in the tree BUT it still mustn't create a UObject name clash
 		UWidget* WidgetPreview = Widget.GetPreview();
 		if (WidgetPreview)
