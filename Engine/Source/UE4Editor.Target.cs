@@ -37,6 +37,7 @@ public class UE4EditorTarget : TargetRules
 	{
 		ModuleNames.Add("Launch");
 		ModuleNames.Add("GameMenuBuilder");
+		ModuleNames.Add("JsonUtilities");
 		ModuleNames.Add("RuntimeAssetCache");
 		ModuleNames.Add("UnrealCodeAnalyzerTests");
 		if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
