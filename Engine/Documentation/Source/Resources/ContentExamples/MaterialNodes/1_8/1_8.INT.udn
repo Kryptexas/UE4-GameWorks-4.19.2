@@ -3,7 +3,23 @@ Title:1.8 - Opacity Mask
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
 Description:An overview of the Material Nodes example level, example 1.8: Opacity Mask.
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/MaterialNodes/1_7 "%Resources/ContentExamples/MaterialNodes/1_7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Material Nodes Home](Resources/ContentExamples/MaterialNodes)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/MaterialNodes/1_9 "%Resources/ContentExamples/MaterialNodes/1_9:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
