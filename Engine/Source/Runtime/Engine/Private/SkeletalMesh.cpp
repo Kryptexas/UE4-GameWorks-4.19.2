@@ -2398,14 +2398,6 @@ void USkeletalMesh::BeginDestroy()
 {
 	Super::BeginDestroy();
 
-	// Release the mesh's render resources.
-	ReleaseResources();
-
-
-}
-
-void USkeletalMesh::FinishDestroy()
-{
 #if WITH_APEX_CLOTHING
 	// release clothing assets
 	for (FClothingAssetData& Data : ClothingAssets)
@@ -2418,9 +2410,11 @@ void USkeletalMesh::FinishDestroy()
 	}
 #endif // #if WITH_APEX_CLOTHING
 
-	Super::FinishDestroy();
-}
+	// Release the mesh's render resources.
+	ReleaseResources();
 
+
+}
 
 bool USkeletalMesh::IsReadyForFinishDestroy()
 {
