@@ -1135,7 +1135,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 	// Perform any collision notification events
 	DispatchPhysNotifications_AssumesLocked();
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST || WITH_PHYSX_RELEASE)
 	// Handle debug rendering
 	if (InLineBatcher)
 	{
@@ -1147,7 +1147,7 @@ void FPhysScene::EndFrame(ULineBatchComponent* InLineBatcher)
 		}
 
 	}
-#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST || WITH_PHYSX_RELEASE)
 }
 
 void FPhysScene::SetIsStaticLoading(bool bStaticLoading)

@@ -27,11 +27,16 @@ public class PhysX : ModuleRules
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
 			default:
-				return PhysXLibraryMode.Profile;
+            if(BuildConfiguration.bUseShippingPhysXLibraries)
+            {
+                return PhysXLibraryMode.Shipping;
+            }
+            else
+            {
+                return PhysXLibraryMode.Profile;
+            }
 		}
 	}
-
-	static bool bShippingBuildsActuallyUseShippingPhysXLibraries = false;
 
 	static string GetPhysXLibrarySuffix(PhysXLibraryMode Mode)
 	{
@@ -55,7 +60,7 @@ public class PhysX : ModuleRules
 			default:
 			case PhysXLibraryMode.Shipping:
 				{
-					if( bShippingBuildsActuallyUseShippingPhysXLibraries )
+                    if (BuildConfiguration.bUseShippingPhysXLibraries)
 					{
 						return "";	
 					}
@@ -88,6 +93,15 @@ public class PhysX : ModuleRules
 			// This will properly cover the case where PhysX is compiled but Vehicle is not.
 			Definitions.Add("WITH_VEHICLE=0");
 		}
+
+        if(BuildConfiguration.bUseShippingPhysXLibraries)
+        {
+            Definitions.Add("WITH_PHYSX_RELEASE=1");
+        }else
+		{
+		    Definitions.Add("WITH_PHYSX_RELEASE=0");
+		}
+        
 
 		string PhysXVersion = "PhysX-3.3";
 
@@ -263,7 +277,7 @@ public class PhysX : ModuleRules
 			};
 
 			// the "shipping" don't need the nvTools library
-			if (LibraryMode != PhysXLibraryMode.Shipping || !bShippingBuildsActuallyUseShippingPhysXLibraries)
+            if (LibraryMode != PhysXLibraryMode.Shipping && !BuildConfiguration.bUseShippingPhysXLibraries)
 			{
 				PublicAdditionalLibraries.Add("nvToolsExt");
 			}

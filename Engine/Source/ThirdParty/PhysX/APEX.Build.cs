@@ -34,13 +34,19 @@ public class APEX : ModuleRules
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
 			default:
-				return APEXLibraryMode.Profile;
+                if(BuildConfiguration.bUseShippingPhysXLibraries)
+                {
+                    return APEXLibraryMode.Shipping;
+                }
+                else
+                {
+                    return APEXLibraryMode.Profile;
+                }
 		}
 	}
 
 	static string GetAPEXLibrarySuffix(APEXLibraryMode Mode)
 	{
-		bool bShippingBuildsActuallyUseShippingAPEXLibraries = false;
 
 		switch (Mode)
 		{
@@ -53,7 +59,7 @@ public class APEX : ModuleRules
 			default:
 			case APEXLibraryMode.Shipping:
 				{
-					if( bShippingBuildsActuallyUseShippingAPEXLibraries )
+                    if (BuildConfiguration.bUseShippingPhysXLibraries)
 					{
 						return "";	
 					}
