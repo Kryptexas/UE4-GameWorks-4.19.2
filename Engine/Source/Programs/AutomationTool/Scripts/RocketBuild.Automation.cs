@@ -1254,6 +1254,7 @@ namespace Rocket
 				Filter.Exclude("/Engine/DerivedDataCache/...");
 				Filter.Exclude("/Samples/...");
 				Filter.Exclude("/Templates/...");
+				Filter.Include("/Templates/TemplateResources/...");
 				Filter.Exclude(".../Source/...");
 				Filter.Exclude(".../Intermediate/...");
 				Filter.ExcludeConfidentialPlatforms();
