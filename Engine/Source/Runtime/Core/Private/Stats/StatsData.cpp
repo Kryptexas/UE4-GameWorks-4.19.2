@@ -813,9 +813,16 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 
 	for (int32 Index = 0; Index < NewData.Packets.Num(); Index++)
 	{
-		int64 FrameNum = NewData.Packets[Index]->Frame;
+		FStatPacket* Packet = NewData.Packets[Index];
+		int64 FrameNum = Packet->Frame;
 		FStatPacketArray& Frame = History.FindOrAdd(FrameNum);
-		Frame.Packets.Add(NewData.Packets[Index]);
+		Frame.Packets.Add(Packet);
+		if (FrameNum <= LastFullFrameMetaAndNonFrame && LastFullFrameMetaAndNonFrame != -1)
+		{
+			// This packet was from an older frame. We process the non-frame stats immediately here
+			// since the algorithm below assumes only new frames should be processed.
+			ProcessNonFrameStats(Packet->StatMessages, nullptr);
+		}
 	}
 
 	NewData.RemovePtrsButNoData(); // don't delete the elements

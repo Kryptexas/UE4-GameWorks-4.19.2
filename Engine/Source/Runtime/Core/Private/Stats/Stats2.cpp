@@ -1094,7 +1094,7 @@ void FThreadStats::FlushRegularStats( bool bHasBrokenCallstacks, bool bForceFlus
 		return;
 	}
 
-	if (!ScopeCount && Packet.StatMessages.Num())
+	if ((!ScopeCount || bForceFlush) && Packet.StatMessages.Num())
 	{
 		if( Packet.StatMessagesPresize.Num() >= PRESIZE_MAX_NUM_ENTRIES )
 		{
