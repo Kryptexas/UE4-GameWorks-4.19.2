@@ -1106,7 +1106,7 @@ public:
 	/**
 	 * Dump out party state for all known parties
 	 */
-	virtual void DumpPartyState() const = 0;
+	virtual void DumpPartyState() = 0;
 
 };
 
