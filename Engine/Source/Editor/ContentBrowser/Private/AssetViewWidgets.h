@@ -115,12 +115,15 @@ public:
 	/** Performs common initialization logic for all asset view items */
 	void Construct( const FArguments& InArgs );
 
+	/** NOTE: Any functions overridden from the base widget classes *must* also be overridden by SAssetColumnViewRow and forwarded on to its internal item */
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual TSharedPtr<IToolTip> GetToolTip() override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
+	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override;
+	virtual void OnToolTipClosing() override;
 
 	/** Returns the color this item should be tinted with */
 	virtual FSlateColor GetAssetColor() const;
@@ -133,12 +136,6 @@ public:
 
 	/** Delegate handling when an asset is loaded */
 	void HandleAssetLoaded(UObject* InAsset) const;
-
-	/** About to show a tool tip */
-	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override;
-
-	/** Tooltip is closing */
-	virtual void OnToolTipClosing() override;
 
 protected:
 	/** Used by OnDragEnter, OnDragOver, and OnDrop to check and update the validity of the drag operation */
@@ -655,11 +652,41 @@ public:
 		this->AssetColumnItem->Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	}
 
+	virtual TSharedPtr<IToolTip> GetToolTip() override
+	{
+		return AssetColumnItem->GetToolTip();
+	}
+
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
+	{
+		AssetColumnItem->OnDragEnter(MyGeometry, DragDropEvent);
+	}
+
+	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent) override
+	{
+		AssetColumnItem->OnDragLeave(DragDropEvent);
+	}
+
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
+	{
+		return AssetColumnItem->OnDragOver(MyGeometry, DragDropEvent);
+	}
+
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
+	{
+		return AssetColumnItem->OnDrop(MyGeometry, DragDropEvent);
+	}
+
 	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent) override
 	{
 		// We take the content from the asset column item during construction,
 		// so let the item handle the tooltip callback
 		return AssetColumnItem->OnVisualizeTooltip(TooltipContent);
+	}
+
+	virtual void OnToolTipClosing() override
+	{
+		AssetColumnItem->OnToolTipClosing();
 	}
 
 	TSharedPtr<SAssetColumnItem> AssetColumnItem;
