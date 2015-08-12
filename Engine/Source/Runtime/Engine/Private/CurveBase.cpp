@@ -1087,9 +1087,6 @@ bool FRichCurve::operator==(const FRichCurve& Curve) const
 UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-#if WITH_EDITORONLY_DATA
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
-#endif
 }
 
 #if WITH_EDITORONLY_DATA
@@ -1101,6 +1098,16 @@ void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UCurveBase::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
 }
 
 void UCurveBase::PostLoad()

@@ -261,9 +261,6 @@ private:
 UVectorFieldStatic::UVectorFieldStatic(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-#if WITH_EDITORONLY_DATA
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
-#endif
 }
 
 void UVectorFieldStatic::InitInstance(FVectorFieldInstance* Instance, bool bPreviewInstance)
@@ -358,6 +355,16 @@ void UVectorFieldStatic::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags
 	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UVectorFieldStatic::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
 }
 #endif
 

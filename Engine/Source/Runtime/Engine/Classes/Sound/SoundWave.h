@@ -219,7 +219,7 @@ class ENGINE_API USoundWave : public USoundBase
 	UPROPERTY()
 	FString SourceFileTimestamp_DEPRECATED;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 	
 #endif // WITH_EDITORONLY_DATA

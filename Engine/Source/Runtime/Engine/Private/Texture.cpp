@@ -60,8 +60,6 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	PaddingColor = FColor::Black;
 	ChromaKeyColor = FColorList::Magenta;
 	ChromaKeyThreshold = 1.0f / 255.0f;
-
-	AssetImportData = CreateEditorOnlyDefaultSubobject<UAssetImportData>(TEXT("AssetImportData"));
 	
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -253,6 +251,17 @@ void UTexture::Serialize(FArchive& Ar)
 	}
 
 #endif // #if WITH_EDITORONLY_DATA
+}
+
+void UTexture::PostInitProperties()
+{
+#if WITH_EDITORONLY_DATA
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+#endif
+	Super::PostInitProperties();
 }
 
 void UTexture::PostLoad()
