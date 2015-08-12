@@ -51,4 +51,8 @@ public:
 	/** Used to verify that the Super::PostLoad chain is intact.			*/
 	TArray<UObject*, TInlineAllocator<16> > DebugPostLoad;
 #endif
+#if WITH_EDITORONLY_DATA
+	/** Maps a package name to all packages marked as editor-only due to the fact it was marked as editor-only */
+	TMap<FName, TSet<FName>> PackagesMarkedEditorOnlyByOtherPackage;
+#endif
 };

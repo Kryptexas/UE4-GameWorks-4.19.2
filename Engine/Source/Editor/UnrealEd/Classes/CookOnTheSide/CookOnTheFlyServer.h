@@ -600,6 +600,34 @@ private:
 		FString StandardFilename;
 		FName StandardFileFName;
 	};
+
+	/** Simple thread safe proxy for TSet<FName> */
+	class FThreadSafeNameSet
+	{
+		TSet<FName> Names;
+		FCriticalSection NamesCritical;
+	public:
+		void Add(FName InName)
+		{
+			FScopeLock NamesLock(&NamesCritical);
+			Names.Add(InName);
+		}
+		bool AddUnique(FName InName)
+		{
+			FScopeLock NamesLock(&NamesCritical);
+			if (!Names.Contains(InName))
+			{
+				Names.Add(InName);
+				return true;
+			}
+			return false;
+		}
+		bool Contains(FName InName)
+		{
+			FScopeLock NamesLock(&NamesCritical);
+			return Names.Contains(InName);
+		}
+	};
 private:
 	/** Current cook mode the cook on the fly server is running in */
 	ECookMode::Type CurrentCookMode;
@@ -724,6 +752,7 @@ private:
 	FFilenameQueue CookRequests; // list of requested files
 	FThreadSafeUnsolicitedPackagesList UnsolicitedCookedPackages;
 	FThreadSafeFilenameSet CookedPackages; // set of files which have been cooked when needing to recook a file the entry will need to be removed from here
+	FThreadSafeNameSet UncookedEditorOnlyPackages; // set of packages that have been rejected due to being referenced by editor-only properties
 
 	FString GetCachedPackageFilename( const FName& PackageName ) const;
 	FString GetCachedStandardPackageFilename( const FName& PackageName ) const;
@@ -1285,9 +1314,9 @@ private:
 	 *	@param	SaveFlags			The flags to pass to the SavePackage function
 	 *	@param	bOutWasUpToDate		Upon return, if true then the cooked package was cached (up to date)
 	 *
-	 *	@return	bool			true if packages was cooked
+	 *	@return	ESavePackageResult::Success if packages was cooked
 	 */
-	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate );
+	ESavePackageResult SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate);
 	/**
 	 *	Cook (save) the given package
 	 *
@@ -1297,9 +1326,9 @@ private:
 	 *	@param  TargetPlatformNames Only cook for target platforms which are included in this array (if empty cook for all target platforms specified on commandline options)
 	 *									TargetPlatformNames is in and out value returns the platforms which the SaveCookedPackage function saved for
 	 *
-	 *	@return	bool			true if packages was cooked
+	 *	@return	ESavePackageResult::Success if packages was cooked
 	 */
-	bool SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames );
+	ESavePackageResult SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames);
 
 
 	/**

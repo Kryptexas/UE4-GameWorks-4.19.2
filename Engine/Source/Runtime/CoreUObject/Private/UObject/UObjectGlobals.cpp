@@ -831,6 +831,12 @@ UObject* StaticLoadObjectInternal(UClass* ObjectClass, UObject* InOuter, const T
 		StrName += FPackageName::GetShortName(InName);
 		Result = StaticLoadObjectInternal(ObjectClass, InOuter, *StrName, Filename, LoadFlags, Sandbox, bAllowObjectReconciliation);
 	}
+#if WITH_EDITORONLY_DATA
+	else if (Result)
+	{
+		Result->GetOutermost()->SetLoadedByEditorPropertiesOnly(false);
+	}
+#endif
 
 	return Result;
 }
@@ -960,11 +966,21 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 			Result->ThisRequiresLocalizationGather(Linker->RequiresLocalizationGather());
 		};
 
+#if WITH_EDITORONLY_DATA
+		if (!(LoadFlags & LOAD_IsVerifying) &&
+			(!ImportLinker || !ImportLinker->GetSerializedProperty() || !ImportLinker->GetSerializedProperty()->IsEditorOnlyProperty()))
+		{
+			// If this package hasn't been loaded as part of import verification and there's no import linker or the
+			// currently serialized property is not editor-only mark this package as runtime.
+			Result->SetLoadedByEditorPropertiesOnly(false);
+		}
+#endif
+
 		if (Result && Result->HasAnyFlags(RF_WasLoaded))
 		{
 			// The linker is associated with a package that has already been loaded.
 			// Loading packages that have already been loaded is unsupported.
-			EndLoadAndCopyLocalizationGatherFlag();
+			EndLoadAndCopyLocalizationGatherFlag();			
 			return Result;
 		}
 
@@ -1035,15 +1051,8 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		{
 			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
 			// that triggered this LoadPackage call
-			UProperty* OldSerializedProperty = Linker->GetSerializedProperty();
-			if (ImportLinker)
-			{
-				Linker->SetSerializedProperty(ImportLinker->GetSerializedProperty());
-			}
-
+			FSerializedPropertyScope SerializedProperty(*Linker, ImportLinker ? ImportLinker->GetSerializedProperty() : Linker->GetSerializedProperty());
 			Linker->LoadAllObjects();
-
-			Linker->SetSerializedProperty(OldSerializedProperty);
 		}
 		else
 		{

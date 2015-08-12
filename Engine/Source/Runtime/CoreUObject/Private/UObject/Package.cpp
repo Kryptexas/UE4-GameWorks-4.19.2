@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/LinkerManager.h"
+#include "UObject/UObjectThreadContext.h"
 
 /*-----------------------------------------------------------------------------
 	UPackage.
@@ -38,6 +39,9 @@ void UPackage::PostInitProperties()
 #endif
 #if WITH_EDITORONLY_DATA
 	bIsCookedForEditor = false;
+	// Mark this package as editor-only by default. As soon as something in it is accessed through a non editor-only
+	// property the flag will be removed.
+	bLoadedByEditorPropertiesOnly = !HasAnyFlags(RF_ClassDefaultObject) && !(PackageFlags & PKG_CompiledIn);
 #endif
 }
 
@@ -211,6 +215,21 @@ void UPackage::BeginDestroy()
 
 	Super::BeginDestroy();
 }
+
+#if WITH_EDITORONLY_DATA
+void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive);
+
+void UPackage::SetLoadedByEditorPropertiesOnly(bool bIsEditorOnly, bool bRecursive /*= false*/)
+{
+	const bool bWasEditorOnly = bLoadedByEditorPropertiesOnly;
+	bLoadedByEditorPropertiesOnly = bIsEditorOnly;
+	if (bWasEditorOnly && !bIsEditorOnly)
+	{
+		FixupPackageEditorOnlyFlag(GetFName(), bRecursive);
+	}
+}
+#endif
+
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UPackage, UObject,
 	{

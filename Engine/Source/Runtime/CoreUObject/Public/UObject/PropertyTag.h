@@ -137,12 +137,8 @@ struct FPropertyTag
 		}
 		else
 		{
-			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
-			Ar.SetSerializedProperty(Property);
-
+			FSerializedPropertyScope SerializedProperty(Ar, Property);
 			Property->SerializeItem( Ar, Value, Defaults );
-
-			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 };

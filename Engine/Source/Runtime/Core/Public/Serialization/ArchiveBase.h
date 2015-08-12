@@ -904,6 +904,25 @@ public:
 		SerializedProperty = InProperty;
 	}
 
+#if WITH_EDITORONLY_DATA
+	/** Pushes editor-only marker to the stack of currently serialized properties */
+	FORCEINLINE void PushEditorOnlyProperty()
+	{
+		EditorOnlyPropertyStack++;
+	}
+	/** Pops editor-only marker from the stack of currently serialized properties */
+	FORCEINLINE void PopEditorOnlyProperty()
+	{
+		EditorOnlyPropertyStack--;
+		check(EditorOnlyPropertyStack >= 0);
+	}
+	/** Returns true if the stack of currently serialized properties contains an editor-only property */
+	FORCEINLINE bool IsEditorOnlyPropertyOnTheStack() const
+	{
+		return EditorOnlyPropertyStack > 0;
+	}
+#endif
+
 	/**
 	 * Gets the property that is currently being serialized
 	 *
@@ -1033,6 +1052,11 @@ private:
 
 	/** Holds the pointer to the property that is currently being serialized */
 	class UProperty* SerializedProperty;
+
+#if WITH_EDITORONLY_DATA
+	/** Non-zero if on the current stack of serialized properties there's an editor-only property. Needs to live in FArchive becasuse of SerializedProperty. */
+	int32 EditorOnlyPropertyStack;
+#endif
 
 	/**
 	 * Indicates if the custom versions container is in a 'reset' state.  This will be used to defer the choice about how to

@@ -92,7 +92,9 @@ void FArchive::Reset()
 	ArIsSaveGame						= false;
 	CookingTargetPlatform = nullptr;
 	SerializedProperty = nullptr;
-
+#if WITH_EDITORONLY_DATA
+	EditorOnlyPropertyStack = 0;
+#endif
 	// Reset all custom versions to the current registered versions.
 	ResetCustomVersions();
 }
@@ -130,6 +132,10 @@ void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 	ArIsFilterEditorOnly                 = ArchiveToCopy.ArIsFilterEditorOnly;
 	ArIsSaveGame                         = ArchiveToCopy.ArIsSaveGame;
 	CookingTargetPlatform                = ArchiveToCopy.CookingTargetPlatform;
+	SerializedProperty = ArchiveToCopy.SerializedProperty;
+#if WITH_EDITORONLY_DATA
+	EditorOnlyPropertyStack = ArchiveToCopy.EditorOnlyPropertyStack;
+#endif
 }
 
 /**

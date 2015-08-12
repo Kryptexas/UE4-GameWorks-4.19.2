@@ -1969,8 +1969,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			SCOPE_TIMER(SavingPackages);
 			for ( int32 I = 0; I < PackagesToSave.Num(); ++I )
 			{
-
-				UPackage *Package = PackagesToSave[I];
+				UPackage* Package = PackagesToSave[I];
+				if (Package->IsLoadedByEditorPropertiesOnly() && UncookedEditorOnlyPackages.Contains(Package->GetFName()))
+				{
+					// We already attempted to cook this package and it's still not referenced by any non editor-only properties.
+					continue;
+				}
 
 				// if we are processing unsolicited packages we can optionally not save these right now
 				// the unsolicited packages which we missed now will be picked up on next run
@@ -2091,12 +2095,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					bShouldSaveAsync = false;
 				}
 
+				ESavePackageResult SavePackageResult = ESavePackageResult::Error;
 				END_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
 				{
 					SCOPE_PACKAGE_STAT(SaveCookedPackage);
 
 					SCOPE_TIMER(SaveCookedPackage);
-					if (SaveCookedPackage(Package, SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0), bWasUpToDate, AllTargetPlatformNames))
+					SavePackageResult = SaveCookedPackage(Package, SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0), bWasUpToDate, AllTargetPlatformNames);
+					if (SavePackageResult == ESavePackageResult::Success)
 					{
 						// Update flags used to determine garbage collection.
 						if (Package->ContainsMap())
@@ -2134,23 +2140,32 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 				FName StandardFilename = GetCachedStandardPackageFileFName(Package);
 
-				if ( StandardFilename != NAME_None )
+				// We always want to mark package as processed unless it wasn't saved because it was referenced by editor-only data
+				// in which case we may still need to save it later when new content loads it through non editor-only references
+				if (StandardFilename != NAME_None)
 				{
 					// mark the package as cooked
-					FFilePlatformRequest FileRequest( StandardFilename, AllTargetPlatformNames);
-					CookedPackages.Add( FileRequest );
-
-					if ( (CurrentCookMode == ECookMode::CookOnTheFly) && (I >= FirstUnsolicitedPackage) ) 
+					FFilePlatformRequest FileRequest(StandardFilename, AllTargetPlatformNames);
+					if (SavePackageResult != ESavePackageResult::ReferencedOnlyByEditorOnlyData)
 					{
-						// this is an unsolicited package
-						if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
-							(bWasUpToDate == false))
+						CookedPackages.Add(FileRequest);
+
+						if ((CurrentCookMode == ECookMode::CookOnTheFly) && (I >= FirstUnsolicitedPackage))
 						{
-							UnsolicitedCookedPackages.AddCookedPackage( FileRequest );
+							// this is an unsolicited package
+							if ((FPaths::FileExists(FileRequest.GetFilename().ToString()) == true) &&
+								(bWasUpToDate == false))
+							{
+								UnsolicitedCookedPackages.AddCookedPackage( FileRequest );
 #if DEBUG_COOKONTHEFLY
-							UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
+								UE_LOG(LogCook, Display, TEXT("UnsolicitedCookedPackages: %s"), *FileRequest.GetFilename().ToString());
 #endif
+							}
 						}
+					}
+					else
+					{
+						UncookedEditorOnlyPackages.AddUnique(Package->GetFName());
 					}
 				}
 			}
@@ -2356,7 +2371,7 @@ bool UCookOnTheFlyServer::GetPackageTimestamp( const FString& InFilename, FDateT
 }
 
 
-bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate ) 
+ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate)
 {
 	TArray<FName> TargetPlatformNames; 
 	return SaveCookedPackage( Package, SaveFlags, bOutWasUpToDate, TargetPlatformNames );
@@ -2429,9 +2444,9 @@ bool UCookOnTheFlyServer::ShouldConsiderCompressedPackageFileLengthRequirements(
 	return bConsiderCompressedPackageFileLengthRequirements;
 }
 
-bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames )
+ESavePackageResult UCookOnTheFlyServer::SaveCookedPackage(UPackage* Package, uint32 SaveFlags, bool& bOutWasUpToDate, TArray<FName> &TargetPlatformNames)
 {
-	bool bSavedCorrectly = true;
+	ESavePackageResult Result = ESavePackageResult::Success;
 	check( bIsSavingPackage == false );
 	bIsSavingPackage = true;
 	FString Filename(GetCachedPackageFilename(Package));
@@ -2576,12 +2591,12 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 				{
 					LogCookerMessage( FString::Printf(TEXT("Couldn't save package, filename is too long: %s"), *PlatFilename), EMessageSeverity::Error );
 					UE_LOG( LogCook, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
-					bSavedCorrectly = false;
+					Result = ESavePackageResult::Error;
 				}
 				else
 				{
 					SCOPE_TIMER(GEditorSavePackage);
-					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false );
+					Result = GEditor->Save(Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue(), false);
 					INC_INT_STAT(SavedPackage, 1);
 				}
 
@@ -2604,7 +2619,7 @@ bool UCookOnTheFlyServer::SaveCookedPackage( UPackage* Package, uint32 SaveFlags
 	bIsSavingPackage = false;
 
 	// return success
-	return bSavedCorrectly;
+	return Result;
 }
 
 void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInitializationFlags InCookFlags, const FString &InOutputDirectoryOverride )

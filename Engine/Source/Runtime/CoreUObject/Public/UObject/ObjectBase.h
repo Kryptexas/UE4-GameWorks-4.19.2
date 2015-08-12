@@ -50,7 +50,7 @@ enum ELoadFlags
 	LOAD_AllowDll					= 0x00000020,	// Allow plain DLLs.
 //	LOAD_Unused						= 0x00000040
 	LOAD_NoVerify					= 0x00000080,   // Don't verify imports yet.
-//	LOAD_Unused						= 0x00000100,
+	LOAD_IsVerifying			= 0x00000100,		// Is verifying imports
 //	LOAD_Unused						= 0x00000200,
 //	LOAD_Unused						= 0x00000400,
 //	LOAD_Unused						= 0x00000800,

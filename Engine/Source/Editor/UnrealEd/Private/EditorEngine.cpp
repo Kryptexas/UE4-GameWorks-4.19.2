@@ -3686,7 +3686,7 @@ void UEditorEngine::OnSourceControlDialogClosed(bool bEnabled)
 	}
 }
 
-bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
 				 FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename, 
 				 uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask )
 {
@@ -3769,13 +3769,13 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 
 	SlowTask.EnterProgressFrame(70);
 
-	bool bSuccess = UPackage::SavePackage(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	const ESavePackageResult Result = UPackage::Save(InOuter, Base, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping, bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
 
 	SlowTask.EnterProgressFrame(10);
 
 	// If the package is a valid candidate for being automatically-added to source control, go ahead and add it
 	// to the default changelist
-	if( bSuccess && bAutoAddPkgToSCC )
+	if (Result == ESavePackageResult::Success && bAutoAddPkgToSCC)
 	{
 		// IsPackageValidForAutoAdding should not return true if SCC is disabled
 		check(ISourceControlModule::Get().IsEnabled());
@@ -3802,7 +3802,7 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
 		}
 
-		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
+		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, Result == ESavePackageResult::Success);
 
 		if (bInitializedPhysicsSceneForSave)
 		{
@@ -3816,7 +3816,17 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 		}
 	}
 
-	return bSuccess;
+	return Result;
+}
+
+bool UEditorEngine::SavePackage(UPackage* InOuter, UObject* InBase, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+	FOutputDevice* Error, FLinkerLoad* Conform, bool bForceByteSwapping, bool bWarnOfLongFilename,
+	uint32 SaveFlags, const class ITargetPlatform* TargetPlatform, const FDateTime& FinalTimeStamp, bool bSlowTask)
+{
+	// Workaround to avoid function signature change while keeping both bool and ESavePackageResult versions of SavePackage
+	const ESavePackageResult Result = Save(InOuter, InBase, TopLevelFlags, Filename, Error, Conform, bForceByteSwapping,
+		bWarnOfLongFilename, SaveFlags, TargetPlatform, FinalTimeStamp, bSlowTask);
+	return Result == ESavePackageResult::Success;
 }
 
 void UEditorEngine::OnPreSaveWorld(uint32 SaveFlags, UWorld* World)

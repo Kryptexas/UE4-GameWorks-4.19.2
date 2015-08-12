@@ -26,6 +26,7 @@ DECLARE_CYCLE_STAT(TEXT("Linker Load Deferred"), STAT_LinkerLoadDeferred, STATGR
 DECLARE_STATS_GROUP( TEXT( "Linker Count" ), STATGROUP_LinkerCount, STATCAT_Advanced );
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Linker Count"), STAT_LinkerCount, STATGROUP_LinkerCount);
 DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Live Linker Count"), STAT_LiveLinkerCount, STATGROUP_LinkerCount);
+DECLARE_FLOAT_ACCUMULATOR_STAT(TEXT("Fixup editor-only flags time"), STAT_EditorOnlyFixupTime, STATGROUP_LinkerCount);
 
 /** Map that keeps track of any precached full package reads															*/
 TMap<FString, FLinkerLoad::FPackagePrecacheInfo> FLinkerLoad::PackagePrecacheMap;
@@ -2379,7 +2380,7 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 			// we now fully load the package that we need a single export from - however, we still use CreatePackage below as it handles all cases when the package
 			// didn't exist (native only), etc		
-			TmpPkg = LoadPackageInternal(NULL, *Import.ObjectName.ToString(), InternalLoadFlags, this);
+			TmpPkg = LoadPackageInternal(NULL, *Import.ObjectName.ToString(), InternalLoadFlags | LOAD_IsVerifying, this);
 		}
 
 #if WITH_EDITOR
@@ -4188,6 +4189,37 @@ FArchive& FLinkerLoad::operator<<( UObject*& Object )
 	UObject* Temporary = NULL;
 	Temporary = IndexToObject( Index );
 
+#if WITH_EDITORONLY_DATA	
+	// When loading mark all packages that are accessed by non editor-only properties as being required at runtime.
+	if (Ar.IsLoading() && Temporary && !Ar.IsEditorOnlyPropertyOnTheStack())
+	{
+		FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+		const bool bReferenceFromOutsideOfThePackage = Temporary->GetOutermost() != LinkerRoot;
+		const bool bIsAClass = Temporary->IsA(UClass::StaticClass());
+		const bool bReferencingPackageIsNotEditorOnly = bReferenceFromOutsideOfThePackage && !LinkerRoot->IsLoadedByEditorPropertiesOnly();
+		if (bReferencingPackageIsNotEditorOnly || bIsAClass)
+		{
+			// The package that caused this object to be loaded is not marked as editor-only, neighter is any of the referencing properties.
+			Temporary->GetOutermost()->SetLoadedByEditorPropertiesOnly(false);
+		}
+		else if (bReferenceFromOutsideOfThePackage && !bIsAClass)
+		{
+			// In this case the object is being accessed by object property from a package that's marked as editor-only, however
+			// since we're in the middle of loading, we can't be sure that the editor-only package will still be marked as editor-only
+			// after loading has finished (this is due to the fact how objects are being processed in EndLoad).
+			// So we need to remember which packages have been kept marked as editor-only by which package so that after all
+			// objects have been serialized we can go back and make sure the LinkerRoot package is still marked as editor-only and if not,
+			// remove the flag from all packages that are marked as such because of it.
+			FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+			TSet<FName>& PackagesMarkedEditorOnly = ThreadContext.PackagesMarkedEditorOnlyByOtherPackage.FindOrAdd(LinkerRoot->GetFName());
+			if (!PackagesMarkedEditorOnly.Contains(Temporary->GetOutermost()->GetFName()))
+			{
+				PackagesMarkedEditorOnly.Add(Temporary->GetOutermost()->GetFName());
+			}
+		}
+	}
+#endif
+
 	FMemory::Memcpy(&Object, &Temporary, sizeof(UObject*));
 	return *this;
 }
@@ -4770,5 +4802,39 @@ void FLinkerLoad::FlushCache()
 		Loader->FlushCache();
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+/** Performs a fixup on packages' editor-only flag */
+void FixupPackageEditorOnlyFlag(FName PackageThatGotEditorOnlyFlagCleared, bool bRecursive)
+{
+	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	STAT(double ThisTime = 0);
+	{
+		SCOPE_SECONDS_COUNTER(ThisTime);
+
+		// Now go through all packages that were marked as editor-only at load time
+		// and if they're no longer marked as such, make sure that all packages that
+		// were marked as editor-only because of that package, are now also marked as not editor-only.
+		TSet<FName>* PackagesMarkedEditorOnlyByThisPackage = ThreadContext.PackagesMarkedEditorOnlyByOtherPackage.Find(PackageThatGotEditorOnlyFlagCleared);
+		if (PackagesMarkedEditorOnlyByThisPackage)
+		{			
+			for (FName& PackageName : *PackagesMarkedEditorOnlyByThisPackage)
+			{
+				UPackage* EditorOnlyPackage = FindObjectFast<UPackage>(nullptr, PackageName);
+				if (EditorOnlyPackage && EditorOnlyPackage->IsLoadedByEditorPropertiesOnly())
+				{
+					// Now we will recursively unset the flag on all other packages
+					EditorOnlyPackage->SetLoadedByEditorPropertiesOnly(false, true);
+				}
+			}
+			ThreadContext.PackagesMarkedEditorOnlyByOtherPackage.Remove(PackageThatGotEditorOnlyFlagCleared);
+		}
+	}
+	if (!bRecursive)
+	{
+		INC_FLOAT_STAT_BY(STAT_EditorOnlyFixupTime, ThisTime);
+	}
+}
+#endif
 
 #undef LOCTEXT_NAMESPACE

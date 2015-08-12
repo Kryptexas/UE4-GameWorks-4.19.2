@@ -20,6 +20,23 @@ struct FLevelGuids
 };
 
 /**
+ * Represents the result of saving a package
+ */
+enum class ESavePackageResult
+{
+	/** Package was saved successfully */
+	Success, 
+	/** Unknown error occured when saving package */
+	Error,
+	/** Canceled by user */
+	Canceled,
+	/** [When cooking] Package was not saved because it contained editor-only data */
+	ContainsEditorOnlyData,
+	/** [When cooking] Package was not saved because it was referenced by editor-only properties */
+	ReferencedOnlyByEditorOnlyData
+};
+
+/**
  * A package.
  */
 class COREUOBJECT_API UPackage : public UObject
@@ -52,6 +69,10 @@ public:
 private:
 	/** Used by the editor to determine if a package has been changed.																							*/
 	bool	bDirty;
+#if WITH_EDITORONLY_DATA
+	/** True if this package is only referenced by editor-only properties */
+	bool bLoadedByEditorPropertiesOnly;
+#endif
 public:
 	/** Whether this package has been fully loaded (aka had all it's exports created) at some point.															*/
 	bool	bHasBeenFullyLoaded;
@@ -72,6 +93,13 @@ private:
 public:
 
 	virtual bool IsNameStableForNetworking() const override { return true; }		// For now, assume all packages have stable net names
+
+#if WITH_EDITORONLY_DATA
+	/** Sets the bLoadedByEditorPropertiesOnly flag */
+	void SetLoadedByEditorPropertiesOnly(bool bIsEditorOnly, bool bRecursive = false);
+	/** returns true when the package is only referenced by editor-only flag */
+	bool IsLoadedByEditorPropertiesOnly() const { return bLoadedByEditorPropertiesOnly; }
+#endif
 
 	/** Package flags, serialized.*/
 	uint32	PackageFlags;
@@ -366,11 +394,35 @@ public:
 	 * @param	TargetPlatform					The platform being saved for
 	 * @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
 	 *
-	 * @return	true if the package was saved successfully.
+	 * @return	ESavePackageResult enum value with the result of saving a package.
 	 */
-	static bool SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename, 
+	static ESavePackageResult Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
 		FOutputDevice* Error=GError, FLinkerLoad* Conform=NULL, bool bForceByteSwapping=false, bool bWarnOfLongFilename=true, 
 		uint32 SaveFlags=SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true );
+
+	/**
+	* Save one specific object (along with any objects it references contained within the same Outer) into an Unreal package.
+	*
+	* @param	InOuter							the outer to use for the new package
+	* @param	Base							the object that should be saved into the package
+	* @param	TopLevelFlags					For all objects which are not referenced [either directly, or indirectly] through Base, only objects
+	*											that contain any of these flags will be saved.  If 0 is specified, only objects which are referenced
+	*											by Base will be saved into the package.
+	* @param	Filename						the name to use for the new package file
+	* @param	Error							error output
+	* @param	Conform							if non-NULL, all index tables for this will be sorted to match the order of the corresponding index table
+	*											in the conform package
+	* @param	bForceByteSwapping				whether we should forcefully byte swap before writing to disk
+	* @param	bWarnOfLongFilename				[opt] If true (the default), warn when saving to a long filename.
+	* @param	SaveFlags						Flags to control saving
+	* @param	TargetPlatform					The platform being saved for
+	* @param	FinalTimeStamp					If not FDateTime::MinValue(), the timestamp the saved file should be set to. (Intended for cooking only...)
+	*
+	* @return	true if the package was saved successfully.
+	*/
+	static bool SavePackage(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
+		FOutputDevice* Error = GError, FLinkerLoad* Conform = NULL, bool bForceByteSwapping = false, bool bWarnOfLongFilename = true,
+		uint32 SaveFlags = SAVE_None, const class ITargetPlatform* TargetPlatform = NULL, const FDateTime& FinalTimeStamp = FDateTime::MinValue(), bool bSlowTask = true);
 
 	/** Wait for any SAVE_Async file writes to complete **/
 	static void WaitForAsyncFileWrites();

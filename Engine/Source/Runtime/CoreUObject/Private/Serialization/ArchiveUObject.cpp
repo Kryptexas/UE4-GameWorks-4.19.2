@@ -120,3 +120,19 @@ FArchive& FObjectAndNameAsStringProxyArchive::operator<<(class UObject*& Obj)
 	return *this;
 }
 
+#if WITH_EDITORONLY_DATA
+void FSerializedPropertyScope::PushEditorOnlyProperty()
+{
+	if (Property && Property->IsEditorOnlyProperty())
+	{
+		Ar.PushEditorOnlyProperty();
+	}
+}
+void FSerializedPropertyScope::PopEditorOnlyProperty()
+{
+	if (Property && Property->IsEditorOnlyProperty())
+	{
+		Ar.PopEditorOnlyProperty();
+	}
+}
+#endif

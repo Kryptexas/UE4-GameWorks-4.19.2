@@ -1270,6 +1270,10 @@ EAsyncPackageState::Type FAsyncPackage::CreateLinker()
 
 		// Always store package filename we loading from
 		Package->FileName = Desc.NameToLoad;
+#if WITH_EDITORONLY_DATA
+		// Assume all packages loaded through async loading are required by runtime
+		Package->SetLoadedByEditorPropertiesOnly(false);
+#endif
 
 		// if the linker already exists, we don't need to lookup the file (it may have been pre-created with
 		// a different filename)

@@ -218,13 +218,13 @@ public:
 	{
 		if( ShouldSerializeValue(Ar) )
 		{
-			UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
+			FSerializedPropertyScope SerializedProperty(Ar, this);
 			for (int32 Idx = 0; Idx < ArrayDim; Idx++)
 			{
+				// Keep setting the property in case something inside of SerializeItem changes it
 				Ar.SetSerializedProperty(this);
 				SerializeItem( Ar, ContainerPtrToValuePtr<void>(Data, Idx) );
 			}
-			Ar.SetSerializedProperty(OldSerializedProperty);
 		}
 	}
 	/**
@@ -245,10 +245,8 @@ public:
 				void const* Default = ContainerPtrToValuePtrForDefaults<void>(DefaultStruct, DefaultData, Idx);
 				if ( !Identical(Target, Default, Ar.GetPortFlags()) )
 				{
-					UProperty* OldSerializedProperty = Ar.GetSerializedProperty();
-					Ar.SetSerializedProperty(this);
+					FSerializedPropertyScope SerializedProperty(Ar, this);
 					SerializeItem( Ar, Target, Default );
-					Ar.SetSerializedProperty(OldSerializedProperty);
 				}
 			}
 		}
