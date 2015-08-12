@@ -670,7 +670,7 @@ TSharedRef<SWidget> SSequencer::MakeAddMenu()
 
 TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 {
-	FMenuBuilder MenuBuilder( false, Sequencer.Pin()->GetCommandBindings() );
+	FMenuBuilder MenuBuilder( true, Sequencer.Pin()->GetCommandBindings() );
 
 	MenuBuilder.BeginSection( "ViewOptions", LOCTEXT( "ViewMenuHeader", "View" ) );
 	{
@@ -679,6 +679,8 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCleanView );
 		}
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExpandNodesAndDescendants );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().CollapseNodesAndDescendants );
 	}
 	MenuBuilder.EndSection();
 

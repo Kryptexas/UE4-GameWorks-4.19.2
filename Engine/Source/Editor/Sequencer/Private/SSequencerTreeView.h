@@ -65,13 +65,25 @@ public:
 	/** Refresh this tree as a result of the underlying tree data changing */
 	void Refresh();
 
+	/** Expand or collapse nodes */
+	void ToggleExpandCollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
+
+	/** Expand nodes */
+	void ExpandNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
+
+	/** Collapse nodes */
+	void CollapseNodes(ETreeRecursion Recursion = ETreeRecursion::Recursive);
+
 	/** Expand or collapse selected nodes */
-	void ToggleSelectedNodeExpansion(ETreeRecursion Recursion);
+	void ExpandSelectedNodes(ETreeRecursion Recursion);
 
 	/** Scroll this tree view by the specified number of slate units */
 	void ScrollByDelta(float DeltaInSlateUnits);
 
 protected:
+
+	/** Expand or collapse nodes */
+	void ExpandOrCollapseNodes(ETreeRecursion Recursion, bool bExpand);
 
 	/** Set the item's expansion state, including all of its children */
 	void ExpandCollapseNode(const FDisplayNodeRef& InNode, bool bExpansionState, ETreeRecursion Recursion);

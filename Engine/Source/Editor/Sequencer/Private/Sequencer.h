@@ -405,6 +405,9 @@ protected:
 	void StepToNextCameraKey();
 	void StepToPreviousCameraKey();
 
+	void ExpandNodesAndDescendants();
+	void CollapseNodesAndDescendants();
+
 	/** Expand or collapse selected nodes */
 	void ToggleExpandCollapseNodes();
 

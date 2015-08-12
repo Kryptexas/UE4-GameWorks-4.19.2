@@ -1993,14 +1993,24 @@ void FSequencer::StepToPreviousCameraKey()
 	SequencerWidget->StepToPreviousCameraKey();
 }
 
+void FSequencer::ExpandNodesAndDescendants()
+{
+	SequencerWidget->GetTreeView()->ExpandNodes(ETreeRecursion::Recursive);
+}
+
+void FSequencer::CollapseNodesAndDescendants()
+{
+	SequencerWidget->GetTreeView()->CollapseNodes(ETreeRecursion::Recursive);
+}
+
 void FSequencer::ToggleExpandCollapseNodes()
 {
-	SequencerWidget->GetTreeView()->ToggleSelectedNodeExpansion(ETreeRecursion::NonRecursive);
+	SequencerWidget->GetTreeView()->ToggleExpandCollapseNodes(ETreeRecursion::NonRecursive);
 }
 
 void FSequencer::ToggleExpandCollapseNodesAndDescendants()
 {
-	SequencerWidget->GetTreeView()->ToggleSelectedNodeExpansion(ETreeRecursion::Recursive);
+	SequencerWidget->GetTreeView()->ToggleExpandCollapseNodes(ETreeRecursion::Recursive);
 }
 
 void FSequencer::SetKey()
@@ -2073,6 +2083,14 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.StepToPreviousCameraKey,
 		FExecuteAction::CreateSP( this, &FSequencer::StepToPreviousCameraKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.ExpandNodesAndDescendants,
+		FExecuteAction::CreateSP(this, &FSequencer::ExpandNodesAndDescendants));
+
+	SequencerCommandBindings->MapAction(
+		Commands.CollapseNodesAndDescendants,
+		FExecuteAction::CreateSP(this, &FSequencer::CollapseNodesAndDescendants));
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleExpandCollapseNodes,

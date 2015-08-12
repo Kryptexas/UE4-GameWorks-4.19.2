@@ -42,6 +42,12 @@ public:
 	/** Step to previous camera key */
 	TSharedPtr< FUICommandInfo > StepToPreviousCameraKey;
 
+	/** Expand nodes and descendants */
+	TSharedPtr< FUICommandInfo > ExpandNodesAndDescendants;
+
+	/** Collapse nodes and descendants */
+	TSharedPtr< FUICommandInfo > CollapseNodesAndDescendants;
+
 	/** Expand/collapse nodes */
 	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodes;
 
