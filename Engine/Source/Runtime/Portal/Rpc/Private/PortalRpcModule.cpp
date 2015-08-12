@@ -2,18 +2,16 @@
 
 #include "PortalRpcPrivatePCH.h"
 #include "IPortalRpcModule.h"
+#include "PortalRpcLocator.h"
+#include "PortalRpcResponder.h"
+#include "PortalRpcServer.h"
 
-
-/**
- * Implements the PortalRpc module.
- */
 class FPortalRpcModule
 	: public IPortalRpcModule
 {
 public:
 
 	// IModuleInterface interface
-
 	virtual void StartupModule() override { }
 	virtual void ShutdownModule() override { }
 
@@ -26,14 +24,19 @@ public:
 
 	virtual TSharedRef<IPortalRpcLocator> CreateLocator() override
 	{
-		return MakeShareable(new FPortalRpcLocator);
+		return FPortalRpcLocatorFactory::Create();
 	}
 
 	virtual TSharedRef<IPortalRpcResponder> CreateResponder() override
 	{
-		return MakeShareable(new FPortalRpcResponder);
+		return FPortalRpcResponderFactory::Create();
 	}
-};
 
+	virtual TSharedRef<IPortalRpcServer> CreateServer() override
+	{
+		return FPortalRpcServerFactory::Create();
+	}
+
+};
 
 IMPLEMENT_MODULE(FPortalRpcModule, PortalRpc);

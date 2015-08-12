@@ -2,7 +2,7 @@
 
 #include "PortalProxiesPrivatePCH.h"
 #include "IPortalServiceProvider.h"
-#include "IPortalAppWindow.h"
+#include "IPortalApplicationWindow.h"
 
 
 /**
@@ -15,7 +15,10 @@ public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule() override { }
+	virtual void StartupModule() override 
+	{
+		ApplicationWindow_SupportedServiceNames.Add(TNameOf<IPortalApplicationWindow>::GetName());
+	}
 	virtual void ShutdownModule() override { }
 
 	virtual bool SupportsDynamicReloading() override
@@ -36,18 +39,20 @@ public:
 			return nullptr;
 		}
 
-		if (ServiceName == TNameOf<IPortalAppWindow>::GetName())
+		if (ApplicationWindow_SupportedServiceNames.Contains(ServiceName))
 		{
-			return MakeShareable(new FPortalAppWindowProxy(RpcClient.ToSharedRef()));
+			return FPortalApplicationWindowProxyFactory::Create(RpcClient.ToSharedRef());
 		}
-		
-		if (ServiceName == TNameOf<IPortalPackageInstaller>::GetName())
-		{
-			return MakeShareable(new FPortalPackageInstallerProxy(RpcClient.ToSharedRef()));
-		}
+	
+		//Add additional supported proxy services here
 
 		return nullptr;
 	}
+
+private:
+
+	TSet<FString> ApplicationWindow_SupportedServiceNames;
+
 };
 
 

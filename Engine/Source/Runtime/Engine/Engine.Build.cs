@@ -75,6 +75,18 @@ public class Engine : ModuleRules
 			}
         );
 
+        if (Target.Platform != UnrealTargetPlatform.XboxOne)
+        {
+            // these modules require variadic templates
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "MessagingRpc",
+                    "PortalRpc",
+                    "PortalServices",
+                }
+            );
+        }
+
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
         CircularlyReferencedDependentModules.Add("UMG");

@@ -8,8 +8,6 @@ namespace UnrealBuildTool.Rules
 		{
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
-                    "Messaging",
-                    "MessagingRpc",
                 }
             );
 
@@ -18,6 +16,7 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
+                    "MessagingRpc",
 				}
 			);
 

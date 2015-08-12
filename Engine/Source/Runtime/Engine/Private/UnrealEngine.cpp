@@ -105,7 +105,17 @@
 #include "JsonInternationalizationArchiveSerializer.h"
 #include "JsonInternationalizationManifestSerializer.h"
 
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+#include "IMessagingRpcModule.h"
+#include "IMessageRpcClient.h"
+#include "IPortalRpcModule.h"
+#include "IPortalRpcLocator.h"
+#include "IPortalServicesModule.h"
+#include "TypeContainer.h"
+#endif
+
 #include "GameFramework/OnlineSession.h"
+#include "IPortalServiceLocator.h"
 
 #include "InstancedReferenceSubobjectHelper.h"
 
@@ -901,6 +911,14 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Initialise buffer visualization system data
 	GetBufferVisualizationData().Initialize();
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	// Initialize Portal services
+	if (!IsRunningCommandlet())
+	{
+		InitializePortalServices();
+	}
+#endif
 
 	// Connect the engine analytics provider
 	FEngineAnalytics::Initialize();
@@ -1875,6 +1893,34 @@ void UEngine::InitializeObjectReferences()
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 	UISettings->ForceLoadResources();
 }
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+void UEngine::InitializePortalServices()
+{
+	// Initialize Portal services
+	PortalRpcClient = FModuleManager::LoadModuleChecked<IMessagingRpcModule>("MessagingRpc").CreateRpcClient();
+	{
+		// @todo gmp: catch timeouts?
+	}
+
+	PortalRpcLocator = FModuleManager::LoadModuleChecked<IPortalRpcModule>("PortalRpc").CreateLocator();
+	{
+		PortalRpcLocator->OnServerLocated().BindLambda([=]() { PortalRpcClient->Connect(PortalRpcLocator->GetServerAddress()); });
+		PortalRpcLocator->OnServerLost().BindLambda([=]() { PortalRpcClient->Disconnect(); });
+	}
+
+	ServiceDependencies = MakeShareable(new FTypeContainer);
+	{
+		ServiceDependencies->RegisterInstance<IMessageRpcClient>(PortalRpcClient.ToSharedRef());
+	}
+
+	ServiceLocator = FModuleManager::LoadModuleChecked<IPortalServicesModule>("PortalServices").CreateLocator(ServiceDependencies.ToSharedRef());
+	{
+		// @todo add any Engine specific Portal services here
+		ServiceLocator->Configure(TEXT("IPortalApplicationWindow"), TEXT("*"), "PortalProxies");
+	}
+}
+#endif
 
 //
 // Exit the engine.

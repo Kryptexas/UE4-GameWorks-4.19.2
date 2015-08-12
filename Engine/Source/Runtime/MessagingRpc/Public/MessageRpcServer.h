@@ -1,24 +1,22 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "IMessageRpcServer.h"
-
+#include "MessageRpcMessages.h"
 
 class IMessageRpcHandler;
 class IMessageRpcReturn;
-
+class IMessageContext;
+class FMessageEndpoint;
+class FMessagingRpcModule;
 
 /**
  * Implements an RPC server.
  */
-class FMessageRpcServer
+class MESSAGINGRPC_API FMessageRpcServer
 	: public IMessageRpcServer
 {
 public:
-
-	/** Default constructor. */
-	FMessageRpcServer();
 
 	/** Virtual destructor. */
 	virtual ~FMessageRpcServer();
@@ -26,12 +24,14 @@ public:
 public:
 
 	// IMessageRpcServer interface
-
 	virtual void AddHandler(const FName& RequestMessageType, const TSharedRef<IMessageRpcHandler>& Handler) override;
 	virtual const FMessageAddress& GetAddress() const override;
 	virtual FOnMessageRpcNoHandler& OnNoHandler() override;
 
 protected:
+
+	/** Default constructor. */
+	FMessageRpcServer();
 
 	struct FReturnInfo
 	{
@@ -41,6 +41,8 @@ protected:
 		TSharedPtr<IMessageRpcReturn> Return;
 		TSharedPtr<IAsyncTask> Task;
 	};
+
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> GetEndpoint() const;
 
 	/** Processes an FMessageRpcCancel message. */
 	void ProcessCancelation(const FMessageRpcCancel& Message, const TSharedRef<IMessageContext, ESPMode::ThreadSafe>& Context);
@@ -53,6 +55,11 @@ protected:
 
 	/** Send a result message to the RPC client that made the RPC call. */
 	void SendResult(const FGuid& CallId, const FReturnInfo& ReturnInfo);
+
+protected:
+
+	/** Message endpoint. */
+	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
 
 private:
 
@@ -67,9 +74,6 @@ private:
 	/** Registered request message handlers. */
 	TMap<FName, TSharedPtr<IMessageRpcHandler>> Handlers;
 
-	/** Message endpoint. */
-	TSharedPtr<FMessageEndpoint, ESPMode::ThreadSafe> MessageEndpoint;
-
 	/* Delegate that is executed when a received RPC message has no registered handler. */
 	FOnMessageRpcNoHandler NoHandlerDelegate;
 
@@ -78,4 +82,6 @@ private:
 
 	/** Handle to the registered ticker. */
 	FDelegateHandle TickerHandle;
+
+	friend FMessagingRpcModule;
 };

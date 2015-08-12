@@ -2,6 +2,7 @@
 
 #include "PortalServicesPrivatePCH.h"
 #include "IPortalServicesModule.h"
+#include "PortalServiceLocator.h"
 #include "ModuleManager.h"
 
 
@@ -22,7 +23,7 @@ public:
 
 	virtual TSharedRef<IPortalServiceLocator> CreateLocator(const TSharedRef<FTypeContainer>& ServiceDependencies) override
 	{
-		return MakeShareable(new FPortalServiceLocator(ServiceDependencies));
+		return FPortalServiceLocatorFactory::Create(ServiceDependencies);
 	}
 
 public:

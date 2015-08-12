@@ -12,6 +12,12 @@ class FViewport;
 class FCommonViewportClient;
 class FCanvas;
 
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+class FTypeContainer;
+class IMessageRpcClient;
+class IPortalRpcLocator;
+class IPortalServiceLocator;
+#endif
 
 /**
  * Enumerates types of fully loaded packages.
@@ -1158,9 +1164,9 @@ public:
 	/** Whether to use a fixed framerate. */
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	uint32 bUseFixedFrameRate : 1;
-
+	
 	/** The fixed framerate to use. */
-	UPROPERTY(config, EditAnywhere, Category = Framerate, meta = (EditCondition = "bUseFixedFrameRate"))
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
 	float FixedFrameRate;
 
 	/** Range of framerates in which smoothing will kick in */
@@ -1499,7 +1505,7 @@ public:
 
 	/** Reference to the HMD device that is attached, if any */
 	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
-
+	
 	/** Reference to the Motion Control devices that are attached, if any */
 	TArray < class IMotionController*> MotionControllerDevices;
 
@@ -2153,6 +2159,33 @@ public:
 
 	virtual void RemapGamepadControllerIdForPIE(class UGameViewportClient* InGameViewport, int32 &ControllerId) { }
 
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	/**
+	 * Get a locator for Portal services.
+	 *
+	 * @return The service locator.
+	 */
+	TSharedRef<IPortalServiceLocator> GetServiceLocator()
+	{
+		return ServiceLocator.ToSharedRef();
+	}
+
+protected:
+
+	/** Portal RPC client. */
+	TSharedPtr<IMessageRpcClient> PortalRpcClient;
+
+	/** Portal RPC server locator. */
+	TSharedPtr<IPortalRpcLocator> PortalRpcLocator;
+
+	/** Holds a type container for service dependencies. */
+	TSharedPtr<FTypeContainer> ServiceDependencies;
+
+	/** Holds registered service instances. */
+	TSharedPtr<IPortalServiceLocator> ServiceLocator;
+#endif
+
+
 public:
 
 	/**
@@ -2239,26 +2272,20 @@ protected:
 	 */
 	virtual bool InitializeHMDDevice();
 
-	/**
-	 *	Detects and initializes any motion controller devices
-	 *
-	 *	@return true if there are any initialized motion controllers, false otherwise
-	 */
 	virtual bool InitializeMotionControllers();
 
-	/**
-	 *	Record EngineAnalytics information for attached HMD devices
-	 */
+	/**	Record EngineAnalytics information for attached HMD devices. */
 	virtual void RecordHMDAnalytics();
 
-	/**
-	 * Loads all Engine object references from their corresponding config entries.
-	 */
+	/** Loads all Engine object references from their corresponding config entries. */
 	virtual void InitializeObjectReferences();
 
-	/** 
-	 * Initializes the running average delta to some good initial framerate 
-	 */
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+	/** Initialize Portal services. */
+	virtual void InitializePortalServices();
+#endif
+
+	/** Initializes the running average delta to some good initial framerate. */
 	virtual void InitializeRunningAverageDeltaTime();
 
 	float RunningAverageDeltaTime;

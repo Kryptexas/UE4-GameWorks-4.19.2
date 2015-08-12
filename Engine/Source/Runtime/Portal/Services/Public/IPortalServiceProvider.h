@@ -1,13 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "ModuleInterface.h"
 
-
 class FTypeContainer;
 class IPortalService;
-
 
 class IPortalServiceProvider
 	: public IModuleInterface

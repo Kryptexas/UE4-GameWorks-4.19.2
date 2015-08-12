@@ -57,6 +57,9 @@ public class UnrealEd : ModuleRules
                 "Niagara",
 				"SizeMap",
                 "LocalizationService",
+                "MessagingRpc",
+                "PortalRpc",
+                "PortalServices",
 			}
 		);
 
@@ -201,6 +204,8 @@ public class UnrealEd : ModuleRules
                 "IOSPlatformEditor",
 				"HTML5PlatformEditor",
 				"SizeMap",
+                "PortalProxies",
+                "PortalServices",
 			}
 		);
 

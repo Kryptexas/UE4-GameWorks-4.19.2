@@ -12,4 +12,3 @@
 /* Private includes
 *****************************************************************************/
 
-#include "PortalServiceLocator.h"
