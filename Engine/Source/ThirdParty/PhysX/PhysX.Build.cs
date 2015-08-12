@@ -276,8 +276,8 @@ public class PhysX : ModuleRules
 				"SimulationController{0}",
 			};
 
-			// the "shipping" don't need the nvTools library
-            if (LibraryMode != PhysXLibraryMode.Shipping && !BuildConfiguration.bUseShippingPhysXLibraries)
+			//if you are shipping, and you actually want the shipping libs, you do not need this lib
+            if (! (LibraryMode == PhysXLibraryMode.Shipping && BuildConfiguration.bUseShippingPhysXLibraries))
 			{
 				PublicAdditionalLibraries.Add("nvToolsExt");
 			}
