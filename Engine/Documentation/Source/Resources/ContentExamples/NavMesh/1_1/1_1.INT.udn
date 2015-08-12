@@ -7,6 +7,23 @@ Related: Gameplay/AI
 Related: Engine/AI/BehaviorTrees/NodeReference
 Related: Engine/Actors/Volumes
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Navmesh Home](Resources/ContentExamples/NavMesh)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/NavMesh/1_2 "%Resources/ContentExamples/NavMesh/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
