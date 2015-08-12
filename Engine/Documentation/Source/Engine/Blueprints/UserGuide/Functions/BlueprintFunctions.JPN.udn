@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2447301
+﻿INTSourceChangelist:2615373
 Availability:Public
 Title:関数
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -58,7 +58,7 @@ Description:他のグラフから実行または呼び出しが可能なノー�
 ## アクセス指定子
 
 [EXCERPT:AccessSpecifiers]
-関数を作成する場合、その関数に対する他のオブジェクトのアクセス権を指定することができます。そのためには、選択した関数の **[詳細]** パネルにある **Access Specifier** プロパティを設定します。
+関数を作成する場合、その関数に対する他のオブジェクトのアクセス権を指定することができます。そのためには、選択した関数の **[Details]** パネルにある **Access Specifier** プロパティを設定します。
 
 [REGION:raw]
 ![](AccessSpecifier.png)
@@ -108,8 +108,8 @@ Description:他のグラフから実行または呼び出しが可能なノー�
 	[REGION:raw]
 	![](name_function_blueprint.png)
 	[/REGION]
-	ブループリント エディタの **[Graph Editor]** タブで、関数が新規のタブとして開きます。
 
+	ブループリント エディタの **[Graph Editor]** タブで、関数が新規のタブとして開きます。
 
 関数は、 **[My Blueprint]** タブで **右クリック** 、 **[Function]** を選択して作成することも出来ます。
 
@@ -127,8 +127,8 @@ Description:他のグラフから実行または呼び出しが可能なノー�
 1. 関数名を入力します。
 
 	![](name_function_interface.png)
-	ブループリント エディタの **[Graph Editor]** タブで、関数が新規のタブとして開きます。
 
+ブループリント エディタの **[Graph Editor]** タブで、関数が新規のタブとして開きます。
 
 関数は、 **[My Blueprint]** タブで **右クリック** 、 **[Function]** を選択して作成することも出来ます。
 
@@ -149,9 +149,9 @@ Description:他のグラフから実行または呼び出しが可能なノー�
 * 入力と出力の間にノード ネットワークを作成し、関数の動作を定義します。
 
 
-**Description** 、 **Category** 、 **Access Specifier** および関数が **純粋関数** か否かを **[詳細]** タブで設定することができます。
+**Description** 、 **Category** 、 **Access Specifier** および関数が **純粋関数** か否かを **[Details]** タブで設定することができます。
 
-関数の **[詳細]** タブを開くには以下の手順に従います。
+関数の **[Details]** タブを開くには以下の手順に従います。
 
 * **[My Blueprint]** タブで Function (関数) を選択します。
 * 呼び出されるグラフ内で関数ノードを選択します。
@@ -164,15 +164,15 @@ Description:他のグラフから実行または呼び出しが可能なノー�
 
 ### 入力パラメータと出力パラメータ
 
-関数の**[詳細]** タブでも入力または出力パラメータを設定することができます。
+関数の**[Details]** タブでも入力または出力パラメータを設定することができます。
 
 以下の手順で、入力または出力パラメータを追加します。
 
-1. **[詳細]** ペインの **[入力]** または **[出力]** セクションいずれかの**[新規]** ボタンをクリックします。
+1. **[Details]** ペインの **[Inputs]** または **[Outputs]** セクションいずれかの**[New]** ボタンをクリックします。
 
 1. 新パラメータに名前をつけて、ドロップダウン メニューを使用してタイプを設定します。以下の例では、 **VectorA** と **VectorB** という名前の 2 つの vector 型のデータ入力と、 **Distance** という名前の float 型のデータがあります。 
-	[REGION:raw]
 
+	[REGION:raw]
 	![](function_details.png)
 	[/REGION]
 
@@ -274,7 +274,17 @@ _Blueprint First Person Template Project_ に入っているデフォルトの *
 
 エディタで再生すると、以下のようになります。 
 
-![](ExampleGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+T8dbefQDqQs
+[/PARAMLITERAL]
+[/OBJECT]
 
 **PlayerHealth** 変数を **PrintString** ノードに接続し、現在の値を表示するようにしました。デフォルトで 100 に設定し、プレイヤーがウォールを撃ち、跳ね返りプレイヤーにぶつかると、 **Take Damage** 関数が呼び出され、ぶつかるたびに **PlayerHealth** 変数が 10 ずつ減るのがわかります。 
 
