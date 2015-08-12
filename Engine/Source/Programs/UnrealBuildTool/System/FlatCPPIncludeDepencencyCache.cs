@@ -172,13 +172,16 @@ namespace UnrealBuildTool
 				}
 			}
 
-			try
+			if(File.Exists(CacheFileItem.AbsolutePath + ".buildmutex"))
 			{
-				File.Delete(CacheFileItem.AbsolutePath + ".buildmutex");
-			}
-			catch
-			{
-				// We don't care if we couldn't delete this file, as maybe it couldn't have been created in the first place.
+				try
+				{
+					File.Delete(CacheFileItem.AbsolutePath + ".buildmutex");
+				}
+				catch
+				{
+					// We don't care if we couldn't delete this file, as maybe it couldn't have been created in the first place.
+				}
 			}
 		}
 
