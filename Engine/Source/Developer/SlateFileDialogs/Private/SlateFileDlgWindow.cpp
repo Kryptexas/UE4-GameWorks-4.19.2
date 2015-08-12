@@ -295,7 +295,7 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 
 	if (TempOut.Num() > 0)
 	{
-		OutFoldername = TempOut[0];
+		OutFoldername = FPaths::ConvertRelativePathToFull(TempOut[0]);
 		if (!OutFoldername.EndsWith(TEXT("/")))
 		{
 			OutFoldername += TEXT("/");
