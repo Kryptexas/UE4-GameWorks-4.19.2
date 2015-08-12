@@ -40,7 +40,7 @@ if [ ! -f Build/BatchFiles/RunUAT.sh ]; then
 fi
 
 # see if we have the no compile arg
-if echo "${Args[@]}" | grep -q -i "\-nocompile"; then
+if echo "${Args[@]}" | grep -q -w -i "\-nocompile"; then
 	UATCompileArg=
 else
 	UATCompileArg=-compile
