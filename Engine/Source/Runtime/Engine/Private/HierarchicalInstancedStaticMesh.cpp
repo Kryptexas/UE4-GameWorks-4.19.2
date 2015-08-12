@@ -1094,7 +1094,7 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 					MeshElement.bCanApplyViewModeOverrides = true;
 					MeshElement.bUseSelectionOutline = ElementParams.BatchRenderSelection[SelectionGroupIndex];
 					MeshElement.bUseWireframeSelectionColoring = ElementParams.BatchRenderSelection[SelectionGroupIndex];
-					MeshElement.bUseAsOccluder = false;
+					MeshElement.bUseAsOccluder = ShouldUseAsOccluder();
 
 					if (!bDidStats)
 					{
@@ -1540,6 +1540,7 @@ UHierarchicalInstancedStaticMeshComponent::UHierarchicalInstancedStaticMeshCompo
 	, AccumulatedNavigationDirtyArea(0)
 {
 	bCanEverAffectNavigation = true;
+	bUseAsOccluder = false;
 }
 
 UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComponent()

@@ -241,7 +241,7 @@ public:
 	 * This should generally be true for all objects, and let the renderer make decisions about whether to render objects in the depth only pass.
 	 * @todo - if any rendering features rely on a complete depth only pass, this variable needs to go away.
 	 */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
 	uint32 bUseAsOccluder:1;
 
 	/** If this is True, this component can be selected in the editor. */
