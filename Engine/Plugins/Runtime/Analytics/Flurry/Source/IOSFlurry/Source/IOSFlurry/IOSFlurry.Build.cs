@@ -50,7 +50,7 @@ namespace UnrealBuildTool.Rules
             if (bHasFlurrySDK)
             {
                 PublicIncludePaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/");
-                PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/libFlurry_6.3.0.a");
+                PublicAdditionalLibraries.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Flurry/IOS/libFlurry_6.7.0.a");
 
                 Definitions.Add("WITH_FLURRY=1");
             }
