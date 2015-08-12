@@ -8,6 +8,18 @@
 #include "Online.h"
 #include "OnlineSubsystemUtils.h"
 
+namespace PartyConsoleVariables
+{
+	// CVars
+	TAutoConsoleVariable<int32> CVarAcceptJoinsDuringLoad(
+		TEXT("Party.CVarAcceptJoinsDuringLoad"),
+		1,
+		TEXT("Enables joins while leader is trying to load into a game\n")
+		TEXT("1 Enables. 0 disables."),
+		ECVF_Default);
+}
+
+
 UPartyGameState::UPartyGameState(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),
 	OwningUserId(nullptr),
@@ -160,8 +172,11 @@ void UPartyGameState::InitFromJoin(const FUniqueNetId& LocalUserId, TSharedPtr<F
 
 void UPartyGameState::PreClientTravel()
 {
-	// Possibly deal with pending approvals?
-	RejectAllPendingJoinRequests();
+	if (!PartyConsoleVariables::CVarAcceptJoinsDuringLoad.GetValueOnGameThread())
+	{
+		// Possibly deal with pending approvals?
+		RejectAllPendingJoinRequests();
+	}
 	CleanupReservationBeacon();
 
 	UnregisterFrontendDelegates();
@@ -994,7 +1009,7 @@ void UPartyGameState::ConnectToReservationBeacon()
 				ReservationBeaconClient = World->SpawnActor<APartyBeaconClient>(ReservationBeaconClientClass);
 				if (ReservationBeaconClient)
 				{
-					UE_LOG(LogParty, Verbose, TEXT("Created reservation beacon %s."), *ReservationBeaconClient->GetName());
+					UE_LOG(LogParty, Verbose, TEXT("Created party reservation beacon %s."), *ReservationBeaconClient->GetName());
 
 					ReservationBeaconClient->OnHostConnectionFailure().BindUObject(this, &ThisClass::OnReservationBeaconUpdateConnectionFailure);
 					ReservationBeaconClient->OnReservationRequestComplete().BindUObject(this, &ThisClass::OnReservationBeaconUpdateResponseReceived);
@@ -1108,6 +1123,8 @@ void UPartyGameState::CleanupReservationBeacon()
 {
 	if (ReservationBeaconClient)
 	{
+		UE_LOG(LogParty, Verbose, TEXT("Party reservation beacon cleanup while in state %s, pending approvals: %s"), ToString(ReservationBeaconClient->GetConnectionState()), !PendingApprovals.IsEmpty() ? TEXT("true") : TEXT("false"));
+
 		ReservationBeaconClient->OnHostConnectionFailure().Unbind();
 		ReservationBeaconClient->OnReservationRequestComplete().Unbind();
 		ReservationBeaconClient->OnReservationCountUpdate().Unbind();

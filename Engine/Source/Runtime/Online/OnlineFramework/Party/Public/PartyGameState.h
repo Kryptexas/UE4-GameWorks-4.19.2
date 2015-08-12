@@ -19,6 +19,11 @@ class UPartyMemberState;
 class APartyBeaconClient;
 enum class EMemberExitedReason;
 
+namespace PartyConsoleVariables
+{
+	extern PARTY_API TAutoConsoleVariable<int32> CVarAcceptJoinsDuringLoad;
+}
+
 UENUM(BlueprintType)
 enum class EPartyType : uint8
 {
@@ -599,3 +604,91 @@ private:
 	friend UPartyMemberState;
 };
 
+inline const TCHAR* ToString(EPartyType Type)
+{
+	switch (Type)
+	{
+	case EPartyType::Public:
+	{
+		return TEXT("Public");
+	}
+	case EPartyType::FriendsOnly:
+	{
+		return TEXT("FriendsOnly");
+	}
+	case EPartyType::Private:
+	{
+		return TEXT("Private");
+	}
+	default:
+	{
+		return TEXT("");
+	}
+	}
+}
+
+inline const TCHAR* ToString(EJoinPartyDenialReason Type)
+{
+	switch (Type)
+	{
+	case EJoinPartyDenialReason::NoReason:
+	{
+		return TEXT("NoReason");
+	}
+	case EJoinPartyDenialReason::Busy:
+	{
+		return TEXT("Busy");
+	}
+	case EJoinPartyDenialReason::PartyFull:
+	{
+		return TEXT("PartyFull");
+	}
+	case EJoinPartyDenialReason::GameFull:
+	{
+		return TEXT("GameFull");
+	}
+	case EJoinPartyDenialReason::NotPartyLeader:
+	{
+		return TEXT("NotPartyLeader");
+	}
+	case EJoinPartyDenialReason::PartyPrivate:
+	{
+		return TEXT("PartyPrivate");
+	}
+	case EJoinPartyDenialReason::NeedsTutorial:
+	{
+		return TEXT("NeedsTutorial");
+	}
+	default:
+	{
+		return TEXT("");
+	}
+	}
+}
+
+inline const TCHAR* ToString(EApprovalAction Type)
+{
+	switch (Type)
+	{
+	case EApprovalAction::Approve:
+	{
+		return TEXT("Approve");
+	}
+	case EApprovalAction::Enqueue:
+	{
+		return TEXT("Enqueue");
+	}
+	case EApprovalAction::EnqueueAndStartBeacon:
+	{
+		return TEXT("EnqueueAndStartBeacon");
+	}
+	case EApprovalAction::Deny:
+	{
+		return TEXT("Deny");
+	}
+	default:
+	{
+		return TEXT("");
+	}
+	}
+}
