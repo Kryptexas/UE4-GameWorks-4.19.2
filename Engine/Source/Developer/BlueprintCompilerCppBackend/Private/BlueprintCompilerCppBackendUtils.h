@@ -74,11 +74,18 @@ struct FEmitDefaultValueHelper
 	static FString GenerateConstructor(UClass* BPGC);
 private:
 
-	// OuterPath ends with "->" or "."
-	static void OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* DataContainer, const FString OuterPath, const uint8* OptionalDefaultDataContainer, bool bAllowProtected = false);
+	enum class EPropertyAccessOperator
+	{
+		None, // for self scope, this
+		Pointer,
+		Dot,
+	};
+
+	// OuterPath ends context/outer name (or empty, if the scope is "this")
+	static void OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& OuterPath, const uint8* DataContainer, const uint8* OptionalDefaultDataContainer, EPropertyAccessOperator AccessOperator, bool bAllowProtected = false);
 	
 	// PathToMember ends with variable name
-	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr, const FString& PathToMember);
+	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, bool bWithoutFirstConstructionLine = false);
 	
 	// Returns native term, 
 	// returns empty string if cannot handle
@@ -89,4 +96,6 @@ private:
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
 	static FString HandleClassSubobject(FDefaultValueHelperContext& Context, UObject* Object);
+
+	static FString HandleInstancedSubobject(FDefaultValueHelperContext& Context, UObject* Object);
 };
