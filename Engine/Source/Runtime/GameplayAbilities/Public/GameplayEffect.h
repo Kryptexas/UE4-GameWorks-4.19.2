@@ -509,6 +509,20 @@ enum class EGameplayEffectStackingPeriodPolicy : uint8
 	NeverReset,
 };
 
+/** Enumeration of policies for dealing gameplay effect stacks that expire (in duration based effects). */
+UENUM()
+enum class EGameplayEffectStackingExpirationPolicy : uint8
+{
+	/** The entire stack is cleared when the active gameplay effect expires  */
+	ClearEntireStack,
+
+	/** The current stack count will be decremented by 1 and the duration refreshed. The GE is not "reapplied", just continues to exist with one less stacks. */
+	RemoveSingleStackAndRefreshDuration,
+
+	/** The duration of the gameplay effect is refreshed. This essentially makes the effect infinite in duration. This can be used to manually handle stack decrements via XXX callback */
+	RefreshDuration,
+};
+
 /**
  * UGameplayEffect
  *	The GameplayEffect definition. This is the data asset defined in the editor that drives everything.
@@ -690,6 +704,10 @@ public:
 	/** Policy for how the effect period should be reset (or not) while stacking */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
 	EGameplayEffectStackingPeriodPolicy StackPeriodResetPolicy;
+
+	/** Policy for how to handle duration expiring on this gameplay effect */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
+	EGameplayEffectStackingExpirationPolicy StackExpirationPolicy;
 
 	// ----------------------------------------------------------------------
 	//	Granted abilities
@@ -1267,7 +1285,9 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffect : public FFastArraySerializer
 
 	bool IsPendingRemove;
 
-	FOnActiveGameplayEffectRemoved	OnRemovedDelegate;
+	FOnActiveGameplayEffectRemoved OnRemovedDelegate;
+
+	FOnActiveGameplayEffectStackChange OnStackChangeDelegate;
 
 	FTimerHandle PeriodHandle;
 
@@ -1706,7 +1726,7 @@ private:
 
 	void OnMagnitudeDependencyChange(FActiveGameplayEffectHandle Handle, const FAggregator* ChangedAgg);
 
-	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect);
+	void OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount);
 
 	void UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect);
 

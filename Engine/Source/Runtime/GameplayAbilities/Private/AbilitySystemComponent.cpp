@@ -396,6 +396,17 @@ FOnActiveGameplayEffectRemoved& UAbilitySystemComponent::OnAnyGameplayEffectRemo
 	return ActiveGameplayEffects.OnActiveGameplayEffectRemovedDelegate;
 }
 
+FOnActiveGameplayEffectStackChange* UAbilitySystemComponent::OnGameplayEffectStackChangeDelegate(FActiveGameplayEffectHandle Handle)
+{
+	FActiveGameplayEffect* ActiveEffect = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
+	if (ActiveEffect)
+	{
+		return &ActiveEffect->OnStackChangeDelegate;
+	}
+
+	return nullptr;
+}
+
 int32 UAbilitySystemComponent::GetNumActiveGameplayEffects() const
 {
 	return ActiveGameplayEffects.GetNumGameplayEffects();
@@ -923,6 +934,18 @@ int32 UAbilitySystemComponent::GetCurrentStackCount(FGameplayAbilitySpecHandle H
 		return GetCurrentStackCount(GEHandle);
 	}
 	return 0;
+}
+
+FString UAbilitySystemComponent::GetActiveGEDebugString(FActiveGameplayEffectHandle Handle) const
+{
+	FString Str;
+
+	if (const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle))
+	{
+		Str = FString::Printf(TEXT("%s - (Level: %.2f. Stacks: %d)"), *ActiveGE->Spec.Def->GetName(), ActiveGE->Spec.GetLevel(), ActiveGE->Spec.StackCount);
+	}
+
+	return Str;
 }
 
 FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHandle(FGameplayAbilitySpecHandle Handle) const

@@ -1624,12 +1624,14 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 	}
 }
 
-void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect)
+void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect, int32 OldStackCount)
 {
 	MarkItemDirty(ActiveEffect);
 	UpdateAllAggregatorModMagnitudes(ActiveEffect);
 	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.Def->InheritableOwnedTagsContainer.CombinedTags);
 	Owner->NotifyTagMap_StackCountChange(ActiveEffect.Spec.DynamicGrantedTags);
+
+	ActiveEffect.OnStackChangeDelegate.Broadcast(ActiveEffect.Handle, ActiveEffect.Spec.StackCount, OldStackCount);
 }
 
 void FActiveGameplayEffectsContainer::UpdateAllAggregatorModMagnitudes(FActiveGameplayEffect& ActiveEffect)
@@ -2008,6 +2010,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 
 	bool bSetDuration = true;
 	bool bSetPeriod = true;
+	int32 StartingStackCount = 0;
 
 	// Check if there's an active GE this application should stack upon
 	if (ExistingStackableGE)
@@ -2019,6 +2022,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		}
 
 		FGameplayEffectSpec& ExistingSpec = ExistingStackableGE->Spec;
+		StartingStackCount = ExistingSpec.StackCount;
 		
 		// How to apply multiple stacks at once? What if we trigger an overflow which can reject the application?
 		// We still want to apply the stacks that didnt push us over, but we also want to call HandleActiveGameplayEffectStackOverflow.
@@ -2247,7 +2251,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 	// as a result of stacking. In reality it could in complicated cases with differing sets of dynamically-granted tags.
 	if (ExistingStackableGE)
 	{
-		OnStackCountChange(*ExistingStackableGE);
+		OnStackCountChange(*ExistingStackableGE, StartingStackCount);
 	}
 	else
 	{
@@ -2394,8 +2398,9 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		if (StacksToRemove > 0 && Effect.Spec.StackCount > StacksToRemove)
 		{
 			// This won't be a full remove, only a change in StackCount.
+			int32 StartingStackCount = Effect.Spec.StackCount;
 			Effect.Spec.StackCount -= StacksToRemove;
-			OnStackCountChange(Effect);
+			OnStackCountChange(Effect, StartingStackCount);
 			return false;
 		}
 
@@ -2754,7 +2759,40 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 			float Duration = Effect.GetDuration();
 			float CurrentTime = GetWorldTime();
 
+			int32 StacksToRemove = -2;
+			bool RefreshStartTime = false;
+			bool RefreshDurationTimer = false;
+			bool CheckForFinalPeriodicExec = false;
+
 			if (Duration > 0.f && (((Effect.StartWorldTime + Duration) < CurrentTime) || FMath::IsNearlyZero(CurrentTime - Duration - Effect.StartWorldTime, KINDA_SMALL_NUMBER)))
+			{
+				// Figure out what to do based on the expiration policy
+				switch(Effect.Spec.Def->StackExpirationPolicy)
+				{
+				case EGameplayEffectStackingExpirationPolicy::ClearEntireStack:
+					StacksToRemove = -1; // Remove all stacks
+					CheckForFinalPeriodicExec = true;					
+					break;
+
+				case EGameplayEffectStackingExpirationPolicy::RemoveSingleStackAndRefreshDuration:
+					StacksToRemove = 1;
+					CheckForFinalPeriodicExec = (Effect.Spec.StackCount == 1);
+					RefreshStartTime = true;
+					RefreshDurationTimer = true;
+					break;
+				case EGameplayEffectStackingExpirationPolicy::RefreshDuration:
+					RefreshStartTime = true;
+					RefreshDurationTimer = true;
+					break;
+				};					
+			}
+			else
+			{
+				// Effect isn't finished, just refresh its duration timer
+				RefreshDurationTimer = true;
+			}
+
+			if (CheckForFinalPeriodicExec)
 			{
 				// This gameplay effect has hit its duration. Check if it needs to execute one last time before removing it.
 				if (Effect.PeriodHandle.IsValid() && TimerManager.TimerExists(Effect.PeriodHandle))
@@ -2768,10 +2806,22 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 					// Forcibly clear the periodic ticks because this effect is going to be removed
 					TimerManager.ClearTimer(Effect.PeriodHandle);
 				}
-
-				InternalRemoveActiveGameplayEffect(ActiveGEIdx, -1, false);
 			}
-			else
+
+			if (StacksToRemove >= -1)
+			{
+				InternalRemoveActiveGameplayEffect(ActiveGEIdx, StacksToRemove, false);
+			}
+
+			if (RefreshStartTime)
+			{
+				Effect.StartServerWorldTime = GetServerWorldTime();
+				Effect.CachedStartServerWorldTime = Effect.StartServerWorldTime;
+				Effect.StartWorldTime = GetWorldTime();
+				MarkItemDirty(Effect);
+			}
+
+			if (RefreshDurationTimer)
 			{
 				// Always reset the timer, since the duration might have been modified
 				FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Effect.Handle);
