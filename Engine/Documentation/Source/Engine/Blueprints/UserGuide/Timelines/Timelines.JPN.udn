@@ -1,5 +1,6 @@
-﻿Availability:Public
-Title: タイムライン
+﻿INTSourceChangelist:2591123
+Availability:Public
+Title: Timelines ノード
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:このドキュメントは、アンリアル エンジン 4 のブループリントの Timeline ノードに関する概要です。
 
@@ -98,7 +99,7 @@ _Timelines_ には以下の入力/出力ピンがあります。
 [/REGION]
 
 
-## Timeline の例
+## Timeline ノードのサンプル
 
 [REGION:topics fourth]
 	[OBJECT:TopicCompact]
