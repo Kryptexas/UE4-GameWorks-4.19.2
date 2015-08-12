@@ -14,6 +14,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/msgfmt.h>
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/uniset.h>
+#include <unicode/ubidi.h>
 
 #include "ICUUtilities.h"
 #include "ICUTextCharacterIterator.h"
@@ -230,5 +231,206 @@ bool FText::IsLetter( const TCHAR Char )
 	icu::UnicodeSet Uniscode(PatternString, ICUStatus);
 	return Uniscode.contains(Char) != 0;
 }
+
+namespace TextBiDi
+{
+
+namespace Internal
+{
+
+FORCEINLINE ETextDirection ICUToUE(const UBiDiDirection InDirection)
+{
+	switch (InDirection)
+	{
+	case UBIDI_LTR:
+		return ETextDirection::LeftToRight;
+	case UBIDI_RTL:
+		return ETextDirection::RightToLeft;
+	case UBIDI_MIXED:
+		return ETextDirection::Mixed;
+	default:
+		break;
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& InICUString)
+{
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+
+	ubidi_setPara(InICUBiDi, InICUString.getBuffer(), InICUString.length(), 0, nullptr, &ICUStatus);
+
+	if (U_SUCCESS(ICUStatus))
+	{
+		return Internal::ICUToUE(ubidi_getDirection(InICUBiDi));
+	}
+	else
+	{
+		UE_LOG(LogCore, Warning, TEXT("Failed to set the string data on the ICU BiDi object (error code: %d). Text will assumed to be left-to-right"), static_cast<int32>(ICUStatus));
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeTextDirection(UBiDi* InICUBiDi, const icu::UnicodeString& InICUString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+
+	ubidi_setPara(InICUBiDi, InICUString.getBuffer(), InICUString.length(), 0, nullptr, &ICUStatus);
+
+	if (U_SUCCESS(ICUStatus))
+	{
+		const ETextDirection ReturnDirection = Internal::ICUToUE(ubidi_getDirection(InICUBiDi));
+
+		const int32 RunCount = ubidi_countRuns(InICUBiDi, &ICUStatus);
+		OutTextDirectionInfo.AddZeroed(RunCount);
+		for (int32 RunIndex = 0; RunIndex < RunCount; ++RunIndex)
+		{
+			FTextDirectionInfo& CurTextDirectionInfo = OutTextDirectionInfo[RunIndex];
+			CurTextDirectionInfo.TextDirection = Internal::ICUToUE(ubidi_getVisualRun(InICUBiDi, RunIndex, &CurTextDirectionInfo.StartIndex, &CurTextDirectionInfo.Length));
+		}
+
+		return ReturnDirection;
+	}
+	else
+	{
+		UE_LOG(LogCore, Warning, TEXT("Failed to set the string data on the ICU BiDi object (error code: %d). Text will assumed to be left-to-right"), static_cast<int32>(ICUStatus));
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+class FICUTextBiDi : public ITextBiDi
+{
+public:
+	FICUTextBiDi()
+		: ICUBiDi(ubidi_open())
+	{
+	}
+
+	~FICUTextBiDi()
+	{
+		ubidi_close(ICUBiDi);
+		ICUBiDi = nullptr;
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FText& InText) override
+	{
+		return FICUTextBiDi::ComputeTextDirection(InText.ToString());
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FString& InString) override
+	{
+		if (InString.IsEmpty())
+		{
+			return ETextDirection::LeftToRight;
+		}
+
+		ICUUtilities::ConvertString(InString, ICUString);
+
+		return Internal::ComputeTextDirection(ICUBiDi, ICUString);
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
+		return FICUTextBiDi::ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
+		OutTextDirectionInfo.Reset();
+
+		if (InString.IsEmpty())
+		{
+			return ETextDirection::LeftToRight;
+		}
+
+		ICUUtilities::ConvertString(InString, ICUString);
+
+		return Internal::ComputeTextDirection(ICUBiDi, ICUString, OutTextDirectionInfo);
+	}
+
+private:
+	UBiDi* ICUBiDi;
+	icu::UnicodeString ICUString;
+};
+
+} // namespace Internal
+
+TUniquePtr<ITextBiDi> CreateTextBiDi()
+{
+	return MakeUnique<Internal::FICUTextBiDi>();
+}
+
+ETextDirection ComputeTextDirection(const FText& InText)
+{
+	return ComputeTextDirection(InText.ToString());
+}
+
+ETextDirection ComputeTextDirection(const FString& InString)
+{
+	if (InString.IsEmpty())
+	{
+		return ETextDirection::LeftToRight;
+	}
+
+	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	UBiDi* ICUBiDi = ubidi_openSized(ICUString.length(), 0, &ICUStatus);
+	if (ICUBiDi && U_SUCCESS(ICUStatus))
+	{
+		const ETextDirection ReturnDirection = Internal::ComputeTextDirection(ICUBiDi, ICUString);
+
+		ubidi_close(ICUBiDi);
+		ICUBiDi = nullptr;
+
+		return ReturnDirection;
+	}
+	else
+	{
+		UE_LOG(LogCore, Warning, TEXT("Failed to create ICU BiDi object (error code: %d). Text will assumed to be left-to-right"), static_cast<int32>(ICUStatus));
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
+	return ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+}
+
+ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
+	OutTextDirectionInfo.Reset();
+
+	if (InString.IsEmpty())
+	{
+		return ETextDirection::LeftToRight;
+	}
+
+	icu::UnicodeString ICUString = ICUUtilities::ConvertString(InString);
+
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	UBiDi* ICUBiDi = ubidi_openSized(ICUString.length(), 0, &ICUStatus);
+	if (ICUBiDi && U_SUCCESS(ICUStatus))
+	{
+		const ETextDirection ReturnDirection = Internal::ComputeTextDirection(ICUBiDi, ICUString, OutTextDirectionInfo);
+
+		ubidi_close(ICUBiDi);
+		ICUBiDi = nullptr;
+
+		return ReturnDirection;
+	}
+	else
+	{
+		UE_LOG(LogCore, Warning, TEXT("Failed to create ICU BiDi object (error code: %d). Text will assumed to be left-to-right"), static_cast<int32>(ICUStatus));
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+} // namespace TextBiDi
 
 #endif

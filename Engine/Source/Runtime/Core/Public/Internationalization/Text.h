@@ -6,6 +6,7 @@
 #include "UObject/NameTypes.h"
 #include "TextLocalizationManager.h"
 #include "Optional.h"
+#include "UniquePtr.h"
 
 struct FTimespan;
 struct FDateTime;
@@ -602,5 +603,67 @@ private:
 	int32 Flags;
 	FText& TextToPersist;
 };
+
+/**
+ * Unicode Bidirectional text support 
+ * http://www.unicode.org/reports/tr9/
+ */
+namespace TextBiDi
+{
+	/** Lists the potential reading directions for text */
+	enum class ETextDirection : uint8
+	{
+		/** Contains only LTR text - requires simple LTR layout */
+		LeftToRight,
+		/** Contains only RTL text - requires simple RTL layout */
+		RightToLeft,
+		/** Contains both LTR and RTL text - requires more complex layout using multiple runs of text */
+		Mixed,
+	};
+
+	/** A single complex layout entry. Defines the starting position, length, and reading direction for a sub-section of text */
+	struct FTextDirectionInfo
+	{
+		int32 StartIndex;
+		int32 Length;
+		ETextDirection TextDirection;
+	};
+
+	/** Defines the interface for a re-usable BiDi object */
+	class CORE_API ITextBiDi
+	{
+	public:
+		virtual ~ITextBiDi() {}
+
+		/** See TextBiDi::ComputeTextDirection */
+		virtual ETextDirection ComputeTextDirection(const FText& InText) = 0;
+		virtual ETextDirection ComputeTextDirection(const FString& InString) = 0;
+
+		/** See TextBiDi::ComputeTextDirection */
+		virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
+		virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) = 0;
+	};
+
+	/**
+	 * Create a re-usable BiDi object.
+	 * This may yield better performance than the utility functions if you're performing a lot of BiDi requests, as this object can re-use allocated data between requests.
+	 */
+	CORE_API TUniquePtr<ITextBiDi> CreateTextBiDi();
+
+	/**
+	 * Utility function which will compute the reading direction of the given text.
+	 * @note You may want to use the version that returns you the advanced layout data in the Mixed case.
+	 * @return LeftToRight if all of the text is LTR, RightToLeft if all of the text is RTL, or Mixed if the text contains both LTR and RTL text.
+	 */
+	CORE_API ETextDirection ComputeTextDirection(const FText& InText);
+	CORE_API ETextDirection ComputeTextDirection(const FString& InString);
+
+	/**
+	 * Utility function which will compute the reading direction of the given text, as well as populate any advanced layout data for the text.
+	 * @return LeftToRight if all of the text is LTR, RightToLeft if all of the text is RTL, or Mixed if the text contains both LTR and RTL text.
+	 */
+	CORE_API ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
+	CORE_API ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo);
+} // namespace TextBiDi
 
 Expose_TNameOf(FText)

@@ -96,4 +96,85 @@ bool FText::IsLetter( const TCHAR Char )
 	return (Char>='A' && Char<='Z') || (Char>='a' && Char<='z');
 }
 
+namespace TextBiDi
+{
+
+namespace Internal
+{
+
+class FLegacyTextBiDi : public ITextBiDi
+{
+public:
+	virtual ETextDirection ComputeTextDirection(const FText& InText) override
+	{
+		return FLegacyTextBiDi::ComputeTextDirection(InText.ToString());
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FString& InString) override
+	{
+		return ETextDirection::LeftToRight;
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
+		return FLegacyTextBiDi::ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+	}
+
+	virtual ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo) override
+	{
+		OutTextDirectionInfo.Reset();
+
+		if (!InString.IsEmpty())
+		{
+			FTextDirectionInfo TextDirectionInfo;
+			TextDirectionInfo.StartIndex = 0;
+			TextDirectionInfo.Length = InString.Len();
+			TextDirectionInfo.TextDirection = ETextDirection::LeftToRight;
+			OutTextDirectionInfo.Add(MoveTemp(TextDirectionInfo));
+		}
+
+		return ETextDirection::LeftToRight;
+	}
+};
+
+} // namespace Internal
+
+TUniquePtr<ITextBiDi> CreateTextBiDi()
+{
+	return MakeUnique<Internal::FLegacyTextBiDi>();
+}
+
+ETextDirection ComputeTextDirection(const FText& InText)
+{
+	return ComputeTextDirection(InText.ToString());
+}
+
+ETextDirection ComputeTextDirection(const FString& InString)
+{
+	return ETextDirection::LeftToRight;
+}
+
+ETextDirection ComputeTextDirection(const FText& InText, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
+	return ComputeTextDirection(InText.ToString(), OutTextDirectionInfo);
+}
+
+ETextDirection ComputeTextDirection(const FString& InString, TArray<FTextDirectionInfo>& OutTextDirectionInfo)
+{
+	OutTextDirectionInfo.Reset();
+
+	if (!InString.IsEmpty())
+	{
+		FTextDirectionInfo TextDirectionInfo;
+		TextDirectionInfo.StartIndex = 0;
+		TextDirectionInfo.Length = InString.Len();
+		TextDirectionInfo.TextDirection = ETextDirection::LeftToRight;
+		OutTextDirectionInfo.Add(MoveTemp(TextDirectionInfo));
+	}
+
+	return ETextDirection::LeftToRight;
+}
+
+} // namespace TextBiDi
+
 #endif
