@@ -483,6 +483,9 @@ public:
 	DECLARE_EVENT( FPropertyNode, FPropertyValueChangedEvent );
 	FPropertyValueChangedEvent& OnPropertyValueChanged() { return PropertyValueChangedEvent; }
 
+	/** Broadcasts when a child of this property changes */
+	FPropertyValueChangedEvent& OnChildPropertyValueChanged() { return ChildPropertyValueChangedEvent; }
+
 	/**
 	 * Marks window's seem due to filtering flags
 	 * @param InFilterStrings	- List of strings that must be in the property name in order to display
@@ -730,7 +733,7 @@ protected:
 	 * Helper function for derived members to be able to 
 	 * broadcast property changed notifications
 	 */
-	void BroadcastPropertyValueChanged() const;
+	void BroadcastPropertyChangedDelegates();
 
 	/**
 	 * Gets a value tracker for the default of this property in the passed in object
@@ -761,6 +764,9 @@ protected:
 
 	/** Called when this node's property value has changed (called during NotifyPostChange) */
 	FPropertyValueChangedEvent PropertyValueChangedEvent;
+	
+	/** Called when a child's property value has changed */
+	FPropertyValueChangedEvent ChildPropertyValueChangedEvent;
 
 	/** The property being displayed/edited. */
 	TWeakObjectPtr<UProperty> Property;

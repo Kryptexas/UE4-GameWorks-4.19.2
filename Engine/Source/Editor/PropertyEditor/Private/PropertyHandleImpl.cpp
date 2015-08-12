@@ -519,9 +519,15 @@ void FPropertyValueImpl::SetOnPropertyValueChanged( const FSimpleDelegate& InOnP
 {
 	if( PropertyNode.IsValid() )
 	{
-		PropertyValueChangedDelegate = InOnPropertyValueChanged;
-
 		PropertyNode.Pin()->OnPropertyValueChanged().Add( InOnPropertyValueChanged );
+	}
+}
+
+void FPropertyValueImpl::SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged )
+{
+	if( PropertyNode.IsValid() )
+	{
+		PropertyNode.Pin()->OnChildPropertyValueChanged().Add( InOnChildPropertyValueChanged );
 	}
 }
 
@@ -1677,6 +1683,11 @@ void FPropertyHandleBase::AccessRawData( TArray<const void*>& RawData ) const
 void FPropertyHandleBase::SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged )
 {
 	return Implementation->SetOnPropertyValueChanged(InOnPropertyValueChanged);
+}
+
+void FPropertyHandleBase::SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged )
+{
+	return Implementation->SetOnChildPropertyValueChanged( InOnChildPropertyValueChanged );
 }
 
 TSharedPtr<FPropertyNode> FPropertyHandleBase::GetPropertyNode() const

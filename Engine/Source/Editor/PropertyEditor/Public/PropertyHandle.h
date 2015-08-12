@@ -169,6 +169,13 @@ public:
 	 * @param InOnPropertyValueChanged	The delegate to call
 	 */
 	virtual void SetOnPropertyValueChanged( const FSimpleDelegate& InOnPropertyValueChanged ) = 0;
+	
+	/**
+	 * Sets a delegate to call when the value of the property of a child is changed
+	 * 
+	 * @param InOnChildPropertyValueChanged	The delegate to call
+	 */
+	virtual void SetOnChildPropertyValueChanged( const FSimpleDelegate& InOnChildPropertyValueChanged ) = 0;
 
 	/**
 	 * Gets the typed value of a property.  

@@ -2017,7 +2017,7 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	}
 
 	// Broadcast the change to any listeners
-	BroadcastPropertyValueChanged();
+	BroadcastPropertyChangedDelegates();
 
 	// Call through to the property window's notify hook.
 	if( InNotifyHook )
@@ -2060,9 +2060,23 @@ void FPropertyNode::NotifyPostChange( FPropertyChangedEvent& InPropertyChangedEv
 	ClearCachedReadAddresses(true);
 }
 
-void FPropertyNode::BroadcastPropertyValueChanged() const
+
+void FPropertyNode::BroadcastPropertyChangedDelegates()
 {
 	PropertyValueChangedEvent.Broadcast();
+
+	// Walk through the parents and broadcast
+	FPropertyNode* ParentNode = GetParentNode();
+	while( ParentNode )
+	{
+		if( ParentNode->OnChildPropertyValueChanged().IsBound() )
+		{
+			ParentNode->OnChildPropertyValueChanged().Broadcast();
+		}
+
+		ParentNode = ParentNode->GetParentNode();
+	}
+
 }
 
 void FPropertyNode::SetOnRebuildChildren( FSimpleDelegate InOnRebuildChildren )
