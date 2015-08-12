@@ -156,3 +156,27 @@ private:
 	friend class AOnlineBeaconHost;
 	friend class AOnlineBeaconHostObject;
 };
+
+inline const TCHAR* ToString(EBeaconConnectionState Value)
+{
+	switch (Value)
+	{
+	case EBeaconConnectionState::Invalid:
+	{
+		return TEXT("Invalid");
+	}
+	case EBeaconConnectionState::Closed:
+	{
+		return TEXT("Closed");
+	}
+	case EBeaconConnectionState::Pending:
+	{
+		return TEXT("Pending");
+	}
+	case EBeaconConnectionState::Open:
+	{
+		return TEXT("Open");
+	}
+	}
+	return TEXT("");
+}
