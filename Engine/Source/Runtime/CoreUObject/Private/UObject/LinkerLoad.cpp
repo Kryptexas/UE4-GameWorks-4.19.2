@@ -4524,7 +4524,7 @@ bool ExportMapSorter(const FObjectExport& Lhs, const FObjectExport& Rhs)
 		return true;
 	}
 
-	if (Rhs.ObjectName > Rhs.ObjectName)
+	if (Lhs.ObjectName > Rhs.ObjectName)
 	{
 		return false;
 	}
