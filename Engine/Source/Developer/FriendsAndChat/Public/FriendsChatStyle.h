@@ -124,8 +124,8 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FFriendsChatStyle& SetChatChannelsBackgroundBrush(const FSlateBrush& InChatChannelsBackgroundBrush);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
-	FScrollBorderStyle ScrollBorderStyle;
-	FFriendsChatStyle& SetScrollBorderStyle(const FScrollBorderStyle& InScrollBorderStyle);
+	FScrollBoxStyle ScrollBorderStyle;
+	FFriendsChatStyle& SetScrollBorderStyle(const FScrollBoxStyle& InScrollBorderStyle);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush QuickSettingsBrush;

@@ -28,6 +28,13 @@ public:
 	 */
 	DECLARE_EVENT(FChatTipViewModel, FChatTipAvailable)
 	virtual FChatTipAvailable& OnChatTipAvailable() = 0;
+
+	/**
+	 * Event broadcast when a chat tip is selected.
+	 */
+	DECLARE_EVENT_OneParam(FChatTipViewModel, FChatTipSelected, TSharedRef<class IChatTip> /* Selected Tip */)
+	virtual FChatTipSelected& OnChatTipSelected() = 0;
+
 };
 
 /**

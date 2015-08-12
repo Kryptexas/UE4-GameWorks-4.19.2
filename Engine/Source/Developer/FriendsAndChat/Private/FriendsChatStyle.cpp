@@ -113,7 +113,7 @@ FFriendsChatStyle& FFriendsChatStyle::SetChatDisplayTextStyle(const FEditableTex
 	return *this;
 }
 
-FFriendsChatStyle& FFriendsChatStyle::SetScrollBorderStyle(const FScrollBorderStyle& InScrollBorderStyle)
+FFriendsChatStyle& FFriendsChatStyle::SetScrollBorderStyle(const FScrollBoxStyle& InScrollBorderStyle)
 {
 	ScrollBorderStyle = InScrollBorderStyle;
 	return *this;

@@ -87,6 +87,9 @@ void FFriendsAndChatManager::Logout()
 
 		// Logout OSS
 		OSSScheduler->Logout();
+
+		// Clear the shared chat view model
+		CachedViewModel.Reset();
 	}
 }
 
@@ -363,6 +366,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 	}
 
 	TSharedPtr<SChatChrome> ChatChrome = SNew(SChatChrome, CachedViewModel.ToSharedRef()).FriendStyle(InStyle);
+	ChatChrome->SetVisibility(EVisibility::SelfHitTestInvisible);
 	return ChatChrome;
 }
 

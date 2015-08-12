@@ -350,6 +350,12 @@ public:
 		return ChatInputUpdatedEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FFriendsChatMarkupServiceImpl, FFriendsChatMarkupService::FChatTipSelected, FChatTipSelected);
+	virtual FChatTipSelected& OnChatTipSelected() override
+	{
+		return ChatTipSelectedEvent;
+	}
+
 	DECLARE_DERIVED_EVENT(FFriendsChatMarkupServiceImpl, FFriendsChatMarkupService::FValidatedChatReadyEvent, FValidatedChatReadyEvent);
 	virtual FValidatedChatReadyEvent& OnValidateInputReady() override
 	{
@@ -422,6 +428,7 @@ private:
 				SelectedChatIndex = 0;
 			}
 			SelectedChatTip = ChatTipArray[SelectedChatIndex];
+			OnChatTipSelected().Broadcast(SelectedChatTip.ToSharedRef());
 		}
 	}
 
@@ -435,6 +442,7 @@ private:
 				SelectedChatIndex = ChatTipArray.Num() -1;
 			}
 			SelectedChatTip = ChatTipArray[SelectedChatIndex];
+			OnChatTipSelected().Broadcast(SelectedChatTip.ToSharedRef());
 		}
 	}
 
@@ -608,6 +616,7 @@ private:
 	TArray< TSharedPtr<FFriendViewModel > > FriendViewModels;
 	TArray<TSharedRef<IChatTip> > CommmonChatTips;
 	FChatInputUpdated ChatInputUpdatedEvent;
+	FChatTipSelected ChatTipSelectedEvent;
 	FValidatedChatReadyEvent ValidatedChatReadyEvent;
 	FString InputText;
 	bool ForceDisplayToolTips;

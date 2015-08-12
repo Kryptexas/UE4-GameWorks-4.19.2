@@ -79,6 +79,7 @@ public:
 					[
 						SAssignNew(ChatScrollBox, SScrollBox)
 						.ExternalScrollbar(ExternalScrollbar)
+						.Style(&FriendStyle.FriendsChatStyle.ScrollBorderStyle)
 					]
 					+ SOverlay::Slot()
 					.HAlign(HAlign_Right)
@@ -225,7 +226,7 @@ public:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		bUserHasScrolled = true;
-		return FReply::Unhandled();
+		return FReply::Handled();
 	}
 
 private:

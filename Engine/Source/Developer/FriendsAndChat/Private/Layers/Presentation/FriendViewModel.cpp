@@ -39,6 +39,7 @@ public:
 			}
 			if (FriendItem->IsOnline() && (GamePartyService->IsInJoinableGameSession() || GamePartyService->IsInJoinableParty()))
 			{
+				// @todo above checks don't account for "same party", probably should be CanPerformAction below
 				Actions.Add(EFriendActionType::InviteToGame);
 			}
 		}
@@ -70,7 +71,7 @@ public:
 						}
 						Actions.Add(EFriendActionType::RemoveFriend);
 					}
-					else if( DisplayChatOption)
+					else if(DisplayChatOption && FriendItem->IsOnline())
 					{
 						Actions.Add(EFriendActionType::Chat);
 					}
@@ -168,10 +169,12 @@ public:
 			{
 				if (GamePartyService->JoinGameAllowed(GetClientId()))
 				{
-					if(FriendItem->IsInParty())
+					if (FriendItem->IsInParty())
 					{
+						// Party rules apply (if also in a game then party needs to reflect game state)
 						return FriendItem->CanJoinParty();
 					}
+					// Game rules apply
 					return true;
 				}
 				return false;

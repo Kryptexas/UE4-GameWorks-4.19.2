@@ -27,6 +27,13 @@ public:
 	virtual int32 GetFilteredGameInviteList(TArray< TSharedPtr< IFriendItem > >& OutFriendsList) const = 0;
 
 	/**
+	 * Get the id of the active party
+	 *
+	 * @return party id the local players are a member of
+	 */
+	virtual TSharedPtr<const FOnlinePartyId> GetActivePartyId() const = 0;
+
+	/**
 	* Get the name of the primary party chat room we've joined
 	*
 	* @param Out shared ref to party room id

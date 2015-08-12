@@ -29,6 +29,11 @@ public:
 			SetChatEntryVisibility(false);
 			SetChatListVisibility(true);
 		}
+		else if(ChatMinimized)
+		{
+			SetChatListVisibility(true);
+			ChatListVisibility = EVisibility::HitTestInvisible;
+		}
 	}
 
 	virtual EVisibility GetEntryBarVisibility() const override
@@ -68,6 +73,20 @@ public:
 	virtual void ToggleChatMinimized() override
 	{
 		ChatMinimized = !ChatMinimized;
+		if(ChatMinimized)
+		{
+			ChatFadeDelay = ChatFadeInterval;
+			if (!TickDelegate.IsBound())
+			{
+				TickDelegate = FTickerDelegate::CreateSP(this, &FChatDisplayServiceImpl::HandleTick);
+				TickerHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+			}
+			ChatListVisibility = EVisibility::HitTestInvisible;
+		}
+		else
+		{
+			SetChatListVisibility(true);
+		}
 	}
 
 	virtual bool IsChatMinimized() const override
@@ -125,7 +144,7 @@ private:
 	{
 		if(Visible)
 		{
-			ChatListVisibility = EVisibility::Visible;
+			ChatListVisibility = ChatMinimized ? EVisibility::HitTestInvisible : EVisibility::Visible;
 			ChatFadeDelay = ChatFadeInterval;
 		}
 		else
@@ -163,6 +182,17 @@ private:
 				}
 			}
 		}
+		else if(ChatMinimized)
+		{
+			if(ChatFadeDelay > 0)
+			{
+				ChatFadeDelay -= DeltaTime;
+				if(ChatFadeDelay <= 0)
+				{
+					SetChatListVisibility(false);
+				}
+			}
+		}
 		return true;
 	}
 
@@ -175,8 +205,9 @@ private:
 			if (!TickDelegate.IsBound())
 			{
 				TickDelegate = FTickerDelegate::CreateSP(this, &FChatDisplayServiceImpl::HandleTick);
+				TickerHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 			}
-			TickerHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+
 			SetChatListVisibility(false);
 		}
 	}

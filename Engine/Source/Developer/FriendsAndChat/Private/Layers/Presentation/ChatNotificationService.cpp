@@ -28,6 +28,14 @@ private:
 		OnSendNotification().Broadcast(NotificationMessage.ToSharedRef());
 	}
 
+	virtual void SendFriendInviteSentNotification(const FString& FriendDisplayName) override
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Username"), FText::FromString(FriendDisplayName));
+		const FText SentInviteMessage = FText::Format(LOCTEXT("SentFriendRequestToast", "Friend request sent to {Username}"), Args);
+		SendNotification(SentInviteMessage.ToString(), EMessageType::FriendInviteSent);
+	}
+
 	virtual void SendFriendInviteNotification(const TSharedPtr<IFriendItem>& Invite, IChatNotificationService::FOnNotificationResponseDelegate ResponceDelegate) override
 	{
 		FString MessageString = FString::Printf(*LOCTEXT("AddedYou", "Friend request from %s").ToString(), *Invite->GetName());
@@ -36,6 +44,8 @@ private:
 		NotificationMessage->SetButtonCallback(FOnClicked::CreateSP(this, &FChatNotificationServiceImpl::HandleMessageResponse, NotificationMessage, EResponseType::Response_Ignore, ResponceDelegate));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Accept", "Accept"));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Ignore", "Ignore"));
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Accept);
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Ignore);
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListEmphasisButton"));
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListCriticalButton"));
 		NotificationMessage->SetMessageType(EMessageType::FriendInvite);
@@ -67,9 +77,11 @@ private:
 		NotificationMessage->SetButtonCallback(FOnClicked::CreateSP(this, &FChatNotificationServiceImpl::HandleMessageResponse, NotificationMessage, EResponseType::Response_Reject, ResponceDelegate));
 		NotificationMessage->SetButtonDescription(LOCTEXT("JoinGame", "Join Game"));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Reject", "Reject"));
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Accept);
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Reject);
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListEmphasisButton"));
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListCriticalButton"));
-		NotificationMessage->SetMessageType(EMessageType::FriendInvite);
+		NotificationMessage->SetMessageType(EMessageType::GameInvite);
 		OnSendNotification().Broadcast(NotificationMessage.ToSharedRef());
 	}
 
@@ -92,6 +104,8 @@ private:
 		NotificationMessage->SetButtonCallback(FOnClicked::CreateSP(this, &FChatNotificationServiceImpl::HandleMessageResponse, NotificationMessage, EResponseType::Response_Reject, ResponceDelegate));
 		NotificationMessage->SetButtonDescription(LOCTEXT("JoinClan", "Join Clan"));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Reject", "Reject"));
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Accept);
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Reject);
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListEmphasisButton"));
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListCriticalButton"));
 		NotificationMessage->SetMessageType(EMessageType::ClanInvite);
@@ -107,6 +121,8 @@ private:
 		NotificationMessage->SetButtonCallback(FOnClicked::CreateSP(this, &FChatNotificationServiceImpl::HandleMessageResponse, NotificationMessage, EResponseType::Response_Reject, ResponceDelegate));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Accept", "Accept"));
 		NotificationMessage->SetButtonDescription(LOCTEXT("Reject", "Reject"));
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Accept);
+		NotificationMessage->SetButtonResponseType(EResponseType::Response_Reject);
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListEmphasisButton"));
 		NotificationMessage->SetButtonStyle(TEXT("FriendsListCriticalButton"));
 		NotificationMessage->SetMessageType(EMessageType::ClanInvite);

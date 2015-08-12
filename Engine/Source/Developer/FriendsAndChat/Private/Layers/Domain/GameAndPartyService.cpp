@@ -201,11 +201,10 @@ private:
 				{
 					if (OSSScheduler->GetPartyInterface().IsValid())
 					{
-						TArray< TSharedRef<const FOnlinePartyId> > OutPartyIds;
-						if (OSSScheduler->GetPartyInterface()->GetJoinedParties(*LocalUserId, OutPartyIds) == true
-							&& OutPartyIds.Num() > 0)
+						TSharedPtr<const FUniqueNetId> PartyId = GetActivePartyId();
+						if (PartyId.IsValid())
 						{
-							TSharedPtr<FOnlinePartyInfo> PartyInfo = OSSScheduler->GetPartyInterface()->GetPartyInfo(*LocalUserId, *(OutPartyIds[0]));
+							TSharedPtr<FOnlinePartyInfo> PartyInfo = OSSScheduler->GetPartyInterface()->GetPartyInfo(*LocalUserId, *PartyId);
 							if (PartyInfo.IsValid())
 							{
 								return true;
@@ -231,11 +230,10 @@ private:
 				{
 					if (OSSScheduler->GetPartyInterface().IsValid())
 					{
-						TArray< TSharedRef<const FOnlinePartyId> > OutPartyIds;
-						if (OSSScheduler->GetPartyInterface()->GetJoinedParties(*UserId, OutPartyIds) == true
-							&& OutPartyIds.Num() > 0)
+						TSharedPtr<const FOnlinePartyId> PartyId = GetActivePartyId();
+						if (PartyId.IsValid())
 						{
-							TSharedPtr<FOnlinePartyInfo> PartyInfo = OSSScheduler->GetPartyInterface()->GetPartyInfo(*UserId, *(OutPartyIds[0]));
+							TSharedPtr<FOnlinePartyInfo> PartyInfo = OSSScheduler->GetPartyInterface()->GetPartyInfo(*UserId, *PartyId);
 							if (PartyInfo.IsValid())
 							{
 								TArray< TSharedRef<FOnlinePartyMember> > OutPartyMembers;
@@ -271,9 +269,9 @@ private:
 		return OSSScheduler->GetPartyJoinInfo(FriendItem);
 	}
 
-	virtual bool IsInJoinableParty() const override
+	virtual TSharedPtr<const FOnlinePartyId> GetActivePartyId() const override
 	{
-		bool bIsJoinable = false;
+		TSharedPtr<const FOnlinePartyId> ActivePartyId = nullptr;
 
 		if (OSSScheduler.IsValid() &&
 			OSSScheduler->GetOnlineIdentity().IsValid() &&
@@ -290,23 +288,44 @@ private:
 
 					if (PartyIds.Num() > 0)
 					{
-						TSharedRef<const FOnlinePartyId> PartyId = PartyIds[0];
-						TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(*LocalUserId, *PartyId);
+						ActivePartyId = PartyIds[0];
+					}
+				}
+			}
+		}
 
-						if (PartyInfo.IsValid())
+		return ActivePartyId;
+	}
+
+	virtual bool IsInJoinableParty() const override
+	{
+		bool bIsJoinable = false;
+
+		if (OSSScheduler.IsValid() &&
+			OSSScheduler->GetOnlineIdentity().IsValid() &&
+			OSSScheduler->GetPartyInterface().IsValid())
+		{
+			TSharedPtr<const FUniqueNetId> LocalUserId = OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
+			if (LocalUserId.IsValid())
+			{
+				IOnlinePartyPtr PartyInt = OSSScheduler->GetPartyInterface();
+				if (PartyInt.IsValid())
+				{
+					TSharedPtr<const FOnlinePartyId> PartyId = GetActivePartyId();
+					TSharedPtr<FOnlinePartyInfo> PartyInfo = PartyInt->GetPartyInfo(*LocalUserId, *PartyId);
+					if (PartyInfo.IsValid())
+					{
+						bool bPublicJoinable = false;
+						bool bFriendJoinable = false;
+						bool bInviteOnly = false;
+						bool bAllowInvites = false;
+						if (PartyInfo->GetJoinability(*LocalUserId, bPublicJoinable, bFriendJoinable, bInviteOnly, bAllowInvites))
 						{
-							bool bPublicJoinable = false;
-							bool bFriendJoinable = false;
-							bool bInviteOnly = false;
-							bool bAllowInvites = false;
-							if (PartyInfo->GetJoinability(*LocalUserId, bPublicJoinable, bFriendJoinable, bInviteOnly, bAllowInvites))
-							{
-								// User's party is joinable in some way if any of this is true (context needs to be handled outside this function)
-								//bIsJoinable = bPublicJoinable || bFriendJoinable || (bInviteOnly && bAllowInvites);
+							// User's party is joinable in some way if any of this is true (context needs to be handled outside this function)
+							//bIsJoinable = bPublicJoinable || bFriendJoinable || (bInviteOnly && bAllowInvites);
 
-								// Disable public joinable for now because no way to distinguish "public" from "friends only"
-								bIsJoinable = bFriendJoinable || (bInviteOnly && bAllowInvites);
-							}
+							// Disable public joinable for now because no way to distinguish "public" from "friends only"
+							bIsJoinable = bFriendJoinable || (bInviteOnly && bAllowInvites);
 						}
 					}
 				}
@@ -471,18 +490,24 @@ private:
 	{
 		bool bResult = false;
 
-		if (OSSScheduler->GetOnlineIdentity().IsValid())
+		// In a joinable party implies in a party at all 
+		if (IsInJoinableParty())
 		{
-			TSharedPtr<const FUniqueNetId> UserId = OSSScheduler->GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
-			if (UserId.IsValid())
+			IOnlineIdentityPtr IdentityInt = OSSScheduler->GetOnlineIdentity();
+			if (IdentityInt.IsValid())
 			{
-				// party invite if available
-				if (OSSScheduler->GetPartyInterface().IsValid())
+				TSharedPtr<const FUniqueNetId> UserId = IdentityInt->GetUniquePlayerId(LocalControllerIndex);
+				if (UserId.IsValid())
 				{
-					TSharedPtr<IOnlinePartyJoinInfo> PartyJoinInfo = OSSScheduler->GetPartyInterface()->GetAdvertisedParty(*UserId, *UserId);
-					if (PartyJoinInfo.IsValid())
+					IOnlinePartyPtr PartyInt = OSSScheduler->GetPartyInterface();
+					// party invite if available
+					if (PartyInt.IsValid())
 					{
-						bResult = OSSScheduler->GetPartyInterface()->SendInvitation(*UserId, *PartyJoinInfo->GetPartyId(), ToUser);
+						TSharedPtr<const FUniqueNetId> PartyId = GetActivePartyId();
+						if (PartyId.IsValid())
+						{
+							bResult = PartyInt->SendInvitation(*UserId, *PartyId, ToUser);
+						}
 					}
 				}
 			}

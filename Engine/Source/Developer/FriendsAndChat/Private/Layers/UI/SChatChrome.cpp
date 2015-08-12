@@ -223,6 +223,8 @@ private:
 					.FriendStyle(&FriendStyle)
 					.Method(EPopupMethod::UseCurrentWindow);
 
+				ChatWindow->SetVisibility(EVisibility::SelfHitTestInvisible);
+
 				ChatWindowContainer->AddSlot()
 					[
 						ChatWindow
@@ -267,7 +269,7 @@ private:
 
 	EVisibility GetChatWindowVisibility() const
 	{
-		return ChromeViewModel->IsActive() ? EVisibility::Visible : EVisibility::Collapsed;
+		return ChromeViewModel->IsActive() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
 	}
 
 	EVisibility GetHeaderVisibility() const

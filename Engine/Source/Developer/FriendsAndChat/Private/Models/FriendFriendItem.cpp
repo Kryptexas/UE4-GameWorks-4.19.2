@@ -31,7 +31,7 @@ bool FFriendFriendItem::IsGameJoinable() const
 bool FFriendFriendItem::CanJoinParty() const
 {
 	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
-	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !FriendsService->IsFriendInSameParty(AsShared());
+	return PartyInfo.IsValid() && !PartyInfo->IsInvalidForJoin() && !FriendsService->IsFriendInSameParty(AsShared());
 }
 
 bool FFriendFriendItem::CanInvite() const

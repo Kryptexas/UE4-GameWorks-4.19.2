@@ -10,7 +10,7 @@
 bool FFriendPartyInviteItem::CanJoinParty() const
 {
 	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
-	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !GameAndPartyService->IsFriendInSameParty(AsShared());
+	return PartyInfo.IsValid() && !PartyInfo->IsInvalidForJoin() && !GameAndPartyService->IsFriendInSameParty(AsShared());
 }
 
 bool FFriendPartyInviteItem::CanInvite() const

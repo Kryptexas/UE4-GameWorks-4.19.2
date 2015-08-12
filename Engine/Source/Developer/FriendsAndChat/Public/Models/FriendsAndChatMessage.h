@@ -15,7 +15,9 @@ namespace EMessageType
 		JoinGame,
 		// Invite someone to join your game
 		GameInvite,
-		// Invite someone to be a friend
+		// Friend request sent to somebody
+		FriendInviteSent,
+		// Friend invite received
 		FriendInvite,
 		// Request accepted
 		FriendAccepted,

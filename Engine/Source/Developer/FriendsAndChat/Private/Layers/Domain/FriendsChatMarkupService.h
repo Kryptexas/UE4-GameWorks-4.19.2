@@ -81,6 +81,12 @@ public:
 	virtual FChatInputUpdated& OnInputUpdated() = 0;
 
 	/**
+	 * Event broadcast when a chat tip is selected.
+	 */
+	DECLARE_EVENT_OneParam(FFriendsChatMarkupService, FChatTipSelected, TSharedRef<IChatTip> /* Chat Tip Selected */);
+	virtual FChatTipSelected& OnChatTipSelected() = 0;
+
+	/**
 	 * Event broadcast when a validated text entry is ready.
 	 */
 	DECLARE_EVENT(FFriendsChatMarkupService, FValidatedChatReadyEvent);

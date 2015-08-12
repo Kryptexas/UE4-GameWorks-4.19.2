@@ -18,11 +18,15 @@ public:
 	{
 		ViewModel = InViewModel;
 		ViewModel->OnChatTipAvailable().AddSP(this, &SChatMarkupTipsImpl::HandleTipAvailable);
+		ViewModel->OnChatTipSelected().AddSP(this, &SChatMarkupTipsImpl::OnChatTipSelected);
 		MarkupStyle = *InArgs._MarkupStyle;
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SAssignNew(ChatTipBox, SVerticalBox)
+			SAssignNew(ChatTipList, SListView<TSharedRef<IChatTip > >)
+			.SelectionMode(ESelectionMode::Single)
+			.ListItemsSource(&ChatTips)
+			.OnGenerateRow(this, &SChatMarkupTipsImpl::OnGenerateChatTip)
 		]);
 	}
 
@@ -30,28 +34,25 @@ private:
 
 	void HandleTipAvailable()
 	{
-		ChatTipBox->ClearChildren();
-		TArray<TSharedRef<IChatTip> >& ChatTips = ViewModel->GetChatTips();
-		if(ChatTips.Num())
-		{
-			for(const auto& ChatTip : ViewModel->GetChatTips())
-			{
-				ChatTipBox->AddSlot()
-				.AutoHeight()
+		ChatTips = ViewModel->GetChatTips();
+		ChatTipList->RequestListRefresh();
+	}
+
+	TSharedRef<ITableRow> OnGenerateChatTip(TSharedRef<IChatTip > ChatTip, const TSharedRef<STableViewBase>& OwnerTable)
+	{
+		return SNew(STableRow<TSharedPtr<IChatTip> >, OwnerTable)
+			[
+				SNew(SButton)
+				.ButtonStyle(&MarkupStyle.MarkupButtonStyle)
+				.ButtonColorAndOpacity(this, &SChatMarkupTipsImpl::GetActionBackgroundColor, TWeakPtr<IChatTip>(ChatTip))
+				.OnClicked(this, &SChatMarkupTipsImpl::HandleActionClicked, ChatTip)
 				[
-					SNew(SButton)
-					.ButtonStyle(&MarkupStyle.MarkupButtonStyle)
-					.ButtonColorAndOpacity(this, &SChatMarkupTipsImpl::GetActionBackgroundColor, TWeakPtr<IChatTip>(ChatTip))
-					.OnClicked(this, &SChatMarkupTipsImpl::HandleActionClicked, ChatTip)
-					[
-						SNew(STextBlock)
-						.Text(ChatTip->GetTipText())
-						.TextStyle(&MarkupStyle.MarkupTextStyle)
-						.ColorAndOpacity(FLinearColor::White)
-					]
-				];
-			}
-		}
+					SNew(STextBlock)
+					.Text(ChatTip->GetTipText())
+					.TextStyle(&MarkupStyle.MarkupTextStyle)
+					.ColorAndOpacity(FLinearColor::White)
+				]
+			];
 	}
 
 	FReply HandleActionClicked(TSharedRef<IChatTip> ChatTip)
@@ -70,9 +71,18 @@ private:
 		return FLinearColor::Gray;
 	}
 
+	void OnChatTipSelected(TSharedRef<IChatTip> NewChatTip)
+	{
+		ChatTipList->RequestScrollIntoView(NewChatTip);
+		ChatTipList->RequestListRefresh();
+	}
+
 private:
 	TSharedPtr<FChatTipViewModel> ViewModel;
 	TSharedPtr<SVerticalBox> ChatTipBox;
+	TArray<TSharedRef<IChatTip> > ChatTips;
+	TSharedPtr< SListView<TSharedRef<IChatTip > > > ChatTipList;
+
 	/** Holds the style to use when making the widget. */
 	FFriendsMarkupStyle MarkupStyle;
 };

@@ -49,6 +49,9 @@ public:
 
 	void RebuildTextEntry() override
 	{
+		static const FText EntryHint = LOCTEXT("ChatEntryHint", "Enter to chat or type \"/\" for more options");
+		FText SetHintText = HintText.IsSet() ? HintText.Get() : EntryHint;
+
 		FText EnteredText;
 		if (ChatTextBox.IsValid())
 		{
@@ -63,7 +66,7 @@ public:
 				.ClearKeyboardFocusOnCommit(false)
 				.OnTextCommitted(this, &SChatEntryWidgetImpl::HandleChatEntered)
 				.OnKeyDownHandler(this, &SChatEntryWidgetImpl::HandleChatKeydown)
-				.HintText(HintText)
+				.HintText(SetHintText)
 				.OnTextChanged(this, &SChatEntryWidgetImpl::HandleChatTextChanged)
 				.IsEnabled(this, &SChatEntryWidgetImpl::IsChatEntryEnabled)
 				.ModiferKeyForNewLine(EModifierKey::Shift)

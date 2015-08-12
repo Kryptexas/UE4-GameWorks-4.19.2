@@ -87,7 +87,6 @@ public:
 	virtual FText GetValidatedInput() = 0;
 	virtual void SetIsActive(bool IsActive) = 0;
 	virtual void RefreshMessages() = 0;
-	virtual void SetInParty(bool bInPartySetting) = 0;
 	virtual bool AllowMarkup() = 0;
 	virtual bool MultiChat() = 0;
 	virtual void SetFocus() = 0;

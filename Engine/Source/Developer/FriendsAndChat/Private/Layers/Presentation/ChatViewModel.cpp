@@ -441,8 +441,10 @@ private:
 	/*
 	 * Fill in View model for current Selected friend
 	 */
-	void UpdateSelectedFriendsViewModel()
+	void HandleFriendListUpdated()
 	{
+		bool bUpdateTab = false;
+
 		if( SelectedFriend.IsValid())
 		{
 			if(SelectedFriend->UserID.IsValid())
@@ -455,6 +457,23 @@ private:
 				SelectedFriend->ViewModel = GetFriendViewModel(SelectedFriend->SelectedMessage->GetSenderID(), SelectedFriend->SelectedMessage->GetSenderName());
 				bHasActionPending = false;
 			}
+
+			// Clear selected friend if they go offline
+			if(!SelectedFriend->ViewModel.IsValid() || !SelectedFriend->ViewModel->IsOnline())
+			{
+				SelectedFriend.Reset();
+				bUpdateTab = true;
+			}
+		}
+
+		if(OutgoingMessageChannel == EChatMessageType::Party && !GamePartyService->IsInPartyChat())
+		{
+			bUpdateTab = true;
+		}
+
+		if(bUpdateTab && IsActive())
+		{
+			SetIsActive(true);
 		}
 	}
 
@@ -499,11 +518,7 @@ public:
 
 	virtual EVisibility GetChatListVisibility() const override
 	{
-		if (bAllowFade)
-		{
-			return ChatDisplayService->GetChatListVisibility();
-		}
-		return EVisibility::Visible;
+		return ChatDisplayService->GetChatListVisibility();
 	}
 
 	virtual EVisibility GetChatMaximizeVisibility() const override
@@ -536,31 +551,30 @@ public:
 	virtual void SetIsActive(bool InIsActive)
 	{
 		bIsActive = InIsActive;
-	}
-
-	virtual void SetInParty(bool bInPartySetting) override
-	{
-		// ToDo NickD - Move this to display services
-// 		if (bInParty != bInPartySetting)
-// 		{
-// 			if (bInPartySetting)
-// 			{
-// 				// Entered a party.  Change the selected chat channel to party if we're not in a game and not whispering
-// 				if (SelectedChatChannel != EChatMessageType::Whisper && !bInGame)
-// 				{
-// 					SetViewChannel(EChatMessageType::Party);
-// 				}
-// 			}
-// 			else
-// 			{
-// 				// Left a party.  If Party is selected for chat, fall back to global.  Note having party selected implies we're not in a game.
-// 				if (SelectedChatChannel == EChatMessageType::Party)
-// 				{
-// 					SetViewChannel(EChatMessageType::Global);
-// 				}
-// 			}
-// 			bInParty = bInPartySetting;
-// 		}
+		// If active, ensure we have a valid chat channel
+		if(bIsActive)
+		{
+			if(GetChatChannelType() == EChatMessageType::Custom)
+			{
+				if(SelectedFriend.IsValid() && SelectedFriend->ViewModel.IsValid() && SelectedFriend->ViewModel->IsOnline())
+				{
+					SetOutgoingMessageChannel(EChatMessageType::Whisper);
+				}
+				else if(GamePartyService->IsInPartyChat())
+				{
+					SetOutgoingMessageChannel(EChatMessageType::Party);
+				}
+				else
+				{
+					SetOutgoingMessageChannel(EChatMessageType::Global);
+				}
+			}
+			else
+			{
+				// Reset the chat channel to default option when opened
+				SetOutgoingMessageChannel(GetChatChannelType());
+			}
+		}
 	}
 
 	virtual bool AllowMarkup() override
@@ -686,6 +700,14 @@ private:
 		FilteredMessages = InFilteredMessages;
 	}
 
+	void HandleFriendJoinedParty(const FUniqueNetId& SenderId, const TSharedRef<class IOnlinePartyJoinInfo>& PartyJoinInfo, bool bIsFromInvite)
+	{
+		if(GetChatChannelType() == EChatMessageType::Custom && OutgoingMessageChannel != EChatMessageType::Whisper)
+		{
+			SetOutgoingMessageChannel(EChatMessageType::Party);
+		}
+	}
+
 protected:
 
 	FChatViewModelImpl(
@@ -719,7 +741,7 @@ protected:
 
 	void Initialize(bool bBindNavService)
 	{
-		FriendsService->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::UpdateSelectedFriendsViewModel);
+		FriendsService->OnFriendsListUpdated().AddSP(this, &FChatViewModelImpl::HandleFriendListUpdated);
 		if (bBindNavService)
 		{
 			NavigationService->OnChatViewChanged().AddSP(this, &FChatViewModelImpl::HandleViewChangedEvent);
@@ -728,6 +750,8 @@ protected:
 		MessageService->OnChatMessageAdded().AddSP(this, &FChatViewModelImpl::HandleMessageAdded);
 		ChatDisplayService->OnChatListSetFocus().AddSP(this, &FChatViewModelImpl::HandleSetFocus);
 		MarkupService->OnValidateInputReady().AddSP(this, &FChatViewModelImpl::HandleChatInputUpdated);
+
+		GamePartyService->OnFriendsJoinParty().AddSP(this, &FChatViewModelImpl::HandleFriendJoinedParty);
 		RefreshMessages();
 	}
 

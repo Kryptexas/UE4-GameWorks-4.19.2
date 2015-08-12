@@ -13,6 +13,7 @@ public:
 	virtual ~FChatNotificationService() {}
 
 	// Friend Notifications
+	virtual void SendFriendInviteSentNotification(const FString& FriendDisplayName) = 0;
 	virtual void SendFriendInviteNotification(const TSharedPtr<IFriendItem>& Invite, IChatNotificationService::FOnNotificationResponseDelegate ResponceDelegate) = 0;
 	virtual void SendAcceptInviteNotification(const TSharedPtr< IFriendItem >& Friend) = 0;
 

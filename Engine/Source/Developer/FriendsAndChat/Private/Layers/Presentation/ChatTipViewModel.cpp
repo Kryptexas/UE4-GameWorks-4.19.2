@@ -20,6 +20,12 @@ public:
 		return ChatTipAvailableEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FChatTipViewModelImpl, FChatTipViewModel::FChatTipSelected, FChatTipSelected)
+	virtual FChatTipSelected& OnChatTipSelected() override
+	{
+		return ChatTipSelectedEvent;
+	}
+
 	virtual TArray<TSharedRef<IChatTip> >& GetChatTips() override
 	{
 		return MarkupService->GetChatTips();
@@ -37,9 +43,15 @@ private:
 		OnChatTipAvailable().Broadcast();
 	}
 
+	void HandleChatTipSelected(TSharedRef<IChatTip> NewChatTip)
+	{
+		OnChatTipSelected().Broadcast(NewChatTip);
+	}
+
 	void Initialize()
 	{
 		MarkupService->OnInputUpdated().AddSP(this, &FChatTipViewModelImpl::HandleChatInputChanged);
+		MarkupService->OnChatTipSelected().AddSP(this, &FChatTipViewModelImpl::HandleChatTipSelected);
 	}
 
 	FChatTipViewModelImpl(const TSharedRef<FFriendsChatMarkupService>& InMarkupService)
@@ -51,6 +63,8 @@ private:
 
 	TSharedRef<FFriendsChatMarkupService> MarkupService;
 	FChatTipAvailable ChatTipAvailableEvent;
+	FChatTipSelected ChatTipSelectedEvent;
+
 	friend FChatTipViewModelFactory;
 };
 

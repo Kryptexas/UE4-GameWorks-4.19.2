@@ -387,7 +387,7 @@ private:
 		TArray< TSharedRef<FOnlineFriend> > Friends;
 		bool bReadyToChangeState = true;
 
-		if (OSSScheduler.IsValid() && OSSScheduler->GetFriendsInterface()->GetFriendsList(LocalControllerIndex, ListName, Friends))
+		if (OSSScheduler.IsValid() && OSSScheduler->IsLoggedIn() && OSSScheduler->GetFriendsInterface()->GetFriendsList(LocalControllerIndex, ListName, Friends))
 		{
 			if (Friends.Num() > 0)
 			{
@@ -664,6 +664,8 @@ private:
 					FOnSendInviteComplete Delegate = FOnSendInviteComplete::CreateSP(this, &FFriendsServiceImpl::OnSendInviteComplete);
 					OSSScheduler->GetFriendsInterface()->SendInvite(LocalControllerIndex, PendingOutgoingFriendRequests[Index].Get(), EFriendsLists::ToString(EFriendsLists::Default), Delegate);
 					OnAddToast().Broadcast(LOCTEXT("FriendRequestSent", "Request Sent"));
+
+					NotificationService->SendFriendInviteSentNotification(DisplayName);
 				}
 			}
 			else
@@ -682,6 +684,7 @@ private:
 			RequestListRefresh();
 			SetState(EFriendsAndManagerState::Idle);
 		}
+
 	}
 
 	void OnFriendsListChanged()
