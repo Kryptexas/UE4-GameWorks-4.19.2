@@ -875,7 +875,7 @@ public:
 		FInternationalization& I18N = FInternationalization::Get();
 
 		// default build settings
-		BuildGame = false;
+		BuildGame = !FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled();
 		BuildUAT = !FApp::GetEngineIsPromotedBuild() && !FApp::IsEngineInstalled();
 
 		// default cook settings
