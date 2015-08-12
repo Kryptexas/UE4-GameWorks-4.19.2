@@ -122,12 +122,6 @@ struct DelayedPacket
 };
 #endif
 
-// The interval between ack packets, which is used to decide which acks are used for ping validation checks (must be power of two)
-#define PING_ACK_CHECKSUM_PACKET_INTERVAL 16
-
-// Used by the client, for setting a minimum delay between PingAck's
-//	(optionally, 'PING_ACK_CHECKSUM_PACKET_INTERVAL' can be tweaked, so that the interval checks take a similar amount of time as this delay)
-#define PING_ACK_CHECKSUM_DELAY 0.5
 
 UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
@@ -276,9 +270,6 @@ public:
 	int32			OutPacketId;			// Most recently sent packet.
 	int32 			OutAckPacketId;			// Most recently acked outgoing packet.
 
-	uint32			PingChecksumAckCache[MAX_PACKETID / PING_ACK_CHECKSUM_PACKET_INTERVAL];	// Caches packet data on the server, for verifying pings
-	float			LastPingChecksumAck;													// The time of the most ping checksum generated on the client
-	int32			LastPingChecksumAckPacketId;											// The PacketId of the last PingAck, on the server
 	bool			bLastHasServerFrameTime;
 
 	// Channel table.
@@ -433,7 +424,7 @@ public:
 	ENGINE_API virtual void AssertValid();
 
 	/** Send an acknowledgment. */
-	ENGINE_API virtual void SendAck( int32 PacketId, bool FirstTime=1, bool bHasPingChecksum=false, uint32 PingChecksum=0 );
+	ENGINE_API virtual void SendAck( int32 PacketId, bool FirstTime=1);
 
 	/**
 	 * flushes any pending data, bundling it into a packet and sending it via LowLevelSend()
