@@ -50,7 +50,7 @@ Description:The basics of Spot Lights.
 
 
 [EXCERPT:Intro]
-A **Spot Light** emits light from a single point in a cone shape. Users are given two cones to shape the light - the **Inner Cone Angle** and **Outer Cone Angle**. Within the _Inner Cone Angle_, the light achieves full brightness. As you go from the extent of the inner radius to the extents of the _Outer Cone Angle_, a falloff takes place, creating a penumbra, or softening around the Spot Light's disc of illumination. The Radius of the light defines the length of the cones. More simply, this will work like a flash light or stage can light. 
+A **Spot Light** emits light from a single point in a cone shape. Users are given two cones to shape the light - the **Inner Cone Angle** and **Outer Cone Angle**. Within the Inner Cone Angle, the light achieves full brightness. As you go from the extent of the inner radius to the extents of the Outer Cone Angle, a falloff takes place, creating a penumbra, or softening around the Spot Light's disc of illumination. The Radius of the light defines the length of the cones. More simply, this will work like a flash light or stage can light. 
 
 Like other lights, a Spot Light can be set to one of three Mobility settings: 
 
