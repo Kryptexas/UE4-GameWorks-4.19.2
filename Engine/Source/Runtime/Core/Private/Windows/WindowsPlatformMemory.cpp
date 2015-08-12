@@ -145,12 +145,12 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 		MemoryStatusEx.dwLength = sizeof( MemoryStatusEx );
 		::GlobalMemoryStatusEx( &MemoryStatusEx );
 
-		PERFORMANCE_INFORMATION PerformanceInformation = {0};
-		::GetPerformanceInfo( &PerformanceInformation, sizeof(PerformanceInformation) );
+		SYSTEM_INFO SystemInfo = { 0 };
+		::GetSystemInfo(&SystemInfo);
 
 		MemoryConstants.TotalPhysical = MemoryStatusEx.ullTotalPhys;
 		MemoryConstants.TotalVirtual = MemoryStatusEx.ullTotalVirtual;
-		MemoryConstants.PageSize = PerformanceInformation.PageSize;
+		MemoryConstants.PageSize = SystemInfo.dwAllocationGranularity;	// Use this so we get larger 64KiB pages, instead of 4KiB
 
 		MemoryConstants.TotalPhysicalGB = (MemoryConstants.TotalPhysical + 1024 * 1024 * 1024 - 1) / 1024 / 1024 / 1024;
 	}
