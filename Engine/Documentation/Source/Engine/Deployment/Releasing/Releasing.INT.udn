@@ -14,6 +14,7 @@ This is an example of packaging a 1.0 release of ShooterGame, aimed at Windows 6
 
 	![](1.png)
 1. Create a new Custom Launch Profile using the **+** button.
+	
 	![](2.png)
 1. Set a name and description for your profile. 
 
@@ -48,20 +49,24 @@ There are a number of settings for the release process.
 * Set the build to **Do Not Deploy**.
 
 1. Once you have set all the above settings, navigate back to the main profile window using the **Back** button in the top right corner. 
+	
 	![](9.png)
 
 1. Click on the launch icon next to your **Release** profile. 
+	
 	![](10.png)
 1. The project launcher will go through the building, cooking, and packaging process. This may take some time depending on the complexity of your project.
-![](11.png)
+	
+	![](11.png)
 1. Once the operation is complete, close the window or click on **Done**. You can test the patch now with the steps below.
+	
 	![](12.png)
 
 1. Save the asset registry and pak file from `[ProjectName]\Releases\[ReleaseVersion]\[Platform]`. In this example, this is `ShooterGame\Releases\1.0\WindowsNoEditor`.
 
-[Region:tip]
-The asset registry and pak file will be needed for any future patches or DLC to check against. 
-[/REGION]
+	[Region:tip]
+	The asset registry and pak file will be needed for any future patches or DLC to check against. 
+	[/REGION]
 
 1. On Windows, you can test running the project from `[ProjectName]\Saved\StagedBuilds\WindowsNoEditor`.
 
