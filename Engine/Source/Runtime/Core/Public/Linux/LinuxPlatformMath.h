@@ -7,7 +7,9 @@
 #pragma once
 #include "GenericPlatform/GenericPlatformMath.h"
 #include "Linux/LinuxSystemIncludes.h"
-#include "Math/UnrealPlatformMathSSE.h"
+#if PLATFORM_ENABLE_VECTORINTRINSICS
+	#include "Math/UnrealPlatformMathSSE.h"
+#endif // PLATFORM_ENABLE_VECTORINTRINSICS
 
 /**
 * Linux implementation of the Math OS functions
