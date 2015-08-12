@@ -18,7 +18,11 @@
 #include "IPlatformFileSandboxWrapper.h"
 #include "Messaging.h"
 #include "NetworkFileSystem.h"
+
 #include "AssetRegistryModule.h"
+#include "AssetData.h"
+#include "DependsNode.h"
+
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "PhysicsPublic.h"
@@ -4703,9 +4707,56 @@ void UCookOnTheFlyServer::HandleNetworkFileServerRecompileShaders(const FShaderR
 
 bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const
 {
+
+	static const FName AssetRegistryName("AssetRegistry");
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryName);
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+
 	FArrayReader SerializedAssetData;
 	if (FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryPath))
 	{
+		TMap<FName, FAssetData*> RegistryDataMap;
+		TArray<FDependsNode*> Dependencies;
+		AssetRegistry.LoadRegistryData(SerializedAssetData, RegistryDataMap, Dependencies);
+
+
+		for (const auto& RegistryData : RegistryDataMap)
+		{
+			const auto& NewAssetData = RegistryData.Value;
+			FName CachedPackageFileFName = GetCachedStandardPackageFileFName(NewAssetData->ObjectPath);
+			if (CachedPackageFileFName != NAME_None)
+			{
+				OutPackageNames.Add(CachedPackageFileFName);
+			}
+			else
+			{
+				UE_LOG(LogCook, Warning, TEXT("Could not resolve package %s from %s"), *NewAssetData->ObjectPath.ToString(), *AssetRegistryPath);
+			}
+		}
+		
+
+		// clean up memory
+		for (auto RegistryData : RegistryDataMap)
+		{
+			delete RegistryData.Value;
+		}
+		for (auto DependencyData : Dependencies)
+		{
+			delete DependencyData;
+		}
+		return true;
+	}
+
+	return false;
+	/*
+
+
+	FArrayReader SerializedAssetData;
+	if (FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryPath))
+	{
+
+
 		int32 LocalNumAssets = 0;
 		SerializedAssetData << LocalNumAssets;
 
@@ -4737,7 +4788,8 @@ bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetR
 
 		return true;
 	}
-	return false;
+	return false;*/
+
 }
 
 #undef LOCTEXT_NAMESPACE

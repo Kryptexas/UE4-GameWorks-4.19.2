@@ -55,7 +55,10 @@ public:
 		{
 			for (auto Dependency : HardDependencies)
 			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Hard);
+				if (Dependency)
+				{
+					InCallback(Dependency, EAssetRegistryDependencyType::Hard);
+				}
 			}
 		}
 
@@ -63,7 +66,10 @@ public:
 		{
 			for (auto Dependency : SoftDependencies)
 			{
-				InCallback(Dependency, EAssetRegistryDependencyType::Soft);
+				if (Dependency)
+				{
+					InCallback(Dependency, EAssetRegistryDependencyType::Soft);
+				}
 			}
 		}
 	}
