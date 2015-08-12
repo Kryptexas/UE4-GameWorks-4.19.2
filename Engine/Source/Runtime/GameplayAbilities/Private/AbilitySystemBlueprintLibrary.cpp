@@ -712,3 +712,14 @@ float UAbilitySystemBlueprintLibrary::GetModifiedAttributeMagnitude(FGameplayEff
 	}
 	return Delta;
 }
+
+FString UAbilitySystemBlueprintLibrary::GetActiveGameplayEffectDebugString(FActiveGameplayEffectHandle ActiveHandle)
+{
+	FString Str;
+	UAbilitySystemComponent* ASC = ActiveHandle.GetOwningAbilitySystemComponent();
+	if (ASC)
+	{
+		Str = ASC->GetActiveGEDebugString(ActiveHandle);
+	}
+	return Str;
+}
