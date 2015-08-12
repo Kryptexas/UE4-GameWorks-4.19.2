@@ -80,7 +80,7 @@ namespace Rocket
 				// Add the aggregate for making a rocket build
 				if(!BranchConfig.HasNode(WaitToMakeRocketBuild.StaticGetFullName()))
 				{
-					BranchConfig.AddNode(new WaitToMakeRocketBuild(BranchConfig.HostPlatforms));
+					BranchConfig.AddNode(new WaitToMakeRocketBuild(BranchConfig));
 				}
 
 				// Find all the target platforms for this host platform.
@@ -271,12 +271,18 @@ namespace Rocket
 
 	public class WaitToMakeRocketBuild : GUBP.WaitForUserInput
 	{
-        public WaitToMakeRocketBuild(List<UnrealTargetPlatform> HostPlatforms)
+        public WaitToMakeRocketBuild(GUBP.GUBPBranchConfig BranchConfig)
         {
-			foreach(UnrealTargetPlatform HostPlatform in HostPlatforms)
+			foreach(UnrealTargetPlatform HostPlatform in BranchConfig.HostPlatforms)
 			{
 				AddDependency(FilterRocketNode.StaticGetFullName(HostPlatform));
 				AddDependency(BuildDerivedDataCacheNode.StaticGetFullName(HostPlatform));
+
+				SingleTargetProperties BuildPatchTool = BranchConfig.Branch.FindProgram("BuildPatchTool");
+				if(BuildPatchTool.Rules != null)
+				{
+					AddDependency(GUBP.SingleInternalToolsNode.StaticGetFullName(HostPlatform, BuildPatchTool));
+				}
 			}
 		}
 

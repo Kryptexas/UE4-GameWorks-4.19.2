@@ -1117,57 +1117,8 @@ partial class GUBP
 			}
 		}
 
-        int NumSharedAllHosts = 0;
-        foreach (var CodeProj in Branch.CodeProjects)
-        {
-            if (CodeProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
-            {
-                bool AnySeparate = false;
-                var PromotedHosts = new List<UnrealTargetPlatform>();
-
-                foreach (var HostPlatform in HostPlatforms)
-                {
-                    if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !BranchOptions.RemovePlatformFromPromotable.Contains(HostPlatform))
-					{
-						var Options = CodeProj.Options(HostPlatform);
-						AnySeparate = AnySeparate || Options.bSeparateGamePromotion;
-						if (Options.bIsPromotable)
-						{
-							if (!Options.bSeparateGamePromotion)
-							{
-								NumSharedAllHosts++;
-							}
-							PromotedHosts.Add(HostPlatform);
-						}
-					}
-                }
-                if (PromotedHosts.Count > 0)
-                {
-					BranchConfig.AddNode(new GameAggregatePromotableNode(BranchConfig, PromotedHosts, ActivePlatforms, CodeProj, true, bNoIOSOnPC));
-                    if (AnySeparate)
-                    {
-                        BranchConfig.AddNode(new WaitForGamePromotionUserInput(this, CodeProj, false));
-						BranchConfig.AddNode(new GameLabelPromotableNode(BranchConfig, CodeProj, false));
-                        BranchConfig.AddNode(new WaitForGamePromotionUserInput(this, CodeProj, true));
-						BranchConfig.AddNode(new GameLabelPromotableNode(BranchConfig, CodeProj, true));
-                    }
-                }
-            }
-        }
-        if (NumSharedAllHosts > 0)
-        {
-			BranchConfig.AddNode(new GameAggregatePromotableNode(BranchConfig, HostPlatforms, ActivePlatforms, Branch.BaseEngineProject, false, bNoIOSOnPC));
-
-            BranchConfig.AddNode(new SharedAggregatePromotableNode(BranchConfig, ActivePlatforms));
-            BranchConfig.AddNode(new WaitForSharedPromotionUserInput(this, false));
-            BranchConfig.AddNode(new SharedLabelPromotableNode(BranchConfig, false));
-            BranchConfig.AddNode(new SharedLabelPromotableSuccessNode());
-            BranchConfig.AddNode(new WaitForTestShared(this));
-            BranchConfig.AddNode(new WaitForSharedPromotionUserInput(this, true));
-			BranchConfig.AddNode(new SharedLabelPromotableNode(BranchConfig, true));		
-
-			BranchConfig.AddNode(new WaitToPackageSamplesNode());
-        }
+        BranchConfig.AddNode(new WaitForTestShared(this));
+		BranchConfig.AddNode(new WaitToPackageSamplesNode(BranchConfig.HostPlatforms));
 
 		AddCustomNodes(BranchConfig, HostPlatforms, ActivePlatforms);
         
@@ -1218,10 +1169,6 @@ partial class GUBP
 		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
 		{
 			List<string> NodeNames = new List<string>();
-			if (GameProj.Options(UnrealTargetPlatform.Win64).bIsPromotable)
-			{
-				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
-			}
 			foreach(GUBP.GUBPNode Node in BranchConfig.GUBPNodes.Values)
 			{
 				if (Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
