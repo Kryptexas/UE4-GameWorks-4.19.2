@@ -2671,7 +2671,7 @@ bool UWorld::HandleDemoScrubCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 		{
 			GetWorldSettings()->Pauser = PlayerController->PlayerState;
 			const uint32 Time = FCString::Atoi(*TimeString);
-			DemoNetDriver->ReplayStreamer->GotoTimeInMS(Time * 1000, FOnCheckpointReadyDelegate::CreateUObject(DemoNetDriver, &UDemoNetDriver::CheckpointReady));
+			DemoNetDriver->GotoTimeInSeconds(Time);
 		}
 	}
 	return true;
@@ -2698,6 +2698,26 @@ bool UWorld::HandleDemoPauseCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld*
 	else
 	{
 		WorldSettings->Pauser = nullptr;
+	}
+	return true;
+}
+
+bool UWorld::HandleDemoSpeedCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
+{
+	FString TimeString;
+
+	AWorldSettings* WorldSettings = GetWorldSettings();
+	check(WorldSettings != nullptr);
+
+	FString SpeedString;
+	if (!FParse::Token(Cmd, SpeedString, 0))
+	{
+		Ar.Log(TEXT("You must specify a speed in the form of a float"));
+	}
+	else
+	{
+		const float Speed = FCString::Atof(*SpeedString);
+		WorldSettings->DemoPlayTimeDilation = Speed;
 	}
 	return true;
 }
@@ -2735,6 +2755,10 @@ bool UWorld::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("DEMOPAUSE")))
 	{
 		return HandleDemoPauseCommand(Cmd, Ar, InWorld);
+	}
+	else if (FParse::Command(&Cmd, TEXT("DEMOSPEED")))
+	{
+		return HandleDemoSpeedCommand(Cmd, Ar, InWorld);
 	}
 	else if( ExecPhysCommands( Cmd, &Ar, InWorld ) )
 	{

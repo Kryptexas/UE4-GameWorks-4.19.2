@@ -2731,6 +2731,9 @@ private:
 	/** Utility function to handle Exec/Console Command for pausing and unpausing a replay */
 	bool HandleDemoPauseCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
 
+	/** Utility function to handle Exec/Console Command for setting the speed of a replay */
+	bool HandleDemoSpeedCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
+
 public:
 
 	// Destroys the current demo net driver
