@@ -54,7 +54,7 @@ static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
 	1,
 	TEXT("Compute Reflection Environment with Tiled compute shader..\n")
-	TEXT(" 0: off\n"),
+	TEXT(" 0: off\n")
 	TEXT(" 1: on (default)"),
 	ECVF_RenderThreadSafe);
 
