@@ -793,12 +793,12 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		UpdateCollisionLayerData();
 	}
 
-	if (bRebuild && CollisionProxy)
+	if (bRebuild && CollisionProxy && CollisionProxy->GetRootComponent()->IsRegistered())
 	{
 		CollisionProxy->RegisterAllComponents();
 	}
 
-	if (ChangeType || CreatedNew)
+	if (ChangeType || CreatedNew && Proxy->GetRootComponent()->IsRegistered())
 	{
 		Proxy->RegisterAllComponents();
 	}
