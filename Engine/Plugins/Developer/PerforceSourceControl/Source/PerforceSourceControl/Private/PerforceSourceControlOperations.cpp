@@ -860,6 +860,7 @@ FName FPerforceUpdateStatusWorker::GetName() const
 
 bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InCommand)
 {
+#if USE_P4_API
 	FScopedPerforceConnection ScopedConnection(InCommand);
 	if(ScopedConnection.IsValid())
 	{
@@ -944,6 +945,7 @@ bool FPerforceUpdateStatusWorker::Execute(FPerforceSourceControlCommand& InComma
 			ParseDiffResults(Records, OutModifiedFiles);
 		}
 	}
+#endif
 
 	return InCommand.bCommandSuccessful;
 }
