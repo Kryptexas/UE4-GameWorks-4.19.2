@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516340
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:4.ランドスケープ マテリアルの作成
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
@@ -7,15 +7,15 @@ Description:ランドスケープで使用するマテリアルを作成する�
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/Landscape/QuickStart/3 "%Engine/Landscape/QuickStart/3:title%") 
+		[前のステップ](Engine/Landscape/QuickStart/3 "%Engine/Landscape/QuickStart/3:title%") 
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/Landscape/QuickStart) 
+		[クイックスタート ホーム](Engine/Landscape/QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/Landscape/QuickStart/5 "%Engine/Landscape/QuickStart/5:title%") 
+		[次のステップ](Engine/Landscape/QuickStart/5 "%Engine/Landscape/QuickStart/5:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -32,13 +32,10 @@ Description:ランドスケープで使用するマテリアルを作成する�
 アンリアル エンジン 4 でのフォルダのセットアップ方法についての詳しい情報は、 [フォルダ](Engine/Content/Browser/UserGuide/WorkingWithSources) をご覧ください。
 [/REGION]
 
-**Landscape** 
-
-**Materials**
-
-**Resources**
-
-**Textures**
+1. **Landscape** 
+1. **Materials**
+1. **Resources**
+1. **Textures**
 
 完了すると以下のようになります。
 
@@ -82,13 +79,13 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 
 ![](T_Landscape_Create_New_Material.png)
 
-新規ランドスケープ マテリアルが作成された状態で **Generic Browser** 内でそのマテリアルを **ダブルクリック** して開きます。その結果、以下のような画面が表示されます。
+新規ランドスケープ マテリアルが作成された状態で **ブラウザ** 内でそのマテリアルを **ダブルクリック** して開きます。その結果、以下のような画面が表示されます。
 [REGION:fullwidth] 
 ![](T_Landscape_Blank_Material.png)
 [/REGION]
 
-マテリアル エディタにノード配置を開始する前に、まずランドスケープで使用できるようにマテリアルをセットアップしたことを確認します。 
-これを行うには、**[詳細]** パネルの **Usage** セクションに移動し、**Used with Landscape** のチェックマーク ボックスにチェックを入れます。 
+マテリアル エディタへのノード配置を開始する前に、まずランドスケープで使用できるようにマテリアルをセットアップしたことを確認します。 
+これを行うには、**[Details (詳細)]** パネルの **Usage** セクションに移動し、**[Used with Landscape (ランドスケープで使用)]** のチェックマーク ボックスにチェックを入れます。 
 これで、マテリアルがランドスケープで使用できるようになり、マテリアルのコンパイル時間が新たに生じないようにします。   
 [REGION:fullwidth] 
 ![](T_Landscape_Materail_Usage.png)
@@ -100,7 +97,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 ![](T_Landscape_UVCords.png)
 
 [REGION:note]
-ランドスケープ固有のノードを見つける一番簡単な方法は、**Materials Palette** ボックスで Landscape をキーワードとして使用して検索するものです。
+ランドスケープ固有のノードを見つける一番簡単な方法は、**マテリアルのパレット** ボックスで Landscape をキーワードとして使用して検索するものです。
 
 ![](T_Landscape_Material_Search.png)
 [/REGION]
@@ -120,7 +117,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 マテリアルノードを配置し、**LandscapeCoords** をテクスチャの UV に接続したら、**Landscape Layer Blend** ノードを追加し、セットアップします。このノードを使用して、ランドスケープで使用するすべてのテクスチャをブレンドし、ランドスケープ ペイント ツールを使用してランドスケープで個別にペイントできるようにします。以下の表は、どの **テクスチャ** がどの **Layer Name** に関連付けられているか、またどの **Blend Type** を使用しているかを示しています。
 
 [REGION:note]
-最初に **Landscape Layer Blend** ノードを配置すると、1 とラベル付けされた画像のようにブランクになります。**レイヤー** を追加するには、最初に **マテリアル グラフ** でノードを選択し、**[詳細]** パネルで **Elements** と **ゴミ箱** アイコンの間にある **プラス** アイコンをクリックします。このアイコンは黄色でハイライトされ、その上に数字 2 が表示されています。使用するテクスチャの数に応じて、必要なレイヤー数が決まります。 
+最初に **Landscape Layer Blend** ノードを配置すると、1 とラベル付けされた画像のようにブランクになります。**レイヤー** を追加するには、最初に **マテリアル グラフ** でノードを選択し、**[Details (詳細)]** パネルで **Elements** と **ゴミ箱** アイコンの間にある **プラス** アイコンをクリックします。このアイコンは数字 2 が表示されている画像内で黄色にハイライトされています。使用するテクスチャの数に応じて、必要なレイヤー数が決まります。 
 
 ![](T_Landscape_MLB_Node.png) 
 ![](T_Landscape_Adding_Layers_To_MLB_Node.png)
@@ -143,7 +140,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 ![](T_Landscape_Layer_Blend_N.png)
 
 [REGION:note]
-**Landscape Layer Blend** ノードの使用に関する詳しい情報については、 [テレイン表現式](Engine/Rendering/Materials/ExpressionReference/Landscape) ページをご覧ください。
+**Landscape Layer Blend** ノードの使用に関する詳細情報は、 [テレイン表現式](Engine/Rendering/Materials/ExpressionReference/Landscape) のページをご覧ください。
 [/REGION]
 
 **Layer Blend** ノードをセットアップしたら、Texture マップを接続します。完了すると以下のようになります。 
@@ -152,7 +149,7 @@ Landscapes Content Example プロジェクトにある以下のフォルダに�
 [/REGION]
 
 [REGION:note]
-Photoshop で色付けされたマテリアル接続は、接続する必要があるすべてのものを把握するうえで役立ちます。現在、アンリアル エンジン 4 内でマテリアル ノードを接続する色を変更する手段はありません。 
+Photoshop で色付けされたマテリアル接続は、接続する必要があるものがすべて接続されたかを把握するうえで役立ちます。現在、アンリアル エンジン 4 内でマテリアル ノードを接続する色を変更する手段はありません。 
 [/REGION]
 
 
