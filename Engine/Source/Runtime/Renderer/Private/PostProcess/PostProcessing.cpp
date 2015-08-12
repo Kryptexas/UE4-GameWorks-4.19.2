@@ -151,18 +151,26 @@ FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGra
 
 static FRenderingCompositeOutputRef RenderHalfResBloomThreshold(FPostprocessContext& Context, FRenderingCompositeOutputRef SceneColorHalfRes, FRenderingCompositeOutputRef EyeAdaptation)
 {
-// todo: optimize later, the missing node causes some wrong behavior
-//	if(Context.View.FinalPostProcessSettings.BloomIntensity <= 0.0f)
-//	{
-//		// this pass is not required
-//		return FRenderingCompositeOutputRef();
-//	}
-	// bloom threshold
-	FRenderingCompositePass* PostProcessBloomSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetup());
-	PostProcessBloomSetup->SetInput(ePId_Input0, SceneColorHalfRes);
-	PostProcessBloomSetup->SetInput(ePId_Input1, EyeAdaptation);
+	if(Context.View.FinalPostProcessSettings.BloomThreshold <= -1)
+	{
+		// no need for threshold
+		return SceneColorHalfRes;
+	}
+	else
+	{
+		// todo: optimize later, the missing node causes some wrong behavior
+		//	if(Context.View.FinalPostProcessSettings.BloomIntensity <= 0.0f)
+		//	{
+		//		// this pass is not required
+		//		return FRenderingCompositeOutputRef();
+		//	}
+		// bloom threshold
+		FRenderingCompositePass* PostProcessBloomSetup = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessBloomSetup());
+		PostProcessBloomSetup->SetInput(ePId_Input0, SceneColorHalfRes);
+		PostProcessBloomSetup->SetInput(ePId_Input1, EyeAdaptation);
 
-	return FRenderingCompositeOutputRef(PostProcessBloomSetup);
+		return FRenderingCompositeOutputRef(PostProcessBloomSetup);
+	}
 }
 
 
