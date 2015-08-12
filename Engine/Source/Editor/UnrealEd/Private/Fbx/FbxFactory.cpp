@@ -592,7 +592,9 @@ void UFbxFactory::CleanUp()
 
 bool UFbxFactory::FactoryCanImport(const FString& Filename)
 {
-	if(FPaths::GetExtension(Filename) == TEXT("fbx"))
+	const FString Extension = FPaths::GetExtension(Filename);
+
+	if( Extension == TEXT("fbx") || Extension == TEXT("obj") )
 	{
 		return true;
 	}
