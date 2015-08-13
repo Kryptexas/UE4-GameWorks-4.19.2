@@ -7180,7 +7180,7 @@ bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(
 }
 
 
-void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource()
+void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource(bool bRecreateAndLinkNode)
 {
 	TArray<FFunctionExpressionInput> OriginalInputs = FunctionInputs;
 	TArray<FFunctionExpressionOutput> OriginalOutputs = FunctionOutputs;
@@ -7243,7 +7243,7 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource()
 	}
 
 #if WITH_EDITOR
-	if (GraphNode)
+	if (GraphNode && bRecreateAndLinkNode)
 	{
 		// Check whether number of input/outputs or transient pointers have changed
 		bool bUpdatedFromFunction = false;
