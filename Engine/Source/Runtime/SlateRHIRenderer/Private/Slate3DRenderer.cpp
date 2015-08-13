@@ -95,6 +95,7 @@ void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate
 	// Set render target and clear.
 	FTexture2DRHIRef RTResource = RenderTargetResource->GetTextureRHI();
 	FRHIRenderTargetView ColorRTV(RTResource);
+	ColorRTV.LoadAction = ERenderTargetLoadAction::EClear;
 	FRHISetRenderTargetsInfo Info(1, &ColorRTV, FTextureRHIParamRef());
 	Info.bClearColor = true;
 	ensure(ColorRTV.Texture->GetClearColor() == RenderTarget->ClearColor);
