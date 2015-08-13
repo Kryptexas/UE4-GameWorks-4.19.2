@@ -116,6 +116,10 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		return GL_NONE;
 	}
 
+#if PLATFORM_ANDROID
+	static const auto CVarMobileOnChipMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileOnChipMSAA"));
+#endif
+
 	// Not found. Preparing new one.
 	GLuint Framebuffer;
 	glGenFramebuffers(1, &Framebuffer);
@@ -139,7 +143,17 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			{
 			case GL_TEXTURE_2D:
 			case GL_TEXTURE_2D_MULTISAMPLE:
-				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
+#if PLATFORM_ANDROID
+				if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread())
+				{
+					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], 2);
+					VERIFY_GL(glFramebufferTexture2DMultisampleEXT);
+				}
+				else
+#endif
+				{
+					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
+				}
 				break;
 			case GL_TEXTURE_3D:
 			case GL_TEXTURE_2D_ARRAY:
@@ -160,7 +174,17 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 			case GL_TEXTURE_2D:
 			case GL_TEXTURE_2D_MULTISAMPLE:
 				check( ArrayIndices[RenderTargetIndex] == 0);
-				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
+#if PLATFORM_ANDROID
+				if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread())
+				{
+					glFramebufferTexture2DMultisampleEXT(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], 2);
+					VERIFY_GL(glFramebufferTexture2DMultisampleEXT);
+				}
+				else
+#endif
+				{
+					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex]);
+				}
 				break;
 			case GL_TEXTURE_3D:
 				FOpenGL::FramebufferTexture3D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0 + RenderTargetIndex, RenderTarget->Target, RenderTarget->Resource, MipmapLevels[RenderTargetIndex], ArrayIndices[RenderTargetIndex]);
@@ -188,14 +212,31 @@ GLuint FOpenGLDynamicRHI::GetOpenGLFramebuffer(uint32 NumSimultaneousRenderTarge
 		{
 		case GL_TEXTURE_2D:
 		case GL_TEXTURE_2D_MULTISAMPLE:
-			if (!FOpenGL::SupportsCombinedDepthStencilAttachment() && DepthStencilTarget->Attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+#if PLATFORM_ANDROID
+			if (FOpenGL::SupportsMultisampledRenderToTexture() && CVarMobileOnChipMSAA->GetValueOnRenderThread())
 			{
-				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
-				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+				FOpenGLTexture2D* DepthStencilTarget2D = (FOpenGLTexture2D*)DepthStencilTarget;
+				GLuint DepthBuffer;
+				glGenRenderbuffers(1, &DepthBuffer);
+				glBindRenderbuffer(GL_RENDERBUFFER, DepthBuffer);
+				glRenderbufferStorageMultisampleEXT(GL_RENDERBUFFER, 2, FOpenGL::SupportsPackedDepthStencil() ? GL_DEPTH24_STENCIL8 : GL_DEPTH_COMPONENT24, DepthStencilTarget2D->GetSizeX(), DepthStencilTarget2D->GetSizeY());
+				VERIFY_GL(glRenderbufferStorageMultisampleEXT);
+				glBindRenderbuffer(GL_RENDERBUFFER, 0);
+				glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, DepthBuffer);
+				VERIFY_GL(glFramebufferRenderbuffer);
 			}
 			else
+#endif
 			{
-				FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+				if (!FOpenGL::SupportsCombinedDepthStencilAttachment() && DepthStencilTarget->Attachment == GL_DEPTH_STENCIL_ATTACHMENT)
+				{
+					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+				}
+				else
+				{
+					FOpenGL::FramebufferTexture2D(GL_FRAMEBUFFER, DepthStencilTarget->Attachment, DepthStencilTarget->Target, DepthStencilTarget->Resource, 0);
+				}
 			}
 			break;
 		case GL_TEXTURE_3D:
