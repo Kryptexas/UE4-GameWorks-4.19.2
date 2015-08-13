@@ -52,7 +52,7 @@ struct FCrashDescription
 	 * BuildVersion-BuiltFromCL-BranchName
 	 * @EngineVersion	varchar(64)	
 	 * 
-	 * GEngineVersion.ToString()
+	 * FEngineVersion::Current().ToString()
 	 * ENGINE_VERSION_STRING
 	 */
 	FEngineVersion EngineVersion;

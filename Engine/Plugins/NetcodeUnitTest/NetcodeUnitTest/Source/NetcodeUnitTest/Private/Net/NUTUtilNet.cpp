@@ -362,7 +362,7 @@ bool NUTNet::CreateFakePlayer(UWorld* InWorld, UNetDriver*& InNetDriver, FString
 #if TARGET_UE4_CL >= CL_FNETWORKVERSION
 			// Starting with 4.8.0, the network protocol has changed slightly
 			// @todo JohnB: Refactor this, to toggle at compile time only, based on CL (might require more accurate UT integrate CLs)
-			FString VersionStr = GEngineVersion.ToString(EVersionComponent::Minor);
+			FString VersionStr = FEngineVersion::Current().ToString(EVersionComponent::Minor);
 			int32 VersionDelim = VersionStr.Find(TEXT("."));
 			int32 MajorVersion = FCString::Atoi(*VersionStr.Left(VersionDelim));
 			int32 MinorVersion = FCString::Atoi(*VersionStr.Mid(VersionDelim+1));

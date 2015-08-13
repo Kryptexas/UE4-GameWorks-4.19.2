@@ -27,8 +27,8 @@ FLinkerSave::FLinkerSave(UPackage* InParent, const TCHAR* InFilename, bool bForc
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
-		Summary.SavedByEngineVersion = GEngineVersion;
-		Summary.CompatibleWithEngineVersion = GCompatibleWithEngineVersion;
+		Summary.SavedByEngineVersion = FEngineVersion::Current();
+		Summary.CompatibleWithEngineVersion = FEngineVersion::CompatibleWith();
 		Summary.PackageFlags = Package ? (Package->PackageFlags & ~PKG_NewlyCreated) : 0;
 
 		if (Package)
@@ -59,8 +59,8 @@ FLinkerSave::FLinkerSave(UPackage* InParent, bool bForceByteSwapping, bool bInSa
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
-		Summary.SavedByEngineVersion = GEngineVersion;
-		Summary.CompatibleWithEngineVersion = GCompatibleWithEngineVersion;
+		Summary.SavedByEngineVersion = FEngineVersion::Current();
+		Summary.CompatibleWithEngineVersion = FEngineVersion::CompatibleWith();
 		Summary.PackageFlags = Package ? (Package->PackageFlags & ~PKG_NewlyCreated) : 0;
 
 		if (Package)

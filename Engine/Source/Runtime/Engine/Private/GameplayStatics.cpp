@@ -1242,7 +1242,7 @@ bool UGameplayStatics::SaveGameToSlot(USaveGame* SaveGameObject, const FString& 
 		// Write out engine and UE4 version information
 		int32 PackageFileUE4Version = GPackageFileUE4Version;
 		MemoryWriter << PackageFileUE4Version;
-		FEngineVersion SavedEngineVersion = GEngineVersion;
+		FEngineVersion SavedEngineVersion = FEngineVersion::Current();
 		MemoryWriter << SavedEngineVersion;
 
 		// Write the class name so we know what class to load to
@@ -1313,7 +1313,7 @@ USaveGame* UGameplayStatics::LoadGameFromSlot(const FString& SlotName, const int
 				// you don't want to delete it, try uncommenting these lines and changing them to use the version 
 				// information from your previous build. Then load and resave your savegame file.
 				//MemoryReader.SetUE4Ver(MyPreviousUE4Version);				// @see GPackageFileUE4Version
-				//MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see GEngineVersion
+				//MemoryReader.SetEngineVer(MyPreviousEngineVersion);		// @see FEngineVersion::Current()
 			}
 			else
 			{

@@ -2693,7 +2693,7 @@ bool FEngineLoop::AppInit( )
 	IFileManager::Get().MakeDirectory( *FPaths::GameLogDir() );
 
 	// update the mini dump filename now that we have enough info to point it to the log folder even in installed builds
-	FCString::Strcpy(MiniDumpFilenameW, *IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FString::Printf(TEXT("%sunreal-v%i-%s.dmp"), *FPaths::GameLogDir(), GEngineVersion.GetChangelist(), *FDateTime::Now().ToString())));
+	FCString::Strcpy(MiniDumpFilenameW, *IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FString::Printf(TEXT("%sunreal-v%i-%s.dmp"), *FPaths::GameLogDir(), FEngineVersion::Current().GetChangelist(), *FDateTime::Now().ToString())));
 #endif
 
 	// Init logging to disk
@@ -2833,8 +2833,8 @@ bool FEngineLoop::AppInit( )
 #endif // !UE_BUILD_SHIPPING
 
 	//// Command line.
-	UE_LOG(LogInit, Log, TEXT("Version: %s"), *GEngineVersion.ToString());
-	UE_LOG(LogInit, Log, TEXT("API Version: %u"), GCompatibleWithEngineVersion.GetChangelist());
+	UE_LOG(LogInit, Log, TEXT("Version: %s"), *FEngineVersion::Current().ToString());
+	UE_LOG(LogInit, Log, TEXT("API Version: %u"), FEngineVersion::CompatibleWith().GetChangelist());
 
 #if PLATFORM_64BITS
 	UE_LOG(LogInit, Log, TEXT("Compiled (64-bit): %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));
@@ -2918,7 +2918,7 @@ bool FEngineLoop::AppInit( )
 	check(sizeof(bool) == 1);
 	check(sizeof(float) == 4);
 	check(sizeof(double) == 8);
-	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || GEngineVersion.IsLicenseeVersion());
+	check(GEngineNetVersion == 0 || GEngineNetVersion >= GEngineMinNetVersion || FEngineVersion::Current().IsLicenseeVersion());
 
 	// Init list of common colors.
 	GColorList.CreateColorMap();

@@ -2265,7 +2265,7 @@ GameProjectUtils::EProjectDuplicateResult GameProjectUtils::DuplicateProjectForU
 	}
 
 	// Append the new version number
-	NewDirectoryName += FString::Printf(TEXT(" %s"), *GEngineVersion.ToString(EVersionComponent::Minor));
+	NewDirectoryName += FString::Printf(TEXT(" %s"), *FEngineVersion::Current().ToString(EVersionComponent::Minor));
 
 	// Find a directory name that doesn't exist
 	FString BaseDirectoryName = NewDirectoryName;

@@ -153,7 +153,7 @@ bool FContentComparisonHelper::CompareClasses(const FString& InBaseClassName, co
 
 	FString BaseCSVName = (
 		FString(TEXT("ContentComparison/")) + 
-		FString::Printf(TEXT("ContentCompare-%s/"), *GEngineVersion.ToString()) +
+		FString::Printf(TEXT("ContentCompare-%s/"), *FEngineVersion::Current().ToString()) +
 		FString::Printf(TEXT("%s"), *InBaseClassName)
 		);
 
@@ -170,7 +170,7 @@ bool FContentComparisonHelper::CompareClasses(const FString& InBaseClassName, co
 		}
 		BaseCSVName = (
 			FString(TEXT("ContentComparison/")) + 
-			FString::Printf(TEXT("ContentCompare-%s/"), *GEngineVersion.ToString()) +
+			FString::Printf(TEXT("ContentCompare-%s/"), *FEngineVersion::Current().ToString()) +
 			FString::Printf(TEXT("%s"), *EditedBaseClassName)
 			);
 	}

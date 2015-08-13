@@ -43,7 +43,7 @@ static FString GetStreamBaseFilename(const FString& StreamName)
 	DemoName.ReplaceInline( TEXT( "%td" ), *FDateTime::Now().ToString() );
 	DemoName.ReplaceInline( TEXT( "%d" ), *FString::Printf( TEXT( "%i-%i-%i" ), Month, Day, Year ) );
 	DemoName.ReplaceInline( TEXT( "%t" ), *FString::Printf( TEXT( "%i" ), ( ( Hour * 3600 ) + ( Min * 60 ) + Sec ) * 1000 + MSec ) );
-	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), GEngineVersion.GetChangelist() ) );
+	DemoName.ReplaceInline( TEXT( "%v" ), *FString::Printf( TEXT( "%i" ), FEngineVersion::Current().GetChangelist() ) );
 
 	// replace bad characters with underscores
 	DemoName.ReplaceInline( TEXT( "\\" ),	TEXT( "_" ) );

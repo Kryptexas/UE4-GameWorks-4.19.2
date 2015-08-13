@@ -71,7 +71,7 @@ bool ICrashDebugHelper::Init()
 		// Default to BUILT_FROM_CHANGELIST.
 		else
 		{
-			BuiltFromCL = GEngineVersion.GetChangelist();
+			BuiltFromCL = FEngineVersion::Current().GetChangelist();
 		}
 
 		CrashInfo.BuiltFromCL = BuiltFromCL;

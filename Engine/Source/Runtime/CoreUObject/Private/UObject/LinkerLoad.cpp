@@ -909,7 +909,7 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::CreateLoader()
 		// Set status info.
 		ArUE4Ver = GPackageFileUE4Version;
 		ArLicenseeUE4Ver = GPackageFileLicenseeUE4Version;
-		ArEngineVer = GEngineVersion;
+		ArEngineVer = FEngineVersion::Current();
 		ArIsLoading = true;
 		ArIsPersistent = true;
 
@@ -965,12 +965,12 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::SerializePackageFileSummary()
 		}
 
 		// Don't load packages that are only compatible with an engine version newer than the current one.
-		if( !GEngineVersion.IsCompatibleWith(Summary.CompatibleWithEngineVersion) )
+		if( !FEngineVersion::Current().IsCompatibleWith(Summary.CompatibleWithEngineVersion) )
 		{
-			UE_LOG(LogLinker, Warning, TEXT("Asset '%s' has been saved with engine version newer than current and therefore can't be loaded. CurrEngineVersion: %s AssetEngineVersion: %s"), *Filename, *GEngineVersion.ToString(), *Summary.CompatibleWithEngineVersion.ToString() );
+			UE_LOG(LogLinker, Warning, TEXT("Asset '%s' has been saved with engine version newer than current and therefore can't be loaded. CurrEngineVersion: %s AssetEngineVersion: %s"), *Filename, *FEngineVersion::Current().ToString(), *Summary.CompatibleWithEngineVersion.ToString() );
 			return LINKER_Failed;
 		}
-		else if( !FPlatformProperties::RequiresCookedData() && !Summary.SavedByEngineVersion.HasChangelist() && GEngineVersion.HasChangelist() )
+		else if( !FPlatformProperties::RequiresCookedData() && !Summary.SavedByEngineVersion.HasChangelist() && FEngineVersion::Current().HasChangelist() )
 		{
 			// This warning can be disabled in ini with [Core.System] ZeroEngineVersionWarning=False
 			static struct FInitZeroEngineVersionWarning

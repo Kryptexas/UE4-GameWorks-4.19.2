@@ -76,7 +76,7 @@ namespace AutomationCommon
 
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
 
-		OutScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, GEngineVersion.GetChangelist());
+		OutScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 	}
 }
 

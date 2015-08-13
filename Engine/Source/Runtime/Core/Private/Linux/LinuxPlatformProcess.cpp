@@ -49,7 +49,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return GCompatibleWithEngineVersion.GetChangelist();
+	return FEngineVersion::CompatibleWith().GetChangelist();
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()

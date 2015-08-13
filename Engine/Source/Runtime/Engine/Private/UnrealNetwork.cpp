@@ -46,7 +46,7 @@ uint32 FNetworkVersion::GetLocalNetworkVersion(bool AllowOverrideDelegate /*=tru
 	uint32 LocalNetworkVersion = FCrc::MemCrc32( &InternalProtocolVersion, sizeof( InternalProtocolVersion ), VersionHash );
 
 #if 0//!(UE_BUILD_SHIPPING || UE_BUILD_TEST)	// DISABLED FOR NOW, MESSES UP COPIED BUILDS
-	if ( !GEngineVersion.HasChangelist() )
+	if ( !FEngineVersion::Current().HasChangelist() )
 	{
 		// Further hash with machine id if this is a non promoted build
 		const FString MachineId = FPlatformMisc::GetMachineId().ToString( EGuidFormats::Digits ).ToLower();
@@ -76,7 +76,7 @@ bool FNetworkVersion::IsNetworkCompatible( const uint32 LocalNetworkVersion, con
 
 FNetworkReplayVersion FNetworkVersion::GetReplayVersion()
 {
-	return FNetworkReplayVersion( FApp::GetGameName(), GetLocalNetworkVersion(), GEngineVersion.GetChangelist() );
+	return FNetworkReplayVersion( FApp::GetGameName(), GetLocalNetworkVersion(), FEngineVersion::Current().GetChangelist() );
 }
 
 

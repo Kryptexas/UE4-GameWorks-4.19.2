@@ -71,7 +71,7 @@ FString UKismetSystemLibrary::GetClassDisplayName(UClass* Class)
 
 FString UKismetSystemLibrary::GetEngineVersion()
 {
-	return GEngineVersion.ToString();
+	return FEngineVersion::Current().ToString();
 }
 
 FString UKismetSystemLibrary::GetGameName()

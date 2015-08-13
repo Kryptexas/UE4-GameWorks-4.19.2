@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 
 #if UE_BUILD_SHIPPING
 	// only printed in shipping
-	printf("%s %d %d %d %d\n", StringCast<ANSICHAR>(*GEngineVersion.ToString()).Get(), GEngineMinNetVersion, GEngineNegotiationVersion, GPackageFileUE4Version, GPackageFileLicenseeUE4Version);
+	printf("%s %d %d %d %d\n", StringCast<ANSICHAR>(*FEngineVersion::Current().ToString()).Get(), GEngineMinNetVersion, GEngineNegotiationVersion, GPackageFileUE4Version, GPackageFileLicenseeUE4Version);
 #endif // UE_BUILD_SHIPPING
 	int ErrorLevel = 0;
 

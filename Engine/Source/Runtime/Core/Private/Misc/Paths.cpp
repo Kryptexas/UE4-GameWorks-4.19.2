@@ -38,7 +38,7 @@ FString FPaths::EngineUserDir()
 {
 	if (ShouldSaveToUserDir() || FApp::IsEngineInstalled())
 	{
-		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *GEngineVersion.ToString(EVersionComponent::Minor)) + TEXT("/");
+		return FPaths::Combine(FPlatformProcess::UserSettingsDir(), *FApp::GetEpicProductIdentifier(), *FEngineVersion::Current().ToString(EVersionComponent::Minor)) + TEXT("/");
 	}
 	else
 	{

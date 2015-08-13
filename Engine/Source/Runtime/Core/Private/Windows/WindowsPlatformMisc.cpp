@@ -703,7 +703,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			TCHAR SystemTime[MAX_STRING_LEN];
 			FCString::Strncpy(SystemTime, *FDateTime::Now().ToString(), MAX_STRING_LEN);
 			TCHAR EngineVersionStr[MAX_STRING_LEN];
-			FCString::Strncpy(EngineVersionStr, *GEngineVersion.ToString(), 256 );
+			FCString::Strncpy(EngineVersionStr, *FEngineVersion::Current().ToString(), 256 );
 
 			TCHAR ChangelistVersionStr[MAX_STRING_LEN];
 			int32 ChangelistFromCommandLine = 0;
@@ -715,7 +715,7 @@ void FWindowsPlatformMisc::SubmitErrorReport( const TCHAR* InErrorHist, EErrorRe
 			// we are not passing in the changelist to use so use the one that was stored in the ObjectVersion
 			else
 			{
-				FCString::Strncpy(ChangelistVersionStr, *FString::FromInt(GEngineVersion.GetChangelist()), MAX_STRING_LEN);
+				FCString::Strncpy(ChangelistVersionStr, *FString::FromInt(FEngineVersion::Current().GetChangelist()), MAX_STRING_LEN);
 			}
 
 			TCHAR CmdLine[2048];
@@ -2074,7 +2074,7 @@ void FWindowsPlatformMisc::PromptForRemoteDebugging(bool bIsEnsure)
 			TEXT("Once he confirms he is connected to the machine,\n")
 			TEXT("hit YES to allow him to debug the crash.\n")
 			TEXT("[Changelist = %d]"),
-			GEngineVersion.GetChangelist());
+			FEngineVersion::Current().GetChangelist());
 		if (MessageBox(0, GErrorRemoteDebugPromptMessage, TEXT("CRASHED"), MB_YESNO|MB_SYSTEMMODAL) == IDYES)
 		{
 			::DebugBreak();

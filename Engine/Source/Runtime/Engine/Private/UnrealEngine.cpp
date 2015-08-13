@@ -3060,7 +3060,7 @@ bool UEngine::HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar
 bool UEngine::HandleGameVerCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	FString VersionString = FString::Printf(TEXT("GameVersion Branch: %s, Configuration: %s, Version: %s, CommandLine: %s"), 
-		*FApp::GetBranchName(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), *GEngineVersion.ToString(), FCommandLine::Get());
+		*FApp::GetBranchName(), EBuildConfigurations::ToString(FApp::GetBuildConfiguration()), *FEngineVersion::Current().ToString(), FCommandLine::Get());
 
 	Ar.Logf( *VersionString );
 	FPlatformMisc::ClipboardCopy( *VersionString );
@@ -6893,7 +6893,7 @@ void UEngine::PerformanceCapture(const FString& CaptureName)
 	PathName = FPaths::AutomationDir() + PathName;
 	FPaths::MakePathRelativeTo(PathName,*FPaths::RootDir());
 	
-	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, GEngineVersion.GetChangelist());
+	FString ScreenshotName = FString::Printf(TEXT("%s%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 	
 	const bool bShowUI = false;
 	const bool bAddFilenameSuffix = false;

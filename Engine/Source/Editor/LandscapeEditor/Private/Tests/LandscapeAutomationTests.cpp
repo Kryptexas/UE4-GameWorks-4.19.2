@@ -161,7 +161,7 @@ bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 		const FString TestName = TEXT("NewLandscapeTest");
 		FString PathName = FPaths::AutomationDir() + TestName / FPlatformProperties::PlatformName();
 		FPaths::MakePathRelativeTo(PathName, *FPaths::RootDir());
-		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, GEngineVersion.GetChangelist());
+		ScreenshotParameters.ScreenshotName = FString::Printf(TEXT("%s/%d.png"), *PathName, FEngineVersion::Current().GetChangelist());
 
 		//Take a screenshot
 		ADD_LATENT_AUTOMATION_COMMAND(FTakeEditorScreenshotCommand(ScreenshotParameters));

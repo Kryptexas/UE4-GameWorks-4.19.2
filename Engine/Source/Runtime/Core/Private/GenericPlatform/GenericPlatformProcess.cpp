@@ -35,7 +35,7 @@ void* FGenericPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 int32 FGenericPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FPlatformProcess::GetBinaryFileVersion not implemented on this platform"));
-	return GCompatibleWithEngineVersion.GetChangelist();
+	return FEngineVersion::CompatibleWith().GetChangelist();
 }
 
 uint32 FGenericPlatformProcess::GetCurrentProcessId()
