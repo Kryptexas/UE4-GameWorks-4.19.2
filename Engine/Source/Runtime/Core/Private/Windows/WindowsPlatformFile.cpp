@@ -639,7 +639,73 @@ public:
 		RemoveDirectoryW(*NormalizeDirectory(Directory));
 		return !DirectoryExists(Directory);
 	}
-	bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor)
+	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
+	{
+		WIN32_FILE_ATTRIBUTE_DATA Info;
+		if (GetFileAttributesExW(*NormalizeFilename(FilenameOrDirectory), GetFileExInfoStandard, &Info))
+		{
+			const bool bIsDirectory = !!(Info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+			int64 FileSize = -1;
+			if (!bIsDirectory)
+			{
+				LARGE_INTEGER li;
+				li.HighPart = Info.nFileSizeHigh;
+				li.LowPart = Info.nFileSizeLow;
+				FileSize = static_cast<int64>(li.QuadPart);
+			}
+
+			return FFileStatData(
+				WindowsFileTimeToUEDateTime(Info.ftCreationTime),
+				WindowsFileTimeToUEDateTime(Info.ftLastAccessTime),
+				WindowsFileTimeToUEDateTime(Info.ftLastWriteTime),
+				FileSize, 
+				bIsDirectory,
+				!!(Info.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+				);
+		}
+
+		return FFileStatData();
+	}
+	virtual bool IterateDirectory(const TCHAR* Directory, FDirectoryVisitor& Visitor) override
+	{
+		const FString DirectoryStr = Directory;
+		return IterateDirectoryCommon(Directory, [&](const WIN32_FIND_DATAW& InData) -> bool
+		{
+			const bool bIsDirectory = !!(InData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+			return Visitor.Visit(*(DirectoryStr / InData.cFileName), bIsDirectory);
+		});
+	}
+	virtual bool IterateDirectoryStat(const TCHAR* Directory, FDirectoryStatVisitor& Visitor) override
+	{
+		const FString DirectoryStr = Directory;
+		return IterateDirectoryCommon(Directory, [&](const WIN32_FIND_DATAW& InData) -> bool
+		{
+			const bool bIsDirectory = !!(InData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+			int64 FileSize = -1;
+			if (!bIsDirectory)
+			{
+				LARGE_INTEGER li;
+				li.HighPart = InData.nFileSizeHigh;
+				li.LowPart = InData.nFileSizeLow;
+				FileSize = static_cast<int64>(li.QuadPart);
+			}
+
+			return Visitor.Visit(
+				*(DirectoryStr / InData.cFileName), 
+				FFileStatData(
+					WindowsFileTimeToUEDateTime(InData.ftCreationTime),
+					WindowsFileTimeToUEDateTime(InData.ftLastAccessTime),
+					WindowsFileTimeToUEDateTime(InData.ftLastWriteTime),
+					FileSize, 
+					bIsDirectory,
+					!!(InData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+					)
+				);
+		});
+	}
+	bool IterateDirectoryCommon(const TCHAR* Directory, const TFunctionRef<bool(const WIN32_FIND_DATAW&)>& Visitor)
 	{
 		bool Result = false;
 		WIN32_FIND_DATAW Data;
@@ -651,7 +717,7 @@ public:
 			{
 				if (FCString::Strcmp(Data.cFileName, TEXT(".")) && FCString::Strcmp(Data.cFileName, TEXT("..")))
 				{
-					Result = Visitor.Visit(*(FString(Directory) / Data.cFileName), !!(Data.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY));
+					Result = Visitor(Data);
 				}
 			} while (Result && FindNextFileW(Handle, &Data));
 			FindClose(Handle);
