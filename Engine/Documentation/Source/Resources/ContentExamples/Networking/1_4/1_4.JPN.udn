@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620779
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.4 - 変数のレプリケーション（RepNotify）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -8,6 +8,24 @@ Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Networking/1_3 "%Resources/ContentExamples/Networking/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ネットワークのホームページ](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Networking/1_5 "%Resources/ContentExamples/Networking/1_5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -55,7 +73,7 @@ RepNotify への変数の設定は、 **[Replication]** ドロップダウン �
 
 ![](1_4_RepNotify.png)
 
-この設定をしておくと、ゲーム内で再生された時、クライアントとサーバの両方で街頭に対して同じシーケンスが実行されます。 
+この設定をしておくと、ゲーム内で再生された時、クライアントとサーバの両方で街灯に対して同じシーケンスが実行されます。 
 
 
 
