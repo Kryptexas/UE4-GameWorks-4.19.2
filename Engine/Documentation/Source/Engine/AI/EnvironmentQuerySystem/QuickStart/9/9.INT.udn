@@ -76,7 +76,7 @@ Before we get into the steps to create this [Behavior Tree](Engine/AI/BehaviorTr
 
 	![](setEqs2props.png)
 
-1. Position it to the right of the second **Run EQS Query Node**
+1. Position it to the right of the first **Run EQS Query Node**
 1. [REGION:raw]Create a **Move To Node** (right-click in the Graph Area %arrow% **Tasks** %arrow% **Move To**)[/REGION]
 
 	![](addMoveTo.png)
