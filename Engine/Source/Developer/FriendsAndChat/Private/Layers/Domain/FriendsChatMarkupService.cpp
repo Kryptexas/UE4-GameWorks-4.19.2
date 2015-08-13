@@ -565,7 +565,8 @@ private:
 		FriendsList->GetFriendList(AllFriendViewModels);
 		for(const auto& Friend : AllFriendViewModels)
 		{
-			if(Friend->GetOnlineStatus() == EOnlinePresenceState::Online)
+			const EOnlinePresenceState::Type PresenceState = Friend->GetOnlineStatus();
+			if(PresenceState == EOnlinePresenceState::Online || PresenceState == EOnlinePresenceState::Away || PresenceState == EOnlinePresenceState::ExtendedAway)
 			{
 				FriendViewModels.Add(Friend);
 			}

@@ -61,6 +61,7 @@ public:
 	virtual bool IsWhisperFriendSet() const = 0;
 	virtual bool IsInPartyChat() const = 0;
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
+	virtual bool DisplayChatOption(TSharedRef<FFriendViewModel> FriendViewModel ) = 0;
 
 	// Connection
 	virtual bool IsChatConnected() const = 0;

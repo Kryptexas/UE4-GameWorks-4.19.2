@@ -324,7 +324,7 @@ private:
 			FText Username = FText::FromString(*UsernameString);
 			const TSharedRef<FFriendViewModel> FriendViewModel = ViewModel->GetFriendViewModel(*UniqueIDString, Username).ToSharedRef();
 
-			bool DisplayChatOption = ViewModel->GetOutgoingChatChannel() != EChatMessageType::Whisper;
+			bool DisplayChatOption = ViewModel->DisplayChatOption(FriendViewModel);
 
 			TSharedRef<SWidget> Widget = SNew(SFriendActions, FriendViewModel).FriendStyle(&FriendStyle).FromChat(true).DisplayChatOption(DisplayChatOption);
 

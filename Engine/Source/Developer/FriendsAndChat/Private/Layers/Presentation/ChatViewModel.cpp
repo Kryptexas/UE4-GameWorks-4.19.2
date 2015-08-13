@@ -276,6 +276,12 @@ public:
 		}
 		return EChatMessageType::Custom;
 	}
+
+	virtual bool DisplayChatOption(TSharedRef<FFriendViewModel> FriendViewModel) override
+	{
+		return GetOutgoingChatChannel() != EChatMessageType::Whisper || !SelectedFriend.IsValid() || SelectedFriend->ViewModel->GetFriendItem() != FriendViewModel->GetFriendItem();
+	}
+
 	// End FChatViewModel interface
 
 	/*
