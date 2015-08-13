@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2630911
+﻿INTSourceChangelist:2653104
 Availability:Public
 Title:1.7 - スケルタルメッシュ ボーンからのパーティクル エミッション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -9,6 +9,25 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/1_F "%Resources/ContentExamples/EffectsGallery/1_F:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/1_H "%Resources/ContentExamples/EffectsGallery/1_H:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
 	[PARAM:image]
