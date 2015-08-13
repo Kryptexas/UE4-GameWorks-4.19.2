@@ -149,9 +149,12 @@ UObject* AttemptImport(UClass* InFactoryType, UPackage* Package, FName InName, b
 	if (UFactory* Factory = NewObject<UFactory>(GetTransientPackage(), InFactoryType))
 	{
 		Factory->AddToRoot();
-		if (Factory->ConfigureProperties() && Factory->SupportedClass)
+		if (Factory->ConfigureProperties())
 		{
-			Asset = UFactory::StaticImportObject(Factory->SupportedClass, Package, InName, RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
+			if (auto* SupportedClass = Factory->ResolveSupportedClass())
+			{
+				Asset = UFactory::StaticImportObject(SupportedClass, Package, InName, RF_Public | RF_Standalone, bCancelled, *FullFilename, nullptr, Factory);
+			}
 		}
 		Factory->RemoveFromRoot();
 	}
