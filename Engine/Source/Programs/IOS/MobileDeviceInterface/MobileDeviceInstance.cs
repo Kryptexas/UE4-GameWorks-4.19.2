@@ -693,7 +693,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
 
             IntPtr hAFCDir = IntPtr.Zero;
-            if (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(full_path), ref hAFCDir) != 0)
+            if (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir) != 0)
             {
                 throw new Exception("Path does not exist");
             }
@@ -730,7 +730,7 @@ namespace Manzana
             Dictionary<string, string> ans = new Dictionary<string, string>();
             TypedPtr<AFCDictionary> Data;
 
-			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(path), out Data);
+			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, path, out Data);
             if ((ret == 0) && (Data.Handle != IntPtr.Zero))
             {
                 IntPtr pname;
@@ -795,7 +795,7 @@ namespace Manzana
                 // test for symbolic directory link
                 IntPtr hAFCDir = IntPtr.Zero;
 
-				if (directory = (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(path), ref hAFCDir) == 0))
+				if (directory = (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, path, ref hAFCDir) == 0))
                 {
 					MobileDevice.DeviceImpl.DirectoryClose(AFCCommsHandle, hAFCDir);
                 }
@@ -823,7 +823,7 @@ namespace Manzana
         /// <returns>true if directory was created</returns>
         public bool CreateDirectory(string path)
         {
-			return !(MobileDevice.DeviceImpl.DirectoryCreate(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(FullPath(CurrentDirectory, path))) != 0);
+			return !(MobileDevice.DeviceImpl.DirectoryCreate(AFCCommsHandle, FullPath(CurrentDirectory, path)) != 0);
         }
 
         /// <summary>
@@ -846,7 +846,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             //full_path = "/private"; // bug test
 
-			int res = MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(full_path), ref hAFCDir);
+			int res = MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir);
             if (res != 0)
             {
                 throw new Exception("Path does not exist: " + res.ToString());
@@ -877,8 +877,8 @@ namespace Manzana
         public bool Rename(string sourceName, string destName)
         {
 			return MobileDevice.DeviceImpl.RenamePath(AFCCommsHandle,
-				MobileDevice.StringToFileSystemRepresentation(FullPath(CurrentDirectory, sourceName)),
-				MobileDevice.StringToFileSystemRepresentation(FullPath(CurrentDirectory, destName))) == 0;
+				FullPath(CurrentDirectory, sourceName),
+				FullPath(CurrentDirectory, destName)) == 0;
         }
 
         /// <summary>
@@ -900,7 +900,7 @@ namespace Manzana
         {
             TypedPtr<AFCDictionary> data = IntPtr.Zero;
 
-			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(path), out data);
+			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, path, out data);
             if (ret == 0)
             {
 				MobileDevice.DeviceImpl.KeyValueClose(data);
@@ -952,7 +952,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             if (IsDirectory(full_path))
             {
-				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(full_path));
+				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, full_path);
             }
         }
 
@@ -986,7 +986,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             if (Exists(full_path))
             {
-				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, MobileDevice.StringToFileSystemRepresentation(full_path));
+				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, full_path);
             }
         }
         #endregion	// Filesystem
