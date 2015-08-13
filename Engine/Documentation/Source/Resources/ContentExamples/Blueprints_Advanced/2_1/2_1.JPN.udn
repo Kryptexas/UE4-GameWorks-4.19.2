@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2626340
+﻿INTSourceChangelist:2652851
 Availability:Public
 Title:2.1 - タイムライン アニメーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,6 +12,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ブループリントのコンテンツ サンプル ホーム](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Blueprints_Advanced/2_2 "%Resources/ContentExamples/Blueprints_Advanced/2_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
