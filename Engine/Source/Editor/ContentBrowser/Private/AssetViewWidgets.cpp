@@ -1631,10 +1631,15 @@ TSharedRef<SWidget> SAssetColumnItem::GenerateWidgetForColumn( const FName& Colu
 			AssetItem->RenamedRequestEvent.BindSP( InlineRenameWidget.Get(), &SInlineEditableTextBlock::EnterEditingMode );
 		}
 
-		return SNew( SAssetColumnItemNameBox, SharedThis(this) )
-			.Padding( ColumnItemPadding )
+		return SNew(SBorder)
+			.BorderImage(this, &SAssetViewItem::GetBorderImage)
+			.Padding(0)
 			[
-				Content.ToSharedRef()
+				SNew( SAssetColumnItemNameBox, SharedThis(this) )
+				.Padding( ColumnItemPadding )
+				[
+					Content.ToSharedRef()
+				]
 			];
 	}
 	else if ( ColumnName == "Class" )

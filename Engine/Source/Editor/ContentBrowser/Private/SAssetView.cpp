@@ -2769,7 +2769,10 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.OnItemDestroyed(this, &SAssetView::AssetItemWidgetDestroyed)
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText(HighlightedText)
-			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) );
+			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnAssetsDragDropped(this, &SAssetView::OnAssetsDragDropped)
+			.OnPathsDragDropped(this, &SAssetView::OnPathsDragDropped)
+			.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped);
 
 		TableRowWidget->SetContent(Item);
 
