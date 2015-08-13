@@ -111,11 +111,11 @@
 #include "IPortalRpcModule.h"
 #include "IPortalRpcLocator.h"
 #include "IPortalServicesModule.h"
+#include "IPortalServiceLocator.h"
 #include "TypeContainer.h"
 #endif
 
 #include "GameFramework/OnlineSession.h"
-#include "IPortalServiceLocator.h"
 
 #include "InstancedReferenceSubobjectHelper.h"
 
