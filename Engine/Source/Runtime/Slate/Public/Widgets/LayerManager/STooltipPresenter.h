@@ -16,6 +16,12 @@ public:
 
 	SLATE_END_ARGS()
 
+	/** Constructor */
+	STooltipPresenter()
+	{
+		bCanSupportFocus = false;
+	}
+
 	void Construct(const FArguments& InArgs);
 
 	void SetContent(const TSharedRef<SWidget>& InWidget);

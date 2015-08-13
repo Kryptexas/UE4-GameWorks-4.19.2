@@ -32,6 +32,12 @@ public:
 		);
 	}
 
+	SNullWidgetContent()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
+
 private:
 	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final
 	{

@@ -110,6 +110,8 @@ public:
 	 */
 	FSlot& AddSlot()
 	{
+		Invalidate(EInvalidateWidget::Layout);
+
 		SConstraintCanvas::FSlot& NewSlot = *(new FSlot());
 		this->Children.Add( &NewSlot );
 		return NewSlot;

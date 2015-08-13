@@ -99,6 +99,13 @@ public:
 
 	SLATE_END_ARGS()
 
+	/** Constructor */
+	STextBlock()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
+
 	/**
 	 * Construct this widget
 	 *

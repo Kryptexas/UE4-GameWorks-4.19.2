@@ -12,6 +12,8 @@
 SConstraintCanvas::SConstraintCanvas()
 : Children()
 {
+	bCanTick = false;
+	bCanSupportFocus = false;
 }
 
 void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
@@ -23,13 +25,19 @@ void SConstraintCanvas::Construct( const SConstraintCanvas::FArguments& InArgs )
 	}
 }
 
-void SConstraintCanvas::ClearChildren( )
+void SConstraintCanvas::ClearChildren()
 {
-	Children.Empty();
+	if ( Children.Num() )
+	{
+		Invalidate(EInvalidateWidget::Layout);
+		Children.Empty();
+	}
 }
 
 int32 SConstraintCanvas::RemoveSlot( const TSharedRef<SWidget>& SlotWidget )
 {
+	Invalidate(EInvalidateWidget::Layout);
+
 	for (int32 SlotIdx = 0; SlotIdx < Children.Num(); ++SlotIdx)
 	{
 		if (SlotWidget == Children[SlotIdx].GetWidget())

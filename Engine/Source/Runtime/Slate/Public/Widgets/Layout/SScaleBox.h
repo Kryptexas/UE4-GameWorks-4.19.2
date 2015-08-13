@@ -90,6 +90,13 @@ public:
 
 	SLATE_END_ARGS()
 
+	/** Constructor */
+	SScaleBox()
+	{
+		bCanTick = false;
+		bCanSupportFocus = false;
+	}
+
 	void Construct(const FArguments& InArgs);
 	
 	// SWidget interface

@@ -566,7 +566,7 @@ public:
 	 */
 	private: virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const = 0;
 
-	public:
+public:
 
 	/** What is the Child's scale relative to this widget. */
 	virtual float GetRelativeLayoutScale( const FSlotBase& Child ) const;
@@ -580,7 +580,10 @@ public:
 	 * @param AllottedGeometry    The geometry allotted for this widget by its parent.
 	 * @param ArrangedChildren    The array to which to add the WidgetGeometries that represent the arranged children.
 	 */
-	void ArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const;
+	FORCEINLINE void ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
+	{
+		OnArrangeChildren(AllottedGeometry, ArrangedChildren);
+	}
 
 	/**
 	 * Every widget that has children must implement this method. This allows for iteration over the Widget's
@@ -701,7 +704,7 @@ public:
 	virtual bool IsDirectlyHovered() const;
 
 	/** @return is this widget visible, hidden or collapsed */
-	EVisibility GetVisibility() const;
+	FORCEINLINE EVisibility GetVisibility() const { return Visibility.Get(); }
 
 	/** @param InVisibility  should this widget be */
 	virtual void SetVisibility( TAttribute<EVisibility> InVisibility )
@@ -1106,7 +1109,19 @@ private:
 
 protected:
 	/** Is this widget hovered? */
-	bool bIsHovered;
+	bool bIsHovered : 1;
+
+	/** Can the widget ever be ticked. */
+	bool bCanTick : 1;
+
+	/** Can the widget ever support keyboard focus */
+	bool bCanSupportFocus : 1;
+
+	/**
+	 * Can the widget ever support children?  This will be false on SLeafWidgets, 
+	 * rather than setting this directly, you should probably inherit from SLeafWidget.
+	 */
+	bool bCanHaveChildren : 1;
 
 private:
 
@@ -1114,14 +1129,14 @@ private:
 	 * Whether this widget is a "tool tip force field".  That is, tool-tips should never spawn over the area
 	 * occupied by this widget, and will instead be repelled to an outside edge
 	 */
-	bool bToolTipForceFieldEnabled;
+	bool bToolTipForceFieldEnabled : 1;
 
 	/** Should we be forcing this widget to be volatile at all times and redrawn every frame? */
-	bool bForceVolatile;
+	bool bForceVolatile : 1;
 
 	/** The last cached volatility of this widget.  Cached so that we don't need to recompute volatility every frame. */
-	bool bCachedVolatile;
+	bool bCachedVolatile : 1;
 
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
-	mutable bool bInheritedVolatility;
+	mutable bool bInheritedVolatility : 1;
 };
