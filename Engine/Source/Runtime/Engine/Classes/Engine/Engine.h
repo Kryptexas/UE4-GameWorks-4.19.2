@@ -1505,7 +1505,10 @@ public:
 
 	/** Reference to the HMD device that is attached, if any */
 	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
-	
+
+	/** Extensions that can modify view parameters on the render thread. */
+	TArray<TSharedPtr<class ISceneViewExtension, ESPMode::ThreadSafe> > ViewExtensions;
+
 	/** Reference to the Motion Control devices that are attached, if any */
 	TArray < class IMotionController*> MotionControllerDevices;
 
