@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454950
+﻿INTSourceChangelist:2600515
 Availability:Public
 Title:Level ブループリント
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -46,8 +46,6 @@ Related:Engine/Blueprints
 
 [TOC (start:2 end:3)]
 
-## 概要
-
 [EXCERPT:Intro]
 **Level** ブループリントは、レベル全体のグローバルイベント グラフとしての役割を果たす、特別なタイプの **ブループリント** です。 
 プロジェクトの各レベルには、アンリアル エディタ内で編集可能な独自の _Level ブループリント_ がデフォルトで作成されます。 
@@ -72,7 +70,7 @@ _レベル ブループリント_ に関する詳細は、 [] (Engine/Blueprints
 
 ## Level ブループリントを開く
 
-編集のために _Level ブループリント_ を開くには、 **レベル エディタ ツールバー** で **[レベル ブループリント]** ボタンをクリックします。
+編集のために _Level ブループリント_ を開くには、 **レベル エディタ ツールバー** で **[Open Level Blueprint (Level ブループリントを開く)]** ボタンをクリックします。
 
 ![Level Blueprint Button](toolbar_level_editor.png)
 
@@ -82,7 +80,7 @@ _レベル ブループリント_ に関する詳細は、 [] (Engine/Blueprints
 ![](level_blueprint_editor.png)
 [/REGION]
 
-**ブループリント エディタ** は [**グラフ**](Engine/Blueprints/Editor/UIComponents/GraphEditor) エディタ、 **[My Blueprints]** パネル、 **[Details]** パネルのみを使用します。**Class Defaults** パネルは、メニュー バーの **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンを使って開くことができます。
+**ブループリント エディタ** は [**グラフ**](Engine/Blueprints/Editor/UIComponents/GraphEditor) エディタ、 **[My Blueprints]** パネル、 **[Details]** パネルのみを使用します。**[Class Defaults (クラス デフォルト)]** パネルは、メニュー バーの **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンを使って開くことができます。
 
 ## アクタを参照する
 
@@ -97,11 +95,11 @@ _Level ブループリント_ のノード上でアクタへの参照を **タ�
 	![Level Blueprint Button](toolbar_level_editor.png)
 
 1. グラフ内のノードを追加したい場所で **右クリック** します。
-1. コンテキスト メニューが表示されたら、 **[Add Reference to][SelectedActor]** を選択します。
+1. コンテキスト メニューが表示されたら、 **[Add Reference to[SelectedActor]]** を選択します。
 
 	![](add_reference_to.png)
 
-	以下は別の方法です。
+以下は別の方法です。
 
 1. ** [ワールド アウトライナー]** タブから _アクタ_ をドラッグし、 _Level ブループリント_ のグラフにドロップします。
 
@@ -135,11 +133,16 @@ _Level ブループリント_ のノード上でアクタへの参照を **タ�
 
 1. グラフ内のノードを追加したい場所で **右クリック** します。
 
-1. コンテキスト メニューが表示されたら、 **[Add Event for] [ActorName]** を展開します。  
+1. コンテキスト メニューが表示されたら、 **[Add Event for [ActorName]]** を展開します。  
 
 	![](add_event_for_actor.png)
 
-1. **[ Add Event for] [ActorName]** で、リストから必要なイベントを選択します。
+1. **[ Add Event for [ActorName]]** で、リストから必要なイベントを選択します。
 
 	![](expanded_add_event_for_actor.png)
+
+
+
+
+
 
