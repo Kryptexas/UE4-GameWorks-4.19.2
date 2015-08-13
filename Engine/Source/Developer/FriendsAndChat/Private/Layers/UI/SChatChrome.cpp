@@ -262,7 +262,7 @@ private:
 			.MenuContent()
 			[
 				SNew(SChatChromeTabQuickSettings, Tab)
-				.ChatType(Tab->GetChatViewModel()->GetChatChannelType())
+				.ChatType(Tab->GetChatViewModel()->GetDefaultChannelType())
 				.FriendStyle(&FriendStyle)
 			];
 	}

@@ -338,23 +338,18 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 	{
 		CachedViewModel = FChatChromeViewModelFactory::Create(NavigationService.ToSharedRef(), ChatDisplayService, InChatSettingsService);
 
-		TSharedRef<FChatViewModel> CustomChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-		CustomChatViewModel->SetChannelFlags(EChatMessageType::Global | EChatMessageType::Whisper | EChatMessageType::Game | EChatMessageType::Party);
-		CustomChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
-
 		TSharedRef<FChatViewModel> GlobalChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-		GlobalChatViewModel->SetChannelFlags(EChatMessageType::Global);
-		GlobalChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Global);
+		GlobalChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Global);
+		GlobalChatViewModel->SetDefaultChannelFlags(EChatMessageType::Global | EChatMessageType::Party | EChatMessageType::Whisper);
 
 		TSharedRef<FChatViewModel> WhisperChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-		WhisperChatViewModel->SetChannelFlags(EChatMessageType::Whisper);
-		WhisperChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Whisper);
+		WhisperChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Whisper);
+		WhisperChatViewModel->SetDefaultChannelFlags(EChatMessageType::Whisper);
 
 		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-		PartyChatViewModel->SetChannelFlags(EChatMessageType::Party);
-		PartyChatViewModel->SetOutgoingMessageChannel(EChatMessageType::Party);
+		PartyChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Party);
+		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
 
-		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(CustomChatViewModel));
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(GlobalChatViewModel));
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(PartyChatViewModel));

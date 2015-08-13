@@ -12,9 +12,9 @@ namespace EChatMessageType
 		Custom = 0,			// Empty
 		Empty = 1 << 0,		// Person whisper Item
 		Whisper = 1 << 1,	// Person whisper Item
-		Game = 1 << 2,		// Game Chat Item
-		Global = 1 << 3,	// Global Chat Item
-		Party = 1 << 4,		// Party Chat Item
+		Global = 1 << 2,	// Global Chat Item
+		Party = 1 << 3,		// Party Chat Item
+		Game = 1 << 4,		// Game Chat Item
 		Team = 1 << 5,		// Team Chat Item
 		Clan = 1 << 6,		// Clan Chat Item
 		Invalid = 1 << 7,		// Invalid or max

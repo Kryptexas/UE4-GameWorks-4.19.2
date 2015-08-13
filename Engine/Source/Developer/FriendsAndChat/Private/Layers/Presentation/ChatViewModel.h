@@ -52,6 +52,9 @@ public:
 	
 	// Channel
 	virtual void SetChannelFlags(uint8 ChannelFlags) = 0;
+	virtual void SetDefaultChannelFlags(uint8 ChannelFlags) = 0;
+	virtual void SetDefaultOutgoingChannel(EChatMessageType::Type InChannel) = 0;
+	virtual void ResetToDefaultChannel() = 0;
 	virtual bool IsChannelSet(const EChatMessageType::Type InChannel) = 0;
 	virtual void ToggleChannel(const EChatMessageType::Type InChannel) = 0;
 	virtual void SetOutgoingMessageChannel(const EChatMessageType::Type InChannel) = 0;
@@ -61,6 +64,7 @@ public:
 	virtual bool IsWhisperFriendSet() const = 0;
 	virtual bool IsInPartyChat() const = 0;
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
+	virtual EChatMessageType::Type GetDefaultChannelType() const = 0;
 	virtual bool DisplayChatOption(TSharedRef<FFriendViewModel> FriendViewModel ) = 0;
 
 	// Connection

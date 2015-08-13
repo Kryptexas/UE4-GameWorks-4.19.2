@@ -35,7 +35,7 @@ public:
 
 	virtual FText GetChatGroupText(bool ShowWhisperFriendsName) const override
 	{
-		return SelectedFriend.IsValid() && ShowWhisperFriendsName ? SelectedFriend->DisplayName : EChatMessageType::ToText(GetChatChannelType());
+		return SelectedFriend.IsValid() && ShowWhisperFriendsName ? SelectedFriend->DisplayName : EChatMessageType::ToText(DefaultChannel);
 	}
 
 	virtual TArray< TSharedRef<FChatItemViewModel > >& GetMessages() override
@@ -70,6 +70,24 @@ public:
 	{
 		TSharedPtr<const FUniqueNetId> NetID = FriendsService->CreateUniquePlayerId(InUserID);
 		return GetFriendViewModel(NetID, Username);
+	}
+
+	virtual void SetDefaultOutgoingChannel(EChatMessageType::Type InChannel)
+	{
+		DefaultChannel = InChannel;
+		SetOutgoingMessageChannel(DefaultChannel);
+	}
+
+	virtual void SetDefaultChannelFlags(uint8 ChatFlags) override
+	{
+		DefaultChatChannelFlags = ChatFlags;
+		SetChannelFlags(DefaultChatChannelFlags);
+	}
+
+	virtual void ResetToDefaultChannel() override
+	{
+		SetChannelFlags(DefaultChatChannelFlags);
+		SetOutgoingMessageChannel(DefaultChannel);
 	}
 
 	virtual void SetChannelFlags(uint8 ChatFlags) override
@@ -275,6 +293,11 @@ public:
 			return EChatMessageType::Empty;
 		}
 		return EChatMessageType::Custom;
+	}
+
+	virtual EChatMessageType::Type GetDefaultChannelType() const override
+	{
+		return DefaultChannel;
 	}
 
 	virtual bool DisplayChatOption(TSharedRef<FFriendViewModel> FriendViewModel) override
@@ -560,7 +583,7 @@ public:
 		// If active, ensure we have a valid chat channel
 		if(bIsActive)
 		{
-			if(GetChatChannelType() == EChatMessageType::Custom)
+			if (GetDefaultChannelType() == EChatMessageType::Custom)
 			{
 				if(SelectedFriend.IsValid() && SelectedFriend->ViewModel.IsValid() && SelectedFriend->ViewModel->IsOnline())
 				{
@@ -578,7 +601,7 @@ public:
 			else
 			{
 				// Reset the chat channel to default option when opened
-				SetOutgoingMessageChannel(GetChatChannelType());
+				SetOutgoingMessageChannel(GetDefaultChannelType());
 			}
 		}
 	}
@@ -725,6 +748,8 @@ protected:
 		const TSharedRef<FFriendsService>& InFriendsService,
 		const TSharedRef<FGameAndPartyService>& InGamePartyService)
 		: ChatChannelFlags(0)
+		, DefaultChannel(EChatMessageType::Custom)
+		, DefaultChatChannelFlags(0)
 		, OutgoingMessageChannel(EChatMessageType::Custom)
 		, FriendViewModelFactory(InFriendViewModelFactory)
 		, MessageService(InMessageService)
@@ -765,6 +790,10 @@ private:
 
 	// The Channels we are subscribed too
 	uint8 ChatChannelFlags;
+
+	// The Channel we default too when resetting;
+	EChatMessageType::Type DefaultChannel;
+	uint8 DefaultChatChannelFlags;
 
 	// The Current outgoing channel we are sending messages on
 	EChatMessageType::Type OutgoingMessageChannel;

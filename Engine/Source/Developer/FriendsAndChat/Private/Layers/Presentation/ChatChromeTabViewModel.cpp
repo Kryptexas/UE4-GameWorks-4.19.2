@@ -22,12 +22,12 @@ public:
 			return false;
 		}
 
-		if (ChatViewModel->GetChatChannelType() == EChatMessageType::Party)
+		if (ChatViewModel->GetDefaultChannelType() == EChatMessageType::Party)
 		{
 			return ChatViewModel->IsInPartyChat();
 		}
 
-		if(ChatViewModel->GetChatChannelType() == EChatMessageType::Whisper)
+		if (ChatViewModel->GetDefaultChannelType() == EChatMessageType::Whisper)
 		{
 			return (ChatViewModel->IsWhisperFriendSet() || ChatViewModel->GetMessageCount() > 0);
 		}

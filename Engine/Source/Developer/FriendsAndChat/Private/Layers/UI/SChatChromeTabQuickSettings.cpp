@@ -114,14 +114,7 @@ private:
 	{
 		if (ChromeTabViewModel.IsValid() && ChromeTabViewModel->GetChatViewModel().IsValid())
 		{
-			if (ChatType == EChatMessageType::Custom)
-			{
-				ChromeTabViewModel->GetChatViewModel()->SetChannelFlags(EChatMessageType::Global | EChatMessageType::Game | EChatMessageType::Whisper);
-			}
-			else
-			{
-				ChromeTabViewModel->GetChatViewModel()->SetChannelFlags(ChatType);
-			}
+			ChromeTabViewModel->GetChatViewModel()->ResetToDefaultChannel();
 		}
 		return FReply::Handled();
 	}
