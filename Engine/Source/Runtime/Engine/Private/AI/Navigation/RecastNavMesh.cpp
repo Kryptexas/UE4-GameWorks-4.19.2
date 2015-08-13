@@ -458,7 +458,8 @@ void ARecastNavMesh::UpdateNavMeshDrawing()
 		}
 	}
 #else // DO_NAVMESH_DEBUG_DRAWING_PER_TILE
-	if (RenderingComp != NULL && RenderingComp->bVisible && UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld()))
+	UNavMeshRenderingComponent* NavMeshRenderComp = Cast<UNavMeshRenderingComponent>(RenderingComp);
+	if (NavMeshRenderComp != nullptr && NavMeshRenderComp->bVisible && (NavMeshRenderComp->IsForcingUpdate() || UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld())))
 	{
 		RenderingComp->MarkRenderStateDirty();
 	}
@@ -1399,11 +1400,16 @@ void ARecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 T
 	}
 }
 
-void ARecastNavMesh::RequestDrawingUpdate()
+void ARecastNavMesh::RequestDrawingUpdate(bool bForce)
 {
 #if !UE_BUILD_SHIPPING
-	if (UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld()))
+	if (bForce || UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld()))
 	{
+		if (bForce && Cast<UNavMeshRenderingComponent>(RenderingComp))
+		{
+			Cast<UNavMeshRenderingComponent>(RenderingComp)->ForceUpdate();
+		}
+
 		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
 		STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
 			STATGROUP_TaskGraphTasks);
@@ -1576,6 +1582,9 @@ void ARecastNavMesh::OnNavMeshGenerationFinished()
 				}
 			}
 		}
+
+		// force navmesh drawing update
+		RequestDrawingUpdate(/*bForce=*/true);		
 #endif// WITH_EDITOR
 
 		if (World->GetNavigationSystem())

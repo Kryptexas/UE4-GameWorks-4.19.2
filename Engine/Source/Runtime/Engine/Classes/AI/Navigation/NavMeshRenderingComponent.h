@@ -30,6 +30,8 @@ public:
 	virtual FBoxSphereBounds CalcBounds(const FTransform &LocalToWorld) const override;
 	// End USceneComponent Interface
 
+	void ForceUpdate() { bForceUpdate = true; }
+	bool IsForcingUpdate() const { return bForceUpdate; }
 	void GatherData(FNavMeshSceneProxyData& DebugDrawData) const;
 
 	static bool IsNavigationShowFlagSet(const UWorld* World);
@@ -39,5 +41,6 @@ protected:
 
 protected:
 	uint32 bCollectNavigationData : 1;
+	uint32 bForceUpdate : 1;
 	FTimerHandle TimerHandle;
 };

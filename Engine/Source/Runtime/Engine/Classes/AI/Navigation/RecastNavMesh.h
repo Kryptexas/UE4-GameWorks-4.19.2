@@ -778,7 +778,7 @@ public:
 	void UpdateDrawing();
 
 	/** Creates a task to be executed on GameThread calling UpdateDrawing */
-	void RequestDrawingUpdate();
+	void RequestDrawingUpdate(bool bForce = false);
 
 	/** Invalidates active paths that go through changed tiles  */
 	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);

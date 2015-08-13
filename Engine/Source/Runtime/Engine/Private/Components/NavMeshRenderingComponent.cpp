@@ -101,10 +101,11 @@ void UNavMeshRenderingComponent::TimerFunction()
 	}
 #endif // WITH_EDITOR
 
-	const bool bShowNavigation = IsNavigationShowFlagSet(World);
+	const bool bShowNavigation = bForceUpdate || IsNavigationShowFlagSet(World);
 
 	if (bShowNavigation != !!bCollectNavigationData && bShowNavigation == true)
 	{
+		bForceUpdate = false;
 		bCollectNavigationData = bShowNavigation;
 		MarkRenderStateDirty();
 	}
