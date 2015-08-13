@@ -920,6 +920,9 @@ private:
 
 	FLocalPlayerContext PlayerContext;
 
+	/** Get World calls can be expensive for Widgets, we speed them up by caching the last found world until it goes away. */
+	mutable TWeakObjectPtr<UWorld> CachedWorld;
+
 	/** Has this widget been initialized by its class yet? */
 	bool bInitialized;
 };

@@ -166,6 +166,11 @@ void UUserWidget::PostInitProperties()
 
 UWorld* UUserWidget::GetWorld() const
 {
+	if ( UWorld* LastWorld = CachedWorld.Get() )
+	{
+		return LastWorld;
+	}
+
 	if ( HasAllFlags(RF_ClassDefaultObject) )
 	{
 		// If we are a CDO, we must return nullptr instead of calling Outer->GetWorld() to fool UObject::ImplementsGetWorld.
@@ -178,6 +183,7 @@ UWorld* UUserWidget::GetWorld() const
 	{
 		if ( UWorld* World = PlayerContext.GetWorld() )
 		{
+			CachedWorld = World;
 			return World;
 		}
 	}
@@ -191,6 +197,7 @@ UWorld* UUserWidget::GetWorld() const
 		UWorld* World = Outer->GetWorld();
 		if ( World )
 		{
+			CachedWorld = World;
 			return World;
 		}
 

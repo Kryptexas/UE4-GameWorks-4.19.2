@@ -572,6 +572,10 @@ public:
 	static CORE_API const FColor Yellow;
 	static CORE_API const FColor Cyan;
 	static CORE_API const FColor Magenta;
+	static CORE_API const FColor Orange;
+	static CORE_API const FColor Turquoise;
+	static CORE_API const FColor Silver;
+	static CORE_API const FColor Emerald;
 
 private:
 	/**

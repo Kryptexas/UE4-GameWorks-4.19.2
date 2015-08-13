@@ -188,6 +188,9 @@ public:
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 	virtual void ReleaseAccessedResources() override;
+	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(FSlateWindowElementList& ElementList) override;
+	virtual void UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset) override;
+	virtual void ReleaseCachedRenderData(FSlateRenderDataHandle* RenderHandle) override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
 	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
@@ -219,15 +222,7 @@ public:
 	 */
 	virtual void ReloadTextureResources() override;
 
-
 	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
-
-	/**
-	 * Returns the viewport RHI reference for the provided window
-	 *
-	 * @param Window	The window to get the RHI viewport from 
-	 */
-
 
 	/** Returns whether shaders that Slate depends on have been compiled. */
 	virtual bool AreShadersInitialized() const override;

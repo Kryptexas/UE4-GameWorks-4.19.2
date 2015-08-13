@@ -19,7 +19,7 @@ FSlateWindowElementList& FSlateDrawBuffer::AddWindowElementList(TSharedRef<SWind
 			WindowElementLists.Add(WindowElements);
 			WindowElementListsPool.RemoveAtSwap(WindowIndex);
 
-			WindowElements->Reset();
+			WindowElements->ResetBuffers();
 
 			return *WindowElements;
 		}

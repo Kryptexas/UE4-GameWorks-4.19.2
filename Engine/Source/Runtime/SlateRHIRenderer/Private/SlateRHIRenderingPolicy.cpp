@@ -10,6 +10,7 @@
 #include "EngineModule.h"
 #include "SlateUTextureResource.h"
 #include "SlateMaterialResource.h"
+#include "Rendering/DrawElements.h"
 
 DECLARE_CYCLE_STAT(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("PreFill Buffers RT"), STAT_SlatePreFullBufferRTTime, STATGROUP_Slate);
@@ -40,12 +41,26 @@ void FSlateElementIndexBuffer::Init( int32 MinNumIndices )
 {
 	MinBufferSize = sizeof(SlateIndex) * FMath::Max( MinNumIndices, 200 );
 
-	BeginInitResource(this);
+	if ( IsInRenderingThread() )
+	{
+		InitResource();
+	}
+	else
+	{
+		BeginInitResource(this);
+	}
 }
 
 void FSlateElementIndexBuffer::Destroy()
 {
-	BeginReleaseResource(this);
+	if ( IsInRenderingThread() )
+	{
+		ReleaseResource();
+	}
+	else
+	{
+		BeginReleaseResource(this);
+	}
 }
 
 
@@ -177,6 +192,23 @@ void FSlateRHIRenderingPolicy::ReleaseResources()
 		VertexBuffers[BufferIndex].Destroy();
 		IndexBuffers[BufferIndex].Destroy();
 	}
+
+	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	{
+		FSlateRenderDataHandle* Handle = BufferIt.Key();
+		FCachedRenderBuffers* Buffer = BufferIt.Value();
+
+		Handle->Disconnect();
+
+		Buffer->VertexBuffer.Destroy();
+		Buffer->IndexBuffer.Destroy();
+	}
+
+	for ( FCachedRenderBuffers* PooledBuffer : CachedBufferPool )
+	{
+		PooledBuffer->VertexBuffer.Destroy();
+		PooledBuffer->IndexBuffer.Destroy();
+	}
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
@@ -234,10 +266,55 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 	
 		VertexBuffer.UnlockBuffer_RHIThread();
 		IndexBuffer.UnlockBuffer_RHIThread();
+
+		BatchData.SortRenderBatches();
 	}
 };
 
 void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData)
+{
+	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
+	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
+
+	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, VertexBuffer, IndexBuffer);
+}
+
+void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderHandle)
+{
+	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
+	if ( Buffers == nullptr )
+	{
+		// If the cached buffer pool is empty, time to create a new one!
+		if ( CachedBufferPool.Num() == 0 )
+		{
+			Buffers = new FCachedRenderBuffers();
+			Buffers->VertexBuffer.Init(200);
+			Buffers->IndexBuffer.Init(200);
+		}
+		else
+		{
+			// If we found one in the pool, lets use it!
+			Buffers = CachedBufferPool[0];
+			CachedBufferPool.RemoveAtSwap(0, 1, false);
+		}
+
+		CachedBuffers.Add(&RenderHandle.Get(), Buffers);
+	}
+
+	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, Buffers->VertexBuffer, Buffers->IndexBuffer);
+}
+
+void FSlateRHIRenderingPolicy::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+{
+	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(InRenderHandle);
+	if ( ensure(Buffers != nullptr) )
+	{
+		CachedBufferPool.Add(Buffers);
+		CachedBuffers.Remove(InRenderHandle);
+	}
+}
+
+void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer)
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateUpdateBufferRTTime );
 
@@ -249,15 +326,12 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 
 	if( InBatchData.GetRenderBatches().Num() > 0  && NumVertices > 0 && NumIndices > 0)
 	{
-		TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
-		FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
-
 		bool bShouldShrinkResources = false;
 
 		VertexBuffer.PreFillBuffer(NumVertices, bShouldShrinkResources);
 		IndexBuffer.PreFillBuffer(NumIndices, bShouldShrinkResources);
 
-		if(!GRHIThread || RHICmdList.Bypass())
+		if(1 || !GRHIThread || RHICmdList.Bypass())
 		{
 			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RenderThread(NumVertices);
 			uint8* IndexBufferData =  (uint8*)IndexBuffer.LockBuffer_RenderThread(NumIndices);
@@ -266,12 +340,17 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	
 			VertexBuffer.UnlockBuffer_RenderThread();
 			IndexBuffer.UnlockBuffer_RenderThread();
+
+			InBatchData.SortRenderBatches();
 		}
 		else
 		{
 			new (RHICmdList.AllocCommand<FSlateUpdateVertexAndIndexBuffers>()) FSlateUpdateVertexAndIndexBuffers(VertexBuffer, IndexBuffer, InBatchData);
 		}
 	}
+
+	checkSlow(VertexBuffer.GetBufferUsageSize() <= VertexBuffer.GetBufferSize());
+	checkSlow(IndexBuffer.GetBufferUsageSize() <= IndexBuffer.GetBufferSize());
 
 	SET_DWORD_STAT( STAT_SlateNumLayers, InBatchData.GetNumLayers() );
 	SET_DWORD_STAT( STAT_SlateNumBatches, InBatchData.GetRenderBatches().Num() );
@@ -358,9 +437,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer = VertexBuffers[CurrentBufferIndex];
-	FSlateElementIndexBuffer& IndexBuffer = IndexBuffers[CurrentBufferIndex];
-
 	float TimeSeconds = FPlatformTime::Seconds() - GStartTime;
 	float RealTimeSeconds = FPlatformTime::Seconds() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
@@ -390,15 +466,50 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	FSamplerStateRHIRef BilinearClamp = TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI();
 
-	if (GRHISupportsBaseVertexIndex)
+	TSlateElementVertexBuffer<FSlateVertex>* VertexBuffer = &VertexBuffers[CurrentBufferIndex];
+	FSlateElementIndexBuffer* IndexBuffer = &IndexBuffers[CurrentBufferIndex];
+
+	if ( GRHISupportsBaseVertexIndex )
 	{
-		RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
+		RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
 	}
+
+	const FSlateRenderDataHandle* LastHandle = nullptr;
 
 	// Draw each element
 	for( int32 BatchIndex = 0; BatchIndex < RenderBatches.Num(); ++BatchIndex )
 	{
 		const FSlateRenderBatch& RenderBatch = RenderBatches[BatchIndex];
+		const FSlateRenderDataHandle* RenderHandle = RenderBatch.CachedRenderHandle.Get();
+
+		if ( RenderHandle != LastHandle )
+		{
+			LastHandle = RenderHandle;
+
+			if ( RenderHandle )
+			{
+				FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(RenderHandle);
+				if ( Buffers != nullptr )
+				{
+					VertexBuffer = &Buffers->VertexBuffer;
+					IndexBuffer = &Buffers->IndexBuffer;
+				}
+			}
+			else
+			{
+				VertexBuffer = &VertexBuffers[CurrentBufferIndex];
+				IndexBuffer = &IndexBuffers[CurrentBufferIndex];
+			}
+
+			checkSlow(VertexBuffer);
+			checkSlow(IndexBuffer);
+
+			if ( GRHISupportsBaseVertexIndex )
+			{
+				RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
+			}
+		}
+
 		const FSlateShaderResource* ShaderResource = RenderBatch.Texture;
 
 		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
@@ -499,12 +610,12 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 				if (!GRHISupportsBaseVertexIndex)
 				{
-					RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
-					RHICmdList.DrawIndexedPrimitive(IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
+					RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 				}
 				else
 				{
-					RHICmdList.DrawIndexedPrimitive(IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
+					RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 				}
 
 			}
@@ -556,12 +667,12 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					// for RHIs that can't handle VertexOffset, we need to offset the stream source each time
 					if (!GRHISupportsBaseVertexIndex)
 					{
-						RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
-						RHICmdList.DrawIndexedPrimitive(IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
+						RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), RenderBatch.VertexOffset * sizeof(FSlateVertex));
+						RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), 0, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 					}
 					else
 					{
-						RHICmdList.DrawIndexedPrimitive(IndexBuffer.IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
+						RHICmdList.DrawIndexedPrimitive(IndexBuffer->IndexBufferRHI, GetRHIPrimitiveType(RenderBatch.DrawPrimitiveType), RenderBatch.VertexOffset, 0, RenderBatch.NumVertices, RenderBatch.IndexOffset, PrimitiveCount, 1);
 					}
 				}
 			}
@@ -577,7 +688,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				// Something may have messed with the viewport size so set it back to the full target.
 				RHICmdList.SetViewport( 0,0,0,BackBuffer.GetSizeXY().X, BackBuffer.GetSizeXY().Y, 0.0f ); 
-				RHICmdList.SetStreamSource(0, VertexBuffer.VertexBufferRHI, sizeof(FSlateVertex), 0);
+				RHICmdList.SetStreamSource(0, VertexBuffer->VertexBufferRHI, sizeof(FSlateVertex), 0);
 
 			}
 		}

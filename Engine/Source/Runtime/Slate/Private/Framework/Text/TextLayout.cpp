@@ -1761,11 +1761,6 @@ void FTextLayout::SetMargin( const FMargin& InMargin )
 	DirtyFlags |= EDirtyState::Layout;
 }
 
-FMargin FTextLayout::GetMargin() const
-{
-	return Margin;
-}
-
 void FTextLayout::SetScale( float Value )
 {
 	if ( Scale == Value )
@@ -1781,11 +1776,6 @@ void FTextLayout::SetScale( float Value )
 	ClearWrappingCache();
 }
 
-float FTextLayout::GetScale() const
-{
-	return Scale;
-}
-
 void FTextLayout::SetJustification( ETextJustify::Type Value )
 {
 	if ( Justification == Value )
@@ -1797,11 +1787,6 @@ void FTextLayout::SetJustification( ETextJustify::Type Value )
 	DirtyFlags |= EDirtyState::Layout;
 }
 
-ETextJustify::Type FTextLayout::GetJustification() const
-{
-	return Justification;
-}
-
 void FTextLayout::SetLineHeightPercentage( float Value )
 {
 	if ( LineHeightPercentage != Value )
@@ -1811,11 +1796,6 @@ void FTextLayout::SetLineHeightPercentage( float Value )
 	}
 }
 
-float FTextLayout::GetLineHeightPercentage() const
-{
-	return LineHeightPercentage;
-}
-
 void FTextLayout::SetWrappingWidth( float Value )
 {
 	if ( WrappingWidth != Value )
@@ -1823,11 +1803,6 @@ void FTextLayout::SetWrappingWidth( float Value )
 		WrappingWidth = Value; 
 		DirtyFlags |= EDirtyState::Layout;
 	}
-}
-
-float FTextLayout::GetWrappingWidth() const
-{
-	return WrappingWidth;
 }
 
 FVector2D FTextLayout::GetDrawSize() const
@@ -1843,16 +1818,6 @@ FVector2D FTextLayout::GetWrappedSize() const
 FVector2D FTextLayout::GetSize() const
 {
 	return TextLayoutSize.GetDrawSize() * ( 1 / Scale );
-}
-
-const TArray< FTextLayout::FLineModel >& FTextLayout::GetLineModels() const
-{
-	return LineModels;
-}
-
-const TArray< FTextLayout::FLineView >& FTextLayout::GetLineViews() const
-{
-	return LineViews;
 }
 
 FTextLayout::~FTextLayout()

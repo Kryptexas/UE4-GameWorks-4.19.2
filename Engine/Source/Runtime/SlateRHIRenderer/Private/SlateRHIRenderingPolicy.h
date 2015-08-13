@@ -32,12 +32,26 @@ public:
 	{
 		MinBufferSize = sizeof(VertexType) * FMath::Max( MinNumVertices, 200 );
 
-		BeginInitResource(this);
+		if ( IsInRenderingThread() )
+		{
+			InitResource();
+		}
+		else
+		{
+			BeginInitResource(this);
+		}
 	}
 
 	void Destroy()
 	{
-		BeginReleaseResource(this);
+		if ( IsInRenderingThread() )
+		{
+			ReleaseResource();
+		}
+		else
+		{
+			BeginReleaseResource(this);
+		}
 	}
 
 	/** Initializes the vertex buffers RHI resource. */
@@ -232,6 +246,9 @@ public:
 	~FSlateRHIRenderingPolicy();
 
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData);
+	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderHandle);
+
+	void ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle);
 
 	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwtichVerticalAxis=true);
 
@@ -246,6 +263,9 @@ public:
 	void EndDrawingWindows();
 
 	void SetUseGammaCorrection( bool bInUseGammaCorrection ) { bGammaCorrect = bInUseGammaCorrection; }
+protected:
+	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSlateElementVertexBuffer<FSlateVertex>& VertexBuffer, FSlateElementIndexBuffer& IndexBuffer);
+
 private:
 	/**
 	 * Returns the pixel shader that should be used for the specified ShaderType and DrawEffects
@@ -263,6 +283,16 @@ private:
 	/** Buffers used for rendering */
 	TSlateElementVertexBuffer<FSlateVertex> VertexBuffers[SlateRHIConstants::NumBuffers];
 	FSlateElementIndexBuffer IndexBuffers[SlateRHIConstants::NumBuffers];
+
+	struct FCachedRenderBuffers
+	{
+		TSlateElementVertexBuffer<FSlateVertex> VertexBuffer;
+		FSlateElementIndexBuffer IndexBuffer;
+	};
+
+	typedef TMap< FSlateRenderDataHandle*, FCachedRenderBuffers* > TCachedBufferMap;
+	TCachedBufferMap CachedBuffers;
+	TArray< FCachedRenderBuffers* > CachedBufferPool;
 
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 	TSharedPtr<FSlateFontCache> FontCache;

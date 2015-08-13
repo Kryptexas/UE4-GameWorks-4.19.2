@@ -14,6 +14,7 @@ struct FSlateBrush;
 
 typedef FRHITexture2D* FTexture2DRHIParamRef;
 
+
 /**
  * Abstract base class for Slate renderers.
  */
@@ -62,10 +63,10 @@ public:
 	virtual void UpdateFullscreenState( const TSharedRef<SWindow> InWindow, uint32 OverrideResX = 0, uint32 OverrideResY = 0 ) = 0;
 
 	/**
-     * Restore the given window to the resolution settings currently cached by the engine
+	 * Restore the given window to the resolution settings currently cached by the engine
 	 * 
 	 * @param InWindow    -> The window to restore to the cached settings
-     */
+	 */
 	virtual void RestoreSystemResolution(const TSharedRef<SWindow> InWindow) = 0;
 
 	/** 
@@ -232,6 +233,16 @@ public:
 	 */
 	virtual ISlateAtlasProvider* GetFontAtlasProvider();
 
+	/**
+	 * Converts and caches the elements list data as the final rendered vertex and index buffer data,
+	 * returning a handle to it to allow issuing future draw commands using it.
+	 */
+	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(FSlateWindowElementList& ElementList);
+
+	/**
+	 * Patch existing render data to have a new layer delta applied to all elements.
+	 */
+	virtual void UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset);
 
 	/**
 	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.
@@ -243,7 +254,6 @@ public:
 	 */
 	virtual FIntRect SetupVirtualScreenBuffer( const bool bPrimaryWorkAreaOnly, const float ScreenScaling, class ILiveStreamingService* LiveStreamingService) { return FIntRect(); }
 
-
 	/**
 	 * Copies all slate windows out to a buffer at half resolution with debug information
 	 * like the mouse cursor and any keypresses.
@@ -253,6 +263,9 @@ public:
 	/** Allows and disallows access to the crash tracker buffer data on the CPU */
 	virtual void MapVirtualScreenBuffer(void** OutImageData) {}
 	virtual void UnmapVirtualScreenBuffer() {}
+
+protected:
+	virtual void ReleaseCachedRenderData(FSlateRenderDataHandle* RenderHandle) { }
 
 private:
 
@@ -267,6 +280,8 @@ protected:
 
 	/** Callback that fires after Slate has rendered each window, each frame */
 	FOnSlateWindowRendered SlateWindowRendered;
+
+	friend class FSlateRenderDataHandle;
 };
 
 

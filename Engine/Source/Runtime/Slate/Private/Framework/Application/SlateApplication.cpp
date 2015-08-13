@@ -924,7 +924,9 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 void FSlateApplication::DrawWindows()
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateDrawWindows);
+	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::DrawWindows");
 	PrivateDrawWindows();
+	FPlatformMisc::EndNamedEvent();
 }
 
 struct FDrawWindowArgs
@@ -948,13 +950,19 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 		// Switch to the appropriate world for drawing
 		FScopedSwitchWorldHack SwitchWorld( WindowToDraw );
 
+		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::DrawPrep");
 		FSlateWindowElementList& WindowElementList = DrawWindowArgs.OutDrawBuffer.AddWindowElementList( WindowToDraw );
+		//FPlatformMisc::EndNamedEvent();
 
 		// Drawing is done in window space, so null out the positions and keep the size.
 		FGeometry WindowGeometry = WindowToDraw->GetWindowGeometryInWindow();
 		int32 MaxLayerId = 0;
 		{
+			//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::ClearHitTestGrid");
 			WindowToDraw->GetHittestGrid()->ClearGridForNewFrame( VirtualDesktopRect );
+			//FPlatformMisc::EndNamedEvent();
+
+			FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::DrawWindow");
 			MaxLayerId = WindowToDraw->PaintWindow(
 				FPaintArgs(WindowToDraw, *WindowToDraw->GetHittestGrid(), WindowToDraw->GetPositionInScreen(), GetCurrentTime(), GetDeltaTime()),
 				WindowGeometry, WindowToDraw->GetClippingRectangleInWindow(),
@@ -962,6 +970,7 @@ void FSlateApplication::DrawWindowAndChildren( const TSharedRef<SWindow>& Window
 				0,
 				FWidgetStyle(),
 				WindowToDraw->IsEnabled() );
+			FPlatformMisc::EndNamedEvent();
 
 			// Draw drag drop operation if it's windowless.
 			if ( IsDragDropping() && DragDropContent->IsWindowlessOperation() )
@@ -1137,10 +1146,14 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 
 	if ( !SkipSecondPrepass.GetValueOnGameThread() )
 	{
+		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Prepass");
 		DrawPrepass( DrawOnlyThisWindow );
+		//FPlatformMisc::EndNamedEvent();
 	}
 
+	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::GetDrawBuffer");
 	FDrawWindowArgs DrawWindowArgs( Renderer->GetDrawBuffer(), WidgetsUnderCursor );
+	//FPlatformMisc::EndNamedEvent();
 
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateDrawWindowTime );
@@ -1281,11 +1294,15 @@ void FSlateApplication::Tick()
 	{
 	SCOPE_CYCLE_COUNTER( STAT_SlateTickTime );
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateTotalTickTime);
+
+	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Tick");
 	
 	{
 		const float DeltaTime = GetDeltaTime();
 
 		SCOPE_CYCLE_COUNTER( STAT_SlateMessageTick );
+
+		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Platform");
 
 		// We need to pump messages here so that slate can receive input.  
 		if( (ActiveModalWindows.Num() > 0) || GIntraFrameDebuggingGameThread )
@@ -1302,13 +1319,18 @@ void FSlateApplication::Tick()
 		PlatformApplication->Tick( DeltaTime );
 
 		PlatformApplication->ProcessDeferredEvents( DeltaTime );
+
+		//FPlatformMisc::EndNamedEvent();
 	}
 
+	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::UpdateCursorLockRegion");
 	// The widget locking the cursor to its bounds may have been reshaped.
 	// Check if the widget was reshaped and update the cursor lock
 	// bounds if needed.
 	UpdateCursorLockRegion();
+	//FPlatformMisc::EndNamedEvent();
 
+	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::CaptureAndToolTipUpdate");
 	// When Slate captures the mouse, it is up to us to set the cursor 
 	// because the OS assumes that we own the mouse.
 	if (MouseCaptor.HasCapture())
@@ -1324,6 +1346,7 @@ void FSlateApplication::Tick()
 		const bool AllowSpawningOfToolTips = false;
 		UpdateToolTip( AllowSpawningOfToolTips );
 	}
+	//FPlatformMisc::EndNamedEvent();
 
 
 	// Advance time
@@ -1441,6 +1464,8 @@ void FSlateApplication::Tick()
 		DrawWindows();
 	}
 	}
+
+	FPlatformMisc::EndNamedEvent();
 
 	// Update Slate Stats
 	SLATE_STATS_END_FRAME(GetCurrentTime());

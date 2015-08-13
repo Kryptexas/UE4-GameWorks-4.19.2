@@ -85,8 +85,9 @@ void FSlate3DRenderer::DrawWindow_GameThread(FSlateDrawBuffer& DrawBuffer)
 void FSlate3DRenderer::DrawWindowToTarget_RenderThread( FRHICommandListImmediate& RHICmdList, UTextureRenderTarget2D* RenderTarget, FSlateDrawBuffer& InDrawBuffer )
 {
 	FSlateBatchData& BatchData = InDrawBuffer.GetWindowElementLists()[0]->GetBatchData();
+	FElementBatchMap& RootBatchMap = InDrawBuffer.GetWindowElementLists()[0]->GetRootDrawLayer().GetElementBatchMap();
 
-	BatchData.CreateRenderBatches();
+	BatchData.CreateRenderBatches(RootBatchMap);
 	RenderTargetPolicy->BeginDrawingWindows();
 
 	RenderTargetPolicy->UpdateVertexAndIndexBuffers( RHICmdList, BatchData );

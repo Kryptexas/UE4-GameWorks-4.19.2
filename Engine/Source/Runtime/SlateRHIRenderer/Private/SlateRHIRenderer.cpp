@@ -403,9 +403,12 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
 		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+		FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
+
+		WindowElementList.PreDraw_RenderThread();
 
 		// Update the vertex and index buffer	
-		BatchData.CreateRenderBatches();	
+		BatchData.CreateRenderBatches(RootBatchMap);
 		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
@@ -418,7 +421,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		const uint32 ViewportHeight = (ViewportRT) ? ViewportRT->GetSizeY() : ViewportInfo.Height;
 
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
-		RHICmdList.SetViewport( 0,0,0,ViewportWidth, ViewportHeight, 0.0f ); 
+		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
 
 		if( ViewportInfo.bRequiresStencilTest )
 		{
@@ -427,7 +430,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
 			SetRenderTarget(RHICmdList, BackBuffer, ViewportInfo.DepthStencil);
 			// Clear the stencil buffer
-			RHICmdList.Clear( false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
+			RHICmdList.Clear(false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
 		}
 		else
 		{
@@ -436,7 +439,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		if (bClear)
 		{
-			RHICmdList.Clear( true, FLinearColor(ForceInitToZero), false, 0.0f, true, 0x00, FIntRect());
+			RHICmdList.Clear(true, FLinearColor(ForceInitToZero), false, 0.0f, true, 0x00, FIntRect());
 		}
 
 #if DEBUG_OVERDRAW
@@ -454,6 +457,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				BatchData.GetRenderBatches()
 			);
 		}
+
+		WindowElementList.PostDraw_RenderThread();
 	}
 
 	bool bNeedCallFinishFrameForStereo = false;
@@ -949,8 +954,9 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		
 		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+		FElementBatchMap& RootBatchMap = Context.SlateElementList->GetRootDrawLayer().GetElementBatchMap();
 
-		BatchData.CreateRenderBatches();
+		BatchData.CreateRenderBatches(RootBatchMap);
 
 		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
 		if( BatchData.GetRenderBatches().Num() > 0 )
@@ -958,7 +964,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y),BatchData.GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), BatchData.GetRenderBatches());
 		}
 	});
 
@@ -1237,4 +1243,94 @@ void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, IViewportRe
 	{
 		ViewInfo->RTProvider = Provider;
 	}
+}
+
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::CacheElementRenderData(FSlateWindowElementList& ElementList)
+{
+	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(this));
+
+	checkSlow(ElementList.GetChildDrawLayers().Num() == 0);
+
+	// Add all elements for this window to the element batcher
+	ElementBatcher->AddElements(ElementList);
+
+	// All elements for this window have been batched and rendering data updated
+	ElementBatcher->ResetBatches();
+
+	struct FCacheElementBatchesContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		FSlateWindowElementList* SlateElementList;
+		TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
+	};
+	FCacheElementBatchesContext CacheElementBatchesContext =
+	{
+		RenderingPolicy.Get(),
+		&ElementList,
+		RenderDataHandle,
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		CacheElementBatches,
+		FCacheElementBatchesContext, Context, CacheElementBatchesContext,
+	{
+		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+		FElementBatchMap& RootBatchMap = Context.SlateElementList->GetRootDrawLayer().GetElementBatchMap();
+
+		BatchData.SetRenderDataHandle(Context.RenderDataHandle);
+		BatchData.CreateRenderBatches(RootBatchMap);
+		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData, Context.RenderDataHandle);
+	});
+
+	return RenderDataHandle;
+}
+
+void FSlateRHIRenderer::UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset)
+{
+	struct FUpdateCacheElementBatchesContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		FSlateWindowElementList* SlateElementList;
+		TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
+		FVector2D PositionOffset;
+	};
+	FUpdateCacheElementBatchesContext UpdateCacheElementBatchesContext =
+	{
+		RenderingPolicy.Get(),
+		&ElementList,
+		ElementList.GetCachedRenderDataHandle(),
+		PositionOffset
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		UpdateCacheElementBatches,
+		FUpdateCacheElementBatchesContext, Context, UpdateCacheElementBatchesContext,
+	{
+		if ( Context.RenderDataHandle.IsValid() )
+		{
+			auto RenderDataHandleRef = Context.RenderDataHandle.ToSharedRef();
+
+			FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+			BatchData.UpdateRenderBatches(Context.PositionOffset);
+			Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData, RenderDataHandleRef);
+		}
+	});
+}
+
+void FSlateRHIRenderer::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
+{
+	struct FReleaseCachedRenderDataContext
+	{
+		FSlateRHIRenderingPolicy* RenderPolicy;
+		FSlateRenderDataHandle* RenderDataHandle;
+	};
+	FReleaseCachedRenderDataContext ReleaseCachedRenderDataContext =
+	{
+		RenderingPolicy.Get(),
+		InRenderHandle,
+	};
+	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+		ReleaseCachedRenderData,
+		FReleaseCachedRenderDataContext, Context, ReleaseCachedRenderDataContext,
+	{
+		Context.RenderPolicy->ReleaseCachedRenderData(Context.RenderDataHandle);
+	});
 }

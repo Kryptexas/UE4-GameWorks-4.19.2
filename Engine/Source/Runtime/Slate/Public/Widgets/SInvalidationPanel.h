@@ -40,10 +40,13 @@ public:
 
 	void SetContent(const TSharedRef< SWidget >& InContent);
 
-#if !UE_BUILD_SHIPPING
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static bool IsInvalidationDebuggingEnabled();
 	static void EnableInvalidationDebugging(bool bEnable);
 #endif
+
+private:
+	TSharedPtr< FSlateWindowElementList > GetNextCachedElementList(const TSharedPtr<SWindow>& CurrentWindow) const;
 
 private:
 	FGeometry LastAllottedGeometry;
@@ -51,16 +54,21 @@ private:
 	FSimpleSlot EmptyChildSlot;
 	FVector2D CachedDesiredSize;
 
-#if !UE_BUILD_SHIPPING
-	mutable TSet<TWeakPtr<SWidget>> InvalidatorWidgets;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	mutable TMap<TWeakPtr<SWidget>, double> InvalidatorWidgets;
 #endif
 
 	mutable FCachedWidgetNode* RootCacheNode;
+	mutable TArray< TSharedPtr< FSlateWindowElementList > > ActiveCachedElementListPool;
+	mutable TArray< TSharedPtr< FSlateWindowElementList > > InactiveCachedElementListPool;
 	mutable TSharedPtr< FSlateWindowElementList > CachedWindowElements;
+	mutable TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderData;
+	
 	mutable FVector2D CachedAbsolutePosition;
+	mutable FVector2D AbsoluteDeltaPosition;
+
 	mutable TArray< FCachedWidgetNode* > NodePool;
 	mutable int32 LastUsedCachedNodeIndex;
-	mutable int32 LastLayerId;
 	mutable int32 LastHitTestIndex;
 
 	mutable int32 CachedMaxChildLayer;

@@ -364,7 +364,7 @@ void FSlateD3DRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			FSlateBatchData& BatchData = ElementList.GetBatchData();
 			{
 				SLATE_CYCLE_COUNTER_SCOPE(GRendererUpdateBuffers);
-				BatchData.CreateRenderBatches();
+				BatchData.CreateRenderBatches(ElementList.GetRootDrawLayer().GetElementBatchMap());
 				RenderingPolicy->UpdateVertexAndIndexBuffers(BatchData);
 			}
 

@@ -1,6 +1,17 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
+#include "ReflectionMetadata.h"
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+/**  */
+TAutoConsoleVariable<int32> DrawVolatileWidgets(
+	TEXT("Slate.DrawVolatileWidgets"),
+	true,
+	TEXT("Whether to draw volatile widgets"));
+
+#endif
 
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
 
@@ -159,6 +170,26 @@ void FSlateDrawElement::MakeCustom( FSlateWindowElementList& ElementList, uint32
 	DrawElt.DataPayload.SetCustomDrawerPayloadProperties( CustomDrawer );
 }
 
+void FSlateDrawElement::MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle)
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, FPaintGeometry(), FSlateRect(1, 1, 1, 1), ESlateDrawEffect::None);
+	DrawElt.RenderTransform = FSlateRenderTransform();
+	DrawElt.ElementType = ET_CachedBuffer;
+	DrawElt.DataPayload.SetCachedBufferPayloadProperties(CachedRenderDataHandle.Get());
+}
+
+void FSlateDrawElement::MakeLayer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& DrawLayerHandle)
+{
+	SCOPE_CYCLE_COUNTER(STAT_SlateDrawElementMakeTime)
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, FPaintGeometry(), FSlateRect(1, 1, 1, 1), ESlateDrawEffect::None);
+	DrawElt.RenderTransform = FSlateRenderTransform();
+	DrawElt.ElementType = ET_Layer;
+	DrawElt.DataPayload.SetLayerPayloadProperties(DrawLayerHandle.Get());
+}
+
 FVector2D FSlateDrawElement::GetRotationPoint(const FPaintGeometry& PaintGeometry, const TOptional<FVector2D>& UserRotationPoint, ERotationSpace RotationSpace)
 {
 	FVector2D RotationPoint(0, 0);
@@ -197,6 +228,8 @@ void FSlateBatchData::Reset()
 	NumBatchedVertices = 0;
 	NumBatchedIndices = 0;
 	NumLayers = 0;
+
+	RenderDataHandle.Reset();
 }
 
 void FSlateBatchData::AssignVertexArrayToBatch( FSlateElementBatch& Batch )
@@ -242,6 +275,12 @@ void FSlateBatchData::FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* Inde
 	int32 VertexOffset = 0;
 	for( const FSlateRenderBatch& Batch : RenderBatches )
 	{
+		// Ignore foreign batches that are inserted into our render set.
+		if ( RenderDataHandle != Batch.CachedRenderHandle )
+		{
+			continue;
+		}
+
 		if( Batch.VertexArrayIndex != INDEX_NONE && Batch.IndexArrayIndex != INDEX_NONE )
 		{
 			TArray<FSlateVertex>& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
@@ -268,57 +307,141 @@ void FSlateBatchData::FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* Inde
 	}
 }
 
-void FSlateBatchData::CreateRenderBatches()
+void FSlateBatchData::UpdateRenderBatches(FVector2D PositionOffset)
+{
+	checkSlow(IsInRenderingThread());
+
+	for ( const FSlateRenderBatch& Batch : RenderBatches )
+	{
+		if ( Batch.VertexArrayIndex != INDEX_NONE && Batch.IndexArrayIndex != INDEX_NONE )
+		{
+			TArray<FSlateVertex>& Vertices = BatchVertexArrays[Batch.VertexArrayIndex];
+
+			int32 Count = Vertices.Num();
+			for ( int32 VertexIndex = 0; VertexIndex < Count; VertexIndex++ )
+			{
+				FSlateVertex& Vertex = Vertices[VertexIndex];
+				Vertex.Position[0] += PositionOffset.X;
+				Vertex.Position[1] += PositionOffset.Y;
+				Vertex.ClipRect.TopLeft += PositionOffset;
+			}
+		}
+	}
+}
+
+void FSlateBatchData::CreateRenderBatches(FElementBatchMap& LayerToElementBatches)
 {
 	checkSlow( IsInRenderingThread() );
 
-	LayerToElementBatches.KeySort( TLess<uint32>() );
-
 	uint32 VertexOffset = 0;
 	uint32 IndexOffset = 0;
-	// For each element batch add its vertices and indices to the bulk lists.
-	for (FElementBatchMap::TIterator It(LayerToElementBatches); It; ++It)
+
+	Merge(LayerToElementBatches, VertexOffset, IndexOffset);
+
+	// 
+	if ( RenderDataHandle.IsValid() )
 	{
+		RenderDataHandle->SetRenderBatches(&RenderBatches);
+	}
+}
+
+void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& VertexOffset, uint32& IndexOffset)
+{
+	InLayerToElementBatches.KeySort(TLess<uint32>());
+
+	const bool bExpandLayersAndCachedHandles = RenderDataHandle.IsValid() == false;
+
+	// For each element batch add its vertices and indices to the bulk lists.
+	for ( FElementBatchMap::TIterator It(InLayerToElementBatches); It; ++It )
+	{
+		uint32 Layer = It.Key();
 		FElementBatchArray& ElementBatches = It.Value();
 
-		if( ElementBatches.Num() > 0 )
+		if ( ElementBatches.Num() > 0 )
 		{
 			++NumLayers;
-			for (FElementBatchArray::TIterator BatchIt(ElementBatches); BatchIt; ++BatchIt)
+			for ( FElementBatchArray::TIterator BatchIt(ElementBatches); BatchIt; ++BatchIt )
 			{
 				FSlateElementBatch& ElementBatch = *BatchIt;
 
-				bool bIsMaterial = ElementBatch.GetShaderResource() && ElementBatch.GetShaderResource()->GetType() == ESlateShaderResource::Material;
-
-				if (!ElementBatch.GetCustomDrawer().IsValid())
+				if ( ElementBatch.GetCustomDrawer().IsValid() )
 				{
-					TArray<FSlateVertex>& BatchVertices = GetBatchVertexList(ElementBatch);
-					TArray<SlateIndex>& BatchIndices = GetBatchIndexList(ElementBatch);
-	
-					// We should have at least some vertices and indices in the batch or none at all
-					check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
-
-					if (BatchVertices.Num() > 0 && BatchIndices.Num() > 0)
-					{
-						int32 NumVertices = BatchVertices.Num();
-						int32 NumIndices = BatchIndices.Num();
-
-						AddRenderBatch( ElementBatch, NumVertices, NumIndices, VertexOffset, IndexOffset );
-				
-						VertexOffset += BatchVertices.Num();
-						IndexOffset += BatchIndices.Num();
-					}
+					AddRenderBatch(Layer, ElementBatch, 0, 0, 0, 0);
 				}
 				else
 				{
-					AddRenderBatch( ElementBatch, 0, 0, 0, 0 );
+					if ( bExpandLayersAndCachedHandles )
+					{
+						if ( FSlateRenderDataHandle* RenderHandle = ElementBatch.GetCachedRenderHandle().Get() )
+						{
+							if ( TArray<FSlateRenderBatch>* ForeignBatches = RenderHandle->GetRenderBatches() )
+							{
+								TArray<FSlateRenderBatch>& ForeignBatchesRef = *ForeignBatches;
+								for ( int32 i = 0; i < ForeignBatches->Num(); i++ )
+								{
+									TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle = ForeignBatchesRef[i].LayerHandle.Pin();
+									if ( LayerHandle.IsValid() )
+									{
+										// If a record was added for a layer, but nothing was ever drawn for it, the batch map will be null.
+										if ( LayerHandle->BatchMap )
+										{
+											Merge(*LayerHandle->BatchMap, VertexOffset, IndexOffset);
+											LayerHandle->BatchMap = nullptr;
+										}
+									}
+									else
+									{
+										RenderBatches.Add(ForeignBatchesRef[i]);
+									}
+									//RenderBatches.Append(*RenderHandle->GetRenderBatches());
+								}
+							}
+
+							continue;
+						}
+					}
+					else
+					{
+						// Insert if we're not expanding
+						if ( FSlateDrawLayerHandle* LayerHandle = ElementBatch.GetLayerHandle().Get() )
+						{
+							AddRenderBatch(Layer, ElementBatch, 0, 0, 0, 0);
+							continue;
+						}
+					}
+					
+					if ( ElementBatch.VertexArrayIndex != INDEX_NONE && ElementBatch.IndexArrayIndex != INDEX_NONE )
+					{
+						TArray<FSlateVertex>& BatchVertices = GetBatchVertexList(ElementBatch);
+						TArray<SlateIndex>& BatchIndices = GetBatchIndexList(ElementBatch);
+
+						// We should have at least some vertices and indices in the batch or none at all
+						check(BatchVertices.Num() > 0 && BatchIndices.Num() > 0 || BatchVertices.Num() == 0 && BatchIndices.Num() == 0);
+
+						if ( BatchVertices.Num() > 0 && BatchIndices.Num() > 0 )
+						{
+							const int32 NumVertices = BatchVertices.Num();
+							const int32 NumIndices = BatchIndices.Num();
+
+							AddRenderBatch(Layer, ElementBatch, NumVertices, NumIndices, VertexOffset, IndexOffset);
+
+							VertexOffset += BatchVertices.Num();
+							IndexOffset += BatchIndices.Num();
+						}
+					}
 				}
 			}
 		}
+
 		ElementBatches.Reset();
 	}
-
 }
+
+void FSlateBatchData::SortRenderBatches()
+{
+	//RenderBatches.StableSort();
+}
+
 
 FSlateWindowElementList::FDeferredPaint::FDeferredPaint( const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, const FWidgetStyle& InWidgetStyle, bool InParentEnabled )
 : WidgetToPaintPtr( InWidgetToPaint )
@@ -345,16 +468,14 @@ int32 FSlateWindowElementList::FDeferredPaint::ExecutePaint( int32 LayerId, FSla
 
 void FSlateWindowElementList::QueueDeferredPainting( const FDeferredPaint& InDeferredPaint )
 {
-	DeferredPaintList.Add( MakeShareable( new FDeferredPaint( InDeferredPaint ) ) );
+	DeferredPaintList.Add(MakeShareable(new FDeferredPaint(InDeferredPaint)));
 }
 
 int32 FSlateWindowElementList::PaintDeferred(int32 LayerId)
 {
 	for ( int32 i = 0; i < DeferredPaintList.Num(); ++i )
 	{
-		const TSharedRef< FDeferredPaint >& Args = DeferredPaintList[i];
-
-		LayerId = Args->ExecutePaint(LayerId, *this);
+		LayerId = DeferredPaintList[i]->ExecutePaint(LayerId, *this);
 	}
 
 	return LayerId;
@@ -377,40 +498,202 @@ int32 FSlateWindowElementList::FVolatilePaint::ExecutePaint(FSlateWindowElementL
 	TSharedPtr<const SWidget> WidgetToPaint = WidgetToPaintPtr.Pin();
 	if ( WidgetToPaint.IsValid() )
 	{
+		//FPlatformMisc::BeginNamedEvent(FColor::Orange, "Overhead");
+		//FPlatformMisc::BeginNamedEvent(FColor::Orange, *FReflectionMetaData::GetWidgetDebugInfo(WidgetToPaint));
+
 		// Have to run a slate pre-pass for all volatile elements, some widgets cache information like 
 		// the STextBlock.  This may be all kinds of terrible an idea to do during paint.
 		SWidget* MutableWidget = const_cast<SWidget*>( WidgetToPaint.Get() );
 		MutableWidget->SlatePrepass(AllottedGeometry.Scale);
 
-		return WidgetToPaint->Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
+		const int32 NewLayer = WidgetToPaint->Paint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, WidgetStyle, bParentEnabled);
+		
+		//FPlatformMisc::EndNamedEvent();
+		//FPlatformMisc::EndNamedEvent();
+
+		return NewLayer;
 	}
 
 	return LayerId;
 }
 
-void FSlateWindowElementList::QueueVolatilePainting(const FVolatilePaint& InDeferredPaint)
+void FSlateWindowElementList::QueueVolatilePainting(const FVolatilePaint& InVolatilePaint)
 {
-	VolatilePaintList.Add(MakeShareable(new FVolatilePaint(InDeferredPaint)));
+	TSharedPtr< FSlateDrawLayerHandle, ESPMode::ThreadSafe > LayerHandle = MakeShareable(new FSlateDrawLayerHandle());
+
+	FSlateDrawElement::MakeLayer(*this, InVolatilePaint.GetLayerId(), LayerHandle);
+
+	const int32 NewEntryIndex = VolatilePaintList.Add(MakeShareable(new FVolatilePaint(InVolatilePaint)));
+	VolatilePaintList[NewEntryIndex]->LayerHandle = LayerHandle;
 }
 
 int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElementList)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	const bool bDrawVolatile = DrawVolatileWidgets.GetValueOnGameThread() == 1;
+#else
+	const bool bDrawVolatile = true;
+#endif
+
+	const static FName InvalidationPanelName(TEXT("SInvalidationPanelName"));
+
 	int32 MaxLayerId = 0;
 
 	for ( int32 VolatileIndex = 0; VolatileIndex < VolatilePaintList.Num(); ++VolatileIndex )
 	{
-		const TSharedRef< FVolatilePaint >& Args = VolatilePaintList[VolatileIndex];
+		const TSharedPtr<FVolatilePaint>& Args = VolatilePaintList[VolatileIndex];
 
+		// If we're not drawing volatile elements, just draw invalidation panels.  They're
+		// the exception, as we're likely trying to determine the volatile widget overhead.
+		if ( bDrawVolatile == false )
+		{
+			if ( const SWidget* Widget = Args->GetWidget() )
+			{
+				if ( Widget->GetType() != InvalidationPanelName )
+				{
+					continue;
+				}
+			}
+		}
+
+		OutElementList.BeginLogicalLayer(Args->LayerHandle);
 		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList));
+		OutElementList.EndLogicalLayer();
 	}
 
 	return MaxLayerId;
 }
 
-void FSlateWindowElementList::Reset()
+void FSlateWindowElementList::BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle)
 {
-	BatchData.Reset();
-	DrawElements.Reset();
+	// Don't attempt to begin logical layers inside a cached view of the data.
+	checkSlow(!IsCachedRenderDataInUse());
+
+	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "FindLayer");
+	TSharedPtr<FSlateDrawLayer> Layer = DrawLayers.FindRef(LayerHandle);
+	//FPlatformMisc::EndNamedEvent();
+
+	if ( !Layer.IsValid() )
+	{
+		if ( DrawLayerPool.Num() > 0 )
+		{
+			Layer = DrawLayerPool.Pop(false);
+		}
+		else
+		{
+			Layer = MakeShareable(new FSlateDrawLayer());
+		}
+
+		//FPlatformMisc::BeginNamedEvent(FColor::Orange, "AddLayer");
+		DrawLayers.Add(LayerHandle, Layer);
+		//FPlatformMisc::EndNamedEvent();
+	}
+
+	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "PushLayer");
+	DrawStack.Push(Layer.Get());
+	//FPlatformMisc::EndNamedEvent();
+}
+
+void FSlateWindowElementList::EndLogicalLayer()
+{
+	DrawStack.Pop();
+}
+
+FSlateRenderDataHandle::FSlateRenderDataHandle(FSlateRenderer* InRenderer)
+	: Renderer(InRenderer)
+	, RenderBatches(nullptr)
+{
+}
+
+FSlateRenderDataHandle::~FSlateRenderDataHandle()
+{
+	if ( Renderer )
+	{
+		Renderer->ReleaseCachedRenderData(this);
+	}
+}
+
+void FSlateRenderDataHandle::Disconnect()
+{
+	Renderer = nullptr;
+	RenderBatches = nullptr;
+}
+
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateWindowElementList::CacheRenderData()
+{
+	// Don't attempt to use this slate window element list if the cache is still being used.
+	checkSlow(!IsCachedRenderDataInUse());
+
+	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+
+	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderDataHandleRef = Renderer->CacheElementRenderData(*this);
+	CachedRenderDataHandle = CachedRenderDataHandleRef;
+
+	return CachedRenderDataHandleRef;
+}
+
+void FSlateWindowElementList::UpdateCacheRenderData(FVector2D PositionOffset)
+{
+	// This should only be done if we're using cached render data
+	checkSlow(IsCachedRenderDataInUse());
+
+	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+	Renderer->UpdateElementRenderData(*this, PositionOffset);
+}
+
+void FSlateWindowElementList::PreDraw_RenderThread()
+{
+	check(IsInRenderingThread());
+
+	for ( auto& Entry : DrawLayers )
+	{
+		checkSlow(Entry.Key->BatchMap == nullptr);
+		Entry.Key->BatchMap = &Entry.Value->GetElementBatchMap();
+	}
+}
+
+void FSlateWindowElementList::PostDraw_RenderThread()
+{
+	check(IsInRenderingThread());
+
+	for ( auto& Entry : DrawLayers )
+	{
+		Entry.Key->BatchMap = nullptr;
+	}
+}
+
+void FSlateWindowElementList::ResetBuffers()
+{
+	// Don't attempt to use this slate window element list if the cache is still being used.
+	checkSlow(!IsCachedRenderDataInUse());
+
 	DeferredPaintList.Reset();
 	VolatilePaintList.Reset();
+	BatchData.Reset();
+
+#if SLATE_POOL_DRAW_ELEMENTS
+	DrawElementFreePool.Append(RootDrawLayer.DrawElements);
+#endif
+
+	// Reset the draw elements on the root draw layer
+	RootDrawLayer.DrawElements.Reset();
+
+	// Return child draw layers to the pool, and reset their draw elements.
+	for ( auto& Entry : DrawLayers )
+	{
+#if SLATE_POOL_DRAW_ELEMENTS
+		TArray<FSlateDrawElement*>& DrawElements = Entry.Value->DrawElements;
+		DrawElementFreePool.Append(DrawElements);
+#else
+		TArray<FSlateDrawElement>& DrawElements = Entry.Value->DrawElements;
+#endif
+
+		DrawElements.Reset();
+		DrawLayerPool.Add(Entry.Value);
+	}
+
+	DrawLayers.Reset();
+
+	DrawStack.Reset();
+	DrawStack.Push(&RootDrawLayer);
 }

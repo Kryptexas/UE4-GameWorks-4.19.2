@@ -31,7 +31,9 @@ public:
 	 * Resets all stored data accumulated during the batching process
 	 */
 	void ResetBatches();
+
 private:
+	void AddElements(FSlateDrawLayer& InDrawLayer);
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 
@@ -85,6 +87,10 @@ private:
 	 */
 	void AddCustomElement( const FSlateDrawElement& DrawElement );
 
+	void AddCachedBuffer( const FSlateDrawElement& DrawElement );
+
+	void AddLayer(const FSlateDrawElement& DrawElement);
+
 	/** 
 	 * Finds an batch for an element based on the passed in parameters
 	 * Elements with common parameters and layers will batched together.
@@ -108,11 +114,17 @@ private:
 	/** Batch data currently being filled in */
 	FSlateBatchData* BatchData;
 
+	/** The draw layer currently being accumulated */
+	FSlateDrawLayer* DrawLayer;
+
 	/** Resource manager for accessing shader resources */
 	FSlateShaderResourceManager& ResourceManager;
 
 	/** Font cache used to layout text */
 	FSlateFontCache& FontCache;
+
+	/** Track the number of drawn batches from the previous frame to report to stats. */
+	int32 NumDrawnBatchesStat;
 
 	/** Offset to use when supporting 1:1 texture to pixel snapping */
 	const float PixelCenterOffset;

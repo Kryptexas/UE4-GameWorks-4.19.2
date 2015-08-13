@@ -384,7 +384,7 @@ void SWindow::ConstructWindowInternals()
 	// Setup widget that represents the main area of the window.  That is, everything inside the window's border.
 	TSharedRef< SVerticalBox > MainWindowArea = 
 		SNew( SVerticalBox )
-			.Visibility( EVisibility::SelfHitTestInvisible );
+		.Visibility( EVisibility::SelfHitTestInvisible );
 
 	if (bCreateTitleBar)
 	{
@@ -408,10 +408,10 @@ void SWindow::ConstructWindowInternals()
 		}
 
 		MainWindowArea->AddSlot()
-			.AutoHeight()
-			[
-				FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
-			];
+		.AutoHeight()
+		[
+			FSlateApplicationBase::Get().MakeWindowTitleBar(SharedThis(this), nullptr, TitleContentAlignment, TitleBar)
+		];
 	}
 	else
 	{
@@ -437,57 +437,56 @@ void SWindow::ConstructWindowInternals()
 		this->ChildSlot
 		[
 			SAssignNew(WindowOverlay, SOverlay)
-				.Visibility(EVisibility::SelfHitTestInvisible)
+			.Visibility(EVisibility::SelfHitTestInvisible)
 
 			// window background
 			+ SOverlay::Slot()
-				[
-					FSlateApplicationBase::Get().MakeImage(
-						WindowBackgroundAttr,
-						FLinearColor::White,
-						WindowContentVisibility
-					)
-				]
+			[
+				FSlateApplicationBase::Get().MakeImage(
+					WindowBackgroundAttr,
+					FLinearColor::White,
+					WindowContentVisibility
+				)
+			]
 
 			// window border
 			+ SOverlay::Slot()
-				[
-					FSlateApplicationBase::Get().MakeImage(
-						&Style->BorderBrush,
-						FLinearColor::White,
-						WindowContentVisibility
-					)
-				]
+			[
+				FSlateApplicationBase::Get().MakeImage(
+					&Style->BorderBrush,
+					FLinearColor::White,
+					WindowContentVisibility
+				)
+			]
 
 			// main area
 			+ SOverlay::Slot()
-				[
-					SNew(SVerticalBox)
-						.Visibility(WindowContentVisibility)
+			[
+				SNew(SVerticalBox)
+				.Visibility(WindowContentVisibility)
 
-					+ SVerticalBox::Slot()
-					
-						.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SWindow::GetWindowBorderSize, false)))
-						[
-							MainWindowArea
-						]
+				+ SVerticalBox::Slot()					
+				.Padding(TAttribute<FMargin>::Create(TAttribute<FMargin>::FGetter::CreateSP(this, &SWindow::GetWindowBorderSize, false)))
+				[
+					MainWindowArea
 				]
+			]
 
 			// pop-up layer
 			+ SOverlay::Slot()
-				[
-					SAssignNew(PopupLayer, SPopupLayer, SharedThis(this))
-				]
+			[
+				SAssignNew(PopupLayer, SPopupLayer, SharedThis(this))
+			]
 
 			// window outline
 			+ SOverlay::Slot()
-				[
-					FSlateApplicationBase::Get().MakeImage(
-						WindowOutlineAttr,
-						WindowOutlineColorAttr,
-						WindowContentVisibility
-					)
-				]
+			[
+				FSlateApplicationBase::Get().MakeImage(
+					WindowOutlineAttr,
+					WindowOutlineColorAttr,
+					WindowContentVisibility
+				)
+			]
 		];
 	}
 	else if( bHasOSWindowBorder )
@@ -497,7 +496,7 @@ void SWindow::ConstructWindowInternals()
 			SAssignNew(WindowOverlay, SOverlay)
 			+ SOverlay::Slot()
 			[
-					MainWindowArea
+				MainWindowArea
 			]
 			+ SOverlay::Slot()
 			[

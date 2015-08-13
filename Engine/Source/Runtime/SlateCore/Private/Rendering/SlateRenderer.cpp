@@ -55,6 +55,15 @@ ISlateAtlasProvider* FSlateRenderer::GetFontAtlasProvider()
 	return nullptr;
 }
 
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRenderer::CacheElementRenderData(FSlateWindowElementList& ElementList)
+{
+	return MakeShareable(new FSlateRenderDataHandle(this));
+}
+
+void FSlateRenderer::UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset)
+{
+	// Do Nothing
+}
 
 /* Global functions
  *****************************************************************************/

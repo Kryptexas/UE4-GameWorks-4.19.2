@@ -129,7 +129,7 @@ void FSlateOpenGLRenderer::DrawWindows( FSlateDrawBuffer& InWindowDrawBuffer )
 			
 			FSlateBatchData& BatchData = ElementList.GetBatchData();
 
-			BatchData.CreateRenderBatches();
+			BatchData.CreateRenderBatches(ElementList.GetRootDrawLayer().GetElementBatchMap());
 
 			RenderingPolicy->UpdateVertexAndIndexBuffers( BatchData );
 

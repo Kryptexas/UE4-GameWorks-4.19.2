@@ -23,6 +23,9 @@ struct FSlateGradientStop
 template <> struct TIsPODType<FSlateGradientStop> { enum { Value = true }; };
 
 
+class FSlateDrawLayerHandle;
+
+
 class FSlateDataPayload
 {
 public:
@@ -66,6 +69,12 @@ public:
 	// Custom drawer data
 	TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
 
+	// Cached render data
+	class FSlateRenderDataHandle* CachedRenderData;
+
+	// Layer handle
+	FSlateDrawLayerHandle* LayerHandle;
+
 	// Line data
 	ESlateLineJoinType::Type SegmentJoinType;
 	bool bAntialias;
@@ -75,6 +84,8 @@ public:
 		, BrushResource(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
 		, Viewport(nullptr)
+		, CachedRenderData(nullptr)
+		, LayerHandle(nullptr)
 	{ }
 
 	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint )
@@ -139,6 +150,18 @@ public:
 	{
 		CustomDrawer = InCustomDrawer;
 	}
+
+	void SetCachedBufferPayloadProperties(FSlateRenderDataHandle* InRenderDataHandle)
+	{
+		CachedRenderData = InRenderDataHandle;
+		checkSlow(CachedRenderData);
+	}
+
+	void SetLayerPayloadProperties(FSlateDrawLayerHandle* InLayerHandle)
+	{
+		LayerHandle = InLayerHandle;
+		checkSlow(LayerHandle);
+	}
 };
 
 /**
@@ -159,6 +182,8 @@ public:
 		ET_Viewport,
 		ET_Border,
 		ET_Custom,
+		ET_CachedBuffer,
+		ET_Layer,
 		ET_Count,
 	};
 
@@ -313,19 +338,23 @@ public:
 	 */
 	SLATECORE_API static void MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer );
 
+	SLATECORE_API static void MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle);
 
-	EElementType GetElementType() const { return ElementType; }
-	uint32 GetLayer() const { return Layer; }
-	const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
-	SLATECORE_API const FVector2D& GetPosition() const { return Position; }
-	SLATECORE_API void SetPosition(const FVector2D& InPosition) { Position = Position; }
-	const FVector2D& GetLocalSize() const { return LocalSize; }
-	float GetScale() const { return Scale; }
-	SLATECORE_API const FSlateRect& GetClippingRect() const { return ClippingRect; }
-	SLATECORE_API void SetClippingRect(const FSlateRect& InClippingRect) { ClippingRect = InClippingRect; }
-	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
-	uint32 GetDrawEffects() const { return DrawEffects; }
-	const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
+	SLATECORE_API static void MakeLayer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& DrawLayerHandle);
+
+
+	FORCEINLINE EElementType GetElementType() const { return ElementType; }
+	FORCEINLINE uint32 GetLayer() const { return Layer; }
+	FORCEINLINE const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
+	FORCEINLINE const FVector2D& GetPosition() const { return Position; }
+	FORCEINLINE void SetPosition(const FVector2D& InPosition) { Position = Position; }
+	FORCEINLINE const FVector2D& GetLocalSize() const { return LocalSize; }
+	FORCEINLINE float GetScale() const { return Scale; }
+	FORCEINLINE const FSlateRect& GetClippingRect() const { return ClippingRect; }
+	FORCEINLINE void SetClippingRect(const FSlateRect& InClippingRect) { ClippingRect = InClippingRect; }
+	FORCEINLINE const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
+	FORCEINLINE uint32 GetDrawEffects() const { return DrawEffects; }
+	FORCEINLINE const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
 
 private:
 	void Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects);
@@ -345,6 +374,7 @@ private:
 	EElementType ElementType;
 	TOptional<FShortRect> ScissorRect;
 };
+
 
 /**
  * Shader parameters for slate
@@ -373,6 +403,26 @@ struct FShaderParams
 	}
 };
 
+class FSlateRenderer;
+class FSlateRenderBatch;
+
+class SLATECORE_API FSlateRenderDataHandle : public TSharedFromThis < FSlateRenderDataHandle, ESPMode::ThreadSafe >
+{
+public:
+	FSlateRenderDataHandle(FSlateRenderer* InRenderer);
+
+	virtual ~FSlateRenderDataHandle();
+
+	void Disconnect();
+
+	void SetRenderBatches(TArray<FSlateRenderBatch>* InRenderBatches) { RenderBatches = InRenderBatches; }
+	TArray<FSlateRenderBatch>* GetRenderBatches() { return RenderBatches; }
+
+private:
+	FSlateRenderer* Renderer;
+	TArray<FSlateRenderBatch>* RenderBatches;
+};
+
 /** 
  * Represents an element batch for rendering. 
  */
@@ -395,6 +445,21 @@ public:
 		, IndexArrayIndex(INDEX_NONE)
 	{}
 
+	FSlateElementBatch( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, const TOptional<FShortRect>& ScissorRect)
+		: BatchKey( InCachedRenderHandle, ScissorRect )
+		, ShaderResource( nullptr )
+		, NumElementsInBatch(0)
+		, VertexArrayIndex(INDEX_NONE)
+		, IndexArrayIndex(INDEX_NONE)
+	{}
+
+	FSlateElementBatch( TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> InLayerHandle, const TOptional<FShortRect>& ScissorRect)
+		: BatchKey( InLayerHandle, ScissorRect )
+		, ShaderResource( nullptr )
+		, NumElementsInBatch(0)
+		, VertexArrayIndex(INDEX_NONE)
+		, IndexArrayIndex(INDEX_NONE)
+	{}
 
 	bool operator==( const FSlateElementBatch& Other ) const
 	{	
@@ -414,10 +479,14 @@ public:
 	ESlateDrawEffect::Type GetDrawEffects() const { return BatchKey.DrawEffects; }
 	const TOptional<FShortRect>& GetScissorRect() const { return BatchKey.ScissorRect; }
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> GetCustomDrawer() const { return BatchKey.CustomDrawer; }
+	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderHandle() const { return BatchKey.CachedRenderHandle; }
+	const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> GetLayerHandle() const { return BatchKey.LayerHandle; }
 private:
 	struct FBatchKey
 	{
 		const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
+		const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderHandle;
+		const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle;
 		const FShaderParams ShaderParams;
 		const ESlateBatchDrawFlag::Type DrawFlags;	
 		const ESlateShader::Type ShaderType;
@@ -445,6 +514,26 @@ private:
 			, ScissorRect( InScissorRect )
 		{}
 
+		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, const TOptional<FShortRect>& InScissorRect)
+			: CachedRenderHandle(InCachedRenderHandle)
+			, ShaderParams()
+			, DrawFlags(ESlateBatchDrawFlag::None)
+			, ShaderType(ESlateShader::Default)
+			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
+			, DrawEffects(ESlateDrawEffect::None)
+			, ScissorRect(InScissorRect)
+		{}
+
+		FBatchKey(TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> InLayerHandle, const TOptional<FShortRect>& InScissorRect)
+			: LayerHandle(InLayerHandle)
+			, ShaderParams()
+			, DrawFlags(ESlateBatchDrawFlag::None)
+			, ShaderType(ESlateShader::Default)
+			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
+			, DrawEffects(ESlateDrawEffect::None)
+			, ScissorRect(InScissorRect)
+		{}
+
 		bool operator==( const FBatchKey& Other ) const
 		{
 			return DrawFlags == Other.DrawFlags
@@ -454,6 +543,8 @@ private:
 				&& ShaderParams == Other.ShaderParams
 				&& ScissorRect == Other.ScissorRect
 				&& CustomDrawer == Other.CustomDrawer
+				&& CachedRenderHandle == Other.CachedRenderHandle
+				&& LayerHandle == Other.LayerHandle
 				;
 		}
 
@@ -463,6 +554,7 @@ private:
 			// NOTE: Assumes these enum types are 8 bits.
 			uint32 RunningHash = (uint32)InBatchKey.DrawFlags << 24 | (uint32)InBatchKey.ShaderType << 16 | (uint32)InBatchKey.DrawPrimitiveType << 8 | (uint32)InBatchKey.DrawEffects << 0;
 			RunningHash = InBatchKey.CustomDrawer.IsValid() ? PointerHash(InBatchKey.CustomDrawer.Pin().Get(), RunningHash) : RunningHash;
+			RunningHash = InBatchKey.CachedRenderHandle.IsValid() ? PointerHash(InBatchKey.CachedRenderHandle.Get(), RunningHash) : RunningHash;
 			RunningHash = HashCombine(GetTypeHash(InBatchKey.ShaderParams.PixelParams), RunningHash);
 			// NOTE: Assumes this type is 64 bits, no padding.
 			RunningHash = InBatchKey.ScissorRect.IsSet() ? HashCombine(GetTypeHash(*reinterpret_cast<const uint64*>(&InBatchKey.ScissorRect.GetValue())), RunningHash) : RunningHash;
@@ -488,10 +580,13 @@ public:
 class FSlateRenderBatch
 {
 public:
-	FSlateRenderBatch( const FSlateElementBatch& InBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
-		: ShaderParams( InBatch.GetShaderParams() )
+	FSlateRenderBatch(uint32 InLayer, const FSlateElementBatch& InBatch, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InRenderHandle, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset)
+		: Layer( InLayer )
+		, ShaderParams( InBatch.GetShaderParams() )
 		, Texture( InBatch.GetShaderResource() )
 		, CustomDrawer( InBatch.GetCustomDrawer() )
+		, LayerHandle( InBatch.GetLayerHandle() )
+		, CachedRenderHandle( InRenderHandle )
 		, DrawFlags( InBatch.GetDrawFlags() )
 		, ShaderType( InBatch.GetShaderType() )
 		, DrawPrimitiveType( InBatch.GetPrimitiveType() )
@@ -505,13 +600,26 @@ public:
 		, NumIndices( InNumIndices )
 	{}
 
+	// Render Batch Sort Operator
+	bool operator < ( const FSlateRenderBatch& RenderBatchIn ) const
+	{
+		return Layer < RenderBatchIn.Layer;
+	}
+
 public:
+	/** The layer we need to sort by when  */
+	uint32 Layer;
+
 	const FShaderParams ShaderParams;
 
 	/** Texture to use with this batch.  */
 	const FSlateShaderResource* Texture;
 
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
+
+	const TWeakPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle;
+
+	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderHandle;
 
 	const ESlateBatchDrawFlag::Type DrawFlags;	
 
@@ -553,8 +661,6 @@ public:
 
 	void Reset();
 
-	FElementBatchMap& GetElementBatchMap() { return LayerToElementBatches; }
-
 	/**
 	 * Returns a list of element batches for this window
 	 */
@@ -585,6 +691,9 @@ public:
 	/** @return Total number of batched layers */
 	int32 GetNumLayers() const { return NumLayers; }
 
+	/** Set the associated vertex/index buffer handle. */
+	void SetRenderDataHandle(TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InRenderDataHandle) { RenderDataHandle = InRenderDataHandle; }
+
 	/** 
 	 * Fills batch data into the actual vertex and index buffer
 	 *
@@ -596,20 +705,32 @@ public:
 	/** 
 	 * Creates rendering data from batched elements
 	 */
-	SLATECORE_API void CreateRenderBatches();
+	SLATECORE_API void CreateRenderBatches(FElementBatchMap& LayerToElementBatches);
+
+	/**
+	 * Patches the render data to be offset by the new layer delta.
+	 */
+	SLATECORE_API void UpdateRenderBatches(FVector2D PositionOffset);
+
+	/** 
+	 * Sort the rendered element batches.
+	 */
+	SLATECORE_API void SortRenderBatches();
 
 private:
-	void AddRenderBatch( const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
+	void Merge(FElementBatchMap& InLayerToElementBatches, uint32& VertexOffset, uint32& IndexOffset);
+
+	void AddRenderBatch( uint32 InLayer, const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
 	{
 		NumBatchedVertices += InNumVertices;
 		NumBatchedIndices += InNumIndices;
 
-		RenderBatches.Add( FSlateRenderBatch(InElementBatch, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset) );
+		RenderBatches.Add( FSlateRenderBatch(InLayer, InElementBatch, RenderDataHandle, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset) );
 	}
 private:
 
-	// Element batch maps sorted by layer.
-	FElementBatchMap LayerToElementBatches;
+	// The associated render data handle if these render batches are not in the default vertex/index buffer
+	TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
 
 	// Array of vertex lists that are currently free (have no elements in them).
 	TArray<uint32> VertexArrayFreeList;
@@ -634,6 +755,41 @@ private:
 
 };
 
+class FSlateRenderer;
+
+class FSlateDrawLayer
+{
+public:
+	FElementBatchMap& GetElementBatchMap() { return LayerToElementBatches; }
+
+public:
+	// Element batch maps sorted by layer.
+	FElementBatchMap LayerToElementBatches;
+
+#if SLATE_POOL_DRAW_ELEMENTS
+	/** The elements drawn on this layer */
+	TArray<FSlateDrawElement*> DrawElements;
+#else
+	/** The elements drawn on this layer */
+	TArray<FSlateDrawElement> DrawElements;
+#endif
+};
+
+/**
+ * 
+ */
+class FSlateDrawLayerHandle : public TSharedFromThis < FSlateDrawLayerHandle, ESPMode::ThreadSafe >
+{
+public:
+	FSlateDrawLayerHandle()
+		: BatchMap(nullptr)
+	{
+	}
+
+	FElementBatchMap* BatchMap;
+};
+
+
 /**
  * Represents a top level window and its draw elements.
  */
@@ -649,7 +805,8 @@ public:
 	 */
 	explicit FSlateWindowElementList( TSharedPtr<SWindow> InWindow = TSharedPtr<SWindow>() )
 		: TopLevelWindow( InWindow )
-	{		
+	{
+		DrawStack.Push(&RootDrawLayer);
 	}
 	
 	/** @return Get the window that we will be painting */
@@ -664,12 +821,22 @@ public:
 		return TopLevelWindow.Pin();
 	}
 	
+#if SLATE_POOL_DRAW_ELEMENTS
+	
+	/** @return Get the draw elements that we want to render into this window */
+	FORCEINLINE const TArray<FSlateDrawElement*>& GetDrawElements() const
+	{
+		return RootDrawLayer.DrawElements;
+	}
+
+#else
+
 	/** @return Get the draw elements that we want to render into this window */
 	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
 	{
-		return DrawElements;
+		return RootDrawLayer.DrawElements;
 	}
-	
+
 	/**
 	 * Add a draw element to the list
 	 *
@@ -677,25 +844,47 @@ public:
 	 */
 	FORCEINLINE void AddItem(const FSlateDrawElement& InDrawElement)
 	{
-		DrawElements.Add( InDrawElement );
+		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		ActiveDrawElements.Add(InDrawElement);
 	}
+#endif
 
 	/**
 	 * Creates an uninitialized draw element
 	 */
 	FORCEINLINE FSlateDrawElement& AddUninitialized()
 	{
-		const int32 InsertIdx = DrawElements.AddDefaulted();
-		return DrawElements[InsertIdx];
+#if SLATE_POOL_DRAW_ELEMENTS
+		FSlateDrawElement* DrawElement = ( DrawElementFreePool.Num() > 0 ) ? DrawElementFreePool.Pop() : new FSlateDrawElement();
+		DrawStack.Last()->DrawElements.Push(DrawElement);
+
+		return *DrawElement;
+#else
+		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		const int32 InsertIdx = ActiveDrawElements.AddDefaulted();
+		return ActiveDrawElements[InsertIdx];
+#endif
 	}
 
+#if SLATE_POOL_DRAW_ELEMENTS
 	/**
 	 * Append draw elements to the list of draw elements
 	 */
+	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement*>& InDrawElements)
+	{
+		TArray<FSlateDrawElement*>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		ActiveDrawElements.Append(InDrawElements);
+	}
+#else
+	/**
+	* Append draw elements to the list of draw elements
+	*/
 	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement>& InDrawElements)
 	{
-		DrawElements.Append(InDrawElements);
+		TArray<FSlateDrawElement>& ActiveDrawElements = DrawStack.Last()->DrawElements;
+		ActiveDrawElements.Append(InDrawElements);
 	}
+#endif
 
 	/**
 	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
@@ -726,9 +915,14 @@ public:
 	public:
 		SLATECORE_API FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled);
 
-		int32 ExecutePaint( FSlateWindowElementList& OutDrawElements ) const;
+		int32 ExecutePaint(FSlateWindowElementList& OutDrawElements) const;
 
+		FORCEINLINE const SWidget* GetWidget() const { return WidgetToPaintPtr.Pin().Get(); }
 		FORCEINLINE FGeometry GetGeometry() const { return AllottedGeometry; }
+		FORCEINLINE int32 GetLayerId() const { return LayerId; }
+
+	public:
+		TSharedPtr< FSlateDrawLayerHandle, ESPMode::ThreadSafe > LayerHandle;
 	 
 	private:
 		const TWeakPtr<const SWidget> WidgetToPaintPtr;
@@ -744,31 +938,80 @@ public:
 
 	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList);
 
-	SLATECORE_API const TArray< TSharedRef<FVolatilePaint> >& GetVolatileElements() const { return VolatilePaintList; }
+	SLATECORE_API void BeginLogicalLayer(const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& LayerHandle);
+	SLATECORE_API void EndLogicalLayer();
+
+	SLATECORE_API const TArray< TSharedPtr<FVolatilePaint> >& GetVolatileElements() const { return VolatilePaintList; }
 	
 	/**
 	 * Remove all the elements from this draw list.
 	 */
-	SLATECORE_API void Reset();
+	SLATECORE_API void ResetBuffers();
 
 	FSlateBatchData& GetBatchData() { return BatchData; }
 
+	FSlateDrawLayer& GetRootDrawLayer() { return RootDrawLayer; }
+
+	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> >& GetChildDrawLayers() { return DrawLayers; }
+
+	/**
+	 * Caches this element list on the renderer, generating all needed index and vertex buffers.
+	 */
+	SLATECORE_API TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheRenderData();
+
+	SLATECORE_API void UpdateCacheRenderData(FVector2D PositionOffset);
+
+	SLATECORE_API TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderDataHandle() const
+	{
+		return CachedRenderDataHandle.Pin();
+	}
+
+	SLATECORE_API bool IsCachedRenderDataInUse() const
+	{
+		return CachedRenderDataHandle.IsValid();
+	}
+
+	SLATECORE_API void PreDraw_RenderThread();
+
+	SLATECORE_API void PostDraw_RenderThread();
+
 private:
-	/** Batched data used for rendering */
-	FSlateBatchData BatchData;
 
 	/** The top level window which these elements are being drawn on */
 	TWeakPtr<SWindow> TopLevelWindow;
-	
+
+	/** Batched data used for rendering */
+	FSlateBatchData BatchData;
+
+	/** The base draw layer/context. */
+	FSlateDrawLayer RootDrawLayer;
+
+	/** */
+	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> > DrawLayers;
+
+	/** */
+	TArray< TSharedPtr<FSlateDrawLayer> > DrawLayerPool;
+
+	/** */
+	TArray< FSlateDrawLayer* > DrawStack;
+
+#if SLATE_POOL_DRAW_ELEMENTS
 	/** List of draw elements for the window */
-	TArray<FSlateDrawElement> DrawElements;
+	TArray<FSlateDrawElement*> DrawElementFreePool;
+#endif
 
 	/**
 	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.
 	 * We accomplish this by deferring their painting.
 	 */
-	TArray< TSharedRef<FDeferredPaint> > DeferredPaintList;
+	TArray< TSharedPtr<FDeferredPaint> > DeferredPaintList;
 
 	/** The widgets be cached for a later paint pass when the invalidation host paints. */
-	TArray< TSharedRef<FVolatilePaint> > VolatilePaintList;
+	TArray< TSharedPtr<FVolatilePaint> > VolatilePaintList;
+
+	/**
+	 * Handle to the cached render data associated with this element list.  Will only exist if 
+	 * this element list is being used for invalidation / caching.
+	 */
+	mutable TWeakPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderDataHandle;
 };

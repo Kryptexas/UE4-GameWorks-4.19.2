@@ -7,7 +7,7 @@
 #include "SlateStats.h"
 
 DECLARE_CYCLE_STAT(TEXT("Find Batch For Element Time"), STAT_SlateFindBatchForElement, STATGROUP_SlateVerbose);
-DECLARE_DWORD_COUNTER_STAT(TEXT("Num Elements (Prebatch)"), STAT_SlateNumPrebatchElements, STATGROUP_SlateVerbose);
+DECLARE_DWORD_COUNTER_STAT(TEXT("Num Elements (Prebatch)"), STAT_SlateNumPrebatchElements, STATGROUP_Slate);
 
 DECLARE_CYCLE_STAT(TEXT("Add Elements Time"), STAT_SlateAddElements, STATGROUP_Slate);
 
@@ -50,25 +50,48 @@ FSlateRotatedClipRectType ToSnappedRotatedRect(const FSlateRect& ClipRectInLayou
 
 FSlateElementBatcher::FSlateElementBatcher( TSharedRef<FSlateRenderingPolicy> InRenderingPolicy )
 	: BatchData( nullptr )
+	, DrawLayer( nullptr )
 	, ResourceManager( *InRenderingPolicy->GetResourceManager() )
 	, FontCache( *InRenderingPolicy->GetFontCache() )
+	, NumDrawnBatchesStat(0)
 	, PixelCenterOffset( InRenderingPolicy->GetPixelCenterOffset() )
 	, bSRGBVertexColor( !InRenderingPolicy->IsVertexColorInLinearSpace() )
 {
-
 }
-
 
 FSlateElementBatcher::~FSlateElementBatcher()
 {
 }
 
-
-void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementList )
+void FSlateElementBatcher::AddElements(FSlateWindowElementList& WindowElementList)
 {
 	SLATE_CYCLE_COUNTER_SCOPE(GSlateAddElements);
+	FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::AddElements");
 
-	SCOPE_CYCLE_COUNTER( STAT_SlateAddElements );
+	SCOPE_CYCLE_COUNTER(STAT_SlateAddElements);
+
+	NumDrawnBatchesStat = 0;
+
+	BatchData = &WindowElementList.GetBatchData();
+
+	AddElements(WindowElementList.GetRootDrawLayer());
+
+	TMap < TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>, TSharedPtr<FSlateDrawLayer> >& DrawLayers = WindowElementList.GetChildDrawLayers();
+	for ( auto& Entry : DrawLayers )
+	{
+		AddElements(*Entry.Value.Get());
+	}
+
+	// Done with the element list
+	BatchData = nullptr;
+
+	SET_DWORD_STAT(STAT_SlateNumPrebatchElements, NumDrawnBatchesStat);
+
+	FPlatformMisc::EndNamedEvent();
+}
+
+void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
+{
 	// This stuff is just for the counters. Could be scoped by an #ifdef if necessary.
 	static_assert(
 		FSlateDrawElement::EElementType::ET_Box == 0 &&
@@ -80,10 +103,12 @@ void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementLi
 		FSlateDrawElement::EElementType::ET_Viewport == 6 &&
 		FSlateDrawElement::EElementType::ET_Border == 7 &&
 		FSlateDrawElement::EElementType::ET_Custom == 8 &&
-		FSlateDrawElement::EElementType::ET_Count == 9, 
-		"If FSlateDrawElement::EElementType is modified, this array must be made to match.");
+		FSlateDrawElement::EElementType::ET_CachedBuffer == 9 &&
+		FSlateDrawElement::EElementType::ET_Layer == 10 &&
+		FSlateDrawElement::EElementType::ET_Count == 11,
+		"If FSlateDrawElement::EElementType is modified, this array must be made to match." );
 
-	static FName ElementFNames[] = 
+	static FName ElementFNames[] =
 	{
 		FName(TEXT("Box")),
 		FName(TEXT("DebugQuad")),
@@ -94,17 +119,33 @@ void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementLi
 		FName(TEXT("Viewport")),
 		FName(TEXT("Border")),
 		FName(TEXT("Custom")),
+		FName(TEXT("CachedBuffer")),
+		FName(TEXT("Layer")),
 	};
 
-	BatchData = &WindowElementList.GetBatchData();
+	DrawLayer = &InDrawLayer;
 
-	const TArray<FSlateDrawElement>& DrawElements = WindowElementList.GetDrawElements();
-
-	int32 NumDrawnBatches = 0;
+#if SLATE_POOL_DRAW_ELEMENTS
+	const TArray<FSlateDrawElement*>& DrawElements = InDrawLayer.DrawElements;
+#else
+	const TArray<FSlateDrawElement>& DrawElements = InDrawLayer.DrawElements;
+#endif
 
 	for( int32 DrawElementIndex = 0; DrawElementIndex < DrawElements.Num(); ++DrawElementIndex )
 	{
+#if SLATE_POOL_DRAW_ELEMENTS
+		if ( DrawElementIndex < ( DrawElements.Num() - 1 ) )
+		{
+			FPlatformMisc::Prefetch(DrawElements[DrawElementIndex + 1]);
+		}
+#endif
+
+#if SLATE_POOL_DRAW_ELEMENTS
+		const FSlateDrawElement& DrawElement = *DrawElements[DrawElementIndex];
+#else
 		const FSlateDrawElement& DrawElement = DrawElements[DrawElementIndex];
+#endif
+
 		const FSlateRect& InClippingRect = DrawElement.GetClippingRect();
 	
 		// A zero or negatively sized clipping rect means the geometry will not be displayed
@@ -112,12 +153,24 @@ void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementLi
 		
 		if ( !bIsFullyClipped )
 		{
+			bool bIsScissored = false;
+
 			// do this check in here do we can short circuit above more quickly, but still name this variable so its meaning is clear.
-			const bool bIsScissored = DrawElement.GetScissorRect().IsSet() && DrawElement.GetElementType() != FSlateDrawElement::ET_Custom && !DrawElement.GetScissorRect().GetValue().DoesIntersect(FShortRect(InClippingRect));
+			switch ( DrawElement.GetElementType() )
+			{
+			case FSlateDrawElement::ET_Custom:
+			case FSlateDrawElement::ET_CachedBuffer:
+			case FSlateDrawElement::ET_Layer:
+				break;
+			default:
+				bIsScissored = DrawElement.GetScissorRect().IsSet() && !DrawElement.GetScissorRect().GetValue().DoesIntersect(FShortRect(InClippingRect));
+				break;
+			}
+
 			// scissor rects are sort of a low level hack, so no one konws to clip against them. Instead we do it here to make sure the element is not actually rendered.
 			if (!bIsScissored)
 			{
-				++NumDrawnBatches;
+				++NumDrawnBatchesStat;
 
 				// time just the adding of the element. The clipping stuff will be counted in exclusive time for the non-typed timer.
 				SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlateAddElements, ElementFNames[DrawElement.GetElementType()]);
@@ -151,6 +204,12 @@ void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementLi
 				case FSlateDrawElement::ET_Custom:
 					AddCustomElement( DrawElement );
 					break;
+				case FSlateDrawElement::ET_CachedBuffer:
+					AddCachedBuffer( DrawElement );
+					break;
+				case FSlateDrawElement::ET_Layer:
+					AddLayer(DrawElement);
+					break;
 				default:
 					checkf(0, TEXT("Invalid element type"));
 					break;
@@ -158,11 +217,6 @@ void FSlateElementBatcher::AddElements( FSlateWindowElementList& WindowElementLi
 			}
 		}
 	}
-
-	SET_DWORD_STAT( STAT_SlateNumPrebatchElements, NumDrawnBatches );
-
-	// Done with the element list
-	BatchData = nullptr;
 }
 
 void FSlateElementBatcher::AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color )
@@ -1463,7 +1517,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 
 void FSlateElementBatcher::AddCustomElement( const FSlateDrawElement& DrawElement )
 {
-	FElementBatchMap& LayerToElementBatches = BatchData->GetElementBatchMap();
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
 
 	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
 	uint32 Layer = DrawElement.GetLayer();
@@ -1479,9 +1533,56 @@ void FSlateElementBatcher::AddCustomElement( const FSlateDrawElement& DrawElemen
 		}
 		check( ElementBatches );
 
-
 		// Custom elements are not batched together 
 		ElementBatches->Add( FSlateElementBatch( InPayload.CustomDrawer, DrawElement.GetScissorRect() ) );
+	}
+}
+
+void FSlateElementBatcher::AddCachedBuffer(const FSlateDrawElement& DrawElement)
+{
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
+
+	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
+	uint32 Layer = DrawElement.GetLayer();
+
+	if ( InPayload.CachedRenderData )
+	{
+		// See if the layer already exists.
+		FElementBatchArray* ElementBatches = LayerToElementBatches.Find(Layer);
+		if ( !ElementBatches )
+		{
+			// The layer doesn't exist so make it now
+			ElementBatches = &LayerToElementBatches.Add(Layer, FElementBatchArray());
+		}
+		check(ElementBatches);
+
+		// Custom elements are not batched together
+		TSharedPtr< FSlateRenderDataHandle, ESPMode::ThreadSafe > RenderData = InPayload.CachedRenderData->AsShared();
+		ElementBatches->Add(FSlateElementBatch(RenderData, DrawElement.GetScissorRect()));
+	}
+}
+
+void FSlateElementBatcher::AddLayer(const FSlateDrawElement& DrawElement)
+{
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
+
+	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
+	uint32 Layer = DrawElement.GetLayer();
+
+	if ( InPayload.LayerHandle )
+	{
+		// See if the layer already exists.
+		FElementBatchArray* ElementBatches = LayerToElementBatches.Find(Layer);
+		if ( !ElementBatches )
+		{
+			// The layer doesn't exist so make it now
+			ElementBatches = &LayerToElementBatches.Add(Layer, FElementBatchArray());
+		}
+		check(ElementBatches);
+
+		// Custom elements are not batched together
+		TSharedPtr< FSlateDrawLayerHandle, ESPMode::ThreadSafe > LayerHandle = InPayload.LayerHandle->AsShared();
+		ElementBatches->Add(FSlateElementBatch(LayerHandle, DrawElement.GetScissorRect()));
 	}
 }
 
@@ -1499,7 +1600,7 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 	SLATE_CYCLE_COUNTER_SCOPE_DETAILED(SLATE_STATS_DETAIL_LEVEL_HI, GSlateFindBatchTime);
 
 //	SCOPE_CYCLE_COUNTER( STAT_SlateFindBatchForElement );
-	FElementBatchMap& LayerToElementBatches = BatchData->GetElementBatchMap();
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
 
 	// See if the layer already exists.
 	FElementBatchArray* ElementBatches = LayerToElementBatches.Find( Layer );
@@ -1521,8 +1622,8 @@ FSlateElementBatch& FSlateElementBatcher::FindBatchForElement(
 		int32 Index = ElementBatches->Add( TempBatch );
 		ElementBatch = &(*ElementBatches)[Index];
 
-		BatchData->AssignVertexArrayToBatch( *ElementBatch );
-		BatchData->AssignIndexArrayToBatch( *ElementBatch );
+		BatchData->AssignVertexArrayToBatch(*ElementBatch);
+		BatchData->AssignIndexArrayToBatch(*ElementBatch);
 	}
 	check( ElementBatch );
 
