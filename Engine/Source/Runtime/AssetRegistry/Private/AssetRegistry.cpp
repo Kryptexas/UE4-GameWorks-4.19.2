@@ -71,8 +71,7 @@ inline ERuntimeRegistryVersion ReadRuntimeRegistryVersion(FArchive& Ar)
 }
 
 FAssetRegistry::FAssetRegistry()
-	: PathTreeRoot(FString())
-	, PreallocatedAssetDataBuffer(NULL)
+	: PreallocatedAssetDataBuffer(NULL)
 	, PreallocatedDependsNodeDataBuffer(NULL)
 {
 	const double StartupStartTime = FPlatformTime::Seconds();
@@ -434,7 +433,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		// Add subpaths to all the input paths to the list
 		for ( int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx )
 		{
-			PathTreeRoot.GetSubPaths(Filter.PackagePaths[PathIdx].ToString(), FilterPackagePaths);
+			PathTreeRoot.GetSubPaths(Filter.PackagePaths[PathIdx], FilterPackagePaths);
 		}
 	}
 
@@ -948,7 +947,7 @@ void FAssetRegistry::GetDerivedClassNames(const TArray<FName>& ClassNames, const
 void FAssetRegistry::GetAllCachedPaths(TArray<FString>& OutPathList) const
 {
 	TSet<FName> PathList;
-	PathTreeRoot.GetSubPaths(TEXT(""), PathList);
+	PathTreeRoot.GetAllPaths(PathList);
 	
 	OutPathList.Empty(PathList.Num());
 	for ( auto PathIt = PathList.CreateConstIterator(); PathIt; ++PathIt )
@@ -960,7 +959,7 @@ void FAssetRegistry::GetAllCachedPaths(TArray<FString>& OutPathList) const
 void FAssetRegistry::GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const
 {
 	TSet<FName> PathList;
-	PathTreeRoot.GetSubPaths(InBasePath, PathList, bInRecurse);
+	PathTreeRoot.GetSubPaths(FName(*InBasePath), PathList, bInRecurse);
 	
 	OutPathList.Empty(PathList.Num());
 	for ( auto PathIt = PathList.CreateConstIterator(); PathIt; ++PathIt )
@@ -1220,12 +1219,12 @@ void FAssetRegistry::PrioritizeAssetInstall(const FAssetData& AssetData) const
 
 bool FAssetRegistry::AddPath(const FString& PathToAdd)
 {
-	return AddAssetPath(PathToAdd);
+	return AddAssetPath(FName(*PathToAdd));
 }
 
 bool FAssetRegistry::RemovePath(const FString& PathToRemove)
 {
-	return RemoveAssetPath(PathToRemove);
+	return RemoveAssetPath(FName(*PathToRemove));
 }
 
 void FAssetRegistry::ScanPathsSynchronous(const TArray<FString>& InPaths, bool bForceRescan)
@@ -1248,7 +1247,8 @@ void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
 		int32 LowestNonPriorityFileIdx = 0;
 		for (int32 ResultIdx = 0; ResultIdx < BackgroundAssetResults.Num(); ++ResultIdx)
 		{
-			if (BackgroundAssetResults[ResultIdx]->IsWithinSearchPath(PathToPrioritize))
+			IGatheredAssetData* BackgroundAssetResult = BackgroundAssetResults[ResultIdx];
+			if (BackgroundAssetResult && BackgroundAssetResult->IsWithinSearchPath(PathToPrioritize))
 			{
 				BackgroundAssetResults.Swap(ResultIdx, LowestNonPriorityFileIdx);
 				LowestNonPriorityFileIdx++;
@@ -1276,7 +1276,7 @@ void FAssetRegistry::AssetCreated(UObject* NewAsset)
 		RemoveEmptyPackage(NewPackage->GetFName());
 
 		// Add the path to the Path Tree, in case it wasn't already there
-		AddAssetPath( FPackageName::GetLongPackagePath(NewPackageName) );
+		AddAssetPath(*FPackageName::GetLongPackagePath(NewPackageName));
 
 		// Let subscribers know that the new asset was added to the registry
 		AssetAddedEvent.Broadcast(FAssetData(NewAsset));
@@ -1346,7 +1346,7 @@ void FAssetRegistry::AssetRenamed(const UObject* RenamedAsset, const FString& Ol
 		}
 
 		// Add the path to the Path Tree, in case it wasn't already there
-		AddAssetPath( FPackageName::GetLongPackagePath(NewPackageName) );
+		AddAssetPath(*FPackageName::GetLongPackagePath(NewPackageName));
 
 		AssetRenamedEvent.Broadcast(FAssetData(RenamedAsset), OldObjectPath);
 	}
@@ -1471,7 +1471,7 @@ void FAssetRegistry::Serialize(FArchive& Ar)
 
 			AddAssetData(NewAssetData);
 
-			AddAssetPath(NewAssetData->PackagePath.ToString());
+			AddAssetPath(NewAssetData->PackagePath);
 		}
 
 		int32 LocalNumDependsNodes = LocalNumAssets;
@@ -1847,7 +1847,7 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 		}
 
 		// Populate the path tree
-		AddAssetPath(Result.PackagePath.ToString());
+		AddAssetPath(Result.PackagePath);
 
 		// Delete the result that was originally created by an FPackageReader
 		delete BackgroundResult;
@@ -1876,7 +1876,7 @@ void FAssetRegistry::PathDataGathered(const double TickStartTime, TArray<FString
 	for (ResultIdx = 0; ResultIdx < PathResults.Num(); ++ResultIdx)
 	{
 		const FString& Path = PathResults[ResultIdx];
-		AddAssetPath(Path);
+		AddAssetPath(FName(*Path));
 		
 		// Check to see if we have run out of time in this tick
 		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
@@ -2031,24 +2031,24 @@ bool FAssetRegistry::RemoveEmptyPackage(FName PackageName)
 	return CachedEmptyPackages.Remove( PackageName ) > 0;
 }
 
-bool FAssetRegistry::AddAssetPath(const FString& PathToAdd)
+bool FAssetRegistry::AddAssetPath(FName PathToAdd)
 {
 	if ( PathTreeRoot.CachePath(PathToAdd) )
 	{		
-		PathAddedEvent.Broadcast(PathToAdd);
+		PathAddedEvent.Broadcast(PathToAdd.ToString());
 		return true;
 	}
 
 	return false;
 }
 
-bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove, bool bEvenIfAssetsStillExist)
+bool FAssetRegistry::RemoveAssetPath(FName PathToRemove, bool bEvenIfAssetsStillExist)
 {
 	if ( !bEvenIfAssetsStillExist )
 	{
 		// Check if there were assets in the specified folder. You can not remove paths that still contain assets
 		TArray<FAssetData> AssetsInPath;
-		GetAssetsByPath(FName(*PathToRemove), AssetsInPath, true);
+		GetAssetsByPath(PathToRemove, AssetsInPath, true);
 		if ( AssetsInPath.Num() > 0 )
 		{
 			// At least one asset still exists in the path. Fail the remove.
@@ -2056,9 +2056,9 @@ bool FAssetRegistry::RemoveAssetPath(const FString& PathToRemove, bool bEvenIfAs
 		}
 	}
 
-	if ( PathTreeRoot.RemoveFolder(PathToRemove) )
+	if ( PathTreeRoot.RemovePath(PathToRemove) )
 	{
-		PathRemovedEvent.Broadcast(PathToRemove);
+		PathRemovedEvent.Broadcast(PathToRemove.ToString());
 		return true;
 	}
 	else
@@ -2434,7 +2434,7 @@ void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const F
 	// Remove the root path
 	{
 		const bool bEvenIfAssetsStillExist = true;
-		RemoveAssetPath(AssetPath, bEvenIfAssetsStillExist);
+		RemoveAssetPath(FName(*AssetPath), bEvenIfAssetsStillExist);
 	}
 
 	// Stop listening for directory changes in this content path

@@ -109,10 +109,10 @@ private:
 	bool RemoveEmptyPackage(FName PackageName);
 
 	/** Adds a path to the cached paths tree. Returns true if the path was added to the tree, as opposed to already existing in the tree */
-	bool AddAssetPath(const FString& PathToAdd);
+	bool AddAssetPath(FName PathToAdd);
 
 	/** Removes a path to the cached paths tree. Returns true if successful. */
-	bool RemoveAssetPath(const FString& PathToAdd, bool bEvenIfAssetsStillExist = false);
+	bool RemoveAssetPath(FName PathToRemove, bool bEvenIfAssetsStillExist = false);
 
 	/** Helper function to return the name of an object, given the objects export text path */
 	FString ExportTextPathToObjectName(const FString& InExportTextPath) const;
@@ -201,7 +201,7 @@ private:
 	TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
 
 	/** The root node to the path tree */
-	FPathTreeNode PathTreeRoot;
+	FPathTree PathTreeRoot;
 
 	/** Async task that gathers asset information from disk */
 	TSharedPtr< class FAssetDataGatherer > BackgroundAssetSearch;

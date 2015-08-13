@@ -2,358 +2,149 @@
 
 #include "AssetRegistryPCH.h"
 
-bool IsUsingExperimentalFNameTreeNodes()
+bool FPathTree::CachePath(const FName& Path)
 {
-	static bool bUsingExperimentalFNameTreeNodes = FParse::Param(FCommandLine::Get(), TEXT("PathTreeFNames"));
-	return bUsingExperimentalFNameTreeNodes;
-}
-
-FPathTreeNode::FPathTreeNode(const FString& InFolderName)
-	: FolderName(InFolderName)
-	, FolderFName(NAME_None)
-{}
-
-FPathTreeNode::FPathTreeNode(FName InFolderName)
-	: FolderFName(InFolderName)
-{}
-
-FPathTreeNode::~FPathTreeNode()
-{
-	// Every node is responsible for deleting its children
-	for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
+	if (Path.IsNone())
 	{
-		delete Children[ChildIdx];
+		return false;
 	}
 
-	Children.Empty();
-}
-
-bool FPathTreeNode::CachePath(const FString& Path)
-{
-	if (IsUsingExperimentalFNameTreeNodes())
+	if (ParentPathToChildPaths.Contains(Path))
 	{
-		TArray<FString> PathElementStrings;
-		Path.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
+		// Already cached - nothing more to do
+		return false;
+	}
 
-		TArray<FName> PathElements;
-		PathElements.Reserve(PathElementStrings.Num());
-		for (const auto& Element : PathElementStrings)
+	FString PathStr = Path.ToString();
+	check(PathStr.Len() >= 2);	// Must be at least "/A"
+	check(PathStr[0] == '/');	// Must start with a "/"
+
+	// Walk each part of the path, adding known path entries if required
+	// This manipulates PathStr in-place to avoid making any string copies
+	FName LastPath;
+	TCHAR* PathCharPtr = &PathStr[1]; // Skip over the first / when scanning
+	for (;;)
+	{
+		const TCHAR PathChar = *PathCharPtr;
+		if (PathChar == '/' || PathChar == 0)
 		{
-			PathElements.Add(FName(*Element));
-		}
+			// We've found a path separator (or the end of the string), so process this part of the path
+			(*PathCharPtr) = 0;			// Null terminate this part of the string so we can create an FName from it
+			const FName CurrentPath = *PathStr;
+			(*PathCharPtr) = PathChar;	// Restore the original character now
 
-		return CachePath_Recursive(PathElements);
-	}
-	else
-	{
-		TArray<FString> PathElements;
-		Path.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
+			check(!CurrentPath.IsNone());	// Path parts cannot be empty
+			check(*(PathCharPtr-1) != '/'); // The previous character cannot be a /, as that would suggest a malformed path such as "/Game//MyAsset"
 
-		return CachePath_Recursive(PathElements);
-	}
-}
-
-bool FPathTreeNode::RemoveFolder(const FString& Path)
-{
-	if (IsUsingExperimentalFNameTreeNodes())
-	{
-		TArray<FString> PathElementStrings;
-		Path.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
-
-		TArray<FName> PathElements;
-		PathElements.Reserve(PathElementStrings.Num());
-		for (const auto& Element : PathElementStrings)
-		{
-			PathElements.Add(FName(*Element));
-		}
-
-		return RemoveFolder_Recursive(PathElements);
-	}
-	else
-	{
-		TArray<FString> PathElements;
-		Path.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
-
-		return RemoveFolder_Recursive(PathElements);
-	}
-}
-
-bool FPathTreeNode::GetSubPaths(const FString& BasePath, TSet<FName>& OutPaths, bool bRecurse) const
-{
-	if (IsUsingExperimentalFNameTreeNodes())
-	{
-		TArray<FString> PathElementStrings;
-		BasePath.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
-
-		TArray<FName> PathElements;
-		PathElements.Reserve(PathElementStrings.Num());
-		for (const auto& Element : PathElementStrings)
-		{
-			PathElements.Add(FName(*Element));
-		}
-
-		const FPathTreeNode* BasePathNode = FindNode_Recursive(PathElements);
-
-		if (BasePathNode)
-		{
-			// Found the base path, get the paths of all its children
-			for (int32 ChildIdx = 0; ChildIdx < BasePathNode->Children.Num(); ++ChildIdx)
+			if (!ParentPathToChildPaths.Contains(CurrentPath))
 			{
-				BasePathNode->Children[ChildIdx]->GetSubPaths_Recursive(BasePath, OutPaths, bRecurse);
+				ParentPathToChildPaths.Add(CurrentPath);
 			}
 
-			return true;
-		}
-		else
-		{
-			// Failed to find the base path
-			return false;
-		}
-	}
-	else
-	{
-		TArray<FString> PathElements;
-		BasePath.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
-
-		const FPathTreeNode* BasePathNode = FindNode_Recursive(PathElements);
-
-		if ( BasePathNode )
-		{
-			// Found the base path, get the paths of all its children
-			for (int32 ChildIdx = 0; ChildIdx < BasePathNode->Children.Num(); ++ChildIdx)
+			if (!LastPath.IsNone())
 			{
-				BasePathNode->Children[ChildIdx]->GetSubPaths_Recursive(BasePath, OutPaths, bRecurse);
+				// Add us as a known child of our parent path
+				TSet<FName>& ChildPaths = ParentPathToChildPaths.FindChecked(LastPath);
+				ChildPaths.Add(CurrentPath);
+
+				// Make sure we know how to find our parent again later on
+				ChildPathToParentPath.Add(CurrentPath, LastPath);
 			}
-		
-			return true;
+
+			LastPath = CurrentPath;
 		}
-		else
+
+		if (PathChar == 0)
 		{
-			// Failed to find the base path
-			return false;
+			// End of the string
+			break;
 		}
+
+		++PathCharPtr;
 	}
+
+	return true;
 }
 
-bool FPathTreeNode::CachePath_Recursive(TArray<FString>& PathElements)
+bool FPathTree::RemovePath(const FName& Path)
 {
-	if ( PathElements.Num() > 0 )
+	if (Path.IsNone())
 	{
-		// Pop the bottom element
-		FString ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
+		return false;
+	}
 
-		// Try to find a child which uses this folder name
-		FPathTreeNode* Child = NULL;
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
+	if (!ParentPathToChildPaths.Contains(Path))
+	{
+		// Doesn't exist - nothing more to do
+		return false;
+	}
+
+	// We also need to gather up and remove any children of this path
+	TSet<FName> SubPathsToRemove;
+	GetSubPaths(Path, SubPathsToRemove, /*bRecurse=*/true);
+
+	// Simply remove sub-paths from both maps
+	for (const FName& SubPathToRemove : SubPathsToRemove)
+	{
+		ParentPathToChildPaths.Remove(SubPathToRemove);
+		ChildPathToParentPath.Remove(SubPathToRemove);
+	}
+
+	// We also need to remove ourself from our parent list before removing ourself from the maps
+	{
+		const FName* ParentPathPtr = ChildPathToParentPath.Find(Path);
+		if (ParentPathPtr)
 		{
-			if ( Children[ChildIdx]->FolderName == ChildFolderName )
-			{
-				Child = Children[ChildIdx];
-				break;
-			}
-		}
-
-		// If one was not found, create it
-		if ( !Child )
-		{
-			int32 ChildIdx = Children.Add(new FPathTreeNode(ChildFolderName));
-			Child = Children[ChildIdx];
-
-			if ( PathElements.Num() == 0 )
-			{
-				// We added final element to the tree, return true;
-				return true;
-			}
-		}
-
-		if ( ensure(Child) )
-		{
-			return Child->CachePath_Recursive(PathElements);
+			TSet<FName>& ChildPaths = ParentPathToChildPaths.FindChecked(*ParentPathPtr);
+			ChildPaths.Remove(Path);
 		}
 	}
 
-	return false;
+	ParentPathToChildPaths.Remove(Path);
+	ChildPathToParentPath.Remove(Path);
+
+	return true;
 }
 
-bool FPathTreeNode::RemoveFolder_Recursive(TArray<FString>& PathElements)
+bool FPathTree::GetAllPaths(TSet<FName>& OutPaths) const
 {
-	if ( PathElements.Num() > 0 )
+	OutPaths.Reset();
+	OutPaths.Reserve(ParentPathToChildPaths.Num());
+
+	for (const auto& PathPair : ParentPathToChildPaths)
 	{
-		// Pop the bottom element
-		FString ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
-
-		// Try to find a child which uses this folder name
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
-		{
-			if ( Children[ChildIdx]->FolderName == ChildFolderName )
-			{
-				FPathTreeNode* Child = Children[ChildIdx];
-
-				if ( PathElements.Num() == 0 )
-				{
-					// This is the final child in the path, thus it is the folder to remove.
-					// Remove it now and return true;
-					Children.RemoveAt(ChildIdx);
-					delete Child;
-					return true;
-				}
-				else
-				{
-					// This is not the last child, so recurse below
-					return Child->RemoveFolder_Recursive(PathElements);
-				}
-			}
-		}
+		OutPaths.Add(PathPair.Key);
 	}
 
-	// The child was not found at some point while recursing, fail the remove.
-	return false;
+	return OutPaths.Num() > 0;
 }
 
-const FPathTreeNode* FPathTreeNode::FindNode_Recursive(TArray<FString>& PathElements) const
+bool FPathTree::GetSubPaths(const FName& BasePath, TSet<FName>& OutPaths, bool bRecurse) const
 {
-	if (PathElements.Num() == 0)
+	if (BasePath.IsNone())
 	{
-		// Found the path node
-		return this;
+		return false;
 	}
-	else
+
+	const TSet<FName>* ChildPathsPtr = ParentPathToChildPaths.Find(BasePath);
+	if (!ChildPathsPtr)
 	{
-		// Must drill down further
-		// Pop the bottom element
-		FString ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
-
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
-		{
-			if ( Children[ChildIdx]->FolderName == ChildFolderName )
-			{
-				return Children[ChildIdx]->FindNode_Recursive(PathElements);
-			}
-		}
-
-		// Could not find the path
-		return NULL;
+		return false;
 	}
-}
 
-bool FPathTreeNode::CachePath_Recursive(TArray<FName>& PathElements)
-{
-	if ( PathElements.Num() > 0 )
+	const int32 OutPathsOriginalNum = OutPaths.Num();
+
+	for (const FName& ChildPath : *ChildPathsPtr)
 	{
-		// Pop the bottom element
-		FName ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
+		check(ParentPathToChildPaths.Contains(ChildPath)); // This failing is an integrity violation as this entry lists a child that we don't know about
 
-		// Try to find a child which uses this folder name
-		FPathTreeNode* Child = NULL;
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
+		OutPaths.Add(ChildPath);
+
+		if (bRecurse)
 		{
-			if ( Children[ChildIdx]->FolderFName == ChildFolderName )
-			{
-				Child = Children[ChildIdx];
-				break;
-			}
-		}
-
-		// If one was not found, create it
-		if ( !Child )
-		{
-			int32 ChildIdx = Children.Add(new FPathTreeNode(ChildFolderName));
-			Child = Children[ChildIdx];
-
-			if ( PathElements.Num() == 0 )
-			{
-				// We added final element to the tree, return true;
-				return true;
-			}
-		}
-
-		if ( ensure(Child) )
-		{
-			return Child->CachePath_Recursive(PathElements);
+			GetSubPaths(ChildPath, OutPaths, /*bRecurse=*/true);
 		}
 	}
 
-	return false;
-}
-
-bool FPathTreeNode::RemoveFolder_Recursive(TArray<FName>& PathElements)
-{
-	if ( PathElements.Num() > 0 )
-	{
-		// Pop the bottom element
-		FName ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
-
-		// Try to find a child which uses this folder name
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
-		{
-			if ( Children[ChildIdx]->FolderFName == ChildFolderName )
-			{
-				FPathTreeNode* Child = Children[ChildIdx];
-
-				if ( PathElements.Num() == 0 )
-				{
-					// This is the final child in the path, thus it is the folder to remove.
-					// Remove it now and return true;
-					Children.RemoveAt(ChildIdx);
-					delete Child;
-					return true;
-				}
-				else
-				{
-					// This is not the last child, so recurse below
-					return Child->RemoveFolder_Recursive(PathElements);
-				}
-			}
-		}
-	}
-
-	// The child was not found at some point while recursing, fail the remove.
-	return false;
-}
-
-const FPathTreeNode* FPathTreeNode::FindNode_Recursive(TArray<FName>& PathElements) const
-{
-	if (PathElements.Num() == 0)
-	{
-		// Found the path node
-		return this;
-	}
-	else
-	{
-		// Must drill down further
-		// Pop the bottom element
-		FName ChildFolderName = PathElements[0];
-		PathElements.RemoveAt(0);
-
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
-		{
-			if ( Children[ChildIdx]->FolderFName == ChildFolderName )
-			{
-				return Children[ChildIdx]->FindNode_Recursive(PathElements);
-			}
-		}
-
-		// Could not find the path
-		return NULL;
-	}
-}
-
-
-void FPathTreeNode::GetSubPaths_Recursive(const FString& CurrentPath, TSet<FName>& OutPaths, bool bRecurse) const
-{
-	FString NewPath = IsUsingExperimentalFNameTreeNodes() ? (CurrentPath / FolderFName.ToString()) : (CurrentPath / FolderName);
-	OutPaths.Add(FName(*NewPath));
-
-	if(bRecurse)
-	{
-		for (int32 ChildIdx = 0; ChildIdx < Children.Num(); ++ChildIdx)
-		{
-			Children[ChildIdx]->GetSubPaths_Recursive(NewPath, OutPaths, bRecurse);
-		}
-	}
+	return OutPaths.Num() > OutPathsOriginalNum;
 }
