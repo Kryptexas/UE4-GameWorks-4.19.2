@@ -6,6 +6,7 @@
 #include "FindInBlueprints.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "AssetRegistryModule.h"
+#include "HotReloadInterface.h"
 
 #include "JsonUtilities.h"
 #include "SNotificationList.h"
@@ -904,6 +905,12 @@ FFindInBlueprintSearchManager::~FFindInBlueprintSearchManager()
 	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 	FCoreUObjectDelegates::PostGarbageCollect.RemoveAll(this);
 	FCoreUObjectDelegates::OnAssetLoaded.RemoveAll(this);
+
+	if(FModuleManager::Get().IsModuleLoaded("HotReload"))
+	{
+		IHotReloadInterface& HotReloadSupport = FModuleManager::GetModuleChecked<IHotReloadInterface>("HotReload");
+		HotReloadSupport.OnHotReload().RemoveAll(this);
+	}
 }
 
 void FFindInBlueprintSearchManager::Initialize()
@@ -915,6 +922,10 @@ void FFindInBlueprintSearchManager::Initialize()
 	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::PauseFindInBlueprintSearch);
 	FCoreUObjectDelegates::PostGarbageCollect.AddRaw(this, &FFindInBlueprintSearchManager::UnpauseFindInBlueprintSearch);
 	FCoreUObjectDelegates::OnAssetLoaded.AddRaw(this, &FFindInBlueprintSearchManager::OnAssetLoaded);
+	
+	// Register to be notified of hot reloads
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddRaw(this, &FFindInBlueprintSearchManager::OnHotReload);
 
 	if(!GIsSavingPackage)
 	{
@@ -925,7 +936,24 @@ void FFindInBlueprintSearchManager::Initialize()
 
 void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 {
-	if(InAssetData.GetClass()->IsChildOf(UBlueprint::StaticClass()) || InAssetData.GetClass()->IsChildOf(UWorld::StaticClass()))
+	const UClass* AssetClass = nullptr;
+	{
+		const UClass** FoundClass = CachedAssetClasses.Find(InAssetData.AssetClass);
+		if (FoundClass)
+		{
+			AssetClass = *FoundClass;
+		}
+		else
+		{
+			AssetClass = InAssetData.GetClass();
+			if (AssetClass)
+			{
+				CachedAssetClasses.Add(InAssetData.AssetClass, AssetClass);
+			}
+		}
+	}
+
+	if(AssetClass && AssetClass->IsChildOf(UBlueprint::StaticClass()) || AssetClass->IsChildOf(UWorld::StaticClass()))
 	{
 		FString BlueprintPackagePath = FPaths::GetPath(InAssetData.ObjectPath.ToString()) / FPaths::GetBaseFilename(InAssetData.ObjectPath.ToString());
 
@@ -935,7 +963,7 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 		{
 			if(InAssetData.IsAssetLoaded())
 			{
-				if(InAssetData.GetClass()->IsChildOf(UBlueprint::StaticClass()))
+				if(AssetClass->IsChildOf(UBlueprint::StaticClass()))
 				{
 					if(UBlueprint* BlueprintAsset = Cast<UBlueprint>(InAssetData.GetAsset()))
 					{
@@ -943,7 +971,7 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 						AddOrUpdateBlueprintSearchMetadata(BlueprintAsset);
 					}
 				}
-				else if(InAssetData.GetClass()->IsChildOf(UWorld::StaticClass()))
+				else if(AssetClass->IsChildOf(UWorld::StaticClass()))
 				{
 					UWorld* WorldAsset = Cast<UWorld>(InAssetData.GetAsset());
 					if(WorldAsset->PersistentLevel)
@@ -1053,6 +1081,11 @@ void FFindInBlueprintSearchManager::OnAssetLoaded(UObject* InAsset)
 			SearchArray[*IndexPtr].Blueprint = BlueprintAsset;
 		}
 	}
+}
+
+void FFindInBlueprintSearchManager::OnHotReload(bool bWasTriggeredAutomatically)
+{
+	CachedAssetClasses.Reset();
 }
 
 FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlueprint* Blueprint)

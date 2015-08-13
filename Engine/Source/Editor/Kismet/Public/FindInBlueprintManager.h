@@ -287,6 +287,9 @@ private:
 	/** Callback hook from the Asset Registry when an asset is loaded */
 	void OnAssetLoaded(class UObject* InAsset);
 
+	/** Callback hook from the Hot Reload manager that indicates that a module has been hot-reloaded */
+	void OnHotReload(bool bWasTriggeredAutomatically);
+
 	/** Helper to gathers the Blueprint's search metadata */
 	FString GatherBlueprintSearchMetadata(const UBlueprint* Blueprint);
 
@@ -348,4 +351,7 @@ protected:
 
 	/** Tickable object that does the caching of uncached Blueprints at a rate of once per tick */
 	class FCacheAllBlueprintsTickableObject* CachingObject;
+
+	/** Mapping between a class name and its UClass instance - used for faster look up in FFindInBlueprintSearchManager::OnAssetAdded */
+	TMap<FName, const UClass*> CachedAssetClasses;
 };
