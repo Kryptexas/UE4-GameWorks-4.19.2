@@ -891,7 +891,10 @@ void FGearVR::StartOVRGlobalMenu()
 {
 	check(IsInRenderingThread());
 
-	ovr_StartSystemActivity(&JavaGT, PUI_GLOBAL_MENU, NULL);
+	if (pGearVRBridge)
+	{
+		ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_GLOBAL_MENU, NULL);
+	}
 }
 
 void FGearVR::UpdateViewport(bool bUseSeparateRenderTarget, const FViewport& InViewport, SViewport* ViewportWidget)

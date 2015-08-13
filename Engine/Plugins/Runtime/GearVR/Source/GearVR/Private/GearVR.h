@@ -206,7 +206,7 @@ protected:
 class FGearVRCustomPresent : public FRHICustomPresent
 {
 	friend class FViewExtension;
-	friend class FGearVR;
+	friend class ::FGearVR;
 public:
 	FGearVRCustomPresent(jobject InActivityObject, int32 InMinimumVsyncs, int InCpuLevel, int InGpuLevel, pid_t	InGameThreadId);
 
