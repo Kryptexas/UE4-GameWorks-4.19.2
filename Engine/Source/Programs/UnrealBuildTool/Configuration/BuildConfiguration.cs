@@ -244,7 +244,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bOmitFramePointers;
-        
+
+		/// <summary>
+		/// What level of logging we wish to show
+		/// </summary>
+		[XmlConfig]
+		public static string LogLevel;
+
 		/// <summary>
 		/// Processor count multiplier for local execution. Can be below 1 to reserve CPU for other tasks.
 		/// </summary>
@@ -532,6 +538,8 @@ namespace UnrealBuildTool
 			bStressTestUnity = false;
 			bSupportEditAndContinue = false;
 			bUseActionHistory = true;
+
+			LogLevel = "Log";
 
 			// Incremental linking can yield faster iteration times when making small changes
 			// NOTE: We currently don't use incremental linking because it tends to behave a bit buggy on some computers (PDB-related compile errors)

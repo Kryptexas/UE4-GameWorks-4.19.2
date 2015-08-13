@@ -601,7 +601,7 @@ namespace UnrealBuildTool
         {
             Log.InitLogging(
                 bLogTimestamps: false,
-                bLogVerbose: true,
+                InLogLevel: LogEventType.Log,
                 bLogSeverity: false,
                 bLogSources: false,
                 bColorConsoleOutput: true,
@@ -859,7 +859,7 @@ namespace UnrealBuildTool
             // Initialize the shared log system using UBT specific listeners.
             Log.InitLogging(
                 bLogTimestamps: false,
-                bLogVerbose: BuildConfiguration.bPrintDebugInfo,
+                InLogLevel: (LogEventType)Enum.Parse(typeof(LogEventType), BuildConfiguration.LogLevel),
                 bLogSeverity: false, 
                 bLogSources: false,
                 bColorConsoleOutput: true,
