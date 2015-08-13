@@ -200,8 +200,8 @@ private:
 	/** The map of classname to tag set of tags that are allowed in cooked builds */
 	TMap<FName, TSet<FName>> CookWhitelistedTagsByClass;
 
-	/** The root node to the path tree */
-	FPathTree PathTreeRoot;
+	/** The tree of known cached paths that assets may reside within */
+	FPathTree CachedPathTree;
 
 	/** Async task that gathers asset information from disk */
 	TSharedPtr< class FAssetDataGatherer > BackgroundAssetSearch;

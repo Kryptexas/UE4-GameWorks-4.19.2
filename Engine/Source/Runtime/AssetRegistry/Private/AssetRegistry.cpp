@@ -433,7 +433,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 		// Add subpaths to all the input paths to the list
 		for ( int32 PathIdx = 0; PathIdx < NumFilterPackagePaths; ++PathIdx )
 		{
-			PathTreeRoot.GetSubPaths(Filter.PackagePaths[PathIdx], FilterPackagePaths);
+			CachedPathTree.GetSubPaths(Filter.PackagePaths[PathIdx], FilterPackagePaths);
 		}
 	}
 
@@ -947,7 +947,7 @@ void FAssetRegistry::GetDerivedClassNames(const TArray<FName>& ClassNames, const
 void FAssetRegistry::GetAllCachedPaths(TArray<FString>& OutPathList) const
 {
 	TSet<FName> PathList;
-	PathTreeRoot.GetAllPaths(PathList);
+	CachedPathTree.GetAllPaths(PathList);
 	
 	OutPathList.Empty(PathList.Num());
 	for ( auto PathIt = PathList.CreateConstIterator(); PathIt; ++PathIt )
@@ -959,7 +959,7 @@ void FAssetRegistry::GetAllCachedPaths(TArray<FString>& OutPathList) const
 void FAssetRegistry::GetSubPaths(const FString& InBasePath, TArray<FString>& OutPathList, bool bInRecurse) const
 {
 	TSet<FName> PathList;
-	PathTreeRoot.GetSubPaths(FName(*InBasePath), PathList, bInRecurse);
+	CachedPathTree.GetSubPaths(FName(*InBasePath), PathList, bInRecurse);
 	
 	OutPathList.Empty(PathList.Num());
 	for ( auto PathIt = PathList.CreateConstIterator(); PathIt; ++PathIt )
@@ -2033,7 +2033,7 @@ bool FAssetRegistry::RemoveEmptyPackage(FName PackageName)
 
 bool FAssetRegistry::AddAssetPath(FName PathToAdd)
 {
-	if ( PathTreeRoot.CachePath(PathToAdd) )
+	if (CachedPathTree.CachePath(PathToAdd))
 	{		
 		PathAddedEvent.Broadcast(PathToAdd.ToString());
 		return true;
@@ -2056,7 +2056,7 @@ bool FAssetRegistry::RemoveAssetPath(FName PathToRemove, bool bEvenIfAssetsStill
 		}
 	}
 
-	if ( PathTreeRoot.RemovePath(PathToRemove) )
+	if (CachedPathTree.RemovePath(PathToRemove))
 	{
 		PathRemovedEvent.Broadcast(PathToRemove.ToString());
 		return true;
