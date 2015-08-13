@@ -26,6 +26,10 @@ extern bool AndroidThunkCpp_IsGearVRApplication();
 // GearVR Plugin Implementation
 //---------------------------------------------------
 
+#if GEARVR_SUPPORTED_PLATFORMS
+static TAutoConsoleVariable<int32> CVarGearVREnableMSAA(TEXT("gearvr.EnableMSAA"), 1, TEXT("Enable MSAA when rendering on GearVR"));
+#endif
+
 class FGearVRPlugin : public IGearVRPlugin
 {
 	/** IHeadMountedDisplayModule implementation */
@@ -722,6 +726,13 @@ void FGearVR::Startup()
 
 	LoadFromIni();
 	SaveSystemValues();
+
+	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
+	{
+		static IConsoleVariable* CVarMobileOnChipMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileOnChipMSAA"));
+		UE_LOG(LogHMD, Log, TEXT("Enabling r.MobileOnChipMSAA, previous value %d"), CVarMobileOnChipMSAA->GetInt());
+		CVarMobileOnChipMSAA->Set(1);
+	}
 
 	UE_LOG(LogHMD, Log, TEXT("GearVR has started"));
 }
