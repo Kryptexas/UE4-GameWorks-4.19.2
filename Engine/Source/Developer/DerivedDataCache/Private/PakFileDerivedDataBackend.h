@@ -159,7 +159,7 @@ public:
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			if (Stats)
-				Stats->bFromNetwork = false;
+				Stats->bToNetwork = false;
 			FString Key(CacheKey);
 			FCacheValue* Item = CacheItems.Find(FString(CacheKey));
 			if (!Item)

@@ -60,11 +60,11 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 					SCOPE_SECONDS_COUNTER(ThisTime);
 					GetRecord->CacheKey = CacheKey;
 					GetRecord->CacheGet = 1;
+					GetRecord->PutDuration = 0.;
 					GetRecord->bSynchronous = bSynchronousForStats;
 					GetRecord->StartTime = FPlatformTime::Seconds();
-					GetRecord->GetDuration = 0.;
-					GetRecord->PutDuration = 0.;
 					bGetResult = FDerivedDataBackend::Get().GetRoot().GetCachedData(*CacheKey, Data, GetRecord);
+					GetRecord->GetDuration = FPlatformTime::Seconds() - GetRecord->StartTime;
 					GetRecord->EndTime = FPlatformTime::Seconds();
 					GetRecord->DataSize = Data.Num();
 				}
@@ -99,11 +99,11 @@ class FDerivedDataCache : public FDerivedDataCacheInterface
 						SCOPE_SECONDS_COUNTER(ThisTime);
 						PutRecord->CacheKey = CacheKey;
 						PutRecord->CacheGet = 0;
+						PutRecord->GetDuration = 0.f;
 						PutRecord->bSynchronous = bSynchronousForStats;
 						PutRecord->StartTime = FPlatformTime::Seconds();
-						PutRecord->GetDuration = 0.;
-						PutRecord->PutDuration = 0.;
 						FDerivedDataBackend::Get().GetRoot().PutCachedData(*CacheKey, Data, true, PutRecord);
+						PutRecord->PutDuration = FPlatformTime::Seconds() - PutRecord->StartTime;
 						PutRecord->EndTime = FPlatformTime::Seconds();
 						PutRecord->DataSize = Data.Num();
 					}
@@ -345,10 +345,9 @@ public:
 			Record->bSynchronous = true;
 			Record->DataSize = Data.Num();
 			Record->StartTime = FPlatformTime::Seconds();
-			Record->PutDuration = 0;
-			Record->GetDuration = 0;
 			FDerivedDataBackend::Get().GetRoot().PutCachedData(CacheKey, Data, bPutEvenIfExists);
 			Record->EndTime = FPlatformTime::Seconds();
+			Record->PutDuration = Record->EndTime - Record->StartTime;
 		}
 		INC_FLOAT_STAT_BY(STAT_DDC_PutTime,(float)ThisTime);
 		INC_DWORD_STAT(STAT_DDC_NumPuts);
@@ -417,13 +416,13 @@ public:
 
 			if (OutputFile)
 			{
-				OutputFile->Logf(TEXT("Key,Sync,Network,Size,Total Duration(ms),Get Duration(ms),Put Duration(ms),Get"));
+				OutputFile->Logf(TEXT("Key,Sync,FromNetwork,ToNetwork,Size,Get Duration(ms),Put Duration(ms),Get"));
 				for (int32 Index = 0; Index < CacheStats.Num(); Index++)
 				{
 					FCacheStatRecord* Record = CacheStats[Index];
 					if (Record->CacheGet != -1)
 					{
-						OutputFile->Logf(TEXT("%s,%s,%s,%d,%lf,%lf,%lf,%d"), *(Record->CacheKey), Record->bSynchronous ? TEXT("true") : TEXT("false"), Record->bFromNetwork ? TEXT("true") : TEXT("false"), Record->DataSize, (Record->EndTime - Record->StartTime) * 1000.0f, Record->GetDuration * 1000.0f, Record->PutDuration * 1000.0f, Record->CacheGet);
+						OutputFile->Logf(TEXT("%s,%s,%s,%s,%d,%lf,%lf,%d"), *(Record->CacheKey), Record->bSynchronous ? TEXT("true") : TEXT("false"), Record->bFromNetwork ? TEXT("true") : TEXT("false"), Record->bToNetwork ? TEXT("true") : TEXT("false"), Record->DataSize, Record->GetDuration * 1000.0f, Record->PutDuration * 1000.0f, Record->CacheGet);
 					}
 				}
 				delete OutputFile;

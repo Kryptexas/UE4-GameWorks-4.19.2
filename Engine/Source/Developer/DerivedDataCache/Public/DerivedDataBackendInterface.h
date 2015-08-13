@@ -25,6 +25,7 @@ struct FCacheStatRecord
 	uint32 CacheGet;
 	bool bSynchronous;
 	bool bFromNetwork;
+	bool bToNetwork;
 };
 
 

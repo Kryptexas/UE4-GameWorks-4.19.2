@@ -96,10 +96,14 @@ public:
 		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
 		Stat.AddTag(NAME_HierarchicalDDC, FString());
 
+		Stats->StartTime = FPlatformTime::Seconds();
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData, Stats))
 			{
+				Stats->GetDuration = FPlatformTime::Seconds() - Stats->StartTime;
+				Stats->DataSize = OutData.Num();
+				double StartTime = FPlatformTime::Seconds();
 				if (bIsWritable)
 				{
 					// fill in the higher level caches
@@ -141,9 +145,13 @@ public:
 				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
 				Stat.AddTag(NAME_Retrieved, TEXT("true"));
 				Stats->EndTime = FPlatformTime::Seconds();
+				Stats->PutDuration = Stats->EndTime - StartTime;
 				return true;
 			}
 		}
+		Stats->EndTime = FPlatformTime::Seconds();
+		Stats->GetDuration = FPlatformTime::Seconds() - Stats->StartTime;
+		Stats->PutDuration = 0.;
 		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;
 	}

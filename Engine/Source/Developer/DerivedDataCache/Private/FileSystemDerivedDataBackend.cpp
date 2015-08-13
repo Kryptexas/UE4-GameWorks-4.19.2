@@ -237,11 +237,11 @@ public:
 					Stats->CacheKey = Filename;
 					if (Filename.StartsWith(TEXT("//")) || Filename.StartsWith(TEXT("\\\\")))
 					{
-						Stats->bFromNetwork = true;
+						Stats->bToNetwork = true;
 					}
 					else
 					{
-						Stats->bFromNetwork = false;
+						Stats->bToNetwork = false;
 					}
 				}
 				FString TempFilename(TEXT("temp.")); 
