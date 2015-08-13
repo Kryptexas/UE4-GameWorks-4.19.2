@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2629228
+﻿INTSourceChangelist:2653049
 Availability:Public
 Title:1.6 - ソート順序
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -11,6 +11,24 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Decals/1_5 "%Resources/ContentExamples/Decals/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[デカールのホーム](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Decals/1_7 "%Resources/ContentExamples/Decals/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [TOC(start:2 end:2)]
 
