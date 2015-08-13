@@ -675,15 +675,7 @@ void VelocityScatterVS(
 
 	// needs to be the same on C++ side (faster on NVIDIA and AMD)
 	uint QuadsPerInstance = 8;
-#if MAC
-	// remap the indices to get vertexid to VId and quadid into IId
-	IId = IId * QuadsPerInstance + (VId / 6);
-	VId = VId % 6;
 
-	// triangle A: 0:left top, 1:right top, 2: left bottom
-	// triangle B: 3:right bottom, 4:left bottom, 5: right top
-	float2 CornerOffset = float2(VId % 2, VId > 1 && VId < 5) * 2 - 1;
-#else
 	// remap the indices to get vertexid to VId and quadid into IId
 	IId = IId * QuadsPerInstance + (VId / 4);
 	VId = VId % 4;
@@ -691,7 +683,6 @@ void VelocityScatterVS(
 	// triangle A: 0:left top, 1:right top, 2: left bottom
 	// triangle B: 3:right bottom, 4:left bottom, 5: right top
 	float2 CornerOffset = float2(VId % 2, VId / 2) * 2 - 1;
-#endif
 
 	uint2 TilePos = uint2( IId % ViewportRect.z, IId / ViewportRect.z );
 

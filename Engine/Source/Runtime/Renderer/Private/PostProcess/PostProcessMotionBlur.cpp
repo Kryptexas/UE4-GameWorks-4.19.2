@@ -883,21 +883,12 @@ public:
 		uint16* Indices = (uint16*)Buffer;
 		for (uint32 SpriteIndex = 0; SpriteIndex < 8; ++SpriteIndex)
 		{
-#if PLATFORM_MAC // Avoid a driver bug on OSX/NV cards that causes driver to generate an unwound index buffer
-			Indices[SpriteIndex*6 + 0] = SpriteIndex*6 + 0;
-			Indices[SpriteIndex*6 + 1] = SpriteIndex*6 + 1;
-			Indices[SpriteIndex*6 + 2] = SpriteIndex*6 + 2;
-			Indices[SpriteIndex*6 + 3] = SpriteIndex*6 + 3;
-			Indices[SpriteIndex*6 + 4] = SpriteIndex*6 + 4;
-			Indices[SpriteIndex*6 + 5] = SpriteIndex*6 + 5;
-#else
 			Indices[SpriteIndex*6 + 0] = SpriteIndex*4 + 0;
 			Indices[SpriteIndex*6 + 1] = SpriteIndex*4 + 3;
 			Indices[SpriteIndex*6 + 2] = SpriteIndex*4 + 2;
 			Indices[SpriteIndex*6 + 3] = SpriteIndex*4 + 0;
 			Indices[SpriteIndex*6 + 4] = SpriteIndex*4 + 1;
 			Indices[SpriteIndex*6 + 5] = SpriteIndex*4 + 3;
-#endif
 		}
 		RHIUnlockIndexBuffer( IndexBufferRHI );
 	}
