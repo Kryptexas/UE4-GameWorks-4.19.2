@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2630988
+﻿INTSourceChangelist:2653104
 Availability:Public
 Title:2.7 - CPU パーティクルから動的ライトの放出
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_F "%Resources/ContentExamples/EffectsGallery/2_F:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_H "%Resources/ContentExamples/EffectsGallery/2_H:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
