@@ -15,6 +15,7 @@ struct FWindowsOSVersionHelper
 		ERROR_UNKNOWNVERSION = 1,
 		ERROR_GETPRODUCTINFO_FAILED = 2,
 		ERROR_GETVERSIONEX_FAILED = 4,
+		ERROR_GETWINDOWSGT62VERSIONS_FAILED = 8,
 	};
 
 	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
