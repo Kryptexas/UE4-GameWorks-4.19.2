@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2653049
+Availability:Public
 Title:1.2 - デカールのブレンドモード
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
 Description:デカールのサンプル レベルの概要、サンプル 1.2：デカールのブレンドモード
@@ -10,6 +11,24 @@ Related: Engine/Rendering/Materials/ExpressionReference
 Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Decals/1_1 "%Resources/ContentExamples/Decals/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[デカールのホーム](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Decals/1_3 "%Resources/ContentExamples/Decals/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
