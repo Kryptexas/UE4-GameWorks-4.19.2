@@ -42,7 +42,7 @@ This Character will become our new AI Character. The reason we use a Character, 
 
 1. Rotate the **Mesh** Component so it faces the direction the blue **Arrow Component** is pointing.
 
-1. In the **Details** panel, find the **Animation** category and assign the TopDown_AnimBlueprint to the **Animation Blueprint Generated Class** property.
+1. In the **Details** panel, find the **Animation** category and assign the ThirdPerson_AnimBP to the **Animation Blueprint Generated Class** property.
 
 	![](Engine\AI\BehaviorTrees\QuickStart\4\assignAnimBP.png)
 
