@@ -1675,7 +1675,7 @@ void FAssetRegistry::SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 	}
 }
 
-void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData)
+void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data)
 {
 	auto Version = ReadRuntimeRegistryVersion(Ar);
 
@@ -1708,24 +1708,14 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 			Ar << DependsNodeCount;
 		}
 
-		OutDependencyData.Reserve(DependsNodeCount);
-
-		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
+		// @todo - Dependency data is serialized locally then thrown away until we establish a proper way to expose it to external code.
+		if (Version == ERuntimeRegistryVersion::PreVersioning)
 		{
-			int32 AssetIndex = 0;
-
-			if (Version == ERuntimeRegistryVersion::PreVersioning)
+			for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
 			{
+				int32 AssetIndex = 0;
 				Ar << AssetIndex;
 			}
-			else
-			{
-				AssetIndex = OutDependencyData.Num();
-			}
-
-			auto PackageName = AssetIndexMap[AssetIndex];
-			auto NewNode = new FDependsNode(PackageName);
-			OutDependencyData.Add(NewNode);
 		}
 
 		for (int32 DependsNodeIndex = 0; DependsNodeIndex < DependsNodeCount; DependsNodeIndex++)
@@ -1742,30 +1732,22 @@ void FAssetRegistry::LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Da
 			int32 NumReferencers = 0;
 			Ar << NumReferencers;
 
-			auto DependsNode = OutDependencyData[DependsNodeIndex];
-
 			for (int32 i = 0; i < NumHardDependencies; ++i)
 			{
 				int32 DependencyIndex = 0;
 				Ar << DependencyIndex;
-
-				DependsNode->AddDependency(OutDependencyData[DependencyIndex], EAssetRegistryDependencyType::Hard);
 			}
 
 			for (int32 i = 0; i < NumSoftDependencies; ++i)
 			{
 				int32 DependencyIndex = 0;
 				Ar << DependencyIndex;
-
-				DependsNode->AddDependency(OutDependencyData[DependencyIndex], EAssetRegistryDependencyType::Soft);
 			}
 
 			for (int32 i = 0; i < NumReferencers; ++i)
 			{
 				int32 Index = 0;
 				Ar << Index;
-
-				DependsNode->AddReferencer(OutDependencyData[Index]);
 			}
 		}
 	}

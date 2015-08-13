@@ -21,7 +21,6 @@
 
 #include "AssetRegistryModule.h"
 #include "AssetData.h"
-#include "DependsNode.h"
 
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
@@ -4746,8 +4745,7 @@ bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetR
 	if (FFileHelper::LoadFileToArray(SerializedAssetData, *AssetRegistryPath))
 	{
 		TMap<FName, FAssetData*> RegistryDataMap;
-		TArray<FDependsNode*> Dependencies;
-		AssetRegistry.LoadRegistryData(SerializedAssetData, RegistryDataMap, Dependencies);
+		AssetRegistry.LoadRegistryData(SerializedAssetData, RegistryDataMap);
 
 
 		for (const auto& RegistryData : RegistryDataMap)
@@ -4769,10 +4767,6 @@ bool UCookOnTheFlyServer::GetAllPackagesFromAssetRegistry( const FString& AssetR
 		for (auto RegistryData : RegistryDataMap)
 		{
 			delete RegistryData.Value;
-		}
-		for (auto DependencyData : Dependencies)
-		{
-			delete DependencyData;
 		}
 		return true;
 	}

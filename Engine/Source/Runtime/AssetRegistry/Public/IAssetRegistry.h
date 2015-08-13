@@ -27,8 +27,6 @@ namespace EAssetAvailabilityProgressReportingType
 	};
 }
 
-class FDependsNode;
-
 class IAssetRegistry
 {
 public:
@@ -248,5 +246,5 @@ public:
 
 
 	/** Serialize registry data from a file */
-	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData) = 0;
+	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
 };
