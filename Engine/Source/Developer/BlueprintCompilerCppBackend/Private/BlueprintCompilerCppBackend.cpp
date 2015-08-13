@@ -84,7 +84,7 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FBPTerminal* 
 	check(LinkageTermStartIdx != INDEX_NONE);
 	StructValues = StructValues.Replace(TEXT("-1"), *FString::FromInt(TargetStateIndex));
 
-	return FString(TEXT("F")) + LatentInfoStruct->GetName() + StructValues;
+	return FEmitHelper::LiteralTerm(Term->Type, StructValues, nullptr);
 }
 
 void FBlueprintCompilerCppBackend::EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass)

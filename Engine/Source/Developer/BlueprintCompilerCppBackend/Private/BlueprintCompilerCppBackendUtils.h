@@ -65,7 +65,192 @@ struct FEmitHelper
 	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 };
 
-struct FDefaultValueHelperContext;
+struct FDefaultValueHelperContext
+{
+private:
+	FString Indent;
+	FString Result;
+	int32 LocalNameIndexMax;
+	TArray<FString> HighPriorityLines;
+	TArray<FString> LowPriorityLines;
+	UClass* ActualClass;
+
+	TMap<UObject*, FString> NativeObjectNamesInConstructor;
+	TArray<UObject*> ObjectsCreatedPerClass;
+
+
+public:
+
+	bool bCreatingObjectsPerClass;
+
+	FDefaultValueHelperContext()
+		: ActualClass(nullptr)
+		, LocalNameIndexMax(0)
+		, bCreatingObjectsPerClass(false)
+	{}
+
+	// Functions to use in constructor only
+	bool FindLocalObject_InConstructor(UObject* Object, FString& OutNamePath) const
+	{
+		if (Object == ActualClass)
+		{
+			OutNamePath = TEXT("GetClass()");
+			return true;
+		}
+
+		if (const FString* NamePtr = NativeObjectNamesInConstructor.Find(Object))
+		{
+			OutNamePath = *NamePtr;
+			return true;
+		}
+
+		return false;
+	}
+
+	void AddObjectFromLocalProperty_InConstructor(UObject* Object, const FString& NativeName)
+	{
+		NativeObjectNamesInConstructor.Add(Object, NativeName);
+	}
+
+	FString AddNewObject_InConstructor(UObject* Object)
+	{
+		const FString UniqueName = GenerateUniqueLocalName();
+		NativeObjectNamesInConstructor.Add(Object, UniqueName);
+		if (bCreatingObjectsPerClass)
+		{
+			check(!ObjectsCreatedPerClass.Contains(Object));
+			ObjectsCreatedPerClass.Add(Object);
+		}
+
+		return UniqueName;
+	}
+
+	const TArray<UObject*>& GetObjectsCreatedPerClass_InConstructor()
+	{
+		return ObjectsCreatedPerClass;
+	}
+
+	// Universal functions
+	FString GenerateGetProperty(const UProperty* Property) const
+	{
+		check(Property);
+		const UStruct* OwnerStruct = Property->GetOwnerStruct();
+		const FString OwnerName = FString(OwnerStruct->GetPrefixCPP()) + OwnerStruct->GetName();
+		const FString OwnerPath = OwnerName + (OwnerStruct->IsA<UClass>() ? TEXT("::StaticClass()") : TEXT("::StaticStruct()"));
+		//return FString::Printf(TEXT("%s->FindPropertyByName(GET_MEMBER_NAME_CHECKED(%s, %s))"), *OwnerPath, *OwnerName, *Property->GetNameCPP());
+
+		return FString::Printf(TEXT("%s->FindPropertyByName(FName(TEXT(\"%s\")))"), *OwnerPath, *Property->GetNameCPP());
+	}
+
+	void SetCurrentlyGeneratedClass(UClass* InClass)
+	{
+		ActualClass = InClass;
+	}
+
+	FString GenerateUniqueLocalName()
+	{
+		const FString UniqueNameBase = TEXT("__Local__");
+		const FString UniqueName = FString::Printf(TEXT("%s%d"), *UniqueNameBase, LocalNameIndexMax);
+		++LocalNameIndexMax;
+		return UniqueName;
+	}
+
+	UClass* GetCurrentlyGeneratedClass() const
+	{
+		return ActualClass;
+	}
+
+	FString FindGlobalObject(UObject* Object)
+	{
+		// TODO: check if not excluded
+
+		if (ActualClass && (Object == ActualClass))
+		{
+			return TEXT("GetClass()");
+		}
+
+		if (auto ObjClass = Cast<UClass>(Object))
+		{
+			if (ObjClass->HasAnyClassFlags(CLASS_Native))
+			{
+				return FString::Printf(TEXT("%s%s::StaticClass()"), ObjClass->GetPrefixCPP(), *ObjClass->GetName());
+			}
+		}
+
+		// TODO Handle native structires, and special cases..
+
+		if (auto BPGC = ExactCast<UBlueprintGeneratedClass>(Object))
+		{
+			// TODO: check if supported 
+			return FString::Printf(TEXT("%s%s::StaticClass()"), BPGC->GetPrefixCPP(), *BPGC->GetName());
+		}
+
+		if (auto UDS = Cast<UScriptStruct>(Object))
+		{
+			// Check if  
+			// TODO: check if supported 
+			return FString::Printf(TEXT("%s%s::StaticStruct()"), UDS->GetPrefixCPP(), *UDS->GetName());
+		}
+
+		if (auto UDE = Cast<UEnum>(Object))
+		{
+			// TODO: check if supported 
+			return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
+		}
+
+		// TODO: handle subobjects
+
+		return FString{};
+	}
+
+	// TEXT
+	void IncreaseIndent()
+	{
+		Indent += TEXT("\t");
+	}
+
+	void DecreaseIndent()
+	{
+		Indent.RemoveFromEnd(TEXT("\t"));
+	}
+
+	void AddHighPriorityLine(const FString& Line)
+	{
+		HighPriorityLines.Emplace(FString::Printf(TEXT("%s%s\n"), *Indent, *Line));
+	}
+
+	void AddLine(const FString& Line)
+	{
+		LowPriorityLines.Emplace(FString::Printf(TEXT("%s%s\n"), *Indent, *Line));
+	}
+
+	void FlushLines()
+	{
+		for (auto& Line : HighPriorityLines)
+		{
+			Result += Line;
+		}
+		HighPriorityLines.Reset();
+
+		for (auto& Line : LowPriorityLines)
+		{
+			Result += Line;
+		}
+		LowPriorityLines.Reset();
+	}
+
+	FString GetResult()
+	{
+		FlushLines();
+		return Result;
+	}
+
+	void ClearResult()
+	{
+		FlushLines();
+		Result.Reset();
+	}
+};
 
 struct FEmitDefaultValueHelper
 {
@@ -85,7 +270,7 @@ private:
 	static void OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& OuterPath, const uint8* DataContainer, const uint8* OptionalDefaultDataContainer, EPropertyAccessOperator AccessOperator, bool bAllowProtected = false);
 	
 	// PathToMember ends with variable name
-	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, bool bWithoutFirstConstructionLine = false);
+	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine = false);
 	
 	// Returns native term, 
 	// returns empty string if cannot handle
