@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2653104
+Availability:Public
 Title:1.4 - Point Gravity モジュールを使用した GPU パーティクル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
 Description:エフェクト ギャラリーのサンプル レベルの概要
@@ -9,6 +10,23 @@ Related:Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related:Engine/Rendering/ParticleSystems/ParticleLights
 Related:Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/1_C "%Resources/ContentExamples/EffectsGallery/1_C:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/1_E "%Resources/ContentExamples/EffectsGallery/1_E:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
