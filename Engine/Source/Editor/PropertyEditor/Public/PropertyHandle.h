@@ -29,7 +29,7 @@ public:
 	virtual ~IPropertyHandle(){}
 
 	/**
-	 * @return Whether or not the handle is valid
+	 * @return Whether or not the handle points to a valid property node. This can be true but GetProperty may still return null
 	 */
 	virtual bool IsValidHandle() const = 0;
 	

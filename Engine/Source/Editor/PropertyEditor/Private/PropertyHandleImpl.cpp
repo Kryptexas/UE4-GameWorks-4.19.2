@@ -1434,9 +1434,9 @@ void FPropertyValueImpl::DuplicateChild( TSharedPtr<FPropertyNode> ChildNodeToDu
 	}
 }
 
-bool FPropertyValueImpl::HasValidProperty() const
+bool FPropertyValueImpl::HasValidPropertyNode() const
 {
-	return PropertyNode.IsValid() && PropertyNode.Pin()->GetProperty() != nullptr;
+	return PropertyNode.IsValid();
 }
 
 FText FPropertyValueImpl::GetDisplayName() const
@@ -1482,7 +1482,7 @@ FPropertyHandleBase::FPropertyHandleBase( TSharedPtr<FPropertyNode> PropertyNode
  
 bool FPropertyHandleBase::IsValidHandle() const
 {
-	return Implementation->HasValidProperty();
+	return Implementation->HasValidPropertyNode();
 }
 
 FText FPropertyHandleBase::GetPropertyDisplayName() const
@@ -2983,5 +2983,5 @@ TSharedRef<IPropertyHandle> FPropertyHandleArray::GetElement( int32 Index ) cons
 bool FPropertyHandleArray::IsEditable() const
 {
 	// Property is editable if its a non-const dynamic array
-	return Implementation->HasValidProperty() && !Implementation->IsEditConst() && Implementation->IsPropertyTypeOf(UArrayProperty::StaticClass());
+	return Implementation->HasValidPropertyNode() && !Implementation->IsEditConst() && Implementation->IsPropertyTypeOf(UArrayProperty::StaticClass());
 }

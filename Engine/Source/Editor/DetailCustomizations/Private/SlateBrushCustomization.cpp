@@ -778,9 +778,13 @@ private:
 		if( CachedDrawAsType != ESlateBrushDrawType::Box && CachedDrawAsType != ESlateBrushDrawType::Border )
 		{
 			TArray<void*> RawData;
-			MarginProperty->AccessRawData( RawData );
-			check( RawData[ 0 ] != NULL );
-			*static_cast<FMargin*>(RawData[ 0 ]) = FMargin();
+
+			if ( MarginProperty.IsValid() && MarginProperty->GetProperty() )
+			{
+				MarginProperty->AccessRawData( RawData );
+				check( RawData[ 0 ] != NULL );
+				*static_cast<FMargin*>(RawData[ 0 ]) = FMargin();
+			}
 		}
 		else
 		{
@@ -992,7 +996,7 @@ class SSlateBrushStaticPreview : public SCompoundWidget
 	{
 		TArray<void*> RawData;
 
-		if (ResourceObjectProperty.IsValid() && ResourceObjectProperty->IsValidHandle())
+		if (ResourceObjectProperty.IsValid() && ResourceObjectProperty->GetProperty())
 		{
 		ResourceObjectProperty->AccessRawData(RawData);
 

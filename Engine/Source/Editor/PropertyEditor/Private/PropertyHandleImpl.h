@@ -288,7 +288,7 @@ public:
 	/**
 	 * @return true if the property node is valid
 	 */
-	bool HasValidProperty() const;
+	bool HasValidPropertyNode() const;
 
 	/**
 	 * @return The display name of the property

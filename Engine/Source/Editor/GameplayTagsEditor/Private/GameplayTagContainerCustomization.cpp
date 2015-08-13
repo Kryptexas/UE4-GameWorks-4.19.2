@@ -116,6 +116,11 @@ TSharedRef<ITableRow> FGameplayTagContainerCustomization::MakeListViewWidget(TSh
 
 FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 {
+	if (!StructPropertyHandle.IsValid() || StructPropertyHandle->GetProperty() == nullptr)
+	{
+		return FReply::Handled();
+	}
+
 	TArray<UObject*> OuterObjects;
 	StructPropertyHandle->GetOuterObjects(OuterObjects);
 

@@ -88,7 +88,7 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 void FGameplayTagCustomization::OnPropertyValueChanged()
 {
 	TagName = TEXT("");
-	if (StructPropertyHandle.IsValid() && EditableContainers.Num() > 0)
+	if (StructPropertyHandle.IsValid() && StructPropertyHandle->GetProperty() && EditableContainers.Num() > 0)
 	{
 		TArray<void*> RawStructData;
 		StructPropertyHandle->AccessRawData(RawStructData);
@@ -109,7 +109,7 @@ void FGameplayTagCustomization::OnPropertyValueChanged()
 void FGameplayTagCustomization::OnTagChanged()
 {
 	TagName = TEXT("");
-	if (StructPropertyHandle.IsValid() && EditableContainers.Num() > 0)
+	if (StructPropertyHandle.IsValid() && StructPropertyHandle->GetProperty() && EditableContainers.Num() > 0)
 	{
 		TArray<void*> RawStructData;
 		StructPropertyHandle->AccessRawData(RawStructData);
@@ -156,7 +156,7 @@ void FGameplayTagCustomization::BuildEditableContainerList()
 {
 	EditableContainers.Empty();
 
-	if(StructPropertyHandle.IsValid())
+	if(StructPropertyHandle.IsValid() && StructPropertyHandle->GetProperty())
 	{
 		TArray<void*> RawStructData;
 		StructPropertyHandle->AccessRawData(RawStructData);

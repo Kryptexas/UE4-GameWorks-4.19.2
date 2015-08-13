@@ -112,7 +112,7 @@ void FMathStructCustomization::OnPreserveScaleRatioToggled(ECheckBoxState NewSta
 {
 	bPreserveScaleRatio = ( NewState == ECheckBoxState::Checked ) ? true : false;
 
-	if ( PropertyHandle.IsValid() )
+	if ( PropertyHandle.IsValid() && PropertyHandle.Pin()->GetProperty() )
 	{
 		FString SettingKey = ( PropertyHandle.Pin()->GetProperty()->GetName() + TEXT("_PreserveScaleRatio") );
 		GConfig->SetBool(TEXT("SelectionDetails"), *SettingKey, bPreserveScaleRatio, GEditorPerProjectIni);
