@@ -27,7 +27,7 @@ We need to place our AI_Character into the level so it can interact with the pla
 
 ## Steps
 
-* From the **Content Browser**, click and drag the `AI_Character`, that you created earlier, into the level.
+* From the **Content Browser**, click and drag the AI_Character, that you created earlier, into the level.
 
 [REGION:lightbox]
 [![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
