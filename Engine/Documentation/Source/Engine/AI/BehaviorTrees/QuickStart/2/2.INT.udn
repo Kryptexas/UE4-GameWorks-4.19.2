@@ -30,7 +30,7 @@ The NavMesh in Unreal has a number of functions that work well with Behavior Tre
 
 ## Steps
 
-1. [REGION:raw]**Modes** panel %arrow% **Create** %arrow% **Volumes**.[/REGION]
+1. [REGION:raw]**Modes** panel %arrow% **Volumes** %arrow% **Volumes**.[/REGION]
 
 1. Click and drag a **Nav Mesh Bounds Volume** into the map.
 
