@@ -1,14 +1,30 @@
-﻿INTSourceChangelist:2620749
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.1 - アクタのレプリケーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:Network Features のサンプル レベルの概要、1.1: アクタのレプリケーション
+Description:ネットワーク機能のサンプル レベルの概要、1.1: アクタのレプリケーション
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ネットワークのホームページ](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Networking/1_2 "%Resources/ContentExamples/Networking/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -39,7 +55,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 
 
 
-ここでは、アクタで **Replicates** boolean を使用する例を示しています。有効にすると、ネットワーキングの視点からサーバーでスポーンされたアクタをクライアントが認識することができます。 
+ここでは、アクタに **Replicates** boolean を使用する例を示しています。有効にすると、ネットワーキングの視点からサーバーでスポーンされたアクタをクライアントが認識することができます。 
 
 以下のように、 **Replication** セクションの下にある **[Defaults]** タブで、アクタをレプリケートするか、しないかを設定できます。 
 
