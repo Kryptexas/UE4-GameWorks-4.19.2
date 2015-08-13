@@ -2066,15 +2066,15 @@ void FPropertyNode::BroadcastPropertyChangedDelegates()
 	PropertyValueChangedEvent.Broadcast();
 
 	// Walk through the parents and broadcast
-	FPropertyNode* ParentNode = GetParentNode();
-	while( ParentNode )
+	FPropertyNode* LocalParentNode = GetParentNode();
+	while( LocalParentNode )
 	{
-		if( ParentNode->OnChildPropertyValueChanged().IsBound() )
+		if( LocalParentNode->OnChildPropertyValueChanged().IsBound() )
 		{
-			ParentNode->OnChildPropertyValueChanged().Broadcast();
+			LocalParentNode->OnChildPropertyValueChanged().Broadcast();
 		}
 
-		ParentNode = ParentNode->GetParentNode();
+		LocalParentNode = LocalParentNode->GetParentNode();
 	}
 
 }
