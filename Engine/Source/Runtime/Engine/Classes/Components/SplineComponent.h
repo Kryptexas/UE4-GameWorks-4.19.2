@@ -173,6 +173,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Spline)
 	void AddSplinePoint(const FVector& Position, ESplineCoordinateSpace::Type CoordinateSpace);
 
+	/** Adds a point to the spline at the specified index*/
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void AddSplinePointAtIndex(const FVector& Position, int32 Index, ESplineCoordinateSpace::Type CoordinateSpace);
+
+	/** Removes point at specified index from the spline */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	void RemoveSplinePoint(const int32 Index);
+
 	/** Adds a world space point to the spline */
 	UFUNCTION(BlueprintCallable, Category = Spline, meta = (DeprecatedFunction, DeprecationMessage = "Please use AddSplinePoint, specifying SplineCoordinateSpace::World"))
 	void AddSplineWorldPoint(const FVector& Position);
