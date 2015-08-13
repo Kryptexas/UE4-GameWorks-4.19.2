@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2630937
+﻿INTSourceChangelist:2653104
 Availability:Public
 Title:2.2  - グローバル ベクターフィールド経由のパーティクル動作の操作
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/EffectsGallery
@@ -10,6 +10,24 @@ Related: Engine/Rendering/ParticleSystems/Optimization
 Related: Engine/Rendering/ParticleSystems/Reference/TypeData/GPUSprites
 Related: Engine/Rendering/ParticleSystems/ParticleLights
 Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/EffectsGallery/2_A "%Resources/ContentExamples/EffectsGallery/2_A:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[エフェクト ギャラリー ホーム](Resources/ContentExamples/EffectsGallery)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/EffectsGallery/2_C "%Resources/ContentExamples/EffectsGallery/2_C:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
