@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2590871
 Availability:Public
 Title:Math Expression ノード
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -47,14 +47,14 @@ Description:Math expression ノードにより、数学式に入力し、その�
 
 ## 概要
 
-Math Expression ノードを作成するには、グラフを **右クリック** して、コンテクスト メニューで **[数学式を追加...]** を選択します。 
+Math Expression ノードを作成するには、グラフを **右クリック** して、コンテキスト メニューで **[Add Math Expression... (数学式を追加...)]** を選択します。 
 
 ![](AddMathExpression.png)
 
 Math Expression ノードは折りたたまれたグラフのように動きます。**ダブルクリック** して、機能を構成しているサブグラフを開く単一のノードです。 
 名前 / 表現式は最初はブランクです。ノード名を変更すると、新規の表現式がパースされ、新規のサブグラフが生成されます。 
 
-ノード名の変更およびサブグラフの更新を行うには、ノード上で **右クリック** し **[名前変更]** を選択します。
+ノード名の変更およびサブグラフの更新を行うには、ノード上で **右クリック** し **[Rename (名前変更)]** を選択します。
 
 例えば、以下の表現式で Math Expression ノード名を変更できます。
 
