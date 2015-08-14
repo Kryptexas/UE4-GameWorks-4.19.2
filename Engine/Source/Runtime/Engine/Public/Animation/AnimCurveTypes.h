@@ -269,7 +269,8 @@ struct ENGINE_API FBlendedCurve
 	void InitFrom(const class USkeleton* Skeleton);
 	void InitFrom(const FBlendedCurve& InCurveToInitFrom)
 	{
-		if (&InCurveToInitFrom != this)
+		// make sure this doesn't happen
+		if (ensure(&InCurveToInitFrom != this))
 		{
 			UIDList.Reset();
 			UIDList.Append(InCurveToInitFrom.UIDList);
@@ -286,6 +287,10 @@ struct ENGINE_API FBlendedCurve
 	 * Blend (A, B) using Alpha, same as Lerp
 	 */
 	void Blend(const FBlendedCurve& A, const FBlendedCurve& B, float Alpha);
+	/**
+	 * Blend with Other using Alpha, same as Lerp 
+	 */
+	void BlendWith(const FBlendedCurve& Other, float Alpha);
 	/**
 	 * Convert current curves to Additive (this - BaseCurve) if same found
 	 */

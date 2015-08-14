@@ -1265,7 +1265,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 
 		// interpolate curve
-		EvaluatedCurve.Blend(EvaluatedCurve, CachedCurve, Alpha);
+		EvaluatedCurve.BlendWith(CachedCurve, Alpha);
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;

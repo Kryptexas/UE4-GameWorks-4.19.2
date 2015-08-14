@@ -460,10 +460,34 @@ void FBlendedCurve::Blend(const FBlendedCurve& A, const FBlendedCurve& B, float 
 		for(int32 CurveId=0; CurveId<A.Elements.Num(); ++CurveId)
 		{
 			Elements[CurveId].Value = FMath::Lerp(A.Elements[CurveId].Value, B.Elements[CurveId].Value, Alpha); 
-			Elements[CurveId].Flags |= (A.Elements[CurveId].Flags | B.Elements[CurveId].Flags);
+			Elements[CurveId].Flags |= (B.Elements[CurveId].Flags);
 		}
 	}
 
+	ValidateCurve(this);
+}
+
+void FBlendedCurve::BlendWith(const FBlendedCurve& Other, float Alpha)
+{
+	check(Num()==Other.Num());
+	if(FMath::Abs(Alpha) <= ZERO_ANIMWEIGHT_THRESH)
+	{
+		return;
+	}
+	else if(FMath::Abs(Alpha - 1.0f) <= ZERO_ANIMWEIGHT_THRESH)
+	{
+		// if blend is all the way for child2, then just copy its bone atoms
+		Override(Other);
+	}
+	else
+	{
+		for(int32 CurveId=0; CurveId<Elements.Num(); ++CurveId)
+		{
+			Elements[CurveId].Value = FMath::Lerp(Elements[CurveId].Value, Other.Elements[CurveId].Value, Alpha);
+			Elements[CurveId].Flags |= (Other.Elements[CurveId].Flags);
+		}
+	}
+	 
 	ValidateCurve(this);
 }
 
