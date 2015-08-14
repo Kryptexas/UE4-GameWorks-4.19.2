@@ -20,30 +20,14 @@ struct FPluginTemplateDescription
 	/** Name of the directory containing template files */
 	FString OnDiskPath;
 
-	/** Whether to copy the whole template directory rather than create new files from .template files */
-	bool bCopyWholeDirectory;
-
-	/** Whether this template needs the UI files generated (commands, etc...) */
-	bool bIncludeUI;
-
-	/** Whether this template creates an editor mode */
-	bool bMakeEditorMode;
-
-	/** Whether this template creates a blueprint function library */
-	bool bAddBPLibrary;
-
 	/** Brush resource for the image that is dynamically loaded */
 	TSharedPtr< FSlateDynamicImageBrush > PluginIconDynamicImageBrush;
 
 	/** Constructor */
-	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath, bool bInCopyWholeDirectory, bool bInIncludeUI, bool bInMakeEditorMode, bool bInAddBPLibrary)
+	FPluginTemplateDescription(FText InName, FText InDescription, FString InOnDiskPath)
 		: Name(InName)
 		, Description(InDescription)
 		, OnDiskPath(InOnDiskPath)
-		, bCopyWholeDirectory(bInCopyWholeDirectory)
-		, bIncludeUI(bInIncludeUI)
-		, bMakeEditorMode(bInMakeEditorMode)
-		, bAddBPLibrary(bInAddBPLibrary)
 	{
 	}
 };
