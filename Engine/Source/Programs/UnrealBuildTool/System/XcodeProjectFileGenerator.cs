@@ -1073,9 +1073,6 @@ namespace UnrealBuildTool
 
 		private void PopulateTargets(List<XcodeProjectTarget> ProjectTargets, List<XcodeContainerItemProxy> ContainerItemProxies, List<XcodeTargetDependency> TargetDependencies, XcodeProjectTarget ProjectTarget, List<XcodeFramework> Frameworks)
 		{
-			XcodeProjectTarget ShaderCompileWorkerTarget = null;
-			List<XcodeProjectTarget> EditorTargets = new List<XcodeProjectTarget>();
-
 			List<ProjectTarget> TargetProjects = new List<ProjectTarget> ();
 			foreach (var Project in GeneratedProjectFiles)
 			{
@@ -1095,132 +1092,110 @@ namespace UnrealBuildTool
 			}
 			foreach (var TargetProject in TargetProjects)
 			{
-				string TargetPath = TargetProject.TargetFilePath;
-				string TargetName = Utils.GetFilenameWithoutAnyExtensions (Path.GetFileName (TargetPath));
-				bool WantProjectFileForTarget = true;
-				bool IsEngineTarget = false;
-				if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
-				{
-					// Check to see if this is an Engine target.  That is, the target is located under the "Engine" folder
-					string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetPath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
-					if (!TargetFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToEngineDirectory))
+					string TargetPath = TargetProject.TargetFilePath;
+					string TargetName = Utils.GetFilenameWithoutAnyExtensions (Path.GetFileName (TargetPath));
+					bool WantProjectFileForTarget = true;
+					bool IsEngineTarget = false;
+					if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
 					{
-						// This is an engine target
-						IsEngineTarget = true;
-					}
-
-					if (IsEngineTarget)
-					{
-						if (!IncludeEngineSource)
+						// Check to see if this is an Engine target.  That is, the target is located under the "Engine" folder
+						string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetPath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
+						if (!TargetFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToEngineDirectory))
 						{
-							// We were asked to exclude engine modules from the generated projects
+							// This is an engine target
+							IsEngineTarget = true;
+						}
+
+						if (IsEngineTarget)
+						{
+							if (!IncludeEngineSource)
+							{
+								// We were asked to exclude engine modules from the generated projects
+								WantProjectFileForTarget = false;
+							}
+							if (bGeneratingGameProjectFiles && this.GameProjectName == TargetName)
+							{
+								WantProjectFileForTarget = true;
+							}
+						}
+
+						if (bGeneratingRocketProjectFiles && TargetName.EndsWith("Server"))
+						{
 							WantProjectFileForTarget = false;
 						}
-						if (bGeneratingGameProjectFiles && this.GameProjectName == TargetName)
+					}
+
+					if (WantProjectFileForTarget)
+					{
+						string TargetFilePath = TargetProject.TargetFilePath;
+						var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
+						var TargetRulesObject = TargetProject.TargetRules; // RulesCompiler.CreateTargetRules(TargetName, Target, false, out TargetFilePath);
+						List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
+						TargetRulesObject.GetSupportedPlatforms(ref SupportedPlatforms);
+						LinkEnvironmentConfiguration LinkConfiguration = new LinkEnvironmentConfiguration();
+						CPPEnvironmentConfiguration CPPConfiguration = new CPPEnvironmentConfiguration();
+						TargetRulesObject.SetupGlobalEnvironment(Target, ref LinkConfiguration, ref CPPConfiguration);
+
+						if (!LinkConfiguration.bIsBuildingConsoleApplication)
 						{
-							WantProjectFileForTarget = true;
+							TargetsThatNeedApp.Add(TargetName);
 						}
-					}
 
-					if (bGeneratingRocketProjectFiles && TargetName.EndsWith("Server"))
-					{
-						WantProjectFileForTarget = false;
-					}
-				}
-
-				if (WantProjectFileForTarget)
-				{
-					string TargetFilePath = TargetProject.TargetFilePath;
-					var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
-					var TargetRulesObject = TargetProject.TargetRules; // RulesCompiler.CreateTargetRules(TargetName, Target, false, out TargetFilePath);
-					List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
-					TargetRulesObject.GetSupportedPlatforms(ref SupportedPlatforms);
-					LinkEnvironmentConfiguration LinkConfiguration = new LinkEnvironmentConfiguration();
-					CPPEnvironmentConfiguration CPPConfiguration = new CPPEnvironmentConfiguration();
-					TargetRulesObject.SetupGlobalEnvironment(Target, ref LinkConfiguration, ref CPPConfiguration);
-
-					if (!LinkConfiguration.bIsBuildingConsoleApplication)
-					{
-						TargetsThatNeedApp.Add(TargetName);
-					}
-
-					// if the project is not an engine project check to make sure we have the correct name
-					string DisplayName = TargetName;
-					if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program && TargetRulesObject.Type != TargetRules.TargetType.Client)
-					{
-						List<UProjectInfo> AllGames = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
-						UProjectInfo ProjectInfo = FindGameContainingFile(AllGames, TargetFilePath);
-						if (ProjectInfo != null)
+						// if the project is not an engine project check to make sure we have the correct name
+						string DisplayName = TargetName;
+						if (!IsEngineTarget && TargetRulesObject.Type != TargetRules.TargetType.Program && TargetRulesObject.Type != TargetRules.TargetType.Client)
 						{
-							DisplayName = ProjectInfo.GameName;
-							if (TargetName.Contains("Editor"))
+							List<UProjectInfo> AllGames = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
+							UProjectInfo ProjectInfo = FindGameContainingFile(AllGames, TargetFilePath);
+							if (ProjectInfo != null)
 							{
-								DisplayName += "Editor";
-							}
-							else if (TargetName.Contains("Server"))
-							{
-								DisplayName += "Server";
+								DisplayName = ProjectInfo.GameName;
+								if (TargetName.Contains("Editor"))
+								{
+									DisplayName += "Editor";
+								}
+								else if (TargetName.Contains("Server"))
+								{
+									DisplayName += "Server";
+								}
 							}
 						}
-					}
 
-					// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
-					bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
+						// @todo: Remove target platform param and merge Mac and iOS targets. For now BuildTarget knows how to build iOS, but cannot run iOS apps, so we need separate DeployTarget.
+						bool bIsMacOnly = !SupportedPlatforms.Contains(UnrealTargetPlatform.IOS);
 
-					XcodeProjectTarget BuildTarget = new XcodeProjectTarget(DisplayName + " - Mac", TargetName, XcodeTargetType.Legacy, TargetFilePath, "", UnrealTargetPlatform.Mac, bIsMacOnly);
-					if (!bGeneratingRunIOSProject)
-					{
-						ProjectTargets.Add(BuildTarget);
-					}
-
-					if (DisplayName.EndsWith("Editor") && !EditorTargets.Contains(BuildTarget))
-					{
-						EditorTargets.Add(BuildTarget);
-					}
-					else if (DisplayName == "ShaderCompileWorker")
-					{
-						ShaderCompileWorkerTarget = BuildTarget;
-					}
-
-					if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS) && SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
-					{
-						if ((bGeneratingRocketProjectFiles && TargetName == "UE4Game") || bGeneratingRunIOSProject)
+						XcodeProjectTarget BuildTarget = new XcodeProjectTarget(DisplayName + " - Mac", TargetName, XcodeTargetType.Legacy, TargetFilePath, "", UnrealTargetPlatform.Mac, bIsMacOnly);
+						if (!bGeneratingRunIOSProject)
 						{
-							// Generate Framework references.
-							List<XcodeFrameworkRef> FrameworkRefs = new List<XcodeFrameworkRef>();
-							foreach (XcodeFramework Framework in Frameworks)
-							{
-								FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
-							}
-
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
-							ProjectTargets.Add(IOSDeployTarget);
+							ProjectTargets.Add(BuildTarget);
 						}
-						else
+
+						if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS) && SupportedPlatforms.Contains(UnrealTargetPlatform.IOS))
 						{
-							XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, BuildTarget.Guid, BuildTarget.DisplayName);
-							XcodeTargetDependency TargetDependency = new XcodeTargetDependency(BuildTarget.DisplayName, BuildTarget.Guid, ContainerProxy.Guid);
-							XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
-							ProjectTargets.Add(IOSDeployTarget);
-							ContainerItemProxies.Add(ContainerProxy);
-							TargetDependencies.Add(TargetDependency);
+							if ((bGeneratingRocketProjectFiles && TargetName == "UE4Game") || bGeneratingRunIOSProject)
+							{
+								// Generate Framework references.
+								List<XcodeFrameworkRef> FrameworkRefs = new List<XcodeFrameworkRef>();
+								foreach (XcodeFramework Framework in Frameworks)
+								{
+									FrameworkRefs.Add(new XcodeFrameworkRef(Framework));
+								}
+
+								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, null, true, FrameworkRefs);
+								ProjectTargets.Add(IOSDeployTarget);
+							}
+							else
+							{
+								XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, BuildTarget.Guid, BuildTarget.DisplayName);
+								XcodeTargetDependency TargetDependency = new XcodeTargetDependency(BuildTarget.DisplayName, BuildTarget.Guid, ContainerProxy.Guid);
+								XcodeProjectTarget IOSDeployTarget = new XcodeProjectTarget(DisplayName + " - iOS", TargetName, XcodeTargetType.Native, TargetFilePath, TargetName + ".app", UnrealTargetPlatform.IOS, false, new List<XcodeTargetDependency>() { TargetDependency }, true);
+								ProjectTargets.Add(IOSDeployTarget);
+								ContainerItemProxies.Add(ContainerProxy);
+								TargetDependencies.Add(TargetDependency);
+							}
 						}
 					}
 				}
-			}
-
-			// Always compile ShaderCompileWorker along with the editor
-			if (ShaderCompileWorkerTarget != null)
-			{
-				XcodeContainerItemProxy ContainerProxy = new XcodeContainerItemProxy(ProjectTarget.Guid, ShaderCompileWorkerTarget.Guid, ShaderCompileWorkerTarget.DisplayName);
-				XcodeTargetDependency TargetDependency = new XcodeTargetDependency(ShaderCompileWorkerTarget.DisplayName, ShaderCompileWorkerTarget.Guid, ContainerProxy.Guid);
-				TargetDependencies.Add(TargetDependency);
-
-				foreach (var EditorTarget in EditorTargets)
-				{
-					EditorTarget.Dependencies = new List<XcodeTargetDependency>() { TargetDependency };
-				}
-			}
 		}
 
 		/// <summary>
