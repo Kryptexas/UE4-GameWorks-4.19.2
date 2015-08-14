@@ -6,6 +6,18 @@
 #include "EngineBuildSettings.h"
 #include "ModuleVersion.h"
 
+/** Version numbers for networking */
+int32 GEngineNetVersion			= BUILT_FROM_CHANGELIST;
+const int32 GEngineMinNetVersion		= 7038;
+const int32 GEngineNegotiationVersion	= 3077;
+
+// Global instance of the current engine version
+FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+
+// Version which this engine maintains strict API and package compatibility with
+FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (MODULE_API_VERSION | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
+
+
 FEngineVersionBase::FEngineVersionBase()
 : Major(0)
 , Minor(0)
@@ -193,6 +205,19 @@ const FEngineVersion& FEngineVersion::CompatibleWith()
 	return CompatibleWithVersion;
 }
 
+bool FEngineVersion::OverrideCurrentVersionChangelist(int32 NewChangelist)
+{
+	if(CurrentVersion.GetChangelist() != 0 || CompatibleWithVersion.GetChangelist() != 0)
+	{
+		return false;
+	}
+
+	CurrentVersion.Set(CurrentVersion.Major, CurrentVersion.Minor, CurrentVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CurrentVersion.Branch);
+	CompatibleWithVersion.Set(CompatibleWithVersion.Major, CompatibleWithVersion.Minor, CompatibleWithVersion.Patch, NewChangelist | (ENGINE_IS_LICENSEE_VERSION << 31), CompatibleWithVersion.Branch);
+	GEngineNetVersion = NewChangelist;
+	return true;
+}
+
 void operator<<(FArchive &Ar, FEngineVersion &Version)
 {
 	Ar << Version.Major;
@@ -201,18 +226,3 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 	Ar << Version.Changelist;
 	Ar << Version.Branch;
 }
-
-/** Changelist constants. The two lines below may be modified by tools. */
-const int32 GEngineVersionChangelist = BUILT_FROM_CHANGELIST;
-const int32 GCompatibleWithEngineVersionChangelist = MODULE_API_VERSION;
-
-/** Version numbers for networking */
-const int32 GEngineNetVersion			= GEngineVersionChangelist;
-const int32 GEngineMinNetVersion		= 7038;
-const int32 GEngineNegotiationVersion	= 3077;
-
-// Global instance of the current engine version
-FEngineVersion FEngineVersion::CurrentVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (GEngineVersionChangelist | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);
-
-// Version which this engine maintains strict API and package compatibility with
-FEngineVersion FEngineVersion::CompatibleWithVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (GCompatibleWithEngineVersionChangelist | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);

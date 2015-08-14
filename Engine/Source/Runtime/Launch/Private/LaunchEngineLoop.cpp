@@ -1052,6 +1052,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if(ModuleEnumerator.RegisterWithModuleManager())
 	{
 		const FVersionManifest& Manifest = ModuleEnumerator.GetInitialManifest();
+		if(Manifest.Changelist != 0 && !FEngineVersion::OverrideCurrentVersionChangelist(Manifest.Changelist))
+		{
+			UE_LOG(LogInit, Fatal, TEXT("Couldn't update engine changelist to %d."), Manifest.Changelist);
+		}
 		UE_LOG(LogInit, Log, TEXT("Using version manifest at CL %d with build ID '%s'"), Manifest.Changelist, *Manifest.BuildId);
 	}
 #endif

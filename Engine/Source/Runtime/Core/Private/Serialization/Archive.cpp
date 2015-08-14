@@ -63,7 +63,7 @@ void FArchive::Reset()
 	ArNetVer							= GEngineNegotiationVersion;
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
-	ArEngineVer = FEngineVersion::Current();
+	ArEngineVer							= FEngineVersion::Current();
 	ArIsLoading							= false;
 	ArIsSaving							= false;
 	ArIsTransacting						= false;

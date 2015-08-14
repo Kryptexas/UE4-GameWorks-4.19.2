@@ -37,6 +37,9 @@ public:
 	/** Gets the earliest version which this engine maintains strict API and package compatibility with */
 	static const FEngineVersion& CompatibleWith();
 
+	/** Overrides the current changelist in the verison */
+	static bool OverrideCurrentVersionChangelist(int32 NewChangelist);
+
 	/** Serialization function */
 	friend CORE_API void operator<<(class FArchive &Ar, FEngineVersion &Version);
 
@@ -59,7 +62,7 @@ private:
 };
 
 /** Version used for networking; the P4 changelist number. */
-CORE_API extern const int32 GEngineNetVersion;
+CORE_API extern int32 GEngineNetVersion;
 
 /** Earliest engine build that is network compatible with this one. */
 CORE_API extern const int32 GEngineMinNetVersion;
