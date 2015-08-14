@@ -35,6 +35,8 @@ DEFINE_STAT(STAT_NumActiveKinematicBodies);
 DEFINE_STAT(STAT_NumMobileBodies);
 DEFINE_STAT(STAT_NumStaticBodies);
 DEFINE_STAT(STAT_NumShapes);
+DEFINE_STAT(STAT_NumCloths);
+DEFINE_STAT(STAT_NumClothVerts);
 
 DEFINE_STAT(STAT_NumBroadphaseAddsAsync);
 DEFINE_STAT(STAT_NumBroadphaseRemovesAsync);

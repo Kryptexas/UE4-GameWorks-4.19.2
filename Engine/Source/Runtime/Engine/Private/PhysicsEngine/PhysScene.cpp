@@ -563,6 +563,29 @@ void FinishSceneStat(uint32 Scene)
 	}
 }
 
+#if WITH_APEX
+void GatherApexStats(const UWorld* World, NxApexScene* ApexScene)
+{
+	SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
+	int32 NumVerts = 0;
+	int32 NumCloths = 0;
+	for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
+	{
+		if (Itr->GetWorld() != World) { continue; }
+		for (const FClothingActor& ClothingActor : Itr->ClothingActors)
+		{
+			if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActivePhysicalLod() == 1)
+			{
+				NumCloths++;
+				NumVerts += ClothingActor.ApexClothingActor->getNumSimulationVertices();
+			}
+		}
+	}
+	SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
+	SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
+}
+#endif
+
 
 /** Exposes ticking of physics-engine scene outside Engine. */
 void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletionEvent)
@@ -678,6 +701,9 @@ void FPhysScene::TickPhysScene(uint32 SceneType, FGraphEventRef& InOutCompletion
 			ApexScene->simulate(AveragedFrameTime[SceneType], true, Task);
 			Task->removeReference();
 			bTaskOutstanding = true;
+
+			GatherApexStats(this->OwningWorld,ApexScene);
+
 #endif
 		}
 	}
