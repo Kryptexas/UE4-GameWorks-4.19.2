@@ -413,6 +413,27 @@ namespace AnimationEditorUtils
 		}
 		MenuBuilder.EndSection();
 	}
+
+	bool ApplyCompressionAlgorithm(TArray<UAnimSequence*>& AnimSequencePtrs, class UAnimCompress* Algorithm)
+	{
+		if(Algorithm)
+		{
+			const bool bProceed = (AnimSequencePtrs.Num() > 1)? EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo,
+				FText::Format(NSLOCTEXT("UnrealEd", "AboutToCompressAnimations_F", "About to compress {0} animations.  Proceed?"), FText::AsNumber(AnimSequencePtrs.Num()))) : true;
+			if(bProceed)
+			{
+				GWarn->BeginSlowTask(LOCTEXT("AnimCompressing", "Compressing"), true);
+
+				Algorithm->Reduce(AnimSequencePtrs, true);
+
+				GWarn->EndSlowTask();
+
+				return true;
+			}
+		}
+
+		return false;
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

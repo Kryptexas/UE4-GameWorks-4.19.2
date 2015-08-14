@@ -386,7 +386,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	 * The compression scheme that was most recently used to compress this animation.
 	 * May be NULL.
 	 */
-	UPROPERTY(Instanced, Category=Compression, VisibleAnywhere)
+	UPROPERTY(Instanced, Category=Compression, EditAnywhere)
 	class UAnimCompress* CompressionScheme;
 #endif // WITH_EDITORONLY_DATA
 
