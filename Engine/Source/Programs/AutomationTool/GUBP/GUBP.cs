@@ -43,7 +43,6 @@ using System.Diagnostics;
 [Help("ForceIncrementalCompile", "make sure all compiles are incremental")]
 [Help("AutomatedTesting", "Allow automated testing, currently disabled.")]
 [Help("StompCheck", "Look for stomped build products.")]
-[Help("NoZipTempStorage", "By default temp storage is zipped up and copied as a single archive. When this flag is set, the directory structure is replicated instead.")]
 public partial class GUBP : BuildCommand
 {
 	const string StartedTempStorageSuffix = "_Started";
@@ -166,9 +165,8 @@ public partial class GUBP : BuildCommand
 		{
 			HostPlatforms.Add(UnrealTargetPlatform.Linux);
 		}
-        TempStorage.SetZipTempStorage(!ParseParam("NoZipTempStorage"));
 
-        bool bCleanLocalTempStorage = ParseParam("CleanLocal");
+	    bool bCleanLocalTempStorage = ParseParam("CleanLocal");
         bool bSkipTriggers = ParseParam("SkipTriggers");
         bool bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
@@ -237,7 +235,7 @@ public partial class GUBP : BuildCommand
 
         if (bCleanLocalTempStorage)  // shared temp storage can never be wiped
         {
-            TempStorage.DeleteLocalTempStorageManifests();
+            TempStorage.DeleteLocalTempStorage();
         }
 
 		int TimeIndex = ParseParamInt("TimeIndex", 0);
