@@ -29,7 +29,7 @@ class UNREALED_API UFbxAnimSequenceImportData : public UFbxAssetImportData
 	GENERATED_UCLASS_BODY()
 
 	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, Category=ImportSettings, meta=(DisplayName = "Animation Length"))
+	UPROPERTY(EditAnywhere, Category=ImportSettings, config, meta=(DisplayName = "Animation Length"))
 	TEnumAsByte<enum EFBXAnimationLengthImportType> AnimationLength;
 
 	/** Type of asset to import from the FBX file */
