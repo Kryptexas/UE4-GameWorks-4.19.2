@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2602309
+﻿INTSourceChangelist:2651126
 Availability:Public
 Title:Geometry Brush アクタ
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -6,6 +6,8 @@ Description:アンリアル エディタでレベル ジオメトリを作成す
 Related:Engine/UI/LevelEditor
 Related:Engine/UI/LevelEditor/Modes
 Related:Engine/Actors/Volumes
+Version:4.9
+
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -121,7 +123,7 @@ Related:Engine/Actors/Volumes
 ## ブラシの作成
 
 [EXCERPT:CreatingBSP]
-**[Place Mode]** パネルの **[Geometry]** (ジオメトリ) タブを使用してブラシを作成します。
+**[Place Mode]** パネルの **[Geometry (ジオメトリ)]** タブを使用してブラシを作成します。
 
 1. パネルの一番下にあるラジオ ボタンを使って [ブラシの種類](#ブラシの種類) (Add (加算) または Subtract (減算)) を選びます。
 
@@ -131,7 +133,7 @@ Related:Engine/Actors/Volumes
 
 	![](BoxBrush.png)(w:640)
 
-1. **[Brush Settings]** (ブラシの設定) を修正し、変形ツールを使うか **Geometry Editing モード** をアクティブにして、ブラシの再形成およびリサイズを行います。詳細は [ブラシの修正] (#ブラシの修正) を参照してください。
+1. **[Brush Settings (ブラシの設定)]** を修正し、変形ツールを使うか **Geometry Editing モード** をアクティブにして、ブラシの再形成およびリサイズを行います。詳細は [ブラシの修正] (#ブラシの修正) を参照してください。
 
 [/EXCERPT:CreatingBSP]
 
@@ -141,13 +143,13 @@ Related:Engine/Actors/Volumes
 
 | プリミティブ | 説明 |
 | --------- | ----------- |
-|![](BSP_Box.png)| 後でカスタマイズ可能なボックス形状のビルダ ブラシを **[Details]** (詳細) パネル内に作成します。以下のオプションがあります： [INCLUDE:#BoxBuilder] |
-|![](BSP_Cone.png)| 後でカスタマイズ可能なコーン形状のビルダ ブラシを **[Details]** パネル内に作成します。以下のオプションがあります： [INCLUDE:#ConeBuilder] |
-|![](BSP_Cone.png)| 後でカスタマイズ可能なシリンダー形状のビルダ ブラシを **[Details]** パネル内に作成します。以下のオプションがあります： [INCLUDE:#CylinderBuilder] |
-|![](BSP_CurvedStair.png)| 曲線階段の形状のビルダ ブラシ アクタを変更します。つまり、角度では曲がりますが、それ自体に巻きつくことはできません。それには螺旋階段が必要です。曲線階段は地面までずっと延びています。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#CurvedStairBuilder] |
-|![](BSP_LinStair.png)| ビルド ブラシを直線階段の形状に作成します。つまり、曲がらない直線の階段です。階段は地面までずっと延びています。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#LinearStairBuilder] |
-|![](BSP_SpiralStair.png)| 螺旋階段のビルド ブラシ アクタを作成します。つまり、階段はそれ自体に何度も巻きつくことができます。階段は地面までは延びていません。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#SpiralStairBuilder] ||
-|![](BSP_Sphere.png)| 後でカスタマイズ可能な球状のジオメトリ ブラシ アクタを [Details] パネル内に作成します。以下のオプションがあります： [INCLUDE:#SphereBuilder] |
+|![](BSP_Box.png)| 後でカスタマイズ可能なボックス形状のビルダ ブラシを **[Details (詳細)]** パネル内に作成します。以下のオプションがあります： [INCLUDE:#BoxBuilder] |
+|![](BSP_Cone.png)| 後でカスタマイズ可能なコーン形状の Geometry Brush アクタを **[Details]** パネル内に作成します。以下のオプションがあります： [INCLUDE:#ConeBuilder] |
+|![](BSP_Cylinder.png)| 後でカスタマイズ可能なシリンダー形状の Geometry Brush アクタを **[Details]** パネル内に作成します。以下のオプションがあります： [INCLUDE:#CylinderBuilder] |
+|![](BSP_CurvedStair.png)| 曲線階段の形状の Geometry Brush アクタを変更します。つまり、角度では曲がりますが、それ自体に巻きつくことはできません。それには螺旋階段が必要です。曲線階段は地面までずっと延びています。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#CurvedStairBuilder] |
+|![](BSP_LinStair.png)|  Geometry Brush アクタを直線階段の形状に作成します。つまり、曲がらない直線の階段です。階段は地面までずっと延びています。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#LinearStairBuilder] |
+|![](BSP_SpiralStair.png)| 螺旋階段の Geometry Brush アクタを作成します。つまり、階段はそれ自体に何度も巻きつくことができます。階段は地面までは延びていません。形状は **[Details]** パネルでカスタマイズ可能です。以下のオプションがあります： [INCLUDE:#SpiralStairBuilder] ||
+|![](BSP_Sphere.png)| 後でカスタマイズ可能な球状の Geometry Brush アクタを [Details] パネル内に作成します。以下のオプションがあります： [INCLUDE:#SphereBuilder] |
 
 
 <!--
@@ -226,7 +228,7 @@ Related:Engine/Actors/Volumes
 |**Step Height**|各階段の上から下までの高さです。|
 |**Step Thickness**|階段を全体的に厚くします。|
 |**Num Steps Per 360**|1 回転するために必要な段数を決定します。|
-|**Num Steps**|階段の段数です。値が _Num Steps per 360_ (あるいはその乗数) になると、階段は再度巻きつきます。|
+|**Num Steps**|階段の段数です。値が Num Steps per 360 (あるいはその乗数) になると、階段は再度巻きつきます。|
 |**Add to First Step**|1 段目に特定の高さを追加し、階段全体の高さを効率的に上げていきます。|
 |**Sloped Ceiling**|シーリングを傾斜させるのではなくて、階段状にします。|
 |**Sloped Floor**|シーリングを一般的な階段状ではなくて、螺旋状の傾斜にします。|
@@ -297,7 +299,7 @@ Related:Engine/Actors/Volumes
 
 ### 高度なプロパティ
 
-ブラシ設定の一番下の ![Advanced](button_advanced.png) ボタンをクリックすると高度なブラシのプロパティが表示されます。
+**Brush Settings (ブラシ設定)** の一番下の ![Advanced](button_advanced.png) ボタンをクリックすると高度なブラシのプロパティが表示されます。
 
 ![](BrushDetailsAdvanced.png)
 
@@ -342,7 +344,7 @@ Order (順序) のドロップダウンには以下が含まれます。
 
 ### Align ボタンと Static Mesh ボタン
 
-**Brush Settings** (ブラシ設定) カテゴリのプロパティを展開すると、以下のボタンが表示されます。
+**Brush Settings** カテゴリのプロパティを展開すると、以下のボタンが表示されます。
 
 | Brush Type のドロップダウン メニュー||
 |---|---|
@@ -401,8 +403,8 @@ Surface プロパティに含まれる各種ツールによって、ライトマ
 |---|---|
 |**Lightmap Resolution**| 実質的に、このサーフェス全体でシャドーの調整ができます。数値が低いほど、シャドーが濃くなります。|
 |[REGION:tablesection]ライトマス 設定[/REGION]||
-|**Use Two Sided Lighting**|_true_ の場合、このサーフェスはそれぞれのポリゴンの正と負の両側でライトを受けます。|
-|**Shadow Indirect Only**|_true_ の場合、このサーフェスは間接ライティングから影の作成のみ行います。|
+|**Use Two Sided Lighting**|true の場合、このサーフェスはそれぞれのポリゴンの正と負の両側でライトを受けます。|
+|**Shadow Indirect Only**|true の場合、このサーフェスは間接ライティングから影の作成のみ行います。|
 |**Diffuse Boost**|ディフューズ カラーが間接ライティングに影響する量をスケールします。|
 |**Fully Occluded Samples Fraction**|間接ライティング計算からオクルードされたと見なされる前にオクルードされるべきサーフェスに沿ったサンプルの割合です。|
 
