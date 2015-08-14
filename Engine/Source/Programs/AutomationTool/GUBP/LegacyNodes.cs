@@ -777,7 +777,10 @@ partial class GUBP
 		public ToolsCrossCompileNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform)
 			: base(InBranchConfig, InHostPlatform)
 		{
-			AddPseudodependency(RootEditorCrossCompileLinuxNode.StaticGetFullName());
+			if (!InBranchConfig.BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
+			{
+				AddPseudodependency(RootEditorCrossCompileLinuxNode.StaticGetFullName());
+			}
 			AgentSharingGroup = "ToolsCrossCompileGroup" + StaticGetHostPlatformSuffix(HostPlatform);
 		}
 		public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform)
