@@ -33,6 +33,8 @@
 #include "OSSScheduler.h"
 #include "FriendsService.h"
 #include "GameAndPartyService.h"
+#include "OnlineSubsystemMcp.h"
+#include "GameServiceMcp.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
@@ -106,7 +108,7 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 
 		// Message Service Login
 		MessageService->Login();
-		MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnChatPublicRoomJoined);
+		MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnGlobalChatRoomJoined);
 		for (auto RoomName : ChatRoomstoJoin)
 		{
 			MessageService->JoinPublicRoom(RoomName);
@@ -162,8 +164,19 @@ void FFriendsAndChatManager::InsertNetworkChatMessage(const FString& InMessage)
 	MessageService->InsertNetworkMessage(InMessage);
 }
 
-void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
+void FFriendsAndChatManager::JoinGlobalChatRoom()
 {
+	FString RoomName;
+	FOnlineSubsystemMcp* OnlineSub = (FOnlineSubsystemMcp*)IOnlineSubsystem::Get(TEXT("MCP"));
+	if (OnlineSub != nullptr)
+	{
+		FGameServiceMcpPtr McpGameService = OnlineSub->GetMcpGameService();
+		if (McpGameService.IsValid())
+		{
+			RoomName = McpGameService->GetGlobalChatChannel();
+		}
+	}
+
 	if (!RoomName.IsEmpty() && MessageService->IsInGlobalChat() == false)
 	{
 		ChatRoomstoJoin.AddUnique(RoomName);
@@ -171,7 +184,7 @@ void FFriendsAndChatManager::JoinPublicChatRoom(const FString& RoomName)
 	}
 }
 
-void FFriendsAndChatManager::OnChatPublicRoomJoined(const FString& ChatRoomID)
+void FFriendsAndChatManager::OnGlobalChatRoomJoined(const FString& ChatRoomID)
 {
 }
 

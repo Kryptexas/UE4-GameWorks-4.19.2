@@ -131,12 +131,13 @@ public:
 	 * Join a global chat room
 	 * @param RoomName The name of the room
 	 */
-	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
+	virtual void JoinGlobalChatRoom() = 0;
 
 	/**
-	 * Delegate when the chat room has been joined
+	 * Delegate when the global chat room has been joined
 	 */
-	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) = 0;
+	virtual void OnGlobalChatRoomJoined(const FString& ChatRoomID) = 0;
+	
 
 	/**
 	 * Get the online status

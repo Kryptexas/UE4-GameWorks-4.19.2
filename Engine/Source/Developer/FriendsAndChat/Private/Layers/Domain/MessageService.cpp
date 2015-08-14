@@ -60,6 +60,7 @@ public:
 		RoomJoins.Empty();
 		LoggedInUser.Reset();
 		UnInitialize();
+		bJoinedGlobalChat = false;
 	}
 
 	virtual const TArray<TSharedRef<FFriendChatMessage> >& GetMessages() const override
@@ -247,12 +248,6 @@ private:
 			OnChatRoomMessageReceivedDelegateHandle = ChatInterface->AddOnChatRoomMessageReceivedDelegate_Handle(OnChatRoomMessageReceivedDelegate);
 			OnChatPrivateMessageReceivedDelegateHandle = ChatInterface->AddOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegate);
 		}
-		IOnlinePresencePtr PresenceInterface = OSSScheduler->GetPresenceInterface();
-		if (PresenceInterface.IsValid())
-		{
-			OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FMessageServiceImpl::OnPresenceReceived);
-			OnPresenceReceivedDelegateHandle = PresenceInterface->AddOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegate);
-		}
 	}
 
 	void UnInitialize()
@@ -267,11 +262,6 @@ private:
 			ChatInterface->ClearOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegateHandle);
 			ChatInterface->ClearOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegateHandle);
 			ChatInterface->ClearOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegateHandle);
-		}
-		IOnlinePresencePtr PresenceInterface = OSSScheduler->GetPresenceInterface();
-		if (PresenceInterface.IsValid())
-		{
-			PresenceInterface->ClearOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegateHandle);
 		}
 	}
 
@@ -395,22 +385,6 @@ private:
 
 			// Inform listers that we have received a chat message
 			OnChatMessageRecieved().Broadcast(ChatItem->MessageType, FoundFriend);
-		}
-	}
-
-	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
-	{
-		if (LoggedInUser.IsValid() &&
-			*LoggedInUser == UserId)
-		{
-			if (Presence->bIsOnline)
-			{
-				for (auto RoomName : RoomJoins)
-				{
-					// @todo What is this for?  Rooms are rejoined on xmpploginchanged and onlogin, why spam joins on self-presence received too?
-					JoinPublicRoom(RoomName);
-				}
-			}
 		}
 	}
 
@@ -540,7 +514,6 @@ private:
 	FOnChatRoomMemberUpdateDelegate OnChatRoomMemberUpdateDelegate;
 	FOnChatRoomMessageReceivedDelegate OnChatRoomMessageReceivedDelegate;
 	FOnChatPrivateMessageReceivedDelegate OnChatPrivateMessageReceivedDelegate;
-	FOnPresenceReceivedDelegate OnPresenceReceivedDelegate;
 
 	// Handles to the above registered delegates
 	FDelegateHandle OnChatRoomJoinPublicDelegateHandle;
@@ -550,7 +523,6 @@ private:
 	FDelegateHandle OnChatRoomMemberUpdateDelegateHandle;
 	FDelegateHandle OnChatRoomMessageReceivedDelegateHandle;
 	FDelegateHandle OnChatPrivateMessageReceivedDelegateHandle;
-	FDelegateHandle OnPresenceReceivedDelegateHandle;
 
 	// Outgoing events
 	FOnChatMessageReceivedEvent MessageReceivedEvent;

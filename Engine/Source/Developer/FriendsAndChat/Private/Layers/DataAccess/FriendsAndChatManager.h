@@ -78,8 +78,8 @@ public:
 	virtual TSharedPtr<class IChatCommunicationService> GetCommunicationService() override;
 	virtual TSharedPtr<class IGameAndPartyService> GetGameAndPartyService() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
-	virtual void JoinPublicChatRoom(const FString& RoomName) override;
-	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) override;
+	virtual void JoinGlobalChatRoom() override;
+	virtual void OnGlobalChatRoomJoined(const FString& ChatRoomID) override;
 
 	// External events
 	DECLARE_DERIVED_EVENT(IFriendsAndChatManager, IFriendsAndChatManager::FOnSendPartyInvitationCompleteEvent, FOnSendPartyInvitationCompleteEvent);
