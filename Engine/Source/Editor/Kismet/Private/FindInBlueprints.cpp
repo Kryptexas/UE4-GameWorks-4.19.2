@@ -1069,10 +1069,10 @@ void SFindInBlueprints::ConditionallyAddCacheBar()
 		{
 			// Create a single string of all the Blueprint paths that failed to cache, on separate lines
 			FString PackageList;
-			TArray<FString> FailedToCacheList = FFindInBlueprintSearchManager::Get().GetFailedToCachePathList();
-			for (FString Package : FailedToCacheList)
+			TArray<FName> FailedToCacheList = FFindInBlueprintSearchManager::Get().GetFailedToCachePathList();
+			for (FName Package : FailedToCacheList)
 			{
-				PackageList += Package + TEXT("\n");
+				PackageList += Package.ToString() + TEXT("\n");
 			}
 
 			// Lambda to put together the popup menu detailing the failed to cache paths
@@ -1697,7 +1697,7 @@ FText SFindInBlueprints::GetUncachedBlueprintWarningText() const
 
 FText SFindInBlueprints::GetCurrentCacheBlueprintName() const
 {
-	return FText::FromString(FFindInBlueprintSearchManager::Get().GetCurrentCacheBlueprintName());
+	return FText::FromName(FFindInBlueprintSearchManager::Get().GetCurrentCacheBlueprintName());
 }
 
 void SFindInBlueprints::OnCacheComplete()
@@ -1896,7 +1896,7 @@ void FExtractionTask::DoWork()
 {
 	for (const auto& QueryResult: QueryResultBatch)
 	{
-		FSearchResult BlueprintCategory = FSearchResult(new FFindInBlueprintsResult(FText::FromString(QueryResult.BlueprintPath)));
+		FSearchResult BlueprintCategory = FSearchResult(new FFindInBlueprintsResult(FText::FromName(QueryResult.BlueprintPath)));
 		FindInBlueprintsHelpers::Extract(QueryResult.Value, *Tokens, BlueprintCategory);
 
 		// If there are children, add the item to the search results

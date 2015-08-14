@@ -75,7 +75,7 @@ struct FSearchData
 	TWeakObjectPtr<UBlueprint> Blueprint;
 
 	/** The full Blueprint path this search data is associated with */
-	FString BlueprintPath;
+	FName BlueprintPath;
 
 	/** Search data block for the Blueprint */
 	FString Value;
@@ -236,13 +236,13 @@ public:
 	int32 GetCurrentCacheIndex() const;
 
 	/** Returns the name of the current Blueprint being cached */
-	FString GetCurrentCacheBlueprintName() const;
+	FName GetCurrentCacheBlueprintName() const;
 
 	/** Returns the progress complete on the caching */
 	float GetCacheProgress() const;
 
 	/** Returns the list of Blueprint paths that failed to cache */
-	TArray<FString> GetFailedToCachePathList() const { return FailedToCachePaths; }
+	TArray<FName> GetFailedToCachePathList() const { return FailedToCachePaths; }
 
 	/** Returns the number of Blueprints that failed to cache */
 	int32 GetFailedToCacheCount() const { return FailedToCachePaths.Num(); }
@@ -254,7 +254,7 @@ public:
 	 *
 	 * @param InNumberCached		The number of Blueprints cached, to be chopped off the existing array so the rest (if any) can be finished later
 	 */
-	void FinishedCachingBlueprints(int32 InNumberCached, TArray<FString>& InFailedToCacheList);
+	void FinishedCachingBlueprints(int32 InNumberCached, TArray<FName>& InFailedToCacheList);
 
 	/** Returns TRUE if Blueprints are being cached. */
 	bool IsCacheInProgress() const;
@@ -305,16 +305,14 @@ private:
 	 * @param InSearchData		Data to add to the database
 	 * @return					Index into the SearchArray for looking up the added item
 	 */
-	int32 AddSearchDataToDatabase(FSearchData& InSearchData);
+	int32 AddSearchDataToDatabase(FSearchData InSearchData);
 
 	/** Removes a Blueprint from being managed by the FiB system by passing in the UBlueprint's path */
-	void RemoveBlueprintByPath(FString InPath);
+	void RemoveBlueprintByPath(FName InPath);
 
-	/** Removes a World Blueprint with compound FiB searchable data from being managed by the FiB system by passing in the World's path */
-	void RemoveWorldByPath(FString InPath);
 protected:
 	/** Maps the Blueprint paths to their index in the SearchArray */
-	TMap<FString, int> SearchMap;
+	TMap<FName, int32> SearchMap;
 
 	/** Stores the Blueprint search data and is used to iterate over in small chunks */
 	TArray<FSearchData> SearchArray;
@@ -344,10 +342,10 @@ protected:
 	TWeakPtr<SFindInBlueprints> SourceCachingWidget;
 
 	/** Blueprint paths that have not been cached for searching due to lack of data, this means that they are either older Blueprints, or the DDC cannot find the data */
-	TArray<FString> UncachedBlueprints;
+	TArray<FName> UncachedBlueprints;
 
 	/** List of paths for Blueprints that failed to cache */
-	TArray<FString> FailedToCachePaths;
+	TArray<FName> FailedToCachePaths;
 
 	/** Tickable object that does the caching of uncached Blueprints at a rate of once per tick */
 	class FCacheAllBlueprintsTickableObject* CachingObject;
