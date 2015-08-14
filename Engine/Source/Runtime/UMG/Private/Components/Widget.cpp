@@ -237,7 +237,8 @@ void UWidget::SetVisibility(ESlateVisibility InVisibility)
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		return SafeWidget->SetVisibility(UWidget::ConvertSerializedVisibilityToRuntime(InVisibility));
+		EVisibility SlateVisibility = UWidget::ConvertSerializedVisibilityToRuntime(InVisibility);
+		return SafeWidget->SetVisibility(SlateVisibility);
 	}
 }
 

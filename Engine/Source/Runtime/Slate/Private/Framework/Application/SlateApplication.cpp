@@ -1146,9 +1146,9 @@ void FSlateApplication::PrivateDrawWindows( TSharedPtr<SWindow> DrawOnlyThisWind
 
 	if ( !SkipSecondPrepass.GetValueOnGameThread() )
 	{
-		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Prepass");
+		FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::Prepass");
 		DrawPrepass( DrawOnlyThisWindow );
-		//FPlatformMisc::EndNamedEvent();
+		FPlatformMisc::EndNamedEvent();
 	}
 
 	//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::GetDrawBuffer");

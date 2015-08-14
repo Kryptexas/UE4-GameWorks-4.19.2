@@ -197,9 +197,10 @@ FVector2D SConstraintCanvas::ComputeDesiredSize( float ) const
 	{
 		const SConstraintCanvas::FSlot& CurChild = Children[ChildIndex];
 		const TSharedRef<SWidget>& Widget = CurChild.GetWidget();
+		const EVisibility ChildVisibilty = Widget->GetVisibility();
 
 		// As long as the widgets are not collapsed, they should contribute to the desired size.
-		if ( Widget->GetVisibility() != EVisibility::Collapsed )
+		if ( ChildVisibilty != EVisibility::Collapsed )
 		{
 			const FMargin Offset = CurChild.OffsetAttr.Get();
 			const FVector2D Alignment = CurChild.AlignmentAttr.Get();
