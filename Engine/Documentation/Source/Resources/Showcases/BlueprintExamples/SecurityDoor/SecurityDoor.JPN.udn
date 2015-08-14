@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637536
+﻿INTSourceChangelist:2651515
 Availability:Public
 Title:セキュリティ カメラ、アラーム、ドア
 Crumbs:%ROOT%, Resources, Resources/Showcases/BlueprintExamples
@@ -23,7 +23,7 @@ Security Camera ブループリントは、シーン キャプチャにも対応
 
 この例では、 Security Alarm インターフェースがデータルートとして機能し、 Alarm Beacon ブループリントと Door ブループリントの両方と機能を共有することができます。
 
-[REGION:raw]![](InterfaceConceptDiagram.png)[/REGION]
+[REGION:raw]![](InterfaceConceptDiagramNew.jpg)[/REGION]
 
 
 ## Camera ブループリント
