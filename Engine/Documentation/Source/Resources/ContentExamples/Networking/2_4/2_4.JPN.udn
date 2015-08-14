@@ -1,13 +1,30 @@
-﻿INTSourceChangelist:2620901
+﻿INTSourceChangelist:2653552
 Availability:Public
-Title:2.4 - ネットワークの関連性 (パート 4 - 組み合わせてみる方法)
+Title:2.4 - ネットワークの関連性 [パート 4 - 組み合わせる方法]
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
-Description:ネットワーク機能のサンプル レベルの概要、2.4:ネットワークの関連性 (パート 4 - 組み合わせてみる方法)
+Description:ネットワーク機能のサンプル レベルの概要、2.4:ネットワークの関連性 (パート 4 - 組み合わせる方法)
 Related:Gameplay/Networking
 Related:Gameplay/Networking/Actors/Components
 Related:Gameplay/Networking/Actors
 Related:Gameplay/Networking/Actors/RPCs
 Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Networking/2_3 "%Resources/ContentExamples/Networking/2_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ネットワークのホームページ](Resources/ContentExamples/Networking)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 
 [VAR:TopicCompact]
@@ -53,7 +70,7 @@ Related:Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 ![](2_4_Eventgraph.png)
 [/REGION]
 
-Chest には 2 つのコンポーネントがあることを正しく表示します。 それは、1 つは瞬時のステート (ゴールド パーティクル)、もう 1 つは永続的なステート (開き中の lid) です。即時のイベント処理には Multicast を使用し、永続的なステートには RepNotify 変数を使って対応します。 
+Chest には 2 つのコンポーネントがあることを正しく表示します。 それは、1 つは瞬時のステート (ゴールド パーティクル)、もう 1 つは永続的なステート (開き中の lid) です。即時のイベント処理には Multicast、永続的なステートには RepNotify 変数を使って対応します。 
 
 以下は、変数 **bChestOpened** が更新されると呼び出される OnRep 関数です。
 
