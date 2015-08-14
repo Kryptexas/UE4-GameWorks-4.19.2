@@ -18,11 +18,14 @@
     <SilverlightApplication>false</SilverlightApplication>
     <ValidateXaml>true</ValidateXaml>
     <ThrowErrorsInValidation>true</ThrowErrorsInValidation>
-    <SccProjectName>Perforce Project</SccProjectName>
-    <SccLocalPath>..</SccLocalPath>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
     <SccAuxPath>
     </SccAuxPath>
-    <SccProvider>MSSCCI:Perforce SCM</SccProvider>
+    <SccProvider>
+    </SccProvider>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>..\Ionic.snk</AssemblyOriginatorKeyFile>
     <TargetFrameworkIdentifier>Silverlight</TargetFrameworkIdentifier>

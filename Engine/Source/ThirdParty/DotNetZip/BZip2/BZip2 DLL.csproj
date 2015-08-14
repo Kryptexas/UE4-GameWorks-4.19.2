@@ -29,11 +29,14 @@
     <ProjectGuid>{E2CE0D56-7AF8-4404-BD0C-BC562CBD74D4}</ProjectGuid>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <SignAssembly>false</SignAssembly>
-    <SccProjectName>Perforce Project</SccProjectName>
-    <SccLocalPath>..</SccLocalPath>
+    <SccProjectName>
+    </SccProjectName>
+    <SccLocalPath>
+    </SccLocalPath>
     <SccAuxPath>
     </SccAuxPath>
-    <SccProvider>MSSCCI:Perforce SCM</SccProvider>
+    <SccProvider>
+    </SccProvider>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
