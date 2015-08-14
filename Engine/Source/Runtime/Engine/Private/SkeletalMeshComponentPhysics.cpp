@@ -707,6 +707,8 @@ void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysM
 
 DEFINE_STAT(STAT_InitArticulated);
 
+TAutoConsoleVariable<int32> CVarEnableRagdollPhysics(TEXT("p.RagdollPhysics"), 1, TEXT("If 1, ragdoll physics will be used. Otherwise just root body is simulated"));
+
 void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 {
 	SCOPE_CYCLE_COUNTER(STAT_InitArticulated);
@@ -805,6 +807,10 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 			else
 			{
 				BodyInst->DOFMode = EDOFMode::None;
+				if (!CVarEnableRagdollPhysics.GetValueOnGameThread())
+				{
+					continue;
+				}
 			}
 
 #if WITH_PHYSX
