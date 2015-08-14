@@ -361,11 +361,6 @@ bool FFileManagerGeneric::DeleteDirectory( const TCHAR* Path, bool RequireExists
 	return GetLowLevel().DeleteDirectory( Path ) || ( !RequireExists && !GetLowLevel().DirectoryExists( Path ) );
 }
 
-FFileStatData FFileManagerGeneric::GetStatData(const TCHAR* FilenameOrDirectory)
-{
-	return GetLowLevel().GetStatData(FilenameOrDirectory);
-}
-
 void FFileManagerGeneric::FindFiles( TArray<FString>& Result, const TCHAR* InFilename, bool Files, bool Directories )
 {
 	class FFileMatch : public IPlatformFile::FDirectoryVisitor
@@ -445,16 +440,6 @@ bool FFileManagerGeneric::IterateDirectory(const TCHAR* Directory, IPlatformFile
 bool FFileManagerGeneric::IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
 {
 	return GetLowLevel().IterateDirectoryRecursively( Directory, Visitor );
-}
-
-bool FFileManagerGeneric::IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor)
-{
-	return GetLowLevel().IterateDirectoryStat( Directory, Visitor );
-}
-
-bool FFileManagerGeneric::IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor)
-{
-	return GetLowLevel().IterateDirectoryStatRecursively( Directory, Visitor );
 }
 
 double FFileManagerGeneric::GetFileAgeSeconds( const TCHAR* Filename )

@@ -74,7 +74,6 @@ public:
 	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 ) override;
 	virtual bool	DeleteDirectory( const TCHAR* Path, bool RequireExists=0, bool Tree=0 ) override;
 
-	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override;
 
 	/**
 	 * Finds all the files within the given directory, with optional file extension filter.
@@ -103,22 +102,6 @@ public:
 	 * @return				false if the directory did not exist or if the visitor returned false.
 	**/
 	bool IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
-
-	/** 
-	 * Call the Visit function of the visitor once for each file or directory in a single directory. This function does not explore subdirectories.
-	 * @param Directory		The directory to iterate the contents of.
-	 * @param Visitor		Visitor to call for each element of the directory
-	 * @return				false if the directory did not exist or if the visitor returned false.
-	**/
-	bool IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override;
-
-	/** 
-	 * Call the Visit function of the visitor once for each file or directory in a directory tree. This function explores subdirectories.
-	 * @param Directory		The directory to iterate the contents of, recursively.
-	 * @param Visitor		Visitor to call for each element of the directory and each element of all subdirectories.
-	 * @return				false if the directory did not exist or if the visitor returned false.
-	**/
-	bool IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override;
 
 	/**
 	 * Converts passed in filename to use a relative path.

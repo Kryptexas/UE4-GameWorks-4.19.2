@@ -415,16 +415,6 @@ public:
 		return LowerLevel->DeleteDirectory( *ConvertToSandboxPath( Directory ) );
 	}
 
-	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override
-	{
-		FFileStatData Result = LowerLevel->GetStatData( *ConvertToSandboxPath( FilenameOrDirectory ) );
-		if (!Result.bIsValid && (OkForInnerAccess(FilenameOrDirectory, false) && OkForInnerAccess(FilenameOrDirectory, true)))
-		{
-			Result = LowerLevel->GetStatData( FilenameOrDirectory );
-		}
-		return Result;
-	}
-
 	class FSandboxVisitor : public IPlatformFile::FDirectoryVisitor
 	{
 	public:
@@ -437,7 +427,7 @@ public:
 			, SandboxFile( InSandboxFile )
 		{
 		}
-		virtual bool Visit( const TCHAR* FilenameOrDirectory, bool bIsDirectory ) override
+		virtual bool Visit( const TCHAR* FilenameOrDirectory, bool bIsDirectory )
 		{
 			bool CanVisit = true;
 			FString LocalFilename( FilenameOrDirectory );
@@ -493,77 +483,6 @@ public:
 		bool Result = false;
 		LowerLevel->IterateDirectoryRecursively( *ConvertToSandboxPath( Directory ), SandboxVisitor );
 		Result = LowerLevel->IterateDirectoryRecursively( Directory, SandboxVisitor );
-		return Result;
-	}
-
-	class FSandboxStatVisitor : public IPlatformFile::FDirectoryStatVisitor
-	{
-	public:
-		FDirectoryStatVisitor&	Visitor;
-		FSandboxPlatformFile& SandboxFile;
-		TSet<FString> VisitedSandboxFiles;
-
-		FSandboxStatVisitor( FDirectoryStatVisitor& InVisitor, FSandboxPlatformFile& InSandboxFile )
-			: Visitor( InVisitor )
-			, SandboxFile( InSandboxFile )
-		{
-		}
-		virtual bool Visit( const TCHAR* FilenameOrDirectory, const FFileStatData& StatData ) override
-		{
-			bool CanVisit = true;
-			FString LocalFilename( FilenameOrDirectory );
-			
-			if( FCString::Strnicmp( *LocalFilename, *SandboxFile.GetSandboxDirectory(), SandboxFile.GetSandboxDirectory().Len() ) == 0 )
-			{
-				// FilenameOrDirectory is already pointing to the sandbox directory so add it to the list of sanbox files.
-				// The filename is always stored with the abslute sandbox path.
-				VisitedSandboxFiles.Add( *LocalFilename );
-				// Now convert the sandbox path back to engine path because the sandbox folder should not be exposed
-				// to the engine and remain transparent.
-				LocalFilename = LocalFilename.Mid(SandboxFile.GetSandboxDirectory().Len());
-				if (LocalFilename.StartsWith(TEXT("Engine/")))
-				{
-					LocalFilename = SandboxFile.GetAbsoluteRootDirectory() / LocalFilename;
-				}
-				else
-				{
-					LocalFilename = SandboxFile.GetAbsolutePathToGameDirectory() / LocalFilename;
-				}
-			}
-			else
-			{
-				// Favourize Sandbox files over normal path files.
-				CanVisit = !VisitedSandboxFiles.Contains( SandboxFile.ConvertToSandboxPath(*LocalFilename ) )
-					&& SandboxFile.OkForInnerAccess(*LocalFilename, StatData.bIsDirectory);
-			}
-			if( CanVisit )
-			{
-				bool Result = Visitor.Visit( *LocalFilename, StatData );
-				return Result;
-			}
-			else
-			{
-				// Continue iterating.
-				return true;
-			}
-		}
-	};
-
-	virtual bool		IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override
-	{
-		FSandboxStatVisitor SandboxVisitor( Visitor, *this );
-		bool Result = false;
-		LowerLevel->IterateDirectoryStat( *ConvertToSandboxPath( Directory ), SandboxVisitor );
-		Result = LowerLevel->IterateDirectoryStat( Directory, SandboxVisitor );
-		return Result;
-	}
-
-	virtual bool		IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override
-	{
-		FSandboxStatVisitor SandboxVisitor( Visitor, *this );
-		bool Result = false;
-		LowerLevel->IterateDirectoryStatRecursively( *ConvertToSandboxPath( Directory ), SandboxVisitor );
-		Result = LowerLevel->IterateDirectoryStatRecursively( Directory, SandboxVisitor );
 		return Result;
 	}
 

@@ -101,14 +101,8 @@ public:
 	virtual bool		CreateDirectory(const TCHAR* Directory) override;
 	virtual bool		DeleteDirectory(const TCHAR* Directory) override;
 
-	virtual FFileStatData GetStatData(const TCHAR* FilenameOrDirectory) override;
-
 	virtual bool		IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
 	virtual bool		IterateDirectoryRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor) override;
-
-	virtual bool		IterateDirectoryStat(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override;
-	virtual bool		IterateDirectoryStatRecursively(const TCHAR* Directory, IPlatformFile::FDirectoryStatVisitor& Visitor) override;
-
 	virtual bool		DeleteDirectoryRecursively(const TCHAR* Directory) override;
 	virtual bool		CopyFile(const TCHAR* To, const TCHAR* From) override;
 
