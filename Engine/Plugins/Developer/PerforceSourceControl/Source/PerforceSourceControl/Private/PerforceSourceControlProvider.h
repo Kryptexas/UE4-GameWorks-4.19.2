@@ -78,6 +78,9 @@ public:
 		return PersistentConnection;
 	}
 
+	/** Remove a named file from the state cache */
+	bool RemoveFileFromCache(const FString& Filename);
+
 private:
 
 	/** Helper function used to create a worker for a particular operation */

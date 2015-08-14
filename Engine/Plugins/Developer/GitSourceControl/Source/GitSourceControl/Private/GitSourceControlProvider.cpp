@@ -143,6 +143,11 @@ TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredic
 	return Result;
 }
 
+bool FGitSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
+}
+
 FDelegateHandle FGitSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return OnSourceControlStateChanged.Add( SourceControlStateChanged );

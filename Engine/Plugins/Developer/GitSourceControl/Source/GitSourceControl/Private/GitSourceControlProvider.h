@@ -78,6 +78,9 @@ public:
 	 */
 	void RegisterWorker( const FName& InName, const FGetGitSourceControlWorker& InDelegate );
 
+	/** Remove a named file from the state cache */
+	bool RemoveFileFromCache(const FString& Filename);
+
 private:
 
 	/** Is git binary found and working. */

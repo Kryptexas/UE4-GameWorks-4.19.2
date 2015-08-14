@@ -205,6 +205,11 @@ ECommandResult::Type FPerforceSourceControlProvider::GetState( const TArray<FStr
 	return ECommandResult::Succeeded;
 }
 
+bool FPerforceSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
+}
+
 TArray<FSourceControlStateRef> FPerforceSourceControlProvider::GetCachedStateByPredicate(const TFunctionRef<bool(const FSourceControlStateRef&)>& Predicate) const
 {
 	TArray<FSourceControlStateRef> Result;

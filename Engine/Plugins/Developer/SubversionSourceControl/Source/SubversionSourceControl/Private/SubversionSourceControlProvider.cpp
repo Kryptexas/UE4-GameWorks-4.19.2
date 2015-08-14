@@ -47,6 +47,11 @@ TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> FSubversionSource
 	}
 }
 
+bool FSubversionSourceControlProvider::RemoveFileFromCache(const FString& Filename)
+{
+	return StateCache.Remove(Filename) > 0;
+}
+
 FText FSubversionSourceControlProvider::GetStatusText() const
 {
 	FFormatNamedArguments Args;

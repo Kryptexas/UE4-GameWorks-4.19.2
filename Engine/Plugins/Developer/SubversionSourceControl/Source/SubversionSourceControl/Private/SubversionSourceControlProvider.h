@@ -60,6 +60,9 @@ public:
 	/** Helper function used to update state cache */
 	TSharedRef<FSubversionSourceControlState, ESPMode::ThreadSafe> GetStateInternal(const FString& Filename);
 
+	/** Remove a named file from the state cache */
+	bool RemoveFileFromCache(const FString& Filename);
+
 	/**
 	 * Register a worker with the provider.
 	 * This is used internally so the provider can maintain a map of all available operations.
