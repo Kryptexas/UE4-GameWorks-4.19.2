@@ -345,7 +345,7 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 	}
 	else
 	{
-		for (auto MiscObj : ThisClass->MiscObjects)
+		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
 		{
 			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
@@ -379,7 +379,7 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 	}
 	else
 	{
-		for (auto MiscObj : ThisClass->MiscObjects)
+		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
 		{
 			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
@@ -570,7 +570,7 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	}
 	else
 	{
-		for (auto MiscObj : ThisClass->MiscObjects)
+		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
 		{
 			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
 			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph

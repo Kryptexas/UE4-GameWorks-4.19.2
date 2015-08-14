@@ -1934,8 +1934,8 @@ public:
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;
 
-	/** Misc Objects Owned by the class. Mostly templates from BP-generated native class */
-	TArray<UObject*> MiscObjects;
+	/** Misc objects owned by the class. Mostly templates from BP-generated native class */
+	TArray<UObject*> ConvertedSubobjectsFromBPGC;
 
 public:
 	// Constructors

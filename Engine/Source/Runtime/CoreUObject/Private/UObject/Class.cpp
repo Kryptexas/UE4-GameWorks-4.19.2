@@ -2525,7 +2525,7 @@ void UClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		This->CallAddReferencedObjects(This->ClassDefaultObject, Collector);
 	}
 
-	Collector.AddReferencedObjects(This->MiscObjects, This);
+	Collector.AddReferencedObjects(This->ConvertedSubobjectsFromBPGC, This);
 
 	Super::AddReferencedObjects( This, Collector );
 }

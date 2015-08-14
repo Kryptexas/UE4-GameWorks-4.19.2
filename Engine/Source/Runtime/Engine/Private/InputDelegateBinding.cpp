@@ -18,7 +18,7 @@ UInputDelegateBinding::UInputDelegateBinding(const FObjectInitializer& ObjectIni
 bool UInputDelegateBinding::SupportsInputDelegate(const UClass* InClass)
 {
 	return InClass && (
-		InClass->MiscObjects.Num() 
+		InClass->ConvertedSubobjectsFromBPGC.Num()
 		|| Cast<UBlueprintGeneratedClass>(InClass)
 		|| SupportsInputDelegate(InClass->GetSuperClass()));
 }

@@ -1014,7 +1014,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 		Context.AddLine(FString::Printf(TEXT("if(HasAnyFlags(RF_ClassDefaultObject) && (%s::StaticClass() == GetClass()))"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-		Context.AddLine(TEXT("ensure(0 == GetClass()->MiscObjects.Num());"));
+		Context.AddLine(TEXT("ensure(0 == GetClass()->ConvertedSubobjectsFromBPGC.Num());"));
 		Context.bCreatingObjectsPerClass = true;
 		Context.FlushLines();
 		for (auto ComponentTemplate : ActorComponentTempatesOwnedByClass)
@@ -1055,7 +1055,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 			FString NativeName;
 			const bool bFound = Context.FindLocalObject_InConstructor(Obj, NativeName);
 			ensure(bFound);
-			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s%s>(GetClass()->MiscObjects[%d]);")
+			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s%s>(GetClass()->ConvertedSubobjectsFromBPGC[%d]);")
 				, *NativeName
 				, Obj->GetClass()->GetPrefixCPP()
 				, *Obj->GetClass()->GetName()
@@ -1126,7 +1126,7 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FDefaultValueHelperContext
 		, *OuterStr, *Object->GetName()));
 	if (Object->GetOuter() == Context.GetCurrentlyGeneratedClass())
 	{
-		Context.AddLine(FString::Printf(TEXT("GetClass()->MiscObjects.Add(%s);"), *LocalNativeName));
+		Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *LocalNativeName));
 	}
 
 	for (auto Property : TFieldRange<const UProperty>(ObjectClass))
