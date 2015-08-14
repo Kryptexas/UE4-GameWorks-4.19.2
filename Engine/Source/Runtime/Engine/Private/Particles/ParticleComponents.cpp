@@ -2127,7 +2127,8 @@ void UParticleSystem::SetupSoloing()
 				if (Emitter != NULL)
 				{
 					FLODSoloTrack& SoloTrack = SoloTracking[EmitterIdx];
-					for (int32 LODIdx = 0; LODIdx < Emitter->LODLevels.Num(); LODIdx++)
+					int32 MaxLOD = FMath::Min(SoloTrack.SoloEnableSetting.Num(), Emitter->LODLevels.Num());
+					for (int32 LODIdx = 0; LODIdx < MaxLOD; LODIdx++)
 					{
 						UParticleLODLevel* LODLevel = Emitter->LODLevels[LODIdx];
 						check(LODLevel);
