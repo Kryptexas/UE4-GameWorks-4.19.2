@@ -526,9 +526,10 @@ public:
 	FGlobalDistanceFieldClipmapState GlobalDistanceFieldClipmapState[GMaxGlobalDistanceFieldClipmaps];
 	int32 GlobalDistanceFieldUpdateIndex;
 
-	// Is DOFHistoryRT set from Bokeh DOF?
-	bool bBokehDOFHistory;
-	bool bBokehDOFHistory2;
+	// Is DOFHistoryRT set from DepthOfField?
+	bool bDOFHistory;
+	// Is DOFHistoryRT2 set from DepthOfField?
+	bool bDOFHistory2;
 
 	FTemporalLODState TemporalLODState;
 

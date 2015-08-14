@@ -46,7 +46,7 @@ float2 ComputeDOFFocalMask(float SceneDepth, float SkyWithoutHorizonMask)
 void SetupPS(
 	float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor0 : SV_Target0
-#if ENABLE_NEAR_BLUR 
+#if MRT_COUNT > 0
 	, out float4 OutColor1 : SV_Target1
 #endif
 	)
@@ -59,15 +59,8 @@ void SetupPS(
 
 	float4 DepthQuad = GatherSceneDepth(UV, PostprocessInput1Size.zw);
 
-#if ENABLE_NEAR_BLUR == 0
-	// We aren't writing out to the second render target, so we'll just make a dummy value here which 
-	// doesn't end up going anywhere. Then, the source code can stay neat and tidy, while the compiler can still 
-	// strip it out
-	float4 OutColor1;
-#endif
-
-	OutColor0 = 0;
-	OutColor1 = 0;
+	float4 FarColor = 0;
+	float4 NearColor = 0;
 
 	float2 Mask;
 	float4 Sample;
@@ -86,7 +79,7 @@ void SetupPS(
 	// 0:see though..1:Near blurred
 	float VignetteMask = 0;
 
-#if ENABLE_DOF_VIGNETTE
+#if DOF_VIGNETTE
 	{
 		float DepthOfFieldVignetteMul = DepthOfFieldParams[0].y;
 		float DepthOfFieldVignetteAdd = DepthOfFieldParams[0].z;
@@ -103,27 +96,38 @@ void SetupPS(
 
 	Mask = ComputeDOFFocalMask(DepthQuad.x, SkyWithoutHorizonMask);
 	Sample = float4(Texture2DSampleLevel(PostprocessInput0, PostprocessInput0Sampler, UV + Offset * float2(-1, 1), 0).rgb, 1);
-	OutColor0 += Sample * Mask.x;
-	OutColor1 += Sample * lerp(Mask.y, 1, VignetteMask);
+	FarColor += Sample * Mask.x;
+	NearColor += Sample * lerp(Mask.y, 1, VignetteMask);
 
 	Mask = ComputeDOFFocalMask(DepthQuad.y, SkyWithoutHorizonMask);
 	Sample = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + Offset * float2(1, 1)).rgb, 1);
-	OutColor0 += Sample * Mask.x;
-	OutColor1 += Sample * lerp(Mask.y, 1, VignetteMask);
+	FarColor += Sample * Mask.x;
+	NearColor += Sample * lerp(Mask.y, 1, VignetteMask);
 
 	Mask = ComputeDOFFocalMask(DepthQuad.z, SkyWithoutHorizonMask);
 	Sample = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + Offset * float2(1, -1)).rgb, 1);
-	OutColor0 += Sample * Mask.x;
-	OutColor1 += Sample * lerp(Mask.y, 1, VignetteMask);
+	FarColor += Sample * Mask.x;
+	NearColor += Sample * lerp(Mask.y, 1, VignetteMask);
 
 	Mask = ComputeDOFFocalMask(DepthQuad.w, SkyWithoutHorizonMask);
 	Sample = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, UV + Offset * float2(-1, -1)).rgb, 1);
-	OutColor0 += Sample * Mask.x;
-	OutColor1 += Sample * lerp(Mask.y, 1, VignetteMask);
+	FarColor += Sample * Mask.x;
+	NearColor += Sample * lerp(Mask.y, 1, VignetteMask);
 
 	// we average 4 samples
-	OutColor0 /= 4;
-	OutColor1 /= 4;
+	FarColor /= 4;
+	NearColor /= 4;
+
+#if MRT_COUNT > 1
+	OutColor0 = FarColor;
+	OutColor1 = NearColor;
+#else
+	#if NEAR_BLUR
+		OutColor0 = NearColor;
+	#else
+		OutColor0 = FarColor;
+	#endif
+#endif
 }
 
 
@@ -151,18 +155,22 @@ void MainRecombinePS(
 
 
 	float4 SceneColorAndDepth = float4(Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FullResUV).rgb, CalcSceneDepth(FullResUV));
-
+	
 	float3 UnfocusedSceneColor = SceneColorAndDepth.rgb;
 
-	// behind focal plane
-	float4 DOFAccumLayer1 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, ViewportUV);
-#if ENABLE_NEAR_BLUR
-	float4 DOFAccumLayer3 = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, ViewportUV);
-#else
 	// I'm presuming all that matters here is the W==0 bit to mask out this value
 	// TODO: Should check that compiler is doing a good job of removing the usages of this
 	// from the rest of the code. It has no reason not to be able to do so...
+
+	float4 DOFAccumLayer1 = float4(0,0,0,0); 
 	float4 DOFAccumLayer3 = float4(0,0,0,0); 
+
+#if FAR_BLUR
+	DOFAccumLayer1 = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, ViewportUV);
+#endif
+
+#if NEAR_BLUR
+	DOFAccumLayer3 = Texture2DSample(PostprocessInput2, PostprocessInput2Sampler, ViewportUV);
 #endif
 
 	float Layer1Mask = DOFAccumLayer1.a;
@@ -196,6 +204,14 @@ void MainRecombinePS(
 	Layer2Mask *= Layer2Mask;
 //	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask * (1 - PerPixelNearMask));
 	LayerMerger = lerp(LayerMerger, SceneColorAndDepth.rgb, Layer2Mask);
+
+	// apply SeparateTransluceny (todo: shader permutation to save a bit of performance if the feature is disabled)
+	{
+		float4 SeparateTranslucency = Texture2DSample(PostprocessInput3, PostprocessInput3Sampler, FullResUV);
+		       
+		// add RGB, darken by A (this allows to represent translucent and additive blending)
+		LayerMerger.rgb = LayerMerger.rgb * SeparateTranslucency.a + SeparateTranslucency.rgb;
+	}
 
 	float3 FrontLayer = (UnfocusedSceneColor * Div0Bias + DOFAccumLayer3.rgb) / (DOFAccumLayer3.a + Div0Bias);
 

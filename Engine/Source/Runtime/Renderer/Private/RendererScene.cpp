@@ -86,8 +86,8 @@ FSceneViewState::FSceneViewState()
 	DistanceFieldTemporalSampleIndex = 0;
 	AOTileIntersectionResources = NULL;
 	AOScreenGridResources = NULL;
-	bBokehDOFHistory = true;
-	bBokehDOFHistory2 = true;
+	bDOFHistory = true;
+	bDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
 
