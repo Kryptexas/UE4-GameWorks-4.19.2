@@ -84,8 +84,8 @@ public:
 	bool bCreatingObjectsPerClass;
 
 	FDefaultValueHelperContext()
-		: ActualClass(nullptr)
-		, LocalNameIndexMax(0)
+		: LocalNameIndexMax(0)
+		, ActualClass(nullptr)
 		, bCreatingObjectsPerClass(false)
 	{}
 
