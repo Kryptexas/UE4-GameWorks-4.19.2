@@ -64,9 +64,6 @@ SInvalidationPanel::~SInvalidationPanel()
 
 bool SInvalidationPanel::GetCanCache() const
 {
-	//HACK: Disabling invalidation panel until material resource reporting is done.
-	return false;
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	return bCanCache && EnableWidgetCaching.GetValueOnGameThread() == 1;
 #else
@@ -142,6 +139,11 @@ FChildren* SInvalidationPanel::GetChildren()
 	{
 		return &EmptyChildSlot;
 	}
+}
+
+void SInvalidationPanel::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(CachedResources);
 }
 
 void SInvalidationPanel::InvalidateWidget(SWidget* InvalidateWidget)
@@ -258,6 +260,22 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 				LayerId,
 				InWidgetStyle,
 				bParentEnabled);
+
+			{
+				const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
+				const int32 CachedElementCount = CachedElements.Num();
+				for ( int32 Index = 0; Index < CachedElementCount; Index++ )
+				{
+					const FSlateDrawElement& LocalElement = CachedElements[Index];
+					if ( const FSlateBrush* BrushResource = LocalElement.GetDataPayload().BrushResource )
+					{
+						if ( UObject* ResourceObject = BrushResource->GetResourceObject() )
+						{
+							CachedResources.Add(ResourceObject);
+						}
+					}
+				}
+			}
 
 			if ( bCacheRelativeTransforms )
 			{

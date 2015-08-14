@@ -4,7 +4,7 @@
 
 #include "Input/HittestGrid.h"
 
-class SLATE_API SInvalidationPanel : public SCompoundWidget, public ILayoutCache
+class SLATE_API SInvalidationPanel : public SCompoundWidget, public FGCObject, public ILayoutCache
 {
 public:
 	SLATE_BEGIN_ARGS( SInvalidationPanel )
@@ -23,6 +23,8 @@ public:
 	void SetCanCache(bool InCanCache);
 
 	FORCEINLINE void InvalidateCache() { bNeedsCaching = true; }
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	// ILayoutCache overrides
 	virtual void InvalidateWidget(SWidget* InvalidateWidget) override;
@@ -63,6 +65,8 @@ private:
 	mutable TArray< TSharedPtr< FSlateWindowElementList > > InactiveCachedElementListPool;
 	mutable TSharedPtr< FSlateWindowElementList > CachedWindowElements;
 	mutable TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderData;
+
+	mutable TSet<UObject*> CachedResources;
 	
 	mutable FVector2D CachedAbsolutePosition;
 	mutable FVector2D AbsoluteDeltaPosition;

@@ -65,6 +65,7 @@ void FSlateOpenGLRenderer::Initialize()
 	const uint32 TextureSize = 1024;
 
 	TextureManager = MakeShareable( new FSlateOpenGLTextureManager );
+	FSlateDataPayload::ResourceManager = TextureManager.Get();
 
 	FontCache = MakeShareable( new FSlateFontCache( MakeShareable( new FSlateOpenGLFontAtlasFactory ) ) );
 	FontMeasure = FSlateFontMeasure::Create( FontCache.ToSharedRef() );

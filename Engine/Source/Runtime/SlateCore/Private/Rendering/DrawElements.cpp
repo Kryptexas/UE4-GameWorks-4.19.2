@@ -3,17 +3,9 @@
 #include "SlateCorePrivatePCH.h"
 #include "ReflectionMetadata.h"
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-
-/**  */
-TAutoConsoleVariable<int32> DrawVolatileWidgets(
-	TEXT("Slate.DrawVolatileWidgets"),
-	true,
-	TEXT("Whether to draw volatile widgets"));
-
-#endif
-
 DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMakeTime, STATGROUP_SlateVerbose);
+
+FSlateShaderResourceManager* FSlateDataPayload::ResourceManager;
 
 void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects)
 {
@@ -529,32 +521,11 @@ void FSlateWindowElementList::QueueVolatilePainting(const FVolatilePaint& InVola
 
 int32 FSlateWindowElementList::PaintVolatile(FSlateWindowElementList& OutElementList)
 {
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	const bool bDrawVolatile = DrawVolatileWidgets.GetValueOnGameThread() == 1;
-#else
-	const bool bDrawVolatile = true;
-#endif
-
-	const static FName InvalidationPanelName(TEXT("SInvalidationPanelName"));
-
 	int32 MaxLayerId = 0;
 
 	for ( int32 VolatileIndex = 0; VolatileIndex < VolatilePaintList.Num(); ++VolatileIndex )
 	{
 		const TSharedPtr<FVolatilePaint>& Args = VolatilePaintList[VolatileIndex];
-
-		// If we're not drawing volatile elements, just draw invalidation panels.  They're
-		// the exception, as we're likely trying to determine the volatile widget overhead.
-		if ( bDrawVolatile == false )
-		{
-			if ( const SWidget* Widget = Args->GetWidget() )
-			{
-				if ( Widget->GetType() != InvalidationPanelName )
-				{
-					continue;
-				}
-			}
-		}
 
 		OutElementList.BeginLogicalLayer(Args->LayerHandle);
 		MaxLayerId = FMath::Max(MaxLayerId, Args->ExecutePaint(OutElementList));

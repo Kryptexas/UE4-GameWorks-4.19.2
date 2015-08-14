@@ -77,8 +77,9 @@ void FSlateD3DRenderer::Initialize()
 {
 	CreateDevice();
 
-
 	TextureManager = MakeShareable( new FSlateD3DTextureManager );
+	FSlateDataPayload::ResourceManager = TextureManager.Get();
+
 	TextureManager->LoadUsedTextures();
 
 	FontCache = MakeShareable( new FSlateFontCache( MakeShareable( new FSlateD3DFontAtlasFactory ) ) );

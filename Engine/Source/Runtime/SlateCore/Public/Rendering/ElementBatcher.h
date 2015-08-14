@@ -126,6 +126,12 @@ private:
 	/** Track the number of drawn batches from the previous frame to report to stats. */
 	int32 NumDrawnBatchesStat;
 
+	/** Track the number of drawn boxes from the previous frame to report to stats. */
+	int32 NumDrawnBoxesStat;
+
+	/** Track the number of drawn texts from the previous frame to report to stats. */
+	int32 NumDrawnTextsStat;
+
 	/** Offset to use when supporting 1:1 texture to pixel snapping */
 	const float PixelCenterOffset;
 

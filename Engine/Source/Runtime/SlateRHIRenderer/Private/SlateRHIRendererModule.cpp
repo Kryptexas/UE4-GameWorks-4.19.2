@@ -81,6 +81,7 @@ private:
 		if( !ResourceManager.IsValid() )
 		{
 			ResourceManager = MakeShareable( new FSlateRHIResourceManager );
+			FSlateDataPayload::ResourceManager = ResourceManager.Get();
 		}
 
 		if( !FontCache.IsValid() )

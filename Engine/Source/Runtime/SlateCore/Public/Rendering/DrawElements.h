@@ -40,6 +40,7 @@ public:
 
 	// Brush data
 	const FSlateBrush* BrushResource;
+	const FSlateShaderResourceProxy* ResourceProxy;
 
 	// Box Data
 	FVector2D RotationPoint;
@@ -51,7 +52,7 @@ public:
 	// Font data
 	FSlateFontInfo FontInfo;
 	FString Text;
-	
+
 	// Gradient data
 	TArray<FSlateGradientStop> GradientStops;
 	EOrientation GradientType;
@@ -59,8 +60,11 @@ public:
 	// Line data
 	TArray<FVector2D> Points;
 
-	// Viewport data (intentionally weak to allow the source element to be destructed after this element has been added for drawing)
-	TWeakPtr<const ISlateViewport> Viewport;
+	// Viewport data
+	FSlateShaderResource* ViewportRenderTargetTexture;
+	bool bAllowViewportScaling;
+	bool bViewportTextureAlphaOnly;
+	bool bRequiresVSync;
 
 	// Misc data
 	bool bGammaCorrect;
@@ -79,19 +83,26 @@ public:
 	ESlateLineJoinType::Type SegmentJoinType;
 	bool bAntialias;
 
+	SLATECORE_API static FSlateShaderResourceManager* ResourceManager;
+
 	FSlateDataPayload()
 		: Tint(FLinearColor::White)
 		, BrushResource(nullptr)
+		, ResourceProxy(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
-		, Viewport(nullptr)
-		, CachedRenderData(nullptr)
-		, LayerHandle(nullptr)
+		, ViewportRenderTargetTexture(nullptr)
+		, bViewportTextureAlphaOnly(false)
+		, bRequiresVSync(false)
+		, bGammaCorrect(false)
+		, bAllowBlending(false)
+		, CustomDrawer()
 	{ }
 
 	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint )
 	{
 		Tint = InTint;
 		BrushResource = InBrush;
+		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
 		Angle = 0.0f;
 	}
 
@@ -99,6 +110,7 @@ public:
 	{
 		Tint = InTint;
 		BrushResource = InBrush;
+		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
 		RotationPoint = LocalRotationPoint;
 		RotationPoint.DiagnosticCheckNaN();
 		Angle = InAngle;
@@ -141,7 +153,10 @@ public:
 	void SetViewportPayloadProperties( const TSharedPtr<const ISlateViewport>& InViewport, const FLinearColor& InTint, bool bInGammaCorrect, bool bInAllowBlending )
 	{
 		Tint = InTint;
-		Viewport = InViewport;
+		ViewportRenderTargetTexture = InViewport->GetViewportRenderTargetTexture();
+		bAllowViewportScaling = InViewport->AllowScaling();
+		bViewportTextureAlphaOnly = InViewport->IsViewportTextureAlphaOnly();
+		bRequiresVSync = InViewport->RequiresVsync();
 		bGammaCorrect = bInGammaCorrect;
 		bAllowBlending = bInAllowBlending;
 	}
