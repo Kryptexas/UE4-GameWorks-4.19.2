@@ -1,21 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#ifdef __IPHONE_9_0
-#include <GameCenter/GKLocalPlayer.h>
-#else
 #include <GameKit/GKLocalPlayer.h>
-#endif
 
 #include "OnlineSessionInterface.h"
 #include "OnlineSubsystemIOSTypes.h"
 
 #if __IPHONE_OS_VERSION_MIN_REQUIRED < __IPHONE_7_0
-#ifdef __IPHONE_9_0
-#include <GameCenter/GKSession.h>
-#else
 #include <GameKit/GKSession.h>
-#endif
 
 @interface FGameCenterSessionDelegateGK : UIViewController<GKSessionDelegate>
 {
