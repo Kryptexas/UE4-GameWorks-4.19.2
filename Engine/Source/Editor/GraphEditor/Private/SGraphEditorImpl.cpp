@@ -159,6 +159,20 @@ bool SGraphEditorImpl::GetBoundsForSelectedNodes( class FSlateRect& Rect, float 
 	return GraphPanel->GetBoundsForSelectedNodes(Rect, Padding);
 }
 
+bool SGraphEditorImpl::GetBoundsForNode( const UEdGraphNode* InNode, class FSlateRect& Rect, float Padding) const
+{
+	FVector2D TopLeft, BottomRight;
+	if (GraphPanel->GetBoundsForNode(InNode, TopLeft, BottomRight, Padding))
+	{
+		Rect.Left = TopLeft.X;
+		Rect.Top = TopLeft.Y;
+		Rect.Bottom = BottomRight.Y;
+		Rect.Right = BottomRight.X;
+		return true;
+	}
+	return false;
+}
+
 void SGraphEditorImpl::Construct( const FArguments& InArgs )
 {
 	Commands = MakeShareable( new FUICommandList() );

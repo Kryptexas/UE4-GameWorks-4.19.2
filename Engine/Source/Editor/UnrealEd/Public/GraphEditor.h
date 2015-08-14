@@ -322,6 +322,16 @@ public:
 		return false;
 	}
 
+	/** Get Bounds for the specified node, returns false on failure */
+	virtual bool GetBoundsForNode( const UEdGraphNode* InNode, class FSlateRect& Rect, float Padding ) const
+	{
+		if (Implementation.IsValid())
+		{
+			return Implementation->GetBoundsForNode(InNode, Rect, Padding);
+		}
+		return false;
+	}
+
 	// Invoked to let this widget know that the GraphEditor module has been reloaded
 	UNREALED_API void OnModuleReloaded();
 

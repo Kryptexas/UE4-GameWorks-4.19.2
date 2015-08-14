@@ -714,6 +714,16 @@ protected:
 	void OnExpandNodes();
 	bool CanExpandNodes() const;
 
+	void OnAlignTop();
+	void OnAlignMiddle();
+	void OnAlignBottom();
+	void OnAlignLeft();
+	void OnAlignCenter();
+	void OnAlignRight();
+	
+	void OnDistributeNodesH();
+	void OnDistributeNodesV();
+
 	void SelectAllNodes();
 	bool CanSelectAllNodes() const;
 

@@ -1006,6 +1006,40 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FIsActionChecked(),
 				FIsActionButtonVisible::CreateSP( this, &FBlueprintEditor::NewDocument_IsVisibleForType, CGT_NewMacroGraph )
 				);
+			
+			// Alignment Commands
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesTop,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignTop )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesMiddle,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignMiddle )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesBottom,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignBottom )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesLeft,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignLeft )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesCenter,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignCenter )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().AlignNodesRight,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnAlignRight )
+				);
+
+			// Distribution Commands
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().DistributeNodesHorizontally,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnDistributeNodesH )
+				);
+
+			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().DistributeNodesVertically,
+				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnDistributeNodesV )
+				);
 
 			GraphEditorCommands->MapAction( FGenericCommands::Get().Rename,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnRenameNode ),
@@ -4849,6 +4883,281 @@ bool FBlueprintEditor::CanExpandNodes() const
 	return false;
 }
 
+/** Struct used for generically aligning nodes */
+struct FAlignmentData
+{
+	FAlignmentData(UEdGraphNode* InNode, int32& InTargetProperty, float InTargetOffset)
+		: Node(InNode), TargetProperty(InTargetProperty), TargetOffset(InTargetOffset)
+	{}
+
+	/** The node to position */
+	UEdGraphNode* Node;
+	/** The property within the node to read/write */
+	int32& TargetProperty;
+	/** The offset from the property to consider for alignment */
+	float TargetOffset;
+
+	/** Get the destination target from this alignment data (property + offset) */
+	float GetTarget() const
+	{
+		return float(TargetProperty) + TargetOffset;
+	}
+};
+
+/** Align the specified array of node data so all the target properties line up */
+void AlignNodes(const TArray<FAlignmentData>& InData)
+{
+	// Calculate the average target property...
+	float MeanPropertyValue = 0.f;
+	for (auto& Entry : InData)
+	{
+		MeanPropertyValue += Entry.GetTarget();
+	}
+	MeanPropertyValue /= InData.Num();
+
+	// ...and find the closest *actual* property to this average
+	float ThisTarget = InData[0].GetTarget();
+	float ClosestTarget = ThisTarget;
+	for (int32 Index = 1; Index < InData.Num(); ++Index)
+	{
+		ThisTarget = InData[Index].GetTarget();
+		if (FMath::Abs(ThisTarget - MeanPropertyValue) < FMath::Abs(ClosestTarget - MeanPropertyValue))
+		{
+			ClosestTarget = ThisTarget;
+		}
+	}
+
+	// Now set all the properties to the target
+	for (auto& Entry : InData)
+	{
+		Entry.Node->Modify();
+		Entry.TargetProperty = ClosestTarget - Entry.TargetOffset;
+	}
+}
+
+FVector2D GetNodeSize(const SGraphEditor& GraphEditor, const UEdGraphNode* Node)
+{
+	FSlateRect Rect;
+	if (GraphEditor.GetBoundsForNode(Node, Rect, 0.f))
+	{
+		return FVector2D(Rect.Right - Rect.Left, Rect.Bottom - Rect.Top);
+	}
+
+	return FVector2D(Node->NodeWidth, Node->NodeHeight);
+}
+
+void FBlueprintEditor::OnAlignTop()
+{
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosY, 0.f));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesTop->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnAlignMiddle()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosY, GetNodeSize(*FocusedGraphEd, Node).Y*.5f));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesMiddle->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnAlignBottom()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosY, GetNodeSize(*FocusedGraphEd, Node).Y));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesBottom->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnAlignLeft()
+{
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosX, 0.f));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesLeft->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnAlignCenter()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+	
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosX, GetNodeSize(*FocusedGraphEd, Node).X*.5f));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesCenter->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnAlignRight()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+	
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosX, GetNodeSize(*FocusedGraphEd, Node).X));
+		}
+	}
+
+	if (AlignData.Num())
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().AlignNodesRight->GetLabel());
+		AlignNodes(AlignData);
+	}
+}
+
+/** Distribute the specified array of node data evenly */
+void DistributeNodes(TArray<FAlignmentData>& InData)
+{
+	// Sort the data
+	InData.Sort([](const FAlignmentData& A, const FAlignmentData& B){
+		return A.TargetProperty + A.TargetOffset/2 < B.TargetProperty + B.TargetOffset/2;
+	});
+
+	// Measure the available space
+	float TotalWidthOfNodes = 0.f;
+	for (int32 Index = 1; Index < InData.Num() - 1; ++Index)
+	{
+		TotalWidthOfNodes += InData[Index].TargetOffset;
+	}
+
+	const float SpaceToDistributeIn = InData.Last().TargetProperty - InData[0].GetTarget();
+	const float PaddingAmount = ((SpaceToDistributeIn - TotalWidthOfNodes) / (InData.Num() - 1));
+
+	float TargetPosition = InData[0].GetTarget() + PaddingAmount;
+
+	// Now set all the properties on the target
+	for (int32 Index = 1; Index < InData.Num() - 1; ++Index)
+	{
+		auto& Entry = InData[Index];
+
+		Entry.Node->Modify();
+		Entry.TargetProperty = TargetPosition;
+
+		TargetPosition = Entry.GetTarget() + PaddingAmount;
+	}
+}
+
+void FBlueprintEditor::OnDistributeNodesH()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+	
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosX, GetNodeSize(*FocusedGraphEd, Node).X));
+		}
+	}
+
+	if (AlignData.Num() > 2)
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().DistributeNodesHorizontally->GetLabel());
+		DistributeNodes(AlignData);
+	}
+}
+
+void FBlueprintEditor::OnDistributeNodesV()
+{
+	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
+	if (!FocusedGraphEd.IsValid())
+	{
+		return;
+	}
+	
+	TArray<FAlignmentData> AlignData;
+	for (UObject* It : GetSelectedNodes())
+	{
+		if (UEdGraphNode* Node = Cast<UEdGraphNode>(It))
+		{
+			AlignData.Add(FAlignmentData(Node, Node->NodePosY, GetNodeSize(*FocusedGraphEd, Node).Y));
+		}
+	}
+
+	if (AlignData.Num() > 2)
+	{
+		const FScopedTransaction Transaction(FGraphEditorCommands::Get().DistributeNodesVertically->GetLabel());
+		DistributeNodes(AlignData);
+	}
+}
+
 void FBlueprintEditor::SelectAllNodes()
 {
 	TSharedPtr<SGraphEditor> FocusedGraphEd = FocusedGraphEdPtr.Pin();
@@ -7772,3 +8081,4 @@ void FBlueprintEditor::TryInvokingDetailsTab(bool bFlash)
 /////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE
+

@@ -148,6 +148,9 @@ public:
 	/** Returns if this graph is editable */
 	bool IsGraphEditable() const { return IsEditable.Get(); }
 
+	/** Attempt to retrieve the bounds for the specified node */
+	bool GetBoundsForNode(const UObject* InNode, FVector2D& MinCorner, FVector2D& MaxCorner, float Padding = 0.0f) const;
+
 protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);
