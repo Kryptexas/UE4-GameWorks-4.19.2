@@ -328,6 +328,27 @@ namespace HierarchicalLODUtils
 		return NewActor;		
 	}
 
+	static void DeleteLODActorsInHLODLevel(UWorld* InWorld, const int32 HLODLevelIndex)
+	{
+		// you still have to delete all objects just in case they had it and didn't want it anymore
+		TArray<UObject*> AssetsToDelete;
+		for (int32 ActorId = InWorld->PersistentLevel->Actors.Num() - 1; ActorId >= 0; --ActorId)
+		{
+			ALODActor* LodActor = Cast<ALODActor>(InWorld->PersistentLevel->Actors[ActorId]);
+			if (LodActor && LodActor->LODLevel == ( HLODLevelIndex + 1))
+			{
+				DeleteLODActor(LodActor);
+				InWorld->DestroyActor(LodActor);
+			}
+		}
+	}
+
+	
+	static void TestBuild(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup, const uint32 LODIndex)
+	{
+
+	}
+
 };
 
 #undef LOCTEXT_NAMESPACE

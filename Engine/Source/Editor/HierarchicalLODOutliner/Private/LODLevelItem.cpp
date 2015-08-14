@@ -68,7 +68,28 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDro
 
 		if (NumLODActors > 1)
 		{
-			return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleNewCluster, LOCTEXT("CreateNewCluster", "Create new Cluster"));
+			// Check if all the dragged LOD actors fall within the same LOD level
+			auto LODActors = DraggedObjects.LODActors.GetValue();
+			int32 LevelIndex = -1;
+			bool bSameLODLevel = true;
+			for (auto Actor : LODActors)
+			{
+				ALODActor* LODActor = Cast<ALODActor>(Actor.Get());
+				if (LevelIndex == -1)
+				{
+					LevelIndex = LODActor->LODLevel;
+				}
+				else if (LevelIndex != LODActor->LODLevel)
+				{
+					bSameLODLevel = false;
+				}
+			}
+
+			if ( bSameLODLevel && LevelIndex < (int32)( LODLevelIndex + 1 ) )
+			{
+				return FDragValidationInfo(FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleNewCluster, LOCTEXT("CreateNewCluster", "Create new Cluster"));
+			}
+			
 		}
 	}
 

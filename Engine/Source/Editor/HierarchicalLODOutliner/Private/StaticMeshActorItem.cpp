@@ -24,12 +24,19 @@ bool HLODOutliner::FStaticMeshActorItem::CanInteract() const
 void HLODOutliner::FStaticMeshActorItem::GenerateContextMenu(FMenuBuilder& MenuBuilder, SHLODOutliner& Outliner)
 {
 	auto SharedOutliner = StaticCastSharedRef<SHLODOutliner>(Outliner.AsShared());
-	MenuBuilder.AddMenuEntry(LOCTEXT("RemoveSMActorFromCluster", "Remove from cluster"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::RemoveStaticMeshActorFromCluster, AsShared())));
+	MenuBuilder.AddMenuEntry(LOCTEXT("RemoveSMActorFromCluster", "Remove From Cluster"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::RemoveStaticMeshActorFromCluster, AsShared())));
 }
 
 FString HLODOutliner::FStaticMeshActorItem::GetDisplayString() const
 {
-	return StaticMeshActor->GetFName().GetPlainNameString();
+	if (StaticMeshActor.IsValid())
+	{
+		return StaticMeshActor->GetFName().GetPlainNameString();
+	}
+	else
+	{
+		return FString("");
+	}	
 }
 
 HLODOutliner::FTreeItemID HLODOutliner::FStaticMeshActorItem::GetID()

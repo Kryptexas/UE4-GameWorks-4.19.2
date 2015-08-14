@@ -7,6 +7,7 @@
 #include "Engine/LODActor.h"
 #include "Engine/World.h"
 #include "HierarchicalLOD.h"
+#include "HierarchicalLODVolume.h"
 
 #include "Editor.h"
 #include "EditorModeManager.h"
@@ -14,6 +15,7 @@
 #include "IDetailsView.h"
 #include "SListView.h"
 #include "ScopedTransaction.h"
+#include "BSPOps.h"
 
 #include "ITreeItem.h"
 #include "LODActorItem.h"
@@ -24,6 +26,7 @@
 #include "TreeItemID.h"
 
 #include "HierarchicalLODUtils.h"
+
 
 #define LOCTEXT_NAMESPACE "HLODOutliner"
 
@@ -80,15 +83,21 @@ namespace HLODOutliner
 			];
 
 		MainContentPanel->AddSlot()
-			.FillHeight(0.6f)
+			.FillHeight(1.0f)
 			[
-				CreateTreeviewWidget()
-			];
+				SNew(SSplitter)
+				.Orientation(Orient_Vertical)
 
-		MainContentPanel->AddSlot()
-			.FillHeight(0.4f)
-			[
-				SettingsView.ToSharedRef()
+				+ SSplitter::Slot()
+				.Value(0.5)
+				[
+					CreateTreeviewWidget()
+				]
+				+ SSplitter::Slot()
+				.Value(0.5)
+				[
+					SettingsView.ToSharedRef()
+				]		
 			];
 
 		RegisterDelegates();
@@ -103,6 +112,7 @@ namespace HLODOutliner
 			+ SVerticalBox::Slot()
 			.Padding(FMargin(0.0f, 5.0f))
 			[
+
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -111,31 +121,9 @@ namespace HLODOutliner
 				[
 					SNew(SButton)
 					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("BuildHLODS", "Build HLODs"))
-					.OnClicked(this, &SHLODOutliner::HandleBuildHLODs)
+					.Text(LOCTEXT("GenerateClusters", "Generate Clusters"))
+					.OnClicked(this, &SHLODOutliner::HandlePreviewHLODs)
 				]
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(5.0f, 0.0f))
-					[
-						SNew(SButton)						
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("DeleteHLODS", "Delete HLODs"))
-						.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
-					]
-
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(5.0f, 0.0f))
-					[
-						SNew(SButton)						
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("PreviewHLODS", "Preview HLODs"))
-						.OnClicked(this, &SHLODOutliner::HandlePreviewHLODs)
-					]
 
 				+ SHorizontalBox::Slot()
 					.AutoWidth()
@@ -144,40 +132,20 @@ namespace HLODOutliner
 					[
 						SNew(SButton)
 						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("DeletePreviewHLODS", "Delete Preview HLODs"))
-						.OnClicked(this, &SHLODOutliner::HandleDeletePreviewHLODs)
+						.Text(LOCTEXT("DeleteClusters", "Delete Clusters"))
+						.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
 					]
-
-				
-			]
-			+ SVerticalBox::Slot()
-			.Padding(FMargin(0.0f, 5.0f))
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("BuildLODActors", "Build meshes for LODActors"))
-					.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
-				]
-
-#if 0 
-
 				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5.0f, 0.0f))
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("ForceRefresh", "Force refresh"))
-					.OnClicked(this, &SHLODOutliner::HandleForceRefresh)
-				]
-#endif
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(5.0f, 0.0f))
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.Text(LOCTEXT("BuildMeshes", "Build LOD Meshes for Clusters"))
+						.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
+					]	
+
 			];
 		
 	}
@@ -371,6 +339,7 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
+			DestroySelectionActors();
 			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
 		}
 
@@ -382,6 +351,59 @@ namespace HLODOutliner
 	{
 		FullRefresh();
 
+		return FReply::Handled();
+	}
+
+	FReply SHLODOutliner::HandleTestFunction()
+	{
+		if (SelectedNodes.Num() > 0)
+		{
+			if (SelectedNodes[0]->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
+			{
+				FLODActorItem* Item = static_cast<FLODActorItem*>(SelectedNodes[0].Get());
+				ALODActor* LODActor = Item->LODActor.Get();
+				
+				FBox BoundingBox = LODActor->GetComponentsBoundingBox(true);
+
+				AHierarchicalLODVolume* Volume = CurrentWorld->SpawnActor<AHierarchicalLODVolume>(AHierarchicalLODVolume::StaticClass(), FTransform(BoundingBox.GetCenter()));
+				Volume->BrushBuilder = NewObject<UCubeBuilder>();			
+
+				// this code builds a brush for the new actor
+				Volume->PreEditChange(NULL);
+
+				Volume->PolyFlags = 0;
+				Volume->Brush = NewObject<UModel>(Volume, NAME_None, RF_Transactional);
+				Volume->Brush->Initialize(nullptr, true);
+				Volume->Brush->Polys = NewObject<UPolys>(Volume->Brush, NAME_None, RF_Transactional);
+				Volume->GetBrushComponent()->Brush = Volume->Brush;
+				Volume->BrushBuilder = NewObject<UCubeBuilder>();
+
+				UCubeBuilder* CubeBuilder = static_cast<UCubeBuilder*>(Volume->BrushBuilder);	
+
+				CubeBuilder->X = BoundingBox.GetSize().X * 1.5f;
+				CubeBuilder->Y = BoundingBox.GetSize().Y * 1.5f;
+				CubeBuilder->Z = BoundingBox.GetSize().Z * 1.5f;
+
+				Volume->BrushBuilder->Build(CurrentWorld, Volume);
+
+				FBSPOps::csgPrepMovingBrush(Volume);
+
+				// Set the texture on all polys to NULL.  This stops invisible textures
+				// dependencies from being formed on volumes.
+				if (Volume->Brush)
+				{
+					for (int32 poly = 0; poly < Volume->Brush->Polys->Element.Num(); ++poly)
+					{
+						FPoly* Poly = &(Volume->Brush->Polys->Element[poly]);
+						Poly->Material = NULL;
+					}
+				}
+
+				Volume->PostEditChange();
+
+				bool check = true;
+			}
+		}
 		return FReply::Handled();
 	}
 
@@ -410,6 +432,8 @@ namespace HLODOutliner
 		GEngine->OnHLODActorAdded().AddSP(this, &SHLODOutliner::OnHLODActorAddedEvent);
 		GEngine->OnHLODActorMarkedDirty().AddSP(this, &SHLODOutliner::OnHLODActorMarkedDirtyEvent);
 		GEngine->OnHLODDrawDistanceChanged().AddSP(this, &SHLODOutliner::OnHLODDrawDistanceChangedEvent);
+		GEngine->OnHLODLevelsArrayChanged().AddSP(this, &SHLODOutliner::OnHLODLevelsArrayChangedEvent);
+		
 	}
 
 	void SHLODOutliner::DeregisterDelegates()
@@ -423,7 +447,7 @@ namespace HLODOutliner
 		GEngine->OnLevelActorDeleted().RemoveAll(this);
 		GEngine->OnActorMoved().RemoveAll(this);
 
-		FCoreDelegates::OnActorLabelChanged.AddRaw(this, &SHLODOutliner::OnActorLabelChanged);
+		FCoreDelegates::OnActorLabelChanged.RemoveAll(this);
 
 		USelection::SelectionChangedEvent.RemoveAll(this);
 		USelection::SelectObjectEvent.RemoveAll(this);
@@ -682,6 +706,14 @@ namespace HLODOutliner
 					}
 				}
 			}
+		}
+	}
+
+	void SHLODOutliner::RemoveLODLevelActors(const int32 HLODLevelIndex)
+	{
+		if (CurrentWorld)
+		{
+			HierarchicalLODUtils::DeleteLODActorsInHLODLevel(CurrentWorld, HLODLevelIndex);
 		}
 	}
 
@@ -1024,9 +1056,8 @@ namespace HLODOutliner
 		{
 			auto WorldSettings = CurrentWorld->GetWorldSettings();
 
-			check(WorldSettings->HierarchicalLODSetup.Num() == LODLevelDrawDistances.Num());
-
-			for (int32 LODLevelIndex = 0; LODLevelIndex < LODLevelDrawDistances.Num(); ++LODLevelIndex)
+			int32 MaxLODLevel = FMath::Min(WorldSettings->HierarchicalLODSetup.Num(), LODLevelDrawDistances.Num());
+			for (int32 LODLevelIndex = 0; LODLevelIndex < MaxLODLevel; ++LODLevelIndex)
 			{
 				if (LODLevelDrawDistances[LODLevelIndex] != WorldSettings->HierarchicalLODSetup[LODLevelIndex].DrawDistance)
 				{
@@ -1034,6 +1065,36 @@ namespace HLODOutliner
 					UpdateDrawDistancesForLODLevel(LODLevelIndex);
 				}
 			}
+		}
+	}
+
+	void SHLODOutliner::OnHLODLevelsArrayChangedEvent()
+	{
+		if (CurrentWorld)
+		{
+			auto WorldSettings = CurrentWorld->GetWorldSettings();			
+			if (WorldSettings->HierarchicalLODSetup.Num() > 1 && WorldSettings->HierarchicalLODSetup.Num() > LODLevelDrawDistances.Num())
+			{
+				// HLOD level was added, use previous level settings to "guess" new settings
+				auto& NewLevelSetup = WorldSettings->HierarchicalLODSetup.Last();
+				auto& OldLastLevelSetup = WorldSettings->HierarchicalLODSetup[WorldSettings->HierarchicalLODSetup.Num() - 2];
+
+				NewLevelSetup.bSimplifyMesh = OldLastLevelSetup.bSimplifyMesh;
+				NewLevelSetup.MergeSetting = OldLastLevelSetup.MergeSetting;
+				NewLevelSetup.ProxySetting = OldLastLevelSetup.ProxySetting;
+
+				NewLevelSetup.DesiredBoundRadius = OldLastLevelSetup.DesiredBoundRadius * 2.5f;
+				NewLevelSetup.DesiredFillingPercentage = FMath::Max( OldLastLevelSetup.DesiredFillingPercentage * 0.75f, 1.0f );
+				NewLevelSetup.DrawDistance = OldLastLevelSetup.DrawDistance * 2.5f;
+				NewLevelSetup.MinNumberOfActorsToBuild = OldLastLevelSetup.MinNumberOfActorsToBuild;			
+			}
+			else if (WorldSettings->HierarchicalLODSetup.Num() < LODLevelDrawDistances.Num())
+			{
+				// HLOD Level was removed, now remove all LODActors for this level
+				RemoveLODLevelActors(LODLevelDrawDistances.Num() - 1);
+			}
+
+			FullRefresh();
 		}
 	}
 

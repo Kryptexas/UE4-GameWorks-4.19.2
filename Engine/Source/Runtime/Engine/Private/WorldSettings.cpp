@@ -303,6 +303,11 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		{
 			GEditor->BroadcastHLODDrawDistanceChanged();
 		}
+
+		if (PropertyThatChanged->GetName() == TEXT("HierarchicalLODSetup"))
+		{
+			GEditor->BroadcastHLODLevelsArrayChanged();
+		}
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);

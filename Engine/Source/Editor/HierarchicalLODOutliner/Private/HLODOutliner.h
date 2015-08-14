@@ -99,6 +99,7 @@ namespace HLODOutliner
 		FReply RetrieveActors();
 		FReply HandleBuildLODActors();
 		FReply HandleForceRefresh();
+		FReply HandleTestFunction();
 		/** End button handlers */
 
 	private:
@@ -210,7 +211,13 @@ namespace HLODOutliner
 		* @param LODLevelIndex -
 		*/
 		void UpdateDrawDistancesForLODLevel(const uint32 LODLevelIndex);
-
+		
+		/**
+		* Removes LODActors within the given HLODLevel
+		*
+		* @param LODLevelIndex -		
+		*/
+		void RemoveLODLevelActors(const int32 HLODLevelIndex);
 	protected:
 		/** Tree view callbacks */
 
@@ -346,6 +353,9 @@ namespace HLODOutliner
 		/** Called when a DrawDistance value within WorldSettings changed */
 		void OnHLODDrawDistanceChangedEvent();
 
+		/** Called when the HLOD Levels array within WorldSettings changed */
+		void OnHLODLevelsArrayChangedEvent();
+
 		/** End of Broadcast event delegates */
 
 	private:
@@ -394,7 +404,7 @@ namespace HLODOutliner
 		* @param InItem - Item to select
 		*/
 		void SelectItemInTree(FTreeItemPtr InItem);
-	private:		
+	private:
 		/** Whether or not we need to do a refresh of the Tree view*/
 		bool bNeedsRefresh;
 
