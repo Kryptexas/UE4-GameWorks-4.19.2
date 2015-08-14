@@ -475,10 +475,7 @@ partial class GUBP
 			
 				if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
 				{
-					if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
-					{
-						BranchConfig.AddNode(new ToolsCrossCompileNode(BranchConfig, HostPlatform));
-					}
+					BranchConfig.AddNode(new ToolsCrossCompileNode(BranchConfig, HostPlatform));
 				}
 				foreach (var ProgramTarget in Branch.BaseEngineProject.Properties.Programs)
 				{
