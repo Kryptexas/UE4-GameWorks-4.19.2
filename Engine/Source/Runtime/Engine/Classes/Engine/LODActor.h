@@ -94,7 +94,6 @@ public:
 	void UpdateSubActorLODParents();
 #endif // WITH_EDITOR
 	
-protected:
 	// Begin UObject interface.
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;	
