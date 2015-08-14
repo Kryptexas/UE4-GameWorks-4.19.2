@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2653552
-Availability:Public
+﻿Availability:Public
 Title:1.3 - Translucent Light （透過ライト）モード
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
 Description:マテリアル インスタンスのサンプル レベルの概要、サンプル 1.3：Translucent Light モード
@@ -76,7 +75,7 @@ Related: Engine/Actors/DecalActor
 ![](MP_1_3_001.png)
 [/REGION]
 
-**透過マテリアル** が **Default Lit** に設定されている場合、シェーダーのライティングの調整オプションは 3 通りあります。
+**半透明マテリアル** が **Default Lit** に設定されている場合、シェーダーのライティングの調整オプションは 3 通りあります。
 
 | Translucent Lighting  (透過ライティング) モード| 説明 |
 | ---- | ----- |
