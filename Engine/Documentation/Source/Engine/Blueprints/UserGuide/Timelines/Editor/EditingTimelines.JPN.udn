@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2600480
-Availability:Public
+﻿Availability:Public
 Title:タイムラインの編集
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:ブループリント内での Timeline ノード編集方法の概要です。
@@ -15,7 +14,7 @@ _Timelines_ は、**[Graph]** タブの _Timeline_ 上、または **My Blueprin
 |![](add_float_track_button.png) | スカラー浮動小数点値をアニメートするために浮動トラックを _Timeline_ に新規に追加します。|
 |![](add_float_track_button.png) | 回転や平行移動などのベクター浮動小数点値をアニメートするためにベクター トラックを _Timeline_ に新規に追加します。|
 |![](add_event_track_button.png) | イベント トラックを追加することで、トラック上でキーフレーム時間でトリガーされる別の実行出力ピンを提供します。|
-|![](add_float_track_button.png) | 色をアニメートするために線形カラー トラックを _Timeline_ に新規に追加します。|
+|![](add_color_track_button.png)  | 色をアニメートするために線形カラー トラックを _Timeline_ に新規に追加します。|
 | ![](add_external_curve_button.png)| 外部カーブを _Timeline_ に追加します。このボタンは外部カーブが **コンテンツ ブラウザ** で選択されている場合のみアクティブになります。 
 | ![](timeline_length_button.png) | この _Timeline_ に対して再生時間の長さの設定ができます。 |
 | ![](last_keyframe_button.png) | これがアクティブでない場合は、シーケンスの最後のキーフレームは無視されます。アニメーションがループする場合にスキップしにくくなります。|
