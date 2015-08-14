@@ -9,6 +9,7 @@ public class AppFramework : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
+                "CoreUObject",
 				"Slate",
 				"SlateCore",
 			}
