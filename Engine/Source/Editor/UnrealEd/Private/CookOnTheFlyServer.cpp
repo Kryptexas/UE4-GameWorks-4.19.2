@@ -823,8 +823,8 @@ UCookOnTheFlyServer::UCookOnTheFlyServer(const FObjectInitializer& ObjectInitial
 	CurrentCookMode(ECookMode::CookOnTheFly),
 	CookByTheBookOptions(NULL),
 	CookFlags(ECookInitializationFlags::None),
-	bIsSavingPackage( false ),
-	bIsInitializingSandbox(false)
+	bIsInitializingSandbox(false),
+	bIsSavingPackage(false)
 {
 }
 
