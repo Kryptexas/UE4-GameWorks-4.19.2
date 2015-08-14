@@ -386,6 +386,8 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 
 			static const FName InvalidationPanelName(TEXT("SInvalidationPanel"));
 
+			const FSlateBrush* VolatileBrush = FCoreStyle::Get().GetBrush(TEXT("FocusRectangle"));
+
 			// Draw a yellow outline around any volatile elements.
 			const TArray<TSharedPtr<FSlateWindowElementList::FVolatilePaint>>& VolatileElements = CachedWindowElements->GetVolatileElements();
 			for ( const TSharedPtr<FSlateWindowElementList::FVolatilePaint>& VolatileElement : VolatileElements )
@@ -404,7 +406,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 					OutDrawElements,
 					++OutMaxChildLayer,
 					VolatileElement->GetGeometry().ToPaintGeometry(),
-					FCoreStyle::Get().GetBrush(TEXT("FocusRectangle")),
+					VolatileBrush,
 					MyClippingRect,
 					ESlateDrawEffect::None,
 					FLinearColor::Yellow

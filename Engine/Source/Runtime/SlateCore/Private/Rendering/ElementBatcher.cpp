@@ -204,7 +204,7 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 					AddViewportElement( DrawElement );
 					break;
 				case FSlateDrawElement::ET_Border:
-					//AddBorderElement( DrawElement );
+					AddBorderElement( DrawElement );
 					break;
 				case FSlateDrawElement::ET_Custom:
 					AddCustomElement( DrawElement );
