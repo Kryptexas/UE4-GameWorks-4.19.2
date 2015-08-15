@@ -482,11 +482,6 @@ namespace AutomationTool
 				{
 					LogVerbose("{0} will not be updated because P4 is not enabled.", VerFile);
 				}
-				if (IsBuildMachine)
-				{
-					// Only BuildMachines can check this file in
-					AddBuildProduct(VerFile);
-				}
 				Result.Add(VerFile);
 			}
 
