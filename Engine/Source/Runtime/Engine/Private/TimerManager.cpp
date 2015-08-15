@@ -407,10 +407,14 @@ void FTimerManager::InternalUnPauseTimer(int32 PausedTimerIdx)
 // Public members
 // ---------------------------------
 
+DECLARE_DWORD_COUNTER_STAT(TEXT("TimerManager Heap Size"),STAT_NumHeapEntries,STATGROUP_Game);
+
 void FTimerManager::Tick(float DeltaTime)
 {
 	// @todo, might need to handle long-running case
 	// (e.g. every X seconds, renormalize to InternalTime = 0)
+
+	INC_DWORD_STAT_BY(STAT_NumHeapEntries, ActiveTimerHeap.Num());
 
 	InternalTime += DeltaTime;
 
