@@ -69,7 +69,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 			}
 		}
 	}
-	ActionsToRemoveMap.Empty();
+	ActionsToRemoveMap.Reset();
 
 	//@TODO: K2: Very inefficient code right now
 	if (InObject != NULL)
@@ -115,7 +115,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 					Action->NotifyObjectDestroyed();
 					delete Action;
 				}
-				ObjectActionList.Empty();
+				ObjectActionList.Reset();
 			}
 
 			// Remove the entry if there are no pending actions remaining for this object (or if the object was NULLed and cleaned up)
@@ -215,6 +215,7 @@ FString FLatentActionManager::GetDescription(UObject* InObject, int32 UUID) cons
 	}
 	return Description;
 }
+
 void FLatentActionManager::GetActiveUUIDs(UObject* InObject, TSet<int32>& UUIDList) const
 {
 	check(InObject);
