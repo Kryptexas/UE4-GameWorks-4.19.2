@@ -2265,8 +2265,10 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 					bool bEncounteredNaNError = false;
 
 					// Grab the particle
-					FBaseParticle* SourceParticle = (SourceIndices[InTrailIdx] != -1) ? SourceEmitter->GetParticleDirect(SourceIndices[InTrailIdx]) : NULL;
-					if (SourceParticle != NULL)
+					
+					const int32 SourceEmitterParticleIndex = SourceIndices[InTrailIdx];
+					FBaseParticle* SourceParticle = ((SourceEmitterParticleIndex >= 0) && (SourceEmitterParticleIndex < SourceEmitter->ActiveParticles)) ? SourceEmitter->GetParticleDirect(SourceEmitterParticleIndex) : nullptr;
+					if (SourceParticle != nullptr)
 					{
 						const FVector WorldOrigin = SourceEmitter->SimulationToWorld.GetOrigin();
 						UParticleSystemComponent* Comp = SourceEmitter->Component;
