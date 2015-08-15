@@ -49,6 +49,8 @@ namespace AutomationTool
 			get;
 		}
 
+		public abstract void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo);
+
 		public abstract void DoBuild();
 
 		public abstract void DoFakeBuild();
@@ -121,6 +123,40 @@ namespace AutomationTool
 		public override IEnumerable<string> OrderDependencyNames
 		{
 			get { return Node.FullNamesOfPseudodependencies; }
+		}
+
+		public override void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
+		{
+			if (Name == GUBP.VersionFilesNode.StaticGetFullName() && !CommandUtils.IsBuildMachine)
+			{
+				CommandUtils.LogConsole("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", Name, TempStorageNodeInfo.GetRelativeDirectory());
+				Node.BuildProducts = new List<string>();
+
+			}
+			else
+			{
+				CommandUtils.LogConsole("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
+				bool WasLocal;
+				try
+				{
+					Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
+				}
+				catch (Exception Ex)
+				{
+					if (GameNameIfAny != "")
+					{
+						Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
+					}
+					else
+					{
+						throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
+					}
+				}
+				if (!WasLocal)
+				{
+					Node.PostLoadFromSharedTempStorage(Owner);
+				}
+			}
 		}
 
 		public override void DoBuild()

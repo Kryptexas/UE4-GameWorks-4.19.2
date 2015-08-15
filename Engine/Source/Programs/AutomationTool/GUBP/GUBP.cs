@@ -1582,17 +1582,17 @@ public partial class GUBP : BuildCommand
 
             var TempStorageNodeInfo = new TempStorageNodeInfo(JobInfo, NodeToDo.Name);
             
-            string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
-            string StorageRootIfAny = NodeToDo.RootIfAnyForTempStorage;
-					
-            if (bFake)
-            {
-                StorageRootIfAny = ""; // we don't rebase fake runs since those are entirely "records of success", which are always in the logs folder
-            }
-            if (string.IsNullOrEmpty(StorageRootIfAny))
-            {
-                StorageRootIfAny = CmdEnv.LocalRoot;
-            }
+			string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
+			string StorageRootIfAny = NodeToDo.RootIfAnyForTempStorage;
+
+			if (bFake)
+			{
+				StorageRootIfAny = ""; // we don't rebase fake runs since those are entirely "records of success", which are always in the logs folder
+			}
+			if (string.IsNullOrEmpty(StorageRootIfAny))
+			{
+				StorageRootIfAny = CmdEnv.LocalRoot;
+			}
 
             // this is kinda complicated
             bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
@@ -1601,36 +1601,7 @@ public partial class GUBP : BuildCommand
             LogConsole("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
             if (NodeToDo.IsComplete)
             {
-                if (NodeToDo.Name == VersionFilesNode.StaticGetFullName() && !IsBuildMachine)
-                {
-                    LogConsole("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", NodeToDo.Name, TempStorageNodeInfo.GetRelativeDirectory());
-                    NodeToDo.Node.BuildProducts = new List<string>();
-
-                }
-                else
-                {
-                    LogConsole("***** Retrieving GUBP Node {0} from {1}", NodeToDo.Name, TempStorageNodeInfo.GetRelativeDirectory());
-                    bool WasLocal;
-					try
-					{
-                        NodeToDo.Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
-					}
-					catch (Exception Ex)
-					{
-						if(GameNameIfAny != "")
-						{
-                            NodeToDo.Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
-						}
-						else
-						{
-							throw new AutomationException(Ex, "Build Products cannot be found for node {0}", NodeToDo.Name);
-						}
-					}
-                    if (!WasLocal)
-                    {
-                        NodeToDo.Node.PostLoadFromSharedTempStorage(this);
-                    }
-                }
+				NodeToDo.RetrieveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo);
             }
             else
             {
