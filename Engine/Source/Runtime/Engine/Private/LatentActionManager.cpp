@@ -44,8 +44,13 @@ void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObje
 	}
 }
 
+
+DECLARE_CYCLE_STAT(TEXT("Blueprint Latent Actions"), STAT_TickLatentActions, STATGROUP_Game);
+
 void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTime)
 {
+	SCOPE_CYCLE_COUNTER(STAT_TickLatentActions);
+
 	for (FActionsForObject::TIterator It(ActionsToRemoveMap); It; ++It)
 	{
 		auto ActionList = GetActionListForObject(It.Key());
