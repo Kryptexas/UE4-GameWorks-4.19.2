@@ -49,6 +49,8 @@ namespace AutomationTool
 			get;
 		}
 
+		public abstract void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly);
+
 		public abstract void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo);
 
 		public abstract void DoBuild();
@@ -123,6 +125,11 @@ namespace AutomationTool
 		public override IEnumerable<string> OrderDependencyNames
 		{
 			get { return Node.FullNamesOfPseudodependencies; }
+		}
+
+		public override void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
+		{
+			TempStorage.StoreToTempStorage(TempStorageNodeInfo, Node.BuildProducts, bLocalOnly, GameNameIfAny, StorageRootIfAny);
 		}
 
 		public override void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)

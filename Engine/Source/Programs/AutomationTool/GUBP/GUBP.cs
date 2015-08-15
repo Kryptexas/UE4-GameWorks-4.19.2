@@ -1633,7 +1633,7 @@ public partial class GUBP : BuildCommand
 						BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
                     }
 
-                    TempStorage.StoreToTempStorage(TempStorageNodeInfo, NodeToDo.Node.BuildProducts, !bSaveSharedTempStorage, GameNameIfAny, StorageRootIfAny);
+					NodeToDo.ArchiveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo, !bSaveSharedTempStorage);
                 }
                 catch (Exception Ex)
                 {
