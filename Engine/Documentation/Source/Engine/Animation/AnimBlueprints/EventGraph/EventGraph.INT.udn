@@ -10,9 +10,9 @@ Description:Event-based graph used to update the Animation Blueprint and calcula
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-Every _Animation Blueprint_ has a single **EventGraph**, which is a standard [graph](Engine/Blueprints/Editor/UIComponents/GraphEditor) 
+Every Animation Blueprint has a single **EventGraph**, which is a standard [graph](Engine/Blueprints/Editor/UIComponents/GraphEditor) 
 that uses a collection of special animation-related events to initiate sequences of nodes. The most common use of the **EventGraph** 
-is to update values used by _BlendSpaces_ and other blend nodes to drive animations within the **AnimGraph**.
+is to update values used by BlendSpaces and other blend nodes to drive animations within the **AnimGraph**.
 [/EXCERPT:Intro]
 
 ![Event graph](eventgraph.png)(w:720)

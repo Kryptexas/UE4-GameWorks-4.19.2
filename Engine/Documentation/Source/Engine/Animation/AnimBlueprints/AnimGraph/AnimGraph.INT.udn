@@ -10,10 +10,10 @@ Description:Graph used to sample, blend, and manipulate poses to be applied to S
 [TOC(start:2 end:3)]
 
 [EXCERPT:Intro]
-The **AnimGraph** is used to evaluate a final pose for the _SkeletalMesh_ for the current frame. By default, 
-each _Animation Blueprint_ has an **_AnimGraph_** which can have [animation nodes](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
-to sample _AnimationSequences_, perform animation blends, or control bone transforms using _SkeletalControls_. 
-The resulting pose is then applied to the _SkeletalMesh_ each frame.
+The **AnimGraph** is used to evaluate a final pose for the SkeletalMesh for the current frame. By default, 
+each Animation Blueprint has an **AnimGraph** which can have [animation nodes](Engine/Animation/AnimBlueprints/AnimGraph#AnimationNodes) placed within it 
+to sample AnimationSequences, perform animation blends, or control bone transforms using SkeletalControls. 
+The resulting pose is then applied to the SkeletalMesh each frame.
 [/EXCERPT:Intro]
 
 ![Anim Graph](animgraph.png)(w:720)
