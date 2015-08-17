@@ -90,7 +90,7 @@ public:
 	{
 		checkSlow(Count >= 0);
 		const int32 OldNum = FPlatformAtomics::InterlockedAdd(&this->ArrayNum, Count);
-		check(this->ArrayNum + Count < this->ArrayMax);
+		check(OldNum + Count <= this->ArrayMax);
 		return OldNum;
 	}
 
