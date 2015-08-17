@@ -3650,6 +3650,8 @@ void StaticUObjectInit()
 	UE_LOG(LogInit, Log, TEXT("Object subsystem initialized") );
 }
 
+void CleanupGCArrayPools();
+
 //
 // Shut down the object manager.
 //
@@ -3741,6 +3743,7 @@ void StaticExit()
 	// Empty arrays to prevent falsely-reported memory leaks.
 	FUObjectThreadContext::Get().ObjLoaded.Empty();
 	FDeferredMessageLog::Cleanup();
+	CleanupGCArrayPools();
 
 	UE_LOG(LogExit, Log, TEXT("Object subsystem successfully closed.") );
 }
