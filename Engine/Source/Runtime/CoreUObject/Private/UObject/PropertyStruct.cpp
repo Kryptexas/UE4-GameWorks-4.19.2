@@ -336,8 +336,15 @@ void UStructProperty::ExportTextItem( FString& ValueStr, const void* PropertyVal
 	UStructProperty_ExportTextItem(Struct, ValueStr, PropertyValue, DefaultValue, Parent, PortFlags, ExportRootScope);
 } 
 
-const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText ) const
+const TCHAR* UStructProperty::ImportText_Internal(const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText) const
 {
+	return ImportText_Static(Struct, GetName(), InBuffer, Data, PortFlags, Parent, ErrorText);
+}
+
+const TCHAR* UStructProperty::ImportText_Static(UScriptStruct* InStruct, const FString& Name, const TCHAR* InBuffer, void* Data, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText)
+{
+	auto Struct = InStruct;
+
 	if (Struct->StructFlags & STRUCT_ImportTextItemNative)
 	{
 		UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
@@ -377,7 +384,7 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 
 					if (*Buffer != TCHAR('\"'))
 					{
-						ErrorText->Logf(TEXT("%sImportText (%s): Bad quoted string at: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *GetName(), Buffer );
+						ErrorText->Logf(TEXT("%sImportText (%s): Bad quoted string at: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *Name, Buffer);
 						return NULL;
 					}
 				}
@@ -390,7 +397,7 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 					SubCount--;
 					if( SubCount < 0 )
 					{
-						ErrorText->Logf(TEXT("%sImportText (%s): Too many closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *GetName(), InBuffer);
+						ErrorText->Logf(TEXT("%sImportText (%s): Too many closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *Name, InBuffer);
 						return NULL;
 					}
 				}
@@ -398,7 +405,7 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 			}
 			if( SubCount > 0 )
 			{
-				ErrorText->Logf(TEXT("%sImportText(%s): Not enough closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *GetName(), InBuffer);
+				ErrorText->Logf(TEXT("%sImportText(%s): Not enough closing parenthesis in: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *Name, InBuffer);
 				return NULL;
 			}
 
@@ -410,7 +417,7 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 			}
 			else if( *Buffer!=TCHAR(')') )
 			{
-				ErrorText->Logf(TEXT("%sImportText (%s): Missing closing parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *GetName(), InBuffer);
+				ErrorText->Logf(TEXT("%sImportText (%s): Missing closing parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *Name, InBuffer);
 				return NULL;
 			}
 
@@ -422,7 +429,7 @@ const TCHAR* UStructProperty::ImportText_Internal( const TCHAR* InBuffer, void* 
 	}
 	else
 	{
-		ErrorText->Logf(TEXT("%sImportText (%s): Missing opening parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *GetName(), InBuffer);
+		ErrorText->Logf(TEXT("%sImportText (%s): Missing opening parenthesis: %s"), ErrorCount++ > 0 ? LINE_TERMINATOR : TEXT(""), *Name, InBuffer);
 		return NULL;
 	}
 	return Buffer;

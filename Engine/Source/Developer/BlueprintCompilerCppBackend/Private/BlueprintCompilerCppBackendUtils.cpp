@@ -8,17 +8,12 @@
 #include "Engine/InheritableComponentHandler.h"
 #include "Engine/DynamicBlueprintBinding.h"
 
-FString FSafeContextScopedEmmitter::GetAdditionalIndent() const
-{
-	return bSafeContextUsed ? TEXT("\t") : FString();
-}
-
 bool FSafeContextScopedEmmitter::IsSafeContextUsed() const
 {
 	return bSafeContextUsed;
 }
 
-FString FSafeContextScopedEmmitter::ValidationChain(const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend)
+FString FSafeContextScopedEmmitter::ValidationChain(FEmitterLocalContext& EmitterContext, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend)
 {
 	TArray<FString> SafetyConditions;
 	for (; Term; Term = Term->Context)
@@ -26,7 +21,7 @@ FString FSafeContextScopedEmmitter::ValidationChain(const FBPTerminal* Term, FBl
 		if (!Term->IsStructContextType() && (Term->Type.PinSubCategory != TEXT("self")))
 		{
 			ensure(!Term->bIsLiteral);
-			SafetyConditions.Add(CppBackend.TermToText(Term, false));
+			SafetyConditions.Add(CppBackend.TermToText(EmitterContext, Term, false));
 		}
 	}
 
@@ -45,20 +40,18 @@ FString FSafeContextScopedEmmitter::ValidationChain(const FBPTerminal* Term, FBl
 	return Result;
 }
 
-FSafeContextScopedEmmitter::FSafeContextScopedEmmitter(FString& InBody, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend, const TCHAR* InCurrentIndent)
-	: Body(InBody), bSafeContextUsed(false), CurrentIndent(InCurrentIndent)
+FSafeContextScopedEmmitter::FSafeContextScopedEmmitter(FEmitterLocalContext& InEmitterContext, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend)
+	: EmitterContext(InEmitterContext)
+	, bSafeContextUsed(false)
 {
-	const FString Conditions = ValidationChain(Term, CppBackend);
+	const FString Conditions = ValidationChain(EmitterContext, Term, CppBackend);
 
 	if (!Conditions.IsEmpty())
 	{
 		bSafeContextUsed = true;
-		Body += CurrentIndent;
-		Body += TEXT("if (");
-		Body += Conditions;
-		Body += TEXT(")\n");
-		Body += CurrentIndent;
-		Body += TEXT("{\n");
+		EmitterContext.AddLine(FString::Printf(TEXT("if(%s)"), *Conditions));
+		EmitterContext.AddLine(TEXT("{"));
+		EmitterContext.IncreaseIndent();
 	}
 }
 
@@ -66,8 +59,8 @@ FSafeContextScopedEmmitter::~FSafeContextScopedEmmitter()
 {
 	if (bSafeContextUsed)
 	{
-		Body += CurrentIndent;
-		Body += TEXT("}\n");
+		EmitterContext.DecreaseIndent();
+		EmitterContext.AddLine(TEXT("}"));
 	}
 }
 
@@ -438,7 +431,7 @@ FString FEmitHelper::GatherNativeHeadersToInclude(UField* SourceItem, const TArr
 	return Result;
 }
 
-FString FEmitHelper::LiteralTerm(const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject)
+FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject)
 {
 	auto Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -534,16 +527,30 @@ FString FEmitHelper::LiteralTerm(const FEdGraphPinType& Type, const FString& Cus
 		{
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
 			const bool bEmptyCustomValue = CustomValue.IsEmpty() || (CustomValue == TEXT("()"));
-			ensure(bEmptyCustomValue);
-			
 			const FString StructName = FString(TEXT("F")) + StructType->GetName();
-			const FString ConstructBody = bEmptyCustomValue
-				? (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"))
-				: CustomValue;
+			if (bEmptyCustomValue)
+			{
+				return StructName + (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"));
+			}
 
-			// Import.. export..
+			const FString LocalStructNativeName = EmitterContext.GenerateUniqueLocalName();
+			EmitterContext.AddLine(FString::Printf(TEXT("auto %s = %s{};"), *LocalStructNativeName, *StructName)); // TODO: ?? should "::GetDefaultValue()" be called here?
+			{
+				FStructOnScope StructOnScope(StructType);
 
-			return StructName + ConstructBody;
+				FStringOutputDevice ImportError;
+				const auto EndOfParsedBuff = UStructProperty::ImportText_Static(StructType, TEXT("FEmitHelper::LiteralTerm"), *CustomValue, StructOnScope.GetStructMemory(), 0, nullptr, &ImportError);
+				if (!EndOfParsedBuff || !ImportError.IsEmpty())
+				{
+					UE_LOG(LogK2Compiler, Error, TEXT("FEmitHelper::LiteralTerm cannot parse struct \"%s\" error: %s"), *CustomValue, *ImportError);
+				}
+
+				for (auto LocalProperty : TFieldRange<const UProperty>(StructType))
+				{
+					FEmitDefaultValueHelper::OuterGenerate(EmitterContext, LocalProperty, LocalStructNativeName, StructOnScope.GetStructMemory(), nullptr, FEmitDefaultValueHelper::EPropertyAccessOperator::Dot);
+				}
+			}
+			return LocalStructNativeName;
 		}
 	}
 	else if (Type.PinSubCategory == UEdGraphSchema_K2::PSC_Self)
@@ -595,9 +602,9 @@ FString FEmitHelper::LiteralTerm(const FEdGraphPinType& Type, const FString& Cus
 	return CustomValue;
 }
 
-FString FEmitHelper::DefaultValue(const FEdGraphPinType& Type)
+FString FEmitHelper::DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type)
 {
-	return LiteralTerm(Type, FString(), nullptr);
+	return LiteralTerm(EmitterContext, Type, FString(), nullptr);
 }
 
 UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)
@@ -675,7 +682,7 @@ bool FEmitHelper::GenerateAssignmentCast(const FEdGraphPinType& LType, const FEd
 	return false;
 }
 
-void FEmitDefaultValueHelper::OuterGenerate(FDefaultValueHelperContext& Context
+void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	, const UProperty* Property
 	, const FString& OuterPath
 	, const uint8* DataContainer
@@ -736,7 +743,7 @@ FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruc
 	FStructOnScope StructData(Struct);
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
 
-	FDefaultValueHelperContext Context;
+	FEmitterLocalContext Context;
 	Context.IncreaseIndent();
 	Context.IncreaseIndent();
 	for (auto Property : TFieldRange<const UProperty>(Struct))
@@ -748,9 +755,9 @@ FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruc
 	return Result;
 }
 
-void FEmitDefaultValueHelper::InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
+void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine)
 {
-	auto OneLineConstruction = [](FDefaultValueHelperContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
+	auto OneLineConstruction = [](FEmitterLocalContext& LocalContext, const UProperty* LocalProperty, const uint8* LocalValuePtr, FString& OutSingleLine, bool bGenerateEmptyStructConstructor) -> bool
 	{
 		bool bComplete = true;
 		FString ValueStr = HandleSpecialTypes(LocalContext, LocalProperty, LocalValuePtr);
@@ -763,7 +770,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FDefaultValueHelperContext& Context,
 				check(StructProperty->Struct);
 				if (bGenerateEmptyStructConstructor)
 				{
-					ValueStr = FString::Printf(TEXT("F%s()"), *StructProperty->Struct->GetName()); //don;t override existing values
+					ValueStr = FString::Printf(TEXT("F%s{}"), *StructProperty->Struct->GetName()); //don;t override existing values
 				}
 				bComplete = false;
 			}
@@ -823,7 +830,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FDefaultValueHelperContext& Context,
 	}
 }
 
-FString FEmitDefaultValueHelper::HandleSpecialTypes(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr)
+FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr)
 {
 	//TODO: Use Path maps for Objects
 	if (auto ObjectProperty = Cast<UObjectProperty>(Property))
@@ -831,17 +838,29 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FDefaultValueHelperContext& 
 		UObject* Object = ObjectProperty->GetPropertyValue(ValuePtr);
 		if (Object)
 		{
-			FString NativeName;
-			if (Context.FindLocalObject_InConstructor(Object, NativeName))
 			{
-				return NativeName;
+				const FString MappedObject = Context.FindGlobalObject(Object);
+				if (!MappedObject.IsEmpty())
+				{
+					return MappedObject;
+				}
 			}
 
-			auto BPGC = Context.GetCurrentlyGeneratedClass();
-			auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
-			if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && Context.bCreatingObjectsPerClass)
 			{
-				return HandleClassSubobject(Context, Object);
+				FString LocalMappedObject;
+				if (Context.bInsideConstructor && Context.FindLocalObject_InConstructor(Object, LocalMappedObject))
+				{
+					return LocalMappedObject;
+				}
+			}
+
+			{
+				auto BPGC = Context.GetCurrentlyGeneratedClass();
+				auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
+				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && Context.bCreatingObjectsPerClass)
+				{
+					return HandleClassSubobject(Context, Object);
+				}
 			}
 
 			if (!Context.bCreatingObjectsPerClass && Property->HasAnyPropertyFlags(CPF_InstancedReference))
@@ -852,12 +871,10 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FDefaultValueHelperContext& 
 					return CreateAsInstancedSubobject;
 				}
 			}
-
-			const FString MappedObject = Context.FindGlobalObject(Object);
-			if (!MappedObject.IsEmpty())
-			{
-				return MappedObject;
-			}
+		}
+		else if (ObjectProperty->HasMetaData(FBlueprintMetadata::MD_LatentCallbackTarget))
+		{
+			return TEXT("this");
 		}
 	}
 
@@ -891,7 +908,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FDefaultValueHelperContext& 
 	return FString();
 }
 
-UActorComponent* FEmitDefaultValueHelper::HandleNonNativeComponent(FDefaultValueHelperContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName)
+UActorComponent* FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName)
 {
 	USCS_Node* Node = nullptr;
 	for (UBlueprintGeneratedClass* NodeOwner = BPGC; NodeOwner && !Node; NodeOwner = Cast<UBlueprintGeneratedClass>(NodeOwner->GetSuperClass()))
@@ -984,12 +1001,12 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
 	const FString CppClassName = FString(BPGC->GetPrefixCPP()) + BPGC->GetName();
 
-	FDefaultValueHelperContext Context;
+	FEmitterLocalContext Context;
 	Context.SetCurrentlyGeneratedClass(BPGC);
 	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)"), *CppClassName, *CppClassName));
 	Context.AddLine(TEXT("{"));
 	Context.IncreaseIndent();
-
+	Context.bInsideConstructor = true;
 	// When CDO is created create all subobjects owned by the class
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 	{
@@ -1104,11 +1121,11 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	Context.AddLine(TEXT("}"));
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
-
+	Context.bInsideConstructor = false;
 	return Context.GetResult();
 }
 
-FString FEmitDefaultValueHelper::HandleClassSubobject(FDefaultValueHelperContext& Context, UObject* Object)
+FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object)
 {
 	FString OuterStr;
 	if (!Context.FindLocalObject_InConstructor(Object->GetOuter(), OuterStr))
@@ -1140,7 +1157,7 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FDefaultValueHelperContext
 	return LocalNativeName;
 }
 
-FString FEmitDefaultValueHelper::HandleInstancedSubobject(FDefaultValueHelperContext& Context, UObject* Object)
+FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object)
 {
 	check(Object);
 

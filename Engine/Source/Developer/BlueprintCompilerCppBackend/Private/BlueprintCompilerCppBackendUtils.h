@@ -7,16 +7,14 @@ class FBlueprintCompilerCppBackend;
 struct FSafeContextScopedEmmitter
 {
 private:
-	FString& Body;
+	FEmitterLocalContext& EmitterContext;
 	bool bSafeContextUsed;
-	FString CurrentIndent;
 public:
-	FString GetAdditionalIndent() const;
 	bool IsSafeContextUsed() const;
 
-	static FString ValidationChain(const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend);
+	static FString ValidationChain(FEmitterLocalContext& EmitterContext, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend);
 
-	FSafeContextScopedEmmitter(FString& InBody, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend, const TCHAR* InCurrentIndent);
+	FSafeContextScopedEmmitter(FEmitterLocalContext& InEmitterContext, const FBPTerminal* Term, FBlueprintCompilerCppBackend& CppBackend);
 	~FSafeContextScopedEmmitter();
 };
 
@@ -52,9 +50,9 @@ struct FEmitHelper
 
 	static FString GatherNativeHeadersToInclude(UField* SourceItem, const TArray<FString>& PersistentHeaders);
 
-	static FString LiteralTerm(const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject);
+	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject);
 
-	static FString DefaultValue(const FEdGraphPinType& Type);
+	static FString DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type);
 
 	static UFunction* GetOriginalFunction(UFunction* Function);
 
@@ -65,7 +63,7 @@ struct FEmitHelper
 	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 };
 
-struct FDefaultValueHelperContext
+struct FEmitterLocalContext
 {
 private:
 	FString Indent;
@@ -75,6 +73,7 @@ private:
 	TArray<FString> LowPriorityLines;
 	UClass* ActualClass;
 
+	//ConstructorOnly
 	TMap<UObject*, FString> NativeObjectNamesInConstructor;
 	TArray<UObject*> ObjectsCreatedPerClass;
 
@@ -82,16 +81,19 @@ private:
 public:
 
 	bool bCreatingObjectsPerClass;
+	bool bInsideConstructor;
 
-	FDefaultValueHelperContext()
+	FEmitterLocalContext()
 		: LocalNameIndexMax(0)
 		, ActualClass(nullptr)
 		, bCreatingObjectsPerClass(false)
+		, bInsideConstructor(false)
 	{}
 
 	// Functions to use in constructor only
 	bool FindLocalObject_InConstructor(UObject* Object, FString& OutNamePath) const
 	{
+		ensure(bInsideConstructor);
 		if (Object == ActualClass)
 		{
 			OutNamePath = TEXT("GetClass()");
@@ -109,11 +111,13 @@ public:
 
 	void AddObjectFromLocalProperty_InConstructor(UObject* Object, const FString& NativeName)
 	{
+		ensure(bInsideConstructor);
 		NativeObjectNamesInConstructor.Add(Object, NativeName);
 	}
 
 	FString AddNewObject_InConstructor(UObject* Object)
 	{
+		ensure(bInsideConstructor);
 		const FString UniqueName = GenerateUniqueLocalName();
 		NativeObjectNamesInConstructor.Add(Object, UniqueName);
 		if (bCreatingObjectsPerClass)
@@ -127,6 +131,7 @@ public:
 
 	const TArray<UObject*>& GetObjectsCreatedPerClass_InConstructor()
 	{
+		ensure(bInsideConstructor);
 		return ObjectsCreatedPerClass;
 	}
 
@@ -257,7 +262,6 @@ struct FEmitDefaultValueHelper
 	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct);
 
 	static FString GenerateConstructor(UClass* BPGC);
-private:
 
 	enum class EPropertyAccessOperator
 	{
@@ -267,20 +271,21 @@ private:
 	};
 
 	// OuterPath ends context/outer name (or empty, if the scope is "this")
-	static void OuterGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& OuterPath, const uint8* DataContainer, const uint8* OptionalDefaultDataContainer, EPropertyAccessOperator AccessOperator, bool bAllowProtected = false);
-	
+	static void OuterGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& OuterPath, const uint8* DataContainer, const uint8* OptionalDefaultDataContainer, EPropertyAccessOperator AccessOperator, bool bAllowProtected = false);
+
+private:
 	// PathToMember ends with variable name
-	static void InnerGenerate(FDefaultValueHelperContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine = false);
-	
+	static void InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine = false);
+
 	// Returns native term, 
 	// returns empty string if cannot handle
-	static FString HandleSpecialTypes(FDefaultValueHelperContext& Context, const UProperty* Property, const uint8* ValuePtr);
+	static FString HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr);
 
-	static UActorComponent* HandleNonNativeComponent(FDefaultValueHelperContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName);
+	static UActorComponent* HandleNonNativeComponent(FEmitterLocalContext& Context, UBlueprintGeneratedClass* BPGC, FName ObjectName, bool bNew, const FString& NativeName);
 	
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FDefaultValueHelperContext& Context, UObject* Object);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object);
 
-	static FString HandleInstancedSubobject(FDefaultValueHelperContext& Context, UObject* Object);
+	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object);
 };
