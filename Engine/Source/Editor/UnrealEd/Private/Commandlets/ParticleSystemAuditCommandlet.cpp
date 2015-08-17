@@ -1,7 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
-#include "CollectionManagerModule.h"
 #include "Runtime/Engine/Public/ObjectEditorUtils.h"
 #include "Runtime/Engine/Classes/Particles/ParticleEmitter.h"
 #include "Runtime/Engine/Classes/Particles/ParticleModuleRequired.h"
@@ -13,6 +12,7 @@
 #include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataBeam2.h"
 #include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "CollectionManagerModule.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Distributions/DistributionFloatConstant.h"
 #include "Distributions/DistributionVectorConstant.h"
