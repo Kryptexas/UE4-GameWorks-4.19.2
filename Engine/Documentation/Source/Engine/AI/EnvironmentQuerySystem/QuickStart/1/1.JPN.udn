@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2653007
 Availability:Public
 Title:1. 基本設定
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:Top Down Template を使用して新規プロジェクトを作成する
+Description:Top Down Template を使用して新規プロジェクトを作成します。
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,10 +11,10 @@ Description:Top Down Template を使用して新規プロジェクトを作成�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/2 "%Engine/AI/EnvironmentQuerySystem/QuickStart/2:title%")
+		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/2 "%Engine/AI/EnvironmentQuerySystem/QuickStart/2:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -24,7 +24,7 @@ Description:Top Down Template を使用して新規プロジェクトを作成�
 このクイックスタートでは、プロジェクト内にあるものについて考えます。そのため、即座に実証や問題解決がやりずらい場合は、プロジェクトを以下のように設定します。
 
 [REGION:note]
-既に [ビヘイビアツリーのクイックスタート](Engine/AI/BehaviorTrees/QuickStart) を完了している場合は、新しいプロジェクトを開始する代わりに、そのプロジェクトをご利用いただけます。
+既に [ビヘイビア ツリーのクイックスタート](Engine/AI/BehaviorTrees/QuickStart) を完了している場合は、新しいプロジェクトを開始する代わりに、そのプロジェクトをご利用いただけます。
 [/REGION]
 
 ## ステップ
