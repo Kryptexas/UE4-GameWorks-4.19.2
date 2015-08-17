@@ -277,6 +277,8 @@ public:
 		return (SourceStatementList != NULL) && (SourceStatementList->Num() > 0);
 	}
 
+	KISMETCOMPILER_API bool MustUseSwitchState(const FBlueprintCompiledStatement* ExcludeThisOne) const;
+
 private:
 	// Optimize out any useless jumps (jump to the very next statement, where the control flow can just fall through)
 	void MergeAdjacentStates();

@@ -288,34 +288,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 		// Emit local variables
 		DeclareLocalVariables(FunctionContext, LocalVariables);
 
-		bool bUseSwitchState = false;
-		for (auto Node : FunctionContext.LinearExecutionList)
-		{
-			TArray<FBlueprintCompiledStatement*>* StatementList = FunctionContext.StatementsPerNode.Find(Node);
-			if (StatementList)
-			{
-				for (auto Statement : (*StatementList))
-				{
-					if (Statement && (
-						Statement->Type == KCST_UnconditionalGoto ||
-						Statement->Type == KCST_PushState ||
-						Statement->Type == KCST_GotoIfNot ||
-						Statement->Type == KCST_ComputedGoto ||
-						Statement->Type == KCST_EndOfThread ||
-						Statement->Type == KCST_EndOfThreadIfNot ||
-						Statement->Type == KCST_GotoReturn ||
-						Statement->Type == KCST_GotoReturnIfNot))
-					{
-						bUseSwitchState = true;
-						break;
-					}
-				}
-			}
-			if (bUseSwitchState)
-			{
-				break;
-			}
-		}
+		const bool bUseSwitchState = FunctionContext.MustUseSwitchState(nullptr);
 
 		// Run thru code looking only at things marked as jump targets, to make sure the jump targets are ordered in order of appearance in the linear execution list
 		// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
