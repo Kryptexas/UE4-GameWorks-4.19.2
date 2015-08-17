@@ -46,16 +46,20 @@ void FRedirectCollector::OnRedirectorFollowed(const FString& InString, UObject* 
 void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 {
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
-	FString ContainingPackage;
+	FPackagePropertyPair ContainingPackageAndProperty;
 	if (ThreadContext.SerializedObject)
 	{
-		auto Linker = ThreadContext.SerializedObject->GetLinker();
+		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
 		if (Linker)
 		{
-			ContainingPackage = Linker->Filename;
+			ContainingPackageAndProperty.Package = Linker->Filename;
+			if (Linker->GetSerializedProperty())
+			{
+				ContainingPackageAndProperty.Property = FString::Printf(TEXT("%s:%s"), *ThreadContext.SerializedObject->GetPathName(), *Linker->GetSerializedProperty()->GetName());
+			}
 		}
 	}
-	StringAssetReferences.Add(InString, ContainingPackage);
+	StringAssetReferences.Add(InString, ContainingPackageAndProperty);
 }
 
 FString FRedirectCollector::OnStringAssetReferenceSaved(const FString& InString)
@@ -72,15 +76,17 @@ void FRedirectCollector::ResolveStringAssetReference()
 {
 	while (StringAssetReferences.Num())
 	{
-		TMultiMap<FString, FString>::TIterator First(StringAssetReferences);
+		TMultiMap<FString, FPackagePropertyPair>::TIterator First(StringAssetReferences);
 		FString ToLoad = First.Key();
-		FString RefFilename = First.Value();
+		FPackagePropertyPair RefFilenameAndProperty = First.Value();
 		First.RemoveCurrent();
 
 		if (ToLoad.Len() > 0)
 		{
 			UE_LOG(LogRedirectors, Log, TEXT("String Asset Reference '%s'"), *ToLoad);
-			StringAssetRefFilenameStack.Push(RefFilename);
+			UE_CLOG(RefFilenameAndProperty.Property.Len(), LogRedirectors, Verbose, TEXT("    Referenced by '%s'"), *RefFilenameAndProperty.Property);
+
+			StringAssetRefFilenameStack.Push(RefFilenameAndProperty.Package);
 
 			UObject *Loaded = LoadObject<UObject>(NULL, *ToLoad, NULL, LOAD_None, NULL);
 			StringAssetRefFilenameStack.Pop();
@@ -90,7 +96,7 @@ void FRedirectCollector::ResolveStringAssetReference()
 			{
 				UE_LOG(LogRedirectors, Log, TEXT("    Found redir '%s'"), *Redirector->GetFullName());
 				FRedirection Redir;
-				Redir.PackageFilename = RefFilename;
+				Redir.PackageFilename = RefFilenameAndProperty.Package;
 				Redir.RedirectorName = Redirector->GetFullName();
 				Redir.RedirectorPackageFilename = Redirector->GetLinker()->Filename;
 				CA_SUPPRESS(28182)
