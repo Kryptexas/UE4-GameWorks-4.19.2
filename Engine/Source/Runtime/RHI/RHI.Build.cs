@@ -22,7 +22,7 @@ public class RHI : ModuleRules
 					DynamicallyLoadedModuleNames.Add("D3D12RHI");
 
 //#todo-rco: Remove when public
-					string VulkanSDKPath = Environment.GetEnvironmentVariable("VulkanSDK");
+					string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 					if (!String.IsNullOrEmpty(VulkanSDKPath))
 					{
 						DynamicallyLoadedModuleNames.Add("VulkanRHI");
