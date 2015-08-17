@@ -4,13 +4,8 @@
 #include "OnlineSubsystemIOSPrivatePCH.h"
 
 // GameCenter includes
-#ifdef __IPHONE_9_0
-#include <GameCenter/GKLeaderboard.h>
-#include <GameCenter/GKScore.h>
-#else
 #include <GameKit/GKLeaderboard.h>
 #include <GameKit/GKScore.h>
-#endif
 
 FOnlineLeaderboardsIOS::FOnlineLeaderboardsIOS(FOnlineSubsystemIOS* InSubsystem)
 {

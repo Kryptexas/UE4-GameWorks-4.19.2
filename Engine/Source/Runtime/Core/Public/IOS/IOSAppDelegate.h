@@ -4,11 +4,7 @@
 
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVAudioSession.h>
-#ifdef __IPHONE_9_0
-#import <GameCenter/GKGameCenterViewController.h>
-#else
 #import <GameKit/GKGameCenterViewController.h>
-#endif
 
 class CORE_API FIOSCoreDelegates
 {

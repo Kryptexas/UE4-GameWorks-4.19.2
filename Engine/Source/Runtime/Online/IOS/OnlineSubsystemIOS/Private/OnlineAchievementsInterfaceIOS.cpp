@@ -4,13 +4,8 @@
 #include "OnlineSubsystemIOSPrivatePCH.h"
 
 // Game Center includes
-#ifdef __IPHONE_9_0
-#include <GameCenter/GKAchievement.h>
-#include <GameCenter/GKAchievementDescription.h>
-#else
 #include <GameKit/GKAchievement.h>
 #include <GameKit/GKAchievementDescription.h>
-#endif
 
 FOnlineAchievementsIOS::FOnlineAchievementsIOS(class FOnlineSubsystemIOS* InSubsystem)
 {
