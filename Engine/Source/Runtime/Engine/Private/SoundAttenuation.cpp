@@ -79,50 +79,64 @@ float FAttenuationSettings::GetMaxDimension() const
  */
 float FAttenuationSettings::AttenuationEval(const float Distance, const float Falloff) const
 {
-	if( Distance > Falloff )
+	// Clamp the input distance between 0.0f and Falloff. If the Distance
+	// is actually less than the min value, it will use the min-value of the algorithm/curve
+	// rather than assume it's 1.0 (i.e. it could be 0.0 for an inverse curve). Similarly, if the distance
+	// is greater than the falloff value, it'll use the algorithm/curve value evaluated at Falloff distance,
+	// which could be 1.0 (and not 0.0f).
+
+	float DistanceCopy = FMath::Clamp(Distance, 0.0f, Falloff);
+
+	float Result = 0.0f;
+	switch(DistanceAlgorithm)
 	{
-		return 0.0f;
-	}
-	// UsedMinRadius is the point at which to start attenuating
-	else if( Distance > 0.f )
-	{
-		switch(DistanceAlgorithm)
+		case ATTENUATION_Linear:
+
+			Result = (1.0f - (DistanceCopy / Falloff));
+			break;
+
+		case ATTENUATION_Logarithmic:
+
+			Result = 0.5f * -FMath::Loge(DistanceCopy / Falloff);
+			break;
+
+		case ATTENUATION_Inverse:
+
+			Result = 0.02f / (DistanceCopy / Falloff);
+			break;
+
+		case ATTENUATION_LogReverse:
+
+			Result = 1.0f + 0.5f * FMath::Loge(1.0f - (DistanceCopy / Falloff));
+			break;
+
+		case ATTENUATION_NaturalSound:
 		{
-			case ATTENUATION_Linear:
-
-				return ( 1.0f - ( Distance / Falloff ) );
-
-			case ATTENUATION_Logarithmic:
-
-				return FMath::Min( 0.5f * -FMath::Loge( Distance / Falloff ), 1.0f );
-
-			case ATTENUATION_Inverse:
-
-				return FMath::Min( 0.02f / ( Distance / Falloff ) , 1.0f );
-
-			case ATTENUATION_LogReverse:
-
-				return FMath::Max(1.0f + 0.5f * FMath::Loge(1.0f - (Distance / Falloff)), 0.0f);
-
-			case ATTENUATION_NaturalSound:
-			{
-				check( dBAttenuationAtMax <= 0.0f );
-				return FMath::Pow( 10.0f, ( ( Distance / Falloff ) * dBAttenuationAtMax ) / 20.0f );
-			}
-
-			case ATTENUATION_Custom:
-
-				return CustomAttenuationCurve.GetRichCurveConst()->Eval(Distance/Falloff);
+			check( dBAttenuationAtMax <= 0.0f );
+			Result = FMath::Pow(10.0f, ((DistanceCopy / Falloff) * dBAttenuationAtMax) / 20.0f);
+			break;
 		}
+
+		case ATTENUATION_Custom:
+
+			Result = CustomAttenuationCurve.GetRichCurveConst()->Eval(DistanceCopy / Falloff);
+			break;
+
+		default:
+			checkf(false, TEXT("Uknown attenuation distance algorithm!"))
+			break;
 	}
-	return 1.0f;
+
+	// Make sure the output is clamped between 0.0 and 1.0f. Some of the algorithms above can
+	// result in bad values at the edges.
+	return FMath::Clamp(Result, 0.0f, 1.0f);
 }
 
 float FAttenuationSettings::AttenuationEvalBox(const FTransform& SoundTransform, const FVector ListenerLocation) const
 {
 	const float DistanceSq = ComputeSquaredDistanceFromBoxToPoint(-AttenuationShapeExtents, AttenuationShapeExtents,SoundTransform.InverseTransformPositionNoScale(ListenerLocation));
 	if (DistanceSq < FalloffDistance * FalloffDistance)
-	{
+	{ 
 		return AttenuationEval(FMath::Sqrt(DistanceSq), FalloffDistance);
 	}
 
