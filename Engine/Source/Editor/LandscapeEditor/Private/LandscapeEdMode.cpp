@@ -1714,6 +1714,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 			}
 			CurrentToolTarget.LandscapeInfo = LandscapeList[0].Info;
 			CurrentIndex = 0;
+			UpdateTargetList();
 			if (CurrentTool != NULL)
 			{
 				CurrentTool->EnterTool();
