@@ -17,7 +17,7 @@ varying vec4 ClipOriginAndPos;
 varying vec4 ClipExtents;
 varying vec4 Color;
 
-vec3 pow(vec3 values, float power)
+vec3 powScalar(vec3 values, float power)
 {
 	return vec3(pow(values.x, power), pow(values.y, power), pow(values.z, power));
 }
