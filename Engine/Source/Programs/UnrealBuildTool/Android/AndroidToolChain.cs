@@ -778,6 +778,21 @@ namespace UnrealBuildTool
 		static string ArPathx86;
 		static string ArPathx64;
 
+		static public string GetStripExecutablePath(string UE4Arch)
+		{
+			string StripPath;
+
+			switch (UE4Arch)
+			{
+				case "-armv7": StripPath = ArPathArm; break;
+				case "-arm64": StripPath = ArPathArm64; break;
+				case "-x86": StripPath = ArPathx86; break;
+				case "-x64": StripPath = ArPathx64; break;
+				default: StripPath = ArPathArm; break;
+			}
+			return StripPath.Replace("-ar", "-strip");
+		}
+
 		static private bool bHasPrintedApiLevel = false;
 		public override CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName)
 		{
