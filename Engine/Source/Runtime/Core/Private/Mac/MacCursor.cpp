@@ -289,48 +289,54 @@ void FMacCursor::Lock( const RECT* const Bounds )
 	// Lock/Unlock the cursor
 	if ( Bounds == NULL )
 	{
-		CusorClipRect = FIntRect();
+		CursorClipRect = FIntRect();
 	}
 	else
 	{
-		CusorClipRect.Min.X = FMath::TruncToInt(Bounds->left);
-		CusorClipRect.Min.Y = FMath::TruncToInt(Bounds->top);
-		CusorClipRect.Max.X = FMath::TruncToInt(Bounds->right) - 1;
-		CusorClipRect.Max.Y = FMath::TruncToInt(Bounds->bottom) - 1;
+		CursorClipRect.Min.X = FMath::TruncToInt(Bounds->left);
+		CursorClipRect.Min.Y = FMath::TruncToInt(Bounds->top);
+		CursorClipRect.Max.X = FMath::TruncToInt(Bounds->right) - 1;
+		CursorClipRect.Max.Y = FMath::TruncToInt(Bounds->bottom) - 1;
 	}
+
+	CGAssociateMouseAndMouseCursorPosition( !bUseHighPrecisionMode && !IsLocked() );
+
+	MacApplication->OnCursorLock();
 
 	FVector2D Position = GetPosition();
 	if( UpdateCursorClipping( Position ) )
 	{
 		SetPosition( Position.X, Position.Y );
 	}
+
+	MouseWarpDelta = FVector2D::ZeroVector;
 }
 
 bool FMacCursor::UpdateCursorClipping( FVector2D& CursorPosition )
 {
 	bool bAdjusted = false;
 
-	if (CusorClipRect.Area() > 0)
+	if (CursorClipRect.Area() > 0)
 	{
-		if (CursorPosition.X < CusorClipRect.Min.X)
+		if (CursorPosition.X < CursorClipRect.Min.X)
 		{
-			CursorPosition.X = CusorClipRect.Min.X;
+			CursorPosition.X = CursorClipRect.Min.X;
 			bAdjusted = true;
 		}
-		else if (CursorPosition.X > CusorClipRect.Max.X)
+		else if (CursorPosition.X > CursorClipRect.Max.X)
 		{
-			CursorPosition.X = CusorClipRect.Max.X;
+			CursorPosition.X = CursorClipRect.Max.X;
 			bAdjusted = true;
 		}
 
-		if (CursorPosition.Y < CusorClipRect.Min.Y)
+		if (CursorPosition.Y < CursorClipRect.Min.Y)
 		{
-			CursorPosition.Y = CusorClipRect.Min.Y;
+			CursorPosition.Y = CursorClipRect.Min.Y;
 			bAdjusted = true;
 		}
-		else if (CursorPosition.Y > CusorClipRect.Max.Y)
+		else if (CursorPosition.Y > CursorClipRect.Max.Y)
 		{
-			CursorPosition.Y = CusorClipRect.Max.Y;
+			CursorPosition.Y = CursorClipRect.Max.Y;
 			bAdjusted = true;
 		}
 	}
@@ -390,7 +396,7 @@ void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 	// Previously there was CGSetLocalEventsSuppressionInterval to explicitly control this behaviour but that is deprecated.
 	// The replacement CGEventSourceSetLocalEventsSuppressionInterval isn't useful because it is unclear how to obtain the correct event source.
 	// Instead, when we want the warp to be visible we need to disassociate mouse & cursor...
-	if( !bUseHighPrecisionMode )
+	if( !bUseHighPrecisionMode && !IsLocked() )
 	{
 		CGAssociateMouseAndMouseCursorPosition( false );
 	}
@@ -399,12 +405,14 @@ void FMacCursor::WarpCursor( const int32 X, const int32 Y )
 	CGWarpMouseCursorPosition( NSMakePoint( FMath::TruncToInt( X ), FMath::TruncToInt( Y ) ) );
 	
 	// And then reassociate the mouse cursor, which forces the mouse events to come through.
-	if( !bUseHighPrecisionMode )
+	if( !bUseHighPrecisionMode && !IsLocked() )
 	{
 		CGAssociateMouseAndMouseCursorPosition( true );
 	}
 	
 	UpdateCurrentPosition( FVector2D(X, Y) );
+
+	MacApplication->IgnoreMouseMoveDelta();
 }
 
 FVector2D FMacCursor::GetMouseWarpDelta()
@@ -420,7 +428,7 @@ void FMacCursor::SetHighPrecisionMouseMode( bool const bEnable )
 	{
 		bUseHighPrecisionMode = bEnable;
 		
-		CGAssociateMouseAndMouseCursorPosition( !bUseHighPrecisionMode );
+		CGAssociateMouseAndMouseCursorPosition( !bUseHighPrecisionMode && !IsLocked() );
 		
 		if ( GMacDisableMouseCoalescing )
 		{

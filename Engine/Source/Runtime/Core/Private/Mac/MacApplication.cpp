@@ -47,6 +47,7 @@ FMacApplication::FMacApplication()
 ,	ModifierKeysFlags(0)
 ,	CurrentModifierFlags(0)
 ,	bEmulatingRightClick(false)
+,	bIgnoreMouseMoveDelta(false)
 ,	bIsWorkspaceSessionActive(true)
 {
 	TextInputMethodSystem = MakeShareable(new FMacTextInputMethodSystem);
@@ -319,7 +320,7 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSRightMouseDragged:
 			case NSOtherMouseDragged:
 			case NSEventTypeSwipe:
-				DeferredEvent.Delta = FVector2D([Event deltaX], [Event deltaY]);
+				DeferredEvent.Delta = bIgnoreMouseMoveDelta ? FVector2D::ZeroVector : FVector2D([Event deltaX], [Event deltaY]);
 				break;
 
 			case NSLeftMouseDown:
@@ -507,6 +508,7 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 			case NSOtherMouseDragged:
 				ConditionallyUpdateModifierKeys(Event);
 				ProcessMouseMovedEvent(Event, EventWindow);
+				bIgnoreMouseMoveDelta = false;
 				break;
 
 			case NSLeftMouseDown:
@@ -659,7 +661,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 
 	FVector2D const MouseScaling = MacCursor->GetMouseScaling();
 
-	if (bUsingHighPrecisionMouseInput)
+	if (bUsingHighPrecisionMouseInput || MacCursor->IsLocked())
 	{
 		// Under OS X we disassociate the cursor and mouse position during hi-precision mouse input.
 		// The game snaps the mouse cursor back to the starting point when this is disabled, which
@@ -1048,7 +1050,7 @@ void FMacApplication::OnApplicationWillResignActive()
 	if (SavedWindowsOrder.Num() > 0)
 	{
 		NSWindow* TopWindow = [NSApp windowWithWindowNumber:SavedWindowsOrder[0].WindowNumber];
-		if ( TopWindow )
+		if (TopWindow)
 		{
 			[TopWindow orderWindow:NSWindowAbove relativeTo:0];
 		}
@@ -1058,14 +1060,7 @@ void FMacApplication::OnApplicationWillResignActive()
 			NSWindow* Window = [NSApp windowWithWindowNumber:Info.WindowNumber];
 			if (Window)
 			{
-				if (SavedWindowsOrder[Index - 1].Level == Info.Level && TopWindow)
-				{
-					[Window orderWindow:NSWindowBelow relativeTo:[TopWindow windowNumber]];
-				}
-				else
-				{
-					[Window orderWindow:NSWindowAbove relativeTo:0];
-				}
+				[Window orderWindow:NSWindowBelow relativeTo:[TopWindow windowNumber]];
 				TopWindow = Window;
 			}
 		}
@@ -1117,6 +1112,30 @@ void FMacApplication::OnWindowsReordered(bool bIsAppInBackground)
 			{
 				SavedWindowsOrder.Add(FSavedWindowOrderInfo([Window windowNumber], Levels.Contains([Window windowNumber]) ? Levels[[Window windowNumber]] : [Window level]));
 				[Window setLevel:NSNormalWindowLevel];
+			}
+		}
+	}
+}
+
+void FMacApplication::OnCursorLock()
+{
+	NSWindow* NativeWindow = [NSApp keyWindow];
+	if (NativeWindow)
+	{
+		const bool bIsCursorLocked = ((FMacCursor*)Cursor.Get())->IsLocked();
+		if (bIsCursorLocked)
+		{
+			[NativeWindow setMinSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+			[NativeWindow setMaxSize:NSMakeSize(NativeWindow.frame.size.width, NativeWindow.frame.size.height)];
+		}
+		else
+		{
+			TSharedPtr<FMacWindow> Window = FindWindowByNSWindow((FCocoaWindow*)NativeWindow);
+			if (Window.IsValid())
+			{
+				const FGenericWindowDefinition& Definition = Window->GetDefinition();
+				[NativeWindow setMinSize:NSMakeSize(Definition.SizeLimits.GetMinWidth().Get(10.0f), Definition.SizeLimits.GetMinHeight().Get(10.0f))];
+				[NativeWindow setMaxSize:NSMakeSize(Definition.SizeLimits.GetMaxWidth().Get(10000.0f), Definition.SizeLimits.GetMaxHeight().Get(10000.0f))];
 			}
 		}
 	}
