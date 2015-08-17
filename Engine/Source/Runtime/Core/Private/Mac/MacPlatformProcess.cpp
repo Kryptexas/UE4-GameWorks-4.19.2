@@ -937,12 +937,15 @@ FString FMacPlatformProcess::ReadPipe( void* ReadPipe )
 
 	if(ReadPipe)
 	{
-		BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Buffer, READ_SIZE);
-		if (BytesRead > 0)
+		do
 		{
-			Buffer[BytesRead] = '\0';
-			Output += StringCast<TCHAR>(Buffer).Get();
-		}
+			BytesRead = read([(NSFileHandle*)ReadPipe fileDescriptor], Buffer, READ_SIZE);
+			if (BytesRead > 0)
+			{
+				Buffer[BytesRead] = '\0';
+				Output += StringCast<TCHAR>(Buffer).Get();
+			}
+		} while (BytesRead > 0);
 	}
 
 	return Output;
@@ -995,7 +998,7 @@ bool FMacPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FSt
 	}
 
 	// Write to pipe
-	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+	uint32 BytesWritten = write([(NSFileHandle*)WritePipe fileDescriptor], Buffer, BytesAvailable);
 
 	if (OutWritten != nullptr)
 	{
