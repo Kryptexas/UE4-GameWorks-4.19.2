@@ -1981,6 +1981,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 	if (IsRunningCommandlet())
 	{
+		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
 		FModuleManager::Get().LoadModule(TEXT("Blutility"));
 	}
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
