@@ -1376,11 +1376,15 @@ namespace UnrealBuildTool
 				// And we also need all the resources
 				Receipt.AddBuildProduct(BundleContentsDirectory + "Info.plist", BuildProductType.RequiredResource);
 				Receipt.AddBuildProduct(BundleContentsDirectory + "PkgInfo", BuildProductType.RequiredResource);
-				Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/" + Binary.Target.TargetName + ".icns", BuildProductType.RequiredResource);
 
-				if (Binary.Target.TargetName.StartsWith("UE4Editor"))
+				if (Binary.Target.TargetType == TargetRules.TargetType.Editor)
 				{
+					Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/UE4Editor.icns", BuildProductType.RequiredResource);
 					Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/UProject.icns", BuildProductType.RequiredResource);
+				}
+				else
+				{
+					Receipt.AddBuildProduct(BundleContentsDirectory + "Resources/" + Binary.Target.TargetName + ".icns", BuildProductType.RequiredResource);
 				}
 			}
 		}
