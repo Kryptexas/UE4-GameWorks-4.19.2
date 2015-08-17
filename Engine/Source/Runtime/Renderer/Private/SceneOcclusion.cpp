@@ -1082,7 +1082,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 	SCOPE_CYCLE_COUNTER(STAT_BeginOcclusionTestsTime);
 	int32 NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	const bool bUseDownsampledDepth = IsValidRef(SceneContext.GetSmallDepthSurface()) && SceneContext.UseDownsizedOcclusionQueries();	
+	const bool bUseDownsampledDepth = SceneContext.UseDownsizedOcclusionQueries() && IsValidRef(SceneContext.SmallDepthZ) && IsValidRef(SceneContext.GetSmallDepthSurface());	
 
 	if (bUseDownsampledDepth)
 	{
