@@ -93,6 +93,7 @@ public:
 	// Stored calls of latent function (on current class), needed to tell if blueprint should be tickable
 	TArray< UK2Node_CallFunction* > LatentFunctionCalls;
 
+	//Skip some optimization. C++ code will be generated in this pass. 
 	bool bGeneratingCpp;
 
 	//Does this function use requires FlowStack ?
