@@ -3950,6 +3950,44 @@ private:
 	TSharedPtr<SInvalidationPanel> CachePanel1;
 };
 
+class SGammaTest : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SGammaTest)
+	{}
+	SLATE_END_ARGS()
+	
+	void Construct(const FArguments& InArgs)
+	{
+		FColor Orange(200, 80, 15);
+		
+		ChildSlot
+		.Padding(10)
+		[
+			SNew(SVerticalBox)
+			
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+			 
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SColorBlock)
+					.Color(Orange)
+				]
+			 
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(Orange.ToString()))
+				]
+			]
+		];
+	}
+};
+
 class SColorPickerTest : public SCompoundWidget
 {
 public:
@@ -5331,6 +5369,15 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				]
 			];
 	}
+	else if ( TabIdentifier == FName(TEXT("GammaTest")) )
+	{
+		return SNew(SDockTab)
+		[
+			SNew(SGammaTest)
+			.RenderTransform_Static(&::GetTestRenderTransform)
+			.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
+		];
+	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
 	{
 		return SNew(SDockTab)
@@ -5553,6 +5600,7 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 			->AddTab("GridPanelTest", ETabState::OpenedTab)
 			->AddTab("DPIScalingTest", ETabState::OpenedTab)
 			->AddTab("InvalidationTest", ETabState::OpenedTab)
+			->AddTab("GammaTest", ETabState::OpenedTab)
 		)
 	);
 
@@ -5590,6 +5638,10 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 
 		TestSuite2TabManager->RegisterTabSpawner("InvalidationTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("InvalidationTest")))
 			.SetDisplayName(NSLOCTEXT("TestSuite1", "InvalidationTest", "Invalidtion"))
+			.SetGroup(TestSuiteMenu::SuiteTabs);
+		
+		TestSuite2TabManager->RegisterTabSpawner("GammaTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("GammaTest")))
+			.SetDisplayName(NSLOCTEXT("TestSuite1", "GammaTest", "Gamma"))
 			.SetGroup(TestSuiteMenu::SuiteTabs);
 	}
 

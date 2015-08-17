@@ -14,7 +14,7 @@ public:
 
 	virtual TSharedRef<FSlateShaderResourceManager> GetResourceManager() override;
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
-	virtual bool IsVertexColorInLinearSpace() const override { return true; }
+	virtual bool IsVertexColorInLinearSpace() const override { return false; }
 
 private:
 	void InitResources();

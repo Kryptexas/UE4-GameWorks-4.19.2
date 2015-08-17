@@ -34,6 +34,8 @@ public:
 
 private:
 	void AddElements(FSlateDrawLayer& InDrawLayer);
+	
+	FColor PackVertexColor(const FLinearColor& InLinearColor);
 
 	/** 
 	 * Creates vertices necessary to draw a Quad element 

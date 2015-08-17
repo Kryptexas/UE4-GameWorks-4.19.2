@@ -224,6 +224,13 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 	}
 }
 
+FColor FSlateElementBatcher::PackVertexColor(const FLinearColor& InLinearColor)
+{
+	//NOTE: Using pow(x,2) instead of a full sRGB conversion has been tried, but it ended up
+	// causing too much loss of data in the lower levels of black.
+	return InLinearColor.ToFColor(bSRGBVertexColor);
+}
+
 void FSlateElementBatcher::AddQuadElement( const FSlateDrawElement& DrawElement, FColor Color )
 {
 	const FSlateRenderTransform& RenderTransform = DrawElement.GetRenderTransform();
@@ -289,7 +296,7 @@ FSlateRenderTransform GetBoxRenderTransform(const FSlateDrawElement& DrawElement
 void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 {
 	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
-	FColor Tint = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	FColor Tint = PackVertexColor(InPayload.Tint);
 
 	if ( Tint.A == 0 )
 	{
@@ -597,7 +604,7 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 {
 	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
-	FColor Tint = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	FColor Tint = PackVertexColor(InPayload.Tint);
 
 	if ( Tint.A == 0 )
 	{
@@ -975,7 +982,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	FVector2D StartPos = StartPt;
 	FVector2D EndPos = FVector2D( FMath::CubicInterp( StartPt, StartDir, EndPt, EndDir, Alpha ) );
 
-	FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	FColor FinalColor = PackVertexColor(InPayload.Tint);
 
 	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos + Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
 	BatchVertices.Add( FSlateVertex( RenderTransform, StartPos - Up, TransformPoint(RenderTransform, StartPos), TransformPoint(RenderTransform, EndPos), FinalColor, RenderClipRect ) );
@@ -1078,7 +1085,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		return;
 	}
 
-	FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	FColor FinalColor = PackVertexColor(InPayload.Tint);
 
 	if( InPayload.bAntialias )
 	{
@@ -1245,7 +1252,7 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 	FSlateLayoutTransform InverseLayoutTransform(Inverse(FSlateLayoutTransform(DrawElement.GetScale(), DrawElement.GetPosition())));
 	FSlateRotatedClipRectType RenderClipRect = ToSnappedRotatedRect(InClippingRect, InverseLayoutTransform, RenderTransform);
 
-	const FColor FinalColor = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	const FColor FinalColor = PackVertexColor(InPayload.Tint);
 
 	ESlateBatchDrawFlag::Type DrawFlags = ESlateBatchDrawFlag::None;
 	
@@ -1399,7 +1406,7 @@ void FSlateElementBatcher::AddBorderElement( const FSlateDrawElement& DrawElemen
 	FShaderParams ShaderParams = FShaderParams::MakePixelShaderParams( FVector4(LeftMarginU,RightMarginU,TopMarginV,BottomMarginV) );
 
 	// The tint color applies to all brushes and is passed per vertex
-	FColor Tint = InPayload.Tint.ToFColor(bSRGBVertexColor);
+	const FColor Tint = PackVertexColor(InPayload.Tint);
 
 	// Pass the tiling information as a flag so we can pick the correct texture addressing mode
 	ESlateBatchDrawFlag::Type DrawFlags = (ESlateBatchDrawFlag::TileU|ESlateBatchDrawFlag::TileV);
