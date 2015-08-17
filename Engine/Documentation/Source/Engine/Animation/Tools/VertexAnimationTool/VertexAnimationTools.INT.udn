@@ -4,7 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Animation
 Description: User guide for the 3D Max Vertex Animation tool set.
 Related: Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related: Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
-Version: 4.8
+Version: 4.9
 
 [TOC(start:2 end:3)]
 
