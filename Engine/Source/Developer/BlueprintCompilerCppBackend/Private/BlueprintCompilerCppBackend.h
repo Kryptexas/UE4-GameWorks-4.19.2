@@ -5,6 +5,7 @@
 
 struct FEmitterLocalContext;
 
+/** Default implementation of BlueprintCompilerCppBackend. Code generated for function body usually contains a big "switch". */
 class FBlueprintCompilerCppBackend : public FBlueprintCompilerCppBackendBase
 {
 protected:

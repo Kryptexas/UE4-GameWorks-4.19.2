@@ -501,15 +501,27 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 	{
 		if (auto FoundClass = Cast<const UClass>(LiteralObject))
 		{
-			return FString::Printf(TEXT("%s%s::StaticClass()"), FoundClass->GetPrefixCPP(), *FoundClass->GetName());
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			if (!MappedObject.IsEmpty())
+			{
+				return MappedObject;
+			}
+			return FString::Printf(TEXT("LoadClass<UObject>(nullptr, TEXT(\"%s\"), nullptr, 0, nullptr "), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		return FString(TEXT("nullptr"));
 	}
 	else if((UEdGraphSchema_K2::PC_AssetClass == Type.PinCategory) || (UEdGraphSchema_K2::PC_Asset == Type.PinCategory))
 	{
-		return LiteralObject
-			? FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()))
-			: FString(TEXT("nullptr"));
+		if (LiteralObject)
+		{
+			const FString MappedObject = EmitterContext.FindGloballyMappedObject(LiteralObject);
+			if (!MappedObject.IsEmpty())
+			{
+				return MappedObject;
+			}
+			return FString::Printf(TEXT("FStringAssetReference(TEXT(\"%s\"))"), *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
+		}
+		return FString(TEXT("nullptr"));
 	}
 	else if (UEdGraphSchema_K2::PC_Object == Type.PinCategory)
 	{
