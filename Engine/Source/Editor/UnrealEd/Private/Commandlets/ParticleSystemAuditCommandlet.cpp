@@ -35,6 +35,8 @@ int32 UParticleSystemAuditCommandlet::Main(const FString& Params)
 	// Add a timestamp to the folder
 	AuditOutputFolder /= FDateTime::Now().ToString();
 
+	FParse::Value(*Params, TEXT("FilterCollection="), FilterCollection);
+
 	ProcessParticleSystems();
 	DumpResults();
 
@@ -47,8 +49,16 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 	AssetRegistry.SearchAllAssets(true);
 
+	FARFilter Filter;
+	Filter.ClassNames.Add(UParticleSystem::StaticClass()->GetFName());
+	if (!FilterCollection.IsEmpty())
+	{
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+		CollectionManagerModule.Get().GetObjectsInCollection(FName(*FilterCollection), ECollectionShareType::CST_All, Filter.ObjectPaths, ECollectionRecursionFlags::SelfAndChildren);
+	}
+
 	TArray<FAssetData> AssetList;
-	AssetRegistry.GetAssetsByClass(UParticleSystem::StaticClass()->GetFName(), AssetList);
+	AssetRegistry.GetAssets(Filter, AssetList);
 
 	double StartProcessParticleSystemsTime = FPlatformTime::Seconds();
 
