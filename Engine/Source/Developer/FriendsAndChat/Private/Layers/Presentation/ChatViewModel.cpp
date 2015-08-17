@@ -30,6 +30,8 @@ public:
 		ViewModel->Initialize(true);
 		ViewModel->SetFilteredMessages(FilteredMessages);
 		ViewModel->SetChannelFlags(ChatChannelFlags);
+		ViewModel->DefaultChannel = DefaultChannel;
+		ViewModel->DefaultChatChannelFlags = DefaultChatChannelFlags;
 		return ViewModel;
 	}
 
