@@ -1,21 +1,22 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2654577
 Availability:Public
 Title:10.プレイヤーのコンテキストを作成する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
 Description:Environment Query System で使用する新しいコンテキストを作成します。
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/9 "%Engine/AI/EnvironmentQuerySystem/QuickStart/9:title%")
+		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/9 "%Engine/AI/EnvironmentQuerySystem/QuickStart/9:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/11 "%Engine/AI/EnvironmentQuerySystem/QuickStart/11:title%")
+		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/11 "%Engine/AI/EnvironmentQuerySystem/QuickStart/11:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -27,12 +28,12 @@ Environment Query はアクタのタイプの取得に基づき数多くのア�
 
 ## ステップ
 
-1. コンテンツ ブラウザで **PlayerContext** ブループリントをダブルクリックして編集用に開きます。
+1. **コンテンツ ブラウザ** で **PlayerContext** ブループリントをダブルクリックして編集用に開きます。
 1. **ProvideActorsSet** 関数をオーバーライドします。
 
 	[REGION:raw]![](override1.png)(convert:false)[/REGION]
 
-	**Override** ボタンは、My Blueprint Panel の Functions 部分にマウスオーバーするまで非表示になっています。
+	**Override** ボタンは、**My Blueprint** パネルの Functions 部分にマウスオーバーするまで非表示になっています。
 
 	これで関数のデフォルトのビヘイビアが開いたブループリントのグラフでオーバーライドされます。
 
