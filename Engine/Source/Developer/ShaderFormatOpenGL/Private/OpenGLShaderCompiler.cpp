@@ -1169,6 +1169,8 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
+
+	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
 	switch (Version)
 	{
 		case GLSL_310_ES_EXT:

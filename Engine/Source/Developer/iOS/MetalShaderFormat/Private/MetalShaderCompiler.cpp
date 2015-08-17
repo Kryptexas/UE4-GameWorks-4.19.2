@@ -465,6 +465,8 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_FeatureLevelES3_1;
 
+	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1 );
+
 	// @todo - Zebra - Work out which standard we need, this is dependent on the shader platform.
 	// For now only SP_METAL will compile for iOS, with MRT & SM5 only for Mac.
 	const bool bIsMobile = (Input.Target.Platform == SP_METAL);

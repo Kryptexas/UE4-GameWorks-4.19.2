@@ -58,8 +58,8 @@
 #define OUTPUT_DEPTH_TO_ALPHA							0
 #endif
 
-#ifndef COMPILER_CG
-#define COMPILER_CG										0
+#ifndef COMPILER_HLSLCC
+#define COMPILER_HLSLCC									0
 #endif
 
 #ifndef COMPILER_HLSL
@@ -209,4 +209,11 @@
 
 #ifndef HAS_INVERTED_Z_BUFFER
 #define HAS_INVERTED_Z_BUFFER	1
+#endif
+
+// 'static' asserts
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if !COMPILER_HLSLCC
+#error "Missing COMPILER_HLSLCC define!"
+#endif
 #endif
