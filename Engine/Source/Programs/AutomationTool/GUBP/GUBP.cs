@@ -1575,7 +1575,7 @@ public partial class GUBP : BuildCommand
         Dictionary<string, BuildNode> BuildProductToNodeMap = new Dictionary<string, BuildNode>();
 		foreach (BuildNode NodeToDo in OrderedToDo)
         {
-            if (NodeToDo.Node.BuildProducts != null)
+            if (NodeToDo.BuildProducts != null)
             {
                 throw new AutomationException("topological sort error");
             }
@@ -1737,7 +1737,7 @@ public partial class GUBP : BuildCommand
 					EC.UpdateECBuildTime(NodeToDo, BuildDuration);
                 }
             }
-            foreach (string Product in NodeToDo.Node.BuildProducts)
+            foreach (string Product in NodeToDo.BuildProducts)
             {
                 if (BuildProductToNodeMap.ContainsKey(Product))
                 {

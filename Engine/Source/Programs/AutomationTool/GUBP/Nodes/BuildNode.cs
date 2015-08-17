@@ -19,7 +19,6 @@ namespace AutomationTool
 		public int TimeoutInMinutes;
 		public float Priority;
 
-		public GUBP.GUBPNode Node;
 		public HashSet<BuildNode> InputDependencies;
 		public HashSet<BuildNode> OrderDependencies;
 		public TriggerNode[] ControllingTriggers;
@@ -28,6 +27,8 @@ namespace AutomationTool
 		public bool AddSubmittersToFailureEmails;
 		public bool SendSuccessEmail;
 		public bool IsParallelAgentShareEditor;
+
+		public List<string> BuildProducts;
 
 		public BuildNode(string InName)
 		{
@@ -99,6 +100,7 @@ namespace AutomationTool
 	public class LegacyBuildNode : BuildNode
 	{
 		GUBP Owner;
+		GUBP.GUBPNode Node;
 
 		public LegacyBuildNode(GUBP InOwner, GUBP.GUBPNode InNode) : base(InNode.GetFullName())
 		{
@@ -129,41 +131,29 @@ namespace AutomationTool
 
 		public override void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
 		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, Node.BuildProducts, bLocalOnly, GameNameIfAny, StorageRootIfAny);
+			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, GameNameIfAny, StorageRootIfAny);
 		}
 
 		public override void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
 		{
-			if (Name == GUBP.VersionFilesNode.StaticGetFullName() && !CommandUtils.IsBuildMachine)
+			CommandUtils.LogConsole("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
+			bool WasLocal;
+			try
 			{
-				CommandUtils.LogConsole("***** NOT ****** Retrieving GUBP Node {0} from {1}; it is the version files.", Name, TempStorageNodeInfo.GetRelativeDirectory());
-				Node.BuildProducts = new List<string>();
-
+				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
 			}
-			else
+			catch (Exception Ex)
 			{
-				CommandUtils.LogConsole("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
-				bool WasLocal;
-				try
+				if (GameNameIfAny != "")
 				{
-					Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
+					BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
 				}
-				catch (Exception Ex)
+				else
 				{
-					if (GameNameIfAny != "")
-					{
-						Node.BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
-					}
-					else
-					{
-						throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
-					}
-				}
-				if (!WasLocal)
-				{
-					Node.PostLoadFromSharedTempStorage(Owner);
+					throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
 				}
 			}
+			Node.BuildProducts = BuildProducts;
 		}
 
 		public override void DoBuild()
@@ -171,18 +161,20 @@ namespace AutomationTool
 			Node.AllDependencyBuildProducts = new List<string>();
 			foreach (BuildNode InputDependency in InputDependencies)
 			{
-				foreach (string BuildProduct in InputDependency.Node.BuildProducts)
+				foreach (string BuildProduct in InputDependency.BuildProducts)
 				{
 					Node.AddDependentBuildProduct(BuildProduct);
 				}
 			}
 
 			Node.DoBuild(Owner);
+			BuildProducts = Node.BuildProducts;
 		}
 
 		public override void DoFakeBuild()
 		{
 			Node.DoFakeBuild(Owner);
+			BuildProducts = Node.BuildProducts;
 		}
 
 		public override bool IsTest

@@ -45,9 +45,6 @@ partial class GUBP
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public virtual void PostLoadFromSharedTempStorage(GUBP bp)
-        {
-        }
         public virtual void DoFakeBuild(GUBP bp) // this is used to more rapidly test a build system, it does nothing but save a record of success as a build product
         {
             BuildProducts = new List<string>();
@@ -199,8 +196,16 @@ partial class GUBP
 
         public override void DoBuild(GUBP bp)
         {
-            var UE4Build = new UE4Build(bp);
-            BuildProducts = UE4Build.UpdateVersionFiles(ActuallyUpdateVersionFiles: CommandUtils.P4Enabled && CommandUtils.AllowSubmit);
+			if (CommandUtils.P4Enabled && CommandUtils.AllowSubmit)
+			{
+				var UE4Build = new UE4Build(bp);
+				BuildProducts = UE4Build.UpdateVersionFiles(ActuallyUpdateVersionFiles: true);
+			}
+			else
+			{
+				BuildProducts = new List<string>();
+				SaveRecordOfSuccessAndAddToBuildProducts();
+			}
         }
         public override bool IsSticky()
         {
@@ -286,9 +291,6 @@ partial class GUBP
         public virtual void PostBuild(GUBP bp, UE4Build UE4Build)
         {
         }
-        public virtual void PostBuildProducts(GUBP bp)
-        {
-        }
         public virtual bool DeleteBuildProducts()
         {
             return false;
@@ -314,7 +316,6 @@ partial class GUBP
                     AddBuildProduct(Product);
                 }
                 RemoveOveralppingBuildProducts();
-                PostBuildProducts(bp);
             }
 			if (Agenda == null || (BuildProducts.Count == 0 && BranchConfig.bForceIncrementalCompile))
             {
@@ -489,76 +490,6 @@ partial class GUBP
             }
             return Agenda;
         }
-        void DeleteStaleDLLs(GUBP bp)
-        {
-			if (BranchConfig.bForceIncrementalCompile)
-            {
-                return;
-            }
-            var Targets = new List<string>{BranchConfig.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName};
-            foreach (var ProgramTarget in BranchConfig.Branch.BaseEngineProject.Properties.Programs)
-            {
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() && ProgramTarget.Rules.SupportsPlatform(HostPlatform))
-                {
-                    Targets.Add(ProgramTarget.TargetName);
-                }
-            }
-
-
-            foreach (var Target in Targets)
-            {
-                var EnginePlatformBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", HostPlatform.ToString());
-                var Wildcard = Target + "-*";
-                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
-                foreach (var DiskFile in FindFiles(Wildcard, true, EnginePlatformBinaries))
-                {
-                    bool IsBuildProduct = false;
-                    foreach (var Product in BuildProducts)
-                    {
-                        if (Product.Equals(DiskFile, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            IsBuildProduct = true;
-                            break;
-                        }
-                    }
-                    if (!IsBuildProduct)
-                    {
-                        DeleteFile(DiskFile);
-                    }
-                }
-                var EnginePluginBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Plugins");
-                var HostSubstring = CommandUtils.CombinePaths("/", HostPlatform.ToString(), "/");
-                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
-                foreach (var DiskFile in FindFiles(Wildcard, true, EnginePluginBinaries))
-                {
-                    if (DiskFile.IndexOf(HostSubstring, StringComparison.InvariantCultureIgnoreCase) < 0)
-                    {
-                        continue;
-                    }
-                    bool IsBuildProduct = false;
-                    foreach (var Product in BuildProducts)
-                    {
-                        if (Product.Equals(DiskFile, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            IsBuildProduct = true;
-                            break;
-                        }
-                    }
-                    if (!IsBuildProduct)
-                    {
-                        DeleteFile(DiskFile);
-                    }
-                }
-            }
-        }
-        public override void PostLoadFromSharedTempStorage(GUBP bp)
-        {
-            DeleteStaleDLLs(bp);
-        }
-        public override void PostBuildProducts(GUBP bp)
-        {
-            DeleteStaleDLLs(bp);
-        }
     }
 	public class RootEditorCrossCompileLinuxNode : CompileNode
 	{
@@ -596,76 +527,6 @@ partial class GUBP
                 }
             }
 			return Agenda;
-		}
-        void DeleteStaleDLLs(GUBP bp)
-        {
-			if (BranchConfig.bForceIncrementalCompile)
-            {
-                return;
-            }
-            var Targets = new List<string> { BranchConfig.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName };
-            foreach (var ProgramTarget in BranchConfig.Branch.BaseEngineProject.Properties.Programs)
-            {
-                if (ProgramTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() && ProgramTarget.Rules.SupportsPlatform(UnrealTargetPlatform.Linux))
-                {
-                    Targets.Add(ProgramTarget.TargetName);
-                }
-            }
-
-
-            foreach (var Target in Targets)
-            {
-                var EnginePlatformBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", UnrealTargetPlatform.Linux.ToString());
-                var Wildcard = Target + "-*";
-                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1}", EnginePlatformBinaries, Wildcard);
-                foreach (var DiskFile in FindFiles(Wildcard, true, EnginePlatformBinaries))
-                {
-                    bool IsBuildProduct = false;
-                    foreach (var Product in BuildProducts)
-                    {
-                        if (Product.Equals(DiskFile, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            IsBuildProduct = true;
-                            break;
-                        }
-                    }
-                    if (!IsBuildProduct)
-                    {
-                        DeleteFile(DiskFile);
-                    }
-                }
-                var EnginePluginBinaries = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Plugins");
-                var HostSubstring = CommandUtils.CombinePaths("/", UnrealTargetPlatform.Linux.ToString(), "/");
-                LogConsole("************Deleting stale editor DLLs, path {0} wildcard {1} host {2}", EnginePluginBinaries, Wildcard, HostSubstring);
-                foreach (var DiskFile in FindFiles(Wildcard, true, EnginePluginBinaries))
-                {
-                    if (DiskFile.IndexOf(HostSubstring, StringComparison.InvariantCultureIgnoreCase) < 0)
-                    {
-                        continue;
-                    }
-                    bool IsBuildProduct = false;
-                    foreach (var Product in BuildProducts)
-                    {
-                        if (Product.Equals(DiskFile, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            IsBuildProduct = true;
-                            break;
-                        }
-                    }
-                    if (!IsBuildProduct)
-                    {
-                        DeleteFile(DiskFile);
-                    }
-                }
-            }
-        }
-        public override void PostLoadFromSharedTempStorage(GUBP bp)
-        {
-            DeleteStaleDLLs(bp);
-        }
-        public override void PostBuildProducts(GUBP bp)
-        {
-            DeleteStaleDLLs(bp);        
 		}
 	}
     public class ToolsNode : CompileNode
