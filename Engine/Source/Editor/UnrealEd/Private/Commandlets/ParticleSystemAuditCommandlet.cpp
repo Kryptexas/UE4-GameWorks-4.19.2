@@ -7,6 +7,7 @@
 #include "Runtime/Engine/Classes/Particles/Color/ParticleModuleColorScaleOverLife.h"
 #include "Runtime/Engine/Classes/Particles/Collision/ParticleModuleCollision.h"
 #include "Runtime/Engine/Classes/Particles/Spawn/ParticleModuleSpawn.h"
+#include "Runtime/Engine/Classes/Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataRibbon.h"
 #include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataBeam2.h"
 #include "Runtime/Engine/Classes/Particles/TypeData/ParticleModuleTypeDataAnimTrail.h"
@@ -110,6 +111,7 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 			bool bMissingMaterial = false;
 			bool bHasHighSpawnRateOrBurst = false;
 			bool bHasRibbonTrailOrBeam = false;
+			bool bHasSpawnPerUnit = false;
 			for (int32 EmitterIdx = 0; EmitterIdx < PSys->Emitters.Num(); EmitterIdx++)
 			{
 				UParticleEmitter* Emitter = PSys->Emitters[EmitterIdx];
@@ -169,6 +171,10 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 										}
 									}
 								}
+								else if (Cast<UParticleModuleSpawnPerUnit>(Module) != nullptr)
+								{
+									bHasSpawnPerUnit = true;
+								}
 							}
 						}
 					}
@@ -214,8 +220,8 @@ bool UParticleSystemAuditCommandlet::ProcessParticleSystems()
 				ParticleSystemsWithSingleLOD.Add(PSys->GetPathName());
 			}
 
-			// Note all non-fixed bound PSystems, unless there is a ribbon, trail, or beam emitter...
-			if (PSys->bUseFixedRelativeBoundingBox == false && !bHasRibbonTrailOrBeam)
+			// Note all non-fixed bound PSystems, unless there is a ribbon, trail, or beam emitter, OR if we have a SpawnPerUnit module since it is often used in tail effects...
+			if (PSys->bUseFixedRelativeBoundingBox == false && !bHasRibbonTrailOrBeam && !bHasSpawnPerUnit)
 			{
 				ParticleSystemsWithoutFixedBounds.Add(PSys->GetPathName());
 			}
