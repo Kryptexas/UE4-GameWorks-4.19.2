@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2653283
 Availability:Public
-Title:1.7 - オパシティと SubSurface マテリアル
+Title:1.7 - Opacity SubSurface Material
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
 Description: マテリアルノードのサンプル レベルの概要、1.7オパシティと SubSurface マテリアル
 Related:Engine/Rendering/Materials/PhysicallyBased
