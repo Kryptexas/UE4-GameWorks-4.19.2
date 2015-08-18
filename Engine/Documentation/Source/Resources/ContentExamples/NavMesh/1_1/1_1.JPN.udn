@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620701
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.1 - シンプルなナビゲーション
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
@@ -7,6 +7,23 @@ Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Navmesh のホーム](Resources/ContentExamples/NavMesh)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/NavMesh/1_2 "%Resources/ContentExamples/NavMesh/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
