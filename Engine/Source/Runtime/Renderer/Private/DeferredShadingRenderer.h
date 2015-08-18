@@ -259,6 +259,9 @@ private:
 	/** Renders world-space lightmap density instead of the normal color. */
 	bool RenderLightMapDensities(FRHICommandListImmediate& RHICmdList);
 
+	/** Renders the visualize vertex densities mode. */
+	bool RenderVertexDensities(FRHICommandListImmediate& RHICmdList);
+
 	/** Updates the downsized depth buffer with the current full resolution depth buffer. */
 	void UpdateDownsampledDepthSurface(FRHICommandList& RHICmdList);
 

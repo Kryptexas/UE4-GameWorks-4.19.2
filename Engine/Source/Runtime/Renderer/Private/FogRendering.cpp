@@ -367,5 +367,6 @@ bool ShouldRenderFog(const FSceneViewFamily& Family)
 		&& EngineShowFlags.Materials 
 		&& !EngineShowFlags.ShaderComplexity
 		&& !EngineShowFlags.StationaryLightOverlap 
+		&& !EngineShowFlags.VertexDensities
 		&& !EngineShowFlags.LightMapDensity;
 }

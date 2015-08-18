@@ -1265,6 +1265,7 @@ bool IsRichView(const FSceneViewFamily& ViewFamily)
 		ViewFamily.EngineShowFlags.StationaryLightOverlap ||
 		ViewFamily.EngineShowFlags.BSPSplit ||
 		ViewFamily.EngineShowFlags.LightMapDensity ||
+		ViewFamily.EngineShowFlags.VertexDensities ||
 		ViewFamily.EngineShowFlags.PropertyColoration ||
 		ViewFamily.EngineShowFlags.MeshEdges ||
 		ViewFamily.EngineShowFlags.LightInfluences ||

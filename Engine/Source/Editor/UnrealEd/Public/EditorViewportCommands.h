@@ -71,6 +71,9 @@ public:
 	/** Changes the viewport to lightmap density mode */
 	TSharedPtr< FUICommandInfo > LightmapDensityMode;
 
+	/** Changes the viewport to vertex densities mode */
+	TSharedPtr< FUICommandInfo > VertexDensitiesMode;
+
 	/** Changes the viewport to visualize the buffer content */
 	TSharedPtr< FUICommandInfo > VisualizeBufferMode;
 

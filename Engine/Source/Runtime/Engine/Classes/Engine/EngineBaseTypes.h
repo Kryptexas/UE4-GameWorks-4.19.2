@@ -732,10 +732,10 @@ enum EViewModeIndex
 
 	/** Colored according to stationary light overlap. */
 	VMI_StationaryLightOverlap = 14,
-//	VMI_VertexDensity = 15,
 
 	VMI_CollisionPawn = 15, 
 	VMI_CollisionVisibility = 16, 
+	VMI_VertexDensities = 17,
 	VMI_Max UMETA(Hidden),
 
 	VMI_Unknown = 255 UMETA(Hidden),

@@ -276,6 +276,9 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 		case VMI_CollisionVisibility:
 			bPostProcessing = false;
 			break;
+		case VMI_VertexDensities:
+			bPostProcessing = false;
+			break;
 	}
 
 	if(!bPerspective)
@@ -301,6 +304,7 @@ void ApplyViewMode(EViewModeIndex ViewModeIndex, bool bPerspective, FEngineShowF
 	EngineShowFlags.SetWireframe(ViewModeIndex == VMI_Wireframe || ViewModeIndex == VMI_BrushWireframe);
 	EngineShowFlags.SetCollisionPawn(ViewModeIndex == VMI_CollisionPawn);
 	EngineShowFlags.SetCollisionVisibility(ViewModeIndex == VMI_CollisionVisibility);
+	EngineShowFlags.SetVertexDensities(ViewModeIndex == VMI_VertexDensities);
 }
 
 void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex ViewModeIndex, FEngineShowFlags& EngineShowFlags, FName CurrentBufferVisualizationMode, bool bIsSplitScreen)
@@ -375,6 +379,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_Wireframe ||
 			ViewModeIndex == VMI_Unlit ||
 			ViewModeIndex == VMI_LightmapDensity ||
+			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LitLightmapDensity)
 		{
 			EngineShowFlags.LightFunctions = 0;
@@ -385,6 +390,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_Unlit ||
 			ViewModeIndex == VMI_ShaderComplexity ||
 			ViewModeIndex == VMI_LightmapDensity ||
+			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LitLightmapDensity)
 		{
 			EngineShowFlags.DynamicShadows = 0;
@@ -400,6 +406,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_Unlit ||
 			ViewModeIndex == VMI_StationaryLightOverlap ||
 			ViewModeIndex == VMI_ShaderComplexity ||
+			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LightmapDensity)
 		{
 			EngineShowFlags.Lighting = 0;
@@ -558,6 +565,10 @@ EViewModeIndex FindViewMode(const FEngineShowFlags& EngineShowFlags)
 	{
 		return VMI_CollisionVisibility;
 	}
+	else if (EngineShowFlags.VertexDensities)
+	{
+		return VMI_VertexDensities;
+	}
 
 	return EngineShowFlags.Lighting ? VMI_Lit : VMI_Unlit;
 }
@@ -582,6 +593,7 @@ const TCHAR* GetViewModeName(EViewModeIndex ViewModeIndex)
 		case VMI_VisualizeBuffer:			return TEXT("VisualizeBuffer");
 		case VMI_CollisionPawn:				return TEXT("CollisionPawn");
 		case VMI_CollisionVisibility:		return TEXT("CollisionVis");
+		case VMI_VertexDensities:			return TEXT("VertexDensity");
 	}
 	return TEXT("");
 }
