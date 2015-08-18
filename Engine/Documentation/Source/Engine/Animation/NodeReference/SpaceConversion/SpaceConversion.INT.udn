@@ -12,16 +12,16 @@ Description:Animation nodes that convert poses between local and component space
 ## Overview
 
 [EXCERPT:Intro]
-Poses can either be in _local-space_ or _component-space_. The **Convert Spaces** nodes available in the **AnimGraph** 
-of _Animation Blueprints_ provide the ability to convert poses between _local_ and _component_ space. Local space assumes 
+Poses can either be in local-space or component-space. The **Convert Spaces** nodes available in the **AnimGraph** 
+of Animation Blueprints provide the ability to convert poses between local and component space. Local space assumes 
 the transform of a bone to be relative to that bone. Component space assumes the bone's transform to be relative to 
-the _SkeletalMeshComponent_.
+the SkeletalMeshComponent.
 
-Generally, when working with poses in an _Animation Blueprint_, they will be in local-space. However, certain blend 
-nodes and all _SkeletalControls_ operate in component-space. This means that the input pose needs to be transformed 
+Generally, when working with poses in an Animation Blueprint, they will be in local-space. However, certain blend 
+nodes and all SkeletalControls operate in component-space. This means that the input pose needs to be transformed 
 prior to being passed in to one of these types of nodes. If the input pose is coming from a node that outputs a local 
-space pose, the pose must be converted to the correct space before a _SkeletalControl_ can perform operations on it. 
-The resulting pose, after the _SkeletalControl_ have performed the operations, then must be converted back to 
+space pose, the pose must be converted to the correct space before a SkeletalControl can perform operations on it. 
+The resulting pose, after the SkeletalControl have performed the operations, then must be converted back to 
 local space for input to additional blends or the **Result** node.
 [/EXCERPT:Intro]
 

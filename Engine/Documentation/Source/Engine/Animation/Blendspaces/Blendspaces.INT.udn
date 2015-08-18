@@ -36,7 +36,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 ## Overview
 
 [EXCERPT:Intro]
-**Blend Spaces** are special assets which can be sampled in **AnimGraphs** that allow for blending of 
+**Blend Spaces** are special assets which can be sampled in AnimGraphs that allow for blending of 
 animations based on the values of two inputs. Simple blending between two animations based on a 
 single input can be performed using one of the standard [blend nodes](Engine/Animation/NodeReference/Blend) 
 available in Animation Blueprints. Blend Spaces provide a means of doing more complex blending 

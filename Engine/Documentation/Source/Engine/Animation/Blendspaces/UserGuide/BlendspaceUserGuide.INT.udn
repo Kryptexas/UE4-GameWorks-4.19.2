@@ -28,7 +28,7 @@ Description:Guide to using Blend Spaces in Animation Blueprints to input data an
 ## Overview
 
 [EXCERPT:Intro]
-_Blend Spaces_ are used by placing nodes in the **AnimGraphs** of _Animation Blueprints_. These nodes take in value data that is used to drive which animations the _Blend Space_ uses to create the final blended pose.
+Blend Spaces are used by placing nodes in the **AnimGraphs** of Animation Blueprints. These nodes take in value data that is used to drive which animations the Blend Space uses to create the final blended pose.
 [/EXCERPT:Intro]
 
 ## Adding Blend Space Nodes

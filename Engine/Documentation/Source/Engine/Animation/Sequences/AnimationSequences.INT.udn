@@ -32,7 +32,7 @@ Related: Engine/Content/Tools/MayaRiggingTool
 [TOC(start:2 end:2)]
 
 [EXCERPT:Intro]
-An **Animation Sequence** is a single animation asset that can be played on a _Skeletal Mesh_. These contain keyframes that specify the position, rotation, and scale of a bone at a specific point in time. By playing these keyframes back in sequence, with blending between them, the bones of a _Skeletal Mesh_ can be smoothly animated. 
+An **Animation Sequence** is a single animation asset that can be played on a Skeletal Mesh. These contain keyframes that specify the position, rotation, and scale of a bone at a specific point in time. By playing these keyframes back in sequence, with blending between them, the bones of a Skeletal Mesh can be smoothly animated. 
 [/EXCERPT:Intro]
 
 [OBJECT:EmbeddedVideo]

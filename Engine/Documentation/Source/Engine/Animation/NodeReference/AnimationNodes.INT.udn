@@ -4,7 +4,7 @@ Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Descriptions of the various animation nodes available for use in Animation Blueprints.
 
 [EXCERPT:Intro]
-_AnimationBlueprints_ make use of various nodes within their graphs to perform operations on input 
+AnimationBlueprints make use of various nodes within their graphs to perform operations on input 
 poses, such as blending, direct bone manipulation, and more. There are a few distinct types 
 of animation nodes provided in the engine including events, blend nodes, skeletal controllers, 
 space nodes, and conversion nodes.
