@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2653283
+Availability:Public
 Title:1.2 - Metallic
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
 Description: マテリアルノードのサンプル レベルの概要、1.2Metallic.
@@ -19,7 +20,7 @@ Related:Engine/Actors/DecalActor
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Material Nodes のホーム](Resources/ContentExamples/MaterialNodes)
+		[マテリアル ノードのホーム](Resources/ContentExamples/MaterialNodes)
 	[/PARAM]
 	[PARAM:next]
 		[次のサンプル](Resources/ContentExamples/MaterialNodes/1_3 "%Resources/ContentExamples/MaterialNodes/1_3:title%")
