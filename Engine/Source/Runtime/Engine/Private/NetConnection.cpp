@@ -14,9 +14,7 @@
 #include "GameFramework/GameMode.h"
 #include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
-#if USE_SERVER_PERF_COUNTERS
-	#include "PerfCountersModule.h"
-#endif // USE_SERVER_PERF_COUNTERS
+#include "PerfCountersHelpers.h"
 #if !UE_BUILD_SHIPPING
 static TAutoConsoleVariable<int32> CVarPingExcludeFrameTime( TEXT( "net.PingExcludeFrameTime" ), 0, TEXT( "Calculate RTT time between NIC's of server and client." ) );
 static TAutoConsoleVariable<int32> CVarPingDisplayServerTime( TEXT( "net.PingDisplayServerTime" ), 0, TEXT( "Show server frame time" ) );
@@ -257,14 +255,7 @@ void UNetConnection::CleanUp()
 			check(Driver->ServerConnection == NULL);
 			verify(Driver->ClientConnections.Remove(this) == 1);
 
-#if USE_SERVER_PERF_COUNTERS
-			IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
-			if (PerfCounters)
-			{
-				// Update total connections
-				PerfCounters->Set(TEXT("RemovedConnections"), PerfCounters->Get(TEXT("RemovedConnections"), int(0)) + 1, IPerfCounters::Flags::Transient);
-			}
-#endif // USE_SERVER_PERF_COUNTERS
+			PerfCountersIncrement(TEXT("RemovedConnections"));
 		}
 	}
 
@@ -1426,6 +1417,8 @@ void UNetConnection::Tick()
 		GEngine->BroadcastNetworkFailure(Driver->GetWorld(), Driver, ENetworkFailure::ConnectionTimeout, Error);
 		Close();
 
+		PerfCountersIncrement(TEXT("TimedoutConnections"));
+
 		if (Driver == NULL)
 		{
             // Possible that the Broadcast above caused someone to kill the net driver, early out
@@ -1884,6 +1877,8 @@ bool UNetConnection::TrackLogsPerSecond()
 			// Hit this instant limit, we instantly disconnect them
 			UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond instant FAILED. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 			Close();		// Close the connection
+
+			PerfCountersIncrement(TEXT("ClosedConnectionsDueToMaxBadRPCsLimit"));
 			return false;
 		}
 
@@ -1900,6 +1895,8 @@ bool UNetConnection::TrackLogsPerSecond()
 				// Hit the sustained limit for too long, disconnect them
 				UE_LOG( LogNet, Warning, TEXT( "UNetConnection::TrackLogsPerSecond: LogSustainedCount > MAX_SUSTAINED_COUNT. LogsPerSecond: %f, RemoteAddr: %s" ), (float)LogsPerSecond, *LowLevelGetRemoteAddress() );
 				Close();		// Close the connection
+
+				PerfCountersIncrement(TEXT("ClosedConnectionsDueToMaxBadRPCsLimit"));
 				return false;
 			}
 		}

@@ -475,4 +475,5 @@ struct FTCharArrayTester
 	UE_SECURITY_LOG(NetConnection, ESecurityEvent::Closed, TEXT("Connection closed")); \
 	NOTIFY_CLIENT_OF_SECURITY_EVENT_IF_NOT_SHIPPING(NetConnection, SecurityPrint); \
 	NetConnection->Close(); \
+	PerfCountersIncrement(TEXT("ClosedConnectionsDueToSecurityViolations")); \
 }

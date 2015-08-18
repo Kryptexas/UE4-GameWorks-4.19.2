@@ -83,6 +83,21 @@ public:
 		return GetNumber(Name, Val);
 	}
 
+	/** @brief Convenience method for incrementing a transient counter 
+	 *
+	 *  @param Name the name of the counter
+	 *  @param Add value of the increment (will be added to the counter, can be negative)
+	 *  @param DefaultValue if the counter did not exist or was cleared, this is what it will be initialized to before performing the addition
+	 *  @param Flags flags for the counter
+	 *
+	 *  @return current value (i.e. after the increment)
+	 */
+	int32 Increment(const FString & Name, int32 Add = 1, int32 DefaultValue = 0, uint32 Flags = IPerfCounters::Flags::Transient)
+	{
+		int32 CurrentValue = Get(Name, DefaultValue) + Add;
+		Set(Name, CurrentValue, Flags);
+		return CurrentValue;
+	}
 
 	/** Set overloads (use these) */
 

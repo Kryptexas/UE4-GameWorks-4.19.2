@@ -81,6 +81,7 @@
 #include "Engine/GameInstance.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Engine/CoreSettings.h"
+#include "PerfCountersHelpers.h"
 #include "NetworkReplayStreaming.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorld, Log, All);
@@ -3854,6 +3855,8 @@ void UWorld::NotifyControlMessage(UNetConnection* Connection, uint8 MessageType,
 					FNetControlMessage<NMT_Upgrade>::Send(Connection, LocalNetworkVersion);
 					Connection->FlushNet(true);
 					Connection->Close();
+
+					PerfCountersIncrement(TEXT("ClosedConnectionsDueToIncompatibleVersion"));
 				}
 				else
 				{

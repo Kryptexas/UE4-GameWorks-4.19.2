@@ -24,6 +24,8 @@
 
 #include "Engine/DemoNetDriver.h"
 
+#include "PerfCountersHelpers.h"
+
 DEFINE_LOG_CATEGORY_STATIC(LogCharacterMovement, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogNavMeshMovement, Log, All);
 
@@ -6502,6 +6504,8 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		ServerData->PendingAdjustment.TimeStamp = ClientTimeStamp;
 		ServerData->PendingAdjustment.bAckGoodMove = false;
 		ServerData->PendingAdjustment.MovementMode = PackNetworkMovementMode();
+
+		PerfCountersIncrement(TEXT("NumServerMoveCorrections"));
 	}
 	else
 	{
@@ -6529,6 +6533,8 @@ void UCharacterMovementComponent::ServerMoveHandleClientError(float ClientTimeSt
 		ServerData->PendingAdjustment.TimeStamp = ClientTimeStamp;
 		ServerData->PendingAdjustment.bAckGoodMove = true;
 	}
+
+	PerfCountersIncrement(TEXT("NumServerMoves"));
 
 	ServerData->bForceClientUpdate = false;
 }

@@ -15,5 +15,7 @@ public class PerfCounters : ModuleRules
 				"HTTP"
 			}
         );
-    }
+
+		Definitions.Add("WITH_PERFCOUNTERS=1");
+	}
 }

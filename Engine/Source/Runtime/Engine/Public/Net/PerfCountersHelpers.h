@@ -1,0 +1,36 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#if USE_SERVER_PERF_COUNTERS
+
+	#include "PerfCountersModule.h"
+
+	/** @brief Helper function for setting a performance counter. Compiled out if PerfCounterModule isn't used.
+	 */
+	void ENGINE_API PerfCountersSet(const FString& Name, float Val, uint32 Flags = 0);
+
+	/** @brief Helper function for setting a performance counter. Compiled out if PerfCounterModule isn't used.
+	*/
+	void ENGINE_API PerfCountersSet(const FString& Name, int32 Val, uint32 Flags = 0);
+
+	/** @brief Helper function for incrementing a performance counter. Compiled out if PerfCounterModule isn't used.
+	 *
+	 *  @param Name the name of the counter
+	 *  @param Add value of the increment (will be added to the counter, can be negative)
+	 *  @param DefaultValue if the counter did not exist or was cleared, this is what it will be initialized to before performing the addition
+	 *  @param Flags flags for the counter
+	 *
+	 *  @return current value (i.e. after the increment)
+	 */
+	int32 ENGINE_API PerfCountersIncrement(const FString & Name, int32 Add = 1, int32 DefaultValue = 0, uint32 Flags = IPerfCounters::Flags::Transient);
+
+#else
+
+	/** stub implementations to be used when PerfCounters are unavailable */
+
+	FORCEINLINE void PerfCountersSet(const FString& Name, float Val, uint32 Flags = 0) { /* no-op */ };
+	FORCEINLINE void PerfCountersSet(const FString& Name, int32 Val, uint32 Flags = 0) { /* no-op */ };
+	FORCEINLINE int32 PerfCountersIncrement(const FString & Name, int32 Add = 1, int32 DefaultValue = 0, uint32 Flags = 0) { return DefaultValue + Add; };
+
+#endif //USE_SERVER_PERF_COUNTERS

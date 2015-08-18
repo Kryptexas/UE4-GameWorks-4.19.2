@@ -292,7 +292,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 			// Update total connections
 			PerfCounters->Set(TEXT("NumConnections"), ClientConnections.Num(), IPerfCounters::Flags::Transient);
 
-			const int kNumBuckets = 4;	// 0-50, 50-100, 100-200, 200+
+			const int kNumBuckets = 8;	// evenly spaced with increment of 30 ms; last bucket collects all off-scale pings as well
 			if (ClientConnections.Num() > 0)
 			{
 				// Update per connection statistics
@@ -314,19 +314,7 @@ void UNetDriver::TickFlush(float DeltaSeconds)
 							// Ping value calculated per client
 							float ConnPing = Connection->PlayerController->PlayerState->ExactPing;
 
-							int Bucket = 3;
-							if (ConnPing < 50)
-							{
-								Bucket = 0;
-							}
-							else if (ConnPing < 100)
-							{
-								Bucket = 1;
-							}
-							else if (ConnPing < 200)
-							{
-								Bucket = 2;
-							}
+							int Bucket = FMath::Max(0, FMath::Min(kNumBuckets - 1, (static_cast<int>(ConnPing) / 30)));
 							++Buckets[Bucket];
 
 							if (ConnPing < MinPing)
@@ -948,6 +936,8 @@ void UNetDriver::InternalProcessRemoteFunction
 			FNetControlMessage<NMT_Failure>::Send(Connection, ErrorMsg);
 			Connection->FlushNet(true);
 			Connection->Close();
+
+			PerfCountersIncrement(TEXT("ClosedConnectionsDueToReliableBufferOverflow"));
 		}
 		return;
 	}
@@ -2799,14 +2789,7 @@ void UNetDriver::AddClientConnection(UNetConnection * NewConnection)
 
 	ClientConnections.Add(NewConnection);
 
-#if USE_SERVER_PERF_COUNTERS
-	IPerfCounters* PerfCounters = IPerfCountersModule::Get().GetPerformanceCounters();
-	if (PerfCounters)
-	{
-		// Update total connections
-		PerfCounters->Set(TEXT("AddedConnections"), PerfCounters->Get(TEXT("AddedConnections"), int(0)) + 1, IPerfCounters::Flags::Transient);
-	}
-#endif // USE_SERVER_PERF_COUNTERS
+	PerfCountersIncrement(TEXT("AddedConnections"));
 
 	for (auto It = DestroyedStartupOrDormantActors.CreateIterator(); It; ++It)
 	{
