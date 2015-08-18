@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2604081
-Availability:Public
+﻿Availability:Public
 Title:Material 入力			
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
 Description:マテリアルに利用可能なさまざまな入力ポートの詳細とその使用方法
@@ -111,11 +110,11 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 ## Normal
 
 [EXCERPT:Normal]
-**Normal** 入力は、各ピクセルの「法線」または対向方向を摂動して、表面に多くの物理的な詳細を提供する法線マップを受け取ります。 
+**Normal** 入力は法線マップを受け取り、各ピクセルの「法線」または対向方向を摂動して、表面に多くの物理的な詳細を与えます。 
 
 ![](Axes.png)(w:935)
 
-**この画像では** 、両方の武器に同一の静的メッシュを使用しています。下側の画像は、非常に詳細な法線マップを表しています。多大な追加詳細をもたらし、実際にレンダリングされているよりもポリゴン数が表面に多く含まれているような錯覚を与えます。このような法線マップは、Pixologic ZBrush など、高解像度モデリングソフトで作成されることが多いです。
+**上の画像では** 両方の武器に同一のスタティック メッシュを使用しています。下の画像では、非常に詳細な法線マップを表すことで、非常に多くの詳細が追加されるため、実際のレンダリング数よりも多いポリゴン数が表面に含まれているような錯覚を与えます。このような法線マップは多くの場合、Pixologic ZBrush など、高解像度モデリングソフトで作成されます。
 
 ![](NormalNetwork.png)
 [/EXCERPT:Normal]
