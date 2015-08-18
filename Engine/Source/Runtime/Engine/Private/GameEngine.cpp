@@ -541,7 +541,10 @@ void UGameEngine::PreExit()
 				ActorIt->RouteEndPlay(EEndPlayReason::Quit);
 			}
 
-			World->GetGameInstance()->Shutdown();
+			if (World->GetGameInstance() != nullptr)
+			{
+				World->GetGameInstance()->Shutdown();
+			}
 
 			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 			World->CleanupWorld();
