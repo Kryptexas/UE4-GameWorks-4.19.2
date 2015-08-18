@@ -44,13 +44,16 @@ public class MacPlatform : Platform
 		if (InStageFileType != StagedFileType.DebugNonUFS)
 		{
 			// Files with DebugFileExtensions should always be DebugNonUFS
-			List<string> DebugExtentions = GetDebugFileExtentions();
-			SC.StageFiles(InStageFileType, InPath, "*", true, DebugExtentions.ToArray(), NewName, false, true, null);
-
-			foreach(string DebugExtention in DebugExtentions)
+			List<string> DebugExtentionWildCards = new List<string>();
+			foreach(string DebugExtention in GetDebugFileExtentions())
 			{
-				SC.StageFiles(StagedFileType.DebugNonUFS, InPath, DebugExtention, true, null, NewName, false, true, null);
+				string ExtensionWildcard = "*" + DebugExtention;
+				DebugExtentionWildCards.Add(ExtensionWildcard);
+				SC.StageFiles(StagedFileType.DebugNonUFS, InPath, ExtensionWildcard, true, null, NewName, false, true, null);
 			}
+
+			// Also stage the non-debug files, excluding the debug ones staged above
+			SC.StageFiles(InStageFileType, InPath, "*", true, DebugExtentionWildCards.ToArray(), NewName, false, true, null);
 		}
 		else
 		{
