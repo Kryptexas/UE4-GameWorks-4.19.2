@@ -5443,6 +5443,11 @@ void FHeaderParser::CompileFunctionDeclaration(FUnrealSourceFile& SourceFile, FC
 
 	ProcessFunctionSpecifiers(FuncInfo, SpecifiersFound);
 
+	if ((0 != (FuncInfo.FunctionExportFlags & FUNCEXPORT_CustomThunk)) && !MetaData.Contains("CustomThunk"))
+	{
+		MetaData.Add(TEXT("CustomThunk"), TEXT("true"));
+	}
+
 	if ((FuncInfo.FunctionFlags & FUNC_BlueprintPure) && GetCurrentClass()->HasAnyClassFlags(CLASS_Interface))
 	{
 		// Until pure interface casts are supported, we don't allow pures in interfaces

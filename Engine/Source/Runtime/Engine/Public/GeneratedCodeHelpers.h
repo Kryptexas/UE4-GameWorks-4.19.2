@@ -6,7 +6,8 @@
 #include "Kismet/KismetArrayLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
-
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 // Special libraries
 #include "Kismet/DataTableFunctionLibrary.h"
 
@@ -194,11 +195,50 @@ public:
 	}
 
 	//Replacements for CustomThunk functions from UKismetSystemLibrary
-
 	template<typename T>
 	static void SetStructurePropertyByName(UObject* Object, FName PropertyName, const T& Value)
 	{
 		return UKismetSystemLibrary::Generic_SetStructurePropertyByName(Object, PropertyName, &Value);
+	}
+
+	static void SetCollisionProfileNameProperty(UObject* Object, FName PropertyName, const FCollisionProfileName& Value)
+	{
+		return UKismetSystemLibrary::Generic_SetStructurePropertyByName(Object, PropertyName, &Value);
+	}
+
+	// Replacements for CustomThunk functions from UBlueprintFunctionLibrary
+	static FStringAssetReference MakeStringAssetReference(const FString& AssetLongPathname)
+	{
+		FStringAssetReference Ref(AssetLongPathname);
+		if (!AssetLongPathname.IsEmpty() && !Ref.IsValid())
+		{
+			ExecutionMessage(*FString::Printf(TEXT("Asset path \"%s\" not valid. Only long path name is allowed."), *AssetLongPathname), ELogVerbosity::Error);
+			return FStringAssetReference();
+		}
+
+		return Ref;
+	}
+
+	// Replacements for CustomThunk functions from KismetMathLibrary
+	static float Divide_FloatFloat(float A, float B)
+	{
+		if (B == 0.f)
+		{
+			ExecutionMessage(TEXT("Divide by zero"), ELogVerbosity::Warning);
+			return 0.0f;
+		}
+		return UKismetMathLibrary::GenericDivide_FloatFloat(A, B);
+	}
+
+	static float Percent_FloatFloat(float A, float B)
+	{
+		if (B == 0.f)
+		{
+			ExecutionMessage(TEXT("Modulo by zero"), ELogVerbosity::Warning);
+			return 0.0f;
+		}
+
+		return UKismetMathLibrary::GenericPercent_FloatFloat(A, B);
 	}
 };
 

@@ -171,7 +171,7 @@ void FBlueprintCompilerCppBackend::EmitObjectToBoolStatement(FEmitterLocalContex
 {
 	FString ObjectTarget = TermToText(EmitterContext, Statement.RHS[0]);
 	FString DestinationExpression = TermToText(EmitterContext, Statement.LHS);
-	EmitterContext.AddLine(FString::Printf(TEXT("%s = (%s != NULL);"), *DestinationExpression, *ObjectTarget));
+	EmitterContext.AddLine(FString::Printf(TEXT("%s = (nullptr != %s);"), *DestinationExpression, *ObjectTarget));
 }
 
 void FBlueprintCompilerCppBackend::EmitAddMulticastDelegateStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
@@ -224,8 +224,7 @@ void FBlueprintCompilerCppBackend::EmitCreateArrayStatement(FEmitterLocalContext
 	FBPTerminal* ArrayTerm = Statement.LHS;
 	const FString Array = TermToText(EmitterContext, ArrayTerm);
 
-	UArrayProperty* ArrayProperty = CastChecked<UArrayProperty>(ArrayTerm->AssociatedVarProperty);
-	UProperty* InnerProperty = ArrayProperty->Inner;
+	EmitterContext.AddLine(FString::Printf(TEXT("%s.SetNum(%d, true);"), *Array, Statement.RHS.Num()));
 
 	for (int32 i = 0; i < Statement.RHS.Num(); ++i)
 	{
@@ -315,11 +314,11 @@ FString FBlueprintCompilerCppBackend::EmitSwitchValueStatmentInner(FEmitterLocal
 
 	FStringOutputDevice IndexDeclaration;
 	check(IndexTerm && IndexTerm->AssociatedVarProperty);
-	IndexTerm->AssociatedVarProperty->ExportCppDeclaration(IndexDeclaration, EExportedDeclaration::Parameter, NULL, CppTemplateTypeFlags, true);
+	IndexTerm->AssociatedVarProperty->ExportCppDeclaration(IndexDeclaration, EExportedDeclaration::Parameter, nullptr, CppTemplateTypeFlags, true);
 
 	check(DefaultValueTerm && DefaultValueTerm->AssociatedVarProperty);
 	FStringOutputDevice ValueDeclaration;
-	DefaultValueTerm->AssociatedVarProperty->ExportCppDeclaration(ValueDeclaration, EExportedDeclaration::Parameter, NULL, CppTemplateTypeFlags, true);
+	DefaultValueTerm->AssociatedVarProperty->ExportCppDeclaration(ValueDeclaration, EExportedDeclaration::Parameter, nullptr, CppTemplateTypeFlags, true);
 
 	for (int32 TermIndex = TermsBeforeCases; TermIndex < (NumCases * TermsPerCase); TermIndex += TermsPerCase)
 	{
@@ -353,9 +352,9 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 			FString VarName;
 
 			FBPTerminal* Term = Statement.RHS[NumParams];
-			ensure(Term != NULL);
+			ensure(Term != nullptr);
 
-			if ((Statement.TargetLabel != NULL) && (Statement.UbergraphCallIndex == NumParams))
+			if ((Statement.TargetLabel != nullptr) && (Statement.UbergraphCallIndex == NumParams))
 			{
 				// The target label will only ever be set on a call function when calling into the Ubergraph or
 				// on a latent function that will later call into the ubergraph, either of which requires a patchup
@@ -435,7 +434,9 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	{
 		if (bStaticCall)
 		{
-			const bool bIsCustomThunk = Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) || Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
+			const bool bIsCustomThunk = Statement.FunctionToCall->GetBoolMetaData(TEXT("CustomThunk")) 
+				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) 
+				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
 			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
 			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s%s::"), OwnerClass->GetPrefixCPP(), *OwnerClass->GetName());
 		}
@@ -500,7 +501,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 	else
 	{
 		FString ResultPath(TEXT(""));
-		if ((Term->Context != NULL) && (Term->Context->Name != PSC_Self))
+		if ((Term->Context != nullptr) && (Term->Context->Name != PSC_Self))
 		{
 			ResultPath = TermToText(EmitterContext, Term->Context, false);
 

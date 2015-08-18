@@ -102,6 +102,8 @@ public:
 		return ActualClass;
 	}
 
+	/** All objects (that can be referenced from other package) that will have a different path in cooked build 
+	(due to the native code generation), should be handled by this function */
 	FString FindGloballyMappedObject(UObject* Object)
 	{
 		// TODO: check if not excluded
