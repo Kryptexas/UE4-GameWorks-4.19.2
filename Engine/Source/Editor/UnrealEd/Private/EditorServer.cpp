@@ -1544,6 +1544,11 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 		return;
 	}
 
+	FScopedSlowTask SlowTask(2);
+	SlowTask.MakeDialogDelayed(3.0f);
+
+	SlowTask.EnterProgressFrame(1);
+
 	// Note: most of the following code was taken from UEditorEngine::csgRebuild()
 	FinishAllSnaps();
 	FBSPOps::GFastRebuild = 1;
@@ -1563,6 +1568,7 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 
 	FBSPOps::GFastRebuild = 1;
 
+	SlowTask.EnterProgressFrame(1);
 	Level.UpdateModelComponents();
 
 	RebuildStaticNavigableGeometry(&Level);
@@ -1600,7 +1606,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	Model->Verts.Empty(NumVerts + NumVerts / 8);
 	Model->Vectors.Empty(NumVectors + NumVectors / 8);
 	Model->Surfs.Empty(NumSurfs + NumSurfs / 8);
-		
+
 	// Limit the brushes used to the level the model is for
 	ULevel* Level = Model->GetTypedOuter<ULevel>();
 	if ( !Level )
@@ -1612,38 +1618,39 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 	}
 	check( Level );
 
-	// Compose all structural brushes and portals.
-	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
-	{	
+	// Build list of all static brushes, first structural brushes and portals
+	TArray<ABrush*> StaticBrushes;
+	for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
+	{
 		ABrush* Brush = Cast<ABrush>(*It);
 		if ((Brush && (Brush->IsStaticBrush() || bTreatMovableBrushesAsStatic) && !FActorEditorUtils::IsABuilderBrush(Brush)) &&
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(!(Brush->PolyFlags & PF_Semisolid) || (Brush->BrushType != Brush_Add) || (Brush->PolyFlags & PF_Portal)))
 		{
+			StaticBrushes.Add(Brush);
+
 			// Treat portals as solids for cutting.
 			if (Brush->PolyFlags & PF_Portal)
 			{
 				Brush->PolyFlags = (Brush->PolyFlags & ~PF_Semisolid) | PF_NotSolid;
 			}
-			Brush->Modify();
-			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
 		}
 	}
 
-	// Compose all detail brushes.
-	for( auto It(Level->Actors.CreateConstIterator()); It; ++It )
+	// Next append all detail brushes
+	for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
 	{
 		ABrush* Brush = Cast<ABrush>(*It);
 		if (Brush && Brush->IsStaticBrush() && !FActorEditorUtils::IsABuilderBrush(Brush) &&
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(Brush->PolyFlags & PF_Semisolid) && !(Brush->PolyFlags & PF_Portal) && (Brush->BrushType == Brush_Add))
 		{
-			Brush->Modify();
-			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
+			StaticBrushes.Add(Brush);
 		}
 	}
 
-	// Rebuild dynamic brush BSP's (if they weren't handled earlier)
+	// Build list of dynamic brushes
+	TArray<ABrush*> DynamicBrushes;
 	if (!bTreatMovableBrushesAsStatic)
 	{
 		for (auto It(Level->Actors.CreateConstIterator()); It; ++It)
@@ -1652,14 +1659,32 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 			if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
 				(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
 			{
-				BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
-				BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
-				FBspPointsGrid::GBspPoints = BspPoints.Get();
-				FBspPointsGrid::GBspVectors = BspVectors.Get();
-
-				FBSPOps::csgPrepMovingBrush(DynamicBrush);
+				DynamicBrushes.Add(DynamicBrush);
 			}
 		}
+	}
+
+	FScopedSlowTask SlowTask(StaticBrushes.Num() + DynamicBrushes.Num());
+	SlowTask.MakeDialogDelayed(3.0f);
+
+	// Compose all static brushes
+	for (ABrush* Brush : StaticBrushes)
+	{
+		SlowTask.EnterProgressFrame(1);
+		Brush->Modify();
+		bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
+	}
+
+	// Rebuild dynamic brush BSP's (if they weren't handled earlier)
+	for (ABrush* DynamicBrush : DynamicBrushes)
+	{
+		SlowTask.EnterProgressFrame(1);
+		BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+		BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+		FBspPointsGrid::GBspPoints = BspPoints.Get();
+		FBspPointsGrid::GBspVectors = BspVectors.Get();
+
+		FBSPOps::csgPrepMovingBrush(DynamicBrush);
 	}
 
 	FBspPointsGrid::GBspPoints = nullptr;
@@ -1724,12 +1749,19 @@ void UEditorEngine::RebuildAlteredBSP()
 		}
 
 		// Rebuild the levels
-		for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
 		{
-			TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
-				if (LevelToRebuild.IsValid())
+			FScopedSlowTask SlowTask(LevelsToRebuild.Num(), NSLOCTEXT("EditorServer", "RebuildingBSP", "Rebuilding BSP..."));
+			SlowTask.MakeDialogDelayed(3.0f);
+
+			for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
 			{
-				RebuildLevel(*LevelToRebuild.Get());
+				SlowTask.EnterProgressFrame(1.0f);
+
+				TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
+				if (LevelToRebuild.IsValid())
+				{
+					RebuildLevel(*LevelToRebuild.Get());
+				}
 			}
 		}
 
@@ -3318,7 +3350,9 @@ void UEditorEngine::PasteSelectedActorsFromClipboard( UWorld* InWorld, const FTe
 		const FScopedTransaction Transaction( TransDescription );
 
 		GEditor->SelectNone( true, false );
+		ABrush::SetSuppressBSPRegeneration(true);
 		edactPasteSelected( InWorld, false, false, true );
+		ABrush::SetSuppressBSPRegeneration(false);
 
 		if( PasteTo != PT_OriginalLocation )
 		{

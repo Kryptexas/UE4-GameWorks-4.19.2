@@ -20,6 +20,9 @@ ABrush::FOnBrushRegistered ABrush::OnBrushRegistered;
 
 /** An array to keep track of all the levels that need rebuilding. This is checked via NeedsRebuild() in the editor tick and triggers a csg rebuild. */
 TArray< TWeakObjectPtr< ULevel > > ABrush::LevelsToRebuild;
+
+/** Whether BSP regeneration should be suppressed or not */
+bool ABrush::bSuppressBSPRegeneration = false;
 #endif
 
 ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
@@ -59,11 +62,10 @@ void ABrush::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 		Brush->BuildBound();
 	}
 
-	if(IsStaticBrush() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && GUndo)
+	if(!bSuppressBSPRegeneration && IsStaticBrush() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive && GUndo)
 	{
 		// BSP can only be rebuilt during a transaction
 		GEditor->RebuildAlteredBSP();
-
 	}
 
 	bool bIsBuilderBrush = FActorEditorUtils::IsABuilderBrush( this );

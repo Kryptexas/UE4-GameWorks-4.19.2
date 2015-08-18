@@ -2298,7 +2298,9 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 						{
 							// Widget hasn't been dragged since ALT+LMB went down.
 							bDuplicateOnNextDrag = false;
+							ABrush::SetSuppressBSPRegeneration(true);
 							GEditor->edactDuplicateSelected(GetWorld()->GetCurrentLevel(), false);
+							ABrush::SetSuppressBSPRegeneration(false);
 						}
 					}
 				}
