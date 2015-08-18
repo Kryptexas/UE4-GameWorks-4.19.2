@@ -451,7 +451,7 @@ namespace AutomationTool
 			string ChangelistString = String.Empty;
 			if (bDoUpdateVersionFiles)
 			{
-				ChangelistNumber = ChangelistNumberOverride.GetValueOrDefault(P4Env.Changelist);
+				ChangelistNumber = ChangelistNumberOverride.HasValue? ChangelistNumberOverride.Value : P4Env.Changelist;
 				ChangelistString = ChangelistNumber.ToString();
 			}
 
