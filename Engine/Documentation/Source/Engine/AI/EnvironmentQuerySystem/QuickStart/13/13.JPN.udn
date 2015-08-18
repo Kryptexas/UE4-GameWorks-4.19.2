@@ -2,7 +2,7 @@
 Availability:Public
 Title:13.Play in Editor とテスト
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem, Engine/AI/EnvironmentQuerySystem/QuickStart
-Description:最後に Play in Editor (エディタで再生) を使用して Runner AI をテストします。
+Description:最後に Play in Editor を使用して Runner AI をテストします。
 バージョン：4.9
 
 [VAR:Steps]
