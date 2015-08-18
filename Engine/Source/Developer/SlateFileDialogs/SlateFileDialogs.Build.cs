@@ -10,7 +10,6 @@ public class SlateFileDialogs : ModuleRules
             new string[] {
                 "Core",
                 "InputCore",
-                "AppFramework",
                 "Slate",
                 "SlateCore",
                 "DirectoryWatcher",
