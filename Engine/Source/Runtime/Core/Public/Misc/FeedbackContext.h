@@ -144,6 +144,9 @@ struct CORE_API FSlowTask
 	/** The time that this scope was created */
 	double StartTime;
 
+	/** Threshold before dialog is opened */
+	TOptional<float> OpenDialogThreshold;
+
 private:
 
 	/** Boolean flag to control whether this scope actually does anything (unset for quiet operations etc) */
@@ -154,6 +157,12 @@ private:
 	
 	/** The feedback context that we belong to */
 	FFeedbackContext& Context;
+
+	/** Specify whether the delayed dialog should show a cancel button */
+	bool bDelayedDialogShowCancelButton : 1;
+
+	/** Specify whether the delayed dialog is allowed in PIE */
+	bool bDelayedDialogAllowInPIE : 1;
 
 	/** Prevent copying */
 	FSlowTask(const FSlowTask&);
@@ -230,6 +239,19 @@ public:
 	}
 
 	/**
+	 * Creates a new dialog for this slow task after the given time threshold. If the task completes before this time, no dialog will be shown.
+	 * @param		Threshold				Time in seconds before dialog will be shown.
+	 * @param		bShowCancelButton		Whether to show a cancel button on the dialog or not
+	 * @param		bAllowInPIE				Whether to allow this dialog in PIE. If false, this dialog will not appear during PIE sessions.
+	 */
+	FORCEINLINE void MakeDialogDelayed(float Threshold, bool bShowCancelButton = false, bool bAllowInPIE = false)
+	{
+		OpenDialogThreshold = Threshold;
+		bDelayedDialogShowCancelButton = bShowCancelButton;
+		bDelayedDialogAllowInPIE = bAllowInPIE;
+	}
+
+	/**
 	 * Creates a new dialog for this slow task, if there is currently not one open
 	 * @param		bShowCancelButton		Whether to show a cancel button on the dialog or not
 	 * @param		bAllowInPIE				Whether to allow this dialog in PIE. If false, this dialog will not appear during PIE sessions.
@@ -249,6 +271,11 @@ public:
 		const float WorkRemaining = TotalAmountOfWork - CompletedWork;
 		verifySlow(ExpectedWorkThisFrame <= WorkRemaining);
 		CurrentFrameScope = FMath::Min(WorkRemaining, ExpectedWorkThisFrame);
+
+		if (!bCreatedDialog && OpenDialogThreshold.IsSet() && static_cast<float>(FPlatformTime::Seconds() - StartTime) > OpenDialogThreshold.GetValue())
+		{
+			MakeDialog(bDelayedDialogShowCancelButton, bDelayedDialogAllowInPIE);
+		}
 
 		if (bEnabled)
 		{
