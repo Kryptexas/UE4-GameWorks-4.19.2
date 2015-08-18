@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620388
+﻿INTSourceChangelist:2653283
 Availability:Public
 Title:1.4 - グループ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -11,6 +11,22 @@ Related:Engine/Rendering/Materials/LayeredMaterials
 Related:Engine/Rendering/Materials/MaterialInstances
 Related:Engine/Actors/DecalActor
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialInstances/1_3 "%Resources/ContentExamples/MaterialInstances/1_3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[コンテンツ サンプルのホーム](Resources/ContentExamples)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -57,5 +73,5 @@ Related:Engine/Actors/DecalActor
 [/REGION]
 </div>
 
-マテリアルは急激に非常に複雑化する場合があります。**Groups (グループ)** は、**マテリアル インスタンス エディタ** でパラメータをリスト表示する方法を管理します。パラメータのグループ化は、マテリアル のレンダリング方法には影響はなく、単にワークフローを最適化するものです。
+マテリアルは急激に非常に複雑化する場合があります。**Groups (グループ)** は、**マテリアル インスタンス エディタ** におけるパラメータのリスト方法を管理します。パラメータのグループ化は、単にワークフローを最適化するものなので、マテリアルのレンダリング方法には影響はありません。
 
