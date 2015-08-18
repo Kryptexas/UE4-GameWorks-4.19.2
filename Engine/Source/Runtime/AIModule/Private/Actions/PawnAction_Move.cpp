@@ -15,6 +15,9 @@ UPawnAction_Move::UPawnAction_Move(const FObjectInitializer& ObjectInitializer)
 	, bAbortChildActionOnPathChange(false)
 {
 	bShouldPauseMovement = true;
+
+	// force using OnFinished notify to clear observer delegates from path when action leaves the stack
+	bAlwaysNotifyOnFinished = true;
 }
 
 void UPawnAction_Move::BeginDestroy()

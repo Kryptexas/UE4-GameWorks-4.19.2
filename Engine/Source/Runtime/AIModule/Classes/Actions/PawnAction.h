@@ -103,6 +103,10 @@ protected:
 	UPROPERTY(Category = PawnAction, EditDefaultsOnly, BlueprintReadWrite)
 	uint32 bShouldPauseMovement : 1;
 
+	/** if set, action will call OnFinished notify even when ending as FailedToStart */
+	UPROPERTY(Category = PawnAction, EditDefaultsOnly, BlueprintReadWrite, AdvancedDisplay)
+	uint32 bAlwaysNotifyOnFinished : 1;
+
 private:
 	/** indicates whether action is in the process of abortion, and if so on what state */
 	EPawnActionAbortState::Type AbortState;
