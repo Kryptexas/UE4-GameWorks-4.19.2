@@ -1551,9 +1551,6 @@ void FSceneView::ConfigureBufferVisualizationSettings()
 			BufferVisualizationData.SetCurrentOverviewMaterialNames(SelectedMaterialNames);
 			BufferVisualizationData.GetOverviewMaterials().Empty();
 
-			// Note - This will re-parse the list of names from the console variable every frame. It could be cached and only updated when
-			// the variable value changes if this turns out to be a performance issue.
-		
 			// Extract each material name from the comma separated string
 			while (SelectedMaterialNames.Len())
 			{

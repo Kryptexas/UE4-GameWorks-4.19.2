@@ -724,7 +724,7 @@ static FRenderingCompositePass* AddSinglePostProcessMaterial(FPostprocessContext
 	return 0;
 }
 
-static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation, FRenderingCompositeOutputRef SeparateTranslucency)
+static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocation InLocation, FRenderingCompositeOutputRef SeparateTranslucency, FRenderingCompositeOutputRef HDRColor = FRenderingCompositeOutputRef())
 {
 	if(!Context.View.Family->EngineShowFlags.PostProcessing || !Context.View.Family->EngineShowFlags.PostProcessMaterial)
 	{
@@ -736,6 +736,7 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 	FBlendableEntry* Iterator = 0;
 	FPostProcessMaterialNode PPNodes[MAX_PPMATERIALNODES];
 	uint32 PPNodeCount = 0;
+	bool bVisualizingBuffer = false;
 
 	if(Context.View.Family->EngineShowFlags.VisualizeBuffer)
 	{	
@@ -746,6 +747,7 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 		{
 			PPNodes[0] = FPostProcessMaterialNode(Material, InLocation, Material->BlendablePriority);
 			++PPNodeCount;
+			bVisualizingBuffer = true;
 		}
 	}
 	for(;PPNodeCount < MAX_PPMATERIALNODES; ++PPNodeCount)
@@ -791,6 +793,13 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 		// the separate translucency buffers through ePId_Input1. 
 		// TODO: Check if material actually uses this texture and only bind if needed.
 		Node->SetInput(ePId_Input1, SeparateTranslucency);
+
+		// This input is only needed for visualization and frame dumping
+		if (bVisualizingBuffer)
+		{
+			Node->SetInput(ePId_Input2, HDRColor);
+		}
+
 		Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 	}
 }
@@ -839,7 +848,7 @@ static void AddHighResScreenshotMask(FPostprocessContext& Context, FRenderingCom
 	}
 }
 
-static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput)
+static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRenderingCompositeOutputRef& SeparateTranslucencyInput, FRenderingCompositeOutputRef& HDRColorInput)
 {
 	static const auto CVarDumpFrames = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFrames"));
 	static const auto CVarDumpFramesAsHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.BufferVisualizationDumpFramesAsHDR"));
@@ -877,6 +886,7 @@ static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRende
 					FRenderingCompositePass* MaterialPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(*It, Context.View.GetFeatureLevel(), OutputFormat));
 					MaterialPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(IncomingStage));
 					MaterialPass->SetInput(ePId_Input1, FRenderingCompositeOutputRef(SeparateTranslucencyInput));
+					MaterialPass->SetInput(ePId_Input2, FRenderingCompositeOutputRef(HDRColorInput));
 
 					auto Proxy = MaterialInterface->GetRenderProxy(false);
 					const FMaterial* Material = Proxy->GetMaterial(Context.View.GetFeatureLevel());
@@ -1543,7 +1553,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Context.FinalOutput = FRenderingCompositeOutputRef(Node);
 		}
 		
-		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency);
+		AddPostProcessMaterial(Context, BL_AfterTonemapping, SeparateTranslucency, HDRColor);
 
 		if(bVisualizeBloom)
 		{
@@ -1558,7 +1568,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			Context.FinalOutput = FRenderingCompositeOutputRef(PassVisualize);
 		}
 
-		AddGBufferVisualizationOverview(Context, SeparateTranslucency);
+		AddGBufferVisualizationOverview(Context, SeparateTranslucency, HDRColor);
 
 		bool bStereoRenderingAndHMD = View.Family->EngineShowFlags.StereoRendering && View.Family->EngineShowFlags.HMDDistortion;
 		bool bHMDWantsUpscale = false;
