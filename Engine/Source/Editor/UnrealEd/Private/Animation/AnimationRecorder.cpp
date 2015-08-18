@@ -1,9 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-#include "PersonaPrivatePCH.h"
+#include "UnrealEd.h"
 #include "AnimationRecorder.h"
-#include "SAnimationDlgs.h"
+#include "SCreateAnimationDlg.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
@@ -19,7 +19,6 @@ FAnimationRecorder::FAnimationRecorder()
 	, AnimationObject(NULL)
 	, bRecordLocalToWorld(false)
 {
-
 }
 
 FAnimationRecorder::~FAnimationRecorder()
@@ -43,7 +42,7 @@ bool GetRecordConfig(FString& AssetPath, FString& AssetName)
 	return false;
 }
 
-bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent * Component)
+bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Component)
 {
 	// ask for path
 	FString AssetPath;
@@ -54,36 +53,60 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent * Compone
 		return false;
 	}
 
-	if(GetRecordConfig(AssetPath, AssetName))
+	if (GetRecordConfig(AssetPath, AssetName))
 	{
-		// create the asset
-		UObject* 	Parent = CreatePackage(NULL, *AssetPath);
-		UObject* Object = LoadObject<UObject>(Parent, *AssetName, NULL, LOAD_None, NULL);
-		// if object with same name exists, warn user
-		if(Object)
-		{
-			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_AssetExist", "Asset with same name exists. Can't overwrite another asset"));
-			return false; // Move on to next sequence...
-		}
-
-		// If not, create new one now.
-		UAnimSequence * NewSeq = NewObject<UAnimSequence>(Parent, *AssetName, RF_Public | RF_Standalone);
-		if(NewSeq)
-		{
-			// set skeleton
-			NewSeq->SetSkeleton(Component->SkeletalMesh->Skeleton);
-			// Notify the asset registry
-			FAssetRegistryModule::AssetCreated(NewSeq);
-			StartRecord(Component, NewSeq);
-
-			return true;
-		}
+		return TriggerRecordAnimation(Component, AssetPath, AssetName);
 	}
 
 	return false;
 }
 
-void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject)
+bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Component, FString AssetPath, FString AssetName)
+{
+	if (!Component || !Component->SkeletalMesh || !Component->SkeletalMesh->Skeleton)
+	{
+		return false;
+	}
+
+	// create the asset
+	UObject* Parent = AssetPath.IsEmpty() ? nullptr : CreatePackage(nullptr, *AssetPath);
+	if (Parent == nullptr)
+	{
+		// bad or no path passed in, do the popup
+		if (GetRecordConfig(AssetPath, AssetName) == false)
+		{
+			return false;
+		}
+		
+		Parent = CreatePackage(nullptr, *AssetPath);
+	}
+
+	UObject* const Object = LoadObject<UObject>(Parent, *AssetName, nullptr, LOAD_None, nullptr);
+	// if object with same name exists, warn user
+	if (Object)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_AssetExist", "Asset with same name exists. Can't overwrite another asset"));
+		return false;		// failed
+	}
+
+	// If not, create new one now.
+	UAnimSequence* const NewSeq = NewObject<UAnimSequence>(Parent, *AssetName, RF_Public | RF_Standalone);
+	if (NewSeq)
+	{
+		// set skeleton
+		NewSeq->SetSkeleton(Component->SkeletalMesh->Skeleton);
+		// Notify the asset registry
+		FAssetRegistryModule::AssetCreated(NewSeq);
+		StartRecord(Component, NewSeq);
+
+		return true;
+	}
+
+	return false;
+}
+
+
+void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSequence* InAnimationObject)
 {
 	TimePassed = 0.f;
 	AnimationObject = InAnimationObject;
@@ -122,7 +145,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	Record(Component, PreviousSpacesBases, 0);
 }
 
-UAnimSequence * FAnimationRecorder::StopRecord(bool bShowMessage)
+UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 {
 	if (AnimationObject)
 	{
@@ -134,7 +157,7 @@ UAnimSequence * FAnimationRecorder::StopRecord(bool bShowMessage)
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
 
-		UAnimSequence * ReturnObject = AnimationObject;
+		UAnimSequence* ReturnObject = AnimationObject;
 
 		// notify to user
 		if (bShowMessage)
@@ -173,7 +196,7 @@ UAnimSequence * FAnimationRecorder::StopRecord(bool bShowMessage)
 
 // return false if nothing to update
 // return true if it has properly updated
-void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime)
+void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float DeltaTime)
 {
 	// if no animation object, return
 	if (!AnimationObject)
@@ -244,7 +267,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 	}
 }
 
-void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd )
+void FAnimationRecorder::Record( USkeletalMeshComponent* Component, TArray<FTransform> SpacesBases, int32 FrameToAdd )
 {
 	if (ensure (AnimationObject))
 	{
@@ -281,6 +304,137 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 		LastFrame = FrameToAdd;
 	}
 }
+
+
+
+
+void FAnimationRecorderManager::Tick(float DeltaTime)
+{
+	for (auto& Inst : RecorderInstances)
+	{
+		Inst.Update(DeltaTime);
+	}
+}
+
+FAnimationRecorderManager::FAnimationRecorderManager()
+{
+}
+
+FAnimationRecorderManager::~FAnimationRecorderManager()
+{
+}
+
+FAnimationRecorderManager& FAnimationRecorderManager::Get()
+{
+	static FAnimationRecorderManager AnimRecorderManager;
+	return AnimRecorderManager;
+}
+
+
+FAnimRecorderInstance::FAnimRecorderInstance()
+	: Actor(nullptr),
+	SkelComp(nullptr),
+	Recorder(nullptr)
+{
+}
+
+void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName)
+{
+	Actor = InActor;
+	SkelComp = InComponent;
+	AssetPath = InAssetPath;
+	AssetName = InAssetName;
+	Recorder = new FAnimationRecorder();
+	Recorder->bRecordLocalToWorld = true;
+}
+
+FAnimRecorderInstance::~FAnimRecorderInstance()
+{
+	if (Recorder)
+	{
+		delete Recorder;
+		Recorder = nullptr;
+	}
+}
+
+bool FAnimRecorderInstance::BeginRecording()
+{
+	if (Recorder)
+	{
+		return Recorder->TriggerRecordAnimation(SkelComp.Get(), AssetPath, AssetName);
+	}
+
+	return false;
+}
+
+void FAnimRecorderInstance::Update(float DeltaTime)
+{
+	if (Recorder)
+	{
+		Recorder->UpdateRecord(SkelComp.Get(), DeltaTime);
+	}
+}
+
+void FAnimRecorderInstance::FinishRecording()
+{
+	const FText FinishRecordingAnimationSlowTask = LOCTEXT("FinishRecordingAnimationSlowTask", "Finalizing recorded animation");
+	GWarn->BeginSlowTask(FinishRecordingAnimationSlowTask, false);
+
+	if (Recorder)
+	{
+		Recorder->StopRecord(false);
+	}
+
+	GWarn->EndSlowTask();
+}
+
+bool FAnimationRecorderManager::RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString AssetPath, FString AssetName)
+{
+	int32 const NewInstIdx = RecorderInstances.AddDefaulted();
+	
+	FAnimRecorderInstance& NewInst = RecorderInstances[NewInstIdx];
+	NewInst.Init(Actor, Component, AssetPath, AssetName);
+
+	bool const bSuccess = NewInst.BeginRecording();
+	if (bSuccess == false)
+	{
+		// failed, remove it
+		RecorderInstances.RemoveAtSwap(NewInstIdx);
+	}
+
+	return bSuccess;
+}
+
+void FAnimationRecorderManager::StopRecordingAnimation(AActor* Actor, USkeletalMeshComponent* Component)
+{
+	FAnimRecorderInstance* InstToStop = nullptr;
+	for (int32 Idx = 0; Idx < RecorderInstances.Num(); ++Idx)
+	{
+		FAnimRecorderInstance& Inst = RecorderInstances[Idx];
+		if (Inst.Actor == Actor && Inst.SkelComp == Component)
+		{
+			// stop and finalize recoded data
+			Inst.FinishRecording();
+
+			// remove instance, which will clean itself up
+			RecorderInstances.RemoveAtSwap(Idx);
+
+			// all done
+			break;
+		}
+	}
+}
+
+void FAnimationRecorderManager::StopRecordingAllAnimations()
+{
+	for (auto& Inst : RecorderInstances)
+	{
+		Inst.FinishRecording();
+	}
+
+	RecorderInstances.Empty();
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

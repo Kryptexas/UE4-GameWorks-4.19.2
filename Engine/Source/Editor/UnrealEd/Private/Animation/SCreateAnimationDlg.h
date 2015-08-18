@@ -2,17 +2,17 @@
 
 #pragma once
 
-class SImportPathDialog: public SWindow
+class SCreateAnimationDlg: public SWindow
 {
 public:
-	SLATE_BEGIN_ARGS(SImportPathDialog)
+	SLATE_BEGIN_ARGS(SCreateAnimationDlg)
 	{
 	}
-
+	
 	SLATE_ARGUMENT(FText, DefaultAssetPath)
 	SLATE_END_ARGS()
 
-	SImportPathDialog()
+		SCreateAnimationDlg()
 		: UserResponse(EAppReturnType::Cancel)
 	{
 		}
@@ -26,16 +26,22 @@ public:
 	/** Gets the resulting asset path */
 	FString GetAssetPath();
 
+	/** Gets the resulting asset name */
+	FString GetAssetName();
+
+	/** Gets the resulting full asset path (path+'/'+name) */
+	FString GetFullAssetPath();
+
 protected:
 	void OnPathChange(const FString& NewPath);
+	void OnNameChange(const FText& NewName, ETextCommit::Type CommitInfo);
 	FReply OnButtonClick(EAppReturnType::Type ButtonID);
+
+	bool ValidatePackage();
 
 	EAppReturnType::Type UserResponse;
 	FText AssetPath;
 	FText AssetName;
-	FText Duration;
 
 	static FText LastUsedAssetPath;
 };
-
-
