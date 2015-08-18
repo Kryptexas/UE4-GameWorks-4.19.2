@@ -139,6 +139,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
 	uint32 bAutoUpdateTickRegistration:1;
 
+	/**
+	 * If true, after registration we will add a tick dependency to tick before our owner (if we can both tick).
+	 * This is important when our tick causes an update in the owner's position, so that when the owner ticks it uses the most recent position without lag.
+	 * Disabling this can improve performance if both objects tick but the order of ticks doesn't matter.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
+	uint32 bTickBeforeOwner:1;
+
 	/** If true, registers the owner's Root component as the UpdatedComponent if there is not one currently assigned. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
 	uint32 bAutoRegisterUpdatedComponent:1;

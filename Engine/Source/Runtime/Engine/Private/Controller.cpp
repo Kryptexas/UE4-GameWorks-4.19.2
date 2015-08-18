@@ -327,10 +327,8 @@ void AController::RemovePawnTickDependency(APawn* InOldPawn)
 		{
 			PawnMovement->PrimaryComponentTick.RemovePrerequisite(this, this->PrimaryActorTick);
 		}
-		else
-		{
-			InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
-		}
+		
+		InOldPawn->PrimaryActorTick.RemovePrerequisite(this, this->PrimaryActorTick);
 	}
 }
 
@@ -339,12 +337,20 @@ void AController::AddPawnTickDependency(APawn* NewPawn)
 {
 	if (NewPawn != NULL)
 	{
+		bool bNeedsPawnPrereq = true;
 		UPawnMovementComponent* PawnMovement = NewPawn->GetMovementComponent();
-		if (PawnMovement)
+		if (PawnMovement && PawnMovement->PrimaryComponentTick.bCanEverTick)
 		{
 			PawnMovement->PrimaryComponentTick.AddPrerequisite(this, this->PrimaryActorTick);
+
+			// Don't need a prereq on the pawn if the movement component already sets up a prereq.
+			if (PawnMovement->bTickBeforeOwner || NewPawn->PrimaryActorTick.GetPrerequisites().Contains(FTickPrerequisite(PawnMovement, PawnMovement->PrimaryComponentTick)))
+			{
+				bNeedsPawnPrereq = false;
+			}
 		}
-		else
+		
+		if (bNeedsPawnPrereq)
 		{
 			NewPawn->PrimaryActorTick.AddPrerequisite(this, this->PrimaryActorTick);
 		}

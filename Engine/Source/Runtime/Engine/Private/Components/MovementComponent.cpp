@@ -25,6 +25,7 @@ UMovementComponent::UMovementComponent(const FObjectInitializer& ObjectInitializ
 
 	bUpdateOnlyIfRendered = false;
 	bAutoUpdateTickRegistration = true;
+	bTickBeforeOwner = true;
 	bAutoRegisterUpdatedComponent = true;
 
 	PlaneConstraintNormal = FVector::ZeroVector;
@@ -141,7 +142,7 @@ void UMovementComponent::RegisterComponentTickFunctions(bool bRegister)
 
 	// If the owner ticks, make sure we tick first
 	AActor* Owner = GetOwner();
-	if (bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
+	if (bTickBeforeOwner && bRegister && PrimaryComponentTick.bCanEverTick && Owner && Owner->CanEverTick())
 	{
 		Owner->PrimaryActorTick.AddPrerequisite(this, PrimaryComponentTick);
 	}
