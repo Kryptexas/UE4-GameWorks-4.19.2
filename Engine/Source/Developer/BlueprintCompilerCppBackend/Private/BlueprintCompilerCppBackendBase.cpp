@@ -208,12 +208,12 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 		bool bAddCppFromBpEventMD = false;
 		bool bGenerateAsNativeEventImplementation = false;
 		// Get original function declaration
-		if (FEmitHelper::ShoulsHandleAsNativeEvent(Function)) // BlueprintNativeEvent
+		if (FEmitHelper::ShouldHandleAsNativeEvent(Function)) // BlueprintNativeEvent
 		{
 			bGenerateAsNativeEventImplementation = true;
 			FunctionName += TEXT("_Implementation");
 		}
-		else if (FEmitHelper::ShoulsHandleAsImplementableEvent(Function)) // BlueprintImplementableEvent
+		else if (FEmitHelper::ShouldHandleAsImplementableEvent(Function)) // BlueprintImplementableEvent
 		{
 			bAddCppFromBpEventMD = true;
 		}

@@ -234,9 +234,9 @@ struct FEmitHelper
 
 	static UFunction* GetOriginalFunction(UFunction* Function);
 
-	static bool ShoulsHandleAsNativeEvent(UFunction* Function);
+	static bool ShouldHandleAsNativeEvent(UFunction* Function);
 
-	static bool ShoulsHandleAsImplementableEvent(UFunction* Function);
+	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 
 	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 };

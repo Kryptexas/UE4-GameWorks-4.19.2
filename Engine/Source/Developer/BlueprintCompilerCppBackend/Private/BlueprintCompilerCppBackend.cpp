@@ -450,7 +450,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 			Result += TEXT("Super::");
 		}
 		Result += Statement.FunctionToCall->GetName();
-		if (Statement.bIsParentContext && FEmitHelper::ShoulsHandleAsNativeEvent(Statement.FunctionToCall))
+		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall))
 		{
 			ensure(!bCallOnDifferentObject);
 			Result += TEXT("_Implementation");

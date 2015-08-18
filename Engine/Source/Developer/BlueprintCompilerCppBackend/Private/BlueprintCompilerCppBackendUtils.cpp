@@ -590,7 +590,7 @@ UFunction* FEmitHelper::GetOriginalFunction(UFunction* Function)
 	return Function;
 }
 
-bool FEmitHelper::ShoulsHandleAsNativeEvent(UFunction* Function)
+bool FEmitHelper::ShouldHandleAsNativeEvent(UFunction* Function)
 {
 	check(Function);
 	auto OriginalFunction = FEmitHelper::GetOriginalFunction(Function);
@@ -607,7 +607,7 @@ bool FEmitHelper::ShoulsHandleAsNativeEvent(UFunction* Function)
 	return false;
 }
 
-bool FEmitHelper::ShoulsHandleAsImplementableEvent(UFunction* Function)
+bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 {
 	check(Function);
 	auto OriginalFunction = FEmitHelper::GetOriginalFunction(Function);
