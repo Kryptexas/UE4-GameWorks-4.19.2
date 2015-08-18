@@ -208,6 +208,7 @@ void FActiveSound::UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveI
 		{
 			AttenuationSettings.ApplyAttenuation(ParseParams.Transform, Listener.Transform.GetTranslation(), ParseParams.Volume, ParseParams.HighFrequencyGain );
 			ParseParams.OmniRadius = AttenuationSettings.OmniRadius;
+			ParseParams.StereoSpread = AttenuationSettings.StereoSpread;
 			ParseParams.bUseSpatialization = AttenuationSettings.bSpatialize;
 			if (AttenuationSettings.SpatializationAlgorithm == SPATIALIZATION_Default && AudioDevice->IsHRTFEnabledForAll())
 			{

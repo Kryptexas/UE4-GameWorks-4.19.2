@@ -191,6 +191,8 @@ bool FAttenuationSettings::operator==(const FAttenuationSettings& Other) const
 	return (   bAttenuate			    == Other.bAttenuate
 			&& bSpatialize			    == Other.bSpatialize
 			&& dBAttenuationAtMax	    == Other.dBAttenuationAtMax
+			&& OmniRadius				== Other.OmniRadius
+			&& StereoSpread				== Other.StereoSpread
 			&& DistanceAlgorithm	    == Other.DistanceAlgorithm
 			&& AttenuationShape		    == Other.AttenuationShape
 			&& bAttenuateWithLPF	    == Other.bAttenuateWithLPF

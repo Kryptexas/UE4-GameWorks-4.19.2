@@ -37,6 +37,7 @@ FAudioDeviceManager::FAudioDeviceManager()
 	, NextResourceID(1)
 	, SoloDeviceHandle(INDEX_NONE)
 	, ActiveAudioDeviceHandle(INDEX_NONE)
+	, bVisualize3dDebug(false)
 {
 }
 
@@ -491,3 +492,15 @@ void FAudioDeviceManager::RemoveSoundMix(USoundMix* SoundMix)
 		}
 	}
 }
+
+bool FAudioDeviceManager::IsVisualizeDebug3dEnabled() const
+{
+	return bVisualize3dDebug;
+}
+
+void FAudioDeviceManager::ToggleVisualize3dDebug()
+{
+	bVisualize3dDebug = !bVisualize3dDebug;
+}
+
+

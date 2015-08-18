@@ -212,6 +212,7 @@ public:
 	bool HandleEnableHRTFForAllCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 	bool HandleSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleClearSoloCommand( const TCHAR* Cmd, FOutputDevice& Ar );
+	bool HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif
 
 	/**

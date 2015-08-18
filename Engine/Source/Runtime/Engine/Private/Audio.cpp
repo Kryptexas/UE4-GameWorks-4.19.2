@@ -388,6 +388,8 @@ FWaveInstance::FWaveInstance( FActiveSound* InActiveSound )
 ,	Pitch( 0.0f )
 ,	Velocity( FVector::ZeroVector )
 ,	Location( FVector::ZeroVector )
+,	OmniRadius(0.0f)
+,	StereoSpread(0.0f)
 ,	UserIndex( 0 )
 {
 	TypeHash = ++TypeHashCounter;

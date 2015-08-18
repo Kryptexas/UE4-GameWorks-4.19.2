@@ -310,6 +310,28 @@ void DrawDebugCoordinateSystem(const UWorld* InWorld, FVector const& AxisLoc, FR
 	}
 }
 
+ENGINE_API void DrawDebugCrosshairs(const UWorld* InWorld, FVector const& AxisLoc, FRotator const& AxisRot, float Scale, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+{
+	// no debug line drawing on dedicated server
+	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
+	{
+		FRotationMatrix R(AxisRot);
+		FVector const X = 0.5f * R.GetScaledAxis(EAxis::X);
+		FVector const Y = 0.5f * R.GetScaledAxis(EAxis::Y);
+		FVector const Z = 0.5f * R.GetScaledAxis(EAxis::Z);
+
+		// this means foreground lines can't be persistent 
+		ULineBatchComponent* const LineBatcher = GetDebugLineBatcher(InWorld, bPersistentLines, LifeTime, (DepthPriority == SDPG_Foreground));
+		if (LineBatcher != NULL)
+		{
+			LineBatcher->DrawLine(AxisLoc - X*Scale, AxisLoc + X*Scale, Color, DepthPriority);
+			LineBatcher->DrawLine(AxisLoc - Y*Scale, AxisLoc + Y*Scale, Color, DepthPriority);
+			LineBatcher->DrawLine(AxisLoc - Z*Scale, AxisLoc + Z*Scale, Color, DepthPriority);
+		}
+	}
+}
+
+
 static void InternalDrawDebugCircle(const UWorld* InWorld, const FMatrix& TransformMatrix, float Radius, int32 Segments, const FColor& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness = 0.f)
 {
 	// no debug line drawing on dedicated server

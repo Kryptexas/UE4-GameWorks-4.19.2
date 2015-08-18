@@ -37,6 +37,9 @@ struct FSoundParseParameters
 	// At what distance from the source of the sound should spatialization begin
 	float OmniRadius;
 
+	// The distance between left and right channels when spatializing stereo assets
+	float StereoSpread;
+
 	// Which spatialization algorithm to use
 	ESoundSpatializationAlgorithm SpatializationAlgorithm;
 
@@ -55,6 +58,7 @@ struct FSoundParseParameters
 		, HighFrequencyGain(1.f)
 		, StartTime(-1.f)
 		, OmniRadius(0.0f)
+		, StereoSpread(0.0f)
 		, SpatializationAlgorithm(SPATIALIZATION_Default)
 		, bUseSpatialization(false)
 		, bLooping(false)

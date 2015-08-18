@@ -607,7 +607,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		WaveInstance->StartTime = ParseParams.StartTime;
 		WaveInstance->UserIndex = ActiveSound.UserIndex;
 		WaveInstance->OmniRadius = ParseParams.OmniRadius;
-
+		WaveInstance->StereoSpread = ParseParams.StereoSpread;
 		bool bAlwaysPlay = false;
 
 		// Properties from the sound class

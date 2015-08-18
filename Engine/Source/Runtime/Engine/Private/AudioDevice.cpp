@@ -772,6 +772,16 @@ bool FAudioDevice::HandleClearSoloCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 	return true;
 }
 
+bool FAudioDevice::HandleAudio3dVisualizeCommand(const TCHAR* Cmd, FOutputDevice& Ar)
+{
+	FAudioDeviceManager* DeviceManager = GEngine->GetAudioDeviceManager();
+	if (DeviceManager)
+	{
+		DeviceManager->ToggleVisualize3dDebug();
+	}
+	return true;
+}
+
 #endif // !UE_BUILD_SHIPPING
 
 EDebugState FAudioDevice::GetMixDebugState( void )
@@ -877,6 +887,10 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	else if (FParse::Command(&Cmd, TEXT("ClearSoloAudio")))
 	{
 		return HandleClearSoloCommand(Cmd, Ar);
+	}
+	else if (FParse::Command(&Cmd, TEXT("Audio3dVisualize")))
+	{
+		return HandleAudio3dVisualizeCommand(Cmd, Ar);
 	}
 #endif // !UE_BUILD_SHIPPING
 

@@ -114,6 +114,12 @@ public:
 	/** Removes sound mix from all audio devices */
 	void RemoveSoundMix(USoundMix* SoundMix);
 
+	/** Is debug visualization of 3d sounds enabled */
+	bool IsVisualizeDebug3dEnabled() const;
+
+	/** Toggles 3d visualization of 3d sounds on/off */
+	void ToggleVisualize3dDebug();
+
 public:
 
 	/** Array of all created buffers */
@@ -166,6 +172,9 @@ private:
 
 	/** Which audio device is currently active */
 	uint32 ActiveAudioDeviceHandle;
+
+	/** Whether or not 3d debug visualization is enabled. */
+	bool bVisualize3dDebug;
 };
 
 
