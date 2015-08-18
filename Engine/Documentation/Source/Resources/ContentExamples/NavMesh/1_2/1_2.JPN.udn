@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2620710
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.2 - Nav Link Proxy
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/NavMesh
@@ -7,6 +7,24 @@ Related:Engine/AI/BehaviorTrees/QuickStart
 Related:Gameplay/AI
 Related:Engine/AI/BehaviorTrees/NodeReference
 Related:Engine/Actors/Volumes
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/NavMesh/1_1 "%Resources/ContentExamples/NavMesh/1_1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Navmesh のホーム](Resources/ContentExamples/NavMesh)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/NavMesh/1_3 "%Resources/ContentExamples/NavMesh/1_3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
