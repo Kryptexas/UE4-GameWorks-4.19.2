@@ -22,7 +22,7 @@ private:
 	bool bRegisteringUser;
 
 	/** UID for this identity */
-	TSharedPtr< FUniqueNetIdString > UniqueNetId;
+	TSharedPtr< const FUniqueNetIdString > UniqueNetId;
 
 	struct FPendingConnection
 	{
@@ -41,7 +41,9 @@ PACKAGE_SCOPE:
 	FOnlineIdentityGooglePlay(FOnlineSubsystemGooglePlay* InSubsystem);
 
 	/** Allow individual interfaces to access the currently signed-in user's id */
-	TSharedPtr<const FUniqueNetId> GetCurrentUserId() const { return UniqueNetId; }
+	TSharedPtr<const FUniqueNetIdString> GetCurrentUserId() const { return UniqueNetId; }
+
+	void SetCurrentUserId(TSharedPtr<const FUniqueNetIdString> InUniqueNetId) { UniqueNetId = InUniqueNetId; }
 
 public:
 
