@@ -1068,6 +1068,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	TArray<FString> CmdLineMapEntries;
 	TArray<FString> CmdLineDirEntries;
 	TArray<FString> CmdLineCultEntries;
+	TArray<FString> CmdLineNeverCookDirEntries;
 	for (int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++)
 	{
 		const FString& Switch = Switches[SwitchIdx];
@@ -1111,11 +1112,13 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	{
 		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
 		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
-		for(const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
+		for (const auto& DirToCook : PackagingSettings->DirectoriesToAlwaysCook)
 		{
 			CmdLineDirEntries.Add(AbsoluteGameContentDir / DirToCook.Path);
 		}
+
 	}
+
 
 	// Add any map sections specified on command line
 	TArray<FString> AlwaysCookMapList;
@@ -1173,6 +1176,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.TargetPlatforms = Platforms;
 	Swap( StartupOptions.CookMaps, MapList );
 	Swap( StartupOptions.CookDirectories, CmdLineDirEntries );
+	Swap( StartupOptions.NeverCookDirectories, CmdLineNeverCookDirEntries);
 	Swap( StartupOptions.CookCultures, CmdLineCultEntries );
 	Swap( StartupOptions.DLCName, DLCName );
 	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );

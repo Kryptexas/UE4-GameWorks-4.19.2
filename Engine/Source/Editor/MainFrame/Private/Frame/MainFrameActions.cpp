@@ -514,6 +514,11 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		}
 	}
 
+	if (PackagingSettings->bSkipEditorContent)
+	{
+		OptionalParams += TEXT(" -SKIPEDITORCONTENT");
+	}
+
 	if (PackagingSettings->UsePakFile)
 	{
 	  if (PlatformInfo->TargetPlatformName != FName("HTML5")) 

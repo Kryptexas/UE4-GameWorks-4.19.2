@@ -1570,6 +1570,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 #endif
 			continue;
 		}
+
 #if DEBUG_COOKONTHEFLY
 		UE_LOG(LogCook, Display, TEXT("Processing package %s"), *ToBuild.GetFilename().ToString());
 #endif
@@ -1631,6 +1632,16 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				bShouldCook = false;
 			}
 		}
+
+
+		if (NeverCookPackageList.Contains(ToBuild.GetFilename()))
+		{
+#if DEBUG_COOKONTHEFLY
+			UE_LOG(LogCook, Display, TEXT("Package %s requested but is in the never cook package list, discarding request"), *ToBuild.GetFilename().ToString());
+#endif
+			bShouldCook = false;
+		}
+
 
 		if ( bShouldCook ) // if we should cook the package then cook it otherwise add it to the list of already cooked packages below
 		{
@@ -1973,6 +1984,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if (Package->IsLoadedByEditorPropertiesOnly() && UncookedEditorOnlyPackages.Contains(Package->GetFName()))
 				{
 					// We already attempted to cook this package and it's still not referenced by any non editor-only properties.
+					continue;
+				}
+
+				const FName StandardPackageFilename = GetCachedStandardPackageFileFName(Package);
+				if (NeverCookPackageList.Contains(StandardPackageFilename))
+				{
+					// refuse to save this package, it's clearly one of the undesirables
 					continue;
 				}
 
@@ -3351,7 +3369,7 @@ void UCookOnTheFlyServer::AddFileToCook( TArray<FName>& InOutFilesToCook, const 
 	}
 }
 
-void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString> &CookMaps, const TArray<FString> &InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev )
+void UCookOnTheFlyServer::CollectFilesToCook(TArray<FName>& FilesInPath, const TArray<FString>& CookMaps, const TArray<FString>& InCookDirectories, const TArray<FString> &CookCultures, const TArray<FString> &IniMapSections, bool bCookAll, bool bMapsOnly, bool bNoDev )
 {
 	if (CookByTheBookOptions->bIsChildCooker)
 	{
@@ -4022,7 +4040,52 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 	CookByTheBookOptions->bForceDisableCompressedPackages = !!(CookOptions & ECookByTheBookOptions::ForceDisableCompressed);
 	CookByTheBookOptions->bIsChildCooker = CookByTheBookStartupOptions.ChildCookFileName.Len() > 0 ? true : false;
 	CookByTheBookOptions->ChildCookFilename = CookByTheBookStartupOptions.ChildCookFileName;
+	
+	NeverCookPackageList.Empty();
+	{
+		const FString AbsoluteGameContentDir = FPaths::ConvertRelativePathToFull(FPaths::GameContentDir());
+		const UProjectPackagingSettings* const PackagingSettings = GetDefault<UProjectPackagingSettings>();
 
+		TArray<FString> NeverCookDirectories = CookByTheBookStartupOptions.NeverCookDirectories;
+
+		for (const auto& DirToNotCook : PackagingSettings->DirectoriesToNeverCook)
+		{
+			NeverCookDirectories.Add(AbsoluteGameContentDir / DirToNotCook.Path);
+		}
+
+		for (const auto& NeverCookDirectory : NeverCookDirectories)
+		{
+			// add the packages to the never cook package list
+			struct FNeverCookDirectoryWalker : public IPlatformFile::FDirectoryVisitor
+			{
+			private:
+				FThreadSafeNameSet &NeverCookPackageList;
+			public:
+				FNeverCookDirectoryWalker(FThreadSafeNameSet &InNeverCookPackageList) : NeverCookPackageList(InNeverCookPackageList) { }
+
+				// IPlatformFile::FDirectoryVisitor interface
+				virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+				{
+					if (bIsDirectory)
+					{
+						return true;
+					}
+					FString StandardFilename = FString(FilenameOrDirectory);
+					FPaths::MakeStandardFilename(StandardFilename);
+
+					NeverCookPackageList.Add(FName(*StandardFilename));
+					return true;
+				}
+
+			} NeverCookDirectoryWalker(NeverCookPackageList);
+
+			IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+			PlatformFile.IterateDirectoryRecursively(*NeverCookDirectory, NeverCookDirectoryWalker);
+		}
+
+	}
+	
 
 	CookByTheBookOptions->TargetPlatformNames.Empty();
 	for (const auto &Platform : TargetPlatforms)
@@ -4561,6 +4624,13 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 		}
 		bShouldMarkAsAlreadyProcessed = true;
 		UE_LOG(LogCook, Display, TEXT("Marking %s as reloading for cooker because it's been cooked for platforms%s."), *StandardName.ToString(), *Platforms);
+	}
+
+
+	if (NeverCookPackageList.Contains(StandardName))
+	{
+		bShouldMarkAsAlreadyProcessed = true;
+		UE_LOG(LogCook, Display, TEXT("Marking %s as reloading for cooker because it was requested as never cook package."), *StandardName.ToString());
 	}
 
 	/*
