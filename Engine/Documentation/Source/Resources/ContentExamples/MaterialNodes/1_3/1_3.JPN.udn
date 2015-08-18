@@ -20,7 +20,7 @@ Related:Engine/Actors/DecalActor
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Material Nodes のホーム](Resources/ContentExamples/MaterialNodes)
+		[マテリアル ノードのホーム](Resources/ContentExamples/MaterialNodes)
 	[/PARAM]
 	[PARAM:next]
 		[次のサンプル](Resources/ContentExamples/MaterialNodes/1_4 "%Resources/ContentExamples/MaterialNodes/1_4:title%")
