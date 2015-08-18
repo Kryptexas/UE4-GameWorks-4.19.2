@@ -1,10 +1,26 @@
-﻿INTSourceChangelist:2094639
+﻿INTSourceChangelist:2653283
 Availability:Public
-Title:1.8 - Opacity Mask (オパシティ マスク)
+Title:1.8 - Opacity Mask
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
-Description: マテリアルノード事例レベルの概要、事例 1.8オパシティ マスク
+Description: マテリアル ノードのサンプル レベルの概要、1.8: Opacity Mask.
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/MaterialNodes/1_7 "%Resources/ContentExamples/MaterialNodes/1_7:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[マテリアル ノードのホーム](Resources/ContentExamples/MaterialNodes)
+	[/PARAM]
+	[PARAM:next]
+		[次のステップ](Resources/ContentExamples/MaterialNodes/1_9 "%Resources/ContentExamples/MaterialNodes/1_9:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
