@@ -9,7 +9,7 @@ class USlateBrushAsset;
 /**
  * The image widget allows you to display a Slate Brush, or texture or material in the UI.
  *
- * ● No Children
+ * * No Children
  */
 UCLASS()
 class UMG_API UImage : public UWidget

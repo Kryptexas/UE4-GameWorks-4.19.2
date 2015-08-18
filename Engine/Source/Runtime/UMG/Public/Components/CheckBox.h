@@ -13,8 +13,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FOnCheckBoxComponentStateChanged, b
  * 'indeterminable.  You can use the checkbox for a classic checkbox, or as a toggle button,
  * or as radio buttons.
  * 
- * ● Single Child
- * ● Toggle
+ * * Single Child
+ * * Toggle
  */
 UCLASS()
 class UMG_API UCheckBox : public UContentWidget

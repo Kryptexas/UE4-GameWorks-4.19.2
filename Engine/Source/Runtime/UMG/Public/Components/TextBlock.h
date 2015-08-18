@@ -7,8 +7,8 @@
 /**
  * A simple static text widget.
  *
- * ● No Children
- * ● Text
+ * * No Children
+ * * Text
  */
 UCLASS(meta=(DisplayName="Text"))
 class UMG_API UTextBlock : public UWidget

@@ -7,8 +7,8 @@
 /**
  * Allows the user to type in custom text.  Only permits a single line of text to be entered.
  * 
- * ● No Children
- * ● Text Entry
+ * * No Children
+ * * Text Entry
  */
 UCLASS(meta=(DisplayName="Text Box"))
 class UMG_API UEditableTextBox : public UWidget

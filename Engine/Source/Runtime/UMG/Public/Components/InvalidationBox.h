@@ -6,8 +6,8 @@
 
 /**
  * Invalidate
- * ● Single Child
- * ● Caching / Performance
+ * * Single Child
+ * * Caching / Performance
  */
 UCLASS()
 class UMG_API UInvalidationBox : public UContentWidget

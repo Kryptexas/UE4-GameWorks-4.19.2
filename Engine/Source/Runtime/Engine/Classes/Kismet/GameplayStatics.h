@@ -306,8 +306,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/**
 	 * Plays a sound directly with no attenuation, perfect for UI sounds.
 	 *
-	 * ● Fire and Forget.
-	 * ● Not Replicated.
+	 * * Fire and Forget.
+	 * * Not Replicated.
 	 * @param Sound - Sound to play.
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
 	 * @param PitchMultiplier - Multiplies the pitch.
@@ -319,7 +319,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/**
 	 * Spawns a sound with no attenuation, perfect for UI sounds.
 	 *
-	 * ● Not Replicated.
+	 * * Not Replicated.
 	 * @param Sound - Sound to play.
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
 	 * @param PitchMultiplier - Multiplies the pitch.
@@ -392,8 +392,8 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/**
 	 * Plays a dialogue directly with no attenuation, perfect for UI.
 	 *
-	 * ● Fire and Forget.
-	 * ● Not Replicated.
+	 * * Fire and Forget.
+	 * * Not Replicated.
 	 * @param Dialogue - dialogue to play
 	 * @param Context - context the dialogue is to play in
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.
@@ -406,7 +406,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/**
 	 * Spawns a dialogue with no attenuation, perfect for UI.
 	 *
-	 * ● Not Replicated.
+	 * * Not Replicated.
 	 * @param Dialogue - dialogue to play
 	 * @param Context - context the dialogue is to play in
 	 * @param VolumeMultiplier - Multiplied with the volume to make the sound louder or softer.

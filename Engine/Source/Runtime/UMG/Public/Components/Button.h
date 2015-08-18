@@ -15,8 +15,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonReleasedEvent);
  * can place any other widget inside a button to make a more complex and 
  * interesting click-able element in your UI.
  *
- * ● Single Child
- * ● Clickable
+ * * Single Child
+ * * Clickable
  */
 UCLASS()
 class UMG_API UButton : public UContentWidget
