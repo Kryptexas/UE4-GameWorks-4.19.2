@@ -8,15 +8,15 @@ Description:レベル内でプレイヤーの TopDownCharacter のすべての�
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Engine/AI/EnvironmentQuerySystem/QuickStart/10 "%Engine/AI/EnvironmentQuerySystem/QuickStart/10:title%")
+		[前のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/10 "%Engine/AI/EnvironmentQuerySystem/QuickStart/10:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Quick Start Home](Engine/AI/EnvironmentQuerySystem/QuickStart)
+		[クイックスタート ホーム](Engine/AI/EnvironmentQuerySystem/QuickStart)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/AI/EnvironmentQuerySystem/QuickStart/12 "%Engine/AI/EnvironmentQuerySystem/QuickStart/12:title%")
+		[次のステップ](Engine/AI/EnvironmentQuerySystem/QuickStart/12 "%Engine/AI/EnvironmentQuerySystem/QuickStart/12:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
