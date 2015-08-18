@@ -41,7 +41,22 @@ public class MacPlatform : Platform
 
 	private void StageAppBundle(DeploymentContext SC, StagedFileType InStageFileType, string InPath, string NewName)
 	{
-		SC.StageFiles(InStageFileType, InPath, "*", true, null, NewName, false, true, null);
+		if (InStageFileType != StagedFileType.DebugNonUFS)
+		{
+			// Files with DebugFileExtensions should always be DebugNonUFS
+			List<string> DebugExtentions = GetDebugFileExtentions();
+			SC.StageFiles(InStageFileType, InPath, "*", true, DebugExtentions.ToArray(), NewName, false, true, null);
+
+			foreach(string DebugExtention in DebugExtentions)
+			{
+				SC.StageFiles(StagedFileType.DebugNonUFS, InPath, DebugExtention, true, null, NewName, false, true, null);
+			}
+		}
+		else
+		{
+			// We are already DebugNonUFS, no need to do any special-casing
+			SC.StageFiles(InStageFileType, InPath, "*", true, null, NewName, false, true, null);
+		}
 	}
 
 	public override void GetFilesToDeployOrStage(ProjectParams Params, DeploymentContext SC)
