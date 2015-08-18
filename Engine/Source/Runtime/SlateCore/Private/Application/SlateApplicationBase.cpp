@@ -82,3 +82,8 @@ bool FSlateApplicationBase::IsSlateAsleep()
 {
 	return bIsSlateAsleep;
 }
+
+void FSlateApplicationBase::InvalidateAllWidgets() const
+{
+	OnGlobalInvalidateEvent.Broadcast();
+}

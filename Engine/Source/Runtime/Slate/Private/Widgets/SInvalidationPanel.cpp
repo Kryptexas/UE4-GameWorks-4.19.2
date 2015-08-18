@@ -39,6 +39,8 @@ TAutoConsoleVariable<int32> EnableWidgetCaching(
 
 void SInvalidationPanel::Construct( const FArguments& InArgs )
 {
+	FSlateApplicationBase::Get().OnGlobalInvalidate().AddSP( this, &SInvalidationPanel::OnGlobalInvalidate );
+
 	ChildSlot
 	[
 		InArgs._Content.Widget
@@ -215,6 +217,11 @@ TSharedPtr< FSlateWindowElementList > SInvalidationPanel::GetNextCachedElementLi
 	ActiveCachedElementListPool.Add(NextElementList);
 
 	return NextElementList;
+}
+
+void SInvalidationPanel::OnGlobalInvalidate()
+{
+	InvalidateCache();
 }
 
 int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const

@@ -1490,6 +1490,9 @@ void FSlateFontCache::ReleaseResources()
 
 void FSlateFontCache::FlushCache() const
 {
+	// Ensure all invalidation panels are cleared of cached widgets
+	FSlateApplicationBase::Get().InvalidateAllWidgets();
+
 	FontToCharacterListCache.Empty();
 	FTInterface->Flush();
 

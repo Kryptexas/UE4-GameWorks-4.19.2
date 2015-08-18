@@ -49,7 +49,7 @@ public:
 
 private:
 	TSharedPtr< FSlateWindowElementList > GetNextCachedElementList(const TSharedPtr<SWindow>& CurrentWindow) const;
-
+	void OnGlobalInvalidate();
 private:
 	FGeometry LastAllottedGeometry;
 
