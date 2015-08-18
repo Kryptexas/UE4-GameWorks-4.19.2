@@ -204,6 +204,12 @@ void FXAudio2Device::TeardownHardware()
 {
 	if (DeviceProperties)
 	{
+		// Block device shutdown until all voices have been destroyed.
+		while (NumSourcesDestroying.GetValue() > 0)
+		{
+			// spin
+		}
+
 		// close hardware interfaces
 		if (DeviceProperties->MasteringVoice)
 		{
@@ -640,3 +646,41 @@ void* FXAudio2Device::AllocatePermanentMemory( int32 Size, bool& AllocatedInPool
 	
 	return( Allocation );
 }
+
+void FXAudio2Device::AsyncDestroyXAudio2Source(IXAudio2SourceVoice* Source)
+{
+	// Publish that there is a voice in-flight to be asynchronously destroyed.
+	NumSourcesDestroying.Increment();
+
+	(new FAutoDeleteAsyncTask<FAsyncXAudio2SourceDestroyer>(this, Source))->StartBackgroundTask();
+}
+
+
+/*------------------------------------------------------------------------------------
+FAsyncXAudio2SourceDestroyer
+------------------------------------------------------------------------------------*/
+
+FAsyncXAudio2SourceDestroyer::FAsyncXAudio2SourceDestroyer(FXAudio2Device* InAudioDevice, IXAudio2SourceVoice* InSourceVoice)
+	: SourceVoice(InSourceVoice)
+	, AudioDevice(InAudioDevice)
+{
+	check(AudioDevice != nullptr);
+}
+
+FAsyncXAudio2SourceDestroyer::~FAsyncXAudio2SourceDestroyer()
+{
+	check(SourceVoice == nullptr);
+}
+
+void FAsyncXAudio2SourceDestroyer::DoWork()
+{
+	check(SourceVoice);
+	SourceVoice->DestroyVoice();
+	SourceVoice = nullptr;
+
+	// Publish that this voice has been destroyed
+	check(AudioDevice != nullptr);
+	check(AudioDevice->NumSourcesDestroying.GetValue() > 0);
+	AudioDevice->NumSourcesDestroying.Decrement();
+}
+

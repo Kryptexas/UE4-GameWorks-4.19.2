@@ -17,38 +17,6 @@
 #include "XAudio2Support.h"
 #include "IAudioExtensionPlugin.h"
 
-/*------------------------------------------------------------------------------------
-	Simple async task to destroy an xaudio2 source voice without blocking the main thread.
-------------------------------------------------------------------------------------*/
-
-class FAsyncXAudio2SourceDestroyer : public FNonAbandonableTask
-{
-protected:
-	IXAudio2SourceVoice* SourceVoice;
-
-public:
-	FAsyncXAudio2SourceDestroyer(IXAudio2SourceVoice* InSourceVoice)
-		: SourceVoice(InSourceVoice)
-	{
-	}
-
-	~FAsyncXAudio2SourceDestroyer()
-	{
-		check(SourceVoice == nullptr);
-	}
-
-	void DoWork()
-	{
-		check(SourceVoice);
-		SourceVoice->DestroyVoice();
-		SourceVoice = nullptr;
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncXAudio2SourceDestroyer, STATGROUP_ThreadPoolAsyncTasks);
-	}
-};
 
 /*------------------------------------------------------------------------------------
 	For muting user soundtracks during cinematics
@@ -129,7 +97,7 @@ void FXAudio2SoundSource::FreeResources( void )
 	{
 		// Because XAudio2's DestroyVoice source is blocking and can be slow on some processors (e.g. AMD), we're creating
 		// a task that destroys the voice on a separate thread to avoid blocking or hitching.
-		(new FAutoDeleteAsyncTask<FAsyncXAudio2SourceDestroyer>(Source))->StartBackgroundTask();
+		AudioDevice->AsyncDestroyXAudio2Source(Source);
 		Source = nullptr;
 	}
 
