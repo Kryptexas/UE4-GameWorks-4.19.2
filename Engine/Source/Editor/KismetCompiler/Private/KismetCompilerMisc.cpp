@@ -1816,7 +1816,7 @@ FBPTerminal* FKismetFunctionContext::CreateLocalTerminal(ETerminalSpecification 
 	switch (Spec)
 	{
 	case ETerminalSpecification::TS_ForcedShared:
-		// ensure(IsEventGraph()); it's used in function by UK2Node_AddComponent
+		ensure(IsEventGraph());
 		Result = new (EventGraphLocals)FBPTerminal();
 		break;
 	case ETerminalSpecification::TS_Literal:
