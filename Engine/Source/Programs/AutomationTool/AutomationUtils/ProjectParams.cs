@@ -1135,6 +1135,7 @@ namespace AutomationTool
         /// <summary>
         /// Cook: Skip cooking editor content 
         /// </summary>
+		[Help("SkipCookingEditorContent", "Skips content under /Engine/Editor when cooking")]
         public bool SkipCookingEditorContent;
 
         /// <summary>
