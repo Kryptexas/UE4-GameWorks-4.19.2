@@ -1428,7 +1428,7 @@ bool UUnrealEdEngine::IsUserInteracting()
 
 void UUnrealEdEngine::AttemptModifiedPackageNotification()
 {
-	if( bNeedToPromptForCheckout )
+	if( bNeedToPromptForCheckout && !FApp::IsUnattended() )
 	{
 		// Defer prompting for checkout if we cant prompt because of the following:
 		// The user is interacting with something,
