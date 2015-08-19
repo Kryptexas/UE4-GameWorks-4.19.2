@@ -86,4 +86,6 @@ protected:
 		int32 Index = FunctionIndexMap.FindChecked(&FunctionContext);
 		return StateMapPerFunction[Index].StatementToStateIndex(Statement);
 	}
+
+	void EmitReplaceConvertedMetaData(UObject* Obj);
 };

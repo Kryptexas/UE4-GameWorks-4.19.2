@@ -79,7 +79,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
 	if (bIsInterface)
 	{
-		Emit(Header, *FString::Printf(TEXT("UINTERFACE(Blueprintable)\nclass U%s : public UInterface\n{\n\tGENERATED_BODY()\n};\n"), *CleanCppClassName));
+		Emit(Header, TEXT("UINTERFACE(Blueprintable"));
+		EmitReplaceConvertedMetaData(SourceClass);
+		Emit(Header, *FString::Printf(TEXT(")\nclass U%s : public UInterface\n{\n\tGENERATED_BODY()\n};\n"), *CleanCppClassName));
 		Emit(Header, *FString::Printf(TEXT("\nclass I%s"), *CleanCppClassName));
 	}
 	else
@@ -89,6 +91,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		{
 			Emit(Header, TEXT("Blueprintable, BlueprintType"));
 		}
+		EmitReplaceConvertedMetaData(SourceClass);
 		Emit(Header, TEXT(")\n"));
 
 		UClass* SuperClass = SourceClass->GetSuperClass();
@@ -327,7 +330,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	const FString Name = SourceEnum->GetName();
 	EmitFileBeginning(Name, nullptr);
 
-	Emit(Header, TEXT("UENUM(BlueprintType)\nenum class "));
+	Emit(Header, TEXT("UENUM(BlueprintType"));
+	EmitReplaceConvertedMetaData(SourceEnum);
+	Emit(Header, TEXT(")\nenum class "));
 	Emit(Header, *Name);
 	Emit(Header, TEXT(" : uint8\n{"));
 
@@ -343,6 +348,18 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* So
 	Emit(Header, TEXT("\n};\n"));
 }
 
+void FBlueprintCompilerCppBackendBase::EmitReplaceConvertedMetaData(UObject* Obj)
+{
+	const FString ReplaceConvertedMD = FEmitHelper::GenerateReplaceConvertedMD(Obj);
+	if (!ReplaceConvertedMD.IsEmpty())
+	{
+		TArray<FString> AdditionalMD;
+		AdditionalMD.Add(ReplaceConvertedMD);
+		Emit(Header, TEXT(","));
+		Emit(Header, *FEmitHelper::HandleMetaData(nullptr, false, &AdditionalMD));
+	}
+}
+
 void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct* SourceStruct)
 {
 	check(SourceStruct);
@@ -350,7 +367,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 	EmitFileBeginning(SourceStruct->GetName(), SourceStruct);
 
 	const FString NewName = FString(TEXT("F")) + SourceStruct->GetName();
-	Emit(Header, TEXT("USTRUCT(BlueprintType)\n"));
+	Emit(Header, TEXT("USTRUCT(BlueprintType"));
+	EmitReplaceConvertedMetaData(SourceStruct);
+	Emit(Header, TEXT(")\n"));
 
 	Emit(Header, *FString::Printf(TEXT("struct %s\n{\npublic:\n\tGENERATED_BODY()\n"), *NewName));
 	EmitStructProperties(Header, SourceStruct);

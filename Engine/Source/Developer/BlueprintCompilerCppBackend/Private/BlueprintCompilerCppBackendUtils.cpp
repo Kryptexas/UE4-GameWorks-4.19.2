@@ -49,12 +49,9 @@ FString FEmitHelper::HandleMetaData(const UField* Field, bool AddCategory, TArra
 {
 	FString MetaDataStr;
 
-	check(Field);
-	UPackage* Package = Field->GetOutermost();
-	check(Package);
-	const UMetaData* MetaData = Package->GetMetaData();
-	check(MetaData);
-	const TMap<FName, FString>* ValuesMap = MetaData->ObjectMetaDataMap.Find(Field);
+	UPackage* Package = Field ? Field->GetOutermost() : nullptr;
+	const UMetaData* MetaData = Package ? Package->GetMetaData() : nullptr;
+	const TMap<FName, FString>* ValuesMap = MetaData ? MetaData->ObjectMetaDataMap.Find(Field) : nullptr;
 	TArray<FString> MetaDataStrings;
 	if (ValuesMap && ValuesMap->Num())
 	{
@@ -208,6 +205,32 @@ bool FEmitHelper::IsBlueprintNativeEvent(uint64 FunctionFlags)
 bool FEmitHelper::IsBlueprintImplementableEvent(uint64 FunctionFlags)
 {
 	return HasAllFlags(FunctionFlags, FUNC_Event | FUNC_BlueprintEvent) && !HasAllFlags(FunctionFlags, FUNC_Native);
+}
+
+FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
+{
+	FString Result;
+	if (Obj)
+	{
+		Result = TEXT("ReplaceConverted=\"");
+		Result += Obj->GetPathName();
+		UPackage* Package = Obj->GetOutermost();
+		check(Package);
+		TArray<UObject*> AllObjects;
+		GetObjectsWithOuter(Package, AllObjects, true);
+		for (auto LocalObj : AllObjects)
+		{
+			auto Redirector = Cast<UObjectRedirector>(LocalObj);
+			if (Redirector && (Obj == Redirector->DestinationObject))
+			{
+				Result += TEXT(",");
+				Result += Redirector->GetPathName();
+			}
+		}
+		Result += TEXT("\"");
+	}
+
+	return Result;
 }
 
 FString FEmitHelper::EmitUFuntion(UFunction* Function, TArray<FString>* AdditinalMetaData)
