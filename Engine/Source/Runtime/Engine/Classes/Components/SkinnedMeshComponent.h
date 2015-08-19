@@ -477,6 +477,13 @@ public:
 	void SetForceWireframe(bool InForceWireframe);
 
 	/**
+	*	Sets the value of the SectionIndexPreview flag and reattaches the component as necessary.
+	*
+	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
+	*/
+	void SetSectionPreview(int32 InSectionIndexPreview);
+
+	/**
 	 * Function returns whether or not CPU skinning should be applied
 	 * Allows the editor to override the skinning state for editor tools
 	 *

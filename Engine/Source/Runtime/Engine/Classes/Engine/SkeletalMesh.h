@@ -655,9 +655,10 @@ public:
 	TArray<FMatrix> RefBasesInvMatrix;    
 
 #if WITH_EDITORONLY_DATA
-	/** The section currently selected in the Editor. */
+	/** The section currently selected in the Editor. Used for highlighting */
 	UPROPERTY(transient)
 	int32 SelectedEditorSection;
+
 	/** The section currently selected for clothing. need to remember this index for reimporting cloth */
 	UPROPERTY(transient)
 	int32 SelectedClothingSection;

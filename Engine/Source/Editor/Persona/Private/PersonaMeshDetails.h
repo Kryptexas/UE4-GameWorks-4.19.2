@@ -154,6 +154,20 @@ private:
 	 */
 	void OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex);
 
+	/**
+	* Handler for check box display based on whether the material is isolated
+	*
+	* @param SectionIndex	The material section that is being tested
+	*/
+	ECheckBoxState IsIsolateSectionEnabled(int32 SectionIndex) const;
+
+	/**
+	* Handler for changing isolated status on a material
+	*
+	* @param SectionIndex	The material section that is being tested
+	*/
+	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
+
 		/**
 	 * Handler for check box display based on whether the material has shadow casting enabled
 	 *

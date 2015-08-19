@@ -1093,6 +1093,17 @@ void USkinnedMeshComponent::SetForceWireframe(bool InForceWireframe)
 }
 
 
+void USkinnedMeshComponent::SetSectionPreview(int32 InSectionIndexPreview)
+{
+#if WITH_EDITORONLY_DATA
+	if (SectionIndexPreview != InSectionIndexPreview)
+	{
+		SectionIndexPreview = InSectionIndexPreview;
+		MarkRenderStateDirty();
+	}
+#endif
+}
+
 UMorphTarget* USkinnedMeshComponent::FindMorphTarget( FName MorphTargetName ) const
 {
 	if( SkeletalMesh != NULL )

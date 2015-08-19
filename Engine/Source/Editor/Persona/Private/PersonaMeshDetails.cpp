@@ -980,16 +980,35 @@ void FPersonaMeshDetails::OnGetMaterialsForView(IMaterialListBuilder& MaterialLi
 
 TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomNameWidgetsForMaterial(UMaterialInterface* Material, int32 SlotIndex, int32 LODIndex)
 {
-	return
-		SNew(SCheckBox)
-		.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SlotIndex)
-		.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SlotIndex)
-		.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
+	return SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
 		[
-			SNew(STextBlock)
-			.Font(IDetailLayoutBuilder::GetDetailFont())
-			.Text(LOCTEXT("Highlight", "Highlight"))
-			.ColorAndOpacity( FLinearColor( 0.4f, 0.4f, 0.4f, 1.0f) )
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsSectionSelected, SlotIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionSelectedChanged, SlotIndex)
+			.ToolTipText(LOCTEXT("Highlight_ToolTip", "Highlights this section in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Highlight", "Highlight"))
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 2, 0, 0)
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FPersonaMeshDetails::IsIsolateSectionEnabled, SlotIndex)
+			.OnCheckStateChanged(this, &FPersonaMeshDetails::OnSectionIsolatedChanged, SlotIndex)
+			.ToolTipText(LOCTEXT("Isolate_ToolTip", "Isolates this section in the viewport"))
+			[
+				SNew(STextBlock)
+				.Font(IDetailLayoutBuilder::GetDetailFont())
+				.ColorAndOpacity(FLinearColor(0.4f, 0.4f, 0.4f, 1.0f))
+				.Text(LOCTEXT("Isolate", "Isolate"))
+			]
 		];
 }
 
@@ -1107,8 +1126,7 @@ TSharedRef<SWidget> FPersonaMeshDetails::OnGenerateCustomMaterialWidgetsForMater
 ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
-
+	const USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
 	if (Mesh)
 	{
 		State = Mesh->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -1120,11 +1138,20 @@ ECheckBoxState FPersonaMeshDetails::IsSectionSelected(int32 SectionIndex) const
 void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
-	if (Mesh)
+
+	// Currently assumes that we only ever have one preview mesh in Persona.
+	UDebugSkelMeshComponent* MeshComponent = PersonaPtr->GetPreviewMeshComponent();
+
+	if (Mesh && MeshComponent)
 	{
 		if (NewState == ECheckBoxState::Checked)
 		{
 			Mesh->SelectedEditorSection = SectionIndex;
+			if (MeshComponent->SectionIndexPreview != SectionIndex)
+			{
+				// Unhide all mesh sections
+				MeshComponent->SetSectionPreview(INDEX_NONE);
+			}
 		}
 		else if (NewState == ECheckBoxState::Unchecked)
 		{
@@ -1134,11 +1161,44 @@ void FPersonaMeshDetails::OnSectionSelectedChanged(ECheckBoxState NewState, int3
 	}
 }
 
+ECheckBoxState FPersonaMeshDetails::IsIsolateSectionEnabled(int32 SectionIndex) const
+{
+	ECheckBoxState State = ECheckBoxState::Unchecked;
+	const UDebugSkelMeshComponent* MeshComponent = PersonaPtr->GetPreviewMeshComponent();
+	if (MeshComponent)
+	{
+		State = MeshComponent->SectionIndexPreview == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+	return State;
+}
+
+void FPersonaMeshDetails::OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex)
+{
+	USkeletalMesh* Mesh = Cast<USkeletalMesh>(SelectedObjects[0].Get());
+	UDebugSkelMeshComponent * MeshComponent = PersonaPtr->GetPreviewMeshComponent();
+	if (Mesh && MeshComponent)
+	{
+		if (NewState == ECheckBoxState::Checked)
+		{
+			MeshComponent->SetSectionPreview(SectionIndex); 
+			if (Mesh->SelectedEditorSection != SectionIndex)
+			{
+				Mesh->SelectedEditorSection = INDEX_NONE;
+			}
+		}
+		else if (NewState == ECheckBoxState::Unchecked)
+		{
+			MeshComponent->SetSectionPreview(INDEX_NONE);
+		}
+		PersonaPtr->RefreshViewport();
+	}
+}
+
+
 ECheckBoxState FPersonaMeshDetails::IsShadowCastingEnabled(int32 MaterialIndex) const
 {
 	ECheckBoxState State = ECheckBoxState::Unchecked;
-	USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
-
+	const USkeletalMesh* Mesh = Cast<USkeletalMesh>( SelectedObjects[0].Get() );
 	if (Mesh && MaterialIndex < Mesh->Materials.Num())
 	{
 		State = Mesh->Materials[MaterialIndex].bEnableShadowCasting ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
