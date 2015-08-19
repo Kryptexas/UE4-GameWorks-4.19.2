@@ -215,3 +215,5 @@ FString SCreateAnimationDlg::GetFullAssetPath()
 {
 	return AssetPath.ToString() + "/" + AssetName.ToString();
 }
+
+#undef LOCTEXT_NAMESPACE
