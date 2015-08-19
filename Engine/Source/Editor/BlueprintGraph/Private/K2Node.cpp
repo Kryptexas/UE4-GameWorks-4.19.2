@@ -8,6 +8,7 @@
 #include "KismetDebugUtilities.h" // for HasDebuggingData(), GetWatchText()
 #include "KismetCompiler.h"
 #include "GraphEditorSettings.h"
+#include "BlueprintEditorSettings.h"
 
 #include "ObjectEditorUtils.h"
 
@@ -1014,24 +1015,39 @@ UEdGraphPin* UK2Node::GetExecPin() const
 
 UEdGraphPin* UK2Node::GetPassThroughPin(const UEdGraphPin* FromPin) const
 {
-	UEdGraphPin* MatchedPin = nullptr;
+	UEdGraphPin* PassThroughPin = nullptr;
 	if(FromPin && Pins.Contains(FromPin))
 	{
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if(K2Schema->IsExecPin(*FromPin))
 		{
-			if(FromPin->Direction == EGPD_Input)
+			// Locate the first exec pin that's opposite the given exec pin, if any.
+			for(auto Pin : Pins)
 			{
-				MatchedPin = FindPin(K2Schema->PN_Then);
-			}
-			else
-			{
-				MatchedPin = FindPin(K2Schema->PN_Execute);
+				if(Pin && Pin != FromPin && Pin->Direction != FromPin->Direction && K2Schema->IsExecPin(*Pin))
+				{
+					PassThroughPin = Pin;
+					break;
+				}
 			}
 		}
 	}
 
-	return MatchedPin;
+	return PassThroughPin;
+}
+
+bool UK2Node::IsInDevelopmentMode() const
+{
+	// Check class setting (which can override the default setting)
+	const UBlueprint* OwningBP = GetBlueprint();
+	if(OwningBP != nullptr
+		&& OwningBP->CompileMode != EBlueprintCompileMode::Default)
+	{
+		return OwningBP->CompileMode == EBlueprintCompileMode::Development;
+	}
+
+	// Check default setting
+	return Super::IsInDevelopmentMode();
 }
 
 bool UK2Node::CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const

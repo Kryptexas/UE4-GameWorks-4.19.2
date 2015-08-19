@@ -1814,6 +1814,24 @@ void UK2Node_CallFunction::Serialize(FArchive& Ar)
 				FunctionReference.SetDirect(FunctionReference.GetMemberName(), FunctionGuid, (bSelf ? NULL : FunctionReference.GetMemberParentClass((UClass*)NULL)), bSelf);
 			}
 		}
+
+		// Don't validate the enabled state if the user has explicitly set it.
+		if (!bUserSetEnabledState)
+		{
+			if (const UFunction* Function = GetTargetFunction())
+			{
+				// Enable as development-only if specified in metadata. This way existing functions that have the metadata added to them will get their enabled state fixed up on load.
+				if (EnabledState == ENodeEnabledState::Enabled && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+				{
+					EnabledState = ENodeEnabledState::DevelopmentOnly;
+				}
+				// Ensure that if the metadata is removed, we also fix up the enabled state to avoid leaving it set as development-only in that case.
+				else if (EnabledState == ENodeEnabledState::DevelopmentOnly && !Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+				{
+					EnabledState = ENodeEnabledState::Enabled;
+				}
+			}
+		}
 	}
 }
 
@@ -1823,6 +1841,16 @@ void UK2Node_CallFunction::PostPlacedNewNode()
 
 	// Try re-setting the function given our new parent scope, in case it turns an external to an internal, or vis versa
 	FunctionReference.RefreshGivenNewSelfScope<UFunction>(GetBlueprintClassFromNode());
+
+	// Re-enable for development only if specified in metadata.
+	if(EnabledState == ENodeEnabledState::Enabled && !bUserSetEnabledState)
+	{
+		const UFunction* Function = GetTargetFunction();
+		if (Function && Function->HasMetaData(FBlueprintMetadata::MD_DevelopmentOnly))
+		{
+			EnabledState = ENodeEnabledState::DevelopmentOnly;
+		}
+	}
 }
 
 FNodeHandlingFunctor* UK2Node_CallFunction::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const

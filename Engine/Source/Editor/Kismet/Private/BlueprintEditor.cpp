@@ -302,7 +302,7 @@ static bool BlueprintEditorImpl::GraphHasDefaultNode(UEdGraph const* InGraph)
 			continue;
 		}
 
-		if (Node->GetOutermost()->GetMetaData()->HasValue(Node, FNodeMetadata::DefaultGraphNode) && Node->bIsNodeEnabled)
+		if (Node->GetOutermost()->GetMetaData()->HasValue(Node, FNodeMetadata::DefaultGraphNode) && Node->IsNodeEnabled())
 		{
 			bHasDefaultNodes = true;
 			break;
@@ -1183,6 +1183,30 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().GoToDocumentation,
 				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnGoToDocumentation),
 				FCanExecuteAction::CreateSP(this, &FBlueprintEditor::CanGoToDocumentation)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().EnableNodes,
+				FExecuteAction(),
+				FCanExecuteAction(),
+				FGetActionCheckState::CreateSP(this, &FBlueprintEditor::GetEnabledCheckBoxStateForSelectedNodes)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().DisableNodes,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSetEnabledStateForSelectedNodes, ENodeEnabledState::Disabled),
+				FCanExecuteAction(),
+				FGetActionCheckState::CreateSP(this, &FBlueprintEditor::CheckEnabledStateForSelectedNodes, ENodeEnabledState::Disabled)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().EnableNodes_Always,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSetEnabledStateForSelectedNodes, ENodeEnabledState::Enabled),
+				FCanExecuteAction(),
+				FGetActionCheckState::CreateSP(this, &FBlueprintEditor::CheckEnabledStateForSelectedNodes, ENodeEnabledState::Enabled)
+				);
+
+			GraphEditorCommands->MapAction(FGraphEditorCommands::Get().EnableNodes_DevelopmentOnly,
+				FExecuteAction::CreateSP(this, &FBlueprintEditor::OnSetEnabledStateForSelectedNodes, ENodeEnabledState::DevelopmentOnly),
+				FCanExecuteAction(),
+				FGetActionCheckState::CreateSP(this, &FBlueprintEditor::CheckEnabledStateForSelectedNodes, ENodeEnabledState::DevelopmentOnly)
 				);
 		}
 	}
@@ -5633,8 +5657,9 @@ void FBlueprintEditor::PasteNodesHere(class UEdGraph* DestinationGraph, const FV
 				// Check if the nodes are identical, if they are we need to delete the original because it is disabled. Identical nodes that are in an enabled state will never make it this far and still be enabled.
 				if(bIdenticalNode)
 				{
-					// Should not have made it to being a pasted node if the pre-existing node wasn't disabled.
-					ensure(!ExistingEventNode->bIsNodeEnabled);
+					// Should not have made it to being a pasted node if the pre-existing node wasn't disabled or was otherwise explicitly disabled by the user.
+					ensure(!ExistingEventNode->IsNodeEnabled());
+					ensure(!ExistingEventNode->bUserSetEnabledState);
 
 					// Destroy the pre-existing node, we do not need it.
 					ExistingEventNode->DestroyNode();
@@ -6053,6 +6078,77 @@ bool FBlueprintEditor::CanGoToDocumentation()
 {
 	FString DocumentationLink = GetDocLinkForSelectedNode();
 	return !DocumentationLink.IsEmpty();
+}
+
+void FBlueprintEditor::OnSetEnabledStateForSelectedNodes(ENodeEnabledState NewState)
+{
+	const FScopedTransaction Transaction(LOCTEXT("SetNodeEnabledState", "Set Node Enabled State"));
+
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	for (auto SelectedNode : SelectedNodes)
+	{
+		UEdGraphNode* SelectedGraphNode = Cast<UEdGraphNode>(SelectedNode);
+		if(SelectedGraphNode)
+		{
+			SelectedGraphNode->Modify();
+			SelectedGraphNode->EnabledState = NewState;
+			SelectedGraphNode->bUserSetEnabledState = true;
+		}
+	}
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
+}
+
+ECheckBoxState FBlueprintEditor::GetEnabledCheckBoxStateForSelectedNodes()
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	ECheckBoxState Result = SelectedNodes.Num() > 0 ? ECheckBoxState::Undetermined : ECheckBoxState::Unchecked;
+	for (auto SelectedNode : SelectedNodes)
+	{
+		UEdGraphNode* SelectedGraphNode = Cast<UEdGraphNode>(SelectedNode);
+		if(SelectedGraphNode)
+		{
+			const bool bIsSelectedNodeEnabled = SelectedGraphNode->IsNodeEnabled();
+			if(Result == ECheckBoxState::Undetermined)
+			{
+				Result = bIsSelectedNodeEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			}
+			else if((!bIsSelectedNodeEnabled && Result == ECheckBoxState::Checked)
+				|| (bIsSelectedNodeEnabled && Result == ECheckBoxState::Unchecked))
+			{
+				Result = ECheckBoxState::Undetermined;
+				break;
+			}
+		}
+	}
+
+	return Result;
+}
+
+ECheckBoxState FBlueprintEditor::CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState)
+{
+	const FGraphPanelSelectionSet SelectedNodes = GetSelectedNodes();
+	ECheckBoxState Result = SelectedNodes.Num() > 0 ? ECheckBoxState::Undetermined : ECheckBoxState::Unchecked;
+	for (auto SelectedNode : SelectedNodes)
+	{
+		UEdGraphNode* SelectedGraphNode = Cast<UEdGraphNode>(SelectedNode);
+		if(SelectedGraphNode)
+		{
+			const ENodeEnabledState NodeState = SelectedGraphNode->EnabledState;
+			if(Result == ECheckBoxState::Undetermined)
+			{
+				Result = (NodeState == CheckState) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+			}
+			else if((NodeState != CheckState && Result == ECheckBoxState::Checked)
+				|| (NodeState == CheckState && Result == ECheckBoxState::Unchecked))
+			{
+				Result = ECheckBoxState::Undetermined;
+				break;
+			}
+		}
+	}
+
+	return Result;
 }
 
 void FBlueprintEditor::ToggleSaveIntermediateBuildProducts()

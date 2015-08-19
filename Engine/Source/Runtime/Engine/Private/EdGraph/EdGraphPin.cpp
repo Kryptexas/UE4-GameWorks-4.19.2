@@ -81,11 +81,12 @@ namespace GraphPinHelpers
 {
 	void EnableAllConnectedNodes(UEdGraphNode* InNode)
 	{
-		if(InNode && !InNode->bIsNodeEnabled)
+		// Only enable when it has not been explicitly user-disabled
+		if(InNode && InNode->EnabledState == ENodeEnabledState::Disabled && !InNode->bUserSetEnabledState)
 		{
 			// Enable the node and clear the comment
 			InNode->Modify();
-			InNode->bIsNodeEnabled = true;
+			InNode->EnableNode();
 			InNode->NodeComment.Empty();
 
 			// Go through all pin connections and enable the nodes. Enabled nodes will prevent further iteration

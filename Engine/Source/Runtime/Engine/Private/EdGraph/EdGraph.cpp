@@ -213,8 +213,28 @@ void UEdGraph::MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoadi
 		{
 #if WITH_EDITOR
 			// During compilation, do not move ghost nodes, they are not used during compilation.
-			if (bInIsCompiling && !Node->bIsNodeEnabled)
+			if (bInIsCompiling && !Node->IsNodeEnabled())
 			{
+				// Pass existing connections through non-enabled nodes
+				for (auto Pin : Node->Pins)
+				{
+					if (Pin->Direction == EGPD_Input && Pin->LinkedTo.Num() > 0)
+					{
+						UEdGraphPin* PassThroughPin = Node->GetPassThroughPin(Pin);
+						if (PassThroughPin != nullptr && PassThroughPin->LinkedTo.Num() > 0)
+						{
+							for (auto OutputPin : Pin->LinkedTo)
+							{
+								for (auto InputPin : PassThroughPin->LinkedTo)
+								{
+									InputPin->LinkedTo.Add(OutputPin);
+									OutputPin->LinkedTo.Add(InputPin);
+								}
+							}
+						}
+					}
+				}
+
 				// Break all node links, if any exist, do not move the node
 				Node->BreakAllNodeLinks();
 				continue;

@@ -2979,8 +2979,8 @@ bool FBlueprintEditorUtils::IsDataOnlyBlueprint(const UBlueprint* Blueprint)
 	{
 		for(UEdGraphNode* GraphNode : EventGraph->Nodes)
 		{
-			// If there is an enabled node in the event graph, the Blueprint is not data only
-			if (GraphNode && GraphNode->bIsNodeEnabled)
+			// If there is an enabled node in the event graph (or a node that was explicitly disabled by the user), the Blueprint is not data only
+			if (GraphNode && (GraphNode->IsNodeEnabled() || GraphNode->bUserSetEnabledState))
 			{
 				return false;
 			}

@@ -64,6 +64,14 @@ namespace EKismetCompileType
 	};
 };
 
+/** Compile modes. */
+UENUM()
+enum class EBlueprintCompileMode : uint8
+{
+	Default UMETA(DisplayName="Use Default", ToolTip="Use the default setting."),
+	Development UMETA(ToolTip="Always compile in development mode (even when cooking)."),
+	FinalRelease UMETA(ToolTip="Always compile in final release mode.")
+};
 
 struct FKismetCompilerOptions
 {
@@ -331,6 +339,10 @@ class ENGINE_API UBlueprint : public UBlueprintCore
 	/** Deprecates the Blueprint, marking the generated class with the CLASS_Deprecated flag */
 	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
 	bool bDeprecate;
+
+	/** The mode that will be used when compiling this class. */
+	UPROPERTY(EditAnywhere, Category=ClassOptions, AdvancedDisplay)
+	EBlueprintCompileMode CompileMode;
 #endif //WITH_EDITORONLY_DATA
 
 	/** 'Simple' construction script - graph of components to instance */

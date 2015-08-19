@@ -116,6 +116,9 @@ public:
 	/** For functions that have the MD_WorldContext metadata but are safe to be called from contexts that do not have the ability to provide the world context (either through GetWorld() or ShowWorldContextPin class metadata */
 	static const FName MD_CallableWithoutWorldContext;
 
+	/** For functions that should be compiled in development mode only */
+	static const FName MD_DevelopmentOnly;
+
 	/** If true, an unconnected pin will generate a UPROPERTY under the hood to connect as the input, which will be set to the literal value for the pin.  Only valid for reference parameters. */
 	static const FName MD_AutoCreateRefTerm;
 

@@ -891,7 +891,7 @@ FSlateColor SGraphPin::GetPinColor() const
 	}
 	if (const UEdGraphSchema* Schema = GraphPinObj->GetSchema())
 	{
-		if(!GetPinObj()->GetOwningNode()->bIsNodeEnabled)
+		if(!GetPinObj()->GetOwningNode()->IsNodeEnabled())
 		{
 			return Schema->GetPinTypeColor(GraphPinObj->PinType) * FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
 		}
@@ -907,7 +907,7 @@ FSlateColor SGraphPin::GetPinTextColor() const
 	// If there is no schema there is no owning node (or basically this is a deleted node)
 	if (UEdGraphNode* GraphNode = GraphPinObj->GetOwningNodeUnchecked())
 	{
-		if(!GraphNode->bIsNodeEnabled)
+		if(!GraphNode->IsNodeEnabled())
 		{
 			return FLinearColor(1.0f, 1.0f, 1.0f, 0.5f);
 		}

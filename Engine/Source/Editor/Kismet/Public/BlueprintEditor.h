@@ -965,8 +965,19 @@ private:
 	/** Util to try and get doc link for the currently selected node */
 	FString GetDocLinkForSelectedNode();
 
+	/** Set the enabled state for currently-selected nodes */
+	void OnSetEnabledStateForSelectedNodes(ENodeEnabledState NewState);
+
+	/** Returns the appropriate check box state representing whether or not the selected nodes are enabled */
+	ECheckBoxState GetEnabledCheckBoxStateForSelectedNodes();
+
+	/** Attempt to match the given enabled state for currently-selected nodes */
+	ECheckBoxState CheckEnabledStateForSelectedNodes(ENodeEnabledState CheckState);
+
 	/** Fixes SubObject references of the passed object so they match up to sub-object UProperty references */
 	void FixSubObjectReferencesPostUndoRedo(UObject* InObject);
+
+
 
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;

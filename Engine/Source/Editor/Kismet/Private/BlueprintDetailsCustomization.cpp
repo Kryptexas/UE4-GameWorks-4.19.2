@@ -8,6 +8,7 @@
 #include "PropertyRestriction.h"
 #include "BlueprintEditor.h"
 #include "BlueprintEditorModes.h"
+#include "BlueprintEditorSettings.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "SColorPicker.h"
 #include "SKismetInspector.h"
@@ -4533,6 +4534,14 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		// Hide the bDeprecate, we override the functionality.
 		static FName DeprecatePropName(TEXT("bDeprecate"));
 		DetailLayout.HideProperty(DetailLayout.GetProperty(DeprecatePropName));
+
+		// Hide the experimental CompileMode setting (if not enabled)
+		const UBlueprintEditorSettings* EditorSettings = GetDefault<UBlueprintEditorSettings>();
+		if (EditorSettings && !EditorSettings->bAllowExplicitImpureNodeDisabling)
+		{
+			static FName CompileModePropertyName(TEXT("CompileMode"));
+			DetailLayout.HideProperty(DetailLayout.GetProperty(CompileModePropertyName));
+		}
 
 		// Hide 'run on drag' for LevelBP
 		if (bIsLevelScriptBP)

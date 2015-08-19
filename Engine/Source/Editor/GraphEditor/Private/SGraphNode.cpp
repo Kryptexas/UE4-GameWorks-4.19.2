@@ -523,7 +523,7 @@ FSlateColor SGraphNode::GetNodeTitleColor() const
 {
 	FLinearColor ReturnTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
 
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnTitleColor *= FLinearColor(0.5f, 0.5f, 0.5f, 0.4f);
 	}
@@ -537,7 +537,7 @@ FSlateColor SGraphNode::GetNodeTitleColor() const
 FSlateColor SGraphNode::GetNodeBodyColor() const
 {
 	FLinearColor ReturnBodyColor = FLinearColor::White;
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnBodyColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.5f); 
 	}
@@ -547,7 +547,7 @@ FSlateColor SGraphNode::GetNodeBodyColor() const
 FSlateColor SGraphNode::GetNodeTitleIconColor() const
 {
 	FLinearColor ReturnIconColor = IconColor;
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnIconColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
 	}
@@ -557,7 +557,7 @@ FSlateColor SGraphNode::GetNodeTitleIconColor() const
 FLinearColor SGraphNode::GetNodeTitleTextColor() const
 {
 	FLinearColor ReturnTextColor = FLinearColor::White;
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnTextColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
 	}

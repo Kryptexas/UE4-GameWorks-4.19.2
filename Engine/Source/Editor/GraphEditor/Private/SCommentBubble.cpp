@@ -373,7 +373,7 @@ FSlateColor SCommentBubble::GetBubbleColor() const
 {
 	FLinearColor ReturnColor = ColorAndOpacity.Get().GetSpecifiedColor();
 
-	if(!GraphNode->bIsNodeEnabled)
+	if(!GraphNode->IsNodeEnabled())
 	{
 		ReturnColor.A *= 0.6f;
 	}

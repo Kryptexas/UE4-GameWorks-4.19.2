@@ -65,6 +65,7 @@ const FName FBlueprintMetadata::MD_HideSelfPin(TEXT("HideSelfPin"));
 const FName FBlueprintMetadata::MD_DefaultToSelf(TEXT("DefaultToSelf"));
 const FName FBlueprintMetadata::MD_WorldContext(TEXT("WorldContext"));
 const FName FBlueprintMetadata::MD_CallableWithoutWorldContext(TEXT("CallableWithoutWorldContext"));
+const FName FBlueprintMetadata::MD_DevelopmentOnly(TEXT("DevelopmentOnly"));
 const FName FBlueprintMetadata::MD_AutoCreateRefTerm(TEXT("AutoCreateRefTerm"));
 
 const FName FBlueprintMetadata::MD_ShowWorldContextPin(TEXT("ShowWorldContextPin"));
@@ -1510,11 +1511,61 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 				MenuBuilder->EndSection();
 			}
 
-			// Add breakpoint actions
 			if (const UK2Node* K2Node = Cast<const UK2Node>(InGraphNode))
 			{
 				if (!K2Node->IsNodePure())
 				{
+					const UBlueprintEditorSettings* EditorSettings = GetDefault<UBlueprintEditorSettings>();
+					if (EditorSettings && EditorSettings->bAllowExplicitImpureNodeDisabling)
+					{
+						// Don't expose the enabled state for disabled nodes that were not explicitly disabled by the user
+						if (!bIsDebugging && (K2Node->bUserSetEnabledState || K2Node->EnabledState != ENodeEnabledState::Disabled))
+						{
+							// Add compile options
+							MenuBuilder->BeginSection("EdGraphSchemaCompileOptions", LOCTEXT("CompileOptionsHeader", "Compile Options"));
+							{
+								MenuBuilder->AddMenuEntry(
+									FGraphEditorCommands::Get().DisableNodes,
+									NAME_None,
+									LOCTEXT("DisableCompile", "Disable (Do Not Compile)"),
+									LOCTEXT("DisableCompileToolTip", "Selected node(s) will not be compiled."));
+
+								TSharedPtr<const FUICommandList> MenuCommandList = MenuBuilder->GetTopCommandList();
+								if(ensure(MenuCommandList.IsValid()))
+								{
+									const FUIAction* SubMenuUIAction = MenuCommandList->GetActionForCommand(FGraphEditorCommands::Get().EnableNodes);
+									if(ensure(SubMenuUIAction))
+									{
+										MenuBuilder->AddSubMenu(
+											LOCTEXT("EnableCompileSubMenu", "Enable Compile"),
+											LOCTEXT("EnableCompileSubMenuToolTip", "Options to enable selected node(s) for compile."),
+											FNewMenuDelegate::CreateLambda([MenuCommandList](FMenuBuilder& SubMenuBuilder)
+											{
+												SubMenuBuilder.PushCommandList(MenuCommandList.ToSharedRef());
+
+												SubMenuBuilder.AddMenuEntry(
+													FGraphEditorCommands::Get().EnableNodes_Always,
+													NAME_None,
+													LOCTEXT("EnableCompileAlways", "Always"),
+													LOCTEXT("EnableCompileAlwaysToolTip", "Always compile selected node(s)."));
+												SubMenuBuilder.AddMenuEntry(
+													FGraphEditorCommands::Get().EnableNodes_DevelopmentOnly,
+													NAME_None,
+													LOCTEXT("EnableCompileDevelopmentOnly", "Development Only"),
+													LOCTEXT("EnableCompileDevelopmentOnlyToolTip", "Compile selected node(s) for development only."));
+
+												SubMenuBuilder.PopCommandList();
+											}),
+											*SubMenuUIAction,
+											NAME_None, FGraphEditorCommands::Get().EnableNodes->GetUserInterfaceType());
+									}
+								}
+							}
+							MenuBuilder->EndSection();
+						}
+					}
+					
+					// Add breakpoint actions
 					MenuBuilder->BeginSection("EdGraphSchemaBreakpoints", LOCTEXT("BreakpointsHeader", "Breakpoints"));
 					{
 						MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().ToggleBreakpoint );

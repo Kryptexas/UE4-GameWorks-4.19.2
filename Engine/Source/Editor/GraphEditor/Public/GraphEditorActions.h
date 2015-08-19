@@ -71,6 +71,12 @@ public:
 
 	TSharedPtr< FUICommandInfo > DistributeNodesHorizontally;
 	TSharedPtr< FUICommandInfo > DistributeNodesVertically;
+	
+	// Enable/disable commands
+	TSharedPtr< FUICommandInfo > EnableNodes;
+	TSharedPtr< FUICommandInfo > DisableNodes;
+	TSharedPtr< FUICommandInfo > EnableNodes_Always;
+	TSharedPtr< FUICommandInfo > EnableNodes_DevelopmentOnly;
 
 	//
 	TSharedPtr< FUICommandInfo > SelectReferenceInLevel;

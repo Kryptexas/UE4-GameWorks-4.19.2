@@ -114,7 +114,7 @@ void FPersonaModule::OnNewBlueprintCreated(UBlueprint* InBlueprint)
 		GetOwnerNode->NodePosX = SafeXPosition;
 		GetOwnerNode->NodePosY = SafeYPosition;
 		UEdGraphSchema_K2::SetNodeMetaData(GetOwnerNode, FNodeMetadata::DefaultGraphNode);
-		GetOwnerNode->bIsNodeEnabled = false;
+		GetOwnerNode->DisableNode();
 
 		EventGraph->AddNode(GetOwnerNode);
 	}

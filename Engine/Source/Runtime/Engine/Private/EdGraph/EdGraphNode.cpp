@@ -4,6 +4,7 @@
 #include "EdGraph/EdGraph.h"
 #include "BlueprintUtilities.h"
 #if WITH_EDITOR
+#include "Editor/UnrealEd/Public/CookerSettings.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #include "SlateBasics.h"
 #include "ScopedTransaction.h"
@@ -42,7 +43,9 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
-	, bIsNodeEnabled(true)
+	, EnabledState(ENodeEnabledState::Enabled)
+	, bUserSetEnabledState(false)
+	, bIsNodeEnabled_DEPRECATED(true)
 {
 
 #if WITH_EDITORONLY_DATA
@@ -278,6 +281,12 @@ void UEdGraphNode::PostLoad()
 	{
 		bCommentBubbleVisible = !NodeComment.IsEmpty();
 	}
+
+	// If this was an older version, ensure that we update the enabled state to match
+	if(!bIsNodeEnabled_DEPRECATED)
+	{
+		EnabledState = ENodeEnabledState::Disabled;
+	}
 }
 
 void UEdGraphNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -393,6 +402,16 @@ FText UEdGraphNode::GetKeywords() const
 }
 
 #endif	//#if WITH_EDITOR
+
+bool UEdGraphNode::IsInDevelopmentMode() const
+{
+#if WITH_EDITOR
+	// By default, development mode is implied when running in the editor and not cooking via commandlet, unless enabled in the project settings.
+	return !IsRunningCommandlet() || GetDefault<UCookerSettings>()->bCompileBlueprintsInDevelopmentMode;
+#else
+	return false;
+#endif
+}
 
 /////////////////////////////////////////////////////
 
