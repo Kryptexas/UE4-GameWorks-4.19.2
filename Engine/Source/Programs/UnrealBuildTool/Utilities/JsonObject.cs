@@ -328,7 +328,7 @@ namespace UnrealBuildTool
 
 		public void WriteValue(string Name, string Value)
 		{
-			WriteValueInternal(Name, '"' + Value.Replace("\\", "\\\\") + '"');
+			WriteValueInternal(Name, '"' + (Value ?? "").Replace("\\", "\\\\") + '"');
 		}
 
 		public void WriteValue(string Name, int Value)
