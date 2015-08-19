@@ -537,7 +537,7 @@ namespace UnrealBuildTool.Android
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			StartInfo.FileName = AndroidToolChain.GetStripExecutablePath(UE4Arch);
-			StartInfo.Arguments = "--strip-debug " + TargetFileName;
+			StartInfo.Arguments = "--strip-debug \"" + TargetFileName + "\"";
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);
