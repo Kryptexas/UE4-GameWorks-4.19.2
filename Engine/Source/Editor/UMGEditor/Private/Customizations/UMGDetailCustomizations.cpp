@@ -42,7 +42,7 @@ public:
 			.TextStyle(FEditorStyle::Get(), "NormalText")
 			.HAlign(HAlign_Center)
 			.ForegroundColor(FSlateColor::UseForeground())
-			.ToolTipText(FText::FromString(Action->TooltipDescription))
+			.ToolTipText(FText::FromString(Action->GetTooltipDescription()))
 			.OnClicked(this, &SGraphSchemaActionButton::AddOrViewEventBinding)
 			[
 				InArgs._Content.Widget

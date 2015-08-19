@@ -183,7 +183,7 @@ void FGraphSchemaActionDragDropAction::HoverTargetChanged()
 		const FSlateBrush* StatusSymbol = FEditorStyle::GetBrush(TEXT("Graph.ConnectorFeedback.NewNode"));
 
 		//Create feedback message with the function name.
-		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, ActionNode->MenuDescription);
+		SetSimpleFeedbackMessage(StatusSymbol, FLinearColor::White, ActionNode->GetMenuDescription());
 	}
 }
 

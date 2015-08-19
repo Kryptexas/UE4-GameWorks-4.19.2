@@ -281,7 +281,7 @@ static void GetSubGraphIcon(FEdGraphSchemaAction_K2Graph const* const ActionIn, 
 static void GetPaletteItemIcon(TSharedPtr<FEdGraphSchemaAction> ActionIn, UBlueprint const* BlueprintIn, FSlateBrush const*& BrushOut, FSlateColor& ColorOut, FString& ToolTipOut, FString& DocLinkOut, FString& DocExcerptOut)
 {
 	// Default to tooltip based on action supplied
-	ToolTipOut = (ActionIn->TooltipDescription.Len() > 0) ? ActionIn->TooltipDescription : ActionIn->MenuDescription.ToString();
+	ToolTipOut = (ActionIn->GetTooltipDescription().Len() > 0) ? ActionIn->GetTooltipDescription() : ActionIn->GetMenuDescription().ToString();
 
 	if (ActionIn->GetTypeId() == FBlueprintActionMenuItem::StaticGetTypeId())
 	{
@@ -971,7 +971,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	// construct the icon widget
 	FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateColor        IconColor   = FSlateColor::UseForeground();
-	FString            IconToolTip = GraphAction->TooltipDescription;
+	FString            IconToolTip = GraphAction->GetTooltipDescription();
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(FText::FromString(IconToolTip), IconBrush, IconColor, IconDocLink, IconDocExcerpt);
@@ -981,8 +981,8 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FTutorialMetaData TagMeta("PaletteItem"); 
 	if( ActionPtr.IsValid() )
 	{
-		TagMeta.Tag = *FString::Printf(TEXT("PaletteItem,%s,%d"), *GraphAction->MenuDescription.ToString(), GraphAction->SectionID);
-		TagMeta.FriendlyName = GraphAction->MenuDescription.ToString();
+		TagMeta.Tag = *FString::Printf(TEXT("PaletteItem,%s,%d"), *GraphAction->GetMenuDescription().ToString(), GraphAction->GetSectionID());
+		TagMeta.FriendlyName = GraphAction->GetMenuDescription().ToString();
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
@@ -1162,7 +1162,7 @@ FText SBlueprintPaletteItem::GetDisplayText() const
 		}
 		else
 		{
-			MenuDescriptionCache.SetCachedText(ActionPtr.Pin()->MenuDescription, K2Schema);
+			MenuDescriptionCache.SetCachedText(ActionPtr.Pin()->GetMenuDescription(), K2Schema);
 		}
 	}
 
@@ -1403,7 +1403,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 	if (PaletteAction.IsValid())
 	{
 		// Default tooltip is taken from the action
-		ToolTipText = (PaletteAction->TooltipDescription.Len() > 0) ? FText::FromString(PaletteAction->TooltipDescription) : PaletteAction->MenuDescription;
+		ToolTipText = (PaletteAction->GetTooltipDescription().Len() > 0) ? FText::FromString(PaletteAction->GetTooltipDescription()) : PaletteAction->GetMenuDescription();
 
 		if(PaletteAction->GetTypeId() == FEdGraphSchemaAction_K2AddComponent::StaticGetTypeId())
 		{

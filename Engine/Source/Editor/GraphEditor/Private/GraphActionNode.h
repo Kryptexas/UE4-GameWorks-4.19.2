@@ -221,13 +221,14 @@ private:
 	static TSharedPtr<FGraphActionNode> NewGroupDividerNode(TWeakPtr<FGraphActionNode> Parent, int32 Grouping);
 
 	/**
-	 * Whittles down the CategoryStack, adding category-nodes as needed. The
+	 * Iterates the CategoryStack, adding category-nodes as needed. The
 	 * last category is what the node will be inserted under.
 	 *
 	 * @param  CategoryStack	A list of categories denoting where to nest the new node (the first element is the highest category)
+	 * @param  Idx				Current point in the category stack that we have iterated to
 	 * @param  NodeToAdd		The node you want inserted.
 	 */
-	void AddChildRecursively(TArray<FString>& CategoryStack, TSharedPtr<FGraphActionNode> NodeToAdd);
+	void AddChildRecursively(const TArray<FString>& CategoryStack, int32 Idx, TSharedPtr<FGraphActionNode> NodeToAdd);
 
 	/**
 	 * Looks through this node's children to see if a there already exists a 
