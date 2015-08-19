@@ -44,7 +44,7 @@ Description:关卡编辑器中用于控制选择、编辑及预览等各方面�
 [/EXCERPT:BrushPolys]
 
 [EXCERPT:Scalability]
-提供对控制不同渲染功能的保真度的[](Engine/Rendering/Scalability)设置的快速访问： 
+提供对控制不同渲染功能的保真度的[](Engine/Performance/Scalability)设置的快速访问： 
 
 ![](scalability_settings.png)
 [/EXCERPT:Scalability]

@@ -2,6 +2,7 @@
 Title:1. 在世界中放置相机
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:使用多个相机来设置世界
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -10,7 +11,7 @@ Description:使用多个相机来设置世界
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[编程指南主页](Programming\Tutorials\)
+		[](Programming\Tutorials\AutoCamera)
 	[/PARAM]
 	[PARAM:next]
 		[下一步](Programming\Tutorials\AutoCamera\2 "%Programming\Tutorials\AutoCamera\2:title%")
@@ -20,9 +21,9 @@ Description:使用多个相机来设置世界
 
 %Steps%
 
-[REGION:tip]如果您刚使用 **虚幻引擎4** ，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，如何编译您的代码以及如何添加 **组件** 到 **虚幻引擎** 编辑器中的 **Actors** 。[/REGION]
+[REGION:tip]如果您刚使用 **虚幻引擎4** (UE4)，建议您先读一下[%Programming\QuickStart:title% tutorial](Programming\QuickStart) 。 对这篇教程来说，我们假设您已经了解了如何创建项目，如何添加C++代码到项目中，如何编译您的代码以及如何添加 **组件** 到虚幻引擎4（UE4）中的 **Actors** 。[/REGION]
 
-1. 首先我们创建全新的、基础代码项目，附带初学者内容，其名称为"HowTo_AutoCamera"。  首先我们要在世界中创建两个相机。 因为设置相机有多种方法，在这里我们就使用两种最为常见的方式。 对首个相机来说，让我们转到 **Placement Browser** （放置浏览器）的 **Modes** （模式）选项卡中并点击 **Place** （放置），或在 **All Classes** （所有类）部分中按下Shift-1，您将可以搜寻到一个 **相机** actor。 将其拖曳到 **关卡编辑器** 中并放置它。使得能通过它很好地看到场景。
+1. 首先我们创建全新的、基础代码项目，附带初学者内容，其名称为"HowTo_AutoCamera"。  首先我们要在世界中创建两个相机。 因为设置相机有多种方法，在这里我们就使用两种最为常见的方式。 对首个相机来说，让我们转到 **Placement Browser** （放置浏览器）的 **Modes** （模式）选项卡中并点击 **Place** （放置），或按下 **Shift+1** 。 在 **All Classes（所有类）** 部分，您将可以搜寻到一个 **相机** actor。 将其拖曳到 **关卡编辑器** 中并放置它。使得能通过它很好地看到场景。
 
 	[![](PlaceCameraActor.png)](PlaceCameraActor.png)
 
