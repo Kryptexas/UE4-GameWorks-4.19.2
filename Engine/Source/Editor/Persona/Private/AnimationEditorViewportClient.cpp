@@ -914,7 +914,6 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset);
 		if ( Sequence && Sequence->DoesNeedRebake() )
 		{
-			FColor SubHeadlineColour(202, 66, 0);
 			InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
 			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
 			CurYOffset += YL + 2;
