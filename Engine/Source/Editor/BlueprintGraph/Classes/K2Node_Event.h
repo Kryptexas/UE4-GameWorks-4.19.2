@@ -44,6 +44,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 
 	// UObject interface
 	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
+	BLUEPRINTGRAPH_API virtual void PostLoad() override;
 	// End of UObject interface
 
 	// Begin UEdGraphNode interface
