@@ -1316,7 +1316,11 @@ void FConfigFile::ProcessPropertyAndWriteForDefaults( const TArray< FString >& I
 			for (const FString& NextElement : ArrayProperties)
 			{
 				FString PropertyNameWithRemoveOp = PropertyName.Replace(TEXT("+"), TEXT("-"));
-				OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyNameWithRemoveOp, *NextElement);
+				if (PropertyName.Compare(PropertyNameWithRemoveOp))
+				{
+					// Only output the property if we've made a change. This avoids duplicating array entries.
+					OutText += FString::Printf(TEXT("%s=%s") LINE_TERMINATOR, *PropertyNameWithRemoveOp, *NextElement);
+				}
 			}
 		}
 	}
