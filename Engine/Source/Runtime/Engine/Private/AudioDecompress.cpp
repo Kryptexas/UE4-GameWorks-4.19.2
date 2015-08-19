@@ -332,6 +332,7 @@ void FAsyncAudioDecompressWorker::DoWork()
 			else
 			{
 				Wave->RawPCMDataSize = QualityInfo.SampleDataSize;
+				check(Wave->RawPCMData == nullptr);
 				Wave->RawPCMData = ( uint8* )FMemory::Malloc( Wave->RawPCMDataSize );
 
 				// Decompress all the sample data into preallocated memory
