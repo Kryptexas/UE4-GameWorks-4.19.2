@@ -79,24 +79,37 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 
 FString FString::ToUpper() const
 {
-	FString New( **this );
-	const int32 StringLength = Len();
-	for( int32 i=0; i < StringLength; ++i )
-	{
-		New[i] = FChar::ToUpper(New[i]);
-	}
+	FString New(**this);
+	New.ToUpperInline();
 	return New;
 }
 
+void FString::ToUpperInline()
+{
+	const int32 StringLength = Len();
+	TCHAR* RawData = Data.GetData();
+	for (int32 i = 0; i < StringLength; ++i)
+	{
+		RawData[i] = FChar::ToUpper(RawData[i]);
+	}
+}
+
+
 FString FString::ToLower() const
 {
-	FString New( **this );
-	const int32 StringLength = Len();
-	for( int32 i=0; i < StringLength; ++i )
-	{
-		New[i] = FChar::ToLower(New[i]);
-	}
+	FString New(**this);
+	New.ToLowerInline();
 	return New;
+}
+
+void FString::ToLowerInline()
+{
+	const int32 StringLength = Len();
+	TCHAR* RawData = Data.GetData();
+	for (int32 i = 0; i < StringLength; ++i)
+	{
+		RawData[i] = FChar::ToLower(RawData[i]);
+	}
 }
 
 bool FString::StartsWith(const FString& InPrefix, ESearchCase::Type SearchCase ) const

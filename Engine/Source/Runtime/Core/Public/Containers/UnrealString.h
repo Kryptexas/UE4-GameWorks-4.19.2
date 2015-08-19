@@ -1286,8 +1286,14 @@ public:
 	/** @return a new string with the characters of this converted to uppercase */
 	FString ToUpper() const;
 
+	/** Converts all characters in this string to uppercase */
+	void ToUpperInline();
+
 	/** @return a new string with the characters of this converted to lowercase */
 	FString ToLower() const;
+
+	/** Converts all characters in this string to lowercase */
+	void ToLowerInline();
 
 	/** Pad the left of this string for ChCount characters */
 	FString LeftPad( int32 ChCount ) const;
