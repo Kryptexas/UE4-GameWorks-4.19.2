@@ -240,7 +240,7 @@ struct FEmitHelper
 
 	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 
-	static FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj);
+	static FString GenerateReplaceConvertedMD(UObject* Obj);
 };
 
 struct FEmitDefaultValueHelper
