@@ -1273,10 +1273,10 @@ namespace AutomationTool
 		/// Invokes revert command.
 		/// </summary>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public void Revert(string CommandLine)
+		public void Revert(string CommandLine, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
-			LogP4("revert " + CommandLine);
+			LogP4("revert " + CommandLine, AllowSpew: AllowSpew);
 		}
 
 		/// <summary>
