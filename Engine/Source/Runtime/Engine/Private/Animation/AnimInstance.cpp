@@ -609,7 +609,7 @@ void UAnimInstance::BindNativeDelegates()
 				FAnimNode_StateMachine* StateMachine = Property->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
 				if(StateMachine)
 				{
-					const FBakedAnimationStateMachine* MachineDescription = StateMachine->GetMachineDescription();
+					const FBakedAnimationStateMachine* MachineDescription = AnimBlueprintGeneratedClass->BakedStateMachines.IsValidIndex(StateMachine->StateMachineIndexInClass) ? &(AnimBlueprintGeneratedClass->BakedStateMachines[StateMachine->StateMachineIndexInClass]) : nullptr;
 					if(MachineDescription && MachineName == MachineDescription->MachineName)
 					{
 						// check each state transition for a match
