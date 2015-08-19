@@ -168,7 +168,7 @@ namespace AutomationTool
                     if (bCheckTimestamps && !((Timestamp - Other.Timestamp).TotalSeconds < 2 && (Timestamp - Other.Timestamp).TotalSeconds > -2))
                     {
                         CommandUtils.LogWithVerbosity(LogType, "File date mismatch {0} {1} {2} {3}", Name, Timestamp, Other.Name, Other.Timestamp);
-                        bOk = bOkToBeDifferent;
+                        //bOk = bOkToBeDifferent;
                     }
                     if (Size != Other.Size)
                     {
