@@ -156,6 +156,7 @@ class BuildPlugin : BuildCommand
 		FileFilter Filter = new FileFilter();
 		Filter.AddRuleForFile(PluginFileName, PluginDirectory, FileFilterType.Include);
 		Filter.AddRuleForFiles(BuildProducts.Select(x => x.Path), PluginDirectory, FileFilterType.Include);
+		Filter.Include("/Binaries/ThirdParty/...");
 		Filter.Include("/Resources/...");
 		Filter.Include("/Content/...");
 		Filter.Include("/Intermediate/Build/.../Inc/...");
