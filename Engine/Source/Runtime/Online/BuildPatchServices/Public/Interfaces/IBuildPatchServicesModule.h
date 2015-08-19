@@ -119,6 +119,12 @@ public:
 	 */
 	virtual void RegisterAppInstallation(IBuildManifestRef AppManifest, const FString AppInstallDirectory) = 0;
 
+	/**
+	 * Call to force the exit out of all current installers, optionally blocks until threads have exited and complete delegates are called.
+	 * @param WaitForThreads		If true, will block on threads exit and completion delegates
+	 */
+	virtual void CancelAllInstallers(bool WaitForThreads) = 0;
+
 #if WITH_BUILDPATCHGENERATION
 	/**
 	 * Processes a Build Image to determine new chunks and produce a chunk based manifest, all saved to the cloud.
