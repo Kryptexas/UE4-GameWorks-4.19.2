@@ -1235,7 +1235,16 @@ void FXAudio2SoundSource::Update( void )
 		return;
 	}
 
-	const float Pitch = FMath::Clamp<float>( WaveInstance->Pitch, MIN_PITCH, MAX_PITCH );
+	float Pitch = WaveInstance->Pitch;
+
+	// Don't apply global pitch scale to UI sounds
+	if (!WaveInstance->bIsUISound)
+	{
+		Pitch *= AudioDevice->GlobalPitchScale.GetValue();
+	}
+
+	Pitch = FMath::Clamp<float>(Pitch, MIN_PITCH, MAX_PITCH);
+
 	AudioDevice->ValidateAPICall( TEXT( "SetFrequencyRatio" ), 
 		Source->SetFrequencyRatio( Pitch ) );
 

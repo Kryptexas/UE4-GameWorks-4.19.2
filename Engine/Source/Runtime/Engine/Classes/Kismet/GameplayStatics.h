@@ -303,6 +303,18 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
 	static bool AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange);
 	
+
+	/**
+	* Sets a global pitch modulation scalar that will apply to all non-UI sounds
+	*
+	* * Fire and Forget.
+	* * Not Replicated.
+	* @param PitchModulation - A pitch modulation value to globally set.
+	* @param TimeSec - A time value to linearly interpolate the global modulation pitch over from it's current value.
+	*/
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
+	static void SetGlobalPitchModulation(UObject* WorldContextObject, float PitchModulation, float TimeSec);
+
 	/**
 	 * Plays a sound directly with no attenuation, perfect for UI sounds.
 	 *

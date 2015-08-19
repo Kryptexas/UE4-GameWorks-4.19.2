@@ -21,6 +21,7 @@
 
 DEFINE_LOG_CATEGORY(LogAudio);
 
+DEFINE_LOG_CATEGORY(LogAudioDebug);
 
 /** Audio stats */
 

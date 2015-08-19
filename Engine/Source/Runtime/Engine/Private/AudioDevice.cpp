@@ -13,6 +13,53 @@
 #include "IAudioExtensionPlugin.h"
 
 /*-----------------------------------------------------------------------------
+FDynamicParameter implementation.
+-----------------------------------------------------------------------------*/
+
+FDynamicParameter::FDynamicParameter(float Value)
+	: CurrValue(Value)
+	, StartValue(Value)
+	, DeltaValue(0.0f)
+	, CurrTimeSec(0.0f)
+	, DurationSec(0.0f)
+	, LastTime(0.0f)
+{}
+
+void FDynamicParameter::Set(float Value, float InDuration)
+{
+	if (InDuration > 0.0f)
+	{
+		DeltaValue = Value - CurrValue;
+		StartValue = CurrValue;
+		DurationSec = InDuration;
+		CurrTimeSec = 0.0f;
+	}
+	else
+	{
+		CurrValue = Value;
+	}
+}
+
+void FDynamicParameter::Update(float DeltaTime)
+{
+	if (DurationSec > 0.0f)
+	{
+		float TimeFraction = CurrTimeSec / DurationSec;
+		if (TimeFraction < 1.0f)
+		{
+			CurrValue = DeltaValue * TimeFraction + StartValue;
+		}
+		else
+		{
+			CurrValue = StartValue + DeltaValue;
+			DurationSec = 0.0f;
+		}
+		CurrTimeSec += DeltaTime;
+	}
+}
+
+
+/*-----------------------------------------------------------------------------
 	FAudioDevice implementation.
 -----------------------------------------------------------------------------*/
 
@@ -33,7 +80,8 @@ FAudioDevice::FAudioDevice()
 	, TestAudioComponent(nullptr)
 	, DebugState(DEBUGSTATE_None)
 	, TransientMasterVolume(1.0f)
-	, LastUpdateTime(0.0f)
+	, GlobalPitchScale(1.0f)
+	, LastUpdateTime(FPlatformTime::Seconds())
 	, NextResourceID(1)
 	, BaseSoundMix(nullptr)
 	, DefaultBaseSoundMix(nullptr)
@@ -1923,6 +1971,15 @@ void FAudioDevice::StartSources( TArray<FWaveInstance*>& WaveInstances, int32 Fi
 void FAudioDevice::Update( bool bGameTicking )
 {
 	SCOPE_CYCLE_COUNTER( STAT_AudioUpdateTime );
+
+	double CurrTime = FPlatformTime::Seconds();
+	double DeltaTime = CurrTime - LastUpdateTime;
+	LastUpdateTime = CurrTime;
+
+	if (bGameTicking)
+	{
+		GlobalPitchScale.Update(DeltaTime);
+	}
 
 	// Start a new frame
 	CurrentTick++;

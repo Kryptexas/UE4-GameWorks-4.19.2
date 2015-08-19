@@ -59,6 +59,29 @@ namespace ESortedActiveWaveGetType
 	};
 }
 
+/** Simple class that wraps the math involved with interpolating a parameter over time based on audio device update time. */
+class FDynamicParameter
+{
+public:
+	FDynamicParameter(float Value);
+
+	void Set(float Value, float InDuration);
+	void Update(float DeltaTime);
+	float GetValue() const
+	{
+		return CurrValue;
+	}
+
+private:
+	float CurrValue;
+	float StartValue;
+	float DeltaValue;
+	float CurrTimeSec;
+	float DurationSec;
+	float LastTime;
+};
+
+
 /** 
  * Defines the properties of the listener
  */
@@ -756,8 +779,11 @@ public:
 	/** transient master volume multiplier that can be modified at runtime without affecting user settings automatically reset to 1.0 on level change */
 	float TransientMasterVolume;
 
+	/** Global dynamic pitch scale parameter */
+	FDynamicParameter GlobalPitchScale;
+
 	/** Timestamp of the last update */
-	float LastUpdateTime;
+	double LastUpdateTime;
 
 	/** Next resource ID to assign out to a wave/buffer */
 	int32 NextResourceID;
