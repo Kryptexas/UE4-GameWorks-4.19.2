@@ -5,6 +5,7 @@
 
 #if !UE_BUILD_SHIPPING
 
+#include "ISlateReflectorModule.h"
 #include "STableViewTesting.h"
 #include "SLayoutExample.h"
 #include "SWidgetGallery.h"
@@ -5704,6 +5705,9 @@ TSharedRef<SDockTab> SpawnWidgetGallery(const FSpawnTabArgs& Args)
 
 void RestoreSlateTestSuite()
 {
+	// Need to load this module so we have the widget reflector tab available
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector");
+
 	FTestStyle::ResetToDefault();
 
 	FGlobalTabmanager::Get()->RegisterTabSpawner("TestSuite1", FOnSpawnTab::CreateStatic( &SpawnTestSuite1 ) );

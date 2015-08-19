@@ -192,12 +192,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		// Debugging code
 		if (RunWidgetReflector)
 		{
-			FSlateApplication::Get().AddWindow(
-				SNew(SWindow)
-				.ClientSize(FVector2D(800, 600))
-				[
-					FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
-				]);
+			FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").DisplayWidgetReflector();
 		}
 
 		// loop until the app is ready to quit
