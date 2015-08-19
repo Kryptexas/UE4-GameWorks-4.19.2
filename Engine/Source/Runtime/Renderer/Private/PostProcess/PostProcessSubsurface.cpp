@@ -849,7 +849,7 @@ void FRCPassPostProcessSubsurfaceRecombine::Process(FRenderingCompositePassConte
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
-	if(GetInput(ePId_Input1))
+	if(GetInput(ePId_Input1)->IsValid())
 	{
 		if(bHalfRes)
 		{
