@@ -268,9 +268,9 @@ public partial class Project : CommandUtils
 
 
 		// Stage any extra runtime dependencies from the receipts
-		foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
+		foreach(StageTarget Target in SC.StageTargets)
 		{
-			SC.StageRuntimeDependenciesFromReceipt(Receipt);
+			SC.StageRuntimeDependenciesFromReceipt(Target.Receipt, Target.RequireFilesExist);
 		}
 
 		// Get the build.properties file
@@ -1528,7 +1528,7 @@ public partial class Project : CommandUtils
 
 			string EngineDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
 
-			List<TargetReceipt> TargetsToStage = new List<TargetReceipt>();
+			List<StageTarget> TargetsToStage = new List<StageTarget>();
 			foreach(string Target in ListToProcess)
 			{
 				foreach(UnrealTargetConfiguration Config in ConfigsToProcess)
@@ -1578,8 +1578,7 @@ public partial class Project : CommandUtils
 
 						// Convert the paths to absolute
 						Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
-						Receipt.SetDependenciesToBeRequired(bRequireStagedFilesToExist);
-						TargetsToStage.Add(Receipt);
+						TargetsToStage.Add(new StageTarget{ Receipt = Receipt, RequireFilesExist = bRequireStagedFilesToExist });
 					}
 				}
 			}

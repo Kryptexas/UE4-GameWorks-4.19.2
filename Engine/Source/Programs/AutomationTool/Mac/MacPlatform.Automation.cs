@@ -174,9 +174,9 @@ public class MacPlatform : Platform
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
 		{
-			foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
+			foreach(StageTarget Target in SC.StageTargets)
 			{
-				BuildProduct Executable = Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
@@ -195,7 +195,7 @@ public class MacPlatform : Platform
 						}
 						else if(Params.IsCodeBasedProject)
 						{
-							BootstrapExeName = Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".app";
+							BootstrapExeName = Target.Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".app";
 						}
 						else
 						{

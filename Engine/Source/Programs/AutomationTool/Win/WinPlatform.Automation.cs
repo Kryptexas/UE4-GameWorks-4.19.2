@@ -36,9 +36,9 @@ public abstract class BaseWinPlatform : Platform
 		}
 
 		// Stage all the build products
-		foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
+		foreach(StageTarget Target in SC.StageTargets)
 		{
-			SC.StageBuildProductsFromReceipt(Receipt);
+			SC.StageBuildProductsFromReceipt(Target.Receipt, Target.RequireFilesExist);
 		}
 
 		// Copy the splash screen, windows specific
@@ -47,9 +47,9 @@ public abstract class BaseWinPlatform : Platform
 		// Stage the bootstrap executable
 		if(!Params.NoBootstrapExe)
 		{
-			foreach(TargetReceipt Receipt in SC.StageTargetReceipts)
+			foreach(StageTarget Target in SC.StageTargets)
 			{
-				BuildProduct Executable = Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
+				BuildProduct Executable = Target.Receipt.BuildProducts.FirstOrDefault(x => x.Type == BuildProductType.Executable);
 				if(Executable != null)
 				{
 					// only create bootstraps for executables
@@ -68,7 +68,7 @@ public abstract class BaseWinPlatform : Platform
 						}
 						else if(Params.IsCodeBasedProject)
 						{
-							BootstrapExeName = Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".exe";
+							BootstrapExeName = Target.Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".exe";
 						}
 						else
 						{

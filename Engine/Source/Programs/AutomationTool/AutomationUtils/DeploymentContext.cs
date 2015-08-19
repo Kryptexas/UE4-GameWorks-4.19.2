@@ -14,6 +14,12 @@ public enum StagedFileType
 	DebugNonUFS
 }
 
+public struct StageTarget
+{
+	public TargetReceipt Receipt;
+	public bool RequireFilesExist;
+}
+
 public class DeploymentContext //: ProjectParams
 {
 	/// <summary>
@@ -52,9 +58,9 @@ public class DeploymentContext //: ProjectParams
 	public List<UnrealTargetConfiguration> StageTargetConfigurations;
 
 	/// <summary>
-	/// Receipts for the build targets that should be staged
+	/// Receipts for the build targets that should be staged.
 	/// </summary>
-	public List<TargetReceipt> StageTargetReceipts;
+	public List<StageTarget> StageTargets;
 
 	/// <summary>
 	///  this is the root directory that contains the engine: d:\a\UE4\
@@ -234,7 +240,7 @@ public class DeploymentContext //: ProjectParams
 		Platform InSourcePlatform,
         Platform InTargetPlatform,
 		List<UnrealTargetConfiguration> InTargetConfigurations,
-		IEnumerable<TargetReceipt> InStageTargetReceipts,
+		IEnumerable<StageTarget> InStageTargets,
 		List<String> InStageExecutables,
 		bool InServer,
 		bool InCooked,
@@ -254,7 +260,7 @@ public class DeploymentContext //: ProjectParams
         CookSourcePlatform = InSourcePlatform;
 		StageTargetPlatform = InTargetPlatform;
 		StageTargetConfigurations = new List<UnrealTargetConfiguration>(InTargetConfigurations);
-		StageTargetReceipts = new List<TargetReceipt>(InStageTargetReceipts);
+		StageTargets = new List<StageTarget>(InStageTargets);
 		StageExecutables = InStageExecutables;
         IsCodeBasedProject = ProjectUtils.IsCodeBasedUProjectFile(RawProjectPath);
 		ShortProjectName = ProjectUtils.GetShortProjectName(RawProjectPath);
@@ -385,13 +391,13 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageBuildProductsFromReceipt(TargetReceipt Receipt)
+	public void StageBuildProductsFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
 	{
 		// Stage all the build products needed at runtime
 		foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
 		{
 			// allow missing files if needed
-			if (Receipt.bRequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
+			if (RequireDependenciesToExist == false && File.Exists(BuildProduct.Path) == false)
 			{
 				continue;
 			}
@@ -407,13 +413,13 @@ public class DeploymentContext //: ProjectParams
 		}
 	}
 
-	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt)
+	public void StageRuntimeDependenciesFromReceipt(TargetReceipt Receipt, bool RequireDependenciesToExist)
 	{
 		// Also stage any additional runtime dependencies, like ThirdParty DLLs
 		foreach(RuntimeDependency RuntimeDependency in Receipt.RuntimeDependencies)
 		{
 			// allow missing files if needed
-			if (Receipt.bRequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
+			if (RequireDependenciesToExist == false && File.Exists(RuntimeDependency.Path) == false)
 			{
 				continue;
 			}
