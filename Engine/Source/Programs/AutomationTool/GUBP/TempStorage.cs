@@ -225,7 +225,6 @@ namespace AutomationTool
             {
                 var Directories = new Dictionary<string, List<TempStorageFileInfo>>();
 
-                CommandUtils.LogConsole("Creating TempStorageManifest at {0}", DateTime.UtcNow.ToString("o"));
                 foreach (string Filename in InFiles)
                 {
                     // use this to warm up the file shared on Mac.
