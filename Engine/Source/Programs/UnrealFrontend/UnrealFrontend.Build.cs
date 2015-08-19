@@ -32,11 +32,22 @@ public class UnrealFrontend : ModuleRules
 				"SessionServices",
 				"Slate",
 				"SlateCore",
-				"SlateReflector",
 				"SourceCodeAccess",
 				"StandaloneRenderer",
 				"TargetDeviceServices",
 				"TargetPlatform",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"SlateReflector",
+			}
+		);
+
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[] {
+				"SlateReflector",
 			}
 		);
 

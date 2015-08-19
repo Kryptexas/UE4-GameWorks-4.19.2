@@ -1,13 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
+#include "STestSuite.h"
+
+#if !UE_BUILD_SHIPPING
+
 #include "STableViewTesting.h"
 #include "SLayoutExample.h"
 #include "SWidgetGallery.h"
 #include "TestStyle.h"
 #include "RichTextLayoutMarshaller.h"
 #include "SyntaxHighlighterTextLayoutMarshaller.h"
-#include "STestSuite.h"
 #include "SScissorRectBox.h"
 #include "TransformCalculus3D.h"
 #include "SlateRenderTransform.h"
@@ -5758,3 +5761,5 @@ void MakeSplitterTest()
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE
+
+#endif // #if !UE_BUILD_SHIPPING

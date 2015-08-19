@@ -778,12 +778,13 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
 		CurrentSlateApp.InitializeSound( TSharedRef<FSlateSoundDevice>( new FSlateSoundDevice() ) );
 
-
+#if !UE_BUILD_SHIPPING
 		// Create test windows (if we were asked to do that)
 		if( FParse::Param( FCommandLine::Get(), TEXT("SlateDebug") ) )
 		{
 			RestoreSlateTestSuite();
 		}
+#endif // #if !UE_BUILD_SHIPPING
 	}
 
 	// Assign thumbnail compressor/decompressor

@@ -14,6 +14,7 @@ public class LevelEditor : ModuleRules
                 "PlacementMode",
 				"ReferenceViewer",
 				"SizeMap",
+				"SlateReflector",
                 "IntroTutorials",
                 "AppFramework"
 			}
@@ -37,7 +38,6 @@ public class LevelEditor : ModuleRules
                 "InputCore",
 				"Slate",
 				"SlateCore",
-				"SlateReflector",
                 "EditorStyle",
 				"Engine",
 				"MessageLog",
@@ -72,6 +72,7 @@ public class LevelEditor : ModuleRules
 				"DeviceManager",
 				"SettingsEditor",
 				"SessionFrontend",
+				"SlateReflector",
 				"AutomationWindow",
 				"Layers",
                 "WorldBrowser",

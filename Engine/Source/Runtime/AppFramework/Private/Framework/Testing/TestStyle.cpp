@@ -3,6 +3,7 @@
 #include "AppFrameworkPrivatePCH.h"
 #include "TestStyle.h"
 
+#if !UE_BUILD_SHIPPING
 
 TSharedPtr< ISlateStyle > FTestStyle::Instance = nullptr;
 
@@ -396,3 +397,5 @@ TSharedRef< ISlateStyle > FTestStyle::Create()
 
 	return Style;
 }
+
+#endif // #if !UE_BUILD_SHIPPING

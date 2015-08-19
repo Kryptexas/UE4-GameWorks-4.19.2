@@ -38,6 +38,21 @@ public class Engine : ModuleRules
 			PrivateIncludePathModuleNames.AddRange(new string[] { "TaskGraph" });
 		}
 
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			PrivateIncludePathModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
+
+			DynamicallyLoadedModuleNames.AddRange(
+				new string[] {
+					"SlateReflector",
+				}
+			);
+		}
+
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
@@ -65,7 +80,6 @@ public class Engine : ModuleRules
                 "AppFramework",
 				"Networking",
 				"Sockets",
-				"SlateReflector",
 				"Landscape",
                 "UMG",
 				"Projects",

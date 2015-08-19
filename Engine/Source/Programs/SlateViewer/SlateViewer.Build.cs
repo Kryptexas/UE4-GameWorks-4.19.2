@@ -15,10 +15,21 @@ public class SlateViewer : ModuleRules
 				"Projects",
 				"Slate",
 				"SlateCore",
-				"SlateReflector",
 				"StandaloneRenderer",
 				"SourceCodeAccess",
 				"WebBrowser",
+			}
+		);
+
+		PrivateIncludePathModuleNames.AddRange(
+			new string[] {
+				"SlateReflector",
+			}
+		);
+
+		DynamicallyLoadedModuleNames.AddRange(
+			new string[] {
+				"SlateReflector",
 			}
 		);
 

@@ -2,6 +2,9 @@
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SPerfSuite.h"
+
+#if !UE_BUILD_SHIPPING
+
 #include "STableViewTesting.h"
 #include "ISlateReflectorModule.h"
 
@@ -27,3 +30,5 @@ void SummonPerfTestSuite()
 		]
 	);
 }
+
+#endif // #if !UE_BUILD_SHIPPING

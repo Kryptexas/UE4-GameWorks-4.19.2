@@ -3,15 +3,19 @@
 #include "EnginePrivate.h"
 #include "UnrealNetwork.h"
 #include "SlateBasics.h"
-#include "ISlateReflectorModule.h"
 #include "NavDataGenerator.h"
 #include "OnlineSubsystemUtils.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
 
+#if !UE_BUILD_SHIPPING
+#include "ISlateReflectorModule.h"
+#endif // #if !UE_BUILD_SHIPPING
+
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+
 #include "GameFramework/CheatManager.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/DebugCameraController.h"
@@ -922,20 +926,26 @@ void UCheatManager::TestCollisionDistance()
 
 void UCheatManager::WidgetReflector()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::TextureAtlasVisualizer()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::FontAtlasVisualizer()
 {
+#if !UE_BUILD_SHIPPING
 	static const FName SlateReflectorModuleName("SlateReflector");
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
+#endif // #if !UE_BUILD_SHIPPING
 }
 
 void UCheatManager::RebuildNavigation()
