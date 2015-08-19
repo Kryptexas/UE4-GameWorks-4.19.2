@@ -608,6 +608,7 @@ bool FCurlHttpRequest::ProcessRequest()
 	FHttpModule::Get().GetHttpManager().AddRequest(SharedThis(this));
 	// reset timeout
 	ElapsedTime = 0.0f;
+	TimeSinceLastResponse = 0.0f;
 	
 	UE_LOG(LogHttp, Verbose, TEXT("%p: request (easy handle:%p) has been added to multi handle for processing"), this, EasyHandle );
 
