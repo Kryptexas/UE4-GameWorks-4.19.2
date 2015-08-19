@@ -6,7 +6,22 @@ using System.Text;
 
 namespace AutomationTool
 {
-	public class TriggerNode : LegacyBuildNode
+	public class TriggerNodeTemplate : LegacyNodeTemplate
+	{
+		public new GUBP.WaitForUserInput Node;
+
+		public TriggerNodeTemplate(GUBP InOwner, GUBP.WaitForUserInput InNode) : base(InOwner, InNode)
+		{
+			Node = InNode;
+		}
+
+		public override BuildNode Instantiate()
+		{
+			return new TriggerNode(this);
+		}
+	}
+
+	public class TriggerNode : LegacyNode
 	{
         public bool IsTriggered;
 		public bool RequiresRecursiveWorkflow;
@@ -14,24 +29,20 @@ namespace AutomationTool
 		public string DescriptionText;
 		public string ActionText;
 
-		public TriggerNode(GUBP bp, GUBP.WaitForUserInput InNode) : base(bp, InNode)
+		public TriggerNode(TriggerNodeTemplate Template) : base(Template)
 		{
 			AddSubmittersToFailureEmails = false;
 
-			StateName = InNode.GetTriggerStateName();
-			DescriptionText = InNode.GetTriggerDescText();
-			ActionText = InNode.GetTriggerActionText();
-			RequiresRecursiveWorkflow = InNode.TriggerRequiresRecursiveWorkflow();
+			StateName = Template.Node.GetTriggerStateName();
+			DescriptionText = Template.Node.GetTriggerDescText();
+			ActionText = Template.Node.GetTriggerActionText();
+			RequiresRecursiveWorkflow = Template.Node.TriggerRequiresRecursiveWorkflow();
 		}
 
 		public void Activate()
-		{ 
-			IsTriggered = true;
-		}
-
-		public override bool IsSticky
 		{
-			get { return IsTriggered; }
+			IsTriggered = true;
+			IsSticky = true;
 		}
 	}
 }

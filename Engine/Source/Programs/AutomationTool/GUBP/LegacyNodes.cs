@@ -36,9 +36,9 @@ partial class GUBP
         {
             return "";
         }
-		public virtual BuildNode GetBuildNode(GUBP bp)
+		public virtual BuildNodeTemplate GetTemplate(GUBP bp)
 		{
-			return new LegacyBuildNode(bp, this);
+			return new LegacyNodeTemplate(bp, this);
 		}
         public virtual void DoBuild(GUBP bp)
         {
@@ -242,11 +242,11 @@ partial class GUBP
 			}
             return "";
         }
-		public override BuildNode GetBuildNode(GUBP bp)
+		public override BuildNodeTemplate GetTemplate(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode(bp);
-			Node.AgentPlatform = GetAgentPlatform();
-			return Node;
+			BuildNodeTemplate Template = base.GetTemplate(bp);
+			Template.AgentPlatform = GetAgentPlatform();
+			return Template;
 		}
         public virtual UnrealTargetPlatform GetAgentPlatform()
         {
@@ -358,14 +358,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode(GUBP bp)
+		public override BuildNodeTemplate GetTemplate(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode(bp);
+			BuildNodeTemplate Template = base.GetTemplate(bp);
 			if(HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Node.IsParallelAgentShareEditor = true;
+				Template.IsParallelAgentShareEditor = true;
 			}
-			return Node;
+			return Template;
 		}
         public override bool DeleteBuildProducts()
         {
@@ -460,14 +460,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode(GUBP bp)
+		public override BuildNodeTemplate GetTemplate(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode(bp);
+			BuildNodeTemplate Template = base.GetTemplate(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Node.IsParallelAgentShareEditor = true;
+				Template.IsParallelAgentShareEditor = true;
 			}
-			return Node;
+			return Template;
 		}
 		public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
@@ -917,14 +917,14 @@ partial class GUBP
             }
             return false;
         }
-		public override BuildNode GetBuildNode(GUBP bp)
+		public override BuildNodeTemplate GetTemplate(GUBP bp)
 		{
-			BuildNode Node = base.GetBuildNode(bp);
+			BuildNodeTemplate Template = base.GetTemplate(bp);
 			if (HostPlatform == UnrealTargetPlatform.Win64)
 			{
-				Node.IsParallelAgentShareEditor = true;
+				Template.IsParallelAgentShareEditor = true;
 			}
-			return Node;
+			return Template;
 		}
 		public override string GameNameIfAnyForTempStorage()
         {
@@ -1398,6 +1398,16 @@ partial class GUBP
 			}
 		}
 
+		public AggregateNodeTemplate GetTemplate()
+		{
+			AggregateNodeTemplate Template = new AggregateNodeTemplate();
+			Template.Name = GetFullName();
+			Template.DependencyNames = String.Join(";", Dependencies);
+			Template.IsPromotableAggregate = IsPromotableAggregate();
+			Template.IsSeparatePromotable = IsSeparatePromotable();
+			return Template;
+		}
+
 		public abstract string GetFullName();
 
 		public virtual string GameNameIfAnyForTempStorage()
@@ -1492,9 +1502,9 @@ partial class GUBP
             BuildProducts = new List<string>();
             SaveRecordOfSuccessAndAddToBuildProducts();
         }
-        public override BuildNode GetBuildNode(GUBP bp)
+        public override BuildNodeTemplate GetTemplate(GUBP bp)
         {
-			return new TriggerNode(bp, this);
+			return new TriggerNodeTemplate(bp, this);
         }
         public virtual string GetTriggerStateName()
         {

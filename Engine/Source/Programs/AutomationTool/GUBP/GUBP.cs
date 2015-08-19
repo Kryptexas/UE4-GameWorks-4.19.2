@@ -223,15 +223,18 @@ public partial class GUBP : BuildCommand
 			ExplicitTriggerName = ParseParamValue("TriggerNode", "");
 		}
 
-		List<BuildNode> AllNodes;
-		List<AggregateNode> AllAggregates;
+		List<BuildNodeTemplate> AllBuildNodeTemplates;
+		List<AggregateNodeTemplate> AllAggregateNodeTemplates;
 		int TimeQuantum = 20;
-		AddNodesForBranch(HostPlatforms, JobInfo, out AllNodes, out AllAggregates, ref TimeQuantum);
+		AddNodesForBranch(HostPlatforms, JobInfo, out AllBuildNodeTemplates, out AllAggregateNodeTemplates, ref TimeQuantum);
 
-		LinkGraph(AllAggregates, AllNodes);
-		FindControllingTriggers(AllNodes);
-        FindCompletionState(AllNodes, JobInfo, LocalOnly);
-		ComputeDependentFrequencies(AllNodes);
+		List<AggregateNode> AllAggregateNodes;
+		List<BuildNode> AllBuildNodes;
+		LinkGraph(AllAggregateNodeTemplates, AllBuildNodeTemplates, out AllAggregateNodes, out AllBuildNodes);
+
+		FindControllingTriggers(AllBuildNodes);
+        FindCompletionState(AllBuildNodes, JobInfo, LocalOnly);
+		ComputeDependentFrequencies(AllBuildNodes);
 
         if (bCleanLocalTempStorage)  // shared temp storage can never be wiped
         {
@@ -249,7 +252,7 @@ public partial class GUBP : BuildCommand
 			Log("Setting TimeIndex to {0}", TimeIndex);
 		}
 
-		HashSet<BuildNode> NodesToDo = ParseNodesToDo(AllNodes, AllAggregates);
+		HashSet<BuildNode> NodesToDo = ParseNodesToDo(AllBuildNodes, AllAggregateNodes);
 		CullNodesForTimeIndex(NodesToDo, TimeIndex);
         if (JobInfo.IsPreflight)
         {
@@ -261,7 +264,7 @@ public partial class GUBP : BuildCommand
         {
             if (!String.IsNullOrEmpty(ExplicitTriggerName))
             {
-                foreach (TriggerNode Trigger in AllNodes.OfType<TriggerNode>())
+                foreach (TriggerNode Trigger in AllBuildNodes.OfType<TriggerNode>())
                 {
 					if (Trigger.Name.Equals(ExplicitTriggerName, StringComparison.InvariantCultureIgnoreCase))
                     {
@@ -279,7 +282,7 @@ public partial class GUBP : BuildCommand
             {
                 if (bSkipTriggers)
                 {
-                    foreach (TriggerNode Trigger in AllNodes.OfType<TriggerNode>())
+                    foreach (TriggerNode Trigger in AllBuildNodes.OfType<TriggerNode>())
                     {
 						Trigger.Activate();
                     }
@@ -291,7 +294,7 @@ public partial class GUBP : BuildCommand
 
 		List<TriggerNode> UnfinishedTriggers = FindUnfinishedTriggers(bSkipTriggers, ExplicitTrigger, OrderedToDo);
 
-		PrintNodes(this, OrderedToDo, AllAggregates, UnfinishedTriggers, TimeQuantum);
+		PrintNodes(this, OrderedToDo, AllAggregateNodes, UnfinishedTriggers, TimeQuantum);
 
         //check sorting
 		CheckSortOrder(OrderedToDo);
@@ -301,7 +304,7 @@ public partial class GUBP : BuildCommand
 		string ShowHistoryParam = ParseParamValue("ShowHistory", null);
 		if(ShowHistoryParam != null)
 		{
-			BuildNode Node = AllNodes.FirstOrDefault(x => x.Name.Equals(ShowHistoryParam, StringComparison.InvariantCultureIgnoreCase));
+			BuildNode Node = AllBuildNodes.FirstOrDefault(x => x.Name.Equals(ShowHistoryParam, StringComparison.InvariantCultureIgnoreCase));
 			if(Node == null)
 			{
 				throw new AutomationException("Couldn't find node {0}", ShowHistoryParam);
@@ -320,7 +323,7 @@ public partial class GUBP : BuildCommand
 			string FakeFail = ParseParamValue("FakeFail");
 			if(CommanderSetup)
 			{
-				DoCommanderSetup(EC, AllNodes, AllAggregates, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, ExplicitTrigger, UnfinishedTriggers, FakeFail, JobInfo.IsPreflight);
+				DoCommanderSetup(EC, AllBuildNodes, AllAggregateNodes, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, ExplicitTrigger, UnfinishedTriggers, FakeFail, JobInfo.IsPreflight);
 			}
 			else if(!ParseParam("ListOnly"))
 			{
@@ -1114,33 +1117,40 @@ public partial class GUBP : BuildCommand
 	/// </summary>
 	/// <param name="AggregateNameToInfo">Map of aggregate names to their info objects</param>
 	/// <param name="NodeNameToInfo">Map of node names to their info objects</param>
-	private static void LinkGraph(IEnumerable<AggregateNode> Aggregates, IEnumerable<BuildNode> Nodes)
+	private static void LinkGraph(List<AggregateNodeTemplate> AggregateNodeTemplates, List<BuildNodeTemplate> BuildNodeTemplates, out List<AggregateNode> AggregateNodes, out List<BuildNode> BuildNodes)
 	{
-		Dictionary<string, BuildNode> NodeNameToInfo = new Dictionary<string,BuildNode>();
-		foreach(BuildNode Node in Nodes)
+		// Create all the build nodes, and a dictionary to find them by name
+		Dictionary<string, BuildNodePair> BuildNodeNameToPair = new Dictionary<string, BuildNodePair>(StringComparer.InvariantCultureIgnoreCase);
+		foreach (BuildNodeTemplate Template in BuildNodeTemplates)
 		{
-			NodeNameToInfo.Add(Node.Name, Node);
+			BuildNodeNameToPair.Add(Template.Name, new BuildNodePair(Template));
 		}
 
-		Dictionary<string, AggregateNode> AggregateNameToInfo = new Dictionary<string, AggregateNode>();
-		foreach(AggregateNode Aggregate in Aggregates)
+		// Create all the aggregate nodes, and add them to a dictionary too
+		Dictionary<string, AggregateNodePair> AggregateNodeNameToPair = new Dictionary<string, AggregateNodePair>(StringComparer.InvariantCultureIgnoreCase);
+		foreach (AggregateNodeTemplate Template in AggregateNodeTemplates)
 		{
-			AggregateNameToInfo.Add(Aggregate.Name, Aggregate);
+			AggregateNodeNameToPair.Add(Template.Name, new AggregateNodePair(Template));
 		}
 
+		// Link the graph
 		int NumErrors = 0;
-		foreach (AggregateNode AggregateNode in AggregateNameToInfo.Values)
+		foreach (AggregateNodePair Pair in AggregateNodeNameToPair.Values)
 		{
-			LinkAggregate(AggregateNode, AggregateNameToInfo, NodeNameToInfo, ref NumErrors);
+			LinkAggregate(Pair, AggregateNodeNameToPair, BuildNodeNameToPair, ref NumErrors);
 		}
-		foreach (BuildNode BuildNode in NodeNameToInfo.Values)
+		foreach (BuildNodePair Pair in BuildNodeNameToPair.Values)
 		{
-			LinkNode(BuildNode, new List<BuildNode>(), AggregateNameToInfo, NodeNameToInfo, ref NumErrors);
+			LinkNode(Pair, new List<BuildNodePair>(), AggregateNodeNameToPair, BuildNodeNameToPair, ref NumErrors);
 		}
 		if(NumErrors > 0)
 		{
 			throw new AutomationException("Failed to link graph ({0} errors).", NumErrors);
 		}
+
+		// Set the output lists
+		AggregateNodes = AggregateNodeNameToPair.Values.Select(x => x.Node).ToList();
+		BuildNodes = BuildNodeNameToPair.Values.Select(x => x.Node).ToList();
 	}
 
 	/// <summary>
@@ -1150,98 +1160,99 @@ public partial class GUBP : BuildCommand
 	/// <param name="AggregateNameToInfo">Map of other aggregate names to their corresponding instance.</param>
 	/// <param name="NodeNameToInfo">Map from node names to their corresponding instance.</param>
 	/// <param name="NumErrors">The number of errors output so far. Incremented if resolving this aggregate fails.</param>
-	private static void LinkAggregate(AggregateNode Aggregate, Dictionary<string, AggregateNode> AggregateNameToInfo, Dictionary<string, BuildNode> NodeNameToInfo, ref int NumErrors)
+	private static void LinkAggregate(AggregateNodePair Pair, Dictionary<string, AggregateNodePair> AggregateNodeNameToPair, Dictionary<string, BuildNodePair> BuildNodeNameToPair, ref int NumErrors)
 	{
-		if (Aggregate.Dependencies == null)
+		if (Pair.Node.Dependencies == null)
 		{
-			Aggregate.Dependencies = new BuildNode[0];
+			Pair.Node.Dependencies = new BuildNode[0];
 
 			HashSet<BuildNode> Dependencies = new HashSet<BuildNode>();
-			foreach (string DependencyName in Aggregate.DependencyNames)
+			foreach (string DependencyName in ParseSemicolonDelimitedList(Pair.Template.DependencyNames))
 			{
-				AggregateNode AggregateDependency;
-				if(AggregateNameToInfo.TryGetValue(DependencyName, out AggregateDependency))
+				AggregateNodePair AggregateNodeDependency;
+				if(AggregateNodeNameToPair.TryGetValue(DependencyName, out AggregateNodeDependency))
 				{
-					LinkAggregate(AggregateDependency, AggregateNameToInfo, NodeNameToInfo, ref NumErrors);
-					Dependencies.UnionWith(AggregateDependency.Dependencies);
+					LinkAggregate(AggregateNodeDependency, AggregateNodeNameToPair, BuildNodeNameToPair, ref NumErrors);
+					Dependencies.UnionWith(AggregateNodeDependency.Node.Dependencies);
 					continue;
 				}
 
-				BuildNode Dependency;
-				if(NodeNameToInfo.TryGetValue(DependencyName, out Dependency))
+				BuildNodePair BuildNodeDependency;
+				if(BuildNodeNameToPair.TryGetValue(DependencyName, out BuildNodeDependency))
 				{
-					Dependencies.Add(Dependency);
+					Dependencies.Add(BuildNodeDependency.Node);
 					continue;
 				}
 
-				CommandUtils.LogError("Node {0} is not in the graph. It is a dependency of {1}.", DependencyName, Aggregate.Name);
+				CommandUtils.LogError("Node {0} is not in the graph. It is a dependency of {1}.", DependencyName, Pair.Template.Name);
 				NumErrors++;
 			}
-			Aggregate.Dependencies = Dependencies.ToArray();
+
+			Pair.Node.Dependencies = Dependencies.ToArray();
 		}
 	}
 
-	private static void LinkNode(BuildNode Node, List<BuildNode> NodeStack, Dictionary<string, AggregateNode> NameToAggregateNode, Dictionary<string, BuildNode> NameToBuildNode, ref int NumErrors)
+	private static void LinkNode(BuildNodePair Pair, List<BuildNodePair> Stack, Dictionary<string, AggregateNodePair> AggregateNodeNameToPair, Dictionary<string, BuildNodePair> BuildNodeNameToPair, ref int NumErrors)
 	{
-		if(Node.OrderDependencies == null)
+		if(Pair.Node.OrderDependencies == null)
 		{
-			NodeStack.Add(Node);
+			Stack.Add(Pair);
 
-			int NodeStackIdx = NodeStack.IndexOf(Node);
-			if (NodeStackIdx != NodeStack.Count - 1)
+			int StackIdx = Stack.IndexOf(Pair);
+			if (StackIdx != Stack.Count - 1)
 			{
 				// There's a cycle in the build graph. Print out the chain.
-				CommandUtils.LogError("Build graph contains a cycle ({0})", String.Join(" -> ", NodeStack.Skip(NodeStackIdx).Select(x => x.Name)));
+				CommandUtils.LogError("Build graph contains a cycle ({0})", String.Join(" -> ", Stack.Skip(StackIdx).Select(x => x.Template.Name)));
 				NumErrors++;
-				Node.OrderDependencies = new HashSet<BuildNode>();
-				Node.InputDependencies = new HashSet<BuildNode>();
+				Pair.Node.OrderDependencies = new HashSet<BuildNode>();
+				Pair.Node.InputDependencies = new HashSet<BuildNode>();
 			}
 			else
 			{
 				// Find all the direct input dependencies
 				HashSet<BuildNode> DirectInputDependencies = new HashSet<BuildNode>();
-				foreach (string InputDependencyName in Node.InputDependencyNames)
+				foreach (string InputDependencyName in ParseSemicolonDelimitedList(Pair.Template.InputDependencyNames))
 				{
-					if (!ResolveDependencies(InputDependencyName, NameToAggregateNode, NameToBuildNode, DirectInputDependencies))
+					if (!ResolveDependencies(InputDependencyName, AggregateNodeNameToPair, BuildNodeNameToPair, DirectInputDependencies))
 					{
-						CommandUtils.LogError("Node {0} is not in the graph. It is an input dependency of {1}.", InputDependencyName, Node.Name);
+						CommandUtils.LogError("Node {0} is not in the graph. It is an input dependency of {1}.", InputDependencyName, Pair.Template.Name);
 						NumErrors++;
 					}
 				}
 
 				// Find all the direct order dependencies. All the input dependencies are also order dependencies.
 				HashSet<BuildNode> DirectOrderDependencies = new HashSet<BuildNode>(DirectInputDependencies);
-				foreach (string OrderDependencyName in Node.OrderDependencyNames)
+				foreach (string OrderDependencyName in ParseSemicolonDelimitedList(Pair.Template.OrderDependencyNames))
 				{
-					if (!ResolveDependencies(OrderDependencyName, NameToAggregateNode, NameToBuildNode, DirectOrderDependencies))
+					if (!ResolveDependencies(OrderDependencyName, AggregateNodeNameToPair, BuildNodeNameToPair, DirectOrderDependencies))
 					{
-						CommandUtils.LogError("Node {0} is not in the graph. It is an order dependency of {1}.", OrderDependencyName, Node.Name);
+						CommandUtils.LogError("Node {0} is not in the graph. It is an order dependency of {1}.", OrderDependencyName, Pair.Template.Name);
 						NumErrors++;
 					}
 				}
 
 				// Link everything
-				foreach(BuildNode DirectOrderDependency in DirectOrderDependencies)
+				foreach (BuildNode DirectOrderDependency in DirectOrderDependencies)
 				{
-					LinkNode(DirectOrderDependency, NodeStack, NameToAggregateNode, NameToBuildNode, ref NumErrors);
+					LinkNode(BuildNodeNameToPair[DirectOrderDependency.Name], Stack, AggregateNodeNameToPair, BuildNodeNameToPair, ref NumErrors);
 				}
 
 				// Recursively include all the input dependencies
-				Node.InputDependencies = new HashSet<BuildNode>(DirectInputDependencies);
+				Pair.Node.InputDependencies = new HashSet<BuildNode>(DirectInputDependencies);
 				foreach (BuildNode DirectInputDependency in DirectInputDependencies)
 				{
-					Node.InputDependencies.UnionWith(DirectInputDependency.InputDependencies);
+					Pair.Node.InputDependencies.UnionWith(DirectInputDependency.InputDependencies);
 				}
 
 				// Same for the order dependencies
-				Node.OrderDependencies = new HashSet<BuildNode>(DirectOrderDependencies);
+				Pair.Node.OrderDependencies = new HashSet<BuildNode>(DirectOrderDependencies);
 				foreach (BuildNode DirectOrderDependency in DirectOrderDependencies)
 				{
-					Node.OrderDependencies.UnionWith(DirectOrderDependency.OrderDependencies);
+					Pair.Node.OrderDependencies.UnionWith(DirectOrderDependency.OrderDependencies);
 				}
 			}
 
-			NodeStack.RemoveAt(NodeStack.Count - 1);
+			Stack.RemoveAt(Stack.Count - 1);
 		}
 	}
 
@@ -1253,23 +1264,33 @@ public partial class GUBP : BuildCommand
 	/// <param name="NodeNameToInfo">Map from node names to their corresponding info instance.</param>
 	/// <param name="Dependencies">The set of dependencies to add to.</param>
 	/// <returns>True if the name was found (and the dependencies list was updated), false otherwise.</returns>
-	private static bool ResolveDependencies(string Name, Dictionary<string, AggregateNode> AggregateNameToInfo, Dictionary<string, BuildNode> NodeNameToInfo, HashSet<BuildNode> Dependencies)
+	private static bool ResolveDependencies(string Name, Dictionary<string, AggregateNodePair> AggregateNodeNameToPair, Dictionary<string, BuildNodePair> BuildNodeNameToPair, HashSet<BuildNode> Dependencies)
 	{
-		AggregateNode AggregateDependency;
-		if (AggregateNameToInfo.TryGetValue(Name, out AggregateDependency))
+		AggregateNodePair AggregateDependency;
+		if (AggregateNodeNameToPair.TryGetValue(Name, out AggregateDependency))
 		{
-			Dependencies.UnionWith(AggregateDependency.Dependencies);
+			Dependencies.UnionWith(AggregateDependency.Node.Dependencies);
 			return true;
 		}
 
-		BuildNode NodeDependency;
-		if (NodeNameToInfo.TryGetValue(Name, out NodeDependency))
+		BuildNodePair NodeDependency;
+		if (BuildNodeNameToPair.TryGetValue(Name, out NodeDependency))
 		{
-			Dependencies.Add(NodeDependency);
+			Dependencies.Add(NodeDependency.Node);
 			return true;
 		}
 
 		return false;
+	}
+
+	/// <summary>
+	/// Parses a semi-colon delimited list into a sequence of strings.
+	/// </summary>
+	/// <param name="StringList">Semicolon delimited list of strings</param>
+	/// <returns>Sequence of strings</returns>
+	private static IEnumerable<string> ParseSemicolonDelimitedList(string StringList)
+	{
+		return StringList.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
 	}
 
 	/// <summary>

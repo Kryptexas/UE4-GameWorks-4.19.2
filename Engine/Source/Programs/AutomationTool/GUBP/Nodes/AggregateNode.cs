@@ -7,54 +7,40 @@ using System.Text;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
-	public abstract class AggregateNode
+	public class AggregateNodeTemplate
 	{
 		public string Name;
+		public bool IsPromotableAggregate;
+		public bool IsSeparatePromotable;
+		public string DependencyNames;
+	}
+
+	[DebuggerDisplay("{Name}")]
+	public class AggregateNode
+	{
+		public string Name;
+		public bool IsPromotableAggregate;
+		public bool IsSeparatePromotable;
 		public BuildNode[] Dependencies;
 
-		public AggregateNode(string InName)
+		public AggregateNode(AggregateNodeTemplate Template)
 		{
-			Name = InName;
-		}
-
-		public abstract IEnumerable<string> DependencyNames
-		{
-			get;
-		}
-
-		public abstract bool IsPromotableAggregate
-		{
-			get;
-		}
-
-		public abstract bool IsSeparatePromotable
-		{
-			get;
+			Name = Template.Name;
+			IsPromotableAggregate = Template.IsPromotableAggregate;
+			IsSeparatePromotable = Template.IsSeparatePromotable;
 		}
 	}
 
-	public class LegacyAggregateNode : AggregateNode
+	[DebuggerDisplay("{Definition.Name}")]
+	class AggregateNodePair
 	{
-		public GUBP.GUBPAggregateNode Node;
+		public readonly AggregateNodeTemplate Template;
+		public readonly AggregateNode Node;
 
-		public LegacyAggregateNode(GUBP.GUBPAggregateNode InNode) : base(InNode.GetFullName())
+		public AggregateNodePair(AggregateNodeTemplate InTemplate)
 		{
-			Node = InNode;
-		}
-
-		public override IEnumerable<string> DependencyNames
-		{
-			get { return Node.Dependencies; }
-		}
-
-		public override bool IsPromotableAggregate
-		{
-			get { return Node.IsPromotableAggregate(); }
-		}
-
-		public override bool IsSeparatePromotable
-		{
-			get { return Node.IsSeparatePromotable(); }
+			Template = InTemplate;
+			Node = new AggregateNode(Template);
 		}
 	}
 }

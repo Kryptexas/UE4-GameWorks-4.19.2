@@ -8,6 +8,32 @@ using UnrealBuildTool;
 namespace AutomationTool
 {
 	[DebuggerDisplay("{Name}")]
+	public abstract class BuildNodeTemplate
+	{
+		public string Name;
+		public UnrealTargetPlatform AgentPlatform = UnrealTargetPlatform.Win64;
+		public string AgentRequirements;
+		public string AgentSharingGroup;
+		public int FrequencyShift;
+		public int AgentMemoryRequirement;
+		public int TimeoutInMinutes;
+		public float Priority;
+		public string InputDependencyNames;
+		public string OrderDependencyNames;
+		public string RecipientsForFailureEmails;
+		public bool AddSubmittersToFailureEmails;
+		public bool SendSuccessEmail;
+		public bool IsParallelAgentShareEditor;
+		public bool IsSticky;
+		public bool IsTest;
+		public string DisplayGroupName;
+		public string GameNameIfAnyForTempStorage;
+		public string RootIfAnyForTempStorage;
+
+		public abstract BuildNode Instantiate();
+	}
+
+	[DebuggerDisplay("{Name}")]
 	public abstract class BuildNode
 	{
 		public readonly string Name;
@@ -27,27 +53,33 @@ namespace AutomationTool
 		public bool AddSubmittersToFailureEmails;
 		public bool SendSuccessEmail;
 		public bool IsParallelAgentShareEditor;
+		public bool IsSticky;
+		public bool IsTest;
+		public string DisplayGroupName;
+		public string GameNameIfAnyForTempStorage;
+		public string RootIfAnyForTempStorage;
 
 		public List<string> BuildProducts;
 
-		public BuildNode(string InName)
+		public BuildNode(BuildNodeTemplate Template)
 		{
-			Name = InName;
-		}
-
-		public abstract bool IsSticky
-		{
-			get;
-		}
-
-		public abstract IEnumerable<string> InputDependencyNames
-		{
-			get;
-		}
-
-		public abstract IEnumerable<string> OrderDependencyNames
-		{
-			get;
+			Name = Template.Name;
+			AgentPlatform = Template.AgentPlatform;
+			AgentRequirements = Template.AgentRequirements;
+			AgentSharingGroup = Template.AgentSharingGroup;
+			FrequencyShift = Template.FrequencyShift;
+			AgentMemoryRequirement = Template.AgentMemoryRequirement;
+			TimeoutInMinutes = Template.TimeoutInMinutes;
+			Priority = Template.Priority;
+			RecipientsForFailureEmails = Template.RecipientsForFailureEmails.Split(';');
+			AddSubmittersToFailureEmails = Template.AddSubmittersToFailureEmails;
+			SendSuccessEmail = Template.SendSuccessEmail;
+			IsParallelAgentShareEditor = Template.IsParallelAgentShareEditor;
+			IsSticky = Template.IsSticky;
+			IsTest = Template.IsTest;
+			DisplayGroupName = Template.DisplayGroupName;
+			GameNameIfAnyForTempStorage = Template.GameNameIfAnyForTempStorage;
+			RootIfAnyForTempStorage = Template.RootIfAnyForTempStorage;
 		}
 
 		public abstract void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly);
@@ -73,128 +105,18 @@ namespace AutomationTool
 			System.Diagnostics.Trace.TraceWarning("Implicit conversion from NodeInfo to string\n{0}", Environment.StackTrace);
 			return Name;
 		}
-
-		// Legacy stuff that should probably be removed
-
-		public abstract bool IsTest
-		{
-			get;
-		}
-
-		public abstract string DisplayGroupName
-		{
-			get;
-		}
-
-		public abstract string GameNameIfAnyForTempStorage
-		{
-			get;
-		}
-
-		public abstract string RootIfAnyForTempStorage
-		{
-			get;
-		}
 	}
 
-	public class LegacyBuildNode : BuildNode
+	[DebuggerDisplay("{Definition.Name}")]
+	class BuildNodePair
 	{
-		GUBP Owner;
-		GUBP.GUBPNode Node;
+		public readonly BuildNodeTemplate Template;
+		public readonly BuildNode Node;
 
-		public LegacyBuildNode(GUBP InOwner, GUBP.GUBPNode InNode) : base(InNode.GetFullName())
+		public BuildNodePair(BuildNodeTemplate InTemplate)
 		{
-			Owner = InOwner;
-			Node = InNode;
-			AgentRequirements = Node.ECAgentString();
-			AgentSharingGroup = Node.AgentSharingGroup;
-			AgentMemoryRequirement = Node.AgentMemoryRequirement();
-			TimeoutInMinutes = Node.TimeoutInMinutes();
-			SendSuccessEmail = Node.SendSuccessEmail();
-			Priority = Node.Priority();
-		}
-
-		public override bool IsSticky
-		{
-			get { return Node.IsSticky(); }
-		}
-
-		public override IEnumerable<string> InputDependencyNames
-		{
-			get { return Node.FullNamesOfDependencies; }
-		}
-
-		public override IEnumerable<string> OrderDependencyNames
-		{
-			get { return Node.FullNamesOfPseudodependencies; }
-		}
-
-		public override void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
-		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, GameNameIfAny, StorageRootIfAny);
-		}
-
-		public override void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
-		{
-			CommandUtils.LogConsole("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
-			bool WasLocal;
-			try
-			{
-				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
-			}
-			catch (Exception Ex)
-			{
-				if (GameNameIfAny != "")
-				{
-					BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
-				}
-				else
-				{
-					throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
-				}
-			}
-			Node.BuildProducts = BuildProducts;
-		}
-
-		public override void DoBuild()
-		{
-			Node.AllDependencyBuildProducts = new List<string>();
-			foreach (BuildNode InputDependency in InputDependencies)
-			{
-				foreach (string BuildProduct in InputDependency.BuildProducts)
-				{
-					Node.AddDependentBuildProduct(BuildProduct);
-				}
-			}
-
-			Node.DoBuild(Owner);
-			BuildProducts = Node.BuildProducts;
-		}
-
-		public override void DoFakeBuild()
-		{
-			Node.DoFakeBuild(Owner);
-			BuildProducts = Node.BuildProducts;
-		}
-
-		public override bool IsTest
-		{
-			get { return Node.IsTest(); }
-		}
-
-		public override string DisplayGroupName
-		{
-			get { return Node.GetDisplayGroupName(); }
-		}
-
-		public override string GameNameIfAnyForTempStorage
-		{
-			get { return Node.GameNameIfAnyForTempStorage(); }
-		}
-
-		public override string RootIfAnyForTempStorage
-		{
-			get { return Node.RootIfAnyForTempStorage(); }
+			Template = InTemplate;
+			Node = InTemplate.Instantiate();
 		}
 	}
 }
