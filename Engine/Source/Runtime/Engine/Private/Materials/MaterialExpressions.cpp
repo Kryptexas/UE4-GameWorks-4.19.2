@@ -2596,7 +2596,7 @@ int32 UMaterialExpressionTextureCoordinate::Compile(class FMaterialCompiler* Com
 
 void UMaterialExpressionTextureCoordinate::GetCaption(TArray<FString>& OutCaptions) const
 {
-	OutCaptions.Add(TEXT("TexCoord"));
+	OutCaptions.Add(FString::Printf(TEXT("TexCoord[%i]"), CoordinateIndex));
 }
 
 
