@@ -916,7 +916,7 @@ void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TShare
 void FMacApplication::ProcessKeyUpEvent(const FDeferredMacEvent& Event)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode)
+	if (!bSystemModalMode && [Event.Characters length] > 0 && [Event.CharactersIgnoringModifiers length] > 0)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
