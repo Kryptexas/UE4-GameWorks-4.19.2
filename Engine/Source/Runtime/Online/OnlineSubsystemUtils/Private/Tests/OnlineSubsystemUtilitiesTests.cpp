@@ -56,7 +56,7 @@ namespace OSSUtilsTestHelper
 		{
 			if (IOnlineSubsystem::Get(OSSName))
 			{
-				FString PostName = FString::Printf( TEXT(".%s"), *PostTestName );
+				FString PostName = FString::Printf( TEXT( ".%s" ), *PostTestName );
 				FString PrettyName = FString::Printf(TEXT( "%s%s" ), 
 					*OSSName.ToString(), 
 					PostTestName.IsEmpty() ? TEXT( "" ) : *PostName );
@@ -177,7 +177,7 @@ bool FTestIdentityInterfaceLogoutWhileNotLoggedIn::RunTest(const FString& Parame
 {
 	// Get the user info that is used for logging in and out of the subsystem.
 	FString Username = TEXT( "" );
-	FString Password = TEXT( " ");
+	FString Password = TEXT( "" );
 	if ( !OSSUtilsTestHelper::GetUserInfo( Username, Password ) ) return false;
 
 	FTestIdentityInterfaceStruct LogoutTestStruct( Username, Password, TEXT( "epic" ), Parameters );
