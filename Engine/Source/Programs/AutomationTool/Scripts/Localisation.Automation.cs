@@ -30,15 +30,6 @@ class Localise : BuildCommand
 	{
 		var EditorExe = CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/Win64/UE4Editor-Cmd.exe");
 
-		if (P4Enabled)
-		{
-			LogConsole("Sync necessary content to head revision");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
-			P4.Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
-			LogConsole("Localize from label {0}", P4Env.LabelToSync);
-		}
-
         OneSkyConfigData OneSkyConfig = OneSkyConfigHelper.Find("OneSkyConfig_EpicGames");
         var oneSkyService = new OneSkyService(OneSkyConfig.ApiKey, OneSkyConfig.ApiSecret);
         var projectGroup = GetProjectGroup(oneSkyService, "Unreal Engine");

@@ -2597,6 +2597,40 @@ partial class GUBP
         }
     }
 
+	public class BuildLocalization : HostPlatformNode
+	{
+		public BuildLocalization()
+			: base(UnrealTargetPlatform.Win64)
+		{
+			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
+		}
+
+		public override void DoBuild(GUBP bp)
+		{
+			// Run the localise script.
+			//CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise");
+
+			// Don't pass on any build products to other build nodes at the moment.
+			BuildProducts = new List<string>();
+			SaveRecordOfSuccessAndAddToBuildProducts();
+		}
+
+		public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
+		{
+			return base.CISFrequencyQuantumShift(BranchConfig) + 6;
+		}
+
+		public static string StaticGetFullName()
+		{
+			return "BuildLocalization";
+		}
+
+		public override string GetFullName()
+		{
+			return StaticGetFullName();
+		}
+	}
+
     public class GameAggregateNode : HostPlatformAggregateNode
     {
         BranchInfo.BranchUProject GameProj;

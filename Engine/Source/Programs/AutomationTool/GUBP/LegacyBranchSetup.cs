@@ -1114,6 +1114,11 @@ partial class GUBP
 			}
 		}
 
+		if(HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)))
+		{
+			BranchConfig.AddNode(new BuildLocalization());
+		}
+
         BranchConfig.AddNode(new WaitForTestShared(this));
 		BranchConfig.AddNode(new WaitToPackageSamplesNode(BranchConfig.HostPlatforms));
 
