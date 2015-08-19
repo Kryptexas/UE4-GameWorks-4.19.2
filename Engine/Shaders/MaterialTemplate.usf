@@ -355,7 +355,7 @@ float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Par
 		return DecalVector.xy;
 	}
 
-	float ComputeDecalMipmapLevel(FMaterialPixelParameters Parameters, float2 TextureSize)
+	float2 ComputeDecalDDX(FMaterialPixelParameters Parameters)
 	{
 		/*
 		 * Assuming where in a pixel shader invocation, then we compute manualy compute two d(uv)/d(x)
@@ -369,19 +369,39 @@ float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Par
 		 * So we have two diff on the X axis, we want the one that has the smallest length
 		 * to avoid the 2x2 pixels mipmap artefacts on the edges. 
 		 */
-		float2 UvPixelDiffX = (dot(UvDiffX0, UvDiffX0) < dot(UvDiffX1, UvDiffX1) ? UvDiffX0 : UvDiffX1) * TextureSize;
-	
+		return dot(UvDiffX0, UvDiffX0) < dot(UvDiffX1, UvDiffX1) ? UvDiffX0 : UvDiffX1;
+	}
+
+	float2 ComputeDecalDDY(FMaterialPixelParameters Parameters)
+	{
 		// do same for the Y axis
 		float4 ScreenDeltaY = ddy(Parameters.ScreenPosition);
 		float2 UvDiffY0 = Parameters.TexCoords[0] - ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition - ScreenDeltaY);
 		float2 UvDiffY1 = ComputeDecalUVFromScreenPosition(Parameters.ScreenPosition + ScreenDeltaY) - Parameters.TexCoords[0];
-		float2 UvPixelDiffY = (dot(UvDiffY0, UvDiffY0) < dot(UvDiffY1, UvDiffY1) ? UvDiffY0 : UvDiffY1) * TextureSize;
+
+		return dot(UvDiffY0, UvDiffY0) < dot(UvDiffY1, UvDiffY1) ? UvDiffY0 : UvDiffY1;
+	}
+
+	float ComputeDecalMipmapLevel(FMaterialPixelParameters Parameters, float2 TextureSize)
+	{
+		float2 UvPixelDiffX = ComputeDecalDDX(Parameters) * TextureSize;
+		float2 UvPixelDiffY = ComputeDecalDDY(Parameters) * TextureSize;
 
 		// Computes the mipmap level
 		float MaxDiff = max(dot(UvPixelDiffX, UvPixelDiffX), dot(UvPixelDiffY, UvPixelDiffY));
 		return 0.5 * log2(MaxDiff);
 	}
 #else
+	float2 ComputeDecalDDX(FMaterialPixelParameters Parameters)
+	{
+		return 0.0f;
+	}
+	
+	float2 ComputeDecalDDY(FMaterialPixelParameters Parameters)
+	{
+		return 0.0f;
+	}
+
 	float ComputeDecalMipmapLevel(FMaterialPixelParameters Parameters, float2 TextureSize)
 	{
 		return 0.0f;

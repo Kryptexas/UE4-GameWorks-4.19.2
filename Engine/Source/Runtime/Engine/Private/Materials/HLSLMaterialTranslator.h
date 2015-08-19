@@ -2457,6 +2457,11 @@ protected:
 
 	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) override
 	{
+		if (Material->GetMaterialDomain() != MD_DeferredDecal)
+		{
+			return Errorf(TEXT("Decal mipmap level only available in the decal material domain."));
+		}
+
 		EMaterialValueType TextureSizeType = GetParameterType(TextureSizeInput);
 
 		if (TextureSizeType != MCT_Float2)
@@ -2471,6 +2476,19 @@ protected:
 			MCT_Float1,
 			TEXT("ComputeDecalMipmapLevel(Parameters,%s)"),
 			*TextureSize
+			);
+	}
+
+	virtual int32 TextureDecalDerivative(bool bDDY) override
+	{
+		if (Material->GetMaterialDomain() != MD_DeferredDecal)
+		{
+			return Errorf(TEXT("Decal derivatives only available in the decal material domain."));
+		}
+
+		return AddCodeChunk(
+			MCT_Float2,
+			bDDY ? TEXT("ComputeDecalDDY(Parameters)") : TEXT("ComputeDecalDDX(Parameters)")
 			);
 	}
 
