@@ -95,11 +95,10 @@ bool FActorComponentInstanceData::MatchesComponent(const UActorComponent* Compon
 			{
 				for (const UActorComponent* BlueprintCreatedComponent : ComponentOwner->BlueprintCreatedComponents)
 				{
-					if (BlueprintCreatedComponent != nullptr)
+					if (BlueprintCreatedComponent != nullptr && BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 					{
 						const UObject* BlueprintComponentTemplate = BlueprintCreatedComponent->GetArchetype();
 						if (   (BlueprintComponentTemplate == SourceComponentTemplate || (GIsReinstancing && BlueprintComponentTemplate->GetFName() == SourceComponentTemplate->GetFName()))
-							&& (BlueprintCreatedComponent->CreationMethod == SourceComponentCreationMethod)
 							&& (++FoundSerializedComponentsOfType == SourceComponentTypeSerializedIndex))
 						{
 							bMatches = (BlueprintCreatedComponent == Component);
