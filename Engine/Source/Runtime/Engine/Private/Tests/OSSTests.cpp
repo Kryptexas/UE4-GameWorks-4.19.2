@@ -4,7 +4,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 
-#include "AutomationTestCommon.h"
+#include "AutomationCommon.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHackAutomationTests, Log, All);
 
