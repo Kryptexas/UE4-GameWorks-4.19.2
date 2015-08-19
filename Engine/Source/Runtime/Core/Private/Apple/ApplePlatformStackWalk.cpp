@@ -308,10 +308,6 @@ void CreateExceptionInfoString(int32 Signal, struct __siginfo* Info)
 #undef HANDLE_CASE
 }
 
-void NewReportEnsure( const TCHAR* ErrorMessage )
-{
-}
-
 int32 ReportCrash(ucontext_t *Context, int32 Signal, struct __siginfo* Info)
 {
 	static bool GAlreadyCreatedMinidump = false;

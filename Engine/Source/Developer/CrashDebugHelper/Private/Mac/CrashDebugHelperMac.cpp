@@ -247,6 +247,10 @@ static int32 ParseExceptionCode(TCHAR const* CrashLog, uint32& OutExceptionCode)
 			{
 				OutExceptionCode = SIGABRT;
 			}
+			else if(FCStringWide::Strcmp(Buffer, TEXT("SIGTRAP")) == 0)
+			{
+				OutExceptionCode = SIGTRAP;
+			}
 			else if(FString(Buffer).IsNumeric())
 			{
 				Found = swscanf(Buffer, TEXT("%u"), &OutExceptionCode);
