@@ -84,9 +84,9 @@ void UPoseableMeshComponent::FillSpaceBases()
 
 	const int32 NumBones = LocalAtoms.Num();
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 	/** Keep track of which bones have been processed for fast look up */
-	TArray<uint8> BoneProcessed;
+	TArray<uint8, TInlineAllocator<256>> BoneProcessed;
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 	// Build in 3 passes.
@@ -94,7 +94,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 	FTransform* SpaceBasesData = GetEditableSpaceBases().GetData();
 	
 	GetEditableSpaceBases()[0] = LocalAtoms[0];
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 	BoneProcessed[0] = 1;
 #endif
 
@@ -102,7 +102,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 	{
 		FPlatformMisc::Prefetch(SpaceBasesData + BoneIndex);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Mark bone as processed
 		BoneProcessed[BoneIndex] = 1;
 #endif
@@ -110,7 +110,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 		const int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 		FPlatformMisc::Prefetch(SpaceBasesData + ParentIndex);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Check the precondition that Parents occur before Children in the RequiredBones array.
 		checkSlow(BoneProcessed[ParentIndex] == 1);
 #endif

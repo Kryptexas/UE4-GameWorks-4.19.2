@@ -702,9 +702,9 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 
 	const int32 NumBones = SourceAtoms.Num();
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 	/** Keep track of which bones have been processed for fast look up */
-	TArray<uint8> BoneProcessed;
+	TArray<uint8, TInlineAllocator<256>> BoneProcessed;
 	BoneProcessed.AddZeroed(NumBones);
 #endif
 
@@ -716,7 +716,7 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 		check(FillSpaceBasesRequiredBones[0] == 0);
 		DestSpaceBases[0] = SourceAtoms[0];
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Mark bone as processed
 		BoneProcessed[0] = 1;
 #endif
@@ -729,7 +729,7 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 
 		FPlatformMisc::Prefetch(SpaceBase);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Mark bone as processed
 		BoneProcessed[BoneIndex] = 1;
 #endif
@@ -738,7 +738,7 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 		FTransform* ParentSpaceBase = SpaceBasesData + ParentIndex;
 		FPlatformMisc::Prefetch(ParentSpaceBase);
 
-#if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
+#if DO_GUARD_SLOW
 		// Check the precondition that Parents occur before Children in the RequiredBones array.
 		checkSlow(BoneProcessed[ParentIndex] == 1);
 #endif
