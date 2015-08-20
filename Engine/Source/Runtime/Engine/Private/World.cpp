@@ -4948,13 +4948,14 @@ UWorld* FSeamlessTravelHandler::Tick()
 			// Make sure "always loaded" sub-levels are fully loaded
 			LoadedWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 			
-			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystemRunMode::GameMode);
-
 			// Note that AI system will be created only if ai-system-creation conditions are met
 			LoadedWorld->CreateAISystem();
 
 			// call initialize functions on everything that wasn't carried over from the old world
 			LoadedWorld->InitializeActorsForPlay(PendingTravelURL, false);
+
+			// calling it after InitializeActorsForPlay has been called to have all potential bounding boxed initialized
+			UNavigationSystem::InitializeForWorld(LoadedWorld, FNavigationSystemRunMode::GameMode);
 
 			// send loading complete notifications for all local players
 			for (FLocalPlayerIterator It(GEngine, LoadedWorld); It; ++It)
