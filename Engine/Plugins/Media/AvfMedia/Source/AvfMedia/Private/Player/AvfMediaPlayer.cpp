@@ -309,24 +309,30 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                         if( AssetVideoTracks.count > 0 )
                         {
                             AVAssetTrack* VideoTrack = [AssetVideoTracks objectAtIndex: 0];
-                            VideoTracks.Add( MakeShareable( new FAvfMediaVideoTrack(VideoTrack) ) );
-
+							FAvfMediaVideoTrack* NewTrack = new FAvfMediaVideoTrack(VideoTrack);
+							if (NewTrack->IsReady())
+							{
+								VideoTracks.Add( MakeShareable( NewTrack ) );
 #if PLATFORM_MAC
-                            GameThreadCall(^{
+								GameThreadCall(^{
 #elif PLATFORM_IOS
-                            // Report back to the game thread whether this succeeded.
-                            [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
+									// Report back to the game thread whether this succeeded.
+									[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
 #endif
-                                // Displatch on the gamethread that we have opened the video.
-								TracksChangedEvent.Broadcast();
-                                OpenedEvent.Broadcast( CachedUrl );
-
+										// Displatch on the gamethread that we have opened the video.
+										TracksChangedEvent.Broadcast();
+										OpenedEvent.Broadcast( CachedUrl );
 #if PLATFORM_IOS
-                                return true;
-                            }];
+										return true;
+									}];
 #elif PLATFORM_MAC
-                            });
+								});
 #endif
+							}
+							else
+							{
+								delete NewTrack;
+							}
                         }
                     }
                     else
@@ -424,7 +430,10 @@ bool FAvfMediaPlayer::Tick( float DeltaTime )
     for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
     {
         FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
-        AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]);
+        if (!AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]))
+		{
+			return false;
+		}
     }
     
     return true;

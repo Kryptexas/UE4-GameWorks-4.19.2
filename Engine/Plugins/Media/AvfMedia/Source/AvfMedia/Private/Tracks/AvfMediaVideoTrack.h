@@ -81,7 +81,7 @@ public:
      * @param AVPlayerTime The time the AVPlayer is currently synced to.
      * @param bInIsInitialFrameRead Flag whether this is the first frame read of the asset.
      */
-    void ReadFrameAtTime(const CMTime& AVPlayerTime, bool bInIsInitialFrameRead = false);
+    bool ReadFrameAtTime(const CMTime& AVPlayerTime, bool bInIsInitialFrameRead = false);
 
     /**
      * Set the Av Asset reader to a specified time.
