@@ -423,8 +423,6 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 					CommandUtils.ClearDirStack();
 				}
 			}
-
-			Log.TraceInformation("Script execution successful, exiting.");
 		}
 
 		#endregion

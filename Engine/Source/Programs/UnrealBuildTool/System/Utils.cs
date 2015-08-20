@@ -1087,7 +1087,7 @@ namespace UnrealBuildTool
 				case LogEventType.Warning:
 					return "WARNING: ";
 				case LogEventType.Console:
-					return "DISPLAY: ";
+					return "";
 				case LogEventType.Verbose:
 					return "VERBOSE: ";
 				case LogEventType.VeryVerbose:

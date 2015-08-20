@@ -29,8 +29,6 @@ if not exist Source\Programs\AutomationToolLauncher\AutomationToolLauncher.cspro
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
-echo path="%path%"
-
 rem ## Check for Visual Studio 2013
 
 pushd %~dp0

@@ -602,8 +602,6 @@ public partial class GUBP : BuildCommand
 
     static List<BuildNode> TopologicalSort(HashSet<BuildNode> NodesToDo, BuildNode ExplicitTrigger, bool SubSort, bool DoNotConsiderCompletion)
     {
-        DateTime StartTime = DateTime.UtcNow;
-
         List<BuildNode> OrderedToDo = new List<BuildNode>();
 
         Dictionary<string, List<BuildNode>> SortedAgentGroupChains = new Dictionary<string, List<BuildNode>>();
@@ -638,7 +636,6 @@ public partial class GUBP : BuildCommand
 					throw new AutomationException("Agent sharing group '{0}' has multiple controlling triggers: {1}", Chain.Key, Triggers);
 				}
 			}
-			LogConsole("***************Done with recursion");
         }
 
         // here we do a topological sort of the nodes, subject to a lexographical and priority sort
@@ -825,11 +822,6 @@ public partial class GUBP : BuildCommand
                 }
                 throw new AutomationException("Cycle in GUBP");
             }
-        }
-        if (!SubSort)
-        {
-            double BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-			LogConsole("Took {0}s to sort {1} nodes", BuildDuration / 1000, OrderedToDo.Count);
         }
 
         return OrderedToDo;

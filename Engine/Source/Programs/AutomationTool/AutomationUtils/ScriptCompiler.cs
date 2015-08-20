@@ -170,7 +170,7 @@ namespace AutomationTool
 				string Modules = string.Join(";", ModulesToCompile.ToArray());
 				var UATProj = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Programs\AutomationTool\Scripts\UAT.proj");
 				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2} /verbosity:minimal /nologo", UATProj, Modules, BuildConfig);
-                Log.TraceInformation("Building Automation projects in parallel...");
+                Log.TraceVerbose("Building Automation projects in parallel...");
                 // supress the run command because it can be long and intimidating, making the logs around this code harder to read.
                 var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine, Options: CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.NoLoggingOfRunCommand | CommandUtils.ERunOptions.LoggingOfRunDuration);
 				if (Result.ExitCode != 0)
@@ -273,7 +273,7 @@ namespace AutomationTool
 		/// <param name="OutScriptAssemblies">List to store all loaded assemblies.</param>
 		private static void LoadPreCompiledScriptAssemblies(List<Assembly> OutScriptAssemblies)
 		{
-			CommandUtils.LogConsole("Loading precompiled script DLLs");
+			CommandUtils.LogVerbose("Loading precompiled script DLLs");
 
 			bool DefaultScriptsDLLFound = false;
 			var ScriptsLocation = GetScriptAssemblyFolder();
@@ -281,7 +281,7 @@ namespace AutomationTool
 			{
 				var ScriptDLLFiles = Directory.GetFiles(ScriptsLocation, "*.Automation.dll", SearchOption.AllDirectories);
 
-				CommandUtils.LogConsole("Found {0} script DLL(s).", ScriptDLLFiles.Length);
+				CommandUtils.LogVerbose("Found {0} script DLL(s).", ScriptDLLFiles.Length);
 				foreach (var ScriptsDLLFilename in ScriptDLLFiles)
 				{
 
@@ -322,7 +322,7 @@ namespace AutomationTool
 
 		private void CleanupScriptsAssemblies()
 		{
-			Log.TraceInformation("Cleaning up script DLL folder");
+			CommandUtils.LogVerbose("Cleaning up script DLL folder");
 			CommandUtils.DeleteDirectory(GetScriptAssemblyFolder());
 		}
 
