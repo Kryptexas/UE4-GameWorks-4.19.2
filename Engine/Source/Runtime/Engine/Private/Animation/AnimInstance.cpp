@@ -374,16 +374,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	}
 #endif
 
-	{
-		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
-		NativeUpdateAnimation(DeltaSeconds);
-	}
-	{
-		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
-		BlueprintUpdateAnimation(DeltaSeconds);
-	}
-
 	ActiveSyncGroupsArray = 1 - ActiveSyncGroupsArray;
+
 	TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
 	TArray<FAnimTickRecord>& UngroupedActivePlayers = UngroupedActivePlayerArrays[ActiveSyncGroupsArray];
 
@@ -401,6 +393,15 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		{
 			SyncGroups[GroupIndex].Reset();
 		}
+	}
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
+		NativeUpdateAnimation(DeltaSeconds);
+	}
+	{
+		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
+		BlueprintUpdateAnimation(DeltaSeconds);
 	}
 
 	// update weight before all nodes update comes in
