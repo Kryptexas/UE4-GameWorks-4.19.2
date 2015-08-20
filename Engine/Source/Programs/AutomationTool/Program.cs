@@ -21,53 +21,50 @@ namespace AutomationTool
             var CommandLine = SharedUtils.ParseCommandLine();
             LogUtils.InitLogging(CommandLine);
 
-            ErrorCodes ReturnCode = ErrorCodes.Error_Success;
+            ExitCode ReturnCode = ExitCode.Success;
 
-            try
-            {
-                // ensure we can resolve any external assemblies as necessary.
-                AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
-                HostPlatform.Initialize();
+			try
+			{
+				// ensure we can resolve any external assemblies as necessary.
+				AssemblyUtils.InstallAssemblyResolver(Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()));
+				HostPlatform.Initialize();
 
-                Log.TraceInformation("{2}: Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32, DateTime.UtcNow.ToString("o"));
+				Log.TraceInformation("{2}: Running on {0} as a {1}-bit process.", HostPlatform.Current.GetType().Name, Environment.Is64BitProcess ? 64 : 32, DateTime.UtcNow.ToString("o"));
 
-                XmlConfigLoader.Init();
+				XmlConfigLoader.Init();
 
-                // Log if we're running from the launcher
-                var ExecutingAssemblyLocation = Assembly.GetExecutingAssembly().Location;
-                if (string.Compare(ExecutingAssemblyLocation, Assembly.GetEntryAssembly().GetOriginalLocation(), StringComparison.OrdinalIgnoreCase) != 0)
-                {
-                    Log.TraceVerbose("Executed from AutomationToolLauncher ({0})", ExecutingAssemblyLocation);
-                }
-                Log.TraceVerbose("CWD={0}", Environment.CurrentDirectory);
+				// Log if we're running from the launcher
+				var ExecutingAssemblyLocation = Assembly.GetExecutingAssembly().Location;
+				if (string.Compare(ExecutingAssemblyLocation, Assembly.GetEntryAssembly().GetOriginalLocation(), StringComparison.OrdinalIgnoreCase) != 0)
+				{
+					Log.TraceVerbose("Executed from AutomationToolLauncher ({0})", ExecutingAssemblyLocation);
+				}
+				Log.TraceVerbose("CWD={0}", Environment.CurrentDirectory);
 
-                // Hook up exit callbacks
-                var Domain = AppDomain.CurrentDomain;
-                Domain.ProcessExit += Domain_ProcessExit;
-                Domain.DomainUnload += Domain_ProcessExit;
-                HostPlatform.Current.SetConsoleCtrlHandler(CtrlHandler);
+				// Hook up exit callbacks
+				var Domain = AppDomain.CurrentDomain;
+				Domain.ProcessExit += Domain_ProcessExit;
+				Domain.DomainUnload += Domain_ProcessExit;
+				HostPlatform.Current.SetConsoleCtrlHandler(CtrlHandler);
 
-                var Version = AssemblyUtils.ExecutableVersion;
-                Log.TraceVerbose("{0} ver. {1}", Version.ProductName, Version.ProductVersion);
+				var Version = AssemblyUtils.ExecutableVersion;
+				Log.TraceVerbose("{0} ver. {1}", Version.ProductName, Version.ProductVersion);
 
-                // Don't allow simultaneous execution of AT (in the same branch)
-                InternalUtils.RunSingleInstance(MainProc, CommandLine);
+				// Don't allow simultaneous execution of AT (in the same branch)
+				InternalUtils.RunSingleInstance(MainProc, CommandLine);
 
-            }
-            catch (Exception Ex)
-            {
-                // Catch all exceptions and propagate the ErrorCode if we are given one.
-                Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
-                // set the exit code of the process
-                if (Ex is AutomationException)
-                {
-                    ReturnCode = (Ex as AutomationException).ErrorCode;
-                }
-                else
-                {
-                    ReturnCode = ErrorCodes.Error_Unknown;
-                }
-            }
+			}
+			catch (AutomationException Ex)
+			{
+				Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
+				ReturnCode = Ex.ErrorCode;
+			}
+			catch (Exception Ex)
+			{
+				// Catch all exceptions and propagate the ErrorCode if we are given one.
+				Log.TraceError("AutomationTool terminated with exception: {0}", Ex);
+				ReturnCode = ExitCode.Error_Unknown;
+			}
             finally
             {
                 // In all cases, do necessary shut down stuff, but don't let any additional exceptions leak out while trying to shut down.
@@ -78,7 +75,7 @@ namespace AutomationTool
                 // Try to kill process before app domain exits to leave the other KillAll call to extreme edge cases
                 NoThrow(() => { if (ShouldKillProcesses && !Utils.IsRunningOnMono) ProcessManager.KillAll(); }, "Kill All Processes");
 
-                Log.TraceInformation("AutomationTool exiting with ExitCode={0}", ReturnCode);
+                Log.TraceInformation("AutomationTool exiting with ExitCode={0} ({1})", (int)ReturnCode, ReturnCode);
 
                 // Can't use NoThrow here because the code logs exceptions. We're shutting down logging!
                 LogUtils.ShutdownLogging();

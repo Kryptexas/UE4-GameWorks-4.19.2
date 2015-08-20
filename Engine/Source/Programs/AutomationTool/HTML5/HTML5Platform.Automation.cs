@@ -99,7 +99,7 @@ public class HTML5Platform : Platform
         if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullGameExePath))
         {
 			LogConsole("Failed to find game application " + FullGameExePath);
-	        throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
+	        throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
         }
 
 		if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))

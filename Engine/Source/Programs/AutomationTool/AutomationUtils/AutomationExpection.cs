@@ -7,10 +7,10 @@ using System.Text;
 namespace AutomationTool
 {
     // NOTE: this needs to be kept in sync with EditorAnalytics.h and iPhonePackager.cs
-    public enum ErrorCodes
+    public enum ExitCode
     {
         Error_UATNotFound = -1,
-        Error_Success = 0,
+        Success = 0,
         Error_Unknown = 1,
         Error_Arguments = 2,
         Error_UnknownCommand = 3,
@@ -65,7 +65,7 @@ namespace AutomationTool
     /// </summary>
     public class AutomationException : System.Exception
 	{
-        public ErrorCodes ErrorCode = ErrorCodes.Error_Unknown;
+        public ExitCode ErrorCode = ExitCode.Error_Unknown;
 
 		public AutomationException()
 		{
@@ -76,7 +76,7 @@ namespace AutomationTool
 		{
 		}
 
-        public AutomationException(ErrorCodes ErrorCode, string Msg)
+        public AutomationException(ExitCode ErrorCode, string Msg)
             : base(Msg)
         {
             this.ErrorCode = ErrorCode;
@@ -93,7 +93,7 @@ namespace AutomationTool
 		{
 		}
 
-        public AutomationException(ErrorCodes ErrorCode, Exception InnerException, string Format, params object[] Args)
+        public AutomationException(ExitCode ErrorCode, Exception InnerException, string Format, params object[] Args)
             : base(string.Format(Format, Args), InnerException)
         {
             this.ErrorCode = ErrorCode;
@@ -102,7 +102,7 @@ namespace AutomationTool
         public AutomationException(string Format, params object[] Args)
 			: base(string.Format(Format, Args)) { }
 
-        public AutomationException(ErrorCodes ErrorCode, string Format, params object[] Args)
+        public AutomationException(ExitCode ErrorCode, string Format, params object[] Args)
             : base(string.Format(Format, Args)) 
         {
             this.ErrorCode = ErrorCode;

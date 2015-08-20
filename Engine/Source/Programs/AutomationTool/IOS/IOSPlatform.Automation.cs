@@ -134,7 +134,7 @@ public class IOSPlatform : Platform
 		if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullExePath))
 		{
 			LogError("Failed to find game binary " + FullExePath);
-			throw new AutomationException(ErrorCodes.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
+			throw new AutomationException(ExitCode.Error_MissingExecutable, "Stage Failed. Could not find binary {0}. You may need to build the UE4 project with your target configuration and platform.", FullExePath);
 		}
 
 		//@TODO: We should be able to use this code on both platforms, when the following issues are sorted:
@@ -322,7 +322,7 @@ public class IOSPlatform : Platform
 			// verify the .ipa exists
 			if (!FileExists(ProjectIPA))
 			{
-				throw new AutomationException(ErrorCodes.Error_FailedToCreateIPA, "PACKAGE FAILED - {0} was not created", ProjectIPA);
+				throw new AutomationException(ExitCode.Error_FailedToCreateIPA, "PACKAGE FAILED - {0} was not created", ProjectIPA);
 			}
 
 			if (WorkingCL > 0)
@@ -413,7 +413,7 @@ public class IOSPlatform : Platform
 		}
 		if (Result.ExitCode != 0)
 		{
-			throw new AutomationException(ErrorCodes.Error_FailedToCodeSign, "CodeSign Failed");
+			throw new AutomationException(ExitCode.Error_FailedToCodeSign, "CodeSign Failed");
 		}
 	}
 
@@ -821,9 +821,9 @@ public class IOSPlatform : Platform
 			switch (Result.ExitCode)
 			{
 				case 253:
-                    throw new AutomationException(ErrorCodes.Error_DeviceNotSetupForDevelopment, "Launch Failure");
+                    throw new AutomationException(ExitCode.Error_DeviceNotSetupForDevelopment, "Launch Failure");
 				case 255:
-                    throw new AutomationException(ErrorCodes.Error_DeviceOSNewerThanSDK, "Launch Failure");
+                    throw new AutomationException(ExitCode.Error_DeviceOSNewerThanSDK, "Launch Failure");
 			}
 		}
 	}
