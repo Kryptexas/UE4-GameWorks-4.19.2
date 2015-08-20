@@ -456,8 +456,8 @@ public:
 		, LeaderDelta(0.f)
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(ValidMarkerNames.Num() > 0)
-		, bIsLeader(true)
 		, MarkerTickContext(ValidMarkerNames)
+		, bIsLeader(true)
 	{
 	}
 

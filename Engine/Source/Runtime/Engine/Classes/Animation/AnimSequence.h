@@ -851,8 +851,6 @@ private:
 	void ResetAnimation();
 	/** Refresh Track Map from Animation Track Names **/
 	void RefreshTrackMapFromAnimTrackNames();
-	/** Refresh sync marker data*/
-	void RefreshSyncMarkerDataFromAuthored();
 
 	/**
 	 * Utility function that helps to remove track, you can't just remove RawAnimationData
@@ -870,6 +868,9 @@ private:
 	void ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/);
 
 #endif
+
+	/** Refresh sync marker data*/
+	void RefreshSyncMarkerDataFromAuthored();
 
 	friend class UAnimationAsset;
 };
