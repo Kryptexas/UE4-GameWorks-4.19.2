@@ -648,7 +648,7 @@ bool FGameplayTagContainer::Serialize(FArchive& Ar)
 		// This needs to happen 
 		// NOTE: DeprecatedTagNamesNotFoundInTagMap should be removed along with the bOldTagVer when we remove backwards
 		// compatibility, and the signature of RedirectTagsForContainer (below) should be changed appropriately as well.
-		TArray<FName> DeprecatedTagNamesNotFoundInTagMap;
+		TSet<FName> DeprecatedTagNamesNotFoundInTagMap;
 		if (bOldTagVer)
 		{
 			for (auto It = Tags_DEPRECATED.CreateConstIterator(); It; ++It)

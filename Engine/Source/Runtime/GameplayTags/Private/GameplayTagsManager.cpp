@@ -12,8 +12,7 @@
 #define LOCTEXT_NAMESPACE "GameplayTagManager"
 
 UGameplayTagsManager::UGameplayTagsManager(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	bHasHandledRedirectors(false)
+	: Super(ObjectInitializer)
 {
 #if WITH_EDITOR
 	RegisteredObjectReimport = false;
@@ -191,6 +190,49 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 #endif
 			GameplayTagTreeChangedEvent.Broadcast();
 		}
+
+		// Update the TagRedirects map
+		TagRedirects.Empty();
+		FConfigSection* PackageRedirects = GConfig->GetSectionPrivate(TEXT("/Script/Engine.Engine"), false, true, GEngineIni);
+		for (FConfigSection::TIterator It(*PackageRedirects); It; ++It)
+		{
+			if (It.Key() == TEXT("GameplayTagRedirects"))
+			{
+				FName OldTagName = NAME_None;
+				FName NewTagName;
+
+				if (FParse::Value(*It.Value(), TEXT("OldTagName="), OldTagName))
+				{
+					if (FParse::Value(*It.Value(), TEXT("NewTagName="), NewTagName))
+					{
+						if (ensureMsgf(!TagRedirects.Contains(OldTagName), TEXT("Old tag %s is being redirected to more than one tag. Please remove all the redirections except for one."), *OldTagName.ToString()))
+						{
+							FGameplayTag OldTag = RequestGameplayTag(OldTagName, false); //< This only succeeds if OldTag is in the Table!
+							if (OldTag.IsValid())
+							{
+								UE_LOG(LogGameplayTags, Warning,
+									TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
+									TEXT("remove the old tags from the table when you are redirecting to new tags, or else users will ")
+									TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString()
+									);
+							}
+
+							FGameplayTag NewTag = (NewTagName != NAME_None) ? RequestGameplayTag(NewTagName, false) : FGameplayTag();
+							if (!NewTag.IsValid() && NewTagName != NAME_None)
+							{
+								UE_LOG(LogGameplayTags, Warning, TEXT("Invalid new tag %s!  Cannot replace old tag %s."),
+									*NewTagName.ToString(), *OldTagName.ToString());
+							}
+							else
+							{
+								// Populate the map
+								TagRedirects.Add(OldTagName, NewTag);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -263,85 +305,57 @@ bool UGameplayTagsManager::ShouldUseFastReplication()
 	return ImportFromINI;
 }
 
-void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Container, TArray<FName>& DeprecatedTagNamesNotFoundInTagMap)
+void UGameplayTagsManager::RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap)
 {
-	FConfigSection* PackageRedirects = GConfig->GetSectionPrivate( TEXT("/Script/Engine.Engine"), false, true, GEngineIni );
-	for (FConfigSection::TIterator It(*PackageRedirects); It; ++It)
+	TSet<FName> NamesToRemove;
+	TSet<const FGameplayTag*> TagsToAdd;
+
+	// First populate the NamesToRemove and TagsToAdd sets by finding tags in the container that have redirects
+	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
 	{
-		if (It.Key() == TEXT("GameplayTagRedirects"))
+		const FName TagName = TagIt->GetTagName();
+		const FGameplayTag* NewTag = TagRedirects.Find(TagName);
+		if (NewTag)
 		{
-			FName OldTagName = NAME_None;
-			FName NewTagName;
-
-			FParse::Value( *It.Value(), TEXT("OldTagName="), OldTagName );
-			FParse::Value( *It.Value(), TEXT("NewTagName="), NewTagName );
-
-			bool bNeedToSearchForTagName = false;
-			const bool bEnsureIfNotFound = false;
-			FGameplayTag OldTag = RequestGameplayTag(OldTagName, bEnsureIfNotFound); //< This only succeeds if OldTag is in the Table!
-			if (OldTag.IsValid())
+			NamesToRemove.Add(TagName);
+			if (NewTag->IsValid())
 			{
-				if (!bHasHandledRedirectors)
-				{
-					UE_LOG(LogGameplayTags, Warning,
-						TEXT("Old tag (%s) which is being redirected still exists in the table!  Generally you should "
-							 TEXT("remove the old tags from the table when you are redirecting to new tags, or else users will ")
-							 TEXT("still be able to add the old tags to containers.")), *OldTagName.ToString()
-						  );
-				}
-			}
-			else
-			{	// Create the old tag from scratch in order to be able to find and remove it.
-				// WARNING!  This tag CANNOT be used for parent checking because it is NOT in the gameplay tag
-				// table/tree for lookup.
-				bNeedToSearchForTagName = true;
-			}
-
-			FGameplayTag NewTag = RequestGameplayTag(NewTagName, bEnsureIfNotFound);
-			if (NewTag.IsValid())
-			{
-				bool bTagReplaced = false;
-				if (!bNeedToSearchForTagName && Container.HasTag(OldTag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
-				{
-					Container.RemoveTag(OldTag);
-					Container.AddTag(NewTag);
-					bTagReplaced = true;
-				}
-				else if (bNeedToSearchForTagName)
-				{
-					bool bSuccess = FGameplayTagRedirectHelper::RemoveTagByExplicitName(Container, OldTagName);
-					if (bSuccess)
-					{
-						Container.AddTag(NewTag);
-						bTagReplaced = true;
-					}
-				}
-
-				// Handle backwards compatibility to old file formats that may have the tag in an array of names
-				// rather than correctly having it in the container.
-				if (!bTagReplaced && DeprecatedTagNamesNotFoundInTagMap.Contains(OldTagName))
-				{
-					DeprecatedTagNamesNotFoundInTagMap.Remove(OldTagName);
-					Container.AddTag(NewTag);
-				}
-			}
-			else if (NewTagName == NAME_None)
-			{	// Redirected to "None", so remove the old tag
-				Container.RemoveTag(OldTag);
-			}
-			else // !NewTag.IsValid(), and NewTagName is not NAME_None
-			{
-				if (!bHasHandledRedirectors)
-				{
-					UE_LOG(LogGameplayTags, Warning, TEXT("Invalid new tag %s!  Cannot replace old tag %s."),
-						*NewTagName.ToString(), *OldTagName.ToString());
-				}
+				TagsToAdd.Add(NewTag);
+				DeprecatedTagNamesNotFoundInTagMap.Remove(NewTag->GetTagName());
 			}
 		}
 	}
 
-	// Cache that this has run once so we don't spam warnings for every Tag Container.
-	bHasHandledRedirectors = true;
+	// Add additional tags to the TagsToAdd set from the deprecated list if they weren't already added above
+	for (FName AdditionalDeprecatedTag : DeprecatedTagNamesNotFoundInTagMap)
+	{
+		const FGameplayTag* NewTag = TagRedirects.Find(AdditionalDeprecatedTag);
+		if (NewTag && NewTag->IsValid())
+		{
+			TagsToAdd.Add(NewTag);
+		}
+	}
+
+	// Remove all tags from the NamesToRemove set
+	for (FName RemoveName : NamesToRemove)
+	{
+		FGameplayTag OldTag = RequestGameplayTag(RemoveName, false);
+		if (OldTag.IsValid())
+		{
+			Container.RemoveTag(OldTag);
+		}
+		else
+		{
+			FGameplayTagRedirectHelper::RemoveTagByExplicitName(Container, RemoveName);
+		}
+	}
+
+	// Add all tags from the TagsToAdd set
+	for (const FGameplayTag* AddTag : TagsToAdd)
+	{
+		check(AddTag);
+		Container.AddTag(*AddTag);
+	}
 }
 
 void UGameplayTagsManager::PopulateTreeFromDataTable(class UDataTable* InTable)

@@ -260,7 +260,7 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	/** Should use fast replication */
 	static bool ShouldUseFastReplication();
 
-	void RedirectTagsForContainer(FGameplayTagContainer& Container, TArray<FName>& DeprecatedTagNamesNotFoundInTagMap);
+	void RedirectTagsForContainer(FGameplayTagContainer& Container, TSet<FName>& DeprecatedTagNamesNotFoundInTagMap);
 
 	/** Gets a tag name from net index and vice versa, used for replication efficiency */
 	FName GetTagNameFromNetIndex(FGameplayTagNetIndex Index);
@@ -319,9 +319,8 @@ private:
 	/** The delegate to execute when the tag tree changes */
 	FGameplayTagTreeChanged GameplayTagTreeChangedEvent;
 
-	// Prevent spamming about bad tag redirectors.  This flag is used to make all warnings only happen once, rather
-	// than once per every TagContainer that loads data!
-	bool bHasHandledRedirectors;
+	/** The map of ini-configured tag redirectors */
+	TMap<FName, FGameplayTag> TagRedirects;
 
 #if WITH_EDITOR
 	/** Flag to say if we have registered the ObjectReimport, this is needed as use of Tags manager can happen before Editor is ready*/
