@@ -1838,12 +1838,12 @@ UScriptStruct* FHeaderParser::CompileStructDeclaration(FClasses& AllClasses, FUn
 	// Create.
 	UScriptStruct* Struct = new(EC_InternalUseOnlyConstructor, SourceFile.GetPackage(), *EffectiveStructName, RF_Public) UScriptStruct(FObjectInitializer(), BaseStruct);
 
-	AddModuleRelativePathToMetadata(Struct, MetaData);
-
 	Scope->AddType(Struct);
 	FScope::AddTypeScope(Struct, &SourceFile.GetScope().Get());
 
 	AddTypeDefinition(SourceFile, Struct, InputLine);
+
+	AddModuleRelativePathToMetadata(Struct, MetaData);
 
 	// Check to make sure the syntactic native prefix was set-up correctly.
 	// If this check results in a false positive, it will be flagged as an identifier failure.
