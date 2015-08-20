@@ -1,14 +1,30 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.5 - アンビエント キューブマップ
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.5：アンビエント キューブマップ
+Description:ポストプロセスのサンプル レベルの概要、1.5：アンビエント キューブマップ
 Related:Engine/Rendering/LightingAndShadows/AmbientCubemap
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_4 "%Resources/ContentExamples/PostProcessing/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_6 "%Resources/ContentExamples/PostProcessing/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
 
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
