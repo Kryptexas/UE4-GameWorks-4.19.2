@@ -62,15 +62,14 @@ struct FNiagaraScriptConstantData
 	Calculates the index into a a constant table created from this constant data for the given constant name.
 	Obviously, assumes the constant data is complete. Any additions etc will invalidate previously calculated indexes.
 	*/
-	void GetTableIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutConstantIdx, int32& OutComponentIndex, ENiagaraDataType& OutType)const
+	void GetTableIndex(const FNiagaraVariableInfo& Constant, bool bInternal, int32& OutConstantIdx, ENiagaraDataType& OutType)const
 	{
 		int32 Base = bInternal ? ExternalConstantsNew.GetTableSize() : 0;
 		int32 ConstIdx = INDEX_NONE;
-		int32 CompIdx = INDEX_NONE;
 		ENiagaraDataType Type;
 		const FNiagaraConstants& Consts = bInternal ? InternalConstantsNew : ExternalConstantsNew;
 
-		ConstIdx = Consts.GetAbsoluteIndex_Scalar(Constant);
+		ConstIdx = Consts.GetTableIndex_Scalar(Constant);
 		Type = ENiagaraDataType::Scalar;
 		if (ConstIdx == INDEX_NONE)
 		{
@@ -89,14 +88,8 @@ struct FNiagaraScriptConstantData
 				}
 			}
 		}
-		else
-		{
-			CompIdx = ConstIdx % 4;
-			ConstIdx /= 4;
-		}
 
 		OutConstantIdx = Base + ConstIdx;
-		OutComponentIndex = CompIdx;
 		OutType = Type;
 	}
 };

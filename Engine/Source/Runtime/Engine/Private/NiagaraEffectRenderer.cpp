@@ -243,7 +243,7 @@ bool NiagaraEffectRendererSprites::SetMaterialUsage()
 }
 
 /** Update render data buffer from attributes */
-FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const FNiagaraEmitterParticleData &Data)
+FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const FNiagaraDataSet &Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenSpriteVertexData);
 
@@ -253,14 +253,14 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	FNiagaraDynamicDataSprites *DynamicData = new FNiagaraDynamicDataSprites;
 	TArray<FParticleSpriteVertex>& RenderData = DynamicData->VertexData;
 
-	RenderData.Reset(Data.GetNumParticles());
+	RenderData.Reset(Data.GetNumInstances());
 	CachedBounds.Init();
 
-	const FVector4 *PosPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
-	const FVector4 *VelPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
-	const FVector4 *ColPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
-	const FVector4 *AgePtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
-	const FVector4 *RotPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
+	const FVector4 *PosPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
+	const FVector4 *VelPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
+	const FVector4 *ColPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
+	const FVector4 *AgePtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
+	const FVector4 *RotPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
 
 	//Bail if we don't have the required attributes to render this emitter.
 	if (!PosPtr || !ColPtr || !AgePtr || !RotPtr)
@@ -273,9 +273,9 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererSprites::GenerateVertexData(const 
 	{
 		NumSubImages = Properties->SubImageInfo.X*Properties->SubImageInfo.Y;
 	}
-	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumParticles();
-	RenderData.AddUninitialized(Data.GetNumParticles());
-	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumParticles(); ParticleIndex++)
+	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumInstances();
+	RenderData.AddUninitialized(Data.GetNumInstances());
+	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumInstances(); ParticleIndex++)
 	{
 		FParticleSpriteVertex& NewVertex = RenderData[ParticleIndex];
 		NewVertex.Position = PosPtr[ParticleIndex];
@@ -528,7 +528,7 @@ bool NiagaraEffectRendererRibbon::SetMaterialUsage()
 	return Material && Material->CheckMaterialUsage_Concurrent(MATUSAGE_BeamTrails);
 }
 
-FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const FNiagaraEmitterParticleData &Data)
+FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const FNiagaraDataSet &Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenRibbonVertexData);
 
@@ -537,21 +537,21 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 	FNiagaraDynamicDataRibbon *DynamicData = new FNiagaraDynamicDataRibbon;
 	TArray<FParticleBeamTrailVertex>& RenderData = DynamicData->VertexData;
 
-	RenderData.Reset(Data.GetNumParticles() * 2);
+	RenderData.Reset(Data.GetNumInstances() * 2);
 	//CachedBounds.Init();
 
 	// build a sorted list by age, so we always get particles in order 
 	// regardless of them being moved around due to dieing and spawning
 	TArray<int32> SortedIndices;
-	for (uint32 Idx = 0; Idx < Data.GetNumParticles(); Idx++)
+	for (uint32 Idx = 0; Idx < Data.GetNumInstances(); Idx++)
 	{
 		SortedIndices.Add(Idx);
 	}
 
-	const FVector4 *PosPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
-	const FVector4 *ColorPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
-	const FVector4 *RotPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
-	const FVector4 *AgePtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
+	const FVector4 *PosPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
+	const FVector4 *ColorPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
+	const FVector4 *RotPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
+	const FVector4 *AgePtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
 
 	//Bail if we don't have the required attributes to render this emitter.
 	if (!PosPtr || !ColorPtr || !AgePtr || !RotPtr)
@@ -947,7 +947,7 @@ bool NiagaraEffectRendererMeshes::SetMaterialUsage()
 
 
 /** Update render data buffer from attributes */
-FNiagaraDynamicDataBase *NiagaraEffectRendererMeshes::GenerateVertexData(const FNiagaraEmitterParticleData &Data)
+FNiagaraDynamicDataBase *NiagaraEffectRendererMeshes::GenerateVertexData(const FNiagaraDataSet &Data)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraGenMeshVertexData);
 
@@ -963,15 +963,15 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererMeshes::GenerateVertexData(const F
 	FNiagaraDynamicDataMesh *DynamicData = new FNiagaraDynamicDataMesh;
 	TArray<FMeshParticleInstanceVertex>& RenderData = DynamicData->VertexData;
 
-	RenderData.Reset(Data.GetNumParticles());
+	RenderData.Reset(Data.GetNumInstances());
 	CachedBounds.Init();
 
-	const FVector4 *PosPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
-	const FVector4 *VelPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
-	const FVector4 *ColPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
-	const FVector4 *AgePtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
-	const FVector4 *RotPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
-	const FVector4 *XformPtr = Data.GetAttributeData(FNiagaraVariableInfo(FName(TEXT("Transform")), ENiagaraDataType::Vector));
+	const FVector4 *PosPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Position")), ENiagaraDataType::Vector));
+	const FVector4 *VelPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Velocity")), ENiagaraDataType::Vector));
+	const FVector4 *ColPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Color")), ENiagaraDataType::Vector));
+	const FVector4 *AgePtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Age")), ENiagaraDataType::Vector));
+	const FVector4 *RotPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Rotation")), ENiagaraDataType::Vector));
+	const FVector4 *XformPtr = Data.GetVariableData(FNiagaraVariableInfo(FName(TEXT("Transform")), ENiagaraDataType::Vector));
 
 	//Bail if we don't have the required attributes to render this emitter.
 	if (!PosPtr || !ColPtr || !AgePtr || !RotPtr)
@@ -984,9 +984,9 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererMeshes::GenerateVertexData(const F
 	{
 		Mesh = Properties->ParticleMesh;
 	}
-	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumParticles();
-	RenderData.AddUninitialized(Data.GetNumParticles());
-	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumParticles(); ParticleIndex++)
+	float ParticleId = 0.0f, IdInc = 1.0f / Data.GetNumInstances();
+	RenderData.AddUninitialized(Data.GetNumInstances());
+	for (uint32 ParticleIndex = 0; ParticleIndex < Data.GetNumInstances(); ParticleIndex++)
 	{
 		FMeshParticleInstanceVertex& NewVertex = RenderData[ParticleIndex];
 		NewVertex.Color = FLinearColor(ColPtr[ParticleIndex]);

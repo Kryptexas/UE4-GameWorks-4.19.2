@@ -44,6 +44,7 @@ public:
 		return MakeShareable(new FNiagaraTrackEditor(InSequencer) );
 	}
 
+	virtual void NotifyPreChange(UProperty* PropertyAboutToChanged)override;
 	virtual void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
 
 	FReply OnDeleteEmitterClicked(TSharedPtr<FNiagaraSimulation> Emitter);
@@ -74,7 +75,7 @@ private:
 
 	/* The Effect being edited */
 	UNiagaraEffect	*Effect;
-	class FNiagaraEffectInstance *EffectInstance;
+	TSharedPtr<FNiagaraEffectInstance> EffectInstance;
 
 	/* stuff needed by the Sequencer */
 	UMovieScene *MovieScene;

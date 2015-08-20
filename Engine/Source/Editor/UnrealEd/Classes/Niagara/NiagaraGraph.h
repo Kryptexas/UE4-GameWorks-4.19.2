@@ -19,6 +19,9 @@ class UNiagaraGraph : public UEdGraph
 	UNREALED_API class UNiagaraNodeOutput* FindOutputNode() const;
 	UNREALED_API void FindInputNodes(TArray<class UNiagaraNodeInput*>& OutInputNodes) const;
 
+	UNREALED_API void FindReadDataSetNodes(TArray<class UNiagaraNodeReadDataSet*>& OutReadNodes) const;
+	UNREALED_API void FindWriteDataSetNodes(TArray<class UNiagaraNodeWriteDataSet*>& OutWriteNodes) const;
+
 	/** Returns the index of this attribute in the output node of the graph. INDEX_NONE if this is not a valid attribute. */
 	UNREALED_API int32 GetAttributeIndex(const FNiagaraVariableInfo& Attr)const;
 	void UNREALED_API GetAttributes(TArray< FNiagaraVariableInfo >& OutAttributes)const;

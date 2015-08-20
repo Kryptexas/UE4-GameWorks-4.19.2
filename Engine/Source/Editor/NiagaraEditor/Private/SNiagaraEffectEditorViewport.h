@@ -25,7 +25,7 @@ public:
 
 	void RefreshViewport();
 	
-	void SetPreviewEffect(FNiagaraEffectInstance* InEffect);
+	void SetPreviewEffect(TSharedPtr<FNiagaraEffectInstance> InEffect);
 	
 	void ToggleRealtime();
 	

@@ -41,6 +41,18 @@ public:
 	/** Creates an expression which writes the result of SourceExpression to the named attribute. */
 	virtual TNiagaraExprPtr Output(const FNiagaraVariableInfo& Attr, TNiagaraExprPtr& SourceExpression) = 0;
 
+	/** Creates an expression which reads data from a shared data set. */
+	virtual TNiagaraExprPtr SharedDataRead(const FNiagaraDataSetID& DataSet, const FNiagaraVariableInfo& Variable, TNiagaraExprPtr& IndexExpr) = 0;
+	/** Creates an expression which writes data to an shared data set. */
+	virtual TNiagaraExprPtr SharedDataWrite(const FNiagaraDataSetID& DataSet, const FNiagaraVariableInfo& Variable, TNiagaraExprPtr& IndexExpr, TNiagaraExprPtr& DataExpr) = 0;
+
+	/** Creates an expression which gets the current counter for the shared data set and increments the counter. */
+	virtual TNiagaraExprPtr AcquireSharedDataIndex(const FNiagaraDataSetID& DataSet, bool bWrap, TNiagaraExprPtr& ValidExpr) = 0;
+	/** Creates an expression which gets the current counter for the shared data set and decrements the counter. */
+	virtual TNiagaraExprPtr ConsumeSharedDataIndex(const FNiagaraDataSetID& DataSet, bool bWrap) = 0;
+	/** Creates an expression with a mask of 0 or 0xFFFFFFFF marking the passed index as valid or not.*/
+	virtual TNiagaraExprPtr SharedDataIndexIsValid(const FNiagaraDataSetID& DataSet, TNiagaraExprPtr& IndexExpr) = 0;
+
 	/** Checks the validity of the input expressions against the informations about this operation in FNiagaraOpInfo. */
 	virtual bool CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs) = 0;
 	/** Checks the validity of the output expressions against the informations about this operation in FNiagaraOpInfo. */

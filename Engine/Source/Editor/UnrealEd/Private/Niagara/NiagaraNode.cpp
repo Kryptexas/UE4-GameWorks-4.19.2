@@ -7,6 +7,34 @@ UNiagaraNode::UNiagaraNode(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+void UNiagaraNode::ReallocatePins()
+{
+	Modify();
+
+	// Move the existing pins to a saved array
+	TArray<UEdGraphPin*> OldPins(Pins);
+	Pins.Empty();
+
+	// Recreate the new pins
+	AllocateDefaultPins();
+
+	// Copy the old pin data and remove it.
+	for (int32 OldPinIndex = 0; OldPinIndex < OldPins.Num(); ++OldPinIndex)
+	{
+		UEdGraphPin* OldPin = OldPins[OldPinIndex];
+		if (UEdGraphPin** MatchingNewPin = Pins.FindByPredicate([&](UEdGraphPin* Pin){ return Pin->Direction == OldPin->Direction && Pin->PinName == OldPin->PinName; }))
+		{
+			if (*MatchingNewPin && OldPin)
+				(*MatchingNewPin)->CopyPersistentDataFromOldPin(*OldPin);
+		}
+		OldPin->Modify();
+		OldPin->BreakAllPinLinks();
+	}
+	OldPins.Empty();
+
+	GetGraph()->NotifyGraphChanged();
+}
+
 void UNiagaraNode::AutowireNewNode(UEdGraphPin* FromPin)
 {
 	Super::AutowireNewNode(FromPin);

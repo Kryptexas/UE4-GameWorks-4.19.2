@@ -7,6 +7,9 @@ UCLASS()
 class UNREALED_API UNiagaraNode : public UEdGraphNode
 {
 	GENERATED_UCLASS_BODY()
+protected:
+
+	void ReallocatePins();
 
 public:
 

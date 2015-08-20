@@ -30,10 +30,5 @@ public:
 	virtual FText GetTooltipText() const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	// End EdGraphNode interface
-
-private:
-	
-	/** Destroys and reallocates input and output pins. */
-	void ReallocatePins();
 };
 

@@ -8,8 +8,6 @@ class UNiagaraNodeInput : public UNiagaraNode
 {
 	GENERATED_UCLASS_BODY()
 
-	void ReallocatePins();
-
 public:
 
 	UPROPERTY(EditAnywhere, Category = Input)
