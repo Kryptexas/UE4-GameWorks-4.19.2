@@ -429,7 +429,7 @@ public class MacPlatform : Platform
 	}
 	public override List<string> GetDebugFileExtentions()
 	{
-		return new List<string> { ".dsym" };
+		return new List<string> { ".dSYM" };
 	}
 	public override bool CanHostPlatform(UnrealTargetPlatform Platform)
 	{
