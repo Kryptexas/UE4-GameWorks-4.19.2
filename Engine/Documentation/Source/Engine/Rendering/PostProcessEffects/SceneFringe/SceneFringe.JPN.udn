@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2591123
 Availability:Public
-Title:Scene Fringe
+Title:シーン フリンジ
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:実際のカメラレンズ端付近の色の移り変わりをシミュレートする色収差エフェクト
 
