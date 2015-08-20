@@ -16,9 +16,9 @@ The following sections describe the areas of the Animation Blueprint UI.
 1. Menu Bar
 1. Toolbar
 1. Viewport
+1. Graph
 1. Anim Preview Editor
 1. Asset Override Editor
-1. Graph
 1. Asset Browser tab
 1. My Blueprint tab
 1. Details panel
@@ -65,19 +65,12 @@ In addition to those options, the Animation Blueprint toolbar also contains tabs
 ## Viewport
 The **Viewport** displays the Skeletal Mesh with any animations activated by current variable values.
 
-![](AnimGraphUI_Viewport.png)
-
-## Class Defaults
-
-The **Class Defaults** panel displays all of your Animation Blueprint's variables, in their assigned categories. You can manually modify the variable values here to preview and test different animations in the viewport.
-
-![](AnimGraphUI_BPDefaults.png)
-
-For more information, see [](Engine/Animation/Persona\BlueprintDefaults).
+![](AnimGraphUI_Viewport.png)(w:500)
 
 ## Graph
 
 The tabbed **Graph** panel displays whichever graph is currently selected.
+
 
 ### EventGraph Tab
 
@@ -91,11 +84,24 @@ The **AnimGraph** tab contains the State Machine that hooks up all the actual an
 
 ![](AnimGraphUI_AnimGraph.png)
 
-For more information about State Machines, see [](Engine/Animation/StateMachines).
+For more information about State Machines, see **[](Engine/Animation/StateMachines)**.
 
 [REGION:note]
 Although you could put all your animation nodes directly into the AnimGraph tab, it is more efficient to organize them into a State Machine, States, and Transitions (Rules), for ease of upkeep and simplicity.
 [/REGION]
+
+## Anim Preview Editor
+
+The **Anim Preview Editor** panel displays all of your Animation Blueprint's variables, in their assigned categories. You can manually modify the variable values here to preview and test different animations in the viewport.
+
+![](AnimGraphUI_BPDefaults.png)
+
+For more information, see **[](Engine/Animation/Persona\BlueprintDefaults)**.
+
+
+## Asset Override Editor
+
+The **Asset Override Editor** panel displays all of your animation assets that are referenced by the parent animation graph. If there are no nodes referencing assets in the parent class or this is not a derived blueprint there will be nothing displayed in this panel.
 
 ## Asset Browser Tab
 
@@ -123,7 +129,7 @@ The **Details** panel displays the properties of selected elements.
 
 ## Palette
 
-The **Palette** panel contains all the nodes available for use in the Animation Blueprint's various graphs.
+The **Palette** panel contains all the nodes available for use in the Animation Blueprint's various graphs. In the top panel any nodes marked as a "favorite" will be displayed here.
 
 ![](AnimGraphUI_Palette.png)
 
