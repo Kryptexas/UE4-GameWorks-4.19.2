@@ -1708,6 +1708,47 @@ bool FPImplRecastNavMesh::GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& A
 	return false;
 }
 
+bool FPImplRecastNavMesh::GetPolyNeighbors(NavNodeRef PolyID, TArray<FNavigationPortalEdge>& Neighbors) const
+{
+	if (DetourNavMesh)
+	{
+		dtPolyRef PolyRef = (dtPolyRef)PolyID;
+		dtPoly const* Poly = 0;
+		dtMeshTile const* Tile = 0;
+
+		dtStatus Status = DetourNavMesh->getTileAndPolyByRef(PolyRef, &Tile, &Poly);
+		if (dtStatusSucceed(Status))
+		{
+			INITIALIZE_NAVQUERY_SIMPLE(NavQuery, RECAST_MAX_SEARCH_NODES);
+
+			float RcLeft[3], RcRight[3];
+			uint8 DummyType1, DummyType2;
+
+			uint32 LinkIdx = Poly->firstLink;
+			while (LinkIdx != DT_NULL_LINK)
+			{
+				const dtLink& Link = DetourNavMesh->getLink(Tile, LinkIdx);
+				LinkIdx = Link.next;
+				
+				Status = NavQuery.getPortalPoints(PolyRef, Link.ref, RcLeft, RcRight, DummyType1, DummyType2);
+				if (dtStatusSucceed(Status))
+				{
+					FNavigationPortalEdge NeiData;
+					NeiData.ToRef = Link.ref;
+					NeiData.Left = Recast2UnrealPoint(RcLeft);
+					NeiData.Right = Recast2UnrealPoint(RcRight);
+
+					Neighbors.Add(NeiData);
+				}
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
 {
 	if (DetourNavMesh && PolyID)
