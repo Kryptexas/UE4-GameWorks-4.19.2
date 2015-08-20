@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
+#include "SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -11,7 +12,7 @@ UTextBlock::UTextBlock(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bIsVariable = false;
-
+	bWrapWithInvalidationPanel = false;
 	ShadowOffset = FVector2D(1.0f, 1.0f);
 	ColorAndOpacity = FLinearColor::White;
 	ShadowColorAndOpacity = FLinearColor::Transparent;
@@ -83,10 +84,19 @@ void UTextBlock::SetJustification( ETextJustify::Type InJustification )
 
 TSharedRef<SWidget> UTextBlock::RebuildWidget()
 {
-	MyTextBlock = SNew(STextBlock);
-//		.TextStyle(&WidgetStyle);
-
-	return MyTextBlock.ToSharedRef();
+ 	if (bWrapWithInvalidationPanel && !IsDesignTime())
+ 	{
+ 		TSharedPtr<SWidget> RetWidget = SNew(SInvalidationPanel)
+ 		[
+ 			SAssignNew(MyTextBlock, STextBlock)
+ 		];
+ 		return RetWidget.ToSharedRef();
+ 	}
+ 	else
+	{
+		MyTextBlock = SNew(STextBlock);
+		return MyTextBlock.ToSharedRef();
+	}
 }
 
 void UTextBlock::OnBindingChanged(const FName& Property)
