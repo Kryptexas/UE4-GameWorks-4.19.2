@@ -302,7 +302,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// Main method.
 		/// </summary>
 		/// <param name="CommandLine">Command line</param>
-		public static void Process(string[] CommandLine)
+		public static ExitCode Process(string[] CommandLine)
 		{
 			// Initial check for local or build machine runs BEFORE we parse the command line (We need this value set
 			// in case something throws the exception while parsing the command line)
@@ -326,7 +326,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			if (CommandsToExecute.Count == 0 && GlobalCommandLine.Help)
 			{
 				DisplayHelp();
-				return;
+				return ExitCode.Success;
 			}
 
 			// Disable AutoSDKs if specified on the command line
@@ -359,19 +359,19 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			if (GlobalCommandLine.CompileOnly)
 			{
 				Log.TraceInformation("Compilation successful, exiting (CompileOnly)");
-				return;
+				return ExitCode.Success;
 			}
 
 			if (GlobalCommandLine.List)
 			{
 				ListAvailableCommands(Compiler.Commands);
-				return;
+				return ExitCode.Success;
 			}
 
 			if (GlobalCommandLine.Help)
 			{
 				DisplayHelp(CommandsToExecute, Compiler.Commands);
-				return;
+				return ExitCode.Success;
 			}
 
 			// Enable or disable P4 support
@@ -384,9 +384,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			}
 
 			// Find and execute commands.
-			Execute(CommandsToExecute, Compiler.Commands);
-
-			return;
+			return Execute(CommandsToExecute, Compiler.Commands);
 		}
 
 		/// <summary>
@@ -394,7 +392,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 		/// </summary>
 		/// <param name="CommandsToExecute"></param>
 		/// <param name="Commands"></param>
-		private static void Execute(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
+		private static ExitCode Execute(List<CommandInfo> CommandsToExecute, CaselessDictionary<Type> Commands)
 		{
 			for (int CommandIndex = 0; CommandIndex < CommandsToExecute.Count; ++CommandIndex)
 			{
@@ -405,24 +403,32 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 				{
 					throw new AutomationException("Failed to find command {0}", CommandInfo.CommandName);
 				}
-				else
-				{
-					BuildCommand Command = (BuildCommand)Activator.CreateInstance(CommandType);
-					Command.Params = CommandInfo.Arguments.ToArray();
-					Command.Execute();
-					// dispose of the class if necessary
-					{
-						var CommandDisposable = Command as IDisposable;
-						if (CommandDisposable != null)
-						{
-							CommandDisposable.Dispose();
-						}
-					}
 
-					// Make sure there's no directories on the stack.
-					CommandUtils.ClearDirStack();
+				BuildCommand Command = (BuildCommand)Activator.CreateInstance(CommandType);
+				Command.Params = CommandInfo.Arguments.ToArray();
+				try
+				{
+					ExitCode Result = Command.Execute();
+					if(Result != ExitCode.Success)
+					{
+						return Result;
+					}
+					CommandUtils.Log("BUILD SUCCESSFUL");
 				}
+				finally
+				{
+					// dispose of the class if necessary
+					var CommandDisposable = Command as IDisposable;
+					if (CommandDisposable != null)
+					{
+						CommandDisposable.Dispose();
+					}
+				}
+
+				// Make sure there's no directories on the stack.
+				CommandUtils.ClearDirStack();
 			}
+			return ExitCode.Success;
 		}
 
 		#endregion

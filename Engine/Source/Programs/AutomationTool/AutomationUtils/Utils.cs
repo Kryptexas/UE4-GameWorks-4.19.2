@@ -684,12 +684,11 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Main"></param>
 		/// <param name="Param"></param>
-		public static void RunSingleInstance(Action<object> Main, object Param)
+		public static ExitCode RunSingleInstance(Func<object, ExitCode> Main, object Param)
 		{
 			if (Environment.GetEnvironmentVariable("uebp_UATMutexNoWait") == "1")
 			{
-				Main(Param);
-                return;
+				return Main(Param);
 			}
 			var bCreatedMutex = false;
             var EntryAssemblyLocation = Assembly.GetEntryAssembly().GetOriginalLocation();
@@ -706,9 +705,11 @@ namespace AutomationTool
 					Log.TraceVerbose("No other instance of {0} is running.", EntryAssemblyLocation);
 				}
 
-				Main(Param);
+				ExitCode Result = Main(Param);
 
 				SingleInstanceMutex.ReleaseMutex();
+
+				return Result;
 			}
 		}
 

@@ -11,31 +11,21 @@ namespace AutomationTool
 	/// </summary>
 	public abstract class BuildCommand : CommandUtils
 	{
-
-		#region Interface
-
 		/// <summary>
 		/// Build command entry point.  Throws AutomationExceptions on failure.
 		/// </summary>
-		public abstract void ExecuteBuild();
-
-		#endregion
+		public virtual void ExecuteBuild()
+		{
+			throw new AutomationException("Either Execute() or ExecuteBuild() should be implemented for {0}", GetType().Name);
+		}
 
 		/// <summary>
 		/// Command entry point.
 		/// </summary>
-		public void Execute()
+		public virtual ExitCode Execute()
 		{
-			try
-			{
-				ExecuteBuild();
-			}
-			catch
-			{
-				LogError("BUILD FAILED");
-				throw;
-			}
-			Log("BUILD SUCCESSFUL");
+			ExecuteBuild();
+			return ExitCode.Success;
 		}
 
 		/// <summary>
@@ -43,14 +33,14 @@ namespace AutomationTool
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="ParentCommand"></param>
-		public static void Execute<T>(BuildCommand ParentCommand) where T : BuildCommand, new()
+		public static ExitCode Execute<T>(BuildCommand ParentCommand) where T : BuildCommand, new()
 		{
 			T Command = new T();
 			if (ParentCommand != null)
 			{
 				Command.Params = ParentCommand.Params;
 			}
-			Command.Execute();
+			return Command.Execute();
 		}
 	}
 }

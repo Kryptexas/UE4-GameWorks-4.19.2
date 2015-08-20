@@ -51,7 +51,7 @@ namespace AutomationTool
 				Log.TraceVerbose("{0} ver. {1}", Version.ProductName, Version.ProductVersion);
 
 				// Don't allow simultaneous execution of AT (in the same branch)
-				InternalUtils.RunSingleInstance(MainProc, CommandLine);
+				ReturnCode = InternalUtils.RunSingleInstance(MainProc, CommandLine);
 
 			}
 			catch (AutomationException Ex)
@@ -126,10 +126,11 @@ namespace AutomationTool
 			Trace.Close();
 		}
 
-		static void MainProc(object Param)
+		static ExitCode MainProc(object Param)
 		{
-			Automation.Process((string[])Param);
+			ExitCode Result = Automation.Process((string[])Param);
 			ShouldKillProcesses = Automation.ShouldKillProcesses;
+			return Result;
 		}
 
 		static bool ShouldKillProcesses = true;

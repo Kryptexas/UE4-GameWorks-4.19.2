@@ -148,7 +148,7 @@ public partial class GUBP : BuildCommand
 	/// <summary>
 	/// Main entry point for GUBP
 	/// </summary>
-    public override void ExecuteBuild()
+    public override ExitCode Execute()
     {
 		Log("************************* GUBP");
 
@@ -312,19 +312,23 @@ public partial class GUBP : BuildCommand
 			}
 
 			PrintDetailedChanges(History, P4Env.Changelist);
+			return ExitCode.Success;
 		}
 		else
 		{
 			if(CommanderSetup)
 			{
-				DoCommanderSetup(EC, Graph.BuildNodes, Graph.AggregateNodes, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, ExplicitTrigger, UnfinishedTriggers, JobInfo.IsPreflight);
+				return DoCommanderSetup(EC, Graph.BuildNodes, Graph.AggregateNodes, OrderedToDo, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, ExplicitTrigger, UnfinishedTriggers, JobInfo.IsPreflight);
 			}
-			else if(!ParseParam("ListOnly"))
+			else if(ParseParam("ListOnly"))
 			{
-                ExecuteNodes(EC, OrderedToDo, bFake, bFakeEC, bSaveSharedTempStorage, JobInfo);
+				return ExitCode.Success;
+			}
+			else
+			{
+				return ExecuteNodes(EC, OrderedToDo, bFake, bFakeEC, bSaveSharedTempStorage, JobInfo);
 			}
 		}
-		PrintRunTime();
 	}
 
 	/// <summary>
@@ -1298,7 +1302,7 @@ public partial class GUBP : BuildCommand
 		}
 	}
 
-    private void DoCommanderSetup(ElectricCommander EC, IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, bool bPreflightBuild)
+    private ExitCode DoCommanderSetup(ElectricCommander EC, IEnumerable<BuildNode> AllNodes, IEnumerable<AggregateNode> AllAggregates, List<BuildNode> OrderedToDo, int TimeIndex, int TimeQuantum, bool bSkipTriggers, bool bFake, bool bFakeEC, TriggerNode ExplicitTrigger, List<TriggerNode> UnfinishedTriggers, bool bPreflightBuild)
 	{
 		List<BuildNode> SortedNodes = TopologicalSort(new HashSet<BuildNode>(AllNodes), null, SubSort: false, DoNotConsiderCompletion: true);
 		Log("******* {0} GUBP Nodes", SortedNodes.Count);
@@ -1334,9 +1338,10 @@ public partial class GUBP : BuildCommand
 		}
 
 		EC.DoCommanderSetup(AllNodes, AllAggregates, FilteredOrderedToDo, SortedNodes, TimeIndex, TimeQuantum, bSkipTriggers, bFake, bFakeEC, ExplicitTrigger, UnfinishedTriggers);
+		return ExitCode.Success;
 	}
 
-    void ExecuteNodes(ElectricCommander EC, List<BuildNode> OrderedToDo, bool bFake, bool bFakeEC, bool bSaveSharedTempStorage, JobInfo JobInfo)
+    ExitCode ExecuteNodes(ElectricCommander EC, List<BuildNode> OrderedToDo, bool bFake, bool bFakeEC, bool bSaveSharedTempStorage, JobInfo JobInfo)
 	{
         Dictionary<string, BuildNode> BuildProductToNodeMap = new Dictionary<string, BuildNode>();
 		foreach (BuildNode NodeToDo in OrderedToDo)
@@ -1360,77 +1365,64 @@ public partial class GUBP : BuildCommand
 				StorageRootIfAny = CmdEnv.LocalRoot;
 			}
 
-            // this is kinda complicated
-            bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
-                (!(NodeToDo is TriggerNode) || NodeToDo.IsSticky); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
-
-            Log("***** Running GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
             if (NodeToDo.IsComplete)
             {
+				// Just fetch the build products from temp storage
+				Log("***** Retrieving GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
 				NodeToDo.RetrieveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo);
             }
             else
             {
+				// this is kinda complicated
+				bool SaveSuccessRecords = (IsBuildMachine || bFakeEC) && // no real reason to make these locally except for fakeEC tests
+					(!(NodeToDo is TriggerNode) || NodeToDo.IsSticky); // trigger nodes are run twice, one to start the new workflow and once when it is actually triggered, we will save reconds for the latter
+
+                // Record that the node has started. We save our status to a new temp storage location specifically named with a suffix so we can find it later.
                 if (SaveSuccessRecords) 
                 {
-                    // We save our status to a new temp storage location specifically named with a suffix so we can find it later.
                     EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + StartedTempStorageSuffix), bSaveSharedTempStorage, GameNameIfAny);
                 }
-				double BuildDuration = 0.0;
-                try
-                {
-                    if (bFake)
-                    {
-                        Log("***** FAKE!! Building GUBP Node {0} for {1}", NodeToDo.Name, TempStorageNodeInfo.GetRelativeDirectory());
-                        NodeToDo.DoFakeBuild();
-                    }
-                    else
-                    {
-                        Log("***** Building GUBP Node {0} for {1}", NodeToDo.Name, TempStorageNodeInfo.GetRelativeDirectory());
-						DateTime StartTime = DateTime.UtcNow;
-						using(TelemetryStopwatch DoBuildStopwatch = new TelemetryStopwatch("DoBuild.{0}", NodeToDo.Name))
-						{
-							NodeToDo.DoBuild();
-						}
-						BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds / 1000;
-                    }
 
+				// Execute the node
+				DateTime StartTime = DateTime.UtcNow;
+				bool bResult = ExecuteNode(NodeToDo, bFake);
+				TimeSpan ElapsedTime = DateTime.UtcNow - StartTime;
+
+				// Archive the build products if the node succeeded
+				if(bResult)
+				{
 					NodeToDo.ArchiveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo, !bSaveSharedTempStorage);
-                }
-                catch (Exception Ex)
+				}
+
+				// Record that the node has finished
+				NodeHistory History = null;
+                if (SaveSuccessRecords)
                 {
-                    //@todo: This is a dup of non-exception code. Consolidate this!!
-					NodeHistory History = null;
-
-                    if (SaveSuccessRecords)
-                    {
-						using(TelemetryStopwatch UpdateNodeHistoryStopwatch = new TelemetryStopwatch("UpdateNodeHistory"))
+					using(TelemetryStopwatch UpdateNodeHistoryStopwatch = new TelemetryStopwatch("UpdateNodeHistory"))
+					{
+                        History = FindNodeHistory(NodeToDo, JobInfo);
+					}
+					using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
+					{
+                        EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + (bResult? SucceededTempStorageSuffix : FailedTempStorageSuffix)), bSaveSharedTempStorage, GameNameIfAny, ParseParamValue("MyJobStepId"));
+					}
+					using(TelemetryStopwatch UpdateECPropsStopwatch = new TelemetryStopwatch("UpdateECProps"))
+					{
+						EC.UpdateECProps(NodeToDo);
+					}
+					if (IsBuildMachine)
+					{
+						using(TelemetryStopwatch GetFailEmailsStopwatch = new TelemetryStopwatch("GetFailEmails"))
 						{
-                            History = FindNodeHistory(NodeToDo, JobInfo);
+                            GetFailureEmails(EC, NodeToDo, History, JobInfo);
 						}
-						using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
-						{
-                            // We save our status to a new temp storage location specifically named with a suffix so we can find it later.
-                            EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + FailedTempStorageSuffix), bSaveSharedTempStorage, GameNameIfAny, ParseParamValue("MyJobStepId"));
-						}
-						using(TelemetryStopwatch UpdateECPropsStopwatch = new TelemetryStopwatch("UpdateECProps"))
-						{
-							EC.UpdateECProps(NodeToDo);
-						}
-                        
-						if (IsBuildMachine)
-						{
-							using(TelemetryStopwatch GetFailEmailsStopwatch = new TelemetryStopwatch("GetFailEmails"))
-							{
-                                GetFailureEmails(EC, NodeToDo, History, JobInfo);
-							}
-						}
-						EC.UpdateECBuildTime(NodeToDo, BuildDuration);
-                    }
+					}
+					EC.UpdateECBuildTime(NodeToDo, ElapsedTime.TotalSeconds);
+                }
 
-					Log("{0}", Ex);
-
-
+				// If it failed, print the diagnostic info and quit
+				if(!bResult)
+				{
                     if (History != null)
                     {
 						Log("Changes since last green *********************************");
@@ -1441,62 +1433,8 @@ public partial class GUBP : BuildCommand
 						Log("End changes since last green");
                     }
 
-                    string FailInfo = "";
-                    FailInfo += "********************************* Main log file";
-                    FailInfo += Environment.NewLine + Environment.NewLine;
-                    FailInfo += LogUtils.GetLogTail();
-                    FailInfo += Environment.NewLine + Environment.NewLine + Environment.NewLine;
-
-
-
-                    string OtherLog = "See logfile for details: '";
-                    if (FailInfo.Contains(OtherLog))
-                    {
-                        string LogFile = FailInfo.Substring(FailInfo.IndexOf(OtherLog) + OtherLog.Length);
-                        if (LogFile.Contains("'"))
-                        {
-                            LogFile = CombinePaths(CmdEnv.LogFolder, LogFile.Substring(0, LogFile.IndexOf("'")));
-                            if (FileExists_NoExceptions(LogFile))
-                            {
-                                FailInfo += "********************************* Sub log file " + LogFile;
-                                FailInfo += Environment.NewLine + Environment.NewLine;
-
-                                FailInfo += LogUtils.GetLogTail(LogFile);
-                                FailInfo += Environment.NewLine + Environment.NewLine + Environment.NewLine;
-                            }
-                        }
-                    }
-
-                    string Filename = CombinePaths(CmdEnv.LogFolder, "LogTailsAndChanges.log");
-                    WriteAllText(Filename, FailInfo);
-
-                    throw(Ex);
-                }
-                if (SaveSuccessRecords) 
-                {
-					NodeHistory History = null;
-					using(TelemetryStopwatch UpdateNodeHistoryStopwatch = new TelemetryStopwatch("UpdateNodeHistory"))
-					{
-                        History = FindNodeHistory(NodeToDo, JobInfo);
-					}
-					using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
-					{
-                        // We save our status to a new temp storage location specifically named with a suffix so we can find it later.
-                        EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + SucceededTempStorageSuffix), bSaveSharedTempStorage, GameNameIfAny);
-					}
-					using(TelemetryStopwatch UpdateECPropsStopwatch = new TelemetryStopwatch("UpdateECProps"))
-					{
-						EC.UpdateECProps(NodeToDo);
-					}
-                    
-					if (IsBuildMachine)
-					{
-						using(TelemetryStopwatch GetFailEmailsStopwatch = new TelemetryStopwatch("GetFailEmails"))
-						{
-                            GetFailureEmails(EC, NodeToDo, History, JobInfo);
-						}
-					}
-					EC.UpdateECBuildTime(NodeToDo, BuildDuration);
+					WriteFailureLog(CombinePaths(CmdEnv.LogFolder, "LogTailsAndChanges.log"));
+					return ExitCode.Error_Unknown;
                 }
             }
             foreach (string Product in NodeToDo.BuildProducts)
@@ -1507,7 +1445,57 @@ public partial class GUBP : BuildCommand
                 }
                 BuildProductToNodeMap.Add(Product, NodeToDo);
             }
-        }        
-        PrintRunTime();
-    }   
+        }
+		return ExitCode.Success;
+    }
+
+	bool ExecuteNode(BuildNode NodeToDo, bool bFake)
+	{
+		try
+		{
+			if (bFake)
+			{
+				NodeToDo.DoFakeBuild();
+			}
+			else
+			{
+				NodeToDo.DoBuild();
+			}
+			return true;
+		}
+		catch(Exception Ex)
+		{
+			Log("{0}", Ex.ToString());
+			return false;
+		}
+	}
+
+	static void WriteFailureLog(string FileName)
+	{
+		string FailInfo = "";
+		FailInfo += "********************************* Main log file";
+		FailInfo += Environment.NewLine + Environment.NewLine;
+		FailInfo += LogUtils.GetLogTail();
+		FailInfo += Environment.NewLine + Environment.NewLine + Environment.NewLine;
+
+		string OtherLog = "See logfile for details: '";
+		if (FailInfo.Contains(OtherLog))
+		{
+			string LogFile = FailInfo.Substring(FailInfo.IndexOf(OtherLog) + OtherLog.Length);
+			if (LogFile.Contains("'"))
+			{
+				LogFile = CombinePaths(CmdEnv.LogFolder, LogFile.Substring(0, LogFile.IndexOf("'")));
+				if (FileExists_NoExceptions(LogFile))
+				{
+					FailInfo += "********************************* Sub log file " + LogFile;
+					FailInfo += Environment.NewLine + Environment.NewLine;
+
+					FailInfo += LogUtils.GetLogTail(LogFile);
+					FailInfo += Environment.NewLine + Environment.NewLine + Environment.NewLine;
+				}
+			}
+		}
+
+		WriteAllText(FileName, FailInfo);
+	}
 }
