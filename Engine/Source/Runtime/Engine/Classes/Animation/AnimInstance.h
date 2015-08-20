@@ -855,6 +855,11 @@ public:
 	UPROPERTY(transient)
 	TArray<FAnimNotifyEvent> ActiveAnimNotifyState;
 
+protected:
+	int32 GetSyncGroupReadIndex() const { return 1 - SyncGroupWriteIndex; }
+	int32 GetSyncGroupWriteIndex() const { return SyncGroupWriteIndex; }
+	void TickSyncGroupWriteIndex() { SyncGroupWriteIndex = GetSyncGroupReadIndex(); }
+
 private:
 	/** Curve Values that are added to trigger in event**/
 	TMap<FName, float>	EventCurves;
@@ -862,7 +867,7 @@ private:
 	TArray<FName> MaterialParamatersToClear;
 
 	// Current sync group buffer index
-	int32 ActiveSyncGroupsArray;
+	int32 SyncGroupWriteIndex;
 
 	//This frames marker sync data
 	FMarkerTickContext MarkerTickContext;
