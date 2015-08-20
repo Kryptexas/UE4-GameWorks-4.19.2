@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2616593
 Availability:Public
-Title:Blueprint Analytics Plugin
+Title:Flurry 分析サービス プロバイダー
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:A set of Blueprint nodes provided to allow you to communicate with analytics services
+Description:分析サービスとの通信を可能にするための Blueprint ノード群
 
-![](image00.png)
+![](flurry.png)
 
-[Flurry](http://www.flurry.com) is a widely used free analytics service. Because it is so widely used, it can compare your app's data to other applications in the same category. This lets you quickly get a feeling of 
-how your game is doing and areas you might need to do some work. To use their service, you must register at their site, get an application key that uniquely identifies your app, and 
-download the libraries which get compiled into the Flurry plugin. See the plugin's corresponding `<PlatformAndName>.Build.cs` file to see where the libraries and headers are expected to be placed. 
-To get started, go to .
+[Flurry](http://www.flurry.com) は幅広く使用されている無料の分析サービスです。その幅広さから、自分のアプリケーションのデータを同じカテゴリの別のアプリケーションと比較することができます。こうすることで、自分のゲームの状態や 
+作業が必要な個所を素早く認識することができます。Flurry のサービスを使用するには、まず Flurry のサイトで登録を済ませ、アプリケーションごとに与えられるユニークなアプリケーション キーを取得し、 
+Flurry プラグインにコンパイルされているライブラリをダウンロードします。プラグインの `<PlatformAndName>.Build.cs` ファイルに該当するファイルをみて、ライブラリとヘッダが置かれている場所を確認します。 
+まずはここから始めましょう：
 
-## Configuration
+## コンフィギュレーション
 
-Once you have done the prerequisites and have successfully built the plugin for the target platform, you can configure the plugin for your game. As of 4.8, there is only one configuration 
-property to set: the key that uniquely identifies your game. The snippet below shows a theoretical configuration for Flurry. As with all analytics providers, the configuration data goes in 
-your `DefaultEngine.ini` file.
+前提条件を設定し、ターゲットのプラットフォーム用のプラグインが正常にビルドできたら、ゲーム用のプラグいを設定します。4.8 の段階では、コンフィギュレーションは 1 つのみで、 
+それはゲームをユニークに認識するキーです。Flurry の理論的なコンフィギュレーションは以下のスニペットの通りです。全てのアナリティクス プロバイダーと同様に 
+コンフィギュレーション データは `DefaultEngine.ini` ファイルに置かれます。
 
 	[Analytics]
 	FlurryApiKey=RANDOM34LETTERS4511
