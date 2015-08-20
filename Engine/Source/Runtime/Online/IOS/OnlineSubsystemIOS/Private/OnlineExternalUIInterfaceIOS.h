@@ -28,6 +28,10 @@ public:
 	
 private:
 	FOnlineSubsystemIOS* Subsystem;
+	FDelegateHandle CompleteDelegate;
+	FOnLoginUIClosedDelegate CopiedDelegate;
+
+    void OnLoginComplete(int ControllerIndex, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString);
 };
 
 typedef TSharedPtr<FOnlineExternalUIIOS, ESPMode::ThreadSafe> FOnlineExternalUIIOSPtr;
