@@ -908,6 +908,7 @@ bool FMaterialEditor::OnRequestClose()
 				
 		case EAppReturnType::No:
 			// exit
+			bMaterialDirty = false;
 			break;
 				
 		case EAppReturnType::Cancel:
