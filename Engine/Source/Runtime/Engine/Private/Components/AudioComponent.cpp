@@ -139,7 +139,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
 			FActiveSound NewActiveSound;
-			NewActiveSound.AudioComponent = this;
+			NewActiveSound.SetAudioComponent(this);
 			NewActiveSound.World = GetWorld();
 			NewActiveSound.Sound = Sound;
 			NewActiveSound.SoundClassOverride = SoundClassOverride;

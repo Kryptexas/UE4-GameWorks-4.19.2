@@ -12123,7 +12123,8 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 
 			ActiveSounds.Add(WaveInstance->ActiveSound);
 
-			AActor* SoundOwner = WaveInstance->ActiveSound->AudioComponent.IsValid() ? WaveInstance->ActiveSound->AudioComponent->GetOwner() : NULL;
+			UAudioComponent* AudioComponent = WaveInstance->ActiveSound->GetAudioComponent();
+			AActor* SoundOwner = AudioComponent ? AudioComponent->GetOwner() : nullptr;
 			USoundClass* SoundClass = WaveInstance->SoundClass;
 
 			FString TheString = *FString::Printf(TEXT("%4i.    %6.2f  %s   Owner: %s   SoundClass: %s"),

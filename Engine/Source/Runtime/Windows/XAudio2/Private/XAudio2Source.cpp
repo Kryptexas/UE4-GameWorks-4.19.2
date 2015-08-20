@@ -441,9 +441,9 @@ bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 	{
 		// Find matching buffer.
 		FAudioDevice* BestAudioDevice = nullptr;
-		if (InWaveInstance->ActiveSound->AudioComponent.IsValid())
+		if (UAudioComponent* AudioComponent = InWaveInstance->ActiveSound->GetAudioComponent())
 		{
-			BestAudioDevice = InWaveInstance->ActiveSound->AudioComponent->GetAudioDevice();
+			BestAudioDevice = AudioComponent->GetAudioDevice();
 		}
 		else
 		{
@@ -1175,9 +1175,10 @@ FString FXAudio2SoundSource::Describe_Internal(bool bUseLongName, bool bIncludeC
 	AActor* SoundOwner = NULL;
 
 	// TODO - Audio Threading. This won't work cross thread.
-	if (WaveInstance->ActiveSound && WaveInstance->ActiveSound->AudioComponent.IsValid())
+	UAudioComponent* AudioComponent = (WaveInstance->ActiveSound ?  WaveInstance->ActiveSound->GetAudioComponent() : nullptr);
+	if (AudioComponent)
 	{
-		SoundOwner = WaveInstance->ActiveSound->AudioComponent->GetOwner();
+		SoundOwner = AudioComponent->GetOwner();
 	}
 
 	FString SpatializedVolumeInfo;
