@@ -89,7 +89,7 @@ namespace UnrealBuildTool
 		 */
 		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
-			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dsym" : "";
+			return BuildConfiguration.bGeneratedSYMFile || BuildConfiguration.bUsePDBFiles ? ".dSYM" : "";
 		}
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)

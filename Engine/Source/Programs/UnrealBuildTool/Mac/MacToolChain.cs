@@ -1301,7 +1301,7 @@ namespace UnrealBuildTool
 			// The cross-platform code adds .dSYMs for static libraries, which is just wrong, so
 			// eliminate them here for now.
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
-			if(DebugExtension == ".dsym")
+			if(DebugExtension == ".dSYM")
 			{
 				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
 				{
