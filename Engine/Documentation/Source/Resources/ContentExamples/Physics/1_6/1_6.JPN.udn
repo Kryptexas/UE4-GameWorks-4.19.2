@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.6 - 角度モーター
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
-Description: 物理事例レベルの概要 例 1.6:物理コンストレイント角度モーター
+Description: 物理のサンプル レベルの概要、1.6:物理コンストレイント角度モーター
 Related:Engine/Physics/PhysicsBodies
 Related:Engine/Physics/PhAT/UserGuide
 Related:Engine/Physics/Constraints/ConstraintsReference
@@ -10,6 +10,23 @@ Related:Engine/Physics/Constraints/ConstraintsUserGuide
 Related:Engine/Physics/Collision
 Related:Engine/Physics/PhysicalMaterials/PhysMatReference
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Physics/1_5 "%Resources/ContentExamples/Physics/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[物理のホーム](Resources/ContentExamples/Physics)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Physics/1_7 "%Resources/ContentExamples/Physics/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
