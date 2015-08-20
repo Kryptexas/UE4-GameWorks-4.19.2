@@ -12,6 +12,7 @@
 #include "Editor/Persona/Public/PersonaModule.h"
 #include "ObjectEditorUtils.h"
 #include "SNotificationList.h"
+#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 
 #define LOCTEXT_NAMESPACE "EditorAnimUtils"
 
