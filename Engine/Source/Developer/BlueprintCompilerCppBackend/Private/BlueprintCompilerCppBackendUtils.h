@@ -138,8 +138,10 @@ public:
 
 		if (auto UDE = Cast<UEnum>(Object))
 		{
+			// TODO:
 			// TODO: check if supported 
-			return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
+			//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
+			return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *UDE->GetName());
 		}
 
 		// TODO: handle subobjects
@@ -226,8 +228,6 @@ struct FEmitHelper
 
 	static FString EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const FString& CppClassName, const TCHAR* InCurrentIndent);
 
-	static FString GatherNativeHeadersToInclude(UField* SourceItem, const TArray<FString>& PersistentHeaders);
-
 	static FString LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject);
 
 	static FString DefaultValue(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type);
@@ -238,7 +238,7 @@ struct FEmitHelper
 
 	static bool ShouldHandleAsImplementableEvent(UFunction* Function);
 
-	static bool GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
+	static bool GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
 };

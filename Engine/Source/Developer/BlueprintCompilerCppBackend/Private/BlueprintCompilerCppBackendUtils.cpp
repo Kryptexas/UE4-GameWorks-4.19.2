@@ -345,55 +345,6 @@ FString FEmitHelper::EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const 
 	return Result;
 }
 
-FString FEmitHelper::GatherNativeHeadersToInclude(UField* SourceItem, const TArray<FString>& PersistentHeaders)
-{
-	TSet<FString> HeaderFiles;
-	HeaderFiles.Append(PersistentHeaders);
-	{
-		TArray<UObject*> ReferencedObjects;
-		{
-			FReferenceFinder ReferenceFinder(ReferencedObjects, NULL, false, false, false, true);
-			TArray<UObject*> ObjectsToCheck;
-			GetObjectsWithOuter(SourceItem, ObjectsToCheck, true);
-			//CDO?
-			for (auto Obj : ObjectsToCheck)
-			{
-				ReferenceFinder.FindReferences(Obj);
-			}
-		}
-
-		auto EngineSourceDir = FPaths::EngineSourceDir();
-		auto GameSourceDir = FPaths::GameSourceDir();
-		auto CurrentPackage = SourceItem->GetTypedOuter<UPackage>();
-		for (auto Obj : ReferencedObjects)
-		{
-			auto Field = Cast<UField>(Obj);
-			FString PackPath;
-			if (Field
-				&& (Field->GetTypedOuter<UPackage>() != CurrentPackage)
-				&& FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
-			{
-				if (!PackPath.RemoveFromStart(EngineSourceDir))
-				{
-					if (!PackPath.RemoveFromStart(GameSourceDir))
-					{
-						PackPath = FPaths::GetCleanFilename(PackPath);
-					}
-				}
-				HeaderFiles.Add(PackPath);
-			}
-		}
-	}
-
-	FString Result;
-	for (auto HeaderFile : HeaderFiles)
-	{
-		Result += FString::Printf(TEXT("#include \"%s\"\n"), *HeaderFile);
-	}
-
-	return Result;
-}
-
 FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEdGraphPinType& Type, const FString& CustomValue, UObject* LiteralObject)
 {
 	auto Schema = GetDefault<UEdGraphSchema_K2>();
@@ -644,19 +595,40 @@ bool FEmitHelper::ShouldHandleAsImplementableEvent(UFunction* Function)
 	return false;
 }
 
-bool FEmitHelper::GenerateAssignmentCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd)
+bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd)
 {
 	// BYTE to ENUM cast
-	auto LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
-	if ((LType.PinCategory == UEdGraphSchema_K2::PC_Byte)
-		&& (RType.PinCategory == UEdGraphSchema_K2::PC_Byte)
-		&& !RType.PinSubCategoryObject.IsValid()
-		&& LTypeEnum)
+	// ENUM to BYTE cast
+	if ((LType.PinCategory == UEdGraphSchema_K2::PC_Byte) && (RType.PinCategory == UEdGraphSchema_K2::PC_Byte))
 	{
-		FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : LTypeEnum->GetName();
-		OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
-		OutCastEnd = TEXT(")");
-		return true;
+		auto LTypeEnum = Cast<UEnum>(LType.PinSubCategoryObject.Get());
+		auto RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
+		if (!RTypeEnum && LTypeEnum)
+		{
+			FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : LTypeEnum->GetName();
+			OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
+			OutCastEnd = TEXT(")");
+			return true;
+		}
+		if (!LTypeEnum && RTypeEnum)
+		{
+			OutCastBegin = TEXT("EnumToByte(");
+			OutCastEnd = TEXT(")");
+			return true;
+		}
+	}
+
+	// OBJECT to OBJECT
+	if (LType.PinCategory == UEdGraphSchema_K2::PC_Object)
+	{
+		UClass* LClass = Cast<UClass>(LType.PinSubCategoryObject.Get());
+		UClass* RClass = Cast<UClass>(RType.PinSubCategoryObject.Get());
+		if (LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
+		{
+			OutCastBegin = FString::Printf(TEXT("CastChecked<%s%s>("), LClass->GetPrefixCPP(), *LClass->GetName());
+			OutCastEnd = TEXT(")");
+			return true;
+		}
 	}
 
 	return false;

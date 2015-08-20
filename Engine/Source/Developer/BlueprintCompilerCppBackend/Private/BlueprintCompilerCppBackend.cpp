@@ -100,7 +100,7 @@ void FBlueprintCompilerCppBackend::EmitAssignmentStatment(FEmitterLocalContext& 
 
 	FString BeginCast;
 	FString EndCast;
-	FEmitHelper::GenerateAssignmentCast(Statement.LHS->Type, Statement.RHS[0]->Type, BeginCast, EndCast);
+	FEmitHelper::GenerateAutomaticCast(Statement.LHS->Type, Statement.RHS[0]->Type, BeginCast, EndCast);
 	EmitterContext.AddLine(FString::Printf(TEXT("%s = %s%s%s;"), *DestinationExpression, *BeginCast, *SourceExpression, *EndCast));
 }
 
@@ -352,7 +352,7 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 			FString VarName;
 
 			FBPTerminal* Term = Statement.RHS[NumParams];
-			ensure(Term != nullptr);
+			check(Term != nullptr);
 
 			if ((Statement.TargetLabel != nullptr) && (Statement.UbergraphCallIndex == NumParams))
 			{
@@ -373,7 +373,18 @@ FString FBlueprintCompilerCppBackend::EmitMethodInputParameterList(FEmitterLocal
 			else
 			{
 				// Emit a normal parameter term
-				VarName = TermToText(EmitterContext, Term);
+				FString BeginCast;
+				FString CloseCast;
+				FEdGraphPinType LType;
+				auto Schema = GetDefault<UEdGraphSchema_K2>();
+				check(Schema);
+				if (Schema->ConvertPropertyToPinType(FuncParamProperty, LType))
+				{
+					FEmitHelper::GenerateAutomaticCast(LType, Term->Type, BeginCast, CloseCast);
+				}
+				VarName += BeginCast;
+				VarName += TermToText(EmitterContext, Term);
+				VarName += CloseCast;
 			}
 
 			if (FuncParamProperty->HasAnyPropertyFlags(CPF_OutParm))
@@ -397,7 +408,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	const bool bInterfaceCall = bCallOnDifferentObject && Statement.FunctionContext && (UEdGraphSchema_K2::PC_Interface == Statement.FunctionContext->Type.PinCategory);
 
 	FString Result;
-	bool bCloseCast = false;
+	FString CloseCast;
 	if (!bInline)
 	{
 		// Handle the return value of the function being called
@@ -405,18 +416,14 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		if (FuncToCallReturnProperty && ensure(Statement.LHS))
 		{
 			FString BeginCast;
-			if (auto ObjectProperty = Cast<UObjectProperty>(FuncToCallReturnProperty))
+			FEdGraphPinType RType;
+			auto Schema = GetDefault<UEdGraphSchema_K2>();
+			check(Schema);
+			if (Schema->ConvertPropertyToPinType(FuncToCallReturnProperty, RType))
 			{
-				UClass* LClass = Statement.LHS ? Cast<UClass>(Statement.LHS->Type.PinSubCategoryObject.Get()) : nullptr;
-				if (LClass && LClass->IsChildOf(ObjectProperty->PropertyClass) && !ObjectProperty->PropertyClass->IsChildOf(LClass))
-				{
-					BeginCast = FString::Printf(TEXT("CastChecked<%s%s>("), LClass->GetPrefixCPP(), *LClass->GetName());
-					bCloseCast = true;
-				}
+				FEmitHelper::GenerateAutomaticCast(Statement.LHS->Type, RType, BeginCast, CloseCast);
 			}
-
 			Result += FString::Printf(TEXT("%s = %s"), *TermToText(EmitterContext, Statement.LHS), *BeginCast);
-
 		}
 	}
 
@@ -461,12 +468,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	}
 	Result += EmitMethodInputParameterList(EmitterContext, Statement);
 	Result += TEXT(")");
-
-	if (bCloseCast)
-	{
-		Result += TEXT(", ECastCheckedType::NullAllowed)");
-	}
-
+	Result += CloseCast;
 	if (!bInline)
 	{
 		Result += TEXT(";");

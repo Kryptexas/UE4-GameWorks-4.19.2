@@ -23,6 +23,12 @@ FORCEINLINE bool IsValid(const FScriptInterface& Test)
 	return IsValid(Test.GetObject()) && (nullptr != Test.GetInterface());
 }
 
+template<class TEnum>
+FORCEINLINE uint8 EnumToByte(TEnumAsByte<TEnum> Val)
+{
+	return static_cast<uint8>(Val.GetValue());
+}
+
 struct FCustomThunkTemplates
 {
 private:

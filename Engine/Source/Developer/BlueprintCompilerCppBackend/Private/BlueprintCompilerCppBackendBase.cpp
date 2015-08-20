@@ -382,14 +382,6 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 	Emit(Header, TEXT("#pragma once\n\n"));
 	if (SourceStruct)
 	{ 
-		{
-			TArray<FString> PersistentHeaders;
-			PersistentHeaders.Add(FString(FApp::GetGameName()) + TEXT(".h"));
-			PersistentHeaders.Add(CleanName + TEXT(".h"));
-			PersistentHeaders.Add(TEXT("GeneratedCodeHelpers.h"));
-			Emit(Body, *FEmitHelper::GatherNativeHeadersToInclude(SourceStruct, PersistentHeaders));
-		}
-
 		// find objects referenced by functions/script
 		TArray<UObject*> IncludeInHeader;
 		TArray<UObject*> IncludeInBody;
@@ -430,11 +422,22 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 			}
 		}
 
+		auto EmitIncludeHeader = [&](FStringOutputDevice& Dst, const TCHAR* Message, bool bAddDotH)
+		{
+			Emit(Dst, *FString::Printf(TEXT("#include \"%s%s\"\n"), Message, bAddDotH ? TEXT(".h") : TEXT("")));
+		};
+		EmitIncludeHeader(Body, FApp::GetGameName(), true);
+		EmitIncludeHeader(Body, *CleanName, true);
+		EmitIncludeHeader(Body, TEXT("GeneratedCodeHelpers"), true);
+
 		TSet<FString> AlreadyIncluded;
 		AlreadyIncluded.Add(SourceStruct->GetName());
-
 		auto EmitInner = [&](FStringOutputDevice& Dst, const TArray<UObject*>& Src)
 		{
+			auto EngineSourceDir = FPaths::EngineSourceDir();
+			auto GameSourceDir = FPaths::GameSourceDir();
+			auto CurrentPackage = SourceStruct->GetTypedOuter<UPackage>();
+
 			for (UObject* Obj : Src)
 			{
 				bool bWantedType = Obj && (Obj->IsA<UBlueprintGeneratedClass>() || Obj->IsA<UUserDefinedEnum>() || Obj->IsA<UUserDefinedStruct>());
@@ -451,20 +454,46 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 					}
 				}
 
-				if (!bWantedType)
+				auto BPGC = (Obj && !bWantedType) ? Cast<UBlueprintGeneratedClass>(Obj->GetClass()) : nullptr;
+				if (BPGC)
 				{
-					Obj = Obj ? Cast<UBlueprintGeneratedClass>(Obj->GetClass()) : nullptr;
-					bWantedType = (nullptr != Obj);
+					bWantedType = true;
+					Obj = BPGC;
 				}
 
+				// Wanted no-native type, thet will be converted
 				if (bWantedType && Obj)
 				{
 					const FString Name = Obj->GetName();
-					if (!AlreadyIncluded.Contains(Name))
+					bool bAlreadyIncluded = false;
+					AlreadyIncluded.Add(Name, &bAlreadyIncluded);
+					if (!bAlreadyIncluded)
 					{
-						AlreadyIncluded.Add(Name);
-						Emit(Dst, *FString::Printf(TEXT("#include \"%s.h\"\n"), *Name));
+						EmitIncludeHeader(Dst, *Name, true);
 					}
+				}
+				// headers for native items
+				else if (auto Field = Cast<UField>(Obj))
+				{
+					FString PackPath;
+					if ((Field->GetTypedOuter<UPackage>() != CurrentPackage)
+						&& FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
+					{
+						if (!PackPath.RemoveFromStart(EngineSourceDir))
+						{
+							if (!PackPath.RemoveFromStart(GameSourceDir))
+							{
+								PackPath = FPaths::GetCleanFilename(PackPath);
+							}
+						}
+						bool bAlreadyIncluded = false;
+						AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
+						if (!bAlreadyIncluded)
+						{
+							EmitIncludeHeader(Dst, *PackPath, false);
+						}
+					}
+
 				}
 			}
 			Emit(Dst, TEXT("\n"));
