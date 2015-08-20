@@ -7,8 +7,11 @@
 #include "SlateBasics.h"
 #include "PreviewScene.h"
 #include "SEditorViewport.h"
+#include "EditorAnimUtils.h"
 
 class UAnimSet;
+
+using namespace EditorAnimUtils;
 
 /**
  * This below code is to select skeleton from the list 
@@ -288,7 +291,7 @@ private:
  * Slate panel for choose Skeleton for assets to relink
  */
 
-DECLARE_DELEGATE_FourParams(FOnRetargetAnimation, USkeleton* /*OldSkeleton*/, USkeleton* /*NewSkeleton*/, bool /*bRemapReferencedAssets*/, bool /*bConvertSpaces*/)
+DECLARE_DELEGATE_FiveParams(FOnRetargetAnimation, USkeleton* /*OldSkeleton*/, USkeleton* /*NewSkeleton*/, bool /*bRemapReferencedAssets*/, bool /*bConvertSpaces*/, const FNameDuplicationRule* /*NameRule*/)
 
 class SAnimationRemapSkeleton : public SCompoundWidget
 {
@@ -308,6 +311,7 @@ public:
 		SLATE_ARGUMENT( bool, ShowRemapOption )
 		SLATE_ARGUMENT( bool, ShowConvertSpacesOption )
 		SLATE_ARGUMENT( bool, ShowCompatibleDisplayOption )
+		SLATE_ARGUMENT( bool, ShowDuplicateAssetOption )
 		SLATE_EVENT(FOnRetargetAnimation, OnRetargetDelegate)
 	SLATE_END_ARGS()	
 
@@ -391,6 +395,70 @@ private:
 	* Refreshes asset picker - call when asset picker option changes
 	*/
 	void UpdateAssetPicker();
+
+	/*
+	 * Duplicate Name Rule 
+	 */
+	FNameDuplicationRule NameDuplicateRule;
+	FText ExampleText;
+
+	FText GetPrefixName() const
+	{
+		return FText::FromString(NameDuplicateRule.Prefix);
+	}
+
+	void SetPrefixName(const FText &InText)
+	{
+		NameDuplicateRule.Prefix = InText.ToString();
+		UpdateExampleText();
+	}
+
+	FText GetSuffixName() const
+	{
+		return FText::FromString(NameDuplicateRule.Suffix);
+	}
+
+	void SetSuffixName(const FText &InText)
+	{
+		NameDuplicateRule.Suffix = InText.ToString();
+		UpdateExampleText();
+	}
+
+	FText GetReplaceFrom() const
+	{
+		return FText::FromString(NameDuplicateRule.ReplaceFrom);
+	}
+
+	void SetReplaceFrom(const FText &InText)
+	{
+		NameDuplicateRule.ReplaceFrom = InText.ToString();
+		UpdateExampleText();
+	}
+
+	FText GetReplaceTo() const
+	{
+		return FText::FromString(NameDuplicateRule.ReplaceTo);
+	}
+
+	void SetReplaceTo(const FText &InText)
+	{
+		NameDuplicateRule.ReplaceTo = InText.ToString();
+		UpdateExampleText();
+	}
+
+	FText GetExampleText() const
+	{
+		return ExampleText;
+	}
+
+	void UpdateExampleText();
+
+	FReply ShowFolderOption();
+	FText GetFolderPath() const
+	{
+		return FText::FromString(NameDuplicateRule.FolderPath);
+	}
+
 public:
 
 	/**
@@ -400,7 +468,7 @@ public:
 	 *
 	 * @return true if successfully selected new skeleton
 	 */
-	static UNREALED_API void ShowWindow(USkeleton* OldSkeleton, const FText& WarningMessage, FOnRetargetAnimation RetargetDelegate);
+	static UNREALED_API void ShowWindow(USkeleton* OldSkeleton, const FText& WarningMessage, bool bDuplicateAssets, FOnRetargetAnimation RetargetDelegate);
 
 	static TSharedPtr<SWindow> DialogWindow;
 };
@@ -519,6 +587,38 @@ public:
 
 	/** List of bone names that will be removed */
 	TArray< TSharedPtr<FName> > BoneNames;
+};
+
+class SSelectFolderDlg: public SWindow
+{
+public:
+	SLATE_BEGIN_ARGS(SSelectFolderDlg)
+	{
+	}
+
+	SLATE_ARGUMENT(FText, DefaultAssetPath)
+	SLATE_END_ARGS()
+
+		SSelectFolderDlg()
+		: UserResponse(EAppReturnType::Cancel)
+	{
+		}
+
+	void Construct(const FArguments& InArgs);
+
+public:
+	/** Displays the dialog in a blocking fashion */
+	EAppReturnType::Type ShowModal();
+
+	/** Gets the resulting asset path */
+	FString GetAssetPath();
+
+protected:
+	void OnPathChange(const FString& NewPath);
+	FReply OnButtonClick(EAppReturnType::Type ButtonID);
+
+	EAppReturnType::Type UserResponse;
+	FText AssetPath;
 };
 
 #undef LOCTEXT_NAMESPACE

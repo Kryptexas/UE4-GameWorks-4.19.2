@@ -3594,8 +3594,10 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 				);
 			}
 
-			Set( "Persona.RetargetManager.BoldFont",							TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
+			Set( "Persona.RetargetManager.BoldFont",							TTF_CORE_FONT( "Fonts/Roboto-Bold", 12 ) );
+			Set( "Persona.RetargetManager.SmallBoldFont",						TTF_CORE_FONT( "Fonts/Roboto-Bold", 10 ) );
 			Set( "Persona.RetargetManager.FilterFont",							TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
+			Set( "Persona.RetargetManager.ItalicFont",							TTF_FONT( "Fonts/Roboto-Italic", 9 ) );
 
 			Set("Persona.RetargetManager.ImportantText", FTextBlockStyle(NormalText)
 				.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 11))

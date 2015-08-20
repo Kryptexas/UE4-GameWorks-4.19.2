@@ -4,11 +4,34 @@
 
 namespace EditorAnimUtils
 {
+	struct FNameDuplicationRule
+	{
+		FString Prefix;
+		FString Suffix;
+		// replace string
+		FString ReplaceFrom;
+		FString ReplaceTo;
+		// folder path
+		FString FolderPath;
+
+		FNameDuplicationRule() 
+			: Prefix(), Suffix(), ReplaceFrom(), ReplaceTo(), FolderPath(TEXT("/Game"))
+		{}
+
+		bool ShouldRename()
+		{
+			// should be able to replace "XXX" to ""
+			return ( !Prefix.IsEmpty() || !Suffix.IsEmpty() || !ReplaceFrom.IsEmpty());
+		}
+
+		FString Rename(const UObject* Asset) const;
+	};
+
 	class FAnimationRetargetContext
 	{
 	public:
-		FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces);
-		FAnimationRetargetContext(TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces);
+		FAnimationRetargetContext(const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces, const FNameDuplicationRule& NameRule=FNameDuplicationRule());
+		FAnimationRetargetContext(TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bInConvertAnimationDataInComponentSpaces, const FNameDuplicationRule& NameRule=FNameDuplicationRule());
 
 		/** Were we supplied anything that we can retarget */
 		bool HasAssetsToRetarget() const;
@@ -22,8 +45,11 @@ namespace EditorAnimUtils
 		/** Returns the duplicate of the supplied object if there is one, otherwise NULL */
 		UObject* GetDuplicate(const UObject* OriginalObject) const;
 
+		/** return all duplicates */
+		TArray<UObject*> GetAllDuplicates() const;
+
 		/** Duplicates the assets stored for retargetting, populating maps of original assets to new asset */
-		void DuplicateAssetsToRetarget(UPackage* DestinationPackage);
+		void DuplicateAssetsToRetarget(UPackage* DestinationPackage, const FNameDuplicationRule* NameRule);
 
 		/** Retarget the contained assets */
 		void RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton);
@@ -58,7 +84,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
+	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, TArray<TWeakObjectPtr<UObject>> AssetsToRetarget, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule, bool bConvertSpace);
 
 	/**
 	 * Retargets the supplied FAssetDatas (as long as they are an animation asset), optionally duplicating them and retargetting their reference assets too
@@ -69,7 +95,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget, bool bConvertSpace);
+	UNREALED_API UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, const TArray<FAssetData>& AssetsToRetarget, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule, bool bConvertSpace);
 
 	/**
 	 * Retargets the supplied FAnimationRetargetContext, optionally duplicating the assets and retargetting the assets reference assets too. Is called by other overloads of RetargetAnimations
@@ -80,7 +106,7 @@ namespace EditorAnimUtils
 	 * @param bDuplicatedAssetsBeforeRetarget	If true the assets are duplicated and then the duplicates are retargetted
 	 * @param bConvertSpace						Do the conversion in component space of the animation to match new target
 	 */
-	UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, bool bDuplicateAssetsBeforeRetarget);
+	UObject* RetargetAnimations(USkeleton* OldSkeleton, USkeleton* NewSkeleton, FAnimationRetargetContext& RetargetContext, bool bRetargetReferredAssets, const FNameDuplicationRule* NameRule);
 
 	// Populates the supplied TArrays with any animation assets that this blueprint refers too
 	void GetAllAnimationSequencesReferredInBlueprint(UAnimBlueprint* AnimBlueprint, TArray<UAnimationAsset*>& ComplexAnims, TArray<UAnimSequence*>& AnimSequences);
@@ -96,7 +122,7 @@ namespace EditorAnimUtils
 	 *
 	 * @return	TMap of original animation to duplicate
 	 */
-	TMap<UObject*, UObject*> DuplicateAssetsInternal(const TArray<UObject*>& AssetsToDuplicate, UPackage* DestinationPackage);
+	TMap<UObject*, UObject*> DuplicateAssetsInternal(const TArray<UObject*>& AssetsToDuplicate, UPackage* DestinationPackage, const FNameDuplicationRule* NameRule);
 
 	/**
 	 * Duplicates the supplied AssetsToDuplicate and returns a map of original asset to duplicate. Templated wrapper that calls DuplicateAssetInternal.
@@ -107,7 +133,7 @@ namespace EditorAnimUtils
 	 * @return	TMap of original animation to duplicate
 	 */
 	template<class AssetType>
-	TMap<AssetType*, AssetType*> DuplicateAssets(const TArray<AssetType*>& AssetsToDuplicate, UPackage* DestinationPackage)
+	TMap<AssetType*, AssetType*> DuplicateAssets(const TArray<AssetType*>& AssetsToDuplicate, UPackage* DestinationPackage, const FNameDuplicationRule* NameRule)
 	{
 		TArray<UObject*> Assets;
 		for(auto Iter = AssetsToDuplicate.CreateConstIterator(); Iter; ++Iter)
@@ -115,7 +141,7 @@ namespace EditorAnimUtils
 			Assets.Add(*Iter);
 		}
 
-		TMap<UObject*, UObject*> AssetMap = DuplicateAssetsInternal(Assets, DestinationPackage);
+		TMap<UObject*, UObject*> AssetMap = DuplicateAssetsInternal(Assets, DestinationPackage, NameRule);
 
 		TMap<AssetType*, AssetType*> ReturnMap;
 		for(auto Iter = AssetMap.CreateIterator(); Iter; ++Iter)

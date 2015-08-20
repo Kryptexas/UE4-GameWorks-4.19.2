@@ -6,6 +6,7 @@
 #include "AssetData.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "PreviewScene.h"
+#include "EditorAnimUtils.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationAssetViewportClient
@@ -207,7 +208,7 @@ protected:
 	FSyncToAssetsDelegate SyncToAssetsDelegate;
 	FGetCurrentSelectionDelegate GetCurrentSelectionDelegate;
 
-	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, TArray<TWeakObjectPtr<UObject>> InAnimAssets);
+	void RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, const EditorAnimUtils::FNameDuplicationRule* NameRule, TArray<TWeakObjectPtr<UObject>> InAnimAssets);
 
 private:
 	/** Updates the animation preview in the tooltip */
