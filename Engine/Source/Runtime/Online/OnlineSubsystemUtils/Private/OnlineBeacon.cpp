@@ -144,6 +144,13 @@ bool AOnlineBeacon::NotifyAcceptingChannel(UChannel* Channel)
 			UE_LOG(LogNet, Log,  TEXT("Client accepting actor channel"));
 			return 1;
 		}
+		else if (Channel->ChType == CHTYPE_Voice)
+		{
+			// Accept server requests to open a voice channel, allowing for custom voip implementations
+			// which utilize multiple server controlled voice channels.
+			UE_LOG(LogNet, Log,  TEXT("Client accepting voice channel"));
+			return 1;
+		}
 		else
 		{
 			// Unwanted channel type.
