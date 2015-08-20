@@ -523,7 +523,16 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 	UPROPERTY(transient)
 	bool bNeedsRebake;
 
+	// Track whether we have updated markers so cached data can be updated
+	int32 MarkerDataUpdateCounter;
 #endif // WITH_EDITORONLY_DATA
+
+	/** Authored Sync markers */
+	UPROPERTY()
+	TArray<FAnimSyncMarker>		AuthoredSyncMarkers;
+
+	/** List of Unique marker names in this animation sequence */
+	TArray<FName>				UniqueMarkerNames;
 
 public:
 	// Begin UObject interface
@@ -542,6 +551,7 @@ public:
 
 	// Begin UAnimationAsset interface
 	virtual bool IsValidAdditive() const override;
+	virtual TArray<FName>* GetUniqueMarkerNames() { return &UniqueMarkerNames; }
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
@@ -552,6 +562,7 @@ public:
 	// Begin UAnimSequenceBase interface
 	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
 	virtual bool HasRootMotion() const override { return bEnableRootMotion; }
+	virtual void RefreshCacheData() override;
 	// End UAnimSequenceBase interface
 
 	// Extract Root Motion transform from the animation
@@ -790,7 +801,23 @@ public:
 	 * Add validation check to see if it's being ready to play or not
 	 */
 	virtual bool IsValidToPlay() const override;
+
+	// Get a pointer to the data for a given Anim Notify
+	uint8* FindSyncMarkerPropertyData(int32 SyncMarkerIndex, UArrayProperty*& ArrayProperty);
+
+	virtual int32 GetMarkerUpdateCounter() const { return MarkerDataUpdateCounter; }
 #endif
+
+	/** Sort the sync markers array by time, earliest first. */
+	void SortSyncMarkers();
+
+	// Advancing based on markers
+	float GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerPair& NextMarker, float PositionBetweenMarkers) const;
+	virtual void AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, const TArray<FName>& ValidMarkerNames, float& CurrentTime, FMarkerPair& PrevMarker, FMarkerPair& NextMarker, TArray<FPassedMarker>& MarkersPassed) const;
+	virtual void AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const;
+	virtual void GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const;
+	virtual FMarkerSyncAnimPosition GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const;
+	virtual void GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& CurrentTime) const;
 
 private:
 	/**
@@ -824,6 +851,8 @@ private:
 	void ResetAnimation();
 	/** Refresh Track Map from Animation Track Names **/
 	void RefreshTrackMapFromAnimTrackNames();
+	/** Refresh sync marker data*/
+	void RefreshSyncMarkerDataFromAuthored();
 
 	/**
 	 * Utility function that helps to remove track, you can't just remove RawAnimationData

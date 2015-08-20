@@ -158,8 +158,8 @@ void UAnimSequenceBase::PostLoad()
 
 #if WITH_EDITOR
 	InitializeNotifyTrack();
-	UpdateAnimNotifyTrackCache();
 #endif
+	RefreshCacheData();
 
 	if(USkeleton* Skeleton = GetSkeleton())
 	{
@@ -289,10 +289,10 @@ void UAnimSequenceBase::GetAnimNotifiesFromDeltaPositions(const float& PreviousP
 	}
 }
 
-void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
+void UAnimSequenceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const
 {
 	float& CurrentTime = *(Instance.TimeAccumulator);
-	const float PreviousTime = CurrentTime;
+	float PreviousTime = CurrentTime;
 	const float PlayRate = Instance.PlayRateMultiplier * this->RateScale;
 
 	float MoveDelta = 0.f;
@@ -302,18 +302,35 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 		const float DeltaTime = Context.GetDeltaTime();
 		MoveDelta = PlayRate * DeltaTime;
 
-		if( MoveDelta != 0.f )
+		Context.SetLeaderDelta(MoveDelta);
+		if (MoveDelta != 0.f)
 		{
-			// Advance time
-			FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
+			if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition())
+			{
+				TickByMarkerAsLeader(Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, MoveDelta, Instance.bLooping);
+			}
+			else
+			{
+				// Advance time
+				FAnimationRuntime::AdvanceTime(Instance.bLooping, MoveDelta, CurrentTime, SequenceLength);
+			}
 		}
 
-		Context.SetSyncPoint(CurrentTime / SequenceLength);
+		Context.SetAnimationPositionRatio(CurrentTime / SequenceLength);
 	}
 	else
 	{
 		// Follow the leader
-		CurrentTime = Context.GetSyncPoint() * SequenceLength;
+		if (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition() && Context.MarkerTickContext.IsMarkerSyncStartValid())
+		{
+			TickByMarkerAsFollower(Instance.MarkerTickRecord, Context.MarkerTickContext, CurrentTime, PreviousTime, Context.GetLeaderDelta(), Instance.bLooping);
+		}
+		else
+		{
+			CurrentTime = Context.GetAnimationPositionRatio() * SequenceLength;
+		}
+
+
 		//@TODO: NOTIFIES: Calculate AdvanceType based on what the new delta time is
 
 		if( CurrentTime != PreviousTime )
@@ -329,13 +346,39 @@ void UAnimSequenceBase::TickAssetPlayerInstance(const FAnimTickRecord& Instance,
 	}
 
 	OnAssetPlayerTickedInternal(Context, PreviousTime, MoveDelta, Instance, InstanceOwner);
-
 }
 
-#if WITH_EDITOR
-
-void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
+void UAnimSequenceBase::TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMarkerTickContext &MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const
 {
+	if (!Instance.IsValid())
+	{
+		GetMarkerIndicesForPosition(MarkerContext.GetMarkerSyncStartPosition(), bLooping, Instance.PreviousMarker, Instance.NextMarker, CurrentTime);
+	}
+
+	OutPreviousTime = CurrentTime;
+
+	AdvanceMarkerPhaseAsFollower(MarkerContext, MoveDelta, bLooping, CurrentTime, Instance.PreviousMarker, Instance.NextMarker);
+}
+
+void UAnimSequenceBase::TickByMarkerAsLeader(FMarkerTickRecord& Instance, FMarkerTickContext& MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const
+{
+	if (!Instance.IsValid())
+	{
+		GetMarkerIndicesForTime(CurrentTime, bLooping, MarkerContext.GetValidMarkerNames(), Instance.PreviousMarker, Instance.NextMarker);
+	}
+
+	MarkerContext.SetMarkerSyncStartPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
+
+	OutPreviousTime = CurrentTime;
+
+	AdvanceMarkerPhaseAsLeader(bLooping, MoveDelta, MarkerContext.GetValidMarkerNames(), CurrentTime, Instance.PreviousMarker, Instance.NextMarker, MarkerContext.MarkersPassedThisTick);
+
+	MarkerContext.SetMarkerSyncEndPosition(GetMarkerSyncPositionfromMarkerIndicies(Instance.PreviousMarker.MarkerIndex, Instance.NextMarker.MarkerIndex, CurrentTime));
+}
+
+void UAnimSequenceBase::RefreshCacheData()
+{
+#if WITH_EDITOR
 	SortNotifies();
 
 	for (int32 TrackIndex=0; TrackIndex<AnimNotifyTracks.Num(); ++TrackIndex)
@@ -361,8 +404,10 @@ void UAnimSequenceBase::UpdateAnimNotifyTrackCache()
 
 	// notification broadcast
 	OnNotifyChanged.Broadcast();
+#endif //WITH_EDITOR
 }
 
+#if WITH_EDITOR
 void UAnimSequenceBase::InitializeNotifyTrack()
 {
 	if ( AnimNotifyTracks.Num() == 0 ) 
@@ -466,29 +511,34 @@ uint8* UAnimSequenceBase::FindNotifyPropertyData(int32 NotifyIndex, UArrayProper
 
 	if(Notifies.IsValidIndex(NotifyIndex))
 	{
-		// find Notifies property start point
-		UProperty* Property = FindField<UProperty>(GetClass(), TEXT("Notifies"));
-
-		// found it and if it is array
-		if(Property && Property->IsA(UArrayProperty::StaticClass()))
-		{
-			// find Property Value from UObject we got
-			uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(this);
-
-			// it is array, so now get ArrayHelper and find the raw ptr of the data
-			ArrayProperty = CastChecked<UArrayProperty>(Property);
-			FScriptArrayHelper ArrayHelper(ArrayProperty, PropertyValue);
-
-			if(ArrayProperty->Inner && NotifyIndex < ArrayHelper.Num())
-			{
-				//Get property data based on selected index
-				return ArrayHelper.GetRawPtr(NotifyIndex);
-			}
-		}
+		return FindArrayProperty(TEXT("Notifies"), ArrayProperty, NotifyIndex);
 	}
 	return NULL;
 }
 
+uint8* UAnimSequenceBase::FindArrayProperty(const TCHAR* PropName, UArrayProperty*& ArrayProperty, int32 ArrayIndex)
+{
+	// find Notifies property start point
+	UProperty* Property = FindField<UProperty>(GetClass(), PropName);
+
+	// found it and if it is array
+	if (Property && Property->IsA(UArrayProperty::StaticClass()))
+	{
+		// find Property Value from UObject we got
+		uint8* PropertyValue = Property->ContainerPtrToValuePtr<uint8>(this);
+
+		// it is array, so now get ArrayHelper and find the raw ptr of the data
+		ArrayProperty = CastChecked<UArrayProperty>(Property);
+		FScriptArrayHelper ArrayHelper(ArrayProperty, PropertyValue);
+
+		if (ArrayProperty->Inner && ArrayIndex < ArrayHelper.Num())
+		{
+			//Get property data based on selected index
+			return ArrayHelper.GetRawPtr(ArrayIndex);
+		}
+	}
+	return NULL;
+}
 #endif	//WITH_EDITOR
 
 
@@ -517,7 +567,7 @@ void UAnimSequenceBase::Serialize(FArchive& Ar)
 	{
 		if(USkeleton* Skeleton = GetSkeleton())
 		{
-			// we don't add track curve container unless it has been editied. 
+			// we don't add track curve container unless it has been edited. 
 			if ( RawCurveData.TransformCurves.Num() > 0 )
 			{
 				FSmartNameMapping* Mapping = GetSkeleton()->SmartNames.GetContainer(USkeleton::AnimTrackCurveMappingName);

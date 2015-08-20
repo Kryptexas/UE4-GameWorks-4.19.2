@@ -263,7 +263,7 @@ public:
 	// End UObject interface
 
 	// Begin UAnimationAsset interface
-	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
+	virtual void TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
 	// this is used in editor only when used for transition getter
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
 	// but for BlendSpace CurrentTime is normalized [0,1], so this is 1
@@ -271,8 +271,23 @@ public:
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
+	virtual int32 GetMarkerUpdateCounter() const;
 #endif
+	virtual TArray<FName>* GetUniqueMarkerNames() override { return (bAllSequencesHaveMatchingMarkers && SampleData.Num() > 0) ? SampleData[0].Animation->GetUniqueMarkerNames() : nullptr; }
 	// End of UAnimationAsset interface
+
+	void TickFollowerSamples(TArray<FBlendSampleData> &SampleDataList, const int32 HighestWeightIndex, FAnimAssetTickContext &Context) const
+	{
+		for (int32 SampleIndex = 0; SampleIndex < SampleDataList.Num(); ++SampleIndex)
+		{
+			FBlendSampleData& SampleDataItem = SampleDataList[SampleIndex];
+			const FBlendSample& Sample = SampleData[SampleDataItem.SampleDataIndex];
+			if (HighestWeightIndex != SampleIndex)
+			{
+				Sample.Animation->TickByMarkerAsFollower(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, Context.GetLeaderDelta(), true);
+			}
+		}
+	}
 
 	/**
 	 * BlendSpace Get Animation Pose function
@@ -411,6 +426,15 @@ protected:
 	 *
 	 */
 	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample, TInlineAllocator<4> > & OutBlendSamples) const {}
+
+	/** Track whether all our sequences have the same marker set for blending (if false use original scale based on length approach) */
+	bool bAllSequencesHaveMatchingMarkers;
+
+#if WITH_EDITOR
+private:
+	// Track whether we have updated markers so cached data can be updated
+	int32 MarkerDataUpdateCounter;
+#endif
 
 public:
 	

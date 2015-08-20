@@ -202,6 +202,29 @@ FORCEINLINE bool FAnimNotifyEvent::operator<(const FAnimNotifyEvent& Other) cons
 	}
 }
 
+USTRUCT()
+struct FAnimSyncMarker
+{
+	GENERATED_USTRUCT_BODY()
+
+	// The name of this marker
+	UPROPERTY()
+	FName MarkerName;
+
+	// Time in seconds of this marker
+	UPROPERTY()
+	float Time;
+
+#if WITH_EDITORONLY_DATA
+	// The editor track this marker sits on
+	UPROPERTY()
+	int32 TrackIndex;
+#endif
+
+	/** This can be used with the Sort() function on a TArray of FAnimSyncMarker to sort the notifies array by time, earliest first. */
+	ENGINE_API bool operator <(const FAnimSyncMarker& Other) const { return Time < Other.Time; }
+};
+
 /**
  * Keyframe position data for one track.  Pos(i) occurs at Time(i).  Pos.Num() always equals Time.Num().
  */
@@ -217,6 +240,8 @@ struct FAnimNotifyTrack
 	FLinearColor TrackColor;
 
 	TArray<FAnimNotifyEvent*> Notifies;
+	
+	TArray<FAnimSyncMarker*> SyncMarkers;
 
 	FAnimNotifyTrack()
 		: TrackName(TEXT(""))

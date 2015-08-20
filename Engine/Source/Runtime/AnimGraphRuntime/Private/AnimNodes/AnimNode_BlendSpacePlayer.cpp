@@ -57,6 +57,8 @@ void FAnimNode_BlendSpacePlayer::UpdateInternal(const FAnimationUpdateContext& C
 		// Create a tick record and fill it out
 		FAnimGroupInstance* SyncGroup;
 		FAnimTickRecord& TickRecord = Context.AnimInstance->CreateUninitializedTickRecord(GroupIndex, /*out*/ SyncGroup);
+		TickRecord.SourceNodeRef = this;
+		Context.AnimInstance->InitTickRecordFromLastFrame(GroupIndex, TickRecord);
 
 		const FVector BlendInput(X, Y, Z);
 	

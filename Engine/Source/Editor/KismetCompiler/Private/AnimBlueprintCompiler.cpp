@@ -1260,6 +1260,17 @@ void FAnimBlueprintCompiler::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	}
 }
 
+void FAnimBlueprintCompiler::FinishCompilingClass(UClass* Class)
+{
+	UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass = CastChecked<UAnimBlueprintGeneratedClass>(Class);
+	AnimBlueprintGeneratedClass->SyncGroupNames.Reset();
+	AnimBlueprintGeneratedClass->SyncGroupNames.Reserve(AnimBlueprint->Groups.Num());
+	for (const FAnimGroupInfo& GroupInfo : AnimBlueprint->Groups)
+	{
+		AnimBlueprintGeneratedClass->SyncGroupNames.Add(GroupInfo.Name);
+	}
+	Super::FinishCompilingClass(Class);
+}
 
 void FAnimBlueprintCompiler::CreateFunctionList()
 {

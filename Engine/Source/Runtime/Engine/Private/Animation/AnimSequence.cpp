@@ -123,6 +123,7 @@ void UAnimSequence::PostInitProperties()
 	{
 		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
 	}
+	MarkerDataUpdateCounter = 0;
 #endif
 	Super::PostInitProperties();
 }
@@ -329,6 +330,13 @@ bool UAnimSequence::IsValidToPlay() const
 	// make sure sequence length is valid and raw animation data exists, and compressed
 	return ( SequenceLength > 0.f && RawAnimationData.Num() > 0 && CompressedTrackOffsets.Num() > 0 );
 }
+
+void UAnimSequence::SortSyncMarkers()
+{
+	AuthoredSyncMarkers.Sort();
+	RefreshSyncMarkerDataFromAuthored();
+}
+
 #endif
 
 void UAnimSequence::PreSave()
@@ -3438,6 +3446,8 @@ void UAnimSequence::ResetAnimation()
 	CompressedByteStream.Empty();
 
 	Notifies.Empty();
+	AuthoredSyncMarkers.Empty();
+	UniqueMarkerNames.Empty();
 	AnimNotifyTracks.Empty();
 	RawCurveData.Empty();
 	RateScale = 1.f;
@@ -3466,6 +3476,41 @@ void UAnimSequence::RefreshTrackMapFromAnimTrackNames()
 			TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
 		}
 	}
+}
+
+void UAnimSequence::RefreshSyncMarkerDataFromAuthored()
+{
+#if WITH_EDITOR
+	MarkerDataUpdateCounter++;
+#endif
+
+	if (AuthoredSyncMarkers.Num() > 0)
+	{
+		UniqueMarkerNames.Reset();
+		UniqueMarkerNames.Reserve(AuthoredSyncMarkers.Num());
+
+		const FAnimSyncMarker* PreviousMarker = nullptr;
+		for (const FAnimSyncMarker& Marker : AuthoredSyncMarkers)
+		{
+			UniqueMarkerNames.AddUnique(Marker.MarkerName);
+			PreviousMarker = &Marker;
+		}
+	}
+	else
+	{
+		UniqueMarkerNames.Empty();
+	}
+}
+
+uint8* UAnimSequence::FindSyncMarkerPropertyData(int32 SyncMarkerIndex, UArrayProperty*& ArrayProperty)
+{
+	ArrayProperty = NULL;
+
+	if (AuthoredSyncMarkers.IsValidIndex(SyncMarkerIndex))
+	{
+		return FindArrayProperty(TEXT("AuthoredSyncMarkers"), ArrayProperty, SyncMarkerIndex);
+	}
+	return NULL;
 }
 
 bool UAnimSequence::CreateAnimation(USkeletalMesh * Mesh)
@@ -3581,6 +3626,484 @@ bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
 	}
 	
 	return false;
+}
+
+void UAnimSequence::RefreshCacheData()
+{
+	SortSyncMarkers();
+	RefreshSyncMarkerDataFromAuthored();
+
+	for (int32 TrackIndex = 0; TrackIndex < AnimNotifyTracks.Num(); ++TrackIndex)
+	{
+		AnimNotifyTracks[TrackIndex].SyncMarkers.Empty();
+	}
+
+	for (FAnimSyncMarker& SyncMarker : AuthoredSyncMarkers)
+	{
+		const int32 TrackIndex = SyncMarker.TrackIndex;
+		if (AnimNotifyTracks.IsValidIndex(TrackIndex))
+		{
+			AnimNotifyTracks[TrackIndex].SyncMarkers.Add(&SyncMarker);
+		}
+		else
+		{
+			// This should not happen, but if it does we must find somewhere else to add it
+			ensureMsgf(0, TEXT("AnimNotifyTrack: Wrong indices found"));
+			AnimNotifyTracks[0].SyncMarkers.Add(&SyncMarker);
+			SyncMarker.TrackIndex = 0;
+		}
+	}
+
+	Super::RefreshCacheData();
+}
+
+bool IsMarkerValid(const FAnimSyncMarker* Marker, bool bLooping, const TArray<FName>& ValidMarkerNames)
+{
+	return (Marker == nullptr && !bLooping) || (Marker && ValidMarkerNames.Contains(Marker->MarkerName));
+}
+
+void UAnimSequence::AdvanceMarkerPhaseAsLeader(bool bLooping, float MoveDelta, const TArray<FName>& ValidMarkerNames, float& CurrentTime, FMarkerPair& PrevMarker, FMarkerPair& NextMarker, TArray<FPassedMarker>& MarkersPassed) const
+{
+	check(MoveDelta != 0.f);
+	const bool bPlayingForwards = MoveDelta > 0.f;
+	float CurrentMoveDelta = MoveDelta;
+
+	bool bOffsetInitialized = false;
+	float MarkerTimeOffset = 0.f;
+
+	if (bPlayingForwards)
+	{
+		while (true)
+		{
+			if (NextMarker.MarkerIndex == -1)
+			{
+				float PrevCurrentTime = CurrentTime;
+				CurrentTime = FMath::Min(CurrentTime + CurrentMoveDelta, SequenceLength);
+				NextMarker.TimeToMarker = SequenceLength - CurrentTime;
+				PrevMarker.TimeToMarker -= CurrentTime - PrevCurrentTime; //Add how far we moved to distance from previous marker
+				break;
+			}
+			const FAnimSyncMarker& NextSyncMarker = AuthoredSyncMarkers[NextMarker.MarkerIndex];
+			checkSlow(ValidMarkerNames.Contains(NextSyncMarker.MarkerName));
+			if (!bOffsetInitialized)
+			{
+				bOffsetInitialized = true;
+				if (NextSyncMarker.Time < CurrentTime)
+				{
+					MarkerTimeOffset = SequenceLength;
+				}
+			}
+			const float NextMarkerTime = NextSyncMarker.Time + MarkerTimeOffset;
+			const float TimeToMarker = NextMarkerTime - CurrentTime;
+
+			if (CurrentMoveDelta > TimeToMarker)
+			{
+				CurrentTime = NextSyncMarker.Time;
+				CurrentMoveDelta -= TimeToMarker;
+
+				PrevMarker.MarkerIndex = NextMarker.MarkerIndex;
+				PrevMarker.TimeToMarker = -CurrentMoveDelta;
+
+				int32 PassedMarker = MarkersPassed.Add(FPassedMarker());
+				MarkersPassed[PassedMarker].PassedMarkerName = NextSyncMarker.MarkerName;
+				MarkersPassed[PassedMarker].DeltaTimeWhenPassed = CurrentMoveDelta;
+
+				do
+				{
+					++NextMarker.MarkerIndex;
+					if (NextMarker.MarkerIndex >= AuthoredSyncMarkers.Num())
+					{
+						if (!bLooping)
+						{
+							NextMarker.MarkerIndex = -1;
+							break;
+						}
+						NextMarker.MarkerIndex = 0;
+						MarkerTimeOffset += SequenceLength;
+					}
+				} while (!ValidMarkerNames.Contains(AuthoredSyncMarkers[NextMarker.MarkerIndex].MarkerName));
+			}
+			else
+			{
+				CurrentTime += CurrentMoveDelta;
+				if (CurrentTime > SequenceLength)
+				{
+					CurrentTime -= SequenceLength;
+				}
+				NextMarker.TimeToMarker = TimeToMarker - CurrentMoveDelta;
+				PrevMarker.TimeToMarker -= CurrentMoveDelta;
+				break;
+			}
+		}
+	}
+	else
+	{
+		while (true)
+		{
+			if (PrevMarker.MarkerIndex == -1)
+			{
+				float PrevCurrentTime = CurrentTime;
+				CurrentTime = FMath::Max(CurrentTime + CurrentMoveDelta, 0.f);
+				PrevMarker.TimeToMarker = CurrentTime;
+				NextMarker.TimeToMarker -= CurrentTime - PrevCurrentTime; //Add how far we moved to distance from previous marker
+				break;
+			}
+			const FAnimSyncMarker& PrevSyncMarker = AuthoredSyncMarkers[PrevMarker.MarkerIndex];
+			checkSlow(ValidMarkerNames.Contains(PrevSyncMarker.MarkerName));
+			if (!bOffsetInitialized)
+			{
+				bOffsetInitialized = true;
+				if (PrevSyncMarker.Time > CurrentTime)
+				{
+					MarkerTimeOffset = -SequenceLength;
+				}
+			}
+			const float PrevMarkerTime = PrevSyncMarker.Time + MarkerTimeOffset;
+			const float TimeToMarker = PrevMarkerTime - CurrentTime;
+
+			if (CurrentMoveDelta < TimeToMarker)
+			{
+				CurrentTime = PrevSyncMarker.Time;
+				CurrentMoveDelta -= TimeToMarker;
+
+				NextMarker.MarkerIndex = PrevMarker.MarkerIndex;
+				NextMarker.TimeToMarker = -CurrentMoveDelta;
+
+				int32 PassedMarker = MarkersPassed.Add(FPassedMarker());
+				MarkersPassed[PassedMarker].PassedMarkerName = PrevSyncMarker.MarkerName;
+				MarkersPassed[PassedMarker].DeltaTimeWhenPassed = CurrentMoveDelta;
+
+				do
+				{
+					--PrevMarker.MarkerIndex;
+					if (PrevMarker.MarkerIndex < 0)
+					{
+						if (!bLooping)
+						{
+							PrevMarker.MarkerIndex = -1;
+							break;
+						}
+						PrevMarker.MarkerIndex = AuthoredSyncMarkers.Num() - 1;
+						MarkerTimeOffset -= SequenceLength;
+					}
+				} while (!ValidMarkerNames.Contains(AuthoredSyncMarkers[PrevMarker.MarkerIndex].MarkerName));
+			}
+			else
+			{
+				CurrentTime += CurrentMoveDelta;
+				if (CurrentTime < 0.f)
+				{
+					CurrentTime += SequenceLength;
+				}
+				PrevMarker.TimeToMarker = TimeToMarker - CurrentMoveDelta;
+				NextMarker.TimeToMarker -= CurrentMoveDelta;
+				break;
+			}
+		}
+	}
+}
+
+void AdvanceMarkerForwards(int32& Marker, FName MarkerToFind, bool bLooping, const TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
+{
+	while (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind)
+	{
+		++Marker;
+		if (Marker == AuthoredSyncMarkers.Num() && !bLooping)
+		{
+			Marker = -1;
+			break;
+		}
+		Marker %= AuthoredSyncMarkers.Num();
+	}
+}
+
+int32 MarkerCounterSpaceTransform(int32 MaxMarker, int32 Source)
+{
+	return MaxMarker - 1 - Source;
+}
+
+void AdvanceMarkerBackwards(int32& Marker, FName MarkerToFind, bool bLooping, const TArray<FAnimSyncMarker>& AuthoredSyncMarkers)
+{
+	const int32 MarkerMax = AuthoredSyncMarkers.Num();
+	int32 Counter = MarkerCounterSpaceTransform(MarkerMax, Marker);
+	while (AuthoredSyncMarkers[Marker].MarkerName != MarkerToFind)
+	{
+		if (Marker == 0 && !bLooping)
+		{
+			Marker = -1;
+			break;
+		}
+		Counter = ++Counter % MarkerMax;
+		Marker = MarkerCounterSpaceTransform(MarkerMax, Counter);
+	}
+}
+
+void UAnimSequence::AdvanceMarkerPhaseAsFollower(const FMarkerTickContext& Context, float DeltaRemaining, bool bLooping, float& CurrentTime, FMarkerPair& PreviousMarker, FMarkerPair& NextMarker) const
+{
+	const bool bPlayingForwards = DeltaRemaining > 0.f;
+
+	if (bPlayingForwards)
+	{
+		int32 PassedMarkersIndex = 0;
+		do
+		{
+			if (NextMarker.MarkerIndex == -1)
+			{
+				check(!bLooping); // shouldnt have an end of anim marker if looping
+				CurrentTime = FMath::Min(CurrentTime + DeltaRemaining, SequenceLength);
+				break;
+			}
+			else if (PassedMarkersIndex < Context.MarkersPassedThisTick.Num())
+			{
+				PreviousMarker.MarkerIndex = NextMarker.MarkerIndex;
+
+				const FPassedMarker& PassedMarker = Context.MarkersPassedThisTick[PassedMarkersIndex];
+				AdvanceMarkerForwards(NextMarker.MarkerIndex, PassedMarker.PassedMarkerName, bLooping, AuthoredSyncMarkers);
+				if (NextMarker.MarkerIndex == -1)
+				{
+					DeltaRemaining = PassedMarker.DeltaTimeWhenPassed;
+				}
+				++PassedMarkersIndex;
+			}
+		} while (PassedMarkersIndex < Context.MarkersPassedThisTick.Num());
+
+		const FMarkerSyncAnimPosition& End = Context.GetMarkerSyncEndPosition();
+		
+		if (Context.MarkersPassedThisTick.Num() > 0)
+		{
+			AdvanceMarkerForwards(NextMarker.MarkerIndex, End.NextMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+
+		//Validation
+		if (End.NextMarkerName == NAME_None)
+		{
+			check(NextMarker.MarkerIndex == -1);
+		}
+		else
+		{
+			check(AuthoredSyncMarkers[NextMarker.MarkerIndex].MarkerName == End.NextMarkerName);
+		}
+		//End Validation
+		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+	}
+	else
+	{
+		int32 PassedMarkersIndex = 0;
+		do
+		{
+			if (PreviousMarker.MarkerIndex == -1)
+			{
+				check(!bLooping); // shouldnt have an end of anim marker if looping
+				CurrentTime = FMath::Max(CurrentTime + DeltaRemaining, 0.f);
+				break;
+			}
+			else if (PassedMarkersIndex < Context.MarkersPassedThisTick.Num())
+			{
+				NextMarker.MarkerIndex = PreviousMarker.MarkerIndex;
+
+				const FPassedMarker& PassedMarker = Context.MarkersPassedThisTick[PassedMarkersIndex];
+				AdvanceMarkerBackwards(PreviousMarker.MarkerIndex, PassedMarker.PassedMarkerName, bLooping, AuthoredSyncMarkers);
+				if (PreviousMarker.MarkerIndex == -1)
+				{
+					DeltaRemaining = PassedMarker.DeltaTimeWhenPassed;
+				}
+				++PassedMarkersIndex;
+			}
+		} while (PassedMarkersIndex < Context.MarkersPassedThisTick.Num());
+
+		const FMarkerSyncAnimPosition& End = Context.GetMarkerSyncEndPosition();
+
+		if (Context.MarkersPassedThisTick.Num() > 0)
+		{
+			AdvanceMarkerBackwards(PreviousMarker.MarkerIndex, End.PreviousMarkerName, bLooping, AuthoredSyncMarkers);
+		}
+
+		//Validation
+		if (End.PreviousMarkerName == NAME_None)
+		{
+			check(PreviousMarker.MarkerIndex == -1);
+		}
+		else
+		{
+			check(AuthoredSyncMarkers[PreviousMarker.MarkerIndex].MarkerName == End.PreviousMarkerName);
+		}
+		//End Validation
+		CurrentTime = GetCurrentTimeFromMarkers(PreviousMarker, NextMarker, End.PositionBetweenMarkers);
+	}
+}
+
+void UAnimSequence::GetMarkerIndicesForTime(float CurrentTime, bool bLooping, const TArray<FName>& ValidMarkerNames, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker) const
+{
+	const int LoopModStart = bLooping ? -1 : 0;
+	const int LoopModEnd = bLooping ? 2 : 1;
+
+	OutPrevMarker.MarkerIndex = -1;
+	OutPrevMarker.TimeToMarker = -CurrentTime;
+	OutNextMarker.MarkerIndex = -1;
+	OutNextMarker.TimeToMarker = SequenceLength - CurrentTime;
+
+	for (int32 LoopMod = LoopModStart; LoopMod < LoopModEnd; ++LoopMod)
+	{
+		const float LoopModTime = LoopMod * SequenceLength;
+		for (int Idx = 0; Idx < AuthoredSyncMarkers.Num(); ++Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (ValidMarkerNames.Contains(Marker.MarkerName))
+			{
+				const float MarkerTime = Marker.Time + LoopModTime;
+				if (MarkerTime < CurrentTime)
+				{
+					OutPrevMarker.MarkerIndex = Idx;
+					OutPrevMarker.TimeToMarker = MarkerTime - CurrentTime;
+				}
+				else if (MarkerTime >= CurrentTime)
+				{
+					OutNextMarker.MarkerIndex = Idx;
+					OutNextMarker.TimeToMarker = MarkerTime - CurrentTime;
+					break; // Done
+				}
+			}
+		}
+		if (OutNextMarker.MarkerIndex != -1)
+		{
+			break; // Done
+		}
+	}
+}
+
+FMarkerSyncAnimPosition UAnimSequence::GetMarkerSyncPositionfromMarkerIndicies(int32 PrevMarker, int32 NextMarker, float CurrentTime) const
+{
+	FMarkerSyncAnimPosition SyncPosition;
+	float PrevTime, NextTime;
+	
+	if (PrevMarker != -1)
+	{
+		PrevTime = AuthoredSyncMarkers[PrevMarker].Time;
+		SyncPosition.PreviousMarkerName = AuthoredSyncMarkers[PrevMarker].MarkerName;
+	}
+	else
+	{
+		PrevTime = 0.f;
+	}
+
+	if (NextMarker != -1)
+	{
+		NextTime = AuthoredSyncMarkers[NextMarker].Time;
+		SyncPosition.NextMarkerName = AuthoredSyncMarkers[NextMarker].MarkerName;
+	}
+	else
+	{
+		NextTime = SequenceLength;
+	}
+
+	// Account for looping
+	PrevTime = (PrevTime > CurrentTime) ? PrevTime - SequenceLength : PrevTime;
+	NextTime = (NextTime < CurrentTime) ? NextTime + SequenceLength : NextTime;
+
+	if (PrevTime == NextTime)
+	{
+		PrevTime -= SequenceLength;
+	}
+
+	check(NextTime > PrevTime);
+
+	SyncPosition.PositionBetweenMarkers = (CurrentTime - PrevTime) / (NextTime - PrevTime);
+	return SyncPosition;
+}
+
+float UAnimSequence::GetCurrentTimeFromMarkers(FMarkerPair& PrevMarker, FMarkerPair& NextMarker, float PositionBetweenMarkers) const
+{
+	float PrevTime = (PrevMarker.MarkerIndex != -1) ? AuthoredSyncMarkers[PrevMarker.MarkerIndex].Time : 0.f;
+	float NextTime = (NextMarker.MarkerIndex != -1) ? AuthoredSyncMarkers[NextMarker.MarkerIndex].Time : SequenceLength;
+
+	if (PrevTime >= NextTime)
+	{
+		PrevTime -= SequenceLength; //Account for looping
+	}
+	float CurrentTime = PrevTime + PositionBetweenMarkers * (NextTime - PrevTime);
+	if (CurrentTime < 0.f)
+	{
+		CurrentTime += SequenceLength;
+	}
+	PrevMarker.TimeToMarker = PrevTime - CurrentTime;
+	NextMarker.TimeToMarker = NextTime - CurrentTime;
+	return CurrentTime;
+}
+
+void UAnimSequence::GetMarkerIndicesForPosition(const FMarkerSyncAnimPosition& SyncPosition, bool bLooping, FMarkerPair& OutPrevMarker, FMarkerPair& OutNextMarker, float& OutCurrentTime) const
+{
+	if (SyncPosition.PreviousMarkerName == NAME_None)
+	{
+		OutPrevMarker.MarkerIndex = -1;
+		check(SyncPosition.NextMarkerName != NAME_None);
+
+		for (int32 Idx = 0; Idx < AuthoredSyncMarkers.Num(); ++Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (Marker.MarkerName == SyncPosition.NextMarkerName)
+			{
+				OutNextMarker.MarkerIndex = Idx;
+				OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+				return;
+			}
+		}
+		check(false); // Should have found a marker above!
+	}
+
+	if (SyncPosition.NextMarkerName == NAME_None)
+	{
+		OutNextMarker.MarkerIndex = -1;
+		check(SyncPosition.PreviousMarkerName != NAME_None);
+
+		for (int32 Idx = AuthoredSyncMarkers.Num() - 1; Idx >= 0; --Idx)
+		{
+			const FAnimSyncMarker& Marker = AuthoredSyncMarkers[Idx];
+			if (Marker.MarkerName == SyncPosition.PreviousMarkerName)
+			{
+				OutPrevMarker.MarkerIndex = Idx;
+				OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+				return;
+			}
+		}
+		check(false); // Should have found a marker above!
+	}
+
+	float DiffToCurrentTime = FLT_MAX;
+
+	for (int32 PrevMarkerIdx = 0; PrevMarkerIdx < AuthoredSyncMarkers.Num(); ++PrevMarkerIdx)
+	{
+		const FAnimSyncMarker& PrevMarker = AuthoredSyncMarkers[PrevMarkerIdx];
+		if (PrevMarker.MarkerName == SyncPosition.PreviousMarkerName)
+		{
+			int32 EndCount = bLooping ? AuthoredSyncMarkers.Num() : (AuthoredSyncMarkers.Num() - (PrevMarkerIdx + 1));
+			for (int32 NextMarkerCount = 0; NextMarkerCount < EndCount; ++NextMarkerCount)
+			{
+				int32 NextMarkerIdx = (PrevMarkerIdx + 1 + NextMarkerCount) % AuthoredSyncMarkers.Num();
+				if (AuthoredSyncMarkers[NextMarkerIdx].MarkerName == SyncPosition.NextMarkerName)
+				{
+					float NextMarkerTime = AuthoredSyncMarkers[NextMarkerIdx].Time;
+					if (NextMarkerTime < PrevMarker.Time)
+					{
+						NextMarkerTime += SequenceLength;
+					}
+					float ThisCurrentTime = PrevMarker.Time + SyncPosition.PositionBetweenMarkers * (NextMarkerTime - PrevMarker.Time);
+					if (ThisCurrentTime > SequenceLength)
+					{
+						ThisCurrentTime -= SequenceLength;
+					}
+					float ThisDiff = FMath::Abs(ThisCurrentTime - OutCurrentTime);
+					if (ThisDiff < DiffToCurrentTime)
+					{
+						DiffToCurrentTime = ThisDiff;
+						OutPrevMarker.MarkerIndex = PrevMarkerIdx;
+						OutNextMarker.MarkerIndex = NextMarkerIdx;
+						OutCurrentTime = GetCurrentTimeFromMarkers(OutPrevMarker, OutNextMarker, SyncPosition.PositionBetweenMarkers);
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 #endif

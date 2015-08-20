@@ -3,6 +3,89 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimSequence.h"
 
+
+//////////////////////////////////////////////////////////////////////////
+// FAnimGroupInstance
+
+void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType)
+{
+	int32 TestIndex = ActivePlayers.Num() - 1;
+	FAnimTickRecord& Candidate = ActivePlayers[TestIndex];
+
+	switch (MembershipType)
+	{
+	case EAnimGroupRole::CanBeLeader:
+		// Set it if we're better than the current leader (or if there is no leader yet)
+		if ((GroupLeaderIndex == INDEX_NONE) || (ActivePlayers[GroupLeaderIndex].EffectiveBlendWeight < Candidate.EffectiveBlendWeight))
+		{
+			// This is a better leader
+			GroupLeaderIndex = TestIndex;
+		}
+		break;
+	case EAnimGroupRole::AlwaysLeader:
+		// Always set the leader index
+		GroupLeaderIndex = TestIndex;
+		break;
+	default:
+	case EAnimGroupRole::AlwaysFollower:
+		// Never set the leader index; the actual tick code will handle the case of no leader by using the first element in the array
+		break;
+	}
+}
+
+void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers)
+{
+	GroupLeaderIndex = FMath::Max(GroupLeaderIndex, 0);
+
+	TArray<FName>* MarkerNames = ActivePlayers[GroupLeaderIndex].SourceAsset->GetUniqueMarkerNames();
+	if (MarkerNames)
+	{
+		// Group leader has markers, off to a good start
+		ValidMarkers = *MarkerNames;
+		ActivePlayers[GroupLeaderIndex].bCanUseMarkerSync = true;
+		bCanUseMarkerSync = true;
+
+		//filter markers based on what exists in the other animations
+		for (int32 Idx = 0; Idx < ActivePlayers.Num(); ++Idx)
+		{
+			if (Idx != GroupLeaderIndex)
+			{
+				FAnimTickRecord& Candidate = ActivePlayers[Idx];
+				TArray<FName>* MarkerNames = Candidate.SourceAsset->GetUniqueMarkerNames();
+				if (MarkerNames) // Let anims with no markers set use length scaling sync
+				{
+					Candidate.bCanUseMarkerSync = true;
+					for (int Idx = ValidMarkers.Num() - 1; Idx >= 0; --Idx)
+					{
+						FName& MarkerName = ValidMarkers[Idx];
+						if (!MarkerNames->Contains(MarkerName))
+						{
+							ValidMarkers.RemoveAtSwap(Idx, 1, false);
+						}
+					}
+					if (ValidMarkers.Num() == 0) //No common markers between all anims, no marker syncing
+					{
+						bCanUseMarkerSync = false;
+						break;
+					}
+				}
+			}
+		}
+		ValidMarkers.Sort();
+		if (ValidMarkers != PreviousValidMarkers)
+		{
+			for (int32 Idx = 0; Idx < ActivePlayers.Num(); ++Idx)
+			{
+				ActivePlayers[Idx].MarkerTickRecord.PreviousMarker.MarkerIndex = MarkerIndexSpecialValues::Unitialized;
+				ActivePlayers[Idx].MarkerTickRecord.NextMarker.MarkerIndex = MarkerIndexSpecialValues::Unitialized;
+			}
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// UAnimationAsset
+
 UAnimationAsset::UAnimationAsset(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

@@ -79,6 +79,7 @@ UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 	RootNode = NULL;
 	RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
 	SlotNodeInitializationCounter = INDEX_NONE;
+	ActiveSyncGroupsArray = 0;
 }
 
 void UAnimInstance::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const
@@ -128,6 +129,7 @@ FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, 
 	OutSyncGroupPtr = NULL;
 	if (GroupIndex >= 0)
 	{
+		TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
 		while (SyncGroups.Num() <= GroupIndex)
 		{
 			new (SyncGroups) FAnimGroupInstance();
@@ -136,8 +138,45 @@ FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, 
 	}
 
 	// Create the record
-	FAnimTickRecord* TickRecord = new ((OutSyncGroupPtr != NULL) ? OutSyncGroupPtr->ActivePlayers : UngroupedActivePlayers) FAnimTickRecord();
+	FAnimTickRecord* TickRecord = new ((OutSyncGroupPtr != NULL) ? OutSyncGroupPtr->ActivePlayers : UngroupedActivePlayerArrays[ActiveSyncGroupsArray]) FAnimTickRecord();
 	return *TickRecord;
+}
+
+void UAnimInstance::InitTickRecord(const TArray<FAnimTickRecord>& TickRecords, FAnimTickRecord &NewTickRecord) const
+{
+	for (const FAnimTickRecord& PrevTickRecord : TickRecords)
+	{
+		if (NewTickRecord.SourceNodeRef == PrevTickRecord.SourceNodeRef)
+		{
+			if (NewTickRecord.SourceAsset == PrevTickRecord.SourceAsset
+#if WITH_EDITOR					
+				&& NewTickRecord.SourceAsset->GetMarkerUpdateCounter() == PrevTickRecord.SourceAsset->GetMarkerUpdateCounter()
+#endif
+				)
+			{
+				NewTickRecord.MarkerTickRecord = PrevTickRecord.MarkerTickRecord;
+			}
+			break;
+		}
+	}
+}
+
+void UAnimInstance::InitTickRecordFromLastFrame(int32 GroupIndex, FAnimTickRecord& NewTickRecord) const
+{
+	const int32 PreviousBufferIndex = 1 - ActiveSyncGroupsArray;
+	if (GroupIndex == INDEX_NONE)
+	{
+		InitTickRecord(UngroupedActivePlayerArrays[PreviousBufferIndex], NewTickRecord);
+	}
+	else
+	{
+		const TArray<FAnimGroupInstance>& PreviousSyncGroups = SyncGroupArrays[PreviousBufferIndex];
+		if (PreviousSyncGroups.IsValidIndex(GroupIndex))
+		{
+			const TArray<FAnimTickRecord>& TickRecords = PreviousSyncGroups[GroupIndex].ActivePlayers;
+			InitTickRecord(TickRecords, NewTickRecord);
+		}
+	}
 }
 
 AActor* UAnimInstance::GetOwningActor() const
@@ -336,26 +375,32 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 #endif
 
 	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_MiscClear);
-		AnimNotifies.Reset();
-
-		ClearSlotNodeWeights();
-
-	    // Reset the player tick list (but keep it presized)
-	    UngroupedActivePlayers.Empty(UngroupedActivePlayers.Num());
-	    for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
-	    {
-		    SyncGroups[GroupIndex].Reset();
-	    }
-	}
-
-	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
 		NativeUpdateAnimation(DeltaSeconds);
 	}
 	{
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
 		BlueprintUpdateAnimation(DeltaSeconds);
+	}
+
+	ActiveSyncGroupsArray = 1 - ActiveSyncGroupsArray;
+	TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
+	TArray<FAnimTickRecord>& UngroupedActivePlayers = UngroupedActivePlayerArrays[ActiveSyncGroupsArray];
+
+	const TArray<FAnimGroupInstance>& PreviousSyncGroups = SyncGroupArrays[1 - ActiveSyncGroupsArray];
+
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_MiscClear);
+		AnimNotifies.Reset();
+
+		ClearSlotNodeWeights();
+
+		// Reset the player tick list (but keep it presized)
+		UngroupedActivePlayers.Reset();
+		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
+		{
+			SyncGroups[GroupIndex].Reset();
+		}
 	}
 
 	// update weight before all nodes update comes in
@@ -372,28 +417,33 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_TickAssetPlayerInstances);
 
-	// Handle all players inside sync groups
+		// Handle all players inside sync groups
 		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 		{
 			FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
     
 			if (SyncGroup.ActivePlayers.Num() > 0)
 			{
-				const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
+				static TArray<FName> TempNames;
+				const TArray<FName>& PreviousValidMarkers = PreviousSyncGroups.IsValidIndex(GroupIndex) ? PreviousSyncGroups[GroupIndex].ValidMarkers : TempNames;
+				SyncGroup.Finalize(PreviousValidMarkers);
     
 				// Tick the group leader
-				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
-				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[GroupLeaderIndex];
+				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, SyncGroup.ValidMarkers);
+				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
 					FScopeCycleCounterUObject Scope(GroupLeader.SourceAsset);
 					GroupLeader.SourceAsset->TickAssetPlayerInstance(GroupLeader, this, TickContext);
 				}
+
 				if (RootMotionMode == ERootMotionMode::RootMotionFromEverything && TickContext.RootMotionMovementParams.bHasRootMotion)
 				{
 					ExtractedRootMotion.AccumulateWithBlend(TickContext.RootMotionMovementParams.RootMotionTransform, GroupLeader.EffectiveBlendWeight);
 				}
     
+				SyncGroup.MarkerTickContext = TickContext.MarkerTickContext;
+
 				// Update everything else to follow the leader
 				if (SyncGroup.ActivePlayers.Num() > 1)
 				{
@@ -401,9 +451,9 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
     
 					for (int32 TickIndex = 0; TickIndex < SyncGroup.ActivePlayers.Num(); ++TickIndex)
 					{
-						if (TickIndex != GroupLeaderIndex)
+						if (TickIndex != SyncGroup.GroupLeaderIndex)
 						{
-							const FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
+							FAnimTickRecord& AssetPlayer = SyncGroup.ActivePlayers[TickIndex];
 							{
 								QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
 								FScopeCycleCounterUObject Scope(AssetPlayer.SourceAsset);
@@ -422,8 +472,13 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		// Handle the remaining ungrouped animation players
 		for (int32 TickIndex = 0; TickIndex < UngroupedActivePlayers.Num(); ++TickIndex)
 		{
-			const FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
-			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
+			FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
+			AssetPlayerToTick.bCanUseMarkerSync = true;
+			static TArray<FName> TempNames;
+			const TArray<FName>* UniqueNames = AssetPlayerToTick.SourceAsset->GetUniqueMarkerNames();
+			const TArray<FName>& ValidMarkers = UniqueNames ? *UniqueNames : TempNames;
+
+			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, ValidMarkers);
 		    {
 			    QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
 			    FScopeCycleCounterUObject Scope(AssetPlayerToTick.SourceAsset);
@@ -798,6 +853,9 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		FIndenter AnimIndent(Indent);
 
 		//Display Sync Groups
+		const TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
+		const TArray<FAnimTickRecord>& UngroupedActivePlayers = UngroupedActivePlayerArrays[ActiveSyncGroupsArray];
+
 		Heading = FString::Printf(TEXT("SyncGroups: %i"), SyncGroups.Num());
 		YL = Canvas->DrawText(RenderFont, Heading, Indent, YPos, 1.f, 1.f, RenderInfo);
 		YPos += YL;
@@ -805,7 +863,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
 		{
 			FIndenter GroupIndent(Indent);
-			FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
+			const FAnimGroupInstance& SyncGroup = SyncGroups[GroupIndex];
 
 			Canvas->SetLinearDrawColor(TextYellow);
 
@@ -815,8 +873,8 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			if (SyncGroup.ActivePlayers.Num() > 0)
 			{
-				const int32 GroupLeaderIndex = FMath::Max(SyncGroup.GroupLeaderIndex, 0);
-				OutputTickRecords(SyncGroup.ActivePlayers, Canvas, Indent, GroupLeaderIndex, TextWhite, ActiveColor, InactiveColor, RenderFont, YPos, RenderInfo, YL, bFullBlendspaceDisplay);
+				check(SyncGroup.GroupLeaderIndex != -1);
+				OutputTickRecords(SyncGroup.ActivePlayers, Canvas, Indent, SyncGroup.GroupLeaderIndex, TextWhite, ActiveColor, InactiveColor, RenderFont, YPos, RenderInfo, YL, bFullBlendspaceDisplay);
 			}
 		}
 
@@ -2640,6 +2698,49 @@ void UAnimInstance::UnlockAIResources(bool bUnlockMovement, bool UnlockAILogic)
 	UE_LOG(LogAnimation, Error, TEXT("%s: UnlockAIResources is no longer supported. Please use UnlockAIResourcesWithAnimation instead."), *GetName());
 }
 
+bool UAnimInstance::GetTimeToClosestMarker(FName SyncGroup, FName MarkerName, float& OutMarkerTime) const
+{
+	const int32 SyncGroupIndex = GetSyncGroupIndexFromName(SyncGroup);
+	const TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
+
+	if (SyncGroups.IsValidIndex(SyncGroupIndex))
+	{
+		const FAnimGroupInstance& SyncGroup = SyncGroups[SyncGroupIndex];
+		if (SyncGroup.ActivePlayers.IsValidIndex(SyncGroup.GroupLeaderIndex))
+		{
+			const FMarkerSyncAnimPosition& EndPosition = SyncGroup.MarkerTickContext.GetMarkerSyncEndPosition();
+			const FAnimTickRecord& Leader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
+			if (EndPosition.PreviousMarkerName == MarkerName)
+			{
+				OutMarkerTime = Leader.MarkerTickRecord.PreviousMarker.TimeToMarker;
+				return true;
+			}
+			else if (EndPosition.NextMarkerName == MarkerName)
+			{
+				OutMarkerTime = Leader.MarkerTickRecord.NextMarker.TimeToMarker;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+bool UAnimInstance::HasMarkerBeenHitThisFrame(FName SyncGroup, FName MarkerName) const
+{
+	const int32 SyncGroupIndex = GetSyncGroupIndexFromName(SyncGroup);
+	const TArray<FAnimGroupInstance>& SyncGroups = SyncGroupArrays[ActiveSyncGroupsArray];
+
+	if (SyncGroups.IsValidIndex(SyncGroupIndex))
+	{
+		const FAnimGroupInstance& SyncGroup = SyncGroups[SyncGroupIndex];
+		return SyncGroup.MarkerTickContext.MarkersPassedThisTick.ContainsByPredicate([&MarkerName](const FPassedMarker& PassedMarker) -> bool
+		{
+			return PassedMarker.PassedMarkerName == MarkerName;
+		});
+	}
+	return false;
+}
+
 void UAnimInstance::UpdateMontageEvaluationData()
 {
 	MontageEvaluationData.Empty(MontageInstances.Num());
@@ -2933,6 +3034,16 @@ FAnimNode_AssetPlayerBase* UAnimInstance::GetRelevantAssetPlayerFromState(int32 
 		}
 	}
 	return ResultPlayer;
+}
+
+int32 UAnimInstance::GetSyncGroupIndexFromName(FName SyncGroupName) const
+{
+
+	if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
+	{
+		return AnimBlueprintClass->GetSyncGroupIndex(SyncGroupName);
+	}
+	return INDEX_NONE;
 }
 
 bool UAnimInstance::IsRunningParallelEvaluation() const

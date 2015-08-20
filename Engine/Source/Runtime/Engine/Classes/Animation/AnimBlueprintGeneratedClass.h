@@ -183,6 +183,12 @@ class ENGINE_API UAnimBlueprintGeneratedClass : public UBlueprintGeneratedClass
 	UStructProperty* RootAnimNodeProperty;
 	TArray<UStructProperty*> AnimNodeProperties;
 
+	// Array of sync group names in the order that they are requested during compile
+	UPROPERTY()
+	TArray<FName> SyncGroupNames;
+
+	int32 GetSyncGroupIndex(FName SyncGroupName) const { return SyncGroupNames.IndexOfByKey(SyncGroupName); }
+
 #if WITH_EDITORONLY_DATA
 	FAnimBlueprintDebugData AnimBlueprintDebugData;
 

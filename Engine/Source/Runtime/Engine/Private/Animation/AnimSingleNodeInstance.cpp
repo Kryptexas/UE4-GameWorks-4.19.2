@@ -233,6 +233,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(CurrentAsset))
 		{
 			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			TickRecord.SourceNodeRef = this;
+			InitTickRecordFromLastFrame(INDEX_NONE, TickRecord);
 			MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendSpaceInput, BlendSampleData, BlendFilter, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 #if WITH_EDITORONLY_DATA
 			PreviewBasePose = BlendSpace->PreviewBasePose;
@@ -241,6 +243,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(CurrentAsset))
 		{
 			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			TickRecord.SourceNodeRef = this;
+			InitTickRecordFromLastFrame(INDEX_NONE, TickRecord);
 			MakeSequenceTickRecord(TickRecord, Sequence, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
@@ -255,6 +259,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 		else if(UAnimComposite* Composite = Cast<UAnimComposite>(CurrentAsset))
 		{
 			FAnimTickRecord& TickRecord = CreateUninitializedTickRecord(INDEX_NONE, /*out*/ SyncGroup);
+			TickRecord.SourceNodeRef = this;
+			InitTickRecordFromLastFrame(INDEX_NONE, TickRecord);
 			MakeSequenceTickRecord(TickRecord, Composite, bLooping, NewPlayRate, 1.f, /*inout*/ CurrentTime);
 			// if it's not looping, just set play to be false when reached to end
 			if (!bLooping)
