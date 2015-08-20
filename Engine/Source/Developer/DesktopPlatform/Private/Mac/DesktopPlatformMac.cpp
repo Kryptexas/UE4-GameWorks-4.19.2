@@ -380,9 +380,14 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString LauncherRelativeUrl
 
 	if (IsLauncherInstalled())
 	{
+		FString LauncherUriRequest;
 		if (LauncherRelativeUrl.IsEmpty())
 		{
-			LauncherRelativeUrl = TEXT("ue");
+			LauncherUriRequest = TEXT("com.epicgames.launcher:");
+		}
+		else
+		{
+			LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
 		}
 
 		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
@@ -391,7 +396,7 @@ bool FDesktopPlatformMac::OpenLauncher(bool Install, FString LauncherRelativeUrl
 		}
 
 		FString Error;
-		FPlatformProcess::LaunchURL(*FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl), *CommandLineParams, &Error);
+		FPlatformProcess::LaunchURL(*LauncherUriRequest, *CommandLineParams, &Error);
 		return true;
 	}
 
