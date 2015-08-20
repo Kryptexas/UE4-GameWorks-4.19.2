@@ -67,7 +67,7 @@ public:
 	virtual void ClearApplicationViewModels() override;
 	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) override;
 	virtual TSharedRef< IChatSettingsService > GenerateChatSettingsService() override;
-	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatViewModel, TSharedRef<IChatSettingsService> ChatSettingsService) override;
+	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatViewModel, TSharedRef<IChatSettingsService> ChatSettingsService, TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual TSharedPtr< SWidget > GenerateStatusWidget(const FFriendsAndChatStyle* InStyle, bool ShowStatusOptions) override;

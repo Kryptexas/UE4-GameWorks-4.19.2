@@ -24,7 +24,7 @@ public:
 
 	// Begin FChatViewModel interface
 
-	virtual TSharedRef<FChatViewModel> Clone(const TSharedRef<class IChatDisplayService>& InChatDisplayService) override
+	virtual TSharedRef<FChatViewModel> Clone(const TSharedRef<class IChatDisplayService>& InChatDisplayService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) override
 	{
 		TSharedRef< FChatViewModelImpl > ViewModel(new FChatViewModelImpl(FriendViewModelFactory, MessageService, NavigationService, MarkupService, InChatDisplayService, FriendsService, GamePartyService));
 		ViewModel->Initialize(true);
@@ -32,6 +32,10 @@ public:
 		ViewModel->SetChannelFlags(ChatChannelFlags);
 		ViewModel->DefaultChannel = DefaultChannel;
 		ViewModel->DefaultChatChannelFlags = DefaultChatChannelFlags;
+		if(CustomSlashCommands!= nullptr)
+		{
+			ViewModel->AddCustomSlashCommands(*CustomSlashCommands);
+		}
 		return ViewModel;
 	}
 
@@ -96,7 +100,10 @@ public:
 	{
 		ChatChannelFlags = ChatFlags;
 		bHasActionPending = false;
-		SelectedFriend.Reset();
+		if (!IsChannelSet(EChatMessageType::Whisper))
+		{
+			SelectedFriend.Reset();
+		}
 	}
 
 	virtual bool IsChannelSet(const EChatMessageType::Type InChannel) override
@@ -266,10 +273,6 @@ public:
 		{
 			return EChatMessageType::Global;
 		}
-		if ((ChatChannelFlags ^ EChatMessageType::Game) == 0)
-		{
-			return EChatMessageType::Game;
-		}
 		if ((ChatChannelFlags ^ EChatMessageType::Whisper) == 0)
 		{
 			return EChatMessageType::Whisper;
@@ -277,18 +280,6 @@ public:
 		if ((ChatChannelFlags ^ EChatMessageType::Party) == 0)
 		{
 			return EChatMessageType::Party;
-		}
-		if ((ChatChannelFlags ^ EChatMessageType::Game) == 0)
-		{
-			return EChatMessageType::Game;
-		}
-		if ((ChatChannelFlags ^ EChatMessageType::Team) == 0)
-		{
-			return EChatMessageType::Team;
-		}
-		if ((ChatChannelFlags ^ EChatMessageType::Clan) == 0)
-		{
-			return EChatMessageType::Clan;
 		}
 		if ((ChatChannelFlags ^ EChatMessageType::Empty) == 0)
 		{
@@ -539,7 +530,7 @@ public:
 
 	virtual EVisibility GetBackgroundVisibility() const override
 	{
-		return ChatDisplayService->IsChatMinimized() ? EVisibility::Hidden : EVisibility::Visible;
+		return ChatDisplayService->GetBackgroundVisibility();
 	}
 
 	virtual EVisibility GetTipVisibility() const override
@@ -605,6 +596,7 @@ public:
 				// Reset the chat channel to default option when opened
 				SetOutgoingMessageChannel(GetDefaultChannelType());
 			}
+			ChatDisplayService->SetActiveTab(SharedThis(this));
 		}
 	}
 
@@ -685,7 +677,16 @@ public:
 
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) override
 	{
+		if (KeyEvent.GetKey() == EKeys::Escape)
+		{
+			ChatDisplayService->OnFocuseReleasedEvent().Broadcast();
+		}
 		return AllowMarkup() ? MarkupService->HandleChatKeyEntry(KeyEvent) : FReply::Unhandled();
+	}
+
+	virtual void AddCustomSlashCommands(TArray<TSharedRef<class ICustomSlashCommand> >& InCustomSlashCommands) override
+	{
+		MarkupService->AddCustomSlashMarkupCommand(InCustomSlashCommands);
 	}
 
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatListSetFocus, FChatListSetFocus);

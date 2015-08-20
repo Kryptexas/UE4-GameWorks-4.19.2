@@ -36,6 +36,9 @@ public:
 
 	virtual void Login() override
 	{
+		// Clear existing delegates
+		Logout();
+
 		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FFriendsServiceImpl::OnQueryRecentPlayersComplete);
 		OnFriendsListChangedDelegate = FOnFriendsChangeDelegate::CreateSP(this, &FFriendsServiceImpl::OnFriendsListChanged);
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateSP(this, &FFriendsServiceImpl::OnDeleteFriendComplete);
@@ -466,7 +469,7 @@ private:
 				}
 				else
 				{
-					UE_LOG(LogOnline, Log, TEXT("PlayerId=%s not found"), *UserIds[UserIdx]->ToDebugString());
+					UE_LOG(LogOnline, Verbose, TEXT("PlayerId=%s not found"), *UserIds[UserIdx]->ToDebugString());
 				}
 			}
 

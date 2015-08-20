@@ -79,13 +79,19 @@ public:
 				break;
 				case EInviteStatus::PendingInbound :
 				{
-					Actions.Add(EFriendActionType::AcceptFriendRequest);
-					Actions.Add(EFriendActionType::IgnoreFriendRequest);
+					if(!bFromChat)
+					{
+						Actions.Add(EFriendActionType::AcceptFriendRequest);
+						Actions.Add(EFriendActionType::IgnoreFriendRequest);
+					}
 				}
 				break;
 				case EInviteStatus::PendingOutbound :
 				{
-					Actions.Add(EFriendActionType::CancelFriendRequest);
+					if(!bFromChat)
+					{
+						Actions.Add(EFriendActionType::CancelFriendRequest);
+					}
 				}
 				break;
 			default:

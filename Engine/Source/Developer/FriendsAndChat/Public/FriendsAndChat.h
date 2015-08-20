@@ -33,3 +33,4 @@
 #include "IChatNotificationService.h"
 #include "IChatCommunicationService.h"
 #include "IGameAndPartyService.h"
+#include "ICustomSlashCommand.h"

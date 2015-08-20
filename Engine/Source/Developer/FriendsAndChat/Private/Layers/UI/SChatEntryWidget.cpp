@@ -42,6 +42,7 @@ public:
 		[
 			SAssignNew(ChatBox, SBox)
 			.VAlign(VAlign_Center)
+			.MaxDesiredHeight(100)
 		]);
 
 		RebuildTextEntry();

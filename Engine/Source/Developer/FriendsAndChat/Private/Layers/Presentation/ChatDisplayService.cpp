@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatDisplayService.h"
+#include "ChatViewModel.h"
 
 class FChatDisplayServiceImpl
 	: public FChatDisplayService
@@ -24,31 +25,60 @@ public:
 	{
 		OnChatMessageCommitted().Broadcast();
 
-		if(IsFading())
+		// Here i needed to make the visibility changes based on the actual flag for that section
+		if (FadeChatEntry)
 		{
 			SetChatEntryVisibility(false);
-			SetChatListVisibility(true);
 		}
-		else if(ChatMinimized)
+		// However! If the we don't set chat entry invisible i still want to brodcast a Focus Relase
+		else
 		{
-			SetChatListVisibility(true);
+			OnFocuseReleasedEvent().Broadcast();
+		}
+		// Seems like i just want to do this all the time, i just sent a message why not show the text.
+		SetChatListVisibility(true);
+		if(ChatMinimized)
+		{
 			ChatListVisibility = EVisibility::HitTestInvisible;
 		}
 	}
 
 	virtual EVisibility GetEntryBarVisibility() const override
 	{
+		if(EntryVisibilityOverride.IsSet())
+		{
+			return EntryVisibilityOverride.GetValue();
+		}
 		return ChatEntryVisibility;
 	}
 
 	virtual EVisibility GetChatHeaderVisibiliy() const override
 	{
+		// Don't show the header when the chat list is hidden
+		if(TabVisibilityOverride.IsSet())
+		{
+			return TabVisibilityOverride.GetValue();
+		}
+
 		return ChatMinimized ? EVisibility::Collapsed : ChatEntryVisibility;
 	}
 
 	virtual EVisibility GetChatListVisibility() const override
 	{
+		if(ChatListVisibilityOverride.IsSet())
+		{
+			return ChatListVisibilityOverride.GetValue();
+		}
 		return ChatListVisibility;
+	}
+
+	virtual EVisibility GetBackgroundVisibility() const override
+	{
+		if(BackgroundVisibilityOverride.IsSet())
+		{
+			return BackgroundVisibilityOverride.GetValue();
+		}
+		return IsChatMinimized() ? EVisibility::Hidden : EVisibility::Visible;
 	}
 
 	virtual bool IsFading() const override
@@ -92,6 +122,51 @@ public:
 	virtual bool IsChatMinimized() const override
 	{
 		return ChatMinimized;
+	}
+
+	virtual void SetTabVisibilityOverride(EVisibility InTabVisibilityOverride) override
+	{
+		TabVisibilityOverride = InTabVisibilityOverride;
+	}
+
+	virtual void ClearTabVisibilityOverride() override
+	{
+		TabVisibilityOverride.Reset();
+	}
+
+	virtual void SetEntryVisibilityOverride(EVisibility InEntryVisibilityOverride) override
+	{
+		EntryVisibilityOverride = InEntryVisibilityOverride;
+	}
+
+	virtual void ClearEntryVisibilityOverride() override
+	{
+		EntryVisibilityOverride.Reset();
+	}
+
+	virtual void SetBackgroundVisibilityOverride(EVisibility InBackgroundVisibilityOverride) override
+	{
+		BackgroundVisibilityOverride = InBackgroundVisibilityOverride;
+	}
+
+	virtual void ClearBackgroundVisibilityOverride() override
+	{
+		BackgroundVisibilityOverride.Reset();
+	}
+
+	virtual void SetChatListVisibilityOverride(EVisibility InChatVisibilityOverride) override
+	{
+		ChatListVisibilityOverride = InChatVisibilityOverride; 
+	}
+
+	virtual void ClearChatListVisibilityOverride() override
+	{
+		ChatListVisibilityOverride.Reset();
+	}
+
+	virtual void SetActiveTab(TWeakPtr<FChatViewModel> InActiveTab) override
+	{
+		ActiveTab = InActiveTab;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatDisplayServiceImpl, IChatDisplayService::FChatListUpdated, FChatListUpdated);
@@ -153,27 +228,32 @@ private:
 		}
 	}
 
-	void HandleChatMessageReceived(EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem)
+	void HandleChatMessageReceived(TSharedRef< FFriendChatMessage > NewMessage)
 	{
-		SetChatListVisibility(true);
+		if(!NewMessage->bIsFromSelf && ActiveTab.IsValid() && ActiveTab.Pin()->IsChannelSet(NewMessage->MessageType))
+		{
+			SetChatListVisibility(true);
+		}
 	}
 
 	bool HandleTick(float DeltaTime)
 	{
 		if(IsFading())
 		{
-			if(ChatEntryVisibility != EVisibility::Visible)
+			// Made the fades independent and actually check the specific flag, i maintained the entry fades first ?			// If entry fade is enabled also made the time checks consistent.
+			if (!FadeChatEntry || ChatEntryVisibility != EVisibility::Visible)
 			{
-				if(ChatFadeDelay > 0)
+				if (FadeChatList && ChatFadeDelay > 0)
 				{
 					ChatFadeDelay -= DeltaTime;
 					if(ChatFadeDelay <= 0)
 					{
 						SetChatListVisibility(false);
+						ChatMinimized = true;
 					}
 				}
 			}
-			else
+			if (FadeChatEntry && EntryFadeDelay > 0)
 			{
 				EntryFadeDelay -= DeltaTime;
 				if(EntryFadeDelay <= 0)
@@ -198,7 +278,7 @@ private:
 
 	void Initialize()
 	{
-		ChatService->OnChatMessageRecieved().AddSP(this, &FChatDisplayServiceImpl::HandleChatMessageReceived);
+		ChatService->OnChatMessageAdded().AddSP(this, &FChatDisplayServiceImpl::HandleChatMessageReceived);
 
 		if(IsFading())
 		{
@@ -238,13 +318,20 @@ private:
 	EVisibility ChatListVisibility;
 	bool IsChatActive;
 	bool ChatMinimized;
-	
+
+	TOptional<EVisibility> TabVisibilityOverride;
+	TOptional<EVisibility> EntryVisibilityOverride;
+	TOptional<EVisibility> BackgroundVisibilityOverride;
+	TOptional<EVisibility> ChatListVisibilityOverride;
+
 	FChatListUpdated ChatListUpdatedEvent;
 	FOnFriendsChatMessageCommitted ChatMessageCommittedEvent;
 	FOnFriendsSendNetworkMessageEvent FriendsSendNetworkMessageEvent;
 	FOnFocusReleasedEvent OnFocusReleasedEvent;
 
 	FChatListSetFocus ChatSetFocusEvent;
+
+	TWeakPtr<FChatViewModel> ActiveTab;
 
 	// Delegate for which function we should use when we tick
 	FTickerDelegate TickDelegate;

@@ -19,7 +19,7 @@ public:
 
 	virtual const FSlateBrush* GetTabImage() const = 0;
 	virtual const TSharedPtr<class FChatViewModel> GetChatViewModel() const = 0;
-	virtual TSharedRef<IChatTabViewModel> Clone(TSharedRef<IChatDisplayService> ChatDisplayService) = 0;
+	virtual TSharedRef<IChatTabViewModel> Clone(TSharedRef<IChatDisplayService> ChatDisplayService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) = 0;
 
 	DECLARE_EVENT(IChatTabViewModel, FChatTabVisibilityChangedEvent)
 	virtual FChatTabVisibilityChangedEvent& OnTabVisibilityChanged() = 0;

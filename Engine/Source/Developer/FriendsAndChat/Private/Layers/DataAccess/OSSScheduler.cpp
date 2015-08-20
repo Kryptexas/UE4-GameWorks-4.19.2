@@ -283,7 +283,21 @@ public:
 			TSharedPtr<const FUniqueNetId> UserId = GetOnlineIdentity()->GetUniquePlayerId(LocalControllerIndex);
 			if (UserId.IsValid())
 			{
-				Result = GetPartyInterface()->GetAdvertisedParty(*UserId, *FriendItem->GetUniqueID());
+				TArray<TSharedRef<IOnlinePartyInvite>> PartyInvites;
+				GetPartyInterface()->GetPendingInvites(*UserId, PartyInvites);
+				for(const auto& PartyInvite : PartyInvites)
+				{
+					if(*PartyInvite->GetSenderId() == *FriendItem->GetUniqueID())
+					{
+						Result = PartyInvite->GetJoinInfo();
+						break;
+					}
+				}
+
+				if(!Result.IsValid())
+				{
+					Result = GetPartyInterface()->GetAdvertisedParty(*UserId, *FriendItem->GetUniqueID());
+				}
 			}
 		}
 		return Result;

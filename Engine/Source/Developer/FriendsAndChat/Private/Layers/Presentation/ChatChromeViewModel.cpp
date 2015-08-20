@@ -102,13 +102,13 @@ public:
 		return ChatDisplayService->IsChatMinimized();
 	}
 
-	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<IChatDisplayService> InChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService) override
+	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<IChatDisplayService> InChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) override
 	{
 		TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, InChatDisplayService, InChatSettingsService));
 		ViewModel->Initialize();
 		for (const auto& Tab: Tabs)
 		{
-			ViewModel->AddTab(Tab->Clone(InChatDisplayService));
+			ViewModel->AddTab(Tab->Clone(InChatDisplayService, CustomSlashCommands));
 		}
 		return ViewModel;
 	}

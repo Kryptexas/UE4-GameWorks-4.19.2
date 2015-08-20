@@ -55,9 +55,9 @@ public:
 		return ChatViewModel;
 	}
 
-	virtual TSharedRef<IChatTabViewModel> Clone(TSharedRef<IChatDisplayService> ChatDisplayService) override
+	virtual TSharedRef<IChatTabViewModel> Clone(TSharedRef<IChatDisplayService> ChatDisplayService,  TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) override
 	{
-		TSharedRef< FChatChromeTabViewModelImpl > ViewModel(new FChatChromeTabViewModelImpl(ChatViewModel->Clone(ChatDisplayService)));
+		TSharedRef< FChatChromeTabViewModelImpl > ViewModel(new FChatChromeTabViewModelImpl(ChatViewModel->Clone(ChatDisplayService, CustomSlashCommands)));
 		return ViewModel;
 	}
 

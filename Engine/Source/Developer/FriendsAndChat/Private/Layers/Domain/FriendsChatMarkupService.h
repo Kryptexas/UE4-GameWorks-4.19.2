@@ -9,6 +9,7 @@ public:
 	virtual bool IsEnabled() = 0;
 	virtual bool IsValidForType(EChatMessageType::Type ChatChannel) = 0;
 	virtual FReply ExecuteTip() = 0;
+	virtual void ExecuteCommand() = 0;
 };
 
 class FFriendsChatMarkupService
@@ -17,6 +18,11 @@ class FFriendsChatMarkupService
 public:
 
 	virtual ~FFriendsChatMarkupService() {}
+
+	/**
+	 * Add custom slash commands - handled by the owning client.
+	 */
+	virtual void AddCustomSlashMarkupCommand(TArray<TSharedRef<class ICustomSlashCommand> >& InCustomSlashCommands) = 0;
 
 	/**
 	 * Make chat tips unavailable.
@@ -98,4 +104,5 @@ IFACTORY(TSharedRef< FFriendsChatMarkupService >, IFriendsChatMarkupService);
 FACTORY(TSharedRef<IFriendsChatMarkupServiceFactory>, FFriendsChatMarkupServiceFactory, 
 		const TSharedRef<class IChatCommunicationService >& CommunicationService,
 		const TSharedRef<class FFriendsNavigationService>& NavigationService,
-		const TSharedRef<IFriendListFactory>& FriendsListFactory);
+		const TSharedRef<IFriendListFactory>& FriendsListFactory,
+		const TSharedRef<class FGameAndPartyService>& InGamePartyService);

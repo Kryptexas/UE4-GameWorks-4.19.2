@@ -42,6 +42,11 @@ public:
 	virtual EVisibility GetChatListVisibility() const = 0;
 
 	/*
+	 * Get Visibility of the chat list background
+	 */
+	virtual EVisibility GetBackgroundVisibility() const = 0;
+
+	/*
 	 * Will this display fade.
 	 */
 	virtual bool IsFading() const = 0;
@@ -66,6 +71,23 @@ public:
 	 */
 	virtual bool IsChatMinimized() const = 0;
 
+	virtual void SetTabVisibilityOverride(EVisibility TabVisibility) = 0;
+
+	virtual void ClearTabVisibilityOverride() = 0;
+
+	virtual void SetEntryVisibilityOverride(EVisibility EntryVisibility) = 0;
+
+	virtual void ClearEntryVisibilityOverride() = 0;
+
+	virtual void SetBackgroundVisibilityOverride(EVisibility BackgroundVisibility) = 0;
+
+	virtual void ClearBackgroundVisibilityOverride() = 0;
+
+	virtual void SetChatListVisibilityOverride(EVisibility ChatVisibility) = 0;
+
+	virtual void ClearChatListVisibilityOverride() = 0;
+
+	virtual void SetActiveTab(TWeakPtr<class FChatViewModel> ActiveTab) = 0;
 
 	DECLARE_EVENT(IChatDisplayService, FOnFriendsChatMessageCommitted)
 	virtual FOnFriendsChatMessageCommitted& OnChatMessageCommitted() = 0;

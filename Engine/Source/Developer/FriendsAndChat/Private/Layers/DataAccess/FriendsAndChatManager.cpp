@@ -67,7 +67,7 @@ void FFriendsAndChatManager::Initialize(bool InGame)
 	FriendViewModelFactory = FFriendViewModelFactoryFactory::Create(NavigationService.ToSharedRef(), FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef());
 	FriendsListFactory = FFriendListFactoryFactory::Create(FriendViewModelFactory.ToSharedRef(), FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef());
 	TSharedRef<IChatCommunicationService> CommunicationService = StaticCastSharedRef<IChatCommunicationService>(MessageService.ToSharedRef());
-	MarkupServiceFactory = FFriendsChatMarkupServiceFactoryFactory::Create(CommunicationService, NavigationService.ToSharedRef(), FriendsListFactory.ToSharedRef());
+	MarkupServiceFactory = FFriendsChatMarkupServiceFactoryFactory::Create(CommunicationService, NavigationService.ToSharedRef(), FriendsListFactory.ToSharedRef(), GameAndPartyService.ToSharedRef());
 }
 
 /* IFriendsAndChatManager interface
@@ -104,11 +104,18 @@ void FFriendsAndChatManager::Login(IOnlineSubsystem* InOnlineSub, bool bInIsGame
 	{
 		// Friends Service Login
 		FriendsService->Login();
-		FriendsService->OnAddToast().AddSP(this, &FFriendsAndChatManager::AddFriendsToast);
+		if(!FriendsService->OnAddToast().IsBound())
+		{
+			FriendsService->OnAddToast().AddSP(this, &FFriendsAndChatManager::AddFriendsToast);
+		}
 
 		// Message Service Login
 		MessageService->Login();
-		MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnGlobalChatRoomJoined);
+		if(!MessageService->OnChatPublicRoomJoined().IsBound())
+		{
+			MessageService->OnChatPublicRoomJoined().AddSP(this, &FFriendsAndChatManager::OnGlobalChatRoomJoined);
+		}
+
 		for (auto RoomName : ChatRoomstoJoin)
 		{
 			MessageService->JoinPublicRoom(RoomName);
@@ -343,7 +350,7 @@ TSharedRef< IChatSettingsService > FFriendsAndChatManager::GenerateChatSettingsS
 	return FChatSettingsServiceFactory::Create();
 }
 
-TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService)
+TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands)
 {
 	Style = *InStyle;
 
@@ -361,7 +368,14 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 
 		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		PartyChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Party);
-		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
+		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper);
+
+		if(CustomSlashCommands!= nullptr)
+		{
+			GlobalChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
+			WhisperChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
+			PartyChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
+		}
 
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(GlobalChatViewModel));
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
@@ -370,7 +384,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 	else
 	{
 		// Clone Chrome View Model. Keep messages, but add new style
-		CachedViewModel = CachedViewModel->Clone(ChatDisplayService, InChatSettingsService);
+		CachedViewModel = CachedViewModel->Clone(ChatDisplayService, InChatSettingsService, CustomSlashCommands);
 	}
 
 	TSharedPtr<SChatChrome> ChatChrome = SNew(SChatChrome, CachedViewModel.ToSharedRef()).FriendStyle(InStyle);

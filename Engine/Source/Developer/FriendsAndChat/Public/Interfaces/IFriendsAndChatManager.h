@@ -54,7 +54,10 @@ public:
 	 * @param InStyle The display service.
 	 * @return The Chrome chat widget.
 	 */
-	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService) = 0;
+	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle,
+		TSharedRef<IChatDisplayService> ChatDisplayService,
+		TSharedRef<IChatSettingsService> InChatSettingsService,
+		TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr) = 0;
 
 	/**
 	 * Set the analytics provider for capturing friends/chat events

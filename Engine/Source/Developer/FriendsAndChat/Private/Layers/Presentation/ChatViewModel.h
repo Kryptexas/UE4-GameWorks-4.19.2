@@ -37,7 +37,7 @@ public:
 	virtual ~FChatViewModel() {}
 
 	// Clone the view model. Used for Chrome tabs. Keeps existing chat messages, but adds new Display service
-	virtual TSharedRef<FChatViewModel> Clone(const TSharedRef<class IChatDisplayService>& InChatDisplayService) = 0;
+	virtual TSharedRef<FChatViewModel> Clone(const TSharedRef<class IChatDisplayService>& InChatDisplayService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) = 0;
 
 	virtual FText GetChatGroupText(bool ShowWhisperFriendsName = true) const = 0;
 
@@ -76,6 +76,7 @@ public:
 	virtual bool IsActive() const = 0;
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) = 0;
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) = 0;
+	virtual void AddCustomSlashCommands(TArray<TSharedRef<class ICustomSlashCommand> >& CustomSlashCommands) = 0;
 
 	// Display options
 	virtual void SetCaptureFocus(bool bCaptureFocus) = 0;

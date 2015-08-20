@@ -205,9 +205,6 @@ protected:
 		case EChatMessageType::Party:
 			HyperlinkStyle = TEXT("UserNameTextStyle.PartyHyperlink");
 			break;
-		case EChatMessageType::Game: 
-			HyperlinkStyle = TEXT("UserNameTextStyle.GameHyperlink"); 
-			break;
 		}
 		return HyperlinkStyle;
 	}
@@ -224,9 +221,6 @@ protected:
 			RoomName = TEXT("[w]");
 			break;
 		case EChatMessageType::Party:
-			RoomName = TEXT("[p]");
-			break;
-		case EChatMessageType::Game: 
 			RoomName = TEXT("[p]");
 			break;
 		default:
