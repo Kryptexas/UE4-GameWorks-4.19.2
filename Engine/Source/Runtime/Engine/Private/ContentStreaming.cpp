@@ -2100,6 +2100,7 @@ FStreamingManagerTexture::FStreamingManagerTexture()
 ,	TotalDynamicTextureHeuristicSize(0)
 ,	TotalLastRenderHeuristicSize(0)
 ,	TotalForcedHeuristicSize(0)
+,	MemoryOverBudget(0)
 ,	OriginalTexturePoolSize(0)
 ,	PreviousPoolSizeTimestamp(0.0)
 ,	PreviousPoolSizeSetting(-1)
@@ -3375,11 +3376,13 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 		AvailableNow = GStreamMemoryTracker.CalcAvailableNow( Stats.ComputeAvailableMemorySize(), MemoryMargin );
 		AvailableLater = GStreamMemoryTracker.CalcAvailableLater( Stats.ComputeAvailableMemorySize(), MemoryMargin );
 
-		STAT( int64 NonStreamingUsage = Stats.AllocatedMemorySize - int64(ThreadStats.TotalResidentSize) - int64(ThreadStats.PendingStreamInSize) - int64(TempMemoryUsed) );
-		STAT( int64 MemoryBudget = Stats.TexturePoolSize - NonStreamingUsage - int64(MemoryMargin) );
-		STAT( int64 MemoryOverBudget = int64(ThreadStats.TotalRequiredSize) - MemoryBudget );
-		SET_MEMORY_STAT( STAT_StreamingOverBudget,	FMath::Max(MemoryOverBudget,0ll) );
-		SET_MEMORY_STAT( STAT_StreamingUnderBudget,	FMath::Max(-MemoryOverBudget,0ll) );
+		int64 NonStreamingUsage = Stats.AllocatedMemorySize - ThreadStats.TotalResidentSize - int64(ThreadStats.PendingStreamInSize) - TempMemoryUsed;
+		int64 MemoryBudget = Stats.TexturePoolSize - NonStreamingUsage - MemoryMargin;
+		int64 LocalMemoryOverBudget = FMath::Max(ThreadStats.TotalRequiredSize - MemoryBudget, 0LL);
+		MemoryOverBudget = FMath::Max(LocalMemoryOverBudget, 0LL);
+
+		SET_MEMORY_STAT( STAT_StreamingOverBudget,	MemoryOverBudget);
+		SET_MEMORY_STAT( STAT_StreamingUnderBudget,	FMath::Max(-LocalMemoryOverBudget,0ll) );
 		SET_MEMORY_STAT( STAT_NonStreamingTexturesSize,	FMath::Max<int64>(NonStreamingUsage, 0) );
 	}
 	else
@@ -3387,6 +3390,7 @@ void FStreamingManagerTexture::StreamTextures( bool bProcessEverything )
 		TempMemoryUsed = ThreadStats.TempStreamingSize;
 		AvailableNow = MAX_int64;
 		AvailableLater = MAX_int64;
+		MemoryOverBudget = 0;
 		SET_MEMORY_STAT( STAT_StreamingOverBudget, 0 );
 		SET_MEMORY_STAT( STAT_StreamingUnderBudget, 0 );
 	}
