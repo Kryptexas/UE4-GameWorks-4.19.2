@@ -452,11 +452,11 @@ struct FAnimAssetTickContext
 public:
 	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode, const TArray<FName>& ValidMarkerNames)
 		: RootMotionMode(InRootMotionMode)
+		, MarkerTickContext(ValidMarkerNames)
 		, DeltaTime(InDeltaTime)
 		, LeaderDelta(0.f)
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(ValidMarkerNames.Num() > 0)
-		, MarkerTickContext(ValidMarkerNames)
 		, bIsLeader(true)
 	{
 	}
