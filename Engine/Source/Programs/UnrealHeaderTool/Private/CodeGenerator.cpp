@@ -1269,7 +1269,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* InPac
 		GeneratedFunctionText.Logf(TEXT("#endif\r\n"));
 	}
 
-	GeneratedFunctionText.Logf(TEXT("            ReturnPackage->PackageFlags |= PKG_CompiledIn | 0x%08X;\r\n"), InPackage->PackageFlags & (PKG_ClientOptional|PKG_ServerSideOnly));
+	GeneratedFunctionText.Logf(TEXT("            ReturnPackage->PackageFlags |= PKG_CompiledIn | 0x%08X;\r\n"), InPackage->PackageFlags & (PKG_ClientOptional | PKG_ServerSideOnly | PKG_EditorOnly));
 	TheFlagAudit.Add(InPackage, TEXT("PackageFlags"), InPackage->PackageFlags);
 	{
 		FGuid Guid;
@@ -5416,6 +5416,10 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 		Package->PackageFlags |= PKG_ContainsScript;
 		Package->PackageFlags &= ~(PKG_ClientOptional | PKG_ServerSideOnly);
 		Package->PackageFlags |= PKG_Compiling;
+		if (Module.ModuleType == EBuildModuleType::Editor)
+		{
+			Package->PackageFlags |= PKG_EditorOnly;
+		}
 
 		GPackageToManifestModuleMap.Add(Package, &Module);
 
