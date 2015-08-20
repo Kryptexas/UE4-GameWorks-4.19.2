@@ -11,8 +11,10 @@ DECLARE_CYCLE_STAT(TEXT("Map Staging Buffer"),STAT_MapStagingBuffer,STATGROUP_Cr
 DECLARE_CYCLE_STAT(TEXT("Generate Capture Buffer"),STAT_GenerateCaptureBuffer,STATGROUP_CrashTracker);
 DECLARE_CYCLE_STAT(TEXT("Unmap Staging Buffer"),STAT_UnmapStagingBuffer,STATGROUP_CrashTracker);
 
-DECLARE_CYCLE_STAT(TEXT("Slate Rendering RT Time"), STAT_SlateRenderingRTTime, STATGROUP_Slate);
-DECLARE_CYCLE_STAT(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Rendering"), STAT_SlateRenderingRTTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Create Batches"), STAT_SlateRTCreateBatches, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Fill Vertex & Index Buffers"), STAT_SlateRTFillVertexIndexBuffers, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Slate RT: Draw Batches"), STAT_SlateRTDrawBatches, STATGROUP_Slate);
 
 // Defines the maximum size that a slate viewport will create
 #define MAX_VIEWPORT_SIZE 16384
@@ -407,9 +409,17 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		WindowElementList.PreDraw_RenderThread();
 
-		// Update the vertex and index buffer	
-		BatchData.CreateRenderBatches(RootBatchMap);
-		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
+			// Update the vertex and index buffer	
+			BatchData.CreateRenderBatches(RootBatchMap);
+		}
+
+		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTFillVertexIndexBuffers);
+			RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		}
+
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
@@ -447,6 +457,8 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 #endif
 		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
+			SCOPE_CYCLE_COUNTER(STAT_SlateRTDrawBatches);
+
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
 			RenderingPolicy->DrawElements
@@ -1241,9 +1253,9 @@ void FSlateRHIRenderer::SetWindowRenderTarget(const SWindow& Window, IViewportRe
 	}
 }
 
-TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::CacheElementRenderData(FSlateWindowElementList& ElementList)
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList)
 {
-	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(this));
+	TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle = MakeShareable(new FSlateRenderDataHandle(Cacher, this));
 
 	checkSlow(ElementList.GetChildDrawLayers().Num() == 0);
 
@@ -1280,35 +1292,24 @@ TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRHIRenderer::Cache
 	return RenderDataHandle;
 }
 
-void FSlateRHIRenderer::UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset)
+void FSlateRHIRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 {
-	struct FUpdateCacheElementBatchesContext
+	struct FReleaseCachingResourcesForContext
 	{
 		FSlateRHIRenderingPolicy* RenderPolicy;
-		FSlateWindowElementList* SlateElementList;
-		TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderDataHandle;
-		FVector2D PositionOffset;
+		const ILayoutCache* Cacher;
 	};
-	FUpdateCacheElementBatchesContext UpdateCacheElementBatchesContext =
+	FReleaseCachingResourcesForContext MarshalContext =
 	{
 		RenderingPolicy.Get(),
-		&ElementList,
-		ElementList.GetCachedRenderDataHandle(),
-		PositionOffset
+		Cacher,
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		UpdateCacheElementBatches,
-		FUpdateCacheElementBatchesContext, Context, UpdateCacheElementBatchesContext,
-	{
-		if ( Context.RenderDataHandle.IsValid() )
+		ReleaseCachingResourcesFor,
+		FReleaseCachingResourcesForContext, Context, MarshalContext,
 		{
-			auto RenderDataHandleRef = Context.RenderDataHandle.ToSharedRef();
-
-			FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
-			BatchData.UpdateRenderBatches(Context.PositionOffset);
-			Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData, RenderDataHandleRef);
-		}
-	});
+			Context.RenderPolicy->ReleaseCachingResourcesFor(Context.Cacher);
+		});
 }
 
 void FSlateRHIRenderer::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)

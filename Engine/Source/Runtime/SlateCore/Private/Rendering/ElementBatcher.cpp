@@ -1578,7 +1578,7 @@ void FSlateElementBatcher::AddCachedBuffer(const FSlateDrawElement& DrawElement)
 
 		// Custom elements are not batched together
 		TSharedPtr< FSlateRenderDataHandle, ESPMode::ThreadSafe > RenderData = InPayload.CachedRenderData->AsShared();
-		ElementBatches->Add(FSlateElementBatch(RenderData, DrawElement.GetScissorRect()));
+		ElementBatches->Add(FSlateElementBatch(RenderData, InPayload.CachedRenderDataOffset, DrawElement.GetScissorRect()));
 	}
 }
 

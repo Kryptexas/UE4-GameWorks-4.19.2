@@ -26,6 +26,8 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>(WidgetTree, UserWidget);
 #endif
 
+	UserWidget->WidgetGeneratedByClass = this;
+
 #if WITH_EDITOR
 	UserWidget->WidgetGeneratedBy = ClassGeneratedBy;
 #endif
@@ -59,6 +61,8 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 			{
 				return;
 			}
+
+			Widget->WidgetGeneratedByClass = this;
 
 #if WITH_EDITOR
 			Widget->WidgetGeneratedBy = ClassGeneratedBy;

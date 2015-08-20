@@ -3,7 +3,7 @@
 #include "SlatePrivatePCH.h"
 #include "HittestGrid.h"
 
-DECLARE_CYCLE_STAT(TEXT("Viewport Update Time"), STAT_ViewportUpdateTime, STATGROUP_Slate);
+DECLARE_CYCLE_STAT(TEXT("Game UI Tick/Paint"), STAT_ViewportUpdateTime, STATGROUP_Slate);
 
 /* SViewport constructors
  *****************************************************************************/

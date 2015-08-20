@@ -6,6 +6,7 @@
 #include "ActiveTimerHandle.h"
 #include "SlateStats.h"
 
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Total Widgets"), STAT_SlateTotalWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Painted Widgets"), STAT_SlateNumPaintedWidgets, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Ticked Widgets"), STAT_SlateNumTickedWidgets, STATGROUP_Slate);
 
@@ -37,7 +38,21 @@ SWidget::SWidget()
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
 {
+	INC_DWORD_STAT(STAT_SlateTotalWidgets);
+}
 
+SWidget::~SWidget()
+{
+	// Unregister all ActiveTimers so they aren't left stranded in the Application's list.
+	if ( FSlateApplicationBase::IsInitialized() )
+	{
+		for ( const auto& ActiveTimerHandle : ActiveTimers )
+		{
+			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
+		}
+	}
+
+	DEC_DWORD_STAT(STAT_SlateTotalWidgets);
 }
 
 void SWidget::Construct(
@@ -723,18 +738,6 @@ void SWidget::ExecuteActiveTimers(double CurrentTime, float DeltaTime)
 			}
 			
 			ActiveTimers.RemoveAt(i);
-		}
-	}
-}
-
-SWidget::~SWidget()
-{
-	// Unregister all ActiveTimers so they aren't left stranded in the Application's list.
-	if (FSlateApplicationBase::IsInitialized())
-	{
-		for (const auto& ActiveTimerHandle : ActiveTimers)
-		{
-			FSlateApplicationBase::Get().UnRegisterActiveTimer(ActiveTimerHandle);
 		}
 	}
 }

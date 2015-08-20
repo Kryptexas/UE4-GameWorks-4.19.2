@@ -188,8 +188,8 @@ public:
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 	virtual void ReleaseAccessedResources() override;
-	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(FSlateWindowElementList& ElementList) override;
-	virtual void UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset) override;
+	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList) override;
+	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher) override;
 	virtual void ReleaseCachedRenderData(FSlateRenderDataHandle* RenderHandle) override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */

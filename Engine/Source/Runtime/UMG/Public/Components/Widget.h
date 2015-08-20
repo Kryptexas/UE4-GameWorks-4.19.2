@@ -225,9 +225,13 @@ public:
 
 	/** Stores a reference to the asset responsible for this widgets construction. */
 	UPROPERTY(Transient)
-	UObject* WidgetGeneratedBy;
+	const UObject* WidgetGeneratedBy;
 
 #endif
+
+	/** Stores a reference to the class responsible for this widgets construction. */
+	UPROPERTY(Transient)
+	const UClass* WidgetGeneratedByClass;
 
 public:
 

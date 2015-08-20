@@ -14,13 +14,10 @@
 
 DECLARE_CYCLE_STAT(TEXT("Update Buffers RT"), STAT_SlateUpdateBufferRTTime, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("PreFill Buffers RT"), STAT_SlatePreFullBufferRTTime, STATGROUP_Slate);
-DECLARE_CYCLE_STAT(TEXT("Draw Time RT"), STAT_SlateDrawTime, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Layers"), STAT_SlateNumLayers, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Batches"), STAT_SlateNumBatches, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Vertices"), STAT_SlateVertexCount, STATGROUP_Slate);
 
-DECLARE_MEMORY_STAT(TEXT("Batch Vertex Memory"), STAT_SlateVertexBatchMemory, STATGROUP_SlateMemory);
-DECLARE_MEMORY_STAT(TEXT("Batch Index Memory"), STAT_SlateIndexBatchMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Vertex Buffer Memory"), STAT_SlateVertexBufferMemory, STATGROUP_SlateMemory);
 DECLARE_MEMORY_STAT(TEXT("Index Buffer Memory"), STAT_SlateIndexBufferMemory, STATGROUP_SlateMemory);
 
@@ -202,13 +199,23 @@ void FSlateRHIRenderingPolicy::ReleaseResources()
 
 		Buffer->VertexBuffer.Destroy();
 		Buffer->IndexBuffer.Destroy();
+		delete Buffer;
 	}
 
-	for ( FCachedRenderBuffers* PooledBuffer : CachedBufferPool )
+	CachedBuffers.Reset();
+
+	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
 	{
-		PooledBuffer->VertexBuffer.Destroy();
-		PooledBuffer->IndexBuffer.Destroy();
+		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+		for ( FCachedRenderBuffers* PooledBuffer : Pool )
+		{
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
 	}
+
+	CachedBufferPool.Reset();
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
@@ -220,6 +227,7 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 {
 	check( IsInRenderingThread() );
 
+#if STATS
 	uint32 TotalVertexBufferMemory = 0;
 	uint32 TotalIndexBufferMemory = 0;
 
@@ -238,9 +246,33 @@ void FSlateRHIRenderingPolicy::EndDrawingWindows()
 		TotalIndexBufferUsage += IndexBuffers[BufferIndex].GetBufferUsageSize();
 	}
 
+	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	{
+		FCachedRenderBuffers* PooledBuffer = BufferIt.Value();
+
+		TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
+		TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
+
+		TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
+		TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
+	}
+
+	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
+	{
+		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+		for ( FCachedRenderBuffers* PooledBuffer : Pool )
+		{
+			TotalVertexBufferMemory += PooledBuffer->VertexBuffer.GetBufferSize();
+			TotalVertexBufferUsage += PooledBuffer->VertexBuffer.GetBufferUsageSize();
+
+			TotalIndexBufferMemory += PooledBuffer->IndexBuffer.GetBufferSize();
+			TotalIndexBufferUsage += PooledBuffer->IndexBuffer.GetBufferUsageSize();
+		}
+	}
 
 	SET_MEMORY_STAT( STAT_SlateVertexBufferMemory, TotalVertexBufferMemory );
 	SET_MEMORY_STAT( STAT_SlateIndexBufferMemory, TotalIndexBufferMemory );
+#endif
 }
 
 struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertexAndIndexBuffers>
@@ -266,8 +298,6 @@ struct FSlateUpdateVertexAndIndexBuffers : public FRHICommand<FSlateUpdateVertex
 	
 		VertexBuffer.UnlockBuffer_RHIThread();
 		IndexBuffer.UnlockBuffer_RHIThread();
-
-		BatchData.SortRenderBatches();
 	}
 };
 
@@ -279,13 +309,23 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	UpdateVertexAndIndexBuffers(RHICmdList, InBatchData, VertexBuffer, IndexBuffer);
 }
 
-void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderHandle)
+void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& InBatchData, const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle)
 {
+	// Should only be called by the rendering thread
+	check(IsInRenderingThread());
+
 	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(&RenderHandle.Get());
 	if ( Buffers == nullptr )
 	{
+		// Rather than having a global pool, we associate the pools with a particular layout cacher.
+		// If we don't do this, all buffers eventually become as larger as the largest buffer, and it
+		// would be much better to keep the pools coherent with the sizes typically associated with
+		// a particular caching panel.
+		const ILayoutCache* LayoutCacher = RenderHandle->GetCacher();
+		TArray< FCachedRenderBuffers* >& Pool = CachedBufferPool.FindOrAdd(LayoutCacher);
+
 		// If the cached buffer pool is empty, time to create a new one!
-		if ( CachedBufferPool.Num() == 0 )
+		if ( Pool.Num() == 0 )
 		{
 			Buffers = new FCachedRenderBuffers();
 			Buffers->VertexBuffer.Init(200);
@@ -294,8 +334,8 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 		else
 		{
 			// If we found one in the pool, lets use it!
-			Buffers = CachedBufferPool[0];
-			CachedBufferPool.RemoveAtSwap(0, 1, false);
+			Buffers = Pool[0];
+			Pool.RemoveAtSwap(0, 1, false);
 		}
 
 		CachedBuffers.Add(&RenderHandle.Get(), Buffers);
@@ -306,11 +346,44 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 
 void FSlateRHIRenderingPolicy::ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle)
 {
-	FCachedRenderBuffers* Buffers = CachedBuffers.FindRef(InRenderHandle);
-	if ( ensure(Buffers != nullptr) )
+	// Should only be called by the rendering thread
+	check(IsInRenderingThread());
+	check(InRenderHandle);
+
+	FCachedRenderBuffers* PooledBuffer = CachedBuffers.FindRef(InRenderHandle);
+	if ( ensure(PooledBuffer != nullptr) )
 	{
-		CachedBufferPool.Add(Buffers);
+		const ILayoutCache* LayoutCacher = InRenderHandle->GetCacher();
+		TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(LayoutCacher);
+		if ( Pool )
+		{
+			Pool->Add(PooledBuffer);
+		}
+		else
+		{
+			// The buffer pool may have already been released, so lets just delete this buffer.
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
+		
 		CachedBuffers.Remove(InRenderHandle);
+	}
+}
+
+void FSlateRHIRenderingPolicy::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
+{
+	TArray< FCachedRenderBuffers* >* Pool = CachedBufferPool.Find(Cacher);
+	if ( Pool )
+	{
+		for ( FCachedRenderBuffers* PooledBuffer : *Pool )
+		{
+			PooledBuffer->VertexBuffer.Destroy();
+			PooledBuffer->IndexBuffer.Destroy();
+			delete PooledBuffer;
+		}
+
+		CachedBufferPool.Remove(Cacher);
 	}
 }
 
@@ -331,7 +404,7 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 		VertexBuffer.PreFillBuffer(NumVertices, bShouldShrinkResources);
 		IndexBuffer.PreFillBuffer(NumIndices, bShouldShrinkResources);
 
-		if(1 || !GRHIThread || RHICmdList.Bypass())
+		if(!GRHIThread || RHICmdList.Bypass())
 		{
 			uint8* VertexBufferData = (uint8*)VertexBuffer.LockBuffer_RenderThread(NumVertices);
 			uint8* IndexBufferData =  (uint8*)IndexBuffer.LockBuffer_RenderThread(NumIndices);
@@ -340,8 +413,6 @@ void FSlateRHIRenderingPolicy::UpdateVertexAndIndexBuffers(FRHICommandListImmedi
 	
 			VertexBuffer.UnlockBuffer_RenderThread();
 			IndexBuffer.UnlockBuffer_RenderThread();
-
-			InBatchData.SortRenderBatches();
 		}
 		else
 		{
@@ -432,8 +503,6 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 
 void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList, FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwitchVerticalAxis)
 {
-	SCOPE_CYCLE_COUNTER( STAT_SlateDrawTime );
-
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
@@ -542,8 +611,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					PixelShader->GetPixelShader(),
 					FGeometryShaderRHIRef()));
 
+				FMatrix DynamicOffset = FTranslationMatrix::Make(FVector(RenderBatch.DynamicOffset.X, RenderBatch.DynamicOffset.Y, 0));
 
-				VertexShader->SetViewProjection(RHICmdList, ViewProjectionMatrix);
+				VertexShader->SetViewProjection(RHICmdList, DynamicOffset * ViewProjectionMatrix);
 				VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(

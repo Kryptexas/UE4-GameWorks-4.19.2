@@ -246,9 +246,10 @@ public:
 	~FSlateRHIRenderingPolicy();
 
 	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData);
-	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> RenderHandle);
+	void UpdateVertexAndIndexBuffers(FRHICommandListImmediate& RHICmdList, FSlateBatchData& BatchData, const TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe>& RenderHandle);
 
 	void ReleaseCachedRenderData(FSlateRenderDataHandle* InRenderHandle);
+	void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
 
 	virtual void DrawElements(FRHICommandListImmediate& RHICmdList, class FSlateBackBuffer& BackBuffer, const FMatrix& ViewProjectionMatrix, const TArray<FSlateRenderBatch>& RenderBatches, bool bAllowSwtichVerticalAxis=true);
 
@@ -292,7 +293,9 @@ private:
 
 	typedef TMap< FSlateRenderDataHandle*, FCachedRenderBuffers* > TCachedBufferMap;
 	TCachedBufferMap CachedBuffers;
-	TArray< FCachedRenderBuffers* > CachedBufferPool;
+
+	typedef TMap< const ILayoutCache*, TArray< FCachedRenderBuffers* > > TCachedBufferPoolMap;
+	TCachedBufferPoolMap CachedBufferPool;
 
 	TSharedRef<FSlateRHIResourceManager> ResourceManager;
 	TSharedPtr<FSlateFontCache> FontCache;

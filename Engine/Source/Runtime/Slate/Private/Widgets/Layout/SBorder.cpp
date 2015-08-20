@@ -63,11 +63,10 @@ void SBorder::ClearContent()
 
 int32 SBorder::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
-	bool bEnabled = false;
 	const FSlateBrush* BrushResource = BorderImage.Get();
 		
-	bEnabled = ShouldBeEnabled( bParentEnabled );
-	bool bShowDisabledEffect = ShowDisabledEffect.Get();
+	const bool bEnabled = ShouldBeEnabled(bParentEnabled);
+	const bool bShowDisabledEffect = ShowDisabledEffect.Get();
 	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
 
 	if ( BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType )

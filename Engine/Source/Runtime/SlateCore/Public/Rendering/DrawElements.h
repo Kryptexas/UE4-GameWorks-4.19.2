@@ -75,6 +75,7 @@ public:
 
 	// Cached render data
 	class FSlateRenderDataHandle* CachedRenderData;
+	FVector2D CachedRenderDataOffset;
 
 	// Layer handle
 	FSlateDrawLayerHandle* LayerHandle;
@@ -166,9 +167,10 @@ public:
 		CustomDrawer = InCustomDrawer;
 	}
 
-	void SetCachedBufferPayloadProperties(FSlateRenderDataHandle* InRenderDataHandle)
+	void SetCachedBufferPayloadProperties(FSlateRenderDataHandle* InRenderDataHandle, const FVector2D& Offset)
 	{
 		CachedRenderData = InRenderDataHandle;
+		CachedRenderDataOffset = Offset;
 		checkSlow(CachedRenderData);
 	}
 
@@ -353,7 +355,7 @@ public:
 	 */
 	SLATECORE_API static void MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer );
 
-	SLATECORE_API static void MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle);
+	SLATECORE_API static void MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle, const FVector2D& Offset);
 
 	SLATECORE_API static void MakeLayer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe>& DrawLayerHandle);
 
@@ -424,18 +426,29 @@ class FSlateRenderBatch;
 class SLATECORE_API FSlateRenderDataHandle : public TSharedFromThis < FSlateRenderDataHandle, ESPMode::ThreadSafe >
 {
 public:
-	FSlateRenderDataHandle(FSlateRenderer* InRenderer);
+	FSlateRenderDataHandle(const ILayoutCache* Cacher, FSlateRenderer* InRenderer);
 
 	virtual ~FSlateRenderDataHandle();
 
 	void Disconnect();
 
+	const ILayoutCache* GetCacher() const { return Cacher; }
+	const FSlateRenderer* GetRenderer() const { return Renderer; }
+
 	void SetRenderBatches(TArray<FSlateRenderBatch>* InRenderBatches) { RenderBatches = InRenderBatches; }
 	TArray<FSlateRenderBatch>* GetRenderBatches() { return RenderBatches; }
 
+	void BeginUsing() { FPlatformAtomics::InterlockedIncrement(&UsageCount); }
+	void EndUsing() { FPlatformAtomics::InterlockedDecrement(&UsageCount); }
+
+	bool IsInUse() const { return UsageCount > 0; }
+
 private:
+	const ILayoutCache* Cacher;
 	FSlateRenderer* Renderer;
 	TArray<FSlateRenderBatch>* RenderBatches;
+
+	volatile int32 UsageCount;
 };
 
 /** 
@@ -460,8 +473,8 @@ public:
 		, IndexArrayIndex(INDEX_NONE)
 	{}
 
-	FSlateElementBatch( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, const TOptional<FShortRect>& ScissorRect)
-		: BatchKey( InCachedRenderHandle, ScissorRect )
+	FSlateElementBatch( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, FVector2D InCachedRenderDataOffset, const TOptional<FShortRect>& ScissorRect)
+		: BatchKey( InCachedRenderHandle, InCachedRenderDataOffset, ScissorRect )
 		, ShaderResource( nullptr )
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
@@ -495,12 +508,14 @@ public:
 	const TOptional<FShortRect>& GetScissorRect() const { return BatchKey.ScissorRect; }
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> GetCustomDrawer() const { return BatchKey.CustomDrawer; }
 	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderHandle() const { return BatchKey.CachedRenderHandle; }
+	FVector2D GetCachedRenderDataOffset() const { return BatchKey.CachedRenderDataOffset; }
 	const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> GetLayerHandle() const { return BatchKey.LayerHandle; }
 private:
 	struct FBatchKey
 	{
 		const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
 		const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderHandle;
+		const FVector2D CachedRenderDataOffset;
 		const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> LayerHandle;
 		const FShaderParams ShaderParams;
 		const ESlateBatchDrawFlag::Type DrawFlags;	
@@ -529,8 +544,9 @@ private:
 			, ScissorRect( InScissorRect )
 		{}
 
-		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, const TOptional<FShortRect>& InScissorRect)
+		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, FVector2D InCachedRenderDataOffset, const TOptional<FShortRect>& InScissorRect)
 			: CachedRenderHandle(InCachedRenderHandle)
+			, CachedRenderDataOffset(InCachedRenderDataOffset)
 			, ShaderParams()
 			, DrawFlags(ESlateBatchDrawFlag::None)
 			, ShaderType(ESlateShader::Default)
@@ -615,15 +631,18 @@ public:
 		, NumIndices( InNumIndices )
 	{}
 
-	// Render Batch Sort Operator
-	bool operator < ( const FSlateRenderBatch& RenderBatchIn ) const
-	{
-		return Layer < RenderBatchIn.Layer;
-	}
+	//// Render Batch Sort Operator
+	//bool operator < ( const FSlateRenderBatch& RenderBatchIn ) const
+	//{
+	//	return Layer < RenderBatchIn.Layer;
+	//}
 
 public:
 	/** The layer we need to sort by when  */
-	uint32 Layer;
+	const uint32 Layer;
+
+	/** Dynamically modified offset that occurs when we have relative position stored render batches. */
+	FVector2D DynamicOffset;
 
 	const FShaderParams ShaderParams;
 
@@ -669,7 +688,8 @@ class FSlateBatchData
 {
 public:
 	FSlateBatchData()
-		: NumBatchedVertices(0)
+		: DynamicOffset(0, 0)
+		, NumBatchedVertices(0)
 		, NumBatchedIndices(0)
 		, NumLayers(0)
 	{}
@@ -722,26 +742,11 @@ public:
 	 */
 	SLATECORE_API void CreateRenderBatches(FElementBatchMap& LayerToElementBatches);
 
-	/**
-	 * Patches the render data to be offset by the new layer delta.
-	 */
-	SLATECORE_API void UpdateRenderBatches(FVector2D PositionOffset);
-
-	/** 
-	 * Sort the rendered element batches.
-	 */
-	SLATECORE_API void SortRenderBatches();
-
 private:
 	void Merge(FElementBatchMap& InLayerToElementBatches, uint32& VertexOffset, uint32& IndexOffset);
 
-	void AddRenderBatch( uint32 InLayer, const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
-	{
-		NumBatchedVertices += InNumVertices;
-		NumBatchedIndices += InNumIndices;
+	void AddRenderBatch(uint32 InLayer, const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset);
 
-		RenderBatches.Add( FSlateRenderBatch(InLayer, InElementBatch, RenderDataHandle, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset) );
-	}
 private:
 
 	// The associated render data handle if these render batches are not in the default vertex/index buffer
@@ -761,6 +766,8 @@ private:
 
 	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
 	TArray<FSlateRenderBatch> RenderBatches;
+
+	FVector2D DynamicOffset;
 
 	int32 NumBatchedVertices;
 
@@ -972,18 +979,23 @@ public:
 	/**
 	 * Caches this element list on the renderer, generating all needed index and vertex buffers.
 	 */
-	SLATECORE_API TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheRenderData();
-
-	SLATECORE_API void UpdateCacheRenderData(FVector2D PositionOffset);
+	SLATECORE_API TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheRenderData(const ILayoutCache* Cacher);
 
 	SLATECORE_API TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderDataHandle() const
 	{
 		return CachedRenderDataHandle.Pin();
 	}
 
+	void BeginUsingCachedBuffer(TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& InCachedRenderDataHandle)
+	{
+		InCachedRenderDataHandle->BeginUsing();
+		CachedRenderHandlesInUse.Add(InCachedRenderDataHandle);
+	}
+
 	SLATECORE_API bool IsCachedRenderDataInUse() const
 	{
-		return CachedRenderDataHandle.IsValid();
+		TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> SafeHandle = CachedRenderDataHandle.Pin();
+		return SafeHandle.IsValid() && SafeHandle->IsInUse();
 	}
 
 	SLATECORE_API void PreDraw_RenderThread();
@@ -1014,6 +1026,8 @@ private:
 	/** List of draw elements for the window */
 	TArray<FSlateDrawElement*> DrawElementFreePool;
 #endif
+
+	TArray< TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> > CachedRenderHandlesInUse;
 
 	/**
 	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.

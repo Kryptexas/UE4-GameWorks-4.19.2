@@ -800,6 +800,12 @@ void UWidget::SynchronizeProperties()
 	// In editor builds we add metadata to the widget so that once hit with the widget reflector it can report
 	// where it comes from, what blueprint, what the name of the widget was...etc.
 	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy)));
+#else
+
+#if !UE_BUILD_SHIPPING
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedByClass)));
+#endif
+
 #endif
 }
 

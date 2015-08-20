@@ -55,14 +55,14 @@ ISlateAtlasProvider* FSlateRenderer::GetFontAtlasProvider()
 	return nullptr;
 }
 
-TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRenderer::CacheElementRenderData(FSlateWindowElementList& ElementList)
+TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateRenderer::CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList)
 {
-	return MakeShareable(new FSlateRenderDataHandle(this));
+	return MakeShareable(new FSlateRenderDataHandle(Cacher, this));
 }
 
-void FSlateRenderer::UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset)
+void FSlateRenderer::ReleaseCachingResourcesFor(const ILayoutCache* Cacher)
 {
-	// Do Nothing
+
 }
 
 /* Global functions

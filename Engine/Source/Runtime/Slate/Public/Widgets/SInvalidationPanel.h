@@ -74,6 +74,7 @@ private:
 	mutable TArray< FCachedWidgetNode* > NodePool;
 	mutable int32 LastUsedCachedNodeIndex;
 	mutable int32 LastHitTestIndex;
+	mutable FVector2D LastClipRectSize;
 
 	mutable int32 CachedMaxChildLayer;
 	mutable bool bNeedsCaching;

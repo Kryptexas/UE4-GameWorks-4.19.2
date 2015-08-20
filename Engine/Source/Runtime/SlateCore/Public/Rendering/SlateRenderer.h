@@ -237,12 +237,14 @@ public:
 	 * Converts and caches the elements list data as the final rendered vertex and index buffer data,
 	 * returning a handle to it to allow issuing future draw commands using it.
 	 */
-	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(FSlateWindowElementList& ElementList);
+	virtual TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> CacheElementRenderData(const ILayoutCache* Cacher, FSlateWindowElementList& ElementList);
 
 	/**
-	 * Patch existing render data to have a new layer delta applied to all elements.
+	 * Releases the caching resources used on the render thread for the provided ILayoutCache.  This is
+	 * should be the kind of operation you perform when the ILayoutCache is being destroyed and will no longer
+	 * be needing to draw anything again.
 	 */
-	virtual void UpdateElementRenderData(FSlateWindowElementList& ElementList, FVector2D PositionOffset);
+	virtual void ReleaseCachingResourcesFor(const ILayoutCache* Cacher);
 
 	/**
 	 * You must call this before calling CopyWindowsToVirtualScreenBuffer(), to setup the render targets first.

@@ -68,17 +68,26 @@ public:
 
 
 /**
- * 
+ * The different types of invalidation that are possible for a widget.
  */
 enum class EInvalidateWidget
 {
+	/**
+	 * Use Layout invalidation if you're changing a normal property involving painting or sizing.
+	 */
 	Layout,
+	/**
+	 * Use Layout invalidation if you're changing a normal property involving painting or sizing.
+	 * Additionally if the property that was changed affects Volatility in anyway, it's important
+	 * that you invalidate volatility so that it can be recalculated and cached.
+	 */
 	LayoutAndVolatility
 };
 
 
 /**
- * 
+ * An ILayoutCache implementor is responsible for caching a the hierarchy of widgets it is drawing.
+ * The shipped implementation of this is SInvalidationPanel.
  */
 class ILayoutCache
 {

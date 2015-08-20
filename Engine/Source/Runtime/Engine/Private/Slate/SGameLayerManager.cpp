@@ -167,9 +167,9 @@ void SGameLayerManager::Tick(const FGeometry& AllottedGeometry, const double InC
 
 int32 SGameLayerManager::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
-	//FPlatformMisc::BeginNamedEvent(FColor::Green, "Game Layer Manager");
-	int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	//FPlatformMisc::EndNamedEvent();
+	FPlatformMisc::BeginNamedEvent(FColor::Green, "Paint: Game UI");
+	const int32 ResultLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	FPlatformMisc::EndNamedEvent();
 	return ResultLayer;
 }
 

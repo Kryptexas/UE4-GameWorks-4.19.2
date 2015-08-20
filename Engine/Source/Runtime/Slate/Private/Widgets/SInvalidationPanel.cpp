@@ -4,6 +4,7 @@
 #include "LayoutUtils.h"
 #include "SInvalidationPanel.h"
 #include "WidgetCaching.h"
+#include "ReflectionMetaData.h"
 
 //DECLARE_CYCLE_STAT(TEXT("Invalidation Time"), STAT_InvalidationTime, STATGROUP_Slate);
 DECLARE_DWORD_COUNTER_STAT(TEXT("Num Cached Elements"), STAT_SlateNumCachedElements, STATGROUP_Slate);
@@ -62,6 +63,9 @@ SInvalidationPanel::~SInvalidationPanel()
 	{
 		delete NodePool[i];
 	}
+
+	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+	Renderer->ReleaseCachingResourcesFor(this);
 }
 
 bool SInvalidationPanel::GetCanCache() const
@@ -228,6 +232,14 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 {
 	if ( GetCanCache() )
 	{
+		// If our clip rect changes size, we've definitely got to invalidate.
+		const FVector2D ClipRectSize = MyClippingRect.GetSize();
+		if ( ClipRectSize != LastClipRectSize )
+		{
+			bNeedsCaching = true;
+			LastClipRectSize = ClipRectSize;
+		}
+
 		//SCOPE_CYCLE_COUNTER(STAT_InvalidationTime);
 
 		//FPlatformMisc::BeginNamedEvent(FColor::Magenta, "Slate::InvalidationPanel::Paint");
@@ -291,7 +303,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			}
 
 #if WITH_ENGINE
-			CachedRenderData = CachedWindowElements->CacheRenderData();
+			CachedRenderData = CachedWindowElements->CacheRenderData(this);
 #endif
 
 			LastHitTestIndex = Args.GetLastHitTestIndex();
@@ -322,16 +334,10 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		if ( bCacheRelativeTransforms )
 		{
 			FVector2D NewAbsoluteDeltaPosition = AllottedGeometry.Position - CachedAbsolutePosition;
-			FVector2D RelativeDeltaPosition = NewAbsoluteDeltaPosition - AbsoluteDeltaPosition;
 			AbsoluteDeltaPosition = NewAbsoluteDeltaPosition;
 
 #if WITH_ENGINE
-			if ( bWasCachingNeeded == false && RelativeDeltaPosition.IsZero() == false )
-			{
-				CachedWindowElements->UpdateCacheRenderData(RelativeDeltaPosition);
-			}
-
-			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData);
+			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, AbsoluteDeltaPosition * AllottedGeometry.Scale);
 #else
 			const TArray<FSlateDrawElement>& CachedElements = CachedWindowElements->GetDrawElements();
 			const int32 CachedElementCount = CachedElements.Num();
@@ -350,23 +356,25 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 		else
 		{
 #if WITH_ENGINE
-			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData);
+			FSlateDrawElement::MakeCachedBuffer(OutDrawElements, LayerId, CachedRenderData, FVector2D(0, 0));
 #else
 			OutDrawElements.AppendDrawElements(CachedWindowElements->GetDrawElements());
 #endif
 		}
 
-		//FPlatformMisc::BeginNamedEvent(FColor::Orange, "Slate::VolatilePainting");
 		// Paint the volatile elements
 		if ( CachedWindowElements.IsValid() )
 		{
+			//FPlatformMisc::BeginNamedEvent(FColor::Red, *FReflectionMetaData::GetWidgetDebugInfo(this));
+
 			const TArray<TSharedPtr<FSlateWindowElementList::FVolatilePaint>>& VolatileElements = CachedWindowElements->GetVolatileElements();
 			INC_DWORD_STAT_BY(STAT_SlateNumVolatileWidgets, VolatileElements.Num());
 
 			// TODO Offset? AbsoluteDeltaPosition
 			OutMaxChildLayer = FMath::Max(OutMaxChildLayer, CachedWindowElements->PaintVolatile(OutDrawElements));
+
+			//FPlatformMisc::EndNamedEvent();
 		}
-		//FPlatformMisc::EndNamedEvent();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 

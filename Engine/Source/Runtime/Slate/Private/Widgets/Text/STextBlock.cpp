@@ -103,11 +103,27 @@ void STextBlock::SetText( const TAttribute< FText >& InText )
 void STextBlock::SetText( const FText& InText )
 {
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockSetText);
-	if ( BoundText.IsBound() || BoundText.Get().ToString() != InText.ToString() )
+
+	if ( !BoundText.IsBound() )
 	{
-		BoundText = InText;
-		Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		const FString& OldString = BoundText.Get().ToString();
+		const FString& NewString = InText.ToString();
+		const int32 OldLength = OldString.Len();
+		const int32 NewLength = NewString.Len();
+
+		// We only perform this optimization if the text we're checking is smaller 
+		// than 30 characters otherwise we may be comparing pages of text.
+		if ( OldLength == NewLength && OldLength <= 30 )
+		{
+			if ( OldString == NewString )
+			{
+				return;
+			}
+		}
 	}
+
+	BoundText = InText;
+	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
@@ -116,8 +132,12 @@ int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 
 #if WITH_FANCY_TEXT
 
+	//FPlatformMisc::BeginNamedEvent(FColor::Orange, "STextBlock");
+
 	// OnPaint will also update the text layout cache if required
 	LayerId = TextLayoutCache->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
+
+	//FPlatformMisc::EndNamedEvent();
 
 #else//WITH_FANCY_TEXT
 

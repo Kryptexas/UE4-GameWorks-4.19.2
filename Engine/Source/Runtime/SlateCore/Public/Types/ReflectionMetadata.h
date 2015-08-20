@@ -14,7 +14,7 @@ class FReflectionMetaData : public ISlateMetaData
 public:
 	SLATE_METADATA_TYPE(FReflectionMetaData, ISlateMetaData)
 
-	FReflectionMetaData(FName InName, UClass* InClass, UObject* InAsset)
+	FReflectionMetaData(FName InName, UClass* InClass, const UObject* InAsset)
 		: Name(InName)
 		, Class(InClass)
 		, Asset(InAsset)
@@ -28,11 +28,11 @@ public:
 	TWeakObjectPtr<UClass> Class;
 
 	/** The asset that owns the widget and is responsible for its specific existence. */
-	TWeakObjectPtr<UObject> Asset;
+	TWeakObjectPtr<const UObject> Asset;
 
 public:
 
-	static FString GetWidgetDebugInfo(TSharedPtr<const SWidget>& InWidget)
+	static FString GetWidgetDebugInfo(const SWidget* InWidget)
 	{
 		// UMG widgets have meta-data to help track them
 		TSharedPtr<FReflectionMetaData> MetaData = InWidget->GetMetaData<FReflectionMetaData>();
