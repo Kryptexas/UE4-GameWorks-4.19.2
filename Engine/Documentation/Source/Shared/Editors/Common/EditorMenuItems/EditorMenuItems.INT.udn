@@ -68,6 +68,17 @@ Crumbs:
 * **Details** - Toggles the display of the **Details** panel.
 [/EXCERPT:MenuWindowDetails]
 
+[EXCERPT:MenuWindowDestructibleSettings]
+* **Destructible Settings** - Toggles the display of the **Destructible Settings** panel.
+[/EXCERPT:MenuWindowDestructibleSettings]
+
+[EXCERPT:MenuWindowFractureSettings]
+* **Fracture Settings** - Toggles the display of the **Fracture Settings** panel.
+[/EXCERPT:MenuWindowFractureSettings]
+
+[EXCERPT:MenuWindowChunkParameters]
+* **Chunk Parameters** - Toggles the display of the **Chunk Parameters** panel.
+[/EXCERPT:MenuWindowChunkParameters]
 
 [EXCERPT:MenuWindow]
 * **Content Browser** - Brings up the **Content Browser** in a separate window.
