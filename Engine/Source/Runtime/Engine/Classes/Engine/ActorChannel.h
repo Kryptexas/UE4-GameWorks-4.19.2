@@ -141,13 +141,13 @@ public:
 	/** Cleans up replicators and clears references to the actor class this channel was associated with.*/
 	void CleanupReplicators( const bool bKeepReplicators = false );
 
-	/** Writes the header for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
+	/** Writes the header for a content block of properties / RPCs for the given object (either the actor a subobject of the actor) */
 	void BeginContentBlock( UObject* Obj, FOutBunch &Bunch );
 
 	/** Writes the header for a content block specifically for deleting sub-objects */
 	void BeginContentBlockForSubObjectDelete( FOutBunch & Bunch, FNetworkGUID & GuidToDelete );
 
-	/** Writes the footer for a content block of proeprties / RPCs for the given object (either the actor a subobject of the actor) */
+	/** Writes the footer for a content block of properties / RPCs for the given object (either the actor a subobject of the actor) */
 	void EndContentBlock( UObject *Obj, FOutBunch &Bunch, const FClassNetCache* ClassCache = nullptr );
 
 	/** Reads the header of the content block and instantiates the subobject if necessary */
