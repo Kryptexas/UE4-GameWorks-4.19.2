@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2591123
 Availability:Public
-Title:Vignette
+Title:ビネット効果
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:ビューポート中心からの距離に応じて画像輝度を低下させるエフェクト
 
