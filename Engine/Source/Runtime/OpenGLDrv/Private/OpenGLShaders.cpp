@@ -564,6 +564,13 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) \n");
 				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
 			}
+			
+			if(Header.ShaderName.Num())
+			{
+				AppendCString(GlslCode, "// ");
+				AppendCString(GlslCode, TCHAR_TO_ANSI(Header.ShaderName.GetData()));
+				AppendCString(GlslCode, "\n");
+			}
 		}
 
 #if PLATFORM_ANDROID 

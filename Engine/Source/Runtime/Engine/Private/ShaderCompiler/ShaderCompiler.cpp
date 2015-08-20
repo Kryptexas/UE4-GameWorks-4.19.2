@@ -53,6 +53,13 @@ static TAutoConsoleVariable<int32> CVarOptimizeShaders(
 	TEXT("Whether to optimize shaders.  When using graphical debuggers like Nsight it can be useful to disable this on startup."),
 	ECVF_ReadOnly);
 
+static TAutoConsoleVariable<int32> CVarAvoidFlowControl(
+	TEXT("r.Shaders.AvoidFlowControl"),
+	1,
+	TEXT("When enabled reduces flow-control in favour of longer shaders with greater register usage. When disabled shader flow-control is preserved for platform runtime to optimise which may be beneficial on register constrained GPUs.\n")
+	TEXT("Defaults to 1 (enabled)."),
+	ECVF_ReadOnly);
+
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<FString> CVarD3DCompilerPath(TEXT("r.D3DCompilerPath"),
 	TEXT(""),	// default
@@ -1890,6 +1897,15 @@ void GlobalBeginCompileShader(
 		if (CVar->GetInt() != 0)
 		{
 			Input.Environment.CompilerFlags.Add(CFLAG_KeepDebugInfo);
+		}
+	}
+	
+	{
+		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Shaders.AvoidFlowControl"));
+		
+		if (CVar->GetInt() != 0)
+		{
+			Input.Environment.CompilerFlags.Add(CFLAG_AvoidFlowControl);
 		}
 	}
 

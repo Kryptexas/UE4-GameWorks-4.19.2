@@ -1169,6 +1169,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	FString PreprocessedShader;
 	FShaderCompilerDefinitions AdditionalDefines;
 	EHlslCompileTarget HlslCompilerTarget = HCT_InvalidTarget;
+	ECompilerFlags PlatformFlowControl = CFLAG_AvoidFlowControl;
 
 	AdditionalDefines.SetDefine(TEXT("COMPILER_HLSLCC"), 1);
 	switch (Version)
@@ -1197,6 +1198,9 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("GL3_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
+			// On OS X it is always better to leave the flow control statements in the GLSL & let the GLSL->GPU compilers
+			// optimise it appropriately for each GPU. This gives a performance gain on AMD & Intel and is neutral on Nvidia.
+			PlatformFlowControl = CFLAG_PreferFlowControl;
 			break;
 
 		case GLSL_ES2_WEBGL:
@@ -1243,7 +1247,14 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 	
 	const bool bDumpDebugInfo = (Input.DumpDebugInfoPath != TEXT("") && IFileManager::Get().DirectoryExists(*Input.DumpDebugInfoPath));
 
-	AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	if(Input.Environment.CompilerFlags.Contains(CFLAG_AvoidFlowControl) && PlatformFlowControl == CFLAG_AvoidFlowControl)
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)1);
+	}
+	else
+	{
+		AdditionalDefines.SetDefine(TEXT("COMPILER_SUPPORTS_ATTRIBUTES"), (uint32)0);
+	}
 	if (PreprocessShader(PreprocessedShader, Output, Input, AdditionalDefines))
 	{
 		char* GlslShaderSource = NULL;
@@ -1361,6 +1372,13 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 				if (GlslSourceLen > 0)
 				{
+					uint32 Len = FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.SourceFilename)) + FCStringAnsi::Strlen(TCHAR_TO_ANSI(*Input.EntryPointName)) + FCStringAnsi::Strlen(GlslShaderSource) + 20;
+					char* Dest = (char*)malloc(Len);
+					FCStringAnsi::Snprintf(Dest, Len, "// ! %s.usf:%s\n%s", (const char*)TCHAR_TO_ANSI(*Input.SourceFilename), (const char*)TCHAR_TO_ANSI(*Input.EntryPointName), (const char*)GlslShaderSource);
+					free(GlslShaderSource);
+					GlslShaderSource = Dest;
+					GlslSourceLen = FCStringAnsi::Strlen(GlslShaderSource);
+					
 					FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*(Input.DumpDebugInfoPath / Input.SourceFilename + TEXT(".glsl")));
 					if (FileWriter)
 					{
