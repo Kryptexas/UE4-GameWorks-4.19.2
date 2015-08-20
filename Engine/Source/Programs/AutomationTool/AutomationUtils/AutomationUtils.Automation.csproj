@@ -52,7 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Automation.cs" />
-    <Compile Include="AutomationExpection.cs" />
+    <Compile Include="AutomationException.cs" />
     <Compile Include="BuildCommand.cs" />
     <Compile Include="BuildEnvironment.cs" />
     <Compile Include="BuildUtils.cs" />
