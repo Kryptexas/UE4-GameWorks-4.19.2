@@ -1,5 +1,5 @@
 Availability: Public
-Title:Animate Materials
+Title:Animating Materials
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
 Description:The Material of an Actor changes colors when the player is near and another Actor's Material blinks. 
 
