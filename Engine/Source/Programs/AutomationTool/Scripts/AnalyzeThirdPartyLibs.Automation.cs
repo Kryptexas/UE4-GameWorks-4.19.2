@@ -127,7 +127,7 @@ class AnalyzeThirdPartyLibs : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		LogConsole("************************* Analyze Third Party Libs");
+		Log("************************* Analyze Third Party Libs");
 
 		// figure out what batch/script to run
 		switch (UnrealBuildTool.BuildHostPlatform.Current.Platform)
@@ -195,19 +195,19 @@ class AnalyzeThirdPartyLibs : BuildCommand
 
 			long Size = Info.GetSize(Platforms);
 
-			LogConsole("Library {0} is {1}", Lib, ToMegabytes(Size));
+			Log("Library {0} is {1}", Lib, ToMegabytes(Size));
 
 			long Total = 0;
 			for (int Index = 0; Index < Platforms.Count; ++Index)
 			{
 				PlatformLibraryInfo Platform = Platforms[Index];
 				long Growth = Platform.TotalSize - LastSizes[Index];
-				LogConsole("  {0} is {1}", Platform.PlatformName, ToMegabytes(Growth));
+				Log("  {0} is {1}", Platform.PlatformName, ToMegabytes(Growth));
 
 				LastSizes[Index] = Platform.TotalSize;
 				Total += Growth;
 			}
-			LogConsole("  Platform neutral is probably {0} (specific sum {1})", ToMegabytes(Size - Total), ToMegabytes(Total));
+			Log("  Platform neutral is probably {0} (specific sum {1})", ToMegabytes(Size - Total), ToMegabytes(Total));
 
 			TotalSize += Size;
 		}
@@ -218,7 +218,7 @@ class AnalyzeThirdPartyLibs : BuildCommand
 		LargeFileExtensions.AddRange(new string[] { ".pdb", ".a", ".lib", ".dll", ".dylib", ".bc", ".so" });
 
 		// Hackery, look for big files (re-traverses everything)
-		LogConsole("----");
+		Log("----");
 		foreach (string Lib in LibsToEvaluate)
 		{
 			ThirdPartyLibraryInfo Info = new ThirdPartyLibraryInfo(Lib);
@@ -226,10 +226,10 @@ class AnalyzeThirdPartyLibs : BuildCommand
 		}
 
 		// Hackery, look for VS mixes (re-traverses everything)
-		LogConsole("----");
+		Log("----");
 		long TotalShadow12 = 0;
 
-		LogConsole("Listing VS2012 directories that are shadowed by a VS2013 dir");
+		Log("Listing VS2012 directories that are shadowed by a VS2013 dir");
 		foreach (string Lib in LibsToEvaluate)
 		{
 			string[] Dirs = Directory.GetDirectories(Lib, "*.*", SearchOption.AllDirectories);
@@ -270,24 +270,24 @@ class AnalyzeThirdPartyLibs : BuildCommand
 					TotalShadow12 += Size;
 
 					string GoodPath = (LibDir + "/" + Dupe).Replace("\\", "/");
-					LogConsole("{0}", GoodPath);
+					Log("{0}", GoodPath);
 				}
 			}
 		}
-		LogConsole("OVERALL {0} of VS2012 files are shadowed by a VS2013 dir", ToMegabytes(TotalShadow12));
+		Log("OVERALL {0} of VS2012 files are shadowed by a VS2013 dir", ToMegabytes(TotalShadow12));
 
-		LogConsole("----");
+		Log("----");
 		foreach (var Platform in Platforms)
 		{
-			LogConsole("  {0} is {1} (estimate)", Platform.PlatformName, ToMegabytes(Platform.TotalSize));
+			Log("  {0} is {1} (estimate)", Platform.PlatformName, ToMegabytes(Platform.TotalSize));
 		}
-		LogConsole("  OVERALL is {0} (accurate)", ToMegabytes(TotalSize));
+		Log("  OVERALL is {0} (accurate)", ToMegabytes(TotalSize));
 
 		// undo the LibDir push
 		CommandUtils.PopDir();
 
 
-		LogConsole("Listing VS2012 bin directories that are shadowed by a VS2013 dir");
+		Log("Listing VS2012 bin directories that are shadowed by a VS2013 dir");
 		//string[] BinaryDirs
 		//foreach (string Lib in BinaryDirs)
 		{
@@ -331,7 +331,7 @@ class AnalyzeThirdPartyLibs : BuildCommand
 					TotalShadow12 += Size;
 
 					string GoodPath = Dupe.Replace("\\", "/");
-					LogConsole("{0}", GoodPath);
+					Log("{0}", GoodPath);
 				}
 			}
 		}

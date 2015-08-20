@@ -115,7 +115,7 @@ namespace AutomationTool
 		/// <param name="Format">Format string</param>
 		/// <param name="Args">Parameters</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void LogConsole(string Format, params object[] Args)
+		public static void Log(string Format, params object[] Args)
 		{
 			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Format, Args);
 		}
@@ -125,7 +125,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void LogConsole(string Message)
+		public static void Log(string Message)
 		{
 			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Console, Message);
 		}
@@ -220,7 +220,7 @@ namespace AutomationTool
 		/// <param name="Foramt">Format string</param>
 		/// <param name="Args">Arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(string Format, params object[] Args)
+		public static void LogLog(string Format, params object[] Args)
 		{
 			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Format, Args);
 		}
@@ -230,7 +230,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Message">Text</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void Log(string Message)
+		public static void LogLog(string Message)
 		{
 			UnrealBuildTool.Log.WriteLine(1, null, UnrealBuildTool.LogEventType.Log, Message);
 		}
@@ -277,7 +277,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				LogConsole("[@progress push {0}/{1} skipline]", Numerator, Denominator);
+				Log("[@progress push {0}/{1} skipline]", Numerator, Denominator);
 			}
 		}
 
@@ -285,7 +285,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				LogConsole("[@progress pop skipline]");
+				Log("[@progress pop skipline]");
 			}
 		}
 
@@ -293,7 +293,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				LogConsole("[@progress increment {0}/{1} skipline]", Numerator, Denominator);
+				Log("[@progress increment {0}/{1} skipline]", Numerator, Denominator);
 			}
 		}
 
@@ -301,7 +301,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				LogConsole("[@progress '{0}' skipline]", String.Format(Format, Args));
+				Log("[@progress '{0}' skipline]", String.Format(Format, Args));
 			}
 		}
 
@@ -309,7 +309,7 @@ namespace AutomationTool
 		{
 			if(bShowProgress)
 			{
-				LogConsole("[@progress {0}/{1} '{2}' skipline]", Numerator, Denominator, String.Format(Format, Args));
+				Log("[@progress {0}/{1} '{2}' skipline]", Numerator, Denominator, String.Format(Format, Args));
 			}
 		}
 
@@ -1535,7 +1535,7 @@ namespace AutomationTool
 		/// <param name="MaxThreads"></param>
 		public static void ThreadedCopyFiles(List<string> Source, List<string> Dest, int MaxThreads = 64)
 		{
-			LogConsole("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
+			Log("Copying {0} file(s) using max {1} thread(s)", Source.Count, MaxThreads);
 
             if (Source.Count != Dest.Count)
 			{
@@ -1582,7 +1582,7 @@ namespace AutomationTool
 		public static List<string> ThreadedCopyFiles(string SourceDir, string TargetDir, FileFilter Filter, bool bIgnoreSymlinks, int MaxThreads = 64)
 		{
 			// Filter all the relative paths
-			LogConsole("Applying filter to {0}...", SourceDir);
+			Log("Applying filter to {0}...", SourceDir);
 			var RelativePaths = Filter.ApplyToDirectory(SourceDir, bIgnoreSymlinks);
 			return ThreadedCopyFiles(SourceDir, TargetDir, RelativePaths);
 		}
@@ -1622,7 +1622,7 @@ namespace AutomationTool
 		{
 			try
 			{
-				Log("SetEnvVar {0}={1}", Name, Value);
+				LogLog("SetEnvVar {0}={1}", Name, Value);
 				Environment.SetEnvironmentVariable(Name, Value.ToString());
 			}
 			catch (Exception Ex)
@@ -1885,7 +1885,7 @@ namespace AutomationTool
         {
             if (!DirectoryExists_NoExceptions(Dir))
             {
-				Log("Directory {0} does not exist", Dir);
+				LogLog("Directory {0} does not exist", Dir);
 				return false;
 			}
 
@@ -1900,7 +1900,7 @@ namespace AutomationTool
 				if(File.Exists(NativeFilename))
 				{
 		            DeleteFile_NoExceptions(Filename, true);
-		            Log("Directory {0} is writable", Dir);
+		            LogLog("Directory {0} is writable", Dir);
 					return true;
 				}
 			}
@@ -1908,7 +1908,7 @@ namespace AutomationTool
 			{
 			}
 
-			Log("Directory {0} is not writable", Dir);
+			LogLog("Directory {0} is not writable", Dir);
 			return false;
 		}
 
@@ -1941,7 +1941,7 @@ namespace AutomationTool
 
                 DirectoryInfo DirInfo = new DirectoryInfo(ParentDir);
                 var TopLevelDirs = DirInfo.GetDirectories();
-				LogConsole("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
+				Log("Looking for directories to delete in {0}   {1} dirs", ParentDir, TopLevelDirs.Length);
                 foreach (var TopLevelDir in TopLevelDirs)
                 {
                     if (DirectoryExists_NoExceptions(TopLevelDir.FullName))
@@ -2231,7 +2231,7 @@ namespace AutomationTool
 		{
             if (UnrealBuildTool.Utils.IsRunningOnMono)
             {
-                CommandUtils.Log(String.Format("Can't sign '{0}', we are running under mono.", Filename));
+                CommandUtils.LogLog(String.Format("Can't sign '{0}', we are running under mono.", Filename));
                 return;
             }
             if (!CommandUtils.FileExists(Filename))
@@ -2258,7 +2258,7 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
+				CommandUtils.LogLog(String.Format("Won't sign '{0}', not an executable.", TargetFileInfo.FullName));
 				return;
 			}
 
@@ -2367,7 +2367,7 @@ namespace AutomationTool
 			}
 			if (!IsExecutable)
 			{
-				CommandUtils.Log(String.Format("Won't sign '{0}', not an executable.", InPath));
+				CommandUtils.LogLog(String.Format("Won't sign '{0}', not an executable.", InPath));
 				return;
 			}
 
@@ -2410,7 +2410,7 @@ namespace AutomationTool
 		{
 			if (!Command.ParseParam("NoSign"))
 			{
-				CommandUtils.LogConsole("Signing up to {0} files...", Files.Count);
+				CommandUtils.Log("Signing up to {0} files...", Files.Count);
 				UnrealBuildTool.UnrealTargetPlatform TargetPlatform = UnrealBuildTool.BuildHostPlatform.Current.Platform;
 				if (TargetPlatform == UnrealBuildTool.UnrealTargetPlatform.Mac)
 				{
@@ -2434,7 +2434,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CommandUtils.Log("Skipping signing {0} files due to -nosign.", Files.Count);
+				CommandUtils.LogLog("Skipping signing {0} files due to -nosign.", Files.Count);
 			}
 		}
 
@@ -2513,7 +2513,7 @@ namespace AutomationTool
 		{
 			if (UnrealBuildTool.Utils.IsRunningOnMono)
 			{
-				CommandUtils.Log(String.Format("Can't sign we are running under mono."));
+				CommandUtils.LogLog(String.Format("Can't sign we are running under mono."));
 				return;
 			}
 			List<string> FinalFiles = new List<string>();

@@ -2701,7 +2701,7 @@ partial class GUBP
                 var StartTime = DateTime.UtcNow;
                 TempStorage.CleanSharedTempStorageDirectory(GameNames);
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
-                LogConsole("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
+                Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
             }
 
             BuildProducts = new List<string>();

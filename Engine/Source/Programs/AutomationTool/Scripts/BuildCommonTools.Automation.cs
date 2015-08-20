@@ -15,7 +15,7 @@ public class BuildCommonTools : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		LogConsole("************************* BuildCommonTools");
+		Log("************************* BuildCommonTools");
 
 		// Get the list of platform names
 		string[] PlatformNames = ParseParamValue("platforms", BuildHostPlatform.Current.Platform.ToString()).Split('+');
@@ -168,10 +168,10 @@ public class ZipProjectUp : BuildCommand
         string InstallDirectory = ParseParamValue("install", "");
         ProjectDirectory = Path.GetDirectoryName(ProjectDirectory);
 
-        LogConsole("Started zipping project up");
-        LogConsole("Project directory: {0}", ProjectDirectory);
-		LogConsole("Install directory: {0}", InstallDirectory);
-        LogConsole("Packaging up the project...");
+        Log("Started zipping project up");
+        Log("Project directory: {0}", ProjectDirectory);
+		Log("Install directory: {0}", InstallDirectory);
+        Log("Packaging up the project...");
 
         // Setup filters
         FileFilter Filter = new FileFilter();
@@ -182,6 +182,6 @@ public class ZipProjectUp : BuildCommand
 
         ZipFiles(InstallDirectory, ProjectDirectory, Filter);
 
-		LogConsole("Completed zipping project up");
+		Log("Completed zipping project up");
     }
 }

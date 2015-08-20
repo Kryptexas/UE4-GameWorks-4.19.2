@@ -187,7 +187,7 @@ namespace AutomationTool
 		{
 			try
 			{
-				CommandUtils.LogConsole("Updating node props for node {0}", NodeToDo.Name);
+				CommandUtils.Log("Updating node props for node {0}", NodeToDo.Name);
 				RunECTool(String.Format("setProperty \"/myWorkflow/FailEmails/{0}\" \"{1}\"", NodeToDo.Name, String.Join(" ", NodeToDo.RecipientsForFailureEmails)), true);
 			}
 			catch (Exception Ex)
@@ -200,7 +200,7 @@ namespace AutomationTool
 		{
 			try
 			{
-				CommandUtils.LogConsole("Updating duration prop for node {0}", NodeToDo.Name);
+				CommandUtils.Log("Updating duration prop for node {0}", NodeToDo.Name);
 				RunECTool(String.Format("setProperty \"/myWorkflow/NodeDuration/{0}\" \"{1}\"", NodeToDo.Name, BuildDuration.ToString()));
 				RunECTool(String.Format("setProperty \"/myJobStep/NodeDuration\" \"{0}\"", BuildDuration.ToString()));
 			}
@@ -893,7 +893,7 @@ public class TestECJobErrorParse : BuildCommand
 {
     public override void ExecuteBuild()
     {
-		LogConsole("*********************** TestECJobErrorParse");
+		Log("*********************** TestECJobErrorParse");
 
         string Filename = CombinePaths(@"P:\Builds\UE4\GUBP\++depot+UE4-2104401-RootEditor_Failed\Engine\Saved\Logs", "RootEditor_Failed.log");
         var Errors = ECJobPropsUtils.ErrorsFromProps(Filename);

@@ -45,7 +45,7 @@ class BlameKeyword : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		LogConsole("************************** BlameKeyword");
+		Log("************************** BlameKeyword");
 
 		var Extensions = new HashSet<string>(KnownExtensions, StringComparer.InvariantCultureIgnoreCase);
 		var PathToSearch = ParseParamValue("Path", CombinePaths(CmdEnv.LocalRoot, "Engine", "Source", "Runtime"));
@@ -58,10 +58,10 @@ class BlameKeyword : BuildCommand
 			throw new AutomationException("No keywords to look for");
 		}
 
-		LogConsole("Path={0}", PathToSearch);
-		LogConsole("Keywords={0}", String.Join(",", Keywords));
-		LogConsole("Timelapse={0}", bUseTimelapse);
-		LogConsole("Out={0}", OutFilename);
+		Log("Path={0}", PathToSearch);
+		Log("Keywords={0}", String.Join(",", Keywords));
+		Log("Timelapse={0}", bUseTimelapse);
+		Log("Out={0}", OutFilename);
 
 		// Find files to search
 		var FilenamesToSearch = new List<string>();
@@ -131,7 +131,7 @@ class BlameKeyword : BuildCommand
 		}
 
 		// Write out the csv
-		LogConsole("Creating blame csv: {0}", OutFilename);
+		Log("Creating blame csv: {0}", OutFilename);
 		WriteAllText(OutFilename, BlameCSV.ToString());
 	}
 }

@@ -26,7 +26,7 @@ class MegaXGE : BuildCommand
 			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("MegaXGE build from changelist {0} - Params: {1}", P4Env.Changelist, CmdLine));
 		}
 
-		LogConsole("************************* MegaXGE");
+		Log("************************* MegaXGE");
 
 		bool Clean = ParseParam("Clean");
 		string CleanToolLocation = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "Batchfiles", "Clean.bat");
@@ -53,7 +53,7 @@ class MegaXGE : BuildCommand
 			}
 		}
 
-		LogConsole("*************************");
+		Log("*************************");
 		for (int Arg = 1; Arg < 100; Arg++)
 		{
 			string Parm = String.Format("Target{0}", Arg);
@@ -132,7 +132,7 @@ class MegaXGE : BuildCommand
 					foreach (var Configuration in Configurations)
 					{
 						Agenda.AddTargets(new string[] { CurTarget }, Platform, Configuration);
-						LogConsole("Target {0} {1} {2}", CurTarget, Platform.ToString(), Configuration.ToString());
+						Log("Target {0} {1} {2}", CurTarget, Platform.ToString(), Configuration.ToString());
 						if (Clean)
 						{
 							string Args = String.Format("{0} {1} {2}", CurTarget, Platform.ToString(), Configuration.ToString());
@@ -142,7 +142,7 @@ class MegaXGE : BuildCommand
 				}
 			}
 		}
-		LogConsole("*************************");
+		Log("*************************");
 
 		Agenda.DoRetries = ParseParam("Retry");
 		UE4Build.Build(Agenda, InUpdateVersionFiles: IsBuildMachine, InUseParallelExecutor: ParseParam("useparallelexecutor"), InShowProgress: ShowProgress);

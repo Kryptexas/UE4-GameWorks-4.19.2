@@ -78,7 +78,7 @@ namespace AutomationTool
 				FileNum++;
 			}
 			CopyFile(ManifestName, OutFile);
-			Log("Copied UBT manifest to {0}", OutFile);
+			LogLog("Copied UBT manifest to {0}", OutFile);
 
 
 			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
@@ -461,10 +461,10 @@ namespace AutomationTool
 				string VerFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "Build.version");
 				if (bDoUpdateVersionFiles)
 				{
-					Log("Updating {0} with:", VerFile);
-					Log("  Changelist={0}", ChangelistNumber);
-					Log("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
-					Log("  BranchName={0}", Branch);
+					LogLog("Updating {0} with:", VerFile);
+					LogLog("  Changelist={0}", ChangelistNumber);
+					LogLog("  IsLicenseeVersion={0}", bIsLicenseeVersion? 1 : 0);
+					LogLog("  BranchName={0}", Branch);
 
 					string VerText = CommandUtils.ReadAllText(VerFile);
 
@@ -490,10 +490,10 @@ namespace AutomationTool
                 string VerFile = EngineVersionFile;
 				if (bDoUpdateVersionFiles)
 				{
-					Log("Updating {0} with:", VerFile);
-					Log(" #define	BRANCH_NAME  {0}", Branch);
-					Log(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
-					Log(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
+					LogLog("Updating {0} with:", VerFile);
+					LogLog(" #define	BRANCH_NAME  {0}", Branch);
+					LogLog(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
+					LogLog(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
@@ -518,7 +518,7 @@ namespace AutomationTool
                     // Get the MAJOR/MINOR/PATCH from the Engine Version file, as it is authoritative. The rest we get from the P4Env.
                     string NewInformationalVersion = FEngineVersionSupport.FromVersionFile(EngineVersionFile, ChangelistNumber).ToString();
 
-                    Log("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
+                    LogLog("Updating {0} with AssemblyInformationalVersion: {1}", VerFile, NewInformationalVersion);
 
                     VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
                     VersionH.SetAssemblyInformationalVersion(NewInformationalVersion);
@@ -1018,7 +1018,7 @@ namespace AutomationTool
 											if (PCHFileName.Contains(@"\SharedPCHs\") && PCHFileName.Contains(@"\UE4Editor\"))
 											{
 												Key = "SharedEditorPCH$ " + PCHFileName;
-												Log("Hack: detected Shared PCH, which will use a different key {0}", Key);
+												LogLog("Hack: detected Shared PCH, which will use a different key {0}", Key);
 											}
 										}
 									}
@@ -1335,18 +1335,18 @@ namespace AutomationTool
 			string XGEConsole = XGEConsoleExe();
 			if (bCanUseXGE && string.IsNullOrEmpty(XGEConsole))
 			{
-				Log("XGE was requested, but is unavailable, so we won't use it.");
+				LogLog("XGE was requested, but is unavailable, so we won't use it.");
 				bCanUseXGE = false;
 			}
 
 			// only run ParallelExecutor if not running XGE (and we've requested ParallelExecutor and it exists)
 			bool bCanUseParallelExecutor = !bCanUseXGE && InUseParallelExecutor && !string.IsNullOrEmpty(ParallelExecutorExec());
-			Log("************************* UE4Build:");
-			Log("************************* ForceMonolithic: {0}", bForceMonolithic);
-			Log("************************* ForceNonUnity:{0} ", bForceNonUnity);
-			Log("************************* ForceDebugInfo: {0}", bForceDebugInfo);
-			Log("************************* UseXGE: {0}", bCanUseXGE);
-			Log("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
+			LogLog("************************* UE4Build:");
+			LogLog("************************* ForceMonolithic: {0}", bForceMonolithic);
+			LogLog("************************* ForceNonUnity:{0} ", bForceNonUnity);
+			LogLog("************************* ForceDebugInfo: {0}", bForceDebugInfo);
+			LogLog("************************* UseXGE: {0}", bCanUseXGE);
+			LogLog("************************* UseParallelExecutor: {0}", bCanUseParallelExecutor);
 
 			// process XGE files
 			if (bCanUseXGE || bCanUseParallelExecutor)
@@ -1445,10 +1445,10 @@ namespace AutomationTool
 		{
 			// Check build products
 			{
-				Log("Build products *******");
+				LogLog("Build products *******");
 				if (BuildProductFiles.Count < 1)
 				{
-					LogConsole("No build products were made");
+					Log("No build products were made");
 				}
 				else
 				{
@@ -1458,10 +1458,10 @@ namespace AutomationTool
 						{
 							throw new AutomationException("BUILD FAILED {0} was a build product but no longer exists", Product);
 						}
-						Log(Product);
+						LogLog(Product);
 					}
 				}
-				Log("End Build products *******");
+				LogLog("End Build products *******");
 			}
 		}
 
@@ -1472,7 +1472,7 @@ namespace AutomationTool
 		/// <param name="Files">List of files to check out</param>
 		public static void AddBuildProductsToChangelist(int WorkingCL, List<string> Files)
 		{
-			LogConsole("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
+			Log("Adding {0} build products to changelist {1}...", Files.Count, WorkingCL);
 			foreach (var File in Files)
 			{
 				P4.Sync("-f -k " + CommandUtils.MakePathSafeToUseWithCommandLine(File) + "#head"); // sync the file without overwriting local one

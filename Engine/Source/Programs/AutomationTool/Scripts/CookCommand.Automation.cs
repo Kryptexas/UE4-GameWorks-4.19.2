@@ -27,7 +27,7 @@ public partial class Project : CommandUtils
 		}
 		Params.ValidateAndLog();
 
-		LogConsole("********** COOK COMMAND STARTED **********");
+		Log("********** COOK COMMAND STARTED **********");
 
 		string UE4EditorExe = HostPlatform.Current.GetUE4ExePath(Params.UE4Exe);
 		if (!FileExists(UE4EditorExe))
@@ -64,7 +64,7 @@ public partial class Project : CommandUtils
 
 				if (ServerProcess != null)
 				{
-					LogConsole("Waiting a few seconds for the server to start...");
+					Log("Waiting a few seconds for the server to start...");
 					Thread.Sleep(5000);
 				}
 			}
@@ -98,7 +98,7 @@ public partial class Project : CommandUtils
 
 			if (Params.Clean.HasValue && Params.Clean.Value && !Params.IterativeCooking)
 			{
-				LogConsole("Cleaning cooked data.");
+				Log("Cleaning cooked data.");
 				CleanupCookedData(PlatformsToCook.ToList(), Params);
 			}
 
@@ -109,11 +109,11 @@ public partial class Project : CommandUtils
 				Maps = Params.MapsToCook.ToArray();
                 foreach (var M in Maps)
                 {
-					LogConsole("HasMapsToCook " + M.ToString());
+					Log("HasMapsToCook " + M.ToString());
                 }
                 foreach (var M in Params.MapsToCook)
                 {
-					LogConsole("Params.HasMapsToCook " + M.ToString());
+					Log("Params.HasMapsToCook " + M.ToString());
                 }
 			}
 
@@ -241,7 +241,7 @@ public partial class Project : CommandUtils
 				else
 				{
 					// Delete cooked data (if any) as it may be incomplete / corrupted.
-					LogConsole("Cook failed. Deleting cooked data.");
+					Log("Cook failed. Deleting cooked data.");
 					CleanupCookedData(PlatformsToCook.ToList(), Params);
 					throw new AutomationException(ExitCode.Error_UnknownCookFailure, Ex, "Cook failed.");
 				}
@@ -256,7 +256,7 @@ public partial class Project : CommandUtils
                 catch ( Exception Ex )
                 {
                     // Delete cooked data (if any) as it may be incomplete / corrupted.
-                    LogConsole("Cook failed. Deleting cooked data.");
+                    Log("Cook failed. Deleting cooked data.");
                     CleanupCookedData(PlatformsToCook.ToList(), Params);
                     throw new AutomationException(ExitCode.Error_UnknownCookFailure, Ex, "Cook failed.");
                 }
@@ -265,7 +265,7 @@ public partial class Project : CommandUtils
 		}
 
 
-		LogConsole("********** COOK COMMAND COMPLETED **********");
+		Log("********** COOK COMMAND COMPLETED **********");
 	}
 
     private static void DiffCookedContent( ProjectParams Params)
@@ -291,7 +291,7 @@ public partial class Project : CommandUtils
             }
             catch(Exception )
             {
-                LogConsole("Failed deleting temporary directories "+TemporaryPakPath+" "+TemporaryFilesPath+" continuing.");
+                Log("Failed deleting temporary directories "+TemporaryPakPath+" "+TemporaryFilesPath+" continuing.");
             }
 
             Directory.CreateDirectory(TemporaryPakPath);
@@ -371,19 +371,19 @@ public partial class Project : CommandUtils
                     {
                         if ( SourceFile[Index] != DestFile[Index] )
                         {
-					        LogConsole("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " at offset " + Index.ToString() );
+					        Log("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " at offset " + Index.ToString() );
                             string SavedSourceFilename = CombinePaths( FailedContentDirectory, "Source" + Path.GetFileName(SourceFilename));
                             string SavedDestFilename = CombinePaths( FailedContentDirectory, "Dest" + Path.GetFileName(DestFilename));
                             File.Copy(SourceFilename, SavedSourceFilename);
                             File.Copy(DestFilename, SavedDestFilename);
-                            LogConsole("Content temporarily saved to " +SavedSourceFilename + " and "+SavedDestFilename + " at offset " + Index.ToString() );
+                            Log("Content temporarily saved to " +SavedSourceFilename + " and "+SavedDestFilename + " at offset " + Index.ToString() );
                             break;
                         }
                     }
                 }
                 else
                 {
-                    LogConsole("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " files are different sizes " + SourceFile.LongLength.ToString() + " " + DestFile.LongLength.ToString() );
+                    Log("Diff cooked content failed on file " +SourceFilename + " when comparing against "+DestFilename + " files are different sizes " + SourceFile.LongLength.ToString() + " " + DestFile.LongLength.ToString() );
                 }
             } 
         }

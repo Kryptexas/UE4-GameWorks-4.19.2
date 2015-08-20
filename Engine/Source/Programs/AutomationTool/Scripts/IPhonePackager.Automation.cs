@@ -11,7 +11,7 @@ class IPhonePackager : BuildCommand
 {
 	public override void ExecuteBuild()
 	{
-		LogConsole("************************* Calling IPP");
+		Log("************************* Calling IPP");
 
 		Platform IOS = Platform.Platforms[UnrealTargetPlatform.IOS];
 		string Command = ParseParamValue("cmd", "");

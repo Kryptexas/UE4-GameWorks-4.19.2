@@ -19,7 +19,7 @@ class LauncherLocalization : BuildCommand
 
 		if (P4Enabled)
 		{
-			LogConsole("Sync necessary content to head revision");
+			Log("Sync necessary content to head revision");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Config/...");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Content/...");
 			P4.Sync(P4Env.BuildRootP4 + "/Engine/Source/...");
@@ -28,7 +28,7 @@ class LauncherLocalization : BuildCommand
             P4.Sync(P4Env.BuildRootP4 + "/Portal/Content/...");
             P4.Sync(P4Env.BuildRootP4 + "/Portal/Source/...");
 
-			LogConsole("Localize from label {0}", P4Env.LabelToSync);
+			Log("Localize from label {0}", P4Env.LabelToSync);
 		}
 
 		OneSkyConfigData OneSkyConfig = OneSkyConfigHelper.Find("OneSkyConfig_EpicGames");
@@ -72,9 +72,9 @@ class LauncherLocalization : BuildCommand
 		// Execute commandlet for each set of arguments.
 		foreach (var CommandletArguments in CommandletArgumentSets)
 		{
-			LogConsole("Localization for {0} {1}", EditorArguments, CommandletArguments);
+			Log("Localization for {0} {1}", EditorArguments, CommandletArguments);
 
-			LogConsole("Running UE4Editor to generate Localization data");
+			Log("Running UE4Editor to generate Localization data");
 
 			string Arguments = String.Format("-run=GatherText {0} {1}", EditorArguments, CommandletArguments);
 			var RunResult = Run(EditorExe, Arguments);
@@ -261,8 +261,8 @@ namespace EpicGames.OneSkyLocalization.Config
 
 		public void SpewValues()
 		{
-			CommandUtils.LogConsole("Name : {0}", Name);
-			CommandUtils.LogConsole("ApiKey : {0}", ApiKey);
+			CommandUtils.Log("Name : {0}", Name);
+			CommandUtils.Log("ApiKey : {0}", ApiKey);
 			//CommandUtils.LogConsole("ApiSecret : {0}", ApiSecret);  // This should probably never be revealed.
 		}
 	}

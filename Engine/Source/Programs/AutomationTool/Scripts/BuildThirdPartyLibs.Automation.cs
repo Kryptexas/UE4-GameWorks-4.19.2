@@ -63,7 +63,7 @@ class BuildThirdPartyLibs : BuildCommand
 
 	public override void ExecuteBuild()
 	{
-		LogConsole("************************* Build Third Party Libs");
+		Log("************************* Build Third Party Libs");
 
 		// figure out what batch/script to run
 		string CompileScriptName;
@@ -90,7 +90,7 @@ class BuildThirdPartyLibs : BuildCommand
 		{
 			WorkingCL = P4.CreateChange(P4Env.Client, String.Format("Third party libs built from changelist {0}", P4Env.Changelist));
 		}
-		LogConsole("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
+		Log("Build from {0}    Working in {1}", P4Env.Changelist, WorkingCL);
 
 		// go to the third party lib dir
 		string SearchLibraryDir = ParseParamValue("SearchDir", DefaultLibraryDir);
@@ -142,7 +142,7 @@ class BuildThirdPartyLibs : BuildCommand
 		// now go through and run each batch file, 
 		foreach (string Lib in LibsToCompile)
 		{
-			LogConsole("Building {0}", Lib);
+			Log("Building {0}", Lib);
 
 			// go into the lib dir
 			CommandUtils.PushDir(Lib);
@@ -166,7 +166,7 @@ class BuildThirdPartyLibs : BuildCommand
 		{
 			int SubmittedCL;
 			P4.Submit(WorkingCL, out SubmittedCL, true, true);
-			LogConsole("Submitted changelist {0}", SubmittedCL);
+			Log("Submitted changelist {0}", SubmittedCL);
 		}
 	}
 }

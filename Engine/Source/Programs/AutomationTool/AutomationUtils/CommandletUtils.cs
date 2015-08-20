@@ -150,7 +150,7 @@ namespace AutomationTool
 		/// <param name="Parameters">Command line parameters (without -run=)</param>
 		public static void RunCommandlet(string ProjectName, string UE4Exe, string Commandlet, string Parameters = null)
 		{
-			LogConsole("Running UE4Editor {0} for project {1}", Commandlet, ProjectName);
+			Log("Running UE4Editor {0} for project {1}", Commandlet, ProjectName);
 
             var CWD = Path.GetDirectoryName(UE4Exe);
 
@@ -165,7 +165,7 @@ namespace AutomationTool
 			PushDir(CWD);
 
 			string LocalLogFile = LogUtils.GetUniqueLogName(CombinePaths(CmdEnv.EngineSavedFolder, Commandlet));
-			LogConsole("Commandlet log file is {0}", LocalLogFile);
+			Log("Commandlet log file is {0}", LocalLogFile);
 			string Args = String.Format(
 				"{0} -run={1} {2} -abslog={3} -stdout -FORCELOGFLUSH -CrashForUAT -unattended {5}{4}",
 				(ProjectName == null) ? "" : CommandUtils.MakePathSafeToUseWithCommandLine(ProjectName),

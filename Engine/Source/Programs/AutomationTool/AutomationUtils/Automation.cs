@@ -471,7 +471,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				Message += String.Format("  {0}{1}", AvailableCommand.Key, Environment.NewLine);
 			}
-			CommandUtils.LogConsole(Message);
+			CommandUtils.Log(Message);
 		}
 
 		#endregion

@@ -127,7 +127,7 @@ public class IOSPlatform : Platform
 
 	public override void Package(ProjectParams Params, DeploymentContext SC, int WorkingCL)
 	{
-		LogConsole("Package {0}", Params.RawProjectPath);
+		Log("Package {0}", Params.RawProjectPath);
 
 		// ensure the ue4game binary exists, if applicable
 		string FullExePath = CombinePaths(Path.GetDirectoryName(Params.ProjectGameExeFilename), SC.StageExecutables[0] + (UnrealBuildTool.BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac ? ".stub" : ""));
@@ -216,10 +216,10 @@ public class IOSPlatform : Platform
 			// package a .ipa from the now staged directory
 			var IPPExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/IOS/IPhonePackager.exe");
 
-			Log("ProjectName={0}", Params.ShortProjectName);
-			Log("ProjectStub={0}", ProjectStub);
-			Log("ProjectIPA={0}", ProjectIPA);
-			Log("IPPExe={0}", IPPExe);
+			LogLog("ProjectName={0}", Params.ShortProjectName);
+			LogLog("ProjectStub={0}", ProjectStub);
+			LogLog("ProjectIPA={0}", ProjectIPA);
+			LogLog("IPPExe={0}", IPPExe);
 
 			bool cookonthefly = Params.CookOnTheFly || Params.SkipCookOnTheFly;
 

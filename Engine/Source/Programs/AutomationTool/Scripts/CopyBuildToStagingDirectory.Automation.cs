@@ -105,7 +105,7 @@ public partial class Project : CommandUtils
 
 		var UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
 
-		LogConsole("Running UnrealPak *******");
+		Log("Running UnrealPak *******");
 		string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputLocation) + " -create=" + CommandUtils.MakePathSafeToUseWithCommandLine(UnrealPakResponseFileName);
 		if (!String.IsNullOrEmpty(EncryptionKeys))
 		{
@@ -126,34 +126,34 @@ public partial class Project : CommandUtils
         }
 		CmdLine += PlatformOptions;
 		RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.UTF8Output);
-		LogConsole("UnrealPak Done *******");
+		Log("UnrealPak Done *******");
 	}
 
 	static public void LogDeploymentContext(DeploymentContext SC)
 	{
-		Log("Deployment Context **************");
-		Log("ArchiveDirectory = {0}", SC.ArchiveDirectory);
-		Log("RawProjectPath = {0}", SC.RawProjectPath);
-		Log("IsCodeBasedUprojectFile = {0}", SC.IsCodeBasedProject);
-		Log("DedicatedServer = {0}", SC.DedicatedServer);
-		Log("Stage = {0}", SC.Stage);
-		Log("StageTargetPlatform = {0}", SC.StageTargetPlatform.PlatformType.ToString());
-		Log("LocalRoot = {0}", SC.LocalRoot);
-		Log("ProjectRoot = {0}", SC.ProjectRoot);
-		Log("PlatformDir = {0}", SC.PlatformDir);
-		Log("StageProjectRoot = {0}", SC.StageProjectRoot);
-		Log("ShortProjectName = {0}", SC.ShortProjectName);
-		Log("StageDirectory = {0}", SC.StageDirectory);
-		Log("SourceRelativeProjectRoot = {0}", SC.SourceRelativeProjectRoot);
-		Log("RelativeProjectRootForStage = {0}", SC.RelativeProjectRootForStage);
-		Log("RelativeProjectRootForUnrealPak = {0}", SC.RelativeProjectRootForUnrealPak);
-		Log("ProjectArgForCommandLines = {0}", SC.ProjectArgForCommandLines);
-		Log("RuntimeRootDir = {0}", SC.RuntimeRootDir);
-		Log("RuntimeProjectRootDir = {0}", SC.RuntimeProjectRootDir);
-		Log("UProjectCommandLineArgInternalRoot = {0}", SC.UProjectCommandLineArgInternalRoot);
-		Log("PakFileInternalRoot = {0}", SC.PakFileInternalRoot);
-		Log("UnrealFileServerInternalRoot = {0}", SC.UnrealFileServerInternalRoot);
-		Log("End Deployment Context **************");
+		LogLog("Deployment Context **************");
+		LogLog("ArchiveDirectory = {0}", SC.ArchiveDirectory);
+		LogLog("RawProjectPath = {0}", SC.RawProjectPath);
+		LogLog("IsCodeBasedUprojectFile = {0}", SC.IsCodeBasedProject);
+		LogLog("DedicatedServer = {0}", SC.DedicatedServer);
+		LogLog("Stage = {0}", SC.Stage);
+		LogLog("StageTargetPlatform = {0}", SC.StageTargetPlatform.PlatformType.ToString());
+		LogLog("LocalRoot = {0}", SC.LocalRoot);
+		LogLog("ProjectRoot = {0}", SC.ProjectRoot);
+		LogLog("PlatformDir = {0}", SC.PlatformDir);
+		LogLog("StageProjectRoot = {0}", SC.StageProjectRoot);
+		LogLog("ShortProjectName = {0}", SC.ShortProjectName);
+		LogLog("StageDirectory = {0}", SC.StageDirectory);
+		LogLog("SourceRelativeProjectRoot = {0}", SC.SourceRelativeProjectRoot);
+		LogLog("RelativeProjectRootForStage = {0}", SC.RelativeProjectRootForStage);
+		LogLog("RelativeProjectRootForUnrealPak = {0}", SC.RelativeProjectRootForUnrealPak);
+		LogLog("ProjectArgForCommandLines = {0}", SC.ProjectArgForCommandLines);
+		LogLog("RuntimeRootDir = {0}", SC.RuntimeRootDir);
+		LogLog("RuntimeProjectRootDir = {0}", SC.RuntimeProjectRootDir);
+		LogLog("UProjectCommandLineArgInternalRoot = {0}", SC.UProjectCommandLineArgInternalRoot);
+		LogLog("PakFileInternalRoot = {0}", SC.PakFileInternalRoot);
+		LogLog("UnrealFileServerInternalRoot = {0}", SC.UnrealFileServerInternalRoot);
+		LogLog("End Deployment Context **************");
 	}
 
 	public static Dictionary<string, string> ConvertToLower(Dictionary<string, string> Mapping)
@@ -235,7 +235,7 @@ public partial class Project : CommandUtils
 		}
 		var ThisPlatform = SC.StageTargetPlatform;
 
-		LogConsole("Creating Staging Manifest...");
+		Log("Creating Staging Manifest...");
 
         if (Params.HasDLCName)
         {
@@ -375,15 +375,15 @@ public partial class Project : CommandUtils
 			
 			// Engine & Game Plugins. Push the Engine/Source working directory so UBT code has a correct RelativeEnginePath in ReadAvailablePlugins
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
-			Log("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
-			Log("Searching for plugins in: " + SC.RawProjectPath);
+			LogLog("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
+			LogLog("Searching for plugins in: " + SC.RawProjectPath);
 			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(CombinePaths(SC.LocalRoot, "Engine"), SC.RawProjectPath);
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
-				Log("Considering Plugin for Stage: " + Plugin.FileName);
+				LogLog("Considering Plugin for Stage: " + Plugin.FileName);
 				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType))
 				{
-					Log("EnabledPlugin: " + Plugin.FileName);
+					LogLog("EnabledPlugin: " + Plugin.FileName);
 					SC.StageFiles(StagedFileType.UFS, Plugin.Directory, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
 				}
 			}
@@ -559,7 +559,7 @@ public partial class Project : CommandUtils
 
 	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
 	{
-		LogConsole("Copying {0} to staging directory: {1}", ManifestName, StageDir);
+		Log("Copying {0} to staging directory: {1}", ManifestName, StageDir);
 		string ManifestPath = "";
 		string ManifestFile = "";
 		if (!String.IsNullOrEmpty(ManifestName))
@@ -637,7 +637,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	private static void CreatePakUsingStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
-		LogConsole("Creating pak using staging manifest.");
+		Log("Creating pak using staging manifest.");
 
 		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "PrePak" + (SC.DedicatedServer ? "_Server" : "")));
 
@@ -660,7 +660,7 @@ public partial class Project : CommandUtils
 			var PakBlacklistFilename = CombinePaths(SC.ProjectRoot, "Build", SC.PlatformDir, string.Format("PakBlacklist-{0}.txt", SC.StageTargetConfigurations[0].ToString()));
 			if (File.Exists(PakBlacklistFilename))
 			{
-				LogConsole("Applying PAK blacklist file {0}", PakBlacklistFilename);
+				Log("Applying PAK blacklist file {0}", PakBlacklistFilename);
 				string[] BlacklistContents = File.ReadAllLines(PakBlacklistFilename);
 				foreach (string Candidate in BlacklistContents)
 				{
@@ -698,7 +698,7 @@ public partial class Project : CommandUtils
 
 				if (bExcludeFile)
 				{
-					LogConsole("Excluding {0}", Src);
+					Log("Excluding {0}", Src);
 					continue;
 				}
 			}
@@ -778,13 +778,13 @@ public partial class Project : CommandUtils
 
 				if (InternalUtils.SafeCopyFile(SourceOutputLocation, OutputLocation))
 				{
-					LogConsole("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
+					Log("Copying source pak from {0} to {1} instead of creating new pak", SourceOutputLocation, OutputLocation);
 					bCopiedExistingPak = true;
 				}
 			}
 			if (!bCopiedExistingPak)
 			{
-				LogConsole("Failed to copy source pak from {0} to {1}, creating new pak", SourceOutputLocation, OutputLocation);
+				Log("Failed to copy source pak from {0} to {1}, creating new pak", SourceOutputLocation, OutputLocation);
 			}
 		}
 
@@ -910,7 +910,7 @@ public partial class Project : CommandUtils
 	/// <param name="SC"></param>
 	private static void CreatePaksUsingChunkManifests(ProjectParams Params, DeploymentContext SC)
 	{
-		LogConsole("Creating pak using streaming install manifests.");
+		Log("Creating pak using streaming install manifests.");
 		DumpManifest(SC, CombinePaths(CmdEnv.LogFolder, "PrePak" + (SC.DedicatedServer ? "_Server" : "")));
 
 		var TmpPackagingPath = GetTmpPackagingPath(Params, SC);
@@ -1059,7 +1059,7 @@ public partial class Project : CommandUtils
 	public static void ApplyStagingManifest(ProjectParams Params, DeploymentContext SC)
 	{
 		MaybeConvertToLowerCase(Params, SC);
-		LogConsole("Cleaning Stage Directory: {0}", SC.StageDirectory);
+		Log("Cleaning Stage Directory: {0}", SC.StageDirectory);
 		if (SC.Stage && !Params.NoCleanStage && !Params.SkipStage && !Params.IterativeDeploy)
 		{
             try
@@ -1130,7 +1130,7 @@ public partial class Project : CommandUtils
 			return;
 		}
 
-		LogConsole("Creating UE4CommandLine.txt");
+		Log("Creating UE4CommandLine.txt");
 		if (!string.IsNullOrEmpty(Params.StageCommandline) || !string.IsNullOrEmpty(Params.RunCommandline))
 		{
 			string FileHostParams = " ";
@@ -1626,7 +1626,7 @@ public partial class Project : CommandUtils
 		{
 			Params.ValidateAndLog();
 
-			LogConsole("********** STAGE COMMAND STARTED **********");
+			Log("********** STAGE COMMAND STARTED **********");
 
 			if (!Params.NoClient)
 			{
@@ -1683,7 +1683,7 @@ public partial class Project : CommandUtils
 					ApplyStagingManifest(Params, SC);
 				}
 			}
-			LogConsole("********** STAGE COMMAND COMPLETED **********");
+			Log("********** STAGE COMMAND COMPLETED **********");
 		}
 	}
 

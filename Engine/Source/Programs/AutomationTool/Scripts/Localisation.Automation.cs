@@ -87,9 +87,9 @@ class Localise : BuildCommand
 		// Execute commandlet for each set of arguments.
 		foreach (var CommandletArguments in CommandletArgumentSets)
 		{
-			LogConsole("Localization for {0} {1}", EditorArguments, CommandletArguments);
+			Log("Localization for {0} {1}", EditorArguments, CommandletArguments);
 
-			LogConsole("Running UE4Editor to generate localization data");
+			Log("Running UE4Editor to generate localization data");
 
 			string Arguments = String.Format("-run=GatherText {0} {1}", EditorArguments, CommandletArguments);
 			var RunResult = Run(EditorExe, Arguments);

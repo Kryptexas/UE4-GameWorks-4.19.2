@@ -147,7 +147,7 @@ namespace AutomationTool
 				HelpMessage += FormatParams(Params, 4, 24);
 			}
 
-			LogConsole(HelpMessage);
+			Log(HelpMessage);
 		}
 
 		/// <summary>

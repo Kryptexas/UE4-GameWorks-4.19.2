@@ -35,7 +35,7 @@ namespace AutomationTool
 				LogError("BUILD FAILED");
 				throw;
 			}
-			LogConsole("BUILD SUCCESSFUL");
+			Log("BUILD SUCCESSFUL");
 		}
 
 		/// <summary>

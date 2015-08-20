@@ -119,14 +119,14 @@ namespace AutomationTool
 				var ProcessName = ProcessesToKill[ProcessIndex].GetProcessName();
 				if (!String.IsNullOrEmpty(ProcessName) && !CanBeKilled(ProcessName))
 				{
-					CommandUtils.Log("Ignoring process \"{0}\" because it can't be killed.", ProcessName);
+					CommandUtils.LogLog("Ignoring process \"{0}\" because it can't be killed.", ProcessName);
 					ProcessesToKill.RemoveAt(ProcessIndex);
 				}
 			}
-			CommandUtils.Log("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
+			CommandUtils.LogLog("Trying to kill {0} spawned processes.", ProcessesToKill.Count);
 			foreach (var Proc in ProcessesToKill)
 			{
-				CommandUtils.Log("  {0}", Proc.GetProcessName());
+				CommandUtils.LogLog("  {0}", Proc.GetProcessName());
 			}
             if (CommandUtils.IsBuildMachine)
             {
@@ -140,7 +140,7 @@ namespace AutomationTool
                             if (!Proc.HasExited)
                             {
                                 AllDone = false;
-								CommandUtils.Log("Waiting for process: {0}", Proc.GetProcessName());
+								CommandUtils.LogLog("Waiting for process: {0}", Proc.GetProcessName());
                             }
                         }
                         catch (Exception)
@@ -154,7 +154,7 @@ namespace AutomationTool
                         if (ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
                         {
                             AllDone = false;
-							CommandUtils.LogConsole("Waiting for descendants of main process...");
+							CommandUtils.Log("Waiting for descendants of main process...");
                         }
                     }
                     catch (Exception)
@@ -177,7 +177,7 @@ namespace AutomationTool
 				{
 					if (!Proc.HasExited)
 					{
-						CommandUtils.Log("Killing process: {0}", ProcName);
+						CommandUtils.LogLog("Killing process: {0}", ProcName);
 						Proc.StopProcess(false);
 					}
 				}
@@ -191,7 +191,7 @@ namespace AutomationTool
             {
                 if (CommandUtils.IsBuildMachine && ProcessResult.HasAnyDescendants(Process.GetCurrentProcess()))
                 {
-					CommandUtils.Log("current process still has descendants, trying to kill them...");
+					CommandUtils.LogLog("current process still has descendants, trying to kill them...");
                     ProcessResult.KillAllDescendants(Process.GetCurrentProcess());
                 }
             }
@@ -448,7 +448,7 @@ namespace AutomationTool
 				}
                 if (!(bStdOutSignalReceived && bStdErrSignalReceived))
                 {
-					CommandUtils.Log("Waited for a long time for output of {0}, some output may be missing; we gave up.", AppName);
+					CommandUtils.LogLog("Waited for a long time for output of {0}, some output may be missing; we gave up.", AppName);
                 }
 
 				// Double-check if the process terminated
@@ -526,7 +526,7 @@ namespace AutomationTool
 						IsOurDescendant(ProcessToKill, KillCandidate.Id, VisitedPids))
 					{
 						KilledPids.Add(KillCandidate.Id);
-						CommandUtils.Log("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
+						CommandUtils.LogLog("Trying to kill descendant pid={0}, name={1}", KillCandidate.Id, KillCandidate.ProcessName);
 						try
 						{
 							KillCandidate.Kill();
@@ -555,7 +555,7 @@ namespace AutomationTool
                 HashSet<int> VisitedPids = new HashSet<int>();
                 if (ProcessManager.CanBeKilled(KillCandidate.ProcessName) && IsOurDescendant(ProcessToCheck, KillCandidate.Id, VisitedPids))
                 {
-					CommandUtils.Log("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
+					CommandUtils.LogLog("Descendant pid={0}, name={1}, filename={2}", KillCandidate.Id, KillCandidate.ProcessName,
 						KillCandidate.MainModule != null ? KillCandidate.MainModule.FileName : "unknown");
                     return true;
                 }
@@ -587,11 +587,11 @@ namespace AutomationTool
 					ProcToKill.WaitForExit(60000);
 					if (!ProcToKill.HasExited)
 					{
-						CommandUtils.Log("Process {0} failed to exit.", ProcToKillName);
+						CommandUtils.LogLog("Process {0} failed to exit.", ProcToKillName);
 					}
 					else
 					{
-						CommandUtils.Log("Process {0} successfully exited.", ProcToKillName);
+						CommandUtils.LogLog("Process {0} successfully exited.", ProcToKillName);
 						OnProcessExited();
 					}
 					ProcToKill.Close();					
@@ -890,7 +890,7 @@ namespace AutomationTool
 
 			string App = CmdEnv.UATExe;
 
-			LogConsole("Running {0} {1}", App, CommandLine);
+			Log("Running {0} {1}", App, CommandLine);
 			var OSEnv = new Dictionary<string, string>();
 
 			OSEnv.Add(AutomationTool.EnvVarNames.LogFolder, LogSubdir);
@@ -954,7 +954,7 @@ namespace AutomationTool
 		{
 			while (!FileExists(LogFilename) && !LogProcess.HasExited)
 			{
-				LogConsole("Waiting for logging process to start...");
+				Log("Waiting for logging process to start...");
 				Thread.Sleep(2000);
 			}
 			Thread.Sleep(1000);

@@ -277,7 +277,7 @@ chmod 700 $HOME/Desktop/{1}.desktop", DesiredGLVersion, SC.ShortProjectName, SC.
 				&& ((!String.IsNullOrEmpty(ProjParams.DeviceUsername) && !String.IsNullOrEmpty(ProjParams.DevicePassword))
 					|| !ProjParams.Unattended)) // Skip key generation in unattended mode if information is missing
 			{
-				LogConsole("Configuring Linux host");
+				Log("Configuring Linux host");
 
 				// Prompt for username if not already set
 				while (String.IsNullOrEmpty(ProjParams.DeviceUsername))

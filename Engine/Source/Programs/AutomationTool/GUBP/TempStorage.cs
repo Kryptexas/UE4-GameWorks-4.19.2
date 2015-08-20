@@ -515,7 +515,7 @@ namespace AutomationTool
                     }
                 };
 
-            CommandUtils.LogConsole("Cleaning temp storage for {0}...", TopDirectory);
+            CommandUtils.Log("Cleaning temp storage for {0}...", TopDirectory);
             int FoldersCleaned = 0;
             int FoldersManuallyCleaned = 0;
             int FoldersFailedCleaned = 0;
@@ -540,7 +540,7 @@ namespace AutomationTool
                 {
                     try
                     {
-                        CommandUtils.LogConsole("Deleting folder with old temp storage {0}...", OldManifestInfo.NodeNameDir);
+                        CommandUtils.Log("Deleting folder with old temp storage {0}...", OldManifestInfo.NodeNameDir);
                         Directory.Delete(OldManifestInfo.NodeNameDir, true);
                         FoldersCleaned++;
                     }
@@ -957,7 +957,7 @@ namespace AutomationTool
                 else
                 {
                     var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo, GameName);
-                    CommandUtils.LogConsole("Storing to {0}", SharedStorageNodeDir);
+                    CommandUtils.Log("Storing to {0}", SharedStorageNodeDir);
                     // this folder should not already exist, else we have concurrency or job duplication problems.
                     if (CommandUtils.DirectoryExists_NoExceptions(SharedStorageNodeDir))
                     {
@@ -1006,7 +1006,7 @@ namespace AutomationTool
                 var LocalManifest = LocalTempStorageManifestFilename(TempStorageNodeInfo);
                 if (CommandUtils.FileExists_NoExceptions(LocalManifest))
                 {
-                    CommandUtils.LogConsole("Found local manifest {0}", LocalManifest);
+                    CommandUtils.Log("Found local manifest {0}", LocalManifest);
                     var Local = TempStorageManifest.Load(LocalManifest);
                     var Files = Local.GetFiles(RootDir);
                     var LocalTest = TempStorageManifest.Create(Files, RootDir);
@@ -1023,7 +1023,7 @@ namespace AutomationTool
                 // We couldn't find the node storage locally, so get it from the shared location.
                 var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo, GameName);
 
-                CommandUtils.LogConsole("Attempting to retrieve from {0}", SharedStorageNodeDir);
+                CommandUtils.Log("Attempting to retrieve from {0}", SharedStorageNodeDir);
                 if (!CommandUtils.DirectoryExists_NoExceptions(SharedStorageNodeDir))
                 {
                     throw new AutomationException("Storage Block Does Not Exists! {0}", SharedStorageNodeDir);

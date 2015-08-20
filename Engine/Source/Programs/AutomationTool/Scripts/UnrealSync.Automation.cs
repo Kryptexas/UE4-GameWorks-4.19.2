@@ -44,19 +44,19 @@ namespace AutomationScripts.Automation
 
 			if (QueryType == QueryType.Promoted)
 			{
-				LogConsole("Promoted labels for {0}.", BranchAndGameName);
+				Log("Promoted labels for {0}.", BranchAndGameName);
 
 				Print(GetPromotedLabels(BranchPath, GameName), Ticks);
 			}
 			else if(QueryType == QueryType.Promotable)
 			{
-				LogConsole("Promotable labels for {0}.", BranchAndGameName);
+				Log("Promotable labels for {0}.", BranchAndGameName);
 
 				Print(GetPromotableLabels(BranchPath, GameName), Ticks);
 			}
 			else
 			{
-				LogConsole("All labels for {0}.", BranchPath);
+				Log("All labels for {0}.", BranchPath);
 
 				Print(GetBranchLabels(BranchPath), Ticks);
 			}
@@ -114,7 +114,7 @@ namespace AutomationScripts.Automation
 		{
 			foreach(var Label in Labels.OrderByDescending((Label) => Label.Date))
 			{
-				LogConsole(Label.Name + (Ticks ? (" " + Label.Date.Ticks.ToString()) : ""));
+				Log(Label.Name + (Ticks ? (" " + Label.Date.Ticks.ToString()) : ""));
 			}
 		}
 
