@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2660169
+﻿INTSourceChangelist:2661745
 Availability:Docs
 Title:C++ FPS チュートリアル
 Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
@@ -26,14 +26,14 @@ Description:ファーストパーソン シューティング ゲームの開発
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		ステップ
+		セクション
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* **プロジェクトの設定**
-	* **キャラクターの実装**
-	* **発射物の実装**
-	* **キャラクターのアニメート**
+	* [](Programming/Tutorials/FirstPersonShooter/1 "%Programming/Tutorials/FirstPersonShooter/1:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/2 "%Programming/Tutorials/FirstPersonShooter/2:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/3 "%Programming/Tutorials/FirstPersonShooter/3:description%")
+	* [](Programming/Tutorials/FirstPersonShooter/4 "%Programming/Tutorials/FirstPersonShooter/4:description%")
 	[/PARAM]
 [/OBJECT]
