@@ -334,6 +334,18 @@ float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Par
 	return Parameters.WorldPosition_NoOffsets_CamRelative;
 }
 
+// using this function allows to write the same code for VS and PS
+float4 GetScreenPosition(FMaterialVertexParameters Parameters)
+{
+	return mul(float4(Parameters.WorldPosition, 1.0f), View.TranslatedWorldToClip);
+}
+
+// using this function allows to write the same code for VS and PS
+float4 GetScreenPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.ScreenPosition;
+}
+
 #if DECAL_RENDERSTAGE && NUM_MATERIAL_TEXCOORDS
 	/*
 	 * Material node DecalMipmapLevel's code designed to avoid the 2x2 pixels artefacts on the edges around where the decal

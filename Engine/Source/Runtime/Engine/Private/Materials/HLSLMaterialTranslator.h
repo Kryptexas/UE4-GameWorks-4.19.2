@@ -1943,12 +1943,12 @@ protected:
 
 	virtual int32 ScreenPosition() override
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
 		{
-			return NonPixelShaderExpressionError();
+			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
 		}
 
-		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(Parameters.ScreenPosition).xy"));		
+		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters)).xy"));		
 	}
 
 	virtual int32 ParticleMacroUV() override 
@@ -2494,11 +2494,11 @@ protected:
 
 	virtual int32 PixelDepth() override
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
 		{
-			return NonPixelShaderExpressionError();
+			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
 		}
-		return AddInlinedCodeChunk(MCT_Float, TEXT("Parameters.ScreenPosition.w"));		
+		return AddInlinedCodeChunk(MCT_Float, TEXT("GetScreenPosition(Parameters).w"));		
 	}
 
 	/** Calculate screen aligned UV coodinates from an offset fraction or texture coordinate */
@@ -2506,11 +2506,11 @@ protected:
 	{
 		if(bUseOffset)
 		{
-			return AddCodeChunk(MCT_Float2, TEXT("CalcScreenUVFromOffsetFraction(Parameters.ScreenPosition, %s)"), *GetParameterCode(Offset));
+			return AddCodeChunk(MCT_Float2, TEXT("CalcScreenUVFromOffsetFraction(GetScreenPosition(Parameters), %s)"), *GetParameterCode(Offset));
 		}
 		else
 		{
-			FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
+			FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(GetScreenPosition(Parameters)).xy)"));
 			FString CodeString = (UV != INDEX_NONE) ? CoerceParameter(UV,MCT_Float2) : DefaultScreenAligned;
 			return AddInlinedCodeChunk(MCT_Float2, *CodeString );
 		}
@@ -2518,11 +2518,6 @@ protected:
 
 	virtual int32 SceneDepth(int32 Offset, int32 UV, bool bUseOffset) override
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
-		{
-			return NonPixelShaderExpressionError();
-		}
-
 		if (Offset == INDEX_NONE && bUseOffset)
 		{
 			return INDEX_NONE;
@@ -2548,7 +2543,7 @@ protected:
 			return INDEX_NONE;
 		}
 
-		if (ShaderFrequency != SF_Pixel)
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Vertex)
 		{
 			// we can relax this later if needed
 			return NonPixelShaderExpressionError();
@@ -2558,7 +2553,7 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
-		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(Parameters.ScreenPosition).xy)"));
+		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(GetScreenPosition(Parameters)).xy)"));
 		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
 
 		return AddCodeChunk(
