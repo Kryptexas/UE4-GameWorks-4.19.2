@@ -27,7 +27,7 @@ namespace AutomationTool
 			}
 			else
 			{
-				CommandUtils.ERunOptions Opts = CommandUtils.ERunOptions.Default;
+				CommandUtils.ERunOptions Opts = CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.SpewIsVerbose;
 				if (bQuiet)
 				{
 					Opts = (Opts & ~CommandUtils.ERunOptions.AllowSpew) | CommandUtils.ERunOptions.NoLoggingOfRunCommand;
