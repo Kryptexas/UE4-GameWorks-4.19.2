@@ -1120,8 +1120,28 @@ public:
 	 * @param	HitLocation	location of the hit
 	 * @param	InBoneName	Name of bone to break constraint for
 	 */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh", meta = (Keywords = "Constraint"))
 	void BreakConstraint(FVector Impulse, FVector HitLocation, FName InBoneName);
-	
+
+	/** Sets the Angular Motion Ranges for a named bone
+	*  @param InBoneName  Name of bone to adjust constraint ranges for
+	*  @param Swing1LimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*  @param TwistLimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*  @param Swing2LimitAngle	 Size of limit in degrees, 0 means locked, 180 means free
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void  SetAngularLimits(FName InBoneName,float Swing1LimitAngle, float TwistLimitAngle, float Swing2LimitAngle);
+
+	/** Gets the current Angular state for a named bone constraint 
+	*  @param InBoneName  Name of bone to get constraint ranges for
+	*  @param Swing1Angle current angular state of the constraint
+	*  @param TwistAngle  current angular state of the constraint
+	*  @param Swing2Angle current angular state of the constraint
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
+	void GetCurrentJointAngles(FName InBoneName,float& Swing1Angle, float& TwistAngle, float& Swing2Angle) ;
+
+
 	/** iterates through all bodies in our PhysicsAsset and returns the location of the closest bone associated
 	 * with a body that has collision enabled.
 	 * @param TestLocation - location to check against

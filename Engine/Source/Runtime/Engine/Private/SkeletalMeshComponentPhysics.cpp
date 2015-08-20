@@ -1612,6 +1612,55 @@ void USkeletalMeshComponent::BreakConstraint(FVector Impulse, FVector HitLocatio
 }
 
 
+void USkeletalMeshComponent::SetAngularLimits(FName InBoneName, float Swing1LimitAngle, float TwistLimitAngle, float Swing2LimitAngle)
+{
+	int32 ConstraintIndex = FindConstraintIndex(InBoneName);
+	if (ConstraintIndex == INDEX_NONE || ConstraintIndex >= Constraints.Num())
+	{
+		return;
+	}
+
+	FConstraintInstance* Constraint = Constraints[ConstraintIndex];
+	// If already broken, our job has already been done. Bail!
+	if (Constraint->IsTerminated())
+	{
+		return;
+	}
+
+	UPhysicsAsset * const PhysicsAsset = GetPhysicsAsset();
+
+	// Figure out if Body is fixed or not
+	FBodyInstance* Body = GetBodyInstance(Constraint->JointName);
+
+	if (Body != NULL && Body->IsInstanceSimulatingPhysics())
+	{
+		// Unfix body so it can be broken.
+		Body->SetInstanceSimulatePhysics(true);
+	}
+
+	// update limits
+	Constraint->SetAngularSwing1Limit(Swing1LimitAngle == 0 ? ACM_Locked : (Swing1LimitAngle >= 180) ? ACM_Free : ACM_Limited, Swing1LimitAngle);
+	Constraint->SetAngularTwistLimit(TwistLimitAngle == 0 ? ACM_Locked : (TwistLimitAngle >= 180) ? ACM_Free : ACM_Limited, TwistLimitAngle);
+	Constraint->SetAngularSwing2Limit(Swing2LimitAngle == 0 ? ACM_Locked : (Swing2LimitAngle >= 180) ? ACM_Free : ACM_Limited, Swing2LimitAngle);
+}
+
+
+void USkeletalMeshComponent::GetCurrentJointAngles(FName InBoneName, float &Swing1Angle, float &TwistAngle, float &Swing2Angle)
+{
+	int32 ConstraintIndex = FindConstraintIndex(InBoneName);
+	if (ConstraintIndex == INDEX_NONE || ConstraintIndex >= Constraints.Num())
+	{
+		return;
+	}
+
+	FConstraintInstance* Constraint = Constraints[ConstraintIndex];
+	
+	Swing1Angle = FMath::RadiansToDegrees(Constraint->GetCurrentSwing1());
+	Swing2Angle = FMath::RadiansToDegrees(Constraint->GetCurrentSwing2());
+	TwistAngle = FMath::RadiansToDegrees(Constraint->GetCurrentTwist());
+}
+
+
 void USkeletalMeshComponent::SetPhysicsAsset(UPhysicsAsset* InPhysicsAsset, bool bForceReInit)
 {
 	// If this is different from what we have now, or we should have an instance but for whatever reason it failed last time, teardown/recreate now.
