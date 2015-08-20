@@ -1,5 +1,5 @@
 Availability:Public
-Title: Rendering & Graphics
+Title: Rendering and Graphics
 Crumbs: %ROOT%, Engine
 Description:Rendering subsystem including lighting and shadowing, materials and textures, particles and effects, and post processing.
 Related:Programming/Rendering

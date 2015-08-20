@@ -1,5 +1,5 @@
 Availability: Public
-Title: Audio & Sound
+Title: Audio and Sound
 Crumbs: %ROOT%, Engine
 Description:System for playing in-game sounds, including the use of SoundCue node-based audio assets.
 Navigation:topic
