@@ -33,6 +33,10 @@ class UGeomModifier : public UObject
 	UPROPERTY(EditAnywhere, Category=GeomModifier)
 	uint32 bInitialized:1;
 
+	/** If true, the pivot offset should be updated when the modification ends */
+	UPROPERTY()
+	uint32 bPendingPivotOffsetUpdate:1;
+
 private:
 	/** Stored state of polys in case the brush state needs to be restroed */
 	UPROPERTY()
