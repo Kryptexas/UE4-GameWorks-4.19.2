@@ -61,6 +61,8 @@ private:
 #endif
 
 	mutable FCachedWidgetNode* RootCacheNode;
+	mutable TArray< TSharedPtr< FSlateWindowElementList > > ActiveCachedElementListPool;
+	mutable TArray< TSharedPtr< FSlateWindowElementList > > InactiveCachedElementListPool;
 	mutable TSharedPtr< FSlateWindowElementList > CachedWindowElements;
 	mutable TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderData;
 

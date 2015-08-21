@@ -64,9 +64,10 @@ SInvalidationPanel::~SInvalidationPanel()
 		delete NodePool[i];
 	}
 
-	if ( FSlateApplication::IsInitialized() )
+	if( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().ReleaseResourcesForLayoutCache(this);
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+		Renderer->ReleaseCachingResourcesFor(this);
 	}
 }
 
@@ -184,6 +185,47 @@ FCachedWidgetNode* SInvalidationPanel::CreateCacheNode() const
 	return NewNode;
 }
 
+TSharedPtr< FSlateWindowElementList > SInvalidationPanel::GetNextCachedElementList(const TSharedPtr<SWindow>& CurrentWindow) const
+{
+	TSharedPtr< FSlateWindowElementList > NextElementList;
+
+	// Move any inactive element lists in the active pool to the inactive pool.
+	for ( int32 i = 0; i < ActiveCachedElementListPool.Num(); i++ )
+	{
+		if ( ActiveCachedElementListPool[i]->IsCachedRenderDataInUse() == false )
+		{
+			InactiveCachedElementListPool.Add(ActiveCachedElementListPool[i]);
+			ActiveCachedElementListPool.RemoveAtSwap(i, 1, false);
+		}
+	}
+
+	// Remove inactive lists that don't belong to this window.
+	for ( int32 i = 0; i < InactiveCachedElementListPool.Num(); i++ )
+	{
+		if ( InactiveCachedElementListPool[i]->GetWindow() != CurrentWindow )
+		{
+			InactiveCachedElementListPool.RemoveAtSwap(i, 1, false);
+		}
+	}
+
+	// Create a new element list if none are available, or use an existing one.
+	if ( InactiveCachedElementListPool.Num() == 0 )
+	{
+		NextElementList = MakeShareable(new FSlateWindowElementList(CurrentWindow));
+	}
+	else
+	{
+		NextElementList = InactiveCachedElementListPool[0];
+		NextElementList->ResetBuffers();
+
+		InactiveCachedElementListPool.RemoveAtSwap(0, 1, false);
+	}
+
+	ActiveCachedElementListPool.Add(NextElementList);
+
+	return NextElementList;
+}
+
 void SInvalidationPanel::OnGlobalInvalidate()
 {
 	InvalidateCache();
@@ -220,7 +262,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			// Mark that we're in the process of invalidating.
 			bIsInvalidating = true;
 
-			CachedWindowElements = FSlateApplication::Get().GetCachableElementList(OutDrawElements.GetWindow(), this);
+			CachedWindowElements = GetNextCachedElementList(OutDrawElements.GetWindow());
 
 			// Reset the render data handle in case it was in use, and we're not overriding it this frame.
 			CachedRenderData.Reset();
