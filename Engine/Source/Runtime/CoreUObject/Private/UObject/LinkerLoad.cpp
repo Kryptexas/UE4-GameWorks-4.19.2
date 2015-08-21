@@ -13,6 +13,7 @@
 #include "UObject/UObjectThreadContext.h"
 #include "GatherableTextData.h"
 #include "Serialization/AsyncLoading.h"
+#include "ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "LinkerLoad"
 
@@ -1308,6 +1309,36 @@ FLinkerLoad::ELinkerStatus FLinkerLoad::FixupImportMap()
 				for( int32 i=0; i<ImportMap.Num(); i++ )
 				{
 					FObjectImport& Import = ImportMap[i];
+
+#if WITH_EDITOR
+					// Fix references to assets that were converted into native code
+					
+					if (FReplaceConvertedAssetManager::Get().IsEnabled() && !Import.XObject)
+					{
+						const FString ImportPathName = GetImportPathName(i);
+						const FName PackageClassName(TEXT("Package"));
+						const bool bIsPackage = Import.ClassName == PackageClassName; // there must be a better way
+						if (bIsPackage)
+						{
+							if (auto NewNativePackage = FReplaceConvertedAssetManager::Get().FindPackageReplacement(ImportPathName))
+							{
+								Import.XObject = NewNativePackage;
+								Import.ObjectName = NewNativePackage->GetFName();
+								continue;
+							}
+						}
+						else if (auto ConvertedObject = FReplaceConvertedAssetManager::Get().FindReplacement(ImportPathName))
+						{
+							Import.ObjectName = ConvertedObject->GetFName();
+							Import.XObject = ConvertedObject;
+							Import.ClassName = ConvertedObject->GetClass()->GetFName();
+							auto ClassPackage = ConvertedObject->GetClass()->GetOuterUPackage();
+							Import.ClassPackage = ClassPackage ? ClassPackage->GetFName() : FName();
+							continue;
+						}
+					}
+#endif //WITH_EDITOR
+
 					{
 						FSubobjectRedirect* Redirect = SubobjectNameRedirects.Find(Import.ObjectName);
 						if (Redirect)
@@ -2130,7 +2161,6 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 		NewRef.Linker->GatherExportDependencies(NewRef.ExportIndex, Dependencies, bSkipLoadedObjects);
 	}
 }
-
 
 FLinkerLoad::EVerifyResult FLinkerLoad::VerifyImport(int32 ImportIndex)
 {

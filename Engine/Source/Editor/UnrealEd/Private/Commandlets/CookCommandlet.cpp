@@ -24,6 +24,7 @@
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
 #include "MemoryMisc.h"
+#include "BlueprintSupport.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 
@@ -516,6 +517,8 @@ int32 UCookCommandlet::Main(const FString& CmdLineParams)
 		}
 	}
 
+	static const FBoolConfigValueHelper ReplaceConvertedAsset(TEXT("BlueprintCppConversion"), TEXT("ReplaceConvertedAssetWhileCooking"));
+	FReplaceConvertedAssetManager::Get().SetEnabled(ReplaceConvertedAsset);
 
 	if ( bCookOnTheFly )
 	{

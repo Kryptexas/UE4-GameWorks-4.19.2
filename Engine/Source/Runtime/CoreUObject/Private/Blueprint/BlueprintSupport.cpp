@@ -8,6 +8,7 @@
 #include "PropertyTag.h"
 #include "UObject/StructScriptLoader.h"
 #include "UObject/UObjectThreadContext.h"
+#include "ModuleManager.h"
 
 /** 
  * Defined in BlueprintSupport.cpp
@@ -1639,3 +1640,86 @@ void FDeferredObjInitializerTracker::ResolveDeferredSubClassObjects(UClass* Supe
 
 // don't want other files ending up with this internal define
 #undef DEFERRED_DEPENDENCY_CHECK
+
+#if WITH_EDITOR
+
+FReplaceConvertedAssetManager::FReplaceConvertedAssetManager() 
+	: bIsEnabled(false)
+{
+	FModuleManager::Get().OnModulesChanged().AddStatic(&FReplaceConvertedAssetManager::OnModulesChanged);
+
+	// FOR DEVELOPMENT/TEST ONLY:
+	// SetEnabled(true);
+}
+
+void FReplaceConvertedAssetManager::OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange)
+{
+	Get().GatherOriginalPathsOfConvertedAssets();
+}
+
+FReplaceConvertedAssetManager& FReplaceConvertedAssetManager::Get()
+{
+	static FReplaceConvertedAssetManager ReplaceConvertedAssetManager;
+	return ReplaceConvertedAssetManager;
+}
+
+UObject* FReplaceConvertedAssetManager::FindReplacement(const FString& OriginalPathName) const
+{
+	UObject* const* ObjPtr = ReplaceMap.Find(OriginalPathName);
+	return ObjPtr ? *ObjPtr : nullptr;
+}
+
+UPackage* FReplaceConvertedAssetManager::FindPackageReplacement(const FString& OriginalPathName) const
+{
+	for (auto It = ReplaceMap.CreateConstIterator(); It; ++It)
+	{
+		if (It.Key().StartsWith(OriginalPathName))
+		{
+			auto Val = It.Value();
+			return ensure(Val) ? Val->GetOutermost() : nullptr;
+		}
+	}
+	return nullptr;
+}
+
+void FReplaceConvertedAssetManager::GatherOriginalPathsOfConvertedAssets()
+{
+	if (!IsEnabled())
+	{
+		return;
+	}
+
+	ReplaceMap.Reset();
+	const FName ReplaceConverted(TEXT("ReplaceConverted"));
+
+	auto FillMap = [&](UField* Field)
+	{
+		if (Field && Field->HasMetaData(ReplaceConverted))
+		{
+			auto CombinedPaths = Field->GetMetaData(ReplaceConverted);
+			TArray<FString> Paths;
+			CombinedPaths.ParseIntoArray(Paths, TEXT(","));
+			for (auto& Path : Paths)
+			{
+				ReplaceMap.Add(Path, Field);
+			}
+		}
+	};
+
+	for (UClass* LocalClass : TObjectRange<UClass>())
+	{
+		FillMap(LocalClass);
+	}
+
+	for (UScriptStruct* LocalScriptStruct : TObjectRange<UScriptStruct>())
+	{
+		FillMap(LocalScriptStruct);
+	}
+
+	for (UEnum* LocalEnum : TObjectRange<UEnum>())
+	{
+		FillMap(LocalEnum);
+	}
+}
+
+#endif //WITH_EDITOR

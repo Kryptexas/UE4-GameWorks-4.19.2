@@ -213,20 +213,38 @@ FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
 	if (Obj)
 	{
 		Result = TEXT("ReplaceConverted=\"");
+
+		// 1. Current object
 		Result += Obj->GetPathName();
-		UPackage* Package = Obj->GetOutermost();
-		check(Package);
-		TArray<UObject*> AllObjects;
-		GetObjectsWithOuter(Package, AllObjects, true);
-		for (auto LocalObj : AllObjects)
+
+		// 2. Loaded Redirectors
 		{
-			auto Redirector = Cast<UObjectRedirector>(LocalObj);
-			if (Redirector && (Obj == Redirector->DestinationObject))
+			struct FLocalHelper
 			{
-				Result += TEXT(",");
-				Result += Redirector->GetPathName();
+				static UObject* FindFinalObject(UObjectRedirector* Redirector)
+				{
+					auto DestObj = Redirector ? Redirector->DestinationObject : nullptr;
+					auto InnerRedir = Cast<UObjectRedirector>(DestObj);
+					return InnerRedir ? FindFinalObject(InnerRedir) : DestObj;
+				}
+			};
+
+			TArray<UObject*> AllObjects;
+			GetObjectsOfClass(UObjectRedirector::StaticClass(), AllObjects);
+			for (auto LocalObj : AllObjects)
+			{
+				auto Redirector = CastChecked<UObjectRedirector>(LocalObj);
+				if (Obj == FLocalHelper::FindFinalObject(Redirector))
+				{
+					Result += TEXT(",");
+					Result += Redirector->GetPathName();
+				}
 			}
 		}
+
+		// 3. Unloaded Redirectors
+		// TODO: It would be better to load all redirectors before compiling. Than checking here AssetRegistry.
+
 		Result += TEXT("\"");
 	}
 

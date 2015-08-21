@@ -63,6 +63,47 @@ private:
 
 	FScopedClassDependencyGather();
 };
+
+/**
+* Stores info about BPCG, UDS, UDE, etc,, converted into native code.
+* Native entities (generated from BP items) have "ReplaceConverted" with original object path.
+* This path is used to fix linker.
+*/
+struct COREUOBJECT_API FReplaceConvertedAssetManager
+{
+private:
+	TMap<FString, UObject*> ReplaceMap;
+	bool bIsEnabled;
+
+	FReplaceConvertedAssetManager();
+
+	void GatherOriginalPathsOfConvertedAssets();
+
+public:
+
+	static FReplaceConvertedAssetManager& Get();
+
+	void SetEnabled(bool InEnabled)
+	{
+		bIsEnabled = InEnabled;
+		if (bIsEnabled)
+		{
+			GatherOriginalPathsOfConvertedAssets();
+		}
+	}
+
+	bool IsEnabled()
+	{
+		return bIsEnabled;
+	}
+
+	UPackage* FindPackageReplacement(const FString& OriginalPathName) const;
+
+	UObject* FindReplacement(const FString& OriginalPathName) const;
+
+	static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange);
+};
+
 #endif //WITH_EDITOR
 
 /** 
