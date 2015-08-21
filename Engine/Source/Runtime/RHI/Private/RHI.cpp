@@ -209,6 +209,7 @@ bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
 bool GSupportsHDR32bppEncodeModeIntrinsic = false;
+bool GSupportsParallelOcclusionQueries = false;
 
 
 /** Whether we are profiling GPU hitches. */

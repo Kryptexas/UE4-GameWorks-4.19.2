@@ -160,6 +160,20 @@ public:
 		PendingOcclusionQuery.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
 	}
 
+	FORCEINLINE FPrimitiveOcclusionHistory()
+		: HZBTestIndex(0)
+		, HZBTestFrameNumber(~0u)
+		, LastVisibleTime(0.0f)
+		, LastConsideredTime(0.0f)
+		, LastPixelsPercentage(0.0f)
+		, bGroupedQuery(false)
+		, CustomIndex(0)
+	{
+		PendingOcclusionQuery.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+		PendingOcclusionQuery.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	}
+
+
 	/** Destructor. Note that the query should have been released already. */
 	~FPrimitiveOcclusionHistory()
 	{
@@ -171,7 +185,7 @@ public:
 	{
 		for (int32 QueryIndex = 0; QueryIndex < NumBufferedFrames; QueryIndex++)
 		{
-			Pool.ReleaseQuery(RHICmdList, PendingOcclusionQuery[QueryIndex]);
+			Pool.ReleaseQuery(PendingOcclusionQuery[QueryIndex]);
 		}
 	}
 
@@ -245,7 +259,7 @@ public:
 	FRenderQueryRHIRef AllocateQuery();
 
 	/** De-reference an render query, returning it to the pool instead of deleting it when the refcount reaches 0. */
-	void ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query);
+	void ReleaseQuery(FRenderQueryRHIRef &Query);
 
 private:
 	/** Container for available render queries. */

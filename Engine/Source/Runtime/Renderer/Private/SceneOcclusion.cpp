@@ -84,7 +84,7 @@ FRenderQueryRHIRef FRenderQueryPool::AllocateQuery()
 	return Queries.Pop(/*bAllowShrinking=*/ false);
 }
 
-void FRenderQueryPool::ReleaseQuery(FRHICommandListImmediate& RHICmdList, FRenderQueryRHIRef &Query)
+void FRenderQueryPool::ReleaseQuery(FRenderQueryRHIRef &Query)
 {
 	if ( IsValidRef(Query) )
 	{
@@ -1138,7 +1138,7 @@ void FDeferredShadingSceneRenderer::BeginOcclusionTests(FRHICommandListImmediate
 				{
 					//FRenderQueryRHIParamRef Query = QueryIt.Value();
 					//check( Query.GetRefCount() == 1 );
-					ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, QueryIt.Value());
+					ViewState->OcclusionQueryPool.ReleaseQuery(QueryIt.Value());
 				}
 				ShadowOcclusionQueryMap.Reset();
 

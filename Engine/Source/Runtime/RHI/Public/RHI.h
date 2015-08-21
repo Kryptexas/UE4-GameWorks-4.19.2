@@ -119,6 +119,9 @@ extern RHI_API bool GSupportsDepthBoundsTest;
 /** True if the RHI supports 'GetHDR32bppEncodeModeES2' shader intrinsic. */
 extern RHI_API bool GSupportsHDR32bppEncodeModeIntrinsic;
 
+/** True if the RHI supports getting the result of occlusion queries when on a thread other than the renderthread */
+extern RHI_API bool GSupportsParallelOcclusionQueries;
+
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
 
