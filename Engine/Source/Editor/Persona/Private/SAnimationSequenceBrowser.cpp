@@ -422,6 +422,8 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.Filter.ClassNames.Add(UVertexAnimation::StaticClass()->GetFName()); //@TODO: Is currently ignored due to the skeleton check
 	Config.InitialAssetViewType = EAssetViewType::Column;
 	Config.bAddFilterUI = true;
+	Config.bShowPathInColumnView = true;
+	Config.bSortByPathInColumnView = true;
 
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
 	if (Persona.IsValid())

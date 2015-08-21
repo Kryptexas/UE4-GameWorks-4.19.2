@@ -154,6 +154,10 @@ void SAssetView::Construct( const FArguments& InArgs )
 
 	SelectionMode = InArgs._SelectionMode;
 
+	bShowPathInColumnView = InArgs._ShowPathInColumnView;
+	bShowTypeInColumnView = InArgs._ShowTypeInColumnView;
+	bSortByPathInColumnView = bShowPathInColumnView & InArgs._SortByPathInColumnView;
+
 	bPendingUpdateThumbnails = false;
 	CurrentThumbnailSize = TileViewThumbnailSize;
 
@@ -393,6 +397,19 @@ void SAssetView::Construct( const FArguments& InArgs )
 		TArray<FAssetData> AssetsToSync;
 		AssetsToSync.Add( InArgs._InitialAssetSelection );
 		SyncToAssets( AssetsToSync );
+	}
+
+	// If currently looking at column, and you could choose to sort by path in column first and then name
+	// Generalizing this is a bit difficult because the column ID is not accessible or is not known
+	// Currently I assume this won't work, if this view mode is not column. Otherwise, I don't think sorting by path
+	// is a good idea. 
+	if (CurrentViewType == EAssetViewType::Column && bSortByPathInColumnView)
+	{
+		SortManager.SetSortColumnId(EColumnSortPriority::Primary, SortManager.PathColumnId);
+		SortManager.SetSortColumnId(EColumnSortPriority::Secondary, SortManager.NameColumnId);
+		SortManager.SetSortMode(EColumnSortPriority::Primary, EColumnSortMode::Ascending);
+		SortManager.SetSortMode(EColumnSortPriority::Secondary, EColumnSortMode::Ascending);
+		SortList();
 	}
 }
 
@@ -1287,7 +1304,7 @@ TSharedRef<SAssetListView> SAssetView::CreateListView()
 
 TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 {
-	return SNew(SAssetColumnView)
+	TSharedPtr<SAssetColumnView> ColumnView = SNew(SAssetColumnView)
 		.SelectionMode( SelectionMode )
 		.ListItemsSource(&FilteredAssetItems)
 		.OnGenerateRow(this, &SAssetView::MakeColumnViewWidget)
@@ -1305,14 +1322,34 @@ TSharedRef<SAssetColumnView> SAssetView::CreateColumnView()
 			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.NameColumnId)))
 			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
 			.DefaultLabel( LOCTEXT("Column_Name", "Name") )
-			//@TODO: Query the OnAssetTagWantsToBeDisplayed column filter here too, in case the user wants to bury the type column
-			+ SHeaderRow::Column(SortManager.ClassColumnId)
-			.FillWidth(160)
-			.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SAssetView::GetColumnSortMode, SortManager.ClassColumnId ) ) )
-			.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
-			.OnSort( FOnSortModeChanged::CreateSP( this, &SAssetView::OnSortColumnHeader ) )
-			.DefaultLabel( LOCTEXT("Column_Class", "Type") )
 		);
+
+	if(bShowTypeInColumnView)
+	{
+		ColumnView->GetHeaderRow()->AddColumn(
+				SHeaderRow::Column(SortManager.ClassColumnId)
+				.FillWidth(160)
+				.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, SortManager.ClassColumnId)))
+				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.ClassColumnId)))
+				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
+				.DefaultLabel(LOCTEXT("Column_Class", "Type"))
+			);
+	}
+
+
+	if (bShowPathInColumnView)
+	{
+		ColumnView->GetHeaderRow()->AddColumn(
+				SHeaderRow::Column(SortManager.PathColumnId)
+				.FillWidth(160)
+				.SortMode(TAttribute< EColumnSortMode::Type >::Create(TAttribute< EColumnSortMode::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortMode, SortManager.PathColumnId)))
+				.SortPriority(TAttribute< EColumnSortPriority::Type >::Create(TAttribute< EColumnSortPriority::Type >::FGetter::CreateSP(this, &SAssetView::GetColumnSortPriority, SortManager.PathColumnId)))
+				.OnSort(FOnSortModeChanged::CreateSP(this, &SAssetView::OnSortColumnHeader))
+				.DefaultLabel(LOCTEXT("Column_Path", "Path"))
+			);
+	}
+
+	return ColumnView.ToSharedRef();
 }
 
 bool SAssetView::IsValidSearchToken(const FString& Token) const
@@ -1786,7 +1823,8 @@ void SAssetView::SetMajorityAssetType(FName NewMajorityAssetType)
 		for ( int32 ColumnIdx = Columns.Num() - 1; ColumnIdx >= 0; --ColumnIdx )
 		{
 			const FName ColumnId = Columns[ColumnIdx].ColumnId;
-			if ( ColumnId != SortManager.NameColumnId && ColumnId != SortManager.ClassColumnId && ColumnId != NAME_None )
+			if ( ColumnId != SortManager.NameColumnId && (bShowTypeInColumnView && ColumnId != SortManager.ClassColumnId) && 
+					(bShowPathInColumnView && ColumnId != SortManager.PathColumnId) && ColumnId != NAME_None )
 			{
 				ColumnView->GetHeaderRow()->RemoveColumn(ColumnId);
 			}
