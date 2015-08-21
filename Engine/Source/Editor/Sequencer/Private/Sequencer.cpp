@@ -74,6 +74,9 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			// Register for saving the level so that the state of the scene can be restored before saving and updated after saving.
 			FEditorDelegates::PreSaveWorld.AddSP(this, &FSequencer::OnPreSaveWorld);
 			FEditorDelegates::PostSaveWorld.AddSP(this, &FSequencer::OnPostSaveWorld);
+
+			//FEditorDelegates::NewCurrentLevel.AddSP(this, &FSequencer::OnNewCurrentLevel);
+			FEditorDelegates::OnMapOpened.AddSP(this, &FSequencer::OnMapOpened);
 		}
 		else
 		{
@@ -150,15 +153,7 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 
 		BindSequencerCommands();
 
-		if( GLevelEditorModeTools().IsModeActive( FSequencerEdMode::EM_SequencerMode ) )
-		{
-			GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
-		}
-
-		GLevelEditorModeTools().ActivateMode( FSequencerEdMode::EM_SequencerMode );
-
-		FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
-		SequencerEdMode->SetSequencer(ActiveSequencer.Get());
+		ActivateSequencerEditorMode();
 	}
 }
 
@@ -198,6 +193,9 @@ void FSequencer::Close()
 
 		FEditorDelegates::PreSaveWorld.RemoveAll(this);
 		FEditorDelegates::PostSaveWorld.RemoveAll(this);
+
+		//FEditorDelegates::NewCurrentLevel.RemoveAll(this);
+		FEditorDelegates::OnMapOpened.RemoveAll(this);
 		
 		for (auto TrackEditor : TrackEditors)
 		{
@@ -1523,6 +1521,29 @@ void FSequencer::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSu
 {
 	// Reset the time after saving so that an update will be triggered to put objects back to their animated state.
 	SetGlobalTime(GetGlobalTime());
+}
+
+void FSequencer::OnNewCurrentLevel()
+{
+	ActivateSequencerEditorMode();
+}
+
+void FSequencer::OnMapOpened(const FString& Filename, bool bLoadAsTemplate)
+{
+	ActivateSequencerEditorMode();
+}
+
+void FSequencer::ActivateSequencerEditorMode()
+{
+	if( GLevelEditorModeTools().IsModeActive( FSequencerEdMode::EM_SequencerMode ) )
+	{
+		GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
+	}
+
+	GLevelEditorModeTools().ActivateMode( FSequencerEdMode::EM_SequencerMode );
+
+	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
+	SequencerEdMode->SetSequencer(ActiveSequencer.Get());
 }
 
 void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const

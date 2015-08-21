@@ -420,6 +420,8 @@ protected:
 	/** Generates command bindings for UI commands */
 	void BindSequencerCommands();
 
+	void ActivateSequencerEditorMode();
+
 	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
@@ -434,6 +436,12 @@ protected:
 
 	/** Called after the world has been saved. The sequencer updates to the animated state. */
 	void OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess);
+
+	/** Called after a new level has been created. The sequencer editor mode needs to be enabled. */
+	void OnNewCurrentLevel();
+
+	/** Called after a map has been opened. The sequencer editor mode needs to be enabled. */
+	void OnMapOpened(const FString& Filename, bool bLoadAsTemplate);
 
 	/** Updates a viewport client from camera cut data */
 	void UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const;
