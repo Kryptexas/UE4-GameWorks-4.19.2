@@ -64,8 +64,11 @@ SInvalidationPanel::~SInvalidationPanel()
 		delete NodePool[i];
 	}
 
-	TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
-	Renderer->ReleaseCachingResourcesFor(this);
+	if( FSlateApplication::IsInitialized() )
+	{
+		TSharedPtr<FSlateRenderer> Renderer = FSlateApplicationBase::Get().GetRenderer();
+		Renderer->ReleaseCachingResourcesFor(this);
+	}
 }
 
 bool SInvalidationPanel::GetCanCache() const

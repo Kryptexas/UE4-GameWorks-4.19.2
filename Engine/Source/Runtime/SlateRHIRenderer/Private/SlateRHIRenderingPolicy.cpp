@@ -155,6 +155,8 @@ FSlateRHIRenderingPolicy::FSlateRHIRenderingPolicy( TSharedPtr<FSlateFontCache> 
 
 FSlateRHIRenderingPolicy::~FSlateRHIRenderingPolicy()
 {
+	// Delete released resources.  Note this MUST NOT be called before the rendering resources have been released
+	DeleteReleasedResources();
 }
 
 void FSlateRHIRenderingPolicy::InitResources()
@@ -199,10 +201,7 @@ void FSlateRHIRenderingPolicy::ReleaseResources()
 
 		Buffer->VertexBuffer.Destroy();
 		Buffer->IndexBuffer.Destroy();
-		delete Buffer;
 	}
-
-	CachedBuffers.Reset();
 
 	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
 	{
@@ -211,11 +210,30 @@ void FSlateRHIRenderingPolicy::ReleaseResources()
 		{
 			PooledBuffer->VertexBuffer.Destroy();
 			PooledBuffer->IndexBuffer.Destroy();
+		}
+	}
+}
+
+void FSlateRHIRenderingPolicy::DeleteReleasedResources()
+{
+	for ( TCachedBufferMap::TIterator BufferIt(CachedBuffers); BufferIt; ++BufferIt )
+	{
+		FCachedRenderBuffers* Buffer = BufferIt.Value();
+		delete Buffer;
+	}
+
+	CachedBuffers.Empty();
+
+	for ( TCachedBufferPoolMap::TIterator BufferIt(CachedBufferPool); BufferIt; ++BufferIt )
+	{
+		TArray< FCachedRenderBuffers* >& Pool = BufferIt.Value();
+		for ( FCachedRenderBuffers* PooledBuffer : Pool )
+		{
 			delete PooledBuffer;
 		}
 	}
 
-	CachedBufferPool.Reset();
+	CachedBufferPool.Empty();
 }
 
 void FSlateRHIRenderingPolicy::BeginDrawingWindows()
