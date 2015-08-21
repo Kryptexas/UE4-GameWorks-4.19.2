@@ -1,11 +1,29 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2653552
 Availability:Public
 Title:1.12 - モーション ブラー
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスの事例概要、例 1.12：モーション ブラー
+Description:ポストプロセスのサンプル レベルの概要、1.12：モーション ブラー
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_11 "%Resources/ContentExamples/PostProcessing/1_11:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_13 "%Resources/ContentExamples/PostProcessing/1_13:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,7 +68,7 @@ Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
 ![](1_12_01.png)
 [/REGION]
 
-**モーション ブラー** は被写体の移動に追随して生じます。このシステムは、低下させた解像度で作成されるフルスクリーン ベロシティマップで機能し、オブジェクトはこのマップへの寄与に基づいてブラーがかけられます。以下の画像はエディタ内蔵のベロシティマップ、またはゲーム実行時のベロシティマップの映像を示しています。
+**モーション ブラー** は被写体の移動に合わせて発生します。このシステムは、低下させた解像度で作成されるフルスクリーン ベロシティマップで機能し、オブジェクトはこのマップへの寄与に基づいてブラーがかけられます。以下の画像はエディタ内蔵のベロシティマップ、またはゲーム実行時のベロシティマップの映像を示しています。
 
 [REGION:fullwidth]
 ![](1_12_02.png)
