@@ -26,7 +26,7 @@ int main(int ArgC, const char* ArgV[])
 	FBuildGraph Graph;
 	if(!Graph.ReadFromFile(ArgV[1]))
 	{
-		wprintf(TEXT("Couldn't read '%s'"), ArgV[1]);
+		wprintf(TEXT("Couldn't read '%hs'"), ArgV[1]);
 		return 1;
 	}
 
