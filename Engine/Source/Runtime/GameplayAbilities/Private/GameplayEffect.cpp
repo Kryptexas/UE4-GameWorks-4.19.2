@@ -2079,9 +2079,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		}
 		else
 		{
-			ExistingStackableGE->StartServerWorldTime = GetServerWorldTime();
-			ExistingStackableGE->CachedStartServerWorldTime = ExistingStackableGE->StartServerWorldTime;
-			ExistingStackableGE->StartWorldTime = GetWorldTime();
+			RestartActiveGameplayEffectDuration(*ExistingStackableGE);
 		}
 
 		// Make sure the GE actually wants to reset its period
@@ -2628,6 +2626,14 @@ void FActiveGameplayEffectsContainer::InternalApplyExpirationEffects(const FGame
 	}
 }
 
+void FActiveGameplayEffectsContainer::RestartActiveGameplayEffectDuration(FActiveGameplayEffect& ActiveGameplayEffect)
+{
+	ActiveGameplayEffect.StartServerWorldTime = GetServerWorldTime();
+	ActiveGameplayEffect.CachedStartServerWorldTime = ActiveGameplayEffect.StartServerWorldTime;
+	ActiveGameplayEffect.StartWorldTime = GetWorldTime();
+	MarkItemDirty(ActiveGameplayEffect);
+}
+
 void FActiveGameplayEffectsContainer::OnOwnerTagChange(FGameplayTag TagChange, int32 NewCount)
 {
 	// It may be beneficial to do a scoped lock on attribute re-evaluation during this function
@@ -2818,10 +2824,7 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 
 			if (RefreshStartTime)
 			{
-				Effect.StartServerWorldTime = GetServerWorldTime();
-				Effect.CachedStartServerWorldTime = Effect.StartServerWorldTime;
-				Effect.StartWorldTime = GetWorldTime();
-				MarkItemDirty(Effect);
+				RestartActiveGameplayEffectDuration(Effect);
 			}
 
 			if (RefreshDurationTimer)
