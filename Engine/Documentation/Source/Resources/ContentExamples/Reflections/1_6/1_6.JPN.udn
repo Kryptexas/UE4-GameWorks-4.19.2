@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2613813
-Availability:Public
+﻿Availability:Public
 Title:1.6 - Scene Capture Cube
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
 Description:反射のサンプル レベルの概要、1.6：Scene Capture Cube
@@ -9,6 +8,25 @@ Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Reflections/1_5 "%Resources/ContentExamples/Reflections/1_5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[反射のホーム](Resources/ContentExamples/Reflections)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Reflections/1_7 "%Resources/ContentExamples/Reflections/1_7:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -53,10 +71,10 @@ Related:Engine/Rendering/PostProcessEffects
 
 ![](Reflections_1_6_Header.png)
 
-**Scene Capture Cubes (シーン キャプチャ キューブ)** は、キューブの位置から、 _各フレーム毎_ に完全に動的なキューブマップをキャプチャします。Cubemap Render Target を実際にキャプチャすることが必要で、その Render Target は任意のマテリアル内でテクスチャとして利用出来るようになります。 
+**Scene Capture Cubes** は、キューブの位置から、 _各フレーム毎_ に完全に動的なキューブマップをキャプチャします。Cubemap Render Target を実際にキャプチャすることが必要で、その Render Target は任意のマテリアル内でテクスチャとして利用出来るようになります。 
 
 [REGION:warning]
-シーン キャプチャ キューブはパフォーマンス コストがかなり高くなるため、どうしても必要な任意のエフェクトがどうしても必要な場合のみ使用してください。
+Scene Capture Cubes はパフォーマンス コストがかなり高くなるため、任意のエフェクトがどうしても必要な場合のみ使用してください。
 [/REGION]
 
 [/REGION]
