@@ -249,13 +249,28 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 {
 	if (GlobalGameplayCueManager == nullptr)
 	{
-		GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(nullptr, *GlobalGameplayCueManagerName.ToString(), nullptr, LOAD_None, nullptr);
+		if (GlobalGameplayCueManagerName.IsValid())
+		{
+			GlobalGameplayCueManager = LoadObject<UGameplayCueManager>(nullptr, *GlobalGameplayCueManagerName.ToString(), nullptr, LOAD_None, nullptr);
+			if (GlobalGameplayCueManager == nullptr)
+			{
+				ABILITY_LOG(Error, TEXT("Unable to Load GameplayCueManager %s"), *GlobalGameplayCueManagerName.ToString() );
+			}
+		}
+
+		if ( GlobalGameplayCueManager == nullptr)
+		{
+			// Fallback to CDO
+			GlobalGameplayCueManager = UGameplayCueManager::StaticClass()->GetDefaultObject<UGameplayCueManager>();
+		}
+
 		if (GameplayCueNotifyPaths.Num() > 0)
 		{
 			GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
 		}
 	}
 
+	check(GlobalGameplayCueManager);
 	return GlobalGameplayCueManager;
 }
 
