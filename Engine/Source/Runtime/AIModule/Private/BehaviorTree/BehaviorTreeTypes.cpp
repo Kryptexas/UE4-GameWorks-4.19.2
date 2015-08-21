@@ -200,11 +200,23 @@ void FBehaviorTreeSearchData::AddUniqueUpdate(const FBehaviorTreeSearchUpdate& U
 			PendingUpdates.RemoveAt(UpdateIndex, 1, false);
 		}
 	}
+	
+	// don't add Remove updates for inactive aux nodes, as they will block valid Add update coming later from the same search
+	// check only aux nodes, it happens due to UBTCompositeNode::NotifyDecoratorsOnActivation
+	if (!bSkipAdding && UpdateInfo.Mode == EBTNodeUpdateMode::Remove && UpdateInfo.AuxNode)
+	{
+		const bool bIsActive = OwnerComp.IsAuxNodeActive(UpdateInfo.AuxNode, UpdateInfo.InstanceIndex);
+		bSkipAdding = !bIsActive;
+	}
 
 	if (!bSkipAdding)
 	{
 		const int32 Idx = PendingUpdates.Add(UpdateInfo);
 		PendingUpdates[Idx].bPostUpdate = (UpdateInfo.Mode == EBTNodeUpdateMode::Add) && (Cast<UBTService>(UpdateInfo.AuxNode) != NULL);
+	}
+	else
+	{
+		UE_VLOG(OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT(">> or not, update skipped"));
 	}
 }
 
