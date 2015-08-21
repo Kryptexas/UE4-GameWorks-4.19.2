@@ -454,15 +454,15 @@ public partial class GUBP : BuildCommand
 			string BuildStatus;
 			if(BuildCL == CurrentCL)
 			{
-				BuildStatus = "<<<< THIS CHANGE";
+				BuildStatus = "THIS CHANGE";
 			}
-            else if (History.AllSucceeded.Contains(BuildCL))
-            {
-				BuildStatus = "SUCCEEDED";
-            }
             else if (History.AllFailed.Contains(BuildCL))
             {
 				BuildStatus = "FAILED";
+            }
+            else if (History.AllSucceeded.Contains(BuildCL))
+            {
+				BuildStatus = "SUCCEEDED";
             }
 			else
 			{
