@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2635446
+﻿INTSourceChangelist:2661444
 Availability:Public
 Title:アニメーション レイヤーを編集する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -9,8 +9,10 @@ Related:Engine\Animation\AnimBlueprints
 Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 Related:Engine\Animation\Skeleton
 Related:Engine\Animation\Overview
+バージョン：4.9
+スキルレベル:上級
 
-**Animation Layer Editing (アニメーション レイヤー編集)** では UE4 内の既存の [](Engine\Animation\Sequences) を Additive Layer Tracks (加算レイヤー トラック) の一部として修正することができます。アニメーション レイヤー編集では、既存のアニメーションを使用して調整し、異なるテイクをアニメーションで作ります。または、オリジナルをもとに独自のモーションを適用した別個の新しいアニメーションを作成することもできます。 
+Animation Layer Editing (アニメーション レイヤー編集) では UE4 内の既存の [](Engine\Animation\Sequences) を Additive Layer Tracks (加算レイヤー トラック) の一部として修正することができます。アニメーション レイヤー編集では、既存のアニメーションを使用して調整し、異なるテイクをアニメーションで作ります。または、オリジナルをもとに独自のモーションを適用した別個の新しいアニメーションを作成することもできます。 
 
 このページではアニメーション レイヤー編集ツールの使用方法、およびアイドル状態のアニメーションを使用してそれを Reload アニメーションに再利用する方法を説明します。 
 
@@ -24,15 +26,15 @@ Related:Engine\Animation\Overview
 
 このセクションではアイドル状態のアニメーションの編集可能なコピーを作成し、オリジナルはそのままの状態にします。 
 
-1. **コンテンツ ブラウザ** の **Game/FirstPersonBP/Animations** フォルダで **Prone_Idle** アニメーションを開きます。 
+1. **コンテンツ ブラウザ** の **「Game/FirstPerson/Animations」** フォルダで **FirstPerson_Idle** アニメーションを開きます。 
 
-	![](LE_FPIdleM.jpg)
+	![](AnimEdit1.png)
 
 1.	アニメーションが開いた状態で **再生コントロール** を使用してアニメーションを一時停止し、フレーム 0 に設定して一番最初になるようにします。 
 
 	![](AnimEdit2.png)(w:640)
 
-1.	ツールバー メニューから **[Create Asset (アセット作成)]** ボタンをクリックします。次に _Create Animation (アニメーションを作成)_ で **[From Current Animation (現在のアニメーションから)]** を選択します。 
+1.	ツールバー メニューから **[Create Asset (アセット作成)]** ボタンをクリックします。次に **Create Animation (アニメーションを作成)** で **[From Current Animation (現在のアニメーションから)]** を選択します。 
 
 	![](LE_FromCurrentAnimation.jpg)
 
@@ -48,7 +50,7 @@ Related:Engine\Animation\Overview
 
 **FirstPerson_Reload** アニメーションを作成した状態で、アニメーション レイヤー編集を使用して編集を開始することができます。 
 
-1. **FirstPerson_Reload** アニメーションが開いた状態で **再生コントロール** にある **ToNext (次へ)** ボタンをクリックしてフレーム 15 に進めます。 
+1. **FirstPerson_Reload** アニメーションが開いた状態で **Playback (再生) コントロール** にある **[To Next (次へ)]** ボタンをクリックしてフレーム 15 に進めます。 
 
 	![](AnimEdit5.png)
 
@@ -72,11 +74,11 @@ Related:Engine\Animation\Overview
 
 	上の画面では 3 つの別個のトラックが **upperarm_l** ボーンに追加されました。すなわち、**平行移動** トラック (1)、**回転** トラック (2)、および **スケーリング** トラック (3) の 3 つです。
 
-1.	**ToNext** ボタンをクリックしてフレーム 30 に進めます。 
+1.	**[To Next]** ボタンをクリックしてフレーム 30 に進めます。 
 
 	![](AnimEdit9.png)
 
-1.	ビューポート内で **回転** ウィジェットの黄色の円弧を **左クリック** します。 
+1.	ビューポート内で **Rotation (回転)** ウィジェットの緑色の円弧を **左クリック** します。 
 
 	![](LE_LeftArmRot.jpg)
 
@@ -92,9 +94,9 @@ Related:Engine\Animation\Overview
 
 	新しいキーが加算レイヤー トラックに追加され、1 つめのキーから 2 つめのキーへのカーブが作成されます。 
 
-1.	 **再生コントロール** の **ToNext** ボタンをクリックしてフレーム 45 に進めます。 
+1.	 **再生コントロール** の **[To Next]** ボタンをクリックしてフレーム 45 に進めます。 
 
-1.	ビューポート内で **回転** ウィジェットの黄色の円弧を **左クリック** してドラッグして、**60.00** マークまで右側に回転させます。 
+1.	ビューポート内で **回転** ウィジェットの緑色の円弧を **左クリック** してドラッグして、**60.00** マークまで右側に回転させます。 
 
 	![](LE_LeftArmUp60.jpg)
 
@@ -104,13 +106,13 @@ Related:Engine\Animation\Overview
 
 	新しいキーが追加され、最初のキー一式と同じ値になるはずです。 
 
-1.	 **再生コントロール** の **ToNext** ボタンをクリックしてフレーム 50 に進めます。 **S** を押してキー一式を追加します。 
+1.	 **再生コントロール** の **[ToNext]** ボタンをクリックしてフレーム 50 に進めます。 **S** を押してキー一式を追加します。 
 
 	![](AnimEdit17.png)(w:640)
 
-1.	 **再生コントロール** の **ToNext** ボタンをクリックしてフレーム 60 に進めます。 
+1.	 **再生コントロール** の **[To Next]** ボタンをクリックしてフレーム 60 に進めます。 
 
-1.	ビューポートで **W** を押して **平行移動** モードに切り替えます。**左クリック** し、黄色の矢印を少し右にドラッグします。 
+1.	ビューポートで **W** を押して **平行移動** モードに切り替えます。**左クリック** し、赤色の矢印を少し右にドラッグします。 
 
 	![](LE_LeftArmPump.jpg)
 
@@ -122,7 +124,7 @@ Related:Engine\Animation\Overview
 
 	ポーズのキーが以前のキーのカーブと共に加算レイヤー トラックに追加されます。 
 
-1.	 **再生コントロール** の **ToNext (次へ)** ボタンをクリックしてフレーム 65 に進めます。 **S** を押してキー一式を追加します。 
+1.	 **再生コントロール** の **[ToNext]** ボタンをクリックしてフレーム 65 に進めます。 **S** を押してキー一式を追加します。 
 
 	![](AnimEdit22.png)(w:640)
 
@@ -138,9 +140,35 @@ Related:Engine\Animation\Overview
 
 	キーとカーブがアニメーションに追加された結果は、ベースとなるアニメーションに加算モーションが適用されたものになります。**[Apply]** ボタンをクリックすると、キーと曲線データが最終アニメーションにベイクされます。 
 
-1.	アニメーションが完了したので **保存** ボタンをクリックします。 
+1.	アニメーションが完了したので **保存** ボタンをクリックします。
  
-以下はゲーム内でキャラクターで再生されるアニメーションの例です。 
+1. **「Game/FirstPerson/Animations」** フォルダ内で、**FirstPerson_AnimBP** を **ダブルクリック** して開きます。
+
+	![](AnimEdit28.png)
+
+1. **Animation ブループリント エディタ** 内で、**[My Blueprint]** パネルの **Anim Graph** 内で **ダブルクリック** して開きます。
+
+	![](AnimEdit29.png)
+
+1. **Anim Graph** で **New State Machine** ノードを **ダブルクリック** して開きます。
+
+	![](AnimEdit30.png)
+
+1. **FPP_Idle** というタイトルのノードを見つけて **ダブルクリック** して開きます。
+
+	![](AnimEdit31.png)
+
+1. グラフ内を **右クリック** して、 **Play FirstPerson_Reload** ノードを作成します。
+
+	![](AnimEdit32.png)
+
+1. 既存の **Play FirstPerson_Idle** ノードを新規の **Play FirstPerson_Reload** ノードに置換します。これを行うには、左クリックしたまま **Ctrl** キーを押しながら **Play FirstPerson_Idle** ノードの出力から **Play FirstPerson_Reload** ノードまでドラッグします。
+
+	![](AnimEdit33.png)
+
+1. Animation ブループリントを **コンパイル** し、**保存** してから閉じます。次に、 **Play** をクリックして新しいアニメーションをテストします。
+
+以下はインゲームのキャラクターで再生されるアニメーションの例です。 
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
