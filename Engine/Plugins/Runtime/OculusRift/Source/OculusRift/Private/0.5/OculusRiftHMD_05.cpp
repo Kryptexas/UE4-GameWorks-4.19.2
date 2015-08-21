@@ -308,6 +308,10 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 	OutOrigin = Pos;
 }
 
+void FOculusRiftHMD::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
+{
+}
+
 bool FOculusRiftHMD::IsInLowPersistenceMode() const
 {
 	const auto frame = GetFrame();
