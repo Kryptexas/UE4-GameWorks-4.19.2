@@ -982,7 +982,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 		}
 	}
 
-	if (bShowGraph)
+	if (bShowGraph && RootNode != nullptr)
 	{
 		Canvas->SetLinearDrawColor(TextYellow);
 
