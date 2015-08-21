@@ -123,7 +123,7 @@ void FGenericPlatformProcess::SetShaderDir(const TCHAR*Where)
  */
 const FString FGenericPlatformProcess::ShaderWorkingDir()
 {
-	return (FPaths::GameIntermediateDir() / TEXT("Shaders/WorkingDirectory/"));
+	return (FPaths::GameIntermediateDir() / TEXT("Shaders/tmp/"));
 }
 
 /**
@@ -133,8 +133,10 @@ void FGenericPlatformProcess::CleanShaderWorkingDir()
 {
 	// Path to the working directory where files are written for multi-threaded compilation
 	FString ShaderWorkingDirectory = ShaderWorkingDir();
-
 	IFileManager::Get().DeleteDirectory(*ShaderWorkingDirectory, false, true);
+
+	FString LegacyShaderWorkingDirectory = FPaths::GameIntermediateDir() / TEXT("Shaders/WorkingDirectory/");
+	IFileManager::Get().DeleteDirectory(*LegacyShaderWorkingDirectory, false, true);
 }
 
 const TCHAR* FGenericPlatformProcess::ExecutableName(bool bRemoveExtension)
