@@ -184,6 +184,11 @@ namespace AutomationTool
 			// do nothing in the default case
 		}
 
+		public virtual void UploadSymbols(ProjectParams Params, DeploymentContext SC)
+		{
+			LogWarning("{0} does not implement UploadSymbols...", PlatformType);
+		}
+
 		/// <summary>
 		/// Get the platform-specific name for the executable (with out the file extension)
 		/// </summary>

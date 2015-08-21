@@ -298,6 +298,7 @@ namespace AutomationTool
             this.RunTimeoutSeconds = InParams.RunTimeoutSeconds;
 			this.bIsCodeBasedProject = InParams.bIsCodeBasedProject;
 			this.bCodeSign = InParams.bCodeSign;
+			this.UploadSymbols = InParams.UploadSymbols;
 		}
 
 		/// <summary>
@@ -403,7 +404,8 @@ namespace AutomationTool
             bool? IterativeDeploy = null,
 			bool? FastCook = null,
 			bool? IgnoreCookErrors = null,
-			bool? CodeSign = null
+			bool? CodeSign = null,
+			bool? UploadSymbols = null
 			)
 		{
 			//
@@ -560,6 +562,7 @@ namespace AutomationTool
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
 			this.FastCook = GetParamValueIfNotSpecified(Command, FastCook, this.FastCook, "FastCook");
 			this.IgnoreCookErrors = GetParamValueIfNotSpecified(Command, IgnoreCookErrors, this.IgnoreCookErrors, "IgnoreCookErrors");
+			this.UploadSymbols = GetParamValueIfNotSpecified(Command, UploadSymbols, this.UploadSymbols, "uploadsymbols");
 			this.Device = ParseParamValueIfNotSpecified(Command, Device, "device", String.Empty).Trim(new char[] { '\"' });
 
 			// strip the platform prefix the specified device.
@@ -1403,6 +1406,9 @@ namespace AutomationTool
 		[Help("SpecifiedArchitecture", "Determine a specific Minimum OS")]
 		public string SpecifiedArchitecture;
 
+		[Help("UploadSymbols", "upload symbols while packaging")]
+		public bool UploadSymbols { get; set; }
+
 		#endregion
 
 		#region Deploy
@@ -2140,6 +2146,7 @@ namespace AutomationTool
 				CommandUtils.LogLog("bUsesCEF3={0}", bUsesCEF3);
 				CommandUtils.LogLog("bUsesSlate={0}", bUsesSlate);
                 CommandUtils.LogLog("bDebugBuildsActuallyUseDebugCRT={0}", bDebugBuildsActuallyUseDebugCRT);
+				CommandUtils.LogLog("UploadSymbols={0}", UploadSymbols);
 				CommandUtils.LogLog("Project Params **************");
 			}
 			bLogged = true;
