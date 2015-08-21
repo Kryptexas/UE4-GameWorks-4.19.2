@@ -631,12 +631,6 @@ public:
 		, NumIndices( InNumIndices )
 	{}
 
-	//// Render Batch Sort Operator
-	//bool operator < ( const FSlateRenderBatch& RenderBatchIn ) const
-	//{
-	//	return Layer < RenderBatchIn.Layer;
-	//}
-
 public:
 	/** The layer we need to sort by when  */
 	const uint32 Layer;
