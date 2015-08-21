@@ -4,6 +4,7 @@
 #include "PersonaModule.h"
 #include "EditorAnimUtils.h"
 #include "NotificationManager.h"
+#include "SBlueprintDiff.h"
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "ClassIconFinder.h"
@@ -132,6 +133,51 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 		{
 			FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToLoadCorruptAnimBlueprint", "The Anim Blueprint could not be loaded because it is corrupt."));
 		}
+	}
+}
+
+void FAssetTypeActions_AnimBlueprint::PerformAssetDiff(UObject* Asset1, UObject* Asset2, const struct FRevisionInfo& OldRevision, const struct FRevisionInfo& NewRevision) const
+{
+	if (!GetDefault<UEditorExperimentalSettings>()->bEnableAnimVisualDiff)
+	{
+		return FAssetTypeActions_Base::PerformAssetDiff(Asset1, Asset2, OldRevision, NewRevision);
+	}
+
+	UBlueprint* OldBlueprint = CastChecked<UBlueprint>(Asset1);
+	UBlueprint* NewBlueprint = CastChecked<UBlueprint>(Asset2);
+
+	// sometimes we're comparing different revisions of one single asset (other 
+	// times we're comparing two completely separate assets altogether)
+	bool bIsSingleAsset = (NewBlueprint->GetName() == OldBlueprint->GetName());
+
+	FText WindowTitle = LOCTEXT("NamelessAnimationBlueprintDiff", "Animation Blueprint Diff");
+	// if we're diff'ing one asset against itself 
+	if (bIsSingleAsset)
+	{
+		// identify the assumed single asset in the window's title
+		WindowTitle = FText::Format(LOCTEXT("AnimationBlueprintDiff", "{0} - Animation Blueprint Diff"), FText::FromString(NewBlueprint->GetName()));
+	}
+
+	const TSharedPtr<SWindow> Window = SNew(SWindow)
+		.Title(WindowTitle)
+		.ClientSize(FVector2D(1000, 800));
+
+	Window->SetContent(SNew(SBlueprintDiff)
+		.BlueprintOld(OldBlueprint)
+		.BlueprintNew(NewBlueprint)
+		.OldRevision(OldRevision)
+		.NewRevision(NewRevision)
+		.ShowAssetNames(!bIsSingleAsset));
+
+	// Make this window a child of the modal window if we've been spawned while one is active.
+	TSharedPtr<SWindow> ActiveModal = FSlateApplication::Get().GetActiveModalWindow();
+	if (ActiveModal.IsValid())
+	{
+		FSlateApplication::Get().AddWindowAsNativeChild(Window.ToSharedRef(), ActiveModal.ToSharedRef());
+	}
+	else
+	{
+		FSlateApplication::Get().AddWindow(Window.ToSharedRef());
 	}
 }
 
