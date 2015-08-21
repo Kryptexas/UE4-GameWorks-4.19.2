@@ -1,14 +1,33 @@
-﻿INTSourceChangelist:2613812
+﻿INTSourceChangelist:2653552
 Availability:Public
-Title:1.5 - Screenspace  Reflections
+Title:1.5 - スクリーン空間の反射
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射のサンプル レベルの概要、1.5：Screenspace  Reflections
+Description:反射のサンプル レベルの概要、1.5：スクリーン空間の反射
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related:Engine/Rendering/Materials/PhysicallyBased
 Related:Resources/Showcases/RealisticRendering
 Related:Engine/Rendering/PostProcessEffects
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/Reflections/1_4 "%Resources/ContentExamples/Reflections/1_4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[反射のホーム](Resources/ContentExamples/Reflections)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Reflections/1_6 "%Resources/ContentExamples/Reflections/1_6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]
@@ -55,7 +74,7 @@ Related:Engine/Rendering/PostProcessEffects
 **Screen-Space Reflections (スクリーン空間の反射)** は動的なポストプロセス エフェクトです。スクリーン上にあるものだけを反射させるので、完全に反射した表面上に奇妙なアーティファクトを作成してしまいます。しかしマテリアルにラフネスを少し追加すれば、これらのアーティファクトをブレンドし削除することができます。
 
 [REGION:tip]
-**Screenspace Reflections** を有効にするには、コンソール コマンド `r.ssr 1` を使うか、 ビューポートから **[Show (表示)] > [Lighting Features (ライティング機能)] > [Screen Space Reflections (スクリーン空間の反射)]** を選択します。
+**スクリーン空間の反射** を有効にするには、コンソール コマンド `r.ssr 1` を使うか、 ビューポートから **[Show (表示)] > [Lighting Features (ライティング機能)] > [Screen Space Reflections (スクリーン空間の反射)]** を選択します。
 [/REGION]
 
 
