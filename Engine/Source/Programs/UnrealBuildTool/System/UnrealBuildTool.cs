@@ -677,6 +677,7 @@ namespace UnrealBuildTool
                 if (LowercaseArg == "-verbose")
                 {
                     BuildConfiguration.bPrintDebugInfo = true;
+                    BuildConfiguration.LogLevel = "Verbose";
                 }
                 else if (LowercaseArg.StartsWith("-log="))
                 {
