@@ -1091,23 +1091,28 @@ namespace UnrealBuildTool
 			bool bResult = false;
 			do
 			{
-				try
-				{
-					Directory.Delete(DirectoryPath, true);
-					bResult = true;
-				}
-				catch (Exception Ex)
-				{
-					// This happens mostly because some other stale process is still locking this file
-					Log.TraceVerbose(Ex.Message);
-					if (--RetryCount < 0)
-					{
-						throw Ex;
-					}
-					System.Threading.Thread.Sleep(RetryDelay);
-					// Try with a slightly longer delay next time
-					RetryDelay += RetryDelayStep;
-				}
+                try
+                {
+                    Directory.Delete(DirectoryPath, true);
+                    bResult = true;
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    // this is ok, someone else may have killed it for us.
+                    bResult = true;
+                }
+                catch (Exception Ex)
+                {
+                    // This happens mostly because some other stale process is still locking this file
+                    Log.TraceVerbose(Ex.Message);
+                    if (--RetryCount < 0)
+                    {
+                        throw Ex;
+                    }
+                    System.Threading.Thread.Sleep(RetryDelay);
+                    // Try with a slightly longer delay next time
+                    RetryDelay += RetryDelayStep;
+                }
 			}
 			while (!bResult);
 		}
