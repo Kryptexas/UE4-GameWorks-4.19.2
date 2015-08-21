@@ -440,7 +440,7 @@ uint32 FAssetDataGatherer::Run()
 	}
 
 	TArray<FDiscoveredPackageFile> LocalFilesToSearch;
-	TArray<IGatheredAssetData*> LocalAssetResults;
+	TArray<FAssetData*> LocalAssetResults;
 	TArray<FPackageDependencyData> LocalDependencyResults;
 
 	const double InitialScanStartTime = FPlatformTime::Seconds();
@@ -530,7 +530,7 @@ uint32 FAssetDataGatherer::Run()
 						LocalAssetResults.Reserve(LocalAssetResults.Num() + DiskCachedAssetData->AssetDataList.Num());
 						for (const FAssetData& AssetData : DiskCachedAssetData->AssetDataList)
 						{
-							LocalAssetResults.Add(new FAssetDataWrapper(AssetData));
+							LocalAssetResults.Add(new FAssetData(AssetData));
 						}
 
 						LocalDependencyResults.Add(DiskCachedAssetData->DependencyData);
@@ -541,7 +541,7 @@ uint32 FAssetDataGatherer::Run()
 
 				if (!bLoadedFromCache)
 				{
-					TArray<FBackgroundAssetData*> AssetDataFromFile;
+					TArray<FAssetData*> AssetDataFromFile;
 					FPackageDependencyData DependencyData;
 					if (ReadAssetFile(AssetFileData.PackageFilename, AssetDataFromFile, DependencyData))
 					{
@@ -556,7 +556,7 @@ uint32 FAssetDataGatherer::Run()
 							// Don't store info on cooked packages
 							for (const auto& AssetData : AssetDataFromFile)
 							{
-								if (AssetData->IsCooked())
+								if (!!(AssetData->PackageFlags & PKG_FilterEditorOnly))
 								{
 									bCachePackage = false;
 									break;
@@ -571,9 +571,9 @@ uint32 FAssetDataGatherer::Run()
 							// Update the cache
 							FDiskCachedAssetData* NewData = new FDiskCachedAssetData(PackageName, AssetFileData.PackageTimestamp);
 							NewData->AssetDataList.Reserve(AssetDataFromFile.Num());
-							for (const FBackgroundAssetData* BackgroundAssetData : AssetDataFromFile)
+							for (const FAssetData* BackgroundAssetData : AssetDataFromFile)
 							{
-								NewData->AssetDataList.Add(BackgroundAssetData->ToAssetData());
+								NewData->AssetDataList.Add(*BackgroundAssetData);
 							}
 							NewData->DependencyData = DependencyData;
 
@@ -663,7 +663,7 @@ void FAssetDataGatherer::EnsureCompletion()
     Thread = nullptr;
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<IGatheredAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 
@@ -756,12 +756,12 @@ void FAssetDataGatherer::SortPathsByPriority(const int32 MaxNumToSort)
 	}
 }
 
-FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const
+FAssetData* FAssetDataGatherer::CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const
 {
 	const FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
 	const FString PackagePath = FPaths::GetPath(PackageName);
 	FString GroupNames; // Not used for anything
-	TMap<FString, FString> Tags; // Not used for anything
+	TMap<FName, FString> Tags; // Not used for anything
 	TArray<int32> ChunkIDs; // Not used for anything
 
 	// We need to get the class name from the import/export maps
@@ -780,13 +780,13 @@ FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromLinkerTables(const 
 		const FObjectImport& ClassImport = ImportMap[AssetExport.ClassIndex.ToImport()];
 		ObjectClassName = ClassImport.ObjectName;
 	}
-	return new FBackgroundAssetData(PackageName, PackagePath, GroupNames, AssetExport.ObjectName.ToString(), ObjectClassName.ToString(), Tags, ChunkIDs, InPackageFlags);
+	return new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), AssetExport.ObjectName, ObjectClassName, Tags, ChunkIDs, InPackageFlags);
 }
 
-FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const
+FAssetData* FAssetDataGatherer::CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const
 {
 	FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
-	FBackgroundAssetData* Result = nullptr;
+	FAssetData* Result = nullptr;
 
 	// If the packaged is saved with the right version we have the information
 	// which of the objects in the export map as the asset.
@@ -810,12 +810,12 @@ FBackgroundAssetData* FAssetDataGatherer::CreateAssetDataFromCookedPackage(const
 	}	
 	if (!Result)
 	{
-		Result = new FBackgroundAssetData(PackageName, InPackageFlags);
+		Result = new FAssetData(FName(*PackageName), FName(), FName(), FName(), FName(), TMap<FName, FString>(), TArray<int32>(), InPackageFlags);
 	}
 	return Result;
 }
 
-bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBackgroundAssetData*>& AssetDataList, FPackageDependencyData& DependencyData ) const
+bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FAssetData*>& AssetDataList, FPackageDependencyData& DependencyData ) const
 {
 	FPackageReader PackageReader;
 
@@ -827,7 +827,7 @@ bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FBac
 	if (!!(PackageReader.GetPackageFlags() & PKG_FilterEditorOnly))
 	{
 		// Try to reconstruct asset data from the cooked package by serializing its import and export tables
-		FBackgroundAssetData* CookedPackageData = CreateAssetDataFromCookedPackage(AssetFilename, PackageReader.GetPackageFlags(), PackageReader);
+		FAssetData* CookedPackageData = CreateAssetDataFromCookedPackage(AssetFilename, PackageReader.GetPackageFlags(), PackageReader);
 		AssetDataList.Add(CookedPackageData);
 		return true;
 	}

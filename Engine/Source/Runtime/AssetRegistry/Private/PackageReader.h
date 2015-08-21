@@ -11,11 +11,11 @@ public:
 	/** Creates a loader for the filename */
 	bool OpenPackageFile(const FString& PackageFilename);
 
-	/** Reads information from the asset registry data table and converts it to FBackgroundAssetData */
-	bool ReadAssetRegistryData(TArray<FBackgroundAssetData*>& AssetDataList);
+	/** Reads information from the asset registry data table and converts it to FAssetData */
+	bool ReadAssetRegistryData(TArray<FAssetData*>& AssetDataList);
 
 	/** Attempts to get the class name of an object from the thumbnail cache for packages older than VER_UE4_ASSET_REGISTRY_TAGS */
-	bool ReadAssetDataFromThumbnailCache(TArray<FBackgroundAssetData*>& AssetDataList);
+	bool ReadAssetDataFromThumbnailCache(TArray<FAssetData*>& AssetDataList);
 
 	/** Reads information used by the dependency graph */
 	bool ReadDependencyData(FPackageDependencyData& OutDependencyData);

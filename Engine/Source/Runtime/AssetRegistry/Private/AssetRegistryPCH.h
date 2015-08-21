@@ -12,7 +12,6 @@ DECLARE_LOG_CATEGORY_EXTERN(LogAssetRegistry, Log, All);
 #include "IAssetRegistry.h"
 #include "DependsNode.h"
 #include "PathTree.h"
-#include "BackgroundAssetData.h"
 #include "PackageDependencyData.h"
 #include "DiskCachedAssetData.h"
 #include "PackageReader.h"

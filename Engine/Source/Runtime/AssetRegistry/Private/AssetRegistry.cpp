@@ -1247,8 +1247,8 @@ void FAssetRegistry::PrioritizeSearchPath(const FString& PathToPrioritize)
 		int32 LowestNonPriorityFileIdx = 0;
 		for (int32 ResultIdx = 0; ResultIdx < BackgroundAssetResults.Num(); ++ResultIdx)
 		{
-			IGatheredAssetData* BackgroundAssetResult = BackgroundAssetResults[ResultIdx];
-			if (BackgroundAssetResult && BackgroundAssetResult->IsWithinSearchPath(PathToPrioritize))
+			FAssetData* BackgroundAssetResult = BackgroundAssetResults[ResultIdx];
+			if (BackgroundAssetResult && BackgroundAssetResult->PackagePath.ToString().StartsWith(PathToPrioritize))
 			{
 				BackgroundAssetResults.Swap(ResultIdx, LowestNonPriorityFileIdx);
 				LowestNonPriorityFileIdx++;
@@ -1774,7 +1774,7 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 		FAssetDataGatherer AssetSearch(PathsToScan, /*bSynchronous=*/true, bUseCache);
 
 		// Get the search results
-		TArray<IGatheredAssetData*> AssetResults;
+		TArray<FAssetData*> AssetResults;
 		TArray<FString> PathResults;
 		TArray<FPackageDependencyData> DependencyResults;
 		TArray<double> SearchTimes;
@@ -1805,7 +1805,7 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 	}
 }
 
-void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<IGatheredAssetData*>& AssetResults)
+void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults)
 {
 	const bool bFlushFullBuffer = TickStartTime < 0;
 	TSet<FName> ModifiedPaths;
@@ -1814,44 +1814,43 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 	int32 AssetIndex = 0;
 	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
 	{
-		IGatheredAssetData*& BackgroundResult = AssetResults[AssetIndex];
+		FAssetData*& BackgroundResult = AssetResults[AssetIndex];
 
 		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
-		if (BackgroundResult->IsCooked())
+		if (!!(BackgroundResult->PackageFlags & PKG_FilterEditorOnly))
 		{
-			LoadPackage(nullptr, *BackgroundResult->GetPackageName(), 0);
+			LoadPackage(nullptr, *BackgroundResult->PackageName.ToString(), 0);
 			delete BackgroundResult;
 			BackgroundResult = nullptr;
 			continue;
 		}
 
-		FAssetData Result = BackgroundResult->ToAssetData();
-
 		// Try to update any asset data that may already exist
 		FAssetData* AssetData = nullptr;
-		FAssetData** AssetDataPtr = CachedAssetsByObjectPath.Find(Result.ObjectPath);
+		FAssetData** AssetDataPtr = CachedAssetsByObjectPath.Find(BackgroundResult->ObjectPath);
 		if (AssetDataPtr != nullptr)
 		{
 			AssetData = *AssetDataPtr;
 		}
 
+		const FName PackagePath = BackgroundResult->PackagePath;
 		if ( AssetData != nullptr )
 		{
 			// The asset exists in the cache, update it
-			UpdateAssetData(AssetData, Result);
+			UpdateAssetData(AssetData, *BackgroundResult);
+
+			// Delete the result that was originally created by an FPackageReader
+			delete BackgroundResult;
+			BackgroundResult = nullptr;
 		}
 		else
 		{
 			// The asset isn't in the cache yet, add it and notify subscribers
-			AddAssetData(new FAssetData(Result));
+			AddAssetData(BackgroundResult);
 		}
 
 		// Populate the path tree
-		AddAssetPath(Result.PackagePath);
-
-		// Delete the result that was originally created by an FPackageReader
-		delete BackgroundResult;
-		BackgroundResult = nullptr;
+		AddAssetPath(PackagePath);
 
 		// Check to see if we have run out of time in this tick
 		if ( !bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)

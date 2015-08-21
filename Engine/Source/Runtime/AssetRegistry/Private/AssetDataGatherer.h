@@ -145,7 +145,7 @@ public:
 	void EnsureCompletion();
 
 	/** Gets search results from the data gatherer */
-	bool GetAndTrimSearchResults(TArray<IGatheredAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles);
+	bool GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles);
 
 	/** Adds a root path to the search queue. Only works when searching asynchronously */
 	void AddPathToSearch(const FString& Path);
@@ -164,21 +164,21 @@ private:
 	 * Reads FAssetData information out of a file
 	 *
 	 * @param AssetFilename the name of the file to read
-	 * @param AssetDataList the FBackgroundAssetData for every asset found in the file
+	 * @param AssetDataList the FAssetData for every asset found in the file
 	 * @param DependencyData the FPackageDependencyData for every asset found in the file
 	 *
 	 * @return true if the file was successfully read
 	 */
-	bool ReadAssetFile(const FString& AssetFilename, TArray<FBackgroundAssetData*>& AssetDataList, FPackageDependencyData& DependencyData) const;
+	bool ReadAssetFile(const FString& AssetFilename, TArray<FAssetData*>& AssetDataList, FPackageDependencyData& DependencyData) const;
 
 	/** Serializes the timestamped cache of discovered assets. Used for quick loading of data for assets that have not changed on disk */
 	void SerializeCache(FArchive& Ar);
 
 	/** Creates asset data reconstructing all the required info from linker tables */
-	FBackgroundAssetData* CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const;
+	FAssetData* CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const;
 
 	/** Creates asset data reconstructing all the required data from cooked package info */
-	FBackgroundAssetData* CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const;
+	FAssetData* CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const;
 
 private:
 	/** A critical section to protect data transfer to the main thread */
@@ -203,7 +203,7 @@ private:
 	double SearchStartTime;
 
 	/** The asset data gathered from the searched files */
-	TArray<IGatheredAssetData*> AssetResults;
+	TArray<FAssetData*> AssetResults;
 
 	/** Dependency data for scanned packages */
 	TArray<FPackageDependencyData> DependencyResults;
