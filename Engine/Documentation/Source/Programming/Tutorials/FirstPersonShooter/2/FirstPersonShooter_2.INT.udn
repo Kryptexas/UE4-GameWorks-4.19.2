@@ -1,7 +1,9 @@
 Availability: Docs
 Title: 2 - Implementing your Character
-Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description: How to implement your First Person Shooter character.
+prereq: Programming/Tutorials/FirstPersonShooter/1
+Related: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
 Version: 4.9
 

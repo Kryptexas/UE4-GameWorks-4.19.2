@@ -1,7 +1,8 @@
 Availability: Docs
 Title: 1 - Setting up your Project
-Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description: How to set up your First Person Shooter project.
+prereq: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
 Version: 4.9
 

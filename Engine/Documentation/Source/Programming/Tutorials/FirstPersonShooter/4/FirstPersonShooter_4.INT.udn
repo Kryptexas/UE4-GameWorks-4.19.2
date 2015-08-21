@@ -1,7 +1,9 @@
 Availability: Docs
 Title: 4 - Adding Character Animation
-Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
 Description: How to add animations to your First Person Shooter character.
+prereq: Programming/Tutorials/FirstPersonShooter/3
+Related: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
 Version: 4.9
 

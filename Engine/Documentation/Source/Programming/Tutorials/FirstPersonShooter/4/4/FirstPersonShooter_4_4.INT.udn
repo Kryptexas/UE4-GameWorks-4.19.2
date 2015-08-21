@@ -1,6 +1,6 @@
 Availability: Docs
 Title: 4.4 - Adding Animation Transition States
-Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
 Description: How to add animation transition states to your First Person Shooter project.
 SkillLevel: Beginner
 Version: 4.9
@@ -16,7 +16,7 @@ Version: 4.9
 		[Section Home](Programming/Tutorials/FirstPersonShooter/4)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/4/5)
+		[Next Step](Programming/Tutorials/FirstPersonShooter/4/4/1)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
