@@ -172,9 +172,9 @@ void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* I
 
 // ----------------------------------------------------
 
-FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, FActiveGameplayEffectHandle InGameplayEffectHandle)
+FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, int32 InGameplayEffectLevel, FActiveGameplayEffectHandle InGameplayEffectHandle)
 	: Ability(InDef.Ability ? InDef.Ability->GetDefaultObject<UGameplayAbility>() : nullptr)
-	, Level(InDef.Level)
+	, Level(InDef.LevelScalableFloat.GetValueAtLevel(InGameplayEffectLevel))
 	, InputID(InDef.InputID)
 	, SourceObject(InDef.SourceObject)
 	, InputPressed(false)

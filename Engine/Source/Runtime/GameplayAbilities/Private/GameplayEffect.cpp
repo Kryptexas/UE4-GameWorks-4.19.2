@@ -92,6 +92,15 @@ void UGameplayEffect::PostLoad()
 	ClearTagsContainer.RemoveAllTags();
 
 	UpdateInheritedTagProperties();
+
+	for (FGameplayAbilitySpecDef& Def : GrantedAbilities)
+	{
+		if (Def.Level != INDEX_NONE)
+		{
+			Def.LevelScalableFloat.SetValue(Def.Level);
+			Def.Level = INDEX_NONE;
+		}
+	}
 }
 
 void UGameplayEffect::PostInitProperties()
@@ -2334,7 +2343,7 @@ void FActiveGameplayEffectsContainer::AddActiveGameplayEffectGrantedTagsAndModif
 			// would regrant the ability every time the stack was applied
 			if (AbilitySpecDef.AssignedHandle.IsValid() == false)
 			{
-				Owner->GiveAbility( FGameplayAbilitySpec(AbilitySpecDef, Effect.Handle) );
+				Owner->GiveAbility( FGameplayAbilitySpec(AbilitySpecDef, Effect.Spec.GetLevel(), Effect.Handle) );
 			}
 		}	
 	}
