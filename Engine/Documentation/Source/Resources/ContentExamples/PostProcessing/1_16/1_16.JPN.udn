@@ -1,11 +1,29 @@
-﻿INTSourceChangelist:2613749
+﻿INTSourceChangelist:2653552
 Availability:Public
-Title:1.16 -Blendables (合成可能なもの)
+Title:1.16 -Blendables（合成可能なもの）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
-Description:ポストプロセスのサンプル レベル、1.16：Blendables
+Description:ポストプロセスのサンプル レベルの概要、1.16：Blendables
 Related:Engine/Rendering/Overview
 Related:Engine/Rendering/PostProcessEffects
 Related:Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前のサンプル](Resources/ContentExamples/PostProcessing/1_15 "%Resources/ContentExamples/PostProcessing/1_15:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ポストプロセスのホーム](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/PostProcessing/1_17 "%Resources/ContentExamples/PostProcessing/1_17:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]
