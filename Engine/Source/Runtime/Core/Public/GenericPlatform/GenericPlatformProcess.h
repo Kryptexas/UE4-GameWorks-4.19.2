@@ -316,6 +316,11 @@ struct CORE_API FGenericPlatformProcess
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
 
 	/**
+	 * Checks if the platform can launch a uniform resource locator (i.e. http://www.epicgames.com/unreal).
+	 **/
+	static bool CanLaunchURL(const TCHAR* URL);
+
+	/**
 	 * Creates a new process and its primary thread. The new process runs the
 	 * specified executable file in the security context of the calling process.
 	 * @param URL					executable name

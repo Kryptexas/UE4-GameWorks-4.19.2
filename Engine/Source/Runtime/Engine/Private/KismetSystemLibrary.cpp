@@ -3030,6 +3030,15 @@ void UKismetSystemLibrary::LaunchURL(const FString& URL)
 	}
 }
 
+bool UKismetSystemLibrary::CanLaunchURL(const FString& URL)
+{
+	if (!URL.IsEmpty())
+	{
+		return FPlatformProcess::CanLaunchURL(*URL);
+	}
+
+	return false;
+}
 void UKismetSystemLibrary::CollectGarbage()
 {
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
