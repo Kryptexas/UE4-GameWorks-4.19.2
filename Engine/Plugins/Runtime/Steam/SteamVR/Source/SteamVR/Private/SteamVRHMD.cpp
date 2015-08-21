@@ -169,6 +169,10 @@ void FSteamVRHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQua
 {
 }
 
+void FSteamVRHMD::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
+{
+}
+
 void FSteamVRHMD::SetInterpupillaryDistance(float NewInterpupillaryDistance)
 {
 }
