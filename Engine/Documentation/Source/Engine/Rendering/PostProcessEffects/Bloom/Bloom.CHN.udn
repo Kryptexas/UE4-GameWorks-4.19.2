@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:1917051
 Availability:Public
 Title:光溢出
-Crumbs: %ROOT%, Engine, Engine/Rendering, Engine/Rendering/PostProcessEffects
-Description:通过光晕为明亮对象(例如光照)制造发光特效。
+Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
+Description:通过光晕为诸如光照的明亮对象制造发光特效。
 
 [EXCERPT:Bloom_Desc]
 **光溢出** 是真实世界中的一种光照现象，可以使得渲染出的图像在感觉上更加真实，它的渲染性能消耗为中等级别。 当我们用裸眼看非常暗的背景上非常亮的对象时就会看到这种光溢出现象。 尽管更亮的对象也会产生其它的效果(条纹、镜头眩光)，但是经典的光溢出效果不包括这些。 因为我们的显示器(比如TV、TFT...)通常不支持HDR（高动态范围），所以我们实际上不能渲染非常亮的对象。 取得代之的是，当光源射到薄膜(薄膜表面散射)或者相机(乳白玻璃滤镜)前时，我们模拟在眼睛中出现的效果(视网膜表面散射)。 从物理上说可能这个效果并不总是正确，但是它可以帮助表现对象的相对亮度或者给屏幕上显示的LDR（低动态范围）图片添加真实性。
