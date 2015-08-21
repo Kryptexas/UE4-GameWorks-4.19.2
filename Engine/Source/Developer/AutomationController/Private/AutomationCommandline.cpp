@@ -269,7 +269,7 @@ public:
 		bool bHandled = false;
 
 		//save off device to send results to
-		OutputDevice = &Ar;
+		OutputDevice = GLog;
 
 		StringCommand.Empty();
 		//figure out if we are handling this request
