@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnitTestFrameworkEditorPCH.h"
+#include "UTFEditorAutomationTests.h"
 #include "AutomationTest.h"
 #include "AssetRegistryModule.h"	// for FAssetRegistry::GetAssets()
 #include "AssetData.h"
