@@ -161,9 +161,14 @@ bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativ
 	// Try to launch it directly
 	if (UriProtocolKey.Exists())
 	{
+		FString LauncherUriRequest;
 		if (LauncherRelativeUrl.IsEmpty())
 		{
-			LauncherRelativeUrl = TEXT("ue");
+			LauncherUriRequest = TEXT("com.epicgames.launcher:");
+		}
+		else
+		{
+			LauncherUriRequest = FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl);
 		}
 
 		if (FParse::Param(FCommandLine::Get(), TEXT("Dev")))
@@ -172,7 +177,7 @@ bool FDesktopPlatformWindows::OpenLauncher(bool Install, FString LauncherRelativ
 		}
 
 		FString Error;
-		FPlatformProcess::LaunchURL(*FString::Printf(TEXT("com.epicgames.launcher://%s"), *LauncherRelativeUrl), *CommandLineParams, &Error);
+		FPlatformProcess::LaunchURL(*LauncherUriRequest, *CommandLineParams, &Error);
 		return true;
 	}
 	// Otherwise see if we can install it
