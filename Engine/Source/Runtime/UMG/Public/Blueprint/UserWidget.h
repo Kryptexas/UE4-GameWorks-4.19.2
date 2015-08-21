@@ -730,6 +730,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
 	float PauseAnimation(const UWidgetAnimation* InAnimation);
 
+	/**
+	 * Gets whether an animation is currently playing on this widget.
+	 * 
+	 * @param InAnimation The animation to check the playback status of
+	 * @return True if the animation is currently playing
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Animation")
+	bool IsAnimationPlaying(const UWidgetAnimation* InAnimation) const;
+
 	/** Called when a sequence player is finished playing an animation */
 	void OnAnimationFinishedPlaying(UUMGSequencePlayer& Player );
 

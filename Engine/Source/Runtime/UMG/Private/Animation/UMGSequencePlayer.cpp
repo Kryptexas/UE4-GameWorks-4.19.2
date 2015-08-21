@@ -57,6 +57,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = 0;
 				PlayerStatus = EMovieScenePlayerStatus::Stopped;
 				OnSequenceFinishedPlayingEvent.Broadcast(*this);
+				Animation->OnAnimationFinished.Broadcast();
 			}
 			else
 			{
@@ -79,6 +80,7 @@ void UUMGSequencePlayer::Tick(float DeltaTime)
 				TimeCursorPosition = AnimationLength;
 				PlayerStatus = EMovieScenePlayerStatus::Stopped;
 				OnSequenceFinishedPlayingEvent.Broadcast(*this);
+				Animation->OnAnimationFinished.Broadcast();
 			}
 			else
 			{
@@ -131,10 +133,12 @@ void UUMGSequencePlayer::Play(float StartAtTime, int32 InNumLoopsToPlay, EUMGSeq
 	bIsPlayingForward = InPlayMode != EUMGSequencePlayMode::Reverse;
 
 	PlayerStatus = EMovieScenePlayerStatus::Playing;
+	Animation->OnAnimationStarted.Broadcast();
 }
 
 void UUMGSequencePlayer::Pause()
 {
+	// Purposely don't trigger any OnFinished events
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 }
 
@@ -143,6 +147,7 @@ void UUMGSequencePlayer::Stop()
 	PlayerStatus = EMovieScenePlayerStatus::Stopped;
 
 	OnSequenceFinishedPlayingEvent.Broadcast(*this);
+	Animation->OnAnimationFinished.Broadcast();
 
 	TimeCursorPosition = 0;
 }

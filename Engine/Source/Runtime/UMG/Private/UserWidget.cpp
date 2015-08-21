@@ -275,7 +275,26 @@ float UUserWidget::PauseAnimation(const UWidgetAnimation* InAnimation)
 	return 0;
 }
 
-void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
+bool UUserWidget::IsAnimationPlaying(const UWidgetAnimation* InAnimation) const
+{
+	if (InAnimation)
+	{
+		UUMGSequencePlayer* const* FoundPlayer = ActiveSequencePlayers.FindByPredicate(
+			[ &](const UUMGSequencePlayer* Player)
+		{
+			return Player->GetAnimation() == InAnimation;
+		});
+
+		if (FoundPlayer)
+		{
+			return (*FoundPlayer)->GetPlaybackStatus() == EMovieScenePlayerStatus::Playing;
+		}
+	}
+
+	return false;
+}
+
+void UUserWidget::OnAnimationFinishedPlaying(UUMGSequencePlayer& Player)
 {
 	OnAnimationFinished( Player.GetAnimation() );
 	StoppedSequencePlayers.Add( &Player );

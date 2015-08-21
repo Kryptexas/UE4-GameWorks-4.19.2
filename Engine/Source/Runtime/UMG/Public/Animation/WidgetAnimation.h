@@ -10,6 +10,7 @@
 class UMovieScene;
 class UUserWidget;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWidgetAnimationPlaybackStatusChanged);
 
 UCLASS(BlueprintType, MinimalAPI)
 class UWidgetAnimation
@@ -45,6 +46,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	UMG_API float GetEndTime() const;
+
+	/** Fires when the widget animation starts playing. */
+	UPROPERTY(BlueprintAssignable, Category="Animation")
+	FOnWidgetAnimationPlaybackStatusChanged OnAnimationStarted;
+
+	/** Fires when the widget animation is finished. */
+	UPROPERTY(BlueprintAssignable, Category="Animation")
+	FOnWidgetAnimationPlaybackStatusChanged OnAnimationFinished;
 
 	/**
 	 * Initialize the animation with a new user widget.
