@@ -200,7 +200,7 @@ void AActor::ResetOwnedComponents()
 		for (auto Component : OwnedComponents)
 		{
 			// Only consider native components
-			if (Component->CreationMethod == EComponentCreationMethod::Native)
+			if (Component && Component->CreationMethod == EComponentCreationMethod::Native)
 			{
 				// Find the property or properties that previously referenced the natively-constructed component.
 				TArray<UObjectProperty*> Properties;
