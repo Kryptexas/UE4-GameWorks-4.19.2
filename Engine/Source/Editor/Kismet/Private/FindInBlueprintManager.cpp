@@ -39,6 +39,9 @@ const FText FFindInBlueprintSearchTags::FiB_Tooltip = LOCTEXT("Tooltip", "Toolti
 const FText FFindInBlueprintSearchTags::FiB_DefaultValue = LOCTEXT("DefaultValue", "DefaultValue");
 const FText FFindInBlueprintSearchTags::FiB_Description = LOCTEXT("Description", "Description");
 const FText FFindInBlueprintSearchTags::FiB_Comment = LOCTEXT("Comment", "Comment");
+const FText FFindInBlueprintSearchTags::FiB_Path = LOCTEXT("Path", "Path");
+const FText FFindInBlueprintSearchTags::FiB_ParentClass = LOCTEXT("ParentClass", "ParentClass");
+const FText FFindInBlueprintSearchTags::FiB_Interfaces = LOCTEXT("Interfaces", "Interfaces");
 
 const FText FFindInBlueprintSearchTags::FiB_Pins = LOCTEXT("Pins", "Pins");
 const FText FFindInBlueprintSearchTags::FiB_PinCategory = LOCTEXT("PinCategory", "PinCategory");
@@ -991,6 +994,32 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 				FSearchData NewSearchData;
 
 				NewSearchData.BlueprintPath = InAssetData.ObjectPath;
+
+				if (const FString* ParentClass = InAssetData.TagsAndValues.Find(TEXT("ParentClass")))
+				{
+					NewSearchData.ParentClass = *ParentClass;
+				}
+
+				const FString* ImplementedInterfaces = InAssetData.TagsAndValues.Find("ImplementedInterfaces");
+				if(ImplementedInterfaces)
+				{
+					FString FullInterface;
+					FString RemainingString;
+					FString InterfaceName;
+					FString CurrentString = *ImplementedInterfaces;
+					while(CurrentString.Split(TEXT(","), &FullInterface, &RemainingString))
+					{
+						if(FullInterface.Split(TEXT("."), &CurrentString, &InterfaceName, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+						{
+							if(!CurrentString.StartsWith(TEXT("Graphs=(")))
+							{
+								NewSearchData.Interfaces.Add(InterfaceName);
+							}
+						}
+						CurrentString = RemainingString;
+					}
+				}
+
 				NewSearchData.bMarkedForDeletion = false;
 
 				// Since the asset was not loaded, pull out the searchable data stored in the asset
@@ -1186,7 +1215,6 @@ void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprin
 		FSearchData SearchData;
 		SearchData.Blueprint = InBlueprint;
 		SearchData.BlueprintPath = BlueprintPath;
-
 		Index = AddSearchDataToDatabase(MoveTemp(SearchData));
 	}
 	else
@@ -1196,7 +1224,10 @@ void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprin
 
 	// Build the search data
 	SearchArray[Index].BlueprintPath = BlueprintPath;
-
+	if (UProperty* ParentClassProp = InBlueprint->GetClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UBlueprint, ParentClass)))
+	{
+		ParentClassProp->ExportTextItem(SearchArray[Index].ParentClass, ParentClassProp->ContainerPtrToValuePtr<uint8>(InBlueprint), nullptr, InBlueprint, 0);
+	}
 	// Cannot successfully gather most searchable data if there is no SkeletonGeneratedClass, so don't try, leave it as whatever it was last set to
 	if(InBlueprint->SkeletonGeneratedClass != nullptr)
 	{

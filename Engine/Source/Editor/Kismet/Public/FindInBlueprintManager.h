@@ -45,6 +45,12 @@ struct KISMET_API FFindInBlueprintSearchTags
 	static const FText FiB_Description;
 	/** Comment tag */
 	static const FText FiB_Comment;
+	/** Path tag */
+	static const FText FiB_Path;
+	/** Parent Class tag */
+	static const FText FiB_ParentClass;
+	/** Interfaces tag */
+	static const FText FiB_Interfaces;
 
 	/** Pin type tags */
 
@@ -80,6 +86,12 @@ struct FSearchData
 	/** Search data block for the Blueprint */
 	FString Value;
 
+	/** Parent Class */
+	FString ParentClass;
+
+	/** Interfaces implemented by the Blueprint */
+	TArray<FString> Interfaces;
+
 	/** Cached to determine if the Blueprint is seen as no longer valid, allows it to be cleared out next save to disk */
 	bool bMarkedForDeletion;
 
@@ -95,6 +107,8 @@ struct FSearchData
 		: Blueprint(Other.Blueprint)
 		, BlueprintPath(MoveTemp(Other.BlueprintPath))
 		, Value(MoveTemp(Other.Value))
+		, ParentClass(MoveTemp(Other.ParentClass))
+		, Interfaces(MoveTemp(Other.Interfaces))
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
 	{
 	}
@@ -110,6 +124,8 @@ struct FSearchData
 		BlueprintPath = MoveTemp(RHS.BlueprintPath);
 		Value = MoveTemp(RHS.Value);
 		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		ParentClass = MoveTemp(RHS.ParentClass);
+		Interfaces = MoveTemp(RHS.Interfaces);
 		return *this;
 	}
 
@@ -117,6 +133,8 @@ struct FSearchData
 		: Blueprint(Other.Blueprint)
 		, BlueprintPath(Other.BlueprintPath)
 		, Value(Other.Value)
+		, ParentClass(Other.ParentClass)
+		, Interfaces(Other.Interfaces)
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
 	{
 	}
@@ -132,6 +150,8 @@ struct FSearchData
 		BlueprintPath = RHS.BlueprintPath;
 		Value = RHS.Value;
 		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		ParentClass = RHS.ParentClass;
+		Interfaces = RHS.Interfaces;
 		return *this;
 	}
 
