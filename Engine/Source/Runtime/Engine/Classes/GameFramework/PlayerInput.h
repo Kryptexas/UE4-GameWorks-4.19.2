@@ -446,6 +446,9 @@ public:
 	 */
 	void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
 
+	/** @return key state of the InKey */
+	FKeyState* GetKeyState(FKey InKey) { return KeyStateMap.Find(InKey); }
+
 	/** @return true if InKey is currently held */
 	bool IsPressed( FKey InKey ) const;
 	
