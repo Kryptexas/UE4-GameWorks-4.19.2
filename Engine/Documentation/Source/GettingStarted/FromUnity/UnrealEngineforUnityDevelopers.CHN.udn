@@ -1,8 +1,8 @@
 ﻿INTSourceChangelist:0
 Availability: Public
-Title:Unreal Engine 4 For Unity Developers
+Title:针对Unity开发者的虚幻引擎4
 Crumbs: %ROOT%, GettingStarted
-Description: Translate your Unity knowledge into UE4 so you can get up to speed quickly.
+Description: 将您的Unity知识移植到虚幻引擎4中，以便您可以快速着手制作。
 
 
 ![](image_0.png)
@@ -32,8 +32,8 @@ The following section contains common Unity terms on the left and their UE4 equi
 | **Gameplay Types** | Component | [Component](Engine/Blueprints/UserGuide/Components) |
 |                    | GameObject | [Actor](Engine/Actors), [Pawn](Gameplay/Framework/Pawn)  |
 |                    | Prefab | [Blueprint Class](Engine/Blueprints) |
-| **Editor UI**      | Hierarchy Panel | [World Outliner](Engine/UI/LevelEditor#worldoutliner) |
-|                    | Inspector | [Details Panel](Engine/UI/LevelEditor#details) |
+| **Editor UI**      | Hierarchy Panel | [World Outliner](Engine/UI/LevelEditor#世界大纲视图) |
+|                    | Inspector | [Details Panel](Engine/UI/LevelEditor#详细信息) |
 |                    | Project Browser | [Content Browser](Engine/Content/Browser) |
 |                    | Scene View | [Viewport](Engine/UI/LevelEditor/Viewports) |
 | **Meshes**         | Mesh | [Static Mesh](Engine/Actors/StaticMeshActor) |
