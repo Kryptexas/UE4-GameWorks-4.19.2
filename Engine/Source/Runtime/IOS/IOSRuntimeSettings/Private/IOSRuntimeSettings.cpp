@@ -26,6 +26,8 @@ UIOSRuntimeSettings::UIOSRuntimeSettings(const FObjectInitializer& ObjectInitial
 	bShipForArmV7S = false;
 	bUseRSync = true;
 	AdditionalPlistData = TEXT("");
+	AdditionalLinkerFlags = TEXT("");
+	AdditionalShippingLinkerFlags = TEXT("");
 }
 
 #if WITH_EDITOR

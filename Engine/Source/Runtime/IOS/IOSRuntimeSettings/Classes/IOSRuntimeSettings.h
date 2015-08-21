@@ -194,6 +194,14 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DisplayName = "Support armv7s in Shipping"))
 	bool bShipForArmV7S;
 	
+	// Any additional linker flags to pass to the linker in non-shipping builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DispalyName = "Additional Non-Shipping Linker Flags", ConfigHierarchyEditable))
+	FString AdditionalLinkerFlags;
+
+	// Any additional linker flags to pass to the linker in shipping builds
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build, meta = (DispalyName = "Additional Shipping Linker Flags", ConfigHierarchyEditable))
+	FString AdditionalShippingLinkerFlags;
+
 	// The name or ip address of the remote mac which will be used to build IOS
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = "Build", meta = (ConfigHierarchyEditable))
 	FString RemoteServerName;
