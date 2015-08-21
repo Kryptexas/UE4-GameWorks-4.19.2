@@ -172,7 +172,7 @@ void FUnrealSync::DeleteStaleBinaries(const FOnSyncProgress& OnSyncProgress, boo
 				Extension.Equals(TEXT("so"));
 #elif PLATFORM_MAC
 			return Extension.Equals(TEXT("")) ||
-				Extension.Equals(TEXT("dsym")) ||
+				Extension.Equals(TEXT("dSYM")) ||
 				Extension.Equals(TEXT("dylib"));
 #endif
 		}
