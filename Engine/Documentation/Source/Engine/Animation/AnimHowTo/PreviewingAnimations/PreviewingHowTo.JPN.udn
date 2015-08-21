@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637416
+﻿INTSourceChangelist:2661492
 Availability:Public
 Title:アニメーションのプレビュー
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -9,6 +9,8 @@ Related:Engine/Animation/Sequences
 Related:Engine/Animation/AnimMontage
 Related:Engine/Animation/Blendspaces
 Related:Engine/Animation/AimOffset
+バージョン：4.9
+スキルレベル:初心者向け
 
 
 このページではアンリアル エンジン 4 のアニメーション編集ツールである [ペルソナ アニメーション エディタ](Engine/Animation/Persona) 内にアニメーション アセットを読み込んでプレビューする様々な方法について説明します。再生を操作するために使用する制御やプレビュー中のアニメーションに関して表示される情報についても説明し、詳細情報への追加リンクも掲載します。 
@@ -69,7 +71,7 @@ _クリックしてフルサイズで表示_
 
 ## ペルソナ ビューポートの制御
 
-以下はペルソナ ビューポートをナビゲーションするための制御です。カメラをあちこちに動かすことができます。 
+以下は **ペルソナ ビューポート** をナビゲーションするための制御です。カメラをあちこち移動させることができます。 
 
 ### 標準
 
@@ -84,7 +86,7 @@ _クリックしてフルサイズで表示_
 
 ### ゲームスタイル
 
-PC でシューターゲームのプレイに慣れている方は、WASD キーによる制御が自然な感覚かもしれません。 WASD 移動はデフォルトで有効となっていて、**右マウスボタン** を押すといつでも使用できます。つまり、この方法を使用しながらカメラを回転させるには、**右マウスボタン** を使用します。
+PC でシューターゲームのプレイに慣れている方は、WASD キーによる制御が自然な感覚かもしれません。 WASD 移動はデフォルトで有効となっていて、**右マウスボタン** を押すといつでも使用できます。つまり、この方法でカメラを回転させるには、マウスを使用します。
 
 これらの制御は、矢印キーとテンキーで同じように操作できます。
 
@@ -110,9 +112,9 @@ PC でシューターゲームのプレイに慣れている方は、WASD キー
 
 ![](PA_PersonaViewportOptions.jpg)
 
-1.	** ビューオプション ツールバー**
-2.	** 移動ツールバー**
-3.	**アニメーション表示情報**
+1.	 ビューオプション ツールバー
+2.	 移動ツールバー
+3.	アニメーション表示情報
 
 ### ビューオプション ツールバー
 
@@ -138,9 +140,9 @@ PC でシューターゲームのプレイに慣れている方は、WASD キー
 
 [INCLUDE:Engine\Animation\Persona\Viewport#previewcontrols]
 
-## Blend Space と Aim Offsets
+## ブレンドスペースと Aim Offsets
 
-**Enable Preview BlendSpace** にチェックが入っている限り、[ブレンドスペース](Engine/Animation/Blendspaces) や **ペルソナ** 内の [](Engine/Animation/AimOffset) に適用されたアニメーションのブレンドをプレビューすることができます 
+**Enable Preview BlendSpace** にチェックが入っている限り、[ブレンドスペース](Engine/Animation/Blendspaces) や **ペルソナ** 内の [](Engine/Animation/AimOffset) に適用されたアニメーションのブレンドをプレビューすることができます。 
 
 ![](Preview10_1.jpg)
 
