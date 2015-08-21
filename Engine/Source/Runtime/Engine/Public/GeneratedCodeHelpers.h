@@ -13,20 +13,26 @@
 
 #include "Stack.h"
 
-FORCEINLINE UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
+inline UClass* DynamicMetaCast(const UClass* DesiredClass, UClass* SourceClass)
 {
 	return ((SourceClass)->IsChildOf(DesiredClass)) ? SourceClass : NULL;
 }
 
-FORCEINLINE bool IsValid(const FScriptInterface& Test)
+inline bool IsValid(const FScriptInterface& Test)
 {
 	return IsValid(Test.GetObject()) && (nullptr != Test.GetInterface());
 }
 
 template<class TEnum>
-FORCEINLINE uint8 EnumToByte(TEnumAsByte<TEnum> Val)
+inline uint8 EnumToByte(TEnumAsByte<TEnum> Val)
 {
 	return static_cast<uint8>(Val.GetValue());
+}
+
+template<class T>
+inline const T* GetDefaultValueSafe(UClass* Class)
+{
+	return IsValid(Class) ? GetDefault<T>(Class) : nullptr;
 }
 
 struct FCustomThunkTemplates

@@ -25,7 +25,6 @@ public:
 		{
 			if (!Term->IsStructContextType() && (Term->Type.PinSubCategory != TEXT("self")))
 			{
-				ensure(!Term->bIsLiteral);
 				SafetyConditions.Add(CppBackend.TermToText(EmitterContext, Term, false));
 			}
 		}
@@ -505,8 +504,26 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 		FString ResultPath(TEXT(""));
 		if ((Term->Context != nullptr) && (Term->Context->Name != PSC_Self))
 		{
-			ResultPath = TermToText(EmitterContext, Term->Context, false);
+			const bool bFromDefaultValue = Term->Context->IsClassContextType();
+			if (bFromDefaultValue)
+			{
+				const UClass* MinimalClass = ensure(Term->AssociatedVarProperty)
+					? Term->AssociatedVarProperty->GetOwnerClass()
+					: Cast<UClass>(Term->Context->Type.PinSubCategoryObject.Get());
+				if (MinimalClass)
+				{
+					ResultPath += FString::Printf(TEXT("GetDefaultValueSafe<%s%s>(")
+						, MinimalClass->GetPrefixCPP()
+						, *MinimalClass->GetName());
+				}
+				else
+				{
+					UE_LOG(LogK2Compiler, Error, TEXT("C++ backend cannot find specific class"));
+				}
+			}
 
+			ResultPath += TermToText(EmitterContext, Term->Context, false);
+			ResultPath += bFromDefaultValue ? TEXT(")") : TEXT("");
 			if (Term->Context->IsStructContextType())
 			{
 				ResultPath += TEXT(".");
