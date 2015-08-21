@@ -636,8 +636,13 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	else
 	{
 		ResultPinName = Pin->PinFriendlyName;
-		bool bShowNodesAndPinsUnlocalized = false;
-		GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+		static bool bInitializedShowNodesAndPinsUnlocalized = false;
+		static bool bShowNodesAndPinsUnlocalized = false;
+		if (!bInitializedShowNodesAndPinsUnlocalized)
+		{
+			GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
+			bInitializedShowNodesAndPinsUnlocalized =  true;
+		}
 		if (bShowNodesAndPinsUnlocalized)
 		{
 			ResultPinName = FText::FromString(ResultPinName.BuildSourceString());
