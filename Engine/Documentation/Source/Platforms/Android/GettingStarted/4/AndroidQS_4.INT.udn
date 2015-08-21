@@ -2,6 +2,8 @@ Availability:Public
 Title:4. Deploy Your Level
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
 Description:Launch your level with one-click deploying.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Steps]
 [OBJECT:Navigation]
