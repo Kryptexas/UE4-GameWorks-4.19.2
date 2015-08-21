@@ -141,6 +141,8 @@ namespace VectorVM
 	//////////////////////////////////////////////////////////////////////////
 	//Debugging
 
+	//VM Deubgger is currently broken. I wrote it and had it working on win 64 and unknowingly used some C++11 features not supported by the XBone compiler.
+	//I've had to hack the ENABLE_VM_DEBUGGING (0) code to get this to build but I've not done the ENABLE_VM_DEBUGGING (1) path as of yet.
 #define ENABLE_VM_DEBUGGING (0)
 //#define ENABLE_VM_DEBUGGING (1)
 
