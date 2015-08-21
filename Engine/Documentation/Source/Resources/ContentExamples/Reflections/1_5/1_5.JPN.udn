@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2653552
-Availability:Public
-Title:1.5 - スクリーン空間の反射
+﻿Availability:Public
+Title:1.5 - Screenspace  Reflections
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射のサンプル レベルの概要、1.5：スクリーン空間の反射
+Description:反射のサンプル レベルの概要、1.5：Screenspace  Reflections
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
@@ -74,7 +73,7 @@ Related:Engine/Rendering/PostProcessEffects
 **Screen-Space Reflections (スクリーン空間の反射)** は動的なポストプロセス エフェクトです。スクリーン上にあるものだけを反射させるので、完全に反射した表面上に奇妙なアーティファクトを作成してしまいます。しかしマテリアルにラフネスを少し追加すれば、これらのアーティファクトをブレンドし削除することができます。
 
 [REGION:tip]
-**スクリーン空間の反射** を有効にするには、コンソール コマンド `r.ssr 1` を使うか、 ビューポートから **[Show (表示)] > [Lighting Features (ライティング機能)] > [Screen Space Reflections (スクリーン空間の反射)]** を選択します。
+**Screenspace Reflections** を有効にするには、コンソール コマンド `r.ssr 1` を使うか、 ビューポートから **[Show (表示)] > [Lighting Features (ライティング機能)] > [Screen Space Reflections (スクリーン空間の反射)]** を選択します。
 [/REGION]
 
 
