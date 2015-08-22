@@ -2807,7 +2807,7 @@ namespace UnrealBuildTool
 
 					// Overwrite the original file
 					var FileContentsString = FileContents.ToString();
-					File.WriteAllText( ResponseFilePath, FileContentsString, System.Text.Encoding.UTF8 );
+					File.WriteAllText(ResponseFilePath, FileContentsString, new System.Text.UTF8Encoding(false));
 				}
 			}
 		}
