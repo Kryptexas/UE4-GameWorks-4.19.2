@@ -177,6 +177,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 	ViewInitOptions.BackgroundColor = FLinearColor::Black;
 	ViewInitOptions.OverrideFarClippingPlaneDistance = MaxViewDistance;
 	ViewInitOptions.SceneViewStateInterface = SceneCaptureComponent->GetViewState();
+    ViewInitOptions.StereoPass = SceneCaptureComponent->CaptureStereoPass;
 
 	if (bCaptureSceneColour)
 	{

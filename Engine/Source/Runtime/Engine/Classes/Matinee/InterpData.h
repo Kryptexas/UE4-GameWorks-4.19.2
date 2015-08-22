@@ -16,7 +16,7 @@ class UInterpData : public UObject
 	GENERATED_UCLASS_BODY()
 
 	/** Duration of interpolation sequence - in seconds. */
-	UPROPERTY()
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = InterpData)
 	float InterpLength;
 
 	/** Position in Interp to move things to for path-building in editor. */

@@ -179,7 +179,7 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 	/** properties that may change on InterpAction that we need to notify clients about, since the object's properties will not be replicated */
-	UPROPERTY(replicated,transient)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, replicated, transient, Category = Play)
 	uint32 bIsPlaying:1;
 
 	UPROPERTY(replicated)
@@ -192,7 +192,7 @@ public:
 	UPROPERTY(replicated,transient)
 	uint32 bPendingStop:1;
 
-	UPROPERTY(replicated)
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, replicated, Category = Play)
 	float InterpPosition;
 
 	/** This is just optimization flag to skip checking it again. If all is initialized, it will set this to be true **/
