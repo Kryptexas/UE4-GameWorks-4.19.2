@@ -1366,7 +1366,7 @@ public:
 	template<typename TValue>
 	static FORCEINLINE_STATS void AddMessage(FName InStatName, EStatOperation::Type InStatOperation, TValue Value, bool bIsCycle = false)
 	{
-		if (!InStatName.IsNone() && WillEverCollectData())
+		if (!InStatName.IsNone() && WillEverCollectData() && IsThreadingReady())
 		{
 			FThreadStats* ThreadStats = GetThreadStats();
 			ThreadStats->AddStatMessage(FStatMessage(InStatName, InStatOperation, Value, bIsCycle));
