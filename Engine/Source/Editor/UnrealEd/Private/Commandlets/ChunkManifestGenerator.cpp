@@ -1249,3 +1249,5 @@ FString FChunkManifestGenerator::GetShortestReferenceChain(FName PackageName, in
 
 	return StringChain;
 }
+
+#undef LOCTEXT_NAMESPACE

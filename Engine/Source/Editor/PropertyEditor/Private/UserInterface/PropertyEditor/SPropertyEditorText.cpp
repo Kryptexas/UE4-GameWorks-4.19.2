@@ -182,3 +182,5 @@ bool SPropertyEditorText::IsReadOnly() const
 {
 	return !CanEdit();
 }
+
+#undef LOCTEXT_NAMESPACE

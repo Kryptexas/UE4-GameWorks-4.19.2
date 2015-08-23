@@ -1687,4 +1687,5 @@ void FUnrealEdMisc::MountTemplateSharedPaths()
 	}
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE
+

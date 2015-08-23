@@ -62,6 +62,3 @@ private:
 	/** Holds the details text box. */
 	TSharedPtr<SMultiLineEditableTextBox> TextBox;
 };
-
-
-#undef LOCTEXT_NAMESPACE

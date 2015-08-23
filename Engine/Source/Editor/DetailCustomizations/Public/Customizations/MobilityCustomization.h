@@ -29,6 +29,3 @@ private:
 	
 	TSharedPtr<IPropertyHandle> MobilityHandle;
 };
-
-#undef LOCTEXT_NAMESPACE
-

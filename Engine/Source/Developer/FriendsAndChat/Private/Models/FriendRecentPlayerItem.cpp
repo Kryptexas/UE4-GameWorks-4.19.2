@@ -156,5 +156,3 @@ EInviteStatus::Type FFriendRecentPlayerItem::GetInviteStatus()
 {
 	return EInviteStatus::Unknown;
 }
-
-#undef LOCTEXT_NAMESPACE

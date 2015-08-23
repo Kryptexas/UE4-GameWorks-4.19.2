@@ -163,4 +163,4 @@ void UNiagaraNodeOp::Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNo
 	}
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE

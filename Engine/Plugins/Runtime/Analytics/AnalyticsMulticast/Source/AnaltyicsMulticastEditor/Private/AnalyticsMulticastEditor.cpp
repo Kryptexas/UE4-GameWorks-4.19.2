@@ -86,3 +86,5 @@ FString UAnalyticsMulticastSettings::BuildStringFromArray(TArray<FString>& Array
 	}
 	return List;
 }
+
+#undef LOCTEXT_NAMESPACE

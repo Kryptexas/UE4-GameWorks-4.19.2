@@ -55,3 +55,5 @@ void UAnalyticsSettings::WriteConfigSettings()
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), GetTestIniSection(), TEXT("ProviderModuleName"), TestProviderName);
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), GetDebugIniSection(), TEXT("ProviderModuleName"), DebugProviderName);
 }
+
+#undef LOCTEXT_NAMESPACE

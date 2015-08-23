@@ -261,4 +261,4 @@ bool UAnimNotifyState_Trail::ValidateInput(class USkeletalMeshComponent * MeshCo
 #endif // WITH_EDITOR
 }
 
-#undef  LOCTEXT_NAMESPACE
+#undef LOCTEXT_NAMESPACE

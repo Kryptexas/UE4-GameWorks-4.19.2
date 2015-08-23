@@ -58,3 +58,5 @@ void UFlurrySettings::WriteConfigSettings()
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), GetDebugIniSection(), TEXT("FlurryApiKey"), DebugApiKey);
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), GetDevelopmentIniSection(), TEXT("FlurryApiKey"), DevelopmentApiKey);
 }
+
+#undef LOCTEXT_NAMESPACE

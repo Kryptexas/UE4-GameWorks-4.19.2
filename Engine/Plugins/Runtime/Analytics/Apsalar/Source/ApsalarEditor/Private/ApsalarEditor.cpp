@@ -97,3 +97,5 @@ void UApsalarSettings::WriteConfigStruct(const FString& Section, FApsalarAnalyti
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), Section, TEXT("MaxBufferSize"), FString::Printf(TEXT("%d"), Source.MaxBufferSize));
 	FAnalytics::Get().WriteConfigValueToIni(GetIniName(), Section, TEXT("ManuallyReportRevenue"), Source.ManuallyReportRevenue ? TEXT("true") : TEXT("false"));
 }
+
+#undef LOCTEXT_NAMESPACE

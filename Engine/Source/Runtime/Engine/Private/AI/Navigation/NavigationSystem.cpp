@@ -4045,3 +4045,5 @@ bool UNavigationSystem::GetRandomPointInRadius(const FVector& Origin, float Radi
 {
 	return GetRandomReachablePointInRadius(Origin, Radius, ResultLocation, NavData, QueryFilter);
 }
+
+#undef LOCTEXT_NAMESPACE

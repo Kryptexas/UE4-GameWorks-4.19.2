@@ -77,6 +77,3 @@ private:
 	bool bWasLeft;
 	bool bWasReEntered;
 };
-
-
-#undef LOCTEXT_NAMESPACE
