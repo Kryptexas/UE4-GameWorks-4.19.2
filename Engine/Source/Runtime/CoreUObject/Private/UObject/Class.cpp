@@ -1835,7 +1835,17 @@ struct TStructOpsTypeTraits<FTestStruct> : public TStructOpsTypeTraitsBase
 **/
 static TMap<FName,UScriptStruct::ICppStructOps*>& GetDeferredCppStructOps()
 {
-	static TMap<FName,UScriptStruct::ICppStructOps*> DeferredCppStructOps;
+	static struct TMapWithAutoCleanup : public TMap<FName, UScriptStruct::ICppStructOps*>
+	{
+		~TMapWithAutoCleanup()
+		{
+			for (PairSetType::TConstIterator It(Pairs); It; ++It)
+			{
+				delete It->Value;
+			}
+		}
+	}
+	DeferredCppStructOps;
 	return DeferredCppStructOps;
 }
 
