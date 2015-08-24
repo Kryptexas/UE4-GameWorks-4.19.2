@@ -293,9 +293,9 @@ TOptional<bool> SWidget::OnQueryShowFocus(const EFocusCause InFocusCause) const
 	return TOptional<bool>();
 }
 
-TOptional<EPopupMethod> SWidget::OnQueryPopupMethod() const
+FPopupMethodReply SWidget::OnQueryPopupMethod() const
 {
-	return TOptional<EPopupMethod>();
+	return FPopupMethodReply::Unhandled();
 }
 
 TSharedPtr<struct FVirtualPointerPosition> SWidget::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const

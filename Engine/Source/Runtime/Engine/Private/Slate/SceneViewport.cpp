@@ -697,7 +697,7 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	return CurrentReplyState;
 }
 
-TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
+FPopupMethodReply FSceneViewport::OnQueryPopupMethod() const
 {
 	if (ViewportClient != nullptr)
 	{
@@ -705,7 +705,7 @@ TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
 	}
 	else
 	{
-		return TOptional<EPopupMethod>();
+		return FPopupMethodReply::Unhandled();
 	}
 }
 

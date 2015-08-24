@@ -665,7 +665,7 @@ public:
 		return bHideCursorDuringCapture;
 	}
 
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override;
+	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 
 private:
 	/**

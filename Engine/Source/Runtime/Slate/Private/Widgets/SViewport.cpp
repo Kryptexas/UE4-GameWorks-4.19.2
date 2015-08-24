@@ -299,7 +299,7 @@ TOptional<bool> SViewport::OnQueryShowFocus(const EFocusCause InFocusCause) cons
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnQueryShowFocus(InFocusCause) : TOptional<bool>();
 }
 
-TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
+FPopupMethodReply SViewport::OnQueryPopupMethod() const
 {
 	TSharedPtr<ISlateViewport> PinnedInterface = ViewportInterface.Pin();
 	if (PinnedInterface.IsValid())
@@ -308,7 +308,7 @@ TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
 	}
 	else
 	{
-		return EPopupMethod::CreateNewWindow;
+		return FPopupMethodReply::UseMethod(EPopupMethod::CreateNewWindow);
 	}	
 }
 

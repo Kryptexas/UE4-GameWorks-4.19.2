@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PopupMethodReply.h"
+
 struct FVector2D;
 class FSlateRect;
 enum class EPopupMethod : uint8;
@@ -483,9 +485,9 @@ public:
 	 * Making windows allows us to have popups that go outside the parent window, but cannot
 	 * be used in fullscreen and do not have per-pixel alpha.
 	 */
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const
+	virtual FPopupMethodReply OnQueryPopupMethod() const
 	{
-		return TOptional<EPopupMethod>();
+		return FPopupMethodReply::Unhandled();
 	}
 
 	/**

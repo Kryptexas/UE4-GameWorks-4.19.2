@@ -10,6 +10,7 @@
 #include "HitProxies.h"
 #include "InputCoreTypes.h"
 #include "Engine/EngineBaseTypes.h"
+#include "PopupMethodReply.h"
 
 class FCanvas;
 class FViewportClient;
@@ -17,7 +18,6 @@ class FViewportClient;
 class SWidget;
 class FCursorReply;
 
-enum class EPopupMethod : uint8;
 enum class EFocusCause : uint8;
 
 /**
@@ -908,7 +908,7 @@ public:
 	virtual bool HideCursorDuringCapture() { return false; }
 
 	/** Should we make new windows for popups or create an overlay in the current window. */
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const { return TOptional<EPopupMethod>(); }
+	virtual FPopupMethodReply OnQueryPopupMethod() const { return FPopupMethodReply::Unhandled(); }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

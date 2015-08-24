@@ -279,10 +279,7 @@ private:
 	/** Callback from the popup menu notifiying it has been dismissed */
 	void HandleMenuDismissed(TSharedRef<IMenu>);
 
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
-	{
-		return PopupMenuMethod;
-	}
+	virtual FPopupMethodReply OnQueryPopupMethod() const override;
 
 private:
 

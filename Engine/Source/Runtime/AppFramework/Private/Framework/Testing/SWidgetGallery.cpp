@@ -1103,9 +1103,9 @@ private:
 		FSlateApplication::Get().DismissAllMenus();
 	}
 
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
+	virtual FPopupMethodReply OnQueryPopupMethod() const override
 	{
-		return PopupMethod;
+		return FPopupMethodReply::UseMethod(PopupMethod);
 	}
 
 private:

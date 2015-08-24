@@ -551,6 +551,14 @@ void SWebBrowser::HandleMenuDismissed(TSharedRef<IMenu>)
 	PopupMenuPtr.Reset();
 }
 
+
+FPopupMethodReply SWebBrowser::OnQueryPopupMethod() const
+{
+	return PopupMenuMethod.IsSet()
+		? FPopupMethodReply::UseMethod(PopupMenuMethod.GetValue())
+		: FPopupMethodReply::Unhandled();
+}
+
 void SWebBrowser::HandleDismissPopup()
 {
 	if (PopupMenuPtr.IsValid())

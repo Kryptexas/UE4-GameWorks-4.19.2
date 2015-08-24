@@ -2298,9 +2298,10 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 	return true;
 }
 
-TOptional<EPopupMethod> UGameViewportClient::OnQueryPopupMethod() const
+FPopupMethodReply UGameViewportClient::OnQueryPopupMethod() const
 {
-	return EPopupMethod::UseCurrentWindow;
+	return FPopupMethodReply::UseMethod(EPopupMethod::UseCurrentWindow)
+		.SetShouldThrottle(EShouldThrottle::No);
 }
 
 void UGameViewportClient::ToggleShowVolumes()

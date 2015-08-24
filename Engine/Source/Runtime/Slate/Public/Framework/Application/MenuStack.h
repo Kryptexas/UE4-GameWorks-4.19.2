@@ -116,7 +116,7 @@ public:
 	 * @param TransitionEffect		Animation to use when the popup appears
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
-	TSharedRef<IMenu> PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> PushHosted(const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 	
 	/**
 	 * Pushes a new child menu onto the stack that is drawn by an external host widget.
@@ -129,7 +129,7 @@ public:
 	 * @param TransitionEffect		Animation to use when the popup appears
 	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
 	 */
-	TSharedRef<IMenu> PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	TSharedRef<IMenu> PushHosted(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent = true);
 
 	/**
 	 * [Deprecated] Dismisses the menu stack up to a certain level (by default removes all levels in the stack)
@@ -260,7 +260,7 @@ private:
 	 *
 	 * @return	The popup method chosen by a widget in the path. Defaults to EPopupMethod::CreateNewWindow if no widgets in the path have a preference.
 	 */
-	EPopupMethod QueryPopupMethod(const FWidgetPath& PathToQuery);
+	FPopupMethodReply QueryPopupMethod(const FWidgetPath& PathToQuery);
 
 	/**
 	 * Called by public Dismiss methods. Dismisses all menus in the stack from FirstStackIndexToRemove and below.
@@ -348,7 +348,7 @@ private:
 	 *
 	 * @return			The newly created menu.
 	 */
-	TSharedRef<IMenu> PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, const bool bIsCollapsedByParent);
+	TSharedRef<IMenu> PushInternal(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, FSlateRect Anchor, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately, EShouldThrottle ShouldThrottle, const bool bIsCollapsedByParent);
 
 	/**
 	 * This is the actual menu object creation method for FMenuInWindow menus.
@@ -376,13 +376,14 @@ private:
 	 * This is the post-push stage of menu creation.
 	 * It is responsible for updating the stack with the new menu and removing any that it replaces.
 	 *
-	 * @param InParentMenu			The parent menu for this menu
-	 * @param InMenu				A newly created menu
+	 * @param InParentMenu         The parent menu for this menu
+	 * @param InMenu               A newly created menu
+	 * @param ShouldThrottle       Should pushing this menu enable throttling of the engine for a more responsive UI
 	 */
-	void PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu);
+	void PostPush(TSharedPtr<IMenu> InParentMenu, TSharedRef<FMenuBase> InMenu, EShouldThrottle ShouldThrottle);
 
 	/** The popup method currently used by the whole stack. It can only use one at a time */
-	TOptional<EPopupMethod> ActiveMethod;
+	FPopupMethodReply ActiveMethod;
 
 	/** The parent window of the root menu in the stack. NOT the actual menu window if it's a CreateNewWindow */
 	TSharedPtr<SWindow> HostWindow;

@@ -497,7 +497,7 @@ public:
 	 *      EPopupMethod::UserCurrentWindow. This makes all the menu anchors within them
 	 *      use the current window.
 	 */
-	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const;
+	virtual FPopupMethodReply OnQueryPopupMethod() const;
 
 	virtual TSharedPtr<FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
 	
