@@ -9,12 +9,41 @@ The animation system in Unreal Engine 4 does support non-uniform scale animation
 
 For examples, see the videos below. 
 
-[REGION:lightbox]
-[![](AngryChest.png)(w:300 h:200)](AngryChest.wmv) [![](CastSpell.png)(w:300 h:200)](CastSpell.wmv) [![](Trooper.png)(w:300 h:200)](Trooper.wmv)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kokp5ux-Jok
+[/PARAMLITERAL]
+[/OBJECT]
 
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Od5WGC9_bBo
+[/PARAMLITERAL]
+[/OBJECT]
 
-_Click to watch playback of each video_
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+sh5DTeWRE0A
+[/PARAMLITERAL]
+[/OBJECT]
 
 Refer to the [FBX Animation Pipeline](Engine\Content\FBX\Animations) page for more information on importing FBX Animations. 
 
