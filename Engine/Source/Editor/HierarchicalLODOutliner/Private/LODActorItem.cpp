@@ -40,6 +40,8 @@ void HLODOutliner::FLODActorItem::GenerateContextMenu(FMenuBuilder& MenuBuilder,
 		MenuBuilder.AddMenuEntry(LOCTEXT("ForceView", "ForceView"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::ForceViewLODActor, AsShared())));
 	}
 
+	MenuBuilder.AddMenuEntry(LOCTEXT("CreateHLODVolume", "Create Containing Hierarchical Volume"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::CreateHierarchicalVolumeForActor, AsShared())));
+
 	AActor* Actor = LODActor.Get();
 	ALODActor* ParentActor = HierarchicalLODUtils::GetParentLODActor(Actor);
 	if (ParentActor && Parent.Pin()->GetTreeItemType() == TreeItemType::HierarchicalLODActor)
@@ -56,7 +58,7 @@ FString HLODOutliner::FLODActorItem::GetDisplayString() const
 {
 	if (ALODActor* ActorPtr = LODActor.Get())
 	{
-		return ActorPtr->GetName() + ((ActorPtr->IsDirty()) ? FString(" (Not built)") : FString());
+		return ActorPtr->GetName() + ((ActorPtr->SubActors.Num() < 2) ? FString(" (Insufficient Sub Actors)") : ((ActorPtr->IsDirty()) ? FString(" (Not built)") : FString()));
 	}
 
 	return FString();

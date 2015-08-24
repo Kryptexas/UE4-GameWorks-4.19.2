@@ -119,31 +119,46 @@ void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &Dragg
 
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_CreateNewCluster", "Create new Cluster"));
 	World->Modify();
-	
-	ALODActor* NewCluster = HierarchicalLODUtils::CreateNewClusterActor(World, LODLevelIndex);
 
-	for (TWeakObjectPtr<AActor> StaticMeshActor : DraggedObjects.StaticMeshActors.GetValue())
+	if (World->GetWorldSettings()->bEnableHierarchicalLODSystem)
 	{
-		AActor* InActor = StaticMeshActor.Get();
-		ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
-		if (CurrentParentActor)
+		ALODActor* NewCluster = HierarchicalLODUtils::CreateNewClusterActor(World, LODLevelIndex);
+
+		if (NewCluster)
 		{
-			CurrentParentActor->RemoveSubActor(InActor);
+			for (TWeakObjectPtr<AActor> StaticMeshActor : DraggedObjects.StaticMeshActors.GetValue())
+			{
+				AActor* InActor = StaticMeshActor.Get();
+				ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+				if (CurrentParentActor)
+				{
+					CurrentParentActor->RemoveSubActor(InActor);
+
+					if (!CurrentParentActor->HasValidSubActors())
+					{
+						HierarchicalLODUtils::DeleteLODActor(CurrentParentActor);
+					}
+				}
+
+				NewCluster->AddSubActor(InActor);
+			}
+
+			for (TWeakObjectPtr<AActor> LODActor : DraggedObjects.LODActors.GetValue())
+			{
+				AActor* InActor = LODActor.Get();
+				ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+				if (CurrentParentActor)
+				{
+					CurrentParentActor->RemoveSubActor(InActor);
+					if (!CurrentParentActor->HasValidSubActors())
+					{
+						HierarchicalLODUtils::DeleteLODActor(CurrentParentActor);
+					}
+				}
+
+				NewCluster->AddSubActor(InActor);
+			}
 		}
-
-		NewCluster->AddSubActor(InActor);
-	}
-
-	for (TWeakObjectPtr<AActor> LODActor : DraggedObjects.LODActors.GetValue())
-	{
-		AActor* InActor = LODActor.Get();
-		ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
-		if (CurrentParentActor)
-		{
-			CurrentParentActor->RemoveSubActor(InActor);
-		}
-
-		NewCluster->AddSubActor(InActor);
 	}
 }
 

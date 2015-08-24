@@ -82,6 +82,14 @@ namespace HLODOutliner
 				CreateButtonWidgets()
 			];
 
+
+		MainContentPanel->AddSlot()
+			.AutoHeight()
+			.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+			[				
+				CreateForcedViewSlider()
+			];
+
 		MainContentPanel->AddSlot()
 			.FillHeight(1.0f)
 			[
@@ -126,26 +134,26 @@ namespace HLODOutliner
 				]
 
 				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(5.0f, 0.0f))
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("DeleteClusters", "Delete Clusters"))
-						.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
-					]
-				+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(FMargin(5.0f, 0.0f))
-					[
-						SNew(SButton)
-						.HAlign(HAlign_Center)
-						.Text(LOCTEXT("BuildMeshes", "Build LOD Meshes for Clusters"))
-						.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
-					]	
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(5.0f, 0.0f))
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("DeleteClusters", "Delete Clusters"))
+					.OnClicked(this, &SHLODOutliner::HandleDeleteHLODs)
+				]
 
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(FMargin(5.0f, 0.0f))
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("BuildMeshes", "Build LOD Meshes for Clusters"))
+					.OnClicked(this, &SHLODOutliner::HandleBuildLODActors)
+				]
 			];
 		
 	}
@@ -177,6 +185,33 @@ namespace HLODOutliner
 				.FillWidth(0.25f)				
 				);
 	}
+
+	TSharedRef<SWidget> SHLODOutliner::CreateForcedViewSlider()
+	{
+		return SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.Padding(FMargin(0.0f, 5.0f))
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(5.0f, 0.0f))
+				.FillWidth(0.5f)
+				[
+					SNew(STextBlock)
+					.Text(this, &SHLODOutliner::HandleForceLevelText)
+				]
+				+ SHorizontalBox::Slot()
+					.FillWidth(0.5f)
+					[
+						SNew(SSlider)
+						.IsEnabled(this, &SHLODOutliner::HandleForcedLevelSliderIsEnabled)
+						.OnValueChanged(this, &SHLODOutliner::HandleForcedLevelSliderValueChanged)
+						.Orientation(Orient_Horizontal)
+						.Value(this, &SHLODOutliner::HandleForcedLevelSliderValue)
+					]
+			];
+	}
+
 	void SHLODOutliner::CreateSettingsView()
 	{
 		// Create a property view
@@ -202,7 +237,7 @@ namespace HLODOutliner
 			/** Delegate to show all properties */
 			static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
 			{
-				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting"))
+				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting"))
 				{
 					return true;
 				}
@@ -363,45 +398,7 @@ namespace HLODOutliner
 				FLODActorItem* Item = static_cast<FLODActorItem*>(SelectedNodes[0].Get());
 				ALODActor* LODActor = Item->LODActor.Get();
 				
-				FBox BoundingBox = LODActor->GetComponentsBoundingBox(true);
-
-				AHierarchicalLODVolume* Volume = CurrentWorld->SpawnActor<AHierarchicalLODVolume>(AHierarchicalLODVolume::StaticClass(), FTransform(BoundingBox.GetCenter()));
-				Volume->BrushBuilder = NewObject<UCubeBuilder>();			
-
-				// this code builds a brush for the new actor
-				Volume->PreEditChange(NULL);
-
-				Volume->PolyFlags = 0;
-				Volume->Brush = NewObject<UModel>(Volume, NAME_None, RF_Transactional);
-				Volume->Brush->Initialize(nullptr, true);
-				Volume->Brush->Polys = NewObject<UPolys>(Volume->Brush, NAME_None, RF_Transactional);
-				Volume->GetBrushComponent()->Brush = Volume->Brush;
-				Volume->BrushBuilder = NewObject<UCubeBuilder>();
-
-				UCubeBuilder* CubeBuilder = static_cast<UCubeBuilder*>(Volume->BrushBuilder);	
-
-				CubeBuilder->X = BoundingBox.GetSize().X * 1.5f;
-				CubeBuilder->Y = BoundingBox.GetSize().Y * 1.5f;
-				CubeBuilder->Z = BoundingBox.GetSize().Z * 1.5f;
-
-				Volume->BrushBuilder->Build(CurrentWorld, Volume);
-
-				FBSPOps::csgPrepMovingBrush(Volume);
-
-				// Set the texture on all polys to NULL.  This stops invisible textures
-				// dependencies from being formed on volumes.
-				if (Volume->Brush)
-				{
-					for (int32 poly = 0; poly < Volume->Brush->Polys->Element.Num(); ++poly)
-					{
-						FPoly* Poly = &(Volume->Brush->Polys->Element[poly]);
-						Poly->Material = NULL;
-					}
-				}
-
-				Volume->PostEditChange();
-
-				bool check = true;
+				HierarchicalLODUtils::CreateVolumeForLODActor(LODActor, CurrentWorld);
 			}
 		}
 		return FReply::Handled();
@@ -499,6 +496,39 @@ namespace HLODOutliner
 		}
 	}
 
+	bool SHLODOutliner::HandleForcedLevelSliderIsEnabled() const
+	{
+		bool bHLODsBuild = true;
+		for (bool Build : LODLevelBuildFlags)
+		{
+			bHLODsBuild &= Build;
+		}
+
+		return (LODLevelDrawDistances.Num() > 0 && bHLODsBuild);
+	}
+
+	void SHLODOutliner::HandleForcedLevelSliderValueChanged(float NewValue)
+	{
+		// Snap values
+		int32 SnappedValue = FMath::Min( NewValue, 1.0f ) * LODLevelDrawDistances.Num();
+		if (SnappedValue - 1 != ForcedLODLevel)
+		{
+			RestoreForcedLODLevel(ForcedLODLevel);
+			ForcedLODLevel = -1;
+			SetForcedLODLevel(SnappedValue - 1);
+		}			
+	}
+
+	float SHLODOutliner::HandleForcedLevelSliderValue() const
+	{
+		return ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
+	}
+
+	FText SHLODOutliner::HandleForceLevelText() const
+	{
+		return FText::FromString(FString("Forced viewing level: ") + ( (ForcedLODLevel == -1) ? FString("None") : FString::FromInt(ForcedLODLevel)));
+	}
+
 	bool SHLODOutliner::CanHLODLevelBeForced(const uint32 LODLevel) const
 	{
 		return LODLevelBuildFlags[LODLevel];
@@ -534,6 +564,12 @@ namespace HLODOutliner
 
 	void SHLODOutliner::SetForcedLODLevel(const uint32 LODLevel)
 	{
+		if (LODLevel == -1)
+		{
+			ForcedLODLevel = LODLevel;
+			return;
+		}
+
 		if (CurrentWorld)
 		{
 			auto Level = CurrentWorld->GetCurrentLevel();
@@ -554,6 +590,18 @@ namespace HLODOutliner
 			}
 		}
 		ForcedLODLevel = LODLevel;
+	}
+
+	void SHLODOutliner::CreateHierarchicalVolumeForActor(TSharedRef<ITreeItem> Item)
+	{
+		if (Item->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
+		{
+			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+			ALODActor* LODActor = ActorItem->LODActor.Get();
+
+			AHierarchicalLODVolume* Volume = HierarchicalLODUtils::CreateVolumeForLODActor(LODActor, CurrentWorld);
+			check(Volume);
+		}
 	}
 
 	void SHLODOutliner::BuildLODActor(TSharedRef<ITreeItem> Item)
@@ -641,6 +689,15 @@ namespace HLODOutliner
 		}
 	}
 
+	void SHLODOutliner::ExcludeFromClusterGeneration(TSharedRef<ITreeItem> Item)
+	{
+		const FScopedTransaction Transaction(LOCTEXT("UndoAction_ExcludeStaticMeshActorFromClusterGeneration", "Excluded StaticMeshActor From Cluster Generation"));
+		FStaticMeshActorItem* ActorItem = (FStaticMeshActorItem*)(&Item.Get());
+		ActorItem->StaticMeshActor->Modify();
+		ActorItem->StaticMeshActor->bEnableAutoLODGeneration = false;
+		RemoveStaticMeshActorFromCluster(Item);		
+	}
+
 	void SHLODOutliner::RemoveLODActorFromCluster(TSharedRef<ITreeItem> Item)
 	{
 		if (CurrentWorld)
@@ -703,6 +760,8 @@ namespace HLODOutliner
 					{
 						LODActor->LODDrawDistance = LODLevelDrawDistances[LODLevelIndex];
 						LODActor->UpdateSubActorLODParents();
+						
+						LODActor->SetIsDirty(true);
 					}
 				}
 			}

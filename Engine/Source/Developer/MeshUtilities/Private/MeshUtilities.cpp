@@ -19,6 +19,8 @@
 #include "PhysicsEngine/BodySetup.h"
 #include "MaterialUtilities.h"
 
+#include "HierarchicalLODUtils.h"
+
 //@todo - implement required vector intrinsics for other implementations
 #if PLATFORM_ENABLE_VECTORINTRINSICS
 #include "kDOP.h"
@@ -4673,12 +4675,18 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		for (int32 MeshId = 0; MeshId < ComponentsToMerge.Num(); ++MeshId)
 		{
 			UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
-
-			TArray<int32> MeshMaterialMap;
-			FRawMesh& RawMeshLOD = SourceMeshes[MeshId].MeshLOD[RawMeshLODIdx];
-
+						
 			// We duplicate lower LOD in case this mesh has no LOD we want
 			int32 ExportLODIndex = FMath::Min(LODIndex, MeshComponent->StaticMesh->SourceModels.Num() - 1);
+
+			// Determining which Source LOD level to pick according to the viewing distance
+			if (UseLOD == -1 && ViewDistance < TNumericLimits<float>::Max())
+			{
+				ExportLODIndex = HierarchicalLODUtils::GetLODLevelForDrawDistance(MeshComponent, ViewDistance);
+			}
+
+			TArray<int32> MeshMaterialMap;
+			FRawMesh& RawMeshLOD = SourceMeshes[MeshId].MeshLOD[RawMeshLODIdx];			
 
 			if (ConstructRawMesh(MeshComponent, ExportLODIndex, RawMeshLOD, UniqueMaterials, MeshMaterialMap))
 			{

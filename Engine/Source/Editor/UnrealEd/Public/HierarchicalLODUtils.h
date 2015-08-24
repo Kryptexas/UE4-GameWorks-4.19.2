@@ -1,12 +1,22 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "Core.h"
+#include "AsyncWork.h"
+
+#include "Engine/Engine.h"
+#include "Engine/World.h"
 #include "Engine/LODActor.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
 #include "MeshUtilities.h"
+#include "StaticMeshResources.h"
+#include "HierarchicalLODVolume.h"
 
-#include "AsyncWork.h"
+#include "Editor.h"
+#include "Editor/EditorEngine.h"
+#include "BSPOps.h"
+#include "UnrealEd.h"
 
 #if WITH_EDITOR
 #include "AssetData.h"
@@ -57,7 +67,7 @@ namespace HierarchicalLODUtils
 		{
 			if (!LODActor->IsDirty() || LODActor->SubActors.Num() < 2)
 			{
-				return true;
+				return false;
 			}
 
 			// Clean up sub objects (if applicable)
@@ -159,6 +169,12 @@ namespace HierarchicalLODUtils
 	}
 
 
+	/**
+	* Returns whether or not the given actor is eligble for creating a HLOD cluster creation
+	*
+	* @param Actor -
+	* @return bool
+	*/
 	static bool ShouldGenerateCluster(AActor* Actor)
 	{
 		if (!Actor)
@@ -223,6 +239,7 @@ namespace HierarchicalLODUtils
 		return (ValidComponentCount > 0);
 	}
 
+	/** Returns the ALODActor parent for the given InActor, nullptr if none available */
 	static ALODActor* GetParentLODActor(const AActor* InActor)
 	{
 		ALODActor* ParentActor = nullptr;
@@ -244,6 +261,7 @@ namespace HierarchicalLODUtils
 		return ParentActor;		
 	}
 
+	/** Deletes the given actor's data and instance in the world */
 	static void DeleteLODActor(ALODActor* InActor)
 	{
 		// Find if it has a parent ALODActor
@@ -283,6 +301,7 @@ namespace HierarchicalLODUtils
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 	}
 
+	/** Deletes the given actor's assets */
 	static void DeleteLODActorAssets(ALODActor* InActor)
 	{
 		// you still have to delete all objects just in case they had it and didn't want it anymore
@@ -311,12 +330,16 @@ namespace HierarchicalLODUtils
 		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS, true);
 	}
 
+	/** Creates a new cluster actor in the given InWorld with InLODLevel as HLODLevel */
 	static ALODActor* CreateNewClusterActor(UWorld* InWorld, const int32 InLODLevel)
 	{
 		// Check incoming data
 		check(InWorld != nullptr && InLODLevel >= 0);
 		auto WorldSettings = InWorld->GetWorldSettings();
-		check(WorldSettings->bEnableHierarchicalLODSystem && WorldSettings->HierarchicalLODSetup.Num() > InLODLevel);
+		if (!WorldSettings->bEnableHierarchicalLODSystem || WorldSettings->HierarchicalLODSetup.Num() == 0 || WorldSettings->HierarchicalLODSetup.Num() < InLODLevel)
+		{
+			return nullptr;
+		}
 					
 		// Spawn and setup actor
 		ALODActor* NewActor = nullptr;
@@ -328,6 +351,7 @@ namespace HierarchicalLODUtils
 		return NewActor;		
 	}
 
+	/** Deletes all the ALODActors with the given HLODLevelIndex inside off InWorld */
 	static void DeleteLODActorsInHLODLevel(UWorld* InWorld, const int32 HLODLevelIndex)
 	{
 		// you still have to delete all objects just in case they had it and didn't want it anymore
@@ -342,11 +366,92 @@ namespace HierarchicalLODUtils
 			}
 		}
 	}
-
 	
-	static void TestBuild(ALODActor* LODActor, UPackage* AssetsOuter, const FHierarchicalSimplification& LODSetup, const uint32 LODIndex)
+	/** Computes the Screensize of the given Sphere taking into account the ProjectionMatrix and distance */
+	static float ComputeBoundsScreenSize(const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance)
 	{
+		// Only need one component from a view transformation; just calculate the one we're interested in.
+		const float Divisor = Distance;
 
+		// Get projection multiple accounting for view scaling.
+		const float ScreenMultiple = FMath::Max(1920.0f / 2.0f * ProjectionMatrix.M[0][0],
+			1080.0f / 2.0f * ProjectionMatrix.M[1][1]);
+
+		const float ScreenRadius = ScreenMultiple * SphereRadius / FMath::Max(Divisor, 1.0f);
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius;
+		return FMath::Clamp(ScreenArea / (1920.0f * 1080.0f), 0.0f, 1.0f);
+	}
+	
+	/** Computes which LOD level of a Mesh corresponds to the given Distance (calculates closest screensize with distance) */
+	static int32 ComputeStaticMeshLODLevel(const TArray<FStaticMeshSourceModel>& SourceModels, const float SphereRadius, const FMatrix& ProjectionMatrix, const float Distance)
+	{
+		const int32 NumLODs = SourceModels.Num();
+
+		const float ScreenSize = ComputeBoundsScreenSize(SphereRadius, ProjectionMatrix, Distance);
+
+		// Walk backwards and return the first matching LOD
+		for (int32 LODIndex = NumLODs - 1; LODIndex >= 0; --LODIndex)
+		{
+			if (SourceModels[LODIndex].ScreenSize > ScreenSize)
+			{
+			
+				return FMath::Max(LODIndex, 0);
+			}
+		}
+
+		return 0;
+	}
+	
+	/** Computes the LODLevel for a StaticMeshComponent taking into account the DrawingDistance */
+	static int32 GetLODLevelForDrawDistance(UStaticMeshComponent* StaticMeshComponent, const float DrawDistance)
+	{
+		// convert FOV to radians
+		float FOVRad = 90.0f * (float)PI / 360.0f;
+		FMatrix ProjectionMatrix = FPerspectiveMatrix(FOVRad, 1920, 1080, 0.01f);
+		FBoxSphereBounds Bounds = StaticMeshComponent->CalcBounds(FTransform());
+		return ComputeStaticMeshLODLevel(StaticMeshComponent->StaticMesh->SourceModels, Bounds.SphereRadius, ProjectionMatrix, DrawDistance);
+	}
+
+	static AHierarchicalLODVolume* CreateVolumeForLODActor(ALODActor* InLODActor, UWorld* InWorld )
+	{
+		FBox BoundingBox = InLODActor->GetComponentsBoundingBox(true);
+
+		AHierarchicalLODVolume* Volume = InWorld->SpawnActor<AHierarchicalLODVolume>(AHierarchicalLODVolume::StaticClass(), FTransform(BoundingBox.GetCenter()));
+
+		// this code builds a brush for the new actor
+		Volume->PreEditChange(NULL);
+
+		Volume->PolyFlags = 0;
+		Volume->Brush = NewObject<UModel>(Volume, NAME_None, RF_Transactional);
+		Volume->Brush->Initialize(nullptr, true);
+		Volume->Brush->Polys = NewObject<UPolys>(Volume->Brush, NAME_None, RF_Transactional);
+		Volume->GetBrushComponent()->Brush = Volume->Brush;
+		Volume->BrushBuilder = NewObject<UCubeBuilder>( Volume, NAME_None, RF_Transactional);
+
+		UCubeBuilder* CubeBuilder = static_cast<UCubeBuilder*>(Volume->BrushBuilder);
+
+		CubeBuilder->X = BoundingBox.GetSize().X * 1.5f;
+		CubeBuilder->Y = BoundingBox.GetSize().Y * 1.5f;
+		CubeBuilder->Z = BoundingBox.GetSize().Z * 1.5f;
+
+		Volume->BrushBuilder->Build(InWorld, Volume);
+
+		FBSPOps::csgPrepMovingBrush(Volume);
+
+		// Set the texture on all polys to NULL.  This stops invisible textures
+		// dependencies from being formed on volumes.
+		if (Volume->Brush)
+		{
+			for (int32 poly = 0; poly < Volume->Brush->Polys->Element.Num(); ++poly)
+			{
+				FPoly* Poly = &(Volume->Brush->Polys->Element[poly]);
+				Poly->Material = NULL;
+			}
+		}
+
+		Volume->PostEditChange();
+
+		return Volume;
 	}
 
 };

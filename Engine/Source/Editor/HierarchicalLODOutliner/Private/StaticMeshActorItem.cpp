@@ -25,6 +25,7 @@ void HLODOutliner::FStaticMeshActorItem::GenerateContextMenu(FMenuBuilder& MenuB
 {
 	auto SharedOutliner = StaticCastSharedRef<SHLODOutliner>(Outliner.AsShared());
 	MenuBuilder.AddMenuEntry(LOCTEXT("RemoveSMActorFromCluster", "Remove From Cluster"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::RemoveStaticMeshActorFromCluster, AsShared())));
+	MenuBuilder.AddMenuEntry(LOCTEXT("ExcludeSMActorFromGeneration", "Exclude from Cluster Generation"), FText(), FSlateIcon(), FUIAction(FExecuteAction::CreateSP(&Outliner, &SHLODOutliner::ExcludeFromClusterGeneration, AsShared())));
 }
 
 FString HLODOutliner::FStaticMeshActorItem::GetDisplayString() const

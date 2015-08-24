@@ -68,6 +68,10 @@ namespace HLODOutliner
 		* Constructs this widget.
 		*/
 		void Construct(const FArguments& InArgs);
+
+		/** Create the panel's forced HLOD level viewer */
+		TSharedRef<SWidget> CreateForcedViewSlider();
+
 		/** Creates the panel's ButtonWidget rows */
 		TSharedRef<SWidget> CreateButtonWidgets();
 
@@ -134,6 +138,34 @@ namespace HLODOutliner
 		void HandleCheckBoxCheckedStateChanged(ECheckBoxState NewState, TSharedRef<ITreeItem> Item);
 
 		/**
+		* Determines if the HLOD slider is enabled, only if all HLODs are buil
+		*
+		* @return bool
+		*/
+		bool HandleForcedLevelSliderIsEnabled() const;
+		
+		/**
+		* Handles changes in slider value, maps/snaps it to the corresponding HLOD level
+		*
+		* @param NewValue -
+		*/
+		void HandleForcedLevelSliderValueChanged(float NewValue);
+
+		/**
+		* Returns the float sliding value corresponding to the currently forced HLOD level
+		*
+		* @return float
+		*/
+		float HandleForcedLevelSliderValue() const;
+
+		/**
+		* Returns FText with information about current forced HLOD level "None", "1" etc.
+		*
+		* @return FText
+		*/
+		FText HandleForceLevelText() const;
+
+		/**
 		* Returns whether or not a HLOD level can be forced, this depends on whether or not all of the Clusters with LODLevel are non-dirty (have their meshes build)
 		*
 		* @param LODLevel - LOD level to check for
@@ -155,6 +187,12 @@ namespace HLODOutliner
 		*/
 		void SetForcedLODLevel(const uint32 LODLevel);
 
+		/**
+		* Creates a Hierarchical LOD Volume for the given LODActorItem, volume bounds correspond to those of the LODActor's SubActors
+		*
+		* @param Item - LODActorItem
+		*/
+		void CreateHierarchicalVolumeForActor(TSharedRef<ITreeItem> Item);
 	protected:
 		/**
 		* Builds the HLOD mesh for the given ALODActor (cluster)
@@ -190,6 +228,13 @@ namespace HLODOutliner
 		* @param Item - (StaticMeshActor)TreeItem containing the Actor ptr
 		*/
 		void RemoveStaticMeshActorFromCluster(TSharedRef<ITreeItem> Item);
+		
+		/**
+		* Removes the given StaticMeshActor from its parent's (ALODActor) sub-actors array and excludes it from cluster generation
+		*
+		* @param Item - (StaticMeshActor)TreeItem containing the Actor ptr
+		*/
+		void ExcludeFromClusterGeneration(TSharedRef<ITreeItem> Item);		
 
 		/**
 		* Removes the given LODActor from its parent's (ALODActor) sub-actors array

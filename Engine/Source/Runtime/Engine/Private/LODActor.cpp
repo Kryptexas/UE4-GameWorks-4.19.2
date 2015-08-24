@@ -314,19 +314,19 @@ void ALODActor::SetHiddenFromEditorView(const bool InState, const int32 ForceLOD
 	// If we are also subactor for a higher LOD level or this actor belongs to a higher HLOD level than is being forced hide the actor
 	if (GetStaticMeshComponent()->GetLODParentPrimitive() || LODLevel > ForceLODLevel )
 	{
-		SetIsTemporarilyHiddenInEditor(InState);		
-	}
+		SetIsTemporarilyHiddenInEditor(InState);			
 
-	for (auto Actor : SubActors)
-	{
-		// If this actor belongs to a lower HLOD level that is being forced hide the sub-actors
-		if (LODLevel < ForceLODLevel)
+		for (auto Actor : SubActors)
 		{
-			Actor->SetIsTemporarilyHiddenInEditor(InState);
-		}
+			// If this actor belongs to a lower HLOD level that is being forced hide the sub-actors
+			if (LODLevel < ForceLODLevel)
+			{
+				Actor->SetIsTemporarilyHiddenInEditor(InState);
+			}
 
-		// Toggle/set the LOD parent to nullptr or this
-		Actor->SetLODParent((InState) ? nullptr : StaticMeshComponent, (InState) ? 0.0f : LODDrawDistance);
+			// Toggle/set the LOD parent to nullptr or this
+			Actor->SetLODParent((InState) ? nullptr : StaticMeshComponent, (InState) ? 0.0f : LODDrawDistance);
+		}
 	}
 
 	StaticMeshComponent->MarkRenderStateDirty();

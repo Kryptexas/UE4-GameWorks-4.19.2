@@ -322,7 +322,7 @@ void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCr
 					}
 					else
 					{						
-						MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, LODIdx, OutAssets, OutProxyLocation, LODSetup.DrawDistance, true);
+						MeshUtilities.MergeStaticMeshComponents(AllComponents, FirstActor->GetWorld(), LODSetup.MergeSetting, AssetsOuter, PackageName, -1, OutAssets, OutProxyLocation, LODSetup.DrawDistance, true);
 					}
 
 					// we make it private, so it can't be used by outside of map since it's useless, and then remove standalone
