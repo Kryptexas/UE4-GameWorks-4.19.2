@@ -24,7 +24,7 @@ class ENGINE_API UMaterialExpressionTextureProperty : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Defaults to 'Texture' if not specified"))
+	UPROPERTY(meta = (RequiredInput = "false", ToolTip = "Texture Object to access the property from."))
 	FExpressionInput TextureObject;
 	
 	/** Texture property to be accessed */

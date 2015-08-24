@@ -4769,7 +4769,7 @@ void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) c
 	const FString PropertyDisplayName = TEXT("");
 #endif
 
-	OutCaptions.Add(FString(TEXT("View.")) + PropertyDisplayName);
+	OutCaptions.Add(PropertyDisplayName);
 }
 
 UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitializer& ObjectInitializer)

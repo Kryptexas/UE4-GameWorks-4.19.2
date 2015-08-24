@@ -27,6 +27,7 @@
 #include "Materials/MaterialExpressionTextureObject.h"
 #include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
+#include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialFunction.h"
 
 #include "MaterialEditorUtilities.h"
@@ -180,6 +181,10 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 			if (MaterialExpression->IsA<UMaterialExpressionTextureProperty>())
 			{
 				NodeTitle.AppendLine(LOCTEXT("TextureProperty", "Texture Property"));
+			}
+			else if (MaterialExpression->IsA<UMaterialExpressionViewProperty>())
+			{
+				NodeTitle.AppendLine(LOCTEXT("ViewProperty", "View Property"));
 			}
 			else
 			{
