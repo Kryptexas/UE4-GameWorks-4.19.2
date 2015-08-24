@@ -1,20 +1,20 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 4.5 - Associating Animation & Character Blueprints
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to associate the Animation Blueprint with the Character Blueprint for your First Person Shooter project.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664710
+Availability:Docs
+Title:4.5- Animation ブループリントと Character ブループリントを関連付ける
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4
+Description:First Person Shooter プロジェクトでAnimation ブループリントと Character ブループリントを関連付ける方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/4/4)
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/4/4/6)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/4)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/4)
 	[/PARAM]
 	[PARAM:next]
 	[/PARAM]
@@ -23,6 +23,6 @@ Version: 4.9
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
