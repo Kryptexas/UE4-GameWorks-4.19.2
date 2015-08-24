@@ -7,6 +7,7 @@
 
 #include "EnginePrivate.h"
 #include "MaterialShared.h"
+#include "Materials/MaterialExpressionTextureProperty.h"
 
 /**
  */
@@ -1338,4 +1339,73 @@ public:
 
 private:
 	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
+class FMaterialUniformExpressionTextureProperty: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionTextureProperty);
+public:
+	
+	FMaterialUniformExpressionTextureProperty() {}
+	FMaterialUniformExpressionTextureProperty(FMaterialUniformExpressionTexture* InTextureExpression, EMaterialExposedTextureProperty InTextureProperty)
+		: TextureExpression(InTextureExpression)
+		, TextureProperty(InTextureProperty)
+	{}
+
+	// FMaterialUniformExpression interface.
+	virtual void Serialize(FArchive& Ar) override
+	{
+		Ar << TextureExpression << TextureProperty;
+	}
+	virtual void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const override
+	{
+		const UTexture* Texture;
+
+		{
+			ESamplerSourceMode SamplerSource;
+			TextureExpression->GetTextureValue(Context, Context.Material, Texture, SamplerSource);
+		}
+
+		if (!Texture || !Texture->Resource)
+		{
+			return;
+		}
+	
+		if (TextureProperty == TMTM_TextureSize)
+		{
+			OutValue.R = Texture->Resource->GetSizeX();
+			OutValue.G = Texture->Resource->GetSizeY();
+		}
+		else if (TextureProperty == TMTM_TexelSize)
+		{
+			OutValue.R = 1.0f / float(Texture->Resource->GetSizeX());
+			OutValue.G = 1.0f / float(Texture->Resource->GetSizeY());
+		}
+		else
+		{
+			check(0);
+		}
+	}
+	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+
+		auto OtherTexturePropertyExpression = (const FMaterialUniformExpressionTextureProperty*)OtherExpression;
+		
+		if (TextureProperty != OtherTexturePropertyExpression->TextureProperty)
+		{
+			return false;
+		}
+
+		return TextureExpression->IsIdentical(OtherTexturePropertyExpression->TextureExpression);
+	}
+	
+private:
+	TRefCountPtr<FMaterialUniformExpressionTexture> TextureExpression;
+	int8 TextureProperty;
 };

@@ -25,6 +25,7 @@
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
 #include "Materials/MaterialExpressionTextureObject.h"
+#include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialFunction.h"
 
@@ -176,7 +177,14 @@ FText UMaterialGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if ( MaterialExpression->bShaderInputData && (MaterialExpression->bHidePreviewWindow || MaterialExpression->bCollapsed))
 		{
-			NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
+			if (MaterialExpression->IsA<UMaterialExpressionTextureProperty>())
+			{
+				NodeTitle.AppendLine(LOCTEXT("TextureProperty", "Texture Property"));
+			}
+			else
+			{
+				NodeTitle.AppendLine(LOCTEXT("InputData", "Input Data"));
+			}
 		}
 
 		if (bIsPreviewExpression)

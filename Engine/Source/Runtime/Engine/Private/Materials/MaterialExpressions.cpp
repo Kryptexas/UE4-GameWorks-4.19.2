@@ -113,6 +113,7 @@
 #include "Materials/MaterialExpressionSubtract.h"
 #include "Materials/MaterialExpressionTextureBase.h"
 #include "Materials/MaterialExpressionTextureObject.h"
+#include "Materials/MaterialExpressionTextureProperty.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionParticleSubUV.h"
 #include "Materials/MaterialExpressionTextureSampleParameter.h"
@@ -1215,12 +1216,7 @@ const TArray<FExpressionInput*> UMaterialExpressionTextureSample::GetInputs()
 FExpressionInput* UMaterialExpressionTextureSample::GetInput(int32 InputIndex)
 {
 	IF_INPUT_RETURN(Coordinates);
-
-	// Only show the TextureObject input inside a material function, since that's the only place it is useful
-	if(GetOuter()->IsA(UMaterialFunction::StaticClass()))
-	{
-		IF_INPUT_RETURN(TextureObject);
-	}
+	IF_INPUT_RETURN(TextureObject);
 
 	if(MipValueMode == TMVM_Derivative)
 	{
@@ -1241,12 +1237,7 @@ FExpressionInput* UMaterialExpressionTextureSample::GetInput(int32 InputIndex)
 FString UMaterialExpressionTextureSample::GetInputName(int32 InputIndex) const
 {
 	IF_INPUT_RETURN(Coordinates, TEXT("Coordinates"));
-
-	// Only show the TextureObject input inside a material function, since that's the only place it is useful
-	if(GetOuter()->IsA(UMaterialFunction::StaticClass()))
-	{
-		IF_INPUT_RETURN(TextureObject, TEXT("TextureObject"));
-	}
+	IF_INPUT_RETURN(TextureObject, TEXT("TextureObject"));
 
 	if(MipValueMode == TMVM_MipLevel)
 	{
@@ -1416,11 +1407,8 @@ uint32 UMaterialExpressionTextureSample::GetInputType(int32 InputIndex)
 	IF_INPUT_RETURN(Coordinates, MCT_Float);
 
 	// Only show the TextureObject input inside a material function, since that's the only place it is useful
-	if(GetOuter()->IsA(UMaterialFunction::StaticClass()))
-	{
-		IF_INPUT_RETURN(TextureObject, MCT_Texture);
-	}
-
+	IF_INPUT_RETURN(TextureObject, MCT_Texture);
+	
 	if(MipValueMode == TMVM_MipLevel || MipValueMode == TMVM_MipBias)
 	{
 		IF_INPUT_RETURN(MipValue, MCT_Float);
@@ -1434,17 +1422,6 @@ uint32 UMaterialExpressionTextureSample::GetInputType(int32 InputIndex)
 	return MCT_Unknown;
 }
 #undef IF_INPUT_RETURN
-
-void UMaterialExpressionTextureSample::GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip)
-{
-	if (InputIndex == 1 && !GetOuter()->IsA(UMaterialFunction::StaticClass()))
-	{
-		// If input pin 1 is omitted, increment the index so the correct tooltip is looked up
-		InputIndex++;
-	}
-
-	Super::GetConnectorToolTip(InputIndex, OutputIndex, OutToolTip);
-}
 #endif
 
 int32 UMaterialExpressionTextureSample::CompileMipValue0(class FMaterialCompiler* Compiler)
@@ -1760,6 +1737,73 @@ uint32 UMaterialExpressionTextureObject::GetOutputType(int32 OutputIndex)
 	}
 }
 #endif //WITH_EDITOR
+
+//
+//  UMaterialExpressionTextureProperty
+//
+UMaterialExpressionTextureProperty::UMaterialExpressionTextureProperty(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Texture", "Texture" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Property = TMTM_TextureSize;
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+	bShaderInputData = true;
+	bShowOutputNameOnPin = false;
+	
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("")));
+}
+
+int32 UMaterialExpressionTextureProperty::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{	
+	if (!TextureObject.Expression)
+	{
+		return Compiler->Errorf(TEXT("TextureSample> Missing input texture"));
+	}
+
+	const int32 TextureCodeIndex = TextureObject.Compile(Compiler);
+	if (TextureCodeIndex == INDEX_NONE)
+	{
+		return INDEX_NONE;
+	}
+
+	return Compiler->TextureProperty(TextureCodeIndex, Property);
+}
+
+void UMaterialExpressionTextureProperty::GetCaption(TArray<FString>& OutCaptions) const
+{
+#if WITH_EDITOR
+	const UEnum* TexturePropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedTextureProperty"));
+	check(TexturePropertyEnum);
+
+	const FString PropertyDisplayName = TexturePropertyEnum->GetDisplayNameText(Property).ToString();
+#else
+	const FString PropertyDisplayName = TEXT("");
+#endif
+
+	OutCaptions.Add(PropertyDisplayName);
+}
+
+#if WITH_EDITOR
+// this define is only used for the following function
+#define IF_INPUT_RETURN(Item, Type) if(!InputIndex) return Type; --InputIndex
+uint32 UMaterialExpressionTextureProperty::GetInputType(int32 InputIndex)
+{
+	IF_INPUT_RETURN(TextureObject, MCT_Texture);
+	return MCT_Unknown;
+}
+#undef IF_INPUT_RETURN
+#endif
 
 //
 //  UMaterialExpressionTextureSampleParameter2D

@@ -89,6 +89,12 @@ For a better understanding of the DDX(UVs) and DDY(UVs) inputs, here is what you
 
 ![SampleTextureDerivative.png](SampleTextureDerivative.png)
 
+## TextureProperty
+
+The TextureProperty exposes a texture's property of your choice such as the texture's size or texel size.
+
+![TextureProperty.png](TextureProperty.png)
+
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
 
 

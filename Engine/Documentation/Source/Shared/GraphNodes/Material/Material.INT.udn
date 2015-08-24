@@ -793,6 +793,14 @@ Engine/Rendering/Materials/ExpressionReference/Textures#texturesample
 [/VAR]
 [/EXCERPT:UMaterialExpressionTextureSample]
 
+[EXCERPT:UMaterialExpressionTextureProperty]
+The TextureProperty expression exposes a texture's properties such as the texture's size or the texel size. 
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Textures#textureproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionTextureProperty]
+
 [EXCERPT:UMaterialExpressionBlackBody]
 The Black Body expression simulates the effects of black body radiation within your Material. The user inputs a temperature (in Kelvin) and the resulting color and intensity can be used to drive Base Color and Emissive values to get a physically accurate result. 
 

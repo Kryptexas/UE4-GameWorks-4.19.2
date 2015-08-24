@@ -2456,6 +2456,20 @@ protected:
 			);
 	}
 
+	virtual int32 TextureProperty(int32 TextureIndex, EMaterialExposedTextureProperty Property) override
+	{
+		EMaterialValueType TextureType = GetParameterType(TextureIndex);
+
+		if(TextureType != MCT_Texture2D)
+		{
+			return Errorf(TEXT("Texture size only available for Texture2D, not %s"),DescribeType(TextureType));
+		}
+		
+		auto TextureExpression = (FMaterialUniformExpressionTexture*) (*CurrentScopeChunks)[TextureIndex].UniformExpression.GetReference();
+
+		return AddUniformExpression(new FMaterialUniformExpressionTextureProperty(TextureExpression, Property), MCT_Float2, TEXT(""));
+	}
+
 	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) override
 	{
 		if (Material->GetMaterialDomain() != MD_DeferredDecal)
