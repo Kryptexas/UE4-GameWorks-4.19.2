@@ -22,7 +22,7 @@ FNavAvoidanceData::FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceIn
 		);
 }
 
-void FNavAvoidanceData::Init(UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
+void FNavAvoidanceData::Init(UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHalfHeight,
 							 const FVector& InVelocity, float InWeight,
 							 int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore,
 							 float InTestRadius2D)
@@ -30,7 +30,7 @@ void FNavAvoidanceData::Init(UAvoidanceManager* Avoidance, const FVector& InCent
 	Center = InCenter;
 	Velocity = InVelocity;
 	Radius = InRadius * Avoidance->ArtificialRadiusExpansion;
-	Height = InHeight;
+	HalfHeight = InHalfHeight;
 	Weight = FMath::Clamp<float>(InWeight, 0.0f, 1.0f);
 	GroupMask = InGroupMask;
 	GroupsToAvoid = InGroupsToAvoid;
@@ -54,8 +54,9 @@ UAvoidanceManager::UAvoidanceManager(const FObjectInitializer& ObjectInitializer
 	LockTimeAfterClean = 0.01f;
 	DeltaTimeToPredict = 0.5f;
 	ArtificialRadiusExpansion = 1.5f;
-	TestHeightDifference = 500.0f;
+	TestHeightDifference_DEPRECATED = 500.0f;
 	bRequestedUpdateTimer = false;
+	HeightCheckMargin = 10.0f;
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bDebugAll = false;
@@ -332,7 +333,7 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 			continue;
 		}
 
-		if (FMath::Abs(OtherObject.Center.Z - inAvoidanceData.Center.Z) > TestHeightDifference)
+		if (FMath::Abs(OtherObject.Center.Z - inAvoidanceData.Center.Z) > OtherObject.HalfHeight + inAvoidanceData.HalfHeight + HeightCheckMargin)
 		{
 			continue;
 		}
