@@ -44,7 +44,7 @@ private:
 	bool CanAddTransform(FGuid ObjectGuid) const;
 
 	/** Custom add key implementation */
-	void AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL, bool bForceKey = false, F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
+	void AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL, const bool bAddKeyEvenIfUnchanged = false, F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
 
 	/**
 	 * Called before an actor or component transform changes
@@ -60,8 +60,14 @@ private:
 	 */
 	void OnTransformChanged( UObject& InObject );
 
+	/** Get transform key */
+	FTransformKey GetTransformKey(const UMovieScene3DTransformTrack* TransformTrack, float KeyTime, struct FTransformDataPair TransformPair, FKeyParams KeyParams) const;
+
 	/** Delegate for animatable property changed in OnTransformChanged */
-	void OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, struct FTransformDataPair TransformPair, bool bAutoKeying, bool bForceKey, F3DTransformTrackKey::Type KeyType);
+	void OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, struct FTransformDataPair TransformPair, FKeyParams KeyParams, F3DTransformTrackKey::Type KeyType);
+
+	/** Delegate to determine whether the property can be keyed */
+	bool CanKeyPropertyInternal(float KeyTime, FGuid ObjectHandle, struct FTransformDataPair TransformPair, FKeyParams KeyParams) const;
 
 	/** Delegate for camera button lock state */
 	ECheckBoxState IsCameraLocked(TWeakObjectPtr<ACameraActor> CameraActor) const; 

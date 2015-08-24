@@ -169,6 +169,12 @@ void FColorPropertySection::ConsolidateColorCurves( TArray< TKeyValuePair<float,
 		}
 	}
 
+	// Enforce at least one key for the default value
+	if (TimesWithKeys.Num() == 0)
+	{
+		TimesWithKeys.Add(0);
+	}
+
 	// @todo Sequencer Optimize - This another O(n^2) loop, since Eval is O(n)!
 	for ( int32 i = 0; i < TimesWithKeys.Num(); ++i )
 	{

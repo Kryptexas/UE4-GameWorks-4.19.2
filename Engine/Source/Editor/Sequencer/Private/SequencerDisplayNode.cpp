@@ -800,7 +800,13 @@ void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 			KeyableBoundObjects.Add(BoundObject);
 		}
 	}
-	Sequencer.KeyProperty(FKeyPropertyParams(KeyableBoundObjects, PropertyPath));
+
+	FKeyPropertyParams KeyPropertyParams(KeyableBoundObjects, PropertyPath);
+	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
+	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = false;
+	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = false;
+
+	Sequencer.KeyProperty(KeyPropertyParams);
 }
 
 float FSectionCategoryNode::GetNodeHeight() const 

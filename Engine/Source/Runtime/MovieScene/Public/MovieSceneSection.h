@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "KeyParams.h"
 #include "MovieSceneSection.generated.h"
 
 /**
@@ -152,8 +153,10 @@ public:
 	 * @param InCurve	The curve to add keys to
 	 * @param Time		The time where the key should be added
 	 * @param Value		The value at the given time
+	 * @param KeyParams The keying parameters
+	 * @param bUnwindRotation Unwind rotation
 	 */
-	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value );
+	void MOVIESCENE_API AddKeyToCurve( FRichCurve& InCurve, float Time, float Value, FKeyParams KeyParams, const bool bUnwindRotation = false);
 
 	/**
 	 * Checks to see if this section overlaps with an array of other sections

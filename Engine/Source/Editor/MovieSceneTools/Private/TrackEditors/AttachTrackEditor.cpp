@@ -290,7 +290,7 @@ void F3DAttachTrackEditor::AddAttach(FGuid ObjectGuid, UObject* AdditionalAsset)
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	AnimatablePropertyChanged( UMovieScene3DAttachTrack::StaticClass(), false,
+	AnimatablePropertyChanged( UMovieScene3DAttachTrack::StaticClass(),
 		FOnKeyProperty::CreateRaw( this, &F3DAttachTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
 }
 

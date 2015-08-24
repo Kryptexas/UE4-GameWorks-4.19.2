@@ -23,16 +23,16 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneMarginTrack::CreateInstance()
 }
 
 
-bool UMovieSceneMarginTrack::AddKeyToSection( float Time, const FMarginKey& MarginKey )
+bool UMovieSceneMarginTrack::AddKeyToSection( float Time, const FMarginKey& MarginKey, FKeyParams KeyParams )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || MarginKey.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneMarginSection>(NearestSection)->NewKeyIsNewData(Time, MarginKey.Value) )
+	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneMarginSection>(NearestSection)->NewKeyIsNewData(Time, MarginKey.Value, KeyParams) )
 	{
 		Modify();
 
 		UMovieSceneMarginSection* NewSection = CastChecked<UMovieSceneMarginSection>( FindOrAddSection( Time ) );
 
-		NewSection->AddKey( Time, MarginKey );
+		NewSection->AddKey( Time, MarginKey, KeyParams );
 
 		return true;
 	}

@@ -75,7 +75,7 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance
 bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation, F3DTransformTrackKey::Type KeyType )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, InKey.GetKeyTime());
-	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
+	if (!NearestSection || InKey.KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
 	{
 		Modify();
 
@@ -83,11 +83,17 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 
 		// key each component of the transform
 		if (KeyType & F3DTransformTrackKey::Key_Translation)
+		{
 			NewSection->AddTranslationKeys( InKey );
+		}
 		if (KeyType & F3DTransformTrackKey::Key_Rotation)
+		{
 			NewSection->AddRotationKeys( InKey, bUnwindRotation );
+		}
 		if (KeyType & F3DTransformTrackKey::Key_Scale)
+		{
 			NewSection->AddScaleKeys( InKey );
+		}
 
 		return true;
 	}
@@ -95,7 +101,7 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 }
 
 
-bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale, TArray<bool>& OutHasTranslationKeys, TArray<bool>& OutHasRotationKeys, TArray<bool>& OutHasScaleKeys ) const
+bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVector& OutTranslation, FRotator& OutRotation, FVector& OutScale ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
 
@@ -106,10 +112,20 @@ bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVec
 		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
 
 		// Evaluate translation,rotation, and scale curves.  If no keys were found on one of these, that component of the transform will remain unchained
-		TransformSection->EvalTranslation( Position, OutTranslation, OutHasTranslationKeys );
-		TransformSection->EvalRotation( Position, OutRotation, OutHasRotationKeys );
-		TransformSection->EvalScale( Position, OutScale, OutHasScaleKeys );
+		TransformSection->EvalTranslation( Position, OutTranslation );
+		TransformSection->EvalRotation( Position, OutRotation );
+		TransformSection->EvalScale( Position, OutScale );
 	}
 
 	return Section != NULL;
+}
+
+bool UMovieScene3DTransformTrack::CanKeyTrack(const FTransformKey& InKey ) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, InKey.GetKeyTime());
+	if (!NearestSection || CastChecked<UMovieScene3DTransformSection>(NearestSection)->NewKeyIsNewData(InKey))
+	{
+		return true;
+	}
+	return false;
 }

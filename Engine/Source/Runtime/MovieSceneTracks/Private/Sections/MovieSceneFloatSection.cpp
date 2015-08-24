@@ -41,13 +41,30 @@ void UMovieSceneFloatSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
-void UMovieSceneFloatSection::AddKey( float Time, float Value )
+void UMovieSceneFloatSection::AddKey( float Time, float Value, FKeyParams KeyParams )
 {
 	Modify();
-	FloatCurve.UpdateOrAddKey(Time, Value);
+	if (FloatCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
+	{
+		FloatCurve.SetDefaultValue(Value);
+	}
+	else
+	{
+		FloatCurve.UpdateOrAddKey(Time, Value);
+	}
 }
 
-bool UMovieSceneFloatSection::NewKeyIsNewData(float Time, float Value) const
+bool UMovieSceneFloatSection::NewKeyIsNewData(float Time, float Value, FKeyParams KeyParams) const
 {
-	return FloatCurve.GetNumKeys() == 0 || !FMath::IsNearlyEqual(FloatCurve.Eval(Time), Value);
+	if (FloatCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	{
+		bool bKeyExists = FloatCurve.IsKeyHandleValid(FloatCurve.FindKey(Time));
+
+		// Don't add a keyframe if there are existing keys and auto key is not enabled.
+		if (!(!bKeyExists && !KeyParams.bAutoKeying && FloatCurve.GetNumKeys() > 0))
+		{
+			return true;
+		}
+	}
+	return false;
 }

@@ -478,12 +478,12 @@ bool FAudioTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObje
 			TArray<UObject*> OutObjects;
 			GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(), false,
+			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
 				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewAttachedSound, Sound, OutObjects));
 		}
 		else
 		{
-			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(), false,
+			AnimatablePropertyChanged(UMovieSceneAudioTrack::StaticClass(),
 				FOnKeyProperty::CreateRaw(this, &FAudioTrackEditor::AddNewMasterSound, Sound));
 		}
 

@@ -161,7 +161,7 @@ private:
 	*/
 	virtual void OnAnimatedPropertyChanged( const FPropertyChangedParams& PropertyChangedParams )
 	{
-		bool bCreateHandleIfMissing = !PropertyChangedParams.bRequireAutoKey;
+		bool bCreateHandleIfMissing = PropertyChangedParams.KeyParams.bCreateHandleIfMissing;
 
 		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
 		{
@@ -173,7 +173,7 @@ private:
 				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
 				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
 
-				bool bCreateTrackIfMissing = !PropertyChangedParams.bRequireAutoKey;
+				bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
 
 				if (bCreateTrackIfMissing || GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(SequencerTrackClass, ObjectHandle, PropertyName))
 				{
@@ -181,7 +181,7 @@ private:
 					KeyType Key;
 					if ( TryGenerateKeyFromPropertyChanged( PropertyChangedParams, Key ) )
 					{
-						AnimatablePropertyChanged( TrackType::StaticClass(), PropertyChangedParams.bRequireAutoKey,
+						AnimatablePropertyChanged( TrackType::StaticClass(),
 							FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
 					}
 				}
@@ -192,7 +192,7 @@ private:
 	/** Adds a key based on a property change. */
 	void OnKeyProperty( float KeyTime, FPropertyChangedParams PropertyChangedParams, KeyType Key )
 	{
-		bool bCreateHandleIfMissing = !PropertyChangedParams.bRequireAutoKey;
+		bool bCreateHandleIfMissing = PropertyChangedParams.KeyParams.bCreateHandleIfMissing;
 
 		for ( UObject* Object : PropertyChangedParams.ObjectsThatChanged )
 		{
@@ -203,7 +203,7 @@ private:
 				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
 				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
 
-				bool bCreateTrackIfMissing = !PropertyChangedParams.bRequireAutoKey;
+				bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
 
 				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName, bCreateTrackIfMissing );
 				if ( Track )
@@ -213,7 +213,7 @@ private:
 					TypedTrack->SetPropertyNameAndPath( PropertyName, PropertyChangedParams.GetPropertyPathString() );
 					// Find or add a new section at the auto-key time and changing the property same property
 					// AddKeyToSection is not actually a virtual, it's redefined in each class with a different type
-					bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, Key );
+					bool bSuccessfulAdd = TypedTrack->AddKeyToSection( KeyTime, Key, PropertyChangedParams.KeyParams );
 					if ( bSuccessfulAdd )
 					{
 						TypedTrack->SetAsShowable();

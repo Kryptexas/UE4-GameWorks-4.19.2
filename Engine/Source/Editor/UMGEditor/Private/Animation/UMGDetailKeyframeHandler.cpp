@@ -26,5 +26,10 @@ void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& Keye
 	TArray<UObject*> Objects;
 	KeyedPropertyHandle.GetOuterObjects( Objects );
 
-	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(FKeyPropertyParams(Objects, KeyedPropertyHandle));
+	FKeyPropertyParams KeyPropertyParams(Objects, KeyedPropertyHandle);
+	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
+	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
+	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = true;
+
+	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(KeyPropertyParams);
 }

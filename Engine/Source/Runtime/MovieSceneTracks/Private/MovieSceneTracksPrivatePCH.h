@@ -8,6 +8,7 @@
 
 #include "Core.h"
 #include "Engine.h"
+#include "KeyParams.h"
 #include "MovieScene.h"
 #include "MovieSceneCommonHelpers.h"
 #include "MovieScenePropertyTrack.h"

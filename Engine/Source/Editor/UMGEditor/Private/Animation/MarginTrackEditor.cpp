@@ -42,7 +42,6 @@ TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSc
 
 bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
 {
-	OutKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
 	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FMargin>();
 	return true;

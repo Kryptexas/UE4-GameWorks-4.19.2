@@ -72,7 +72,14 @@ void SEnumCurveKeyEditor::OnComboSelectionChanged(TSharedPtr<FString> InSelected
 
 	int32 SelectedIndex;
 	EnumValues.Find(InSelectedItem, SelectedIndex);
-	Curve->UpdateOrAddKey(CurrentTime, SelectedIndex);
+	if (Curve->GetNumKeys() == 0)
+	{
+		Curve->SetDefaultValue(SelectedIndex);
+	}
+	else
+	{
+		Curve->UpdateOrAddKey(CurrentTime, SelectedIndex);
+	}
 	Sequencer->UpdateRuntimeInstances();
 }
 

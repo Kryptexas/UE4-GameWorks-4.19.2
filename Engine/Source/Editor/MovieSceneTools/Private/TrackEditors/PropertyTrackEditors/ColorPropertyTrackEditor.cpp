@@ -51,7 +51,6 @@ bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FProper
 
 	OutKey.Value = ColorValue;
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
-	OutKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
 	OutKey.bIsSlateColor = bIsSlateColor;
 
 	return true;

@@ -162,7 +162,7 @@ void FSkeletalAnimationTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* Add
 		TArray<UObject*> OutObjects;
 		GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-		AnimatablePropertyChanged( UMovieSceneSkeletalAnimationTrack::StaticClass(), false,
+		AnimatablePropertyChanged( UMovieSceneSkeletalAnimationTrack::StaticClass(),
 			FOnKeyProperty::CreateRaw( this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence) );
 	}
 }
@@ -182,7 +182,7 @@ bool FSkeletalAnimationTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid
 				TArray<UObject*> OutObjects;
 				GetSequencer()->GetRuntimeObjects(GetSequencer()->GetFocusedMovieSceneSequenceInstance(), TargetObjectGuid, OutObjects);
 
-				AnimatablePropertyChanged(UMovieSceneSkeletalAnimationTrack::StaticClass(), false,
+				AnimatablePropertyChanged(UMovieSceneSkeletalAnimationTrack::StaticClass(),
 					FOnKeyProperty::CreateRaw(this, &FSkeletalAnimationTrackEditor::AddKeyInternal, OutObjects, AnimSequence));
 
 				return true;

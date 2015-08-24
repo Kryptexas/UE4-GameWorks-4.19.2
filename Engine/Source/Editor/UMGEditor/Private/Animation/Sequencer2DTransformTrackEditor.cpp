@@ -57,7 +57,6 @@ TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMo
 
 bool F2DTransformTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey )
 {
-	OutKey.bAddKeyEvenIfUnchanged = !PropertyChangedParams.bRequireAutoKey;
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
 	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FWidgetTransform>();
 	return true;

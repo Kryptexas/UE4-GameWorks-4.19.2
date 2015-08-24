@@ -22,15 +22,15 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 }
 
 
-bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key )
+bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key, FKeyParams KeyParams )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || Key.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value))
+	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
 	{
 		Modify();
 		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
 
-		NewSection->AddKey( Time, Key );
+		NewSection->AddKey( Time, Key, KeyParams );
 
 		return true;
 	}

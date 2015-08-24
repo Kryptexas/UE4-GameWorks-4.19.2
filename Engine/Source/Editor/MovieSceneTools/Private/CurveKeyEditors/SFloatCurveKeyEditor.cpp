@@ -62,7 +62,15 @@ void SFloatCurveKeyEditor::OnValueChanged(float Value)
 	}
 	else
 	{
-		Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
+		if (Curve->GetNumKeys() == 0)
+		{
+			Curve->SetDefaultValue(Value);
+		}
+		else
+		{
+			Curve->AddKey(CurrentTime, Value, false, CurrentKeyHandle);
+		}
+
 		if (OwningSection->GetStartTime() > CurrentTime)
 		{
 			OwningSection->SetStartTime(CurrentTime);

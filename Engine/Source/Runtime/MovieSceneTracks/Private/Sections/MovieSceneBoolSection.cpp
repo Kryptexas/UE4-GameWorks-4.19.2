@@ -44,13 +44,31 @@ void UMovieSceneBoolSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
-void UMovieSceneBoolSection::AddKey( float Time, bool Value )
+void UMovieSceneBoolSection::AddKey( float Time, bool Value, FKeyParams KeyParams )
 {
 	Modify();
-	BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+
+	if (BoolCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
+	{
+		BoolCurve.SetDefaultValue(Value ? 1 : 0);
+	}
+	else
+	{
+		BoolCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+	}
 }
 
-bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value) const
+bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const
 {
-	return BoolCurve.GetNumKeys() == 0 || Eval(Time) != Value;
+	if (BoolCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	{
+		bool bKeyExists = BoolCurve.IsKeyHandleValid(BoolCurve.FindKey(Time));
+
+		// Don't add a keyframe if there are existing keys and auto key is not enabled.
+		if (!(!bKeyExists && !KeyParams.bAutoKeying && BoolCurve.GetNumKeys() > 0))
+		{
+			return true;
+		}
+	}
+	return false;
 }

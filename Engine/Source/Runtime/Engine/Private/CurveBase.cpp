@@ -392,7 +392,7 @@ void FRichCurve::DeleteKey(FKeyHandle InKeyHandle)
 	}
 }
 
-FKeyHandle FRichCurve::UpdateOrAddKey(float InTime, float InValue)
+FKeyHandle FRichCurve::UpdateOrAddKey(float InTime, float InValue, const bool bUnwindRotation)
 {
 	// Search for a key that already exists at the time and if found, update its value
 	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
@@ -414,7 +414,7 @@ FKeyHandle FRichCurve::UpdateOrAddKey(float InTime, float InValue)
 	}
 
 	// A key wasnt found, add it now
-	return AddKey( InTime, InValue );
+	return AddKey( InTime, InValue, bUnwindRotation );
 }
 
 FKeyHandle FRichCurve::SetKeyTime( FKeyHandle KeyHandle, float NewTime )
@@ -956,19 +956,20 @@ void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
 	}
 }
 
-float FRichCurve::Eval(float InTime, float DefaultValue) const
+float FRichCurve::Eval(float InTime, float InDefaultValue) const
 {
 	// Remap time if extrapolation is present and compute offset value to use if cycling 
 	float CycleValueOffset = 0;
 	RemapTimeValue(InTime, CycleValueOffset);
 
 	const int32 NumKeys = Keys.Num();
-	float InterpVal = DefaultValue;
+
+	// If the default value hasn't been initialized, use the incoming default value
+	float InterpVal = DefaultValue == MAX_flt ? InDefaultValue : DefaultValue;
 
 	if (NumKeys == 0)
 	{
-		// If no keys in curve, return the Default value we passed in.
-		InterpVal = DefaultValue;
+		// If no keys in curve, return the Default value.
 	} 
 	else if (NumKeys < 2 || (InTime <= Keys[0].Time))
 	{
@@ -1279,12 +1280,14 @@ bool FIntegralCurve::IsKeyHandleValid(FKeyHandle KeyHandle) const
 	return bValid;
 }
 
-int32 FIntegralCurve::Evaluate(float Time, int32 DefaultValue) const
+int32 FIntegralCurve::Evaluate(float Time, int32 InDefaultValue) const
 {
-	int32 ReturnVal = DefaultValue;
+	// If the default value hasn't been initialized, use the incoming default value
+	int32 ReturnVal = DefaultValue == MAX_int32 ? InDefaultValue : DefaultValue;
+
 	if( Keys.Num() == 0 )
 	{
-		ReturnVal = DefaultValue;
+		// If no keys in curve, return the Default value.
 	}
 	else if( Keys.Num() < 2 || Time < Keys[0].Time )
 	{

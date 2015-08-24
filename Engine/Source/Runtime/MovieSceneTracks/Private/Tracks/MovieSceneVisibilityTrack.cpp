@@ -21,16 +21,16 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneVisibilityTrack::CreateInstance(
 	return MakeShareable( new FMovieSceneVisibilityTrackInstance( *this ) );
 }
 
-bool UMovieSceneVisibilityTrack::AddKeyToSection( float Time, bool Value )
+bool UMovieSceneVisibilityTrack::AddKeyToSection( float Time, bool Value, FKeyParams KeyParams )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || CastChecked<UMovieSceneVisibilitySection>(NearestSection)->NewKeyIsNewData(Time, Value))
+	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneVisibilitySection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
 	{
 		Modify();
 
 		UMovieSceneVisibilitySection* NewSection = CastChecked<UMovieSceneVisibilitySection>(FindOrAddSection(  Time ));
 	
-		NewSection->AddKey( Time, Value );
+		NewSection->AddKey( Time, Value, KeyParams );
 
 		return true;
 	}

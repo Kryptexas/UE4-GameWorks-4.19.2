@@ -6,7 +6,7 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneVectorTrackInstance.h"
 
-FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName )
 {
 	Value.X = InValue.X;
 	Value.Y = InValue.Y;
@@ -14,10 +14,9 @@ FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName, bool InbAdd
 	Value.W = 0;
 	ChannelsUsed = 2;
 	CurveName = InCurveName;
-	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
 }
 
-FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName )
 {
 	Value.X = InValue.X;
 	Value.Y = InValue.Y;
@@ -25,15 +24,13 @@ FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName, bool InbAddKe
 	Value.W = 0;
 	ChannelsUsed = 3;
 	CurveName = InCurveName;
-	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
 }
 
-FVectorKey::FVectorKey( const FVector4& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged )
+FVectorKey::FVectorKey( const FVector4& InValue, FName InCurveName )
 {
 	Value = InValue;
 	ChannelsUsed = 4;
 	CurveName = InCurveName;
-	bAddKeyEvenIfUnchanged = InbAddKeyEvenIfUnChanged;
 }
 
 UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& ObjectInitializer )
@@ -52,10 +49,10 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneVectorTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneVectorTrackInstance( *this ) );
 }
 
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value, int32 InChannelsUsed, FName CurveName, bool bAddKeyEvenIfUnchanged )
+bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value, int32 InChannelsUsed, FName CurveName, FKeyParams KeyParams )
 {
 	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
-	if (!NearestSection || bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneVectorSection>(NearestSection)->NewKeyIsNewData(Time, Value))
+	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneVectorSection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
 	{
 		Modify();
 
@@ -63,7 +60,7 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 		// @todo Sequencer - I don't like setting the channels used here. It should only be checked here, and set on section creation
 		NewSection->SetChannelsUsed(InChannelsUsed);
 
-		NewSection->AddKey( Time, CurveName, Value );
+		NewSection->AddKey( Time, CurveName, Value, KeyParams );
 
 		// We dont support one track containing multiple sections of differing channel amounts
 		NumChannelsUsed = InChannelsUsed;
@@ -73,9 +70,9 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 	return false;
 }
 
-bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey& Key )
+bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey& Key, FKeyParams KeyParams )
 {
-	return AddKeyToSection(Time, Key.Value, Key.ChannelsUsed, Key.CurveName, Key.bAddKeyEvenIfUnchanged );
+	return AddKeyToSection(Time, Key.Value, Key.ChannelsUsed, Key.CurveName, KeyParams );
 }
 
 bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& InOutVector ) const

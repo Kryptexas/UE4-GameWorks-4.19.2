@@ -38,13 +38,30 @@ void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
-void UMovieSceneByteSection::AddKey( float Time, uint8 Value )
+void UMovieSceneByteSection::AddKey( float Time, uint8 Value, FKeyParams KeyParams )
 {
 	Modify();
-	ByteCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+	if (ByteCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
+	{
+		ByteCurve.SetDefaultValue(Value);
+	}
+	else
+	{
+		ByteCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
+	}
 }
 
-bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value) const
+bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value, FKeyParams KeyParams) const
 {
-	return ByteCurve.GetNumKeys() == 0 || Eval(Time) != Value;
+	if (ByteCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	{
+		bool bKeyExists = ByteCurve.IsKeyHandleValid(ByteCurve.FindKey(Time));
+
+		// Don't add a keyframe if there are existing keys and auto key is not enabled.
+		if (!(!bKeyExists && !KeyParams.bAutoKeying && ByteCurve.GetNumKeys() > 0))
+		{
+			return true;
+		}
+	}
+	return false;
 }

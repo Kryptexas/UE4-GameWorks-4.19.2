@@ -50,10 +50,10 @@ private:
 	 *
 	 * @param Object	The object that PostEditChange was called on
 	 */
-	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const IPropertyHandle& PropertyHandle, bool bRequireAutoKey ) const;
+	void OnPropertyChanged( const TArray<UObject*>& ChangedObjects, const IPropertyHandle& PropertyHandle ) const;
 
 	/** Broadcasts the property change callback to the appropriate listeners. */
-	void BroadcastPropertyChanged(FKeyPropertyParams KeyPropertyParams, bool bRequireAutoKey) const;
+	void BroadcastPropertyChanged(FKeyPropertyParams KeyPropertyParams) const;
 
 	/**
 	 * @return True if an object is valid for listening to property changes 

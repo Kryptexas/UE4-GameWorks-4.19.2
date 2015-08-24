@@ -11,6 +11,7 @@
 class ISequencerSection;
 
 DECLARE_DELEGATE_OneParam(FOnKeyProperty, float)
+DECLARE_DELEGATE_RetVal_OneParam(bool, FCanKeyProperty, float)
 
 /**
  * Base class for handling key and section drawing and manipulation for a UMovieSceneTrack class
@@ -71,16 +72,25 @@ public:
 		}
 	}
 	
-	void AnimatablePropertyChanged( TSubclassOf<class UMovieSceneTrack> TrackClass, bool bMustBeAutokeying, FOnKeyProperty OnKeyProperty )
+	bool CanKeyProperty( FCanKeyProperty InCanKeyProperty )
+	{
+		UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
+		check( MovieSceneSequence );
+
+		float KeyTime = GetTimeForKey(MovieSceneSequence);
+
+		return InCanKeyProperty.Execute(KeyTime);
+	}
+	
+	void AnimatablePropertyChanged( TSubclassOf<class UMovieSceneTrack> TrackClass, FOnKeyProperty OnKeyProperty )
 	{
 		check(OnKeyProperty.IsBound());
 
 		// Get the movie scene we want to autokey
 		UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 		float KeyTime = GetTimeForKey( MovieSceneSequence );
-		bool bIsKeyingValid = !bMustBeAutokeying || IsAllowedToAutoKey();
 
-		if( bIsKeyingValid )
+		if( !Sequencer.Pin()->IsRecordingLive() )
 		{
 			check( MovieSceneSequence );
 

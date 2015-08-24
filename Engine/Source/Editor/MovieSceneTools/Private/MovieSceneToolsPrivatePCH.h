@@ -8,6 +8,7 @@
 #include "ScopedTransaction.h"
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
+#include "KeyParams.h"
 #include "MovieSceneSequenceInstance.h"
 #include "MovieSceneTrackEditor.h"
 #include "IMovieSceneTools.h"

@@ -69,7 +69,14 @@ void SIntegralCurveKeyEditor::OnValueChanged(int32 Value)
 		}
 	}
 
-	Curve->UpdateOrAddKey(CurrentTime, Value);
+	if (Curve->GetNumKeys() == 0)
+	{
+		Curve->SetDefaultValue(Value);
+	}
+	else
+	{
+		Curve->UpdateOrAddKey(CurrentTime, Value);
+	}
 	Sequencer->UpdateRuntimeInstances();
 }
 

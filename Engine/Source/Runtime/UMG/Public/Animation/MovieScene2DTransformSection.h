@@ -32,11 +32,9 @@ public:
 
 	FWidgetTransform Eval( float Position, const FWidgetTransform& DefaultValue ) const;
 
-	bool NewKeyIsNewData( float Time, const FWidgetTransform& Transform ) const;
+	bool NewKeyIsNewData( float Time, const FWidgetTransform& Transform, FKeyParams KeyParams ) const;
 
-	void AddKey( float Time, const struct F2DTransformKey& TransformKey );
-private:
-	void AddKeyToNamedCurve(float Time, const F2DTransformKey& TransformKey);
+	void AddKey( float Time, const struct F2DTransformKey& TransformKey, FKeyParams KeyParams );
 private:
 	/** Translation curves*/
 	UPROPERTY()

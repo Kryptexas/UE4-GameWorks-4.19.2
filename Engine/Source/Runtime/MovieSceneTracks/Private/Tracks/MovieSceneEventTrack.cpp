@@ -9,7 +9,7 @@
 /* UMovieSceneEventTrack interface
  *****************************************************************************/
 
-bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName)
+bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyParams KeyParams)
 {
 	// @todo sequencer: gmp: add key to event section
 	// should be inserted into sorted array

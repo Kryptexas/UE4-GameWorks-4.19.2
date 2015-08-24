@@ -12,14 +12,13 @@
 struct MOVIESCENETRACKS_API FVectorKey
 {
 	FVectorKey() { }
-	FVectorKey( const FVector& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
-	FVectorKey( const FVector2D& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
-	FVectorKey( const FVector4& InValue, FName InCurveName, bool InbAddKeyEvenIfUnChanged );
+	FVectorKey( const FVector& InValue, FName InCurveName );
+	FVectorKey( const FVector2D& InValue, FName InCurveName );
+	FVectorKey( const FVector4& InValue, FName InCurveName );
 
 	FVector4 Value;
 	uint32 ChannelsUsed;
 	FName CurveName;
-	bool bAddKeyEvenIfUnchanged;
 };
 
 /**
@@ -39,9 +38,10 @@ public:
 	 *
 	 * @param Time				The time relative to the owning movie scene where the section should be
 	 * @param Key				The vector key to add
+	 * @param KeyParams         The keying parameters 
 	 * @return True if the key was successfully added.
 	 */
-	virtual bool AddKeyToSection( float Time, const FVectorKey& Key );
+	virtual bool AddKeyToSection( float Time, const FVectorKey& Key, FKeyParams KeyParams );
 	
 	/**
 	 * Evaluates the track at the playback position
@@ -57,7 +57,7 @@ public:
 	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }
 
 private:
-	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed, FName CurveName, bool bAddKeyEvenIfUnchanged );
+	virtual bool AddKeyToSection( float Time, const FVector4& InKey, int32 InChannelsUsed, FName CurveName, FKeyParams KeyParams );
 private:
 	/** The number of channels used by the vector (2,3, or 4) */
 	UPROPERTY()

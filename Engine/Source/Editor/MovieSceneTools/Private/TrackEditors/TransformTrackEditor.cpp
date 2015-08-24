@@ -224,51 +224,56 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 	const bool bCreateHandleIfMissing = false;
 
 	const TSharedPtr<ISequencer> Sequencer = GetSequencer();
-	if (Sequencer->GetAutoKeyEnabled())
+
+	USceneComponent* SceneComponentThatChanged = NULL;
+
+	// The runtime binding
+	FGuid ObjectHandle;
+
+	AActor* Actor = Cast<AActor>( &InObject );
+	if( Actor && Actor->GetRootComponent() )
 	{
-		USceneComponent* SceneComponentThatChanged = NULL;
+		// Get a handle bound to the key/section we are adding so we know what objects to change during playback
+		ObjectHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
+		SceneComponentThatChanged = Actor->GetRootComponent();
+	}
 
-		// The runtime binding
-		FGuid ObjectHandle;
-
-		AActor* Actor = Cast<AActor>( &InObject );
-		if( Actor && Actor->GetRootComponent() )
+	else
+	{
+		// If the object wasn't an actor attempt to get it directly as a scene component 
+		SceneComponentThatChanged = Cast<USceneComponent>( &InObject );
+		if( SceneComponentThatChanged )
 		{
-			// Get a handle bound to the key/section we are adding so we know what objects to change during playback
-			ObjectHandle = Sequencer->GetHandleToObject( Actor, bCreateHandleIfMissing );
-			SceneComponentThatChanged = Actor->GetRootComponent();
+			ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged, bCreateHandleIfMissing );
 		}
 
-		else
+	}
+
+	if( SceneComponentThatChanged && ObjectHandle.IsValid() )
+	{
+		FName Transform("Transform");
+		if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform))
 		{
-			// If the object wasn't an actor attempt to get it directly as a scene component 
-			SceneComponentThatChanged = Cast<USceneComponent>( &InObject );
-			if( SceneComponentThatChanged )
+			// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
+			FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
+
+			// Remove it from the list of cached transforms. 
+			// @todo sequencer livecapture: This can be made much for efficient by not removing cached state during live capture situation
+			ObjectToExistingTransform.Remove( &InObject );
+
+			// Build new transform data
+			FTransformData NewTransformData( SceneComponentThatChanged );
+
+			FTransformDataPair TransformPair(NewTransformData, ExistingTransform);
+
+			FKeyParams KeyParams;
+			KeyParams.bAutoKeying = Sequencer->GetAutoKeyEnabled();
+			KeyParams.bAddKeyEvenIfUnchanged = false;
+
+			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ObjectHandle, TransformPair, KeyParams)))
 			{
-				ObjectHandle = Sequencer->GetHandleToObject( SceneComponentThatChanged, bCreateHandleIfMissing );
-			}
-
-		}
-
-		if( SceneComponentThatChanged && ObjectHandle.IsValid() )
-		{
-			FName Transform("Transform");
-			if (Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform))
-			{
-				// Find an existing transform if possible.  If one exists we will compare against the new one to decide what components of the transform need keys
-				FTransformData ExistingTransform = ObjectToExistingTransform.FindRef( &InObject );
-
-				// Remove it from the list of cached transforms. 
-				// @todo sequencer livecapture: This can be made much for efficient by not removing cached state during live capture situation
-				ObjectToExistingTransform.Remove( &InObject );
-
-				// Build new transform data
-				FTransformData NewTransformData( SceneComponentThatChanged );
-
-				FTransformDataPair TransformPair(NewTransformData, ExistingTransform);
-
-				AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), true,
-					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, true, false, F3DTransformTrackKey::Key_All));
+				AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(),
+					FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, &InObject, ObjectHandle, TransformPair, KeyParams, F3DTransformTrackKey::Key_All));
 			}
 		}
 	}
@@ -279,7 +284,7 @@ void F3DTransformTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* Additiona
 	AddKeyInternal(ObjectGuid, AdditionalAsset);
 }
 
-void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset, bool bForceKey, F3DTransformTrackKey::Type KeyType)
+void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* AdditionalAsset, const bool bAddKeyEvenIfUnchanged, F3DTransformTrackKey::Type KeyType)
 {
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
@@ -312,8 +317,11 @@ void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* A
 
 			FTransformDataPair TransformPair(CurrentTransform, FTransformData());
 
-			AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(), false,
-				FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, Object, ObjectHandle, TransformPair, false, bForceKey, KeyType));
+			FKeyParams KeyParams;
+			KeyParams.bAddKeyEvenIfUnchanged = bAddKeyEvenIfUnchanged;
+
+			AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(),
+				FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, Object, ObjectHandle, TransformPair, KeyParams, KeyType));
 		}
 	}
 }
@@ -441,6 +449,8 @@ void F3DTransformTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuil
 
 void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
 {
+	FScopedTransaction DeleteSectionTransaction( NSLOCTEXT("Sequencer", "AddTransformTrack_Transaction", "Add Transform Track") );
+
 	FName Transform("Transform");
 	UMovieSceneTrack* Track = AddTrack(GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene(), ObjectBinding, UMovieScene3DTransformTrack::StaticClass(), Transform);
 	UMovieScene3DTransformTrack* TransformTrack = CastChecked<UMovieScene3DTransformTrack>( Track );
@@ -448,11 +458,13 @@ void F3DTransformTrackEditor::AddTransform(FGuid ObjectBinding)
 	TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 
 	UMovieScene3DTransformSection* TransformSection = CastChecked<UMovieScene3DTransformSection>(TransformTrack->CreateNewSection());
-	TransformSection->SetStartTime(GetSequencer()->GetViewRange().GetLowerBoundValue());
-	TransformSection->SetEndTime(GetSequencer()->GetViewRange().GetUpperBoundValue());
+	TransformSection->SetStartTime(GetSequencer()->GetGlobalTime());
+	TransformSection->SetEndTime(GetSequencer()->GetGlobalTime());
 	TransformTrack->AddSection(TransformSection);
 	TransformTrack->SetAsShowable();
 	
+	AddKey(ObjectBinding, nullptr);
+
 	NotifyMovieSceneDataChanged();
 }
 
@@ -466,7 +478,28 @@ bool F3DTransformTrackEditor::CanAddTransform(FGuid ObjectBinding) const
 	return true;
 }
 
-void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, bool bAutoKeying, bool bForceKey, F3DTransformTrackKey::Type KeyType)
+FTransformKey F3DTransformTrackEditor::GetTransformKey(const UMovieScene3DTransformTrack* TransformTrack, float KeyTime, FTransformDataPair TransformPair, FKeyParams KeyParams) const
+{
+	if (!TransformPair.LastTransformData.IsValid())
+	{
+		TransformPair.LastTransformData.bValid = TransformTrack->Eval(KeyTime, KeyTime, TransformPair.LastTransformData.Translation, TransformPair.LastTransformData.Rotation, TransformPair.LastTransformData.Scale);
+	}
+
+	// If forcing the keyframe, set the last data invalid so that the transform keyframe will be set regardless of the current time values being equal.
+	if ( KeyParams.bAddKeyEvenIfUnchanged || IsAllowedKeyAll())
+	{
+		TransformPair.LastTransformData.bValid = false;
+	}
+
+	FTransformKey TransformKey = FTransformKey(KeyTime, TransformPair.TransformData, TransformPair.LastTransformData);
+	TransformKey.KeyParams.bAutoKeying = KeyParams.bAutoKeying;
+	TransformKey.KeyParams.bAddKeyEvenIfUnchanged = KeyParams.bAddKeyEvenIfUnchanged;
+	TransformKey.KeyParams.bCreateTrackIfMissing = KeyParams.bCreateTrackIfMissing;
+	TransformKey.KeyParams.bCreateHandleIfMissing = KeyParams.bCreateHandleIfMissing;
+	return TransformKey;
+}
+
+void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject* InObject, FGuid ObjectHandle, FTransformDataPair TransformPair, FKeyParams KeyParams, F3DTransformTrackKey::Type KeyType)
 {
 	// Only unwind rotation if we're generating keys while recording (scene is actively playing back)
 	const bool bUnwindRotation = GetSequencer()->IsRecordingLive();
@@ -479,21 +512,7 @@ void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject
 		// Transform name and path are the same
 		TransformTrack->SetPropertyNameAndPath( Transform, Transform.ToString() );
 	
-		if (!TransformPair.LastTransformData.IsValid())
-		{
-			TArray<bool> bHasTranslationKeys;
-			TArray<bool> bHasRotationKeys;
-			TArray<bool> bHasScaleKeys;			
-			TransformPair.LastTransformData.bValid = TransformTrack->Eval(KeyTime, KeyTime, TransformPair.LastTransformData.Translation, TransformPair.LastTransformData.Rotation, TransformPair.LastTransformData.Scale, bHasTranslationKeys, bHasRotationKeys, bHasScaleKeys);
-		}
-
-		// If forcing the keyframe, set the last data invalid so that the transform keyframe will be set regardless of the current time values being equal.
-		if ( bForceKey || IsAllowedKeyAll() )
-		{
-			TransformPair.LastTransformData.bValid = false;
-		}
-
-		FTransformKey TransformKey = FTransformKey(KeyTime, TransformPair.TransformData, TransformPair.LastTransformData);
+		FTransformKey TransformKey = GetTransformKey(TransformTrack, KeyTime, TransformPair, KeyParams);
 
 		bool bSuccessfulAdd = TransformTrack->AddKeyToSection( ObjectHandle, TransformKey, bUnwindRotation, KeyType );
 		if (bSuccessfulAdd)
@@ -501,6 +520,30 @@ void F3DTransformTrackEditor::OnTransformChangedInternals(float KeyTime, UObject
 			TransformTrack->SetAsShowable();
 		}
 	}
+}
+
+bool F3DTransformTrackEditor::CanKeyPropertyInternal(float KeyTime, FGuid ObjectHandle, FTransformDataPair TransformPair, FKeyParams KeyParams) const
+{
+	FName Transform("Transform");
+	if (ObjectHandle.IsValid())
+	{
+		const UMovieScene* MovieScene = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene();
+
+		const UMovieSceneTrack* Track = MovieScene->FindTrack( UMovieScene3DTransformTrack::StaticClass(), ObjectHandle, Transform );
+
+		if (Track)
+		{
+			const UMovieScene3DTransformTrack* TransformTrack = CastChecked<UMovieScene3DTransformTrack>( Track );
+
+			FTransformKey TransformKey = GetTransformKey(TransformTrack, KeyTime, TransformPair, KeyParams);
+
+			if (TransformTrack->CanKeyTrack(TransformKey))
+			{
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 ECheckBoxState F3DTransformTrackEditor::IsCameraLocked(TWeakObjectPtr<ACameraActor> CameraActor) const

@@ -271,7 +271,7 @@ void F3DPathTrackEditor::AddPath(FGuid ObjectGuid, UObject* AdditionalAsset)
 	TArray<UObject*> OutObjects;
 	GetSequencer()->GetRuntimeObjects( GetSequencer()->GetFocusedMovieSceneSequenceInstance(), ObjectGuid, OutObjects);
 
-	AnimatablePropertyChanged( UMovieScene3DPathTrack::StaticClass(), false,
+	AnimatablePropertyChanged( UMovieScene3DPathTrack::StaticClass(),
 		FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
 }
 

@@ -34,15 +34,15 @@ bool FVectorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPrope
 	// Get the vector value from the property
 	if ( bIsVector2D )
 	{
-		OutKey = FVectorKey(*PropertyChangedParams.GetPropertyValue<FVector2D>(), PropertyChangedParams.StructPropertyNameToKey, !PropertyChangedParams.bRequireAutoKey);
+		OutKey = FVectorKey(*PropertyChangedParams.GetPropertyValue<FVector2D>(), PropertyChangedParams.StructPropertyNameToKey );
 	}
 	else if ( bIsVector )
 	{
-		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector>(), PropertyChangedParams.StructPropertyNameToKey, !PropertyChangedParams.bRequireAutoKey );
+		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector>(), PropertyChangedParams.StructPropertyNameToKey );
 	}
 	else // if ( bIsVector4 )
 	{
-		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector4>(), PropertyChangedParams.StructPropertyNameToKey, !PropertyChangedParams.bRequireAutoKey );
+		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector4>(), PropertyChangedParams.StructPropertyNameToKey );
 	}
 	return true;
 }
