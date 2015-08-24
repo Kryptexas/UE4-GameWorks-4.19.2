@@ -309,17 +309,6 @@ namespace UnrealBuildTool
 
 			bool bSuccess = true;
 
-			// NOTE: We intentionally do not SORT the source file list, as we want the order they're written to disk to be consistent
-			//       with how they are stored in memory.  This makes for more consistent Unity compiles when alternating between
-			//       using "auto" projects and on-disk projects for builds.
-			var ShouldSortSourceFiles = false;
-			if( ShouldSortSourceFiles )
-			{
-				// Source our list of source files
-				Comparison<SourceFile> SourceFileComparer = ( FileA, FileB ) => { return FileA.FilePath.CompareTo( FileB.FilePath ); };
-				SourceFiles.Sort( SourceFileComparer );
-			}
-
 			// Build up the new include search path string
 			var VCIncludeSearchPaths = new StringBuilder();
 			{

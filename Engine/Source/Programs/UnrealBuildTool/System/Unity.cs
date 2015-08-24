@@ -131,8 +131,24 @@ namespace UnrealBuildTool
 			// Build the list of unity files.
 			List<FileCollection> AllUnityFiles;
 			{
+				// Sort the incoming file paths alphabetically, so there will be consistency in unity blobs across multiple machines.
+				// Note that we're relying on this not only sorting files within each directory, but also the directories
+				// themselves, so the whole list of file paths is the same across computers.
+				var SortedCPPFiles = CPPFiles.GetRange( 0, CPPFiles.Count );
+				{
+					// Case-insensitive file path compare, because you never know what is going on with local file systems
+					Comparison<FileItem> FileItemComparer = (FileA, FileB) => { return FileA.AbsolutePath.ToLowerInvariant().CompareTo( FileB.AbsolutePath.ToLowerInvariant() ); };
+					SortedCPPFiles.Sort( FileItemComparer );
+				}
+				Console.WriteLine("==== SORTED ====");
+				foreach( var File in SortedCPPFiles )
+				{
+					Console.WriteLine(File.AbsolutePath);
+				}
+				Console.WriteLine("==== SORTED ====");
+
 				var CPPUnityFileBuilder = new UnityFileBuilder(bForceIntoSingleUnityFile ? -1 : BuildConfiguration.NumIncludedBytesPerUnityCPP);
-				foreach( var CPPFile in CPPFiles )
+				foreach( var CPPFile in SortedCPPFiles )
 				{
 					if (!bForceIntoSingleUnityFile && CPPFile.AbsolutePath.Contains(".GeneratedWrapper."))
 					{
