@@ -193,25 +193,25 @@ void UMovieScene2DTransformSection::AddKey( float Time, const struct F2DTransfor
 	bool bSyKeyExists = Scale[1].IsKeyHandleValid(Scale[1].FindKey(Time));
 
 	if ( (CurveName == NAME_None || CurveName == TranslationName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bTxKeyExists && !KeyParams.bAutoKeying && Translation[0].GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTxKeyExists && !KeyParams.bAutoKeying && Translation[0].GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(Translation[0], Time, TransformKey.Value.Translation.X, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == TranslationName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bTyKeyExists && !KeyParams.bAutoKeying && Translation[1].GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTyKeyExists && !KeyParams.bAutoKeying && Translation[1].GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(Translation[1], Time, TransformKey.Value.Translation.Y, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == ScaleName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bSxKeyExists && !KeyParams.bAutoKeying && Scale[0].GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bSxKeyExists && !KeyParams.bAutoKeying && Scale[0].GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(Scale[0], Time, TransformKey.Value.Scale.X, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == ScaleName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bSyKeyExists && !KeyParams.bAutoKeying && Scale[1].GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bSyKeyExists && !KeyParams.bAutoKeying && Scale[1].GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(Scale[1], Time, TransformKey.Value.Scale.Y, KeyParams);
 	}

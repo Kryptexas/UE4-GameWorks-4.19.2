@@ -91,25 +91,25 @@ void UMovieSceneMarginSection::AddKey( float Time, const FMarginKey& MarginKey, 
 	bool bBottomKeyExists = BottomCurve.IsKeyHandleValid(BottomCurve.FindKey(Time));
 
 	if ( (CurveName == NAME_None || CurveName == LeftName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bLeftKeyExists && !KeyParams.bAutoKeying && LeftCurve.GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bLeftKeyExists && !KeyParams.bAutoKeying && LeftCurve.GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(LeftCurve, Time, MarginKey.Value.Left, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == TopName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bTopKeyExists && !KeyParams.bAutoKeying && TopCurve.GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bTopKeyExists && !KeyParams.bAutoKeying && TopCurve.GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(TopCurve, Time, MarginKey.Value.Top, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == RightName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bRightKeyExists && !KeyParams.bAutoKeying && RightCurve.GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bRightKeyExists && !KeyParams.bAutoKeying && RightCurve.GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(RightCurve, Time, MarginKey.Value.Right, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == BottomName) &&
-			KeyParams.bAddKeyEvenIfUnchanged || !(!bBottomKeyExists && !KeyParams.bAutoKeying && BottomCurve.GetNumKeys() > 0) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !(!bBottomKeyExists && !KeyParams.bAutoKeying && BottomCurve.GetNumKeys() > 0) ) )
 	{
 		AddKeyToCurve(BottomCurve, Time, MarginKey.Value.Bottom, KeyParams);
 	}

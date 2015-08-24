@@ -4,6 +4,7 @@
 
 #include "MovieScenePropertyTrack.h"
 #include "Slate/WidgetTransform.h"
+#include "KeyParams.h"
 #include "MovieScene2DTransformTrack.generated.h"
 
 struct F2DTransformKey

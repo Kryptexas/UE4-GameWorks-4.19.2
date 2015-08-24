@@ -3,6 +3,7 @@
 #pragma once
 
 #include "MovieScenePropertyTrack.h"
+#include "KeyParams.h"
 #include "MovieSceneMarginTrack.generated.h"
 
 struct FMarginKey
