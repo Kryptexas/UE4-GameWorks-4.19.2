@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3.1 - Adding Projectiles to your Game
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to add projectiles to your First Person Shooter project.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664710
+Availability:Docs
+Title:3.1 - ゲームに発射物を追加する
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
+Description:First Person Shooter プロジェクトに発射物を追加する方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,16 +13,16 @@ Version: 4.9
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/3)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/3)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/3/2)
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/3/2)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
