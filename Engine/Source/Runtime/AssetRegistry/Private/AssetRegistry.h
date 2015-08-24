@@ -87,11 +87,14 @@ private:
 	/** Called every tick to when data is retrieved by the background asset search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void AssetSearchDataGathered(const double TickStartTime, TArray<FAssetData*>& AssetResults);
 
-	/** Called every tick to when data is retrieved by the background path search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
+	/** Called every tick when data is retrieved by the background path search. If TickStartTime is < 0, the entire list of gathered assets will be cached. Also used in sychronous searches */
 	void PathDataGathered(const double TickStartTime, TArray<FString>& PathResults);
 
-	/** Called every tick to when data is retrieved by the background dependency search */
+	/** Called every tick when data is retrieved by the background dependency search */
 	void DependencyDataGathered(const double TickStartTime, TArray<FPackageDependencyData>& DependsResults);
+
+	/** Called every tick when data is retrieved by the background search for cooked packages that do not contain asset data */
+	void CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults);
 
 	/** Finds an existing node for the given package and returns it, or returns null if one isn't found */
 	FDependsNode* FindDependsNode(FName ObjectName);
@@ -210,6 +213,7 @@ private:
 	TArray<class FAssetData*> BackgroundAssetResults;
 	TArray<FString> BackgroundPathResults;
 	TArray<class FPackageDependencyData> BackgroundDependencyResults;
+	TArray<FString> BackgroundCookedPackageNamesWithoutAssetDataResults;
 
 	/** The max number of results to process per tick */
 	float MaxSecondsPerFrame;

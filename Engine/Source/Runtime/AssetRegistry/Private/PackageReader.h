@@ -17,6 +17,9 @@ public:
 	/** Attempts to get the class name of an object from the thumbnail cache for packages older than VER_UE4_ASSET_REGISTRY_TAGS */
 	bool ReadAssetDataFromThumbnailCache(TArray<FAssetData*>& AssetDataList);
 
+	/** Creates asset data reconstructing all the required data from cooked package info */
+	bool ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& AssetDataList, TArray<FString>& CookedPackageNamesWithoutAssetData);
+
 	/** Reads information used by the dependency graph */
 	bool ReadDependencyData(FPackageDependencyData& OutDependencyData);
 

@@ -442,6 +442,7 @@ uint32 FAssetDataGatherer::Run()
 	TArray<FDiscoveredPackageFile> LocalFilesToSearch;
 	TArray<FAssetData*> LocalAssetResults;
 	TArray<FPackageDependencyData> LocalDependencyResults;
+	TArray<FString> LocalCookedPackageNamesWithoutAssetDataResults;
 
 	const double InitialScanStartTime = FPlatformTime::Seconds();
 	int32 NumCachedFiles = 0;
@@ -473,6 +474,7 @@ uint32 FAssetDataGatherer::Run()
 
 			AssetResults.Append(MoveTemp(LocalAssetResults));
 			DependencyResults.Append(MoveTemp(LocalDependencyResults));
+			CookedPackageNamesWithoutAssetDataResults.Append(MoveTemp(LocalCookedPackageNamesWithoutAssetDataResults));
 
 			if (FilesToSearch.Num() > 0)
 			{
@@ -494,6 +496,7 @@ uint32 FAssetDataGatherer::Run()
 
 		LocalAssetResults.Reset();
 		LocalDependencyResults.Reset();
+		LocalCookedPackageNamesWithoutAssetDataResults.Reset();
 
 		if (LocalFilesToSearch.Num() > 0)
 		{
@@ -543,14 +546,17 @@ uint32 FAssetDataGatherer::Run()
 				{
 					TArray<FAssetData*> AssetDataFromFile;
 					FPackageDependencyData DependencyData;
-					if (ReadAssetFile(AssetFileData.PackageFilename, AssetDataFromFile, DependencyData))
+					TArray<FString> CookedPackageNamesWithoutAssetData;
+					if (ReadAssetFile(AssetFileData.PackageFilename, AssetDataFromFile, DependencyData, CookedPackageNamesWithoutAssetData))
 					{
 						++NumUncachedFiles;
 
 						LocalAssetResults.Append(AssetDataFromFile);
 						LocalDependencyResults.Add(DependencyData);
+						LocalCookedPackageNamesWithoutAssetDataResults.Append(CookedPackageNamesWithoutAssetData);
 
-						bool bCachePackage = bLoadAndSaveCache;
+						// Don't store info on cooked packages
+						bool bCachePackage = bLoadAndSaveCache && LocalCookedPackageNamesWithoutAssetDataResults.Num() == 0;
 						if (bCachePackage)
 						{
 							// Don't store info on cooked packages
@@ -663,7 +669,7 @@ void FAssetDataGatherer::EnsureCompletion()
     Thread = nullptr;
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<FString>& OutCookedPackageNamesWithoutAssetDataResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch, bool& OutIsDiscoveringFiles)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 
@@ -675,6 +681,9 @@ bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FAssetData*>& OutAssetRe
 
 	OutDependencyResults.Append(MoveTemp(DependencyResults));
 	DependencyResults.Reset();
+
+	OutCookedPackageNamesWithoutAssetDataResults.Append(MoveTemp(CookedPackageNamesWithoutAssetDataResults));
+	CookedPackageNamesWithoutAssetDataResults.Reset();
 
 	OutSearchTimes.Append(MoveTemp(SearchTimes));
 	SearchTimes.Reset();
@@ -756,66 +765,7 @@ void FAssetDataGatherer::SortPathsByPriority(const int32 MaxNumToSort)
 	}
 }
 
-FAssetData* FAssetDataGatherer::CreateAssetDataFromLinkerTables(const FString& AssetFilename, uint32 InPackageFlags, const FObjectExport& AssetExport, const TArray<FObjectImport>& ImportMap, const TArray<FObjectExport>& ExportMap) const
-{
-	const FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
-	const FString PackagePath = FPaths::GetPath(PackageName);
-	FString GroupNames; // Not used for anything
-	TMap<FName, FString> Tags; // Not used for anything
-	TArray<int32> ChunkIDs; // Not used for anything
-
-	// We need to get the class name from the import/export maps
-	FName ObjectClassName;
-	if (AssetExport.ClassIndex.IsNull())
-	{
-		ObjectClassName = UClass::StaticClass()->GetFName();
-	}
-	else if (AssetExport.ClassIndex.IsExport())
-	{
-		const FObjectExport& ClassExport = ExportMap[AssetExport.ClassIndex.ToExport()];
-		ObjectClassName = ClassExport.ObjectName;
-	}
-	else if (AssetExport.ClassIndex.IsImport())
-	{
-		const FObjectImport& ClassImport = ImportMap[AssetExport.ClassIndex.ToImport()];
-		ObjectClassName = ClassImport.ObjectName;
-	}
-	return new FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), AssetExport.ObjectName, ObjectClassName, Tags, ChunkIDs, InPackageFlags);
-}
-
-FAssetData* FAssetDataGatherer::CreateAssetDataFromCookedPackage(const FString& AssetFilename, uint32 InPackageFlags, FPackageReader& PackageReader) const
-{
-	FString PackageName = FPackageName::FilenameToLongPackageName(AssetFilename);
-	FAssetData* Result = nullptr;
-
-	// If the packaged is saved with the right version we have the information
-	// which of the objects in the export map as the asset.
-	// Otherwise we need to store a temp minimal data and then force load the asset
-	// to re-generate its registry data
-	if (PackageReader.UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
-	{
-		TArray<FObjectImport> ImportMap;
-		TArray<FObjectExport> ExportMap;		
-		PackageReader.SerializeNameMap();
-		PackageReader.SerializeImportMap(ImportMap);
-		PackageReader.SerializeExportMap(ExportMap);
-		for (FObjectExport& Export : ExportMap)
-		{
-			if (Export.bIsAsset)
-			{
-				Result = CreateAssetDataFromLinkerTables(AssetFilename, InPackageFlags, Export, ImportMap, ExportMap);
-				break;
-			}
-		}
-	}	
-	if (!Result)
-	{
-		Result = new FAssetData(FName(*PackageName), FName(), FName(), FName(), FName(), TMap<FName, FString>(), TArray<int32>(), InPackageFlags);
-	}
-	return Result;
-}
-
-bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FAssetData*>& AssetDataList, FPackageDependencyData& DependencyData ) const
+bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FAssetData*>& AssetDataList, FPackageDependencyData& DependencyData, TArray<FString>& CookedPackageNamesWithoutAssetData ) const
 {
 	FPackageReader PackageReader;
 
@@ -824,14 +774,11 @@ bool FAssetDataGatherer::ReadAssetFile(const FString& AssetFilename, TArray<FAss
 		return false;
 	}
 
-	if (!!(PackageReader.GetPackageFlags() & PKG_FilterEditorOnly))
+	if ( PackageReader.ReadAssetRegistryDataIfCookedPackage(AssetDataList, CookedPackageNamesWithoutAssetData) )
 	{
-		// Try to reconstruct asset data from the cooked package by serializing its import and export tables
-		FAssetData* CookedPackageData = CreateAssetDataFromCookedPackage(AssetFilename, PackageReader.GetPackageFlags(), PackageReader);
-		AssetDataList.Add(CookedPackageData);
+		// Cooked data is special. No further data is found in these packages
 		return true;
 	}
-
 
 	if ( !PackageReader.ReadAssetRegistryData(AssetDataList) )
 	{

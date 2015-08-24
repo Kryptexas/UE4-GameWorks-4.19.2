@@ -1369,7 +1369,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	bool bIsDiscoveringFiles = false;
 	if ( BackgroundAssetSearch.IsValid() )
 	{
-		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
+		bIsSearching = BackgroundAssetSearch->GetAndTrimSearchResults(BackgroundAssetResults, BackgroundPathResults, BackgroundDependencyResults, BackgroundCookedPackageNamesWithoutAssetDataResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
 	}
 
 	// Report the search times
@@ -1409,6 +1409,12 @@ void FAssetRegistry::Tick(float DeltaTime)
 		DependencyDataGathered(TickStartTime, BackgroundDependencyResults);
 	}
 
+	// Load cooked packages that do not have asset data
+	if ( BackgroundCookedPackageNamesWithoutAssetDataResults.Num() )
+	{
+		CookedPackageNamesWithoutAssetDataGathered(TickStartTime, BackgroundCookedPackageNamesWithoutAssetDataResults);
+	}
+
 	// Notify the status change
 	if (bIsSearching || bHadAssetsToProcess)
 	{
@@ -1422,7 +1428,7 @@ void FAssetRegistry::Tick(float DeltaTime)
 	}
 
 	// If completing an initial search, refresh the content browser
-	if ( NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 )
+	if ( NumFilesToSearch == 0 && NumPathsToSearch == 0 && !bIsSearching && BackgroundPathResults.Num() == 0 && BackgroundAssetResults.Num() == 0 && BackgroundDependencyResults.Num() == 0 && BackgroundCookedPackageNamesWithoutAssetDataResults.Num() == 0 )
 	{
 		if ( !bInitialSearchCompleted )
 		{
@@ -1777,17 +1783,19 @@ void FAssetRegistry::ScanPathsSynchronous_Internal(const TArray<FString>& InPath
 		TArray<FAssetData*> AssetResults;
 		TArray<FString> PathResults;
 		TArray<FPackageDependencyData> DependencyResults;
+		TArray<FString> CookedPackageNamesWithoutAssetDataResults;
 		TArray<double> SearchTimes;
 		int32 NumFilesToSearch = 0;
 		int32 NumPathsToSearch = 0;
 		bool bIsDiscoveringFiles = false;
-		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
+		AssetSearch.GetAndTrimSearchResults(AssetResults, PathResults, DependencyResults, CookedPackageNamesWithoutAssetDataResults, SearchTimes, NumFilesToSearch, NumPathsToSearch, bIsDiscoveringFiles);
 
 		// Cache the search results
 		const int32 NumResults = AssetResults.Num();
 		AssetSearchDataGathered(-1, AssetResults);
 		PathDataGathered(-1, PathResults);
 		DependencyDataGathered(-1, DependencyResults);
+		CookedPackageNamesWithoutAssetDataGathered(-1, CookedPackageNamesWithoutAssetDataResults);
 
 		// Log stats
 		const FString& Path = PathsToScan[0];
@@ -1815,15 +1823,6 @@ void FAssetRegistry::AssetSearchDataGathered(const double TickStartTime, TArray<
 	for (AssetIndex = 0; AssetIndex < AssetResults.Num(); ++AssetIndex)
 	{
 		FAssetData*& BackgroundResult = AssetResults[AssetIndex];
-
-		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
-		if (!!(BackgroundResult->PackageFlags & PKG_FilterEditorOnly))
-		{
-			LoadPackage(nullptr, *BackgroundResult->PackageName.ToString(), 0);
-			delete BackgroundResult;
-			BackgroundResult = nullptr;
-			continue;
-		}
 
 		// Try to update any asset data that may already exist
 		FAssetData* AssetData = nullptr;
@@ -1966,6 +1965,34 @@ void FAssetRegistry::DependencyDataGathered(const double TickStartTime, TArray<F
 
 	// Trim the results array
 	DependsResults.RemoveAt(0, ResultIdx);
+}
+
+void FAssetRegistry::CookedPackageNamesWithoutAssetDataGathered(const double TickStartTime, TArray<FString>& CookedPackageNamesWithoutAssetDataResults)
+{
+	const bool bFlushFullBuffer = TickStartTime < 0;
+
+	// Add the found assets
+	int32 PackageNameIndex = 0;
+	for (PackageNameIndex = 0; PackageNameIndex < CookedPackageNamesWithoutAssetDataResults.Num(); ++PackageNameIndex)
+	{
+		// If this data is cooked and it we couldn't find any asset in its export table then try load the entire package 
+		const FString& BackgroundResult = CookedPackageNamesWithoutAssetDataResults[PackageNameIndex];
+		LoadPackage(nullptr, *BackgroundResult, 0);
+
+		// Check to see if we have run out of time in this tick
+		if (!bFlushFullBuffer && (FPlatformTime::Seconds() - TickStartTime) > MaxSecondsPerFrame)
+		{
+			// Increment the index to properly trim the buffer below
+			++PackageNameIndex;
+			break;
+		}
+	}
+
+	// Trim the results array
+	if (PackageNameIndex > 0)
+	{
+		CookedPackageNamesWithoutAssetDataResults.RemoveAt(0, PackageNameIndex);
+	}
 }
 
 FDependsNode* FAssetRegistry::FindDependsNode(FName ObjectName)

@@ -250,6 +250,67 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FAssetData*>& AssetD
 	return true;
 }
 
+bool FPackageReader::ReadAssetRegistryDataIfCookedPackage(TArray<FAssetData*>& AssetDataList, TArray<FString>& CookedPackageNamesWithoutAssetData)
+{
+	if (!!(GetPackageFlags() & PKG_FilterEditorOnly))
+	{
+		const FString PackageName = FPackageName::FilenameToLongPackageName(PackageFilename);
+		
+		bool bFoundAtLeastOneAsset = false;
+
+		// If the packaged is saved with the right version we have the information
+		// which of the objects in the export map as the asset.
+		// Otherwise we need to store a temp minimal data and then force load the asset
+		// to re-generate its registry data
+		if (UE4Ver() >= VER_UE4_COOKED_ASSETS_IN_EDITOR_SUPPORT)
+		{
+			const FString PackagePath = FPackageName::GetLongPackagePath(PackageName);
+
+			TArray<FObjectImport> ImportMap;
+			TArray<FObjectExport> ExportMap;
+			SerializeNameMap();
+			SerializeImportMap(ImportMap);
+			SerializeExportMap(ExportMap);
+			for (FObjectExport& Export : ExportMap)
+			{
+				if (Export.bIsAsset)
+				{
+					FString GroupNames; // Not used for anything
+					TMap<FName, FString> Tags; // Not used for anything
+					TArray<int32> ChunkIDs; // Not used for anything
+
+					// We need to get the class name from the import/export maps
+					FName ObjectClassName;
+					if (Export.ClassIndex.IsNull())
+					{
+						ObjectClassName = UClass::StaticClass()->GetFName();
+					}
+					else if (Export.ClassIndex.IsExport())
+					{
+						const FObjectExport& ClassExport = ExportMap[Export.ClassIndex.ToExport()];
+						ObjectClassName = ClassExport.ObjectName;
+					}
+					else if (Export.ClassIndex.IsImport())
+					{
+						const FObjectImport& ClassImport = ImportMap[Export.ClassIndex.ToImport()];
+						ObjectClassName = ClassImport.ObjectName;
+					}
+
+					new(AssetDataList) FAssetData(FName(*PackageName), FName(*PackagePath), FName(*GroupNames), Export.ObjectName, ObjectClassName, Tags, ChunkIDs, GetPackageFlags());
+					bFoundAtLeastOneAsset = true;
+				}
+			}
+		}
+		if (!bFoundAtLeastOneAsset)
+		{
+			CookedPackageNamesWithoutAssetData.Add(PackageName);
+		}
+		return true;
+	}
+
+	return false;
+}
+
 bool FPackageReader::ReadDependencyData (FPackageDependencyData& OutDependencyData)
 {
 	OutDependencyData.PackageName = FName(*FPackageName::FilenameToLongPackageName(PackageFilename));
