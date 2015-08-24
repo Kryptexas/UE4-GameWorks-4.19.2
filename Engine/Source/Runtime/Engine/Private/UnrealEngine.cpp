@@ -764,7 +764,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	// Initialize the HMDs and motion controllers, if any
 	InitializeHMDDevice();
-	InitializeMotionControllers();
 
 	// Disable the screensaver when running the game.
 	if( GIsClient && !GIsEditor )
@@ -2255,17 +2254,6 @@ bool UEngine::InitializeHMDDevice()
 	}
  
 	return StereoRenderingDevice.IsValid();
-}
-
-bool UEngine::InitializeMotionControllers()
-{
-	TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>(IMotionController::GetModularFeatureName());
-	for (auto MotionController : MotionControllers)
-	{
-		MotionControllerDevices.AddUnique(MotionController);
-	}
-
-	return (MotionControllerDevices.Num() > 0);
 }
 
 void UEngine::RecordHMDAnalytics()

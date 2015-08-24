@@ -125,14 +125,10 @@ public:
 		Buttons[ (int32)EControllerHand::Right ][ ESteamVRControllerButton::TouchPadRight ] = FGamepadKeyNames::MotionController_Right_FaceButton2;
 
 		IModularFeatures::Get().RegisterModularFeature(GetModularFeatureName(), this);
-
-		//@todo:  fix this.  construction of the controller happens after InitializeMotionControllers(), so we manually insert into the array here.
-		GEngine->MotionControllerDevices.AddUnique(this);
 	}
 
 	virtual ~FSteamVRController()
 	{
-		GEngine->MotionControllerDevices.Remove(this);
 	}
 
 	virtual void Tick( float DeltaTime ) override
