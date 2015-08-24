@@ -1,29 +1,29 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3.2 - Implementing Shooting
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to shooting for your First Person Shooter character.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664711
+Availability:Docs
+Title:3.2 - 発射の実装
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
+Description:First Person Shooter キャラクターに射撃を実装する方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/3/1)
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/3/1 "")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/3)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/3)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/3/3)
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/3/3)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
