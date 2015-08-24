@@ -1726,6 +1726,26 @@ float UAnimInstance::GetCurrentStateElapsedTime(int32 MachineIndex)
 	return 0.0f;
 }
 
+FName UAnimInstance::GetCurrentStateName(int32 MachineIndex)
+{
+	if (UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>((UObject*)GetClass()))
+	{
+		if ((MachineIndex >= 0) && (MachineIndex < AnimBlueprintClass->AnimNodeProperties.Num()))
+		{
+			const int32 InstancePropertyIndex = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - MachineIndex; //@TODO: ANIMREFACTOR: Reverse indexing
+
+			UStructProperty* MachineInstanceProperty = AnimBlueprintClass->AnimNodeProperties[InstancePropertyIndex];
+			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
+
+			FAnimNode_StateMachine* MachineInstance = MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
+
+			return MachineInstance->GetCurrentStateName();
+		}
+	}
+
+	return NAME_None;
+}
+
 void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_Montage_UpdateWeight);

@@ -124,6 +124,8 @@ public:
 		return ElapsedTime;
 	}
 
+	FName GetCurrentStateName() const;
+
 #if WITH_EDITORONLY_DATA
 	bool IsTransitionActive(int32 TransIndex) const;
 #endif
