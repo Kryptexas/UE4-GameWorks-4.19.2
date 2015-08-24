@@ -2,6 +2,7 @@ Availability:Public
 Title:Persona Mesh Details
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:User guide for the Mesh Details panel in the Persona animation editor.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
