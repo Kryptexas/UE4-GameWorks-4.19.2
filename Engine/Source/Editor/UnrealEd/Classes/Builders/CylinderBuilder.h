@@ -48,6 +48,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=BrushSettings)
 	uint32 Hollow:1;
 
+	// Begin UObject interface
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	// End UObject interface
 
 	// Begin UBrushBuilder Interface
 	virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) override;
