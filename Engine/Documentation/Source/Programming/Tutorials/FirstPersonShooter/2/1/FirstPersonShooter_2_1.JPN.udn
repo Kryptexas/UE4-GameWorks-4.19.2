@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2.1 - Making a New Character
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to make a new character for your First Person Shooter project.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664710
+Availability:Docs
+Title:2.1- キャラクターを新規作成する
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
+Description:First Person Shooter プロジェクト用にキャラクターを新規作成する方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -13,16 +13,16 @@ Version: 4.9
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/2)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/2)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/2/2)
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/2/2)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
