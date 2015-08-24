@@ -93,6 +93,7 @@ enum EMaterialCommonBasis
 	MCB_TranslatedWorld,
 	MCB_World,
 	MCB_View,
+	MCB_Camera,
 	MCB_MAX,
 };
 

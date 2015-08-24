@@ -607,7 +607,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 	
 	float4 HomogeneousWorldPosition = mul(float4(ScreenPosition * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-	float3 CameraToPixel = normalize(WorldPosition - View.ViewOrigin.xyz);
+	float3 CameraToPixel = normalize(WorldPosition - View.CameraWorldOrigin);
 	float3 ReflectionVector = reflect(CameraToPixel, GBuffer.WorldNormal);
 	float IndirectIrradiance = GBuffer.IndirectIrradiance;
 	

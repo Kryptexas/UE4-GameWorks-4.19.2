@@ -54,7 +54,7 @@ void DirectionalPixelMain(
 	BRANCH if( ScreenSpaceData.GBuffer.ShadingModelID > 0 )
 	{
 		float SceneDepth = CalcSceneDepth(InUV);
-		float3 WorldPosition = ScreenVector * SceneDepth + View.ViewOrigin.xyz;
+		float3 WorldPosition = ScreenVector * SceneDepth + View.CameraWorldOrigin;
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), uint2(0,0));
@@ -81,7 +81,7 @@ void RadialPixelMain(
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-		float3 CameraVector = normalize(WorldPosition - View.ViewOrigin.xyz);
+		float3 CameraVector = normalize(WorldPosition - View.CameraWorldOrigin);
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
 

@@ -60,9 +60,9 @@ void Main(
 
 #if USE_VERTEX_FOG
 #if PACK_INTERPOLANTS
-	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
+	PackedInterps[0] = CalculateVertexHeightFog(WorldPosition.xyz, float4(View.CameraTranslatedWorldOrigin, 1));
 #else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, float4(View.CameraTranslatedWorldOrigin, 1));
 #endif // PACK_INTERPOLANTS
 #endif
 

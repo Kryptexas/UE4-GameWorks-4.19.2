@@ -20,9 +20,9 @@ void ExponentialPixelMain(
 	float SceneDepth = CalcSceneDepth(TexCoord);
 
 	float3 CameraToReceiver = ScreenVector.xyz * SceneDepth;
-	float3 ReceiverPosition = CameraToReceiver + View.ViewOrigin.xyz; 
+	float3 ReceiverPosition = CameraToReceiver + View.CameraWorldOrigin; 
 
 	float LightShaftMask = Texture2DSample(OcclusionTexture, OcclusionSampler, TexCoord).x;
-	float4 ExponentialFog = GetExponentialHeightFog(ReceiverPosition, View.ViewOrigin.xyz);
+	float4 ExponentialFog = GetExponentialHeightFog(ReceiverPosition, View.CameraWorldOrigin);
 	OutColor = RETURN_COLOR(float4(ExponentialFog.rgb * LightShaftMask, ExponentialFog.w));
 }

@@ -1663,7 +1663,8 @@ protected:
 			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
 			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
 			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
-			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>ViewOrigin"), nullptr},
+			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("View.<PREV>ViewWorldOrigin"), nullptr},
+			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>CameraWorldOrigin"), nullptr},
 		};
 		static_assert((sizeof(ViewPropertyMetaArray) / sizeof(ViewPropertyMetaArray[0])) == MEVP_MAX, "incoherency between EMaterialExposedViewProperty and ViewPropertyMetaArray");
 
@@ -3319,9 +3320,13 @@ protected:
 						CodeStr = TEXT("<A>");
 					}
 				}
-				else if (DestCoordBasis == MCB_View)
+				else if (DestCoordBasis == MCB_Camera)
 				{
 					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>TranslatedWorldToCameraView))");
+				}
+				else if (DestCoordBasis == MCB_View)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>TranslatedWorldToView))");
 				}
 				// else use MCB_World as intermediary basis
 				break;
@@ -3362,11 +3367,21 @@ protected:
 				IntermediaryBasis = MCB_TranslatedWorld;
 				break;
 			}
-			case MCB_View:
+			case MCB_Camera:
 			{
 				if (DestCoordBasis == MCB_TranslatedWorld)
 				{
 					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>CameraViewToTranslatedWorld))");
+				}
+				// else use MCB_TranslatedWorld as intermediary basis
+				IntermediaryBasis = MCB_TranslatedWorld;
+				break;
+			}
+			case MCB_View:
+			{
+				if (DestCoordBasis == MCB_TranslatedWorld)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>ViewToTranslatedWorld))");
 				}
 				// else use MCB_TranslatedWorld as intermediary basis
 				IntermediaryBasis = MCB_TranslatedWorld;

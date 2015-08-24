@@ -170,7 +170,7 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 	float SubImageLerp = Interpolants.TangentToWorld0AndInterp_Sizer.w;
 
 	#if GENERATE_SPHERICAL_PARTICLE_NORMALS && USE_PARTICLE_POSITION
-		Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition.xyz + View.ViewOrigin.xyz, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+		Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition.xyz + View.CameraWorldOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
 	#else
 		Result.TangentToWorld = AssembleTangentToWorld(TangentToWorld0.xyz, TangentToWorld2);
 	#endif
@@ -295,7 +295,7 @@ void GetTangents(FVertexFactoryInput Input, float3 WorldPosition, float3 OldWorl
 	float3 CameraUp = lerp(-View.ViewUp, SpriteVF.AxisLockUp.xyz, SpriteVF.AxisLockUp.w);
 
 	// Determine the vector from the particle to the camera and the particle's movement direction.
-	float3 CameraDirection		= SafeNormalize(View.ViewOrigin.xyz - WorldPosition.xyz);
+	float3 CameraDirection		= SafeNormalize(View.CameraWorldOrigin - WorldPosition.xyz);
 	float3 ParticleDirection	= SafeNormalize(WorldPosition.xyz - OldWorldPosition.xyz);
 
 	// Tangent vectors for PSA_Velocity.

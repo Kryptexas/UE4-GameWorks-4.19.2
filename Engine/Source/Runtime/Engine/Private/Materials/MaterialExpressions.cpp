@@ -5340,10 +5340,11 @@ void UMaterialExpressionAbs::GetCaption(TArray<FString>& OutCaptions) const
 static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialVectorCoordTransformSource X)
 {
 	static const EMaterialCommonBasis ConversionTable[TRANSFORMSOURCE_MAX] = {
-		MCB_Tangent,
-		MCB_Local,
-		MCB_World,
-		MCB_View,
+		MCB_Tangent,					// TRANSFORMSOURCE_Tangent
+		MCB_Local,						// TRANSFORMSOURCE_Local
+		MCB_World,						// TRANSFORMSOURCE_World
+		MCB_View,						// TRANSFORMSOURCE_View
+		MCB_Camera,						// TRANSFORMSOURCE_Camera
 	};
 	return ConversionTable[X];
 }
@@ -5351,10 +5352,11 @@ static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialVectorCoordTransform
 static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialVectorCoordTransform X)
 {
 	static const EMaterialCommonBasis ConversionTable[TRANSFORM_MAX] = {
-		MCB_Tangent,
-		MCB_Local,
-		MCB_World,
-		MCB_View,
+		MCB_Tangent,					// TRANSFORM_Tangent
+		MCB_Local,						// TRANSFORM_Local
+		MCB_World,						// TRANSFORM_World
+		MCB_View,						// TRANSFORM_View
+		MCB_Camera,						// TRANSFORM_Camera
 	};
 	return ConversionTable[X];
 }
@@ -5443,10 +5445,11 @@ UMaterialExpressionTransformPosition::UMaterialExpressionTransformPosition(const
 static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialPositionTransformSource X)
 {
 	static const EMaterialCommonBasis ConversionTable[TRANSFORMPOSSOURCE_MAX] = {
-		MCB_Local,
-		MCB_World,
-		MCB_TranslatedWorld,
-		MCB_View,
+		MCB_Local,						// TRANSFORMPOSSOURCE_Local
+		MCB_World,						// TRANSFORMPOSSOURCE_World
+		MCB_TranslatedWorld,			// TRANSFORMPOSSOURCE_TranslatedWorld
+		MCB_View,						// TRANSFORMPOSSOURCE_View
+		MCB_Camera,						// TRANSFORMPOSSOURCE_Camera
 	};
 	return ConversionTable[X];
 }

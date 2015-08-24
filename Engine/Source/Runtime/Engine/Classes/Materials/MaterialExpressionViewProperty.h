@@ -16,6 +16,8 @@ enum EMaterialExposedViewProperty
 	MEVP_TanHalfFieldOfView UMETA(DisplayName="TanHalfFieldOfView"),
 	/** Horizontal and vertical size of the view in pixels */
 	MEVP_ViewSize UMETA(DisplayName="ViewSize"),
+	/** Absolute world space view position (differs from the camera position in the shadow passes) */
+	MEVP_WorldSpaceViewPosition UMETA(DisplayName="ViewPosition (Absolute World Space)"),
 	/** Absolute world space camera position */
 	MEVP_WorldSpaceCameraPosition UMETA(DisplayName="CameraPosition (Absolute World Space)"),
 

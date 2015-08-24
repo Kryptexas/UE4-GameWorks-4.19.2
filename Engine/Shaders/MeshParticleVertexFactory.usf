@@ -489,7 +489,7 @@ float4 VertexFactoryGetPreviousWorldPosition(FVertexFactoryInput Input, FVertexF
 		half4 TangentToWorld2 = Interpolants.InterpolantsVSToPS.TangentToWorld2;
 		Result.TangentToWorld = AssembleTangentToWorld( TangentToWorld0, TangentToWorld2 );
 		Result.TangentToWorldPreScale = 1;
-		Result.WorldPosition = CameraLocalWorldPosition + View.ViewOrigin.xyz;
+		Result.WorldPosition = CameraLocalWorldPosition + View.CameraWorldOrigin;
 
 		return Result;
 	}

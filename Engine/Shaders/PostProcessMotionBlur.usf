@@ -587,7 +587,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 #if MOTION_BLUR_QUALITY == 0
 	// visualize motion blur
 	{
-		float3 AbsWorldPos = View.ViewOrigin.xyz + OffsetWorldPos;
+		float3 AbsWorldPos = View.CameraWorldOrigin + OffsetWorldPos;
 		float3 WorldCheckerboard = Compute3DCheckerBoard(AbsWorldPos * 0.02f) * 0.1f + Compute3DCheckerBoard(AbsWorldPos * 0.002f) * 0.3f + Compute3DCheckerBoard(AbsWorldPos * 0.0002f) * 0.6f;
 
 		OutColor = float4(lerp(WorldCheckerboard, OutColor.rgb, 0.7f), 1);

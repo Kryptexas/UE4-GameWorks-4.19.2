@@ -59,9 +59,9 @@ void Main(
 // Calculate the fog needed for translucency
 #if NEEDS_BASEPASS_FOGGING
 	#if BASEPASS_ATMOSPHERIC_FOG
-	Output.BasePassInterpolants.VertexFog = CalculateVertexAtmosphericFog(WorldPosition.xyz, View.TranslatedViewOrigin.xyz);
+	Output.BasePassInterpolants.VertexFog = CalculateVertexAtmosphericFog(WorldPosition.xyz, View.CameraTranslatedWorldOrigin);
 	#else
-	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, View.TranslatedViewOrigin);
+	Output.BasePassInterpolants.VertexFog = CalculateVertexHeightFog(WorldPosition.xyz, float4(View.CameraTranslatedWorldOrigin, 1));
 	#endif
 #endif
 

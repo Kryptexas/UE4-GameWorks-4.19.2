@@ -26,7 +26,7 @@ void Main(
 	float4 HomogeneousWorldPosition = mul(ProjectedScreenPosition, View.ScreenToWorld);
 	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 	// Calculate radial view distance for stable fading
-	float ViewDistance = length(View.ViewOrigin.xyz - WorldPosition);
+	float ViewDistance = length(View.CameraWorldOrigin - WorldPosition);
 
 	float3 Color = GetLightFunctionColor(LightVector.xyz, WorldPosition);
 

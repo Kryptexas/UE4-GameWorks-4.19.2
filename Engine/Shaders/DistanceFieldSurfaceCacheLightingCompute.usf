@@ -196,7 +196,7 @@ void CullObjectsForViewCS(
 		uint SourceIndex = ObjectIndex;
 
 		float4 ObjectBoundingSphere = float4(ObjectBounds[4 * SourceIndex + 0], ObjectBounds[4 * SourceIndex + 1], ObjectBounds[4 * SourceIndex + 2], ObjectBounds[4 * SourceIndex + 3]);
-		float DistanceToViewSq = dot(View.ViewOrigin.xyz - ObjectBoundingSphere.xyz, View.ViewOrigin.xyz - ObjectBoundingSphere.xyz);
+		float DistanceToViewSq = dot(View.CameraWorldOrigin - ObjectBoundingSphere.xyz, View.CameraWorldOrigin - ObjectBoundingSphere.xyz);
 
 		if (DistanceToViewSq < Square(AOMaxViewDistance + ObjectBoundingSphere.w)
 			&& ViewFrustumIntersectSphere(ObjectBoundingSphere.xyz, ObjectBoundingSphere.w + AOObjectMaxDistance))

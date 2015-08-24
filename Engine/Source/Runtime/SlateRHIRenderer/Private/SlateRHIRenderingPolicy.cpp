@@ -482,8 +482,9 @@ static FSceneView& CreateSceneView( FSceneViewFamilyContext& ViewFamilyContext, 
 	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
 	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f/ViewRect.Width(), 1.0f/ViewRect.Height() );
 	ViewUniformShaderParameters.BufferSizeAndInvSize = ViewUniformShaderParameters.ViewSizeAndInvSize;
-	ViewUniformShaderParameters.ViewOrigin = View->ViewMatrices.ViewOrigin;
-	ViewUniformShaderParameters.TranslatedViewOrigin = View->ViewMatrices.ViewOrigin + View->ViewMatrices.PreViewTranslation;
+	ViewUniformShaderParameters.ViewWorldOrigin = View->ViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.CameraWorldOrigin = View->ViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.CameraTranslatedWorldOrigin = ViewUniformShaderParameters.CameraWorldOrigin + View->ViewMatrices.PreViewTranslation;
 	ViewUniformShaderParameters.DiffuseOverrideParameter = View->DiffuseOverrideParameter;
 	ViewUniformShaderParameters.SpecularOverrideParameter = View->SpecularOverrideParameter;
 	ViewUniformShaderParameters.NormalOverrideParameter = View->NormalOverrideParameter;
