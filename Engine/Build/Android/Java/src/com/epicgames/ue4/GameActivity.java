@@ -21,6 +21,7 @@ import android.text.InputType;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.res.AssetManager;
 import android.content.res.Configuration;
 import android.content.IntentSender.SendIntentException;
@@ -62,6 +63,8 @@ import java.net.HttpURLConnection;
 import com.epicgames.ue4.GooglePlayStoreHelper;
 import com.epicgames.ue4.GooglePlayLicensing;
 
+//
+import com.epicgames.ue4.ConsoleCmdReceiver;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
@@ -105,6 +108,9 @@ public class GameActivity extends NativeActivity
 	// Virtual keyboard
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
+
+	// Console commands receiver
+	ConsoleCmdReceiver consoleCmdReceiver;
 
 	// default the PackageDataInsideApk to an invalid value to make sure we don't get it too early
 	private static int PackageDataInsideApkValue = -1;
@@ -157,6 +163,9 @@ public class GameActivity extends NativeActivity
 	private boolean InitCompletedOK = false;
 	
 	private boolean ShouldHideUI = false;
+
+	/** Whether this application is for distribution */
+	private boolean IsForDistribution = false;
 	
 	/** Access singleton activity for game. **/
 	public static GameActivity Get()
@@ -179,6 +188,13 @@ public class GameActivity extends NativeActivity
 	{
 		super.onStart();
 		
+		if (!IsForDistribution)
+		{
+			// Create console command broadcast listener
+			consoleCmdReceiver = new ConsoleCmdReceiver(this);
+			registerReceiver(consoleCmdReceiver, new IntentFilter(Intent.ACTION_RUN));
+		}
+
 		Log.debug("==================================> Inside onStart function in GameActivity");
 	}
 
@@ -303,6 +319,11 @@ public class GameActivity extends NativeActivity
 			ApplicationInfo ai = getPackageManager().getApplicationInfo(getPackageName(), PackageManager.GET_META_DATA);
 			Bundle bundle = ai.metaData;
 
+			if ((ai.flags & ApplicationInfo.FLAG_DEBUGGABLE) == 0) 
+			{
+				IsForDistribution = true;
+			}
+			
 			// Get the preferred depth buffer size from AndroidManifest.xml
 			if (bundle.containsKey("com.epicgames.ue4.GameActivity.DepthBufferPreference"))
 			{
@@ -624,6 +645,11 @@ public class GameActivity extends NativeActivity
 	public void onStop()
 	{
 		super.onStop();
+
+		if (consoleCmdReceiver != null)
+		{
+			unregisterReceiver(consoleCmdReceiver);
+		}
 	}
 
 	// handle ad popup visibility and requests
