@@ -866,7 +866,6 @@ void FSceneView::OverridePostProcessSettings(const FPostProcessSettings& Src, fl
 
 		LERP_PP(SceneColorTint);
 		LERP_PP(SceneFringeIntensity);
-		LERP_PP(SceneFringeSaturation);
 		LERP_PP(BloomIntensity);
 		LERP_PP(BloomThreshold);
 		LERP_PP(Bloom1Tint);
