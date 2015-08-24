@@ -29,6 +29,12 @@ struct CORE_API FLinuxTime : public FGenericPlatformTime
 	}
 
 	static FCPUTime GetCPUTime();	
+
+	/**
+	 * Benchmarks clock_gettime(), possibly switches to something else is too slow.
+	 * Linux-specific.
+	 */
+	static void CalibrateClock();
 };
 
 typedef FLinuxTime FPlatformTime;
