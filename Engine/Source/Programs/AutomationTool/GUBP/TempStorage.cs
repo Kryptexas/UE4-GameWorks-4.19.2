@@ -32,7 +32,7 @@ namespace AutomationTool
         /// <summary>
         /// The GUBP global job attributes.
         /// </summary>
-        public GUBP.JobInfo JobInfo { get; private set; }
+        public JobInfo JobInfo { get; private set; }
 
         /// <summary>
         /// The storage name associated with this node. It is usually the name of the GUBP node running, but sometimes certain suffixes are added to indicate node completion status, etc.
@@ -44,7 +44,7 @@ namespace AutomationTool
         /// </summary>
         /// <param name="JobInfo"></param>
         /// <param name="NodeStorageName"></param>
-        public TempStorageNodeInfo(GUBP.JobInfo JobInfo, string NodeStorageName)
+        public TempStorageNodeInfo(JobInfo JobInfo, string NodeStorageName)
         {
             this.JobInfo = JobInfo;
             this.NodeStorageName = NodeStorageName;
@@ -1188,7 +1188,7 @@ namespace AutomationTool
         static internal void TestTempStorage(CommandEnvironment CmdEnv)
         {
             // We are not a real GUBP job, so fake the values.
-            var TestTempStorageInfo = new TempStorageNodeInfo(new GUBP.JobInfo("Test", 0, 0, 0), "Test");
+            var TestTempStorageInfo = new TempStorageNodeInfo(new JobInfo("Test", 0, 0, 0), "Test");
 
             // Delete any local and shared temp storage that may exist.
             DeleteLocalTempStorage();
