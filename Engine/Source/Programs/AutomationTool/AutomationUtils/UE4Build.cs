@@ -737,25 +737,21 @@ namespace AutomationTool
 		{
 			if (string.IsNullOrEmpty(XGEConsoleExePath))
 			{
-				try
+				string[] PathDirs = Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator);
+				foreach (string PathDir in PathDirs)
 				{
-					Process proc = new Process();
-					proc.StartInfo.UseShellExecute = false;
-					proc.StartInfo.FileName = "where";
-					proc.StartInfo.Arguments = "xgConsole.exe";
-					proc.StartInfo.RedirectStandardOutput = true;
-					proc.Start();
-					string result = proc.StandardOutput.ReadToEnd();
-					proc.WaitForExit();
-
-					if (proc.ExitCode == 0)
+					try
 					{
-						XGEConsoleExePath = result.Substring(0, result.IndexOf(Environment.NewLine));
+						string FullPath = Path.Combine(PathDir, "xgConsole.exe");
+						if (FileExists(FullPath))
+						{
+							XGEConsoleExePath = FullPath;
+							break;
+						}
 					}
-				}
-				catch (Exception)
-				{
-					// where not found
+					catch
+					{
+					}
 				}
 			}
 			return XGEConsoleExePath;
