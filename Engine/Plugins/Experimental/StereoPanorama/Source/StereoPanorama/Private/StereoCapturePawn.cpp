@@ -59,7 +59,7 @@ void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FColor>& InLeftEye
 
             FTexture2DMipMap& Mip = LeftEyeAtlas->PlatformData->Mips[0];
             void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
-            FMemory::Memcpy(Data, InLeftEyeAtlasData.GetTypedData(), TextureDataSize);
+            FMemory::Memcpy(Data, InLeftEyeAtlasData.GetData(), TextureDataSize);
             Mip.BulkData.Unlock();
             LeftEyeAtlas->UpdateResource();
         }
@@ -70,7 +70,7 @@ void AStereoCapturePawn::CopyAtlasDataToTextures(const TArray<FColor>& InLeftEye
 
             FTexture2DMipMap& Mip = RightEyeAtlas->PlatformData->Mips[0];
             void* Data = Mip.BulkData.Lock(LOCK_READ_WRITE);
-            FMemory::Memcpy(Data, InRightEyeAtlasData.GetTypedData(), TextureDataSize);
+            FMemory::Memcpy(Data, InRightEyeAtlasData.GetData(), TextureDataSize);
 
             Mip.BulkData.Unlock();
             RightEyeAtlas->UpdateResource();

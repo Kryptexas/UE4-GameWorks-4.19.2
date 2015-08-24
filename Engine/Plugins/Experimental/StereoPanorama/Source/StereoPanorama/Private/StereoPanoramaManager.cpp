@@ -37,7 +37,7 @@ void FStereoPanoramaManager::PanoramicScreenshot(const TArray<FString>& Args)
 void FStereoPanoramaManager::PanoramicScreenshot(const int32 InStartFrame, const int32 InEndFrame, FStereoCaptureDoneDelegate& InStereoCaptureDoneDelegate)
 {
 	// Construct a capturer that has stereo USceneCaptureComponent2D components
-    SceneCapturer = ConstructObject<USceneCapturer>(USceneCapturer::StaticClass());
+    SceneCapturer = NewObject<USceneCapturer>(USceneCapturer::StaticClass());
 	SceneCapturer->AddToRoot();
 
 	// Rotation is ignored; always start from a yaw of zero
