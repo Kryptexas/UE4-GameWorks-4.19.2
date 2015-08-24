@@ -764,11 +764,17 @@ namespace AutomationTool
 				string[] PathDirs = Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator);
 				foreach (string PathDir in PathDirs)
 				{
-					string FullPath = Path.Combine(PathDir, "xgConsole.exe");
-					if (FileExists(FullPath))
+					try
 					{
-						XGEConsoleExePath = FullPath;
-						break;
+						string FullPath = Path.Combine(PathDir, "xgConsole.exe");
+						if (FileExists(FullPath))
+						{
+							XGEConsoleExePath = FullPath;
+							break;
+						}
+					}
+					catch
+					{
 					}
 				}
 			}
