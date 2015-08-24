@@ -56,6 +56,10 @@ public partial class Project : CommandUtils
 				{
 					COTFCommandLine += " -iterate";
 				}
+				if (Params.UseDebugParamForEditorExe)
+				{
+					COTFCommandLine += " -debug";
+				}
 
 				var ServerLogFile = CombinePaths(LogFolderOutsideOfSandbox, "Server.log");
 				Platform ClientPlatformInst = Params.ClientTargetPlatformInstances[0];

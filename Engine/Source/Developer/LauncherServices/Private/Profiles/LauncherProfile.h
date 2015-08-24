@@ -933,7 +933,29 @@ public:
 		PackagingMode = ELauncherProfilePackagingModes::DoNotPackage;
 
 		// default UAT settings
-		EditorExe.Empty();
+		EditorExe = FPlatformProcess::ExecutableName(false);
+		if (EditorExe.Contains(TEXT("Editor")))
+		{
+#if PLATFORM_WINDOWS
+			// turn UE4editor into UE4editor-cmd
+			if (EditorExe.EndsWith(".exe", ESearchCase::IgnoreCase) && !FPaths::GetBaseFilename(EditorExe).EndsWith("-cmd", ESearchCase::IgnoreCase))
+			{
+				FString NewExeName = EditorExe.Left(EditorExe.Len() - 4) + "-Cmd.exe";
+				if (FPaths::FileExists(NewExeName))
+				{
+					EditorExe = NewExeName;
+				}
+				else
+				{
+					EditorExe.Empty();
+				}
+			}
+#endif
+		}
+		else
+		{
+			EditorExe.Empty();
+		}
 
 		bNotForLicensees = false;
 
