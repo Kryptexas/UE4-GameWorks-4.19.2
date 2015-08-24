@@ -1080,12 +1080,6 @@ FVector USceneComponent::K2_GetComponentScale() const
 	return GetComponentScale();
 }
 
-
-USceneComponent* USceneComponent::GetAttachParent() const
-{
-	return AttachParent;
-}
-
 void USceneComponent::GetParentComponents(TArray<class USceneComponent*>& Parents) const
 {
 	Parents.Empty();

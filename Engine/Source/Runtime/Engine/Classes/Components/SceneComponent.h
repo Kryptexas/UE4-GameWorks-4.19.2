@@ -523,9 +523,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual bool IsAnySimulatingPhysics() const;
 
-	/** Get a pointer to the USceneComponent we are attached to */
+	/** Get the SceneComponent we are attached to. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	class USceneComponent* GetAttachParent() const;
+	USceneComponent* GetAttachParent() const;
+
+	/** Get the socket we are attached to. */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
+	FName GetAttachSocketName() const;
 
 	/** Gets all parent components up to and including the root component */
 	UFUNCTION(BlueprintCallable, Category="Components")
@@ -1056,6 +1060,16 @@ protected:
 
 //////////////////////////////////////////////////////////////////////////
 // USceneComponent inlines
+
+FORCEINLINE USceneComponent* USceneComponent::GetAttachParent() const
+{
+	return AttachParent;
+}
+
+FORCEINLINE FName USceneComponent::GetAttachSocketName() const
+{
+	return AttachSocketName;
+}
 
 FORCEINLINE_DEBUGGABLE void USceneComponent::ConditionalUpdateComponentToWorld()
 {
