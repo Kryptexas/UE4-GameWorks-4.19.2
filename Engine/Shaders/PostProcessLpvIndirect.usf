@@ -83,7 +83,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: SV_POSITION, out
 	float3 ScreenVector = normalize(ScreenVectorU); 
 
 	float SceneDepth = CalcSceneDepth(UV);
-	float3 WorldPosition = ScreenVectorU * SceneDepth + View.CameraWorldOrigin;
+	float3 WorldPosition = ScreenVectorU * SceneDepth + View.WorldCameraOrigin;
 
 	float3 grid = WorldToGrid( WorldPosition );
 
@@ -169,7 +169,7 @@ void DirectionalOcclusionPS(in float4 UVAndScreenPos : TEXCOORD0, float4 SVPos: 
 		float3 ScreenVector = normalize(ScreenVectorU); 
 
 		float SceneDepth = CalcSceneDepth(UV);
-		float3 WorldPosition = ScreenVectorU * SceneDepth + View.CameraWorldOrigin;
+		float3 WorldPosition = ScreenVectorU * SceneDepth + View.WorldCameraOrigin;
 
 		float3 grid = WorldToGrid( WorldPosition );
 

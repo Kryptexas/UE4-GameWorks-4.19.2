@@ -51,7 +51,7 @@ void CopySceneColorToCubeFaceColorPS(
 
 	// Convert INF's to valid values
 	SceneColor = min(SceneColor, 65503);
-	float3 WorldPosition = Input.ScreenVector * SceneDepth + View.CameraWorldOrigin;
+	float3 WorldPosition = Input.ScreenVector * SceneDepth + View.WorldCameraOrigin;
 
 	float Alpha = 1;
 
@@ -64,7 +64,7 @@ void CopySceneColorToCubeFaceColorPS(
 	}
 	else if (SkyLightCaptureParameters.x == 1)
 	{
-		float RadialDistance = length(WorldPosition - View.CameraWorldOrigin);
+		float RadialDistance = length(WorldPosition - View.WorldCameraOrigin);
 		float MaxDistance = SkyLightCaptureParameters.y;
 
 		// Setup alpha to fade out smoothly past the max distance
@@ -348,7 +348,7 @@ void StandardDeferredReflectionPS(
 		float SceneDepth = CalcSceneDepth(ScreenUV);
 		float4 HomogeneousWorldPosition = mul(float4(InScreenPosition.xy / InScreenPosition.w * SceneDepth, SceneDepth, 1), View.ScreenToWorld);
 		float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
-		float3 CameraToPixel = normalize(WorldPosition - View.CameraWorldOrigin);
+		float3 CameraToPixel = normalize(WorldPosition - View.WorldCameraOrigin);
 		float3 ReflectionVector = reflect(CameraToPixel, InGBufferData.WorldNormal);
 
 		float3 ProjectedCaptureVector = ReflectionVector;

@@ -479,9 +479,9 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.ViewRectMin = FVector4(ViewRect.Min.X, ViewRect.Min.Y, 0.0f, 0.0f);
 	ViewUniformShaderParameters.ViewSizeAndInvSize = FVector4(ViewRect.Width(), ViewRect.Height(), 1.0f / float(ViewRect.Width()), 1.0f / float(ViewRect.Height()));
 	ViewUniformShaderParameters.BufferSizeAndInvSize = FVector4(BufferSize.X, BufferSize.Y, InvBufferSizeX, InvBufferSizeY);
-	ViewUniformShaderParameters.ViewWorldOrigin = EffectiveViewToTranslatedWorld.TransformPosition(FVector(0)) - ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.CameraWorldOrigin = ViewMatrices.ViewOrigin;
-	ViewUniformShaderParameters.CameraTranslatedWorldOrigin = ViewMatrices.ViewOrigin + ViewMatrices.PreViewTranslation;
+	ViewUniformShaderParameters.WorldViewOrigin = EffectiveViewToTranslatedWorld.TransformPosition(FVector(0)) - ViewMatrices.PreViewTranslation;
+	ViewUniformShaderParameters.WorldCameraOrigin = ViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.TranslatedWorldCameraOrigin = ViewMatrices.ViewOrigin + ViewMatrices.PreViewTranslation;
 	ViewUniformShaderParameters.DiffuseOverrideParameter = LocalDiffuseOverrideParameter;
 	ViewUniformShaderParameters.SpecularOverrideParameter = SpecularOverrideParameter;
 	ViewUniformShaderParameters.NormalOverrideParameter = NormalOverrideParameter;
@@ -489,7 +489,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.PrevFrameGameTime = Family->CurrentWorldTime - Family->DeltaWorldTime;
 	ViewUniformShaderParameters.PrevFrameRealTime = Family->CurrentRealTime - Family->DeltaWorldTime;
 	ViewUniformShaderParameters.PreViewTranslation = ViewMatrices.PreViewTranslation;
-	ViewUniformShaderParameters.CameraWorldOriginDelta = ViewMatrices.ViewOrigin - PrevViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.WorldCameraMovementSinceLastFrame = ViewMatrices.ViewOrigin - PrevViewMatrices.ViewOrigin;
 	ViewUniformShaderParameters.CullingSign = bReverseCulling ? -1.0f : 1.0f;
 	ViewUniformShaderParameters.NearPlane = GNearClippingPlane;
 	ViewUniformShaderParameters.PrevProjection = PrevViewMatrices.ProjMatrix;
@@ -498,18 +498,18 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.PrevViewToClip = PrevViewMatrices.ProjMatrix;
 	ViewUniformShaderParameters.PrevClipToView = PrevViewMatrices.GetInvProjMatrix();
 	ViewUniformShaderParameters.PrevTranslatedWorldToClip = PrevViewMatrices.TranslatedViewProjectionMatrix;
-	// PrevTranslatedWorldToView is not set as same as TranslatedWorldToView
-	// (set by EffectiveTranslatedViewMatrix != ViewMatrices.TranslatedViewMatrix),
-	// but that is fine because that means there are going to be inconsistently 
-	// different only in the shadow pass that doesn't require previous frame computation.
+	// EffectiveTranslatedViewMatrix != ViewMatrices.TranslatedViewMatrix in the shadow pass
+	// and we don't have EffectiveTranslatedViewMatrix for the previous frame to set up PrevTranslatedWorldToView
+	// but that is fine to set up PrevTranslatedWorldToView as same as PrevTranslatedWorldToCameraView
+	// since the shadow pass doesn't require previous frame computation.
 	ViewUniformShaderParameters.PrevTranslatedWorldToView = PrevViewMatrices.TranslatedViewMatrix;
 	ViewUniformShaderParameters.PrevViewToTranslatedWorld = ViewUniformShaderParameters.PrevTranslatedWorldToView.Inverse();
 	ViewUniformShaderParameters.PrevTranslatedWorldToCameraView = PrevViewMatrices.TranslatedViewMatrix;
 	ViewUniformShaderParameters.PrevCameraViewToTranslatedWorld = ViewUniformShaderParameters.PrevTranslatedWorldToCameraView.Inverse();
-	ViewUniformShaderParameters.PrevCameraWorldOrigin = PrevViewMatrices.ViewOrigin;
+	ViewUniformShaderParameters.PrevWorldCameraOrigin = PrevViewMatrices.ViewOrigin;
 	// previous view world origin is going to be needed only in the base pass or shadow pass
 	// therefore is same as previous camera world origin.
-	ViewUniformShaderParameters.PrevViewWorldOrigin = ViewUniformShaderParameters.PrevCameraWorldOrigin;
+	ViewUniformShaderParameters.PrevWorldViewOrigin = ViewUniformShaderParameters.PrevWorldCameraOrigin;
 	ViewUniformShaderParameters.PrevPreViewTranslation = PrevViewMatrices.PreViewTranslation;
 	// can be optimized
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();

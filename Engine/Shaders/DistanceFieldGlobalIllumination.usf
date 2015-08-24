@@ -271,7 +271,7 @@ void CullVPLsForViewCS(
 	{
 		uint SourceIndex = VPLIndex * VPL_DATA_STRIDE;
 		float4 BoundingSphere = VPLData[SourceIndex + 0];
-		float DistanceToViewSq = dot(View.CameraWorldOrigin - BoundingSphere.xyz, View.CameraWorldOrigin - BoundingSphere.xyz);
+		float DistanceToViewSq = dot(View.WorldCameraOrigin - BoundingSphere.xyz, View.WorldCameraOrigin - BoundingSphere.xyz);
 
 		if (DistanceToViewSq < Square(AOMaxViewDistance + BoundingSphere.w)
 			&& ViewFrustumIntersectSphere(BoundingSphere.xyz, BoundingSphere.w + AOObjectMaxDistance))
@@ -511,7 +511,7 @@ float3 ComputeVPLFlux(uint SurfelIndex, float4x4 InstanceToWorld)
 
 uint GetViewBasedSurfelLOD(float3 ObjectPosition)
 {
-	return length(ObjectPosition - View.CameraWorldOrigin) > .4f * AOMaxViewDistance ? 1 : 0;
+	return length(ObjectPosition - View.WorldCameraOrigin) > .4f * AOMaxViewDistance ? 1 : 0;
 	//return 0;
 }
 

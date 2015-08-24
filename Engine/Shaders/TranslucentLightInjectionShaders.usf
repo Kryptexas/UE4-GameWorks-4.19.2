@@ -204,7 +204,7 @@ float ComputeVolumeShadowing(float3 WorldPositionForLighting)
 
 		// fade shadows in the distance
 		#if !RADIAL_ATTENUATION 
-			float Depth = dot(WorldPositionForLighting - View.CameraWorldOrigin, View.ViewForward);
+			float Depth = dot(WorldPositionForLighting - View.WorldCameraOrigin, View.ViewForward);
 			float DistanceFade = saturate(Depth * ShadowInjectParams.z + ShadowInjectParams.w);
 			DynamicShadowFactor = lerp(DynamicShadowFactor, 1.0f, DistanceFade * DistanceFade);
 		#endif

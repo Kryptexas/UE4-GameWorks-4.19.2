@@ -121,7 +121,7 @@ void HZBTestPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	}
 
 #if 0
-	float3 ToView = View.CameraTranslatedWorldOrigin - BoundsCenter.xyz;
+	float3 ToView = View.TranslatedWorldCameraOrigin - BoundsCenter.xyz;
 	float3 Sign = ToView > 0 ? float3( 1, 1, 1 ) : float3( -1, -1, -1 );
 
 #if 0
@@ -153,9 +153,9 @@ void HZBTestPS(float2 InUV : TEXCOORD0, out float4 OutColor : SV_Target0)
 	);
 	
 	// Backface cull. Can't avoid evaluating the plane so replace it with the near plane.
-	FrontPlaneX = dot( FrontPlaneX, float4(View.CameraTranslatedWorldOrigin, 1) ) > 0.0 ? FrontPlaneX : NearPlane;
-	FrontPlaneY = dot( FrontPlaneY, float4(View.CameraTranslatedWorldOrigin, 1) ) > 0.0 ? FrontPlaneY : NearPlane;
-	FrontPlaneZ = dot( FrontPlaneZ, float4(View.CameraTranslatedWorldOrigin, 1) ) > 0.0 ? FrontPlaneZ : NearPlane;
+	FrontPlaneX = dot( FrontPlaneX, float4(View.TranslatedWorldCameraOrigin, 1) ) > 0.0 ? FrontPlaneX : NearPlane;
+	FrontPlaneY = dot( FrontPlaneY, float4(View.TranslatedWorldCameraOrigin, 1) ) > 0.0 ? FrontPlaneY : NearPlane;
+	FrontPlaneZ = dot( FrontPlaneZ, float4(View.TranslatedWorldCameraOrigin, 1) ) > 0.0 ? FrontPlaneZ : NearPlane;
 	// Back planes don't need culling.
 
 	// Transform to post projective space. Inverse transpose for plane projection.

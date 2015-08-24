@@ -640,7 +640,7 @@ FMaterialTessellationParameters GetMaterialTessellationParameters(FVertexFactory
 	Result.TangentToWorldPreScale = 1;
 
 
-	Result.WorldPosition = CameraLocalWorldPosition + View.CameraWorldOrigin;
+	Result.WorldPosition = CameraLocalWorldPosition + View.WorldCameraOrigin;
 
 	return Result;
 }

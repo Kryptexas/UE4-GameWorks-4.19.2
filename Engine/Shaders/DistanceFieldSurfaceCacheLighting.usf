@@ -201,8 +201,8 @@ void IrradianceCacheSplatVS(
 	float OccluderRadius = IrradianceCacheOccluderRadius[JobIndex];
 	RecordRadius = min(RecordRadius, OccluderRadius);
 
-	float ViewToCenterLength = length(RecordPosition - View.CameraWorldOrigin);
-	float3 NormalizedViewToCenter = (RecordPosition - View.CameraWorldOrigin) / ViewToCenterLength;
+	float ViewToCenterLength = length(RecordPosition - View.WorldCameraOrigin);
+	float3 NormalizedViewToCenter = (RecordPosition - View.WorldCameraOrigin) / ViewToCenterLength;
 
 	// Only allow full interpolation expanding for small samples, it won't be noticeable for large samples but adds a lot of splatting cost
 	float EffectiveInterpolationRadiusScale = lerp(InterpolationRadiusScale, 1, max(saturate(RecordRadius / 80), .2f));
@@ -254,7 +254,7 @@ void IrradianceCacheSplatVS(
 #if FINAL_INTERPOLATION_PASS
 	Output.BentNormal = IrradianceCacheBentNormal[JobIndex * BENT_NORMAL_STRIDE].xyz;
 	#if SUPPORT_IRRADIANCE
-		float ViewDistance = length(View.CameraWorldOrigin - RecordPosition);
+		float ViewDistance = length(View.WorldCameraOrigin - RecordPosition);
 		float FadeAlpha = saturate(.001f * (.95f * AOMaxViewDistance - ViewDistance));
 		Output.Irradiance = IrradianceCacheIrradiance[JobIndex].xyz * FadeAlpha;
 	#endif
@@ -289,7 +289,7 @@ void IrradianceCacheSplatPS(
 
 #if USE_SCREENVECTOR_WORLD_POSITION
 
-	float3 OpaqueWorldPosition = View.CameraWorldOrigin + Input.ScreenVector * SceneDepth;
+	float3 OpaqueWorldPosition = View.WorldCameraOrigin + Input.ScreenVector * SceneDepth;
 
 #else
 
@@ -515,8 +515,8 @@ void VisualizeMeshDistanceFieldCS(
 	float3 OpaqueWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 
 	float TraceDistance = 40000;
-	float3 WorldRayStart = View.CameraWorldOrigin;
-	float3 WorldRayEnd = WorldRayStart + normalize(OpaqueWorldPosition - View.CameraWorldOrigin) * TraceDistance;
+	float3 WorldRayStart = View.WorldCameraOrigin;
+	float3 WorldRayEnd = WorldRayStart + normalize(OpaqueWorldPosition - View.WorldCameraOrigin) * TraceDistance;
 	float3 WorldRayDirection = WorldRayEnd - WorldRayStart;
 	float3 UnitWorldRayDirection = normalize(WorldRayDirection);
 

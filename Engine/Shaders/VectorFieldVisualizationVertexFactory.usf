@@ -61,7 +61,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	const float3 Vec = normalize(Force) * ForceScale;
 
 	// The base position for this vector.
-	const float3 BasePosition = mul(float4(VoxelUV.xyz,1), VectorFieldVis.VolumeToWorld).xyz - View.CameraWorldOrigin;
+	const float3 BasePosition = mul(float4(VoxelUV.xyz,1), VectorFieldVis.VolumeToWorld).xyz - View.WorldCameraOrigin;
 	const float3 Position = BasePosition + float(Input.VertexId) * 
 		mul(float4(Vec,0), VectorFieldVis.VolumeToWorldNoScale).xyz;
 

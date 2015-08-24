@@ -1663,8 +1663,8 @@ protected:
 			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
 			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
 			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
-			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("View.<PREV>ViewWorldOrigin"), nullptr},
-			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>CameraWorldOrigin"), nullptr},
+			{MEVP_WorldSpaceViewPosition, MCT_Float3, TEXT("View.<PREV>WorldViewOrigin"), nullptr},
+			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>WorldCameraOrigin"), nullptr},
 		};
 		static_assert((sizeof(ViewPropertyMetaArray) / sizeof(ViewPropertyMetaArray[0])) == MEVP_MAX, "incoherency between EMaterialExposedViewProperty and ViewPropertyMetaArray");
 

@@ -17,7 +17,7 @@ float3 SimplePointLightDiffuse( FScreenSpaceData ScreenSpaceData )
 
 float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex, FScreenSpaceData ScreenSpaceData)
 {
-	float3 CameraVector = normalize(Parameters.WorldPosition - View.CameraWorldOrigin);
+	float3 CameraVector = normalize(Parameters.WorldPosition - View.WorldCameraOrigin);
 	
 	FDeferredLightData LightData = (FDeferredLightData)0;
 	LightData.LightPositionAndInvRadius = ForwardLightData.LightPositionAndInvRadius[LightIndex];

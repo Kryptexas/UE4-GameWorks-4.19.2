@@ -649,9 +649,9 @@ float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, flo
 {
 #if MATERIAL_ATMOSPHERIC_FOG
 	// WorldPosition default value is Parameters.WorldPosition if not overridden by the user
-	float3 ViewVector = WorldPosition - View.CameraWorldOrigin;
+	float3 ViewVector = WorldPosition - View.WorldCameraOrigin;
 	float SceneDepth = length(ViewVector);
-	return GetAtmosphericFog(View.CameraWorldOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
+	return GetAtmosphericFog(View.WorldCameraOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
 #else
 	return float4(0.f, 0.f, 0.f, 0.f);
 #endif
@@ -874,7 +874,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * View.ViewToClip[0][0],
 												View.ViewSizeAndInvSize.y * View.ViewToClip[1][1]);
 		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
-									max(1.0, dot(TreePos - View.CameraWorldOrigin, View.ViewForward.xyz));
+									max(1.0, dot(TreePos - View.WorldCameraOrigin, View.ViewForward.xyz));
 		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
 		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}

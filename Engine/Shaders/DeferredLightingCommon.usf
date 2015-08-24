@@ -241,7 +241,7 @@ void GetShadowTerms(FScreenSpaceData ScreenSpaceData, FDeferredLightData LightDa
 		// Also fix up the fade between dynamic and static shadows
 		// to work with plane splits rather than spheres.
 
-		float DynamicShadowFraction = DistanceFromCameraFade(ScreenSpaceData, LightData, WorldPosition, View.CameraWorldOrigin);
+		float DynamicShadowFraction = DistanceFromCameraFade(ScreenSpaceData, LightData, WorldPosition, View.WorldCameraOrigin);
 		// For a directional light, fade between static shadowing and the whole scene dynamic shadowing based on distance + per object shadows
 		OpaqueShadowTerm = lerp(LightAttenuation.x, StaticShadowing, DynamicShadowFraction);
 		// Fade between SSS dynamic shadowing and static shadowing based on distance

@@ -95,7 +95,7 @@ float DistanceFunction(float4 ScreenPosition, float3 Pos)
 	MaterialParameters.WorldPosition_CamRelative = 
 	MaterialParameters.WorldPosition_NoOffsets = 
 	MaterialParameters.WorldPosition_NoOffsets_CamRelative = mul(DecalToWorld, float4(Pos, 1)).xyz;
-	MaterialParameters.CameraVector = normalize(View.CameraWorldOrigin - MaterialParameters.WorldPosition);
+	MaterialParameters.CameraVector = normalize(View.WorldCameraOrigin - MaterialParameters.WorldPosition);
 
 	// the material needs to output the distance from "Opacity" depending on LightVector (in 0..1 range)
 	return GetMaterialMaskInputRaw(MaterialParameters);
@@ -192,7 +192,7 @@ void MainPS(
 
 		float4 WorldPosHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
 
-		float3 WSStartRay = View.CameraWorldOrigin;
+		float3 WSStartRay = View.WorldCameraOrigin;
 		float3 WSEndRay = WorldPosHom.xyz;
 
 		// in object/decal space
@@ -236,7 +236,7 @@ void MainPS(
 		WSPosition = WSPositionHom.xyz / WSPositionHom.w;
 	}
 
-	float3 CameraVector = normalize(View.CameraWorldOrigin - WSPosition);
+	float3 CameraVector = normalize(View.WorldCameraOrigin - WSPosition);
 
 	// can be optimized
 	float3 DecalVector = OSPosition * 0.5f + 0.5f;
