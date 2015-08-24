@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2651314
+﻿INTSourceChangelist:2664509
 Availability:Public
 Title:Skeletal Mesh アクタ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -70,8 +70,8 @@ Skeletal Mesh アクタがレベルに追加されたら、以下の手順に従
 	![](SkeletalMeshActor_Use_Anim_Asset.png)
 
 1. **アニメーション モード** を正しく設定したら、再生するアニメーションを選択します。これを行うには、 **[コンテンツ ブラウザ]** で再生する **アニメーション シーケンス** を選択し、それを **Anim to Play** セクションに適用します。適用の方法は、**Animation Sequence** を **Anim to Play** にドラッグ＆ドロップするか、または **Anim to Play** 入力ボックスの右側の矢印を使用します。
-
 	![](SkeletalMeshActor_Anim_To_Play.png)
+
 
 ### スケルタルメッシュのアニメーションの再生	
 
@@ -97,7 +97,7 @@ Skeletal Mesh アクタで使用するマテリアルが正しく機能するた
 ![](SkeletalMeshActor_Create_Physics_Asset.png)
 
 ### 物理アセットを割り当てる
-物理アセットを作成しても、まだそれをメッシュには割り当てません。物理アセットをスケルタルメッシュに割り当てるには、スケルタルメッシュを開いて、その物理アセットを **[Physics (物理)]** セクションの **[Physics Asset (物理アセット)]** に割り当てます。 
+物理アセットを作成したら、それをメッシュに割り当てます。物理アセットをスケルタルメッシュに割り当てるには、スケルタルメッシュを開いて、その物理アセットを **[Physics (物理)]** セクションの **[Physics Asset (物理アセット)]** に割り当てます。 
 
 ![](SkeletalMeshActor_Add_Physics_Assets.png)
 
