@@ -3696,6 +3696,14 @@ ESavePackageResult UEditorEngine::Save( UPackage* InOuter, UObject* InBase, EObj
 {
 	FScopedSlowTask SlowTask(100, FText(), bSlowTask);
 
+	// If we we need to fixup string asset references, load any referenced by this package before it is saved
+	static bool bForceLoadStringAssetReferences = FParse::Param(FCommandLine::Get(), TEXT("FixupStringAssetReferences"));
+
+	if (bForceLoadStringAssetReferences)
+	{
+		GRedirectCollector.ResolveStringAssetReference(Filename);
+	}
+
 	UObject* Base = InBase;
 	if ( !Base && InOuter && InOuter->PackageFlags & PKG_ContainsMap )
 	{

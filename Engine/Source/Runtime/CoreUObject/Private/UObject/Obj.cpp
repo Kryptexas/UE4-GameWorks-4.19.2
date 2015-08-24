@@ -3615,9 +3615,10 @@ void InitUObject()
 		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);
 	}
 
-	// this is a hack to the cooker insight into the startup packages
+	// If the cooker is running or we want to fixup string referenced assets, hook up callbacks for string asset references
 	if (CommandLine.Contains(TEXT("cookcommandlet")) || 
-		  CommandLine.Contains(TEXT("run=cook")) )
+		  CommandLine.Contains(TEXT("run=cook")) ||
+		  CommandLine.Contains(TEXT("FixupStringAssetReferences")) )
 	{
 		FCoreUObjectDelegates::StringAssetReferenceLoaded.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceLoaded);
 		FCoreUObjectDelegates::StringAssetReferenceSaving.BindRaw(&GRedirectCollector, &FRedirectCollector::OnStringAssetReferenceSaved);

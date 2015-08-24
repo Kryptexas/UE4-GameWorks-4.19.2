@@ -3189,8 +3189,15 @@ void FLinkerLoad::Preload( UObject* Object )
 						}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
+						FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+						// Maintain the current SerializedObjects.
+						UObject* PrevSerializedObject = ThreadContext.SerializedObject;
+						ThreadContext.SerializedObject = Object;
+
 						Object->GetClass()->SerializeDefaultObject(Object, *this);
 						Object->SetFlags(RF_LoadCompleted);
+
+						ThreadContext.SerializedObject = PrevSerializedObject;
 					}
 					else
 					{

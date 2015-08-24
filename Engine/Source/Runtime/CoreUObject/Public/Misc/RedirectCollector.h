@@ -53,6 +53,13 @@ public:
 		: Package(InPackage)
 		, Property(InProperty)
 		{}
+
+		bool operator==(const FPackagePropertyPair& Other) const
+		{
+			return Package == Other.Package &&
+				Property == Other.Property;
+		}
+
 		FString Package;
 		FString Property;
 	};
@@ -81,8 +88,9 @@ public:
 
 	/**
 	 * Load the string asset references to resolve them, add that to the remap table, and empty the array
+	 * @param FilterPackage If set, only fixup references that were created by FilterPackage. If empty, clear all of them
 	 */
-	void ResolveStringAssetReference();
+	void ResolveStringAssetReference(FString FilterPackage = FString());
 
 	/** If not an empty string, only fixup redirects in this package */
 	FString FileToFixup;

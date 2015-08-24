@@ -47,6 +47,13 @@ void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 {
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
 	FPackagePropertyPair ContainingPackageAndProperty;
+
+	if (InString.IsEmpty())
+	{
+		// No need to track empty strings
+		return;
+	}
+
 	if (ThreadContext.SerializedObject)
 	{
 		FLinkerLoad* Linker = ThreadContext.SerializedObject->GetLinker();
@@ -59,7 +66,7 @@ void FRedirectCollector::OnStringAssetReferenceLoaded(const FString& InString)
 			}
 		}
 	}
-	StringAssetReferences.Add(InString, ContainingPackageAndProperty);
+	StringAssetReferences.AddUnique(InString, ContainingPackageAndProperty);
 }
 
 FString FRedirectCollector::OnStringAssetReferenceSaved(const FString& InString)
@@ -72,14 +79,22 @@ FString FRedirectCollector::OnStringAssetReferenceSaved(const FString& InString)
 	return InString;
 }
 
-void FRedirectCollector::ResolveStringAssetReference()
+void FRedirectCollector::ResolveStringAssetReference(FString FilterPackage)
 {
+	TMultiMap<FString, FPackagePropertyPair> SkippedReferences;
 	while (StringAssetReferences.Num())
 	{
 		TMultiMap<FString, FPackagePropertyPair>::TIterator First(StringAssetReferences);
 		FString ToLoad = First.Key();
 		FPackagePropertyPair RefFilenameAndProperty = First.Value();
 		First.RemoveCurrent();
+
+		if (!FilterPackage.IsEmpty() && FilterPackage != RefFilenameAndProperty.Package)
+		{
+			// If we have a valid filter and it doesn't match, skip this reference
+			SkippedReferences.Add(ToLoad, RefFilenameAndProperty);
+			continue;
+		}
 
 		if (ToLoad.Len() > 0)
 		{
@@ -119,6 +134,9 @@ void FRedirectCollector::ResolveStringAssetReference()
 			}
 		}
 	}
+
+	// Add any skipped references back into the map for the next time this is called
+	StringAssetReferences = SkippedReferences;
 }
 
 
