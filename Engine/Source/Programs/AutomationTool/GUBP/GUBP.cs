@@ -166,7 +166,11 @@ public partial class GUBP : BuildCommand
 			HostPlatforms.Add(UnrealTargetPlatform.Linux);
 		}
 
-	    bool bCleanLocalTempStorage = ParseParam("CleanLocal");
+	    if(ParseParam("CleanLocal"))
+        {
+            TempStorage.DeleteLocalTempStorage();
+        }
+
         bool bSkipTriggers = ParseParam("SkipTriggers");
         bool bFake = ParseParam("fake");
         bool bFakeEC = ParseParam("FakeEC");
@@ -230,11 +234,6 @@ public partial class GUBP : BuildCommand
 		BuildGraph Graph = new BuildGraph(GraphTemplate);
 		FindCompletionState(Graph.BuildNodes, JobInfo, LocalOnly);
 		ComputeDependentFrequencies(Graph.BuildNodes);
-
-        if (bCleanLocalTempStorage)  // shared temp storage can never be wiped
-        {
-            TempStorage.DeleteLocalTempStorage();
-        }
 
 		int TimeIndex = ParseParamInt("TimeIndex", 0);
 		if (TimeIndex == 0)
