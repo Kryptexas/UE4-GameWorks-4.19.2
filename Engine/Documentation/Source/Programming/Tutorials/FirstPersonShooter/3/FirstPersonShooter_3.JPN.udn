@@ -1,33 +1,35 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 3 - Implementing Projectiles
-Crumbs: %ROOT%, GettingStarted, Programming/Tutorials
-Description: How to implement projectiles for your First Person Shooter game.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664710
+Availability:Docs
+Title:3 - 発射物を実装する
+Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
+Description:First Person Shooter ゲームに発射物を実装する方法を学びます。
+Prereq:Programming/Tutorials/FirstPersonShooter/2
+Related:Programming/Tutorials/FirstPersonShooter
+スキルレベル:初心者向け
+バージョン：4.9
 
-<!--TODO: Insert Cover Image-->
+<!--TODO:Insert Cover Image-->
 
-## Goals
+## 目標
 
-The purpose of this section is to show you how to implement projectiles for your First Person Shooter game.
+このセクションでは、First Person Shooter ゲームに発射物を実装する方法を説明します。
 
-## Objectives
+## 目的
 
-By the end of this section of the tutorial you'll be able to:
+このチュートリアルのセクションの最後まで進むと、以下ができるようになります。
 
-* Add Projectiles to your Game
-* Implement Shooting
-* Set-up Projectile Collision and Lifetime
-* Get your Projectiles to Interact with the World
-* Add Crosshairs to your Viewport
+* ゲームに発射物を追加
+* 発射の実装
+* プロジェクタイルのコリジョンとライフタイムのセットアップ
+* 発射物がワールドと相互作用するようにする
+* ビューポートにクロスヘア (照準) を追加
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		ステップ
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
