@@ -1,29 +1,29 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2.8 - Add a First Person Mesh to your Character
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to add a first person mesh to your First Person Shooter character.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664710
+Availability:Docs
+Title:2.8 - First Person Mesh をキャラクターに追加する
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
+Description:First Person Shooter に first person メッシュを追加する方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/2/7)
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/2/7)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/2)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/2)
 	[/PARAM]
 	[PARAM:next]
-		[Next Section](Programming/Tutorials/FirstPersonShooter/3)
+		[次のセクション](Programming/Tutorials/FirstPersonShooter/3)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
