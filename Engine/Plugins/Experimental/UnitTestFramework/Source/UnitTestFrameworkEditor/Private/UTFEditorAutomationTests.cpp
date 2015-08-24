@@ -11,13 +11,31 @@
 #include "Editor.h"					// for FEditorDelegates::OnMapOpened
 #include "UTFUnitTestInterface.h"
 #include "Script.h"					// for FEditorScriptExecutionGuard
+#include "Engine/Blueprint.h"
 
 /*******************************************************************************
  * FUTFEditorAutomationTests
  ******************************************************************************/
 DEFINE_LOG_CATEGORY_STATIC(LogUTFEditorAutomationTests, Log, All);
 
-const FName FUTFEditorAutomationTests::UnitTestAssetTag(TEXT("UTF_UnitTestLevel"));
+const FName FUTFEditorAutomationTests::InEditorTestTag(TEXT("UTF_InEditorTest"));
+const FName FUTFEditorAutomationTests::UnitTestLevelTag(TEXT("UTF_UnitTestLevel"));
+
+//------------------------------------------------------------------------------
+bool FUTFEditorAutomationTests::IsClassSuitableForInEditorTesting(UClass* Class)
+{
+	if (Class->ImplementsInterface(UUTFUnitTestInterface::StaticClass()))
+	{
+		if (UBlueprint* Blueprint = CastChecked<UBlueprint>(Class->ClassGeneratedBy))
+		{
+			UPackage* BlueprintPackage = Blueprint->GetOutermost();
+			UMetaData* MetaData = BlueprintPackage->GetMetaData();
+
+			return MetaData->HasValue(Blueprint, FUTFEditorAutomationTests::InEditorTestTag);
+		}
+	}
+	return false;
+}
 
 /*******************************************************************************
  * FUTFEditorMapTest
@@ -30,7 +48,7 @@ void FUTFEditorMapTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FSt
 {
 	FARFilter AssetFilter;
 	AssetFilter.ClassNames.Add(UWorld::StaticClass()->GetFName());
-	AssetFilter.TagsAndValues.Add(FUTFEditorAutomationTests::UnitTestAssetTag, TEXT("TRUE"));
+	AssetFilter.TagsAndValues.Add(FUTFEditorAutomationTests::UnitTestLevelTag, TEXT("TRUE"));
 
 	TArray<FAssetData> UnitTestLevels;
 
@@ -73,6 +91,12 @@ bool FUTFEditorMapTest::RunTest(const FString& LevelAssetPath)
 					UClass* ActorClass = Actor->GetClass();
 					if (ActorClass->ImplementsInterface(UUTFUnitTestInterface::StaticClass()))
 					{
+						if (!FUTFEditorAutomationTests::IsClassSuitableForInEditorTesting(ActorClass))
+						{
+							AddLogItem(FString::Printf(TEXT("Skipping test for '%s', as it is not marked safe for in-editor testing."), *ActorClass->GetName()));
+							continue;
+						}
+
 						// notifies ProcessEvent() that it is ok to execute the following functions in the editor
 						FEditorScriptExecutionGuard ScriptGuard;
 
@@ -123,4 +147,88 @@ bool FUTFEditorMapTest::RunTest(const FString& LevelAssetPath)
 	FEditorDelegates::OnMapOpened.Remove(OnMapOpenedHandle);
 
 	return (ExecutionInfo.Errors.Num() == 0);
+}
+
+/*******************************************************************************
+* FUTFEditorActorTest
+******************************************************************************/
+
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFEditorActorTest, "UnitTestFramework.Editor.UnitTestActors", EAutomationTestFlags::ATF_Editor)
+
+//------------------------------------------------------------------------------
+void FUTFEditorActorTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
+{
+	for (const FWorldContext& WorldContext : GEngine->GetWorldContexts())
+	{
+		if (WorldContext.WorldType == EWorldType::Editor)
+		{
+			if (UWorld* EditorWorld = WorldContext.World())
+			{
+				if (ULevel* EditorLevel = EditorWorld->PersistentLevel)
+				{
+					for (AActor* Actor : EditorLevel->Actors)
+					{
+						if (Actor == nullptr)
+						{
+							continue;
+						}
+
+						UClass* ActorClass = Actor->GetClass();
+						if (FUTFEditorAutomationTests::IsClassSuitableForInEditorTesting(ActorClass))
+						{
+							const FString TestName = IUTFUnitTestInterface::Execute_GetTestName(Actor);
+							OutBeautifiedNames.Add(TestName);
+
+							OutTestCommands.Add(Actor->GetPathName());
+						}
+					}
+				}
+			}
+			break;
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
+bool FUTFEditorActorTest::RunTest(const FString& ObjectPath)
+{
+	AActor* TargetActor = FindObject<AActor>(/*Outer =*/nullptr, *ObjectPath);
+	if (TargetActor == nullptr)
+	{
+		AddError(FString::Printf(TEXT("Failed to find '%s' game object."), *ObjectPath));
+		return false;
+	}
+
+	UClass* ActorClass = TargetActor->GetClass();
+	if (!ActorClass->ImplementsInterface(UUTFUnitTestInterface::StaticClass()))
+	{
+		AddError(FString::Printf(TEXT("Target object does not implement the unit test interface: '%s'."), *ObjectPath));
+		return false;
+	}
+
+	const FString TestName = IUTFUnitTestInterface::Execute_GetTestName(TargetActor);
+	
+	IUTFUnitTestInterface::Execute_ResetTest(TargetActor);
+	EUTFUnitTestResult TestResult = IUTFUnitTestInterface::Execute_GetTestResult(TargetActor);
+	
+	switch (TestResult)
+	{
+	case EUTFUnitTestResult::UTF_Success:
+		{
+			AddLogItem(FString::Printf(TEXT("Unit Test '%s': SUCCESS"), *TestName));
+		} break;
+
+	case EUTFUnitTestResult::UTF_Failure:
+		{
+			AddError(FString::Printf(TEXT("Unit Test '%s': FAILURE"), *TestName));
+		} break;
+
+	default:
+	case EUTFUnitTestResult::UTF_Unresolved:
+		{
+			AddWarning(FString::Printf(TEXT("Unit Test '%s': UNRESOLVED"), *TestName));
+		} break;
+	}
+
+	return (TestResult != EUTFUnitTestResult::UTF_Failure);
 }

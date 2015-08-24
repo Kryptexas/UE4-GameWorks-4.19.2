@@ -124,6 +124,10 @@ public:
 	/** Gets the extensibility managers for outside entities to extend blueprint editor's menus and toolbars */
 	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() override { return MenuExtensibilityManager; }
 
+	/**  */
+	DECLARE_EVENT_TwoParams(FBlueprintEditorModule, FBlueprintMenuExtensionEvent, TSharedPtr<FExtender>, UBlueprint*);
+	FBlueprintMenuExtensionEvent& OnGatherBlueprintMenuExtensions() { return GatherBlueprintMenuExtensions; }
+
 	/** 
 	 * Register a customization for interacting with the SCS editor 
 	 * @param	InComponentName			The name of the component to customize behavior for
@@ -154,6 +158,9 @@ private:
 
 private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
+
+	//
+	FBlueprintMenuExtensionEvent GatherBlueprintMenuExtensions;
 
 	// Event to be called when the blueprint editor is opened
 	FBlueprintEditorOpenedEvent BlueprintEditorOpened;

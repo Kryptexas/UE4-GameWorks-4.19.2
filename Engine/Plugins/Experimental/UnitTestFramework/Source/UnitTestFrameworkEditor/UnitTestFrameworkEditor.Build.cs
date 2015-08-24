@@ -21,6 +21,11 @@ public class UnitTestFrameworkEditor : ModuleRules
                 "UnitTestFramework",
                 "UnrealEd",
                 "AssetRegistry",
+                "SlateCore",
+                "Kismet",
+                "Slate",
+                "EditorStyle",
+                "Projects",
 			}
 		);
 	}

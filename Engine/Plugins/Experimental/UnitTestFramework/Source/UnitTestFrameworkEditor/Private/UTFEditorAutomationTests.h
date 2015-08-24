@@ -7,5 +7,9 @@
  */
 struct FUTFEditorAutomationTests
 {
-	static const FName UnitTestAssetTag;
+	static const FName InEditorTestTag;
+	static const FName UnitTestLevelTag;
+
+	/**  */
+	static bool IsClassSuitableForInEditorTesting(UClass* Class);
 };

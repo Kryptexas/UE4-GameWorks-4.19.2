@@ -1637,6 +1637,7 @@ void FBlueprintEditor::InitBlueprintEditor(
 
 	FBlueprintEditorModule* BlueprintEditorModule = &FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
 	TSharedPtr<FExtender> CustomExtenders = BlueprintEditorModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects());
+	BlueprintEditorModule->OnGatherBlueprintMenuExtensions().Broadcast(CustomExtenders, GetBlueprintObj());
 
 	AddMenuExtender(CustomExtenders);
 	AddToolbarExtender(CustomExtenders);
