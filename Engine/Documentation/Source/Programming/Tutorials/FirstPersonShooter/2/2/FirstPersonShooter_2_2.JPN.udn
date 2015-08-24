@@ -1,29 +1,30 @@
-﻿INTSourceChangelist:0
-Availability: Docs
-Title: 2.2 - Setting up Axis Mapping
-Crumbs: %ROOT%, GettingStarted, Engine/Content/QuickStart
-Description: Learn how to set-up axis mapping for your First Person Shooter character.
-SkillLevel: Beginner
-Version: 4.9
+﻿INTSourceChangelist:2664711
+INTSourceChangelist:2664711
+Availability:Docs
+Title:2.2 - 軸マッピングの設定
+Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
+Description:First Person Shooter キャラクター用に軸マッピングをセットアップする方法を学びます。
+スキルレベル:初心者向け
+バージョン：4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/2/1)
+		[前のステップ](Programming/Tutorials/FirstPersonShooter/2/1)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/2)
+		[セクション ホーム](Programming/Tutorials/FirstPersonShooter/2)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/2/3)
+		[次のステップ](Programming/Tutorials/FirstPersonShooter/2/3)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-<!--TODO: Add tutorial steps here-->
+<!--TODO:Add tutorial steps here-->
 
 %Steps%
