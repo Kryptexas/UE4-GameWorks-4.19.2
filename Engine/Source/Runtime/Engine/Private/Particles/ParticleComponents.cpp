@@ -2671,6 +2671,8 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 
 	// Disable receiving decals by default.
 	bReceivesDecals = false;
+
+	SavedAutoAttachRelativeScale3D = FVector(1.f, 1.f, 1.f);
 }
 
 #if WITH_EDITOR
@@ -2813,6 +2815,39 @@ void UParticleSystemComponent::OnRegister()
 	if (World->Scene)
 	{
 		FXSystem = World->Scene->GetFXSystem();
+	}
+
+	if (bAutoManageAttachment && !IsActive())
+	{
+		// Detach from current parent, we are supposed to wait for activation.
+		if (AttachParent)
+		{
+			// If no auto attach parent override, use the current parent when we activate
+			if (!AutoAttachParent.IsValid())
+			{
+				AutoAttachParent = AttachParent;
+			}
+			// If no auto attach socket override, use current socket when we activate
+			if (AutoAttachSocketName == NAME_None)
+			{
+				AutoAttachSocketName = AttachSocketName;
+			}
+
+			// Prevent attachment before Super::OnRegister() tries to attach us, since we only attach when activated.
+			if (AttachParent->AttachChildren.Contains(this))
+			{
+				DetachFromParent(/*bMaintainWorldPosition=*/ false, /*bCallModify=*/ false);
+			}
+			else
+			{
+				AttachParent = nullptr;
+				AttachSocketName = NAME_None;
+			}
+
+			SavedAutoAttachRelativeLocation = RelativeLocation;
+			SavedAutoAttachRelativeRotation = RelativeRotation;
+			SavedAutoAttachRelativeScale3D = RelativeScale3D;
+		}
 	}
 
 	Super::OnRegister();
@@ -3891,6 +3926,21 @@ void UParticleSystemComponent::FinalizeTickComponent()
 		{
 			DestroyComponent();
 		}
+		else if (bAutoManageAttachment)
+		{
+			if (AttachParent)
+			{
+				if (bDidAutoAttach)
+				{
+					// Restore relative transform from before attachment. Actual transform will be updated as part of DetachFromParent().
+					RelativeLocation = SavedAutoAttachRelativeLocation;
+					RelativeRotation = SavedAutoAttachRelativeRotation;
+					RelativeScale3D = SavedAutoAttachRelativeScale3D;
+				}
+				DetachFromParent(/*bMaintainWorldPosition=*/ false);
+				bDidAutoAttach = false;
+			}
+		}
 	}
 	bWasCompleted = bIsCompleted;
 
@@ -4324,6 +4374,23 @@ void UParticleSystemComponent::ActivateSystem(bool bFlagAsJustAttached)
 
 	if( GIsAllowingParticles && bDetailModeAllowsRendering )
 	{
+		// Auto attach if requested
+		bDidAutoAttach = false;
+		if (bAutoManageAttachment)
+		{
+			USceneComponent* NewParent = AutoAttachParent.Get();
+			if (NewParent)
+			{
+				SavedAutoAttachRelativeLocation = RelativeLocation;
+				SavedAutoAttachRelativeRotation = RelativeRotation;
+				SavedAutoAttachRelativeScale3D = RelativeScale3D;
+
+				AttachTo(NewParent, AutoAttachSocketName, AutoAttachLocationType);
+				bDidAutoAttach = true;
+				bFlagAsJustAttached = true;
+			}
+		}
+
 		if (bFlagAsJustAttached)
 		{
 			bJustRegistered = true;

@@ -297,6 +297,21 @@ public:
 	uint32 bHasBeenActivated:1;
 
 	/**
+	 * True if we should automatically attach to AutoAttachParent when activated, and detach from our parent when completed.
+	 * This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
+	 * When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
+	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment)
+	uint32 bAutoManageAttachment:1;
+
+private:
+	/** Did we auto attach during activation? Used to determine if we should restore the relative transform during detachment. */
+	uint32 bDidAutoAttach:1;
+
+public:
+
+	/**
 	 *	Array holding name instance parameters for this ParticleSystemComponent.
 	 *	Parameters can be used in Cascade using DistributionFloat/VectorParticleParameters.
 	 */
@@ -445,6 +460,46 @@ public:
 	// Called when the particle system is done
 	UPROPERTY(BlueprintAssignable)
 	FOnSystemFinished OnSystemFinished;
+
+public:
+	/**
+	 * Component we automatically attach to when activated, if bAutoManageAttachment is true.
+	 * If null during registration, we assign the existing AttachParent and defer attachment until we activate.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	TWeakObjectPtr<USceneComponent> AutoAttachParent;
+
+	/**
+	 * Socket we automatically attach to on the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	FName AutoAttachSocketName;
+
+	/**
+	 * Options for how we handle our location when we attach to the AutoAttachParent, if bAutoManageAttachment is true.
+	 * @see bAutoManageAttachment, EAttachLocation::Type
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment, meta=(EditCondition="bAutoManageAttachment"))
+	TEnumAsByte<EAttachLocation::Type> AutoAttachLocationType;
+
+	/**
+	 * Set AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType to the specified parameters. Does not change bAutoManageAttachment; that must be set separately.
+	 * @param  Parent			Component to attach to. 
+	 * @param  SocketName		Socket on Parent to attach to.
+	 * @param  LocationType		Option for how we handle our location when we attach to Parent.
+	 * @see bAutoManageAttachment, AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
+	 */
+	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem")
+	void SetAutoAttachParams(USceneComponent* Parent, FName SocketName = NAME_None, EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset);
+
+private:
+
+	/** Saved relative transform before auto attachement. Used during detachment to restore the transform if we had automatically attached. */
+	FVector SavedAutoAttachRelativeLocation;
+	FRotator SavedAutoAttachRelativeRotation;
+	FVector SavedAutoAttachRelativeScale3D;
 
 private:
 	/** Cached copy of the transform for async work */
@@ -1047,4 +1102,13 @@ private:
 };
 
 
+//////////////////////////////////////////////////////////////////////////
+// ParticleSystemComponent inlines
+
+FORCEINLINE_DEBUGGABLE void UParticleSystemComponent::SetAutoAttachParams(USceneComponent* Parent, FName SocketName, EAttachLocation::Type LocationType)
+{
+	AutoAttachParent = Parent;
+	AutoAttachSocketName = SocketName;
+	AutoAttachLocationType = LocationType;
+}
 
