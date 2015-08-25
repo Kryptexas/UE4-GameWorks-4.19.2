@@ -159,8 +159,7 @@ TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoor
 		const FIntPoint LRIndex = GetCellCoordinate(CursorPositionInGrid + RadiusVector);
 
 		//first, find all the overlapping cells
-		TArray<FIntPoint> CellIndexes;
-		CellIndexes.Reserve(16);
+		TArray<FIntPoint, TInlineAllocator<16>> CellIndexes;
 
 		for (int32 YIndex = ULIndex.Y; YIndex <= LRIndex.Y; ++YIndex)
 		{
