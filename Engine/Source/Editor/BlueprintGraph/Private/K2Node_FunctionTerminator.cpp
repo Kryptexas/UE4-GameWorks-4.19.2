@@ -42,6 +42,10 @@ bool UK2Node_FunctionTerminator::CanCreateUserDefinedPin(const FEdGraphPinType& 
 		OutErrorMessage = LOCTEXT("MultipleExecPinError", "Cannot support more exec pins!");
 		return false;
 	}
+	else if (!bIsEditable)
+	{
+		OutErrorMessage = LOCTEXT("NotEditableError", "Cannot edit this node!");
+	}
 
 	return bIsEditable;
 }

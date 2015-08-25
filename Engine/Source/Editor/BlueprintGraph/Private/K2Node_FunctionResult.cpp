@@ -210,12 +210,36 @@ void UK2Node_FunctionResult::PostPlacedNewNode()
 {
 	Super::PostPlacedNewNode();
 
+	// If the entry is editable, so is the result
+	TArray<UK2Node_FunctionEntry*> AllEntryNodes;
+	if (auto Graph = GetGraph())
+	{
+		Graph->GetNodesOfClass(AllEntryNodes);
+
+		if (AllEntryNodes.Num() > 0)
+		{
+			bIsEditable = AllEntryNodes[0]->bIsEditable;
+		}
+	}
+
 	SyncWithPrimaryResultNode();
 }
 
 void UK2Node_FunctionResult::PostPasteNode()
 {
 	Super::PostPasteNode();
+
+	// If the entry is editable, so is the result
+	TArray<UK2Node_FunctionEntry*> AllEntryNodes;
+	if (auto Graph = GetGraph())
+	{
+		Graph->GetNodesOfClass(AllEntryNodes);
+
+		if (AllEntryNodes.Num() > 0)
+		{
+			bIsEditable = AllEntryNodes[0]->bIsEditable;
+		}
+	}
 
 	SyncWithPrimaryResultNode();
 }
