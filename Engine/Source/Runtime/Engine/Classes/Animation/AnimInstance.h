@@ -565,7 +565,7 @@ public:
 	// Cached data for montage evaluation, save us having to access MontageInstances from slot nodes as that isn't thread safe
 	TArray<FMontageEvaluationState> MontageEvaluationData;
 
-	void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
+	virtual void OnMontageInstanceStopped(FAnimMontageInstance & StoppedMontageInstance);
 
 protected:
 	/** Map between Active Montages and their FAnimMontageInstance */

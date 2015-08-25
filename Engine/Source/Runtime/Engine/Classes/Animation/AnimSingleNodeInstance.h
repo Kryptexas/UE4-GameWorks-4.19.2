@@ -60,6 +60,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	virtual void NativeUpdateAnimation(float DeltaTimeX) override;
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 	virtual void NativePostEvaluateAnimation() override;
+	virtual void OnMontageInstanceStopped(FAnimMontageInstance& StoppedMontageInstance) override;
 
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;

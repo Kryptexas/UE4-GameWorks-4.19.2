@@ -282,11 +282,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 			// get the montage position
 			// @todo anim: temporarily just choose first slot and show the location
 			FAnimMontageInstance * ActiveMontageInstance = GetActiveMontageInstance();
-			if (ActiveMontageInstance)
-			{
-				CurrentTime = ActiveMontageInstance->GetPosition();
-			}
-			else if (bPlaying)
+			if (!ActiveMontageInstance && bPlaying)
 			{
 				SetPlaying(false);
 			}
@@ -428,6 +424,16 @@ void UAnimSingleNodeInstance::NativePostEvaluateAnimation()
 	PostEvaluateAnimEvent.ExecuteIfBound();
 
 	Super::NativePostEvaluateAnimation();
+}
+
+void UAnimSingleNodeInstance::OnMontageInstanceStopped(FAnimMontageInstance& StoppedMontageInstance) 
+{
+	if (StoppedMontageInstance.Montage == CurrentAsset)
+	{
+		CurrentTime = StoppedMontageInstance.GetPosition();
+	}
+
+	Super::OnMontageInstanceStopped(StoppedMontageInstance);
 }
 
 void UAnimSingleNodeInstance::Montage_Advance(float DeltaTime)
