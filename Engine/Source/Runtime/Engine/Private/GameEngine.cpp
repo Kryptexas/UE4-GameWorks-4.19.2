@@ -199,14 +199,18 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	FParse::Value(FCommandLine::Get(), TEXT("ResX="), ResolutionX);
 	FParse::Value(FCommandLine::Get(), TEXT("ResY="), ResolutionY);
 
-	if (!IsRunningDedicatedServer() && ((ResolutionX <= 0) || (ResolutionY <= 0)))
+	// consume available desktop area
+	FDisplayMetrics DisplayMetrics;
+	FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
+
+	int32 DesktopResolutionX = DisplayMetrics.PrimaryDisplayWidth;
+	int32 DesktopResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+
+	//Dont allow a resolution bigger then the desktop found a convenient one
+	if (!IsRunningDedicatedServer() && ((ResolutionX <= 0 || ResolutionX >= DesktopResolutionX) || (ResolutionY <= 0 || ResolutionY >= DesktopResolutionY)))
 	{
-		// consume available desktop area
-		FDisplayMetrics DisplayMetrics;
-		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
-		
-		ResolutionX = DisplayMetrics.PrimaryDisplayWidth;
-		ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
+		ResolutionX = DesktopResolutionX;
+		ResolutionY = DesktopResolutionY;
 
 		// If we're in windowed mode, attempt to choose a suitable starting resolution that is smaller than the desktop, with a matching aspect ratio
 		if (WindowMode == EWindowMode::Windowed)
@@ -239,10 +243,6 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	// Check the platform to see if we should override the user settings.
 	if (FPlatformProperties::HasFixedResolution())
 	{
-		// Always use the device's actual resolution that has been setup earlier
-		FDisplayMetrics DisplayMetrics;
-		FDisplayMetrics::GetDisplayMetrics( DisplayMetrics );
-
 		// We need to pass the resolution back out to GameUserSettings, or it will just override it again
 		ResolutionX = DisplayMetrics.PrimaryDisplayWorkAreaRect.Right - DisplayMetrics.PrimaryDisplayWorkAreaRect.Left;
 		ResolutionY = DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom - DisplayMetrics.PrimaryDisplayWorkAreaRect.Top;
