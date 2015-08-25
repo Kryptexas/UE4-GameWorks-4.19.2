@@ -52,7 +52,7 @@ class GitPullRequest : BuildCommand
 			return Path.GetFullPath(ExeName);
 		}
 
-		foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(';'))
+		foreach (string BasePath in Environment.GetEnvironmentVariable("PATH").Split(Path.PathSeparator))
 		{
 			var FullPath = Path.Combine(BasePath, ExeName);
 			if (ExpectedPathSubstring == null || FullPath.IndexOf(ExpectedPathSubstring, StringComparison.InvariantCultureIgnoreCase) != -1)
