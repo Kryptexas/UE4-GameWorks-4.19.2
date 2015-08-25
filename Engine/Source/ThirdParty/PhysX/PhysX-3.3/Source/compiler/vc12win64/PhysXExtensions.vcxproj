@@ -262,8 +262,6 @@
 		</ClInclude>
 		<ClInclude Include="..\..\..\Include\extensions\PxJointRepXSerializer.h">
 		</ClInclude>
-		<ClInclude Include="..\..\..\Include\extensions\PxMassProps.h">
-		</ClInclude>
 		<ClInclude Include="..\..\..\Include\extensions\PxParticleExt.h">
 		</ClInclude>
 		<ClInclude Include="..\..\..\Include\extensions\PxPrismaticJoint.h">
