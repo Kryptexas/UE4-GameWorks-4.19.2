@@ -108,6 +108,9 @@ namespace UnrealBuildTool
 			return SupportWindowsXP;
 		}
 
+		/// True if we allow using addresses larger than 2GB on 32 bit builds
+		public static bool bBuildLargeAddressAwareBinary = true;
+
         /** True if VS EnvDTE is available (false when building using Visual Studio Express) */
         public static bool bHasVisualStudioDTE
         {
