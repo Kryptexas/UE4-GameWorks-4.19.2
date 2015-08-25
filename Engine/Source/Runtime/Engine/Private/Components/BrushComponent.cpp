@@ -546,11 +546,11 @@ void UBrushComponent::PostLoad()
 		BrushBodySetup->bGenerateMirroredCollision = false;
 	}
 
+#if WITH_EDITOR
 	// If loading a brush with mirroring whose body setup has not been created correctly, request that it be rebuilt now.
 	// The rebuilding will actually happen in the UBodySetup::PostLoad.
 	RequestUpdateBrushCollision();
 
-#if WITH_EDITOR
 	AActor* Owner = GetOwner();
 
 	if (Owner)
@@ -731,8 +731,6 @@ bool UBrushComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& I
 
 	return false;
 }
-#endif
-
 
 void UBrushComponent::RequestUpdateBrushCollision()
 {
@@ -749,6 +747,7 @@ void UBrushComponent::RequestUpdateBrushCollision()
 		}
 	}
 }
+#endif
 
 void UBrushComponent::BuildSimpleBrushCollision()
 {
@@ -768,9 +767,9 @@ void UBrushComponent::BuildSimpleBrushCollision()
 	// No complex collision, so use the simple for that
 	BrushBodySetup->CollisionTraceFlag = CTF_UseSimpleAsComplex;
 
+#if WITH_EDITOR
 	RequestUpdateBrushCollision();
 
-#if WITH_EDITOR
 	// Convert collision model into convex hulls.
 	BrushBodySetup->CreateFromModel( Brush, true );
 
