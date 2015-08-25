@@ -609,9 +609,9 @@ void FGameplayTagContainer::AddTagFast(const FGameplayTag& TagToAdd)
 	GameplayTags.Add(TagToAdd);
 }
 
-void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
+bool FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
 {
-	GameplayTags.Remove(TagToRemove);
+	return GameplayTags.RemoveSingle(TagToRemove) > 0;
 }
 
 void FGameplayTagContainer::RemoveTags(FGameplayTagContainer TagsToRemove)

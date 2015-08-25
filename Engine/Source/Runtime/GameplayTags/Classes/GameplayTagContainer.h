@@ -224,7 +224,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	 * 
 	 * @param TagToRemove	Tag to remove from the container
 	 */
-	void RemoveTag(FGameplayTag TagToRemove);
+	bool RemoveTag(FGameplayTag TagToRemove);
 
 	/**
 	* Removes all tags in TagsToRemove from this container
