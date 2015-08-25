@@ -2,6 +2,7 @@
 
 #include "InternationalizationSettingsModulePrivatePCH.h"
 #include "EdGraph/EdGraphSchema.h"
+#include "ISettingsEditorModule.h"
 
 #define LOCTEXT_NAMESPACE "InternationalizationSettingsModelDetails"
 
@@ -548,6 +549,9 @@ void FInternationalizationSettingsModelDetails::OnEditorLanguageSelectionChanged
 
 	Model->SetEditorCultureName(SelectedEditorCulture->GetName());
 	RequiresRestart = true;
+
+	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+	SettingsEditorModule.OnApplicationRestartRequired();
 }
 
 FText FInternationalizationSettingsModelDetails::GetCurrentEditorRegionText() const
@@ -566,6 +570,9 @@ void FInternationalizationSettingsModelDetails::OnEditorRegionSelectionChanged( 
 
 	Model->SetEditorCultureName(SelectedEditorCulture->GetName());
 	RequiresRestart = true;
+
+	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+	SettingsEditorModule.OnApplicationRestartRequired();
 }
 
 bool FInternationalizationSettingsModelDetails::IsEditorRegionSelectionAllowed() const
@@ -618,6 +625,9 @@ void FInternationalizationSettingsModelDetails::OnNativeGameLanguageSelectionCha
 
 	Model->SetNativeGameCultureName(SelectedNativeGameCulture.IsValid() ? SelectedNativeGameCulture->GetName() : TEXT(""));
 	RequiresRestart = true;
+
+	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+	SettingsEditorModule.OnApplicationRestartRequired();
 }
 
 FText FInternationalizationSettingsModelDetails::GetCurrentNativeGameRegionText() const
@@ -636,6 +646,9 @@ void FInternationalizationSettingsModelDetails::OnNativeGameRegionSelectionChang
 
 	Model->SetNativeGameCultureName(SelectedNativeGameCulture.IsValid() ? SelectedNativeGameCulture->GetName() : TEXT(""));
 	RequiresRestart = true;
+
+	ISettingsEditorModule& SettingsEditorModule = FModuleManager::GetModuleChecked<ISettingsEditorModule>("SettingsEditor");
+	SettingsEditorModule.OnApplicationRestartRequired();
 }
 
 bool FInternationalizationSettingsModelDetails::IsNativeGameRegionSelectionAllowed() const

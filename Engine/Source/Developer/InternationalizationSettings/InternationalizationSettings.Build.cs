@@ -23,8 +23,15 @@ namespace UnrealBuildTool.Rules
 			PrivateIncludePathModuleNames.AddRange(
 				new string[] {
 					"Settings",
+                    "SettingsEditor"
 				}
 			);
+
+            DynamicallyLoadedModuleNames.AddRange(
+                new string[] {
+				    "SettingsEditor"
+                }
+            );
 		}
 	}
 }
