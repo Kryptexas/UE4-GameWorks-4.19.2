@@ -1778,9 +1778,7 @@ static void MirrorActors(const FVector& MirrorScale)
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "MirroringActors", "Mirroring Actors") );
 
 	// Fires ULevel::LevelDirtiedEvent when falling out of scope.
-	FScopedLevelDirtied LevelDirtyCallback;
-
-	const bool bUseScale = !GetDefault<ULevelEditorMiscSettings>()->bMirrorBrushesWithoutScale;
+	FScopedLevelDirtied		LevelDirtyCallback;
 
 	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
 	{
@@ -1789,73 +1787,13 @@ static void MirrorActors(const FVector& MirrorScale)
 
 		const FVector PivotLocation = GLevelEditorModeTools().PivotLocation;
 
-		if (bUseScale)
+		Actor->Modify();
+		Actor->EditorApplyMirror( MirrorScale, PivotLocation );
+
+		ABrush* Brush = Cast< ABrush >(Actor);
+		if (Brush && Brush->BrushComponent)
 		{
-			ABrush* Brush = Cast< ABrush >(Actor);
-			if (Brush && Brush->Brush)
-			{
-				// Brushes have to reverse their poly vertex order and recalculate the normal as negating one of the scale axes
-				// changes the handedness of the local transform.
-				Brush->Modify();
-				Brush->Brush->Modify();
-				Brush->Brush->Polys->Modify();
-
-				for (int32 poly = 0; poly < Brush->Brush->Polys->Element.Num(); poly++)
-				{
-					FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
-
-					Poly->Reverse();
-					Poly->CalcNormal();
-				}
-			}
-
-			Actor->Modify();
-			Actor->EditorApplyMirror(MirrorScale, PivotLocation);
-		}
-		else
-		{
-			ABrush* Brush = Cast< ABrush >( Actor );
-				if( Brush && Brush->Brush )
-			{
-				Brush->Modify();
-				Brush->Brush->Modify();
-				Brush->Brush->Polys->Modify();
-
-				const FVector LocalToWorldOffset = ( Brush->GetActorLocation() - PivotLocation );
-				const FVector LocationOffset = ( LocalToWorldOffset * MirrorScale ) - LocalToWorldOffset;
-
-				Brush->SetActorLocation( Brush->GetActorLocation() + LocationOffset, false );
-				Brush->SetPivotOffset( Brush->GetPivotOffset() * MirrorScale );
-
-				for( int32 poly = 0 ; poly < Brush->Brush->Polys->Element.Num() ; poly++ )
-				{
-					FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
-
-					Poly->TextureU *= MirrorScale;
-					Poly->TextureV *= MirrorScale;
-
-					Poly->Base += LocalToWorldOffset;
-					Poly->Base *= MirrorScale;
-					Poly->Base -= LocalToWorldOffset;
-					Poly->Base -= LocationOffset;
-
-					for( int32 vtx = 0 ; vtx < Poly->Vertices.Num(); vtx++ )
-					{
-						Poly->Vertices[vtx] += LocalToWorldOffset;
-						Poly->Vertices[vtx] *= MirrorScale;
-						Poly->Vertices[vtx] -= LocalToWorldOffset;
-						Poly->Vertices[vtx] -= LocationOffset;
-					}
-
-					Poly->Reverse();
-					Poly->CalcNormal();
-				}
-			}
-			else
-			{
-				Actor->Modify();
-				Actor->EditorApplyMirror( MirrorScale, PivotLocation );
-			}
+			Brush->BrushComponent->RequestUpdateBrushCollision();
 		}
 
 		Actor->InvalidateLightingCache();
@@ -1874,6 +1812,7 @@ static void MirrorActors(const FVector& MirrorScale)
 
 	GEditor->RedrawLevelEditingViewports();
 }
+
 
 /**
 * Gathers up a list of selection FPolys from selected static meshes.

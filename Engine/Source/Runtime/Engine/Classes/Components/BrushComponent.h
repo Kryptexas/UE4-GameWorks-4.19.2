@@ -50,6 +50,9 @@ public:
 #endif
 	// End UPrimitiveComponent interface.
 
+	/** If the transform mirroring no longer reflects the body setup, request its recalculation */
+	ENGINE_API void RequestUpdateBrushCollision();
+
 	/** Create the AggGeom collection-of-convex-primitives from the Brush UModel data. */
 	ENGINE_API void BuildSimpleBrushCollision();
 };

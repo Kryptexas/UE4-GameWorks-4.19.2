@@ -1144,6 +1144,8 @@ int UEditorEngine::bspBrushCSG
 	const FRotator Rotation = Actor->GetActorRotation();
 	const FVector Location = Actor->GetActorLocation();
 
+	const bool bIsMirrored = (Scale.X * Scale.Y * Scale.Z < 0.0f);
+
 	// Cache actor transform which is used for the geometry being built
 	Brush->OwnerLocationWhenLastBuilt = Location;
 	Brush->OwnerRotationWhenLastBuilt = Rotation;
@@ -1183,6 +1185,13 @@ int UEditorEngine::bspBrushCSG
 		DestEdPoly.Scale( Scale );
 		DestEdPoly.Rotate( Rotation );
 		DestEdPoly.Transform( Location );
+
+		// Reverse winding and normal if the parent brush is mirrored
+		if (bIsMirrored)
+		{
+			DestEdPoly.Reverse();
+			DestEdPoly.CalcNormal();
+		}
 
 		// Add poly to the temp model.
 		new(TempModel->Polys->Element)FPoly( DestEdPoly );
