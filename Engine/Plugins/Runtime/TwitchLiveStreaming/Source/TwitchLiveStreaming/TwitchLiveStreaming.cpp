@@ -211,13 +211,13 @@ void FTwitchLiveStreaming::InitOnDemand()
 		// @todo twitch: This all needs to be handled differently for iOS (static linkage)
 		FString TwitchDLLFolder( FPaths::Combine( 
 			*FPaths::EngineDir(), 
-			TEXT("Binaries/ThirdParty/NotForLicensees/Twitch/Twitch-6.17/"),	// Check the "NotForLicensees" folder first
+			TEXT("Plugins/Runtime/TwitchLiveStreaming/Binaries/ThirdParty/NotForLicensees/Twitch/"),	// Check the "NotForLicensees" folder first
 			FPlatformProcess::GetBinariesSubdirectory() ) );
 		if( !IFileManager::Get().DirectoryExists( *TwitchDLLFolder ) )
 		{
 			TwitchDLLFolder = FPaths::Combine( 
 				*FPaths::EngineDir(), 
-				TEXT("Binaries/ThirdParty/Twitch/Twitch-6.17/"),	// Check the normal folder
+				TEXT("Plugins/Runtime/TwitchLiveStreaming/Binaries/ThirdParty/Binaries/ThirdParty/Twitch/"),	// Check the normal folder
 				FPlatformProcess::GetBinariesSubdirectory() );
 		}
 
@@ -511,7 +511,7 @@ void FTwitchLiveStreaming::Async_AuthenticateWithTwitchUsingBrowser()
 
 	// List of possible scopes can be found here:  https://github.com/justintv/Twitch-API/blob/master/authentication.md#scopes
 	// @todo twitch: Allow user to login with chat access only (no broadcasting), for games that just want to participate in chat
-	const FString TwitchScopes( TEXT( "user_read+channel_read+channel_editor+sdk_broadcast+chat_login" ) );		// channel_commercial+metadata_events_edit+user_blocks_edit+user_blocks_read+user_follows_edit+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription" ) );
+	const FString TwitchScopes( TEXT( "user_read+channel_read+channel_editor+channel_commercial+sdk_broadcast+chat_login+metadata_events_edit" ) );		// channel_commercial+metadata_events_edit+user_blocks_edit+user_blocks_read+user_follows_edit+channel_commercial+channel_stream+channel_subscriptions+user_subscriptions+channel_check_subscription" ) );
 
 	// Build up a URL string to give to the web browser
 	const FString URLString( FString::Printf(
@@ -1180,177 +1180,178 @@ void FTwitchLiveStreaming::QueryLiveStreams( const FString& GameName, FQueryLive
 
 void FTwitchLiveStreaming::Tick( float DeltaTime )
 {
-	check( IsTickable() );
-
-	// To be able to broadcast video or chat, we need to get authorization from the Twitch server and complete a successful login
-	if( bWantsToBroadcastNow || bWantsChatEnabled )
+	if( TwitchState != ETwitchState::Uninitialized && TwitchState != ETwitchState::DLLLoaded )
 	{
-		// User wants to be broadcasting.  Let's get it going!
-		if( TwitchState == ETwitchState::ReadyToAuthenticate )
+		// To be able to broadcast video or chat, we need to get authorization from the Twitch server and complete a successful login
+		if( bWantsToBroadcastNow || bWantsChatEnabled )
 		{
-			// If we have a user name and password, we can authenticate with Twitch directly.  This also requires access to the Twitch
-			// application's "Client Secret" code.  Because of security issues with manual handling of user names and passwords, this
-			// type of authentication to work, your application's Client ID must first be whitelisted by the Twitch developers.
-			// @todo twitch: Editor support prompting for username/password if missing? (for direct login support)
-			if( !ProjectSettings.UserName.IsEmpty() && !ProjectSettings.Password.IsEmpty() && !ProjectSettings.ClientSecret.IsEmpty() )
+			// User wants to be broadcasting.  Let's get it going!
+			if( TwitchState == ETwitchState::ReadyToAuthenticate )
 			{
-				Async_AuthenticateWithTwitchDirectly( ProjectSettings.UserName, ProjectSettings.Password, ProjectSettings.ClientSecret );
+				// If we have a user name and password, we can authenticate with Twitch directly.  This also requires access to the Twitch
+				// application's "Client Secret" code.  Because of security issues with manual handling of user names and passwords, this
+				// type of authentication to work, your application's Client ID must first be whitelisted by the Twitch developers.
+				// @todo twitch: Editor support prompting for username/password if missing? (for direct login support)
+				if( !ProjectSettings.UserName.IsEmpty() && !ProjectSettings.Password.IsEmpty() && !ProjectSettings.ClientSecret.IsEmpty() )
+				{
+					Async_AuthenticateWithTwitchDirectly( ProjectSettings.UserName, ProjectSettings.Password, ProjectSettings.ClientSecret );
+				}
+				else
+				{
+					Async_AuthenticateWithTwitchUsingBrowser();
+				}
+			}
+			else if( TwitchState == ETwitchState::WaitingForBrowserBasedAuthentication )
+			{
+				CheckIfBrowserLoginCompleted();
+			}
+			else if( TwitchState == ETwitchState::ReadyToLogin )
+			{
+				Async_LoginToTwitch();
+			}
+		}
+
+		// Are we logged in yet?
+		if( TwitchState == ETwitchState::LoggedIn )
+		{
+			if( bWantsToBroadcastNow )
+			{
+				if( BroadcastState == EBroadcastState::Idle )
+				{
+					Async_GetIngestServers();
+				}
+				else if( BroadcastState == EBroadcastState::ReadyToBroadcast )
+				{
+					Async_StartBroadcasting();
+				}
 			}
 			else
 			{
-				Async_AuthenticateWithTwitchUsingBrowser();
+				// User does not want to be broadcasting at this time
+				if( BroadcastState == EBroadcastState::Broadcasting )
+				{
+					Async_StopBroadcasting();
+				}
 			}
-		}
-		else if( TwitchState == ETwitchState::WaitingForBrowserBasedAuthentication )
-		{
-			CheckIfBrowserLoginCompleted();
-		}
-		else if( TwitchState == ETwitchState::ReadyToLogin )
-		{
-			Async_LoginToTwitch();
-		}
-	}
 
-	// Are we logged in yet?
-	if( TwitchState == ETwitchState::LoggedIn )
-	{
-		if( bWantsToBroadcastNow )
-		{
-			if( BroadcastState == EBroadcastState::Idle )
+			if( bWantsChatEnabled )
 			{
-				Async_GetIngestServers();
+				// Startup the chat system if we haven't done that yet
+				if( ChatState == EChatState::Uninitialized )
+				{
+					Async_InitChatSupport();
+				}
+				else if( ChatState == EChatState::Initialized )
+				{
+					Async_ConnectToChat();
+				}
+				else if( ChatState == EChatState::Connected )
+				{
+					// ...
+				}
 			}
-			else if( BroadcastState == EBroadcastState::ReadyToBroadcast )
+			else
 			{
-				Async_StartBroadcasting();
+				if( ChatState == EChatState::Connected )
+				{
+					Async_DisconnectFromChat();
+				}
+			}
+		}
+
+		if( bWantsWebCamNow )
+		{
+			// Startup the web cam support if we haven't done that yet
+			if( WebCamState == EWebCamState::Uninitialized )
+			{
+				Async_InitWebCamSupport();
+			}
+			else if( WebCamState == EWebCamState::Initialized )
+			{
+				// Do we have a device?
+				if( WebCamDeviceIndex != INDEX_NONE )
+				{
+					Async_StartWebCam();
+				}
+				else
+				{
+					// User wants to start a web cam, but we couldn't find one that we support
+				}
+			}
+			else if( WebCamState == EWebCamState::Started )
+			{
+				UpdateWebCamTexture();
 			}
 		}
 		else
 		{
-			// User does not want to be broadcasting at this time
-			if( BroadcastState == EBroadcastState::Broadcasting )
+			if( WebCamState == EWebCamState::Started )
 			{
-				Async_StopBroadcasting();
+				Async_StopWebCam();
 			}
 		}
 
-		if( bWantsChatEnabled )
+
+		// If we hit a login failure or broadcasting failure, stop waiting to broadcast and wait to be asked again by the caller
+		if( BroadcastState == EBroadcastState::BroadcastingFailure )
 		{
-			// Startup the chat system if we haven't done that yet
-			if( ChatState == EChatState::Uninitialized )
-			{
-				Async_InitChatSupport();
-			}
-			else if( ChatState == EChatState::Initialized )
-			{
-				Async_ConnectToChat();
-			}
-			else if( ChatState == EChatState::Connected )
-			{
-				// ...
-			}
+			UE_LOG( LogTwitch, Warning, TEXT( "After Twitch broadcasting failure, reverting to non-broadcasting state" ) );
+			PublishStatus( EStatusType::BroadcastStopped, LOCTEXT( "Status_BroadcastStoppedUnexpectedly", "Broadcasting has ended unexpectedly." ) );
+			BroadcastState = EBroadcastState::Idle;
+			bWantsToBroadcastNow = false;
 		}
-		else
+
+		if( TwitchState == ETwitchState::LoginFailure )
 		{
+			UE_LOG( LogTwitch, Warning, TEXT( "After Twitch authenticate/login failure, reverting to non-broadcasting, non-authenticated state" ) );
+			TwitchState = ETwitchState::ReadyToAuthenticate;
+			bWantsToBroadcastNow = false;
+			bWantsChatEnabled = false;
+		}
+
+		// If the web cam system failed to initialize, we'll just leave it alone
+		if( WebCamState == EWebCamState::InitFailure )
+		{
+			bWantsWebCamNow = false;
+		}
+		else if( WebCamState == EWebCamState::StartOrStopFailure )
+		{
+			UE_LOG( LogTwitch, Warning, TEXT( "After Twitch web cam start or stop failure, reverting to web cam disabled state" ) );
+			if( WebCamState == EWebCamState::Started )
+			{
+				PublishStatus( EStatusType::WebCamStopped, LOCTEXT( "Status_WebCamStoppedUnexpectedly", "Web cam stopped unexpectedly" ) );
+			}
+			WebCamState = EWebCamState::Initialized;
+			bWantsWebCamNow = false;
+		}
+
+
+		// If the chat system failed to initialize, we'll just leave it alone
+		if( ChatState == EChatState::InitFailure )
+		{
+			bWantsChatEnabled = false;
+		}
+		else if( ChatState == EChatState::ConnectOrDisconnectFailure )
+		{
+			UE_LOG( LogTwitch, Warning, TEXT( "After Twitch chat connection or disconnection failure, reverting chat to disabled state" ) );
 			if( ChatState == EChatState::Connected )
 			{
-				Async_DisconnectFromChat();
+				PublishStatus( EStatusType::ChatDisconnected, LOCTEXT( "Status_ChatStoppedUnexpectedly", "Chat stopped unexpectedly" ) );
 			}
+			ChatState = EChatState::Initialized;
+			bWantsChatEnabled = false;
 		}
-	}
-
-	if( bWantsWebCamNow )
-	{
-		// Startup the web cam support if we haven't done that yet
-		if( WebCamState == EWebCamState::Uninitialized )
-		{
-			Async_InitWebCamSupport();
-		}
-		else if( WebCamState == EWebCamState::Initialized )
-		{
-			// Do we have a device?
-			if( WebCamDeviceIndex != INDEX_NONE )
-			{
-				Async_StartWebCam();
-			}
-			else
-			{
-				// User wants to start a web cam, but we couldn't find one that we support
-			}
-		}
-		else if( WebCamState == EWebCamState::Started )
-		{
-			UpdateWebCamTexture();
-		}
-	}
-	else
-	{
-		if( WebCamState == EWebCamState::Started )
-		{
-			Async_StopWebCam();
-		}
-	}
 
 
-	// If we hit a login failure or broadcasting failure, stop waiting to broadcast and wait to be asked again by the caller
-	if( BroadcastState == EBroadcastState::BroadcastingFailure )
-	{
-		UE_LOG( LogTwitch, Warning, TEXT( "After Twitch broadcasting failure, reverting to non-broadcasting state") );
-		PublishStatus( EStatusType::BroadcastStopped, LOCTEXT( "Status_BroadcastStoppedUnexpectedly", "Broadcasting has ended unexpectedly." ) );
-		BroadcastState = EBroadcastState::Idle;
-		bWantsToBroadcastNow = false;
-	}
-	
-	if( TwitchState == ETwitchState::LoginFailure )
-	{
-		UE_LOG( LogTwitch, Warning, TEXT( "After Twitch authenticate/login failure, reverting to non-broadcasting, non-authenticated state") );
-		TwitchState = ETwitchState::ReadyToAuthenticate;
-		bWantsToBroadcastNow = false;
-		bWantsChatEnabled = false;
-	}
+		// Allow the Twitch SDK to process any callbacks that are pending
+		TwitchPollTasks();
 
-	// If the web cam system failed to initialize, we'll just leave it alone
-	if( WebCamState == EWebCamState::InitFailure )
-	{
-		bWantsWebCamNow = false;
+		// Process Twitch web cam events and fire off callbacks
+		TwitchWebCamFlushEvents();
+
+		// Process Twitch chat system events
+		TwitchChatFlushEvents();
 	}
-	else if( WebCamState == EWebCamState::StartOrStopFailure )
-	{
-		UE_LOG( LogTwitch, Warning, TEXT( "After Twitch web cam start or stop failure, reverting to web cam disabled state") );
-		if( WebCamState == EWebCamState::Started )
-		{
-			PublishStatus( EStatusType::WebCamStopped, LOCTEXT( "Status_WebCamStoppedUnexpectedly", "Web cam stopped unexpectedly" ) );
-		}
-		WebCamState = EWebCamState::Initialized;
-		bWantsWebCamNow = false;
-	}
-
-
-	// If the chat system failed to initialize, we'll just leave it alone
-	if( ChatState == EChatState::InitFailure )
-	{
-		bWantsChatEnabled = false;
-	}
-	else if( ChatState == EChatState::ConnectOrDisconnectFailure )
-	{
-		UE_LOG( LogTwitch, Warning, TEXT( "After Twitch chat connection or disconnection failure, reverting chat to disabled state" ) );
-		if( ChatState == EChatState::Connected )
-		{
-			PublishStatus( EStatusType::ChatDisconnected, LOCTEXT( "Status_ChatStoppedUnexpectedly", "Chat stopped unexpectedly" ) );
-		}
-		ChatState = EChatState::Initialized;
-		bWantsChatEnabled = false;
-	}
-
-
-	// Allow the Twitch SDK to process any callbacks that are pending
-	TwitchPollTasks();
-
-	// Process Twitch web cam events and fire off callbacks
-	TwitchWebCamFlushEvents();
-	
-	// Process Twitch chat system events
-	TwitchChatFlushEvents();
 }
 
 
