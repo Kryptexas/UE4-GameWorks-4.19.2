@@ -707,6 +707,23 @@ protected:
 	template<class NodeType>
 	NodeType* GetNodeFromIndex(int32 NodeIdx);
 
+	/** 
+	 * Get the index of the specified instance asset player. Useful to pass to GetInstanceAssetPlayerLength (etc.).
+	 * Passing NAME_None to InstanceName will return the first (assumed only) player instance index found.
+	 */
+	int32 GetInstanceAssetPlayerIndex(FName MachineName, FName StateName, FName InstanceName = NAME_None);
+
+protected:
+
+	/** Gets the runtime instance of the specified state machine */
+	FAnimNode_StateMachine* GetStateMachineInstance(int32 MachineIndex);
+
+	/** Gets the runtime instance desc of the state machine specified by name */
+	const FBakedAnimationStateMachine* GetStateMachineInstanceDesc(FName MachineName);
+
+	/** Get the machine description for the specified instance. Does not rely on PRIVATE_MachineDescription being initialized */
+	const FBakedAnimationStateMachine* GetMachineDescription(UAnimBlueprintGeneratedClass* AnimBlueprintClass, FAnimNode_StateMachine* MachineInstance);
+
 	/** Gets the most relevant asset player in a specified state */
 	FAnimNode_AssetPlayerBase* GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex);
 
