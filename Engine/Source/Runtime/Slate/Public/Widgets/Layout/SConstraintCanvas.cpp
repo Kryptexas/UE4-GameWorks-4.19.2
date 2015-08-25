@@ -74,7 +74,9 @@ void SConstraintCanvas::OnArrangeChildren( const FGeometry& AllottedGeometry, FA
 	if (Children.Num() > 0)
 	{
 		// Sort the children based on zorder.
-		TArray< FChildZOrder > SlotOrder;
+		TArray< FChildZOrder, TInlineAllocator<64> > SlotOrder;
+		SlotOrder.Reserve(Children.Num());
+
 		for ( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
 		{
 			const SConstraintCanvas::FSlot& CurChild = Children[ChildIndex];
