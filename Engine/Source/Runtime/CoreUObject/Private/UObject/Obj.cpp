@@ -3590,7 +3590,10 @@ void PreInitUObject()
 void InitUObject()
 {
 	// Initialize redirects map
-	FLinkerLoad::CreateActiveRedirectsMap(GEngineIni);
+	for (const auto& It : *GConfig)
+	{
+		FLinkerLoad::CreateActiveRedirectsMap(It.Key);
+	}
 
 	FCoreDelegates::OnShutdownAfterError.AddStatic(StaticShutdownAfterError);
 	FCoreDelegates::OnExit.AddStatic(StaticExit);

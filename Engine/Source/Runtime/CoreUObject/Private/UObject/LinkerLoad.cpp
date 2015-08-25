@@ -72,15 +72,9 @@ void FLinkerLoad::AddGameNameRedirect(const FName OldName, const FName NewName)
  * Add redirects to FLinkerLoad static map
  */
 void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
-{		
-	if (bActiveRedirectsMapInitialized)
-	{
-		return;
-	}
-	else
-	{
-		bActiveRedirectsMapInitialized = true;
-	}
+{
+	// mark that this has been done at least once
+	bActiveRedirectsMapInitialized = true;
 
 	if (GConfig)
 	{
@@ -194,10 +188,6 @@ void FLinkerLoad::CreateActiveRedirectsMap(const FString& GEngineIniName)
 					PluginNameRedirects.Add(OldPluginName, NewPluginName);
 				}
 			}
-		}
-		else
-		{
-			UE_LOG(LogLinker, Log, TEXT("Active class redirects did not initialize because /Script/Engine.Engine was not available in the engine ini."));
 		}
 	}
 	else
