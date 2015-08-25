@@ -38,7 +38,10 @@ SWidget::SWidget()
 	, bCachedVolatile(false)
 	, bInheritedVolatility(false)
 {
-	INC_DWORD_STAT(STAT_SlateTotalWidgets);
+	if (GIsRunning)
+	{
+		INC_DWORD_STAT(STAT_SlateTotalWidgets);
+	}
 }
 
 SWidget::~SWidget()
