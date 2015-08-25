@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2110697
+﻿INTSourceChangelist:2666745
 Availability:Public
 Title:APEX
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description: Nvidia APEX ツールセットを用いた Destructible の作成とインポート
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -47,16 +48,19 @@ Description: Nvidia APEX ツールセットを用いた Destructible の作成�
 ![Physics](Engine/Physics/physics_landing_banner.png)
 [/REGION]
 
-## 概要
 
-Nvidia 社の **APEX PhysX Lab** と呼ばれるツールは、布などの Apex アセットとパーティクル システムと同様に非破壊メッシュ、クロス アセット、APEX パーティクル システムの作成に使用します。使用方法に関する情報は PEX PhysX Lab ツール上の Nvidia ドキュメントでご覧頂けます。ただし、現行のアンリアル エンジン 4 は **APEX Destructibles** と **APEX Cloth** のみのサポートとなります。このツールは APEX クロス アセットの作成時のみ必要となります。
+Nvidia 社の APEX PhysX Lab と呼ばれるツールは、被破壊メッシュの作成に使用します。使用方法に関する情報は 
+PEX PhysX Lab ツール上の Nvidia ドキュメントでご覧頂けます。ただし、現行のアンリアル エンジン 4 は 
+ APEX Destructibles と APEX Cloth のみのサポートとなります。APEX Cloth アセットを作成するには、PhysX:3Ds Max/Maya DCC プラグインまたはスタンドアロンのツールが APEX SDK にあります。 
 
-被破壊アクタは、単一の深度レベルで **Voronoi** を使ってアンリアル エンジン 4 で作成することができます。複数の深度レベルからなる、または **Voronoi** 以外の関数を使用してメッシュを砕け散らす APEX Destructible アセットは現在 APEX PhysX Lab で作成されなければなりません。
+Destructible アクタは、単一の深度レベルで Voronoi を使ってアンリアル エンジン 4 で作成することができます。複数の深度レベルからなる、 
+または Voronoi 以外の関数を使用してメッシュを砕け散らす APEX Destructible アセットは現在 APEX PhysX Lab で作成しなければなりません。
 
 [REGION:lightbox]
-[![](APEX_openAPL.png)(w:450)](APEX_openAPL.png) [![](APEX_destructibleProj_APL.png)(w:450)](APEX_destructibleProj_APL.png)
+ [![](APEX_destructibleProj_APL.png)(w:450)](APEX_destructibleProj_APL.png)
 [/REGION]
 
-## APEX 非破壊　およびクロスのインポート
+## APEX Destructibles および Cloth のインポート
 
-APEX オブジェクトのインポートは FBX ファイルのインポートと同じです。APEX アセットは全て .apb または .apx としてエクスポートされ、アンリアル エディタがインポートされる APEX オブジェクトのタイプを判断します。
+APEX オブジェクトのインポートは FBX ファイルのインポートと同じです。APEX アセットは全て .apb または .apx としてエクスポートされ、アンリアル エディタが 
+インポートされる APEX オブジェクトのタイプを判断します。
