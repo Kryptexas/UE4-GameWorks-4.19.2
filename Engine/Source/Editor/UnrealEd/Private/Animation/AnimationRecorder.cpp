@@ -3,6 +3,8 @@
 
 #include "UnrealEd.h"
 #include "AnimationRecorder.h"
+#include "Animation/AnimCompress.h"
+#include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "SCreateAnimationDlg.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SNotificationList.h"
@@ -13,12 +15,27 @@
 
 /////////////////////////////////////////////////////
 
+float FAnimationRecorder::DefaultSampleRate = DEFAULT_SAMPLERATE;
+
+static TAutoConsoleVariable<float> CVarAnimRecorderSampleRate(
+	TEXT("AnimRecorder.SampleRate"),
+	DEFAULT_SAMPLERATE,
+	TEXT("Sets the sample rate for the animation recorder system"),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> CVarAnimRecorderWorldSpace(
+	TEXT("AnimRecorder.RecordInWorldSpace"),
+	1,
+	TEXT("True to record anim keys in world space, false to record only in local space."),
+	ECVF_Default);
+
 FAnimationRecorder::FAnimationRecorder()
-	: IntervalTime(1.0f/DEFAULT_SAMPLERATE)
-	, MaxFrame(DEFAULT_SAMPLERATE * 60 * 10) // for now, set the max limit to 10 mins. 
-	, AnimationObject(NULL)
+	: AnimationObject(nullptr)
 	, bRecordLocalToWorld(false)
+	, bAutoSaveAsset(false)
+
 {
+	SetSampleRate(DefaultSampleRate);
 }
 
 FAnimationRecorder::~FAnimationRecorder()
@@ -26,13 +43,38 @@ FAnimationRecorder::~FAnimationRecorder()
 	StopRecord(false);
 }
 
-// get record configuration
-bool GetRecordConfig(FString& AssetPath, FString& AssetName)
+void FAnimationRecorder::SetSampleRate(float SampleRateHz)
 {
-	TSharedRef<SCreateAnimationDlg> NewAnimDlg =
-		SNew(SCreateAnimationDlg);
+	if (SampleRateHz <= 0.f)
+	{
+		// invalid rate passed in, fall back to default
+		SampleRateHz = FAnimationRecorder::DefaultSampleRate;
+	}
 
-	if(NewAnimDlg->ShowModal() != EAppReturnType::Cancel)
+	IntervalTime = 1.0f / SampleRateHz;
+	MaxFrame = SampleRateHz * 60 * 10;		 // for now, set the max limit to 10 mins. 
+}
+
+bool FAnimationRecorder::SetAnimCompressionScheme(TSubclassOf<UAnimCompress> SchemeClass)
+{
+	if (AnimationObject)
+	{
+		UAnimCompress* const SchemeObject = NewObject<UAnimCompress>(GetTransientPackage(), SchemeClass);
+		if (SchemeObject)
+		{
+			AnimationObject->CompressionScheme = SchemeObject;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// Internal. Pops up a dialog to get saved asset path
+static bool PromptUserForAssetPath(FString& AssetPath, FString& AssetName)
+{
+	TSharedRef<SCreateAnimationDlg> NewAnimDlg = SNew(SCreateAnimationDlg);
+	if (NewAnimDlg->ShowModal() != EAppReturnType::Cancel)
 	{
 		AssetPath = NewAnimDlg->GetFullAssetPath();
 		AssetName = NewAnimDlg->GetAssetName();
@@ -44,7 +86,6 @@ bool GetRecordConfig(FString& AssetPath, FString& AssetName)
 
 bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Component)
 {
-	// ask for path
 	FString AssetPath;
 	FString AssetName;
 
@@ -53,7 +94,8 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 		return false;
 	}
 
-	if (GetRecordConfig(AssetPath, AssetName))
+	// ask for path
+	if (PromptUserForAssetPath(AssetPath, AssetName))
 	{
 		return TriggerRecordAnimation(Component, AssetPath, AssetName);
 	}
@@ -73,7 +115,7 @@ bool FAnimationRecorder::TriggerRecordAnimation(USkeletalMeshComponent* Componen
 	if (Parent == nullptr)
 	{
 		// bad or no path passed in, do the popup
-		if (GetRecordConfig(AssetPath, AssetName) == false)
+		if (PromptUserForAssetPath(AssetPath, AssetName) == false)
 		{
 			return false;
 		}
@@ -116,6 +158,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	AnimationObject->AnimationTrackNames.Empty();
 
 	PreviousSpacesBases = Component->GetSpaceBases();
+	PreviousComponentToWorld = Component->ComponentToWorld;
 
 	LastFrame = 0;
 	AnimationObject->SequenceLength = 0.f;
@@ -142,7 +185,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent* Component, UAnimSeq
 	AnimationObject->RawAnimationData.AddZeroed(NumTracks);
 
 	// record the first frame;
-	Record(Component, PreviousSpacesBases, 0);
+	Record(Component, PreviousComponentToWorld, PreviousSpacesBases, 0);
 }
 
 UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
@@ -153,19 +196,31 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 		AnimationObject->NumFrames = NumFrames;
 
 		// can't use TimePassed. That is just total time that has been passed, not necessarily match with frame count
-		AnimationObject->SequenceLength = (NumFrames>1)? (NumFrames-1) * IntervalTime : MINIMUM_ANIMATION_LENGTH;
+		AnimationObject->SequenceLength = (NumFrames>1) ? (NumFrames-1) * IntervalTime : MINIMUM_ANIMATION_LENGTH;
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
+		
+		// save the package to disk, for convenience and so we can run this in standalone mode
+		if (bAutoSaveAsset)
+		{
+			UPackage* const Package = AnimationObject->GetOutermost();
+			FString const PackageName = Package->GetName();
+			FString const PackageFileName = FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension());
+
+			UPackage::SavePackage(Package, NULL, RF_Standalone, *PackageFileName, GError, nullptr, false, true, SAVE_NoError);
+		}
 
 		UAnimSequence* ReturnObject = AnimationObject;
 
 		// notify to user
 		if (bShowMessage)
 		{
-			const FText NotificationText = FText::Format( LOCTEXT("RecordAnimation", "'{0}' has been successfully recorded [{1} frames : {2} sec(s)]" ), 
-				FText::FromString( AnimationObject->GetName() ),
-				FText::AsNumber( AnimationObject->NumFrames ),
-				FText::AsNumber( AnimationObject->SequenceLength ));
+			const FText NotificationText = FText::Format(LOCTEXT("RecordAnimation", "'{0}' has been successfully recorded [{1} frames : {2} sec(s) @ {3} Hz]"),
+				FText::FromString(AnimationObject->GetName()),
+				FText::AsNumber(AnimationObject->NumFrames),
+				FText::AsNumber(AnimationObject->SequenceLength),
+				FText::AsNumber(1.f / IntervalTime)
+				);
 
 			//This is not showing well in the Persona, so opening dialog first. 
 			//right now it will crash if you don't wait until end of the record, so it is important for users to know
@@ -194,70 +249,67 @@ UAnimSequence* FAnimationRecorder::StopRecord(bool bShowMessage)
 	return NULL;
 }
 
-// return false if nothing to update
-// return true if it has properly updated
 void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float DeltaTime)
 {
 	// if no animation object, return
-	if (!AnimationObject)
+	if (!AnimationObject || !Component)
 	{
 		return;
 	}
 
-	const float MaxDelta = 1.f/10.f;
-	float UseDelta = FMath::Min<float>(DeltaTime, MaxDelta);
-
-	// if longer than 1 second, you'll see the halt on the animation
-	if (UseDelta <= 0.f)
+	// no sime time, no record
+	if (DeltaTime <= 0.f)
 	{
 		return;
 	}
 
-	float PreviousTimePassed = TimePassed;
-	TimePassed += UseDelta;
+	float const PreviousTimePassed = TimePassed;
+	TimePassed += DeltaTime;
 
 	// time passed has been updated
 	// now find what frames we need to update
 	int32 FramesRecorded = LastFrame;
 	int32 FramesToRecord = FPlatformMath::TruncToInt(TimePassed / IntervalTime);
 
-	if (FramesRecorded >= FramesToRecord)
+	if (FramesRecorded < FramesToRecord)
 	{
-		return;
-	}
+		const TArray<FTransform>& SpaceBases = Component->GetSpaceBases();
 
-	const TArray<FTransform> & SpaceBases = Component->GetSpaceBases();
+		check(SpaceBases.Num() == PreviousSpacesBases.Num());
 
-	check (SpaceBases.Num() == PreviousSpacesBases.Num());
+		TArray<FTransform> BlendedSpaceBases;
+		BlendedSpaceBases.AddZeroed(SpaceBases.Num());
 
-	TArray<FTransform> BlendedSpaceBases;
-	BlendedSpaceBases.AddZeroed(SpaceBases.Num());
+		UE_LOG(LogAnimation, Warning, TEXT("DeltaTime : %0.2f, Current Frame Count : %d, Frames To Record : %d, TimePassed : %0.2f"), DeltaTime
+			, FramesRecorded, FramesToRecord, TimePassed);
 
-	UE_LOG(LogAnimation, Warning, TEXT("DeltaTime : %0.2f, Current Frame Count : %d, Frames To Record : %d, TimePassed : %0.2f"), DeltaTime
-		, FramesRecorded, FramesToRecord, TimePassed);
-
-	// if we need to record frame
-	while (FramesToRecord > FramesRecorded)
-	{
-		// find what frames we need to record
-		// convert to time
-		float CurrentTime = (FramesRecorded + 1) * IntervalTime;
-		float BlendAlpha = (CurrentTime - PreviousTimePassed)/UseDelta;
-
-		UE_LOG(LogAnimation, Warning, TEXT("Current Frame Count : %d, BlendAlpha : %0.2f"), FramesRecorded + 1, BlendAlpha);
-
-		// for now we just concern component space, not skeleton space
-		for (int32 BoneIndex=0; BoneIndex<SpaceBases.Num(); ++BoneIndex)
+		// if we need to record frame
+		while (FramesToRecord > FramesRecorded)
 		{
-			BlendedSpaceBases[BoneIndex].Blend(PreviousSpacesBases[BoneIndex], SpaceBases[BoneIndex], BlendAlpha);
-		}
+			// find what frames we need to record
+			// convert to time
+			float CurrentTime = (FramesRecorded + 1) * IntervalTime;
+			float BlendAlpha = (CurrentTime - PreviousTimePassed) / DeltaTime;
 
-		Record(Component, BlendedSpaceBases, FramesRecorded + 1);
-		++FramesRecorded;
+			UE_LOG(LogAnimation, Warning, TEXT("Current Frame Count : %d, BlendAlpha : %0.2f"), FramesRecorded + 1, BlendAlpha);
+
+			// for now we just concern component space, not skeleton space
+			for (int32 BoneIndex = 0; BoneIndex<SpaceBases.Num(); ++BoneIndex)
+			{
+				BlendedSpaceBases[BoneIndex].Blend(PreviousSpacesBases[BoneIndex], SpaceBases[BoneIndex], BlendAlpha);
+			}
+
+			FTransform BlendedComponentToWorld;
+			BlendedComponentToWorld.Blend(PreviousComponentToWorld, Component->ComponentToWorld, BlendAlpha);
+
+			Record(Component, BlendedComponentToWorld, BlendedSpaceBases, FramesRecorded + 1);
+			++FramesRecorded;
+		}
 	}
 
 	//save to current transform
 	PreviousSpacesBases = Component->GetSpaceBases();
+	PreviousComponentToWorld = Component->ComponentToWorld;
 
 	// if we passed MaxFrame, just stop it
 	if (FramesRecorded > MaxFrame)
@@ -267,9 +319,9 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent* Component, float D
 	}
 }
 
-void FAnimationRecorder::Record( USkeletalMeshComponent* Component, TArray<FTransform> SpacesBases, int32 FrameToAdd )
+void FAnimationRecorder::Record( USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, TArray<FTransform> SpacesBases, int32 FrameToAdd )
 {
-	if (ensure (AnimationObject))
+	if (ensure(AnimationObject))
 	{
 		USkeleton* AnimSkeleton = AnimationObject->GetSkeleton();
 		for (int32 TrackIndex=0; TrackIndex <AnimationObject->RawAnimationData.Num(); ++TrackIndex)
@@ -288,7 +340,7 @@ void FAnimationRecorder::Record( USkeletalMeshComponent* Component, TArray<FTran
 				// if record local to world, we'd like to consider component to world to be in root
 				else if (bRecordLocalToWorld)
 				{
-					LocalTransform *= Component->ComponentToWorld;
+					LocalTransform *= ComponentToWorld;
 				}
 
 				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];
@@ -304,9 +356,6 @@ void FAnimationRecorder::Record( USkeletalMeshComponent* Component, TArray<FTran
 		LastFrame = FrameToAdd;
 	}
 }
-
-
-
 
 void FAnimationRecorderManager::Tick(float DeltaTime)
 {
@@ -338,14 +387,19 @@ FAnimRecorderInstance::FAnimRecorderInstance()
 {
 }
 
-void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName)
+void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName, float SampleRateHz, bool bRecordInWorldSpace)
 {
 	Actor = InActor;
 	SkelComp = InComponent;
 	AssetPath = InAssetPath;
 	AssetName = InAssetName;
 	Recorder = new FAnimationRecorder();
-	Recorder->bRecordLocalToWorld = true;
+	Recorder->SetSampleRate(SampleRateHz);
+	Recorder->bRecordLocalToWorld = bRecordInWorldSpace;
+	Recorder->SetAnimCompressionScheme(UAnimCompress_BitwiseCompressOnly::StaticClass());
+
+	// always autosave through this codepath
+	Recorder->bAutoSaveAsset = true;
 }
 
 FAnimRecorderInstance::~FAnimRecorderInstance()
@@ -382,7 +436,7 @@ void FAnimRecorderInstance::FinishRecording()
 
 	if (Recorder)
 	{
-		Recorder->StopRecord(false);
+		Recorder->StopRecord(true);
 	}
 
 	GWarn->EndSlowTask();
@@ -393,7 +447,7 @@ bool FAnimationRecorderManager::RecordAnimation(AActor* Actor, USkeletalMeshComp
 	int32 const NewInstIdx = RecorderInstances.AddDefaulted();
 	
 	FAnimRecorderInstance& NewInst = RecorderInstances[NewInstIdx];
-	NewInst.Init(Actor, Component, AssetPath, AssetName);
+	NewInst.Init(Actor, Component, AssetPath, AssetName, CVarAnimRecorderSampleRate.GetValueOnAnyThread(), (CVarAnimRecorderWorldSpace.GetValueOnAnyThread() != 0));
 
 	bool const bSuccess = NewInst.BeginRecording();
 	if (bSuccess == false)

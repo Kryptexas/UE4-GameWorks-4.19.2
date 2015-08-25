@@ -15,6 +15,9 @@ private:
 	float TimePassed;
 	UAnimSequence* AnimationObject;
 	TArray<FTransform> PreviousSpacesBases;
+	FTransform PreviousComponentToWorld;
+
+	static float DefaultSampleRate;
 
 public:
 	FAnimationRecorder();
@@ -32,11 +35,18 @@ public:
 	bool InRecording() const { return AnimationObject != nullptr; }
 	float GetTimeRecorded() const { return TimePassed; }
 
-	// If true, it will record root to include LocalToWorld
-	bool bRecordLocalToWorld;
+	/** Sets a new sample rate for this recorder. Don't call while recording. */
+	void SetSampleRate(float SampleRateHz);
+
+	bool SetAnimCompressionScheme(TSubclassOf<class UAnimCompress> SchemeClass);
+
+	/** If true, it will record root to include LocalToWorld */
+	uint8 bRecordLocalToWorld :1;
+	/** If true, asset will be saved to disk after recording. If false, asset will remain in mem and can be manually saved. */
+	uint8 bAutoSaveAsset : 1;
 
 private:
-	void Record( USkeletalMeshComponent* Component, TArray<FTransform> SpacesBases, int32 FrameToAdd );
+	void Record(USkeletalMeshComponent* Component, FTransform const& ComponentToWorld, TArray<FTransform> SpacesBases, int32 FrameToAdd);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -48,7 +58,7 @@ public:
 	FAnimRecorderInstance();
 	~FAnimRecorderInstance();
 
-	void Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName);
+	void Init(AActor* InActor, USkeletalMeshComponent* InComponent, FString InAssetPath, FString InAssetName, float SampleRateHz, bool bRecordInWorldSpace);
 
 	bool BeginRecording();
 	void Update(float DeltaTime);
@@ -66,7 +76,7 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // FAnimationRecorderManager
 
-struct FAnimationRecorderManager
+struct UNREALED_API FAnimationRecorderManager
 {
 public:
 	/** Singleton accessor */

@@ -40,6 +40,10 @@
 #include "GameDelegates.h"
 #include "Engine/CoreSettings.h"
 
+#if WITH_EDITOR
+#include "Editor/UnrealEd/Public/Animation/AnimationRecorder.h"
+#endif
+
 ENGINE_API bool GDisallowNetworkTravel = false;
 
 /** Benchmark results to the log */
@@ -1195,6 +1199,14 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 			bCheckForMovieCapture = false;
 		}
 	}
+
+#if WITH_EDITOR
+	// tick animation recorder. available only in editor builds
+	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
+	{
+		FAnimationRecorderManager::Get().Tick(DeltaSeconds);
+	}
+#endif
 }
 
 
