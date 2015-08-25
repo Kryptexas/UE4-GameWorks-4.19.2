@@ -69,6 +69,9 @@ public:
 	FString AssetPath;
 	FString AssetName;
 
+	/** Original ForcedLodModel setting on the SkelComp, so we can modify it and restore it when we are done. */
+	int CachedSkelCompForcedLodModel;
+
 	FAnimationRecorder* Recorder;
 };
 

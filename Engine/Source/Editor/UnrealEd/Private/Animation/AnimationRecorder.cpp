@@ -400,6 +400,12 @@ void FAnimRecorderInstance::Init(AActor* InActor, USkeletalMeshComponent* InComp
 
 	// always autosave through this codepath
 	Recorder->bAutoSaveAsset = true;
+
+	if (InComponent)
+	{
+		CachedSkelCompForcedLodModel = InComponent->ForcedLodModel;
+		InComponent->ForcedLodModel = 1;
+	}
 }
 
 FAnimRecorderInstance::~FAnimRecorderInstance()
@@ -432,14 +438,16 @@ void FAnimRecorderInstance::Update(float DeltaTime)
 void FAnimRecorderInstance::FinishRecording()
 {
 	const FText FinishRecordingAnimationSlowTask = LOCTEXT("FinishRecordingAnimationSlowTask", "Finalizing recorded animation");
-	GWarn->BeginSlowTask(FinishRecordingAnimationSlowTask, false);
-
 	if (Recorder)
 	{
 		Recorder->StopRecord(true);
 	}
 
-	GWarn->EndSlowTask();
+	// restore force lod setting
+	if (SkelComp.IsValid())
+	{
+		SkelComp->ForcedLodModel = CachedSkelCompForcedLodModel;
+	}
 }
 
 bool FAnimationRecorderManager::RecordAnimation(AActor* Actor, USkeletalMeshComponent* Component, FString AssetPath, FString AssetName)
