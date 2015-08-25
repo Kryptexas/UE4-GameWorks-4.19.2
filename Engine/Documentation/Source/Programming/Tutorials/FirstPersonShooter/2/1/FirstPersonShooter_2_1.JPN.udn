@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2664710
+﻿INTSourceChangelist:2666897
 Availability:Docs
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -23,6 +23,148 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 %Steps%
 
-<!--TODO:Add tutorial steps here-->
+このステップでは、アンリアル エンジンの Character 基底クラスを使用して新規キャラクターを作成します。Character クラス (Pawn クラスから派生) は、歩く、走る、ジャンプするなどの二足方向の動きのためのビルトイン機能です。
+
+[REGION:note]
+手動で \*.h ファイルおよび \*.cpp ファイルを Visual Studio ソリューションに追加できますが、グッドプラクティスは C++ Class Wizard を使用して新規クラスをプロジェクトに追加する方法を使用することです。C++ Class Wizard を使用することで、アンリアル エンジンではアンリアル固有のマクロをセットアップするヘッダーとソース テンプレートを作成します。
+[/REGION]
+
+## Character クラスを追加する
+
+1.	ファイル メニューで **[New C++ Class... (新規 C++ クラス)]** を選択して、新しい Parent (親) クラスを選択します。
+
+1.	**[Choose Parent Class (親クラスを選択)]** メニューが開きます。下方にスクロールして、親クラスとして **[Character]** を選択して、**[Next]** をクリックします。
+
+	![](ChooseCharacterClass.png)
+
+1.	新しいクラスに 「FPSCharacter」 と名前を付けて、 **[Create]** をクリックします。
+
+	![](MakeFPSCharacterClass.png)
+
+	[REGION:note]
+	FPSCharacter クラスを作成したので、**Visual Studio** へ切り替えて、新規作成したクラスにコードを追加することができます。`FPSCharacter.h` と `FPSCharacter.cpp` が開き、 **アンリアル エンジン** が新規クラスのために自動的にコードをコンパイルし、再読み込みします。
+	[/REGION]
+
+## Game Mode クラスを編集する
+
+ゲームプレイ開始時に「FPSCharacter」をデフォルトのポーンとして使用するように、まず **[GameMode]** を編集します。
+
+1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
+
+	![](ExpandedSolutionExplorer.png)
+
+1.	 `FPSGameMode.cpp` をダブルクリックして、**FPSGameMode** クラスのための実装ファイルを開きます。
+
+1.	`FPSGameMode.cpp` 上部に `FPSCharacter` ヘッダーをインクルードします。
+
+		#include "FPSCharacter.h"
+
+1.	以下の行を `AFPSGameMode` コンストラクタに追加します。
+
+		DefaultPawnClass = AFPSCharacter::StaticClass();
+
+1.	`FPSGameMode.cpp` は以下のようになります。
+
+		// Project Settings の Description ページに著作権情報を入力してください。
+		#include "FPSProject.h"
+
+		#include "FPSGameMode.h"
+		#include "FPSCharacter.h"
+		AFPSGameMode::AFPSGameMode(const FObjectInitializer& ObjectInitializer) :Super(ObjectInitializer)
+
+		{
+			DefaultPawnClass = AFPSCharacter::StaticClass();
+		}//AFPSGameMode Constructor
+
+		void AFPSGameMode::StartPlay()
+		{
+			Super::StartPlay();
+
+		StartMatch();
+
+		if (GEngine != nullptr)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
+			}
+		}//StartPlay()
+
+1.	Visual Studio に `FPSGameMode.cpp` 実装ファイルを保存します。
+
+## Character クラスを検証する
+
+1.	**Solution Explorer** で、**FPSProject > Source > FPSProject** の順に展開します。
+
+	![](ExpandedSolutionExplorer.png)
+
+1.	 `FPSCharacter.cpp` をダブルクリックして、**FPSGameMode** クラスのための実装ファイルを開きます。
+
+1.	以下のコードの行を `BeginPlay()` 関数に追加して、 `FPSCharacter` クラスが使用されていることを検証します。
+
+		if(GEngine != nullptr)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+		}
+
+1.	`FPSCharacter.cpp` は以下のようになります。
+
+		// Project Settings の Description ページに著作権情報を入力してください。
+
+		#include "FPSProject.h"
+		#include "FPSCharacter.h"
+
+		// デフォルト値を設定
+		AFPSCharacter::AFPSCharacter()
+		{
+		 	//このポーンがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
+			PrimaryActorTick.bCanEverTick = true;
+		}
+
+		// ゲーム開始時またはスポーン時に呼ばれます
+		void AFPSCharacter::BeginPlay()
+		{
+			Super::BeginPlay();
+
+			if (GEngine != nullptr)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
+			}
+		}
+
+		// フレームごとに呼ばれます
+		void AFPSCharacter::Tick( float DeltaTime )
+		{
+			Super::Tick( DeltaTime );
+
+		}
+
+		// 機能と入力をバインドするために呼ばれます
+
+		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
+		{
+			Super::SetupPlayerInputComponent(InputComponent);
+
+		}
+
+1.	Visual Studio に `FPSCharacter` 実装ファイルを保存します。
+
+1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
+
+1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+
+	![](BuildProject.png)
+
+1.	ビルド終了後にアンリアル エディタを開いて、新しくコンパイルした **FPSCharacter** クラスが **コンテンツ ブラウザ** で見えることを確認します。
+
+	![](FPSCharacterContentBrowser.png)
+
+1.	レベルエディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅で "We are using FPSCharacter." というメッセージが"We are using FPSGameMode." の下に表示されます。
+
+	![](VerifyingFPSCharacterResult.png)
+
+	[REGION:note]
+	新しいキャラクターにはまだ移動の制御がありません。そのため、レベル内を移動できません。移動できない場合は、ポーンとして `FPSCharacter` を正しく使用していることになります！
+	[/REGION]
+
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを押します。
 
 %Steps%
