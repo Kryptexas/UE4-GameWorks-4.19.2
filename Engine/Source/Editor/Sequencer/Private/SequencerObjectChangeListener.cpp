@@ -111,7 +111,7 @@ FOnPropagateObjectChanges& FSequencerObjectChangeListener::GetOnPropagateObjectC
 	return OnPropagateObjectChanges;
 }
 
-bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectClass, const FName PropertyTypeName, const FString& InPropertyVarName ) const
+bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectClass, const FName PropertyTypeName, const FString& InPropertyVarName, const UStructProperty* StructProperty ) const
 {
 	bool bFound = ClassToPropertyChangedMap.Contains( PropertyTypeName );
 
@@ -140,11 +140,21 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectCla
 
 			if (Sequencer.IsValid() && Sequencer.Pin()->GetKeyInterpPropertiesOnly())
 			{
-				UProperty* Property = ObjectClass.FindPropertyByName(FName(*InPropertyVarName));
-
-				if (!Property || !Property->HasAnyPropertyFlags(CPF_Interp))
+				if (StructProperty != 0)
 				{
-					bFound = false;
+					if (!StructProperty->HasAnyPropertyFlags(CPF_Interp))
+					{
+						bFound = false;
+					}
+				}
+				else
+				{
+					UProperty* Property = ObjectClass.FindPropertyByName(FName(*InPropertyVarName));
+
+					if (!Property || !Property->HasAnyPropertyFlags(CPF_Interp))
+					{
+						bFound = false;
+					}
 				}
 			}
 		}
@@ -171,13 +181,13 @@ bool FSequencerObjectChangeListener::CanKeyProperty(FCanKeyPropertyParams CanKey
 	bool bFound = false;
 	if ( StructProperty )
 	{
-		bFound = FindPropertySetter(*CanKeyPropertyParams.ObjectClass, StructProperty->Struct->GetFName(), StructProperty->GetName() );
+		bFound = FindPropertySetter(*CanKeyPropertyParams.ObjectClass, StructProperty->Struct->GetFName(), StructProperty->GetName(), StructProperty );
 	}
 	
 	if( !bFound && ParentStructProperty )
 	{
 		// If the property parent is a struct, see if this property parent can be keyed.
-		bFound = FindPropertySetter(*CanKeyPropertyParams.ObjectClass, ParentStructProperty->Struct->GetFName(), ParentStructProperty->GetName());
+		bFound = FindPropertySetter(*CanKeyPropertyParams.ObjectClass, ParentStructProperty->Struct->GetFName(), ParentStructProperty->GetName(), ParentStructProperty );
 	}
 
 	if( !bFound )
