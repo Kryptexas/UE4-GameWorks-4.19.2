@@ -965,9 +965,6 @@ protected:
 	/** Returns query extent including adjustments for voxelization error compensation */
 	FVector GetModifiedQueryExtent(const FVector& QueryExtent) const;
 
-	// @todo docuement
-	UPrimitiveComponent* ConstructRenderingComponentImpl();
-
 	/** Spawns an ARecastNavMesh instance, and configures it if AgentProps != NULL */
 	static ARecastNavMesh* SpawnInstance(UNavigationSystem* NavSys, const FNavDataConfig* AgentProps = NULL);
 
