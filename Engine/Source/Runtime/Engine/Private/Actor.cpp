@@ -3998,6 +3998,11 @@ float AActor::GetDistanceTo(const AActor* OtherActor) const
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size() : 0.f;
 }
 
+float AActor::GetSquaredDistanceTo(const AActor* OtherActor) const
+{
+	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).SizeSquared() : 0.f;
+}
+
 float AActor::GetHorizontalDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size2D() : 0.f;

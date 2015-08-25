@@ -770,6 +770,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetDistanceTo(const AActor* OtherActor) const;
 
+	/** Returns the squared distance from this Actor to OtherActor. */
+	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
+	float GetSquaredDistanceTo(const AActor* OtherActor) const;
+
 	/** Returns the distance from this Actor to OtherActor, ignoring Z. */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Transformation")
 	float GetHorizontalDistanceTo(const AActor* OtherActor) const;
