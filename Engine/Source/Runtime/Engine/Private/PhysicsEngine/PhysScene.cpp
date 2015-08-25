@@ -581,6 +581,7 @@ void FinishSceneStat(uint32 Scene)
 #if WITH_APEX
 void GatherApexStats(const UWorld* World, NxApexScene* ApexScene)
 {
+#if STATS
 	SCOPED_APEX_SCENE_READ_LOCK(ApexScene);
 	int32 NumVerts = 0;
 	int32 NumCloths = 0;
@@ -598,6 +599,7 @@ void GatherApexStats(const UWorld* World, NxApexScene* ApexScene)
 	}
 	SET_DWORD_STAT(STAT_NumCloths, NumCloths);        // number of recently simulated apex cloths.
 	SET_DWORD_STAT(STAT_NumClothVerts, NumVerts);	  // number of recently simulated apex vertices.
+#endif
 }
 #endif
 
