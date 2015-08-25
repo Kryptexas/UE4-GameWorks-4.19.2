@@ -397,7 +397,8 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 				AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 			}
 
-			AnimEvaluationContext.LocalAtoms = LocalAtoms;
+			AnimEvaluationContext.LocalAtoms.Reset(LocalAtoms.Num());
+			AnimEvaluationContext.LocalAtoms.Append(LocalAtoms);
 
 			ParallelAnimationEvaluationTask = TGraphTask<FParallelBlendPhysicsTask>::CreateTask().ConstructAndDispatchWhenReady(this);
 
@@ -409,7 +410,8 @@ void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
 
 			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
-		}else
+		}
+		else
 		{
 			PerformBlendPhysicsBones(RequiredBones, LocalAtoms);
 			PostBlendPhysics();
