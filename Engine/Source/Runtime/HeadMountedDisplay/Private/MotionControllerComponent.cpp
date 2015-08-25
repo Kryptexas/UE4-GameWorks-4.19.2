@@ -2,7 +2,6 @@
 //
 #include "HeadMountedDisplayPrivate.h"
 #include "MotionControllerComponent.h"
-#include "Features/IModularFeatures.h"
 
 namespace {
 	/** This is to prevent destruction of motion controller components while they are
@@ -81,8 +80,7 @@ bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator
 
 	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)
 	{
-		TArray<IMotionController*> MotionControllers = IModularFeatures::Get().GetModularFeatureImplementations<IMotionController>( IMotionController::GetModularFeatureName() );
-		for (auto MotionController : MotionControllers)
+		for (auto MotionController : GEngine->MotionControllerDevices)
 		{
 			if ((MotionController != nullptr) && MotionController->GetControllerOrientationAndPosition(PlayerIndex, Hand, Orientation, Position))
 			{
