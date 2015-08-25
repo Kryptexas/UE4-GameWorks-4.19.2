@@ -120,7 +120,7 @@ public:
 	template<typename T>
 	static bool Array_RemoveItem(TArray<T>& TargetArray, const T& Item)
 	{
-		return TargetArray.Remove(Item);
+		return TargetArray.Remove(Item) != 0;
 	}
 
 	template<typename T>
