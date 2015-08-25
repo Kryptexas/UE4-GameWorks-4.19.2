@@ -2,6 +2,7 @@ Availability: Public
 Title:Physics Simulation
 Crumbs: %ROOT%, Engine
 Description:Subsystem used to calculate collision and simulate physical actors.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
