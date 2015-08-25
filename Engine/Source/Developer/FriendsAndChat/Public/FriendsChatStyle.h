@@ -135,6 +135,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FSlateBrush ChatSettingsBrush;
 	FFriendsChatStyle& SetChatSettingsBrush(const FSlateBrush& Brush);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush MessageNotificationBrush;
+	FFriendsChatStyle& SetMessageNotificationBrush(const FSlateBrush& Brush);
+
 	UPROPERTY()
 	FButtonStyle FriendsMinimizeButtonStyle;
 	FFriendsChatStyle& SetMinimizeButtonStyle(const FButtonStyle& ButtonStyle);

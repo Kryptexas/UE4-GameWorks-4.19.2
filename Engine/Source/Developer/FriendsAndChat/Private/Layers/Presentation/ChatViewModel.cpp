@@ -54,6 +54,32 @@ public:
 		return FilteredMessages.Num();
 	}
 
+	virtual int32 GetUnreadChannelMessageCount() const override
+	{
+		int32 NewChannelMessageCount = 0;
+		if (!IsActive() || !bMessageShown)
+		{
+			for (int32 MessageIndex = LastSeenMessageCount; MessageIndex < GetMessageCount(); ++MessageIndex)
+			{
+				// Show Missed Messages if the active channel does now show our default message type.
+				if ((GetDefaultChannelType() & ReadChannelFlags) == 0)
+				{
+					// Show missed messages if we are the default channel for this message type or if we are the current active window
+					if (FilteredMessages[MessageIndex]->GetMessageType() == GetDefaultChannelType() || IsActive())
+					{
+						NewChannelMessageCount++;
+					}
+				}
+			}
+		}
+		return NewChannelMessageCount;
+	}
+
+	virtual void SetReadChannelFlags(uint8 ChannelFlags) override
+	{
+		ReadChannelFlags = ChannelFlags;
+	}
+
 	virtual TSharedPtr<FFriendViewModel> GetFriendViewModel(const TSharedPtr<const FUniqueNetId> InUserID, const FText Username) override
 	{
 		TSharedPtr<IFriendItem> FoundFriend = FriendsService->FindUser(InUserID.ToSharedRef());
@@ -104,6 +130,11 @@ public:
 		{
 			SelectedFriend.Reset();
 		}
+	}
+
+	virtual uint8 GetChannelFlags() override
+	{
+		return ChatChannelFlags;
 	}
 
 	virtual bool IsChannelSet(const EChatMessageType::Type InChannel) override
@@ -598,6 +629,22 @@ public:
 			}
 			ChatDisplayService->SetActiveTab(SharedThis(this));
 		}
+		else
+		{
+			if (bMessageShown)
+			{
+				LastSeenMessageCount = GetMessageCount();
+			}
+		}
+	}
+
+	virtual void SetMessageShown(bool Shown, int32 NumMissedMessages) override
+	{
+		if (bMessageShown == true && Shown == false && IsActive() == true)
+		{
+			LastSeenMessageCount = GetMessageCount() - NumMissedMessages;
+		}
+		bMessageShown = Shown;
 	}
 
 	virtual bool AllowMarkup() override
@@ -770,6 +817,9 @@ protected:
 		, bAllowGlobalChat(true)
 		, bCaptureFocus(false)
 		, WindowOpacity(1.0f)
+		, LastSeenMessageCount(0)
+		, bMessageShown(true)
+		, ReadChannelFlags(0)
 	{
 	}
 
@@ -838,6 +888,10 @@ private:
 
 	EVisibility ChatEntryVisibility;
 	FSlateColor OverrideColor;
+
+	int32 LastSeenMessageCount;
+	bool bMessageShown;
+	uint8 ReadChannelFlags;
 
 private:
 	friend FChatViewModelFactory;

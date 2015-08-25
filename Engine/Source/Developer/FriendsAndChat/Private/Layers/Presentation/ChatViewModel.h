@@ -45,6 +45,8 @@ public:
 	virtual bool SendMessage(const FText NewMessage, const FText PlainText) = 0;
 	virtual TArray<TSharedRef<FChatItemViewModel > >& GetMessages() = 0;
 	virtual int32 GetMessageCount() const = 0;
+	virtual int32 GetUnreadChannelMessageCount() const = 0;
+	virtual void SetReadChannelFlags(uint8 ChannelFlags) = 0;
 
 	// Friend Actions
 	virtual TSharedPtr<FFriendViewModel> GetFriendViewModel(const TSharedPtr<const FUniqueNetId> UniqueID, const FText Username) = 0;
@@ -52,6 +54,7 @@ public:
 	
 	// Channel
 	virtual void SetChannelFlags(uint8 ChannelFlags) = 0;
+	virtual uint8 GetChannelFlags() = 0;
 	virtual void SetDefaultChannelFlags(uint8 ChannelFlags) = 0;
 	virtual void SetDefaultOutgoingChannel(EChatMessageType::Type InChannel) = 0;
 	virtual void ResetToDefaultChannel() = 0;
@@ -92,6 +95,7 @@ public:
 	virtual void ValidateChatInput(const FText Message, const FText PlainText) = 0;
 	virtual FText GetValidatedInput() = 0;
 	virtual void SetIsActive(bool IsActive) = 0;
+	virtual void SetMessageShown(bool Shown, int32 NumMissedMessages = 1) = 0;
 	virtual void RefreshMessages() = 0;
 	virtual bool AllowMarkup() = 0;
 	virtual bool MultiChat() = 0;

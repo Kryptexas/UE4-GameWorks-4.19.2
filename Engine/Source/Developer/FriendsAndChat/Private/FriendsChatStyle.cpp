@@ -149,6 +149,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetChatSettingsBrush(const FSlateBrush& Br
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetMessageNotificationBrush(const FSlateBrush& Brush)
+{
+	MessageNotificationBrush = Brush;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetMinimizeButtonStyle(const FButtonStyle& Button)
 {
 	FriendsMinimizeButtonStyle = Button;

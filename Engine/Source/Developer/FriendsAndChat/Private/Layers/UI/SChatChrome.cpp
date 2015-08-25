@@ -184,6 +184,8 @@ private:
 
 			// Create container for a quick settings options
 			TSharedPtr<SBox> QuickSettingsContainer = SNew(SBox);
+
+			TSharedPtr<SBox> NotificationContainer = SNew(SBox);
 			
 			// Add Tab
 			TabContainer->AddSlot()
@@ -205,9 +207,14 @@ private:
 							TabButton
 						]
 						+ SHorizontalBox::Slot()
-							.AutoWidth()
+						.AutoWidth()
 						[
 							QuickSettingsContainer.ToSharedRef()
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							NotificationContainer.ToSharedRef()
 						]
 					]
 				]
@@ -215,6 +222,10 @@ private:
 
 			// Add a quick settings if needed
 			QuickSettingsContainer->SetContent(GetQuickSettingsWidget(Tab).ToSharedRef());
+
+			// Add Message notification indicator
+			NotificationContainer->SetContent(GetNotificationWidget(Tab).ToSharedRef());
+			
 			
 			if (!ChatWindows.Contains(Tab))
 			{
@@ -266,6 +277,47 @@ private:
 				.FriendStyle(&FriendStyle)
 			];
 	}
+
+	EVisibility GetMessageNotificationVisibility(TWeakPtr<IChatTabViewModel> TabPtr) const
+	{
+		TSharedPtr<IChatTabViewModel> Tab = TabPtr.Pin();
+		if (Tab.IsValid())
+		{
+			if (Tab->GetChatViewModel()->GetUnreadChannelMessageCount() > 0)
+			{
+				return EVisibility::Visible;
+			}
+		}
+		return EVisibility::Collapsed;
+	}
+
+	TSharedPtr<SWidget> GetNotificationWidget(const TSharedRef<IChatTabViewModel>& Tab) const
+	{
+		return SNew(SBox)
+		.Visibility(this, &SChatChromeImpl::GetMessageNotificationVisibility, TWeakPtr<IChatTabViewModel>(Tab))
+		[
+			SNew(SBorder)
+			.Padding(FMargin(4.0f))
+			.BorderImage(&FriendStyle.FriendsChatStyle.MessageNotificationBrush)
+			[
+				SNew(STextBlock)
+				.ColorAndOpacity(FriendStyle.FriendsNormalFontStyle.DefaultFontColor)
+				.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+				.Text(this, &SChatChromeImpl::GetMessageNotificationsText, TWeakPtr<IChatTabViewModel>(Tab))
+			]
+		];
+	}
+
+	FText GetMessageNotificationsText(TWeakPtr<IChatTabViewModel> TabPtr) const
+	{
+		TSharedPtr<IChatTabViewModel> Tab = TabPtr.Pin();
+		if (Tab.IsValid())
+		{
+			return Tab->GetMessageNotificationsText();
+		}
+		return FText::GetEmpty();
+	}
+
 
 	EVisibility GetChatWindowVisibility() const
 	{

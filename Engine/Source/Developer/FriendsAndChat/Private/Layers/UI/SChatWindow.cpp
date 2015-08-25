@@ -221,6 +221,14 @@ public:
 		{
 			bUserHasScrolled = true;
 		}
+		if (bUserHasScrolled && ExternalScrollbar.IsValid() && !ExternalScrollbar->IsScrolling())
+		{
+			bUserHasScrolled = false;
+			if (ExternalScrollbar->DistanceFromBottom() == 0)
+			{
+				ViewModel->SetMessageShown(true);
+			}
+		}
 	}
 
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
@@ -310,6 +318,11 @@ private:
 			if(ExternalScrollbar.IsValid() && ExternalScrollbar->DistanceFromBottom() == 0)
 			{
 				ChatScrollBox->ScrollToEnd();
+				ViewModel->SetMessageShown(true);
+			}
+			else
+			{
+				ViewModel->SetMessageShown(false);
 			}
 		}
 	}

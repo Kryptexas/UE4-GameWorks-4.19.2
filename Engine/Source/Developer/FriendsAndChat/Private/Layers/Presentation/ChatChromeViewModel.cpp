@@ -36,6 +36,16 @@ public:
 		}
 		ActiveTab = Tab;
 		ActiveTab->GetChatViewModel()->SetIsActive(true);
+
+		// Tell Other tabs what messages we read
+		ActiveTab->GetChatViewModel()->SetReadChannelFlags(0);
+		for (TSharedRef<IChatTabViewModel> Tab : Tabs)
+		{
+			if (Tab != ActiveTab)
+			{
+				Tab->GetChatViewModel()->SetReadChannelFlags(ActiveTab->GetChatViewModel()->GetChannelFlags());
+			}
+		}
 		
 		OnActiveTabChanged().Broadcast();
 	}
@@ -95,6 +105,14 @@ public:
 	virtual void ToggleChatMinimized() override
 	{
 		ChatDisplayService->ToggleChatMinimized();
+
+		if (IsChatMinimized())
+		{
+			for (TSharedRef<IChatTabViewModel> Tab : Tabs)
+			{
+				Tab->GetChatViewModel()->SetMessageShown(false, 0);
+			}
+		}
 	}
 
 	virtual bool IsChatMinimized() const override

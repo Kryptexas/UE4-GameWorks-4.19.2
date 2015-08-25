@@ -9,6 +9,7 @@ public:
 	// IChatTabViewModel Interface
 	virtual bool IsTabVisible() const = 0;
 	virtual const FText GetTabText() const = 0;
+	virtual FText GetMessageNotificationsText() const = 0;
 
 	/**
 	 * Provides an ID Used in Chat Window navigation.

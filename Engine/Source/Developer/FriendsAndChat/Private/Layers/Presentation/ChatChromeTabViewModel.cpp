@@ -15,7 +15,7 @@ public:
 	{
 	}
 
-	bool IsTabVisible() const override
+	virtual bool IsTabVisible() const override
 	{
 		if (!ChatViewModel.IsValid())
 		{
@@ -35,9 +35,20 @@ public:
 		return true;
 	}
 
-	const FText GetTabText() const override
+	virtual const FText GetTabText() const override
 	{
 		return ChatViewModel->GetChatGroupText(false);
+	}
+
+	virtual FText GetMessageNotificationsText() const override
+	{
+		int32 Messages = ChatViewModel->GetUnreadChannelMessageCount();
+		if (Messages < 10)
+		{
+			return FText::AsNumber(Messages);
+		}
+		const FText Count = FText::AsNumber(9);
+		return FText::Format(NSLOCTEXT("","PlusNumber","{0}+"), Count);
 	}
 
 	virtual const EChatMessageType::Type GetTabID() const override
@@ -45,12 +56,12 @@ public:
 		return ChatViewModel->GetChatChannelType();
 	}
 
-	const FSlateBrush* GetTabImage() const override
+	virtual const FSlateBrush* GetTabImage() const override
 	{
 		return nullptr;
 	}
 
-	const TSharedPtr<FChatViewModel> GetChatViewModel() const override
+	virtual const TSharedPtr<FChatViewModel> GetChatViewModel() const override
 	{
 		return ChatViewModel;
 	}
