@@ -58,7 +58,7 @@ public:
 	 * @param Filename file name to save comma delimited stats to 
 	 * @return true if succeeded
 	 */
-	virtual bool SaveStatsAsCSV(const FString& Filename) = 0;
+	virtual bool SaveStatsAsCSV(const FString& Filename) const = 0;
 };
 
 

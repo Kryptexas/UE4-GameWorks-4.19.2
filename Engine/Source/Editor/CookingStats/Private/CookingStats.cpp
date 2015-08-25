@@ -60,7 +60,7 @@ bool FCookingStats::GetTagValue(const FName& Key, const FName& TagName, FString&
 	return true;
 }
 
-bool FCookingStats::SaveStatsAsCSV(const FString& Filename)
+bool FCookingStats::SaveStatsAsCSV(const FString& Filename) const
 {
 	FString Output;
 	FScopeLock ScopeLock(&SyncObject);

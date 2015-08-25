@@ -1293,6 +1293,12 @@ private:
 
 
 	/**
+	 * Save the accumulated cooker stats to the Saved\Stats folder
+	 * saves to different file name pending running multiprocess cooker / not
+	 */
+	void SaveCookerStats() const;
+
+	/**
 	 * IsCookFlagSet
 	 * 
 	 * @param InCookFlag used to check against the current cook flags

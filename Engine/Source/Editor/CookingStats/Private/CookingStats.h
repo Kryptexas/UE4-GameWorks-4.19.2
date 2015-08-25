@@ -57,7 +57,7 @@ public:
 	* @param Filename file name to save comma delimited stats to
 	* @return true if succeeded
 	*/
-	virtual bool SaveStatsAsCSV(const FString& Filename) override;
+	virtual bool SaveStatsAsCSV(const FString& Filename) const override;
 
 private:
 	FName RunGuid; // unique guid for this run of the editor

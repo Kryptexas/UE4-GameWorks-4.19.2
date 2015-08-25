@@ -466,8 +466,8 @@ namespace CookOnTheFlyStats
 			if (CookingStats)
 			{
 				static const FName NAME_CookerStat(TEXT("CookerStat"));
-				double Duration = FPlatformTime::Seconds() - StartTime * 1000.0f;
-				CookingStats->AddTagValue(NAME_CookerStat, TagName, FString::Printf(TEXT("%f"), (float)(Duration)));
+				double Duration = (FPlatformTime::Seconds() - StartTime) * 1000.0f;
+				CookingStats->AddTagValue(NAME_CookerStat, TagName, FString::Printf(TEXT("%fms"), (float)(Duration)));
 			}
 		}
 
@@ -1564,6 +1564,17 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		}
 	}
 
+	{
+		static double SavedStatsStart = FPlatformTime::Seconds();
+		double Now = FPlatformTime::Seconds();
+		const double Timeout = 60 * 10; // 10 minutes
+		if ((Now - SavedStatsStart) > Timeout)
+		{
+			SaveCookerStats();
+			SavedStatsStart = Now;
+		}
+	}
+
 	while (!GIsRequestingExit || CurrentCookMode == ECookMode::CookByTheBook)
 	{
 		// if we just cooked a map then don't process anything the rest of this tick
@@ -1672,7 +1683,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
-
+		check(IsInGameThread());
 		if (NeverCookPackageList.Contains(ToBuild.GetFilename()))
 		{
 #if DEBUG_COOKONTHEFLY
@@ -2027,6 +2038,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				}
 
 				const FName StandardPackageFilename = GetCachedStandardPackageFileFName(Package);
+				check(IsInGameThread());
 				if (NeverCookPackageList.Contains(StandardPackageFilename))
 				{
 					// refuse to save this package, it's clearly one of the undesirables
@@ -3038,10 +3050,17 @@ bool UCookOnTheFlyServer::IniSettingsOutOfDate( const ITargetPlatform* TargetPla
 	}
 
 	check( FoundCookedIniVersionStrings );
+
+	TSet<FString> CookedIniVersionStrings;
+	for (const auto& CookedString : *FoundCookedIniVersionStrings)
+	{
+		CookedIniVersionStrings.Add(CookedString);
+	}
+
 	bool bCurrentIniSettingsChanged = false;
 	for ( const auto& CurrentVersionString : CurrentIniVersionStrings ) 
 	{
-		if ( FoundCookedIniVersionStrings->Contains(CurrentVersionString) == false )
+		if ( CookedIniVersionStrings.Contains(CurrentVersionString) == false )
 		{
 			bCurrentIniSettingsChanged = true;
 			break;
@@ -3794,7 +3813,15 @@ const FString UCookOnTheFlyServer::GetCookedAssetRegistryFilename(const FString&
 	return CookedAssetRegistryFilename;
 }
 
+void UCookOnTheFlyServer::SaveCookerStats() const
+{
+	static const FName CookingStatsName("CookingStats");
+	FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
+	ICookingStats& CookingStats = CookingStatsModule.Get();
 
+	const FString StatsFilename = GetStatsFilename(CookByTheBookOptions->ChildCookFilename);
+	CookingStats.SaveStatsAsCSV(StatsFilename);
+}
 
 void UCookOnTheFlyServer::CookByTheBookFinished()
 {
@@ -3805,13 +3832,9 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 	UPackage::WaitForAsyncFileWrites();
 
 	GetDerivedDataCacheRef().WaitForQuiescence(true);
-	
-	static const FName CookingStatsName("CookingStats");
-	FCookingStatsModule& CookingStatsModule = FModuleManager::LoadModuleChecked<FCookingStatsModule>(CookingStatsName);
-	ICookingStats& CookingStats = CookingStatsModule.Get();
 
-	const FString StatsFilename = GetStatsFilename(CookByTheBookOptions->ChildCookFilename);
-	CookingStats.SaveStatsAsCSV(StatsFilename);
+
+	SaveCookerStats();
 
 	if (IsChildCooker())
 	{
@@ -4706,7 +4729,7 @@ void UCookOnTheFlyServer::MaybeMarkPackageAsAlreadyLoaded(UPackage *Package)
 		UE_LOG(LogCook, Display, TEXT("Marking %s as reloading for cooker because it's been cooked for platforms%s."), *StandardName.ToString(), *Platforms);
 	}
 
-
+	check(IsInGameThread());
 	if (NeverCookPackageList.Contains(StandardName))
 	{
 		bShouldMarkAsAlreadyProcessed = true;
