@@ -10,6 +10,16 @@ UCLASS(MinimalAPI)
 class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Helper property to handle upgrades from an old system of displaying pins for 
+	 *	the override values that properties referenced as a conditional of being set in a struct */
+	UPROPERTY()
+	bool bMadeAfterOverridePinRemoval;
+
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -17,6 +27,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
+	virtual void PostPlacedNewNode() override;
 	// End  UEdGraphNode interface
 
 	// Begin K2Node interface

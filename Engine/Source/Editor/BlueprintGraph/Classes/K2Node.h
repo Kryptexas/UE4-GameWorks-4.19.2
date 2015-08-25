@@ -36,11 +36,14 @@ struct FOptionalPinFromProperty
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Hi)
 	FName CategoryName;
 
+	UPROPERTY(EditAnywhere, Category = Hi)
+	bool bHasOverridePin;
+
 	FOptionalPinFromProperty()
 	{
 	}
 	
-	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip, bool bInPropertyIsCustomized, FName InCategoryName)
+	FOptionalPinFromProperty(FName InPropertyName, bool bInShowPin, bool bInCanToggleVisibility, const FString& InFriendlyName, const FText& InTooltip, bool bInPropertyIsCustomized, FName InCategoryName, bool bInHasOverridePin)
 		: PropertyName(InPropertyName)
 		, PropertyFriendlyName(InFriendlyName)
 		, PropertyTooltip(InTooltip)
@@ -48,6 +51,7 @@ struct FOptionalPinFromProperty
 		, bCanToggleVisibility(bInCanToggleVisibility)
 		, bPropertyIsCustomized(bInPropertyIsCustomized)
 		, CategoryName(InCategoryName)
+		, bHasOverridePin(bInHasOverridePin)
 	{
 	}
 };

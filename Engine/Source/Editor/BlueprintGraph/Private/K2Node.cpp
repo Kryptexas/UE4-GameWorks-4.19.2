@@ -9,6 +9,7 @@
 #include "KismetCompiler.h"
 #include "GraphEditorSettings.h"
 #include "BlueprintEditorSettings.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
 #include "ObjectEditorUtils.h"
 
@@ -868,11 +869,7 @@ void FOptionalPinManager::RebuildPropertyList(TArray<FOptionalPinFromProperty>& 
 			CategoryName = FObjectEditorUtils::GetCategoryFName(TestProperty);
 #endif //WITH_EDITOR
 
-			UProperty* OverrideProperty = nullptr;
-			if (OverridesMap.RemoveAndCopyValue(TestProperty->GetFName(), OverrideProperty) && OverrideProperty)
-			{
-				RebuildProperty(OverrideProperty, CategoryName, Properties, SourceStruct, OldVisibility);
-			}
+			OverridesMap.Remove(TestProperty->GetFName());
 			RebuildProperty(TestProperty, CategoryName, Properties, SourceStruct, OldVisibility);
 		}
 	}
@@ -898,6 +895,10 @@ void FOptionalPinManager::RebuildProperty(UProperty* TestProperty, FName Categor
 	Record->PropertyFriendlyName = UEditorEngine::GetFriendlyName(TestProperty, SourceStruct);
 	Record->PropertyTooltip = TestProperty->GetToolTipText();
 	Record->CategoryName = CategoryName;
+
+	bool bNegate = false;
+	Record->bHasOverridePin = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate) != nullptr;
+
 	// Get the defaults
 	GetRecordDefaults(TestProperty, *Record);
 
@@ -1147,7 +1148,6 @@ void UK2Node::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) con
 	// grab the debug value of the pin
 	FString WatchText;
 	const FKismetDebugUtilities::EWatchTextResult WatchStatus = FKismetDebugUtilities::GetWatchText(/*inout*/ WatchText, Blueprint, ActiveObject, &Pin);
-
 	// if this is an array pin, then we possibly have too many lines (too many entries)
 	if (Pin.PinType.bIsArray)
 	{

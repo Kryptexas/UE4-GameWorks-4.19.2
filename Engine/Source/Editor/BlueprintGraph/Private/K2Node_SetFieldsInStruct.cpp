@@ -5,6 +5,7 @@
 #include "MakeStructHandler.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
+#include "Editor/PropertyEditor/Public/PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_MakeStruct"
 
@@ -37,6 +38,7 @@ public:
 
 UK2Node_SetFieldsInStruct::UK2Node_SetFieldsInStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bMadeAfterOverridePinRemoval(false)
 {
 }
 
@@ -108,6 +110,11 @@ void UK2Node_SetFieldsInStruct::ValidateNodeDuringCompilation(FCompilerResultsLo
 	{
 		FText ErrorMessage = LOCTEXT("SetStructFields_NoStructRefError", "The @@ pin must be connected to the struct that you wish to set.");
 		MessageLog.Error(*ErrorMessage.ToString(), FoundPin);
+	}
+
+	if (!bMadeAfterOverridePinRemoval)
+	{
+		MessageLog.Warning(*NSLOCTEXT("K2Node", "OverridePinRemoval", "Override pins have been removed from @@, please verify the Blueprint works as expected! See tooltips for enabling pin visibility for more details. This warning will go away after you resave the asset!").ToString(), this);
 	}
 }
 
@@ -197,6 +204,12 @@ void UK2Node_SetFieldsInStruct::FSetFieldsInStructPinManager::GetRecordDefaults(
 	Record.bShowPin = false;
 }
 
+void UK2Node_SetFieldsInStruct::PostPlacedNewNode()
+{
+	// New nodes automatically have this set.
+	bMadeAfterOverridePinRemoval = true;
+}
+
 void UK2Node_SetFieldsInStruct::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
@@ -215,6 +228,44 @@ void UK2Node_SetFieldsInStruct::ExpandNode(class FKismetCompilerContext& Compile
 		}
 	}
 	Pins.Remove(OutPin);
+}
+
+void UK2Node_SetFieldsInStruct::Serialize(FArchive& Ar)
+{
+	UK2Node_StructOperation::Serialize(Ar);
+
+	if (Ar.IsLoading() && !bMadeAfterOverridePinRemoval)
+	{
+		// Check if this node actually requires warning the user that functionality has changed.
+
+		bMadeAfterOverridePinRemoval = true;
+		FOptionalPinManager PinManager;
+
+		// Have to check if this node is even in danger.
+		for (TFieldIterator<UProperty> It(StructType, EFieldIteratorFlags::IncludeSuper); It; ++It)
+		{
+			UProperty* TestProperty = *It;
+			if (PinManager.CanTreatPropertyAsOptional(TestProperty))
+			{
+				bool bNegate = false;
+				if (UProperty* OverrideProperty = PropertyCustomizationHelpers::GetEditConditionProperty(TestProperty, bNegate))
+				{
+					// We have confirmed that there is a property that uses an override variable to enable it, so set it to true.
+					bMadeAfterOverridePinRemoval = false;
+					break;
+				}
+			}
+		}
+	}
+	else if (Ar.IsSaving() && !Ar.IsTransacting())
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNode(this);
+
+		if (Blueprint && !Blueprint->bBeingCompiled)
+		{
+			bMadeAfterOverridePinRemoval = true;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
