@@ -38,6 +38,7 @@ public:
 	APawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker ) override;
 
 	/** Return our PawnMovementComponent, if we have one. By default, returns the first PawnMovementComponent found. Native classes that create their own movement component should override this method for more efficiency. */
 	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
@@ -194,7 +195,6 @@ public:
 
 	// Begin AActor Interface.
 	virtual FVector GetVelocity() const override;
-	virtual void Tick(float DeltaSeconds) override;
 	virtual void Reset() override;
 	virtual FString GetHumanReadableName() const override;
 	virtual bool ShouldTickIfViewportsOnly() const override;
@@ -463,3 +463,11 @@ public:
 	FVector K2_GetMovementInputVector() const;	
 };
 
+
+//////////////////////////////////////////////////////////////////////////
+// Pawn inlines
+
+FORCEINLINE AController* APawn::GetController() const
+{
+	return Controller;
+}

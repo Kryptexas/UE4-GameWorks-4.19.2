@@ -428,12 +428,6 @@ bool APawn::IsControlled() const
 	return(PC != NULL);
 }
 
-/** For K2 access to the controller. */
-AController* APawn::GetController() const
-{
-	return Controller;
-}
-
 FRotator APawn::GetControlRotation() const
 {
 	return Controller ? Controller->GetControlRotation() : FRotator::ZeroRotator;
@@ -698,16 +692,6 @@ class APhysicsVolume* APawn::GetPawnPhysicsVolume() const
 
 void APawn::SetPlayerDefaults()
 {
-}
-
-void APawn::Tick( float DeltaSeconds )
-{
-	Super::Tick(DeltaSeconds);
-
-	if (Role == ROLE_Authority && GetController())
-	{
-		SetRemoteViewPitch(GetController()->GetControlRotation().Pitch);
-	}
 }
 
 void APawn::RecalculateBaseEyeHeight()
@@ -1057,6 +1041,16 @@ void APawn::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetim
 	DOREPLIFETIME( APawn, Controller );
 
 	DOREPLIFETIME_CONDITION( APawn, RemoteViewPitch, 	COND_SkipOwner );
+}
+
+void APawn::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker )
+{
+	Super::PreReplication( ChangedPropertyTracker );
+
+	if (Role == ROLE_Authority && GetController())
+	{
+		SetRemoteViewPitch(GetController()->GetControlRotation().Pitch);
+	}
 }
 
 void APawn::MoveIgnoreActorAdd(AActor* ActorToIgnore)
