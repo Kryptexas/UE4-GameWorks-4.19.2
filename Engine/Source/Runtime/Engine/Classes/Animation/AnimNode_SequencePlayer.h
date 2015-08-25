@@ -25,6 +25,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
 	mutable float PlayRate;
 
+	// The start up position, it only applies when reinitialized
+	// if you loop, it will still start from 0.f after finishing the round
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Settings, meta=(PinHiddenByDefault))
+	mutable float StartPosition;
+
 	// The group index, assigned at compile time based on the editoronly GroupName (or INDEX_NONE if it is not part of any group)
 	UPROPERTY()
 	int32 GroupIndex;
@@ -37,6 +42,7 @@ public:
 		: Sequence(NULL)
 		, bLoopAnimation(true)
 		, PlayRate(1.0f)
+		, StartPosition(0.f)
 		, GroupIndex(INDEX_NONE)
 	{
 	}

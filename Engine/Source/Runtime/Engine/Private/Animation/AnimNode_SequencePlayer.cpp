@@ -9,11 +9,12 @@
 void FAnimNode_SequencePlayer::Initialize(const FAnimationInitializeContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
-	InternalTimeAccumulator = 0.0f;
-
+	InternalTimeAccumulator = StartPosition;
 	if (Sequence != NULL)
 	{
-		if ((PlayRate * Sequence->RateScale) < 0.0f)
+		InternalTimeAccumulator = FMath::Clamp(StartPosition, 0.f, Sequence->SequenceLength);
+
+		if (StartPosition == 0.f && (PlayRate * Sequence->RateScale) < 0.0f)
 		{
 			InternalTimeAccumulator = Sequence->SequenceLength;
 		}
