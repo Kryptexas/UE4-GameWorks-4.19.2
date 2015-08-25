@@ -74,6 +74,9 @@ public:
 	/** Changes the viewport to vertex densities mode */
 	TSharedPtr< FUICommandInfo > VertexDensitiesMode;
 
+	/** Changes the viewport to LOD index coloration mode */
+	TSharedPtr< FUICommandInfo > LODColorationMode;
+
 	/** Changes the viewport to visualize the buffer content */
 	TSharedPtr< FUICommandInfo > VisualizeBufferMode;
 

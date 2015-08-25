@@ -1110,6 +1110,10 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 				Mesh.bCanApplyViewModeOverrides = true;
 				Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+			
+			#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
+			#endif
 
 				Collector.AddMesh(ViewIndex, Mesh);
 			}
@@ -1562,6 +1566,10 @@ void FDynamicMeshEmitterData::GetDynamicMeshElementsEmitter(const FParticleSyste
 
 					Mesh.bCanApplyViewModeOverrides = true;
 					Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+			
+				#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+					Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
+				#endif
 
 					Collector.AddMesh(ViewIndex, Mesh);
 				}
@@ -2345,6 +2353,10 @@ void FDynamicBeam2EmitterData::GetDynamicMeshElementsEmitter(const FParticleSyst
 
 		Mesh.bCanApplyViewModeOverrides = true;
 		Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+		
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
+	#endif
 
 		Collector.AddMesh(ViewIndex, Mesh);
 
@@ -5068,6 +5080,10 @@ void FDynamicTrailsEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 
 		Mesh.bCanApplyViewModeOverrides = true;
 		Mesh.bUseWireframeSelectionColoring = Proxy->IsSelected();
+		
+	#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		Mesh.VisualizeLODIndex = (int8)Proxy->GetVisualizeLODIndex();
+	#endif
 
 		Collector.AddMesh(ViewIndex, Mesh);
 
@@ -6302,6 +6318,7 @@ FParticleSystemSceneProxy::FParticleSystemSceneProxy(const UParticleSystemCompon
 		GetSelectionColor(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f),false,false)
 		)
 	, PendingLODDistance(0.0f)
+	, VisualizeLODIndex(Component->GetCurrentLODIndex())
 	, LastFramePreRendered(-1)
 	, FirstFreeMeshBatch(0)
 {
@@ -6473,8 +6490,6 @@ void FParticleSystemSceneProxy::UpdateData_RenderThread(FParticleDynamicData* Ne
 
 void FParticleSystemSceneProxy::DetermineLODDistance(const FSceneView* View, int32 FrameNumber)
 {
-	int32	LODIndex = -1;
-
 	if (LODMethod == PARTICLESYSTEMLODMETHOD_Automatic)
 	{
 		// Default to the highest LOD level

@@ -4706,6 +4706,10 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 			Mesh.bCanApplyViewModeOverrides = true;
 			Mesh.bUseWireframeSelectionColoring = bIsSelected;
 
+		#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			Mesh.VisualizeLODIndex = LODIndex;
+		#endif
+
 			Collector.AddMesh(ViewIndex, Mesh);
 
 			const int32 NumVertices = Chunk.NumRigidVertices + Chunk.NumSoftVertices;

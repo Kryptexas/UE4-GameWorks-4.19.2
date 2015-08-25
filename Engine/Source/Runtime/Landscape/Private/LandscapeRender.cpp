@@ -1386,6 +1386,10 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					int32 SubSectionIdx = SubX + SubY*NumSubsections;
 					int32 CurrentLOD = CalcLODForSubsection(*View, SubX, SubY, CameraLocalPos);
 
+			#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+					// We simplify this by considering only the biggest LOD index for this mesh element.
+					Mesh.VisualizeLODIndex = (int8)FMath::Max((int32)Mesh.VisualizeLODIndex, CurrentLOD);
+			#endif
 					FMeshBatchElement& BatchElement = (SubX == 0 && SubY == 0) ? *Mesh.Elements.GetData() : *(new(Mesh.Elements) FMeshBatchElement);
 					BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 					FLandscapeBatchElementParams& BatchElementParams = ParameterArray.ElementParams[SubSectionIdx];
@@ -1482,24 +1486,24 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 
 			case ELandscapeViewMode::LOD:
 			{
-				FLinearColor WireColors[LANDSCAPE_LOD_LEVELS];
-				WireColors[0] = FLinearColor(1, 1, 1);
-				WireColors[1] = FLinearColor(1, 0, 0);
-				WireColors[2] = FLinearColor(0, 1, 0);
-				WireColors[3] = FLinearColor(0, 0, 1);
-				WireColors[4] = FLinearColor(1, 1, 0);
-				WireColors[5] = FLinearColor(1, 0, 1);
-				WireColors[6] = FLinearColor(0, 1, 1);
-				WireColors[7] = FLinearColor(0.5f, 0, 0.5f);
-
 				for (int32 i = 0; i < MeshTools.Elements.Num(); i++)
 				{
 					FMeshBatch& LODMesh = Collector.AllocateMesh();
 					LODMesh = MeshTools;
 					LODMesh.Elements.Empty(1);
 					LODMesh.Elements.Add(MeshTools.Elements[i]);
-					int32 ColorIndex = ((FLandscapeBatchElementParams*)MeshTools.Elements[i].UserData)->CurrentLOD;
-					FLinearColor Color = ForcedLOD >= 0 ? WireColors[ColorIndex] : WireColors[ColorIndex] * 0.2f;
+
+					int32 ColorIndex = INDEX_NONE;
+					if (GEngine->LODColorationColors.Num() > 0)
+					{
+						ColorIndex = ((FLandscapeBatchElementParams*)MeshTools.Elements[i].UserData)->CurrentLOD;
+						ColorIndex = FMath::Clamp(ColorIndex, 0, GEngine->LODColorationColors.Num() - 1);
+						LODMesh.VisualizeLODIndex = ColorIndex;
+					}
+
+					const FLinearColor& LODColor = ColorIndex != INDEX_NONE ? GEngine->LODColorationColors[ColorIndex] : FLinearColor::Gray;
+					FLinearColor Color = ForcedLOD >= 0 ? LODColor : LODColor * 0.2f;
+
 					auto LODMaterialInstance = new FColoredMaterialRenderProxy(GEngine->LevelColorationUnlitMaterial->GetRenderProxy(false), Color);
 					LODMesh.MaterialRenderProxy = LODMaterialInstance;
 					Collector.RegisterOneFrameMaterialProxy(LODMaterialInstance);

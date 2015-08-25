@@ -988,6 +988,10 @@ public:
 	UPROPERTY(globalconfig)
 	TArray<FLinearColor> StationaryLightOverlapColors;
 
+	/** The colors used to render LOD coloration. */
+	UPROPERTY(globalconfig)
+	TArray<FLinearColor> LODColorationColors;
+
 	/**
 	* Complexity limits for the various complexity view mode combinations.
 	* These limits are used to map instruction counts to ShaderComplexityColors.

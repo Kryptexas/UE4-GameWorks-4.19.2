@@ -290,6 +290,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeSenses, SFG_Advanced, LOCTEXT("VisualizeSens
 SHOWFLAG_FIXED_IN_SHIPPING(VisualizeBloom, 0, SFG_Visualize, LOCTEXT("VisualizeBloom", "Bloom"))
 /** Visualize Vertex Density */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VertexDensities, SFG_Hidden, LOCTEXT("VisualizeVertexDensities", "Visualize Vertex Densities"))
+/** Visualize LOD Coloration */
+SHOWFLAG_FIXED_IN_SHIPPING(LODColoration, 0, SFG_Hidden, LOCTEXT("VisualizeLODColoration", "Visualize LOD Coloration"))
 
 #undef SHOWFLAG_ALWAYS_ACCESSIBLE
 #undef SHOWFLAG_FIXED_IN_SHIPPING

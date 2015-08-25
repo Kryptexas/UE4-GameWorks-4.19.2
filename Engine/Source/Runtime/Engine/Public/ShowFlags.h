@@ -292,6 +292,7 @@ private:
 		SetStationaryLightOverlap(false);
 		SetLightMapDensity(false);
 		SetVertexDensities(false);
+		SetLODColoration(false);
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
 		SetConstraints(false);
