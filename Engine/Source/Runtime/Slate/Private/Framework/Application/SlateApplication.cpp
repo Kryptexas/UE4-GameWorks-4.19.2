@@ -407,7 +407,9 @@ TSharedPtr< SWidget > FSlateApplication::MouseCaptorHelper::ToSharedWidget(uint3
 TArray<TSharedRef<SWidget>> FSlateApplication::MouseCaptorHelper::ToSharedWidgets() const
 {
 	TArray<TSharedRef<SWidget>> Widgets;
-	for (auto IndexPathPair : PointerIndexToMouseCaptorWeakPathMap)
+	Widgets.Empty(PointerIndexToMouseCaptorWeakPathMap.Num());
+
+	for (const auto& IndexPathPair : PointerIndexToMouseCaptorWeakPathMap)
 	{
 		TSharedPtr<SWidget> LastWidget = IndexPathPair.Value.GetLastWidget().Pin();
 		if (LastWidget.IsValid())
