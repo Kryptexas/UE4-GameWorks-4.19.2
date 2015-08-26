@@ -156,7 +156,7 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 				auto ParamValueA = GameThread_GetScalarParameterValue(MaterialInstanceA, Name);
 				auto ParamValueB = GameThread_GetScalarParameterValue(MaterialInstanceB, Name);
 
-				if(!ParamValueA && !ParamValueB)
+				if(ParamValueA || ParamValueB)
 				{
 					auto Default = 0.0f;
 
@@ -185,7 +185,7 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 				auto ParamValueA = GameThread_GetVectorParameterValue(MaterialInstanceA, Name);
 				auto ParamValueB = GameThread_GetVectorParameterValue(MaterialInstanceB, Name);
 
-				if(!ParamValueA && !ParamValueB)
+				if(ParamValueA || ParamValueB)
 				{
 					auto Default = FLinearColor();
 
