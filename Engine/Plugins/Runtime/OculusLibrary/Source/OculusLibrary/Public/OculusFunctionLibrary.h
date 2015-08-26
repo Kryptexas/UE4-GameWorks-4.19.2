@@ -56,8 +56,8 @@ struct FHmdUserProfile
 		PlayerHeight(0.f), EyeHeight(0.f), IPD(0.f), NeckToEyeDistance(FVector2D::ZeroVector) {}
 };
 
-UCLASS(MinimalAPI)
-class UOculusFunctionLibrary : public UBlueprintFunctionLibrary
+UCLASS()
+class OCULUSLIBRARY_API UOculusFunctionLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 	
