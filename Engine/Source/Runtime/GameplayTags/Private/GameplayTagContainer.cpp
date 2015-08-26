@@ -455,7 +455,7 @@ bool FGameplayTagContainer::operator!=(FGameplayTagContainer const& Other) const
 
 bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
 {
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 	for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 	{
 		if (TagManager.GameplayTagsMatch(*It, TagMatchType, TagToCheck, TagToCheckMatchType) == true)
@@ -497,7 +497,7 @@ FGameplayTagContainer FGameplayTagContainer::GetGameplayTagParents() const
 FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType) const
 {
 	FGameplayTagContainer ResultContainer;
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	
 	for (TArray<FGameplayTag>::TConstIterator OtherIt(OtherContainer.GameplayTags); OtherIt; ++OtherIt)
@@ -516,7 +516,7 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 
 bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const
 {
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	for (TArray<FGameplayTag>::TConstIterator OtherIt(OtherContainer.GameplayTags); OtherIt; ++OtherIt)
 	{
@@ -642,7 +642,7 @@ bool FGameplayTagContainer::Serialize(FArchive& Ar)
 	
 	if (Ar.IsLoading())
 	{
-		UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 		// If loading old version, add old tags to the new gameplay tags array so they can be saved out with the new version
 		// This needs to happen 
@@ -785,7 +785,7 @@ FGameplayTag FGameplayTag::RequestDirectParent() const
 
 bool FGameplayTag::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	uint8 bHasName = (TagName != NAME_None);
 	uint8 bHasNetIndex = 0;

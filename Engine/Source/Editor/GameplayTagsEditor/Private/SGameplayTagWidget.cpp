@@ -304,7 +304,7 @@ void SGameplayTagWidget::OnTagChecked(TSharedPtr<FGameplayTagNode> NodeChecked)
 {
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_AddTags", "Add Gameplay Tags") );
 
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 	{
@@ -348,7 +348,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 	FScopedTransaction Transaction( LOCTEXT("GameplayTagWidget_RemoveTags", "Remove Gameplay Tags"));
 	if (NodeUnchecked.IsValid())
 	{
-		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
@@ -398,7 +398,7 @@ void SGameplayTagWidget::OnTagUnchecked(TSharedPtr<FGameplayTagNode> NodeUncheck
 
 void SGameplayTagWidget::UncheckChildren(TSharedPtr<FGameplayTagNode> NodeUnchecked, FGameplayTagContainer& EditableContainer)
 {
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 	FGameplayTag Tag = TagsManager.RequestGameplayTag(NodeUnchecked->GetCompleteTag());
 	EditableContainer.RemoveTag(Tag);
@@ -417,7 +417,7 @@ ECheckBoxState SGameplayTagWidget::IsTagChecked(TSharedPtr<FGameplayTagNode> Nod
 
 	if (Node.IsValid())
 	{
-		UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+		UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 
 		for (int32 ContainerIdx = 0; ContainerIdx < TagContainers.Num(); ++ContainerIdx)
 		{
@@ -522,7 +522,7 @@ void SGameplayTagWidget::VerifyAssetTagValidity()
 	// Create a set that is the library of all valid tags
 	TArray< TSharedPtr<FGameplayTagNode> > NodeStack;
 
-	UGameplayTagsManager& TagsManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
+	UGameplayTagsManager& TagsManager = IGameplayTagsModule::GetGameplayTagsManager();
 	
 	TagsManager.GetFilteredGameplayRootTags(TEXT(""), NodeStack);
 

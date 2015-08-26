@@ -12743,4 +12743,6 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 }
 #endif
 
+ENGINE_API UGameplayTagsManager* GGameplayTagsManager = nullptr;
+
 #undef LOCTEXT_NAMESPACE
