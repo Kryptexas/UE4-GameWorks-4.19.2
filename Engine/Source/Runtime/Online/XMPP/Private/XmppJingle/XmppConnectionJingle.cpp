@@ -31,7 +31,7 @@ public:
 		, ServerPingTask(NULL)
 		, ServerPingRetries(0)
 	{
-		Thread = FRunnableThread::Create(this, TEXT("XmppConnectionThread"));
+		Thread = FRunnableThread::Create(this, TEXT("XmppConnectionThread"), 64 * 1024);
 	}
 
 	~FXmppConnectionPumpThread()
