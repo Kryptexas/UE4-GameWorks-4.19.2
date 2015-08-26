@@ -175,6 +175,10 @@ void FPlatformOpenGLDevice::Init()
 
 	}
 
+	// For MSAA
+	glFramebufferTexture2DMultisampleEXT = (PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC)((void*)eglGetProcAddress("glFramebufferTexture2DMultisampleEXT"));
+	glRenderbufferStorageMultisampleEXT = (PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC)((void*)eglGetProcAddress("glRenderbufferStorageMultisampleEXT"));
+
 	if (!bFoundAllEntryPoints)
 	{
 		UE_LOG(LogRHI, Warning, TEXT("Failed to acquire all optional OpenGL entrypoints, may fall back to OpenGL ES 2.0"));
