@@ -517,11 +517,22 @@ private:
 				}
 				else if (ColumnName == CueHandlerColumnName)
 				{
+					bool HasNotifies = false;
+					for (auto& HandlerItem : Item->HandlerItems)
+					{
+						if (HandlerItem->GameplayCueNotifyObj.IsValid())
+						{
+							HasNotifies = true;
+							break;
+						}
+					}
+
 					return
 					SNew(SBox)
 					.Padding( FMargin(2.0f, 0.0f) )
 					.HAlign(HAlign_Left)
 					.VAlign(VAlign_Center)
+					.Visibility(HasNotifies ? EVisibility::Collapsed : EVisibility::Visible)
 					[
 						SNew(SButton)
 						.Text(LOCTEXT("AddNew", "Add New"))
