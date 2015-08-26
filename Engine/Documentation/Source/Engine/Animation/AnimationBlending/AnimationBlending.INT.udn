@@ -1,6 +1,7 @@
 Availability:Public
 Title: Blending Animations
 Crumbs: %ROOT%, Engine, Engine/Animation
+description:Transitioning smoothly between two animations on a single Skeletal Mesh
 version: 4.9
 
 
