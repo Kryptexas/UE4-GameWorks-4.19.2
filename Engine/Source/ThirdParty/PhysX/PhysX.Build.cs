@@ -169,7 +169,6 @@ public class PhysX : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt64_1.dll"));
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "PhysXDevice64.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win32 || (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
 		{
@@ -218,7 +217,6 @@ public class PhysX : ModuleRules
 				RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + String.Format(DLL, LibrarySuffix)));
 			}
 			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "nvToolsExt32_1.dll"));
-			RuntimeDependencies.Add(new RuntimeDependency(PhysXBinariesDir + "PhysXDevice.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
