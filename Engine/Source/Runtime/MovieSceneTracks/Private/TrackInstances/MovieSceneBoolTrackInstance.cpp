@@ -35,7 +35,7 @@ void FMovieSceneBoolTrackInstance::RestoreState(const TArray<UObject*>& RuntimeO
 		bool *BoolValue = InitBoolMap.Find(Object);
 		if (BoolValue != NULL)
 		{
-			PropertyBindings->CallFunction(Object, BoolValue);
+			PropertyBindings->CallFunction<bool>(Object, BoolValue);
 		}
 	}
 
@@ -50,7 +50,7 @@ void FMovieSceneBoolTrackInstance::Update( float Position, float LastPosition, c
 	{
 		for( UObject* Object : RuntimeObjects )
 		{
-			PropertyBindings->CallFunction( Object, &BoolValue );
+			PropertyBindings->CallFunction<bool>( Object, &BoolValue );
 		}
 	}
 }

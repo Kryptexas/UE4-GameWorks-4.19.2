@@ -18,7 +18,7 @@ void FMovieScene2DTransformTrackInstance::Update( float Position, float LastPosi
 		FWidgetTransform TransformValue = PropertyBindings->GetCurrentValue<FWidgetTransform>(Object);
 		if(TransformTrack->Eval(Position, LastPosition, TransformValue))
 		{
-			PropertyBindings->CallFunction(Object, &TransformValue);
+			PropertyBindings->CallFunction<FWidgetTransform>(Object, &TransformValue);
 		}
 	}
 }

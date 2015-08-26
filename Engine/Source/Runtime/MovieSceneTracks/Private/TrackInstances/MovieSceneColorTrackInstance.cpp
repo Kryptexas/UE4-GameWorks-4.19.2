@@ -57,16 +57,16 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 			FSlateColor* ColorValue = InitSlateColorMap.Find(Object);
 			if (ColorValue != NULL)
 			{
-				PropertyBindings->CallFunction(Object, ColorValue);
+				PropertyBindings->CallFunction<FSlateColor>(Object, ColorValue);
 			}
 		}
 		else if( ColorType == EColorType::Linear || ColorType == EColorType::RegularColor )
 		{
-			// todo 
+			//todo
 			FLinearColor* ColorValue = InitLinearColorMap.Find(Object);
 			if (ColorValue != NULL)
 			{
-				PropertyBindings->CallFunction(Object, ColorValue);
+				PropertyBindings->CallFunction<FLinearColor>(Object, ColorValue);
 			}
 		}
 		else
@@ -89,7 +89,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 			if(ColorTrack->Eval(Position, LastPosition, LinearColor))
 			{
 				FSlateColor NewColor(LinearColor);
-				PropertyBindings->CallFunction(Object, &NewColor);
+				PropertyBindings->CallFunction<FSlateColor>(Object, &NewColor);
 			}
 		}
 		else
@@ -104,7 +104,7 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 					ColorValue = FLinearColor(ColorValue.ToFColor(sRGB));
 				}
 
-				PropertyBindings->CallFunction(Object, &ColorValue);
+				PropertyBindings->CallFunction<FLinearColor>(Object, &ColorValue);
 			}
 		}
 	}

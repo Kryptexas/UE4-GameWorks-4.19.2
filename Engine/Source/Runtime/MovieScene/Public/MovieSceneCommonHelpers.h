@@ -46,12 +46,26 @@ public:
 	FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName = FName());
 
 	/**
-	 * Calls the setter function for a specific runtime object
+	 * Calls the setter function for a specific runtime object or if the setter function does not exist, the property is set directly
 	 *
 	 * @param InRuntimeObject	The runtime object whose function to call
 	 * @param FunctionParams	Parameters to pass to the function
 	 */
-	void CallFunction( UObject* InRuntimeObject, void* FunctionParams );
+	template <typename ValueType>
+	void 
+	CallFunction( UObject* InRuntimeObject, void* FunctionParams )
+	{
+		FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(InRuntimeObject);
+		if(PropAndFunction.Function)
+		{
+			InRuntimeObject->ProcessEvent(PropAndFunction.Function, FunctionParams);
+		}
+		else
+		{
+			ValueType* NewValue = (ValueType*)(FunctionParams);
+			SetCurrentValue<ValueType>(InRuntimeObject, *NewValue);
+		}
+	}
 
 	/**
 	 * Rebuilds the property and function mappings for a set of runtime objects
@@ -90,6 +104,28 @@ public:
 
 		return ValueType();
 	}
+
+	/**
+	 * Sets the current value of a property on an object
+	 *
+	 * @param Object	The object to set the property on
+	 * @param InValue   The value to set
+	 */
+	template <typename ValueType>
+	void SetCurrentValue(const UObject* Object, ValueType InValue)
+	{
+		FPropertyAndFunction PropAndFunction = RuntimeObjectToFunctionMap.FindRef(Object);
+
+		if(PropAndFunction.PropertyAddress.Address)
+		{
+			ValueType* Val = PropAndFunction.PropertyAddress.Property->ContainerPtrToValuePtr<ValueType>(PropAndFunction.PropertyAddress.Address);
+			if(Val)
+			{
+				*Val = InValue;
+			}
+		}
+	}
+
 private:
 
 	struct FPropertyAddress

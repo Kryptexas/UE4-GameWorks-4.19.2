@@ -57,7 +57,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 				FVector2D *VectorValue = InitVector2DMap.Find(Object);
 				if (VectorValue != NULL)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
@@ -66,7 +66,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 				FVector *VectorValue = InitVector3DMap.Find(Object);
 				if (VectorValue != NULL)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
@@ -75,7 +75,7 @@ void FMovieSceneVectorTrackInstance::RestoreState(const TArray<UObject*>& Runtim
 				FVector4 *VectorValue = InitVector4DMap.Find(Object);
 				if (VectorValue != NULL)
 				{
-					PropertyBindings->CallFunction(Object, VectorValue);
+					PropertyBindings->CallFunction<FVector2D>(Object, VectorValue);
 				}
 				break;
 			}
@@ -98,7 +98,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				FVector2D Value(Vector.X, Vector.Y);
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Value);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Value);
 				}
 				break;
 			}
@@ -107,7 +107,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				FVector Value(Vector.X, Vector.Y, Vector.Z);
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Value);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Value);
 				}
 				break;
 			}
@@ -115,7 +115,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 			{
 				for(UObject* Object : RuntimeObjects)
 				{
-					PropertyBindings->CallFunction(Object, &Vector);
+					PropertyBindings->CallFunction<FVector2D>(Object, &Vector);
 				}
 				break;
 			}

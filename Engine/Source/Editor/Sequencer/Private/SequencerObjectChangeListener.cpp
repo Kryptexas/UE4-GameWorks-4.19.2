@@ -134,34 +134,31 @@ bool FSequencerObjectChangeListener::FindPropertySetter( const UClass& ObjectCla
 
 		static const FName DeprecatedFunctionName(TEXT("DeprecatedFunction"));
 		UFunction* Function = ObjectClass.FindFunctionByName(FunctionName);
+		bool bFoundValidFunction = false;
 		if( Function && !Function->HasMetaData(DeprecatedFunctionName) )
 		{
-			bFound = true;
+			bFoundValidFunction = true;
+		}
 
-			if (Sequencer.IsValid() && Sequencer.Pin()->GetKeyInterpPropertiesOnly())
+		bool bFoundValidInterp = false;
+		if (StructProperty != 0)
+		{
+			if (StructProperty->HasAnyPropertyFlags(CPF_Interp))
 			{
-				if (StructProperty != 0)
-				{
-					if (!StructProperty->HasAnyPropertyFlags(CPF_Interp))
-					{
-						bFound = false;
-					}
-				}
-				else
-				{
-					UProperty* Property = ObjectClass.FindPropertyByName(FName(*InPropertyVarName));
-
-					if (!Property || !Property->HasAnyPropertyFlags(CPF_Interp))
-					{
-						bFound = false;
-					}
-				}
+				bFoundValidInterp = true;
 			}
 		}
 		else
 		{
-			bFound = false;
+			UProperty* Property = ObjectClass.FindPropertyByName(FName(*InPropertyVarName));
+			if (Property && Property->HasAnyPropertyFlags(CPF_Interp))
+			{
+				bFoundValidInterp = true;
+			}
 		}
+		
+		// Valid either if a setter function is foud or a property with the Interp keyword is found.
+		bFound = bFoundValidFunction || bFoundValidInterp;
 	}
 
 	return bFound;
