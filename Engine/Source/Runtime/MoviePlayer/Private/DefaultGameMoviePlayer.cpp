@@ -208,7 +208,10 @@ void FDefaultGameMoviePlayer::StopMovie()
 {
 	LastPlayTime = 0;
 	bUserCalledFinish = true;
-	LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
+	if (LoadingScreenWidgetHolder.IsValid())
+	{
+		LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
+	}
 }
 
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
