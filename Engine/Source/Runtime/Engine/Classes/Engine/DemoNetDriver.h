@@ -10,6 +10,26 @@ DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
 
 DECLARE_DELEGATE_OneParam(FOnGotoTimeDelegate, const bool);
 
+class UDemoNetDriver;
+
+class FQueuedReplayTask
+{
+public:
+	FQueuedReplayTask( UDemoNetDriver* InDriver ) : Driver( InDriver )
+	{
+	}
+
+	virtual ~FQueuedReplayTask()
+	{
+	}
+
+	virtual void	StartTask() = 0;
+	virtual bool	Tick() = 0;
+	virtual FString	GetName() = 0;
+
+	UDemoNetDriver* Driver;
+};
+
 /**
  * Simulated network driver for recording and playing back game sessions.
  */
@@ -62,23 +82,19 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
 	float		TimeToSkip;
-	float		QueuedGotoTimeInSeconds;
-	uint32		InitialLiveDemoTime;
-	double		InitialLiveDemoTimeRealtime;
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
 
 	void		SaveCheckpoint();
 
-	FArchive*	GotoCheckpointArchive;
-	int64		GotoCheckpointSkipExtraTimeInMS;
+	void		LoadCheckpoint( FArchive* GotoCheckpointArchive, int64 GotoCheckpointSkipExtraTimeInMS );
 
-	void		LoadCheckpoint();
+	FOnGotoTimeDelegate OnGotoTimeDelegate;
 
 private:
 	bool		bIsFastForwarding;
-	bool		bIsLoadingCheckpoint;
+	bool		bIsFastForwardingForCheckpoint;
 	bool		bWasStartStreamingSuccessful;
 
 	TArray<FNetworkGUID> NonQueuedGUIDsForScrubbing;
@@ -86,7 +102,10 @@ private:
 	// If a channel is associated with Actor, adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing.
 	void		AddNonQueuedActorForScrubbing(AActor* Actor);
 
-	FOnGotoTimeDelegate OnGotoTimeDelegate;
+	// Replay tasks
+	TArray< TSharedPtr< FQueuedReplayTask > >	QueuedReplayTasks;
+	TSharedPtr< FQueuedReplayTask >				ActiveReplayTask;
+	TSharedPtr< FQueuedReplayTask >				ActiveScrubReplayTask;
 
 public:
 
@@ -148,5 +167,10 @@ public:
 	void StopDemo();
 
 	void ReplayStreamingReady( bool bSuccess, bool bRecord );
-	void CheckpointReady( const bool bSuccess, const int64 SkipExtraTimeInMS );
+
+	void AddReplayTask( FQueuedReplayTask* NewTask );
+	bool IsAnyTaskPending();
+	void ClearReplayTasks();
+	bool ProcessReplayTasks();
+	bool IsNamedTaskInQueue( const FString& Name );
 };
