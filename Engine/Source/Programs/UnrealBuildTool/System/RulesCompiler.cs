@@ -2020,7 +2020,7 @@ namespace UnrealBuildTool
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
 
-			RulesCompiler.SetAssemblyNameAndGameFolders(Desc.AssemblyName, Desc.GameFolders);
+			RulesCompiler.SetAssemblyNameAndGameFolders(Desc.AssemblyName, Desc.GameFolders, Desc.ForeignPlugins);
 
 			string TargetFileName;
 			TargetRules RulesObject = CreateTargetRules(Desc.TargetName, new TargetInfo(Desc.Platform, Desc.Configuration), Desc.bIsEditorRecompile, out TargetFileName);
