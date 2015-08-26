@@ -363,6 +363,12 @@ namespace UnrealBuildTool
             {
                 UEBuildConfiguration.bCompileSimplygon = false;
             }
+
+			if (InBuildTarget.TargetType == TargetRules.TargetType.Server)
+			{
+				// Localization shouldn't be needed on servers by default, and ICU is pretty heavy
+				UEBuildConfiguration.bCompileICU = false;
+			}
         }
 
         /**
