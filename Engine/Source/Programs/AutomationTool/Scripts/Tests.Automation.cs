@@ -1340,7 +1340,6 @@ public class ZeroEngineVersions : BuildCommand
 			if (VersionH.Contains("#define ENGINE_VERSION 0") == false)
 			{
 				Log("Zeroing out engine versions in {0}", VersionFilename);
-				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 
 				VersionH.Commit();

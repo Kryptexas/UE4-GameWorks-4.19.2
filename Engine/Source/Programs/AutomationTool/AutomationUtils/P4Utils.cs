@@ -73,6 +73,7 @@ namespace AutomationTool
 		public string RootPath;
 		public string Host;
 		public string Owner;
+		public string Stream;
 		public DateTime Access;
         public P4LineEnd LineEnd;
         public P4ClientOption Options;
@@ -85,6 +86,7 @@ namespace AutomationTool
 				&& RootPath == Other.RootPath 
 				&& Host == Other.Host 
 				&& Owner == Other.Owner 
+				&& Stream == Other.Stream
 				&& LineEnd == Other.LineEnd 
 				&& Options == Other.Options 
 				&& SubmitOptions == Other.SubmitOptions
@@ -2441,6 +2443,7 @@ namespace AutomationTool
 					Info.RootPath = CommandUtils.ConvertSeparators(PathSeparator.Default, Info.RootPath);
 				}
 				Tags.TryGetValue("Owner", out Info.Owner);
+				Tags.TryGetValue("Stream", out Info.Stream);
 				string AccessTime;
 				Tags.TryGetValue("Access", out AccessTime);
 				if (!String.IsNullOrEmpty(AccessTime))

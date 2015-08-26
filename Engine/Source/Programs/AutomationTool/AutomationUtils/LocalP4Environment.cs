@@ -140,31 +140,39 @@ namespace AutomationTool
 		/// <param name="ClientRootPath">Client root</param>
 		private static void DetectRootPaths(P4Connection Connection, string LocalRootPath, P4ClientInfo ThisClient, out string BuildRootPath, out string ClientRootPath)
 		{
-			// Figure out the build root
-			string KnownFilePathFromRoot = CommandEnvironment.KnownFileRelativeToRoot;
-			string KnownLocalPath = CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot));
-			ProcessResult P4Result = Connection.P4(String.Format("files -m 1 {0}", KnownLocalPath), AllowSpew: false);
-
-			string KnownFileDepotMapping = P4Result.Output;
-
-			// Get the build root
-			Log.TraceVerbose("Looking for {0} in {1}", KnownFilePathFromRoot, KnownFileDepotMapping);
-			int EndIdx = KnownFileDepotMapping.IndexOf(KnownFilePathFromRoot, StringComparison.CurrentCultureIgnoreCase);
-			if (EndIdx < 0)
+			if(!String.IsNullOrEmpty(ThisClient.Stream))
 			{
-				EndIdx = KnownFileDepotMapping.IndexOf(CommandUtils.ConvertSeparators(PathSeparator.Slash, KnownFilePathFromRoot), StringComparison.CurrentCultureIgnoreCase);
-			}
-			// Get the root path without the trailing path separator
-			BuildRootPath = KnownFileDepotMapping.Substring(0, EndIdx - 1);
-
-			// Get the client root
-			if (LocalRootPath.StartsWith(CommandUtils.CombinePaths(PathSeparator.Slash, ThisClient.RootPath, "/"), StringComparison.InvariantCultureIgnoreCase) || LocalRootPath == ThisClient.RootPath)
-			{
-				ClientRootPath = CommandUtils.CombinePaths(PathSeparator.Depot, String.Format("//{0}/", ThisClient.Name), LocalRootPath.Substring(ThisClient.RootPath.Length));
+				BuildRootPath = ThisClient.Stream;
+				ClientRootPath = String.Format("//{0}", ThisClient.Name);
 			}
 			else
 			{
-				throw new AutomationException("LocalRootPath ({0}) does not start with the client root path ({1})", LocalRootPath, ThisClient.RootPath);
+				// Figure out the build root
+				string KnownFilePathFromRoot = CommandEnvironment.KnownFileRelativeToRoot;
+				string KnownLocalPath = CommandUtils.MakePathSafeToUseWithCommandLine(CommandUtils.CombinePaths(PathSeparator.Slash, LocalRootPath, KnownFilePathFromRoot));
+				ProcessResult P4Result = Connection.P4(String.Format("files -m 1 {0}", KnownLocalPath), AllowSpew: false);
+
+				string KnownFileDepotMapping = P4Result.Output;
+
+				// Get the build root
+				Log.TraceVerbose("Looking for {0} in {1}", KnownFilePathFromRoot, KnownFileDepotMapping);
+				int EndIdx = KnownFileDepotMapping.IndexOf(KnownFilePathFromRoot, StringComparison.CurrentCultureIgnoreCase);
+				if (EndIdx < 0)
+				{
+					EndIdx = KnownFileDepotMapping.IndexOf(CommandUtils.ConvertSeparators(PathSeparator.Slash, KnownFilePathFromRoot), StringComparison.CurrentCultureIgnoreCase);
+				}
+				// Get the root path without the trailing path separator
+				BuildRootPath = KnownFileDepotMapping.Substring(0, EndIdx - 1);
+
+				// Get the client root
+				if (LocalRootPath.StartsWith(CommandUtils.CombinePaths(PathSeparator.Slash, ThisClient.RootPath, "/"), StringComparison.InvariantCultureIgnoreCase) || LocalRootPath == ThisClient.RootPath)
+				{
+					ClientRootPath = CommandUtils.CombinePaths(PathSeparator.Depot, String.Format("//{0}/", ThisClient.Name), LocalRootPath.Substring(ThisClient.RootPath.Length));
+				}
+				else
+				{
+					throw new AutomationException("LocalRootPath ({0}) does not start with the client root path ({1})", LocalRootPath, ThisClient.RootPath);
+				}
 			}
 		}
 
