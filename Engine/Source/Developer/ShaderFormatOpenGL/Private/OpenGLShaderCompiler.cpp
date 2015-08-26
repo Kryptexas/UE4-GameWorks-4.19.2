@@ -799,7 +799,7 @@ static void BuildShaderOutput(
 			);
 	}
 
-	Header.ShaderName = CCHeader.Name.GetCharArray();
+	Header.ShaderName = CCHeader.Name;
 
 	// Build the SRT for this shader.
 	{

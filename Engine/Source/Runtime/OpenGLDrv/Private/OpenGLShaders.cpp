@@ -565,10 +565,10 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) Modifiers Semantic { Interp PreType PostType; }\n");
 			}
 			
-			if(Header.ShaderName.Num())
+			if(Header.ShaderName.IsEmpty() == false)
 			{
 				AppendCString(GlslCode, "// ");
-				AppendCString(GlslCode, TCHAR_TO_ANSI(Header.ShaderName.GetData()));
+				AppendCString(GlslCode, TCHAR_TO_ANSI(Header.ShaderName.GetCharArray().GetData()));
 				AppendCString(GlslCode, "\n");
 			}
 		}

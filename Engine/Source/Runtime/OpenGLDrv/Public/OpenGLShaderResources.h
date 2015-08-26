@@ -209,7 +209,7 @@ struct FOpenGLCodeHeader
 	uint32 GlslMarker;
 	uint16 FrequencyMarker;
 	FOpenGLShaderBindings Bindings;
-	TArray<TCHAR> ShaderName;
+	FString ShaderName;
 	TArray<CrossCompiler::FUniformBufferCopyInfo> UniformBuffersCopyInfo;
 };
 
