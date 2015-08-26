@@ -1,0 +1,66 @@
+﻿INTSourceChangelist:0
+Title: 1. SteamVR Initial Setup
+Crumbs:%ROOT%, Platforms
+Description: Setting up the require Hardware and Software for SteamVR
+Availability:Public
+Navigation:platform
+Platform:SteamVR
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[SteamVR Quick Start Home](Platforms/SteamVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/SteamVR/QuickStart/2 "%Platforms/SteamVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+Making sure that the SteamVR hardware is properly setup and that the correct software is installed on your development PC is of vital importance to ensuring that the SteamVR hardware will work correctly with Unreal Engine 4. 
+In the following section we will take a look at any special considerations that you might need to make when setting up SteamVR software and hardware to work with UE4.
+
+[region:note]
+With each SteamVR development kit Valve has provide [detailed instructions](http://media.steampowered.com/apps/steamvr/vr_setup.pdf ) that will show you how to correctly set everything up. 
+If you have not read this document please do so before going any further as the following information is not a substitute for the information contained in the document created by Valve.
+[/region]
+
+1. Make sure to clear a 12 x 9ft / 4 x 3M area of all objects that you could trip over or hit while you are using SteamVR.
+
+1. Inside of the Steam Client in the **Library** section under the **Tools** option, download and install both **SteamVR** and **VRMonitor**.
+
+	![](T_SteamTools_Software.png)
+
+1. Ensure that the Vive Head Mounted Display (HMD), Steam Controllers, Breakout box, and Lighthouse Base stations are all unpacked, powered on, connected and setup according the the [instruction](http://media.steampowered.com/apps/steamvr/vr_setup.pdf) provide by Valve.
+
+1. Once everything is connected and turned on, pick up the Vive HMD so that the lenses are facing you.
+On the **Left Hand Side** of the Vive HMD there is a small **Black Button** with a small light above it. 
+Currently the light should be **red** meaning that the Vive HMD is in standby mode. 
+Press and hold the **Black Button** in for **5 Seconds** and the red light should change to **green**, meaning the Vive HMD is now ready to be used.
+
+	![](T_Vive_Standby_Mode.png)
+
+	[region:note]
+	Keep in mind that in order for the Vive HMD to work correctly you will need to have a **[USB 3.0](http://en.wikipedia.org/wiki/USB_3.0)** port available to use on your development PC. 
+	[/region]
+
+1. From the Steam client launch the **Steam VR** application and the following window will be displayed.
+
+	![](T_Steam_VR_App.png)
+
+1. Make sure to read and complete the first 3 steps in the **Setting up** section and once everything has been completed click on the **Run your first VR app!** then put your HMD on. 
+   If everything has been setup correctly you should now see something that looks like the following image in the HMD.
+
+	![](T_FirstVRApp.png)
+
+
+
+
+
+%Steps%
