@@ -52,6 +52,13 @@ public:
 	static bool GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY);
 
 	/**
+	* Gets the slot object on the child widget as a Border Slot, allowing you to manipulate layout information.
+	* @param Widget The child widget of a border panel.
+	*/
+	UFUNCTION(BlueprintPure, Category = "Slot")
+	static class UBorderSlot* SlotAsBorderSlot(UWidget* Widget);
+
+	/**
 	 * Gets the slot object on the child widget as a Canvas Slot, allowing you to manipulate layout information.
 	 * @param Widget The child widget of a canvas panel.
 	 */
