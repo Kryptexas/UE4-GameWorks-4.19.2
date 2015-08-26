@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2572470
+﻿INTSourceChangelist:2652899
 Availability:Public
 Title:Environment Query System
 Crumbs:%ROOT%, Engine, Gameplay/AI
@@ -43,8 +43,8 @@ Description:Environment Query System に関連する全ドキュメントへの�
 [/OBJECT]
 [/VAR]
 
-**Environment Query System** はアンリアル エンジン 4 の **Artificial Intelligence** システムの機能です。
-環境のデータを収集し、**テスト** を使ってデータの質問をし、質問の答えとして最もよい **Item** を 1 つ返します。
+**Environment Query System** はアンリアル エンジン 4 の Artificial Intelligence システムの機能です。
+環境のデータを収集し、テスト を使ってデータの質問をし、質問の答えとして最もよい Item を 1 つ返します。
 
 これを使って、一番近くのパワーアップを見つけたり、最も脅威的な敵がどれかを見分けたり、カバーを探すことができます。
 
