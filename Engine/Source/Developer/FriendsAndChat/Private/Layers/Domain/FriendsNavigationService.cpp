@@ -29,19 +29,19 @@ public:
 		return InGame;
 	}
 
-	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, FFriendsNavigationService::FViewChangedEvent, FViewChangedEvent);
+	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, IFriendsNavigationService::FViewChangedEvent, FViewChangedEvent);
 	virtual FViewChangedEvent& OnChatViewChanged() override
 	{
 		return ViewChangedEvent;
 	}
 
-	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, FFriendsNavigationService::FChannelChangedEvent, FChannelChangedEvent);
+	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, IFriendsNavigationService::FChannelChangedEvent, FChannelChangedEvent);
 	virtual FChannelChangedEvent& OnChatChannelChanged() override
 	{
 		return ChannelChangedEvent;
 	}
 
-	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, FFriendsNavigationService::FFriendSelectedEvent, FFriendSelectedEvent);
+	DECLARE_DERIVED_EVENT(FFriendsNavigationServiceImpl, IFriendsNavigationService::FFriendSelectedEvent, FFriendSelectedEvent);
 	virtual FFriendSelectedEvent& OnChatFriendSelected() override
 	{
 		return FriendSelectedEvent;

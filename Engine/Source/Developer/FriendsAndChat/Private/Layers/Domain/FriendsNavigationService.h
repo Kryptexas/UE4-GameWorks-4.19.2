@@ -18,25 +18,6 @@ public:
 	virtual void ChangeViewChannel(EChatMessageType::Type ChannelSelected) = 0;
 	virtual void ChangeChatChannel(EChatMessageType::Type ChannelSelected) = 0;
 	virtual bool IsInGame() const = 0;
-
-	/**
-	 * Event broadcast when a navigation even is requested.
-	 */
-	DECLARE_EVENT_OneParam(FFriendsNavigationService, FViewChangedEvent, EChatMessageType::Type  /* Channel Selected */);
-	virtual FViewChangedEvent& OnChatViewChanged() = 0;
-
-	/**
-	 * Event broadcast when the outgoing chat channel change.
-	 */
-	DECLARE_EVENT_OneParam(FFriendsNavigationService, FChannelChangedEvent, EChatMessageType::Type  /* Channel Selected */);
-	virtual FChannelChangedEvent& OnChatChannelChanged() = 0;
-
-	/**
-	 * Event broadcast when the outgoing chat channel change is requested.
-	 */
-	DECLARE_EVENT_OneParam(FFriendsNavigationService, FFriendSelectedEvent, TSharedRef<class IFriendItem> /*FriendItem*/);
-	virtual FFriendSelectedEvent& OnChatFriendSelected() = 0;
-
 };
 
 FACTORY(TSharedRef<FFriendsNavigationService>, FFriendsNavigationService, bool InGame);
