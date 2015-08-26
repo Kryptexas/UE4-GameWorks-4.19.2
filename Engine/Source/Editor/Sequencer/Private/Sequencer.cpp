@@ -638,7 +638,7 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime )
 	if (Settings->GetShowRangeSlider() && Settings->GetLockInOutToStartEndRange())
 	{
 		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
-		NewTime = FMath::Clamp(NewTime, FocusedMovieScene->StartTime, FocusedMovieScene->EndTime);
+		NewTime = FMath::Clamp(NewTime, FocusedMovieScene->InTime, FocusedMovieScene->OutTime);
 	}
 
 	// Update the position
