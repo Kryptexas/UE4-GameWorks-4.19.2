@@ -10,7 +10,7 @@ Description:Guide to using Persona to edit Animation Sequences and add animation
 [TOC(start:2)]
 
 [EXCERPT:overview]
-The **Animation Sequence Editor** provides functionality for previewing and editing individual **Animation Sequence** assets. The properties, including compression scheme, of the **Animation Sequence** can be set, and animation notification events - also called Notifies - can be added to allow camera effects, particle effects, sounds, and more to be triggered based on the animation.
+The **Animation Sequence Editor** provides functionality for previewing and editing individual **Animation Sequence** assets. The properties, including compression scheme, of the Animation Sequence can be set, and animation notification events - also called Notifies - can be added to allow camera effects, particle effects, sounds, and more to be triggered based on the animation.
 [/EXCERPT:overview]
 
 ## Interface
