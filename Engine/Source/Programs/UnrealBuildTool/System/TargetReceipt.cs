@@ -397,7 +397,7 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Filename to read from</param>
 		public static bool TryRead(string FileName, out TargetReceipt Receipt)
 		{
-			if(File.Exists(FileName))
+			if(!File.Exists(FileName))
 			{
 				Receipt = null;
 				return false;
@@ -406,8 +406,8 @@ namespace UnrealBuildTool
 			try
 			{
 				Receipt = Read(FileName);
-					return true;
-				}
+				return true;
+			}
 			catch(Exception)
 			{
 				Receipt = null;
