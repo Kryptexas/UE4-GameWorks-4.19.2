@@ -10,6 +10,7 @@ class UMovieScene;
 class IToolkitHost;
 class UMovieSceneSequence;
 class ISequencerObjectChangeListener;
+class IDetailKeyframeHandler;
 
 /**
  * Sequencer is the editing tool for MovieScene assets.
@@ -29,9 +30,10 @@ public:
 	 *
 	 * @param InitParams Initialization parameters.
 	 * @param InObjectChangeListener The object change listener to use.
+	 * @param InDetailKeyframeHandler The detail keyframe handler to use.
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 */
-	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
+	void InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TSharedRef<IDetailKeyframeHandler>& InDetailKeyframeHandler, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates);
 
 	/** Constructor */
 	FSequencer();
@@ -422,6 +424,9 @@ protected:
 
 	void ActivateSequencerEditorMode();
 
+	void ActivateDetailKeyframeHandler();
+	void DeactivateDetailKeyframeHandler();
+
 	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
@@ -465,6 +470,9 @@ private:
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;
+
+	/** Listener for object changes being made while this sequencer is open*/
+	TSharedPtr< class IDetailKeyframeHandler > DetailKeyframeHandler;
 
 	/** The runtime instance for the root movie scene */
 	TSharedPtr< class FMovieSceneSequenceInstance > RootMovieSceneSequenceInstance;

@@ -3,6 +3,7 @@
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
 #include "SequencerEdMode.h"
+#include "SequencerDetailKeyframeHandler.h"
 #include "MovieSceneSequence.h"
 #include "MovieScene.h"
 #include "Engine/LevelScriptBlueprint.h"
@@ -32,6 +33,7 @@
 #include "ISequencerSection.h"
 #include "MovieSceneSequenceInstance.h"
 #include "IKeyArea.h"
+#include "IDetailsView.h"
 #include "SnappingUtils.h"
 #include "GenericCommands.h"
 #include "Engine/BlueprintGeneratedClass.h"
@@ -54,7 +56,7 @@ namespace
 	TSharedPtr<FSequencer> ActiveSequencer;
 }
 
-void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates)
+void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSharedRef<ISequencerObjectChangeListener>& InObjectChangeListener, const TSharedRef<IDetailKeyframeHandler>& InDetailKeyframeHandler, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates)
 {
 	if( IsSequencerEnabled() )
 	{
@@ -88,6 +90,7 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 		LastViewRange = TargetViewRange = InitParams.ViewParams.InitalViewRange;
 		ScrubPosition = InitParams.ViewParams.InitialScrubPosition;
 		ObjectChangeListener = InObjectChangeListener;
+		DetailKeyframeHandler = InDetailKeyframeHandler;
 
 		check( ObjectChangeListener.IsValid() );
 		
@@ -117,6 +120,8 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			// @todo remove when world-centric mode is added
 			// Hook into the editor's mechanism for checking whether we need live capture of PIE/SIE actor state
 			GEditor->GetActorRecordingState().AddSP(this, &FSequencer::GetActorRecordingState);
+
+			ActivateDetailKeyframeHandler();
 		}
 
 		// Create tools and bind them to this sequencer
@@ -208,6 +213,7 @@ void FSequencer::Close()
 			GLevelEditorModeTools().DeactivateMode( FSequencerEdMode::EM_SequencerMode );
 		}
 	}
+	DeactivateDetailKeyframeHandler();
 }
 
 void FSequencer::Tick(float InDeltaTime)
@@ -1544,6 +1550,42 @@ void FSequencer::ActivateSequencerEditorMode()
 
 	FSequencerEdMode* SequencerEdMode = (FSequencerEdMode*)(GLevelEditorModeTools().GetActiveMode(FSequencerEdMode::EM_SequencerMode));
 	SequencerEdMode->SetSequencer(ActiveSequencer.Get());
+}
+
+void FSequencer::ActivateDetailKeyframeHandler()
+{			
+	// Add sequencer detail keyframe handler
+	static const FName DetailsTabIdentifiers[] = { "LevelEditorSelectionDetails", "LevelEditorSelectionDetails2", "LevelEditorSelectionDetails3", "LevelEditorSelectionDetails4" };
+	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	for(const FName& DetailsTabIdentifier : DetailsTabIdentifiers)
+	{
+		TSharedPtr<IDetailsView> DetailsView = EditModule.FindDetailView(DetailsTabIdentifier);
+
+		if(DetailsView.IsValid())
+		{
+			DetailsView->SetKeyframeHandler(DetailKeyframeHandler);
+		}
+	}
+}
+
+void FSequencer::DeactivateDetailKeyframeHandler()
+{
+	static const FName DetailsTabIdentifiers[] = { "LevelEditorSelectionDetails", "LevelEditorSelectionDetails2", "LevelEditorSelectionDetails3", "LevelEditorSelectionDetails4" };
+	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+	for(const FName& DetailsTabIdentifier : DetailsTabIdentifiers)
+	{
+		TSharedPtr<IDetailsView> DetailsView = EditModule.FindDetailView(DetailsTabIdentifier);
+
+		if(DetailsView.IsValid())
+		{
+			if (DetailsView->GetKeyframeHandler() == DetailKeyframeHandler)
+			{
+				DetailsView->SetKeyframeHandler(0);
+			}
+		}
+	}
 }
 
 void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorViewportClient& InViewportClient, UObject* InCameraObject, bool bNewCameraCut ) const
