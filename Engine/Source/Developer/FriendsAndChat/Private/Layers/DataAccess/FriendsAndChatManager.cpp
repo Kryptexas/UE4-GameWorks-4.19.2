@@ -55,10 +55,12 @@ void FFriendsAndChatManager::Initialize(bool InGame)
 	Analytics = FFriendsAndChatAnalyticsFactory::Create();
 	OSSScheduler = FOSSSchedulerFactory::Create(Analytics);
 	
-	NavigationService = FFriendsNavigationServiceFactory::Create(InGame);
 	NotificationService = FChatNotificationServiceFactory::Create();
 
 	FriendsService = FFriendsServiceFactory::Create(OSSScheduler.ToSharedRef(), NotificationService.ToSharedRef());
+
+	NavigationService = FFriendsNavigationServiceFactory::Create(FriendsService.ToSharedRef(), InGame);
+
 	MessageService = FMessageServiceFactory::Create(OSSScheduler.ToSharedRef(), FriendsService.ToSharedRef());
 	GameAndPartyService = FGameAndPartyServiceFactory::Create(OSSScheduler.ToSharedRef(), FriendsService.ToSharedRef(), NotificationService.ToSharedRef(), InGame);
 	

@@ -20,4 +20,4 @@ public:
 	virtual bool IsInGame() const = 0;
 };
 
-FACTORY(TSharedRef<FFriendsNavigationService>, FFriendsNavigationService, bool InGame);
+FACTORY(TSharedRef<FFriendsNavigationService>, FFriendsNavigationService, const TSharedRef<class FFriendsService>& FriendsService, bool InGame);

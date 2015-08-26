@@ -2,6 +2,7 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsNavigationService.h"
+#include "FriendsService.h"
 
 class FFriendsNavigationServiceImpl
 	: public FFriendsNavigationService
@@ -20,8 +21,20 @@ public:
 
 	virtual void SetOutgoingChatFriend(TSharedRef<IFriendItem> FriendItem) override
 	{
-		ChangeViewChannel(EChatMessageType::Whisper);
-		OnChatFriendSelected().Broadcast(FriendItem);
+		if(FriendItem->GetInviteStatus() == EInviteStatus::Accepted)
+		{
+			ChangeViewChannel(EChatMessageType::Whisper);
+			OnChatFriendSelected().Broadcast(FriendItem);
+		}
+	}
+
+	virtual void SetOutgoingChatFriend(const FUniqueNetId& InUserID) override
+	{
+		TSharedPtr< IFriendItem > FoundFriend = FriendsService->FindUser(InUserID);
+		if(FoundFriend.IsValid())
+		{
+			SetOutgoingChatFriend(FoundFriend.ToSharedRef());
+		}
 	}
 
 	virtual bool IsInGame() const override
@@ -53,22 +66,25 @@ private:
 	{
 	}
 
-	FFriendsNavigationServiceImpl(bool InIsInGame)
-		: InGame(InIsInGame)
+	FFriendsNavigationServiceImpl(const TSharedRef<class FFriendsService>& InFriendsService, bool InIsInGame)
+		: FriendsService(InFriendsService)
+		, InGame(InIsInGame)
 	{}
 
 private:
 	FViewChangedEvent ViewChangedEvent;
 	FChannelChangedEvent ChannelChangedEvent;
 	FFriendSelectedEvent FriendSelectedEvent;
+
+	TSharedRef<FFriendsService> FriendsService;
 	bool InGame;
 
 	friend FFriendsNavigationServiceFactory;
 };
 
-TSharedRef< FFriendsNavigationService > FFriendsNavigationServiceFactory::Create(bool InIsInGame)
+TSharedRef< FFriendsNavigationService > FFriendsNavigationServiceFactory::Create(const TSharedRef<class FFriendsService>& FriendsService, bool InIsInGame)
 {
-	TSharedRef< FFriendsNavigationServiceImpl > Service = MakeShareable(new FFriendsNavigationServiceImpl(InIsInGame));
+	TSharedRef< FFriendsNavigationServiceImpl > Service = MakeShareable(new FFriendsNavigationServiceImpl(FriendsService, InIsInGame));
 	Service->Initialize();
 	return Service;
 }

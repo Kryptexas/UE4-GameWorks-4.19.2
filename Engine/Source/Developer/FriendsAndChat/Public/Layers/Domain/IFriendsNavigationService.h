@@ -10,6 +10,8 @@ public:
 
 	virtual void SetOutgoingChatFriend(TSharedRef<class IFriendItem> FriendItem) = 0;
 
+	virtual void SetOutgoingChatFriend(const FUniqueNetId& InUserID) = 0;
+
 	/**
 	 * Event broadcast when a navigation even is requested.
 	 */
