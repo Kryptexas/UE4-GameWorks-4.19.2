@@ -397,8 +397,9 @@ public:
 	 * 
 	 * @param	InWidget				The widget that should be shown in the toolbar
 	 * @param	InTutorialHighlightName	Name to identify this widget and highlight during tutorials
+	 * @param	bSearchable			If true, widget will be searchable (default == true)
 	 */
-	void AddWidget( TSharedRef<SWidget> InWidget, FName InTutorialHighlightName = NAME_None );
+	void AddWidget(TSharedRef<SWidget> InWidget, FName InTutorialHighlightName = NAME_None, bool bSearchable = true);
 	
 	/**
 	 * Adds a toolbar separator

@@ -179,7 +179,7 @@ private:
 	FName TutorialHighlightName;
 
 	/** Whether this block can be searched */
-	bool bSearchable = true;
+	bool bSearchable;
 };
 
 
@@ -655,5 +655,5 @@ private:
 	TSharedPtr<SWidget> SearchBlockWidget;
 
 	/* The text being searched for */
-	FText SearchText = FText::GetEmpty();
+	FText SearchText;
 };
