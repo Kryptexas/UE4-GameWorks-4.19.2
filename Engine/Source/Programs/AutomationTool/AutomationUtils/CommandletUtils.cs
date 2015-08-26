@@ -212,15 +212,17 @@ namespace AutomationTool
 			}
 
             string ProjectStatsDirectory = CombinePaths(Path.GetDirectoryName(ProjectName), "Saved", "Stats");
-            string DestCookerStats = CmdEnv.LogFolder;
-            foreach ( var StatsFile in Directory.EnumerateFiles(ProjectStatsDirectory, "*.csv") )
+            if (Directory.Exists(ProjectStatsDirectory))
             {
-                if (!CommandUtils.CopyFile_NoExceptions(StatsFile, CombinePaths(DestCookerStats, Path.GetFileName(StatsFile))))
+                string DestCookerStats = CmdEnv.LogFolder;
+                foreach (var StatsFile in Directory.EnumerateFiles(ProjectStatsDirectory, "*.csv"))
                 {
-                    CommandUtils.LogWarning("Commandlet {0} failed to copy the local log file from {1} to {2}. The log file will be lost.", Commandlet, LocalDDCLogFile, DestDDCLogFile);
+                    if (!CommandUtils.CopyFile_NoExceptions(StatsFile, CombinePaths(DestCookerStats, Path.GetFileName(StatsFile))))
+                    {
+                        CommandUtils.LogWarning("Commandlet {0} failed to copy the local log file from {1} to {2}. The log file will be lost.", Commandlet, LocalDDCLogFile, DestDDCLogFile);
+                    }
                 }
             }
-            
 
 			// Whether it was copied correctly or not, delete the local log as it was only a temporary file. 
 			CommandUtils.DeleteFile_NoExceptions(LocalLogFile);
