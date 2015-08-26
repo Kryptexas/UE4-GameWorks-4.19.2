@@ -742,17 +742,21 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 				break;
 			}
 
+			// break or any other tangent mode doesn't work well with DCC
+			// it's because we don't support tangent weights, break with tangent weights won't work
+			// I added new ticket to support this, but meanwhile, we'll have to just import using auto. 
+			// @Todo: fix me: UE-20414
 			// when we import tangent, we only support break or user
 			// since it's modified by DCC and we only assume these two are valid
 			// auto does our own stuff, which doesn't work with what you see in DCC
-			if (KeyTangentMode & FbxAnimCurveDef::eTangentBreak)
-			{
-				NewTangentMode = RCTM_Break;
-			}
-			else
-			{
-				NewTangentMode = RCTM_User;
-			}
+// 			if (KeyTangentMode & FbxAnimCurveDef::eTangentGenericBreak)
+// 			{
+// 				NewTangentMode = RCTM_Break;
+// 			}
+// 			else
+// 			{
+// 				NewTangentMode = RCTM_User;
+// 			}
 
 			// @fix me : weight of tangent is not used, but we'll just save this for future where we might use it. 
 			switch (KeyTangentWeightMode)
