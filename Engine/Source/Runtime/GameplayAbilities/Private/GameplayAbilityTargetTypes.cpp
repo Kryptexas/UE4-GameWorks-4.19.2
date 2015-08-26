@@ -15,7 +15,7 @@ TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEff
 	return ApplyGameplayEffectSpec(TempSpecToApply, PredictionKey);
 }
 
-TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffectSpec(const FGameplayEffectSpec& InSpec, FPredictionKey PredictionKey)
+TArray<FActiveGameplayEffectHandle> FGameplayAbilityTargetData::ApplyGameplayEffectSpec(FGameplayEffectSpec& InSpec, FPredictionKey PredictionKey)
 {
 	TArray<FActiveGameplayEffectHandle>	AppliedHandles;
 
