@@ -222,16 +222,18 @@ public:
 	ENGINE_API virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
 	// End interface IBlendableInterface
 
-	/** Walks up parent chain and finds the base Material that this is an instance of. */
+	/** Walks up parent chain and finds the base Material that this is an instance of. Just calls the virtual GetMaterial() */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Material")
 	ENGINE_API UMaterial* GetBaseMaterial();
 
 	/**
 	 * Get the material which we are instancing.
+	 * Walks up parent chain and finds the base Material that this is an instance of. 
 	 */
 	virtual class UMaterial* GetMaterial() PURE_VIRTUAL(UMaterialInterface::GetMaterial,return NULL;);
 	/**
 	 * Get the material which we are instancing.
+	 * Walks up parent chain and finds the base Material that this is an instance of. 
 	 */
 	virtual const class UMaterial* GetMaterial() const PURE_VIRTUAL(UMaterialInterface::GetMaterial,return NULL;);
 

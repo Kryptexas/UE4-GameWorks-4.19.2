@@ -419,7 +419,10 @@ protected:
 	/** Caches shader maps for an array of material resources. */
 	void CacheShadersForResources(EShaderPlatform ShaderPlatform, const TArray<FMaterialResource*>& ResourcesToCache, bool bApplyCompletedShaderMapForRendering);
 
-	/** Copies over parameters given a material interface */
+	/** 
+	 * Copies over material instance parameters from the base material given a material interface.
+	 * This is a slow operation that is needed for the editor.
+	 */
 	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface);
 
 	// to share code between PostLoad() and PostEditChangeProperty()
