@@ -54,7 +54,7 @@ enum ELoadFlags
 //	LOAD_Unused						= 0x00000200,
 //	LOAD_Unused						= 0x00000400,
 //	LOAD_Unused						= 0x00000800,
-//	LOAD_Unused						= 0x00001000,
+	LOAD_DisableDependencyPreloading = 0x00001000,	// Bypass dependency preloading system
 	LOAD_Quiet						= 0x00002000,   // No log warnings.
 	LOAD_FindIfFail					= 0x00004000,	// Tries FindObject if a linker cannot be obtained (e.g. package is currently being compiled)
 	LOAD_MemoryReader				= 0x00008000,	// Loads the file into memory and serializes from there.

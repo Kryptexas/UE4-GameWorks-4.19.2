@@ -503,7 +503,7 @@ void FChunkManifestGenerator::AddAssetToFileOrderRecursive(FAssetData* InAsset, 
 		OutEncounteredNames.Add(InAsset->PackageName);
 
 		TArray<FName> Dependencies;
-		AssetRegistry.GetDependencies(InAsset->PackageName, Dependencies);
+		AssetRegistry.GetDependencies(InAsset->PackageName, Dependencies, EAssetRegistryDependencyType::Hard);
 
 		for (auto DependencyName : Dependencies)
 		{
@@ -602,10 +602,33 @@ inline void ConvertFilenameToPakFormat(FString& InOutPath)
 	}
 }
 
+void InsertIntoOrder(const TMap<FName, FAssetData*>& InAssets, TMap<FAssetData*, int32>& InOrder, FName InPackageName, int32 InOrderIndex)
+{
+	if (InAssets.Contains(InPackageName))
+	{
+		InOrder.Add(InAssets[InPackageName], InOrderIndex);
+	}
+}
+
 FString FChunkManifestGenerator::CreateCookerFileOrderString(const TMap<FName, FAssetData*>& InAssetData, const TArray<FName>& InMaps)
 {
 	FString FileOrderString;
+	TArray<FAssetData*> TopLevelMapNodes;
 	TArray<FAssetData*> TopLevelNodes;
+	TMap<FAssetData*, int32> PreferredMapOrders;
+
+#if 0
+	// TODO: PreferredMapOrders should be filled out with the maps in the order we wish them to be pak'd.
+	int32 Order = 0;
+	static const TCHAR* MapOrderList[] = 
+	{
+	};
+
+	for (int32 i = 0; i < ARRAY_COUNT(MapOrderList); ++i)
+	{
+		InsertIntoOrder(InAssetData, PreferredMapOrders, FName(MapOrderList[i]), i);
+	}
+#endif
 
 	for (auto Asset : InAssetData)
 	{
@@ -632,17 +655,31 @@ FString FChunkManifestGenerator::CreateCookerFileOrderString(const TMap<FName, F
 		{
 			if (bIsMap)
 			{
-				TopLevelNodes.Insert(Asset.Value, 0);
+				TopLevelMapNodes.Add(Asset.Value);
 			}
 			else
 			{
-				TopLevelNodes.Insert(Asset.Value, TopLevelNodes.Num());
+				TopLevelNodes.Add(Asset.Value);
 			}
 		}
 	}
 
+	TopLevelMapNodes.Sort([&PreferredMapOrders](const FAssetData& A, const FAssetData& B)
+	{
+		auto OrderA = PreferredMapOrders.Find(&A);
+		auto OrderB = PreferredMapOrders.Find(&B);
+		auto IndexA = OrderA ? *OrderA : INT_MAX;
+		auto IndexB = OrderB ? *OrderB : INT_MAX;
+		return IndexA < IndexB;
+	});
+
 	TArray<FName> FileOrder;
 	TArray<FName> EncounteredNames;
+	for (auto Asset : TopLevelMapNodes)
+	{
+		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InMaps);
+	}
+
 	for (auto Asset : TopLevelNodes)
 	{
 		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InMaps);

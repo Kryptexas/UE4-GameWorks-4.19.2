@@ -988,8 +988,9 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 		FExclusiveLoadPackageTimeTracker::FScopedPackageTracker Tracker(Result);
 
 #if !WITH_EDITOR
+		bool bAllowDependencyPreloading = ((LoadFlags & LOAD_DisableDependencyPreloading) == 0);
 		static auto CVarPreloadDependencies = IConsoleManager::Get().FindConsoleVariable(TEXT("s.PreloadPackageDependencies"));
-		if (CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
+		if (bAllowDependencyPreloading && CVarPreloadDependencies && CVarPreloadDependencies->GetInt() != 0)
 		{
 			if (Result->PackageFlags & PKG_ProcessingDependencies)
 			{

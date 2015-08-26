@@ -463,12 +463,18 @@ void FAsyncLoadingThread::ProcessAsyncPackageRequest(FAsyncPackageDesc* InReques
 				{
 					if (!InDependencyTracker.Contains(DependencyName))
 					{
-						QueuedPackagesCounter.Increment();
-						const int32 RequestID = GPackageRequestID.Increment();
-						FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
-						FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
-						InDependencyTracker.Add(InRequest->Name);
-						ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
+						// Try and find the package in memory first
+						UPackage* ClassPackage = FindObjectFast<UPackage>( NULL, DependencyName, false, false );
+
+						if (ClassPackage == nullptr)
+						{
+							QueuedPackagesCounter.Increment();
+							const int32 RequestID = GPackageRequestID.Increment();
+							FAsyncLoadingThread::Get().AddPendingRequest(RequestID);
+							FAsyncPackageDesc DependencyPackageRequest(RequestID, DependencyName, NAME_None, FGuid(), FLoadPackageAsyncDelegate(), InRequest->PackageFlags, INDEX_NONE, InRequest->Priority);
+							InDependencyTracker.Add(InRequest->Name);
+							ProcessAsyncPackageRequest(&DependencyPackageRequest, InRootPackage, InDependencyTracker);
+						}
 					}
 				}
 			}
@@ -506,9 +512,9 @@ int32 FAsyncLoadingThread::CreateAsyncPackagesFromQueue()
 		double Timer = 0;
 		{
 			SCOPE_SECONDS_COUNTER(Timer);
-			DependencyTracker.Empty();
 			for (auto PackageRequest : QueueCopy)
 			{
+				DependencyTracker.Empty();
 				ProcessAsyncPackageRequest(PackageRequest, nullptr, DependencyTracker);
 			}
 		}
