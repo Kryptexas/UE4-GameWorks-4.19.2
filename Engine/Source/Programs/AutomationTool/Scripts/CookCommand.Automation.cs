@@ -87,7 +87,7 @@ public partial class Project : CommandUtils
 				{
 					// Use the data platform, sometimes we will copy another platform's data
 					var DataPlatform = Params.GetCookedDataPlatformForClientTarget(ClientPlatform);
-					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.HasDedicatedServerAndClient, Params.CookFlavor));
+					PlatformsToCook.Add(Params.GetTargetPlatformInstance(DataPlatform).GetCookPlatform(false, Params.Client, Params.CookFlavor));
 				}
 			}
 			if (Params.DedicatedServer)
