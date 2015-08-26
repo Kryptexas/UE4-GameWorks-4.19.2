@@ -425,7 +425,7 @@ namespace UnrealBuildTool
 		private int LoadEngineCL()
 		{
 			BuildVersion Version;
-			if(Utils.TryReadBuildVersion("../Build/Build.version", out Version))
+			if(BuildVersion.TryRead("../Build/Build.version", out Version))
 			{
 				return Version.Changelist;
 			}

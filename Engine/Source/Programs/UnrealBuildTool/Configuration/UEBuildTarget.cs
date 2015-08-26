@@ -1652,24 +1652,38 @@ namespace UnrealBuildTool
 			}
 		}
 
-		/** Prepare all the version manifests for this target. See the VersionManifest class for an explanation of what these files are. */
-		public void PrepareVersionManifests()
+		/** Prepare all the receipts this target (all the .target and .modules files). See the VersionManifest class for an explanation of what these files are. */
+		public void PrepareReceipts(IUEToolChain ToolChain)
 		{
+			// Read the version file
+			BuildVersion Version;
+			if(!BuildVersion.TryRead(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "Build.version"), out Version))
+			{
+				Version = new BuildVersion();
+			}
+
+			// Create a unique identifier for this build, which can be used to identify modules when the changelist is constant. It's fine to share this between runs with the same makefile; 
+			// the output won't change. By default we leave it blank when compiling a subset of modules (for hot reload, etc...), otherwise it won't match anything else. When writing to a directory
+			// that already contains a manifest, we'll reuse the build id that's already in there (see below).
+			string BuildId = (OnlyModules.Count == 0)? Guid.NewGuid().ToString() : "";
+
+			// Create the receipt, and merge all the receipts from the individual binaries
+			Receipt = new TargetReceipt(TargetName, Platform, Configuration, BuildId, Version);
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				TargetReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
+				if(Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+				{
+					BinaryReceipt.RuntimeDependencies.Clear();
+				}
+				Receipt.Merge(BinaryReceipt);
+			}
+			Receipt.InsertStandardPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
+
+			// Prepare all the version manifests
 			Dictionary<string, VersionManifest> FileNameToVersionManifest = new Dictionary<string, VersionManifest>(StringComparer.InvariantCultureIgnoreCase);
 			if(!bCompileMonolithic)
 			{
-				// Read the version file
-				BuildVersion Version;
-				if(!Utils.TryReadBuildVersion(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "Build.version"), out Version))
-				{
-					Version = new BuildVersion();
-				}
-
-				// Create a unique identifier for this build, which can be used to identify modules when the changelist is constant. It's fine to share this between runs with the same makefile; 
-				// the output won't change. By default we leave it blank when compiling a subset of modules (for hot reload, etc...), otherwise it won't match anything else. When writing to a directory
-				// that already contains a manifest, we'll reuse the build id that's already in there (see below).
-				string BuildId = (OnlyModules.Count == 0)? Guid.NewGuid().ToString() : "";
-
 				// Create the receipts for each folder
 				foreach(UEBuildBinary Binary in AppBinaries)
 				{
@@ -1710,45 +1724,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Writes out the version manifest */
-		public void WriteVersionManifests()
-		{
-			if(FileNameToVersionManifestPairs != null)
-			{
-				foreach(KeyValuePair<string, VersionManifest> FileNameToVersionManifest in FileNameToVersionManifestPairs)
-				{
-					FileNameToVersionManifest.Value.Write(FileNameToVersionManifest.Key);
-				}
-			}
-		}
-
-		/** Creates the receipt for the target */
-		private void PrepareReceipt(IUEToolChain ToolChain)
-		{
-			Receipt = new TargetReceipt();
-
-			// Add the target properties
-			Receipt.SetProperty("TargetName", TargetName);
-			Receipt.SetProperty("Platform", Platform.ToString());
-			Receipt.SetProperty("Configuration", Configuration.ToString());
-			Receipt.SetProperty("Precompile", bPrecompile.ToString());
-
-			// Merge all the binary receipts into this
-			foreach(UEBuildBinary Binary in AppBinaries)
-			{
-				TargetReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
-				if(Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
-				{
-					BinaryReceipt.RuntimeDependencies.Clear();
-				}
-				Receipt.Merge(BinaryReceipt);
-			}
-
-			// Convert all the paths to use variables for the engine and project root
-			Receipt.InsertStandardPathVariables(BuildConfiguration.RelativeEnginePath, ProjectDirectory);
-		}
-
-		/** Writes the receipt for this target to disk */
-		public void WriteReceipt()
+		public void WriteReceipts()
 		{
 			if(Receipt != null)
 			{
@@ -1762,6 +1738,13 @@ namespace UnrealBuildTool
 				{
 					Directory.CreateDirectory(Path.GetDirectoryName(ForceReceiptFileName));
 					Receipt.Write(ForceReceiptFileName);
+				}
+			}
+			if(FileNameToVersionManifestPairs != null)
+			{
+				foreach(KeyValuePair<string, VersionManifest> FileNameToVersionManifest in FileNameToVersionManifestPairs)
+				{
+					FileNameToVersionManifest.Value.Write(FileNameToVersionManifest.Key);
 				}
 			}
 		}
@@ -1868,11 +1851,8 @@ namespace UnrealBuildTool
 				return ECompilationResult.Succeeded;
 			}
 
-			// Create all the version manifests
-			PrepareVersionManifests();
-
 			// Create a receipt for the target
-			PrepareReceipt(TargetToolChain);
+			PrepareReceipts(TargetToolChain);
 
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)

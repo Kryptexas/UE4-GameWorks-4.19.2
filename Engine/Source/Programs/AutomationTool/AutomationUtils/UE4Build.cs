@@ -97,7 +97,7 @@ namespace AutomationTool
 
 		static bool IsBuildReceipt(string FileName)
 		{
-			return Path.GetDirectoryName(FileName).Replace('\\', '/').EndsWith("/Receipts", StringComparison.InvariantCultureIgnoreCase);
+			return FileName.EndsWith(".target", StringComparison.InvariantCultureIgnoreCase);
 		}
 
 		void AddBuildProductsFromManifest(string ManifestName)

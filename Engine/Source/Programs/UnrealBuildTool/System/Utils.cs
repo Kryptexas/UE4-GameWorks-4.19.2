@@ -20,6 +20,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Holds information about the current engine version
 	/// </summary>
+	[Serializable]
 	public class BuildVersion
 	{
 		public int MajorVersion;
@@ -28,6 +29,61 @@ namespace UnrealBuildTool
 		public int Changelist;
 		public int IsLicenseeVersion;
 		public string BranchName;
+
+		/// <summary>
+		/// Try to read the Build/Build.version file from disk
+		/// </summary>
+		/// <param name="Version">The version information</param>
+		/// <returns>True if the version was read sucessfully, false otherwise</returns>
+		public static bool TryRead(string FileName, out BuildVersion Version)
+		{
+			JsonObject Object;
+			if(!JsonObject.TryRead(FileName, out Object))
+			{
+				Version = null;
+				return false;
+			}
+			return TryParse(Object, out Version);
+		}
+
+		/// <summary>
+		/// Parses a build version from a JsonObject
+		/// </summary>
+		/// <param name="Object">The object to read from</param>
+		/// <param name="Version">The resulting version field</param>
+		/// <returns>True if the build version could be read, false otherwise</returns>
+		public static bool TryParse(JsonObject Object, out BuildVersion Version)
+		{
+			BuildVersion NewVersion = new BuildVersion();
+			if(!Object.TryGetIntegerField("MajorVersion", out NewVersion.MajorVersion) || !Object.TryGetIntegerField("MinorVersion", out NewVersion.MinorVersion) || !Object.TryGetIntegerField("PatchVersion", out NewVersion.PatchVersion))
+			{
+				Version = null;
+				return false;
+			}
+
+			Object.TryGetIntegerField("Changelist", out NewVersion.Changelist);
+			Object.TryGetIntegerField("IsLicenseeVersion", out NewVersion.IsLicenseeVersion);
+			Object.TryGetStringField("BranchName", out NewVersion.BranchName);
+
+			Version = NewVersion;
+			return true;
+		}
+
+		/// <summary>
+		/// Exports this object as Json
+		/// </summary>
+		/// <param name="Object">The object to read from</param>
+		/// <param name="Version">The resulting version field</param>
+		/// <returns>True if the build version could be read, false otherwise</returns>
+		public void Write(JsonWriter Writer)
+		{
+			Writer.WriteValue("MajorVersion", MajorVersion);
+			Writer.WriteValue("MinorVersion", MinorVersion);
+			Writer.WriteValue("PatchVersion", PatchVersion);
+			Writer.WriteValue("Changelist", Changelist);
+			Writer.WriteValue("IsLicenseeVersion", IsLicenseeVersion);
+			Writer.WriteValue("BranchName", BranchName);
+		}
 	}
 
 	/// 
@@ -818,35 +874,6 @@ namespace UnrealBuildTool
 
 			// and pass back out
 			InPath = LocalString;
-			return true;
-		}
-
-		/// <summary>
-		/// Try to read the Build/Build.version file from disk
-		/// </summary>
-		/// <param name="Version">The version information</param>
-		/// <returns>True if the version was read sucessfully, false otherwise</returns>
-		public static bool TryReadBuildVersion(string FileName, out BuildVersion Version)
-		{
-			JsonObject Object;
-			if(!JsonObject.TryRead(FileName, out Object))
-			{
-				Version = null;
-				return false;
-			}
-
-			BuildVersion NewVersion = new BuildVersion();
-			if(!Object.TryGetIntegerField("MajorVersion", out NewVersion.MajorVersion) || !Object.TryGetIntegerField("MinorVersion", out NewVersion.MinorVersion) || !Object.TryGetIntegerField("PatchVersion", out NewVersion.PatchVersion))
-			{
-				Version = null;
-				return false;
-			}
-
-			Object.TryGetIntegerField("Changelist", out NewVersion.Changelist);
-			Object.TryGetIntegerField("IsLicenseeVersion", out NewVersion.IsLicenseeVersion);
-			Object.TryGetStringField("BranchName", out NewVersion.BranchName);
-
-			Version = NewVersion;
 			return true;
 		}
 

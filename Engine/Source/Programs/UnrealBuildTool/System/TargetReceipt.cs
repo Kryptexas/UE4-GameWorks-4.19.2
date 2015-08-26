@@ -11,38 +11,6 @@ using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
-	[Serializable]
-	public class BuildProperty : ISerializable
-	{
-		[XmlAttribute]
-		public string Name;
-
-		[XmlAttribute]
-		public string Value;
-
-		private BuildProperty()
-		{
-		}
-
-		public BuildProperty(SerializationInfo Info, StreamingContext Context)
-		{
-			Name  = Info.GetString("na");
-			Value = Info.GetString("va");
-		}
-
-		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
-		{
-			Info.AddValue("na", Name);
-			Info.AddValue("va", Value);
-		}
-
-		public BuildProperty(string InName, string InValue)
-		{
-			Name = InName;
-			Value = InValue;
-		}
-	}
-
 	public enum BuildProductType
 	{
 		Executable,
@@ -54,33 +22,14 @@ namespace UnrealBuildTool
 	}
 
 	[Serializable]
-	public class BuildProduct : ISerializable
+	public class BuildProduct
 	{
-		[XmlAttribute]
 		public string Path;
-
-		[XmlAttribute]
 		public BuildProductType Type;
-
-		[XmlAttribute, DefaultValue(false)]
 		public bool IsPrecompiled;
 
 		private BuildProduct()
 		{
-		}
-
-		public BuildProduct(SerializationInfo Info, StreamingContext Context)
-		{
-			Path          = Info.GetString("pa");
-			Type          = (BuildProductType)Info.GetInt32("ty");
-			IsPrecompiled = Info.GetBoolean("ip");
-		}
-
-		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
-		{
-			Info.AddValue("pa", Path);
-			Info.AddValue("ty", (int)Type);
-			Info.AddValue("ip", IsPrecompiled);
 		}
 
 		public BuildProduct(string InPath, BuildProductType InType)
@@ -103,28 +52,20 @@ namespace UnrealBuildTool
 	}
 
 	[Serializable]
-	public class RuntimeDependency : ISerializable
+	public class RuntimeDependency
 	{
-		[XmlAttribute]
+		/// <summary>
+		/// The file that should be staged. Should use $(EngineDir) and $(ProjectDir) variables as a root, so that the target can be relocated to different machines.
+		/// </summary>
 		public string Path;
 
-		[XmlAttribute, DefaultValue(null)]
+		/// <summary>
+		/// The path that the file should be staged to, if different. Leave as null if the file should be staged to the same relative path.
+		/// </summary>
 		public string StagePath;
 
 		private RuntimeDependency()
 		{
-		}
-
-		public RuntimeDependency(SerializationInfo Info, StreamingContext Context)
-		{
-			Path      = Info.GetString("pa");
-			StagePath = Info.GetString("sp");
-		}
-
-		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
-		{
-			Info.AddValue("pa", Path);
-			Info.AddValue("sp", StagePath);
 		}
 
 		public RuntimeDependency(string InPath)
@@ -154,15 +95,41 @@ namespace UnrealBuildTool
 	/// Stores a record of a built target, with all metadata that other tools may need to know about the build.
 	/// </summary>
 	[Serializable]
-	public class TargetReceipt : ISerializable
+	public class TargetReceipt
 	{
-		[XmlArrayItem("Property")]
-		public List<BuildProperty> Properties = new List<BuildProperty>();
+		/// <summary>
+		/// The name of this target
+		/// </summary>
+		public string TargetName;
 
-		[XmlArrayItem("BuildProduct")]
+		/// <summary>
+		/// Which platform the target is compiled for
+		/// </summary>
+		public UnrealTargetPlatform Platform;
+
+		/// <summary>
+		/// Which configuration this target is compiled in
+		/// </summary>
+		public UnrealTargetConfiguration Configuration;
+
+		/// <summary>
+		/// The unique ID for this build.
+		/// </summary>
+		public string BuildId;
+
+		/// <summary>
+		/// The changelist that this target was compiled with.
+		/// </summary>
+		public BuildVersion Version;
+
+		/// <summary>
+		/// The build products which are part of this target
+		/// </summary>
 		public List<BuildProduct> BuildProducts = new List<BuildProduct>();
 
-		[XmlArrayItem("RuntimeDependency")]
+		/// <summary>
+		/// All the runtime dependencies that this target relies on
+		/// </summary>
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
 
 		/// <summary>
@@ -172,18 +139,19 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public TargetReceipt(SerializationInfo Info, StreamingContext Context)
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="InTargetName">The name of the target being compiled</param>
+		/// <param name="InPlatform">Platform for the target being compiled</param>
+		/// <param name="InConfiguration">Configuration of the target being compiled</param>
+		public TargetReceipt(string InTargetName, UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, string InBuildId, BuildVersion InVersion)
 		{
-			Properties                  = (List<BuildProperty>)Info.GetValue("pr", typeof(List<BuildProperty>));
-			BuildProducts               = (List<BuildProduct>)Info.GetValue("bp", typeof(List<BuildProduct>));
-			RuntimeDependencies         = (List<RuntimeDependency>)Info.GetValue("rd", typeof(List<RuntimeDependency>));
-		}
-
-		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
-		{
-			Info.AddValue("pr", Properties);
-			Info.AddValue("bp", BuildProducts);
-			Info.AddValue("rd", RuntimeDependencies);
+			TargetName = InTargetName;
+			Platform = InPlatform;
+			Configuration = InConfiguration;
+			BuildId = InBuildId;
+			Version = InVersion;
 		}
 
 		/// <summary>
@@ -199,42 +167,6 @@ namespace UnrealBuildTool
 			foreach(RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
-			}
-		}
-
-		/// <summary>
-		/// Sets a property with the given name
-		/// </summary>
-		/// <param name="Name">Name of the property; case sensitive.</param>
-		/// <param name="Value">Value for the property</param>
-		public void SetProperty(string Name, string Value)
-		{
-			BuildProperty Property = Properties.FirstOrDefault(x => x.Name == Name);
-			if(Property == null)
-			{
-				Properties.Add(new BuildProperty(Name, Value));
-			}
-			else
-			{
-				Property.Value = Value;
-			}
-		}
-
-		/// <summary>
-		/// Gets the value associated with a property
-		/// </summary>
-		/// <param name="Name">Name of the property; case sensitive.</param>
-		/// <param name="DefaultValue">Default value for the property if it's not found</param>
-		public string GetProperty(string Name, string DefaultValue)
-		{
-			BuildProperty Property = Properties.FirstOrDefault(x => x.Name == Name);
-			if(Property == null)
-			{
-				return DefaultValue;
-			}
-			else
-			{
-				return Property.Value;
 			}
 		}
 
@@ -379,18 +311,93 @@ namespace UnrealBuildTool
 		/// <returns>Path to the receipt for this target</returns>
 		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture)
 		{
-			return Path.Combine(BaseDir, "Build", "Receipts", String.Format("{0}-{1}-{2}{3}.target.xml", TargetName, Platform.ToString(), Configuration.ToString(), BuildArchitecture));
+			if(String.IsNullOrEmpty(BuildArchitecture) && Configuration == UnrealTargetConfiguration.Development)
+			{
+				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}.target", TargetName));
+			}
+			else
+			{
+				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}-{1}-{2}{3}.target", TargetName, Platform.ToString(), Configuration.ToString(), BuildArchitecture));
+			}
 		}
-
-		static XmlSerializer Serializer = XmlSerializer.FromTypes(new Type[]{ typeof(TargetReceipt) })[0];
 
 		/// <summary>
 		/// Read a receipt from disk.
 		/// </summary>
 		/// <param name="FileName">Filename to read from</param>
+		public static TargetReceipt Read(string FileName)
+		{
+			JsonObject RawObject = JsonObject.Read(FileName);
+
+			// Read the initial fields
+			string TargetName = RawObject.GetStringField("TargetName");
+			UnrealTargetPlatform Platform = RawObject.GetEnumField<UnrealTargetPlatform>("Platform");
+			UnrealTargetConfiguration Configuration = RawObject.GetEnumField<UnrealTargetConfiguration>("Configuration");
+			string BuildId = RawObject.GetStringField("BuildId");
+
+			// Try to read the build version
+			BuildVersion Version;
+			if(!BuildVersion.TryParse(RawObject.GetObjectField("Version"), out Version))
+			{
+				throw new JsonParseException("Invalid 'Version' field");
+			}
+
+			// Create the receipt
+			TargetReceipt Receipt = new TargetReceipt(TargetName, Platform, Configuration, BuildId, Version);
+
+			// Read the build products
+			JsonObject[] BuildProductObjects;
+			if(RawObject.TryGetObjectArrayField("BuildProducts", out BuildProductObjects))
+			{
+				foreach(JsonObject BuildProductObject in BuildProductObjects)
+				{
+					string Path;
+					BuildProductType Type;
+					if(BuildProductObject.TryGetStringField("Path", out Path) && BuildProductObject.TryGetEnumField("Type", out Type))
+					{
+						string Module;
+						BuildProductObject.TryGetStringField("Module", out Module);
+
+						BuildProduct NewBuildProduct = Receipt.AddBuildProduct(Path, Type);
+
+						bool IsPrecompiled;
+						if(BuildProductObject.TryGetBoolField("IsPrecompiled", out IsPrecompiled))
+						{
+							NewBuildProduct.IsPrecompiled = IsPrecompiled;
+						}
+					}
+				}
+			}
+
+			// Read the runtime dependencies
+			JsonObject[] RuntimeDependencyObjects;
+			if(RawObject.TryGetObjectArrayField("RuntimeDependencies", out RuntimeDependencyObjects))
+			{
+				foreach(JsonObject RuntimeDependencyObject in RuntimeDependencyObjects)
+				{
+					string Path;
+					if(RuntimeDependencyObject.TryGetStringField("Path", out Path))
+					{
+						string StagePath;
+						if(!RuntimeDependencyObject.TryGetStringField("StagePath", out StagePath))
+						{
+							StagePath = null;
+						}
+						Receipt.AddRuntimeDependency(Path, StagePath);
+					}
+				}
+			}
+
+			return Receipt;
+		}
+
+		/// <summary>
+		/// Try to read a receipt from disk, failing gracefully if it can't be read.
+		/// </summary>
+		/// <param name="FileName">Filename to read from</param>
 		public static bool TryRead(string FileName, out TargetReceipt Receipt)
 		{
-			if (!File.Exists(FileName))
+			if(File.Exists(FileName))
 			{
 				Receipt = null;
 				return false;
@@ -398,12 +405,9 @@ namespace UnrealBuildTool
 
 			try
 			{
-				using (StreamReader Reader = new StreamReader(FileName))
-				{
-					Receipt = (TargetReceipt)Serializer.Deserialize(Reader);
+				Receipt = Read(FileName);
 					return true;
 				}
-			}
 			catch(Exception)
 			{
 				Receipt = null;
@@ -417,9 +421,46 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Output filename</param>
 		public void Write(string FileName)
 		{
-			using(StreamWriter Writer = new StreamWriter(FileName))
+			using(JsonWriter Writer = new JsonWriter(FileName))
 			{
-				Serializer.Serialize(Writer, this);
+				Writer.WriteObjectStart();
+				Writer.WriteValue("TargetName", TargetName);
+				Writer.WriteValue("Platform", Platform.ToString());
+				Writer.WriteValue("Configuration", Configuration.ToString());
+				Writer.WriteValue("BuildId", BuildId);
+
+				Writer.WriteObjectStart("Version");
+				Version.Write(Writer);
+				Writer.WriteObjectEnd();
+
+				Writer.WriteArrayStart("BuildProducts");
+				foreach(BuildProduct BuildProduct in BuildProducts)
+				{
+					Writer.WriteObjectStart();
+					Writer.WriteValue("Path", BuildProduct.Path);
+					Writer.WriteValue("Type", BuildProduct.Type.ToString());
+					if(BuildProduct.IsPrecompiled)
+					{
+						Writer.WriteValue("IsPrecompiled", BuildProduct.IsPrecompiled);
+					}
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteArrayEnd();
+
+				Writer.WriteArrayStart("RuntimeDependencies");
+				foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
+				{
+					Writer.WriteObjectStart();
+					Writer.WriteValue("Path", RuntimeDependency.Path);
+					if(RuntimeDependency.StagePath != null)
+					{
+						Writer.WriteValue("StagePath", RuntimeDependency.StagePath);
+					}
+					Writer.WriteObjectEnd();
+				}
+				Writer.WriteArrayEnd();
+
+				Writer.WriteObjectEnd();
 			}
 		}
 	}

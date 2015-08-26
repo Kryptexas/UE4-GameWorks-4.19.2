@@ -1179,7 +1179,7 @@ namespace UnrealBuildTool
 
 					// Get the build version
 					BuildVersion Version;
-					if(!Utils.TryReadBuildVersion("../Build/Build.version", out Version))
+					if(!BuildVersion.TryRead("../Build/Build.version", out Version))
 					{
 						Log.TraceWarning("Could not read build.version");
 					}
@@ -1989,8 +1989,7 @@ namespace UnrealBuildTool
                             {
                                 foreach (UEBuildTarget Target in Targets)
                                 {
-									Target.WriteVersionManifests();
-									Target.WriteReceipt();
+									Target.WriteReceipts();
                                     ToolChain.PostBuildSync(Target);
                                 }
 								if (ActionsToExecute.Count == 0 && UEBuildConfiguration.bSkipLinkingWhenNothingToCompile)

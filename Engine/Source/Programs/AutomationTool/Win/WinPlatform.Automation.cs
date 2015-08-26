@@ -68,7 +68,7 @@ public abstract class BaseWinPlatform : Platform
 						}
 						else if(Params.IsCodeBasedProject)
 						{
-							BootstrapExeName = Target.Receipt.GetProperty("TargetName", SC.ShortProjectName) + ".exe";
+							BootstrapExeName = Target.Receipt.TargetName + ".exe";
 						}
 						else
 						{
