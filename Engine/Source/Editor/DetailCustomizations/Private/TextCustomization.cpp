@@ -37,7 +37,11 @@ namespace
 		TOptional< float > PreviousHeight;
 
 		bool bIsMultiLine;
+
+		static FText MultipleValuesText;
 	};
+
+	FText STextPropertyWidget::MultipleValuesText(NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values"));
 
 	void STextPropertyWidget::Construct(const FArguments& InArgs, const TSharedRef<IPropertyHandle>& InPropertyHandle, const TSharedPtr<IPropertyUtilities>& InPropertyUtilities)
 	{
@@ -60,7 +64,7 @@ namespace
 			}
 			else if(RawData.Num() > 1)
 			{
-				TextValue = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
+				TextValue = MultipleValuesText;
 			}
 			else
 			{
@@ -75,7 +79,8 @@ namespace
 			TArray<void*> RawData;
 			PropertyHandle->AccessRawData(RawData);
 
-			if (RawData.Num() > 0)
+			// Don't commit the Multiple Values text if there are multiple properties being set
+			if (RawData.Num() > 0 && (RawData.Num() == 1 || NewText.ToString() != MultipleValuesText.ToString()))
 			{
 				PropertyHandle->NotifyPreChange();
 
