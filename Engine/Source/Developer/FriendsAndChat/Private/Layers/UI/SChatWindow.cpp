@@ -28,6 +28,7 @@ public:
 		FChatViewModel* ViewModelPtr = ViewModel.Get();
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
 		ViewModel->OnSettingsUpdated().AddSP(this, &SChatWindowImpl::SettingsChanged);
+		ViewModel->OnMessageCommitted().AddSP(this, &SChatWindowImpl::HandleChatMessageCommitted);
 
 		FFriendsAndChatModuleStyle::Initialize(FriendStyle);
 
@@ -161,9 +162,19 @@ public:
 			ChannelTextSlot->AttachWidget(
 				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot()
+				.AutoWidth()
 				[
 					SNew(STextBlock)
+					.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
 					.Text(ViewModelPtr, &FChatViewModel::GetOutgoingChannelText)
+				]
+				+SHorizontalBox::Slot()
+				.Padding(10, 0)
+				[
+					SNew(STextBlock)
+					.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+					.ColorAndOpacity(FLinearColor::Red)
+					.Text(ViewModelPtr, &FChatViewModel::GetChannelErrorText)
 				]
 				+SHorizontalBox::Slot()
 				.HAlign(HAlign_Right)
@@ -181,7 +192,6 @@ public:
 
 	virtual void HandleWindowActivated() override
 	{
-		ViewModel->SetFocus();
 		ViewModel->SetIsActive(true);
 	}
 
@@ -234,6 +244,7 @@ public:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override
 	{
 		bUserHasScrolled = true;
+		ViewModel->SetInteracted();
 		return FReply::Handled();
 	}
 
@@ -254,6 +265,14 @@ private:
 	{
 		CreateChatWidgets();
 		RefreshChatList();
+	}
+
+	void HandleChatMessageCommitted()
+	{
+		if (RichText.IsValid() && ChatScrollBox.IsValid())
+		{
+			ChatScrollBox->ScrollToEnd();
+		}
 	}
 
 	void CreateChatWidgets()
@@ -345,7 +364,7 @@ private:
 				SharedThis(this),
 				FWidgetPath(),
 				Widget,
-				FSlateApplication::Get().GetCursorPos(),
+				FSlateApplication::Get().GetCursorPos() + FVector2D(30,0),
 				FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
 				);
 		}
@@ -357,8 +376,7 @@ private:
 
 		if (ChannelString)
 		{
-			ViewModel->SetOutgoingMessageChannel(EChatMessageType::EnumFromString(*ChannelString));
-			ViewModel->SetFocus();
+			ViewModel->NavigateToChannel(EChatMessageType::EnumFromString(*ChannelString));
 		}
 	}
 

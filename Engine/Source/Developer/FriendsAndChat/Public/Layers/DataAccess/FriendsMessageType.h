@@ -14,7 +14,8 @@ namespace EChatMessageType
 		Whisper = 1 << 1,	// Person whisper Item
 		Global = 1 << 2,	// Global Chat Item
 		Party = 1 << 3,		// Party Chat Item
-		Invalid = 1 << 4,		// Invalid or max
+		Game = 1 << 4,		// Game Chat Item
+		Invalid = 1 << 5,		// Invalid or max
 	};
 
 	/** @return the FTextified version of the enum passed in */
@@ -29,6 +30,7 @@ namespace EChatMessageType
 		case Whisper: return WhisperText;
 		case Global: return GlobalText;
 		case Party: return PartyText;
+		case Game: return PartyText;
 
 		default: return FText::GetEmpty();
 		}
@@ -39,12 +41,14 @@ namespace EChatMessageType
 		static FString WhisperShortcut = TEXT("/w");
 		static FString GlobalShortcut = TEXT("/g");
 		static FString PartyShortcut = TEXT("/p");
+		static FString GameShortcut = TEXT("/i");
 
 		switch (Type)
 		{
 		case Whisper: return WhisperShortcut;
 		case Global: return GlobalShortcut;
 		case Party: return PartyShortcut;
+		case Game: return GameShortcut;
 
 		default: return FString();
 		}
@@ -56,6 +60,7 @@ namespace EChatMessageType
 		static FString WhisperShortcut = TEXT("/w");
 		static FString GlobalShortcut = TEXT("/g");
 		static FString PartyShortcut = TEXT("/p");
+		static FString GameShortcut = TEXT("/i");
 
 		if (ShortcutString == WhisperShortcut)
 		{
@@ -68,6 +73,10 @@ namespace EChatMessageType
 		else if (ShortcutString == PartyShortcut)
 		{
 			return EChatMessageType::Party;
+		}
+		else if (ShortcutString == GameShortcut)
+		{
+			return EChatMessageType::Game;
 		}
 		else if( ShortcutString == EmptyShortcut)
 		{

@@ -221,12 +221,12 @@ private:
 			];
 
 			// Add a quick settings if needed
-			QuickSettingsContainer->SetContent(GetQuickSettingsWidget(Tab).ToSharedRef());
-
+			//QuickSettingsContainer->SetContent(GetQuickSettingsWidget(Tab).ToSharedRef());
+			
 			// Add Message notification indicator
 			NotificationContainer->SetContent(GetNotificationWidget(Tab).ToSharedRef());
-			
-			
+
+
 			if (!ChatWindows.Contains(Tab))
 			{
 				// Create Chat window for this tab

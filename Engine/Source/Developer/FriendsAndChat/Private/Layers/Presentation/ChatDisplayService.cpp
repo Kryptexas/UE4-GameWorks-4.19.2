@@ -14,30 +14,36 @@ public:
 		SetChatListVisibility(true);
 		SetChatEntryVisibility(true);
 		OnChatListSetFocus().Broadcast();
+		// Reset minimize state when focused after fadeout
+		if(CachedMinimize.IsSet())
+		{
+			ChatMinimized = CachedMinimize.GetValue();
+			CachedMinimize.Reset();
+		}
 	}
 
 	virtual void ChatEntered() override
 	{
 		SetChatEntryVisibility(true);
+		SetChatListVisibility(true);
 	}
 
 	virtual void MessageCommitted() override
 	{
 		OnChatMessageCommitted().Broadcast();
 
-		// Here i needed to make the visibility changes based on the actual flag for that section
 		if (FadeChatEntry)
 		{
 			SetChatEntryVisibility(false);
 		}
-		// However! If the we don't set chat entry invisible i still want to brodcast a Focus Relase
-		else
+		else if(AutoReleaseFocus)
 		{
 			OnFocuseReleasedEvent().Broadcast();
 		}
-		// Seems like i just want to do this all the time, i just sent a message why not show the text.
+
 		SetChatListVisibility(true);
-		if(ChatMinimized)
+
+		if (IsChatMinimized())
 		{
 			ChatListVisibility = EVisibility::HitTestInvisible;
 		}
@@ -169,6 +175,21 @@ public:
 		ActiveTab = InActiveTab;
 	}
 
+	virtual void SendGameMessage(const FString& GameMessage) override
+	{
+		OnNetworkMessageSentEvent().Broadcast(GameMessage);
+	}
+
+	virtual bool ShouldAutoRelease() override
+	{
+		return AutoReleaseFocus;
+	}
+
+	virtual void SetAutoReleaseFocus(bool InAutoRelease) override
+	{
+		AutoReleaseFocus = InAutoRelease;
+	}
+
 	DECLARE_DERIVED_EVENT(FChatDisplayServiceImpl, IChatDisplayService::FChatListUpdated, FChatListUpdated);
 	virtual FChatListUpdated& OnChatListUpdated() override
 	{
@@ -207,6 +228,10 @@ private:
 		{
 			ChatEntryVisibility = EVisibility::Visible;
 			EntryFadeDelay = EntryFadeInterval;
+			if(ChatMinimized)
+			{
+				ChatFadeDelay = ChatFadeInterval;
+			}
 		}
 		else
 		{
@@ -249,6 +274,7 @@ private:
 					if(ChatFadeDelay <= 0)
 					{
 						SetChatListVisibility(false);
+						CachedMinimize = ChatMinimized;
 						ChatMinimized = true;
 					}
 				}
@@ -302,6 +328,7 @@ private:
 		, ChatListVisibility(EVisibility::Visible)
 		, IsChatActive(true)
 		, ChatMinimized(false)
+		, AutoReleaseFocus(false)
 	{
 	}
 
@@ -318,6 +345,8 @@ private:
 	EVisibility ChatListVisibility;
 	bool IsChatActive;
 	bool ChatMinimized;
+	TOptional<bool> CachedMinimize;
+	bool AutoReleaseFocus;
 
 	TOptional<EVisibility> TabVisibilityOverride;
 	TOptional<EVisibility> EntryVisibilityOverride;

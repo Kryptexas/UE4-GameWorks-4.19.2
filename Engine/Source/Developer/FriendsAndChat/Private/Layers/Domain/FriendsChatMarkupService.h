@@ -97,6 +97,19 @@ public:
 	 */
 	DECLARE_EVENT(FFriendsChatMarkupService, FValidatedChatReadyEvent);
 	virtual FValidatedChatReadyEvent& OnValidateInputReady() = 0;
+
+	/**
+	 * Event broadcast when a message is sent.
+	 */
+	DECLARE_EVENT(FFriendsChatMarkupService, FChatMessageCommitted)
+	virtual FChatMessageCommitted& OnMessageCommitted() = 0;
+
+	/**
+	 * Event broadcast when we want to send a network message.
+	 */
+	DECLARE_EVENT_OneParam(FFriendsChatMarkupService, FSendNetworkMessageEvent, const FString& /*message*/)
+	virtual FSendNetworkMessageEvent& OnSendNetworkMessageEvent() = 0;
+
 };
 
 IFACTORY(TSharedRef< FFriendsChatMarkupService >, IFriendsChatMarkupService);

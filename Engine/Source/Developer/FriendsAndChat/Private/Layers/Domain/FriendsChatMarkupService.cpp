@@ -260,23 +260,45 @@ public:
 			{
 				if(ValidatedInput->Message.IsEmpty())
 				{
-					NavigationService->ChangeChatChannel(EChatMessageType::Global);
+					NavigationService->ChangeViewChannel(EChatMessageType::Global);
 				}
 				else
 				{
 					CommunicationService->SendRoomMessage(FString(), ProcessedInput->Message);
+					OnMessageCommitted().Broadcast();
 				}
 			}
 			else if (ValidatedInput->ChatChannel == EChatMessageType::Party)
 			{
 				if(ValidatedInput->Message.IsEmpty())
 				{
-					NavigationService->ChangeChatChannel(EChatMessageType::Party);
+					NavigationService->ChangeViewChannel(EChatMessageType::Party);
 				}
 				else
 				{
-					FChatRoomId PartyChatRoomId = GamePartyService->GetPartyChatRoomId();
-					CommunicationService->SendRoomMessage(PartyChatRoomId, ProcessedInput->Message);
+					if(GamePartyService->CombineGameAndPartyChat() && GamePartyService->IsInGameSession())
+					{
+						OnSendNetworkMessageEvent().Broadcast(ProcessedInput->Message);
+						OnMessageCommitted().Broadcast();
+					}
+					else
+					{
+						FChatRoomId PartyChatRoomId = GamePartyService->GetPartyChatRoomId();
+						CommunicationService->SendRoomMessage(PartyChatRoomId, ProcessedInput->Message);
+						OnMessageCommitted().Broadcast();
+					}
+				}
+			}
+			else if (ValidatedInput->ChatChannel == EChatMessageType::Game)
+			{
+				if(ValidatedInput->Message.IsEmpty())
+				{
+					NavigationService->ChangeViewChannel(EChatMessageType::Game);
+				}
+				else
+				{
+					OnSendNetworkMessageEvent().Broadcast(ProcessedInput->Message);
+					OnMessageCommitted().Broadcast();
 				}
 			}
 			else if (ValidatedInput->ChatChannel == EChatMessageType::Whisper)
@@ -287,18 +309,17 @@ public:
 					{
 						// Sending the selected outgoing friend
 						NavigationService->SetOutgoingChatFriend(ProcessedInput->ValidFriends[0]->GetFriendItem());
-						NavigationService->ChangeChatChannel(EChatMessageType::Whisper);
 					}
 					else
 					{
 						CommunicationService->SendPrivateMessage(ProcessedInput->ValidFriends[0]->GetFriendItem(), FText::FromString(ProcessedInput->Message));
-						NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
+						OnMessageCommitted().Broadcast();
 					}
 				}
 				else
 				{
 					// Change outgoing chat channel to last chat friend
-					NavigationService->ChangeChatChannel(EChatMessageType::Whisper);
+					NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
 				}
 			}
 			else if(ValidatedInput->ChatChannel == EChatMessageType::Custom)
@@ -307,18 +328,6 @@ public:
 				{
 					ValidatedInput->ValidCustomTips[0]->ExecuteCommand();
 				}
-			}
-			else if (ValidatedInput->ChatChannel == EChatMessageType::Empty)
-			{
-				NavigationService->ChangeChatChannel(EChatMessageType::Empty);
-			}
-			else if(ValidatedInput->ChatChannel == EChatMessageType::Invalid)
-			{
-				// Handle bad text
-			}
-			else
-			{
-				NavigationService->ChangeChatChannel(ValidatedInput->ChatChannel);
 			}
 			return true;
 		}
@@ -415,7 +424,16 @@ public:
 		{
 			if(SelectedChatTip.IsValid() && ProcessedInput.IsValid() && ProcessedInput->NeedsTip == true )
 			{
-				SelectedChatTip->ExecuteTip();
+				// Slight hack to intercept whisper navigation command
+				if(ProcessedInput->ChatChannel == EChatMessageType::Whisper && KeyEvent.GetKey() == EKeys::Enter && InputText.ToUpper() == TEXT("/W"))
+				{
+					SetValidatedText(TEXT(""));
+					NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
+				}
+				else
+				{
+					SelectedChatTip->ExecuteTip();
+				}
 				Reply = FReply::Handled();
 			}
 		}
@@ -464,6 +482,18 @@ public:
 		return ValidatedChatReadyEvent;
 	}
 
+	DECLARE_DERIVED_EVENT(FFriendsChatMarkupServiceImpl, FFriendsChatMarkupService::FChatMessageCommitted, FChatMessageCommitted)
+	virtual FChatMessageCommitted& OnMessageCommitted() override
+	{
+		return ChatMessageCommittedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FFriendsChatMarkupServiceImpl, FFriendsChatMarkupService::FSendNetworkMessageEvent, FSendNetworkMessageEvent)
+	virtual FSendNetworkMessageEvent& OnSendNetworkMessageEvent() override
+	{
+		return SendNetworkMessageEvent;
+	}
+
 private:
 
 	void GenerateTips()
@@ -496,6 +526,7 @@ private:
 		}
 		else if(ProcessedInput->ChatChannel != EChatMessageType::Invalid)
 		{
+			bool bAddedPartyChat = false;
 			for(const auto& ChatTip : CommmonChatTips)
 			{
 				if(ProcessedInput->ChatChannel == EChatMessageType::Empty || ChatTip->IsValidForType(ProcessedInput->ChatChannel))
@@ -504,7 +535,20 @@ private:
 					{
 						if(GamePartyService->IsInPartyChat())
 						{
-							ChatTipArray.Add(ChatTip); 
+							ChatTipArray.Add(ChatTip);
+							bAddedPartyChat = true;
+						}
+						else if(GamePartyService->CombineGameAndPartyChat() && !bAddedPartyChat && GamePartyService->IsInGameSession())
+						{
+							ChatTipArray.Add(ChatTip);
+							bAddedPartyChat = true;
+						}
+					}
+					else if(ChatTip->IsValidForType(EChatMessageType::Game))
+					{
+						if(GamePartyService->IsInGameSession())
+						{
+							ChatTipArray.Add(ChatTip);
 						}
 					}
 					else
@@ -637,7 +681,19 @@ private:
 				}
 				else if (ChatType == EChatMessageType::Party)
 				{
-					if(GamePartyService->IsInPartyChat())
+					if(GamePartyService->IsInPartyChat() || (GamePartyService->CombineGameAndPartyChat() && GamePartyService->IsInGameSession()))
+					{
+						ProcessedInput->NeedsTip = false;
+						ProcessedInput->Message = InInputText.RightChop(NavigationToken.Len() + 1);
+					}
+					else
+					{
+						ProcessedInput->ChatChannel = EChatMessageType::Invalid;
+					}
+				}
+				else if (ChatType == EChatMessageType::Game)
+				{
+					if(!GamePartyService->CombineGameAndPartyChat() && GamePartyService->IsInGameSession())
 					{
 						ProcessedInput->NeedsTip = false;
 						ProcessedInput->Message = InInputText.RightChop(NavigationToken.Len() + 1);
@@ -739,9 +795,15 @@ private:
 
 	void Initialize()
 	{
+		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Global)));
 		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Party)));
 		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Whisper)));
-		CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Global)));
+
+		if(!GamePartyService->CombineGameAndPartyChat())
+		{
+			CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Game)));
+		}
+
 		ProcessedInput = MakeShareable(new FProcessedInput());
 	}
 
@@ -772,6 +834,8 @@ private:
 	FChatInputUpdated ChatInputUpdatedEvent;
 	FChatTipSelected ChatTipSelectedEvent;
 	FValidatedChatReadyEvent ValidatedChatReadyEvent;
+	FChatMessageCommitted ChatMessageCommittedEvent;
+	FSendNetworkMessageEvent SendNetworkMessageEvent;
 	FString InputText;
 	bool ForceDisplayToolTips;
 	TSharedPtr<FFriendViewModel> SelectedFriendViewModel;

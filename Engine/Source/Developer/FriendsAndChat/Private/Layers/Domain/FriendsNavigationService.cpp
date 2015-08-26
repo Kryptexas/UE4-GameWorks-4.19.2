@@ -20,6 +20,7 @@ public:
 
 	virtual void SetOutgoingChatFriend(TSharedRef<IFriendItem> FriendItem) override
 	{
+		ChangeViewChannel(EChatMessageType::Whisper);
 		OnChatFriendSelected().Broadcast(FriendItem);
 	}
 

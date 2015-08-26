@@ -275,7 +275,7 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChatWidget(const FFriendsA
 		NewFriend = MakeShareable(new FSelectedFriend());
 		NewFriend->DisplayName = FText::FromString(FriendItem->GetName());
 		NewFriend->UserID = FriendItem->GetUniqueID();
-		ViewModel->SetWhisperFriend(NewFriend);
+		ViewModel->SetWhisperFriend(NewFriend, true);
 	}
 
 	ViewModel->RefreshMessages();
@@ -320,7 +320,7 @@ void FFriendsAndChatManager::AddFriendsToast(const FText Message)
 	}
 }
 
-TSharedPtr<FFriendsNavigationService> FFriendsAndChatManager::GetNavigationService()
+TSharedPtr<IFriendsNavigationService> FFriendsAndChatManager::GetNavigationService()
 {
 	return NavigationService;
 }
@@ -350,36 +350,37 @@ TSharedRef< IChatSettingsService > FFriendsAndChatManager::GenerateChatSettingsS
 	return FChatSettingsServiceFactory::Create();
 }
 
-TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands)
+TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands, bool CombineGameAndPartyChat)
 {
 	Style = *InStyle;
+	GameAndPartyService->SetCombineGameAndPartyChat(CombineGameAndPartyChat);
 
 	if(!CachedViewModel.IsValid())
 	{
-		CachedViewModel = FChatChromeViewModelFactory::Create(NavigationService.ToSharedRef(), ChatDisplayService, InChatSettingsService);
+		CachedViewModel = FChatChromeViewModelFactory::Create(NavigationService.ToSharedRef(), GameAndPartyService.ToSharedRef(), ChatDisplayService, InChatSettingsService);
 
 		TSharedRef<FChatViewModel> GlobalChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		GlobalChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Global);
-		GlobalChatViewModel->SetDefaultChannelFlags(EChatMessageType::Global | EChatMessageType::Party | EChatMessageType::Whisper);
+		GlobalChatViewModel->SetDefaultChannelFlags(EChatMessageType::Global | EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
+
+		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
+		PartyChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Party);
+		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
 
 		TSharedRef<FChatViewModel> WhisperChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		WhisperChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Whisper);
 		WhisperChatViewModel->SetDefaultChannelFlags(EChatMessageType::Whisper);
 
-		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
-		PartyChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Party);
-		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper);
-
 		if(CustomSlashCommands!= nullptr)
 		{
 			GlobalChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
-			WhisperChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
 			PartyChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
+			WhisperChatViewModel->AddCustomSlashCommands(*CustomSlashCommands);
 		}
 
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(GlobalChatViewModel));
-		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
 		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(PartyChatViewModel));
+		CachedViewModel->AddTab(FChatChromeTabViewModelFactory::Create(WhisperChatViewModel));
 	}
 	else
 	{

@@ -9,6 +9,7 @@ namespace EChatMessageType
 
 class FFriendsNavigationService
 	: public TSharedFromThis<FFriendsNavigationService>
+	, public IFriendsNavigationService
 {
 public:
 
@@ -16,7 +17,6 @@ public:
 
 	virtual void ChangeViewChannel(EChatMessageType::Type ChannelSelected) = 0;
 	virtual void ChangeChatChannel(EChatMessageType::Type ChannelSelected) = 0;
-	virtual void SetOutgoingChatFriend(TSharedRef<class IFriendItem> FriendItem) = 0;
 	virtual bool IsInGame() const = 0;
 
 	/**

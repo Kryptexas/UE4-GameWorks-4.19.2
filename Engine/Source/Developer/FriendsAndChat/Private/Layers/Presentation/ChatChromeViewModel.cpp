@@ -3,6 +3,7 @@
 #include "FriendsAndChatPrivatePCH.h"
 #include "ChatChromeViewModel.h"
 #include "FriendsNavigationService.h"
+#include "GameAndPartyService.h"
 #include "ChatViewModel.h"
 #include "IChatSettingsService.h"
 #include "IChatTabViewModel.h"
@@ -122,12 +123,25 @@ public:
 
 	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<IChatDisplayService> InChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) override
 	{
-		TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, InChatDisplayService, InChatSettingsService));
+		TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, GamePartyService, InChatDisplayService, InChatSettingsService));
 		ViewModel->Initialize();
 		for (const auto& Tab: Tabs)
 		{
 			ViewModel->AddTab(Tab->Clone(InChatDisplayService, CustomSlashCommands));
 		}
+
+		if(ActiveTab.IsValid())
+		{
+			for (const auto& Tab: ViewModel->Tabs)
+			{
+				if(ActiveTab->GetTabID() == Tab->GetTabID())
+				{
+					ViewModel->ActivateTab(Tab);
+					break;
+				}
+			}
+		}
+
 		return ViewModel;
 	}
 
@@ -144,26 +158,30 @@ private:
 
 	void HandleViewChangedEvent(EChatMessageType::Type NewChannel)
 	{
+		EChatMessageType::Type SelectedChannel = NewChannel;
+		// Hack to combine Party and Game tabs - NDavies
+		if(NewChannel == EChatMessageType::Game)
+		{
+			SelectedChannel = EChatMessageType::Party;
+		}
+
 		for (const auto& Tab: Tabs)
 		{
-			if(Tab->GetTabID() == NewChannel)
+			if(Tab->GetTabID() == SelectedChannel)
 			{
-				if (Tab->IsTabVisible())
+				if (!VisibleTabs.Contains(Tab))
 				{
-					if (!VisibleTabs.Contains(Tab))
-					{
-						OnVisibleTabsChanged().Broadcast();
-					}
-					ActivateTab(Tab);
+					OnVisibleTabsChanged().Broadcast();
 				}
+				ActivateTab(Tab);
 				break;
 			}
 		}
-	}
 
-	void HandleChannelChangedEvent(EChatMessageType::Type ChannelSelected)
-	{
-		ActiveTab->GetChatViewModel()->SetOutgoingMessageChannel(ChannelSelected);
+		if(NewChannel == EChatMessageType::Game)
+		{
+			ActiveTab->GetChatViewModel()->SetOutgoingMessageChannel(EChatMessageType::Game);
+		}
 	}
 
 	void HandleSettingsChanged(EChatSettingsType::Type OptionType, bool NewState)
@@ -173,15 +191,40 @@ private:
 // 		}
 	}
 
+	void HandlePartyChanged()
+	{
+		if(GamePartyService->IsInPartyChat() || GamePartyService->IsInGameSession())
+		{
+			for (const auto& Tab: Tabs)
+			{
+				if(Tab->GetTabID() == EChatMessageType::Party)
+				{
+					if (!VisibleTabs.Contains(Tab))
+					{
+						ActivateTab(Tab);
+						NavigationService->ChangeViewChannel(GamePartyService->IsInGameSession() ? EChatMessageType::Game : EChatMessageType::Party);
+					}
+					break;
+				}
+			}
+		}
+		else if(ActiveTab.IsValid() && ActiveTab->GetTabID() == EChatMessageType::Party)
+		{
+			NavigationService->ChangeViewChannel(EChatMessageType::Global);
+		}
+	}
+
 	void Initialize()
 	{
 		ChatSettingsService->OnChatSettingStateUpdated().AddSP(this, &FChatChromeViewModelImpl::HandleSettingsChanged);
 		NavigationService->OnChatViewChanged().AddSP(this, &FChatChromeViewModelImpl::HandleViewChangedEvent);
-		NavigationService->OnChatChannelChanged().AddSP(this, &FChatChromeViewModelImpl::HandleChannelChangedEvent);
+		GamePartyService->OnPartyMembersChanged().AddSP(this, &FChatChromeViewModelImpl::HandlePartyChanged);
+		GamePartyService->OnGameSessionChanged().AddSP(this, &FChatChromeViewModelImpl::HandlePartyChanged);
 	}
 
-	FChatChromeViewModelImpl(const TSharedRef<FFriendsNavigationService>& InNavigationService, const TSharedRef<IChatDisplayService> & InChatDisplayService, const TSharedRef<IChatSettingsService>& InChatSettingsService)
+	FChatChromeViewModelImpl(const TSharedRef<FFriendsNavigationService>& InNavigationService, const TSharedRef<FGameAndPartyService>& InGamePartyService, const TSharedRef<IChatDisplayService> & InChatDisplayService, const TSharedRef<IChatSettingsService>& InChatSettingsService)
 		: NavigationService(InNavigationService)
+		, GamePartyService(InGamePartyService)
 		, ChatDisplayService(InChatDisplayService)
 		, ChatSettingsService(InChatSettingsService)
 	{};
@@ -196,6 +239,7 @@ private:
 	TArray<TSharedRef<IChatTabViewModel>> Tabs;
 	TArray<TSharedRef<IChatTabViewModel>> VisibleTabs;
 	TSharedRef<FFriendsNavigationService> NavigationService;
+	TSharedRef<FGameAndPartyService> GamePartyService;
 	TSharedRef<IChatDisplayService> ChatDisplayService;
 	TSharedRef<IChatSettingsService> ChatSettingsService;
 	TSharedPtr<FChatSettingsViewModel> ChatSettingsViewModel;
@@ -203,9 +247,9 @@ private:
 	friend FChatChromeViewModelFactory;
 };
 
-TSharedRef< FChatChromeViewModel > FChatChromeViewModelFactory::Create(const TSharedRef<FFriendsNavigationService>& NavigationService, const TSharedRef<IChatDisplayService> & ChatDisplayService, const TSharedRef<IChatSettingsService>& InChatSettingsService)
+TSharedRef< FChatChromeViewModel > FChatChromeViewModelFactory::Create(const TSharedRef<FFriendsNavigationService>& NavigationService, const TSharedRef<FGameAndPartyService>& GamePartyService, const TSharedRef<IChatDisplayService> & ChatDisplayService, const TSharedRef<IChatSettingsService>& InChatSettingsService)
 {
-	TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, ChatDisplayService, InChatSettingsService));
+	TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, GamePartyService, ChatDisplayService, InChatSettingsService));
 	ViewModel->Initialize();
 	return ViewModel;
 }

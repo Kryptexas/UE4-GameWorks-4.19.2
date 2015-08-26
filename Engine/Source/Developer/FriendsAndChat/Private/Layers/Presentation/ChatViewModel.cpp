@@ -32,6 +32,10 @@ public:
 		ViewModel->SetChannelFlags(ChatChannelFlags);
 		ViewModel->DefaultChannel = DefaultChannel;
 		ViewModel->DefaultChatChannelFlags = DefaultChatChannelFlags;
+		if(SelectedFriend.IsValid())
+		{
+			ViewModel->SetWhisperFriend(SelectedFriend, false);
+		}
 		if(CustomSlashCommands!= nullptr)
 		{
 			ViewModel->AddCustomSlashCommands(*CustomSlashCommands);
@@ -160,6 +164,22 @@ public:
 		}
 	}
 
+	virtual void NavigateToChannel(const EChatMessageType::Type InChannel) override
+	{
+		if(InChannel == EChatMessageType::Party || InChannel == EChatMessageType::Game)
+		{
+			// ToDo - move this logic into the navigation system rather than checking party membership here
+			if(GamePartyService->IsInGameSession() || GamePartyService->IsInPartyChat())
+			{
+				NavigationService->ChangeViewChannel(InChannel);
+			}
+		}
+		else
+		{
+			NavigationService->ChangeViewChannel(InChannel);
+		}
+	}
+
 	virtual EChatMessageType::Type GetOutgoingChatChannel() const override
 	{
 		return OutgoingMessageChannel;
@@ -170,12 +190,21 @@ public:
 		return OutGoingChannelText;
 	}
 
+	virtual FText GetChannelErrorText() const override
+	{
+		if(OutgoingMessageChannel == EChatMessageType::Whisper && !IsWhisperFriendSet())
+		{
+			return NSLOCTEXT("ChatViewModel", "NoFriendSet", "No Friend Set.");
+		}
+		return FText::GetEmpty();
+	}
+
 	virtual TSharedRef<FChatTipViewModel> GetChatTipViewModel() const
 	{
 		return FChatTipViewModelFactory::Create(MarkupService);
 	}
 
-	virtual void SetWhisperFriend(const TSharedPtr<FSelectedFriend> InFriend) override
+	virtual void SetWhisperFriend(const TSharedPtr<FSelectedFriend> InFriend, bool bSetFocus) override
 	{
 		SelectedFriend = InFriend;
 		if (SelectedFriend->UserID.IsValid())
@@ -190,7 +219,10 @@ public:
 		{
 			SetOutgoingMessageChannel(EChatMessageType::Whisper);
 		}
-		SetFocus();
+		if(bSetFocus)
+		{
+			SetFocus();
+		}
 	}
 
 	virtual bool IsWhisperFriendSet() const override
@@ -201,6 +233,11 @@ public:
 	virtual bool IsInPartyChat() const override
 	{
 		return GamePartyService->IsInPartyChat();
+	}
+
+	virtual bool IsInGameChat() const override
+	{
+		return GamePartyService->IsInGameSession();
 	}
 
 	virtual bool IsChatConnected() const override
@@ -250,6 +287,7 @@ public:
 	virtual bool SendMessage(const FText NewMessage, const FText PlainText) override
 	{
 		bool bSuccess = true;
+		bool MessageSent = false;
 		if (!AllowMarkup() || !MarkupService->ValidateSlashMarkup(NewMessage.ToString(), PlainText.ToString()))
 		{
 			if(!PlainText.IsEmptyOrWhitespace())
@@ -262,10 +300,8 @@ public:
 						{
 							if (SelectedFriend.IsValid() && SelectedFriend->UserID.IsValid())
 							{
-								if (MessageService->SendPrivateMessage(SelectedFriend->ViewModel->GetFriendItem(), PlainText))
-								{
-									bSuccess = true;
-								}
+								bSuccess = MessageService->SendPrivateMessage(SelectedFriend->ViewModel->GetFriendItem(), PlainText);
+								MessageSent = true;
 							}
 						}
 						break;
@@ -276,6 +312,7 @@ public:
 							{
 								//@todo will need to support multiple party channels eventually, hardcoded to first party for now
 								bSuccess = MessageService->SendRoomMessage(PartyChatRoomId, NewMessage.ToString());
+								MessageSent = true;
 
 								MessageService->GetAnalytics()->RecordChannelChat(TEXT("Party"));
 							}
@@ -283,10 +320,20 @@ public:
 						break;
 						case EChatMessageType::Global:
 						{
-								//@todo samz - send message to specific room (empty room name will send to all rooms)
-								bSuccess = MessageService->SendRoomMessage(FString(), PlainText.ToString());
-								MessageService->GetAnalytics()->RecordChannelChat(TEXT("Global"));
+							//@todo samz - send message to specific room (empty room name will send to all rooms)
+							bSuccess = MessageService->SendRoomMessage(FString(), PlainText.ToString());
+							MessageService->GetAnalytics()->RecordChannelChat(TEXT("Global"));
+							MessageSent = true;
 						}
+						break;
+						case EChatMessageType::Game:
+						{
+							ChatDisplayService->SendGameMessage(PlainText.ToString());
+							MessageService->GetAnalytics()->RecordChannelChat(TEXT("Game"));
+							MessageSent = true;
+							bSuccess = true;
+						}
+						break;
 					}
 				}
 			}
@@ -294,6 +341,10 @@ public:
 
 		ChatDisplayService->MessageCommitted();
 		MarkupService->CloseChatTips();
+		if(MessageSent)
+		{
+			OnMessageCommitted().Broadcast();
+		}
 
 		return bSuccess;
 	}
@@ -312,6 +363,10 @@ public:
 		{
 			return EChatMessageType::Party;
 		}
+		if ((ChatChannelFlags ^ EChatMessageType::Game) == 0)
+		{
+			return EChatMessageType::Game;
+		}
 		if ((ChatChannelFlags ^ EChatMessageType::Empty) == 0)
 		{
 			return EChatMessageType::Empty;
@@ -329,6 +384,11 @@ public:
 		return GetOutgoingChatChannel() != EChatMessageType::Whisper || !SelectedFriend.IsValid() || SelectedFriend->ViewModel->GetFriendItem() != FriendViewModel->GetFriendItem();
 	}
 
+	virtual bool IsOverrideDisplaySet() override
+	{
+		return OverrideDisplayVisibility;
+	}
+
 	// End FChatViewModel interface
 
 	/*
@@ -336,7 +396,7 @@ public:
 	 * @param Username Friend Name
 	 * @param UniqueID Friends Network ID
 	 */
-	void SetWhisperFriend(const FText Username, TSharedPtr<const FUniqueNetId> UniqueID)
+	void SetWhisperFriend(const FText Username, TSharedPtr<const FUniqueNetId> UniqueID, bool bSetFocus)
 	{
 		TSharedPtr<FSelectedFriend> NewFriend = FindFriend(UniqueID);
 		if (!NewFriend.IsValid())
@@ -344,7 +404,7 @@ public:
 			NewFriend = MakeShareable(new FSelectedFriend());
 			NewFriend->DisplayName = Username;
 			NewFriend->UserID = UniqueID;
-			SetWhisperFriend(NewFriend);
+			SetWhisperFriend(NewFriend, bSetFocus);
 		}
 	}
 
@@ -373,11 +433,11 @@ protected:
 		{
 			if (Message->bIsFromSelf)
 			{
-				SetWhisperFriend(Message->ToName, Message->RecipientId);
+				SetWhisperFriend(Message->ToName, Message->RecipientId, false);
 			}
 			else
 			{ 
-				SetWhisperFriend(Message->FromName, Message->SenderId);
+				SetWhisperFriend(Message->FromName, Message->SenderId, false);
 			}
 		}
 
@@ -458,7 +518,7 @@ private:
 
 	void HandleChatFriendSelected(TSharedRef<IFriendItem> ChatFriend)
 	{
-		SetWhisperFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID());
+		SetWhisperFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID(), true);
 		OnChatListUpdated().Broadcast();
 	}
 
@@ -470,6 +530,16 @@ private:
 	void HandleChatInputUpdated()
 	{
 		OnTextValidated().Broadcast();
+	}
+
+	void HandleMessageCommitted()
+	{
+		OnMessageCommitted().Broadcast();
+	}
+
+	void HandleSendNetworkMessage(const FString& NewMessage)
+	{
+		ChatDisplayService->SendGameMessage(NewMessage);
 	}
 
 	/*
@@ -604,6 +674,8 @@ public:
 	virtual void SetIsActive(bool InIsActive)
 	{
 		bIsActive = InIsActive;
+		OverrideDisplayVisibility = true;
+
 		// If active, ensure we have a valid chat channel
 		if(bIsActive)
 		{
@@ -622,6 +694,17 @@ public:
 					SetOutgoingMessageChannel(EChatMessageType::Global);
 				}
 			}
+			else if(GetDefaultChannelType() == EChatMessageType::Party)
+			{
+				if(GamePartyService->IsInGameSession())
+				{
+					SetOutgoingMessageChannel(EChatMessageType::Game);
+				}
+				else if(GamePartyService->IsInPartyChat())
+				{
+					SetOutgoingMessageChannel(EChatMessageType::Party);
+				}
+			}
 			else
 			{
 				// Reset the chat channel to default option when opened
@@ -635,6 +718,11 @@ public:
 			{
 				LastSeenMessageCount = GetMessageCount();
 			}
+		}
+
+		if(!ChatDisplayService->ShouldAutoRelease())
+		{
+			SetFocus();
 		}
 	}
 
@@ -660,6 +748,11 @@ public:
 	virtual void SetFocus() override
 	{
 		ChatDisplayService->SetFocus();
+	}
+
+	virtual void SetInteracted() override
+	{
+		ChatDisplayService->ChatEntered();
 	}
 
 	virtual float GetWindowOpacity() override
@@ -728,6 +821,7 @@ public:
 		{
 			ChatDisplayService->OnFocuseReleasedEvent().Broadcast();
 		}
+		ChatDisplayService->ChatEntered();
 		return AllowMarkup() ? MarkupService->HandleChatKeyEntry(KeyEvent) : FReply::Unhandled();
 	}
 
@@ -752,6 +846,12 @@ public:
 	virtual FChatListUpdated& OnChatListUpdated() override
 	{
 		return ChatListUpdatedEvent;
+	}
+
+	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatMessageCommitted, FChatMessageCommitted)
+	virtual FChatMessageCommitted& OnMessageCommitted() override
+	{
+		return ChatMessageCommittedEvent;
 	}
 
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatSettingsUpdated, FChatSettingsUpdated)
@@ -779,14 +879,6 @@ private:
 		FilteredMessages = InFilteredMessages;
 	}
 
-	void HandleFriendJoinedParty(const FUniqueNetId& SenderId, const TSharedRef<class IOnlinePartyJoinInfo>& PartyJoinInfo, bool bIsFromInvite)
-	{
-		if(GetChatChannelType() == EChatMessageType::Custom && OutgoingMessageChannel != EChatMessageType::Whisper)
-		{
-			SetOutgoingMessageChannel(EChatMessageType::Party);
-		}
-	}
-
 protected:
 
 	FChatViewModelImpl(
@@ -809,6 +901,7 @@ protected:
 		, FriendsService(InFriendsService)
 		, GamePartyService(InGamePartyService)
 		, bIsActive(false)
+		, OverrideDisplayVisibility(false)
 		, bInGame(true)
 		, bHasActionPending(false)
 		, bAllowJoinGame(false)
@@ -834,8 +927,9 @@ protected:
 		MessageService->OnChatMessageAdded().AddSP(this, &FChatViewModelImpl::HandleMessageAdded);
 		ChatDisplayService->OnChatListSetFocus().AddSP(this, &FChatViewModelImpl::HandleSetFocus);
 		MarkupService->OnValidateInputReady().AddSP(this, &FChatViewModelImpl::HandleChatInputUpdated);
+		MarkupService->OnMessageCommitted().AddSP(this, &FChatViewModelImpl::HandleMessageCommitted);
+		MarkupService->OnSendNetworkMessageEvent().AddSP(this, &FChatViewModelImpl::HandleSendNetworkMessage);
 
-		GamePartyService->OnFriendsJoinParty().AddSP(this, &FChatViewModelImpl::HandleFriendJoinedParty);
 		RefreshMessages();
 	}
 
@@ -865,6 +959,7 @@ private:
 	bool bInParty;
 	bool bHasActionPending;
 	bool bAllowJoinGame;
+	bool OverrideDisplayVisibility;
 
 	TArray<TSharedRef<FChatItemViewModel> > FilteredMessages;
 	TArray<TSharedPtr<FSelectedFriend> > RecentPlayerList;
@@ -884,6 +979,7 @@ private:
 	FChatListSetFocus ChatListSetFocusEvent;
 	FChatTextValidatedEvent ChatTextValidatedEvent;
 	FChatListUpdated ChatListUpdatedEvent;
+	FChatMessageCommitted ChatMessageCommittedEvent;
 	FChatSettingsUpdated ChatSettingsUpdatedEvent;
 
 	EVisibility ChatEntryVisibility;

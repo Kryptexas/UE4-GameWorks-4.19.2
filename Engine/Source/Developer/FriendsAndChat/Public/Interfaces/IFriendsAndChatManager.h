@@ -57,7 +57,8 @@ public:
 	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle,
 		TSharedRef<IChatDisplayService> ChatDisplayService,
 		TSharedRef<IChatSettingsService> InChatSettingsService,
-		TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr) = 0;
+		TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr,
+		bool CombineChatAndPartyChat = false) = 0;
 
 	/**
 	 * Set the analytics provider for capturing friends/chat events
@@ -104,7 +105,7 @@ public:
 	 * Get the navigation service.
 	 * @return The navigation service
 	 */
-	virtual TSharedPtr<class FFriendsNavigationService> GetNavigationService() = 0;
+	virtual TSharedPtr<class IFriendsNavigationService> GetNavigationService() = 0;
 
 	/**
 	* Get the notification service.

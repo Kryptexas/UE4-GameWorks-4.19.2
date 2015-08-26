@@ -61,14 +61,18 @@ public:
 	virtual bool IsChannelSet(const EChatMessageType::Type InChannel) = 0;
 	virtual void ToggleChannel(const EChatMessageType::Type InChannel) = 0;
 	virtual void SetOutgoingMessageChannel(const EChatMessageType::Type InChannel) = 0;
+	virtual void NavigateToChannel(const EChatMessageType::Type InChannel) = 0;
 	virtual EChatMessageType::Type GetOutgoingChatChannel() const = 0;
 	virtual FText GetOutgoingChannelText() const = 0;
-	virtual void SetWhisperFriend(const TSharedPtr<FSelectedFriend> InFriend) = 0;
+	virtual FText GetChannelErrorText() const = 0;
+	virtual void SetWhisperFriend(const TSharedPtr<FSelectedFriend> InFriend, bool bSetFocus) = 0;
 	virtual bool IsWhisperFriendSet() const = 0;
 	virtual bool IsInPartyChat() const = 0;
+	virtual bool IsInGameChat() const = 0;
 	virtual EChatMessageType::Type GetChatChannelType() const = 0;
 	virtual EChatMessageType::Type GetDefaultChannelType() const = 0;
 	virtual bool DisplayChatOption(TSharedRef<FFriendViewModel> FriendViewModel ) = 0;
+	virtual bool IsOverrideDisplaySet() = 0;
 
 	// Connection
 	virtual bool IsChatConnected() const = 0;
@@ -100,6 +104,7 @@ public:
 	virtual bool AllowMarkup() = 0;
 	virtual bool MultiChat() = 0;
 	virtual void SetFocus() = 0;
+	virtual void SetInteracted() = 0;
 	virtual float GetWindowOpacity() = 0;
 
 	// Settings
@@ -113,6 +118,9 @@ public:
 
 	DECLARE_EVENT(FChatViewModel, FChatListUpdated)
 	virtual FChatListUpdated& OnChatListUpdated() = 0;
+
+	DECLARE_EVENT(FChatViewModel, FChatMessageCommitted)
+	virtual FChatMessageCommitted& OnMessageCommitted() = 0;
 
 	DECLARE_EVENT(FChatViewModel, FChatSettingsUpdated)
 	virtual FChatSettingsUpdated& OnSettingsUpdated() = 0;

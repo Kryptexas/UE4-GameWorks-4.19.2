@@ -83,6 +83,16 @@ public:
 	virtual bool IsInGameSession() const = 0;
 
 	/**
+	 * Set if we should combine party and game chat.
+	 */
+	virtual void SetCombineGameAndPartyChat(bool bCombine) = 0;
+
+	/**
+	 * Return if we are combining game and party chat.
+	 */
+	virtual bool CombineGameAndPartyChat() const = 0;
+
+	/**
 	* Is this friend in the same session as I am
 	*
 	* @param reference to a friend item
@@ -180,6 +190,11 @@ public:
 	DECLARE_EVENT_TwoParams(FGameAndPartyService, FOnFriendsJoinGameEvent, const FUniqueNetId& /*FriendId*/, const FUniqueNetId& /*SessionId*/)
 	virtual FOnFriendsJoinGameEvent& OnFriendsJoinGame() = 0;
 
+	DECLARE_EVENT(FGameAndPartyService, FOnPartyMembersChangedEvent)
+	virtual FOnPartyMembersChangedEvent& OnPartyMembersChanged() = 0;
+
+	DECLARE_EVENT(FGameAndPartyService, FOnGameSessionChangedEvent)
+	virtual FOnGameSessionChangedEvent& OnGameSessionChanged() = 0;
 };
 
 /**

@@ -88,7 +88,7 @@ public:
 				EndPos += StyleMetaData.Len();
 				ParseInfo.MetaData.Add(TEXT("Style"), FTextRange(StartPos, EndPos));
 
-				TSharedPtr< ISlateRun > Run = NameHyperlinkDecorator->Create(TextLayoutRef, ParseInfo, MessageText, ModelString, &FFriendsAndChatModuleStyle::Get());
+				TSharedPtr< ISlateRun > Run = ChannelHyperlinkDecorator->Create(TextLayoutRef, ParseInfo, MessageText, ModelString, &FFriendsAndChatModuleStyle::Get());
 				Runs.Add(Run.ToSharedRef());
 			}
 
@@ -110,7 +110,11 @@ public:
 				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
 			}
 
-			if(NameHyperlinkDecorator.IsValid() && (!NewMessage->IsFromSelf() || (IsMultiChat && NewMessage->GetMessageType() == EChatMessageType::Whisper)))
+			if(NewMessage->GetMessageType() == EChatMessageType::Game)
+			{
+				// Don't add any channel information for In-Game
+			}
+			else if(NameHyperlinkDecorator.IsValid() && (!NewMessage->IsFromSelf() || (IsMultiChat && NewMessage->GetMessageType() == EChatMessageType::Whisper)))
 			{
 				FString MessageText = " " + GetSenderName(NewMessage) + ": ";
 
@@ -205,6 +209,9 @@ protected:
 		case EChatMessageType::Party:
 			HyperlinkStyle = TEXT("UserNameTextStyle.PartyHyperlink");
 			break;
+		case EChatMessageType::Game: 
+			HyperlinkStyle = TEXT("UserNameTextStyle.GameHyperlink"); 
+			break;
 		}
 		return HyperlinkStyle;
 	}
@@ -221,6 +228,9 @@ protected:
 			RoomName = TEXT("[w]");
 			break;
 		case EChatMessageType::Party:
+			RoomName = TEXT("[p]");
+			break;
+		case EChatMessageType::Game: 
 			RoomName = TEXT("[p]");
 			break;
 		default:

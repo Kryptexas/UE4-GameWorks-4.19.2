@@ -67,13 +67,17 @@ public:
 	virtual void ClearApplicationViewModels() override;
 	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) override;
 	virtual TSharedRef< IChatSettingsService > GenerateChatSettingsService() override;
-	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle, TSharedRef<IChatDisplayService> ChatViewModel, TSharedRef<IChatSettingsService> ChatSettingsService, TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr) override;
+	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle,
+														TSharedRef<IChatDisplayService> ChatViewModel, 
+														TSharedRef<IChatSettingsService> ChatSettingsService, 
+														TArray<TSharedRef<class ICustomSlashCommand> >* CustomSlashCommands = nullptr,
+														bool CombineChatAndPartyChat = false) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual TSharedPtr< SWidget > GenerateStatusWidget(const FFriendsAndChatStyle* InStyle, bool ShowStatusOptions) override;
 	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TAttribute<FText> ActivationHintDelegate, EChatMessageType::Type MessageType, TSharedPtr<IFriendItem> FriendItem, TSharedPtr< SWindow > WindowPtr) override;
 	virtual TSharedPtr<SWidget> GenerateFriendUserHeaderWidget(TSharedPtr<IFriendItem> FriendItem) override;
-	virtual TSharedPtr<class FFriendsNavigationService> GetNavigationService() override;
+	virtual TSharedPtr<class IFriendsNavigationService> GetNavigationService() override;
 	virtual TSharedPtr<class IChatNotificationService> GetNotificationService() override;
 	virtual TSharedPtr<class IChatCommunicationService> GetCommunicationService() override;
 	virtual TSharedPtr<class IGameAndPartyService> GetGameAndPartyService() override;

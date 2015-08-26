@@ -19,6 +19,7 @@ static const int32 WhisperMessageLifetime = 5 * 60;  // 5 min
 static const int32 MessageStore = 200;
 static const int32 GlobalMaxStore = 100;
 static const int32 WhisperMaxStore = 100;
+static const int32 GameMaxStore = 100;
 static const int32 PartyMaxStore = 100;
 
 class FMessageServiceImpl
@@ -136,7 +137,15 @@ public:
 
 	virtual void InsertNetworkMessage(const FString& MsgBody) override
 	{
-// 		Removed
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		ChatItem->FromName = FText::FromString("Game");
+		ChatItem->Message = FText::FromString(MsgBody);
+		ChatItem->MessageType = EChatMessageType::Game;
+		ChatItem->MessageTime = FDateTime::Now();
+		ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(GameMessageLifetime);
+		ChatItem->bIsFromSelf = false;
+		GameMessagesCount++;
+		AddMessage(ChatItem.ToSharedRef());
 	}
 
 	virtual void JoinPublicRoom(const FString& RoomName) override
@@ -216,6 +225,7 @@ private:
 	{
 		GlobalMessagesCount = 0;
 		WhisperMessagesCount = 0;
+		GameMessagesCount = 0;
 		PartyMessagesCount = 0;
 		ReceivedMessages.Empty();
 
@@ -413,6 +423,18 @@ private:
 							}
 						}
 						break;
+						case EChatMessageType::Game :
+						{
+							if(GameMessagesCount > GameMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bGameTimeFound = true;
+							}
+						}
 						break;
 						case EChatMessageType::Party:
 						{
@@ -456,6 +478,7 @@ private:
 		switch(Message->MessageType)
 		{
 			case EChatMessageType::Global : GlobalMessagesCount--; break;
+			case EChatMessageType::Game: GameMessagesCount--; break;
 			case EChatMessageType::Party: PartyMessagesCount--; break;
 			case EChatMessageType::Whisper : WhisperMessagesCount--; break;
 		}
@@ -514,6 +537,7 @@ private:
 	// Message counts
 	int32 GlobalMessagesCount;
 	int32 WhisperMessagesCount;
+	int32 GameMessagesCount;
 	int32 PartyMessagesCount;
 	
 	bool bEnableEnterExitMessages;

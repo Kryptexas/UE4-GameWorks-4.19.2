@@ -41,5 +41,6 @@ public:
  */
 FACTORY(TSharedRef< FChatChromeViewModel >, FChatChromeViewModel,
 	const TSharedRef<class FFriendsNavigationService>& NavigationService,
+	const TSharedRef<class FGameAndPartyService>& GamePartyService,
 	const TSharedRef<class IChatDisplayService> & ChatDisplayService,
 	const TSharedRef<class IChatSettingsService>& ChatSettingsService);

@@ -24,12 +24,12 @@ public:
 
 		if (ChatViewModel->GetDefaultChannelType() == EChatMessageType::Party)
 		{
-			return ChatViewModel->IsInPartyChat();
+			return ChatViewModel->IsInPartyChat() ||  ChatViewModel->IsInGameChat();
 		}
 
 		if (ChatViewModel->GetDefaultChannelType() == EChatMessageType::Whisper)
 		{
-			return (ChatViewModel->IsWhisperFriendSet() || ChatViewModel->GetMessageCount() > 0);
+			return (ChatViewModel->IsWhisperFriendSet() || ChatViewModel->GetMessageCount() > 0 || ChatViewModel->IsOverrideDisplaySet());
 		}
 
 		return true;
@@ -53,7 +53,7 @@ public:
 
 	virtual const EChatMessageType::Type GetTabID() const override
 	{
-		return ChatViewModel->GetChatChannelType();
+		return ChatViewModel->GetDefaultChannelType();
 	}
 
 	virtual const FSlateBrush* GetTabImage() const override

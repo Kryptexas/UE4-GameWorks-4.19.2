@@ -89,6 +89,14 @@ public:
 
 	virtual void SetActiveTab(TWeakPtr<class FChatViewModel> ActiveTab) = 0;
 
+	virtual void SendGameMessage(const FString& GameMessage) = 0;
+
+	// Should auto release
+	virtual bool ShouldAutoRelease() = 0;
+
+	// Set if we should release focus after a message is sent
+	virtual void SetAutoReleaseFocus(bool AutoRelease) = 0;
+
 	DECLARE_EVENT(IChatDisplayService, FOnFriendsChatMessageCommitted)
 	virtual FOnFriendsChatMessageCommitted& OnChatMessageCommitted() = 0;
 
