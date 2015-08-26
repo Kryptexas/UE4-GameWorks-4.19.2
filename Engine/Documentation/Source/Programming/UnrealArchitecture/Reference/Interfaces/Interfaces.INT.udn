@@ -12,6 +12,72 @@ Declaring an interface class is very similar to declaring a regular class. The o
 	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
 	class ClassName : ParentName
 
-## Interface Specifiers
+## Interface Declaration
+
+In your .h file (e.g. `ItemInterface.h`):
+
+    #pragma once
+
+    #include "ItemInterface.generated.h"
+
+    UINTERFACE(Blueprintable)
+    class UItemInterface : public UInterface
+    {
+        GENERATED_UINTERFACE_BODY()
+    };
+
+    class IItemInterface
+    {    GENERATED_IINTERFACE_BODY()
+
+    public:
+
+        UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Item")
+        FItemStruct GetItem() const;
+    };
+
+In your .cpp file (e.g. `ItemInterface.cpp`):
+
+    #include "ItemInterface.h"
+
+    UItemInterface::UItemInterface(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+    {
+    }
+
+The declaration consists of a standard C++ class declaration for the class. Above the standard declaration, descriptors such as class specifiers and metadata are passed to the UINTERFACE macro. These are used to create the UInterface for the interface being declared, which can be thought of as the engine's specialized representation of the class. Also, the GENERATED_UINTERFACE_BODY() macro must be placed at the very beginning of the class body.
+
+For interfaces that are to be recognized by the engine, you must create two classes, a UINTERFACE class that inherits from UInterface, and a pure interface.
+
+The UINTERFACE class should be prefixed with U, as it extends from UObject. The Interface should be prefixed with I.
+
+The `Blueprintable` specifier is required if you want to allow Blueprints to implement this interface.
+
+### Interface Specifiers
 
 [INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]
+
+## Implementing Your Interface in C++
+
+When declaring your class in C++, simply inherit from your interface (not the UInterface class though).
+
+    class AItem : public AActor, public IItemInterface
+    {
+        GENERATED_BODY()
+
+    public:
+
+        FItemStruct GetItem_Implementation() const;
+    };
+
+## Determining If A Given Actor Implements Your Interface
+
+For compatability with both C++ and Blueprint classes that implement your interface, use the following code:
+
+    obj->GetClass()->ImplementsInterface(UItemInterface::StaticClass());
+
+[REGION:note]
+You must use the UInterface version of the class to check if the interface is implemented.
+[/REGION]
+
+## Blueprint Implementable Classes
+
+If you want to allow Blueprints to implement this interface, you must use the `Blueprintable` metadata specifier, and every function in your interface must be a `BlueprintNativeEvent` or a `BlueprintImplementableEvent`. Otherwise, a Blueprint class implementing the interface would be unable to implement all of the methods of the interface.
