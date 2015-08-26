@@ -16,7 +16,8 @@ public class LevelEditor : ModuleRules
 				"SizeMap",
 				"SlateReflector",
                 "IntroTutorials",
-                "AppFramework"
+                "AppFramework",
+                "PortalServices",
 			}
 		);
 
