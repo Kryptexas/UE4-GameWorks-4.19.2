@@ -180,7 +180,7 @@ void FMenuBuilder::BeginSection( FName InExtensionHook, const TAttribute< FText 
 	{
 		ApplySectionBeginning();
 	}
-	
+
 	ApplyHook(InExtensionHook, EExtensionHook::First);
 }
 
@@ -270,12 +270,23 @@ void FMenuBuilder::AddWrapperSubMenu( const FText& InMenuLabel, const FText& InT
 	MultiBox->AddMultiBlock( NewMenuEntryBlock );
 }
 
-void FMenuBuilder::AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent )
+void FMenuBuilder::AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent, bool bSearchable )
 {
 	ApplySectionBeginning();
 
-	TSharedRef< FWidgetBlock > NewWidgetBlock( new FWidgetBlock( InWidget, Label, bNoIndent ) );
+	TSharedRef< FWidgetBlock > NewWidgetBlock(new FWidgetBlock( InWidget, Label, bNoIndent ));
+	NewWidgetBlock->SetSearchable( bSearchable );
+
 	MultiBox->AddMultiBlock( NewWidgetBlock );
+}
+
+void FMenuBuilder::AddSearchWidget()
+{
+	MultiBox->SearchTextWidget = SNew(STextBlock)
+		.Visibility( EVisibility::Visible )
+		.Text( FText::FromString("Search Start") );
+
+	AddWidget( MultiBox->SearchTextWidget.ToSharedRef(), FText::GetEmpty(), false, false );
 }
 
 void FMenuBuilder::ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition)
@@ -292,7 +303,8 @@ void FMenuBuilder::ApplySectionBeginning()
 {
 	if (bSectionNeedsToBeApplied)
 	{
-		if( MultiBox->GetBlocks().Num() > 0 || FMultiBoxSettings::DisplayMultiboxHooks.Get() )
+		// Do not count search block, which starts as invisible
+		if( MultiBox->GetBlocks().Num() > 1 || FMultiBoxSettings::DisplayMultiboxHooks.Get() )
 		{
 			MultiBox->AddMultiBlock( MakeShareable( new FMenuSeparatorBlock(CurrentSectionExtensionHook) ) );
 		}

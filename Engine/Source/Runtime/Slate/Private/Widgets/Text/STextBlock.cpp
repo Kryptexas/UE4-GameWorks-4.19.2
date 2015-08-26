@@ -126,6 +126,11 @@ void STextBlock::SetText( const FText& InText )
 	Invalidate(EInvalidateWidget::LayoutAndVolatility);
 }
 
+void STextBlock::SetHighlightText(TAttribute<FText> InText)
+{
+	HighlightText = InText;
+}
+
 int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const
 {
 	SCOPE_CYCLE_COUNTER(Stat_SlateTextBlockOnPaint);

@@ -139,6 +139,10 @@ void SToolBarButtonBlock::BuildMultiBlockWidget(const ISlateStyle* StyleSet, con
 		ActualLabel = ToolBarButtonBlock->GetAction()->GetLabel();
 	}
 
+	// Add this widget to the search list of the multibox
+	if (MultiBlock->GetSearchable())
+		OwnerMultiBoxWidget.Pin()->AddSearchElement(this->AsWidget(), ActualLabel.Get());
+
 	TAttribute<FText> ActualToolTip;
 	if (ToolBarButtonBlock->ToolTipOverride.IsSet())
 	{

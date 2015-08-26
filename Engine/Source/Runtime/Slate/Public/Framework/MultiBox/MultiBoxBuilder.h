@@ -55,7 +55,7 @@ public:
 	 */
 	TSharedRef< class SWidget > MakeWidget();
 	
-	
+
 	/** 
 	 * Get the multi-box being built.
 	 *
@@ -200,6 +200,7 @@ public:
 		: FBaseMenuBuilder( EMultiBoxType::Menu, bInShouldCloseWindowAfterMenuSelection, InCommandList, bCloseSelfOnly, InExtender, InStyleSet )
 		, bSectionNeedsToBeApplied(false)
 	{
+		AddSearchWidget();
 	}
 
 
@@ -245,9 +246,15 @@ public:
 	 * @param	InWidget			The widget that should be shown in the menu
 	 * @param	InLabel				Optional label text to be added to the left of the content
 	 * @param	bNoIndent			If true, removes the padding from the left of the widget that lines it up with other menu items (default == false)
+	 * @param	bSearchable			If true, widget will be searchable (default == true)
 	 */
-	void AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent = false );
-	
+	void AddWidget( TSharedRef<SWidget> InWidget, const FText& Label, bool bNoIndent = false, bool bSearchable = true );
+
+	/**
+	* Adds the widget the multibox will use for searching
+	*/
+	void AddSearchWidget();
+
 protected:
 	/** FMultiBoxBuilder interface */
 	virtual void ApplyHook(FName InExtensionHook, EExtensionHook::Position HookPosition) override;
