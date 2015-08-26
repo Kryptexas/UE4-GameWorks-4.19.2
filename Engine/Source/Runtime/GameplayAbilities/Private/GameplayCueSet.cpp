@@ -90,6 +90,22 @@ void UGameplayCueSet::RemoveCuesByStringRefs(const TArray<FStringAssetReference>
 	}
 }
 
+#if WITH_EDITOR
+void UGameplayCueSet::UpdateCueByStringRefs(const FStringAssetReference& CueToRemove, FString NewPath)
+{
+	
+	for (int32 idx = 0; idx < GameplayCueData.Num(); ++idx)
+	{
+		if (GameplayCueData[idx].GameplayCueNotifyObj == CueToRemove)
+		{
+			GameplayCueData[idx].GameplayCueNotifyObj = NewPath;
+			BuildAccelerationMap_Internal();
+			break;
+		}
+	}
+}
+#endif
+
 void UGameplayCueSet::Empty()
 {
 	GameplayCueData.Empty();

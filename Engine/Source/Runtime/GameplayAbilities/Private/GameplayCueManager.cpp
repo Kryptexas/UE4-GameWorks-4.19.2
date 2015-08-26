@@ -434,6 +434,8 @@ void UGameplayCueManager::HandleAssetRenamed(const FAssetData& Data, const FStri
 			if (StaticCDO || ActorCDO)
 			{
 				VerifyNotifyAssetIsInValidPath(Data.PackagePath.ToString());
+				GlobalCueSet->UpdateCueByStringRefs(String + TEXT("_C"), Data.ObjectPath.ToString() + TEXT("_C"));
+				OnGameplayCueNotifyAddOrRemove.Broadcast();
 			}
 		}
 	}
