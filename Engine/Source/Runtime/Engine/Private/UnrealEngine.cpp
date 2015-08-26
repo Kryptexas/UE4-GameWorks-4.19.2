@@ -7567,7 +7567,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 			}
 			
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-			if (FPlatformProperties::SupportsTextureStreaming())
+			if (FPlatformProperties::SupportsTextureStreaming() && IStreamingManager::Get().IsTextureStreamingEnabled())
 			{
 				auto MemOver = IStreamingManager::Get().GetTextureStreamingManager().GetMemoryOverBudget();
 				if (MemOver > 0)
