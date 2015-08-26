@@ -473,6 +473,9 @@ void FBatchedElements::PrepareShaders(
 	bool bEncodedHDR = Is32BppHDREncoded(View);
 
 	float GammaToUse = Gamma;
+
+	ESimpleElementBlendMode MaskedBlendMode = SE_BLEND_Opaque;
+
 	if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 	{
 		/*
@@ -496,17 +499,19 @@ void FBatchedElements::PrepareShaders(
 		bool bAlphaOnly = bAlphaChannel && !bRedChannel && !bGreenChannel && !bBlueChannel;
 		uint32 NumChannelsOn = ( bRedChannel ? 1 : 0 ) + ( bGreenChannel ? 1 : 0 ) + ( bBlueChannel ? 1 : 0 );
 		GammaToUse = bAlphaOnly? 1.0f: Gamma;
-
+		
 		// If we are only to draw the alpha channel, make the Blend state opaque, to allow easy identification of the alpha values
 		if( bAlphaOnly )
 		{
-			SetBlendState(RHICmdList, SE_BLEND_Opaque, bEncodedHDR);
-
+			MaskedBlendMode = SE_BLEND_Opaque;
+			SetBlendState(RHICmdList, MaskedBlendMode, bEncodedHDR);
+			
 			R.W = G.W = B.W = 1.0f;
 		}
 		else
 		{
-			SetBlendState(RHICmdList, !bAlphaChannel ? SE_BLEND_Opaque : SE_BLEND_Translucent, bEncodedHDR); // If alpha channel is disabled, do not allow alpha blending
+			MaskedBlendMode = !bAlphaChannel ? SE_BLEND_Opaque : SE_BLEND_Translucent;  // If alpha channel is disabled, do not allow alpha blending
+			SetBlendState(RHICmdList, MaskedBlendMode, bEncodedHDR);
 
 			// Determine the red, green, blue and alpha components of their respective weights to enable that colours prominence
 			R.X = bRedChannel ? 1.0f : 0.0f;
@@ -657,7 +662,7 @@ void FBatchedElements::PrepareShaders(
 			else if(BlendMode >= SE_BLEND_RGBA_MASK_START && BlendMode <= SE_BLEND_RGBA_MASK_END)
 			{
 				TShaderMapRef<FSimpleElementColorChannelMaskPS> ColorChannelMaskPixelShader(GetGlobalShaderMap(FeatureLevel));
-				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState.GetBSS(bEncodedHDR, BlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
+				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ColorChannelMaskShaderState.GetBSS(bEncodedHDR, MaskedBlendMode), GSimpleElementVertexDeclaration.VertexDeclarationRHI,
 					*VertexShader, *ColorChannelMaskPixelShader );
 			
 				ColorChannelMaskPixelShader->SetParameters(RHICmdList, Texture, ColorWeights, GammaToUse );
