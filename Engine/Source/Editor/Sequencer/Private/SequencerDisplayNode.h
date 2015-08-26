@@ -485,6 +485,8 @@ public:
 private:
 	TSharedRef<SWidget> OnGetAddTrackMenuContent();
 
+	void AddPropertyMenuItems(FMenuBuilder& AddTrackMenuBuilder, TArray<TArray<FString> > PropertyChainPaths, TArray<TArray<UProperty*> > KeyablePropertyPaths);
+
 	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
 
 	/** Get class for object binding */
