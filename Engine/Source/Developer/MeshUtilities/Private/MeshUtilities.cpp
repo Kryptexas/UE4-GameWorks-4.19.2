@@ -3244,13 +3244,13 @@ public:
 		TArray<FText>* InWarningMessages,
 		TArray<FName>* InWarningNames)
 	: IMeshBuildData(InBuildOptions, InWarningMessages, InWarningNames)
+	, MikkTUserData(InWedges, InFaces, InPoints, InBuildOptions.bComputeNormals, TangentX, TangentY, TangentZ)
 	, LODModel(InLODModel)
 	, RefSkeleton(InRefSkeleton)
 	, Influences(InInfluences)
 	, Wedges(InWedges)
 	, Faces(InFaces)
 	, Points(InPoints)
-	, MikkTUserData(InWedges, InFaces, InPoints, InBuildOptions.bComputeNormals, TangentX, TangentY, TangentZ)
 	, PointToOriginalMap(InPointToOriginalMap)
 	{
 		MikkTInterface.m_getNormal = MikkGetNormal_Skeletal;
