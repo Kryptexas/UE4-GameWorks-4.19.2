@@ -386,7 +386,7 @@ public:
 
 	virtual bool IsOverrideDisplaySet() override
 	{
-		return OverrideDisplayVisibility;
+		return bOverrideDisplayVisibility;
 	}
 
 	// End FChatViewModel interface
@@ -674,7 +674,7 @@ public:
 	virtual void SetIsActive(bool InIsActive)
 	{
 		bIsActive = InIsActive;
-		OverrideDisplayVisibility = true;
+		bOverrideDisplayVisibility = true;
 
 		// If active, ensure we have a valid chat channel
 		if(bIsActive)
@@ -905,7 +905,7 @@ protected:
 		, bInParty(false)
 		, bHasActionPending(false)
 		, bAllowJoinGame(false)
-		, OverrideDisplayVisibility(false)
+		, bOverrideDisplayVisibility(false)
 		, bAllowFade(true)
 		, bUseOverrideColor(false)
 		, bAllowGlobalChat(true)
@@ -961,7 +961,7 @@ private:
 	bool bInParty;
 	bool bHasActionPending;
 	bool bAllowJoinGame;
-	bool OverrideDisplayVisibility;
+	bool bOverrideDisplayVisibility;
 
 	TArray<TSharedRef<FChatItemViewModel> > FilteredMessages;
 	TArray<TSharedPtr<FSelectedFriend> > RecentPlayerList;

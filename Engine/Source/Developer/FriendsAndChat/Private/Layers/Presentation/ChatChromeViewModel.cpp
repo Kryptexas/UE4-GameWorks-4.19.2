@@ -29,13 +29,13 @@ public:
 		}
 	}
 
-	virtual void ActivateTab(const TSharedRef<IChatTabViewModel>& Tab) override
+	virtual void ActivateTab(const TSharedRef<IChatTabViewModel>& InTab) override
 	{
 		if(ActiveTab.IsValid())
 		{
 			ActiveTab->GetChatViewModel()->SetIsActive(false);
 		}
-		ActiveTab = Tab;
+		ActiveTab = InTab;
 		ActiveTab->GetChatViewModel()->SetIsActive(true);
 
 		// Tell Other tabs what messages we read
