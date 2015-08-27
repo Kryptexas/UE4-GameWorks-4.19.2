@@ -2556,17 +2556,6 @@ public:
 	/** Retrieves actor's name used for logging, or string "NULL" if Actor == NULL */
 	static FString GetDebugName(const AActor* Actor) { return Actor ? Actor->GetName() : TEXT("NULL"); }
 
-#if ENABLE_VISUAL_LOG
-	/** 
-	 *	Hook for Actors to supply visual logger with additional data.
-	 *	It's guaranteed that Snapshot != NULL
-	 */
-	virtual void GrabDebugSnapshot(struct FVisualLogEntry* Snapshot) const {}
-
-private:
-	friend class FVisualLog;
-#endif // ENABLE_VISUAL_LOG
-
 	//* Sets the friendly actor label and name */
 	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName, bool bMarkDirty );
 

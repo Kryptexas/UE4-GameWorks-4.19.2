@@ -3,6 +3,7 @@
 #include "EnginePrivate.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
+#include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
 #if WITH_EDITOR
 #	include "Editor/UnrealEd/Public/EditorComponents.h"
 #	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
@@ -17,6 +18,29 @@
 DEFINE_LOG_CATEGORY(LogVisual);
 #if ENABLE_VISUAL_LOG 
 DEFINE_STAT(STAT_VisualLog);
+
+namespace
+{
+	static UWorld* GetWorldForVisualLogger(const class UObject* Object)
+	{
+		UWorld* World = Object ? GEngine->GetWorldFromContextObject(Object, false) : nullptr;
+#if WITH_EDITOR
+		UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+		if (GIsEditor && EEngine != nullptr && World == nullptr)
+		{
+			// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
+			World = EEngine->PlayWorld != nullptr ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
+		}
+
+#endif
+		if (!GIsEditor && World == nullptr)
+		{
+			World = GEngine->GetWorld();
+		}
+
+		return World;
+	}
+}
 
 TMap<UObject*, TArray<TWeakObjectPtr<const UObject> > > FVisualLogger::RedirectionMap;
 int32 FVisualLogger::bIsRecording = false;
@@ -67,7 +91,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 
 	bool InitializeNewEntry = false;
 
-	TWeakObjectPtr<UWorld> World = GetWorld(Object);
+	TWeakObjectPtr<UWorld> World = GetWorldForVisualLogger(Object);
 
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
@@ -110,20 +134,20 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 		{
 			if (ObjectToPointerMap.Contains(LogOwner) && ObjectToPointerMap[LogOwner].IsValid())
 			{
-				const class AActor* LogOwnerAsActor = Cast<class AActor>(LogOwner);
-				if (LogOwnerAsActor)
+				const IVisualLoggerDebugSnapshotInterface* DebugSnapshotInterface = Cast<const IVisualLoggerDebugSnapshotInterface>(LogOwner);
+				if (DebugSnapshotInterface)
 				{
-					LogOwnerAsActor->GrabDebugSnapshot(CurrentEntry);
+					DebugSnapshotInterface->GrabDebugSnapshot(CurrentEntry);
 				}
 			}
 			for (auto Child : RedirectionMap[LogOwner])
 			{
 				if (Child.IsValid())
 				{
-					const class AActor* ChildAsActor = Cast<class AActor>(Child.Get());
-					if (ChildAsActor)
+					const IVisualLoggerDebugSnapshotInterface* DebugSnapshotInterface = Cast<const IVisualLoggerDebugSnapshotInterface>(Child.Get());
+					if (DebugSnapshotInterface)
 					{
-						ChildAsActor->GrabDebugSnapshot(CurrentEntry);
+						DebugSnapshotInterface->GrabDebugSnapshot(CurrentEntry);
 					}
 				}
 			}
@@ -134,7 +158,11 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 			if (ObjectAsActor)
 			{
 				CurrentEntry->Location = ObjectAsActor->GetActorLocation();
-				ObjectAsActor->GrabDebugSnapshot(CurrentEntry);
+				const IVisualLoggerDebugSnapshotInterface* DebugSnapshotInterface = Cast<const IVisualLoggerDebugSnapshotInterface>(Object);
+				if (DebugSnapshotInterface)
+				{
+					DebugSnapshotInterface->GrabDebugSnapshot(CurrentEntry);
+				}
 			}
 		}
 	}
@@ -265,7 +293,7 @@ void FVisualLogger::NavigationDataDump(const class UObject* Object, const struct
 	const FNavDataGenerator* Generator = MainNavData ? MainNavData->GetGenerator() : nullptr;
 	if (Generator)
 	{
-		Generator->GrabDebugSnapshot(CurrentEntry, FMath::IsNearlyZero(Box.GetVolume()) ? MainNavData->GetBounds() : Box, Category, Verbosity);
+		Generator->GrabDebugSnapshot(CurrentEntry, FMath::IsNearlyZero(Box.GetVolume()) ? MainNavData->GetBounds().ExpandBy(FVector(20,20,20)) : Box, Category, Verbosity);
 	}
 }
 
@@ -282,34 +310,6 @@ FVisualLogger::FVisualLogger()
 		SetIsRecording(true);
 		SetIsRecordingToFile(true);
 	}
-}
-
-namespace
-{
-	static UWorld* GetWorldForVisualLogger(const class UObject* Object)
-	{
-		UWorld* World = Object ? GEngine->GetWorldFromContextObject(Object, false) : nullptr;
-#if WITH_EDITOR
-		UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
-		if (GIsEditor && EEngine != nullptr && World == nullptr)
-		{
-			// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
-			World = EEngine->PlayWorld != nullptr ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
-		}
-
-#endif
-		if (!GIsEditor && World == nullptr)
-		{
-			World = GEngine->GetWorld();
-		}
-
-		return World;
-	}
-}
-
-UWorld* FVisualLogger::GetWorld(const class UObject* Object)
-{
-	return GetWorldForVisualLogger(Object);
 }
 
 void FVisualLogger::Shutdown()
@@ -395,7 +395,7 @@ void FVisualLogger::SetIsRecording(bool InIsRecording)
 { 
 	if (InIsRecording == false && InIsRecording != !!bIsRecording && FParse::Param(FCommandLine::Get(), TEXT("LogNavOctree")))
 	{
-		FVisualLogger::NavigationDataDump(GetWorld(nullptr), LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
+		FVisualLogger::NavigationDataDump(GetWorldForVisualLogger(nullptr), LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
 	}
 	if (IsRecordingToFile())
 	{

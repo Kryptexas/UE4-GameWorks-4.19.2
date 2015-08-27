@@ -64,7 +64,7 @@
 #define UE_VLOG_EVENT_WITH_DATA(LogOwner, LogEvent, ...) if(FVisualLogger::IsRecording()) FVisualLogger::EventLog(LogOwner, LogEvent, ##__VA_ARGS__)
 #define UE_CVLOG_EVENT_WITH_DATA(Condition, LogOwner, LogEvent, ...) if(FVisualLogger::IsRecording() && Condition) {UE_VLOG_EVENT_WITH_DATA(LogOwner, LogEvent, ##__VA_ARGS__);}
 
-#define UE_IFVLOG(__code_block__) __code_block__;
+#define UE_IFVLOG(__code_block__) if( FVisualLogger::IsRecording() ) { __code_block__; }
 
 #else
 #define REDIRECT_TO_VLOG(Dest)
@@ -252,7 +252,6 @@ public:
 private:
 	FVisualLogger();
 	virtual void Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category) override { ensureMsgf(0, TEXT("Regular serialize is forbiden for visual logs")); }
-	class UWorld* GetWorld(const class UObject* Object);
 
 protected:
 	/** Array of output devices to redirect to */

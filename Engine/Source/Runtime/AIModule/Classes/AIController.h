@@ -14,6 +14,7 @@
 #include "BehaviorTree/BehaviorTreeTypes.h"
 #include "GameplayTaskOwnerInterface.h"
 #include "GenericTeamAgentInterface.h"
+#include "VisualLogger/VisualLoggerDebugSnapshotInterface.h"
 #include "AIController.generated.h"
 
 class APawn;
@@ -77,7 +78,7 @@ struct FFocusKnowledge
  */
 
 UCLASS(ClassGroup = AI, BlueprintType, Blueprintable)
-class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface, public IGenericTeamAgentInterface
+class AIMODULE_API AAIController : public AController, public IAIPerceptionListenerInterface, public IGameplayTaskOwnerInterface, public IGenericTeamAgentInterface, public IVisualLoggerDebugSnapshotInterface
 {
 	GENERATED_BODY()
 

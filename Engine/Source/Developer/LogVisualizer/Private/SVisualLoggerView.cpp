@@ -64,21 +64,9 @@ FReply SInputCatcherOverlay::OnMouseWheel(const FGeometry& MyGeometry, const FPo
 	return FReply::Unhandled();
 }
 
-void SVisualLoggerView::GetTimelines(TArray<TSharedPtr<STimeline> >& OutList, bool bOnlySelectedOnes)
-{
-	OutList = bOnlySelectedOnes ? TimelinesContainer->GetSelectedNodes() : TimelinesContainer->GetAllNodes();
-}
-
 void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUICommandList>& InCommandList)
 {
 	AnimationOutlinerFillPercentage = .25f;
-	VisualLoggerEvents = FLogVisualizer::Get().GetVisualLoggerEvents();
-
-	FVisualLoggerTimeSliderArgs TimeSliderArgs;
-	TimeSliderArgs.ViewRange = FAnimatedRange::WrapAttribute(InArgs._ViewRange);
-	TimeSliderArgs.ClampRange = TRange<float>(InArgs._ViewRange.Get().GetLowerBoundValue(), InArgs._ViewRange.Get().GetUpperBoundValue());
-	TimeSliderArgs.ScrubPosition = InArgs._ScrubPosition;
-	FLogVisualizer::Get().GetTimeSliderController()->SetTimesliderArgs(TimeSliderArgs);
 
 	TSharedRef<SScrollBar> ZoomScrollBar =
 		SNew(SScrollBar)
@@ -116,6 +104,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 						SAssignNew(SearchSplitter, SSplitter)
 						.Orientation(Orient_Horizontal)
 						.OnSplitterFinishedResizing(this, &SVisualLoggerView::OnSearchSplitterResized)
+						
 						+ SSplitter::Slot()
 						.Value(0.25)
 						[
@@ -127,7 +116,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 							.VAlign(VAlign_Center)
 							[
 								SNew(SImage)
-								.Visibility_Lambda([]()->EVisibility{ return FCategoryFiltersManager::Get().GetSelectedObjects().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed; })
+								.Visibility_Lambda([]()->EVisibility{ return FVisualLoggerFilters::Get().GetSelectedObjects().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed; })
 								.Image(FLogVisualizerStyle::Get().GetBrush("Filters.FilterIcon"))
 							]
 							+ SHorizontalBox::Slot()
@@ -136,7 +125,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 							.AutoWidth()
 							[
 								SAssignNew(ClassesComboButton, SComboButton)
-								.Visibility_Lambda([this]()->EVisibility{ return TimelinesContainer.IsValid() && (TimelinesContainer->GetAllNodes().Num() > 1 || FCategoryFiltersManager::Get().GetSelectedObjects().Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed; })
+								.Visibility_Lambda([this]()->EVisibility{ return TimelinesContainer.IsValid() && (TimelinesContainer->GetAllNodes().Num() > 1 || FVisualLoggerFilters::Get().GetSelectedObjects().Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed; })
 								.ComboButtonStyle(FLogVisualizerStyle::Get(), "Filters.Style")
 								.ForegroundColor(FLinearColor::White)
 								.ContentPadding(0)
@@ -261,7 +250,21 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 			]
 		];
 		
-		SearchBox->SetText(FText::FromString(FCategoryFiltersManager::Get().GetSearchString()));
+	SearchBox->SetText(FText::FromString(FVisualLoggerFilters::Get().GetSearchString()));
+	FLogVisualizer::Get().GetEvents().GetAnimationOutlinerFillPercentageFunc.BindLambda(
+		[this]()->float{ 
+			SSplitter::FSlot const& LeftSplitterSlot = SearchSplitter->SlotAt(0);
+			SSplitter::FSlot const& RightSplitterSlot = SearchSplitter->SlotAt(1);
+
+			return LeftSplitterSlot.SizeValue.Get() / RightSplitterSlot.SizeValue.Get();
+	});
+
+	OnSearchSplitterResized();
+}
+
+SVisualLoggerView::~SVisualLoggerView()
+{
+	FLogVisualizer::Get().GetEvents().GetAnimationOutlinerFillPercentageFunc.Unbind();
 }
 
 void SVisualLoggerView::SetAnimationOutlinerFillPercentage(float FillPercentage) 
@@ -277,23 +280,16 @@ void SVisualLoggerView::SetSearchString(FText SearchString)
 	}
 }
 
-void SVisualLoggerView::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
-{
-	//FIXME: scroll to selected timeline (SebaK)
-	//FWidgetPath WidgetPath;
-	//if (FSlateApplication::Get().GeneratePathToWidgetUnchecked(TimeLine.ToSharedRef(), WidgetPath))
-	//{
-	//	FArrangedWidget ArrangedWidget = WidgetPath.FindArrangedWidget(TimeLine.ToSharedRef()).Get(FArrangedWidget::NullWidget);
-	//	ScrollBox->ScrollDescendantIntoView(ArrangedWidget.Geometry, TimeLine, true);
-	//}
-}
 
 void SVisualLoggerView::OnSearchSplitterResized()
 {
 	SSplitter::FSlot const& LeftSplitterSlot = SearchSplitter->SlotAt(0);
 	SSplitter::FSlot const& RightSplitterSlot = SearchSplitter->SlotAt(1);
 
-	SetAnimationOutlinerFillPercentage(LeftSplitterSlot.SizeValue.Get() / RightSplitterSlot.SizeValue.Get());
+	const float AnimationOutlinerFillPercentage = LeftSplitterSlot.SizeValue.Get() / RightSplitterSlot.SizeValue.Get();
+	SetAnimationOutlinerFillPercentage(AnimationOutlinerFillPercentage);
+
+	FLogVisualizer::Get().SetAnimationOutlinerFillPercentage(AnimationOutlinerFillPercentage);
 }
 
 void SVisualLoggerView::OnSearchChanged(const FText& Filter)
@@ -324,11 +320,6 @@ TSharedRef<SWidget> SVisualLoggerView::MakeSectionOverlay(TSharedRef<FVisualLogg
 void SVisualLoggerView::ResetData()
 {
 	TimelinesContainer->ResetData();
-}
-
-void SVisualLoggerView::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
-{
-	TimelinesContainer->OnNewLogEntry(Entry);
 }
 
 void SVisualLoggerView::OnFiltersChanged()
@@ -371,13 +362,13 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 				FUIAction(
 				FExecuteAction::CreateLambda([this, OwnerClassName]()
 				{
-				if (FCategoryFiltersManager::Get().MatchObjectName(OwnerClassName) && FCategoryFiltersManager::Get().GetSelectedObjects().Num() != 0)
+				if (FVisualLoggerFilters::Get().MatchObjectName(OwnerClassName) && FVisualLoggerFilters::Get().GetSelectedObjects().Num() != 0)
 					{
-						FCategoryFiltersManager::Get().RemoveObjectFromSelection(OwnerClassName);
+						FVisualLoggerFilters::Get().RemoveObjectFromSelection(OwnerClassName);
 					}
 					else
 					{
-						FCategoryFiltersManager::Get().SelectObject(OwnerClassName);
+						FVisualLoggerFilters::Get().SelectObject(OwnerClassName);
 					}
 
 					OnChangedClassesFilter();
@@ -385,7 +376,7 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 				FCanExecuteAction(),
 				FIsActionChecked::CreateLambda([OwnerClassName]()->bool
 				{
-					return FCategoryFiltersManager::Get().GetSelectedObjects().Find(OwnerClassName) != INDEX_NONE;
+					return FVisualLoggerFilters::Get().GetSelectedObjects().Find(OwnerClassName) != INDEX_NONE;
 				}),
 				FIsActionButtonVisible()),
 				NAME_None,
@@ -395,7 +386,7 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 		}
 	}
 	//show any classes from persistent data
-	for (const FString& SelectedObj : FCategoryFiltersManager::Get().GetSelectedObjects())
+	for (const FString& SelectedObj : FVisualLoggerFilters::Get().GetSelectedObjects())
 	{
 		if (UniqueClasses.Find(SelectedObj) == INDEX_NONE)
 		{
@@ -407,13 +398,13 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 			FUIAction(
 			FExecuteAction::CreateLambda([this, SelectedObj]()
 			{
-				if (FCategoryFiltersManager::Get().MatchObjectName(SelectedObj) && FCategoryFiltersManager::Get().GetSelectedObjects().Num() != 0)
+				if (FVisualLoggerFilters::Get().MatchObjectName(SelectedObj) && FVisualLoggerFilters::Get().GetSelectedObjects().Num() != 0)
 				{
-					FCategoryFiltersManager::Get().RemoveObjectFromSelection(SelectedObj);
+					FVisualLoggerFilters::Get().RemoveObjectFromSelection(SelectedObj);
 				}
 				else
 				{
-					FCategoryFiltersManager::Get().SelectObject(SelectedObj);
+					FVisualLoggerFilters::Get().SelectObject(SelectedObj);
 				}
 
 				OnChangedClassesFilter();
@@ -421,7 +412,7 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 			FCanExecuteAction(),
 			FIsActionChecked::CreateLambda([SelectedObj]()->bool
 			{
-				return FCategoryFiltersManager::Get().GetSelectedObjects().Find(SelectedObj) != INDEX_NONE;
+				return FVisualLoggerFilters::Get().GetSelectedObjects().Find(SelectedObj) != INDEX_NONE;
 			}),
 			FIsActionButtonVisible()),
 			NAME_None,
