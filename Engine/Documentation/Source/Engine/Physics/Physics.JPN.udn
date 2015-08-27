@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2668501
+Availability:Public
 Title:物理のシミュレーション
 Crumbs: %ROOT%, Engine
 Description:コリジョンを計算し、物理アクタをシミュレートするために使用するシステム
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -56,7 +58,7 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		![](%ROOT%/start_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		必須情報
+		Essentials
 	[/PARAM]
 	[PARAM:links]
 		* [コリジョン反応](Engine/Physics/Collision "%Engine/Physics/Collision:description%")
@@ -79,7 +81,7 @@ Description:コリジョンを計算し、物理アクタをシミュレート�
 		* [ビークル ユーザー ガイド](Engine/Physics/Vehicles/VehicleUserGuide "%Engine/Physics/Vehicles/VehicleUserGuide:description%")
 		* [ビークル コンテンツ作成ガイド](Engine/Physics/Vehicles/VehcileContentCreation "%Engine/Physics/Vehicles/VehcileContentCreation:description%")
 		* [高度なビークル テンプレート](Engine/Physics/Vehicles/DoubleWishboneVehicle "%Engine/Physics/Vehicles/DoubleWishboneVehicle:description%")
-		* [Vehicle API Reference](API:AWheeledVehicle)
+		* [ビークル API のリファレンス](API:AWheeledVehicle)
 	[/PARAM]
 [/OBJECT]
 
