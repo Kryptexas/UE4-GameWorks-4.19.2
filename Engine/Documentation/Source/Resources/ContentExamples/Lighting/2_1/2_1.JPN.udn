@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2653227
 Availability:Public
 Title:2.1 - 静的ライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 2.1：静的ライト
+Description:ライティングのコンテンツ サンプルの概要、2.1：静的ライト
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -12,6 +12,23 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ライティングのホーム](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Lighting/2_2 "%Resources/ContentExamples/Lighting/2_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:2xSize]456[/VAR]
 
@@ -60,7 +77,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 [/EXCERPT:StaticLighting02]
 
 [EXCERPT:ILC]
-静的ライトは _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます。
+静的ライトは _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
 
 `r.Cache.DrawLightingSamples 1`
 
@@ -78,7 +95,7 @@ Indirect lighting Cache のサンプルを存在させるには、シーン周�
 [/EXCERPT:ILC] 
 
 
-これに加えて、静的ライトは後に [事例 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。後に [事例 3.2](Resources\ContentExamples\Lighting\3_2)で説明します。
+これに加えて、静的ライトは [3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。これについては [3.2](Resources\ContentExamples\Lighting\3_2) で説明します。
 
 
 
