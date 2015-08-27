@@ -29,7 +29,6 @@ public class APEX : ModuleRules
 				}
 			case UnrealTargetConfiguration.Shipping:
 			case UnrealTargetConfiguration.Test:
-				return APEXLibraryMode.Shipping;
 			case UnrealTargetConfiguration.Development:
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
@@ -58,16 +57,7 @@ public class APEX : ModuleRules
 				return "PROFILE";
 			default:
 			case APEXLibraryMode.Shipping:
-				{
-                    if (BuildConfiguration.bUseShippingPhysXLibraries)
-					{
-						return "";	
-					}
-					else
-					{
-						return "PROFILE";
-					}
-				}
+                return "";
 		}
 	}
 

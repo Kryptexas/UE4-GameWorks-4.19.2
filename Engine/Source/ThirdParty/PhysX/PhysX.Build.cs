@@ -20,12 +20,12 @@ public class PhysX : ModuleRules
 		{
 			case UnrealTargetConfiguration.Debug:
 				return PhysXLibraryMode.Debug;
-			case UnrealTargetConfiguration.Shipping:
-			case UnrealTargetConfiguration.Test:
-				return PhysXLibraryMode.Shipping;
+
 			case UnrealTargetConfiguration.Development:
 			case UnrealTargetConfiguration.DebugGame:
 			case UnrealTargetConfiguration.Unknown:
+			case UnrealTargetConfiguration.Shipping:
+			case UnrealTargetConfiguration.Test:
 			default:
             if(BuildConfiguration.bUseShippingPhysXLibraries)
             {
@@ -59,16 +59,7 @@ public class PhysX : ModuleRules
 				return "PROFILE";
 			default:
 			case PhysXLibraryMode.Shipping:
-				{
-                    if (BuildConfiguration.bUseShippingPhysXLibraries)
-					{
-						return "";	
-					}
-					else
-					{
-						return "PROFILE";
-					}
-				}
+                return "";
 		}
 	}
 
@@ -94,7 +85,7 @@ public class PhysX : ModuleRules
 			Definitions.Add("WITH_VEHICLE=0");
 		}
 
-        if(BuildConfiguration.bUseShippingPhysXLibraries)
+        if (LibraryMode == PhysXLibraryMode.Shipping)
         {
             Definitions.Add("WITH_PHYSX_RELEASE=1");
         }else

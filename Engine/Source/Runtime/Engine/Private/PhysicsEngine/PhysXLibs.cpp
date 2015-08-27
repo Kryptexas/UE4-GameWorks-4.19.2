@@ -34,9 +34,6 @@
  */
 void LoadPhysXModules()
 {
-// NOTE: You can change this, along with bShippingBuildsActuallyUseShippingPhysXLibraries in PhysX.Build.cs, to link with
-// pure Shipping PhysX binaries if you have those files available.  The performance and memory difference is fairly negligible.
-#define SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES 0
 
 #if PLATFORM_WINDOWS
 	FString PhysXBinariesRoot = FPaths::EngineDir() / TEXT("Binaries/ThirdParty/PhysX/PhysX-3.3/");
@@ -66,7 +63,7 @@ void LoadPhysXModules()
 
 			#endif	//WITH_APEX
 
-		#elif (UE_BUILD_SHIPPING || UE_BUILD_TEST) && SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES
+		#elif WITH_PHYSX_RELEASE
 
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x64.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt64_1.dll"));
@@ -128,7 +125,7 @@ void LoadPhysXModules()
 				#endif //WITH_APEX_CLOTHING
 			#endif	//WITH_APEX
 
-		#elif (UE_BUILD_SHIPPING || UE_BUILD_TEST) && SHIPPING_BUILDS_ACTUALLY_USE_SHIPPING_PHYSX_LIBRARIES
+		#elif WITH_PHYSX_RELEASE
 
 			PhysX3CommonHandle = LoadLibraryW(*(RootPhysXPath + "PhysX3Common_x86.dll"));
 			nvToolsExtHandle = LoadLibraryW(*(RootPhysXPath + "nvToolsExt32_1.dll"));
