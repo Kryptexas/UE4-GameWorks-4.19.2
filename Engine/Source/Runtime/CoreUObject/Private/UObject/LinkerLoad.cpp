@@ -3442,8 +3442,14 @@ UObject* FLinkerLoad::CreateExport( int32 Index )
 						UClass* FuncClass = Cast<UClass>(ObjOuter);
 						if (FuncClass && FuncClass->ClassGeneratedBy && !FuncClass->ClassGeneratedBy->HasAnyFlags(RF_BeingRegenerated))
 						{
-							// If this is a function (NOT being regenerated) whose parent has been removed, give it a NULL parent, as we would have in the script compiler
-							UE_LOG(LogLinker, Warning, TEXT("CreateExport: Failed to load Parent for %s; removing parent information, but keeping function"), *GetExportFullName(Index));
+							// If this is a function (NOT being regenerated) whose parent has been removed, give it a 
+							// NULL parent, as we would have in the script compiler
+							//
+							// @TODO: Figure out why this occurs, as it happens frequently, and we can only suggest 
+							//        users resave their assets (downgrading from a warning to keep from spamming logs 
+							//        and since it seems to be fixed up with class regeneration... could be related to 
+							//        data-only construction scripts
+							UE_LOG(LogLinker, Display, TEXT("CreateExport: Failed to load Parent for %s; removing parent information, but keeping function"), *GetExportFullName(Index));
 						}
 					}
 
