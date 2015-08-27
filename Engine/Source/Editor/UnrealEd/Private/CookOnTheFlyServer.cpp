@@ -3854,7 +3854,7 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 		CleanUpChildCookers();
 
 		check(CookByTheBookOptions->ChildUnsolicitedPackages.Num() == 0);
-
+		SCOPE_COOKING_STAT(SavingAssetRegistry);
 		SCOPE_TIMER(SavingAssetRegistry);
 		// Save modified asset registry with all streaming chunk info generated during cook
 		const FString& SandboxRegistryFilename = GetSandboxAssetRegistryFilename();

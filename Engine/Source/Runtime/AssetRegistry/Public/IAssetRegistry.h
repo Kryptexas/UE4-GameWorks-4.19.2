@@ -92,7 +92,7 @@ public:
 	 *
 	 * @param OutAssetData the list of assets in this path
 	 */
-	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData) const = 0;
+	virtual bool GetAllAssets(TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets = false) const = 0;
 
 	/**
 	 * Gets a list of paths to objects that are referenced by the supplied package. (On disk references ONLY)

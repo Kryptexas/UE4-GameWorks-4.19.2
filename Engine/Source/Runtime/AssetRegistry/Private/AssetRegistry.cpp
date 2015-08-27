@@ -772,18 +772,21 @@ FAssetData FAssetRegistry::GetAssetByObjectPath( const FName ObjectPath ) const
 	return **AssetData;
 }
 
-bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData) const
+bool FAssetRegistry::GetAllAssets(TArray<FAssetData>& OutAssetData, bool bIncludeOnlyOnDiskAssets) const
 {
 	TSet<FName> InMemoryObjectPaths;
 	double GetAllAssetsStartTime = FPlatformTime::Seconds();
 
 	// All in memory assets
-	for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+	if (bIncludeOnlyOnDiskAssets)
 	{
-		if (ObjIt->IsAsset())
+		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
 		{
-			FAssetData* AssetData = new (OutAssetData) FAssetData(*ObjIt);
-			InMemoryObjectPaths.Add(AssetData->ObjectPath);
+			if (ObjIt->IsAsset())
+			{
+				FAssetData* AssetData = new (OutAssetData)FAssetData(*ObjIt);
+				InMemoryObjectPaths.Add(AssetData->ObjectPath);
+			}
 		}
 	}
 

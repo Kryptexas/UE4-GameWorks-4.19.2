@@ -374,7 +374,7 @@ void FChunkManifestGenerator::BuildChunkManifest(const TArray<FName>& CookedPack
 	// initialize LargestChunkId, FoundIDList, PackageChunkIDMap, AssetRegistryData
 
 	// Calculate the largest chunk id used by the registry to get the indices for the default chunks
-	AssetRegistry.GetAllAssets(AssetRegistryData);
+	AssetRegistry.GetAllAssets(AssetRegistryData, true);
 	int32 LargestChunkID = -1;
 
 	for (int32 Index = 0; Index < AssetRegistryData.Num(); ++Index)
