@@ -732,7 +732,7 @@ public:
 		StartPos		= 0;
 		StartLine		= 0;
 		*Identifier		= 0;
-		FMemory::Memzero(String, sizeof(Identifier));
+		FMemory::Memzero(String);
 	}
 	bool Matches( const TCHAR* Str, ESearchCase::Type SearchCase = ESearchCase::IgnoreCase ) const
 	{
