@@ -45,6 +45,10 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
 	uint32 bHDR:1;
 
+	/** Whether to support Mip maps for this render target texture */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureRenderTarget2D, AssetRegistrySearchable)
+	uint32 bAutoGenerateMips:1;
+
 	/** Normally the format is derived from bHDR, this allows code to set the format explicitly. */
 	UPROPERTY()
 	TEnumAsByte<enum EPixelFormat> OverrideFormat;
@@ -98,7 +102,7 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 
 	FORCEINLINE int32 GetNumMips() const
 	{
-		return 1;
+		return NumMips;
 	}
 
 	FORCEINLINE EPixelFormat GetFormat() const
@@ -112,6 +116,9 @@ class UTextureRenderTarget2D : public UTextureRenderTarget
 			return OverrideFormat;
 		}
 	}
+
+private:
+	int32	NumMips;
 };
 
 
