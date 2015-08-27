@@ -10,6 +10,8 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFilterCategoryAdded, FString, ELogVerbosity::Type);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnFilterCategoryRemoved, FString);
 
+struct FVisualLoggerDBRow;
+
 USTRUCT()
 struct FCategoryFilter
 {
