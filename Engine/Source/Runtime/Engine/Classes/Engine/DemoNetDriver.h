@@ -81,7 +81,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	double		LastRecordAvgFlush;
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
-	float		TimeToSkip;
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
@@ -120,6 +119,7 @@ public:
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr ) override;
 	virtual bool IsAvailable() const override { return true; }
 	void SkipTime(const float InTimeToSkip);
+	void SkipTimeInternal( const float SecondsToSkip, const bool InFastForward, const bool InIsForCheckpoint );
 	bool InitConnectInternal( FString& Error );
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
@@ -149,6 +149,7 @@ public:
 	bool ConditionallyReadDemoFrame();
 	bool ReadDemoFrame( FArchive* Archive );
 	void TickDemoPlayback( float DeltaSeconds );
+	void FinalizeFastForward( const float StartTime );
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
 	void ResetDemoState();
 	void JumpToEndOfLiveReplay();
