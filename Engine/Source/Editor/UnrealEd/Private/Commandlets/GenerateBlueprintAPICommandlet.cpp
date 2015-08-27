@@ -861,6 +861,10 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 			{
 				if (!Pin->bHidden)
 				{
+					// @hack: Some pin data will not be available until requested for display, specifically tooltip strings for call function nodes:
+					FString Scratch;
+					Node->GetPinHoverText(*Pin, Scratch);
+
 					if (!bFirst)
 					{
 						ActionEntry += ",";
