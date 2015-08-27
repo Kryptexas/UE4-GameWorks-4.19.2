@@ -211,7 +211,7 @@ void VPLPlacementCS(
 
 				float3 DiffuseColor = .5f;
 				float CellExtent = VPLPlacementCameraRadius * InvPlacementGridSize.x;
-				float CellRadius = sqrt(2) * CellExtent;
+				float CellRadius = sqrt(2.0) * CellExtent;
 
 				float3 Flux = DiffuseColor * LightColor.rgb * max(dot(IntersectionNormal, -LightDirection), 0) * PI * CellRadius * CellRadius;
 

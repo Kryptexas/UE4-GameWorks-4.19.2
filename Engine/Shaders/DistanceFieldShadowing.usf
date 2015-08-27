@@ -449,7 +449,7 @@ void CullObjectsToTileWithGather(
 				uint ListIndex;
 				InterlockedAdd(TileNumObjects0, 1U, ListIndex);
 				// Don't overwrite on overflow
-				ListIndex = min(ListIndex, MAX_INTERSECTING_OBJECTS - 1);
+				ListIndex = min(ListIndex, (uint)(MAX_INTERSECTING_OBJECTS - 1));
 				IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * 0 + ListIndex] = ObjectIndex; 
 			}
 
@@ -459,7 +459,7 @@ void CullObjectsToTileWithGather(
 				uint ListIndex;
 				InterlockedAdd(TileNumObjects1, 1U, ListIndex);
 				// Don't write out of bounds on overflow
-				ListIndex = min(ListIndex, MAX_INTERSECTING_OBJECTS - 1);
+				ListIndex = min(ListIndex, (uint)(MAX_INTERSECTING_OBJECTS - 1));
 				IntersectingObjectIndices[MAX_INTERSECTING_OBJECTS * 1 + ListIndex] = ObjectIndex; 
 			}
 		}
@@ -468,7 +468,7 @@ void CullObjectsToTileWithGather(
 	GroupMemoryBarrierWithGroupSync();
 
 	GroupIndex = SceneDepth > MaxTileZ2 ? 1 : 0;
-	NumIntersectingObjects = min(GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1, MAX_INTERSECTING_OBJECTS);
+	NumIntersectingObjects = min(GroupIndex == 0 ? TileNumObjects0 : TileNumObjects1, (uint)MAX_INTERSECTING_OBJECTS);
 }
 
 uint DownsampleFactor;

@@ -21,13 +21,17 @@ namespace StencilingGeometry
 	* Note: The sphere will be of unit size unless transformed by the shader. 
 	*/
 	extern void DrawSphere(FRHICommandList& RHICmdList);
+	/**
+	 * Draws exactly the same as above, but uses FVector rather than FVector4 vertex data.
+	 */
+	extern void DrawVectorSphere(FRHICommandList& RHICmdList);
 	/** Renders a cone with a spherical cap, used for rendering spot lights in deferred passes. */
 	extern void DrawCone(FRHICommandList& RHICmdList);
 
 	/** 
 	* Vertex buffer for a sphere of unit size. Used for drawing a sphere as approximate bounding geometry for deferred passes.
 	*/
-	template<int32 NumSphereSides, int32 NumSphereRings>
+	template<int32 NumSphereSides, int32 NumSphereRings, typename VectorType>
 	class TStencilSphereVertexBuffer : public FVertexBuffer
 	{
 	public:
@@ -49,7 +53,7 @@ namespace StencilingGeometry
 			const float RadiansPerRingSegment = PI / (float)NumRings;
 			float Radius = 1;
 
-			TArray<FVector4, TInlineAllocator<NumRings + 1> > ArcVerts;
+			TArray<VectorType, TInlineAllocator<NumRings + 1> > ArcVerts;
 			ArcVerts.Empty(NumRings + 1);
 			// Calculate verts for one arc
 			for (int32 i = 0; i < NumRings + 1; i++)
@@ -58,7 +62,7 @@ namespace StencilingGeometry
 				ArcVerts.Add(FVector(0.0f, FMath::Sin(Angle), FMath::Cos(Angle)));
 			}
 
-			TResourceArray<FVector4, VERTEXBUFFER_ALIGNMENT> Verts;
+			TResourceArray<VectorType, VERTEXBUFFER_ALIGNMENT> Verts;
 			Verts.Empty(NumVerts);
 			// Then rotate this arc NumSides + 1 times.
 			const FVector Center = FVector(0,0,0);
@@ -261,9 +265,10 @@ namespace StencilingGeometry
 		int32 GetVertexCount() const { return NumVerts; }
 	};
 
-	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12> > GStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12, FVector4> > GStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<18, 12, FVector> > GStencilSphereVectorBuffer;
 	extern TGlobalResource<TStencilSphereIndexBuffer<18, 12> > GStencilSphereIndexBuffer;
-	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4> > GLowPolyStencilSphereVertexBuffer;
+	extern TGlobalResource<TStencilSphereVertexBuffer<4, 4, FVector4> > GLowPolyStencilSphereVertexBuffer;
 	extern TGlobalResource<TStencilSphereIndexBuffer<4, 4> > GLowPolyStencilSphereIndexBuffer;
 	extern TGlobalResource<FStencilConeVertexBuffer> GStencilConeVertexBuffer;
 	extern TGlobalResource<FStencilConeIndexBuffer> GStencilConeIndexBuffer;

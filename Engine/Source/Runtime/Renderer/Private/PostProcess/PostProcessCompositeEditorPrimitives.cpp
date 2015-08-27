@@ -210,7 +210,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	const uint32 MSAASampleCount = SceneContext.EditorPrimitivesColor->GetDesc().NumSamples;
 
 	{
-		SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget);
+		SetRenderTarget(Context.RHICmdList, ColorTarget, DepthTarget, ESimpleRenderTargetMode::EExistingColorAndDepth);
 		Context.SetViewportAndCallRHI(DestRect);
 
 		if (bClearIsNeeded)

@@ -236,6 +236,9 @@ Requirements:
 ***/
 extern RHI_API bool GRHISupportsParallelRHIExecute;
 
+/** Whether or not the RHI can perform MSAA sample load. */
+extern RHI_API bool GRHISupportsMSAADepthSampleAccess;
+
 /** Called once per frame only from within an RHI. */
 extern RHI_API void RHIPrivateBeginFrame();
 

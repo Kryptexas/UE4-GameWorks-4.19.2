@@ -110,9 +110,9 @@ void FRCPassPostProcessHistogram::Process(FRenderingCompositePassContext& Contex
 
 	TShaderMapRef<FPostProcessHistogramCS> ComputeShader(Context.GetShaderMap());
 
-	Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
 	SetRenderTarget(Context.RHICmdList, FTextureRHIRef(), FTextureRHIRef());
-	
+    Context.RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
+    
 
 	// set destination
 	check(DestRenderTarget.UAV);

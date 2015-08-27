@@ -19,7 +19,8 @@ class FGPUSkinCache : public FRenderResource
 public:
 	enum SkinCacheInitSettings
 	{
-		MaxBufferSize = 1024 * 1024 * 32,
+//#todo-rco: Make this an ini setting
+		MaxBufferSize = PLATFORM_MAC ? 16 * 1024 * 1024 : 1024 * 1024 * 32,
 		MaxUniformBufferBones = 256,
 		MaxCachedElements = 1024,
 		MaxCachedVertexBufferSRVs = 128,

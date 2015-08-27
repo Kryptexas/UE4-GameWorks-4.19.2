@@ -654,9 +654,9 @@ void FCanvas::Flush_RenderThread(FRHICommandListImmediate& RHICmdList, bool bFor
 	const FTexture2DRHIRef& RenderTargetTexture = RenderTarget->GetRenderTargetTexture();
 
 	check(IsValidRef(RenderTargetTexture));
-
+	
 	// Set the RHI render target.
-	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTextureRHIRef());
+	::SetRenderTarget(RHICmdList, RenderTargetTexture, FTexture2DRHIRef());
 	// disable depth test & writes
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 

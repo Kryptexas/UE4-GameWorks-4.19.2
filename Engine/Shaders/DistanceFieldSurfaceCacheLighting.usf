@@ -373,7 +373,7 @@ void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldR
 	TotalStepsTaken = 0;
 
 	LOOP
-	for (uint ListObjectIndex = 0; ListObjectIndex < min(NumIntersectingObjects, MAX_INTERSECTING_OBJECTS); ListObjectIndex++)
+	for (uint ListObjectIndex = 0; ListObjectIndex < min(NumIntersectingObjects, (uint)MAX_INTERSECTING_OBJECTS); ListObjectIndex++)
 	{
 		uint ObjectIndex = IntersectingObjectIndices[ListObjectIndex];
 		float4 SphereCenterAndRadius = LoadObjectPositionAndRadius(ObjectIndex);
@@ -434,7 +434,7 @@ void RayTraceThroughTileCulledDistanceFields(float3 WorldRayStart, float3 WorldR
 }
 
 void RayTraceThroughGlobalDistanceField(
-	uniform uint ClipmapIndex, 
+	uniform uint ClipmapIndex,
 	float3 WorldRayStart, 
 	float3 WorldRayEnd, 
 	float RayLength, 
@@ -472,7 +472,7 @@ void RayTraceThroughGlobalDistanceField(
 		{
 			float3 SampleVolumePosition = VolumeRayStart + VolumeRayDirection * SampleRayTime;
 			float3 VolumeUV = ComputeGlobalUV(SampleVolumePosition + GlobalVolumeCenter, ClipmapIndex);
-			float DistanceField = Texture3DSampleLevel(GlobalDistanceFieldTexture[ClipmapIndex], GlobalDistanceFieldSampler[ClipmapIndex], VolumeUV, 0).x;
+			float DistanceField = SampleGlobalDistanceField(ClipmapIndex, VolumeUV).x;
 			MinDistance = min(MinDistance, DistanceField);
 
 			float MinStepSize = GlobalVolumeExtent * 2 / 8000.0f;
@@ -527,26 +527,26 @@ void VisualizeMeshDistanceFieldCS(
 	float MaxRayTime0;
 	float IntersectRayTime;
 	float StepsTaken;
-	RayTraceThroughGlobalDistanceField(0, WorldRayStart, WorldRayEnd, TraceDistance, 0, MaxRayTime0, IntersectRayTime, StepsTaken);
+	RayTraceThroughGlobalDistanceField((uint)0, WorldRayStart, WorldRayEnd, TraceDistance, 0, MaxRayTime0, IntersectRayTime, StepsTaken);
 
 	TotalStepsTaken += StepsTaken;
 
 	if (IntersectRayTime >= TraceDistance)
 	{
 		float MaxRayTime1;
-		RayTraceThroughGlobalDistanceField(1, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime0, MaxRayTime1, IntersectRayTime, StepsTaken);
+		RayTraceThroughGlobalDistanceField((uint)1, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime0, MaxRayTime1, IntersectRayTime, StepsTaken);
 		TotalStepsTaken += StepsTaken;
 
 		if (IntersectRayTime >= TraceDistance)
 		{
 			float MaxRayTime2;
-			RayTraceThroughGlobalDistanceField(2, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime1, MaxRayTime2, IntersectRayTime, StepsTaken);
+			RayTraceThroughGlobalDistanceField((uint)2, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime1, MaxRayTime2, IntersectRayTime, StepsTaken);
 			TotalStepsTaken += StepsTaken;
 
 			if (IntersectRayTime >= TraceDistance)
 			{
 				float MaxRayTime3;
-				RayTraceThroughGlobalDistanceField(3, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime2, MaxRayTime3, IntersectRayTime, StepsTaken);
+				RayTraceThroughGlobalDistanceField((uint)3, WorldRayStart, WorldRayEnd, TraceDistance, MaxRayTime2, MaxRayTime3, IntersectRayTime, StepsTaken);
 				TotalStepsTaken += StepsTaken;
 			}
 		}

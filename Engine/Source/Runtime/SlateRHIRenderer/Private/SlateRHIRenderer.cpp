@@ -98,7 +98,7 @@ void FSlateRHIRenderer::FViewportInfo::RecreateDepthBuffer_RenderThread()
 	if (bRequiresStencilTest)
 	{		
 		FTexture2DRHIRef ShaderResourceUnused;
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::DepthZero);
 		RHICreateTargetableShaderResource2D( Width, Height, PF_DepthStencil, 1, TexCreate_None, TexCreate_DepthStencilTargetable, false, CreateInfo, DepthStencil, ShaderResourceUnused );
 		check( IsValidRef(DepthStencil) );
 	}
@@ -438,18 +438,15 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 			check(IsValidRef( ViewportInfo.DepthStencil ));
 
 			// Reset the backbuffer as our color render target and also set a depth stencil buffer
-			SetRenderTarget(RHICmdList, BackBuffer, ViewportInfo.DepthStencil);
+			FRHIRenderTargetView ColorView(BackBuffer, 0, -1, bClear ? ERenderTargetLoadAction::EClear : ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore);
+			FRHISetRenderTargetsInfo Info(1, &ColorView, FRHIDepthRenderTargetView(ViewportInfo.DepthStencil, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::EStore, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore));
+
 			// Clear the stencil buffer
-			RHICmdList.Clear(false, FLinearColor::White, false, 0.0f, true, 0x00, FIntRect());
+			RHICmdList.SetRenderTargetsAndClear(Info);
 		}
 		else
 		{
-			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef());
-		}
-
-		if (bClear)
-		{
-			RHICmdList.Clear(true, FLinearColor(ForceInitToZero), false, 0.0f, true, 0x00, FIntRect());
+			SetRenderTarget(RHICmdList, BackBuffer, FTextureRHIRef(), bClear ? ESimpleRenderTargetMode::EClearColorAndDepth : ESimpleRenderTargetMode::EExistingColorAndDepth);
 		}
 
 #if DEBUG_OVERDRAW

@@ -12,7 +12,7 @@
 	#include "PS4/PS4Common.usf"
 #endif
 
-#if METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if COMPILER_METAL
 	// Helps with iteration when changing Metal shader code generation backend.
 	#include "MetalCommon.usf"
 #endif
@@ -63,7 +63,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-#if COMPILER_GLSL_ES2 || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if COMPILER_GLSL_ES2 || COMPILER_METAL
 
 	float determinant(float3x3 M)
 	{    
@@ -134,7 +134,19 @@
 	// @todo metal: remove this and make sure all uses handle METAL_MRT_PROFILE
 	#undef SM4_PROFILE
 	#define SM4_PROFILE 1
-	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+#elif METAL_SM4_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+	// @todo metal: remove this and make sure all uses handle METAL_SM4_PROFILE
+	#undef SM4_PROFILE
+	#define SM4_PROFILE 1
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
+#elif METAL_SM5_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
+	// @todo metal: remove this and make sure all uses handle FEATURE_LEVEL_SM5
+	#undef SM5_PROFILE
+	#define SM5_PROFILE 1
+	#define FCOLOR_COMPONENT_SWIZZLE .bgra
 #elif ES2_PROFILE || ES3_1_PROFILE
 	#if ES3_1_PROFILE
 		#define FEATURE_LEVEL FEATURE_LEVEL_ES3_1
@@ -179,7 +191,7 @@
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
 // @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
-#define SUPPORTS_INDEPENDENT_SAMPLERS ((PS4_PROFILE || SM5_PROFILE || SM4_PROFILE) && !METAL_MRT_PROFILE)
+#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -1260,7 +1272,7 @@ float DecodePackedHeight(float2 PackedHeight)
 
 uint ReverseBits32( uint bits )
 {
-#if SM5_PROFILE && !METAL_MRT_PROFILE && !METAL_PROFILE && !METAL_SM5_PROFILE
+#if SM5_PROFILE && !METAL_SM5_PROFILE
 	return reversebits( bits );
 #else
 	bits = ( bits << 16) | ( bits >> 16);

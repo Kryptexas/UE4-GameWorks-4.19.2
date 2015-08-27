@@ -21,8 +21,8 @@
 // to increase AO contribution. The AO calculation works best with closed geometry and small-medium scale objects
 #define LPV_GV_BOOST				1
 
-//@todo-rco: Remove this when reenabling for OpenGL
-#if !COMPILER_GLSL
+//@todo-rco: Remove this when reenabling for OpenGL & Metal
+#if !COMPILER_GLSL && !COMPILER_METAL
 #if REFLECTIVE_SHADOW_MAP
 	#include "LPVWriteVplCommon.usf"
 
@@ -87,8 +87,8 @@ void Main(
 	float3 normal = normalize( MaterialParameters.TangentToWorld[2] ); // Smooth normal
 	float3 flux = GetMaterialBounceColor(MaterialParameters);
 
-//@todo-rco: Remove this when reenabling for OpenGL
-#if !COMPILER_GLSL
+//@todo-rco: Remove this when reenabling for OpenGL & Metal
+#if !COMPILER_GLSL && !COMPILER_METAL
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV
 	float3 emissive = GetMaterialEmissive( MaterialParameters );
 

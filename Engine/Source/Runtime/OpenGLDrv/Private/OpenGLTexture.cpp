@@ -1680,7 +1680,7 @@ FShaderResourceViewRHIRef FOpenGLDynamicRHI::RHICreateShaderResourceView(FTextur
 		View = new FOpenGLShaderResourceView(this, Texture2D->Resource, Texture2D->Target, MipLevel, false);
 	}
 	
-	FShaderCache::LogSRV(View, Texture2DRHI, MipLevel, Texture2DRHI->GetNumMips(), Texture2DRHI->GetFormat());
+	FShaderCache::LogSRV(View, Texture2DRHI, MipLevel, 1, PF_Unknown);
 
 	return View;
 }

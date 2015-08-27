@@ -741,7 +741,7 @@ RWBuffer<float4> RWDebugBuffer;
 #define THREADS_PER_OBJECT (FINAL_GATHER_THREADGROUP_SIZE / SIMULTANEOUSLY_TRACED_OBJECTS)
 
 groupshared uint SharedConeVisibility[NUM_CONE_DIRECTIONS];
-groupshared uint SharedConeRawVisibility[NUM_CONE_DIRECTIONS][NUM_VISIBILITY_STEPS];
+groupshared uint SharedConeRawVisibility[NUM_CONE_DIRECTIONS * NUM_VISIBILITY_STEPS];
 groupshared uint SharedMinOcclusionDistance;
 
 #define MAX_RECORD_CULLED_OBJECTS 128
@@ -768,7 +768,7 @@ void ConeTraceOcclusionCS(
 				UNROLL
 				for (uint i = 0; i < NUM_VISIBILITY_STEPS; i++)
 				{
-					SharedConeRawVisibility[ConeIndex][i] = asuint(1.0f);
+					SharedConeRawVisibility[(ConeIndex * NUM_VISIBILITY_STEPS) + i] = asuint(1.0f);
 				}
 			#endif
 		}
@@ -963,7 +963,7 @@ void ConeTraceOcclusionCS(
 		UNROLL
 		for (uint i = 0; i < NUM_VISIBILITY_STEPS; i++)
 		{
-			InterlockedMin(SharedConeRawVisibility[ConeIndex][i], asuint(MinRawVisibility[i]));
+			InterlockedMin(SharedConeRawVisibility[(ConeIndex * NUM_VISIBILITY_STEPS) + i], asuint(MinRawVisibility[i]));
 		}
 
 		GroupMemoryBarrierWithGroupSync();
@@ -978,7 +978,7 @@ void ConeTraceOcclusionCS(
 			UNROLL
 			for (uint i = 0; i < NUM_VISIBILITY_STEPS; i++)
 			{
-				float StepVisibility = asfloat(SharedConeRawVisibility[ConeIndex][i]);
+				float StepVisibility = asfloat(SharedConeRawVisibility[(ConeIndex * NUM_VISIBILITY_STEPS) + i]);
 				// Propagate min visibility down the cone
 				MinStepVisibility = min(MinStepVisibility, StepVisibility);
 				RWRecordConeData[RecordConeDataIndex + i] = MinStepVisibility;
@@ -1075,7 +1075,7 @@ void SetupCopyIndirectArgumentsCS(
 	uint NumRecords = (1 - TrimFraction) * DrawParameters[1];
 
 	// Make sure we spawn at least one group so RWScatterDrawParameters gets written to in the next pass
-	RWDispatchParameters[0] = max((NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE, 1);
+	RWDispatchParameters[0] = max((NumRecords + COPY_THREADGROUP_SIZE - 1) / COPY_THREADGROUP_SIZE, (uint)1);
 
 	RWDispatchParameters[1] = 1;
 	RWDispatchParameters[2] = 1;

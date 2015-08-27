@@ -950,7 +950,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			VertexShader->SetParameters(RHICmdList, View, LightSceneInfo);
 
 			// NUse DBT to allow work culling on shadow lights
-			if (bAllowDepthBoundsTest != 0)
+			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0)
 			{
 				// Can use the depth bounds test to skip work for pixels which won't be touched by the light (i.e outside the depth range)
 				float NearDepth = 1.f;
@@ -979,7 +979,7 @@ void FDeferredShadingSceneRenderer::RenderLight(FRHICommandList& RHICmdList, con
 			}
 
 			// Use DBT to allow work culling on shadow lights
-			if (bAllowDepthBoundsTest != 0)
+			if (GSupportsDepthBoundsTest && bAllowDepthBoundsTest != 0)
 			{
 				// Turn DBT back off
 				RHICmdList.EnableDepthBoundsTest(false, 0, 1);

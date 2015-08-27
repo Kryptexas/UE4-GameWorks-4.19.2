@@ -300,9 +300,9 @@ void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View, bool b
 {
 	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
 	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 
 	// Write 1 to highest bit of stencil to areas that should not receive decals
@@ -351,6 +351,8 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 			return false;
 		}
 	}
+	
+	SCOPED_DRAW_EVENT(Context.RHICmdList, RenderPreStencil);
 
 	FDecalRendering::SetVertexShaderOnly(Context.RHICmdList, View, FrustumComponentToClip);
 
