@@ -163,6 +163,16 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 			ObjectReachability += TEXT("(standalone) ");
 		}
 
+		if( RefInfo.ReferencedBy->HasAnyFlags(RF_Async) )
+		{
+			ObjectReachability += TEXT("(async) ");
+		}
+
+		if( RefInfo.ReferencedBy->HasAnyFlags(RF_AsyncLoading) )
+		{
+			ObjectReachability += TEXT("(asyncloading) ");
+		}
+
 		if (GetUObjectArray().IsDisregardForGC(RefInfo.ReferencedBy))
 		{
 			ObjectReachability += TEXT("(NeverGCed) ");
