@@ -16,6 +16,8 @@ void SSequencerTrackArea::Construct( const FArguments& InArgs, TSharedRef<FSeque
 	SequencerWidget = InSequencerWidget;
 	TimeSliderController = InTimeSliderController;
 
+	bLockInOutToStartEndRange = InArgs._LockInOutToStartEndRange;
+
 	//@todo Overlays don't tick by default, but we need to. Maybe try using Composition? 
 	bCanTick = true;
 
@@ -178,17 +180,20 @@ void SSequencerTrackArea::Tick( const FGeometry& AllottedGeometry, const double 
 
 	FVector2D Size = AllottedGeometry.GetLocalSize();
 
-	if (SizeLastFrame.IsSet() && Size.X != SizeLastFrame->X)
+	if (!bLockInOutToStartEndRange.Get())
 	{
-		// Zoom by the difference in horizontal size
-		const float Difference = Size.X - SizeLastFrame->X;
-		TRange<float> OldRange = TimeSliderController->GetViewRange().GetAnimationTarget();
+		if (SizeLastFrame.IsSet() && Size.X != SizeLastFrame->X)
+		{
+			// Zoom by the difference in horizontal size
+			const float Difference = Size.X - SizeLastFrame->X;
+			TRange<float> OldRange = TimeSliderController->GetViewRange().GetAnimationTarget();
 
-		TimeSliderController->SetViewRange(
-			OldRange.GetLowerBoundValue(),
-			OldRange.GetUpperBoundValue() + (Difference * OldRange.Size<float>() / SizeLastFrame->X),
-			EViewRangeInterpolation::Immediate
-			);
+			TimeSliderController->SetViewRange(
+				OldRange.GetLowerBoundValue(),
+				OldRange.GetUpperBoundValue() + (Difference * OldRange.Size<float>() / SizeLastFrame->X),
+				EViewRangeInterpolation::Immediate
+				);
+		}
 	}
 
 	SizeLastFrame = Size;

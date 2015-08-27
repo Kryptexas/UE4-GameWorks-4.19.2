@@ -234,7 +234,8 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	SAssignNew( TrackOutliner, SSequencerTrackOutliner );
 
 	SAssignNew( TrackArea, SSequencerTrackArea, TimeSliderController, SharedThis(this) )
-		.Visibility( this, &SSequencer::GetTrackAreaVisibility );
+		.Visibility( this, &SSequencer::GetTrackAreaVisibility )
+		.LockInOutToStartEndRange(this, &SSequencer::GetLockInOutToStartEndRange );
 	
 	SAssignNew( TreeView, SSequencerTreeView, SequencerNodeTree.ToSharedRef(), TrackArea.ToSharedRef() )
 	.ExternalScrollbar( ScrollBar );
@@ -1455,6 +1456,11 @@ EVisibility SSequencer::GetTrackAreaVisibility() const
 EVisibility SSequencer::GetCurveEditorVisibility() const
 {
 	return Settings->GetShowCurveEditor() ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool SSequencer::GetLockInOutToStartEndRange() const
+{
+	return Settings->GetLockInOutToStartEndRange();
 }
 
 void SSequencer::OnCurveEditorVisibilityChanged()

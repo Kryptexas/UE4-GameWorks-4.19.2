@@ -203,6 +203,9 @@ private:
 	/** Get the visibility of the track area */
 	EVisibility GetTrackAreaVisibility() const;
 
+	/** Get the lock in/out to start/end range value */
+	bool GetLockInOutToStartEndRange() const;
+
 	/** SWidget interface */
 	/** @todo Sequencer Basic drag and drop support.  Doesn't belong here most likely */
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
