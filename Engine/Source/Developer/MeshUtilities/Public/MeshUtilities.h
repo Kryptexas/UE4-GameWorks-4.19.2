@@ -115,6 +115,25 @@ public:
 		bool bGenerateAsIfTwoSided,
 		class FDistanceFieldVolumeData& OutData) = 0;
 
+	/** Helper structure for skeletal mesh import options */
+	struct MeshBuildOptions
+	{
+		MeshBuildOptions()
+		: bKeepOverlappingVertices(false)
+		, bRemoveDegenerateTriangles(false)
+		, bComputeNormals(true)
+		, bComputeTangents(true)
+		, bUseMikkTSpace(false)
+		{
+		}
+
+		bool bKeepOverlappingVertices;
+		bool bRemoveDegenerateTriangles;
+		bool bComputeNormals;
+		bool bComputeTangents;
+		bool bUseMikkTSpace;
+	};
+	
 	/**
 	 * Create all render specific data for a skeletal mesh LOD model
 	 * @returns true if the mesh was built successfully.
@@ -127,9 +146,7 @@ public:
 		const TArray<FMeshFace>& Faces, 
 		const TArray<FVector>& Points,
 		const TArray<int32>& PointToOriginalMap,
-		bool bKeepOverlappingVertices = false,
-		bool bComputeNormals = true,
-		bool bComputeTangents = true,
+		const MeshBuildOptions& BuildOptions = MeshBuildOptions(),
 		TArray<FText> * OutWarningMessages = NULL,
 		TArray<FName> * OutWarningNames = NULL
 		) = 0;

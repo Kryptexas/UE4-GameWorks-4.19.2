@@ -141,6 +141,7 @@ struct FBXImportOptions
 	bool bKeepOverlappingVertices;
 	bool bImportMeshesInBoneHierarchy;
 	bool bCreatePhysicsAsset;
+	bool bUseExperimentalTangentGeneration;
 	UPhysicsAsset *PhysicsAsset;
 	// Animation option
 	USkeleton* SkeletonForAnimation;
@@ -925,7 +926,7 @@ protected:
 	 * @param ImportData
 	 * @return int32 number of points that added when process unsmooth faces
 	*/
-	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData);
+	int32 DoUnSmoothVerts(FSkeletalMeshImportData &ImportData, bool bDuplicateUnSmoothWedges = true);
 	
 	/**
 	 * Merge all layers of one AnimStack to one layer.
