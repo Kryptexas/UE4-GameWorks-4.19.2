@@ -37,17 +37,21 @@ class UMaterialInstanceDynamic : public UMaterialInstance
 	/**
 	 * Interpolates the scalar and vector parameters of this material instance based on two other material instances, and an alpha blending factor
 	 * The output is the object itself (this).
-	 * Supports the case MaterialInstanceA==this || MaterialInstanceB==this 
+	 * Supports the case SourceA==this || SourceB==this
+	 * Both material have to be from the same base material
+	 * @param SourceA value that is used for Alpha=0, silently ignores the case if 0
+	 * @param SourceB value that is used for Alpha=1, silently ignores the case if 0
+	 * @param Alpha usually in the range 0..1, values outside the range extrapolate
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "InterpolateMaterialInstanceParameters"), Category="Rendering|Material")
-	void K2_InterpolateMaterialInstanceParams(UMaterialInstance* MaterialInstanceA, UMaterialInstance* MaterialInstanceB, float Alpha);
+	void K2_InterpolateMaterialInstanceParams(UMaterialInstance* SourceA, UMaterialInstance* SourceB, float Alpha);
 
 	/**
 	 * Copies over parameters given a material interface.
 	 * The output is the object itself (this).
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
-	void K2_CopyMaterialInstanceParameters(UMaterialInterface* SourceMaterialToCopyFrom);
+	void K2_CopyMaterialInstanceParameters(UMaterialInterface* Source);
 
 	/**
 	 * Create a material instance dynamic parented to the specified material.

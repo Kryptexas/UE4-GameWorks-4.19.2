@@ -992,9 +992,9 @@ bool UMaterialInstance::IsDependent(UMaterialInterface* TestDependency)
 	}
 }
 
-void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface)
+void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Source)
 {
-	if(MaterialInterface)
+	if(Source)
 	{
 		UMaterial* Material = GetMaterial();
 
@@ -1012,7 +1012,7 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 			FName ParameterName = Names[i];
 			UFont* FontValue = NULL;
 			int32 FontPage;
-			if(MaterialInterface->GetFontParameterValue(ParameterName, FontValue, FontPage))
+			if(Source->GetFontParameterValue(ParameterName, FontValue, FontPage))
 			{
 				FFontParameterValue* ParameterValue = new(FontParameterValues) FFontParameterValue;
 				ParameterValue->ParameterName = ParameterName;
@@ -1031,7 +1031,7 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		{
 			FName ParameterName = Names[i];
 			float ScalarValue = 1.0f;
-			if(MaterialInterface->GetScalarParameterValue(ParameterName, ScalarValue))
+			if(Source->GetScalarParameterValue(ParameterName, ScalarValue))
 			{
 				FScalarParameterValue* ParameterValue = new(ScalarParameterValues) FScalarParameterValue;
 				ParameterValue->ParameterName = ParameterName;
@@ -1048,7 +1048,7 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		{
 			FName ParameterName = Names[i];
 			FLinearColor VectorValue;
-			if(MaterialInterface->GetVectorParameterValue(ParameterName, VectorValue))
+			if(Source->GetVectorParameterValue(ParameterName, VectorValue))
 			{
 				FVectorParameterValue* ParameterValue = new(VectorParameterValues) FVectorParameterValue;
 				ParameterValue->ParameterName = ParameterName;
@@ -1065,7 +1065,7 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 		{
 			FName ParameterName = Names[i];
 			UTexture* TextureValue = NULL;
-			if(MaterialInterface->GetTextureParameterValue(ParameterName, TextureValue))
+			if(Source->GetTextureParameterValue(ParameterName, TextureValue))
 			{
 				FTextureParameterValue* ParameterValue = new(TextureParameterValues) FTextureParameterValue;
 				ParameterValue->ParameterName = ParameterName;

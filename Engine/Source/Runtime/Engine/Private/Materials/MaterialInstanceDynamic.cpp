@@ -133,28 +133,28 @@ FVectorParameterValue* GameThread_GetVectorParameterValue(UMaterialInstance* Mat
 	return 0;
 }
 
-void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialInstance* MaterialInstanceA, UMaterialInstance* MaterialInstanceB, float Alpha)
+void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialInstance* SourceA, UMaterialInstance* SourceB, float Alpha)
 {
-	if(MaterialInstanceA && MaterialInstanceB)
+	if(SourceA && SourceB)
 	{
-		UMaterial* BaseMaterialInstanceA = MaterialInstanceA->GetBaseMaterial();
-		UMaterial* BaseMaterialInstanceB = MaterialInstanceB->GetBaseMaterial();
+		UMaterial* BaseA = SourceA->GetBaseMaterial();
+		UMaterial* BaseB = SourceB->GetBaseMaterial();
 
-		if(BaseMaterialInstanceA == BaseMaterialInstanceB)
+		if(BaseA == BaseB)
 		{
 			// todo: can be optimized, at least we can reserve
 			TArray<FName> Names;
 
-			GameThread_FindAllScalarParameterNames(MaterialInstanceA, Names);
-			GameThread_FindAllScalarParameterNames(MaterialInstanceB, Names);
+			GameThread_FindAllScalarParameterNames(SourceA, Names);
+			GameThread_FindAllScalarParameterNames(SourceB, Names);
 
 			// Interpolate the scalar parameters common to both materials
 			for(int32 Idx = 0, Count = Names.Num(); Idx < Count; ++Idx)
 			{
 				FName Name = Names[Idx];
 
-				auto ParamValueA = GameThread_GetScalarParameterValue(MaterialInstanceA, Name);
-				auto ParamValueB = GameThread_GetScalarParameterValue(MaterialInstanceB, Name);
+				auto ParamValueA = GameThread_GetScalarParameterValue(SourceA, Name);
+				auto ParamValueB = GameThread_GetScalarParameterValue(SourceB, Name);
 
 				if(ParamValueA || ParamValueB)
 				{
@@ -162,7 +162,7 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 
 					if(!ParamValueA || !ParamValueB)
 					{
-						BaseMaterialInstanceA->GetScalarParameterValue(Name, Default);
+						BaseA->GetScalarParameterValue(Name, Default);
 					}
 
 					auto ValueA = ParamValueA ? ParamValueA->ParameterValue : Default;
@@ -174,16 +174,16 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 
 			// reused array to minimize further allocations
 			Names.Empty();
-			GameThread_FindAllVectorParameterNames(MaterialInstanceA, Names);
-			GameThread_FindAllVectorParameterNames(MaterialInstanceB, Names);
+			GameThread_FindAllVectorParameterNames(SourceA, Names);
+			GameThread_FindAllVectorParameterNames(SourceB, Names);
 
 			// Interpolate the vector parameters common to both
 			for(int32 Idx = 0, Count = Names.Num(); Idx < Count; ++Idx)
 			{
 				FName Name = Names[Idx];
 
-				auto ParamValueA = GameThread_GetVectorParameterValue(MaterialInstanceA, Name);
-				auto ParamValueB = GameThread_GetVectorParameterValue(MaterialInstanceB, Name);
+				auto ParamValueA = GameThread_GetVectorParameterValue(SourceA, Name);
+				auto ParamValueB = GameThread_GetVectorParameterValue(SourceB, Name);
 
 				if(ParamValueA || ParamValueB)
 				{
@@ -191,7 +191,7 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 
 					if(!ParamValueA || !ParamValueB)
 					{
-						BaseMaterialInstanceA->GetVectorParameterValue(Name, Default);
+						BaseA->GetVectorParameterValue(Name, Default);
 					}
 
 					auto ValueA = ParamValueA ? ParamValueA->ParameterValue : Default;
@@ -204,14 +204,15 @@ void UMaterialInstanceDynamic::K2_InterpolateMaterialInstanceParams(UMaterialIns
 		else
 		{
 			// to find bad usage of this method
-			ensure(BaseMaterialInstanceA == BaseMaterialInstanceB);
+			// Maybe we can log a content error instead
+			// ensure(BaseA == BaseB);
 		}
 	}
 }
 
-void UMaterialInstanceDynamic::K2_CopyMaterialInstanceParameters(UMaterialInterface* SourceMaterialToCopyFrom)
+void UMaterialInstanceDynamic::K2_CopyMaterialInstanceParameters(UMaterialInterface* Source)
 {
-	CopyMaterialInstanceParameters(SourceMaterialToCopyFrom);
+	CopyMaterialInstanceParameters(Source);
 }
 
 void UMaterialInstanceDynamic::CopyParameterOverrides(UMaterialInstance* MaterialInstance)

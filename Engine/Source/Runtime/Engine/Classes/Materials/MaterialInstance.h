@@ -422,8 +422,9 @@ protected:
 	/** 
 	 * Copies over material instance parameters from the base material given a material interface.
 	 * This is a slow operation that is needed for the editor.
+	 * @param Source silently ignores the case if 0
 	 */
-	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* MaterialInterface);
+	ENGINE_API void CopyMaterialInstanceParameters(UMaterialInterface* Source);
 
 	// to share code between PostLoad() and PostEditChangeProperty()
 	void PropagateDataToMaterialProxy();
