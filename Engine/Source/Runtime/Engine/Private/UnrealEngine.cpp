@@ -1093,7 +1093,7 @@ static TAutoConsoleVariable<int32> CVarABTestCoolDown(
 static TAutoConsoleVariable<int32> CVarABTestMinFramesPerTrial(
 	TEXT("abtest.MinFramesPerTrial"),
 	5,
-	TEXT("The number of frames to run a given command before swithing; this is randomized."));
+	TEXT("The number of frames to run a given command before switching; this is randomized."));
 
 static TAutoConsoleVariable<int32> CVarABTestNumResamples(
 	TEXT("abtest.NumResamples"),
