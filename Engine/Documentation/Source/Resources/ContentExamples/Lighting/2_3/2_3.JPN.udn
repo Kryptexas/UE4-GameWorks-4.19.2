@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2618622
+﻿INTSourceChangelist:2653227
 Availability:Public
-Title:2.3 - 可動ライト
+Title:2.3 - Movable Light（可動ライト）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのサンプル レベルの概要 2_3：可動ライト
+Description:ライティングのサンプル レベルの概要 2_3：Movable Light
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -40,7 +40,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 [INCLUDE:Shared/Glossary/M/#Glossary_Movable_Lights]
 
-固定ライトは **[サンプル 3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES プロファイルをサポートします。また、**[サンプル 3.2](Resources\ContentExamples\Lighting\3_2) で説明するライト機能もサポートします。
+Movable lights は **[3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES プロファイルをサポートします。また、**[3.2](Resources\ContentExamples\Lighting\3_2) で説明するライト機能もサポートします。
 
 
 
