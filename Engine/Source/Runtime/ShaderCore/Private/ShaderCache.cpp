@@ -13,9 +13,15 @@
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
+#if WITH_EDITOR
+static TCHAR const* GShaderCacheFileName = TEXT("EditorShaderCache.ushadercache");
+static TCHAR const* GShaderCodeCacheFileName = TEXT("EditorCodeCache.ushadercode");
+#else
 static TCHAR const* GShaderCacheFileName = TEXT("ShaderCache.ushadercache");
+static TCHAR const* GShaderCodeCacheFileName = TEXT("ShaderCodeCache.ushadercode");
+#endif
 
-// Only the cooked Mac build defaults to using the shader cache for now, Editor is too likely to invalidate shader keys leading to ever growing cache
+// Only the Mac build defaults to using the shader cache for now, Editor uses a separate cache from the game to avoid ever-growing cache being propagated to the game.
 int32 FShaderCache::bUseShaderCaching = (PLATFORM_MAC && !WITH_EDITOR) ? 1 : 0;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderCaching(
 	TEXT("r.UseShaderCaching"),
@@ -35,7 +41,7 @@ FAutoConsoleVariableRef FShaderCache::CVarUseShaderPredraw(
 	);
 
 // The actual draw loggging is even more expensive as it has to cache all the RHI draw state & is disabled by default.
-int32 FShaderCache::bUseShaderDrawLog = 0;
+int32 FShaderCache::bUseShaderDrawLog = (PLATFORM_MAC && !WITH_EDITOR) ? 1 : 0;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderDrawLog(
 	TEXT("r.UseShaderDrawLog"),
 	bUseShaderDrawLog,
@@ -50,6 +56,15 @@ FAutoConsoleVariableRef FShaderCache::CVarPredrawBatchTime(
 	PredrawBatchTime,
 	TEXT("Time in ms to spend predrawing shaders each frame, or -1 to perform all predraws immediately."),
 	ECVF_RenderThreadSafe
+	);
+
+// A separate cache of used shader binaries for even earlier submission - may be platform or even device specific.
+int32 FShaderCache::bUseShaderBinaryCache = 0;
+FAutoConsoleVariableRef FShaderCache::CVarUseShaderBinaryCache(
+	TEXT("r.UseShaderBinaryCache"),
+	bUseShaderBinaryCache,
+	TEXT("If true generates & uses a separate cache of used shader binaries for even earlier submission - may be platform or even device specific. Defaults to false."),
+	ECVF_ReadOnly|ECVF_RenderThreadSafe
 	);
 
 FShaderCache* FShaderCache::Cache = nullptr;
@@ -67,6 +82,8 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL:
 		case SP_OPENGL_SM4_MAC:
 		case SP_METAL_MRT:
+		case SP_METAL_SM4:
+		case SP_METAL_SM5:
 		{
 			return true;
 		}
@@ -90,12 +107,63 @@ void FShaderCache::SetGameVersion(int32 InGameVersion)
 	GameVersion = InGameVersion;
 }
 
-void FShaderCache::InitShaderCache()
+void FShaderCache::InitShaderCache(EShaderCacheOptions Options, uint32 InMaxResources)
 {
 	check(!Cache);
 	if(bUseShaderCaching)
 	{
 		Cache = new FShaderCache;
+		Cache->Options = Options;
+		Cache->MaxResources = InMaxResources;
+		check(InMaxResources <= FShaderDrawKey::MaxNumResources);
+		
+		if(bUseShaderBinaryCache)
+		{
+			FString UserCodeCache = FPaths::GameSavedDir() / GShaderCodeCacheFileName;
+			FString GameCodeCache = FPaths::GameContentDir() / GShaderCodeCacheFileName;
+			
+			// Try to load user cache, making sure that if we fail version test we still try game-content version.
+			bool bLoadedCache = false;
+			if ( IFileManager::Get().FileSize(*UserCodeCache) > 0 )
+			{
+				FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*UserCodeCache);
+				
+				if ( BinaryShaderAr != nullptr )
+				{
+					*BinaryShaderAr << Cache->CodeCache;
+					
+					if ( !BinaryShaderAr->IsError() && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::Key) == FShaderCacheCustomVersion::Latest && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::GameKey) == FShaderCache::GameVersion )
+					{
+						bLoadedCache = true;
+					}
+					
+					delete BinaryShaderAr;
+				}
+			}
+			
+			// Fallback to game-content version.
+			if ( !bLoadedCache && IFileManager::Get().FileSize(*GameCodeCache) > 0 )
+			{
+				FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*GameCodeCache);
+				if ( BinaryShaderAr != nullptr )
+				{
+					*BinaryShaderAr << Cache->CodeCache;
+					bLoadedCache = true;
+					delete BinaryShaderAr;
+				}
+			}
+			
+			if(bLoadedCache)
+			{
+				for(auto Entry : Cache->CodeCache.Shaders)
+				{
+					if(Entry.Key.Platform == GMaxRHIShaderPlatform)
+					{
+						Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Entry.Value);
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -127,12 +195,32 @@ FArchive& operator<<( FArchive& Ar, FShaderCache& Info )
 	return Ar;
 }
 
+FArchive& operator<<( FArchive& Ar, FShaderCache::FShaderCodeCache& Info )
+{
+	Ar.UsingCustomVersion(FShaderCacheCustomVersion::Key);
+	Ar.SetCustomVersion(FShaderCacheCustomVersion::GameKey, FShaderCache::GetGameVersion(), TEXT("ShaderCacheGameVersion"));
+	
+	FCustomVersionContainer Vers = Ar.GetCustomVersions();
+	Vers.Serialize(Ar);
+	if ( Ar.IsLoading() )
+	{
+		Ar.SetCustomVersions(Vers);
+	}
+	
+	if ( !Ar.IsError() && Ar.CustomVer(FShaderCacheCustomVersion::Key) == FShaderCacheCustomVersion::Latest && Ar.CustomVer(FShaderCacheCustomVersion::GameKey) == FShaderCache::GetGameVersion() )
+	{
+		Ar << Info.Shaders;
+	}
+	return Ar;
+}
+
 FShaderCache::FShaderCache()
 : StreamingKey(0)
 , bCurrentDepthStencilTarget(false)
 , CurrentNumRenderTargets(0)
 , CurrentShaderState(nullptr)
 , bIsPreDraw(false)
+, Options(SCO_Default)
 {
 	Viewport[0] = Viewport[1] = Viewport[2] = Viewport[3] = 0;
 	DepthRange[0] = DepthRange[1] = 0.0f;
@@ -179,6 +267,16 @@ FShaderCache::~FShaderCache()
 	{
 		*BinaryShaderAr << *this;
 		delete BinaryShaderAr;
+	}
+	if(bUseShaderBinaryCache)
+	{
+		BinaryShaderFile = FPaths::GameSavedDir() / GShaderCodeCacheFileName;
+		BinaryShaderAr = IFileManager::Get().CreateFileWriter(*BinaryShaderFile);
+		if( BinaryShaderAr != NULL )
+		{
+			*BinaryShaderAr << CodeCache;
+			delete BinaryShaderAr;
+		}
 	}
 }
 
@@ -370,9 +468,18 @@ void FShaderCache::InternalLogShader(EShaderPlatform Platform, EShaderFrequency 
 		Key.Platform = Platform;
 		Key.Frequency = Frequency;
 		Key.bActive = true;
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(LogShader, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
-			FShaderCache::GetShaderCache()->SubmitShader(Key, Code);
-		});
+		
+		if(bUseShaderBinaryCache && !CodeCache.Shaders.Contains(Key))
+		{
+			CodeCache.Shaders.Add(Key, Code);
+		}
+		
+		if(!(Options & SCO_NoShaderPreload))
+		{
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(LogShader, FShaderCacheKey,Key,Key, TArray<uint8>,Code,Code, {
+				FShaderCache::GetShaderCache()->SubmitShader(Key, Code);
+			});
+		}
 	}
 }
 
@@ -505,7 +612,7 @@ void FShaderCache::InternalLogDepthStencilState(FDepthStencilStateInitializerRHI
 
 void FShaderCache::InternalLogSamplerState(FSamplerStateInitializerRHI const& Init, FSamplerStateRHIParamRef State)
 {
-	if ( bUseShaderDrawLog )
+	if ( bUseShaderPredraw || bUseShaderDrawLog )
 	{
 		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
 		FSetElementId ID = PlatformCache.SamplerStates.Add(Init);
@@ -595,7 +702,7 @@ void FShaderCache::InternalRemoveTexture(FTextureRHIParamRef Texture)
 
 void FShaderCache::InternalSetBlendState(FBlendStateRHIParamRef State)
 {
-	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw && State )
 	{
 		CurrentDrawKey.BlendState = BlendStates.FindChecked(State);
 		CurrentDrawKey.Hash = 0;
@@ -604,7 +711,7 @@ void FShaderCache::InternalSetBlendState(FBlendStateRHIParamRef State)
 
 void FShaderCache::InternalSetRasterizerState(FRasterizerStateRHIParamRef State)
 {
-	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw && State )
 	{
 		CurrentDrawKey.RasterizerState = RasterizerStates.FindChecked(State);
 		CurrentDrawKey.Hash = 0;
@@ -613,7 +720,7 @@ void FShaderCache::InternalSetRasterizerState(FRasterizerStateRHIParamRef State)
 
 void FShaderCache::InternalSetDepthStencilState(FDepthStencilStateRHIParamRef State)
 {
-	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw )
+	if ( (bUseShaderPredraw || bUseShaderDrawLog) && !bIsPreDraw && State )
 	{
 		CurrentDrawKey.DepthStencilState = DepthStencilStates.FindChecked(State);
 		CurrentDrawKey.Hash = 0;
@@ -693,7 +800,7 @@ void FShaderCache::InternalSetTexture(EShaderFrequency Frequency, uint32 Index, 
 {
 	if ( bUseShaderDrawLog && !bIsPreDraw )
 	{
-		check(Index < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel));
+		check(Index < MaxResources);
 		if ( State )
 		{
 			FShaderResourceKey Key;
@@ -720,7 +827,7 @@ void FShaderCache::InternalSetSRV(EShaderFrequency Frequency, uint32 Index, FSha
 {
 	if ( bUseShaderDrawLog && !bIsPreDraw )
 	{
-		check(Index < GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel));
+		check(Index < MaxResources);
 		if ( SRV )
 		{
 			FShaderResourceKey Key = SRVs.FindChecked(SRV);
@@ -1091,7 +1198,23 @@ FShaderCache::FShaderTextureBinding FShaderCache::CreateSRV(FShaderResourceKey c
 			case SCTT_Texture2D:
 			{
 				Binding.Texture = CreateTexture(TextureKey, true);
-				Binding.SRV = RHICreateShaderResourceView(Binding.Texture->GetTexture2D(), ResourceKey.BaseMip, ResourceKey.MipLevels, ResourceKey.Format);
+				
+				if(ResourceKey.Format == PF_Unknown)
+				{
+					Binding.SRV = RHICreateShaderResourceView(Binding.Texture->GetTexture2D(), ResourceKey.BaseMip);
+					
+				}
+				else
+				{
+					// Make sure that the mip count is valid.
+					uint32 NumMips = (Binding.Texture->GetNumMips() - ResourceKey.BaseMip);
+					if(ResourceKey.MipLevels > 0)
+					{
+						NumMips = FMath::Min(NumMips, ResourceKey.MipLevels);
+					}
+					
+					Binding.SRV = RHICreateShaderResourceView(Binding.Texture->GetTexture2D(), ResourceKey.BaseMip, NumMips, ResourceKey.Format);
+				}
 				break;
 			}
 			default:
@@ -1132,45 +1255,48 @@ void FShaderCache::SetShaderSamplerTextures( FRHICommandList& RHICmdList, FShade
 			FSamplerStateInitializerRHI SamplerInit = PlatformCache.SamplerStates[FSetElementId::FromInteger(DrawKey.SamplerStates[Frequency][i])];
 			FSamplerStateRHIRef State = RHICreateSamplerState(SamplerInit);
 			RHICmdList.SetShaderSampler(Shader, i, State);
-			
-			FShaderTextureBinding Bind;
-			if ( DrawKey.Resources[Frequency][i] != FShaderDrawKey::NullState )
+		}
+	}
+
+	for ( uint32 i = 0; i < MaxResources; i++ )
+	{
+		FShaderTextureBinding Bind;
+		if ( DrawKey.Resources[Frequency][i] != FShaderDrawKey::NullState )
+		{
+			FShaderResourceKey Resource = PlatformCache.Resources[FSetElementId::FromInteger(DrawKey.Resources[Frequency][i])];
+			if( Resource.bSRV == false )
 			{
-				FShaderResourceKey Resource = PlatformCache.Resources[FSetElementId::FromInteger(DrawKey.Resources[Frequency][i])];
-				if( Resource.bSRV == false )
+				if ( !bClear && Resource.Tex.Type != SCTT_Invalid )
 				{
-					if ( !bClear && Resource.Tex.Type != SCTT_Invalid )
-					{
-						Bind.Texture = CreateTexture(Resource.Tex, true);
-						RHICmdList.SetShaderTexture(Shader, i, Bind.Texture.GetReference());
-					}
-					else
-					{
-						RHICmdList.SetShaderTexture(Shader, i, nullptr);
-					}
+					Bind.Texture = CreateTexture(Resource.Tex, true);
+					RHICmdList.SetShaderTexture(Shader, i, Bind.Texture.GetReference());
 				}
 				else
 				{
-					if ( !bClear )
-					{
-						Bind = CreateSRV(Resource);
-						RHICmdList.SetShaderResourceViewParameter(Shader, i, Bind.SRV.GetReference());
-					}
-					else
-					{
-						RHICmdList.SetShaderResourceViewParameter(Shader, i, nullptr);
-					}
+					RHICmdList.SetShaderTexture(Shader, i, nullptr);
 				}
 			}
 			else
 			{
-				RHICmdList.SetShaderTexture(Shader, i, nullptr);
+				if ( !bClear )
+				{
+					Bind = CreateSRV(Resource);
+					RHICmdList.SetShaderResourceViewParameter(Shader, i, Bind.SRV.GetReference());
+				}
+				else
+				{
+					RHICmdList.SetShaderResourceViewParameter(Shader, i, nullptr);
+				}
 			}
-			
-			if ( IsValidRef(Bind.Texture) || IsValidRef(Bind.SRV) )
-			{
-				PredrawBindings.Add(Bind);
-			}
+		}
+		else
+		{
+			RHICmdList.SetShaderTexture(Shader, i, nullptr);
+		}
+		
+		if ( IsValidRef(Bind.Texture) || IsValidRef(Bind.SRV) )
+		{
+			PredrawBindings.Add(Bind);
 		}
 	}
 }
@@ -1212,18 +1338,6 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			}
 		}
 		
-		for( auto VertexDec : Shader.VertexDeclaration )
-		{
-			if ( VertexDec.Stride > 0 )
-			{
-				RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawVB, VertexDec.Stride, VertexDec.Offset);
-			}
-			else
-			{
-				RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawZVB, VertexDec.Stride, VertexDec.Offset);
-			}
-		}
-		
 		FShaderPlatformCache& PlatformCache = Caches.FindOrAdd(GMaxRHIShaderPlatform);
 		for ( auto DrawKeyIdx : DrawStates )
 		{
@@ -1232,10 +1346,6 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			FBlendStateRHIRef BlendState = RHICreateBlendState(DrawKey.BlendState);
 			FDepthStencilStateRHIRef DepthStencil = RHICreateDepthStencilState(DrawKey.DepthStencilState);
 			FRasterizerStateRHIRef Rasterizer = RHICreateRasterizerState(DrawKey.RasterizerState);
-			
-			RHICmdList.SetBlendState(BlendState);
-			RHICmdList.SetDepthStencilState(DepthStencil);
-			RHICmdList.SetRasterizerState(Rasterizer);
 			
 			uint32 NewNumRenderTargets = 0;
 			FRHIRenderTargetView RenderTargets[MaxSimultaneousRenderTargets];
@@ -1271,6 +1381,22 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			
 			RHICmdList.SetRenderTargets(NewNumRenderTargets, RenderTargets, bDepthStencilTarget ? &DepthStencilTarget : nullptr, 0, nullptr);
 			
+			RHICmdList.SetBlendState(BlendState);
+			RHICmdList.SetDepthStencilState(DepthStencil);
+			RHICmdList.SetRasterizerState(Rasterizer);
+
+			for( auto VertexDec : Shader.VertexDeclaration )
+			{
+				if ( VertexDec.Stride > 0 )
+				{
+					RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawVB, VertexDec.Stride, VertexDec.Offset);
+				}
+				else
+				{
+					RHICmdList.SetStreamSource(VertexDec.StreamIndex, PredrawZVB, VertexDec.Stride, VertexDec.Offset);
+				}
+			}
+
 			if ( !IsValidRef(ShaderBoundState) )
 			{
 				FVertexShaderRHIRef VertexShader = Shader.VertexShader.bActive ? CachedVertexShaders.FindRef(Shader.VertexShader) : nullptr;

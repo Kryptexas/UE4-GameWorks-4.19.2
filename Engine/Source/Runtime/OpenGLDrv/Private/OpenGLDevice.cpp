@@ -1230,7 +1230,7 @@ void FOpenGLDynamicRHI::Init()
 	VERIFY_GL_SCOPE();
 
 #if PLATFORM_DESKTOP
-	FShaderCache::InitShaderCache();
+	FShaderCache::InitShaderCache(SCO_Default, FOpenGL::GetMaxTextureImageUnits());
 #endif
 
 	InitializeStateResources();

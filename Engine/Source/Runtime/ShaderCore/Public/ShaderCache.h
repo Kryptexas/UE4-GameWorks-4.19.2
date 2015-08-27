@@ -15,7 +15,13 @@ struct SHADERCORE_API FShaderCacheCustomVersion
 {
 	static const FGuid Key;
 	static const FGuid GameKey;
-	enum Type {	Initial, PreDraw, CacheHashes, OptimisedHashes, StreamingKeys, Latest = StreamingKeys };
+	enum Type {	Initial, PreDraw, CacheHashes, OptimisedHashes, StreamingKeys, AdditionalResources, SeparateBinaries, Latest = SeparateBinaries };
+};
+
+enum EShaderCacheOptions
+{
+	SCO_Default,
+	SCO_NoShaderPreload = 1 << 0 /* Disable preloading of shaders for RHIs where loading all shaders is too slow (i.e. Metal online compiler). */
 };
 
 /** Texture type enum for shader cache draw keys */
@@ -242,7 +248,8 @@ class SHADERCORE_API FShaderCache
 	{
 		enum
 		{
-			MaxTextureSamplers = 16,
+			MaxNumSamplers = 16,
+			MaxNumResources = 128,
 			NullState = ~0u
 		};
 		
@@ -257,7 +264,7 @@ class SHADERCORE_API FShaderCache
 			FMemory::Memset(RenderTargets, 255, sizeof(RenderTargets));
 			FMemory::Memset(SamplerStates, 255, sizeof(SamplerStates));
 			FMemory::Memset(Resources, 255, sizeof(Resources));
-			check(GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel) <= MaxTextureSamplers);
+			check(GetFeatureLevelMaxTextureSamplers(GMaxRHIFeatureLevel) <= MaxNumSamplers);
 		}
 		
 		struct FShaderRasterizerState
@@ -315,8 +322,8 @@ class SHADERCORE_API FShaderCache
 		FShaderRasterizerState RasterizerState;
 		FDepthStencilStateInitializerRHI DepthStencilState;
 		uint32 RenderTargets[MaxSimultaneousRenderTargets];
-		uint32 SamplerStates[SF_NumFrequencies][MaxTextureSamplers];
-		uint32 Resources[SF_NumFrequencies][MaxTextureSamplers];
+		uint32 SamplerStates[SF_NumFrequencies][MaxNumSamplers];
+		uint32 Resources[SF_NumFrequencies][MaxNumResources];
 		uint32 DepthStencilTarget;
 		mutable uint32 Hash;
 		uint8 IndexType;
@@ -353,9 +360,12 @@ class SHADERCORE_API FShaderCache
 				
 				for( uint32 i = 0; i < SF_NumFrequencies; i++ )
 				{
-					for( uint32 j = 0; j < MaxTextureSamplers; j++ )
+					for( uint32 j = 0; j < MaxNumSamplers; j++ )
 					{
 						Key.Hash ^= Key.SamplerStates[i][j];
+					}
+					for( uint32 j = 0; j < MaxNumResources; j++ )
+					{
 						Key.Hash ^= Key.Resources[i][j];
 					}
 				}
@@ -387,9 +397,12 @@ class SHADERCORE_API FShaderCache
 		{
 			for ( uint32 i = 0; i < SF_NumFrequencies; i++ )
 			{
-				for ( uint32 j = 0; j < MaxTextureSamplers; j++ )
+				for ( uint32 j = 0; j < MaxNumSamplers; j++ )
 				{
 					Ar << Info.SamplerStates[i][j];
+				}
+				for ( uint32 j = 0; j < MaxNumResources; j++ )
+				{
 					Ar << Info.Resources[i][j];
 				}
 			}
@@ -407,9 +420,10 @@ public:
 	
 	/** Called by the game to set the game specific shader cache version, only caches of this version will be loaded. Must be called before RHI initialisation, as InitShaderCache will load any existing cache. */
 	static void SetGameVersion(int32 InGameVersion);
+	static int32 GetGameVersion() { return GameVersion; }
 	
 	/** Shader cache initialisation, called only by the RHI. */
-	static void InitShaderCache();
+	static void InitShaderCache(EShaderCacheOptions Options, uint32 InMaxResources = FShaderDrawKey::MaxNumResources);
 	/** Shader cache shutdown, called only by the RHI. */
 	static void ShutdownShaderCache();
 	
@@ -656,8 +670,25 @@ public:
 		}
 	}
 	
+	static FORCEINLINE bool IsPredrawCall()
+	{
+		FShaderCache* ShaderCache = GetShaderCache();
+		if ( Cache )
+		{
+			return Cache->bIsPreDraw;
+		}
+		return false;
+	}
+
 	/** Archive serialisation of the cache data. */
 	friend FArchive& operator<<( FArchive& Ar, FShaderCache& Info );
+	
+	struct SHADERCORE_API FShaderCodeCache
+	{
+		friend FArchive& operator<<( FArchive& Ar, FShaderCodeCache& Info );
+		
+		TMap<FShaderCacheKey, TArray<uint8>> Shaders;
+	};
 	
 private:
 	struct FShaderCacheBoundState
@@ -863,6 +894,9 @@ private:
 	// Serialised
 	FShaderCaches Caches;
 	
+	// Optional, separate code cache
+	FShaderCodeCache CodeCache;
+	
 	// Transient non-invasive tracking of RHI resources for shader logging
 	TMap<FShaderCacheKey, FVertexShaderRHIRef> CachedVertexShaders;
 	TMap<FShaderCacheKey, FPixelShaderRHIRef> CachedPixelShaders;
@@ -921,6 +955,8 @@ private:
 	uint32 Viewport[4];
 	float DepthRange[2];
 	bool bIsPreDraw;
+	EShaderCacheOptions Options;
+	uint8 MaxResources;
 	
 	static FShaderCache* Cache;
 	static int32 GameVersion;
@@ -928,8 +964,10 @@ private:
 	static int32 bUseShaderPredraw;
 	static int32 bUseShaderDrawLog;
 	static int32 PredrawBatchTime;
+	static int32 bUseShaderBinaryCache;
 	static FAutoConsoleVariableRef CVarUseShaderCaching;
 	static FAutoConsoleVariableRef CVarUseShaderPredraw;
 	static FAutoConsoleVariableRef CVarUseShaderDrawLog;
 	static FAutoConsoleVariableRef CVarPredrawBatchTime;
+	static FAutoConsoleVariableRef CVarUseShaderBinaryCache;
 };
