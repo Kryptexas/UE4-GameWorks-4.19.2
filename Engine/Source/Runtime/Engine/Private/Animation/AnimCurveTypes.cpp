@@ -290,8 +290,10 @@ void FRawCurveTracks::Serialize(FArchive& Ar)
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
-
-	SortFloatCurvesByUID();
+	if (Ar.IsLoading())
+	{
+		SortFloatCurvesByUID();
+	}
 }
 
 void FRawCurveTracks::UpdateLastObservedNames(FSmartNameMapping* NameMapping, ESupportedCurveType SupportedCurveType /*= FloatType*/)
