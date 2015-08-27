@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2655205
 Availability:Public
 Title:6.1 - Self Shadowing Accuracy
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 6.1：Self Shadowing Accuracy
+Description:ライティングのサンプル レベルの概要、6.1：Self Shadowing Accuracy
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -12,6 +12,23 @@ Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/Shadows
 Related:Engine/Rendering/LightingAndShadows/IndirectLightingCache
 Related:Engine/Rendering/LightingAndShadows/LightMobility
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[ライティングのホーム](Resources/ContentExamples/Lighting)
+	[/PARAM]
+	[PARAM:next]
+		[次のサンプル](Resources/ContentExamples/Lighting/6_2 "%Resources/ContentExamples/Lighting/6_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:TopicCompact]
@@ -39,7 +56,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 [/REGION]
 
 
-この例では Self Shadowing Accuracy プロパティを紹介します。このプロパティは、主にオブジェクトに表面との接地感を持たせるために存在します。しかしオブジェクトの接地感を増すために値を高く設定すると、場合によっては以下の画像のようにセルフシャドウイングのアーティファクトの要因となってしまいます。
+このサンプルでは Self Shadowing Accuracy、または **Shadow Bias** を紹介します。このプロパティは、主にオブジェクトに表面との接地感を持たせるために存在します。ただし、オブジェクトの接地感を増すために値を高く設定すると、場合によっては以下の画像のようにセルフシャドウイングのアーティファクトの要因となってしまいます。
 
 ![](SelfShadowingArtifacts.png)
 
