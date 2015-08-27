@@ -20,6 +20,9 @@ typedef GLfloat GLdouble;
 #include "OpenGL.h"
 #include "OpenGLUtil.h"		// for VERIFY_GL
 
+#ifdef GL_AMD_debug_output
+	#undef GL_AMD_debug_output
+#endif
 
 // Redefine to disable support for pixel buffer objects
 #ifdef UGL_SUPPORTS_PIXELBUFFERS

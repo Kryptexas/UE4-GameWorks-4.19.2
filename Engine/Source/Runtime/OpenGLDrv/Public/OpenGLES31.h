@@ -11,6 +11,10 @@
 
 #include "OpenGL.h"
 
+#ifdef GL_AMD_debug_output
+	#undef GL_AMD_debug_output
+#endif
+
 /** Unreal tokens that maps to different OpenGL tokens by platform. */
 #undef UGL_ANY_SAMPLES_PASSED
 #define UGL_ANY_SAMPLES_PASSED	GL_ANY_SAMPLES_PASSED_EXT
@@ -21,6 +25,7 @@
 
 #define USE_OPENGL_NAME_CACHE 1
 #define OPENGL_NAME_CACHE_SIZE 1024
+
 
 struct FOpenGLES31 : public FOpenGLBase
 {
