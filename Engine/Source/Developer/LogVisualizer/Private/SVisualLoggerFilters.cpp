@@ -98,7 +98,7 @@ bool SVisualLoggerFilters::GraphSubmenuVisibility(const FName MenuName)
 		return true;
 	}
 
-	if (CachedDatasPerGraph.Contains(MenuName) != NULL)
+	if (CachedDatasPerGraph.Contains(MenuName))
 	{
 		const TArray<FName>& DataNames = CachedDatasPerGraph[MenuName];
 		for (const FName& CurrentData : DataNames)
