@@ -630,7 +630,8 @@ bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdG
 		}
 		if (!LTypeEnum && RTypeEnum)
 		{
-			OutCastBegin = TEXT("EnumToByte(");
+			FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : RTypeEnum->GetName();
+			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>("), *EnumCppType); 
 			OutCastEnd = TEXT(")");
 			return true;
 		}
