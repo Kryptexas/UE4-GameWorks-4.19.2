@@ -3,7 +3,7 @@
 #include "LogVisualizer.h"
 #include "Engine.h"
 #include "VisualLoggerDatabase.h"
-
+#include "VisualLoggerRenderingActor.h"
 
 TSharedPtr< struct FVisualLoggerDatabase > FVisualLoggerDatabase::StaticInstance = nullptr;
 TSharedPtr< struct FVisualLoggerGraphsDatabase > FVisualLoggerGraphsDatabase::StaticInstance = nullptr;
