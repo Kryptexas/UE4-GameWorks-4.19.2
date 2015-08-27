@@ -3250,8 +3250,8 @@ public:
 	, Wedges(InWedges)
 	, Faces(InFaces)
 	, Points(InPoints)
-	, PointToOriginalMap(InPointToOriginalMap)
 	, MikkTUserData(InWedges, InFaces, InPoints, InBuildOptions.bComputeNormals, TangentX, TangentY, TangentZ)
+	, PointToOriginalMap(InPointToOriginalMap)
 	{
 		MikkTInterface.m_getNormal = MikkGetNormal_Skeletal;
 		MikkTInterface.m_getNumFaces = MikkGetNumFaces_Skeletal;
