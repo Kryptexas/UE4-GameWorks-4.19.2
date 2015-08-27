@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2109466
+﻿INTSourceChangelist:2602324
 Availability:Public
-Title:Light の機能
+Title:Light Functions
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
-Description:マテリアルをソースとして使用して投影されたライティング
+Description:マテリアルをソースにしてライティングを投影する
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,26 +50,26 @@ Description:マテリアルをソースとして使用して投影されたラ�
 ## 概要
 
 [EXCERPT:LightFunctions]
-**ライトの機能** は、本質的に、ライトの強度をフィルタするために適用する **マテリアル** です。  
+**Light Functions** は、本質的に、ライトの強度をフィルタするために適用する **マテリアル** です。  
 
-しかし、 **ライトの機能** はライトの色の変更はできないことに留意してください。ライトの色を変更は **ライト色** 設定でしか行えません。 
+しかし、 **Light Functions** では、ライトの色の変更はできないことに留意してください。ライトの色を変更は **Light Color** 設定でのみ行えます。 
 [/EXCERPT:LightFunctions]
 
-次の画像 (_クリックしてフルサイズに拡大_) では、 **マテリアル** は明滅エフェクトを生成しながら **Panner** と **ScalarParameter** ノードを使ってテクスチャを移動します。 
+次の画像 (_クリックしてフルサイズに拡大_) では、 **マテリアル** は点滅エフェクトを生成しながら **Panner** ノードと **ScalarParameter** ノードを使ってテクスチャを移動します。 
 [REGION:lightbox]
 [![](LI_LightFunction.png)(w:900)](LI_LightFunction.png)
 [/REGION]
 
 
-## ライトの機能の作成 
+## Light Function の作成 
 
-**ライトの機能** は **マテリアル** の **マテリアル ドメイン** が **ライトの機能** の属性を使用するように設定することで作成できます。
+**Light Function** は **マテリアル** の **マテリアル ドメイン** が **Light Function** の属性を使用するように設定して作成します。
 
 ![](MAT_LightFunction.png)(w:520)
 
 
-## ライトの機能の適用 
+## Light Function の適用 
 
-**ライトの機能マテリアル** 設定の **[詳細]** パネルから **ライトの機能** を適用することができます。 
+**[Details (詳細)]** パネルの **[Light Function Material (ライトの機能マテリアル)]** 設定で **Light Function** を適用することができます。 
 
 ![](AddLightFunction.png)(w:640)
