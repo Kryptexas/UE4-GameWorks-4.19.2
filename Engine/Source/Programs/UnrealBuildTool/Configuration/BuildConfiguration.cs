@@ -30,6 +30,15 @@ namespace UnrealBuildTool
         public static bool bForceUnityBuild;
 
 		/// <summary>
+		/// An experimental new feature that, when enabled, will try to determine source files that you are actively iteratively changing, 
+		/// and break those files out of their unity blobs so that you can compile them as individual translation units, much faster than 
+		/// recompiling the entire unity blob each time.
+		/// IMPORTANT: This feature is not complete yet!  Currently, it requires source files to be read-only that you aren't actively working with!
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseAdaptiveUnityBuild;
+
+		/// <summary>
 		/// The number of source files in a game module before unity build will be activated for that module.  This
 		/// allows small game modules to have faster iterative compile times for single files, at the expense of slower full
 		/// rebuild times.  This setting can be overridden by the bFasterWithoutUnity option in a module's Build.cs file.
@@ -363,7 +372,7 @@ namespace UnrealBuildTool
 		public static bool bEnableCodeAnalysis;
 
 		/// <summary>
-		/// Enables "Shared PCHs", an experimental feature which may significantly speed up compile times by attempting to
+		/// Enables "Shared PCHs", a feature which significantly speeds up compile times by attempting to
 		/// share certain PCH files between modules that UBT detects is including those PCH's header files
 		/// </summary>
 		[XmlConfig]
@@ -558,6 +567,10 @@ namespace UnrealBuildTool
 			// changes, consider turning this off.  In some cases, unity builds can cause linker errors after iterative changes to files, because
 			// the synthesized file names for unity code files may change between builds.
 			bUseUnityBuild = true;
+
+			// This experimental feature may help to improve iterative compile times when working on code, but is
+			// disabled by default until we test it sufficiently
+			bUseAdaptiveUnityBuild = false;
 
 			bForceUnityBuild = false;
 

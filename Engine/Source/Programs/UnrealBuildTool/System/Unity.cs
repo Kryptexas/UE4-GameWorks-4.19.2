@@ -11,6 +11,11 @@ namespace UnrealBuildTool
 {
 	public class Unity
 	{
+		/** The set of source files that UnrealBuildTool determined to be part of the programmer's "working set".
+		    This feature is only used when bUseAdaptiveUnityBuild is enabled */
+		public static HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
+
+
 		/// <summary>
 		/// A class which represents a list of files and the sum of their lengths.
 		/// </summary>
@@ -114,6 +119,8 @@ namespace UnrealBuildTool
 			string BaseName
 			)
 		{
+			var NewCPPFiles = new List<FileItem>();
+
 			var ToolChain = UEToolChain.GetPlatformToolChain(CompileEnvironment.Config.Target.Platform);
 
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
@@ -124,7 +131,13 @@ namespace UnrealBuildTool
 			// We have an increased threshold for unity file size if, and only if, all files fit into the same unity file. This
 			// is beneficial when dealing with PCH files. The default PCH creation limit is X unity files so if we generate < X 
 			// this could be fairly slow and we'd rather bump the limit a bit to group them all into the same unity file.
-			//
+
+
+			// When enabled, UnrealBuildTool will try to determine source files that you are actively iteratively changing, and break those files
+			// out of their unity blobs so that you can compile them as individual translation units, much faster than recompiling the entire
+			// unity blob each time.
+			bool bUseAdaptiveUnityBuild = BuildConfiguration.bUseAdaptiveUnityBuild && !BuildConfiguration.bStressTestUnity;
+
 			// Optimization only makes sense if PCH files are enabled.
 			bool bForceIntoSingleUnityFile = BuildConfiguration.bStressTestUnity || (TotalBytesInCPPFiles < BuildConfiguration.NumIncludedBytesPerUnityCPP * 2 && CompileEnvironment.ShouldUsePCHs());
 
@@ -141,26 +154,85 @@ namespace UnrealBuildTool
 					SortedCPPFiles.Sort( FileItemComparer );
 				}
 
+
+				// Figure out whether we REALLY want to use adaptive unity for this module.  If nearly every file in the module appears in the working
+				// set, we'll just go ahead and let unity build do its thing.
+				if( bUseAdaptiveUnityBuild )
+				{
+					int CandidateWorkingSetSourceFileCount = 0;
+					int WorkingSetSourceFileCount = 0;
+				    foreach( var CPPFile in SortedCPPFiles )
+				    {
+					    // Don't include writable source files into unity blobs
+						if( !Utils.IsFileUnderDirectory( CPPFile.AbsolutePath, Target.EngineIntermediateDirectory ) &&
+							!Utils.IsFileUnderDirectory( CPPFile.AbsolutePath, Target.ProjectIntermediateDirectory ) )
+						{
+							++CandidateWorkingSetSourceFileCount;
+
+							if( UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet( CPPFile.AbsolutePath ) )
+							{
+								++WorkingSetSourceFileCount;
+
+								// Mark this file as part of the working set.  This will be saved into the UBT Makefile so that
+								// the assembler can automatically invalidate the Makefile when the working set changes (allowing this
+								// code to run again, to build up new unity blobs.)
+								SourceFileWorkingSet.Add( CPPFile );
+							}
+						}
+					}					
+
+					if( WorkingSetSourceFileCount >= CandidateWorkingSetSourceFileCount )
+					{
+						// Every single file in the module appears in the working set, so don't bother using adaptive unity for this
+						// module.  Otherwise it would make full builds really slow.
+						bUseAdaptiveUnityBuild = false;
+					}
+				}
+
 				var CPPUnityFileBuilder = new UnityFileBuilder(bForceIntoSingleUnityFile ? -1 : BuildConfiguration.NumIncludedBytesPerUnityCPP);
+				var AdaptiveUnityBuildInfoString = new StringBuilder();
 				foreach( var CPPFile in SortedCPPFiles )
 				{
-					if (!bForceIntoSingleUnityFile && CPPFile.AbsolutePath.Contains(".GeneratedWrapper."))
+					if (!bForceIntoSingleUnityFile && CPPFile.AbsolutePath.IndexOf(".GeneratedWrapper.", StringComparison.InvariantCultureIgnoreCase) != -1)
 					{
-						CPPUnityFileBuilder.EndCurrentUnityFile();
-						CPPUnityFileBuilder.AddFile(CPPFile);
-						CPPUnityFileBuilder.EndCurrentUnityFile();
-					}
-					else
-					{
-						CPPUnityFileBuilder.AddFile(CPPFile);
+						NewCPPFiles.Add(CPPFile);
 					}
 
-					// Now that the CPPFile is part of this unity file, we will no longer need to treat it like a root level prerequisite for our
-					// dependency cache, as it is now an "indirect include" from the unity file.  We'll clear out the compile environment
-					// attached to this file.  This prevents us from having to cache all of the indirect includes from these files inside our
-					// dependency cache, which speeds up iterative builds a lot!
-					CPPFile.CachedCPPIncludeInfo = null;
+					// When adaptive unity is enabled, go ahead and exclude any source files that we're actively working with
+					if( bUseAdaptiveUnityBuild && SourceFileWorkingSet.Contains( CPPFile ) )
+					{
+						// Just compile this file normally, not as part of the unity blob
+						NewCPPFiles.Add( CPPFile );
+
+						var CPPFileName = Path.GetFileName( CPPFile.AbsolutePath );
+						if( AdaptiveUnityBuildInfoString.Length == 0 )
+						{
+							AdaptiveUnityBuildInfoString.Append( String.Format( "[Adaptive unity build] Excluded from {0} unity file: {1}", BaseName, CPPFileName ) );
+						}
+						else
+						{
+							AdaptiveUnityBuildInfoString.Append( ", " + CPPFileName );
+						}
+					}
+
+					else
+					{
+						// Compile this file as part of the unity blob
+						CPPUnityFileBuilder.AddFile(CPPFile);
+
+						// Now that the CPPFile is part of this unity file, we will no longer need to treat it like a root level prerequisite for our
+						// dependency cache, as it is now an "indirect include" from the unity file.  We'll clear out the compile environment
+						// attached to this file.  This prevents us from having to cache all of the indirect includes from these files inside our
+						// dependency cache, which speeds up iterative builds a lot!
+						CPPFile.CachedCPPIncludeInfo = null;
+					}
 				}
+
+				if( AdaptiveUnityBuildInfoString.Length > 0 )
+				{
+					Log.TraceInformation( AdaptiveUnityBuildInfoString.ToString() );
+				}
+
 				AllUnityFiles = CPPUnityFileBuilder.GetUnityFiles();
 			}
 
@@ -180,7 +252,6 @@ namespace UnrealBuildTool
 			// Create a set of CPP files that combine smaller CPP files into larger compilation units, along with the corresponding 
 			// actions to compile them.
 			int CurrentUnityFileCount = 0;
-			var UnityCPPFiles         = new List<FileItem>();
 			foreach( var UnityFile in AllUnityFiles )
 			{
 				++CurrentUnityFileCount;
@@ -238,14 +309,14 @@ namespace UnrealBuildTool
 
 				UnityCPPFile.RelativeCost        = UnityFile.TotalLength;
 				UnityCPPFile.PCHHeaderNameInCode = PCHHeaderNameInCode;
-                UnityCPPFiles.Add(UnityCPPFile);
+                NewCPPFiles.Add(UnityCPPFile);
 
 				// Cache information about the unity .cpp dependencies
 				// @todo ubtmake urgent: Fails when building remotely for Mac because unity .cpp has an include for a PCH on the REMOTE machine
 				UEBuildModuleCPP.CachePCHUsageForModuleSourceFile( Target, CompileEnvironment, UnityCPPFile );
 			}
 
-			return UnityCPPFiles;
+			return NewCPPFiles;
 		}
 	}
 }

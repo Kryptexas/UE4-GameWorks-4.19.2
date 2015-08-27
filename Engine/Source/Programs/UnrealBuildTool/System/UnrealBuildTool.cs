@@ -1890,6 +1890,7 @@ namespace UnrealBuildTool
                         }
                         UBTMakefile.TargetNameToUObjectModules = TargetNameToUObjectModules;
 						UBTMakefile.Targets = Targets;
+						UBTMakefile.SourceFileWorkingSet = Unity.SourceFileWorkingSet;
 
 						if( BuildConfiguration.bUseUBTMakefiles )
 						{ 
@@ -2249,7 +2250,7 @@ namespace UnrealBuildTool
         [Serializable]
         class UBTMakefile : ISerializable
         {
-			public const int CurrentVersion = 2;
+			public const int CurrentVersion = 3;
 
 			public int Version;
 
@@ -2269,6 +2270,10 @@ namespace UnrealBuildTool
 			/** List of targets being built */
 			public List<UEBuildTarget> Targets;
 
+
+			/** Current working set of source files, for when bUseAdaptiveUnityBuild is enabled */
+			public HashSet<FileItem> SourceFileWorkingSet = new HashSet<FileItem>();
+
 			public UBTMakefile()
 			{
 				Version = CurrentVersion;
@@ -2287,6 +2292,7 @@ namespace UnrealBuildTool
 				EnvironmentVariables       = ((string[])Info.GetValue("e1", typeof(string[]))).Zip((string[])Info.GetValue("e2", typeof(string[])), (i1, i2) => new Tuple<string, string>(i1, i2)).ToList();
 				TargetNameToUObjectModules = (Dictionary<string,List<UHTModuleInfo>>)Info.GetValue("nu", typeof(Dictionary<string,List<UHTModuleInfo>>));
 				Targets                    = (List<UEBuildTarget>)Info.GetValue("ta", typeof(List<UEBuildTarget>));
+				SourceFileWorkingSet       = (HashSet<FileItem>)Info.GetValue("ws", typeof(HashSet<FileItem>));
 			}
 
 			public void GetObjectData(SerializationInfo Info, StreamingContext Context)
@@ -2298,6 +2304,7 @@ namespace UnrealBuildTool
 				Info.AddValue("e2", EnvironmentVariables.Select(x => x.Item2).ToArray());
 				Info.AddValue("nu", TargetNameToUObjectModules);
 				Info.AddValue("ta", Targets);
+				Info.AddValue("ws", SourceFileWorkingSet);
 			}
 
 
@@ -2309,7 +2316,8 @@ namespace UnrealBuildTool
                     PrerequisiteActions != null && PrerequisiteActions.Length > 0 &&
                     EnvironmentVariables != null &&
                     TargetNameToUObjectModules != null && TargetNameToUObjectModules.Count > 0 &&
-					Targets != null && Targets.Count > 0;
+					Targets != null && Targets.Count > 0 &&
+					SourceFileWorkingSet != null;
             }
         }
 
@@ -2506,7 +2514,7 @@ namespace UnrealBuildTool
 					new HashSet<string>(
 						Target.FlatModuleCsData
 						.SelectMany(x => x.Value.ModuleSourceFolder != null ? Directory.EnumerateFiles(x.Value.ModuleSourceFolder, "*.h", SearchOption.AllDirectories) : Enumerable.Empty<string>())
-						.Where(y => Directory.GetLastWriteTime(y) > UBTMakefileInfo.LastWriteTime)
+						.Where(y => Directory.GetLastWriteTimeUtc(y) > UBTMakefileInfo.LastWriteTimeUtc)
 						.OrderBy(z => z).Distinct()
 					);
 
@@ -2523,8 +2531,50 @@ namespace UnrealBuildTool
 					if (bContainsUHTData != bWasProcessed)
 					{
 						Log.TraceVerbose("{0} {1} contain UHT types and now {2} , ignoring it ({3})", Filename, bWasProcessed ? "used to" : "didn't", bWasProcessed ? "doesn't" : "does", UBTMakefileInfo.FullName);
-						ReasonNotLoaded = string.Format("List of files containing UHT types has changed");
+						ReasonNotLoaded = string.Format("new files with reflected types");
 						return null;
+					}
+				}
+			}
+
+			// If adaptive unity build is enabled, do a check to see if there are any source files that became part of the
+			// working set since the Makefile was created (or, source files were removed from the working set.)  If anything
+			// changed, then we'll force a new Makefile to be created so that we have fresh unity build blobs.  We always
+			// want to make sure that source files in the working set are excluded from those unity blobs (for fastest possible
+			// iteration times.)
+			if( BuildConfiguration.bUseAdaptiveUnityBuild )
+			{
+				// Get all .cpp files in processed modules newer than the makefile itself
+				foreach (var Target in LoadedUBTMakefile.Targets)
+				{
+					foreach( var FlatModule in Target.FlatModuleCsData.Values )
+					{
+						if( FlatModule != null && !String.IsNullOrEmpty( FlatModule.ModuleSourceFolder ) )
+						{
+							// Has the directory been touched?  Don't bother checking folders that haven't been written to since the
+							// Makefile was created. 
+							//if( Directory.GetLastWriteTimeUtc( FlatModule.ModuleSourceFolder ) > UBTMakefileInfo.LastWriteTimeUtc )
+							{
+								foreach( var SourceFilePath in Directory.EnumerateFiles( FlatModule.ModuleSourceFolder, "*.cpp", SearchOption.AllDirectories ) )
+								{
+									// Was the file written to since the Makefile was created?  We're not able to do a fully exhaustive
+									// check for working sets when in assembler mode, so we might get it wrong occasionally.  This is
+									// why we only want to check newly-modified or created files.  Otherwise, we could potentially
+									// invalidate the Makefile every single run.
+									if( File.GetLastWriteTimeUtc( SourceFilePath ) > UBTMakefileInfo.LastWriteTimeUtc )
+									{
+										bool bShouldBePartOfWorkingSet = UnrealBuildTool.ShouldSourceFileBePartOfWorkingSet( SourceFilePath );
+										bool bIsAlreadyPartOfWorkingSet = LoadedUBTMakefile.SourceFileWorkingSet.Contains( FileItem.GetItemByFullPath( SourceFilePath ) );
+										if( bShouldBePartOfWorkingSet != bIsAlreadyPartOfWorkingSet )
+										{
+											Log.TraceVerbose("{0} {1} part of source working set and now {2}; invalidating makefile ({3})", SourceFilePath, bIsAlreadyPartOfWorkingSet ? "was" : "was not", bShouldBePartOfWorkingSet ? "is" : "is not", UBTMakefileInfo.FullName);
+											ReasonNotLoaded = string.Format("working set of source files changed");
+											return null;
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -2837,6 +2887,22 @@ namespace UnrealBuildTool
 					File.WriteAllText(ResponseFilePath, FileContentsString, new System.Text.UTF8Encoding(false));
 				}
 			}
+		}
+
+		/// <summary>
+		/// Given a path to a source file, determines whether it should be considered part of the programmer's working
+		/// file set.  That is, a file that is currently being iterated on and is likely to be recompiled soon.  This
+		/// is only used when bUseAdaptiveUnityBuild is enabled.
+		/// </summary>
+		/// <param name="SourceFileAbsolutePath">Path to the source file on disk</param>
+		/// <returns>True if file is part of the working set</returns>
+		public static bool ShouldSourceFileBePartOfWorkingSet( string SourceFileAbsolutePath )
+		{
+			// @todo: This logic needs work.  Currently its designed for users working with Perforce, or a similar
+			// source control system that keeps source files read-only when not actively checked out for editing.
+			bool bShouldBePartOfWorkingSourceFileSet =
+				!System.IO.File.GetAttributes( SourceFileAbsolutePath ).HasFlag( FileAttributes.ReadOnly );
+			return bShouldBePartOfWorkingSourceFileSet;
 		}
     }
 }
