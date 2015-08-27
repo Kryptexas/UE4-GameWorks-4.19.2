@@ -1246,7 +1246,7 @@ public:
 	 * 
 	 * @param Other 	The string test against
 	 * @param SearchCase 	Whether or not the comparison should ignore case
-	 * @return 0 if equal, -1 if less than, 1 if greater than
+	 * @return 0 if equal, negative if less than, positive if greater than
 	 */
 	FORCEINLINE int32 Compare( const FString& Other, ESearchCase::Type SearchCase = ESearchCase::CaseSensitive ) const
 	{
