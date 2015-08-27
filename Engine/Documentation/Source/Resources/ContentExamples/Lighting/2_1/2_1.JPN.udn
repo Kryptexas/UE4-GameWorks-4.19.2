@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:2653227
-Availability:Public
-Title:2.1 - 静的ライト
+﻿Availability:Public
+Title:2.1 - Static Light（静的ライト）
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングのコンテンツ サンプルの概要、2.1：静的ライト
+Description:ライティングのコンテンツ サンプルの概要、2.1：Static Light
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -61,7 +60,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 
 [INCLUDE:Shared/Glossary/S/#Glossary_Static_Lights]
 
-静的ライトはライトマップのみを使用するため、このライトのシャドウはゲームプレイ開始前にベイク処理されます。つまり例にあるような移動 (動的) オブジェクトにシャドウを表現することはできません。しかしライティング オブジェクトも静的な場合は、エリア (コンタクト) シャドウを生成することができます。これは **Source Radius** プロパティを調整して実行します。この時、ソフトシャドウを受け取る表面に自然なシャドウを生成するにはライトマップの解像度を正しく設定する必要があることに留意してください。 
+Static lights (静的ライト) はライトマップのみを使用するため、このライトのシャドウはゲームプレイ開始前にベイク処理されます。つまり例にあるような移動 (動的) オブジェクトにシャドウを表現することはできません。しかしライティング オブジェクトも静的な場合は、エリア (コンタクト) シャドウを生成することができます。これは **Source Radius** プロパティを調整して実行します。この時、ソフトシャドウを受け取る表面に自然なシャドウを生成するにはライトマップの解像度を正しく設定する必要があることに留意してください。 
 [/EXCERPT:StaticLighting01]
 
 [EXCERPT:StaticLighting02]
@@ -77,11 +76,11 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 [/EXCERPT:StaticLighting02]
 
 [EXCERPT:ILC]
-静的ライトは _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
+Static lights は _Indirect Lighting Cache のサンプル グリッド_ が原因で動的オブジェクトにも影響を及ぼします。これはシーンへ焼き付けられるライティング サンプルの 3D グリッドで、静的ライティングが動的オブジェクトに与える効果を決定するためにレンダリング エンジンで使用します。エディタの右上部隅にあるコンソールバーへ以下のコマンドを入力すると、グリッドがビューポートへ表示されます:
 
 `r.Cache.DrawLightingSamples 1`
 
-シーンの至る箇所に散在するサンプルが見れます。
+シーンの至るところにサンプルが散在しています。
 
 ![](IndirectLightingCache.png)
 
@@ -95,7 +94,7 @@ Indirect lighting Cache のサンプルを存在させるには、シーン周�
 [/EXCERPT:ILC] 
 
 
-これに加えて、静的ライトは [3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。これについては [3.2](Resources\ContentExamples\Lighting\3_2) で説明します。
+これに加えて、Static lights は [3.1](Resources\ContentExamples\Lighting\3_1) で説明する IES ライティング プロファイルを使用する場合もありますが、プロファイルのデータはライトマップへベイクされます。つまり、品質はライトマップの解像度に依存します。静的ライトは Light 関数をサポートしません。これについては [3.2](Resources\ContentExamples\Lighting\3_2) で説明します。
 
 
 
