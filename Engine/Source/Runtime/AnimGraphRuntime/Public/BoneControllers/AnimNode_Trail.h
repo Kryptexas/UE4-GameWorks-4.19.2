@@ -5,6 +5,14 @@
 #include "AnimNode_SkeletalControlBase.h"
 #include "AnimNode_Trail.generated.h"
 
+// in the future, we might use this for stretch set up as well
+// for now this is unserializable, and transient only
+struct FPerJointTrailSetup
+{
+	/** How quickly we 'relax' the bones to their animated positions. */
+	float	TrailRelaxationSpeedPerSecond;
+};
+
 /**
  * Trail Controller
  */
@@ -34,9 +42,13 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
 	bool	bLimitStretch;
 
-	/** How quickly we 'relax' the bones to their animated positions. */
+	/** How quickly we 'relax' the bones to their animated positions. Deprecated. Replaced to TrailRelaxationCurve */
+	UPROPERTY()
+	float	TrailRelaxation_DEPRECATED;
+
+	/** How quickly we 'relax' the bones to their animated positions. Time 0 will map to start joint and time 1 will map to the last chain bone. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
-	float	TrailRelaxation;
+	FRuntimeFloatCurve TrailRelaxationCurve;
 
 	/** If bLimitStretch is true, this indicates how long a bone can stretch beyond its length in the ref-pose. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
@@ -62,10 +74,13 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	/** LocalToWorld used last frame, used for building transform between frames. */
 	FMatrix		OldLocalToWorld;
 
+	/** Per Joint Trail Set up*/
+	TArray<FPerJointTrailSetup> PerJointTrailData;
 
 	FAnimNode_Trail();
 
 	// FAnimNode_Base interface
+	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void Update(const FAnimationUpdateContext& Context) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
@@ -75,10 +90,14 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
+	void PostLoad();
+
 private:
 	// FAnimNode_SkeletalControlBase interface
 	virtual void InitializeBoneReferences(const FBoneContainer& RequiredBones) override;
 	// End of FAnimNode_SkeletalControlBase interface
 
 	FVector GetAlignVector(EAxis::Type AxisOption, bool bInvert);
+
+	TArray<FCompactPoseBoneIndex> ChainBoneIndices;
 };

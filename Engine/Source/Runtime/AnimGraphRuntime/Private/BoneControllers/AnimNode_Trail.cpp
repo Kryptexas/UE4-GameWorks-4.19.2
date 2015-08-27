@@ -11,12 +11,14 @@ FAnimNode_Trail::FAnimNode_Trail()
 	, ChainBoneAxis(EAxis::X)
 	, bInvertChainBoneAxis(false)
 	, bLimitStretch(false)
-	, TrailRelaxation(10)
+	, TrailRelaxation_DEPRECATED(10.f)
 	, StretchLimit(0)
 	, FakeVelocity(FVector::ZeroVector)
 	, bActorSpaceFakeVel(false)
 	, bHadValidStrength(false)
 {
+	FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurve();
+	TrailRelaxRichCurve->AddKey(0.f, 10.f);
 }
 
 void FAnimNode_Trail::Update(const FAnimationUpdateContext& Context)
@@ -42,19 +44,18 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, F
 {
 	check(OutBoneTransforms.Num() == 0);
 
-	if( ChainLength < 2 )
+	if( ChainBoneIndices.Num() <= 0 )
 	{
 		return;
 	}
 
+	checkSlow (ChainBoneIndices.Num() == ChainLength);
+	checkSlow (PerJointTrailData.Num() == ChainLength);
+
 	// The incoming BoneIndex is the 'end' of the spline chain. We need to find the 'start' by walking SplineLength bones up hierarchy.
 	// Fail if we walk past the root bone.
-
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	FCompactPoseBoneIndex WalkBoneIndex = TrailBone.GetCompactPoseIndex(BoneContainer);
-
-	TArray<FCompactPoseBoneIndex> ChainBoneIndices;
-	ChainBoneIndices.AddZeroed(ChainLength);
 
 	ChainBoneIndices[ChainLength - 1] = WalkBoneIndex;
 
@@ -80,11 +81,8 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, F
 	// If we have >0 this frame, but didn't last time, record positions of all the bones.
 	// Also do this if number has changed or array is zero.
 	bool bHasValidStrength = (Alpha > 0.f);
-	if(TrailBoneLocations.Num() != ChainLength || (bHasValidStrength && !bHadValidStrength))
+	if(bHasValidStrength && !bHadValidStrength)
 	{
-		TrailBoneLocations.Empty();
-		TrailBoneLocations.AddZeroed(ChainLength);
-
 		for(int32 i=0; i<ChainBoneIndices.Num(); i++)
 		{
 			FCompactPoseBoneIndex ChildIndex = ChainBoneIndices[i];
@@ -124,6 +122,7 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, F
 	TrailBoneLocations[0] = ChainTransform.GetTranslation();
 
 	// Starting one below head of chain, move bones.
+	// this Parent/Child relationship is backward. From start joint (from bottom) to end joint(higher parent )
 	for(int32 i=1; i<ChainBoneIndices.Num(); i++)
 	{
 		// Parent bone position in component space.
@@ -146,7 +145,7 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, F
 		FVector Error = ChildTarget - ChildPos;
 
 		// Calculate how much to push the child towards its target
-		float Correction = FMath::Clamp<float>(ThisTimstep * TrailRelaxation, 0.f, 1.f);
+		float Correction = FMath::Clamp<float>(ThisTimstep * PerJointTrailData[i].TrailRelaxationSpeedPerSecond, 0.f, 1.f);
 
 		// Scale correction vector and apply to get new world-space child position.
 		TrailBoneLocations[i] = ChildPos + (Error * Correction);
@@ -231,4 +230,40 @@ FVector FAnimNode_Trail::GetAlignVector(EAxis::Type AxisOption, bool bInvert)
 	}
 
 	return AxisDir;
+}
+
+void FAnimNode_Trail::PostLoad()
+{
+	if (TrailRelaxation_DEPRECATED != 10.f)
+	{
+		FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurve();
+		TrailRelaxRichCurve->Reset();
+		TrailRelaxRichCurve->AddKey(0.f, TrailRelaxation_DEPRECATED);
+		// since we don't know if it's same as default or not, we have to keep default
+		// if default, the default constructor will take care of it. If not, we'll reset
+		TrailRelaxation_DEPRECATED = 10.f;
+	}
+}
+void FAnimNode_Trail::Initialize(const FAnimationInitializeContext& Context)
+{
+	FAnimNode_SkeletalControlBase::Initialize(Context);
+
+	// allocated all memory here in initialize
+	PerJointTrailData.Reset();
+	ChainBoneIndices.Reset();
+	TrailBoneLocations.Reset();
+	if(ChainLength > 2)
+	{
+		PerJointTrailData.AddZeroed(ChainLength);
+		ChainBoneIndices.AddZeroed(ChainLength);
+		TrailBoneLocations.AddZeroed(ChainLength);
+
+		float Interval = (ChainLength > 1)? (1.f/(ChainLength-1)) : 0.f;
+		const FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurveConst();
+		ensure(TrailRelaxRichCurve);
+		for(int32 Idx=0; Idx<ChainLength; ++Idx)
+		{
+			PerJointTrailData[Idx].TrailRelaxationSpeedPerSecond = TrailRelaxRichCurve->Eval(Interval * Idx);
+		}
+	}
 }

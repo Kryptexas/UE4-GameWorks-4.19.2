@@ -15,6 +15,10 @@ class UAnimGraphNode_Trail : public UAnimGraphNode_SkeletalControlBase
 		FAnimNode_Trail Node;
 
 public:
+	// UObject interface
+	virtual void PostLoad() override;
+	// End of UObject interface
+
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 //	virtual FString GetNodeNativeTitle(ENodeTitleType::Type TitleType) const override;
