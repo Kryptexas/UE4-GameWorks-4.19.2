@@ -140,7 +140,7 @@ void FVisualLoggerFilters::AddCategory(FString InName, ELogVerbosity::Type InVer
 	Filter.CategoryName = InName;
 	Filter.LogVerbosity = InVerbosity;
 	Filter.Enabled = true;
-	int32 Index = Categories.Add(Filter);
+	Categories.Add(Filter);
 
 	FastCategoryFilterMap.Reset(); // we need to recreate cache - pointers can be broken
 	FastCategoryFilterMap.Reserve(Categories.Num());

@@ -149,12 +149,12 @@ void SVisualLoggerStatusView::OnItemSelectionChanged(const FVisualLoggerDBRow& C
 	}
 
 	{
-		for (int32 ItemIndex = 0; ItemIndex < StatusItems.Num(); ItemIndex++)
+		for (int32 StatusItemIndex = 0; StatusItemIndex < StatusItems.Num(); StatusItemIndex++)
 		{
 			for (const FString& Category : ExpandedCategories)
-			{	if (StatusItems[ItemIndex]->ItemText == Category)
+			{	if (StatusItems[StatusItemIndex]->ItemText == Category)
 				{
-					StatusItemsView->SetItemExpansion(StatusItems[ItemIndex], true);
+					StatusItemsView->SetItemExpansion(StatusItems[StatusItemIndex], true);
 					break;
 				}
 			}

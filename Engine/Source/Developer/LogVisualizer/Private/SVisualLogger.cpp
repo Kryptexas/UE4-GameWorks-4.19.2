@@ -97,6 +97,7 @@ SVisualLogger::SVisualLogger()
 	public:
 		FVisualLoggerDevice(SVisualLogger* InVisualLogger, FOnWorldChanged OnWorldChangedDelegate) : VisualLoggerWidget(InVisualLogger), LastUsedWorld(nullptr), OnWorldChanged(OnWorldChangedDelegate) {}
 
+		virtual ~FVisualLoggerDevice(){}
 		virtual void Serialize(const class UObject* LogOwner, FName OwnerName, FName OwnerClassName, const FVisualLogEntry& LogEntry) override
 		{
 			VisualLoggerWidget->OnNewLogEntry(FVisualLogDevice::FVisualLogEntryItem(OwnerName, OwnerClassName, LogEntry));
@@ -107,10 +108,10 @@ SVisualLogger::SVisualLogger()
 				LastUsedWorld = CurrentWorld;
 			}
 		}
-
+		
+		SVisualLogger* VisualLoggerWidget;
 		UWorld* LastUsedWorld;
 		FOnWorldChanged OnWorldChanged;
-		SVisualLogger* VisualLoggerWidget;
 	};
 
 	InternalDevice = MakeShareable(new FVisualLoggerDevice(this, FOnWorldChanged::CreateLambda([this](UWorld* PreviousWorld, UWorld* CurrentWorld){ OnNewWorld(CurrentWorld); })));
