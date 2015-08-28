@@ -912,34 +912,30 @@ bool UMaterial::CheckMaterialUsage_Concurrent(EMaterialUsage Usage, const bool b
 				EMaterialUsage Usage;
 				bool bSkipPrim;
 				bool& bUsageSetSuccessfully;
-				FScopedEvent& Event;
 
-				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully, FScopedEvent& InEvent)
+				FCallSMU(UMaterial* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully)
 					: Material(InMaterial)
 					, Usage(InUsage)
 					, bSkipPrim(bInSkipPrim)
 					, bUsageSetSuccessfully(bInUsageSetSuccessfully)
-					, Event(InEvent)
 				{
 				}
 
 				void Task()
 				{
 					bUsageSetSuccessfully = Material->CheckMaterialUsage(Usage, bSkipPrim);
-					Event.Trigger();
 				}
 			};
 			UE_LOG(LogMaterial, Warning, TEXT("Has to pass SMU back to game thread. This stalls the tasks graph, but since it is editor only or only happens once, is not such a big deal."));
 
-			FScopedEvent Event;
-			FCallSMU CallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim, bUsageSetSuccessfully, Event);
+			TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterial*>(this), Usage, bSkipPrim, bUsageSetSuccessfully));
 
 			DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
 				STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
 				STATGROUP_TaskGraphTasks);
 
 			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-				FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task),
+				FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(CallSMU, &FCallSMU::Task),
 				GET_STATID(STAT_FSimpleDelegateGraphTask_CheckMaterialUsage), NULL, ENamedThreads::GameThread_Local
 			);
 		}
