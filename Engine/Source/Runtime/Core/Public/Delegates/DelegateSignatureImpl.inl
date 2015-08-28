@@ -1753,6 +1753,7 @@ protected:
 		return AddInternal(InDelegateInstance);
 	}
 
+public:
 	/**
 	 * Broadcasts this delegate to all bound objects, except to those that may have expired.
 	 *
@@ -1786,6 +1787,7 @@ protected:
 		}
 	}
 
+protected:
 	/**
 	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).
 	 *
@@ -1877,14 +1879,6 @@ public:
 	inline void Clear()
 	{
 		return Super::Clear();
-	}
-
-	/**
-	 * Broadcasts this delegate to all bound objects, except to those that may have expired
-	 */
-	inline void Broadcast( FUNC_PARAM_LIST ) const
-	{
-		return Super::Broadcast( FUNC_PARAM_PASSTHRU );
 	}
 
 private: 
