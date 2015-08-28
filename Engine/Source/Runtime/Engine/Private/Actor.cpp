@@ -2039,10 +2039,11 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 			YPos += YL;
 		}
 
-		T = FString(TEXT("Touching "));
+		T = FString(TEXT("Overlapping "));
 
 		TArray<AActor*> TouchingActors;
 		GetOverlappingActors(TouchingActors);
+		bool bFoundAnyOverlaps = false;
 		for (int32 iTouching = 0; iTouching<TouchingActors.Num(); ++iTouching)
 		{
 			AActor* const TestActor = TouchingActors[iTouching];
@@ -2052,10 +2053,11 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 			{
 				AActor* A = TestActor;
 				T = T + A->GetName() + " ";
+				bFoundAnyOverlaps = true;
 			}
 		}
 
-		if ( FCString::Strcmp(*T, TEXT("Overlapping ")))
+		if (!bFoundAnyOverlaps)
 		{
 			T = TEXT("Overlapping nothing");
 		}
