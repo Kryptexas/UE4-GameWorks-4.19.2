@@ -127,6 +127,9 @@ public:
 
 	void GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate = FOnGotoTimeDelegate());
 
+	bool IsRecording();
+	bool IsPlaying();
+
 public:
 
 	// FExec interface
