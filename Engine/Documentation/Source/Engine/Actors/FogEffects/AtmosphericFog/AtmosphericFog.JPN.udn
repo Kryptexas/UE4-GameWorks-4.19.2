@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2427207
+﻿INTSourceChangelist:2651153
 Availability:Public
 Title:Atomospheric Fog に関するユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
 Description:大気メディア (表現媒体) を散乱する大気、空気密度、光源などの写実的なシーンを作成する Atmospheric Fog アクタ
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -50,9 +51,9 @@ Description:大気メディア (表現媒体) を散乱する大気、空気密�
 
 [TOC (start:2 end:3)]
 
-Atmospheric Fog は、惑星大気を通過する光拡散の近似値を表現します。このアクタは、屋外のレベルをより現実味のある外観に仕上げます。以下のような総合効果をもたらします。
+**Atmospheric Fog** は、惑星大気を通過する光拡散の近似値を表現します。このアクタは、屋外のレベルをより現実味のある外観に仕上げます。以下のような総合効果をもたらします。
 
-* レベル内のメイン指向性ライトは、「円盤状に照らす太陽」のような効果を空に受け取ります。ライトから逆方向にはるか遠くに配置されます。
+* レベル内のメイン指向性ライトは、円盤状に照らす太陽のような効果を空に受け取ります。ライトから逆方向にはるか遠くに配置されます。
 * 変化する空の色は太陽の高度に依存します (言い換えれば、メイン指向性ライトのベクターが地面と平行になる距離) 。
 * スキャッタリングと減衰の設定を制御します。大気密度の完全制御が可能になります。
 
@@ -63,15 +64,12 @@ Atmospheric Fog は、惑星大気を通過する光拡散の近似値を表現�
 
 ## Atmospheric Fog をレベルへ追加する方法
 
-Atomospheric Fog をレベルへ追加する方法は、 [Classic Viewer] からアクタを追加するのと同じくらい簡単です。
+Atomospheric Fog をレベルへ追加する方法は、 **[Classic Viewer]** の **[Modes]** パネルからアクタを追加するのと同じくらい簡単です。
 
 ドラッグ＆ドロップ操作で行います。
 
 ![AtmoActor.png](AtmoActor.png)(w:420)
 
-または [Classic Viewer] からアクタを選択して、 **右クリック** で表示されるコンテクストメニューから追加オプションを選択します。
-
-![Atmo_Context.png](Atmo_Context.png)(w:420)
 
 ## Atmospheric Fog のプロパティ
 
@@ -83,7 +81,7 @@ Atmospheric Fog アクタには以下のプロパティが格納されます。
 | **Sun Multiplier** | 指向性ライトの輝度の全般的な乗数です。空と霧の両カラーを明るくします。 |
 | **Fog Multiplier** | この乗数は霧のカラーのみに影響し、指向性ライトには作用しません。 |
 | **Density Multiplier** | この制御係数は霧の密度のみに影響し、指向性ライトには作用しません。 |
-| **Density Offset** | このオフセット値は、霧のオパシティを制御し、その有効範囲は、-1...1 です。 |
+| **Density Offset** | このオフセット値は、霧のオパシティを制御し、その有効範囲は、-1 から 1 です。 |
 | **Distance Scale** | 距離係数を制御します。1 の設定値は、アンリアル単位とセンチ単位が 1：1 の割合でスケーリングすると仮定します。とても小さなワールドの作成に有益です。ワールドのサイズが拡大するに応じてこの値を増加させます。大きい値は霧の減衰の変化がより迅速に発生します。 |
 | **Altitude Scale** | Z 軸に沿ったスケールを制御します。デフォルト値は 1 です。|
 | **Ground Color Additive** | 現在、放射カラーはシーンカラーに基づいています。そのため、シャドウがかかった領域が黒くなります。このエフェクトの対処法にパラメータを使用すると、暗い領域の放射カラーをはっきりと表示させるために明るさが多少追加されます (例 0.05 程度)。 |
@@ -102,9 +100,9 @@ Atmospheric Fog アクタには以下のプロパティが格納されます。
 [REGION:imagetable]
 | ![Atmo0.5_4.png](Atmo0.5_4.png)(w:460) | ![Atmo0.35_4.png](Atmo0.35_4.png)(w:460) |
 | ------ | ------ |
-| Decay Height が 0.5 (8 km) | Decay Height が 0.35 (2.744 km) |
+| Density Height が 0.5 (8 km) | Density Height が 0.35 (2.744 km) |
 | ![Atmo1.0_4.png](Atmo1.0_4.png)(w:460) | ![Atmo1.0_1.png](Atmo1.0_1.png)(w:460) |
-| Decay Height が 1.0 (64 km) で Max Scattering が 4 | Decay Height が 1.0 (64 km) で Max Scattering が 1 |
+| Density Height が 1.0 (64 km) で Max Scattering が 4 | Density Height が 1.0 (64 km) で Max Scattering が 1 |
 [/REGION]
 [/EXCERPT:examples]
 <!---Includes
@@ -112,9 +110,9 @@ Atmospheric Fog アクタには以下のプロパティが格納されます。
 [REGION:simpletable]
 	|**プロパティ** | **説明** |
 	| --- | --- |
-	| *Decay Height* |この値は霧密度の減衰の高さを制御します。値を下げると霧の密度が高まり、値を上げると密度が薄まって散乱が弱まります。値の範囲は [0..1] からです。|
-	| *Max Scattering Num* | 散乱の計算数を 1 (単一スキャッタリング) から 4 (4 倍のスキャッタリング) に制限します。 |
-	| *Inscatter Altitude Sample* | インスキャッタリング カラーをサンプリングするための様々な高度です (3D テクスチャ ディメンションのサイズ、1-32)。 |
+	| **Density Height** |この値は霧密度の減衰の高さを制御します。値を下げると霧の密度が高まり、値を上げると密度が薄まって散乱が弱まります。値の範囲は [0..1] からです。|
+	| **Max Scattering Num** | 散乱の計算数を 1 (単一スキャッタリング) から 4 (4 倍のスキャッタリング) に制限します。 |
+	| **Inscatter Altitude Sample** | インスキャッタリング カラーをサンプリングするための様々な高度です (3D テクスチャ ディメンションのサイズ、1-32)。 |
 [/REGION]
 [/EXCERPT:PrecomputeParams]
 End Includes----->
