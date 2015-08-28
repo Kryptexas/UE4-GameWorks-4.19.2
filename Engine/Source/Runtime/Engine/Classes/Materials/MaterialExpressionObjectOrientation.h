@@ -6,7 +6,7 @@
 #include "MaterialExpressionObjectOrientation.generated.h"
 
 UCLASS(collapsecategories, hidecategories=Object)
-class UMaterialExpressionObjectOrientation : public UMaterialExpression
+class ENGINE_API UMaterialExpressionObjectOrientation : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
