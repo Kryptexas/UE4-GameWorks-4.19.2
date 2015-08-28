@@ -480,7 +480,7 @@ namespace UnrealBuildTool
             UEBuildConfiguration.bCompileICU = true;
         }
 
-        public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
         {
             if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
             {
@@ -488,7 +488,7 @@ namespace UnrealBuildTool
 
                 if (!UEBuildConfiguration.bBuildRequiresCookedData)
                 {
-                    if (InModule.ToString() == "TargetPlatform")
+                    if (ModuleName == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
                     }
@@ -497,38 +497,38 @@ namespace UnrealBuildTool
                 // allow standalone tools to use target platform modules, without needing Engine
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddDynamicallyLoadedModule("WindowsTargetPlatform");
-                    InModule.AddDynamicallyLoadedModule("WindowsNoEditorTargetPlatform");
-                    InModule.AddDynamicallyLoadedModule("WindowsServerTargetPlatform");
-                    InModule.AddDynamicallyLoadedModule("WindowsClientTargetPlatform");
-					InModule.AddDynamicallyLoadedModule("AllDesktopTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("WindowsTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("WindowsNoEditorTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("WindowsServerTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("WindowsClientTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)
                 {
-                    InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
-                    InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
+                    Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+                    Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
 
 //#todo-rco: Remove when public
 					{
 						string VulkanSDKPath = Environment.GetEnvironmentVariable("VK_SDK_PATH");
 						if (!String.IsNullOrEmpty(VulkanSDKPath))
 						{
-							InModule.AddDynamicallyLoadedModule("VulkanShaderFormat");
+							Rules.DynamicallyLoadedModuleNames.Add("VulkanShaderFormat");
 						}
 					}
 				}
 
-                if (InModule.ToString() == "D3D11RHI")
+                if (ModuleName == "D3D11RHI")
                 {
                     // To enable platform specific D3D11 RHI Types
-                    InModule.AddPrivateIncludePath("Runtime/Windows/D3D11RHI/Private/Windows");
+                    Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/Windows");
                 }
 
-				if (InModule.ToString() == "D3D12RHI")
+				if (ModuleName == "D3D12RHI")
 				{
 					// To enable platform specific D3D12 RHI Types
-					InModule.AddPrivateIncludePath("Runtime/Windows/D3D12RHI/Private/Windows");
+					Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D12RHI/Private/Windows");
 				}
 			}
         }

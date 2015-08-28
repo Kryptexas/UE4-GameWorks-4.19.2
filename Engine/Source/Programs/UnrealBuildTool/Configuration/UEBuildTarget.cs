@@ -3438,20 +3438,19 @@ namespace UnrealBuildTool
 					}
 				}
 
-				// Now, go ahead and create the module builder instance
-				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
-
-				UnrealTargetPlatform Only = UnrealBuildTool.GetOnlyPlatformSpecificFor();
-
-				if (Only == UnrealTargetPlatform.Unknown && UnrealBuildTool.SkipNonHostPlatforms())
-				{
-					Only = Platform;
-				}
 				// Allow all build platforms to 'adjust' the module setting. 
 				// This will allow undisclosed platforms to make changes without 
 				// exposing information about the platform in publicly accessible 
 				// locations.
-				UEBuildPlatform.PlatformModifyNewlyLoadedModule(Module, TargetInfo, Only);
+				UnrealTargetPlatform Only = UnrealBuildTool.GetOnlyPlatformSpecificFor();
+				if (Only == UnrealTargetPlatform.Unknown && UnrealBuildTool.SkipNonHostPlatforms())
+				{
+					Only = Platform;
+				}
+				UEBuildPlatform.PlatformModifyModuleRules(ModuleName, RulesObject, TargetInfo, Only);
+
+				// Now, go ahead and create the module builder instance
+				Module = InstantiateModule(RulesObject, ModuleName, ModuleType, ModuleDirectory, GeneratedCodeDirectory, IntelliSenseGatherer, FoundSourceFiles, bBuildFiles, ModuleFileName);
 			}
 			return Module;
 		}

@@ -289,35 +289,36 @@ namespace UnrealBuildTool
          *	This is not required - but allows for hiding details of a
          *	particular platform.
          *	
-         *	@param	InModule		The newly loaded module
-         *	@param	Target			The target being build
-         */
-        public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		 *  @param  Name			The name of the module
+		 *	@param	Rules			The module rules
+		 *	@param	Target			The target being build
+		 */
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
         {
 			if (Target.Platform == UnrealTargetPlatform.HTML5)
             {
-                if (InModule.ToString() == "Core")
+                if (ModuleName == "Core")
                 {
-                    InModule.AddPublicIncludePath("Runtime/Core/Public/HTML5");
-                    InModule.AddPublicDependencyModule("zlib");
+                    Rules.PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
+                    Rules.PublicDependencyModuleNames.Add("zlib");
                 }
-                else if (InModule.ToString() == "Engine")
+                else if (ModuleName == "Engine")
                 {
-                    InModule.AddPrivateDependencyModule("zlib");
-                    InModule.AddPrivateDependencyModule("UElibPNG");
-                    InModule.AddPublicDependencyModule("UEOgg");
-                    InModule.AddPublicDependencyModule("Vorbis");
+                    Rules.PrivateDependencyModuleNames.Add("zlib");
+                    Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+                    Rules.PublicDependencyModuleNames.Add("UEOgg");
+                    Rules.PublicDependencyModuleNames.Add("Vorbis");
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Mac )
             {
 				// allow standalone tools to use targetplatform modules, without needing Engine
 				if ((!UEBuildConfiguration.bBuildRequiresCookedData
-                    && InModule.ToString() == "Engine"
+                    && ModuleName == "Engine"
                     && UEBuildConfiguration.bBuildDeveloperTools)
                     || UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("HTML5TargetPlatform");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
                 }
             }
         }

@@ -150,10 +150,11 @@ namespace UnrealBuildTool
 		 * This is not required - but allows for hiding details of a
 		 * particular platform.
 		 * 
-		 * @param InModule The newly loaded module
-		 * @param Target The target being build
+		 *  @param  ModuleName		The name of the module
+		 *	@param	Rules			The module rules
+		 *	@param	Target			The target being build
 		 */
-		void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target);
+		void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target);
 
 		/**
 		 * Setup the target environment for building
@@ -411,17 +412,18 @@ namespace UnrealBuildTool
 		 *	passed in for the given platform.
 		 *	This is not required - but allows for hiding details of a particular platform.
 		 *	
-		 *	@param	InModule		The newly loaded module
+		 *  @param  Name			The name of the module
+		 *	@param	Module			The module rules
 		 *	@param	Target			The target being build
 		 *	@param	Only			If this is not unknown, then only run that platform
 		 */
-		public static void PlatformModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
+		public static void PlatformModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target, UnrealTargetPlatform Only = UnrealTargetPlatform.Unknown)
 		{
 			foreach (var PlatformEntry in BuildPlatformDictionary)
 			{
 				if (Only == UnrealTargetPlatform.Unknown || PlatformEntry.Key == Only || PlatformEntry.Key == Target.Platform)
 				{
-					PlatformEntry.Value.ModifyNewlyLoadedModule(InModule, Target);
+					PlatformEntry.Value.ModifyModuleRules(ModuleName, Rules, Target);
 				}
 			}
 		}
@@ -635,10 +637,11 @@ namespace UnrealBuildTool
 		 *	This is not required - but allows for hiding details of a
 		 *	particular platform.
 		 *	
-		 *	@param	InModule		The newly loaded module
+		 *  @param  ModuleName		The name of the module
+		 *	@param	Rules			The module rules
 		 *	@param	Target			The target being build
 		 */
-		public virtual void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		public virtual void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 		}
 

@@ -281,22 +281,23 @@ namespace UnrealBuildTool
          *	This is not required - but allows for hiding details of a
          *	particular platform.
          *	
-         *	@param	InModule		The newly loaded module
-         *	@param	Target			The target being build
-         */
-        public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		 *  @param  Name			The name of the module
+		 *	@param	Rules			The module rules
+		 *	@param	Target			The target being build
+		 */
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
         {
             if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
             {
                 if (!UEBuildConfiguration.bBuildRequiresCookedData)
                 {
-                    if (InModule.ToString() == "Engine")
+                    if (ModuleName == "Engine")
                     {
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
                         }
                     }
                 }
@@ -304,9 +305,9 @@ namespace UnrealBuildTool
                 // allow standalone tools to use targetplatform modules, without needing Engine
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxTargetPlatform");
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("LinuxServerTargetPlatform");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
                 }
             }
             else if (Target.Platform == UnrealTargetPlatform.Linux)
@@ -315,7 +316,7 @@ namespace UnrealBuildTool
 
                 if (!UEBuildConfiguration.bBuildRequiresCookedData)
                 {
-                    if (InModule.ToString() == "TargetPlatform")
+                    if (ModuleName == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
                     }
@@ -324,16 +325,16 @@ namespace UnrealBuildTool
                 // allow standalone tools to use target platform modules, without needing Engine
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddDynamicallyLoadedModule("LinuxTargetPlatform");
-                    InModule.AddDynamicallyLoadedModule("LinuxNoEditorTargetPlatform");
-                    InModule.AddDynamicallyLoadedModule("LinuxServerTargetPlatform");
-					InModule.AddDynamicallyLoadedModule("AllDesktopTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+                    Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
+					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)
                 {
-					// InModule.AddDynamicallyLoadedModule("ShaderFormatD3D");
-                    InModule.AddDynamicallyLoadedModule("ShaderFormatOpenGL");
+					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+                    Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
                 }
             }
         }

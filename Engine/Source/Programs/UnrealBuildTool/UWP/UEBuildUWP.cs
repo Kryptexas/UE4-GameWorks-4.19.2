@@ -283,52 +283,51 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileICU = true;
 		}
 
-
-		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 			if ((Target.Platform == UnrealTargetPlatform.UWP))
 			{
-				if (InModule.ToString() == "Core")
+				if (ModuleName == "Core")
 				{
-					InModule.AddPrivateDependencyModule("UWPSDK");
+					Rules.PrivateDependencyModuleNames.Add("UWPSDK");
 				}
-				else if (InModule.ToString() == "Engine")
+				else if (ModuleName == "Engine")
 				{
-					InModule.AddPrivateDependencyModule("zlib");
-					InModule.AddPrivateDependencyModule("UElibPNG");
-					InModule.AddPublicDependencyModule("UEOgg");
-					InModule.AddPublicDependencyModule("Vorbis");
+					Rules.PrivateDependencyModuleNames.Add("zlib");
+					Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+					Rules.PublicDependencyModuleNames.Add("UEOgg");
+					Rules.PublicDependencyModuleNames.Add("Vorbis");
 				}
-				else if (InModule.ToString() == "D3D11RHI")
+				else if (ModuleName == "D3D11RHI")
 				{
-					InModule.AddPublicDefinition("D3D11_WITH_DWMAPI=0");
-					InModule.AddPublicDefinition("WITH_DX_PERF=0");
+					Rules.Definitions.Add("D3D11_WITH_DWMAPI=0");
+					Rules.Definitions.Add("WITH_DX_PERF=0");
 				}
-				else if (InModule.ToString() == "DX11")
+				else if (ModuleName == "DX11")
 				{
 					// Clear out all the Windows include paths and libraries...
 					// The UWPSDK module handles proper paths and libs for UWP.
 					// However, the D3D11RHI module will include the DX11 module.
-					InModule.ClearPublicIncludePaths();
-					InModule.ClearPublicLibraryPaths();
-					InModule.ClearPublicAdditionalLibraries();
-					InModule.RemovePublicDefinition("WITH_D3DX_LIBS=1");
-					InModule.AddPublicDefinition("WITH_D3DX_LIBS=0");
-					InModule.RemovePublicAdditionalLibrary("X3DAudio.lib");
-					InModule.RemovePublicAdditionalLibrary("XAPOFX.lib");
+					Rules.PublicIncludePaths.Clear();
+					Rules.PublicLibraryPaths.Clear();
+					Rules.PublicAdditionalLibraries.Clear();
+					Rules.Definitions.Remove("WITH_D3DX_LIBS=1");
+					Rules.Definitions.Add("WITH_D3DX_LIBS=0");
+					Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+					Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
 				}
-				else if (InModule.ToString() == "XAudio2")
+				else if (ModuleName == "XAudio2")
 				{
-					InModule.AddPublicDefinition("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
-					InModule.AddPublicDefinition("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
-					InModule.AddPublicDefinition("XAUDIO2_SUPPORTS_MUSIC=0");
-					InModule.AddPublicDefinition("XAUDIO2_SUPPORTS_SENDLIST=0");
-					InModule.AddPublicAdditionalLibrary("XAudio2.lib");
+					Rules.Definitions.Add("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
+					Rules.Definitions.Add("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
+					Rules.Definitions.Add("XAUDIO2_SUPPORTS_MUSIC=0");
+					Rules.Definitions.Add("XAUDIO2_SUPPORTS_SENDLIST=0");
+					Rules.PublicAdditionalLibraries.Add("XAudio2.lib");
 				}
-				else if (InModule.ToString() == "DX11Audio")
+				else if (ModuleName == "DX11Audio")
 				{
-					InModule.RemovePublicAdditionalLibrary("X3DAudio.lib");
-					InModule.RemovePublicAdditionalLibrary("XAPOFX.lib");
+					Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+					Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
 				}
 			}
 		}

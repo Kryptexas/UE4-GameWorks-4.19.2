@@ -411,32 +411,32 @@ namespace UnrealBuildTool
          *     This is not required - but allows for hiding details of a
          *     particular platform.
          *     
-         *     @param InModule             The newly loaded module
-         *     @param GameName             The game being build
-         *     @param Target               The target being build
-         */
-        public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		 *  @param  Name			The name of the module
+		 *	@param	Rules			The module rules
+		 *	@param	Target			The target being build
+		 */
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
         {
             if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
             {
                 bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
                 if (!UEBuildConfiguration.bBuildRequiresCookedData)
                 {
-                    if (InModule.ToString() == "Engine")
+                    if (ModuleName == "Engine")
                     {
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
                         }
                     }
-                    else if (InModule.ToString() == "TargetPlatform")
+                    else if (ModuleName == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
-						InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
-						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("AudioFormatADPCM");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AudioFormatADPCM");
                         }
                     }
                 }
@@ -444,12 +444,12 @@ namespace UnrealBuildTool
                 // allow standalone tools to use targetplatform modules, without needing Engine
                 if (UEBuildConfiguration.bForceBuildTargetPlatforms)
                 {
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("IOSTargetPlatform");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
                 }
 
                 if (bBuildShaderFormats)
                 {
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("MetalShaderFormat");
+                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("MetalShaderFormat");
                 }
             }
         }

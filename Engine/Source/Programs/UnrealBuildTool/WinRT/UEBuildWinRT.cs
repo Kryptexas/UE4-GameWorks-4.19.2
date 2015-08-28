@@ -246,238 +246,239 @@ namespace UnrealBuildTool
          *	This is not required - but allows for hiding details of a
          *	particular platform.
          *	
-         *	@param	InModule		The newly loaded module
-         *	@param	Target			The target being build
-         */
-        public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		 *  @param  Name			The name of the module
+		 *	@param	Rules			The module rules
+		 *	@param	Target			The target being build
+		 */
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
         {
             if ((Target.Platform == UnrealTargetPlatform.WinRT) || 
                 (Target.Platform == UnrealTargetPlatform.WinRT_ARM))
             {
-                if (InModule.ToString() == "Core")
+                if (ModuleName == "Core")
                 {
-                    InModule.AddPublicIncludePath("Runtime/Core/Public/WinRT");
-                    InModule.AddPublicDependencyModule("zlib");
+                    Rules.PublicIncludePaths.Add("Runtime/Core/Public/WinRT");
+                    Rules.PublicDependencyModuleNames.Add("zlib");
                 }
-                else if (InModule.ToString() == "Engine")
+                else if (ModuleName == "Engine")
                 {
-                    InModule.AddPrivateDependencyModule("zlib");
-                    InModule.AddPrivateDependencyModule("UElibPNG");
-                    InModule.AddPublicDependencyModule("UEOgg");
-                    InModule.AddPublicDependencyModule("Vorbis");
+                    Rules.PrivateDependencyModuleNames.Add("zlib");
+                    Rules.PrivateDependencyModuleNames.Add("UElibPNG");
+                    Rules.PublicDependencyModuleNames.Add("UEOgg");
+                    Rules.PublicDependencyModuleNames.Add("Vorbis");
                 }
-                else if (InModule.ToString() == "Launch")
+                else if (ModuleName == "Launch")
                 {
                 }
-                else if (InModule.ToString() == "D3D11RHI")
+                else if (ModuleName == "D3D11RHI")
                 {
-                    InModule.AddPublicDefinition("D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR=1");
+                    Rules.Definitions.Add("D3D11_CUSTOM_VIEWPORT_CONSTRUCTOR=1");
                     // To enable platform specific D3D11 RHI Types
-                    InModule.AddPrivateIncludePath("Runtime/Windows/D3D11RHI/Private/WinRT");
+                    Rules.PrivateIncludePaths.Add("Runtime/Windows/D3D11RHI/Private/WinRT");
                     // Hack to enable AllowWindowsPlatformTypes.h/HideWindowsPlatformTypes.h
-                    InModule.AddPublicIncludePath("Runtime/Core/Public/Windows");
+                    Rules.PublicIncludePaths.Add("Runtime/Core/Public/Windows");
                 }
-                else if (InModule.ToString() == "Sockets")
+                else if (ModuleName == "Sockets")
                 {
                     // Hack to enable AllowWindowsPlatformTypes.h/HideWindowsPlatformTypes.h
-                    InModule.AddPublicIncludePath("Runtime/Core/Public/Windows");
+                    Rules.PublicIncludePaths.Add("Runtime/Core/Public/Windows");
                 }
-                else if (InModule.ToString() == "PhysX")
+                else if (ModuleName == "PhysX")
                 {
                     string PhysXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/PhysX-3.3/";
 
-                    InModule.AddPublicIncludePath("include/foundation/WinRT");
+                    Rules.PublicIncludePaths.Add("include/foundation/WinRT");
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(PhysXDir + "Lib/WinRT");
+                        Rules.PublicLibraryPaths.Add(PhysXDir + "Lib/WinRT");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(PhysXDir + "Lib/WinRT/ARM");
+                        Rules.PublicLibraryPaths.Add(PhysXDir + "Lib/WinRT/ARM");
                     }
 
                     if (Target.Configuration == UnrealTargetConfiguration.Debug)
                     {
-                        InModule.AddPublicAdditionalLibrary("PhysX3DEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3ExtensionsDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3CookingDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3CommonDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3VehicleDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PxTaskDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXVisualDebuggerSDKDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXProfileSDKDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3DEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3ExtensionsDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3CookingDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3CommonDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3VehicleDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PxTaskDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXVisualDebuggerSDKDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXProfileSDKDEBUG.lib");
                     }
                     else if (Target.Configuration == UnrealTargetConfiguration.Development)
                     {
-                        InModule.AddPublicAdditionalLibrary("PhysX3PROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3ExtensionsPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3CookingPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3CommonPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3VehiclePROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PxTaskPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXVisualDebuggerSDKPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXProfileSDKPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3PROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3ExtensionsPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3CookingPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3CommonPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3VehiclePROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PxTaskPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXVisualDebuggerSDKPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXProfileSDKPROFILE.lib");
                     }
                     else // Test or Shipping
                     {
-                        InModule.AddPublicAdditionalLibrary("PhysX3.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3Extensions.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3Cooking.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3Common.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysX3Vehicle.lib");
-                        InModule.AddPublicAdditionalLibrary("PxTask.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXVisualDebuggerSDK.lib");
-                        InModule.AddPublicAdditionalLibrary("PhysXProfileSDK.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3Extensions.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3Cooking.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3Common.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysX3Vehicle.lib");
+                        Rules.PublicAdditionalLibraries.Add("PxTask.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXVisualDebuggerSDK.lib");
+                        Rules.PublicAdditionalLibraries.Add("PhysXProfileSDK.lib");
                     }
                 }
-                else if (InModule.ToString() == "APEX")
+                else if (ModuleName == "APEX")
                 {
-                    InModule.RemovePublicDefinition("APEX_STATICALLY_LINKED=0");
-                    InModule.AddPublicDefinition("APEX_STATICALLY_LINKED=1");
+                    Rules.Definitions.Remove("APEX_STATICALLY_LINKED=0");
+                    Rules.Definitions.Add("APEX_STATICALLY_LINKED=1");
                     
                     string APEXDir = UEBuildConfiguration.UEThirdPartySourceDirectory + "PhysX/APEX-1.3/";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(APEXDir + "lib/WinRT");
+                        Rules.PublicLibraryPaths.Add(APEXDir + "lib/WinRT");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(APEXDir + "lib/WinRT/ARM");
+                        Rules.PublicLibraryPaths.Add(APEXDir + "lib/WinRT/ARM");
                     }
 
                     if (Target.Configuration == UnrealTargetConfiguration.Debug)
                     {
-                        InModule.AddPublicAdditionalLibrary("ApexCommonDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexFrameworkDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexSharedDEBUG.lib");
-                        InModule.AddPublicAdditionalLibrary("APEX_DestructibleDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexCommonDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexFrameworkDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexSharedDEBUG.lib");
+                        Rules.PublicAdditionalLibraries.Add("APEX_DestructibleDEBUG.lib");
 
                     }
                     else if (Target.Configuration == UnrealTargetConfiguration.Development)
                     {
-                        InModule.AddPublicAdditionalLibrary("ApexCommonPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexFrameworkPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexSharedPROFILE.lib");
-                        InModule.AddPublicAdditionalLibrary("APEX_DestructiblePROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexCommonPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexFrameworkPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexSharedPROFILE.lib");
+                        Rules.PublicAdditionalLibraries.Add("APEX_DestructiblePROFILE.lib");
                     }
                     else // Test or Shipping
                     {
-                        InModule.AddPublicAdditionalLibrary("ApexCommon.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexFramework.lib");
-                        InModule.AddPublicAdditionalLibrary("ApexShared.lib");
-                        InModule.AddPublicAdditionalLibrary("APEX_Destructible.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexCommon.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexFramework.lib");
+                        Rules.PublicAdditionalLibraries.Add("ApexShared.lib");
+                        Rules.PublicAdditionalLibraries.Add("APEX_Destructible.lib");
                     }
                 }
-                else if (InModule.ToString() == "FreeType2")
+                else if (ModuleName == "FreeType2")
                 {
                     string FreeType2Path = UEBuildConfiguration.UEThirdPartySourceDirectory + "FreeType2/FreeType2-2.4.12/";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(FreeType2Path + "Lib/WinRT/Win64");
+                        Rules.PublicLibraryPaths.Add(FreeType2Path + "Lib/WinRT/Win64");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(FreeType2Path + "Lib/WinRT/ARM");
+                        Rules.PublicLibraryPaths.Add(FreeType2Path + "Lib/WinRT/ARM");
                     }
-                    InModule.AddPublicAdditionalLibrary("freetype2412MT.lib");
+                    Rules.PublicAdditionalLibraries.Add("freetype2412MT.lib");
                 }
-                else if (InModule.ToString() == "UElibPNG")
+                else if (ModuleName == "UElibPNG")
                 {
                     string libPNGPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "libPNG/libPNG-1.5.2";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(libPNGPath + "/lib/WinRT/Win64");
+                        Rules.PublicLibraryPaths.Add(libPNGPath + "/lib/WinRT/Win64");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(libPNGPath + "/lib/WinRT/ARM");
+                        Rules.PublicLibraryPaths.Add(libPNGPath + "/lib/WinRT/ARM");
                     }
-                    InModule.AddPublicAdditionalLibrary("libpng125.lib");
+                    Rules.PublicAdditionalLibraries.Add("libpng125.lib");
                 }
-                else if (InModule.ToString() == "DX11")
+                else if (ModuleName == "DX11")
                 {
                     // Clear out all the Windows include paths and libraries...
                     // The WinRTSDK module handles proper paths and libs for WinRT.
                     // However, the D3D11RHI module will include the DX11 module.
-                    InModule.ClearPublicIncludePaths();
-                    InModule.ClearPublicLibraryPaths();
-                    InModule.ClearPublicAdditionalLibraries();
-                    InModule.RemovePublicDefinition("WITH_D3DX_LIBS=1");
-                    InModule.AddPublicDefinition("D3D11_WITH_DWMAPI=0");
-                    InModule.AddPublicDefinition("WITH_D3DX_LIBS=0");
-                    InModule.AddPublicDefinition("WITH_DX_PERF=0");
-                    InModule.RemovePublicAdditionalLibrary("X3DAudio.lib");
-                    InModule.RemovePublicAdditionalLibrary("XAPOFX.lib");
+                    Rules.PublicIncludePaths.Clear();
+                    Rules.PublicLibraryPaths.Clear();
+                    Rules.PublicAdditionalLibraries.Clear();
+                    Rules.Definitions.Remove("WITH_D3DX_LIBS=1");
+                    Rules.Definitions.Add("D3D11_WITH_DWMAPI=0");
+                    Rules.Definitions.Add("WITH_D3DX_LIBS=0");
+                    Rules.Definitions.Add("WITH_DX_PERF=0");
+                    Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+                    Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
                 }
-                else if (InModule.ToString() == "XInput")
+                else if (ModuleName == "XInput")
                 {
-                    InModule.AddPublicAdditionalLibrary("XInput.lib");
+                    Rules.PublicAdditionalLibraries.Add("XInput.lib");
                 }
-                else if (InModule.ToString() == "XAudio2")
+                else if (ModuleName == "XAudio2")
                 {
-                    InModule.AddPublicDefinition("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
-                    InModule.AddPublicDefinition("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
-                    InModule.AddPublicDefinition("XAUDIO2_SUPPORTS_MUSIC=0");
-                    InModule.AddPublicDefinition("XAUDIO2_SUPPORTS_SENDLIST=0");
-                    InModule.AddPublicAdditionalLibrary("XAudio2.lib");
+                    Rules.Definitions.Add("XAUDIO_SUPPORTS_XMA2WAVEFORMATEX=0");
+                    Rules.Definitions.Add("XAUDIO_SUPPORTS_DEVICE_DETAILS=0");
+                    Rules.Definitions.Add("XAUDIO2_SUPPORTS_MUSIC=0");
+                    Rules.Definitions.Add("XAUDIO2_SUPPORTS_SENDLIST=0");
+                    Rules.PublicAdditionalLibraries.Add("XAudio2.lib");
                     // Hack to enable AllowWindowsPlatformTypes.h/HideWindowsPlatformTypes.h
-                    InModule.AddPublicIncludePath("Runtime/Core/Public/Windows");
+                    Rules.PublicIncludePaths.Add("Runtime/Core/Public/Windows");
                 }
-                else if (InModule.ToString() == "UEOgg")
+                else if (ModuleName == "UEOgg")
                 {
                     string OggPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Ogg/libogg-1.2.2/";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(OggPath + "WinRT/VS2012/WinRT/x64/Release");
+                        Rules.PublicLibraryPaths.Add(OggPath + "WinRT/VS2012/WinRT/x64/Release");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(OggPath + "WinRT/VS2012/WinRT/ARM/Release");
+                        Rules.PublicLibraryPaths.Add(OggPath + "WinRT/VS2012/WinRT/ARM/Release");
                     }
-                    InModule.AddPublicAdditionalLibrary("libogg_static.lib");
+                    Rules.PublicAdditionalLibraries.Add("libogg_static.lib");
                 }
-                else if (InModule.ToString() == "Vorbis")
+                else if (ModuleName == "Vorbis")
                 {
                     string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
+                        Rules.PublicLibraryPaths.Add(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/ARM/Release");
+                        Rules.PublicLibraryPaths.Add(VorbisPath + "WinRT/VS2012/WinRT/ARM/Release");
                     }
-                    InModule.AddPublicAdditionalLibrary("libvorbis_static.lib");
+                    Rules.PublicAdditionalLibraries.Add("libvorbis_static.lib");
                 }
-                else if (InModule.ToString() == "VorbisFile")
+                else if (ModuleName == "VorbisFile")
                 {
                     string VorbisPath = UEBuildConfiguration.UEThirdPartySourceDirectory + "Vorbis/libvorbis-1.3.2/";
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
+                        Rules.PublicLibraryPaths.Add(VorbisPath + "WinRT/VS2012/WinRT/x64/Release");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(VorbisPath + "WinRT/VS2012/WinRT/ARM/Release");
+                        Rules.PublicLibraryPaths.Add(VorbisPath + "WinRT/VS2012/WinRT/ARM/Release");
                     }
-                    InModule.AddPublicAdditionalLibrary("libvorbisfile_static.lib");
+                    Rules.PublicAdditionalLibraries.Add("libvorbisfile_static.lib");
                 }
-                else if (InModule.ToString() == "DX11Audio")
+                else if (ModuleName == "DX11Audio")
                 {
-                    InModule.RemovePublicAdditionalLibrary("X3DAudio.lib");
-                    InModule.RemovePublicAdditionalLibrary("XAPOFX.lib");
+                    Rules.PublicAdditionalLibraries.Remove("X3DAudio.lib");
+                    Rules.PublicAdditionalLibraries.Remove("XAPOFX.lib");
                 }
-                else if (InModule.ToString() == "zlib")
+                else if (ModuleName == "zlib")
                 {
                     if (Target.Platform == UnrealTargetPlatform.WinRT)
                     {
-                        InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/Win64");
+                        Rules.PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/Win64");
                     }
                     else
                     {
-                        InModule.AddPublicLibraryPath(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/ARM");
+                        Rules.PublicLibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "zlib/zlib-1.2.5/Lib/WinRT/ARM");
                     }
-                    InModule.AddPublicAdditionalLibrary("zlib125.lib");
+                    Rules.PublicAdditionalLibraries.Add("zlib125.lib");
                 }
             }
             else if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
@@ -485,14 +486,14 @@ namespace UnrealBuildTool
 //              bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 // 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
 // 				{
-// 					if (InModule.ToString() == "Engine")
+// 					if (ModuleName == "Engine")
 // 					{
 // 						if (UEBuildConfiguration.bBuildDeveloperTools)
 // 						{
-                // 							InModule.AddPlatformSpecificDynamicallyLoadedModule("WinRTTargetPlatform");
+                // 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
 // 						}
 // 					}
-// 					else if (InModule.ToString() == "TargetPlatform")
+// 					else if (ModuleName == "TargetPlatform")
 // 					{
 // 		                bBuildShaderFormats = true;
 // 					}
@@ -501,12 +502,12 @@ namespace UnrealBuildTool
 // 				// allow standalone tools to use targetplatform modules, without needing Engine
 // 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
 // 				{
-                // 					InModule.AddPlatformSpecificDynamicallyLoadedModule("WinRTTargetPlatform");
+                // 					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("WinRTTargetPlatform");
 // 				}
 
 //              if (bBuildShaderFormats)
 //              {
-                //                  InModule.AddPlatformSpecificDynamicallyLoadedModule("ShaderFormatWinRT");
+                //                  Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("ShaderFormatWinRT");
 //              }
             }
         }

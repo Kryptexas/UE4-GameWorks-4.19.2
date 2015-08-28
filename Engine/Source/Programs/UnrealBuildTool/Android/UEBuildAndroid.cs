@@ -298,36 +298,36 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
+		public override void ModifyModuleRules(string ModuleName, ModuleRules Rules, TargetInfo Target)
 		{
 			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
 				{
-					if (InModule.ToString() == "Engine")
+					if (ModuleName == "Engine")
 					{
 						if (UEBuildConfiguration.bBuildDeveloperTools)
 						{
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_PVRTCTargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ATCTargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ASTCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
                         }
 					}
-					else if (InModule.ToString() == "TargetPlatform")
+					else if (ModuleName == "TargetPlatform")
 					{
 						bBuildShaderFormats = true;
-						InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
-						InModule.AddDynamicallyLoadedModule("TextureFormatDXT");
-						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
-						InModule.AddPlatformSpecificDynamicallyLoadedModule("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
+						Rules.DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
 						if (UEBuildConfiguration.bBuildDeveloperTools)
 						{
-							//InModule.AddDynamicallyLoadedModule("AudioFormatADPCM");	//@todo android: android audio
+							//Rules.DynamicallyLoadedModuleNames.Add("AudioFormatADPCM");	//@todo android: android audio
 						}
 					}
 				}
@@ -335,18 +335,18 @@ namespace UnrealBuildTool
 				// allow standalone tools to use targetplatform modules, without needing Engine
 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_PVRTCTargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ATCTargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ASTCTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+					Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
                 }
 
 				if (bBuildShaderFormats)
 				{
-					//InModule.AddDynamicallyLoadedModule("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
+					//Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
 				}
 			}
 		}
