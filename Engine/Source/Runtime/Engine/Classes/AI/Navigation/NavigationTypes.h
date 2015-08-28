@@ -463,7 +463,7 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 	TSubclassOf<ANavigationData> PreferredNavData;
 
 	FNavAgentProperties(float Radius = -1.f, float Height = -1.f)
-		: AgentRadius(Radius), AgentHeight(Height), AgentStepHeight(-1), NavWalkingSearchHeightScale(0.5f), PreferredNavData(nullptr)
+		: AgentRadius(Radius), AgentHeight(Height), AgentStepHeight(-1), NavWalkingSearchHeightScale(0.5f)
 	{
 	}
 
@@ -480,10 +480,7 @@ struct ENGINE_API FNavAgentProperties : public FMovementProperties
 			IsNavDataMatching(Other);
 	}
 
-	bool IsNavDataMatching(const FNavAgentProperties& Other) const
-	{
-		return (PreferredNavData == nullptr || Other.PreferredNavData == nullptr || PreferredNavData == Other.PreferredNavData);
-	}
+	bool IsNavDataMatching(const FNavAgentProperties& Other) const;
 
 	bool operator==(const FNavAgentProperties& Other) const
 	{
