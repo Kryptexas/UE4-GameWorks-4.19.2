@@ -19,7 +19,6 @@
 
 #if WITH_EDITOR
 	#include "EditorStyle.h"
-	#include "AutomationController.h"
 	#include "ProfilerClient.h"
 	#include "RemoteConfigIni.h"
 	#include "EditorCommandLineUtils.h"
@@ -32,6 +31,7 @@
 #endif
 
 #if WITH_ENGINE
+	#include "AutomationController.h"
 	#include "Database.h"
 	#include "DerivedDataCacheInterface.h"
 	#include "RenderCore.h"
@@ -2124,9 +2124,13 @@ int32 FEngineLoop::Init()
 	FModuleManager::Get().LoadModule("AutomationWorker");
 #endif
 
-#if WITH_EDITOR
+	// Automation tests can be invoked locally in non-editor builds configuration (e.g. performance profiling in Test configuration)
+#if WITH_ENGINE && !UE_BUILD_SHIPPING
 	FModuleManager::Get().LoadModule("AutomationController");
 	FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Init();
+#endif
+
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));

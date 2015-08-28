@@ -180,7 +180,14 @@ private:
 	 */
 	TSharedRef<SWidget> GeneratePresetComboItem(TSharedPtr<FAutomationTestPreset> InItem);
 
-	/** 
+	/**
+	 * Creates a combo item for the requested filter.
+	 *
+	 * @return New combo item widget.
+	 */
+	TSharedRef<SWidget> GenerateRequestedFilterComboItem(TSharedPtr<FString> InItem);
+		
+	/**
 	 * Populates OutSearchStrings with the strings that should be used in searching.
 	 *
 	 * @param Report The automation report to get a text description from.
@@ -233,12 +240,6 @@ private:
 
 	/** Filter text has been updated */
 	void OnFilterTextChanged( const FText& InFilterText );
-
-	/** Returns true if automation test includes visual commandlet*/
-	bool IsVisualCommandletFilterOn() const;
-	
-	/** Toggles filter of visual commandlet */
-	void OnToggleVisualCommandletFilter();
 	
 	/** Returns if we're considering tests on content within the developer folders */
 	bool IsDeveloperDirectoryIncluded() const;
@@ -421,12 +422,16 @@ private:
 
 	/** Called when the user selects a new preset from the preset combo box. */
 	void HandlePresetChanged( TSharedPtr<FAutomationTestPreset> Item, ESelectInfo::Type SelectInfo );
+	/** Called when the user changes the requested test filter */
+	void HandleRequesteFilterChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo);
 
 	/** Expands the test tree to show all enabled tests. */
 	void ExpandEnabledTests( TSharedPtr< IAutomationReport > InReport );
 
 	/** Gets the text to display for the preset combo box. */
 	FText GetPresetComboText() const;
+	/** Gets the text to display for the requested filter combo box. */
+	FText GetRequestedFilterComboText() const;
 
 	/**
 	 * Handle the copy button clicked in the command bar.
@@ -554,6 +559,10 @@ private:
 
 	/** Holds a pointer to the preset combo box widget. */
 	TSharedPtr< SComboBox< TSharedPtr<FAutomationTestPreset> > > PresetComboBox;
+
+	/** Holds a pointer to the preset combo box widget. */
+	TSharedPtr< SComboBox< TSharedPtr<FString> > >	RequestedFilterComboBox;
+	TArray< TSharedPtr< FString > >					RequestedFilterComboList;
 
 	/** Holds a pointer to the preset text box. */
 	TSharedPtr<SEditableTextBox> PresetTextBox;

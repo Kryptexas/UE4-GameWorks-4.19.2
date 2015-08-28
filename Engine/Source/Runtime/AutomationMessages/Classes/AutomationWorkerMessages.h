@@ -149,9 +149,9 @@ struct FAutomationWorkerRequestTests
 	UPROPERTY()
 	bool DeveloperDirectoryIncluded;
 
-	/** Holds a flag indicating whether the visual commandlet filter is enabled. */
+	/** Holds a flag indicating which tests we'd like to request. */
 	UPROPERTY()
-	bool VisualCommandletFilterOn;
+	uint32 RequestedTestFlags;
 
 	/**
 	 * Default constructor.
@@ -161,9 +161,9 @@ struct FAutomationWorkerRequestTests
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FAutomationWorkerRequestTests( bool InDeveloperDirectoryIncluded, bool InVisualCommandletFilterOn )
+	FAutomationWorkerRequestTests(bool InDeveloperDirectoryIncluded, uint32 InRequestedTestFlags)
 		: DeveloperDirectoryIncluded(InDeveloperDirectoryIncluded)
-		, VisualCommandletFilterOn(InVisualCommandletFilterOn)
+		, RequestedTestFlags(InRequestedTestFlags)
 	{ }
 };
 
@@ -198,6 +198,14 @@ struct FAutomationWorkerRequestTestsReply
 	{ }
 };
 
+
+/**
+*/
+USTRUCT()
+struct FAutomationWorkerRequestTestsReplyComplete
+{
+	GENERATED_USTRUCT_BODY()
+};
 
 /**
  * Implements a message to request the running of automation tests on a worker.

@@ -30,7 +30,7 @@ namespace CollisionAutomationTests
 	UWorld* GetAutomationWorld(const int32 TestFlags)
  	{
 		UWorld* World = nullptr;
-		if( TestFlags & EAutomationTestFlags::ATF_Game)
+		if( TestFlags & EAutomationTestFlags::ClientContext)
 		{
 			check(GEngine->GetWorldContexts().Num() == 1);
 			World = GEngine->GetWorldContexts()[0].World();
@@ -135,7 +135,7 @@ namespace CollisionAutomationTests
 /**
  * ComponentSweepMultiTest Verification
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FComponentSweepMultiTest, "System.Physics.Collision.ComponentSweepMulti", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FComponentSweepMultiTest, "System.Physics.Collision.ComponentSweepMulti", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 /** 
  * Perform some collision sweep tests. Creates a given shape mesh and checks collision normal against a collision shape type.
@@ -223,7 +223,7 @@ bool FComponentSweepMultiTest::RunTest(const FString& Parameters)
 	return true;
 }
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FLineTraceSingleByChannel, "System.Physics.Collision.LineTraceSingleByChannel", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLineTraceSingleByChannel, "System.Physics.Collision.LineTraceSingleByChannel", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 
 /** 

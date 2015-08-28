@@ -72,9 +72,6 @@ void FAutomationWorkerModule::Tick()
 	{
 		MessageEndpoint->ProcessInbox();
 	}
-
-	// Run any of the automation commands that was obtained during initialization.
-	//RunDeferredAutomationCommands();
 }
 
 
@@ -235,6 +232,7 @@ void FAutomationWorkerModule::SendTests( const FMessageAddress& ControllerAddres
 	{
 		MessageEndpoint->Send(new FAutomationWorkerRequestTestsReply(TestInfo[TestIndex].GetTestAsString(), TestInfo.Num()), ControllerAddress);
 	}
+	MessageEndpoint->Send(new FAutomationWorkerRequestTestsReplyComplete(), ControllerAddress);
 }
 
 
@@ -325,7 +323,7 @@ void FAutomationWorkerModule::HandleRequestTestsMessage( const FAutomationWorker
 {
 	FAutomationTestFramework::GetInstance().LoadTestModules();
 	FAutomationTestFramework::GetInstance().SetDeveloperDirectoryIncluded(Message.DeveloperDirectoryIncluded);
-	FAutomationTestFramework::GetInstance().SetVisualCommandletFilter(Message.VisualCommandletFilterOn);
+	FAutomationTestFramework::GetInstance().SetRequestedTestFilter(Message.RequestedTestFlags);
 	FAutomationTestFramework::GetInstance().GetValidTestNames( TestInfo );
 
 	SendTests(Context->GetSender());

@@ -33,7 +33,7 @@ bool MatchExtensionString(const TCHAR* Filename, const TCHAR* Extensions)
 }
 
 /** Test MatchExtensionString */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMatchExtensionStringTest, "System.Plugins.Directory Watcher.File Cache.Extension Matching", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMatchExtensionStringTest, "System.Plugins.Directory Watcher.File Cache.Extension Matching", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 bool FMatchExtensionStringTest::RunTest(const FString& Parameters)
 {
 	auto Test = [](const TCHAR* Needle, const TCHAR* Haystack, bool bExpected) -> bool{

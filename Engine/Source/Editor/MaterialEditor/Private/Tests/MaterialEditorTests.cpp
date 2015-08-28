@@ -238,7 +238,7 @@ bool FRunMaterialEditorPromotionTestCommand::Update()
 /**
 * Automation test that handles the build promotion process
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMaterialEditorPromotionTest, "System.Promotion.Editor.Material Editor", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMaterialEditorPromotionTest, "System.Promotion.Editor.Material Editor", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FMaterialEditorPromotionTest::RunTest(const FString& Parameters)
 {

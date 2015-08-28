@@ -132,7 +132,7 @@ bool FTestIdentityInterfaceLoginOut::Update()
 * login and logout from the service.
 * Use -OSSIDTESTUSER='TestUser' and -OSSIDTESTPSSWD='YouPassword'
 */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FIdenitiyInterfacetFunctionalLoginLogoutTest, "System.OSS", EAutomationTestFlags::ATF_Game )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST( FIdenitiyInterfacetFunctionalLoginLogoutTest, "System.OSS", EAutomationTestFlags::ClientContext | EAutomationTestFlags::StressFilter)
 
 void FIdenitiyInterfacetFunctionalLoginLogoutTest::GetTests( TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands ) const
 {
@@ -163,7 +163,7 @@ bool FIdenitiyInterfacetFunctionalLoginLogoutTest::RunTest( const FString& Param
 }
 
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FTestIdentityInterfaceLogoutWhileNotLoggedIn, "System.OSS", EAutomationTestFlags::ATF_Game )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FTestIdentityInterfaceLogoutWhileNotLoggedIn, "System.OSS", EAutomationTestFlags::ClientContext | EAutomationTestFlags::StressFilter)
 
 void FTestIdentityInterfaceLogoutWhileNotLoggedIn::GetTests( TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands ) const
 {

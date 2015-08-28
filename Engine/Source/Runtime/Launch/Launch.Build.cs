@@ -114,6 +114,13 @@ public class Launch : ModuleRules
 			PublicIncludePathModuleNames.Add("ProfilerService");
 			DynamicallyLoadedModuleNames.AddRange(new string[] { "TaskGraph", "RealtimeProfiler", "ProfilerService" });
 		}
+		
+		// The engine can use AutomationController in any connfiguration besides shipping.  This module is loaded
+		// dynamically in LaunchEngineLoop.cpp in non-shipping configurations
+		if (UEBuildConfiguration.bCompileAgainstEngine && Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			DynamicallyLoadedModuleNames.AddRange(new string[] { "AutomationController" });
+		}
 
 		if (UEBuildConfiguration.bBuildEditor == true)
 		{
@@ -131,7 +138,6 @@ public class Launch : ModuleRules
 			// ExtraModules that are loaded when WITH_EDITOR=1 is true
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-					"AutomationController",
 					"AutomationWindow",
 					"ProfilerClient",
 					"Toolbox",

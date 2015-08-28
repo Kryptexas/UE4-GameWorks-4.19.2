@@ -1610,7 +1610,7 @@ FString VectorVM::GetOperandLocationName(EVectorVMOperandLocation Location)
 	Automation test for the VM.
 ------------------------------------------------------------------------------*/
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorVMTest, "System.Core.Math.Vector VM", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorVMTest, "System.Core.Math.Vector VM", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
 bool FVectorVMTest::RunTest(const FString& Parameters)
 {

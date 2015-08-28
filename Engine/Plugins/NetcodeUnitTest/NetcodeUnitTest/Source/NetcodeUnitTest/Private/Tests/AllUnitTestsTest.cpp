@@ -50,7 +50,7 @@ bool FAutomationConsoleCommand::Update()
  * FAllUnitTestsTest
  */
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FAllUnitTestsTest, "System.Netcode Unit Test", EAutomationTestFlags::ATF_Game);
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FAllUnitTestsTest, "System.Netcode Unit Test", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EngineFilter);
 
 void FAllUnitTestsTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
 {

@@ -52,7 +52,7 @@ void FAutomationControllerManager::RequestTests()
 			ResetIntermediateTestData();
 
 			//issue tests on appropriate platforms
-			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, bVisualCommandletFilterOn), MessageAddress);
+			MessageEndpoint->Send(new FAutomationWorkerRequestTests(bDeveloperDirectoryIncluded, RequestedTestFlags), MessageAddress);
 		}
 	}
 }
@@ -294,6 +294,7 @@ void FAutomationControllerManager::Startup()
 		.Handling<FAutomationWorkerPong>(this, &FAutomationControllerManager::HandlePongMessage)
 		.Handling<FAutomationWorkerRequestNextNetworkCommand>(this, &FAutomationControllerManager::HandleRequestNextNetworkCommandMessage)
 		.Handling<FAutomationWorkerRequestTestsReply>(this, &FAutomationControllerManager::HandleRequestTestsReplyMessage)
+		.Handling<FAutomationWorkerRequestTestsReplyComplete>(this, &FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage)
 		.Handling<FAutomationWorkerRunTestsReply>(this, &FAutomationControllerManager::HandleRunTestsReplyMessage)
 		.Handling<FAutomationWorkerScreenImage>(this, &FAutomationControllerManager::HandleReceivedScreenShot)
 		.Handling<FAutomationWorkerWorkerOffline>(this, &FAutomationControllerManager::HandleWorkerOfflineMessage);
@@ -306,7 +307,7 @@ void FAutomationControllerManager::Startup()
 	ClusterDistributionMask = 0;
 	ExecutionCount = 0;
 	bDeveloperDirectoryIncluded = false;
-	bVisualCommandletFilterOn = false;
+	RequestedTestFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
 
 	NumOfTestsToReceive = 0;
 	NumTestPasses = 1;
@@ -628,17 +629,16 @@ void FAutomationControllerManager::HandleRequestNextNetworkCommandMessage( const
 }
 
 
-void FAutomationControllerManager::HandleRequestTestsReplyMessage( const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context )
+void FAutomationControllerManager::HandleRequestTestsReplyMessage(const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context)
 {
-	NumOfTestsToReceive = Message.TotalNumTests;
-
 	FAutomationTestInfo NewTest(Message.TestInfo);
 	TestInfo.Add(NewTest);
-	
-	if (TestInfo.Num() == NumOfTestsToReceive)
-	{
-		SetTestNames(Context->GetSender());
-	}
+}
+
+
+void FAutomationControllerManager::HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context)
+{
+	SetTestNames(Context->GetSender());
 }
 
 

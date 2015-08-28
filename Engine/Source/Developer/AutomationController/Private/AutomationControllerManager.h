@@ -129,14 +129,10 @@ public:
 		return bDeveloperDirectoryIncluded;
 	}
 
-	virtual void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn) override
+	virtual void SetRequestedTestFlags(const uint32 InRequestedTestFlags) override
 	{
-		bVisualCommandletFilterOn = bInVisualCommandletFilterOn;
-	}
-
-	virtual bool IsVisualCommandletFilterOn(void) const override
-	{
-		return bVisualCommandletFilterOn;
+		RequestedTestFlags = InRequestedTestFlags;
+		RequestTests();
 	}
 
 	virtual const bool CheckTestResultsAvailable() const override
@@ -267,6 +263,9 @@ private:
 	/** Handles FAutomationWorkerRequestTestsReply messages. */
 	void HandleRequestTestsReplyMessage( const FAutomationWorkerRequestTestsReply& Message, const IMessageContextRef& Context );
 
+	/** Handles FAutomationWorkerRequestTestsReplyComplete messages. */
+	void HandleRequestTestsReplyCompleteMessage(const FAutomationWorkerRequestTestsReplyComplete& Message, const IMessageContextRef& Context);
+
 	/** Handles FAutomationWorkerRunTestsReply messages. */
 	void HandleRunTestsReplyMessage( const FAutomationWorkerRunTestsReply& Message, const IMessageContextRef& Context );
 
@@ -302,8 +301,8 @@ private:
 	/** Are tests results available */
 	bool bTestResultsAvailable;
 
-	/** Whether to use visual commandlet **/
-	bool bVisualCommandletFilterOn;
+	/** Which sets of tests to consider */
+	uint32 RequestedTestFlags;
 
 	/** Timer to keep track of the last time tests were updated */
 	double CheckTestTimer;

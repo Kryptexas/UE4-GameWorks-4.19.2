@@ -114,7 +114,7 @@ void TakeLatentAutomationScreenshot(struct WindowScreenshotParameters Screenshot
  * in the Content Browser (does not allow for specific settings to be made per import factory). Cannot be run in a commandlet
  * as it executes code that routes through Slate UI.
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FGenericImportAssetsAutomationTest, "System.Editor.Import", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI) )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FGenericImportAssetsAutomationTest, "System.Editor.Import", (EAutomationTestFlags::EditorContext | EAutomationTestFlags::NonNullRHI | EAutomationTestFlags::EngineFilter))
 
 /** 
  * Requests a enumeration of all sample assets to import
@@ -193,7 +193,7 @@ bool FGenericImportAssetsAutomationTest::RunTest(const FString& Parameters)
  * Pie Test
  * Verification PIE works
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FPIETest, "System.Maps.PIE", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPIETest, "System.Maps.PIE", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 /** 
  * Execute the loading of one map to verify PIE works
@@ -224,7 +224,7 @@ bool FPIETest::RunTest(const FString& Parameters)
  * LoadAllMaps
  * Verification automation test to make sure loading all maps succeed without crashing
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FLoadAllMapsInEditorTest, "Project.Maps.Load All In Editor", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLoadAllMapsInEditorTest, "Project.Maps.Load All In Editor", EAutomationTestFlags::EditorContext | EAutomationTestFlags::StressFilter)
 
 /** 
  * Requests a enumeration of all maps to be loaded
@@ -331,7 +331,7 @@ bool FLoadAllMapsInEditorTest::RunTest(const FString& Parameters)
 /**
  * Reinitialize all RHI resources
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FReinitializeRHIResources, "System.Engine.Rendering.Reinit Resources", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FReinitializeRHIResources, "System.Engine.Rendering.Reinit Resources", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FReinitializeRHIResources::RunTest(const FString& Parameters)
 {
@@ -344,7 +344,7 @@ bool FReinitializeRHIResources::RunTest(const FString& Parameters)
 /**
  * QA Static Mesh Regression Testing
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshValidation, "System.QA.Mesh Factory Validation", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshValidation, "System.QA.Mesh Factory Validation", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FStaticMeshValidation::RunTest(const FString& Parameters)
 {
@@ -420,7 +420,7 @@ bool FStaticMeshValidation::RunTest(const FString& Parameters)
 /**
  * QA Convert Meshes Regression Testing
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FConvertToValidation, "System.QA.Convert Meshes", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FConvertToValidation, "System.QA.Convert Meshes", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 //gather all brushes that exist now
 void ConvertTestFindAllBrushes(TArray<ABrush*> &PreviousBrushes)
@@ -644,7 +644,7 @@ bool FCleanupConvertToValidation::Update()
 /**
  * QA Static Mesh Regression Testing
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshPlacement, "System.QA.Static Mesh Placement", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FStaticMeshPlacement, "System.QA.Static Mesh Placement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FStaticMeshPlacement::RunTest(const FString& Parameters)
 {
@@ -698,7 +698,7 @@ bool FStaticMeshPlacement::RunTest(const FString& Parameters)
 /**
  * QA Light Placement Regression Testing
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPlacement, "System.QA.Point Light Placement", EAutomationTestFlags::ATF_Editor);
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLightPlacement, "System.QA.Point Light Placement", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
 
 bool FLightPlacement::RunTest(const FString& Parameters)
 {
@@ -797,7 +797,7 @@ bool FLightPlacement::RunTest(const FString& Parameters)
  * Unit test to find all timelines in blueprints and list the events that can trigger them.
  * Timelines implicitly tick and are usually used for cosmetic events, so they can cause performance problems on dedicated servers.
  */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST( FTraceAllTimelinesAutomationTest, "Project.Performance Audits.Find Timelines On Server", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FTraceAllTimelinesAutomationTest, "Project.Performance Audits.Find Timelines On Server", (EAutomationTestFlags::EditorContext | EAutomationTestFlags::RequiresUser | EAutomationTestFlags::StressFilter))
 
 /** 
  * Requests an enumeration of all blueprints to be loaded
@@ -1192,7 +1192,7 @@ bool FTraceAllTimelinesAutomationTest::RunTest(const FString& BlueprintName)
 /**
 * Tool to look for overlapping UV's in static meshes.
 */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FStaticMeshUVCheck, "Project.Tools.Static Mesh.Static Mesh UVs Check", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser));
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FStaticMeshUVCheck, "Project.Tools.Static Mesh.Static Mesh UVs Check", (EAutomationTestFlags::EditorContext | EAutomationTestFlags::RequiresUser | EAutomationTestFlags::StressFilter));
 
 void FStaticMeshUVCheck::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
 {
@@ -1222,7 +1222,7 @@ bool FStaticMeshUVCheck::RunTest(const FString& Parameters)
 /**
 * Launches a map onto a specified device after making a change to it.
 */
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLaunchOnTest, "Project.Editor.Launch On Test", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLaunchOnTest, "Project.Editor.Launch On Test", (EAutomationTestFlags::EditorContext | EAutomationTestFlags::RequiresUser | EAutomationTestFlags::EngineFilter))
 
 void FLaunchOnTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
 {

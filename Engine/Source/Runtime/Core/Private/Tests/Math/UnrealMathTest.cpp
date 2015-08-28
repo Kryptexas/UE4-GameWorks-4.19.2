@@ -654,7 +654,7 @@ void SetScratch( float X, float Y, float Z, float W, float U = 0.0f )
 }
 
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorRegisterAbstractionTest, "System.Core.Math.Vector Register Abstraction Test", EAutomationTestFlags::ATF_SmokeTest)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVectorRegisterAbstractionTest, "System.Core.Math.Vector Register Abstraction Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
 /**
  * Run a suite of vector operations to validate vector intrinsics are working on the platform

@@ -25,7 +25,7 @@ DEFINE_LOG_CATEGORY_STATIC(FeaturePackAutomationTestLog, Log, All);
 /**
  * Feature Pack validity test
  */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FFeaturePackValidityTest, "System.Editor.Content.FeaturePackValidityTest", EAutomationTestFlags::ATF_Editor )
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFeaturePackValidityTest, "System.Editor.Content.FeaturePackValidityTest", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 /** 
  * Scans feature pack folder and verifies that all feature packs therein are parsed successfully.

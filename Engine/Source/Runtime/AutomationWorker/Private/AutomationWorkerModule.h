@@ -127,7 +127,4 @@ private:
 
 	/** Delegate to fire when the test is complete */
 	FStopTestEvent StopTestEvent;
-
-	// Holds the automation command line arguments.
-	TArray<FString> DeferredAutomationCommands;
 };

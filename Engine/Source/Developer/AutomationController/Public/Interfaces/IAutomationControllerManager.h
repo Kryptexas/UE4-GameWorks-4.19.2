@@ -307,16 +307,9 @@ public:
 	virtual bool IsDeveloperDirectoryIncluded(void) const = 0;
 
 	/**
-	 * Sets whether the automation tests should include visual commandlet.
+	 * Sets what flags we're considering automation tests from
 	 */
-	virtual void SetVisualCommandletFilter(const bool bInVisualCommandletFilterOn) = 0;
-
-	/**
-	 * Returns whether the automation tests should include visual commandlet.
-	 *
-	 * @return true if the visual commandlet should be included, false otherwise.
-	 */
-	virtual bool IsVisualCommandletFilterOn(void) const = 0;
+	virtual void SetRequestedTestFlags(const uint32 InRequestedTestFlags) = 0;
 
 	/**
 	 * Check if the automation tests have completed.

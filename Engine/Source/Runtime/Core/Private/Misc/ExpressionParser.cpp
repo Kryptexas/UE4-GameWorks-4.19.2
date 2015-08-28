@@ -892,7 +892,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 		return true;
 	}
 
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserMoveableTypes, "System.Core.Expression Parser.Moveable Types", EAutomationTestFlags::ATF_SmokeTest)
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserMoveableTypes, "System.Core.Expression Parser.Moveable Types", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 	bool FExpressionParserMoveableTypes::RunTest( const FString& Parameters )
 	{
 		return TestWithType<FMoveableType>(this);
@@ -913,7 +913,7 @@ PRAGMA_DISABLE_OPTIMIZATION
 		uint8 Padding[1024];
 	};
 
-	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserAllocatedTypes, "System.Core.Expression Parser.Allocated Types", EAutomationTestFlags::ATF_SmokeTest)
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExpressionParserAllocatedTypes, "System.Core.Expression Parser.Allocated Types", EAutomationTestFlags::EditorContext | EAutomationTestFlags::SmokeFilter)
 	bool FExpressionParserAllocatedTypes::RunTest( const FString& Parameters )
 	{
 		return TestWithType<FHugeType>(this);

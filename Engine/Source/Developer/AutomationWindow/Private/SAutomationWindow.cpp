@@ -34,18 +34,14 @@ public:
 		UI_COMMAND( FindWorkers, "Find Workers", "Find Workers", EUserInterfaceActionType::Button, FInputChord() );
 		UI_COMMAND( ErrorFilter, "Errors", "Toggle Error Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
 		UI_COMMAND( WarningFilter, "Warnings", "Toggle Warning Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
-		UI_COMMAND( SmokeTestFilter, "Smoke Tests", "Toggle Smoke Test Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
 		UI_COMMAND( DeveloperDirectoryContent, "Dev Content", "Developer Directory Content Filter (when enabled, developer directories are also included)", EUserInterfaceActionType::ToggleButton, FInputChord() );
-		UI_COMMAND( VisualCommandlet, "Vis Cmdlet", "Visual Commandlet Filter", EUserInterfaceActionType::ToggleButton, FInputChord() );
 	}
 public:
 	TSharedPtr<FUICommandInfo> RefreshTests;
 	TSharedPtr<FUICommandInfo> FindWorkers;
 	TSharedPtr<FUICommandInfo> ErrorFilter;
 	TSharedPtr<FUICommandInfo> WarningFilter;
-	TSharedPtr<FUICommandInfo> SmokeTestFilter;
 	TSharedPtr<FUICommandInfo> DeveloperDirectoryContent;
-	TSharedPtr<FUICommandInfo> VisualCommandlet;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -470,22 +466,10 @@ void SAutomationWindow::CreateCommands()
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsWarningFilterOn )
 		);
 
-	ActionList.MapAction( Commands.SmokeTestFilter,
-		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleSmokeTestFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
-		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsSmokeTestFilterOn )
-		);
-
 	ActionList.MapAction( Commands.DeveloperDirectoryContent,
 		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleDeveloperDirectoryIncluded ),
 		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
 		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsDeveloperDirectoryIncluded )
-		);
-
-	ActionList.MapAction( Commands.VisualCommandlet,
-		FExecuteAction::CreateRaw( this, &SAutomationWindow::OnToggleVisualCommandletFilter ),
-		FCanExecuteAction::CreateRaw( this, &SAutomationWindow::IsAutomationControllerIdle ),
-		FIsActionChecked::CreateRaw( this, &SAutomationWindow::IsVisualCommandletFilterOn )
 		);
 }
 
@@ -499,7 +483,7 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 {
 	struct Local
 	{
-		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
+		static void FillToolbar(FToolBarBuilder& ToolbarBuilder, TSharedRef<SWidget> RunTests, TSharedRef<SWidget> Searchbox, TSharedRef<SWidget> PresetBox, TSharedRef<SWidget> HistoryBox, TSharedRef<SWidget> RequestedFilterBox, TWeakPtr<class SAutomationWindow> InAutomationWindow)
 		{
 			ToolbarBuilder.BeginSection("Automation");
 			{
@@ -520,9 +504,8 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			{
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().ErrorFilter );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().WarningFilter );
-				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().SmokeTestFilter );
 				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().DeveloperDirectoryContent );
-				ToolbarBuilder.AddToolBarButton( FAutomationWindowCommands::Get().VisualCommandlet );
+				ToolbarBuilder.AddWidget(RequestedFilterBox);
 			}
 			ToolbarBuilder.EndSection();
 			ToolbarBuilder.BeginSection("GroupFlags");
@@ -774,9 +757,27 @@ TSharedRef< SWidget > SAutomationWindow::MakeAutomationWindowToolBar( const TSha
 			]
 		];
 
+	RequestedFilterComboList.Empty();
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Smoke Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Engine Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Product Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Perf Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Stress Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("Standard Tests"))));
+	RequestedFilterComboList.Add(MakeShareable(new FString(TEXT("All Tests"))));
+
+	SAssignNew(RequestedFilterComboBox, SComboBox< TSharedPtr<FString> >)
+		.OptionsSource(&RequestedFilterComboList)
+		.OnGenerateWidget(this, &SAutomationWindow::GenerateRequestedFilterComboItem)
+		.OnSelectionChanged(this, &SAutomationWindow::HandleRequesteFilterChanged)
+		[
+			SNew(STextBlock)
+			.Text(this, &SAutomationWindow::GetRequestedFilterComboText)
+		];
+
 	FToolBarBuilder ToolbarBuilder( InCommandList, FMultiBoxCustomization::None );
 	TWeakPtr<SAutomationWindow> AutomationWindow = SharedThis(this);
-	Local::FillToolbar( ToolbarBuilder, RunTests, Searchbox, TestPresets, History, AutomationWindow );
+	Local::FillToolbar(ToolbarBuilder, RunTests, Searchbox, TestPresets, History, RequestedFilterComboBox.ToSharedRef(), AutomationWindow);
 
 	// Create the tool bar!
 	return
@@ -868,6 +869,39 @@ void SAutomationWindow::HandlePresetChanged( TSharedPtr<FAutomationTestPreset> I
 	}
 }
 
+void SAutomationWindow::HandleRequesteFilterChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
+{
+	int32 EntryIndex = RequestedFilterComboList.Find(Item);
+	uint32 NewRequestedFlags = EAutomationTestFlags::SmokeFilter;
+
+	switch (EntryIndex)
+	{
+		case 0:	//	"Smoke Tests"
+			NewRequestedFlags = EAutomationTestFlags::SmokeFilter;
+			break;
+		case 1:	//	"Engine Tests"
+			NewRequestedFlags = EAutomationTestFlags::EngineFilter;
+			break;
+		case 2:	//	"Product Tests"
+			NewRequestedFlags = EAutomationTestFlags::ProductFilter;
+			break;
+		case 3:	//	"Perf Tests"
+			NewRequestedFlags = EAutomationTestFlags::PerfFilter;
+			break;
+		case 4:	//	"Stress Tests"
+			NewRequestedFlags = EAutomationTestFlags::StressFilter;
+			break;
+		case 5:	//	"Standard Tests"
+			NewRequestedFlags = EAutomationTestFlags::SmokeFilter | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::ProductFilter | EAutomationTestFlags::PerfFilter;
+			break;
+		case 6:	//	"All Tests"
+			NewRequestedFlags = EAutomationTestFlags::FilterMask;
+			break;
+	}
+	AutomationController->SetRequestedTestFlags(NewRequestedFlags);
+}
+
+
 void SAutomationWindow::ExpandEnabledTests( TSharedPtr< IAutomationReport > InReport )
 {
 	// Expand node if the report is enabled or contains an enabled test
@@ -923,10 +957,29 @@ FText SAutomationWindow::GetPresetComboText() const
 	}
 }
 
+FText SAutomationWindow::GetRequestedFilterComboText() const
+{
+	if (RequestedFilterComboBox->GetSelectedItem().IsValid())
+	{
+		return FText::FromString(*RequestedFilterComboBox->GetSelectedItem());
+	}
+	else
+	{
+		return LOCTEXT("AutomationRequestedFilterComboLabel", "<Select A Filter>");
+	}
+}
+
+
 TSharedRef<SWidget> SAutomationWindow::GeneratePresetComboItem(TSharedPtr<FAutomationTestPreset> InItem)
 {
 	return SNew(STextBlock) 
 		.Text( InItem->GetPresetName() );
+}
+
+TSharedRef<SWidget> SAutomationWindow::GenerateRequestedFilterComboItem(TSharedPtr<FString> InItem)
+{
+	return SNew(STextBlock)
+		.Text(FText::FromString(*InItem));
 }
 
 TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( TWeakPtr<class SAutomationWindow> InAutomationWindow )
@@ -1570,21 +1623,6 @@ void SAutomationWindow::OnFilterTextChanged( const FText& InFilterText )
 
 	//update the widget
 	OnRefreshTestCallback();
-}
-
-
-bool SAutomationWindow::IsVisualCommandletFilterOn() const
-{
-	return AutomationController->IsVisualCommandletFilterOn();
-}
-
-
-void SAutomationWindow::OnToggleVisualCommandletFilter()
-{
-	//Change controller filter
-	AutomationController->SetVisualCommandletFilter(!IsVisualCommandletFilterOn());
-	// need to call this to request update
-	ListTests( );
 }
 
 

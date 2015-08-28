@@ -61,7 +61,7 @@ namespace UTFGameAutomationTestsImpl
  * FUTFResetGameActorTest
  ******************************************************************************/
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFResetGameActorTest, "UnitTestFramework.Game.ResetUnitTestActors", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFResetGameActorTest, "UnitTestFramework.Game.ResetUnitTestActors", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::StressFilter)
 
 //------------------------------------------------------------------------------
 void FUTFResetGameActorTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
@@ -94,7 +94,7 @@ bool FUTFResetGameActorTest::RunTest(const FString& ObjectPath)
  * FUTFGameActorTest
  ******************************************************************************/
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFGameActorTest, "UnitTestFramework.Game.UnitTestActors", EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFGameActorTest, "UnitTestFramework.Game.UnitTestActors", EAutomationTestFlags::ClientContext | EAutomationTestFlags::EditorContext | EAutomationTestFlags::StressFilter)
 
 //------------------------------------------------------------------------------
 void FUTFGameActorTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const

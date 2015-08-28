@@ -215,7 +215,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogExampleStringTests, Log, All);
 
 #include "TextHistory.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExampleStringFormatterTest, "System.Core.Expression Parser", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FExampleStringFormatterTest, "System.Core.Expression Parser", EAutomationTestFlags::Editor)
 bool FExampleStringFormatterTest::RunTest( const FString& Parameters )
 {
 	FExampleStringFormatter Formatter;

@@ -96,9 +96,10 @@
 	#define HACK_HEADER_GENERATOR 0
 #endif
 
-/** Whether we are compiling with automation worker functionality */
+/** Whether we are compiling with automation worker functionality.  Note that automation worker defaults to enabled in
+    UE_BUILD_TEST configuration, so that it can be used for performance testing on devices */
 #ifndef WITH_AUTOMATION_WORKER
-	#define WITH_AUTOMATION_WORKER !(UE_BUILD_SHIPPING || UE_BUILD_TEST || HACK_HEADER_GENERATOR)
+	#define WITH_AUTOMATION_WORKER !(UE_BUILD_SHIPPING || HACK_HEADER_GENERATOR)
 #endif
 
 /**

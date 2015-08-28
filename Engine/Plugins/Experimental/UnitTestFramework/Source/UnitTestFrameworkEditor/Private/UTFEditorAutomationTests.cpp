@@ -41,7 +41,7 @@ bool FUTFEditorAutomationTests::IsClassSuitableForInEditorTesting(UClass* Class)
  * FUTFEditorMapTest
  ******************************************************************************/
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFEditorMapTest, "UnitTestFramework.Editor.RunUnitTestMaps", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFEditorMapTest, "UnitTestFramework.Editor.RunUnitTestMaps", EAutomationTestFlags::EditorContext | EAutomationTestFlags::StressFilter)
 
 //------------------------------------------------------------------------------
 void FUTFEditorMapTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
@@ -153,7 +153,7 @@ bool FUTFEditorMapTest::RunTest(const FString& LevelAssetPath)
 * FUTFEditorActorTest
 ******************************************************************************/
 
-IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFEditorActorTest, "UnitTestFramework.Editor.UnitTestActors", EAutomationTestFlags::ATF_Editor)
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FUTFEditorActorTest, "UnitTestFramework.Editor.UnitTestActors", EAutomationTestFlags::EditorContext | EAutomationTestFlags::StressFilter)
 
 //------------------------------------------------------------------------------
 void FUTFEditorActorTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray<FString>& OutTestCommands) const
