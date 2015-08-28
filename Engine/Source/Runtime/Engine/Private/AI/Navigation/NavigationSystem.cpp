@@ -380,6 +380,13 @@ void UNavigationSystem::SetSupportedAgentsNavigationClass(int32 AgentIndex, TSub
 	check(SupportedAgents.IsValidIndex(AgentIndex));
 	SupportedAgents[AgentIndex].NavigationDataClass = NavigationDataClass;
 
+	// keep preferred navigation data class in sync with actual class
+	// this will be passed to navigation data actor and will be required
+	// for comparisons done in DoesSupportAgent calls
+	//
+	// "Any" navigation data preference is valid only for instanced agents
+	SupportedAgents[AgentIndex].PreferredNavData = NavigationDataClass;
+
 	if (NavigationDataClass != nullptr)
 	{
 		SupportedAgents[AgentIndex].NavigationDataClassName = FStringClassReference::GetOrCreateIDForClass(NavigationDataClass);
@@ -1450,6 +1457,12 @@ const ANavigationData* UNavigationSystem::GetNavDataForProps(const FNavAgentProp
 		for (TArray<FNavAgentProperties>::TConstIterator It(AgentPropertiesList); It; ++It)
 		{
 			const FNavAgentProperties& NavIt = *It;
+			const bool bNavClassMatch = NavIt.IsNavDataMatching(AgentProperties);
+			if (!bNavClassMatch)
+			{
+				continue;
+			}
+
 			ExcessRadius = NavIt.AgentRadius - AgentProperties.AgentRadius;
 			ExcessHeight = NavIt.AgentHeight - AgentHeight;
 
