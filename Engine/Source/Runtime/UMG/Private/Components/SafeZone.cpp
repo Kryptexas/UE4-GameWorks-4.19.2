@@ -11,6 +11,7 @@
 USafeZone::USafeZone()
 {
 	bCanHaveMultipleChildren = false;
+	Visibility = ESlateVisibility::SelfHitTestInvisible;	
 }
 
 #if WITH_EDITOR

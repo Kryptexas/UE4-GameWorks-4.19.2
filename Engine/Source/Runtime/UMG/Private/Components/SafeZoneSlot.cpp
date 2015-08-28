@@ -7,7 +7,7 @@
 
 USafeZoneSlot::USafeZoneSlot()
 {
-
+	bIsTitleSafe = true;
 }
 
 void USafeZoneSlot::SynchronizeProperties()
