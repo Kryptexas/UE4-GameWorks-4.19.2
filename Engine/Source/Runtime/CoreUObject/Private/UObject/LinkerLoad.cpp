@@ -2500,7 +2500,12 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			
 			for( int32 j=Import.SourceLinker->ExportHash[iHash]; j!=INDEX_NONE; j=Import.SourceLinker->ExportMap[j].HashNext )
 			{
-				if (Import.SourceLinker->ExportMap.IsValidIndex(j))
+				if (!Import.SourceLinker->ExportMap.IsValidIndex(j))
+				{
+					UE_LOG(LogLinker, Error, TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"), j, Import.SourceLinker->ExportMap.Num(), *Import.ObjectName.ToString(), *GetNameSafe(Import.SourceLinker->LinkerRoot));
+					break;
+				}
+				else
 				{
 					FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
 					if
@@ -2514,10 +2519,6 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 						break;
 					}
 				}
-				else
-				{
-					UE_LOG(LogLinker, Error, TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"), j, Import.SourceLinker->ExportMap.Num(), *Import.ObjectName.ToString(), *GetNameSafe(Import.SourceLinker->LinkerRoot));
-				}
 			}
 			if (!bMatchesWithoutShortening)
 			{
@@ -2526,8 +2527,12 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 			for( int32 j=Import.SourceLinker->ExportHash[iHash]; j!=INDEX_NONE; j=Import.SourceLinker->ExportMap[j].HashNext )
 			{
-				if (ensureMsgf(Import.SourceLinker->ExportMap.IsValidIndex(j), TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"),
+				if (!ensureMsgf(Import.SourceLinker->ExportMap.IsValidIndex(j), TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"),
 					j, Import.SourceLinker->ExportMap.Num(), *Import.ObjectName.ToString(), *GetNameSafe(Import.SourceLinker->LinkerRoot)))
+				{
+					break;
+				}
+				else
 				{
 					FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
 					if
@@ -2887,7 +2892,11 @@ int32 FLinkerLoad::FindExportIndex( FName ClassName, FName ClassPackage, FName O
 
 	for( int32 i=ExportHash[iHash]; i!=INDEX_NONE; i=ExportMap[i].HashNext )
 	{
-		if (ensureMsgf(ExportMap.IsValidIndex(i), TEXT("Invalid index [%d/%d] while attempting to find export index '%s' LinkerRoot '%s'"), i, ExportMap.Num(), *ObjectName.ToString(), *GetNameSafe(LinkerRoot)))
+		if (!ensureMsgf(ExportMap.IsValidIndex(i), TEXT("Invalid index [%d/%d] while attempting to find export index '%s' LinkerRoot '%s'"), i, ExportMap.Num(), *ObjectName.ToString(), *GetNameSafe(LinkerRoot)))
+		{
+			break;
+		}
+		else
 		{
 			if
 			(  (ExportMap[i].ObjectName  ==ObjectName                              )
