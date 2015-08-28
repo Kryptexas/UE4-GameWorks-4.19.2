@@ -1069,18 +1069,12 @@ void RasterizeToVolumeTexture(FRHICommandList& RHICmdList, FVolumeBounds VolumeB
 	// Render a quad per slice affected by the given bounds
 	RHICmdList.DrawPrimitive(PT_TriangleStrip, 0, 2, NumInstances);
 }
-
+        
 /** Helper function that clears the given volume texture render targets. */
 template<int32 NumRenderTargets>
 void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type FeatureLevel, const FTextureRHIParamRef* RenderTargets, const FLinearColor* ClearColors)
 {
 	SetRenderTargets(RHICmdList, NumRenderTargets, RenderTargets, FTextureRHIRef(), 0, NULL);
-
-	static FGlobalBoundShaderState VolumeClearBoundShaderState;
-	
-
-
-
 #if PLATFORM_XBOXONE
 	// ClearMRT is faster on Xbox
 	if (true)
@@ -1093,6 +1087,8 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 	}
 	else
 	{
+		static FGlobalBoundShaderState VolumeClearBoundShaderState;
+
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1100,13 +1096,16 @@ void ClearVolumeTextures(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Fea
 		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 		TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-		TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+		TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 		TShaderMapRef<TOneColorPixelShaderMRT<NumRenderTargets> > PixelShader(ShaderMap);
 		
 		SetGlobalBoundShaderState(RHICmdList, FeatureLevel, VolumeClearBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 		VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-		GeometryShader->SetParameters(RHICmdList, VolumeBounds);		
+		if(GeometryShader.IsValid())
+		{
+			GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+		}
 		PixelShader->SetColors(RHICmdList, ClearColors, NumRenderTargets);
 
 		RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
@@ -1192,10 +1191,6 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, InjectAmbientCubemapTranslucentVolumeLighting);
 
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
-
 		const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
@@ -1206,8 +1201,12 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 			// we don't update the directional volume (could be a HQ option)
 			SetRenderTarget(RHICmdList, SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture, FTextureRHIRef());
 
+			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+			RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
+
 			TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-			TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+			TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 			TShaderMapRef<FInjectAmbientCubemapPS> PixelShader(ShaderMap);
 
 			static FGlobalBoundShaderState BoundShaderState;
@@ -1215,7 +1214,10 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 			SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 			VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-			GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+			if(GeometryShader.IsValid())
+			{
+				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+			}
 
 			uint32 Count = View.FinalPostProcessSettings.ContributingCubemaps.Num();
 			for(uint32 i = 0; i < Count; ++i)
@@ -1226,7 +1228,7 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 			}
-			
+
 			RHICmdList.CopyToResolveTarget(SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
 				SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
@@ -1295,12 +1297,6 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, AccumulateTranslucentVolumeShadowing);
 
-		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-
-		// Modulate the contribution of multiple object shadows in rgb
-		RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
-
 		auto ShaderMap = GetGlobalShaderMap(FeatureLevel);
 
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
@@ -1327,13 +1323,22 @@ void FDeferredShadingSceneRenderer::AccumulateTranslucentVolumeObjectShadowing(F
 
 				SetRenderTarget(RHICmdList, RenderTarget, FTextureRHIRef());
 
+				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+
+				// Modulate the contribution of multiple object shadows in rgb
+				RHICmdList.SetBlendState(TStaticBlendState<CW_RGB, BO_Add, BF_DestColor, BF_Zero>::GetRHI());
+
 				TShaderMapRef<FWriteToSliceVS> VertexShader(ShaderMap);
-				TShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
+				TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(ShaderMap);
 				TShaderMapRef<FTranslucentObjectShadowingPS> PixelShader(ShaderMap);
 
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, ObjectShadowingBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				if(GeometryShader.IsValid())
+				{
+					GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				}
 				PixelShader->SetParameters(RHICmdList, View, LightSceneInfo, InProjectedShadowInfo, VolumeCascadeIndex);
 				
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
@@ -1417,8 +1422,7 @@ void SetInjectionShader(
 		CachedShaderMap = MaterialShaderMap;
 		check(IsInRenderingThread()); // I didn't know quite how to deal with this caching. It won't work with threads.
 		BoundShaderState = 
-			RHICreateBoundShaderState(
-			GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader->GetGeometryShader());
+			RHICreateBoundShaderState( GScreenVertexDeclaration.VertexDeclarationRHI, VertexShader->GetVertexShader(), FHullShaderRHIRef(), FDomainShaderRHIRef(), PixelShader->GetPixelShader(), GeometryShader ? GeometryShader->GetGeometryShader() : nullptr);
 	}
 
 	RHICmdList.SetBoundShaderState(BoundShaderState);
@@ -1545,7 +1549,7 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 			if (VolumeBounds.IsValid())
 			{
 				TShaderMapRef<FWriteToSliceVS> VertexShader(View.ShaderMap);
-				TShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
+				TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
 
 				if (bDirectionalLight)
 				{
@@ -1554,7 +1558,7 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 					RHICmdList.SetBlendState(TStaticBlendState<
 						CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One,
 						CW_RGB, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
-					
+
 					if (InjectionData.ProjectedShadowInfo)
 					{
 						// shadows, restricting light contribution to the cascade bounds (except last cascade far to get light functions and no shadows there)
@@ -1592,7 +1596,10 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 				}
 
 				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				if(GeometryShader.IsValid())
+				{
+					GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				}
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 			}
 		}
@@ -1759,12 +1766,15 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(F
 					if (VolumeBounds.IsValid())
 					{
 						TShaderMapRef<FWriteToSliceVS> VertexShader(View.ShaderMap);
-						TShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
+						TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
 						TShaderMapRef<FSimpleLightTranslucentLightingInjectPS> PixelShader(View.ShaderMap);
 						SetGlobalBoundShaderState(RHICmdList, FeatureLevel, InjectSimpleLightBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 						VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-						GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+						if(GeometryShader.IsValid())
+						{
+							GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+						}
 						PixelShader->SetParameters(RHICmdList, View, SimpleLight, SimpleLightPerViewData, VolumeCascadeIndex);
 
 						// Accumulate the contribution of multiple lights
@@ -1805,10 +1815,6 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 		{
 			SCOPED_DRAW_EVENT(RHICmdList, FilterTranslucentVolume);
 
-			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
-			RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
-
 			// Filter each cascade
 			for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 			{
@@ -1829,12 +1835,20 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 
 				const FVolumeBounds VolumeBounds(GTranslucencyLightingVolumeDim);
 				TShaderMapRef<FWriteToSliceVS> VertexShader(View.ShaderMap);
-				TShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
+				TOptionalShaderMapRef<FWriteToSliceGS> GeometryShader(View.ShaderMap);
 				TShaderMapRef<FFilterTranslucentVolumePS> PixelShader(View.ShaderMap);
+				
+				RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
+				RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
+				RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
+
 				SetGlobalBoundShaderState(RHICmdList, FeatureLevel, FilterBoundShaderState, GScreenVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader, *GeometryShader);
 
 				VertexShader->SetParameters(RHICmdList, VolumeBounds, GTranslucencyLightingVolumeDim);
-				GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				if(GeometryShader.IsValid())
+				{
+					GeometryShader->SetParameters(RHICmdList, VolumeBounds);
+				}
 				PixelShader->SetParameters(RHICmdList, View, VolumeCascadeIndex);
 
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);

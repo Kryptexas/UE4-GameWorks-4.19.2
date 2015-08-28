@@ -1253,6 +1253,30 @@ private:
 	ShaderType* Shader;
 };
 
+/** A reference to an optional shader, initialized with a shader type from a shader map if it is available or nullptr if it is not. */
+template<typename ShaderType>
+class TOptionalShaderMapRef
+{
+public:
+	TOptionalShaderMapRef(const TShaderMap<typename ShaderType::ShaderMetaType>* ShaderIndex):
+	Shader((ShaderType*)ShaderIndex->GetShader(&ShaderType::StaticType)) // gcc3 needs the template quantifier so it knows the < is not a less-than
+	{}
+	FORCEINLINE bool IsValid() const
+	{
+		return Shader != nullptr;
+	}
+	FORCEINLINE ShaderType* operator->() const
+	{
+		return Shader;
+	}
+	FORCEINLINE ShaderType* operator*() const
+	{
+		return Shader;
+	}
+private:
+	ShaderType* Shader;
+};
+
 /** Tracks state when traversing a FSerializationHistory. */
 class FSerializationHistoryTraversalState
 {

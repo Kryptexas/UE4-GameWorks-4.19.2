@@ -74,6 +74,10 @@
 #define COMPILER_GLSL_ES2									0
 #endif
 
+#ifndef COMPILER_METAL
+#define COMPILER_METAL									0
+#endif
+
 #ifndef COMPILER_SUPPORTS_ATTRIBUTES
 #define COMPILER_SUPPORTS_ATTRIBUTES					0
 #endif
@@ -100,6 +104,10 @@
 
 #ifndef METAL_MRT_PROFILE
 #define METAL_MRT_PROFILE								0
+#endif
+
+#ifndef METAL_SM4_PROFILE
+#define METAL_SM4_PROFILE								0
 #endif
 
 #ifndef METAL_SM5_PROFILE
@@ -211,8 +219,13 @@
 #define HAS_INVERTED_Z_BUFFER	1
 #endif
 
+/** When defined sets the layer index for volumetric rendering in the vertex shader, rather than using a geometry shader */
+#ifndef USING_VERTEX_SHADER_LAYER
+#define USING_VERTEX_SHADER_LAYER	0
+#endif
+
 // 'static' asserts
-#if COMPILER_GLSL || COMPILER_GLSL_ES2 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
+#if COMPILER_GLSL || COMPILER_GLSL_ES2 || VULKAN_PROFILE || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM4_PROFILE || METAL_SM5_PROFILE
 #if !COMPILER_HLSLCC
 #error "Missing COMPILER_HLSLCC define!"
 #endif
