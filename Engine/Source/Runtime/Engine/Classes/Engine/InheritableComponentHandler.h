@@ -18,7 +18,7 @@ struct ENGINE_API FComponentKey
 		: OwnerClass(nullptr)
 	{}
 
-	FComponentKey(USCS_Node* SCSNode);
+	FComponentKey(const USCS_Node* SCSNode);
 #if WITH_EDITOR
 	FComponentKey(UBlueprint* Blueprint, const FUCSComponentId& UCSComponentID);
 #endif 
@@ -44,13 +44,13 @@ struct ENGINE_API FComponentKey
 	UActorComponent* GetOriginalTemplate() const;
 	bool RefreshVariableName();
 
-	UClass* GetComponentOwner()  const { return OwnerClass; }
+	class UBlueprintGeneratedClass* GetComponentOwner()  const { return OwnerClass; }
 	FName   GetSCSVariableName() const { return SCSVariableName; }
 	FGuid   GetAssociatedGuid()  const { return AssociatedGuid; }
 
 private: 
 	UPROPERTY()
-	UBlueprintGeneratedClass* OwnerClass;
+	class UBlueprintGeneratedClass* OwnerClass;
 
 	UPROPERTY()
 	FName SCSVariableName;

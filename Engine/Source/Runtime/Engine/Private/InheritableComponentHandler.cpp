@@ -347,11 +347,11 @@ const FComponentOverrideRecord* UInheritableComponentHandler::FindRecord(const F
 
 // FComponentOverrideRecord
 
-FComponentKey::FComponentKey(USCS_Node* SCSNode) : OwnerClass(nullptr)
+FComponentKey::FComponentKey(const USCS_Node* SCSNode) : OwnerClass(nullptr)
 {
 	if (SCSNode)
 	{
-		USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
+		const USimpleConstructionScript* ParentSCS = SCSNode->GetSCS();
 		OwnerClass      = ParentSCS ? Cast<UBlueprintGeneratedClass>(ParentSCS->GetOwnerClass()) : nullptr;
 		AssociatedGuid  = SCSNode->VariableGuid;
 		SCSVariableName = SCSNode->GetVariableName();

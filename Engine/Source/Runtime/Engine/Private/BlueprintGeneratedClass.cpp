@@ -570,6 +570,16 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 	}
 	else
 	{
+		TInlineComponentArray<UActorComponent*> Components;
+		Actor->GetComponents(Components);
+		for (auto Component : Components)
+		{
+			if (Component->IsCreatedByConstructionScript())
+			{
+				Actor->BlueprintCreatedComponents.Add(Component);
+			}
+		}
+
 		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
 		{
 			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);

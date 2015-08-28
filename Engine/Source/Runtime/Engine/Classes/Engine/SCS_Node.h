@@ -95,7 +95,7 @@ class USCS_Node : public UObject
 	UActorComponent* ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform);
 
 	/** Return the actual component template used in the BPGC. The template can be overridden in a child. */
-	ENGINE_API UActorComponent* GetActualComponentTemplate(UBlueprintGeneratedClass* ActualBPGC);
+	ENGINE_API UActorComponent* GetActualComponentTemplate(class UBlueprintGeneratedClass* ActualBPGC) const;
 
 	/** Returns an array containing this node and all children below it */
 	TArray<USCS_Node*> GetAllNodes();
