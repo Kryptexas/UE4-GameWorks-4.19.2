@@ -94,8 +94,9 @@ bool FFileHelper::LoadFileToArray( TArray<uint8>& Result, const TCHAR* Filename,
 		}
 		return 0;
 	}
-	Result.Reset();
-	Result.AddUninitialized( Reader->TotalSize() );
+	int64 TotalSize = Reader->TotalSize();
+	Result.Reset( TotalSize );
+	Result.AddUninitialized( TotalSize );
 	Reader->Serialize(Result.GetData(), Result.Num());
 	bool Success = Reader->Close();
 	delete Reader;
