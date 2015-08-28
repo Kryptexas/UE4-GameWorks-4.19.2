@@ -88,10 +88,10 @@ class UMaterialParameterCollection : public UObject
 	ENGINE_API void GetParameterNames(TArray<FName>& OutParameterNames, bool bVectorParameters) const;
 
 	/** Utility to find a scalar parameter struct given a parameter name.  Returns NULL if not found. */
-	const FCollectionScalarParameter* GetScalarParameterByName(FName ParameterName) const;
+	ENGINE_API const FCollectionScalarParameter* GetScalarParameterByName(FName ParameterName) const;
 
 	/** Utility to find a vector parameter struct given a parameter name.  Returns NULL if not found. */
-	const FCollectionVectorParameter* GetVectorParameterByName(FName ParameterName) const;
+	ENGINE_API const FCollectionVectorParameter* GetVectorParameterByName(FName ParameterName) const;
 
 	/** Accessor for the uniform buffer layout description. */
 	const FUniformBufferStruct& GetUniformBufferStruct() const
