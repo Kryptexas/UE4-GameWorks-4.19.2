@@ -4,6 +4,7 @@
 
 #include "AnimTrailNodeDetails.h"
 #include "AnimGraphNode_Trail.h"
+#include "SCurveEditor.h"
 
 #define LOCTEXT_NAMESPACE "FAnimTrailNodeDetails"
 
