@@ -942,7 +942,6 @@ void UDemoNetDriver::StopDemo()
 		// let GC cleanup the object
 		if ( ClientConnections.Num() > 0 && ClientConnections[0] != NULL )
 		{
-			ServerConnection->State = USOCK_Closed;
 			ClientConnections[0]->Close();
 		}
 	}
