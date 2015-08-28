@@ -149,6 +149,7 @@ public:
 	void RefreshViewer( const bool bFinal );
 	void ConditionallyRefreshViewer();
 	void SetLastError( const ENetworkReplayError::Type InLastError );
+	void CancelStreamingRequests();
 	void FlushCheckpointInternal( uint32 TimeInMS );
 	void AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data );
 	void AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest >	Request );
