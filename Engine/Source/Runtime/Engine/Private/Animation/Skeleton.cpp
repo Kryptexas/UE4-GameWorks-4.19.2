@@ -269,6 +269,12 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 		if( SkeletonBoneIndex != INDEX_NONE )
 		{
 			++NumOfBoneMatches;
+
+			// follow the parent chain to verify the chain is same
+			if(!DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh))
+			{
+				return false;
+			}
 		}
 		else
 		{
