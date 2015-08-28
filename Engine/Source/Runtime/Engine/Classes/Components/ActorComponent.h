@@ -158,6 +158,9 @@ private:
 	/** Indicates the the destruction process has begun for this component to avoid recursion */
 	uint32 bIsBeingDestroyed:1;
 
+	/** Whether we've tried to register tick functions. Reset when they are unregistered. */
+	uint32 bTickFunctionsRegistered:1;
+
 #if WITH_EDITOR
 	/** During undo/redo it isn't safe to cache owner */
 	uint32 bCanUseCachedOwner:1;
