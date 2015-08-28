@@ -2953,7 +2953,7 @@ void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FE
 				{
 					// If we're transitioning to normal mode then restore the backup
 					// Clear the flags relevant to vertex color modes
-					Viewport.EngineShowFlags.VertexColors = 0;
+					Viewport.EngineShowFlags.SetVertexColors(false);
 						
 					// Restore the vertex color mode flags that were set when we last entered vertex color mode
 					ApplyViewMode(Viewport.GetViewMode(), Viewport.IsPerspective(), Viewport.EngineShowFlags);
@@ -2962,13 +2962,13 @@ void FEdModeMeshPaint::SetViewportShowFlags( const bool bAllowColorViewModes, FE
 			}
 			else
 			{
-				Viewport.EngineShowFlags.Materials = 1;
-				Viewport.EngineShowFlags.Lighting = 0;
-				Viewport.EngineShowFlags.BSPTriangles = 1;
-				Viewport.EngineShowFlags.VertexColors = 1;
-				Viewport.EngineShowFlags.PostProcessing = 0;
-				Viewport.EngineShowFlags.HMDDistortion = 0;
-					
+				Viewport.EngineShowFlags.SetMaterials(true);
+				Viewport.EngineShowFlags.SetLighting(false);
+				Viewport.EngineShowFlags.SetBSPTriangles(true);
+				Viewport.EngineShowFlags.SetVertexColors(true);
+				Viewport.EngineShowFlags.SetPostProcessing(false);
+				Viewport.EngineShowFlags.SetHMDDistortion(false);
+
 				switch( ColorViewMode )
 				{
 					case EMeshPaintColorViewMode::RGB:

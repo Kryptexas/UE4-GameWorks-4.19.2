@@ -1554,7 +1554,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 				{
 					// We have lights in the scene now so go ahead and turn lighting back on
 					// designer can see what they're interacting with!
-					InOutShowFlags.Lighting = true;
+					InOutShowFlags.SetLighting(true);
 				}
 
 				// No longer forcing lighting to be off
@@ -1567,7 +1567,7 @@ void FEditorViewportClient::UpdateLightingShowFlags( FEngineShowFlags& InOutShow
 				{
 					// No lights in the scene, so make sure that lighting is turned off so the level
 					// designer can see what they're interacting with!
-					InOutShowFlags.Lighting = false;
+					InOutShowFlags.SetLighting(false);
 				}
 			}
 		}
@@ -4258,12 +4258,12 @@ bool FEditorViewportClient::IsSetShowGridChecked() const
 
 void FEditorViewportClient::SetShowBounds(bool bShow)
 {
-	EngineShowFlags.Bounds = bShow;
+	EngineShowFlags.SetBounds(bShow);
 }
 
 void FEditorViewportClient::ToggleShowBounds()
 {
-	EngineShowFlags.Bounds = 1 - EngineShowFlags.Bounds;
+	EngineShowFlags.SetBounds(!EngineShowFlags.Bounds);
 	if (FEngineAnalytics::IsAvailable())
 	{
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.Toolbar"), TEXT("Bounds"), FString::Printf(TEXT("%d"), EngineShowFlags.Bounds));
@@ -4278,7 +4278,7 @@ bool FEditorViewportClient::IsSetShowBoundsChecked() const
 
 void FEditorViewportClient::SetShowCollision()
 {
-	EngineShowFlags.Collision = !EngineShowFlags.Collision;
+	EngineShowFlags.SetCollision(!EngineShowFlags.Collision);
 	Invalidate();
 }
 
@@ -4787,17 +4787,17 @@ void FEditorViewportClient::SetGameView(bool bGameViewEnable)
 	}
 
 	// maintain this state
-	EngineShowFlags.CompositeEditorPrimitives = bCompositeEditorPrimitives;
-	LastEngineShowFlags.CompositeEditorPrimitives = bCompositeEditorPrimitives;
+	EngineShowFlags.SetCompositeEditorPrimitives(bCompositeEditorPrimitives);
+	LastEngineShowFlags.SetCompositeEditorPrimitives(bCompositeEditorPrimitives);
 
 	//reset game engine show flags that may have been turned on by making a selection in game view
 	if(bGameViewEnable)
 	{
-		EngineShowFlags.ModeWidgets = 0;
-		EngineShowFlags.Selection = 0;
+		EngineShowFlags.SetModeWidgets(false);
+		EngineShowFlags.SetSelection(false);
 	}
 
-	EngineShowFlags.SelectionOutline = bGameViewEnable ? false : GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
+	EngineShowFlags.SetSelectionOutline(bGameViewEnable ? false : GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline);
 
 	ApplyViewMode(GetViewMode(), IsPerspective(), EngineShowFlags);
 

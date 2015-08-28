@@ -339,13 +339,13 @@ void SStaticMeshEditorViewport::SetViewModeVertexColor()
 {
 	if (!EditorViewportClient->EngineShowFlags.VertexColors)
 	{
-		EditorViewportClient->EngineShowFlags.VertexColors = true;
-		EditorViewportClient->EngineShowFlags.Lighting = false;
+		EditorViewportClient->EngineShowFlags.SetVertexColors(true);
+		EditorViewportClient->EngineShowFlags.SetLighting(false);
 	}
 	else
 	{
-		EditorViewportClient->EngineShowFlags.VertexColors = false;
-		EditorViewportClient->EngineShowFlags.Lighting = true;
+		EditorViewportClient->EngineShowFlags.SetVertexColors(false);
+		EditorViewportClient->EngineShowFlags.SetLighting(true);
 	}
 	if (FEngineAnalytics::IsAvailable())
 	{

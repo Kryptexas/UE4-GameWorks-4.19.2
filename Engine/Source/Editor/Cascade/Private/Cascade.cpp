@@ -3820,7 +3820,7 @@ void FCascade::OnToggleGrid()
 		EditorOptions->SaveConfig();
 		DrawHelper.bDrawGrid = bShowGrid;
 
-		PreviewViewport->GetViewportClient()->EngineShowFlags.Grid = bShowGrid;
+		PreviewViewport->GetViewportClient()->EngineShowFlags.SetGrid(bShowGrid);
 		PreviewViewport->RefreshViewport();
 	}
 }

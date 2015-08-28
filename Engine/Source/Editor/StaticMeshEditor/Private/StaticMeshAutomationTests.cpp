@@ -93,27 +93,20 @@ namespace EditorViewButtonHelper
 			case EStaticMeshFlag::Vert:
 				if (!AutomationParameters.ViewportClient->EngineShowFlags.VertexColors)
 				{
-					AutomationParameters.ViewportClient->EngineShowFlags.VertexColors = true;
-					AutomationParameters.ViewportClient->EngineShowFlags.Lighting = false;
+					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(true);
+					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(false);
 				}
 				else
 				{
-					AutomationParameters.ViewportClient->EngineShowFlags.VertexColors = false;
-					AutomationParameters.ViewportClient->EngineShowFlags.Lighting = true;
+					AutomationParameters.ViewportClient->EngineShowFlags.SetVertexColors(false);
+					AutomationParameters.ViewportClient->EngineShowFlags.SetLighting(true);
 				}
 				break;
 			case EStaticMeshFlag::Grid:
 				AutomationParameters.ViewportClient->SetShowGrid();
 				break;
 			case EStaticMeshFlag::Bounds:
-				if (AutomationParameters.ViewportClient->EngineShowFlags.Bounds)
-				{
-					AutomationParameters.ViewportClient->EngineShowFlags.Bounds = false;
-				}
-				else
-				{
-					AutomationParameters.ViewportClient->EngineShowFlags.Bounds = true;
-				}
+				AutomationParameters.ViewportClient->EngineShowFlags.SetBounds(!AutomationParameters.ViewportClient->EngineShowFlags.Bounds);
 				break;
 			case EStaticMeshFlag::Collision:
 				AutomationParameters.ViewportClient->SetShowCollision();

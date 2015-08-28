@@ -794,6 +794,20 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 	return bDirty;
 }
 
+int32 FSceneRenderer::GetRefractionQuality(const FSceneViewFamily& ViewFamily)
+{
+	static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RefractionQuality"));
+	
+	int32 Value = 0;
+	
+	if(ViewFamily.EngineShowFlags.Refraction)
+	{
+		Value = ICVar->GetValueOnRenderThread();
+	}
+	
+	return Value;
+}
+
 /** 
  * Renders the scene's distortion 
  */

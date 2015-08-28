@@ -1388,7 +1388,7 @@ void SAnimationEditorViewportTabBody::UpdateShowFlagForMeshEdges()
 	bShowMeshEdgesViewMode = (CurrentViewMode == EAnimationEditorViewportMode::UnlitWithMeshEdges);
 #endif
 
-	LevelViewportClient->EngineShowFlags.MeshEdges = (bDrawBonesInfluence || bShowMeshEdgesViewMode) ? 1 : 0;
+	LevelViewportClient->EngineShowFlags.SetMeshEdges(bDrawBonesInfluence || bShowMeshEdgesViewMode);
 }
 
 bool SAnimationEditorViewportTabBody::IsLODModelSelected(ELODViewSelection LODSelectionType) const

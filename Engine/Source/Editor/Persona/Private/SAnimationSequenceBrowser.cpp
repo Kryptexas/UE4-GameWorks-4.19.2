@@ -1045,7 +1045,7 @@ FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPr
 	SetViewMode(VMI_Lit);
 
 	// Always composite editor objects after post processing in the editor
-	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.SetCompositeEditorPrimitives(true);
 	EngineShowFlags.DisableAdvancedFeatures();
 
 	// Setup defaults for the common draw helper.

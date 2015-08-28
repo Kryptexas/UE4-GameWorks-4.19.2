@@ -377,7 +377,7 @@ void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer
 
 		for (int32 ViewIndex = 0; ViewIndex < Renderer.Views.Num(); ViewIndex++)
 		{
-			bAnyViewAllowsIndirectLightingCache |= Renderer.Views[ViewIndex].Family->EngineShowFlags.IndirectLightingCache;
+			bAnyViewAllowsIndirectLightingCache |= (bool)Renderer.Views[ViewIndex].Family->EngineShowFlags.IndirectLightingCache;
 		}
 
 		if (bAnyViewAllowsIndirectLightingCache)

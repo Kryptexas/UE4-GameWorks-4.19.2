@@ -869,10 +869,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	static const auto GBufferCVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.GBuffer"));
 	bool bGBuffer = GBufferCVar ? (GBufferCVar->GetValueOnRenderThread() != 0) : true;
-	if (ViewFamily.EngineShowFlags.ForceGBuffer)
-	{
-		bGBuffer = true;
-	}
 
 	if (ClearMethodCVar)
 	{
@@ -1284,7 +1280,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderTranslucency(RHICmdList);
 		ServiceLocalQueue();
 
-		if (ViewFamily.EngineShowFlags.Refraction)
+		if(GetRefractionQuality(ViewFamily) > 0)
 		{
 			// To apply refraction effect by distorting the scene color.
 			// After non separate translucency as that is considered at scene depth anyway

@@ -140,7 +140,7 @@ void FEngineShowFlags::SetSingleFlag(uint32 Index, bool bSet)
 	{
 	#define SHOWFLAG_ALWAYS_ACCESSIBLE(a,...) case SF_##a: a = bSet?1:0; break;
 	#if UE_BUILD_OPTIMIZED_SHOWFLAGS 
-		#define SHOWFLAG_FIXED_IN_SHIPPING(a,...) case SF_##a: break;
+		#define SHOWFLAG_FIXED_IN_SHIPPING(v,a,...) case SF_##a: break;
 	#endif
 	#include "ShowFlagsValues.inl"
 	default:
@@ -316,7 +316,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	if(ShowFlagInitMode == ESFIM_Game)
 	{
 		// editor only features
-		EngineShowFlags.AudioRadius = 0;
+		EngineShowFlags.SetAudioRadius(false);
 	}
 
 	{
@@ -326,9 +326,9 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			// disabled as it requires multiple frames, AA can be done by downsampling, more control and better masking
 			EngineShowFlags.TemporalAA = 0;
 			// no editor gizmos / selection
-			EngineShowFlags.ModeWidgets = 0;
-			EngineShowFlags.Selection = 0;
-			EngineShowFlags.SelectionOutline = 0;
+			EngineShowFlags.SetModeWidgets(false);
+			EngineShowFlags.SetSelection(false);
+			EngineShowFlags.SetSelectionOutline(false);
 		}
 	}
 
@@ -358,14 +358,6 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			EngineShowFlags.DynamicShadows = 0;
 			EngineShowFlags.GlobalIllumination = 0;
 			EngineShowFlags.ScreenSpaceReflections = 0;
-		}
-	}
-
-	{
-		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.RefractionQuality"));
-		if(ICVar->GetValueOnGameThread() <= 0)
-		{
-			EngineShowFlags.Refraction = 0;
 		}
 	}
 
@@ -402,7 +394,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 
 		if( ViewModeIndex == VMI_BrushWireframe)
 		{
-			EngineShowFlags.Brushes = 1;
+			EngineShowFlags.SetBrushes(true);
 		}
 
 		if( ViewModeIndex == VMI_Wireframe ||
@@ -413,7 +405,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_VertexDensities ||
 			ViewModeIndex == VMI_LightmapDensity)
 		{
-			EngineShowFlags.Lighting = 0;
+			EngineShowFlags.SetLighting(false);
 			EngineShowFlags.AtmosphericFog = 0;
 		}
 
@@ -421,14 +413,14 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 			ViewModeIndex == VMI_LightingOnly ||
 			ViewModeIndex == VMI_LitLightmapDensity)
 		{
-			EngineShowFlags.Lighting = 1;
+			EngineShowFlags.SetLighting(true);
 		}
 
 		if( ViewModeIndex == VMI_LightingOnly ||
 			ViewModeIndex == VMI_BrushWireframe ||
 			ViewModeIndex == VMI_StationaryLightOverlap)
 		{
-			EngineShowFlags.Materials = 0;
+			EngineShowFlags.SetMaterials(false);
 		}
 
 		if( ViewModeIndex == VMI_LightComplexity )
@@ -438,7 +430,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 
 		if( ViewModeIndex == VMI_LODColoration )
 		{
-			EngineShowFlags.Lighting = 1;		// Best currently otherwise the image becomes hard to read.
+			EngineShowFlags.SetLighting(true);	// Best currently otherwise the image becomes hard to read.
 			EngineShowFlags.Fog = 0;			// Removed fog to improve color readability.
 			EngineShowFlags.AtmosphericFog = 0;
 			EngineShowFlags.Translucency = 0;	// Translucent are off because there are no color override shader currently for translucency.
@@ -448,7 +440,7 @@ void EngineShowFlagOverride(EShowFlagInitMode ShowFlagInitMode, EViewModeIndex V
 	// disable AA in full screen GBuffer visualization
 	if(EngineShowFlags.VisualizeBuffer && CurrentBufferVisualizationMode != NAME_None)
 	{
-		EngineShowFlags.Tonemapper = 0;
+		EngineShowFlags.SetTonemapper(false);
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)

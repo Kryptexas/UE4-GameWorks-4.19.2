@@ -175,7 +175,7 @@ UGameViewportClient::~UGameViewportClient()
 {
 	if (EngineShowFlags.Collision)
 	{
-		EngineShowFlags.Collision = false;
+		EngineShowFlags.SetCollision(false);
 		ToggleShowCollision();
 	}
 
@@ -2309,7 +2309,7 @@ void UGameViewportClient::ToggleShowVolumes()
 	// Don't allow 'show collision' and 'show volumes' at the same time, so turn collision off
 	if (EngineShowFlags.Volumes && EngineShowFlags.Collision)
 	{
-		EngineShowFlags.Collision = false;
+		EngineShowFlags.SetCollision(false);
 		ToggleShowCollision();
 	}
 
@@ -2350,7 +2350,7 @@ void UGameViewportClient::ToggleShowCollision()
 		// Don't allow 'show collision' and 'show volumes' at the same time, so turn collision off
 		if (EngineShowFlags.Volumes)
 		{
-			EngineShowFlags.Volumes = false;
+			EngineShowFlags.SetVolumes(false);
 			ToggleShowVolumes();
 		}
 

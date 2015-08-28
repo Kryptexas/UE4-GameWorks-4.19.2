@@ -62,7 +62,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	SetViewMode(VMI_Lit);
 
 	EngineShowFlags.DisableAdvancedFeatures();
-	EngineShowFlags.CompositeEditorPrimitives = true;
+	EngineShowFlags.SetCompositeEditorPrimitives(true);
 
 	OverrideNearClipPlane(1.0f);
 
@@ -105,7 +105,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	
 	if (DrawHelper.bDrawGrid)
 	{
-		EngineShowFlags.Grid = 1;
+		EngineShowFlags.SetGrid(true);
 	}
 
 	if (EditorOptions->FloorMesh == TEXT(""))
@@ -255,11 +255,11 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	if (GetDrawElement(Bounds))
 	{
-		EngineShowFlags.Bounds = 1;
+		EngineShowFlags.SetBounds(true);
 		EngineShowFlags.Game = 1;
 	}
 
-	EngineShowFlags.VectorFields = GetDrawElement(VectorFields);
+	EngineShowFlags.SetVectorFields(GetDrawElement(VectorFields));
 
 	CascadePreviewScene.AddComponent(LineBatcher,FTransform::Identity);
 

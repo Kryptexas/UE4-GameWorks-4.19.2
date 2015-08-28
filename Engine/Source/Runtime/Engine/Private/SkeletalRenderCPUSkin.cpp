@@ -201,37 +201,6 @@ void FSkeletalMeshObjectCPUSkin::UpdateDynamicData_RenderThread(FRHICommandListI
 	CacheVertices(DynamicData->LODIndex,true);
 }
 
-static bool ComputeTangent(FVector &t,
-							const FVector &p0, const FVector2D &c0,
-							const FVector &p1, const FVector2D &c1,
-							const FVector &p2, const FVector2D &c2)
-{
-	const float epsilon = 0.0001f;
-	bool   Ret = false;
-	FVector dp1 = p1 - p0;
-	FVector dp2 = p2 - p0;
-	float   du1 = c1.X - c0.X;
-	float   dv1 = c1.Y - c0.Y;
-	if(FMath::Abs(dv1) < epsilon && FMath::Abs(du1) >= epsilon)
-	{
-		t = dp1 / du1;
-		Ret = true;
-	}
-	else
-	{
-		float du2 = c2.X - c0.X;
-		float dv2 = c2.Y - c0.Y;
-		float det = dv1*du2 - dv2*du1;
-		if(FMath::Abs(det) >= epsilon)
-		{
-			t = (dp2*dv1-dp1*dv2)/det;
-			Ret = true;
-		}
-	}
-	return Ret;
-}
-
-
 void FSkeletalMeshObjectCPUSkin::CacheVertices(int32 LODIndex, bool bForce) const
 {
 	SCOPE_CYCLE_COUNTER( STAT_CPUSkinUpdateRTTime);
