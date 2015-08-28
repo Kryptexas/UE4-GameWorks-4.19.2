@@ -27,7 +27,6 @@ public:
 public:
 
 	// FAvfMediaTrack overrides
-
     virtual bool IsReady() const override;
 
 public:
@@ -89,6 +88,11 @@ public:
      * @param SeekTime The time the Track Reader should be set to.
      */
     bool SeekToTime(const CMTime& SeekTime);
+    
+    /** 
+     * Has the video track completed it's playthrough
+     */
+    bool ReachedEnd() const;
 
 private:
 

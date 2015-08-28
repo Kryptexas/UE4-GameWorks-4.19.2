@@ -60,6 +60,8 @@ FAvfMediaPlayer::FAvfMediaPlayer()
     PlayerItem = nil;
     MediaPlayer = nil;
 	MediaHelper = nil;
+	
+	CurrentRate = 0.0f;
 }
 
 
@@ -116,6 +118,7 @@ void FAvfMediaPlayer::Close()
     if( PlayerItem != nil )
     {
 		[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
+		[PlayerItem release];
         PlayerItem = nil;
     }
 
@@ -124,12 +127,7 @@ void FAvfMediaPlayer::Close()
 		[MediaHelper release];
 		MediaHelper = nil;
 	}
-
-    if( MediaPlayer != nil )
-    {
-        MediaPlayer = nil;
-    }
-    
+		
 	AudioTracks.Reset();
 	CaptionTracks.Reset();
 	VideoTracks.Reset();
@@ -195,13 +193,13 @@ const TArray<IMediaVideoTrackRef>& FAvfMediaPlayer::GetVideoTracks() const
 
 bool FAvfMediaPlayer::IsLooping() const 
 {
-    return false;
+    return bLoop;
 }
 
 
 bool FAvfMediaPlayer::IsPaused() const
 {
-    return FMath::IsNearlyZero( [MediaPlayer rate] );
+    return FMath::IsNearlyZero( CurrentRate );
 }
 
 
@@ -212,7 +210,7 @@ bool FAvfMediaPlayer::IsPlaying() const
 		return false;
 	}
 
-	return (MediaPlayer != nil) && !FMath::IsNearlyZero([MediaPlayer rate]) && (CurrentTime <= Duration);
+    return (MediaPlayer != nil) && !FMath::IsNearlyZero(CurrentRate) && !ReachedEnd();
 }
 
 
@@ -347,6 +345,7 @@ bool FAvfMediaPlayer::Open( const FString& Url )
             
                 [[MediaPlayer currentItem] seekToTime:kCMTimeZero];
                 MediaPlayer.rate = 0.0;
+				CurrentTime = FTimespan::Zero();
             
                 bSuccessfullyOpenedMovie = true;
             }
@@ -386,7 +385,7 @@ bool FAvfMediaPlayer::Seek( const FTimespan& Time )
 	
 	[MediaPlayer seekToTime:CurrentTimeInSeconds];
 	[[MediaPlayer currentItem] seekToTime:CurrentTimeInSeconds];
-
+	
     for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
     {
         FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
@@ -397,9 +396,10 @@ bool FAvfMediaPlayer::Seek( const FTimespan& Time )
 }
 
 
-bool FAvfMediaPlayer::SetLooping( bool Looping )
+bool FAvfMediaPlayer::SetLooping( bool bInLooping )
 {
-	return false;
+    bLoop = bInLooping;
+	return bLoop;
 }
 
 
@@ -411,31 +411,63 @@ bool FAvfMediaPlayer::SetRate( float Rate )
 }
 
 
+bool FAvfMediaPlayer::ReachedEnd() const
+{
+	bool bHasReachedEnd = false;
+	for( const IMediaVideoTrackRef& VideoTrack : VideoTracks )
+	{
+		FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+		if (AVFTrack.ReachedEnd())
+		{
+			bHasReachedEnd = true;
+		}
+	}
+	return bHasReachedEnd;
+}
+
+
+bool FAvfMediaPlayer::ShouldTick() const
+{
+	return IsReady() || ReachedEnd();
+}
+
+
 /* FTickerBase interface
  *****************************************************************************/
 
 bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
-    if (!ShouldAdvanceFrames())
-    {
-		return true;
-	}
-
-	AVPlayerItem* item = [MediaPlayer currentItem];
-	if (item != nil)
+	if (ShouldTick())
 	{
-	    CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([item currentTime]) );
-	}
-        
-    for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
-    {
-        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
-        if (!AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]))
+		if (IsPlaying())
 		{
-			return false;
+			for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
+			{
+				FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+				if (!AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]))
+				{
+					if(bLoop && ReachedEnd())
+					{
+						Seek(FTimespan(0));
+						SetRate(CurrentRate);
+					}
+					else
+					{
+						if(!ReachedEnd())
+						{
+							UE_LOG(LogAvfMedia, Display, TEXT("Failed to read video track for "), *MediaUrl);
+						}
+						return false;
+					}
+				}
+				else
+				{
+					CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]) );
+				}
+			}
 		}
-    }
-    
+	}
+	
     return true;
 }
 
@@ -443,7 +475,3 @@ bool FAvfMediaPlayer::Tick( float DeltaTime )
 /* FAvfMediaPlayer implementation
  *****************************************************************************/
 
-bool FAvfMediaPlayer::ShouldAdvanceFrames() const
-{
-    return IsReady() && IsPlaying();
-}

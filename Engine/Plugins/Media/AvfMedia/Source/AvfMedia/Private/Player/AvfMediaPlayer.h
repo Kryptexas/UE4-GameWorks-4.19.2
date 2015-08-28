@@ -95,17 +95,21 @@ public:
 public:
 
     // FTickerObjectBase interface
-
     virtual bool Tick( float DeltaTime ) override;
-
+	
 protected:
-
-    /**
-	 * Whether the media player should advance to the next frame.
+	
+	/**
+	 * Whether the media player should tick in this frame.
 	 *
-	 * @return true if the player should advance, false otherwise.
+	 * @return true if the player should advance, false otherwise
 	 */
-    bool ShouldAdvanceFrames() const;
+	bool ShouldTick() const;
+	
+	/**
+	 * Has the video completed it's playthrough
+	 */
+	bool ReachedEnd() const;
 
 private:
 
@@ -138,6 +142,9 @@ private:
 
 	/** The available video tracks. */
 	TArray<IMediaVideoTrackRef> VideoTracks;
+    
+    /** Should the video loop to the beginning at completion */
+    bool bLoop;
 
 private:
 

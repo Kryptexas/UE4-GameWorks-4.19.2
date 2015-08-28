@@ -140,7 +140,7 @@ void FAvfMediaVideoTrack::ResetAssetReader()
 bool FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime, bool bInIsInitialFrameRead )
 {
     check( bVideoTracksLoaded );
-    
+	
     if( AVReader.status == AVAssetReaderStatusReading )
     {
         double CurrentAVTime = CMTimeGetSeconds( AVPlayerTime );
@@ -240,4 +240,10 @@ bool FAvfMediaVideoTrack::ReadFrameAtTime( const CMTime& AVPlayerTime, bool bInI
     }
 
 	return true;
+}
+
+bool FAvfMediaVideoTrack::ReachedEnd() const
+{
+	AVAssetReaderStatus Status = AVReader.status;
+    return (AVReader != nil) && (Status == AVAssetReaderStatusCompleted);
 }
