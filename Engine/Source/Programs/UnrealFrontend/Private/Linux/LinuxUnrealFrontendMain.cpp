@@ -2,7 +2,8 @@
 
 #include "UnrealFrontendPrivatePCH.h"
 #include "UnrealFrontendMain.h"
-
+#include "ExceptionHandling.h"
+#include "RequiredProgramMainCPPInclude.h"
 
 static FString GSavedCommandLine;
 
