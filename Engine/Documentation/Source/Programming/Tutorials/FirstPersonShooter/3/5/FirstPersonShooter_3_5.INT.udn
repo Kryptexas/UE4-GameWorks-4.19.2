@@ -240,12 +240,14 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 
 1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
-Congratulations, you can now:
+Congratulations! You've learned how to:
 
-*	Move around your level
-*	Jump around your level
-*	Control your camera
-*	Shoot projectiles that interact with physics objects
-*	Aim with crosshairs
+&#x2713; Add Projectiles to your Game  
+&#x2713; Implement Shooting  
+&#x2713; Set-up Projectile Collision and Lifetime  
+&#x2713; Get your Projectiles to Interact with the World  
+&#x2713; Add Crosshairs to your Viewport  
+
+You're now ready to learn how to animate your character in the next section.
 
 %Steps%
