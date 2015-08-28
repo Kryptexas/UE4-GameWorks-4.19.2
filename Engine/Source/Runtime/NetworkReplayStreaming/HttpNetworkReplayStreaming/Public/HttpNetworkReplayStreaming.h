@@ -45,6 +45,8 @@ namespace EQueuedHttpRequestType
 		UploadingCustomEvent,		// We are uploading a custom event
 		EnumeratingCustomEvent,		// We are in the process of enumerating a custom event set
 		RequestEventData,			// We are in the process of requesting the data for a specific event
+		UploadHeader,				// Request to upload header (has to be done after we get info from server)
+		StopStreaming,				// Request to stop streaming
 	};
 
 	inline const TCHAR* ToString( EQueuedHttpRequestType::Type Type )
@@ -83,6 +85,10 @@ namespace EQueuedHttpRequestType
 				return TEXT( "EnumeratingCustomEvent" );
 			case RequestEventData:
 				return TEXT("RequestEventData");
+			case UploadHeader:
+				return TEXT( "UploadHeader" );
+			case StopStreaming:
+				return TEXT( "StopStreaming" );
 		}
 
 		return TEXT( "Unknown EQueuedHttpRequestType type." );
@@ -198,7 +204,6 @@ public:
 	double					LastRefreshCheckpointTime;
 	EStreamerState			StreamerState;			// Overall state of the streamer
 	bool					bStopStreamingCalled;
-	bool					bNeedToUploadHeader;	// We're waiting on session name so we can upload header
 	bool					bStreamIsLive;			// If true, we are viewing a live stream
 	int32					NumTotalStreamChunks;
 	uint32					TotalDemoTimeInMS;
