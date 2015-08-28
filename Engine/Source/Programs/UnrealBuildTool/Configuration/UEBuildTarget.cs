@@ -2417,49 +2417,20 @@ namespace UnrealBuildTool
 		/// <returns>Created module.</returns>
 		private UEBuildModuleCPP CreateArtificialModule(string Name, string Directory, IEnumerable<FileItem> SourceFiles, IEnumerable<string> PrivateDependencyModuleNames)
 		{
+			ModuleRules Rules = new ModuleRules();
+			Rules.PrivateDependencyModuleNames.AddRange(PrivateDependencyModuleNames);
+
 			return new UEBuildModuleCPP(
 				InTarget: this,
 				InName: Name,
 				InType: UEBuildModuleType.Game,
 				InModuleDirectory: Directory,
 				InGeneratedCodeDirectory: null,
-				InIsRedistributableOverride: null,
 				InIntelliSenseGatherer: null,
 				InSourceFiles: SourceFiles.ToList(),
-				InPublicIncludePaths: new List<string>(),
-                InPublicLibraryPaths: new List<string>(),
-				InPublicSystemIncludePaths: new List<string>(),
-				InDefinitions: new List<string>(),
-				InPublicIncludePathModuleNames: new List<string>(),
-				InPublicDependencyModuleNames: new List<string>(),
-				InPublicDelayLoadDLLs: new List<string>(),
-				InPublicAdditionalLibraries: new List<string>(),
-				InPublicFrameworks: new List<string>(),
-				InPublicWeakFrameworks: new List<string>(),
-				InPublicAdditionalShadowFiles: new List<string>(),
-				InPublicAdditionalBundleResources: new List<UEBuildBundleResource>(),
-				InPublicAdditionalFrameworks: new List<UEBuildFramework>(),
-				InPrivateIncludePaths: new List<string>(),
-				InPrivateIncludePathModuleNames: new List<string>(),
-				InPrivateDependencyModuleNames: PrivateDependencyModuleNames.ToList(),
-				InCircularlyReferencedDependentModules: new List<string>(),
-				InDynamicallyLoadedModuleNames: new List<string>(),
-				InPlatformSpecificDynamicallyLoadedModuleNames: new List<string>(),
-				InRuntimeDependencies: new List<RuntimeDependency>(),
-				InOptimizeCode: ModuleRules.CodeOptimization.Default,
-				InAllowSharedPCH: false,
-				InSharedPCHHeaderFile: "",
-				InUseRTTI: false,
-				InEnableBufferSecurityChecks: true,
-				InFasterWithoutUnity: true,
-				InMinSourceFilesForUnityBuildOverride: 0,
-				InMinFilesUsingPrecompiledHeaderOverride: 0,
-				InBuildLocallyWithSNDBS: false,
-				InEnableExceptions: false,
-				InEnableShadowVariableWarnings: true,
+				InRules: Rules,
 				bInBuildSourceFiles: true,
-				InBuildCsFilename: null,
-				bInUseAVX: false);
+				InBuildCsFilename: null);
 		}
 
 
@@ -2486,12 +2457,12 @@ namespace UnrealBuildTool
 						var CPPModule = GetModuleByName( ModuleName ) as UEBuildModuleCPP;
 						if( CPPModule != null )
 						{
-							if( !String.IsNullOrEmpty( CPPModule.SharedPCHHeaderFile ) && CPPModule.Binary.Config.bAllowCompilation )
+							if( !String.IsNullOrEmpty( CPPModule.Rules.SharedPCHHeaderFile ) && CPPModule.Binary.Config.bAllowCompilation )
 							{
 								// @todo SharedPCH: Ideally we could figure the PCH header name automatically, and simply use a boolean in the module
 								//     definition to opt into exposing a shared PCH.  Unfortunately we don't determine which private PCH header "goes with"
 								//     a module until a bit later in the process.  It shouldn't be hard to change that though.
-								var SharedPCHHeaderFilePath = ProjectFileGenerator.RootRelativePath + "/Engine/Source/" + CPPModule.SharedPCHHeaderFile;
+								var SharedPCHHeaderFilePath = ProjectFileGenerator.RootRelativePath + "/Engine/Source/" + CPPModule.Rules.SharedPCHHeaderFile;
 								var SharedPCHHeaderFileItem = FileItem.GetExistingItemByPath( SharedPCHHeaderFilePath );
 								if( SharedPCHHeaderFileItem != null )
 								{
@@ -3475,43 +3446,11 @@ namespace UnrealBuildTool
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
 							InGeneratedCodeDirectory: GeneratedCodeDirectory,
-							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
 							InIntelliSenseGatherer: IntelliSenseGatherer,
 							InSourceFiles: ModuleSourceFiles,
-							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-                            InPublicLibraryPaths: RulesObject.PublicLibraryPaths,
-							InPublicIncludePaths: RulesObject.PublicIncludePaths,
-							InDefinitions: RulesObject.Definitions,
-							InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
-							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-							InPublicFrameworks: RulesObject.PublicFrameworks,
-							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
-							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
-							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
-							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
-							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
-							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
-							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
-							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
-							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
-							InRuntimeDependencies: RulesObject.RuntimeDependencies,
-							InOptimizeCode: RulesObject.OptimizeCode,
-							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
-							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
-							InUseRTTI: RulesObject.bUseRTTI,
-							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
-							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
-							InMinSourceFilesForUnityBuildOverride: RulesObject.MinSourceFilesForUnityBuildOverride,
-							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
-							InBuildLocallyWithSNDBS: RulesObject.bBuildLocallyWithSNDBS,
-							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableShadowVariableWarnings: RulesObject.bEnableShadowVariableWarnings,
+							InRules: RulesObject,
 							bInBuildSourceFiles: bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile,
-							bInUseAVX: RulesObject.bUseAVX
+							InBuildCsFilename: InBuildCsFile
 						);
 
 				case ModuleRules.ModuleType.CPlusPlusCLR:
@@ -3521,42 +3460,11 @@ namespace UnrealBuildTool
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
 							InGeneratedCodeDirectory: GeneratedCodeDirectory,
-							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
 							InIntelliSenseGatherer: IntelliSenseGatherer,
 							InSourceFiles: ModuleSourceFiles,
-							InDefinitions: RulesObject.Definitions,
-							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-							InPublicIncludePaths: RulesObject.PublicIncludePaths,
-							InPublicIncludePathModuleNames: RulesObject.PublicIncludePathModuleNames,
-							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-							InPublicFrameworks: RulesObject.PublicFrameworks,
-							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
-							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
-							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
-							InPrivateIncludePaths: RulesObject.PrivateIncludePaths,
-							InPrivateIncludePathModuleNames: RulesObject.PrivateIncludePathModuleNames,
-							InPrivateDependencyModuleNames: RulesObject.PrivateDependencyModuleNames,
-							InPrivateAssemblyReferences: RulesObject.PrivateAssemblyReferences,
-							InCircularlyReferencedDependentModules: RulesObject.CircularlyReferencedDependentModules,
-							InDynamicallyLoadedModuleNames: RulesObject.DynamicallyLoadedModuleNames,
-							InPlatformSpecificDynamicallyLoadedModuleNames: RulesObject.PlatformSpecificDynamicallyLoadedModuleNames,
-							InRuntimeDependencies: RulesObject.RuntimeDependencies,
-							InOptimizeCode: RulesObject.OptimizeCode,
-							InAllowSharedPCH: (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs) ? false : true,
-							InSharedPCHHeaderFile: RulesObject.SharedPCHHeaderFile,
-							InUseRTTI: RulesObject.bUseRTTI,
-							InEnableBufferSecurityChecks: RulesObject.bEnableBufferSecurityChecks,
-							InFasterWithoutUnity: RulesObject.bFasterWithoutUnity,
-							InMinSourceFilesForUnityBuildOverride: RulesObject.MinSourceFilesForUnityBuildOverride,
-							InMinFilesUsingPrecompiledHeaderOverride: RulesObject.MinFilesUsingPrecompiledHeaderOverride,
-							InEnableExceptions: RulesObject.bEnableExceptions,
-							InEnableShadowVariableWarnings: RulesObject.bEnableShadowVariableWarnings,
+							InRules: RulesObject,
 							bInBuildSourceFiles : bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile,
-							bInUseAVX: RulesObject.bUseAVX
+							InBuildCsFilename: InBuildCsFile
 						);
 
 				case ModuleRules.ModuleType.External:
@@ -3565,20 +3473,7 @@ namespace UnrealBuildTool
 							InName: ModuleName,
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
-							InIsRedistributableOverride: RulesObject.IsRedistributableOverride,
-							InPublicDefinitions: RulesObject.Definitions,
-							InPublicSystemIncludePaths: RulesObject.PublicSystemIncludePaths,
-							InPublicIncludePaths: RulesObject.PublicIncludePaths,
-							InPublicLibraryPaths: RulesObject.PublicLibraryPaths,
-							InPublicAdditionalLibraries: RulesObject.PublicAdditionalLibraries,
-							InPublicFrameworks: RulesObject.PublicFrameworks,
-							InPublicWeakFrameworks: RulesObject.PublicWeakFrameworks,
-							InPublicAdditionalFrameworks: RulesObject.PublicAdditionalFrameworks,
-							InPublicAdditionalShadowFiles: RulesObject.PublicAdditionalShadowFiles,
-							InPublicAdditionalBundleResources: RulesObject.AdditionalBundleResources,
-							InPublicDependencyModuleNames: RulesObject.PublicDependencyModuleNames,
-							InPublicDelayLoadDLLs: RulesObject.PublicDelayLoadDLLs,
-							InRuntimeDependencies: RulesObject.RuntimeDependencies,
+							InRules: RulesObject,
 							InBuildCsFilename: InBuildCsFile
 						);
 

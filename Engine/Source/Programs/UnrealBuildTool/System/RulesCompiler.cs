@@ -129,7 +129,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// ModuleRules is a data structure that contains the rules for defining a module
 	/// </summary>
-	public abstract class ModuleRules
+	public class ModuleRules
 	{
 		/// Type of module
 		public enum ModuleType
