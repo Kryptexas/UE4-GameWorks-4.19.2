@@ -172,7 +172,6 @@ FMultiBox::FMultiBox( const EMultiBoxType::Type InType, FMultiBoxCustomization I
 	, Type( InType )
 	, bShouldCloseWindowAfterMenuSelection( bInShouldCloseWindowAfterMenuSelection )
 {
-
 }
 
 FMultiBox::~FMultiBox()
@@ -249,12 +248,15 @@ void FMultiBox::InsertCustomMultiBlock( TSharedRef<const FMultiBlock> InBlock, i
  *
  * @return  MultiBox widget object
  */
-TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget()
+TSharedRef< SMultiBoxWidget > FMultiBox::MakeWidget( bool bSearchable )
 {	
 	ApplyCustomizedBlocks();
 
 	TSharedRef< SMultiBoxWidget > NewMultiBoxWidget =
 		SNew( SMultiBoxWidget );
+
+	// Set whether this box should be searched
+	NewMultiBoxWidget->SetSearchable( bSearchable );
 
 	// Assign ourselves to the MultiBox widget
 	NewMultiBoxWidget->SetMultiBox( AsShared() );
@@ -563,6 +565,14 @@ void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHori
 	}
 }
 
+void SMultiBoxWidget::SetSearchable(bool InSearchable)
+{
+	bSearchable = InSearchable;
+}
+bool SMultiBoxWidget::GetSearchable() const
+{
+	return bSearchable;
+}
 
 /**
  * Builds this MultiBox widget up from the MultiBox associated with it
@@ -1054,11 +1064,11 @@ FReply SMultiBoxWidget::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent&
 {
 	SCompoundWidget::OnKeyDown( MyGeometry, KeyEvent );
 
-	if ( KeyEvent.GetKey() == EKeys::BackSpace )
+	if( bSearchable && KeyEvent.GetKey() == EKeys::BackSpace )
 	{
 		ReduceSearch();
 	}
-	else if( KeyEvent.GetKey() == EKeys::Delete )
+	else if( bSearchable && KeyEvent.GetKey() == EKeys::Delete )
 	{
 		ResetSearch();
 	}
@@ -1075,10 +1085,13 @@ FReply SMultiBoxWidget::OnKeyChar( const FGeometry& MyGeometry, const FCharacter
 {
 	FReply Reply = FReply::Unhandled();
 	
-	// Check for special characters
-	const TCHAR Character = InCharacterEvent.GetCharacter();
-	TypeChar(Character);
-	Reply = FReply::Handled();
+	if (bSearchable)
+	{
+		// Check for special characters
+		const TCHAR Character = InCharacterEvent.GetCharacter();
+		TypeChar(Character);
+		Reply = FReply::Handled();
+	}
 
 	return Reply;
 }

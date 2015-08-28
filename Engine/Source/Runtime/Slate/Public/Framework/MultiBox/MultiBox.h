@@ -244,7 +244,7 @@ public:
 	 *
 	 * @return  MultiBox widget object
 	 */
-	TSharedRef< class SMultiBoxWidget > MakeWidget();
+	TSharedRef< class SMultiBoxWidget > MakeWidget( bool bSearchable );
 
 
 	/**
@@ -484,6 +484,18 @@ public:
 		return MultiBox.ToSharedRef();
 	}
 
+	/**
+	* Sets the searchable state of this multibox
+	*
+	* @param	bSearchable		The searchable state to set
+	*/
+	void SetSearchable(bool bSearchable);
+	/**
+	* Gets the searchable state of this multibox
+	*
+	* @return	Whether this block is searchable
+	*/
+	bool GetSearchable() const;
 	
 	/**
 	 * Builds this MultiBox widget up from the MultiBox associated with it
@@ -656,4 +668,7 @@ private:
 
 	/* The text being searched for */
 	FText SearchText;
+
+	/** Whether this multibox can be searched */
+	bool bSearchable;
 };
