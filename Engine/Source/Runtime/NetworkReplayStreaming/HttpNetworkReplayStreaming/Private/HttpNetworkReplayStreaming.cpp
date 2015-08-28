@@ -525,8 +525,6 @@ void FHttpNetworkReplayStreamer::HttpRequestEventDataFinished(FHttpRequestPtr Ht
 		UE_LOG(LogHttpReplay, Error, TEXT("FHttpNetworkReplayStreamer::HttpRequestEventDataFinished. FAILED, Response code: %d"), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0);
 
 		RequestEventDataCompleteDelegate.ExecuteIfBound(TArray<uint8>(), false);
-
-		SetLastError(ENetworkReplayError::ServiceUnavailable);
 	}
 }
 
