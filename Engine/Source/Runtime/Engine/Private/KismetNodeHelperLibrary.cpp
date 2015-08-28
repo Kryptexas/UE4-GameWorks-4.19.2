@@ -158,12 +158,23 @@ FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enu
 	return FName().ToString();
 }
 
-uint8 UKismetNodeHelperLibrary::GetValidIndex(const UEnum* Enum, uint8 EnumeratorIndex)
+uint8 UKismetNodeHelperLibrary::GetValidValue(const UEnum* Enum, uint8 EnumeratorValue)
 {
-	const int32 EnumNum = Enum ? Enum->NumEnums() : 0;
-	if (ensure(EnumNum > 0))
+	if (NULL != Enum)
 	{
-		return (EnumeratorIndex < EnumNum) ? EnumeratorIndex : (EnumNum - 1);
+		if (Enum->IsValidEnumValue(EnumeratorValue))
+		{
+			return EnumeratorValue;
+		}
 	}
-	return 0;
+	return Enum->GetMaxEnumValue();
+}
+
+uint8 UKismetNodeHelperLibrary::GetEnumeratorValueFromIndex(const UEnum* Enum, uint8 EnumeratorIndex)
+{
+	if (NULL != Enum)
+	{
+		return Enum->GetValueByIndex(EnumeratorIndex);
+	}
+	return INDEX_NONE;
 }

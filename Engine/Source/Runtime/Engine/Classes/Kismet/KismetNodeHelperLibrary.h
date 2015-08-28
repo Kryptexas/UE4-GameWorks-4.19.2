@@ -129,9 +129,17 @@ class ENGINE_API UKismetNodeHelperLibrary : public UBlueprintFunctionLibrary
 
 	/**
 	 * @param Enum - Enumeration
-	 * @param EnumeratorIndex - Input index
+	 * @param EnumeratorIndex - Input value
 	 * @return - if EnumeratorIndex is valid return EnumeratorIndex, otherwise return MAX value of Enum
 	 */
 	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "TRUE"))
-	static uint8 GetValidIndex(const UEnum* Enum, uint8 EnumeratorIndex);
+	static uint8 GetValidValue(const UEnum* Enum, uint8 EnumeratorValue);
+
+	/**
+	 * @param Enum - Enumeration
+	 * @param EnumeratorIndex - Input index
+	 * @return - The value of the enumerator, or INDEX_NONE
+	 */
+	UFUNCTION(BlueprintPure, meta=(BlueprintInternalUseOnly = "TRUE"))
+	static uint8 GetEnumeratorValueFromIndex(const UEnum* Enum, uint8 EnumeratorIndex);
 };
