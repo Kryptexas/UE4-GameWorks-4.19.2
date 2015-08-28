@@ -161,6 +161,9 @@ namespace PlatformInfo
 		/** Whether code projects for this platform require the host platform compiler to be installed. Host platforms typically have a SDK status of valid, but they can't necessarily build. */
 		bool bUsesHostCompiler;
 
+		/** Whether UAT closes immediately after launching on this platform, or if it sticks around to read output from the running process */
+		bool bUATClosesAfterLaunch;
+
 		/** Returns true if this platform is vanilla */
 		FORCEINLINE bool IsVanilla() const
 		{

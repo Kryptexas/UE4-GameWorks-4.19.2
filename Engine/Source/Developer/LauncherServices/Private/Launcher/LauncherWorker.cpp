@@ -221,6 +221,8 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 	FString Platforms = TEXT("");
 	FString PlatformCommand = TEXT("");
 	FString OptionalParams = TEXT("");
+
+	bool bUATClosesAfterLaunch = false;
 	for (int32 PlatformIndex = 0; PlatformIndex < InPlatforms.Num(); ++PlatformIndex)
 	{
 		// Platform info for the given platform
@@ -263,6 +265,8 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			OptionalParams += TEXT(" ");
 			OptionalParams += PlatformInfo->UATCommandLine;
 		}
+
+		bUATClosesAfterLaunch |= PlatformInfo->bUATClosesAfterLaunch;
 
 	}
 	if (ServerPlatforms.Len() > 0)
@@ -440,7 +444,10 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		{
 			UATCommand += TEXT(" -cookonthefly");
 
-//			if (InProfile->GetDeploymentMode() == ELauncherProfileDeploymentModes::DoNotDeploy)
+			//if UAT doesn't stick around as long as the process we are going to run, then we can't kill the COTF server when UAT goes down because the program
+			//will still need it.  If UAT DOES stick around with the process then we DO want the COTF server to die with UAT so the next time we launch we don't end up
+			//with two COTF servers.
+			if (bUATClosesAfterLaunch)
 			{
 				UATCommand += " -nokill";
 			}
@@ -544,7 +551,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		// run
 		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
 		{
-			UATCommand += TEXT(" -run -nokill");
+			UATCommand += TEXT(" -run ");
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));
