@@ -314,4 +314,17 @@ Before continuing, download and extract our sample mesh from the following link:
 
 1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
+Congratulations! You've learned how to:
+
+&#x2713; Make a New Character  
+&#x2713; Set-up Axis Mapping  
+&#x2713; Implement Character Movement Functions  
+&#x2713; Implement Mouse Camera Control  
+&#x2713; Implement Character Jumping  
+&#x2713; Add a Mesh to your Character  
+&#x2713; Change the Camera View  
+&#x2713; Add a First Person Mesh to your Character  
+
+You're now ready to learn how to implement projectiles in the next section.
+
 %Steps%
