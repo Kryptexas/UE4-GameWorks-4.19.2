@@ -2500,16 +2500,23 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 			
 			for( int32 j=Import.SourceLinker->ExportHash[iHash]; j!=INDEX_NONE; j=Import.SourceLinker->ExportMap[j].HashNext )
 			{
-				FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
-				if
-					(
-					SourceExport.ObjectName == Import.ObjectName
-					&&	Import.SourceLinker->GetExportClassName(j) == Import.ClassName
-					&&  Import.SourceLinker->GetExportClassPackage(j) == Import.ClassPackage 
-					)
+				if (Import.SourceLinker->ExportMap.IsValidIndex(j))
 				{
-					bMatchesWithoutShortening = true;
-					break;
+					FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
+					if
+						(
+						SourceExport.ObjectName == Import.ObjectName
+						&&	Import.SourceLinker->GetExportClassName(j) == Import.ClassName
+						&&  Import.SourceLinker->GetExportClassPackage(j) == Import.ClassPackage 
+						)
+					{
+						bMatchesWithoutShortening = true;
+						break;
+					}
+				}
+				else
+				{
+					UE_LOG(LogLinker, Error, TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"), j, Import.SourceLinker->ExportMap.Num(), *Import.ObjectName.ToString(), *GetNameSafe(Import.SourceLinker->LinkerRoot));
 				}
 			}
 			if (!bMatchesWithoutShortening)
@@ -2519,100 +2526,104 @@ bool FLinkerLoad::VerifyImportInner(const int32 ImportIndex, FString& WarningSuf
 
 			for( int32 j=Import.SourceLinker->ExportHash[iHash]; j!=INDEX_NONE; j=Import.SourceLinker->ExportMap[j].HashNext )
 			{
-				FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
-				if
-				(	
-					SourceExport.ObjectName==Import.ObjectName               
-					&&	Import.SourceLinker->GetExportClassName(j)==Import.ClassName
-					&&  (bMatchesWithoutShortening ? Import.SourceLinker->GetExportClassPackage(j) : FPackageName::GetShortFName(Import.SourceLinker->GetExportClassPackage(j))) == TestName 
-				)
+				if (ensureMsgf(Import.SourceLinker->ExportMap.IsValidIndex(j), TEXT("Invalid index [%d/%d] while attempting to import '%s' with LinkerRoot '%s'"),
+					j, Import.SourceLinker->ExportMap.Num(), *Import.ObjectName.ToString(), *GetNameSafe(Import.SourceLinker->LinkerRoot)))
 				{
-					// at this point, SourceExport is an FObjectExport in another linker that looks like it
-					// matches the FObjectImport we're trying to load - double check that we have the correct one
-					if( Import.OuterIndex.IsImport() )
+					FObjectExport& SourceExport = Import.SourceLinker->ExportMap[ j ];
+					if
+					(	
+						SourceExport.ObjectName==Import.ObjectName               
+						&&	Import.SourceLinker->GetExportClassName(j)==Import.ClassName
+						&&  (bMatchesWithoutShortening ? Import.SourceLinker->GetExportClassPackage(j) : FPackageName::GetShortFName(Import.SourceLinker->GetExportClassPackage(j))) == TestName 
+					)
 					{
-						// OuterImport is the FObjectImport for this resource's Outer
-						if( OuterImport.SourceLinker )
+						// at this point, SourceExport is an FObjectExport in another linker that looks like it
+						// matches the FObjectImport we're trying to load - double check that we have the correct one
+						if( Import.OuterIndex.IsImport() )
 						{
-							// if the import for our Outer doesn't have a SourceIndex, it means that
-							// we haven't found a matching export for our Outer yet.  This should only
-							// be the case if our Outer is a top-level UPackage
-							if( OuterImport.SourceIndex==INDEX_NONE )
+							// OuterImport is the FObjectImport for this resource's Outer
+							if( OuterImport.SourceLinker )
 							{
-								// At this point, we know our Outer is a top-level UPackage, so
-								// if the FObjectExport that we found has an Outer that is
-								// not a linker root, this isn't the correct resource
-								if( !SourceExport.OuterIndex.IsNull() )
+								// if the import for our Outer doesn't have a SourceIndex, it means that
+								// we haven't found a matching export for our Outer yet.  This should only
+								// be the case if our Outer is a top-level UPackage
+								if( OuterImport.SourceIndex==INDEX_NONE )
+								{
+									// At this point, we know our Outer is a top-level UPackage, so
+									// if the FObjectExport that we found has an Outer that is
+									// not a linker root, this isn't the correct resource
+									if( !SourceExport.OuterIndex.IsNull() )
+									{
+										continue;
+									}
+								}
+
+								// The import for our Outer has a matching export - make sure that the import for
+								// our Outer is pointing to the same export as the SourceExport's Outer
+								else if( FPackageIndex::FromExport(OuterImport.SourceIndex) != SourceExport.OuterIndex )
 								{
 									continue;
 								}
 							}
-
-							// The import for our Outer has a matching export - make sure that the import for
-							// our Outer is pointing to the same export as the SourceExport's Outer
-							else if( FPackageIndex::FromExport(OuterImport.SourceIndex) != SourceExport.OuterIndex )
-							{
-								continue;
-							}
 						}
-					}
-					if( !(SourceExport.ObjectFlags & RF_Public) )
-					{
-						SafeReplace = SafeReplace || (GIsEditor && !IsRunningCommandlet());
+						if( !(SourceExport.ObjectFlags & RF_Public) )
+						{
+							SafeReplace = SafeReplace || (GIsEditor && !IsRunningCommandlet());
 
-						// determine if this find the thing that caused this import to be saved into the map
-						FPackageIndex FoundIndex = FPackageIndex::FromImport(ImportIndex);
-						for ( int32 i = 0; i < Summary.ExportCount; i++ )
-						{
-							FObjectExport& Export = ExportMap[i];
-							if ( Export.SuperIndex == FoundIndex )
+							// determine if this find the thing that caused this import to be saved into the map
+							FPackageIndex FoundIndex = FPackageIndex::FromImport(ImportIndex);
+							for ( int32 i = 0; i < Summary.ExportCount; i++ )
 							{
-								UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (parent)"), *Export.ObjectName.ToString());
-								SafeReplace = false;
-							}
-							else if ( Export.ClassIndex == FoundIndex )
-							{
-								UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (class)"), *Export.ObjectName.ToString());
-								SafeReplace = false;
-							}
-							else if ( Export.OuterIndex == FoundIndex )
-							{
-								UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (outer)"), *Export.ObjectName.ToString());
-								SafeReplace = false;
-							}
-						}
-						for ( int32 i = 0; i < Summary.ImportCount; i++ )
-						{
-							if ( i != ImportIndex )
-							{
-								FObjectImport& TestImport = ImportMap[i];
-								if ( TestImport.OuterIndex == FoundIndex )
+								FObjectExport& Export = ExportMap[i];
+								if ( Export.SuperIndex == FoundIndex )
 								{
-									UE_LOG(LogLinker, Log, TEXT("Private import was referenced by import '%s' (outer)"), *Import.ObjectName.ToString());
+									UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (parent)"), *Export.ObjectName.ToString());
+									SafeReplace = false;
+								}
+								else if ( Export.ClassIndex == FoundIndex )
+								{
+									UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (class)"), *Export.ObjectName.ToString());
+									SafeReplace = false;
+								}
+								else if ( Export.OuterIndex == FoundIndex )
+								{
+									UE_LOG(LogLinker, Log, TEXT("Private import was referenced by export '%s' (outer)"), *Export.ObjectName.ToString());
 									SafeReplace = false;
 								}
 							}
-						}
-
-						if ( !SafeReplace )
-						{
-							UE_LOG(LogLinker, Warning, TEXT("%s"), *FString::Printf( TEXT("Can't import private object %s %s"), *Import.ClassName.ToString(), *GetImportFullName(ImportIndex) ) );
-							return false;
-						}
-						else
-						{
-							FString Suffix = LOCTEXT("LoadWarningSuffix_privateobject", " [private]").ToString();
-							if ( !WarningSuffix.Contains(Suffix) )
+							for ( int32 i = 0; i < Summary.ImportCount; i++ )
 							{
-								WarningSuffix += Suffix;
+								if ( i != ImportIndex )
+								{
+									FObjectImport& TestImport = ImportMap[i];
+									if ( TestImport.OuterIndex == FoundIndex )
+									{
+										UE_LOG(LogLinker, Log, TEXT("Private import was referenced by import '%s' (outer)"), *Import.ObjectName.ToString());
+										SafeReplace = false;
+									}
+								}
 							}
-							break;
-						}
-					}
 
-					// Found the FObjectExport for this import
-					Import.SourceIndex = j;
-					break;
+							if ( !SafeReplace )
+							{
+								UE_LOG(LogLinker, Warning, TEXT("%s"), *FString::Printf( TEXT("Can't import private object %s %s"), *Import.ClassName.ToString(), *GetImportFullName(ImportIndex) ) );
+								return false;
+							}
+							else
+							{
+								FString Suffix = LOCTEXT("LoadWarningSuffix_privateobject", " [private]").ToString();
+								if ( !WarningSuffix.Contains(Suffix) )
+								{
+									WarningSuffix += Suffix;
+								}
+								break;
+							}
+						}
+
+						// Found the FObjectExport for this import
+						Import.SourceIndex = j;
+						break;
+					}
 				}
 			}
 		}
@@ -2876,15 +2887,18 @@ int32 FLinkerLoad::FindExportIndex( FName ClassName, FName ClassPackage, FName O
 
 	for( int32 i=ExportHash[iHash]; i!=INDEX_NONE; i=ExportMap[i].HashNext )
 	{
-		if
-		(  (ExportMap[i].ObjectName  ==ObjectName                              )
-			&& (GetExportClassPackage(i) ==ClassPackage                            )
-			&& (GetExportClassName   (i) ==ClassName                               ) 
-			&& (ExportMap[i].OuterIndex  ==ExportOuterIndex 
-			|| ExportOuterIndex.IsImport()) // this is very not legit to be passing INDEX_NONE into this function to mean "ignore"
-		)
+		if (ensureMsgf(ExportMap.IsValidIndex(i), TEXT("Invalid index [%d/%d] while attempting to find export index '%s' LinkerRoot '%s'"), i, ExportMap.Num(), *ObjectName.ToString(), *GetNameSafe(LinkerRoot)))
 		{
-			return i;
+			if
+			(  (ExportMap[i].ObjectName  ==ObjectName                              )
+				&& (GetExportClassPackage(i) ==ClassPackage                            )
+				&& (GetExportClassName   (i) ==ClassName                               ) 
+				&& (ExportMap[i].OuterIndex  ==ExportOuterIndex 
+				|| ExportOuterIndex.IsImport()) // this is very not legit to be passing INDEX_NONE into this function to mean "ignore"
+			)
+			{
+				return i;
+			}
 		}
 	}
 	
