@@ -27,7 +27,7 @@ You will now compile your project in this step so that you can see your code cha
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](CompileProject.png)
 

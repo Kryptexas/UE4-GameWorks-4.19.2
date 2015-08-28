@@ -31,7 +31,7 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 
 	![](InterfaceFile.png)
 
-1.	Double-click `FPSGameMode.h` to open the interface file for your newly created **FPSGameMode** class.
+1.	**Double-click** `FPSGameMode.h` to open the interface file for your newly created **FPSGameMode** class.
 
 1.	Your class declaration should like the following:
 
@@ -83,7 +83,7 @@ You'll add a log message to your newly created FPSGameMode in this step. Log mes
 
 	![](ImplementationFile.png)
 
-1.	Double-click `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
+1.	**Double-click** `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
 
 1.	Add the following constructor definition to `FPSGameMode.cpp`:
 

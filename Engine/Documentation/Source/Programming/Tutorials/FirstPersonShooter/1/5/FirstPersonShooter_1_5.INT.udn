@@ -23,7 +23,7 @@ Version: 4.9
 
 %Steps%
 
-Now that we've successfully compiled our newly added Game Mode, we'll need to set **FPSProject** to use **FPSGameMode** as the default Game Mode in this step.
+Now that you've successfully compiled your newly added Game Mode, you'll need to set **FPSProject** to use **FPSGameMode** as the default Game Mode in this step.
 
 1.	In the **Edit** menu, click on **Project Settings**.
 
