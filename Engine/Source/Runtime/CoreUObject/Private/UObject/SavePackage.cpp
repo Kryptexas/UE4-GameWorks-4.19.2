@@ -723,7 +723,13 @@ public:
 	{
 		if (Value.IsValid())
 		{
-			const FString& Path = Value.ToString();
+			FString Path = Value.ToString();
+			if (FCoreUObjectDelegates::StringAssetReferenceSaving.IsBound())
+			{
+				// This picks up any redirectors
+				Path = FCoreUObjectDelegates::StringAssetReferenceSaving.Execute(Path);
+			}
+
 			if (GetIniFilenameFromObjectsReference(Path) != nullptr)
 			{
 				StringAssetReferencesMap.AddUnique(Path);
