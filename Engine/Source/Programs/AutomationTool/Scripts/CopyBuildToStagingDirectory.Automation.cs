@@ -1544,7 +1544,7 @@ public partial class Project : CommandUtils
 					foreach (UnrealTargetPlatform ReceiptPlatform in SubPlatformsToStage)
 					{
                         string Architecture = Params.SpecifiedArchitecture;
-                        if (string.IsNullOrEmpty(Architecture))
+                        if (Architecture == null)
                         {
                             Architecture = "";
                             var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ReceiptPlatform, true);
