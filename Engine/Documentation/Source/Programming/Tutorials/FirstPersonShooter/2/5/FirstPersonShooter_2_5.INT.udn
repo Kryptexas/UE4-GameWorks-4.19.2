@@ -31,15 +31,15 @@ In general, Action Mappings deal with inputs for discrete events, they allow you
 
 ## Jump Action Mapping
 
-1.	In the **Edit** menu, click on **Project Settings**.
+1.	In the **Edit** menu, **click** on **Project Settings**.
 
-1.	Under the **Engine** heading on the left side of the **Project Settings** tab, click on **Input**.
+1.	Under the **Engine** heading on the left side of the **Project Settings** tab, **click** on **Input**.
 
-1.	Under **Bindings**, click on the plus sign next to **Action Mappings**.
+1.	Under **Bindings**, **click** on the plus sign next to **Action Mappings**.
 
-1.	Click on the arrow to the left of **Action Mappings**.
+1.	**Click** on the arrow to the left of **Action Mappings**.
 
-1.	Type "Jump" into the text field that appears, then click on the arrow to the left of the text box to expand the action binding options.
+1.	Type "Jump" into the text field that appears, then **click** on the arrow to the left of the text box to expand the action binding options.
 
 1.	In the dropdown menu, select **Space Bar** from the **Keyboard** dropdown list.
 
@@ -233,14 +233,14 @@ It's now time to compile and test your newly implemented character movement func
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	Click the **Play** button in the Level Editor Toolbar. You should be able to jump throughout the map.
+1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to jump throughout the map.
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

@@ -52,7 +52,7 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	Double-click `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
+1.	**Double-click** `FPSGameMode.cpp` to open the implementation file for your **FPSGameMode** class.
 
 1.	First, include the `FPSCharacter` header at the top of `FPSGameMode.cpp`:
 
@@ -95,7 +95,7 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	Double-click `FPSCharacter.cpp` to open the implementation file for your **FPSCharacter** class.
+1.	**Double-click** `FPSCharacter.cpp` to open the implementation file for your **FPSCharacter** class.
 
 1.	Add the following lines of code in the `BeginPlay()` function to verify that `FPSCharacter` class is being used:
 
@@ -148,7 +148,7 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
@@ -156,7 +156,7 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 
 	![](FPSCharacterContentBrowser.png)
 
-1.	Click the **Play** button in the Level Editor Toolbar. "We are using FPSCharacter." should now be displayed below "We are using FPSGameMode." in the upper left corner of the viewport.
+1.	**Click** the **Play** button in the Level Editor Toolbar. "We are using FPSCharacter." should now be displayed below "We are using FPSGameMode." in the upper left corner of the viewport.
 
 	![](VerifyingFPSCharacterResult.png)
 
@@ -164,6 +164,6 @@ First, you're going to edit your **GameMode** so that FPSCharacter is the defaul
 	Your new Character doesn't have any movement controls yet, so you won't be able to move around in the level. If you're unable to move, you are using FPSCharacter as your Pawn correctly!
 	[/REGION]
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

@@ -219,14 +219,14 @@ It's now time to compile and test our newly implemented character movement funct
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	Click the **Play** button in the Level Editor Toolbar. You should be able to move and strafe throughout the map (although your camera will be fixed in place).
+1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to move and strafe throughout the map (although your camera will be fixed in place).
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

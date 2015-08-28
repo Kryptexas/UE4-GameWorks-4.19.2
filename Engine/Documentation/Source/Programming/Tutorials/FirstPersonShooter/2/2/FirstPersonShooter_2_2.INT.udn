@@ -39,9 +39,9 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 1.	Under **Bindings**, click on the plus sign next to **Axis Mappings**.
 
-1.	Click on the arrow to the left of **Axis Mappings**.
+1.	**Click** on the arrow to the left of **Axis Mappings**.
 
-1.	Type "MoveForward" into the text field that appears, then click on the arrow to the left of the text box to expand the axis binding options.
+1.	Type "MoveForward" into the text field that appears, then **click** on the arrow to the left of the text box to expand the axis binding options.
 
 1.	In the dropdown menu, select **W** from the **Keyboard** dropdown list.
 
@@ -49,7 +49,7 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 	![](MoveForwardAxisMap_W.png)
 
-1.	Click on the plus sign next to **MoveForward**.
+1.	**Click** on the plus sign next to **MoveForward**.
 
 1.	In the second dropdown menu, select **S** from the **Keyboard** dropdown list.
 
@@ -71,7 +71,7 @@ You will now set-up axis mappings for the W, A, S, and D keys.
 
 	![](MoveRightAxisMap_D.png)
 
-1.	Click on the plus sign next to **MoveRight**.
+1.	**Click** on the plus sign next to **MoveRight**.
 
 1.	In the second dropdown menu, select **A** from the **Keyboard** dropdown list.
 

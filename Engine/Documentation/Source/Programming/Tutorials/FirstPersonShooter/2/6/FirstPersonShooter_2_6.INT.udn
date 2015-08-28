@@ -159,19 +159,19 @@ It's now time to compile and test your newly added mesh in-editor.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	Click the **Play** button in the Level Editor Toolbar. You should be able to see your character's shadow as you move around.
+1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to see your character's shadow as you move around.
 
 	[REGION:note]
-	To freely move the camera to see your character's mesh, press F1 to regain control of your mouse cursor, then click the **Eject** button in the toolbar.
+	To freely move the camera to see your character's mesh, press F1 to regain control of your mouse cursor, then **click** the **Eject** button in the toolbar.
 	![](FreelyMovingCamera.png)
 	[/REGION]
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%

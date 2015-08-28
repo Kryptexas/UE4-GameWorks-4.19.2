@@ -235,16 +235,16 @@ It's now time to compile and test your newly implemented camera code.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	Click the **Play** button in the Level Editor Toolbar. Your camera should be above the character's head and if you look down, you should be able to see the top of your character's head.
+1.	**Click** the **Play** button in the Level Editor Toolbar. Your camera should be above the character's head and if you look down, you should be able to see the top of your character's head.
 
 	![](NewCameraComponent.png)
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 %Steps%
