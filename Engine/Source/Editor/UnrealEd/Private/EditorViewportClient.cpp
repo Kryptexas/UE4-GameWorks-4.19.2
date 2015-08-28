@@ -930,6 +930,10 @@ void FEditorViewportClient::Tick(float DeltaTime)
 
 	FViewportCameraTransform& ViewTransform = GetViewTransform();
 	const bool bIsAnimating = ViewTransform.UpdateTransition();
+	if (bIsAnimating && GetViewportType() == LVT_Perspective)
+	{
+		PerspectiveCameraMoved();
+	}
 
 	if ( bIsTracking )
 	{

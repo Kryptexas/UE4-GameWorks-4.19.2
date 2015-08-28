@@ -2068,17 +2068,12 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 	bUseControllingActorViewInfo = false;
 	ControllingActorViewInfo = FMinimalViewInfo();
 
-	const AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
+	AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
 	{
 		// Check if the viewport is transitioning
 		FViewportCameraTransform& ViewTransform = GetViewTransform();
-		if (ViewTransform.IsPlaying())
-		{
-			// Move actor to the transitioned viewport
-			PerspectiveCameraMoved();
-		}
-		else
+		if (!ViewTransform.IsPlaying())
 		{
 			// Update transform
 			if (Actor->GetAttachParentActor() != NULL)
