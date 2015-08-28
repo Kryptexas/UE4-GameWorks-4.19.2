@@ -945,6 +945,123 @@ namespace UnrealBuildTool.Android
 			}
 		}
 
+		private void PickSplashScreenOrientation(string UE4BuildPath)
+		{
+			ConfigCacheIni Ini = GetConfigCacheIni("Engine");
+			bool bShowLaunchImage = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
+			bool bPackageForGearVR;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
+
+			if (bPackageForGearVR)
+			{
+				bShowLaunchImage = false;
+			}
+
+			// Decide which splash screen orientation(s) are needed based on orientation setting if enabled
+			bool bNeedPortrait = false;
+			bool bNeedLandscape = false;
+			if (bShowLaunchImage)
+			{
+				string Orientation;
+				Ini.GetString("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "Orientation", out Orientation);
+
+				switch (Orientation.ToLower())
+				{
+					case "portrait":
+						bNeedPortrait = true;
+						break;
+					case "reverseportrait":
+						bNeedPortrait = true;
+						break;
+					case "sensorportrait":
+						bNeedPortrait = true;
+						break;
+
+					case "landscape":
+						bNeedLandscape = true;
+						break;
+					case "reverselandscape":
+						bNeedLandscape = true;
+						break;
+					case "sensorlandscape":
+						bNeedLandscape = true;
+						break;
+
+					case "sensor":
+						bNeedPortrait = true;
+						bNeedLandscape = true;
+						break;
+					case "fullsensor":
+						bNeedPortrait = true;
+						bNeedLandscape = true;
+						break;
+
+					default:
+						bNeedPortrait = true;
+						bNeedLandscape = true;
+						break;
+				}
+			}
+
+			// Remove unused styles.xml to prevent missing resource
+			if (!bNeedPortrait)
+			{
+				string StylesPath = UE4BuildPath + "/res/values-port/styles.xml";
+				if (File.Exists(StylesPath))
+				{
+					File.Delete(StylesPath);
+				}
+			}
+			if (!bNeedLandscape)
+			{
+				string StylesPath = UE4BuildPath + "/res/values-land/styles.xml";
+				if (File.Exists(StylesPath))
+				{
+					File.Delete(StylesPath);
+				}
+			}
+
+			// Loop through each of the resolutions (only /res/drawable/ is required, others are optional)
+			string[] Resolutions = new string[] { "/res/drawable/", "/res/drawable-ldpi/", "/res/drawable-mdpi/", "/res/drawable-hdpi/", "/res/drawable-xhdpi/" };
+			foreach (string ResolutionPath in Resolutions)
+			{
+				string PortraitFilename = UE4BuildPath + ResolutionPath + "splashscreen_portrait.png";
+				if (bNeedPortrait)
+				{
+					if (!File.Exists(PortraitFilename) && (ResolutionPath == "/res/drawable/"))
+					{
+						Log.TraceWarning("Warning: Splash screen source image {0} not available, splash screen will not function properly!", PortraitFilename);
+					}
+				}
+				else
+				{
+					// Remove unused image
+					if (File.Exists(PortraitFilename))
+					{
+						File.Delete(PortraitFilename);
+					}
+				}
+
+				string LandscapeFilename = UE4BuildPath + ResolutionPath + "splashscreen_landscape.png";
+				if (bNeedLandscape)
+				{
+					if (!File.Exists(LandscapeFilename) && (ResolutionPath == "/res/drawable/"))
+					{
+						Log.TraceWarning("Warning: Splash screen source image {0} not available, splash screen will not function properly!", LandscapeFilename);
+					}
+				}
+				else
+				{
+					// Remove unused image
+					if (File.Exists(LandscapeFilename))
+					{
+						File.Delete(LandscapeFilename);
+					}
+				}
+			}
+		}
+
         private string GetPackageName(string ProjectName)
         {
             ConfigCacheIni Ini = GetConfigCacheIni("Engine");
@@ -1003,11 +1120,27 @@ namespace UnrealBuildTool.Android
 			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bPackageForGearVR", out bPackageForGearVR);
 			bool bEnableIAP = false;
 			Ini.GetBool("OnlineSubsystemGooglePlay.Store", "bSupportsInAppPurchasing", out bEnableIAP);
+			bool bShowLaunchImage = false;
+			Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bShowLaunchImage", out bShowLaunchImage);
 
 			// disable GearVR if not supported platform (in this case only armv7 for now)
 			if (UE4Arch != "-armv7")
 			{
-				bPackageForGearVR = false;
+				if (bPackageForGearVR)
+				{
+					Log.TraceInformation("Disabling Package For GearVR for unsupported architecture {0}", UE4Arch);
+					bPackageForGearVR = false;
+				}
+			}
+
+			// disable splash screen for GearVR (for now)
+			if (bPackageForGearVR)
+			{
+				if (bShowLaunchImage)
+				{
+					Log.TraceInformation("Disabling Show Launch Image for GearVR enabled application");
+					bShowLaunchImage = false;
+				}
 			}
 
 			StringBuilder Text = new StringBuilder();
@@ -1037,23 +1170,39 @@ namespace UnrealBuildTool.Android
 				}
 			}
 			Text.AppendLine("\t             android:hasCode=\"true\">");
-			Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
-			Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
-			if (!bPackageForGearVR)
+			if (bShowLaunchImage)
 			{
 				// normal application settings
-				Text.AppendLine("\t\t          android:theme=\"@android:style/Theme.NoTitleBar.Fullscreen\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden\"");
-			}
-			else
-			{
-				// GearVR
-				Text.AppendLine("\t\t          android:theme=\"@android:style/Theme.Black.NoTitleBar.Fullscreen\"");
-				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
-				if (bIsForDistribution)
+				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.SplashActivity\"");
+				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
+				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\"");
+				Text.AppendLine("\t\t          android:launchMode=\"singleTask\"");
+				if (bPackageForGearVR && bIsForDistribution)
 				{
 					Text.AppendLine("\t\t          android:excludeFromRecents=\"true\"");
 				}
+				Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
+				Text.AppendLine(string.Format("\t\t          android:debuggable=\"{0}\">", bIsForDistribution ? "false" : "true"));
+				Text.AppendLine("\t\t\t<intent-filter>");
+				Text.AppendLine("\t\t\t\t<action android:name=\"android.intent.action.MAIN\" />");
+				Text.AppendLine(string.Format("\t\t\t\t<category android:name=\"android.intent.category.{0}\" />", (bPackageForGearVR && bIsForDistribution) ? "INFO" : "LAUNCHER"));
+				Text.AppendLine("\t\t\t</intent-filter>");
+				Text.AppendLine("\t\t</activity>");
+				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
+				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
+				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\"");
+				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+			}
+			else
+			{
+				Text.AppendLine("\t\t<activity android:name=\"com.epicgames.ue4.GameActivity\"");
+				Text.AppendLine("\t\t          android:label=\"@string/app_name\"");
+				Text.AppendLine("\t\t          android:theme=\"@android:style/Theme.Black.NoTitleBar.Fullscreen\"");
+				Text.AppendLine("\t\t          android:configChanges=\"screenSize|orientation|keyboardHidden|keyboard\"");
+			}
+			if (bPackageForGearVR && bIsForDistribution)
+			{
+				Text.AppendLine("\t\t          android:excludeFromRecents=\"true\"");
 			}
 			Text.AppendLine("\t\t          android:launchMode=\"singleTask\"");
 			Text.AppendLine(string.Format("\t\t          android:screenOrientation=\"{0}\"", ConvertOrientationIniValue(Orientation)));
@@ -1066,10 +1215,13 @@ namespace UnrealBuildTool.Android
 			}
 			Text.AppendLine(string.Format("\t\t          android:debuggable=\"{0}\">", bIsForDistribution ? "false" : "true"));
 			Text.AppendLine("\t\t\t<meta-data android:name=\"android.app.lib_name\" android:value=\"UE4\"/>");
-			Text.AppendLine("\t\t\t<intent-filter>");
-			Text.AppendLine("\t\t\t\t<action android:name=\"android.intent.action.MAIN\" />");
-			Text.AppendLine(string.Format("\t\t\t\t<category android:name=\"android.intent.category.{0}\" />", (bPackageForGearVR && bIsForDistribution) ? "INFO" : "LAUNCHER"));
-			Text.AppendLine("\t\t\t</intent-filter>");
+			if (!bShowLaunchImage)
+			{
+				Text.AppendLine("\t\t\t<intent-filter>");
+				Text.AppendLine("\t\t\t\t<action android:name=\"android.intent.action.MAIN\" />");
+				Text.AppendLine(string.Format("\t\t\t\t<category android:name=\"android.intent.category.{0}\" />", (bPackageForGearVR && bIsForDistribution) ? "INFO" : "LAUNCHER"));
+				Text.AppendLine("\t\t\t</intent-filter>");
+			}
 			if (!string.IsNullOrEmpty(ExtraActivitySettings))
 			{
 				ExtraActivitySettings = ExtraActivitySettings.Replace("\\n", "\n");
@@ -1089,7 +1241,15 @@ namespace UnrealBuildTool.Android
 			Text.AppendLine("\t\t</activity>");
 
             // For OBB download support
-            Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\" />");
+			if (bShowLaunchImage)
+			{
+				Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\"");
+				Text.AppendLine("\t\t          android:theme=\"@style/UE4SplashTheme\" />");
+			}
+			else
+			{
+				Text.AppendLine("\t\t<activity android:name=\".DownloaderActivity\" />");
+			}
 
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.DepthBufferPreference\" android:value=\"{0}\"/>", ConvertDepthBufferIniValue(DepthBufferPreference)));
 			Text.AppendLine(string.Format("\t\t<meta-data android:name=\"com.epicgames.ue4.GameActivity.bPackageDataInsideApk\" android:value=\"{0}\"/>", bPackageDataInsideApk ? "true" : "false"));
@@ -1447,6 +1607,9 @@ namespace UnrealBuildTool.Android
 			CopyFileDirectory(GameBuildFilesPath, UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NotForLicensees", UE4BuildPath, Replacements);
 			CopyFileDirectory(GameBuildFilesPath + "/NoRedist", UE4BuildPath, Replacements);	
+
+			//Now keep the splash screen images matching orientation requested
+			PickSplashScreenOrientation(UE4BuildPath);
 
 			// at this point, we can write out the cached build settings to compare for a next build
 			File.WriteAllText(BuildSettingsCacheFile, CurrentBuildSettings);

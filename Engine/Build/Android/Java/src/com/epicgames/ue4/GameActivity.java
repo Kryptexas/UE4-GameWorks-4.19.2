@@ -97,6 +97,9 @@ public class GameActivity extends NativeActivity
 	
 	static GameActivity _activity;
 
+	protected Dialog mSplashDialog;
+	private int noActionAnimID = -1;
+
 	// Console
 	AlertDialog consoleAlert;
 	EditText consoleInputBox;
@@ -221,10 +224,43 @@ public class GameActivity extends NativeActivity
 		}
 	}
 
+	private int getResourceId(String VariableName, String ResourceName, String PackageName)
+	{
+		try {
+			return getResources().getIdentifier(VariableName, ResourceName, PackageName);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			return -1;
+		} 
+	}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+
+		// create splashscreen dialog (if launched by SplashActivity)
+		Bundle intentBundle = getIntent().getExtras();
+		if (intentBundle != null && intentBundle.getString("UseSplashScreen") != null)
+		{
+			try {
+				// try to get the splash theme (can't use R.style.UE4SplashTheme since we don't know the package name until runtime)
+				int SplashThemeId = getResources().getIdentifier("UE4SplashTheme", "style", getPackageName());
+				mSplashDialog = new Dialog(this, SplashThemeId);
+				mSplashDialog.setCancelable(false);
+				mSplashDialog.show();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+			try {
+				noActionAnimID = getResources().getIdentifier("noaction", "anim", getPackageName());
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 		
 		// Suppress java logs in Shipping builds
 		if (nativeIsShippingBuild())
@@ -633,11 +669,16 @@ public class GameActivity extends NativeActivity
 		else
 		{
 			// Start the check activity here
-			Log.debug("==============> Starting activity to check files and download if required");			
+			Log.debug("==============> Starting activity to check files and download if required");
 			Intent intent = new Intent(this, DownloadShim.GetDownloaderType());
+			intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
 			startActivityForResult(intent, DOWNLOAD_ACTIVITY_ID);
+			if (noActionAnimID != -1)
+			{
+				overridePendingTransition(noActionAnimID, noActionAnimID);
+			}
 		}
-		
+
 		Log.debug("==============> GameActive.onResume complete!");
 	}
 
@@ -1154,7 +1195,10 @@ public class GameActivity extends NativeActivity
 			|| errorCode == DOWNLOAD_FAILED 
 			|| errorCode == DOWNLOAD_INVALID
 			|| errorCode == DOWNLOAD_NO_PLAY_KEY)
+			{
 				finish();
+				return;
+			}
 		}
 		else if( IapStoreHelper != null )
 		{
@@ -1206,6 +1250,15 @@ public class GameActivity extends NativeActivity
 			Log.debug("[JAVA] - Store Helper is invalid");
 		}
 		return bIsAllowedToMakePurchase;
+	}
+
+	public void AndroidThunkJava_DismissSplashScreen()
+	{
+		if (mSplashDialog != null)
+		{
+			mSplashDialog.dismiss();
+			mSplashDialog = null;
+		}
 	}
 
 	public native boolean nativeIsShippingBuild();

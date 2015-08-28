@@ -233,6 +233,7 @@ public class DownloaderActivity extends Activity implements IDownloaderClient {
 				OutputData.putExtra(GameActivity.DOWNLOAD_RETURN_NAME, GameActivity.DOWNLOAD_FILES_PRESENT);		
 				setResult(RESULT_OK, OutputData);
 				finish();
+				overridePendingTransition(R.anim.noaction, R.anim.noaction);
 		}
 	}
 

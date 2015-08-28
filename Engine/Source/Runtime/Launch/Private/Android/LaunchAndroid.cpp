@@ -203,6 +203,8 @@ static void InitCommandLine()
 	}
 }
 
+extern void AndroidThunkCpp_DismissSplashScreen();
+
 //Main function called from the android entry point
 int32 AndroidMain(struct android_app* state)
 {
@@ -295,16 +297,6 @@ int32 AndroidMain(struct android_app* state)
 	// OBBs and APK are found.
 	IPlatformFile::GetPlatformPhysical().Initialize(nullptr, FCommandLine::Get());
 
-#if 0
-	for (int32 i = 0; i < 10; i++)
-	{
-		sleep(1);
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch %d]"), i);
-
-	}
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch] : Dont Patch \n"));
-#endif
-
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
 
@@ -318,6 +310,8 @@ int32 AndroidMain(struct android_app* state)
 	GEngineLoop.Init();
 
 	UE_LOG(LogAndroid, Log, TEXT("Passed GEngineLoop.Init()"));
+
+	AndroidThunkCpp_DismissSplashScreen();
 
 	// tick until done
 	while (!GIsRequestingExit)
