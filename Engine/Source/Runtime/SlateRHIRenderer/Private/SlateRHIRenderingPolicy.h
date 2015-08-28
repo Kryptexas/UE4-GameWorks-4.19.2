@@ -10,7 +10,7 @@ class FSlateRHIResourceManager;
 namespace SlateRHIConstants
 {
 	// Number of vertex and index buffers we swap between when drawing windows
-	const int32 NumBuffers = 2;
+	const int32 NumBuffers = 3;
 }
 
 /** 
