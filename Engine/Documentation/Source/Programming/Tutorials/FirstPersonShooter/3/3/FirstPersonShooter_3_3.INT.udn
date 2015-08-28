@@ -137,7 +137,7 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 

@@ -22,19 +22,19 @@ Version: 4.9
 
 %Steps%
 
-Now that you've set-up your character, it's time to implement a simple projectile weapon so that when you fire, a simple grenade-like projectile will shoot from the center of the screen and fly until it collides with the world. During this step, you're going to add input and create a new code class for your projectile.
+Now that you've set-up your character, it's time to implement a projectile weapon so that when you fire, a simple grenade-like projectile will shoot from the center of the screen and fly until it collides with the world. During this step, you're going to add input and create a new code class for your projectile.
 
 ## Adding Fire Action Mapping
 
-1.	In the **Edit** menu, click on **Project Settings**.
+1.	In the **Edit** menu, **click** on **Project Settings**.
 
-1.	Under the **Engine** heading on the left side of the **Project Settings** tab, click on **Input**.
+1.	Under the **Engine** heading on the left side of the **Project Settings** tab, **click** on **Input**.
 
-1.	Under **Bindings**, click on the plus sign next to **Action Mappings**.
+1.	Under **Bindings**, **click** on the plus sign next to **Action Mappings**.
 
-1.	Click on the arrow to the left of **Action Mappings**.
+1.	**Click** on the arrow to the left of **Action Mappings**.
 
-1.	Type "Fire" into the text field that appears, then click on the arrow to the left of the text box to expand the action binding options.
+1.	Type "Fire" into the text field that appears, then **click** on the arrow to the left of the text box to expand the action binding options.
 
 1.	In the dropdown menu, select **Left Mouse Button** from the **Mouse** dropdown list.
 
@@ -48,7 +48,7 @@ Now that you've set-up your character, it's time to implement a simple projectil
 
 1.	In the File menu, select **New C++ Class...** to choose your new parent class.
 
-1.	The **Choose Parent Class** menu will open. Scroll down, select **Actor** as the parent class and click **Next**.
+1.	The **Choose Parent Class** menu will open. Scroll down, select **Actor** as the parent class and **click Next**.
 
 	![](AddProjectileClass.png)
 
@@ -727,7 +727,7 @@ It's now time to compile and check your newly implemented projectile code.
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 

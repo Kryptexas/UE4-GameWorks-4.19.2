@@ -179,7 +179,7 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 
@@ -228,17 +228,17 @@ During this step, you'll add a crosshair HUD element to your game so that you ca
 
 1.	Locate **FPSProject** in the **Solution Explorer**.
 
-1.	Right-click on **FPSProject** and select **Build** to compile your project.
+1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
 
 	![](BuildFPSProject.png)
 
 1.	After the build finishes, open your **FPSProject** in Unreal Editor.
 
-1.	Click the **Play** button in the Level Editor Toolbar. You should be able to aim the projectiles with your newly created crosshairs.
+1.	**Click** the **Play** button in the Level Editor Toolbar. You should be able to aim the projectiles with your newly created crosshairs.
 
 	![](CrosshairsInGame.png)
 
-1.	Click the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
+1.	**Click** the **Stop** button in the Level Editor to exit Play in Editor (PIE) mode.
 
 Congratulations! You've learned how to:
 
