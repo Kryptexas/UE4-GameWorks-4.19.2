@@ -715,12 +715,16 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(StructData, VariableProperty->GetFName());
 			}
-			else
+			else if (GetPropertyOwnerBlueprint())
 			{
 				// Things are in order, show the property and allow it to be edited
 				TArray<UObject*> ObjectList;
-				ObjectList.Add(Blueprint->GeneratedClass->GetDefaultObject());
+				ObjectList.Add(GetPropertyOwnerBlueprint()->GeneratedClass->GetDefaultObject());
 				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+				if (Row != nullptr)
+				{
+					Row->IsEnabled(IsVariableInheritedByBlueprint());
+				}
 			}
 		}
 
