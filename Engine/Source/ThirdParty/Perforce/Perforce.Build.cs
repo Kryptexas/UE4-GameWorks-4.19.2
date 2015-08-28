@@ -51,6 +51,9 @@ public class Perforce : ModuleRules
             }
             LibPostfixAndExt += "lib";
             PublicLibraryPaths.Add(P4APIPath + LibFolder);
+
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Perforce/p4api.dll"));
+            RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/Perforce/p4api.xml"));
         }
         else
         {

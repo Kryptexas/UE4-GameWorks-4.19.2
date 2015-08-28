@@ -964,6 +964,42 @@ namespace Rocket
 				throw new AutomationException("Couldn't find node '{0}'", NodeName);
 			}
 			Filter.AddRuleForFiles(Node.BuildProducts, CommandUtils.CmdEnv.LocalRoot, Type);
+			AddRuleForRuntimeDependencies(Filter, Node.BuildProducts, Type);
+		}
+
+		static void AddRuleForRuntimeDependencies(FileFilter Filter, List<string> BuildProducts, FileFilterType Type)
+		{
+			HashSet<string> RuntimeDependencyPaths = new HashSet<string>();
+			string EnginePath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
+
+			// Search for receipts in the Build Products
+			foreach (string BuildProduct in BuildProducts)
+			{
+				if (BuildProduct.EndsWith(".target"))
+				{
+					// Read the receipt
+					TargetReceipt Receipt;
+					if (!TargetReceipt.TryRead(BuildProduct, out Receipt))
+					{
+						//throw new AutomationException("Missing or invalid target receipt ({0})", BuildProduct);
+						continue;
+					}
+
+					// Convert the paths to absolute
+					Receipt.ExpandPathVariables(EnginePath, EnginePath);
+
+					foreach (var RuntimeDependency in Receipt.RuntimeDependencies)
+					{
+						RuntimeDependencyPaths.Add(RuntimeDependency.Path);
+					}
+				}
+			}
+
+			// Add rules for runtime dependencies if we found any
+			if (RuntimeDependencyPaths.Count > 0)
+			{
+				Filter.AddRuleForFiles(RuntimeDependencyPaths, CommandUtils.CmdEnv.LocalRoot, Type);
+			}
 		}
 
 		static void UnzipAndAddRuleForHeaders(string ZipFileName, FileFilter Filter, FileFilterType Type)

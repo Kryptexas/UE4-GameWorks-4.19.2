@@ -63,7 +63,11 @@ public class CEF3 : ModuleRules
                 PublicDelayLoadDLLs.Add("libGLESv2.dll");
                 PublicDelayLoadDLLs.Add("pdf.dll");
 
-				RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
+				// Add contents of binaries directory as runtime dependencies
+				foreach (string FilePath in Directory.EnumerateFiles(UEBuildConfiguration.UEThirdPartyBinariesDirectory + "CEF3/" + Target.Platform.ToString() + "/", "*", SearchOption.AllDirectories))
+				{
+					RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+				}
 			}
 			// TODO: Ensure these are filled out correctly when adding other platforms
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -78,6 +82,12 @@ public class CEF3 : ModuleRules
 				foreach (var FolderName in LocaleFolders)
 				{
 					AdditionalBundleResources.Add(new UEBuildBundleResource(FolderName, bInShouldLog:false));
+				}
+
+				// Add contents of framework directory as runtime dependencies
+				foreach (string FilePath in Directory.EnumerateFiles(FrameworkPath, "*", SearchOption.AllDirectories))
+				{
+					RuntimeDependencies.Add(new RuntimeDependency(FilePath));
 				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)

@@ -29,6 +29,8 @@ public class FBX : ModuleRules
 
 			// We are using DLL versions of the FBX libraries
 			Definitions.Add("FBXSDK_SHARED"); 
+
+			RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/Win64/libfbxsdk.dll"));
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
