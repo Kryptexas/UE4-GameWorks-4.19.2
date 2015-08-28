@@ -500,6 +500,7 @@ namespace UnrealBuildTool
 				for(int Idx = 0; Idx < ModuleNames.Count; Idx++)
 				{
 					UEBuildModule Module = Target.FindOrCreateModuleByName(ModuleNames[Idx]);
+					Module.RecursivelyCreateModules();
 					Module.RecursivelyProcessUnboundModules();
 				}
 			}

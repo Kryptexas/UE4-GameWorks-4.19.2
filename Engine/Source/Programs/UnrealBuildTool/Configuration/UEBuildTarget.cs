@@ -2311,6 +2311,7 @@ namespace UnrealBuildTool
 
 				// Now bind this new module to the executable binary so it will link the plugin libs correctly
 				NewModule.bSkipDefinitionsForCompileEnvironment = true;
+				NewModule.RecursivelyCreateModules();
 				BindArtificialModuleToBinary(NewModule, ExecutableBinary);
 
 				// Create the cpp file
@@ -2489,7 +2490,7 @@ namespace UnrealBuildTool
 												// that UnrealEd depends on Engine.  We use this to avoid having modules such as UnrealEd
 												// appear before Engine in our shared PCH list.
 												// @todo SharedPCH: This is not very easy for people to discover.  Luckily we won't have many shared PCHs in total.
-												if( !ExistingModule.CircularlyReferencedDependentModules.Contains( CPPModule.Name ) )
+												if( !ExistingModule.HasCircularDependencyOn( CPPModule.Name ) )
 												{
 													// We are at least dependent on this module.  We'll keep searching the list to find
 													// further-descendant modules we might be dependent on
