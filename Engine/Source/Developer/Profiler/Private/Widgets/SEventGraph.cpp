@@ -1267,9 +1267,9 @@ TSharedRef<SWidget> SEventGraph::GetWidgetBoxForOptions()
 		.Padding( 1.0f )
 		[
 			SAssignNew( FilteringSearchBox, SSearchBox )
-			.Visibility( EVisibility::Collapsed )
 			.HintText( LOCTEXT("FilteringSearchBox_HintText", "Search or filter event(s)") )
 			.OnTextChanged( this, &SEventGraph::FilteringSearchBox_OnTextChanged )
+			.OnTextCommitted( this, &SEventGraph::FilteringSearchBox_OnTextCommitted )
 			.IsEnabled( this, &SEventGraph::FilteringSearchBox_IsEnabled )
 			.ToolTipText( LOCTEXT("FilteringSearchBox_TT", "Type here to search or filter events") )
 		]
@@ -1526,9 +1526,43 @@ void SEventGraph::FilteringSearchBox_OnTextChanged( const FText& InFilterText )
 {
 }
 
+static bool RecursiveShowUnfilteredItems(TSharedPtr< STreeView<FEventGraphSamplePtr> >& TreeView, TArray<FEventGraphSamplePtr>& Nodes)
+{
+	bool bExpandedAnyChildren = false;
+
+	for (FEventGraphSamplePtr& Node : Nodes)
+	{
+		const bool bChildIsExpanded = RecursiveShowUnfilteredItems(TreeView, Node->GetChildren());
+		const bool bThisWantsExpanded = !Node->PropertyValueAsBool(EEventPropertyIndex::bIsFiltered);
+		const bool bExpandThis = bChildIsExpanded || bThisWantsExpanded;
+		bExpandedAnyChildren |= bExpandThis;
+
+		TreeView->SetItemExpansion(Node, bExpandThis);
+	}
+
+	return bExpandedAnyChildren;
+}
+
+void SEventGraph::FilteringSearchBox_OnTextCommitted(const FText& NewText, ETextCommit::Type CommitType)
+{
+	PROFILER_SCOPE_LOG_TIME(TEXT("SEventGraph::FilterOutByText_Execute"), nullptr);
+
+	SaveCurrentEventGraphState();
+	FEventGraphState* Op = GetCurrentState()->CreateCopyWithTextFiltering(NewText.ToString());
+	CurrentStateIndex = EventGraphStatesHistory.Insert(MakeShareable(Op), CurrentStateIndex + 1);
+	RestoreEventGraphStateFrom(GetCurrentState());
+
+	// Auto-expand to view the unfiltered items
+	if (GetCurrentStateViewMode() == EEventGraphViewModes::Hierarchical)
+	{
+		RecursiveShowUnfilteredItems(TreeView_Base, GetCurrentState()->GetRoot()->GetChildren());
+		TreeView_Refresh();
+	}
+}
+
 bool SEventGraph::FilteringSearchBox_IsEnabled() const
 {
-	return false;
+	return true;
 }
 
 TSharedPtr<SWidget> SEventGraph::EventGraph_GetMenuContent() const
@@ -2002,6 +2036,9 @@ void SEventGraph::SetTreeItemsForViewMode( const EEventGraphViewModes::Type NewV
 {
 	GetCurrentState()->ViewMode = NewViewMode;
 	GetCurrentState()->EventGraphType = NewEventGraphType;
+
+	GetCurrentState()->ApplyCulling();
+	GetCurrentState()->ApplyFiltering();
 
 	if( GetCurrentStateViewMode() == EEventGraphViewModes::Hierarchical )
 	{
