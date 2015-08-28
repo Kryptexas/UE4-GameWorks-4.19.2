@@ -246,91 +246,6 @@ void SetDecalBlendState(FRHICommandList& RHICmdList, const ERHIFeatureLevel::Typ
 	}
 }
 
-/** Pixel shader used to setup the decal receiver mask */
-class FStencilDecalMaskPS : public FGlobalShader
-{
-	DECLARE_SHADER_TYPE(FStencilDecalMaskPS,Global);
-public:
-
-	static bool ShouldCache(EShaderPlatform Platform) 
-	{ 
-		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4); 
-	}
-
-	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
-	{
-		FGlobalShader::ModifyCompilationEnvironment(Platform,OutEnvironment);
-	}
-
-	FStencilDecalMaskPS(const ShaderMetaType::CompiledShaderInitializerType& Initializer):
-		FGlobalShader(Initializer)
-	{
-		DeferredParameters.Bind(Initializer.ParameterMap);
-		MaskComparison.Bind(Initializer.ParameterMap,TEXT("MaskComparison"));
-	}
-	FStencilDecalMaskPS() {}
-
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View)
-	{
-		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
-
-		FGlobalShader::SetParameters(RHICmdList, ShaderRHI, View);
-		DeferredParameters.Set(RHICmdList, ShaderRHI, View);
-		SetShaderValue(RHICmdList, ShaderRHI, MaskComparison, View.Family->EngineShowFlags.ShaderComplexity ? -1.0f : 0.5f);
-	}
-
-	virtual bool Serialize(FArchive& Ar) override
-	{
-		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << DeferredParameters << MaskComparison;
-		return bShaderHasOutdatedParameters;
-	}
-
-private:
-	FDeferredPixelShaderParameters DeferredParameters;
-	FShaderParameter MaskComparison;
-};
-
-IMPLEMENT_SHADER_TYPE(,FStencilDecalMaskPS,TEXT("DeferredDecal"),TEXT("StencilDecalMaskMain"),SF_Pixel);
-
-FGlobalBoundShaderState StencilDecalMaskBoundShaderState;
-
-/** Draws a full view quad that sets stencil to 1 anywhere that decals should not be projected. */
-void StencilDecalMask(FRHICommandList& RHICmdList, const FViewInfo& View, bool bUseHmdMesh)
-{
-	SCOPED_DRAW_EVENT(RHICmdList, StencilDecalMask);
-	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SetRenderTarget(RHICmdList, NULL, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
-	RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
-	RHICmdList.SetBlendState(TStaticBlendState<CW_NONE>::GetRHI());
-	RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
-
-	// Write 1 to highest bit of stencil to areas that should not receive decals
-	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always, true, CF_Always, SO_Replace, SO_Replace, SO_Replace>::GetRHI(), 0x80);
-
-	const auto FeatureLevel = View.GetFeatureLevel();
-	auto ShaderMap = View.ShaderMap;
-	TShaderMapRef<FScreenVS> ScreenVertexShader(ShaderMap);
-	TShaderMapRef<FStencilDecalMaskPS> PixelShader(ShaderMap);
-	
-	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, StencilDecalMaskBoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *ScreenVertexShader, *PixelShader);
-
-	PixelShader->SetParameters(RHICmdList, View);
-
-	DrawPostProcessPass(
-		RHICmdList,
-		0, 0,
-		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y,
-		View.ViewRect.Width(), View.ViewRect.Height(),
-		FIntPoint(View.ViewRect.Width(), View.ViewRect.Height()),
-		SceneContext.GetBufferSizeXY(),
-		*ScreenVertexShader,
-		View.StereoPass,
-		bUseHmdMesh,
-		EDRF_UseTriangleOptimization);
-}
-
 bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& ComponentToWorldMatrix, const FMatrix& FrustumComponentToClip)
 {
 	const FViewInfo& View = Context.View;
@@ -367,13 +282,13 @@ bool RenderPreStencil(FRenderingCompositePassContext& Context, const FMatrix& Co
 		CW_NONE, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha,		BO_Add, BF_Zero, BF_One		// BaseColor
 	>::GetRHI() );
 
-	// Carmack's reverse on the bounds
+	// Carmack's reverse the sandbox stencil bit on the bounds
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
 		false,CF_LessEqual,
-		true,CF_Equal,SO_Keep,SO_Keep,SO_Increment,
-		true,CF_Equal,SO_Keep,SO_Keep,SO_Decrement,
-		0x80,0x7f
-	>::GetRHI());
+		true,CF_Always,SO_Keep,SO_Keep,SO_Invert,
+		true,CF_Always,SO_Keep,SO_Keep,SO_Invert,
+		STENCIL_SANDBOX_MASK,STENCIL_SANDBOX_MASK
+	>::GetRHI(), 0);
 
 	// Render decal mask
 	Context.RHICmdList.DrawIndexedPrimitive(GetUnitCubeIndexBuffer(), PT_TriangleList, 0, 0, 8, 0, ARRAY_COUNT(GCubeIndices) / 3, 1);
@@ -474,7 +389,7 @@ static void SetDecalDepthState(FDecalDepthState DecalDepthState, FRHICommandList
 				false,CF_Always,
 				true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 				true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
-				0xff, 0x7f>::GetRHI(), 1);
+				0xFF,STENCIL_SANDBOX_MASK>::GetRHI(), STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
 			break;
 
 		case DDS_DepthAlways_StencilEqual0:
@@ -483,7 +398,7 @@ static void SetDecalDepthState(FDecalDepthState DecalDepthState, FRHICommandList
 				false,CF_Always,
 				true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 				false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-				0x80,0x00>::GetRHI(), 0);
+				0xFF,0x00>::GetRHI(), GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
 			break;
 
 		case DDS_Always:
@@ -503,7 +418,7 @@ static void SetDecalDepthState(FDecalDepthState DecalDepthState, FRHICommandList
 				false,CF_DepthNearOrEqual,
 				true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
 				true,CF_Equal,SO_Zero,SO_Zero,SO_Zero,
-				0xff, 0x7f>::GetRHI(), 1);
+				0xFF,STENCIL_SANDBOX_MASK>::GetRHI(), STENCIL_SANDBOX_MASK | GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
 			break;
 
 		case DDS_DepthTest_StencilEqual0:
@@ -512,7 +427,7 @@ static void SetDecalDepthState(FDecalDepthState DecalDepthState, FRHICommandList
 				false,CF_DepthNearOrEqual,
 				true,CF_Equal,SO_Keep,SO_Keep,SO_Keep,
 				false,CF_Always,SO_Keep,SO_Keep,SO_Keep,
-				0x80,0x00>::GetRHI(), 0);
+				0xFF,0x00>::GetRHI(), GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1));
 			break;
 
 		case DDS_DepthTest:
@@ -651,12 +566,6 @@ void FRCPassPostProcessDeferredDecals::Process(FRenderingCompositePassContext& C
 				bStencilDecalsInThisStage = false;
 			}
 #endif
-
-			// Setup a stencil mask to prevent certain pixels from receiving deferred decals
-			if (bStencilDecalsInThisStage)
-			{
-				StencilDecalMask(RHICmdList, View, Context.HasHmdMesh());
-			}
 
 			// optimization to have less state changes
 			EDecalRasterizerState LastDecalRasterizerState = DRS_Undefined;

@@ -28,22 +28,6 @@ float4x4 FrustumComponentToClip;
 // fade alpha from screen size fading
 float FadeAlpha;
 
-// only for StencilDecalMaskMain, to get ShaderComplexity for Decals (doesn't look at the DecalMask yet)
-float MaskComparison;
-
-void StencilDecalMaskMain(
-	FScreenVertexOutput Input,
-	out float4 OutColor : SV_Target0
-	)
-{
-	FGBufferData InGBufferData = GetGBufferData(Input.UV);
-    
-	// Write 1 to the stencil buffer for pixels that are masked out of receiving decals
-	clip(MaskComparison - InGBufferData.DecalMask);
-
-	OutColor = 0;
-}
-
 half3 FrameBufferDecalBlendOp(half4 Source)
 {
 #if (COMPILER_GLSL_ES2)
@@ -355,7 +339,6 @@ void MainPS(
 	Data.GBufferAO = 1;
 	Data.Opacity = Opacity;
 	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
-	Data.DecalMask = 1;
 	Data.HasDistanceFieldRepresentation = 1;
 	Data.HasHeightfieldRepresentation = 1;
 

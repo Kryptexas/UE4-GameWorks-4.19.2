@@ -510,7 +510,8 @@ public:
 		bool bInEnableAtmosphericFog,
 		bool bOverrideWithShaderComplexity = false,
 		bool bInAllowGlobalFog = false,
-		bool bInEnableEditorPrimitiveDepthTest = false
+		bool bInEnableEditorPrimitiveDepthTest = false,
+		bool bInEnableReceiveDecalOutput = false
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
 		LightMapPolicy(InLightMapPolicy),
@@ -519,7 +520,8 @@ public:
 		bAllowGlobalFog(bInAllowGlobalFog),
 		bEnableSkyLight(bInEnableSkyLight),
 		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest),
-		bEnableAtmosphericFog(bInEnableAtmosphericFog)
+		bEnableAtmosphericFog(bInEnableAtmosphericFog),
+		bEnableReceiveDecalOutput(bInEnableReceiveDecalOutput)
 	{
 		HullShader = NULL;
 		DomainShader = NULL;
@@ -724,6 +726,19 @@ public:
 			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode,DitheredLODTransitionValue);
 		}
 
+		if (bEnableReceiveDecalOutput)
+		{
+			// we hash the stencil group because we only have 6 bits.
+			const uint8 StencilValue = GET_STENCIL_BIT_MASK(RECEIVE_DECAL, PrimitiveSceneProxy ? !!PrimitiveSceneProxy->ReceivesDecals() : 0x00);
+
+			RHICmdList.SetDepthStencilState(TStaticDepthStencilState<
+				true, CF_GreaterEqual,
+				true, CF_Always, SO_Keep, SO_Keep, SO_Replace,
+				false, CF_Always, SO_Keep, SO_Keep, SO_Keep,
+				0xFF, GET_STENCIL_BIT_MASK(RECEIVE_DECAL, 1)
+			>::GetRHI(), StencilValue);
+		}
+
 		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
@@ -738,6 +753,7 @@ public:
 		COMPAREDRAWINGPOLICYMEMBERS(SceneTextureMode);
 		COMPAREDRAWINGPOLICYMEMBERS(bAllowGlobalFog);
 		COMPAREDRAWINGPOLICYMEMBERS(bEnableSkyLight);
+		COMPAREDRAWINGPOLICYMEMBERS(bEnableReceiveDecalOutput);
 
 		return CompareDrawingPolicy(A.LightMapPolicy,B.LightMapPolicy);
 	}
@@ -761,6 +777,9 @@ protected:
 	uint32 bEnableEditorPrimitiveDepthTest : 1;
 	/** Whether or not this policy enables atmospheric fog */
 	uint32 bEnableAtmosphericFog : 1;
+
+	/** Whether or not outputing the receive decal boolean */
+	uint32 bEnableReceiveDecalOutput : 1;
 };
 
 /**

@@ -2564,6 +2564,11 @@ protected:
 			return NonPixelShaderExpressionError();
 		}
 		
+		if (InSceneTextureId == PPI_DecalMask)
+		{
+			return Error(TEXT("Decal Mask bit was move out of GBuffer to the stencil buffer for performance optimisation and is therefor no longer available"));
+		}
+
 		ESceneTextureId SceneTextureId = (ESceneTextureId)InSceneTextureId;
 
 		UseSceneTextureId(SceneTextureId, true);

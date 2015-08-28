@@ -266,7 +266,11 @@ public:
 				Parameters.BlendMode,
 				Parameters.TextureMode,
 				Parameters.ShadingModel != MSM_Unlit && Scene->SkyLight && Scene->SkyLight->bWantsStaticShadowing && !Scene->SkyLight->bHasStaticLighting,
-				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog()
+				IsTranslucentBlendMode(Parameters.BlendMode) && Scene->HasAtmosphericFog(),
+				/* bOverrideWithShaderComplexity = */ false,
+				/* bInAllowGlobalFog = */ false,
+				/* bInEnableEditorPrimitiveDepthTest = */ false,
+				/* bInEnableReceiveDecalOutput = */ true
 				),
 				Scene->GetFeatureLevel()
 				);
@@ -375,7 +379,8 @@ public:
 			IsTranslucentBlendMode(Parameters.BlendMode) && (Scene && Scene->HasAtmosphericFog()) && View.Family->EngineShowFlags.AtmosphericFog,
 			View.Family->EngineShowFlags.ShaderComplexity,
 			false,
-			Parameters.bEditorCompositeDepthTest
+			Parameters.bEditorCompositeDepthTest,
+			/* bInEnableReceiveDecalOutput = */ Scene != nullptr
 			);
 		RHICmdList.BuildAndSetLocalBoundShaderState(DrawingPolicy.GetBoundShaderStateInput(View.GetFeatureLevel()));
 		DrawingPolicy.SetSharedState(RHICmdList, &View, typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType());

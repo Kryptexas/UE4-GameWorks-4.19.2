@@ -1130,7 +1130,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 19)	if (bFiltered) { return Texture2DSample(PostprocessInput5, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput5, PostprocessInput5Sampler, UV);} 
 	else if (SceneTextureIndex == 20)	if (bFiltered) { return Texture2DSample(PostprocessInput6, BilinearTextureSampler0, UV);} else { return Texture2DSample(PostprocessInput6, PostprocessInput6Sampler, UV);} 
 #endif // POST_PROCESS_MATERIAL
-	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
+	else if (SceneTextureIndex == 21)	return 0; // material compiler will return an error
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
 	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
@@ -1188,7 +1188,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 20: return Texture2DSample(PostprocessInput6, bFiltered ? BilinearTextureSampler0 : PostprocessInput6Sampler, UV);
 #endif // __POST_PROCESS_COMMON__
 		// PPI_DecalMask
-		case 21: return ScreenSpaceData.GBuffer.DecalMask;
+		case 21: return 0;  // material compiler will return an error
 		// PPI_ShadingModel
 		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 		// PPI_AmbientOcclusion

@@ -59,7 +59,7 @@ float3 GetGBufferChannelData(FGBufferData GBuffer, float2 UV, int ChannelIndex)
 		case GBUFFER_VISUALIZATION_MODE_SEP_TRANS_RGB: return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).rgb*20;
 		case GBUFFER_VISUALIZATION_MODE_OPACITY: return GBuffer.Opacity;
 		case GBUFFER_VISUALIZATION_MODE_SEP_TRANS_A: return Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).a;
-		case GBUFFER_VISUALIZATION_MODE_DECAL_MASK: return GBuffer.DecalMask;
+		case GBUFFER_VISUALIZATION_MODE_DECAL_MASK: return 0; // not available anymore because moved into the stencil buffer
 		case GBUFFER_VISUALIZATION_MODE_SCENE_DEPTH: return frac(GBuffer.Depth * 0.0001f);
 		case GBUFFER_VISUALIZATION_MODE_METALLIC: return GBuffer.Metallic;
 		case GBUFFER_VISUALIZATION_MODE_SPECULAR: return GBuffer.Specular;

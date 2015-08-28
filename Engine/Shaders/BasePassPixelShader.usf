@@ -833,7 +833,6 @@ void Main(
 		GBuffer.PrecomputedShadowFactors = PrecomputedShadowFactors;
 		GBuffer.GBufferAO = MaterialAO;
 		GBuffer.Opacity = Opacity;
-		GBuffer.DecalMask = Primitive.DecalReceiverMask;
 		GBuffer.HasDistanceFieldRepresentation = Primitive.HasDistanceFieldRepresentation;
 		GBuffer.HasHeightfieldRepresentation = Primitive.HasHeightfieldRepresentation;
 
