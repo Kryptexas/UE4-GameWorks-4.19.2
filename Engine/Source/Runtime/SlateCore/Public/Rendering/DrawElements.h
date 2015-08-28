@@ -992,9 +992,9 @@ public:
 		return SafeHandle.IsValid() && SafeHandle->IsInUse();
 	}
 
-	SLATECORE_API void PreDraw_RenderThread();
+	SLATECORE_API void PreDraw_ParallelThread();
 
-	SLATECORE_API void PostDraw_RenderThread();
+	SLATECORE_API void PostDraw_ParallelThread();
 
 private:
 

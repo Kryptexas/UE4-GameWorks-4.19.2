@@ -202,7 +202,6 @@ void FSlateRHIRenderer::Destroy()
 /** Returns a draw buffer that can be used by Slate windows to draw window elements */
 FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 {
-#if USE_MAX_DRAWBUFFERS
 	FreeBufferIndex = (FreeBufferIndex + 1) % NumDrawBuffers;
 	
 	FSlateDrawBuffer* Buffer = &DrawBuffers[FreeBufferIndex];
@@ -234,10 +233,6 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 
 	Buffer->ClearBuffer();
 	return *Buffer;
-#else
-	// With this method buffers are created on this thread and deleted on the rendering thread
-	return *(new FSlateDrawBuffer);
-#endif
 }
 
 void FSlateRHIRenderer::CreateViewport( const TSharedRef<SWindow> Window )
@@ -407,7 +402,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
 		FElementBatchMap& RootBatchMap = WindowElementList.GetRootDrawLayer().GetElementBatchMap();
 
-		WindowElementList.PreDraw_RenderThread();
+		WindowElementList.PreDraw_ParallelThread();
 
 		{
 			SCOPE_CYCLE_COUNTER(STAT_SlateRTCreateBatches);
@@ -466,8 +461,6 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				BatchData.GetRenderBatches()
 			);
 		}
-
-		WindowElementList.PostDraw_RenderThread();
 	}
 
 	bool bNeedCallFinishFrameForStereo = false;
@@ -539,15 +532,31 @@ void FSlateRHIRenderer::DrawWindows()
 	}
 }
 
-static void EndDrawingWindows( FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy )
+struct FSlateEndDrawingWindowsCommand : public FRHICommand<FSlateEndDrawingWindowsCommand>
 {
-#if USE_MAX_DRAWBUFFERS
-	DrawBuffer->Unlock();
-#else
-	delete DrawBuffer;
-#endif
+	FSlateRHIRenderingPolicy& Policy;
+	FSlateDrawBuffer* DrawBuffer;
+	
+	FSlateEndDrawingWindowsCommand(FSlateRHIRenderingPolicy& InPolicy, FSlateDrawBuffer* InDrawBuffer)
+		: Policy( InPolicy )
+		, DrawBuffer(InDrawBuffer)
+	{}
 
-	Policy.EndDrawingWindows();
+	void Execute(FRHICommandListBase& CmdList)
+	{
+		for( auto& ElementList : DrawBuffer->GetWindowElementLists() )
+		{
+			ElementList->PostDraw_ParallelThread();
+		}
+
+		DrawBuffer->Unlock();
+		Policy.EndDrawingWindows();
+	}
+};
+
+static void EndDrawingWindows( FRHICommandListImmediate& RHICmdList, FSlateDrawBuffer* DrawBuffer, FSlateRHIRenderingPolicy& Policy )
+{
+	new (RHICmdList.AllocCommand<FSlateEndDrawingWindowsCommand>()) FSlateEndDrawingWindowsCommand(Policy, DrawBuffer);
 }
 
 
@@ -695,7 +704,7 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		FSlateDrawBuffer*, DrawBuffer, &WindowDrawBuffer,
 		FSlateRHIRenderingPolicy&, Policy, *RenderingPolicy,
 	{
-		EndDrawingWindows( DrawBuffer, Policy );
+		EndDrawingWindows( RHICmdList, DrawBuffer, Policy );
 	});
 
 	// flush the cache if needed

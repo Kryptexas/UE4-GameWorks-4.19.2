@@ -7,12 +7,8 @@ class FSlateRHIRenderingPolicy;
 class FSlateElementBatcher;
 
 
-#define USE_MAX_DRAWBUFFERS 1
-
-#if USE_MAX_DRAWBUFFERS
 // Number of draw buffers that can be active at any given time
 const uint32 NumDrawBuffers = 3;
-#endif
 
 // Enable to visualize overdraw in Slate
 #define DEBUG_OVERDRAW 0
@@ -269,13 +265,11 @@ private:
 	/** Keep a pointer around for when we have deferred drawing happening */
 	FSlateDrawBuffer* EnqueuedWindowDrawBuffer;
 
-#if USE_MAX_DRAWBUFFERS
 	/** Double buffered draw buffers so that the rendering thread can be rendering windows while the game thread is setting up for next frame */
 	FSlateDrawBuffer DrawBuffers[NumDrawBuffers];
 
 	/** The draw buffer which is currently free for use by the game thread */
 	uint8 FreeBufferIndex;
-#endif
 
 	/** Element batcher which renders draw elements */
 	TSharedPtr<FSlateElementBatcher> ElementBatcher;

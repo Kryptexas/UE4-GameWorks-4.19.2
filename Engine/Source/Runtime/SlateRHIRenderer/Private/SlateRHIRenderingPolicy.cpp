@@ -243,7 +243,7 @@ void FSlateRHIRenderingPolicy::BeginDrawingWindows()
 
 void FSlateRHIRenderingPolicy::EndDrawingWindows()
 {
-	check( IsInRenderingThread() );
+	check( IsInParallelRenderingThread() );
 
 #if STATS
 	uint32 TotalVertexBufferMemory = 0;

@@ -593,9 +593,9 @@ TSharedRef<FSlateRenderDataHandle, ESPMode::ThreadSafe> FSlateWindowElementList:
 	return CachedRenderDataHandleRef;
 }
 
-void FSlateWindowElementList::PreDraw_RenderThread()
+void FSlateWindowElementList::PreDraw_ParallelThread()
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	for ( auto& Entry : DrawLayers )
 	{
@@ -604,9 +604,9 @@ void FSlateWindowElementList::PreDraw_RenderThread()
 	}
 }
 
-void FSlateWindowElementList::PostDraw_RenderThread()
+void FSlateWindowElementList::PostDraw_ParallelThread()
 {
-	check(IsInRenderingThread());
+	check(IsInParallelRenderingThread());
 
 	for ( auto& Entry : DrawLayers )
 	{
