@@ -29,6 +29,7 @@ UMotionControllerComponent::UMotionControllerComponent(const FObjectInitializer&
 	PlayerIndex = 0;
 	Hand = EControllerHand::Left;
 	bDisableLowLatencyUpdate = false;
+	bHasAuthority = false;
 }
 
 //=============================================================================
@@ -75,8 +76,12 @@ void UMotionControllerComponent::TickComponent(float DeltaTime, enum ELevelTick 
 //=============================================================================
 bool UMotionControllerComponent::PollControllerState(FVector& Position, FRotator& Orientation)
 {
-	const APlayerController* Actor = Cast<APlayerController>(GetOwner());
-	const bool bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+	if (IsInGameThread())
+	{
+		// Cache state from the game thread for use on the render thread
+		const APlayerController* Actor = Cast<APlayerController>(GetOwner());
+		bHasAuthority = !Actor || Actor->IsLocalPlayerController();
+	}
 
 	if ((PlayerIndex != INDEX_NONE) && bHasAuthority)
 	{

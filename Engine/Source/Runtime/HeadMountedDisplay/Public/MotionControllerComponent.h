@@ -37,6 +37,9 @@ private:
 	/** Whether or not this component had a valid tracked controller associated with it this frame*/
 	bool bTracked;
 
+	/** Whether or not this component has authority within the frame*/
+	bool bHasAuthority;
+
 	/** If true, the Position and Orientation args will contain the most recent controller state */
 	bool PollControllerState(FVector& Position, FRotator& Orientation);
 
