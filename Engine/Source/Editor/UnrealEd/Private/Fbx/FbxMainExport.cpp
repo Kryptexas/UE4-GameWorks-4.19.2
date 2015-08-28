@@ -280,10 +280,10 @@ void FFbxExporter::ExportLevelMesh( ULevel* InLevel, AMatineeActor* InMatineeAct
 		World = CastChecked<UWorld>( InLevel->GetOuter() );
 	}
 	check(World);
-	int32 ActorCount = World->GetCurrentLevel()->Actors.Num();
+	int32 ActorCount = InLevel->Actors.Num();
 	for (int32 ActorIndex = 0; ActorIndex < ActorCount; ++ActorIndex)
 	{
-		AActor* Actor = World->GetCurrentLevel()->Actors[ActorIndex];
+		AActor* Actor = InLevel->Actors[ActorIndex];
 		if ( Actor != NULL && ( !bSelectedOnly || ( bSelectedOnly && Actor->IsSelected() ) ) )
 		{
 			if (Actor->IsA(ALight::StaticClass()))
