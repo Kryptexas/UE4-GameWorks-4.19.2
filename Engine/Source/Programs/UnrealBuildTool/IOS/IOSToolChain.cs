@@ -1165,6 +1165,7 @@ namespace UnrealBuildTool
 								throw new BuildException("The target was not in a /Source subdirectory");
 							}
 						}
+						PathToApp += "\\" + AppName + ".uproject";
 					}
 
 					if (bUseDangerouslyFastMode)
