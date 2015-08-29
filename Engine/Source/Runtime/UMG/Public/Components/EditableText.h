@@ -98,6 +98,10 @@ public:
 	UPROPERTY(EditAnywhere, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+	/** If we're on a platform that requires a virtual keyboard, what kind of keyboard should this widget use? */
+	UPROPERTY( EditAnywhere, Category = Behavior, AdvancedDisplay )
+	TEnumAsByte< EVirtualKeyboardType::Type > KeyboardType;
+
 public:
 
 	/** Called whenever the text is changed interactively by the user */

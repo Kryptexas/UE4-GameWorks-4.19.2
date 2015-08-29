@@ -39,17 +39,17 @@ void UEditableText::ReleaseSlateResources(bool bReleaseChildren)
 
 TSharedRef<SWidget> UEditableText::RebuildWidget()
 {
-	MyEditableText = SNew(SEditableText)
-	.Style(&WidgetStyle)
-	.MinDesiredWidth(MinimumDesiredWidth)
-	.IsCaretMovedWhenGainFocus(IsCaretMovedWhenGainFocus)
-	.SelectAllTextWhenFocused(SelectAllTextWhenFocused)
-	.RevertTextOnEscape(RevertTextOnEscape)
-	.ClearKeyboardFocusOnCommit(ClearKeyboardFocusOnCommit)
-	.SelectAllTextOnCommit(SelectAllTextOnCommit)
-	.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
-	.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-	;
+	MyEditableText = SNew( SEditableText )
+		.Style( &WidgetStyle )
+		.MinDesiredWidth( MinimumDesiredWidth )
+		.IsCaretMovedWhenGainFocus( IsCaretMovedWhenGainFocus )
+		.SelectAllTextWhenFocused( SelectAllTextWhenFocused )
+		.RevertTextOnEscape( RevertTextOnEscape )
+		.ClearKeyboardFocusOnCommit( ClearKeyboardFocusOnCommit )
+		.SelectAllTextOnCommit( SelectAllTextOnCommit )
+		.OnTextChanged( BIND_UOBJECT_DELEGATE( FOnTextChanged, HandleOnTextChanged ) )
+		.OnTextCommitted( BIND_UOBJECT_DELEGATE( FOnTextCommitted, HandleOnTextCommitted ) )
+		.VirtualKeyboardType( EVirtualKeyboardType::AsKeyboardType( KeyboardType.GetValue() ) );
 	
 	return BuildDesignTimeWidget( MyEditableText.ToSharedRef() );
 }
