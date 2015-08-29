@@ -86,6 +86,24 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 		__sync_synchronize();
 	}
 
+	FORCEINLINE static void PrefetchBlock(const void* InPtr, int32 NumBytes = 1)
+	{
+		extern size_t GCacheLineSize;
+
+		const char* Ptr = static_cast<const char*>(InPtr);
+		const size_t CacheLineSize = GCacheLineSize;
+		for (size_t BytesPrefetched = 0; BytesPrefetched < NumBytes; BytesPrefetched += CacheLineSize)
+		{
+			__builtin_prefetch(Ptr);
+			Ptr += CacheLineSize;
+		}
+	}
+
+	FORCEINLINE static void Prefetch(void const* Ptr, int32 Offset = 0)
+	{
+		__builtin_prefetch(static_cast<char const*>(Ptr) + Offset);
+	}
+
 	static int32 NumberOfCores();
 	static int32 NumberOfCoresIncludingHyperthreads();
 	static void LoadPreInitModules();

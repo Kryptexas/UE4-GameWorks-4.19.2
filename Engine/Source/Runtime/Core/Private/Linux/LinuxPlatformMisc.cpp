@@ -119,6 +119,25 @@ namespace
 	bool GInitializedSDL = false;
 }
 
+size_t GCacheLineSize = CACHE_LINE_SIZE;
+
+void LinuxPlatform_UpdateCacheLineSize()
+{
+	// sysfs "API", as usual ;/
+	FILE * SysFsFile = fopen("/sys/devices/system/cpu/cpu0/cache/index0/coherency_line_size", "r");
+	if (SysFsFile)
+	{
+		int SystemLineSize = 0;
+		fscanf(SysFsFile, "%d", &SystemLineSize);
+		fclose(SysFsFile);
+
+		if (SystemLineSize > 0)
+		{
+			GCacheLineSize = SystemLineSize;
+		}
+	}
+}
+
 void FLinuxPlatformMisc::PlatformInit()
 {
 	// install a platform-specific signal handler
@@ -132,6 +151,8 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
+	LinuxPlatform_UpdateCacheLineSize();
+	UE_LOG(LogInit, Log, TEXT(" - Cache line size: %Zu"), GCacheLineSize);
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
 
 	// programs don't need it by default
