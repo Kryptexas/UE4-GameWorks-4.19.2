@@ -180,7 +180,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponen
 		CleanUp(*AIController, NodeMemory);
 	}
 
-	return EBTNodeResult::Succeeded;
+	return EBTNodeResult::Aborted;
 }
 
 void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const

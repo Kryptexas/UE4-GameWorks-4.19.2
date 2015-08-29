@@ -348,7 +348,7 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const { }
@@ -366,6 +366,12 @@ public:
 	friend FArchive& operator<<( FArchive& Ar, FVector4& V )
 	{
 		return Ar << V.X << V.Y << V.Z << V.W;
+	}
+
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
 	}
 
 } GCC_ALIGN(16);
@@ -537,7 +543,7 @@ FORCEINLINE bool FVector4::operator!=( const FVector4& V ) const
 
 FORCEINLINE bool FVector4::Equals( const FVector4& V, float Tolerance ) const
 {
-	return FMath::Abs(X-V.X) < Tolerance && FMath::Abs(Y-V.Y) < Tolerance && FMath::Abs(Z-V.Z) < Tolerance && FMath::Abs(W-V.W) < Tolerance;
+	return FMath::Abs(X-V.X) <= Tolerance && FMath::Abs(Y-V.Y) <= Tolerance && FMath::Abs(Z-V.Z) <= Tolerance && FMath::Abs(W-V.W) <= Tolerance;
 }
 
 
@@ -623,9 +629,9 @@ FORCEINLINE bool FVector4::ContainsNaN() const
 FORCEINLINE bool FVector4::IsNearlyZero3( float Tolerance ) const
 {
 	return
-			FMath::Abs(X)<Tolerance
-		&&	FMath::Abs(Y)<Tolerance
-		&&	FMath::Abs(Z)<Tolerance;
+			FMath::Abs(X)<=Tolerance
+		&&	FMath::Abs(Y)<=Tolerance
+		&&	FMath::Abs(Z)<=Tolerance;
 }
 
 
@@ -678,3 +684,5 @@ FORCEINLINE FVector4 FVector4::operator/( const FVector4& V ) const
 {
 	return FVector4( X / V.X, Y / V.Y, Z / V.Z, W / V.W );
 }
+
+template <> struct TIsPODType<FVector4> { enum { Value = true }; };

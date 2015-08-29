@@ -2,13 +2,11 @@ Availability:Public
 Title: Using Slate in a Project
 Crumbs:%ROOT%, Programming, Programming/Slate
 Description:Setting up your project to use the Slate UI Framework
-Version:4.4
-
-## Overview
+Version:4.9
 
 [EXCERPT:main]
 In order to use the Slate User Interface (UI) Framework, your project must be set up properly so that it is aware of the 
-framework. This allows you to include the `Slate.h` header and reference the various elements of the 
+framework. This allows you to include the Slate.h header and reference the various elements of the 
 framework necessary for building a UI with slate.
 
 ## Module Dependencies
@@ -26,7 +24,7 @@ The modules your project needs access to are:
 
 **To set up the Slate module dependencies:**
 
-1. Open the `[ProjectName].build.cs` file for your project. It is located in the `[ProjectDir]/[ProjectName]/Source/[ProjectName]` directory.
+1. Open the [ProjectName].build.cs file for your project. It is located in the [ProjectDir]/[ProjectName]/Source/[ProjectName] directory.
 1. Add the InputCore public dependency by adding `"InputCore"` to the `PublicDependencyModuleNames`.
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
@@ -39,14 +37,14 @@ The modules your project needs access to are:
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
-	All you need to do is add the SlateCore, and Slate modules to that line:
+	Add the SlateCore and Slate modules to that line:
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
 	[REGION:tip]
 	Depending on when you created your project, and with what version of the engine, it may already have the Slate 
-	dependencies set up in the *.build.cs files but commented out. You can simply uncomment the appropriate lines 
-	to set up the dependencies!
+	dependencies set up in the *.build.cs files but commented out. You can uncomment the appropriate lines 
+	to set up the dependencies.
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

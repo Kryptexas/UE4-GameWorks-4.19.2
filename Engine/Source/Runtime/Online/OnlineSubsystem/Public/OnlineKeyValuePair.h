@@ -340,13 +340,103 @@ public:
 	bool FromJson(const TSharedRef<class FJsonObject>& JsonObject);
 
 	/**
-	* Comparison of two settings data classes
-	*
-	* @param Other the other settings data to compare against
-	*
-	* @return true if they are equal, false otherwise
-	*/
+	 * Comparison of two settings data classes
+	 *
+	 * @param Other the other settings data to compare against
+	 *
+	 * @return true if they are equal, false otherwise
+	 */
 	bool operator==(const FVariantData& Other) const;
 	bool operator!=(const FVariantData& Other) const;
+};
+
+/**
+ * Helper class for converting from UStruct to FVariantData and back
+ * only very basic flat UStructs with POD types are supported
+ */
+class ONLINESUBSYSTEM_API FVariantDataConverter
+{
+public:
+	/**
+	 * Convert a UStruct into a variant mapping table
+	 *
+	 * @param StructDefinition layout of the UStruct
+	 * @param Struct actual UStruct data
+	 * @param OutVariantMap container for outgoing data
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool UStructToVariantMap(const UStruct* StructDefinition, const void* Struct, FOnlineKeyValuePairs<FString, FVariantData>& OutVariantMap, int64 CheckFlags, int64 SkipFlags);
+
+	/**
+	 * Convert a single UProperty to an FVariantData
+	 *
+	 * @param Property definition of the property
+	 * @param Value actual property data
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * @param OutVariantData container for outgoing data
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool UPropertyToVariantData(UProperty* Property, const void* Value, int64 CheckFlags, int64 SkipFlags, FVariantData& OutVariantData);
+
+public:
+
+	/**
+	 * Convert a map of FVariantData elements to a UStruct
+	 *
+	 * @param VariantMap Input variant data
+	 * @param StructDefinition layout of the UStruct
+	 * @param OutStruct output container for UStruct data
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool VariantMapToUStruct(const FOnlineKeyValuePairs<FString, FVariantData>& VariantMap, const UStruct* StructDefinition, void* OutStruct, int64 CheckFlags, int64 SkipFlags);
+
+	/**
+	 * Convert an FVariantData to a UProperty
+	 *
+	 * @param Variant Input variant data
+	 * @param Property definition of the property
+	 * @param OutValue outgoing property data container
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool VariantDataToUProperty(const FVariantData* Variant, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags);
+	
+private:
+
+	/**
+	 * Convert a single UProperty to an FVariantData
+	 *
+	 * @param Property definition of the property
+	 * @param Value actual property data
+	 * @param OutVariantData container for outgoing data
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool ConvertScalarUPropertyToVariant(UProperty* Property, const void* Value, FVariantData& OutVariantData, int64 CheckFlags, int64 SkipFlags);
+
+	/**
+	 * Convert an FVariantData to a UProperty
+	 *
+	 * @param Variant Input variant data
+	 * @param Property definition of the property
+	 * @param OutValue outgoing property data container
+	 * @param CheckFlags property must have this flag to be serialized
+	 * @param SkipFlags property cannot have this flag to be serialized
+	 * 
+	 * @return true if it was successful, false otherwise
+	 */
+	static bool ConvertScalarVariantToUProperty(const FVariantData* Variant, UProperty* Property, void* OutValue, int64 CheckFlags, int64 SkipFlags);
 };
 

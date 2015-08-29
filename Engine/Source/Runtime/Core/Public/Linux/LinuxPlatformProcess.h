@@ -185,6 +185,61 @@ protected:
  */
 struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 {
+	struct FProcEnumInfo;
+
+	/**
+	 * Process enumerator.
+	 */
+	class FProcEnumerator
+	{
+	public:
+		// Constructor
+		FProcEnumerator();
+
+		// Destructor
+		~FProcEnumerator();
+
+		// Gets current process enumerator info.
+		FProcEnumInfo GetCurrent() const;
+		
+		/**
+		 * Moves current to the next process.
+		 *
+		 * @returns True if succeeded. False otherwise.
+		 */
+		bool MoveNext();
+	private:
+		// Private implementation data.
+		struct FProcEnumData* Data;
+	};
+
+	/**
+	 * Process enumeration info structure.
+	 */
+	struct FProcEnumInfo
+	{
+		friend FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator();
+
+		// Gets process PID.
+		uint32 GetPID() const;
+
+		// Gets parent process PID.
+		uint32 GetParentPID() const;
+
+		// Gets process name. I.e. exec name.
+		FString GetName() const;
+
+		// Gets process full image path. I.e. full path of the exec file.
+		FString GetFullPath() const;
+
+	private:
+		// Private constructor.
+		FProcEnumInfo(uint32 InPID);
+
+		// Current process PID.
+		uint32 PID;
+	};
+
 	static void* GetDllHandle( const TCHAR* Filename );
 	static void FreeDllHandle( void* DllHandle );
 	static void* GetDllExport( void* DllHandle, const TCHAR* ProcName );
@@ -195,7 +250,8 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static const TCHAR* UserDir();
 	static const TCHAR* UserSettingsDir();
 	static const TCHAR* ApplicationSettingsDir();
-	static FString GenerateApplicationPath( const FString& AppName, EBuildConfigurations::Type BuildConfiguration);
+	static FString GetCurrentWorkingDirectory();
+	static FString GenerateApplicationPath(const FString& AppName, EBuildConfigurations::Type BuildConfiguration);
 	static FString GetApplicationName( uint32 ProcessId );
 	static bool SetProcessLimits(EProcessResource::Type Resource, uint64 Limit);
 	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
@@ -206,6 +262,7 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool CreatePipe( void*& ReadPipe, void*& WritePipe );
 	static FString ReadPipe( void* ReadPipe );
 	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
+	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
 	static class FRunnableThread* CreateRunnableThread();
 	static void LaunchURL(const TCHAR* URL, const TCHAR* Parms, FString* Error);
 	static FProcHandle CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);

@@ -100,6 +100,8 @@ public:
 
 	/** Currently executed native function */
 	UFunction* CurrentNativeFunction;
+
+	bool bArrayContextFailed;
 public:
 
 	// Constructors.
@@ -140,6 +142,9 @@ public:
 	int32 ReadWord();
 	UProperty* ReadProperty();
 
+	/** May return null */
+	UProperty* ReadPropertyUnchecked();
+
 	/**
 	 * Reads a value from the bytestream, which represents the number of bytes to advance
 	 * the code pointer for certain expressions.
@@ -156,7 +161,7 @@ public:
 	 * @param	ExpressionField		receives a pointer to the field representing the expression; used by various execs
 	 *								to drive VM logic
 	 */
-	VariableSizeType ReadVariableSize( UField** ExpressionField=NULL );
+	VariableSizeType ReadVariableSize(UProperty** ExpressionField);
 
 	/**
  	 * This will return the StackTrace of the current callstack from script land
@@ -180,6 +185,7 @@ inline FFrame::FFrame( UObject* InObject, UFunction* InNode, void* InLocals, FFr
 	, OutParms(NULL)
 	, PropertyChainForCompiledIn(InPropertyChainForCompiledIn)
 	, CurrentNativeFunction(NULL)
+	, bArrayContextFailed(false)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	FScriptTraceStackNode StackNode(InNode->GetOuter()->GetFName(), InNode->GetFName());
@@ -227,6 +233,13 @@ inline UProperty* FFrame::ReadProperty()
 	return Result;
 }
 
+inline UProperty* FFrame::ReadPropertyUnchecked()
+{
+	UProperty* Result = (UProperty*)ReadObject();
+	MostRecentProperty = Result;
+	return Result;
+}
+
 inline float FFrame::ReadFloat()
 {
 	float Result;
@@ -271,95 +284,20 @@ inline CodeSkipSizeType FFrame::ReadCodeSkipCount()
 	return Result;
 }
 
-inline VariableSizeType FFrame::ReadVariableSize( UField** ExpressionField/*=NULL*/ )
+inline VariableSizeType FFrame::ReadVariableSize( UProperty** ExpressionField )
 {
 	VariableSizeType Result=0;
 
 	UObject* Field = ReadObject();
-	uint8 NullPropertyType = *Code++;
-
-	if ( Field != NULL )
+	UProperty* Property = dynamic_cast<UProperty*>(Field);
+	if (Property)
 	{
-		// currently only Property (or null) seems to be a valid option.
-		if (UProperty* Property = dynamic_cast<UProperty*>(Field))
-		{
-			Result = Property->GetSize();
-		}
-		else if (UEnum* ExplicitEnumValue = dynamic_cast<UEnum*>(Field))
-		{
-			Result = 1;
-		}
-		else if (UFunction* FunctionRef = dynamic_cast<UFunction*>(Field))
-		{
-			Result = sizeof(ScriptPointerType);
-		}
-	}
-	else
-	{
-		switch ( NullPropertyType )
-		{
-		case CPT_None:
-			// nothing...
-			break;
-		case CPT_Byte: Result = sizeof(uint8);
-			break;
-		case CPT_UInt16: Result = sizeof(uint16);
-			break;
-		case CPT_UInt32: Result = sizeof(uint32);
-			break;
-		case CPT_UInt64: Result = sizeof(uint64);
-			break;
-		case CPT_Int8: Result = sizeof(int8);
-			break;
-		case CPT_Int16: Result = sizeof(int16);
-			break;
-		case CPT_Int: Result = sizeof(int32);
-			break;
-		case CPT_Int64: Result = sizeof(int64);
-			break;
-		case CPT_Bool: Result = sizeof(bool);
-			break;
-		case CPT_Bool8: Result = sizeof(uint8);
-			break;
-		case CPT_Bool16: Result = sizeof(uint16);
-			break;
-		case CPT_Bool32: Result = sizeof(uint32);
-			break;
-		case CPT_Bool64: Result = sizeof(uint64);
-			break;
-		case CPT_Float: Result = sizeof(float);
-			break;
-		case CPT_Double: Result = sizeof(double);
-			break;
-		case CPT_Name: Result = sizeof(FScriptName);
-			break;
-		case CPT_Vector: Result = sizeof(FVector);
-			break;
-		case CPT_Rotation: Result = sizeof(FRotator);
-			break;
-		case CPT_Delegate: Result = sizeof(FScriptDelegate);
-			break;
-		case CPT_MulticastDelegate: Result = sizeof(FMulticastScriptDelegate);
-			break;
-		case CPT_WeakObjectReference: Result = sizeof(FWeakObjectPtr);
-			break;
-		case CPT_LazyObjectReference: Result = sizeof(FLazyObjectPtr);
-			break;
-		case CPT_AssetObjectReference: Result = sizeof(FAssetPtr);
-			break;
-		case CPT_Text: Result = sizeof(FText);
-			break;
-		case CPT_Map: Result = sizeof(FScriptMap);
-			break;
-		default:
-			UE_LOG(LogScriptFrame, Fatal, TEXT("Unhandled property type in FFrame::ReadVariableSize(): %u"), NullPropertyType);
-			break;
-		}
+		Result = Property->GetSize();
 	}
 
-	if ( ExpressionField != NULL )
+	if ( ExpressionField != nullptr )
 	{
-		*ExpressionField = dynamic_cast<UField*>(Field);
+		*ExpressionField = Property;
 	}
 
 	return Result;

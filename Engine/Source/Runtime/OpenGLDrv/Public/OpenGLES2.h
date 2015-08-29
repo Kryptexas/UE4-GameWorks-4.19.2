@@ -20,6 +20,9 @@ typedef GLfloat GLdouble;
 #include "OpenGL.h"
 #include "OpenGLUtil.h"		// for VERIFY_GL
 
+#ifdef GL_AMD_debug_output
+	#undef GL_AMD_debug_output
+#endif
 
 // Redefine to disable support for pixel buffer objects
 #ifdef UGL_SUPPORTS_PIXELBUFFERS
@@ -105,7 +108,10 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE bool SupportsTextureFloat()						{ return bSupportsTextureFloat; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return bSupportsTextureHalfFloat; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return bSupportsColorBufferHalfFloat; }
+	static FORCEINLINE bool	SupportsRG16UI()							{ return false; }
+	static FORCEINLINE bool SupportsR11G11B10F()						{ return false; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return bSupportsShaderFramebufferFetch; }
+	static FORCEINLINE bool SupportsShaderDepthStencilFetch()			{ return bSupportsShaderDepthStencilFetch; }
 	static FORCEINLINE bool SupportsMultisampledRenderToTexture()		{ return bSupportsMultisampledRenderToTexture; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return false; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return bSupportsBGRA8888; }
@@ -329,7 +335,7 @@ struct FOpenGLES2 : public FOpenGLBase
 
 	static FORCEINLINE void FramebufferTexture2D(GLenum Target, GLenum Attachment, GLenum TexTarget, GLuint Texture, GLint Level)
 	{
-		check(Attachment == GL_COLOR_ATTACHMENT0 || Attachment == GL_DEPTH_ATTACHMENT);
+		check(Attachment == GL_COLOR_ATTACHMENT0 || Attachment == GL_DEPTH_ATTACHMENT || Attachment == GL_STENCIL_ATTACHMENT);
 		glFramebufferTexture2D(Target, Attachment, TexTarget, Texture, Level);
 		VERIFY_GL(FramebufferTexture_2D)
 	}
@@ -436,6 +442,9 @@ protected:
 
 	/** GL_EXT_shader_framebuffer_fetch */
 	static bool bSupportsShaderFramebufferFetch;
+
+	/** GL_ARM_shader_framebuffer_fetch_depth_stencil */
+	static bool bSupportsShaderDepthStencilFetch;
 
 	/** GL_EXT_MULTISAMPLED_RENDER_TO_TEXTURE */
 	static bool bSupportsMultisampledRenderToTexture;

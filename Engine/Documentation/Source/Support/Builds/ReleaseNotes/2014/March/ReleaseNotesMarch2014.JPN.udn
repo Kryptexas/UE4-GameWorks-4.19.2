@@ -1,9 +1,8 @@
-﻿INTSourceChangelist:2055798
+﻿INTSourceChangelist:2591123
 Title:2014 年 3 月リリースノート
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Licensee
-Template:ReleaseNotes.html
 
 [TOC(start:2 end:2)]
 
@@ -22,7 +21,7 @@ Template:ReleaseNotes.html
 
 <!--
 [EXCERPT:Labels]
-QA_APPROVED_UE4_BUILD_2014
+QA_APPROVED_UE4_BUILD_2014_  
 QA_APPROVED_UE4_BUILD_CURRENT  
 QA_APPROVED_UE4_BUILD_MINIMUM
 [/EXCERPT:Labels]
@@ -30,9 +29,13 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 ## 重要情報
 
- * 現時点のエンジン開発ロードマップ: [UE4 Roadmaps](https://udn.unrealengine.com/questions/topics/roadmap.html)
- * 修正されたバグ: [UE4 Fixed Bugs March 2014]
- * 周知の問題: [UE4 Known Issues March 2014]
+* March QA ビルドが思うように上手く調整できませんでした。認証でコンソールを入れたら、パブリック リリースと QA ビルドでのコンソール修正と一致しなくなりました。 
+
+	これにより、March QA ビルドが遅れる結果となり、**UE4-Releases/4.0/** のコンテンツは現時点で有効なコンソールに含まれていません。現在 **//depot/UE4-QA-Unstable/** ( *which was branched from Releases* ) に保存されているコンソールを、認証から安全に作業ができるブランチへ戻す作業をしています。   **//depot/UE4-QA/** へすぐにブランチしますが、コンソール ゲームを行う場合は、April QA ビルドで最低 1 つコンソールの認証ビルド、May QA では両方のビルドが含まれるようにします。 
+
+* 現時点のエンジン開発ロードマップ: [UE4 Roadmaps](https://udn.unrealengine.com/questions/topics/roadmap.html)
+* 修正されたバグ: [UE4 Fixed Bugs March 2014]
+* 周知の問題: [UE4 Known Issues March 2014]
  
 
 ## 主な新機能
@@ -46,27 +49,37 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* 例えば、ブループリント イベント グラフのマクロ インスタンス ノード上にブレークポイントが設定されていると、Play-in-Editor/Simulate-in-Editor の実行時、実行はマクログラフ内の最初の実行可能なノード状でブレークするようになりました。シングルステップ操作もできるようになりました。つまり、ブループリント オブジェクトのデバッグ中、マクロの内部のブレークポイントを設定して、様々なピン値が表示されます。
 
 		_例：ブレークポイントを Gate ノード上に設定した場合です。_	
-![](MacroDebugging01.png)	
-		_実行は Gate マクログラフ内部の Enter 出力に適用されたシーケンス ノード上でブレークします。マクロ内部の Branch ノード上にブレークポイントを設定し、[Resume] をクリックすると�_	
-![](MacroDebugging02.png)	
-		_�実行はそのポイントでブレークします_			
-![](MacroDebugging03.png)	
-		_ピンにカーソルを合わせると、いろいろなカレント値を見ることができます。_	
-![](MacroDebugging04.png)
+
+		![](MacroDebugging01.png)
+
+		_実行は Gate マクログラフ内部の Enter 出力に適用されたシーケンス ノード上でブレークします。マクロ内部の Branch ノード上にブレークポイントを設定し、[Resume(再開)] をクリックすると_
+
+		![](MacroDebugging02.png)
+
+		_実行はそのポイントでブレークします_
+
+		![](MacroDebugging03.png)
+
+		_ピンにカーソルを合わせると、いろいろなカレント値を見ることができます。_
+
+		![](MacroDebugging04.png)
 
 * **ブループリントのピン アイコン**
 
 	* デフォルトの BP ピン アイコンが新しくなり、エディタでデフォルトでティアドロップ形式になりました。  
 
 		元の形式が良い場合は、エディタ設定を変更して元のピンを使用することができます。
-![](PinIcons.png)(w:720)
+
+		![](PinIcons.png)(w:720)
 
 #### エディタとツール 
 
 * **物理アセット ツール (PhAT)**
 
 	* 物理アセット ツールが改善されました！
-![](PhysicalAssetTool.png)
+
+		![](PhysicalAssetTool.png)
+
 	* シミュレーションを選択すると、残りのボディを固定したまま、興味のあるエリアをシミュレーションすることができます。
 	* 複数のボディとコンストレイントを簡単に切り替えられるようにマルチセレクトがサポートされるようになりました。
 	* ホットキー 1、2、3、4 を使って Swing1、Swing2、Twist を切り替え、コンストレイントの制限を素早く可視化するためにサイクルすることができます。
@@ -79,15 +92,19 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 		* 空の時、Theme バーがヘルプ メッセージを表示します。
 		* カラー プレビューのブロックの間に小さなセパレータができました。
 		* カラー ピッカーは sRGB プレビュー切り替えに関係なく、画面上に表示される色を常にピックするようになりました。
-![](ColorPicker01.png)
+
+			![](ColorPicker01.png)
+
 	* 詳細設定のビュー
 		* R、G、B チャネルに H、S、V などのプレビュー グラディエントが付きました。
 		* 16 進数の入力/出力
 		* A を 1.0 より大きくすることができるようになりました (マテリアル エディタの場合).
 		* プレビュー グラディエントが若干濃くなり見やすくなりました。
 		* スライダーの幅が広くなりマウスの精度があがりました。
-		* スライダーの数字入力が　2 桁ではなく 3 桁精度になり、正しい Hex 変換が行えるようになりました。
-![](ColorPicker02.png)
+		* スライダーの数字入力が 2 桁ではなく 3 桁精度になり、正しい Hex 変換が行えるようになりました。
+
+			![](ColorPicker02.png)
+
 	* Quick Pick モード
 		* ピペットの横にある小さなカラーホイールボタンでカラーホイールとクイック ピックを切り替えます。
 
@@ -100,30 +117,34 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 			_色は上になるほど白に対してサチュレートします。_
 
 			_色は下になるほど黒に対してリットされます。_		
-![](ColorPicker03.png)
+
+			![](ColorPicker03.png)
 
 * **Developer フォルダはデフォルトでは無効になっています。**
 
 	* Engine フォルダもデフォルトでは無効になりました！ 
 
 		* その表示は、View オプションから切り替えることができます。	 
-![](DeveloperFolder.png)
+
+			![](DeveloperFolder.png)
 
 * **Play-In-Editor(PIE) と起動に関する変更点**
 
 	* 以下は PIE の変更点です。
-		* �Current Camera / Default Player Start� の組み合わせに対するメニューエントリはなくなりました。
+		* 'Current Camera / Default Player Start' の組み合わせに対するメニューエントリはなくなりました。
 			* Current Camera / Default Player Start が一番下のグローバルなトグルになりました。
 			* PIE を開始するには 4 つのエントリーのいずれかをクリックするだけです。
-		* OpenGL ES エミュレーションでスタンドアローン型ゲームを起動する新オプション �Mobile Preview� が追加されました。
-		* 大きな �[Play]� ボタンが直近の選択を記憶します。
+		* OpenGL ES エミュレーションでスタンドアローン型ゲームを起動する新オプション 'Mobile Preview' が追加されました。
+		* 大きな [Play] ボタンが直近の選択を記憶します。
 		* メニュー エントリーとツールチップが読みやすく / 理解しやすくなっていると思います。	
-![](PIE01.png)
+
+			![](PIE01.png)
+
 	* Launch に関する変更点です。
 		* デバイスがプラットフォームごとに分けられました。
 		* 利用可能なデバイスのリストに関する多数の問題が修正されました。
-		* ツールバーの大きな �[Launch]� ボタンが直近の選択を記憶します。
-		* ローカル PC で �[Launch]� ボタンのデフォルト選択を行うようになりました。
+		* ツールバーの大きな [Launch] ボタンが直近の選択を記憶します。
+		* ローカル PC で [Launch] ボタンのデフォルト選択を行うようになりました。
 
 * **Snap の間隔は10 進数がデフォルトになりました**
 
@@ -131,11 +152,13 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 		1 アンリアル単位 = 1 センチ (cm)
 
-	* 新しいスナップサイズです。		
-![](DecimalIntervals01.png)
+	* 新しいスナップサイズです:		
 
-	環境設定の Viewports->Grid Snapping で、ゲームに対するスナップ設定をべき乗に戻すことができます。
-![](DecimalIntervals02.png)
+		![](DecimalIntervals01.png)
+
+	* 環境設定の Viewports->Grid Snapping で、ゲームに対するスナップ設定をべき乗に戻すことができます:
+
+		![](DecimalIntervals02.png)
 
 * **コリジョン設定**
 
@@ -144,7 +167,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 		プロジェクトに新規チャネルや新規プロファイルを追加したり、既存のものをカスタマイズできるようになりました。
 
 	* 設定の場所は、Edit->Project Settings->Engine->Collision です。
-![](CollisionSetting.png)
+
+		![](CollisionSetting.png)
 
 * **Input Mapping Bindings パネル**
 
@@ -155,44 +179,52 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* [Input] パネル内には 3 つの別々のセクションがあります。
 
 		_Axis Config_	
-![](AxisConfig.png)
+
+		![](AxisConfig.png)
 
 		_Action Mappings_		
-![](ActionMappings.png)
+
+		![](ActionMappings.png)
 
 		_Axis Mappings_		
-![](AxisMappings.png)
+
+		![](AxisMappings.png)
 
 	* Action mapping と Axis mapping を追加するボタンがそれぞれあります。
-		一番上のボタンでは名前設定のない新規マッピングが作成されますが、マッピングそのものの名前のついたボタンでは同じ名前をもつ別のマッピングがそのグループに追加されます。
 
+		一番上のボタンでは名前設定のない新規マッピングが作成されますが、マッピングそのものの名前のついたボタンでは同じ名前をもつ別のマッピングがそのグループに追加されます。
 
 * **プレースメント / コンテンツ ブラウザ＆Editor モード**
 
 	* プレースメント ブラウザが全く新しいデザインで生まれ変わりました！  
-	新しいプレースメント ブラウザでは、ライト、トリガー、ボリューム、全てのクラスへの迅速なアクセスだけでなく、最近配置したアセットの非常に長いリストにもアクセスできます。
 
+		新しいプレースメント ブラウザでは、ライト、トリガー、ボリューム、全てのクラスへの迅速なアクセスだけでなく、最近配置したアセットの非常に長いリストにもアクセスできます。
 
 	* Editor モードがすべて [Tools] タブの中に統合されました。		
-![](PlacementBroswer01.png)
+
+		![](PlacementBroswer01.png)
 
 	* さらに、コンテンツ ブラウザもデザインが新しくなりました。 
-![](PlacementBroswer02.png)
+
+		![](PlacementBroswer02.png)
 
 * **[Details] パネルのヘッダがスリムになり、 C++ ファイルを開けるようになりました**
 
 	* 2 本だったヘッダー行がシンプルな 1 行に圧縮されました。アイコン ツールチップがクラス名を表示するようになりました (Scene Outliner など)。   
 
 	* C++ コードのあるアクタの場合は、ヘッダファイルのハイパーリンクをクリックればコードを開くことができます (VS または Xcode をインストールしている場合のみ表示されます)。
-![](DetailsPanel01.png)
+
+		![](DetailsPanel01.png)
+
 
 	これまではアクタ クラス名にブループリント エディタへ飛ぶハイパーリンクが付いていました。それが今度は別のボタンとなりました。
-![](DetailsPanel02.png)
+		![](DetailsPanel02.png)
 
 	* ビューポートの右クリック メニューに C++ ファイルへのアクセスも追加しました (コンパイラをインストールしている場合に限ります)。  
 
 		もちろん、クラスビューアのクラスをダブルクリックすることもできます。		
-![](DetailsPanel03.png)
+
+		![](DetailsPanel03.png)
 
 * **プログラマー向けの新ツールメッセージング デバッガー**
 
@@ -200,36 +232,39 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 		メッセージング システムを使っているアプリケーションはメッセージング システムがかなり非同期式な性質を持っているため、デバッグが非常に難しい場合があります。 
 
-	* 現時点では、メッセージ デバッガは自分の責任で �実験的� 使用と見なし、エディタの環境設定で明示的にアクティベートさせなければなりません。		
-![](MessagingDebugger1.png)
-![](MessagingDebugger2.png)
+	* 現時点では、メッセージ デバッガは自分の責任で '実験的' 使用と見なし、エディタの環境設定で明示的にアクティベートさせなければなりません。		
+
+		![](MessagingDebugger1.png) ![](MessagingDebugger2.png)
 
 #### レンダリング
 
 * **光沢のあるスクリーン空間の反射**
 
 	* マテリアルのラフネスをサポートするスクリーン空間の反射が追加され、デフォルトで有効になりました！
-		スクリーン空間の反射を使用したくない場合は、ポストプロセス設定でこの機能を弱める / 無効にすることができます。 
 
+		スクリーン空間の反射を使用したくない場合は、ポストプロセス設定でこの機能を弱める / 無効にすることができます。 
 		マイナーな調整が必要なマテリアルもありますが、それらは他の反射に対しても正しい表示はされません。 
 		Image Based Lighting と 法線 (解析的) 光源を一致させました。
 
 	* ラフネスを変えたデカールのサンプルです (ビューポートが非常に小さいので粒子 / ノイズが見えます)。
-![](Glossy.png)
+
+		![](Glossy.png)
 
 * **プレビュー シャドウ インジケータ**
 
 	* 影の中に現れるテキストの形でプレビュー シャドウ インジケータがつきました。  
 
 		_Build - ディスタンス フィールド シャドウマップを使用します_	
-![](PreviewShadows01.png)
+
+		![](PreviewShadows01.png)
 
 		_Unbuilt - インジケータ付きのプレビュー シャドウを使用します_
-![](PreviewShadows02.png)
 
-	* �[Visualize]� の表示フラグで無効にすることができます。  
+		![](PreviewShadows02.png)
+
+	* [Visualize (可視化)] の表示フラグで無効にすることができます。  
+
 		テキスト投影のライト関数マテリアルの微調整は、/Engine/EditorMaterials/PreviewShadowIndicatorMaterial.PreviewShadowIndicatorMaterial をご覧ください。
-
 
 #### アニメーション
 
@@ -241,11 +276,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 	* 以下はアニメーションのサンプル ビデオです。 
 
-    [![](AngryChest.png)](AngryChest.wmv)
-	[![](CompoundTransform.png)](CompoundTransform.wmv)
+		[![](AngryChest.png)](AngryChest.wmv)
+		[![](CompoundTransform.png)](CompoundTransform.wmv)
 
-	[![](Keridan_Facial.png)](Keridan_Facial.wmv)
-	[![](Keridan_Facial_Compound.png)](Keridan_Facial_Compound.wmv)
+		[![](Keridan_Facial.png)](Keridan_Facial.wmv)
+		[![](Keridan_Facial_Compound.png)](Keridan_Facial_Compound.wmv)
 
 
 ## 新機能の追加 
@@ -275,9 +310,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * コンテンツ ブラウザにデベロッパー アセット非表示オプションが付きました。
 * 再生 / スクラブ時に Director Group/Track がアクティブ カメラ アクタを選択するようになりました。
 * 一時停止中の Possess/Eject が可能になりました。ただし、ブループリントのデバッグ中は不可能です。
-* 「Hot Compiles」に失敗すると、通知に「ログを表示する」ハイパーリンクがでるようになりました。
+* ホットコンパイルに失敗すると、通知に「ログを表示する」ハイパーリンクがでるようになりました。
 * BSP ワークフローが修正されました。
-	* スプラッシュスクリーンのビットマップをユーザーが設定できるようになりました。
+* スプラッシュスクリーンのビットマップをユーザーが設定できるようになりました。
 * エディタ内からのコード プロジェクト再生成を追加しました。
 * **スレート**
 	* FEditorStyle はスレート コアには存在しなくなりました。
@@ -287,7 +322,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * SRichTextBlock がスレートに追加されました。SRichTextBlock には、複数のタイプのフォント、サイズ、カラー、ウィジェットを混ぜることができ、テキスト ドキュメント内で全てが画像化されます。
 * ペルソナの通知ステートに、リミットハンドルをドラッグで編集される継続時間が付きました。
 * マテリアル エレメントのスケルタル メッシュへの追加および削除が可能になり、 LOD マテリアルが定義できるようになりました。
-* UnrealVS に Batch Builder ウィンドウがつきました。 
+* UnrealVS に Batch Builder ウィンドウがつきました。
 * GPU エミッタの ColorScale/Life モジュールでパーティクル パラメータがサポートされるようになりました。
 * UV 空間で頂点の位置をオフセットする新規パーティクル モジュール (PivotOffset) が追加されました。
 * マウスボタンが押されていれば、 WASD が常に可能になりました。
@@ -303,9 +338,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * プラットフォーム専用アプリケーション ライフサイクル イベント ( iOS システム メッセージなど) を聞く必要のあるどんなアクタへの追加も可能な UApplicationLifecycleComponent が追加されました。ネイティブとブループリント クラスの両方に機能します。
 * ドキュメントにリンクする充実したツールチップが幾つかブループリント エディタに追加されました。
 * ブループリント グラフ エディタのズーム イン / アウトに +/- キーが使われるようになりました。
-* �[favorites]� パネルがブループリント パレットに追加されました (お気に入り登録機能も一緒に)。
-* ブループリント実行関数が TScriptInterface<> params を受け取れるようになりました。
-* ブループリント関数にワールド環境のパラメータのフラグを使用するために、新しく �[WorldContext]� meta タグができました。
+* [favorites] パネルがブループリント パレットに追加されました (お気に入り登録機能も一緒に)。
+* ブループリント実行関数が `TScriptInterface<>` パラメータを受け取れるようになりました。
+* ブループリント関数にワールド環境のパラメータのフラグを使用するために、新しく [WorldContext] メタ タグができました。
 * ブループリント マクロのデバッグがサポートされるようになりました。
 * ブループリント ノード アセット リファレンスが修正され、エディタで内でアセットが選択できる別の場所によりインラインのインプレイス アセット ピッカーができました。
 * リファレンスする変数に応じてブループリント取得 / 設定ノードにドキュメント ツールチップが追加されました。
@@ -332,7 +367,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * WIP LightPropagationVolumes (Microsoft/Lionhead から統合) が追加されました。
 * Matinee をセットアップせずにレンダリング パスに対して異なるビューポートの状況をテストするために r.ViewportTest が追加されました (ゲームのみで機能)。
 * HLSL 「View.GeneralPurposeTweak」にアクセス可能なcvar 「r.GeneralPurposeTweak」がシェーダー開発用に追加されました。
-* ステートが簡単に管理できるように (デバイス プロファイルのオーバーライドなど) Scalability settings cvars が作成されました
+* ステートが簡単に管理できるように (デバイス プロファイルのオーバーライドなど) Scalability settings cvars が作成されました。
 * 全ての 2D テクスチャの LOD バイアスをオーバーライドするための r.MipMapLODBias コンソール変数が追加されました。
 
 #### ゲームプレイとフレームワーク
@@ -389,7 +424,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * アセット レジストリ データとゲームコールバックに基いた、複数のパッケージファイルのビルド作成用の機能が追加されました (ゲーム ダウンロードのチャンキングに便利)。
 * nullptr と 0 が BlueprintCallableFunctions ポインタのデフォルト引数として受け取られるようになりました。
 * Interface UFunctions はフィールド イタレーションで検索できます。
-* 新規の TFieldRange クラスは TFieldIterator と同じように使用されますが、使用対象は for (UFunction* Func :TFieldRange<UFunction>(Class)) などの、ranged-for constructs です。
+* 新規の TFieldRange クラスは TFieldIterator と同じように使用されますが、使用対象は for (`UFunction* Func :TFieldRange<UFunction>(Class)`).
 * また、TObjectIterator に対しても同等に機能する TObjectRange も新しく登場しました。
 * TMaps と TMultiMap を Map.Add(Key); などのキーとなる 1 つの引数に追加 (設置) することができるようになり、マップ値はデフォルトで構築されます。
 * 同じオブジェクト / 関数を複数回バインドするコードを使いやすくするために、Delegates に AddUniqueDynamic と IsAlreadyBound 機能が付きました。
@@ -413,8 +448,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * ルート モーション抽出中にルートをロックする様々なオプションが追加されました。デフォルトがアニメーションの第一フレームから参照ポーズへ変更されました。
 * 最適化：SkeletalMeshes 向けの CachedLocalBounds 最適化が全てに対して有効にされました。		
 * **アニメーションは再保存が必要です**
-	* GUID がスケルトンに追加されたので、 アニメーションがバージョンをトラックできるようになりました。全てのアニメーションを再保存することを推奨します。再保存しない場合、アニメーションはゲームのロード時に圧縮されます。  
-* 一様でないスケール アニメーションのサポート：スケールは、存在している場合のみインポートされます (1,1,1 とは異なる)。
+	* GUID が Skeleton アセットに追加されたので、 アニメーションがバージョンをトラックできるようになりました。全てのアニメーションを再保存することを推奨します。再保存しない場合、アニメーションはゲームのロード時に圧縮されます。
+* 一様でないスケール アニメーションのサポーはスケーリングの適用時のみ使用できます (1,1,1 ではない場合など)
 	* スケールのインポートがうまくいかない場合は、[Preserve Local Transform] を有効にします。
 	* 湾曲 / 共有はサポート外となります。情報は削除され、ソースデータとは異なる結果が作成されることにご注意ください。
 
@@ -445,7 +480,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * SSAO がさらに繊細になるようにデフォルトが変更されました。
 * Light プロパティをクリーンアップしました。大きな変更点：点 / スポットライトがデフォルトで逆2乗フォールオフを使うようになりました。Brightness が ライトのタイプごとに新しいデフォルトの Intensity に変更されました。Radius は AttenuationRadius に名前変更されました。
 * 今後のシェーダー最適化に備えて、パラメータを設定する前にシェーダーをグローバルステートにバインドすることが必要になりました。現在バインドされていないパラメータをシェーダーに設定しようとすると作成され確保されます。
-* SystemSettings からほぼ全ての設定が外され、同等のコンソール変数に置き換えられました。これには、GSystemResolution.ResX と GSystemResolution.ResY 経由でコードからのアクセスが可能になったシステム解像度 (GSystemSettings.ResX/ResY) が含まれます。新規コンソール変数 (r.setres) も以前の �setres� コマンドに置き換えるために追加されました。
+* SystemSettings からほぼ全ての設定が外され、同等のコンソール変数に置き換えられました。これには、GSystemResolution.ResX と GSystemResolution.ResY 経由でコードからのアクセスが可能になったシステム解像度 (GSystemSettings.ResX/ResY) が含まれます。新規コンソール変数 (r.setres) も以前の "setres" コマンドに置き換えるために追加されました。
 * クリッピング平面付近のデフォルトが 10cm に設定されました。そのため、ゲームでかなり長い表示距離を使用すると Z ファイティングが発生する場合があります。詳細は r.SetNearClipPlane を参照してください。
 * PostprocessAmbient が純粋に加算になり、環境感謝やその他のもの (SSAO 以外) にオクルードされなくなりました。遥か遠くのスカイボックス テクスチャではなく、もっと面白いアンビエント (コンテンツは再調整する必要があるかも知れません) を作成するためのものになりました。
 * TextRender デフォルト マテリアルが不透明に変更されました (TemporalAA クオリティの改善により、このオプションが可能になりました)。
@@ -474,11 +509,11 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* 必要に応じて Visual Studio 2012 も使用できます (詳細は以下および CL # 1989640 をご覧ください)。
 	* 特定のプラットフォームにはデバッグ用アドインが付いており、新しい IDE とは機能しません。  
 		* これらのプラットフォームが検出され、プロジェクト ファイル フォーマットが自動的に 2012 にされます。
-		* GenerateProjectFiles コマンド ライン上に �-2012� あるいは �-2013� を渡せば、いつでもビヘイビアをオーバーライドできます。
+		* GenerateProjectFiles コマンド ライン上に '-2012' あるいは '-2013' を渡せば、いつでもビヘイビアをオーバーライドできます。
 	* その他の特別なユースケース：
 		* すべてに VS 2012 を使いたい場合は (VS 2013 をまだお持ちでないため)、UEBuildWindows.cs. で WindowsPlatform.Compiler をローカルで変更してください。
-		* VS 2012 IDE はそのまま使い続けて VS 2013 にコンパイルする場合は、必ず VS 2013 がインストールされていることを確認して �-2012� を GenerateProjectFiles に渡してください。
-		* VS 2013 IDE を使ってVS 2012 でコンパイルする場合、 WindowsPlatform.Compiler を 2012 に設定しますが、�-2013� を GenerateProjectFiles に送ります。
+		* VS 2012 IDE はそのまま使い続けて VS 2013 にコンパイルする場合は、必ず VS 2013 がインストールされていることを確認して '-2012' を GenerateProjectFiles に渡してください。
+		* VS 2013 IDE を使ってVS 2012 でコンパイルする場合、 WindowsPlatform.Compiler を 2012 に設定しますが、'-2013' を GenerateProjectFiles に送ります。
 * Windows Desktop Visual Studio 2013 Express for Windows Desktop が完全にサポートされるようになりました！
 * DirectX SDK の前提条件がソースも含まれています！
 	エンジンをビルドするために DirectX SDK を PC にインストールする必要はなくなりました。
@@ -505,10 +540,10 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * エンジンのバージョンにチェンジリスト番号に加えて Major.Minor.Hotfix コンポーネントが追加されました (FEngineVersion)。このバージョンは帯域外ホットフィックスを可能にするためにパッケージ内に保存されます。
 	* エンジンがモジュールをロードするには、PCLaunch.rc から正しいバージョンの文字列でモジュールを再コンパイルする必要があります。
 * config ファイルでプラグイン リストを有効化すると、モノリシック (単一) ビルドでプラグインをコンパイルするための決定がフィルタされるようになります。
-* LevelEditor: 機能がまだ完全に実装されていないので、�Mobile Preview� メニューは非表示にされています。
-* LevelEditor: �-PlatformTools� コマンドライン スイッチが削除されました。それに依存していた残りの機能は Editor Preferences の �[Experimental]� セクションから利用できます。
+* LevelEditor: 機能がまだ完全に実装されていないので、"Mobile Preview" メニューは非表示にされています。
+* LevelEditor: "-PlatformTools" コマンドライン スイッチが削除されました。それに依存していた残りの機能は Editor Preferences の [Experimental] セクションから利用できます。
 * 設定: エディタ ユーザー設定のほとんどが新規クラスへ移動され、Settings UI の別のセクションとしてエクスポーズされました。 ローカル設定を再度適用する必要があるかもしれません。
-* メッセージング：UDP メッセージ送信がデフォルトでロードされるプラグイン (UdpMessaging) になりましたが、Shipping ビルドとスタンドアローン型ゲームでアクティベートするための �-messaging� コマンドライン スイッチはまだ必要です。このプロトタイプ実装がプロダクション品質に対して書き換えられています。
+* メッセージング：UDP メッセージ送信がデフォルトでロードされるプラグイン (UdpMessaging) になりましたが、Shipping ビルドとスタンドアローン型ゲームでアクティベートするための "-messaging" コマンドライン スイッチはまだ必要です。このプロトタイプ実装がプロダクション品質に対して書き換えられています。
 
 #### アニメーション
 * anim sequence プロパティと blendspace プロパティがグラフのピンとしてエクスポーズされました。
@@ -520,9 +555,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 #### コア
 * プラットフォームごとに中間ファイルが生成されるようになりました。
-	* 生成されたファイルに対して何らかの処理を行うツールがあれば、それらは新しい場所へ変更する必要があります。　
+	* 生成されたファイルに対して何らかの処理を行うツールがあれば、それらは新しい場所へ変更する必要があります。
 * C++ の const_cast とは別物で紛らわしい ConstCast が削除されました。
-	* ConstCast<T> は Cast<const T> で置き換えてください。
+	* `ConstCast<T>` は `Cast<const T>` で置き換えてください。
 * ガーベッジの収集にシリアル化を使用しないため誤解されやすいので、UObjectSerializer は UGCObjectReferencer に、 FSerializableObject は FGCObject に名前が変更されました。
 * ライセンシーからのアクションを必要とするコードのリファクタリングを行いました：
 	* GIsUCC は IsRunningCommandlet() (ほぼ) に名前が変更されました。
@@ -542,6 +577,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* java ファイルの .so が変更された場合のみ、.apk が生成されるようになりました。
 * **Mac**
 	* Mac エディタは機能しますが、 ビルド済みのバイナリは本リリースには含まれません。
+		* 今のところ、Mac でエディタを動かすためには、バイナリのコンパイルが必要になります。
 		* 本件については次回の QA ビルドで解決します。
 	* Unreal Frontend は Mac 上で機能します。			
 	**iOS**
@@ -552,8 +588,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* Shipping iOS ビルド向けに常にシンボル ストリップするようにしました。
 	* PC iOS デプロイメント ワークフローに対し様々な改善が行われました (エディタからコードを署名し、環境変数 uebp_CodeSignWhenStaging=1 を設定しますが、 PC にインストールしたプロビジョニング ファイルに対し有効な認証が必要となります)。
 	* UE3 からの iPhonePackager の各種変更点 (ファット バイナリ、スタブに事前割り当てされたサイズを超えるコード署名の修正など) がマージされました。
-	#### ネットワーキング
 
+#### ネットワーキング
 * 新しい bool 型変数の bReplicates が追加されました。アクタをリプリケートするために、ブループリントと C++ コンストラクタ に設定してください。手書きで RemoteRole=ROLE_SimulatedProxy を設定する必要がなくなりました。 
 
 
@@ -574,7 +610,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * コンテンツ ブラウザ スプリッタのサイズがセッション間で維持されるようになりました。
 * アセットの正しい名称を Matinee が表示するようになりました。
 * SETRES コンソール コマンドがスタンドアローン ゲームの PIE で (およびコマンドライン上で ResX/ResY が指定された場合) 動くようになりました。
-* アセット名を変更する場合、 *\<>? 文字が入力できないようになりました。
+* アセット名を変更する場合、 `*\<>?` 文字が入力できないようになりました。
 * 「コンテンツ ブラウザで検索」が直前にクリックしたコンテンツ ブラウザを使用するようになりました。
 * [Play From Here] オプションがシーンアウトライナーから利用できるようになりました。
 * RF_Transactional でシリアル化されている場合、アセットに RF_MarkPendingKill を追加できないようになりました。
@@ -591,7 +627,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * ファイルパスを再インポートすると、関連したパッケージに相対して格納されるようになりました。
 * 正投影ビューポート上のスケールにビジュアル キューが追加されました。
 * [Reset] ボタンで [Details] パネル上でのアクタ変形を終了できるようになりました。
-*  Mesh Paint モードでバケツを選択対象の周りに表示させることができなくなりました。
+* Mesh Paint モードでバケツを選択対象の周りに表示させることができなくなりました。
 * サーベイをキャンセルするとすぐに消えてなくなるようになりました。
 * [Matinee track] メニューのオプションがトラック名と一致するようになりました。
 * InterpTrack クラスに不足していた meta タグが追加されました。
@@ -613,7 +649,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * ペルソナでモーフターゲットの取り消しができるようになりました。
 * スケルタル メッシュの情報がペルソナ ビューポートにデフォルトで表示される設定になりました。 
 * ペルソナでの通知がエディタの削除コマンドに反応するようになりました。
-* Blendspace シーケンス アセットはペルソナのサンプルから直接開けるようになりました。 
+* Blendspace シーケンス アセットはペルソナのサンプルから直接開けるようになりました。
 * FBX エクスポート ファイルの位置選択が改善されました。
 * Blendspace ノードの削除と取り消しが正常に機能するようになりました。
 * アニメーション グラフのステートマシンはコピーされた時に名前を維持するようになりました。
@@ -682,7 +718,10 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 #### ゲームプレイとフレームワーク
 * DeferStartupPrecache と PrecacheStartupSounds が FAudioDevice に追加されました。これにより、設定の読み込みが可能になるまで、ゲームは起動サウンドのキャッシュを遅らせます。実行時に AudioDevice の MaxChannels を修正するために SetMaxChannels が追加されました。
-* Engine.ini においてサブストリング列挙型変数のリダイレクトを実行する機能が追加されました。例： +EnumRedirects=(EnumName="ENewEnum",OldEnumSubstring="EOldEnum::",NewEnumSubstring="ENewEnum::")
+* Engine.ini においてサブストリング列挙型変数のリダイレクトを実行する機能が追加されました。例: 
+
+		+EnumRedirects=(EnumName="ENewEnum",OldEnumSubstring="EOldEnum::",NewEnumSubstring="ENewEnum::")
+
 * 使用しないコマンドレットを多数削除しました。
 * UWorlds が RF_Public と RF_Standalone になりました。UWorlds をアセットのように処理し、コンテンツ ブラウザ内で管理するための準備です。
 * ライトマップが [World settings details] パネル経由で表示可能になりました。 
@@ -696,9 +735,9 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * ペルソナ ビューポートの [Show] メニューを整理しました。
 * GetSocketLocalTransfrom と GetSocketWorldTransform をマージしました。
 * オブジェクトの置き換え時にエディタが手動でオブジェクト参照をリフレッシュできるイベントが追加されました。
-* �[Create Anim Blueprint]� ウィンドウに磨きをかけました (デザインの変更)。
-* �[Assign skeleton]� ウィンドウに磨きをかけました (スケルトン選択を変更して、プレーンなリストボックスではなくアセット ピッカーを使用するようにしました)。
-* �Retarget Anim Blueprints� に磨きをかけました (何が起こっているのかをユーザーにさらに伝えやすくするための通知が追加されました)。
+* [Create Anim Blueprint] ウィンドウに磨きをかけました (デザインの変更)。
+* [Assign skeleton] ウィンドウに磨きをかけました (スケルトン選択を変更して、プレーンなリストボックスではなくアセット ピッカーを使用するようにしました)。
+* "Retarget Anim Blueprints" に磨きをかけました (何が起こっているのかをユーザーにさらに伝えやすくするための通知が追加されました)。
 * ブループリント ツリーが変更され、オブジェクト名ではなく表示名が使用されるようになりました。
 * 小さいゲーム モジュール用のシングル ソース ファイル上での反復コンパイル時間が短縮されました。
 	* ゲーム モジュールが常にプリコンパイルされたヘッダを使用するようになりました (イタレーションの高速化)。
@@ -726,8 +765,8 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * MessagingDebugger: 各種アップグレードにより新機能が追加されユーザービリティが向上しました。
 * MessagingDebugger: 現在、Messaging Debugger UI はスタンドアローン UFE からアクセスできなくなっています。次回のリリースで修正されます。
 * PlayInEditor: PIE 設定の前定義されたスクリーン解像度が INI で設定可能になりました。
-* PlayInEditor: レベル エディタの �Launch on Device� 機能が整理され安定しました。
-* PlayInEditor: モバイル エミュレータを使ってスタンドアローン プロセスでゲームを起動する �[Mobile Preview]� オプションが追加されました。
+* PlayInEditor: レベル エディタの "Launch on Device" 機能が整理され安定しました。
+* PlayInEditor: モバイル エミュレータを使ってスタンドアローン プロセスでゲームを起動する [Mobile Preview] オプションが追加されました。
 * ColorPicker: 各種ユーザビリティが改善され、直近のステートが記憶されるようになりました。
 * Slate: SSlider ウィジェットの性能 (垂直方向のスライダ、ノブの字下げなど) が改善されました。
 * General: 選択した C++11 機能を使用するためのコード変換を継続しました (NULL -> nullptr、auto in for-loops など)。
@@ -747,7 +786,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 * TMap/TSet/TMultiMap イタレーションが修正されました。
 * リダイレクト初期化コードが、.ini ファイルから無くなっている CoreUObject.Metadata セクションを処理するようになりました。
 * UnrealHeaderTool で生成したインクルードがノーマライズされました。
-* ツールチップのパースが改善されて、====== や ------ のみの行などの余分な �境界� が除外されました。
+* ツールチップのパースが改善されて、====== や ------ のみの行などの余分な '境界' が除外されました。
 * ツールチップは、これまでなかったプロパティ タイプに対してパースされます。
 
 #### ネットワーキング
@@ -783,7 +822,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 	* Android の場合、バックバッファの形式は、R5G6B5 よりも R8G8B8 の方が好ましくなりました。
 	* Android がマルチスレッドになりました (起動時に適切な CPU コア数をチェックします)。
 	* ハイエンドな Qualcomm Adreno GPU に OpenGL ES 3.0 シェーダーが使用されています。
-	* GPU のフレーム時間が TAT UNIT で測定可能になりました。ドライバーに問題のあるデバイスもあるためデフォルトでは無効になっていますが、CVar r.DisjointTimerQueries を 1 に設定すれば有効になります。
+	* GPU のフレーム時間が `STAT UNIT` で測定可能になりました。ドライバーに問題のあるデバイスもあるためデフォルトでは無効になっていますが、 CVar `r.DisjointTimerQueries` を 1 に設定すれば有効になります。
 	* Android のコントローラーとキーボードが初めてサポートされました。
 	* Android の一時停止 / 再開のビヘイビアが整理されました。　
 	* Android のビルドはユーザーが生成したスタンドアローン型のツールチェーンに依存しなくなりました。UBT は NDK ツールチェーンを直接呼び出します。
@@ -798,7 +837,7 @@ QA_APPROVED_UE4_BUILD_MINIMUM
 
 ## 周知の問題
 
-
+* Mac エディタは機能しますが、 ビルド済みのバイナリは本リリースには含まれません。今のところ、Mac でエディタを動かすためには、バイナリのコンパイルが必要になります。
 
 
 

@@ -10,21 +10,40 @@
 /** The reference to a pooled render target, use like this: TRefCountPtr<IPooledRenderTarget> */
 struct FPooledRenderTarget : public IPooledRenderTarget
 {
-	/** constructor */
 	FPooledRenderTarget(const FPooledRenderTargetDesc& InDesc) 
 		: NumRefs(0)
-		, Desc(InDesc)
 		, UnusedForNFrames(0)
+		, Desc(InDesc)
+		, bSnapshot(false)
 	{
+	}
+	/* Constructor that makes a snapshot */
+	FPooledRenderTarget(const FPooledRenderTarget& SnaphotSource)
+		: NumRefs(1)
+		, UnusedForNFrames(0)
+		, Desc(SnaphotSource.Desc)
+		, bSnapshot(true)
+	{
+		check(IsInRenderingThread());
+		RenderTargetItem = SnaphotSource.RenderTargetItem;
 	}
 
 	virtual ~FPooledRenderTarget()
 	{
-		check(!NumRefs);
+		check(!NumRefs || (bSnapshot && NumRefs == 1));
 		RenderTargetItem.SafeRelease();
 	}
 
-	uint32 GetUnusedForNFrames() const { return UnusedForNFrames; }
+	bool IsSnapshot() const 
+	{ 
+		return bSnapshot;
+	}
+
+	uint32 GetUnusedForNFrames() const 
+	{ 
+		check(!bSnapshot);
+		return UnusedForNFrames; 
+	}
 
 	// interface IPooledRenderTarget --------------
 
@@ -43,10 +62,12 @@ private:
 
 	/** For pool management (only if NumRef == 0 the element can be reused) */
 	mutable int32 NumRefs;
-	/** All necessary data to create the render target */
-	FPooledRenderTargetDesc Desc;
 	/** Allows to defer the release to save performance on some hardware (DirectX) */
 	uint32 UnusedForNFrames;
+	/** All necessary data to create the render target */
+	FPooledRenderTargetDesc Desc;
+	/** Snapshots are sortof fake pooled render targets, they don't own anything and can outlive the things that created them. These are for threaded rendering. */
+	bool bSnapshot;
 
 	/** @return true:release this one, false otherwise */
 	bool OnFrameStart();
@@ -177,6 +198,14 @@ public:
 
 	void CreateUntrackedElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget>& Out, const FSceneRenderTargetItem& Item);
 
+	/** Destruct all snapshots, this must be done after all outstanding async tasks are done. It is important because they hold ref counted texture pointers etc **/
+	IPooledRenderTarget* MakeSnapshot(const TRefCountPtr<IPooledRenderTarget>& In);
+
+	/** Destruct all snapshots, this must be done after all outstanding async tasks are done. It is important because they hold ref counted texture pointers etc **/
+	void DestructSnapshots();
+
+
+
 	/** Only to get statistics on usage and free elements. Normally only called in renderthread or if FlushRenderingCommands was called() */
 	void GetStats(uint32& OutWholeCount, uint32& OutWholePoolInKB, uint32& OutUsedInKB) const;
 	/**
@@ -231,6 +260,9 @@ private:
 
 	/** Elements can be 0, we compact the buffer later. */
 	TArray< TRefCountPtr<FPooledRenderTarget> > PooledRenderTargets;
+
+	/** These are snapshots, have odd life times, live in the scene allocator, and don't contibute to any accounting or other management. */
+	TArray<FPooledRenderTarget*> PooledRenderTargetSnapshots;
 
 	// redundant, can always be computed with GetStats(), to debug "out of memory" situations and used for r.RenderTargetPoolMin
 	uint32 AllocationLevelInKB;

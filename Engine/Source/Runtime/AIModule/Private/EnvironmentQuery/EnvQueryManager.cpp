@@ -24,6 +24,7 @@ DEFINE_STAT(STAT_AI_EQS_Tick);
 DEFINE_STAT(STAT_AI_EQS_TickWork);
 DEFINE_STAT(STAT_AI_EQS_TickNotifies);
 DEFINE_STAT(STAT_AI_EQS_LoadTime);
+DEFINE_STAT(STAT_AI_EQS_ExecuteOneStep);
 DEFINE_STAT(STAT_AI_EQS_GeneratorTime);
 DEFINE_STAT(STAT_AI_EQS_TestTime);
 DEFINE_STAT(STAT_AI_EQS_NumInstances);
@@ -245,6 +246,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 	SET_DWORD_STAT(STAT_AI_EQS_NumInstances, RunningQueries.Num());
 	// @TODO: threads?
 
+	const double ExecutionTimeWarningSeconds = 0.25;
 	const double MaxAllowedSeconds = 0.010;
 	double TimeLeft = MaxAllowedSeconds;
 	int32 FinishedQueriesCount = 0;
@@ -255,20 +257,33 @@ void UEnvQueryManager::Tick(float DeltaTime)
 		SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TickWork);
 		while (TimeLeft > 0.0 && RunningQueriesCopy.Num() > 0)
 		{
+			bool LoggedExecutionTimeWarning = false;
+
 			for (int32 Index = 0; Index < RunningQueriesCopy.Num() && TimeLeft > 0.0; Index++)
 			{
 				const double StartTime = FPlatformTime::Seconds();
 
 				TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueriesCopy[Index];
-				//SCOPE_LOG_TIME(*FString::Printf(TEXT("Query %s step"), *QueryInstance->QueryName), nullptr);
 
 				QueryInstance->ExecuteOneStep(TimeLeft);
 
 				if (QueryInstance->IsFinished())
 				{
+					if (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds)
+					{
+						UE_LOG(LogEQS, Error, TEXT("Finished query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
+					}
+
 					RunningQueriesCopy.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
 					Index--;
 					++FinishedQueriesCount;
+					LoggedExecutionTimeWarning = false;
+				}
+
+				if (!LoggedExecutionTimeWarning && (QueryInstance->GetTotalExecutionTime() > ExecutionTimeWarningSeconds))
+				{
+					UE_LOG(LogEQS, Error, TEXT("Query %s over execution time warning. %s"), *QueryInstance->QueryName, *QueryInstance->GetExecutionTimeDescription());
+					LoggedExecutionTimeWarning = true;
 				}
 
 				TimeLeft -= (FPlatformTime::Seconds() - StartTime);
@@ -321,12 +336,18 @@ void UEnvQueryManager::OnWorldCleanup()
 
 void UEnvQueryManager::RegisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
 {
-	ExternalQueries.Add(QueryInstance->QueryID, QueryInstance);
+	if (QueryInstance.IsValid())
+	{
+		ExternalQueries.Add(QueryInstance->QueryID, QueryInstance);
+	}
 }
 
 void UEnvQueryManager::UnregisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
 {
-	ExternalQueries.Remove(QueryInstance->QueryID);
+	if (QueryInstance.IsValid())
+	{
+		ExternalQueries.Remove(QueryInstance->QueryID);
+	}
 }
 
 namespace EnvQueryTestSort

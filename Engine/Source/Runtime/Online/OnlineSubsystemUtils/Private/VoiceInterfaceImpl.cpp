@@ -52,13 +52,14 @@ bool FOnlineVoiceImpl::Init()
 		bSuccess = SessionInt && IdentityInt;
 	}
 
-	if (bSuccess && !OnlineSubsystem->IsDedicated())
+	const bool bIntentionallyDisabled = OnlineSubsystem->IsDedicated() || GIsBuildMachine;
+	if (bSuccess && !bIntentionallyDisabled)
 	{
 		VoiceEngine = MakeShareable(new FVoiceEngineImpl(OnlineSubsystem));
 		bSuccess = VoiceEngine->Init(MaxLocalTalkers, MaxRemoteTalkers);
-		LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	}
 
+	LocalTalkers.Init(FLocalTalker(), MaxLocalTalkers);
 	RemoteTalkers.Empty(MaxRemoteTalkers);
 
 	if (!bSuccess)
@@ -71,6 +72,18 @@ bool FOnlineVoiceImpl::Init()
 	}
 
 	return bSuccess;
+}
+
+void FOnlineVoiceImpl::Shutdown()
+{
+	VoiceData.RemotePackets.Empty();
+
+	LocalTalkers.Empty();
+	RemoteTalkers.Empty();
+
+	VoiceEngine = nullptr;
+	SessionInt = nullptr;
+	IdentityInt = nullptr;
 }
 
 void FOnlineVoiceImpl::ClearVoicePackets()
@@ -223,7 +236,7 @@ bool FOnlineVoiceImpl::UnregisterLocalTalker(uint32 LocalUserNum)
 		{
 			if (OnPlayerTalkingStateChangedDelegates.IsBound() && (Talker.bIsTalking || Talker.bWasTalking))
 			{
-				TSharedPtr<FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+				TSharedPtr<const FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
 				if (UniqueId.IsValid())
 				{
 					OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), false);
@@ -622,7 +635,7 @@ void FOnlineVoiceImpl::ProcessTalkingDelegates(float DeltaTime)
 				// Skip all delegate handling if none are registered
 				if (OnPlayerTalkingStateChangedDelegates.IsBound())
 				{
-					TSharedPtr<FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
+					TSharedPtr<const FUniqueNetId> UniqueId = IdentityInt->GetUniquePlayerId(LocalUserNum);
 					OnPlayerTalkingStateChangedDelegates.Broadcast(UniqueId.ToSharedRef(), Talker.bIsTalking);
 				}
 
@@ -783,7 +796,7 @@ void FOnlineVoiceImpl::ProcessRemoteVoicePackets()
 
 FString FOnlineVoiceImpl::GetVoiceDebugState() const
 {
-	TSharedPtr<FUniqueNetId> UniqueId;
+	TSharedPtr<const FUniqueNetId> UniqueId;
 
 	FString Output = TEXT("Voice state\n");
 	Output += VoiceEngine.IsValid() ? VoiceEngine->GetVoiceDebugState() : TEXT("No Voice Engine!");

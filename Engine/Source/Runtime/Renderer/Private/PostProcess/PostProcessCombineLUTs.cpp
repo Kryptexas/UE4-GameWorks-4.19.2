@@ -188,7 +188,10 @@ public:
 			// we don't need to set the neutral one
 			if(i != 0)
 			{
-				SetTextureParameter(RHICmdList, ShaderRHI, TextureParameter[i], TextureParameterSampler[i], Texture[i]);
+				// don't use texture asset sampler as it might have anisotropic filtering enabled
+				FSamplerStateRHIParamRef Sampler = TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI();
+
+				SetTextureParameter(RHICmdList, ShaderRHI, TextureParameter[i], TextureParameterSampler[i], Sampler, Texture[i]->TextureRHI);
 			}
 
 			SetShaderValue(RHICmdList, ShaderRHI, WeightsParameter, Weights[i], i);
@@ -319,9 +322,9 @@ public:
 			float FilmSlopeS = FilmMidYS / (FilmMidXS);
 			float FilmHiYS = 1.0f - FilmHiY;
 			float FilmLoYS = FilmLoY;
-			float FilmToeS = FilmLoX;
+			float FilmToeVal = FilmLoX;
 			float FilmHiG = (-FilmHiYS + (FilmSlopeS*FilmHeal)) / (FilmSlopeS*FilmHeal);
-			float FilmLoG = (-FilmLoYS + (FilmSlopeS*FilmToeS)) / (FilmSlopeS*FilmToeS);
+			float FilmLoG = (-FilmLoYS + (FilmSlopeS*FilmToeVal)) / (FilmSlopeS*FilmToeVal);
 
 			// Constants.
 			float OutColorCurveCh1 = FilmHiYS/FilmHiG;
@@ -706,7 +709,7 @@ void FRCPassPostProcessCombineLUTs::Process(FRenderingCompositePassContext& Cont
 
 FPooledRenderTargetDesc FRCPassPostProcessCombineLUTs::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), PF_A2B10G10R10, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
+	FPooledRenderTargetDesc Ret = FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GLUTSize * GLUTSize, GLUTSize), PF_A2B10G10R10, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false);
 
 	if(UseVolumeTextureLUT(ShaderPlatform))
 	{

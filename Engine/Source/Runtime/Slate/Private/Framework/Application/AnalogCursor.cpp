@@ -138,7 +138,8 @@ bool FAnalogCursor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEv
 			);
 
 		TSharedPtr<FGenericWindow> GenWindow;
-		SlateApp.ProcessMouseButtonDownEvent(GenWindow, MouseEvent);
+		return SlateApp.ProcessMouseButtonDownEvent(GenWindow, MouseEvent);
+
 	}
 
 	return false;

@@ -172,8 +172,16 @@ Tooltip Display** option.
 
 ![Graph Tooltip](bs_samples_tooltip.png)
 
-[REGION:caption]
-**Right-click and Save As to download a video**
-[/REGION]
+An example of a previewing a Blend Space is illustrated below. 
 
-[![](PlayBlendSpaceVideo.png)(w:640)](BlendSpace.mp4)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+L435S6VaUMY
+[/PARAMLITERAL]
+[/OBJECT]

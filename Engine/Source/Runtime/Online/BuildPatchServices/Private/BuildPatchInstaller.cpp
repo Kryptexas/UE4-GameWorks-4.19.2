@@ -127,15 +127,18 @@ uint32 FBuildPatchInstaller::Run()
 		// Backup local changes then move generated files
 		bInstallSuccess = bInstallSuccess && RunBackupAndMove();
 
+		// There is no more potential for initialising
+		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
+
 		// Setup file attributes
 		bInstallSuccess = bInstallSuccess && RunFileAttributes(bIsRepairing);
 
 		// Run Verification
 		CorruptFiles.Empty();
-		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
 		bProcessSuccess = bInstallSuccess && RunVerification(CorruptFiles);
 
 		// Clean staging if INSTALL success
+		BuildProgress.SetStateProgress(EBuildPatchProgress::CleanUp, 0.0f);
 		CleanUpTime = FPlatformTime::Seconds();
 		if (bInstallSuccess)
 		{
@@ -221,6 +224,33 @@ uint32 FBuildPatchInstaller::Run()
 	return bSuccess ? 0 : 1;
 }
 
+bool FBuildPatchInstaller::CheckForExternallyInstalledFiles()
+{
+	// Check the marker file for a previous installation unfinished
+	if (IPlatformFile::GetPlatformPhysical().FileExists(*PreviousMoveMarker))
+	{
+		return true;
+	}
+
+	// If we are patching, but without the marker, we should not return true, the existing files will be old installation
+	if (CurrentBuildManifest.IsValid())
+	{
+		return false;
+	}
+
+	// Check if any required file is potentially already in place, by comparing file size as a quick 'same file' check
+	TArray<FString> BuildFiles;
+	NewBuildManifest->GetFileList(BuildFiles);
+	for (const FString& BuildFile : BuildFiles)
+	{
+		if (NewBuildManifest->GetFileSize(BuildFile) == IFileManager::Get().FileSize(*(InstallDirectory / BuildFile)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 {
 	GLog->Logf(TEXT("BuildPatchServices: Starting Installation"));
@@ -242,15 +272,30 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Remove any inventory
 	FBuildPatchFileConstructor::PurgeFileDataInventory();
 
-	// Check if we should skip out of this process
-	bool bPreviousStagingCompleted = FPaths::FileExists(PreviousMoveMarker);
-	if (bPreviousStagingCompleted)
+	// Store some totals
+	const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
+
+	// Save stats
 	{
-		GLog->Logf(TEXT("BuildPatchServices: Detected previous staging completed"));
+		FScopeLock Lock(&ThreadLock);
+		BuildStats.AppName = NewBuildManifest->GetAppName();
+		BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
+		BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
+		BuildStats.CloudDirectory = FBuildPatchServicesModule::GetCloudDirectory();
+		BuildStats.NumFilesInBuild = NumFilesInBuild;
+	}
+
+	// Check if we should skip out of this process due to existing installation,
+	// that will mean we start with the verification stage
+	bool bFirstTimeRun = CorruptFiles.Num() == 0;
+	if (bFirstTimeRun && CheckForExternallyInstalledFiles())
+	{
+		GLog->Logf(TEXT("BuildPatchServices: Detected previous staging completed, or existing files in target directory"));
 		// Set weights for verify only
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Downloading, 0.0f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::Installing, 0.0f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::MovingToInstall, 0.0f);
+		BuildProgress.SetStateWeight(EBuildPatchProgress::SettingAttributes, 0.2f);
 		BuildProgress.SetStateWeight(EBuildPatchProgress::BuildVerification, 1.0f);
 		// Mark all installation steps complete
 		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
@@ -273,6 +318,17 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	}
 	GLog->Logf(TEXT("BuildPatchServices: Requiring %d files"), FilesToConstruct.Num());
 
+	// Make sure all the files won't exceed the maximum path length
+	for (const auto& FileToConstruct : FilesToConstruct)
+	{
+		if ((InstallStagingDir / FileToConstruct).Len() >= MAX_PATH)
+		{
+			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
+			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded);
+			return false;
+		}
+	}
+
 	// Create the downloader
 	FBuildPatchDownloader::Create(DataStagingDir, NewBuildManifest, &BuildProgress);
 
@@ -285,9 +341,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Hold the file constructor thread
 	FBuildPatchFileConstructor* FileConstructor = NULL;
 
-	// Store some totals
-	const uint32 NumFilesInBuild = NewBuildManifest->GetNumFiles();
-
 	// Stats for build
 	const uint32 NumFilesToConstruct = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumFilesToConstruct();
 	const uint32 NumRequiredChunks = bIsFileData ? NumFilesInBuild : FBuildPatchChunkCache::Get().GetStatNumRequiredChunks();
@@ -297,11 +350,6 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	// Save stats
 	{
 		FScopeLock Lock(&ThreadLock);
-		BuildStats.AppName = NewBuildManifest->GetAppName();
-		BuildStats.AppPatchVersion = NewBuildManifest->GetVersionString();
-		BuildStats.AppInstalledVersion = CurrentBuildManifest.IsValid() ? CurrentBuildManifest->GetVersionString() : TEXT("NONE");
-		BuildStats.CloudDirectory = FBuildPatchServicesModule::GetCloudDirectory();
-		BuildStats.NumFilesInBuild = NumFilesInBuild;
 		BuildStats.NumFilesOutdated = NumFilesToConstruct;
 		BuildStats.NumChunksRequired = NumRequiredChunks;
 		BuildStats.ChunksQueuedForDownload = NumChunksToDownload;
@@ -314,10 +362,12 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 
 	// Setup some weightings for the progress tracking
 	const float NumRequiredChunksFloat = NumRequiredChunks;
+	const bool bHasFileAttributes = NewBuildManifest->HasFileAttributes();
+	const float AttributesWeight = bHasFileAttributes ? bIsRepairing ? 1.0f / 50.0f : 1.0f / 20.0f : 0.0f;
 	BuildProgress.SetStateWeight(EBuildPatchProgress::Downloading, NumRequiredChunksFloat > 0.0f ? InitialNumChunkDownloads / NumRequiredChunksFloat : 0.0f);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::Installing, NumRequiredChunksFloat > 0.0f ? 0.1f + (InitialNumChunkConstructions / NumRequiredChunksFloat) : 0.0f);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::MovingToInstall, NumFilesToConstruct > 0 ? 0.05f : 0.0f);
-	// A verify weight of 1 / 9 will make it 10% of the total progress
+	BuildProgress.SetStateWeight(EBuildPatchProgress::SettingAttributes, AttributesWeight);
 	BuildProgress.SetStateWeight(EBuildPatchProgress::BuildVerification, 1.1f / 9.0f);
 
 	// If this is a repair operation, start off with install and download complete
@@ -507,7 +557,7 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 				const FString DestFilename = InstallDirectory / ConstructionFile;
 				const float FileIndexFloat = ConstructionFilesIt.GetIndex();
 				// Skip files not constructed
-				if (!FPaths::FileExists(SrcFilename))
+				if (!FPlatformFileManager::Get().GetPlatformFile().FileExists(*SrcFilename))
 				{
 					BuildProgress.SetStateProgress(EBuildPatchProgress::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
 					continue;
@@ -589,7 +639,7 @@ bool FBuildPatchInstaller::RunFileAttributes(bool bForce)
 	FString& OptionalStageDirectory = bShouldStageOnly ? InstallStagingDir : EmptyString;
 
 	// Construct the attributes class
-	auto Attributes = FBuildPatchFileAttributesFactory::Create(NewBuildManifest, CurrentBuildManifest, InstallDirectory, OptionalStageDirectory);
+	auto Attributes = FBuildPatchFileAttributesFactory::Create(NewBuildManifest, CurrentBuildManifest, InstallDirectory, OptionalStageDirectory, &BuildProgress);
 	Attributes->ApplyAttributes(bForce);
 
 	// We don't fail on this step currently
@@ -670,13 +720,13 @@ bool FBuildPatchInstaller::BackupFileIfNecessary(const FString& Filename, bool b
 		return true;
 	}
 	// Skip if no file to backup
-	const bool bInstalledFileExists = FPaths::FileExists(InstalledFilename);
+	const bool bInstalledFileExists = FPlatformFileManager::Get().GetPlatformFile().FileExists(*InstalledFilename);
 	if (!bInstalledFileExists)
 	{
 		return true;
 	}
 	// Skip if already backed up
-	const bool bAlreadyBackedUp = FPaths::FileExists(BackupFilename);
+	const bool bAlreadyBackedUp = FPlatformFileManager::Get().GetPlatformFile().FileExists(*BackupFilename);
 	if (bAlreadyBackedUp)
 	{
 		return true;
@@ -938,6 +988,16 @@ bool FBuildPatchInstaller::IsPaused()
 	return BuildProgress.GetPauseState();
 }
 
+bool FBuildPatchInstaller::IsResumable()
+{
+	FScopeLock Lock( &ThreadLock );
+	if( FBuildPatchInstallError::GetErrorState() == EBuildPatchInstallError::PathLengthExceeded )
+	{
+		return false;
+	}
+	return !BuildStats.ProcessSuccess;
+}
+
 bool FBuildPatchInstaller::HasError()
 {
 	FScopeLock Lock( &ThreadLock );
@@ -968,9 +1028,9 @@ FText FBuildPatchInstaller::GetPercentageText()
 	return FText::AsPercent(GetUpdateProgress(), &PercentFormattingOptions);
 }
 
-FText FBuildPatchInstaller::GetStatusText()
+FText FBuildPatchInstaller::GetStatusText( bool ShortError )
 {
-	return BuildProgress.GetStateText();
+	return BuildProgress.GetStateText(ShortError);
 }
 
 float FBuildPatchInstaller::GetUpdateProgress()

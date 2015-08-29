@@ -6,16 +6,18 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
+#include "Tasks/AITask_MoveTo.h"
 
 UBTTask_MoveTo::UBTTask_MoveTo(const FObjectInitializer& ObjectInitializer) 
 	: Super(ObjectInitializer)
-	, AcceptableRadius(50.f)
-	, bAllowStrafe(false)
-	, bAllowPartialPath(true)
-	, bStopOnOverlap(true)
 {
 	NodeName = "Move To";
 	bNotifyTick = true;
+
+	AcceptableRadius = GET_AI_CONFIG_VAR(AcceptanceRadius);
+	bStopOnOverlap = GET_AI_CONFIG_VAR(bFinishMoveOnGoalOverlap); 
+	bAllowStrafe = GET_AI_CONFIG_VAR(bAllowStrafing);
+	bAllowPartialPath = GET_AI_CONFIG_VAR(bAcceptPartialPaths);
 
 	// accept only actors and vectors
 	BlackboardKey.AddObjectFilter(this, GET_MEMBER_NAME_CHECKED(UBTTask_MoveTo, BlackboardKey), AActor::StaticClass());
@@ -52,51 +54,88 @@ EBTNodeResult::Type UBTTask_MoveTo::PerformMoveTask(UBehaviorTreeComponent& Owne
 
 	if (MyController && MyBlackboard)
 	{
-		EPathFollowingRequestResult::Type RequestResult = EPathFollowingRequestResult::Failed;
-		
-		FAIMoveRequest MoveReq;
-		MoveReq.SetNavigationFilter(FilterClass);
-		MoveReq.SetAllowPartialPath(bAllowPartialPath);
-		MoveReq.SetAcceptanceRadius(AcceptableRadius);
-		MoveReq.SetCanStrafe(bAllowStrafe);
-		MoveReq.SetStopOnOverlap(bStopOnOverlap);
-
-		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
+		if (GET_AI_CONFIG_VAR(bEnableBTAITasks))
 		{
-			UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
-			AActor* TargetActor = Cast<AActor>(KeyValue);
-			if (TargetActor)
+			UAITask_MoveTo* AIMoveTask = NewBTAITask<UAITask_MoveTo>(OwnerComp);
+
+			if (AIMoveTask != nullptr)
 			{
-				MoveReq.SetGoalActor(TargetActor);
+				bool bSetUp = false;
+				if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
+				{
+					UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
+					AActor* TargetActor = Cast<AActor>(KeyValue);
+					if (TargetActor)
+					{
+						AIMoveTask->SetUp(MyController, FVector::ZeroVector, TargetActor, AcceptableRadius, /*bUsePathfinding=*/true, FAISystem::BoolToAIOption(bStopOnOverlap), FAISystem::BoolToAIOption(bAllowPartialPath));
+						NodeResult = EBTNodeResult::InProgress;
+					}
+					else
+					{
+						UE_VLOG(MyController, LogBehaviorTree, Warning, TEXT("UBTTask_MoveTo::ExecuteTask tried to go to actor while BB %s entry was empty"), *BlackboardKey.SelectedKeyName.ToString());
+					}
+				}
+				else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
+				{
+					const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+					AIMoveTask->SetUp(MyController, TargetLocation, nullptr, AcceptableRadius, /*bUsePathfinding=*/true, FAISystem::BoolToAIOption(bStopOnOverlap), FAISystem::BoolToAIOption(bAllowPartialPath));
+					NodeResult = EBTNodeResult::InProgress;
+				}
+
+				if (NodeResult == EBTNodeResult::InProgress)
+				{
+					AIMoveTask->ReadyForActivation();
+				}
+			}
+		}
+		else
+		{
+			EPathFollowingRequestResult::Type RequestResult = EPathFollowingRequestResult::Failed;
+
+			FAIMoveRequest MoveReq;
+			MoveReq.SetNavigationFilter(FilterClass);
+			MoveReq.SetAllowPartialPath(bAllowPartialPath);
+			MoveReq.SetAcceptanceRadius(AcceptableRadius);
+			MoveReq.SetCanStrafe(bAllowStrafe);
+			MoveReq.SetStopOnOverlap(bStopOnOverlap);
+
+			if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
+			{
+				UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
+				AActor* TargetActor = Cast<AActor>(KeyValue);
+				if (TargetActor)
+				{
+					MoveReq.SetGoalActor(TargetActor);
+
+					RequestResult = MyController->MoveTo(MoveReq);
+				}
+				else
+				{
+					UE_VLOG(MyController, LogBehaviorTree, Warning, TEXT("UBTTask_MoveTo::ExecuteTask tried to go to actor while BB %s entry was empty"), *BlackboardKey.SelectedKeyName.ToString());
+				}
+			}
+			else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
+			{
+				const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
+				MoveReq.SetGoalLocation(TargetLocation);
 
 				RequestResult = MyController->MoveTo(MoveReq);
 			}
-			else
+
+			if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
 			{
-				UE_VLOG(MyController, LogBehaviorTree, Warning, TEXT("UBTTask_MoveTo::ExecuteTask tried to go to actor while BB %s entry was empty"), *BlackboardKey.SelectedKeyName.ToString());
+				const FAIRequestID RequestID = MyController->GetCurrentMoveRequestID();
+
+				MyMemory->MoveRequestID = RequestID;
+				WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
+				WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);
+
+				NodeResult = EBTNodeResult::InProgress;
 			}
-		}
-		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
-		{
-			const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
-			MoveReq.SetGoalLocation(TargetLocation);
-
-			RequestResult = MyController->MoveTo(MoveReq);
-		}
-
-		if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
-		{
-			const FAIRequestID RequestID = MyController->GetCurrentMoveRequestID();
-
-			MyMemory->MoveRequestID = RequestID;
-			WaitForMessage(OwnerComp, UBrainComponent::AIMessage_MoveFinished, RequestID);
-			WaitForMessage(OwnerComp, UBrainComponent::AIMessage_RepathFailed);
-
-			NodeResult = EBTNodeResult::InProgress;
-		}
-		else if (RequestResult == EPathFollowingRequestResult::AlreadyAtGoal)
-		{
-			NodeResult = EBTNodeResult::Succeeded;
+			else if (RequestResult == EPathFollowingRequestResult::AlreadyAtGoal)
+			{
+				NodeResult = EBTNodeResult::Succeeded;
+			}
 		}
 	}
 

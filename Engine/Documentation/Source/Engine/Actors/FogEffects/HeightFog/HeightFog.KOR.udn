@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2427207
+﻿INTSourceChangelist:2601329
 Availability: Public
 Title:익스포넨셜 하이트 포그 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Actors, Engine/Actors/FogEffects
@@ -53,7 +53,6 @@ Description:Exponential Height Fog Actor, 익스포넨셜 하이트 포그 액�
 
 
 
-## 개요
 
 이 문서에서는 Exponential Height Fog (익스포넨셜 하이트 포그)와 그 용도에 대해 다룹니다. 여기서는 이미 익스포넨셜 하이트 포그에 설정할 레벨이 셋업되어 있다 가정합니다.
 

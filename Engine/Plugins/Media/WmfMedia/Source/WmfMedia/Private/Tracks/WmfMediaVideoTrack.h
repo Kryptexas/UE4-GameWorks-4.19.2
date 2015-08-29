@@ -10,7 +10,7 @@
  */
 class FWmfMediaVideoTrack
 	: public FWmfMediaTrack
-	, public IMediaTrackVideoDetails
+	, public IMediaVideoTrack
 {
 public:
 
@@ -45,7 +45,7 @@ public:
 
 public:
 
-	// IMediaTrackVideoDetails interface
+	// IMediaVideoTrack interface
 
 	virtual uint32 GetBitRate() const override
 	{
@@ -62,28 +62,7 @@ public:
 		return FrameRate;
 	}
 
-public:
-
-	// IMediaTrack interface
-
-	virtual const IMediaTrackAudioDetails& GetAudioDetails() const override
-	{
-		check(false); // not an audio track
-		return (IMediaTrackAudioDetails&)*this;
-	}
-
-	virtual const IMediaTrackCaptionDetails& GetCaptionDetails() const override
-	{
-		check(false); // not a caption track
-		return (IMediaTrackCaptionDetails&)*this;
-	}
-
-	virtual EMediaTrackTypes GetType() const override
-	{
-		return EMediaTrackTypes::Video;
-	}
-
-	virtual const IMediaTrackVideoDetails& GetVideoDetails() const override
+	virtual IMediaStream& GetStream() override
 	{
 		return *this;
 	}

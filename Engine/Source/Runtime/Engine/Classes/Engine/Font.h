@@ -8,21 +8,19 @@
 #include "Font.generated.h"
 
 
-/**
- * Enumerates supported font caching types.
- */
+/** Enumerates supported font caching types. */
 UENUM()
 enum class EFontCacheType
 {
-	/** The font is using offline caching (this is how UFont traditionally worked) */
+	/** The font is using offline caching (this is how UFont traditionally worked). */
 	Offline,
 
-	/** The font is using runtime caching (this is how Slate fonts work) */
+	/** The font is using runtime caching (this is how Slate fonts work). */
 	Runtime,
 };
 
 
-/** this struct is serialized using native serialization so any changes to it require a package version bump */
+/** This struct is serialized using native serialization so any changes to it require a package version bump. */
 USTRUCT()
 struct FFontCharacter
 {

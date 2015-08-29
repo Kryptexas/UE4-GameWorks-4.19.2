@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2514961
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:스프라이트 소스 리전 및 렌더 지오메트리
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
@@ -51,3 +51,8 @@ Related: Engine/Content/Types/Textures
 렌더 지오메트리가 스프라이트의 불투명 픽셀에 보다 근접하게 일치될수록, 심각한 퍼포먼스 악재로 이어질 수 있는 
 투명 픽셀의 오버드로 가능성도 줄어듭니다.
 [/REGION]
+
+
+
+
+

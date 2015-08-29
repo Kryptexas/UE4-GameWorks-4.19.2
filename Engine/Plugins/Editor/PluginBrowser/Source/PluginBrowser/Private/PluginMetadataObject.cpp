@@ -22,6 +22,7 @@ void UPluginMetadataObject::PopulateFromDescriptor(const FPluginDescriptor& InDe
 	CreatedBy = InDescriptor.CreatedBy;
 	CreatedByURL = InDescriptor.CreatedByURL;
 	DocsURL = InDescriptor.DocsURL;
+	SupportURL = InDescriptor.SupportURL;
 	bCanContainContent = InDescriptor.bCanContainContent;
 	bIsBetaVersion = InDescriptor.bIsBetaVersion;
 }
@@ -36,6 +37,7 @@ void UPluginMetadataObject::CopyIntoDescriptor(FPluginDescriptor& OutDescriptor)
 	OutDescriptor.CreatedBy = CreatedBy;
 	OutDescriptor.CreatedByURL = CreatedByURL;
 	OutDescriptor.DocsURL = DocsURL;
+	OutDescriptor.SupportURL = SupportURL;
 	OutDescriptor.bCanContainContent = bCanContainContent;
 	OutDescriptor.bIsBetaVersion = bIsBetaVersion;
 }

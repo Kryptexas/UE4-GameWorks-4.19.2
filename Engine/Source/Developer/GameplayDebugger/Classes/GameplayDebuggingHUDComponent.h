@@ -18,22 +18,13 @@ struct GAMEPLAYDEBUGGER_API FDebugCategoryView
 #define ADD_GAMEVIEW_CATEGORY(__Category__) \
 {\
 	UGameplayDebuggerSettings* GDS = UGameplayDebuggerSettings::StaticClass()->GetDefaultObject<UGameplayDebuggerSettings>();\
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::GameView1, GDS->GetCustomViewNames().GameView1.Len() ? GDS->GetCustomViewNames().GameView1 : TEXT("GameView1")));\
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::__Category__, GDS->GetCustomViewNames().__Category__.Len() ? GDS->GetCustomViewNames().__Category__ : TEXT(#__Category__)));\
 }
 
 UCLASS(config = Engine, notplaceable)
 class GAMEPLAYDEBUGGER_API AGameplayDebuggingHUDComponent : public AActor
 {
 	GENERATED_UCLASS_BODY()
-
-	UPROPERTY(config)
-	float MenuStartX;
-	UPROPERTY(config)
-	float MenuStartY;
-	UPROPERTY(config)
-	float DebugInfoStartX;
-	UPROPERTY(config)
-	float DebugInfoStartY;
 
 	struct FPrintContext
 	{
@@ -79,9 +70,27 @@ protected:
 
 	virtual void GetKeyboardDesc(TArray<FDebugCategoryView>& Categories);
 
+	void PrintString(FPrintContext& Context, const FString& InString );
+	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
+	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString, float X, float Y );
+
+	void DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent);
+
+	AGameplayDebuggingReplicator* GetDebuggingReplicator();
+
 private:
 	// local player related draw from PostRender
 	void DrawDebugComponentData(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent);
+
+public:
+	UPROPERTY(config)
+	float MenuStartX;
+	UPROPERTY(config)
+	float MenuStartY;
+	UPROPERTY(config)
+	float DebugInfoStartX;
+	UPROPERTY(config)
+	float DebugInfoStartY;
 
 protected:
 	UPROPERTY(Transient)
@@ -99,11 +108,8 @@ protected:
 	UWorld* World;
 	FEngineShowFlags EngineShowFlags;
 
-	void PrintString(FPrintContext& Context, const FString& InString );
-	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString );
-	void PrintString(FPrintContext& Context, const FColor& InColor, const FString& InString, float X, float Y );
-
-	void DrawEQSItemDetails(int32 ItemIdx, class UGameplayDebuggingComponent *DebugComponent);
-
-	AGameplayDebuggingReplicator* GetDebuggingReplicator();
+private:
+	float ItemDescriptionWidth;
+	float ItemScoreWidth;
+	float TestScoreWidth;
 };

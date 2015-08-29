@@ -252,7 +252,7 @@ public:
     /** Efficiently empties out the map but preserves all allocations and capacities */
     FORCEINLINE void Reset()
     {
-        Empty(Num());
+        Pairs.Reset();
     }
 
 	/** Shrinks the pair set to avoid slack. */
@@ -499,7 +499,7 @@ public:
 
 	/**
 	 * Checks if map contains the specified key.
-	 * @return Key - The key to check for.
+	 * @param Key - The key to check for.
 	 * @return true if the map contains the key.
 	 */
 	FORCEINLINE bool Contains(KeyConstPointerType Key) const

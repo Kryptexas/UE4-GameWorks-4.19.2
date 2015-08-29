@@ -179,7 +179,6 @@ static int32 CleanBSPMaterials(UWorld* InWorld, bool bPreviewOnly, bool bLogBrus
 					}
 					if ( !bPreviewOnly )
 					{
-						Actor->Brush->Polys->Element.ModifyItem(PolyIndex);
 						ReferencedMaterial = UMaterial::GetDefaultMaterial(MD_Surface);
 					}
 				}
@@ -572,13 +571,13 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			{
 				DefaultBrush->Brush->Modify();
 				SnapLocation = DefaultBrush->GetActorLocation();
-				PrePivot = DefaultBrush->GetPrePivot();
+				PrePivot = DefaultBrush->GetPivotOffset();
 			}
 			
 			FSnappingUtils::SnapToBSPVertex( SnapLocation, FVector::ZeroVector, Temp );
 
 			WorldBrush->SetActorLocation(SnapLocation - PrePivot, false);
-			WorldBrush->SetPrePivot( FVector::ZeroVector );
+			WorldBrush->SetPivotOffset( FVector::ZeroVector );
 			WorldBrush->Brush->Polys->Element.Empty();
 			UPolysFactory* It = NewObject<UPolysFactory>();
 			It->FactoryCreateText( UPolys::StaticClass(), WorldBrush->Brush->Polys->GetOuter(), *WorldBrush->Brush->Polys->GetName(), RF_NoFlags, WorldBrush->Brush->Polys, TEXT("t3d"), GStream, GStream+FCString::Strlen(GStream), GWarn );
@@ -629,11 +628,11 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 
 						Poly->TextureU *= InvScale;
 						Poly->TextureV *= InvScale;
-						Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * Scale) + Brush->GetPrePivot();
+						Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * Scale) + Brush->GetPivotOffset();
 
 						for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 						{
-							Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * Scale) + Brush->GetPrePivot();
+							Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * Scale) + Brush->GetPivotOffset();
 						}
 
 						Poly->CalcNormal();
@@ -697,8 +696,9 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 					LoadAndSelectAssets( SelectedAssets, UMaterial::StaticClass() );
 				}
 
+				InWorld->GetModel()->Modify();
+				NewBrush->Modify();
 				bspBrushCSG( NewBrush, InWorld->GetModel(), DWord1, Brush_Add, CSG_None, true, true, true );
-				NewBrush->MarkPackageDirty();
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -780,8 +780,9 @@ bool UEditorEngine::Exec_Brush( UWorld* InWorld, const TCHAR* Str, FOutputDevice
 			NewBrush = FBSPOps::csgAddOperation(WorldBrush,0,Brush_Subtract); // Layer
 			if( NewBrush )
 			{
+				NewBrush->Modify();
+				InWorld->GetModel()->Modify();
 				bspBrushCSG( NewBrush, InWorld->GetModel(), 0, Brush_Subtract, CSG_None, true, true, true );
-				NewBrush->MarkPackageDirty();
 			}
 			InWorld->InvalidateModelGeometry( InWorld->GetCurrentLevel() );
 		}
@@ -1575,8 +1576,27 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
 {
+	TUniquePtr<FBspPointsGrid> BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+	TUniquePtr<FBspPointsGrid> BspVectors = MakeUnique<FBspPointsGrid>(1/16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+	FBspPointsGrid::GBspPoints = BspPoints.Get();
+	FBspPointsGrid::GBspVectors = BspVectors.Get();
+
 	// Empty the model out.
+	const int32 NumPoints = Model->Points.Num();
+	const int32 NumNodes = Model->Nodes.Num();
+	const int32 NumVerts = Model->Verts.Num();
+	const int32 NumVectors = Model->Vectors.Num();
+	const int32 NumSurfs = Model->Surfs.Num();
+
+	Model->Modify();
 	Model->EmptyModel(1, 1);
+
+	// Reserve arrays an eighth bigger than the previous allocation
+	Model->Points.Empty(NumPoints + NumPoints / 8);
+	Model->Nodes.Empty(NumNodes + NumNodes / 8);
+	Model->Verts.Empty(NumVerts + NumVerts / 8);
+	Model->Vectors.Empty(NumVectors + NumVectors / 8);
+	Model->Surfs.Empty(NumSurfs + NumSurfs / 8);
 		
 	// Limit the brushes used to the level the model is for
 	ULevel* Level = Model->GetTypedOuter<ULevel>();
@@ -1602,6 +1622,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 			{
 				Brush->PolyFlags = (Brush->PolyFlags & ~PF_Semisolid) | PF_NotSolid;
 			}
+			Brush->Modify();
 			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
 		}
 	}
@@ -1614,6 +1635,7 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 			(!bSelectedBrushesOnly || Brush->IsSelected()) &&
 			(Brush->PolyFlags & PF_Semisolid) && !(Brush->PolyFlags & PF_Portal) && (Brush->BrushType == Brush_Add))
 		{
+			Brush->Modify();
 			bspBrushCSG(Brush, Model, Brush->PolyFlags, (EBrushType)Brush->BrushType, CSG_None, false, true, false, false);
 		}
 	}
@@ -1625,9 +1647,17 @@ void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushes
 		if (DynamicBrush && DynamicBrush->Brush && !DynamicBrush->IsStaticBrush() &&
 			(!bSelectedBrushesOnly || DynamicBrush->IsSelected()))
 		{
+			BspPoints = MakeUnique<FBspPointsGrid>(50.0f, THRESH_POINTS_ARE_SAME);
+			BspVectors = MakeUnique<FBspPointsGrid>(1 / 16.0f, FMath::Max(THRESH_NORMALS_ARE_SAME, THRESH_VECTORS_ARE_NEAR));
+			FBspPointsGrid::GBspPoints = BspPoints.Get();
+			FBspPointsGrid::GBspVectors = BspVectors.Get();
+
 			FBSPOps::csgPrepMovingBrush(DynamicBrush);
 		}
 	}
+
+	FBspPointsGrid::GBspPoints = nullptr;
+	FBspPointsGrid::GBspVectors = nullptr;
 }
 
 
@@ -1718,7 +1748,8 @@ void UEditorEngine::BSPIntersectionHelper(UWorld* InWorld, ECsgOper Operation)
 	ABrush* DefaultBrush = InWorld->GetDefaultBrush();
 	if (DefaultBrush != NULL)
 	{
-		DefaultBrush->Brush->Modify();
+		DefaultBrush->Modify();
+		InWorld->GetModel()->Modify();
 		FinishAllSnaps();
 		bspBrushCSG(DefaultBrush, InWorld->GetModel(), 0, Brush_MAX, Operation, false, true, true);
 	}
@@ -1766,6 +1797,15 @@ void UEditorEngine::CheckForWorldGCLeaks( UWorld* NewWorld, UPackage* WorldPacka
 
 void UEditorEngine::EditorDestroyWorld( FWorldContext & Context, const FText& CleanseText, UWorld* NewWorld )
 {
+	if( FModuleManager::Get().IsModuleLoaded("LevelEditor") )
+	{
+		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
+
+		// Notify level editors of the map change
+		LevelEditor.BroadcastMapChanged( Context.World(), EMapChangeType::TearDownWorld );
+	}
+
+
 	UWorld* ContextWorld = Context.World();
 
 	if (ContextWorld == NULL )
@@ -2002,6 +2042,8 @@ UWorld* UEditorEngine::NewMap()
 	Context.SetCurrentWorld(NewWorld);
 	GWorld = NewWorld;
 	NewWorld->AddToRoot();
+	// Register components in the persistent level (current)
+	NewWorld->UpdateWorldComponents(true, true);
 
 	NoteSelectionChange();
 
@@ -2031,7 +2073,7 @@ UWorld* UEditorEngine::NewMap()
 	InitBuilderBrush( Context.World() );
 
 	// Let navigation system know we're done creating new world
-	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+	UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystemRunMode::EditorMode);
 
 	// Deselect all
 	GEditor->SelectNone( false, true );
@@ -2040,7 +2082,7 @@ UWorld* UEditorEngine::NewMap()
 	GUnrealEd->ResetTransaction( CleanseText );
 
 	// Invalidate all the level viewport hit proxies
-	InvalidateAllLevelEditorViewportClientHitProxies();
+	RedrawLevelEditingViewports();
 
 	return NewWorld;
 }
@@ -2214,7 +2256,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					for (TObjectIterator<UWorld> It; It; ++It)
 					{
 						UPackage* Package = Cast<UPackage>(It->GetOuter());
-						if (Package && Package != GetTransientPackage())
+						
+
+						if (Package && Package != GetTransientPackage() && Package->GetPathName() != LongTempFname)
 						{
 							WorldPackages.AddUnique(Package);
 						}
@@ -2372,6 +2416,9 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 						Context.World()->GetModel()->Polys->SetFlags( RF_Transactional );
 					}
 
+					// Register components in the persistent level (current)
+					Context.World()->UpdateWorldComponents(true, true);
+
 					// Make sure secondary levels are loaded & visible.
 					Context.World()->FlushLevelStreaming();
 
@@ -2424,7 +2471,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 
 					InitializingFeedback.EnterProgressFrame();
 
-					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystem::EditorMode);
+					UNavigationSystem::InitializeForWorld(Context.World(), FNavigationSystemRunMode::EditorMode);
 					Context.World()->CreateAISystem();
 
 					// Assign stationary light channels for previewing
@@ -2479,7 +2526,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					{
 						FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
 
-						// Notify slate level editors of the map change
+						// Notify level editors of the map change
 						LevelEditor.BroadcastMapChanged( Context.World(), EMapChangeType::LoadMap );
 					}
 
@@ -2490,7 +2537,7 @@ bool UEditorEngine::Map_Load(const TCHAR* Str, FOutputDevice& Ar)
 					}
 
 					// Invalidate all the level viewport hit proxies
-					InvalidateAllLevelEditorViewportClientHitProxies();
+					RedrawLevelEditingViewports();
 				}
 			}
 			else
@@ -3758,18 +3805,17 @@ bool UEditorEngine::Map_Scale( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			ABrush* Brush = Cast< ABrush >( Actor );
 			if( Brush )
 			{
-				Brush->Brush->Polys->Element.ModifyAllItems();
 				for( int32 poly = 0 ; poly < Brush->Brush->Polys->Element.Num() ; poly++ )
 				{
 					FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
 
 					Poly->TextureU /= Factor;
 					Poly->TextureV /= Factor;
-					Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * Factor) + Brush->GetPrePivot();
+					Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * Factor) + Brush->GetPivotOffset();
 
 					for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 					{
-						Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * Factor) + Brush->GetPrePivot();
+						Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * Factor) + Brush->GetPivotOffset();
 					}
 
 					Poly->CalcNormal();
@@ -3851,6 +3897,7 @@ namespace {
 		{
 			FBspSurf* Surf = *It;
 			UModel* Model = It.GetModel();
+			Model->Modify();
 			const FVector TextureU( Model->Vectors[Surf->vTextureU] );
 			const FVector TextureV( Model->Vectors[Surf->vTextureV] );
 			Surf->vTextureU = Model->Vectors.Add(TextureU);
@@ -3865,7 +3912,8 @@ namespace {
 
 		for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 		{
-			UModel* Model = (*Iterator)->Model;;
+			UModel* Model = (*Iterator)->Model;
+			Model->Modify();
 			GEditor->polyTexScale( Model, UU, UV, VU, VV, !!Word2 );
 		}
 	}
@@ -4061,7 +4109,9 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 				const int32 SurfaceIndex = It.GetSurfaceIndex();
 
 				Model->Surfs[SurfaceIndex].Material = SelectedMaterialInstance;
-				polyUpdateMaster( Model, SurfaceIndex, 0 );
+				const bool bUpdateTexCoords = false;
+				const bool bOnlyRefreshSurfaceMaterials = true;
+				polyUpdateMaster(Model, SurfaceIndex, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 				Model->MarkPackageDirty();
 
 				bModelDirtied = true;
@@ -4092,7 +4142,9 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 				{
 					const int32 SurfaceIndex = It.GetSurfaceIndex();
 					It.GetModel()->Surfs[SurfaceIndex].Material = Material;
-					polyUpdateMaster( It.GetModel(), SurfaceIndex, 0 );
+					const bool bUpdateTexCoords = false;
+					const bool bOnlyRefreshSurfaceMaterials = true;
+					polyUpdateMaster(It.GetModel(), SurfaceIndex, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 				}
 			}
 
@@ -4157,6 +4209,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			{
 				FBspSurf* Surf = *It;
 				UModel* Model = It.GetModel();
+				Model->Modify();
 				const FVector Base( Model->Points[Surf->pBase] );
 				Surf->pBase = Model->Points.Add(Base);
 			}
@@ -4166,6 +4219,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 				for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 				{
 					UModel* Model = (*Iterator)->Model;
+					Model->Modify();
 					polyTexPan( Model, 0, 0, 1 );
 				}
 			}
@@ -4175,6 +4229,7 @@ bool UEditorEngine::Exec_Poly( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 			for( FConstLevelIterator Iterator = InWorld->GetLevelIterator(); Iterator; ++Iterator )
 			{
 				UModel* Model = (*Iterator)->Model;
+				Model->Modify();
 				polyTexPan( Model, PanU, PanV, 0 );
 			}
 		}

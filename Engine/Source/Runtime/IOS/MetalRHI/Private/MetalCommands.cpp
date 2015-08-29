@@ -115,15 +115,27 @@ void FMetalDynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBoun
 void FMetalDynamicRHI::RHISetScissorRect(bool bEnable,uint32 MinX,uint32 MinY,uint32 MaxX,uint32 MaxY)
 {
 	MTLScissorRect Scissor;
-	Scissor.x = MinX;
-	Scissor.y = MinY;
-	Scissor.width = MaxX - MinX;
-	Scissor.height = MaxY - MinY;
 
-	// metal doesn't support 0 sized scissor rect
-	if (Scissor.width == 0 || Scissor.height == 0)
+	if (!bEnable)
 	{
-		return;
+		FIntPoint TargetDims = FMetalManager::Get()->GetBoundRenderTargetDimensions();
+		Scissor.x = 0;
+		Scissor.y = 0;
+		Scissor.width = (uint32)TargetDims.X;
+		Scissor.height = (uint32)TargetDims.Y;
+	}
+	else
+	{
+		Scissor.x = MinX;
+		Scissor.y = MinY;
+		Scissor.width = MaxX - MinX;
+		Scissor.height = MaxY - MinY;
+
+		// metal doesn't support 0 sized scissor rect
+		if (Scissor.width == 0 || Scissor.height == 0)
+		{
+			return;
+		}
 	}
 	[FMetalManager::GetContext() setScissorRect:Scissor];
 }
@@ -459,6 +471,7 @@ void FMetalDynamicRHI::RHISetDepthStencilState(FDepthStencilStateRHIParamRef New
 	FMetalDepthStencilState* NewState = ResourceCast(NewStateRHI);
 
 	NewState->Set();
+	[FMetalManager::GetContext() setStencilReferenceValue: StencilRef];
 }
 
 void FMetalDynamicRHI::RHISetBlendState(FBlendStateRHIParamRef NewStateRHI, const FLinearColor& BlendFactor)
@@ -784,16 +797,8 @@ void FMetalDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 
 		{
 			FRHICommandList_RecursiveHazardous RHICmdList(this);
-			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[0], GVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);
-			FLinearColor ShaderClearColors[MaxSimultaneousRenderTargets];
-			FMemory::Memzero(ShaderClearColors);
-
-			for (int32 i = 0; i < NumClearColors; i++)
-			{
-				ShaderClearColors[i] = ClearColorArray[i];
-			}
-
-			SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(), PixelShader->ColorParameter, ShaderClearColors, NumClearColors);
+			SetGlobalBoundShaderState(RHICmdList, GMaxRHIFeatureLevel, GClearMRTBoundShaderState[0], GVector4VertexDeclaration.VertexDeclarationRHI, *VertexShader, PixelShader);			
+			PixelShader->SetColors(RHICmdList, ClearColorArray, NumClearColors);
 
 			{
 				// Draw a fullscreen quad
@@ -848,11 +853,6 @@ void FMetalDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const F
 		RHIPopEvent();
 	}
 }											
-
-void FMetalDynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
-{
-	// Not necessary
-}
 
 void FMetalDynamicRHI::RHISuspendRendering()
 {

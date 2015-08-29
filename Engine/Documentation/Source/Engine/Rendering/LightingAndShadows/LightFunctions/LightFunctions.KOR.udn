@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2109466
+﻿INTSourceChangelist:2602324
 Availability: Public
 Title:라이트 함수
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -47,7 +47,7 @@ Description:머티리얼을 소스로 사용하여 투사되는 라이팅입니�
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-## 개요
+
 
 [EXCERPT:LightFunctions]
 **Light Function** (라이트 함수)란 본질적으로 라이트의 강도에 필터를 적용하는 것입니다.

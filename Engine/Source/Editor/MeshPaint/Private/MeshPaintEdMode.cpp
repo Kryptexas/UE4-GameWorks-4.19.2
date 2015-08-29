@@ -3443,30 +3443,22 @@ void FEdModeMeshPaint::RemoveComponentInstanceVertexColors(UStaticMeshComponent*
 {
 	if( StaticMeshComponent != NULL && StaticMeshComponent->StaticMesh != NULL && StaticMeshComponent->StaticMesh->GetNumLODs() > PaintingMeshLODIndex )
 	{
-		// Make sure we have component-level LOD information
-		if( StaticMeshComponent->LODData.Num() > PaintingMeshLODIndex )
+		// Mark the mesh component as modified
+		StaticMeshComponent->Modify();
+
+		// If this is called from the Remove button being clicked the SMC wont be in a Reregister context,
+		// but when it gets called from a Paste or Copy to Source operation it's already inside a more specific
+		// SMCRecreateScene context so we shouldn't put it inside another one.
+		if (StaticMeshComponent->IsRenderStateCreated())
 		{
-			FStaticMeshComponentLODInfo* InstanceMeshLODInfo = &StaticMeshComponent->LODData[ PaintingMeshLODIndex ];
+			// Detach all instances of this static mesh from the scene.
+			FComponentReregisterContext ComponentReregisterContext(StaticMeshComponent);
 
-			if(InstanceMeshLODInfo->OverrideVertexColors)
-			{
-				// @todo MeshPaint: Should make this undoable
-
-				// If this is called from the Remove button being clicked the SMC wont be in a Reregister context,
-				// but when it gets called from a Paste or Copy to Source operation it's already inside a more specific
-				// SMCRecreateScene context so we shouldn't put it inside another one.
-				if(StaticMeshComponent->IsRenderStateCreated())
-				{
-					// Detach all instances of this static mesh from the scene.
-					FComponentReregisterContext ComponentReregisterContext( StaticMeshComponent );
-
-					RemoveInstanceVertexColorsWorker(StaticMeshComponent, InstanceMeshLODInfo);
-				}
-				else
-				{
-					RemoveInstanceVertexColorsWorker(StaticMeshComponent, InstanceMeshLODInfo);
-				}
-			}
+			StaticMeshComponent->RemoveInstanceVertexColors();
+		}
+		else
+		{
+			StaticMeshComponent->RemoveInstanceVertexColors();
 		}
 	}
 }
@@ -3482,27 +3474,6 @@ void FEdModeMeshPaint::RemoveInstanceVertexColors() const
 		RemoveInstanceVertexColors( SelectedActors.GetSelectedObject( CurSelectedActorIndex ) );
 	}
 }
-
-/**
- * Does the work of removing instance vertex colors from a single static mesh component.
- *
- * @param	StaticMeshComponent		The SMC to remove vertex colors from.
- * @param	InstanceMeshLODInfo		The instance's LODInfo which stores the painted information to be cleared.
- */
-void FEdModeMeshPaint::RemoveInstanceVertexColorsWorker(UStaticMeshComponent *StaticMeshComponent, FStaticMeshComponentLODInfo *InstanceMeshLODInfo) const
-{
-	// Mark the mesh component as modified
-	StaticMeshComponent->Modify();
-
-	InstanceMeshLODInfo->ReleaseOverrideVertexColorsAndBlock();
-
-	// With no colors, there's no longer a reason to store vertex color positions. Remove them and count
-	// the component as up-to-date with the source mesh.
-	InstanceMeshLODInfo->PaintedVertices.Empty();
-	StaticMeshComponent->StaticMeshDerivedDataKey = StaticMeshComponent->StaticMesh->RenderData->DerivedDataKey;
-}
-
-
 
 /** Copies vertex colors associated with the currently selected mesh */
 void FEdModeMeshPaint::CopyInstanceVertexColors()

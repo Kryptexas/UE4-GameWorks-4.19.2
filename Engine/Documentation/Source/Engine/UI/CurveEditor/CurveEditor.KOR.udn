@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2424439
+﻿INTSourceChangelist:2604263
 Availability: Public
 Title:커브 에디터
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -44,10 +44,6 @@ Description:Distribution 프로퍼티 값을 구동하기 위해 커브를 대�
 [/VAR]
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 [EXCERPT:Intro]
 **커브 에디터** 는 시간에 따라 변하는 속성, 예를 들면 [분포(Distribution)](Engine/Basics/Distributions) 를 활용하는 속성을 조정할 수 있는 툴입니다. 현재 [마티네](Engine/Matinee) 및 [캐스케이드](Engine/Rendering/ParticleSystems/Cascade) 파티클 시스템 에디터 양쪽에서 사용되고 있습니다.

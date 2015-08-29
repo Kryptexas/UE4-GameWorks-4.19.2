@@ -20,7 +20,7 @@ public class FBX : ModuleRules
 
 		if ( Target.Platform == UnrealTargetPlatform.Win64 )
 		{
-			string FBxLibPath = FBXSDKDir + "lib/vs2012/"; // VS2013 libs are not readily available for FBX, so let's just use the 2012 ones whilst we can.
+			string FBxLibPath = FBXSDKDir + "lib/vs2012/"; // VS2013 libs are not readily available for FBX, so let's just use the 2012 ones while we can.
 
 			FBxLibPath += "x64/release/";
 			PublicLibraryPaths.Add(FBxLibPath);

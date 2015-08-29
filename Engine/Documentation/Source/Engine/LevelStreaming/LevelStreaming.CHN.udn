@@ -1,0 +1,67 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Level Streaming
+Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor
+Description:Asynchronously loading and unloading levels during play to decrease memory usage and create seamless worlds.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/LevelStreaming:title%](streaming_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/LevelStreaming:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/LevelStreaming:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/LevelStreaming]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/LevelStreaming:title%](streaming_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/LevelStreaming:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/LevelStreaming:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/LevelStreaming]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[EXCERPT:Intro]
+The Level Streaming feature makes it possible to load and unload map files into memory as well as toggle their visibility all during play. This makes it possible to have worlds broken up into smaller chunks so that only the relevant parts of the world are taking up resources and being rendered at any point. If done properly, this allows for the creation of very large, seamless levels that can make the player feel as if they are playing within a world that dwarfs them in size.
+[/EXCERPT:Intro]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	![](%ROOT%/editor_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	Level Streaming Topics
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Engine/LevelStreaming/WorldBrowser "%Engine/LevelStreaming/WorldBrowser:description%")
+	[/PARAM]
+[/OBJECT]
+ 
+
+
+
+

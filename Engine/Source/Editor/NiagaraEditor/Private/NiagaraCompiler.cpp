@@ -123,36 +123,64 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
-void FNiagaraCompiler::CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)
+bool FNiagaraCompiler::CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)
 {
 	//check the types of the input expressions.
 	const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpName);
 	check(OpInfo);
 	int32 NumInputs = Inputs.Num();
 	check(OpInfo->Inputs.Num() == NumInputs);
+	bool bError = false;
 	for (int32 i = 0; i < NumInputs ; ++i)
 	{
+		check(Inputs[i].IsValid());
 		if (OpInfo->Inputs[i].DataType != Inputs[i]->Result.Type)
 		{
-			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect inputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Inputs[i].DataType, (int32)((TNiagaraExprPtr)Inputs[i])->Result.Type.GetValue());
+			bError = true;
+			FText ErrorText = FText::Format(LOCTEXT("Expression {0} has incorrect inputs!\nExpected: {1} - Actual: {2}", ""),
+				FText::FromString(OpName.ToString()),
+				FText::AsNumber((int32)OpInfo->Inputs[i].DataType),
+				FText::AsNumber((int32)((TNiagaraExprPtr)Inputs[i])->Result.Type.GetValue()));
+			MessageLog.Error(*ErrorText.ToString());
 		}
 	}
+	return bError;
 }
 
-void FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)
+bool FNiagaraCompiler::CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)
 {
 	//check the types of the input expressions.
 	const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(OpName);
 	check(OpInfo);
 	int32 NumOutputs = Outputs.Num();
+	bool bError = false;
 	check(OpInfo->Outputs.Num() == NumOutputs);
 	for (int32 i = 0; i < NumOutputs; ++i)
 	{
+		check(Outputs[i].IsValid());
 		if (OpInfo->Outputs[i].DataType != Outputs[i]->Result.Type)
 		{
-			UE_LOG(LogNiagaraCompiler, Error, TEXT("Exression %s has incorrect outputs!\nExpected: %d - Actual: %d"), *OpName.ToString(), (int32)OpInfo->Outputs[i].DataType, (int32)((TNiagaraExprPtr)Outputs[i])->Result.Type.GetValue());
+			bError = true;
+			FText ErrorText = FText::Format(LOCTEXT("Expression {0} has incorrect inputs!\nExpected: {1} - Actual: {2}", ""),
+				FText::FromString(OpName.ToString()),
+				FText::AsNumber((int32)OpInfo->Outputs[i].DataType),
+				FText::AsNumber((int32)((TNiagaraExprPtr)Outputs[i])->Result.Type.GetValue()));
+			MessageLog.Error(*ErrorText.ToString());
 		}
 	}
+	return bError;
+}
+
+void FNiagaraCompiler::Error(FText ErrorText, UNiagaraNode* Node, UEdGraphPin* Pin)
+{
+	FString ErrorString = FString::Printf(TEXT("Node: @@ - Pin: @@ - %s"), *ErrorText.ToString());
+	MessageLog.Error(*ErrorString, Node, Pin);
+}
+
+void FNiagaraCompiler::Warning(FText WarningText, UNiagaraNode* Node, UEdGraphPin* Pin)
+{
+	FString WarnString = FString::Printf(TEXT("Node: @@ - Pin: @@ - %s"), *WarningText.ToString());
+	MessageLog.Warning(*WarnString, Node, Pin);
 }
 
 int32 FNiagaraCompiler::GetAttributeIndex(const FNiagaraVariableInfo& Attr)const
@@ -235,7 +263,7 @@ TNiagaraExprPtr FNiagaraCompiler::CompilePin(UEdGraphPin* Pin)
 				break;
 			case ENiagaraDataType::Curve:
 			{
-				FNiagaraDataObject *Default = nullptr;
+				UNiagaraDataObject *Default = nullptr;
 				ConstantData.SetOrAddInternal(Var, Default);
 			}
 				break;
@@ -303,6 +331,12 @@ TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo
 	SetOrAddConstant(false, Constant, Default);
 	return Expression_GetExternalConstant(Constant);
 }
+TNiagaraExprPtr FNiagaraCompiler::GetExternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)
+{
+	UNiagaraDataObject* DefaultDupe = Default ? CastChecked<UNiagaraDataObject>(StaticDuplicateObject(Default, Script, NULL, ~RF_Transient)) : nullptr;
+	SetOrAddConstant(false, Constant, DefaultDupe);
+	return Expression_GetExternalConstant(Constant);
+}
 TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default)
 {
 	SetOrAddConstant(true, Constant, Default);
@@ -318,11 +352,11 @@ TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo
 	SetOrAddConstant(true, Constant, Default);
 	return Expression_GetInternalConstant(Constant);
 }
-
-TNiagaraExprPtr FNiagaraCompiler::GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)
+TNiagaraExprPtr FNiagaraCompiler::GetInternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)
 {
-	SetOrAddConstant<FNiagaraDataObject*>(false, Constant, nullptr);
-	return Expression_GetExternalConstant(Constant);
+	UNiagaraDataObject* DefaultDupe = Default ? CastChecked<UNiagaraDataObject>(StaticDuplicateObject(Default, Script, NULL, ~RF_Transient)) : nullptr;
+	SetOrAddConstant(true, Constant, DefaultDupe);
+	return Expression_GetInternalConstant(Constant);
 }
 
 // TODO: Refactor this (and some other stuff) into a preprocessing step for use by any compiler?
@@ -385,9 +419,12 @@ bool FNiagaraCompiler::MergeInFunctionNodes()
 				FName OutputName(*FuncCallOutputPin->PinName);
 				for (UEdGraphPin* LinkTo : FuncCallOutputPin->LinkedTo)
 				{
-					check(LinkTo->Direction == EGPD_Input);
-					FReconnectionInfo& OutputConnection = OutputConnections.FindOrAdd(OutputName);
-					OutputConnection.To.Add(LinkTo);
+					if (LinkTo)
+					{
+						check(LinkTo->Direction == EGPD_Input);
+						FReconnectionInfo& OutputConnection = OutputConnections.FindOrAdd(OutputName);
+						OutputConnection.To.Add(LinkTo);
+					}
 				}
 			}
 

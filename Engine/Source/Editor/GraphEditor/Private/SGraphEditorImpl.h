@@ -20,13 +20,14 @@ public:
 	SLATE_BEGIN_ARGS( SGraphEditorImpl )
 		: _AdditionalCommands( TSharedPtr<FUICommandList>() )
 		, _IsEditable(true)
+		, _DisplayAsReadOnly(false)
 		{}
 
 
 		SLATE_ARGUMENT(TSharedPtr<FUICommandList>, AdditionalCommands)
 		SLATE_ATTRIBUTE( bool, IsEditable )
+		SLATE_ATTRIBUTE( bool, DisplayAsReadOnly )
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
-		SLATE_ATTRIBUTE( bool, TitleBarEnabledOnly )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
 		SLATE_ARGUMENT( UEdGraph*, GraphToEdit )
 		SLATE_ARGUMENT( UEdGraph*, GraphToDiff )
@@ -58,7 +59,9 @@ private:
 	SGraphEditor::FOnCreateActionMenu OnCreateActionMenu;
 
 	TAttribute<bool> IsEditable;
-	TAttribute<bool> TitleBarEnabledOnly;
+
+	/** Attribute for displaying the graph as read-only, which is a visual state only where IsEditable is a functional state */
+	TAttribute<bool> DisplayAsReadOnly;
 
 	bool bAutoExpandActionMenu;
 
@@ -101,8 +104,6 @@ public:
 
 	void OnClosedActionMenu();
 
-	bool GraphEd_OnGetGraphEnabled() const;
-
 	FActionMenuContent GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo);
 
 	//void GraphEd_OnPanelUpdated();
@@ -125,7 +126,7 @@ public:
 	virtual void SelectAllNodes() override;
 	virtual FVector2D GetPasteLocation() const override;
 	virtual bool IsNodeTitleVisible( const UEdGraphNode* Node, bool bRequestRename ) override;
-	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false ) override;
+	virtual void JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename = false, bool bSelectNode = true ) override;
 	virtual void JumpToPin( const UEdGraphPin* JumpToMe ) override;
 	virtual UEdGraphPin* GetGraphPinForMenu() override;
 	virtual void ZoomToFit(bool bOnlySelection) override;
@@ -164,6 +165,9 @@ private:
 	FSlateColor GetZoomTextColorAndOpacity() const;
 
 	bool IsGraphEditable() const;
+
+	/** Helper function to decide whether to display the graph in a read-only state */
+	bool DisplayGraphAsReadOnly() const;
 
 	bool IsLocked() const;
 

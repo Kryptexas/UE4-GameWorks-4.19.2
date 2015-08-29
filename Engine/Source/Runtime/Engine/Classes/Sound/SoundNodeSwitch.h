@@ -46,8 +46,8 @@ public:
 		RenamePins();
 	}
 
-	virtual FString GetInputPinName(int32 PinIndex) const override;
-	virtual FString GetTitle() const override;
+	virtual FText GetInputPinName(int32 PinIndex) const override;
+	virtual FText GetTitle() const override;
 #endif //WITH_EDITOR
 	// End USoundNode interface.
 };

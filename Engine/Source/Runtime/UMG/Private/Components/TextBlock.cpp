@@ -37,6 +37,14 @@ void UTextBlock::SetColorAndOpacity(FSlateColor InColorAndOpacity)
 	}
 }
 
+void UTextBlock::SetOpacity(float InOpacity)
+{
+	FLinearColor CurrentColor = ColorAndOpacity.GetSpecifiedColor();
+	CurrentColor.A = InOpacity;
+	
+	SetColorAndOpacity(FSlateColor(CurrentColor));
+}
+
 void UTextBlock::SetShadowColorAndOpacity(FLinearColor InShadowColorAndOpacity)
 {
 	ShadowColorAndOpacity = InShadowColorAndOpacity;
@@ -52,6 +60,15 @@ void UTextBlock::SetShadowOffset(FVector2D InShadowOffset)
 	if( MyTextBlock.IsValid() )
 	{
 		MyTextBlock->SetShadowOffset(ShadowOffset);
+	}
+}
+
+void UTextBlock::SetFont(FSlateFontInfo InFontInfo)
+{
+	Font = InFontInfo;
+	if (MyTextBlock.IsValid())
+	{
+		MyTextBlock->SetFont(Font);
 	}
 }
 

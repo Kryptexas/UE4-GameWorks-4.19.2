@@ -1,4 +1,5 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2573803
+Availability:Public
 Title:1.カメラをワールドに配置する
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:複数のカメラがあるワールドを設定
@@ -22,7 +23,7 @@ Description:複数のカメラがあるワールドを設定
 
 [REGION:tip] **Unreal Engine 4** 初心者の人は、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 **アンリアルエンジン** エディタでプロジェクトを作成、プロジェクトにC++コードを追加、コードをコンパイルおよび **コンポーネント** を **アクタ** に追加できる方を想定しています。[/REGION]
 
-1.まず「HowTo_AutoCamera」という名前のスターターコンテンツを使用して、Basic Code（基本的なコード）プロジェクトを作成します。最初にワールドにカメラを2つ作成します。さまざまなカメラの設定方法がありますが、ここでは最も一般的な2つの方法を紹介します。最初のカメラは  **プレースメントブラウザ** の **モード** タブへ移動して **Place（配置）** をクリックするか Shift-1を押します。**All Classes** セクションに **Camera** アクタが表示されます。このアクタを **レベルエディタ** へドラッグして、シーンを良く見渡すことができる位置に置きます。
+1. まず「HowTo_AutoCamera」という名前のスターターコンテンツを使用して、Basic Code（基本的なコード）プロジェクトを作成します。最初にワールドにカメラを2つ作成します。さまざまなカメラの設定方法がありますが、ここでは最も一般的な 2 つの方法を紹介します。最初のカメラは  **プレースメントブラウザ** の **モード** タブへ移動して **Place（配置）** をクリックするか Shift-1を押します。**All Classes** セクションに **Camera** アクタが表示されます。このアクタを **レベルエディタ** へドラッグして、シーンを良く見渡すことができる位置に置きます。
 
 	 [![](PlaceCameraActor.png)](PlaceCameraActor.png)
 
@@ -30,17 +31,17 @@ Description:複数のカメラがあるワールドを設定
 
 	[![](CameraOnePlacement.png)](CameraOnePlacement.png)
 
- 1.2つ目のカメラは、もう少し難解な部分まで踏み込んだ、より正確なコントロールが出来る方法で作成します。 **プレースメントブラウザ** の **モード** タブで **基本** をクリックして **キューブ** を **レベルエディタ** ウィンドウへドラッグします。 
+1. 2つ目のカメラは、もう少し難解な部分まで踏み込んで、より正確なコントロールが出来る方法で作成します。 **プレースメントブラウザ** の **モード** タブで **基本** をクリックして **キューブ** を **レベルエディタ** ウィンドウへドラッグします。 
 
 	[![](PlaceCube.png)](PlaceCube.png)
 
-	[REGION:note]この手順はほぼすべてのアクタを使用できます。QuickStartチュートリアルで作成した MyActor クラスをCubeの代わりに使用すると面白いかもしれません。[/REGION]
+	[REGION:note]この手順はほぼすべてのアクタを使用できます。QuickStart チュートリアルで作成した MyActor クラスを Cube の代わりに使用すると面白いかもしれません。[/REGION]
 
- 1.**Cube** アクタを配置したら、これに **CameraComponent** を追加して、先に配置した **CameraActor** と異なるビューを得るためにこの **CameraComponent** の位置と回転を設定しなくてはいけません。
+1. **Cube** アクタを配置したら、これに **CameraComponent** を追加して、先に配置した **CameraActor** と異なるビューを得るためにこの **CameraComponent** の位置と回転を設定しなくてはいけません。
 
 	[![](CameraTwoPlacement.png)](CameraTwoPlacement.png)
 
- 1. **Constrain Aspect Ratio** をオンにして **CameraActor** の設定と一致するように **CameraComponent** をカスタマイズしなくてはいけません。この設定によりカメラビューの遷移がスムーズになりますが、必須ではありません。
+1.  **Constrain Aspect Ratio** をオンにして **CameraActor** の設定と一致するように **CameraComponent** をカスタマイズしなくてはいけません。この設定によりカメラビューの遷移がスムーズになりますが、必須ではありません。
 
 	[![](CameraAspect.png)](CameraAspect.png)
 

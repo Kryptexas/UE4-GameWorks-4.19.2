@@ -6,6 +6,7 @@
 #include "NotificationManager.h"
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
+#include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -121,15 +122,10 @@ void FAssetTypeActions_AnimBlueprint::OpenAssetEditor( const TArray<UObject*>& I
 					RetargetAssets(AnimBlueprints, bDuplicateAssets);
 				}
 			}
-
-			if(AnimBlueprint->TargetSkeleton)
+			else
 			{
 				FPersonaModule& PersonaModule = FModuleManager::LoadModuleChecked<FPersonaModule>( "Persona" );
 				PersonaModule.CreatePersona( Mode, EditWithinLevelEditor, NULL, AnimBlueprint, NULL, NULL);
-			}
-			else
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("FailedToLoadSkeletonlessAnimBlueprint", "The Anim Blueprint could not be loaded because it's skeleton is missing."));
 			}
 		}
 		else
@@ -163,7 +159,7 @@ void FAssetTypeActions_AnimBlueprint::ExecuteFindSkeleton(TArray<TWeakObjectPtr<
 
 void FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler(USkeleton* OldSkeleton, USkeleton* NewSkeleton, bool bRemapReferencedAssets, bool bConvertSpaces, bool bDuplicateAssets, TArray<TWeakObjectPtr<UObject>> AnimBlueprints)
 {
-	if((!OldSkeleton || OldSkeleton->GetPreviewMesh(true)) && (!NewSkeleton || NewSkeleton->GetPreviewMesh(true)))
+	if(!OldSkeleton || OldSkeleton->GetPreviewMesh(true))
 	{
 		EditorAnimUtils::RetargetAnimations(OldSkeleton, NewSkeleton, AnimBlueprints, bRemapReferencedAssets, bDuplicateAssets, bConvertSpaces);
 	}
@@ -198,6 +194,22 @@ void FAssetTypeActions_AnimBlueprint::RetargetAssets(TArray<UObject*> InAnimBlue
 	auto AnimBlueprints = GetTypedWeakObjectPtrs<UObject>(InAnimBlueprints);
 
 	SAnimationRemapSkeleton::ShowWindow(OldSkeleton, Message, FOnRetargetAnimation::CreateSP(this, &FAssetTypeActions_AnimBlueprint::RetargetAnimationHandler, bDuplicateAssets, AnimBlueprints));
+}
+
+TSharedPtr<SWidget> FAssetTypeActions_AnimBlueprint::GetThumbnailOverlay(const FAssetData& AssetData) const
+{
+	const FSlateBrush* Icon = FClassIconFinder::FindIconForClass(UAnimBlueprint::StaticClass());
+
+	return SNew(SBorder)
+		.BorderImage(FEditorStyle::GetNoBrush())
+		.Visibility(EVisibility::HitTestInvisible)
+		.Padding(FMargin(0.0f, 0.0f, 0.0f, 3.0f))
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SImage)
+			.Image(Icon)
+		];
 }
 
 #undef LOCTEXT_NAMESPACE

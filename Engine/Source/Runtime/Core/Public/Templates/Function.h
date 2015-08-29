@@ -155,9 +155,9 @@ namespace UE4Function_Private
 	#endif
 
 	template <typename T>
-	inline T& FakeCall(T* Ptr)
+	inline T&& FakeCall(T* Ptr)
 	{
-		return *Ptr;
+		return MoveTemp(*Ptr);
 	}
 
 	inline void FakeCall(void* Ptr)

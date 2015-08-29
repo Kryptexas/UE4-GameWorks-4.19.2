@@ -5,11 +5,9 @@ Description:Reference for Vector Field modules, which provide 3D motion grid dat
 
 [TOC(start:2 end:3)]
 
-## Vector Field Modules
-
 [INCLUDE:Engine/Rendering/ParticleSystems/VectorFields#VectorFields]
 
-### Global Vector Fields
+## Global Vector Fields
 
 ![GlobalVF.png](GlobalVF.png)(w:720)
 
@@ -25,7 +23,7 @@ In order to be fully utilized, a Vector Field Volume Actor must exist in the lev
 | **Global Vector Field Scale** | This float value scales the amount of effect the global vector field will have on particle motion. Values lower than 1 will dampen the effect, while values greater than one will overdrive it. | 
 
 
-### Local Vector Field
+## Local Vector Field
 
 ![LocalVF.png](LocalVF.png)
 
@@ -35,13 +33,13 @@ The Local Vector Field module allows for a vector field to be associated directl
 |[REGION:tablesection]Vector Field[/REGION]||
 | ---- | ----- |
 | **Vector Field** | Property contains the assigned Vector Field from the **Content Browser**. Simply select the desired vector field and then click the arrow button to assign it. |
-| **Relative Translation** | This allows the vector field to be positionally offset within the emitter. [INCLUDE:#LocalTranslateNote]|
+| **Relative Translation** | This allows the vector fields position to be offset within the emitter. [INCLUDE:#LocalTranslateNote]|
 | **Relative Rotation** | This allows for a rotational offset for the local vector field. |
 | **Relative Scale 3D** | This allows the scale of the Local Vector Field to be edited, which is useful depending on the scale the vector field was created. |
 | **Intensity** | This affects the overall intensity of the local vector field. Think of it as a multiplier for the vector field's force. A value of 0 effectively deactivates the vector field. Values greater than 1 will overdrive the effect. |
 | **Tightness** | This value controls how the vector field will control particle movement. A value of 0 means that the vector field is working as a force, additively influencing the velocity of the particles. A value of 1 means that particle velocity is completely replaced by the velocity defined in the vector field grid. Values between 0 and 1 blend the overall result between these two extremes. |
 
-### VF Init Rotation
+## VF Init Rotation
 
 ![VFInitRot.png](VFInitRot.png)
 
@@ -58,9 +56,19 @@ The Vector Field Initial Rotation module will allow for an initial amount of rot
 | **Min Initial Rotation** | The minimum initial rotation on the X, Y, and Z axes. This value is calculated as a [0..1] value. 0.25 = 90 degrees, 0.5 = 180 degrees, and so on. |
 | **Max Initial Rotation** | The maximum initial rotation on the X, Y, and Z axes. This value is calculated as a [0..1] value. 0.25 = 90 degrees, 0.5 = 180 degrees, and so on. |
 
-### VF Rotation Rate
+## VF Rotation Rate
 
-![VFInitRotRate.gif](VFInitRotRate.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+UmZ9q-3KP8o
+[/PARAMLITERAL]
+[/OBJECT]
 
 If you need a local vector field to have a constant rate of spin, then the VF Rotation Rate module is exactly what you need. Applying it allows for the specified vector field to have distributed rotation rate. This can lead to some highly interesting effects.
 
@@ -75,7 +83,7 @@ If you need a local vector field to have a constant rate of spin, then the VF Ro
 | **Rotation Rate** | This sets the rotation rate on the X, Y, and Z axes. The value is calculated in full rotations per second. So a value of 0.1 will require 10 seconds to make one full rotation. |
 
 
-### Vector Field Scale
+## Vector Field Scale
 
 The Vector Field Scale module allows for scaling of a vector field's influence. This is calculated only at the moment of particle birth.
 
@@ -91,7 +99,7 @@ The Vector Field Scale module allows for scaling of a vector field's influence. 
 
 
 
-### VF Scale/Life
+## VF Scale/Life
 
 The Vector Field Scale Over Life module allows for the scaling of a local vector field to take place over the life of an emitter. This is calculated throughout a particle's lifespan.
 

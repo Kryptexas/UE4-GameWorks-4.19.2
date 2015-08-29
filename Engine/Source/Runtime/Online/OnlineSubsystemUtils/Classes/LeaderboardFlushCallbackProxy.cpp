@@ -16,7 +16,7 @@ void ULeaderboardFlushCallbackProxy::TriggerFlush(APlayerController* PlayerContr
 
 	if (APlayerState* PlayerState = (PlayerController != NULL) ? PlayerController->PlayerState : NULL)
 	{
-		TSharedPtr<FUniqueNetId> UserID = PlayerState->UniqueId.GetUniqueNetId();
+		TSharedPtr<const FUniqueNetId> UserID = PlayerState->UniqueId.GetUniqueNetId();
 		if (UserID.IsValid())
 		{
 			if (IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get())
@@ -97,6 +97,7 @@ void ULeaderboardFlushCallbackProxy::BeginDestroy()
 ULeaderboardFlushCallbackProxy* ULeaderboardFlushCallbackProxy::CreateProxyObjectForFlush(class APlayerController* PlayerController, FName SessionName)
 {
 	ULeaderboardFlushCallbackProxy* Proxy = NewObject<ULeaderboardFlushCallbackProxy>();
+	Proxy->SetFlags(RF_StrongRefOnFrame);
 	Proxy->TriggerFlush(PlayerController, SessionName);
 	return Proxy;
 }

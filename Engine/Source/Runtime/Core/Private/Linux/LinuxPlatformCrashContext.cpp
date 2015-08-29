@@ -3,7 +3,7 @@
 #include "CorePrivatePCH.h"
 #include "Linux/LinuxPlatformCrashContext.h"
 #include "Misc/App.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "EngineVersion.h"
 
 #include <sys/utsname.h>	// for uname()
 #include <signal.h>
@@ -514,10 +514,10 @@ void FLinuxCrashContext::GenerateReport(const FString & DiagnosticsPath) const
 		WriteLine(ReportFile, "Generating report for minidump");
 		WriteLine(ReportFile);
 
-		Line = FString::Printf(TEXT("Application version %d.%d.%d.0" ), ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION);
+		Line = FString::Printf(TEXT("Application version %d.%d.%d.0" ), GEngineVersion.GetMajor(), GEngineVersion.GetMinor(), GEngineVersion.GetPatch());
 		WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));
 
-		Line = FString::Printf(TEXT(" ... built from changelist %d"), ENGINE_VERSION);
+		Line = FString::Printf(TEXT(" ... built from changelist %d"), GEngineVersion.GetChangelist());
 		WriteLine(ReportFile, TCHAR_TO_UTF8(*Line));
 		WriteLine(ReportFile);
 
@@ -597,7 +597,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t<ProblemSignatures>"));
 		WriteLine(ReportFile, TEXT("\t\t<EventType>APPCRASH</EventType>"));
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter0>UE4-%s</Parameter0>"), FApp::GetGameName()));
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter1>%d.%d.%d</Parameter1>"), ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter1>%d.%d.%d</Parameter1>"), GEngineVersion.GetMajor(), GEngineVersion.GetMinor(), GEngineVersion.GetPatch()));
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>0</Parameter2>"));													// FIXME: supply valid?
 		WriteLine(ReportFile, TEXT("\t\t<Parameter3>Unknown Fault Module</Parameter3>"));										// FIXME: supply valid?
 		WriteLine(ReportFile, TEXT("\t\t<Parameter4>0.0.0.0</Parameter4>"));													// FIXME: supply valid?
@@ -605,7 +605,7 @@ void GenerateWindowsErrorReport(const FString & WERPath)
 		WriteLine(ReportFile, TEXT("\t\t<Parameter6>00000000</Parameter6>"));													// FIXME: supply valid?
 		WriteLine(ReportFile, TEXT("\t\t<Parameter7>0000000000000000</Parameter7>"));											// FIXME: supply valid?
 		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter8>!%s!</Parameter8>"), FCommandLine::Get()));				// FIXME: supply valid? Only partially valid
-		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), BUILT_FROM_CHANGELIST));
+		WriteLine(ReportFile, *FString::Printf(TEXT("\t\t<Parameter9>%s!%s!%s!%d</Parameter9>"), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), GEngineVersion.GetChangelist()));
 		WriteLine(ReportFile, TEXT("\t</ProblemSignatures>"));
 
 		WriteLine(ReportFile, TEXT("\t<DynamicSignatures>"));

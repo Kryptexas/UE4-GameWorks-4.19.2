@@ -48,7 +48,7 @@ public:
 	void ClearLPVs(FRHICommandListImmediate& RHICmdList);
 
 	/** Propagates LPVs for all views */
-	void PropagateLPVs(FRHICommandListImmediate& RHICmdList);
+	void UpdateLPVs(FRHICommandListImmediate& RHICmdList);
 
 	/**
 	 * Renders the dynamic scene's prepass for a particular view
@@ -65,7 +65,7 @@ public:
 	/**
 	 * Renders the scene's prepass for a particular view in parallel
 	 */
-	void RenderPrePassViewParallel(const FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty);
+	void RenderPrePassViewParallel(const FViewInfo& View, FRHICommandListImmediate& ParentCmdList);
 
 	/** Renders the basepass for the static data of a given View. */
 	bool RenderBasePassStaticData(FRHICommandList& RHICmdList, FViewInfo& View);
@@ -77,6 +77,9 @@ public:
 	void RenderBasePassStaticDataMaskedParallel(FParallelCommandListSet& ParallelCommandListSet);
 	void RenderBasePassStaticDataDefaultParallel(FParallelCommandListSet& ParallelCommandListSet);
 
+	/** Asynchronously sorts base pass draw lists front to back for improved GPU culling. */
+	void AsyncSortBasePassStaticData(const FVector ViewPosition, FGraphEventArray &SortEvents);
+
 	/** Sorts base pass draw lists front to back for improved GPU culling. */
 	void SortBasePassStaticData(FVector ViewPosition);
 
@@ -87,7 +90,7 @@ public:
 	void RenderBasePassDynamicDataParallel(FParallelCommandListSet& ParallelCommandListSet);
 
 	/** Renders the basepass for a given View, in parallel */
-	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandList& ParentCmdList, bool& OutDirty);
+	void RenderBasePassViewParallel(FViewInfo& View, FRHICommandListImmediate& ParentCmdList);
 
 	/** Renders the basepass for a given View. */
 	bool RenderBasePassView(FRHICommandListImmediate& RHICmdList, FViewInfo& View);
@@ -119,7 +122,8 @@ public:
 
 private:
 
-	static FGraphEventRef OcclusionSubmittedFence;
+	// fences to make sure the rhi thread has digested the occlusion query renders before we attempt to read them back async
+	static FGraphEventRef OcclusionSubmittedFence[FOcclusionQueryHelpers::MaxBufferedOcclusionFrames];
 
 	/** Creates a per object projected shadow for the given interaction. */
 	void CreatePerObjectProjectedShadow(
@@ -137,23 +141,7 @@ private:
 	void CreateWholeSceneProjectedShadow(FLightSceneInfo* LightSceneInfo);
 
 	/** Updates the preshadow cache, allocating new preshadows that can fit and evicting old ones. */
-	void UpdatePreshadowCache();
-
-	/** Finds a matching cached preshadow, if one exists. */
-	TRefCountPtr<FProjectedShadowInfo> GetCachedPreshadow(
-		const FLightPrimitiveInteraction* InParentInteraction,
-		const FProjectedShadowInitializer& Initializer,
-		const FBoxSphereBounds& Bounds,
-		uint32 InResolutionX);
-
-	/** Creates shadows for the given interaction. */
-	void SetupInteractionShadows(
-		FRHICommandListImmediate& RHICmdList,
-		FLightPrimitiveInteraction* Interaction,
-		FVisibleLightInfo& VisibleLightInfo,
-		bool bStaticSceneOnly,
-		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ViewDependentWholeSceneShadows,
-		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& PreShadows);
+	void UpdatePreshadowCache(FSceneRenderTargets& SceneContext);
 
 	/** Finds the visible dynamic shadows for each view. */
 	void InitDynamicShadows(FRHICommandListImmediate& RHICmdList);
@@ -191,7 +179,7 @@ private:
 	void RenderDynamicSkyLighting(FRHICommandListImmediate& RHICmdList, const TRefCountPtr<IPooledRenderTarget>& VelocityTexture, TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO);
 
 	/** Render Ambient Occlusion using mesh distance fields and the surface cache, which supports dynamic rigid meshes. */
-	bool RenderDistanceFieldAOSurfaceCache(
+	bool RenderDistanceFieldLighting(
 		FRHICommandListImmediate& RHICmdList, 
 		const class FDistanceFieldAOParameters& Parameters, 
 		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
@@ -199,6 +187,17 @@ private:
 		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance,
 		bool bVisualizeAmbientOcclusion,
 		bool bVisualizeGlobalIllumination);
+
+	/** Render Ambient Occlusion using mesh distance fields on a screen based grid. */
+	void RenderDistanceFieldAOScreenGrid(
+		FRHICommandListImmediate& RHICmdList, 
+		const FViewInfo& View,
+		FIntPoint TileListGroupSize,
+		const FDistanceFieldAOParameters& Parameters, 
+		const TRefCountPtr<IPooledRenderTarget>& VelocityTexture,
+		const TRefCountPtr<IPooledRenderTarget>& DistanceFieldNormal, 
+		TRefCountPtr<IPooledRenderTarget>& OutDynamicBentNormalAO, 
+		TRefCountPtr<IPooledRenderTarget>& OutDynamicIrradiance);
 
 	void RenderMeshDistanceFieldVisualization(FRHICommandListImmediate& RHICmdList, const FDistanceFieldAOParameters& Parameters);
 
@@ -236,7 +235,7 @@ private:
 	void RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList);
 
 	/** Reuses an existing translucent shadow map if possible or re-renders one if necessary. */
-	const FProjectedShadowInfo* PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, bool bSeparateTranslucencyPass);
+	const FProjectedShadowInfo* PrepareTranslucentShadowMap(FRHICommandList& RHICmdList, const FViewInfo& View, FPrimitiveSceneInfo* PrimitiveSceneInfo, ETranslucencyPassType TranslucenyPassType);
 
 	bool ShouldRenderVelocities() const;
 
@@ -259,13 +258,6 @@ private:
 
 	/** Renders one pass point light shadows. */
 	bool RenderOnePassPointLightShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo, bool bRenderedTranslucentObjectShadows, bool& bInjectedTranslucentVolume);
-
-	/** Renders the projections of the given Shadows to the appropriate color render target. */
-	void RenderProjections(
-		FRHICommandListImmediate& RHICmdList,
-		const FLightSceneInfo* LightSceneInfo, 
-		const TArray<FProjectedShadowInfo*,SceneRenderingAllocator>& Shadows
-		);
 
 	/** Renders the shadowmaps of translucent shadows and their projections onto opaque surfaces. */
 	bool RenderTranslucentProjectedShadows(FRHICommandListImmediate& RHICmdList, const FLightSceneInfo* LightSceneInfo);
@@ -350,8 +342,11 @@ private:
 	/** Whether distance field global data structures should be prepared for features that use it. */
 	bool ShouldPrepareForDistanceFieldShadows() const;
 	bool ShouldPrepareForDistanceFieldAO() const;
+	bool ShouldPrepareDistanceFields() const;
 
 	void UpdateGlobalDistanceFieldObjectBuffers(FRHICommandListImmediate& RHICmdList);
+
+	void DrawAllTranslucencyPasses(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, ETranslucencyPassType TranslucenyPassType);
 
 	friend class FTranslucentPrimSet;
 };

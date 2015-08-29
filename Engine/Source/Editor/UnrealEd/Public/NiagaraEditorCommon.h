@@ -11,6 +11,7 @@
 	NiagaraOp(Add)\
 	NiagaraOp(Subtract)\
 	NiagaraOp(Multiply)\
+	NiagaraOp(Divide)\
 	NiagaraOp(MultiplyAdd)\
 	NiagaraOp(Lerp)\
 	NiagaraOp(Reciprocal)\
@@ -129,7 +130,7 @@ public:
 	TArray<TNiagaraExprPtr> SourceExpressions;
 };
 
-DECLARE_DELEGATE_ThreeParams(FNiagaraOpDelegate, class INiagaraCompiler*, TArray<TNiagaraExprPtr>&, TArray<TNiagaraExprPtr> &);
+DECLARE_DELEGATE_RetVal_ThreeParams(bool, FNiagaraOpDelegate, class INiagaraCompiler*, TArray<TNiagaraExprPtr>&, TArray<TNiagaraExprPtr> &);
 
 /** Information about an input or output of a Niagara operation node. */
 class UNREALED_API FNiagaraOpInOutInfo

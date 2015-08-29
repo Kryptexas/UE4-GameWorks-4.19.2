@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2495609
+﻿INTSourceChangelist:2600455
 Availability:Public
 Title:온라인 세션 노드
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -110,6 +110,11 @@ Related: Resources/ContentExamples/Networking
 **Travel Error** 이벤트는 **Network Error** 이벤트보다 빈도는 낮지만, **Network Error** 로는 처리가 불가능한 유효하지 않은 맵을 로드하려 했다든가 하는 경우를 처리할 수 있습니다.
 
 [/EXCERPT:OnlineNodes]
+
+
+
+
+
 
 
 

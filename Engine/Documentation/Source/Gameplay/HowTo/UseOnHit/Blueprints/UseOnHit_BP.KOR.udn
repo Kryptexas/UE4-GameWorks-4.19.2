@@ -1,334 +1,108 @@
-﻿INTSourceChangelist:2478900
+﻿INTSourceChangelist:2612372
 Availability: Public
-Title:블루프린트에서 OnHit 이벤트 사용 비법
+Title:블루프린트에서 OnHit 이벤트 사용
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseOnHit
-Description:이번 비법에서는 OnHit 이벤트를 사용하여 액터에 여러가지 방법으로 영향을 끼치는 방법을 다룹니다.
+Description:OnHit 이벤트를 사용해서 디스트럭터블 메시를 부수고 충격을 전해 움직이도록 만듭니다.
 Related: Engine/Blueprints
 Related: Engine/Blueprints/UserGuide/Events
 Related: Engine/Blueprints/UserGuide/CastNodes
 
 
-[TOC (start:2 end:2)]
+이 글에서는 **OnComponentHit** 와 **Event Hit** [이벤트](Engine/Blueprints/UserGuide/Events) 를 사용하여 대미지를 적용하고 디스트럭터블 메시를 부수고 적중 위치에 충격을 가해 디스트럭터블을 밀어내도록 하여, 발사체에 맞아 적중 위치에 힘을 가하는 효과를 시뮬레이션해 보겠습니다.
 
-## 개요
-
-이 페이지에서는 **Event Hit** 이벤트를 사용하여 조명 기구의 등을 총으로 쏴서 이미터를 스폰하도록 만들겠습니다. 또한 피직스 오브젝트에 임펄스를 적용, 임팩트 위치 방향으로 날아가도록 하겠습니다. 마지막으로 오브젝트에 대미지를 적용하여 "Health" (생명력)이 고갈되면 소멸되도록 합니다.
-
-## 프로젝트 셋업
-
-히트 이벤트 생성을 위해서는, 총으로 쏠 오브젝트와 물건이 필요하며, 아래와 같이 구성해 줄 것입니다.
- 
 [REGION:note]
-이번 예제에서는 **시작용 콘텐츠 포함 블루프린트 일인칭 템플릿** 을 사용합니다.
-[/REGION:note]
+_이번 비법에서는 **시작용 콘텐츠** 를 포함한 **블루프린트 일인칭 템플릿** 을 사용합니다._
+[/REGION]
 
-### 구성 (폭탄 블루프린트)
+1.	**콘텐츠 브라우저** 에서 프로젝트의 **Content/FirstPersonBP/Meshes** 폴더로 이동합니다.
 
-여기서는 플레이어가 사물을 맞추기 위해 발사/던질 수 있는 "Bomb" (폭탄) 블루프린트를 만들겠습니다.
+1.	**FirstPersonCube_Rounded** 스태틱 메시에 우클릭한 다음 **디스트럭터블 메시 생성** 을 선택합니다.
 
-1.	**콘텐츠 브라우저** 에서 **생성** 버튼을 클릭한 다음 **블루프린트** 를 선택하고 **Actor** 를 부모 클래스로 선택합니다.
+	![](OnHit1.png)
 
-1.	생성된 블루프린트 이름을 **BP_Bomb** 라 하고, **더블클릭** 하여 엽니다.
+	이 스태틱 메시에서 디스트럭터블 메시를 만들어, 총으로 쐈을 때 산산히 부서지도록 하겠습니다.
 
-1.	**컴포넌트 추가** 버튼을 클릭한 다음 **projectile** 을 검색하고 **Projectile Movement** 를 선택합니다.
+1.	디스트럭터블 메시 에디터 안에서, **프랙처 메시** 버튼을 클릭한 다음 **저장** 을 누르고 창을 닫습니다.
 
-	[REGION:raw]
-	![](OnHit_1.png)
-	[/REGION]
+	![](OnHit2.png)
 
-1.	**컴포넌트 추가** 를 선택하고 **Sphere Collision** 과 **Static Mesh** 를 선택합니다.
+1.	새로 생성된 디스트럭터블 메시 애셋에 **우클릭** 하고 **애셋 액션** 아래 **다음을 사용하여 블루프린트 생성...** 을 선택합니다.
 
-1.	**컴포넌트** 창에서 **Sphere** 컴포넌트를 클릭한 다음, **디테일** 패널에서 이름을 **Collision** 으로 변경합니다.
+	![](OnHit3.png)
 
-	[REGION:raw]
-	![](OnHit_2.png)
-	[/REGION]
+	새로 생성되는 블루프린트에 저장 위치와 이름을 지어줍니다.
 
-1.	**Static Mesh** 를 클릭하고 이름을 **Bomb** 로 변경한 다음 위치의 **Z** 값을 **-10** 으로, 스케일의 XYZ 를 각각 **.25** 로 설정합니다.
+1.	새 블루프린트에 대한 블루프린트 에디터 안에서 **컴포넌트** 창에 **Destructible** 컴포넌트를 선택합니다.
 
-1.	**Static Mesh** 칸의 드롭다운 메뉴를 선택한 다음 **Shape_Sphere** 를 검색 추가합니다.
+1.	**디테일** 패널에서 **Physics** 아래 **Simulate Physics** 박스를 체크합니다.
 
-	[REGION:raw]
-	![](OnHit_3.png)
-	[/REGION]
+	![](OnHit4.png)
 
-	[REGION:note]
-	**Shape_Sphere** 가 보이지 않는 경우, 프로젝트에 **시작용 콘텐츠** 가 포함되었는지 확인하세요.
-	[/REGION]
+	이제 이 블루프린트에는 물리 시뮬레이션이 적용됩니다.
 
-1.	**Collision** 섹션으로 찾아 내려가 콜리전을 **NoCollision** 으로 설정합니다.
+1.	또 **디테일** 패널에서 **Events** 아래 하단에서 **OnComponentHit** 이벤트를 클릭합니다.
 
-	[REGION:raw]
-	![](OnHit_4.png)
-	[/REGION]
+	![](OnHit5.png)
 
-	콜리전 감지를 스태틱 메시 자체가 아닌 Root Sphere Component 를 이용해서 하게 됩니다.
+	그러면 이벤트 그래프가 열리고 새 노드가 추가됩니다.
 
-1.	**Collision** Sphere Component 를 클릭한 다음, **디테일** 패널에서 **Sphere Radius** 를 **20** 으로 설정합니다.
+	![](OnHit6.png)
 
-1.	**Collision** 아래, **Simulation Generates Hit Events** (시뮬레이션에서 히트 이벤트 생성)을 **True** 로, **콜리전 프리셋** 을 **Block All** 로 설정합니다. 
+1.	**Other Actor** 핀을 **좌클릭** 으로 끌어놓은 후 **FirstPersonProjectile 에 형변환** 노드를 검색 추가합니다.
 
-	[REGION:raw]
-	![](OnHit_5.png)
-	[/REGION]
+	![](OnHit7.png)
 
-1.	**Projectile Movement** 컴포넌트를 클릭한 뒤, **디테일** 패널에서 **Initial** 및 **Max Speed** (초기 및 최대 속력) 값을 **1500** 으로 설정합니다.
+	여기서 **FirstPersonProjectile** 라는 다른 블루프린트로 [형변환](Engine/Blueprints/UserGuide/CastNodes) 하여 디스트럭터블 메시를 맞추면 그것이 실제로 FirstPersonProjectile 블루프린트인지 확인하는 것입니다. 그렇다면 메시를 산산조각내는 부가 스크립트를 적용하면 됩니다. 그렇지 않다면, 아무 것도 하지 않습니다.
 
-1.	**Should Bounce** (튕김 여부)도 **True** 로 설정합니다.
+1.	**Hit** 핀을 끌어놓고, **Break Hit Result** 노드를 추가합니다.
 
-	[REGION:raw]
-	![](OnHit_6.png)
-	[/REGION]
+	![](OnHit8.png)
 
-	위의 두 단계로 프로젝타일 이동 방식이 결정되며, 이 값은 원하는 대로 변경할 수 있습니다.
+	**Break Hit Result** 노드를 통해 적중 결과와 그에 대한 온갖 종류의 정보를 접근할 수 있습니다.
 
-1.	툴 바의 **클래스 디폴트** 버튼을 누르면 디테일 탭에 블루프린트 디폴트 값이 열리는데, **Initial Life Span** (초기 수명)을 **3** 으로 설정합니다. 
+1.	**Break Hit Result** 에서 **Hit Actor** 핀을 끌어놓은 뒤 **Apply Point Damage** 노드를 추가합니다.
 
-	[REGION:raw]
-	![](OnHit_7.png)
-	[/REGION]
+1.	**Apply Point Damage** 노드에서 **Base Damage** 를 **100** 으로, **Damage Type Class** 를 **Damage Type** 으로 설정합니다. 
 
-	이렇게 하면 월드에 프로젝타일이 남아있는 기간이 결정되며, 마찬가지로 원하는 대로 설정할 수 있습니다.
+	![](OnHit9.png)
 
-1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
+	Apply Point Damage 노드는 입힐 대미지 양 뿐만아니라 입히는 위치도 지정할 수 있습니다.
 
+1.	**Apply Point Damage** 노드에서 나머지 선을 아래와 같이 연결합니다.
 
-### 구성 (라이트 블루프린트)
+	![](OnHit10.png)
 
-여기서는 Ceiling Light Blueprint 가 맞으면 스파크 이펙트를 스폰하도록 변경하겠습니다.
-
-1.	**Game/StarterContent/Blueprints** 폴더에서 **Blueprint_CeilingLight** 블루프린트를 엽니다.
-
-1.	**컴포넌트** 탭을 클릭한 다음, **컴포넌트 추가** 후 **Particle System** 을 검색 추가합니다.
-
-	[REGION:raw]
-	![](OnHit_8.png)	
-	[/REGION]
-
-1.	파티클 시스템의 **디테일** 패널에서 위치의 **Z** 에 **-140**, **P_Sparks** 이펙트를 사용하고, **Auto Activate** 체크는 해제합니다.
-
-	![](OnHit_9.png)
-
-	이 파티클 시스템은 플레이어가 램프를 맞추면 활성화되면서 스파크가 보이게 됩니다.
-
-1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
-
-### 구성 (쏠 수 있는 피직스 박스)
-
-여기서는 플레이어가 총을 쏘면 물리적으로 반응하는 간단한 박스를 만들겠습니다.
-
-1.	**콘텐츠 브라우저** 에서 Actor 유형의 블루프린트를 하나 더 만든 다음 엽니다.
-
-1.	먼저 **Scene** 컴포넌트를 추가합니다 (루트 컴포넌트로 사용할 더미 컴포넌트가 됩니다).
-
-	[REGION:raw]
-	![](OnHit_11.png)
-	[/REGION]
-
-1.	그런 다음 **컴포넌트** 탭을 사용하여, **Static Mesh** 컴포넌트를 추가합니다.
-
-	[REGION:raw]
-	![](OnHit_10.png)
-	[/REGION]
-
-1.	**Static Mesh** 를 클릭한 다음, **디테일** 패널에서 **Shape_Cube** 를 사용하고 **Simulate Physics** 를 **True** 로 설정합니다. 
-
-	![](OnHit_13.png)
-
-	또한 **PhysicsActor** 가 선택된 **콜리전 프리셋** 을 사용중인지 확인합니다.
-
-1.	**컴파일**, **저장** 후 블루프린트를 닫습니다.
-
-### 구성 (플레이어 캐릭터)
-
-최종 구성에서는 버튼을 누르면 폭탄이 발사되도록 플레이어 캐릭터 블루프린트를 변경하겠습니다.
-
-1.	**콘텐츠 브라우저** 에서 **Game/Blueprints** 아래 **MyCharacter** 블루프린트를 엽니다.
-
-1.	**그래프** 탭에서 **우클릭** 한 다음 **Left Mouse Button** 이벤트를 추가합니다.
-
-1.	**Pressed** 핀을 끌어놓고 **SpawnActorFromClass** 노드를 추가한 다음, **Class** 를 **BP_Bomb** 로 설정합니다. 
-
-	![](OnHit_14.png)
-
-1.	**내 블루프린트** 창에서 **변수 추가** 버튼을 클릭하여 새 변수를 만듭니다.
-
-1.	변수의 **디테일** 패널에서 이름을 **SpawnOffset** 으로 변경한 다음 **Vector** 유형으로 만듭니다.
-
-1.	블루프린트를 **컴파일** 한 다음 **SpawnOffset** 에 대한 **Default Value** 를 **100, 33, 10** 으로 설정합니다.
-
-	![](OnHit_15.png)
-
-	이 변수는 Bomb 프로젝타일이 스폰되면 플레이어 기준 오프셋 추가를 위해 사용될 것입니다.
-
-1.	**Control** 키를 누르고 **Spawn Offset** 변수를 끌어 그래프의 **Left Mouse Button** 이벤트 근처에 놓습니다.
-
-1.	그래프에 **우클릭** 한 다음 **Get Control Rotation** 노드를 추가합니다.
-
-1.	**Return Value** 를 끌어놓고 **Rotate Vector** 노드를 추가한 다음, **Spawn Offset** 을 **A** 핀에 연결합니다.
-
-	![](OnHit_16.png)
-
-1.	그래프에 **우클릭** 하고 **Get Actor Location** 노드를 추가한 다음, **Return** 을 끌어놓고 **Vector + Vector** 노드를 추가합니다.
-
-1.	**Rotate Vector** 의 **Return Value** 를 **Vector + Vector** 노드의 다른 입력 핀에 연결합니다.
-
-	![](OnHit_17.png)
-
-	여기서는 콘트롤 로테이션 및 벡터 변수를 사용하여 플레이어 캐릭터의 위치에 추가할 새로운 벡터 값을 만들고 있습니다. 이를 통해 폭탄을 스폰시킬 수 있는 오프셋 위치가 나오는데, 플레이어 캐릭터 안에 스폰되지 않도록 플레이어 약간 앞쪽에 스폰됩니다.
-
-1.	그래프에 **우클릭** 한 다음 **Make Transform** 노드를 추가한 뒤, 아래와 같이 노드를 연결합니다.
-
-	![](OnHit_18.png)
-
-## 이벤트 히트 예제 (라이트 쏘기)
-
-프로젝트 구성이 완료되었으니, 이제 **Event Hit** 노드를 사용하여 천정 라이트를 쏘고 스파크 이펙트를 켤 수 있습니다.
-
-1.	**Game/StarterContent/Blueprints** 폴더에서 **Blueprint_CeilingLight** 블루프린트를 엽니다.
-
-1.	**그래프** 탭에 **우클릭** 한 뒤 **Event Hit** 노드를 추가합니다.
-
-1.	**Event Hit** 노드의 **Other** 핀을 끌어놓은 뒤 **Cast To BP_Bomb** 노드를 추가합니다.
-
-	![](OnHit_19.png)
-
-	**Other** 핀은 콜리전에 연관된 다른 액터를 가리킵니다. 여기에 **Cast To BP_Bomb** 노드를 사용하여, 우리가 쏜 연관된 다른 액터가 **BP_Bomb** 인지 물어보고, 그렇다면 스크립트를 계속합니다. 그렇지 않다면 스크립트를 계속하지 않습니다. 라이트가 맞았는지 확인하는 빠른 방법입니다.
-
-	[REGION:note]
-	각 핀 유형 관련 상세 내용은 [Event Hit](Engine/Blueprints/UserGuide/Events) 문서를 참고하세요.
-	[/REGION]
-
-1.	**Control** 키를 누르고 **내 블루프린트** 창에서 **Sparks** 컴포넌트를 끌어 그래프에 놓습니다.
-
-1.	**Sparks** 를 끌어놓고 **Activate** 노드를 추가한 다음 아래와 같이 연결합니다.
-
-	![](OnHit_20.png)
-
-1.	**Control** 키를 누른 상태로 **내 블루프린트** 창에서 **Point Light 1** 컴포넌트를 그래프에 끌어 놓습니다.
-
-1.	**Point Light 1** 을 끌어놓고 **Set Visibility** 노드를 추가, **New Visibility** 는 체크되지 않은 상태로 놔두고 아래와 같이 연결합니다.
-
-	![](OnHit_21.png)
-
-1.	**Set Visibility** 뒤에 **Delay** 노드를 (1.5 로 설정하여) 추가, **Sparks** 를 끌어놓고 **Deactivate** 노드를 사용한 뒤 다음과 같이 연결합니다.
-
-	![](OnHit_22.png)
+	모든 선을 연결하고난 그래프 모습은 위와 같을 것입니다.
 
 1.	블루프린트를 **컴파일**, **저장** 후 닫습니다.
 
-1.	**콘텐츠 브라우저** 에서 **Blueprint_CeilingLight** 를 끌어 레벨의 어두운 부분에 놓습니다.
+1.	**콘텐츠 브라우저** 에서 블루프린트를 끌어 레벨에 놓습니다.
 
-	![](OnHit_23.png)
+	![](OnHit11.png)
 
-1.	**플레이** 를 클릭하여 에디터에서 플레이, **왼쪽 마우스 버튼** 으로 발사하여 라이트를 맞춥니다.
+1.	**플레이** 를 클릭하여 에디터에서 플레이한 후 **좌클릭** 으로 큐브에 발사체를 발사합니다.
 
-	![](OnHit_24.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	WRlsw9q-bVA
+	[/PARAMLITERAL]
+	[/OBJECT]
 
-	폭탄으로 라이트를 맞추면 라이트가 꺼지고 스파크가 나타난 뒤 사라지는 것을 볼 수 있습니다.
+	에디터에서 플레이해 보면, 큐브에 발사체를 발사해서 맞으면 큐브가 대미지를 입고 부서질 뿐만 아니라 맞은 위치에 충격이 가해져 그 방향으로 날아가는 것이 보일 것입니다. 가해진 힘의 양은 **FirstPersonProjectile** 블루프린트 안에 정의되어 있으며, 여기서 **Event Hit** 노드를 통해 발사체에 무언가가 실제로 맞은 시점을 결정합니다.
 
-**Cast to BP_Bomb** 노드를 사용해서 폭탄 블루프린트만 라이트에 히트를 등록할 수 있도록 하고 있습니다. 다른 오브젝트가 히트를 등록하여 라이트를 맞출 수 있도록 하려면, 스크립트 그 부분을 제외하고 **Event Hit** 노드만 사용하면 됩니다 (또는 Event Hit 뒤에 **분기** 를 추가하여 다른 오브젝트가 맞으면 벌어질 일을 따로 지정할 수도 있습니다).
+1.	**Content/FirstPersonBP/Blueprints** 폴더의 **FirstPersonProjectile** 블루프린트를 엽니다.
 
+	[REGION:lightbox]
+	[![](OnHit12.png)](OnHit12.png)
+	[/REGION]
+	_이미지를 클릭하면 더 크게 보입니다._
 
-## 이벤트 히트 예제 (포스 및 대미지 적용)
-
-이번 예제에서는 **Event Hit** 노드를 사용하여 오브젝트가 맞은 위치에 포스를 적용하도록 하겠습니다. 맞은 오브젝트에 대미지도 적용, 여러 번 맞추면 오브젝트가 파괴되도록 만들겠습니다.
-
-1.	**콘텐츠 브라우저** 에서 **Cube** 블루프린트를 찾아 레벨에 끌어 놓습니다.
-
-	![](OnHit_25.png)
-
-	이제 에디터에서 플레이해 보면, 오브젝트가 피직스 액터이기는 하지만 플레이어가 쏴도 영향을 끼치지 않는 것처럼 보입니다. 플레이어 캐릭터를 큐브 안으로 움직이면, 어쨌든 큐브를 밀 수는 있습니다. 프로젝타일이 큐브와 충돌할 때 충분한 힘이 가해지지 않아 움직이지 않는 것입니다. 프로젝타일과의 충돌이 발생했을 때 오브젝트를 미는 임펄스 포스를 추가하는 것으로 고치면 됩니다.
-
-1.	**BP_Bomb** 블루프린트를 열고, 그래프에 **우클릭** 한 다음 **Event Hit** 노드를 추가합니다.
-
-1.	**Other Comp** 핀을 끌어놓고 **Add Impulse at Location** 노드를 추가합니다.
-
-	![](OnHit_26.png)
-
-	**Other Comp** 핀은 콜리전에 관련된 다른 액터의 컴포넌트를 가리키며, 여기에 임펄스를 적용할 것입니다.
-
-1.	그래프에 **우클릭** 한 다음 **Get Velocity** 노드를 추가하고, 그 **Return** 을 끌어놓고 **Vector X Float** 핀을 추가(하고 100 으로 설정)합니다.
-
-1.	**Vector X Float** 노드의 출력 핀을 **Add Impulse at Location** 노드의 **Impulse** 핀에 연결합니다.
-
-1.	**Event Hit** 의 **Hit Location** 핀을 **Add Impulse at Location** 노드의 **Location** 핀에 연결합니다.
-
-	![](OnHit_27.png)
-
-	최종 몇 단계로 위 그래프와 같은 결과가 납니다. 여기서 액터(폭탄)의 현재 속도를 구한 다음 100 을 곱해서 맞은 위치의 액터 컴포넌트에 적용하는 임펄스로 사용하고 있습니다.
-
-1.	**Event Hit** 의 **Other** 핀을 끌어놓고 **Apply Damage** 노드를 추가합니다.
-
-1.	**Base Damage** 값을 10 으로 설정한 다음 아래와 같이 연결합니다.
-
-	![](OnHit_28.png)
-
-	이제 **Other** 핀을 사용하여 액터 자체를 구한 다음 **Apply Damage** 를 사용하여 10 의 대미지를 적용합니다.
-
-1.	블루프린트를 **컴파일**, **저장** 후 닫습니다.
-
-1.	**콘텐츠 브라우저** 에서 **Cube** 블루프린트를 엽니다.
-
-1.	**그래프** 탭의 **내 블루프린트** 창에서 **변수 추가** 버튼을 클릭합니다.
-
-1.	변수 이름을 **CubeHealth** 로 한 다음, **Float** 유형으로 설정한 뒤 **컴파일** 후 **Default Value** 를 50 으로 설정합니다.
-
-	![](OnHit_29.png)
-
-1.	그래프에 **우클릭** 한 뒤 **Event Any Damage** 노드를 추가하고 **CubeHealth** 변수를 **Control** 드래그합니다.
-
-	![](OnHit_30.png)
-
-1.	**CubeHealth** 를 끌어놓고 **Float - Float** 노드를 추가한 다음, **Damage** 를 **Float - Float** 노드의 다른 입력 핀에 꽂습니다.
-
-1.	**Alt** 키를 누르고 **CubeHealth** 변수를 끌어놓아 **Set** 노드를 만든 다음 아래와 같이 노드를 연결합니다.
-
-	![](OnHit_31.png)
-
-1.	**B** 키를 누르고 그래프에 클릭하여 **Branch** (분기) 노드를 만듭니다.
-
-1.	**CubeHealth** 변수를 끌어놓고 **<=** 노드를 추가한 다음, 그 출력 핀을 **Branch** (분기) 의 **Condition** 에 연결합니다.
-
-1.	**True** 에서 **Destroy Actor** 노드를 추가하고, **False** 에서 **Print String** 노드를 추가합니다.
-
-1.	**CubeHealth** 를 끌어 **Print String** 노드의 **InString** 에 연결합니다 (변환 노드가 자동 생성됩니다).
-
-	![](OnHit_32.png)
-
-	그래프 구성이 위와 비슷할 것입니다. 여기서는 큐브 블루프린트가 대미지를 입으면, 들어오는 (적용할 때 10 으로 설정한) 대미지를 받아 큐브의 전체 체력 (CubeHealth) 에서 뺀 다음, 그 값을 큐브의 새로운 전체 체력 값으로 설정합니다.
-
-	큐브의 생명력이 0 이하이면, 큐브를 소멸시킵니다. 그렇지 않으면, 화면에 CubeHealth 의 현재 값을 출력하여 큐브에 체력이 얼마만큼 남았는지 확인할 수 있도록 합니다.
-
-1.	블루프린트를 **컴파일**, **저장** 후 닫습니다.
-
-1.	**플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
-
-	[![](OnHit_32b.png)](OnHit_32.mp4)
-
-	에디터에서 플레이해 보면, 큐브가 폭탄 프로젝타일의 임팩트에 반응하여 임팩트 위치에 포스가 적용되는 것을 확인할 수 있습니다. 큐브를 맞출 때마다 큐브의 전체 생명력 값에서 일정량만큼 뺀 다음 화면 좌상단에 출력합니다. 5 번 맞추면 큐브는 파괴됩니다.
-
-지금까지 게임플레이 용도로 **Event Hit** 를 사용할 수 있는 법에 대한 예제를 두 가지 살펴봤으며, 필요에 따라 추가적인 검사를 통해 히트가 발생하면 그 히트에 따라 각기 다른 작업을 하는 스크립트를 작성할 수도 있습니다.
-	
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+	이 블루프린트의 스크립트는 맞은 오브젝트가 물리 시뮬레이션이 적용되는 것인지 검사합니다 (우리 큐브 블루프린트는 적용되는 것입니다). 그렇다면 맞은 위치에 충격(Impulse)을 가합니다 (그 양은 녹색 박스 안에 정의되어 있는데, 50 으로 감소시켰습니다). 이 값을 조절하여 적중시 적용되는 충격량을 높이거나 낮출 수 있습니다.
 
 

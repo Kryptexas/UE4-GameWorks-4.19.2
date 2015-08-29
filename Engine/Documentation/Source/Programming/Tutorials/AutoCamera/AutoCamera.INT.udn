@@ -2,6 +2,7 @@ Availability: Public
 Title:Game-Controlled Cameras
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:Learn to activate and switch between different view perspectives.
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

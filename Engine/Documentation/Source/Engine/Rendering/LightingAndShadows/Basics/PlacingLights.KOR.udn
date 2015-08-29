@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2457628
+﻿INTSourceChangelist:2602324
 Availability: Public
 Title:라이팅 기초
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -67,7 +67,7 @@ Description:레벨에 라이트를 배치하고 셋업하는 법에 대한 기�
 
 [TOC(start:2)]
 
-## 개요
+
 
 언리얼 엔진 4 에서 씬에 라이트를 추가하는 방법은 여러가지 있으며, 월드의 라이팅에 중대한 영향을 끼치는 핵심 프로퍼티가 몇 가지 있습니다.
 

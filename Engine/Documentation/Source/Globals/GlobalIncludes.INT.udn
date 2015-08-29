@@ -61,6 +61,54 @@ Description:
 [/REGION]
 [/VAR]
 
+[VAR:OSSelect_Linux]
+[REGION:section]
+	[REGION:titlesection]
+	Choose Your Operating System
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		windows
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Windows
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		mac
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Mac OS
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		OS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		linux
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Linux
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
 
 [VAR:DCCSelect]
 [REGION:section]
@@ -132,6 +180,43 @@ Description:
 	[/OBJECT]
 [/REGION]
 [/VAR]
+
+
+[VAR:BlueprintOrCPPSelectVar]
+[REGION:section]
+	[REGION:titlesection]
+	Choose your implementation method:
+	[/REGION]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		BlueprintOrCPPSelect
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		blueprintimplementation
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		active_button
+		[/PARAMLITERAL]
+		[PARAM:label]
+		Blueprints
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:ToggleButton]
+		[PARAMLITERAL:category]
+		BlueprintOrCPPSelect
+		[/PARAMLITERAL]
+		[PARAMLITERAL:id]
+		cppimplementation
+		[/PARAMLITERAL]
+		[PARAMLITERAL:active]
+		[/PARAMLITERAL]
+		[PARAM:label]
+		C++
+		[/PARAM]
+	[/OBJECT]
+[/REGION]
+[/VAR]
+
 
 [EXCERPT:bpModesRemoved]
 [REGION:note]

@@ -37,14 +37,17 @@ enum EActorMetricsType
 };
 
 
-// Return values for UEngine::Browse
+/** Return values for UEngine::Browse. */
 namespace EBrowseReturnVal
 {
 	enum Type
 	{
-		Success,		// Successfully browsed to a new map
-		Failure,		// Immediately failed to browse
-		Pending,		// A connection is pending
+		/** Successfully browsed to a new map. */
+		Success,
+		/** Immediately failed to browse. */
+		Failure,
+		/** A connection is pending. */
+		Pending,
 	};
 }
 
@@ -76,9 +79,9 @@ namespace EAttachLocation
 UENUM()
 enum ESceneDepthPriorityGroup
 {
-	// world scene DPG
+	/** World scene DPG. */
 	SDPG_World,
-	// foreground scene DPG
+	/** Foreground scene DPG. */
 	SDPG_Foreground,
 	SDPG_MAX,
 };
@@ -162,19 +165,19 @@ namespace ETranslucentSortPolicy
 {
 	enum Type
 	{
-		// Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)
+		/** Sort based on distance from camera centerpoint to bounding sphere centerpoint. (Default, best for 3D games.) */
 		SortByDistance = 0,
 
-		// Sort based on the post-projection Z distance to the camera.
+		/** Sort based on the post-projection Z distance to the camera. */
 		SortByProjectedZ = 1,
 
-		// Sort based on the projection onto a fixed axis. (best for 2D games)
+		/** Sort based on the projection onto a fixed axis. (Best for 2D games.) */
 		SortAlongAxis = 2,
 	};
 }
 
 
-/** Controls the way that the width scale property affects anim trails */
+/** Controls the way that the width scale property affects animation trails. */
 UENUM()
 enum ETrailWidthMode
 {
@@ -183,8 +186,19 @@ enum ETrailWidthMode
 	ETrailWidthMode_FromSecond UMETA(DisplayName = "From Second Socket"),
 };
 
+UENUM()
+namespace EParticleCollisionMode
+{
+	enum Type
+	{
+		SceneDepth UMETA(DisplayName="Scene Depth"),
+		DistanceField UMETA(DisplayName="Distance Field")
+	};
+}
 
-// Note: Check UMaterialInstance::Serialize if changed!!
+
+// Note: Check UMaterialInstance::Serialize if changed!
+
 UENUM()
 enum EMaterialShadingModel
 {
@@ -199,15 +213,15 @@ enum EMaterialShadingModel
 };
 
 
-// This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code.
+/** This is used by the drawing passes to determine tessellation policy, so changes here need to be supported in native code. */
 UENUM()
 enum EMaterialTessellationMode
 {
-	/** Tessellation disabled */
+	/** Tessellation disabled. */
 	MTM_NoTessellation UMETA(DisplayName="No Tessellation"),
-	/** Simple tessellation */
+	/** Simple tessellation. */
 	MTM_FlatTessellation UMETA(DisplayName="Flat Tessellation"),
-	/** Simple Spline based tessellation */
+	/** Simple spline based tessellation. */
 	MTM_PNTriangles UMETA(DisplayName="PN Triangles"),
 	MTM_MAX,
 };
@@ -243,23 +257,17 @@ enum ELightingBuildQuality
 UENUM()
 enum ETriangleSortOption
 {
-	//0
 	TRISORT_None,
-	//1
 	TRISORT_CenterRadialDistance,
-	//2
 	TRISORT_Random,
-	//3
 	TRISORT_MergeContiguous,
-	//4
 	TRISORT_Custom,
-	//5
 	TRISORT_CustomLeftRight,
 	TRISORT_MAX,
 };
 
 
-/** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode */
+/** Enum to specify which axis to use for the forward vector when using TRISORT_CustomLeftRight sort mode. */
 UENUM()
 enum ETriangleSortAxis
 {
@@ -484,11 +492,11 @@ enum ETraceTypeQuery
 UENUM()
 enum EPhysicsSceneType
 {
-	// The synchronous scene, which must finish before Unreal sim code is run
+	/** The synchronous scene, which must finish before Unreal simulation code is run. */
 	PST_Sync,
-	// The cloth scene, which may run while Unreal sim code runs
+	/** The cloth scene, which may run while Unreal simulation code runs. */
 	PST_Cloth,
-	// The asynchronous scene, which may run while Unreal sim code runs
+	/** The asynchronous scene, which may run while Unreal simulation code runs. */
 	PST_Async,
 	PST_MAX,
 };
@@ -766,7 +774,7 @@ struct ENGINE_API FCollisionResponseContainer
 	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
 
 	/** Returns the response set on the specified channel */
-	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
+	FORCEINLINE_DEBUGGABLE ECollisionResponse GetResponse(ECollisionChannel Channel) const { return (ECollisionResponse)EnumArray[Channel]; }
 
 	/** Set all channels from ChannelResponse Array **/
 	void UpdateResponsesFromArray(TArray<FResponseChannel> & ChannelResponses);
@@ -806,10 +814,12 @@ enum class ESleepFamily : uint8
 	Normal,
 	/** A family of values with a lower sleep threshold; good for slower pendulum-like physics. */
 	Sensitive,
+	/** Specify your own sleep threshold multiplier */
+	Custom,
 };
 
 
-/** Enum used to indicate what type of timeline signature a function matches */
+/** Enum used to indicate what type of timeline signature a function matches. */
 UENUM()
 enum ETimelineSigType
 {
@@ -822,23 +832,25 @@ enum ETimelineSigType
 };
 
 
-/** Enum used to describe what type of collision is enabled on a body */
+/** Enum used to describe what type of collision is enabled on a body. */
 UENUM()
 namespace ECollisionEnabled 
 { 
 	enum Type 
 	{ 
-		/** No collision is performed against this body */ 
+		/** No collision is enabled for this body. */
 		NoCollision UMETA(DisplayName="No Collision"), 
-		/** This body is only used for collision raycasts, sweeps and overlaps */ 
-		QueryOnly UMETA(DisplayName="No Physics Collision"), 
-		/** This body is used for physics simulation and collision queries */ 
-		QueryAndPhysics UMETA(DisplayName="Collision Enabled") 
+		/** This body is used only for collision queries (raycasts, sweeps, and overlaps). */
+		QueryOnly UMETA(DisplayName="Query Only (No Physics Collision)"),
+		/** This body is used only for physics collision. */
+		PhysicsOnly UMETA(DisplayName="Physics Only (No Query Collision)"),
+		/** This body interacts with all collision (Query and Physics). */
+		QueryAndPhysics UMETA(DisplayName="Collision Enabled (Query and Physics)") 
 	}; 
 } 
 
 
-/** describes the physical state of a rigid body */
+/** Describes the physical state of a rigid body. */
 USTRUCT()
 struct FRigidBodyState
 {
@@ -1059,6 +1071,97 @@ struct ENGINE_API FBasedPosition
 };
 
 
+/** Struct for caching Quat<->Rotator conversions. */
+struct ENGINE_API FRotationConversionCache
+{
+	FRotationConversionCache()
+		: CachedQuat(FQuat::Identity)
+		, CachedRotator(FRotator::ZeroRotator)
+	{
+	}
+
+	/** Convert a FRotator to FQuat. Uses the cached conversion if possible, and updates it if there was no match. */
+	FORCEINLINE_DEBUGGABLE FQuat RotatorToQuat(const FRotator& InRotator) const
+	{
+		if (CachedRotator != InRotator)
+		{
+			CachedRotator = InRotator.GetNormalized();
+			CachedQuat = CachedRotator.Quaternion();
+		}
+		return CachedQuat;
+	}
+
+	/** Convert a FRotator to FQuat. Uses the cached conversion if possible, but does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FQuat RotatorToQuat_ReadOnly(const FRotator& InRotator) const
+	{
+		if (CachedRotator == InRotator)
+		{
+			return CachedQuat;
+		}
+		return InRotator.Quaternion();
+	}
+
+	/** Convert a FQuat to FRotator. Uses the cached conversion if possible, and updates it if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator QuatToRotator(const FQuat& InQuat) const
+	{
+		if (CachedQuat != InQuat)
+		{
+			CachedQuat = InQuat.GetNormalized();
+			CachedRotator = CachedQuat.Rotator();
+		}
+		return CachedRotator;
+	}
+
+	/** Convert a FQuat to FRotator. Uses the cached conversion if possible, but does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator QuatToRotator_ReadOnly(const FQuat& InQuat) const
+	{
+		if (CachedQuat == InQuat)
+		{
+			return CachedRotator;
+		}
+		return InQuat.Rotator();
+	}
+
+	/** Version of QuatToRotator when the Quat is known to already be normalized. */
+	FORCEINLINE_DEBUGGABLE FRotator NormalizedQuatToRotator(const FQuat& InNormalizedQuat) const
+	{
+		if (CachedQuat != InNormalizedQuat)
+		{
+			CachedQuat = InNormalizedQuat;
+			CachedRotator = InNormalizedQuat.Rotator();
+		}
+		return CachedRotator;
+	}
+
+	/** Version of QuatToRotator when the Quat is known to already be normalized. Does *NOT* update the cache if there was no match. */
+	FORCEINLINE_DEBUGGABLE FRotator NormalizedQuatToRotator_ReadOnly(const FQuat& InNormalizedQuat) const
+	{
+		if (CachedQuat == InNormalizedQuat)
+		{
+			return CachedRotator;
+		}
+		return InNormalizedQuat.Rotator();
+	}
+
+	/** Return the cached Quat. */
+	FORCEINLINE_DEBUGGABLE FQuat GetCachedQuat() const
+	{
+		return CachedQuat;
+	}
+
+	/** Return the cached Rotator. */
+	FORCEINLINE_DEBUGGABLE FRotator GetCachedRotator() const
+	{
+		return CachedRotator;
+	}
+
+private:
+	mutable FQuat		CachedQuat;		// FQuat matching CachedRotator such that CachedQuat.Rotator() == CachedRotator.
+	mutable FRotator	CachedRotator;	// FRotator matching CachedQuat such that CachedRotator.Quaternion() == CachedQuat.
+};
+
+
+
 /** A line of subtitle text and the time at which it should be displayed. */
 USTRUCT()
 struct FSubtitleCue
@@ -1130,9 +1233,17 @@ struct FLightmassLightSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass, meta=(UIMin = "0.1", UIMax = "4.0"))
 	float ShadowExponent;
 
+	/** 
+	 * Whether to use area shadows for stationary light precomputed shadowmaps.  
+	 * Area shadows get softer the further they are from shadow casters, but require higher lightmap resolution to get the same quality where the shadow is sharp.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass)
+	bool bUseAreaShadowsForStationaryLight;
+
 	FLightmassLightSettings()
 		: IndirectLightingSaturation(1.0f)
 		, ShadowExponent(2.0f)
+		, bUseAreaShadowsForStationaryLight(false)
 	{ }
 };
 
@@ -1180,6 +1291,13 @@ struct FLightmassPrimitiveSettings
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
 	uint32 bUseEmissiveForStaticLighting:1;
 
+	/** 
+	 * Typically the triangle normal is used for hemisphere gathering which prevents incorrect self-shadowing from artist-tweaked vertex normals. 
+	 * However in the case of foliage whose vertex normal has been setup to match the underlying terrain, gathering in the direction of the vertex normal is desired.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lightmass)
+	uint32 bUseVertexNormalForHemisphereGather:1;
+
 	/** Direct lighting falloff exponent for mesh area lights created from emissive areas on this primitive. */
 	UPROPERTY()
 	float EmissiveLightFalloffExponent;
@@ -1209,6 +1327,7 @@ struct FLightmassPrimitiveSettings
 		bUseTwoSidedLighting = false;
 		bShadowIndirectOnly = false;
 		bUseEmissiveForStaticLighting = false;
+		bUseVertexNormalForHemisphereGather = false;
 		EmissiveLightFalloffExponent = 8.0f;
 		EmissiveLightExplicitInfluenceRadius = 0.0f;
 		EmissiveBoost = 1.0f;
@@ -1222,6 +1341,7 @@ struct FLightmassPrimitiveSettings
 		if ((A.bUseTwoSidedLighting != B.bUseTwoSidedLighting) ||
 			(A.bShadowIndirectOnly != B.bShadowIndirectOnly) || 
 			(A.bUseEmissiveForStaticLighting != B.bUseEmissiveForStaticLighting) || 
+			(A.bUseVertexNormalForHemisphereGather != B.bUseVertexNormalForHemisphereGather) || 
 			(fabsf(A.EmissiveLightFalloffExponent - B.EmissiveLightFalloffExponent) > SMALL_NUMBER) ||
 			(fabsf(A.EmissiveLightExplicitInfluenceRadius - B.EmissiveLightExplicitInfluenceRadius) > SMALL_NUMBER) ||
 			(fabsf(A.EmissiveBoost - B.EmissiveBoost) > SMALL_NUMBER) ||
@@ -1379,20 +1499,18 @@ enum ELightMapPaddingType
 };
 
 
-/**
- * Bit-field flags that affects storage (e.g. packing, streaming) and other info about a shadowmap.
- */
+/** Bit-field flags that affects storage (e.g. packing, streaming) and other info about a shadowmap. */
 UENUM()
 enum EShadowMapFlags
 {
-	// No flags
+	/** No flags. */
 	SMF_None			= 0,
-	// Shadowmap should be placed in a streaming texture
+	/** Shadowmap should be placed in a streaming texture. */
 	SMF_Streamed		= 0x00000001
 };
 
 
-/** reference to a specific material in a PrimitiveComponent */
+/** Reference to a specific material in a PrimitiveComponent. */
 USTRUCT()
 struct FPrimitiveMaterialRef
 {
@@ -1454,6 +1572,10 @@ struct ENGINE_API FHitResult
 	 */
 	UPROPERTY()
 	float Time;
+	 
+	/** The distance from the TraceStart to the ImpactPoint in world space. This value is 0 if there was an initial overlap (trace started inside another colliding object). */
+	UPROPERTY()
+	float Distance; 
 	
 	/**
 	 * The location in world space where the moving shape would end up against the impacted object, if there is a hit. Equal to the point of impact for line tests.
@@ -1556,7 +1678,7 @@ struct ENGINE_API FHitResult
 
 	/** Ctor for easily creating "fake" hits from limited data. */
 	FHitResult(class AActor* InActor, class UPrimitiveComponent* InComponent, FVector const& HitLoc, FVector const& HitNorm);
-
+ 
 	void Reset(float InTime = 1.f, bool bPreserveTraceData = true)
 	{
 		const FVector SavedTraceStart = TraceStart;
@@ -1788,6 +1910,24 @@ public:
 	/** The delta time of the last tick */
 	float ThisTickDelta;
 
+	/** Rate of animation evaluation when non rendered (off screen and dedicated servers).
+	 * a value of 4 means evaluated 1 frame, then 3 frames skipped */
+	UPROPERTY()
+	int32 BaseNonRenderedUpdateRate;
+
+	/** Array of MaxDistanceFactor to use for AnimUpdateRate when mesh is visible (rendered).
+	 * MaxDistanceFactor is size on screen, as used by LODs
+	 * Example:
+	 *		BaseVisibleDistanceFactorThesholds.Add(0.4f)
+	 *		BaseVisibleDistanceFactorThesholds.Add(0.2f)
+	 * means:
+	 *		0 frame skip, MaxDistanceFactor > 0.4f
+	 *		1 frame skip, MaxDistanceFactor > 0.2f
+	 *		2 frame skip, MaxDistanceFactor > 0.0f
+	 */
+	UPROPERTY()
+	TArray<float> BaseVisibleDistanceFactorThesholds;
+
 public:
 
 	/** Default constructor. */
@@ -1800,7 +1940,11 @@ public:
 		, TickedPoseOffestTime(0.f)
 		, AdditionalTime(0.f)
 		, ThisTickDelta(0.f)
-	{ }
+		, BaseNonRenderedUpdateRate(4)
+	{ 
+		BaseVisibleDistanceFactorThesholds.Add(0.4f);
+		BaseVisibleDistanceFactorThesholds.Add(0.2f);
+	}
 
 	/** Set parameters and verify inputs for Trail Mode (original behaviour - skip frames, track skipped time and then catch up afterwards).
 	 * @param : UpdateShiftRate. Shift our update frames so that updates across all skinned components are staggered
@@ -1849,12 +1993,12 @@ public:
 	{
 		if (OptimizeMode == TrailMode)
 		{
-			/*switch (UpdateRate)
+			switch (UpdateRate)
 			{
 			case 1: return FColor::Red;
 			case 2: return FColor::Green;
 			case 3: return FColor::Blue;
-			}*/
+			}
 			return FColor::Black;
 		}
 		else
@@ -1905,9 +2049,7 @@ struct FPOV
 };
 
 
-/**
- * The importance of a mesh feature when automatically generating mesh LODs.
- */
+/** The importance of a mesh feature when automatically generating mesh LODs. */
 UENUM()
 namespace EMeshFeatureImportance
 {
@@ -1923,9 +2065,7 @@ namespace EMeshFeatureImportance
 }
 
 
-/**
- * Settings used to reduce a mesh.
- */
+/** Settings used to reduce a mesh. */
 USTRUCT()
 struct FMeshReductionSettings
 {
@@ -2023,6 +2163,10 @@ struct FMeshBuildSettings
 	/** If true, degenerate triangles will be removed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bRemoveDegenerates;
+	
+	/** Required for PNT tessellation but can be slow. Recommend disabling for larger meshes. */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bBuildAdjacencyBuffer;
 
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
@@ -2070,6 +2214,7 @@ struct FMeshBuildSettings
 		, bRecomputeNormals(true)
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
+		, bBuildAdjacencyBuffer(true)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
 		, MinLightmapResolution(64)
@@ -2089,6 +2234,7 @@ struct FMeshBuildSettings
 			&& bRecomputeTangents == Other.bRecomputeTangents
 			&& bUseMikkTSpace == Other.bUseMikkTSpace
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
+			&& bBuildAdjacencyBuffer == Other.bBuildAdjacencyBuffer
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
 			&& MinLightmapResolution == Other.MinLightmapResolution
@@ -2107,6 +2253,91 @@ struct FMeshBuildSettings
 	}
 };
 
+USTRUCT()
+struct FMaterialSimplificationSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Size of generated BaseColor map
+	UPROPERTY(Category=Material, EditAnywhere)
+	FIntPoint BaseColorMapSize;
+
+	// Whether to generate normal map
+	UPROPERTY()
+	bool bNormalMap;
+	
+	// Size of generated specular map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bNormalMap"))
+	FIntPoint NormalMapSize;
+
+	// Metallic constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float MetallicConstant;
+
+	// Whether to generate metallic map
+	UPROPERTY()
+	bool bMetallicMap;
+
+	// Size of generated metallic map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bMetallicMap"))
+	FIntPoint MetallicMapSize;
+
+	// Roughness constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float RoughnessConstant;
+
+	// Whether to generate roughness map
+	UPROPERTY()
+	bool bRoughnessMap;
+
+	// Size of generated roughness map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bRoughnessMap"))
+	FIntPoint RoughnessMapSize;
+		
+	// Specular constant
+	UPROPERTY(Category=Material, EditAnywhere, meta=(ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1"))
+	float SpecularConstant;
+
+	// Whether to generate specular map
+	UPROPERTY()
+	bool bSpecularMap;
+
+	// Size of generated specular map
+	UPROPERTY(Category=Material, EditAnywhere, meta=(editcondition = "bSpecularMap"))
+	FIntPoint SpecularMapSize;
+
+	FMaterialSimplificationSettings()
+		: BaseColorMapSize(1024, 1024)
+		, bNormalMap(true)
+		, NormalMapSize(1024, 1024)
+		, MetallicConstant(0.0f)
+		, bMetallicMap(false)
+		, MetallicMapSize(1024, 1024)
+		, RoughnessConstant(0.5f)
+		, bRoughnessMap(false)
+		, RoughnessMapSize(1024, 1024)
+		, SpecularConstant(0.5f)
+		, bSpecularMap(false)
+		, SpecularMapSize(1024, 1024)
+	{
+	}
+	
+	bool operator == (const FMaterialSimplificationSettings& Other) const
+	{
+		return BaseColorMapSize == Other.BaseColorMapSize
+			&& bNormalMap == Other.bNormalMap
+			&& NormalMapSize == Other.NormalMapSize
+			&& MetallicConstant == Other.MetallicConstant
+			&& bMetallicMap == Other.bMetallicMap
+			&& MetallicMapSize == Other.MetallicMapSize
+			&& RoughnessConstant == Other.RoughnessConstant
+			&& bRoughnessMap == Other.bRoughnessMap
+			&& RoughnessMapSize == Other.RoughnessMapSize
+			&& SpecularConstant == Other.SpecularConstant
+			&& bSpecularMap == Other.bSpecularMap
+			&& SpecularMapSize == Other.SpecularMapSize;
+	}
+};
 
 USTRUCT()
 struct FMeshProxySettings
@@ -2116,27 +2347,26 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 ScreenSize;
 
-	/** Texture resolution used for the proxy mesh*/
+	/** Material simplification */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 TextureWidth;
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 TextureHeight;
+	FMaterialSimplificationSettings Material;
 
-	/** Whether to create normal map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportNormalMap;
+	UPROPERTY()
+	int32 TextureWidth_DEPRECATED;
+	UPROPERTY()
+	int32 TextureHeight_DEPRECATED;
 
-	/** Whether to create metallic map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportMetallicMap;
+	UPROPERTY()
+	bool bExportNormalMap_DEPRECATED;
 
-	/** Whether to create roughness map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportRoughnessMap;
+	UPROPERTY()
+	bool bExportMetallicMap_DEPRECATED;
 
-	/** Whether to create specular map for the proxy mesh*/
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	bool bExportSpecularMap;
+	UPROPERTY()
+	bool bExportRoughnessMap_DEPRECATED;
+
+	UPROPERTY()
+	bool bExportSpecularMap_DEPRECATED;
 
 	/** Should Simplygon recalculate normals for the proxy mesh? */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
@@ -2164,12 +2394,12 @@ struct FMeshProxySettings
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
-		, TextureWidth(512)
-		, TextureHeight(512)
-		, bExportNormalMap(true)
-		, bExportMetallicMap(false)
-		, bExportRoughnessMap(false)
-		, bExportSpecularMap(false)
+		, TextureWidth_DEPRECATED(512)
+		, TextureHeight_DEPRECATED(512)
+		, bExportNormalMap_DEPRECATED(true)
+		, bExportMetallicMap_DEPRECATED(false)
+		, bExportRoughnessMap_DEPRECATED(false)
+		, bExportSpecularMap_DEPRECATED(false)
 		, bRecalculateNormals(true)
 		, HardAngleThreshold(80.0f)
 		, MergeDistance(4)
@@ -2183,12 +2413,7 @@ struct FMeshProxySettings
 	bool operator==(const FMeshProxySettings& Other) const
 	{
 		return ScreenSize == Other.ScreenSize
-			&& TextureWidth == Other.TextureWidth
-			&& TextureHeight == Other.TextureHeight
-			&& bExportNormalMap == Other.bExportNormalMap
-			&& bExportMetallicMap == Other.bExportMetallicMap
-			&& bExportRoughnessMap == Other.bExportRoughnessMap
-			&& bExportSpecularMap == Other.bExportSpecularMap
+			&& Material == Other.Material
 			&& bRecalculateNormals == Other.bRecalculateNormals
 			&& HardAngleThreshold == Other.HardAngleThreshold
 			&& MergeDistance == Other.MergeDistance;
@@ -2199,6 +2424,9 @@ struct FMeshProxySettings
 	{
 		return !(*this == Other);
 	}
+
+	/** Handles deprecated properties */
+	void PostLoadDeprecated();
 };
 
 /**
@@ -2218,7 +2446,7 @@ struct FMeshMergingSettings
 	int32 TargetLightMapUVChannel;
 
 	/** Target lightmap resolution */
-UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
+	UPROPERTY(EditAnywhere, Category=FMeshMergingSettings)
 	int32 TargetLightMapResolution;
 		
 	/** Whether we should import vertex colors into merged mesh */
@@ -2280,6 +2508,8 @@ public:
 		: DamageTypeClass(InDamageEvent.DamageTypeClass)
 	{ }
 	
+	virtual ~FDamageEvent() { }
+
 	explicit FDamageEvent(TSubclassOf<class UDamageType> InDamageTypeClass)
 		: DamageTypeClass(InDamageTypeClass)
 	{ }
@@ -2403,13 +2633,13 @@ struct ENGINE_API FRadialDamageEvent : public FDamageEvent
 UENUM()
 enum ENetRole
 {
-	// No role at all.
+	/** No role at all. */
 	ROLE_None,
-	// Locally simulated proxy of this actor.
+	/** Locally simulated proxy of this actor. */
 	ROLE_SimulatedProxy,
-	// Locally autonomous proxy of this actor.
+	/** Locally autonomous proxy of this actor. */
 	ROLE_AutonomousProxy,
-	// Authoritative control over the actor.
+	/** Authoritative control over the actor. */
 	ROLE_Authority,
 	ROLE_MAX,
 };
@@ -2418,15 +2648,15 @@ enum ENetRole
 UENUM()
 enum ENetDormancy
 {
-	// This actor can never go network dormant
+	/** This actor can never go network dormant. */
 	DORM_Never,
-	// This actor can go dormant, but is not currently dormant. Game code will tell it when it go dormant
+	/** This actor can go dormant, but is not currently dormant. Game code will tell it when it go dormant. */
 	DORM_Awake,
-	// This actor wants to go fully dormant for all connections
+	/** This actor wants to go fully dormant for all connections. */
 	DORM_DormantAll,
-	// This actor may want to go dormant for some connections, GetNetDormancy() will be called to find out which
+	/** This actor may want to go dormant for some connections, GetNetDormancy() will be called to find out which. */
 	DORM_DormantPartial,
-	// This actor is initially dormant for all connection if it was placed in map.
+	/** This actor is initially dormant for all connection if it was placed in map. */
 	DORM_Initial,
 	DORN_MAX,
 };
@@ -2453,10 +2683,14 @@ namespace EAutoReceiveInput
 UENUM()
 enum class EAutoPossessAI : uint8
 {
-	Disabled,				// Feature is disabled (do not automatically possess AI).
-	PlacedInWorld,			// Only possess by an AI Controller if Pawn is placed in the world.
-	Spawned,				// Only possess by an AI Controller if Pawn is spawned after the world has loaded.
-	PlacedInWorldOrSpawned, // Pawn is automatically possessed by an AI Controller whenever it is created.
+	/** Feature is disabled (do not automatically possess AI). */
+	Disabled,
+	/** Only possess by an AI Controller if Pawn is placed in the world. */
+	PlacedInWorld,
+	/** Only possess by an AI Controller if Pawn is spawned after the world has loaded. */
+	Spawned,
+	/** Pawn is automatically possessed by an AI Controller whenever it is created. */
+	PlacedInWorldOrSpawned,
 };
 
 
@@ -2465,17 +2699,83 @@ namespace EEndPlayReason
 {
 	enum Type
 	{
-		Destroyed,			// When the Actor or Component is explicitly destroyed
-		LevelTransition,	// When the world is being unloaded for a level transition
-		EndPlayInEditor,	// When the world is being unloaded because PIE is ending
-		RemovedFromWorld,	// When the level it is a member of is streamed out
-		Quit,				// When the application is being exited
+		/** When the Actor or Component is explicitly destroyed. */
+		Destroyed,
+		/** When the world is being unloaded for a level transition. */
+		LevelTransition,
+		/** When the world is being unloaded because PIE is ending. */
+		EndPlayInEditor,
+		/** When the level it is a member of is streamed out. */
+		RemovedFromWorld,
+		/** When the application is being exited. */
+		Quit,
 	};
 
 }
 
-
 DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
+
+// Unique handle that can be used to distinguish timers that have identical delegates.
+USTRUCT(BlueprintType)
+struct FTimerHandle
+{
+	GENERATED_BODY()
+
+	FTimerHandle()
+	: Handle(INDEX_NONE)
+	{
+	}
+
+	bool IsValid() const
+	{
+		return Handle != INDEX_NONE;
+	}
+
+	void Invalidate()
+	{
+		Handle = INDEX_NONE;
+	}
+
+	void MakeValid();
+
+	bool operator==(const FTimerHandle& Other) const
+	{
+		return Handle == Other.Handle;
+	}
+
+	bool operator!=(const FTimerHandle& Other) const
+	{
+		return Handle != Other.Handle;
+	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("%d"), Handle);
+	}
+
+private:
+	int32 Handle;
+};
+
+UENUM()
+enum class EVectorQuantization : uint8
+{
+	/** Each vector component will be rounded to the nearest whole number. */
+	RoundWholeNumber,
+	/** Each vector component will be rounded, preserving one decimal place. */
+	RoundOneDecimal,
+	/** Each vector component will be rounded, preserving two decimal places. */
+	RoundTwoDecimals
+};
+
+UENUM()
+enum class ERotatorQuantization : uint8
+{
+	/** The rotator will be compressed to 8 bits per component. */
+	ByteComponents,
+	/** The rotator will be compressed to 16 bits per component. */
+	ShortComponents
+};
 
 /** Replicated movement data of our RootComponent.
   * Struct used for efficient replication as velocity and location are generally replicated together (this saves a repindex) 
@@ -2486,34 +2786,66 @@ struct FRepMovement
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	FVector_NetQuantize100 LinearVelocity;
+	UPROPERTY(Transient)
+	FVector LinearVelocity;
 
-	UPROPERTY()
-	FVector_NetQuantize100 AngularVelocity;
+	UPROPERTY(Transient)
+	FVector AngularVelocity;
 	
-	UPROPERTY()
-	FVector_NetQuantize100 Location;
+	UPROPERTY(Transient)
+	FVector Location;
 
-	UPROPERTY()
+	UPROPERTY(Transient)
 	FRotator Rotation;
 
-	/** if set, RootComponent should be sleeping */
-	UPROPERTY()
+	/** If set, RootComponent should be sleeping. */
+	UPROPERTY(Transient)
 	uint8 bSimulatedPhysicSleep : 1;
 
-	/** if set, additional physic data (angular velocity) will be replicated */
-	UPROPERTY()
+	/** If set, additional physic data (angular velocity) will be replicated. */
+	UPROPERTY(Transient)
 	uint8 bRepPhysics : 1;
 
-	FRepMovement()
-		: LinearVelocity(ForceInit)
-		, AngularVelocity(ForceInit)
-		, Location(ForceInit)
-		, Rotation(ForceInit)
-		, bSimulatedPhysicSleep(false)
-		, bRepPhysics(false)
-	{}
+	/** Allows tuning the compression level for the replicated location vector. You should only need to change this from the default if you see visual artifacts. */
+	UPROPERTY(EditDefaultsOnly, Category=Replication, AdvancedDisplay)
+	EVectorQuantization LocationQuantizationLevel;
+
+	/** Allows tuning the compression level for the replicated velocity vectors. You should only need to change this from the default if you see visual artifacts. */
+	UPROPERTY(EditDefaultsOnly, Category=Replication, AdvancedDisplay)
+	EVectorQuantization VelocityQuantizationLevel;
+
+	/** Allows tuning the compression level for replicated rotation. You should only need to change this from the default if you see visual artifacts. */
+	UPROPERTY(EditDefaultsOnly, Category=Replication, AdvancedDisplay)
+	ERotatorQuantization RotationQuantizationLevel;
+
+	FRepMovement();
+
+	bool SerializeQuantizedVector(FArchive& Ar, FVector& Vector, EVectorQuantization QuantizationLevel)
+	{
+		// Since FRepMovement used to use FVector_NetQuantize100, we're allowing enough bits per component
+		// regardless of the quantization level so that we can still support at least the same maximum magnitude
+		// (2^30 / 100, or ~10 million).
+		// This uses no inherent extra bandwidth since we're still using the same number of bits to store the
+		// bits-per-component value. Of course, larger magnitudes will still use more bandwidth,
+		// as has always been the case.
+		switch(QuantizationLevel)
+		{
+			case EVectorQuantization::RoundTwoDecimals:
+			{
+				return SerializePackedVector<100, 30>(Vector, Ar);
+			}
+
+			case EVectorQuantization::RoundOneDecimal:
+			{
+				return SerializePackedVector<10, 27>(Vector, Ar);
+			}
+
+			default:
+			{
+				return SerializePackedVector<1, 24>(Vector, Ar);
+			}
+		}
+	}
 
 	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 	{
@@ -2525,21 +2857,30 @@ struct FRepMovement
 
 		bOutSuccess = true;
 
-		bool bOutSuccessLocal = true;
+		// update location, rotation, linear velocity
+		bOutSuccess &= SerializeQuantizedVector( Ar, Location, LocationQuantizationLevel );
+		
+		switch(RotationQuantizationLevel)
+		{
+			case ERotatorQuantization::ByteComponents:
+			{
+				Rotation.SerializeCompressed( Ar );
+				break;
+			}
 
-		// update location, linear velocity
-		Location.NetSerialize( Ar, Map, bOutSuccessLocal );
-		bOutSuccess &= bOutSuccessLocal;
-		Rotation.NetSerialize( Ar, Map, bOutSuccessLocal );
-		bOutSuccess &= bOutSuccessLocal;
-		LinearVelocity.NetSerialize( Ar, Map, bOutSuccessLocal );
-		bOutSuccess &= bOutSuccessLocal;
+			case ERotatorQuantization::ShortComponents:
+			{
+				Rotation.SerializeCompressedShort( Ar );
+				break;
+			}
+		}
+		
+		bOutSuccess &= SerializeQuantizedVector( Ar, LinearVelocity, VelocityQuantizationLevel );
 
 		// update angular velocity if required
 		if ( bRepPhysics )
 		{
-			AngularVelocity.NetSerialize( Ar, Map, bOutSuccessLocal );
-			bOutSuccess &= bOutSuccessLocal;
+			bOutSuccess &= SerializeQuantizedVector( Ar, AngularVelocity, VelocityQuantizationLevel );
 		}
 
 		return true;
@@ -2925,33 +3266,33 @@ class ENGINE_API UEngineTypes : public UObject
 	GENERATED_UCLASS_BODY()
 
 public:
-	/** Convert a trace type to a collision channel */
+	/** Convert a trace type to a collision channel. */
 	static ECollisionChannel ConvertToCollisionChannel(ETraceTypeQuery TraceType);
 
-	/** Convert an object type to a collision channel */
+	/** Convert an object type to a collision channel. */
 	static ECollisionChannel ConvertToCollisionChannel(EObjectTypeQuery ObjectType);
 
-	/** Convert a collision channel to an object type. Note: performs a search of object types */
+	/** Convert a collision channel to an object type. Note: performs a search of object types. */
 	static EObjectTypeQuery ConvertToObjectType(ECollisionChannel CollisionChannel);
 
-	/** Convert a collision channel to a trace type. Note: performs a search of trace types */
+	/** Convert a collision channel to a trace type. Note: performs a search of trace types. */
 	static ETraceTypeQuery ConvertToTraceType(ECollisionChannel CollisionChannel);
 };
 
 
-/** Type of a socket on a scene component */
+/** Type of a socket on a scene component. */
 UENUM()
 namespace EComponentSocketType
 {
 	enum Type
 	{
-		/** Not a valid socket or bone name */
+		/** Not a valid socket or bone name. */
 		Invalid,
 
-		/** Skeletal bone */
+		/** Skeletal bone. */
 		Bone,
 
-		/** Socket */
+		/** Socket. */
 		Socket,
 	};
 }
@@ -2984,11 +3325,11 @@ struct FComponentSocketDescription
 UENUM()
 enum EAngularConstraintMotion
 {
-	/** No constraint against this axis */ 
+	/** No constraint against this axis. */ 
 	ACM_Free		UMETA(DisplayName="Free"),
-	/** Limited freedom along this axis */ 
+	/** Limited freedom along this axis. */ 
 	ACM_Limited		UMETA(DisplayName="Limited"),
-	/** Fully constraint against this axis */
+	/** Fully constraint against this axis. */
 	ACM_Locked		UMETA(DisplayName="Locked"),
 
 	ACM_MAX,
@@ -3300,3 +3641,20 @@ struct FCanvasUVTri
 
 
 template <> struct TIsZeroConstructType<FCanvasUVTri> { enum { Value = true }; };
+
+/** Defines available strategies for handling the case where an actor is spawned in such a way that it penetrates blocking collision. */
+UENUM(BlueprintType)
+enum class ESpawnActorCollisionHandlingMethod : uint8
+{
+	/** Fall back to default settings. */
+	Undefined								UMETA(DisplayName = "Default"),
+	/** Actor will spawn in desired location, regardless of collisions. */
+	AlwaysSpawn								UMETA(DisplayName = "Always Spawn, Ignore Collisions"),
+	/** Actor will try to find a nearby non-colliding location (based on shape components), but will always spawn even if one cannot be found. */
+	AdjustIfPossibleButAlwaysSpawn			UMETA(DisplayName = "Try To Adjust Location, But Always Spawn"),
+	/** Actor will try to find a nearby non-colliding location (based on shape components), but will NOT spawn unless one is found. */
+	AdjustIfPossibleButDontSpawnIfColliding	UMETA(DisplayName = "Try To Adjust Location, Don't Spawn If Still Colliding"),
+	/** Actor will fail to spawn. */
+	DontSpawnIfColliding					UMETA(DisplayName = "Do Not Spawn"),
+};
+

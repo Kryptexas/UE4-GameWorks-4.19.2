@@ -35,7 +35,6 @@ In order to view both **Server** and **Client** perspectives, on the **Play** dr
 [/REGION]
 
 
-## Overview
 In order to create properly networked gameplay through Blueprints, it is important to also understand the concept of **Network Relevancy**. 
 Simply put, it often does not make sense for a client machine to have to receive network data for every Actor, all of the time. A player on one side of a large map does not need to know everything occuring on the other side of the map from a networking perspective. 
 In that case, we say only some Actors are "relevant" to the player at a given time. Relevant Actors are usually the ones players can see, interact with, or are nearby. The player receives full network updates only for relevant Actors, as an optimization. 

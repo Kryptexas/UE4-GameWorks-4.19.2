@@ -356,12 +356,12 @@ struct CORE_API FGenericPlatformMisc
 	{
 	}
 
-	FORCEINLINE static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings )
+	FORCEINLINE static uint32 GetKeyMap( uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings )
 	{
 		return 0;
 	}
 
-	FORCEINLINE static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings)
+	FORCEINLINE static uint32 GetCharKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings)
 	{
 		return 0;
 	}
@@ -371,16 +371,7 @@ struct CORE_API FGenericPlatformMisc
 		return 0;
 	}
 
-	FORCEINLINE static void RaiseException( uint32 ExceptionCode )
-	{
-#if HACK_HEADER_GENERATOR && !PLATFORM_EXCEPTIONS_DISABLED
-		// We want Unreal Header Tool to throw an exception but in normal runtime code 
-		// we don't support exception handling
-		throw( ExceptionCode );
-#else	
-		*((uint32*)3) = ExceptionCode;
-#endif
-	}
+	static void RaiseException( uint32 ExceptionCode );
 
 protected:
 
@@ -391,7 +382,7 @@ protected:
 	* @param bMapUppercaseKeys If true, will map A, B, C, etc to EKeys::A, EKeys::B, EKeys::C
 	* @param bMapLowercaseKeys If true, will map a, b, c, etc to EKeys::A, EKeys::B, EKeys::C
 	*/
-	static uint32 GetStandardPrintableKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys);
+	static uint32 GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys);
 
 public:
 
@@ -602,6 +593,12 @@ public:
 
 	/** Get the engine directory */
 	static const TCHAR* EngineDir();
+
+	/** Get the directory the application was launched from (useful for commandline utilities) */
+	static const TCHAR* LaunchDir();
+
+	/** Function to store the current working directory for use with LaunchDir() */
+	static void CacheLaunchDir();
 
 	/**
 	 *	Return the GameDir
@@ -828,6 +825,29 @@ public:
 	 * Get a string description of the mode the engine was running in.
 	 */
 	static const TCHAR* GetEngineMode();
+
+	/**
+	 * Returns an array of the user's preferred languages in order of preference
+	 * @return An array of language IDs ordered from most preferred to least
+	 */
+	static TArray<FString> GetPreferredLanguages();
+
+	/**
+	* Returns the currency code associated with the device's locale
+	* @return the currency code associated with the device's locale
+	*/
+	static FString GetLocalCurrencyCode();
+
+	/**
+	* Returns the currency symbol associated with the device's locale
+	* @return the currency symbol associated with the device's locale
+	*/
+	static FString GetLocalCurrencySymbol();
+
+	/**
+	 * Requests permission to send remote notifications to the user's device.
+	 */
+	static void RegisterForRemoteNotifications();
 
 	/**
 	* Execute plaform dependent pre load map actions

@@ -1,0 +1,98 @@
+﻿INTSourceChangelist:2590930
+Availability:Public
+Title:Behavior Tree ノードのリファレンス:Tasks
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
+Description:Behavior Tree Task ノードの説明です。
+
+[TOC(start:2 end:2)]
+
+ビヘイビアツリー エディタで利用可能な **Task ノード** について説明します。Tasks ノードは、AI を移動するなどのように何かを "実行する" ノード、あるいは Blackboard 値を調整します。[**Decorators**](Engine/AI/BehaviorTrees/NodeReference/Decorators) をアタッチすることができます。
+
+## Make Noise
+
+![](MakeNoise.png)
+
+制御されたポーンに **PawnNoiseEmitter** コンポーネントがある場合、 Make Noise タスクに、 **PawnSensing** コンポーネントのある別のポーンが聞こえる (メッセージを受信できる) ような「音を作成」 (メッセージを送付) させます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Loudness** | 作成される音の音量。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Move To
+
+![](MoveTo.png)
+
+Move To ノードは Character Movement コンポーネントのあるポーンを NavMesh を使って ベクター ブラックボード キーへ移動させます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Acceptable Radius** | **Move To** Task が成功するために必要な、ポーンとターゲットの接近距離。 |
+| **Filter Class** | どのナビゲーション データを使用すべきか？None に設定されていると、デフォルトのナビゲーション データが使用されます。 |
+| **Allow Strafe** | ポーンに攻撃を許可するか？ |
+| **Blackboard Key** | 移動先の位置 (Vector3)。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Play Sound
+
+![](PlaySound.png)
+
+**Sound to Play** プロパティで与えられたサウンドを再生するノードです。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Sound to Play** | 再生する Sound Cue アセットです。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Run Behavior
+
+![](RunBehavior.png)
+
+Run Behavior ノードにより、別のビヘイビアツリーを実行することができます。 
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Behavior Asset** | Behavior Tree アセットを実行します。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+## Run EQS Query
+
+![](RunEQSQuery.png)
+
+Run EQS Query ノード
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Query Template** | (コンテンツ ブラウザで作成した) この EQS Query に使用する Environment Query。 |
+| **Query Params** | マテリアルのパラメータの持ち方と同じように、Environment Query は Generator にプロパティを持ち、Tests がパラメータとして設定します。従って、これらのパラメータ名を入力し、その値をここで設定することにより、1 つの Environment Query で広範囲のシナリオに対応できるようになります。
+| **Blackboard Key**| ベクター |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+## Wait
+
+![](Wait.png)
+
+ビヘイビアツリーは、待ち時間が終わるまで、このノード上で待機します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Wait Time** | 秒単位の待ち時間。 |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Wait Blackboard Time
+
+待ち時間の長さの Blackboard 値を引き出す以外は、機能は Wait Task ノードと同じです。
+
+![](waitBBTime.png)
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Blackboard Key**| 待ち時間の長さを参照するためのフロート型の Blackboard Key です。
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+
+
+
+

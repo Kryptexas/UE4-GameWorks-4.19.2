@@ -11,15 +11,24 @@
 #include "PostProcessAmbientOcclusion.h"
 #include "SceneUtils.h"
 
-static TAutoConsoleVariable<int32> CVarAmbientOcclusionSampleSetQuality(
-	TEXT("r.AmbientOcclusionSampleSetQuality"),
-	-1,
-	TEXT("Defines how many samples we use for ScreenSpace Ambient Occlusion\n")
-	TEXT("-1: sample count depends on post process settings (default)\n")
-	TEXT("0: low sample count (defined in shader, 3 * 2 per pixel)\n")
-	TEXT("1: high sample count (defined in shader, 6 * 2 per pixel)"),
+static TAutoConsoleVariable<int32> CVarAmbientOcclusionMaxQuality(
+	TEXT("r.AmbientOcclusionMaxQuality"),
+	100,
+	TEXT("Defines the max clamping value from the post process volume's quality level for ScreenSpace Ambient Occlusion\n")
+	TEXT(" 100: don't override quality level from the post process volume (default)\n")
+	TEXT(" <100: clamp down quality level from the post process volume to the maximum set by this cvar"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<float> CVarAmbientOcclusionStepMipLevelFactor(
+	TEXT("r.AmbientOcclusionMipLevelFactor"),
+	0.5f,
+	TEXT("Controle mipmap level according to the SSAO step id\n")
+	TEXT(" 0: always look into the HZB mipmap level 0 (memory cache trashing)\n")
+	TEXT(" 0.5: sample count depends on post process settings (default)\n")
+	TEXT(" 1: Go into higher mipmap level (quality loss)"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
+IMPLEMENT_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,TEXT("CameraMotion"));
 
 /** Encapsulates the post processing ambient occlusion pixel shader. */
 template <uint32 bInitialPass>
@@ -66,7 +75,7 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		// e.g. 4 means the input texture is 4x smaller than the buffer size
-		uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / Context.Pass->GetOutput(ePId_Output0)->RenderTargetDesc.Extent.X;
+		uint32 ScaleToFullRes = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / Context.Pass->GetOutput(ePId_Output0)->RenderTargetDesc.Extent.X;
 
 		// /1000 to be able to define the value in that distance
 		FVector4 AmbientOcclusionSetupParamsValue = FVector4(ScaleToFullRes, Settings.AmbientOcclusionMipThreshold / ScaleToFullRes, 0, 0);
@@ -112,18 +121,6 @@ FArchive& operator<<(FArchive& Ar, FScreenSpaceAOandSSRShaderParameters& This)
 
 // --------------------------------------------------------
 
-void FCameraMotionParameters::Bind(const FShaderParameterMap& ParameterMap)
-{
-	CameraMotion.Bind(ParameterMap, TEXT("CameraMotion"));
-}
-
-FArchive& operator<<(FArchive& Ar, FCameraMotionParameters& This)
-{
-	Ar << This.CameraMotion;
-
-	return Ar;
-}
-
 /**
  * Encapsulates the post processing ambient occlusion pixel shader.
  * @param bAOSetupAsInput true:use AO setup instead of full resolution depth and normal
@@ -152,6 +149,7 @@ class FPostProcessAmbientOcclusionPS : public FGlobalShader
 	FPostProcessAmbientOcclusionPS() {}
 
 public:
+	FShaderParameter HzbUvAndStepMipLevelFactor;
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FScreenSpaceAOandSSRShaderParameters ScreenSpaceAOandSSRShaderParams;
@@ -167,6 +165,7 @@ public:
 		ScreenSpaceAOandSSRShaderParams.Bind(Initializer.ParameterMap);
 		RandomNormalTexture.Bind(Initializer.ParameterMap, TEXT("RandomNormalTexture"));
 		RandomNormalTextureSampler.Bind(Initializer.ParameterMap, TEXT("RandomNormalTextureSampler"));
+		HzbUvAndStepMipLevelFactor.Bind(Initializer.ParameterMap, TEXT("HzbUvAndStepMipLevelFactor"));
 	}
 
 	void SetParameters(const FRenderingCompositePassContext& Context, FIntPoint InputTextureSize)
@@ -185,13 +184,22 @@ public:
 		SetTextureParameter(Context.RHICmdList, ShaderRHI, RandomNormalTexture, RandomNormalTextureSampler, TStaticSamplerState<SF_Point, AM_Wrap, AM_Wrap, AM_Wrap>::GetRHI(), SSAORandomization.ShaderResourceTexture);
 
 		ScreenSpaceAOandSSRShaderParams.Set(Context.RHICmdList, Context.View, ShaderRHI, InputTextureSize);
+		
+		const float HzbStepMipLevelFactorValue = FMath::Clamp(CVarAmbientOcclusionStepMipLevelFactor.GetValueOnRenderThread(), 0.0f, 1.0f);
+		const FVector HzbUvAndStepMipLevelFactorValue(
+			float(Context.View.ViewRect.Width()) / float(2 * Context.View.HZBMipmap0Size.X),
+			float(Context.View.ViewRect.Height()) / float(2 * Context.View.HZBMipmap0Size.Y),
+			HzbStepMipLevelFactorValue
+			);
+		
+		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbStepMipLevelFactorValue );
 	}
 	
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << DeferredParameters << ScreenSpaceAOandSSRShaderParams << RandomNormalTexture << RandomNormalTextureSampler;
+		Ar << HzbUvAndStepMipLevelFactor << PostprocessParameter << DeferredParameters << ScreenSpaceAOandSSRShaderParams << RandomNormalTexture << RandomNormalTextureSampler;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -208,13 +216,16 @@ public:
 
 
 // #define avoids a lot of code duplication
+#define VARIATION0(C)	    VARIATION1(0, C) VARIATION1(1, C)
 #define VARIATION1(A, C)	VARIATION2(A, 0, C) VARIATION2(A, 1, C)
 #define VARIATION2(A, B, C) typedef FPostProcessAmbientOcclusionPS<A, B, C> FPostProcessAmbientOcclusionPS##A##B##C; \
 	IMPLEMENT_SHADER_TYPE2(FPostProcessAmbientOcclusionPS##A##B##C, SF_Pixel);
 
-	VARIATION1(0,0) VARIATION1(1,0)
-	VARIATION1(0,1) VARIATION1(1,1)
-
+	VARIATION0(0)
+	VARIATION0(1)
+	VARIATION0(2)
+	
+#undef VARIATION0
 #undef VARIATION1
 #undef VARIATION2
 
@@ -306,7 +317,7 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 	FIntPoint DestSize = PassOutputs[0].RenderTargetDesc.Extent;
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 ScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / DestSize.X;
+	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / DestSize.X;
 
 	FIntRect SrcRect = View.ViewRect;
 	FIntRect DestRect = SrcRect  / ScaleFactor;
@@ -340,7 +351,7 @@ void FRCPassPostProcessAmbientOcclusionSetup::Process(FRenderingCompositePassCon
 			SrcRect.Min.X, SrcRect.Min.Y, 
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
 		VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -353,15 +364,16 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusionSetup::ComputeOutputDe
 	
 	if(IsInitialPass())
 	{
-		Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 	}
 	else
 	{
-		Ret = PassInputs[1].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input1)->GetOutput()->RenderTargetDesc;
 	}
 
 	Ret.Reset();
 	Ret.Format = PF_FloatRGBA;
+	Ret.ClearValue = FClearValueBinding::None;
 	Ret.TargetableFlags &= ~TexCreate_DepthStencilTargetable;
 	Ret.TargetableFlags |= TexCreate_RenderTargetable;
 	Ret.Extent = FIntPoint::DivideAndRoundUp(Ret.Extent, 2);
@@ -418,6 +430,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	const FPooledRenderTargetDesc* InputDesc2 = GetInputDesc(ePId_Input2);
 
 	const FSceneRenderTargetItem* DestRenderTarget = 0;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	if(bAOSetupAsInput)
 	{
@@ -425,7 +438,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	}
 	else
 	{
-		DestRenderTarget = &GSceneRenderTargets.ScreenSpaceAO->GetRenderTargetItem();
+		DestRenderTarget = &SceneContext.ScreenSpaceAO->GetRenderTargetItem();
 	}
 
 	ensure(InputDesc0);
@@ -433,7 +446,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	FIntPoint TexSize = InputDesc0->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
+	uint32 ScaleToFullRes = SceneContext.GetBufferSizeXY().X / TexSize.X;
 
 	FIntRect ViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
@@ -446,43 +459,36 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	int32 SampleSetQuality = CVarAmbientOcclusionSampleSetQuality.GetValueOnRenderThread();
-
-	if(SampleSetQuality < 0)
-	{
-		SampleSetQuality = 0;
-
-		// SampleSetQuality depends on post process settings
-		if(Context.View.FinalPostProcessSettings.AmbientOcclusionQuality > 60.0f)
-		{
-			SampleSetQuality = 1;
-		}
-	}
-
+	const float QualityPercent = FMath::Min(float(CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread()), Context.View.FinalPostProcessSettings.AmbientOcclusionQuality);
+	const int32 QualitySet = 
+		(QualityPercent > 60.0f) +
+		(QualityPercent > 25.0f);
 	bool bDoUpsample = (InputDesc2 != 0);
 
-	if(bAOSetupAsInput)
+#define SET_SHADER_CASE(Quality)                                \
+	case Quality:			                                    \
+	if(bAOSetupAsInput)                                         \
+    {                                                           \
+		if(bDoUpsample) SetShaderTempl<1, 1, Quality>(Context); \
+		else SetShaderTempl<1, 0, Quality>(Context);            \
+	}                                                           \
+	else                                                        \
+    {                                                           \
+		if(bDoUpsample) SetShaderTempl<0, 1, Quality>(Context); \
+		else SetShaderTempl<0, 0, Quality>(Context);            \
+	}                                                           \
+	break
+
+	switch(QualitySet)
 	{
-		if(bDoUpsample)
-		{
-			if(SampleSetQuality) SetShaderTempl<1, 1, 1>(Context); else SetShaderTempl<1, 1, 0>(Context);
-		}
-		else
-		{
-			if(SampleSetQuality) SetShaderTempl<1, 0, 1>(Context); else SetShaderTempl<1, 0, 0>(Context);
-		}
-	}
-	else
-	{
-		if(bDoUpsample)
-		{
-			if(SampleSetQuality) SetShaderTempl<0, 1, 1>(Context); else SetShaderTempl<0, 1, 0>(Context);
-		}
-		else
-		{
-			if(SampleSetQuality) SetShaderTempl<0, 0, 1>(Context); else SetShaderTempl<0, 0, 0>(Context);
-		}
-	}
+		SET_SHADER_CASE(0);
+		SET_SHADER_CASE(1);
+		SET_SHADER_CASE(2);
+		default:
+			break;
+	};
+
+#undef SET_SHADER_CASE
 
 	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
 
@@ -514,7 +520,7 @@ FPooledRenderTargetDesc FRCPassPostProcessAmbientOcclusion::ComputeOutputDesc(EP
 		return Ret;
 	}
 
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	// R:AmbientOcclusion, GBA:used for normal
@@ -533,8 +539,9 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 	SCOPED_DRAW_EVENT(Context.RHICmdList, ApplyAOToBasePassSceneColor);
 
 	const FSceneView& View = Context.View;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
-	const FSceneRenderTargetItem& DestRenderTarget = GSceneRenderTargets.GetSceneColor()->GetRenderTargetItem();
+	const FSceneRenderTargetItem& DestRenderTarget = SceneContext.GetSceneColor()->GetRenderTargetItem();
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture,	FTextureRHIParamRef(), ESimpleRenderTargetMode::EExistingColorAndDepth);
@@ -554,7 +561,7 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 
 	VertexShader->SetParameters(Context);
-	PixelShader->SetParameters(Context, GSceneRenderTargets.GetBufferSizeXY());
+	PixelShader->SetParameters(Context, SceneContext.GetBufferSizeXY());
 
 	// Draw a quad mapping scene color to the view's render target
 	DrawRectangle( 
@@ -564,7 +571,7 @@ void FRCPassPostProcessBasePassAO::Process(FRenderingCompositePassContext& Conte
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -579,4 +586,64 @@ FPooledRenderTargetDesc FRCPassPostProcessBasePassAO::ComputeOutputDesc(EPassOut
 	Ret.DebugName = TEXT("SceneColorWithAO");
 
 	return Ret;
+}
+
+TUniformBufferRef<FCameraMotionParameters> CreateCameraMotionParametersUniformBuffer(const FSceneView& View)
+{
+	FSceneViewState* ViewState = (FSceneViewState*)View.State;
+
+	FMatrix Proj = View.ViewMatrices.GetProjNoAAMatrix();
+	FMatrix PrevProj = ViewState->PrevViewMatrices.GetProjNoAAMatrix();
+
+	FVector DeltaTranslation = ViewState->PrevViewMatrices.PreViewTranslation - View.ViewMatrices.PreViewTranslation;
+	FMatrix ViewProj = ( View.ViewMatrices.TranslatedViewMatrix * Proj ).GetTransposed();
+	FMatrix PrevViewProj = ( FTranslationMatrix(DeltaTranslation) * ViewState->PrevViewMatrices.TranslatedViewMatrix * PrevProj ).GetTransposed();
+
+	double InvViewProj[16];
+	Inverse4x4( InvViewProj, (float*)ViewProj.M );
+
+	const float* p = (float*)PrevViewProj.M;
+
+	const double cxx = InvViewProj[ 0]; const double cxy = InvViewProj[ 1]; const double cxz = InvViewProj[ 2]; const double cxw = InvViewProj[ 3];
+	const double cyx = InvViewProj[ 4]; const double cyy = InvViewProj[ 5]; const double cyz = InvViewProj[ 6]; const double cyw = InvViewProj[ 7];
+	const double czx = InvViewProj[ 8]; const double czy = InvViewProj[ 9]; const double czz = InvViewProj[10]; const double czw = InvViewProj[11];
+	const double cwx = InvViewProj[12]; const double cwy = InvViewProj[13]; const double cwz = InvViewProj[14]; const double cww = InvViewProj[15];
+
+	const double pxx = (double)(p[ 0]); const double pxy = (double)(p[ 1]); const double pxz = (double)(p[ 2]); const double pxw = (double)(p[ 3]);
+	const double pyx = (double)(p[ 4]); const double pyy = (double)(p[ 5]); const double pyz = (double)(p[ 6]); const double pyw = (double)(p[ 7]);
+	const double pwx = (double)(p[12]); const double pwy = (double)(p[13]); const double pwz = (double)(p[14]); const double pww = (double)(p[15]);
+
+	FCameraMotionParameters LocalCameraMotion;
+
+	LocalCameraMotion.Value[0] = FVector4(
+		(float)(4.0*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)((-4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)(2.0*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)(2.0*(cww*pww - cwx*pww + cwy*pww + (cxw - cxx + cxy)*pwx + (cyw - cyx + cyy)*pwy + (czw - czx + czy)*pwz)));
+
+	LocalCameraMotion.Value[1] = FVector4(
+		(float)(( 4.0)*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)((-2.0)*(cww*pww + cwy*pww + cxw*pwx - 2.0*cxx*pwx + cxy*pwx + cyw*pwy - 2.0*cyx*pwy + cyy*pwy + czw*pwz - 2.0*czx*pwz + czy*pwz - cwx*(2.0*pww + pxw) - cxx*pxx - cyx*pxy - czx*pxz)),
+		(float)(-2.0*(cyy*pwy + czy*pwz + cwy*(pww + pxw) + cxy*(pwx + pxx) + cyy*pxy + czy*pxz)));
+
+	LocalCameraMotion.Value[2] = FVector4(
+		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)(cyz*pwy + czz*pwz + cwz*(pww + pxw) + cxz*(pwx + pxx) + cyz*pxy + czz*pxz),
+		(float)(cwy*pww + cwy*pxw + cww*(pww + pxw) - cwx*(pww + pxw) + (cxw - cxx + cxy)*(pwx + pxx) + (cyw - cyx + cyy)*(pwy + pxy) + (czw - czx + czy)*(pwz + pxz)),
+		(float)(0));
+
+	LocalCameraMotion.Value[3] = FVector4(
+		(float)((-4.0)*(cwx*pww + cxx*pwx + cyx*pwy + czx*pwz)),
+		(float)((-2.0)*(cwz*pww + cxz*pwx + cyz*pwy + czz*pwz)),
+		(float)(2.0*((-cww)*pww + cwx*pww - 2.0*cwy*pww - cxw*pwx + cxx*pwx - 2.0*cxy*pwx - cyw*pwy + cyx*pwy - 2.0*cyy*pwy - czw*pwz + czx*pwz - 2.0*czy*pwz + cwy*pyw + cxy*pyx + cyy*pyy + czy*pyz)),
+		(float)(2.0*(cyx*pwy + czx*pwz + cwx*(pww - pyw) + cxx*(pwx - pyx) - cyx*pyy - czx*pyz)));
+
+	LocalCameraMotion.Value[4] = FVector4(
+		(float)(4.0*(cwy*pww + cxy*pwx + cyy*pwy + czy*pwz)),
+		(float)(cyz*pwy + czz*pwz + cwz*(pww - pyw) + cxz*(pwx - pyx) - cyz*pyy - czz*pyz),
+		(float)(cwy*pww + cww*(pww - pyw) - cwy*pyw + cwx*((-pww) + pyw) + (cxw - cxx + cxy)*(pwx - pyx) + (cyw - cyx + cyy)*(pwy - pyy) + (czw - czx + czy)*(pwz - pyz)),
+		(float)(0));
+
+	return TUniformBufferRef<FCameraMotionParameters>::CreateUniformBufferImmediate(LocalCameraMotion, UniformBuffer_SingleFrame);
 }

@@ -5,7 +5,7 @@ Description:Functions for handling special shading types, such as Fuzzy Shading 
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The Shading functions provide for specialized shading operations, such as fuzzy shading and adjusting the shape of a specular highlight.
 

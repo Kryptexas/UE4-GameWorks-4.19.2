@@ -48,7 +48,7 @@ Description:Light type that can change its color and brightness at runtime but c
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_2#StationaryLights01]
 

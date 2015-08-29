@@ -29,6 +29,7 @@
 #include "AnimGraphNode_TransitionPoseEvaluator.h"
 #include "AnimGraphNode_TransitionResult.h"
 #include "K2Node_TransitionRuleGetter.h"
+#include "K2Node_AnimGetter.h"
 
 #define LOCTEXT_NAMESPACE "AnimBlueprintCompiler"
 
@@ -85,6 +86,15 @@ FAnimBlueprintCompiler::FAnimBlueprintCompiler(UAnimBlueprint* SourceSketch, FCo
 	, AnimBlueprint(SourceSketch)
 	, bIsDerivedAnimBlueprint(false)
 {
+	// Make sure the skeleton has finished preloading
+	if (AnimBlueprint->TargetSkeleton != nullptr)
+	{
+		if (FLinkerLoad* Linker = AnimBlueprint->TargetSkeleton->GetLinker())
+		{
+			Linker->Preload(AnimBlueprint->TargetSkeleton);
+		}
+	}
+
 	// Determine if there is an anim blueprint in the ancestry of this class
 	bIsDerivedAnimBlueprint = UAnimBlueprint::FindRootAnimBlueprint(AnimBlueprint) != NULL;
 }
@@ -485,7 +495,10 @@ void FAnimBlueprintCompiler::PruneIsolatedAnimationNodes(const TArray<UAnimGraph
 void FAnimBlueprintCompiler::ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNode_Base*>& AnimNodeList, const TArray<UAnimGraphNode_Base*>& RootSet)
 {
 	// Now prune based on the root set
-	PruneIsolatedAnimationNodes(RootSet, AnimNodeList);
+	if (MessageLog.NumErrors == 0)
+	{
+		PruneIsolatedAnimationNodes(RootSet, AnimNodeList);
+	}
 
 	// Process the remaining nodes
 	for (auto SourceNodeIt = AnimNodeList.CreateIterator(); SourceNodeIt; ++SourceNodeIt)
@@ -497,12 +510,18 @@ void FAnimBlueprintCompiler::ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNod
 
 void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 {
+	// Validate the graph
+	ValidateGraphIsWellFormed(ConsolidatedEventGraph);
+
 	// Build the raw node list
 	TArray<UAnimGraphNode_Base*> AnimNodeList;
 	ConsolidatedEventGraph->GetNodesOfClass<UAnimGraphNode_Base>(/*out*/ AnimNodeList);
 
 	TArray<UK2Node_TransitionRuleGetter*> Getters;
 	ConsolidatedEventGraph->GetNodesOfClass<UK2Node_TransitionRuleGetter>(/*out*/ Getters);
+
+	TArray<UK2Node_AnimGetter*> AnimGetters;
+	ConsolidatedEventGraph->GetNodesOfClass<UK2Node_AnimGetter>(AnimGetters);
 
 	// Find the root node
 	UAnimGraphNode_Root* PrePhysicsRoot = NULL;
@@ -549,6 +568,11 @@ void FAnimBlueprintCompiler::ProcessAllAnimationNodes()
 			ProcessTransitionGetter(*GetterIt, NULL); // transition nodes should not appear at top-level
 		}
 
+		for(auto AnimGetterIt = AnimGetters.CreateIterator(); AnimGetterIt; ++AnimGetterIt)
+		{
+			AutoWireAnimGetter(*AnimGetterIt, NULL);
+		}
+
 		NewAnimBlueprintClass->RootAnimNodeIndex = GetAllocationIndexOfNode(PrePhysicsRoot);
 	}
 	else
@@ -566,6 +590,8 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 	UAnimGraphNode_Base* TargetRootNode = NULL;
 	TArray<UAnimGraphNode_Base*> AnimNodeList;
 	TArray<UK2Node_TransitionRuleGetter*> Getters;
+	TArray<UK2Node_AnimGetter*> AnimGetterNodes;
+
 	for (auto NodeIt = ClonedGraph->Nodes.CreateIterator(); NodeIt; ++NodeIt)
 	{
 		UEdGraphNode* Node = *NodeIt;
@@ -573,6 +599,10 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 		if (UK2Node_TransitionRuleGetter* GetterNode = Cast<UK2Node_TransitionRuleGetter>(Node))
 		{
 			Getters.Add(GetterNode);
+		}
+		else if(UK2Node_AnimGetter* NewGetterNode = Cast<UK2Node_AnimGetter>(Node))
+		{
+			AnimGetterNodes.Add(NewGetterNode);
 		}
 		else if (UAnimGraphNode_Base* TestNode = Cast<UAnimGraphNode_Base>(Node))
 		{
@@ -607,6 +637,12 @@ int32 FAnimBlueprintCompiler::ExpandGraphAndProcessNodes(UEdGraph* SourceGraph, 
 	for (auto GetterIt = Getters.CreateIterator(); GetterIt; ++GetterIt)
 	{
 		ProcessTransitionGetter(*GetterIt, TransitionNode);
+	}
+
+	// Wire anim getter nodes
+	for(auto AnimGetterIt = AnimGetterNodes.CreateIterator(); AnimGetterIt; ++AnimGetterIt)
+	{
+		AutoWireAnimGetter(*AnimGetterIt, TransitionNode);
 	}
 
 	// Returns the index of the processed cloned version of SourceRootNode
@@ -775,7 +811,8 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 			BakedTransition.StartNotify = FindOrAddNotify(TransitionNode->TransitionStart);
 			BakedTransition.EndNotify = FindOrAddNotify(TransitionNode->TransitionEnd);
 			BakedTransition.InterruptNotify = FindOrAddNotify(TransitionNode->TransitionInterrupt);
-			BakedTransition.CrossfadeMode = TransitionNode->CrossfadeMode;
+			BakedTransition.BlendMode = TransitionNode->BlendMode;
+			BakedTransition.CustomCurve = TransitionNode->CustomBlendCurve;
 			BakedTransition.LogicType = TransitionNode->LogicType;
 
 			UAnimStateNodeBase* PreviousState = TransitionNode->GetPreviousState();
@@ -882,6 +919,25 @@ void FAnimBlueprintCompiler::ProcessStateMachine(UAnimGraphNode_StateMachineBase
 
 		FBakedAnimationState& BakedState = Oven.GetMachine().States[StateIndex];
 
+		// Add indices to all player nodes
+		TArray<UEdGraph*> GraphsToCheck;
+		TArray<UAnimGraphNode_AssetPlayerBase*> AssetPlayerNodes;
+		GraphsToCheck.Add(StateNode->GetBoundGraph());
+		StateNode->GetBoundGraph()->GetAllChildrenGraphs(GraphsToCheck);
+
+		for(UEdGraph* ChildGraph : GraphsToCheck)
+		{
+			ChildGraph->GetNodesOfClass(AssetPlayerNodes);
+		}
+
+		for(UAnimGraphNode_AssetPlayerBase* Node : AssetPlayerNodes)
+		{
+			if(int32* IndexPtr = NewAnimBlueprintClass->AnimBlueprintDebugData.NodeGuidToIndexMap.Find(Node->NodeGuid))
+			{
+				BakedState.PlayerNodeIndices.Add(*IndexPtr);
+			}
+		}
+
 		// Handle all the transitions out of this node
 		TArray<class UAnimStateTransitionNode*> TransitionList;
 		StateNode->GetTransitionList(/*out*/ TransitionList, /*bWantSortedList=*/ true);
@@ -977,9 +1033,12 @@ void FAnimBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 	if (bIsDerivedAnimBlueprint)
 	{
 		// If we are a derived animation graph; apply any stored overrides.
-		// Restore values from the root blueprint to catch values where the override has been removed.
-		UAnimBlueprint* RootAnimBP = UAnimBlueprint::FindRootAnimBlueprint(AnimBlueprint);
-		UAnimBlueprintGeneratedClass* RootAnimClass = RootAnimBP->GetAnimBlueprintGeneratedClass();
+		// Restore values from the root class to catch values where the override has been removed.
+		UAnimBlueprintGeneratedClass* RootAnimClass = NewAnimBlueprintClass;
+		while(UAnimBlueprintGeneratedClass* NextClass = Cast<UAnimBlueprintGeneratedClass>(RootAnimClass->GetSuperClass()))
+		{
+			RootAnimClass = NextClass;
+		}
 		UObject* RootDefaultObject = RootAnimClass->GetDefaultObject();
 
 		for (TFieldIterator<UProperty> It(RootAnimClass) ; It; ++It)
@@ -1217,6 +1276,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 
 	UEdGraphPin* SourceTimePin = NULL;
 	UAnimationAsset* AnimAsset= NULL;
+	int32 PlayerNodeIndex = INDEX_NONE;
 
 	if (UAnimGraphNode_Base* SourcePlayerNode = Getter->AssociatedAnimAssetPlayerNode)
 	{
@@ -1238,7 +1298,7 @@ void FAnimBlueprintCompiler::ProcessTransitionGetter(UK2Node_TransitionRuleGette
 		}
 
 		// Make sure the referenced AnimAsset player has been allocated
-		const int32 PlayerNodeIndex = GetAllocationIndexOfNode(UndertypedPlayerNode);
+		PlayerNodeIndex = GetAllocationIndexOfNode(UndertypedPlayerNode);
 		if (PlayerNodeIndex == INDEX_NONE)
 		{
 			MessageLog.Error(*LOCTEXT("BadAnimAssetNodeUsedInGetter", "@@ doesn't have a valid associated AnimAsset node.  Delete and recreate it").ToString(), Getter);
@@ -1620,6 +1680,89 @@ void FAnimBlueprintCompiler::DumpAnimDebugData()
 					ExitTransition.bDesiredTransitionReturnValue ? TEXT("TRUE") : TEXT("FALSE"),
 					foo - ExitTransition.CanTakeDelegateIndex));
 			}
+		}
+	}
+}
+
+void FAnimBlueprintCompiler::AutoWireAnimGetter(class UK2Node_AnimGetter* Getter, UAnimStateTransitionNode* InTransitionNode)
+{
+	UEdGraphPin* ReferencedNodeTimePin = nullptr;
+	int32 ReferencedNodeIndex = INDEX_NONE;
+	int32 SubNodeIndex = INDEX_NONE;
+	
+	UAnimGraphNode_Base* ProcessedNodeCheck = NULL;
+
+	if(UAnimGraphNode_Base* SourceNode = Getter->SourceNode)
+	{
+		UAnimGraphNode_Base* ActualSourceNode = MessageLog.FindSourceObjectTypeChecked<UAnimGraphNode_Base>(SourceNode);
+		
+		if(UAnimGraphNode_Base* ProcessedSourceNode = SourceNodeToProcessedNodeMap.FindRef(ActualSourceNode))
+		{
+			ProcessedNodeCheck = ProcessedSourceNode;
+
+			ReferencedNodeIndex = GetAllocationIndexOfNode(ProcessedSourceNode);
+
+			if(ProcessedSourceNode->DoesSupportTimeForTransitionGetter())
+			{
+				UScriptStruct* TimePropertyInStructType = ProcessedSourceNode->GetTimePropertyStruct();
+				const TCHAR* TimePropertyName = ProcessedSourceNode->GetTimePropertyName();
+
+				if(ReferencedNodeIndex != INDEX_NONE && TimePropertyName && TimePropertyInStructType)
+				{
+					UProperty* NodeProperty = AllocatedPropertiesByIndex.FindChecked(ReferencedNodeIndex);
+
+					UK2Node_StructMemberGet* ReaderNode = SpawnIntermediateNode<UK2Node_StructMemberGet>(Getter, ConsolidatedEventGraph);
+					ReaderNode->VariableReference.SetSelfMember(NodeProperty->GetFName());
+					ReaderNode->StructType = TimePropertyInStructType;
+					ReaderNode->AllocatePinsForSingleMemberGet(TimePropertyName);
+
+					ReferencedNodeTimePin = ReaderNode->FindPinChecked(TimePropertyName);
+				}
+			}
+		}
+	}
+	
+	if(Getter->SourceStateNode)
+	{
+		UObject* SourceObject = MessageLog.FindSourceObject(Getter->SourceStateNode);
+		if(UAnimStateNode* SourceStateNode = Cast<UAnimStateNode>(SourceObject))
+		{
+			if(FStateMachineDebugData* DebugData = NewAnimBlueprintClass->GetAnimBlueprintDebugData().StateMachineDebugData.Find(SourceStateNode->GetGraph()))
+			{
+				if(int32* StateIndexPtr = DebugData->NodeToStateIndex.Find(SourceStateNode))
+				{
+					SubNodeIndex = *StateIndexPtr;
+				}
+			}
+		}
+		else if(UAnimStateTransitionNode* TransitionNode = Cast<UAnimStateTransitionNode>(SourceObject))
+		{
+			if(FStateMachineDebugData* DebugData = NewAnimBlueprintClass->GetAnimBlueprintDebugData().StateMachineDebugData.Find(TransitionNode->GetGraph()))
+			{
+				if(int32* TransitionIndexPtr = DebugData->NodeToTransitionIndex.Find(TransitionNode))
+				{
+					SubNodeIndex = *TransitionIndexPtr;
+				}
+			}
+		}
+	}
+
+	check(Getter->IsNodePure());
+
+	for(UEdGraphPin* Pin : Getter->Pins)
+	{
+		// Hook up autowired parameters / pins
+		if(Pin->PinName == TEXT("CurrentTime"))
+		{
+			Pin->MakeLinkTo(ReferencedNodeTimePin);
+		}
+		else if(Pin->PinName == TEXT("AssetPlayerIndex") || Pin->PinName == TEXT("MachineIndex"))
+		{
+			Pin->DefaultValue = FString::FromInt(ReferencedNodeIndex);
+		}
+		else if(Pin->PinName == TEXT("StateIndex") || Pin->PinName == TEXT("TransitionIndex"))
+		{
+			Pin->DefaultValue = FString::FromInt(SubNodeIndex);
 		}
 	}
 }

@@ -146,13 +146,25 @@ bool FKismetDragDropAction::ActionWillShowExistingNode() const
 	if (ActionNode.IsValid() && (HoveredGraph != NULL))
 	{
 		bWillFocusOnExistingNode = (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2TargetNode::StaticGetTypeId()) ||
-			(ActionNode->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId()) ||
 			(ActionNode->GetTypeId() == FEdGraphSchemaAction_K2InputAction::StaticGetTypeId());
 
-		if (!bWillFocusOnExistingNode && (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId()))
+		if (!bWillFocusOnExistingNode)
 		{
-			FEdGraphSchemaAction_K2AddEvent* AddEventAction = (FEdGraphSchemaAction_K2AddEvent*)ActionNode.Get();
-			bWillFocusOnExistingNode = AddEventAction->EventHasAlreadyBeenPlaced(FBlueprintEditorUtils::FindBlueprintForGraph(HoveredGraph));
+			if (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2AddEvent::StaticGetTypeId())
+			{
+				FEdGraphSchemaAction_K2AddEvent* AddEventAction = (FEdGraphSchemaAction_K2AddEvent*)ActionNode.Get();
+				bWillFocusOnExistingNode = AddEventAction->EventHasAlreadyBeenPlaced(FBlueprintEditorUtils::FindBlueprintForGraph(HoveredGraph));
+			}
+			else if (ActionNode->GetTypeId() == FEdGraphSchemaAction_K2Event::StaticGetTypeId())
+			{
+				FEdGraphSchemaAction_K2Event* FuncAction = (FEdGraphSchemaAction_K2Event*)ActionNode.Get();
+				UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(FuncAction->NodeTemplate);
+				// Drag and dropping custom event's will place a Call Function and will not focus the existing event
+				if (CustomEvent == nullptr)
+				{
+					bWillFocusOnExistingNode = true;
+				}
+			}
 		}
 	}
 

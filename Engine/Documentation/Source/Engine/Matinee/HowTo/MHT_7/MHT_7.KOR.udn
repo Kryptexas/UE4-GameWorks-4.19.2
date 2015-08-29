@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438523
+﻿INTSourceChangelist:2617299
 Availability: Public
 Title:애니메이션 및 사운드 재생
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -217,7 +217,17 @@ Description:플랫폼에 점프하는 스켈레탈 메시 애니메이션과 마
 
 1. 메인 툴바의 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
-	![](MHT7_Gif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	7KG-7UoVnwc
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_**HeroTPP** 액터가 박수 위로 점프하는 것이 보이며, 폭발 사운드 이펙트와 음악이 재생되는 것도 들을 수 있습니다._
 

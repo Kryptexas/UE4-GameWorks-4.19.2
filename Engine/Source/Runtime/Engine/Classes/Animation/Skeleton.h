@@ -54,21 +54,21 @@ namespace EBoneTranslationRetargetingMode
 	};
 }
 
-/** Each Bone node in BoneTree **/
+/** Each Bone node in BoneTree */
 USTRUCT()
 struct FBoneNode
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Name of bone, this is the search criteria to match with mesh bone. This will be NAME_None if deleted **/
+	/** Name of bone, this is the search criteria to match with mesh bone. This will be NAME_None if deleted. */
 	UPROPERTY()
 	FName Name_DEPRECATED;
 
-	/** Parent Index. -1 if not used. The root has 0 as its parent. Do not delete the element but set this to -1. If it is revived by other reason, fix up this link. **/
+	/** Parent Index. -1 if not used. The root has 0 as its parent. Do not delete the element but set this to -1. If it is revived by other reason, fix up this link. */
 	UPROPERTY()
 	int32 ParentIndex_DEPRECATED;
 
-	/** Retargeting Mode for Translation Component */
+	/** Retargeting Mode for Translation Component. */
 	UPROPERTY(EditAnywhere, Category=BoneNode)
 	TEnumAsByte<EBoneTranslationRetargetingMode::Type> TranslationRetargetingMode;
 
@@ -363,13 +363,6 @@ public:
 	}
 
 	/** Unregisters a delegate to be called after the preview animation has been changed */
-	DELEGATE_DEPRECATED("This UnregisterOnRetargetSourceChanged overload has been deprecated - please pass the handle returned from RegisterOnRetargetSourceChanged instead.")
-	void UnregisterOnRetargetSourceChanged(const FOnRetargetSourceChanged& Delegate)
-	{
-		OnRetargetSourceChanged.DEPRECATED_Remove(Delegate);
-	}
-
-	/** Unregisters a delegate to be called after the preview animation has been changed */
 	void UnregisterOnRetargetSourceChanged(FDelegateHandle Handle)
 	{
 		OnRetargetSourceChanged.Remove(Handle);
@@ -470,7 +463,7 @@ public:
 	 * 
 	 * @return				true if animation set can play on supplied SkeletalMesh, false if not.
 	 */
-	ENGINE_API bool IsCompatibleMesh(USkeletalMesh * InSkelMesh) const;
+	ENGINE_API bool IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const;
 
 	/** Clears all cache data **/
 	void ClearCacheData();
@@ -493,7 +486,7 @@ public:
 	 * 
 	 * @return true if success
 	 */
-	ENGINE_API bool MergeBonesToBoneTree(USkeletalMesh* InSkeletalMesh, const TArray<int32> &RequiredRefBones);
+	ENGINE_API bool MergeBonesToBoneTree(const USkeletalMesh* InSkeletalMesh, const TArray<int32> &RequiredRefBones);
 
 	/** 
 	 * Merge all Bones to BoneTrees if not exists
@@ -505,7 +498,7 @@ public:
 	 * 
 	 * @return true if success
 	 */
-	ENGINE_API bool MergeAllBonesToBoneTree(USkeletalMesh* InSkelMesh);
+	ENGINE_API bool MergeAllBonesToBoneTree(const USkeletalMesh* InSkelMesh);
 
 	/** 
 	 * Merge has failed, then Recreate BoneTree
@@ -614,7 +607,7 @@ public:
 	 *
 	 * @param Name	Name of pose to update
 	 */
-	ENGINE_API void UpdateRetargetSource( const FName Name );
+	ENGINE_API void UpdateRetargetSource( const FName InName );
 #endif
 protected:
 	/** 
@@ -628,7 +621,7 @@ protected:
 	 *
 	 * @return true if matches till root. false if not. 
 	 */
-	bool DoesParentChainMatch(int32 StartBoneTreeIndex, USkeletalMesh* InSkelMesh) const;
+	bool DoesParentChainMatch(int32 StartBoneTreeIndex, const USkeletalMesh* InSkelMesh) const;
 
 	/** 
 	 * Build Look up between SkelMesh to BoneTree

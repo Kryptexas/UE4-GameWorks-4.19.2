@@ -4,7 +4,7 @@
 	<title>%GAME%</title>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=2">
-	<script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+	<script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
 	<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
 	<link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
 </head>
@@ -291,7 +291,7 @@ window.onerror  = function(msg, url, line, column, error) {
         addLog( " downloading symbols file ");
         // get non minified symbols and demangle the callstack. 
 		$.ajax({
-			  url : "%CONFIG%.js.symbols",
+			  url : "%CONFIG%.js.symbols.gz",
 			  dataType: "text",
 			  success : function (data) {	
                   addLog(" symbols file downloaded, demangling..");
@@ -376,6 +376,12 @@ var Module = {
 		infoPrinted: false, 
 		lastcurrentDownloadedSize: 0,
 
+		// file location. 
+		locateFile : function (name){ 
+		      return name + ".gz";
+		},
+
+
 		// packaged data download, sets this information. 
 		setStatus: function(text) {
 		 	var matches = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
@@ -429,11 +435,9 @@ $(document).ready(function() {
     addLog( "Starting downloads" );
     // start downloads in parallel, print when done.  
     var promises = [
-			'json2.js',
-			'jStorage.js',
-			'moz_binarystring.js',
-			'%GAME%.data.js',
-			'%CONFIG%.js'   
+			'Utility.js.gz',
+			'%GAME%.data.js.gz',
+			'%CONFIG%.js.gz'   
 		].map(download); 
 
 	// add the data file promise. 

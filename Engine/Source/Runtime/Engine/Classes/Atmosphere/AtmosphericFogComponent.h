@@ -261,6 +261,11 @@ public:
 	ENGINE_API void InitResource();
 	ENGINE_API void ReleaseResource();
 
+	// Begin UActorComponent interface.
+	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
+	// End UActorComponent interface.
+
+	void ApplyComponentInstanceData(class FAtmospherePrecomputeInstanceData* ComponentInstanceData);
 	const FAtmospherePrecomputeParameters& GetPrecomputeParameters() const { return PrecomputeParams;  }
 
 private:

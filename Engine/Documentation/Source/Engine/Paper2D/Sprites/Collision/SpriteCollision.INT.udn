@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Sprite Collision
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Sprites
 Description:Displays and allows editing of the Sprite Collision shapes. 
@@ -64,4 +64,9 @@ The long term integration strategy is to make it a first class citizen, where th
 one. 3D raycasts are already implemented for Box2D and you can both trace 'in-plane' (gameplay traces within the 2D 'world') 
 or 'perpendicular to plane' (things like the Touch input trace to determine the object under your finger / mouse cursor), 
 providing a proper hit result location and normal as well.
+
+
+
+
+
 

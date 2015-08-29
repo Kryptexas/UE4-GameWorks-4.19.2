@@ -15,7 +15,7 @@ DECLARE_DELEGATE_OneParam(FOnKeyProperty, float)
  * Base class for handling key and section drawing and manipulation for a UMovieSceneTrack class
  * @todo Sequencer - Interface needs cleanup
  */
-class FMovieSceneTrackEditor
+class FMovieSceneTrackEditor : public TSharedFromThis<FMovieSceneTrackEditor>
 {
 public:
 	/** Constructor */
@@ -49,7 +49,7 @@ public:
 	{
 		// @todo sequencer livecapture: This turns on "auto key" for the purpose of capture keys for actor state
 		// during PIE sessions when record mode is active.
-		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->IsAutoKeyEnabled();
+		return Sequencer.Pin()->IsRecordingLive() || Sequencer.Pin()->GetAutoKeyEnabled();
 	}
 
 	void NotifyMovieSceneDataChanged()
@@ -61,7 +61,7 @@ public:
 		}
 	}
 	
-	void AnimatablePropertyChanged( TSubclassOf<UMovieSceneTrack> TrackClass, bool bMustBeAutokeying, FOnKeyProperty OnKeyProperty )
+	void AnimatablePropertyChanged( TSubclassOf<class UMovieSceneTrack> TrackClass, bool bMustBeAutokeying, FOnKeyProperty OnKeyProperty )
 	{
 		check(OnKeyProperty.IsBound());
 
@@ -109,10 +109,15 @@ public:
 
 		if( !Type )
 		{
-			Type = MovieScene->AddTrack( TrackClass, ObjectHandle );
+			Type = AddTrack( MovieScene, ObjectHandle, TrackClass, UniqueTypeName );
 		}
 
 		return Type;
+	}
+
+	virtual UMovieSceneTrack* AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)
+	{
+		return FocusedMovieScene->AddTrack(TrackClass, ObjectHandle);
 	}
 
 	UMovieSceneTrack* GetMasterTrack( TSubclassOf<UMovieSceneTrack> TrackClass )
@@ -170,6 +175,13 @@ public:
 	virtual bool HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid) {return false;}
 	
 	/**
+	 * Allows the track editors to bind commands
+	 *
+	 * @param SequencerCommandBindings	The command bindings to map to
+	*/
+	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) {}
+
+	/**
 	 * Builds up the object binding context menu for the outliner
 	 *
 	 * @param MenuBuilder	The menu builder to change
@@ -177,6 +189,15 @@ public:
 	 * @param ObjectClass	The class of the object this is for
 	 */
 	virtual void BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
+
+	/**
+	 * Builds up the object binding edit buttons for the outliner
+	 *
+	 * @param EditBox	    The edit box to add buttons to
+	 * @param ObjectBinding	The object binding this is for
+	 * @param ObjectClass	The class of the object this is for
+	 */
+	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
 
 private:
 	/** The sequencer bound to this handler.  Used to access movie scene and time info during auto-key */

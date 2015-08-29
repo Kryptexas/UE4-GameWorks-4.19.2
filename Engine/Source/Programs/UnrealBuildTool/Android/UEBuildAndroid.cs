@@ -92,22 +92,24 @@ namespace UnrealBuildTool
                     if (File.Exists(BashProfilePath))
                     {
                         string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
-                        foreach (string Line in BashProfileContents)
-                        {
-                            foreach (var kvp in EnvVarNames)
-                            {
-                                if (AndroidEnv.ContainsKey(kvp.Key))
-                                {
-                                    continue;
-                                }
 
-                                if (Line.StartsWith("export " + kvp.Key + "="))
-                                {
-                                    string PathVar = Line.Split('=')[1].Replace("\"", "");
-                                    AndroidEnv.Add(kvp.Key, PathVar);
-                                }
-                            }
-                        }
+						// Walk backwards so we keep the last export setting instead of the first
+						for (int LineIndex = BashProfileContents.Length - 1; LineIndex >= 0; --LineIndex)
+						{
+							foreach (var kvp in EnvVarNames)
+							{
+								if (AndroidEnv.ContainsKey(kvp.Key))
+								{
+									continue;
+								}
+
+								if (BashProfileContents[LineIndex].StartsWith("export " + kvp.Key + "="))
+								{
+									string PathVar = BashProfileContents[LineIndex].Split('=')[1].Replace("\"", "");
+									AndroidEnv.Add(kvp.Key, PathVar);
+								}
+							}
+						}
                     }
                 }
 
@@ -130,7 +132,8 @@ namespace UnrealBuildTool
             NDKPath = NDKPath.Replace("\"", "");
 
             // need a supported llvm
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
             {
@@ -348,21 +351,33 @@ namespace UnrealBuildTool
 			}
 		}
 
+		private bool UseTegraGraphicsDebugger(UEBuildTarget InBuildTarget)
+		{
+			// Disable for now
+			return false;
+		}
+
 		public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
 		{
-			// we want gcc toolchain 4.8, but fall back to 4.6 for now if it doesn't exist
+			// we want gcc toolchain 4.9, but fall back to 4.8 or 4.6 for now if it doesn't exist
 			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
 			NDKPath = NDKPath.Replace("\"", "");
 
-			string GccVersion = "4.8";
-			if (!Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
+			string GccVersion = "4.6";
+			int NDKVersionInt = AndroidToolChain.GetNdkApiLevelInt();
+			if (Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
-				GccVersion = "4.6";
+				GccVersion = "4.8";
+			}
+			// only use 4.9 if NDK version > 19
+			if (NDKVersionInt > 19 && Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.9")))
+			{
+				GccVersion = "4.9";
 			}
 
+			Log.TraceInformation("NDK version: {0}, GccVersion: {1}", NDKVersionInt.ToString(), GccVersion);
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_DESKTOP=0");
-			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_64BITS=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("PLATFORM_CAN_SUPPORT_EDITORONLY_DATA=0");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_OGGVORBIS=1");
@@ -382,21 +397,31 @@ namespace UnrealBuildTool
 			
 			// the toolchain will actually filter these out
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a/include");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86/include");
+			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64/include");
 
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/x86_64");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
             // Add path to statically compiled version of cxa_demangle
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/arm64-v8a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
+			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x64");
 
-			//@TODO: Tegra Gfx Debugger
-//			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
-//			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Tegra_gfx_debugger");
+			//@TODO: Tegra Gfx Debugger - standardize locations - for now, change the hardcoded paths and force this to return true to test
+			if (UseTegraGraphicsDebugger(InBuildTarget))
+			{
+				//InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "NVIDIA/TegraGfxDebugger");
+				//InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add("F:/NVPACK/android-kk-egl-t124-a32/stub");
+				//InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
+			}
 
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
             InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
@@ -405,8 +430,11 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("m");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("log");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("dl");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("GLESv2");
-			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("EGL");
+			if (!UseTegraGraphicsDebugger(InBuildTarget))
+			{
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("GLESv2");
+				InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("EGL");
+			}
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("OpenSLES");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("android");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("cxa_demangle");
@@ -428,10 +456,10 @@ namespace UnrealBuildTool
 			};
 		}
 
-		public override string[] FinalizeBinaryPaths(string BinaryName)
+		public override List<string> FinalizeBinaryPaths(string BinaryName)
 		{
-			string[] Architectures = AndroidToolChain.GetAllArchitectures();
-			string[] GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
+			var Architectures = AndroidToolChain.GetAllArchitectures();
+			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 
 			// make multiple output binaries
 			List<string> AllBinaries = new List<string>();
@@ -443,7 +471,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			return AllBinaries.ToArray();
+			return AllBinaries;
 		}
 	}
 }

@@ -1,0 +1,178 @@
+﻿INTSourceChangelist:2539112
+Availability:Public
+Title:4.ゲームモードの設定
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
+Description:Main Menu Widget を使用するためのゲームモードを設定する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\UMG\5 "%Programming\Tutorials\UMG\5:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+1. プロジェクトの **Game Mode** に基づいて、**コンテントブラウザ** で **Blueprint Class** を追加します。このクラスを追加することにより、この2つのクラスに公開された変数に好きな値を設定することができるようになります。設定方法：
+
+	* **コンテントブラウザ** で **Add（追加）** ボタンをクリックします。
+
+	[![](AddNewBPClass.png)](AddNewBPClass.png)
+
+	* 親クラスに HowTo_UMGGameMode を選びます。クラスが "All Classes" セクションにリスト表示されます。
+
+	[![](PickParentClassForGameModeBP.png)](PickParentClassForGameModeBP.png)
+
+	* 結果として生じる **Blueprint** アセットに "MenuGameMode" と名前を付けます。
+
+1. ゲーム内にマウスカーソルを表示するには、 **Game Mode** で作成したように、 **Player Controller** の **ブループリント** を作成しなくてはいけません。
+
+	* **コンテントブラウザ** で **Add** ボタンを再度クリックします。
+	* "Common Classes" セクションから **Player Controller** を選びます。
+
+	* **ブループリント** に "MenuPlayerController" と名前を付けます。
+
+1. "MenuPlayerController" を編集します。
+
+	* "Show Mouse Cursor" ボックスをチェックします。
+
+	[![](GamePlayerController.png)](GamePlayerController.png)
+
+1. "MenuGameMode" を編集します。
+
+	* ゲームを開始したらメニューが開くように、 Starting Widget Class を "MainMenu" アセットに設定しなくてはいけません。
+
+	* メニュー内をプレイヤーが飛び回らないように、デフォルトのポーンクラスは **DefaultPawn** ではなく **Pawn** に設定しなくてはいけません。
+
+	* ゲーム内にマウスカーソルを表示するために、 Player Controller Class を既に作成した "MenuPlayerController" アセットに設定しなくてはいけません。
+
+	[![](ConfigureGameMode.png)](ConfigureGameMode.png)
+
+1. **ブループリント** を使用するには、 **レベルエディタ** ウィンドウへ戻って、 **設定** ボタンで現在の **レベル** を **World Settings（ワールド設定）** に変更しなくてはいけません。
+
+	[![](WorldSettingsBar.png)](WorldSettingsBar.png)
+
+	[REGION:note]デフォルトの **ゲームモード** は、 **Maps and Modes** セクションの **プロジェクト設定** メニューからも設定出来ます。この設定方法を使用した場合は、個別にオーバーライドしない限りすべてのレベルは選択した **ゲームモード** にデフォルト設定となります。プロジェクトの設定方法に従って使用方法が決定します。[/REGION]
+
+1. **World Settings Panel（ワールド設定パネル）** が開きます。デフォルトでは **詳細パネル** にドッキングしますが、別の場所へ移動することも出来ます。Game Mode Override フィールドを "MenuGameMode" アセットに設定します。
+
+	[![](WorldSettings.png)](WorldSettings.png)
+
+
+----
+
+カスタムの **Game Mode** アセットがレベルで有効になって、メインメニューをロードするようになります。マウスカーソルを表示する **プレイヤーコントローラー** を使用します。ここでゲームを実行すると、 Quit ボタンが設定通り機能して、 New Game ボタンは空のメニュースクリーンへ移動します。次に New Game メニューを設定します。
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**HowTo_UMG.Build.cs**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			using UnrealBuildTool;
+
+			public class HowTo_UMG :ModuleRules
+			{
+				public HowTo_UMG(TargetInfo Target)
+				{
+					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+					// Uncomment if you are using Slate UI
+					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		// Uncomment if you are using online features（オンライン機能を使用している場合は非コメント化する）
+
+					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+					// {
+					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+					//		{
+					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+					//		}
+					// }
+				}
+			}
+
+		**HowTo_UMGGameMode.h**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#pragma once
+
+			#include "Blueprint/UserWidget.h"
+			#include "GameFramework/GameMode.h"
+			#include "HowTo_UMGGameMode.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			{
+				GENERATED_BODY()
+
+			public:
+				/** Called when the game starts. */
+				virtual void BeginPlay() override;
+
+				/** Remove the current menu widget and create a new one from the specified class, if provided. */
+				UFUNCTION(BlueprintCallable, Category = "UMG Game")
+				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
+
+			protected:
+				/** The widget class we will use as our menu when the game starts. */
+				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
+				TSubclassOf<UUserWidget> StartingWidgetClass;
+
+				/** The widget instance that we are using as our menu. */
+				UPROPERTY()
+				UUserWidget* CurrentWidget;
+			};
+
+		**HowTo_UMGGameMode.cpp**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGGameMode.h"
+
+			void AHowTo_UMGGameMode::BeginPlay()
+			{
+				Super::BeginPlay();
+				ChangeMenuWidget(StartingWidgetClass);
+			}
+
+			void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
+			{
+				if (CurrentWidget != nullptr)
+				{
+					CurrentWidget->RemoveFromViewport();
+					CurrentWidget = nullptr;
+				}
+				if (NewWidgetClass != nullptr)
+				{
+					CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
+					if (CurrentWidget != nullptr)
+					{
+						CurrentWidget->AddToViewport();
+					}
+				}
+			}
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

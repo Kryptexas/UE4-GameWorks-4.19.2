@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2526977
 Availability:Public
 Title:5.ライトの品質とリフレクション
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -43,11 +43,11 @@ Description: このステップでは、ライト クオリティの最適化お
 
 	![](lightmass.png)
 
-1. Lightmass Importance Volume の **[詳細]** パネルで **Transform** を以下のように設定します。 
+1. Lightmass Importance Volume の **[Details]** パネルで **Transform** を以下のように設定します。 
 
 	![](LightmassSettings.png)
 
-	ボリュームが構造体を囲みます。
+	ボリュームが構造体を囲みます。 
 
 	![](LightMassVolumeSet.png)
 
@@ -63,7 +63,7 @@ Description: このステップでは、ライト クオリティの最適化お
 
 1.	同じマテリアルを小さな浴室へドラッグします。 
 
-1.	その他のフロアには、 **M_Wood_Floor_Walnut** マテリアルをドラッグします。
+1.	その他のフロアには、 **M_Wood_Floor_Walnut_Polished** マテリアルをドラッグします。
 
 1.	そして **M_Metal_Rust** アセットを屋根の上の柱にドラッグします。 
 
@@ -75,7 +75,7 @@ Description: このステップでは、ライト クオリティの最適化お
 
 	![](boxReflection.png)
 
-1.	**[詳細]** パネルで Box Reflection Capture の **Transform** を以下のように設定します。 
+1.	**[Details]** パネルで Box Reflection Capture の **Transform** を以下のように設定します。 
 
 	![](boxSettings1.png)
 

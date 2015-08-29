@@ -1,0 +1,121 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Unreal Object Handling
+Crumbs: %ROOT%
+Description:Overview of the features of the UObject system.
+Version: 4.5
+
+[TOC (start:2 end:2)]
+
+Marking classes, properties, and functions with the appropriate macros turns them into UClasses, UProperties, and UFunctions. This gives Unreal Engine access to them, which allows for a 
+number of under-the-hood handling features to be implemented.
+
+## Garbage Collection
+
+Unreal implements a garbage collection scheme where UObjects that are no longer referenced or have been explicitly flagged for destruction will be periodically cleaned up. The engine builds a 
+reference graph to determine which Objects are still in use and which ones are orphaned. At the root of this graph is a set of Objects designated as the "root set". Any Object can be added 
+to the root set. When garbage collection occurs, the engine can track all referenced Objects by searching the tree of known UObject references starting from the root set. Any unreferenced 
+Objects will be assumed to be no longer needed, and will be removed. 
+
+One practical implication here is that you typically need to maintain a UPROPERTY reference to an Object you wish to keep alive. Actors are frequently an exception to this, since they are 
+usually referenced by an Object that links back to the root set, such as the level to which they belong. Actors can be explicitly marked for destruction with `Destroy()`.
+
+## Automatic Updating of References
+
+When an Object is cleaned up via garbage collection, any UPROPERTY references to it are automatically updated to NULL. This is beneficial in that it prevents dangling pointers from persisting 
+and causing trouble down the road, but it also means that your pointers can sometimes unexpectedly go NULL if the Object they point to was explicitly marked for destruction. So be sure to test 
+before dereferencing.
+
+It is important to realize that this feature applies only to Object references marked with UPROPERTY. An Object reference stored in a raw pointer will be unknown to Unreal, and will not be 
+automatically nulled or prevent garbage collection. Note this does not mean that all UObject* variables must be UProperties. If you want a non-UProperty Object pointer, consider using TWeakObjectPtr<>. 
+This is a weak pointer, so it will not prevent garbage collection, but it can be queried for validity before being accessed.
+
+## Serialization
+
+When a UObject is serialized, all UProperty values are automatically written or read unless explicitly marked as "transient". For example, you could place an AEnemy instance in a level, set its 
+Health to 500, save it and successfully reload it without writing a single line of code beyond the UClass definition.
+
+When UProperties are added or removed, loading pre-existing content is handled seamlessly. New properties get default values copied from the new CDO. Removed properties are silently ignored.
+
+If you want custom behavior, it is possible to write custom serialization and versioning code if the need arises, but this is not common in practice.
+
+## Updating of Property Values
+
+When the CDO of a UClass has changed, the engine will try to intelligently apply those changes to all instances of the class when they are loaded. For a given Object instance, if the updated 
+variable was unchanged from the previous default, it will be updated to the new default Object. If the variable had been changed somehow, the assumption is that that value was set intentionally 
+and those changes will not be undone.
+
+As an example, let us say you saved a level with several of your AEnemy Objects placed in it, and you had set the default value to Health to be 100 in the AEnemy constructor. Let us also assume you set
+ the health for Enemy_3 to 500, because he is particularly tough.
+
+Now assume you changed your mind and increased the default value of Health to 150. When you next load your level, Unreal will realize you have changed the CDO and will update all instances of AEnemy 
+except Enemy_3 to have a health of 150. Enemy_3's health will remain at 500.
+ 
+## Automatic Property Initialization
+
+UObjects are automatically zeroed on initialization, before the constructor is called. This happens for the whole class, UProperties and native members alike. Members can subsequently be 
+initialized with custom values in the class constructor.
+
+## Editor Integration
+
+UObjects and UProperties are understood by the editor, and the editor can expose these values automatically for editing without the need to write special code. This can optionally include 
+integration into the Blueprint visual scripting system. There are many options to control the accessibility and exposure of variables and functions.
+
+## Type Information at Runtime
+
+UObjects always know what UClass they are, and type-related decisions can be made at runtime. 
+
+In native code, every UObject class has a custom "Super" typedef set to its parent class, which allows easy control of overriding behavior. As an example:
+
+
+	class AEnemy : public ACharacter
+	{
+		virtual void Speak()
+		{
+			Say("Time to fight!");
+		}
+	};
+
+	class AMegaBoss : public AEnemy
+	{
+		virtual void Speak()
+		{
+			Say("Powering up! ");
+			Super::Speak();
+		}
+	};
+
+As you can see, calling Speak() will result in the MegaBoss saying "Powering up! Time to fight!".
+
+Also, you can safely cast an Object from a base class to a more derived class using the templated Cast function, or query if an Object is of a particular class using IsA(). A quick example:
+
+	class ALegendaryWeapon : public AWeapon
+	{
+		void SlayMegaBoss()
+		{
+			TArray<AEnemy> EnemyList = GetEnemyListFromSomewhere();
+
+			// The legendary weapon is only effective against the MegaBoss
+			for (AEnemy Enemy : EnemyList)
+			{
+				AMegaBoss* MegaBoss = Cast<AMegaBoss>(Enemy);
+				if (MegaBoss)
+				{
+					Incinerate(MegaBoss);
+				}
+			}
+		}
+	};
+
+Here we have used Cast<> to try and cast the AEnemy to an AMegaBoss. If the Object in question is not actually a AMegaBoss (or a child class thereof), the cast will return NULL and we can react 
+appropriately. In this case, the legendary weapon is not effective.
+
+## Network Replication
+
+The UObject system includes a robust set of functionality to facilitate network communication and multiplayer games.
+
+UProperties can be tagged to tell the Engine to replicate their data during network play. A common model here is that a variable gets changed on the server, and the Engine then detects this change 
+and sends it reliably to all clients. Clients can optionally receive a callback function when the variable changes via replication.
+
+UFunctions can also be tagged to execute on a remote machine. A "server" function, for example, when called on a client machine will cause the function to actually execute on the server machine 
+for the server's version of the Actor. A "client" function on the other hand, can be called from the server and will run on the owning client's version of that Actor.

@@ -48,6 +48,7 @@ UENUM()
 namespace ERecastPartitioning
 {
 	// keep in sync with rcRegionPartitioning enum!
+
 	enum Type
 	{
 		Monotone,
@@ -58,25 +59,27 @@ namespace ERecastPartitioning
 
 namespace ERecastPathFlags
 {
-	/** if set, path won't be post processed */
+	/** If set, path won't be post processed. */
 	const int32 SkipStringPulling = (1 << 0);
 
-	/** if set, path will contain navigation corridor */
+	/** If set, path will contain navigation corridor. */
 	const int32 GenerateCorridor = (1 << 1);
 }
 
-/** helper to translate FNavPathPoint.Flags */
+/** Helper to translate FNavPathPoint.Flags. */
 struct ENGINE_API FNavMeshNodeFlags
 {
-	/** Extra node information (like "path start", "off-mesh connection") */
+	/** Extra node information (like "path start", "off-mesh connection"). */
 	uint8 PathFlags;
-	/** Area type after this node */
+	/** Area type after this node. */
 	uint8 Area;
-	/** Area flags for this node */
+	/** Area flags for this node. */
 	uint16 AreaFlags;
 
+	FNavMeshNodeFlags() : PathFlags(0), Area(0), AreaFlags(0) {}
 	FNavMeshNodeFlags(uint32 Flags) : PathFlags(Flags), Area(Flags >> 8), AreaFlags(Flags >> 16) {}
 	uint32 Pack() const { return PathFlags | ((uint32)Area << 8) | ((uint32)AreaFlags << 16); }
+	bool IsNavLink() const { return (PathFlags & 4) != 0;  }
 };
 
 struct ENGINE_API FNavMeshPath : public FNavigationPath
@@ -109,6 +112,9 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	void ApplyFlags(int32 NavDataFlags);
 
 	void Reset();
+
+	/** get flags of path point or corridor poly (depends on bStringPulled flag) */
+	bool GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const;
 
 	/** get cost of path, starting from next poly in corridor */
 	virtual float GetCostFromNode(NavNodeRef PathNode) const override { return GetCostFromIndex(PathCorridor.Find(PathNode) + 1); }
@@ -425,6 +431,10 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	/** should we draw edges of every poly (i.e. not only border-edges)  */
 	UPROPERTY(EditAnywhere, Category=Display, config)
 	uint32 bDrawPolyEdges:1;
+
+	/** if disabled skips filling drawn navmesh polygons */
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawFilledPolys:1;
 
 	/** should we draw border-edges */
 	UPROPERTY(EditAnywhere, Category=Display)
@@ -754,7 +764,7 @@ public:
 	void RemoveTileCacheLayers(int32 TileX, int32 TileY);
 	
 	/**  */
-	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& Layers);
+	void AddTileCacheLayers(int32 TileX, int32 TileY, const TArray<FNavMeshTileData>& InLayers);
 	
 	/**  */
 	TArray<FNavMeshTileData> GetTileCacheLayers(int32 TileX, int32 TileY) const;
@@ -867,6 +877,7 @@ public:
 
 	/** Retrieves poly and area flags for specified polygon */
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
+	bool GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const;
 
 	/** Finds closest point constrained to given poly */
 	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;

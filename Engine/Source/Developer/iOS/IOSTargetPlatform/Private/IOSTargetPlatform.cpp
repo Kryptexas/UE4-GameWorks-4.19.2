@@ -400,6 +400,8 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 		FName(TEXT("BC5")),		FName(TEXT("PVRTCN")),		FName(TEXT("ASTC_NormalRG")),
 		FName(TEXT("AutoDXT")),	FName(TEXT("AutoPVRTC")),	FName(TEXT("ASTC_RGBAuto")),
 	};
+	static FName NameBGRA8(TEXT("BGRA8"));
+	static FName NamePOTERROR(TEXT("POTERROR"));
 
 	FName TextureFormatName = NAME_None;
 
@@ -432,7 +434,18 @@ void FIOSTargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FNam
 			}
 			if (bIncludePVRTC)
 			{
-				OutFormats.AddUnique(FormatRemap[RemapIndex + 1]);
+				// handle non-power of 2 textures
+				if (!Texture->Source.IsPowerOfTwo())
+				{
+					// option 1: Uncompress, but users will get very large textures unknowningly
+					// OutFormats.AddUnique(NameBGRA8);
+					// option 2: Use an "error message" texture so they see it in game
+					OutFormats.AddUnique(NamePOTERROR);
+				}
+				else
+				{
+					OutFormats.AddUnique(FormatRemap[RemapIndex + 1]);
+				}
 			}
 		}
 	}

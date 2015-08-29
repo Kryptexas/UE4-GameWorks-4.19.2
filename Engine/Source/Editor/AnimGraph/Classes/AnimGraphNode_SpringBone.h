@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "Animation/BoneControllers/AnimNode_SpringBone.h"
+#include "BoneControllers/AnimNode_SpringBone.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_SpringBone.generated.h"
 
@@ -13,6 +13,10 @@ class UAnimGraphNode_SpringBone : public UAnimGraphNode_SkeletalControlBase
 
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_SpringBone Node;
+
+	// Begin UObject interface
+	virtual void PostLoad();
+	// End UObject interface
 
 public:
 	// UEdGraphNode interface

@@ -111,6 +111,11 @@ UAISenseConfig::UAISenseConfig(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+TSubclassOf<UAISense> UAISenseConfig::GetSenseImplementation() const 
+{ 
+	return UAISense::StaticClass(); 
+}
+
 #if !UE_BUILD_SHIPPING
 void UAISenseConfig::DrawDebugInfo(UCanvas& Canvas, UAIPerceptionComponent& PerceptionComponent) const
 {

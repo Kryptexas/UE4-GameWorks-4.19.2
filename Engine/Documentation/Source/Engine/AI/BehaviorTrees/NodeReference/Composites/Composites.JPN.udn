@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:2602552
+Title:Behavior Tree ノードのリファレンス:Composites
+Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
+Description:Behavior Tree Composite ノードの説明です。
+Availability:Public
+
+[TOC(start:2 end:2)]
+
+**Composite ノード** は、ブランチを実行するブランチのルートと基本ルールを定義します。[Decorators](Engine/AI/BehaviorTrees/NodeReference/Decorators) を適用させて、ブランチへのエントリを修正したり、実行中に取り消すことができます。また、それらにアタッチされている [Services](Engine/AI/BehaviorTrees/NodeReference/Services) はコンポジットの子供の実行中のみアクティブになります。
+
+## Selector
+
+![](Selector.png)
+
+**Selector** ノードは子ノードを左から右へ評価し、そのうちの 1 つが **Succeeds** を返すと評価を終了します。Selector の子ノードのどれかが成功を返した時点で、制御が Selector ノードに戻ります。Selector の子ノードがすべて失敗すると、 Selector は失敗します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Sequence
+
+![](Sequence.png)
+
+**Sequence** ノードは子ノードを左から右へ評価し、そのうちの 1 つが **Fails** を返すと評価を終了します。子ノードが失敗すると、 Sequence は失敗します。Sequence の子ノードがすべて成功すると、 Sequence は成功します。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+## Simple Parallel
+
+![](SimpleParallel.png)
+
+**Simple Parallel** ノードにより、 1 つのメインタスクのノードがツリー全体に沿って実行できるようになります。メインタスクが終了すると、セカンダリ ツリーを中止するためにノードを **すぐに** 終了するか、またはセカンダリ ツリーの終了を **遅らせる** かを **Finish Mode** の設定で指示されます。
+
+| プロパティ | 説明 |
+| -------- | ----------- |
+| **Finish Mode** | [INCLUDE:#subprop1] |
+| **Node Name** | Behavior Tree グラフでノードが表示する名前です。 |
+
+<!--
+[EXCERPT:subprop1]
+| --- | --- |
+| **Immediate** | メインタスクが終了すると、バックグラウンド ツリーが中止されます。 |
+| **Delayed** | メインタスクが終了すると、バックグラウンド ツリーは終了を許可されます。 |
+[/EXCERPT:subprop1]
+-->
+

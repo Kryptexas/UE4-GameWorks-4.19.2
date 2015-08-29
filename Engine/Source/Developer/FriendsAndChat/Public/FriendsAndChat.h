@@ -16,10 +16,17 @@
 
 /* Interfaces
  *****************************************************************************/
-#include "IChatViewModel.h"
 #include "IFriendsApplicationViewModel.h"
+#include "IChatDisplayService.h"
+#include "IChatSettingsService.h"
 #include "FriendsAndChatMessage.h"
 #include "FriendsAndChatUserSettings.h"
 #include "IFriendsAndChatManager.h"
 #include "IFriendsAndChatModule.h"
+#include "IFriendItem.h"
+#include "FriendsFontStyle.h"
+#include "FriendsComboStyle.h"
+#include "FriendsListStyle.h"
+#include "FriendsChatStyle.h"
+#include "FriendsChatChromeStyle.h"
 #include "FriendsAndChatStyle.h"

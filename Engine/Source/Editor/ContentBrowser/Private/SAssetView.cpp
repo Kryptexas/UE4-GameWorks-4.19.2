@@ -88,10 +88,11 @@ void SAssetView::Construct( const FArguments& InArgs )
 	AssetRegistryModule.Get().OnPathAdded().AddSP( this, &SAssetView::OnAssetRegistryPathAdded );
 	AssetRegistryModule.Get().OnPathRemoved().AddSP( this, &SAssetView::OnAssetRegistryPathRemoved );
 
-	FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+	FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 	CollectionManagerModule.Get().OnAssetsAdded().AddSP( this, &SAssetView::OnAssetsAddedToCollection );
 	CollectionManagerModule.Get().OnAssetsRemoved().AddSP( this, &SAssetView::OnAssetsRemovedFromCollection );
 	CollectionManagerModule.Get().OnCollectionRenamed().AddSP( this, &SAssetView::OnCollectionRenamed );
+	CollectionManagerModule.Get().OnCollectionUpdated().AddSP( this, &SAssetView::OnCollectionUpdated );
 
 	// Listen for when assets are loaded or changed to update item data
 	FCoreUObjectDelegates::OnAssetLoaded.AddSP(this, &SAssetView::OnAssetLoaded);
@@ -146,6 +147,8 @@ void SAssetView::Construct( const FArguments& InArgs )
 	bCanShowRealTimeThumbnails = InArgs._CanShowRealTimeThumbnails;
 
 	bCanShowDevelopersFolder = InArgs._CanShowDevelopersFolder;
+
+	bCanShowCollections = InArgs._CanShowCollections;
 
 	bPreloadAssetsForContextMenu = InArgs._PreloadAssetsForContextMenu;
 
@@ -1107,8 +1110,9 @@ FReply SAssetView::OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent
 			if( DragAssetOp.IsValid() )
 			{
 				TArray< FName > ObjectPaths;
-				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
-				CollectionManagerModule.Get().GetObjectsInCollection( SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths );
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+				const FCollectionNameType& Collection = SourcesData.Collections[0];
+				CollectionManagerModule.Get().GetObjectsInCollection( Collection.Name, Collection.Type, ObjectPaths );
 
 				bool IsValidDrop = false;
 				for (const auto& AssetData : AssetDatas)
@@ -1172,8 +1176,9 @@ FReply SAssetView::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 
 			if (ObjectPaths.Num() > 0)
 			{
-				FCollectionManagerModule& CollectionManagerModule = FModuleManager::LoadModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
-				CollectionManagerModule.Get().AddToCollection(SourcesData.Collections[0].Name, SourcesData.Collections[0].Type, ObjectPaths);
+				FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+				const FCollectionNameType& Collection = SourcesData.Collections[0];
+				CollectionManagerModule.Get().AddToCollection(Collection.Name, Collection.Type, ObjectPaths);
 			}
 
 			return FReply::Handled();
@@ -1338,6 +1343,7 @@ void SAssetView::RefreshSourceItems()
 		// force recursion when the user is searching
 		const bool bRecurse = ShouldFilterRecursively();
 		const bool bUsingFolders = IsShowingFolders();
+		const bool bIsDynamicCollection = SourcesData.IsDynamicCollection();
 		FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 
 		// Add the backend filters from the filter list
@@ -1358,9 +1364,9 @@ void SAssetView::RefreshSourceItems()
 
 		// Only show classes if we have class paths, and the filter allows classes to be shown
 		const bool bFilterAllowsClasses = Filter.ClassNames.Num() == 0 || Filter.ClassNames.Contains(NAME_Class);
-		bShowClasses = ClassPathsToShow.Num() > 0 && bFilterAllowsClasses;
+		bShowClasses = (ClassPathsToShow.Num() > 0 || bIsDynamicCollection) && bFilterAllowsClasses;
 
-		if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
+		if ( SourcesData.HasCollections() && Filter.ObjectPaths.Num() == 0 && !bIsDynamicCollection )
 		{
 			// This is an empty collection, no asset will pass the check
 		}
@@ -1376,16 +1382,20 @@ void SAssetView::RefreshSourceItems()
 
 		if ( bFilterAllowsClasses )
 		{
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+
+			// Include objects from child collections if we're recursing
+			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
+
 			TArray< FName > ClassPaths;
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
-			for (int32 Index = 0; Index < SourcesData.Collections.Num(); Index++)
+			for (const FCollectionNameType& Collection : SourcesData.Collections)
 			{
-				CollectionManagerModule.Get().GetClassesInCollection( SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, ClassPaths );
+				CollectionManagerModule.Get().GetClassesInCollection( Collection.Name, Collection.Type, ClassPaths, CollectionRecursionMode );
 			}
 
-			for (int32 Index = 0; Index < ClassPaths.Num(); Index++)
+			for (const FName& ClassPath : ClassPaths)
 			{
-				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPaths[Index].ToString());
+				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassPath.ToString());
 
 				if ( Class != NULL )
 				{
@@ -1665,21 +1675,25 @@ void SAssetView::RefreshFolders()
 
 	const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	for(const FName& PackagePath : AssetPathsToShow)
-	{		
+	{
 		TArray<FString> SubPaths;
-		AssetRegistryModule.Get().GetSubPaths(PackagePath.ToString(), SubPaths, false);
-		for(const FString& SubPath : SubPaths)
+		for(const FName& PackagePath : AssetPathsToShow)
 		{
-			// If this is a developer folder, and we don't want to show them try the next path
-			if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
-			{
-				continue;
-			}
+			SubPaths.Reset();
+			AssetRegistryModule.Get().GetSubPaths(PackagePath.ToString(), SubPaths, false);
 
-			if(!Folders.Contains(SubPath))
+			for(const FString& SubPath : SubPaths)
 			{
-				FoldersToAdd.Add(SubPath);
+				// If this is a developer folder, and we don't want to show them try the next path
+				if(!bDisplayDev && ContentBrowserUtils::IsDevelopersFolder(SubPath))
+				{
+					continue;
+				}
+
+				if(!Folders.Contains(SubPath))
+				{
+					FoldersToAdd.Add(SubPath);
+				}
 			}
 		}
 	}
@@ -1698,6 +1712,25 @@ void SAssetView::RefreshFolders()
 		TArray<FString> MatchingFolders;
 		NativeClassHierarchy->GetMatchingFolders(ClassFilter, MatchingFolders);
 		FoldersToAdd.Append(MatchingFolders);
+	}
+
+	// Add folders for any child collections of the currently selected collections
+	if(SourcesData.HasCollections())
+	{
+		FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
+		
+		TArray<FCollectionNameType> ChildCollections;
+		for(const FCollectionNameType& Collection : SourcesData.Collections)
+		{
+			ChildCollections.Reset();
+			CollectionManagerModule.Get().GetChildCollections(Collection.Name, Collection.Type, ChildCollections);
+
+			for(const FCollectionNameType& ChildCollection : ChildCollections)
+			{
+				// Use "Collections" as the root of the path to avoid this being confused with other asset view folders - see ContentBrowserUtils::IsCollectionPath
+				FoldersToAdd.Add(FString::Printf(TEXT("/Collections/%s/%s"), ECollectionShareType::ToString(ChildCollection.Type), *ChildCollection.Name.ToString()));
+			}
+		}
 	}
 
 	if(FoldersToAdd.Num() > 0)
@@ -1985,9 +2018,9 @@ void SAssetView::OnAssetRegistryPathAdded(const FString& Path)
 		const bool bDisplayDev = GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
 		if ( bDisplayDev || !ContentBrowserUtils::IsDevelopersFolder(Path) )
 		{
-			for(auto SourcePathIt(SourcesData.PackagePaths.CreateConstIterator()); SourcePathIt; SourcePathIt++)
+			for (const FName& SourcePathName : SourcesData.PackagePaths)
 			{
-				const FString SourcePath = (*SourcePathIt).ToString();
+				const FString SourcePath = SourcePathName.ToString();
 				if(Path.StartsWith(SourcePath))
 				{
 					const FString SubPath = Path.RightChop(SourcePath.Len());
@@ -2091,6 +2124,12 @@ void SAssetView::OnCollectionRenamed( const FCollectionNameType& OriginalCollect
 	}
 }
 
+void SAssetView::OnCollectionUpdated( const FCollectionNameType& Collection )
+{
+	// A collection has changed in some way, so we need to refresh our backend list
+	RequestSlowFullListRefresh();
+}
+
 void SAssetView::OnAssetRenamed(const FAssetData& AssetData, const FString& OldObjectPath)
 {
 	// Remove the old asset, if it exists
@@ -2157,9 +2196,10 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 {
 	const bool bRecurse = ShouldFilterRecursively();
 	const bool bUsingFolders = IsShowingFolders();
+	const bool bIsDynamicCollection = SourcesData.IsDynamicCollection();
 	FARFilter Filter = SourcesData.MakeFilter(bRecurse, bUsingFolders);
 	
-	if ( SourcesData.Collections.Num() > 0 && Filter.ObjectPaths.Num() == 0 )
+	if ( SourcesData.HasCollections() && Filter.ObjectPaths.Num() == 0 && !bIsDynamicCollection )
 	{
 		// This is an empty collection, no asset will pass the check
 		InOutAssetDataList.Empty();
@@ -2172,13 +2212,16 @@ void SAssetView::RunAssetsThroughBackendFilter(TArray<FAssetData>& InOutAssetDat
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 		AssetRegistryModule.Get().RunAssetsThroughFilter(InOutAssetDataList, Filter);
 
-		if ( SourcesData.Collections.Num() > 0 )
+		if ( SourcesData.HasCollections() && !bIsDynamicCollection )
 		{
-			FCollectionManagerModule& CollectionManagerModule = FModuleManager::GetModuleChecked<FCollectionManagerModule>(TEXT("CollectionManager"));
+			// Include objects from child collections if we're recursing
+			const ECollectionRecursionFlags::Flags CollectionRecursionMode = (Filter.bRecursivePaths) ? ECollectionRecursionFlags::SelfAndChildren : ECollectionRecursionFlags::Self;
+
+			FCollectionManagerModule& CollectionManagerModule = FCollectionManagerModule::GetModule();
 			TArray< FName > CollectionObjectPaths;
-			for (int Index = 0; Index < SourcesData.Collections.Num(); Index++)
+			for (const FCollectionNameType& Collection : SourcesData.Collections)
 			{
-				CollectionManagerModule.Get().GetObjectsInCollection(SourcesData.Collections[Index].Name, SourcesData.Collections[Index].Type, CollectionObjectPaths);
+				CollectionManagerModule.Get().GetObjectsInCollection(Collection.Name, Collection.Type, CollectionObjectPaths, CollectionRecursionMode);
 			}
 
 			for ( int32 AssetDataIdx = InOutAssetDataList.Num() - 1; AssetDataIdx >= 0; --AssetDataIdx )
@@ -2352,6 +2395,19 @@ TSharedRef<SWidget> SAssetView::GetViewButtonContent()
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton
 			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ShowCollectionOption", "Show Collections"),
+			LOCTEXT("ShowCollectionOptionToolTip", "Show the collections list in the view."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateSP( this, &SAssetView::ToggleShowCollections ),
+			FCanExecuteAction::CreateSP( this, &SAssetView::IsToggleShowCollectionsAllowed ),
+			FIsActionChecked::CreateSP( this, &SAssetView::IsShowingCollections )
+			),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
 	}
 	MenuBuilder.EndSection();
 
@@ -2503,6 +2559,23 @@ bool SAssetView::IsToggleShowDevelopersFolderAllowed() const
 bool SAssetView::IsShowingDevelopersFolder() const
 {
 	return GetDefault<UContentBrowserSettings>()->GetDisplayDevelopersFolder();
+}
+
+void SAssetView::ToggleShowCollections()
+{
+	const bool bDisplayCollections = GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections( !bDisplayCollections );
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool SAssetView::IsToggleShowCollectionsAllowed() const
+{
+	return bCanShowCollections;
+}
+
+bool SAssetView::IsShowingCollections() const
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayCollections();
 }
 
 void SAssetView::SetCurrentViewType(EAssetViewType::Type NewType)
@@ -2696,7 +2769,10 @@ TSharedRef<ITableRow> SAssetView::MakeListViewWidget(TSharedPtr<FAssetViewItem> 
 			.OnItemDestroyed(this, &SAssetView::AssetItemWidgetDestroyed)
 			.ShouldAllowToolTip(this, &SAssetView::ShouldAllowToolTips)
 			.HighlightText(HighlightedText)
-			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) );
+			.IsSelected( FIsSelected::CreateSP(TableRowWidget.Get(), &STableRow<TSharedPtr<FAssetViewItem>>::IsSelectedExclusively) )
+			.OnAssetsDragDropped(this, &SAssetView::OnAssetsDragDropped)
+			.OnPathsDragDropped(this, &SAssetView::OnPathsDragDropped)
+			.OnFilesDragDropped(this, &SAssetView::OnFilesDragDropped);
 
 		TableRowWidget->SetContent(Item);
 
@@ -3151,6 +3227,12 @@ bool SAssetView::CanOpenContextMenu() const
 		return false;
 	}
 
+	if ( SelectedAssets.Num() == 0 && SourcesData.HasCollections() )
+	{
+		// Don't allow a context menu when we're viewing a collection and have no assets selected
+		return false;
+	}
+
 	// Build a list of selected object paths
 	TArray<FString> ObjectPaths;
 	for(auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
@@ -3159,37 +3241,20 @@ bool SAssetView::CanOpenContextMenu() const
 	}
 
 	bool bLoadSuccessful = true;
-	bool bShouldPromptToLoadAssets = false;
 
 	if ( bPreloadAssetsForContextMenu )
 	{
-		// Should the user be asked to load unloaded assets
+		// Get and load assets that are unloaded
 		TArray<FString> UnloadedObjects;
-		bShouldPromptToLoadAssets = ContentBrowserUtils::ShouldPromptToLoadAssets(ObjectPaths, UnloadedObjects);
+		ContentBrowserUtils::GetUnloadedAssets(ObjectPaths, UnloadedObjects);
 
-		bool bShouldLoadAssets = false;
-		if ( bShouldPromptToLoadAssets )
-		{
-			// The user should be prompted to loaded assets
-			bShouldLoadAssets = ContentBrowserUtils::PromptToLoadAssets(UnloadedObjects);
-		}
-		else
-		{
-			// The user should not be prompted to load assets but assets should still be loaded
-			bShouldLoadAssets = true;
-		}
-
-		if ( bShouldLoadAssets )
-		{
-			// Load assets that are unloaded
-			TArray<UObject*> LoadedObjects;
-			const bool bAllowedToPrompt = false;
-			bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
-		}
+		TArray<UObject*> LoadedObjects;
+		const bool bAllowedToPrompt = false;
+		bLoadSuccessful = ContentBrowserUtils::LoadAssetsIfNeeded(ObjectPaths, LoadedObjects, bAllowedToPrompt);
 	}
 
-	// Do not show the context menu if we prompted the user to load assets or if the load failed
-	return !bShouldPromptToLoadAssets && bLoadSuccessful;
+	// Do not show the context menu if the load failed
+	return bLoadSuccessful;
 }
 
 void SAssetView::OnListMouseButtonDoubleClick(TSharedPtr<FAssetViewItem> AssetItem)
@@ -3256,7 +3321,7 @@ FReply SAssetView::OnDraggingAssetItem( const FGeometry& MyGeometry, const FPoin
 		{
 			// are we dragging some folders?
 			TArray<FString> SelectedFolders = GetSelectedFolders();
-			if(SelectedFolders.Num() > 0)
+			if(SelectedFolders.Num() > 0 && !SourcesData.HasCollections())
 			{
 				return FReply::Handled().BeginDragDrop(FAssetPathDragDropOp::New(SelectedFolders));
 			}
@@ -3645,7 +3710,7 @@ FText SAssetView::GetAssetShowWarningText() const
 		NothingToShowText = LOCTEXT( "NothingToShowCheckFilter", "No results, check your filter." );
 	}
 
-	if ( SourcesData.Collections.Num() > 0 )
+	if ( SourcesData.HasCollections() && !SourcesData.IsDynamicCollection() )
 	{
 		DropText = LOCTEXT( "DragAssetsHere", "Drag and drop assets here to add them to the collection." );
 	}

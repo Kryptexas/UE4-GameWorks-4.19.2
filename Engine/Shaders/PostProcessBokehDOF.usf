@@ -16,12 +16,10 @@ float4 DepthOfFieldThresholds;
 uint4 TileCountAndSize;
 // .xy:size in pixels, .zw:LeftTop of the original viewport in rendertaregt scaled coordiantes
 float4 KernelSize;
+
 // small Bokeh like texture
 Texture2D LensTexture;
 SamplerState LensTextureSampler;
-
-// for VisualizeDOF [0]:near, [1]:far
-float4 VisualizeColors[2];
 
 
 // @return x:layer in front of focal plane, y: layer behind focal plane  1-x-y:layer in focus
@@ -382,19 +380,6 @@ void MainSetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_
 	// clamp to avoid artifacts from exceeding fp16 through framebuffer blending of multiple very bright lights
 	OutColor.rgb = min(float3(256 * 256, 256 * 256, 256 * 256), OutColor.rgb);
 }
-
-
-// render in fullres to visualize the half res DOF input from the setup pass
-void VisualizeDOFPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
-{
-	bool bFrontLayer;
-	float4 Mask;
-	
-	CommonDOFSetup(UVAndScreenPos.xy, bFrontLayer, Mask);
-
-	OutColor = (bFrontLayer ? VisualizeColors[0] : VisualizeColors[1]) * dot(Mask, 1);
-}
-
 
 // pixel shader to accumulate the Bokeh shaped elements
 void MainPS(

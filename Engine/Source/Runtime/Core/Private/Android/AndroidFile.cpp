@@ -1282,11 +1282,7 @@ public:
 		PathToAndroidPaths(LocalPath, AssetPath, Filename, AllowLocal);
 
 		int Flags = O_CREAT;
-		if (bAppend)
-		{
-			Flags |= O_APPEND;
-		}
-		else
+		if (!bAppend)
 		{
 			Flags |= O_TRUNC;
 		}
@@ -1477,11 +1473,11 @@ public:
 				while ((fileName = AAssetDir_getNextFileName(dir)) != nullptr && Result == true)
 				{
 					bool isDirectory = false;
-					AAssetDir * dir = AAssetManager_openDir(AssetMgr, fileName);
+					AAssetDir * subdir = AAssetManager_openDir(AssetMgr, fileName);
 					if (nullptr != dir)
 					{
 						isDirectory = true;
-						AAssetDir_close(dir);
+						AAssetDir_close(subdir);
 					}
 #if LOG_ANDROID_FILE
 					FPlatformMisc::LowLevelOutputDebugStringf(TEXT("FAndroidPlatformFile::IterateDirectory('%s').. ASSET Visit: '%s'"), Directory, UTF8_TO_TCHAR(fileName));

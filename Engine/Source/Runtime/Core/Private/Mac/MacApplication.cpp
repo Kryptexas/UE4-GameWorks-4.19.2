@@ -46,6 +46,7 @@ FMacApplication::FMacApplication()
 ,	bSystemModalMode(false)
 ,	ModifierKeysFlags(0)
 ,	CurrentModifierFlags(0)
+,	bEmulatingRightClick(false)
 ,	bIsWorkspaceSessionActive(true)
 {
 	TextInputMethodSystem = MakeShareable(new FMacTextInputMethodSystem);
@@ -144,12 +145,12 @@ void FMacApplication::PollGameDeviceState(const float TimeDelta)
 		for( auto InputPluginIt = PluginImplementations.CreateIterator(); InputPluginIt; ++InputPluginIt )
 		{
 			TSharedPtr<IInputDevice> Device = (*InputPluginIt)->CreateInputDevice(MessageHandler);
-            if (Device.IsValid())
-            {
-                UE_LOG(LogInit, Log, TEXT("Adding external input plugin."));
-                ExternalInputDevices.Add(Device);
-            }
-        }
+			if (Device.IsValid())
+			{
+				UE_LOG(LogInit, Log, TEXT("Adding external input plugin."));
+				ExternalInputDevices.Add(Device);
+			}
+		}
 
 		bHasLoadedInputPlugins = true;
 	}
@@ -219,7 +220,7 @@ FModifierKeysState FMacApplication::GetModifierKeys() const
 	const bool bIsRightAltDown			= (CurrentFlags & (1 << 5)) != 0;
 	const bool bIsLeftCommandDown		= (CurrentFlags & (1 << 2)) != 0; // Mac pretends the Control key is Command
 	const bool bIsRightCommandDown		= (CurrentFlags & (1 << 3)) != 0; // Mac pretends the Control key is Command
-	const bool bAreCapsLocked           = (CurrentFlags & (1 << 8)) != 0;
+	const bool bAreCapsLocked			= (CurrentFlags & (1 << 8)) != 0;
 
 	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, bIsLeftCommandDown, bIsRightCommandDown, bAreCapsLocked);
 }
@@ -329,6 +330,18 @@ void FMacApplication::DeferEvent(NSObject* Object)
 			case NSOtherMouseUp:
 				DeferredEvent.ButtonNumber = [Event buttonNumber];
 				DeferredEvent.ClickCount = [Event clickCount];
+				if (DeferredEvent.Type == NSLeftMouseDown && (DeferredEvent.ModifierFlags & NSControlKeyMask))
+				{
+					bEmulatingRightClick = true;
+					DeferredEvent.Type = NSRightMouseDown;
+					DeferredEvent.ButtonNumber = 2;
+				}
+				else if (DeferredEvent.Type == NSLeftMouseUp && bEmulatingRightClick)
+				{
+					bEmulatingRightClick = false;
+					DeferredEvent.Type = NSRightMouseUp;
+					DeferredEvent.ButtonNumber = 2;
+				}
 				break;
 
 			case NSScrollWheel:
@@ -386,13 +399,13 @@ void FMacApplication::DeferEvent(NSObject* Object)
 		}
 		else if ([[Notification object] conformsToProtocol:@protocol(NSDraggingInfo)])
 		{
-            NSWindow* NotificationWindow = [(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
-            
-            if (NotificationWindow && [NotificationWindow isKindOfClass:[FCocoaWindow class]])
-            {
-           		DeferredEvent.Window = (FCocoaWindow*)NotificationWindow;
-            }
-            
+			NSWindow* NotificationWindow = [(id<NSDraggingInfo>)[Notification object] draggingDestinationWindow];
+
+			if (NotificationWindow && [NotificationWindow isKindOfClass:[FCocoaWindow class]])
+			{
+				DeferredEvent.Window = (FCocoaWindow*)NotificationWindow;
+			}
+
 			if (DeferredEvent.NotificationName == NSPrepareForDragOperation)
 			{
 				DeferredEvent.DraggingPasteboard = [[(id<NSDraggingInfo>)[Notification object] draggingPasteboard] retain];
@@ -486,45 +499,32 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 	TSharedPtr<FMacWindow> EventWindow = FindWindowByNSWindow(Event.Window);
 	if (Event.Type)
 	{
-		if (CurrentModifierFlags != Event.ModifierFlags)
-		{
-			NSUInteger ModifierFlags = Event.ModifierFlags;
-
-			HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
-			HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
-			HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
-			HandleModifierChange(ModifierFlags, (1<<16), 8, MMK_CapsLock);
-			HandleModifierChange(ModifierFlags, (1<<5), 4, MMK_LeftAlt);
-			HandleModifierChange(ModifierFlags, (1<<0), 2, MMK_LeftControl);
-			HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
-			HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
-			HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
-
-			CurrentModifierFlags = ModifierFlags;
-		}
-
 		switch (Event.Type)
 		{
 			case NSMouseMoved:
 			case NSLeftMouseDragged:
 			case NSRightMouseDragged:
 			case NSOtherMouseDragged:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessMouseMovedEvent(Event, EventWindow);
 				break;
 
 			case NSLeftMouseDown:
 			case NSRightMouseDown:
 			case NSOtherMouseDown:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessMouseDownEvent(Event, EventWindow);
 				break;
 
 			case NSLeftMouseUp:
 			case NSRightMouseUp:
 			case NSOtherMouseUp:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessMouseUpEvent(Event, EventWindow);
 				break;
 
 			case NSScrollWheel:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessScrollWheelEvent(Event, EventWindow);
 				break;
 
@@ -533,15 +533,27 @@ void FMacApplication::ProcessEvent(const FDeferredMacEvent& Event)
 			case NSEventTypeRotate:
 			case NSEventTypeBeginGesture:
 			case NSEventTypeEndGesture:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessGestureEvent(Event);
 				break;
 
 			case NSKeyDown:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessKeyDownEvent(Event, EventWindow);
 				break;
 
 			case NSKeyUp:
+				ConditionallyUpdateModifierKeys(Event);
 				ProcessKeyUpEvent(Event);
+				break;
+				
+			case NSFlagsChanged:
+				ConditionallyUpdateModifierKeys(Event);
+				break;
+				
+			case NSMouseEntered:
+			case NSMouseExited:
+				ConditionallyUpdateModifierKeys(Event);
 				break;
 		}
 	}
@@ -704,7 +716,7 @@ void FMacApplication::ProcessMouseMovedEvent(const FDeferredMacEvent& Event, TSh
 		}
 		else
 		{
-			MacCursor->UpdateCurrentPosition(CurrentPosition);
+			MacCursor->UpdateCurrentPosition(CurrentPosition / MouseScaling);
 		}
 
 		if (EventWindow.IsValid())
@@ -904,7 +916,7 @@ void FMacApplication::ProcessKeyDownEvent(const FDeferredMacEvent& Event, TShare
 void FMacApplication::ProcessKeyUpEvent(const FDeferredMacEvent& Event)
 {
 	bool bHandled = false;
-	if (!bSystemModalMode)
+	if (!bSystemModalMode && [Event.Characters length] > 0 && [Event.CharactersIgnoringModifiers length] > 0)
 	{
 		const TCHAR Character = ConvertChar([Event.Characters characterAtIndex:0]);
 		const TCHAR CharCode = [Event.CharactersIgnoringModifiers characterAtIndex:0];
@@ -965,7 +977,7 @@ void FMacApplication::OnWindowDidResize(TSharedRef<FMacWindow> Window)
 bool FMacApplication::OnWindowDestroyed(TSharedRef<FMacWindow> Window)
 {
 	SCOPED_AUTORELEASE_POOL;
-	if ([Window->GetWindowHandle() isKeyWindow])
+	if ([Window->GetWindowHandle() isMainWindow])
 	{
 		MessageHandler->OnWindowActivationChanged(Window, EWindowActivation::Deactivate);
 	}
@@ -1058,6 +1070,8 @@ void FMacApplication::OnApplicationWillResignActive()
 		}
 	}
 
+	SetHighPrecisionMouseMode(false, nullptr);
+
 	((FMacCursor*)Cursor.Get())->UpdateVisibility();
 
 	// If editor thread doesn't have the focus, don't suck up too much CPU time.
@@ -1104,6 +1118,26 @@ void FMacApplication::OnWindowsReordered(bool bIsAppInBackground)
 				[Window setLevel:NSNormalWindowLevel];
 			}
 		}
+	}
+}
+
+void FMacApplication::ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event)
+{
+	if (CurrentModifierFlags != Event.ModifierFlags)
+	{
+		NSUInteger ModifierFlags = Event.ModifierFlags;
+		
+		HandleModifierChange(ModifierFlags, (1<<4), 7, MMK_RightCommand);
+		HandleModifierChange(ModifierFlags, (1<<3), 6, MMK_LeftCommand);
+		HandleModifierChange(ModifierFlags, (1<<1), 0, MMK_LeftShift);
+		HandleModifierChange(ModifierFlags, (1<<16), 8, MMK_CapsLock);
+		HandleModifierChange(ModifierFlags, (1<<5), 4, MMK_LeftAlt);
+		HandleModifierChange(ModifierFlags, (1<<0), 2, MMK_LeftControl);
+		HandleModifierChange(ModifierFlags, (1<<2), 1, MMK_RightShift);
+		HandleModifierChange(ModifierFlags, (1<<6), 5, MMK_RightAlt);
+		HandleModifierChange(ModifierFlags, (1<<13), 3, MMK_RightControl);
+		
+		CurrentModifierFlags = ModifierFlags;
 	}
 }
 

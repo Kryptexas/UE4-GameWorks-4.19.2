@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346415
+﻿INTSourceChangelist:2591123
 Availability:Public
-Title:1.7 - シーンキャプチャ 2D
+Title:1.7 - Scene Capture 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
-Description:反射の事例概要、例 1.7：シーンキャプチャ 2D
+Description:反射のサンプル レベル概要、例 1.7：Scene Capture 2D
 Related:Engine/Rendering/LightingAndShadows/ReflectionEnvironment
 Related:Engine/Rendering/LightingAndShadows/Lightmass
 Related:Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\

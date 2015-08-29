@@ -36,6 +36,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	bNotForClientOrServer = false;
 	bCanBeDamaged = false;
 	bCollideWhenPlacing = true;
+	SpawnCollisionHandlingMethod = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 }
 
 #if WITH_EDITOR
@@ -86,11 +87,10 @@ void ABrush::CopyPosRotScaleFrom( ABrush* Other )
 	check(Other);
 	check(Other->BrushComponent);
 
-	SetActorLocation(Other->GetActorLocation(), false);
-	SetActorRotation(Other->GetActorRotation());
+	SetActorLocationAndRotation(Other->GetActorLocation(), Other->GetActorRotation(), false);
 	if( GetRootComponent() != NULL )
 	{
-		SetPrePivot( Other->GetPrePivot() );
+		SetPivotOffset(Other->GetPivotOffset());
 	}
 
 	if(Brush)
@@ -105,9 +105,8 @@ void ABrush::InitPosRotScale()
 {
 	check(BrushComponent);
 
-	SetActorLocation(FVector::ZeroVector, false);
-	SetActorRotation(FRotator::ZeroRotator);
-	SetPrePivot( FVector::ZeroVector );
+	SetActorLocationAndRotation(FVector::ZeroVector, FQuat::Identity, false);
+	SetPivotOffset( FVector::ZeroVector );
 }
 
 void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
@@ -143,33 +142,20 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 	}
 }
 
-#endif
-
 FVector ABrush::GetPrePivot() const
 {
-	FVector Result(0.f);
-	if( BrushComponent )
-	{
-		Result = BrushComponent->PrePivot;
-	}
-	return Result;
+	return GetPivotOffset();
 }
 
 void ABrush::SetPrePivot( const FVector& InPrePivot )
 {
-	if( BrushComponent )
-	{
-		BrushComponent->PrePivot = InPrePivot;
-		BrushComponent->UpdateComponentToWorld();
-	}
+	SetPivotOffset(InPrePivot);
 }
-
 
 void ABrush::PostLoad()
 {
 	Super::PostLoad();
 
-#if WITH_EDITOR
 	if (BrushBuilder && BrushBuilder->GetOuter() != this)
 	{
 		BrushBuilder = DuplicateObject<UBrushBuilder>(BrushBuilder, this);
@@ -202,14 +188,13 @@ void ABrush::PostLoad()
 	{
 		UE_LOG(LogPhysics, Log, TEXT("%s does not have BrushBodySetup. No collision."), *GetName());
 	}
-#endif
 }
 
 void ABrush::Destroyed()
 {
 	Super::Destroyed();
 
-	if(IsStaticBrush())
+	if(GIsEditor && IsStaticBrush() && !GetWorld()->IsGameWorld())
 	{
 		// Trigger a csg rebuild if we're in the editor.
 		SetNeedRebuild(GetLevel());
@@ -220,13 +205,12 @@ void ABrush::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();
 
-#if WITH_EDITOR
 	if ( GIsEditor )
 	{
 		OnBrushRegistered.Broadcast(this);
 	}
-#endif
 }
+#endif
 
 bool ABrush::IsLevelBoundsRelevant() const
 {

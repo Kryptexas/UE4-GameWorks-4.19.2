@@ -13,7 +13,17 @@ This is an experimental feature that is currently undergoing development. Some a
 ---
 In the following steps, we are going to create a menu that appears in the game world that can be interacted with as seen below.
 
-![](MenuGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+lCJkWsMsK84
+[/PARAMLITERAL]
+[/OBJECT]
 
 [EXCERPT:ProjectStart]
 [OBJECT:TopicList]
@@ -216,6 +226,10 @@ In this step, we will create the Actor that will contain and display our UI Menu
 In this example, we have created a 3D Menu that can appear in world and be interacted with by the player. While our example allows the player character to run around in the world, you could create a "Main Menu" level and remove the player's ability to run around by using a different Character Blueprint or just disabling its movement. From there, you could add any elements you want to appear in your Main Menu screen (could be the player character's custom "player model" or other Actors, particle effects, lights, etc.), it is really up to you at that point how you want your 3D space to look. 
 
 ---
+
+
+
+
 
 
 

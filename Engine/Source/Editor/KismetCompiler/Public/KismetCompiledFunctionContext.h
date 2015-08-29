@@ -69,6 +69,7 @@ public:
 	TIndirectArray<FBPTerminal> Locals;
 	TIndirectArray<FBPTerminal> EventGraphLocals;
 	TIndirectArray<FBPTerminal>	LevelActorReferences;
+	TIndirectArray<FBPTerminal>	InlineGeneratedValues; // A function generating the parameter will be called inline. The value won't be stored in a local variable.
 	TMap<UEdGraphPin*, FBPTerminal*> NetMap;
 	TMap<UEdGraphPin*, FBPTerminal*> LiteralHackMap;
 

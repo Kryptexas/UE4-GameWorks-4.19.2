@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2489435
+﻿INTSourceChangelist:2618905
 Availability: Public
 Title:마티네
 Crumbs:%ROOT%, Resources, Resources/Showcases
@@ -61,8 +61,6 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 [TOC(start:2 end:2)]
 
-## 개요
-
 **Matinee Fight Scene** (마티네 격투 씬) 예제는 언리얼 엔진 4 의 **마티네 에디터** 를 사용하여 스타일이 살아있는 시네마틱 시퀀스를 제작하는 법을 보여줍니다. **마티네** 란, **트랙** 안에 **키프레임** 을 배치하고 레벨에 있는 액터의 특정 프로퍼티에 대한 값을 설정하여 시간에 따라 그 값을 조절할 수 있는 시스템을 말합니다.
 
 이 글에서는 격투 씬을 만드는 데 사용된 **마티네 액터** 안의 여러가지 섹션을 하나씩 살펴보고 논의해 볼 것이며, 각 요소를 어떻게 조합시켜 아래 **씬 분석** 부분에 표시된 최종 결과를 낼 수 있었는지도 알아보겠습니다. 그 구성 방식을 이해하면 씬을 편집하여 스핀 각도를 달리 하거나, 아니면 여기서 배운 지식이나 꼼수를 가지고 자신만의 씬을 만드는 데 적용할 수도 있습니다.
@@ -74,7 +72,17 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 씬을 분석해 보기 전, 최종 결과는 아래와 같습니다:
 
-[![](OriginalMovieThumbnail.png)(w:640)](FightSceneOriginal.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+E0L7pBBhwUo
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 * 68 초 시퀀스 기간에 걸쳐 서로 상호작용하는 다섯 개의 캐릭터로 씬이 구성되어 있습니다.
@@ -292,7 +300,17 @@ Troopers 1, 2, 3 에 할당된 **Visibility** 트랙은 단순히 씬에 캐릭�
 
 씬에는 두 개의 **스포트 라이트** 가 추가되어 각 샷마다 추가적인 캐릭터 라이팅을 주고 있습니다. 이 **스포트 라이트** 각각은 **무버블** 설정되어 있어 **Movement** 트랙을 사용하여 위치를 잡고 있습니다. 추가적으로 각 라이트의 **Intensity** (명도), **LightColor** (라이트 컬러), **Radius** (반경)은 샷에 따라 씬 도중 조절됩니다. 무엇이 벌어지는지 더욱 명쾌한 설명은 아래 그림을 살펴보세요.
 
-![](ShowingLightsGif.gif)(w:480 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kfJeFFGuEPQ
+[/PARAMLITERAL]
+[/OBJECT]
 
 **마티네 미리보기** 가 아니라 에디터 뷰에서 씬을 바라볼 때는, 샷의 필요에 따라 라이트가 켜졌다/꺼지고 위치도 조정되는 것을 볼 수 있습니다.
 
@@ -612,10 +630,26 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 샷에 삼등분 법칙(Rule of Thirds)을 활용해 보도록 하세요. 프레임의 상하, 좌우를 가상의 선으로 삼등분한 뒤 피사체를 가상선상이나 화면의 인상적인 포인트를 세 개의 가상선이 만나는 네 개의 꼭지점 위에 위치시키는 사진 촬영 기법입니다.
 
 [REGION:imagetable]
-| ![](RuleOfThirds-SideBySide.gif)(w:480 convert:false) |![](RuleofThirdsMatinee.png)(w:320)|
+| [INCLUDE:#v11] |![](RuleofThirdsMatinee.png)(h:240)|
 | :---: | :---: |
 | 센터 샷 vs 삼등분 법칙 샷 | 마티네 예제 |
 [/REGION]
+
+<!--
+[EXCERPT:v11]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+460
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+240
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xnuP2mepDjs
+[/PARAMLITERAL]
+[/OBJECT]
+[/EXCERPT]
+-->
 
 #### 샷 프레임 잡기
 
@@ -668,7 +702,17 @@ _이미지를 클릭하면 크게 볼 수 있습니다._
 
 아래는 원래 시퀀스의 리믹스 예제입니다:
 
-[![](Remix_Thumbnail.png)(w:640)](FightSceneRemix.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kzXg1NY4Aag
+[/PARAMLITERAL]
+[/OBJECT]
 
 비디오에서 확인할 수 있듯이, 씬 변경을 위해 할 수 있는 작업이 여러가지 많습니다. 위 비디오에서 가해진 변경사항은 다음과 같습니다:
 

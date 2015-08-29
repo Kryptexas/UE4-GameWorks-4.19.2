@@ -6,13 +6,13 @@
 
 #pragma once
 
-#include "PhysicsEngine/BodySetup.h"
 #include "Engine/StaticMesh.h"
 #include "RawIndexBuffer.h"
 #include "TextureLayout3d.h"
 #include "LocalVertexFactory.h"
 #include "PrimitiveSceneProxy.h"
 #include "SceneManagement.h"
+#include "PhysicsEngine/BodySetupEnums.h"
 
 /**
  * The LOD settings to use for a group of static meshes.
@@ -748,7 +748,7 @@ public:
 	}
 
 	/** Sets up a shadow FMeshBatch for a specific LOD. */
-	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch) const;
+	virtual bool GetShadowMeshElement(int32 LODIndex, int32 BatchIndex, uint8 InDepthPriorityGroup, FMeshBatch& OutMeshBatch, bool bDitheredLODTransition) const;
 
 	/** Sets up a FMeshBatch for a specific LOD and element. */
 	virtual bool GetMeshElement(int32 LODIndex, int32 BatchIndex, int32 ElementIndex, uint8 InDepthPriorityGroup, const bool bUseSelectedMaterial, const bool bUseHoveredMaterial, FMeshBatch& OutMeshBatch) const;
@@ -894,6 +894,11 @@ protected:
 	 * @Param LODIndex - The LOD to get the display factor for
 	 */
 	float GetScreenSize(int32 LODIndex) const;
+
+	/**
+	 * Returns the LOD mask for a view, this is like the ordinary LOD but can return two values for dither fading
+	 */
+	FLODMask GetLODMask(const FSceneView* View) const;
 };
 
 /*-----------------------------------------------------------------------------
@@ -1158,7 +1163,6 @@ public:
 		return GetData() + InstanceIndex;
 	}
 };
-
 
 #if WITH_EDITOR
 /**

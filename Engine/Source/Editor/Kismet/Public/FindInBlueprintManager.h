@@ -31,6 +31,8 @@ struct KISMET_API FFindInBlueprintSearchTags
 
 	/** Name tag */
 	static const FText FiB_Name;
+	/** Native Name tag */
+	static const FText FiB_NativeName;
 	/** Class Name tag */
 	static const FText FiB_ClassName;
 	/** NodeGuid tag */
@@ -85,7 +87,57 @@ struct FSearchData
 		: Blueprint(nullptr)
 		, bMarkedForDeletion(false)
 	{
+	}
 
+	// Adding move semantics (on Mac this counts as a user defined constructor, so I have to reimplement the default
+	// copy constructor. PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS is not true on all compilers yet, so I'm implementing manually:
+	FSearchData(FSearchData&& Other)
+		: Blueprint(Other.Blueprint)
+		, BlueprintPath(MoveTemp(Other.BlueprintPath))
+		, Value(MoveTemp(Other.Value))
+		, bMarkedForDeletion(Other.bMarkedForDeletion)
+	{
+	}
+
+	FSearchData& operator=(FSearchData&& RHS)
+	{
+		if (this == &RHS)
+		{
+			return *this;
+		}
+
+		Blueprint = RHS.Blueprint;
+		BlueprintPath = MoveTemp(RHS.BlueprintPath);
+		Value = MoveTemp(RHS.Value);
+		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		return *this;
+	}
+
+	FSearchData(const FSearchData& Other)
+		: Blueprint(Other.Blueprint)
+		, BlueprintPath(Other.BlueprintPath)
+		, Value(Other.Value)
+		, bMarkedForDeletion(Other.bMarkedForDeletion)
+	{
+	}
+
+	FSearchData& operator=(const FSearchData& RHS)
+	{
+		if (this == &RHS)
+		{
+			return *this;
+		}
+
+		Blueprint = RHS.Blueprint;
+		BlueprintPath = RHS.BlueprintPath;
+		Value = RHS.Value;
+		bMarkedForDeletion = RHS.bMarkedForDeletion;
+		return *this;
+	}
+
+
+	~FSearchData()
+	{
 	}
 };
 
@@ -175,7 +227,7 @@ public:
 	 * @param InSourceWidget		The source FindInBlueprints widget, this widget will be informed when caching is complete
 	 */
 	void CacheAllUncachedBlueprints(TWeakPtr< class SFindInBlueprints > InSourceWidgetm, FWidgetActiveTimerDelegate& OutActiveTimerDelegate);
-	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive);
+	void OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave);
 
 	/** Stops the caching process where it currently is at, the rest can be continued later */
 	void CancelCacheAll(SFindInBlueprints* InFindInBlueprintWidget);
@@ -211,7 +263,7 @@ public:
 	static FString ConvertFStringToHexString(FString InValue);
 
 	/** Given a fully constructed Find-in-Blueprint FString of searchable data, will parse and construct a JsonObject */
-	static TSharedPtr< class FJsonObject > ConvertJsonStringToObject(FString InJsonString);
+	static TSharedPtr< class FJsonObject > ConvertJsonStringToObject(FString InJsonString, TMap<int32, FText>& OutFTextLookupTable);
 
 private:
 	/** Initializes the FiB manager */

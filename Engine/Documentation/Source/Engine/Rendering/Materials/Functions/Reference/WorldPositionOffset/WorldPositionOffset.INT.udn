@@ -5,7 +5,7 @@ Description:Functions for handling vertex manipulation using world position offs
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The WorldPositionOffset category contains special functions for applying manipulating vertices of a mesh via world position offset. These functions can be chained together for additive effects. 
 
@@ -73,7 +73,7 @@ The ObjectPivotPoint function returns the object's pivot point in world space. T
 
 ### ObjectScale
 
-The ObjectScale function returns the object's XYZ scale together and seperately.This is not compatible with the pixel shader.
+The ObjectScale function returns the object's XYZ scale together and seperately. This is not compatible with the pixel shader.
 
 | Item | Description |
 | -------- | -------- |

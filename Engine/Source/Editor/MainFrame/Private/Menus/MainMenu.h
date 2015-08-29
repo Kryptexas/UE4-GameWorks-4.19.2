@@ -118,6 +118,6 @@ private:
 	*/
 	static void OpenMergeActors()
 	{
-		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("MergeActorsApp")));
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("MergeActors")));
 	}
 };

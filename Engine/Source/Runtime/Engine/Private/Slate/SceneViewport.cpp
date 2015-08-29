@@ -372,13 +372,19 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			ApplyModifierKeys( KeysState );
 		}
 
+		const bool bAnyMenusVisible = FSlateApplication::Get().AnyMenusVisible();
+
 		// Process the mouse event
 		if (!ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), InMouseEvent.GetEffectingButton(), IE_Pressed))
 		{
 			CurrentReplyState = FReply::Unhandled(); 
 		}
 
+		// a new menu was opened if there was previously not a menu visible but now there is
+		const bool bNewMenuWasOpened = !bAnyMenusVisible && FSlateApplication::Get().AnyMenusVisible();
+
 		if (!ViewportClient->IgnoreInput() &&
+			!bNewMenuWasOpened && // We should not focus the viewport if a menu was opened as it would close the menu
 			( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CapturePermanently ||
 			  ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringMouseDown ||
 			  ( ViewportClient->CaptureMouseOnClick() == EMouseCaptureMode::CaptureDuringRightMouseDown && InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton ) ) )
@@ -544,6 +550,7 @@ FReply FSceneViewport::OnMouseWheel( const FGeometry& InGeometry, const FPointer
 		// Pressed and released should be sent
 		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Pressed);
 		ViewportClient->InputKey(this, InMouseEvent.GetUserIndex(), ViewportClientKey, IE_Released);
+		ViewportClient->InputAxis(this, InMouseEvent.GetUserIndex(), EKeys::MouseWheelAxis, InMouseEvent.GetWheelDelta(), FApp::GetDeltaTime());
 	}
 	return CurrentReplyState;
 }
@@ -1007,7 +1014,7 @@ void FSceneViewport::SetViewportSize(uint32 NewViewportSizeX, uint32 NewViewport
 	if (Window.IsValid())
 	{
 		Window->SetIndependentViewportSize(FVector2D(NewViewportSizeX, NewViewportSizeY));
-		const FVector2D vp = Window->GetViewportSize();
+		const FVector2D vp = (Window->GetWindowMode() == EWindowMode::WindowedMirror) ? Window->GetSizeInScreen() : Window->GetViewportSize();
 		FSlateApplicationBase::Get().GetRenderer()->UpdateFullscreenState(Window.ToSharedRef(), vp.X, vp.Y);
 		ResizeViewport(NewViewportSizeX, NewViewportSizeY, Window->GetWindowMode(), 0, 0);
 	}
@@ -1120,9 +1127,6 @@ void FSceneViewport::SetRenderTargetTextureRenderThread(FTexture2DRHIRef& RT)
 
 void FSceneViewport::UpdateViewportRHI(bool bDestroyed, uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode)
 {
-	// Make sure we're not in the middle of streaming textures.
-	(*GFlushStreamingFunc)();
-
 	{
 		SCOPED_SUSPEND_RENDERING_THREAD(true);
 

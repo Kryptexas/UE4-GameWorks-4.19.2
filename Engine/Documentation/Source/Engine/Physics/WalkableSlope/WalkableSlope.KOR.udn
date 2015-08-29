@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2325564
+﻿INTSourceChangelist:2600604
 Availability: Public
 Title:보행가능 경사
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -43,7 +43,7 @@ Description:Walkable Slope, 보행가능 경사입니다.
 [/OBJECT]
 [/VAR]
 
-## 개요
+
 
 **피직스 바디** 의 **Walkable Slope Override** (보행가능 경사 덮어쓰기)는 **캐릭터** 가 어떤 표면을 걸어오를 수 있는지에 대한 미세조정이 가능합니다. 계단이 너무 가파르다거나 "풀밭에 들어가지 마시오" 표지판을 강제로 지키게 하려는 경우, 이 세팅으로 가능합니다.
 
@@ -83,3 +83,7 @@ _파랑 각도는 기본 **Character Movement Component Walkable Floor Angle** (
 
 * *보행가능 경사 각도** 의 값이 0.0 이면 캐릭터가 **피직스 바디** 표면을 건널 수 없게 됩니다. 대부분의 평면 표면에 이상한 동작이 나오게 되는데, 캐릭터가 스케이트를 타듯 미끄러는 져도 방향을 바꿀 수 없기 때문입니다.
 * **보행가능 경사 각도** 의 값이 90.0 이면 결국 **보행가능 경사 행위** 프로퍼티의 변화가 없는 것과 같습니다.
+
+
+
+

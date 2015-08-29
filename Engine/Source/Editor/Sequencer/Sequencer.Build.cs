@@ -18,8 +18,8 @@ public class Sequencer : ModuleRules
 				"SlateCore",
                 "EditorStyle",
 				"UnrealEd", 
-				"MovieSceneCore", 
-				"MovieSceneCoreTypes", 
+				"MovieScene", 
+				"MovieSceneTracks", 
 				"MovieSceneTools", 
 				"EditorWidgets", 
 				"SequencerWidgets",
@@ -40,5 +40,7 @@ public class Sequencer : ModuleRules
 				"WorkspaceMenuStructure"
 			}
 		);
+
+		CircularlyReferencedDependentModules.Add("MovieSceneTools");
 	}
 }

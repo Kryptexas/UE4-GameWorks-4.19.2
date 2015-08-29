@@ -1,0 +1,45 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Property Replication
+Crumbs:%ROOT%, Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
+Description:Detailed information about how Actor properties are replicated.
+Related: Gameplay/Networking/Actors/Properties/ObjectReferences
+Related: Gameplay/Networking/Actors/Properties/Conditions
+Related: Gameplay/Networking/Actors/RPCs
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+Each actor maintains a list of properties, and each property can be marked to be replicated to clients. Whenever the value of the variable changes on the server side, the server sends the client the updated value. The variable may have changed on client side too - in which case the new value will overwrite it. Property updates only come from the server, the client will never send property updates to the server.
+
+Some properties replicate by default (Location, Rotation, Owner, etc). These are properties that the framework generally depends on to make basic multiplayer work. From there, you can mark additional properties to replicate as you need.
+
+Actor property replication is reliable. This means that the property of the client version of the Actor will eventually reflect the value on the server - but it's possible that some individual property value changes will be skipped.
+
+## Setting up properties for replication
+
+To replicate a property you need to do a few things:
+In the header of the actor class where the property is defined, you need to make sure you have the `replicated` keyword as one of the parameters to the UPROPERTY declaration:
+
+	class ENGINE_API AActor : public UObject
+	{
+		UPROPERTY( replicated )
+		AActor * Owner;
+	};
+
+In the implementation of the actor class, you need to implement the GetLifetimeReplicatedProps function:
+
+	void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifetimeProps ) const
+	{
+		DOREPLIFETIME( AActor, Owner );
+	}
+
+In the actor's constructor, make sure you have the bReplicates flag set to true:
+
+	AActor::AActor( const class FPostConstructInitializeProperties & PCIP ) : Super( PCIP )
+	{ 
+		bReplicates = true;
+	}
+
+That's about it. The member variable `Owner` will now be synchronized to all connected clients for every copy of this actor type that is currently instantiated (in this case, the base actor class).

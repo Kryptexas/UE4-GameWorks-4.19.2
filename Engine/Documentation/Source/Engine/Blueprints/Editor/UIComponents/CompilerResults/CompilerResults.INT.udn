@@ -8,8 +8,6 @@ Description:Interface for the Compiler Results panel of the Blueprint Editor.
 ![](CompilerWindow.png)
 [/REGION]
 
-## Overview
-
 The **Compiler Results** panel provides feedback on the compiling of your Blueprint scripts, telling you whether a Blueprint script compile was successful or if there were _errors_ or _warnings_. Whenever errors or warnings are found, the **Compiler Results** panel gives information on the error and provides hyperlink access, enabling you to jump the graph view directly to the source of the problem.
 
 ## Interface

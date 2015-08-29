@@ -18,6 +18,14 @@
 #define LOCTEXT_NAMESPACE "SceneComponent"
 
 
+namespace SceneComponentStatics
+{
+	static const FName DefaultSceneRootVariableName(TEXT("DefaultSceneRoot"));
+	static const FName MobilityName(TEXT("Mobility"));
+	static const FText MobilityWarnText = LOCTEXT("InvalidMove", "move");
+	static const FName PhysicsVolumeTraceName(TEXT("PhysicsVolumeTrace"));
+}
+
 DEFINE_LOG_CATEGORY_STATIC(LogSceneComponent, Log, All);
 
 FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
@@ -30,9 +38,7 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 
 const FName& USceneComponent::GetDefaultSceneRootVariableName()
 {
-	static FName DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
-
-	return DefaultSceneRootVariableName;
+	return SceneComponentStatics::DefaultSceneRootVariableName;
 }
 
 USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
@@ -261,8 +267,7 @@ static void UpdateAttachedMobility(USceneComponent* ComponentThatChanged)
 void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
-	static FName MobilityName("Mobility");
-	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
 	}
@@ -273,8 +278,7 @@ void USceneComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 void USceneComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
 	// Note: This must be called before UActorComponent::PostEditChangeChainProperty is called because this component will be reset when UActorComponent reruns construction scripts 
-	static FName MobilityName("Mobility");
-	if(PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == MobilityName)
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == SceneComponentStatics::MobilityName)
 	{
 		UpdateAttachedMobility(this);
 	}
@@ -294,17 +298,17 @@ FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativ
 
 		if(bAbsoluteLocation)
 		{
-			NewCompToWorld.SetTranslation(NewRelativeTransform.GetTranslation());
+			NewCompToWorld.CopyTranslation(NewRelativeTransform);
 		}
 
 		if(bAbsoluteRotation)
 		{
-			NewCompToWorld.SetRotation(NewRelativeTransform.GetRotation());
+			NewCompToWorld.CopyRotation(NewRelativeTransform);
 		}
 
 		if(bAbsoluteScale)
 		{
-			NewCompToWorld.SetScale3D(NewRelativeTransform.GetScale3D());
+			NewCompToWorld.CopyScale3D(NewRelativeTransform);
 		}
 
 		return NewCompToWorld;
@@ -315,11 +319,11 @@ FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativ
 	}
 }
 
-void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 }
 
-void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat)
+void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport)
 {
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
@@ -338,15 +342,17 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent, 
 	// Calculate the new ComponentToWorld transform
 	const FTransform RelativeTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
 	FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent);
-	NewTransform.NormalizeRotation(); // Minimize accumulation of errors after many composed transforms.
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	ensure(NewTransform.IsValid());
+#endif
 
 	// If transform has changed..
 	if (!ComponentToWorld.Equals(NewTransform, SMALL_NUMBER))
 	{
 		// Update transform
 		ComponentToWorld = NewTransform;
-
-		PropagateTransformUpdate(true, bSkipPhysicsMove);
+		PropagateTransformUpdate(true, bSkipPhysicsMove, Teleport);
 	}
 	else
 	{
@@ -386,13 +392,13 @@ void USceneComponent::OnRegister()
 #endif
 }
 
-void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
+void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
-	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotation.Quaternion());
+	UpdateComponentToWorldWithParent(AttachParent, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
 }
 
 
-void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove)
+void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	if (IsDeferringMovementUpdates())
 	{
@@ -406,13 +412,14 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 		UpdateBounds();
 
 		// Always send new transform to physics
-		OnUpdateTransform(bSkipPhysicsMove);
+		OnUpdateTransform(bSkipPhysicsMove, Teleport);
 
 		// Flag render transform as dirty
 		MarkRenderTransformDirty();
 		
 		// Now go and update children
-		UpdateChildTransforms();
+		//Do not pass skip physics to children. This is only used when physics updates us, but in that case we really do need to update the attached children since they are kinematic
+		UpdateChildTransforms(false, Teleport);
 
 		// Refresh navigation
 		UpdateNavigationData();
@@ -450,38 +457,6 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 }
 
 
-class FScopedMovementUpdate* USceneComponent::GetCurrentScopedMovement() const
-{
-	if (ScopedMovementStack.Num() > 0)
-	{
-		return ScopedMovementStack.Last();
-	}
-
-	return NULL;
-}
-
-
-bool USceneComponent::IsDeferringMovementUpdates() const
-{
-	if (ScopedMovementStack.Num() > 0)
-	{
-		checkSlow(ScopedMovementStack.Last()->IsDeferringUpdates());
-		return true;
-	}
-	
-	return false;
-}
-
-
-void USceneComponent::BeginScopedMovementUpdate(class FScopedMovementUpdate& ScopedUpdate)
-{
-	checkSlow(IsInGameThread());
-	checkSlow(ScopedUpdate.IsDeferringUpdates());
-	
-	ScopedMovementStack.Push(&ScopedUpdate);
-}
-
-
 void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& CompletedScope)
 {
 	SCOPE_CYCLE_COUNTER(STAT_EndScopedMovementUpdate);
@@ -495,37 +470,57 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 
 	// Process top of the stack
 	FScopedMovementUpdate* CurrentScopedUpdate = ScopedMovementStack.Pop(false);
-	check(CurrentScopedUpdate == &CompletedScope);
-
-	if (CurrentScopedUpdate)
+	checkSlow(CurrentScopedUpdate == &CompletedScope);
 	{
 		checkSlow(CurrentScopedUpdate->IsDeferringUpdates());
 		if (ScopedMovementStack.Num() == 0)
 		{
 			// This was the last item on the stack, time to apply the updates if necessary
-			const bool bMoved = CurrentScopedUpdate->IsTransformDirty();
-			if (bMoved)
+			const bool bTransformChanged = CurrentScopedUpdate->IsTransformDirty();
+			if (bTransformChanged)
 			{
+				// TODO: handle teleporting flag when it differs between accumulated moves.
 				PropagateTransformUpdate(true);
 			}
 
 			// We may have moved somewhere and then moved back to the start, we still need to update overlaps if we touched things along the way.
-			if (bMoved || CurrentScopedUpdate->HasPendingOverlaps() || CurrentScopedUpdate->GetOverlapsAtEnd())
+			// If no movement and no change in transform, nothing changed.
+			if (bTransformChanged || CurrentScopedUpdate->bHasMoved)
 			{
-				UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, CurrentScopedUpdate->GetOverlapsAtEnd());
+				UPrimitiveComponent* PrimitiveThis = Cast<UPrimitiveComponent>(this);
+				if (PrimitiveThis)
+				{
+					TArray<FOverlapInfo> EndOverlaps;
+					const TArray<FOverlapInfo>* EndOverlapsPtr = CurrentScopedUpdate->GetOverlapsAtEnd(*PrimitiveThis, EndOverlaps, bTransformChanged);
+					UpdateOverlaps(&CurrentScopedUpdate->GetPendingOverlaps(), true, EndOverlapsPtr);
+				}
+				else
+				{
+					UpdateOverlaps(nullptr, true, nullptr);
+				}
 			}
 
 			// Dispatch all deferred blocking hits
-			if (CompletedScope.BlockingHits.Num() > 0)
+			if (CurrentScopedUpdate->BlockingHits.Num() > 0)
 			{
 				AActor* const Owner = GetOwner();
 				if (Owner)
 				{
 					// If we have blocking hits, we must be a primitive component.
 					UPrimitiveComponent* PrimitiveThis = CastChecked<UPrimitiveComponent>(this);
-					for (const FHitResult& Hit : CompletedScope.BlockingHits)
+					for (const FHitResult& Hit : CurrentScopedUpdate->BlockingHits)
 					{
-						PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+						// Overlaps may have caused us to be destroyed, as could other queued blocking hits.
+						if (PrimitiveThis->IsPendingKill())
+						{
+							break;
+						}
+
+						// Collision response may change (due to overlaps or multiple blocking hits), make sure it's still considered blocking.
+						if (PrimitiveThis->GetCollisionResponseToComponent(Hit.GetComponent()) == ECR_Block)
+						{
+							PrimitiveThis->DispatchBlockingHit(*Owner, Hit);
+						}						
 					}
 				}
 			}
@@ -727,75 +722,101 @@ void USceneComponent::UpdateBounds()
 }
 
 
-void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	ConditionalUpdateComponentToWorld();
 
 	const FTransform DesiredRelTransform(NewRotation, NewLocation);
 	const FTransform DesiredWorldTransform = CalcNewComponentToWorld(DesiredRelTransform);
-	const FVector DesiredDelta = DesiredWorldTransform.GetTranslation() - ComponentToWorld.GetTranslation();
+	const FVector DesiredDelta = FTransform::SubtractTranslations(DesiredWorldTransform, ComponentToWorld);
 
-	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult);
+	MoveComponent(DesiredDelta, DesiredWorldTransform.GetRotation(), bSweep, OutSweepHitResult, MOVECOMP_NoFlags, Teleport);
 }
 
-
-void USceneComponent::AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+// The FRotator version. It could be a simple wrapper to the FQuat version but it tries to avoid FQuat conversion if possible because:
+// (a) conversions affect rotation equality tests so that SetRotation() calls with the same FRotator can cause unnecessary updates because we think they are different rotations after normalization.
+// (b) conversions are expensive.
+void USceneComponent::SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	if (NewLocation != RelativeLocation)
+	{
+		// It's possible that NewRotation == RelativeRotation, so check the cache for a Rotator->Quat conversion.
+		SetRelativeLocationAndRotation(NewLocation, RelativeRotationCache.RotatorToQuat_ReadOnly(NewRotation), bSweep, OutSweepHitResult, Teleport);
+	}
+	else if (!NewRotation.Equals(RelativeRotation, SCENECOMPONENT_ROTATOR_TOLERANCE))
+	{
+		// We know the rotations are different, don't bother with the cache.
+		SetRelativeLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult, Teleport);
+	}
+}
+
+void USceneComponent::SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
+{
+	if (!NewRotation.Equals(RelativeRotation, SCENECOMPONENT_ROTATOR_TOLERANCE))
+	{
+		// We know the rotations are different, don't bother with the cache.
+		SetRelativeLocationAndRotation(RelativeLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult, Teleport);
+	}
+}
+
+void USceneComponent::AddRelativeRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
+{
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = DeltaRotation * CurRelRotQuat;
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FVector LocalOffset = RelativeRotation.RotateVector(DeltaLocation);
-	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, RelativeRotation, bSweep, OutSweepHitResult);
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
+	const FVector LocalOffset = CurRelRotQuat.RotateVector(DeltaLocation);
+	SetRelativeLocationAndRotation(RelativeLocation + LocalOffset, CurRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation.Quaternion();
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FQuat CurRelRotQuat = RelativeRotation.Quaternion();
+	const FQuat CurRelRotQuat = RelativeRotationCache.RotatorToQuat(RelativeRotation);
 	const FQuat NewRelRotQuat = CurRelRotQuat * DeltaRotation;
-	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(RelativeLocation, NewRelRotQuat, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	const FTransform RelativeTransform( RelativeRotation, RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
+	const FTransform RelativeTransform( RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, FVector(1,1,1) ); // don't use scaling, so it matches how AddLocalRotation/Offset work
 	const FTransform NewRelTransform = DeltaTransform * RelativeTransform;
-	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult);
+	SetRelativeTransform(NewRelTransform, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FVector NewWorldLocation = DeltaLocation + ComponentToWorld.GetTranslation();
-	SetWorldLocation(NewWorldLocation, bSweep, OutSweepHitResult);
+	SetWorldLocation(NewWorldLocation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaRotation.Quaternion() * ComponentToWorld.GetRotation();
-	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult);
+	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldRotation(const FQuat& DeltaRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaRotation * ComponentToWorld.GetRotation();
-	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult);
+	SetWorldRotation(NewWorldRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	const FQuat NewWorldRotation = DeltaTransform.GetRotation() * ComponentToWorld.GetRotation();
-	const FVector NewWorldLocation = DeltaTransform.GetTranslation() + ComponentToWorld.GetTranslation();
-	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)));
+	const FVector NewWorldLocation = FTransform::AddTranslations(DeltaTransform, ComponentToWorld);
+	SetWorldTransform(FTransform(NewWorldRotation, NewWorldLocation, FVector(1,1,1)),bSweep, OutSweepHitResult, Teleport);
 }
 
 void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
@@ -812,7 +833,16 @@ void USceneComponent::SetRelativeScale3D(FVector NewScale3D)
 		
 		if (IsRegistered())
 		{
-			UpdateOverlaps();
+			if (!IsDeferringMovementUpdates())
+			{
+				UpdateOverlaps();
+			}
+			else
+			{
+				// Invalidate cached overlap state at this location.
+				TArray<FOverlapInfo> EmptyOverlaps;
+				GetCurrentScopedMovement()->AppendOverlapsAfterMove(EmptyOverlaps, false, false);
+			}
 		}
 	}
 }
@@ -823,19 +853,19 @@ void USceneComponent::ResetRelativeTransform()
 	SetRelativeScale3D(FVector(1.f));
 }
 
-void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.GetRotation(), bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(NewTransform.GetTranslation(), NewTransform.GetRotation(), bSweep, OutSweepHitResult, Teleport);
 	SetRelativeScale3D(NewTransform.GetScale3D());
 }
 
 FTransform USceneComponent::GetRelativeTransform() const
 {
-	const FTransform RelativeTransform( RelativeRotation.Quaternion(), RelativeLocation, RelativeScale3D );
+	const FTransform RelativeTransform( RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D );
 	return RelativeTransform;
 }
 
-void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	FVector NewRelLocation = NewLocation;
 
@@ -846,10 +876,10 @@ void USceneComponent::SetWorldLocation(FVector NewLocation, bool bSweep, FHitRes
 		NewRelLocation = ParentToWorld.InverseTransformPosition(NewLocation);
 	}
 
-	SetRelativeLocation(NewRelLocation, bSweep, OutSweepHitResult);
+	SetRelativeLocation(NewRelLocation, bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	FQuat NewRelRotation = NewRotation;
 
@@ -862,7 +892,20 @@ void USceneComponent::SetWorldRotation(const FQuat& NewRotation, bool bSweep, FH
 		NewRelRotation = NewRelQuat;
 	}
 
-	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult);
+	SetRelativeRotation(NewRelRotation, bSweep, OutSweepHitResult, Teleport);
+}
+
+void USceneComponent::SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
+{
+	if (AttachParent == nullptr)
+	{
+		// No parent, relative == world. Use FRotator version because it can check for rotation change without conversion issues.
+		SetRelativeRotation(NewRotation, bSweep, OutSweepHitResult, Teleport);
+	}
+	else
+	{
+		SetWorldRotation(NewRotation.Quaternion(), bSweep, OutSweepHitResult, Teleport);
+	}
 }
 
 
@@ -880,7 +923,7 @@ void USceneComponent::SetWorldScale3D(FVector NewScale)
 	SetRelativeScale3D(NewRelScale);
 }
 
-void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// If attached to something, transform into local space
 	FQuat NewRotation = NewTransform.GetRotation();
@@ -908,15 +951,23 @@ void USceneComponent::SetWorldTransform(const FTransform& NewTransform, bool bSw
 		}
 	}
 
-	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult);
+	SetRelativeTransform(FTransform(NewRotation, NewLocation, NewScale), bSweep, OutSweepHitResult, Teleport);
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
-	SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult);
+	if (AttachParent == nullptr)
+	{
+		// No parent, relative == world. Use FRotator version because it can check for rotation change without conversion issues.
+		SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, OutSweepHitResult, Teleport);
+	}
+	else
+	{
+		SetWorldLocationAndRotation(NewLocation, NewRotation.Quaternion(), bSweep, OutSweepHitResult, Teleport);
+	}
 }
 
-void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult)
+void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep, FHitResult* OutSweepHitResult, ETeleportType Teleport)
 {
 	// If attached to something, transform into local space
 	FQuat NewFinalRotation = NewRotation;
@@ -937,7 +988,7 @@ void USceneComponent::SetWorldLocationAndRotation(FVector NewLocation, const FQu
 		}
 	}
 
-	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation, bSweep, OutSweepHitResult);
+	SetRelativeLocationAndRotation(NewLocation, NewFinalRotation, bSweep, OutSweepHitResult, Teleport);
 }
 
 void USceneComponent::SetWorldLocationAndRotationNoPhysics(const FVector& NewLocation, const FRotator& NewRotation)
@@ -964,7 +1015,7 @@ void USceneComponent::SetWorldLocationAndRotationNoPhysics(const FVector& NewLoc
 		{
 			// Quat multiplication works reverse way, make sure you do Parent(-1) * World = Local, not World*Parent(-) = Local (the way matrix does)
 			const FQuat NewRelQuat = ParentToWorld.GetRotation().Inverse() * NewRotation.Quaternion();
-			RelativeRotation = NewRelQuat.Rotator();
+			RelativeRotation = RelativeRotationCache.QuatToRotator(NewRelQuat);
 		}
 	}
 	else
@@ -1185,10 +1236,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
 				if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
 				{
-					UpdateComponentToWorldWithParent(Parent, false, RelativeRotation.Quaternion());
-					RelativeLocation = ComponentToWorld.GetLocation();
-					RelativeRotation = ComponentToWorld.GetRotation().Rotator();
-					RelativeScale3D = ComponentToWorld.GetScale3D();
+					UpdateComponentToWorldWithParent(Parent, false, RelativeRotationCache.RotatorToQuat(RelativeRotation));
+					RelativeLocation = ComponentToWorld.GetLocation(); // or GetComponentLocation(), but worried about custom location...
+					RelativeRotation = GetComponentRotation();
+					RelativeScale3D = GetComponentScale();
 				}
 
 				return;
@@ -1233,11 +1284,11 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 				if(bAbsoluteRotation)
 				{
-					RelativeRotation = ComponentToWorld.Rotator();
+					RelativeRotation = GetComponentRotation();
 				}
 				else
 				{
-					RelativeRotation = RelativeTM.Rotator();
+					RelativeRotation = RelativeRotationCache.QuatToRotator(RelativeTM.GetRotation());
 				}
 				if(bAbsoluteScale)
 				{
@@ -1332,7 +1383,7 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 		}
 
 		// Make sure parent points to us if we're registered
-		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (Owner ? *Owner->GetName() : TEXT("Unowned")), *AttachParent->GetName());
+		ensureMsgf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (Owner ? *Owner->GetName() : TEXT("Unowned")), *AttachParent->GetName());
 
 		if (bCallModify)
 		{
@@ -1362,9 +1413,9 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallMo
 		// If desired, update RelativeLocation and RelativeRotation to maintain current world position after detachment
 		if(bMaintainWorldPosition)
 		{
-			RelativeLocation = ComponentToWorld.GetTranslation();
-			RelativeRotation = ComponentToWorld.Rotator();
-			RelativeScale3D = ComponentToWorld.GetScale3D();
+			RelativeLocation = ComponentToWorld.GetTranslation(); // or GetComponentLocation, but worried about custom location...
+			RelativeRotation = GetComponentRotation();
+			RelativeScale3D = GetComponentScale();
 		}
 
 		// calculate transform with new attachment condition
@@ -1478,20 +1529,14 @@ FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
 	return InstanceData;
 }
 
-FName USceneComponent::GetComponentInstanceDataType() const
-{
-	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
-	return SceneComponentInstanceDataTypeName;
-}
-
-void USceneComponent::UpdateChildTransforms()
+void USceneComponent::UpdateChildTransforms(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	for(int32 i=0; i<AttachChildren.Num(); i++)
 	{
 		USceneComponent* ChildComp = AttachChildren[i];
 		if(ChildComp != NULL)
 		{
-			ChildComp->UpdateComponentToWorld();
+			ChildComp->UpdateComponentToWorld(bSkipPhysicsMove, Teleport);
 		}
 	}
 }
@@ -1751,8 +1796,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 			{
 				// check for all volumes that overlap the component
 				TArray<FOverlapResult> Hits;
-				static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
-				FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
+				FComponentQueryParams Params(SceneComponentStatics::PhysicsVolumeTraceName, GetOwner());
 
 				bool bOverlappedOrigin = false;
 				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
@@ -1801,8 +1845,8 @@ void USceneComponent::SetPhysicsVolume( APhysicsVolume * NewVolume,  bool bTrigg
 			if( PhysicsVolume.IsValid() )
 			{
 				PhysicsVolume->ActorLeavingVolume(A);
-				PhysicsVolumeChangedDelegate.Broadcast(NewVolume);
 			}
+			PhysicsVolumeChangedDelegate.Broadcast(NewVolume);
 			PhysicsVolume = NewVolume;
 			if( PhysicsVolume.IsValid() )
 			{
@@ -1823,8 +1867,9 @@ void USceneComponent::BeginDestroy()
 	Super::BeginDestroy();
 }
 
-bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics)
+bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, const FQuat& RotationQuat, bool bNoPhysics, ETeleportType Teleport)
 {
+	checkSlow(bWorldToComponentUpdated);
 	FQuat NewRotationQuat(RotationQuat);
 
 	// If attached to something, transform into local space
@@ -1844,12 +1889,13 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, c
 		}
 	}
 
-	const FRotator NewRotator = NewRotationQuat.Rotator();
-	if (!NewLocation.Equals(RelativeLocation) || !NewRotator.Equals(RelativeRotation))
+	if (!NewLocation.Equals(RelativeLocation) || !NewRotationQuat.Equals(RelativeRotationCache.RotatorToQuat_ReadOnly(RelativeRotation), SCENECOMPONENT_QUAT_TOLERANCE))
 	{
 		RelativeLocation = NewLocation;
-		RelativeRotation = NewRotator;
-		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, NewRotationQuat);
+		RelativeRotation = RelativeRotationCache.QuatToRotator(NewRotationQuat); // Normalizes quat, if this is a new rotation. Then we'll use it below.
+		UpdateComponentToWorldWithParent(AttachParent, bNoPhysics, RelativeRotationCache.GetCachedQuat(), Teleport);
+
+		PostUpdateNavigationData();
 		return true;
 	}
 
@@ -1862,14 +1908,10 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 
 	if (IsDeferringMovementUpdates())
 	{
+		GetCurrentScopedMovement()->ForceOverlapUpdate();
 		return;
 	}
 	
-	if (bShouldUpdatePhysicsVolume)
-	{
-		UpdatePhysicsVolume(bDoNotifies);
-	}
-
 	// SceneComponent has no physical representation, so no overlaps to test for/
 	// But, we need to test down the attachment chain since there might be PrimitiveComponents below.
 	for (int32 ChildIdx=0; ChildIdx<AttachChildren.Num(); ++ChildIdx)
@@ -1879,6 +1921,11 @@ void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps
 			// Do not pass on OverlapsAtEndLocation, it only applied to this component.
 			AttachChildren[ChildIdx]->UpdateOverlaps(NULL, bDoNotifies);
 		}
+	}
+
+	if (bShouldUpdatePhysicsVolume)
+	{
+		UpdatePhysicsVolume(bDoNotifies);
 	}
 }
 
@@ -1906,11 +1953,35 @@ bool USceneComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
 	return false;
 }
 
-bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags )
+
+// FRotator version. This could be a simple wrapper to the FQuat version, but in the case of no significant change in location or rotation (as FRotator),
+// we avoid passing through to the FQuat version because conversion can generate a false negative for the rotation equality comparison done using a strict tolerance.
+bool USceneComponent::MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* Hit, EMoveComponentFlags MoveFlags, ETeleportType Teleport)
 {
+	if (AttachParent == nullptr)
+	{
+		if (Delta.IsZero() && NewRotation.Equals(RelativeRotation, SCENECOMPONENT_ROTATOR_TOLERANCE))
+		{
+			if (Hit)
+			{
+				*Hit = FHitResult();
+			}
+			return true;
+		}
+
+		return MoveComponentImpl(Delta, RelativeRotationCache.RotatorToQuat_ReadOnly(NewRotation), bSweep, Hit, MoveFlags, Teleport);
+	}
+
+	return MoveComponentImpl(Delta, NewRotation.Quaternion(), bSweep, Hit, MoveFlags, Teleport);
+}
+
+
+bool USceneComponent::MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags, ETeleportType Teleport)
+{
+	SCOPE_CYCLE_COUNTER(STAT_MoveComponentSceneComponentTime);
+
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	static const FText WarnText = LOCTEXT("InvalidMove", "move");
-	if (CheckStaticMobilityAndWarn(WarnText))
+	if (IsPendingKill() || CheckStaticMobilityAndWarn(SceneComponentStatics::MobilityWarnText))
 	{
 		if (OutHit)
 		{
@@ -1931,17 +2002,17 @@ bool USceneComponent::MoveComponentImpl( const FVector& Delta, const FQuat& NewR
 	if( Delta.IsZero() )
 	{
 		// Skip if no vector or rotation.
-		if (NewRotation.Equals(ComponentToWorld.GetRotation()))
+		if (NewRotation.Equals(ComponentToWorld.GetRotation(), SCENECOMPONENT_QUAT_TOLERANCE))
 		{
 			return true;
 		}
 	}
 
-	// just teleport, sweep is supported for PrimitiveComponents.  this will update child components as well.
-	InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation);
+	// just teleport, sweep is supported for PrimitiveComponents. This will update child components as well.
+	const bool bMoved = InternalSetWorldLocationAndRotation(GetComponentLocation() + Delta, NewRotation, false, Teleport);
 
 	// Only update overlaps if not deferring updates within a scope
-	if (!IsDeferringMovementUpdates())
+	if (bMoved && !IsDeferringMovementUpdates())
 	{
 		// need to update overlap detection in case PrimitiveComponents are attached.
 		UpdateOverlaps();
@@ -2082,7 +2153,7 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	// Calculate current ComponentToWorld transform
 	// We do this because at level load/duplication ComponentToWorld is uninitialized
 	{
-		const FTransform RelativeTransform(RelativeRotation, RelativeLocation, RelativeScale3D);
+		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
 		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
 	}
 
@@ -2090,22 +2161,14 @@ void USceneComponent::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift
 	Bounds.Origin+= InOffset;
 
 	// Update component location
-	FVector NewLocation = GetComponentLocation() + InOffset;
-	// If attached to something, transform into local space
-	if (AttachParent != NULL)
+	if (AttachParent == nullptr || bAbsoluteLocation)
 	{
-		FTransform const ParentToWorld = AttachParent->GetSocketTransform(AttachSocketName);
-		if (!bAbsoluteLocation)
-		{
-			NewLocation = ParentToWorld.InverseTransformPosition(GetComponentLocation());
-		}
-	}
-	
-	RelativeLocation = NewLocation;
+		RelativeLocation = GetComponentLocation() + InOffset;
 		
-	// Calculate the new ComponentToWorld transform
-	const FTransform RelativeTransform(RelativeRotation, RelativeLocation, RelativeScale3D);
-	ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
+		// Calculate the new ComponentToWorld transform
+		const FTransform RelativeTransform(RelativeRotationCache.RotatorToQuat(RelativeRotation), RelativeLocation, RelativeScale3D);
+		ComponentToWorld = CalcNewComponentToWorld(RelativeTransform);
+	}
 
 	// Physics move is skipped if physics state is not created or physics scene supports origin shifting
 	// We still need to send transform to physics scene to "transform back" actors which should ignore origin shifting
@@ -2206,6 +2269,7 @@ void USceneComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(USceneComponent, bAbsoluteScale);
 	DOREPLIFETIME(USceneComponent, bVisible);
 	DOREPLIFETIME(USceneComponent, AttachParent);
+	DOREPLIFETIME(USceneComponent, AttachChildren);
 	DOREPLIFETIME(USceneComponent, AttachSocketName);
 	DOREPLIFETIME(USceneComponent, RelativeLocation);
 	DOREPLIFETIME(USceneComponent, RelativeRotation);
@@ -2242,11 +2306,15 @@ static uint32 s_ScopedWarningCount = 0;
 
 FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, EScopedUpdate::Type ScopeBehavior )
 : Owner(Component)
+, OuterDeferredScope(nullptr)
 , bDeferUpdates(ScopeBehavior == EScopedUpdate::DeferredUpdates)
-, bHasValidOverlapsAtEnd(false)
+, bHasMoved(false)
+, CurrentOverlapState(EOverlapState::eUseParent)
+, FinalOverlapCandidatesIndex(INDEX_NONE)
 {
 	if (IsValid(Component))
 	{
+		OuterDeferredScope = Component->GetCurrentScopedMovement();
 		InitialTransform = Component->GetComponentToWorld();
 		InitialRelativeLocation = Component->RelativeLocation;
 		InitialRelativeRotation = Component->RelativeRotation;
@@ -2255,8 +2323,7 @@ FScopedMovementUpdate::FScopedMovementUpdate( class USceneComponent* Component, 
 		if (ScopeBehavior == EScopedUpdate::ImmediateUpdates)
 		{
 			// We only allow ScopeUpdateImmediately if there is no outer scope, or if the outer scope is also ScopeUpdateImmediately.
-			FScopedMovementUpdate* OuterScope = Component->GetCurrentScopedMovement();
-			if (OuterScope && OuterScope->bDeferUpdates)
+			if (OuterDeferredScope && OuterDeferredScope->bDeferUpdates)
 			{
 				if (s_ScopedWarningCount < 100 || (GFrameCounter & 31) == 0)
 				{
@@ -2306,7 +2373,7 @@ void FScopedMovementUpdate::RevertMove()
 	USceneComponent* Component = Owner;
 	if (IsValid(Component))
 	{
-		bHasValidOverlapsAtEnd = false;
+		FinalOverlapCandidatesIndex = INDEX_NONE;
 		PendingOverlaps.Reset();
 		BlockingHits.Reset();
 		
@@ -2325,20 +2392,40 @@ void FScopedMovementUpdate::RevertMove()
 			}
 		}
 	}
+	bHasMoved = false;
+	CurrentOverlapState = EOverlapState::eUseParent;
 }
 
-
-void FScopedMovementUpdate::AppendOverlaps(const TArray<struct FOverlapInfo>& OtherOverlaps, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
+void FScopedMovementUpdate::AppendOverlapsAfterMove(const TArray<FOverlapInfo>& NewPendingOverlaps, bool bSweep, bool bIncludesOverlapsAtEnd)
 {
-	PendingOverlaps.Append(OtherOverlaps);
-	if (OverlapsAtEndLocation)
+	bHasMoved = true;
+	const bool bWasForcing = (CurrentOverlapState == EOverlapState::eForceUpdate);
+
+	if (bIncludesOverlapsAtEnd)
 	{
-		bHasValidOverlapsAtEnd = true;
-		OverlapsAtEnd = *OverlapsAtEndLocation;		
+		CurrentOverlapState = EOverlapState::eIncludesOverlaps;
+		if (NewPendingOverlaps.Num())
+		{
+			FinalOverlapCandidatesIndex = PendingOverlaps.Num();
+			PendingOverlaps.Append(NewPendingOverlaps);
+		}
+		else
+		{
+			// No new pending overlaps means we're not overlapping anything at the end location.
+			FinalOverlapCandidatesIndex = INDEX_NONE;
+		}
 	}
 	else
 	{
-		bHasValidOverlapsAtEnd = false;
+		// We don't expect any pending overlaps in the case of a teleport.
+		checkSlow(NewPendingOverlaps.Num() == 0);
+		CurrentOverlapState = EOverlapState::eUnknown;
+		FinalOverlapCandidatesIndex = INDEX_NONE;
+	}
+
+	if (bWasForcing)
+	{
+		CurrentOverlapState = EOverlapState::eForceUpdate;
 	}
 }
 
@@ -2349,12 +2436,99 @@ void FScopedMovementUpdate::OnInnerScopeComplete(const FScopedMovementUpdate& In
 	{
 		checkSlow(IsDeferringUpdates());
 		checkSlow(InnerScope.IsDeferringUpdates());
+		checkSlow(InnerScope.OuterDeferredScope == this);
 
-		// Combine with the next item on the stack
-		AppendOverlaps(InnerScope.GetPendingOverlaps(), InnerScope.GetOverlapsAtEnd());
+		// Combine with the next item on the stack.
+		if (InnerScope.HasMoved(EHasMovedTransformOption::eTestTransform))
+		{
+			bHasMoved = true;
+			
+			if (InnerScope.CurrentOverlapState == EOverlapState::eUseParent)
+			{
+				// Unchanged, use our own
+			}
+			else
+			{
+				// Bubble up from inner scope.
+				CurrentOverlapState = InnerScope.CurrentOverlapState;
+				if (InnerScope.FinalOverlapCandidatesIndex == INDEX_NONE)
+				{
+					FinalOverlapCandidatesIndex = INDEX_NONE;
+				}
+				else
+				{
+					checkSlow(InnerScope.GetPendingOverlaps().Num() > 0);
+					FinalOverlapCandidatesIndex = PendingOverlaps.Num() + InnerScope.FinalOverlapCandidatesIndex;
+				}
+				PendingOverlaps.Append(InnerScope.GetPendingOverlaps());
+				checkSlow(FinalOverlapCandidatesIndex < PendingOverlaps.Num());
+			}
+		}
+		else
+		{
+			// Don't want to invalidate a parent scope when nothing changed in the child.
+			checkSlow(InnerScope.CurrentOverlapState == EOverlapState::eUseParent);
+		}
+
 		BlockingHits.Append(InnerScope.GetPendingBlockingHits());
 	}	
 }
+
+const TArray<FOverlapInfo>* FScopedMovementUpdate::GetOverlapsAtEnd(class UPrimitiveComponent& PrimComponent, TArray<FOverlapInfo>& EndOverlaps, bool bTransformChanged) const
+{
+	const TArray<FOverlapInfo>* EndOverlapsPtr = nullptr;
+	switch (CurrentOverlapState)
+	{
+		case FScopedMovementUpdate::EOverlapState::eUseParent:
+		{
+			// Only rotation could have possibly changed
+			if (bTransformChanged && PrimComponent.AreSymmetricRotations(InitialTransform.GetRotation(), PrimComponent.GetComponentQuat(), PrimComponent.GetComponentScale()))
+			{
+				EndOverlapsPtr = PrimComponent.ConvertRotationOverlapsToCurrentOverlaps(EndOverlaps, PrimComponent.GetOverlapInfos());
+			}
+			else
+			{
+				// Use current overlaps (unchanged)
+				EndOverlapsPtr = &PrimComponent.GetOverlapInfos();
+			}
+			break;
+		}
+		case FScopedMovementUpdate::EOverlapState::eUnknown:
+		case FScopedMovementUpdate::EOverlapState::eForceUpdate:
+		{
+			EndOverlapsPtr = nullptr;
+			break;
+		}
+		case FScopedMovementUpdate::EOverlapState::eIncludesOverlaps:
+		{
+			if (FinalOverlapCandidatesIndex == INDEX_NONE)
+			{
+				// Overlapping nothing
+				EndOverlapsPtr = &EndOverlaps;
+			}
+			else
+			{
+				// Fill in EndOverlaps with overlaps valid at the end location.
+				const bool bMatchingScale = FTransform::AreScale3DsEqual(InitialTransform, PrimComponent.GetComponentTransform());
+				if (bMatchingScale)
+				{
+					EndOverlapsPtr = PrimComponent.ConvertSweptOverlapsToCurrentOverlaps(
+						EndOverlaps, GetPendingOverlaps(), FinalOverlapCandidatesIndex,
+						PrimComponent.GetComponentLocation(), PrimComponent.GetComponentQuat());
+				}
+			}
+			break;
+		}
+		default:
+		{
+			checkf(false, TEXT("Unknown FScopedMovementUpdate::EOverlapState value"));
+			break;
+		}
+	}
+
+	return EndOverlapsPtr;
+}
+
 
 #if WITH_EDITOR
 const int32 USceneComponent::GetNumUncachedStaticLightingInteractions() const
@@ -2381,89 +2555,99 @@ void USceneComponent::UpdateNavigationData()
 	}
 }
 
+void USceneComponent::PostUpdateNavigationData()
+{
+	if (UNavigationSystem::ShouldUpdateNavOctreeOnComponentChange() &&
+		IsRegistered() && World && World->IsGameWorld() &&
+		World->GetNetMode() < ENetMode::NM_Client)
+	{
+		UNavigationSystem::UpdateNavOctreeAfterMove(this);
+	}
+}
+
 
 // K2 versions of various transform changing operations.
 // Note: we pass null for the hit result if not sweeping, for better perf.
 // This assumes this K2 function is only used by blueprints, which initializes the param for each function call.
 
-void USceneComponent::K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldLocationAndRotation(NewLocation, NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetRelativeTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetRelativeTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetRelativeTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddRelativeLocation(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddRelativeLocation(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddRelativeLocation(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddRelativeRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddRelativeRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddRelativeRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddLocalTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddLocalTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddLocalTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldLocation(NewLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldRotation(FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldRotation(NewRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_SetWorldTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	SetWorldTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	SetWorldTransform(NewTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldOffset(DeltaLocation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldRotation(DeltaRotation, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
-void USceneComponent::K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult)
+void USceneComponent::K2_AddWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport)
 {
-	AddWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr));
+	AddWorldTransform(DeltaTransform, bSweep, (bSweep ? &SweepHitResult : nullptr), TeleportFlagToEnum(bTeleport));
 }
 
 #undef LOCTEXT_NAMESPACE

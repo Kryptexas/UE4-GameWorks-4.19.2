@@ -81,7 +81,7 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessGBufferHintsPS,TEXT("PostProcessGBufferHints"
 FRCPassPostProcessGBufferHints::FRCPassPostProcessGBufferHints()
 {
 	// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-	GSceneRenderTargets.AdjustGBufferRefCount(1);
+	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
 }
 
 
@@ -183,12 +183,12 @@ void FRCPassPostProcessGBufferHints::Process(FRenderingCompositePassContext& Con
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// AdjustGBufferRefCount(1) call is done in constructor
-	GSceneRenderTargets.AdjustGBufferRefCount(-1);
+	FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(-1);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessGBufferHints::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("GBufferHints");

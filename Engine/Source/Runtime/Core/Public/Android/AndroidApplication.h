@@ -64,6 +64,8 @@ public:
 	
 	void InitializeWindow( const TSharedRef< FGenericWindow >& InWindow, const TSharedRef< FGenericWindowDefinition >& InDefinition, const TSharedPtr< FGenericWindow >& InParent, const bool bShowImmediately );
 
+	static void OnWindowSizeChanged();
+
 private:
 
 	FAndroidApplication();
@@ -74,6 +76,8 @@ private:
 	TSharedPtr< class FAndroidInputInterface > InputInterface;
 
 	TArray< TSharedRef< FAndroidWindow > > Windows;
+
+	static bool bWindowSizeChanged;
 };
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2410076
+﻿INTSourceChangelist:2593850
 Availability:Public
 Title:Sync Group
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -29,7 +29,7 @@ Sync Group は、 1 つのアニメーションが _リーダー_ となり、�
 |---|---|
 |[INCLUDE:#runanimation]| 走行アニメーション、元のサイズ、 Sync Group 名 _WalkRun_ に設定 |
 |[INCLUDE:#walkanimation]| 歩行アニメーション、元のサイズ、同じく Sync Group 名 _WalkRun_ に設定 |
-|[INCLUDE:#walkanimationscaled] | このインスタンスでは、走行アニメーションのブレンド ウェイトが歩行アニメーションより重くなります。これらは同じ Sync グループなので、歩行アニメーションが走行アニメーションの長さに一致するように短縮されます。
+|[INCLUDE:#walkanimationscaled] | このインスタンスでは、走行アニメーションのブレンド ウェイトが歩行アニメーションより重くなります。これらは同じ Sync グループなので、歩行アニメーションが走行アニメーションの長さに一致するように短縮されます。|
 |[INCLUDE:#runanimationscaled]| ここで、歩行アニメーションのブレンド ウェイトの方が重たくなります。この結果、走行アニメーションは走行の長さに一致するように拡大されます。 
 
 <!--
@@ -77,7 +77,7 @@ Sync Group は、 1 つのアニメーションが _リーダー_ となり、�
 
 ##Sync Group の設定
 
-Sync Group の設定を行うには、AnimGraph で Animation ノードを選んで、 **[詳細]** パネルを見ます。Sync Group プロパティがあります。
+Sync Group の設定を行うには、AnimGraph で Animation ノードを選んで、 **[Details]** (詳細) パネルを見ます。Sync Group プロパティがあります。
 
 ![](AnimationSyncGroup.png)
 
@@ -87,7 +87,7 @@ Sync Group の設定を行うには、AnimGraph で Animation ノードを選ん
 |**Group Role**| グループのメンバーのタイプ (潜在リーダー、常にフォロワーなど)  |
 
 <!--
-グループの役割には 3 つのオプションがあります。
+Group Role には 3 つのオプションがあります。
 * Can Be Leader - デフォルト設定です。このアニメーションのブレンド ウェイトが一番大きい場合にリーダーとなり、他のアニメーションはその長さに一致するようにスケールします。
 * Always Leader - この設定がされたアニメーションが常にリーダーとなり、全てのアニメーションはリーダーの長さと一致するように常にスケールされます。
 * Never Leader - この設定がされたアニメーションは決してリーダーにはならず、次にウェイトのあるアニメーションにマッチするように常にスケールされます。

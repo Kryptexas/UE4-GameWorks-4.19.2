@@ -311,7 +311,7 @@ public:
 		else
 		{
 			OutValue = NULL;
-			if(!MaterialInterface->GetTextureParameterValue(ParameterName,OutValue))
+			if(!MaterialInterface->GetTextureParameterOverrideValue(ParameterName,OutValue))
 			{
 				OutValue = GetIndexedTexture(Material, TextureIndex);
 			}
@@ -322,6 +322,12 @@ public:
 	{
 		return false;
 	}
+
+	FName GetParameterName() const
+	{
+		return ParameterName;
+	}
+
 	virtual bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const
 	{
 		if (GetType() != OtherExpression->GetType())
@@ -495,6 +501,55 @@ public:
 		}
 		FMaterialUniformExpressionLength* OtherSqrt = (FMaterialUniformExpressionLength*)OtherExpression;
 		return X->IsIdentical(OtherSqrt->X);
+	}
+
+private:
+	TRefCountPtr<FMaterialUniformExpression> X;
+};
+
+/**
+ */
+class FMaterialUniformExpressionLogarithm2: public FMaterialUniformExpression
+{
+	DECLARE_MATERIALUNIFORMEXPRESSION_TYPE(FMaterialUniformExpressionLogarithm2);
+public:
+
+	FMaterialUniformExpressionLogarithm2() {}
+	FMaterialUniformExpressionLogarithm2(FMaterialUniformExpression* InX):
+		X(InX)
+	{}
+
+	// FMaterialUniformExpression interface.
+	void Serialize(FArchive& Ar) override
+	{
+		Ar << X;
+	}
+	void GetNumberValue(const FMaterialRenderContext& Context,FLinearColor& OutValue) const override
+	{
+		FLinearColor ValueX = FLinearColor::Black;
+		X->GetNumberValue(Context,ValueX);
+		OutValue.R = FMath::Log2(ValueX.R);
+		OutValue.G = FMath::Log2(ValueX.G);
+		OutValue.B = FMath::Log2(ValueX.B);
+		OutValue.A = FMath::Log2(ValueX.A);
+	}
+	bool IsConstant() const override
+	{
+		return X->IsConstant();
+	}
+	bool IsChangingPerFrame() const override
+	{
+		return X->IsChangingPerFrame();
+	}
+	bool IsIdentical(const FMaterialUniformExpression* OtherExpression) const override
+	{
+		if (GetType() != OtherExpression->GetType())
+		{
+			return false;
+		}
+
+		auto OtherLog = static_cast<const FMaterialUniformExpressionLogarithm2 *>(OtherExpression);
+		return X->IsIdentical(OtherLog->X);
 	}
 
 private:

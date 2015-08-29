@@ -5,25 +5,28 @@
 #include "NiagaraEffectRenderer.h"
 #include "VectorVM.h"
 
-
-FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps) 
+FNiagaraSimulation::FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> InProps, UNiagaraEffect* InEffect)
 : Age(0.0f)
+, Loops(0)
 , bIsEnabled(true)
 , SpawnRemainder(0.0f)
 , CachedBounds(ForceInit)
 , EffectRenderer(nullptr)
+, ParentEffect(InEffect)
 {
 	Props = InProps;
 
 	Init();
 }
 
-FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIFeatureLevel::Type InFeatureLevel)
+FNiagaraSimulation::FNiagaraSimulation(TWeakObjectPtr<UNiagaraEmitterProperties> InProps, UNiagaraEffect* InEffect, ERHIFeatureLevel::Type InFeatureLevel)
 	: Age(0.0f)
+	, Loops(0)
 	, bIsEnabled(true)
 	, SpawnRemainder(0.0f)
 	, CachedBounds(ForceInit)
 	, EffectRenderer(nullptr)
+	, ParentEffect(InEffect)
 {
 	Props = InProps;
 
@@ -33,9 +36,16 @@ FNiagaraSimulation::FNiagaraSimulation(FNiagaraEmitterProperties *InProps, ERHIF
 
 void FNiagaraSimulation::Init()
 {
-	if (Props && Props->UpdateScript && Props->SpawnScript )
+	Data.Reset();
+	SpawnRemainder = 0.0f;
+	Constants.Empty();
+	Age = 0.0f;
+	Loops = 0.0f;
+
+	UNiagaraEmitterProperties* PinnedProps = Props.Get();
+	if (PinnedProps && PinnedProps->UpdateScriptProps.Script && PinnedProps->SpawnScriptProps.Script)
 	{
-		if (Props->UpdateScript->Attributes.Num() == 0 || Props->SpawnScript->Attributes.Num() == 0)
+		if (PinnedProps->UpdateScriptProps.Script->Attributes.Num() == 0 || PinnedProps->SpawnScriptProps.Script->Attributes.Num() == 0)
 		{
 			Data.Reset();
 			bIsEnabled = false;
@@ -45,19 +55,20 @@ void FNiagaraSimulation::Init()
 		{
 			//Warn the user if there are any attributes used in the update script that are not initialized in the spawn script.
 			//TODO: We need some window in the effect editor and possibly the graph editor for warnings and errors.
-			for (FNiagaraVariableInfo& Attr : Props->UpdateScript->Attributes)
+			for (FNiagaraVariableInfo& Attr : PinnedProps->UpdateScriptProps.Script->Attributes)
 			{
 				int32 FoundIdx;
-				if (!Props->SpawnScript->Attributes.Find(Attr, FoundIdx))
+				if (!PinnedProps->SpawnScriptProps.Script->Attributes.Find(Attr, FoundIdx))
 				{
-					UE_LOG(LogNiagara, Warning, TEXT("Attribute %s is used in the Update script for %s but it is not initialised in the Spawn script!"), *Attr.Name.ToString(), *Props->Name);
+					UE_LOG(LogNiagara, Warning, TEXT("Attribute %s is used in the Update script for %s but it is not initialised in the Spawn script!"), *Attr.Name.ToString(), *Props->EmitterName);
 				}
 			}
-			Data.AddAttributes(Props->UpdateScript->Attributes);
-			Data.AddAttributes(Props->SpawnScript->Attributes);
+			Data.AddAttributes(PinnedProps->UpdateScriptProps.Script->Attributes);
+			Data.AddAttributes(PinnedProps->SpawnScriptProps.Script->Attributes);
 
 			Constants.Empty();
-			Constants.Merge(Props->ExternalConstants);
+			Constants.Merge(PinnedProps->UpdateScriptProps.ExternalConstants);
+			Constants.Merge(PinnedProps->SpawnScriptProps.ExternalConstants);
 		}
 	}
 	else
@@ -69,21 +80,9 @@ void FNiagaraSimulation::Init()
 	}
 }
 
-void FNiagaraSimulation::SetProperties(FNiagaraEmitterProperties *InProps)	
+void FNiagaraSimulation::SetProperties(TWeakObjectPtr<UNiagaraEmitterProperties> InProps)
 { 
 	Props = InProps; 
-	Init();
-}
-
-void FNiagaraSimulation::SetSpawnScript(UNiagaraScript* Script)
-{
-	Props->SpawnScript = Script;
-	Init();
-}
-
-void FNiagaraSimulation::SetUpdateScript(UNiagaraScript* Script)
-{
-	Props->UpdateScript = Script;
 	Init();
 }
 
@@ -115,14 +114,16 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_NiagaraTick);
 
-	if (!bIsEnabled)
+	UNiagaraEmitterProperties* PinnedProps = Props.Get();
+	if (!PinnedProps || !bIsEnabled || TickState==NTS_Suspended || TickState==NTS_Dead)
 		return;
 
 	SimpleTimer TickTime;
 
+
 	check(Data.GetNumAttributes() > 0);
-	check(Props->SpawnScript);
-	check(Props->UpdateScript);
+	check(PinnedProps->SpawnScriptProps.Script);
+	check(PinnedProps->UpdateScriptProps.Script);
 
 	// Cache the ComponentToWorld transform.
 //	CachedComponentToWorld = Component.GetComponentToWorld();
@@ -143,17 +144,19 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 	Constants.SetOrAdd(TEXT("Delta Time"), FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
 
 	// Simulate particles forward by DeltaSeconds.
+	if (TickState==NTS_Running || TickState==NTS_Dieing)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSimulate);
-		RunVMScript(Props->UpdateScript, EUnusedAttributeBehaviour::Copy);
+		RunVMScript(PinnedProps->UpdateScriptProps.Script, EUnusedAttributeBehaviour::Copy);
 	}
 	
 	//Init new particles with the spawn script.
+	if (TickState==NTS_Running)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NiagaraSpawn);
 		Data.SetNumParticles(MaxNewParticles);
 		//For now, zero any unused attributes here. But as this is really uninitialized data we should maybe make this a more serious error.
-		RunVMScript(Props->SpawnScript, EUnusedAttributeBehaviour::Zero, OrigNumParticles, NumToSpawn);
+		RunVMScript(PinnedProps->SpawnScriptProps.Script, EUnusedAttributeBehaviour::Zero, OrigNumParticles, NumToSpawn);
 	}
 
 	// Iterate over looking for dead particles and move from the end of the list to the dead location, compacting in the process
@@ -175,11 +178,18 @@ void FNiagaraSimulation::Tick(float DeltaSeconds)
 			}
 		}
 		Data.SetNumParticles(CurNumParticles);
+
+		// check if the emitter has officially died
+		if (GetTickState() == NTS_Dieing && CurNumParticles == 0)
+		{
+			SetTickState(NTS_Dead);
+		}
 	}
+
+
 
 	CPUTimeMS = TickTime.GetElapsedMilliseconds();
 
-	DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"), STAT_NiagaraNumParticles, STATGROUP_Niagara);
 	INC_DWORD_STAT_BY(STAT_NiagaraNumParticles, Data.GetNumParticles());
 
 }
@@ -263,7 +273,7 @@ void FNiagaraSimulation::RunVMScript(UNiagaraScript* Script, EUnusedAttributeBeh
 
 	//Fill constant table with required emitter constants and internal script constants.
 	TArray<FVector4> ConstantTable;
-	TArray<FNiagaraDataObject *>DataObjTable;
+	TArray<UNiagaraDataObject *>DataObjTable;
 	Script->ConstantData.FillConstantTable(Constants, ConstantTable, DataObjTable);
 
 	VectorVM::Exec(
@@ -290,7 +300,7 @@ bool FNiagaraSimulation::CheckAttriubtesForRenderer()
 			if (!Data.HasAttriubte(Attr))
 			{
 				bOk = false;
-				UE_LOG(LogNiagara, Error, TEXT("Cannot render %s because it does not define attriubte %s."), *Props->Name, *Attr.Name.ToString());
+				UE_LOG(LogNiagara, Error, TEXT("Cannot render %s because it does not define attriubte %s."), *Props->EmitterName, *Attr.Name.ToString());
 			}
 		}
 	}
@@ -334,4 +344,47 @@ void FNiagaraSimulation::SetRenderModuleType(EEmitterRenderModuleType Type, ERHI
 		EffectRenderer->SetMaterial(Material, FeatureLevel);
 		CheckAttriubtesForRenderer();
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+
+UNiagaraEmitterProperties::UNiagaraEmitterProperties(const FObjectInitializer& Initiilaizer)
+: Super(Initiilaizer)
+, EmitterName(TEXT("New Emitter"))
+, bIsEnabled(true)
+, SpawnRate(50)
+, Material(nullptr)
+, RenderModuleType(RMT_Sprites)
+, StartTime(0.0f)
+, EndTime(0.0f)
+, RendererProperties(nullptr)
+, NumLoops(0)
+{
+}
+
+#if WITH_EDITOR
+void UNiagaraEmitterProperties::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	Init();
+}
+#endif
+
+void UNiagaraEmitterProperties::InitFromOldStruct(FDeprecatedNiagaraEmitterProperties& OldStruct)
+{
+	EmitterName = OldStruct.Name;
+	bIsEnabled = OldStruct.bIsEnabled;
+	SpawnRate = OldStruct.SpawnRate;
+	UpdateScriptProps.Script = OldStruct.UpdateScript;
+	SpawnScriptProps.Script = OldStruct.SpawnScript;
+	Material = OldStruct.Material;
+	RenderModuleType = OldStruct.RenderModuleType;
+	StartTime = OldStruct.StartTime;
+	EndTime = OldStruct.EndTime;
+	RendererProperties = OldStruct.RendererProperties;
+
+	UpdateScriptProps.ExternalConstants.InitFromOldMap(OldStruct.ExternalConstants);
+	SpawnScriptProps.ExternalConstants.InitFromOldMap(OldStruct.ExternalSpawnConstants);
+	NumLoops = OldStruct.NumLoops;
 }

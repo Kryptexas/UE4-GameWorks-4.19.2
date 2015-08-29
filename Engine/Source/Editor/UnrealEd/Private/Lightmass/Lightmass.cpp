@@ -124,11 +124,10 @@ void Copy( const ULightComponentBase* In, Lightmass::FLightData& Out )
 	{
 		Out.LightFlags |= Lightmass::GI_LIGHT_HASSTATICSHADOWING;
 		Out.LightFlags |= Lightmass::GI_LIGHT_HASSTATICLIGHTING;
-		Out.LightFlags |= Lightmass::GI_LIGHT_USEDIRECTLIGHTMAP;
 	}
 	else if (In->HasStaticShadowing())
 	{
-		Out.LightFlags |= Lightmass::GI_LIGHT_USESIGNEDDISTANCEFIELDSHADOWS;
+		Out.LightFlags |= Lightmass::GI_LIGHT_STORE_SEPARATE_SHADOW_FACTOR;
 		Out.LightFlags |= Lightmass::GI_LIGHT_HASSTATICSHADOWING;
 	}
 
@@ -153,6 +152,11 @@ void Copy( const ULightComponent* In, Lightmass::FLightData& Out )
 	if( PointLight && PointLight->bUseInverseSquaredFalloff )
 	{
 		Out.LightFlags |= Lightmass::GI_LIGHT_INVERSE_SQUARED;
+	}
+
+	if (In->GetLightmassSettings().bUseAreaShadowsForStationaryLight)
+	{
+		Out.LightFlags |= Lightmass::GI_LIGHT_USE_AREA_SHADOWS_FOR_SEPARATE_SHADOW_FACTOR;
 	}
 
 	Out.Brightness = In->ComputeLightBrightness();
@@ -1350,7 +1354,6 @@ void FLightmassExporter::WriteBaseMappingData( int32 Channel, const FStaticLight
 	FMemory::Memzero(&MappingData,sizeof(MappingData));
 	MappingData.Guid = Mapping->Mesh->Guid;
 	MappingData.StaticLightingMeshInstance = Mapping->Mesh->SourceMeshGuid;
-	MappingData.bForceDirectLightMap = false;
 	Swarm.WriteChannel( Channel, &MappingData, sizeof(MappingData) );
 }
 
@@ -1478,7 +1481,8 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 						NewElementData.MaterialId = Material->GetLightingGuid();
 						NewElementData.bUseTwoSidedLighting = Primitive->LightmassSettings.bUseTwoSidedLighting;
 						NewElementData.bShadowIndirectOnly = Primitive->LightmassSettings.bShadowIndirectOnly;
-						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;;
+						NewElementData.bUseEmissiveForStaticLighting = Primitive->LightmassSettings.bUseEmissiveForStaticLighting;
+						NewElementData.bUseVertexNormalForHemisphereGather = Primitive->LightmassSettings.bUseVertexNormalForHemisphereGather;
 						// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 						NewElementData.EmissiveLightFalloffExponent = Primitive->LightmassSettings.EmissiveLightFalloffExponent;
 						NewElementData.EmissiveLightExplicitInfluenceRadius = Primitive->LightmassSettings.EmissiveLightExplicitInfluenceRadius;
@@ -1561,6 +1565,7 @@ void FLightmassExporter::WriteLandscapeInstances( int32 Channel )
 			NewElementData.bUseTwoSidedLighting = LMSetting.bUseTwoSidedLighting;
 			NewElementData.bShadowIndirectOnly = LMSetting.bShadowIndirectOnly;
 			NewElementData.bUseEmissiveForStaticLighting = LMSetting.bUseEmissiveForStaticLighting;
+			NewElementData.bUseVertexNormalForHemisphereGather = LMSetting.bUseVertexNormalForHemisphereGather;
 			// Combine primitive and level boost settings so we don't have to send the level settings over to Lightmass  
 			NewElementData.EmissiveLightFalloffExponent = LMSetting.EmissiveLightFalloffExponent;
 			NewElementData.EmissiveLightExplicitInfluenceRadius = LMSetting.EmissiveLightExplicitInfluenceRadius;
@@ -1665,6 +1670,7 @@ void FLightmassExporter::WriteMappings( int32 Channel )
 			TempData.bUseTwoSidedLighting = PrimitiveSettings.bUseTwoSidedLighting;
 			TempData.bShadowIndirectOnly = PrimitiveSettings.bShadowIndirectOnly;
 			TempData.bUseEmissiveForStaticLighting = PrimitiveSettings.bUseEmissiveForStaticLighting;
+			TempData.bUseVertexNormalForHemisphereGather = PrimitiveSettings.bUseVertexNormalForHemisphereGather;
 			TempData.EmissiveLightFalloffExponent = PrimitiveSettings.EmissiveLightFalloffExponent;
 			TempData.EmissiveLightExplicitInfluenceRadius = PrimitiveSettings.EmissiveLightExplicitInfluenceRadius;
 			TempData.EmissiveBoost = PrimitiveSettings.EmissiveBoost * LevelSettings.EmissiveBoost;
@@ -1890,6 +1896,7 @@ void FLightmassExporter::WriteSceneSettings( Lightmass::FSceneFileHeader& Scene 
 	}
 	{
 		Scene.AmbientOcclusionSettings.bUseAmbientOcclusion = LevelSettings.bUseAmbientOcclusion;
+		Scene.AmbientOcclusionSettings.bGenerateAmbientOcclusionMaterialMask = LevelSettings.bGenerateAmbientOcclusionMaterialMask;
 		Scene.AmbientOcclusionSettings.bVisualizeAmbientOcclusion = LevelSettings.bVisualizeAmbientOcclusion;
 		Scene.AmbientOcclusionSettings.DirectIlluminationOcclusionFraction = LevelSettings.DirectIlluminationOcclusionFraction;
 		Scene.AmbientOcclusionSettings.IndirectIlluminationOcclusionFraction = LevelSettings.IndirectIlluminationOcclusionFraction;
@@ -2314,10 +2321,11 @@ FLightmassProcessor::FLightmassProcessor(const FStaticLightingSystem& InSystem, 
 
 FLightmassProcessor::~FLightmassProcessor()
 {
+	// Note: the connection must be closed before deleting anything that SwarmCallback accesses
+	Swarm.CloseConnection();
+
 	delete Exporter;
 	delete Importer;
-
-	Swarm.CloseConnection();
 
 	for ( TMap<FGuid, FMappingImportHelper*>::TIterator It(ImportedMappings); It; ++It )
 	{

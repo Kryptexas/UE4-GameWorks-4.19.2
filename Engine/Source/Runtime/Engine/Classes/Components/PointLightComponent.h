@@ -65,7 +65,7 @@ class ENGINE_API UPointLightComponent : public ULightComponent
 	void SetLightFalloffExponent(float NewLightFalloffExponent);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
-	void SetSourceRadius(float NewValue);
+	void SetSourceRadius(float bNewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Lighting")
 	void SetSourceLength(float NewValue);
@@ -78,11 +78,18 @@ protected:
 public:
 
 	// ULightComponent interface.
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const override;
+	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const override;
 	virtual FVector4 GetLightPosition() const override;
 	virtual FBox GetBoundingBox() const override;
 	virtual FSphere GetBoundingSphere() const override;
 	virtual ELightComponentType GetLightType() const override;
+	virtual FLightmassLightSettings GetLightmassSettings() const override
+	{
+		return LightmassSettings;
+	}
+
+	virtual float GetUniformPenumbraSize() const override;
+
 	virtual FLightSceneProxy* CreateSceneProxy() const override;
 
 	// Begin UObject Interface

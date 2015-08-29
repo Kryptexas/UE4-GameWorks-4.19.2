@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Reflection;
 using System.Linq;
+using Tools.DotNETCommon.ExecutingAssembly;
 
 namespace UnrealBuildTool
 {
@@ -127,7 +128,7 @@ namespace UnrealBuildTool
 			List<string> DirectoriesToSearch = new List<string>();
 
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
-			string RootDirectory = Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..");
+			string RootDirectory = Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..");
 			string EngineSourceDirectory = Path.GetFullPath( Path.Combine(RootDirectory, "Engine", "Source") );
 
 			foreach (var File in Directory.EnumerateFiles(RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))

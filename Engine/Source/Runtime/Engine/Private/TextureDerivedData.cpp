@@ -128,7 +128,7 @@ static void SerializeForKey(FArchive& Ar, const FTextureBuildSettings& Settings)
 	// NOTE: TextureFormatName is not stored in the key here.
 	TempByte = Settings.MipGenSettings; Ar << TempByte;
 	TempByte = Settings.bCubemap; Ar << TempByte;
-	TempByte = Settings.bSRGB; Ar << TempByte;
+	TempByte = Settings.bSRGB ? (Settings.bSRGB | ( Settings.bUseLegacyGamma ? 0 : 0x2 )) : 0; Ar << TempByte;
 	TempByte = Settings.bPreserveBorder; Ar << TempByte;
 	TempByte = Settings.bDitherMipMapAlpha; Ar << TempByte;
 	TempByte = Settings.bComputeBokehAlpha; Ar << TempByte;
@@ -289,6 +289,7 @@ static void GetTextureBuildSettings(
 	OutBuildSettings.ColorAdjustment.AdjustMinAlpha = Texture.AdjustMinAlpha;
 	OutBuildSettings.ColorAdjustment.AdjustMaxAlpha = Texture.AdjustMaxAlpha;
 	OutBuildSettings.bSRGB = Texture.SRGB;
+	OutBuildSettings.bUseLegacyGamma = Texture.bUseLegacyGamma;
 	OutBuildSettings.bPreserveBorder = Texture.bPreserveBorder;
 	OutBuildSettings.bDitherMipMapAlpha = Texture.bDitherMipMapAlpha;
 	OutBuildSettings.bComputeBokehAlpha = (Texture.LODGroup == TEXTUREGROUP_Bokeh);
@@ -839,7 +840,7 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 				(MipIndex == 0) ? Texture.Source.GetSizeY() : FMath::Max(1, SourceMips[MipIndex - 1].SizeY >> 1),
 				NumSourceSlices,
 				ImageFormat,
-				Texture.SRGB
+				Texture.SRGB ? (Texture.bUseLegacyGamma ? EGammaSpace::Pow22 : EGammaSpace::sRGB) : EGammaSpace::Linear
 				);
 			if (Texture.Source.GetMipData(SourceMip->RawData, MipIndex) == false)
 			{
@@ -1218,7 +1219,7 @@ static void SerializePlatformData(
 	{
 		FString PixelFormatString;
 		Ar << PixelFormatString;
-		PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->FindEnumIndex(*PixelFormatString);
+		PlatformData->PixelFormat = (EPixelFormat)PixelFormatEnum->GetValueByName(*PixelFormatString);
 	}
 	else if (Ar.IsSaving())
 	{
@@ -1882,7 +1883,7 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 		Ar << PixelFormatName;
 		while (PixelFormatName != NAME_None)
 		{
-			EPixelFormat PixelFormat = (EPixelFormat)PixelFormatEnum->FindEnumIndex(PixelFormatName);
+			EPixelFormat PixelFormat = (EPixelFormat)PixelFormatEnum->GetValueByName(PixelFormatName);
 			int32 SkipOffset = 0;
 			Ar << SkipOffset;
 			bool bFormatSupported = GPixelFormats[PixelFormat].Supported;

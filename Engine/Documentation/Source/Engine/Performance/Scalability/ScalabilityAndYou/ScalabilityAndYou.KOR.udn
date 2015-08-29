@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2519467
+﻿INTSourceChangelist:2607666
 Availability:Public
 Title: Scalability, 엔진 퀄리티와 개발자
 Crumbs: %ROOT%, Engine, Engine/Performance, Engine/Performance/Scalability
@@ -49,7 +49,6 @@ Description:설명
 
 [TOC(start:2)]
 
-## 개요
 
 Scalability (엔진 퀄리티)는 단순한 그래픽 세팅이 아니라, 타겟 플랫폼을 선택하는 것이고, 아트, 게임플레이, 사운드, AI, 기타 여러가지 시스템을 해당 플랫폼에 맞도록 결정하는 것입니다. 콘솔의 경우 플랫폼이 고정되어 있으니 꽤나 쉬운 부분입니다. 하지만 PC 의 경우, 다양한 장비 조합 갯수때문에 하나의 하드웨어 사양에 집중하기가 불가능합니다.
 

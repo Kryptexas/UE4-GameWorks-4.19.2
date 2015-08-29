@@ -177,71 +177,79 @@ namespace UnrealBuildTool
 			FileContent.Append ("Executable=bash\n");
 			FileContent.Append ("Type=1\n\n");
 
-			foreach (string TargetFilePath in DiscoverTargets())
+			foreach(var Project in GeneratedProjectFiles)
 			{
-				var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFilePath);		
-
-				// Remove both ".cs" and ".
-				foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration))) 
+				foreach (var TargetFile in Project.ProjectTargets)
 				{
-					if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development) 
+					if (TargetFile.TargetFilePath == null)
 					{
-						if (UnrealBuildTool.IsValidConfiguration (CurConfiguration)) 
-						{
-							var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-							FileContent.Append (String.Format("[CustomBuildSystem][BuildConfig{0}]\nBuildDir=file://{1}\n", BuildConfigIndex, UnrealRootPath ));
+						continue;
+					}
 
-							if (TargetName == GameProjectName)
+					var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFile.TargetFilePath);
+
+					// Remove both ".cs" and ".
+					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration))) 
+					{
+						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development) 
+						{
+							if (UnrealBuildTool.IsValidConfiguration (CurConfiguration)) 
 							{
-								FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
-							} 
-							else if (TargetName == (GameProjectName + "Editor")) 
-							{
-								FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
-							} 
-							else
-							{
-								FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
-								WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
+								var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								FileContent.Append (String.Format("[CustomBuildSystem][BuildConfig{0}]\nBuildDir=file://{1}\n", BuildConfigIndex, UnrealRootPath ));
+
+								if (TargetName == GameProjectName)
+								{
+									FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
+								} 
+								else if (TargetName == (GameProjectName + "Editor")) 
+								{
+									FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
+								} 
+								else
+								{
+									FileContent.Append (String.Format ("Title={0}-Linux-{1}\n\n", TargetName, ConfName));
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 0);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 1);
+									WriteCommandSubSection (ref FileContent, TargetName, ConfName, BuildConfigIndex, 3);
+								}
+								BuildConfigIndex++;
 							}
-							BuildConfigIndex++;
 						}
 					}
-				}
 
-				FileContent.Append (String.Format("[CustomBuildSystem][BuildConfig{0}]\nBuildDir=file://{1}\n", BuildConfigIndex, UnrealRootPath ));
-				if (TargetName == GameProjectName)
-				{
-					FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
+					FileContent.Append (String.Format("[CustomBuildSystem][BuildConfig{0}]\nBuildDir=file://{1}\n", BuildConfigIndex, UnrealRootPath ));
+					if (TargetName == GameProjectName)
+					{
+						FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
 
-				} 
-				else if (TargetName == (GameProjectName + "Editor")) 
-				{
-					FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
+					} 
+					else if (TargetName == (GameProjectName + "Editor")) 
+					{
+						FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
+					}
+					else
+					{
+						FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
+						WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
+					}
+					BuildConfigIndex++;
 				}
-				else
-				{
-					FileContent.Append (String.Format ("Title={0}\n\n", TargetName));
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 0);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 1);
-					WriteCommandSubSection (ref FileContent, TargetName, "Development" , BuildConfigIndex, 3);
-				}
-				BuildConfigIndex++;
-			}			
+			}
 		}
 
 		/// <summary>
@@ -289,7 +297,7 @@ namespace UnrealBuildTool
 
 					}
 
-					if (!IncludeDirectories.Contains (FullPath) && !FullPath.Contains ("FortniteGame/") && !FullPath.Contains ("Intermediate/") && Directory.Exists (FullPath))
+					if (!IncludeDirectories.Contains (FullPath) && !FullPath.Contains ("FortniteGame/") && Directory.Exists (FullPath))
 					{
 						SystemIncludeDirectories.Add (String.Format ("{0}", FullPath)); 
 						IncludeIndex++;

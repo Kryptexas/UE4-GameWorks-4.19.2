@@ -23,6 +23,10 @@ class ENGINE_API UGameEngine
 	UPROPERTY(config)
 	float MaxDeltaTime;
 
+	/** Maximium time (in seconds) between the flushes of the logs on the server (best effort). If 0, this will happen every tick. */
+	UPROPERTY(config)
+	float ServerFlushLogInterval;
+
 	UPROPERTY(transient)
 	UGameInstance* GameInstance;
 
@@ -149,4 +153,7 @@ private:
 
 	virtual void HandleNetworkFailure_NotifyGameInstance(UWorld* World, UNetDriver* NetDriver, ENetworkFailure::Type FailureType) override;
 	virtual void HandleTravelFailure_NotifyGameInstance(UWorld* World, ETravelFailure::Type FailureType) override;
+
+	/** Last time the logs have been flushed. */
+	double LastTimeLogsFlushed;
 };

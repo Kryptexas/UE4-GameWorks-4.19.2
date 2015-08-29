@@ -1,0 +1,124 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Fonts
+Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
+Description:Details the process of importing fonts, working with the Font Editor and using fonts in UMG. 
+Related: Engine/UMG
+Related: Engine/UMG/UserGuide/WidgetBlueprints
+Related: Engine/UMG/UserGuide/WidgetTypeReference
+
+[TOC(start:2 end:2)]
+
+This page covers how to import your own fonts, using the **Font Editor** and fonts in the **Unreal Motion Graphics (UMG) UI Designer**. 
+
+## Font Assets
+
+Fonts in Unreal Engine 4 are categorized as a **Font** asset and use two caching methods, **Runtime** which is in the form of a Composite Font or **Offline** which is the older pre-computed Font Atlas method. You can switch between the two methods by opening up a Font asset in the **Font Editor** (this provides a simple way to convert existing Font assets from the older method to the new composite method without having to replace them). 
+
+## Creating & Importing Fonts
+
+This section illustrates how to create a new Font asset or import TTF or OTF files to generate a Font asset. 
+
+### Creating Font Assets
+
+To create a Font asset, follow the steps below: 
+
+1.	Click the **Create** button inside the **Content Browser**, then under **User Interface** select the **Font** option. 
+
+	![](NewFont.png)
+
+1.	A new Composite Font asset will be created, prompting you to give it a name. 
+
+	![](NameFont.png)
+
+1.	Once you enter a name, you will notice an asterisk appears on the asset, this indicates that the asset has not be saved. 
+
+	![](SaveFont.png)
+
+1.	Click the **Save All** button to save your asset, then confirm the save in the pop-up menu that appears to finish. 
+
+[REGION:tip]
+Instead of clicking the **Create** button, you can instead **Right-click** in an empty space in the **Content Browser** to access the context menu. From there, you can click the **User Interface** and **Font** option to create a Font asset. Do not forget to save your assets! 
+[/REGION]
+
+When you create a new Font asset inside the Editor, it will create an empty Composite Font asset which you can then define its parameters using the **Font Editor**. When you import a TTF or OTF file, a new Composite Font asset is generated using the font sample you provided (at which point you can define additional parameters by opening it up in the **Font Editor**). 
+
+### Importing Fonts
+
+You can import either TTF or OTF files into the Editor, and you can do so in a number of different ways. 
+
+The first method is by clicking the **Import** button inside the **Content Browser**. 
+
+![](Import1.png)
+
+In the dialogue box that appears, navigate to the file to import then click on it and click **Open**. 
+
+![](Import2.png)
+
+The file will then be added to the **Content Browser** as a Composite Font asset, using the file you have selected. 
+
+![](Import3.png)
+
+You can **Drag-and-drop** a TTF or OTF file into the **Content Browser** to create a Composite Font asset as well. 
+
+![](Import4.png)
+
+When using the Drag-and-drop method, a Composite Font asset will also automatically be created for you using the file you have selected. 
+
+## Font Editor
+
+When you **Double-click** on a Font asset in the **Content Browser**, it will open up inside the **Font Editor** window. 
+
+![](FontEditorWindow.png)(w:820)
+
+A breakdown of the Font Editor Window is presented below: 
+
+1.	**Toolbar Menu** - From this menu, you can save any changes you make, find the asset in the **Content Browser**, change the Background Color of the preview window (4) or the Foreground Color (text color) in the preview window. There are options for Updating or Exporting changes made, however these options are only available within the **Offline** cache mode. 
+1.	**Default Font Family** - In this window, you can assign the Default Font Family for use with this Font asset. You can add versions of a particular Font style (for example Normal, Bold, Italics, Underline, etc.) or have a collection of different Font styles as one Composite Font. If you have created a blank Font asset, you can assign a font from inside this window as well. Once a Font has been added, you can also define the hinting algorithm used with the font. 
+1.	**Sub-Font Family** - In this window, you assign the Sub-Font Family for this Font asset to use. Here you can specify a Character Range and if a character entered falls within the range, you can specify a different Font style to use instead of the Default (this is useful for when you want to use different Font types for different Languages). 
+1.	**Preview** - This window allow you to preview your fonts and provides a text entry box for entering sample texts. 
+1.	**Details** - In this window, you can change the Font Cache Type as well as change the Font Size and Font Name (for Runtime). 
+	* If you are using the older method, you can still change the parameters for your Font while in Offline cache mode. 
+	* You can also convert any existing Font assets from **Offline** to **Runtime** without having to replace them. 
+
+An example Font asset is provided below. 
+
+[REGION:lightbox]
+[![](ExampleFontLayout.png)(w:820)](ExampleFontLayout.png)
+[/REGION]
+
+_Click image for a full view._
+
+A Composite Font will always contain a Default Font Family, and may also contain any number of Sub-Font Families that should be used for a given range of characters. Each Font Family is itself made up of any number of Fonts that can be named based on their style. At runtime, the most suitable Font to use for each character based on the Fonts available in the Font Family for that character range is used. 
+
+As seen in the example image above, the Japanese text falls within the character ranges of the Japanese font family, and so is drawn using Source Han Sans rather than the Default Font Family Roboto. Fonts in a Sub-Font Family are preferably chosen by name match, as in the case of Regular, Bold, and Light, however can also fallback to matching based on the attributes of the Default Font, as is the case of Bold Italic (it automatically chose the Bold Japanese font because the font contained the Bold attribute, and was the best match). 
+
+
+## Fonts in UMG
+
+Once you have created a [Widget Blueprint](Engine/UMG/UserGuide/WidgetBlueprints) and placed a Widget that contains Text (such as a Text Box or Text Widget), when clicking on it and accessing the **Details** panel, under **Appearance**, you will see a **Font** option. 
+
+![](UMGFonts1.png)
+
+By default the Engine uses **Roboto**, however if you click the drop-down menu, any Composite Font assets created can be selected and used instead. 
+
+![](UMGFonts2.png)
+
+You can also choose to create a Composite Font from this menu and specify where the new asset should be saved (it will be blank by default and you will have to fill it out). 
+
+Once you select your Composite Font, the second drop-down menu will allow you to select a font to use from the **Default Font Family**. 
+
+![](UMGFonts3.png)
+
+You can also specify the size of the font in the input box. 
+
+![](UMGFonts4.png)
+
+Currently UMG only supports **Runtime** cached font assets. Also, if you have assigned fonts using the old method, none of your existing file based font settings will be lost, however going forward, you will need to create a Composite Font asset in order to use custom fonts with UMG. 
+
+
+
+
+
+
+

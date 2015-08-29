@@ -77,6 +77,7 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 	this->GraphObjToDiff = InArgs._GraphObjToDiff;
 	this->SelectionManager.OnSelectionChanged = InArgs._OnSelectionChanged;
 	this->IsEditable = InArgs._IsEditable;
+	this->DisplayAsReadOnly = InArgs._DisplayAsReadOnly;
 	this->OnNodeDoubleClicked = InArgs._OnNodeDoubleClicked;
 	this->OnDropActor = InArgs._OnDropActor;
 	this->OnDropStreamingLevel = InArgs._OnDropStreamingLevel;
@@ -228,8 +229,8 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 				// Draw the comments and information popups for this node, if it has any.
 				{
-					const SNodePanel::SNode::FNodeSlot& CommentSlot = ChildNode->GetOrAddSlot( ENodeZone::TopCenter );
-					float CommentBubbleY = -CommentSlot.Offset.Get().Y;
+					const SNodePanel::SNode::FNodeSlot* CommentSlot = ChildNode->GetSlot( ENodeZone::TopCenter );
+					float CommentBubbleY = CommentSlot ? -CommentSlot->Offset.Get().Y : 0.f;
 					Context.bSelected = bSelected;
 					TArray<FGraphInformationPopupInfo> Popups;
 
@@ -254,7 +255,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					{
 						NodeMatches.Add(NodeMatch);
 					}
-					const bool bNodeIsDifferent = (!GraphObjToDiff || NodeMatch.Diff());
+					const bool bNodeIsDifferent = (!GraphObjToDiff || NodeMatch.Diff(FGraphDiffControl::FNodeDiffContext()));
 
 					/* When dragging off a pin, we want to duck the alpha of some nodes */
 					TSharedPtr< SGraphPin > OnlyStartPin = (1 == PreviewConnectorFromPins.Num()) ? PreviewConnectorFromPins[0].FindInGraphPanel(*this) : TSharedPtr< SGraphPin >();
@@ -262,7 +263,7 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 					const FWidgetStyle& NodeStyleToUse = (bNodeIsDifferent && !bNodeIsNotUsableInCurrentContext)? InWidgetStyle : FadedStyle;
 
 					// Draw the node.O
-					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, ShouldBeEnabled( bParentEnabled ) );
+					CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent(this), CurWidget.Geometry, MyClippingRect, OutDrawElements, ChildLayerId, NodeStyleToUse, !DisplayAsReadOnly.Get() && ShouldBeEnabled( bParentEnabled ) );
 				}
 
 				// Draw the node's overlay, if it has one.
@@ -1059,6 +1060,7 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 		
 		FSlateApplication::Get().PushMenu(
 			AsShared(),
+			FWidgetPath(),
 			MenuContent,
 			WhereToSummon,
 			FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
@@ -1243,7 +1245,7 @@ bool SGraphPanel::JumpToRect(const FVector2D &TopLeft, const FVector2D &BottomRi
 	return true;
 }
 
-void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
+void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode)
 {
 	if (JumpToMe != nullptr)
 	{
@@ -1257,8 +1259,16 @@ void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 			}
 		}
 
-		// Select this node, and request that we jump to it.
-		SelectAndCenterObject(JumpToMe, true);
+		if (bSelectNode)
+		{
+			// Select this node, and request that we jump to it.
+			SelectAndCenterObject(JumpToMe, true);
+		}
+		else
+		{
+			// Jump to the node
+			CenterObject(JumpToMe);
+		}
 	}
 }
 
@@ -1266,7 +1276,7 @@ void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 {
 	if (JumpToMe != nullptr)
 	{
-		JumpToNode(JumpToMe->GetOwningNode(), false);
+		JumpToNode(JumpToMe->GetOwningNode(), false, true);
 	}
 }
 

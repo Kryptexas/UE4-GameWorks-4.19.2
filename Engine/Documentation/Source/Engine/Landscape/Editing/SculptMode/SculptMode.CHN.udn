@@ -1,0 +1,310 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Sculpt Mode
+Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
+Description:Guide to the Landscape tool's Sculpt mode.
+
+[VAR:Topic]
+[OBJECT:Topiccompact]
+	[PARAM:image]
+		![%Engine/Landscape/Editing/SculptMode:title%](Landscape_Sculpt_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![Landscape Icon](%ROOT%/landscape_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Landscape/Editing/SculptMode:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Landscape/Editing/SculptMode:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Landscape/Editing/SculptMode]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[TOC(start:2 end:3)]
+
+The process of sculpting a Landscape involves using one or more tools that modify the underlying heightmap. These tools range from the simple Sculpt tool to other tools that use complex algorithms to apply interesting effects to the heightmap, such as erosion. Each tool has a set of properties that determine how the tool affects the Landscape.
+
+The currently selected tool determines the operation that will be performed on the Landscape. The tools use [brushes](Engine\Landscape\Editing\Brushes) to apply their effects using strokes.
+
+| **Common Controls** | **Operation** |
+| --- | --- |
+| **Left Mouse Button** | Performs a stroke that applies the selected tool's effects to the heightmap. |
+| **Ctrl + Z** | Undoes last stroke. |
+| **Ctrl + Y** | Redoes last undone stroke. |
+
+For a quick reference guide to the Landscape tool's various modes, tools, and brushes, see [](Engine/Landscape/UI).
+
+## Sculpting Tools
+
+You can use the Sculpting Tools to modify the shape of your Landscape in various ways.
+
+### Sculpt
+
+![Sculpt Tool](Landscape_Sculpt.png)
+
+The Sculpt tool increases or decreases the heightmap height in the shape of the currently selected brush and falloff.
+
+| **Alternate Controls** | **Operation** |
+| --- | --- |
+| **Left Mouse Button** | Heightens or increases the heightmap or selected layer's weight. |
+| **Shift + Left Mouse Button** | Lowers or decreases the heightmap or selected layer's weight. |
+
+**Options:**
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much effect each brush stroke has. |
+
+The brush strength determines the amount of raising or lowering.
+
+
+### Smooth
+
+![Smooth Tool](Landscape_Smooth.png)
+
+The Smooth tool smooths the heightmap. The strength determines the amount of smoothing.
+
+**Heightmap Smoothing**
+
+![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:900 h:325)
+
+![Landscape_Smooth_After_HighDetail.jpg](Landscape_Smooth_After_HighDetail.jpg)(w:900 h:325)
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much smoothing occurs with each brush stroke has. |
+| **Filter Kernel Scale** | Sets the scale multiplier for the smoothing filter kernel. |
+| **Detail Smooth** | If checked, performs a detail-preserving smoothing using the specified detail-smoothing value. Larger-detail smoothing values remove more details, while smaller values preserve more details. [INCLUDE:#DetailSmooth] |
+
+<!--
+[EXCERPT:DetailSmooth]
+![Landscape_Smooth_After_LowDetail.jpg](Landscape_Smooth_After_LowDetail.jpg)(w:720)
+
+![Landscape_Smooth_Before.jpg](Landscape_Smooth_Before.jpg)(w:720)
+[/EXCERPT:DetailSmooth]
+-->
+
+
+### Flatten
+
+![Flatten Tool](Landscape_FlattenTool.png)
+
+The Flatten tool flattens the Landscape to the level of the Landscape under the mouse cursor when you first activate the tool.
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Flatten.jpg](Landscape_Flatten.jpg)(w:900 h:325)
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much smoothing occurs with each brush stroke has. |
+| **Flatten Mode** | Determines whether the tool will raise or lower the heightmap section under the brush. |
+| **Use Slope Flatten** | If checked, flattens along the Landscape's existing slope instead of flattening toward a horizontal plane. |
+| **Pick Value Per Apply** | If checked, constantly selects new values to flatten toward, instead of only using the first clicked point. |
+| **Flatten Target** | Sets the target height toward which to flatten. |
+
+
+### Ramp
+
+![Ramp Tool](Landscape_Ramp.png)
+
+The Ramp tool enables you to select two locations on your Landscape and create a flat ramp between them, with a falloff you specify on the sides.
+
+**To add a ramp to your Landscape:**
+
+1. **Ctrl + click** in two locations to mark the beginning and end points of the ramp.
+
+	![Ramp Setup](Landscape_RampSetup.png)(w:700)
+
+1. If necessary, adjust the options you want for the ramp's width and falloff.
+
+	![Ramp Settings](Landscape_RampSettings.png)
+
+1. Click **Add Ramp** to create the ramp.
+
+	![Add Ramp](Landscape_RampAdd.png)
+
+	![Ramp Added](Landscape_RampAddedSprites.png)(w:700)
+
+![Ramp Tool Before](Landscape_RampBefore4.png)(w:900)
+
+![Ramp Tool After](Landscape_RampAddedNoSprites.png)(w:900)
+
+
+[REGION:tip]
+If you change your mind about adding a ramp after starting to set the beginning and end points, you can click **Reset** to clear them.
+[/REGION]
+
+| **Option** | **Description** |
+| --- | --- |
+| **Ramp Width** | Sets the width of the ramp. |
+| **Side Falloff** | Sets the falloff on the sides of the ramp, where it merges into the rest of the Landscape. A setting of **0** means no falloff; a setting of **1** means all falloff and no flat ramp. |
+
+
+### Erosion
+
+![Erosion Tool](Landscape_Erosion.png)
+
+The Erosion tool uses a thermal erosion simulation to adjust the height of the heightmap. This simulates the transfer of soil from higher elevations to lower elevations. The larger the difference in elevation, the more erosion will occur. This tool also applies a noise effect on top of the erosion, if desired, to provide a more natural random appearance.
+
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Thermal_Erosion.jpg](Landscape_Thermal_Erosion.jpg)(w:900 h:325)
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much effect each brush stroke has. |
+| **Threshold** | The minimum height difference necessary for the erosion effects to be applied. Smaller values will result in more erosion being applied. |
+| **Surface Thickness** | The thickness of the surface for the layer weight erosion effect. |
+| **Iterations** | The number of iterations performed. Larger values result in more levels of erosion. |
+| **Noise Mode** | Whether to apply noise to raise or lower the heightmap, or do both. |
+| **Noise Scale** | The size of the noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. | 
+| ![Landscape_Thermal_Erosion_Filter.jpg](Landscape_Thermal_Erosion_Filter.jpg)(w:900 h:325) ||
+
+
+
+### Hydro Erosion
+
+![Hydro Erosion Tool](Landscape_HydroErosion.png)
+
+The Hydro Erosion tool uses a hydraulic erosion simulation, i.e. erosion from water, to adjust the height of the heightmap. A noise filter is used to determine where the initial rain is distributed. Then the simulation is calculated to determine water flow from that initial rain as well as dissolving, water transfer, and evaporation. The result of that calculation provides the actual value used to lower the heightmap.
+
+![Landscape_Original.jpg](Landscape_Original.jpg)(w:900 h:325)
+
+![Landscape_Hydraulic_Erosion.jpg](Landscape_Hydraulic_Erosion.jpg)(w:900 h:325)
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much effect each brush stroke has. |
+| **Rain Amount** | The amount of rain to apply to the surface. Larger values will result in more erosion. |
+| **Sediment Cap.** | The amount of sediment that the water can carry. Larger values will result in more erosion. |
+| **Iterations** | The number of iterations performed. Larger values result in more levels of erosion. |
+| **Initial Rain Distribution** | Whether rain is applied only where the noise filter is positive, or to the entire area. |
+| ![Landscape_Hydraulic_Erosion_Filter.jpg](Landscape_Hydraulic_Erosion_Filter.jpg)(w:900 h:325) ||
+| **Rain Dist Scale** | The size of the noise filter for applying initial rain to the surface. The noise filter is related to position and scale, which means if you do not change **Rain Dist. Scale**, the same filter is applied to the same position many times. | 
+| **Detail Smooth** | If checked, performs a detail-preserving smoothing to the erosion effect using the specified detail-smoothing value. Larger detail-smoothing values remove more details, while smaller values preserve more details. |
+
+
+
+### Noise
+
+![Noise Tool](Landscape_Noise.png)
+
+The Noise tool applies a noise filter to the heightmap or layer weight. The strength determines the amount of noise.
+
+| **Option** | **Description** |
+| --- | --- |
+| **Tool Strength** | Controls how much effect each brush stroke has. |
+| **Use Target Value** | If checked, blends the values of the noise being applied toward a target value. |
+| **Noise Mode** | Determines whether to apply all noise effects, only the noise effects that result in raising the heightmap, or only the noise effects that result in lowering the heightmap. |
+| ![Landscape_Noise_Filter.jpg](Landscape_Noise_Filter.jpg)(w:900 h:325) ||
+| **Noise Scale** | The size of the perlin noise filter used. The noise filter is related to position and scale, which means if you do not change **Noise Scale**, the same filter is applied to the same position many times. |
+
+
+### Retopologize
+
+![Retopologize Tool](Landscape_Retopologize.png)
+
+The Retopologize tool automatically adjusts Landscape vertices with an X/Y offset map to improve vertex density on cliffs, reducing texture stretching.
+
+[REGION:note]
+An X/Y offset map makes the Landscape slower to render and paint on with other tools, so only use the Retopologize tool if needed.
+[/REGION]
+
+
+### Visibility
+
+![Visibility Tool](Landscape_Visibility.png)
+
+The Visibility tool enables you to create holes in your Landscape, such as for caves. 
+
+| **Alternate Controls** | **Operation** |
+| --- | --- |
+| **Shift + Left Mouse Button** | Removes the visibility mask, making the Landscape components visible again. |
+
+#### Using Opacity Masking to Create a Hole
+
+[EXCERPT:LandscapeHole]
+Although you can use the sculpting tools to create vertical holes in your Landscape, you may find that you also want to create horizontal ones, such as for caves. You can do so by using opacity masking to "paint" away the visibility of a section of your Landscape with the Visibility tool.
+[/EXCERPT:LandscapeHole]
+
+In order to paint away the visibility of a section of your Landscape, you must set up the Landscape Material correctly. For information about setting up a Landscape Hole Material, see [Landscape Hole Materials](Engine\Landscape\Materials\#LandscapeHoleMaterials).
+
+[REGION:note]
+If you use the Visibility tool without having a Landscape Hole Material assigned, the Visibility tool will remove the Material layers applied to the selected sections, but will not create a hole in the Landscape itself.
+[/REGION]
+
+After you have set up your Landscape Hole Material, you can use the painting tools to create a hole in your Landscape.
+
+**To create a Landscape hole:**
+
+1. Make sure you have a Landscape Hole Material assigned to your Landscape.
+
+	![](Engine/Landscape/Materials/Landscape_HoleSettings.png)
+
+1. In the Landscape tool, in **Sculpt** mode, select the Visibility tool.
+
+	![Visibility Tool](Landscape_Visibility.png)
+
+1. Find the location on your Landscape where you want to create a hole.
+
+	![](Landscape_MountainNoCave.png)(w:640)
+
+1. Adjust the brush size and falloff appropriately.
+
+	![](Landscape_MountainCaveMask.png)(w:640)
+
+1. Press **Left Mouse Button** to create the hole and **Shift + Left Mouse Button** to erase a hole that was created. 
+
+	![](Landscape_MountainHole.png)(w:640)
+
+	You can now fit Static Mesh Actors in the hole in the Landscape to create a cave.
+
+	[REGION:tip]
+	To test out the collision of the new hole using Play In Editor (PIE), you may have to switch from Landscape mode to Place mode.
+	[/REGION]
+
+(#RegionTools)
+
+## Region Tools
+
+You can use the Region tools to perform actions on specific regions of the Landscape.
+
+
+### Region Selection
+
+![Region Selection Tool](Landscape_RegionSelect.png)
+
+The Region Selection tool selects regions of the Landscape using the current brush settings and tool strength to be used to fit a Landscape [gizmo](Engine\Landscape\Editing\Gizmos) to a specific area or to act as a mask for copying data to, or pasting data from, a gizmo.
+
+![region_selection.jpg](region_selection.jpg)(w:640 h:322)
+
+| **Controls** | **Operation** |
+| --- | --- |
+| **Left Mouse Button** | Adds to the selected region. |
+| **Shift + Left Mouse Button** | Removes from the selected region. |
+
+| **Option** | **Description** |
+| --- | --- |
+| **Clear Region Selection** | Clears the current selected region(s). |
+| **Tool Strength** | Controls how much effect each brush stroke has. |
+| **Use Region as Mask** | When checked, the region selection acts as a mask with the active area being comprised of the selected region.  |
+|    ![region_mask.jpg](region_mask.jpg)(w:640 h:322) ||
+| **Negative Mask** | When checked, and when **Use Region as Mask** is also checked, the region selection acts as a mask, but the active area is comprised of the unselected region.   |
+|    ![region_mask_negative.jpg](region_mask_negative.jpg)(w:640 h:322) ||
+
+
+(#RegionCopy)
+### Copy/Paste
+
+![Copy/Paste Tool](Landscape_CopyPaste.png)
+
+You can use this tool to copy height data from one area of a Landscape to another through the use of [](Engine/Landscape\Editing\Gizmos). You can also import and export Gizmo data.
+
+[INCLUDE:Engine/Landscape#landscape002]

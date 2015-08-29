@@ -5,7 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "SkeletalRenderPublic.h"
 #include "Components/LineBatchComponent.h"
 #if WITH_PHYSX
@@ -27,8 +27,75 @@ struct FAssetWorldBoneTM
 };
 
 
+
+class FParallelBlendPhysicsTask
+{
+	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+
+public:
+	FParallelBlendPhysicsTask(TWeakObjectPtr<USkeletalMeshComponent> InSkeletalMeshComponent)
+		: SkeletalMeshComponent(InSkeletalMeshComponent)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelBlendPhysicsTask, STATGROUP_TaskGraphTasks);
+	}
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::AnyThread;
+	}
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::TrackSubsequents;
+	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
+		{
+			Comp->ParallelBlendPhysics();
+		}
+	}
+};
+
+class FParallelBlendPhysicsCompletionTask
+{
+	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+
+public:
+	FParallelBlendPhysicsCompletionTask(TWeakObjectPtr<USkeletalMeshComponent> InSkeletalMeshComponent)
+		: SkeletalMeshComponent(InSkeletalMeshComponent)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FParallelBlendPhysicsCompletionTask, STATGROUP_TaskGraphTasks);
+	}
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::GameThread;
+	}
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::TrackSubsequents;
+	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
+		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
+		{
+			Comp->CompleteParallelBlendPhysics();
+		}
+	}
+};
+
+
 // Use current pose to calculate world-space position of this bone without physics now.
-void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
+void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, const TArray<FTransform>& InLocalAtoms, int32 BoneIndex, USkeletalMeshComponent* SkelComp, const FTransform &LocalToWorldTM, const FVector& Scale3D)
 {
 	// If its already up to date - do nothing
 	if(	WorldBoneTMs[BoneIndex].bUpToDate )
@@ -46,11 +113,11 @@ void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, int32 BoneIndex
 	{
 		// If not root, use our cached world-space bone transforms.
 		int32 ParentIndex = SkelComp->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-		UpdateWorldBoneTM(WorldBoneTMs, ParentIndex, SkelComp, LocalToWorldTM, Scale3D);
+		UpdateWorldBoneTM(WorldBoneTMs, InLocalAtoms, ParentIndex, SkelComp, LocalToWorldTM, Scale3D);
 		ParentTM = WorldBoneTMs[ParentIndex].TM;
 	}
 
-	RelTM = SkelComp->LocalAtoms[BoneIndex];
+	RelTM = InLocalAtoms[BoneIndex];
 	RelTM.ScaleTranslation( Scale3D );
 
 	WorldBoneTMs[BoneIndex].TM = RelTM * ParentTM;
@@ -58,8 +125,9 @@ void UpdateWorldBoneTM(TArray<FAssetWorldBoneTM> & WorldBoneTMs, int32 BoneIndex
 }
 
 
-void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequiredBones)
+void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms)
 {
+	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
 	// Get drawscale from Owner (if there is one)
 	FVector TotalScale3D = ComponentToWorld.GetScale3D();
 	FVector RecipScale3D = TotalScale3D.Reciprocal();
@@ -68,6 +136,18 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 	check( PhysicsAsset );
 
 	if (GetNumSpaceBases() == 0)
+	{
+		return;
+	}
+
+	// Get the scene, and do nothing if we can't get one.
+	FPhysScene* PhysScene = nullptr;
+	if (GetWorld() != nullptr)
+	{
+		PhysScene = GetWorld()->GetPhysicsScene();
+	}
+
+	if (PhysScene == nullptr)
 	{
 		return;
 	}
@@ -81,6 +161,27 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 	LocalToWorldTM.RemoveScaling();
 
 	TArray<FTransform>& EditableSpaceBases = GetEditableSpaceBases();
+
+	struct FBodyTMPair
+	{
+		FBodyInstance* BI;
+		FTransform TM;
+	};
+
+	TArray<FBodyTMPair> PendingBodyTMs;
+
+#if WITH_PHYSX
+	// Lock the scenes we need (flags set in InitArticulated)
+	if (bHasBodiesInSyncScene)
+	{
+		SCENE_LOCK_READ(PhysScene->GetPhysXScene(PST_Sync))
+	}
+
+	if (bHasBodiesInAsyncScene)
+	{
+		SCENE_LOCK_READ(PhysScene->GetPhysXScene(PST_Async))
+	}
+#endif
 
 	// For each bone - see if we need to provide some data for it.
 	for(int32 i=0; i<InRequiredBones.Num(); i++)
@@ -115,7 +216,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 			//if simulated body copy back and blend with animation
 			if(BodyInstance->IsInstanceSimulatingPhysics())
 			{
-				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform();
+				FTransform PhysTM = BodyInstance->GetUnrealWorldTransform_AssumesLocked();
 
 				// Store this world-space transform in cache.
 				WorldBoneTMs[BoneIndex].TM = PhysTM;
@@ -137,7 +238,7 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 					{
 						// If not root, get parent TM from cache (making sure its up-to-date).
 						int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-						UpdateWorldBoneTM(WorldBoneTMs, ParentIndex, this, LocalToWorldTM, TotalScale3D);
+						UpdateWorldBoneTM(WorldBoneTMs, InLocalAtoms, ParentIndex, this, LocalToWorldTM, TotalScale3D);
 						ParentWorldTM = WorldBoneTMs[ParentIndex].TM;
 					}
 
@@ -147,15 +248,15 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 					RelTM.RemoveScaling();
 					FQuat RelRot(RelTM.GetRotation());
 					FVector RelPos =  RecipScale3D * RelTM.GetLocation();
-					FTransform PhysAtom = FTransform(RelRot, RelPos, LocalAtoms[BoneIndex].GetScale3D());
+					FTransform PhysAtom = FTransform(RelRot, RelPos, InLocalAtoms[BoneIndex].GetScale3D());
 
 					// Now blend in this atom. See if we are forcing this bone to always be blended in
-					LocalAtoms[BoneIndex].Blend( LocalAtoms[BoneIndex], PhysAtom, UsePhysWeight );
+					InLocalAtoms[BoneIndex].Blend( InLocalAtoms[BoneIndex], PhysAtom, UsePhysWeight );
 
 					if(BoneIndex == 0)
 					{
 						//We must update RecipScale3D based on the atom scale of the root
-						TotalScale3D *= LocalAtoms[0].GetScale3D();
+						TotalScale3D *= InLocalAtoms[0].GetScale3D();
 						RecipScale3D = TotalScale3D.Reciprocal();
 					}
 
@@ -170,12 +271,12 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 		// Update SpaceBases entry for this bone now
 		if( BoneIndex == 0 )
 		{
-			EditableSpaceBases[0] = LocalAtoms[0];
+			EditableSpaceBases[0] = InLocalAtoms[0];
 		}
 		else
 		{
 			const int32 ParentIndex	= SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			EditableSpaceBases[BoneIndex] = LocalAtoms[BoneIndex] * EditableSpaceBases[ParentIndex];
+			EditableSpaceBases[BoneIndex] = InLocalAtoms[BoneIndex] * EditableSpaceBases[ParentIndex];
 
 			/**
 			* Normalize rotations.
@@ -189,9 +290,59 @@ void USkeletalMeshComponent::BlendPhysicsBones( TArray<FBoneIndexType>& InRequir
 
 		if (bUpdatePhysics && BodyInstance)
 		{
-			BodyInstance->SetBodyTransform(EditableSpaceBases[BoneIndex] * ComponentToWorld, true);
+			//This is extremely inefficient. We need to obtain a write lock which will block other threads from blending
+			//For now I'm juts deferring it to the end of this loop, but in general we need to move it all out of here and do it when the blend task is done
+			FBodyTMPair* BodyTMPair = new (PendingBodyTMs) FBodyTMPair;
+			BodyTMPair->BI = BodyInstance;
+			BodyTMPair->TM = EditableSpaceBases[BoneIndex] * ComponentToWorld;
 		}
 	}
+
+#if WITH_PHYSX
+	//See above for read lock instead of write lock
+	// Unlock the scenes 
+	if (bHasBodiesInSyncScene)
+	{
+		SCENE_UNLOCK_READ(PhysScene->GetPhysXScene(PST_Sync))
+	}
+
+	if (bHasBodiesInAsyncScene)
+	{
+		SCENE_UNLOCK_READ(PhysScene->GetPhysXScene(PST_Async))
+	}
+
+	if(PendingBodyTMs.Num())
+	{
+		//This is extremely inefficient. We need to obtain a write lock which will block other threads from blending
+		//For now I'm juts deferring it to the end of this loop, but in general we need to move it all out of here and do it when the blend task is done
+
+		if (bHasBodiesInSyncScene)
+		{
+			SCENE_LOCK_WRITE(PhysScene->GetPhysXScene(PST_Sync))
+		}
+
+		if (bHasBodiesInAsyncScene)
+		{
+			SCENE_LOCK_WRITE(PhysScene->GetPhysXScene(PST_Async))
+		}
+
+		for (const FBodyTMPair& BodyTMPair : PendingBodyTMs)
+		{
+			BodyTMPair.BI->SetBodyTransform(BodyTMPair.TM, ETeleportType::TeleportPhysics);
+		}
+
+		if (bHasBodiesInSyncScene)
+		{
+			SCENE_UNLOCK_WRITE(PhysScene->GetPhysXScene(PST_Sync))
+		}
+
+		if (bHasBodiesInAsyncScene)
+		{
+			SCENE_UNLOCK_WRITE(PhysScene->GetPhysXScene(PST_Async))
+		}
+    }
+#endif
+	
 
 	// Transforms updated, cached local bounds are now out of date.
 	InvalidateCachedBounds();
@@ -217,9 +368,11 @@ bool USkeletalMeshComponent::DoAnyPhysicsBodiesHaveWeight() const
 	return false;
 }
 
-void USkeletalMeshComponent::BlendInPhysics()
+TAutoConsoleVariable<int32> CVarUseParallelBlendPhysics(TEXT("a.ParallelBlendPhysics"), 1, TEXT("If 1, physics blending will be run across the task graph system. If 0, blending will run purely on the game thread"));
+
+void USkeletalMeshComponent::BlendInPhysics(FTickFunction& ThisTickFunction)
 {
-	SCOPE_CYCLE_COUNTER(STAT_BlendInPhysics);
+	check(IsInGameThread());
 
 	// Can't do anything without a SkeletalMesh
 	if( !SkeletalMesh )
@@ -231,22 +384,68 @@ void USkeletalMeshComponent::BlendInPhysics()
 	// If we don't have or want any physics, we do nothing.
 	if( Bodies.Num() > 0 )
 	{
-		BlendPhysicsBones( RequiredBones );
-		
-		// Update Child Transform - The above function changes bone transform, so will need to update child transform
-		UpdateChildTransforms();
+		HandleExistingParallelEvaluationTask(/*bBlockOnTask = */ true, /*bPerformPostAnimEvaluation =*/ true);
+		// start parallel work
+		check(!IsValidRef(ParallelAnimationEvaluationTask));
 
-		// animation often change overlap. 
-		UpdateOverlaps();
+		const bool bParallelBlend = !!CVarUseParallelBlendPhysics.GetValueOnGameThread() && FApp::ShouldUseThreadingForPerformance();
+		if(bParallelBlend)
+		{
+			if (SkeletalMesh->RefSkeleton.GetNum() != AnimEvaluationContext.LocalAtoms.Num())
+			{
+				// Initialize Parallel Task arrays
+				AnimEvaluationContext.SpaceBases = GetSpaceBases();
+				AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
+			}
 
-		// New bone positions need to be sent to render thread
-		MarkRenderDynamicDataDirty();
+			AnimEvaluationContext.LocalAtoms = LocalAtoms;
+
+			ParallelAnimationEvaluationTask = TGraphTask<FParallelBlendPhysicsTask>::CreateTask().ConstructAndDispatchWhenReady(this);
+
+			// set up a task to run on the game thread to accept the results
+			FGraphEventArray Prerequistes;
+			Prerequistes.Add(ParallelAnimationEvaluationTask);
+
+			check(!IsValidRef(ParallelBlendPhysicsCompletionTask));
+			ParallelBlendPhysicsCompletionTask = TGraphTask<FParallelBlendPhysicsCompletionTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this);
+
+			ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(ParallelBlendPhysicsCompletionTask);
+		}else
+		{
+			PerformBlendPhysicsBones(RequiredBones, LocalAtoms);
+			PostBlendPhysics();
+		}
 	}
 }
 
+void USkeletalMeshComponent::PostBlendPhysics()
+{
+	FlipEditableSpaceBases();
+
+	// Update Child Transform - The above function changes bone transform, so will need to update child transform
+	UpdateChildTransforms();
+
+	// animation often change overlap. 
+	UpdateOverlaps();
+
+	// New bone positions need to be sent to render thread
+	MarkRenderDynamicDataDirty();
+
+	FinalizeBoneTransform();
+}
+
+void USkeletalMeshComponent::CompleteParallelBlendPhysics()
+{
+	Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
+		
+	PostBlendPhysics();
+
+	ParallelAnimationEvaluationTask.SafeRelease();
+	ParallelBlendPhysicsCompletionTask.SafeRelease();
+}
 
 
-void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
+void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateRBBones);
 
@@ -256,9 +455,9 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 	// If desired, pass the animation data to the physics joints so they can be used by motors.
 	// See if we are going to need to update kinematics
 	const bool bUpdateKinematics = (KinematicBonesUpdateType != EKinematicBonesUpdateToPhysics::SkipAllBones);
-
+	const bool bTeleport = Teleport == ETeleportType::TeleportPhysics;
 	// If desired, update physics bodies associated with skeletal mesh component to match.
-	if( !bUpdateKinematics && !(bForceUpdate && IsAnySimulatingPhysics()))
+	if(!bUpdateKinematics && !(bTeleport && IsAnySimulatingPhysics()))
 	{
 		// nothing to do 
 		return;
@@ -343,7 +542,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				FBodyInstance* BodyInst = Bodies[i];
 				check(BodyInst);
 
-				if (bForceUpdate || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics()))
+				if (bTeleport || (BodyInst->IsValidBodyInstance() && !BodyInst->IsInstanceSimulatingPhysics()))
 				{
 					const int32 BoneIndex = BodyInst->InstanceBoneIndex;
 
@@ -358,7 +557,12 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 #if WITH_PHYSX
 						// update bone transform to world
 						const FTransform BoneTransform = InSpaceBases[BoneIndex] * CurrentLocalToWorld;
-						ensure(!BoneTransform.ContainsNaN());
+						if(BoneTransform.ContainsNaN())
+						{
+							const FName BodyName = PhysicsAsset->BodySetup[i]->BoneName;
+							UE_LOG(LogPhysics, Warning, TEXT("UpdateKinematicBonesToAnim: Trying to set transform with bad data %s on PhysicsAsset '%s' in SkeletalMesh '%s' for bone '%s'"), *BoneTransform.ToHumanReadableString(), *PhysicsAsset->GetName(), *SkeletalMesh->GetName(), *BodyName.ToString());
+							continue;
+						}					
 
 						// If kinematic and not teleporting, set kinematic target
 						PxRigidDynamic* PRigidDynamic = BodyInst->GetPxRigidDynamic_AssumesLocked();
@@ -448,7 +652,7 @@ void USkeletalMeshComponent::UpdateKinematicBonesToAnim(const TArray<FTransform>
 				BodyInstance.UpdateTriMeshVertices(NewPositions);
 			}
 			
-			BodyInstance.SetBodyTransform(CurrentLocalToWorld, bTeleport);
+			BodyInstance.SetBodyTransform(CurrentLocalToWorld, Teleport);
 		}
 	}
 

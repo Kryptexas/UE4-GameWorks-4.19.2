@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2550597
 Availability:Public
 Title:ブループリントの操作ガイド
 Crumbs: %ROOT%, Engine, Engine/Blueprints
-Description:ブループリントを操作に関して、段階ごとに簡単な説明をしていきます。 
+Description:ブループリントの操作に関して、段階ごとに簡単な説明をしていきます。 
 Related:Engine/Blueprints
-Related:Engine/Blueprints/UserGuide
+Related:Engine/Blueprints/UserGuide/Types
 Related:Gameplay
 
 ## 概要
@@ -12,7 +12,7 @@ Related:Gameplay
 
 ブループリントの重要項目を理解している場合は、アクタのスポーン/破壊、再スポーン (OnDestroyed) 、タイマーの使用などゲームプレイ関連エレメントを説明している [](Gameplay) の中に **ゲームプレイ** 向けの操作ガイドを用意しています。 
 
-詳細は以下の表を参照してください。各リンクをクリックすると内容が表示されます。 
+詳細は以下の表を参照してください。リンクをクリックすると、それぞれのコンテンツが表示されます。 
 
 | 操作手順 | 説明 |
 | ------- | ------------ |
@@ -26,8 +26,17 @@ Related:Gameplay
 | **[](Engine/Blueprints/BP_HowTo/MakingFunctions)** | %Engine/Blueprints/BP_HowTo/MakingFunctions:description% |
 | **[](Engine/Blueprints/BP_HowTo/WorkingWithArrays)** | %Engine/Blueprints/BP_HowTo/WorkingWithArrays:description% |
 | **[](Engine/Blueprints/UserGuide/Variables)** | The entire user guide for Variables. |
+| **[](Engine\Blueprints\BP_HowTo\DirectBlueprintComs)** | %Engine\Blueprints\BP_HowTo\DirectBlueprintComs:description% |
+| **[](Engine\Blueprints\BP_HowTo\Casting)** | %Engine\Blueprints\BP_HowTo\Casting:description% |
+| **[](Engine\Blueprints\BP_HowTo\Interfaces)** | %Engine\Blueprints\BP_HowTo\Interfaces:description% |
+| **[](Engine\Blueprints\BP_HowTo\EventDispatcher)** | %Engine\Blueprints\BP_HowTo\EventDispatcher:description% |
 | **[](Engine/Blueprints/BP_HowTo/MakingMacros)** | %Engine/Blueprints/BP_HowTo/MakingMacros:description% |
 | **[](Engine/Blueprints/BP_HowTo/Debugging)** | %Engine/Blueprints/BP_HowTo/Debugging:description% |
+
+
+
+
+
 
 
 

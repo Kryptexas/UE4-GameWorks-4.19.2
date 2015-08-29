@@ -15,6 +15,39 @@ public:
 	)
 	{}
 	
+	/** Toggle play */
+	TSharedPtr< FUICommandInfo > TogglePlay;
+
+	/** Play forward */
+	TSharedPtr< FUICommandInfo > PlayForward;
+
+	/** Rewind */
+	TSharedPtr< FUICommandInfo > Rewind;
+
+	/** Step forward */
+	TSharedPtr< FUICommandInfo > StepForward;
+
+	/** Step backward */
+	TSharedPtr< FUICommandInfo > StepBackward;
+
+	/** Step to next key */
+	TSharedPtr< FUICommandInfo > StepToNextKey;
+
+	/** Step to previous key */
+	TSharedPtr< FUICommandInfo > StepToPreviousKey;
+
+	/** Step to next camera key */
+	TSharedPtr< FUICommandInfo > StepToNextCameraKey;
+
+	/** Step to previous camera key */
+	TSharedPtr< FUICommandInfo > StepToPreviousCameraKey;
+
+	/** Expand/collapse nodes */
+	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodes;
+
+	/** Expand/collapse nodes and descendants */
+	TSharedPtr< FUICommandInfo > ToggleExpandCollapseNodesAndDescendants;
+
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
 
@@ -39,26 +72,20 @@ public:
 	/** Toggles whether or not the play time should snap to the selected interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToInterval;
 
+	/** Toggles whether or not the play time should snap to the dragged key. */
+	TSharedPtr< FUICommandInfo > ToggleSnapPlayTimeToDraggedKey;
+
 	/** Toggles whether or not to snap curve values to the interval. */
 	TSharedPtr< FUICommandInfo > ToggleSnapCurveValueToInterval;
 
 	/** Toggles whether the "clean view" is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleCleanView;
+	
+	/** Turns auto scroll on and off. */
+	TSharedPtr< FUICommandInfo > ToggleAutoScroll;
 
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
-
-	/** Toggles whether or not to show tool tips for the curves in the curve editor. */
-	TSharedPtr< FUICommandInfo > ToggleShowCurveEditorCurveToolTips;
-
-	/** Sets the curve visibility to all curves. */
-	TSharedPtr< FUICommandInfo > SetAllCurveVisibility;
-
-	/** Sets the curve visibility to the selected curves. */
-	TSharedPtr< FUICommandInfo > SetSelectedCurveVisibility;
-
-	/** Sets the curve visibility to the animated curves. */
-	TSharedPtr< FUICommandInfo > SetAnimatedCurveVisibility;
 
 	/**
 	 * Initialize commands

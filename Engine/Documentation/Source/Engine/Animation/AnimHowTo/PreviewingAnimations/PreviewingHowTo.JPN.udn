@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2420314
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:アニメーションのプレビュー
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
-Description:アニメーションのプレビュー、その制御方法、およびアニメーション情報の切替えの方法について説明します。 
+Description:アニメーションのプレビュー、その制御方法、アニメーション情報の切替えの方法について説明します。 
 Related:Engine/Animation/Overview
 Related:Engine/Animation/Persona/Viewport
 Related:Engine/Animation/Sequences
@@ -124,7 +124,7 @@ PC でシューターゲームをプレイされる方は、WASD キーによる
 
 ### アニメーション表示情報
 
-ビューポートに表示される情報を **Show** オプションの **Display info** で切り替えることができます。 
+ビューポートに表示される情報を **Show** （表示）オプションの **Display info** （情報を表示）で切り替えることができます。 
 
 ![](Preview14.png)
 
@@ -153,6 +153,11 @@ PC でシューターゲームをプレイされる方は、WASD キーによる
 ![](Preview2.png)
 
 **ブレンドスペース** と **Aim Offsets** （照準オフセット）の両方が上記で説明したのと同じ方法でプレビューできます。 
+
+
+
+
+
 
 
 

@@ -22,7 +22,7 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Panel")
-	UVerticalBoxSlot* AddChildVerticalBox(UWidget* Content);
+	UVerticalBoxSlot* AddChildToVerticalBox(UWidget* Content);
 
 #if WITH_EDITOR
 	// UWidget interface

@@ -241,6 +241,8 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 			// It's very unlikely to cause a problem as the cvar is only changes by the user.
 			FString WildcardString = CVar->GetString(); 
 
+			FGPUProfilerEventNodeStats Sum;
+
 			const float ThresholdInMS = 5.0f;
 
 			if(WildcardString == FString(TEXT("*")))
@@ -276,6 +278,7 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 				if (bDump)
 				{
 					UE_LOG(LogRHI, Warning, TEXT("   %.2fms   %s   Events %u   Draws %u"), NodeStats.TimingResult, *It.Key(), NodeStats.NumEvents, NodeStats.NumDraws);
+					Sum += NodeStats;
 				}
 				else
 				{
@@ -283,7 +286,8 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 				}
 			}
 
-			UE_LOG(LogRHI, Warning, TEXT("   %u buckets not shown"), NumNotShown);
+			UE_LOG(LogRHI, Warning, TEXT("   Total %.2fms   Events %u   Draws %u,    %u buckets not shown"), 
+				Sum.TimingResult, Sum.NumEvents, Sum.NumDraws, NumNotShown);
 		}
 
 #if !UE_BUILD_SHIPPING

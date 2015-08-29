@@ -1,7 +1,13 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2620588
+Availability:Public
 Title:マウス インターフェース
 Crumbs:%ROOT%, Resources
 Description:マウス インタラクションの概要と分類
+Related:Engine/Blueprints
+Related:Engine/Blueprints\Editor
+Related:Engine/Blueprints\Editor\Modes\Components
+Related:Engine/Blueprints\Editor\Modes\Defaults
+Related:Engine/Blueprints\Editor\Modes\GraphPanel
 
 
 [VAR:Topic]
@@ -53,21 +59,19 @@ Description:マウス インタラクションの概要と分類
 [TOC(start:2 end:2)]
 
 
-## 概要
 
-
-マウスインターフェースの例では、マウスやタッチ入力をゲームに活用する方法を紹介しています。プレイと実行に関して非常に単純なものであるレベルは、たくさんの球で構成され、背景にあるキューブがマウスの動きに沿って球を追跡します。
+マウスインターフェースのサンプルでは、マウスやタッチ入力をゲームに活用する方法を紹介しています。プレイと実行に関して非常に単純なこのレベルは、たくさんの球で構成され、背景にあるキューブがマウスの動きに沿って球を追跡します。
 
 
 ![](MouseInterfaceGame.png)(w:400)
 
 
 
-マウスのインタラクションは以下に分類できます。
+マウスのインタラクションは以下のように分類できます。
 
-*　いずれかの球にマウスをかざすとマテリアルが変化します。これはマウスオーバーの機能性のデモです。
-*　球をマウスでクリックしてドラッグすると、球はカーソルの動作に合わせてレベル内を移動します。モバイルデバイスのタッチイベントでも同様の動作をします。
-*　背景のボックスをクリックするとマチネシーケンスが開始および停止します。球の背後のボックスがあちこちへ移動します。
+* いずれかの球にマウスをかざすとマテリアルが変化します。これはマウスオーバーの機能のデモです。
+* 球をマウスでクリックしてドラッグすると、球はカーソルの動作に合わせてレベル内を移動します。モバイルデバイスの touch event でも同様の動作をします。
+* 背景のボックスをクリックするとマチネ シーケンスが開始および停止します。球の背後のボックスがあちこちへ移動します。
 
 
 
@@ -123,12 +127,4 @@ Description:マウス インタラクションの概要と分類
 [/REGION]
 
 
-
-## 関連トピック
-
-* [](Engine/Blueprints)
-* [](Engine/Blueprints\Editor)
-* [](Engine/Blueprints\Editor\Modes\Components)
-* [](Engine/Blueprints\Editor\Modes\Defaults)
-* [](Engine/Blueprints\Editor\Modes\GraphPanel)
 

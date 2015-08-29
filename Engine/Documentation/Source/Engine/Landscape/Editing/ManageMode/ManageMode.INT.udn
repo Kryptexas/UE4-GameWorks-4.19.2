@@ -26,8 +26,6 @@ Description:Guide to the Landscape tool's Manage mode.
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 In **Manage** mode, you can create new Landscapes, and you can use the component tools to modify an existing Landscape's components. You can also select components and modify their properties in the Level Editor's **Details** panel.
 
 For information about creating Landscapes, see [](Engine/Landscape\Creation).

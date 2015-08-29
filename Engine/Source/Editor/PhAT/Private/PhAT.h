@@ -5,7 +5,7 @@
 #include "Toolkits/AssetEditorToolkit.h"
 #include "PhATSharedData.h"
 #include "EditorUndoClient.h"
-#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/BodySetupEnums.h"
 
 class SPhATPreviewViewport;
 class FPhATTreeInfo;
@@ -93,6 +93,8 @@ public:
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override;
 	// End of FTickableEditorObject interface
+
+	void OnFocusSelection();
 
 private:
 
@@ -230,7 +232,7 @@ private:
 	void OnToggleSwing1();
 	void OnToggleSwing2();
 	void OnToggleTwist();
-	void OnFocusSelection();
+	
 	void Mirror();
 
 	//menu commands
@@ -251,6 +253,9 @@ private:
 
 	/** Preview Viewport */
 	TSharedPtr<SPhATPreviewViewport> PreviewViewport;
+
+	/** Ticks until forcing viewport refresh */
+	int32 TickCountUntilViewportRefresh;
 
 	/** Properties Tab */
 	TSharedPtr<class IDetailsView> Properties;

@@ -58,7 +58,7 @@ void FAnimNode_Slot::Evaluate(FPoseContext & Output)
 			Source.Evaluate(SourceContext);
 		}
 
-		Output.AnimInstance->SlotEvaluatePose(SlotName, SourceContext.Pose, Output.Pose, SlotNodeWeight);
+		Output.AnimInstance->SlotEvaluatePose(SlotName, SourceContext.Pose, SourceContext.Curve, Output.Pose, Output.Curve, SlotNodeWeight);
 
 		checkSlow(!Output.ContainsNaN());
 		checkSlow(Output.IsNormalized());

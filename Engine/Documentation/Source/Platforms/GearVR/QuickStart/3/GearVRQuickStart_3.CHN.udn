@@ -1,0 +1,68 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:3. Gear VR Project Packaging & Deployment
+Crumbs:%ROOT%, Platforms/GearVR
+Description:Instructions on how to deploy projects form UE4 to use with the Samsung Gear VR Headset.
+Navigation:platform
+Platform:Gear VR
+Related: Platforms\GearVR\Prerequisites
+Related: Platforms\GearVR\BestPractices
+Related: Platforms\GearVR\Debugging
+Skilllevel: Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[Previous Step](Platforms/GearVR/QuickStart/2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/GearVR/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+1. First make sure that your Samsung Galaxy Note 4 Smartphone is connected to a USB cord and plugged into a USB port on the PC you are developing on.
+
+1. Next start the packaging process by going to the **Main Toolbar** and selecting **File** > **Package Project** > **Android** > **Android ETC 2**.
+
+	![](GVR_Deploy_To_Android.png)
+
+1. Once you click on the **Android ETC 2** option, a Windows dialogue box will be displayed. From this dialogue box, select or create a folder to save your packaged project to and then press the **OK** button to begin the packaging process.
+
+	![](GVR_Save_Project.png)
+
+1. Depending on the size of your project, the packaging process could take a few minutes or a few hours to complete. 
+	When it is completed the folder that you selected/created to save the build to should now have three files in it and should look similar to the image below. 
+
+	![](GVR_Deployed_Files.png)
+
+1. Next, run the **.BAT** file which is located in the folder that the build was packaged to by **Double - Clicking** on it with your **Left Mouse Button**.
+	Once you run the .BAT file, a command line window will be displayed that shows the current progress of the deployment to your Smartphone.
+	When your project has been successfully deployed to your Smartphone, the command line window will shut itself down.
+	
+	![](GVR_Run_Bat_File.png)
+
+1. Once you run the .BAT file, a command line window will be displayed that will show you the deployment progress as well as any errors that may have occurred. 
+
+	![](GVR_Deployment_Window.png)
+
+	[region:note]
+	The command line window that is created when running the .BAT file will close down on it's own when it is completed. Closing this window manually could cause an issue with your deployment and should be avoided. 
+	[/region]
+
+1. Finally, after the command line window has closed, check your Smartphone for your newly created application which should use the same name used for your UE4 C++ project that it was created from.
+	Launch the application and then place your Smartphone into the Gear VR Headset.
+
+	![](GVR_On_Phone.png)
+
+
+%Steps%

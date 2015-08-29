@@ -6,7 +6,6 @@ Version: 4.5
 
 [TOC (start:2 end:2)]
 
-## Overview
 Marking classes, properties, and functions with the appropriate macros turns them into UClasses, UProperties, and UFunctions. This gives Unreal Engine access to them, which allows for a 
 number of under-the-hood handling features to be implemented.
 

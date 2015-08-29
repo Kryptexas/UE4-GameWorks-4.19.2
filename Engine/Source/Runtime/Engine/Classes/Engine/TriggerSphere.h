@@ -6,8 +6,8 @@
 #include "TriggerSphere.generated.h"
 
 /** A sphere shaped trigger, used to generate overlap events in the level */
-UCLASS(MinimalAPI)
-class ATriggerSphere : public ATriggerBase
+UCLASS()
+class ENGINE_API ATriggerSphere : public ATriggerBase
 {
 	GENERATED_UCLASS_BODY()
 

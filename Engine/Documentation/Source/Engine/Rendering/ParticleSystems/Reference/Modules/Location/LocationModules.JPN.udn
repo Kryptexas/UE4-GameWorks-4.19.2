@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2283214
+﻿INTSourceChangelist:2535875
 Availability:Public
 Title:Locationモジュール
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -19,8 +19,8 @@ Initial Location モジュールは、スポーン時にパーティクルの初
 | プロパティ | 説明 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Start Location** | パーティクルを放出させる位置を示すベクター分布です。エミッタ―に相対的な位置です。パーティクルのスポーン時に EmitterTime に基づいて値を読み出します。|
-|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が100単位の長さのラインを定義した場合、この値に2を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
+|**Start Location** | パーティクルを放出させる位置を示すベクター分布です。エミッターに相対的な位置です。パーティクルのスポーン時に EmitterTime に基づいて値を読み出します。|
+|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が 100 単位の長さのラインを定義した場合、この値に 2 を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
 |**Distribute Threshold**| _Distribute over NPoints_ が非ゼロな数値に設定されると、均等間隔なポイントから放出されるパーティクルの割合を提供します。例えば値 1 は、全パーティクルをこれらのポイントから放出します。値 0.5 は、パーティクルの半分をこれらのポイントから放出しながら、残りの半分をランダムにスポーンします。|
 
 スポーン時は、モジュールは現在のエミッタ時間を利用して分布から適切な値を読み出します。パーティクルエミッタに _Use Local Space_ フラグが無い場合、値はワールド空間へ変換されます。その後「Particle.Location」フィールドにこの値が追加されます。
@@ -35,8 +35,8 @@ Initial Loc (Seeded) モジュールは、スポーン時にパーティクル�
 |[REGION:tablesection]RandomSeed[/REGION]||
 |**Random Seed Info** | このモジュールのプロパティの「ランダム」値の選択に使用するランダムシード。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Location[/REGION]||
-|**Start Location** | パーティクルを放出させる位置を示すベクター分布です。エミッタ―に相対的な位置です。パーティクルのスポーン時に EmitterTime に基づいて値を読み出します。|
-|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が100単位の長さのラインを定義した場合、この値に2を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
+|**Start Location** | パーティクルを放出させる位置を示すベクター分布です。エミッターに相対的な位置です。パーティクルのスポーン時に EmitterTime に基づいて値を読み出します。|
+|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が 100 単位の長さのラインを定義した場合、この値に 2 を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
 |**Distribute Threshold**| _Distribute over NPoints_ が非ゼロな数値に設定されると、均等間隔なポイントから放出されるパーティクルの割合を提供します。例えば値 1 は、全パーティクルをこれらのポイントから放出します。値 0.5 は、パーティクルの半分をこれらのポイントから放出しながら、残りの半分をランダムにスポーンします。|
 
 
@@ -53,14 +53,14 @@ World Offset モジュールは、パーティクルの初期位置のオフセ�
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
 |**Start Location** | パーティクルが使用するワールド空間オフセットを示すベクター分布です。パーティクルのスポーン時に EmitterTime に基づいて値を読み出します。|
-|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が100単位の長さのラインを定義した場合、この値に2を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
+|**Distribute over NPoints**|値が非ゼロな数値に設定されると、パーティクルを放出する均等な分布と並行して等間隔なポイント数を提供します。例えば分布の最少と最大値が 100 単位の長さのラインを定義した場合、この値に 2 を設定すると、パーティクルは実際の最少および最大値の位置のみから放出されて、中間からは放出されません。|
 |**Distribute Threshold**| _Distribute over NPoints_ が非ゼロな数値に設定されると、均等間隔なポイントから放出されるパーティクルの割合を提供します。例えば値 1 は、全パーティクルをこれらのポイントから放出します。値 0.5 は、パーティクルの半分をこれらのポイントから放出しながら、残りの半分をランダムにスポーンします。|
 
 
 
 ### Bone/Socket Locationモジュール
 
-Bone/Socket Locationモジュールは、スケルタルメッシュのボーン、またはソケット位置から直接パーティクルのスポーンを有効にします。このモジュールは以下のプロパティを提供します：
+Bone/Socket Locationモジュールは、スケルタルメッシュのボーン、またはソケット位置から直接パーティクルのスポーンを有効にします。このモジュールは以下のプロパティを提供します。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -71,7 +71,7 @@ Bone/Socket Locationモジュールは、スケルタルメッシュのボーン
 |**Selection Method** | _Source Locations_ 配列から選択されるボーンまたはソケットのメソッドです。[INCLUDE:#BoneSelMethod]|
 |**Update Position Each Frame** | _true_ の場合、パーティクル位置は、各フレームのボーンまたはソケットの位置へ更新されます。|
 |**Orient Mesh Emitters** | _true_ の場合、メッシュエミッタから放出されたメッシュパーティクルは、ボーンまたはソケットソースへ向けられます。|
-|**Skel Mesh Actor Param Name** | ゲーム内で使用するスケルタルメッシュコンポーネントを提供する、SkeletalMeshActorを指定したインスタンスパラメータの名前です。|
+|**Skel Mesh Actor Param Name** | ゲーム内で使用するスケルタルメッシュコンポーネントを提供する、SkeletalMeshActorを指定したインスタンス パラメータの名前です。|
 |**Editor Skel Mesh** | プレビュー目的で、エディタで使用するスケルタルメッシュを指定します。|
 
 
@@ -122,7 +122,7 @@ Direct Location モジュールは、パーティクル位置を直接設定す�
 | プロパティ | 説明 |
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
-|**Location** | 一時にパーティクル位置が与えられたベクター分布です。値はパーティクルの RelativeTime に基づいて取得します。パーティクル位置はこの値に設定されていることに留意してください。従って、旧モジュールに対するこれまでの上書きは全て影響を与えます。|
+|**Location** | 一時にパーティクルの位置を与えるベクター分布です。値はパーティクルの RelativeTime に基づいて取得します。パーティクル位置はこの値に設定されていることに留意してください。従って、旧モジュールに対するこれまでの上書きは全て影響を与えます。|
 |**Location Offset** | 位置から適用するためにオフセットが与えられたベクター分布は、Location演算から取得します。オフセットは EmitterTime を使用して取得します。アクタなどにスクリプトコードで設定されたロケーションフィールドの使用や、ランダムな LocationOffset をオブジェクト周りでオフセットする際に実用的です。パーティクルの存続期間を通じて、オフセットは一定のままです。|
 |**Scale Factor** | タイムラインの任意の時点で、オブジェクトのベロシティのスケーリングを有効にするベクター分布です。パーティクルが追跡していたパスに適合させるため、パーティクルのワープを有効にします。|
 | **Direction** | 現在は使用していません。 |
@@ -152,7 +152,7 @@ Emitter InitLocモジュールは、パーティクルの初期位置を別の�
 [REGION:simpletable]
 |**メソッド**|**説明**|
 | --- | --- |
-|_ELESM_Random_|ソースエミッタからパーティクルをランダムに選択ます。|
+|_ELESM_Random_|ソースエミッタからパーティクルをランダムに選択します。|
 |_ELESM_Sequential_|ソースエミッタから各パーティクルを順番にステップ実行します。|
 [/REGION]
 [/EXCERPT:InitLocSelMethod]
@@ -261,13 +261,13 @@ Sphere (Seeded) モジュールは、球体形状内にパーティクルの初�
 | プロパティ | 説明 |
 | ---- | ---- |
 ||[REGION:tablesection]RandomSeed[/REGION]||
-|**Random Seed Info** | このモジュールのプロパティの「ランダム」値の選択に使用するランダムシード。values for this module's properties.[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
+|**Random Seed Info** | このモジュールのプロパティの「ランダム」値の選択に使用するランダムシード。[INCLUDE:Engine/Rendering/ParticleSystems/Reference#RandomSeedInfo]|
 |[REGION:tablesection]Location[/REGION]||
 |**Start Radius** | 球体の半径を示す浮動小数点分布です。|
 |**Positive_X, Positive_Y, Positive_Z, Negative_X, Negative_Y, Negative_Z** | パーティクルのスポーンに有効な軸を示す Boolean 値です。|
 |**Surface Only** | パーティクルはプリミティブのサーフェスのみでスポーンされなくてはいけないことを示す Boolean 値です。|
 |**Velocity** | パーティクルはプリミティブにおける位置からベロシティを取得しなくてはいけないことを示す Boolean 値です。|
-|**Velocity Scale** | ベロシティに適用しなくてはいけないスケーリングを示す浮動小数点分布です。Velocity 値がチェックされている（_true_）時のみ使用します。|
+|**Velocity Scale** | ベロシティに適用しなくてはいけないスケーリングを示す浮動小数点分布です。Velocity値がチェックされている (_true_) 時のみ使用します。|
 |**Start Location** | 境界プリミティブの位置を示すベクター分布です。エミッター位置に相対的な位置です。|
 
 
@@ -283,14 +283,14 @@ Triangle モジュールは、トライアングル形状と位置の指定を�
 | ---- | ---- |
 |[REGION:tablesection]Location[/REGION]||
 |**Start Offset**|トライアングル位置のオフセットを定義するベクター分布です。|
-|**Height**|トライアングルの足の長さを定義する浮動小数点分布です。|
-|**Angle**|主要な足と斜辺間の角度を提供する浮動小数点分布です。 |
+|**Height**|トライアングルの斜辺以外の辺の長さを定義する浮動小数点分布です。|
+|**Angle**|主要な斜辺以外の辺と斜辺間の角度を提供する浮動小数点分布です。 |
 |**Thickness**|トライアングルの厚みを示す浮動小数点分布です。3D くさびに変化します。パーティクルは 3D 領域から放出されます。|
 
 
 ### Skeletal Mesh Vertex/Surface Location（Skel Vert/Surf Loc）モジュール
 
-Skel Vert/Surf Loc モジュールは、スケルタルメッシュの頂点、または多角形サーフェスから放出するパーティクルを有効にします。このモジュールは以下のプロパティを提供します：
+Skel Vert/Surf Loc モジュールは、スケルタルメッシュの頂点、または多角形サーフェスから放出するパーティクルを有効にします。このモジュールは以下のプロパティを提供します。
 
 | プロパティ | 説明 |
 | ---- | ---- |
@@ -300,7 +300,7 @@ Skel Vert/Surf Loc モジュールは、スケルタルメッシュの頂点、�
 |**Update Position Each Frame** | _true_ の場合、パーティクル位置は、各フレームの頂点またはサーフェス位置へ更新されます。|
 |**Orient Mesh Emitters** | _true_ の場合、メッシュエミッタに放出されたメッシュパーティクルは、頂点またはサーフェスソースへ向けられます。|
 |**Inherit Bone Velocity** | _true_ の場合、パーティクルは関連ボーンのベロシティをスポーン時に継承します。|
-|**Skel Mesh Actor Param Name** | ゲーム内で使用するスケルタルメッシュコンポーネントを提供する、SkeletalMeshActorを指定したインスタンスパラメータの名前です。|
+|**Skel Mesh Actor Param Name** | ゲーム内で使用するスケルタルメッシュコンポーネントを提供する、SkeletalMeshActorを指定したインスタンス パラメータの名前です。|
 |**Editor Skel Mesh** | プレビュー目的で、エディタで使用するスケルタルメッシュを指定します。|
 |**Valid Associated Bones** | パーティクルをスポーンするために頂点/サーフェスが関連付け（スキンのウエイト付け）されなくてはいけないスケルタルメッシュ上のサーフェスボーンの配列です。[INCLUDE:#VertSourceLoc]|
 |**Enforce Normal Check** | _true_ の時、_Normal to Compare_ と _Normal Check Tolerance Degree_ フィールドは、サーフェスにパーティクル放出用の適切な法線が存在するかどうか確認しなくてはいけません。上に向いたメッシュのサーフェスから煙や炎を放出させたい場面などには実用的ですが、下に向いたメッシュのサーフェスには実用的ではありません。|
@@ -335,9 +335,9 @@ Skel Vert/Surf Loc モジュールは、スケルタルメッシュの頂点、�
 
 
 
-###Source Movementモジュール
+###Source Movement モジュール
 
-Source Movementモジュールはソースの移動に基づいて、パーティクル位置をオフセットするために使用します（例：エミッタ）。以下のメンバーが含まれます。
+Source Movement モジュールはソースの移動に基づいて、パーティクル位置をオフセットするために使用します（例：エミッタ）。以下のメンバーが含まれます。
 
 | プロパティ | 説明 |
 | ---- | ---- |

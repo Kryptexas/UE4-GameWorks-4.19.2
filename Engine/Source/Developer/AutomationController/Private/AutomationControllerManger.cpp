@@ -127,6 +127,7 @@ void FAutomationControllerManager::Init()
 	bTestResultsAvailable = false;
 	bScreenshotsEnabled = true;
 	bRequestFullScreenScreenshots = false;
+	bPrintResults = false;
 
 	// Update the ini with the settings
 	bTrackHistory = false;
@@ -223,7 +224,10 @@ void FAutomationControllerManager::ExecuteNextTask( int32 ClusterIndex, OUT bool
 						for (int32 AddressIndex = 0; AddressIndex < DeviceAddresses.Num(); ++AddressIndex)
 						{
 							FAutomationTestResults TestResults;
+
+							GLog->Logf(ELogVerbosity::Display, TEXT("Running Automation: '%s' (Class Name: '%s')"), *TestsRunThisPass[AddressIndex]->GetDisplayName(), *TestsRunThisPass[AddressIndex]->GetCommand());
 							TestResults.State = EAutomationState::InProcess;
+
 							TestResults.GameInstance = DeviceClusterManager.GetClusterDeviceName( ClusterIndex, DeviceIndex );
 							NextTest->SetResults( ClusterIndex,CurrentTestPass, TestResults );
 							NextTest->ResetNetworkCommandResponses();
@@ -630,7 +634,7 @@ void FAutomationControllerManager::HandleRequestTestsReplyMessage( const FAutoma
 
 	FAutomationTestInfo NewTest(Message.TestInfo);
 	TestInfo.Add(NewTest);
-
+	
 	if (TestInfo.Num() == NumOfTestsToReceive)
 	{
 		SetTestNames(Context->GetSender());
@@ -664,6 +668,30 @@ void FAutomationControllerManager::HandleRunTestsReplyMessage( const FAutomation
 		check(Report.IsValid());
 
 		Report->SetResults(ClusterIndex,CurrentTestPass, TestResults);
+
+		if (bPrintResults)
+		{
+			for (TArray<FString>::TConstIterator ErrorIter(Message.Errors); ErrorIter; ++ErrorIter)
+			{
+				GLog->Logf(ELogVerbosity::Error, TEXT("%s"), **ErrorIter);
+			}
+			for (TArray<FString>::TConstIterator WarningIter(Message.Warnings); WarningIter; ++WarningIter)
+			{
+				GLog->Logf(ELogVerbosity::Warning, TEXT("%s"), **WarningIter);
+			}
+			for (TArray<FString>::TConstIterator LogItemIter(Message.Logs); LogItemIter; ++LogItemIter)
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("%s"), **LogItemIter);
+			}
+			if (TestResults.State == EAutomationState::Success)
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Succeeded (%s)"), *Report->GetDisplayName());
+			}
+			else
+			{
+				GLog->Logf(ELogVerbosity::Log, TEXT("...Automation Test Failed (%s)"), *Report->GetDisplayName());
+			}
+		}
 
 		// Device is now good to go
 		DeviceClusterManager.SetTest(ClusterIndex, DeviceIndex, NULL);

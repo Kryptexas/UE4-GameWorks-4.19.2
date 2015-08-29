@@ -47,13 +47,6 @@ namespace AutomationEditorCommonUtils
 	}
 
 	/**
-	* Converts a package path to an asset path
-	*
-	* @param PackagePath - The package path to convert
-	*/
-	FString ConvertPackagePathToAssetPath(const FString& PackagePath);
-
-	/**
 	* Imports an object using a given factory
 	*
 	* @param ImportFactory - The factory to use to import the object
@@ -154,6 +147,14 @@ namespace AutomationEditorCommonUtils
 	* @param InDeviceName - Device Name 
 	*/
 	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName, const FString& InDeviceName);
+
+	/**
+	* Sets the first found ortho viewport camera to the desired location and rotation.
+
+	* @param ViewLocation - Desired location for the viewport view.
+	* @param ViewRotation - Desired rotation of the viewport view.
+	*/
+	bool SetOrthoViewportView(const FVector& ViewLocation, const FRotator& ViewRotation);
 }
 
 
@@ -242,6 +243,21 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FDeleteDirCommand, FString, InFol
 class FEditorAutomationTestUtilities
 {
 public:
+	
+	/**
+	* Converts a package path to an asset path
+	*
+	* @param PackagePath - The package path to convert
+	*/
+	UNREALED_API static FString ConvertPackagePathToAssetPath(const FString& PackagePath);
+
+	/**
+	* Gets the asset data from a package path
+	*
+	* @param PackagePath - The package path used to look up the asset data
+	*/
+	UNREALED_API static FAssetData GetAssetDataFromPackagePath(const FString& PackagePath);
+
 	/**
 	* Loads the map specified by an automation test
 	*

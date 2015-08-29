@@ -35,7 +35,10 @@ protected:
 
 	TSharedPtr<IPropertyHandle> PropTraceMode;
 	TSharedPtr<IPropertyHandle> PropTraceShape;
+	TSharedPtr<IPropertyHandle> PropTraceChannel;
+	TSharedPtr<IPropertyHandle> PropTraceChannelSerialized;
 
+	void OnTraceChannelChanged();
 	void OnTraceModeChanged(int32 Index);
 	TSharedRef<SWidget> OnGetTraceModeContent();
 	FText GetCurrentTraceModeDesc() const;

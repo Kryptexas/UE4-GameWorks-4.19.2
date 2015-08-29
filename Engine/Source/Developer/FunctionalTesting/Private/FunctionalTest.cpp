@@ -26,8 +26,6 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	if (SpriteComponent)
 	{
 		SpriteComponent->bHiddenInGame = false;
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
 #if WITH_EDITORONLY_DATA
 
 		if (!IsRunningCommandlet())
@@ -190,7 +188,8 @@ void AFunctionalTest::CleanUp()
 //@todo add "warning" level here
 void AFunctionalTest::LogMessage(const FString& Message)
 {
-	UE_VLOG(this, LogFunctionalTest, Warning
+	UFunctionalTestingManager::AddLogItem(FText::FromString(Message));
+	UE_VLOG(this, LogFunctionalTest, Log
 		, TEXT("%s> %s")
 		, *GetActorLabel(), *Message);
 }

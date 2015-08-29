@@ -282,7 +282,7 @@ public:
 							Collector.RegisterOneFrameMaterialProxy(SolidMaterialInstance);
 
 							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, DrawColor, /*Material=*/SolidMaterialInstance, false, /*bSolid=*/ true, UseEditorDepthTest(), ViewIndex, Collector);
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, DrawColor.ToFColor(true), /*Material=*/SolidMaterialInstance, false, /*bSolid=*/ true, UseEditorDepthTest(), ViewIndex, Collector);
 						}
 					}
 					// WIREFRAME
@@ -320,7 +320,7 @@ public:
 							// If not, use the body setup for wireframe
 						{
 							FTransform GeomTransform(GetLocalToWorld());
-							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()), /* Material=*/ NULL, false, /* bSolid=*/ false, UseEditorDepthTest(), ViewIndex, Collector);
+							BodySetup->AggGeom.GetAggGeom(GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()).ToFColor(true), /* Material=*/ NULL, false, /* bSolid=*/ false, UseEditorDepthTest(), ViewIndex, Collector);
 						}
 
 					}
@@ -458,9 +458,9 @@ UBrushComponent::UBrushComponent(const FObjectInitializer& ObjectInitializer)
 	AlwaysLoadOnClient = false;
 	AlwaysLoadOnServer = false;
 	bUseAsOccluder = true;
-	bRequiresCustomLocation = true;
 	bUseEditorCompositing = true;
 	bCanEverAffectNavigation = true;
+	PrePivot_DEPRECATED = FVector::ZeroVector;
 }
 
 FPrimitiveSceneProxy* UBrushComponent::CreateSceneProxy()
@@ -518,27 +518,6 @@ FBoxSphereBounds UBrushComponent::CalcBounds(const FTransform& LocalToWorld) con
 	}
 }
 
-FVector UBrushComponent::GetCustomLocation() const
-{
-	const FVector LocationWithPivot = ComponentToWorld.GetLocation();
-	const FVector LocationNoPivot = LocationWithPivot + ComponentToWorld.TransformVector(PrePivot);
-
-	return LocationNoPivot;
-}
-
-FTransform UBrushComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
-{
-	FTransform CompToWorld = Super::CalcNewComponentToWorld(NewRelativeTransform, Parent);
-
-	const FVector LocationNoPivot = CompToWorld.GetLocation();
-	const FVector LocationWithPivot = LocationNoPivot + CompToWorld.TransformVector(-PrePivot);
-
-	CompToWorld.SetLocation(LocationWithPivot);
-
-	return CompToWorld;
-}
-
-
 void UBrushComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const
 {
 #if WITH_EDITOR
@@ -566,6 +545,17 @@ void UBrushComponent::PostLoad()
 	{
 		BrushBodySetup->bGenerateMirroredCollision = false;
 	}
+
+#if WITH_EDITOR
+	AActor* Owner = GetOwner();
+
+	if (Owner)
+	{
+		AddRelativeLocation(GetComponentTransform().TransformVector(-PrePivot_DEPRECATED));
+		Owner->SetPivotOffset(PrePivot_DEPRECATED);
+		PrePivot_DEPRECATED = FVector::ZeroVector;
+	}
+#endif
 }
 
 

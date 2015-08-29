@@ -132,7 +132,7 @@ void FWindowsPlatformStackWalkExt::GetExeFileVersionAndModuleList( FCrashModuleI
 		// Get the full path of the module name
 		TCHAR ModuleName[MAX_PATH] = {0};
 		Symbol->GetModuleNameStringWide( DEBUG_MODNAME_IMAGE, ModuleIndex, ModuleBase, ModuleName, MAX_PATH, NULL );
-
+		
 		const FString RelativeModuleName = ExtractRelativePath( TEXT( "binaries" ), ModuleName );
 		// Get the exe, which we extract the version number, so we know what label to sync to
 		if (RelativeModuleName.Len() > 0 && RelativeModuleName.EndsWith( TEXT( ".exe" ) ))

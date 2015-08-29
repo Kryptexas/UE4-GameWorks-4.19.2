@@ -212,7 +212,6 @@ public:
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = IsShown(View) && bVisible;
 		Result.bOpaqueRelevance = true;
-		Result.bNormalTranslucencyRelevance = false;
 		Result.bDynamicRelevance = true;
 		Result.bShadowRelevance = IsShadowCast(View);
 		Result.bEditorPrimitiveRelevance = UseEditorCompositing(View);

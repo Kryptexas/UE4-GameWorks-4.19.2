@@ -1,0 +1,44 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:VR Cheat Sheet
+Crumbs:%ROOT%, Platforms, Platforms/VR
+Description:Quick tips and hints for VR development
+Navigation:platform
+
+
+[TOC(start:2)]
+
+## Keyboard Shortcuts
+
+| Shortcut | Description |
+| --------| -------------|
+| **Control+R** | Resets your view during gameplay. This can be helpful right when you begin gameplay, in case you launch the game before putting on your headset.|
+| **Alt+Enter** | Toggle VR Mode. This makes the standalone game preview window full screen and stereo mode, and sends the game display to the headset.|
+
+## Running A Standalone Game
+
+To show your game on the VR headset, you can use **Play In Editor**'s standalone mode.  However, to get even better performance, you can run the game separately from the editor.
+
+Using the console, or creating a shortcut for `UE4Editor.exe`, supply the following arguments:
+	
+	UE4Editor.exe [MyProject] [MyMap] -game
+
+[REGION:tip]
+Note that [MyProject] needs to be the absolute or relative path to your `.uproject` file.
+[/REGION]
+
+## Useful VR Console Commands
+
+UE4 provides many useful [Console Commands](https://docs.unrealengine.com/latest/INT/GettingStarted/RunningUnrealEngine/index.html#usefulin-gamecommands) 
+that can help in debugging any issues that you might run into when using a VR device. Here is a list of some of the most common commands that you might use. 
+
+| Command | Description |
+| ------- | ----------- |
+| `Stereo Show` | Prints a list of settings to the log. |
+| `Stereo On/Off` | Enables or Disables stereo rendering for Head Mounted Display (HMD) devices. |
+| `Stereo Reset` | Resets Inter-Pupillary Distance (IPD) and clears IPD and Stereo overrides. |
+| `HMD [Enable|Disable]` | Enable or Disable the HMD device. |
+| `HMD sp [30-3oka00]` | Set the screen percentage. Use a higher number for better quality, and a lower one for better performance. |
+| `HMD Vsync [On|Off|Reset]` | Control or reset Vsync on your VR device. |
+| `Ovrversion` | Print LibOVR version and build date to the log. |
+

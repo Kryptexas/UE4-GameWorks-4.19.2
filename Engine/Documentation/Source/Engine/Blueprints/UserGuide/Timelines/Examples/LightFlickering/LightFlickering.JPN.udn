@@ -1,11 +1,7 @@
-﻿INTSourceChangelist:2107232
-Availability:Public
+﻿Availability:Public
 Title:点滅ライト
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/Timelines
 Description:色も変わる点滅ライトをセットアップするタイムラインの使用例。
-
-
-## 概要 
 
 %Description%
 

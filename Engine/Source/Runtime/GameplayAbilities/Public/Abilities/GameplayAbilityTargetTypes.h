@@ -259,6 +259,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 	: LocationType(EGameplayAbilityTargetingLocationType::LiteralTransform)
 	, SourceActor(nullptr)
 	, SourceComponent(nullptr)
+	, SourceAbility(nullptr)
 	{
 	};
 
@@ -318,6 +319,10 @@ public:
 	/** Socket-based targeting requires a skeletal mesh component to check for the named socket. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
 	UMeshComponent* SourceComponent;
+
+	/** Ability that will be using the targeting data */
+	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
+	UGameplayAbility* SourceAbility;
 
 	/** If SourceComponent is valid, this is the name of the socket transform that will be used. If no Socket is provided, SourceComponent's transform will be used. */
 	UPROPERTY(BlueprintReadWrite, meta = (ExposeOnSpawn = true), Category = Targeting)
@@ -418,7 +423,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 	FGameplayAbilityTargetingLocationInfo SourceLocation;
 
 	/** Rather than targeting a single point, this type of targeting selects multiple actors. */
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Targeting)
+	UPROPERTY(EditAnywhere, Category = Targeting)
 	TArray<TWeakObjectPtr<AActor> > TargetActorArray;
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const override

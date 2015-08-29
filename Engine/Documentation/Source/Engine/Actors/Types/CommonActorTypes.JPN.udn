@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2371071
+﻿INTSourceChangelist:2602426
 Availability:Public
 Title:一般的なアクタ タイプ
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -25,28 +25,28 @@ Description:レベルで使用する一般的なアクタの種類のリスト�
 %playlistnav%
 
 
-ユーザーがアクタを理解し、実際の作業での使用方法に習熟するように、最も一般に使用するアクタ 
+ユーザーがアクタを理解し、実際の作業での使用方法に習熟するように、ごく一般的に使用するアクタ 
 またはアンリアル エンジンでゲームの開発中に扱うことがあるアクタタイプの要約を以下に示します。
 
 [REGION:class_icons]
 | タイプ | アイコン | 説明 |
 | ---- | ---- | ----------- |
 | [REGION:tablesection]メッシュ & ジオメトリ アクタのタイプ[/REGION] |||
-| **StaticMeshActor** | ![](Shared/Icons/Source/ActorIcons/StaticMesh_40x.png)(convert:false) | **Static Mesh Actor** は単純なアクタタイプで、シーンのメッシュを表示します。アクタがスタティックであることを名前が暗示していますが (すなわち移動不可)、名前のスタティック部分はメッシュのタイプ、この例では使用中の StaticMesh を言及しています。これらのメッシュはスタティックであるため、ジオメトリは変更しません。実際のアクタは、プレイ中に別の方法で移動または修正することができます。これらのアクタはほとんどの場合 _ワールド ジオメトリ_ や、レベルの環境を作成する装飾メッシュとして使用します。詳細な利用法は、 [](Engine/Actors/StaticMeshActor) を参照してください。 |
-| **Brush** | ![](Shared/Icons/Source/ActorIcons/Brush_40x.png)(convert:false) | **Brush Actor** はアクタの基本タイプで、シーンにシンプルな3Dジオメトリを表示します。こうしたアクタは、レベルエディタの Geometry Editing モードで修正することができます。BrushActors (または単に _Brushes_ ) は一般的にゲームプレイをテストするために環境のプロトタイプを素早く作成したり、レベルをブロックするために使用します。 |
-| **SkeletalMeshActor** | ![](Shared/Icons/Source/ActorIcons/SkeletalMesh_40x.png)(convert:false) | **Skeletal Mesh Actor** はアニメートしたメッシュやスケルタルメッシュを表示するアクタのタイプです。これらのジオメトリは、外部の3Dアニメーションアプリケーションで作成して、エクスポートされたアニメーションシーケンス経由で変形することができます。これらアクタは、通常はキャラクターやその他の生き物および複雑な機械など、複雑な動きを変形または表示する必要があるものに使用します。シネマティック シーケンスの作成にマチネと併用されることも多くあります。 |
+| **StaticMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/StaticMesh_40x.png)(convert:false) | **Static Mesh アクタ** は単純なアクタタイプで、シーンのメッシュを表示します。アクタがスタティックであることを名前が暗示していますが (すなわち移動不可)、名前のスタティック部分はメッシュのタイプ、この例では使用中のスタティックメッシュを言及しています。これらのメッシュはスタティックであるため、ジオメトリは変更しません。実際のアクタは、プレイ中に別の方法で移動または修正することができます。これらのアクタはほとんどの場合 _ワールド ジオメトリ_ や、レベルの環境を作成する装飾メッシュとして使用します。詳細な利用法は、 [](Engine/Actors/StaticMeshActor) を参照してください。 |
+| **Brush** | ![](Shared/Icons/Source/ActorIcons/Brush_40x.png)(convert:false) | **Brush アクタ** はアクタの基本タイプで、シーンにシンプルな 3D ジオメトリを表示します。こうしたアクタは、レベルエディタの Geometry Editing モードで修正することができます。BrushActors (または単に _Brushes_ ) は一般的にゲームプレイをテストするために環境のプロトタイプを素早く作成したり、レベルをブロックするために使用します。 |
+| **SkeletalMesh アクタ** | ![](Shared/Icons/Source/ActorIcons/SkeletalMesh_40x.png)(convert:false) | **Skeletal Mesh アクタ** はアニメートしたメッシュやスケルタルメッシュを表示するアクタのタイプです。これらのジオメトリは、外部の 3D アニメーションアプリケーションで作成して、エクスポートされたアニメーションシーケンス経由で変形することができます。これらアクタは、通常はキャラクターやその他の生き物および複雑な機械など、複雑な動きを変形または表示する必要があるものに使用します。シネマティック シーケンスの作成にマチネと併用されることも多くあります。 |
 | [REGION:tablesection]ゲームプレイアクタのタイプ[/REGION] |||
 | **PlayerStart** | ![](Shared/Icons/Source/ActorIcons/PlayerStart_40x.png)(convert:false) | **Player Start** は、ゲームの開始時にプレイヤーがスタートする地点を指定するためにレベルへ配置するアクタです。 |
 | **Triggers** | ![](Shared/Icons/Source/icon_class_TriggerBox_40px.png)(convert:false) ![](Shared/Icons/Source/icon_class_TriggerCapsule_40px.png)(convert:false) ![](Shared/Icons/Source/icon_class_TriggerSphere_40px.png)(convert:false) | [INCLUDE:Engine/Actors/Triggers#intro] [INCLUDE:#trigger] 詳細な利用方法は [](Engine/Actors/Triggers) をご覧ください。 |
-| **MatineeActor** | ![](Shared/Icons/Source/icon_class_MatineeActor_40px.png)(convert:false) | **Matinee Actors** は動的ゲームやゲーム内のシネマティック シーケンスのどちらかを作成するために、 **マチネ** アニメーションツールでアクタのプロパティのアニメートを時間が経つと有効にします。システムは特別なアニメーション トラックの使用に基づいています。アニメーション トラックには、アクタの特定プロパティ値をレベルに設定するためにキーフレームを配置することができます。マチネアニメーション ツールは、ビデオ編集に使用する非線形エディタと似ているため、ビデオの専門家には馴染みのあるツールです。詳細な利用法は、 [](Engine/Matinee) を参照してください。 |
+| **MatineeActor** | ![](Shared/Icons/Source/icon_class_MatineeActor_40px.png)(convert:false) | **Matinee アクタ** は動的ゲームやゲーム内のシネマティック シーケンスのどちらかを作成するために、 **マチネ** アニメーションツールでアクタのプロパティのアニメートを時間が経つと有効にします。システムは特別なアニメーション トラックの使用に基づいています。アニメーション トラックには、アクタの特定プロパティ値をレベルに設定するためにキーフレームを配置することができます。マチネ アニメーション ツールは、ビデオ編集に使用する非線形エディタと似ているため、ビデオの専門家には馴染みのあるツールです。詳細な利用法は、 [](Engine/Matinee) を参照してください。 |
 | [REGION:tablesection]ライトアクタのタイプ[/REGION] |||
 | **PointLight** | ![](Shared/Icons/Source/icon_class_PointLight_40px.png)(convert:false) | [INCLUDE:Engine/Rendering/LightingAndShadows/LightTypes/Point#intro] |
 | **SpotLight** | ![](Shared/Icons/Source/icon_class_SpotLight_40px.png)(convert:false) | [INCLUDE:Engine/Rendering/LightingAndShadows/LightTypes/Spot#intro] |
 | **DirectionalLight** | ![](Shared/Icons/Source/icon_class_DirectionalLight_40px.png)(convert:false) | [INCLUDE:Engine/Rendering/LightingAndShadows/LightTypes/Directional#intro] |
 | [REGION:tablesection]エフェクトアクタのタイプ[/REGION] |||
-| **ParticleEmitter** | ![](Shared/Icons/Source/ActorIcons/Emitter_40x.png)(convert:false) | **パーティクル エミッタ** は、スプライト (カメラに直面したプレーン) やメッシュ形状でパーティクルをスポーンすることにより、煙、火、スパークなどのエフェクト作成に使用するアクタです。パーティクルの実際の動作は、[Particle Systems](Engine/Rendering/ParticleSystems) と呼ばれる特別なアセットで定義および制御されています。パーティクル システムは [Content Browser](Engine/Content/Browser) で作成して、 [Cascade Particle Editor](Engine/Rendering/ParticleSystems/Cascade) で編集します。|
-| [REGION:tablesection]サウンドアクタのタイプ[/REGION] |||
-| **AmbientSound**  | ![](Shared/Icons/Source/icon_class_AmbientSound_40px.png)(convert:false) | **Ambient Sound Actors** はサウンドキュー形式で、ワールド内で音楽の再生に使用します。サウンドはループさせたり非ループにすることが可能で、サウンド空間化や音量減衰の設定も出来ますが、全ての設定は SoundCue で行い、Ambientt Sound アクタ自身に公開してはいけません。 |
+| **ParticleEmitter** | ![](Shared/Icons/Source/ActorIcons/Emitter_40x.png)(convert:false) | **パーティクル エミッタ** は、スプライト (カメラに直面したプレーン) やメッシュ形状でパーティクルをスポーンすることにより、煙、火、スパークなどのエフェクト作成に使用するアクタです。パーティクルの実際の動作は、 [パーティクル システム](Engine/Rendering/ParticleSystems) と呼ばれる特別なアセットで定義および制御されています。パーティクル システムは [コンテンツ ブラウザ](Engine/Content/Browser) で作成して、[カスケード パーティクル エディタ](Engine/Rendering/ParticleSystems/Cascade) で編集します。|
+| [REGION:tablesection]Sound アクタのタイプ[/REGION] |||
+| **AmbientSound**  | ![](Shared/Icons/Source/icon_class_AmbientSound_40px.png)(convert:false) | **Ambient Sound アクタ** はサウンドキュー形式で、ワールド内で音楽の再生に使用します。サウンドはループさせたり非ループにすることが可能で、サウンド空間化や音量減衰の設定も出来ますが、全ての設定は SoundCue で行い、Ambientt Sound アクタ自身に公開してはいけません。 |
 [/REGION]
 
 <!--

@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2504305
+﻿INTSourceChangelist:2600439
 Availability:Public
 Title:노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관된 게임플레이 이벤트에 반응하는 동작을 수행하는 노드 그래프입니다.
-
-## 개요
 
 
 **Node** (노드)란 그래프에서 사용할 수 있는 이벤트, 함수 호출, 흐름 제어 동작, 변수 등과 같은 오브젝트로,

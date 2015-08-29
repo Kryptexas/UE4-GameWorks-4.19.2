@@ -12,7 +12,8 @@ public:
 
 	/** Default Constructor */
 	FInternationalizationSettingsModelDetails()
-		:	RequiresRestart(false)
+		: RequiresRestart(false)
+		, IsMakingChangesToModel(false)
 	{
 	}
 
@@ -23,50 +24,57 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 private:
+	void UpdateInternalStateFromSettingsModel();
 
 	void OnSettingsChanged();
 
-	/** Prompt the user to restart the editor */
-	void PromptForRestart() const;
+	/** Look for available editor culture regions */
+	void RefreshAvailableEditorRegions();
 
-	/** Look for available cultures */
-	void RefreshAvailableCultures();
+	/** Delegate called to display the current editor language */
+	FText GetEditorCurrentLanguageText() const;
 
-	/** Look for available languages */
-	void RefreshAvailableLanguages();
+	/** Delegate called when the editor language selection has changed */
+	void OnEditorLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
 
-	/** Look for available regions */
-	void RefreshAvailableRegions();
+	/** Delegate called to display the current editor region */
+	FText GetCurrentEditorRegionText() const;
 
-	/** Delegate called to display the current language */
-	FText GetCurrentLanguageText() const;
+	/** Delegate called when the editor region selection has changed */
+	void OnEditorRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
+
+	/** Delegate called to see if we're allowed to change the region */
+	bool IsEditorRegionSelectionAllowed() const;
+
+	/** Look for available game culture regions */
+	void RefreshAvailableNativeGameRegions();
+
+	/** Delegate called to display the current native game language */
+	FText GetNativeGameCurrentLanguageText() const;
+
+	/** Delegate called when the native game language selection has changed */
+	void OnNativeGameLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
+
+	/** Delegate called to display the current native game region */
+	FText GetCurrentNativeGameRegionText() const;
+
+	/** Delegate called when the native game region selection has changed */
+	void OnNativeGameRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
+
+	/** Delegate called to see if we're allowed to change the region */
+	bool IsNativeGameRegionSelectionAllowed() const;
 
 	/** Generate a widget for the language combo */
 	TSharedRef<SWidget> OnLanguageGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const;
 
-	/** Delegate called when the language selection has changed */
-	void OnLanguageSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
-
 	/** Generate a widget for the region combo */
 	TSharedRef<SWidget> OnRegionGenerateWidget( FCulturePtr Culture, IDetailLayoutBuilder* DetailBuilder ) const;
-
-	/** Delegate called to display the current region */
-	FText GetCurrentRegionText() const;
-
-	/** Delegate called when the region selection has changed */
-	void OnRegionSelectionChanged( FCulturePtr Culture, ESelectInfo::Type SelectionType );
-
-	/** Delegate called to see if we're allowed to change the region */
-	bool IsRegionSelectionAllowed() const;
 
 	/** Delegate called to determine whether to collapse or display the restart row. */
 	EVisibility GetInternationalizationRestartRowVisibility() const;
 
 	/** Delegate called when the the checked state of whether or not field names should be localized has changed. */
 	void ShouldLoadLocalizedFieldNamesCheckChanged(ECheckBoxState CheckState);
-
-	/** Write to config now the Editor is shutting down (all packages are saved) */
-	void HandleShutdownPostPackagesSaved();
 
 	/** Delegate called when the the checked state of whether or not nodes and pins in graph editors should be localized has changed. */
 	void ShouldShowNodesAndPinsUnlocalized(ECheckBoxState CheckState);
@@ -75,28 +83,54 @@ private:
 	TWeakObjectPtr<UInternationalizationSettingsModel> Model;
 
 	/** The culture selected at present */
-	FCulturePtr SelectedCulture;
+	FCulturePtr SelectedEditorCulture;
 
 	/** The language selected at present */
-	FCulturePtr SelectedLanguage;
+	FCulturePtr SelectedEditorLanguage;
 
 	/** The cultures we have available to us */
-	TArray< FCulturePtr > AvailableCultures;
+	TArray< FCulturePtr > AvailableEditorCultures;
 
 	/** The languages we have available to us */
-	TArray< FCulturePtr > AvailableLanguages;
+	TArray< FCulturePtr > AvailableEditorLanguages;
 
 	/** The dropdown for the languages */
-	TSharedPtr<SComboBox< FCulturePtr > > LanguageComboBox;
+	TSharedPtr<SComboBox< FCulturePtr > > EditorLanguageComboBox;
 
 	/** The regions we have available to us */
-	TArray< FCulturePtr > AvailableRegions;
+	TArray< FCulturePtr > AvailableEditorRegions;
 
 	/** The dropdown for the regions */
-	TSharedPtr<SComboBox< FCulturePtr > > RegionComboBox;
+	TSharedPtr<SComboBox< FCulturePtr > > EditorRegionComboBox;
 
-	/** The check box for using localized field names */
-	TSharedPtr<SCheckBox> FieldNamesCheckBox;
+	/** The culture selected at present */
+	FCulturePtr SelectedNativeGameCulture;
+
+	/** The language selected at present */
+	FCulturePtr SelectedNativeGameLanguage;
+
+	/** The cultures we have available to us */
+	TArray< FCulturePtr > AvailableNativeGameCultures;
+
+	/** The languages we have available to us */
+	TArray< FCulturePtr > AvailableNativeGameLanguages;
+
+	/** The dropdown for the languages */
+	TSharedPtr<SComboBox< FCulturePtr > > NativeGameLanguageComboBox;
+
+	/** The regions we have available to us */
+	TArray< FCulturePtr > AvailableNativeGameRegions;
+
+	/** The dropdown for the regions */
+	TSharedPtr<SComboBox< FCulturePtr > > NativeGameRegionComboBox;
+
+	/** The check box for using localized property names */
+	TSharedPtr<SCheckBox> LocalizedPropertyNamesCheckBox;
+
+	/** The check box for showing nodes and pins unlocalized */
+	TSharedPtr<SCheckBox> UnlocalizedNodesAndPinsCheckBox;
 
 	bool RequiresRestart;
+
+	bool IsMakingChangesToModel;
 };

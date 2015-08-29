@@ -6,8 +6,8 @@
 #include "TriggerBox.generated.h"
 
 /** A box shaped trigger, used to generate overlap events in the level */
-UCLASS(MinimalAPI)
-class ATriggerBox : public ATriggerBase
+UCLASS()
+class ENGINE_API ATriggerBox : public ATriggerBase
 {
 	GENERATED_UCLASS_BODY()
 

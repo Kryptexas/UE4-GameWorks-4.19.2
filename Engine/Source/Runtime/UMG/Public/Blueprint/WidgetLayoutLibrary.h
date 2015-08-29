@@ -23,6 +23,14 @@ public:
 	static bool ProjectWorldLocationToWidgetPosition(APlayerController* PlayerController, FVector WorldLocation, FVector2D& ScreenPosition);
 
 	/**
+	 * Convert a World Space 3D position into a 2D Widget Screen Space position, with distance from the camera the Z component.  This
+	 * takes into account any quality scaling as well.
+	 *
+	 * @return true if the world coordinate was successfully projected to the screen.
+	 */
+	static bool ProjectWorldLocationToWidgetPositionWithDistance(APlayerController* PlayerController, FVector WorldLocation, FVector& ScreenPosition);
+
+	/**
 	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
 	 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))

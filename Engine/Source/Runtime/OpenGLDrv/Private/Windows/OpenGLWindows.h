@@ -390,7 +390,7 @@
 	ENUM_GL_ENTRYPOINTS_OPTIONAL(EnumMacro)
 
 /** Declare all GL functions. */
-#define DECLARE_GL_ENTRYPOINTS(Type,Func) extern Type Func;
+#define DECLARE_GL_ENTRYPOINTS(Type,Func) extern Type OPENGLDRV_API Func;
 ENUM_GL_ENTRYPOINTS_ALL(DECLARE_GL_ENTRYPOINTS);
 
 /** This function is handled separately because it is used to get a real context. */

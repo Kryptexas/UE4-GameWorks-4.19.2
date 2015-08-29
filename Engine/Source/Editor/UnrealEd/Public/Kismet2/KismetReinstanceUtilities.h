@@ -12,6 +12,16 @@ DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STA
 
 class FReinstanceFinalizer;
 
+struct UNREALED_API FRecreateUberGraphFrameScope
+{
+private:
+	TArray<UObject*> Objects;
+	UClass* Class;
+public:
+	FRecreateUberGraphFrameScope(UClass* InClass, bool bRecreate);
+	~FRecreateUberGraphFrameScope();
+};
+
 class UNREALED_API FBlueprintCompileReinstancer : public TSharedFromThis<FBlueprintCompileReinstancer>, public FGCObject
 {
 public:
@@ -75,8 +85,8 @@ public:
 	static void OptionallyRefreshNodes(UBlueprint* BP);
 
 	void ListDependentBlueprintsToRefresh(const TArray<UBlueprint*>& DependentBPs);
-	void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
-	void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
+	virtual void EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly);
+	virtual void BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly);
 
 	static TSharedPtr<FBlueprintCompileReinstancer> Create(UClass* InClassToReinstance, bool bIsBytecodeOnly = false, bool bSkipGC = false)
 	{

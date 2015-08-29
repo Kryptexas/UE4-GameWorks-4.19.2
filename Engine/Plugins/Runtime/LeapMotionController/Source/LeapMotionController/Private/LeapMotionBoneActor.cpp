@@ -16,7 +16,6 @@ ALeapMotionBoneActor::ALeapMotionBoneActor(const class FObjectInitializer& Objec
 
 	// Initialize root primitive component. It only serves as a reference point. Collision & visual meshes are offset from it.
 	USphereComponent* SphereComponent = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("RootSphereComponent"));
-	SphereComponent->SetSimulatePhysics(true);
 	SphereComponent->SetSphereRadius(0.001);
 	SphereComponent->SetPhysicsMaxAngularVelocity(7200.0f);
 	SphereComponent->SetCollisionProfileName(UCollisionProfile::CustomCollisionProfileName);
@@ -103,8 +102,8 @@ void ALeapMotionBoneActor::Init(ELeapBone LeapBone, float Scale, float Width, fl
 				Capsule->SetPhysicsMaxAngularVelocity(7200.0f);
 			}
 
-			UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(c);
-			UStaticMesh* StaticMesh = StaticMeshComponent ? StaticMeshComponent->StaticMesh : nullptr;
+			UStaticMeshComponent* NonRootStaticMeshComponent = Cast<UStaticMeshComponent>(c);
+			UStaticMesh* StaticMesh = NonRootStaticMeshComponent ? NonRootStaticMeshComponent->StaticMesh : nullptr;
 			if (StaticMesh)
 			{
 				FBoxSphereBounds Bounds = StaticMesh->GetBounds();
@@ -120,9 +119,9 @@ void ALeapMotionBoneActor::Init(ELeapBone LeapBone, float Scale, float Width, fl
 				{
 					ScaleX = 0.06125f * Scale * Width / Bounds.BoxExtent.X;
 				}
-				StaticMeshComponent->SetRelativeScale3D(FVector(ScaleX, ScaleY, ScaleZ));
-				StaticMeshComponent->AddLocalOffset(BoneOffset);
-				StaticMeshComponent->SetPhysicsMaxAngularVelocity(7200.0f);
+				NonRootStaticMeshComponent->SetRelativeScale3D(FVector(ScaleX, ScaleY, ScaleZ));
+				NonRootStaticMeshComponent->AddLocalOffset(BoneOffset);
+				NonRootStaticMeshComponent->SetPhysicsMaxAngularVelocity(7200.0f);
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 14. Build the Behavior Tree
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 14. Build the Behavior Tree
@@ -26,9 +26,19 @@ You should now have all the pieces needed to build this Behavior Tree:
 
 ![](fullTree.png)
 
+Let's break down what's going on.
+
+* The AI will just stand around if it hasn't detected a Pawn that isn't an AI Character.
+* The AgroCheck Service is constantly looking for a suitable target.
+* Once it finds one, the left most branch is open, and the AI runs towards the targeted Pawn.
+* Once it gets in range of that Pawn the branch is prevented from executing, thusly returning it to the top of the graph
+* If the desired Pawn hides, then the right most branch will be able to run, which causes the AI to move to the last know location of the desired Pawn.
+* Once there, it waits, then returns home.
+* At any time, if a suitable target is found, the right most branch will be forced to stop executing, and the left most branch will be opened.
+
 Let us step through the creation of this tree.
 
-## Walkthrough
+## Steps
 
 ### Basic Setup
 
@@ -142,3 +152,8 @@ And that is it! Leave the **Behavior Tree** editor open while using **Play in Ed
 ![](BTFinal.gif)(convert:false)
 
 %Steps%
+
+
+
+
+

@@ -8,22 +8,6 @@
 class IMediaPlayer;
 
 
-/**
- * Enumerates available media streaming modes.
- */
-UENUM()
-enum EMediaPlayerStreamModes
-{
-	/** Load media contents to memory before playing. */
-	MASM_FromMemory UMETA(DisplayName="FromMemory"),
-
-	/** Play media directly from the URL. */
-	MASM_FromUrl UMETA(DisplayName="FromUrl"),
-
-	MASM_MAX,
-};
-
-
 /** Multicast delegate that is invoked when a media player's media has been closed. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMediaPlayerMediaClosed);
 
@@ -64,6 +48,14 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool CanPlay() const;
+
+	/**
+	 * Close the currently open media, if any.
+	 *
+	 * @see OnMediaClosed, Open, Pause, Play
+	 */
+	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
+	void Close();
 
 	/**
 	 * Gets the media's duration.
@@ -142,7 +134,7 @@ public:
 	 *
 	 * @param NewUrl The URL to open.
 	 * @return true on success, false otherwise.
-	 * @see GetUrl
+	 * @see GetUrl, Close
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool OpenUrl( const FString& NewUrl );
@@ -153,7 +145,7 @@ public:
 	 * This is the same as setting the playback rate to 0.0.
 	 *
 	 * @return true if playback is being paused, false otherwise.
-	 * @see CanPause, Play, Rewind, Seek, SetRate
+	 * @see CanPause, Close, Play, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool Pause();
@@ -164,7 +156,7 @@ public:
 	 * This is the same as setting the playback rate to 1.0.
 	 *
 	 * @return true if playback is starting, false otherwise.
-	 * @see CanPlay, Pause, Rewind, Seek, SetRate
+	 * @see CanPlay, Close, Pause, Rewind, Seek, SetRate
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool Play();
@@ -175,7 +167,7 @@ public:
 	 * This is the same as seeking to zero time.
 	 *
 	 * @return true if rewinding, false otherwise.
-	 * @see GetTime, Pause, Play, Seek
+	 * @see GetTime, Close, Pause, Play, Seek
 	 */
 	UFUNCTION(BlueprintCallable, Category="Media|MediaPlayer")
 	bool Rewind();
@@ -247,6 +239,13 @@ public:
 		return MediaChangedEvent;
 	}
 
+	/** Gets an event delegate that is invoked when media tracks have changed. */
+	DECLARE_EVENT(UMediaPlayer, FOnTracksChanged)
+	FOnTracksChanged& OnTracksChanged()
+	{
+		return TracksChangedEvent;
+	}
+
 	/** Holds a delegate that is invoked when a media source has been closed. */
 	UPROPERTY(BlueprintAssignable, Category="Media|MediaPlayer")
 	FOnMediaPlayerMediaClosed OnMediaClosed;
@@ -290,21 +289,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category=Playback)
 	uint32 Looping:1;
 
-	/** Select where to stream the media from, i.e. file or memory. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Source)
-	TEnumAsByte<EMediaPlayerStreamModes> StreamMode;
-
 	/** The path or URL to the media file to be played. */
 	UPROPERTY(EditAnywhere, Category=Source)
 	FString URL;
 
 private:
 
-	/** Callback for when the media player has closed a media source. */
-	void HandleMediaPlayerMediaClosed();
+	/** Callback for when the player has closed a media source. */
+	void HandlePlayerMediaClosed();
 
-	/** Callback for when the media player has opened a new media source. */
-	void HandleMediaPlayerMediaOpened( FString OpenedUrl );
+	/** Callback for when the player has opened a new media source. */
+	void HandlePlayerMediaOpened( FString OpenedUrl );
+
+	/** Callback for when the player's tracks changed. */
+	void HandlePlayerTracksChanged();
 
 private:
 
@@ -318,4 +316,7 @@ private:
 
 	/** Holds a delegate that is executed when media has been opened or closed. */
 	FOnMediaChanged MediaChangedEvent;
+
+	/** Holds a delegate that is executed when media tracks have changed. */
+	FOnTracksChanged TracksChangedEvent;
 };

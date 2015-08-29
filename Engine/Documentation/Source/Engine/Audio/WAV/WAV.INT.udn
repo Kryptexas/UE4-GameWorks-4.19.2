@@ -48,14 +48,12 @@ Description:The basic requirements for getting sound files into Unreal Engine 4.
 
 [TOC (start:2 end:3)]
 
-## Overview
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](WAV_TitleIcon.png)(w:200 convert:false) 
 	[/PARAM]
 	[PARAM:description]
-	Unreal Engine 4's audio system provides tools and features to mold the sounds in the game to give them the desired feel. This all starts with your audio source files. Either as mono or stereo files, they can be quickly imported into Unreal Edtior 4 and begin breathing more life into your creations. Below are the basic requirements for your audio content and a quick import guide.
+	Unreal Engine 4's audio system provides tools and features to mold the sounds in the game to give them the desired feel. This all starts with your audio source files. Either as mono or stereo files, they can be quickly imported into Unreal Editor 4 and begin breathing more life into your creations. Below are the basic requirements for your audio content and a quick import guide.
 	[/PARAM]
 [/OBJECT]
 
@@ -94,28 +92,28 @@ Compression settings are tweaked to maintain similar quality across platforms. A
 
 In the **Content Browser**:
 
-1. Click the **New Asset** ![](CB_button_NewAsset.png) button.
-1. Select _Import_ from the menu.
-1. Select the .WAV file you wish to import.
+1.	 From the Content Browser, click the **Import** button (pictured below).
+	![](ImportButton_UI.png)
+1.	 Select the .WAV file you wish to import.
 
 Or
 
-1. Select your sound file in a Windows File Explorer window.
-1. Click and drag it into the **Content Browser** in Unreal Editor 4.
+1.	 Select your sound file in a Windows File Explorer window.
+1.	 Click and drag it into the **Content Browser** in Unreal Editor 4.
 
 ### Multichannel Import
 
 In the **Content Browser**:
 
-1. Click the **New Asset** ![](CB_button_NewAsset.png) button.
-1. Select _Import_ from the menu.
-1. Select the files that have the appropriate naming convention that will form your sound asset, such as: "Surround_fl.wav", "Surround_fr.wav", "Surround_sl.wav", "Surround_sr.wav".
-1. This will create a four channel asset called "Surround."
+1.	 From the Content Browser, click the **Import** button (pictured below).
+	![](ImportButton_UI.png)
+1.	 Select the files that have the appropriate naming convention that will form your sound asset, such as: "Surround_fl.wav", "Surround_fr.wav", "Surround_sl.wav", "Surround_sr.wav".
+1.	 This will create a four channel asset called "Surround."
 
 Or
 
-1. Select all your sound files in a Windows File Explorer window.
-1. Click and drag them into the **Content Browser** in Unreal Editor 4.
+1.	 Select all your sound files in a Windows File Explorer window.
+1.	 Click and drag them into the **Content Browser** in Unreal Editor 4.
 
 [/EXCERPT:wav01]
 

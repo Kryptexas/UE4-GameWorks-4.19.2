@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:2435789
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:1.7 - フロー制御
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
 Description:ブループリントの事例概要、例1.7：フロー制御
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
 
 
 
@@ -36,9 +36,9 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## 概要
 
-この例は、いくつかの異なるタイプのフロー制御を説明します。フロー制御は、ブループリント スクリプトの実行フローを明示的にコントロールする手段として存在します。さまざまな種類のフロー制御方法があります。
+この例は、いくつかの異なるタイプのフロー制御を説明します。フロー制御は、ブループリントスクリプトの実行フローを明示的にコントロールする手段として存在します。さまざまな種類のフロー制御方法があります。
 
-* Branch - Boolean 値の結果に基づいて、対となるスクリプトの片方の実行を有効にします。
+* Branch - Boolean値の結果に基づいて、対となるスクリプトの片方の実行を有効にします。
 * Sequence - 具体的な順序でいくつものスクリプトの実行を有効にします。
 * Switch - 列挙型変数の結果に基づいた実行パスの選択を有効にします。
 
@@ -46,7 +46,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## コンストラクションスクリプト
 
-この例のコンストラクション スクリプトは、動的マテリアル インスタンスを作成および設定します。その後動的マテリアルに適用する色を決定するために、Branch flow control ノードを使用します。Branch ノードは、_Branch Condition_ という名前の Boolean 変数で動作します。このノードはパブリックで作成して、**[詳細]** パネルで編集することができます。
+この例のコンストラクションスクリプトは、動的マテリアルインスタンスを作成および設定します。その後動的マテリアルに適用する色を決定するために、Branch flow controlノードを使用します。Branch ノードは、 _Branch Condition_ という名前の Boolean 変数で動作します。このノードはパブリックで作成して、 [**詳細**] パネルで編集することができます。
 
 [REGION:lightbox]
 [![](1.7Construction.png)](1.7Construction.png)
@@ -56,10 +56,10 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 イベントグラフはさまざまな種類のフロー制御を利用します。以下の種類の制御があります。
 
-* その他全ての操作を順番に実行する Sequence 制御。1 つのイベントでたくさんのことを実行する場合など、1 対多数型の関係がある際に実用的です。
-* _Branch Condition_ 変数を通じて制御する Branch 制御
-* 列挙型変数の Switch 制御。列挙型変数の結果に基づいてコインの移動方向 (平行もしくは垂直) を制御します。
-* 特定の回数だけパーティクル エフェクトをスポーンする Do N 制御。
+* その他全ての操作を順番に実行するSequence制御1つのイベントでたくさんのことを実行する場合など、1対多数型の関係がある際に実用的です。
+*  _Branch Condition_ 変数を通じて制御するBranch制御
+* 列挙型変数のSwitch制御。列挙型変数の結果に基づいてコインの移動方向（平行もしくは垂直）を制御します。 
+* Do N 制御は指定した回数だけパーティクルエフェクトをスポーンします。
 
 ### 列挙型変数の作成
 
@@ -69,7 +69,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 * かがむ/しゃがむ
 * 前かがみ
 
-列挙型変数は、**コンテンツ ブラウザ** のコンテクストメニューから **[Blueprints > Enumeration]** を **右クリック** および選択して作成します。その後、作成した列挙型変数を Enum エディタで **ダブルクリック** して編集することができます。列挙型変数に表示設定したいさまざまなエントリを追加することができます。
+列挙型変数は、 **コンテンツ ブラウザ** のコンテクストメニューから [Blueprints > Enumeration] を **右クリック** および選択して作成します。その後、作成した列挙型変数を Enum エディタで **ダブルクリック** して編集することができます。列挙型変数に表示設定したいさまざまなエントリを追加することができます。
 
 ![](EnumEditor.png)
 

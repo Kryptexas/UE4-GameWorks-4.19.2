@@ -101,6 +101,12 @@ struct FMeshBatch
 	/** Whether the mesh batch can be selected through editor selection, aka hit proxies. */
 	uint32 bSelectable : 1;
 
+	/** Whether the mesh batch should apply dithered LOD. */
+	uint32 bDitheredLODTransition : 1;
+
+	/** If bDitheredLODTransition and this is a dynamic mesh element, then this is the alpha for dither fade (static draw lists need to derive this later as it is changes every frame) */
+	float DitheredLODTransitionAlpha;
+
 	// can be NULL
 	const FLightCacheInterface* LCI;
 
@@ -200,6 +206,8 @@ struct FMeshBatch
 	,	bUseWireframeSelectionColoring(false)
 	,	bUseSelectionOutline(true)
 	,	bSelectable(true)
+	,	bDitheredLODTransition(false)
+	,   DitheredLODTransitionAlpha(0.0f)
 	,	LCI(NULL)
 	,	DynamicVertexData(NULL)
 	,	VertexFactory(NULL)

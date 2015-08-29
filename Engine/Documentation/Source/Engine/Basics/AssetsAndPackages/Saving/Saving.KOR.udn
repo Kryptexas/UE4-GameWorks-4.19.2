@@ -1,7 +1,7 @@
-INTSourceChangelist:2033304
+﻿INTSourceChangelist:2560162
 Availability: Public
 Title:언리얼 에디터의 패키지 저장 프로세스
-Crumbs: %ROOT%, Engine, Engine/Basics, Engine/Basics/AssetsAndPackages
+Crumbs: %ROOT%, Engine, Engine/Basics/AssetsAndPackages
 Description:언리얼 에디터의 콘텐츠 패키지 저장 프로세스 관련 안내서입니다.
 
 [TOC (start:2 end:3)]

@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "EventPool.h"
-#include "Public/Modules/ModuleVersion.h"
+#include "EngineVersion.h"
 #include "Templates/Function.h"
 
 
@@ -12,6 +12,8 @@
 #endif
 
 DEFINE_STAT(STAT_Sleep);
+DEFINE_STAT(STAT_EventWait);
+
 
 void* FGenericPlatformProcess::GetDllHandle( const TCHAR* Filename )
 {
@@ -33,7 +35,7 @@ void* FGenericPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcN
 int32 FGenericPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FPlatformProcess::GetBinaryFileVersion not implemented on this platform"));
-	return MODULE_API_VERSION;
+	return GCompatibleWithEngineVersion.GetChangelist();
 }
 
 uint32 FGenericPlatformProcess::GetCurrentProcessId()
@@ -81,6 +83,18 @@ const TCHAR* FGenericPlatformProcess::UserName(bool bOnlyAlphaNumeric/* = true*/
 	return TEXT("GenericUser");
 }
 
+void FGenericPlatformProcess::SetCurrentWorkingDirectoryToBaseDir()
+{
+	// even if we don't set a directory, we should remember the current one so LaunchDir works
+	FPlatformMisc::CacheLaunchDir();
+}
+
+FString FGenericPlatformProcess::GetCurrentWorkingDirectory()
+{
+	return TEXT("");
+}
+
+
 static FString Generic_ShaderDir;
 
 const TCHAR* FGenericPlatformProcess::ShaderDir()
@@ -109,7 +123,7 @@ void FGenericPlatformProcess::SetShaderDir(const TCHAR*Where)
  */
 const FString FGenericPlatformProcess::ShaderWorkingDir()
 {
-	return (FPaths::GameIntermediateDir() / TEXT("Shaders/WorkingDirectory/"));
+	return (FPaths::GameIntermediateDir() / TEXT("Shaders/tmp/"));
 }
 
 /**
@@ -119,8 +133,10 @@ void FGenericPlatformProcess::CleanShaderWorkingDir()
 {
 	// Path to the working directory where files are written for multi-threaded compilation
 	FString ShaderWorkingDirectory = ShaderWorkingDir();
-
 	IFileManager::Get().DeleteDirectory(*ShaderWorkingDirectory, false, true);
+
+	FString LegacyShaderWorkingDirectory = FPaths::GameIntermediateDir() / TEXT("Shaders/WorkingDirectory/");
+	IFileManager::Get().DeleteDirectory(*LegacyShaderWorkingDirectory, false, true);
 }
 
 const TCHAR* FGenericPlatformProcess::ExecutableName(bool bRemoveExtension)
@@ -278,7 +294,7 @@ void FGenericPlatformProcess::SleepInfinite()
 
 #endif // PLATFORM_HAS_BSD_TIME 
 
-void FGenericPlatformProcess::ConditionalSleep(const TFunction<bool()>& Condition)
+void FGenericPlatformProcess::ConditionalSleep(const TFunctionRef<bool()>& Condition, float SleepTime /*= 0.0f*/)
 {
 	if (Condition())
 	{
@@ -289,7 +305,7 @@ void FGenericPlatformProcess::ConditionalSleep(const TFunction<bool()>& Conditio
 	FThreadIdleStats::FScopeIdle Scope;
 	do
 	{
-		FPlatformProcess::SleepNoStats(0.0f);
+		FPlatformProcess::SleepNoStats(SleepTime);
 	} while (!Condition());
 }
 
@@ -297,11 +313,11 @@ void FGenericPlatformProcess::ConditionalSleep(const TFunction<bool()>& Conditio
 
 #include "PThreadEvent.h"
 
-DECLARE_CYCLE_STAT(TEXT("CPU Stall - Wait For Event"),STAT_EventWait,STATGROUP_CPUStalls);
-
 bool FPThreadEvent::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	FScopeCycleCounter Counter(StatID);
+	WaitForStats();
+
+	SCOPE_CYCLE_COUNTER(STAT_EventWait);
 	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
 
 	check(bInitialized);
@@ -462,6 +478,12 @@ FString FGenericPlatformProcess::ReadPipe( void* ReadPipe )
 bool FGenericPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output)
 {
 	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::ReadPipeToArray not implemented on this platform"));
+	return false;
+}
+
+bool FGenericPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FString* OutWritten)
+{
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::WriteToPipe not implemented on this platform"));
 	return false;
 }
 

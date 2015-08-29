@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2281969
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:피벗 페인터
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Pivot Painter 카테고리 아래 있는 머티리얼 함수에 대�
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 [REGION:header_img]
 [![splash_demo.jpg](Engine/Content/Tools/PivotPainter/splash_demo.jpg)](Engine/Content/Tools/PivotPainter/PivotPainterFoliageExamples.mp4)

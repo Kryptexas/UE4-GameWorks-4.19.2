@@ -24,7 +24,7 @@ void FAnimNode_SequencePlayer::CacheBones(const FAnimationCacheBonesContext& Con
 {
 }
 
-void FAnimNode_SequencePlayer::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SequencePlayer::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 
@@ -36,6 +36,10 @@ void FAnimNode_SequencePlayer::Update(const FAnimationUpdateContext& Context)
 		FAnimGroupInstance* SyncGroup;
 		FAnimTickRecord& TickRecord = Context.AnimInstance->CreateUninitializedTickRecord(GroupIndex, /*out*/ SyncGroup);
 
+		if (InternalTimeAccumulator > Sequence->SequenceLength)
+		{
+			InternalTimeAccumulator = 0.f;
+		}
 		Context.AnimInstance->MakeSequenceTickRecord(TickRecord, Sequence, bLoopAnimation, PlayRate, FinalBlendWeight, /*inout*/ InternalTimeAccumulator);
 
 		// Update the sync group if it exists
@@ -50,7 +54,7 @@ void FAnimNode_SequencePlayer::Evaluate(FPoseContext& Output)
 {
 	if ((Sequence != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		Output.AnimInstance->SequenceEvaluatePose(Sequence, Output.Pose, FAnimExtractContext(InternalTimeAccumulator));
+		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(InternalTimeAccumulator, Output.AnimInstance->ShouldExtractRootMotion()));
 	}
 	else
 	{
@@ -72,4 +76,9 @@ void FAnimNode_SequencePlayer::GatherDebugData(FNodeDebugData& DebugData)
 	
 	DebugLine += FString::Printf(TEXT("('%s' Play Time: %.3f)"), *Sequence->GetName(), InternalTimeAccumulator);
 	DebugData.AddDebugItem(DebugLine, true);
+}
+
+float FAnimNode_SequencePlayer::GetTimeFromEnd(float CurrentNodeTime)
+{
+	return Sequence->GetMaxCurrentTime() - CurrentNodeTime;
 }

@@ -10,9 +10,9 @@ FUMGDetailKeyframeHandler::FUMGDetailKeyframeHandler(TSharedPtr<FWidgetBlueprint
 	: BlueprintEditor( InBlueprintEditor )
 {}
 
-bool FUMGDetailKeyframeHandler::IsPropertyKeyable(const UClass& InObjectClass, const IPropertyHandle& InPropertyHandle) const
+bool FUMGDetailKeyframeHandler::IsPropertyKeyable(UClass* InObjectClass, const IPropertyHandle& InPropertyHandle) const
 {
-	return BlueprintEditor.Pin()->GetSequencer()->CanKeyProperty( InObjectClass, InPropertyHandle );
+	return BlueprintEditor.Pin()->GetSequencer()->CanKeyProperty(FCanKeyPropertyParams(InObjectClass, InPropertyHandle));
 }
 
 bool FUMGDetailKeyframeHandler::IsPropertyKeyingEnabled() const
@@ -26,5 +26,5 @@ void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& Keye
 	TArray<UObject*> Objects;
 	KeyedPropertyHandle.GetOuterObjects( Objects );
 
-	BlueprintEditor.Pin()->GetSequencer()->KeyProperty( Objects, KeyedPropertyHandle );
+	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(FKeyPropertyParams(Objects, KeyedPropertyHandle));
 }

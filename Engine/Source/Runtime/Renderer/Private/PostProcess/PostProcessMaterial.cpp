@@ -202,13 +202,13 @@ void FRCPassPostProcessMaterial::Process(FRenderingCompositePassContext& Context
 
 	if(Material->NeedsGBuffer())
 	{
-		GSceneRenderTargets.AdjustGBufferRefCount(-1);
+		FSceneRenderTargets::Get(Context.RHICmdList).AdjustGBufferRefCount(-1);
 	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessMaterial::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	if (OutputFormat != PF_Unknown)
 	{

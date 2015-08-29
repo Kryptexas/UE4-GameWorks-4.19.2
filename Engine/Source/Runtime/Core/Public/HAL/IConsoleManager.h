@@ -395,20 +395,6 @@ struct CORE_API IConsoleManager
 	 * The registered command is executed at few defined points (see CallAllConsoleVariableSinks)
 	 * @param Command
 	 */
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with RegisterConsoleVariableSink_Handle.")
-	virtual void RegisterConsoleVariableSink(const FConsoleCommandDelegate& Command) = 0;
-
-	/**
-	 * The registered command is executed at few defined points (see CallAllConsoleVariableSinks)
-	 * @param Command
-	 */
-	DELEGATE_DEPRECATED("Delegate comparison is deprecated - please replace any usage with UnregisterConsoleVariableSink_Handle, passing the result of RegisterConsoleVariableSink_Handle.")
-	virtual void UnregisterConsoleVariableSink(const FConsoleCommandDelegate& Command) = 0;
-
-	/**
-	 * The registered command is executed at few defined points (see CallAllConsoleVariableSinks)
-	 * @param Command
-	 */
 	virtual FConsoleVariableSinkHandle RegisterConsoleVariableSink_Handle(const FConsoleCommandDelegate& Command) = 0;
 
 	/**

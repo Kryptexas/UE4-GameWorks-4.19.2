@@ -762,10 +762,6 @@ public:
 	FDelegateHandle OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate );
 
 	/** Unsubscribe to notifications about the active tab changing */
-	DELEGATE_DEPRECATED("This overload of OnActiveTabChanged_Unsubscribe is deprecated, instead pass the result of OnActiveTabChanged_Subscribe.")
-	void OnActiveTabChanged_Unsubscribe( const FOnActiveTabChanged::FDelegate& InDelegate );
-
-	/** Unsubscribe to notifications about the active tab changing */
 	void OnActiveTabChanged_Unsubscribe( FDelegateHandle Handle );
 
 	/** Subscribe to notifications about a foreground tab changing */

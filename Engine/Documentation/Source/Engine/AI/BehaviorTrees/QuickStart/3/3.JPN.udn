@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:3. 基本アセットの作成
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -23,14 +23,15 @@ Description:ステップ 3基本アセットの作成
 %Steps%
 
 
-まず初めに、 **コンテンツ ブラウザ** に以下の 4 つのアセットを作成する必要があります。AI Controller ブループリント、 Character ブループリント、 ビヘイビアツリー アセット、 Black Board Asset
+まず初めに、 **コンテンツ ブラウザ** に以下の 4 つのアセットを作成する必要があります。AI Controller ブループリント、 Character ブループリント、Behavior Tree アセット、 Black Board アセット
 
 [REGION:raw]
 ![](Assets.png)
 [/REGION]
 
+## 手順
 
-1. **[New]** -> **[Blueprint]** -> **[AI Controller]**
+1. **[New (新規)]** -> **[Blueprint (ブループリント)]** -> **[AI Controller (AI コントローラ)]**
 
 	AI Controller は Player Controller とは異なるため、検索する必要があります。
 
@@ -38,13 +39,13 @@ Description:ステップ 3基本アセットの作成
 
 	この **ブループリント** に「Follower_AI_CON」という名前を付けます。
 
-1. **[New]** -> **[Blueprint]** -> **[Character]**
+1. **[New (新規)]** -> **[Blueprint (ブループリント)]** -> **[Character (キャラクター)]**
 
 	![](charBP.png)
 
 	この **ブループリント** に「AI_Character」という名前を付けます。
 
-1. **[New]** -> **[Miscellaneous]** -> **[Behavior Tree]**
+1. **[New (新規)]** -> **[Miscellaneous (その他)]** -> **[Behavior Tree (ビヘイビアツリー)]**
 
 	[REGION:raw]
 	![](newBT.png)
@@ -52,9 +53,9 @@ Description:ステップ 3基本アセットの作成
 
 	この **ビヘイビアツリー** に「FollowerBT」という名前を付けます。
 
-1. **[New]** -> **[Miscellaneous]** ->  **[Blackboard]**
-	[REGION:raw]
+1. **[New (新規)]** -> **[Miscellaneous (その他)]** ->  **[Blackboard (ブラックボード)]**
 
+	[REGION:raw]
 	![](newBB.png)
 	[/REGION]	
 
@@ -62,3 +63,8 @@ Description:ステップ 3基本アセットの作成
 
 
 %Steps%
+
+
+
+
+

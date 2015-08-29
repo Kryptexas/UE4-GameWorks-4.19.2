@@ -134,9 +134,9 @@ struct FProfilerServiceFileChunk
 	UPROPERTY()
 	FString Filename;
 
-	/** Data to be sent through message bus. */
+	/** Data to be sent through message bus. Message bug doesn't support TArray<>, so we encode the data as HexString. */
 	UPROPERTY()
-	TArray<uint8> Data;
+	FString HexData;
 
 	/** FProfilerFileChunkHeader stored in the array. */
 	UPROPERTY()

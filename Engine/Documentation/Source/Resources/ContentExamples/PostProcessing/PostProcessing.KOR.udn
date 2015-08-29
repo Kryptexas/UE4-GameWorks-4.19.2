@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2590736
 Availability: Public
 Title:포스트 프로세싱 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -80,7 +80,7 @@ Related: Resources/Showcases/Stylized
 | **[1.14 AA Method](Resources\ContentExamples\PostProcessing\1_14)** | AA 메소드 - 화면에 각져보이는 에지(변, 가장자리)를 부드럽게 만들어 이미지 퀄리티를 향상시켜주는 안티앨리어싱 (AA) 기법에 대한 데모입니다. |
 | **[1.15 Blur GBuffer intensity](Resources\ContentExamples\PostProcessing\1_15)** | 블러 GBuffer 강도 - 알아채기 어렵긴 하지만, 표면의 하드 에지상의 **머티리얼 러프니스** 를 올려 그 하드 에지에 나타나는 리플렉션을 부드럽게 만들어주는 이펙트입니다. |
 | **[1.16 Blendables](Resources\ContentExamples\PostProcessing\1_16)** | 블렌더블 - 간단히 말해 화면에 적용가능한 오버레이 화면입니다 (화면 순간이동 또는 컬러링용). |
-| **[1.17 Priorites](Resources\ContentExamples\PostProcessing\1_17)** | 우선권 - **Post Process Volume** 이 겹치는 경우 어느것을 우선시할 것인지 제어할 수 있습니다. |
+| **[1.17 Priorities](Resources\ContentExamples\PostProcessing\1_17)** | 우선권 - **Post Process Volume** 이 겹치는 경우 어느것을 우선시할 것인지 제어할 수 있습니다. |
 | **[1.18 Blend Radius and Weight](Resources\ContentExamples\PostProcessing\1_18)** | 블렌드 반경 및 가중치 - 거리에 따라 한 **Post Process Volume** 에서 다른 볼륨으로 전환되는 변화에 사용됩니다 (오브젝트와의 거리에 따른 씬의 색조나 컬러 블렌딩). |
 | **[1.19 Unbound](Resources\ContentExamples\PostProcessing\1_19)** | 언바운드 - 실제 볼륨 안에 있어야 한다는 제한 없이 글로벌 포스트 프로세스 이펙트를 만들 수 있습니다 (월드 어디에 있는 이펙트가 적용됩니다). |
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445736
+﻿INTSourceChangelist:2597145
 Availability:Public
 Title:레벨 블루프린트 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -26,8 +26,6 @@ Description:레벨 블루프린트 에디터 인터페이스 개요입니다.
 
 
 [TOC (start:2)]
-
-## 개요
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
 

@@ -37,10 +37,21 @@ UObject* StaticFindObjectFastExplicit( UClass* ObjectClass, FName ObjectName, co
  * Return all objects with a given outer
  *
  * @param	Outer						Outer to search for
- * @param	Results						returned results
+ * @param	Results						Returned results
  * @param	bIncludeNestedObjects		If true, then things whose outers directly or indirectly have Outer as an outer are included, these are the nested objects.
+ * @param	ExclusionFlags				Specifies flags to use as a filter for which objects to return
  */
 COREUOBJECT_API void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Results, bool bIncludeNestedObjects = true, EObjectFlags ExclusionFlags = RF_NoFlags);
+
+/**
+ * Performs an operation on all objects with a given outer
+ *
+ * @param	Outer						Outer to search for
+ * @param	Operation					Function to be called for each object
+ * @param	bIncludeNestedObjects		If true, then things whose outers directly or indirectly have Outer as an outer are included, these are the nested objects.
+ * @param	ExclusionFlags				Specifies flags to use as a filter for which objects to return
+ */
+COREUOBJECT_API void ForEachObjectWithOuter(const class UObjectBase* Outer, TFunctionRef<void (UObject*)> Operation, bool bIncludeNestedObjects = true, EObjectFlags ExclusionFlags = RF_NoFlags);
 
 /**
  * Find an objects with a given name and or class within an outer
@@ -60,6 +71,16 @@ COREUOBJECT_API class UObjectBase* FindObjectWithOuter(class UObjectBase* Outer,
  * @param	AdditionalExcludeFlags		Objects with any of these flags will be excluded from the results.
  */
 COREUOBJECT_API void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool bIncludeDerivedClasses = true, EObjectFlags AdditionalExcludeFlags=RF_ClassDefaultObject);
+
+/**
+ * Performs an operation on all objects with a given outer
+ *
+ * @param	Outer						Outer to search for
+ * @param	Operation					Function to be called for each object
+ * @param	bIncludeDerivedClasses		If true, the results will include objects of child classes as well.
+ * @param	AdditionalExcludeFlags		Objects with any of these flags will be excluded from the results.
+ */
+COREUOBJECT_API void ForEachObjectOfClass(UClass* ClassToLookFor, TFunctionRef<void (UObject*)> Operation, bool bIncludeDerivedClasses = true, EObjectFlags AdditionalExcludeFlags=RF_ClassDefaultObject);
 
 /**
  * Returns an array of classes that were derived from the specified class.

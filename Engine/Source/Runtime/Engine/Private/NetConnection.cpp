@@ -12,6 +12,7 @@
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
 #include "GameFramework/GameMode.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -133,11 +134,11 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
  * @param InURL the URL to init with
  * @param InConnectionSpeed Optional connection speed override
  */
-void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed)
+void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Driver = InDriver;
 	// We won't be sending any packets, so use a default size
-	MaxPacket = 512;
+	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_PACKET_SIZE) ? MAX_PACKET_SIZE : InMaxPacket;
 	PacketOverhead = 0;
 	State = InState;
 
@@ -363,6 +364,22 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	Super::AddReferencedObjects(This, Collector);
 }
 
+UWorld* UNetConnection::GetWorld() const
+{
+	UWorld* World = nullptr;
+	if (Driver)
+	{
+		World = Driver->GetWorld();
+	}
+
+	if (!World && OwningActor)
+	{
+		World = OwningActor->GetWorld();
+	}
+
+	return World;
+}
+
 bool UNetConnection::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	if ( Super::Exec( InWorld, Cmd,Ar) )
@@ -439,6 +456,24 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 {
 	uint8* Data = (uint8*)InData;
 
+	// UnProcess the packet
+	if(Handler.IsValid())
+	{
+		const ProcessedPacket UnProcessedPacket = Handler->Incoming(Data, Count);
+
+		Count = UnProcessedPacket.Count;
+
+		if (Count > 0)
+		{
+			Data = UnProcessedPacket.Data;
+		}
+		// This packed has been consumed
+		else
+		{
+			return;
+		}
+	}
+
 	// Handle an incoming raw packet from the driver.
 	UE_LOG(LogNetTraffic, Verbose, TEXT("%6.3f: Received %i"), FPlatformTime::Seconds() - GStartTime, Count );
 	int32 PacketBytes = Count + PacketOverhead;
@@ -459,16 +494,16 @@ void UNetConnection::ReceivedRawPacket( void* InData, int32 Count )
 			FBitReader Reader( Data, BitSize );
 			ReceivedPacket( Reader );
 		}
+		// MalformedPacket - Received a packet with 0's in the last byte
 		else 
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "Packet missing trailing 1" ) );
-			Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
+			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Received packet with 0's in last byte of packet"));
 		}
 	}
+	// MalformedPacket - Received a packet of 0 bytes
 	else 
 	{
-		UE_LOG( LogNetTraffic, Error, TEXT( "Received zero-size packet" ) );
-		Close();	// If they have the secret key (or haven't opened the control channel yet) and get here, assume they are being malicious
+		CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Received zero-size packet"));
 	}
 }
 
@@ -661,7 +696,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
 	}
-	else
+	// Invalid Data Packet: Received a duplicate packet
+	else if ( PacketId > 0)
 	{
 		Driver->InOutOfOrderPackets++;
 		// Protect against replay attacks
@@ -669,7 +705,17 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		// The only bunch we would process would be unreliable RPC's, which could allow for replay attacks
 		// So rather than add individual protection for unreliable RPC's as well, just kill it at the source, 
 		// which protects everything in one fell swoop
+
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an Acked PacketID"));
+
 		return;		
+	}
+	// Invalid Data Packet: User has sent an invalid PacketId
+	else if ( PacketId < 0)
+	{
+		UE_SECURITY_LOG(this, ESecurityEvent::Invalid_Data, TEXT("Received a packet with an invalid PacketID"));
+
+		return;
 	}
 
 	// Detect packets on the client, which should trigger PingAck verification
@@ -687,8 +733,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 		bool IsAck = !!Reader.ReadBit();
 		if ( Reader.IsError() )
 		{
-			UE_LOG( LogNetTraffic, Error, TEXT( "Bunch missing ack flag" ) );
-			Close();
+			CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch missing ack flag"));
 			return;
 		}
 
@@ -699,10 +744,10 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			// This is an acknowledgment.
 			int32 AckPacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),OutAckPacketId,MAX_PACKETID);
+
 			if( Reader.IsError() )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch missing ack" ) );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch missing ack"));
 				return;
 			}
 
@@ -861,16 +906,14 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			if( Reader.IsError() )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch header overflowed" ) );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT("Bunch header overflowed"));
 				return;
 			}
 			Bunch.SetData( Reader, BunchDataBits );
 			if( Reader.IsError() )
 			{
 				// Bunch claims it's larger than the enclosing packet.
-				UE_LOG( LogNetTraffic, Error, TEXT( "Bunch data overflowed (%i %i+%i/%i)" ), IncomingStartPos, HeaderPos, BunchDataBits, Reader.GetNumBits() );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Invalid_Data, TEXT("Bunch data overflowed (%i %i+%i/%i)"), IncomingStartPos, HeaderPos, BunchDataBits, Reader.GetNumBits());
 				return;
 			}
 
@@ -898,8 +941,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// Can't handle other channels until control channel exists.
 				if ( Channels[0] == NULL )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
 					return;
 				}
 				// on the server, if we receive bunch data for a channel that doesn't exist while we're still logging in,
@@ -907,16 +949,14 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// so reject it
 				else if ( PlayerController == NULL && Driver->ClientConnections.Contains( this ) )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before player controller was assigned. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before player controller was assigned. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType);
 					return;
 				}
 			}
 			// ignore control channel close if it hasn't been opened yet
 			if ( Bunch.ChIndex == 0 && Channels[0] == NULL && Bunch.bClose && Bunch.ChType == CHTYPE_Control )
 			{
-				UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ) );
-				Close();
+				CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Malformed_Packet, TEXT( "UNetConnection::ReceivedPacket: Received control channel close before open" ));
 				return;
 			}
 
@@ -935,6 +975,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			// Ignore if reliable packet has already been processed.
 			if ( Bunch.bReliable && Bunch.ChSequence <= InReliable[Bunch.ChIndex] )
 			{
+				check( !InternalAck );		// Should be impossible with 100% reliable connections
 				UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received outdated bunch (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 				continue;
 			}
@@ -950,6 +991,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				const bool ValidUnreliableOpen = Bunch.bOpen && (Bunch.bClose || Bunch.bPartial);
 				if (!ValidUnreliableOpen)
 				{
+					check( !InternalAck );		// Should be impossible with 100% reliable connections
+
 					UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 					// Since we won't be processing this packet, don't ack it
 					// We don't want the sender to think this bunch was processed when it really wasn't
@@ -965,8 +1008,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				if ( !UChannel::IsKnownChannelType( Bunch.ChType ) )
 				{
 					// Unknown type.
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Connection unknown channel type (%i)" ), (int)Bunch.ChType );
-					Close();
+					CLOSE_CONNECTION_DUE_TO_SECURITY_VIOLATION(this, ESecurityEvent::Invalid_Data, TEXT( "UNetConnection::ReceivedPacket: Connection unknown channel type (%i)" ), (int)Bunch.ChType);
 					return;
 				}
 
@@ -1469,6 +1511,21 @@ void UNetConnection::Tick()
 		FlushNet();
 	}
 
+	// Tick Handler
+	if(Handler.IsValid())
+	{
+		Handler->Tick(FrameTime);
+		BufferedPacket* QueuedPacket = Handler->GetQueuedPacket();
+
+		/* Send all queued packets */
+		while(QueuedPacket != nullptr)
+		{
+			LowLevelSend(QueuedPacket->Data, QueuedPacket->BytesCount);
+			delete QueuedPacket;
+			QueuedPacket = Handler->GetQueuedPacket();
+		}
+	}
+
 	// Update queued byte count.
 	// this should be at the end so that the cap is applied *after* sending (and adjusting QueuedBytes for) any remaining data for this tick
 	float DeltaBytes = CurrentNetSpeed * DeltaTime;
@@ -1518,8 +1575,8 @@ void UNetConnection::HandleClientPlayer( APlayerController *PC, UNetConnection* 
 
 	// Init the new playerpawn.
 	PC->Role = ROLE_AutonomousProxy;
-	PC->SetPlayer(LocalPlayer);
 	PC->NetConnection = NetConnection;
+	PC->SetPlayer(LocalPlayer);
 	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"),*PC->GetName(),*LocalPlayer->GetName());
 	LastReceiveTime = Driver->Time;
 	State = USOCK_Open;
@@ -1619,8 +1676,8 @@ void UChildConnection::HandleClientPlayer(APlayerController* PC, UNetConnection*
 
 	// Init the new playerpawn.
 	PC->Role = ROLE_AutonomousProxy;
-	PC->SetPlayer(NewPlayer);
 	PC->NetConnection = NetConnection;
+	PC->SetPlayer(NewPlayer);
 	UE_LOG(LogNet, Verbose, TEXT("%s setplayer %s"), *PC->GetName(), *NewPlayer->GetName());
 	PlayerController = PC;
 	OwningActor = PC;

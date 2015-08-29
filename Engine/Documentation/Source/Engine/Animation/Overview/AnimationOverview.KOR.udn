@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2227436
+﻿INTSourceChangelist:2600873
 Availability:Public
 Title:애니메이션 시스템 개요
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -58,7 +58,7 @@ _스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어�
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](AnimSequenceIcon.png)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences)
@@ -115,7 +115,7 @@ _스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어�
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](ParticleEffectNotify.png)(w:192)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences/Notifies)
@@ -205,6 +205,7 @@ _스켈레탈 콘트롤_ 을 사용하여 본의 트랜스폼을 직접 제어�
 [REGION:raw]
 ![](AnimationDiagram.png)
 [/REGION] 
+
 ## 애니메이션 콘텐츠 예제
 
 애니메이션 시스템의 실제 적용 및 기능이 [애니메이션 콘텐츠 예제](Resources\ContentExamples\Animation) 페이지에 표시됩니다.

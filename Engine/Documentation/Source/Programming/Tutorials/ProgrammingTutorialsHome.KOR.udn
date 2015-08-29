@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2537337
 Availability:Public
 Title:C++ 프로그래밍 튜토리얼
 Crumbs: %ROOT%, Programming
@@ -185,4 +185,23 @@ programming
 		components
 	[/PARAMLITERAL]
 [/OBJECT]
+
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Tutorials/UMG:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Tutorials/UMG]
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Tutorials/UMG:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		umg
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [/REGION]

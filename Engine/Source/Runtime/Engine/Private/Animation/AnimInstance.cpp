@@ -7,7 +7,7 @@
 #include "EnginePrivate.h"
 #include "AnimationRuntime.h"
 #include "AnimationUtils.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "Animation/AnimNode_StateMachine.h"
 #include "GameFramework/Character.h"
 #include "ParticleDefinitions.h"
@@ -20,6 +20,9 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimNode_TransitionResult.h"
+#include "Animation/AnimNode_SequencePlayer.h"
+#include "Animation/AnimNode_BlendSpacePlayer.h"
+#include "Animation/AnimNode_AssetPlayerBase.h"
 
 /** Anim stats */
 
@@ -31,33 +34,36 @@ DEFINE_STAT(STAT_SkelCompUpdateTransform);
 DEFINE_STAT(STAT_UpdateRBBones);
 DEFINE_STAT(STAT_UpdateRBJoints);
 DEFINE_STAT(STAT_UpdateLocalToWorldAndOverlaps);
-DEFINE_STAT(STAT_SkelComposeTime);
 DEFINE_STAT(STAT_GetAnimationPose);
-DEFINE_STAT(STAT_AnimNativeEvaluatePoses);
 DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
-DEFINE_STAT(STAT_AnimNativeBlendPoses);
-DEFINE_STAT(STAT_AnimNativeCopyPoses);
-DEFINE_STAT(STAT_AnimGraphEvaluate);
-DEFINE_STAT(STAT_AnimBlendTime);
 DEFINE_STAT(STAT_RefreshBoneTransforms);
 DEFINE_STAT(STAT_InterpolateSkippedFrames);
 DEFINE_STAT(STAT_AnimTickTime);
 DEFINE_STAT(STAT_SkinnedMeshCompTick);
 DEFINE_STAT(STAT_TickUpdateRate);
-DEFINE_STAT(STAT_PerformAnimEvaluation);
-DEFINE_STAT(STAT_PostAnimEvaluation);
+DEFINE_STAT(STAT_BlueprintUpdateAnimation);
+DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
+DEFINE_STAT(STAT_NativeUpdateAnimation);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Init Time"), STAT_AnimInitTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimInitTime);
 
 DEFINE_STAT(STAT_AnimStateMachineUpdate);
 DEFINE_STAT(STAT_AnimStateMachineFindTransition);
-DEFINE_STAT(STAT_AnimStateMachineEvaluate);
 
 DEFINE_STAT(STAT_SkinPerPolyVertices);
 DEFINE_STAT(STAT_UpdateTriMeshVertices);
 
 DEFINE_STAT(STAT_AnimGameThreadTime);
+
+
+#define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName)
+#include "AnimMTStats.h"
+#undef DO_ANIMSTAT_PROCESSING
+
+#define DO_ANIMSTAT_PROCESSING(StatName) DEFINE_STAT(STAT_ ## StatName ## _WorkerThread)
+#include "AnimMTStats.h"
+#undef DO_ANIMSTAT_PROCESSING
 
 // Define AnimNotify
 DEFINE_LOG_CATEGORY(LogAnimNotify);
@@ -133,73 +139,6 @@ FAnimTickRecord& UAnimInstance::CreateUninitializedTickRecord(int32 GroupIndex, 
 	// Create the record
 	FAnimTickRecord* TickRecord = new ((OutSyncGroupPtr != NULL) ? OutSyncGroupPtr->ActivePlayers : UngroupedActivePlayers) FAnimTickRecord();
 	return *TickRecord;
-}
-
-void UAnimInstance::SequenceEvaluatePose(UAnimSequenceBase* Sequence, FA2Pose& Pose, const FAnimExtractContext& ExtractionContext)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
-	checkSlow( RequiredBones.IsValid() );
-
-	USkeletalMeshComponent* Component = GetSkelMeshComponent();
-
-	FAnimExtractContext NewExtractContext(ExtractionContext);
-	NewExtractContext.bExtractRootMotion = RootMotionMode == ERootMotionMode::RootMotionFromEverything || RootMotionMode == ERootMotionMode::IgnoreRootMotion;
-
-	if(const UAnimSequence* AnimSequence = Cast<const UAnimSequence>(Sequence))
-	{
-		FAnimationRuntime::GetPoseFromSequence(
-			AnimSequence,
-			RequiredBones,
-			/*out*/ Pose.Bones, 
-			NewExtractContext);
-	}
-	else if(const UAnimComposite* Composite = Cast<const UAnimComposite>(Sequence))
-	{
-		FAnimationRuntime::GetPoseFromAnimTrack(
-			Composite->AnimationTrack, 
-			RequiredBones, 
-			/*out*/ Pose.Bones,
-			NewExtractContext);
-	}
-	else
-	{
-#if 0
-		UE_LOG(LogAnimation, Log, TEXT("FAnimationRuntime::GetPoseFromSequence - %s - No animation data!"), *GetFName());
-#endif
-		FAnimationRuntime::FillWithRefPose(Pose.Bones, RequiredBones);
-	}
-}
-
-void UAnimInstance::BlendSequences(const FA2Pose& Pose1, const FA2Pose& Pose2, float Alpha, FA2Pose& Result)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
-
-	const FTransformArrayA2* Children[2];
-	float Weights[2];
-
-	Children[0] = &(Pose1.Bones);
-	Children[1] = &(Pose2.Bones);
-
-	Alpha = FMath::Clamp<float>(Alpha, 0.0f, 1.0f);
-	Weights[0] = 1.0f - Alpha;
-	Weights[1] = Alpha;
-
-	if (Result.Bones.Num() < Pose1.Bones.Num())
-	{
-		ensureMsg (false, TEXT("Source Pose has more bones than Target Pose"));
-		//@hack
-		Result.Bones.AddUninitialized(Pose1.Bones.Num() - Result.Bones.Num());
-	}
-	FAnimationRuntime::BlendPosesTogether(2, Children, Weights, RequiredBones, /*out*/ Result.Bones);
-}
-
-void UAnimInstance::CopyPose(const FA2Pose& Source, FA2Pose& Destination)
-{
-	if (&Destination != &Source)
-	{
-		SCOPE_CYCLE_COUNTER(STAT_AnimNativeCopyPoses);
-		Destination.Bones = Source.Bones;
-	}
 }
 
 AActor* UAnimInstance::GetOwningActor() const
@@ -396,21 +335,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 #endif
 
 	AnimNotifies.Empty();
-	MorphTargetCurves.Empty();
 
 	ClearSlotNodeWeights();
-
-	//Track material params we set last time round so we can clear them if they aren't set again.
-	MaterialParamatersToClear.Empty();
-	for( auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter )
-	{
-		if(Iter.Value() > 0.0f)
-		{
-			MaterialParamatersToClear.Add(Iter.Key());
-		}
-	}
-	MaterialParameterCurves.Empty();
-	VertexAnims.Empty();
 
 	// Reset the player tick list (but keep it presized)
 	UngroupedActivePlayers.Empty(UngroupedActivePlayers.Num());
@@ -419,8 +345,14 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		SyncGroups[GroupIndex].Reset();
 	}
 
-	NativeUpdateAnimation(DeltaSeconds);
-	BlueprintUpdateAnimation(DeltaSeconds);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
+		NativeUpdateAnimation(DeltaSeconds);
+	}
+	{
+		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
+		BlueprintUpdateAnimation(DeltaSeconds);
+	}
 
 	// update weight before all nodes update comes in
 	Montage_UpdateWeight(DeltaSeconds);
@@ -432,10 +364,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
 		RootNode->Update(UpdateContext);
 	}
-
-	// curve values can be used during update state, so we need to clear the array before ticking each elements
-	// where we collect new items
-	EventCurves.Empty();
 
 	// Handle all players inside sync groups
 	for (int32 GroupIndex = 0; GroupIndex < SyncGroups.Num(); ++GroupIndex)
@@ -505,15 +433,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
 	TriggerQueuedMontageEvents();
 
-	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
-	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
-	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
-	for (int i = 0; i < ParamsToClearCopy.Num(); ++i)
-	{
-		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
-	}
-
-
 #if WITH_EDITOR && 0
 	{
 		// Take a snapshot if the scrub control is locked to the end, we are playing, and we are the one being debugged
@@ -536,6 +455,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
 void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 {
+	ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimInstance, IsRunningParallelEvaluation());
+
 	// If bone caches have been invalidated, have AnimNodes refresh those.
 	if( bBoneCachesInvalidated && RootNode )
 	{
@@ -551,7 +472,7 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 	{
 		if (RootNode != NULL)
 		{
-			SCOPE_CYCLE_COUNTER(STAT_AnimGraphEvaluate);
+			ANIM_MT_SCOPE_CYCLE_COUNTER(EvaluateAnimGraph, IsRunningParallelEvaluation());
 			IncrementGraphTraversalCounter();
 			RootNode->Evaluate(Output);
 		}
@@ -559,6 +480,16 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 		{
 			Output.ResetToRefPose();
 		}
+	}
+}
+
+void UAnimInstance::PostEvaluateAnimation()
+{
+	NativePostEvaluateAnimation();
+
+	{
+		SCOPE_CYCLE_COUNTER(STAT_BlueprintPostEvaluateAnimation);
+		BlueprintPostEvaluateAnimation();
 	}
 }
 
@@ -573,6 +504,10 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 bool UAnimInstance::NativeEvaluateAnimation(FPoseContext& Output)
 {
 	return false;
+}
+
+void UAnimInstance::NativePostEvaluateAnimation()
+{
 }
 
 void UAnimInstance::AddNativeTransitionBinding(const FName& MachineName, const FName& PrevStateName, const FName& NextStateName, const FCanTakeTransition& NativeTransitionDelegate)
@@ -1044,110 +979,6 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 	}
 }
 
-void UAnimInstance::BlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, struct FA2Pose& Pose)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
-
-	FAnimationRuntime::GetPoseFromBlendSpace(
-		BlendSpace,
-		BlendSampleDataCache, 
-		RequiredBones,
-		/*out*/ Pose.Bones);
-}
-
-void UAnimInstance::BlendRotationOffset(const struct FA2Pose& BasePose/* local space base pose */, struct FA2Pose const & RotationOffsetPose/* mesh space rotation only additive **/, float Alpha, struct FA2Pose& Pose /** local space blended pose **/)
-{
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeBlendPoses);
-
-	check ( RotationOffsetPose.Bones.Num() == RequiredBones.GetNumBones() );
-	check ( BasePose.Bones.Num() == RotationOffsetPose.Bones.Num() );
-	check ( Pose.Bones.Num() == RotationOffsetPose.Bones.Num() );
-
-	FA2Pose BlendedPose;
-	BlendedPose.Bones.AddUninitialized(Pose.Bones.Num());
-
-	// now Pose has Mesh based BasePose
-	// apply additive
-	if (Alpha > ZERO_ANIMWEIGHT_THRESH)
-	{
-		FA2Pose MeshBasePose;
-		MeshBasePose.Bones.AddUninitialized(Pose.Bones.Num());
-
-		// note that RotationOffsetPose has MeshSpaceRotation additive but everything else (translation/scale) is local space
-		// First calculate Mesh space for Base Pose
-		const TArray<FBoneIndexType> & RequiredBoneIndices = RequiredBones.GetBoneIndicesArray();
-
-		for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
-		{
-			int32 BoneIndex = RequiredBoneIndices[I];
-			int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-			if ( ParentIndex != INDEX_NONE )
-			{
-				MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex] * MeshBasePose.Bones[ParentIndex];
-			}
-			else
-			{
-				MeshBasePose.Bones[BoneIndex] = BasePose.Bones[BoneIndex];
-			}
-		}	
-		
-		const ScalarRegister VBlendWeight(Alpha);
-		for (int32 I=0; I<RequiredBoneIndices.Num(); ++I)
-		{
-			int32 BoneIndex = RequiredBoneIndices[I];
-			
-			FTransform& Result = BlendedPose.Bones[BoneIndex];
-
-			// We want Base pose (local Pose)
-			Result = BasePose.Bones[BoneIndex];
-
-			// set result rotation to be mesh space rotation, so that it applys to mesh space rotation
-			Result.SetRotation(MeshBasePose.Bones[BoneIndex].GetRotation());
-
-			// @fixme laurent - we should make a read only version so we can avoid the copy.
-			FTransform Additive = RotationOffsetPose.Bones[BoneIndex];
-			FTransform::BlendFromIdentityAndAccumulate(Result, Additive, VBlendWeight);
-		}
-
-		// Ensure that all of the resulting rotations are normalized
-		FAnimationRuntime::NormalizeRotations(RequiredBones, BlendedPose.Bones);
-
-		// now convert back to Local
-		for(int32 I=0; I<RequiredBoneIndices.Num(); ++I)
-		{
-			int32 BoneIndex = RequiredBoneIndices[I];
-			int32 ParentIndex = RequiredBones.GetParentBoneIndex(BoneIndex);
-
-			Pose.Bones[BoneIndex] = BlendedPose.Bones[BoneIndex];
-			if(ParentIndex != INDEX_NONE)
-			{
-				// convert to local space first
-				FQuat Rotation = BlendedPose.Bones[ParentIndex].GetRotation().Inverse() * BlendedPose.Bones[BoneIndex].GetRotation();
-				Pose.Bones[BoneIndex].SetRotation(Rotation);
-			}
-		}
-	}
-	else
-	{
-		BlendedPose = BasePose;
-	}
-}
-
-void UAnimInstance::ApplyAdditiveSequence(const struct FA2Pose& BasePose,const struct FA2Pose& AdditivePose,float Alpha,struct FA2Pose& Blended)
-{
-	if (Blended.Bones.Num() < BasePose.Bones.Num())
-	{
-		// see if this happens
-		ensureMsg (false, TEXT("BasePose has more bones than Blended pose"));
-		//@hack
-		Blended.Bones.AddUninitialized(BasePose.Bones.Num() - Blended.Bones.Num());
-	}
-
-	float BlendWeight = FMath::Clamp<float>(Alpha, 0.f, 1.f);
-
-	FAnimationRuntime::BlendAdditivePose(BasePose.Bones, AdditivePose.Bones, BlendWeight, RequiredBones, Blended.Bones);
-}
-
 void UAnimInstance::RecalcRequiredBones()
 {
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
@@ -1199,7 +1030,8 @@ void UAnimInstance::AddAnimNotifies(const TArray<const FAnimNotifyEvent*>& NewNo
 	for (const FAnimNotifyEvent* Notify : NewNotifies)
 	{
 		// only add if it is over TriggerWeightThreshold
-		if (Notify->TriggerWeightThreshold <= InstanceWeight && PassesFiltering(Notify) && PassesChanceOfTriggering(Notify))
+		const bool bPassesDedicatedServerCheck = Notify->bTriggerOnDedicatedServer || !IsRunningDedicatedServer();
+		if (bPassesDedicatedServerCheck && Notify->TriggerWeightThreshold <= InstanceWeight && PassesFiltering(Notify) && PassesChanceOfTriggering(Notify))
 		{
 			// Only add unique AnimNotifyState instances just once. We can get multiple triggers if looping over an animation.
 			// It is the same state, so just report it once.
@@ -1308,6 +1140,37 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 		NameMapping->GetName(Uid, CurrentCurveName);
 	}
 	AddCurveValue(CurrentCurveName, Value, CurveTypeFlags);
+}
+
+void UAnimInstance::UpdateCurves(const FBlendedCurve& InCurve)
+{
+	//Track material params we set last time round so we can clear them if they aren't set again.
+	MaterialParamatersToClear.Empty();
+	for(auto Iter = MaterialParameterCurves.CreateConstIterator(); Iter; ++Iter)
+	{
+		if(Iter.Value() > 0.0f)
+		{
+			MaterialParamatersToClear.Add(Iter.Key());
+		}
+	}
+
+	EventCurves.Empty();
+	MorphTargetCurves.Empty();
+	MaterialParameterCurves.Empty();
+
+	for(int32 CurveId=0; CurveId<InCurve.UIDList.Num(); ++CurveId)
+	{
+		// had to add to anotehr data type
+		AddCurveValue(InCurve.UIDList[CurveId], InCurve.Elements[CurveId].Value, InCurve.Elements[CurveId].Flags);
+	}
+
+	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
+	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
+	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
+	for(int i = 0; i < ParamsToClearCopy.Num(); ++i)
+	{
+		AddCurveValue(ParamsToClearCopy[i], 0.0f, ACF_DrivesMaterial);
+	}
 }
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
@@ -1434,7 +1297,7 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 		{
 			NodeTotalWeight += MontageInstance->Weight;
 
-			if( !MontageInstance->Montage->IsValidAdditive() )
+			if( !MontageInstance->Montage->IsValidAdditiveSlot(SlotNodeName) )
 			{
 				NonAdditiveTotalWeight += MontageInstance->Weight;
 			}
@@ -1478,15 +1341,15 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 	out_SourceWeight = 1.f - NonAdditiveTotalWeight;
 }
 
-void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourcePose, FA2Pose & BlendedPose, float SlotNodeWeight)
+void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight)
 {
 	//Accessing MontageInstances from this function is not safe (as this can be called during Parallel Anim Evaluation!
 	//Any montage data you need to add should be part of MontageEvaluationData
 
-	SCOPE_CYCLE_COUNTER(STAT_AnimNativeEvaluatePoses);
 	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
+		BlendedCurve = SourceCurve;
 		return;
 	}
 
@@ -1511,11 +1374,18 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			FSlotEvaluationPose NewPose(EvalState.MontageWeight, AdditiveAnimType);
 			
 			// Bone array has to be allocated prior to calling GetPoseFromAnimTrack
-			NewPose.Pose.Bones.AddUninitialized(RequiredBones.GetNumBones());
+			NewPose.Pose.SetBoneContainer(&RequiredBones);
+			NewPose.Curve.InitFrom(this);
 
 			// Extract pose from Track
 			FAnimExtractContext ExtractionContext(EvalState.MontagePosition, EvalState.Montage->HasRootMotion() && RootMotionMode != ERootMotionMode::NoRootMotionExtraction);
-			FAnimationRuntime::GetPoseFromAnimTrack(*AnimTrack, RequiredBones, NewPose.Pose.Bones, ExtractionContext);
+			AnimTrack->GetAnimationPose(NewPose.Pose, NewPose.Curve, ExtractionContext);
+
+			// add montage curves 
+			FBlendedCurve MontageCurve;
+			MontageCurve.InitFrom(this);
+			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
+			NewPose.Curve.Combine(MontageCurve);
 
 			TotalWeight += EvalState.MontageWeight;
 			if (AdditiveAnimType == AAT_None)
@@ -1527,6 +1397,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			{
 				AdditivePoses.Add(NewPose);
 			}
+		
 		}
 	}
 
@@ -1534,6 +1405,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 	if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
+		BlendedCurve = SourceCurve;
 		return;
 	}
 	// Make sure weights don't exceed 1.f, otherwise re-normalize.
@@ -1563,6 +1435,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 		if (NonAdditivePoses.Num() == 0)
 		{
 			BlendedPose = SourcePose;
+			BlendedCurve = SourceCurve;
 		}
 		// Otherwise we need to blend non additive poses together
 		else
@@ -1572,50 +1445,47 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 			float const SourceWeight = FMath::Clamp<float>(1.f - NonAdditiveWeight, 0.f, 1.f);
 			int32 const NumPoses = NonAdditivePoses.Num() + ((SourceWeight > ZERO_ANIMWEIGHT_THRESH) ? 1 : 0);
 
-			FTransformArrayA2 const ** BlendingPoses = new FTransformArrayA2 const *[NumPoses];
+			TArray<const FCompactPose*> BlendingPoses;
+			BlendingPoses.AddUninitialized(NumPoses);
+
 			TArray<float> BlendWeights;
 			BlendWeights.AddUninitialized(NumPoses);
+
+			TArray<const FBlendedCurve*> BlendingCurves;
+			BlendingCurves.AddUninitialized(NumPoses);
+
 			for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
 			{
-				BlendingPoses[Index] = &NonAdditivePoses[Index].Pose.Bones;
+				BlendingPoses[Index] = &NonAdditivePoses[Index].Pose;
+				BlendingCurves[Index] = &NonAdditivePoses[Index].Curve;
 				BlendWeights[Index] = NonAdditivePoses[Index].Weight;
 			}
 
 			if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 			{
 				int32 const SourceIndex = BlendWeights.Num() - 1;
-				BlendingPoses[SourceIndex] = &SourcePose.Bones;
+				BlendingPoses[SourceIndex] = &SourcePose;
+				BlendingCurves[SourceIndex] = &SourceCurve;
 				BlendWeights[SourceIndex] = SourceWeight;
 			}
 
 			// now time to blend all montages
-			FAnimationRuntime::BlendPosesTogether(BlendWeights.Num(), (const FTransformArrayA2**)BlendingPoses, (const float*)BlendWeights.GetData(), RequiredBones, BlendedPose.Bones);
-
-			// clean up memory
-			delete[] BlendingPoses;
+			FAnimationRuntime::BlendPosesTogether(BlendingPoses, BlendingCurves, BlendWeights, BlendedPose, BlendedCurve);
 		}
 	}
 
 	// Third pass, layer on weighted additive poses.
+	if (AdditivePoses.Num() > 0)
 	{
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
 			FSlotEvaluationPose const & AdditivePose = AdditivePoses[Index];
-			// if additive, we should blend with source to make it full body
-			if (AdditivePose.AdditiveType == AAT_LocalSpaceBase)
-			{
-				ApplyAdditiveSequence(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
-			}
-			else if (AdditivePose.AdditiveType == AAT_RotationOffsetMeshSpace)
-			{
-				BlendRotationOffset(BlendedPose, AdditivePose.Pose, AdditivePose.Weight, BlendedPose);
-			}
-			else
-			{
-				check(false);
-			}
+			FAnimationRuntime::AccumulateAdditivePose(BlendedPose, AdditivePose.Pose, BlendedCurve, AdditivePose.Curve, AdditivePose.Weight, AdditivePose.AdditiveType);
 		}
 	}
+
+	// Normalize rotations after blending/accumulation
+	BlendedPose.NormalizeRotations();
 }
 
 void UAnimInstance::ReinitializeSlotNodes()
@@ -2757,6 +2627,299 @@ void UAnimInstance::UpdateMontageEvaluationData()
 			MontageEvaluationData.Add(FMontageEvaluationState(MontageInstance->Montage, MontageInstance->Weight, MontageInstance->GetPosition()));
 		}
 	}
+}
+
+float UAnimInstance::GetInstanceAssetPlayerLength(int32 AssetPlayerIndex)
+{
+	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
+	{
+		return PlayerNode->GetAnimAsset()->GetMaxCurrentTime();
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceAssetPlayerTime(int32 AssetPlayerIndex)
+{
+	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
+	{
+		return PlayerNode->GetAccumulatedTime();
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceAssetPlayerTimeFraction(int32 AssetPlayerIndex)
+{
+	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
+	{
+		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
+
+		float Length = Asset ? Asset->GetMaxCurrentTime() : 0.0f;
+
+		if(Length > 0.0f)
+		{
+			return PlayerNode->GetAccumulatedTime() / Length;
+		}
+	}
+
+	
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceAssetPlayerTimeFromEndFraction(int32 AssetPlayerIndex)
+{
+	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
+	{
+		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
+		
+		float Length = Asset ? Asset->GetMaxCurrentTime() : 0.f;
+
+		if(Length > 0.f)
+		{
+			return (Length - PlayerNode->GetAccumulatedTime()) / Length;
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceAssetPlayerTimeFromEnd(int32 AssetPlayerIndex)
+{
+	if(FAnimNode_AssetPlayerBase* PlayerNode = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(AssetPlayerIndex))
+	{
+		UAnimationAsset* Asset = PlayerNode->GetAnimAsset();
+		if(Asset)
+		{
+			return PlayerNode->GetAnimAsset()->GetMaxCurrentTime() - PlayerNode->GetAccumulatedTime();
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceStateWeight(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		return MachineInstance->GetStateWeight(StateIndex);
+	}
+	
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceCurrentStateElapsedTime(int32 MachineIndex)
+{
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		return MachineInstance->GetCurrentStateElapsedTime();
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceTransitionCrossfadeDuration(int32 MachineIndex, int32 TransitionIndex)
+{
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
+		{
+			return MachineInstance->GetTransitionInfo(TransitionIndex).CrossfadeDuration;
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetInstanceTransitionTimeElapsed(int32 MachineIndex, int32 TransitionIndex)
+{
+	// Just an alias for readability in the anim graph
+	return GetInstanceCurrentStateElapsedTime(MachineIndex);
+}
+
+float UAnimInstance::GetInstanceTransitionTimeElapsedFraction(int32 MachineIndex, int32 TransitionIndex)
+{
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		if(MachineInstance->IsValidTransitionIndex(TransitionIndex))
+		{
+			return MachineInstance->GetCurrentStateElapsedTime() / MachineInstance->GetTransitionInfo(TransitionIndex).CrossfadeDuration;
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetRelevantAnimTimeRemaining(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
+	{
+		if(AssetPlayer->GetAnimAsset())
+		{
+			return AssetPlayer->GetAnimAsset()->GetMaxCurrentTime() - AssetPlayer->GetAccumulatedTime();
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetRelevantAnimTimeRemainingFraction(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
+	{
+		if(AssetPlayer->GetAnimAsset())
+		{
+			float Length = AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+			if(Length > 0.0f)
+			{
+				return (Length - AssetPlayer->GetAccumulatedTime()) / Length;
+			}
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetRelevantAnimLength(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
+	{
+		if(AssetPlayer->GetAnimAsset())
+		{
+			return AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+		}
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetRelevantAnimTime(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
+	{
+		return AssetPlayer->GetAccumulatedTime();
+	}
+
+	return 0.0f;
+}
+
+float UAnimInstance::GetRelevantAnimTimeFraction(int32 MachineIndex, int32 StateIndex)
+{
+	if(FAnimNode_AssetPlayerBase* AssetPlayer = GetRelevantAssetPlayerFromState(MachineIndex, StateIndex))
+	{
+		float Length = AssetPlayer->GetAnimAsset()->GetMaxCurrentTime();
+		if(Length > 0.0f)
+		{
+			return AssetPlayer->GetAccumulatedTime() / Length;
+		}
+	}
+
+	return 0.0f;
+}
+
+FAnimNode_StateMachine* UAnimInstance::GetStateMachineInstance(int32 MachineIndex)
+{
+	if(UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>((UObject*)GetClass()))
+	{
+		if((MachineIndex >= 0) && (MachineIndex < AnimBlueprintClass->AnimNodeProperties.Num()))
+		{
+			const int32 InstancePropertyIndex = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - MachineIndex;
+
+			UStructProperty* MachineInstanceProperty = AnimBlueprintClass->AnimNodeProperties[InstancePropertyIndex];
+			checkSlow(MachineInstanceProperty->Struct->IsChildOf(FAnimNode_StateMachine::StaticStruct()));
+
+			return MachineInstanceProperty->ContainerPtrToValuePtr<FAnimNode_StateMachine>(this);
+		}
+	}
+
+	return nullptr;
+}
+
+template<class NodeType>
+NodeType* UAnimInstance::GetCheckedNodeFromIndex(int32 NodeIdx)
+{
+	NodeType* NodePtr = nullptr;
+	if(UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
+	{
+		const int32 InstanceIdx = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - NodeIdx;
+
+		if(AnimBlueprintClass->AnimNodeProperties.IsValidIndex(InstanceIdx))
+		{
+			UStructProperty* NodeProperty = AnimBlueprintClass->AnimNodeProperties[InstanceIdx];
+
+			if(NodeProperty->Struct->IsChildOf(NodeType::StaticStruct()))
+			{
+				NodePtr = NodeProperty->ContainerPtrToValuePtr<NodeType>(this);
+			}
+			else
+			{
+				checkfSlow(false, TEXT("Requested a node of type %s but found node of type %s"), *NodeType::StaticStruct()->GetName(), *NodeProperty->Struct->GetName());
+			}
+		}
+		else
+		{
+			checkfSlow(false, TEXT("Requested node of type %s at index %d/%d, index out of bounds."), *NodeType::StaticStruct()->GetName(), NodeIdx, InstanceIdx);
+		}
+	}
+
+	checkfSlow(NodePtr, TEXT("Requested node at index %d not found!"), NodeIdx);
+
+	return NodePtr;
+}
+
+template<class NodeType>
+NodeType* UAnimInstance::GetNodeFromIndex(int32 NodeIdx)
+{
+	NodeType* NodePtr = nullptr;
+	if(UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(GetClass()))
+	{
+		const int32 InstanceIdx = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - NodeIdx;
+
+		if(AnimBlueprintClass->AnimNodeProperties.IsValidIndex(InstanceIdx))
+		{
+			UStructProperty* NodeProperty = AnimBlueprintClass->AnimNodeProperties[InstanceIdx];
+
+			if(NodeProperty->Struct->IsChildOf(NodeType::StaticStruct()))
+			{
+				NodePtr = NodeProperty->ContainerPtrToValuePtr<NodeType>(this);
+			}
+		}
+	}
+
+	return NodePtr;
+}
+
+FAnimNode_AssetPlayerBase* UAnimInstance::GetRelevantAssetPlayerFromState(int32 MachineIndex, int32 StateIndex)
+{
+	FAnimNode_AssetPlayerBase* ResultPlayer = nullptr;
+	if(FAnimNode_StateMachine* MachineInstance = GetStateMachineInstance(MachineIndex))
+	{
+		float MaxWeight = 0.0f;
+		const FBakedAnimationState& State = MachineInstance->GetStateInfo(StateIndex);
+		for(const int32& PlayerIdx : State.PlayerNodeIndices)
+		{
+			if(FAnimNode_AssetPlayerBase* Player = GetNodeFromIndex<FAnimNode_AssetPlayerBase>(PlayerIdx))
+			{
+				if(!Player->bIgnoreForRelevancyTest && Player->GetCachedBlendWeight() > MaxWeight)
+				{
+					MaxWeight = Player->GetCachedBlendWeight();
+					ResultPlayer = Player;
+				}
+			}
+		}
+	}
+	return ResultPlayer;
+}
+
+bool UAnimInstance::IsRunningParallelEvaluation() const
+{
+	USkeletalMeshComponent* Comp = GetOwningComponent();
+	if (Comp)
+	{
+		return Comp->IsRunningParallelEvaluation();
+	}
+	return false;
 }
 
 #undef LOCTEXT_NAMESPACE 

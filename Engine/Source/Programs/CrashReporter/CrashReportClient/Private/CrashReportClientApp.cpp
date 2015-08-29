@@ -148,7 +148,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
-
+	
 	if (bUnattended)
 	{
 		// In the unattended mode we don't send any PII.

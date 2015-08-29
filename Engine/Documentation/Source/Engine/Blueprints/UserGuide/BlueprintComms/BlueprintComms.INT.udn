@@ -3,7 +3,6 @@ Title:Direct Blueprint Communications
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:How to use one Blueprint's functions, events, and variables from another Blueprint.
 related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
-related:Engine/Blueprints/UserGuide/BlueprintCommsUsage/BPComHowTo
 related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 related:Engine/Blueprints/UserGuide/EventDispatcher
 
@@ -49,8 +48,6 @@ related:Engine/Blueprints/UserGuide/EventDispatcher
 
 
 [TOC(start:2)]
-
-## Overview
 
 When you are working with a Blueprint, you may sometimes find that you want to access the functions, events, and variables that are contained in another Blueprint. The simplest way to do so is to reference the "target" Blueprint through a publicly exposed object variable, and then specify which Blueprint instance you want to use.
 
@@ -177,6 +174,11 @@ When you are working with a function in a Blueprint, you can specify a target Bl
 ## Troubleshooting / Reference Links
 
 One common error occurs when no instance is specified at all in your variable. If you are having trouble getting the scripting from the target Blueprint to work when you call it from the working Blueprint, make sure that you have specified which Blueprint instance you want to use in the working Blueprint's **Details** panel. If, instead, you have set the variable from the result of a function call, you should see a warning in your logs that your variable has an "Access None" exception. If you have the Message Log window up, it should provide a clickable link to the node that is causing the problem.
+
+
+
+
+
 
 
 

@@ -98,10 +98,10 @@ As you may know, color - in terms of digital imagery - is broken in to 4 primary
 
 As with all digital images, for each pixel, the value of any of these channels can be represented by a number. Much of the work of a Material is simply manipulating these numbers based on a series of circumstances and mathematical expressions. 
 
-Materials use **floating point** values to store color data. This generally means that values for each channel will range from 0.0 to 1.0, instead of 0 to 255 as they do in some image editing applications. It is important to note that you can always overdrive values, which will in some cases result in special behaviors. For instance, if sending color into the Emissive input of a Material, which causes a glow, then values greater than 1.0 will increase the glow brightness.
+Materials use floating point values to store color data. This generally means that values for each channel will range from 0.0 to 1.0, instead of 0 to 255 as they do in some image editing applications. It is important to note that you can always overdrive values, which will in some cases result in special behaviors. For instance, if sending color into the Emissive input of a Material, which causes a glow, then values greater than 1.0 will increase the glow brightness.
 
 
-When thinking about Materials in UE4, keep in mind that many expressions **operate independently on each color channel**.  For example, the [Add](Engine/Rendering/Materials/ExpressionReference/Math#Add) node takes two inputs and adds them together per channel.  If you add together two RGB colors (3-channel vector values), then the output color will be: (Red1+Red2, Green1+Green2, Blue1+Blue2).  
+When thinking about Materials in UE4, keep in mind that many expressions operate independently on each color channel.  For example, the [Add](Engine/Rendering/Materials/ExpressionReference/Math#Add) node takes two inputs and adds them together per channel.  If you add together two RGB colors (3-channel vector values), then the output color will be: (Red1+Red2, Green1+Green2, Blue1+Blue2).  
 	
 [REGION:simpletable]
 ||

@@ -230,7 +230,8 @@ protected:
 	};
 
 	FRHISetRenderTargetsInfo PreviousRenderTargetsInfo;
-
+    bool bPreviousSurfaceWasBackBuffer;
+    
 	FRenderTargetViewInfo CurrentRenderTargetsViewInfo[MaxMetalRenderTargets], PreviousRenderTargetsViewInfo[MaxMetalRenderTargets];
 	uint32 CurrentNumRenderTargets, PreviousNumRenderTargets;
 	id<MTLTexture> CurrentColorRenderTextures[MaxMetalRenderTargets], PreviousColorRenderTextures[MaxMetalRenderTargets];

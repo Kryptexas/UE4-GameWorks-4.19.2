@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2573946
 Availability:Public
 Title:2.ゲーム入力の設定
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerInput
@@ -99,7 +99,7 @@ Description:アンリアルエンジンの入力値を設定
 				// Called to bind functionality to input（機能と入力をバインドするために呼ばれます）
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-				UPROPERTY()
+				UPROPERTY(EditAnywhere)
 				USceneComponent* OurVisibleComponent;
 			};
 

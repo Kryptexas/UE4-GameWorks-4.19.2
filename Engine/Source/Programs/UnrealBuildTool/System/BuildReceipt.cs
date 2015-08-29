@@ -7,11 +7,12 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Serialization;
 using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
 	[Serializable]
-	public class BuildProperty
+	public class BuildProperty : ISerializable
 	{
 		[XmlAttribute]
 		public string Name;
@@ -21,6 +22,18 @@ namespace UnrealBuildTool
 
 		private BuildProperty()
 		{
+		}
+
+		public BuildProperty(SerializationInfo Info, StreamingContext Context)
+		{
+			Name  = Info.GetString("na");
+			Value = Info.GetString("va");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("na", Name);
+			Info.AddValue("va", Value);
 		}
 
 		public BuildProperty(string InName, string InValue)
@@ -41,7 +54,7 @@ namespace UnrealBuildTool
 	}
 
 	[Serializable]
-	public class BuildProduct
+	public class BuildProduct : ISerializable
 	{
 		[XmlAttribute]
 		public string Path;
@@ -54,6 +67,20 @@ namespace UnrealBuildTool
 
 		private BuildProduct()
 		{
+		}
+
+		public BuildProduct(SerializationInfo Info, StreamingContext Context)
+		{
+			Path          = Info.GetString("pa");
+			Type          = (BuildProductType)Info.GetInt32("ty");
+			IsPrecompiled = Info.GetBoolean("ip");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("pa", Path);
+			Info.AddValue("ty", (int)Type);
+			Info.AddValue("ip", IsPrecompiled);
 		}
 
 		public BuildProduct(string InPath, BuildProductType InType)
@@ -76,7 +103,7 @@ namespace UnrealBuildTool
 	}
 
 	[Serializable]
-	public class RuntimeDependency
+	public class RuntimeDependency : ISerializable
 	{
 		[XmlAttribute]
 		public string Path;
@@ -86,6 +113,18 @@ namespace UnrealBuildTool
 
 		private RuntimeDependency()
 		{
+		}
+
+		public RuntimeDependency(SerializationInfo Info, StreamingContext Context)
+		{
+			Path      = Info.GetString("pa");
+			StagePath = Info.GetString("sp");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("pa", Path);
+			Info.AddValue("sp", StagePath);
 		}
 
 		public RuntimeDependency(string InPath)
@@ -115,7 +154,7 @@ namespace UnrealBuildTool
 	/// Stores a record of a built target, with all metadata that other tools may need to know about the build.
 	/// </summary>
 	[Serializable]
-	public class BuildReceipt
+	public class BuildReceipt : ISerializable
 	{
 		[XmlArrayItem("Property")]
 		public List<BuildProperty> Properties = new List<BuildProperty>();
@@ -134,6 +173,22 @@ namespace UnrealBuildTool
 		/// </summary>
 		public BuildReceipt()
 		{
+		}
+
+		public BuildReceipt(SerializationInfo Info, StreamingContext Context)
+		{
+			Properties                  = (List<BuildProperty>)Info.GetValue("pr", typeof(List<BuildProperty>));
+			BuildProducts               = (List<BuildProduct>)Info.GetValue("bp", typeof(List<BuildProduct>));
+			RuntimeDependencies         = (List<RuntimeDependency>)Info.GetValue("rd", typeof(List<RuntimeDependency>));
+			bRequireDependenciesToExist = Info.GetBoolean("rq");
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("pr", Properties);
+			Info.AddValue("bp", BuildProducts);
+			Info.AddValue("rd", RuntimeDependencies);
+			Info.AddValue("rq", bRequireDependenciesToExist);
 		}
 
 		/// <summary>
@@ -349,9 +404,16 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Filename to read from</param>
 		public static BuildReceipt Read(string FileName)
 		{
-			using(StreamReader Reader = new StreamReader(FileName))
+			if (File.Exists(FileName))
 			{
-				return (BuildReceipt)Serializer.Deserialize(Reader);
+				using (StreamReader Reader = new StreamReader(FileName))
+				{
+					return (BuildReceipt)Serializer.Deserialize(Reader);
+				}
+			}
+			else
+			{
+				return null;
 			}
 		}
 

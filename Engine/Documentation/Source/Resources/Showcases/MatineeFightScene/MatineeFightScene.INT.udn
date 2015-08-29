@@ -60,20 +60,28 @@ Related: Engine/Basics/Projects/CreatingTemplates
 
 [TOC(start:2 end:2)]
 
-## Overview
-
-The **Matinee** example shows how to create highly stylized cinematic sequences using Unreal Engine 4's **Matinee Editor**. If you do not know what **Matinee** is, the **Matinee Editor** (or simply **Matinee**) is a system which is based on the use of specialized **Tracks** in which you can place **Keyframes** and set the values of certain properties for the **Actors** in your level where you can adjust those values over time. 
+The **Matinee** example shows how to create highly stylized cinematic sequences using Unreal Engine 4's **Matinee Editor**. If you do not know what Matinee is, the Matinee Editor (or simply Matinee) is a system which is based on the use of specialized **Tracks** in which you can place **Keyframes** and set the values of certain properties for the **Actors** in your level where you can adjust those values over time. 
 
 On this page, we will jump into and discuss each of the different sections inside the **Matinee Actor** used to create the fight sequence scene and how each of the elements come together to produce the final result shown in the **Scene Breakdown** section below. With an understanding of how it was constructed, you will be able to modify it and put a different spin on it or take the knowledge, tips-and-tricks learned here and apply them to your own scenes. 
 
-You can also head to the [](Engine\Matinee) documentation for more details on how to work with and use **Matinee**. 
+You can also head to the [](Engine\Matinee) documentation for more details on how to work with and use Matinee. 
 
 
 ## Scene Breakdown
 
 Before breaking down the scene, you can view the end result below: 
 
-[![](OriginalMovieThumbnail.png)(w:640)](FightSceneOriginal.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+E0L7pBBhwUo
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 * The scene consists of five characters that interact with one another during the course of the 68 second sequence. 
@@ -89,9 +97,9 @@ Before breaking down the scene, you can view the end result below:
 
 ## Opening the Matinee Actor
 
-When going through this page, it will help if you have the project up and the **Matinee** open so you can follow along and can adjust values in real time. 
+When going through this page, it will help if you have the project up and the Matinee open so you can follow along and can adjust values in real time. 
 
-You can open the **Matinee** by searching the **World Outliner** for **Matinee**: 
+You can open the **Matinee** by searching the **World Outliner** for Matinee: 
 
 ![](SceneOutlinerMatinee.png)
 
@@ -291,7 +299,17 @@ You can **Right-Click** on a keyframe and "flip" the toggle to the opposite of i
 
 Two **SpotLights** were added to the scene to provide additional lighting of the characters for each shot. Each of these **Spotlights** were set to **Movable** and are positioned using the **Movement** track. Additionally, the **Intensity**, **LightColor**, and **Radius** for each light is adjusted during the scene depending upon the shot. To better describe what is occurring, take a look at the image below. 
 
-![](ShowingLightsGif.gif)(w:480 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kfJeFFGuEPQ
+[/PARAMLITERAL]
+[/OBJECT]
 
 When looking at the scene from the editor view and not the **Matinee Preview**, you can see that lights are being toggled on/off and positioned based on the needs of the shot. 
 
@@ -611,10 +629,26 @@ Be aware of Screen Direction. If you establish a character that appears on the l
 Try to make use of the Rule of Thirds in some of your shots. This is a general photography guideline that proposes that an image should be imagined as divided into nine equal parts by two equally spaced horizontal lines and two equally spaced vertical lines, and that important compositional elements should be placed along these lines or their intersections. 
 
 [REGION:imagetable]
-| ![](RuleOfThirds-SideBySide.gif)(w:480 convert:false) |![](RuleofThirdsMatinee.png)(w:320)|
+| [INCLUDE:#v11] |![](RuleofThirdsMatinee.png)(h:240)|
 | :---: | :---: |
 | Center Shot vs. Rule of Thirds Shot | Matinee Example |
 [/REGION]
+
+<!--
+[EXCERPT:v11]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+460
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+240
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+xnuP2mepDjs
+[/PARAMLITERAL]
+[/OBJECT]
+[/EXCERPT]
+-->
 
 #### Framing Your Shots
 
@@ -667,7 +701,17 @@ You could also create a **Template** using this project for new projects. Refer 
 
 Below is an example remix of the original sequence: 
 
-[![](Remix_Thumbnail.png)(w:640)](FightSceneRemix.wmv)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kzXg1NY4Aag
+[/PARAMLITERAL]
+[/OBJECT]
 
 As you can see from the video, there a number of different things you can do to modify the scene. In the video above, the following modifications were used: 
 

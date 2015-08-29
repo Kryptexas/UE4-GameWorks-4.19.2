@@ -4,23 +4,33 @@
 
 #include "SlateBasics.h"
 
-
 enum class EWebBrowserDocumentState;
 class IWebBrowserWindow;
 class FWebBrowserViewport;
+class UObject;
+class IWebBrowserPopupFeatures;
+
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforePopupDelegate, FString, FString);
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnCreateWindowDelegate, const TWeakPtr<IWebBrowserWindow>&, const TWeakPtr<IWebBrowserPopupFeatures>&);
+DECLARE_DELEGATE_RetVal_OneParam(bool, FOnCloseWindowDelegate, const TWeakPtr<IWebBrowserWindow>&);
 
 
 class WEBBROWSER_API SWebBrowser
 	: public SCompoundWidget
 {
 public:
+	DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnBeforeBrowse, const FString&, bool)
+	DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnLoadUrl, const FString& /*Method*/, const FString& /*Url*/, FString& /* Response */)
+
 	SLATE_BEGIN_ARGS(SWebBrowser)
-		: _InitialURL(TEXT("www.google.com"))
+		: _InitialURL(TEXT("https://www.google.com"))
 		, _ShowControls(true)
 		, _ShowAddressBar(false)
 		, _ShowErrorMessage(true)
 		, _SupportsTransparency(false)
-		, _ViewportSize(FVector2D(320, 240))
+		, _SupportsThumbMouseButtonNavigation(false)
+		, _BackgroundColor(255,255,255,255)
+		, _ViewportSize(FVector2D::ZeroVector)
 	{ }
 
 		/** A reference to the parent window. */
@@ -44,6 +54,12 @@ public:
 		/** Should this browser window support transparency. */
 		SLATE_ARGUMENT(bool, SupportsTransparency)
 
+		/** Whether to allow forward and back navigation via the mouse thumb buttons. */
+		SLATE_ARGUMENT(bool, SupportsThumbMouseButtonNavigation)
+
+		/** Opaque background color used before a document is loaded and when no document color is specified. */
+		SLATE_ARGUMENT(FColor, BackgroundColor)
+
 		/** Desired size of the web browser viewport. */
 		SLATE_ATTRIBUTE(FVector2D, ViewportSize);
 
@@ -59,19 +75,37 @@ public:
 		/** Called when document title changed. */
 		SLATE_EVENT(FOnTextChanged, OnTitleChanged)
 
+		/** Called when the Url changes. */
 		SLATE_EVENT(FOnTextChanged, OnUrlChanged)
+	
+		/** Called before a popup window happens */
+		SLATE_EVENT(FOnBeforePopupDelegate, OnBeforePopup)
+
+		/** Called when the browser requests the creation of a new window */
+		SLATE_EVENT(FOnCreateWindowDelegate, OnCreateWindow)
+
+		/** Called when a browser window close event is detected */
+		SLATE_EVENT(FOnCloseWindowDelegate, OnCloseWindow)
+
+		/** Called before browser navigation. */
+		SLATE_EVENT(FOnBeforeBrowse, OnBeforeNavigation)
+	
+		/** Called to allow bypassing page content on load. */
+		SLATE_EVENT(FOnLoadUrl, OnLoadUrl)
 	SLATE_END_ARGS()
 
 
 	/** Default constructor. */
 	SWebBrowser();
 
+	~SWebBrowser();
+
 	/**
 	 * Construct the widget.
 	 *
 	 * @param InArgs  Declaration from which to construct the widget.
 	 */
-	void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs, const TSharedPtr<IWebBrowserWindow>& InWebBrowserWindow = nullptr);
 
 	/**
 	 * Load the specified URL.
@@ -87,6 +121,9 @@ public:
 	* @param DummyURL Dummy URL for the page.
 	*/
 	void LoadString(FString Contents, FString DummyURL);
+
+	/** Reload browser contents */
+	void Reload();
 
 	/** Get the current title of the web page. */
 	FText GetTitleText() const;
@@ -111,16 +148,47 @@ public:
 	/** Whether the document is currently being loaded. */
 	bool IsLoading() const; 
 
+	/** Execute javascript on the current window */
+	void ExecuteJavascript(const FString& ScriptText);
+
+	/** 
+	 * Expose a UObject instance to the browser runtime.
+	 * Properties and Functions will be accessible from JavaScript side.
+	 * As all communication with the rendering procesis asynchronous, return values (both for properties and function results) are wrapped into JS Future objects.
+	 *
+	 * @param Name The name of the object. The object will show up as window.ue4.{Name} on the javascript side. If there is an existing object of the same name, this object will replace it. If bIsPermanent is false and there is an existing permanent binding, the permanent binding will be restored when the temporary one is removed.
+	 * @param Object The object instance.
+	 * @param bIsPermanent If true, the object will be visible to all pages loaded through this browser widget, otherwise, it will be deleted when navigating away from the current page. Non-permanent bindings should be registered from inside an OnLoadStarted event handler in order to be available before JS code starts loading.
+	 */
+	void BindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true);
+
+	/**
+	 * Remove an existing script binding registered by BindUObject.
+	 *
+	 * @param Name The name of the object to remove.
+	 * @param Object The object will only be removed if it is the same object as the one passed in.
+	 * @param bIsPermanent Must match the bIsPermanent argument passed to BindUObject.
+	 */
+	void UnbindUObject(const FString& Name, UObject* Object, bool bIsPermanent = true);
+
 private:
 
 	/** Returns true if the browser can navigate backwards. */
 	bool CanGoBack() const;
 
 	/** Navigate backwards. */
-	FReply OnBackClicked();
+	void GoBack();
 
 	/** Returns true if the browser can navigate forwards. */
 	bool CanGoForward() const;
+
+	/** Navigate forwards. */
+	void GoForward();
+
+private:
+
+	/** Navigate backwards. */
+	FReply OnBackClicked();
 
 	/** Navigate forwards. */
 	FReply OnForwardClicked();
@@ -151,6 +219,41 @@ private:
 
 	/** Callback for loaded url changes. */
 	void HandleUrlChanged(FString NewUrl);
+	
+	/** Callback for showing browser tool tips. */
+	void HandleToolTip(FString ToolTipText);
+
+	/**
+	 * A delegate that is executed prior to browser navigation.
+	 *
+	 * @return true if the navigation was handled an no further action should be taken by the browser, false if the browser should handle.
+	 */
+	bool HandleBeforeNavigation(const FString& Url, bool bIsRedirect);
+	
+	bool HandleLoadUrl(const FString& Method, const FString& Url, FString& OutResponse);
+
+	/**
+	 * A delegate that is executed when the browser requests window creation.
+	 *
+	 * @return true if if the window request was handled, false if the browser requesting the new window should be closed.
+	 */
+	bool HandleCreateWindow(const TWeakPtr<IWebBrowserWindow>& NewBrowserWindow, const TWeakPtr<IWebBrowserPopupFeatures>& PopupFeatures);
+
+	/**
+	 * A delegate that is executed when closing the browser window.
+	 *
+	 * @return true if if the window close was handled, false otherwise.
+	 */
+	bool HandleCloseWindow(const TWeakPtr<IWebBrowserWindow>& BrowserWindow);
+
+	/** Callback for popup window permission */
+	bool HandleBeforePopup(FString URL, FString Target);
+
+	/** Callback for showing a popup menu */
+	void HandleShowPopup(const FIntRect& PopupSize);
+
+	/** Callback for hiding the popup menu */
+	void HandleDismissPopup();
 
 private:
 
@@ -159,6 +262,17 @@ private:
 
 	/** Viewport interface for rendering the web page. */
 	TSharedPtr<FWebBrowserViewport> BrowserViewport;
+	/** Viewport interface for rendering popup menus. */
+	TSharedPtr<FWebBrowserViewport>	MenuViewport;
+
+	/** The actual viewport widget. Required to update its tool tip property. */
+	TSharedPtr<SViewport> ViewportWidget;
+
+	/**
+	 * An interface pointer to a menu object presenting a popup.
+	 * Pointer is null when a popup is not visible.
+	 */
+	TWeakPtr<IMenu> PopupMenuPtr;
 
 	/** The url that appears in the address bar which can differ from the url of the loaded page */
 	FText AddressBarUrl;
@@ -180,7 +294,19 @@ private:
 
 	/** A delegate that is invoked when document address changed. */
 	FOnTextChanged OnUrlChanged;
+	
+	/** A delegate that is invoked when the browser attempts to pop up a new window */
+	FOnBeforePopupDelegate OnBeforePopup;
 
-	/** A flag to avoid having more than one active timer delegate in flight at the same time */
-	bool IsHandlingRedraw;
+	/** A delegate that is invoked when the browser requests a UI window for another browser it spawned */
+	FOnCreateWindowDelegate OnCreateWindow;
+
+	/** A delegate that is invoked when a window close event is detected */
+	FOnCloseWindowDelegate OnCloseWindow;
+
+	/** A delegate that is invoked prior to browser navigation */
+	FOnBeforeBrowse OnBeforeNavigation;
+	
+	/** A delegate that is invoked when loading a resource, allowing the application to provide contents directly */
+	FOnLoadUrl OnLoadUrl;
 };

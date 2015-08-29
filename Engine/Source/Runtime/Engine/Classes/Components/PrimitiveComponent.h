@@ -96,6 +96,10 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams( FComponentHitSignature, class AAc
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams( FComponentBeginOverlapSignature,class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex, bool, bFromSweep, const FHitResult &, SweepResult);
 /** Delegate for notification of end of overlap with a specific component */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams( FComponentEndOverlapSignature, class AActor*, OtherActor, class UPrimitiveComponent*, OtherComp, int32, OtherBodyIndex);
+/** Delegate for notification when a wake event is fired by physics*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentWakeSignature, FName, BoneName);
+/** Delegate for notification when a sleep event is fired by physics*/
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FComponentSleepSignature, FName, BoneName);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentBeginCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FComponentEndCursorOverSignature, UPrimitiveComponent*, TouchedComponent );
@@ -212,10 +216,6 @@ public:
 	UPROPERTY()
 	uint32 bHasMotionBlurVelocityMeshes:1;
 	
-	/** If true, this component will be rendered in the CustomDepth pass (usually used for outlines) */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
-	uint32 bRenderCustomDepth:1;
-
 	/** If true, this component will be rendered in the main pass (z prepass, basepass, transparency) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
@@ -379,6 +379,14 @@ public:
 	UPROPERTY()
 	uint32 bUseEditorCompositing:1;
 
+	/** If true, this component will be rendered in the CustomDepth pass (usually used for outlines) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering, meta=(DisplayName = "Render CustomDepth Pass"))
+	uint32 bRenderCustomDepth:1;
+
+	/** Optionally write this 0-255 value to the stencil buffer in CustomDepth pass (Requires project setting or r.CustomDepth == 3) */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering,  meta=(UIMin = "0", UIMax = "255", editcondition = "bRenderCustomDepth", DisplayName = "CustomDepth Stencil Value"))
+	int32 CustomDepthStencilValue;
+
 	/**
 	 * Translucent objects with a lower sort priority draw behind objects with a higher priority.
 	 * Translucent objects with the same priority are rendered from back-to-front based on their bounds origin.
@@ -422,7 +430,7 @@ protected:
 
 	virtual void UpdateNavigationData() override;
 
-	/** Returns true if all descendant components that we can possibly collide with use relative location and rotation. */
+	/** Returns true if all descendant components that we can possibly overlap with use relative location and rotation. */
 	virtual bool AreAllCollideableDescendantsRelative(bool bAllowCachedValue = true) const;
 
 	/** Result of last call to AreAllCollideableDescendantsRelative(). */
@@ -467,14 +475,17 @@ private:
 public:
 	/**
 	 * Determine whether a Character can step up onto this component.
+	 * This controls whether they can try to step up on it when they bump in to it, not whether they can walk on it after landing on it.
+	 * @see FWalkableSlopeOverride
 	 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Collision)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Collision)
 	TEnumAsByte<enum ECanBeCharacterBase> CanCharacterStepUpOn;
 
 	/**
 	 * Set of actors to ignore during component sweeps in MoveComponent().
 	 * All components owned by these actors will be ignored when this component moves or updates overlaps.
 	 * Components on the other Actor may also need to be told to do the same when they move.
+	 * Does not affect movement of this component when simulating physics.
 	 * @see IgnoreActorWhenMoving()
 	 */
 	TArray<TWeakObjectPtr<AActor> > MoveIgnoreActors;
@@ -482,6 +493,7 @@ public:
 	/**
 	 * Tells this component whether to ignore collision with all components of a specific Actor when this component is moved.
 	 * Components on the other Actor may also need to be told to do the same when they move.
+	 * Does not affect movement of this component when simulating physics.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Collision", meta=(Keywords="Move MoveIgnore"))
 	void IgnoreActorWhenMoving(AActor* Actor, bool bShouldIgnore);
@@ -489,7 +501,12 @@ public:
 	/**
 	 * Returns the list of actors we currently ignore when moving.
 	 */
-	UFUNCTION(BlueprintCallable, Category = "Collision")
+	UFUNCTION(BlueprintCallable, meta=(DisplayName="GetMoveIgnoreActors"), Category = "Collision")
+	TArray<AActor*> CopyArrayOfMoveIgnoreActors();
+
+	/**
+	 * Returns the list of actors (as WeakObjectPtr) we currently ignore when moving.
+	 */
 	TArray<TWeakObjectPtr<AActor> > & GetMoveIgnoreActors();
 
 	/**
@@ -508,6 +525,16 @@ public:
 protected:
 	/** Set of components that this component is currently overlapping. */
 	TArray<FOverlapInfo> OverlappingComponents;
+
+private:
+	/** Convert a set of overlaps from a sweep to a subset that includes only those at the end location (filling in OverlapsAtEndLocation). */
+	const TArray<FOverlapInfo>* ConvertSweptOverlapsToCurrentOverlaps(TArray<FOverlapInfo>& OverlapsAtEndLocation, const TArray<FOverlapInfo>& SweptOverlaps, int32 SweptOverlapsIndex, const FVector& EndLocation, const FQuat& EndRotationQuat);
+
+	/** Convert a set of overlaps from a symmetric change in rotation to a subset that includes only those at the end location (filling in OverlapsAtEndLocation). */
+	const TArray<FOverlapInfo>* ConvertRotationOverlapsToCurrentOverlaps(TArray<FOverlapInfo>& OverlapsAtEndLocation, const TArray<FOverlapInfo>& CurrentOverlaps);
+
+	// FScopedMovementUpdate needs access to the above two functions.
+	friend FScopedMovementUpdate;
 
 public:
 	/** 
@@ -559,7 +586,7 @@ public:
 
 	/** Returns list of components this component is overlapping. */
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
-	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& OverlappingComponents) const;
+	void GetOverlappingComponents(TArray<UPrimitiveComponent*>& InOverlappingComponents) const;
 
 	/** Returns list of components this component is overlapping. */
 	UFUNCTION(BlueprintCallable, Category="Collision")
@@ -567,13 +594,13 @@ public:
 
 	/** 
 	 * Queries world and updates overlap tracking state for this component.
-	 * @param PendingOverlaps			An ordered list of components that the MovedComponent overlapped during its movement (i.e. generated during a sweep).
-	 *									May not be overlapping them now.
+	 * @param NewPendingOverlaps		An ordered list of components that the MovedComponent overlapped during its movement (eg. generated during a sweep). Only used to add potentially new overlaps.
+	 *									Might not be overlapping them now.
 	 * @param bDoNotifies				True to dispatch being/end overlap notifications when these events occur.
-	 * @param OverlapsAtEndLocation		If non-null, the given list of overlaps will be used as the overlaps for this component at the current location, rather than checking for them separately.
+	 * @param OverlapsAtEndLocation		If non-null, the given list of overlaps will be used as the overlaps for this component at the current location, rather than checking for them with a scene query.
 	 *									Generally this should only be used if this component is the RootComponent of the owning actor and overlaps with other descendant components have been verified.
 	 */
-	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
+	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* NewPendingOverlaps=nullptr, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=nullptr) override;
 
 	/** Update current physics volume for this component, if bShouldUpdatePhysicsVolume is true. Overridden to use the overlaps to find the physics volume. */
 	virtual void UpdatePhysicsVolume( bool bTriggerNotifiers ) override;
@@ -590,13 +617,13 @@ public:
 	 *  @param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return true if OutOverlaps contains any blocking results
 	 */
-	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
-	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
 protected:
 
 	// Override this method for custom behavior.
-	virtual bool ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
+	virtual bool ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
 public:
 
@@ -628,6 +655,18 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentEndOverlapSignature OnComponentEndOverlap;
+
+	/** 
+	 *	Event called when the underlying physics objects is woken up
+	 */
+	UPROPERTY(BlueprintAssignable, Category="Collision")
+	FComponentWakeSignature OnComponentWake;
+
+	/** 
+	 *	Event called when the underlying physics objects is put to sleep
+	 */
+	UPROPERTY(BlueprintAssignable, Category = "Collision")
+	FComponentSleepSignature OnComponentSleep;
 
 	/** Event called when the mouse cursor is moved over this component and mouse over events are enabled in the player controller */
 	UPROPERTY(BlueprintAssignable, Category="Input|Mouse Input")
@@ -838,6 +877,14 @@ public:
 	FVector GetPhysicsLinearVelocity(FName BoneName = NAME_None);
 
 	/**
+	*	Get the linear velocity of a point on a single body.
+	*	@param Point			Point is specified in world space.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to get velocity of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	FVector GetPhysicsLinearVelocityAtPoint(FVector Point, FName BoneName = NAME_None);
+
+	/**
 	 *	Set the linear velocity of all bodies in this component.
 	 *
 	 *	@param NewVel			New linear velocity to apply to physics.
@@ -881,6 +928,15 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, Category = "Physics")
 	FVector GetCenterOfMass(FName BoneName = NAME_None);
+
+	/**
+	*	Set the center of mass of a single body. This will offset the physx-calculated center of mass.
+	*	Note that in the case where multiple bodies are attached together, the center of mass will be set for the entire group.
+	*	@param CenterOfMassOffset		User specified offset for the center of mass of this object, from the calculated location.
+	*	@param BoneName			If a SkeletalMeshComponent, name of body to set center of mass of. 'None' indicates root body.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	void SetCenterOfMass(FVector CenterOfMassOffset, FName BoneName = NAME_None);
 
 	/**
 	 *	'Wake' physics simulation for a single body.
@@ -951,6 +1007,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering")
 	void SetRenderCustomDepth(bool bValue);
 
+	/** Sets the CustomDepth stencil value (0 - 255) and marks the render state dirty. */
+	UFUNCTION(BlueprintCallable, Category = "Rendering", meta=(UIMin = "0", UIMax = "255"))
+	void SetCustomDepthStencilValue(int32 Value);
+
 	/** Sets bRenderInMainPass property and marks the render state dirty. */
 	UFUNCTION(BlueprintCallable, Category = "Rendering")
 	void SetRenderInMainPass(bool bValue);
@@ -993,7 +1053,7 @@ private:
 	class UPrimitiveComponent* LODParentPrimitive;
 
 public:
-	void SetLODParentPrimitive(UPrimitiveComponent * InLODParentPrimitive);
+	void SetLODParentPrimitive(UPrimitiveComponent* InLODParentPrimitive);
 	UPrimitiveComponent* GetLODParentPrimitive();
 
 #if WITH_EDITOR
@@ -1008,7 +1068,6 @@ public:
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
@@ -1170,6 +1229,20 @@ public:
 	virtual float GetDistanceToCollision(const FVector& Point, FVector& ClosestPointOnCollision) const;
 
 	/**
+	* Returns the distance and closest point to the collision surface.
+	* Component must have simple collision to be queried for closest point.
+	*
+	* @param Point				World 3D vector
+	* @param OutPointOnBody		Point on the surface of collision closest to Point
+	* @param BoneName			If a SkeletalMeshComponent, name of body to set center of mass of. 'None' indicates root body.
+	*
+	* @return		Success if returns > 0.f, if returns 0.f, it is either not convex or inside of the point
+	*				If returns < 0.f, this primitive does not have collsion
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	float GetClosestPointOnCollision(const FVector& Point, FVector& OutPointOnBody, FName BoneName = NAME_None) const;
+
+	/**
 	 * Creates a proxy to represent the primitive to the scene manager in the rendering thread.
 	 * @return The proxy object.
 	 */
@@ -1262,7 +1335,7 @@ protected:
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
 	// Begin USceneComponent Interface
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 
 	/** Event called when AttachParent changes, to allow the scene to update its attachment state. */
 	virtual void OnAttachmentChanged() override;
@@ -1317,7 +1390,7 @@ protected:
 	virtual void UpdatePhysicsToRBChannels();
 
 	/** Called to send a transform update for this component to the physics engine */
-	void SendPhysicsTransform(bool bTeleport);
+	void SendPhysicsTransform(ETeleportType Teleport);
 
 	/** Ensure physics state created **/
 	void EnsurePhysicsStateCreated();
@@ -1360,13 +1433,22 @@ public:
 	//Begin USceneComponent Interface
 
 protected:
-	virtual bool MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
+	virtual bool MoveComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags, ETeleportType Teleport = ETeleportType::None) override;
 	
 public:
 	virtual bool IsWorldGeometry() const override;
+
+
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;
+
+	/** Gets the response type given a specific channel */
+	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
+
+	/** Gets the collision object type */
+	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual ECollisionChannel GetCollisionObjectType() const override;
+
 	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
 	virtual FVector GetComponentVelocity() const override;
 	//End USceneComponent Interface
@@ -1377,7 +1459,13 @@ public:
 	 * @param Owner: AActor that owns this component
 	 * @param BlockingHit: FHitResult that generated the blocking hit.
 	 */
-	void DispatchBlockingHit(AActor& Owner, FHitResult const& BlockingHit);
+	void DispatchBlockingHit(AActor& OutOwner, FHitResult const& BlockingHit);
+
+	/**
+	 * Dispatch notification for wake events and propagate to any welded bodies
+	 */
+
+	void DispatchWakeEvents(int32 WakeEvent, FName BoneName);
 
 	/**
 	 * Set collision params on OutParams (such as CollisionResponse, bTraceAsyncScene) to match the settings on this PrimitiveComponent.
@@ -1476,9 +1564,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual void SetMassScale(FName BoneName = NAME_None, float InMassScale = 1.f);
 
+	/** Returns the mass scale used to calculate the mass of a single physics body */
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual float GetMassScale(FName BoneName = NAME_None) const;
+
 	/** Change the mass scale used fo all bodies in this component */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual void SetAllMassScale(float InMassScale = 1.f);
+
+	/**
+	*	Override the mass (in Kg) of a single physics body.
+	*	Note that in the case where multiple bodies are attached together, the override mass will be set for the entire group.
+	*	Set the Override Mass to false if you want to reset the body's mass to the auto-calculated physx mass.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void SetMassOverrideInKg(FName BoneName = NAME_None, float MassInKg = 1.f, bool bOverrideMass = true);
 
 	/** Returns the mass of this component in kg. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
@@ -1685,8 +1785,11 @@ public:
 
 	/**
 	 * Return true if the given Pawn can step up onto this component.
-	 * @param Pawn is the Pawn that wants to step onto this component.
+	 * This controls whether they can try to step up on it when they bump in to it, not whether they can walk on it after landing on it.
+	 * @param Pawn the Pawn that wants to step onto this component.
+	 * @see CanCharacterStepUpOn
 	 */
+	UFUNCTION(BlueprintCallable, Category=Collision)
 	virtual bool CanCharacterStepUp(class APawn* Pawn) const;
 
 	/** Can this component potentially influence navigation */
@@ -1755,14 +1858,14 @@ public:
 //////////////////////////////////////////////////////////////////////////
 // PrimitiveComponent inlines
 
-FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-	return ComponentOverlapMultiImpl(OutOverlaps, World, Pos, Rot, TestChannel, Params, ObjectQueryParams);
+	return ComponentOverlapMultiImpl(OutOverlaps, InWorld, Pos, Rot, TestChannel, Params, ObjectQueryParams);
 }
 
-FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
+FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
-	return ComponentOverlapMultiImpl(OutOverlaps, World, Pos, Rot.Quaternion(), TestChannel, Params, ObjectQueryParams);
+	return ComponentOverlapMultiImpl(OutOverlaps, InWorld, Pos, Rot.Quaternion(), TestChannel, Params, ObjectQueryParams);
 }
 
 FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Rot, const FCollisionQueryParams& Params)
@@ -1773,4 +1876,9 @@ FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class
 FORCEINLINE_DEBUGGABLE bool UPrimitiveComponent::ComponentOverlapComponent(class UPrimitiveComponent* PrimComp, const FVector Pos, const FRotator Rot, const FCollisionQueryParams& Params)
 {
 	return ComponentOverlapComponentImpl(PrimComp, Pos, Rot.Quaternion(), Params);
+}
+
+FORCEINLINE_DEBUGGABLE const TArray<FOverlapInfo>& UPrimitiveComponent::GetOverlapInfos() const
+{
+	return OverlappingComponents;
 }

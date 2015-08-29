@@ -108,7 +108,7 @@ void FPaperGroupedSpriteUtilities::SplitSprites(const TArray<UObject*>& InObject
 								FComponentReregisterContext ReregisterContext(SpawnedSpriteComponent);
 
 								SpawnedSpriteComponent->Modify();
-								SpawnedSpriteComponent->SetSpriteColor(InstanceData.VertexColor);
+								SpawnedSpriteComponent->SetSpriteColor(InstanceData.VertexColor.ReinterpretAsLinear());
 								SpawnedSpriteComponent->SetSprite(InstanceData.SourceSprite);
 
 								// Apply the material override if there is one

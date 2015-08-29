@@ -97,10 +97,16 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bUsePlayersOnlyForPause;
 
+	/** Whether to dump Navigation Octree on Stop recording or not */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bLogNavOctreeOnStop;
+
 	// UObject overrides
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+	class UMaterial* GetDebugMeshMaterial();
 
 protected:
 	FVisualLoggerFilters CurrentFilters;
@@ -108,6 +114,13 @@ protected:
 	UPROPERTY(config)
 	FVisualLoggerFilters PresistentFilters;
 
+	/** A material used to render debug meshes with kind of flat shading, mostly used by Visual Logger tool. */
+	UPROPERTY()
+	class UMaterial* DebugMeshMaterialFakeLight;
+
+	/** @todo document */
+	UPROPERTY(config)
+	FString DebugMeshMaterialFakeLightName;
 private:
 
 	// Holds an event delegate that is executed when a setting has changed.

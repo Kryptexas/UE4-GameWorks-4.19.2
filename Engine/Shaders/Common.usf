@@ -6,12 +6,13 @@
   
 #pragma once
 
+
 #if PS4_PROFILE  
 	// always #include PS4Common.usf so it can #define override anything in any other included file.
 	#include "PS4/PS4Common.usf"
 #endif
 
-#if METAL_PROFILE || METAL_MRT_PROFILE
+#if METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
 	// Helps with iteration when changing Metal shader code generation backend.
 	#include "MetalCommon.usf"
 #endif
@@ -62,7 +63,7 @@
 	#define MaterialFloat4x3 float4x3 
 #endif
 
-#if COMPILER_GLSL_ES2 || METAL_PROFILE || METAL_MRT_PROFILE
+#if COMPILER_GLSL_ES2 || METAL_PROFILE || METAL_MRT_PROFILE || METAL_SM5_PROFILE
 
 	float determinant(float3x3 M)
 	{    
@@ -79,6 +80,9 @@
 
 // to support the console command "r.InvalidateShaderCache"
 #include "ShaderVersion.usf"
+	
+// uniform buffers specifics
+#include "CommonViewUniformBuffer.usf"
 
 #include "Definitions.usf"
 
@@ -101,6 +105,8 @@
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 #elif SM4_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+#elif VULKAN_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_ES2
 #elif GL3_PROFILE || GL4_PROFILE
 
 	#if GL3_PROFILE
@@ -160,8 +166,8 @@
 #define PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS (!PS4_PROFILE && !XBOXONE_PROFILE && !ES31_AEP_PROFILE)
 #define USE_DEVELOPMENT_SHADERS (COMPILE_SHADERS_FOR_DEVELOPMENT && PLATFORM_SUPPORTS_DEVELOPMENT_SHADERS)
 
-#ifndef ES2_EMULATION
-#define ES2_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !METAL_PROFILE))
+#ifndef MOBILE_EMULATION
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !METAL_PROFILE && !VULKAN_PROFILE))
 #endif
 
 // If we didn't request color component swizzling, just make it empty
@@ -233,6 +239,10 @@ MaterialFloat4 Texture2DSampleBias(Texture2D Tex, SamplerState Sampler, float2 U
 	return Tex.SampleBias(Sampler, UV, MipBias);
 #endif
 }
+MaterialFloat4 Texture2DSampleGrad(Texture2D Tex, SamplerState Sampler, float2 UV, MaterialFloat2 DDX, MaterialFloat2 DDY)
+{
+	return Tex.SampleGrad(Sampler, UV, DDX, DDY);
+}
 MaterialFloat4 Texture3DSampleLevel(Texture3D Tex, SamplerState Sampler, float3 UV, MaterialFloat Mip)
 {
 	return Tex.SampleLevel(Sampler, UV, Mip);
@@ -248,6 +258,10 @@ MaterialFloat4 TextureCubeSampleBias(TextureCube Tex, SamplerState Sampler, floa
 #else
 	return Tex.SampleBias(Sampler, UV, MipBias);
 #endif
+}
+MaterialFloat4 TextureCubeSampleGrad(TextureCube Tex, SamplerState Sampler, float3 UV, MaterialFloat3 DDX, MaterialFloat3 DDY)
+{
+	return Tex.SampleGrad(Sampler, UV, DDX, DDY);
 }
 
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM5 // Cubemap arrays are not supported in SM4 feature level
@@ -683,6 +697,89 @@ MaterialFloat3 RGBMDecode( MaterialFloat4 rgbm )
 	return rgbm.rgb * (rgbm.a * 64.0f);
 }
 
+MaterialFloat4 RGBTEncode8BPC(MaterialFloat3 Color, MaterialFloat Range)
+{
+	MaterialFloat Max = max(max(Color.r, Color.g), max(Color.b, 1e-6));
+	Max = min(Max, Range);
+
+	MaterialFloat4 RGBT;
+	RGBT.a = (Range + 1) / Range *  Max / (1 + Max);
+
+	// quantise alpha to 8 bit.
+	RGBT.a = ceil(RGBT.a*255.0) / 255.0;
+	Max = RGBT.a / (1 + 1 / Range - RGBT.a);
+
+	MaterialFloat RcpMax = rcp(Max);
+	RGBT.rgb = Color.rgb * RcpMax;
+	return RGBT;
+}
+
+MaterialFloat3 RGBTDecode8BPC(MaterialFloat4 RGBT, MaterialFloat Range)
+{
+	RGBT.a = RGBT.a / (1 + 1 / Range - RGBT.a);
+	return RGBT.rgb * RGBT.a;
+}
+
+#define HDR_ENCODE_NONE 0.0
+#define HDR_ENCODE_MOSAIC 1.0
+#define HDR_ENCODE_RGBA 2.0
+
+float GetHDR32bppEncodeMode()
+{
+#if ES2_PROFILE
+	#if COMPILER_GLSL_ES2
+		#if IOS || WEBGL
+			#if USE_32BPP_HDR
+				return HDR_ENCODE_MOSAIC;
+			#endif
+		#else // ANDROID
+			return intrinsic_GetHDR32bppEncodeModeES2();
+		#endif
+	#endif
+	#if MOBILE_EMULATION
+		// To enable editor runtime change without recompile, PC always eats the encode cost.
+		return View.HDR32bppEncodingMode;
+	#endif
+#endif
+	return HDR_ENCODE_NONE;
+}
+
+#define DEFAULT_32BPPHDR_ENCODED_RANGE 1024.0
+
+MaterialFloat4 Encode32BPPHDR(MaterialFloat4 Color, MaterialFloat2 SvPosition)
+{
+	float Mode = GetHDR32bppEncodeMode();
+	if (Mode == HDR_ENCODE_MOSAIC)
+	{ 
+		return MaterialFloat4(HdrMosaic(Color.rgb, SvPosition), Color.a);
+	}
+	else if (Mode == HDR_ENCODE_RGBA)
+	{ 
+		return RGBTEncode8BPC(Color.rgb, DEFAULT_32BPPHDR_ENCODED_RANGE);
+	}
+	else 
+	{ 
+		return Color;
+	}
+}
+
+MaterialFloat3 Decode32BPPHDR(MaterialFloat4 Encoded, MaterialFloat3 OtherEncoded = MaterialFloat3(0, 0, 0), MaterialFloat2 SvPosition = MaterialFloat2(0, 0))
+{
+	float Mode = GetHDR32bppEncodeMode();
+	if (Mode == HDR_ENCODE_MOSAIC)
+	{
+		return HdrDemosaic(Encoded.rgb, OtherEncoded, SvPosition);
+	}
+	if (Mode == HDR_ENCODE_RGBA)
+	{ 
+		return RGBTDecode8BPC(Encoded, DEFAULT_32BPPHDR_ENCODED_RANGE);
+	}
+	else 
+	{
+		return Encoded.rgb; 
+	}
+}
+
 /** Calculates the ScreenUV given the screen position and an offset fraction. */
 float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFraction)
 {
@@ -697,10 +794,15 @@ float2 CalcScreenUVFromOffsetFraction(float4 ScreenPosition, float2 OffsetFracti
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float3 DecodeSceneColorForMaterialNode(float2 ScreenUV)
 {
+#if HIT_PROXY_SHADER
+	// Hit proxies rendering pass doesn't have access to valide render buffers
+	return float3(0.0f, 0.0f, 0.0f);
+#else
 	float4 EncodedSceneColor = Texture2DSample(LightAttenuationTexture, LightAttenuationTextureSampler, ScreenUV);
 
 	// Undo the function in EncodeSceneColorForMaterialNode
 	return pow(EncodedSceneColor.rgb, 4) * 10;
+#endif
 }
 
 // Converts depth buffer Z / W into W
@@ -728,7 +830,8 @@ float CalcSceneDepth( float2 ScreenUV )
 		#elif WEBGL
 			return Texture2DSampleLevel(SceneAlphaCopyTexture, SceneAlphaCopyTextureSampler, ScreenUV, 0).r;
 		#else 
-			return 65000.0f; 
+			float SceneW = ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);		
+			return DepthbufferFetchES2(SceneW, View.InvDeviceZToWorldZTransform[2], View.InvDeviceZToWorldZTransform[3]);
 		#endif 
 	#elif METAL_PROFILE
 			return FramebufferFetchES2().w;
@@ -738,7 +841,7 @@ float CalcSceneDepth( float2 ScreenUV )
 #endif
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION
 
 	// depth in in DeviceZ
 	Texture2D<float> SceneDepthTextureNonMS;
@@ -876,7 +979,7 @@ float AntialiasedTextureMask( Texture2D Tex, SamplerState Sampler, float2 UV, fl
 		float Sample1 = dot(MaskConst, Texture2DSample(Tex, Sampler, UV));
 
 		// compute the derivatives of the texture content
-		float2 TexDD = float2(ddx(Sample1), ddy(Sample1));
+		float2 TexDD = float2(DDX(Sample1), DDY(Sample1));
 
 		float TexDDLength = max(abs(TexDD.x), abs(TexDD.y)); 
 		float Top = InvWidthConst * (Sample1 - ThresholdConst);
@@ -991,9 +1094,26 @@ MaterialFloat ComputeDistanceFromBoxToPoint(MaterialFloat3 Mins, MaterialFloat3 
 	MaterialFloat3 DistancesToMin = InPoint < Mins ? abs(InPoint - Mins) : 0;
 	MaterialFloat3 DistancesToMax = InPoint > Maxs ? abs(InPoint - Maxs) : 0;
 
+	//@todo - this is actually incorrect, it gives manhattan distance
 	MaterialFloat Distance = dot(DistancesToMin, 1);
 	Distance += dot(DistancesToMax, 1);
 	return Distance;
+}
+
+/** Computes squared distance from a point in space to an AABB. */
+MaterialFloat ComputeSquaredDistanceFromBoxToPoint(MaterialFloat3 BoxCenter, MaterialFloat3 BoxExtent, MaterialFloat3 InPoint)
+{
+	MaterialFloat3 AxisDistances = max(abs(InPoint - BoxCenter) - BoxExtent, 0);
+	return dot(AxisDistances, AxisDistances);
+}
+
+/** Computes distance from point inside an AABB to the AABB's surface. */
+float ComputeDistanceFromBoxToPointInside(float3 BoxCenter, float3 BoxExtent, float3 InPoint)
+{
+	float3 DistancesToMin = max(InPoint - BoxCenter + BoxExtent, 0);
+	float3 DistancesToMax = max(BoxCenter + BoxExtent - InPoint, 0);
+	float3 ClosestDistances = min(DistancesToMin, DistancesToMax);
+	return min(ClosestDistances.x, min(ClosestDistances.y, ClosestDistances.z));
 }
 
 /** Transforms a vector from tangent space to world space */
@@ -1136,4 +1256,18 @@ float DecodeHeightValue(float InValue)
 float DecodePackedHeight(float2 PackedHeight)
 {
 	return DecodeHeightValue(DecodePackedTwoChannelValue(PackedHeight));
+}
+
+uint ReverseBits32( uint bits )
+{
+#if SM5_PROFILE && !METAL_MRT_PROFILE && !METAL_PROFILE && !METAL_SM5_PROFILE
+	return reversebits( bits );
+#else
+	bits = ( bits << 16) | ( bits >> 16);
+	bits = ( (bits & 0x00ff00ff) << 8 ) | ( (bits & 0xff00ff00) >> 8 );
+	bits = ( (bits & 0x0f0f0f0f) << 4 ) | ( (bits & 0xf0f0f0f0) >> 4 );
+	bits = ( (bits & 0x33333333) << 2 ) | ( (bits & 0xcccccccc) >> 2 );
+	bits = ( (bits & 0x55555555) << 1 ) | ( (bits & 0xaaaaaaaa) >> 1 );
+	return bits;
+#endif
 }

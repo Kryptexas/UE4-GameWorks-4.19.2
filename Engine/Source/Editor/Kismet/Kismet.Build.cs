@@ -59,5 +59,11 @@ public class Kismet : ModuleRules
                 "BlueprintCompilerCppBackend",
 			}
             );
+
+        CircularlyReferencedDependentModules.AddRange(
+            new string[] {
+                "BlueprintGraph",
+            }
+        ); 
 	}
 }

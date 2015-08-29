@@ -8,7 +8,7 @@
 
 
 class FString;
-template <typename FuncType> class TFunction;
+template <typename FuncType> class TFunctionRef;
 
 namespace EProcessResource
 {
@@ -231,7 +231,10 @@ struct CORE_API FGenericPlatformProcess
 	static const TCHAR* UserName(bool bOnlyAlphaNumeric = true);
 	static const TCHAR* ShaderDir();
 	static void SetShaderDir(const TCHAR*Where);
-	static void SetCurrentWorkingDirectoryToBaseDir() { }
+	static void SetCurrentWorkingDirectoryToBaseDir();
+	
+	/** Get the current working directory (only really makes sense on desktop platforms) */
+	static FString GetCurrentWorkingDirectory();
 
 	/**
 	 * Sets the process limits.
@@ -423,8 +426,9 @@ struct CORE_API FGenericPlatformProcess
 	* Sleep thread until condition is satisfied.
 	*
 	* @param	Condition	Condition to evaluate.
+	* @param	SleepTime	Time to sleep
 	*/
-	static void ConditionalSleep(const TFunction<bool()>& Condition);
+	static void ConditionalSleep(const TFunctionRef<bool()>& Condition, float SleepTime = 0.0f);
 
 	/**
 	 * Creates a new event.
@@ -500,6 +504,17 @@ struct CORE_API FGenericPlatformProcess
 	 * @see ClosePipe, CreatePipe
 	 */
 	static bool ReadPipeToArray(void* ReadPipe, TArray<uint8> & Output);
+
+	/**
+	* Sends the message to process through pipe
+	*
+	* @param WritePipe Pipe for writing.
+	* @param Message The message to be written.
+	* @param OutWritten Optional parameter to know how much of the string written.
+	* @return True if all bytes written successfully.
+	* @see CreatePipe, ClosePipe, ReadPipe
+	*/
+	static bool WritePipe(void* WritePipe, const FString& Message, FString* OutWritten = nullptr);
 
 	/**
 	 * Gets whether this platform can use multiple threads.

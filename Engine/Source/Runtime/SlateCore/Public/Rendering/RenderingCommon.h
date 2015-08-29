@@ -8,7 +8,6 @@ enum class EPopupMethod : uint8;
 
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
-#define SLATE_USE_FLOAT16 !PLATFORM_USES_ES2
 
 #if SLATE_USE_32BIT_INDICES
 typedef uint32 SlateIndex;
@@ -130,35 +129,7 @@ FSlateRotatedRect TransformRect(const TransformType& Transform, const FSlateRota
 	);
 }
 
-
-/**
- * Stores a Rotated rect as float16 (for rendering).
- */
-struct FSlateRotatedRectHalf
-{
-	/** Default ctor. */
-	FSlateRotatedRectHalf();
-	/** Construct a float16 version of a rotated rect from a full-float version. */
-	explicit FSlateRotatedRectHalf(const FSlateRotatedRect& RotatedRect);
-	/** Per-element constructor. */
-	FSlateRotatedRectHalf(const FVector2D& InTopLeft, const FVector2D& InExtentX, const FVector2D& InExtentY);
-	/** transformed Top-left corner. */
-	FVector2DHalf TopLeft;
-	/** transformed X extent (right-left). */
-	FVector2DHalf ExtentX;
-	/** transformed Y extent (bottom-top). */
-	FVector2DHalf ExtentY;
-};
-
-/**
- * Not all platforms support Float16, so we have to be tricky here and declare the proper vertex type.
- */
-#if SLATE_USE_FLOAT16
-typedef FSlateRotatedRectHalf FSlateRotatedClipRectType;
-#else
 typedef FSlateRotatedRect FSlateRotatedClipRectType;
-#endif
-
 
 /** 
  * A struct which defines a basic vertex seen by the Slate vertex buffers and shaders
@@ -167,16 +138,23 @@ struct FSlateVertex
 {
 	/** Texture coordinates.  The first 2 are in xy and the 2nd are in zw */
 	float TexCoords[4]; 
+
+	/** Texture coordinates used as pass through to materials for custom texturing. */
+	float MaterialTexCoords[2];
+
 	/** Position of the vertex in window space */
-	int16 Position[2];
+	float Position[2];
+
 	/** clip center/extents in render window space (window space with render transforms applied) */
 	FSlateRotatedClipRectType ClipRect;
+
 	/** Vertex color */
 	FColor Color;
 	
 	FSlateVertex();
 	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FVector2D& InTexCoord2, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
 	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector2D& InTexCoord, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
+	FSlateVertex( const FSlateRenderTransform& RenderTransform, const FVector2D& InLocalPosition, const FVector4& InTexCoords, const FVector2D& InMaterialTexCoords, const FColor& InColor, const FSlateRotatedClipRectType& InClipRect );
 };
 
 template<> struct TIsPODType<FSlateVertex> { enum { Value = true }; };
@@ -250,6 +228,14 @@ public:
 	 * Returns true if the viewport should be vsynced.
 	 */
 	virtual bool RequiresVsync() const = 0;
+
+	/**
+	 * Whether the viewport contents should be scaled or not. Defaults to true.
+	 */
+	virtual bool AllowScaling() const
+	{
+		return true;
+	}
 
 	/**
 	 * Called when Slate needs to know what the mouse cursor should be.

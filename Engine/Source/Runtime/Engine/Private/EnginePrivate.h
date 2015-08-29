@@ -30,7 +30,6 @@ EnginePrivate.h: Unreal engine private header file.
 #include "GameFramework/PlayerController.h"
 #include "Engine/Canvas.h"
 #include "GameFramework/WorldSettings.h"
-#include "PhysicsEngine/BodyInstance.h"
 #include "Components/SceneComponent.h"
 #include "Components/LightComponentBase.h"
 #include "AI/Navigation/NavigationData.h"

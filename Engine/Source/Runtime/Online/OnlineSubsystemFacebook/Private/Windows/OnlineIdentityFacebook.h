@@ -16,7 +16,7 @@ public:
 
 	// FOnlineUser
 	
-	virtual TSharedRef<FUniqueNetId> GetUserId() const override;
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const override;
 	virtual FString GetRealName() const override;
 	virtual FString GetDisplayName() const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
@@ -39,7 +39,7 @@ public:
 	}
 
 	/** User Id represented as a FUniqueNetId */
-	TSharedRef<FUniqueNetId> UserIdPtr;
+	TSharedRef<const FUniqueNetId> UserIdPtr;
 	/** Id associated with the user account provided by the online service during registration */
 	FString UserId;
 	/** Public user name */
@@ -82,7 +82,7 @@ class FOnlineIdentityFacebook :
 	/** Users that have been registered/authenticated */
 	FUserOnlineAccountFacebookMap UserAccounts;
 	/** Ids mapped to locally registered users */
-	TMap<int32, TSharedPtr<FUniqueNetId> > UserIds;
+	TMap<int32, TSharedPtr<const FUniqueNetId> > UserIds;
 
 	/** The amount of elapsed time since the last check */
 	float LastCheckElapsedTime;
@@ -105,9 +105,9 @@ public:
 	virtual bool AutoLogin(int32 LocalUserNum) override;
 	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetId& UserId) const override;
 	virtual TArray<TSharedPtr<FUserOnlineAccount> > GetAllUserAccounts() const override;
-	virtual TSharedPtr<FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const override;
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
-	virtual TSharedPtr<FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
+	virtual TSharedPtr<const FUniqueNetId> GetUniquePlayerId(int32 LocalUserNum) const override;
+	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(uint8* Bytes, int32 Size) override;
+	virtual TSharedPtr<const FUniqueNetId> CreateUniquePlayerId(const FString& Str) override;
 	virtual ELoginStatus::Type GetLoginStatus(int32 LocalUserNum) const override;
 	virtual ELoginStatus::Type GetLoginStatus(const FUniqueNetId& UserId) const override;
 	virtual FString GetPlayerNickname(int32 LocalUserNum) const override;

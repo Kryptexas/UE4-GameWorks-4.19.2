@@ -55,12 +55,8 @@ private:
 	{
 		UBlueprint* Blueprint = Editor.Pin()->GetBlueprintObj();
 
-		UEdGraph* TargetGraph = nullptr;
-		if ( Blueprint->UbergraphPages.Num() > 0 )
-		{
-			TargetGraph = Blueprint->UbergraphPages[0]; // Just use the first graph
-		}
-
+		UEdGraph* TargetGraph = Blueprint->GetLastEditedUberGraph();
+		
 		if ( TargetGraph != nullptr )
 		{
 			Editor.Pin()->SetCurrentMode(FWidgetBlueprintApplicationModes::GraphMode);
@@ -175,7 +171,7 @@ void FBlueprintWidgetCustomization::CreateMulticastEventCustomization(IDetailLay
 	}
 
 	// Add on category for delegate property
-	const FString EventCategory = FObjectEditorUtils::GetCategory(DelegateProperty);
+	const FText EventCategory = FObjectEditorUtils::GetCategoryText(DelegateProperty);
 
 	UObjectProperty* ComponentProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, ThisComponentName);
 

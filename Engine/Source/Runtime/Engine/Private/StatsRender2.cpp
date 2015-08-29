@@ -257,7 +257,7 @@ static void RightJustify(FCanvas* Canvas, int32 X, int32 Y, TCHAR const* Text, F
  */
 static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas, int32 X, int32 Y, const int32 Indent, const bool bStackStat )
 {
-	FColor Color = GetStatRenderGlobals().StatColor;	
+	FColor Color = GetStatRenderGlobals().StatColor.ToFColor(true);
 
 	check(Item.NameAndInfo.GetFlag(EStatMetaFlags::IsCycle));
 
@@ -270,7 +270,7 @@ static int32 RenderCycle( const FComplexStatMessage& Item, class FCanvas* Canvas
 		const float InMs = FPlatformTime::ToMilliseconds(Item.GetValue_Duration(EComplexStatField::IncAve));
 		// Color will be determined by the average value of history
 		// If show inclusive and and show exclusive is on, then it will choose color based on inclusive average
-		// @TODO yrx 2014-08-21 This is slow, fix this.
+		// #YRX_STATS: 2015-06-09 This is slow, fix this
 		FString CounterName = Item.GetShortName().ToString();
 		CounterName.RemoveFromStart(TEXT("STAT_"));
 		GEngine->GetStatValueColoration(CounterName, InMs, Color);

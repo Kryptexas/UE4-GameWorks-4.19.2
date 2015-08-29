@@ -261,7 +261,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
 		TArray< TSharedPtr<FJsonValue> > Array;
-		check( FJsonSerializer::Deserialize( Reader, Array ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Array);
+		check(bSuccessful);
 		check( Array.Num() == 1 );
 		check( Array[0].IsValid() )
 
@@ -293,7 +294,9 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(InputString);
 
 		TArray< TSharedPtr<FJsonValue> > Array;
-		check(FJsonSerializer::Deserialize(Reader, Array));
+
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Array);
+		check(bSuccessful);
 		check(Array.Num() == 3);
 		check(Array[0].IsValid());
 		check(Array[1].IsValid());
@@ -330,7 +333,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(InputString);
 
 		TArray< TSharedPtr<FJsonValue> > Array;
-		check(FJsonSerializer::Deserialize(Reader, Array));
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Array);
+		check(bSuccessful);
 		check(Array.Num() == 4);
 		check(Array[0].IsValid());
 		check(Array[1].IsValid());
@@ -368,7 +372,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(InputString);
 
 		TArray< TSharedPtr<FJsonValue> > Array;
-		check(FJsonSerializer::Deserialize(Reader, Array));
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Array);
+		check(bSuccessful);
 		check(Array.Num() == 4);
 		check(Array[0].IsValid());
 		check(Array[1].IsValid());
@@ -413,7 +418,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create(InputString);
 
 		TArray< TSharedPtr<FJsonValue> > Array;
-		check(FJsonSerializer::Deserialize(Reader, Array));
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Array);
+		check(bSuccessful);
 		check(Array.Num() == 6);
 		check(Array[0].IsValid());
 		check(Array[1].IsValid());
@@ -463,7 +469,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
 		TSharedPtr<FJsonObject> Object;
-		check( FJsonSerializer::Deserialize( Reader, Object ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Object);
+		check(bSuccessful);
 		check( Object.IsValid() );
 
 		const TSharedPtr<FJsonValue>* Value = Object->Values.Find(TEXT("Value"));
@@ -495,7 +502,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
 		TSharedPtr<FJsonObject> Object;
-		check( FJsonSerializer::Deserialize( Reader, Object ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Object);
+		check(bSuccessful);
 		check( Object.IsValid() );
 
 		double TestValues[] = {2.544e+15, -0.544e-2, 251e3, -0.0, 843};
@@ -537,7 +545,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
 		TSharedPtr<FJsonObject> Object;
-		check( FJsonSerializer::Deserialize( Reader, Object ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Object);
+		check(bSuccessful);
 		check( Object.IsValid() );
 
 		bool TestValues[] = {true, true, false};
@@ -598,7 +607,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputStringWithExtraWhitespace );
 
 		TSharedPtr<FJsonObject> Object;
-		check( FJsonSerializer::Deserialize( Reader, Object ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Object);
+		check(bSuccessful);
 		check( Object.IsValid() );
 
 		const TSharedPtr<FJsonValue>* InnerValueFail = Object->Values.Find(TEXT("InnerValue"));
@@ -655,7 +665,8 @@ bool FJsonAutomationTest::RunTest(const FString& Parameters)
 		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<>::Create( InputString );
 
 		TSharedPtr<FJsonObject> Object;
-		check( FJsonSerializer::Deserialize( Reader, Object ) );
+		bool bSuccessful = FJsonSerializer::Deserialize(Reader, Object);
+		check(bSuccessful);
 		check( Object.IsValid() );
 
 		const TSharedPtr<FJsonValue>* InnerValueFail = Object->Values.Find(TEXT("InnerValue"));
@@ -1009,155 +1020,6 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FReinitializeRHIResources, "System.Engine.Rende
 bool FReinitializeRHIResources::RunTest(const FString& Parameters)
 {
 	GEditor->Exec( NULL, TEXT("ReinitRHIResources"));
-	return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-/**
- * QA BSP Regression Testing
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBSPValidation, "System.QA.BSP Validation", EAutomationTestFlags::ATF_Editor);
-
-bool FBSPValidation::RunTest(const FString& Parameters)
-{
-	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
-	GEditor->Exec( World, TEXT("BRUSH Scale 1 1 1"));
-
-	for( int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++ )
-	{
-		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[i];
-		if(!ViewportClient->IsOrtho() )
-		{
-			ViewportClient->SetViewLocation( FVector(176, 2625, 2075) );
-			ViewportClient->SetViewRotation( FRotator(319, 269, 1) );
-		}
-	}
-
-	//Cube Additive Brush
-	UCubeBuilder* CubeAdditiveBrushBuilder = Cast<UCubeBuilder>(GEditor->FindBrushBuilder( UCubeBuilder::StaticClass() ));
-	CubeAdditiveBrushBuilder->X = 4096.0f;
-	CubeAdditiveBrushBuilder->Y = 4096.0f;
-	CubeAdditiveBrushBuilder->Z = 128.0f;
-	CubeAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=0 Y=0 Z=0"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Cone Additive Brush
-	UConeBuilder* ConeAdditiveBrushBuilder = Cast<UConeBuilder>(GEditor->FindBrushBuilder( UConeBuilder::StaticClass() ));
-	ConeAdditiveBrushBuilder->Z = 1024.0f;
-	ConeAdditiveBrushBuilder->CapZ = 256.0f;
-	ConeAdditiveBrushBuilder->OuterRadius = 512.0f;
-	ConeAdditiveBrushBuilder->InnerRadius = 384;
-	ConeAdditiveBrushBuilder->Sides = 32;
-	ConeAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=-1525 Y=-1777 Z=64"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Sphere Additive Brush
-	UTetrahedronBuilder* TetraAdditiveBrushBuilder = Cast<UTetrahedronBuilder>(GEditor->FindBrushBuilder( UTetrahedronBuilder::StaticClass() ));
-	TetraAdditiveBrushBuilder->Radius = 512.0f;
-	TetraAdditiveBrushBuilder->SphereExtrapolation = 3;
-	TetraAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=-88 Y=-1777 Z=535"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Cylinder Additive Brush
-	UCylinderBuilder* CylinderAdditiveBrushBuilder = Cast<UCylinderBuilder>(GEditor->FindBrushBuilder( UCylinderBuilder::StaticClass() ));
-	CylinderAdditiveBrushBuilder->Z = 1024.0f;
-	CylinderAdditiveBrushBuilder->OuterRadius = 512.0f;
-	CylinderAdditiveBrushBuilder->InnerRadius = 384.0f;
-	CylinderAdditiveBrushBuilder->Sides = 16;
-	CylinderAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=1338 Y=-1776 Z=535"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Cylinder Additive Brush
-	USheetBuilder* SheetAdditiveBrushBuilder = Cast<USheetBuilder>(GEditor->FindBrushBuilder( USheetBuilder::StaticClass() ));
-	SheetAdditiveBrushBuilder->X = 512.0f;
-	SheetAdditiveBrushBuilder->Y = 512.0f;
-	SheetAdditiveBrushBuilder->XSegments = 1;
-	SheetAdditiveBrushBuilder->YSegments = 1;
-	SheetAdditiveBrushBuilder->Axis = AX_YAxis;
-	SheetAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=-760 Y=-346 Z=535"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Volume Additive Brush
-	UVolumetricBuilder* VolumetricAdditiveBrushBuilder = Cast<UVolumetricBuilder>(GEditor->FindBrushBuilder( UVolumetricBuilder::StaticClass() ));
-	VolumetricAdditiveBrushBuilder->Z = 512.0f;
-	VolumetricAdditiveBrushBuilder->Radius = 128.0f;
-	VolumetricAdditiveBrushBuilder->NumSheets = 3;
-	VolumetricAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=445 Y=-345 Z=535"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Linear Stair Additive Brush
-	ULinearStairBuilder* LinearStairAdditiveBrushBuilder = Cast<ULinearStairBuilder>(GEditor->FindBrushBuilder( ULinearStairBuilder::StaticClass() ));
-	LinearStairAdditiveBrushBuilder->StepLength = 64.0f;
-	LinearStairAdditiveBrushBuilder->StepHeight = 16.0f;
-	LinearStairAdditiveBrushBuilder->StepWidth = 256.0f;
-	LinearStairAdditiveBrushBuilder->NumSteps = 8;
-	LinearStairAdditiveBrushBuilder->AddToFirstStep = 0;
-	LinearStairAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=1464 Y=-345 Z=-61"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Curved Stair Additive Brush
-	UCurvedStairBuilder* CurvedStairAdditiveBrushBuilder = Cast<UCurvedStairBuilder>(GEditor->FindBrushBuilder( UCurvedStairBuilder::StaticClass() ));
-	CurvedStairAdditiveBrushBuilder->InnerRadius = 240.0f;
-	CurvedStairAdditiveBrushBuilder->StepHeight = 16.0f;
-	CurvedStairAdditiveBrushBuilder->StepWidth = 256.0f;
-	CurvedStairAdditiveBrushBuilder->AngleOfCurve = 90.0f;
-	CurvedStairAdditiveBrushBuilder->NumSteps = 4;
-	CurvedStairAdditiveBrushBuilder->AddToFirstStep = 0;
-	CurvedStairAdditiveBrushBuilder->CounterClockwise = false;
-	CurvedStairAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=-1290 Y=263 Z=193"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Spiral Stair Additive Brush
-	USpiralStairBuilder* SpiralStairAdditiveBrushBuilder = Cast<USpiralStairBuilder>(GEditor->FindBrushBuilder( USpiralStairBuilder::StaticClass() ));
-	SpiralStairAdditiveBrushBuilder->InnerRadius = 64;
-	SpiralStairAdditiveBrushBuilder->StepWidth = 256.0f;
-	SpiralStairAdditiveBrushBuilder->StepHeight = 16.0f;
-	SpiralStairAdditiveBrushBuilder->StepThickness = 32.0f;
-	SpiralStairAdditiveBrushBuilder->NumStepsPer360 = 8;
-	SpiralStairAdditiveBrushBuilder->NumSteps = 8;
-	SpiralStairAdditiveBrushBuilder->SlopedCeiling = true;
-	SpiralStairAdditiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=850 Y=263 Z=193"));
-	GEditor->Exec( World, TEXT("BRUSH ADD"));
-
-	//Cylinder Additive Brush
-	UCylinderBuilder* CylinderSubtractiveBrushBuilder = Cast<UCylinderBuilder>(GEditor->FindBrushBuilder( UCylinderBuilder::StaticClass() ));
-	CylinderSubtractiveBrushBuilder->Z = 256;
-	CylinderSubtractiveBrushBuilder->OuterRadius = 512.0f;
-	CylinderSubtractiveBrushBuilder->InnerRadius = 384.0f;
-	CylinderSubtractiveBrushBuilder->Sides = 3;
-	CylinderSubtractiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=0 Y=0 Z=128"));
-	GEditor->Exec( World, TEXT("BRUSH SUBTRACT"));
-
-	//Cube Subtractive Brush
-	UCubeBuilder* CubeSubtractiveBrushBuilder = Cast<UCubeBuilder>(GEditor->FindBrushBuilder( UCubeBuilder::StaticClass() ));
-	CubeSubtractiveBrushBuilder->X = 256.0f;
-	CubeSubtractiveBrushBuilder->Y = 1024.0f;
-	CubeSubtractiveBrushBuilder->Z = 256.0f;
-	CubeSubtractiveBrushBuilder->Build(World);
-	GEditor->Exec( World, TEXT("BRUSH MOVETO X=-88 Y=-1777 Z=535"));
-	GEditor->Exec( World, TEXT("BRUSH SUBTRACT"));
-
-	//Directional Light
-	const FTransform Transform(FVector(-611.0f, 242.0f, 805.0f));
-	ADirectionalLight* DirectionalLight = Cast<ADirectionalLight>(GEditor->AddActor(World->GetCurrentLevel(), ADirectionalLight::StaticClass(), Transform));
-	DirectionalLight->SetMobility(EComponentMobility::Movable);
-	DirectionalLight->SetActorRotation(FRotator(300, 250, -91));
-	DirectionalLight->SetBrightness(3.142f);
-	DirectionalLight->SetLightColor(FColor::White);
-
-	GLevelEditorModeTools().MapChangeNotify();
-	
 	return true;
 }
 

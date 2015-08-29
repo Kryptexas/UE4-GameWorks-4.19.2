@@ -32,6 +32,9 @@ protected:
 	/** Load in any named interfaces specified by the ini configuration */
 	void InitNamedInterfaces();
 
+	/** Delegate fired when named interfaces are cleaned up at exit */
+	void OnNamedInterfaceCleanup();
+
 	/** Queue to hold callbacks scheduled for next tick using ExecuteNextTick */
 	TQueue<FNextTickDelegate, EQueueMode::Mpsc> NextTickQueue;
 
@@ -43,6 +46,7 @@ public:
 	virtual ~FOnlineSubsystemImpl();
 
 	// IOnlineSubsystem
+	virtual bool Shutdown() override;
 	virtual bool IsServer() const override;
 	virtual bool IsDedicated() const override{ return bForceDedicated || IsRunningDedicatedServer(); }
 	virtual void SetForceDedicated(bool bForce) override { bForceDedicated = bForce; }
@@ -63,7 +67,7 @@ public:
 	/**
 	 * @return the name of the online subsystem instance
 	 */
-	FName GetInstanceName() const { return InstanceName; }
+	virtual FName GetInstanceName() const override { return InstanceName; }
 
 	/**
 	 * Queue a delegate to be executed on the next tick

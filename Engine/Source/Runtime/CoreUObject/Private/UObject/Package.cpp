@@ -84,6 +84,14 @@ void UPackage::Serialize( FArchive& Ar )
 	{
 		Ar << bDirty;
 	}
+	if (Ar.IsCountingMemory())
+	{		
+		if (LinkerLoad)
+		{
+			FLinker* Loader = LinkerLoad;
+			Loader->Serialize(Ar);
+		}
+	}
 }
 
 void UPackage::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
@@ -174,7 +182,7 @@ bool UPackage::IsFullyLoaded()
 	// Newly created packages aren't loaded and therefore haven't been marked as being fully loaded. They are treated as fully
 	// loaded packages though in this case, which is why we are looking to see whether the package exists on disk and assume it
 	// has been fully loaded if it doesn't.
-	if( !bHasBeenFullyLoaded )
+	if( !bHasBeenFullyLoaded && !HasAnyFlags(RF_AsyncLoading) )
 	{
 		FString DummyFilename;
 		// Try to find matching package in package file cache.
@@ -194,6 +202,7 @@ void UPackage::BeginDestroy()
 	// Detach linker if still attached
 	if (LinkerLoad)
 	{
+		LinkerLoad->Detach();
 		FLinkerManager::Get().RemoveLinker(LinkerLoad);
 		LinkerLoad = nullptr;
 	}

@@ -24,6 +24,7 @@ class UBehaviorTreeGraphNode : public UAIGraphNode
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
 	virtual bool CanCreateUnderSpecifiedSchema(const UEdGraphSchema* DesiredSchema) const override;
+	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results) override;
 	// End UEdGraphNode Interface
 
 	virtual FText GetDescription() const override;

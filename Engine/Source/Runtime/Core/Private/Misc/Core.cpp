@@ -25,13 +25,13 @@ IMPLEMENT_MODULE( FCoreModule, Core );
 	Global variables.
 -----------------------------------------------------------------------------*/
 
-CORE_API FFeedbackContext*	GWarn						= NULL;						/* User interaction and non critical warnings */
-FConfigCacheIni*		GConfig							= NULL;						/* Configuration database cache */
-ITransaction*		GUndo							= NULL;						/* Transaction tracker, non-NULL when a transaction is in progress */
-FOutputDeviceConsole*	GLogConsole						= NULL;						/* Console log hook */
-CORE_API FMalloc*		GMalloc							= NULL;						/* Memory allocator */
+CORE_API FFeedbackContext*	GWarn						= nullptr;		/* User interaction and non critical warnings */
+FConfigCacheIni*				GConfig						= nullptr;		/* Configuration database cache */
+ITransaction*				GUndo						= nullptr;		/* Transaction tracker, non-NULL when a transaction is in progress */
+FOutputDeviceConsole*		GLogConsole					= nullptr;		/* Console log hook */
+CORE_API FMalloc*			GMalloc						= nullptr;		/* Memory allocator */
 
-class UPropertyWindowManager*	GPropertyWindowManager	= NULL;						/* Manages and tracks property editing windows */
+class UPropertyWindowManager*	GPropertyWindowManager	= nullptr;		/* Manages and tracks property editing windows */
 
 /** For building call stack text dump in guard/unguard mechanism. */
 TCHAR GErrorHist[16384]	= TEXT("");
@@ -90,14 +90,18 @@ bool GIsReconstructingBlueprintInstances = false;
 /** Force blueprints to not compile on load */
 bool GForceDisableBlueprintCompileOnLoad = false;
 
+/** True if actors and objects are being re-instanced. */
+bool GIsReinstancing = false;
+
 #if WITH_ENGINE
-bool					PRIVATE_GIsRunningCommandlet	= false;					/* Whether this executable is running a commandlet (custom command-line processing code) */
-#endif
+bool					PRIVATE_GIsRunningCommandlet			= false;				/* Whether this executable is running a commandlet (custom command-line processing code) */
+bool					PRIVATE_GAllowCommandletRendering	= false;				/** If true, initialise RHI and set up scene for rendering even when running a commandlet. */
+#endif	// WITH_ENGINE
 
 #if WITH_EDITORONLY_DATA
 bool					GIsEditor						= false;					/* Whether engine was launched for editing */
 bool					GIsImportingT3D					= false;					/* Whether editor is importing T3D */
-bool					GIsUCCMakeStandaloneHeaderGenerator = false;					/* Are we rebuilding script via the standalone header generator? */
+bool					GIsUCCMakeStandaloneHeaderGenerator = false;				/* Are we rebuilding script via the standalone header generator? */
 bool					GIsTransacting					= false;					/* true if there is an undo/redo operation in progress. */
 bool					GIntraFrameDebuggingGameThread	= false;					/* Indicates that the game thread is currently paused deep in a call stack; do not process any game thread tasks */
 bool					GFirstFrameIntraFrameDebugging	= false;					/* Indicates that we're currently processing the first frame of intra-frame debugging */

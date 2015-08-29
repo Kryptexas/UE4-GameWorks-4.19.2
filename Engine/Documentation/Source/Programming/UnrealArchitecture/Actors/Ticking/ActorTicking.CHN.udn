@@ -1,0 +1,147 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:Actor Ticking
+Crumbs:%ROOT%, Programming
+Description:Explanation of the ticking system used to update Actors each frame.
+Version: 4.5
+
+[TOC (start:2 end:3)]
+
+
+
+## Overview
+
+Actors are ticked once per frame with the elapsed time between frames in the order they appear in the World's Actor list (aggregate of all levels' lists). Actors are now ticked in 3 phases: before 
+asynchronous work, during asynchronous work, and after asynchronous work. Which group an Actor is ticked in is controlled by the TickGroup member. If an Actor needs to have its state updated before 
+any asynchronous work (physics, and others later), then it needs to be assigned to the TG_PreAsyncWork group. Failing to do so will cause incorrect behavior and/or off-by-one-frame problems. Actors 
+that can be ticked in parallel with physics and other threads are assigned to the TG_DuringAsyncWork group. If any Actor in that group calls a function that touches our rigid body physics data, an 
+error is logged and the call is ignored. This can lead to memory leaks, invalid scene state, etc. so it must be diligently fixed. The same thing holds true for SpawnActor(), MoveActor(), SetLocation(),
+ SetCollision(), etc. Those functions will continue to execute, but not affect the physics thread. They will also log errors. Finally, an Actor that depends on physics being updated first sets their 
+ group to TG_PostAsyncWork. Actors in this group depend on results from the physics simulation in order to represent an accurate world state (vehicles, ragdolls, etc.). It is safe to call both physics 
+ and all Unreal functions for movement, spawning, and collision in this phase.
+
+
+Here is a list of pros/cons for placing Actors into tick groups:
+
+
+
+### TG_PreAsyncGroup
+
++ Can safely call any Unreal function or Novodex physics function.
+
++ Updates positions, rotations, etc. for the physics simulation.
+
+- Operates on last frame's physics simulation results.
+
+- No parallelism in processing.
+
+
+
+### TG_DuringAsyncGroup
+
++ Happens in parallel with physics simulation.
+
+- Unsafe to call certain Unreal functions and all Novodex physics functions which write to the scene data (read is ok).
+
+
+
+### TG_PostAsyncGroup
+
++ Can safely call any Unreal function or Novodex physics function.
+
++ Operates on the current frame's physics simulation data.
+
+- No parallelism in processing.
+
+So the general rules for placing an Actor into a given list are:
+
+1. If it changes collision, spawns collidable Actors, writes to Novodex data, then it should go in TG_PreAsyncWork. Common Actors here are Pawns, Weapons, and some rigid body classes.
+1. If the Actor does not change collision, spawn colliding Actors (non-colliding are fine), or change Novodex data, then the Actor should be placed in the TG_DuringAsyncWork group. This is the best place as time spent ticking Actors hides any time spent simulating physics, e.g. 2ms of tick time here means that up to 2ms of simulation time are free. Particle systems, audio, and AI processing are good candidates for this group.
+1. If the Actor needs to get data back from Novodex before updating its Unreal data, then it must go in TG_PostAsyncWork. Vehicles and ragdolls are what will most often go here.
+
+
+
+## Actor Spawning
+
+Spawning an Actor means it (and all of its components) will be ticked in the group it is spawned in with no regard to its tick group. The very next frame, the newly spawned Actor will be ticked in the 
+correct tick group. One exception to this is that Actors spawned during the asynchronous tasks are deferred until TG_PostAsyncWork.
+
+
+
+## Component Ticking
+
+Just as Actors can be segregated into different ticking groups, so can Components. Previously, an Actor ticked all of its Components during the Actor's tick. This still happens, but Components that 
+need to be in different groups are added to a list that manages when they will be ticked. Components should be assigned ticking groups using the same criteria for assigning an Actor to a tick group.
+
+
+
+## Tick Code Flow
+
+| **Game Thread** | **Physics Thread** |
+| --- | --- |
+| Work through the world's Actor list ticking those that are TG_PreAsyncWork and deferring all others. | Idle |
+| For each ticked Actor, work through components list ticking TG_PreAsyncWork and deferring all others. | Idle |
+| Tell physics thread to start. | Start simulation |
+| For each Actor in the TG_DuringAsyncWork list, tick the Actor. | Simulate Physics |
+| For each Component in the Actor, tick the Component deferring as needed. | Simulate Physics |
+| For each Component deferred until TG_DuringAsycnWork, tick the Component. | Simulate Physics |
+| Block until physics work is done. | Return Simulation Results |
+| For each Actor in the TG_PostAsyncWork list, tick the Actor. | Idle |
+| For each Component in the Actor, tick the Component. | Idle |
+| For each Component deferred until TG_PostAsycnWork, tick the Component. | Idle |
+| Render & Repeat | Idle |
+
+
+
+## Detailed Code Flow (And Beyond Ticking)
+
+
+### Code Flow (each frame)
+
+
+    
+    Object ticking
+       Pre-physics
+          controller (input)
+          pawn (script)
+          Components
+             SkeletalMeshComponent: update animations, skeleton controls, then compute the matrices
+       Physics, async
+          pawn physics
+       Post-physics
+       Camera tick
+       Viewport tick
+    
+       "server travelling"
+       "client travelling"
+       streaming
+    
+    Render
+       Calculate VP matrix (ask camera in script, returns cached value)
+       Controller.PreRender
+          UTPawn.PreRender (pretty good thing for licencees to use as well)
+       Render everything
+    
+    Audio
+    
+    Callgraph computation
+    
+
+
+
+
+### Why Is It So Important?
+
+Understanding the ticking and rendering order is essential to avoid off-by-1-frame issues and to work around dependencies in calling order.  For instance, the camera is updated after all ticking is
+ done, so anything that is camera relative (such as a first-person attachment or a laser dot) must be done in PreRender.  But if there is, for instance, an _animation_ dependency on camera position, 
+ there **will be** an off-by-1-frame issue, because animation occurs during Pre-physics, Pawn movement occurs during physics, camera (typically) is dependent on Pawn position, and thus the animation 
+ dependency creates a loop.  To get around these issues, it may be necessary to calculate something more than once per frame.  Moving the camera tick as well as the animation tick to post physics 
+ will allow the animation to have correctly updated camera position (but the camera will be updated twice per frame unless coded specifically not to).
+
+ - Jordan Weitz
+
+ 
+
+
+
+

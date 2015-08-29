@@ -17,6 +17,14 @@ public:
 	virtual UMovieSceneSection* GetSectionObject() = 0;
 
 	/**
+	 * Allows each section to have it's own unique widget for advanced editing functionality
+	 * OnPaintSection will still be called if a widget is provided.  OnPaintSection is still used for the background section display
+	 * 
+	 * @return The generated widget 
+	 */
+	virtual TSharedRef<SWidget> GenerateSectionWidget() { return SNullWidget::NullWidget; }
+
+	/**
 	 * Called when the section should be painted
 	 *
 	 * @param AllottedGeometry		The geometry of the section
@@ -73,4 +81,11 @@ public:
 	 * @param  InDeltaTime  Real time passed since last tick
 	 */
 	virtual void Tick( const FGeometry& AllottedGeometry, const FGeometry& ClippedGeometry, const double InCurrentTime, const float InDeltaTime ) {}
+
+	/**
+	 * Builds up the section context menu for the outliner
+	 *
+	 * @param MenuBuilder	The menu builder to change
+	 */
+	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) {}
 };

@@ -437,13 +437,18 @@ bool FAutomationTestFramework::ShouldTestContent(const FString& Path) const
 		GConfig->GetArray( TEXT("/Script/Engine.AutomationTestSettings"), TEXT("TestLevelFolders"), TestLevelFolders, GEngineIni);
 	}
 
+	bool bMatchingDirectory = false;
 	for ( const FString& Folder : TestLevelFolders )
 	{
 		const FString PatternToCheck = FString::Printf(TEXT("/%s/"), *Folder);
 		if ( Path.Contains(*PatternToCheck) )
 		{
-			return false;
+			bMatchingDirectory = true;
 		}
+	}
+	if (bMatchingDirectory)
+	{
+		return true;
 	}
 
 	FString DevelopersPath = FPaths::GameDevelopersDir().LeftChop(1);

@@ -14,6 +14,7 @@ namespace UnrealBuildTool
 	{
 		Win32,
 		Win64,
+		UWP,
 		Mac,
 		XboxOne,
 		PS4,
@@ -199,6 +200,9 @@ namespace UnrealBuildTool
 		/** Use run time type information */
 		public bool bUseRTTI = false;
 
+		/** Use AVX instructions */
+		public bool bUseAVX = false;
+
 		/** Enable buffer security checks.   This should usually be enabled as it prevents severe security risks. */
 		public bool bEnableBufferSecurityChecks = true;
 
@@ -207,6 +211,9 @@ namespace UnrealBuildTool
 
         /** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
         public int MinFilesUsingPrecompiledHeaderOverride = 0;
+
+		/**  Module uses a #import so must be built locally when compiling with SN-DBS */
+		public bool bBuildLocallyWithSNDBS = false;
 
 		/** Enable exception handling */
 		public bool bEnableExceptions = false;
@@ -269,8 +276,10 @@ namespace UnrealBuildTool
 			PrecompiledHeaderAction                = InCopyEnvironment.PrecompiledHeaderAction;
 			bForceIncludePrecompiledHeader         = InCopyEnvironment.bForceIncludePrecompiledHeader;
 			bUseRTTI                               = InCopyEnvironment.bUseRTTI;
+			bUseAVX                                = InCopyEnvironment.bUseAVX;
 			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
+			bBuildLocallyWithSNDBS				   = InCopyEnvironment.bBuildLocallyWithSNDBS;
 			bEnableExceptions                      = InCopyEnvironment.bEnableExceptions;
 			bEnableShadowVariableWarning          = InCopyEnvironment.bEnableShadowVariableWarning;
 			OptimizeCode                           = InCopyEnvironment.OptimizeCode;

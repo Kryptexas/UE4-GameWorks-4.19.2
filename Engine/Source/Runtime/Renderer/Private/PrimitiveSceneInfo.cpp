@@ -96,9 +96,11 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	LastRenderTime(-FLT_MAX),
 	LastVisibilityChangeTime(0.0f),
 	Scene(InScene),
+	NumES2DynamicPointLights(0),
 	PackedIndex(INDEX_NONE),
 	ComponentForDebuggingOnly(InComponent),
-	bNeedsStaticMeshUpdate(false)
+	bNeedsStaticMeshUpdate(false),
+	bNeedsUniformBufferUpdate(false)
 {
 	check(ComponentForDebuggingOnly);
 	check(PrimitiveComponentId.IsValid());
@@ -319,6 +321,13 @@ void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdLis
 		StaticMeshes[MeshIndex].RemoveFromDrawLists();
 		StaticMeshes[MeshIndex].AddToDrawLists(RHICmdList, Scene);
 	}
+}
+
+void FPrimitiveSceneInfo::UpdateUniformBuffer(FRHICommandListImmediate& RHICmdList)
+{
+	checkSlow(bNeedsUniformBufferUpdate);
+	bNeedsUniformBufferUpdate = false;
+	Proxy->UpdateUniformBuffer();
 }
 
 void FPrimitiveSceneInfo::BeginDeferredUpdateStaticMeshes()

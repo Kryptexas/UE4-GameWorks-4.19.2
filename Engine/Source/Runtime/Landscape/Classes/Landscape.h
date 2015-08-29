@@ -17,11 +17,11 @@ UENUM()
 enum ELandscapeSetupErrors
 {
 	LSE_None,
-	// No Landscape Info available
+	/** No Landscape Info available. */
 	LSE_NoLandscapeInfo,
-	// There was already component with same X,Y
+	/** There was already component with same X,Y. */
 	LSE_CollsionXY,
-	// No Layer Info, need to add proper layers
+	/** No Layer Info, need to add proper layers. */
 	LSE_NoLayerInfo,
 	LSE_MAX,
 };

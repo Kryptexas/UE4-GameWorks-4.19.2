@@ -1,11 +1,91 @@
-﻿INTSourceChangelist:2222449
+﻿INTSourceChangelist:2604022
 Availability:Public
-Title:ビルド
+Title:リリース ノート
 Crumbs:%ROOT%
 Description:アンリアル エンジン ビルドのリリースノート
 
+[VAR:Params]
+[PARAM:image]
+	![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/outline_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Support/Builds:title%
+[/PARAM]
+[PARAM:description]
+	%Support/Builds:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Support/Builds]
+[/PARAM]
+[/VAR]
 
-[OBJECT:TopicList]
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/outline_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Support/Builds:title%
+	[/PARAM]
+	[PARAM:description]
+		%Support/Builds:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Support/Builds]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Support/Builds:title%](%ROOT%/placeholder_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/outline_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Support/Builds:title%
+	[/PARAM]
+	[PARAM:description]
+		%Support/Builds:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Support/Builds]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+engine
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+	2015
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2015/4_8)
+	* [](Support/Builds/ReleaseNotes/2015/4_7)
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]
@@ -14,6 +94,9 @@ Description:アンリアル エンジン ビルドのリリースノート
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
+	* [](Support/Builds/ReleaseNotes/2014/4_6)
+	* [](Support/Builds/ReleaseNotes/2014/4_5)
+	* [](Support/Builds/ReleaseNotes/2014/4_4)
 	* [](Support/Builds/ReleaseNotes/2014/4_3)
 	* [](Support/Builds/ReleaseNotes/2014/4_2)
 	* [](Support/Builds/ReleaseNotes/2014/4_1)
@@ -25,7 +108,7 @@ Description:アンリアル エンジン ビルドのリリースノート
 [/OBJECT]
 
 [PUBLISH:Licensee]
-[OBJECT:TopicList]
+[OBJECT:TopicButtonList]
 	[PARAM:icon]
 	[/PARAM]
 	[PARAM:title]

@@ -1,0 +1,25 @@
+﻿INTSourceChangelist:2320430
+Availability: Public
+Title:如何添加组件到Actor
+Crumbs: %ROOT%, Gameplay
+Description:在虚幻引擎4中添加组件到Actor的指南。
+
+
+##概述
+
+**组件** 是一种特殊类型的 **对象** ，用作为 **Actors** 中的一个子对象。组件一般用于需要简单地切换的部件的地方，以便改变具有该组件的Actor的某个特定方面的行为或功能。比如，一辆汽车的控制机及运动和飞机是有很大差别的，而飞机的控制和运动又和船有很大区别，以此类推；然而，所有这些都是交通工具，它们存在一些共性。通过使用一个组件来处理这些控制及运动，可以很轻松地使得同一交通工具的行为变得像任何一种特定类型的交通工具。
+
+## 设置
+
+如需了解更多关于使用蓝图来 **Adding Components to an Actor（添加组件到Actor）** 的内容，请按照如下链接来操作：
+
+[REGION:buttonlist]
+* [](Gameplay\HowTo\AddingComponents\Blueprints)
+[PUBLISH:Docs]
+* [](Gameplay\HowTo\AddingComponents\Code)
+[/PUBLISH:Docs]
+[/REGION]
+
+
+
+

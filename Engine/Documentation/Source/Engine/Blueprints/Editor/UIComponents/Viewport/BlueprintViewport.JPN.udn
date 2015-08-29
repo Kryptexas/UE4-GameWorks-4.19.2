@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597347
 Availability:Public
 Title:ブループリントエディタのビューポート
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
-Description:ブループリントのクラスの [コンポーネント] モードにおけるビューポートの概要
+Description:ブループリントのクラスの [コンポーネント] モードのビューポートの概要
 
 [TOC (start:2)]
-
-## 概要
 
 ブループリント エディタの **ビューポート** では、ブループリントのコンポーネントを表示および操作できます。 
 

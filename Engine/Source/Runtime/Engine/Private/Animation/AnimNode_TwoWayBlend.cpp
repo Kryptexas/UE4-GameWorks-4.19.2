@@ -57,7 +57,7 @@ void FAnimationNode_TwoWayBlend::Evaluate(FPoseContext& Output)
 			A.Evaluate(Pose1);
 			B.Evaluate(Pose2);
 
-			Output.AnimInstance->BlendSequences(Pose1.Pose, Pose2.Pose, ActualAlpha, Output.Pose);
+			FAnimationRuntime::BlendTwoPosesTogether(Pose1.Pose, Pose2.Pose, Pose1.Curve, Pose2.Curve, (1.0f - ActualAlpha), Output.Pose, Output.Curve);
 		}
 		else
 		{

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Paper 2D Sprites
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:Description of Sprites in Unreal Engine 4 and how to create them. 
@@ -146,3 +146,8 @@ The **Paper 2D** plugin includes a set of basic Materials that sample a Texture 
 ### Creating Custom Sprite Materials
 
 A custom Sprite Material can be created by duplicating one of the existing ones, or creating a new Material in the **Content Browser**. When a Sprite is rendered, the texture defined in a Sprite asset will be piped into any texture parameters named **SpriteTexture** in the material. The **SpriteTextureSampler** node in the **Material Editor** can be placed to do this automatically. Sprite instances will pass in their color as a Vertex Color, but it can be used for anything in the material, not just tinting.
+
+
+
+
+

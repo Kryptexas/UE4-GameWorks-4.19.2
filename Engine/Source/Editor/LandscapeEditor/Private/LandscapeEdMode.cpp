@@ -7,6 +7,7 @@
 #include "LandscapeEdMode.h"
 #include "ScopedTransaction.h"
 #include "LandscapeEdit.h"
+#include "LandscapeEditorUtils.h"
 #include "LandscapeRender.h"
 #include "LandscapeDataAccess.h"
 #include "LandscapeSplineProxies.h"
@@ -280,6 +281,12 @@ void FEdModeLandscape::InitializeToolModes()
 bool FEdModeLandscape::UsesToolkits() const
 {
 	return true;
+}
+
+TSharedRef<FUICommandList> FEdModeLandscape::GetUICommandList() const
+{
+	check(Toolkit.IsValid());
+	return Toolkit->GetToolkitCommands();
 }
 
 /** FEdMode: Called when the mode is entered */
@@ -1707,6 +1714,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 			}
 			CurrentToolTarget.LandscapeInfo = LandscapeList[0].Info;
 			CurrentIndex = 0;
+			UpdateTargetList();
 			if (CurrentTool != NULL)
 			{
 				CurrentTool->EnterTool();

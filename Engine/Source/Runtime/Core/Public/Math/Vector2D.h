@@ -462,10 +462,16 @@ public:
 		return Ar << V.X << V.Y;
 	}
 
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
@@ -645,7 +651,7 @@ FORCEINLINE bool FVector2D::operator>=( const FVector2D& Other ) const
 
 FORCEINLINE bool FVector2D::Equals(const FVector2D& V, float Tolerance) const
 {
-	return FMath::Abs(X-V.X) < Tolerance && FMath::Abs(Y-V.Y) < Tolerance;
+	return FMath::Abs(X-V.X) <= Tolerance && FMath::Abs(Y-V.Y) <= Tolerance;
 }
 
 
@@ -797,8 +803,8 @@ FORCEINLINE void FVector2D::Normalize(float Tolerance)
 
 FORCEINLINE bool FVector2D::IsNearlyZero(float Tolerance) const
 {
-	return	FMath::Abs(X)<Tolerance
-		&&	FMath::Abs(Y)<Tolerance;
+	return	FMath::Abs(X)<=Tolerance
+		&&	FMath::Abs(Y)<=Tolerance;
 }
 
 

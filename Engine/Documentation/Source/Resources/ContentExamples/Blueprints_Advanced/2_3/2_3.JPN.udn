@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:2.3 - ブループリント インターフェース
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -38,7 +38,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## 概要
 
-[ブループリントインターフェース](Engine/Blueprints\UserGuide\Types\Interface) は、 1 つの _ブループリント_ が別の _ブループリント_ のイベントや関数をトリガできるようにします。この 2 つの _ブループリント_ は両方とも、 **Blueprint Properties** の中に _ブループリント インターフェース_ を実装していなければなりません。
+[ブループリントインターフェース](Engine/Blueprints\UserGuide\Types\Interface) は、ある _ブループリント_ が別の _ブループリント_ のイベントや関数をトリガできるようにします。この 2 つの _ブループリント_ は両方とも、 **Blueprint Properties** の中に _ブループリント インターフェース_ を実装していなければなりません。
 この例では、 **BP_Button** _ブループリント_ が **BP_Gears** _ブループリント_ のギアのスピンを開始または停止させます。
 
 
@@ -69,9 +69,9 @@ Shape コンポーネントは、ボックス、カプセル、または球の�
 フルサイズ表示するには、**右クリック** または [Save As] を選択します。
 [/REGION]
 
-ギア _ブループリント_ は、ギア _Static Mesh Components_ の回転を開始または終了させるノードに接続された、特別な **Toggle** インターフェース イベントの形でインターフェースを実装します。このイベントは、 **BP_Button** の **Toggle** interface message によりトリガされます。
+ギアの _ブループリント_ は、ギアの _Static Mesh Components_ の回転を開始または終了させるノードに接続された、特別な **Toggle** インターフェース イベントの形でインターフェースを実装します。このイベントは、 **BP_Button** の **Toggle** interface message ノードによりトリガされます。
 
-Interface 変数は、これらの _ブループリント_ に使用するインターフェースはまた BOOL 変数の出力もします。インターフェース イベントの発行時における回転の中止または開始の指示をギア _ブループリント_に出すために使用します。インターフェースは、 _ブループリント_ 間での双方向の情報の受け渡しに便利なイベントと呼ばれる _ブループリント_ へ変数も返します。
+Interface 変数は、これらの _ブループリント_ に使用するインターフェースはまた BOOL 変数の出力もします。インターフェース イベントの発行時における回転の中止または開始の指示をギア _ブループリント_ に出すために使用します。インターフェースは、 _ブループリント_ 間での双方向の情報の受け渡しに便利なイベントと呼ばれる _ブループリント_ へ変数も返します。
 
 このケースでは、 **Target** _ブループリント_ の実装はイベントではなく関数で行われます。
 

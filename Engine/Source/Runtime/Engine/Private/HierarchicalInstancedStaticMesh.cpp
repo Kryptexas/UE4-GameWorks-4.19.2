@@ -1183,8 +1183,6 @@ void FHierarchicalStaticMeshSceneProxy::FillDynamicMeshElements(FMeshElementColl
 #endif
 }
 
-
-
 void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const
 {
 	if (Views[0]->bRenderFirstInstanceOnly)
@@ -1259,18 +1257,26 @@ void FHierarchicalStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<cons
 
 					if (View->ViewMatrices.IsPerspectiveProjection())
 					{
-						InstanceParams.ViewFrustumLocal.Planes.Pop(false); // we don't want the far plane either
-						FMatrix ThreePlanes;
-						ThreePlanes.SetIdentity();
-						ThreePlanes.SetAxes(&InstanceParams.ViewFrustumLocal.Planes[0], &InstanceParams.ViewFrustumLocal.Planes[1], &InstanceParams.ViewFrustumLocal.Planes[2]);
-						FVector ProjectionOrigin = ThreePlanes.Inverse().GetTransposed().TransformVector(FVector(InstanceParams.ViewFrustumLocal.Planes[0].W, InstanceParams.ViewFrustumLocal.Planes[1].W, InstanceParams.ViewFrustumLocal.Planes[2].W));
-
-						FVector Forward = LocalViewProjForCulling.GetColumn(3).GetSafeNormal();
-						for (int32 Index = 0; Index < InstanceParams.ViewFrustumLocal.Planes.Num(); Index++)
+						if (InstanceParams.ViewFrustumLocal.Planes.Num() == 5)
 						{
-							FPlane Src = InstanceParams.ViewFrustumLocal.Planes[Index];
-							FVector Normal = Src.GetSafeNormal();
-							InstanceParams.ViewFrustumLocal.Planes[Index] = FPlane(Normal, Normal | ProjectionOrigin);
+							InstanceParams.ViewFrustumLocal.Planes.Pop(false); // we don't want the far plane either
+							FMatrix ThreePlanes;
+							ThreePlanes.SetIdentity();
+							ThreePlanes.SetAxes(&InstanceParams.ViewFrustumLocal.Planes[0], &InstanceParams.ViewFrustumLocal.Planes[1], &InstanceParams.ViewFrustumLocal.Planes[2]);
+							FVector ProjectionOrigin = ThreePlanes.Inverse().GetTransposed().TransformVector(FVector(InstanceParams.ViewFrustumLocal.Planes[0].W, InstanceParams.ViewFrustumLocal.Planes[1].W, InstanceParams.ViewFrustumLocal.Planes[2].W));
+
+							FVector Forward = LocalViewProjForCulling.GetColumn(3).GetSafeNormal();
+							for (int32 Index = 0; Index < InstanceParams.ViewFrustumLocal.Planes.Num(); Index++)
+							{
+								FPlane Src = InstanceParams.ViewFrustumLocal.Planes[Index];
+								FVector Normal = Src.GetSafeNormal();
+								InstanceParams.ViewFrustumLocal.Planes[Index] = FPlane(Normal, Normal | ProjectionOrigin);
+							}
+						}
+						else
+						{
+							 // zero scaling or something, cull everything
+							continue;
 						}
 					}
 					else
@@ -1546,6 +1552,19 @@ UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComp
 	FlushAsyncBuildInstanceBufferTask();
 }
 
+#if WITH_EDITOR
+void UHierarchicalInstancedStaticMeshComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	if ((PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == "PerInstanceSMData") ||
+		(PropertyChangedEvent.Property != NULL && PropertyChangedEvent.Property->GetFName() == "Transform"))
+	{
+		BuildTree();
+	}
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+#endif
+
 void UHierarchicalInstancedStaticMeshComponent::FlushAsyncBuildInstanceBufferTask()
 {
 	if (AsyncBuildInstanceBufferTask)
@@ -1578,18 +1597,13 @@ SIZE_T UHierarchicalInstancedStaticMeshComponent::GetResourceSize( EResourceSize
 	return ResSize;
 }
 
-bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+void UHierarchicalInstancedStaticMeshComponent::RemoveInstanceInternal(int32 InstanceIndex)
 {
-	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
-	{
-		return false;
-	}
-
 	PartialNavigationUpdate(InstanceIndex);
 
 	// Save the render index
 	RemovedInstances.Add(InstanceReorderTable[InstanceIndex]);
-	
+
 	// Remove the instance
 	PerInstanceSMData.RemoveAtSwap(InstanceIndex);
 	InstanceReorderTable.RemoveAtSwap(InstanceIndex);
@@ -1600,6 +1614,80 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 	}
 #endif
 
+	// update the physics state
+	if (bPhysicsStateCreated)
+	{
+		// Clean up physics for removed instance
+		if (InstanceBodies[InstanceIndex])
+		{
+			InstanceBodies[InstanceIndex]->TermBody();
+			delete InstanceBodies[InstanceIndex];
+		}
+
+		int32 LastInstanceIndex = PerInstanceSMData.Num();
+
+		if (InstanceIndex == LastInstanceIndex)
+		{
+			// If we removed the last instance in the array we just need to remove it from the InstanceBodies array too.
+			InstanceBodies.RemoveAt(InstanceIndex);
+		}
+		else
+		{
+			if (InstanceBodies[LastInstanceIndex])
+			{
+				// term physics for swapped instance
+				InstanceBodies[LastInstanceIndex]->TermBody();
+			}
+
+			// swap in the last instance body if we have one
+			InstanceBodies.RemoveAtSwap(InstanceIndex);
+
+			// recreate physics for the instance we swapped in the removed item's place
+			if (InstanceBodies[InstanceIndex])
+			{
+				InitInstanceBody(InstanceIndex, InstanceBodies[InstanceIndex]);
+			}
+		}
+	}
+}
+
+bool UHierarchicalInstancedStaticMeshComponent::RemoveInstances(const TArray<int32>& InstancesToRemove)
+{
+	if (InstancesToRemove.Num() == 0)
+	{
+		return true;
+	}
+
+	TArray<int32> SortedInstancesToRemove = InstancesToRemove;
+
+	// Sort so RemoveAtSwaps don't alter the indices of items still to remove
+	SortedInstancesToRemove.Sort(TGreater<int32>());
+
+	if (!PerInstanceSMData.IsValidIndex(SortedInstancesToRemove[0]) || !PerInstanceSMData.IsValidIndex(SortedInstancesToRemove.Last()))
+	{
+		return false;
+	}
+
+	for (int32 Index : SortedInstancesToRemove)
+	{
+		RemoveInstanceInternal(Index);
+	}
+
+	ReleasePerInstanceRenderData();
+	MarkRenderStateDirty();
+
+	return true;
+}
+
+bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceIndex)
+{
+	if (!PerInstanceSMData.IsValidIndex(InstanceIndex))
+	{
+		return false;
+	}
+
+	RemoveInstanceInternal(InstanceIndex);
+
 	if (IsAsyncBuilding())
 	{
 		// invalidate the results of the current async build as it's too slow to fix up deletes
@@ -1608,23 +1696,6 @@ bool UHierarchicalInstancedStaticMeshComponent::RemoveInstance(int32 InstanceInd
 	else
 	{
 		BuildTreeAsync();
-	}
-
-
-	// update the physics state
-	if (bPhysicsStateCreated)
-	{
-		int32 OldLastIndex = PerInstanceSMData.Num();
-
-		// always shut down physics for the last instance
-		InstanceBodies[OldLastIndex]->TermBody();
-
-		// recreate physics for the instance we swapped in the removed item's place
-		if (InstanceIndex != PerInstanceSMData.Num() && PerInstanceSMData.Num())
-		{
-			InstanceBodies[InstanceIndex]->TermBody();
-			InitInstanceBody(InstanceIndex, InstanceBodies[InstanceIndex]);
-		}
 	}
 
 	ReleasePerInstanceRenderData();
@@ -2209,7 +2280,7 @@ void UHierarchicalInstancedStaticMeshComponent::PostLoad()
 		}
 	}
 	// For some reason we don't have a tree, or it is out of date. Build one now!
-	if (StaticMesh && PerInstanceSMData.Num() > 0 && (!ClusterTreePtr.IsValid() || ClusterTreePtr->Num() == 0 || GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES))
+	if (StaticMesh && PerInstanceSMData.Num() > 0 && (!ClusterTreePtr.IsValid() || ClusterTreePtr->Num() == 0 || (NumBuiltInstances != PerInstanceSMData.Num()) || GetLinkerUE4Version() < VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES))
 	{
 		UE_LOG(LogStaticMesh, Warning, TEXT("Rebuilding foliage, please resave map %s."), *GetFullName());
 		check(!IsAsyncBuilding());
@@ -2223,50 +2294,50 @@ static void GatherInstanceTransformsInArea(const UHierarchicalInstancedStaticMes
 	const TArray<FClusterNode>& ClusterTree = *Component.ClusterTreePtr;
 	if (ClusterTree.Num())
 	{
-	const FClusterNode& ChildNode = ClusterTree[Child];
-	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+		const FClusterNode& ChildNode = ClusterTree[Child];
+		const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
 	
-	if (AreaBox.Intersect(WorldNodeBox))
-	{
-		if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
+		if (AreaBox.Intersect(WorldNodeBox))
 		{
-			// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
-			const bool bUseRemaping = Component.SortedInstances.Num() > 0;
-			
-			// In case there no more subdivision or node is completely encapsulated by a area box
-			// add all instances to the result
-			for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
+			if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
 			{
-				int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
-
-					FTransform InstanceToComponent;
-					if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
-					{
-						InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
-					}
-					else if (Component.PerInstanceRenderData.IsValid())
-					{
-						// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
-						FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
-						FMatrix XformMat;
-						Inst->GetInstanceTransform(XformMat);
-						InstanceToComponent = FTransform(XformMat);
-					}
-				if (!InstanceToComponent.GetScale3D().IsZero())
+				// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
+				const bool bUseRemaping = Component.SortedInstances.Num() > 0;
+			
+				// In case there no more subdivision or node is completely encapsulated by a area box
+				// add all instances to the result
+				for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
 				{
-					InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
+					int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
+
+						FTransform InstanceToComponent;
+						if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+						{
+							InstanceToComponent = FTransform(Component.PerInstanceSMData[SortedIdx].Transform);
+						}
+						else if (Component.PerInstanceRenderData.IsValid())
+						{
+							// if there's no PerInstanceSMData (e.g. for grass), we'll go ge the transform from the render buffer
+							FInstanceStream const* Inst = Component.PerInstanceRenderData->InstanceBuffer.GetInstance(i);
+							FMatrix XformMat;
+							Inst->GetInstanceTransform(XformMat);
+							InstanceToComponent = FTransform(XformMat);
+						}
+					if (!InstanceToComponent.GetScale3D().IsZero())
+					{
+						InstanceData.Add(InstanceToComponent*Component.ComponentToWorld);
+					}
+				}
+			}
+			else
+			{
+				for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
+				{
+					GatherInstanceTransformsInArea(Component, AreaBox, i, InstanceData);
 				}
 			}
 		}
-		else
-		{
-			for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
-			{
-				GatherInstanceTransformsInArea(Component, AreaBox, i, InstanceData);
-			}
-		}
 	}
-}
 }
 
 int32 UHierarchicalInstancedStaticMeshComponent::GetOverlappingSphereCount(const FSphere& Sphere) const
@@ -2387,6 +2458,66 @@ void UHierarchicalInstancedStaticMeshComponent::FlushAccumulatedNavigationUpdate
 		}
 			
 		AccumulatedNavigationDirtyArea.Init();
+	}
+}
+
+// recursive helper to gather all instances with locations inside the specified sphere
+static void GatherInstancesOverlappingSphere(const UHierarchicalInstancedStaticMeshComponent& Component, const FSphere& Sphere, const float StaticMeshBoundsRadius, const FBox& AreaBox, int32 Child, TArray<int32>& OutInstanceIndices)
+{
+	const TArray<FClusterNode>& ClusterTree = *Component.ClusterTreePtr;
+	const FClusterNode& ChildNode = ClusterTree[Child];
+	const FBox WorldNodeBox = FBox(ChildNode.BoundMin, ChildNode.BoundMax).TransformBy(Component.ComponentToWorld);
+
+	if (AreaBox.Intersect(WorldNodeBox))
+	{
+		if (ChildNode.FirstChild < 0 || AreaBox.IsInside(WorldNodeBox))
+		{
+			// Unfortunately ordering of PerInstanceSMData does not match ordering of cluster tree, so we have to use remaping
+			const bool bUseRemaping = Component.SortedInstances.Num() > 0;
+
+			// In case there no more subdivision or node is completely encapsulated by a area box
+			// add all instances to the result
+			for (int32 i = ChildNode.FirstInstance; i <= ChildNode.LastInstance; ++i)
+			{
+				int32 SortedIdx = bUseRemaping ? Component.SortedInstances[i] : i;
+				if (Component.PerInstanceSMData.IsValidIndex(SortedIdx))
+				{
+					const FMatrix& Matrix = Component.PerInstanceSMData[SortedIdx].Transform;
+					FSphere InstanceSphere(Matrix.GetOrigin(), StaticMeshBoundsRadius * Matrix.GetScaleVector().GetMax());
+					if (Sphere.Intersects(InstanceSphere))
+					{
+						OutInstanceIndices.Add(SortedIdx);
+					}
+				}
+			}
+		}
+		else
+		{
+			for (int32 i = ChildNode.FirstChild; i <= ChildNode.LastChild; ++i)
+			{
+				GatherInstancesOverlappingSphere(Component, Sphere, StaticMeshBoundsRadius, AreaBox, i, OutInstanceIndices);
+			}
+		}
+	}
+}
+
+TArray<int32> UHierarchicalInstancedStaticMeshComponent::GetInstancesOverlappingSphere(const FVector& Center, float Radius, bool bSphereInWorldSpace) const
+{
+	if (ClusterTreePtr.IsValid() && ClusterTreePtr->Num())
+	{
+		TArray<int32> Result;
+		FSphere Sphere(Center, Radius);
+		if (bSphereInWorldSpace)
+		{
+			Sphere = Sphere.TransformBy(ComponentToWorld.Inverse());
+		}
+		const FBox AABB(Sphere.Center - FVector(Sphere.W), Sphere.Center + FVector(Sphere.W));
+		GatherInstancesOverlappingSphere(*this, Sphere, StaticMesh->GetBounds().SphereRadius, AABB, 0, Result);
+		return Result;
+	}
+	else
+	{
+		return Super::GetInstancesOverlappingSphere(Center, Radius, bSphereInWorldSpace);
 	}
 }
 

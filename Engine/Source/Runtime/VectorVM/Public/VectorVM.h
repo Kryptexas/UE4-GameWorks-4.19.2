@@ -4,7 +4,7 @@
 #include "Core.h"
 #include "CoreUObject.h"
 
-class FNiagaraDataObject;
+class UNiagaraDataObject;
 
 namespace VectorVM
 {
@@ -88,13 +88,13 @@ namespace VectorVM
 			eventbroadcast,
 			easein,
 			easeinout,
+			div,
 			NumOpcodes
 	};
 
 	/** Get total number of op-codes */
 	VECTORVM_API uint8 GetNumOpCodes();
 
-	VECTORVM_API uint8 CreateSrcOperandMask(bool bIsOp0Constant, bool bIsOp1Constant = false, bool bIsOp2Constant = false, bool bIsOp3Constant = false);
 	VECTORVM_API uint8 CreateSrcOperandMask(VectorVM::EOperandType Type1, VectorVM::EOperandType Type2 = VectorVM::RegisterOperandType, VectorVM::EOperandType Type3 = VectorVM::RegisterOperandType, VectorVM::EOperandType Type4 = VectorVM::RegisterOperandType);
 
 	/**
@@ -107,7 +107,7 @@ namespace VectorVM
 		VectorRegister** OutputRegisters,
 		int32 NumOutputRegisters,
 		FVector4 const* ConstantTable,
-		FNiagaraDataObject* *DataObjTable,
+		UNiagaraDataObject* *DataObjTable,
 		int32 NumVectors
 		);
 

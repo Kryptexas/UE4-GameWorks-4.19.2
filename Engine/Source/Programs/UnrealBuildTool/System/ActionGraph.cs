@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
@@ -26,7 +27,7 @@ namespace UnrealBuildTool
 
 	/** A build action. */
 	[Serializable]
-	public class Action
+	public class Action : ISerializable
 	{
 		///
 		/// Preparation and Assembly (serialized)
@@ -94,18 +95,15 @@ namespace UnrealBuildTool
 		///
 
 		/** Unique action identifier.  Used for displaying helpful info about detected cycles in the graph. */
-		[NonSerialized]
         public int UniqueId;
 
         /** Always-incremented unique id */
         private static int NextUniqueId = 0;
 
 		/** Total number of actions depending on this one. */
-		[NonSerialized]
 		public int NumTotalDependentActions = 0;
 		
 		/** Relative cost of producing items for this action. */
-		[NonSerialized]
 		public long RelativeCost = 0;
 
 
@@ -114,11 +112,9 @@ namespace UnrealBuildTool
 		///
 
 		/** Start time of action, optionally set by executor. */
-		[NonSerialized]
 		public DateTimeOffset StartTime = DateTimeOffset.MinValue;
 		
 		/** End time of action, optionally set by executor. */
-		[NonSerialized]
 		public DateTimeOffset EndTime = DateTimeOffset.MinValue;
 		
 
@@ -131,6 +127,44 @@ namespace UnrealBuildTool
             UniqueId = ++NextUniqueId;
 		}
 
+		public Action( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
+		{
+			ActionType                     = (ActionType)SerializationInfo.GetByte("at");
+			WorkingDirectory               = SerializationInfo.GetString("wd");
+			bPrintDebugInfo                = SerializationInfo.GetBoolean("di");
+			CommandPath                    = SerializationInfo.GetString("cp");
+			CommandArguments               = SerializationInfo.GetString("ca");
+			CommandDescription             = SerializationInfo.GetString("cd");
+			StatusDescription              = SerializationInfo.GetString("sd");
+			bCanExecuteRemotely            = SerializationInfo.GetBoolean("ce");
+			bIsGCCCompiler                 = SerializationInfo.GetBoolean("ig");
+			bIsUsingPCH                    = SerializationInfo.GetBoolean("iu");
+			bShouldDeleteProducedItems     = SerializationInfo.GetBoolean("dp");
+			bShouldOutputStatusDescription = SerializationInfo.GetBoolean("os");
+			bProducesImportLibrary         = SerializationInfo.GetBoolean("il");
+			PrerequisiteItems              = (List<FileItem>)SerializationInfo.GetValue("pr", typeof(List<FileItem>));
+			ProducedItems                  = (List<FileItem>)SerializationInfo.GetValue("pd", typeof(List<FileItem>));
+		}
+
+		/** ISerializable: Called when serialized to report additional properties that should be saved */
+		public void GetObjectData( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
+		{
+			SerializationInfo.AddValue("at", (byte)ActionType);
+			SerializationInfo.AddValue("wd", WorkingDirectory);
+			SerializationInfo.AddValue("di", bPrintDebugInfo);
+			SerializationInfo.AddValue("cp", CommandPath);
+			SerializationInfo.AddValue("ca", CommandArguments);
+			SerializationInfo.AddValue("cd", CommandDescription);
+			SerializationInfo.AddValue("sd", StatusDescription);
+			SerializationInfo.AddValue("ce", bCanExecuteRemotely);
+			SerializationInfo.AddValue("ig", bIsGCCCompiler);
+			SerializationInfo.AddValue("iu", bIsUsingPCH);
+			SerializationInfo.AddValue("dp", bShouldDeleteProducedItems);
+			SerializationInfo.AddValue("os", bShouldOutputStatusDescription);
+			SerializationInfo.AddValue("il", bProducesImportLibrary);
+			SerializationInfo.AddValue("pr", PrerequisiteItems);
+			SerializationInfo.AddValue("pd", ProducedItems);
+		}
 
 		/**
 		 * Compares two actions based on total number of dependent items, descending.
@@ -1297,8 +1331,7 @@ namespace UnrealBuildTool
 
 				if( ExpandCPPHeaderDependencies && bIsCPPFile )
 				{
-					bool HasUObjects;
-					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( Target, FileItem, BuildPlatform, bOnlyCachedDependencies:false, HasUObjects:out HasUObjects );
+					List<DependencyInclude> DirectlyIncludedFilenames = CPPEnvironment.GetDirectIncludeDependencies( Target, FileItem, BuildPlatform, bOnlyCachedDependencies:false );
 
 					// Resolve the included file name to an actual file.
 					var DirectlyIncludedFiles =

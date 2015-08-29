@@ -1,15 +1,15 @@
-﻿NTSourceChangelist:2519824
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Animation ブループリント
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation ブループリントは、複雑なアニメーション ビヘイビアを作成し、制御できるようにするペルソナで作成されるビジュアル スクリプトです。
-Related:Engine/Blueprints/Overview
-Related:Engine/Content/FBX/Animations
-Related:Engine/Content/Types/SkeletalMeshes
-Related:Engine/Animation/PhysicallyDrivenAnimation
-Related:Engine/Animation/StateMachines
-Related:Gameplay/AI
-Related:Engine/Content/Tools/MayaRiggingTool
+Related: Engine/Blueprints/Overview
+Related: Engine/Content/FBX/Animations
+Related: Engine/Content/Types/SkeletalMeshes
+Related: Engine/Animation/PhysicallyDrivenAnimation
+Related: Engine/Animation/StateMachines
+Related: Gameplay/AI
+Related: Engine/Content/Tools/MayaRiggingTool
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -36,12 +36,12 @@ Related:Engine/Content/Tools/MayaRiggingTool
 ## 概要
 
 [EXCERPT:Intro]
-**Animation ブループリント** は、基本的に専門化した [ブループリント](Engine/Blueprints) です。 
-そのグラフは、_SkeletalMesh_ のアニメーションを制御します。以下を行うことができます。 
-すなわち、アニメーションのブレンディング、スケルトンのボーンを直接制御、 _Skeletalmesh_各フレームの最終ポーズを出力します。
+**Animation ブループリント** は、基本的に専門化された [ブループリント](Engine/Blueprints) です。 
+そのグラフは、_スケルタルメッシュ_ のアニメーションを制御します。以下を行うことができます。 
+すなわち、アニメーションのブレンディング、スケルトンのボーンを直接制御、 _スケルタルメッシュ_ の各フレームの最終ポーズを出力します。
 
-_Controller_ は、プレイヤーの入力に従って_ポーン_ (または_キャラクタ_) の動きを指示、または 
-ゲームプレイ環境に基づいて決定を下します。各_ポーン_ は、アニメートに _SkeletalMesh_ を参照し、 
+_Controller_ は、プレイヤーの入力に従って _ポーン_ (または _キャラクタ_ ) の動きを指示、または 
+ゲームプレイ環境に基づいて決定を下します。各 _ポーン_ は、アニメートするために _SkeletalMesh_ を参照し、 
 _Animation ブループリント_ のインスタンスを持った _SkeletalMeshComponent_ を持ちます。_Animation ブループリント_ は、2 つのグラフを通じて、所有する _Pawn_ のプロパティへアクセス、 
 ブレンディング、ステートの変形、または _AnimMontages_ の操作、 
 _AnimationSequences_ のブレンディングに基づいて _SkeletalMesh_ の現在のポーズの計算、および 
@@ -84,4 +84,9 @@ _Animation ブループリント_ には、2 つの主要コンポーネント�
 		[INCLUDE:Engine/Animation/AnimBlueprints/AnimGraph#Intro]
 	[/PARAM]
 [/OBJECT]
+
+
+
+
+
 

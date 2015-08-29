@@ -44,6 +44,7 @@ public:
 		, _GraphObjToDiff( static_cast<UEdGraph*>(NULL) )
 		, _InitialZoomToFit( false )
 		, _IsEditable( true )
+		, _DisplayAsReadOnly( false )
 		, _ShowGraphStateOverlay(true)
 		, _OnUpdateGraphPanel()
 		{}
@@ -57,6 +58,7 @@ public:
 		SLATE_ARGUMENT( class UEdGraph*, GraphObjToDiff )
 		SLATE_ARGUMENT( bool, InitialZoomToFit )
 		SLATE_ATTRIBUTE( bool, IsEditable )
+		SLATE_ATTRIBUTE( bool, DisplayAsReadOnly )
 		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
 		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 		SLATE_EVENT( FOnNodeVerifyTextCommit, OnVerifyTextCommit )
@@ -126,7 +128,7 @@ public:
 	/** Focuses the view on rectangle, zooming if neccesary */
 	bool JumpToRect(const FVector2D &BottomLeft, const FVector2D &TopRight);
 
-	void JumpToNode(const class UEdGraphNode* JumpToMe, bool bRequestRename);
+	void JumpToNode(const class UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode);
 
 	void JumpToPin(const class UEdGraphPin* JumptToMe);
 
@@ -251,6 +253,9 @@ private:
 
 	/** Map of recently added nodes for the panel (maps from added nodes to UserActions indices) */
 	TMap<const class UEdGraphNode*, int32> UserAddedNodes;
+
+	/** Should the graph display all nodes in a read-only state (grayed)? This does not affect functionality of using them (IsEditable) */
+	TAttribute<bool> DisplayAsReadOnly;
 
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
 	FDelegateHandle            MyRegisteredGraphChangedDelegateHandle;

@@ -8,6 +8,9 @@ using System.Reflection;
 using Microsoft.Win32;
 using System.Linq;
 using System.Diagnostics;
+using Tools.DotNETCommon.ExecutingAssembly;
+using System.Xml.Linq;
+using System.Xml;
 
 namespace UnrealBuildTool
 {
@@ -269,7 +272,7 @@ namespace UnrealBuildTool
 					var Project = new VCSharpProjectFile(RelativeFileName);
 					Project.ShouldBuildForAllSolutionTargets = true;
 					AddExistingProjectFile(Project, bForceDevelopmentConfiguration: true);
-
+                    AutomationProjectFiles.Add( Project );
 					Folder.ChildProjects.Add( Project );
 				}
 			}
@@ -304,7 +307,7 @@ namespace UnrealBuildTool
 					{
 						if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 						{
-							MasterProjectRelativePath = Path.GetFullPath(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine"));
+							MasterProjectRelativePath = Path.GetFullPath(Path.Combine(ExecutingAssembly.GetDirectory(), "..", "..", "..", "Engine"));
 							GameProjectName = "UE4Game";
 						}
 						if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
@@ -374,23 +377,26 @@ namespace UnrealBuildTool
 
 			// Build the list of games to generate projects for
 			var AllGameProjects = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
-				
+
+			List<string> AssemblyGameFolders = new List<string>();
 			var AssemblyName = "ProjectFileGenerator";
-			if( bGeneratingGameProjectFiles )
-			{
-				AssemblyName = GameProjectName + "ProjectFileGenerator";
-			}
-			else if( bGeneratingRocketProjectFiles )
+			if (bGeneratingRocketProjectFiles)
 			{
 				AssemblyName = "RocketProjectFileGenerator";
 			}
-
-			List<string> AssemblyGameFolders = new List<string>();
+			else if (bGeneratingGameProjectFiles)
+			{
+				AssemblyName = GameProjectName + "ProjectFileGenerator";
+			}
 			foreach (UProjectInfo Project in AllGameProjects)
 			{
 				AssemblyGameFolders.Add(Project.Folder);
 			}
-			RulesCompiler.SetAssemblyNameAndGameFolders( AssemblyName, AssemblyGameFolders );
+			RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
+
+			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
+			// we're generating project files for.
+			var AllModuleFiles = DiscoverModules();
 
 			ProjectFile EngineProject = null;
 			Dictionary<string, ProjectFile> GameProjects = null;
@@ -505,10 +511,6 @@ namespace UnrealBuildTool
 				}
 			}
 
-			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
-			// we're generating project files for.
-			var AllModuleFiles = DiscoverModules();
-
 			// Setup "stub" projects for all modules
 			AddProjectsForAllModules(AllGameProjects, ProgramProjects, AllModuleFiles, bGatherThirdPartySource);
 
@@ -567,7 +569,7 @@ namespace UnrealBuildTool
 					var IntelliSenseTargetFiles = new List<Tuple<ProjectFile, string>>();
 					{
 						// Engine targets
-						if( EngineProject != null && !bGeneratingRocketProjectFiles )
+						if( EngineProject != null)
 						{
 							foreach( var ProjectTarget in EngineProject.ProjectTargets )
 							{
@@ -1483,6 +1485,10 @@ namespace UnrealBuildTool
 					{
 						if (UnrealBuildTool.IsValidPlatform(Platform))
 						{
+							// @todo UWP: Why would we exclude UWP from project files based on SDK install status?  We don't do this with anything else, right?
+                            if (BuildPlatform is UWPPlatform && ((UWPPlatform)BuildPlatform).HasRequiredSDKsInstalled() != SDKStatus.Valid)
+                                continue;
+
 							SupportedPlatforms.Add(Platform);
 
 							if (SupportedPlatformsString.Length > 0)
@@ -1708,12 +1714,6 @@ namespace UnrealBuildTool
 					IsEngineTarget = true;
 				}
 
-				if (IsEngineTarget && bGeneratingRocketProjectFiles)
-				{
-					// Rocket project file must never include engine targets.
-					continue;
-				}
-
 				bool WantProjectFileForTarget = true;
 				if(TargetFileRelativeToEngineDirectory.StartsWith(Path.Combine("Source", "Programs"), StringComparison.InvariantCultureIgnoreCase))
 				{
@@ -1726,6 +1726,16 @@ namespace UnrealBuildTool
 
 				if (WantProjectFileForTarget)
 				{
+					var AssemblyName = bGeneratingRocketProjectFiles ? "RocketUE4" : "UE4";
+					List<string> AssemblyGameFolders = new List<string>();
+					string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
+					if (string.IsNullOrEmpty(CheckProjectFile) == false)
+					{
+						AssemblyGameFolders.Add(Path.GetDirectoryName(Path.GetFullPath(CheckProjectFile)));
+						AssemblyName = Path.GetFileNameWithoutExtension(CheckProjectFile);
+					}
+					RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
+
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
@@ -1803,6 +1813,13 @@ namespace UnrealBuildTool
 						{
 							EngineProject = ProjectFile;
 							BaseFolder = EngineRelativePath;
+							if (bGeneratingRocketProjectFiles)
+							{
+								// Allow engine projects to be created but not built for Rocket
+								EngineProject.IsForeignProject = false;
+								EngineProject.IsGeneratedProject = true;
+								EngineProject.IsStubProject = true;
+							}
 						}
 						else
 						{
@@ -1900,10 +1917,8 @@ namespace UnrealBuildTool
 			var DirectoriesToSearch = new List<string>();
 			DirectoriesToSearch.Add( BuildDirectory );
 			var SubdirectoryNamesToExclude = new List<string>();
-			{
-				// Nothing to exclude, yet!
-				// SubdirectoryNamesToExclude.Add( "DirectoryName" );
-			}
+			SubdirectoryNamesToExclude.Add("Receipts");
+
 			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles(
 				DirectoriesToSearch: DirectoriesToSearch,
 				ExcludeNoRedistFiles: bExcludeNoRedistFiles,
@@ -2053,7 +2068,7 @@ namespace UnrealBuildTool
 		/// <returns>True if successful</returns>
 		protected virtual bool WriteProjectFiles()
 		{
-			using(ProgressWriter Progress = new ProgressWriter("Writing project files...", true))
+            using(ProgressWriter Progress = new ProgressWriter("Writing project files...", true))
 			{
 				var TotalProjectFileCount = GeneratedProjectFiles.Count + 1;	// +1 for the master project file, which we'll save next
 
@@ -2073,6 +2088,30 @@ namespace UnrealBuildTool
 				WriteMasterProjectFile( UBTProject: UBTProject );
 				Progress.Write(TotalProjectFileCount, TotalProjectFileCount);
 			}
+
+            // Write AutomationReferences file
+            if (AutomationProjectFiles.Any())
+            {
+                var NS = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003");
+
+                var AutomationToolDir = Path.Combine(EngineRelativePath, "Source", "Programs", "AutomationTool");
+                new XDocument(
+                    new XElement(NS + "Project",
+                        new XAttribute("ToolsVersion", "4.0"),
+                        new XAttribute("DefaultTargets", "Build"),
+                        new XElement(NS + "ItemGroup",
+                            from AutomationProject in AutomationProjectFiles
+                            select new XElement(NS + "ProjectReference",
+                                new XAttribute("Include", Utils.MakePathRelativeTo(AutomationProject.ProjectFilePath, AutomationToolDir, true)),
+                                new XElement(NS + "Project", (AutomationProject as VCSharpProjectFile).ProjectGUID.ToString("B")),
+                                new XElement(NS + "Name", Path.GetFileNameWithoutExtension(AutomationProject.RelativeProjectFilePath)),
+                                new XElement(NS + "Private", "false")
+                            )
+                        )
+                    )
+                ).Save(Path.Combine( AutomationToolDir, "AutomationTool.csproj.References" ));
+            }
+
 			return true;
 		}
 
@@ -2291,6 +2330,8 @@ namespace UnrealBuildTool
 		/// List of other project files that we want to include in a generated solution file, even though we
 		/// aren't generating them ourselves.  Note that these may *not* always be C++ project files (e.g. C#)
 		protected readonly List<ProjectFile> OtherProjectFiles = new List<ProjectFile>();
+
+        protected readonly List<ProjectFile> AutomationProjectFiles = new List<ProjectFile>();
 
 		/// List of top-level folders in the master project file
 		protected MasterProjectFolder RootFolder;

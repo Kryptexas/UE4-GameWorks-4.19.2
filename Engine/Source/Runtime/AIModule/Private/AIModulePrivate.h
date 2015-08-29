@@ -70,6 +70,9 @@
 #include "BlueprintNodeHelpers.h"
 #include "BehaviorTree/BTFunctionLibrary.h"
 
+#include "AIResources.h"
+#include "Tasks/AITask.h"
+
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogCrowdFollowing, Warning, All);

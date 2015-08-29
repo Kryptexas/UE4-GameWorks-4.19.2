@@ -917,76 +917,12 @@ bool FNavMeshPath::ContainsWithSameEnd(const FNavMeshPath* Other) const
 	return bAreTheSame;
 }
 
-bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
+namespace
 {
-	bool bIntersects = false;	
-	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
-	const uint32 NumCorridorEdges = CorridorEdges.Num();
-
-	// note that it's a bit simplified. It works
-	FVector Start = StartLocation;
-	if (CorridorEdges.IsValidIndex(StartingIndex))
+	FORCEINLINE
+	bool CheckIntersectBetweenPoints(const FBox& Box, const FVector* AgentExtent, const FVector& Start, const FVector& End)
 	{
-		for (uint32 PortalIndex = StartingIndex; PortalIndex < NumCorridorEdges; ++PortalIndex)
-		{
-			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];
-			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2 + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
-			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
-			{
-				const FVector Direction = (End - Start);
-
-				FVector HitLocation, HitNormal;
-				float HitTime;
-
-				// If we have a valid AgentExtent, then we use an extent box to represent the path
-				// Otherwise we use a line to represent the path
-				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
-					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
-				{
-					bIntersects = true;
-					if (IntersectingSegmentIndex != NULL)
-					{
-						*IntersectingSegmentIndex = PortalIndex;
-					}
-					break;
-				}
-			}
-
-			Start = End;
-		}
-
-		// test the last portal->path end line. 
-		if (bIntersects == false)
-		{
-			ensure(PathPoints.Num() == 2);
-			const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
-
-			if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
-			{
-				const FVector Direction = (End - Start);
-
-				FVector HitLocation, HitNormal;
-				float HitTime; 
-
-				// If we have a valid AgentExtent, then we use an extent box to represent the path
-				// Otherwise we use a line to represent the path
-				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
-					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
-				{
-					bIntersects = true;
-					if (IntersectingSegmentIndex != NULL)
-					{
-						*IntersectingSegmentIndex = NumCorridorEdges;
-					}
-				}
-			}
-		}
-	}
-	else if (NumCorridorEdges > 0 && StartingIndex == NumCorridorEdges) //at last polygon, just after last edge so direct line check 
-	{
-		const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
-			
-		if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
+		if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 		{
 			const FVector Direction = (End - Start);
 
@@ -998,11 +934,76 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 			if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
 				(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
 			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+}
+bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
+{
+	bool bIntersects = false;	
+	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
+	const uint32 NumCorridorEdges = CorridorEdges.Num();
+
+	// if we have a valid corridor, but the index is out of bounds, we could
+	// be checking just the last point, but that would be inconsistent with 
+	// FNavMeshPath::DoesPathIntersectBoxImplementation implementation
+	// so in this case we just say "Nope, doesn't intersect"
+	if (NumCorridorEdges <= 0 || StartingIndex > NumCorridorEdges)
+	{
+		return false;
+	}
+
+	// note that it's a bit simplified. It works
+	FVector Start = StartLocation;
+	if (CorridorEdges.IsValidIndex(StartingIndex))
+	{
+		for (uint32 PortalIndex = StartingIndex; PortalIndex < NumCorridorEdges; ++PortalIndex)
+		{
+			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];
+			const FVector End = Edge.Right + (Edge.Left - Edge.Right) / 2 + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+			
+			if (CheckIntersectBetweenPoints(Box, AgentExtent, Start, End))
+			{
 				bIntersects = true;
 				if (IntersectingSegmentIndex != NULL)
 				{
-					*IntersectingSegmentIndex = CorridorEdges.Num();
+					*IntersectingSegmentIndex = PortalIndex;
 				}
+				break;
+			}
+
+			Start = End;
+		}
+
+		// test the last portal->path end line. 
+		if (bIntersects == false)
+		{
+			ensure(PathPoints.Num() == 2);
+			const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+
+			if (CheckIntersectBetweenPoints(Box, AgentExtent, Start, End))
+			{
+				bIntersects = true;
+				if (IntersectingSegmentIndex != NULL)
+				{
+					*IntersectingSegmentIndex = NumCorridorEdges;
+				}
+			}
+		}
+	}
+	else if (NumCorridorEdges > 0 && StartingIndex == NumCorridorEdges) //at last polygon, just after last edge so direct line check 
+	{
+		const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+			
+		if (CheckIntersectBetweenPoints(Box, AgentExtent, Start, End))
+		{
+			bIntersects = true;
+			if (IntersectingSegmentIndex != NULL)
+			{
+				*IntersectingSegmentIndex = CorridorEdges.Num();
 			}
 		}
 	}
@@ -1047,18 +1048,39 @@ bool FNavMeshPath::DoesIntersectBox(const FBox& Box, uint32 StartingIndex, int32
 
 bool FNavMeshPath::DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex, FVector* AgentExtent) const
 {
-	// trivial scenario check:
-	if (Box.IsInside(AgentLocation))
-	{
-		return true;
-	}
-
 	if (IsStringPulled())
 	{
 		return Super::DoesIntersectBox(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
 	}
 
 	return DoesPathIntersectBoxImplementation(Box, AgentLocation, StartingIndex, IntersectingSegmentIndex, AgentExtent);
+}
+
+bool FNavMeshPath::GetNodeFlags(int32 NodeIdx, FNavMeshNodeFlags& Flags) const
+{
+	bool bResult = false;
+
+	if (IsStringPulled())
+	{
+		if (PathPoints.IsValidIndex(NodeIdx))
+		{
+			Flags = FNavMeshNodeFlags(PathPoints[NodeIdx].Flags);
+			bResult = true;
+		}
+	}
+	else
+	{
+		if (PathCorridor.IsValidIndex(NodeIdx))
+		{
+#if WITH_RECAST
+			const ARecastNavMesh* MyOwner = Cast<ARecastNavMesh>(GetNavigationDataUsed());
+			MyOwner->GetPolyFlags(PathCorridor[NodeIdx], Flags);
+			bResult = true;
+#endif	// WITH_RECAST
+		}
+	}
+
+	return bResult;
 }
 
 FVector FNavMeshPath::GetSegmentDirection(uint32 SegmentEndIndex) const
@@ -1107,8 +1129,9 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	// draw corridor
 #if WITH_RECAST
 	FVisualLogShapeElement CorridorPoly(EVisualLoggerShapeElement::Polygon);
-	CorridorPoly.SetColor(FColorList::Cyan);
+	CorridorPoly.SetColor(FColorList::Cyan.WithAlpha(100));
 	CorridorPoly.Category = LogNavigation.GetCategoryName();
+	CorridorPoly.Verbosity = ELogVerbosity::Verbose;
 	CorridorPoly.Points.Reserve(PathCorridor.Num() * 6);
 
 	const FVector CorridorOffset = NavigationDebugDrawing::PathOffset * 1.25f;
@@ -1129,7 +1152,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::Cyan;
 
-		CorridorPoly.SetColor(PolygonColor);
+		CorridorPoly.SetColor(PolygonColor.WithAlpha(100));
 		CorridorPoly.Points.Reset();
 		CorridorPoly.Points.Append(Verts);
 		Snapshot->ElementsToDraw.Add(CorridorPoly);
@@ -1146,6 +1169,7 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 			FVisualLogShapeElement AreaMarkElem(EVisualLoggerShapeElement::Segment);
 			AreaMarkElem.SetColor(FColorList::Orange);
 			AreaMarkElem.Category = LogNavigation.GetCategoryName();
+			AreaMarkElem.Verbosity = ELogVerbosity::Verbose;
 			AreaMarkElem.Thicknes = 2;
 			AreaMarkElem.Description = AreaClass->GetName();
 
@@ -1239,7 +1263,7 @@ void UNavigationPath::DrawDebug(UCanvas* Canvas, APlayerController*)
 
 void UNavigationPath::EnableDebugDrawing(bool bShouldDrawDebugData, FLinearColor PathColor)
 {
-	DebugDrawingColor = PathColor;
+	DebugDrawingColor = PathColor.ToFColor(true);
 
 	if (bDebugDrawingEnabled == bShouldDrawDebugData)
 	{

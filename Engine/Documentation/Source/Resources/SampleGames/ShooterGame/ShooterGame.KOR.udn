@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2613897
 Availability: Public
 Title:슈팅 게임
 Crumbs:%ROOT%, Resources
@@ -65,8 +65,6 @@ Related: Engine/Rendering/ParticleSystems
 [/REGION]
 
 [TOC(start:2)]
-
-## 개요
 
 First Person Shooter 샘플은 PC 멀티플레이어 FPS 게임 예제입니다. 웨폰, 게임타입과 아울러 
 단순한 프론트엔드 메뉴 시스템에 대한 기본적인 구현이 포함되어 있습니다.

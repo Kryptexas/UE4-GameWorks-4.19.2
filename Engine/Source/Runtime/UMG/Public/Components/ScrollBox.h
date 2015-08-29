@@ -76,6 +76,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ScrollToEnd();
 
+	/** Scrolls the ScrollBox to the widget during the next layout pass. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ScrollWidgetIntoView(UWidget* WidgetToFind, bool AnimateScroll = true);
+
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
 	// End of UWidget interface

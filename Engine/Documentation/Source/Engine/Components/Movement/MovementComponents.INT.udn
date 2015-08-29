@@ -1,7 +1,7 @@
 Availability:Public
 Title:Movement Components
 Crumbs:%ROOT%, Engine, Engine/Components
-Description:Any aspect of Movement, whether it’s a Character or a Projectile uses a Movement Component. 
+Description:Any aspect of Movement, whether itï¿½s a Character or a Projectile uses a Movement Component. 
 Related: Gameplay/Framework/Pawn/Character
 Related: Engine/Animation
 Related: Engine/Blueprints/UserGuide/Components
@@ -38,5 +38,10 @@ The **RotatingMovementComponent** performs continuous rotation of a Component at
 An example of using a **RotatingMovementComponent** might be in the form of an airplane's propellers, or a windmill, or even a series of planets revolving around the sun. 
 
 See [Blueprint Rotating Movement Component](https://wiki.unrealengine.com/Blueprint_Rotating_Movement_Component) for an example of how to utilize this component. 
+
+
+
+
+
 
 

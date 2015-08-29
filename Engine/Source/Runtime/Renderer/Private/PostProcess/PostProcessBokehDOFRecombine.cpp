@@ -114,7 +114,9 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 {
 	uint32 Method = 2;
 
-	if(GetInput(ePId_Input1)->GetPass())
+	FRenderingCompositeOutputRef* Input1 = GetInput(ePId_Input1);
+
+	if(Input1 && Input1->GetPass())
 	{
 		if(GetInput(ePId_Input2)->GetPass())
 		{
@@ -140,7 +142,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 	FIntPoint TexSize = InputDesc1 ? InputDesc1->Extent : InputDesc0->Extent;
 
 	// usually 1, 2, 4 or 8
-	uint32 ScaleToFullRes = GSceneRenderTargets.GetBufferSizeXY().X / TexSize.X;
+	uint32 ScaleToFullRes = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / TexSize.X;
 
 	FIntRect HalfResViewRect = FIntRect::DivideAndRoundUp(View.ViewRect, ScaleToFullRes);
 
@@ -187,7 +189,7 @@ void FRCPassPostProcessBokehDOFRecombine::Process(FRenderingCompositePassContext
 
 FPooledRenderTargetDesc FRCPassPostProcessBokehDOFRecombine::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("BokehDOFRecombine");

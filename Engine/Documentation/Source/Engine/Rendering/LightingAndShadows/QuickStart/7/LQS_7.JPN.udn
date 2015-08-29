@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2523023
 Availability:Public
 Title:7.応用編
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -63,7 +63,7 @@ Description:最後のステップになります。自分のプロジェクト�
 
 * マテリアルに関する詳細は [**マテリアル入門**](Engine/Rendering/Materials/IntroductionToMaterials) をご覧ください。
 
-* ブループリントに関する詳細は [**Blueprints Landing Page**](Engine\Blueprints) をご覧ください。
+* ブループリントに関する詳細は [**ブループリント**](Engine\Blueprints) をご覧ください。
 
 
 %Steps%

@@ -65,12 +65,12 @@ namespace EControlConstraint
 		Orientation,
 		/** Translation constraint. */
 		Translation,
-		/** Max Number */
+		/** Max Number. */
 		Max
 	};
 }
 
-/** Constraint Transform Type. - currently unused*/
+/** Constraint Transform Type. - currently unused */
 UENUM()
 namespace EConstraintTransform
 {

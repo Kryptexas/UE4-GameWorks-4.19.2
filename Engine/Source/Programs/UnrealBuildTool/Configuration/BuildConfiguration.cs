@@ -10,6 +10,14 @@ namespace UnrealBuildTool
 {
 	public class BuildConfiguration
 	{
+        static BuildConfiguration()
+        {
+            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+            {
+                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+            }
+        }
+
 		/// <summary>
 		/// Whether to unify C++ code into larger files for faster compilation.
 		/// </summary>
@@ -30,10 +38,21 @@ namespace UnrealBuildTool
 		public static int MinGameModuleSourceFilesForUnityBuild;
 
 		/// <summary>
+		/// Forces shadow variable warnings to be treated as errors on platforms that support it.
+		/// </summary>
+		[XmlConfig]
+		public static bool bShadowVariableErrors;
+
+		/// <summary>
 		/// New Monolithic Graphics drivers have optional "fast calls" replacing various D3d functions
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseFastMonoCalls;
+
+        /// Async Compute context support. Requires Mono and Fastcalls
+        /// </summary>
+        [XmlConfig]
+        public static bool bUseAsyncComputeContext;
 
         /// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
@@ -110,11 +129,17 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bForcePrecompiledHeaderForGameModules;
 
-		/// <summary>
+        /// <summary>
 		/// Whether debug info should be written to the console.
-		/// </summary>
-		[XmlConfig]
-		public static bool bPrintDebugInfo;
+        /// </summary>
+        [XmlConfig]
+        public static bool bPrintDebugInfo;
+
+        /// <summary>
+        /// Allows logging to a file
+        /// </summary>
+        [XmlConfig]
+        public static string LogFilename;
 
 		/// <summary>
 		/// Prints performance diagnostics about include dependencies and other bits
@@ -510,7 +535,8 @@ namespace UnrealBuildTool
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
-			bUseFastMonoCalls = false;
+            bUseFastMonoCalls = true;
+            bUseAsyncComputeContext = bUseFastMonoCalls;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -529,7 +555,7 @@ namespace UnrealBuildTool
 			// Enables support for fast include dependency scanning, as well as gathering data for 'UBT Makefiles', then quickly
 			// assembling builds in subsequent runs using data in those cached makefiles
 			// NOTE: This feature is new and has a number of known issues (search the code for '@todo ubtmake')
-			bUseUBTMakefiles = false;// !Utils.IsRunningOnMono;	// @todo ubtmake: Needs support for Mac
+			bUseUBTMakefiles = true;
 
 			// Distcc requires some setup - so by default disable it so we don't break local or remote building
 			bAllowDistcc = false;
@@ -541,8 +567,8 @@ namespace UnrealBuildTool
 			// By default compile code instead of analyzing it.
 			bRunUnrealCodeAnalyzer = false;
 
-			// If header is included in 30% or more cpp files in module it should be included in PCH.
-			UCAUsageThreshold = 0.3f;
+			// If header is included in 0% or more cpp files in module it should be included in PCH.
+			UCAUsageThreshold = 100.0f;
 
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
@@ -620,6 +646,34 @@ namespace UnrealBuildTool
 			if (!BuildPlatform.CanUseSNDBS()) 
 			{
 				bAllowSNDBS = false;
+			}
+		}
+
+		/// <summary>
+		/// Function to call to after reset default data.
+		/// </summary>
+		public static void PostReset()
+		{
+			// Analyzing UCA is disabled for debugging convenience.
+			if (UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer")
+				// UHT is necessary to generate code for proper compilation.
+				|| UnrealBuildTool.CommandLineContains(@"UnrealHeaderTool"))
+			{
+				BuildConfiguration.bRunUnrealCodeAnalyzer = false;
+			}
+
+			// Couple flags have to be set properly when running UCA.
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				// Analyzing header usage makes more sense on non unity builds.
+				BuildConfiguration.bUseUnityBuild = false;
+
+				// Unfortunately clang doesn't work with PCH files specified via cl.exe syntax.
+				BuildConfiguration.bUsePCHFiles = false;
+				BuildConfiguration.bUseSharedPCHs = false;
+
+				//BuildConfiguration.bUseUBTMakefiles = false;
+				//BuildConfiguration.bUseActionHistory = false;
 			}
 		}
 	}

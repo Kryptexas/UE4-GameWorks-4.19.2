@@ -1,0 +1,80 @@
+﻿INTSourceChangelist:0
+Availability:Docs
+Title: Building Emscripten From Source
+Crumbs:%ROOT%, Platforms, Platforms/HTML5
+Description:Building the Fastcomp-enabled version of Empscripten
+
+[TOC(start:2 end:3)]
+
+
+## Overview
+
+Currently, the HTML5 pipeline requires a more recent version of Emscripten than is available via the `emsdk` tool. This more recent version makes use of a new compiler core called **Fastcomp**.
+
+Instructions for this process are available on the Emscripten Wiki:
+* [Getting Fastcomp](https://github.com/kripken/emscripten/wiki/LLVM-Backend#getting-fastcomp)
+* [Building LLVM/Clang from Source](https://github.com/kripken/emscripten/wiki/Using-Emscripten-on-Windows#building-llvmclang-from-source)
+
+To guide you through the process, we have distilled the important steps below.
+
+## Required Tools
+### CMake
+
+CMake must be installed and accessible via the command line.
+
+* [Download it here](http://www.cmake.org/)
+
+### Visual Studio 2010 SP1
+
+In order to successfully compile the Emscripten LLVM source using MSVC, you must use Visual Studio 2010 SP1. You can alternatively use the MinGW toolchain for compilation but this has not been tested internally at Epic. 
+
+Note: **Service Pack 1 is a necessity**. Without it, the CMake tool will error out while generating the LLVM solution file.
+
+## Procedure
+
+Acquiring the Fastcomp-enabled LLVM backend consists of four steps:
+
+1. Clone specific versions of the Emscripten source repositories.
+2. Generate the LLVM solution file.
+3. Compile the solution file.
+4. Update environment variables.
+
+### Clone the 'incoming' branches of Emscripten SDK
+
+Open a command prompt and navigate to the root of your Emscripten installation (e.g. C:\Emscripten). From there, execute the following commands:
+
+    git clone https://github.com/kripken/emscripten.git emscripten/incoming
+    git clone https://github.com/kripken/emscripten-fastcomp.git emscripten-fastcomp
+    git clone https://github.com/kripken/emscripten-fastcomp-clang.git emscripten-fastcomp/tools/clang
+
+With all three repositories cloned, you then need to switch them to `incoming` branch. Do this by navigating into each repository and running: 
+
+    git checkout incoming
+    
+As an example, to update the fastcomp-clang repo, you would do the following:
+
+    cd emscripten-fastcomp\tools\clang
+    git checkout incoming
+
+### Generate the LLVM solution file
+
+Generate a Visual Studio solution file for the LLVM backend by doing the following:
+
+    cd emscripten-fastcomp
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -DLLVM_TARGETS_TO_BUILD="X86;JSBackend" -DLLVM_INCLUDE_EXAMPLES=OFF -DLLVM_INCLUDE_TESTS=OFF -DCLANG_INCLUDE_EXAMPLES=OFF -DCLANG_INCLUDE_TESTS=OFF -G "Visual Studio 10 Win64" ..
+
+The CMake command will output a `LLVM.sln`. Open it in Visual Studio 2010 SP1.
+
+### Build the solution file
+
+**Right-click** the  **ALL_BUILD** project and click 'Build'. 
+
+All projects should build successfully and there should be 0 errors in the final tally of the output log.
+
+### Update environment variables
+
+As with the normal installation process for Emscripten, you will need to verify that all environment variables are set to correct values. Because of the manual nature of building Emscripten from source, you will likely need to modify most of these variables.
+
+See the [](Platforms/HTML5/GettingStarted) page for more details.

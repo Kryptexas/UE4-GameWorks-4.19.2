@@ -11,48 +11,20 @@
 #include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
 
+// This flag enables some expensive class tree validation that is meant to catch mutations of 
+// the class tree outside of SetSuperStruct. It has been disabled because loading blueprints 
+// does a lot of mutation of the class tree, and the validation checks impact iteration time.
+#define DO_CLASS_TREE_VALIDATION 0
+
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
 
-//////////////////////////////////////////////////////////////////////////
-// FPropertySpecifier
-
-FString FPropertySpecifier::ConvertToString() const
-{
-	FString Result;
-
-	// Emit the specifier key
-	Result += Key;
-
-	// Emit the values if there are any
-	if (Values.Num())
-	{
-		Result += TEXT("=");
-
-		if (Values.Num() == 1)
-		{
-			// One value goes on it's own
-			Result += Values[0];
-		}
-		else
-		{
-			// More than one value goes in parens, separated by commas
-			Result += TEXT("(");
-			for (int32 ValueIndex = 0; ValueIndex < Values.Num(); ++ValueIndex)
-			{
-				if (ValueIndex > 0)
-				{
-					Result += TEXT(", ");
-				}
-				Result += Values[ValueIndex];
-			}
-			Result += TEXT(")");
-		}
-	}
-
-	return Result;
-}
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -239,7 +211,7 @@ FText UField::GetToolTipText(bool bShortTooltip) const
 
 	const FString Namespace = bFoundShortTooltip ? TEXT("UObjectShortTooltips") : TEXT("UObjectToolTips");
 	const FString Key = GetFullGroupName(false);
-	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
+	if ( !FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip, &NativeToolTip ) )
 	{
 		if (NativeToolTip.IsEmpty())
 		{
@@ -325,14 +297,26 @@ const FString& UField::GetMetaData(const FName& Key) const
 
 const FText UField::GetMetaDataText(const TCHAR* MetaDataKey, const FString LocalizationNamespace, const FString LocalizationKey) const
 {
-	FText LocalizedMetaData;
-	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData ) ) )
+	FString DefaultMetaData;
+
+	if( HasMetaData( MetaDataKey ))
 	{
-		FString DefaultMetaData;
-		if( HasMetaData( MetaDataKey ))
+		DefaultMetaData = GetMetaData(MetaDataKey);
+	}
+
+	// If attempting to grab the DisplayName metadata, we must correct the source string and output it as a DisplayString for lookup
+	if( DefaultMetaData.IsEmpty() && FString(MetaDataKey) == TEXT("DisplayName") )
+	{
+		DefaultMetaData = FName::NameToDisplayString( GetName(), IsA( UBoolProperty::StaticClass() ) );
+	}
+
+
+	FText LocalizedMetaData;
+	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData, &DefaultMetaData ) ) )
+	{
+		if (!DefaultMetaData.IsEmpty())
 		{
-			DefaultMetaData = GetMetaData(MetaDataKey);
-			LocalizedMetaData = FText::FromString(DefaultMetaData);
+			LocalizedMetaData = FText::AsCultureInvariant(DefaultMetaData);
 		}
 	}
 
@@ -341,16 +325,29 @@ const FText UField::GetMetaDataText(const TCHAR* MetaDataKey, const FString Loca
 
 const FText UField::GetMetaDataText(const FName& MetaDataKey, const FString LocalizationNamespace, const FString LocalizationKey) const
 {
-	FText LocalizedMetaData;
-	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData ) ) )
+	FString DefaultMetaData;
+
+	if( HasMetaData( MetaDataKey ))
 	{
-		FString DefaultMetaData;
-		if( HasMetaData( MetaDataKey ))
+		DefaultMetaData = GetMetaData(MetaDataKey);
+	}
+
+	// If attempting to grab the DisplayName metadata, we must correct the source string and output it as a DisplayString for lookup
+	if( DefaultMetaData.IsEmpty() && MetaDataKey == TEXT("DisplayName") )
+	{
+		DefaultMetaData = FName::NameToDisplayString( GetName(), IsA( UBoolProperty::StaticClass() ) );
+	}
+	
+
+	FText LocalizedMetaData;
+	if ( !( FText::FindText( LocalizationNamespace, LocalizationKey, /*OUT*/LocalizedMetaData, &DefaultMetaData ) ) )
+	{
+		if (!DefaultMetaData.IsEmpty())
 		{
-			DefaultMetaData = GetMetaData(MetaDataKey);
-			LocalizedMetaData = FText::FromString(DefaultMetaData);
+			LocalizedMetaData = FText::AsCultureInvariant(DefaultMetaData);
 		}
 	}
+
 	return LocalizedMetaData;
 }
 
@@ -835,6 +832,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 		{
 			FPropertyTag Tag;
 			Ar << Tag;
+
 			if( Tag.Name == NAME_None )
 			{
 				break;
@@ -1012,6 +1010,24 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
+			else if( Tag.Type==NAME_NameProperty && dynamic_cast<UTextProperty*>(Property) ) // Convert serialized name to text.
+			{ 
+				FName Name;  
+				Ar << Name;
+				FText Text = FText::FromName(Name);
+				CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
+				AdvanceProperty = true;
+				continue; 
+			}
+			else if( Tag.Type==NAME_TextProperty && dynamic_cast<UNameProperty*>(Property) ) // Convert serialized text to name.
+			{ 
+				FText Text;  
+				Ar << Text;
+				FName Name = FName(*Text.ToString());
+				CastChecked<UNameProperty>(Property)->SetPropertyValue_InContainer(Data, Name, Tag.ArrayIndex);
+				AdvanceProperty = true;
+				continue; 
+			}
 			else if ( Tag.Type == NAME_ByteProperty && Property->GetID() == NAME_IntProperty )
 			{
 				// this property's data was saved as a uint8, but the property has been changed to an int32.  Since there is no loss of data
@@ -1023,8 +1039,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				if (Tag.EnumName != NAME_None)
 				{
 					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumValue;
-					Ar << EnumValue;
+					FName EnumName;
+					Ar << EnumName;
 					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 					if (Enum == NULL)
 					{
@@ -1038,10 +1054,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->FindEnumIndex(EnumValue);
-						if (Enum->NumEnums() < PreviousValue)
+						PreviousValue = Enum->GetValueByName(EnumName);
+						if (!Enum->IsValidEnumValue(PreviousValue))
 						{
-							PreviousValue = Enum->NumEnums() - 1;
+							PreviousValue = Enum->GetMaxEnumValue();
 						}
 					}
 				}
@@ -1120,6 +1136,21 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					UE_LOG(LogClass, Warning, TEXT("SerializeFromMismatchedTag failed: Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 				}
 			}
+			else if (Tag.Type == NAME_StructProperty && Property->GetID() == NAME_AssetObjectProperty)
+			{
+				// This property used to be a FStringAssetReference but is now a TAssetPtr<Foo>
+				FStringAssetReference PreviousValue;
+				// explicitly call Serialize to ensure that the various delegates needed for cooking are fired
+				PreviousValue.Serialize(Ar);
+
+				// now copy the value into the object's address space
+				FAssetPtr PreviousValueAssetPtr;
+				PreviousValueAssetPtr = PreviousValue;
+				CastChecked<UAssetObjectProperty>(Property)->SetPropertyValue_InContainer(Data, PreviousValueAssetPtr, Tag.ArrayIndex);
+
+				AdvanceProperty = true;
+				continue;
+			}
 			else if( Tag.Type!=Property->GetID() )
 			{
 				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
@@ -1158,6 +1189,31 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						Ar << Text;
 						FString String = FTextInspector::GetSourceString(Text) ? *FTextInspector::GetSourceString(Text) : TEXT("");
 						static_cast<UStrProperty*>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), String);
+						AdvanceProperty = true;
+					}
+					continue; 
+				}
+				else if (Tag.InnerType == NAME_NameProperty && dynamic_cast<UTextProperty*>(ArrayProperty->Inner)) // Convert serialized name to text.
+				{ 
+					for(int32 i = 0; i < ElementCount; ++i)
+					{
+						FName Name;
+						Ar << Name;
+						FText Text = FText::FromName(Name);
+						Text.Flags |= ETextFlag::ConvertedProperty;
+						CastChecked<UTextProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), Text);
+						AdvanceProperty = true;
+					}
+					continue;
+				}
+				else if( Tag.InnerType==NAME_TextProperty && dynamic_cast<UNameProperty*>(ArrayProperty->Inner) ) // Convert serialized text to name.
+				{ 
+					for(int32 i = 0; i < ElementCount; ++i)
+					{
+						FText Text;  
+						Ar << Text;
+						FName Name = FTextInspector::GetSourceString(Text) ? FName(**FTextInspector::GetSourceString(Text)) : NAME_None;
+						static_cast<UNameProperty*>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), Name);
 						AdvanceProperty = true;
 					}
 					continue; 
@@ -1203,7 +1259,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
 				&& !CanSerializeFromStructWithDifferentName(Ar, Tag, CastChecked<UStructProperty>(Property)))
 			{
-				UE_LOG(LogClass, Warning, TEXT("Property %s of %s struct type mismatch %s/%s for package:  %s. If that property got renamed, add an ActiveStructRedirect."), *Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
+				UE_LOG(LogClass, Warning, TEXT("Property %s of %s has a struct type mismatch (tag %s != prop %s) in package:  %s. If that struct got renamed, add an entry to ActiveStructRedirects."),
+					*Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
 			}
 			else if( !Property->ShouldSerializeValue(Ar) )
 			{
@@ -1224,8 +1281,8 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				{
 					// attempt to find the old enum and get the byte value from the serialized enum name
 					//@warning: mirrors loading code in UByteProperty::SerializeItem()
-					FName EnumValue;
-					Ar << EnumValue;
+					FName EnumName;
+					Ar << EnumName;
 					UEnum* Enum = FindField<UEnum>((DefaultsClass != NULL) ? DefaultsClass : DefaultsStruct->GetTypedOuter<UClass>(), Tag.EnumName);
 					if (Enum == NULL)
 					{
@@ -1239,10 +1296,10 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 					else
 					{
 						Ar.Preload(Enum);
-						PreviousValue = Enum->FindEnumIndex(EnumValue);
-						if (Enum->NumEnums() < PreviousValue)
+						PreviousValue = Enum->GetValueByName(EnumName);
+						if (!Enum->IsValidEnumValue(PreviousValue))
 						{
-							PreviousValue = Enum->NumEnums() - 1;
+							PreviousValue = Enum->GetMaxEnumValue();
 						}
 					}
 				}
@@ -1545,7 +1602,13 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 	 */
 	static void HandlePlaceholderScriptRef(ScriptPointerType& ScriptPtr)
 	{
+#ifdef REQUIRES_ALIGNED_INT_ACCESS
+		ScriptPointerType  Temp; 
+		FMemory::Memcpy(&Temp, &ScriptPtr, sizeof(ScriptPointerType));
+		UObject*& ExprPtrRef = (UObject*&)Temp;
+#else
 		UObject*& ExprPtrRef = (UObject*&)ScriptPtr;
+#endif 
 		if (ULinkerPlaceholderClass* PlaceholderObj = Cast<ULinkerPlaceholderClass>(ExprPtrRef))
 		{
 			PlaceholderObj->AddReferencingScriptExpr((UClass**)(&ExprPtrRef));
@@ -2290,7 +2353,14 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 			{
 				TheCppStructOps->Destruct(PropertyData);
 			}
-			TheCppStructOps->Construct(PropertyData);
+			if (TheCppStructOps->HasZeroConstructor())
+			{
+				FMemory::Memzero(PropertyData, Stride);
+			}
+			else
+			{
+				TheCppStructOps->Construct(PropertyData);
+			}
 		}
 		ClearedSize = TheCppStructOps->GetSize();
 		// here we want to make sure C++ and the property system agree on the size
@@ -3085,7 +3155,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 			Register(Orphan);
 		}
 
-		#if DO_CHECK
+		#if DO_CLASS_TREE_VALIDATION
 			Validate();
 		#endif
 	}
@@ -3133,7 +3203,7 @@ void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 		State.Classes.RemoveAt(ClassIndex, NumRemoved, false);
 
-		#if DO_CHECK
+		#if DO_CLASS_TREE_VALIDATION
 			Validate();
 		#endif
 	}
@@ -4260,7 +4330,10 @@ bool FStructUtils::ArePropertiesTheSame(const UProperty* A, const UProperty* B, 
 bool FStructUtils::TheSameLayout(const UStruct* StructA, const UStruct* StructB, bool bCheckPropertiesNames)
 {
 	bool bResult = false;
-	if (StructA && StructB)
+	if (StructA 
+		&& StructB 
+		&& (StructA->GetPropertiesSize() == StructB->GetPropertiesSize())
+		&& (StructA->GetMinAlignment() == StructB->GetMinAlignment()))
 	{
 		const UProperty* PropertyA = StructA->PropertyLink;
 		const UProperty* PropertyB = StructB->PropertyLink;
@@ -4319,11 +4392,60 @@ bool UFunction::IsSignatureCompatibleWith(const UFunction* OtherFunction, uint64
 	return !(IteratorB && (IteratorB->PropertyFlags & CPF_Parm));
 }
 
-UScriptStruct* GetBaseStructure(const TCHAR* Name)
+static UScriptStruct* StaticGetBaseStructureInternal(const TCHAR* Name)
 {
 	static auto* CoreUObjectPkg = FindObjectChecked<UPackage>(nullptr, TEXT("/Script/CoreUObject"));
 	return FindObjectChecked<UScriptStruct>(CoreUObjectPkg, Name);
 }
+
+UScriptStruct* TBaseStructure<FRotator>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Rotator"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FTransform>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Transform"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FLinearColor>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("LinearColor"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FColor>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Color"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FVector>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Vector"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FVector2D>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("Vector2D"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FRandomStream>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("RandomStream"));
+	return ScriptStruct;
+}
+
+UScriptStruct* TBaseStructure<FFallbackStruct>::Get()
+{
+	static auto ScriptStruct = StaticGetBaseStructureInternal(TEXT("FallbackStruct"));
+	return ScriptStruct;
+}
+
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UFunction, UStruct,
 	{
@@ -4346,3 +4468,10 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateFunction, UFunction,
 	{
 	}
 );
+
+
+#if _MSC_VER == 1900
+	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+		PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+	#endif
+#endif

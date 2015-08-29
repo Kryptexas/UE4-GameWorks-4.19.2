@@ -17,6 +17,7 @@ NiagaraEffectRenderer.h: Base class for Niagara render modules
 DECLARE_CYCLE_STAT(TEXT("Generate Sprite Vertex Data"), STAT_NiagaraGenSpriteVertexData, STATGROUP_Niagara);
 DECLARE_CYCLE_STAT(TEXT("Generate Ribbon Vertex Data"), STAT_NiagaraGenRibbonVertexData, STATGROUP_Niagara);
 
+
 /** Struct used to pass dynamic data from game thread to render thread */
 struct FNiagaraDynamicDataBase
 {
@@ -102,19 +103,21 @@ public:
 
 	float GetCPUTimeMS() { return CPUTimeMS; }
 	FBox GetBounds()	{ return CachedBounds;  }
-protected:
-	mutable float CPUTimeMS;
 
+protected:
 	NiagaraEffectRenderer()	
-		: Material(nullptr)
+		: Material(nullptr), TickState(NTS_Running)
+
 	{
 	}
 
+	mutable float CPUTimeMS;
 	UMaterial* Material;
 	FBox CachedBounds;
 
 private:
 	FMaterialRelevance MaterialRelevance;
+	ENiagaraTickState TickState;
 };
 
 

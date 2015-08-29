@@ -7,7 +7,8 @@
 #include "EdGraphSchema_K2.h"
 #include "K2Node_EditablePinBase.h"
 
-class USCS_Node;
+class  USCS_Node;
+struct FComponentKey;
 
 /** 
   * Flags describing how to handle graph removal
@@ -81,6 +82,16 @@ public:
 
 };
 
+struct UNREALED_API FUCSComponentId
+{
+public:
+	FUCSComponentId(const class UK2Node_AddComponent* UCSNode);
+	FGuid GetAssociatedGuid() const { return GraphNodeGuid; }
+
+private:
+	FGuid GraphNodeGuid;
+};
+
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Notify Blueprint Changed"), EKismetCompilerStats_NotifyBlueprintChanged, STATGROUP_KismetCompiler, );
 
 /** Array type for GetCompilerRelevantNodes()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 */
@@ -94,6 +105,11 @@ public:
 	 * Schedules and refreshes all nodes in the blueprint, making sure that nodes that affect function signatures get regenerated first
 	 */
 	static void RefreshAllNodes(UBlueprint* Blueprint);
+
+	/**
+	 * Reconstructs all nodes in the blueprint, node reconstruction order determined by FCompareNodePriority.
+	 */
+	static void ReconstructAllNodes(UBlueprint* Blueprint);
 
 	/**
 	 * Optimized refresh of nodes that depend on external blueprints.  Refreshes the nodes, but does not recompile the skeleton class
@@ -379,7 +395,7 @@ public:
 	}
 
 	/** Gather all bps that Blueprint depends on */
-	static void GatherDependencies(const UBlueprint* Blueprint, TSet<TWeakObjectPtr<UBlueprint>>& OutDependencies);
+	static void GatherDependencies(const UBlueprint* Blueprint, TSet<TWeakObjectPtr<UBlueprint>>& OutDependencies, TSet<TWeakObjectPtr<UStruct>>& OutUDSDependencies);
 
 	/** Returns a list of loaded Blueprints that are dependent on the given Blueprint. */
 	static void GetDependentBlueprints(UBlueprint* Blueprint, TArray<UBlueprint*>& DependentBlueprints);
@@ -557,8 +573,9 @@ public:
 	 * @param			Graph			The graph that you're looking to call the function from (some functions hide different pins depending on the graph they're in)
 	 * @param			Function		The function to consider
 	 * @param [out]		HiddenPins		Set of pins that should be hidden
+	 * @param [out]		OutInternalPins	Subset of hidden pins that are marked for internal use only rather than marked as hidden (optional)
 	 */
-	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins);
+	static void GetHiddenPinsForFunction(UEdGraph const* Graph, UFunction const* Function, TSet<FString>& HiddenPins, TSet<FString>* OutInternalPins = nullptr);
 
 	/** Makes sure that calls to parent functions are valid, and removes them if not */
 	static void ConformCallsToParentFunctions(UBlueprint* Blueprint);
@@ -697,6 +714,15 @@ public:
 	static UEdGraph* FindScopeGraph(const UBlueprint* InBlueprint, const UStruct* InScope);
 
 	/**
+	 * Helper function to set the default value of a user defined struct property's local variable description
+	 *
+	 * @param	InBlueprint					The Blueprint the local variable can be found in
+	 * @param	InScope	Name				Local variable's scope name
+	 * @param	InOutVariableDescription	Description of the variable, will be modified with the default value
+	 */
+	static void SetDefaultValueOnUserDefinedStructProperty(UBlueprint* InBlueprint, FString InScopeName, FBPVariableDescription* InOutVariableDescription);
+
+	/**
 	 * Adds a local variable to the function graph.  It cannot mask a member variable or a variable in any superclass.
 	 *
 	 * @param	NewVarName	Name of the new variable.
@@ -705,7 +731,7 @@ public:
 	 *
 	 * @return	true if it succeeds, false if it fails.
 	 */
-	static bool AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType);
+	static bool AddLocalVariable(UBlueprint* Blueprint, UEdGraph* InTargetGraph, const FName InNewVarName, const FEdGraphPinType& InNewVarType, const FString& DefaultValue = FString());
 
 	/**
 	 * Removes a member variable if it was declared in this blueprint and not in a base class.
@@ -840,6 +866,14 @@ public:
 	 */
 	static void SetVariableSaveGameFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsSaveGame);
 
+	/**
+	 * Sets the Advanced Display flag on the variable with the specified name
+	 *
+	 * @param	InVarName				Name of the var to set the flag on
+	 * @param	bInIsAdvancedDisplay	The new value to set the bitflag to
+	 */
+	static void SetVariableAdvancedDisplayFlag(UBlueprint* InBlueprint, const FName& InVarName, const bool bInIsAdvancedDisplay);
+
 	/** Sets a metadata key/value on the specified variable
 	 *
 	 * @param Blueprint				The Blueprint to find the variable in
@@ -878,7 +912,7 @@ public:
 	 * @param	VarCategory			The new value of the custom category for the variable
 	 * @param	bDontRecompile		If true, the blueprint will not be marked as modified, and will not be recompiled.  
 	 */
-	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FName& NewCategory, bool bDontRecompile=false);
+	static void SetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope, const FText& NewCategory, bool bDontRecompile=false);
 
 	/**
 	 * Gets the custom category on the variable with the specified name.
@@ -887,7 +921,7 @@ public:
 	 * @param	InLocalVarScope		Local variable's scope, if looking to modify a local variable
 	 * @return						The custom category (None indicates the name will be the same as the blueprint)
 	 */
-	static FName GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope);
+	static FText GetBlueprintVariableCategory(UBlueprint* Blueprint, const FName& VarName, const UStruct* InLocalVarScope);
 
 	/** Gets pointer to PropertyFlags of variable */
 	static uint64* GetBlueprintVariablePropertyFlags(UBlueprint* Blueprint, const FName& VarName);
@@ -897,6 +931,9 @@ public:
 
 	/** Set RepNotify function of variable */
 	static void SetBlueprintVariableRepNotifyFunc(UBlueprint* Blueprint, const FName& VarName, const FName& RepNotifyFunc);
+
+	/** Returns TRUE if the variable was created by the Blueprint */
+	static bool IsVariableCreatedByBlueprint(UBlueprint* InBlueprint, UProperty* InVariableProperty);
 
 	/**
 	 * Find the index of a variable first declared in this blueprint. Returns INDEX_NONE if not found.
@@ -911,7 +948,7 @@ public:
 	static bool MoveVariableBeforeVariable(UBlueprint* Blueprint, FName VarNameToMove, FName TargetVarName, bool bDontRecompile);
 
 	/** Find first variable of the supplied category */
-	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FName Category);
+	static int32 FindFirstNewVarOfCategory(const UBlueprint* Blueprint, FText Category);
 
 	/**
 	 * Find the index of a timeline first declared in this blueprint. Returns INDEX_NONE if not found.
@@ -960,6 +997,8 @@ public:
 
 	static bool PropertyValueToString(const UProperty* Property, const uint8* Container, FString& OutForm);
 
+	static bool PropertyValueToString_Direct(const UProperty* Property, const uint8* DirectValue, FString& OutForm);
+
 	/** Call PostEditChange() on all Actors based on the given Blueprint */
 	static void PostEditChangeBlueprintActors(UBlueprint* Blueprint, bool bComponentEditChange = false);
 
@@ -971,6 +1010,9 @@ public:
 
 	/** Determines if this property is associated with a component that would be displayed in the SCS editor */
 	static bool IsSCSComponentProperty(UObjectProperty* MemberProperty);
+
+	/** Attempts to match up the FComponentKey with a ComponentTemplate from the Blueprint's UCS */
+	static UActorComponent* FindUCSComponentTemplate(const FComponentKey& ComponentKey);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Interface
@@ -1156,6 +1198,15 @@ public:
 	 * @param OutResultNode		The found result node for the graph
 	 */
 	static void GetEntryAndResultNodes(const UEdGraph* InGraph, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutEntryNode, TWeakObjectPtr<class UK2Node_EditablePinBase>& OutResultNode);
+
+
+	/**
+	 * Finds the entry node for a function or macro graph
+	 *
+	 * @param InGraph			The graph to search through
+	 * @return		The found entry node for the graph
+	 */
+	static class UK2Node_EditablePinBase* GetEntryNode(const UEdGraph* InGraph);
 
 	/**
 	 * Returns the function meta data block for the graph entry node.

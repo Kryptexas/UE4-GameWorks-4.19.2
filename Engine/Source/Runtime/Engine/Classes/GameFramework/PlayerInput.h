@@ -520,13 +520,24 @@ private:
 
 	/* Collects the chords and the delegates they invoke for an action binding
 	 * @param ActionBinding - the action to determine whether it occurred
+	 * @param bGamePaused - whether the game is currently paused
 	 * @param FoundChords - the list of chord/delegate pairs to add to
 	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
 	 */
 	void GetChordsForAction(const FInputActionBinding& ActionBinding, const bool bGamePaused, TArray<struct FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
 
+	/* Helper function for GetChordsForAction to examine each keymapping that belongs to the ActionBinding
+	 * @param KeyMapping - the key mapping to determine whether it occured
+	 * @param ActionBinding - the action to determine whether it occurred
+	 * @param bGamePaused - whether the game is currently paused
+	 * @param FoundChords - the list of chord/delegate pairs to add to
+	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
+	 */
+	void GetChordsForKeyMapping(const FInputActionKeyMapping& KeyMapping, const FInputActionBinding& ActionBinding, const bool bGamePaused, TArray<FDelegateDispatchDetails>& FoundChords, TArray<FKey>& KeysToConsume);
+
 	/* Collects the chords and the delegates they invoke for a key binding
 	 * @param KeyBinding - the key to determine whether it occurred
+	 * @param bGamePaused - whether the game is currently paused
 	 * @param FoundChords - the list of chord/delegate pairs to add to
 	 * @param KeysToConsume - array to collect the keys associated with this binding that should be consumed
 	 */

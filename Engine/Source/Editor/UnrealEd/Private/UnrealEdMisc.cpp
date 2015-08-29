@@ -37,10 +37,13 @@
 #include "HotReloadInterface.h"
 #include "PerformanceMonitor.h"
 #include "Engine/WorldComposition.h"
-#include "FeaturePack.h"
 #include "GameMapsSettings.h"
 #include "GeneralProjectSettings.h"
 #include "Lightmass/LightmappedSurfaceCollection.h"
+#include "IProjectManager.h"
+#include "FeaturePackContentSource.h"
+#include "TemplateProjectDefs.h"
+#include "GameProjectUtils.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -259,17 +262,13 @@ void FUnrealEdMisc::OnInit()
 		bool bMapLoaded = false;
 
 		// Insert any feature packs if required. We need to do this before we try and load a map since any pack may contain a map
-		FFeaturePack FeaturePackHandler;
-		FeaturePackHandler.ImportPendingPacks();
+		FFeaturePackContentSource::ImportPendingPacks();
 
 		FString ParsedMapName;
 		if ( FParse::Token(ParsedCmdLine, ParsedMapName, false) && 
 			 // If it's not a parameter
 			 ParsedMapName.StartsWith( TEXT("-") ) == false )
 		{
-			FURL DefaultURL;
-			FURL URL( &DefaultURL, *ParsedMapName, TRAVEL_Partial );
-			
 			FString InitialMapName;
 				
 			// If the specified package exists
@@ -353,6 +352,10 @@ void FUnrealEdMisc::OnInit()
 		if ( FParse::Bool( ParsedCmdLine, TEXT("IgnoreBuildErrors="), ParsedBool ) )
 		{
 			AutomatedBuildSettings.BuildErrorBehavior = ParsedBool ? FEditorBuildUtils::ABB_ProceedOnError : FEditorBuildUtils::ABB_FailOnError;
+		}
+		if ( FParse::Bool( ParsedCmdLine, TEXT("UseSCC="), ParsedBool ) )
+		{
+			AutomatedBuildSettings.bUseSCC = ParsedBool;
 		}
 		if ( FParse::Bool( ParsedCmdLine, TEXT("IgnoreSCCErrors="), ParsedBool ) )
 		{
@@ -917,20 +920,22 @@ void FUnrealEdMisc::CB_MapChange( uint32 InFlags )
 	const FString EmptyString(TEXT(""));
 	GEditor->SetPropertyColorationTarget( World, EmptyString, NULL, NULL, NULL );
 
-	// Rebuild the collision hash if this map change is something major ("new", "open", etc).
-	// Minor things like brush subtraction will set it to "0".
-
-	if( InFlags != MapChangeEventFlags::Default )
+	if (InFlags != MapChangeEventFlags::NewMap)
 	{
-		World->ClearWorldComponents();
+		// Rebuild the collision hash if this map change was rebuilt
+		// Minor things like brush subtraction will set it to "0".
+		if (InFlags != MapChangeEventFlags::Default)
+		{
+			World->ClearWorldComponents();
 
-		// Note: CleanupWorld is being abused here to detach components and some other stuff
-		// CleanupWorld should only be called before destroying the world
-		// So bCleanupResources is being passed as false
-		World->CleanupWorld(true, false);
+			// Note: CleanupWorld is being abused here to detach components and some other stuff
+			// CleanupWorld should only be called before destroying the world
+			// So bCleanupResources is being passed as false
+			World->CleanupWorld(true, false);
+		}
+
+		GEditor->EditorUpdateComponents();
 	}
-
-	GEditor->EditorUpdateComponents();
 
 	GLevelEditorModeTools().MapChangeNotify();
 
@@ -1620,6 +1625,69 @@ void FUnrealEdMisc::OnUserDefinedChordChanged(const FUICommandInfo& CommandInfo)
 		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Context"), ChordName));
 		ChordAttribs.Add(FAnalyticsEventAttribute(TEXT("Shortcut"), CommandInfo.GetActiveChord()->GetInputText().ToString()));
 		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.KeyboardShortcut"), ChordAttribs);
+	}
+}
+
+void FUnrealEdMisc::MountTemplateSharedPaths()
+{
+	FString TemplateFilename = FPaths::GetPath(FPaths::GetProjectFilePath());
+	UTemplateProjectDefs* TemplateInfo = GameProjectUtils::LoadTemplateDefs(TemplateFilename);
+	
+	if( TemplateInfo != nullptr )
+	{	
+		EFeaturePackDetailLevel EditDetail = TemplateInfo->EditDetailLevelPreference;
+
+		// Extract the mount names and insert mount points for each of the shared packs
+		TArray<FString> AddedMountSources;
+		for (int32 iShared = 0; iShared < TemplateInfo->SharedContentPacks.Num() ; iShared++)
+		{
+			EFeaturePackDetailLevel EachEditDetail = (EFeaturePackDetailLevel)EditDetail;
+			FString DetailString;
+			UEnum::GetValueAsString(TEXT("/Script/AddContentDialog.EFeaturePackDetailLevel"), EachEditDetail, DetailString);
+
+			FFeaturePackLevelSet EachPack = TemplateInfo->SharedContentPacks[iShared];
+			if((EachPack.DetailLevels.Num() == 1) && ( EachEditDetail !=  EachPack.DetailLevels[0] ))
+			{
+				// If theres only only detail level override the requirement with that
+				EachEditDetail = EachPack.DetailLevels[0];
+				// Get the name of the level we are falling back to so we can tell the user
+				FString FallbackDetailString;
+				UEnum::GetValueAsString(TEXT("/Script/AddContentDialog.EFeaturePackDetailLevel"), EachEditDetail, FallbackDetailString);
+				UE_LOG(LogUnrealEdMisc, Verbose, TEXT("Only 1 detail level defined for %s in %s. Cannot edit detail level %s. Will fallback to  "), *EachPack.MountName, *TemplateFilename, *DetailString,*FallbackDetailString);
+				// Then correct the string too !
+				DetailString = FallbackDetailString;
+
+			}
+			else if (EachPack.DetailLevels.Num() == 0)
+			{
+				// If no levels are supplied we cant really use this pack !
+				UE_LOG(LogUnrealEdMisc, Warning, TEXT("No detail levels defined for %s in %s."), *EachPack.MountName, *TemplateFilename );
+				continue;
+			}
+			for (int32 iDetail = 0; iDetail < EachPack.DetailLevels.Num(); iDetail++)
+			{
+				if (EachPack.DetailLevels[iDetail] == EachEditDetail)
+				{					
+					FString ShareMountName = EachPack.MountName;
+					if (AddedMountSources.Find(ShareMountName) == INDEX_NONE)
+					{
+						FString ResourcePath = FPaths::Combine(TEXT("Templates"), TEXT("TemplateResources"), *DetailString, *ShareMountName, TEXT("Content"));
+						FString FullPath = FPaths::Combine(*FPaths::RootDir(), *ResourcePath);
+
+						if (FPaths::DirectoryExists(FullPath))
+						{
+							FString MountName = FString::Printf(TEXT("/Game/%s/"), *ShareMountName);	
+							FPackageName::RegisterMountPoint(*MountName, *FullPath);
+							AddedMountSources.Add(ShareMountName);
+						}
+						else
+						{
+							UE_LOG(LogUnrealEdMisc, Warning, TEXT("Cannot find path %s to mount for %s resource in %s."), *FullPath, *EachPack.MountName, *TemplateFilename);
+						}
+					}
+				}
+			}
+		}
 	}
 }
 

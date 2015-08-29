@@ -181,7 +181,7 @@ void SMenuEntryBlock::Construct( const FArguments& InArgs )
 TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	check( OwnerMultiBoxWidget.IsValid() );
 
@@ -222,7 +222,7 @@ TSharedRef< SWidget>  SMenuEntryBlock::BuildMenuBarWidget( const FMenuEntryBuild
 				.ClickMethod( EButtonClickMethod::MouseDown )
 
 				// Pass along the block's tool-tip string
-				.ToolTipText( this, &SMenuEntryBlock::GetFilteredToolTipText, ToolTip )
+				.ToolTipText( this, &SMenuEntryBlock::GetFilteredToolTipText, EntryToolTip)
 
 				// Add horizontal padding between the edge of the button and the content.  Also add a bit of vertical
 				// padding to push the text down from the top of the menu bar a bit.
@@ -277,10 +277,110 @@ EVisibility SMenuEntryBlock::GetVisibility() const
 	return DirectActions.IsVisible();
 }
 
+/**
+* A button for a menu entry that has special mouse up handling
+*/
+class SMenuEntryButton : public SButton
+{
+public:
+	SLATE_BEGIN_ARGS(SMenuEntryButton)
+		: _Content()
+		, _ButtonStyle(nullptr)
+		, _ClickMethod(EButtonClickMethod::DownAndUp)
+	{}
+
+	/** Slot for this button's content (optional) */
+	SLATE_DEFAULT_SLOT(FArguments, Content)
+	/** The style to use */
+	SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
+	/** Sets the rules to use for determining whether the button was clicked.  This is an advanced setting and generally should be left as the default. */
+	SLATE_ARGUMENT(EButtonClickMethod::Type, ClickMethod)
+	/** Called when the button is clicked */
+	SLATE_EVENT(FOnClicked, OnClicked)
+
+	SLATE_END_ARGS()
+
+	enum class EResponseToMouseUp
+	{
+		Undetermined,
+		Handle,
+		DoNotHandle,
+	};
+
+	void Construct(const FArguments& InArgs)
+	{
+		SButton::FArguments ButtonArgs;
+		ButtonArgs.ButtonStyle(InArgs._ButtonStyle);
+		ButtonArgs.ClickMethod(InArgs._ClickMethod);
+		ButtonArgs.ToolTip(InArgs._ToolTip);
+		ButtonArgs.ContentPadding(FMargin(0, 2));
+		ButtonArgs.ForegroundColor(FSlateColor::UseForeground());
+		ButtonArgs.OnClicked(InArgs._OnClicked)
+		[
+			InArgs._Content.Widget
+		];
+
+		SButton::Construct(ButtonArgs);
+
+		ResponseToMouseUp = EResponseToMouseUp::Undetermined;
+	}
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	{
+		// On first tick, check mouse cursor position.
+		if (ResponseToMouseUp == EResponseToMouseUp::Undetermined)
+		{
+			FVector2D CursorPos = FSlateApplication::Get().GetCursorPos();
+
+			if (AllottedGeometry.IsUnderLocation(CursorPos))
+			{
+				// button was created under the mouse
+				ResponseToMouseUp = EResponseToMouseUp::DoNotHandle;
+			}
+			else
+			{
+				// button was NOT created under the mouse
+				ResponseToMouseUp = EResponseToMouseUp::Handle;
+			}
+		}
+
+		SButton::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+	}
+
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
+		bool bWasPressed = bIsPressed;
+
+		if (ResponseToMouseUp == EResponseToMouseUp::Handle)
+		{
+			bIsPressed = true;
+		}
+
+		FReply Reply = SButton::OnMouseButtonUp(MyGeometry, MouseEvent);
+
+		bIsPressed = bWasPressed;
+
+		return Reply;
+	}
+
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override
+	{
+		if (ResponseToMouseUp == EResponseToMouseUp::DoNotHandle)
+		{
+			ResponseToMouseUp = EResponseToMouseUp::Handle;
+		}
+
+		SButton::OnMouseLeave(MouseEvent);
+	}
+
+private:
+	EResponseToMouseUp ResponseToMouseUp;
+};
+
 TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
 	const TSharedPtr< const FMultiBox > MultiBox = InBuildParams.MultiBox;
 	const TSharedPtr< const FUICommandInfo >& UICommand = InBuildParams.UICommand;
@@ -437,6 +537,7 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 				// For check style menus, use an image instead of a CheckBox because it can't really be checked.
 				UserInterfaceType == EUserInterfaceActionType::Check
 					? StaticCastSharedRef<SWidget>(SNew(SImage)
+						.ColorAndOpacity(FSlateColor::UseForeground())
 						.Image(this, &SMenuEntryBlock::GetCheckBoxImageBrushFromStyle, &StyleSet->GetWidgetStyle<FCheckBoxStyle>(CheckBoxStyle)))
 					: StaticCastSharedRef<SWidget>(SNew(SCheckBox)
 						.ForegroundColor( CheckBoxForegroundColor )
@@ -451,28 +552,18 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 		];
 
 	// Create a menu item button
-	TSharedPtr<SWidget> MenuEntryWidget = 
-		SNew( SButton )
-
+	TSharedPtr<SWidget> MenuEntryWidget = SNew(SMenuEntryButton)
 		// Use the menu item style for this button
 		.ButtonStyle( StyleSet, ISlateStyle::Join( StyleName, ".Button" ) )
-
 		// Set our click method for this menu item.  It will be different for pull-down/context menus.
 		.ClickMethod( ButtonClickMethod )
-
 		// Pass along the block's tool-tip string
-		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute( ToolTip, nullptr, UICommand ) )
-
-		.ContentPadding(FMargin(0, 2))
-
-		.ForegroundColor( FSlateColor::UseForeground() )
+		.ToolTip( FMultiBoxSettings::ToolTipConstructor.Execute(EntryToolTip, nullptr, UICommand ) )
+		// Bind the button's "on clicked" event to our object's method for this
+		.OnClicked(this, &SMenuEntryBlock::OnMenuItemButtonClicked)
 		[
 			CheckBoxAndButtonContent.ToSharedRef()
-		]
-
-		// Bind the button's "on clicked" event to our object's method for this
-		.OnClicked( this, &SMenuEntryBlock::OnMenuItemButtonClicked );
-
+		];
 
 	return MenuEntryWidget.ToSharedRef();
 }
@@ -567,7 +658,7 @@ private:
 TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildParams& InBuildParams )
 {
 	const TAttribute<FText>& Label = InBuildParams.Label;
-	const TAttribute<FText>& ToolTip = InBuildParams.ToolTip;
+	const TAttribute<FText>& EntryToolTip = InBuildParams.ToolTip;
 
 	const TSharedPtr< const FMenuEntryBlock > MenuEntryBlock = InBuildParams.MenuEntryBlock;
 	const TSharedPtr< const FMultiBox > MultiBox = InBuildParams.MultiBox;
@@ -698,7 +789,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 			// Create a button
 			SNew( SSubMenuButton )
 			// Pass along the block's tool-tip string
-			.ToolTipText( ToolTip )
+			.ToolTipText( EntryToolTip )
 			// Style to use
 			.ButtonStyle( &StyleSet->GetWidgetStyle<FButtonStyle>( ISlateStyle::Join( StyleName, ".Button" ) ) )
 			// Allow the button to change its state depending on the state of the submenu
@@ -719,6 +810,7 @@ TSharedRef< SWidget> SMenuEntryBlock::BuildSubMenuWidget( const FMenuEntryBuildP
 					.Padding(FMargin(7,0,0,0))
 					[
 						SNew( SImage )
+						.ColorAndOpacity(FSlateColor::UseForeground())
 						.Image( StyleSet->GetBrush( StyleName, ".SubMenuIndicator" ) )
 					]
 				]
@@ -872,8 +964,7 @@ void SMenuEntryBlock::OnClicked( bool bCheckBoxClicked )
 			if( MenuEntryBlock->bCloseSelfOnly )
 			{
 				// Close only this menu and its children
-				TSharedRef<SWindow> ParentContextMenuWindow = FSlateApplication::Get().FindWidgetWindow( AsShared() ).ToSharedRef();
-				FSlateApplication::Get().DismissMenu( ParentContextMenuWindow );
+				FSlateApplication::Get().DismissMenuByWidget(AsShared());
 			}
 			else
 			{
@@ -971,18 +1062,18 @@ ECheckBoxState SMenuEntryBlock::IsChecked() const
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
 	const FUIAction& DirectActions = MultiBlock->GetDirectActions();
 
-	bool bIsChecked = true;
+	ECheckBoxState CheckState = ECheckBoxState::Unchecked;
 	if( ActionList.IsValid() && Action.IsValid() )
 	{
-		bIsChecked = ActionList->IsChecked( Action.ToSharedRef() );
+		CheckState = ActionList->GetCheckState( Action.ToSharedRef() );
 	}
 	else
 	{
 		// There is no action list or action associated with this block via a UI command.  Execute any direct action we have
-		bIsChecked = DirectActions.IsChecked();
+		CheckState = DirectActions.GetCheckState();
 	}
 
-	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	return CheckState;
 }
 
 const FSlateBrush* SMenuEntryBlock::OnGetCheckImage() const

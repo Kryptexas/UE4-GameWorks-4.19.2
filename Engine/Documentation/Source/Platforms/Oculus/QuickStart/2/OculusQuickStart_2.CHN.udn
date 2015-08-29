@@ -1,0 +1,79 @@
+﻿INTSourceChangelist:0
+Title:2. Download the Oculus Runtime
+Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
+Description:Download the needed software for running games on the Oculus Rift
+Availability:Public
+
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Oculus/QuickStart/1 "%Platforms/Oculus/QuickStart/1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Oculus/QuickStart)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Oculus/QuickStart/3 "%Platforms/Oculus/QuickStart/3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+[REGION:note]
+The version of the Oculus Runtime that is currently compatible with Unreal Engine 4 is **Oculus SDK v0.4.2 Beta**. 
+[/REGION]
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#windows]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#macos]
+	[/PARAM]
+[/OBJECT]
+<!--
+[EXCERPT:windows]
+1. Click the [Oculus Runtime for Windows version 0.4.2-beta](https://developer.oculus.com/downloads/#id=9f27e6a8). 
+
+	![](3-oculus-runtime-for-windows.jpg)
+1. Read and agree to the terms of the EULA to start the download.
+
+	![](3-oculus-eula.jpg)
+[/EXCERPT:windows]
+[EXCERPT:macos]
+[INCLUDE:Platforms/Oculus#warning]
+1. Click the [Oculus Runtime for OS X version 0.4.2-beta](https://developer.oculus.com/downloads/#id=4d85655b).
+	![](3-oculus-runtime-for-os-x.jpg)
+1. Read and agree to the terms of the EULA to start the download.
+
+	![](3-oculus-eula.jpg)
+[/EXCERPT:macos]
+-->
+
+%Steps%

@@ -117,6 +117,45 @@ namespace
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////
+// FPropertySpecifier
+
+FString FPropertySpecifier::ConvertToString() const
+{
+	FString Result;
+
+	// Emit the specifier key
+	Result += Key;
+
+	// Emit the values if there are any
+	if (Values.Num())
+	{
+		Result += TEXT("=");
+
+		if (Values.Num() == 1)
+		{
+			// One value goes on it's own
+			Result += Values[0];
+		}
+		else
+		{
+			// More than one value goes in parens, separated by commas
+			Result += TEXT("(");
+			for (int32 ValueIndex = 0; ValueIndex < Values.Num(); ++ValueIndex)
+			{
+				if (ValueIndex > 0)
+				{
+					Result += TEXT(", ");
+				}
+				Result += Values[ValueIndex];
+			}
+			Result += TEXT(")");
+		}
+	}
+
+	return Result;
+}
+
 /////////////////////////////////////////////////////
 // FBaseParser
 
@@ -145,14 +184,14 @@ void FBaseParser::ResetParser(const TCHAR* SourceBuffer, int32 StartingLineNumbe
 //
 TCHAR FBaseParser::GetChar(bool bLiteral)
 {
-	int32 CommentCount = 0;
+	bool bInsideComment = false;
 
 	PrevPos = InputPos;
 	PrevLine = InputLine;
 
 Loop:
 	const TCHAR c = Input[InputPos++];
-	if ( CommentCount > 0 )
+	if (bInsideComment)
 	{
 		// Record the character as a comment.
 		PrevComment += c;
@@ -167,24 +206,29 @@ Loop:
 		const TCHAR NextChar = PeekChar();
 		if ( c==TEXT('/') && NextChar==TEXT('*') )
 		{
-			if ( CommentCount == 0 )
+			if (!bInsideComment)
 			{
 				ClearComment();
 				// Record the slash and star.
 				PrevComment += c;
 				PrevComment += NextChar;
+				bInsideComment = true;
 			}
-			CommentCount++;
+
 			InputPos++;
 			goto Loop;
 		}
 		else if( c==TEXT('*') && NextChar==TEXT('/') )
 		{
-			if (--CommentCount < 0)
+			if (!bInsideComment)
 			{
 				ClearComment();
 				FError::Throwf(TEXT("Unexpected '*/' outside of comment") );
 			}
+
+			/** Asterisk and slash always end comment. */
+			bInsideComment = false;
+
 			// Star already recorded; record the slash.
 			PrevComment += Input[InputPos];
 
@@ -193,7 +237,7 @@ Loop:
 		}
 	}
 
-	if (CommentCount > 0)
+	if (bInsideComment)
 	{
 		if (c == 0)
 		{
@@ -1008,16 +1052,16 @@ void FBaseParser::ReadSpecifierSetInsideMacro(TArray<FPropertySpecifier>& Specif
 		else
 		{
 			// Creating a new specifier
-			FPropertySpecifier* NewPair = new (SpecifiersFound) FPropertySpecifier();
-			NewPair->Key = Specifier.Identifier;
+			SpecifiersFound.Emplace(Specifier.Identifier);
 
 			// Look for a value for this specifier
 			if (MatchSymbol(TEXT("=")) || PeekSymbol(TEXT("(")))
 			{
-				if (!ReadOptionalCommaSeparatedListInParens(NewPair->Values, TypeOfSpecifier))
+				TArray<FString>& NewPairValues = SpecifiersFound.Last().Values;
+				if (!ReadOptionalCommaSeparatedListInParens(NewPairValues, TypeOfSpecifier))
 				{
 					FString Value = ReadNewStyleValue(TypeOfSpecifier);
-					NewPair->Values.Add(Value);
+					NewPairValues.Add(Value);
 				}
 			}
 		}

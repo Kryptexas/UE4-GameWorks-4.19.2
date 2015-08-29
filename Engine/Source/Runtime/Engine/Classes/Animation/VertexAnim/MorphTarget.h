@@ -53,6 +53,8 @@ struct FMorphTargetLODModel
 	TArray<FVertexAnimDelta> Vertices;
 	/** number of original verts in the base mesh */
 	int32 NumBaseMeshVerts;
+	/** Get Resource Size */
+	SIZE_T GetResourceSize() const;
 
 	/** pipe operator */
 	friend FArchive& operator<<( FArchive& Ar, FMorphTargetLODModel& M )

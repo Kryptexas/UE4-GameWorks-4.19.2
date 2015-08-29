@@ -30,6 +30,15 @@ FString FApp::GetBranchName( )
 	return FString(TEXT(BRANCH_NAME));
 }
 
+int32 FApp::GetEngineIsPromotedBuild()
+{
+	return ENGINE_IS_PROMOTED_BUILD;
+}
+
+FString FApp::GetEpicProductIdentifier()
+{
+	return FString(TEXT(EPIC_PRODUCT_IDENTIFIER));
+}
 
 EBuildConfigurations::Type FApp::GetBuildConfiguration()
 {

@@ -1037,7 +1037,7 @@ private:
 
 	ECheckBoxState IsRadioChecked( int32 ButtonId ) const
 	{
-		return (CurrentChoice == ButtonId)
+		return (CurrentChoice.Get() == ButtonId)
 			? ECheckBoxState::Checked
 			: ECheckBoxState::Unchecked;
 	}

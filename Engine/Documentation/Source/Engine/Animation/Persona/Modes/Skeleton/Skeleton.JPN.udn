@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2220735
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:Skeleton モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -7,9 +7,9 @@ Description:
 ## 概要
 
 [EXCERPT:Overview]
-**Skeleton モード** では、ボーンやジョイントの階層に関与するキャラクタやスケルタル メッシュの様々なビジュアル化や制御を行うことができます。以下はその使用例です。
+**Skeleton モード** では、ボーンやジョイントの階層に関与するキャラクタやスケルタルメッシュの様々なビジュアル化や制御を行うことができます。以下はその使用例です。
 
-* アイテムをスケルタル メッシュにアタッチするための [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) を作成する
+* アイテムをスケルタルメッシュにアタッチするための [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) を作成する
 * 各 [ソケット](Engine/Content\Types\SkeletalMeshes\Sockets) に対して相対位置と回転を編集する
 * アニメーションのリターゲット関係を確立する
 

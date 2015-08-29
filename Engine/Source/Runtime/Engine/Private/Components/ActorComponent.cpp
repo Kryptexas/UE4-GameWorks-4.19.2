@@ -111,6 +111,9 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 	bAutoRegister = true;
 	bNetAddressable = false;
 	bEditableWhenInherited = true;
+#if WITH_EDITOR
+	bCanUseCachedOwner = true;
+#endif
 }
 
 void UActorComponent::PostInitProperties()
@@ -129,9 +132,13 @@ void UActorComponent::PostLoad()
 
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
-		if (bCreatedByConstructionScript_DEPRECATED)
+		if (IsTemplate())
 		{
-				CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+			CreationMethod = EComponentCreationMethod::Native;
+		}
+		else if (bCreatedByConstructionScript_DEPRECATED)
+		{
+			CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 		}
 		else if (bInstanceComponent_DEPRECATED)
 		{
@@ -421,10 +428,11 @@ bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters,
 	return false;
 }
 
-/** FComponentReregisterContexts for components which have had PreEditChange called but not PostEditChange. */
-static TMap<UActorComponent*,FComponentReregisterContext*> EditReregisterContexts;
-
 #if WITH_EDITOR
+
+/** FComponentReregisterContexts for components which have had PreEditChange called but not PostEditChange. */
+static TMap<TWeakObjectPtr<UActorComponent>,FComponentReregisterContext*> EditReregisterContexts;
+
 bool UActorComponent::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
 	// If this is a construction script component we don't store them in the transaction buffer.  Instead, mark
@@ -454,7 +462,7 @@ void UActorComponent::PreEditChange(UProperty* PropertyThatWillChange)
 		else
 		{
 			ExecuteUnregisterEvents();
-			World = NULL;
+			World = nullptr;
 		}
 	}
 
@@ -477,11 +485,21 @@ void UActorComponent::PostEditUndo()
 	if( IsPendingKill() )
 	{
 		// The reregister context won't bother attaching components that are 'pending kill'. 
-		FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
-		if(ReregisterContext)
+		FComponentReregisterContext* ReregisterContext = nullptr;
+		if (EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
 		{
 			delete ReregisterContext;
-			EditReregisterContexts.Remove(this);
+		}
+		else
+		{
+			// This means there are likely some stale elements left in there now, strip them out
+			for (auto It(EditReregisterContexts.CreateIterator()); It; ++It)
+			{
+				if (!It.Key().IsValid())
+				{
+					It.RemoveCurrent();
+				}
+			}
 		}
 	}
 	else
@@ -524,16 +542,26 @@ void UActorComponent::PostEditUndo()
 
 void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
-	if(ReregisterContext)
+	FComponentReregisterContext* ReregisterContext = nullptr;
+	if(EditReregisterContexts.RemoveAndCopyValue(this, ReregisterContext))
 	{
 		delete ReregisterContext;
-		EditReregisterContexts.Remove(this);
 
 		AActor* MyOwner = GetOwner();
 		if ( MyOwner && !MyOwner->IsTemplate() && PropertyChangedEvent.ChangeType != EPropertyChangeType::Interactive )
 		{
 			MyOwner->RerunConstructionScripts();
+		}
+	}
+	else
+	{
+		// This means there are likely some stale elements left in there now, strip them out
+		for (auto It(EditReregisterContexts.CreateIterator()); It; ++It)
+		{
+			if (!It.Key().IsValid())
+			{
+				It.RemoveCurrent();
+			}
 		}
 	}
 
@@ -549,16 +577,16 @@ void UActorComponent::ConsolidatedPostEditChange(const FPropertyChangedEvent& Pr
 
 void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange(PropertyChangedEvent);
-
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 }
 
 void UActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
 {
-	ConsolidatedPostEditChange(PropertyChangedEvent);
-
 	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+
+	ConsolidatedPostEditChange(PropertyChangedEvent);
 }
 
 
@@ -640,19 +668,12 @@ FActorComponentInstanceData* UActorComponent::GetComponentInstanceData() const
 	return InstanceData;
 }
 
-FName UActorComponent::GetComponentInstanceDataType() const
-{
-	static const FName ActorComponentInstanceDataTypeName(TEXT("ActorComponentInstanceData"));
-	return ActorComponentInstanceDataTypeName;
-}
-
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	if (Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
 	{
 		FScopeCycleCounterUObject ComponentScope(Target);
 		FScopeCycleCounterUObject AdditionalScope(Target->AdditionalStatObject());
-	    checkSlow(Target && (!EnableParent || Target->IsPendingKill() || ((FActorTickFunction*)EnableParent)->Target == Target->GetOwner())); // components that get renamed into other outers will have this wrong and hence will not necessarily tick after their actor, or use their actor as an enable parent
 	    Target->ConditionalTickComponent(DeltaTime, TickType, *this);	
 	}
 }
@@ -813,7 +834,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 
 	if (MyOwner && MyOwner->HasActorBegunPlay())
 	{
-		if (bWantsBeginPlay)
+		if (!bHasBegunPlay && bWantsBeginPlay)
 		{
 			BeginPlay();
 		}
@@ -873,6 +894,14 @@ void UActorComponent::UnregisterComponent()
 
 void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
+	// Avoid re-entrancy
+	if (bIsBeingDestroyed)
+	{
+		return;
+	}
+
+	bIsBeingDestroyed = true;
+
 	if (bHasBegunPlay)
 	{
 		EndPlay(EEndPlayReason::Destroyed);
@@ -1011,7 +1040,7 @@ void UActorComponent::ExecuteRegisterEvents()
 		checkf(bRegistered, TEXT("Failed to route OnRegister (%s)"), *GetFullName());
 	}
 
-	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene)
+	if(FApp::CanEverRender() && !bRenderStateCreated && World->Scene && ShouldCreateRenderState())
 	{
 		CreateRenderState_Concurrent();
 		checkf(bRenderStateCreated, TEXT("Failed to route CreateRenderState_Concurrent (%s)"), *GetFullName());
@@ -1246,7 +1275,7 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 	if (ComponentWorld)
 	{
 		// by convention, recreates are always done on the gamethread
-		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, true);
+		ComponentWorld->MarkActorComponentForNeededEndOfFrameUpdate(this, RequiresGameThreadEndOfFrameRecreate());
 	}
 	else if (!HasAnyFlags(RF_Unreachable))
 	{
@@ -1258,6 +1287,11 @@ void UActorComponent::MarkForNeededEndOfFrameRecreate()
 bool UActorComponent::RequiresGameThreadEndOfFrameUpdates() const
 {
 	return false;
+}
+
+bool UActorComponent::RequiresGameThreadEndOfFrameRecreate() const
+{
+	return true;
 }
 
 void UActorComponent::Activate(bool bReset)
@@ -1402,6 +1436,15 @@ bool UActorComponent::GetIsReplicated() const
 bool UActorComponent::ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
 {
 	return false;
+}
+
+void UActorComponent::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
+	UBlueprintGeneratedClass* BPClass = Cast<UBlueprintGeneratedClass>(GetClass());
+	if (BPClass != NULL)
+	{
+		BPClass->InstancePreReplication(ChangedPropertyTracker);
+	}
 }
 
 bool UActorComponent::GetComponentClassCanReplicate() const

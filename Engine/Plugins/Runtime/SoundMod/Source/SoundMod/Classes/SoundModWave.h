@@ -6,10 +6,11 @@
 
 #pragma once
 #include "xmp.h"
+#include "Sound/SoundWaveProcedural.h"
 #include "SoundModWave.generated.h"
 
 UCLASS()
-class USoundModWave : public USoundWaveStreaming
+class USoundModWave : public USoundWaveProcedural
 {
 	GENERATED_UCLASS_BODY()
 

@@ -923,10 +923,27 @@ bool ListFilesInPak(const TCHAR * InPakFilename)
 
 	if (PakFile.IsValid())
 	{
-		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+		TArray<FPakFile::FFileIterator> Records;
+
+		for (FPakFile::FFileIterator It(PakFile); It; ++It)
+		{
+			Records.Add(It);
+		}
+
+		struct FOffsetSort
+		{
+			FORCEINLINE bool operator()(const FPakFile::FFileIterator& A, const FPakFile::FFileIterator& B) const
+			{
+				return A.Info().Offset < B.Info().Offset;
+			}
+		};
+
+		Records.Sort(FOffsetSort());
+
+		for (auto It : Records)
 		{
 			const FPakEntry& Entry = It.Info();
-			UE_LOG(LogPakFile, Display, TEXT("\"%s\" %d bytes."), *It.Filename(), Entry.Size);
+			UE_LOG(LogPakFile, Display, TEXT("\"%s\" offset: %lld, size: %d bytes."), *It.Filename(), Entry.Offset, Entry.Size);
 			FileSize += Entry.Size;
 			FileCount++;
 		}
@@ -1085,6 +1102,26 @@ void RemoveIdenticalFiles( TArray<FPakInputPair>& FilesToPak, const FString& Sou
 	}
 }
 
+FString GetPakPath(const TCHAR* SpecifiedPath, bool bIsForCreation)
+{
+	FString PakFilename(SpecifiedPath);
+	FPaths::MakeStandardFilename(PakFilename);
+	
+	// if we are trying to open (not create) it, but BaseDir relative doesn't exist, look in LaunchDir
+	if (!bIsForCreation && !FPaths::FileExists(PakFilename))
+	{
+		PakFilename = FPaths::LaunchDir() + SpecifiedPath;
+
+		if (!FPaths::FileExists(PakFilename))
+		{
+			UE_LOG(LogPakFile, Fatal, TEXT("Existing pak file %s could not be found (checked against binary and launch directories)"), SpecifiedPath);
+			return TEXT("");
+		}
+	}
+	
+	return PakFilename;
+}
+
 /**
  * Application entry point
  * Params:
@@ -1107,10 +1144,22 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 {
 	// start up the main loop
 	GEngineLoop.PreInit(ArgC, ArgV);
-	
+
 	if (ArgC < 2)
 	{
-		UE_LOG(LogPakFile, Error, TEXT("No pak file name specified."));
+		UE_LOG(LogPakFile, Error, TEXT("No pak file name specified. Usage:"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Test"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -List"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Extract <ExtractDir>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Create=<ResponseFile> [Options]"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak <PakFilename> -Dest=<MountPoint>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GenerateKeys=<KeyFilename>"));
+		UE_LOG(LogPakFile, Error, TEXT("  UnrealPak GeneratePrimeTable=<KeyFilename> [-TableMax=<N>]"));
+		UE_LOG(LogPakFile, Error, TEXT("  Options:"));
+		UE_LOG(LogPakFile, Error, TEXT("    -blocksize=<BlockSize>"));
+		UE_LOG(LogPakFile, Error, TEXT("    -compress"));
+		UE_LOG(LogPakFile, Error, TEXT("    -encrypt"));
+		UE_LOG(LogPakFile, Error, TEXT("    -order=<OrderingFile>"));
 		return 1;
 	}
 
@@ -1129,19 +1178,19 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 	}
 	else 
 	{
-		FString PakFilename(ArgV[1]);
-		FPaths::MakeStandardFilename(PakFilename);
-
 		if (FParse::Param(FCommandLine::Get(), TEXT("Test")))
 		{
+			FString PakFilename = GetPakPath(ArgV[1], false);
 			Result = TestPakFile(*PakFilename) ? 0 : 1;
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("List")))
 		{
+			FString PakFilename = GetPakPath(ArgV[1], false);
 			Result = ListFilesInPak(*PakFilename);
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Extract")))
 		{
+			FString PakFilename = GetPakPath(ArgV[1], false);
 			if (ArgC < 4)
 			{
 				UE_LOG(LogPakFile, Error, TEXT("No extraction path specified."));
@@ -1155,6 +1204,9 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		}
 		else
 		{
+			// since this is for creation, we pass true to make it not look in LaunchDir
+			FString PakFilename = GetPakPath(ArgV[1], true);
+
 			// List of all items to add to pak file
 			TArray<FPakInputPair> Entries;
 			ProcessCommandLine(ArgC, ArgV, Entries, CmdLineParameters);

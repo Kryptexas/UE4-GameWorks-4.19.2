@@ -263,9 +263,10 @@ public:
 	/** Pointer to data shared with the render thread, used by the editor tools */
 	struct FLandscapeEditToolRenderData* EditToolRenderData;
 
-	/** Hash of source for ES2 generated data. Used for mobile preview to determine if we need to re-generate ES2 pixel data. */
+	/** Hash of source for ES2 generated data. Used for mobile preview and cook-in-editor
+	 * to determine if we need to re-generate ES2 pixel data. */
 	UPROPERTY(Transient, DuplicateTransient)
-	FGuid MobilePixelDataSourceHash;
+	FGuid MobileDataSourceHash;
 #endif
 
 	/** For ES2 */
@@ -297,6 +298,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
+	virtual void BeginCacheForCookedPlatformData(const ITargetPlatform* TargetPlatform) override;
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
@@ -347,7 +349,7 @@ public:
 	void ReplaceLayer(ULandscapeLayerInfoObject* FromLayerInfo, ULandscapeLayerInfoObject* ToLayerInfo, struct FLandscapeEditDataInterface* LandscapeEdit);
 	
 	void GeneratePlatformVertexData();
-	void GeneratePlatformPixelData(bool bIsCooking);
+	void GeneratePlatformPixelData();
 
 	/** Creates and destroys cooked grass data stored in the map */
 	void RenderGrassMap();
@@ -364,6 +366,9 @@ public:
 
 	/* Serialize all hashes/guids that record the current state of this component */
 	void SerializeStateHashes(FArchive& Ar);
+
+	/** Generate mobile data if it's missing or outdated */
+	void CheckGenerateLandscapePlatformData(bool bIsCooking);
 #endif
 
 	/** @todo document */

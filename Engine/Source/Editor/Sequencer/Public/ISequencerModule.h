@@ -10,10 +10,17 @@
 
 class ISequencerObjectBindingManager;
 
+namespace SequencerMenuExtensionPoints
+{
+	static const FName AddTrackMenu_PropertiesSection("AddTrackMenu_PropertiesSection");
+}
+
 /**
  * A delegate which will create an auto-key handler
  */
 DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<class FMovieSceneTrackEditor>, FOnCreateTrackEditor, TSharedRef<ISequencer> );
+
+DECLARE_DELEGATE_RetVal_OneParam( TSharedRef<SWidget>, FOnGetAddMenuContent, TSharedRef<ISequencer> );
 
 /** Parameters for initializing a Sequencer */
 struct FSequencerViewParams
@@ -24,9 +31,15 @@ struct FSequencerViewParams
 	/** Initial Scrub Position */
 	float InitialScrubPosition;
 
-	FSequencerViewParams()
+	FOnGetAddMenuContent OnGetAddMenuContent;
+
+	/** Unique name for the sequencer */
+	FString UniqueName;
+
+	FSequencerViewParams(FString InName = FString())
 		: InitalViewRange( 0.0f, 5.0f )
 		, InitialScrubPosition( 0.0f )
+		, UniqueName(MoveTemp(InName))
 	{}
 };
 
@@ -63,22 +76,6 @@ public:
 	 * Registers a delegate that will create an editor for a track in each sequencer 
 	 *
 	 * @param InOnCreateTrackEditor	Delegate to register
-	 */
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with RegisterTrackEditor_Handle.")
-	virtual void RegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) = 0;
-
-	/** 
-	 * Unregisters a previously registered delegate for creating a track editor
-	 *
-	 * @param InOnCreateTrackEditor	Delegate to unregister
-	 */
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with UnRegisterTrackEditor_Handle, passing the result of RegisterTrackEditor_Handle.")
-	virtual void UnRegisterTrackEditor( FOnCreateTrackEditor InOnCreateTrackEditor ) = 0;
-
-	/** 
-	 * Registers a delegate that will create an editor for a track in each sequencer 
-	 *
-	 * @param InOnCreateTrackEditor	Delegate to register
 	 *
 	 * @return A handle to the newly-added delegate.
 	 */
@@ -90,5 +87,11 @@ public:
 	 * @param InHandle	Handle to the delegate to unregister
 	 */
 	virtual void UnRegisterTrackEditor_Handle( FDelegateHandle InHandle ) = 0;
+
+	/** Gets the extensibility manager for menus */
+	virtual TSharedPtr<FExtensibilityManager> GetMenuExtensibilityManager() const = 0;
+
+	/** Gets the extensibility manager for toolbars */
+	virtual TSharedPtr<FExtensibilityManager> GetToolBarExtensibilityManager() const = 0;
 };
 

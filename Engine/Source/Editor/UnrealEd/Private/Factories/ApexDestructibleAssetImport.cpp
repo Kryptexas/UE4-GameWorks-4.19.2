@@ -842,6 +842,8 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 
 	FStaticLODModel& LODModel = DestructibleMeshResource.LODModels[0];
 	
+	LODModel.ActiveBoneIndices.Add(0);
+
 	// Pass the number of texture coordinate sets to the LODModel.  Ensure there is at least one UV coord
 	LODModel.NumTexCoords = FMath::Max<uint32>(1,SkelMeshImportDataPtr->NumTexCoords);
 //	if( bCreateRenderData )	// We always create render data
@@ -1003,9 +1005,7 @@ UDestructibleMesh* ImportDestructibleMeshFromApexDestructibleAsset(UObject* InPa
 		// Store the current file path and timestamp for re-import purposes
 		// @todo AssetImportData make a data class for Apex destructible assets
 		DestructibleMesh->AssetImportData = NewObject<UAssetImportData>(DestructibleMesh);
-		DestructibleMesh->AssetImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::CurrentFilename, DestructibleMesh);
-		DestructibleMesh->AssetImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::CurrentFilename).ToString();
-		DestructibleMesh->AssetImportData->bDirty = false;
+		DestructibleMesh->AssetImportData->Update(UFactory::CurrentFilename);
 	}
 
 	DestructibleMesh->PreEditChange(NULL);

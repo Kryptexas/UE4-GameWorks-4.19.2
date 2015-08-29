@@ -18,7 +18,6 @@ DECLARE_CYCLE_STAT(TEXT("Slate RT Present Time"), STAT_SlatePresentRTTime, STATG
 #define MAX_VIEWPORT_SIZE 16384
 
 
-
 void FSlateCrashReportResource::InitDynamicRHI()
 {
 	FRHIResourceCreateInfo CreateInfo;
@@ -152,7 +151,7 @@ void FSlateRHIRenderer::Initialize()
 {
 	LoadUsedTextures();
 
-	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) ); 
+	RenderingPolicy = MakeShareable( new FSlateRHIRenderingPolicy( FontCache, ResourceManager.ToSharedRef() ) );
 
 	ElementBatcher = MakeShareable( new FSlateElementBatcher( RenderingPolicy.ToSharedRef() ) );
 }
@@ -220,7 +219,7 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 		else
 		{
 			FlushCommands();
-			UE_LOG(LogSlate, Log, TEXT("Slate: Had to block on waiting for a draw buffer"));
+			UE_LOG(LogSlate, Warning, TEXT("Slate: Had to block on waiting for a draw buffer"));
 			FreeBufferIndex = (FreeBufferIndex + 1) % NumDrawBuffers;
 		}
 	
@@ -228,11 +227,13 @@ FSlateDrawBuffer& FSlateRHIRenderer::GetDrawBuffer()
 		Buffer = &DrawBuffers[FreeBufferIndex];
 	}
 
+	// Safely remove brushes by emptying the array and releasing references
+	DynamicBrushesToRemove[FreeBufferIndex].Empty();
 
 	Buffer->ClearBuffer();
 	return *Buffer;
 #else
-	// With this method buffers are created on this thread and deleted on the rendering thead
+	// With this method buffers are created on this thread and deleted on the rendering thread
 	return *(new FSlateDrawBuffer);
 #endif
 }
@@ -391,7 +392,7 @@ void FSlateRHIRenderer::OnWindowDestroyed( const TSharedRef<SWindow>& InWindow )
 }
 
 /** Draws windows from a FSlateDrawBuffer on the render thread */
-void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
+void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear)
 {
 	SCOPED_DRAW_EVENT(RHICmdList, SlateUI);
 
@@ -401,8 +402,11 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 	{
 		SCOPE_CYCLE_COUNTER( STAT_SlateRenderingRTTime );
 
-		// Update the vertex and index buffer
-		RenderingPolicy->UpdateBuffers( WindowElementList );
+		FSlateBatchData& BatchData = WindowElementList.GetBatchData();
+
+		// Update the vertex and index buffer	
+		BatchData.CreateRenderBatches();	
+		RenderingPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
 		// should have been created by the game thread
 		check( IsValidRef(ViewportInfo.ViewportRHI) );
 
@@ -438,7 +442,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 #if DEBUG_OVERDRAW
 		RHIClear(true, FLinearColor::Black, false, 0.0f, true, 0x00, FIntRect());
 #endif
-		if( WindowElementList.GetRenderBatches().Num() > 0 )
+		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FSlateBackBuffer BackBufferTarget( BackBuffer, FIntPoint( ViewportWidth, ViewportHeight ) );
 
@@ -447,7 +451,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 				RHICmdList,
 				BackBufferTarget,
 				ViewMatrix*ViewportInfo.ProjectionMatrix,
-				WindowElementList.GetRenderBatches()
+				BatchData.GetRenderBatches()
 			);
 		}
 	}
@@ -562,17 +566,16 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 		Policy.BeginDrawingWindows();
 	});
 
-	// Clear accessed UTexture objects from the previous frame
-	ResourceManager->ClearAccessedUTextures();
+	ReleaseAccessedResources();
 
 	// Update texture atlases if needed
 	ResourceManager->UpdateTextureAtlases();
 
 	// Iterate through each element list and set up an RHI window for it if needed
-	TArray<FSlateWindowElementList>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
+	TArray<TSharedPtr<FSlateWindowElementList>>& WindowElementLists = WindowDrawBuffer.GetWindowElementLists();
 	for( int32 ListIndex = 0; ListIndex < WindowElementLists.Num(); ++ListIndex )
 	{
-		FSlateWindowElementList& ElementList = WindowElementLists[ListIndex];
+		FSlateWindowElementList& ElementList = *WindowElementLists[ListIndex];
 
 		TSharedPtr<SWindow> Window = ElementList.GetWindow();
 
@@ -582,16 +585,14 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 			if ( WindowSize.X > 0 && WindowSize.Y > 0 )
 			{
 				// Add all elements for this window to the element batcher
-				ElementBatcher->AddElements( ElementList.GetDrawElements() );
+				ElementBatcher->AddElements( ElementList );
 
 				// Update the font cache with new text after elements are batched
 				FontCache->UpdateCache();
 
 				bool bRequiresStencilTest = false;
 				bool bLockToVsync = false;
-				bool temp = false;
-				// Populate the element list with batched vertices and indicies
-				ElementBatcher->FillBatchBuffers( ElementList, temp );
+
 				bLockToVsync = ElementBatcher->RequiresVsync();
 
 				if( !GIsEditor )
@@ -689,8 +690,6 @@ void FSlateRHIRenderer::DrawWindows_Private( FSlateDrawBuffer& WindowDrawBuffer 
 
 	// flush the cache if needed
 	FontCache->ConditionalFlushCache();
-
-	ElementBatcher->ResetStats();
 }
 
 
@@ -701,7 +700,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
 
 #if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsg(0, TEXT("This functionality is not valid for this platform"));	
+	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));	
 	return FIntRect(FIntPoint(0, 0), FIntPoint(DisplayMetrics.PrimaryDisplayWidth, DisplayMetrics.PrimaryDisplayHeight));
 #endif	
 
@@ -770,7 +769,7 @@ FIntRect FSlateRHIRenderer::SetupVirtualScreenBuffer(const bool bPrimaryWorkArea
 void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& KeypressBuffer)
 {
 #if !PLATFORM_WINDOWS && !PLATFORM_MAC && !PLATFORM_LINUX
-	ensureMsg(0, TEXT("This functionality is not valid for this platform"));
+	ensureMsgf(0, TEXT("This functionality is not valid for this platform"));
 	return;
 #endif
 
@@ -924,10 +923,7 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
 	}
 	
-	ElementBatcher->AddElements(WindowElementList->GetDrawElements());
-	bool bRequiresStencilTest = false;
-	ElementBatcher->FillBatchBuffers(*WindowElementList, bRequiresStencilTest );
-	check(!bRequiresStencilTest);
+	ElementBatcher->AddElements(*WindowElementList);
 	ElementBatcher->ResetBatches();
 	
 	struct FWriteMouseCursorAndKeyPressesContext
@@ -952,13 +948,17 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	{
 		RHICmdList.SetBlendState(TStaticBlendState<CW_RGBA, BO_Add, BF_SourceAlpha, BF_InverseSourceAlpha, BO_Add, BF_Zero, BF_One>::GetRHI());
 		
-		Context.RenderPolicy->UpdateBuffers(*Context.SlateElementList);
-		if( Context.SlateElementList->GetRenderBatches().Num() > 0 )
+		FSlateBatchData& BatchData = Context.SlateElementList->GetBatchData();
+
+		BatchData.CreateRenderBatches();
+
+		Context.RenderPolicy->UpdateVertexAndIndexBuffers(RHICmdList, BatchData);
+		if( BatchData.GetRenderBatches().Num() > 0 )
 		{
 			FTexture2DRHIRef UnusedTargetTexture;
 			FSlateBackBuffer UnusedTarget( UnusedTargetTexture, FIntPoint::ZeroValue );
 
-			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y), Context.SlateElementList->GetRenderBatches());
+			Context.RenderPolicy->DrawElements(RHICmdList, UnusedTarget, CreateProjectionMatrix(Context.ViewportSize.X, Context.ViewportSize.Y),BatchData.GetRenderBatches());
 		}
 	});
 
@@ -1055,13 +1055,20 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 {
 	check( IsInGameThread() );
 
-	
 	TSharedPtr<FSlateDynamicTextureResource> TextureResource = ResourceManager->GetDynamicTextureResourceByName( ResourceName );
 	if( !TextureResource.IsValid() )
 	{
 		TextureResource = ResourceManager->MakeDynamicTextureResource( ResourceName, Width, Height, Bytes );
 	}
 	return TextureResource.IsValid();
+}
+
+void FSlateRHIRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
+{
+	if( BrushToRemove.IsValid() )
+	{
+		DynamicBrushesToRemove[FreeBufferIndex].Add( BrushToRemove );
+	}
 }
 
 /**
@@ -1200,8 +1207,14 @@ void FSlateRHIRenderer::InvalidateAllViewports()
 {
 	for( TMap< const SWindow*, FViewportInfo*>::TIterator It(WindowToViewportInfo); It; ++It )
 	{
-		It.Value()->ViewportRHI = NULL;
+		It.Value()->ViewportRHI = nullptr;
 	}
+}
+
+void FSlateRHIRenderer::ReleaseAccessedResources()
+{
+	// Clear accessed UTexture and Material objects from the previous frame
+	ResourceManager->ReleaseAccessedResources();
 }
 
 void FSlateRHIRenderer::RequestResize( const TSharedPtr<SWindow>& Window, uint32 NewWidth, uint32 NewHeight )

@@ -47,6 +47,13 @@ struct COREUOBJECT_API FStringAssetReference
 		return AssetLongPathname;
 	}
 
+	const FString GetLongPackageName() const
+	{
+		FString PackageName;
+		AssetLongPathname.Split(TEXT("."), &PackageName, nullptr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+		return PackageName;
+	}
+
 	/**
 	 * Attempts to load the asset.
 	 * @return Loaded UObject, or null if the asset fails to load, or if the reference is not valid.
@@ -86,7 +93,7 @@ struct COREUOBJECT_API FStringAssetReference
 	bool ImportTextItem( const TCHAR*& Buffer, int32 PortFlags, UObject* Parent, FOutputDevice* ErrorText );
 	bool SerializeFromMismatchedTag(struct FPropertyTag const& Tag, FArchive& Ar);
 
-	friend uint32 GetTypeHash(FStringAssetReference const& This)
+	FORCEINLINE friend uint32 GetTypeHash(FStringAssetReference const& This)
 	{
 		return GetTypeHash(This.AssetLongPathname);
 	}

@@ -5,7 +5,7 @@
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
 
-#include "LandscapeEdMode.h"
+#include "../LandscapeEdMode.h"
 #include "../LandscapeEditorDetailCustomization_NewLandscape.h"
 #include "ScopedTransaction.h"
 #include "Landscape.h"
@@ -117,7 +117,7 @@ bool FEndModifyLandscapeCommand::Update()
 /**
 * Landscape creation / edit test
 */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor Promotion Pass.Step 1 Main Editor Test.New Landscape", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI );
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLandscapeEditorTest, "System.Promotion.Editor.Landscape Editor", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI );
 bool FLandscapeEditorTest::RunTest(const FString& Parameters)
 {
 	//New level

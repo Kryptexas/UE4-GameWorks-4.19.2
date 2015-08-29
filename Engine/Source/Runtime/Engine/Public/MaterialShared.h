@@ -84,6 +84,19 @@ enum EMaterialValueType
 };
 
 /**
+ * The common bases of material
+ */
+enum EMaterialCommonBasis
+{
+	MCB_Tangent,
+	MCB_Local,
+	MCB_TranslatedWorld,
+	MCB_World,
+	MCB_View,
+	MCB_MAX,
+};
+
+/**
  * The context of a material being rendered.
  */
 struct ENGINE_API FMaterialRenderContext
@@ -280,7 +293,8 @@ public:
 		bNeedsSceneTextures(false),
 		bUsesEyeAdaptation(false),
 		bModifiesMeshPosition(false),
-		bNeedsGBuffer(false)
+		bNeedsGBuffer(false),
+		bUsesGlobalDistanceField(false)
 	{}
 
 	ENGINE_API void Serialize(FArchive& Ar);
@@ -303,6 +317,9 @@ public:
 
 	/** true if the material uses any GBuffer textures */
 	bool bNeedsGBuffer;
+
+	/** true if material uses the global distance field */
+	bool bUsesGlobalDistanceField;
 };
 
 
@@ -656,6 +673,7 @@ public:
 	const FString& GetDebugDescription() const { return DebugDescription; }
 	bool RequiresSceneColorCopy() const { return MaterialCompilationOutput.bRequiresSceneColorCopy; }
 	bool NeedsSceneTextures() const { return MaterialCompilationOutput.bNeedsSceneTextures; }
+	bool UsesGlobalDistanceField() const { return MaterialCompilationOutput.bUsesGlobalDistanceField; }
 	bool NeedsGBuffer() const { return MaterialCompilationOutput.bNeedsGBuffer; }
 	bool UsesEyeAdaptation() const { return MaterialCompilationOutput.bUsesEyeAdaptation; }
 	bool ModifiesMeshPosition() const { return MaterialCompilationOutput.bModifiesMeshPosition; }
@@ -899,8 +917,10 @@ public:
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const;
 	virtual int32 GetMaterialDomain() const = 0; // See EMaterialDomain.
 	virtual bool IsTwoSided() const = 0;
+	virtual bool IsDitheredLODTransition() const = 0;
 	virtual bool IsTangentSpaceNormal() const { return false; }
 	virtual bool ShouldInjectEmissiveIntoLPV() const { return false; }
+	virtual bool ShouldBlockGI() const { return false; }
 	virtual bool ShouldGenerateSphericalParticleNormals() const { return false; }
 	virtual	bool ShouldDisableDepthTest() const { return false; }
 	virtual	bool ShouldEnableResponsiveAA() const { return false; }
@@ -909,6 +929,7 @@ public:
 	virtual bool IsUsedWithEditorCompositing() const { return false; }
 	virtual bool IsUsedWithDeferredDecal() const = 0;
 	virtual bool IsWireframe() const = 0;
+	virtual bool IsUIMaterial() const { return false; }
 	virtual bool IsSpecialEngineMaterial() const = 0;
 	virtual bool IsUsedWithSkeletalMesh() const { return false; }
 	virtual bool IsUsedWithLandscape() const { return false; }
@@ -1018,6 +1039,7 @@ public:
 	ENGINE_API bool NeedsSceneTextures() const;
 	ENGINE_API bool NeedsGBuffer() const;
 	ENGINE_API bool UsesEyeAdaptation() const;	
+	ENGINE_API bool UsesGlobalDistanceField_GameThread() const;
 
 	/** Does the material modify the mesh position. */
 	ENGINE_API bool MaterialModifiesMeshPosition_RenderThread() const;
@@ -1083,6 +1105,12 @@ public:
 	* @return - true on Success
 	*/
 	ENGINE_API bool GetMaterialExpressionSource(FString& OutSource);
+
+	/* Helper function to look at both IsMasked and IsDitheredLODTransition to determine if it writes every pixel */
+	ENGINE_API bool WritesEveryPixel() const
+	{
+		return !IsMasked() && !IsDitheredLODTransition() && !IsWireframe();
+	}
 
 	/** 
 	 * Adds an FMaterial to the global list.
@@ -1313,9 +1341,9 @@ public:
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const = 0;
 	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const = 0;
-	virtual float GetDistanceFieldPenumbraScale() const { return 1.0f; }
 	bool IsSelected() const { return bSelected; }
 	bool IsHovered() const { return bHovered; }
+	bool IsDeleted() const { return DeletedFlag != 0; }
 
 	// FRenderResource interface.
 	ENGINE_API virtual void InitDynamicRHI() override;
@@ -1337,6 +1365,9 @@ private:
 	bool bHovered : 1;
 	/** 0 if not set, game thread pointer, do not dereference, only for comparison */
 	const USubsurfaceProfile* SubsurfaceProfileRT;
+
+	/** For tracking down a bug accessing a deleted proxy. */
+	int32 DeletedFlag;
 
 	/** 
 	 * Tracks all material render proxies in all scenes, can only be accessed on the rendering thread.
@@ -1449,8 +1480,10 @@ public:
 	ENGINE_API virtual void GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const override;
 	ENGINE_API virtual int32 GetMaterialDomain() const override;
 	ENGINE_API virtual bool IsTwoSided() const override;
+	ENGINE_API virtual bool IsDitheredLODTransition() const override;
 	ENGINE_API virtual bool IsTangentSpaceNormal() const override;
 	ENGINE_API virtual bool ShouldInjectEmissiveIntoLPV() const override;
+	ENGINE_API virtual bool ShouldBlockGI() const override;
 	ENGINE_API virtual bool ShouldGenerateSphericalParticleNormals() const override;
 	ENGINE_API virtual bool ShouldDisableDepthTest() const override;
 	ENGINE_API virtual bool ShouldEnableResponsiveAA() const override;
@@ -1459,6 +1492,7 @@ public:
 	ENGINE_API virtual bool IsUsedWithEditorCompositing() const override;
 	ENGINE_API virtual bool IsUsedWithDeferredDecal() const override;
 	ENGINE_API virtual bool IsWireframe() const override;
+	ENGINE_API virtual bool IsUIMaterial() const override;
 	ENGINE_API virtual bool IsSpecialEngineMaterial() const override;
 	ENGINE_API virtual bool IsUsedWithSkeletalMesh() const override;
 	ENGINE_API virtual bool IsUsedWithLandscape() const override;
@@ -1471,6 +1505,7 @@ public:
 	ENGINE_API virtual bool IsUsedWithSplineMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithInstancedStaticMeshes() const override;
 	ENGINE_API virtual bool IsUsedWithAPEXCloth() const override;
+	DEPRECATED(4.9, "IsUsedWithUI is now replaced by IsUIMaterial")
 	ENGINE_API virtual bool IsUsedWithUI() const override;
 	ENGINE_API virtual enum EMaterialTessellationMode GetTessellationMode() const override;
 	ENGINE_API virtual bool IsCrackFreeDisplacementEnabled() const override;
@@ -1528,6 +1563,7 @@ public:
 	ENGINE_API virtual const TArray<UTexture*>& GetReferencedTextures() const override;
 
 	ENGINE_API virtual bool GetAllowDevelopmentShaderCompile() const override;
+
 protected:
 	UMaterial* Material;
 	UMaterialInstance* MaterialInstance;

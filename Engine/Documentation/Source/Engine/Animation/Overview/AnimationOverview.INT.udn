@@ -57,7 +57,7 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](AnimSequenceIcon.png)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences)
@@ -114,7 +114,7 @@ We will start by identifying the primary terms and concepts of UE4's animation s
 
 [OBJECT:IconSection]
 	[PARAM:icon]
-		[![Animation Sequence](Engine/Animation/Sequences/HuskRun2.gif)(w:192 convert:false)](Engine/Animation/Sequences)
+		![](ParticleEffectNotify.png)(w:192)
 	[/PARAM]
 	[PARAM:title]
 		[](Engine/Animation/Sequences/Notifies)

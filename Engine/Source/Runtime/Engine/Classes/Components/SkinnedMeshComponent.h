@@ -11,6 +11,9 @@
 class FSkeletalMeshResource;
 struct FSkelMeshChunk;
 class FSkeletalMeshVertexBuffer;
+
+DECLARE_DELEGATE_OneParam(FOnAnimUpdateRateParamsCreated, FAnimUpdateRateParameters*)
+
 //
 // Bone Visibility.
 //
@@ -19,9 +22,12 @@ class FSkeletalMeshVertexBuffer;
 UENUM()
 enum EBoneVisibilityStatus
 {
-	BVS_HiddenByParent,    // Bone is hidden because it's parent is hidden
-	BVS_Visible,    // Bone is visible
-	BVS_ExplicitlyHidden,    // Bone is hidden directly
+	/** Bone is hidden because it's parent is hidden. */
+	BVS_HiddenByParent,
+	/** Bone is visible. */
+	BVS_Visible,
+	/** Bone is hidden directly. */
+	BVS_ExplicitlyHidden,
 	BVS_MAX,
 };
 
@@ -29,41 +35,41 @@ enum EBoneVisibilityStatus
 UENUM()
 enum EPhysBodyOp
 {
-	// don't do anything
+	/** Don't do anything. */
 	PBO_None,
-	// terminate - if you terminate, you won't be able to re-init when unhidden
+	/** Terminate - if you terminate, you won't be able to re-init when unhidden. */
 	PBO_Term,
-	// disable collision - it will enable collision when unhidden
+	/** Disable collision - it will enable collision when unhidden. */
 	PBO_Disable,
 	PBO_MAX,
 };
 
-/** Skinned Mesh Update Flag based on rendered or not */
+/** Skinned Mesh Update Flag based on rendered or not. */
 UENUM()
 namespace EMeshComponentUpdateFlag
 {
 	enum Type
 	{
-		// Always Tick and Refresh BoneTransforms whether rendered or not
+		/** Always Tick and Refresh BoneTransforms whether rendered or not. */
 		AlwaysTickPoseAndRefreshBones,
-		// Always Tick, but Refresh BoneTransforms only when rendered
+		/** Always Tick, but Refresh BoneTransforms only when rendered. */
 		AlwaysTickPose,
-		// Tick only when rendered, and it will only RefreshBoneTransforms when rendered
+		/** Tick only when rendered, and it will only RefreshBoneTransforms when rendered. */
 		OnlyTickPoseWhenRendered,
 	};
 }
 
-/** Flag for specifying bone space */
+/** Values for specifying bone space. */
 UENUM()
 namespace EBoneSpaces
 {
 	enum Type
 	{
-		/** Set absolute position of bone in world space */
+		/** Set absolute position of bone in world space. */
 		WorldSpace		UMETA(DisplayName = "World Space"),
-		/** Set position of bone in components reference frame */
+		/** Set position of bone in components reference frame. */
 		ComponentSpace	UMETA(DisplayName = "Component Space"),
-		/** Set position of bone relative to parent bone */
+		/** Set position of bone relative to parent bone. */
 		//LocalSpace		UMETA( DisplayName = "Parent Bone Space" ),
 	};
 }
@@ -78,15 +84,15 @@ struct FActiveVertexAnim
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The anim that we want to apply. */
+	/** The animation that we want to apply. */
 	UPROPERTY()
 	class UVertexAnimBase* VertAnim;
 
-	/** Strength of the vertex animation, between 0.0 and 1.0 */
+	/** Strength of the vertex animation, between 0.0 and 1.0. */
 	UPROPERTY()
 	float Weight;
 
-	/** Time to evaluate the anim at */
+	/** Time to evaluate the animation at. */
 	UPROPERTY()
 	float Time;
 
@@ -118,13 +124,13 @@ struct FActiveVertexAnim
 	}
 };
 
-/** LOD specific setup for the skeletal mesh component */
+/** LOD specific setup for the skeletal mesh component. */
 USTRUCT()
 struct FSkelMeshComponentLODInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Material corresponds to section. To show/hide each section, use this **/
+	/** Material corresponds to section. To show/hide each section, use this. */
 	UPROPERTY()
 	TArray<bool> HiddenMaterials;
 
@@ -162,6 +168,7 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	 *	use the SpaceBases array in the MasterPoseComponent. This is used when constructing a character using multiple skeletal meshes sharing the same
 	 *	skeleton within the same Actor.
 	 */
+	UPROPERTY(BlueprintReadOnly, Category="Mesh")
 	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
 
 private:
@@ -177,6 +184,9 @@ private:
 protected:
 	/** Are we using double buffered blend spaces */
 	bool bDoubleBufferedBlendSpaces;
+
+	/** Are we using double buffered blend spaces */
+	bool bReInitAnimationOnSetSkeletalMeshCalls;
 
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
@@ -433,15 +443,10 @@ protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-#if 0
-	/** return true if this component requires end of frame updates to happen from the game thread. */
-	virtual bool RequiresGameThreadEndOfFrameUpdates()
+	virtual bool RequiresGameThreadEndOfFrameRecreate() const override
 	{
-		//@todo there isn't a great reason for this, it has to do with activating morph targets triggering material usage flag changes and potentially shader compilation.
-		// it seems unlikely this would cook right anyway
-		return true;
+		return false;
 	}
-#endif
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override;
 	// End UActorComponent interface
@@ -545,6 +550,12 @@ public:
 	 */
 	virtual bool UpdateLODStatus();
 
+	/**
+	 * Finalize bone transform of this current tick
+	 * After this function, any query to bone transform should be latest of the data
+	 */
+	virtual void FinalizeBoneTransform();
+
 	/** Initialize the LOD entries for the component */
 	void InitLODInfos();
 
@@ -570,12 +581,12 @@ public:
 	/** Get the number of space bases */
 	int32 GetNumSpaceBases() const { return GetSpaceBases().Num(); }
 
-	/** Flip the editable space base buffer */
-	void FlipEditableSpaceBases();
-
 	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
 
 protected:
+
+	/** Flip the editable space base buffer */
+	void FlipEditableSpaceBases();
 
 	/** Track whether we still need to flip to recently modified buffer */
 	bool bNeedToFlipSpaceBaseBuffers;
@@ -655,7 +666,7 @@ public:
 	 *
 	 * @param NewMasterBoneComponent New MasterPoseComponent
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh", meta=(UnsafeDuringActorConstruction="true"))
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetMasterPoseComponent(USkinnedMeshComponent* NewMasterBoneComponent);
 
 	/** 
@@ -737,6 +748,7 @@ public:
 	 * @return true if child (strictly, not same). false otherwise
 	 * Note - will return false if ChildBoneIndex is the same as ParentBoneIndex ie. must be strictly a child.
 	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	bool BoneIsChildOf(FName BoneName, FName ParentBoneName) const;
 
 	/** 
@@ -800,18 +812,6 @@ public:
 	 * @return Pointer to found MorphTarget. Returns NULL if could not find target with that name.
 	 */
 	virtual class UMorphTarget* FindMorphTarget( FName MorphTargetName ) const;
-
-	/**	
-	 * Find all bones by name within given radius 
-	 * 
-	 * @param Origin origin of the radius
-	 * @param Radius radius of the sphere
-	 * @param TraceFlags Trace flags
-	 * @param (out) OutBones Bones within the sphere
-	 *
-	 * @return true if any bone is within the radius. false otherwise
-	 */
-	bool GetBonesWithinRadius( FVector Origin, float Radius, int32 TraceFlags, TArray<FName>& OutBones );
 
 	/**
 	 *	Hides the specified bone. You can also set option for physics body.
@@ -900,11 +900,14 @@ public:
 	/** Animation Update Rate optimization parameters. */
 	struct FAnimUpdateRateParameters* AnimUpdateRateParams;
 
+	/** Delegate when AnimUpdateRateParams is created, to override its default settings. */
+	FOnAnimUpdateRateParamsCreated OnAnimUpdateRateParamsCreated;
+
 	/** Updates AnimUpdateRateParams, used by SkinnedMeshComponents.
 	* 
 	* @param bRecentlyRendered : true if at least one SkinnedMeshComponent on this Actor has been rendered in the last second.
 	* @param MaxDistanceFactor : Largest SkinnedMeshComponent of this Actor drawn on screen. */
-	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bRecentlyRendered, const float& MaxDistanceFactor, const bool & bPlayingRootMotion);
+	void AnimUpdateRateSetParams(uint8 UpdateRateShift, float DeltaTime, const bool & bInRecentlyRendered, const float& InMaxDistanceFactor, const bool & bPlayingRootMotion);
 
 	virtual bool IsPlayingRootMotion(){ return false; }
 

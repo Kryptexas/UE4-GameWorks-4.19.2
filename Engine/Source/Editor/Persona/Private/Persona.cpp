@@ -434,6 +434,9 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 
 TSharedPtr<SDockTab> FPersona::OpenNewDocumentTab(class UAnimationAsset* InAnimAsset)
 {
+	/// before opening new asset, clear the currently selected object
+	SetDetailObject(NULL);
+
 	TSharedPtr<SDockTab> NewTab;
 	if (InAnimAsset)
 	{
@@ -947,7 +950,9 @@ void FPersona::ExtendDefaultPersonaToolbar()
 		{
 			ToolbarBuilder.BeginSection("Skeleton");
 			{
-				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ChangeSkeletonPreviewMesh, NAME_None, LOCTEXT("Toolbar_ChangePreviewMesh", "Set Preview"));
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().TogglePreviewAsset, NAME_None, LOCTEXT("Toolbar_PreviewAsset", "Preview"), TAttribute<FText>(PersonaPtr, &FPersona::GetPreviewAssetTooltip));
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ToggleReferencePose, NAME_None, LOCTEXT("Toolbar_ToggleReferencePose", "Ref Pose"), LOCTEXT("Toolbar_ToggleReferencePoseTooltip", "Show Reference Pose"));
+				ToolbarBuilder.AddSeparator();
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().AnimNotifyWindow);
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().RetargetManager, NAME_None, LOCTEXT("Toolbar_RetargetManager", "Retarget Manager"));
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ImportMesh);
@@ -1244,6 +1249,18 @@ void FPersona::CreateDefaultCommands()
 		FExecuteAction::CreateSP( this, &FPersona::ChangeSkeletonPreviewMesh ),
 		FCanExecuteAction::CreateSP( this, &FPersona::CanChangeSkeletonPreviewMesh )
 		);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().ToggleReferencePose,
+	FExecuteAction::CreateSP(this, &FPersona::ShowReferencePose, true),
+	FCanExecuteAction::CreateSP(this, &FPersona::CanShowReferencePose),
+	FIsActionChecked::CreateSP(this, &FPersona::IsShowReferencePoseEnabled)
+	);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().TogglePreviewAsset,
+	FExecuteAction::CreateSP(this, &FPersona::ShowReferencePose, false),
+	FCanExecuteAction::CreateSP(this, &FPersona::CanPreviewAsset),
+	FIsActionChecked::CreateSP(this, &FPersona::IsPreviewAssetEnabled)
+	);
 
 	ToolkitCommands->MapAction( FPersonaCommands::Get().RemoveUnusedBones,
 		FExecuteAction::CreateSP( this, &FPersona::RemoveUnusedBones ),
@@ -1671,6 +1688,17 @@ bool FPersona::CanRemovePosePin() const
 	return true;
 }
 
+void FPersona::RecompileAnimBlueprintIfDirty()
+{
+	if (UBlueprint* Blueprint = GetBlueprintObj())
+	{
+		if (!Blueprint->IsUpToDate())
+		{
+			Compile();
+		}
+	}
+}
+
 void FPersona::Compile()
 {
 	// Note if we were debugging the preview
@@ -1746,6 +1774,18 @@ FText FPersona::GetToolkitName() const
 	}
 }
 
+FText FPersona::GetToolkitToolTipText() const
+{
+	if (IsEditingSingleBlueprint())
+	{
+		return FAssetEditorToolkit::GetToolTipTextForObject(GetBlueprintObj());
+	}
+	else
+	{
+		check(TargetSkeleton != NULL);
+		return FAssetEditorToolkit::GetToolTipTextForObject(TargetSkeleton);
+	}
+}
 
 FString FPersona::GetWorldCentricTabPrefix() const
 {
@@ -2536,7 +2576,10 @@ void FPersona::FindInContentBrowser_Execute()
 {
 	FName CurrentMode = GetCurrentMode();
 	TArray<UObject*> ObjectsToSyncTo = GetEditorObjectsForMode(CurrentMode);
-	GEditor->SyncBrowserToObjects( ObjectsToSyncTo );
+	if (ObjectsToSyncTo.Num() > 0)
+	{
+		GEditor->SyncBrowserToObjects( ObjectsToSyncTo );
+	}
 }
 
 void FPersona::OnCommandGenericDelete()
@@ -3149,11 +3192,9 @@ void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeing
 
 	if(PreviewComponent != NULL)
 	{
-		if(PreviewComponent->AnimScriptInstance == NULL)
-		{
-			// try reinitialize animation if it doesn't exist
-			PreviewComponent->InitAnim(true);
-		}
+		// Reinitialize the animation, anything we reference could have changed triggering
+		// the blueprint change
+		PreviewComponent->InitAnim(true);
 
 		if(bIsDebuggingPreview)
 		{
@@ -3165,6 +3206,95 @@ void FPersona::OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeing
 	if(Viewport.IsValid())
 	{
 		Viewport.Pin()->GetAnimationViewportClient()->PostCompile();
+	}
+}
+
+void FPersona::ShowReferencePose(bool bReferencePose)
+{
+	if(PreviewComponent)
+	{
+		if(bReferencePose == false)
+		{
+			if(IsInPersonaMode(FPersonaModes::AnimBlueprintEditMode))
+			{
+				PreviewComponent->EnablePreview(false, NULL, NULL);
+
+				UAnimBlueprint* AnimBP = GetAnimBlueprint();
+				if(AnimBP)
+				{
+					PreviewComponent->SetAnimInstanceClass(AnimBP->GeneratedClass);
+				}
+			}
+			else
+			{
+				UObject* PreviewAsset = CachedPreviewAsset.IsValid()? CachedPreviewAsset.Get() : (GetAnimationAssetBeingEdited());
+				PreviewComponent->EnablePreview(true, Cast<UAnimationAsset>(PreviewAsset), NULL);
+			}
+		}
+		else
+		{
+			if (PreviewComponent->PreviewInstance && PreviewComponent->PreviewInstance->CurrentAsset)
+			{
+				CachedPreviewAsset = PreviewComponent->PreviewInstance->CurrentAsset;
+			}
+			
+			PreviewComponent->EnablePreview(true, NULL, NULL);
+		}
+	}
+}
+
+bool FPersona::CanShowReferencePose() const
+{
+	return PreviewComponent != NULL;
+}
+
+bool FPersona::IsShowReferencePoseEnabled() const
+{
+	if(PreviewComponent)
+	{
+		return PreviewComponent->IsPreviewOn() && PreviewComponent->PreviewInstance->CurrentAsset == NULL;
+	}
+	return false;
+}
+
+bool FPersona::CanPreviewAsset() const
+{
+	return CanShowReferencePose();
+}
+
+bool FPersona::IsPreviewAssetEnabled() const
+{
+	return IsShowReferencePoseEnabled() == false;
+}
+
+FText FPersona::GetPreviewAssetTooltip() const
+{
+	// if already looking at ref pose
+	if(IsShowReferencePoseEnabled())
+	{
+		FString AssetName = TEXT("None Available. Please select asset to preview.");
+
+		if(IsInPersonaMode(FPersonaModes::AnimBlueprintEditMode))
+		{
+			UAnimBlueprint* AnimBP = GetAnimBlueprint();
+			if(AnimBP)
+			{
+				AssetName = AnimBP->GetName();
+			}
+		}
+		else
+		{
+			UObject* PreviewAsset = CachedPreviewAsset.IsValid()? CachedPreviewAsset.Get() : (GetAnimationAssetBeingEdited());
+			if (PreviewAsset)
+			{
+				AssetName = PreviewAsset->GetName();
+			}
+		}
+		return FText::FromString(FString::Printf(TEXT("Preview %s"), *AssetName));
+	}
+	else
+	{
+		return FText::FromString(FString::Printf(TEXT("Currently previewing %s"), *PreviewComponent->GetPreviewText()));
 	}
 }
 

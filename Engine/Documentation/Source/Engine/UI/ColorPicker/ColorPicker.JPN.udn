@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2314747
+﻿INTSourceChangelist:2537795
 Availability:Public
 Title:カラーピッカー
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -75,7 +75,7 @@ Description:アクタのカラー プロパティに割り当てる色をイン�
 
 **Themes (テーマ)** は簡単に再利用できる色のコレクションです。特定のパレットにアーティストやデザイナーが特定のパレットに使用する色を制限するために、共通して利用される色を利用可能にするために使われます。
 
-![Exmaple Theme](theme_spring.png)
+![Example Theme](theme_spring.png)
 
 ### テーマの作成
 

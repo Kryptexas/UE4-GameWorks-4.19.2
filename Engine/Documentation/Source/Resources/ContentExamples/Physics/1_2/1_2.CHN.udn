@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:1903621
-Availability: Public
+﻿Availability: Public
 Title:1.2 -骨架网格刚体
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.2： 骨架网格刚体的模拟物体表现
-
+Related: Engine/Physics/PhysicsBodies
+Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/Constraints/ConstraintsReference
+Related: Engine/Physics/Constraints/ConstraintsUserGuide
+Related: Engine/Physics/Collision
+Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 
 [VAR:TopicCompact]
 [OBJECT:TopicCompact]
@@ -46,14 +50,13 @@ Description:物理表现示例关卡概述，示例1.2： 骨架网格刚体的�
 
 
 [REGION:fullwidth]
-
+	![](physics_1_2_001.png)
 [/REGION]
 
-![](physics_1_2_001.png)(w:900)
 
-**SkeletalMeshes** (骨架网格物体）仅能由外部软件，如3D Studio Max或Maya来创建，不过，它们的碰撞设置是在虚幻编辑器中完成的。 如勾选了 **Create PhysicsAsset** （创建物理资源），则在导入时会自动创建物理资源。 但是，创建的资源为基于节点和应用于这些节点的皮肤权重的估算值，这样必须要通过 **Physics Asset Tool** （物理资源工具）或 **PhAT** 来进行必要的编辑。
+**SkeletalMeshes** (骨架网格物体）仅能由外部软件，如3D Studio Max或Maya来创建，不过，它们的碰撞设置是在虚幻编辑器中完成的。 如勾选了 **Create Physics Asset** （创建物理资源），则在导入时会自动创建物理资源。 但是，创建的资源为基于节点和应用于这些节点的皮肤权重的估算值，这样必须要通过 **Physics Asset Tool** （物理资源工具）或 **PhAT** 来进行必要的编辑。
 
 ![](physics_1_2_002.png)(h:335) ![](physics_1_2_003.png)(h:335)
 
 
-[INCLUDE:Resources\ContentExamples\Physics#PhysicsContentExamples]
+

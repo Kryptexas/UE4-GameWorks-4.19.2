@@ -75,12 +75,12 @@ FMaterialInstanceResource::FMaterialInstanceResource(UMaterialInstance* InOwner,
 	: FMaterialRenderProxy(bInSelected, bInHovered)
 	, Parent(NULL)
 	, Owner(InOwner)
-	, DistanceFieldPenumbraScale(1.0f)
 	, GameThreadParent(NULL)
 	, OpacityMaskClipValue(0.3333333f)
 	, BlendMode(BLEND_Opaque)
 	, ShadingModel(MSM_DefaultLit)
 	, TwoSided(false)
+	, DitheredLODTransition(false)
 {
 }
 
@@ -163,7 +163,7 @@ bool FMaterialInstanceResource::GetScalarValue(
 		if (SubsurfaceProfileRT)
 		{
 			// can be optimized (cached)
-			AllocationId = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
+			AllocationId = GSubsurfaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
 		}
 		else
 		{
@@ -237,18 +237,6 @@ bool FMaterialInstanceResource::GetTextureValue(
 	}
 }
 
-/** Called from the game thread to update DistanceFieldPenumbraScale. */
-void FMaterialInstanceResource::GameThread_UpdateDistanceFieldPenumbraScale(float NewDistanceFieldPenumbraScale)
-{
-	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-		UpdateDistanceFieldPenumbraScaleCommand,
-		float*,DistanceFieldPenumbraScale,&DistanceFieldPenumbraScale,
-		float,NewDistanceFieldPenumbraScale,NewDistanceFieldPenumbraScale,
-	{
-		*DistanceFieldPenumbraScale = NewDistanceFieldPenumbraScale;
-	});
-}
-
 void FMaterialInstanceResource::GameThread_UpdateOverridableBaseProperties(const UMaterialInterface* MaterialInterface)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
@@ -261,15 +249,18 @@ void FMaterialInstanceResource::GameThread_UpdateOverridableBaseProperties(const
 		*OpacityMaskClipValue = NewOpacityMaskClipValue;
 		*BlendMode = NewBlendMode;
 	});
-	ENQUEUE_UNIQUE_RENDER_COMMAND_FOURPARAMETER(
+	ENQUEUE_UNIQUE_RENDER_COMMAND_SIXPARAMETER(
 		UpdateOverrideablBaseProperties1,
 		EMaterialShadingModel*, ShadingModel, &ShadingModel,
 		EMaterialShadingModel, NewShadingModel, MaterialInterface->GetShadingModel(),
 		bool*, TwoSided, &TwoSided,
 		bool, NewTwoSided, MaterialInterface->IsTwoSided(),
+		bool*, DitheredLODTransition, &DitheredLODTransition,
+		bool, NewDitheredLODTransition, MaterialInterface->IsDitheredLODTransition(),
 		{
 		*ShadingModel = NewShadingModel;
 		*TwoSided = NewTwoSided;
+		*DitheredLODTransition = NewDitheredLODTransition;
 	});
 }
 
@@ -279,8 +270,6 @@ void UMaterialInstance::PropagateDataToMaterialProxy()
 	{
 		if (Resources[i])
 		{
-			Resources[i]->GameThread_UpdateDistanceFieldPenumbraScale(GetDistanceFieldPenumbraScale()); 
-
 			UpdateMaterialRenderProxy(*Resources[i]);
 		}
 	}
@@ -606,6 +595,30 @@ bool UMaterialInstance::GetTextureParameterValue(FName ParameterName, UTexture*&
 	}
 }
 
+bool UMaterialInstance::GetTextureParameterOverrideValue(FName ParameterName, UTexture*& OutValue) const
+{
+	if(ReentrantFlag)
+	{
+		return false;
+	}
+
+	const FTextureParameterValue* ParameterValue = GameThread_FindParameterByName(TextureParameterValues,ParameterName);
+	if(ParameterValue && ParameterValue->ParameterValue)
+	{
+		OutValue = ParameterValue->ParameterValue;
+		return true;
+	}
+	else if(Parent)
+	{
+		FMICReentranceGuard	Guard(this);
+		return Parent->GetTextureParameterOverrideValue(ParameterName,OutValue);
+	}
+	else
+	{
+		return false;
+	}
+}
+
 bool UMaterialInstance::GetFontParameterValue(FName ParameterName,class UFont*& OutFontValue, int32& OutFontPage) const
 {
 	if( ReentrantFlag )
@@ -921,34 +934,30 @@ bool UMaterialInstance::CheckMaterialUsage_Concurrent(const EMaterialUsage Usage
 					EMaterialUsage Usage;
 					bool bSkipPrim;
 					bool& bUsageSetSuccessfully;
-					FScopedEvent& Event;
 
-					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully, FScopedEvent& InEvent)
+					FCallSMU(UMaterialInstance* InMaterial, EMaterialUsage InUsage, bool bInSkipPrim, bool& bInUsageSetSuccessfully)
 						: Material(InMaterial)
 						, Usage(InUsage)
 						, bSkipPrim(bInSkipPrim)
 						, bUsageSetSuccessfully(bInUsageSetSuccessfully)
-						, Event(InEvent)
 					{
 					}
 
 					void Task()
 					{
 						bUsageSetSuccessfully = Material->CheckMaterialUsage(Usage, bSkipPrim);
-						Event.Trigger();
 					}
 				};
 				UE_LOG(LogMaterial, Warning, TEXT("Has to pass SMU back to game thread. This stalls the tasks graph, but since it is editor only, is not such a big deal."));
 
-				FScopedEvent Event;
-				FCallSMU CallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim, bUsageSetSuccessfully, Event);
+				TSharedRef<FCallSMU, ESPMode::ThreadSafe> CallSMU = MakeShareable(new FCallSMU(const_cast<UMaterialInstance*>(this), Usage, bSkipPrim, bUsageSetSuccessfully));
 
 				DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.CheckMaterialUsage"),
 					STAT_FSimpleDelegateGraphTask_CheckMaterialUsage,
 					STATGROUP_TaskGraphTasks);
 
 				FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-					FSimpleDelegateGraphTask::FDelegate::CreateRaw(&CallSMU, &FCallSMU::Task),
+					FSimpleDelegateGraphTask::FDelegate::CreateThreadSafeSP(CallSMU, &FCallSMU::Task),
 					GET_STATID(STAT_FSimpleDelegateGraphTask_CheckMaterialUsage), NULL, ENamedThreads::GameThread_Local
 				);
 			}
@@ -1072,7 +1081,7 @@ void UMaterialInstance::CopyMaterialInstanceParameters(UMaterialInterface* Mater
 
 FMaterialResource* UMaterialInstance::GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel)
 {
-	check(IsInGameThread());
+	check(!IsInActualRenderingThread());
 
 	if (QualityLevel == EMaterialQualityLevel::Num)
 	{
@@ -1091,7 +1100,7 @@ FMaterialResource* UMaterialInstance::GetMaterialResource(ERHIFeatureLevel::Type
 
 const FMaterialResource* UMaterialInstance::GetMaterialResource(ERHIFeatureLevel::Type InFeatureLevel, EMaterialQualityLevel::Type QualityLevel) const
 {
-	check(IsInGameThread());
+	check(!IsInActualRenderingThread());
 
 	if (QualityLevel == EMaterialQualityLevel::Num)
 	{
@@ -1651,6 +1660,14 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 					Ar << bTwoSided;
 					BasePropertyOverrides.TwoSided = bTwoSided;
 
+					if( Ar.UE4Ver() >= VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_DITHERED_LOD_TRANSITION )
+					{
+						Ar	<< BasePropertyOverrides.bOverride_DitheredLODTransition;
+
+						bool bDitheredLODTransition;
+						Ar << bDitheredLODTransition;
+						BasePropertyOverrides.DitheredLODTransition = bDitheredLODTransition;
+					}
 					// unrelated but closest change to bug
 					if( Ar.UE4Ver() < VER_UE4_STATIC_SHADOW_DEPTH_MAPS )
 					{
@@ -2192,22 +2209,6 @@ float UMaterialInstance::GetExportResolutionScale() const
 	return 1.0f;
 }
 
-float UMaterialInstance::GetDistanceFieldPenumbraScale() const
-{
-	if (LightmassSettings.bOverrideDistanceFieldPenumbraScale)
-	{
-		return LightmassSettings.DistanceFieldPenumbraScale;
-	}
-
-	if (Parent)
-	{
-		return Parent->GetDistanceFieldPenumbraScale();
-	}
-
-	return 1.0f;
-}
-
-
 bool UMaterialInstance::GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,  
 	TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet)
 {
@@ -2298,7 +2299,7 @@ FPostProcessMaterialNode* IteratePostProcessMaterialNodes(const FFinalPostProces
 
 void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float Weight) const
 {
-	check(Weight >= 0.0f && Weight <= 1.0f);
+	check(Weight > 0.0f && Weight <= 1.0f);
 
 	FFinalPostProcessSettings& Dest = View.FinalPostProcessSettings;
 
@@ -2471,6 +2472,14 @@ void UMaterialInstance::GetBasePropertyOverridesHash(FSHAHash& OutHash)const
 		Hash.Update((uint8*)&bUsedIsTwoSided, sizeof(bUsedIsTwoSided));
 		bHasOverrides = true;
 	}
+	bool bUsedIsDitheredLODTransition = IsDitheredLODTransition(true);
+	if (bUsedIsDitheredLODTransition != Mat->IsDitheredLODTransition(true))
+	{
+		const FString HashString = TEXT("bOverride_DitheredLODTransition");
+		Hash.UpdateWithString(*HashString, HashString.Len());
+		Hash.Update((uint8*)&bUsedIsDitheredLODTransition, sizeof(bUsedIsDitheredLODTransition));
+		bHasOverrides = true;
+	}
 
  	if (bHasOverrides)
  	{
@@ -2487,7 +2496,9 @@ bool UMaterialInstance::HasOverridenBaseProperties()const
 		(FMath::Abs(GetOpacityMaskClipValue(true) - Parent->GetOpacityMaskClipValue(true)) > SMALL_NUMBER) ||
 		(GetBlendMode(true) != Parent->GetBlendMode(true)) ||
 		(GetShadingModel(true) != Parent->GetShadingModel(true)) ||
-		(IsTwoSided(true) != Parent->IsTwoSided(true)))
+		(IsTwoSided(true) != Parent->IsTwoSided(true)) ||
+		(IsDitheredLODTransition(true) != Parent->IsDitheredLODTransition(true))
+		)
 		)
 	{
 		return true;
@@ -2578,10 +2589,32 @@ bool UMaterialInstance::IsTwoSided(bool bIsInGameThread) const
 	return RenderThread_IsTwoSided();
 }
 
+bool UMaterialInstance::IsDitheredLODTransition(bool bIsInGameThread) const
+{
+	if (bIsInGameThread)
+	{
+		if (BasePropertyOverrides.bOverride_DitheredLODTransition)
+		{
+			return BasePropertyOverrides.DitheredLODTransition != 0;
+		}
+		// go up the chain if possible
+		return Parent ? Parent->IsDitheredLODTransition(true) : false;
+	}
+
+	//Get the value mirrored in the render proxy.
+	return RenderThread_IsDitheredLODTransition();
+}
+
 bool UMaterialInstance::RenderThread_IsTwoSided() const
 {
 	FMaterialInstanceResource* Proxy = ((FMaterialInstanceResource*)GetRenderProxy(0));
 	return Proxy ? Proxy->IsTwoSided() : false;
+}
+
+bool UMaterialInstance::RenderThread_IsDitheredLODTransition() const
+{
+	FMaterialInstanceResource* Proxy = ((FMaterialInstanceResource*)GetRenderProxy(0));
+	return Proxy ? Proxy->IsDitheredLODTransition() : false;
 }
 
 bool UMaterialInstance::IsMasked(bool bIsInGameThread) const

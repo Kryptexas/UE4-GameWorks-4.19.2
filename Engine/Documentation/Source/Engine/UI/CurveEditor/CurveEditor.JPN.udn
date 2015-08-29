@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2424439
+﻿INTSourceChangelist:2604263
 Availability:Public
 Title:カーブ エディタ
 Crumbs:%ROOT%, Engine, Engine/UI
-Description:インタラクティブにカーブを設定および修正して Distribution プロパティの値を操作するツール
+Description:インタラクティブにカーブを設定および修正して Distribution プロパティの値を操作するツールです。
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,15 +45,11 @@ Description:インタラクティブにカーブを設定および修正して D
 
 [TOC(start:2)]
 
-
-
-## 概要
-
 [EXCERPT:Intro]
-**Curve Editor** は、[Distributions](Engine/Basics/Distributions) を使用したプロパティなど時間の経過とともに変化するプロパティも精密に制御できます。 カーブエディタは、[マチネ](Engine/Matinee) または [カスケード](Engine/Rendering/ParticleSystems/Cascade) パーティクル システム エディタから開くことができます。 
+**カーブエディタ** では、[ディストリビューション](Engine/Basics/Distributions) を使用したプロパティなど時間の経過とともに変化するプロパティも細かく制御できます。 カーブエディタは、現在、[マチネ](Engine/Matinee) および [カスケード](Engine/Rendering/ParticleSystems/Cascade) パーティクル システム エディタで使用されています。
 [/EXCERPT:Intro]
 
-カーブ エディタは、現在使用されている通り、アンリアル エンジンのほとんどのエディタのようなスタンドアロンのエディタではありません。他のエディタ内にドッキング可能なペインとして使用されます。そのため、カーブ エディタはマチネやカスケードのエディタ 運動などにあるエディタ ウィンドウのインターフェースから開きます。
+カーブ エディタは、現在使用しているように、アンリアル エンジンの他のほとんどのエディタのようなスタンドアロン エディタではありません。他のエディタ内にドッキング可能なペインとして使用されます。そのため、カーブ エディタはマチネやカスケードのエディタウィンドウなどにあるエディタ ウィンドウのインターフェースから開きます。
 
 
 
@@ -81,8 +77,8 @@ Description:インタラクティブにカーブを設定および修正して D
 | ![](CE_Toolbar_Pan.png)| カーブ エディタを Pan/Edit モードにします。 |
 | ![](CE_Toolbar_Zoom.png)| カーブ エディタを Zoom モードにします。 |
 | ![](CE_Toolbar_Auto.png)| 選択キーに対する InterpMode を Auto-curve モードに設定します。接線は最適曲率で回転できますが、オーバーシュートする場合もあります。 |
-| ![](CE_Toolbar_AutoClamped.png)| 選択キーに対する InterpMode を Auto-curve モードに設定します。 ロックされたフラット接線です。|
-| ![](CE_Toolbar_User.png)| 選択キーに対する InterpMode を User Curve モードに設定します。 ロックされた、ユーザーが修正した接線です。|
+| ![](CE_Toolbar_AutoClamped.png)| 選択キーに対する InterpMode を Auto-curve モードに設定します。ロックされたフラット接線です。|
+| ![](CE_Toolbar_User.png)| 選択キーに対する InterpMode を User Curve モードに設定します。ロックされた、ユーザーが修正した接線です。|
 | ![](CE_Toolbar_Break.png)| 選択キーに対する InterpMode をCurve Break モードに設定します。イン接線とアウト接線を分けます。|
 | ![](CE_Toolbar_Linear.png)| 選択キーに対する InterpMode をLinear モードに設定します。 |
 | ![](CE_Toolbar_Linear.png)| 選択キーに対する InterpMode をConstant モードに設定します。 |
@@ -98,7 +94,7 @@ Description:インタラクティブにカーブを設定および修正して D
 
 ![tracklist.jpg](tracklist.jpg)
 
-トラック リストは現在のタブに読み込まれているカーブ トラックを全て表示します。トラックは通常、マチネのトラック、またはカスケードのモジュールに関連付けられているボタンを押すと、カーブ エディタ外に読み込まれます。
+トラックリストは現在のタブに読み込まれているカーブ トラックを全て表示します。トラックは通常、マチネのトラック、またはカスケードのモジュールに関連付けられているボタンを押すと、カーブ エディタ外に読み込まれます。
 
 ![track.jpg](track.jpg)
 
@@ -195,7 +191,7 @@ Pan/Edit モードの場合は以下の通りです。
 
 ![tabs_multiple.jpg](tabs_multiple.jpg)
 
-そうならないように、何度もトラックを追加したり削除することは、非常に非効率的です。各エミッタ用にタブを作成しておけば、トラックを分けて簡単に特定できます。間違ったエミッタのトラックを誤って編集しないようにします。
+そうならないように、何度もトラックを追加、削除することは、非常に非効率的です。各エミッタ用にタブを作成しておけば、トラックを分けて簡単に特定できます。間違ったエミッタのトラックを誤って編集しないようにします。
 
 ![](ChangeTabs.png)
 

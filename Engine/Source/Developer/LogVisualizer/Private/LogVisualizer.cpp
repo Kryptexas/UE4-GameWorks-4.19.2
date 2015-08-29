@@ -103,21 +103,30 @@ void FLogVisualizer::Goto(float Timestamp, FName LogOwner)
 	}
 }
 
-void FLogVisualizer::GotoNextItem()
+void FLogVisualizer::GotoNextItem(int32 Distance)
 {
 	if (CurrentTimeLine.IsValid())
 	{
-		CurrentTimeLine.Pin()->GotoNextItem();
+		CurrentTimeLine.Pin()->MoveCursorByDistance(Distance);
 	}
 }
 
-void FLogVisualizer::GotoPreviousItem()
+void FLogVisualizer::GotoPreviousItem(int32 Distance)
 {
 	if (CurrentTimeLine.IsValid())
 	{
-		CurrentTimeLine.Pin()->GotoPreviousItem();
+		CurrentTimeLine.Pin()->MoveCursorByDistance(-Distance);
 	}
 }
+
+void FLogVisualizer::MoveCamera()
+{
+	if (CurrentTimeLine.IsValid())
+	{
+		CurrentTimeLine.Pin()->UpdateCameraPosition();
+	}
+}
+
 
 FLinearColor FLogVisualizer::GetColorForCategory(int32 Index) const
 {
@@ -184,7 +193,7 @@ AActor* FLogVisualizer::GetVisualLoggerHelperActor()
 	}
 
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Name = *FString::Printf(TEXT("VisualLoggerRenderingActor"));
 	AActor* HelperActor = World->SpawnActor<AVisualLoggerRenderingActor>(SpawnInfo);
 

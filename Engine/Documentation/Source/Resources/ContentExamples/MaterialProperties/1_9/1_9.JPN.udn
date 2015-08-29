@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2619012
 Availability:Public
 Title:1.9 - オパシティ マスク クリップ値
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Materials
@@ -60,5 +60,5 @@ Related: Engine/Rendering/Materials/MaterialProperties
 ![](MP_1_9_001.png)
 [/REGION]
 
-**Masked BlendMode (マスクされたブレンドモード)** では、ピクセルは完全に不透明、または完全に半透明であることを学習しました。グレースケール テクスチャまたはテクスチャの 1 つのチャネルをマスクとして使用することができます。ピクセルが不透明または半透明の場合に **Clip Value (クリップ値)** でしきい値を設定できます。薄い部分があるテクスチャの場合は、それが遠ざかればミップマップからそれを白く消すので消滅します。**Clip Value (クリップ値)** で調節して、その発生時期を調節することができます。
+**Masked BlendMode (マスクされたブレンドモード)** では、ピクセルは完全に不透明、または完全に半透明であることを学習しました。グレースケール テクスチャまたはテクスチャの 1 つのチャネルをマスクとして使用することができます。ピクセルが不透明または半透明の場合に **Clip Value (クリップ値)** でしきい値を設定できます。薄い部分があるテクスチャの場合は、それが遠ざかればミップマップが画像またはチャンネルからそれを白く消すので消滅します。 Clip Value (クリップ値) で調節して、その発生時期を調節することができます。
 

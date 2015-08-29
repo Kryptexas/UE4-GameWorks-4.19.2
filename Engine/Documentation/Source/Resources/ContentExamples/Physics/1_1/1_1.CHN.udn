@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:1903621
-Availability: Public
+﻿Availability: Public
 Title:1.1 -模拟物理表现
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.1： 目标物体的物理模拟
+Related: Engine/Physics/PhysicsBodies
+Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/Constraints/ConstraintsReference
+Related: Engine/Physics/Constraints/ConstraintsUserGuide
+Related: Engine/Physics/Collision
+Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 
 
 [VAR:TopicCompact]
@@ -46,14 +51,12 @@ Description:物理表现示例关卡概述，示例1.1： 目标物体的物理�
 
 
 [REGION:fullwidth]
-
+	![](physics_1_1_001.png)
 [/REGION]
 
-![](physics_1_1_001.png)(w:900)
 
 如果某一对象的移动性被设置为 **Movable** （可移动）且它已设置简单碰撞，您可以勾选 **Physics Rollout** （物理展示）内的 **Simulate Physics** （模拟物理表现），这样该目标会在您按下 **Simulate in Editor** （在编辑器中模拟）或 **Play in Editor** （在编辑器中游玩）时进行物理表现的模拟。
 
 ![](physics_1_1_002.png)(h:365) ![](physics_1_1_003.png)(h:365)
 
-[INCLUDE:Resources\ContentExamples\Physics#PhysicsContentExamples]  
 

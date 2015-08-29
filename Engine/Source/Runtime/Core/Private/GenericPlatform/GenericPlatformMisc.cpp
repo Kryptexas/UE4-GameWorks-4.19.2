@@ -10,7 +10,6 @@
 #include "SecureHash.h"
 #include "ExceptionHandling.h"
 #include "Containers/Map.h"
-#include "../../Launch/Resources/Version.h"
 #include "GenericPlatformContext.h"
 
 #include "UProjectInfo.h"
@@ -265,6 +264,20 @@ void FGenericPlatformMisc::HandleIOFailure( const TCHAR* Filename )
 	UE_LOG(LogGenericPlatformMisc, Fatal,TEXT("I/O failure operating on '%s'"), Filename ? Filename : TEXT("Unknown file"));
 }
 
+void FGenericPlatformMisc::RaiseException(uint32 ExceptionCode)
+{
+	/** This is the last place to gather memory stats before exception. */
+	FGenericCrashContext::CrashMemoryStats = FPlatformMemory::GetStats();
+
+#if HACK_HEADER_GENERATOR && !PLATFORM_EXCEPTIONS_DISABLED
+	// We want Unreal Header Tool to throw an exception but in normal runtime code 
+	// we don't support exception handling
+	throw(ExceptionCode);
+#else	
+	*((uint32*)3) = ExceptionCode;
+#endif
+}
+
 bool FGenericPlatformMisc::SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue)
 {
 	check(!InStoreId.IsEmpty());
@@ -506,6 +519,32 @@ const TCHAR* FGenericPlatformMisc::EngineDir()
 	return *EngineDirectory;
 }
 
+// wrap the LaunchDir variable in a function to work around static/global initialization order
+static FString& GetWrappedLaunchDir()
+{
+	static FString LaunchDir;
+	return LaunchDir;
+}
+
+void FGenericPlatformMisc::CacheLaunchDir()
+{
+	// we can only cache this ONCE
+	static bool bOneTime = false;
+	if (bOneTime)
+	{
+		return;
+	}
+	bOneTime = true;
+	
+	GetWrappedLaunchDir() = FPlatformProcess::GetCurrentWorkingDirectory() + TEXT("/");
+}
+
+const TCHAR* FGenericPlatformMisc::LaunchDir()
+{
+	return *GetWrappedLaunchDir();
+}
+
+
 const TCHAR* FGenericPlatformMisc::GetNullRHIShaderFormat()
 {
 	return TEXT("PCD3D_SM5");
@@ -641,7 +680,7 @@ const TCHAR* FGenericPlatformMisc::GameDir()
 	return *GameDir;
 }
 
-uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys)
+uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FString* KeyNames, uint32 MaxMappings, bool bMapUppercaseKeys, bool bMapLowercaseKeys)
 {
 	uint32 NumMappings = 0;
 
@@ -866,6 +905,24 @@ const TCHAR* FGenericPlatformMisc::GetEngineMode()
 		TEXT( "Game" );
 }
 
+TArray<FString> FGenericPlatformMisc::GetPreferredLanguages()
+{
+	// not implemented by default
+	return TArray<FString>();
+}
+
+FString FGenericPlatformMisc::GetLocalCurrencyCode()
+{
+	// not implemented by default
+	return FString();
+}
+
+FString FGenericPlatformMisc::GetLocalCurrencySymbol()
+{
+	// not implemented by default
+	return FString();
+}
+
 void FGenericPlatformMisc::PlatformPreInit()
 {
 	FGenericCrashContext::Initialize();
@@ -875,4 +932,9 @@ FString FGenericPlatformMisc::GetOperatingSystemId()
 {
 	// not implemented by default.
 	return FString();
+}
+
+void FGenericPlatformMisc::RegisterForRemoteNotifications()
+{
+	// not implemented by default
 }

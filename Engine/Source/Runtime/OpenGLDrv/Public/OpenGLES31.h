@@ -11,6 +11,10 @@
 
 #include "OpenGL.h"
 
+#ifdef GL_AMD_debug_output
+	#undef GL_AMD_debug_output
+#endif
+
 /** Unreal tokens that maps to different OpenGL tokens by platform. */
 #undef UGL_ANY_SAMPLES_PASSED
 #define UGL_ANY_SAMPLES_PASSED	GL_ANY_SAMPLES_PASSED_EXT
@@ -21,6 +25,7 @@
 
 #define USE_OPENGL_NAME_CACHE 1
 #define OPENGL_NAME_CACHE_SIZE 1024
+
 
 struct FOpenGLES31 : public FOpenGLBase
 {
@@ -62,7 +67,11 @@ struct FOpenGLES31 : public FOpenGLBase
 	static FORCEINLINE bool SupportsTextureFloat()						{ return bSupportsTextureFloat || !bES2Fallback; }
 	static FORCEINLINE bool SupportsTextureHalfFloat()					{ return bSupportsTextureHalfFloat || !bES2Fallback; }
 	static FORCEINLINE bool SupportsColorBufferHalfFloat()				{ return bSupportsColorBufferHalfFloat || !bES2Fallback; }
+	static FORCEINLINE bool	SupportsRG16UI()							{ return bSupportsNvImageFormats && !bES2Fallback; }
+	static FORCEINLINE bool SupportsR11G11B10F()						{ return bSupportsNvImageFormats && !bES2Fallback; }
 	static FORCEINLINE bool SupportsShaderFramebufferFetch()			{ return bSupportsShaderFramebufferFetch; }
+	static FORCEINLINE bool SupportsShaderDepthStencilFetch()			{ return bSupportsShaderDepthStencilFetch; }
+	static FORCEINLINE bool SupportsMultisampledRenderToTexture()		{ return bSupportsMultisampledRenderToTexture; }
 	static FORCEINLINE bool SupportsVertexArrayBGRA()					{ return false; }
 	static FORCEINLINE bool SupportsBGRA8888()							{ return bSupportsBGRA8888; }
 	static FORCEINLINE bool SupportsSRGB()								{ return bSupportsSGRB || !bES2Fallback; }
@@ -887,8 +896,17 @@ protected:
 	/** GL_EXT_color_buffer_half_float */
 	static bool bSupportsColorBufferHalfFloat;
 
+	/** GL_NV_image_formats */
+	static bool bSupportsNvImageFormats;
+
 	/** GL_EXT_shader_framebuffer_fetch */
 	static bool bSupportsShaderFramebufferFetch;
+	
+	/** GL_ARM_shader_framebuffer_fetch_depth_stencil */
+	static bool bSupportsShaderDepthStencilFetch;
+
+	/** GL_EXT_MULTISAMPLED_RENDER_TO_TEXTURE */
+	static bool bSupportsMultisampledRenderToTexture;
 
 	/** GL_FRAGMENT_SHADER, GL_LOW_FLOAT */
 	static int ShaderLowPrecision;

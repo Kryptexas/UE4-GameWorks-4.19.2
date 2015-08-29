@@ -48,10 +48,10 @@ Description:The basics of Point Lights.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 [EXCERPT:Intro]
-**Point Lights** work much like a real world light bulb, emitting light in all directions from the light bulb's tungsten filament. However, for the sake of performance, Point Lights are simplified down emitting light equally in all directions from just a single point in space.  The **Point Light** when placed can be set to one of three **Mobility** settings:
+**Point Lights** work much like a real world light bulb, emitting light in all directions from the light bulb's tungsten filament. However, for the sake of performance, Point Lights are simplified down emitting light equally in all directions from just a single point in space.  The Point Light when placed can be set to one of three Mobility settings:
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -82,20 +82,20 @@ Description:The basics of Point Lights.
 ![](spacer.png)
 [/REGION]
 
-Two examples of a **Point Light** placed inside a level are shown below.
+Two examples of a Point Light placed inside a level are shown below.
 
 ![](pointLight_004.png)(w:450) ![](pointLight_005.png)(w:450 convert:false)
 
-The image on the left is a **Point Light** without its radius showing, and the same light with it enabled is shown in the right image, giving a good impression of where the light will affect the world.
+The image on the left is a Point Light without its radius showing, and the same light with it enabled is shown in the right image, giving a good impression of where the light will affect the world.
 
-While the light from a **Point Light** only emits from that point in space, having no shape, Unreal Engine 4 can give a point light a radius and a length for use within reflections and specular highlights to give the point light more of a physical feel.
+While the light from a Point Light only emits from that point in space, having no shape, Unreal Engine 4 can give a point light a radius and a length for use within reflections and specular highlights to give the point light more of a physical feel.
 
 ![](pointLight_001.png)(w:300 convert:false) ![](pointLight_002.png)(w:300) ![](pointLight_003.png)(w:300)
 
 
 ## Point Light Properties
 
-The properties of a **Point Light** are broken up into 4 categories: **Light**, **Light Profiles**, **Lightmass**, and **Light Function**. 
+The properties of a **Point Light** are broken up into 4 categories: Light, Light Profiles, Lightmass, and Light Function. 
 
 ### Light
 Property | Description |

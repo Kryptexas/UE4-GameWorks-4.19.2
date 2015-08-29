@@ -48,7 +48,7 @@ Description:How lights interact with the Post Process Chain.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 The post process pipeline takes the lighting in the scene and uses it in various ways, from simulating an organic eye adapting to changes in light or a camera's numerous refracting lenses. While the lighting of a scene may be the first step, the post process steps really drive many effects.
 

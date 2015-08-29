@@ -6,7 +6,7 @@ Description:Guide to using the Material Editor UI.
 
 [TOC(start:2)]
 
-## Overview
+
 
 The Material Editor UI consists of a menu bar, a toolbar, and, by default, four open panels.
 
@@ -71,7 +71,7 @@ The following table lists the options in the Toolbar and what they do.
 | ![toolbar_home.png](toolbar_home.png)| Centers the base Material node in the **Graph** panel. |
 | ![toolbar_clean.png](toolbar_clean.png)| Deletes any material nodes that are not connected to the Material. |
 | ![toolbar_show.png](toolbar_show.png)| Shows or hides material nodes that are not connected to anything. |
-| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| If enabled, updates the Materials in each material node in realtime.  Disable this option for faster Material Editor performance. See the [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) section.|
+| ![toolbar_live_nodes.png](Engine/Rendering/Materials/Editor/toolbar_live_nodes.png)| If enabled, updates the Materials in each material node in real time.  Disable this option for faster Material Editor performance. See the [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) section.|
 | ![toolbar_live_update.png](Engine/Rendering/Materials/Editor/toolbar_live_update.png)|If enabled, compiles the shaders of all subexpressions every time nodes are added, deleted, connected, or disconnected, or have their property values changed.  Disable this option for faster Material Editor performance.  See the [Live Nodes and Live Update](Engine/Rendering/Materials/Editor/#LiveNodesAndLiveUpdate) section. |
 | ![toolbar_stats.png](Engine/Rendering/Materials/Editor/toolbar_stats.png)| Shows or hides Material statistics in the **Graph** panel. |
 | ![toobar_release_stats](Material_Toolbar_Button_Release_Stats.png)| Toggles use of release or development shaders in stats reporting. |
@@ -104,7 +104,7 @@ Several icons appear along the top of the **Preview** panel; the following table
 | ![toolbar_cylinder.png](toolbar_cylinder.png)![toolbar_sphere.png](toolbar_sphere.png)![toolbar_plane.png](toolbar_plane.png)![toolbar_cube.png](toolbar_cube.png)| Shows the result of your current Material on the respective primitive shape in the **Preview** panel. |
 | ![toolbar_mesh.png](toolbar_mesh.png)| Makes the selected Static Mesh in the **Content Browser** the preview mesh. |
 | ![toolbar_grid.png](toolbar_grid.png)| Toggles the background grid in the **Preview** panel. |
-| ![toolbar_realtime_preview.png](toolbar_realtime_preview.png)| If enabled, updates the Material on the preview mesh in realtime.  Disable this option for faster Material Editor performance. |
+| ![toolbar_realtime_preview.png](toolbar_realtime_preview.png)| If enabled, updates the Material on the preview mesh in real time.  Disable this option for faster Material Editor performance. |
 
 ## Details Panel
 

@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 3. Create the Basic Assets
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 3. Create the Basic Assets
@@ -28,6 +28,7 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 ![](Assets.png)
 [/REGION]
 
+## Steps
 
 1. **New** -> **Blueprint** -> **AI Controller**
 
@@ -61,3 +62,8 @@ To start, you will need create 4 assets in the **Content Browser**: An AI Contro
 
 
 %Steps%
+
+
+
+
+

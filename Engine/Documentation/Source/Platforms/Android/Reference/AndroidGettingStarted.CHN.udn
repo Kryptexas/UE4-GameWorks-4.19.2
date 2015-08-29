@@ -1,0 +1,376 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Android Development Reference
+Crumbs:%ROOT%, Platforms, Platforms/Android
+Description:How to install different Android SDKs, set environment variables, and work with texture formats.
+
+[TOC(start:2 end:3)]
+
+%Globals:OSSelect%
+
+
+
+## Overview 
+
+Here is what we currently require for Android game development:
+
+
+|Project Type | Components | Environment Variables |
+| ------------- | ---------- | --------------------- |
+| Blueprint Only Projects |  [INCLUDE:#bpcomponents] |      [INCLUDE:#bpenvvar] |
+| C++ Projects |   [INCLUDE:#codecomponents] |  [INCLUDE:#codeenvvar] |
+
+<!--
+[EXCERPT:BPComponents]
+* Android SDK
+* Java Development Kit
+* Ant Scripting Tool
+[/EXCERPT:BPComponents]
+
+[EXCERPT:CodeComponents]
+[INCLUDE:#bpcomponents]
+* **Android NDK**
+[/EXCERPT:CodeComponents]
+
+[EXCERPT:BPEnvVar]
+* ANDROID_HOME
+* JAVA_HOME
+* ANT_HOME
+[/EXCERPT:BPEnvVar]
+
+[EXCERPT:CodeEnvVar]
+[INCLUDE:#bpenvvar]
+* **NDKROOT**
+[/EXCERPT:CodeEnvVar]
+-->
+
+## Installing Components
+
+There are several methods for getting the components. If you have already installed one of these, look in the corresponding section for additional requirements:
+
+### TADP (Tegra Android Development Pack)
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#TADPWindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#TADPMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:TADPWindowsSetup]
+
+TADP is the Tegra Android Development Pack, by Nvidia. This is a one-stop shop for Android development. If you install TADP, all of our requirements will be met.
+
+The installer for TADP is included with Unreal Engine 4 for Windows. It can be found here: 
+
+	[ENGINE INSTALL LOCATION]\Engine\Extras\Android\tadp-2.0r8-windows.exe 
+
+The important pieces are:
+* SDK
+* NDK
+* JDK
+* Ant 
+* Nsight 
+	
+If you use the default installation set, a pretty minimal set of components will be installed. If you customize the install, you can add more items (like profilers, etc). Note that during installation, 
+one or two of the sub-installers may appear to hang, but they will eventually finish. The install could take as long as 30 to 45 minutes. If you never plan to write code, you may want to 
+select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation. The Nsight portion of TADP is used for debugging an Android game on a device. 
+It is not required to compile C++ code.
+
+![](TADPSetup.png)
+
+[/EXCERPT:TADPWindowsSetup]
+
+[EXCERPT:TADPMacOSSetup]
+TADP is the Tegra Android Development Pack, by Nvidia. This is a one-stop shop for Android development. If you install TADP, all of our requirements will be met.
+
+The installer for TADP is included with Unreal Engine 4 for Mac. It can be found here: 
+
+	[ENGINE INSTALL LOCATION]/Engine/Extras/Android/tadp-3.0r4-osx.dmg
+
+The important pieces are:
+
+* SDK
+* NDK
+* Ant 
+
+If you use the default installation set, a pretty minimal set of components will be installed. 
+If you customize the install, you can add more items (like profilers, etc). Note that during installation, one or two of the sub-installers may appear to hang, but they will eventually finish. 
+The install could take as long as 30 to 45 minutes on some computers. 
+If you never plan to write code, you may want to select **Customize**, and only install the SDK, Ant, and Java (skipping the NDK and Nsight debugger) to make for the quickest installation.
+The Nsight portion of TADP is used for debugging an Android game on a device so it is not required to compile C++ code.
+
+![](TADP_Mac_OS.png)
+
+[/EXCERPT:TADPMacOSSetup]
+
+-->
+
+### ADT (Android Development Tools)
+
+This is Google's recommended development environment. It contains the SDK, Ant, and Eclipse (which you may want to use for your own tools, but we do not support Eclipse with Unreal Engine 4).
+ We recommend you install everything into C:\Android for simplicity.
+
+* [Download it here](http://developer.android.com/sdk/installing/bundle.html).
+
+In addition, you will need to install JDK 6 or later.
+
+* [Download it here](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+
+For code projects only, you will need to install the NDK:
+* [Download it here](http://developer.android.com/tools/sdk/ndk/index.html).
+
+### Android SDK (Software Development Kit)
+
+This is a more bare bones installation of the SDK (it does not include Eclipse or Ant).
+* [Download it here](http://developer.android.com/sdk/index.html).
+
+In addition, you will need to install JDK 6 or later.
+* [Download it here](http://www.oracle.com/technetwork/java/javase/downloads/index.html).
+
+You will need to install the Ant tool (version 1.8 or later).
+* [Download it here](http://ant.apache.org/) then unzip the .zip file.
+
+For code projects only, you will need to install the NDK:
+* [Download it here](http://developer.android.com/tools/sdk/ndk/index.html).
+
+
+## Environment Variables
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ENVWindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ENVMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:ENVWindowsSetup]
+
+Unless you installed TADP, you will need to verify that some environment variables are set properly. 
+
+[REGION:note]
+Once you have completed the installation (either by setting environment variables in the System Control Panel, or by installing TADP), you will need to restart both the Editor and Launcher 
+applications. This is due to how Windows applications store environment variables and then pass the old versions along to applications they start. 
+
+If you continue seeing the message about the Android SDK not being installed properly, it is recommended that you reboot your computer.
+
+[/REGION:note]
+
+To set an environment variable:
+
+* **Right-click** on your **Computer** icon OR press **Windows-Break** on your keyboard.
+* Select **Advanced system settings** on the left.
+* Click **Environment Variables...**
+* For each variable (see below):
+	* Look for the environment variable (from below) to already be set in at least one of the lists (either System or User).
+	* If not found, then click **New...** next in the System section
+	* Enter the name and value.
+	* Click **OK**.
+* Click **OK** to close the **Environment Variables** window.
+
+Here are the variables that we depend on, and where they should point:
+
+**ANDROID_HOME**
+* Set this to the directory where you installed the Android SDK or the `sdk` directory if you installed ADT. 
+* It must contain a directory called `platform-tools`.
+
+**JAVA_HOME**
+* Set this to where the JDK is installed. It will probably be called something like `jdk1.6.0_24`.
+* It must contain a directory called `bin` with `javac.exe` in it.
+
+**ANT_HOME** [Not needed if you installed ADT]
+* Set this to where you unzipped Ant.
+* It must contain a directory called `bin` with `ant.bat` in it.
+
+**NDKROOT** [Not needed if you do not compile C++ code]
+* Set this to where you unzipped the NDK. It will probably be called something like `android-ndk-r9c`.
+* It must contain a file called `ndk-build.cmd`
+
+[/EXCERPT:ENVWindowsSetup]
+
+[EXCERPT:ENVMacOSSetup]
+Unless you installed TADP, you will need to verify that some environment variables are set properly. 
+
+[region:note]
+Once you have completed the installation (either by editing your .bash_profile file, or by installing TADP), you will need to restart both the Editor and Launcher applications.
+[/region]
+
+To set an environment variable you need to edit your **.bash_profile** file in your home directory. 
+The file is hidden in Finder, so you’ll need to use Terminal to open it for editing. 
+If you’re not familiar with Unix terminal commands please do the following.
+
+1. Open **Terminal app** from /Applications/Utilities.
+1. Type **touch .bash_profile** to create the file if it doesn’t exist yet.
+1. Type open **.bash_profile** to open the file in a text editor.
+1. Copy the following lines to the file (replacing paths to point to where you installed SDK and tools) and save it:
+
+	* export ANDROID_HOME="/Users/epicgames/Devel/NVPACK/android-sdk-macosx"
+	* export NDKROOT="/Users/epicgames/Devel/NVPACK/android-ndk-r10c"
+	* export ANT_HOME="/Users/epicgames/Devel/NVPACK/apache-ant-1.8.2"
+
+Here are the name of the variables that we depend on and where they should point to.
+
+* **ANDROID_HOME**
+	* Set this to the directory where you installed the Android SDK or the SDK directory if you installed ADT. 
+	* It must contain a directory called platform-tools.
+* **ANT_HOME** [Not needed if you installed ADT]
+	* Set this to where you unzipped Ant.
+	* It must contain a directory called bin with a file called ANT in it.
+* **NDKROOT** [Not needed if you do not compile C++ code]
+	* Set this to where you unzipped the NDK and look for something similar to **android-ndk-r9c**.
+	* It must contain a file called **ndk-build**.
+
+[/EXCERPT:ENVMacOSSetup]
+
+-->
+
+## Android Tips and Tricks 
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ATTWindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#ATTMacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:ATTWindowsSetup]
+If you do not see your device listed in the **Launch** menu, here are some things to try: 
+- Wait a few seconds and look again, as the background scanning for connected devices can take a short amount of time. 
+- Check your USB debugging connection is all working. 
+- Open a command prompt (Press **Windows+R**, and run `cmd.exe`) 
+	- Type the following command: `adb devices`
+	- If you do not see any devices listed, your USB driver is not installed properly. How to install the driver depends on the model of your Android device. Search online for your device model and 
+	"usb driver", then install the driver. 
+	- Additionally, you will need to make sure your device has Developer mode enabled, and USB debugging is turned on. See the [Android Developer Using Hardware Devices guide](http://developer.android.com/tools/device.html) for more information (specifically items 2 and 3).  
+	- Afterwards, make sure the `adb devices` command works; without this, the engine will not be able to do anything with your Android device. 
+	
+If your device shows up in the Launch menu, but gets stuck deploying to the device, it is most likely because the device is not authorized for your PC to talk to it. If you click on the **Show Log** line 
+in the progress bar, you may see that the last line indicates that it is calling `adb uninstall`. 
+- As above, use `cmd.exe` to run the `adb devices` command. 
+- If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the PC. 
+- You may need to unplug and reconnect your device to make it show up. 
+- It is recommended you check the **Always allow** checkbox. 
+[/EXCERPT:ATTWindowsSetup]
+
+[EXCERPT:ATTMacOSSetup]
+If you do not see your device listed in the Launch menu, here are some things to try: 
+* Wait a few seconds and look again, as the background scanning for connected devices can take a short amount of time to register the device. 
+* Check your USB debugging connection is all working. 
+* Open the Terminal app and then try the following.
+	* Type the following command into the terminal **adb devices**.
+	* If you do not see any devices listed, your USB driver is not installed properly. How to install the driver depends on the model of your Android device. Search online for your device model and **USB driver**, then install the required driver. 
+	* Additionally, you will need to make sure your device has Developer mode enabled, and USB debugging is turned on. See the **[Android Developer Using Hardware Devices](http://developer.android.com/tools/device.html)** guide for more information (specifically items 2 and 3).
+	* Afterwards, make sure the **adb devices** command works; without this, the engine will not be able to do anything with your Android device.
+
+If your device shows up in the **Launch menu**, but gets stuck deploying to the device, it is most likely because the device is not authorized to interact with your Mac. 
+If you click on the **Show Log** line in the progress bar, and see that the last line indicates that it is calling adb uninstall try the following.
+* Open up the Terminal app and run the adb devices command. 
+* If the device is listed but shows unauthorized, that indicates that you need to get the device to ask if you want to authorize the Mac. 
+* It is recommended you check the **Always allow** checkbox to always allow your Mac to talk to this device.
+
+[/EXCERPT:ATTMacOSSetup]
+
+-->
+
+## Android Texture Formats
+Not all Android devices are made the same. In particular, there are 4 different kinds of rendering hardware. They each support different formats of compressed textures. 
+
+[EXCERPT:AndroidFormats]
+|Format | Description|
+|-------|------------|
+|DXT |This is what your desktop computer uses, and used by Tegra-based devices.|
+|ATC |This is used in Qualcomm Snapdragon based devices.|
+|PVR |This is used in ImgTec PowerVR based devices.|
+|ETC1 |This is supported on all devices, but does not support textures with an alpha channel, so those textures are uncompressed, making your game's download large and use more runtime memory.|
+|ETC2 |This is used by MALI based devices and some others.|
+[/EXCERPT:AndroidFormats]
+
+When you deploy or package your game for Android, the data will be converted to a format usable by an Android device (we call this process "cooking"). Because different devices support different 
+compressed formats, you have a choice of what format you want to be cooked. In the **Launch** or **Package** submenu, you will see **Android** followed by the possible formats.
+
+The first one (**Android**) actually takes all formats and puts them into the cooked packages. This will take longer, and will make larger packages, but will guarantee the minimal memory usage by choosing 
+the best format at runtime. It will work on any device (as will **Android (ETC1)**).
+
+[region:note]
+Unreal Engine version 4.8 and later will now support the use of **ES31** and **AEP** rendering on Tegra K1 devices. 
+Please note that due to the limited number of devices that currently support ES31 and AEP rendering very little performance and compatibility testing has been completed at this time.
+If you are developing a project that is aimed at using one of theses devices it is highly recommended that you perform extensive performance and compatibility testing to ensure that the device delivers your project in the manner you intended. 
+[/region]
+
+### Choosing a Format
+You most likely will want to choose an optimal format for your device. If you know the type of GPU in your device, you can look at the table above to choose a format.
+
+However, if you do not know, then you can choose **Android** or **Android (ETC1)**. When you run the game, if you tap the screen with 4 fingers at once, a dialog will pop up. This dialog is usually used to 
+enter a console command (like `stat fps`), but it will also display the formats that your device supports. Once you have that list, you can use that to choose a more ideal type when deploying/packaging.
+
+If you choose a format that your device does not support, it will fail to load. 
+

@@ -949,6 +949,7 @@ void FEdModeGeometry::PostUndo()
 		go->SelectNone();
 
 		// Next, restore the cached selection
+		go->UpdateFromSelectionArray( Actor->SavedSelections );
 		int32 res = go->SetPivotFromSelectionArray( Actor->SavedSelections );
 		
 		//use the centre of the actor if we didnt find a suitable selection

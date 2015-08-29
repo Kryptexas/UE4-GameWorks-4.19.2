@@ -273,16 +273,17 @@ FNodeHandlingFunctor* UK2Node_DynamicCast::CreateNodeHandler(FKismetCompilerCont
 	return new FKCHandler_DynamicCast(CompilerContext, KCST_DynamicCast);
 }
 
-bool UK2Node_DynamicCast::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_DynamicCast::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 	UClass* SourceClass = *TargetType;
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
-		OptionalOutput->Add(SourceClass);
+		OptionalOutput->AddUnique(SourceClass);
 	}
-	return bResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
+	return bSuperResult || bResult;
 }
 
 FText UK2Node_DynamicCast::GetMenuCategory() const

@@ -8,8 +8,6 @@ Related: Engine/Blueprints
 
 [TOC(start:2)]
 
-## Overview
-
 When working with Blueprints, there may be instances where something is not working the way you had planned it to. To diagnose these problems, the Blueprint Visual Scripting Tool comes with its own debugger and one of the most powerful aspects of it is the ability to add **Breakpoints** to nodes in your graph. By adding Breakpoints to nodes in your graph, you can play (or simulate) the game normally in the editor, then when reaching the node you have added a Breakpoint to, the game will pause and jump to that node in your graph so that you can step through your script to see where issues are occurring. 
 
 Another useful debugging feature is **Watch Values**, which allows you to mark a variable in your Blueprint (or multiple variables) to **Watch** which will allow you to see their values inside your Blueprint while the game is running. This is essential for debugging incorrect calculations or values for your variables as you can visually see where the error is coming from as your variables change in real time. 
@@ -34,11 +32,21 @@ Once you have an object selected, you can jump to that object in your level by c
 
 When you play in the editor, with your Blueprint up in another window, you should see the pulsating "Active Wires" as your script executes. 
 
-![](Example.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+UtS3wgltYgg
+[/PARAMLITERAL]
+[/OBJECT]
 
 In the example above, there are two fire effect Blueprints in the level each set to different times to deactivate themselves. On **Event Begin Play** (when the game is launched), a **Delay** node is used to **Deactivate** the fire and its associated sound effect after a variable specified time. 
 
-You can see in the right window that the script executes when the game is launched (as the pulsating wire leaves the red Event Begin Play node and enters the Delay node). After the specified time, the pulse is shown entering the third node which is used for deactivating one of the fire effects. 
+You can see in the left window that the script executes when the game is launched (as the pulsating wire leaves the red Event Begin Play node and enters the Delay node). After the specified time, the pulse is shown entering the third node which is used for deactivating one of the fire effects. 
 
 ## Breakpoints
 
@@ -145,6 +153,11 @@ You can however refer to the **Compiler Results** window for additional informat
 ![](DebugHowTo21.png)
 
 The Compiler Results window should pop up automatically when you encounter an error. You can click on the magnifying class to jump to the location of the error and the node in question. To help solve the issue, a text description of the error is also displayed. 
+
+
+
+
+
 
 
 

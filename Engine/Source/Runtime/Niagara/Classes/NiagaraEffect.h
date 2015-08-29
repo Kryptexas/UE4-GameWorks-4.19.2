@@ -8,20 +8,29 @@
 #include "NiagaraEffect.generated.h"
 
 
+enum NiagaraTickState
+{
+	ERunning,		// normally running
+	ESuspended,		// stop simulating and spawning, still render
+	EDieing,		// stop spawning, still simulate and render
+	EDead			// no live particles, no new spawning
+};
+
 UCLASS()
 class NIAGARA_API UNiagaraEffect : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
-	FNiagaraEmitterProperties* AddEmitterProperties();
+	UNiagaraEmitterProperties* AddEmitterProperties(UNiagaraEmitterProperties *Props = nullptr);
+	void DeleteEmitterProperties(UNiagaraEmitterProperties *Props);
 
 	void Init()
 	{
 	}
 
 
-	FNiagaraEmitterProperties *GetEmitterProperties(int Idx)
+	UNiagaraEmitterProperties *GetEmitterProperties(int Idx)
 	{
 		check(Idx < EmitterProps.Num());
 		return EmitterProps[Idx];
@@ -34,15 +43,15 @@ public:
 
 	void CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim);
 
-	virtual void PostLoad() override; 
-	virtual void PreSave() override;
-
+	//Begin UObject Interface
+	virtual void Serialize(FArchive& Ar);
+	//End UObject Interface
 private:
-	// serialized array of emitter properties
 	UPROPERTY()
-	TArray<FNiagaraEmitterProperties>EmitterPropsSerialized;
+	TArray<FDeprecatedNiagaraEmitterProperties>EmitterPropsSerialized_DEPRECATED;
 
-	TArray<FNiagaraEmitterProperties*> EmitterProps;
+	UPROPERTY()
+	TArray<UNiagaraEmitterProperties*> EmitterProps;
 };
 
 
@@ -51,20 +60,24 @@ class FNiagaraEffectInstance
 {
 public:
 	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset, UNiagaraComponent *InComponent)
+		: Effect(InAsset)
 	{
 		Component = InComponent;
 		for (int32 i = 0; i < InAsset->GetNumEmitters(); i++)
 		{
-			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), Component->GetWorld()->FeatureLevel);
+			FNiagaraSimulation *Sim = new FNiagaraSimulation(InAsset->GetEmitterProperties(i), InAsset, Component->GetWorld()->FeatureLevel);
 			Emitters.Add(MakeShareable(Sim));
 		}
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
+		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	explicit FNiagaraEffectInstance(UNiagaraEffect *InAsset)
 		: Component(nullptr)
+		, Effect(InAsset)
 	{
 		InitEmitters(InAsset);
+		VolumeGrid = NewObject<UNiagaraSparseVolumeDataObject>();
 	}
 
 	NIAGARA_API void InitEmitters(UNiagaraEffect *InAsset);
@@ -90,9 +103,12 @@ public:
 		Component = InComponent;
 		InitRenderModules(Component->GetWorld()->FeatureLevel);
 		RenderModuleupdate();
+
+		Age = 0.0f;
 	}
 
-	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(FNiagaraEmitterProperties *Properties);
+	NIAGARA_API TSharedPtr<FNiagaraSimulation> AddEmitter(UNiagaraEmitterProperties *Properties);
+	NIAGARA_API void DeleteEmitter(TSharedPtr<FNiagaraSimulation> Emitter);
 
 	void SetConstant(FNiagaraVariableInfo ID, const float Value)
 	{
@@ -109,30 +125,12 @@ public:
 		Constants.SetOrAdd(ID, Value);
 	}
 
-	void SetConstant(FName ConstantName, FNiagaraDataObject *Value)
+	void SetConstant(FName ConstantName, UNiagaraDataObject *Value)
 	{
 		Constants.SetOrAdd(ConstantName, Value);
 	}
 
-
-
-	void Tick(float DeltaSeconds)
-	{
-		Constants.SetOrAdd(FName(TEXT("EffectGrid")), &VolumeGrid); 
-
-		// pass the constants down to the emitter
-		// TODO: should probably just pass a pointer to the table
-		EffectBounds.Init();
-
-		for (TSharedPtr<FNiagaraSimulation>&it : Emitters)
-		{
-			it->SetConstants(Constants);
-			it->GetConstants().Merge(it->GetProperties()->ExternalConstants);
-			it->Tick(DeltaSeconds);
-
-			EffectBounds += it->GetEffectRenderer()->GetBounds();
-		}
-	}
+	void Tick(float DeltaSeconds);
 
 	NIAGARA_API void RenderModuleupdate();
 
@@ -149,13 +147,14 @@ public:
 	FBox GetEffectBounds()	{ return EffectBounds;  }
 private:
 	UNiagaraComponent *Component;
+	UNiagaraEffect *Effect;
 	FBox EffectBounds;
+	float Age;
 
 	/** Local constant table. */
 	FNiagaraConstantMap Constants;
 
 	TArray< TSharedPtr<FNiagaraSimulation> > Emitters;
 
-	FNiagaraSparseVolumeDataObject VolumeGrid;
-
+	UNiagaraSparseVolumeDataObject *VolumeGrid;
 };

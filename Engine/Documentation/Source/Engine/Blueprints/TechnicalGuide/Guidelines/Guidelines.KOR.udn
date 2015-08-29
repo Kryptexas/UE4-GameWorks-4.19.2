@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2515048
+﻿INTSourceChangelist:2599181
 Availability:Public
 Title:블루프린트 프로그래밍 지침
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
@@ -7,7 +7,6 @@ Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints
 
 [TOC (start:2 end:2)]
 
-## 개요
 C++ 를 쓸 것이냐 블루프린트를 쓸 것이냐 결정하는 주요 요인은 두 가지입니다:
 -	속도
 -	표현식 복잡도
@@ -114,3 +113,8 @@ StrategyGame 양쪽 다 픽업은 이런 식으로 만들었습니다.
 		 */
 		UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorTransform"), Category="Utilities|Transformation")
 		FTransform GetTransform() const;
+
+
+
+
+

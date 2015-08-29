@@ -334,7 +334,7 @@ void UArrowComponent::SetArrowColor_DEPRECATED(FColor NewColor)
 
 void UArrowComponent::SetArrowColor_New(FLinearColor NewColor)
 {
-	ArrowColor = NewColor;
+	ArrowColor = NewColor.ToFColor(true);
 	MarkRenderStateDirty();
 }
 

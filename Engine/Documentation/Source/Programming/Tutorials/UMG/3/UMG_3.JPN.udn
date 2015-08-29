@@ -1,0 +1,180 @@
+﻿INTSourceChangelist:2537337
+Availability:Public
+Title:3.Menu Widget ブループリントの作成
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
+Description:メニュースクリーンとして使用する Widget ブループリントを作成する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\UMG\2 "%Programming\Tutorials\UMG\2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\UMG\4 "%Programming\Tutorials\UMG\4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+1. **アンリアルエディタ** で **Compile（コンパイル）** ボタンを押して新規コードをビルドします。ビルドすると、 **ユーザーウィジェット** をメニューとして利用できるようになります。
+
+	[![](CompileFromEditor.png)](CompileFromEditor.png)
+
+1. **Game Mode** でメニューとして使用する **ユーザーウィジェット** を作成します。**コンテンツブラウザ** の "Add New" ボタンを使用します。**Widget Blueprint** クラスは "User Interface" カテゴリにあります。1つは "MainMenu" 、もう1つは "NewGameMenu" と名前を付けてウィジェットを2つ作成します。メインメニューでゲームが開始して、 New Game Menu へ進むオプションが表示されます。
+
+	[![](CreateWidgetBP.png)](CreateWidgetBP.png)
+
+1. 作成したばかりの "メインメニュー" の **ウィジェット** をダブルクリックすると、メニューレイアウトを作成することができる **ブループリントデザイナー** へ移動します。
+
+1. **パレットパネル** の "Common" セクションから **ボタン** を **グラフ** へドラッグしましょう。この **ボタン** は最終的に New Game Menu を開くために使用します。
+
+	[![](AddButtonAndTextBlock.png)](AddButton.png)
+
+1. レイアウトを正しく表示するために、最初に **ボタン** の位置とサイズを調整します。以下の設定を変更します。
+	* サイズを 200x200 に設定します。
+	* 位置を (200, 100) に設定します。
+	* 後に機能と接続する際にすぐわかるように、名前を "NewGameButton" に変更します。
+
+	[![](ButtonDetails.png)](ButtonDetails.png)
+
+1. **ボタン** 用に画像のカスタムセットを描画しないため、 **テキストブロック** をドロップして名前をつけて、以下の変更を行うこともできます。
+	* "New Game" と入力します。
+	* Visibility を Hit Test Invisible に変更します。**テキストブロック** が下の **ボタン** 向けのマウスクリックをインターセプトすることを防ぎます。
+	* 名前を "NewGameText" に設定します。必要ではありませんが、この設定を行うことは良い習慣です。
+
+	[![](TextBlockDetails.png)](TextBlockDetails.png)
+
+1. 次に2番目の **ボタン** と **テキストブロック** で "Quit" 機能を作成します。"New Game" **ボタン** と **テキストブロック** と同じ方法で設定します。
+
+1. その後、**ボタン** をクリックするとコードを実行するように、 **ボタン** に **イベント** を追加することができます。**詳細パネル** で、適切な **イベント** 名の横にある "+" を検索してクリックして追加します。この例では、 "OnClicked" が唯一使用できる **イベント** です。このイベントを NewGameButton と QuitButton **ウィジェット** 両方に作成します。
+
+	[![](CreateOnClickedEvent.png)](CreateOnClickedEvent.png)
+
+	[REGION:note]デザイナーはここで **ブループリント** スクリプティングを利用して機能を構築することができます。もしくは、 C++ プログラマーは公開された関数を呼び出すノードを接続することも出来ます。[/REGION]
+
+1. "OnClicked(NewGameButton)" という名前の **イベント** に以下の設定を行います。
+	* 以前 **Game Mode** に追加した関数を使用するために _ChangeMenuWidget_ ノードを接続します。
+	* _ChangeMenuWidget_ ノードの New Widget Class 入力フィールドに "NewGameMenu" アセットを設定します。
+
+	[![](OnClicked_NewGame.png)](OnClicked_NewGame.png)
+
+1. "OnClicked(QuitButton)" **イベント** に以下を設定します。
+	* "Quit Game" ノードに接続します。
+
+	[![](OnClicked_Quit.png)](OnClicked_Quit.png)
+
+
+----
+
+メインメニューを作成したら、レベルが開始すると同時にロードを行う **Game Mode** アセットを設定できます。
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**HowTo_UMG.Build.cs**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			using UnrealBuildTool;
+
+			public class HowTo_UMG :ModuleRules
+			{
+				public HowTo_UMG(TargetInfo Target)
+				{
+					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+					// Uncomment if you are using Slate UI
+					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		// Uncomment if you are using online features（オンライン機能を使用している場合は非コメント化する）
+
+					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+					// {
+					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+					//		{
+					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+					//		}
+					// }
+				}
+			}
+
+		**HowTo_UMGGameMode.h**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#pragma once
+
+			#include "Blueprint/UserWidget.h"
+			#include "GameFramework/GameMode.h"
+			#include "HowTo_UMGGameMode.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			{
+				GENERATED_BODY()
+
+			public:
+				/** Called when the game starts. */
+				virtual void BeginPlay() override;
+
+				/** Remove the current menu widget and create a new one from the specified class, if provided. */
+				UFUNCTION(BlueprintCallable, Category = "UMG Game")
+				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
+
+			protected:
+				/** The widget class we will use as our menu when the game starts. */
+				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
+				TSubclassOf<UUserWidget> StartingWidgetClass;
+
+				/** The widget instance that we are using as our menu. */
+				UPROPERTY()
+				UUserWidget* CurrentWidget;
+			};
+
+		**HowTo_UMGGameMode.cpp**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGGameMode.h"
+
+			void AHowTo_UMGGameMode::BeginPlay()
+			{
+				Super::BeginPlay();
+				ChangeMenuWidget(StartingWidgetClass);
+			}
+
+			void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
+			{
+				if (CurrentWidget != nullptr)
+				{
+					CurrentWidget->RemoveFromViewport();
+					CurrentWidget = nullptr;
+				}
+				if (NewWidgetClass != nullptr)
+				{
+					CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
+					if (CurrentWidget != nullptr)
+					{
+						CurrentWidget->AddToViewport();
+					}
+				}
+			}
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

@@ -680,8 +680,7 @@ public:
 	}
 
 	/**
-	 * Tests if index is valid, i.e. greater than zero and less than number of
-	 * elements in array.
+	 * Tests if index is valid, i.e. than or equal to zero, and less than the number of elements in the array.
 	 *
 	 * @param Index Index to test.
 	 *
@@ -897,13 +896,12 @@ public:
 	 */
 	int32 FindLast(const ElementType& Item) const
 	{
-		const ElementType* RESTRICT End = GetData() + ArrayNum;
-		for (const ElementType* RESTRICT Data = End, *RESTRICT DataStart = Data - ArrayNum; Data != DataStart;)
+		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + ArrayNum; Data != Start; )
 		{
 			--Data;
 			if (*Data == Item)
 			{
-				return static_cast<int32>(Data - DataStart);
+				return static_cast<int32>(Data - Start);
 			}
 		}
 		return INDEX_NONE;
@@ -920,13 +918,13 @@ public:
 	template <typename Predicate>
 	int32 FindLastByPredicate(Predicate Pred, int32 StartIndex) const
 	{
-		const ElementType* RESTRICT End = GetData() + StartIndex;
-		for (const ElementType* RESTRICT Data = End, *RESTRICT DataStart = Data - StartIndex; Data != DataStart;)
+		check(StartIndex >= 0 && StartIndex <= this->Num());
+		for (const ElementType* RESTRICT Start = GetData(), *RESTRICT Data = Start + StartIndex; Data != Start; )
 		{
 			--Data;
 			if (Pred(*Data))
 			{
-				return static_cast<int32>(Data - DataStart);
+				return static_cast<int32>(Data - Start);
 			}
 		}
 		return INDEX_NONE;
@@ -940,7 +938,7 @@ public:
 	* @returns Index of the found element. INDEX_NONE otherwise.
 	*/
 	template <typename Predicate>
-	int32 FindLastByPredicate(Predicate Pred) const
+	FORCEINLINE int32 FindLastByPredicate(Predicate Pred) const
 	{
 		return FindLastByPredicate(Pred, ArrayNum);
 	}
@@ -1779,7 +1777,23 @@ public:
 			return Index;
 		}
 
-	#endif
+		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type>
+		int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4));
+			return Index;
+		}
+
+		template <typename Arg0Type, typename Arg1Type, typename Arg2Type, typename Arg3Type, typename Arg4Type, typename Arg5Type>
+		int32 Emplace(Arg0Type&& Arg0, Arg1Type&& Arg1, Arg2Type&& Arg2, Arg3Type&& Arg3, Arg4Type&& Arg4, Arg5Type&& Arg5)
+		{
+			const int32 Index = AddUninitialized(1);
+			new(GetData() + Index) ElementType(Forward<Arg0Type>(Arg0), Forward<Arg1Type>(Arg1), Forward<Arg2Type>(Arg2), Forward<Arg3Type>(Arg3), Forward<Arg4Type>(Arg4), Forward<Arg5Type>(Arg5));
+			return Index;
+		}
+
+#endif
 
 	/**
 	 * Adds a new item to the end of the array, possibly reallocating the whole array to fit.
@@ -2848,7 +2862,7 @@ public:
 
 	            TIndirectArray() {}
 	FORCEINLINE TIndirectArray(TIndirectArray&& Other) : Array(MoveTemp(Other.Array)) {}
-	FORCEINLINE TIndirectArray& operator=(TIndirectArray&& Other) { Array = MoveTemp(Other.Temp); return *this; }
+	FORCEINLINE TIndirectArray& operator=(TIndirectArray&& Other) { Array = MoveTemp(Other.Array); return *this; }
 
 #endif
 

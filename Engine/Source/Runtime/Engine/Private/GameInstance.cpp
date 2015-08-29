@@ -16,7 +16,6 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
-#include "Engine/GameEngine.h"
 
 
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
@@ -59,6 +58,13 @@ void UGameInstance::Init()
 			SessionInt->AddOnSessionUserInviteAcceptedDelegate_Handle(FOnSessionUserInviteAcceptedDelegate::CreateUObject(this, &UGameInstance::HandleSessionUserInviteAccepted));
 		}
 	}
+
+	UClass* SpawnClass = GetOnlineSessionClass();
+	OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
+	if (OnlineSession)
+	{
+		OnlineSession->RegisterOnlineDelegates();
+	}
 }
 
 void UGameInstance::Shutdown()
@@ -81,10 +87,8 @@ void UGameInstance::Shutdown()
 
 void UGameInstance::InitializeStandalone()
 {
-	UGameEngine* const Engine = CastChecked<UGameEngine>(GetEngine());
-
 	// Creates the world context. This should be the only WorldContext that ever gets created for this GameInstance.
-	WorldContext = &Engine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext = &GetEngine()->CreateNewWorldContext(EWorldType::Game);
 	WorldContext->OwningGameInstance = this;
 
 	// In standalone create a dummy world from the beginning to avoid issues of not having a world until LoadMap gets us our real world
@@ -237,7 +241,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		// Make sure "always loaded" sub-levels are fully loaded
 		PlayWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
-		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
+		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystemRunMode::PIEMode : FNavigationSystemRunMode::SimulationMode);
 		PlayWorld->CreateAISystem();
 
 		PlayWorld->InitializeActorsForPlay(URL);
@@ -536,6 +540,7 @@ void UGameInstance::DebugCreatePlayer(int32 ControllerId)
 void UGameInstance::DebugRemovePlayer(int32 ControllerId)
 {
 #if !UE_BUILD_SHIPPING
+
 	ULocalPlayer* const ExistingPlayer = FindLocalPlayerFromControllerId(ControllerId);
 	if (ExistingPlayer != NULL)
 	{
@@ -591,7 +596,7 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(const FUniqueNetId& 
 			continue;
 		}
 
-		TSharedPtr<FUniqueNetId> OtherUniqueNetId = Player->GetPreferredUniqueNetId();
+		TSharedPtr<const FUniqueNetId> OtherUniqueNetId = Player->GetPreferredUniqueNetId();
 
 		if (!OtherUniqueNetId.IsValid())
 		{
@@ -609,7 +614,7 @@ ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(const FUniqueNetId& 
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<FUniqueNetId> UniqueNetId) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromUniqueNetId(TSharedPtr<const FUniqueNetId> UniqueNetId) const
 {
 	if (!UniqueNetId.IsValid())
 	{
@@ -638,12 +643,12 @@ void UGameInstance::CleanupGameViewport()
 	}
 }
 
-TArray<class ULocalPlayer*>::TConstIterator	UGameInstance::GetLocalPlayerIterator()
+TArray<class ULocalPlayer*>::TConstIterator	UGameInstance::GetLocalPlayerIterator() const
 {
 	return LocalPlayers.CreateConstIterator();
 }
 
-const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers()
+const TArray<class ULocalPlayer*>& UGameInstance::GetLocalPlayers() const
 {
 	return LocalPlayers;
 }
@@ -660,12 +665,12 @@ void UGameInstance::AddReferencedObjects(UObject* InThis, FReferenceCollector& C
 	Super::AddReferencedObjects(This, Collector);
 }
 
-void UGameInstance::HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
+void UGameInstance::HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
 {
 	OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
 }
 
-void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
+void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult &	InviteResult)
 {
 	UE_LOG(LogPlayerManagement, Verbose, TEXT("OnSessionUserInviteAccepted LocalUserNum: %d bSuccess: %d"), ControllerId, bWasSuccess);
 	// Don't clear invite accept delegate
@@ -674,23 +679,7 @@ void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const in
 	{
 		if (InviteResult.IsValid())
 		{
-			for (ULocalPlayer* LocalPlayer : LocalPlayers)
-			{
-				// Route the call to the actual user that accepted the invite
-				if (LocalPlayer->GetCachedUniqueNetId() == UserId)
-				{
-					LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-					return;
-				}
-			}
-
-			// Go ahead and have the active local player handle accepting the invite. A game can detect that the user id is different and handle
-			// it how it needs to.
-			ULocalPlayer* LocalPlayer = GetFirstGamePlayer();
-			if (LocalPlayer)
-			{
-				LocalPlayer->GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
-			}
+			GetOnlineSession()->OnSessionUserInviteAccepted(bWasSuccess, ControllerId, UserId, InviteResult);
 		}
 		else
 		{
@@ -808,4 +797,19 @@ void UGameInstance::PlayReplay(const FString& Name)
 	{
 		FCoreUObjectDelegates::PostDemoPlay.Broadcast();
 	}
+}
+
+void UGameInstance::AddUserToReplay(const FString& UserString)
+{
+	UWorld* CurrentWorld = GetWorld();
+
+	if ( CurrentWorld != nullptr && CurrentWorld->DemoNetDriver != nullptr )
+	{
+		CurrentWorld->DemoNetDriver->AddUserToReplay( UserString );
+	}
+}
+
+TSubclassOf<UOnlineSession> UGameInstance::GetOnlineSessionClass()
+{
+	return UOnlineSession::StaticClass();
 }

@@ -1,0 +1,95 @@
+﻿INTSourceChangelist:2596080
+Availability:Public
+Title:イベントディスパッチャー
+Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
+Description:あるブループリントで呼び出されたイベントが別ブループリントでイベントを実行する事例 
+Related:Engine/Blueprints/UserGuide/EventDispatcher
+Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related:Engine/Blueprints/UserGuide
+
+[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、 Event Dispatcher が呼び出されると、結びついているイベントも呼び出されて、 1 つのソースから複数のイベントを一度に実行することができます。 
+
+このページは、イベントディスパッチャーの設定方法およびイベントとイベントディスパッチャーをバインドする方法を紹介します。 
+
+このサンプルでは、プレイヤーはキーを押して、炎のパーティクル エフェクトを茂みの中でスポーンさせることができます。 
+
+[REGION:note]
+このユーザーガイドでは **スターターコンテンツ** を有効にして、 **Blueprint Third Person** テンプレートを使用しています。 
+[/REGION]
+
+1. **コンテンツ ブラウザ** の **Content/ThirdPersonBP/Blueprints** フォルダから **ThirdPersonCharacter** ブループリントを開きます。 
+
+	![](EventD_1.png)
+
+1.	[**My Blueprint**] ウィンドウで、 [**Add Event Dispatcher**] ボタンをクリックして **StartFire** と名前を入力します。 
+
+	![](EventD_2.png)
+
+1.	グラフ ウィンドウを **右クリック** して、 **F** キーイベントを追加します。
+
+1.	**StartFire** Event Dispatcher をグラフへドラッグして **Call** を選択します。 
+
+	![](EventD_3.png)
+
+1.	**F** キーイベントを **Call StartFire** イベントディスパッチャーへ接続します。 
+
+	![](EventD_4.png)
+
+	**F** キーが押されるたびに、このイベントディスパッチャーに結合しているイベントを設定したブループリントも実行されます。 
+
+1.	**コンパイル** および **保存** を行ってからブループリントを閉じます。 
+
+1.	**コンテンツブラウザ** の **Content/StarterContent/Props** 階層にある **SM_Bush** をレベルへドラッグします。 
+
+	![](EventD_5.png)(w:820)
+
+1.	メインツールバーで [ブループリント] ボタンをクリックして、次に **Open Level Blueprint(Levelブループリントを開く)** をクリックします。 
+
+	![](EventD_6.png)
+
+1.	グラフ内で **右クリック** し、[**Create a Reference to SM_Bush**] ノードを選択します。 
+
+	![](EventD_7.png)
+
+	ここでレベル内の SM_Bush へのリファレンスを取得します。 
+
+	[REGION:note]
+	上図のようなノードが表示されない場合は、レベル内で **SM_Bush** を選択してから、もう一度同じ操作を行ってください。 
+	[/REGION]
+
+1.	グラフ内を **右クリック** して、 **Event Begin Play** ノードと **Get Player Character** ノードを追加します。 
+
+1.	**Get Player Character** ノードを引き出して、 **Cast To ThirdPersonCharacter** ノードを検索してこれに追加します。 
+
+	![](EventD_8.png)
+
+	これにより **ThirdPersonCharacter** ブループリント内のイベント、関数、変数、プロパティにアクセスすることができます。 
+
+	[REGION:note]
+	Blueprint Cast ノードに関する詳細は、 [](Engine/Blueprints/UserGuide/CastNodes) のドキュメントをご覧ください。 
+	[/REGION]
+
+1.	 **As Third Person Character** ピンを引き出して、 **Assign Start Fire** ノードを検索してこれと使用します。 
+
+	![](EventD_9.png)
+
+	これにより、 **Bind Event** ノードと **Custom Event** ノードの 2 つノードが新規作成されます。Character ブループリントで Event Dispatcher が呼び出されるたびに、このイベントとバインドしているため、 Custom Event および Event Dispatcher に結合しているすべてのものが実行されます。Event Dispatcher に結合しているイベントが設定されたブループリントもすべて実行されます。 
+
+1.	 **Custom Event** を引き出して、 **Spawn Actor from Class** ノードに追加します (**Class** は **Blueprint_Effect_Fire** に設定)。 
+
+1.	**SM_Bush** と Get Actor Transform を接続して、Spawn Actor ノードの **Spawn Transform** として使います。 
+
+	![](EventD_10.png)
+
+	ノードがすべて接続すると、このようになります。 
+
+1.	 **Compile** をクリックして、Level ブループリントを閉じてから **Play** をクリックしてエディタで再生します。 
+
+	![](EventD_11.png)(w:640)
+
+	**F** キーを押すと炎のエフェクトが茂みの中でスポーンします。 
+
+Event Dispatcher を使った作業およびサンプル ユースケースの詳細については、以下の **Related Topics** を参照してください。 
+
+
+

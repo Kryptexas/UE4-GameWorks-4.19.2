@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:2611017
+Availability:Public
+Title:삼성 기어 VR 글로벌 메뉴 HUD 생성
+Crumbs:%ROOT%, Platforms/GearVR
+Description:기어 VR 프로젝트에 사용할 새 HUD 를 만드는 법 안내입니다.
+Navigation:platform
+Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[퀵스타트 홈](Platforms\GearVR\GlobalMenu)
+	[/PARAM]
+	[PARAM:next]
+		[다음 단계](Platforms\GearVR\GlobalMenu\2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+
+글로벌 메뉴 HUD 제작을 시작하기 전, 먼저 만들 블루프린트 코드를 저장할 수 있도록 HUD 액터를 새로 만들어 줘야 합니다.
+이 퀵스타트 다음 섹션에서는 기어 VR 프로젝트에 새 HUD 를 만드는 법에 대해 알아보겠습니다.
+
+1. 먼저 **콘텐츠 브라우저** 에 **우클릭** 한 뒤 **기본 애셋 생성** 섹션에서 **블루프린트 클래스** 옵션을 선택하여 새 HUD 를 만듭니다.
+	
+	![](T_Create_New_BP.png)
+
+1. **부모 클래스 선택** 메뉴에서 **검색** 칸에 **HUD** 라 입력한 뒤 **HUD** 클래스를 선택합니다.
+
+	![](T_Find&Select_HUD.png)
+
+1. 생성되고나면 HUD 에 이름을 짓습니다. 이 예제에서는 블루프린트 HUD 이름을 **GearVR_GlobalMenu** 라 하겠습니다.
+
+	![](T_Named_HUD.png)
+
+
+%Steps%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -53,6 +53,7 @@ namespace CrowdDebugDrawing
 
 	const FColor Corner(128, 0, 0);
 	const FColor CornerLink(192, 0, 0);
+	const FColor CornerFixed(192, 192, 0);
 	const FColor CollisionRange(192, 0, 128);
 	const FColor CollisionSeg0(192, 0, 128);
 	const FColor CollisionSeg1(96, 0, 64);
@@ -138,6 +139,7 @@ UCrowdManager::UCrowdManager(const FObjectInitializer& ObjectInitializer) : Supe
 	PathOptimizationInterval = 0.5f;
 	bSingleAreaVisibilityOptimization = true;
 	bPruneStartedOffmeshConnections = false;
+	bEarlyReachTestOptimization = false;
 	bResolveCollisions = false;
 	
 	FCrowdAvoidanceConfig AvoidanceConfig11;		// 11 samples, ECrowdAvoidanceQuality::Low
@@ -864,6 +866,7 @@ void UCrowdManager::CreateCrowdManager()
 		DetourCrowd->setAgentCheckInterval(NavmeshCheckInterval);
 		DetourCrowd->setSingleAreaVisibilityOptimization(bSingleAreaVisibilityOptimization);
 		DetourCrowd->setPruneStartedOffmeshConnections(bPruneStartedOffmeshConnections);
+		DetourCrowd->setEarlyReachTestOptimization(bEarlyReachTestOptimization);
 
 		DetourCrowd->initAvoidance(MaxAvoidedAgents, MaxAvoidedWalls, FMath::Max(SamplingPatterns.Num(), 1));
 
@@ -1123,13 +1126,33 @@ void UCrowdManager::DebugTick() const
 
 			if (CrowdAgent && LogOwner)
 			{
+				FString LogData = DetourAgentDebug->agentLog.FindRef(AgentData.AgentIndex);
+				if (LogData.Len() > 0)
+				{
+					UE_VLOG(LogOwner, LogCrowdFollowing, Log, *LogData);
+				}
+
 				{
 					FVector P0 = Recast2UnrealPoint(CrowdAgent->npos);
 					for (int32 Idx = 0; Idx < CrowdAgent->ncorners; Idx++)
 					{
 						FVector P1 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[Idx * 3]);
 						UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, P0 + CrowdDebugDrawing::Offset, P1 + CrowdDebugDrawing::Offset, CrowdDebugDrawing::Corner, TEXT(""));
+						UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P1 + CrowdDebugDrawing::Offset, FVector(2, 2, 2)), CrowdDebugDrawing::Corner, TEXT(""));
 						P0 = P1;
+					}
+				}
+
+				ARecastNavMesh* RecastNavData = Cast<ARecastNavMesh>(MyNavData);
+				if (RecastNavData)
+				{
+					for (int32 Idx = 0; Idx < CrowdAgent->corridor.getPathCount(); Idx++)
+					{
+						dtPolyRef PolyRef = CrowdAgent->corridor.getPath()[Idx];
+						TArray<FVector> PolyPoints;
+						RecastNavData->GetPolyVerts(PolyRef, PolyPoints);
+
+						UE_VLOG_CONVEXPOLY(LogOwner, LogCrowdFollowing, Verbose, PolyPoints, FColor::Cyan, TEXT(""));
 					}
 				}
 
@@ -1137,6 +1160,18 @@ void UCrowdManager::DebugTick() const
 				{
 					FVector P0 = Recast2UnrealPoint(&CrowdAgent->cornerVerts[(CrowdAgent->ncorners - 1) * 3]);
 					UE_VLOG_SEGMENT(LogOwner, LogCrowdFollowing, Log, P0, P0 + CrowdDebugDrawing::Offset * 2.0f, CrowdDebugDrawing::CornerLink, TEXT(""));
+				}
+
+				if (CrowdAgent->corridor.hasNextFixedCorner())
+				{
+					FVector P0 = Recast2UnrealPoint(CrowdAgent->corridor.getNextFixedCorner());
+					UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P0 + CrowdDebugDrawing::Offset, FVector(10, 10, 10)), CrowdDebugDrawing::CornerFixed, TEXT(""));
+				}
+
+				if (CrowdAgent->corridor.hasNextFixedCorner2())
+				{
+					FVector P0 = Recast2UnrealPoint(CrowdAgent->corridor.getNextFixedCorner2());
+					UE_VLOG_BOX(LogOwner, LogCrowdFollowing, Log, FBox::BuildAABB(P0 + CrowdDebugDrawing::Offset, FVector(10, 10, 10)), CrowdDebugDrawing::CornerFixed, TEXT(""));
 				}
 
 				for (int32 Idx = 0; Idx < CrowdAgent->boundary.getSegmentCount(); Idx++)
@@ -1151,6 +1186,8 @@ void UCrowdManager::DebugTick() const
 			}
 		}
 	}
+
+	DetourAgentDebug->agentLog.Reset();
 #endif	// WITH_RECAST
 }
 

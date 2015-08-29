@@ -88,10 +88,11 @@ void FRCPassPostProcessPassThrough::Process(FRenderingCompositePassContext& Cont
 
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DestSize = Dest ? Dest->GetDesc().Extent : PassOutputs[0].RenderTargetDesc.Extent;
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
-	uint32 InputScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / SrcSize.X;
-	uint32 OutputScaleFactor = GSceneRenderTargets.GetBufferSizeXY().X / DestSize.X;
+	uint32 InputScaleFactor = SceneContext.GetBufferSizeXY().X / SrcSize.X;
+	uint32 OutputScaleFactor = SceneContext.GetBufferSizeXY().X / DestSize.X;
 
 	FIntRect SrcRect = View.ViewRect / InputScaleFactor;
 	FIntRect DestRect = View.ViewRect / OutputScaleFactor;
@@ -150,7 +151,7 @@ FPooledRenderTargetDesc FRCPassPostProcessPassThrough::ComputeOutputDesc(EPassOu
 	// we assume this pass is additively blended with the scene color so an intermediate is not always needed
 	if(!Dest)
 	{
-		Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+		Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 		if(NewDesc.IsValid())
 		{

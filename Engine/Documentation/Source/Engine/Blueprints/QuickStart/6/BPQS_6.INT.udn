@@ -1,7 +1,7 @@
 Availability: Public
 Title:6. Launch Your Character
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:With a number of Actors placed and customized, one of the final steps for creating any level is the Build Process.
+Description:Set up the actual launching behavior with a Launch Character node.
 
 
 

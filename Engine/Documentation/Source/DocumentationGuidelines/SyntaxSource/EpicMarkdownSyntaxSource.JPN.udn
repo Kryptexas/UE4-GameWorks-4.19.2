@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2033300
-Availability:Docs
+﻿Availability:Docs
 Title:
 Crumbs:
 Description:
@@ -50,18 +49,18 @@ Description:
 	ユーザはドキュメント内へリンクするブックマークを付けるだけでなく、ドキュメント内のヘッダにもリンクを付けることができます。
 
 	#### Markdown 記法
-		ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown 記法](#Markdown記法) [Markdown 記法2](#Markdown記法2) [Markdown 記法3](#Markdown記法3) 
+		ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown 記法](#Markdown記法) [Markdown 記法2](#Markdown記法2) [Markdown 記法3](#Markdown記法3) 
 		ドキュメント内にユーザー定義のブックマークをリンク付けした例です [ブックマーク 1](#ブックマーク1)。
 		(#ブックマーク1) ブックマーク テキストは行頭文字でなければなりません。
 
 	#### HTML 出力
-		<p> ファイル内の見出しにリンク付けした例です <a href="#AutogenerationofTableofContents">Auto generation of Table of Contents</a>.ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます <a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>
+		<p> ファイル内の見出しにリンク付けした例です <a href="#AutogenerationofTableofContents">Auto generation of Table of Contents</a>.ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます <a href="#MarkdownSyntax">Markdown Syntax 1</a> <a href="#MarkdownSyntax2">Markdown Syntax 2</a> <a href="#MarkdownSyntax3">Markdown Syntax 3</a> </p>
 		<p>ドキュメント内にユーザー定義のブックマークをリンク付けした例です <a href="#Bookmark1">Bookmark 1</a>.</p>
 		<p><a id="Bookmark1"/> ブックマーク テキストは行頭文字でなければなりません。</p>
 
 	#### 結果
 
-	ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、 1 つ以上のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown 記法](#Markdown記法) [Markdown 記法2](#Markdown記法2) [Markdown 記法3](#Markdown記法3) 
+	ファイル [目次と見出しの自動生成](#目次と見出しの自動生成) 内の見出しにリンクを付けた例です。ヘッダ テキストはテキスト内のスペースを削除するとリンク付けされます。さらに、複数のヘッダに同じ名前が付いている場合、後に続くヘッダの名前の後にスペースをいれずに 2,3 などを付けて参照できます [Markdown 記法](#Markdown記法) [Markdown 記法2](#Markdown記法2) [Markdown 記法3](#Markdown記法3) 
 
 	ドキュメント内にユーザー定義のブックマークをリンク付けした例です [ブックマーク 1](#ブックマーク1)。
 
@@ -107,7 +106,7 @@ Description:
 	*  画像情報の後に (w: h: a: convert: type: quality: fill: ) を用いて以下を示します。
 		* 	**w:** 幅
 		*	**h:** 高さ
-		*	**a:** は、左、右、通常（初期値）のフロートスタイルが画像に指定されていることを表します。
+		*	**a:** は、左、右、通常 (初期値) のフロートスタイルが画像に指定されていることを表します。
 		*  **convert:** は、画像を異なるタイプに圧縮 / 変換すべきかを false または true で表します。
 		*	**type:** は jpg 、png 、gif のいずれかになります。
 		*	**quality:** は圧縮の品質が jpeg となります。
@@ -115,7 +114,7 @@ Description:
 	*	 オプションの順番は重要ですが、それぞれ任意で省略可能、または画像情報の後ろのブラケットをまるまる省略することが可能です。
 	*  変換パラメータがない場合、「 app.config 」ファイルのデフォルト値が使用されます。
 	*	 既存の Markdown 画像包含方法であるインライン方法と参照方法は、両方とも拡張して初期化に対応しています。
-	* 画像を右または左に並べると、新しいセクションの開始時にヘッダが関係のない画像の横に流れるなど、関係のないコンテンツに画像が囲まれてしまうことがあります。その場合、テキストは画像の横に配置されます。clear: both; を指定しフロートスタイルを解除するためにスタイルシート要素を使用すると、現在の見出しレベル 1 、2  と hr 要素の回り込みが解除されます。
+	* 画像を右または左に並べると、新しいセクションの開始時にヘッダが関係のない画像の横に流れるなど、関係のないコンテンツに画像が囲まれてしまうことがあります。その場合、テキストは画像の横に配置されます。`clear: both;` を指定しフロートスタイルを解除するためにスタイルシート要素を使用すると、現在の見出しレベル 1 、2  と hr 要素の回り込みが解除されます。
 
 
 	#### Markdown 記法
@@ -126,8 +125,8 @@ Description:
 		[REGION:clear]
 			<!-- clear float -->
 		[/REGION]    
-	#### HTML 出力
 
+	#### HTML 出力
 		<p>右 <img style="float: right;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> 指定フロート、高さ、幅をブランクのままにしたインライン イメージです。</p>
 		<p>幅、高さ、左をフローとにしたリファレンス イメージ <img width="50" height="50" style="float: left;" title="Here's a title" alt="Epic Logo" src="./../../../images\EpicMarkdownDocGuides\EpicMarkdownExtension\Logo_Epic-New.jpg"/> です。</p>
 		<p>段落内のテキストは画像に平行になります。特別な div 要素がフロートの終わりにきます。</p>
@@ -174,8 +173,8 @@ Description:
 		 Content      |      **Cell**  |         Cell  |  
 		 New section  |     More       |         Data  |  
 			 ^        |            And more           || 
-	
-                [Table 2 - Headers to the right]  				  
+
+	[Table 2 - Headers to the right]  				  
 		| ------------ | :------------: | ------------: |  
 		|  Content      |          *Long Cell*          ||  
 		|  Content      |      **Cell**  |         Cell  |  
@@ -287,7 +286,7 @@ Description:
 	メタデータはすべてドキュメントのヘッダにある <meta name="Key" content="Value"/> html ブロックに置かれます。
 	上記以外にも特殊な機能をもつキーがあります。
 
-	* タイトルメタデータはヘッダブロック <title>タイトル</title> で使用されます。
+	* タイトルメタデータはヘッダブロック `<title>Title</title>` で使用されます。
 	* HtmlDocumentType のメタデータは、 「include/templates」 フォルダの中で html 生成に使用するテンプレートを定義するために使用されます。テンプレートがない場合は、 default.html テンプレートファイルを使用します。
 	* DoIndex:false からインデクサに、インデックスからドキュメントを排除し結果を検索するよう指示がでます。文書はすべて true がデフォルト値になっています。
 	* ForcePublishFiles: を使用して、添付と画像を「 html 」フォルダに強制的に公開することができます。

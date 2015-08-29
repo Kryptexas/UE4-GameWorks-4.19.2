@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2425316
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:アクタの変形
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -202,9 +202,9 @@ w:300
 
 ### スナッピングの環境設定
 
-Drag Grid、Rotation Grid、Scale Grid の全ての設定は [Editor Preferences] パネルから行います。スナップ動作も一緒に設定できるものも幾つかあります。 
+Drag Grid、Rotation Grid、Scale Grid の全ての設定は [Editor Preferences (エディタの環境設定)] パネルから行います。スナップ動作も一緒に設定できるものも幾つかあります。 
 
-これらの環境設定は、メインのメニューバーから **[編集] > [エディタの環境設定] > [ビューポート]** を選択してから **[スナップ]** カテゴリまでスクロールします。
+これらの環境設定は、メインのメニューバーから **[Edit] > [Editor Preferences] > [Viewports]** を選択してから **[Snap]** (スナップ) カテゴリまでスクロールします。
 
 ![](SnapSettings.png)
 
@@ -250,3 +250,8 @@ Drag Grid、Rotation Grid、Scale Grid を使用する場合、それぞれの�
 
 
 %playlistnav%
+
+
+
+
+

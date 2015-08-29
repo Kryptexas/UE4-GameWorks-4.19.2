@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 11. Make a Service
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 11. Make a Service
@@ -20,6 +20,13 @@ Description:Step 11. Make a Service
 [/VAR]
 
 %Steps%
+
+**Services** attach to [**Composite**](Engine/AI/BehaviorTrees/NodeReference/Composites) nodes, and will execute at their defined frequency as long as their branch is being executed. These are often used to make checks and to update the Blackboard. These take the place of traditional Parallel nodes in other Behavior Tree systems
+
+In this case, the service is going to look for any **Pawn** that is not an AI Character, then set the TargetToFollow and TargetLocation Blackboard keys.
+
+
+## Steps
 
 1. Open the FollowerBT Behavior Tree by **Double-clicking** it in the **Content Browser**.
 1. Click New Service ![](newService_button.png) button.
@@ -1842,3 +1849,8 @@ Here is what is going on in this graph:
 	   NodeGuid=B9509E964D83708F1D879CB7BE225B27
 	End Object
 [/VAR]
+
+
+
+
+

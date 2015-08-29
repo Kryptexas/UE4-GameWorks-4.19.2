@@ -30,6 +30,7 @@ public:
 	TSharedPtr< FUICommandInfo > AddCodeToProject;
 	TSharedPtr< FUICommandInfo > OpenIDE;
 	TSharedPtr< FUICommandInfo > RefreshCodeProject;
+	TSharedPtr< FUICommandInfo > ZipUpProject;
 	TSharedPtr< FUICommandInfo > PackagingSettings;
 	TSharedPtr< FUICommandInfo > LocalizeProject;
 	TArray< TSharedPtr< FUICommandInfo > > SwitchProjectCommands;
@@ -181,6 +182,9 @@ public:
 
 	/** Opens an IDE to edit c++ code */
 	static void OpenIDE();
+
+	/** Zips up the project */
+	static void ZipUpProject();
 
 	/** Opens the Packaging settings tab */
 	static void PackagingSettings();

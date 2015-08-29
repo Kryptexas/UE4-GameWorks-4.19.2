@@ -56,7 +56,7 @@ static FAutoConsoleVariableRef CVarCacheUpdateEveryFrame(
 	ECVF_RenderThreadSafe
 	);
 
-float GSingleSampleTransitionSpeed = 400;
+float GSingleSampleTransitionSpeed = 800;
 static FAutoConsoleVariableRef CVarSingleSampleTransitionSpeed(
 	TEXT("r.Cache.SampleTransitionSpeed"),
 	GSingleSampleTransitionSpeed,
@@ -156,7 +156,8 @@ void FIndirectLightingCache::InitDynamicRHI()
 			CacheSize,
 			CacheSize,
 			CacheSize,
-			PF_FloatRGBA, 
+			PF_FloatRGBA,
+			FClearValueBinding::None,
 			Flags,
 			TexCreate_None,
 			false, 
@@ -317,10 +318,10 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::AllocatePrimitive(cons
 {
 	const bool bPointSample = PrimitiveSceneInfo->Proxy->GetIndirectLightingCacheQuality() == ILCQ_Point || bUnbuiltPreview;
 	const int32 BlockSize = bPointSample ? 1 : GLightingCacheMovableObjectAllocationSize;
-	return PrimitiveAllocations.Add(PrimitiveSceneInfo->PrimitiveComponentId, CreateAllocation(BlockSize, PrimitiveSceneInfo->Proxy->GetBounds(), bPointSample));
+	return PrimitiveAllocations.Add(PrimitiveSceneInfo->PrimitiveComponentId, CreateAllocation(BlockSize, PrimitiveSceneInfo->Proxy->GetBounds(), bPointSample, bUnbuiltPreview));
 }
 
-FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample)
+FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample, bool bUnbuiltPreview)
 {
 	check(BlockSize > 1 || bPointSample);
 
@@ -340,7 +341,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::CreateAllocation(int32
 		CalculateBlockScaleAndAdd(NewBlock.MinTexel, NewBlock.TexelSize, NewBlock.Min, NewBlock.Size, Scale, Add, MinUV, MaxUV);
 
 		VolumeBlocks.Add(NewBlock.MinTexel, NewBlock);
-		NewAllocation->SetParameters(NewBlock.MinTexel, NewBlock.TexelSize, Scale, Add, MinUV, MaxUV, bPointSample);
+		NewAllocation->SetParameters(NewBlock.MinTexel, NewBlock.TexelSize, Scale, Add, MinUV, MaxUV, bPointSample, bUnbuiltPreview);
 	}
 
 	return NewAllocation;
@@ -370,7 +371,7 @@ FIndirectLightingCacheAllocation* FIndirectLightingCache::FindPrimitiveAllocatio
 
 void FIndirectLightingCache::UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview)
 {
-	if (IsIndirectLightingCacheAllowed(GetFeatureLevel()))
+	if (IsIndirectLightingCacheAllowed(GetFeatureLevel()) && Scene->PrecomputedLightVolumes.Num() > 0)
 	{
 		bool bAnyViewAllowsIndirectLightingCache = false;
 
@@ -441,6 +442,7 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 	const FBoxSphereBounds& Bounds, 
 	int32 BlockSize,
 	bool bPointSample,
+	bool bUnbuiltPreview,
 	FIndirectLightingCacheAllocation*& Allocation, 
 	TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate,
 	TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate)
@@ -467,7 +469,7 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 			FVector MaxUV;
 			CalculateBlockScaleAndAdd(Allocation->MinTexel, Allocation->AllocationTexelSize, NewMin, NewSize, NewScale, NewAdd, MinUV, MaxUV);
 
-			Allocation->SetParameters(Allocation->MinTexel, Allocation->AllocationTexelSize, NewScale, NewAdd, MinUV, MaxUV, bPointSample);
+			Allocation->SetParameters(Allocation->MinTexel, Allocation->AllocationTexelSize, NewScale, NewAdd, MinUV, MaxUV, bPointSample, bUnbuiltPreview);
 			BlocksToUpdate.Add(Block.MinTexel, FBlockUpdateInfo(Block, Allocation));
 		}
 
@@ -479,7 +481,7 @@ void FIndirectLightingCache::UpdateCacheAllocation(
 	else
 	{
 		delete Allocation;
-		Allocation = CreateAllocation(BlockSize, Bounds, bPointSample);
+		Allocation = CreateAllocation(BlockSize, Bounds, bPointSample, bUnbuiltPreview);
 
 		if (Allocation->IsValid())
 		{
@@ -530,7 +532,7 @@ void FIndirectLightingCache::UpdateCachePrimitive(
 			const int32 BlockSize = bPointSample ? 1 : GLightingCacheMovableObjectAllocationSize;
 
 			// Light with the cumulative bounds of the entire attachment group
-			UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bPointSample, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
+			UpdateCacheAllocation(PrimitiveSceneInfo->GetAttachmentGroupBounds(), BlockSize, bPointSample, bUnbuiltPreview, PrimitiveAllocation, BlocksToUpdate, TransitionsOverTimeToUpdate);
 
 			// Cache the primitive allocation pointer on the FPrimitiveSceneInfo for base pass rendering
 			PrimitiveSceneInfo->IndirectLightingCacheAllocation = PrimitiveAllocation;
@@ -573,7 +575,8 @@ void FIndirectLightingCache::UpdateTransitionsOverTime(const TArray<FIndirectLig
 
 		if (TransitionDistance > DELTA)
 		{
-			// Compute a frame rate independent transition by maintaining a constant world space speed between the current sample position and the target position
+			// Transition faster for unbuilt meshes which is important for meshing visualization
+			const float EffectiveTransitionSpeed = GSingleSampleTransitionSpeed * (Allocation->bUnbuiltPreview ? 4 : 1);
 			const float LerpFactor = FMath::Clamp(GSingleSampleTransitionSpeed * DeltaWorldTime / TransitionDistance, 0.0f, 1.0f);
 			Allocation->SingleSamplePosition = FMath::Lerp(Allocation->SingleSamplePosition, Allocation->TargetPosition, LerpFactor);
 
@@ -601,6 +604,7 @@ void FIndirectLightingCache::SetLightingCacheDirty()
 	for (TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*>::TIterator It(PrimitiveAllocations); It; ++It)
 	{
 		It.Value()->bIsDirty = true;
+		It.Value()->bHasEverUpdatedSingleSample = false;
 	}
 	
 	// next rendering we update all entries no matter if they are visible to avoid further hitches

@@ -43,6 +43,13 @@ DEFINE_LOG_CATEGORY(LogPlayerController);
 
 #define LOCTEXT_NAMESPACE "PlayerController"
 
+DECLARE_STATS_GROUP(TEXT("PlayerController"), STATGROUP_PlayerController, STATCAT_Advanced);
+DECLARE_CYCLE_STAT(TEXT("PC Tick Actor"), STAT_PC_TickActor, STATGROUP_PlayerController);
+DECLARE_CYCLE_STAT(TEXT("  PC Tick Input"), STAT_PC_TickInput, STATGROUP_PlayerController);
+DECLARE_CYCLE_STAT(TEXT("    PC Build Input Stack"), STAT_PC_BuildInputStack, STATGROUP_PlayerController);
+DECLARE_CYCLE_STAT(TEXT("    PC Process Input Stack"), STAT_PC_ProcessInputStack, STATGROUP_PlayerController);
+
+
 const float RetryClientRestartThrottleTime = 0.5f;
 const float RetryServerAcknowledgeThrottleTime = 0.25f;
 const float RetryServerCheckSpectatorThrottleTime = 0.25f;
@@ -329,44 +336,11 @@ void APlayerController::SetNetSpeed(int32 NewSpeed)
 	}
 }
 
-FString APlayerController::ConsoleCommand(const FString& Cmd,bool bWriteToLog)
+FString APlayerController::ConsoleCommand(const FString& Cmd, bool bWriteToLog)
 {
-	if (Player != NULL)
+	if (Player != nullptr)
 	{
-		UConsole* ViewportConsole = (GEngine->GameViewport != NULL) ? GEngine->GameViewport->ViewportConsole : NULL;
-		FConsoleOutputDevice StrOut(ViewportConsole);
-
-		const int32 CmdLen = Cmd.Len();
-		TCHAR* CommandBuffer = (TCHAR*)FMemory::Malloc((CmdLen+1)*sizeof(TCHAR));
-		TCHAR* Line = (TCHAR*)FMemory::Malloc((CmdLen+1)*sizeof(TCHAR));
-
-		const TCHAR* Command = CommandBuffer;
-		// copy the command into a modifiable buffer
-		FCString::Strcpy(CommandBuffer, (CmdLen+1), *Cmd.Left(CmdLen)); 
-		
-		// iterate over the line, breaking up on |'s
-		while (FParse::Line(&Command, Line, CmdLen+1))	// The FParse::Line function expects the full array size, including the NULL character.
-		{
-			if (Player)
-			{
-				if(!Player->Exec( GetWorld(), Line, StrOut))
-				{
-					StrOut.Logf(TEXT("Command not recognized: %s"), Line);
-				}
-			}
-		}
-
-		// Free temp arrays
-		FMemory::Free(CommandBuffer);
-		CommandBuffer=NULL;
-
-		FMemory::Free(Line);
-		Line=NULL;
-
-		if (!bWriteToLog)
-		{
-			return *StrOut;
-		}
+		return Player->ConsoleCommand(Cmd, bWriteToLog);
 	}
 
 	return TEXT("");
@@ -724,7 +698,7 @@ void APlayerController::ClientRestart_Implementation(APawn* NewPawn)
 	if ( GetPawn() == NULL )
 	{
 		// We failed to possess, ask server to verify and potentially resend the pawn
-		ServerCheckClientPossession();
+		ServerCheckClientPossessionReliable();
 		return;
 	}
 
@@ -778,7 +752,7 @@ void APlayerController::Possess(APawn* PawnToPossess)
 		SetPawn(PawnToPossess);
 		check(GetPawn() != NULL);
 
-		if (GetPawn() != NULL)
+		if (GetPawn() && GetPawn()->PrimaryActorTick.bStartWithTickEnabled)
 		{
 			GetPawn()->SetActorTickEnabled(true);
 		}
@@ -1277,7 +1251,7 @@ void APlayerController::OnNetCleanup(UNetConnection* Connection)
 void APlayerController::ClientReceiveLocalizedMessage_Implementation( TSubclassOf<ULocalMessage> Message, int32 Switch, APlayerState* RelatedPlayerState_1, APlayerState* RelatedPlayerState_2, UObject* OptionalObject )
 {
 	// Wait for player to be up to date with replication when joining a server, before stacking up messages
-	if ( GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL )
+	if (GetNetMode() == NM_DedicatedServer || GetWorld()->GameState == NULL || Message == NULL)
 	{
 		return;
 	}
@@ -1611,9 +1585,9 @@ void APlayerController::LocalTravel( const FString& FURL )
 void APlayerController::ClientReturnToMainMenu_Implementation(const FString& ReturnReason)
 {
 	UWorld* World = GetWorld();
-	if (Player)
+	if (GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		Player->HandleDisconnect(World, World->GetNetDriver());
+		GetGameInstance()->GetOnlineSession()->HandleDisconnect(World, World->GetNetDriver());
 	}
 	else
 	{
@@ -1743,7 +1717,7 @@ bool APlayerController::GetHitResultUnderCursor(ECollisionChannel TraceChannel, 
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -1764,7 +1738,7 @@ bool APlayerController::GetHitResultUnderCursorByChannel(ETraceTypeQuery TraceCh
 		}
 	}
 
-	if(!bHit)	//If there was no hit we reset the results. This is redundent but helps Blueprint users
+	if(!bHit)	//If there was no hit we reset the results. This is redundant but helps Blueprint users
 	{
 		HitResult = FHitResult();
 	}
@@ -1861,114 +1835,66 @@ bool APlayerController::GetHitResultUnderFingerForObjects(ETouchIndex::Type Fing
 
 bool APlayerController::DeprojectMousePositionToWorld(FVector& WorldLocation, FVector& WorldDirection) const
 {
-	bool bSuccessfulDeproject = false;
-
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-	if (LocalPlayer && LocalPlayer->ViewportClient )
+	ULocalPlayer* const LocalPlayer = GetLocalPlayer();
+	if (LocalPlayer && LocalPlayer->ViewportClient)
 	{
 		FVector2D ScreenPosition;
 		if (LocalPlayer->ViewportClient->GetMousePosition(ScreenPosition))
 		{
-			bSuccessfulDeproject = DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, WorldLocation, WorldDirection);
-		}
-	}
-
-	return bSuccessfulDeproject;
-}
-
-bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const
-{
-	bool bSuccessfulDeproject = false;
-
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-
-	if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->Viewport)
-	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(true));
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport);
-
-		if (SceneView)
-		{
-			const FVector2D ScreenPosition(ScreenX, ScreenY);
-			SceneView->DeprojectFVector2D(ScreenPosition, WorldLocation, WorldDirection);
-
-			bSuccessfulDeproject = true;
-		}
-	}
-
-	return bSuccessfulDeproject;
-}
-
-
-bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
-{
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
-	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
-
-		if (SceneView) 
-		{
-			return SceneView->WorldToPixel(WorldLocation, ScreenLocation);
+			return UGameplayStatics::DeprojectScreenToWorld(this, ScreenPosition, WorldLocation, WorldDirection);
 		}
 	}
 
 	return false;
 }
 
+bool APlayerController::DeprojectScreenPositionToWorld(float ScreenX, float ScreenY, FVector& WorldLocation, FVector& WorldDirection) const
+{
+	return UGameplayStatics::DeprojectScreenToWorld(this, FVector2D(ScreenX, ScreenY), WorldLocation, WorldDirection);
+}
+
+
+bool APlayerController::ProjectWorldLocationToScreen(FVector WorldLocation, FVector2D& ScreenLocation) const
+{
+	return UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLocation);
+}
+
+bool APlayerController::ProjectWorldLocationToScreenWithDistance(FVector WorldLocation, FVector& ScreenLocation) const
+{
+	FVector2D ScreenLoc2D;
+	if (UGameplayStatics::ProjectWorldToScreen(this, WorldLocation, ScreenLoc2D))
+	{
+		// find distance
+		ULocalPlayer const* const LP = GetLocalPlayer();
+		if (LP && LP->ViewportClient)
+		{
+			// get the projection data
+			FSceneViewProjectionData ProjectionData;
+			if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+			{
+				ScreenLocation = FVector(ScreenLoc2D.X, ScreenLoc2D.Y, FVector::Dist(ProjectionData.ViewOrigin, WorldLocation));
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosition, const ECollisionChannel TraceChannel, const FCollisionQueryParams& CollisionQueryParams, FHitResult& HitResult) const
 {
 	// Early out if we clicked on a HUD hitbox
-	if( GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true) )
+	if (GetHUD() != NULL && GetHUD()->GetHitBoxAtCoordinates(ScreenPosition, true))
 	{
 		return false;
 	}
 
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-
-	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
+	FVector WorldOrigin;
+	FVector WorldDirection;
+	if (UGameplayStatics::DeprojectScreenToWorld(this, ScreenPosition, WorldOrigin, WorldDirection) == true)
 	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
-
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
-
-		if (SceneView)
-		{
-			FVector WorldOrigin;
-			FVector WorldDirection;
-			SceneView->DeprojectFVector2D(ScreenPosition, WorldOrigin, WorldDirection);
-
-			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, TraceChannel, CollisionQueryParams);
-		}
+		return GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, TraceChannel, CollisionQueryParams);
 	}
 
 	return false;
@@ -1994,33 +1920,12 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 		return false;
 	}
 
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
-
-	if (LocalPlayer != NULL && LocalPlayer->ViewportClient != NULL && LocalPlayer->ViewportClient->Viewport != NULL)
+	FVector WorldOrigin;
+	FVector WorldDirection;
+	if (UGameplayStatics::DeprojectScreenToWorld(this, ScreenPosition, WorldOrigin, WorldDirection) == true)
 	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues(
-			LocalPlayer->ViewportClient->Viewport,
-			GetWorld()->Scene,
-			LocalPlayer->ViewportClient->EngineShowFlags )
-			.SetRealtimeUpdate(true) );
-
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		FSceneView* SceneView = LocalPlayer->CalcSceneView( &ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, LocalPlayer->ViewportClient->Viewport );
-
-		if (SceneView)
-		{
-			FVector WorldOrigin;
-			FVector WorldDirection;
-			SceneView->DeprojectFVector2D(ScreenPosition, WorldOrigin, WorldDirection);
-
-			FCollisionObjectQueryParams ObjParam(ObjectTypes);
-			
-			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
-		}
+		FCollisionObjectQueryParams const ObjParam(ObjectTypes);
+		return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HitResultTraceDistance, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
 	}
 
 	return false;
@@ -2357,13 +2262,19 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 
 void APlayerController::ProcessPlayerInput(const float DeltaTime, const bool bGamePaused)
 {
-	// process all input components in the stack, top down
 	TArray<UInputComponent*> InputStack;
 
-	BuildInputStack(InputStack);
+	// process all input components in the stack, top down
+	{
+		SCOPE_CYCLE_COUNTER(STAT_PC_BuildInputStack);
+		BuildInputStack(InputStack);
+	}
 
 	// process the desired components
-	PlayerInput->ProcessInputStack(InputStack, DeltaTime, bGamePaused);
+	{
+		SCOPE_CYCLE_COUNTER(STAT_PC_ProcessInputStack);
+		PlayerInput->ProcessInputStack(InputStack, DeltaTime, bGamePaused);
+	}
 }
 
 void APlayerController::PreProcessInput(const float DeltaTime, const bool bGamePaused)
@@ -2403,7 +2314,11 @@ void APlayerController::SetCinematicMode( bool bInCinematicMode, bool bAffectsMo
 void APlayerController::SetIgnoreMoveInput( bool bNewMoveInput )
 {
 	IgnoreMoveInput = FMath::Max( IgnoreMoveInput + (bNewMoveInput ? +1 : -1), 0 );
-	//`Log("IgnoreMove: " $ IgnoreMoveInput);
+}
+
+void APlayerController::ResetIgnoreMoveInput()
+{
+	IgnoreMoveInput = 0;
 }
 
 bool APlayerController::IsMoveInputIgnored() const
@@ -2411,18 +2326,20 @@ bool APlayerController::IsMoveInputIgnored() const
 	return (IgnoreMoveInput > 0);
 }
 
-
 void APlayerController::SetIgnoreLookInput( bool bNewLookInput )
 {
 	IgnoreLookInput = FMath::Max( IgnoreLookInput + (bNewLookInput ? +1 : -1), 0 );
-	//`Log("IgnoreLook: " $ IgnoreLookInput);
+}
+
+void APlayerController::ResetIgnoreLookInput()
+{
+	IgnoreLookInput = 0;
 }
 
 bool APlayerController::IsLookInputIgnored() const
 {
 	return (IgnoreLookInput > 0);
 }
-
 
 void APlayerController::SetViewTargetWithBlend(AActor* NewViewTarget, float BlendTime, EViewTargetBlendFunction BlendFunc, float BlendExp, bool bLockOutgoing)
 {
@@ -2502,10 +2419,11 @@ void APlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& 
 
 	if (bOverrideAudioListener)
 	{
-		if (AudioListenerComponent != nullptr)
+		USceneComponent* ListenerComponent = AudioListenerComponent.Get();
+		if (ListenerComponent != nullptr)
 		{
-			ViewRotation = AudioListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
-			ViewLocation = AudioListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
+			ViewRotation = ListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
+			ViewLocation = ListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
 		}
 		else
 		{
@@ -2553,6 +2471,17 @@ void APlayerController::ServerCheckClientPossession_Implementation()
 		SafeRetryClientRestart();			
 	}
 }
+
+bool APlayerController::ServerCheckClientPossessionReliable_Validate()
+{
+	return true;
+}
+
+void APlayerController::ServerCheckClientPossessionReliable_Implementation()
+{
+	ServerCheckClientPossession_Implementation();
+}
+
 
 void APlayerController::SafeServerCheckClientPossession()
 {
@@ -2934,7 +2863,6 @@ void APlayerController::ClientForceGarbageCollection_Implementation()
 
 void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject, bool bNewShouldBeLoaded, bool bNewShouldBeVisible, bool bNewShouldBlockOnLoad, int32 LODIndex )
 {
-	//`log( "LevelStreamingStatusChanged: " @ LevelObject @ bNewShouldBeLoaded @ bNewShouldBeVisible @ bNewShouldBeVisible );
 	ClientUpdateLevelStreamingStatus(LevelObject->GetWorldAssetPackageFName(),bNewShouldBeLoaded,bNewShouldBeVisible,bNewShouldBlockOnLoad,LODIndex);
 }
 
@@ -3158,33 +3086,17 @@ void APlayerController::ClientWasKicked_Implementation(const FText& KickReason)
 
 void APlayerController::ClientStartOnlineSession_Implementation()
 {
-	if (IsPrimaryPlayer() && PlayerState)
+	if (IsPrimaryPlayer() && PlayerState && GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
-		if (LP)
-		{
-			UOnlineSession* Session = LP->GetOnlineSession();
-			if (Session)
-			{
-				Session->StartOnlineSession(PlayerState->SessionName);
-			}
-		}
+		GetGameInstance()->GetOnlineSession()->StartOnlineSession(PlayerState->SessionName);
 	}
 }
 
 void APlayerController::ClientEndOnlineSession_Implementation()
 {
-	if (IsPrimaryPlayer() && PlayerState)
+	if (IsPrimaryPlayer() && PlayerState && GetGameInstance() && GetGameInstance()->GetOnlineSession())
 	{
-		ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
-		if (LP)
-		{
-			UOnlineSession* Session = LP->GetOnlineSession();
-			if (Session)
-			{
-				Session->EndOnlineSession(PlayerState->SessionName);
-			}
-		}
+		GetGameInstance()->GetOnlineSession()->EndOnlineSession(PlayerState->SessionName);
 	}
 }
 
@@ -3652,7 +3564,7 @@ void APlayerController::ReceivedGameModeClass(TSubclassOf<AGameMode> GameModeCla
 {
 }
 
-void APlayerController::ReceivedSpectatorClass(TSubclassOf<AGameMode> SpectatorClass)
+void APlayerController::ReceivedSpectatorClass(TSubclassOf<ASpectatorPawn> SpectatorClass)
 {
 	if (IsInState(NAME_Spectating))
 	{
@@ -3671,6 +3583,9 @@ void APlayerController::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > 
 	// But, since they also don't update unless that condition is true, these values won't change, thus won't send
 	// This is a little less efficient, but fits into the new condition system well, and shouldn't really add much overhead
 	DOREPLIFETIME_CONDITION( APlayerController, TargetViewRotation,		COND_OwnerOnly );
+
+	// Replicate SpawnLocation for remote spectators
+	DOREPLIFETIME_CONDITION( APlayerController, SpawnLocation, COND_OwnerOnly );
 }
 
 void APlayerController::SetPawn(APawn* InPawn)
@@ -3736,8 +3651,15 @@ void APlayerController::SetPlayer( UPlayer* InPlayer )
 	ReceivedPlayer();
 }
 
+ULocalPlayer* APlayerController::GetLocalPlayer() const
+{
+	return Cast<ULocalPlayer>(Player);
+}
+
 void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGamePaused)
 {
+	SCOPE_CYCLE_COUNTER(STAT_PC_TickInput);
+
 	check(PlayerInput);
 	PlayerInput->Tick(DeltaSeconds);
 
@@ -3749,9 +3671,15 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 			FHitResult HitResult;
 			bool bHit = false;
 			
-			if (LocalPlayer->ViewportClient->GetMousePosition(MousePosition))
+			UGameViewportClient* ViewportClient = LocalPlayer->ViewportClient;
+
+			// Only send mouse hit events if we're directly over the viewport.
+			if ( ViewportClient->GetGameViewportWidget().IsValid() && ViewportClient->GetGameViewportWidget()->IsDirectlyHovered() )
 			{
-				bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, /*out*/ HitResult);
+				if ( LocalPlayer->ViewportClient->GetMousePosition(MousePosition) )
+				{
+					bHit = GetHitResultAtScreenPosition(MousePosition, CurrentClickTraceChannel, true, /*out*/ HitResult);
+				}
 			}
 
 			UPrimitiveComponent* PreviousComponent = CurrentClickablePrimitive.Get();
@@ -3787,6 +3715,9 @@ void APlayerController::TickPlayerInput(const float DeltaSeconds, const bool bGa
 
 void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FActorTickFunction& ThisTickFunction )
 {
+	SCOPE_CYCLE_COUNTER(STAT_PlayerControllerTick);
+	SCOPE_CYCLE_COUNTER(STAT_PC_TickActor);
+
 	if (TickType == LEVELTICK_PauseTick && !ShouldPerformFullTickWhenPaused())
 	{
 		if (PlayerInput)
@@ -3812,7 +3743,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 		// force physics update for clients that aren't sending movement updates in a timely manner 
 		// this prevents cheats associated with artificially induced ping spikes
 		// skip updates if pawn lost autonomous proxy role (e.g. TurnOff() call)
-		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy)
+		if (GetPawn() && !GetPawn()->IsPendingKill() && GetPawn()->GetRemoteRole() == ROLE_AutonomousProxy && GetPawn()->bReplicateMovement)
 		{
 			INetworkPredictionInterface* NetworkPredictionInterface = Cast<INetworkPredictionInterface>(GetPawn()->GetMovementComponent());
 			if (NetworkPredictionInterface)
@@ -3989,16 +3920,28 @@ void APlayerController::SetSpectatorPawn(class ASpectatorPawn* NewSpectatorPawn)
 	{
 		RemovePawnTickDependency(SpectatorPawn);
 		SpectatorPawn = NewSpectatorPawn;
-		AttachToPawn(SpectatorPawn);
-		AddPawnTickDependency(SpectatorPawn);
-
+		
 		if (NewSpectatorPawn)
 		{
+			// setting to a new valid spectator pawn
+			AttachToPawn(NewSpectatorPawn);
+			AddPawnTickDependency(NewSpectatorPawn);
 			AutoManageActiveCameraTarget(NewSpectatorPawn);
 		}
 		else
 		{
-			AutoManageActiveCameraTarget(this);
+			// clearing the spectator pawn, try to attach to the regular pawn
+			APawn* const Pawn = GetPawn();
+			AttachToPawn(Pawn);
+			AddPawnTickDependency(Pawn);
+			if (Pawn)
+			{
+				AutoManageActiveCameraTarget(Pawn);
+			}
+			else
+			{
+				AutoManageActiveCameraTarget(this);
+			}
 		}
 	}
 }
@@ -4015,7 +3958,8 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = this;
-			SpawnParams.bNoCollisionFail = true;
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
 			SpawnParams.ObjectFlags |= RF_Transient;	// We never want to save spectator pawns into a map
 			SpawnedSpectator = GetWorld()->SpawnActor<ASpectatorPawn>(GameState->SpectatorClass, GetSpawnLocation(), GetControlRotation(), SpawnParams);
 			if (SpawnedSpectator)
@@ -4023,7 +3967,10 @@ ASpectatorPawn* APlayerController::SpawnSpectatorPawn()
 				SpawnedSpectator->SetReplicates(false); // Client-side only
 				SpawnedSpectator->PossessedBy(this);
 				SpawnedSpectator->PawnClientRestart();
-				SpawnedSpectator->SetActorTickEnabled(true);
+				if (SpawnedSpectator->PrimaryActorTick.bStartWithTickEnabled)
+				{
+					SpawnedSpectator->SetActorTickEnabled(true);
+				}
 
 				UE_LOG(LogPlayerController, Verbose, TEXT("Spawned spectator %s [server:%d]"), *GetNameSafe(SpawnedSpectator), GetNetMode() < NM_Client);
 			}
@@ -4550,6 +4497,12 @@ void APlayerController::OnServerStartedVisualLogger_Implementation(bool bIsLoggi
 	FVisualLogger::Get().SetIsRecordingOnServer(bIsLogging);
 	ClientMessage(FString::Printf(TEXT("Visual Loggger is %s."), FVisualLogger::Get().IsRecordingOnServer() ? TEXT("now recording") : TEXT("disabled")));
 #endif
+}
+
+bool APlayerController::ShouldPerformFullTickWhenPaused() const
+{
+	bool bIsInVR = (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsStereoEnabled() && GEngine->HMDDevice->IsHMDConnected());
+	return bIsInVR || bShouldPerformFullTickWhenPaused;
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -8,7 +8,7 @@
 #include "Abilities/Tasks/AbilityTask.h"
 #include "TickableAttributeSetInterface.h"
 #include "GameplayPrediction.h"
-
+#include "GameplayTagResponseTable.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
@@ -22,9 +22,6 @@ void UAbilitySystemComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	/** Allocate an AbilityActorInfo. Note: this goes through a global function and is a SharedPtr so projects can make their own AbilityActorInfo */
-	AbilityActorInfo = TSharedPtr<FGameplayAbilityActorInfo>(UAbilitySystemGlobals::Get().AllocAbilityActorInfo());
-	
 	// Look for DSO AttributeSets (note we are currently requiring all attribute sets to be subobjects of the same owner. This doesn't *have* to be the case forever.
 	AActor *Owner = GetOwner();
 	InitAbilityActorInfo(Owner, Owner);	// Default init to our outer owner
@@ -83,55 +80,15 @@ void UAbilitySystemComponent::OnComponentDestroyed()
 }
 
 void UAbilitySystemComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
-{
+{	
 	SCOPE_CYCLE_COUNTER(STAT_TickAbilityTasks);
-
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	if (IsOwnerActorAuthoritative())
 	{
 		AnimMontage_UpdateReplicatedData();
 	}
 
-	// Because we have no control over what a task may do when it ticks, we must be careful.
-	// Ticking a task may kill the task right here. It could also potentially kill another task
-	// which was waiting on the original task to do something. Since when a tasks is killed, it removes
-	// itself from the TickingTask list, we will make a copy of the tasks we want to service before ticking any
-
-	int32 NumTickingTasks = TickingTasks.Num();
-	int32 NumActuallyTicked = 0;
-	switch(NumTickingTasks)
-	{
-		case 0:
-			break;
-		case 1:
-			if (TickingTasks[0].IsValid())
-			{
-				TickingTasks[0]->TickTask(DeltaTime);
-				NumActuallyTicked++;
-			}
-			break;
-		default:
-			{
-				TArray<TWeakObjectPtr<UAbilityTask> >	LocalTickingTasks = TickingTasks;
-				for (TWeakObjectPtr<UAbilityTask>& TickingTask : LocalTickingTasks)
-				{
-					if (TickingTask.IsValid())
-					{
-						TickingTask->TickTask(DeltaTime);
-						NumActuallyTicked++;
-					}
-				}
-			}
-		break;
-	};
-	
-	// Stop ticking if no more active tasks
-	if (NumActuallyTicked == 0)
-	{
-		TickingTasks.SetNum(0, false);
-		UpdateShouldTick();
-	}
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	for (UAttributeSet* AttributeSet : SpawnedAttributes)
 	{
@@ -164,30 +121,37 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 			}
 		}
 	}
+
+	if (UGameplayTagReponseTable* TagTable = UAbilitySystemGlobals::Get().GetGameplayTagResponseTable())
+	{
+		TagTable->RegisterResponseForEvents(this);
+	}
 }
 
-void UAbilitySystemComponent::UpdateShouldTick()
+bool UAbilitySystemComponent::GetShouldTick() const 
 {
-	bool bHasTickingTasks = (TickingTasks.Num() != 0);
-	bool bHasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
-	bool bHasTickingAttributes = false;
-	for (const UAttributeSet* AttributeSet : SpawnedAttributes)
+	const bool bHasReplicatedMontageInfoToUpdate = (IsOwnerActorAuthoritative() && RepAnimMontageInfo.IsStopped == false);
+	
+	if (bHasReplicatedMontageInfoToUpdate)
 	{
-		const ITickableAttributeSetInterface* TickableAttributeSet = Cast<const ITickableAttributeSetInterface>(AttributeSet);
-		if (TickableAttributeSet && TickableAttributeSet->ShouldTick())
-		{
-			bHasTickingAttributes = true;
-		}
+		return true;
 	}
 
-	if (bHasTickingTasks || bHasReplicatedMontageInfoToUpdate || bHasTickingAttributes)
+	bool bResult = Super::GetShouldTick();	
+	if (bResult == false)
 	{
-		SetActive(true);
+		for (const UAttributeSet* AttributeSet : SpawnedAttributes)
+		{
+			const ITickableAttributeSetInterface* TickableAttributeSet = Cast<const ITickableAttributeSetInterface>(AttributeSet);
+			if (TickableAttributeSet && TickableAttributeSet->ShouldTick())
+			{
+				bResult = true;
+				break;
+			}
+		}
 	}
-	else
-	{
-		SetActive(false);
-	}
+	
+	return bResult;
 }
 
 void UAbilitySystemComponent::SetAvatarActor(AActor* InAvatarActor)
@@ -248,7 +212,7 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbility
 	}
 	
 	OnGiveAbility(OwnedSpec);
-	ActivatableAbilities.MarkArrayDirty();
+	MarkAbilitySpecDirty(OwnedSpec);
 
 	return OwnedSpec.Handle;
 }
@@ -401,7 +365,16 @@ void UAbilitySystemComponent::OnGiveAbility(FGameplayAbilitySpec& Spec)
 		}
 	}
 
-	Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	// If there's already a primary instance, it should be the one to receive the OnGiveAbility call
+	UGameplayAbility* PrimaryInstance = Spec.GetPrimaryInstance();
+	if (PrimaryInstance)
+	{
+		PrimaryInstance->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	}
+	else
+	{
+		Spec.Ability->OnGiveAbility(AbilityActorInfo.Get(), Spec);
+	}
 }
 
 void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
@@ -415,19 +388,22 @@ void UAbilitySystemComponent::OnRemoveAbility(FGameplayAbilitySpec& Spec)
 
 	for (auto Instance : Instances)
 	{
-		if (Instance->IsActive())
+		if (Instance)
 		{
-			// End the ability but don't replicate it, OnRemoveAbility gets replicated
-			Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
-		}
-		else
-		{
-			// Ability isn't active, but still needs to be destroyed
-			if (GetOwnerRole() == ROLE_Authority || Instance->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
+			if (Instance->IsActive())
 			{
-				// Only destroy if we're the server or this isn't replicated. Can't destroy on the client or replication will fail when it replicates the end state
-				AllReplicatedInstancedAbilities.Remove(Instance);
-				Instance->MarkPendingKill();
+				// End the ability but don't replicate it, OnRemoveAbility gets replicated
+				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+			}
+			else
+			{
+				// Ability isn't active, but still needs to be destroyed
+				if (GetOwnerRole() == ROLE_Authority || Instance->GetReplicationPolicy() == EGameplayAbilityReplicationPolicy::ReplicateNo)
+				{
+					// Only destroy if we're the server or this isn't replicated. Can't destroy on the client or replication will fail when it replicates the end state
+					AllReplicatedInstancedAbilities.Remove(Instance);
+					Instance->MarkPendingKill();
+				}
 			}
 		}
 	}
@@ -617,6 +593,9 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 
 	check(Ability);
 	ENetRole OwnerRole = GetOwnerRole();
+
+	// Broadcast that the ability ended
+	AbilityEndedCallbacks.Broadcast(Ability);
 
 	// If AnimatingAbility ended, clear the pointer
 	if (LocalAnimMontageInfo.AnimatingAbility == Ability)
@@ -859,6 +838,22 @@ bool UAbilitySystemComponent::TryActivateAbilitiesByTag(const FGameplayTagContai
 	return bSuccess;
 }
 
+bool UAbilitySystemComponent::TryActivateAbilityByClass(TSubclassOf<UGameplayAbility> InAbilityToActivate, bool bAllowRemoteActivation)
+{
+	bool bSuccess = false;
+
+	for (const FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
+	{
+		if (Spec.Ability == InAbilityToActivate.GetDefaultObject())
+		{
+			bSuccess |= TryActivateAbility(Spec.Handle, bAllowRemoteActivation);
+			break;
+		}
+	}
+
+	return bSuccess;
+}
+
 bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle AbilityToActivate, bool bAllowRemoteActivation)
 {
 	FGameplayTagContainer FailureTags;
@@ -885,8 +880,15 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Abil
 		return false;
 	}
 
+		
 	ENetRole NetMode = ActorInfo->AvatarActor->Role;
-	ensure(NetMode != ROLE_SimulatedProxy);
+
+	// This should only come from button presses/local instigation (AI, etc).
+	if (NetMode == ROLE_SimulatedProxy)
+	{
+		return false;
+	}
+
 	bool bIsLocal = AbilityActorInfo->IsLocallyControlled();
 
 	// Check to see if this a local only or server only ability, if so either remotely execute or fail
@@ -906,9 +908,17 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Abil
 	{
 		if (bAllowRemoteActivation)
 		{
-			// No prediction key, server will assign a server-generated key
-			ServerTryActivateAbility(AbilityToActivate, Spec->InputPressed, FPredictionKey());
-			return true;
+			if (Ability->CanActivateAbility(AbilityToActivate, ActorInfo, nullptr, nullptr, &FailureTags))
+			{
+				// No prediction key, server will assign a server-generated key
+				ServerTryActivateAbility(AbilityToActivate, Spec->InputPressed, FPredictionKey());
+				return true;
+			}
+			else
+			{
+				NotifyAbilityFailed(AbilityToActivate, Ability, FailureTags);
+				return false;
+			}
 		}
 
 		ABILITY_LOG(Log, TEXT("Can't activate ServerOnly or ServerInitiated ability %s when not the server."), *Ability->GetName());
@@ -1018,11 +1028,16 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 		TargetTags = &TriggerEventData->TargetTags;
 	}
 
-	// (Always do a non instanced CanActivate check)
-	if (!Ability->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
 	{
-		NotifyAbilityFailed(Handle, Ability, FailureTags);
-		return false;
+		// If we have an instanced ability, call CanActivateAbility on it.
+		// Otherwise we always do a non instanced CanActivateAbility check using the CDO of the Ability.
+		UGameplayAbility* const CanActivateAbilitySource = InstancedAbility ? InstancedAbility : Ability;
+
+		if (!CanActivateAbilitySource->CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, &FailureTags))
+		{
+			NotifyAbilityFailed(Handle, CanActivateAbilitySource, FailureTags);
+			return false;
+		}
 	}
 
 	// If we're instance per actor and we're already active, don't let us activate again as this breaks the graph
@@ -1055,7 +1070,7 @@ bool UAbilitySystemComponent::InternalTryActivateAbility(FGameplayAbilitySpecHan
 	}
 	else
 	{
-		ABILITY_LOG(Warning, TEXT("TryActivateAbility called when the Spec->ActiveCount >= UINT8_MAX"));
+		ABILITY_LOG(Warning, TEXT("TryActivateAbility %s called when the Spec->ActiveCount (%d) >= UINT8_MAX"), *Ability->GetName(), (int32)Spec->ActiveCount);
 	}
 
 	// Setup a fresh ActivationInfo for this AbilitySpec.
@@ -1341,20 +1356,45 @@ void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHa
 }
 
 //This is only called when ending or canceling an ability in response to a remote instruction.
-void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
+void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled)
 {
 	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
 	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
 	{
-		TArray<UGameplayAbility*> Instances = AbilitySpec->GetAbilityInstances();
-
-		for (auto Instance : Instances)
+		// Handle non-instanced case, which cannot perform prediction key validation
+		if (AbilitySpec->Ability->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::NonInstanced)
 		{
-			// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
-			if (Instance->GetCurrentActivationInfoRef().GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->GetCurrentActivationInfoRef().bCanBeEndedByOtherInstance)
+			// End/Cancel the ability but don't replicate it back to whoever called us
+			if (bWasCanceled)
 			{
-				// End the ability but don't replicate it back to whoever called us
-				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				AbilitySpec->Ability->CancelAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+			}
+			else
+			{
+				AbilitySpec->Ability->EndAbility(AbilityToEnd, AbilityActorInfo.Get(), ActivationInfo, false);
+			}
+		}
+		else
+		{
+			TArray<UGameplayAbility*> Instances = AbilitySpec->GetAbilityInstances();
+
+			for (auto Instance : Instances)
+			{
+				// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
+				if (Instance->GetCurrentActivationInfoRef().GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->GetCurrentActivationInfoRef().bCanBeEndedByOtherInstance)
+				{
+					// End/Cancel the ability but don't replicate it back to whoever called us
+					if (bWasCanceled)
+					{
+						// Since this was a remote cancel, we should force it through. We do not support 'server says ability was cancelled but client disagrees that it can be'.
+						Instance->SetCanBeCanceled(true);
+						Instance->CancelAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+					}
+					else
+					{
+						Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+					}
+				}
 			}
 		}
 	}
@@ -1364,7 +1404,7 @@ void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySp
 {
 	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
 	
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
 }
 
 bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
@@ -1374,12 +1414,12 @@ bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHand
 
 void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
 }
 
 void UAbilitySystemComponent::ServerCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToCancel, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
 }
 
 bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
@@ -1389,7 +1429,7 @@ bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecH
 
 void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToCancel, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
 }
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
@@ -1488,6 +1528,12 @@ void UAbilitySystemComponent::ClientActivateAbilitySucceedWithEventData_Implemen
 
 		// The spec will now be active, and we need to keep track on the client as well.  Since we cannot call TryActivateAbility, which will increment ActiveCount on the server, we have to do this here.
 		++Spec->ActiveCount;
+
+		if (PredictionKey.bIsServerInitiated)
+		{
+			// We have an active server key, set our key equal to it
+			Spec->ActivationInfo.ServerSetActivationPredictionKey(PredictionKey);
+		}
 		
 		if (AbilityToActivate->GetInstancingPolicy() == EGameplayAbilityInstancingPolicy::InstancedPerExecution)
 		{
@@ -1521,7 +1567,8 @@ bool UAbilitySystemComponent::TriggerAbilityFromGameplayEvent(FGameplayAbilitySp
 		return false;
 	}
 
-	const UGameplayAbility* Ability = Spec->Ability;
+	const UGameplayAbility* InstancedAbility = Spec->GetPrimaryInstance();
+	const UGameplayAbility* Ability = InstancedAbility ? InstancedAbility : Spec->Ability;
 	if (!ensure(Ability))
 	{
 		return false;
@@ -1740,7 +1787,8 @@ void UAbilitySystemComponent::BindToInputComponent(UInputComponent* InputCompone
 void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo)
 {
 	UEnum* EnumBinds = BindInfo.GetBindEnum();
-	BlockedAbilityBindings.SetNumZeroed(EnumBinds->NumEnums());
+
+	SetBlockAbilityBindingsArray(BindInfo);
 
 	for(int32 idx=0; idx < EnumBinds->NumEnums(); ++idx)
 	{
@@ -1787,6 +1835,12 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	{
 		GenericConfirmInputID = BindInfo.ConfirmTargetInputID;
 	}
+}
+
+void UAbilitySystemComponent::SetBlockAbilityBindingsArray(FGameplayAbiliyInputBinds BindInfo)
+{
+	UEnum* EnumBinds = BindInfo.GetBindEnum();
+	BlockedAbilityBindings.SetNumZeroed(EnumBinds->NumEnums());
 }
 
 void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
@@ -1984,24 +2038,6 @@ void UAbilitySystemComponent::TargetCancel()
 
 // --------------------------------------------------------------------------
 
-void UAbilitySystemComponent::OnRep_SimulatedTasks()
-{
-	for (UAbilityTask* SimulatedTask : SimulatedTasks)
-	{
-		// Temp check 
-		if (SimulatedTask && SimulatedTask->bTickingTask && TickingTasks.Contains(SimulatedTask) == false)
-		{
-			SimulatedTask->InitSimulatedTask(this);
-			if (TickingTasks.Num() == 0)
-			{
-				UpdateShouldTick();
-			}
-
-			TickingTasks.Add(SimulatedTask);
-		}
-	}
-}
-
 #if ENABLE_VISUAL_LOG
 void UAbilitySystemComponent::ClearDebugInstantEffects()
 {
@@ -2026,6 +2062,14 @@ float UAbilitySystemComponent::PlayMontage(UGameplayAbility* InAnimatingAbility,
 				// It may be a good idea to make this a global policy and 'cancel' the ability.
 				// 
 				// For now, we expect it to end itself when this happens.
+			}
+
+			if (NewAnimMontage->HasRootMotion() && AnimInstance->GetOwningActor())
+			{
+				UE_LOG(LogRootMotion, Log, TEXT("UAbilitySystemComponent::PlayMontage %s, Role: %s")
+					, *GetNameSafe(NewAnimMontage)
+					, *UEnum::GetValueAsString(TEXT("Engine.ENetRole"), AnimInstance->GetOwningActor()->Role)
+					);
 			}
 
 			LocalAnimMontageInfo.AnimMontage = NewAnimMontage;
@@ -2218,13 +2262,13 @@ void UAbilitySystemComponent::OnRep_ReplicatedAnimMontage()
 			bool ReplicatedIsStopped = bool(RepAnimMontageInfo.IsStopped);
 			if( ReplicatedIsStopped && !bIsStopped )
 			{
-				CurrentMontageStop();
+				CurrentMontageStop(RepAnimMontageInfo.BlendTime);
 			}
 		}
 	}
 }
 
-void UAbilitySystemComponent::CurrentMontageStop()
+void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 {
 	UAnimInstance* AnimInstance = AbilityActorInfo->AnimInstance.Get();
 	UAnimMontage* MontageToStop = LocalAnimMontageInfo.AnimMontage;
@@ -2232,6 +2276,8 @@ void UAbilitySystemComponent::CurrentMontageStop()
 
 	if (bShouldStopMontage)
 	{
+		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
+
 		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
 
 		if (IsOwnerActorAuthoritative())

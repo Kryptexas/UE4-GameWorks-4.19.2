@@ -1,4 +1,4 @@
-Availability:Public
+Availability:Docs
 Title: Voice Interface
 Crumbs:%ROOT%, Programming, Programming/Online
 Description:Overview of the voice interface
@@ -6,7 +6,6 @@ Description:Overview of the voice interface
 [TOC(start:2)]
 
 
-## Overview
 
 Overview of the voice interface
 

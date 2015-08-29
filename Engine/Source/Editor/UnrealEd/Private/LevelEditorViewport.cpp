@@ -13,7 +13,7 @@
 #include "BSPOps.h"
 #include "LevelUtils.h"
 #include "Layers/ILayers.h"
-#include "../Private/StaticLightingSystem/StaticLightingPrivate.h"
+#include "StaticLightingSystem/StaticLightingPrivate.h"
 #include "EditorLevelUtils.h"
 #include "Engine.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -774,8 +774,9 @@ bool FLevelEditorViewportClient::AttemptApplyObjAsMaterialToSurface( UObject* Ob
 
 				Model->ModifySurf(SelectedSurfIndex, true);
 				Model->Surfs[SelectedSurfIndex].Material = DroppedObjAsMaterial;
-				GEditor->polyUpdateMaster(Model, SelectedSurfIndex, false);
-			
+				const bool bUpdateTexCoords = false;
+				const bool bOnlyRefreshSurfaceMaterials = true;
+				GEditor->polyUpdateMaster(Model, SelectedSurfIndex, bUpdateTexCoords, bOnlyRefreshSurfaceMaterials);
 			}
 
 			bResult = true;
@@ -1183,12 +1184,12 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 		if ( AssetObj->IsA( AActor::StaticClass() ) || bHasActorFactory )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependently = false;
+			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else if( AssetObj->IsA( UBrushBuilder::StaticClass()) )
 		{
 			Result.bCanDrop = true;
-			bPivotMovedIndependently = false;
+			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else
 		{
@@ -1199,7 +1200,7 @@ FDropQuery FLevelEditorViewportClient::CanDropObjectsAtCoordinates(int32 MouseX,
 				{
 					// If our asset is a material and the target is a valid recipient
 					Result.bCanDrop = true;
-					bPivotMovedIndependently = false;
+					GUnrealEd->SetPivotMovedIndependently(false);
 
 					//if ( HitProxy->IsA(HActor::StaticGetType()) )
 					//{
@@ -1244,7 +1245,7 @@ bool FLevelEditorViewportClient::DropObjectsAtCoordinates(int32 MouseX, int32 Mo
 		FSnappingUtils::SnapPointToGrid(GEditor->ClickLocation, FVector::ZeroVector);
 
 		EObjectFlags ObjectFlags = bCreateDropPreview ? RF_Transient : RF_Transactional;
-		if ( HitProxy == nullptr )
+		if (HitProxy == nullptr || HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
 			bResult = DropObjectsOnBackground(Cursor, DroppedObjects, ObjectFlags, OutNewActors, bCreateDropPreview, SelectActors, FactoryToUse);
 		}
@@ -1530,6 +1531,7 @@ FLevelEditorViewportClient::FLevelEditorViewportClient(const TSharedPtr<SLevelVi
 	, bDuplicateOnNextDrag( false )
 	, bDuplicateActorsInProgress( false )
 	, bIsTrackingBrushModification( false )
+	, bOnlyMovedPivot(false)
 	, bLockedCameraView(true)
 	, bReceivedFocusRecently(false)
 	, SpriteCategoryVisibility()
@@ -1711,6 +1713,38 @@ bool FLevelEditorViewportClient::ShouldLockPitch() const
 	return FEditorViewportClient::ShouldLockPitch() || !ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) ;
 }
 
+void FLevelEditorViewportClient::BeginCameraMovement(bool bHasMovement)
+{
+	// If there's new movement broadcast it
+	if (bHasMovement)
+	{
+		if (!bIsCameraMoving)
+		{
+			if (!bIsCameraMovingOnTick)
+			{
+				GEditor->BroadcastBeginCameraMovement(*GetActiveActorLock());
+			}
+			bIsCameraMoving = true;
+		}
+	}
+	else
+	{
+		bIsCameraMoving = false;
+	}
+}
+
+void FLevelEditorViewportClient::EndCameraMovement()
+{
+	// If there was movement and it has now stopped, broadcast it
+	if (bIsCameraMovingOnTick)
+	{
+		if (!bIsCameraMoving)
+		{
+			GEditor->BroadcastEndCameraMovement(*GetActiveActorLock());
+		}
+	}
+}
+
 void FLevelEditorViewportClient::PerspectiveCameraMoved()
 {
 	// Update the locked actor (if any) from the camera
@@ -1823,9 +1857,6 @@ void FLevelEditorViewportClient::ReceivedFocus(FViewport* InViewport)
 //
 void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY)
 {
-	// We clicked, allow the pivot to reposition itself.
-	bPivotMovedIndependently = false;
-
 	static FName ProcessClickTrace = FName(TEXT("ProcessClickTrace"));
 
 	const FViewportClick Click(&View,this,Key,Event,HitX,HitY);
@@ -1904,6 +1935,9 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 			{
 				ClickHandlers::ClickActor(this, ActorHitProxy->Actor, Click, true);
 			}
+
+			// We clicked an actor, allow the pivot to reposition itself.
+//			GUnrealEd->SetPivotMovedIndependently(false);
 		}
 		else if (HitProxy->IsA(HInstancedStaticMeshInstance::StaticGetType()))
 		{
@@ -1991,9 +2025,9 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 {
 	FEditorViewportClient::Tick(DeltaTime);
 
-	if( !bPivotMovedIndependently && GCurrentLevelEditingViewportClient == this &&
+	if (!GUnrealEd->IsPivotMovedIndependently() && GCurrentLevelEditingViewportClient == this &&
 		bIsRealtime &&
-		( Widget == NULL || !Widget->IsDragging() ) )
+		(Widget == NULL || !Widget->IsDragging()))
 	{
 		// @todo SIE: May be very expensive for lots of actors
 		GUnrealEd->UpdatePivotLocationForSelection();
@@ -2023,11 +2057,10 @@ void FLevelEditorViewportClient::Tick(float DeltaTime)
 	UpdateViewForLockedActor();
 }
 
-
 void FLevelEditorViewportClient::UpdateViewForLockedActor()
 {
 	// We can't be locked to a matinee actor if this viewport doesn't allow matinee control
-	if ( !bAllowMatineePreview && ActorLockedByMatinee.IsValid() )
+	if ( !bAllowCinematicPreview && ActorLockedByMatinee.IsValid() )
 	{
 		ActorLockedByMatinee = nullptr;
 	}
@@ -2038,35 +2071,45 @@ void FLevelEditorViewportClient::UpdateViewForLockedActor()
 	const AActor* Actor = ActorLockedByMatinee.IsValid() ? ActorLockedByMatinee.Get() : ActorLockedToCamera.Get();
 	if( Actor != NULL )
 	{
-		// Update transform
-		if( Actor->GetAttachParentActor() != NULL )
+		// Check if the viewport is transitioning
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		if (ViewTransform.IsPlaying())
 		{
-			// Actor is parented, so use the actor to world matrix for translation and rotation information.
-			SetViewLocation( Actor->GetActorLocation() );
-			SetViewRotation( Actor->GetActorRotation() );				
+			// Move actor to the transitioned viewport
+			PerspectiveCameraMoved();
 		}
-		else if( Actor->GetRootComponent() != NULL )
+		else
 		{
-			// No attachment, so just use the relative location, so that we don't need to
-			// convert from a quaternion, which loses winding information.
-			SetViewLocation( Actor->GetRootComponent()->RelativeLocation );
-			SetViewRotation( Actor->GetRootComponent()->RelativeRotation );
-		}
-
-		if( bLockedCameraView )
-		{
-			// If this is a camera actor, then inherit some other settings
-			UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
-			if( CameraComponent != NULL )
+			// Update transform
+			if (Actor->GetAttachParentActor() != NULL)
 			{
-				bUseControllingActorViewInfo = true;
-				CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+				// Actor is parented, so use the actor to world matrix for translation and rotation information.
+				SetViewLocation(Actor->GetActorLocation());
+				SetViewRotation(Actor->GetActorRotation());
+			}
+			else if (Actor->GetRootComponent() != NULL)
+			{
+				// No attachment, so just use the relative location, so that we don't need to
+				// convert from a quaternion, which loses winding information.
+				SetViewLocation(Actor->GetRootComponent()->RelativeLocation);
+				SetViewRotation(Actor->GetRootComponent()->RelativeRotation);
+			}
 
-				// Post processing is handled by OverridePostProcessingSettings
-				ViewFOV = ControllingActorViewInfo.FOV;
-				AspectRatio = ControllingActorViewInfo.AspectRatio;
-				SetViewLocation(ControllingActorViewInfo.Location);
-				SetViewRotation(ControllingActorViewInfo.Rotation);
+			if (bLockedCameraView)
+			{
+				// If this is a camera actor, then inherit some other settings
+				UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>();
+				if (CameraComponent != NULL)
+				{
+					bUseControllingActorViewInfo = true;
+					CameraComponent->GetCameraView(0.0f, ControllingActorViewInfo);
+
+					// Post processing is handled by OverridePostProcessingSettings
+					ViewFOV = ControllingActorViewInfo.FOV;
+					AspectRatio = ControllingActorViewInfo.AspectRatio;
+					SetViewLocation(ControllingActorViewInfo.Location);
+					SetViewRotation(ControllingActorViewInfo.Rotation);
+				}
 			}
 		}
 	}
@@ -2294,7 +2337,8 @@ bool FLevelEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisList
 				else
 				{
 					FSnappingUtils::SnapDragLocationToNearestVertex( ModeTools->PivotLocation, Drag, this );
-					bPivotMovedIndependently = true;
+					GUnrealEd->SetPivotMovedIndependently(true);
+					bOnlyMovedPivot = true;
 				}
 
 				ModeTools->PivotLocation += Drag;
@@ -2499,6 +2543,8 @@ void FLevelEditorViewportClient::TrackingStarted( const FInputEventState& InInpu
 		}
 	}
 
+	bOnlyMovedPivot = false;
+
 	const bool bIsDraggingComponents = GEditor->GetSelectedComponentCount() > 0;
 	PreDragActorTransforms.Empty();
 	if (bIsDraggingComponents)
@@ -2641,7 +2687,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 	// Finish tracking a brush transform and update the Bsp
 	if (bIsTrackingBrushModification)
 	{
-		bDidAnythingActuallyChange = HaveSelectedObjectsBeenChanged();
+		bDidAnythingActuallyChange = HaveSelectedObjectsBeenChanged() && !bOnlyMovedPivot;
 
 		bIsTrackingBrushModification = false;
 		if ( bDidAnythingActuallyChange && bWidgetAxisControlledByDrag )
@@ -2680,7 +2726,7 @@ void FLevelEditorViewportClient::TrackingStopped()
 			GEditor->BroadcastEndObjectMovement(*Actor);
 		}
 
-		if (!bPivotMovedIndependently)
+		if (!GUnrealEd->IsPivotMovedIndependently())
 		{
 			GUnrealEd->UpdatePivotLocationForSelection();
 		}
@@ -3943,7 +3989,7 @@ void FLevelEditorViewportClient::SetupViewForRendering( FSceneViewFamily& ViewFa
 		}
 	}
 
-	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowMatineePreview())
+	if (ModeTools->GetActiveMode(FBuiltinEditorModes::EM_InterpEdit) == 0 || !AllowsCinematicPreview())
 	{
 		// in the editor, disable camera motion blur and other rendering features that rely on the former frame
 		// unless the view port is Matinee controlled
@@ -4057,7 +4103,7 @@ void FLevelEditorViewportClient::CopyLayoutFromViewport( const FLevelEditorViewp
 	ViewportType = InViewport.ViewportType;
 	SetOrthoZoom( InViewport.GetOrthoZoom() );
 	ActorLockedToCamera = InViewport.ActorLockedToCamera;
-	bAllowMatineePreview = InViewport.bAllowMatineePreview;
+	bAllowCinematicPreview = InViewport.bAllowCinematicPreview;
 }
 
 

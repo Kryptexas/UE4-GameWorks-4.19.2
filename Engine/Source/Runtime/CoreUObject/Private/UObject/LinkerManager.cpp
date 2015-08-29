@@ -44,12 +44,14 @@ bool FLinkerManager::Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice
 			}
 			Ar.Logf
 				(
-				TEXT("%s (%s): Names=%i (%iK/%iK) Imports=%i (%iK) Exports=%i (%iK) Gen=%i Bulk=%i"),
+				TEXT("%s (%s): Names=%i (%iK/%iK) Text=%i (%iK) Imports=%i (%iK) Exports=%i (%iK) Gen=%i Bulk=%i"),
 				*Linker->Filename,
 				*Linker->LinkerRoot->GetFullName(),
 				Linker->NameMap.Num(),
 				Linker->NameMap.Num() * sizeof(FName) / 1024,
 				NameSize / 1024,
+				Linker->GatherableTextDataMap.Num(),
+				Linker->GatherableTextDataMap.Num() * sizeof(FGatherableTextData) / 1024,
 				Linker->ImportMap.Num(),
 				Linker->ImportMap.Num() * sizeof(FObjectImport) / 1024,
 				Linker->ExportMap.Num(),
@@ -192,14 +194,16 @@ void FLinkerManager::DeleteLinkers()
 	}
 
 	// Note that even though DeleteLinkers can only be called on the main thread,
-	// we store the IsDeleteingLinkers in TLS so that we're sure nothing on
+	// we store the IsDeletingLinkers in TLS so that we're sure nothing on
 	// another thread can delete linkers except FLinkerManager at the time
 	// we enter this loop.
 	FUObjectThreadContext& ThreadContext = FUObjectThreadContext::Get();
+	ThreadContext.IsDeletingLinkers = true;
 	for (FLinkerLoad* Linker : CleanupArray)
 	{
 		delete Linker;
 	}
+	ThreadContext.IsDeletingLinkers = false;
 }
 
 void FLinkerManager::RemoveLinker(FLinkerLoad* Linker)

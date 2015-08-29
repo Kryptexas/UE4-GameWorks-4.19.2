@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2343762
+﻿INTSourceChangelist:2607771
 Availability:Public
 Title: 셋업
 Crumbs:%ROOT%, Gameplay, Gameplay/Localization
@@ -6,7 +6,6 @@ Description:프로젝트의 현지화 셋업 방법입니다.
 
 [TOC (start:2)]
 
-## 개요
 프로젝트의 현지화 셋업 방법은 다음과 같습니다:
 * 커맨드렛 파이프라인용 현지화 환경설정 스크립트를 작성합니다.
 * 현지화 데이터를 어디서 로드할지 환경설정합니다.

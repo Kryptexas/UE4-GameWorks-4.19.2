@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2492543
+﻿INTSourceChangelist:2615876
 Availability: Public
 Title:6. 캐릭터 띄우기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:다수의 액터를 배치하고 각기 설정하였으니, 레벨 제작의 마지막 단계는 빌드 입니다.
+Description:Launch Character 노드로 실제 도약 행위를 구성합니다.
 
 
 

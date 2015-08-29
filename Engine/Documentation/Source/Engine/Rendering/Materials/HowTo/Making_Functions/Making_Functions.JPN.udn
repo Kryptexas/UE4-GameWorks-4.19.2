@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472737
+﻿INTSourceChangelist:2533962
 Availability:Public
 Title:マテリアル エディタ - マテリアル関数の作成方法
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
@@ -22,7 +22,7 @@ Related:Engine/Rendering/Materials
 [マテリアル関数の作成](Engine/Rendering/Materials/Functions/Creating) にはマテリアル関数の作成と使用に関する大切な情報が載っていますので、必ずご一読ください。
 [/region]
 
-## マテリアル関数とは
+##マテリアル関数
 
 [INCLUDE:Engine/Rendering/Materials/Functions#functionsintro] 
 
@@ -72,11 +72,13 @@ Related:Engine/Rendering/Materials
 	[region:note]
 	フレネル エフェクトとは、ライトを見るアングルに合わせて、異なる強度でのライト反射の説明に使う言葉です。例えば、真下にプールを見ながらプール上に立っていると、水の中での反射はほとんど見えません。頭を動かしてプールの中の水が目線と平行になればなるほど、水中でより多くの反射に気付き始めるでしょう。これがシェーダー内に再生成しようとしているビヘイビアのタイプ、つまり見る角度に応じて視覚的な情報を追加または削除する能力です。 
 	[/region]
-	1. ノードを配置したら、次は設定して全部接続します。まず最初に、 **Constant 3 Vector** の **Blue Channel** を設定はフレネルでは Z 値を表すので **1.0** に設定します。**Constant 3 Vector** ノードの出力を **Vector Transform** ノードの入力に接続します。**Tangent Space** から **World Space** へ変形するように、 **Transform Node** を確実に設定してください。**Vector Transform** ノードの出力を **Dot Product** ノードの入力 **A** に接続します。それが完了したら、 **Camera Vector** ノードの出力を **Dot Product** ノードの **B** 入力へ接続します。完了すると以下のようになります。
+
+1. ノードを配置したら、次は設定して全部接続します。まず最初に、 **Constant 3 Vector** の **Blue Channel** を設定はフレネルでは Z 値を表すので **1.0** に設定します。**Constant 3 Vector** ノードの出力を **Vector Transform** ノードの入力に接続します。**Tangent Space** から **World Space** へ変形するように、 **Transform Node** を確実に設定してください。**Vector Transform** ノードの出力を **Dot Product** ノードの入力 **A** に接続します。それが完了したら、 **Camera Vector** ノードの出力を **Dot Product** ノードの **B** 入力へ接続します。完了すると以下のようになります。
 
 	![](Material_Function_Nodes_Setup.png)
 
 1. 次に、結果が 0 から 1 の範囲にクランプさせるために **[Clamp ノード](Engine/Rendering/Materials/ExpressionReference/Math#clamp)** を追加し、レンダリング アーティファクトの原因になりうるエラーを絶対に起こさないようにします。**Palette** メニューで **Clamp** ノードを検索して、マテリアル グラフにドラッグします。完了すると以下のようになります。 
+
 	![](Material_Function_Adding_Clamp_Node.png)
 
 1. Clamp ノードの次は、エッジだけが影響を受けるようにエフェクトを反転させるための **[One-Minus ノード](Engine/Rendering/Materials/ExpressionReference/Math#oneminus)** を追加します。**Palette** 内を「 **OneMinus** 」で検索すると One-Minus ノードが見つかります。完了すると以下のようになります。 
@@ -92,16 +94,18 @@ Related:Engine/Rendering/Materials
 	![](Material_Function_Delete_Function.png)
 	[/region]
 
-1. 次に、このマテリアル関数がマテリアル内で使えるように、作成した 2 つの Funcction Input ノードを設定する必要があります。Function Input ノードを 1 つ選択し **[Details Panel]** を選択すると、いろいろなオプションが表示されます。ここでは **[Input Name]** 、 **[Description]** 、 **[Input Type]** 、 **[Preview Value]** をのみを設定します。このような感じになっているはずです。
+1. 次に、このマテリアル関数がマテリアル内で使えるように、作成した 2 つの Funcction Input ノードを設定する必要があります。Function Input ノードを 1 つ選択し **[Details]** パネルを選択すると、いろいろなオプションが表示されます。ここでは **[Input Name]** 、 **[Description]** 、 **[Input Type]** 、 **[Preview Value]** をのみを設定します。このような感じになっているはずです。
 
 	* **Exponent Input**
+
 	![](Material_Function_Input_Node_Exp.png)
 
 	* **Intensity Input**
+
 	![](Material_Function_Input_Node_Pow.png)
 
 	[region:tip]
-	Function Input ノードのオプションの詳細については、 **[Function Input ノード ドキュメント](Engine/Rendering/Materials/Functions/Overview#FunctionInputノード)** を参照してください。 
+	Function ノードのオプションの詳細については、 **[Function Input ノード ドキュメント](Engine/Rendering/Materials/Functions/Overview#FunctionInputノード)** を参照してください。 
 	[/region]
 
 1. Function Input ノードが設定されたので、 **Power ノード** をマテリアル グラフに追加する必要があります。フレネル エフェクトのフォールオフの増減ができるように、 **Power ノード** を使います。こうすると、フレネル エフェクトをエフェクトを適用しているメッシュのエッジに近づけたり遠ざけたりしやすくなります。**Power ノード** 追加するためには、 **Palette** で検索し、マテリアル グループにドラッグ＆ドロップします。完了すると以下のようになります。 

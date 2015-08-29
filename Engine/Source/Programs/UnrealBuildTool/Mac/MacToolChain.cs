@@ -10,7 +10,7 @@ using System.Text;
 
 namespace UnrealBuildTool
 {
-	class MacToolChain : RemoteToolChain
+	class MacToolChain : AppleToolChain
 	{
 		public override void RegisterToolChain()
 		{
@@ -26,6 +26,7 @@ namespace UnrealBuildTool
 
 		/** Which version of the Mac OS SDK to target at build time */
 		public static string MacOSSDKVersion = "latest";
+		public static float MacOSSDKVersionFloat = 0.0f;
 
 		/** Which version of the Mac OS X to allow at run time */
 		public static string MacOSVersion = "10.9";
@@ -33,8 +34,11 @@ namespace UnrealBuildTool
 		/** Minimum version of Mac OS X to actually run on, running on earlier versions will display the system minimum version error dialog & exit. */
 		public static string MinMacOSVersion = "10.9.2";
 
-		/** Which developer directory to root from */
-		private static string XcodeDeveloperDir = "/Applications/Xcode.app/Contents/Developer/";
+		/** Which developer directory to root from? If this is "xcode-select", UBT will query for the currently selected Xcode */
+		private static string XcodeDeveloperDir = "xcode-select";
+
+		/** Directory for the developer binaries */
+		private static string ToolchainDir = "";
 
 		/** Location of the SDKs */
 		private static string BaseSDKDir;
@@ -48,7 +52,6 @@ namespace UnrealBuildTool
 		/** Which archiver to use */
 		private static string MacArchiver = "libtool";
 
-
 		/** Track which scripts need to be deleted before appending to */
 		private bool bHasWipedCopyDylibScript = false;
 		private bool bHasWipedFixDylibScript = false;
@@ -57,92 +60,24 @@ namespace UnrealBuildTool
 
 		public List<string> BuiltBinaries = new List<string>();
 
+		private static void SetupXcodePaths(bool bVerbose)
+		{
+			SelectXcode(ref XcodeDeveloperDir, bVerbose);
+
+			BaseSDKDir = XcodeDeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs";
+			ToolchainDir = XcodeDeveloperDir + "Toolchains/XcodeDefault.xctoolchain/usr/bin/";
+
+			SelectSDK(BaseSDKDir, "MacOSX", ref MacOSSDKVersion, bVerbose);
+
+			// convert to float for easy comparison
+			MacOSSDKVersionFloat = float.Parse(MacOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
+		}
+
 		public override void SetUpGlobalEnvironment()
 		{
 			base.SetUpGlobalEnvironment();
 
-			BaseSDKDir = XcodeDeveloperDir + "Platforms/MacOSX.platform/Developer/SDKs";
-
-			if (MacOSSDKVersion == "latest")
-			{
-				try
-				{
-					string[] SubDirs = null;
-					if (Utils.IsRunningOnMono)
-					{
-						// on the Mac, we can just get the directory name
-						SubDirs = System.IO.Directory.GetDirectories(BaseSDKDir);
-					}
-					else
-					{
-						Hashtable Results = RPCUtilHelper.Command("/", "ls", BaseSDKDir, null);
-						if (Results != null)
-						{
-							string Result = (string)Results["CommandOutput"];
-							SubDirs = Result.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-						}
-					}
-
-					// loop over the subdirs and parse out the version
-					float MaxSDKVersion = 0.0f;
-					string MaxSDKVersionString = null;
-					foreach (string SubDir in SubDirs)
-					{
-						string SubDirName = Path.GetFileNameWithoutExtension(SubDir);
-						if (SubDirName.StartsWith("MacOSX10."))
-						{
-							// get the SDK version from the directory name
-							string SDKString = SubDirName.Replace("MacOSX10.", "");
-							float SDKVersion = 0.0f;
-							try
-							{
-								SDKVersion = float.Parse(SDKString, System.Globalization.CultureInfo.InvariantCulture);
-							}
-							catch (Exception)
-							{
-								// weirdly formatted SDKs
-								continue;
-							}
-
-							// update largest SDK version number
-							if (SDKVersion > MaxSDKVersion)
-							{
-								MaxSDKVersion = SDKVersion;
-								MaxSDKVersionString = SDKString;
-							}
-						}
-					}
-
-					// convert back to a string with the exact format
-					if (MaxSDKVersionString != null)
-					{
-						MacOSSDKVersion = "10." + MaxSDKVersionString;
-					}
-				}
-				catch (Exception Ex)
-				{
-					// on any exception, just use the backup version
-					Log.TraceInformation("Triggered an exception while looking for SDK directory in Xcode.app");
-					Log.TraceInformation("{0}", Ex.ToString());
-				}
-
-				if (MacOSSDKVersion == "latest")
-				{
-					throw new BuildException("Unable to determine SDK version from Xcode, we cannot continue");
-				}
-			}
-
-			if (!ProjectFileGenerator.bGenerateProjectFiles)
-			{
-				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-				{
-					Log.TraceInformation("Compiling with Mac SDK {0} on Mac {1}", MacOSSDKVersion, RemoteServerName);
-				}
-				else
-				{
-					Log.TraceInformation("Compiling with Mac SDK {0}", MacOSSDKVersion);
-				}
-			}
+			SetupXcodePaths(true);
 		}
 
 		static string GetCompileArguments_Global(CPPEnvironment CompileEnvironment)
@@ -170,9 +105,15 @@ namespace UnrealBuildTool
 			Result += " -Wno-unused-private-field";
 			Result += " -Wno-invalid-offsetof"; // needed to suppress warnings about using offsetof on non-POD types.
 
+			if (MacOSSDKVersionFloat < 10.9f && MacOSSDKVersionFloat >= 10.11f)
+			{
+				Result += " -Wno-inconsistent-missing-override"; // too many missing overrides...
+				Result += " -Wno-unused-local-typedef"; // PhysX has some, hard to remove
+			}
+
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow";
+				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow");
 			}
 
 			// @todo: Remove these two when the code is fixed and they're no longer needed
@@ -463,8 +404,8 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = GetMacDevSrcRoot();
-				CompileAction.CommandPath = "xcrun";
-				CompileAction.CommandArguments = MacCompiler + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandPath = ToolchainDir + MacCompiler;
+				CompileAction.CommandArguments = Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 				CompileAction.CommandDescription = "Compile";
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
 				CompileAction.bIsGCCCompiler = true;
@@ -520,21 +461,21 @@ namespace UnrealBuildTool
 
 		private string LoadLauncherDisplayVersion()
 		{
-			string[] VersionHeader = Utils.ReadAllText("../Source/Programs/NoRedist/UnrealEngineLauncher/Private/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
+            string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string LauncherVersionMajor = "1";
 			string LauncherVersionMinor = "0";
 			string LauncherVersionPatch = "0";
 			foreach (string Line in VersionHeader)
 			{
-				if (Line.StartsWith("#define LAUNCHER_MAJOR_VERSION "))
+                if (Line.StartsWith("#define PORTAL_MAJOR_VERSION "))
 				{
 					LauncherVersionMajor = Line.Split(' ')[2];
 				}
-				else if (Line.StartsWith("#define LAUNCHER_MINOR_VERSION "))
+                else if (Line.StartsWith("#define PORTAL_MINOR_VERSION "))
 				{
 					LauncherVersionMinor = Line.Split(' ')[2];
 				}
-				else if (Line.StartsWith("#define LAUNCHER_PATCH_VERSION "))
+                else if (Line.StartsWith("#define PORTAL_PATCH_VERSION "))
 				{
 					LauncherVersionPatch = Line.Split(' ')[2];
 				}
@@ -644,7 +585,7 @@ namespace UnrealBuildTool
 			string VersionArg = LinkEnvironment.Config.bIsBuildingDLL ? " -current_version " + EngineAPIVersion + " -compatibility_version " + EngineDisplayVersion : "";
 
 			string Linker = bIsBuildingLibrary ? MacArchiver : MacLinker;
-			string LinkCommand = "xcrun " + Linker + VersionArg + " " + (bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment));
+			string LinkCommand = ToolchainDir + Linker + VersionArg + " " + (bIsBuildingLibrary ? GetArchiveArguments_Global(LinkEnvironment) : GetLinkArguments_Global(LinkEnvironment));
 
 			// Tell the action that we're building an import library here and it should conditionally be
 			// ignored as a prerequisite for other actions
@@ -923,7 +864,7 @@ namespace UnrealBuildTool
 				foreach (string Library in ThirdPartyLibraries)
 				{
 					string LibraryFileName = Path.GetFileName(Library);
-					LinkCommand += "; xcrun install_name_tool -change " + LibraryFileName + " " + DylibsPath + "/" + LibraryFileName + " \"" + ConvertPath(OutputFile.AbsolutePath) + "\"";
+					LinkCommand += "; " + ToolchainDir + "install_name_tool -change " + LibraryFileName + " " + DylibsPath + "/" + LibraryFileName + " \"" + ConvertPath(OutputFile.AbsolutePath) + "\"";
 				}
 			}
 
@@ -1024,9 +965,8 @@ namespace UnrealBuildTool
 					AppendMacLine(FinalizeAppBundleScript, "sh \"{0}\" \"{1}\"", ConvertPath(DylibCopyScriptPath).Replace("$", "\\$"), ExeName);
 
 					string IconName = "UE4";
-					string BundleVersion = ExeName.StartsWith("UnrealEngineLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
-					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
-
+					string BundleVersion = ExeName.StartsWith("EpicGamesLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
+                    string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 					string UProjectFilePath = UProjectInfo.GetProjectFilePath(GameName);
 					string CustomResourcesPath = "";
 					string CustomBuildPath = "";
@@ -1045,8 +985,10 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath) + "/Source/" + GameName + "/Resources/Mac";
-						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath) + "/Build/Mac";
+                        string ResourceParentFolderName = ExeName.StartsWith("EpicGamesLauncher") ? "Application" : GameName;
+						string FullUProjectFilePath = Path.GetFullPath(UProjectFilePath);
+						CustomResourcesPath = Path.GetDirectoryName(FullUProjectFilePath) + "/Source/" + ResourceParentFolderName + "/Resources/Mac";
+						CustomBuildPath = Path.GetDirectoryName(FullUProjectFilePath) + "/Build/Mac";
 					}
 
 					bool bBuildingEditor = GameName.EndsWith("Editor");
@@ -1194,11 +1136,17 @@ namespace UnrealBuildTool
 		public FileItem GenerateDebugInfo(FileItem MachOBinary)
 		{
 			// Make a file item for the source and destination files
-			string FullDestPath = MachOBinary.AbsolutePath + ".dSYM";
+			string FullDestPath = Path.ChangeExtension(MachOBinary.AbsolutePath, ".dSYM");
 
 			FileItem OutputFile = FileItem.GetItemByPath(FullDestPath);
 			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
 			FileItem InputFile = LocalToRemoteFileItem(MachOBinary, false);
+
+			// Delete on the local machine
+			if(Directory.Exists(OutputFile.AbsolutePath))
+			{
+				Directory.Delete(OutputFile.AbsolutePath, true);
+			}
 
 			// Make the compile action
 			Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
@@ -1210,9 +1158,10 @@ namespace UnrealBuildTool
 			GenDebugAction.WorkingDirectory = Path.GetFullPath(".");
 			GenDebugAction.CommandPath = "sh";
 
+			// Deletes ay existing file on the building machine,
 			// note that the source and dest are switched from a copy command
-			GenDebugAction.CommandArguments = string.Format("-c '\"{0}\"usr/bin/xcrun dsymutil \"{1}\" -o \"{2}\"; \"{0}\"usr/bin/xcrun strip -S -X -x \"{1}\"'",
-				XcodeDeveloperDir,
+			GenDebugAction.CommandArguments = string.Format("-c 'rm -rf \"{2}\"; \"{0}\"dsymutil -f \"{1}\" -o \"{2}\"'",
+				ToolchainDir,
 				InputFile.AbsolutePath,
 				DestFile.AbsolutePath);
 			GenDebugAction.PrerequisiteItems.Add(InputFile);
@@ -1349,27 +1298,24 @@ namespace UnrealBuildTool
 
         public override void AddFilesToReceipt(BuildReceipt Receipt, UEBuildBinary Binary)
 		{
+			// The cross-platform code adds .dSYMs for static libraries, which is just wrong, so
+			// eliminate them here for now.
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
 			if(DebugExtension == ".dsym")
 			{
 				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
 				{
-					if(Receipt.BuildProducts[i].Type == BuildProductType.Executable || Receipt.BuildProducts[i].Type == BuildProductType.DynamicLibrary)
+					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension)
 					{
-						string OutputFilePath = Receipt.BuildProducts[i].Path;
-						string DsymInfo = OutputFilePath + ".dSYM/Contents/Info.plist";
-						Receipt.AddBuildProduct(DsymInfo, BuildProductType.SymbolFile);
-
-						string DsymDylib = OutputFilePath + ".dSYM/Contents/Resources/DWARF/" + Path.GetFileName(OutputFilePath);
-						Receipt.AddBuildProduct(DsymDylib, BuildProductType.SymbolFile);
+						Receipt.BuildProducts.RemoveAt(i--);
 					}
 				}
 
 				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
 				{
-					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension)
+					if(Receipt.BuildProducts[i].Type == BuildProductType.Executable || Receipt.BuildProducts[i].Type == BuildProductType.DynamicLibrary)
 					{
-						Receipt.BuildProducts.RemoveAt(i--);
+						Receipt.AddBuildProduct(Path.ChangeExtension(Receipt.BuildProducts[i].Path, DebugExtension), BuildProductType.SymbolFile);
 					}
 				}
 			}
@@ -1533,14 +1479,9 @@ namespace UnrealBuildTool
 
 		public override void StripSymbols(string SourceFileName, string TargetFileName)
 		{
-			File.Copy(SourceFileName, TargetFileName, true);
+			SetupXcodePaths(false);
 
-			ProcessStartInfo StartInfo = new ProcessStartInfo();
-			StartInfo.FileName = Path.Combine(XcodeDeveloperDir, "usr/bin/xcrun");
-			StartInfo.Arguments = String.Format("strip \"{0}\" -S", TargetFileName);
-			StartInfo.UseShellExecute = false;
-			StartInfo.CreateNoWindow = true;
-			Utils.RunLocalProcessAndLogOutput(StartInfo);
+			StripSymbolsWithXcode(SourceFileName, TargetFileName, ToolchainDir);
 		}
 	};
 }

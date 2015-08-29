@@ -1,4 +1,3 @@
-﻿INTSourceChangelist:2474065
 Availability: Public
 Title:1. Character Setup
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -31,11 +30,11 @@ For this project, we are using the **Blank** Project Template in order to start 
 [/REGION]
 
 
-1.	With your project open, **Right-click** in the **Content Browser** and select **Animation** then **Animation Blueprint**. 
+1.	With your project open, **Right-click** in the **Content Browser** and select **New Asset** then **Animation** then **Animation Blueprint**. 
 
 	![](Characters_1b.png)
 
-1.	In the **Target Skeleton** window, select the **HeroTPP_Skeleton** asset. 
+1.	In the **Target Skeleton** window, select the **UE4_Mannequin_Skeleton** asset. 
 
 	![](Characters_1c.png)
 
@@ -49,7 +48,7 @@ For this project, we are using the **Blank** Project Template in order to start 
 
 	![](ClickMesh.png)
 
-1.	In the **Details** panel, click the **None** box next to **Skeletal Mesh** and assign the **HeroTPP** Skeletal Mesh. 
+1.	In the **Details** panel, click the **None** box next to **Skeletal Mesh** and assign the **UE4_Mannequin_Skeleton** Skeletal Mesh. 
 
 	![](Characters_2.png)
 

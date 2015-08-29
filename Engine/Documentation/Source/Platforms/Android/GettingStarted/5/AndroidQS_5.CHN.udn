@@ -1,0 +1,108 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:5. Package Your Game
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Package your game for installation.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Android/GettingStarted/6 "%Platforms/Android/GettingStarted/6:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsSetup]
+
+1.	To push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled). If you are unsure what to select, use **ETC1**.
+
+	[REGION:raw]  
+	![](package_menu.png)
+	[/REGION]
+
+1.	You will be prompted for a save location for your packaged game, which should default to your project folder.
+	![](package_folder.png)
+1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+	![](package_toast.png)
+1.	Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
+1.	Navigate to the save location you just set. 
+1.	In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named `Android_DXT`. Open this folder.
+1.	**Double-click** on the `Install_[ProjectName]_Development.bat` batch file.
+	![](batch_file.png)
+1.	Your game is now installed and you can open it from your Apps drawer.
+
+[/EXCERPT:WindowsSetup]
+
+[EXCERPT:MacOSSetup]
+1. Now, to push your full game to your Android device, you will need to package it. In the **File** menu, hover over **Package Project** to expand the full list of options. Here you will again see the list of texture formats, and must select the right one (or unlabeled).
+
+	![](AQS_Mac_01.png)
+
+We are currently packaging in **Development** because we are testing this game, but when your game is complete, you can package it in **Shipping** by hovering over the **Build Configurations** option in the **Package Project** menu.
+
+1. You will be prompted for a save location for your packaged game, which should default to your project folder.
+
+	![](AQS_Mac_02.png)
+
+1. A packaging message will appear in the bottom right corner of the editor while the game is being packaged.
+
+	![](AQS_Mac_03.png)
+
+1. Once packaging is successful, a Packaging Complete message will appear in the bottom right of the editor.
+
+1. Navigate to the save location you just set.
+
+1. In this folder, there will be a folder named specifically for your texture type. In this example, the folder is named Android_DXT. Open this folder.
+
+1. **Double-click** on the Install_[ProjectName]_Development-arm*.command script file.
+
+	![](AQS_Mac_04.png)
+
+1. Your game is now installed and you can open it from your Apps drawer.
+
+[/EXCERPT:MacOSSetup]
+-->
+
+%Steps%

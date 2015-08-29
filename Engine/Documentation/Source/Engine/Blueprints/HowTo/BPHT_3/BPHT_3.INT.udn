@@ -12,7 +12,7 @@ Description:In this step we will allow the player to press a button to spawn our
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To Home](Engine\Blueprints\HowTo "%Engine\Blueprints\HowTo:Title%")
+		[How To Home](Engine\Blueprints\HowTo "%Engine\Blueprints\HowTo:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[Next Step](Engine\Blueprints\HowTo\BPHT_4 "%Engine\Blueprints\HowTo\BPHT_4:title%") 

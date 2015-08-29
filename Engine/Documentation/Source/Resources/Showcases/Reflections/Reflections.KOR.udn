@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465567
+﻿INTSourceChangelist:2616803
 Availability: Public
 Title:리플렉션
 Crumbs:%ROOT%, Resources
@@ -62,15 +62,21 @@ Related: Resources/ContentExamples/Reflections/1_3
 
 [TOC(start:2 end:2)]
 
-
-
-## 개요
-
 이 예제에서는 언리얼 엔진 4 의 실시간 리플렉션 능력을 선보입니다. 씬에 나타나는 퇴락한 지하철역은  물이 많이 새고 있고, 더러운 세라믹 타일에다, 허물어져 가는 배관, 기타 배경 디테일도 낡았습니다. 이 문서에서는 이런 복합 효과를 내는데 활용된 기법과 기능을 하이 레벨 관점에서 살펴보도록 하겠습니다.
 
 다음 이미지에서는 이 씬의 리플렉션 블렌딩을 켜고 끄면서 그 효과를 옅볼 수 있습니다.
 
-![](ReflectionsOnOff.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+JZaQVznNBcA
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 리플렉션 인바이언먼트
@@ -101,7 +107,17 @@ Related: Resources/ContentExamples/Reflections/1_3
 스크린 스페이스 리플렉션은 언리얼 엔진 4 에서 기본으로 켜지는 기능이지만, 세트에 따라 _r.SSR.Quality 3_ 또는 _r.SSR.Quality 0_ 콘솔 명령으로 토글시킬 수 있습니다. 
 아래는 스크린 스페이스 리플렉션을 켜(r.SSR 을 1 로 설정하)고 끈(r.SSR 을 0 으로 설정한) 상태에서 리플렉션 예제 씬을 본 모습입니다.
 
-![](SSROnOff.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+DUe4z3-5WvU
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 리플렉션 고려사항

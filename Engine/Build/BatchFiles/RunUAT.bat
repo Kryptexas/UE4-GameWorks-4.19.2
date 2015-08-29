@@ -11,7 +11,7 @@ rem ## if you copy it to a different location and run it.
 
 set UATExecutable=AutomationToolLauncher.exe
 set UATDirectory=Binaries\DotNET\
-set UATNoCompileArg=
+set UATCompileArg=-compile
 
 rem ## Change the CWD to /Engine. 
 pushd %~dp0..\..\
@@ -59,7 +59,7 @@ rem ## ok, well it doesn't look like visual studio is installed, let's try runni
 
 if not exist Binaries\DotNET\AutomationTool.exe goto Error_NoFallbackExecutable
 
-set UATNoCompileArg=-NoCompile
+set UATCompileArg=
 
 if not exist Binaries\DotNET\AutomationToolLauncher.exe set UATExecutable=AutomationTool.exe
 goto DoRunUAT
@@ -75,7 +75,7 @@ if not %ERRORLEVEL% == 0 goto Error_UATCompileFailed
 rem ## Run AutomationTool
 :DoRunUAT
 pushd %UATDirectory%
-%UATExecutable% %* %UATNoCompileArg%
+%UATExecutable% %* %UATCompileArg%
 if not %ERRORLEVEL% == 0 goto Error_UATFailed
 popd
 

@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "Animation/BoneControllers/AnimNode_HandIKRetargeting.h"
+#include "BoneControllers/AnimNode_HandIKRetargeting.h"
 #include "AnimGraphNode_HandIKRetargeting.generated.h"
 
 UCLASS(MinimalAPI)

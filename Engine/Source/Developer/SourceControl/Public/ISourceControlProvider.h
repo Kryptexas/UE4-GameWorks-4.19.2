@@ -167,18 +167,6 @@ public:
 	/**
 	 * Register a delegate to be called when source control state(s) change
 	 */
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with RegisterSourceControlStateChanged_Handle.")
-	virtual void RegisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged ) = 0;
-
-	/**
-	 * Unregister a delegate to be called when source control state(s) change
-	 */
-	DELEGATE_DEPRECATED("This function is deprecated - please replace any usage with UnregisterSourceControlStateChanged_Handle, passing the result of RegisterSourceControlStateChanged_Handle.")
-	virtual void UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged ) = 0;
-
-	/**
-	 * Register a delegate to be called when source control state(s) change
-	 */
 	virtual FDelegateHandle RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged ) = 0;
 
 	/**

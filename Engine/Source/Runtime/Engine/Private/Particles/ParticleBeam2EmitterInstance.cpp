@@ -1044,6 +1044,7 @@ void FParticleBeam2EmitterInstance::SetupBeamModifierModulesOffsets()
  */
 void FParticleBeam2EmitterInstance::ResolveSource()
 {
+	check(IsInGameThread());
 	if (BeamModule_Source)
 	{
 		if (BeamModule_Source->SourceName != NAME_None)
@@ -1089,6 +1090,7 @@ void FParticleBeam2EmitterInstance::ResolveSource()
  */
 void FParticleBeam2EmitterInstance::ResolveTarget()
 {
+	check(IsInGameThread());
 	if (BeamModule_Target)
 	{
 		if (BeamModule_Target->TargetName != NAME_None)

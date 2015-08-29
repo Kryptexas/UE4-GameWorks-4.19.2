@@ -174,7 +174,14 @@ namespace UnrealBuildTool
 		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
 		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
 
-
+		/**
+		 * Clears the FileItem caches.
+		 */
+		public static void ClearCaches()
+		{
+			UniqueSourceFileMap.Clear();
+			DelayedRemoteLookupFiles.Clear();
+		}
 
 		/**
 		 * Resolve any outstanding remote file info lookups
@@ -265,7 +272,8 @@ namespace UnrealBuildTool
 		private static Encoding GetEncodingForString(string Str)
 		{
 			// If the string length is equivalent to the encoded length, then no non-ASCII characters were present in the string.
-			return (Encoding.UTF8.GetByteCount(Str) == Str.Length) ? Encoding.ASCII : Encoding.UTF8;
+			// Don't write BOM as it messes with clang when loading response files.
+			return (Encoding.UTF8.GetByteCount(Str) == Str.Length) ? Encoding.ASCII : new UTF8Encoding(false);
 		}
 
 		/**
@@ -333,7 +341,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Initialization constructor. */
-		protected FileItem (string FileAbsolutePath)
+		protected FileItem(string FileAbsolutePath)
 		{
 			AbsolutePath = FileAbsolutePath;
 

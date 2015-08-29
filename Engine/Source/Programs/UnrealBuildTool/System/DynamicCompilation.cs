@@ -7,13 +7,14 @@ using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Reflection;
 using System.Diagnostics;
+using Tools.DotNETCommon.ExecutingAssembly;
 
 namespace UnrealBuildTool
 {
 	public class DynamicCompilation
 	{
 		/// File information for UnrealBuildTool.exe, cached at program start
-		private static FileInfo UBTExecutableFileInfo = new FileInfo( Utils.GetExecutingAssemblyLocation() );
+		private static FileInfo UBTExecutableFileInfo = new FileInfo( ExecutingAssembly.GetFilename() );
 
 		/*
 		 * Checks to see if the assembly needs compilation
@@ -296,12 +297,9 @@ namespace UnrealBuildTool
 				// since the previous time we compiled the assembly.  In that case, we'll always want to recompile it!
 				{
 					FileInfo AssemblySourcesListFile = new FileInfo( AssemblySourcesListFilePath );
-					using( var Writer = AssemblySourcesListFile.OpenWrite() )
+					using( var Writer = AssemblySourcesListFile.CreateText() )
 					{
-						using( var TextWriter = new StreamWriter( Writer ) )
-						{
-							SourceFileNames.ForEach( x => TextWriter.WriteLine( x ) );
-						}
+						SourceFileNames.ForEach( x => Writer.WriteLine( x ) );
 					}
 				}
 			}

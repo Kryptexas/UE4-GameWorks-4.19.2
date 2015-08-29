@@ -42,9 +42,6 @@ float4 InstancingFadeOutParams;
 	#ifndef USE_INSTANCING_EMULATED
 		#define USE_INSTANCING_EMULATED (0)
 	#endif
-	#if USE_DITHERED_LOD_TRANSITION
-		float NonInstancedDitherLODFactor;
-	#endif
 #endif	// USE_INSTANCING
 
 
@@ -282,8 +279,7 @@ half3x3 CalcTangentToWorldNoScale(in half3x3 TangentToLocal)
 FMaterialVertexParameters GetMaterialVertexParameters(FVertexFactoryInput Input, FVertexFactoryIntermediates Intermediates, float3 WorldPosition, half3x3 TangentToLocal)
 {
 	FMaterialVertexParameters Result = (FMaterialVertexParameters)0;
-	Result.WorldPosition = WorldPosition - View.PreViewTranslation;
-	Result.PrevWorldPosition = WorldPosition - View.PrevPreViewTranslation.xyz;
+	Result.WorldPosition = WorldPosition;
 	Result.VertexColor = Intermediates.Color;
 
 	// does not handle instancing!
@@ -429,14 +425,16 @@ float4 CalcWorldPosition(float4 Position)
 #if USE_INSTANCING
 	return TransformLocalToTranslatedWorld(mul(Position, transpose(InstanceTransform)).xyz);
 #elif USE_SPLINEDEFORM
+/*
 	// Make transform for this point along spline
 	float4x3 SliceTransform = CalcSliceTransform(dot(Position.xyz, SplineMeshDir));
 
 	// Transform into mesh space
 	float4 LocalPos = float4(mul(Position, SliceTransform), Position.w);
-
 	// Transform from mesh to world space
 	return TransformLocalToTranslatedWorld(LocalPos.xyz);
+	*/
+	return INVARIANT(TransformLocalToTranslatedWorld(float3(mul(Position, CalcSliceTransform(dot(Position.xyz, SplineMeshDir))).xyz)));
 #else
 	return TransformLocalToTranslatedWorld(Position.xyz);
 #endif
@@ -508,8 +506,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 		float ViewZZero = length(InstanceLocation - InstancingWorldViewOriginZero.xyz) + RandomLOD;
 		float ViewZOne = length(InstanceLocation - InstancingWorldViewOriginOne.xyz) + RandomLOD;
 		Intermediates.PerInstanceParams.w = 
-			dot(ViewZZero > InstancingViewZCompareZero.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginZero.w +
-			dot(ViewZOne > InstancingViewZCompareOne.xyz, InstancingViewZConstant.xyz) * InstancingWorldViewOriginOne.w;
+			dot(float3(ViewZZero.xxx > InstancingViewZCompareZero.xyz), InstancingViewZConstant.xyz) * InstancingWorldViewOriginZero.w +
+			dot(float3(ViewZOne.xxx > InstancingViewZCompareOne.xyz), InstancingViewZConstant.xyz) * InstancingWorldViewOriginOne.w;
 		Intermediates.PerInstanceParams.z *= abs(Intermediates.PerInstanceParams.w) < .999;
 	#else
 		Intermediates.PerInstanceParams.w = 0;

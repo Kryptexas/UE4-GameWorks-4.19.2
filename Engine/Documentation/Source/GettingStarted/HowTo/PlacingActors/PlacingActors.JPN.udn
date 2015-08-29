@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2467008
+﻿INTSourceChangelist:2613460
 Availability:Public
 Title:アクタの配置
 Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
@@ -18,17 +18,17 @@ Related:GettingStarted\HowTo\ManipulatingActors
 
 ## 配置モード
 
-このセクションでは [配置モード](Engine/UI/LevelEditor/Modes/PlaceMode) で **モード** メニューからアクタを配置する方法について説明します。 
+このセクションでは [Place (配置モード)](Engine/UI/LevelEditor/Modes/PlaceMode) で **[Modes (モード)]** メニューからアクタを配置する方法について説明します。 
 
-1. プロジェクトを開いた状態で画面の左上隅に **モード** ウィンドウが表示されます。 
+1. プロジェクトを開いた状態で画面の左上隅に **[Modes (モード)]** ウィンドウが表示されます。 
 
 	![](Place0.png)
 
-1.	**Place** モード (1) で **Basic** タブ (2) をクリックし、**ポイント ライト** (3) 上で **左クリック** してレベル ビューポートにドラッグします。 
+1.	**配置** モード (1) で **[Basic (基本)]** タブ (2) をクリックし、**ポイント ライト** (3) 上で **左クリック** してレベル ビューポートにドラッグします。 
 
 	![](Place1.png)
 
-	**Place** モードの各タブに表示される各アクタはレベルにドラッグ & ドロップできます。 
+	**配置** モードの各タブに表示される各アクタはレベルにドラッグ & ドロップできます。 
 
 ## コンテキストメニュー
 
@@ -68,13 +68,12 @@ Related:GettingStarted\HowTo\ManipulatingActors
 1.	**SM_Couch** 上で **左クリック** して、レベル ビューポートに **ドラッグ＆ドロップ** します。 
 
 	![](Place5.png)
-
-## クラス ビューア
+	## クラス ビューア
 
 
 アクタを配置するさらに高度な方法は、 [](Engine/UI/ClassViewer) を使用するものです。これは、エディタが使用するクラスの階層リストです。
 
-1. **Class Viewer** を開くには、**Window** をクリックし、次に **Developer Tools** をクリックし、 _Miscellaneous_ で **クラス ビューア** を選択します。 
+1. **クラスビューア** を開くには、**Window** をクリックし、次に **[Developer Tools (デベロッパ ツール)]** をクリックし、 _Miscellaneous (その他)_ で **クラス ビューア** を選択します。 
 
 	![](Place6.png)
 

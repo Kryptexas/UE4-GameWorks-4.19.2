@@ -42,7 +42,7 @@ FName BuildCurveName( TSharedPtr<FSectionKeyAreaNode> KeyAreaNode )
 	return FName(*FString::Join(NameParts, TEXT(" - ")));
 }
 
-FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree )
+FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSequencerNodeTree, ECurveEditorCurveVisibility::Type CurveVisibility )
 {
 	SequencerNodeTree = InSequencerNodeTree;
 
@@ -52,32 +52,56 @@ FSequencerCurveOwner::FSequencerCurveOwner( TSharedPtr<FSequencerNodeTree> InSeq
 	{
 		for ( TSharedRef<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas() )
 		{
-			IKeyArea::FCurveInfo* CurveInfo = KeyArea->GetCurveInfo();
-			if ( CurveInfo != nullptr )
+			FRichCurve* RichCurve = KeyArea->GetRichCurve();
+			if ( RichCurve != nullptr )
 			{
 				bool bAddCurve = false;
-				switch ( GetDefault<USequencerSettings>()->GetCurveVisibility() )
+				switch ( CurveVisibility )
 				{
-				case ESequencerCurveVisibility::AllCurves:
+				case ECurveEditorCurveVisibility::AllCurves:
 					bAddCurve = true;
 					break;
-				case ESequencerCurveVisibility::SelectedCurves:
-					bAddCurve = KeyAreaNode->GetSequencer().GetSelection()->IsSelected(KeyAreaNode);
+				case ECurveEditorCurveVisibility::SelectedCurves:
+					bAddCurve = KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode);
 					break;
-				case ESequencerCurveVisibility::AnimatedCurves:
-					bAddCurve = CurveInfo->Curve->GetNumKeys() > 0;
+				case ECurveEditorCurveVisibility::AnimatedCurves:
+					bAddCurve = RichCurve->GetNumKeys() > 0;
 					break;
 				}
+				
 				if ( bAddCurve )
 				{
 					FName CurveName = BuildCurveName(KeyAreaNode);
-					Curves.Add( FRichCurveEditInfo( CurveInfo->Curve, CurveName ) );
-					ConstCurves.Add( FRichCurveEditInfoConst( CurveInfo->Curve, CurveName ) );
-					EditInfoToSectionMap.Add( FRichCurveEditInfo( CurveInfo->Curve, CurveName ), CurveInfo->OwningSection );
+					Curves.Add( FRichCurveEditInfo( RichCurve, CurveName ) );
+					ConstCurves.Add( FRichCurveEditInfoConst( RichCurve, CurveName ) );
+					EditInfoToSectionMap.Add( FRichCurveEditInfo( RichCurve, CurveName ), KeyArea->GetOwningSection() );
 				}
 			}
 		}
 	}
+}
+
+TArray<FRichCurve*> FSequencerCurveOwner::GetSelectedCurves() const
+{
+	TArray<FRichCurve*> SelectedCurves;
+
+	TArray<TSharedRef<FSectionKeyAreaNode>> KeyAreaNodes;
+	GetAllKeyAreaNodes( SequencerNodeTree, KeyAreaNodes );
+	for ( TSharedRef<FSectionKeyAreaNode> KeyAreaNode : KeyAreaNodes )
+	{
+		for ( TSharedRef<IKeyArea> KeyArea : KeyAreaNode->GetAllKeyAreas() )
+		{
+			FRichCurve* RichCurve = KeyArea->GetRichCurve();
+			if ( RichCurve != nullptr )
+			{
+				if (KeyAreaNode->GetSequencer().GetSelection().IsSelected(KeyAreaNode))
+				{
+					SelectedCurves.Add(RichCurve);
+				}
+			}
+		}
+	}
+	return SelectedCurves;
 }
 
 TArray<FRichCurveEditInfoConst> FSequencerCurveOwner::GetCurves() const

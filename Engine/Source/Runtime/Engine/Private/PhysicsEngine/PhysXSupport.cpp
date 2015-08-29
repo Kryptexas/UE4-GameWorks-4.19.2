@@ -35,13 +35,13 @@ ENGINE_API NxModule*				GApexModuleLegacy = NULL;
 ENGINE_API NxModuleClothing*		GApexModuleClothing		= NULL;	
 #endif //WITH_APEX_CLOTHING
 
-TMap<int32, NxApexScene*>				GPhysXSceneMap;
+TMap<int16, NxApexScene*>				GPhysXSceneMap;
 FApexNullRenderResourceManager		GApexNullRenderResourceManager;
 FApexResourceCallback				GApexResourceCallback;
 FApexPhysX3Interface				GApexPhysX3Interface;
 FApexChunkReport					GApexChunkReport;
 #else	// #if WITH_APEX
-TMap<int32, PxScene*>		GPhysXSceneMap;
+TMap<int16, PxScene*>		GPhysXSceneMap;
 #endif	// #if WITH_APEX
 
 int32						GNumPhysXConvexMeshes = 0;
@@ -73,16 +73,6 @@ PxTransform U2PTransform(const FTransform& UTransform)
 	return Result;
 }
 
-PxVec3 U2PVector(const FVector& UVec)
-{
-	return PxVec3(UVec.X, UVec.Y, UVec.Z);
-}
-
-PxQuat U2PQuat(const FQuat& UQuat)
-{
-	return PxQuat( UQuat.X, UQuat.Y, UQuat.Z, UQuat.W );
-}
-
 PxMat44 U2PMatrix(const FMatrix& UTM)
 {
 	PxMat44 Result;
@@ -91,11 +81,6 @@ PxMat44 U2PMatrix(const FMatrix& UTM)
 	Result = *MatPtr;
 
 	return Result;
-}
-
-PxPlane U2PPlane(FPlane& Plane)
-{
-	return PxPlane(Plane.X, Plane.Y, Plane.Z, -Plane.W);
 }
 
 UCollision2PGeom::UCollision2PGeom(const FCollisionShape& CollisionShape)
@@ -153,25 +138,6 @@ FTransform P2UTransform(const PxTransform& PTM)
 	return Result;
 }
 
-FVector P2UVector(const PxVec3& PVec)
-{
-	return FVector(PVec.x, PVec.y, PVec.z);
-}
-
-FQuat P2UQuat(const PxQuat& PQuat)
-{
-	return FQuat(PQuat.x, PQuat.y, PQuat.z, PQuat.w);
-}
-
-FPlane P2UPlane(PxReal P[4])
-{
-	return FPlane(P[0], P[1], P[2], -P[3]);
-}
-
-FPlane P2UPlane(PxPlane& Plane)
-{
-	return FPlane(Plane.n.x, Plane.n.y, Plane.n.z, -Plane.d);
-}
 ///////////////////// Utils /////////////////////
 
 
@@ -467,14 +433,7 @@ void FPhysXSimEventCallback::onContact(const PxContactPairHeader& PairHeader, co
 		}
 	}
 
-	// Get the Scene. 
-	const PxScene* PScene = PActor0->getScene();
-	check(PScene == PActor1->getScene());
-	FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
-	check(PhysScene);
-
-	const EPhysicsSceneType SceneType = PhysScene->GetPhysXScene(PST_Sync) == PScene ? PST_Sync : PST_Async;
-	TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = PhysScene->GetPendingCollisionNotifies(SceneType);
+	TArray<FCollisionNotifyInfo>& PendingCollisionNotifies = OwningScene->GetPendingCollisionNotifies(SceneType);
 
 	uint32 PreAddingCollisionNotify = PendingCollisionNotifies.Num() - 1;
 	TArray<int32> PairNotifyMapping = FBodyInstance::AddCollisionNotifyInfo(BodyInst0, BodyInst1, Pairs, NumPairs, PendingCollisionNotifies);
@@ -556,6 +515,22 @@ void FPhysXSimEventCallback::onConstraintBreak( PxConstraintInfo* constraints, P
 				Constraint->OnConstraintBroken();
 			}
 		}
+	}
+}
+
+void FPhysXSimEventCallback::onWake(PxActor** Actors, PxU32 Count)
+{
+	for(PxU32 ActorIdx = 0; ActorIdx < Count; ++ActorIdx)
+	{
+		OwningScene->AddPendingSleepingEvent(Actors[ActorIdx], SleepEvent::SET_Wakeup, SceneType);
+	}
+}
+
+void FPhysXSimEventCallback::onSleep(PxActor** Actors, PxU32 Count)
+{
+	for (PxU32 ActorIdx = 0; ActorIdx < Count; ++ActorIdx)
+	{
+		OwningScene->AddPendingSleepingEvent(Actors[ActorIdx], SleepEvent::SET_Sleep, SceneType);
 	}
 }
 
@@ -644,8 +619,6 @@ PxU32 FPhysXCPUDispatcherSingleThread::getWorkerCount() const
 // FPhysXFormatDataReader
 
 FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
-	: TriMesh( NULL )
-	, TriMeshNegX( NULL )
 {
 	// Read cooked physics data
 	uint8* DataPtr = (uint8*)InBulkData.Lock( LOCK_READ_ONLY );
@@ -654,41 +627,33 @@ FPhysXFormatDataReader::FPhysXFormatDataReader( FByteBulkData& InBulkData )
 	uint8 bLittleEndian = true;
 	int32 NumConvexElementsCooked = 0;
 	int32 NumMirroredElementsCooked = 0;
-	uint8 bTriMeshCooked = false;
-	uint8 bMirroredTriMeshCooked = false;
+	int32 NumTriMeshesCooked = 0;
 
 	Ar << bLittleEndian;
 	Ar.SetByteSwapping( PLATFORM_LITTLE_ENDIAN ? !bLittleEndian : !!bLittleEndian );
 	Ar << NumConvexElementsCooked;	
 	Ar << NumMirroredElementsCooked;
-	Ar << bTriMeshCooked;
-	Ar << bMirroredTriMeshCooked;
+	Ar << NumTriMeshesCooked;
 	
-	ConvexMeshes.Empty( NumConvexElementsCooked );
-	ConvexMeshesNegX.Empty( NumMirroredElementsCooked );
-
+	ConvexMeshes.Empty(NumConvexElementsCooked);
 	for( int32 ElementIndex = 0; ElementIndex < NumConvexElementsCooked; ElementIndex++ )
 	{
 		PxConvexMesh* ConvexMesh = ReadConvexMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		ConvexMeshes.Add( ConvexMesh );
 	}
 
+	ConvexMeshesNegX.Empty(NumMirroredElementsCooked);
 	for( int32 ElementIndex = 0; ElementIndex < NumMirroredElementsCooked; ElementIndex++ )
 	{
 		PxConvexMesh* ConvexMeshNegX = ReadConvexMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
 		ConvexMeshesNegX.Add( ConvexMeshNegX );
 	}
 
-	if( bTriMeshCooked )
+	TriMeshes.Empty(NumTriMeshesCooked);
+	for(int32 ElementIndex = 0; ElementIndex < NumTriMeshesCooked; ++ElementIndex)
 	{
-		TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
-		check(TriMesh);	
-	}
-
-	if( bMirroredTriMeshCooked )
-	{
-		TriMeshNegX = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
-		check(TriMeshNegX);	
+		PxTriangleMesh* TriMesh = ReadTriMesh( Ar, DataPtr, InBulkData.GetBulkDataSize() );
+		TriMeshes.Add(TriMesh);
 	}
 
 	InBulkData.Unlock();
@@ -748,7 +713,7 @@ void FApexChunkReport::onDamageNotify(const NxApexDamageEventReportData& damageE
 		return;
 	}
 
-	DestructibleComponent->OnDamageEvent(damageEvent);
+	DestructibleComponent->GetWorld()->GetPhysicsScene()->AddPendingDamageEvent(DestructibleComponent, damageEvent);
 }
 
 void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent)
@@ -769,6 +734,14 @@ bool FApexChunkReport::releaseOnNoChunksVisible(const NxDestructibleActor* destr
 	return false;
 }
 
+void FApexChunkReport::onDestructibleWake(physx::NxDestructibleActor** destructibles, physx::PxU32 count)
+{
+}
+
+void FApexChunkReport::onDestructibleSleep(physx::NxDestructibleActor** destructibles, physx::PxU32 count)
+{
+}
+
 ///////// FApexPhysX3Interface //////////////////////////////////
 void FApexPhysX3Interface::setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex)
 {
@@ -786,11 +759,21 @@ physx::PxPairFlags FApexPhysX3Interface::getContactReportFlags(const physx::PxSh
 
 #endif	// WITH_APEX
 
+FPhysxSharedData* FPhysxSharedData::Singleton = nullptr;
 
-FPhysxSharedData& FPhysxSharedData::Get()
+void FPhysxSharedData::Initialize()
 {
-	static FPhysxSharedData s_SharedData; 
-	return s_SharedData;
+	check(Singleton == nullptr);
+	Singleton = new FPhysxSharedData();
+}
+
+void FPhysxSharedData::Terminate()
+{
+	if (Singleton)
+	{
+		delete Singleton;
+		Singleton = nullptr;
+	}
 }
 
 void FPhysxSharedData::Add( PxBase* Obj )
@@ -913,8 +896,10 @@ PxCollection* MakePhysXCollection(const TArray<UPhysicalMaterial*>& PhysicalMate
 
 	for (UBodySetup* BodySetup : BodySetups)
 	{
-		AddToCollection(PCollection, BodySetup->TriMesh);
-		AddToCollection(PCollection, BodySetup->TriMeshNegX);
+		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
+		{
+			AddToCollection(PCollection, TriMesh);
+		}
 
 		for (const FKConvexElem& ConvexElem : BodySetup->AggGeom.ConvexElems)
 		{

@@ -10,6 +10,7 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 , FloatDefault(1.0f)
 , VectorDefault(1.0f, 1.0f, 1.0f, 1.0f)
 , MatrixDefault(FMatrix::Identity)
+, DataObjectDefault(nullptr)
 , bCanBeExposed(true)
 , bExposeWhenConstant(true)
 {
@@ -17,7 +18,12 @@ UNiagaraNodeInput::UNiagaraNodeInput(const FObjectInitializer& ObjectInitializer
 
 void UNiagaraNodeInput::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	ReallocatePins();
+	if (PropertyChangedEvent.Property != nullptr)
+	{
+		ReallocatePins();
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 
 void UNiagaraNodeInput::ReallocatePins()
@@ -128,7 +134,7 @@ void UNiagaraNodeInput::AllocateDefaultPins()
 
 FText UNiagaraNodeInput::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	return Input.Name == NAME_None ? NSLOCTEXT("NiagaraNodeInput", "Input", "Input") : FText::FromName(Input.Name);
+	return NSLOCTEXT("NiagaraNodeInput", "Input", "Input");
 }
 
 FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
@@ -143,6 +149,27 @@ FLinearColor UNiagaraNodeInput::GetNodeTitleColor() const
 	else
 	{
 		return CastChecked<UEdGraphSchema_Niagara>(GetSchema())->NodeTitleColor_Attribute;
+	}
+}
+
+void UNiagaraNodeInput::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	if (FromPin != nullptr)
+	{
+		const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
+		check(Schema);
+		if (Input.Name == NAME_None)
+		{
+			Input.Name = FName(*FromPin->PinName);
+			Input.Type = Schema->GetPinType(FromPin);
+			ReallocatePins();
+		}
+		check(Pins.Num() == 1 && Pins[0] != NULL);
+		
+		if (GetSchema()->TryCreateConnection(FromPin, Pins[0]))
+		{
+			FromPin->GetOwningNode()->NodeConnectionListChanged();
+		}
 	}
 }
 
@@ -162,18 +189,18 @@ void UNiagaraNodeInput::Compile(class INiagaraCompiler* Compiler, TArray<FNiagar
 			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, FloatDefault), Pins[0]));	break;
 			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, VectorDefault), Pins[0]));	break;
 			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, MatrixDefault), Pins[0]));	break;
-			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalConstant(Input, DataObjectDefault), Pins[0]));	break;
 			}
 		}
 		else
 		{
-			//treat this input as an external constant.
+			//treat this input as an internal constant.
 			switch (Input.Type)
 			{
 			case ENiagaraDataType::Scalar:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, FloatDefault), Pins[0]));	break;
 			case ENiagaraDataType::Vector:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, VectorDefault), Pins[0]));	break;
 			case ENiagaraDataType::Matrix:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, MatrixDefault), Pins[0]));	break;
-			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetExternalCurveConstant(Input), Pins[0]));	break;//Internal curve Constant?
+			case ENiagaraDataType::Curve:	Outputs.Add(FNiagaraNodeResult(Compiler->GetInternalConstant(Input, DataObjectDefault), Pins[0]));	break;//Internal curve Constant?
 			}
 		}
 	}

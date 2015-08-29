@@ -126,7 +126,7 @@ While you specify the vectors for the position and tangent on the Component itse
 
 ![](splinemesh2.png)
 
-Above we can move the **Start Transform** and **End Transform** independently of moving the entire Actor, allowing us to strech or rotate it as we desire. This example and setup can be found inside the [](Resources/ContentExamples/Blueprint_Splines) Content Examples map. 
+Above we can move the **Start Transform** and **End Transform** independently of moving the entire Actor, allowing us to stretch or rotate it as we desire. This example and setup can be found inside the [](Resources/ContentExamples/Blueprint_Splines) Content Examples map. 
 
 ## Text Render Component
 
@@ -147,6 +147,11 @@ A **VectorFieldComponent** is used for referencing a [Vector Field](Engine/Rende
 Vector Fields can be used for small scale effects like wind gusts particle effects to large scale blizzards in your levels. See also [Local Vector Fields](Resources/ContentExamples/EffectsGallery/2_A) and [Global Vector Fields](Resources/ContentExamples/EffectsGallery/2_B) for more information. 
 
 ![](Resources/ContentExamples/EffectsGallery/2_B/image050.png)(w:640)
+
+
+
+
+
 
 
 

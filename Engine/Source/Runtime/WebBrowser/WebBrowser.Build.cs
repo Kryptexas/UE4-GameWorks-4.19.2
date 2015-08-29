@@ -13,17 +13,19 @@ public class WebBrowser : ModuleRules
 			new string[]
 			{
 				"Core",
+				"CoreUObject",
 				"RHI",
 				"InputCore",
-				"SlateCore",
 				"Slate",
+				"SlateCore",
+				"Serialization",
 				"CEF3Utils",
 			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Win64
-		|| Target.Platform == UnrealTargetPlatform.Win32
-        ||  Target.Platform == UnrealTargetPlatform.Mac)
+		||  Target.Platform == UnrealTargetPlatform.Win32
+		||  Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target,
 				"CEF3"

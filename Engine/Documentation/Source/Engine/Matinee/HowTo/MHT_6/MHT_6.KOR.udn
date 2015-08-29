@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2468899
+﻿INTSourceChangelist:2617324
 Availability: Public
 Title:머티리얼 애니메이션
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -189,7 +189,17 @@ Description:플레이어가 근처에 있을 때 액터의 머티리얼 색이 �
 
 1.	**블루프린트** 를 닫은 다음 메인 툴바의 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
 
-	![](MHT6_M1_GIF.gif)(w:480 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	ptBxVONkdrU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_기본적으로 의자는 주황색이다가 플레이어가 가까이 가면 선택한 색으로 블렌딩되기 시작할 것입니다._
 
@@ -263,7 +273,17 @@ Description:플레이어가 근처에 있을 때 액터의 머티리얼 색이 �
 
 1.	메인 툴바에서 **플레이** 버튼을 눌러 에디터에서 플레이합니다.
 
-	![](MHT6_Matinee2Gif.gif)(w:480 convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	wp2RU64ssSQ
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_계단의 단이 검정에서 하양으로 앞뒤로 깜빡이는 것이 보일 것입니다._
 

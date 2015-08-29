@@ -25,10 +25,6 @@ Description:Setting up materials to work with Landscape terrains.
 
 [TOC(start:2 end:3)]
 
-
-## Overview
-
-
 Although any random Material can be used with a Landscape Actor, the Material system inside Unreal Engine 4 (UE4) does provide some special Landscape specific material nodes that can greatly help you to better texture your Landscape. In the following document, we will be taking an in-depth look at these nodes, how they function, and how you can use them in your Landscapes materials. 
 
 [REGION:note]
@@ -332,7 +328,17 @@ You can use the same Material for your Landscape Material and your Landscape Hol
 	![](Landscape_Hole_Materail_Assign.png)
 
 1. When completed with everything, you should now be able to mask and un-mask the visibility of your terrain like in the following video. 
-	![](Landscape_Hole_Material_Usage.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	6NxNppmZRss
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 [REGION:note]
 For information about using the painting tools to create a Landscape hole, see [Using Opacity Masking to Create a Hole](Engine\Landscape\Editing\SculptMode\#UsingOpacityMaskingtoCreateaHole).

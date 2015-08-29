@@ -479,7 +479,7 @@ public:
 
 			if( Slot->bitmap.pixel_mode != FT_PIXEL_MODE_MONO )
 			{
-				for (int32 Row = 0; Row < Bitmap->rows; ++Row)
+				for (uint32 Row = 0; Row < (uint32)Bitmap->rows; ++Row)
 				{
 					// Copy a single row. Note Bitmap.pitch contains the offset (in bytes) between rows.  Not always equal to Bitmap.width!
 					FMemory::Memcpy(&OutRenderData.RawPixels[Row*Bitmap->width], &Bitmap->buffer[Row*Bitmap->pitch], Bitmap->width*GlyphPixelSize);
@@ -490,9 +490,9 @@ public:
 			{
 				// In Mono a value of 1 means the pixel is drawn and a value of zero means it is not. 
 				// So we must check each pixel and convert it to a color.
-				for( int32 Height = 0; Height < Bitmap->rows; ++Height )
+				for(uint32 Height = 0; Height < (uint32)Bitmap->rows; ++Height )
 				{
-					for( int32 Width = 0; Width < Bitmap->width; ++Width )
+					for( uint32 Width = 0; Width < (uint32)Bitmap->width; ++Width )
 					{
 						OutRenderData.RawPixels[Height*Bitmap->width+Width] = Bitmap->buffer[Height*Bitmap->pitch+Width] == 1 ? 255 : 0;
 					}
@@ -1243,13 +1243,17 @@ void FSlateFontCache::FlushObject( const UObject* const InObject )
 	}
 }
 
-void FSlateFontCache::ConditionalFlushCache()
+bool FSlateFontCache::ConditionalFlushCache()
 {
+	bool bFlushed = false;
 	if( bFlushRequested )
 	{
 		FlushCache();
+		bFlushed = true;
 		bFlushRequested = false;
 	}
+
+	return bFlushed;
 }
 
 void FSlateFontCache::UpdateCache()

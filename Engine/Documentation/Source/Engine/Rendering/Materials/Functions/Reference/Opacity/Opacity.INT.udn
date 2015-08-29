@@ -5,7 +5,7 @@ Description:Functions to handle opacity values within a material network.
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 Opacity functions exist to speed up handling of complex opacity calculations.
 

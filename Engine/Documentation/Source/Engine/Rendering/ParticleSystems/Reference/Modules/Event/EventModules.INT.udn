@@ -5,12 +5,10 @@ Description:Event modules allow you to generate events based on particles themse
 
 [TOC(start:2 end:3)]
 
-## Event Modules 
-
 Event modules allow you to generate events based on particles interacting with themselves, each other, or the world, and then listen for those events and cause reactions to them on an inter-particle system level. A good example is generating a named collision event whenever a particle collides with the world, and then spawning particles wherever those collisions occur.
 
 
-### Event Generator
+## Event Generator
 
 The Event Generator module will generate an event (or multiple events) based on conditions you specify. This module has a single **Events** array that contains a list of all events you want the emitter to be able to generate. Each item in the _Events_ array has the following properties:
 
@@ -47,7 +45,7 @@ The Event Generator module will generate an event (or multiple events) based on 
 -------------End Event Generator Includes--------------->
 
 
-### Event Receiver Kill All (EventRcvr KillAll)
+## Event Receiver Kill All (EventRcvr KillAll)
 
 Listens for a named event and then kills all the particles of the emitter.
 
@@ -80,7 +78,7 @@ Listens for a named event and then kills all the particles of the emitter.
 
 -------------End Event Generator Includes--------------->
 
-### Event Receiver Spawn (EventRcvr Spawn)
+## Event Receiver Spawn (EventRcvr Spawn)
 
 Listens for a named event and then spawns particles based on what events fire.
 

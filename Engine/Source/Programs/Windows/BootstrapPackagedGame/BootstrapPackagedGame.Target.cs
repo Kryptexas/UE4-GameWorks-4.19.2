@@ -47,7 +47,7 @@ public class BootstrapPackagedGameTarget : TargetRules
 		BuildConfiguration.bUseSharedPCHs = false;
 		BuildConfiguration.bUseMallocProfiler = false;
 
-		// Disable all parts of the editor
+		// Disable all parts of the editor.
 		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 		UEBuildConfiguration.bCompileICU = false;
 		UEBuildConfiguration.bBuildEditor = false;

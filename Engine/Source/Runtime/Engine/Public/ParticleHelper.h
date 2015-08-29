@@ -2579,8 +2579,9 @@ public:
 	{
 		// create a static vertex buffer
 		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(sizeof(FParticleVertexDynamicParameter), BUF_Static|BUF_ZeroStride, CreateInfo);
-		FParticleVertexDynamicParameter* Vertices = (FParticleVertexDynamicParameter*)RHILockVertexBuffer(VertexBufferRHI, 0, sizeof(FParticleVertexDynamicParameter), RLM_WriteOnly);
+		void* BufferData = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(sizeof(FParticleVertexDynamicParameter), BUF_Static | BUF_ZeroStride, CreateInfo, BufferData);
+		FParticleVertexDynamicParameter* Vertices = (FParticleVertexDynamicParameter*)BufferData;
 		Vertices[0].DynamicValue[0] = Vertices[0].DynamicValue[1] = Vertices[0].DynamicValue[2] = Vertices[0].DynamicValue[3] = 1.0f;
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}

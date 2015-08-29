@@ -41,6 +41,7 @@ Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-CameraEditor.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-SessionLauncher.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-TaskBrowser.*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\*-Levels.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\NotForLicensees\*-XMPP*.*
 Engine\Binaries\Mac\*-MessagingDebugger.*
 Engine\Binaries\Win64\*-DDCUtils*.*
 Engine\Binaries\Win64\*-MessagingDebugger.*
@@ -48,12 +49,16 @@ Engine\Binaries\Win64\*-OnlineSubsystemMcp*.*
 Engine\Binaries\Win64\*-SimplygonMeshReduction*.*
 Engine\Binaries\Win64\*-TextureXboxOneFormat.*
 Engine\Binaries\Win64\*-TextureFormatATITC.*
-Engine\Binaries\Win64\*-XMPP*.*
 Shadow\Binaries\Win64\*ShadowLoadingScreen.*
 Engine\Binaries\Win64\UnrealRemoteAgent.*
+Engine\Binaries\Win64\NotForLicensees\*-XMPP*.*
 Engine\Binaries\DotNET\AutomationScripts\NoRedist\FotniteGame.Automation.*
+Engine\Build\Android\Java\libs\vrlib.jar
 Engine\Plugins\Editor\IntroTutorials\Binaries\Win64\*-IntroTutorials*.*
 Engine\Plugins\Editor\IntroTutorials\Binaries\Mac\*-IntroTutorials*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Linux\*-PluginCreator*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Mac\*-PluginCreator*.*
+Engine\Plugins\Editor\PluginCreator\Binaries\Win64\*-PluginCreator*.*
 Engine\Plugins\Script\ScriptEditorPlugin\Binaries\Mac\*
 Engine\Plugins\Script\ScriptEditorPlugin\Binaries\Win64\*
 Engine\Plugins\Script\ScriptGeneratorPlugin\Binaries\Mac\*
@@ -64,6 +69,10 @@ Engine\Plugins\Script\ScriptPlugin\Binaries\Win64\*
 Engine\Plugins\Experimental\SteamVR\Binaries\Win64\*
 Engine\Plugins\Experimental\Paper2D\Binaries
 Engine\Plugins\Experimental\Paper2D\Intermediate
+Engine\Plugins\2D\Paper2D\Binaries\Win32\*-PaperJsonImporter*.*
+Engine\Plugins\2D\Paper2D\Binaries\Win64\*-PaperJsonImporter*.*
+Engine\Plugins\2D\Paper2D\Binaries\Mac\*-PaperJsonImporter*.*
+Engine\Plugins\2D\Paper2D\Binaries\Linux\*-PaperJsonImporter*.*
 Engine\Plugins\Runtime\Analytics\Apsalar\IOSApsalar\Binaries\Mac\*-IOSApsalar.*
 Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win32\TwitchLiveStreaming*.*
 Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win32\*-TwitchLiveStreaming*.*
@@ -72,3 +81,10 @@ Engine\Plugins\Runtime\TwitchLiveStreaming\Binaries\Win64\*-TwitchLiveStreaming*
 Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-Android_ES31TargetPlatform.dylib
 Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\UnrealFrontend-Android_ES31TargetPlatform.dylib
 Engine\Binaries\Win64\Android\*Android_ES31*.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-DesktopTargetPlatform.dylib
+Engine\Binaries\Mac\UnrealFrontend.app\Contents\MacOS\UnrealFrontend-DesktopTargetPlatform.dylib
+Engine\Binaries\Win64\*-DesktopTargetPlatform*.*
+Engine\Binaries\Linux\*-DesktopTargetPlatform*.*
+Engine\Source\Runtime\ProceduralMeshComponent
+Engine\Binaries\Win64\*-GameSubCatalog.*
+Engine\Binaries\Mac\UE4Editor.app\Contents\MacOS\UE4Editor-GameSubCatalog.dylib

@@ -38,7 +38,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam( FActorEndTouchOverSignature, ETouch
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FActorDestroyedSignature);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FActorEndPlaySignature, EEndPlayReason::Type, EndPlayReason);
 
-DECLARE_DELEGATE_FourParams(FMakeNoiseDelegate, AActor*, float, class APawn*, const FVector&);
+DECLARE_DELEGATE_SixParams(FMakeNoiseDelegate, AActor*, float /*Loudness*/, class APawn*, const FVector&, float /*MaxRange*/, FName /*Tag*/);
 
 #if !UE_BUILD_SHIPPING
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnProcessEvent, AActor*, UFunction*, void*);
@@ -105,7 +105,7 @@ public:
 	 * Allows us to only see this Actor in the Editor, and not in the actual game.
 	 * @see SetActorHiddenInGame()
 	 */
-	UPROPERTY(EditAnywhere, Category=Rendering, BlueprintReadOnly, replicated, meta=(DisplayName = "Actor Hidden In Game"))
+	UPROPERTY(EditAnywhere, Category=Rendering, BlueprintReadOnly, replicated, meta=(DisplayName = "Actor Hidden In Game", SequencerTrackClass = "MovieSceneVisibilityTrack"))
 	uint32 bHidden:1;
 
 	/** If true, when the actor is spawned it will be sent to the client but receive no further replication updates from the server afterwards. */
@@ -116,7 +116,7 @@ public:
 	UPROPERTY()
 	uint32 bNetStartup:1;
 
-	/** If ture, this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
+	/** If true, this actor is only relevant to its owner. If this flag is changed during play, all non-owner channels would need to be explicitly closed. */
 	UPROPERTY(Category=Replication, EditDefaultsOnly, BlueprintReadOnly)
 	uint32 bOnlyRelevantToOwner:1;
 
@@ -130,8 +130,12 @@ public:
 	 * @see SetReplicates()
 	 * @see https://docs.unrealengine.com/latest/INT/Gameplay/Networking/Replication/
 	 */
-	UPROPERTY(Replicated, Category=Replication, EditDefaultsOnly)
+	UPROPERTY(ReplicatedUsing=OnRep_ReplicateMovement, Category=Replication, EditDefaultsOnly)
 	uint32 bReplicateMovement:1;    
+
+	/** Called on client when updated bReplicateMovement value is received for this actor. */
+	UFUNCTION()
+	virtual void OnRep_ReplicateMovement();
 
 	/**
 	 * If true, this actor is no longer replicated to new clients, and is "torn off" (becomes a ROLE_Authority) on clients to which it was being replicated.
@@ -139,6 +143,10 @@ public:
 	 */
 	UPROPERTY(replicated)
 	uint32 bTearOff:1;    
+
+	/** Networking - Server - TearOff this actor to stop replication to clients. Will set bTearOff to true. */
+	UFUNCTION(BlueprintCallable, Category = Replication)
+	virtual void TearOff();
 
 	/**
 	 * Whether we have already exchanged Role/RemoteRole on the client, as when removing then re-adding a streaming level.
@@ -182,7 +190,7 @@ protected:
 	 * If true, this actor will replicate to remote machines
 	 * @see SetReplicates()
 	 */
-	UPROPERTY(Category = Replication, EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Replication")
 	uint32 bReplicates:1;
 
 	/** This function should only be used in the constructor of classes that need to set the RemoteRole for backwards compatibility purposes */
@@ -221,6 +229,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Replication")
 	void SetReplicates(bool bInReplicates);
 
+	/**
+	* Set whether this actor's movement replicates to network clients.
+	* @param bInReplicateMovement Whether this Actor's movement replicates to clients.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+	virtual void SetReplicateMovement(bool bInReplicateMovement);
+
 	/** Sets whether or not this Actor is an autonomous proxy, which is an actor on a network client that is controlled by a user on that client. */
 	void SetAutonomousProxy(bool bInAutonomousProxy);
 	
@@ -231,7 +246,7 @@ public:
 	ENetRole GetRemoteRole() const;
 
 	/** Used for replication of our RootComponent's position and velocity */
-	UPROPERTY(Transient, ReplicatedUsing=OnRep_ReplicatedMovement)
+	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_ReplicatedMovement, Category=Replication, AdvancedDisplay)
 	struct FRepMovement ReplicatedMovement;
 
 	/** Used for replicating attachment of this actor's RootComponent to another actor. */
@@ -317,25 +332,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Replicated, Category=Actor)
 	uint32 bCanBeDamaged:1;
 
+private:
 	/**
 	 * Set when actor is about to be deleted.
-	 * @see IsPendingKillPending()
 	 */
 	UPROPERTY(Transient, DuplicateTransient)
-	uint32 bPendingKillPending:1;    
+	uint32 bActorIsBeingDestroyed:1;    
 
-	/** This actor collides with the world when placing in the editor or when spawned, even if RootComponent collision is disabled */
+public:
+
+	/** This actor collides with the world when placing in the editor, even if RootComponent collision is disabled. Does not affect spawning, @see SpawnCollisionHandlingMethod */
 	UPROPERTY()
-	uint32 bCollideWhenPlacing:1;    
+	uint32 bCollideWhenPlacing:1;
 
 	/** If true, this actor should search for an owned camera component to view through when used as a view target. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor, AdvancedDisplay)
 	uint32 bFindCameraComponentWhenViewTarget:1;
 	
-	/** If true, this actor will be replicated to network replys (default is true) */
+	/** If true, this actor will be replicated to network replays (default is true) */
 	UPROPERTY()
 	uint32 bRelevantForNetworkReplays:1;
 
+	/** Controls how to handle spawning this actor in a situation where it's colliding with something else. "Default" means AlwaysSpawn here. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Actor)
+	ESpawnActorCollisionHandlingMethod SpawnCollisionHandlingMethod;
+	
 	/** The time this actor was created, relative to World->GetTimeSeconds().
 	* @see UWorld::GetTimeSeconds()
 	*/
@@ -359,6 +380,12 @@ protected:
 	 */
 	UPROPERTY()
 	class USceneComponent* RootComponent;
+
+#if WITH_EDITORONLY_DATA
+	/** Local space pivot offset for the actor */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, AdvancedDisplay, Category = Actor)
+	FVector PivotOffset;
+#endif
 
 	/** The matinee actors that control this actor. */
 	UPROPERTY(transient)
@@ -512,7 +539,7 @@ public:
 	FActorBeginOverlapSignature OnActorBeginOverlap;
 
 	/** 
-	 *	Called when another actor steps overlapping this actor. 
+	 *	Called when another actor stops overlapping this actor. 
 	 *	@note Components on both this and the other Actor must have bGenerateOverlapEvents set to true to generate overlap events.
 	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
@@ -573,15 +600,15 @@ public:
 	virtual void DisableInput(class APlayerController* PlayerController);
 
 	/** Gets the value of the input axis if input is enabled for this actor. */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisName"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", HideSelfPin="true", HidePin="InputAxisName"))
 	float GetInputAxisValue(const FName InputAxisName) const;
 
 	/** Gets the value of the input axis key if input is enabled for this actor. */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", HideSelfPin="true", HidePin="InputAxisKey"))
 	float GetInputAxisKeyValue(const FKey InputAxisKey) const;
 
 	/** Gets the value of the input axis key if input is enabled for this actor. */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", BlueprintProtected = "true", HidePin="InputAxisKey"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly="true", HideSelfPin="true", HidePin="InputAxisKey"))
 	FVector GetInputVectorAxisValue(const FKey InputAxisKey) const;
 
 	/** Returns the instigator for this actor, or NULL if there is none. */
@@ -618,14 +645,19 @@ public:
 	FVector K2_GetActorLocation() const;
 
 	/** 
-	 *	Move the Actor to the specified location.
-	 *	@param NewLocation	The new location to move the Actor to.
-	 *	@param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something. Note:If the root component has no collision this will have no effect.
-	 *  @param SweepHitResult	The hit result from the move if swept.
-	 *	@return	Whether the location was successfully set (if not swept), or whether movement occurred at all (if swept).
+	 * Move the Actor to the specified location.
+	 * @param NewLocation	The new location to move the Actor to.
+	 * @param bSweep		Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *						Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport		Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *						If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *						If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *						If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 * @param SweepHitResult	The hit result from the move if swept.
+	 * @return	Whether the location was successfully set (if not swept), or whether movement occurred at all (if swept).
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "SetActorLocation", Keywords="position"), Category="Utilities|Transformation")
-	bool K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult);
+	bool K2_SetActorLocation(FVector NewLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
 
 	/** Returns rotation of the RootComponent of this Actor. */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorRotation"), Category="Utilities|Transformation")
@@ -661,12 +693,17 @@ public:
 	/** 
 	 * Move the actor instantly to the specified location. 
 	 * 
-	 * @param NewLocation		The new location to teleport the Actor to.
-	 * @param bSweep			Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param NewLocation	The new location to teleport the Actor to.
+	 * @param bSweep		Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *						Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport		Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *						If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *						If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *						If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult The hit result from the move if swept.
 	 * @return	Whether the location was successfully set if not swept, or whether movement occurred if swept.
 	 */
-	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	bool SetActorLocation(const FVector& NewLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 	/** 
 	 * Set the Actor's rotation instantly to the specified rotation.
@@ -681,26 +718,36 @@ public:
 	/** 
 	 * Move the actor instantly to the specified location and rotation.
 	 * 
-	 * @param NewLocation			The new location to teleport the Actor to.
-	 * @param NewRotation			The new rotation for the Actor.
-	 * @param bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
-	 * @param SweepHitResult		The hit result from the move if swept.
+	 * @param NewLocation		The new location to teleport the Actor to.
+	 * @param NewRotation		The new rotation for the Actor.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 * @param SweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the rotation was successfully set.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorLocationAndRotation"))
-	bool K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult);
+	bool K2_SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
 	
 	/** 
 	 * Move the actor instantly to the specified location and rotation.
 	 * 
-	 * @param NewLocation			The new location to teleport the Actor to.
-	 * @param NewRotation			The new rotation for the Actor.
-	 * @param bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
+	 * @param NewLocation		The new location to teleport the Actor to.
+	 * @param NewRotation		The new rotation for the Actor.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 * @param OutSweepHitResult	The hit result from the move if swept.
 	 * @return	Whether the rotation was successfully set.
 	 */
-	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-	bool SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	bool SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+	bool SetActorLocationAndRotation(FVector NewLocation, const FQuat& NewRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 	/** Set the Actor's world-space scale. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
@@ -733,97 +780,159 @@ public:
 	/**
 	 * Adds a delta to the location of this actor in world space.
 	 * 
-	 * @param  DeltaLocation		The change in location.
-	 * @param  bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
-	 * @param  SweepHitResult		The hit result from the move if swept.
+	 * @param DeltaLocation		The change in location.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldOffset", Keywords="location position"))
-	void K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
+	void K2_AddActorWorldOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
 
 	/**
 	 * Adds a delta to the location of this actor in world space.
 	 * 
-	 * @param  DeltaLocation		The change in location.
-	 * @param  bSweep				Whether to sweep to the destination location, triggering overlaps along the way and stopping at the first blocking hit.
-	 * @param  SweepHitResult		The hit result from the move if swept.
+	 * @param DeltaLocation		The change in location.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param Teleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If TeleportPhysics, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If None, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
-	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void AddActorWorldOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 
 	/**
 	 * Adds a delta to the rotation of this actor in world space.
 	 * 
-	 * @param  DeltaRotation		The change in rotation.
-	 * @param  bSweep				Whether to sweep to the target rotation (not currently supported).
-	 * @param  SweepHitResult		The hit result from the move if swept.
+	 * @param DeltaRotation		The change in rotation.
+	 * @param bSweep			Whether to sweep to the target rotation (not currently supported for rotation).
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 * @param SweepHitResult	The hit result from the move if swept.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldRotation", AdvancedDisplay="bSweep,SweepHitResult"))
-	void K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
-	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-	void AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
+	void K2_AddActorWorldRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void AddActorWorldRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+	void AddActorWorldRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 
 	/** Adds a delta to the transform of this actor in world space. Scale is unchanged. */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorWorldTransform"))
-	void K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult);
-	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void K2_AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void AddActorWorldTransform(const FTransform& DeltaTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 
 	/** 
 	 * Set the Actors transform to the specified one.
-	 * @param bSweep		Whether to sweep to the destination location, stopping short of the target if blocked by something.
+	 * @param NewTransform		The new transform.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorTransform"))
-	bool K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
-	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	bool K2_SetActorTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	bool SetActorTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 
-	/** Adds a delta to the location of this component in its local reference frame */
+	/** 
+	 * Adds a delta to the location of this component in its local reference frame.
+	 * @param DelatLocation		The change in location in local space.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalOffset", Keywords="location position"))
-	void K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult);
-	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-
-
-	/** Adds a delta to the rotation of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalRotation", AdvancedDisplay="bSweep,SweepHitResult"))
-	void K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult);
-	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-	void AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-
-
-	/** Adds a delta to the transform of this component in its local reference frame */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalTransform"))
-	void K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult);
-	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void K2_AddActorLocalOffset(FVector DeltaLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void AddActorLocalOffset(FVector DeltaLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 
 	/**
-	 * Set the actor's RootComponent to the specified relative location
-	 * @param NewRelativeLocation	New relative location to set the actor's RootComponent to
-	 * @param bSweep				Should we sweep to the destination location. If true, will stop short of the target if blocked by something
+	 * Adds a delta to the rotation of this component in its local reference frame
+	 * @param DeltaRotation		The change in rotation in local space.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
+	void K2_AddActorLocalRotation(FRotator DeltaRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void AddActorLocalRotation(FRotator DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+	void AddActorLocalRotation(const FQuat& DeltaRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+
+
+	/**
+	 * Adds a delta to the transform of this component in its local reference frame
+	 * @param NewTransform		The change in transform in local space.
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="AddActorLocalTransform"))
+	void K2_AddActorLocalTransform(const FTransform& NewTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void AddActorLocalTransform(const FTransform& NewTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+
+
+	/**
+	 * Set the actor's RootComponent to the specified relative location.
+	 * @param NewRelativeLocation	New relative location of the actor's root component
+	 * @param bSweep				Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *								Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport				Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *								If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *								If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *								If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeLocation"))
-	void K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult);
-	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void K2_SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void SetActorRelativeLocation(FVector NewRelativeLocation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative rotation
-	 * @param NewRelativeRotation		New relative rotation to set the actor's RootComponent to
-	 * @param bSweep					Should we sweep to the destination rotation. If true, will stop short of the target if blocked by something
+	 * @param NewRelativeRotation	New relative rotation of the actor's root component
+	 * @param bSweep				Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *								Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport				Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *								If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *								If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *								If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult"))
-	void K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult);
-	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
-	void SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeRotation", AdvancedDisplay="bSweep,SweepHitResult,bTeleport"))
+	void K2_SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void SetActorRelativeRotation(FRotator NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
+	void SetActorRelativeRotation(const FQuat& NewRelativeRotation, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative transform
-	 * @param NewRelativeTransform		New relative transform to set the actor's RootComponent to
-	 * @param bSweep					Should we sweep to the destination transform. If true, will stop short of the target if blocked by something
+	 * @param NewRelativeTransform		New relative transform of the actor's root component
+	 * @param bSweep			Whether we sweep to the destination location, triggering overlaps along the way and stopping short of the target if blocked by something.
+	 *							Only the root component is swept and checked for blocking collision, child components move without sweeping. If collision is off, this has no effect.
+	 * @param bTeleport			Whether we teleport the physics state (if physics collision is enabled for this object).
+	 *							If true, physics velocity for this object is unchanged (so ragdoll parts are not affected by change in location).
+	 *							If false, physics velocity is updated based on the change in position (affecting ragdoll parts).
+	 *							If CCD is on and not teleporting, this will affect objects along the entire swept volume.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(DisplayName="SetActorRelativeTransform"))
-	void K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult);
-	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr);
+	void K2_SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep, FHitResult& SweepHitResult, bool bTeleport);
+	void SetActorRelativeTransform(const FTransform& NewRelativeTransform, bool bSweep=false, FHitResult* OutSweepHitResult=nullptr, ETeleportType Teleport = ETeleportType::None);
 
 	/**
 	 * Set the actor's RootComponent to the specified relative scale 3d
@@ -851,7 +960,7 @@ public:
 
 	/** Get current state of collision for the whole actor */
 	UFUNCTION(BlueprintPure, Category="Collision")
-	bool GetActorEnableCollision();
+	bool GetActorEnableCollision() const;
 
 	/** Destroy the actor */
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "Delete", DisplayName = "DestroyActor"))
@@ -876,7 +985,7 @@ public:
 	 * @param RelativeTransform				The relative transform between the new component and its attach parent (automatic only)
 	 * @param ComponentTemplateContext		Optional UBlueprintGeneratedClass reference to use to find the template in. If null (or not a BPGC), component is sought in this Actor's class
 	 */
-	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", DefaultToSelf="ComponentTemplateContext", HidePin="ComponentTemplateContext"))
+	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", DefaultToSelf="ComponentTemplateContext", InternalUseParam="ComponentTemplateContext"))
 	class UActorComponent* AddComponent(FName TemplateName, bool bManualAttachment, const FTransform& RelativeTransform, const UObject* ComponentTemplateContext);
 
 	/** DEPRECATED - Use Component::DestroyComponent */
@@ -984,15 +1093,6 @@ public:
 	class UMaterialInstanceDynamic* MakeMIDForMaterial(class UMaterialInterface* Parent);
 
 	//=============================================================================
-	// Sound functions.
-	
-	DEPRECATED(4.0, "Actor::PlaySoundOnActor will be removed. Use UGameplayStatics::PlaySoundAttached instead.")
-	void PlaySoundOnActor(class USoundCue* InSoundCue, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
-
-	DEPRECATED(4.0, "Actor::PlaySoundOnActor will be removed. Use UGameplayStatics::PlaySoundAtLocation instead.")
-	void PlaySoundAtLocation(class USoundCue* InSoundCue, FVector SoundLocation, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
-
-	//=============================================================================
 	// AI functions.
 	
 	/**
@@ -1000,12 +1100,14 @@ public:
 	 * Note that the NoiseInstigator Pawn MUST have a PawnNoiseEmitterComponent for the noise to be detected by a PawnSensingComponent.
 	 * Senders of MakeNoise should have an Instigator if they are not pawns, or pass a NoiseInstigator.
 	 *
-	 * @param Loudness - is the relative loudness of this noise (range 0.0 to 1.0).  Directly affects the hearing range specified by the SensingComponent's HearingThreshold.
-	 * @param NoiseInstigator - Pawn responsible for this noise.  Uses the actor's Instigator if NoiseInstigator=NULL
-	 * @param NoiseLocation - Position of noise source.  If zero vector, use the actor's location.
-	*/
+	 * @param Loudness The relative loudness of this noise. Usual range is 0 (no noise) to 1 (full volume). If MaxRange is used, this scales the max range, otherwise it affects the hearing range specified by the sensor.
+	 * @param NoiseInstigator Pawn responsible for this noise.  Uses the actor's Instigator if NoiseInstigator=NULL
+	 * @param NoiseLocation Position of noise source.  If zero vector, use the actor's location.
+	 * @param MaxRange Max range at which the sound may be heard. A value of 0 indicates no max range (though perception may have its own range). Loudness scales the range. (Note: not supported for legacy PawnSensingComponent, only for AIPerception)
+	 * @param Tag Identifier for the noise.
+	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI", meta=(BlueprintProtected = "true"))
-	void MakeNoise(float Loudness=1.f, APawn* NoiseInstigator=NULL, FVector NoiseLocation=FVector::ZeroVector);
+	void MakeNoise(float Loudness=1.f, APawn* NoiseInstigator=NULL, FVector NoiseLocation=FVector::ZeroVector, float MaxRange = 0.f, FName Tag = NAME_None);
 
 	//=============================================================================
 	// Blueprint
@@ -1022,6 +1124,12 @@ public:
 
 	/** Returns whether an actor has had BeginPlay called on it (and not subsequently had EndPlay called) */
 	bool HasActorBegunPlay() const { return bActorHasBegunPlay; }
+
+	UFUNCTION(BlueprintCallable, Category="Game")
+	bool IsActorBeingDestroyed() const 
+	{
+		return bActorIsBeingDestroyed;
+	}
 
 	/** Event when this actor takes ANY damage */
 	UFUNCTION(BlueprintImplementableEvent, BlueprintAuthorityOnly, meta=(DisplayName = "AnyDamage"), Category="Game|Damage")
@@ -1362,6 +1470,20 @@ public:
 		return GetActorQuat(RootComponent);
 	}
 
+#if WITH_EDITOR
+	/** Sets the local space offset added to the actor's pivot as used by the editor */
+	FORCEINLINE void SetPivotOffset(const FVector& InPivotOffset)
+	{
+		PivotOffset = InPivotOffset;
+	}
+
+	/** Gets the local space offset added to the actor's pivot as used by the editor */
+	FORCEINLINE FVector GetPivotOffset() const
+	{
+		return PivotOffset;
+	}
+#endif
+
 /*-----------------------------------------------------------------------------
 	Relations.
 -----------------------------------------------------------------------------*/
@@ -1475,8 +1597,9 @@ public:
 	/**
 	 * Assigns a new label to this actor.  Actor labels are only available in development builds.
 	 * @param	NewActorLabel	The new label string to assign to the actor.  If empty, the actor will have a default label.
+	 * @param	bMarkDirty		If true the actor's package will be marked dirty for saving.  Otherwise it will not be.  You should pass false for this parameter if dirtying is not allowed (like during loads)
 	 */
-	void SetActorLabel( const FString& NewActorLabel );
+	void SetActorLabel( const FString& NewActorLabel, bool bMarkDirty = true );
 
 	/** Advanced - clear the actor label. */
 	void ClearActorLabel();
@@ -1495,10 +1618,15 @@ public:
 
 	/**
 	 * Assigns a new folder to this actor. Actor folder paths are only available in development builds.
-	 * @param	NewFolderPath	   The new folder to assign to the actor.
-	 * @param   bDetachFromParent  whether to detach this actor from its parent when setting the folder path
+	 * @param	NewFolderPath		The new folder to assign to the actor.
 	 */
-	void SetFolderPath(const FName& NewFolderPath, bool bDetachFromParent = true);
+	void SetFolderPath(const FName& NewFolderPath);
+
+	/**
+	 * Assigns a new folder to this actor and any attached children. Actor folder paths are only available in development builds.
+	 * @param	NewFolderPath		The new folder to assign to the actors.
+	 */
+	void SetFolderPath_Recursively(const FName& NewFolderPath);
 
 	/**
 	 * Used by the "Sync to Content Browser" right-click menu option in the editor.
@@ -1727,7 +1855,7 @@ public:
 	virtual bool IsRelevancyOwnerFor(const AActor* ReplicatedActor, const AActor* ActorOwner, const AActor* ConnectionActor) const;
 
 	/** Called after the actor is spawned in the world.  Responsible for setting up actor for play. */
-	void PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
+	void PostSpawnInitialize(FTransform const& SpawnTransform, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction);
 
 	/** Called to finish the spawning process, generally in the case of deferred spawning */
 	void FinishSpawning(const FTransform& Transform, bool bIsDefaultTransform = false);
@@ -1835,7 +1963,7 @@ public:
 	 **/
 	inline bool IsPendingKillPending() const
 	{
-		return bPendingKillPending || IsPendingKill();
+		return bActorIsBeingDestroyed || IsPendingKill();
 	}
 
 	/** Invalidate lighting cache with default options. */
@@ -2022,6 +2150,7 @@ public:
 	 * Sets the ticking group for this actor.
 	 * @param NewTickGroup the new value to assign
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	void SetTickGroup(ETickingGroup NewTickGroup);
 
 	/** Called once this actor has been deleted */
@@ -2338,6 +2467,9 @@ private:
 	/** List of replicated components. */
 	TArray<UActorComponent*> ReplicatedComponents;
 
+	/** Maps natively-constructed components to properties that reference them. */
+	TMultiMap<UActorComponent*, UObjectProperty*> NativeConstructedComponentToPropertyMap;
+
 public:
 
 	/** Array of ActorComponents that are created by blueprints and serialized per-instance. */
@@ -2406,7 +2538,7 @@ private:
 #endif // ENABLE_VISUAL_LOG
 
 	//* Sets the friendly actor label and name */
-	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName );
+	void SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName, bool bMarkDirty );
 
 	static FMakeNoiseDelegate MakeNoiseDelegate;
 
@@ -2416,7 +2548,7 @@ public:
 	static FOnProcessEvent ProcessEventDelegate;
 #endif
 
-	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation);
+	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation, float MaxRange, FName Tag);
 	static void SetMakeNoiseDelegate(const FMakeNoiseDelegate& NewDelegate);
 
 	/** A fence to track when the primitive is detached from the scene in the rendering thread. */
@@ -2432,6 +2564,19 @@ private:
 
 	// Helper that already assumes the Hit info is reversed, and avoids creating a temp FHitResult if possible.
 	void InternalDispatchBlockingHit(UPrimitiveComponent* MyComp, UPrimitiveComponent* OtherComp, bool bSelfMoved, FHitResult const& Hit);
+
+	friend struct FMarkActorIsBeingDestroyed;
+};
+
+struct FMarkActorIsBeingDestroyed
+{
+private:
+	FMarkActorIsBeingDestroyed(AActor* InActor)
+	{
+		InActor->bActorIsBeingDestroyed = true;
+	}
+
+	friend UWorld;
 };
 
 /**
@@ -2445,7 +2590,7 @@ class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
 
 public:
 	TInlineComponentArray() : Super() { }
-	TInlineComponentArray(class AActor* Actor) : Super()
+	TInlineComponentArray(const class AActor* Actor) : Super()
 	{
 		if (Actor)
 		{
@@ -2478,6 +2623,34 @@ FORCEINLINE FVector AActor::GetSimpleCollisionCylinderExtent() const
 	GetSimpleCollisionCylinder(Radius, HalfHeight);
 	return FVector(Radius, Radius, HalfHeight);
 }
+
+FORCEINLINE_DEBUGGABLE bool AActor::GetActorEnableCollision() const
+{
+	return bActorEnableCollision;
+}
+
+FORCEINLINE_DEBUGGABLE bool AActor::HasAuthority() const
+{
+	return (Role == ROLE_Authority);
+}
+
+FORCEINLINE_DEBUGGABLE AActor* AActor::GetOwner() const
+{ 
+	return Owner; 
+}
+
+FORCEINLINE_DEBUGGABLE const AActor* AActor::GetNetOwner() const
+{
+	// NetOwner is the Actor Owner unless otherwise overridden (see PlayerController/Pawn/Beacon)
+	// Used in ServerReplicateActors
+	return Owner;
+}
+
+FORCEINLINE_DEBUGGABLE ENetRole AActor::GetRemoteRole() const
+{
+	return RemoteRole;
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Macro to hide common Transform functions in native code for classes where they don't make sense.

@@ -39,7 +39,7 @@ public class Box2D : ModuleRules
 		if (bSupported)
 		{
 			// Include path
-			PublicIncludePaths.Add(Box2DBaseDir);
+			PublicSystemIncludePaths.Add(Box2DBaseDir);
 		}
 	}
 }

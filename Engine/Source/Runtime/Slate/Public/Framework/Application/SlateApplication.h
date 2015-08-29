@@ -29,16 +29,6 @@ DECLARE_DELEGATE(FModalWindowStackEnded)
 extern SLATE_API const FName NAME_UnrealOS;
 
 
-/**
- * Design constraints for Slate applications
- */
-namespace SlateApplicationDefs
-{
-	/** How many users can we support at once? */
-	static const int32 MaxUsers = 8;
-}
-
-
 /** Allow widgets to find out when someone clicked outside them. Currently needed by MenuAnchros. */
 class SLATE_API FPopupSupport
 {
@@ -57,15 +47,6 @@ class SLATE_API FPopupSupport
 	* @param InNotification                The notification to invoke.
 	*/
 	FDelegateHandle RegisterClickNotification(const TSharedRef<SWidget>& NotifyWhenClickedOutsideMe, const FOnClickedOutside& InNotification);
-
-	/**
-	* NOTE: Only necessary if notification no longer desired.
-	*       Stale notifications are cleaned up automatically.
-	*
-	* Unregister the notification because it is no longer desired.
-	*/
-	DELEGATE_DEPRECATED("This overload of UnregisterClickNotification is deprecated, instead pass the result of RegisterClickNotification.")
-	void UnregisterClickNotification(const FOnClickedOutside& InNotification);
 
 	/**
 	* NOTE: Only necessary if notification no longer desired.
@@ -152,7 +133,7 @@ public:
 
 	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer);
 	
-	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& PlatformApplication);
+	static TSharedRef<FSlateApplication> InitializeAsStandaloneApplication(const TSharedRef< class FSlateRenderer >& PlatformRenderer, const TSharedRef<class GenericApplication>& InPlatformApplication);
 
 	/**
 	 * Returns true if a Slate application instance is currently initialized and ready
@@ -270,7 +251,7 @@ public:
 	TSharedRef<SWindow> AddWindowAsNativeChild( TSharedRef<SWindow> InSlateWindow, TSharedRef<SWindow> InParentWindow, const bool bShowImmediately = true );
 
 	/**
-	 * Creates a new Menu window and add it to the menu stack.
+	 * Creates a new Menu window and adds it to the menu stack.
 	 *
 	 * @param InWindow				The parent of the menu.  If there is already an open menu this parent must exist in the menu stack or the menu stack is dismissed and a new one started
 	 * @param Content				The content to be placed inside the new window
@@ -281,15 +262,80 @@ public:
 	 * @param WindowSize			When bShouldAutoSize=false, this must be set to the size of the window to be created
 	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
 	 */
+	DEPRECATED(4.9, "PushMenu() returning a window is deprecated. Use the new version of PushMenu() that returns an IMenu.")
 	TSharedRef<SWindow> PushMenu( const TSharedRef<SWidget>& InParentContent, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const bool bShouldAutoSize = true, const FVector2D& WindowSize = FVector2D::ZeroVector, const FVector2D& SummonLocationSize = FVector2D::ZeroVector );
 
+	/**
+	 * Creates a new Menu and adds it to the menu stack.
+	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
+	 *
+	 * @param InParentWidget		The parent of the menu. If the stack isn't empty, PushMenu will attempt to determine the stack level for the new menu by looking of an open menu in the parent's path.
+	 * @param InOwnerPath			Optional full widget path of the parent if one is available. If an invalid path is given PushMenu will attempt to generate a path to the InParentWidget
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param SummonLocation		The location where this menu should be summoned
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bFocusImmediately		Should the popup steal focus when shown?
+	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
+	 * @param Method				An optional popup method override. If not set, the widgets in the InOwnerPath will be queried for this.
+	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 */
+	TSharedPtr<IMenu> PushMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, TOptional<EPopupMethod> Method = TOptional<EPopupMethod>(), const bool bIsCollapsedByParent = true);
+
+	/**
+	 * Creates a new Menu and adds it to the menu stack under the specified parent menu.
+	 * Menus are always auto-sized. Use fixed-size content if a fixed size is required.
+	 *
+	 * @param InParentMenu			The parent of the menu. Must be a valid menu in the stack.
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param SummonLocation		The location where this menu should be summoned
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bFocusImmediately		Should the popup steal focus when shown?
+	 * @param SummonLocationSize	An optional rect which describes an area in which the menu may not appear
+	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 */
+	TSharedPtr<IMenu> PushMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<SWidget>& InContent, const FVector2D& SummonLocation, const FPopupTransitionEffect& TransitionEffect, const bool bFocusImmediately = true, const FVector2D& SummonLocationSize = FVector2D::ZeroVector, const bool bIsCollapsedByParent = true);
+
+	/**
+	 * Creates a new hosted Menu and adds it to the menu stack.
+	 * Hosted menus are drawn by an external host widget.
+	 * 
+	 * @param InParentMenu			The parent of the menu. Must be a valid menu in the stack.
+	 * @param InOwnerPath			Optional full widget path of the parent if one is available. If an invalid path is given PushMenu will attempt to generate a path to the InParentWidget
+	 * @param InMenuHost			The host widget that draws the menu's content
+	 * @param InContent				The content to be placed inside the new menu
+	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 */
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedRef<SWidget>& InParentWidget, const FWidgetPath& InOwnerPath, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+	
+	/**
+	 * Creates a new hosted child Menu and adds it to the menu stack under the specified parent menu.
+	 * Hosted menus are drawn by an external host widget.
+	 * 
+	 * @param InParentMenu			The parent menu for this menu
+	 * @param InMenuHost			The host widget that draws the menu's content
+	 * @param InContent				The menu's content
+	 * @param OutWrappedContent		Returns the InContent wrapped with widgets needed by the menu stack system. This is what should be drawn by the host after this call.
+	 * @param TransitionEffect		Animation to use when the popup appears
+	 * @param bIsCollapsedByParent	Is this menu collapsed when a parent menu receives focus/activation? If false, only focus/activation outside the entire stack will auto collapse it.
+	 */	
+	TSharedPtr<IMenu> PushHostedMenu(const TSharedPtr<IMenu>& InParentMenu, const TSharedRef<IMenuHost>& InMenuHost, const TSharedRef<SWidget>& InContent, TSharedPtr<SWidget>& OutWrappedContent, const FPopupTransitionEffect& TransitionEffect, const bool bIsCollapsedByParent = true);
+
 	/** @return Returns whether the window has child menus. */
+	DEPRECATED(4.9, "HasOpenSubMenus() taking a window is deprecated. Use HasOpenSubMenus() taking an IMenu as a parameter.")
 	bool HasOpenSubMenus( TSharedRef<SWindow> Window ) const;
+
+	/** @return Returns whether the menu has child menus. */
+	bool HasOpenSubMenus(TSharedPtr<IMenu> InMenu) const;
 
 	/** @return	Returns true if there are any pop-up menus summoned */
 	bool AnyMenusVisible() const;
 
-	/** Dismisses any open menus */
+	/** @return	Returns a ptr to the window that is currently the host of the menu stack or null if no menus are visible */
+	TSharedPtr<SWindow> GetVisibleMenuWindow() const;
+
+	/** Dismisses all open menus */
 	void DismissAllMenus();
 
 	/**
@@ -297,7 +343,22 @@ public:
 	 *
 	 * @param MenuWindowToDismiss	The window to dismiss, any children, grandchildren etc will also be dismissed
 	 */
+	DEPRECATED(4.9, "DismissMenu() taking a window is deprecated. Use DismissMenu() taking an IMenu, DismissMenuByWidget() or DismissAll().")
 	void DismissMenu( TSharedRef<SWindow> MenuWindowToDismiss );
+
+	/**
+	 * Dismisses a menu and all its children
+	 *
+	 * @param InFromMenu	The menu to dismiss, any children, grandchildren etc will also be dismissed
+	 */
+	void DismissMenu(const TSharedPtr<IMenu>& InFromMenu);
+
+	/**
+	 * Dismisses a menu and all its children. The menu is determined by looking for menus in the parent chain of the widget.
+	 *
+	 * @param InWidgetInMenu	The widget whose path is search upwards for a menu. That menu will then be dismissed.
+	 */
+	void DismissMenuByWidget(const TSharedRef<SWidget>& InWidgetInMenu);
 
 	/**
 	 * Finds the window in the menu stack
@@ -305,6 +366,7 @@ public:
 	 * @param WindowToFind	The window to look for
 	 * @return The level in the stack  that the window is in or INDEX_NONE if it is not found
 	 */
+	DEPRECATED(4.9, "GetLocationInMenuStack() is deprecated. Shouldn't be needed.")
 	int32 GetLocationInMenuStack( TSharedRef<SWindow> WindowToFind ) const;
 
 	/**
@@ -355,6 +417,11 @@ public:
 	void UnregisterGameViewport();
 
 	/**
+	 * Flushes the render state of slate, releasing accesses and flushing all render commands.
+	 */
+	void FlushRenderState();
+
+	/**
 	 * Sets specified user focus to the SWidget representing the currently active game viewport
 	 */
 	void SetUserFocusToGameViewport(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
@@ -379,6 +446,14 @@ public:
 	 */
 	void SetUserFocus(uint32 UserIndex, const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
+	/**
+	 * Sets focus for all users to the SWidget passed in.
+	 *
+	 * @param WidgetToFocus the widget to set focus to
+	 * @param ReasonFocusIsChanging the contextual reason for the focus change
+	 */
+	void SetAllUserFocus(const TSharedPtr<SWidget>& WidgetToFocus, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
 	/** @return a pointer to the Widget that currently has the users focus; Empty pointer when the user has no focus. */
 	TSharedPtr< SWidget > GetUserFocusedWidget(uint32 UserIndex) const;
 
@@ -387,6 +462,9 @@ public:
 
 	/** Releases the users focus from whatever it currently is on. */
 	void ClearUserFocus(uint32 UserIndex, EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
+
+	/** Releases the focus for all users from whatever it currently is on. */
+	void ClearAllUserFocus(EFocusCause ReasonFocusIsChanging = EFocusCause::SetDirectly);
 
 	DEPRECATED(4.6, "FSlateApplication::ReleaseJoystickCapture() is deprecated, use FSlateApplication::ClearUserFocus() instead.")
 	void ReleaseJoystickCapture(uint32 UserIndex);
@@ -652,7 +730,7 @@ public:
 	/**
 	 * Forces the window to redraw immediately.
 	 */
-	void ForceRedrawWindow( TSharedRef<SWindow>& InWindowToDraw );
+	void ForceRedrawWindow( const TSharedRef<SWindow>& InWindowToDraw );
 
 	/**
 	 * Takes a screenshot of the widget writing the results into the color buffer provided.  Note that the format is BGRA.
@@ -660,7 +738,7 @@ public:
 	 * 
 	 * @return true if taking the screenshot was successful.
 	 */
-	bool TakeScreenshot(TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize);
+	bool TakeScreenshot(const TSharedRef<SWidget>& Widget, TArray<FColor>&OutColorData, FIntVector& OutSize);
 
 	/**
 	 * Takes a screenshot of the widget writing the results into the color buffer provided, this version allows you to provide 
@@ -668,7 +746,7 @@ public:
 	 *
 	 * @return true if taking the screenshot was successful.
 	 */
-	bool TakeScreenshot(TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
+	bool TakeScreenshot(const TSharedRef<SWidget>& Widget, const FIntRect& InnerWidgetArea, TArray<FColor>& OutColorData, FIntVector& OutSize);
 
 protected:
 
@@ -678,6 +756,7 @@ protected:
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const override;
 	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const override;
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const override;
+	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const override;
 	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const override;
 
 	/** 
@@ -997,6 +1076,7 @@ public:
 	virtual bool HasAnyMouseCaptor() const override;
 	virtual FSlateRect GetPreferredWorkArea() const override;
 	virtual bool HasFocusedDescendants( const TSharedRef<const SWidget>& Widget ) const override;
+	virtual bool HasUserFocusedDescendants(const TSharedRef< const SWidget >& Widget, int32 UserIndex) const override;
 	virtual bool IsExternalUIOpened() override;
 	virtual FWidgetPath LocateWindowUnderMouse( FVector2D ScreenspaceMouseCoordinate, const TArray<TSharedRef<SWindow>>& Windows, bool bIgnoreEnabledStatus = false ) override;
 	virtual bool IsWindowHousingInteractiveTooltip(const TSharedRef<const SWindow>& WindowToTest) const override;
@@ -1009,6 +1089,7 @@ public:
 	virtual void RequestDestroyWindow( TSharedRef<SWindow> WindowToDestroy ) override;
 	virtual bool SetKeyboardFocus( const FWidgetPath& InFocusPath, const EFocusCause InCause ) override;
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
+	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) override;
 
 public:
 
@@ -1025,9 +1106,9 @@ public:
 	virtual bool OnMouseMove() override;
 	virtual bool OnRawMouseMove( const int32 X, const int32 Y ) override;
 	virtual bool OnCursorSet() override;
-	virtual bool OnControllerAnalog( EControllerButtons::Type Button, int32 ControllerId, float AnalogValue ) override;
-	virtual bool OnControllerButtonPressed( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
-	virtual bool OnControllerButtonReleased( EControllerButtons::Type Button, int32 ControllerId, bool IsRepeat ) override;
+	virtual bool OnControllerAnalog( FGamepadKeyNames::Type KeyName, int32 ControllerId, float AnalogValue ) override;
+	virtual bool OnControllerButtonPressed( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
+	virtual bool OnControllerButtonReleased( FGamepadKeyNames::Type KeyName, int32 ControllerId, bool IsRepeat ) override;
 	virtual bool OnTouchGesture( EGestureEvent::Type GestureType, const FVector2D& Delta, float WheelDelta ) override;
 	virtual bool OnTouchStarted( const TSharedPtr< FGenericWindow >& PlatformWindow, const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
 	virtual bool OnTouchMoved( const FVector2D& Location, int32 TouchIndex, int32 ControllerId ) override;
@@ -1054,6 +1135,35 @@ public:
 	virtual void OnDragLeave( const TSharedPtr< FGenericWindow >& Window ) override;
 	virtual EDropEffect::Type OnDragDrop( const TSharedPtr< FGenericWindow >& Window ) override;
 	virtual bool OnWindowAction( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowAction::Type InActionType ) override;
+
+private:
+
+	/**
+	 * Directly routes a pointer down event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 * 
+	 * @return The reply returned by the widget that handled the event
+	 */
+	FReply RoutePointerDownEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+
+	/**
+	 * Directly routes a pointer up event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 */
+	void RoutePointerUpEvent(FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent);
+
+	/**
+	 * Directly routes a pointer move event to the widgets in the specified widget path
+	 *
+	 * @param WidgetsUnderPointer	The path of widgets the event is routed to.
+	 * @param PointerEvent		The event data that is is routed to the widget path
+	 * @param bIsSynthetic		Whether or not the move event is synthetic.  Synthetic pointer moves used simulate an event without the pointer actually moving 
+	 */
+	bool RoutePointerMoveEvent( const FWidgetPath& WidgetsUnderPointer, FPointerEvent& PointerEvent, bool bIsSynthetic );
 
 private:
 
@@ -1116,6 +1226,29 @@ private:
 	FSlateApplication();
 
 private:
+	/** Represents a single user and pointer index for a device 
+	 *  Used to uniquely track widget state per user and per device
+	 */
+	struct FUserAndPointer
+	{
+		uint32 UserIndex;
+		uint32 PointerIndex;
+		
+		FUserAndPointer( uint32 InUserIndex, uint32 InPointerIndex )
+			: UserIndex( InUserIndex )
+			, PointerIndex( InPointerIndex )
+		{}
+
+		bool operator==( const FUserAndPointer& Other ) const
+		{
+			return UserIndex == Other.UserIndex && PointerIndex == Other.PointerIndex;
+		}
+
+		friend uint32 GetTypeHash( const FUserAndPointer& UserAndPointer )
+		{
+			return UserAndPointer.UserIndex << 16 | UserAndPointer.PointerIndex;
+		}
+	};
 
 	/**
 	 * Creates a mouse move event for the last known cursor position.  This should be called every tick to make
@@ -1168,7 +1301,7 @@ private:
 	FMenuStack MenuStack;
 
 	/** A vertical slice through the tree of widgets on screen; it represents widgets that were under the cursor last time an event was processed */
-	FWeakWidgetPath WidgetsUnderCursorLastEvent;
+	TMap<FUserAndPointer, FWeakWidgetPath> WidgetsUnderCursorLastEvent;
 
 	/**
 	 * A helper class to wrap the weak path functionality. The advantage of using this
@@ -1187,7 +1320,7 @@ private:
 		/**
 		 * Returns whether or not the particular PointerIndex has capture.
 		 */
-		bool HasCaptureForPointerIndex(uint32 PointerIndex) const;
+		bool HasCaptureForPointerIndex(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/**
 		 * Sets a new mouse captor widget for a specific pointer index, invalidating the previous one if any and calling
@@ -1197,13 +1330,13 @@ private:
 		 * @param EventPath		The path to the event.
 		 * @param Widget		The widget that wants to capture the mouse.
 		 */
-		void SetMouseCaptor(uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
+		void SetMouseCaptor(uint32 UserIndex, uint32 PointerIndex, const FWidgetPath& EventPath, TSharedPtr< SWidget > Widget );
 
 		/** Invalidates all current mouse captors. Calls OnMouseCaptureLost() on the current mouse captor if one exists */
 		void InvalidateCaptureForAllPointers();
 
 		/** Invalidates a specific mouse captor. Calls OnMouseCaptureLost() on the specific mouse captor if one exists */
-		void InvalidateCaptureForPointer(uint32 PointIndex);
+		void InvalidateCaptureForPointer(uint32 UserIndex, uint32 PointIndex);
 
 		/**
 		 * Retrieves a resolved FWidgetPath for a specific pointer index, if possible.
@@ -1213,7 +1346,7 @@ private:
 		 * @param PointerIndex				The index of the pointer which has capture.
 		 * @param InterruptedPathHandling	How to handled incomplete paths. "Truncate" will return a partial path, "ReturnInvalid" will return an empty path.
 		 */
-		FWidgetPath ToWidgetPath(uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
+		FWidgetPath ToWidgetPath(uint32 UserIndex, uint32 PointerIndex, FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate );
 
 		FWidgetPath ToWidgetPath( FWeakWidgetPath::EInterruptedPathHandling::Type InterruptedPathHandling = FWeakWidgetPath::EInterruptedPathHandling::Truncate, const FPointerEvent* PointerEvent = nullptr );
 
@@ -1223,11 +1356,11 @@ private:
 		TArray<FWidgetPath> ToWidgetPaths();
 
 		/** Retrieves the weak path for a current mouse captor with a specific pointer index */
-		FWeakWidgetPath ToWeakPath(uint32 PointerIndex) const;
+		FWeakWidgetPath ToWeakPath(uint32 UserIndex, uint32 PointerIndex) const;
 		
 
 		/* Walks the weak path and retrieves the widget that is set as the current mouse captor with a specific pointer index */
-		TSharedPtr< SWidget > ToSharedWidget(uint32 PointerIndex) const;
+		TSharedPtr< SWidget > ToSharedWidget(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/*
 		 * Retrieves an array of shared widget pointers for the active mouse captures.
@@ -1235,14 +1368,14 @@ private:
 		TArray<TSharedRef<SWidget>> ToSharedWidgets() const;
 
 		/* Walks the weak path and retrieves the window for the widget belonging to the mouse captor with the specified pointer index */
-		TSharedPtr< SWidget > ToSharedWindow(uint32 PointerIndex);
+		TSharedPtr< SWidget > ToSharedWindow(uint32 UserIndex, uint32 PointerIndex);
 
 	protected:
 		/** Call the OnMouseCaptureLost() handler for the widget captured by the specific pointer index */
-		void InformCurrentCaptorOfCaptureLoss(uint32 PointerIndex) const;
+		void InformCurrentCaptorOfCaptureLoss(uint32 UserIndex, uint32 PointerIndex) const;
 
 		/** A map of pointer indices to weak widget paths for the active mouse captures */
-		TMap<uint32, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
+		TMap<FUserAndPointer, FWeakWidgetPath> PointerIndexToMouseCaptorWeakPathMap;
 	};
 	/** The current mouse captor for the application, if any. */
 	MouseCaptorHelper MouseCaptor;

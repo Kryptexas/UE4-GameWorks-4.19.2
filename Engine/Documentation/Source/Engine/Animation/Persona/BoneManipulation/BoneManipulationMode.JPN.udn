@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Bone Manipulation モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -14,13 +14,13 @@ Related:Engine/Content/Tools/MayaRiggingTool
 
 **ボーンを操作する方法**
 1. ペルソナ (Persona) でスケルタルメッシュ アセットを開きます。
-1. Bone Manipulation モードを使用するには、 **[Asset Browser]** のリストからアニメーションアセットを選択します。**Skeleton** 、 **Mesh** 、 **Animation** モードからもアニメーション アセットを選択することができます。(ボーンを操作する前にアニメーションを一時停止してください)
+1. Bone Manipulation モードを使用するには、 **[Asset Browser]** (アセット ブラウザ) のリストからアニメーション アセットを選択します。**Skeleton** 、 **Mesh** 、 **Animation** モードからもアニメーション アセットを選択することができます。(ボーンを操作する前にアニメーションを一時停止してください)
 
 	![](Bones_SelectAnimation.png)
-1. **[Skeleton Tree]** パネルで操作するボーンを選択します。
+1. **[Skeleton Tree]** (スケルトンツリー) パネルで操作するボーンを選択します。
 
 	![](Bones_SelectBone.png)
-1. **[ビューポート]** パネルの一番上にある、ウィジェットをアクティベートするために平行移動または回転のアイコンを選択します。
+1. **[Viewport]** (ビューポート) パネルの一番上にある、ウィジェットをアクティベートするために平行移動または回転のアイコンを選択します。
 
 	![Translation Widgets](Bones_Widgets.png)
 1. 表示されるウィジェットを使用して、ボーンを平行移動または回転させます。
@@ -39,5 +39,10 @@ Related:Engine/Content/Tools/MayaRiggingTool
 [REGION:tip]
 **Bone Scaling** をキャラクターに適用した例は、セクション 1.7 の [アニメーション コンテンツの例](Resources\ContentExamples\Animation) を参照してください。
 [/REGION]
+
+
+
+
+
 
 

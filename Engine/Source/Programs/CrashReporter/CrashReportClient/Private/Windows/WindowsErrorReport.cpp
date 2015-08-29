@@ -105,21 +105,44 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	return FCrashReportUtil::FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
 }
 
+static bool TryGetDirectoryCreationTime(const FString& InDirectoryName, FDateTime& OutCreationTime)
+{
+	FString DirectoryName(InDirectoryName);
+	FPaths::MakePlatformFilename(DirectoryName);
+
+	WIN32_FILE_ATTRIBUTE_DATA Info;
+	if (!GetFileAttributesExW(*DirectoryName, GetFileExInfoStandard, &Info))
+	{
+		OutCreationTime = FDateTime();
+		return false;
+	}
+
+	SYSTEMTIME SysTime;
+	if (!FileTimeToSystemTime(&Info.ftCreationTime, &SysTime))
+	{
+		OutCreationTime = FDateTime();
+		return false;
+	}
+
+	OutCreationTime = FDateTime(SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond);
+	return true;
+}
+
 FString FWindowsErrorReport::FindMostRecentErrorReport()
 {
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 
-	auto DirectoryModifiedTime = FDateTime::MinValue();
+	auto DirectoryCreationTime = FDateTime::MinValue();
 	FString ReportDirectory;
 	auto ReportFinder = MakeDirectoryVisitor([&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) 
 	{
 		if (bIsDirectory)
 		{
-			auto TimeStamp = PlatformFile.GetTimeStamp(FilenameOrDirectory);
-			if (TimeStamp > DirectoryModifiedTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
+			FDateTime CreationTime;
+			if(TryGetDirectoryCreationTime(FilenameOrDirectory, CreationTime) && CreationTime > DirectoryCreationTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
 			{
 				ReportDirectory = FilenameOrDirectory;
-				DirectoryModifiedTime = TimeStamp;
+				DirectoryCreationTime = CreationTime;
 			}
 		}
 		return true;
@@ -128,6 +151,13 @@ FString FWindowsErrorReport::FindMostRecentErrorReport()
 	TCHAR LocalAppDataPath[MAX_PATH];
 	SHGetFolderPath(0, CSIDL_LOCAL_APPDATA, NULL, 0, LocalAppDataPath);
 	PlatformFile.IterateDirectory( *(FString(LocalAppDataPath) / TEXT("Microsoft/Windows/WER/ReportQueue")), ReportFinder);
+
+	if (ReportDirectory.Len() == 0)
+	{
+		TCHAR LocalAppDataPath[MAX_PATH];
+		SHGetFolderPath( 0, CSIDL_COMMON_APPDATA, NULL, 0, LocalAppDataPath );
+		PlatformFile.IterateDirectory( *(FString( LocalAppDataPath ) / TEXT( "Microsoft/Windows/WER/ReportQueue" )), ReportFinder );
+	}
 
 	return ReportDirectory;
 }

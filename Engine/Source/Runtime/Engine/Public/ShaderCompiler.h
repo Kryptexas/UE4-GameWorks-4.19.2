@@ -131,9 +131,6 @@ private:
 
 	/** Main work loop. */
 	virtual int32 CompilingLoop() override;
-
-	/** Used when compiling through workers, launches worker processes if needed. */
-	void LaunchWorkerIfNeeded(FShaderCompileWorkerInfo & CurrentWorkerInfo, uint32 WorkerIndex);
 };
 
 class FShaderCompileXGEThreadRunnable : public FShaderCompileThreadRunnableBase
@@ -326,7 +323,7 @@ private:
 	double WorkersBusyTime;
 
 	/** Launches the worker, returns the launched process handle. */
-	FProcHandle LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile, bool bUseNamedPipes, bool bSingleConnectionPipe);
+	FProcHandle LaunchWorker(const FString& WorkingDirectory, uint32 ProcessId, uint32 ThreadId, const FString& WorkerInputFile, const FString& WorkerOutputFile);
 
 	/** Blocks on completion of the given shader maps. */
 	void BlockOnShaderMapCompletion(const TArray<int32>& ShaderMapIdsToFinishCompiling, TMap<int32, FShaderMapFinalizeResults>& CompiledShaderMaps);

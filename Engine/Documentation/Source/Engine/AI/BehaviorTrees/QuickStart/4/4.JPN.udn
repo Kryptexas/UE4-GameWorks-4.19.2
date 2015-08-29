@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:4. Character ブループリントの設定
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
@@ -22,25 +22,31 @@ Description:ステップ 4Character ブループリントの設定
 
 %Steps%
 
-キャラクターでプロジェクトが既に作成されているの、人間の形をしたスケルタルメッシュとその Animation ブループリントを利用することができます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+**キャラクター** が既に入っているプロジェクトを作成したので、人間の形をした **スケルタルメッシュ** とその **Animation ブループリント** を利用できます。ここではチュートリアルの中にあるものを使用しますが、既にお持ちの場合はご自分のものを使って頂いて構いません。
+
+このキャラクターが新規の AI キャラクターとなります。キャラクター、例えばポーンなどを使う理由は、 Character Movement コンポーネントの機能を利用できるようにするためです。
+
+## 手順
 
 1. **コンテンツ ブラウザ** の **AI_Character ブループリント** をダブルクリックして、編集用に開きます。
 
-1. **[Components]** パネルで **メッシュ** コンポーネントを選択します。
+1. **[Components]** パネルで **Mesh** コンポーネントを選択します。
 
 	![](meshComp.png)
 
-1. **[詳細]** パネルの **Mesh** カテゴリで HeroTPP (または自分自身の) **スケルタルメッシュ** を割り当てます。
+1. **[Details (詳細)]** パネルの **Mesh** カテゴリで HeroTPP (または自分自身の) **スケルタルメッシュ** を割り当てます。
 
 	![](assignSkelMesh.png)
 
 1. **Mesh** コンポーネントを、カプセルの真ん中に来るように移動させます。
 
-1. **[Details]** パネルの **Animation** カテゴリで HeroTPP _AnimBlueprint を **Animation Blueprint Generated Class** に割り当てます。
+1. **Mesh** コンポーネントを回転させて、青い Arrow コンポーネントの指す方向に向かせます。
+
+1. **[Details (詳細)]** パネルの **Animation (アニメーション)** カテゴリで HeroTPP_AnimBlueprint を **Animation Blueprint Generated Class** プロパティに割り当てます。
 
 	![](assignAnimBP.png)
 
-1. **[Components]** パネルで ** CapsuleComponent** を選び、 **[Details]** パネルで **スケルタル メッシュ** が囲まれるように **Capsule Half Height** と **Capsule Radius** を調整します。
+1. **[Components (コンポーネント)]** パネルで **CapsuleComponent** を選び、 **[Details (詳細)]** パネルで **スケルタル メッシュ** が囲まれるように **Capsule Half Height (カプセルの半分の高さ)** と **Capsule Radius (カプセルの半径)** を調整します。
 
 	![](shapeCat.png)
 
@@ -48,17 +54,17 @@ Description:ステップ 4Character ブループリントの設定
 
 	![](charmve.png)
 
-1. **[Details]** パネルの Movement Component カテゴリで、 Agent Radius と Agent Height の値を調整します。
+1. **[Details (詳細)]** パネルの Movement Component カテゴリで、 Agent Radius (エージェントの半径) と Agent Height (エージェントの高さ) の値を調整します。
 
 	![](agentProps.png)
 
-	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセル半高2 倍になるように設定します。_
+	_Agent Radius は最低でもカプセルの半径、そして Agent Height は少なくともカプセルの半分の高さの 2 倍になるように設定します。_
 
 1. Character Movement コンポーネントをまだ選択した状態のまま、 **Character Movement** カテゴリの **Max Walk Speed** プロパティを 400 に変更します。
+
 	![](maxWalk.png)
 
-
-1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller (「Follower_AI_CON」) を **AI** カテゴリの **AIController Class** プロパティに割り当てます。
+1. **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) ボタンをクリックして、新規 AI Controller (`Follower_AI_CON`) を **Pawn** カテゴリの **AIController Class** プロパティに割り当てます。
 
 	![](AI_con.png)
 
@@ -66,3 +72,8 @@ Description:ステップ 4Character ブループリントの設定
 
 
 %Steps%
+
+
+
+
+

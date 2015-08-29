@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2499959
+﻿INTSourceChangelist:2597062
 Availability:Public
 Title:ノードを配置する
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
-Description:ブループリントにノードを追加する方法を図示します。 
+Description:ブループリントにノードを追加する方法を説明します。 
 Related:Engine/Blueprints/BP_HowTo/ConnectingNodes
 Related:Engine/Blueprints/BP_HowTo/BasicUsage
 Related:Engine/Blueprints/UserGuide
@@ -50,15 +50,15 @@ Related:Engine/Blueprints/UserGuide
 
 上のメニューからカテゴリ (またはサブカテゴリ) を展開して、グラフに追加するノードを選択します。 
 
-**[Context Sensitive]** というウィンドウの右上隅にもデフォルトで有効になっているオプションがあります。これは、無効にすることも可能であり、現在のコンテキストに応じてメニューに表示されるオプションも自動的にフィルタリングします。 
+**[Context Sensitive (状況にあわせた表示)]** というウィンドウの右上隅にもデフォルトで有効になっているオプションがあります。これは、無効にすることも可能であり、現在のコンテキストに応じてメニューに表示されるオプションも自動的にフィルタリングします。 
 
 ![](RightClick2.png)
 
-以下のように、**[Context Sensitive]** がオンの状態で **右クリック** して **Animation** を検索するとフィルタリングされたリストが表示されます。 
+以下のように、**[Context Sensitive (状況にあわせた表示)]** がオンの状態で **右クリック** して **Animation** を検索するとフィルタリングされたリストが表示されます。 
 
 ![](RightClick3.png)(w:440)
 
-しかし、**[Context Sensitive]** のチェックを外して **Animation** を検索するとアニメーションに関するすべてのものが表示されます。 
+しかし、**[Context Sensitive (状況にあわせた表示)]** のチェックを外して **Animation** を検索するとアニメーションに関するすべてのものが表示されます。 
 
 ![](RightClick4.png)(w:440)
 

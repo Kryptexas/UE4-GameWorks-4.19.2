@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2492477
+﻿INTSourceChangelist:2615876
 Availability: Public
-Title:3. 액터를 클래스 블루프린트로 변환하기
+Title:3. 액터를 블루프린트 클래스로 변환하기
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:새 레벨 만들기 창을 통해 빈 레벨을 만듭니다.
+Description:발구름판을 블루프린트 클래스로 변환하여 재사용 및 스크립팅이 가능하도록 만듭니다.
 
 
 [VAR:Steps]

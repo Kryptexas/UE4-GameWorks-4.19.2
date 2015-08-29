@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438964
+﻿INTSourceChangelist:2527351
 Availability:Public
 Title:6.ライト プロファイルの使用方法
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
@@ -31,7 +31,7 @@ Description:このステップでは、ライト プロファイルを使って�
 
 1.	小さな浴室で **Point Light** をクリックします。 
 
-1.	ポイントライトの **[詳細]** パネル内の **Light Profile** にある **[None]** ドロップボックスをクリックします。 
+1.	ポイントライトの **[Details]** パネル内の **Light Profile** にある **[None]** ドロップボックスをクリックします。 
 
 	![](lightProfileNone.png)
 

@@ -259,6 +259,10 @@ class ULevelStreaming : public UObject
 	UFUNCTION(BlueprintCallable, Category="Game")
 	ULevelStreaming* CreateInstance(FString UniqueInstanceName);
 
+	/** Returns the Level Script Actor of the level if the level is loaded and valid */
+	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"))
+	ALevelScriptActor* GetLevelScriptActor();
+
 	//==============================================================================================
 	// Delegates
 	

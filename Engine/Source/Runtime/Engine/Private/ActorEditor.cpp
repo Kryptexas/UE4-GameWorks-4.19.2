@@ -600,12 +600,13 @@ const FString& AActor::GetActorLabel() const
 	return ActorLabel;
 }
 
-void AActor::SetActorLabel( const FString& NewActorLabelDirty )
+void AActor::SetActorLabel( const FString& NewActorLabelDirty, bool bMarkDirty )
 {
-	SetActorLabelInternal(NewActorLabelDirty, false);
+	const bool bMakeGloballyUniqueFName = false;
+	SetActorLabelInternal(NewActorLabelDirty, bMakeGloballyUniqueFName, bMarkDirty );
 }
 
-void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName )
+void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMakeGloballyUniqueFName, bool bMarkDirty )
 {
 	// Clean up the incoming string a bit
 	FString NewActorLabel = NewActorLabelDirty;
@@ -619,7 +620,7 @@ void AActor::SetActorLabelInternal( const FString& NewActorLabelDirty, bool bMak
 		if( FCString::Strcmp( *NewActorLabel, *GetActorLabel() ) != 0 )
 		{
 			// Store new label
-			Modify();
+			Modify( bMarkDirty );
 			ActorLabel = NewActorLabel;
 		}
 	}
@@ -683,48 +684,28 @@ const FName& AActor::GetFolderPath() const
 	return FolderPath;
 }
 
-void AActor::SetFolderPath(const FName& NewFolderPath, bool bDetachFromParent)
+void AActor::SetFolderPath(const FName& NewFolderPath)
 {
-	// Detach the actor if it is attached
-	USceneComponent* RootComp = GetRootComponent();
-	const bool bIsAttached = RootComp  && RootComp->AttachParent;
-
-	if (NewFolderPath == FolderPath && !bIsAttached)
+	if (NewFolderPath != FolderPath)
 	{
-		return;
-	}
+		Modify();
 
-	Modify();
+		FName OldPath = FolderPath;
+		FolderPath = NewFolderPath;
 
-	FName OldPath = FolderPath;
-	FolderPath = NewFolderPath;
-	
-	// Detach the actor if it is attached
-	if (RootComp && bIsAttached && bDetachFromParent)
-	{
-		AActor* OldParentActor = RootComp->AttachParent->GetOwner();
-		OldParentActor->Modify();
-
-		RootComp->DetachFromParent(true);
-	}
-
-	if (GEngine)
-	{
-		GEngine->BroadcastLevelActorFolderChanged(this, OldPath);
-	}
-
-	//recursively change folder path for children (but do not detach so they remain as child)
-	if(RootComp)
-	{
-		for(auto ChildSceneComponent : RootComp->AttachChildren)
+		if (GEngine)
 		{
-			AActor* ChildActor = ChildSceneComponent ? ChildSceneComponent->GetOwner() : nullptr;
-			if(ChildActor)
-			{
-				ChildActor->SetFolderPath(NewFolderPath, false);
-			}
+			GEngine->BroadcastLevelActorFolderChanged(this, OldPath);
 		}
 	}
+}
+
+void AActor::SetFolderPath_Recursively(const FName& NewFolderPath)
+{
+	FActorEditorUtils::TraverseActorTree_ParentFirst(this, [&](AActor* InActor){
+		InActor->SetFolderPath(NewFolderPath);
+		return true;
+	});
 }
 
 void AActor::CheckForDeprecated()

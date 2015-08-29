@@ -1,0 +1,7 @@
+﻿INTSourceChangelist:2099179
+Title: Transient
+Crumbs:%ROOT%, Programming,  Programming/UnrealArchitecture/Reference,  Programming/UnrealArchitecture/Reference/Structs, Programming/UnrealArchitecture/Reference/Structs/Specifiers
+Description: 
+Availability:docs
+
+这个结构体无法进行序列化。

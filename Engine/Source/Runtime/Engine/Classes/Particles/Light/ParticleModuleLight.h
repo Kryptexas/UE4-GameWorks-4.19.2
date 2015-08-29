@@ -70,6 +70,8 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	//End UParticleModule Interface
 
 	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
+
+	virtual bool CanTickInAnyThread() override;
 };
 
 

@@ -23,11 +23,6 @@ Description:Overview of the Blueprint Class Editor interface.
 [/OBJECT]
 [/VAR]
 
-
-[TOC (start:2)]
-
-## Overview
-
 [INCLUDE:Engine/Blueprints/UserGuide/Types/ClassBlueprint#datablueprint]
 
 

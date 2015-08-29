@@ -9,6 +9,8 @@
 #include "Engine/FontImportOptions.h"
 #include "SlateBasics.h"
 
+#include "EditorFramework/AssetImportData.h"
+
 UFontImportOptions::UFontImportOptions(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -97,19 +99,23 @@ void UFont::PostLoad()
 #if WITH_EDITORONLY_DATA
 void UFont::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
+	FAssetImportInfo ImportInfo;
+
 	// Add all the font filenames
 	for( const FTypefaceEntry& TypefaceEntry : CompositeFont.DefaultTypeface.Fonts )
 	{
-		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), TypefaceEntry.Font.FontFilename, FAssetRegistryTag::TT_Hidden) );
+		ImportInfo.Insert(FAssetImportInfo::FSourceFile(TypefaceEntry.Font.FontFilename));
 	}
 
 	for( const FCompositeSubFont& SubFont : CompositeFont.SubTypefaces )
 	{
 		for( const FTypefaceEntry& TypefaceEntry : SubFont.Typeface.Fonts )
 		{
-			OutTags.Add( FAssetRegistryTag(SourceFileTagName(), TypefaceEntry.Font.FontFilename, FAssetRegistryTag::TT_Hidden) );
+			ImportInfo.Insert(FAssetImportInfo::FSourceFile(TypefaceEntry.Font.FontFilename));
 		}
 	}
+
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportInfo.ToJson(), FAssetRegistryTag::TT_Hidden) );
 
 	Super::GetAssetRegistryTags(OutTags);
 }

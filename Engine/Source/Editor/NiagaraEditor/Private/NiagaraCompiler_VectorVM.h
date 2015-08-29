@@ -33,9 +33,9 @@ public:
 	void WriteCode(uint8 InCode);
 
 	//Begin INiagaraCompiler Interface	
-	virtual void CompileScript(UNiagaraScript* InScript) override;
+	virtual bool CompileScript(UNiagaraScript* InScript) override;
 
-#define NiagaraOp(OpName) virtual void OpName##_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)override;
+#define NiagaraOp(OpName) virtual bool OpName##_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)override;
 		NiagaraOpList;
 #undef NiagaraOp
 

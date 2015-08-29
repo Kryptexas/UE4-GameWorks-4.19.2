@@ -57,10 +57,6 @@ public:
 	{
 		return NULL;
 	}
-	virtual IOnlineUserCloudPtr GetUserCloudInterface(const FString& Key) const override
-	{
-		return NULL;
-	}
 	virtual IOnlineLeaderboardsPtr GetLeaderboardsInterface() const override
 	{
 		return NULL;

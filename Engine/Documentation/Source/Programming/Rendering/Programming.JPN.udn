@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2409685
+﻿INTSourceChangelist:2567205
 Availability:Public
 Title:グラフィック プログラミング
 Crumbs:%ROOT%, Programming
@@ -173,7 +173,7 @@ UE4 には、制御能力は大きくトラバース速度が遅い動的パス�
 |Translucency| 透過は、フォグが頂点ごとに適用されているフォグオフスクリーン レンダー ターゲットへ蓄積されるので、シーンへの統合も可能です。Lit の透過は 1 つのパスでの最終的なライティングを計算して正確にブレンドします。|
 |Post Processing| GBuffers を使って各種ポストプロセス エフェクトが適用されます。透過はシーンに合成されます。|
 
-かなり簡素化されたおおまかなビューです。詳細は、「profilegpu」の関連コードかログ出力を調べてください。
+かなり簡素化されたおおまかなビューです。詳細は、 'profilegpu' の関連コードかログ出力を調べてください。
 
 ## Render Hardware Interface (RHI)
 

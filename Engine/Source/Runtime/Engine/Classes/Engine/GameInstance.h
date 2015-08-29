@@ -49,6 +49,10 @@ protected:
 	// Delegate handle that stores delegate for when an invite is accepted by a user
 	FDelegateHandle OnSessionUserInviteAcceptedDelegateHandle;
 	
+	/** Class to manage online services */
+	UPROPERTY()
+	class UOnlineSession* OnlineSession;
+
 public:
 
 	FString PIEMapName;
@@ -128,7 +132,7 @@ public:
 	 * @param SpawnActor - True if an actor should be spawned for the new player.
 	 * @return The player which was created.
 	 */
-	class ULocalPlayer*		CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
+	ULocalPlayer*			CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor);
 
 	/**
 	 * Adds a LocalPlayer to the local and global list of Players.
@@ -150,14 +154,14 @@ public:
 	ULocalPlayer*			GetLocalPlayerByIndex(const int32 Index) const;
 	APlayerController*		GetFirstLocalPlayerController() const;
 	ULocalPlayer*			FindLocalPlayerFromControllerId(const int32 ControllerId) const;
-	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr< FUniqueNetId > UniqueNetId) const;
+	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr<const FUniqueNetId> UniqueNetId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;
 
 	void					CleanupGameViewport();
 
-	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator();
-	const TArray<class ULocalPlayer*> &			GetLocalPlayers();
+	TArray<ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator() const;
+	const TArray<ULocalPlayer*> &			GetLocalPlayers() const;
 
 	/** Called when demo playback fails for any reason */
 	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
@@ -165,22 +169,34 @@ public:
 	static void				AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
     /** Delegate that is called when a user has accepted an invite. */
-	void HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
+	void HandleSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
 	
 	/** Overridable implementation of HandleSessionUserInviteAccepted, which does nothing but call this function */
-	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
+	virtual void OnSessionUserInviteAccepted(const bool bWasSuccess, const int32 ControllerId, TSharedPtr< const FUniqueNetId > UserId, const FOnlineSessionSearchResult & InviteResult);
 
 	inline FTimerManager& GetTimerManager() const { return *TimerManager; }
 
 	/** Start recording a replay with the given custom name and friendly name. */
-	virtual void StartRecordingReplay(const FString& Name, const FString& FriendlyName);
+	virtual void StartRecordingReplay(const FString& InName, const FString& FriendlyName);
 
 	/** Stop recording a replay if one is currently in progress */
 	virtual void StopRecordingReplay();
 
 	/** Start playing back a previously recorded replay. */
-	virtual void PlayReplay(const FString& Name);
+	virtual void PlayReplay(const FString& InName);
 
-private:
+	/**
+	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)
+	 *
+	 * @param UserString a string that uniquely identifies the user, usually his or her FUniqueNetId
+	 */
+	virtual void AddUserToReplay(const FString& UserString);
+
 	FTimerManager* TimerManager;
+
+	/** @return online session management object associated with this game instance */
+	class UOnlineSession* GetOnlineSession() const { return OnlineSession; }
+
+	/** @return OnlineSession class to use for this game instance  */
+	virtual TSubclassOf<UOnlineSession> GetOnlineSessionClass();
 };

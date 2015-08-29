@@ -1,11 +1,10 @@
-﻿INTSourceChangelist:2492158
+﻿INTSourceChangelist:2597211
 Availability:Public
 Title: 찾기 결과 패널
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:
 
 
-## 개요
 
 **찾기 결과** 패널은 블루프린트 에디터 안에서 다음 범주에 따라 다양한 오브젝트를 빠르게 찾아주는 강력한 검색 도구입니다:
 

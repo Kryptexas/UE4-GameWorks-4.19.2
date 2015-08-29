@@ -1,9 +1,13 @@
-﻿INTSourceChangelist:2521138
+﻿INTSourceChangelist:2613360
 Availability: Public
-Title:2. 새 레벨 시작
+Title:2 - 뷰포트 조작
 Crumbs:%ROOT%, GettingStarted, Engine/QuickStart
-Description:새 레벨 대화창을 통해 빈 레벨을 만듭니다.
-
+Description:언리얼 엔진 4 의 여러가지 뷰포트를 조작하는 다양한 방법을 배워봅니다.
+SkillLevel:Beginner
+Version:4.8
+Related:Engine/UI/LevelEditor/Viewports
+Related:Engine/Levels
+Related:Engine/UI/LevelEditor/Viewports/ViewportControls
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -23,20 +27,37 @@ Description:새 레벨 대화창을 통해 빈 레벨을 만듭니다.
 
 %Steps%
 
-다음으로, 환경 제작을 시작할 레벨을 새로 만듭니다. 새 레벨을 만들 때는, 새 프로젝트를 만들 때처럼,
-언리얼 엔진에서 기준이 되는 _템플릿_ 을 제공합니다. 기본적으로 매우 단순한 환경인 _디폴트_ 템플릿이 있고,
-완전히 비어있는 _빈 레벨_ 템플릿이 있습니다.
+프로젝트가 열리고 시작할 준비가 되었으면, 먼저 언리얼 에디터 중앙에 [뷰포트](Engine/UI/LevelEditor/Viewports) 가 보일 것입니다.
 
-새 레벨 생성 작업을 시작해 봅시다:
+![](TableAndChairs.png)(w:720)
 
-1. **레벨 에디터** 창의 파일 메뉴에서 ![](Engine/QuickStart/3/new_button.png) **새 레벨...** 을 선택합니다. **새 레벨** 대화창이 표시됩니다:
+뷰포트 안에서 레벨 구성 대부분의 작업이 이루어집니다. 예전 단계에서 선택한 템플릿 프로젝트에는 처음부터 작은 샘플 [레벨](Engine/Levels) 및 애셋이 포함되어 있습니다.
+이 작은 방을 기준점으로 해서, 언리얼 엔진 4 의 뷰포트 조작에 흔히 사용되는 방법을 사용하여 [뷰포트 카메라 조작법](Engine/UI/LevelEditor/Viewports/ViewportControls) 을 익히는 시간을 가져보도록 하겠습니다.
 
-	![](Engine/QuickStart/3/level_new.png)
 
-1. 이 가이드의 목적상, 완전히 비어있는 평판 작업실이 필요합니다. **빈 레벨** 템플릿을 클릭하여 선택합니다.
+## 표준 제어
 
-1. 새로운 공백 레벨이 준비되어, 원하는 비주얼 / 게임플레이 관련 항목을 채워넣을 수 있습니다.
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#StandardControls]
 
-	![](Engine/QuickStart/3/level_empty.png)
+[REGION:tip]
+[직교 뷰](https://wiki.unrealengine.com/Videos/Player?series=PLZlv_N0_O1gasd4IcOe9Cx9wHoBB7rxFl&video=RoiQOwCg-4Q) 로 전환하려면, **원근** 드롭다운을 클릭한 다음 **직교 뷰 모드** 를 선택하면 됩니다.
+
+![](OrthographicViews.png)
+[/REGION]
+
+## WASD 비행 제어
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#GameControls]
+
+## 오빗, 달리, 트랙
+
+[INCLUDE:Engine\UI\LevelEditor\Viewports\ViewportControls#MayaLikeControls]
+
+## 최종 결과
+
+이제 뷰포트 조작에 사용되는 여러가지 방법에 대한 이해와, 카메라를 가지고 레벨을 돌아다니는 데 편리한 방법을 찾았을 것입니다.
+레벨을 만들면서 카메라를 이리저리 꽤나 움직이게 될 것이므로, 언제든 필요에 따라 다른 방법으로 자유롭게 전환하도록 하십시오.
+
+다음 단계에서는 샘플 영역을 만들어 애셋으로 채우기 시작해 보도록 하겠습니다.
 
 %Steps%

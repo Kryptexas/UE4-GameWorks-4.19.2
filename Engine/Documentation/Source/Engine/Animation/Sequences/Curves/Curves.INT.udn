@@ -8,7 +8,7 @@ Curves provide a way to change the value of a Material parameter or a Morph Targ
 [/EXCERPT:Intro]
 
 
-When you import Morph Target animations into UE4 via FBX, Morph Target Curves are automatically generated for that AnimSequence. However, they are hidden by default. This is by design; hiding away what could by many different Morph Target Curves will prevent the editor from slowing down.
+When you import Morph Target animations into UE4 via FBX, Morph Target Curves are automatically generated for that AnimSequence. However, they are hidden by default. This is by design; hiding away what could be many different Morph Target Curves will prevent the editor from slowing down.
 
 It should be noted that the ability to adjust curves for Morph Targets, while useful, is more of a convenience feature than anything else. If you are handling a very complex Morph Target animation, you will probably have a much easier time if you perform the animation in the 3D animation package from which you exported out the original Morph Target.
 

@@ -73,6 +73,9 @@ class ENGINE_API UNavCollision : public UObject
 	/** convex collisions are ready to use */
 	uint32 bHasConvexGeometry : 1;
 
+	/** if set, convex geometry will be rebuild instead of using cooked data */
+	uint32 bForceGeometryRebuild : 1;
+
 	/** Guid of associated BodySetup */
 	FGuid BodySetupGuid;
 
@@ -98,7 +101,7 @@ class ENGINE_API UNavCollision : public UObject
 	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld);
 
 	/** Read collisions data */
-	bool GatherCollision();
+	void GatherCollision();
 
 protected:
 	void ClearCollision();

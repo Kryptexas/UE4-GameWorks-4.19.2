@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521503
+﻿INTSourceChangelist:2602324
 Availability:Public
 Title: IES 라이트 프로파일
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -50,7 +50,7 @@ Description:언리얼 엔진 4 에서 라이트 프로파일 사용하기 입니
 
 [TOC(start:2)]
 
-## 개요
+
 
 [EXCERPT:IES001]
 **IES Light Profiles** (IES 라이트 프로파일)이란 빛의 세기를 아크로 정의하는 커브를 말하는데, 언리얼 엔진 4 에서는 이를 활용하여 **포인트 라이트** 가 (기술적으로는 **스포트 라이트** 도) 내는 빛에 조명 기구의 반사성 표면, 전구의 모양, 렌즈 효과 등을 반영하여 더욱 사실적인 빛을 내도록 하고 있습니다. 커브 자체는 라이트 전체적인 밝기에 대한 배수로 볼 수 있으며, 마치 라이트에서 텍스처를 투영하는 듯한 효과를 얻을 수 있지만, 그러기 위한 텍스처 비용이 들지도 않고 텍스처를 투영했을 때 일정한 각도에서 발생할 수 있는 오차도 없습니다.

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2417327
+﻿INTSourceChangelist:2592062
 Availability:Public
 Title:모바일 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -27,6 +27,7 @@ Navigation:platform
 	* [](Platforms/Mobile/Content "%Platforms/Mobile/Content:description%")
 	* [](Platforms/Mobile/PostProcessEffects "%Platforms/Mobile/PostProcessEffects:description%")
 	* [](Platforms/Mobile/Performance "%Platforms/Mobile/Performance:description%")
+	* [](Platforms/Mobile/Previewer "%Platforms/Mobile/Previewer:description%")
 	[/PARAM]
 [/OBJECT]
 

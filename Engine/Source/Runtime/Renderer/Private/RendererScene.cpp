@@ -83,11 +83,16 @@ FSceneViewState::FSceneViewState()
 	MIDUsedCount = 0;
 	TemporalAASampleIndex = 0;
 	TemporalAASampleCount = 1;
+	DistanceFieldTemporalSampleIndex = 0;
 	AOTileIntersectionResources = NULL;
+	AOScreenGridResources = NULL;
 	bBokehDOFHistory = true;
 	bBokehDOFHistory2 = true;
 
 	LightPropagationVolume = NULL; 
+
+	bIsStereoView = false;
+
 	HeightfieldLightingAtlas = NULL;
 
 	for (int32 CascadeIndex = 0; CascadeIndex < ARRAY_COUNT(TranslucencyLightingCacheAllocations); CascadeIndex++)
@@ -95,11 +100,13 @@ FSceneViewState::FSceneViewState()
 		TranslucencyLightingCacheAllocations[CascadeIndex] = NULL;
 	}
 
-#if BUFFERED_OCCLUSION_QUERIES
-	NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
-	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
-	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
-#endif
+	bIntializedGlobalDistanceFieldOrigins = false;
+	GlobalDistanceFieldUpdateIndex = 0;
+
+	ShadowOcclusionQueryMaps.Empty(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);
+	ShadowOcclusionQueryMaps.AddZeroed(FOcclusionQueryHelpers::MaxBufferedOcclusionFrames);	
+
+	bValidEyeAdaptation = false;
 }
 
 void DestroyRenderResource(FRenderResource* RenderResource)
@@ -129,6 +136,8 @@ FSceneViewState::~FSceneViewState()
 	DestroyRenderResource(HeightfieldLightingAtlas);
 	DestroyRenderResource(AOTileIntersectionResources);
 	AOTileIntersectionResources = NULL;
+	DestroyRenderResource(AOScreenGridResources);
+	AOScreenGridResources = NULL;
 	DestroyLightPropagationVolume();
 }
 
@@ -402,9 +411,9 @@ FScene::FScene(UWorld* InWorld, bool bInRequiresHitProxies, bool bInIsEditorScen
 	FeatureLevel = World->FeatureLevel;
 
 	static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
+	static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
 	bStaticDrawListsMobileHDR = MobileHDRCvar->GetValueOnAnyThread() == 1;
-	bStaticDrawListsMobileHDR32bpp = bStaticDrawListsMobileHDR && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppCvar->GetValueOnAnyThread() == 1);
+	bStaticDrawListsMobileHDR32bpp = bStaticDrawListsMobileHDR && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0);
 
 	static auto* EarlyZPassCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
 	StaticDrawListsEarlyZPassMode = EarlyZPassCvar->GetValueOnAnyThread();
@@ -1910,14 +1919,14 @@ void FScene::Release()
 	{
 		for (auto* ActorComponent : TObjectRange<UActorComponent>())
 		{
-			if ( !ensureMsg(!ActorComponent->IsRegistered() || ActorComponent->GetScene() != this, 
-					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Mesh: %s"), 
+			if ( !ensureMsgf(!ActorComponent->IsRegistered() || ActorComponent->GetScene() != this, 
+					*FString::Printf(TEXT("Component Name: %s World Name: %s Component Asset: %s"), 
 										*ActorComponent->GetFullName(), 
 										*GetWorld()->GetFullName(), 
-										Cast<UStaticMeshComponent>(ActorComponent) ? *CastChecked<UStaticMeshComponent>(ActorComponent)->StaticMesh->GetFullName() : TEXT("Not a static mesh"))) )
+										*ActorComponent->AdditionalStatObject()->GetPathName())) )
 			{
 				bTriggeredOnce = true;
-				break;	
+				break;
 			}
 		}
 	}
@@ -2410,7 +2419,7 @@ FSceneInterface* FRendererModule::AllocateScene(UWorld* World, bool bInRequiresH
 	check(IsInGameThread());
 
 	// Create a full fledged scene if we have something to render.
-	if( GIsClient && !IsRunningCommandlet() && !GUsingNullRHI )
+	if (GIsClient && FApp::CanEverRender() && !GUsingNullRHI)
 	{
 		FScene* NewScene = new FScene(World, bInRequiresHitProxies, GIsEditor && !World->IsGameWorld(), bCreateFXSystem, InFeatureLevel);
 		AllocatedScenes.Add(NewScene);
@@ -2508,62 +2517,62 @@ TStaticMeshDrawList<TBasePassDrawingPolicy<FSimpleDynamicLightingPolicy> >& FSce
 
 /** Maps the no light-map case to the appropriate base pass draw list. */
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FNoLightMapPolicy> >& FScene::GetForwardShadingBasePassDrawList<FNoLightMapPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FNoLightMapPolicy,0> >& FScene::GetForwardShadingBasePassDrawList<FNoLightMapPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingNoLightMapDrawList[DrawType];
 }
 
 /** Maps the simple light-map texture case to the appropriate base pass draw list. */
 template<>
-TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TLightMapPolicy<LQ_LIGHTMAP> > >& FScene::GetForwardShadingBasePassDrawList< TLightMapPolicy<LQ_LIGHTMAP> >(EBasePassDrawListType DrawType)
+TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TLightMapPolicy<LQ_LIGHTMAP>,0 > >& FScene::GetForwardShadingBasePassDrawList< TLightMapPolicy<LQ_LIGHTMAP> >(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingLowQualityLightMapDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> > >& FScene::GetForwardShadingBasePassDrawList< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(EBasePassDrawListType DrawType)
+TStaticMeshDrawList< TBasePassForForwardShadingDrawingPolicy< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>,0 > >& FScene::GetForwardShadingBasePassDrawList< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHIndirectPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHIndirectPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHIndirectPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMLightingPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMLightingPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightWithLightmapLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightWithLightmapLightingPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[DrawType];
 }
 
 template<>
-TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMWithLightmapLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMWithLightmapLightingPolicy, 0> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[DrawType];
 }
@@ -2574,8 +2583,8 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalL
 
 FMotionBlurInfoData::FMotionBlurInfoData()
 	: bShouldClearMotionBlurInfo(false)
+	, bWorldIsPaused(false)
 {
-
 }
 
 void FMotionBlurInfoData::UpdatePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -2630,37 +2639,39 @@ void FMotionBlurInfo::UpdateMotionBlurInfo()
 {
 	if(MBPrimitiveSceneInfo && MBPrimitiveSceneInfo->Proxy)
 	{
-		PausedLocalToWorld = PreviousLocalToWorld;
 		// only if the proxy is still there
-		PreviousLocalToWorld = MBPrimitiveSceneInfo->Proxy->GetLocalToWorld();
+		CurrentLocalToWorld = MBPrimitiveSceneInfo->Proxy->GetLocalToWorld();
 	}
 
 	bKeepAndUpdateThisFrame = false;
 }
 
-void FMotionBlurInfo::RestoreForPausedMotionBlur()
-{
-	PreviousLocalToWorld = PausedLocalToWorld;
-}
-
 // Doxygen has trouble parsing these functions because the header declaring them is in Engine, not Renderer
 #if !UE_BUILD_DOCS
 
-void FMotionBlurInfoData::RestoreForPausedMotionBlur()
+void FMotionBlurInfoData::StartFrame(bool bInWorldIsPaused)
 {
-	check(IsInRenderingThread());
+	bWorldIsPaused = bInWorldIsPaused;
 
-	for (TMap<FPrimitiveComponentId, FMotionBlurInfo>::TIterator It(MotionBlurInfos); It; ++It)
+	if(!bWorldIsPaused)
 	{
-		FMotionBlurInfo& MotionBlurInfo = It.Value();
+		for (TMap<FPrimitiveComponentId, FMotionBlurInfo>::TIterator It(MotionBlurInfos); It; ++It)
+		{
+			FMotionBlurInfo& MotionBlurInfo = It.Value();
 
-		MotionBlurInfo.RestoreForPausedMotionBlur();
+			MotionBlurInfo.OnStartFrame();
+		}
 	}
 }
 
 void FMotionBlurInfoData::UpdateMotionBlurCache(FScene* InScene)
 {
 	check(InScene && IsInRenderingThread());
+
+	if(bWorldIsPaused)
+	{
+		return;
+	}
 
 	if (InScene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
@@ -2700,6 +2711,11 @@ void FMotionBlurInfoData::ApplyOffset(FVector InOffset)
 	{
 		It.Value().ApplyOffset(InOffset);
 	}
+}
+
+FString FMotionBlurInfoData::GetDebugString() const
+{
+	return FString::Printf(TEXT("Num=%d Clear=%d"), MotionBlurInfos.Num(), bShouldClearMotionBlurInfo);
 }
 
 const FMotionBlurInfo* FMotionBlurInfoData::FindMBInfoIndex(FPrimitiveComponentId ComponentId) const

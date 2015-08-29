@@ -4,7 +4,8 @@
 
 #include "ObjectBase.h"
 #include "WorldCompositionUtility.h"
-
+#include "GatherableTextData.h"
+#include "PropertyLocalizationDataGathering.h"
 
 /**
  * Structure to hold information about an external packages objects used in cross-level references
@@ -262,6 +263,13 @@ public:
 	bool RequiresLocalizationGather() const
 	{
 		return (PackageFlags & PKG_RequiresLocalizationGather) ? true : false;
+	}
+
+	typedef TFunction<void (const UObject* const, TArray<FGatherableTextData>&)> FLocalizationDataGatheringCallback;
+	static TMap<UField*, FLocalizationDataGatheringCallback>& GetTypeSpecificLocalizationDataGatheringCallbacks()
+	{
+		static TMap<UField*, FLocalizationDataGatheringCallback> TypeSpecificLocalizationDataGatheringCallbacks;
+		return TypeSpecificLocalizationDataGatheringCallbacks;
 	}
 
 	/** Returns true if this package has a thumbnail map */

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AlphaBlend.h"
 #include "AnimNodeBase.h"
 #include "AnimNode_BlendListBase.generated.h"
 
@@ -17,6 +18,15 @@ public:
 	UPROPERTY(EditAnywhere, EditFixedSize, BlueprintReadWrite, Category=Config, meta=(PinShownByDefault))
 	TArray<float> BlendTime;
 
+	UPROPERTY(EditAnywhere, Category=BlendType)
+	EAlphaBlendOption BlendType;
+
+	UPROPERTY(EditAnywhere, Category=BlendType)
+	UCurveFloat* CustomBlendCurve;
+
+	UPROPERTY()
+	TArray<FAlphaBlend> Blends;
+
 protected:
 	UPROPERTY()
 	TArray<float> BlendWeights;
@@ -26,6 +36,10 @@ protected:
 
 	UPROPERTY()
 	int32 LastActiveChildIndex;
+
+	//Store which poses we need to evaluate
+	TArray<int32> PosesToEvaluate;
+
 public:	
 	FAnimNode_BlendListBase()
 		: LastActiveChildIndex(0)

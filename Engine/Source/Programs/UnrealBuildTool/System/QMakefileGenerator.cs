@@ -88,7 +88,7 @@ namespace UnrealBuildTool
 				FullPath = FullPath.TrimEnd('/');
 			}
 
-			if (!IncludeDirectories.Contains(FullPath) && !FullPath.Contains("FortniteGame/")) // @todo: skipping Fortnite header paths to shorten clang command line for building UE4XcodeHelper
+			if (!IncludeDirectories.Contains(FullPath) && !FullPath.Contains("FortniteGame/") && Directory.Exists (FullPath)) // @todo: skipping Fortnite header paths to shorten clang command line for building UE4XcodeHelper
 			{
 				IncludeDirectories.Add(FullPath);
 			}
@@ -122,7 +122,8 @@ namespace UnrealBuildTool
 
 			string QMakeGameProjectFile = "";
 
-			foreach (var CurProject in GeneratedProjectFiles) {
+			foreach (var CurProject in GeneratedProjectFiles) 
+			{
 
 				QMakefileProjectFile QMakeProject = CurProject as QMakefileProjectFile;
 				if (QMakeProject == null)
@@ -359,35 +360,43 @@ namespace UnrealBuildTool
 
 			string QMakeProjectCmdArg = "";
 
-			foreach (string TargetFilePath in DiscoverTargets())
+			foreach(var Project in GeneratedProjectFiles)
 			{
-				var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFilePath);		// Remove both ".cs" and ".
-
-				foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+				foreach (var TargetFile in Project.ProjectTargets)
 				{
-					if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
+					if (TargetFile.TargetFilePath == null)
 					{
-						if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
-						{
+						continue;
+					}
 
-							if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+					var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFile.TargetFilePath);		// Remove both ".cs" and ".
+
+					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+					{
+						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
+						{
+							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
 							{
-								QMakeProjectCmdArg = " -project=\"\\\"$$gameProjectFile\\\"\"";
+
+								if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+								{
+									QMakeProjectCmdArg = " -project=\"\\\"$$gameProjectFile\\\"\"";
+								}
+								var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								QMakeFileContent.Append(String.Format("{0}-Linux-{1}.commands = $$build {0} Linux {1} {2} $$args\n", TargetName, ConfName, QMakeProjectCmdArg));
+								QMakeTargetList += "\t" + TargetName + "-Linux-" + ConfName + " \\\n"; // , TargetName, ConfName);
 							}
-							var ConfName = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-							QMakeFileContent.Append(String.Format("{0}-Linux-{1}.commands = $$build {2} {0} Linux {1} $$args\n", TargetName, ConfName, QMakeProjectCmdArg));
-							QMakeTargetList += "\t" + TargetName + "-Linux-" + ConfName + " \\\n"; // , TargetName, ConfName);
 						}
 					}
-				}
 
-				if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
-				{
-					QMakeProjectCmdArg = " -project=\"\\\"$$gameProjectFile\\\"\"";
-				}
+					if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+					{
+						QMakeProjectCmdArg = " -project=\"\\\"$$gameProjectFile\\\"\"";
+					}
 
-				QMakeFileContent.Append(String.Format("{0}.commands = $$build {1} {0} Linux Development $$args\n\n", TargetName, QMakeProjectCmdArg));
-				QMakeTargetList += "\t" + TargetName + " \\\n";
+					QMakeFileContent.Append(String.Format("{0}.commands = $$build {0} Linux Development {1} $$args\n\n", TargetName, QMakeProjectCmdArg));
+					QMakeTargetList += "\t" + TargetName + " \\\n";
+				}
 			}
 
 			QMakeFileContent.Append (QMakeTargetList.TrimEnd('\\'));

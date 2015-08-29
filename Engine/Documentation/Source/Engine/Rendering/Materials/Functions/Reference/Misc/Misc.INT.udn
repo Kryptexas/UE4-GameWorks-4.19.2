@@ -5,7 +5,7 @@ Description:Miscellaneous functions that do not fall into existing categories.
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 Miscellaneous functions include a variety of one-off functions that do not readily fit into any of the other existing categories. They are placed here to avoid too many categories with only one function inside.
 
@@ -27,7 +27,9 @@ The TimeWithSpeedVariable functions just like a time node, but with an optional 
 
 ![Time with Speed Offset](TimeWithSpeedVariable_Demo.png)
 
-**Note: The Output Result will preview the node by default.  In this case, the node will flicker.**
+[REGION:note]
+The Output Result will preview the node by default.  In this case, the node will flicker.
+[/REGION]
 
 ### OffsetAndScaleTo1
 
@@ -63,7 +65,7 @@ The SplitComponents function busts apart the components of an incoming color or 
 
 ![Split Components](SplitComponents_Demo.png)
 
-### FlipBook
+### Flipbook
 
 This function takes in a Texture2D, such as a grid of sprite frames, and outputs an animation of them playing back in order.
 
@@ -72,11 +74,11 @@ This function takes in a Texture2D, such as a grid of sprite frames, and outputs
 |[REGION:tablesection]Inputs[/REGION] ||
 | **Animation Phase (0-1) (Scalar)** | If this receives a static input, then the result will give the nearest frame of the flipbook as if the frames were numbered between 0 and 1. If no input is given, time is automatically used.|
 | **Number of Rows (Scalar)** | This takes in the number of rows of the flipbook texture.|
-| **Number of Columns (Scalar)** | This takes in the number of columns of of the flipbook texture.|
+| **Number of Columns (Scalar)** | This takes in the number of columns of the flipbook texture.|
 | **Texture (Texture2D)** | Takes in a Texture2D containing a sprite sheet, or grid of frames of an animated texture.|
 | **UVs (Vector2)** | Takes in a set of UV coordinates to assist in tiling.|
 |[REGION:tablesection]Outputs[/REGION] ||
-| **Result** | Outputs an image as the result of the FlipBook.|
+| **Result** | Outputs an image as the result of the flipbook.|
 | **UVs** | Outputs the UV coordinates corresponding with a given frame of the texture sheet.|
 
 

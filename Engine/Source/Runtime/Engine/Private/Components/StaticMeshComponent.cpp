@@ -386,26 +386,6 @@ void UStaticMeshComponent::CheckForErrors()
 			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshNull));
 	}
 
-	// Make sure any non uniform scaled meshes have appropriate collision
-	if ( IsCollisionEnabled() && StaticMesh != NULL && StaticMesh->BodySetup != NULL && Owner != NULL )
-	{
-		// Overall scale factor for this mesh.
-		const FVector& TotalScale3D = ComponentToWorld.GetScale3D();
-		if ( !TotalScale3D.IsUniform() &&
-			 (StaticMesh->BodySetup->AggGeom.BoxElems.Num() > 0   ||
-			  StaticMesh->BodySetup->AggGeom.SphylElems.Num() > 0 ||
-			  StaticMesh->BodySetup->AggGeom.SphereElems.Num() > 0) )
-
-		{
-			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
-			FMessageLog("MapCheck").Warning()
-				->AddToken(FUObjectToken::Create(Owner))
-				->AddToken(FTextToken::Create(FText::Format(LOCTEXT( "MapCheck_Message_SimpleCollisionButNonUniformScale", "'{MeshName}' has simple collision but is being scaled non-uniformly - collision creation will fail" ), Arguments)))
-				->AddToken(FMapErrorToken::Create(FMapErrors::SimpleCollisionButNonUniformScale));
-		}
-	}
-
 	if ( BodyInstance.bSimulatePhysics && StaticMesh != NULL && StaticMesh->BodySetup != NULL && StaticMesh->BodySetup->AggGeom.GetElementCount() == 0) 
 	{
 		FMessageLog("MapCheck").Warning()
@@ -616,7 +596,7 @@ bool UStaticMeshComponent::CanEditSimulatePhysics()
 {
 	if (UBodySetup* BodySetup = GetBodySetup())
 	{
-		return (BodySetup->AggGeom.GetElementCount() > 0) || (BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple);
+		return (BodySetup->AggGeom.GetElementCount() > 0) || (BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple);
 	}
 	else
 	{
@@ -1083,7 +1063,7 @@ void UStaticMeshComponent::PostEditUndo()
 	InitResources();
 
 	// Debug check command trying to track down undo related uninitialized resource
-	if (StaticMesh != NULL && StaticMesh->RenderData->LODResources.Num() > 0)
+	if (StaticMesh != NULL && StaticMesh->RenderData.IsValid() && StaticMesh->RenderData->LODResources.Num() > 0)
 	{
 		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
 			ResourceCheckCommand,
@@ -1093,7 +1073,6 @@ void UStaticMeshComponent::PostEditUndo()
 			}
 		);
 	}
-
 	Super::PostEditUndo();
 }
 
@@ -1151,7 +1130,7 @@ void UStaticMeshComponent::PostLoad()
 			Arguments.Add(TEXT("MeshName"), FText::FromString(GetName()));
 			FMessageLog("MapCheck").Info()
 				->AddToken(FUObjectToken::Create(GetOuter()))
-				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors" ), Arguments ) ))
+				->AddToken(FTextToken::Create(FText::Format( LOCTEXT( "MapCheck_Message_RepairedPaintedVertexColors", "{MeshName} : Repaired painted vertex colors (slow loading, can be fixed by saving asset)" ), Arguments ) ))
 				->AddToken(FMapErrorToken::Create(FMapErrors::RepairedPaintedVertexColors));
 #endif
 		}
@@ -1540,12 +1519,6 @@ int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 	return INDEX_NONE;
 }
 
-FName UStaticMeshComponent::GetComponentInstanceDataType() const
-{
-	static const FName StaticMeshComponentInstanceDataName(TEXT("StaticMeshInstanceData"));
-	return StaticMeshComponentInstanceDataName;
-}
-
 FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() const
 {
 	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
@@ -1593,55 +1566,65 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
+	// Changing refcounted pointers like LightMap works because those are deferred cleanup resources (deleted next frame)
 
 	if (StaticMesh != StaticMeshInstanceData->StaticMesh)
 	{
 		return;
 	}
 
-	// See if data matches current state
-	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f) )
+	if (StaticMeshInstanceData->bHasCachedStaticLighting)
 	{
-		const int32 NumLODLightMaps = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Num();
-		SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
-		for (int32 i = 0; i < NumLODLightMaps; ++i)
+		// See if data matches current state
+		if (StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f))
 		{
-			LODData[i].LightMap = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap[i];
-			LODData[i].ShadowMap = StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap[i];
+			const int32 NumLODLightMaps = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Num();
+			SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
 
-// this code is to try to track down a mystery GC crash from crash reporter...if this code crashes, and then we know it is component reinstancing
-			if (LODData[i].LightMap.GetReference())
+			for (int32 i = 0; i < NumLODLightMaps; ++i)
 			{
-				FLightMap2D* LightMap = LODData[i].LightMap->GetLightMap2D();
-				if (LightMap)
+				LODData[i].LightMap = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap[i];
+				LODData[i].ShadowMap = StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap[i];
+
+				// this code is to try to track down a mystery GC crash from crash reporter...if this code crashes, and then we know it is component reinstancing
+				if (LODData[i].LightMap.GetReference())
 				{
-					if (LightMap->IsValid(0))
+					FLightMap2D* LightMap = LODData[i].LightMap->GetLightMap2D();
+					if (LightMap)
 					{
-						UTexture2D* Tex = LightMap->GetTexture(0);
-						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
-					}
-					if (LightMap->IsValid(1))
-					{
-						UTexture2D* Tex = LightMap->GetTexture(1);
-						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
-					}
-					if (LightMap->GetSkyOcclusionTexture())
-					{
-						UTexture2D* Tex = LightMap->GetSkyOcclusionTexture();
-						Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+						if (LightMap->IsValid(0))
+						{
+							UTexture2D* Tex = LightMap->GetTexture(0);
+							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+						}
+						if (LightMap->IsValid(1))
+						{
+							UTexture2D* Tex = LightMap->GetTexture(1);
+							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+						}
+						if (LightMap->GetSkyOcclusionTexture())
+						{
+							UTexture2D* Tex = LightMap->GetSkyOcclusionTexture();
+							Tex->GetResourceSize(EResourceSizeMode::Exclusive);
+						}
 					}
 				}
 			}
+
+			IrrelevantLights = StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights;
+			bHasCachedStaticLighting = true;
 		}
-
-		IrrelevantLights = StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights;
-		bHasCachedStaticLighting = true;
+		else
+		{
+			UE_LOG(LogStaticMesh, Warning, TEXT("Cached component instance data transform did not match!  Discarding cached lighting data which will cause lighting to be unbuilt.\n%s\nCurrent X=%f Y=%f Z=%f Cached X=%f Y=%f Z=%f"), 
+				*GetPathName(),
+				ComponentToWorld.GetLocation().X, ComponentToWorld.GetLocation().Y, ComponentToWorld.GetLocation().Z,
+				StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().X, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Y, StaticMeshInstanceData->CachedStaticLighting.Transform.GetLocation().Z);
+		}
 	}
 
-	{
-		FComponentReregisterContext ReregisterStaticMesh(this);
-		StaticMeshInstanceData->ApplyVertexColorData(this);
-	}
+	StaticMeshInstanceData->ApplyVertexColorData(this);
+	MarkRenderStateDirty();
 }
 
 #include "AI/Navigation/RecastHelpers.h"

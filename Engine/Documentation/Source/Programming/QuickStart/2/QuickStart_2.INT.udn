@@ -1,8 +1,9 @@
 Availability: Public
-Title:2. Create a C++ Class
+Title:2 - Create a C++ Class
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a C++ class
-Version: 4.7
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -22,9 +23,9 @@ Version: 4.7
 
 %Steps%
 
- 1. In the **Unreal Editor**, we can create a new C++ class with the **Add Code to Project** command, located in the **File** drop-down menu.
+ 1. In the **Unreal Editor**, we can create a new C++ class with the **New C++ Class...** command, located in the **File** drop-down menu.
  
-	[![](AddCPPCode.png)](AddCPPCode.png)
+	[![](AddCPPClass.png)](AddCPPClass.png)
 
  2. The **Choose Parent Class** menu will open. Since **Actor** is the most basic class that can exist in an **Unreal Engine** level, we'll use the **Actor** class as our base.
  
@@ -36,6 +37,6 @@ Version: 4.7
 
 ----
 
-**Unreal Engine** will now open **Visual Studio** for you and load your new project.
+Now that we have created a C++ class, we can switch to **Visual Studio** to program it. `FloatingActor.cpp` will be opened for us automatically, and **Unreal Engine** will automatically compile and reload the code with our new class.
 
 %Steps%

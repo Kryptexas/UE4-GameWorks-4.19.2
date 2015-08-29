@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521848
+﻿INTSourceChangelist:2601129
 Availability:Public
 Title:라이팅된 반투명
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -26,7 +26,7 @@ Description:반투명 표면의 라이팅과 셀프 섀도우를 포함한 그�
 
 [TOC(start:2)]
 
-## 개요
+
 
 반투명 이펙트는 일반적으로 볼류메트릭인지, 볼류메트릭이지만 노멀 정보를 갖을 만큼 밀도가 높은지, 표면인지로 나뉩니다. 이들 각각에 각기 다른 라이팅 기법이 필요하므로, 머티리얼에는 반드시 사용해야 하는 [반투명 라이팅 모드](Engine/Rendering/LightingAndShadows/LitTranslucency) 를 지정해 줘야 합니다.
 

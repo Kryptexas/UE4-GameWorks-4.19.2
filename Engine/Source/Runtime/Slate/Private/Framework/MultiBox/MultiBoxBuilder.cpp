@@ -316,8 +316,8 @@ void FMenuBarBuilder::AddPullDownMenu( const FText& InMenuLabel, const FText& In
 	const bool bIsSubMenu = false;
 	const bool bOpenSubMenuOnClick = false;
 	// Pulldown menus always close all menus not just themselves
-	const bool bCloseSelfOnly = false;
-	TSharedRef< FMenuEntryBlock > NewMenuEntryBlock( new FMenuEntryBlock( InExtensionHook, InMenuLabel, InToolTip, InPullDownMenu, ExtenderStack.Top(), bIsSubMenu, bOpenSubMenuOnClick, CommandListStack.Last(), bCloseSelfOnly ) );
+	const bool bShouldCloseSelfOnly = false;
+	TSharedRef< FMenuEntryBlock > NewMenuEntryBlock( new FMenuEntryBlock( InExtensionHook, InMenuLabel, InToolTip, InPullDownMenu, ExtenderStack.Top(), bIsSubMenu, bOpenSubMenuOnClick, CommandListStack.Last(), bShouldCloseSelfOnly) );
 	NewMenuEntryBlock->SetTutorialHighlightName(GenerateTutorialIdentfierName(TutorialHighlightName, InTutorialHighlightName, nullptr, MultiBox->GetBlocks().Num()));
 
 	MultiBox->AddMultiBlock( NewMenuEntryBlock );
@@ -396,17 +396,17 @@ void FToolBarBuilder::AddComboButton( const FUIAction& InAction, const FOnGetCon
 	MultiBox->AddMultiBlock( NewToolBarComboButtonBlock );
 }
 
-void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName TutorialHighlightName )
+void FToolBarBuilder::AddWidget( TSharedRef<SWidget> InWidget, FName InTutorialHighlightName )
 {
 	ApplySectionBeginning();
 
 	// If tutorial name specified, wrap in tutorial wrapper
-	const FName WrapperName = GenerateTutorialIdentfierName(TutorialHighlightName, NAME_None, nullptr, MultiBox->GetBlocks().Num());
+	const FName WrapperName = GenerateTutorialIdentfierName(InTutorialHighlightName, NAME_None, nullptr, MultiBox->GetBlocks().Num());
 
 	TSharedRef<SWidget> ChildWidget = InWidget;
 	InWidget = 
 		SNew( SBox )
-		.AddMetaData<FTagMetaData>(FTagMetaData(TutorialHighlightName))
+		.AddMetaData<FTagMetaData>(FTagMetaData(InTutorialHighlightName))
 		[
 			ChildWidget
 		];

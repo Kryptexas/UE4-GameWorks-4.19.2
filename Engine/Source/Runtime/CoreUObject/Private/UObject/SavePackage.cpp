@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "UObject/UTextProperty.h"
@@ -6,11 +6,101 @@
 #include "TargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
 
-
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
 static const int32 MAX_MERGED_COMPRESSION_CHUNKSIZE = 1024 * 1024;
 static const FName WorldClassName = FName("World");
+
+
+#define VALIDATE_INITIALIZECORECLASSES 0
+#define EXPORT_SORTING_DETAILED_LOGGING 0
+
+#define UE_PROFILE_COOKSAVE 1
+#if UE_PROFILE_COOKSAVE
+
+#include "CookingStatsModule.h"
+
+#define UE_OUTPUTSTATSTOLOG 0
+
+namespace SavePackageStats
+{
+static const FName CookingStatsName("CookingStats");
+static const FName GSavePackageTransactionId(*FString::Printf(TEXT("SavePackageTransactionId%s"), *FGuid::NewGuid().ToString()));
+static uint32 GSavePackageTransactionNumber = 0;
+
+	ICookingStats* GetCookingStats()
+	{
+		static ICookingStats* CookingStats = nullptr;
+		static bool bInitialized = false;
+		if (bInitialized == false)
+		{
+			FCookingStatsModule* CookingStatsModule = FModuleManager::LoadModulePtr<FCookingStatsModule>(TEXT("CookingStats"));
+			if (CookingStatsModule)
+			{
+				CookingStats = &CookingStatsModule->Get();
+			}
+			bInitialized = true;
+		}
+		return CookingStats;
+	}
+
+
+	// static ICookingStats* CookingStats = GetCookingStats();
+
+void CookStatsStartStat(const FName& Key, const TCHAR *Filename)
+{
+#if UE_OUTPUTSTATSTOLOG
+	UE_LOG(LogSavePackage, Log, TEXT("Starting save package for %s"), Filename);
+#endif
+		ICookingStats* CookingStats = GetCookingStats();
+		if (CookingStats)
+		{
+			CookingStats->AddTagValue(Key, TEXT("Filename"), FString(Filename));
+		}
+
+}
+
+	void CookStatsAddStat(const FName& Key, const FName& Tag, const float TimeMilliseconds)
+{
+#if UE_OUTPUTSTATSTOLOG
+	UE_LOG(LogSavePackage, Log, TEXT("TIMING: %s took %fms"), Tag, TimeMilliseconds);
+#endif
+		ICookingStats* CookingStats = GetCookingStats();
+		if (CookingStats)
+		{
+			CookingStats->AddTagValue(Key, Tag, FString::Printf(TEXT("%fms"), TimeMilliseconds));
+		}
+	}
+
+
+
+}; // namespace SavePackageStats
+
+
+#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); const FName CookStatsKey = FName(SavePackageStats::GSavePackageTransactionId,++SavePackageStats::GSavePackageTransactionNumber); \
+	SavePackageStats::CookStatsStartStat(CookStatsKey, InFilename);
+
+#define UE_LOG_COOK_TIME(TimeType) \
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+	const FName TagName = FName(TimeType); \
+	SavePackageStats::CookStatsAddStat(CookStatsKey, TagName, (CurrentTime - PreviousTime) * 1000.0f); \
+		PreviousTime = CurrentTime; \
+	}
+
+#define UE_FINISH_LOG_COOK_TIME()\
+	UE_LOG_COOK_TIME(TEXT("UnaccountedTime")); \
+	{\
+		double CurrentTime = FPlatformTime::Seconds(); \
+		UE_LOG(LogSavePackage, Log, TEXT("Total save time: %fms"), (CurrentTime - StartTime) * 1000.0f); \
+	}
+
+#else
+// don't do anything
+#define UE_START_LOG_COOK_TIME(InFilename)
+#define UE_LOG_COOK_TIME(TimeType) 
+#define UE_FINISH_LOG_COOK_TIME()
+#endif
 
 
 static bool HasDeprecatedOrPendingKillOuter(UObject* InObj, UPackage* InSavingPackage)
@@ -654,7 +744,6 @@ FArchive& FArchiveSaveTagImports::operator<<( FAssetPtr& AssetPtr)
 	return *this << ID;
 }
 
-
 /**
  * Helper class for package compression.
  */
@@ -705,7 +794,7 @@ public:
 	 * @param	DstFilename		Output name of compressed file, cannot be the same as SrcFilename
 	 * @param	SrcLinker		FLinkerSave object used to save src file
 	 *
-	 * @return true if sucessful, false otherwise
+	 * @return true if successful, false otherwise
 	 */
 	bool CompressFile( const TCHAR* DstFilename, FLinkerSave* SrcLinker )
 	{
@@ -735,13 +824,126 @@ public:
 		return bMoveSucceded;
 	}
 	/**
+	* Compresses the passed in src archive and writes it to destination archive.
+	*
+	* @param	FileReader		archive to read from
+	* @param	FileWriter		archive to write to
+	* @param	SrcLinker		FLinkerSave object used to save src file
+	*
+	* @return true if successful, false otherwise
+	*/
+	void CompressArchive(FArchive* FileReader, FArchive* FileWriter, const bool bForceByteSwapping, const int32 TotalHeaderSize, const TArray<int32> &ExportSizes)
+	{
+
+		// Read package file summary from source file.
+		FPackageFileSummary FileSummary;
+		(*FileReader) << FileSummary;
+
+		// Propagate byte swapping.
+		FileWriter->SetByteSwapping(bForceByteSwapping);
+
+		// We don't compress the package file summary but treat everything afterwards
+		// till the first export as a single chunk. This basically lumps name and import 
+		// tables into one compressed block.
+		int32 StartOffset = FileReader->Tell();
+		int32 RemainingHeaderSize = TotalHeaderSize - StartOffset;
+		CurrentChunk.UncompressedSize = RemainingHeaderSize;
+		CurrentChunk.UncompressedOffset = StartOffset;
+
+		// finish header chunk
+		FinishCurrentAndCreateNewChunk(0);
+
+		// Iterate over all exports and add them separately. The underlying code will take
+		// care of merging small blocks.
+		for (int32 ExportIndex = 0; ExportIndex<ExportSizes.Num(); ExportIndex++)
+		{
+			AddToChunk(ExportSizes[ExportIndex]);
+		}
+
+		// Finish chunk in flight and reset current chunk with size 0.
+		FinishCurrentAndCreateNewChunk(0);
+
+		ECompressionFlags BaseCompressionMethod = COMPRESS_Default;
+		if (FileWriter->IsCooking())
+		{
+			BaseCompressionMethod = FileWriter->CookingTarget()->GetBaseCompressionMethod();
+		}
+
+		// Write base version of package file summary after updating compressed chunks array and compression flags.
+		FileSummary.CompressionFlags = BaseCompressionMethod;
+		FileSummary.CompressedChunks = CompressedChunks;
+		(*FileWriter) << FileSummary;
+
+		// Reset internal state so subsequent calls will work.
+		CompressedChunks.Empty();
+		CurrentChunk = FCompressedChunk();
+
+		// Allocate temporary buffers for reading and compression.
+		int32	SrcBufferSize = RemainingHeaderSize;
+		void*	SrcBuffer = FMemory::Malloc(SrcBufferSize);
+
+		// Iterate over all chunks, read the data, compress and write it out to destination file.
+		for (int32 ChunkIndex = 0; ChunkIndex<FileSummary.CompressedChunks.Num(); ChunkIndex++)
+		{
+			FCompressedChunk& Chunk = FileSummary.CompressedChunks[ChunkIndex];
+
+			// Increase temporary buffer sizes if they are too small.
+			if (SrcBufferSize < Chunk.UncompressedSize)
+			{
+				SrcBufferSize = Chunk.UncompressedSize;
+				SrcBuffer = FMemory::Realloc(SrcBuffer, SrcBufferSize);
+			}
+
+			// Verify that we're not skipping any data.
+			check(Chunk.UncompressedOffset == FileReader->Tell());
+
+			// Read src/ uncompressed data.
+			FileReader->Serialize(SrcBuffer, Chunk.UncompressedSize);
+
+			// Keep track of offset.
+			Chunk.CompressedOffset = FileWriter->Tell();
+			// Serialize compressed. This is compatible with async LoadCompressedData.
+			FileWriter->SerializeCompressed(SrcBuffer, Chunk.UncompressedSize, (ECompressionFlags)FileSummary.CompressionFlags);
+			// Keep track of compressed size.
+			Chunk.CompressedSize = FileWriter->Tell() - Chunk.CompressedOffset;
+		}
+
+		// get the start of the bulkdata and update it in the summary
+		FileSummary.BulkDataStartOffset = FileWriter->Tell();
+
+		// serialize the bulkdata directly, as bulkdata is handling the compression already
+		int64 SizeToCopy = FileReader->TotalSize() - FileReader->Tell();
+		if (SrcBufferSize < SizeToCopy)
+		{
+			SrcBufferSize = SizeToCopy;
+			SrcBuffer = FMemory::Realloc(SrcBuffer, SizeToCopy);
+		}
+
+		// Read src/ uncompressed data.
+		FileReader->Serialize(SrcBuffer, SizeToCopy);
+		FileWriter->Serialize(SrcBuffer, SizeToCopy);
+
+		// Verify that we've compressed everything.
+		check(FileReader->AtEnd());
+
+		// Serialize file summary again - this time CompressedChunks array is going to contain compressed size and offsets.
+		FileWriter->Seek(0);
+		(*FileWriter) << FileSummary;
+
+		// Free intermediate buffers.
+		FMemory::Free(SrcBuffer);
+
+	}
+
+
+	/**
 	 * Compresses the passed in src archive and writes it to destination archive.
 	 *
 	 * @param	FileReader		archive to read from
 	 * @param	FileWriter		archive to write to
 	 * @param	SrcLinker		FLinkerSave object used to save src file
 	 *
-	 * @return true if sucessful, false otherwise
+	 * @return true if successful, false otherwise
 	 */
 	void CompressArchive( FArchive* FileReader, FArchive* FileWriter, FLinkerSave* SrcLinker )
 	{
@@ -947,6 +1149,89 @@ private:
 };
 
 
+
+void AsyncWriteCompressedFile(const TArray<uint8>& Data, const TCHAR* Filename, const FDateTime& TimeStamp, const bool bForceByteSwapping, const int32 TotalHeaderSize, const TArray<int32>& ExportSizes)
+{
+	class FAsyncWriteWorker : public FNonAbandonableTask
+	{
+	public:
+		/** Filename To write to**/
+		FString Filename;
+		/** Data for the file **/
+		TArray<uint8> Data;
+		/** Timestamp to give the file. MinValue if shouldn't be modified */
+		FDateTime FinalTimeStamp;
+
+		bool bForceByteSwapping;
+		int32 TotalHeaderSize;
+		TArray<int32> ExportSizes;
+
+		/** Constructor
+		*/
+		FAsyncWriteWorker(const TArray<uint8>& InData, const TCHAR* InFilename, const FDateTime& InTimeStamp, bool InBForceByteSwapping, const int32 InTotalHeaderSize, const TArray<int32>& InExportSizes)
+			: Filename(InFilename)
+			, Data(InData)
+			, FinalTimeStamp(InTimeStamp)
+			, bForceByteSwapping(InBForceByteSwapping)
+			, TotalHeaderSize(InTotalHeaderSize)
+			, ExportSizes(InExportSizes)
+		{
+		}
+
+		/** Write the file  */
+		void DoWork()
+		{
+			FString TmpFilename = FPaths::GetPath(Filename) / (FPaths::GetBaseFilename(Filename) + TEXT("_SaveCompressed.tmp"));
+			// Create file reader and writer...
+			FMemoryReader Reader(Data, true);
+			FArchive* FileWriter = IFileManager::Get().CreateFileWriter(*TmpFilename);
+			// ... and abort if either operation wasn't successful.
+			if (!FileWriter)
+			{
+				// Delete potentially created reader or writer.
+				delete FileWriter;
+				// Delete temporary file.
+				IFileManager::Get().Delete(*TmpFilename);
+				// Failure.
+				UE_LOG(LogSavePackage, Fatal, TEXT("Could not write to %s!"), *TmpFilename);
+			}
+
+			FFileCompressionHelper CompressionHelper;
+			CompressionHelper.CompressArchive(&Reader, FileWriter, bForceByteSwapping, TotalHeaderSize, ExportSizes);
+
+			delete FileWriter;
+
+			// Clean-up the memory as soon as we save the file to reduce the memory footprint.
+			const int64 DataSize = Data.Num();
+			Data.Empty();
+			if (!IFileManager::Get().Move(*Filename, *TmpFilename, true, true, false, false))
+			{
+				UE_LOG(LogSavePackage, Fatal, TEXT("Could not move from %s to %s."), *TmpFilename, *Filename);
+			}
+			else
+			{
+				if (FinalTimeStamp != FDateTime::MinValue())
+				{
+					IFileManager::Get().SetTimeStamp(*Filename, FinalTimeStamp);
+				}
+			}
+
+			OutstandingAsyncWrites.Decrement();
+		}
+
+		FORCEINLINE TStatId GetStatId() const
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncWriteWorker, STATGROUP_ThreadPoolAsyncTasks);
+		}
+	};
+
+	OutstandingAsyncWrites.Increment();
+	(new FAutoDeleteAsyncTask<FAsyncWriteWorker>(Data, Filename, TimeStamp, bForceByteSwapping, TotalHeaderSize, ExportSizes))->StartBackgroundTask();
+}
+
+
+
+
 /**
  * Find most likely culprit that caused the objects in the passed in array to be considered for saving.
  *
@@ -1058,11 +1343,6 @@ struct FObjectImportSortHelper
 {
 private:
 	/**
-	 * Allows Compare access to the object full name lookup map
-	 */
-	static FObjectImportSortHelper* Sorter;
-
-	/**
 	 * Map of UObject => full name; optimization for sorting.
 	 */
 	TMap<UObject*,FString>			ObjectToFullNameMap;
@@ -1073,8 +1353,6 @@ private:
 	/** Comparison function used by Sort */
 	bool operator()( const FObjectImport& A, const FObjectImport& B ) const
 	{
-		checkSlow(Sorter);
-
 		int32 Result = 0;
 		if ( A.XObject == NULL )
 		{
@@ -1086,8 +1364,8 @@ private:
 		}
 		else
 		{
-			FString* FullNameA = Sorter->ObjectToFullNameMap.Find(A.XObject);
-			FString* FullNameB = Sorter->ObjectToFullNameMap.Find(B.XObject);
+			const FString* FullNameA = ObjectToFullNameMap.Find(A.XObject);
+			const FString* FullNameB = ObjectToFullNameMap.Find(B.XObject);
 			checkSlow(FullNameA);
 			checkSlow(FullNameB);
 
@@ -1175,13 +1453,10 @@ public:
 
 		if ( SortStartPosition < Linker->ImportMap.Num() )
 		{
-			Sorter = this;
-			Sort( &Linker->ImportMap[SortStartPosition], Linker->ImportMap.Num() - SortStartPosition, FObjectImportSortHelper() );
-			Sorter = NULL;
+			Sort( &Linker->ImportMap[SortStartPosition], Linker->ImportMap.Num() - SortStartPosition, *this );
 		}
 	}
 };
-FObjectImportSortHelper* FObjectImportSortHelper::Sorter = NULL;
 
 /**
  * Helper structure to encapsulate sorting a linker's export table alphabetically, taking into account conforming to other linkers.
@@ -1189,10 +1464,33 @@ FObjectImportSortHelper* FObjectImportSortHelper::Sorter = NULL;
 struct FObjectExportSortHelper
 {
 private:
-	/**
-	 * Allows Compare access to the object full name lookup map
-	 */
-	static FObjectExportSortHelper* Sorter;
+	struct FObjectFullName
+	{
+	public:
+		FObjectFullName(const UObject* Object, const UObject* Root)
+		{
+			ClassName = Object->GetClass()->GetFName();
+			const UObject* Current = Object;
+			while (Current != nullptr && Current != Root)
+			{
+				Path.Insert(Current->GetFName(), 0);
+				Current = Current->GetOuter();
+			}
+		}
+
+		FObjectFullName(FObjectFullName&& InFullName)
+		{
+			ClassName = InFullName.ClassName;
+			Swap(Path, InFullName.Path);
+		}
+		FName ClassName;
+		TArray<FName> Path;
+	};
+
+	bool bUseFObjectFullName;
+
+
+	TMap<UObject*, FObjectFullName> ObjectToObjectFullNameMap;
 
 	/**
 	 * Map of UObject => full name; optimization for sorting.
@@ -1205,8 +1503,6 @@ private:
 	/** Comparison function used by Sort */
 	bool operator()( const FObjectExport& A, const FObjectExport& B ) const
 	{
-		checkSlow(Sorter);
-
 		int32 Result = 0;
 		if ( A.Object == NULL )
 		{
@@ -1218,18 +1514,53 @@ private:
 		}
 		else
 		{
-			FString* FullNameA = Sorter->ObjectToFullNameMap.Find(A.Object);
-			FString* FullNameB = Sorter->ObjectToFullNameMap.Find(B.Object);
-			checkSlow(FullNameA);
-			checkSlow(FullNameB);
+			if (bUseFObjectFullName)
+			{
+				const FObjectFullName* FullNameA = ObjectToObjectFullNameMap.Find(A.Object);
+				const FObjectFullName* FullNameB = ObjectToObjectFullNameMap.Find(B.Object);
+				checkSlow(FullNameA);
+				checkSlow(FullNameB);
 
-			Result = FCString::Stricmp(**FullNameA, **FullNameB);
+				if (FullNameA->ClassName != FullNameB->ClassName)
+				{
+					Result = FCString::Stricmp(*FullNameA->ClassName.ToString(), *FullNameB->ClassName.ToString());
+				}
+				else
+				{
+					int Num = FMath::Min(FullNameA->Path.Num(), FullNameB->Path.Num());
+					for (int I = 0; I < Num; ++I)
+					{
+						if (FullNameA->Path[I] != FullNameB->Path[I])
+						{
+							Result = FCString::Stricmp(*FullNameA->Path[I].ToString(), *FullNameB->Path[I].ToString());
+							break;
+						}
+					}
+					if (Result == 0)
+					{
+						Result = FullNameA->Path.Num() - FullNameB->Path.Num();
+					}
+				}
+			}
+			else
+			{
+				const FString* FullNameA = ObjectToFullNameMap.Find(A.Object);
+				const FString* FullNameB = ObjectToFullNameMap.Find(B.Object);
+				checkSlow(FullNameA);
+				checkSlow(FullNameB);
+
+				Result = FCString::Stricmp(**FullNameA, **FullNameB);
+			}
 		}
 
 		return Result < 0;
 	}
 
 public:
+
+	FObjectExportSortHelper() : bUseFObjectFullName(false)
+	{}
+
 	/**
 	 * Sorts exports alphabetically.  If a package is specified to be conformed against, ensures that the order
 	 * of the exports match the order in which the corresponding exports occur in the old package.
@@ -1237,8 +1568,10 @@ public:
 	 * @param	Linker				linker containing the exports that need to be sorted
 	 * @param	LinkerToConformTo	optional linker to conform against.
 	 */
-	void SortExports( FLinkerSave* Linker, FLinkerLoad* LinkerToConformTo=NULL )
+	void SortExports( FLinkerSave* Linker, FLinkerLoad* LinkerToConformTo=NULL, bool InbUseFObjectFullName = false)
 	{
+		bUseFObjectFullName = InbUseFObjectFullName;
+
 		int32 SortStartPosition=0;
 		if ( LinkerToConformTo )
 		{
@@ -1266,7 +1599,15 @@ public:
 
 					// Set the index (key) in the map to the index of this object into the export map.
 					OriginalExportIndexes.Add( *ExportFullName, ExportIndex );
-					ObjectToFullNameMap.Add(Export.Object, *ExportFullName);
+					if (bUseFObjectFullName)
+					{
+						FObjectFullName ObjectFullName(Export.Object, Linker->LinkerRoot);
+						ObjectToObjectFullNameMap.Add(Export.Object, MoveTemp(ObjectFullName)); 
+					}
+					else
+					{
+						ObjectToFullNameMap.Add(Export.Object, *ExportFullName);
+					}
 				}
 			}
 
@@ -1338,20 +1679,25 @@ public:
 				const FObjectExport& Export = Linker->ExportMap[ExportIndex];
 				if ( Export.Object )
 				{
-					ObjectToFullNameMap.Add(Export.Object, *Export.Object->GetFullName());
+					if (bUseFObjectFullName)
+					{
+						FObjectFullName ObjectFullName(Export.Object, NULL);
+						ObjectToObjectFullNameMap.Add(Export.Object, MoveTemp(ObjectFullName));
+					}
+					else
+					{
+						ObjectToFullNameMap.Add(Export.Object, *Export.Object->GetFullName());
+					}
 				}
 			}
 		}
 
 		if ( SortStartPosition < Linker->ExportMap.Num() )
 		{
-			Sorter = this;
-			Sort( &Linker->ExportMap[SortStartPosition], Linker->ExportMap.Num() - SortStartPosition, FObjectExportSortHelper() );
-			Sorter = NULL;
+			Sort( &Linker->ExportMap[SortStartPosition], Linker->ExportMap.Num() - SortStartPosition, *this );
 		}
 	}
 };
-FObjectExportSortHelper* FObjectExportSortHelper::Sorter = NULL;
 
 
 class FExportReferenceSorter : public FArchiveUObject
@@ -1442,8 +1788,156 @@ class FExportReferenceSorter : public FArchiveUObject
 	 */
 	void InitializeCoreClasses()
 	{
+#if 1
+		check(CoreClasses.Num() == 0);
+		check(ReferencedObjects.Num() == 0);
+		check(ForceLoadObjects.Num() == 0);
+		check(SerializedObjects.Num() == 0);
+		check(bIgnoreFieldReferences == false);
+
+		static bool bInitializedStaticCoreClasses = false;
+		static TArray<UClass*> StaticCoreClasses;
+		static TArray<UObject*> StaticCoreReferencedObjects;
+		static TArray<UObject*> StaticProcessedObjects;
+		static TArray<UObject*> StaticForceLoadObjects;
+		static TSet<UObject*> StaticSerializedObjects;
+		
+		
+
+		// Helper class to register FlushInitializedStaticCoreClasses callback on first SavePackage run
+		struct FAddFlushInitalizedStaticCoreClasses
+		{
+			FAddFlushInitalizedStaticCoreClasses() 
+			{
+				FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushInitalizedStaticCoreClasses);
+			}
+			/** Wrapper function to handle default parameter when used as function pointer */
+			static void FlushInitalizedStaticCoreClasses()
+			{
+				bInitializedStaticCoreClasses = false;
+			}
+		};
+		static FAddFlushInitalizedStaticCoreClasses MaybeAddAddFlushInitializedStaticCoreClasses;
+
+#if VALIDATE_INITIALIZECORECLASSES
+		bool bWasValid = bInitializedStaticCoreClasses;
+		bInitializedStaticCoreClasses = false;
+#endif
+
+		if (!bInitializedStaticCoreClasses)
+		{
+			bInitializedStaticCoreClasses = true;
+
+
+			// initialize the tracking maps with the core classes
+			UClass* CoreClassList[] =
+			{
+				UObject::StaticClass(),
+				UField::StaticClass(),
+				UStruct::StaticClass(),
+				UScriptStruct::StaticClass(),
+				UFunction::StaticClass(),
+				UEnum::StaticClass(),
+				UClass::StaticClass(),
+				UProperty::StaticClass(),
+				UByteProperty::StaticClass(),
+				UIntProperty::StaticClass(),
+				UBoolProperty::StaticClass(),
+				UFloatProperty::StaticClass(),
+				UDoubleProperty::StaticClass(),
+				UObjectProperty::StaticClass(),
+				UClassProperty::StaticClass(),
+				UInterfaceProperty::StaticClass(),
+				UNameProperty::StaticClass(),
+				UStrProperty::StaticClass(),
+				UArrayProperty::StaticClass(),
+				UTextProperty::StaticClass(),
+				UStructProperty::StaticClass(),
+				UDelegateProperty::StaticClass(),
+				UInterface::StaticClass(),
+				UMulticastDelegateProperty::StaticClass(),
+				UWeakObjectProperty::StaticClass(),
+				UObjectPropertyBase::StaticClass(),
+				ULazyObjectProperty::StaticClass(),
+				UAssetObjectProperty::StaticClass(),
+				UAssetClassProperty::StaticClass()
+			};
+
+			for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
+			{
+				UClass* CoreClass = CoreClassList[CoreClassIndex];
+				CoreClasses.AddUnique(CoreClass);
+
+				ReferencedObjects.Add(CoreClass);
+				ReferencedObjects.Add(CoreClass->GetDefaultObject());
+			}
+
+			for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
+			{
+				UClass* CoreClass = CoreClasses[CoreClassIndex];
+				ProcessStruct(CoreClass);
+			}
+
+			CoreReferencesOffset = ReferencedObjects.Num();
+
+
+#if VALIDATE_INITIALIZECORECLASSES
+			if (bWasValid)
+			{
+				// make sure everything matches up 
+				check(CoreClasses.Num() == StaticCoreClasses.Num());
+				check(ReferencedObjects.Num() == StaticCoreReferencedObjects.Num());
+				check(ProcessedObjects.Num() == StaticProcessedObjects.Num());
+				check(ForceLoadObjects.Num() == StaticForceLoadObjects.Num());
+				check(SerializedObjects.Num() == StaticSerializedObjects.Num());
+				
+				
+				for (int I = 0; I < CoreClasses.Num(); ++I)
+				{
+					check(CoreClasses[I] == StaticCoreClasses[I]);
+				}
+				for (int I = 0; I < ReferencedObjects.Num(); ++I)
+				{
+					check(ReferencedObjects[I] == StaticCoreReferencedObjects[I]);
+				}
+				for (const auto& ProcessedObject : ProcessedObjects.ObjectsSet)
+				{
+					check(ProcessedObject.Value == StaticProcessedObjects.Find(ProcessedObject.Key));
+				}
+				for (int I = 0; I < ForceLoadObjects.Num(); ++I)
+				{
+					check(ForceLoadObjects[I] == StaticForceLoadObjects[I]);
+				}
+				for (const auto& SerializedObject : SerializedObjects)
+				{
+					check(StaticSerializedObjects.Find(SerializedObject));
+				}
+			}
+#endif
+
+			StaticCoreClasses = CoreClasses;
+			StaticCoreReferencedObjects = ReferencedObjects;
+			StaticProcessedObjects = ProcessedObjects;
+			StaticForceLoadObjects = ForceLoadObjects;
+			StaticSerializedObjects = SerializedObjects;
+
+			check(CurrentClass == NULL);
+			check(CurrentInsertIndex == INDEX_NONE);
+		}
+		else
+		{
+			CoreClasses = StaticCoreClasses;
+			ReferencedObjects = StaticCoreReferencedObjects;
+			ProcessedObjects = StaticProcessedObjects;
+			ForceLoadObjects = StaticForceLoadObjects;
+			SerializedObjects = StaticSerializedObjects;
+
+			CoreReferencesOffset = StaticCoreReferencedObjects.Num();
+		}
+
+#else
 		// initialize the tracking maps with the core classes
-		UClass* CoreClassList[]=
+		UClass* CoreClassList[] =
 		{
 			UObject::StaticClass(),
 			UField::StaticClass(),
@@ -1476,7 +1970,7 @@ class FExportReferenceSorter : public FArchiveUObject
 			UAssetClassProperty::StaticClass()
 		};
 
-		for ( int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++ )
+		for (int32 CoreClassIndex = 0; CoreClassIndex < ARRAY_COUNT(CoreClassList); CoreClassIndex++)
 		{
 			UClass* CoreClass = CoreClassList[CoreClassIndex];
 			CoreClasses.AddUnique(CoreClass);
@@ -1485,13 +1979,14 @@ class FExportReferenceSorter : public FArchiveUObject
 			ReferencedObjects.Add(CoreClass->GetDefaultObject());
 		}
 
-		for ( int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++ )
+		for (int32 CoreClassIndex = 0; CoreClassIndex < CoreClasses.Num(); CoreClassIndex++)
 		{
 			UClass* CoreClass = CoreClasses[CoreClassIndex];
 			ProcessStruct(CoreClass);
 		}
 
 		CoreReferencesOffset = ReferencedObjects.Num();
+#endif
 	}
 
 	/**
@@ -1568,7 +2063,7 @@ public:
 	 * Constructor
 	 */
 	FExportReferenceSorter()
-	: FArchiveUObject(), CurrentInsertIndex(INDEX_NONE)
+		: FArchiveUObject(), CurrentInsertIndex(INDEX_NONE), CoreReferencesOffset(INDEX_NONE), bIgnoreFieldReferences(false), CurrentClass(nullptr)
 	{
 		ArIsObjectReferenceCollector = true;
 		ArIsPersistent = true;
@@ -1934,7 +2429,35 @@ private:
 	/**
 	 * The list of objects that have been evaluated by this archive so far.
 	 */
+	/*struct FOrderedObjectSet
+	{
+		TMap<UObject*, int32> ObjectsSet;
+		// TArray<UObject*> ObjectsList;
+
+		int32 Add(UObject* Object)
+		{
+			// int32 Index = ObjectsList.Add(Object);
+			int32 Index = ObjectsSet.Num(); // never use the list anyway so no point in even having it
+			ObjectsSet.Add(Object, Index);
+			return Index;
+		}
+
+		inline int32 Find(UObject* Object) const
+		{
+			const int32 *Index = ObjectsSet.Find(Object);
+			if (Index)
+			{
+				return *Index;
+			}
+			return INDEX_NONE;
+		}
+		inline int32 Num() const
+		{
+			return ObjectsSet.Num();
+		}
+	};*/
 	TArray<UObject*> ProcessedObjects;
+	
 
 	/**
 	 * The list of objects that have been serialized; used to prevent calling Serialize on an object more than once.
@@ -1968,7 +2491,7 @@ private:
 	TArray<UObject*> ForceLoadObjects;
 };
 
-#define EXPORT_SORTING_DETAILED_LOGGING 0
+
 
 /**
  * Helper structure encapsulating functionality to sort a linker's export map to allow seek free
@@ -1985,6 +2508,9 @@ struct FObjectExportSeekFreeSorter
 	 */
 	void SortExports( FLinkerSave* Linker, FLinkerLoad* LinkerToConformTo )
 	{
+		//UE_START_LOG_COOK_TIME(*Linker->Filename);
+
+
 		SortArchive.SetCookingTarget(Linker->CookingTarget());
 
 		int32					FirstSortIndex = LinkerToConformTo ? LinkerToConformTo->ExportMap.Num() : 0;
@@ -2000,6 +2526,8 @@ struct FObjectExportSeekFreeSorter
 				OriginalExportIndexes.Add( Export.Object, ExportIndex );
 			}
 		}
+
+		//UE_LOG_COOK_TIME(TEXT("Setup Original Exports"));
 
 		bool bRetrieveInitialReferences = true;
 
@@ -2019,7 +2547,7 @@ struct FObjectExportSeekFreeSorter
 				UE_LOG(LogSavePackage, Log, TEXT("Referenced objects for (%i) %s in %s"), ExportIndex, *Export.Object->GetFullName(), *Linker->LinkerRoot->GetName());
 				for ( int32 RefIndex = 0; RefIndex < ReferencedObjects.Num(); RefIndex++ )
 				{
-					UE_LOG(LogSavePackage, Log, TEXT("\t%i) %s"), RefIndex, *ReferencedObjects(RefIndex)->GetFullName());
+					UE_LOG(LogSavePackage, Log, TEXT("\t%i) %s"), RefIndex, *ReferencedObjects[RefIndex]->GetFullName());
 				}
 				if ( ReferencedObjects.Num() > 1 )
 				{
@@ -2035,6 +2563,8 @@ struct FObjectExportSeekFreeSorter
 			}
 
 		}
+
+		//UE_LOG_COOK_TIME(TEXT("Process Class Exports"));
 
 #if EXPORT_SORTING_DETAILED_LOGGING
 		UE_LOG(LogSavePackage, Log, TEXT("*************   Processed %i classes out of %i possible exports for package %s.  Beginning second pass...   *************"), SortedExports.Num(), Linker->ExportMap.Num() - FirstSortIndex, *Linker->LinkerRoot->GetName());
@@ -2055,7 +2585,7 @@ struct FObjectExportSeekFreeSorter
 				UE_LOG(LogSavePackage, Log, TEXT("Referenced objects for (%i) %s in %s"), ExportIndex, *Export.Object->GetFullName(), *Linker->LinkerRoot->GetName());
 				for ( int32 RefIndex = 0; RefIndex < ReferencedObjects.Num(); RefIndex++ )
 				{
-					UE_LOG(LogSavePackage, Log, TEXT("\t%i) %s"), RefIndex, *ReferencedObjects(RefIndex)->GetFullName());
+					UE_LOG(LogSavePackage, Log, TEXT("\t%i) %s"), RefIndex, *ReferencedObjects[RefIndex]->GetFullName());
 				}
 				if ( ReferencedObjects.Num() > 1 )
 				{
@@ -2070,6 +2600,9 @@ struct FObjectExportSeekFreeSorter
 				bRetrieveInitialReferences = false;
 			}
 		}
+
+		//UE_LOG_COOK_TIME(TEXT("Process Objects Exports"));
+
 #if EXPORT_SORTING_DETAILED_LOGGING
 		SortArchive.VerifySortingAlgorithm();
 #endif
@@ -2097,6 +2630,8 @@ struct FObjectExportSeekFreeSorter
 			}
 		}
 
+		// UE_LOG_COOK_TIME(TEXT("Fill Export Map"));
+
 		// Manually add any new NULL exports last as they won't be in the SortedExportsObjects list. 
 		// A NULL Export.Object can occur if you are e.g. saving an object in the game that is 
 		// OBJECTMARK_NotForClient.
@@ -2108,6 +2643,8 @@ struct FObjectExportSeekFreeSorter
 				Linker->ExportMap.Add( Export );
 			}
 		}
+
+		//UE_FINISH_LOG_COOK_TIME();
 	}
 
 private:
@@ -2442,32 +2979,6 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
  *
  * @return	true if the package was saved successfully.
  */
-#define UE_PROFILE_COOKSAVE 0
-#if UE_PROFILE_COOKSAVE
-
-#define UE_START_LOG_COOK_TIME(InFilename) double PreviousTime; double StartTime; PreviousTime = StartTime = FPlatformTime::Seconds(); \
-	UE_LOG( LogSavePackage, Log, TEXT("Starting save package for %s"), InFilename);
-
-#define UE_LOG_COOK_TIME(TimeType) \
-	{\
-		double CurrentTime = FPlatformTime::Seconds(); \
-		UE_LOG( LogSavePackage, Log, TEXT("TIMING: %s took %fms"), TimeType, (CurrentTime - PreviousTime) * 1000.0f ); \
-		PreviousTime = CurrentTime; \
-	}
-
-#define UE_FINISH_LOG_COOK_TIME()\
-	UE_LOG_COOK_TIME( TEXT("Unaccounted time")); \
-	{\
-		double CurrentTime = FPlatformTime::Seconds(); \
-		UE_LOG( LogSavePackage, Log, TEXT("Total save time: %fms"), (CurrentTime - StartTime) * 1000.0f ); \
-	}
-
-#else
-// don't do anything
-#define UE_START_LOG_COOK_TIME(InFilename)
-#define UE_LOG_COOK_TIME(TimeType) 
-#define UE_FINISH_LOG_COOK_TIME()
-#endif
 
 #if WITH_EDITOR
 COREUOBJECT_API extern bool GOutputCookingWarnings;
@@ -2486,7 +2997,6 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 			ensureMsgf(false, TEXT("Recursive SavePackage() is not supported"));
 			return false;
 		}
-		UE_LOG_COOK_TIME(TEXT("First"));
 
 
 		
@@ -2522,12 +3032,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		FlushAsyncLoading();
 
-		UE_LOG_COOK_TIME(TEXT("Flush Async loading"));
+		UE_LOG_COOK_TIME(TEXT("FlushAsyncLoading"));
 		(*GFlushStreamingFunc)();
-		UE_LOG_COOK_TIME(TEXT("Flush streaming func"));
+		UE_LOG_COOK_TIME(TEXT("FlushStreamingFunc"));
 		FIOSystem::Get().BlockTillAllRequestsFinishedAndFlushHandles();
 
-		UE_LOG_COOK_TIME(TEXT("Block till all requests finished and flush handles"));
+		UE_LOG_COOK_TIME(TEXT("BlockTillAllRequestsFinished"));
 
 		check(InOuter);
 		check(Filename);
@@ -2633,7 +3143,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 		FText StatusMessage = FText::Format( NSLOCTEXT("Core", "SavingFile", "Saving file: {CleanFilename}..."), Args );
 
-		const int32 TotalSaveSteps = 31;
+		const int32 TotalSaveSteps = 33;
 		FScopedSlowTask SlowTask(TotalSaveSteps, StatusMessage, bSlowTask);
 		SlowTask.MakeDialog(SaveFlags & SAVE_FromAutosave ? true : false);
 
@@ -2650,7 +3160,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		UnMarkAllObjects();
 
 
-		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSave UnMarkAllObjects"));
+		UE_LOG_COOK_TIME(TEXT("ResetLoadersForSaveUnMarkAllObjects"));
 
 		// Size of serialized out package in bytes. This is before compression.
 		int32 PackageSize = INDEX_NONE;
@@ -2865,7 +3375,32 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				TMap<UObject*, UObject*> DuplicateRedirects = UnmarkExportTagFromDuplicates();
 #endif // WITH_EDITOR
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Imports"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImports"));
+				
+				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
+				SlowTask.EnterProgressFrame();
+
+				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
+				{
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter(InOuter, ObjectsInPackage, true, RF_Transient | RF_PendingKill);
+					for (UObject* const Object : ObjectsInPackage)
+					{
+						FPropertyLocalizationDataGatherer PropertyLocalizationDataGatherer(Linker->GatherableTextDataMap);
+						PropertyLocalizationDataGatherer.GatherLocalizationDataFromPropertiesOfDataStructure(Object->GetClass(), Object);
+
+						for(UClass* Class = Object->GetClass(); Class != nullptr; Class = Class->GetSuperClass())
+						{
+							FLocalizationDataGatheringCallback* const CustomCallback = GetTypeSpecificLocalizationDataGatheringCallbacks().Find(Class);
+							if (CustomCallback)
+							{
+								(*CustomCallback)(Object, Linker->GatherableTextDataMap);
+							}
+						}
+					}
+				}
+
+				UE_LOG_COOK_TIME(TEXT("GatherLocalizableTextData"));
 				
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -2942,7 +3477,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Mark Names"));
+				UE_LOG_COOK_TIME(TEXT("MarkNames"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3130,7 +3665,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 #endif
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Summary"));
+				UE_LOG_COOK_TIME(TEXT("SerializeSummary"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3150,8 +3685,26 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->NameIndices.Add(Linker->NameMap[i], i);
 				}
 
-				
-				UE_LOG_COOK_TIME(TEXT("Serialize Names"));
+				UE_LOG_COOK_TIME(TEXT("SerializeNames"));
+
+				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
+				SlowTask.EnterProgressFrame();
+
+				Linker->Summary.GatherableTextDataOffset = 0;
+				Linker->Summary.GatherableTextDataCount = 0;
+				if ( !(Linker->Summary.PackageFlags & PKG_FilterEditorOnly) )
+				{
+					Linker->Summary.GatherableTextDataOffset = Linker->Tell();
+
+					// Save gatherable text data.
+					Linker->Summary.GatherableTextDataCount = Linker->GatherableTextDataMap.Num();
+					for (FGatherableTextData& GatherableTextData : Linker->GatherableTextDataMap)
+					{
+						*Linker << GatherableTextData;
+					}
+				}
+
+				UE_LOG_COOK_TIME(TEXT("SerializeGatherableTextData"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3213,7 +3766,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 #endif
 
 
-				UE_LOG_COOK_TIME(TEXT("Build Export Map"));
+				UE_LOG_COOK_TIME(TEXT("BuildExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3222,15 +3775,19 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				FObjectExportSortHelper ExportSortHelper;
 				ExportSortHelper.SortExports( Linker, Conform );
 				
+				UE_LOG_COOK_TIME(TEXT("SortExportsNonSeekfree"));
+
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
 
 				// Sort exports for seek-free loading.
 				FObjectExportSeekFreeSorter SeekFreeSorter;
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfreeConstructor"));
 				SeekFreeSorter.SortExports( Linker, Conform );
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfreeInner"));
 				Linker->Summary.ExportCount = Linker->ExportMap.Num();
 				
-				UE_LOG_COOK_TIME(TEXT("Sort Exports"));
+				UE_LOG_COOK_TIME(TEXT("SortExportsSeekfree"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3372,7 +3929,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				UE_LOG_COOK_TIME(TEXT("Build Dependency Map"));
+				UE_LOG_COOK_TIME(TEXT("BuildDependencyMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3411,7 +3968,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3426,7 +3983,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				int32 OffsetAfterExportMap = Linker->Tell();
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3441,7 +3998,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Dependency Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeDependencyMap"));
 
 				if (EndSavingIfCancelled(Linker, TempFilename)) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3454,7 +4011,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					*Linker << StringAssetReferencesMap[i];
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize StringAssetReference Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeStringAssetReferenceMap"));
 	
 				// Save thumbnails
 				UPackage::SaveThumbnails( InOuter, Linker );
@@ -3480,7 +4037,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					Linker->StartScriptSHAGeneration();
 				}
 
-				UE_LOG_COOK_TIME(TEXT("SaveThumbNails Save AssetRegistryData SaveWorldLevelInfo"));
+				UE_LOG_COOK_TIME(TEXT("SaveThumbNailsAssetRegistryDataWorldLevelInfo"));
 				
 				{
 					FScopedSlowTask ExportScope(Linker->ExportMap.Num());
@@ -3565,7 +4122,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 					}
 				}
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Exports"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExports"));
 
 				// if we want to generate the SHA key, get it out now that the package has finished saving
 				if (ScriptSHABytes && Linker->ContainsCode())
@@ -3630,7 +4187,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				uint32 Tag = PACKAGE_FILE_TAG;
 				*Linker << Tag;
 
-				UE_LOG_COOK_TIME(TEXT("Serialize BulkData"));
+				UE_LOG_COOK_TIME(TEXT("SerializeBulkData"));
 
 				// We capture the package size before the first seek to work with archives that don't report the file
 				// size correctly while the file is still being written to.
@@ -3675,7 +4232,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 				
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Import Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeImportMap"));
 
 				check( Linker->Tell() == OffsetAfterImportMap );
 
@@ -3687,7 +4244,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				}
 				check( Linker->Tell() == OffsetAfterExportMap );
 
-				UE_LOG_COOK_TIME(TEXT("Serialize Export Map"));
+				UE_LOG_COOK_TIME(TEXT("SerializeExportMap"));
 
 				if ( EndSavingIfCancelled( Linker, TempFilename ) ) { return false; }
 				SlowTask.EnterProgressFrame();
@@ -3734,7 +4291,24 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 				if( Success == true )
 				{
 					// Compress the temporarily file to destination.
-					if( bCompressFromMemory )
+					if (bCompressFromMemory && bSaveAsync)
+					{
+						UE_LOG(LogSavePackage, Log, TEXT("Async compressing from memory to '%s'"), *NewPath);
+
+						// Detach archive used for memory saving.
+						if (Linker)
+						{
+							TArray<int32> ExportSizes;
+							for (int I = 0; I < Linker->ExportMap.Num(); ++I)
+							{
+								ExportSizes.Add(Linker->ExportMap[I].SerialSize);
+							}
+							AsyncWriteCompressedFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp, Linker->ForceByteSwapping(), Linker->Summary.TotalHeaderSize, ExportSizes);
+							Linker->Detach();
+						}
+						UE_LOG_COOK_TIME(TEXT("AsyncWrite"));
+					}
+					else if( bCompressFromMemory )
 					{
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing from memory to '%s'"), *NewPath );
 						FFileCompressionHelper CompressionHelper;
@@ -3744,6 +4318,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						{
 							Linker->Detach();
 						}
+						UE_LOG_COOK_TIME(TEXT("CompressFromMemory"));
 					}
 					// Compress the temporarily file to destination.
 					else if( InOuter->PackageFlags & PKG_StoreCompressed )
@@ -3751,6 +4326,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UE_LOG(LogSavePackage, Log,  TEXT("Compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
 						Success = CompressionHelper.CompressFile( *TempFilename, *NewPath, Linker );
+
+						UE_LOG_COOK_TIME(TEXT("CompressFromTempFile"));
 					}
 					// Fully compress package in one "block".
 					else if( InOuter->PackageFlags & PKG_StoreFullyCompressed )
@@ -3758,6 +4335,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						UE_LOG(LogSavePackage, Log,  TEXT("Full-package compressing '%s' to '%s'"), *TempFilename, *NewPath );
 						FFileCompressionHelper CompressionHelper;
 						Success = CompressionHelper.FullyCompressFile( *TempFilename, *NewPath, Linker->ForceByteSwapping() );
+
+						UE_LOG_COOK_TIME(TEXT("FullyCompressFromTempFile"));
 					}
 					else if (bSaveAsync)
 					{
@@ -3769,6 +4348,7 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 							AsyncWriteFile(*(FBufferArchive*)(Linker->Saver), *NewPath, FinalTimeStamp);
 							Linker->Detach();
 						}
+						UE_LOG_COOK_TIME(TEXT("AsyncWrite"));
 					}
 					// Move the temporary file.
 					else
@@ -3779,6 +4359,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 						{
 							IFileManager::Get().SetTimeStamp(*NewPath, FinalTimeStamp);
 						}
+
+						UE_LOG_COOK_TIME(TEXT("MoveFile"));
 					}
 
 					// Make sure to clean up any stale .uncompressed_size files.
@@ -3893,6 +4475,8 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 		SlowTask.EnterProgressFrame();
 
 		UE_FINISH_LOG_COOK_TIME();
+
+		UE_LOG(LogSavePackage, Warning, TEXT("Finished SavePackage %s"), Filename);
 
 		return Success;
 	}

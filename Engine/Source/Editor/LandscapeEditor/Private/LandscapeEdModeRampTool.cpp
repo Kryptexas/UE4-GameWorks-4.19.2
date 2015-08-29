@@ -100,6 +100,11 @@ public:
 		check(SpriteTexture);
 	}
 
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+	{
+		Collector.AddReferencedObject(SpriteTexture);
+	}
+
 	virtual const TCHAR* GetToolName() override { return TEXT("Ramp"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Ramp", "Ramp"); };
 

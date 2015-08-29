@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2368901
+﻿INTSourceChangelist:2532042
 Availability:Public
 Title:Material 入力			
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/IntroductionToMaterials
@@ -115,7 +115,7 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 
 ![](Axes.png)(w:935)
 
-**上記画像は** 、両方の武器に同一の静的メッシュを使用しています。下側の画像は、非常に詳細な法線マップを表しています。多大な追加詳細をもたらし、実際にレンダリングされているよりもポリゴン数が表面に多く含まれているような錯覚を与えます。このような法線マップは、Pixologic ZBrush など、高解像度モデリングソフトで作成されることが多いです。
+**この画像では** 、両方の武器に同一の静的メッシュを使用しています。下側の画像は、非常に詳細な法線マップを表しています。多大な追加詳細をもたらし、実際にレンダリングされているよりもポリゴン数が表面に多く含まれているような錯覚を与えます。このような法線マップは、Pixologic ZBrush など、高解像度モデリングソフトで作成されることが多いです。
 
 ![](NormalNetwork.png)
 [/EXCERPT:Normal]
@@ -124,7 +124,7 @@ Opacity は主に、 _半透明_ 、 _加算_ 、 _変調マテリアル_ に使
 ## World Position Offset
 
 [EXCERPT:WPO]
-**World Position Offset** 入力は、マテリアルによるメッシュの頂点のワールド空間での操作を有効にします。オブジェクトの移動、形状の変更、回転、その他のさまざまな効果に実用的です。アンビエントなアニメーションなどに実用的です。|
+**World Position Offset** 入力は、マテリアルによるメッシュの頂点のワールド空間での操作を有効にします。オブジェクトの移動、形状の変更、回転、その他のさまざまな効果に実用的です。アンビエント アニメーションなどに実用的です。
 
 
 **クリックしてフルサイズで表示**
@@ -180,7 +180,7 @@ Subsurface Color入力は、 [Shading Model](Engine/Rendering/Materials\Material
 
 ## Ambient Occlusion (環境オクルージョン)
 
-Ambient Occlusion は表面の隙間内に生じる、セルフシャドーイングのシミュレーションを行うために使用します。一般的に、この入力は何らかのタイプの AP マップへ接続します。 Maya 、 3ds Max 、 ZBrush などの 3D モデリング パッケージ内でよく作成されます。
+環境オクルージョンは表面の隙間内に生じる、セルフシャドーイングのシミュレーションを行うために使用します。一般的に、この入力は何らかのタイプの AP マップへ接続します。 Maya 、 3ds Max 、 ZBrush などの 3D モデリング パッケージ内でよく作成されます。
 
 ![](NormalNetwork.png)
 

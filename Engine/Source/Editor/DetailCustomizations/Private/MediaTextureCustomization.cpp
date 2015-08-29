@@ -2,7 +2,10 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "IMediaPlayer.h"
-#include "IMediaTrack.h"
+#include "IMediaStream.h"
+#include "IMediaAudioTrack.h"
+#include "IMediaCaptionTrack.h"
+#include "IMediaVideoTrack.h"
 #include "MediaPlayer.h"
 #include "MediaTextureCustomization.h"
 
@@ -77,33 +80,30 @@ TSharedRef<SWidget> FMediaTextureCustomization::HandleVideoTrackComboButtonMenuC
 		return SNullWidget::NullWidget;
 	}
 
-	const TArray<IMediaTrackRef>& MediaTracks = Player->GetTracks();
+	const TArray<IMediaVideoTrackRef>& VideoTracks = Player->GetVideoTracks();
 
 	// populate the menu
 	FMenuBuilder MenuBuilder(true, nullptr);
 
-	for (const IMediaTrackRef& Track : MediaTracks)
+	for (int32 VideoTrackIndex = 0; VideoTrackIndex < VideoTracks.Num(); ++VideoTrackIndex)
 	{
-		if (Track->GetType() == EMediaTrackTypes::Video)
-		{
-			FUIAction Action(FExecuteAction::CreateSP(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute, Track->GetIndex()));
+		FUIAction Action(FExecuteAction::CreateSP(this, &FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute, VideoTrackIndex));
 
-			MenuBuilder.AddMenuEntry(
-				Track->GetDisplayName(),
-				TAttribute<FText>(),
-				FSlateIcon(),
-				Action
-			);
-		}
+		MenuBuilder.AddMenuEntry(
+			VideoTracks[VideoTrackIndex]->GetStream().GetDisplayName(),
+			TAttribute<FText>(),
+			FSlateIcon(),
+			Action
+		);
 	}
 
 	return MenuBuilder.MakeWidget();
 }
 
 
-void FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute( uint32 TrackIndex )
+void FMediaTextureCustomization::HandleVideoTrackComboButtonMenuEntryExecute( int32 TrackIndex )
 {
-	VideoTrackIndexProperty->SetValue((int32)TrackIndex);
+	VideoTrackIndexProperty->SetValue(TrackIndex);
 }
 
 
@@ -142,15 +142,15 @@ FText FMediaTextureCustomization::HandleVideoTrackComboButtonText() const
 		return LOCTEXT("NoMediaLoaded", "No media loaded");
 	}
 
-	IMediaTrackPtr Track = Player->GetTrack(VideoTrackIndex, EMediaTrackTypes::Video);
+	auto VideoTracks = Player->GetVideoTracks();
 
-	// generate track name string
-	if (Track.IsValid())
+	if (!VideoTracks.IsValidIndex(VideoTrackIndex))
 	{
-		return Track->GetDisplayName();
+		return LOCTEXT("SelectVideoTrack", "Select a Video Track...");
 	}
 
-	return LOCTEXT("SelectVideoTrack", "Select a Video Track...");
+	// get track name
+	return VideoTracks[VideoTrackIndex]->GetStream().GetDisplayName();
 }
 
 

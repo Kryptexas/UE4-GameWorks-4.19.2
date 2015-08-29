@@ -628,10 +628,6 @@ DumpBlueprintInfoUtils::CommandletOptions::CommandletOptions(TArray<FString> con
 		{
 			NewDumpFlags |= BPDUMP_ActionDatabaseInfo;
 		}
-		else if (!Switch.StartsWith("run=")) // account for the first switch, which invoked this commandlet
-		{
-			UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Unrecognized command switch '%s', use -help for a listing of all accepted params"), *Switch);
-		}
 	}
 
 	if (NewDumpFlags != 0)
@@ -1694,7 +1690,7 @@ static void DumpBlueprintInfoUtils::DumpActionMenuItem(uint32 Indent, FGraphActi
 
 		ActionEntry += IndentedNewline + TooltipFieldLabel + TooltipStr + "\",";
 		ActionEntry += IndentedNewline + "\"Keywords\"    : \"" + PrimeAction->Keywords.ToString() + "\",";
-		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetSearchTitle().ToString() + "\",";
+		ActionEntry += IndentedNewline + "\"SearchTitle\" : \"" + PrimeAction->GetSearchTitle() + "\",";
 		ActionEntry += IndentedNewline + FString::Printf(TEXT("\"Grouping\"    : %d"), PrimeAction->Grouping);
 		
 		// Get action node type info
@@ -2004,15 +2000,7 @@ static void DumpBlueprintInfoUtils::DumpContextualPinTypeActions(uint32 Indent, 
 	FGraphContextMenuBuilder ContextMenuBuilder(Graph);
 
 	UK2Node_Composite* DummyNode = NewObject<UK2Node_Composite>(Graph);
-	UEdGraphPin* DummyPin = DummyNode->CreatePin(
-		EGPD_Input,
-		PinType.PinCategory,
-		PinType.PinSubCategory,
-		PinType.PinSubCategoryObject.Get(),
-		PinType.bIsArray,
-		PinType.bIsReference,
-		DummyNode->GetName()
-	);
+	UEdGraphPin* DummyPin = DummyNode->CreatePin(EGPD_Input, PinType, DummyNode->GetName());
 	ContextMenuBuilder.FromPin = DummyPin;
 
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph);

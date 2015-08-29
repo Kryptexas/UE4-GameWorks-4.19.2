@@ -78,6 +78,7 @@ void STimelinesContainer::SetSelectionState(TSharedPtr<class STimeline> Affected
 		// Not selecting so remove the node from the selection set
 		SelectedNodes.Remove(AffectedNode);
 		AffectedNode->OnDeselect();
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnObjectSelectionChanged.ExecuteIfBound(AffectedNode);
 	}
 }
 
@@ -165,7 +166,9 @@ FReply STimelinesContainer::OnMouseWheel(const FGeometry& MyGeometry, const FPoi
 {
 	if (MouseEvent.IsLeftControlDown() || MouseEvent.IsLeftShiftDown())
 	{
-		return TimeSliderController->OnMouseWheel(SharedThis(this), MyGeometry, MouseEvent);
+		FReply RetValue = TimeSliderController->OnMouseWheel(SharedThis(this), MyGeometry, MouseEvent);
+		FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
+		return RetValue;
 	}
 	return FReply::Unhandled();
 }
@@ -210,7 +213,6 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 		SetSelectionState(NotSelectedOne.Pin(), true, true);
 		return FReply::Handled();
 	}
-#if 0 //disable movement between timelines for now
 	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)
 	{
 		TSharedPtr<class STimeline> PreviousTimeline;
@@ -249,7 +251,7 @@ FReply STimelinesContainer::OnKeyDown(const FGeometry& MyGeometry, const FKeyEve
 		}
 		return FReply::Handled();
 	}
-#endif
+
 	return FReply::Unhandled();
 }
 

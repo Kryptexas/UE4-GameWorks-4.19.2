@@ -226,7 +226,7 @@ public:
 	/**
 	 * Basic initialisation of the platform agnostic layer of the audio system
 	 */
-	bool Init( void );
+	bool Init(int32 InMaxChannels);
 
 	/**
 	 * Tears down the audio device
@@ -783,6 +783,9 @@ public:
 
 	/** The volume the listener resides in */
 	const class AAudioVolume*						CurrentAudioVolume;
+
+	/** A volume headroom to apply to specific platforms to achieve beter platform consistency. */
+	float PlatformAudioHeadroom;
 
 	/** Reverb Effects activated without volumes */
 	TMap<FName, FActivatedReverb>					ActivatedReverbs;

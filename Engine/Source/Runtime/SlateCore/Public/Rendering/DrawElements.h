@@ -274,7 +274,7 @@ public:
 	SLATECORE_API static void MakeSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White );
 
 	/** Just like MakeSpline but in draw-space coordinates. This is useful for connecting already-transformed widgets together. */
-	SLATECORE_API static void MakeDrawSpaceSpline( FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FColor& InTint=FColor(255,255,255) );
+	SLATECORE_API static void MakeDrawSpaceSpline(FSlateWindowElementList& ElementList, uint32 InLayer, const FVector2D& InStart, const FVector2D& InStartDir, const FVector2D& InEnd, const FVector2D& InEndDir, const FSlateRect InClippingRect, float InThickness = 0.0f, ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, const FLinearColor& InTint=FLinearColor::White);
 
 	/**
 	 * Creates a line defined by the provided points
@@ -317,10 +317,12 @@ public:
 	EElementType GetElementType() const { return ElementType; }
 	uint32 GetLayer() const { return Layer; }
 	const FSlateRenderTransform& GetRenderTransform() const { return RenderTransform; }
-	const FVector2D& GetPosition() const { return Position; }
+	SLATECORE_API const FVector2D& GetPosition() const { return Position; }
+	SLATECORE_API void SetPosition(const FVector2D& InPosition) { Position = Position; }
 	const FVector2D& GetLocalSize() const { return LocalSize; }
 	float GetScale() const { return Scale; }
-	const FSlateRect& GetClippingRect() const { return ClippingRect; }
+	SLATECORE_API const FSlateRect& GetClippingRect() const { return ClippingRect; }
+	SLATECORE_API void SetClippingRect(const FSlateRect& InClippingRect) { ClippingRect = InClippingRect; }
 	const FSlateDataPayload& GetDataPayload() const { return DataPayload; }
 	uint32 GetDrawEffects() const { return DrawEffects; }
 	const TOptional<FShortRect>& GetScissorRect() const { return ScissorRect; }
@@ -380,10 +382,6 @@ public:
 	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect )
 		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect )
 		, ShaderResource(InShaderResource)
-		, VertexOffset(0)
-		, IndexOffset(0)
-		, NumVertices(0)
-		, NumIndices(0)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
 		, IndexArrayIndex(INDEX_NONE)
@@ -392,10 +390,6 @@ public:
 	FSlateElementBatch( TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> InCustomDrawer, const TOptional<FShortRect>& ScissorRect )
 		: BatchKey( InCustomDrawer, ScissorRect )
 		, ShaderResource( nullptr )
-		, VertexOffset(0)
-		, IndexOffset(0)
-		, NumVertices(0)
-		, NumIndices(0)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
 		, IndexArrayIndex(INDEX_NONE)
@@ -483,14 +477,6 @@ private:
 	const FSlateShaderResource* ShaderResource;
 
 public:
-	/** How far into the vertex buffer is this batch*/
-	uint32 VertexOffset;
-	/** How far into the index buffer this batch is*/	
-	uint32 IndexOffset;
-	/** Number of vertices in the batch */
-	uint32 NumVertices;
-	/** Number of indices in the batch */
-	uint32 NumIndices;
 	/** Number of elements in the batch */
 	uint32 NumElementsInBatch;
 	/** Index into an array of vertex arrays where this batches vertices are found (before submitting to the vertex buffer)*/
@@ -502,7 +488,7 @@ public:
 class FSlateRenderBatch
 {
 public:
-	FSlateRenderBatch( const FSlateElementBatch& InBatch )
+	FSlateRenderBatch( const FSlateElementBatch& InBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
 		: ShaderParams( InBatch.GetShaderParams() )
 		, Texture( InBatch.GetShaderResource() )
 		, CustomDrawer( InBatch.GetCustomDrawer() )
@@ -511,10 +497,12 @@ public:
 		, DrawPrimitiveType( InBatch.GetPrimitiveType() )
 		, DrawEffects( InBatch.GetDrawEffects() )
 		, ScissorRect( InBatch.GetScissorRect() )
-		, VertexOffset( InBatch.VertexOffset )
-		, IndexOffset( InBatch.IndexOffset )
-		, NumVertices( InBatch.NumVertices )
-		, NumIndices( InBatch.NumIndices )
+		, VertexArrayIndex( InBatch.VertexArrayIndex )
+		, IndexArrayIndex( InBatch.IndexArrayIndex )
+		, VertexOffset( InVertexOffset )
+		, IndexOffset( InIndexOffset )
+		, NumVertices( InNumVertices )
+		, NumIndices( InNumIndices )
 	{}
 
 public:
@@ -534,7 +522,11 @@ public:
 	const ESlateDrawEffect::Type DrawEffects;
 
 	const TOptional<FShortRect> ScissorRect;
-
+	
+	/** Index into the vertex array pool */
+	const int32 VertexArrayIndex;
+	/** Index into the index array pool */
+	const int32 IndexArrayIndex;
 	/** How far into the vertex buffer is this batch*/
 	const uint32 VertexOffset;
 	/** How far into the index buffer this batch is*/	
@@ -543,6 +535,103 @@ public:
 	const uint32 NumVertices;
 	/** Number of indices in the batch */
 	const uint32 NumIndices;
+};
+
+
+typedef TArray<FSlateElementBatch, TInlineAllocator<1>> FElementBatchArray;
+
+typedef TMap<uint32,FElementBatchArray> FElementBatchMap ;
+
+class FSlateBatchData
+{
+public:
+	FSlateBatchData()
+		: NumBatchedVertices(0)
+		, NumBatchedIndices(0)
+		, NumLayers(0)
+	{}
+
+	void Reset();
+
+	FElementBatchMap& GetElementBatchMap() { return LayerToElementBatches; }
+
+	/**
+	 * Returns a list of element batches for this window
+	 */
+	const TArray<FSlateRenderBatch>& GetRenderBatches() const { return RenderBatches; }
+
+	/**
+	 * Assigns a vertex array from the pool which is appropriate for the batch.  Creates a new array if needed
+	 */
+	void AssignVertexArrayToBatch( FSlateElementBatch& Batch );
+
+	/**
+	 * Assigns an index array from the pool which is appropriate for the batch.  Creates a new array if needed
+	 */
+	void AssignIndexArrayToBatch( FSlateElementBatch& Batch );
+
+	/** @return the list of vertices for a batch */
+	TArray<FSlateVertex>& GetBatchVertexList( FSlateElementBatch& Batch ) { return BatchVertexArrays[Batch.VertexArrayIndex]; }
+
+	/** @return the list of indices for a batch */
+	TArray<SlateIndex>& GetBatchIndexList( FSlateElementBatch& Batch ) { return BatchIndexArrays[Batch.IndexArrayIndex]; }
+
+	/** @return The total number of batched vertices */
+	int32 GetNumBatchedVertices() const { return NumBatchedVertices; }
+
+	/** @return The total number of batched indices */
+	int32 GetNumBatchedIndices() const { return NumBatchedIndices; }
+
+	/** @return Total number of batched layers */
+	int32 GetNumLayers() const { return NumLayers; }
+
+	/** 
+	 * Fills batch data into the actual vertex and index buffer
+	 *
+	 * @param VertexBuffer	Pointer to the actual memory for the vertex buffer 
+	 * @param IndexBuffer	Pointer to the actual memory for an index buffer
+	 */
+	SLATECORE_API void FillVertexAndIndexBuffer( uint8* VertexBuffer, uint8* IndexBuffer );
+
+	/** 
+	 * Creates rendering data from batched elements
+	 */
+	SLATECORE_API void CreateRenderBatches();
+
+private:
+	void AddRenderBatch( const FSlateElementBatch& InElementBatch, int32 InNumVertices, int32 InNumIndices, int32 InVertexOffset, int32 InIndexOffset )
+	{
+		NumBatchedVertices += InNumVertices;
+		NumBatchedIndices += InNumIndices;
+
+		RenderBatches.Add( FSlateRenderBatch(InElementBatch, InNumVertices, InNumIndices, InVertexOffset, InIndexOffset) );
+	}
+private:
+
+	// Element batch maps sorted by layer.
+	FElementBatchMap LayerToElementBatches;
+
+	// Array of vertex lists that are currently free (have no elements in them).
+	TArray<uint32> VertexArrayFreeList;
+
+	// Array of index lists that are currently free (have no elements in them).
+	TArray<uint32> IndexArrayFreeList;
+
+	// Array of vertex lists for batching vertices. We use this method for quickly resetting the arrays without deleting memory.
+	TArray<TArray<FSlateVertex>> BatchVertexArrays;
+
+	// Array of vertex lists for batching indices. We use this method for quickly resetting the arrays without deleting memory.
+	TArray<TArray<SlateIndex>> BatchIndexArrays;
+
+	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
+	TArray<FSlateRenderBatch> RenderBatches;
+
+	int32 NumBatchedVertices;
+
+	int32 NumBatchedIndices;
+
+	int32 NumLayers;
+
 };
 
 /**
@@ -564,19 +653,19 @@ public:
 	}
 	
 	/** @return Get the window that we will be painting */
-	const TSharedPtr<SWindow> GetWindow() const
+	FORCEINLINE const TSharedPtr<SWindow> GetWindow() const
 	{
 		return TopLevelWindow.Pin();
 	}
 	
 	/** @return Get the window that we will be painting */
-	TSharedPtr<SWindow> GetWindow()
+	FORCEINLINE TSharedPtr<SWindow> GetWindow()
 	{
 		return TopLevelWindow.Pin();
 	}
 	
 	/** @return Get the draw elements that we want to render into this window */
-	const TArray<FSlateDrawElement>& GetDrawElements() const
+	FORCEINLINE const TArray<FSlateDrawElement>& GetDrawElements() const
 	{
 		return DrawElements;
 	}
@@ -586,21 +675,32 @@ public:
 	 *
 	 * @param InDrawElement  The draw element to add
 	 */
-	void AddItem( const FSlateDrawElement& InDrawElement )
+	FORCEINLINE void AddItem(const FSlateDrawElement& InDrawElement)
 	{
 		DrawElements.Add( InDrawElement );
 	}
 
-	FSlateDrawElement& AddUninitialized()
+	/**
+	 * Creates an uninitialized draw element
+	 */
+	FORCEINLINE FSlateDrawElement& AddUninitialized()
 	{
-		const int32 InsertIdx = DrawElements.AddUninitialized();
-		return *(new(DrawElements.GetData() + InsertIdx) FSlateDrawElement());
+		const int32 InsertIdx = DrawElements.AddDefaulted();
+		return DrawElements[InsertIdx];
 	}
 
 	/**
-	* Some widgets may want to paint their children after after another, loosely-related widget finished painting.
-	* Or they may want to paint "after everyone".
-	*/
+	 * Append draw elements to the list of draw elements
+	 */
+	FORCEINLINE void AppendDrawElements(const TArray<FSlateDrawElement>& InDrawElements)
+	{
+		DrawElements.Append(InDrawElements);
+	}
+
+	/**
+	 * Some widgets may want to paint their children after after another, loosely-related widget finished painting.
+	 * Or they may want to paint "after everyone".
+	 */
 	struct FDeferredPaint
 	{
 	public:
@@ -619,53 +719,56 @@ public:
 
 	SLATECORE_API void QueueDeferredPainting( const FDeferredPaint& InDeferredPaint );
 
-	int32 PaintDeferred( int32 LayerId );
+	int32 PaintDeferred(int32 LayerId);
+
+	struct FVolatilePaint
+	{
+	public:
+		SLATECORE_API FVolatilePaint(const TSharedRef<const SWidget>& InWidgetToPaint, const FPaintArgs& InArgs, const FGeometry InAllottedGeometry, const FSlateRect InMyClippingRect, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool InParentEnabled);
+
+		int32 ExecutePaint( FSlateWindowElementList& OutDrawElements ) const;
+
+		FORCEINLINE FGeometry GetGeometry() const { return AllottedGeometry; }
+	 
+	private:
+		const TWeakPtr<const SWidget> WidgetToPaintPtr;
+		const FPaintArgs Args;
+		const FGeometry AllottedGeometry;
+		const FSlateRect MyClippingRect;
+		const int32 LayerId;
+		const FWidgetStyle WidgetStyle;
+		const bool bParentEnabled;
+	};
+
+	SLATECORE_API void QueueVolatilePainting( const FVolatilePaint& InVolatilePaint );
+
+	SLATECORE_API int32 PaintVolatile(FSlateWindowElementList& OutElementList);
+
+	SLATECORE_API const TArray< TSharedRef<FVolatilePaint> >& GetVolatileElements() const { return VolatilePaintList; }
 	
 	/**
 	 * Remove all the elements from this draw list.
 	 */
-	void Empty()
-	{
-		DrawElements.Empty();
-		RenderBatches.Empty();
-		BatchedVertices.Empty();
-		BatchedIndices.Empty();
-	}
-	
-	/**
-	 * Returns a list of element batches for this window
-	 */
-	const TArray<FSlateRenderBatch>& GetRenderBatches() const { return RenderBatches; }
+	SLATECORE_API void Reset();
 
-	/**
-	 * Returns all the vertices for every draw element in this window
-	 */
-	const TArray<FSlateVertex>& GetBatchedVertices() const { return BatchedVertices; }
+	FSlateBatchData& GetBatchData() { return BatchData; }
 
-	/**
-	 * Returns all the indices for every draw element in this window
-	 */
-	const TArray<SlateIndex>& GetBatchedIndices() const { return BatchedIndices; }
+private:
+	/** Batched data used for rendering */
+	FSlateBatchData BatchData;
 
-protected:
 	/** The top level window which these elements are being drawn on */
 	TWeakPtr<SWindow> TopLevelWindow;
 	
 	/** List of draw elements for the window */
 	TArray<FSlateDrawElement> DrawElements;
 
-	/** List of element batches sorted by later for use in rendering (for threaded renderers, can only be accessed from the render thread)*/
-	TArray<FSlateRenderBatch> RenderBatches;
-
-	/** All the vertices for every batch. */
-	TArray<FSlateVertex> BatchedVertices;
-
-	/** All the indices for every batch. */
-	TArray<SlateIndex> BatchedIndices;
-
 	/**
 	 * Some widgets want their logical children to appear at a different "layer" in the physical hierarchy.
 	 * We accomplish this by deferring their painting.
 	 */
 	TArray< TSharedRef<FDeferredPaint> > DeferredPaintList;
+
+	/** The widgets be cached for a later paint pass when the invalidation host paints. */
+	TArray< TSharedRef<FVolatilePaint> > VolatilePaintList;
 };

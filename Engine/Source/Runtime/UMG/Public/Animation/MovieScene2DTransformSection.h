@@ -18,8 +18,9 @@ class UMovieScene2DTransformSection : public UMovieSceneSection
 public:
 
 	/** MovieSceneSection interface */
-	virtual void MoveSection( float DeltaPosition ) override;
-	virtual void DilateSection( float DilationFactor, float Origin ) override;
+	virtual void MoveSection(float DeltaPosition, TSet<FKeyHandle>& KeyHandles) override;
+	virtual void DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles) override;
+	virtual void GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const override;
 
 	UMG_API FRichCurve& GetTranslationCurve( EAxis::Type Axis );
 

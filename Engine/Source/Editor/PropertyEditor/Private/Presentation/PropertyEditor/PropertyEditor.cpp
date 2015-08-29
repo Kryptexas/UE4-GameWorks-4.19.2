@@ -17,6 +17,8 @@
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
+const FString FPropertyEditor::MultipleValuesDisplayName = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
+
 TSharedRef< FPropertyEditor > FPropertyEditor::Create( const TSharedRef< class FPropertyNode >& InPropertyNode, const TSharedRef<class IPropertyUtilities >& InPropertyUtilities )
 {
 	return MakeShareable( new FPropertyEditor( InPropertyNode, InPropertyUtilities ) );
@@ -113,7 +115,7 @@ FString FPropertyEditor::GetValueAsString() const
 
 	if( PropertyHandle->GetValueAsFormattedString( Str ) == FPropertyAccess::MultipleValues )
 	{
-		Str = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
+		Str = MultipleValuesDisplayName;
 	}
 
 	return Str;
@@ -125,7 +127,7 @@ FString FPropertyEditor::GetValueAsDisplayString() const
 
 	if( PropertyHandle->GetValueAsDisplayString( Str ) == FPropertyAccess::MultipleValues )
 	{
-		Str = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
+		Str = MultipleValuesDisplayName;
 	}
 
 	return Str;

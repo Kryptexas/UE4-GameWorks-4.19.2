@@ -1,0 +1,40 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:6. Additional Resources
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Read more about Android development with Unreal Engine.
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Android/GettingStarted/5 "%Platforms/Android/GettingStarted/5:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+For more information about device compatibility and performance:
+* [](Platforms\Android\DeviceCompatibility)
+* [](Platforms\DeviceProfiles)
+* [](Platforms\Mobile\Performance)
+
+For more information about designing game content and levels for mobile devices:
+* [](Platforms\Mobile\Content)
+* [](Platforms\Mobile\Lighting)
+* [](Platforms\Mobile\Materials)
+* [](Platforms\Mobile\PostProcessEffects)
+* [](Platforms\Mobile\Textures)
+
+You can also preview your mobile game without deploying to a device by using the [](Platforms\Mobile\Previewer).
+
+
+%Steps%

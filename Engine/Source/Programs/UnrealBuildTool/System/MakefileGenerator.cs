@@ -35,7 +35,8 @@ namespace UnrealBuildTool
 	public class MakefileGenerator : ProjectFileGenerator
 	{
 		/// True if intellisense data should be generated (takes a while longer)
-		bool bGenerateIntelliSenseData = false;
+		/// Now this is needed for project target generation.
+		bool bGenerateIntelliSenseData = true;
 
 		/// True if we should include IntelliSense data in the generated project files when possible
 		override public bool ShouldGenerateIntelliSenseData()
@@ -88,23 +89,32 @@ namespace UnrealBuildTool
             );
             String MakeProjectCmdArg = "";
             String MakeBuildCommand = "";
-            foreach (string Target in DiscoverTargets())
+            foreach(var Project in GeneratedProjectFiles)
             {
-                var Basename = Path.GetFileNameWithoutExtension(Target);
-                Basename = Path.GetFileNameWithoutExtension(Basename);
-                foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
-                {
-                    if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
-                    {
-                        if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
-                        {
-                            var Confname = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-                            MakefileContent.Append(String.Format(" \\\n\t{0}-Linux-{1} ", Basename, Confname));
-                        }
-                    }
-                }
-                MakefileContent.Append(" \\\n\t" + Basename);
-            }
+				foreach (var TargetFile in Project.ProjectTargets)
+				{
+					if (TargetFile.TargetFilePath == null)
+					{
+						continue;
+					}
+
+					string TargetFileName = Path.GetFileNameWithoutExtension(TargetFile.TargetFilePath);
+					string Basename = TargetFileName.Substring(0, TargetFileName.LastIndexOf(".Target"));
+
+					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+					{
+						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
+						{
+							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
+							{
+								var Confname = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								MakefileContent.Append(String.Format(" \\\n\t{0}-Linux-{1} ", Basename, Confname));
+							}
+						}
+					}
+					MakefileContent.Append(" \\\n\t" + Basename);
+				}
+            }            
             MakefileContent.Append("\\\n\tconfigure");
 
             MakefileContent.Append("\n\n" + BuildCommand + ProjectBuildCommand + "\n" +
@@ -114,34 +124,52 @@ namespace UnrealBuildTool
                 "DebugSet: RequiredTools UnrealFrontend-Linux-Debug UE4Editor-Linux-Debug\n\n"
             );
 
-            foreach (string Target in DiscoverTargets())
-            {
-                var Basename = Path.GetFileNameWithoutExtension(Target);
-                Basename = Path.GetFileNameWithoutExtension(Basename);
-                foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
-                {
-                    if (Basename == GameProjectName || Basename == (GameProjectName + "Editor")) 
-                    {
-                        MakeProjectCmdArg = " -project=\"\\\"$(GAMEPROJECTFILE)\\\"\"";
-                        MakeBuildCommand = "$(PROJECTBUILD)";
-                    }
-                    else
-                    {
-                        MakeBuildCommand = "$(BUILD)";
-                    }
+			foreach(var Project in GeneratedProjectFiles)
+			{
+				foreach (var TargetFile in Project.ProjectTargets)
+				{
+					if (TargetFile.TargetFilePath == null)
+					{
+						continue;
+					}
 
-                    if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
-                    {
-                        if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
-                        {
-                            var Confname = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
-                            MakefileContent.Append(String.Format("\n{1}-Linux-{2}:\n\t {0} {1} Linux {2} {3} $(ARGS)\n", MakeBuildCommand, Basename, Confname, MakeProjectCmdArg));
-                        }
-                    }
-                }
+					string TargetFileName = Path.GetFileNameWithoutExtension(TargetFile.TargetFilePath);
+					string Basename = TargetFileName.Substring(0, TargetFileName.LastIndexOf(".Target"));
 
-                MakefileContent.Append(String.Format("\n{1}:\n\t {0} {1} Linux Development {2} $(ARGS)\n", MakeBuildCommand, Basename, MakeProjectCmdArg));
-            }
+					if (Basename == GameProjectName || Basename == (GameProjectName + "Editor")) 
+					{
+						MakeProjectCmdArg = " -project=\"\\\"$(GAMEPROJECTFILE)\\\"\"";
+						MakeBuildCommand = "$(PROJECTBUILD)";
+					}
+					else
+					{
+						MakeBuildCommand = "$(BUILD)";
+					}
+					
+					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
+					{
+						if (Basename == GameProjectName || Basename == (GameProjectName + "Editor")) 
+						{
+							MakeProjectCmdArg = " -project=\"\\\"$(GAMEPROJECTFILE)\\\"\"";
+							MakeBuildCommand = "$(PROJECTBUILD)";
+						}
+						else
+						{
+							MakeBuildCommand = "$(BUILD)";
+						}
+
+						if (CurConfiguration != UnrealTargetConfiguration.Unknown && CurConfiguration != UnrealTargetConfiguration.Development)
+						{
+							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
+							{
+								var Confname = Enum.GetName(typeof(UnrealTargetConfiguration), CurConfiguration);
+								MakefileContent.Append(String.Format("\n{1}-Linux-{2}:\n\t {0} {1} Linux {2} {3} $(ARGS)\n", MakeBuildCommand, Basename, Confname, MakeProjectCmdArg));
+							}
+						}
+					}
+					MakefileContent.Append(String.Format("\n{1}:\n\t {0} {1} Linux Development {2} $(ARGS)\n", MakeBuildCommand, Basename, MakeProjectCmdArg));
+				}
+			}
 
             MakefileContent.Append("\nconfigure:\n");
             if (!String.IsNullOrEmpty (GameProjectName))

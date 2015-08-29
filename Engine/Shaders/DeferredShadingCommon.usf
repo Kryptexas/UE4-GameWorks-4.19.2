@@ -282,6 +282,8 @@ struct FGBufferData
 	uint HasHeightfieldRepresentation; 
 	// in world units
 	float CustomDepth;
+	// Custom depth stencil value
+	uint CustomStencil;
 	// in unreal units (linear), can be used to reconstruct world position,
 	// only valid when decoding the GBuffer as the value gets reconstructed from the Z buffer
 	float Depth;
@@ -315,6 +317,8 @@ struct FScreenSpaceData
 	FGBufferData GBuffer;
 	// 0..1, only valid in some passes, 1 if off
 	float AmbientOcclusion;
+
+	float2 DirectionalOcclusion;
 };
 
 /** Populates OutGBufferA, B and C */
@@ -379,6 +383,7 @@ FGBufferData DecodeGBufferData(
 	float4 InGBufferE,
 	float4 InGBufferVelocity,
 	float CustomNativeDepth,
+	uint CustomStencil,
 	float SceneDepth,
 	bool bGetNormalizedNormal)
 {
@@ -413,6 +418,7 @@ FGBufferData DecodeGBufferData(
 #endif
 	GBuffer.PrecomputedShadowFactors = InGBufferE;
 	GBuffer.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
+	GBuffer.CustomStencil = CustomStencil;
 	GBuffer.Depth = SceneDepth;
 
 	// derived from BaseColor, Metalness, Specular
@@ -526,6 +532,13 @@ SamplerState ScreenSpaceAOTextureSampler;
 Texture2D CustomDepthTexture;
 SamplerState CustomDepthTextureSampler;
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 
+Texture2D<uint2> CustomStencilTexture;
+#endif
+
+Texture2D		DirectionalOcclusionTexture;
+SamplerState	DirectionalOcclusionSampler;
+
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	// In all but SM5 we need to explicitly declare how many samples are in a multisampled texture.
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM5
@@ -548,6 +561,7 @@ SamplerState CustomDepthTextureSampler;
 		float4 GBufferC = GBuffers.GBufferCTextureNonMS.Load(int3(PixelPos, 0));
 		float4 GBufferD = GBuffers.GBufferDTextureNonMS.Load(int3(PixelPos, 0));
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(PixelPos, 0)).r;
+		uint CustomStencil = CustomStencilTexture.Load(int3(PixelPos, 0)).g;
 
 		#if ALLOW_STATIC_LIGHTING
 			float4 GBufferE = GBuffers.GBufferETextureNonMS.Load(int3(PixelPos, 0));
@@ -563,7 +577,7 @@ SamplerState CustomDepthTextureSampler;
 
 		float SceneDepth = CalcSceneDepth(PixelPos);
 
-		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, CustomStencil, SceneDepth, bGetNormalizedNormal);
 	}
 
 	FDBufferData GetDBufferData(uint2 PixelPos)
@@ -596,6 +610,14 @@ SamplerState CustomDepthTextureSampler;
 			Out.AmbientOcclusion = ScreenSpaceAO.r;
 		}
 
+		{
+			uint width;
+			uint height;
+			uint levels;
+
+			DirectionalOcclusionTexture.GetDimensions(0, width, height, levels);
+			Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, (PixelPos + 0.5f) / float2(width, height), 0 ).rg;
+		}
 		return Out;
 	}
 #endif
@@ -624,6 +646,16 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 	float4 GBufferD = Texture2DSampleLevel(GBuffers.GBufferDTexture, GBuffers.GBufferDTextureSampler, UV, 0);
 	float CustomNativeDepth = Texture2DSampleLevel(CustomDepthTexture, CustomDepthTextureSampler, UV, 0).r;
 
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+	float2 SurfaceDimensions;
+	CustomStencilTexture.GetDimensions(SurfaceDimensions.x, SurfaceDimensions.y);
+
+	int2 IntUV = (int2)trunc(UV * SurfaceDimensions);
+	uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)).g;
+#else
+	uint CustomStencil = 0;
+#endif
+
 	#if ALLOW_STATIC_LIGHTING
 		float4 GBufferE = Texture2DSampleLevel(GBuffers.GBufferETexture, GBuffers.GBufferETextureSampler, UV, 0);
 	#else
@@ -639,7 +671,7 @@ FGBufferData GetGBufferData(float2 UV, bool bGetNormalizedNormal = true)
 
 	float SceneDepth = CalcSceneDepth(UV);
 	
-	return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+	return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, CustomStencil, SceneDepth, bGetNormalizedNormal);
 }
 
 // Minimal path for just the lighting model, used to branch around unlit pixels (skybox)
@@ -676,6 +708,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 
 	Out.AmbientOcclusion = ScreenSpaceAO.r;
 
+	Out.DirectionalOcclusion = Texture2DSampleLevel( DirectionalOcclusionTexture, DirectionalOcclusionSampler, UV, 0 ).rg;
 	return Out;
 }
 
@@ -688,6 +721,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float4 GBufferC = GBuffers.GBufferCTextureMS.Load(IntUV, SampleIndex);
 		float4 GBufferD = GBuffers.GBufferDTextureMS.Load(IntUV, SampleIndex);
 		float CustomNativeDepth = CustomDepthTextureNonMS.Load(int3(IntUV, 0)).r;
+		uint CustomStencil = CustomStencilTexture.Load(int3(IntUV, 0)).g;
 
 		#if ALLOW_STATIC_LIGHTING
 			float4 GBufferE = GBuffers.GBufferETextureMS.Load(IntUV, SampleIndex);
@@ -704,7 +738,7 @@ FScreenSpaceData GetScreenSpaceData(float2 UV, bool bGetNormalizedNormal = true)
 		float4 GBufferVelocity = 0;
 	#endif
 
-		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, SceneDepth, bGetNormalizedNormal);
+		return DecodeGBufferData(GBufferA, GBufferB, GBufferC, GBufferD, GBufferE, GBufferVelocity, CustomNativeDepth, CustomStencil, SceneDepth, bGetNormalizedNormal);
 	}
 
 	FGBufferData GetGBufferDataMS(float2 UV, uint SampleIndex, bool bGetNormalizedNormal = true)

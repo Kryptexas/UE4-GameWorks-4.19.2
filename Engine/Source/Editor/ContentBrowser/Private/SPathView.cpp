@@ -553,9 +553,9 @@ void SPathView::ApplyHistoryData ( const FHistoryData& History )
 
 	// Update paths
 	TArray<FString> SelectedPaths;
-	for ( auto PathIt = History.SourcesData.PackagePaths.CreateConstIterator(); PathIt; ++PathIt)
+	for (const FName& HistoryPath : History.SourcesData.PackagePaths)
 	{
-		SelectedPaths.Add((*PathIt).ToString());
+		SelectedPaths.Add(HistoryPath.ToString());
 	}
 	SetSelectedPaths(SelectedPaths);
 }
@@ -623,8 +623,12 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 
 			if ( bSelectedAtLeastOnePath )
 			{
+				// Send the first selected item with the notification
+				const TArray<TSharedPtr<FTreeItem>> SelectedItems = TreeViewPtr->GetSelectedItems();
+				check(SelectedItems.Num() > 0);
+
 				// Signal a single selection changed event to let any listeners know that paths have changed
-				TreeSelectionChanged( TSharedPtr<FTreeItem>(), ESelectInfo::Direct );
+				TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
 			}
 		}
 		else
@@ -632,8 +636,12 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 			// If all assets are already discovered, just select paths the best we can
 			SetSelectedPaths(NewSelectedPaths);
 
+			// Send the first selected item with the notification
+			const TArray<TSharedPtr<FTreeItem>> SelectedItems = TreeViewPtr->GetSelectedItems();
+			check(SelectedItems.Num() > 0);
+
 			// Signal a single selection changed event to let any listeners know that paths have changed
-			TreeSelectionChanged( TSharedPtr<FTreeItem>(), ESelectInfo::Direct );
+			TreeSelectionChanged( SelectedItems[0], ESelectInfo::Direct );
 		}
 	}
 }
@@ -878,6 +886,7 @@ void SPathView::TreeExpansionChanged( TSharedPtr< FTreeItem > TreeItem, bool bIs
 void SPathView::OnAssetTreeSearchBoxChanged( const FText& InSearchText )
 {
 	SearchBoxFolderFilter->SetRawFilterText( InSearchText );
+	SearchBoxPtr->SetError( SearchBoxFolderFilter->GetFilterErrorText() );
 }
 
 void SPathView::FilterUpdated()
@@ -940,7 +949,10 @@ void SPathView::Populate()
 			{
 				CleanRootPathName = CleanRootPathName.Mid( 0, CleanRootPathName.Len() - 1 );
 			}
-			AddRootItem(CleanRootPathName);
+
+			// Templates can mount "root" items which are actually sub-items under a root (see FUnrealEdMisc::MountTemplateSharedPaths)
+			// We can use AddPath here (rather than AddRootItem), as this will ensure that both the root and any sub-path items are added correctly
+			AddPath(CleanRootPathName);
 		}
 	}
 	
@@ -1308,7 +1320,10 @@ void SPathView::ExecuteTreeDropMove(TArray<FAssetData> AssetList, FString Destin
 
 void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::CopyFolders(PathNames, DestinationPath);
+	if (!ContentBrowserUtils::CopyFolders(PathNames, DestinationPath))
+	{
+		return;
+	}
 
 	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
 	if (RootItem.IsValid())
@@ -1334,7 +1349,10 @@ void SPathView::ExecuteTreeDropCopyFolder(TArray<FString> PathNames, FString Des
 
 void SPathView::ExecuteTreeDropMoveFolder(TArray<FString> PathNames, FString DestinationPath)
 {
-	ContentBrowserUtils::MoveFolders(PathNames, DestinationPath);
+	if (!ContentBrowserUtils::MoveFolders(PathNames, DestinationPath))
+	{
+		return;
+	}
 
 	TSharedPtr<FTreeItem> RootItem = FindItemRecursive(DestinationPath);
 	if (RootItem.IsValid())

@@ -5,10 +5,6 @@ Description:Guide to installing, setting up, and syncing builds with the Perforc
 
 [TOC(start:2)]
 
-
-
-## Overview
-
 This document covers the steps in setting up the P4Win client to connect to the Unreal Engine 4 depot and get a build of the engine.
 
 To connect to Perforce, you need to set up a secure Virtual Private Network (VPN) [Connection to Epic Games](GettingStarted/DownloadingUnrealEngine/VPNSetup).
@@ -65,7 +61,7 @@ Now you are all set!
 
 Clientspecs are created on a per-machine basis, because they keep track of the exact revision of each file that has been stored on that machine's hard drive in the selected directory. Thus, if you ever need to start syncing from a different PC, you will need to repeat this process to create a new clientspec on that machine.
 
-IMPORTANT NOTE: If you are an anonymous user you will want to create a clientspec that is named: UE4_Anonymous_#  where the # matches your Anonymous userid (e.g. UE4_Anonymous_8). Additionally, you will not want to put any url names in any of the fields. And you may not want to have a machine name that is recognizeable. All of those fields can be seen by other users if they search the users or clientspec listings.
+IMPORTANT NOTE: If you are an anonymous user you will want to create a clientspec that is named: UE4_Anonymous_#  where the # matches your Anonymous userid (e.g. UE4_Anonymous_8). Additionally, you will not want to put any url names in any of the fields. And you may not want to have a machine name that is recognizable. All of those fields can be seen by other users if they search the users or clientspec listings.
 
 
 ### Troubleshooting

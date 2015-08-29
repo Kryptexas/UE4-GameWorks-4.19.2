@@ -68,15 +68,15 @@ public:
 	{
 		Close();
 	}
-	virtual void Seek( int64 InPos )
+	virtual void Seek( int64 InPos ) override
 	{
 		Pos = InPos;
 	}
-	virtual int64 Tell()
+	virtual int64 Tell() override
 	{
 		return Pos;
 	}
-	virtual void Serialize( void* V, int64 Length )
+	virtual void Serialize( void* V, int64 Length ) override
 	{
 		Pos += Length;
 	}
@@ -330,6 +330,11 @@ bool FFileManagerGeneric::Move( const TCHAR* Dest, const TCHAR* Src, bool Replac
 	return true;
 }
 
+bool FFileManagerGeneric::FileExists( const TCHAR* Filename )
+{
+	return GetLowLevel().FileExists( Filename );
+}
+
 bool FFileManagerGeneric::DirectoryExists( const TCHAR* InDirectory )
 {
 	return GetLowLevel().DirectoryExists( InDirectory );
@@ -388,6 +393,43 @@ void FFileManagerGeneric::FindFiles( TArray<FString>& Result, const TCHAR* InFil
 	const bool bFindAllFiles = CleanFilename == TEXT("*") || CleanFilename == TEXT("*.*");
 	FFileMatch FileMatch( Result, bFindAllFiles ? TEXT("*") : CleanFilename, Files, Directories );
 	GetLowLevel().IterateDirectory( *FPaths::GetPath(Filename), FileMatch );
+}
+
+void FFileManagerGeneric::FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension)
+{
+	if (!Directory)
+	{
+		return;
+	}
+
+	FString RootDir(Directory);
+	FString ExtStr = (FileExtension != nullptr) ? FString(FileExtension) : "";
+
+	// No Directory?
+	if (RootDir.Len() < 1)
+	{
+		return;
+	}
+
+	FPaths::NormalizeDirectoryName(RootDir);
+
+	// Don't modify the ExtStr if the user supplied the form "*.EXT" or "*" or "*.*" or "Name.*"
+	if (!ExtStr.Contains(TEXT("*")))
+	{
+		if (ExtStr == "")
+		{
+			ExtStr = "*.*";
+		}
+		else
+		{
+			//Complete the supplied extension with * or *. to yield "*.EXT"
+			ExtStr = (ExtStr.Left(1) == ".") ? "*" + ExtStr : "*." + ExtStr;
+		}
+	}
+
+	// Create the full filter, which is "Directory/*.EXT".
+	FString FinalPath = RootDir + "/" + ExtStr;
+	FindFiles(FoundFiles, *FinalPath, true, false);
 }
 
 bool FFileManagerGeneric::IterateDirectory(const TCHAR* Directory, IPlatformFile::FDirectoryVisitor& Visitor)
@@ -601,7 +643,7 @@ bool FArchiveFileReaderGeneric::InternalPrecache( int64 PrecacheOffset, int64 Pr
 
 		// Read data from device via Win32 ReadFile API.
 		{
-			UE_CLOG( BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0, LogFileManager, Fatal, TEXT("Invalid BufferCount=%lld while reading %s. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
+			UE_CLOG( BufferCount > ARRAY_COUNT( Buffer ) || BufferCount <= 0, LogFileManager, Fatal, TEXT("Invalid BufferCount=%lld while reading %s. File is most likely corrupted, try deleting it if possible. Pos=%lld, Size=%lld, PrecacheSize=%lld, PrecacheOffset=%lld"),
 				BufferCount, *Filename, Pos, Size, PrecacheSize, PrecacheOffset );
 
 			ReadLowLevel( Buffer, BufferCount, Count );

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492260
+﻿INTSourceChangelist:2620779
 Availability: Public
 Title:1.4 - 변수 리플리케이션 (RepNotify)
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Networking
@@ -36,7 +36,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [/REGION]
 
 
-## 개요
+
 종종 리플리케이트되는 변수값의 변화에 따라 일정한 로직을 실행하는 것이 바람직합니다. **RepNotify** 마킹된 변수에는 값이 변할 때마다 네트워크 오쏘리티와 원격 머신 양쪽에서 자동으로 호출되는 특수 함수가 있습니다.
 
 이 예제에서 네트워크 오쏘리티는 **RepNotify** 변수를 사용해서 가로등의 색을 나타내는 스칼라 변수에 대한 변화를 제어합니다. 값이 변하면 자동 생성되는 OnRep 함수가 호출되며, 이 예제에서는 머티리얼 파라미터를 업데이트합니다.

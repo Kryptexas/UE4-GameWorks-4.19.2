@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2517850
+﻿INTSourceChangelist:2617328
 Availability: Public
 Title:라이트 조정
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -35,7 +35,7 @@ Description:이 씬에서 라이트 컬러, 밝기, 기타 라이트 세팅을 �
 
 	_클릭하면 원래 크기로 봅니다._
 
-1.  **마티네** 창을 최소화시킨 다음, **모드** 메뉴의 **지오메트리** 탭 아래 **박스** 를 클릭하여 뷰포트에 끌어 놓습니다.
+1.  **마티네** 창을 최소화시킨 다음, **모드** 메뉴의 **BSP** 탭 아래 **박스** 를 클릭하여 뷰포트에 끌어 놓습니다.
 
 	![](MHT5_DragInBox.png)(w:580)
 
@@ -51,7 +51,7 @@ Description:이 씬에서 라이트 컬러, 밝기, 기타 라이트 세팅을 �
 
 	_또는 **이동** 위젯의 파랑 화살표를 잡아 약간 끌어내려 박스 지붕을 올려도 됩니다._
 
-1. **지오메트리** 탭에서 **박스** 를 또하나 뷰포트에 끌어놓은 다음 그 세팅을 아래 값으로 설정합니다.
+1. **BSP** 탭에서 **박스** 를 또하나 뷰포트에 끌어놓은 다음 그 세팅을 아래 값으로 설정합니다.
 
 	![](MHT5_SubtractBrush.png)(w:380)
 
@@ -192,7 +192,17 @@ Description:이 씬에서 라이트 컬러, 밝기, 기타 라이트 세팅을 �
 
 1. 메인 툴바에서 **플레이** 아이콘을 클릭하여 에디터에서 플레이합니다.
 
-	![](MHT5_LightingGif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	hJu8SiXEoXs
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_통로에 들어서면 라이트가 통로 위아래로 움직이는 것이 보일 것입니다._
 

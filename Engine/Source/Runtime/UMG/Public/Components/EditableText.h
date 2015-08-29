@@ -50,10 +50,6 @@ public:
 	UPROPERTY()
 	USlateBrushAsset* BackgroundImageSelected_DEPRECATED;
 
-	/** Background image for the selection targeting effect (overrides Style) */
-	UPROPERTY()
-	USlateBrushAsset* BackgroundImageSelectionTarget_DEPRECATED;
-
 	/** Background image for the composing text (overrides Style) */
 	UPROPERTY()
 	USlateBrushAsset* BackgroundImageComposing_DEPRECATED;
@@ -63,12 +59,12 @@ public:
 	USlateBrushAsset* CaretImage_DEPRECATED;
 
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateFontInfo Font;
+	UPROPERTY()
+	FSlateFontInfo Font_DEPRECATED;
 
 	/** Text color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, Category=Appearance)
-	FSlateColor ColorAndOpacity;
+	UPROPERTY()
+	FSlateColor ColorAndOpacity_DEPRECATED;
 
 	/** Sets whether this text box can actually be modified interactively by the user */
 	UPROPERTY(EditAnywhere, Category=Appearance)

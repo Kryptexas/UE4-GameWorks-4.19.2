@@ -55,7 +55,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActor(AActor* Actor);
 
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
-	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActorArray(TArray<TWeakObjectPtr<AActor>> ActorArray, bool OneTargetPerHandle);
+	static FGameplayAbilityTargetDataHandle	AbilityTargetDataFromActorArray(TArray<AActor*> ActorArray, bool OneTargetPerHandle);
 
 	/** Create a new target data handle with filtration performed on the data */
 	UFUNCTION(BlueprintPure, Category = "Ability|TargetData")
@@ -141,6 +141,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintPure, Category="Ability|GameplayCue")
 	static bool IsInstigatorLocallyControlled(FGameplayCueParameters Parameters);
 
+	UFUNCTION(BlueprintPure, Category="Ability|GameplayCue")
+	static bool IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters);
+
 	UFUNCTION(BlueprintPure, Category = "Ability|GameplayCue")
 	static int32 GetActorCount(FGameplayCueParameters Parameters);
 
@@ -191,11 +194,21 @@ class GAMEPLAYABILITIES_API UAbilitySystemBlueprintLibrary : public UBlueprintFu
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle SetDuration(FGameplayEffectSpecHandle SpecHandle, float Duration);
 
+	// This instance of the effect will now grant NewGameplayTag to the object that this effect is applied to.
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle AddGrantedTag(FGameplayEffectSpecHandle SpecHandle, FGameplayTag NewGameplayTag);
 
+	// This instance of the effect will now grant NewGameplayTags to the object that this effect is applied to.
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle AddGrantedTags(FGameplayEffectSpecHandle SpecHandle, FGameplayTagContainer NewGameplayTags);
+
+	// Adds NewGameplayTag to this instance of the effect.
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static FGameplayEffectSpecHandle AddAssetTag(FGameplayEffectSpecHandle SpecHandle, FGameplayTag NewGameplayTag);
+
+	// Adds NewGameplayTags to this instance of the effect.
+	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
+	static FGameplayEffectSpecHandle AddAssetTags(FGameplayEffectSpecHandle SpecHandle, FGameplayTagContainer NewGameplayTags);
 
 	UFUNCTION(BlueprintCallable, Category = "Ability|GameplayEffect")
 	static FGameplayEffectSpecHandle AddLinkedGameplayEffectSpec(FGameplayEffectSpecHandle SpecHandle, FGameplayEffectSpecHandle LinkedGameplayEffectSpec);

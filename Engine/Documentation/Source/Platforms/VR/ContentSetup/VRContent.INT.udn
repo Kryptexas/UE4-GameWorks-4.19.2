@@ -45,8 +45,6 @@ platforms
 
 [TOC(start:2)]
 
-## Overview 
-
 Developing content for Virtual Reality (VR) does require a few workflow adjustments to ensure that the user has the best 
 VR experience possible. The purpose of this guide to help point out some of the main things that you should aware of when 
 developing content for your VR projects. 

@@ -23,6 +23,8 @@
 #include "SResponsiveGridPanel.h"
 #include "SColorPicker.h"
 #include "INotificationWidget.h"
+#include "IMenu.h"
+#include "SInvalidationPanel.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
@@ -1371,6 +1373,7 @@ struct RichTextHelper
 
 		FSlateApplication::Get().PushMenu(
 			ParentWidget, // Parent widget should be TestSuite, not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			Widget,
 			FSlateApplication::Get().GetCursorPos(), // summon location
 			FPopupTransitionEffect(FPopupTransitionEffect::ContextMenu)
@@ -2060,6 +2063,22 @@ public:
 				[
 					SAssignNew(ErrorText, SErrorText)
 				]
+				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
+				[
+					SNew( SEditableTextBox )
+					.Text( LOCTEXT( "CustomContextMenuInput", "This text box has a custom context menu" ) )
+					.RevertTextOnEscape( true )
+					.HintText(LOCTEXT("CustomContextMenuHint", "Custom context menu..."))
+					.OnContextMenuOpening( this, &STextEditTest::OnCustomContextMenuOpening )
+				]
+				+ SVerticalBox::Slot().AutoHeight() .HAlign(HAlign_Center) .VAlign(VAlign_Center) .Padding( 5 )
+				[
+					SNew( SEditableTextBox )
+					.Text( LOCTEXT( "DisabledContextMenuInput", "This text box has no context menu" ) )
+					.RevertTextOnEscape( true )
+					.HintText(LOCTEXT("DisabledContextMenuHint", "No context menu..."))
+					.OnContextMenuOpening(this, &STextEditTest::OnDisabledContextMenuOpening)
+				]
 			]
 		];
 	}
@@ -2089,6 +2108,22 @@ public:
 		NumericInput->SetError( Error );
 	}
 
+	TSharedPtr<SWidget> OnCustomContextMenuOpening()
+	{
+		return SNew(SBorder)
+			.Padding(5.0f)
+			.BorderImage(FCoreStyle::Get().GetBrush("BoxShadow"))
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("CustomContextMenuContent", "This context menu content is just a text block"))
+			];
+	}
+
+	TSharedPtr<SWidget> OnDisabledContextMenuOpening()
+	{
+		return TSharedPtr<SWidget>();
+	}
+
 	void ClearSearchBox()
 	{
 		SearchBox->SetText( FText::GetEmpty() );
@@ -2110,8 +2145,9 @@ public:
 			.OnTextCommitted( this, &STextEditTest::OnPopupTextCommitted ) 
 			.HintText( DefaultText );
 
-		PopupWindow = FSlateApplication::Get().PushMenu( 
+		PopupMenu = FSlateApplication::Get().PushMenu(
 			AsShared(), // Parent widget should be TestSyuite, not the menu thats open or it will be closed when the menu is dismissed
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(), // summon location
 			FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup )
@@ -2135,9 +2171,9 @@ public:
 		if ( (CommitInfo == ETextCommit::OnEnter) && (NewText.ToString().Len() == 3) )
 		{
 			// manually close menu on validated committal
-			if ( PopupWindow.IsValid() )
+			if (PopupMenu.IsValid())
 			{		
-				PopupWindow->RequestDestroyWindow();
+				PopupMenu.Pin()->Dismiss();
 			}
 		}
 	}
@@ -2161,7 +2197,7 @@ protected:
 
 	TSharedPtr<STextEntryPopup> PopupInput;
 
-	TSharedPtr<SWindow> PopupWindow;
+	TWeakPtr<IMenu> PopupMenu;
 
 	TSharedPtr<SInlineEditableTextBlock> InlineEditableTextBlock;
 	FText InlineEditableText;
@@ -2709,6 +2745,7 @@ public:
 									.OnTextCommitted(this, &SRichTextEditTest::HandleRichEditableTextCommitted)
 									.OnCursorMoved(this, &SRichTextEditTest::HandleRichEditableTextCursorMoved)
 									.Marshaller(RichTextMarshaller)
+									.ClearTextSelectionOnFocusLoss(false)
 									.AutoWrapText(true)
 									.Margin(4)
 									.LineHeightPercentage(1.1f)
@@ -3803,6 +3840,114 @@ class SDPIScalingTest : public SCompoundWidget
 
 	float DPIScale;
 	SVerticalBox::FSlot* ScalerSlot;
+};
+
+class SInvalidationTest : public SCompoundWidget
+{
+	SLATE_BEGIN_ARGS(SInvalidationTest)
+	{}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+		.Padding(10)
+		[
+			SNew(SVerticalBox)
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SAssignNew(CachePanel1, SInvalidationPanel)
+				.Visibility(EVisibility::Visible)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("StaticText", "This text is static and cached."))
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SButton)
+				.Text(LOCTEXT("InvalidateManually", "Manually Invalidate"))
+				.OnClicked(this, &SInvalidationTest::ManuallyInvalidatePanel1)
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SInvalidationPanel)
+				.Visibility(EVisibility::Visible)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("StaticText", "Support Input"))
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Padding(10)
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("CachedClickable", "I'm Cached - But Clickable"))
+						]
+					]
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(SBorder)
+						.Padding(10)
+						[
+							SNew(SButton)
+							.ForceVolatile(true)
+							.Text(LOCTEXT("VolatileClickable", "Volatile - But Clickable"))
+						]
+					]
+				]
+			]
+
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SInvalidationPanel)
+				.CacheRelativeTransforms(true)
+				[
+					SNew(SVerticalBox)
+
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("RelativeCacheMessage", "I cache relative transforms.  Moving the window has no effect on me, woo!"))
+					]
+				]
+			]
+		];
+	}
+
+private:
+	FReply ManuallyInvalidatePanel1()
+	{
+		CachePanel1->InvalidateCache();
+		return FReply::Handled();
+	}
+
+private:
+	TSharedPtr<SInvalidationPanel> CachePanel1;
 };
 
 class SColorPickerTest : public SCompoundWidget
@@ -5174,6 +5319,18 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 			]
 		];
 	}
+	else if ( TabIdentifier == FName(TEXT("InvalidationTest")) )
+	{
+		return SNew(SDockTab)
+			[
+				SNew(SScissorRectBox)
+				[
+					SNew(SInvalidationTest)
+					.RenderTransform_Static(&::GetTestRenderTransform)
+					.RenderTransformPivot_Static(&::GetTestRenderTransformPivot)
+				]
+			];
+	}
 	else if (TabIdentifier == FName(TEXT("NotificationListTestTab")))
 	{
 		return SNew(SDockTab)
@@ -5395,6 +5552,7 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 			->AddTab("NotificationListTestTab", ETabState::OpenedTab)
 			->AddTab("GridPanelTest", ETabState::OpenedTab)
 			->AddTab("DPIScalingTest", ETabState::OpenedTab)
+			->AddTab("InvalidationTest", ETabState::OpenedTab)
 		)
 	);
 
@@ -5428,8 +5586,11 @@ TSharedRef<SDockTab> SpawnTestSuite2( const FSpawnTabArgs& Args )
 
 		TestSuite2TabManager->RegisterTabSpawner( "DPIScalingTest", FOnSpawnTab::CreateStatic( &SpawnTab, FName("DPIScalingTest") )  )
 			.SetDisplayName( NSLOCTEXT("TestSuite1", "DPIScalingTest", "DPI Scaling") )
-			.SetGroup(TestSuiteMenu::SuiteTabs
-			);
+			.SetGroup(TestSuiteMenu::SuiteTabs);
+
+		TestSuite2TabManager->RegisterTabSpawner("InvalidationTest", FOnSpawnTab::CreateStatic(&SpawnTab, FName("InvalidationTest")))
+			.SetDisplayName(NSLOCTEXT("TestSuite1", "InvalidationTest", "Invalidtion"))
+			.SetGroup(TestSuiteMenu::SuiteTabs);
 	}
 
 	FMenuBarBuilder MenuBarBuilder = FMenuBarBuilder( TSharedPtr<FUICommandList>() );

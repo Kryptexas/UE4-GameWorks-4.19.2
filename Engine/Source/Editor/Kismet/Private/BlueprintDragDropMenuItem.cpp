@@ -43,12 +43,12 @@ FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext c
 		MenuDescription = bShowFriendlyNames ? FText::FromString(UEditorEngine::GetFriendlyName(SampleProperty)) : FText::FromName(SampleProperty->GetFName());
 
 		TooltipDescription = SampleProperty->GetToolTipText().ToString();
-		Category = FObjectEditorUtils::GetCategory(SampleProperty);
+		Category = FObjectEditorUtils::GetCategoryText(SampleProperty);
 
 		bool const bIsDelegateProperty = SampleProperty->IsA<UMulticastDelegateProperty>();
 		if (bIsDelegateProperty && Category.IsEmpty())
 		{
-			Category = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates).ToString();
+			Category = FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
 		}
 		else if (!bIsDelegateProperty)
 		{
@@ -67,14 +67,14 @@ FBlueprintDragDropMenuItem::FBlueprintDragDropMenuItem(FBlueprintActionContext c
 			}
 			else if (bIsMemberProperty)
 			{
-				TextCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, FText::FromString(Category));
+				TextCategory = FEditorCategoryUtils::BuildCategoryString(FCommonEditorCategory::Variables, Category);
 			}
 			
 			if (!bIsMemberProperty)
 			{
 				TextCategory = FText::Format(LOCTEXT("NonMemberVarCategory", "Class|{0}|{1}"), PropertyClass->GetDisplayNameText(), TextCategory);
 			}
-			Category = TextCategory.ToString();
+			Category = TextCategory;
 		}
 	}
 	else

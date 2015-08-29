@@ -38,13 +38,13 @@ namespace EFrictionCombineMode
 {
 	enum Type
 	{
-		//Uses the average value of the materials touching: (a+b) /2
+		/** Uses the average value of the materials touching: (a+b)/2 */
 		Average = 0,	
-		//Uses the minimum value of the materials touching: min(a,b)
+		/** Uses the minimum value of the materials touching: min(a,b) */
 		Min = 1,		
-		//Uses the product of the values of the materials touching: a*b
+		/** Uses the product of the values of the materials touching: a*b */
 		Multiply = 2,	
-		//Uses the maximum value of materials touching: max(a,b)
+		/** Uses the maximum value of materials touching: max(a,b) */
 		Max = 3
 	};
 }
@@ -54,13 +54,13 @@ namespace ESettingsDOF
 {
 	enum Type
 	{
-		/*Allows for full 3D movement and rotation*/
+		/** Allows for full 3D movement and rotation. */
 		Full3D,
-		/*Allows 2D movement along the Y-Z plane.*/
+		/** Allows 2D movement along the Y-Z plane. */
 		YZPlane,
-		/*Allows 2D movement along the X-Z plane.*/
+		/** Allows 2D movement along the X-Z plane. */
 		XZPlane,
-		/*Allows 2D movement along the X-Y plane.*/
+		/** Allows 2D movement along the X-Y plane. */
 		XYPlane,
 	};
 }
@@ -70,15 +70,15 @@ namespace ESettingsLockedAxis
 {
 	enum Type
 	{
-		/*No axis is locked*/
+		/** No axis is locked. */
 		None,
-		/*Lock movement along the x-axis*/
+		/** Lock movement along the x-axis. */
 		X,
-		/*Lock movement along the y-axis*/
+		/** Lock movement along the y-axis. */
 		Y,
-		/*Lock movement along the z-axis*/
+		/** Lock movement along the z-axis. */
 		Z,
-		/* Used for backwards compatibility. Indicates that we've updated into the new struct*/
+		/** Used for backwards compatibility. Indicates that we've updated into the new struct. */
 		Invalid
 	};
 }
@@ -151,6 +151,10 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	TEnumAsByte<EFrictionCombineMode::Type> RestitutionCombineMode;
 
+	/** Max angular velocity that a simulated object can achieve.*/
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	float MaxAngularVelocity;
+
 	/** Max velocity which may be used to depenetrate simulated physics objects. 0 means no maximum. */
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	float MaxDepenetrationVelocity;
@@ -161,6 +165,12 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	*/
 	UPROPERTY(config, EditAnywhere, Category = Simulation)
 	bool bSimulateSkeletalMeshOnDedicatedServer;
+
+	
+	/**
+	*  If true, static meshes will use per poly collision as complex collision by default. If false the default behavior is the same as UseSimpleAsComplex. */
+	UPROPERTY(config, EditAnywhere, Category = Simulation)
+	bool bDefaultHasComplexCollision;
 
 
 	/** Max Physics Delta Time to be clamped. */
@@ -175,7 +185,7 @@ class ENGINE_API UPhysicsSettings : public UDeveloperSettings
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	bool bSubsteppingAsync;
 
-	/** Max delta time for an individual substep simulation. */
+	/** Max delta time (in seconds) for an individual simulation substep. */
 	UPROPERTY(config, EditAnywhere, meta = (ClampMin = "0.0013", UIMin = "0.0013", ClampMax = "1.0", UIMax = "1.0", editcondition = "bSubStepping"), Category=Framerate)
 	float MaxSubstepDeltaTime;
 

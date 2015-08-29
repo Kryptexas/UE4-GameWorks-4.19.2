@@ -712,9 +712,11 @@ void FSourceCodeNavigation::Initialize()
 
 const FSourceFileDatabase& FSourceCodeNavigation::GetSourceFileDatabase()
 {
+#if !( PLATFORM_WINDOWS && defined(__clang__) )		// @todo clang: This code causes a strange stack overflow issue when compiling using Clang on Windows
 	// Lock so that nothing may proceed while the AsyncTask is constructing the FSourceFileDatabase for the first time
 	FScopeLock Lock(&CriticalSection);
 	Instance.UpdateIfNeeded();
+#endif
 
 	return Instance;
 }
@@ -833,12 +835,12 @@ void FSourceCodeNavigationImpl::GatherFunctions( const FString& ModuleName, cons
 			FString FunctionSymbolName( SymbolBuffer );
 			
 			// Strip off the class name if we have one
-			FString ClassName;
+			FString FoundClassName;
 			FString FunctionName = FunctionSymbolName;
 			const int32 ClassDelimeterPos = FunctionSymbolName.Find( TEXT( "::" ) );
 			if( ClassDelimeterPos != INDEX_NONE )
 			{
-				ClassName = FunctionSymbolName.Mid( 0, ClassDelimeterPos );
+				FoundClassName = FunctionSymbolName.Mid( 0, ClassDelimeterPos );
 				FunctionName = FunctionSymbolName.Mid( ClassDelimeterPos + 2 );
 			}
 
@@ -875,7 +877,7 @@ void FSourceCodeNavigationImpl::GatherFunctions( const FString& ModuleName, cons
 				}
 
 				// Filter class constructor
-				else if( !bShowConstructorAndDestructor && FunctionName == ClassName ) //-V560 //Remove this when todo will be implemented
+				else if( !bShowConstructorAndDestructor && FunctionName == FoundClassName ) //-V560 //Remove this when todo will be implemented
 				{
 					// <class>
 					bPassedFilter = false;

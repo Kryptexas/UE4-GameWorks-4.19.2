@@ -33,11 +33,13 @@ class AIMODULE_API UBTTaskNode : public UBTNode
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
 
+protected:
 	/** aborts this task, should return Aborted or InProgress
 	 *  (use FinishLatentAbort() when returning InProgress)
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
 
+public:
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;
 #endif // WITH_EDITOR
@@ -63,6 +65,11 @@ class AIMODULE_API UBTTaskNode : public UBTNode
 	/** helper function: finishes latent aborting */
 	void FinishLatentAbort(UBehaviorTreeComponent& OwnerComp) const;
 
+	//----------------------------------------------------------------------//
+	// UBTTaskNode IGameplayTaskOwnerInterface
+	//----------------------------------------------------------------------//
+	virtual void OnTaskDeactivated(UGameplayTask& Task) override;
+
 protected:
 
 	/** if set, TickTask will be called */
@@ -70,7 +77,7 @@ protected:
 
 	/** if set, OnTaskFinished will be called */
 	uint8 bNotifyTaskFinished : 1;
-
+	
 	/** ticks this task 
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds);
@@ -89,7 +96,7 @@ protected:
 	
 	/** unregister message observers */
 	void StopWaitingForMessages(UBehaviorTreeComponent& OwnerComp) const;
-
+	
 	//----------------------------------------------------------------------//
 	// DEPRECATED
 	//----------------------------------------------------------------------//

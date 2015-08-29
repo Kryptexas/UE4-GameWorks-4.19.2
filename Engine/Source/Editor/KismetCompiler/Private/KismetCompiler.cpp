@@ -81,10 +81,10 @@ FKismetCompilerContext::FKismetCompilerContext(UBlueprint* SourceSketch, FCompil
 	MacroSpawnX = MinimumSpawnX;
 	MacroSpawnY = -2000;
 	
-	VectorStruct = GetBaseStructure(TEXT("Vector"));
-	RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-	TransformStruct = GetBaseStructure(TEXT("Transform"));
-	LinearColorStruct = GetBaseStructure(TEXT("LinearColor"));
+	VectorStruct = TBaseStructure<FVector>::Get();
+	RotatorStruct = TBaseStructure<FRotator>::Get();
+	TransformStruct = TBaseStructure<FTransform>::Get();
+	LinearColorStruct = TBaseStructure<FLinearColor>::Get();
 }
 
 FKismetCompilerContext::~FKismetCompilerContext()
@@ -282,7 +282,10 @@ void FKismetCompilerContext::PostCreateSchema()
 	{
 		if( !(*ClassIt)->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			FNodeHandlingFunctor* HandlingFunctor = (*ClassIt)->GetDefaultObject<UK2Node>()->CreateNodeHandler(*this);
+			UClass* Class = (*ClassIt);
+			UObject* CDO = Class->GetDefaultObject();
+			UK2Node* K2CDO = Class->GetDefaultObject<UK2Node>();
+			FNodeHandlingFunctor* HandlingFunctor = K2CDO->CreateNodeHandler(*this);
 			if (HandlingFunctor)
 			{
 				NodeHandlers.Add(*ClassIt, HandlingFunctor);
@@ -304,7 +307,9 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	// response will be returned if the pins are not compatible; any other response here then means that the connection is valid.
 	const FPinConnectionResponse ConnectResponse = Schema->CanCreateConnection(PinA, PinB);
 
-	if (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW)
+	const bool bForbiddenConnection = (ConnectResponse.Response == CONNECT_RESPONSE_DISALLOW);
+	const bool bMissingConversion = (ConnectResponse.Response == CONNECT_RESPONSE_MAKE_WITH_CONVERSION_NODE);
+	if (bForbiddenConnection || bMissingConversion)
 	{
 		MessageLog.Warning(*FString::Printf(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ and @@: %s").ToString(), *ConnectResponse.Message.ToString()), PinA, PinB);
 	}
@@ -313,8 +318,8 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	{
 		const UEdGraphPin* InputPin = (EEdGraphPinDirection::EGPD_Input == PinA->Direction) ? PinA : PinB;
 		const UEdGraphPin* OutputPin = (EEdGraphPinDirection::EGPD_Output == PinA->Direction) ? PinA : PinB;
-		const bool bForbiddenConnection = InputPin && OutputPin && (OutputPin->PinType.PinCategory == Schema->PC_Interface) && (InputPin->PinType.PinCategory == Schema->PC_Object);
-		if (bForbiddenConnection)
+		const bool bInvalidConnection = InputPin && OutputPin && (OutputPin->PinType.PinCategory == Schema->PC_Interface) && (InputPin->PinType.PinCategory == Schema->PC_Object);
+		if (bInvalidConnection)
 		{
 			MessageLog.Error(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ (Interface) and @@ (Object). Use an explicit cast node.").ToString(), OutputPin, InputPin);
 		}
@@ -451,17 +456,12 @@ void FKismetCompilerContext::ValidateVariableNames()
 			}
 			else if (ParentClass->HasAnyFlags(RF_Native)) // the above case handles when the parent is a blueprint
 			{
-				UClass* SuperClass = ParentClass;
-				do
+				if (auto ExisingField = FindField<UField>(ParentClass, *VarNameStr))
 				{
-					if (FindObject<UObject>(SuperClass, *VarNameStr, /*ExactClass =*/false))
-					{
-						NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
-						break;
-					}
-					SuperClass = SuperClass->GetSuperClass();
-
-				} while (SuperClass != nullptr);
+					UE_LOG(LogK2Compiler, Warning, TEXT("ValidateVariableNames name %s (used in %s) is already taken by %s")
+						, *VarNameStr, *Blueprint->GetPathName(), *ExisingField->GetPathName());
+					NewVarName = FBlueprintEditorUtils::FindUniqueKismetName(Blueprint, VarNameStr);
+				}
 			}
 
 			if (OldVarName != NewVarName)
@@ -620,9 +620,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 				UProperty* NewProperty = CreateVariable(VarName, Type);
 				if (NewProperty != NULL)
 				{
-					const FString CategoryName = Node->CategoryName != NAME_None ? Node->CategoryName.ToString() : Blueprint->GetName();
+					const FText CategoryName = Node->CategoryName.IsEmpty() ? FText::FromString(Blueprint->GetName()) : Node->CategoryName ;
 					
-					NewProperty->SetMetaData(TEXT("Category"), *CategoryName);
+					NewProperty->SetMetaData(TEXT("Category"), *CategoryName.ToString());
 					NewProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_NonTransactional );
 				}
 			}
@@ -637,9 +637,8 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		FBPTerminal& Term = Terms[i];
 
 		if(NULL != Term.AssociatedVarProperty)
-		{	
-			const bool bIsStructMember = (Term.Context && Term.Context->bIsStructContext);
-			if(bIsStructMember)
+		{
+			if(Term.Context && !Term.Context->IsObjectContextType())
 			{
 				continue;
 			}
@@ -655,6 +654,11 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 		if (NewProperty != NULL)
 		{
 			NewProperty->PropertyFlags |= PropertyFlags;
+
+			if (bPropertiesAreParameters && Term.Type.bIsConst)
+			{
+				NewProperty->SetPropertyFlags(CPF_ConstParm);
+			}
 
 			if (Term.bPassedByReference)
 			{
@@ -709,7 +713,7 @@ void FKismetCompilerContext::CreatePropertiesFromList(UStruct* Scope, UField**& 
 			PropertyStorageLocation = &(NewProperty->Next);
 
 			Term.AssociatedVarProperty = NewProperty;
-			Term.bIsLocal = bPropertiesAreLocal;
+			Term.SetVarTypeLocal(bPropertiesAreLocal);
 
 			// Record in the debugging information
 			//@TODO: Rename RegisterClassPropertyAssociation, etc..., to better match that indicate it works with locals
@@ -1161,9 +1165,6 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			TransformNodes(Context);
 		}
 
-		//Now we can safely remove automatically added WorldContext pin from static function.
-		Context.EntryPoint->RemoveUnnecessaryAutoWorldContext();
-
 		// Create the function stub
 		FName NewFunctionName = (Context.EntryPoint->CustomGeneratedFunctionName != NAME_None) ? Context.EntryPoint->CustomGeneratedFunctionName : Context.EntryPoint->SignatureName;
 		if(Context.IsDelegateSignature())
@@ -1213,8 +1214,21 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		FKismetUserDeclaredFunctionMetadata& FunctionMetaData = Context.EntryPoint->MetaData;
 		if( !FunctionMetaData.Category.IsEmpty() )
 		{
-			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category);
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionCategory, *FunctionMetaData.Category.ToString());
 		}
+
+		// Set up the function keywords
+		if( !FunctionMetaData.Keywords.IsEmpty() )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_FunctionKeywords, *FunctionMetaData.Keywords.ToString());
+		}
+
+		// Set up the function compact node title
+		if( !FunctionMetaData.CompactNodeTitle.IsEmpty() )
+		{
+			Context.Function->SetMetaData(FBlueprintMetadata::MD_CompactNodeTitle, *FunctionMetaData.CompactNodeTitle.ToString());
+		}
+
 		// Set as blutility function
 		if( FunctionMetaData.bCallInEditor )
 		{
@@ -1401,7 +1415,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 			}
 			else
 			{
-				MessageLog.Warning(*LOCTEXT("NoDelegateProperty_Error", "No delegate property found for '%s'").ToString(), *Context.SourceGraph->GetName());
+				MessageLog.Warning(*LOCTEXT("NoDelegateProperty_Error", "No delegate property found for @@").ToString(), Context.SourceGraph);
 			}
 		}
 
@@ -1800,7 +1814,7 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 	AActor* ActorCDO = Cast<AActor>(Class->GetDefaultObject());
 	if (ActorCDO)
 	{
-		ensureMsg(!ActorCDO->bExchangedRoles, TEXT("Your CDO has had ExchangeNetRoles called on it (likely via RerunConstructionScripts) which should never have happened. This will cause issues replicating this actor over the network due to mutated transient data!"));
+		ensureMsgf(!ActorCDO->bExchangedRoles, TEXT("Your CDO has had ExchangeNetRoles called on it (likely via RerunConstructionScripts) which should never have happened. This will cause issues replicating this actor over the network due to mutated transient data!"));
 	}
 }
 
@@ -2429,14 +2443,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 			UEdGraphPin* UGSourcePin = SrcEventNode->FindPin(SourcePin->PinName);
 			const FString MemberVariableName = ClassScopeNetNameMap.MakeValidName(UGSourcePin);
 
-			UEdGraphPin* DestPin = AssignmentNode->CreatePin(
-				EGPD_Input, 
-				SourcePin->PinType.PinCategory, 
-				SourcePin->PinType.PinSubCategory, 
-				SourcePin->PinType.PinSubCategoryObject.Get(), 
-				SourcePin->PinType.bIsArray, 
-				SourcePin->PinType.bIsReference, 
-				MemberVariableName);
+			UEdGraphPin* DestPin = AssignmentNode->CreatePin(EGPD_Input, SourcePin->PinType, MemberVariableName);
 			MessageLog.NotifyIntermediateObjectCreation(DestPin, SourcePin);
 			DestPin->MakeLinkTo(SourcePin);
 		}
@@ -2525,7 +2532,7 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
 	// Node expansion may affect the signature of a static function
-	if (bIsFullCompile || Schema->IsStaticFunctionGraph(Graph))
+	if (bIsFullCompile)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
@@ -2681,6 +2688,19 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		}
 	}
 
+	// We need to stop the old EventGraphs from having the Blueprint as an outer, it impacts renaming.
+	if(!Blueprint->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
+	{
+		for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
+		{
+			if (OldEventGraph)
+			{
+				OldEventGraph->Rename(NULL, GetTransientPackage());
+			}
+		}
+	}
+	Blueprint->EventGraphs.Empty();
+
 	if (ConsolidatedEventGraph->Nodes.Num())
 	{
 		// Add a dummy entry point to the uber graph, to get the function signature correct
@@ -2705,19 +2725,6 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			UbergraphContext->MarkAsEventGraph();
 			UbergraphContext->MarkAsInternalOrCppUseOnly();
 			UbergraphContext->SetExternalNetNameMap(&ClassScopeNetNameMap);
-
-			// We need to stop the old EventGraphs from having the Blueprint as an outer, it impacts renaming.
-			if(!Blueprint->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad))
-			{
-				for(UEdGraph* OldEventGraph : Blueprint->EventGraphs)
-				{
-					if (OldEventGraph)
-					{
-						OldEventGraph->Rename(NULL, GetTransientPackage());
-					}
-				}
-			}
-			Blueprint->EventGraphs.Empty();
 
 			// Validate all the nodes in the graph
 			for (int32 ChildIndex = 0; ChildIndex < ConsolidatedEventGraph->Nodes.Num(); ++ChildIndex)
@@ -2812,6 +2819,12 @@ void FKismetCompilerContext::ExpandTunnelsAndMacros(UEdGraph* SourceGraph)
 	// Collapse any remaining tunnels
 	for (TArray<UEdGraphNode*>::TIterator NodeIt(SourceGraph->Nodes); NodeIt; ++NodeIt)
 	{
+		UEdGraphNode* CurrentNode = *NodeIt;
+		if (!CurrentNode || !CurrentNode->ShouldMergeChildGraphs())
+		{
+			continue;
+		}
+
 		if (UK2Node_MacroInstance* MacroInstanceNode = Cast<UK2Node_MacroInstance>(*NodeIt))
 		{
 			UEdGraph* MacroGraph = MacroInstanceNode->GetMacroGraph();
@@ -3258,6 +3271,17 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
+	if (CompileOptions.DoesRequireBytecodeGeneration())
+	{
+		TArray<UEdGraph*> AllGraphs;
+		Blueprint->GetAllGraphs(AllGraphs);
+		for (int32 i = 0; i < AllGraphs.Num(); i++)
+		{
+			//Reset error flags associated with nodes in each graph
+			ResetErrorFlags(AllGraphs[i]);
+		}
+	}
+
 	// Early validation
 	if (CompileOptions.CompileType == EKismetCompileType::Full)
 	{
@@ -3345,17 +3369,6 @@ void FKismetCompilerContext::Compile()
 	// Conform implemented interfaces here, to ensure we generate all functions required by the interface as stubs
 	FBlueprintEditorUtils::ConformImplementedInterfaces(Blueprint);
 
-	if (CompileOptions.DoesRequireBytecodeGeneration())
-	{
-		TArray<UEdGraph*> AllGraphs;
-		Blueprint->GetAllGraphs(AllGraphs);
-		for (int32 i = 0; i < AllGraphs.Num(); i++)
-		{
-			//Reset error flags associated with nodes in each graph
-			ResetErrorFlags(AllGraphs[i]);
-		}
-	}
-
 	// Run thru the class defined variables first, get them registered
 	CreateClassVariablesFromBlueprint();
 
@@ -3442,7 +3455,7 @@ void FKismetCompilerContext::Compile()
 			{
 				if(NULL == MCDelegateProp->SignatureFunction)
 				{
-					MessageLog.Warning(TEXT("No SignatureFunction in MulticastDelegateProperty '%s'"), *MCDelegateProp->GetName());
+					MessageLog.Warning(*FString::Printf(TEXT("No SignatureFunction in MulticastDelegateProperty '%s'"), *MCDelegateProp->GetName()));
 				}
 			}
 		}
@@ -3636,12 +3649,17 @@ void FKismetCompilerContext::Compile()
 				UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s"), Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType());
 			}
 
-			if (NewClass->UberGraphFunction)
+			for (auto LocFunction : TFieldRange<UFunction>(NewClass, EFieldIteratorFlags::ExcludeSuper))
 			{
-				UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT FRAME %s:"), *GetNameSafe(NewClass->UberGraphFunction));
-				for (auto Prop : TFieldRange<UProperty>(NewClass->UberGraphFunction))
+				UE_LOG(LogK2Compiler, Log, TEXT("\n\nLAYOUT FUNCTION %s:"), *GetNameSafe(LocFunction));
+				for (auto Prop : TFieldRange<UProperty>(LocFunction))
 				{
-					UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s"), Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType());
+					const bool bOutParam = Prop && (0 != (Prop->PropertyFlags & CPF_OutParm));
+					const bool bInParam = Prop && !bOutParam && (0 != (Prop->PropertyFlags & CPF_Parm));
+					UE_LOG(LogK2Compiler, Log, TEXT("%5d:\t%-64s\t%s %s%s")
+						, Prop->GetOffset_ForGC(), *GetNameSafe(Prop), *Prop->GetCPPType()
+						, bInParam ? TEXT("Input") : TEXT("")
+						, bOutParam ? TEXT("Output") : TEXT(""));
 				}
 			}
 		}

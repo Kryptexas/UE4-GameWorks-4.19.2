@@ -5,6 +5,8 @@
 #include "AudioDevice.h"
 #include "AudioDeviceManager.h"
 #include "Sound/SoundWave.h"
+#include "Sound/AudioSettings.h"
+#include "GameFramework/GameUserSettings.h"
 
 // Private consts for helping with index/generation determination in audio device manager
 static const uint32 AUDIO_DEVICE_HANDLE_INDEX_BITS		= 24;
@@ -136,6 +138,14 @@ FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut, bool bCr
 	}
 
 	++NumActiveAudioDevices;
+
+	const UAudioSettings* AudioSettings = GetDefault<UAudioSettings>();
+	if (!NewAudioDevice->Init(AudioSettings->GetQualityLevelSettings(GEngine->GetGameUserSettings()->GetAudioQualityLevel()).MaxChannels))
+	{
+		ShutdownAudioDevice(HandleOut);
+		HandleOut = AUDIO_DEVICE_HANDLE_INVALID;
+		NewAudioDevice = nullptr;
+	}
 
 	return NewAudioDevice;
 }

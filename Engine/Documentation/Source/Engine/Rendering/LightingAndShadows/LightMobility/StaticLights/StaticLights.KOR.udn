@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2075566
+﻿INTSourceChangelist:2602324
 Availability: Public
 Title:스태틱 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows,Engine/Rendering/LightingAndShadows/LightMobility
@@ -49,7 +49,7 @@ Description:게임 실행 도중에는 부하가 거의 걸리지 않는 완벽�
 
 [TOC(start:2)]
 
-## 개요
+
 
 [INCLUDE:Resources/ContentExamples\Lighting\2_1#StaticLighting01]
 

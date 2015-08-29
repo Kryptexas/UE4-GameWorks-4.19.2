@@ -1,0 +1,22 @@
+#pragma once
+
+#include "UnrealEd.h" 
+#include "Editor.h"
+
+class F%MODE_NAME% : public FEdMode
+{
+public:
+	const static FEditorModeID EM_%MODE_NAME%Id;
+public:
+	F%MODE_NAME%();
+	virtual ~F%MODE_NAME%();
+
+	// FEdMode interface
+	virtual void Enter() override;
+	virtual void Exit() override;
+	//virtual void Tick(FEditorViewportClient* ViewportClient, float DeltaTime) override;
+	//virtual void Render(const FSceneView* View, FViewport* Viewport, FPrimitiveDrawInterface* PDI) override;
+	//virtual void ActorSelectionChangeNotify() override;
+	bool UsesToolkits() const override;
+	// End of FEdMode interface
+};

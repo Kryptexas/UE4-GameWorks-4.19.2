@@ -22,7 +22,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogImageUtils, Log, All);
  */
 void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FColor> &SrcData, int32 DstWidth, int32 DstHeight, TArray<FColor> &DstData, bool bLinearSpace )
 {
-	DstData.Empty();
+	DstData.Empty(DstWidth*DstHeight);
 	DstData.AddZeroed(DstWidth*DstHeight);
 
 	float SrcX = 0;
@@ -73,7 +73,7 @@ void FImageUtils::ImageResize(int32 SrcWidth, int32 SrcHeight, const TArray<FCol
 				LinearStepColor /= (float)PixelCount;
 
 				// Convert back from linear space to gamma space.
-				FinalColor = FColor(LinearStepColor);
+				FinalColor = LinearStepColor.ToFColor(true);
 			}
 			else
 			{
@@ -255,4 +255,40 @@ void FImageUtils::CompressImageArray( int32 ImageWidth, int32 ImageHeight, TArra
 	TempThumbnail.CompressImageData();
 	TArray<uint8>& CompressedByteArray = TempThumbnail.AccessCompressedImageData();
 	DstData = TempThumbnail.AccessCompressedImageData();
+}
+
+UTexture2D* FImageUtils::CreateCheckerboardTexture(FColor ColorOne, FColor ColorTwo, int32 CheckerSize)
+{
+	CheckerSize = FMath::Min<uint32>( FMath::RoundUpToPowerOfTwo(CheckerSize), 4096 );
+	const int32 HalfPixelNum = CheckerSize >> 1;
+
+	// Create the texture
+	UTexture2D* CheckerboardTexture = UTexture2D::CreateTransient(CheckerSize, CheckerSize, PF_B8G8R8A8);
+
+	// Lock the checkerboard texture so it can be modified
+	FColor* MipData = static_cast<FColor*>( CheckerboardTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE) );
+
+	// Fill in the colors in a checkerboard pattern
+	for ( int32 RowNum = 0; RowNum < CheckerSize; ++RowNum )
+	{
+		for ( int32 ColNum = 0; ColNum < CheckerSize; ++ColNum )
+		{
+			FColor& CurColor = MipData[( ColNum + ( RowNum * CheckerSize ) )];
+
+			if ( ColNum < HalfPixelNum )
+			{
+				CurColor = ( RowNum < HalfPixelNum ) ? ColorOne : ColorTwo;
+			}
+			else
+			{
+				CurColor = ( RowNum < HalfPixelNum ) ? ColorTwo : ColorOne;
+			}
+		}
+	}
+
+	// Unlock the texture
+	CheckerboardTexture->PlatformData->Mips[0].BulkData.Unlock();
+	CheckerboardTexture->UpdateResource();
+
+	return CheckerboardTexture;
 }

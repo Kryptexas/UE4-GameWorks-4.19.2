@@ -170,13 +170,13 @@ namespace ELandscapeLayerPaintingRestriction
 {
 	enum Type
 	{
-		// No restriction, can paint anywhere (default)
+		/** No restriction, can paint anywhere (default). */
 		None         UMETA(DisplayName="None"),
 
-		// Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy
+		/** Uses the MaxPaintedLayersPerComponent setting from the LandscapeProxy. */
 		UseMaxLayers UMETA(DisplayName="Limit Layer Count"),
 
-		// Restricts painting to only components that already have this layer
+		/** Restricts painting to only components that already have this layer. */
 		ExistingOnly UMETA(DisplayName="Existing Layers Only"),
 	};
 }
@@ -186,9 +186,9 @@ namespace ELandscapeLODFalloff
 {
 	enum Type
 	{
-		// Default mode
+		/** Default mode. */
 		Linear			UMETA(DisplayName = "Linear"),
-		// Square Root give more natural transition, and also keep the same LOD 
+		/** Square Root give more natural transition, and also keep the same LOD. */
 		SquareRoot		UMETA(DisplayName = "Square Root"),
 	};
 }

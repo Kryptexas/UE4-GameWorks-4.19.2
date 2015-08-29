@@ -27,7 +27,6 @@ enum EMaterialUsage
 	MATUSAGE_Landscape,
 	MATUSAGE_InstancedStaticMeshes,
 	MATUSAGE_Clothing,
-	MATUSAGE_UI,
 	MATUSAGE_MAX,
 };
 
@@ -58,6 +57,9 @@ struct ENGINE_API FMaterialRelevance
 	uint32 bOutputsVelocityInBasePass : 1;
 
 	UPROPERTY()
+	uint32 bUsesGlobalDistanceField : 1;
+
+	UPROPERTY()
 	uint16 ShadingModelMask;
 
 	/** Default constructor. */
@@ -69,6 +71,7 @@ struct ENGINE_API FMaterialRelevance
 		, bNormalTranslucency(false)
 		, bDisableDepthTest(false)		
 		, bOutputsVelocityInBasePass(true)
+		, bUsesGlobalDistanceField(false)
 		, ShadingModelMask(0)
 	{}
 
@@ -83,6 +86,7 @@ struct ENGINE_API FMaterialRelevance
 		bDisableDepthTest |= B.bDisableDepthTest;
 		ShadingModelMask |= B.ShadingModelMask;
 		bOutputsVelocityInBasePass |= B.bOutputsVelocityInBasePass;
+		bUsesGlobalDistanceField |= B.bUsesGlobalDistanceField;
 		return *this;
 	}
 
@@ -125,10 +129,6 @@ struct FLightmassMaterialInterfaceSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material)
 	float ExportResolutionScale;
 
-	/***/
-	UPROPERTY()
-	float DistanceFieldPenumbraScale;
-
 	/** Boolean override flags - only used in MaterialInstance* cases. */
 	/** If true, override the bCastShadowAsMasked setting of the parent material. */
 	UPROPERTY()
@@ -146,26 +146,16 @@ struct FLightmassMaterialInterfaceSettings
 	UPROPERTY()
 	uint32 bOverrideExportResolutionScale:1;
 
-	/** If true, override the distance field penumbra scale setting of the parent material. */
-	UPROPERTY()
-	uint32 bOverrideDistanceFieldPenumbraScale:1;
-
-
-
-		FLightmassMaterialInterfaceSettings()
+	FLightmassMaterialInterfaceSettings()
 		: bCastShadowAsMasked(false)
 		, EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
 		, ExportResolutionScale(1.0f)
-		, DistanceFieldPenumbraScale(1.0f)
 		, bOverrideCastShadowAsMasked(false)
 		, bOverrideEmissiveBoost(false)
 		, bOverrideDiffuseBoost(false)
 		, bOverrideExportResolutionScale(false)
-		, bOverrideDistanceFieldPenumbraScale(false)
-		{
-		}
-	
+	{}
 };
 
 UCLASS(abstract, BlueprintType,MinimalAPI)
@@ -415,11 +405,6 @@ public:
 		return LightmassSettings.bOverrideExportResolutionScale;
 	}
 
-	inline bool GetOverrideDistanceFieldPenumbraScale() const
-	{
-		return LightmassSettings.bOverrideDistanceFieldPenumbraScale;
-	}
-
 	/** @return	The bCastShadowAsMasked value for this material. */
 	virtual bool GetCastShadowAsMasked() const
 	{
@@ -443,11 +428,6 @@ public:
 	virtual float GetExportResolutionScale() const
 	{
 		return FMath::Clamp(LightmassSettings.ExportResolutionScale, .1f, 10.0f);
-	}
-
-	virtual float GetDistanceFieldPenumbraScale() const
-	{
-		return LightmassSettings.DistanceFieldPenumbraScale;
 	}
 
 	/** @param	bInOverrideCastShadowAsMasked	The override CastShadowAsMasked setting to set. */
@@ -474,11 +454,6 @@ public:
 		LightmassSettings.bOverrideExportResolutionScale = bInOverrideExportResolutionScale;
 	}
 
-	inline void SetOverrideDistanceFieldPenumbraScale(bool bInOverrideDistanceFieldPenumbraScale)
-	{
-		LightmassSettings.bOverrideDistanceFieldPenumbraScale = bInOverrideDistanceFieldPenumbraScale;
-	}
-
 	/** @param	InCastShadowAsMasked	The CastShadowAsMasked value for this material. */
 	inline void SetCastShadowAsMasked(bool InCastShadowAsMasked)
 	{
@@ -503,11 +478,6 @@ public:
 		LightmassSettings.ExportResolutionScale = InExportResolutionScale;
 	}
 
-	inline void SetDistanceFieldPenumbraScale(float InDistanceFieldPenumbraScale)
-	{
-		LightmassSettings.DistanceFieldPenumbraScale = InDistanceFieldPenumbraScale;
-	}
-
 	/**
 	 *	Get all of the textures in the expression chain for the given property (ie fill in the given array with all textures in the chain).
 	 *
@@ -526,6 +496,7 @@ public:
 	ENGINE_API virtual bool GetScalarParameterValue(FName ParameterName, float& OutValue) const;
 	ENGINE_API virtual bool GetScalarCurveParameterValue(FName ParameterName, FInterpCurveFloat& OutValue) const;
 	ENGINE_API virtual bool GetTextureParameterValue(FName ParameterName, class UTexture*& OutValue) const;
+	ENGINE_API virtual bool GetTextureParameterOverrideValue(FName ParameterName, class UTexture*& OutValue) const;
 	ENGINE_API virtual bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const;
 	ENGINE_API virtual bool GetVectorCurveParameterValue(FName ParameterName, FInterpCurveVector& OutValue) const;
 	ENGINE_API virtual bool GetLinearColorParameterValue(FName ParameterName, FLinearColor& OutValue) const;
@@ -540,6 +511,7 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
 	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const;
 	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
 
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
@@ -606,6 +578,13 @@ public:
 		}
 	}
 
+	/** Access the cached uenum type information for material sampler type */
+	static UEnum* GetSamplerTypeEnum() 
+	{ 
+		check(SamplerTypeEnum); 
+		return SamplerTypeEnum; 
+	}
+
 protected:
 
 	/** Returns a bitfield indicating which feature levels should be compiled for rendering. GMaxRHIFeatureLevel is always present */
@@ -619,6 +598,10 @@ private:
 	 */
 	static void PostLoadDefaultMaterials();
 
+	/**
+	* Cached type information for the sampler type enumeration. 
+	*/
+	static UEnum* SamplerTypeEnum;
 };
 
 /** Helper function to serialize inline shader maps for the given material resources. */

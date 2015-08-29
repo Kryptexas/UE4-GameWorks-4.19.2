@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Creating an Aim Offset
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:Using an Aim Offset, a character aims a weapon in the direction of your mouse or controller. 
@@ -415,6 +415,11 @@ You can take this a few steps further by allowing the character to aim in a dire
 
 
 	
+
+
+
+
+
 
 
 

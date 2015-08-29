@@ -95,7 +95,7 @@ void AGameSession::HandleMatchHasEnded()
 			}
 		}
 
-		SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnEndSessionCompleteDelegate::CreateUObject(this, &AGameSession::OnEndSessionComplete));
+		EndSessionCompleteHandle = SessionInt->AddOnEndSessionCompleteDelegate_Handle(FOnEndSessionCompleteDelegate::CreateUObject(this, &AGameSession::OnEndSessionComplete));
 		SessionInt->EndSession(SessionName);
 	}
 }
@@ -122,8 +122,8 @@ void AGameSession::InitOptions( const FString& Options )
 	check(World);
 	AGameMode* const GameMode = World->GetAuthGameMode();
 
-	MaxPlayers = GameMode->GetIntOption( Options, TEXT("MaxPlayers"), MaxPlayers );
-	MaxSpectators = GameMode->GetIntOption( Options, TEXT("MaxSpectators"), MaxSpectators );
+	MaxPlayers = UGameplayStatics::GetIntOption( Options, TEXT("MaxPlayers"), MaxPlayers );
+	MaxSpectators = UGameplayStatics::GetIntOption( Options, TEXT("MaxSpectators"), MaxSpectators );
 	SessionName = GetDefault<APlayerState>(GameMode->PlayerStateClass)->SessionName;
 }
 
@@ -160,13 +160,18 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 		}
 		else
 		{
-			UE_LOG(LogGameSession, Warning, TEXT("Autologin attempt failed, unable to register server!"));
+			RegisterServerFailed();
 		}
 	}
 }
 
 void AGameSession::RegisterServer()
 {
+}
+
+void AGameSession::RegisterServerFailed()
+{
+	UE_LOG(LogGameSession, Warning, TEXT("Autologin attempt failed, unable to register server!"));
 }
 
 FString AGameSession::ApproveLogin(const FString& Options)
@@ -178,19 +183,20 @@ FString AGameSession::ApproveLogin(const FString& Options)
 	check(GameMode);
 
 	int32 SpectatorOnly = 0;
-	SpectatorOnly = GameMode->GetIntOption(Options, TEXT("SpectatorOnly"), SpectatorOnly);
+	SpectatorOnly = UGameplayStatics::GetIntOption(Options, TEXT("SpectatorOnly"), SpectatorOnly);
 
 	if (AtCapacity(SpectatorOnly == 1))
 	{
-		return NSLOCTEXT("NetworkErrors", "ServerAtCapacity", "Server full.").ToString();
+		return TEXT( "Server full." );
 	}
 
 	int32 SplitscreenCount = 0;
-	SplitscreenCount = GameMode->GetIntOption(Options, TEXT("SplitscreenCount"), SplitscreenCount);
+	SplitscreenCount = UGameplayStatics::GetIntOption(Options, TEXT("SplitscreenCount"), SplitscreenCount);
 
 	if (SplitscreenCount > MaxSplitscreensPerConnection)
 	{
-		return FText::Format(NSLOCTEXT("NetworkErrors", "ServerAtCapacitySS", "A maximum of '{0}' splitscreen players are allowed"), FText::AsNumber(MaxSplitscreensPerConnection)).ToString();
+		UE_LOG(LogGameSession, Warning, TEXT("ApproveLogin: A maximum of %i splitscreen players are allowed"), MaxSplitscreensPerConnection);
+		return TEXT("Maximum splitscreen players");
 	}
 
 	return TEXT("");
@@ -215,7 +221,7 @@ int32 AGameSession::GetNextPlayerID()
  * @param UniqueId uniqueId they sent over on Login
  * @param bWasFromInvite was this from an invite
  */
-void AGameSession::RegisterPlayer(APlayerController* NewPlayer, const TSharedPtr<FUniqueNetId>& UniqueId, bool bWasFromInvite)
+void AGameSession::RegisterPlayer(APlayerController* NewPlayer, const TSharedPtr<const FUniqueNetId>& UniqueId, bool bWasFromInvite)
 {
 	if (NewPlayer != NULL)
 	{

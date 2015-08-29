@@ -14,6 +14,9 @@ class ANavMeshBoundsVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()
 
+	UPROPERTY(EditAnywhere, Category = Navigation)
+	FNavAgentSelector SupportedAgents;
+
 	// Begin AActor Interface
 	virtual void PostRegisterAllComponents() override;
 	virtual void PostUnregisterAllComponents() override;

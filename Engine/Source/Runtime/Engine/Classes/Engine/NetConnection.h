@@ -10,23 +10,22 @@
 #include "Engine/Channel.h"
 #include "Engine/Player.h"
 #include "Engine/NetDriver.h"
+#include "Runtime/PacketHandlers/PacketHandler/Public/PacketHandler.h"
 
 #include "NetConnection.generated.h"
 
 class FObjectReplicator;
+class FUniqueNetId;
 
 /*-----------------------------------------------------------------------------
 	Types.
 -----------------------------------------------------------------------------*/
-
-// Up to this many reliable channel bunches may be buffered.
-enum {RELIABLE_BUFFER         = 256   }; // Power of 2 >= 1.
-enum {MAX_PACKETID            = 16384 }; // Power of 2 >= 1, covering guaranteed loss/misorder time.
-enum {MAX_CHSEQUENCE          = 1024  }; // Power of 2 >RELIABLE_BUFFER, covering loss/misorder time.
-enum {MAX_BUNCH_HEADER_BITS   = 64    };
-enum {MAX_PACKET_HEADER_BITS  = 16    };
-enum {MAX_PACKET_TRAILER_BITS = 1     };
-
+enum { RELIABLE_BUFFER = 256 }; // Power of 2 >= 1.
+enum { MAX_PACKETID = 16384 };  // Power of 2 >= 1, covering guaranteed loss/misorder time.
+enum { MAX_CHSEQUENCE = 1024 }; // Power of 2 >RELIABLE_BUFFER, covering loss/misorder time.
+enum { MAX_BUNCH_HEADER_BITS = 64 };
+enum { MAX_PACKET_HEADER_BITS = 16 };
+enum { MAX_PACKET_TRAILER_BITS = 1 };
 
 class UNetDriver;
 
@@ -45,6 +44,40 @@ enum EConnectionState
 	USOCK_Pending	= 2, // Connection is awaiting connection.
 	USOCK_Open      = 3, // Connection is open.
 };
+
+// 
+// Security event types used for UE_SECURITY_LOG
+//
+namespace ESecurityEvent
+{ 
+	enum Type
+	{
+		Malformed_Packet = 0, // The packet didn't follow protocol
+		Invalid_Data = 1,     // The packet contained invalid data
+		Closed = 2            // The connection had issues (potentially malicious) and was closed
+	};
+	
+	/** @return the stringified version of the enum passed in */
+	inline const TCHAR* ToString(const ESecurityEvent::Type EnumVal)
+	{
+		switch (EnumVal)
+		{
+			case Malformed_Packet:
+			{
+				return TEXT("Malformed_Packet");
+			}
+			case Invalid_Data:
+			{
+				return TEXT("Invalid_Data");
+			}
+			case Closed:
+			{
+				return TEXT("Closed");
+			}
+		}
+		return TEXT("");
+	}
+}
 
 /** If this connection is from a client, this is the current login state of this connection/login attempt */
 namespace EClientLoginState
@@ -96,7 +129,6 @@ struct DelayedPacket
 //	(optionally, 'PING_ACK_PACKET_INTERVAL' can be tweaked, so that the interval checks take a similar amount of time as this delay)
 #define PING_ACK_DELAY 0.5
 
-
 UCLASS(customConstructor, Abstract, MinimalAPI, transient, config=Engine)
 class UNetConnection : public UPlayer
 {
@@ -108,7 +140,7 @@ class UNetConnection : public UPlayer
 
 	/** Owning net driver */
 	UPROPERTY()
-	class UNetDriver* Driver;					
+	class UNetDriver* Driver;	
 
 	UPROPERTY()
 	/** Package map between local and remote. (negotiates net serialization) */
@@ -173,10 +205,13 @@ public:
 	
 	uint32 bPendingDestroy:1;    // when true, playercontroller is being destroyed
 
+	// Packet Handler
+	TUniquePtr<PacketHandler> Handler;
+
 	/** Whether this channel needs to byte swap all data or not */
 	bool			bNeedsByteSwapping;
 	/** Net id of remote player on this connection. Only valid on client connections. */
-	TSharedPtr<class FUniqueNetId> PlayerId;
+	TSharedPtr<const FUniqueNetId> PlayerId;
 
 	// Negotiated parameters.
 	int32			PacketOverhead;			// Bytes overhead per packet sent.
@@ -321,7 +356,7 @@ public:
 	 *
 	 * @return true if it should be sent on this connection, false otherwise
 	 */
-	bool ShouldReplicateVoicePacketFrom(const FUniqueNetId& Sender);
+	ENGINE_API bool ShouldReplicateVoicePacketFrom(const FUniqueNetId& Sender);
 	
 	/**
 	 * @hack: set to net connection currently inside CleanUp(), for HasClientLoadedCurrentWorld() to be able to find it during PlayerController
@@ -339,6 +374,13 @@ public:
 	ENGINE_API virtual void FinishDestroy() override;
 
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+
+	/**
+	 * Get the world the connection belongs to
+	 *
+	 * @return  Returns the world of the net driver, or the owning actor on this connection
+	 */
+	ENGINE_API virtual UWorld* GetWorld() const override;
 
 	// End UObject interface.
 
@@ -473,8 +515,16 @@ public:
 	 * @param InURL the URL to init with
 	 * @param InConnectionSpeed Optional connection speed override
 	 */
-	ENGINE_API virtual void InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed=0);
+	ENGINE_API virtual void InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed=0, int32 InMaxPacket=0);
 
+
+	/** 
+	* Gets a unique ID for the connection, this ID depends on the underlying connection
+	* For IP connections this is an IP Address and port, for steam this is a SteamID
+	*/
+	ENGINE_API virtual FString RemoteAddressToString() PURE_VIRTUAL(UNetConnection::RemoteAddressToString, return TEXT("Error"););
+	
+	
 	// Functions.
 
 	/** Resend any pending acks. */
@@ -550,7 +600,7 @@ public:
 	/**
 	 * @return Finds the voice channel for this connection or NULL if none
 	 */
-	class UVoiceChannel* GetVoiceChannel();
+	ENGINE_API class UVoiceChannel* GetVoiceChannel();
 
 	void FlushDormancy(class AActor* Actor);
 

@@ -14,10 +14,10 @@
 
 #include "SlateBasics.h"
 
-bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
+bool FOculusRiftHMD::AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples)
 {
 	check(Index == 0);
-	pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, NumMips, Flags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples);
+	pCustomPresent->AllocateRenderTargetTexture(SizeX, SizeY, Format, NumMips, InFlags, TargetableTextureFlags, OutTargetableTexture, OutShaderResourceTexture, NumSamples);
 	return true;
 }
 
@@ -26,7 +26,6 @@ void FOculusRiftHMD::CopyTexture_RenderThread(FRHICommandListImmediate& RHICmdLi
 {
 	check(IsInRenderingThread());
 
-	//const FIntPoint TargetSize(DstTexture->GetSizeX(), DstTexture->GetSizeY());
 	if (DstRect.IsEmpty())
 	{
 		DstRect = FIntRect(0, 0, DstTexture->GetSizeX(), DstTexture->GetSizeY());
@@ -117,7 +116,7 @@ void FViewExtension::PreRenderViewFamily_RenderThread(FRHICommandListImmediate& 
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	if (bFrameBegun || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled() || !ViewFamily.RenderTarget->GetRenderTargetTexture())
 	{
 		return;
 	}
@@ -177,7 +176,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 	FViewExtension& RenderContext = *this;
 	FGameFrame* CurrentFrame = static_cast<FGameFrame*>(RenderContext.RenderFrame.Get());
 
-	if (!RenderContext.ShowFlags.Rendering || !CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
+	if (!CurrentFrame || !CurrentFrame->Settings->IsStereoEnabled())
 	{
 		return;
 	}
@@ -221,9 +220,8 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 		// The HMDPosition already has HMD orientation applied.
 		// Apply rotational difference between HMD orientation and ViewRotation
 		// to HMDPosition vector. 
-		// PositionOffset should be already applied to View.ViewLocation on GT in PlayerCameraUpdate.
 		const FVector DeltaPosition = CurrentEyePosition - View.BaseHmdLocation;
-		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition);
+		const FVector vEyePosition = DeltaControlOrientation.RotateVector(DeltaPosition) + CurrentFrame->Settings->PositionOffset;
 		View.ViewLocation += vEyePosition;
 
 		//UE_LOG(LogHMD, Log, TEXT("VDLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
@@ -236,7 +234,14 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 
 	FSettings* FrameSettings = CurrentFrame->GetSettings();
 	check(FrameSettings);
-	FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = RenderContext.CurEyeRenderPose[eyeIdx];
+	if (RenderContext.ShowFlags.Rendering)
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = RenderContext.CurEyeRenderPose[eyeIdx];
+	}
+	else
+	{
+		FrameSettings->EyeLayer.EyeFov.RenderPose[eyeIdx] = ovrPosef(OVR::Posef());
+	}
 }
 
 void FOculusRiftHMD::CalculateRenderTargetSize(const FViewport& Viewport, uint32& InOutSizeX, uint32& InOutSizeY)
@@ -526,7 +531,7 @@ void FOculusRiftHMD::DrawDebug(UCanvas* Canvas)
 
 		//TODO:  Where can I get context!?
 		UWorld* MyWorld = GWorld;
-		if (FrameSettings->Flags.bDrawTrackingCameraFrustum)
+		if (Canvas && Canvas->SceneView && FrameSettings->Flags.bDrawTrackingCameraFrustum)
 		{
 			DrawDebugTrackingCameraFrustum(MyWorld, Canvas->SceneView->ViewRotation, Canvas->SceneView->ViewLocation);
 		}
@@ -555,6 +560,13 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 
 	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
 
+	TSharedPtr<SWindow> Window;
+	if (ViewportWidget && !IsFullscreenAllowed())
+	{
+		FWidgetPath WidgetPath;
+		TSharedRef<SWidget> Widget = ViewportWidget->AsShared();
+		Window = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
+	}
 	if (!Settings->IsStereoEnabled())
 	{
 		if ((!bUseSeparateRenderTarget || GIsEditor) && ViewportRHI)
@@ -566,10 +578,10 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 		{
 			FWidgetPath WidgetPath;
 			TSharedRef<SWidget> Widget = ViewportWidget->AsShared();
-			TSharedPtr<SWindow> Window = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
-			if (Window.IsValid())
+			TSharedPtr<SWindow> WidgetWindow = FSlateApplication::Get().FindWidgetWindow(Widget, WidgetPath);
+			if (WidgetWindow.IsValid())
 			{
-				Window->SetViewportSizeDrivenByWindow(true);
+				WidgetWindow->SetViewportSizeDrivenByWindow(true);
 			}
 		}
 		return;
@@ -582,6 +594,7 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	check(CurrentFrame);
 
 	CurrentFrame->ViewportSize = InViewport.GetSizeXY();
+	CurrentFrame->WindowSize = Window->GetSizeInScreen();
 
 	check(pCustomPresent);
 
@@ -610,12 +623,12 @@ void FCustomPresent::SetRenderContext(FHMDViewExtension* InRenderContext)
 	}
 }
 
-void FCustomPresent::UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame)
+void FCustomPresent::UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI, FGameFrame* InRenderFrame)
 {
 	check(IsInGameThread());
-	check(ViewportRHI);
+	check(InViewportRHI);
 
-	this->ViewportRHI = ViewportRHI;
+	this->ViewportRHI = InViewportRHI;
 	ViewportRHI->SetCustomPresent(this);
 }
 
@@ -635,6 +648,31 @@ void FCustomPresent::MarkTexturesInvalid()
 		// Wait for all resources to be released
 		FlushRenderingCommands();
 	}
+}
+
+void FCustomPresent::OnBackBufferResize()
+{
+	// if we are in the middle of rendering: prevent from calling EndFrame
+	if (RenderContext.IsValid())
+	{
+		RenderContext->bFrameBegun = false;
+	}
+}
+
+bool FCustomPresent::Present(int32& SyncInterval)
+{
+	check(IsInRenderingThread());
+
+	if (!RenderContext.IsValid())
+	{
+		return true; // use regular Present; this frame is not ready yet
+	}
+
+	SyncInterval = 0; // turn off VSync for the 'normal Present'.
+	bool bHostPresent = RenderContext->GetFrameSettings()->Flags.bMirrorToWindow;
+
+	FinishRendering();
+	return bHostPresent;
 }
 
 #endif // OCULUS_RIFT_SUPPORTED_PLATFORMS

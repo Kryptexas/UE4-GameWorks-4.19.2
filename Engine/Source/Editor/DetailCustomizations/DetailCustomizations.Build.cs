@@ -41,13 +41,14 @@ public class DetailCustomizations : ModuleRules
                 "MediaAssets",
                 "HardwareTargeting",
 				"SharedSettingsWidgets",
+                "LightPropagationVolumeRuntime",
                 "AIModule", 
                 "MeshUtilities",
 				"ConfigEditor",
 			}
 		);
 
-		PrivateIncludePathModuleNames.AddRange(
+        PrivateIncludePathModuleNames.AddRange(
 			new string[] {
                 "Engine",
                 "Media",
@@ -61,7 +62,6 @@ public class DetailCustomizations : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"Layers",
-				"PropertyEditor",
 				"GameProjectGeneration",
 			}
 		);

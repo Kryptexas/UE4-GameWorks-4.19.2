@@ -1,15 +1,15 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2613809
 Availability:Public
 Title:파티클 모듈 테크니컬 가이드
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:새로운 파티클 모듈을 추가하여 파티클 시스템 작동방식을 임의로 수정하는 법에 대한 프로그래머 안내서입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
 
 
-## 개요
+
 
 UE4의 파티클 시스템은 몇 개의 파티클 이미터로 구성되며, 각 이미터는 파티클이 어떻게 행동하는지 영향을 주는 모듈을 포함합니다. 커스텀 모듈 및 이미터 타입으로 시스템을 확장하는 것은 매우 단순하며 이 문서는 그렇게 하는 방법의 몇 예를 줄 것입니다.
 

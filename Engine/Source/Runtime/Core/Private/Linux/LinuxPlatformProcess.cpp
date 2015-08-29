@@ -2,7 +2,7 @@
 
 #include "CorePrivatePCH.h"
 #include "LinuxPlatformRunnableThread.h"
-#include "Public/Modules/ModuleVersion.h"
+#include "EngineVersion.h"
 #include <spawn.h>
 #include <sys/wait.h>
 #include <sys/resource.h>
@@ -25,7 +25,7 @@ void* FLinuxPlatformProcess::GetDllHandle( const TCHAR* Filename )
 		DlOpenMode |= RTLD_LOCAL; //Local symbol resolution when loading shared objects - Needed for Hot-Reload
 	}
 
-	void *Handle = dlopen( TCHAR_TO_ANSI(*AbsolutePath), DlOpenMode );
+	void *Handle = dlopen( TCHAR_TO_UTF8(*AbsolutePath), DlOpenMode );
 	if (!Handle)
 	{
 		UE_LOG(LogLinux, Warning, TEXT("dlopen failed: %s"), ANSI_TO_TCHAR(dlerror()) );
@@ -49,7 +49,7 @@ void* FLinuxPlatformProcess::GetDllExport( void* DllHandle, const TCHAR* ProcNam
 int32 FLinuxPlatformProcess::GetDllApiVersion( const TCHAR* Filename )
 {
 	check(Filename);
-	return MODULE_API_VERSION;
+	return GCompatibleWithEngineVersion.GetChangelist();
 }
 
 const TCHAR* FLinuxPlatformProcess::GetModulePrefix()
@@ -412,6 +412,34 @@ bool FLinuxPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Outp
 	return false;
 }
 
+bool FLinuxPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FString* OutWritten)
+{
+	// if there is not a message or WritePipe is null
+	if ((Message.Len() == 0) || (WritePipe == nullptr))
+	{
+		return false;
+	}
+
+	// convert input to UTF8CHAR
+	uint32 BytesAvailable = Message.Len();
+	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
+
+	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	{
+		return false;
+	}
+
+	// write to pipe
+	uint32 BytesWritten = write(*(int*)WritePipe, Buffer, BytesAvailable);
+
+	if (OutWritten != nullptr)
+	{
+		OutWritten->FromBlob(Buffer, BytesWritten);
+	}
+
+	return (BytesWritten == BytesAvailable);
+}
+
 FRunnableThread* FLinuxPlatformProcess::CreateRunnableThread()
 {
 	return new FRunnableThreadLinux();
@@ -424,7 +452,7 @@ void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FStr
 	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::LaunchURL: '%s'"), URL);
 	if (pid == 0)
 	{
-		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_ANSI(URL), (char *)0));
+		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_UTF8(URL), (char *)0));
 	}
 }
 
@@ -516,7 +544,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	Commandline += TEXT(" ");
 	Commandline += Parms;
 
-	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: '%s'"), *Commandline);
+	UE_LOG(LogHAL, Log, TEXT("FLinuxPlatformProcess::CreateProc: '%s'"), *Commandline);
 
 	TArray<FString> ArgvArray;
 	int Argc = Commandline.ParseIntoArray(ArgvArray, TEXT(" "), true);
@@ -610,15 +638,15 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 
 		for (int Idx = 0; Idx < Argc; ++Idx)
 		{
-			auto AnsiBuffer = StringCast<ANSICHAR>(*NewArgvArray[Idx]);
+			FTCHARToUTF8 AnsiBuffer(*NewArgvArray[Idx]);
 			const char* Ansi = AnsiBuffer.Get();
-			size_t AnsiSize = FCStringAnsi::Strlen(Ansi) + 1;
+			size_t AnsiSize = FCStringAnsi::Strlen(Ansi) + 1;	// will work correctly with UTF-8
 			check(AnsiSize);
 
 			Argv[Idx] = reinterpret_cast< char* >( FMemory::Malloc(AnsiSize) );
 			check(Argv[Idx]);
 
-			FCStringAnsi::Strncpy(Argv[Idx], Ansi, AnsiSize);
+			FCStringAnsi::Strncpy(Argv[Idx], Ansi, AnsiSize);	// will work correctly with UTF-8
 		}
 
 		// last Argv should be NULL
@@ -638,7 +666,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		posix_spawn_file_actions_adddup2(&FileActions, PipeWriteHandle->GetHandle(), STDOUT_FILENO);
 	}
 
-	int PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_ANSI(*ProcessPath), &FileActions, nullptr, Argv, environ);
+	int PosixSpawnErrNo = posix_spawn(&ChildPid, TCHAR_TO_UTF8(*ProcessPath), &FileActions, nullptr, Argv, environ);
 	posix_spawn_file_actions_destroy(&FileActions);
 	if (PosixSpawnErrNo != 0)
 	{
@@ -921,7 +949,15 @@ uint32 FLinuxPlatformProcess::GetCurrentProcessId()
 	return getpid();
 }
 
-bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle& ProcHandle, int32* ReturnCode )
+FString FLinuxPlatformProcess::GetCurrentWorkingDirectory()
+{
+	// get the current directory
+	ANSICHAR CurrentDir[MAX_PATH] = { 0 };
+	getcwd(CurrentDir, sizeof(CurrentDir));
+	return UTF8_TO_TCHAR(CurrentDir);
+}
+
+bool FLinuxPlatformProcess::GetProcReturnCode(FProcHandle& ProcHandle, int32* ReturnCode)
 {
 	if (IsProcRunning(ProcHandle))
 	{
@@ -963,7 +999,7 @@ bool FLinuxPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 	FString Commandline = TEXT("pidof '");
 	Commandline += ProcName;
 	Commandline += TEXT("'  > /dev/null");
-	return !system(TCHAR_TO_ANSI(*Commandline));
+	return !system(TCHAR_TO_UTF8(*Commandline));
 }
 
 bool FLinuxPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
@@ -1044,7 +1080,7 @@ void FLinuxPlatformProcess::LaunchFileInDefaultExternalApplication( const TCHAR*
 	pid_t pid = fork();
 	if (pid == 0)
 	{
-		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_ANSI(FileName), (char *)0));
+		exit(execl("/usr/bin/xdg-open", "xdg-open", TCHAR_TO_UTF8(FileName), (char *)0));
 	}
 }
 
@@ -1052,4 +1088,113 @@ void FLinuxPlatformProcess::ExploreFolder( const TCHAR* FilePath )
 {
 	// TODO This is broken, not an explore action but should be fine if called on a directory
 	FLinuxPlatformProcess::LaunchFileInDefaultExternalApplication(FilePath, NULL, ELaunchVerb::Edit);
+}
+
+/**
+ * Private struct to store implementation specific data.
+ */
+struct FProcEnumData
+{
+	// Array of processes.
+	TArray<FLinuxPlatformProcess::FProcEnumInfo> Processes;
+
+	// Current process id.
+	uint32 CurrentProcIndex;
+};
+
+FLinuxPlatformProcess::FProcEnumerator::FProcEnumerator()
+{
+  	Data = new FProcEnumData;
+	Data->CurrentProcIndex = -1;
+	
+	TArray<uint32> PIDs;
+	
+	class FPIDsCollector : public IPlatformFile::FDirectoryVisitor
+	{
+	public:
+		FPIDsCollector(TArray<uint32>& InPIDsToCollect)
+			: PIDsToCollect(InPIDsToCollect)
+		{ }
+
+		bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+		{
+			FString StrPID = FPaths::GetBaseFilename(FilenameOrDirectory);
+		  
+			if (bIsDirectory && FCString::IsNumeric(*StrPID))
+			{
+				PIDsToCollect.Add(FCString::Atoi(*StrPID));
+			}
+			
+			return true;
+		}
+
+	private:
+		TArray<uint32>& PIDsToCollect;
+	} PIDsCollector(PIDs);
+
+	IPlatformFile::GetPlatformPhysical().IterateDirectory(TEXT("/proc"), PIDsCollector);
+	
+	for (auto PID : PIDs)
+	{
+		Data->Processes.Add(FProcEnumInfo(PID));
+	}
+}
+
+FLinuxPlatformProcess::FProcEnumerator::~FProcEnumerator()
+{
+	delete Data;
+}
+
+FLinuxPlatformProcess::FProcEnumInfo FLinuxPlatformProcess::FProcEnumerator::GetCurrent() const
+{
+	return Data->Processes[Data->CurrentProcIndex];
+}
+
+bool FLinuxPlatformProcess::FProcEnumerator::MoveNext()
+{
+	if (Data->CurrentProcIndex + 1 == Data->Processes.Num())
+	{
+		return false;
+	}
+
+	++Data->CurrentProcIndex;
+
+	return true;
+}
+
+FLinuxPlatformProcess::FProcEnumInfo::FProcEnumInfo(uint32 InPID)
+	: PID(InPID)
+{
+
+}
+
+uint32 FLinuxPlatformProcess::FProcEnumInfo::GetPID() const
+{
+	return PID;
+}
+
+uint32 FLinuxPlatformProcess::FProcEnumInfo::GetParentPID() const
+{
+	char Buf[256];
+	uint32 DummyNumber;
+	char DummyChar;
+	uint32 ParentPID;
+	
+	sprintf(Buf, "/proc/%d/stat", GetPID());
+	
+	FILE* FilePtr = fopen(Buf, "r");
+	fscanf(FilePtr, "%d %s %c %d", &DummyNumber, Buf, &DummyChar, &ParentPID);	
+	fclose(FilePtr);
+
+	return ParentPID;
+}
+
+FString FLinuxPlatformProcess::FProcEnumInfo::GetFullPath() const
+{
+	return GetApplicationName(GetPID());
+}
+
+FString FLinuxPlatformProcess::FProcEnumInfo::GetName() const
+{
+	return FPaths::GetCleanFilename(GetFullPath());
 }

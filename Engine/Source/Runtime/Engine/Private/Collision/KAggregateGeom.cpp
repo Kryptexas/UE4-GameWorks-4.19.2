@@ -5,6 +5,7 @@
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "PhysicsEngine/AggregateGeom.h"
 #include "Collision.h"
 #include "Engine/Polys.h"
 
@@ -252,10 +253,18 @@ static bool EnsureHullIsValid(TArray<FVector>& InVerts)
 	return true;
 }
 
+///////////////////////////////////////
+///////////// FKShapeElem ////////////
+///////////////////////////////////////
+
+EAggCollisionShape::Type FKShapeElem::StaticShapeType = EAggCollisionShape::Unknown;
+
 
 ///////////////////////////////////////
 ///////////// FKSphereElem ////////////
 ///////////////////////////////////////
+
+EAggCollisionShape::Type FKSphereElem::StaticShapeType = EAggCollisionShape::Sphere;
 
 FBox FKSphereElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
@@ -274,6 +283,7 @@ FBox FKSphereElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 ////////////// FKBoxElem //////////////
 ///////////////////////////////////////
 
+EAggCollisionShape::Type FKBoxElem::StaticShapeType = EAggCollisionShape::Box;
 
 FBox FKBoxElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
@@ -291,6 +301,8 @@ FBox FKBoxElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 ///////////////////////////////////////
 ////////////// FKSphylElem ////////////
 ///////////////////////////////////////
+
+EAggCollisionShape::Type FKSphylElem::StaticShapeType = EAggCollisionShape::Sphyl;
 
 FBox FKSphylElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 {
@@ -320,6 +332,8 @@ FBox FKSphylElem::CalcAABB(const FTransform& BoneTM, float Scale) const
 ///////////////////////////////////////
 ///////////// FKConvexElem ////////////
 ///////////////////////////////////////
+
+EAggCollisionShape::Type FKConvexElem::StaticShapeType = EAggCollisionShape::Convex;
 
 /** Reset the hull to empty all arrays */
 void FKConvexElem::Reset()

@@ -1,0 +1,27 @@
+#include "%PLUGIN_NAME%PrivatePCH.h"
+#include "%MODE_NAME%.h"
+#include "%MODE_NAME%Toolkit.h"
+
+#define LOCTEXT_NAMESPACE "F%MODE_NAME%Toolkit"
+
+F%MODE_NAME%Toolkit::F%MODE_NAME%Toolkit()
+{
+	%TOOLKIT_SAMPLE_UI%
+}
+
+FName F%MODE_NAME%Toolkit::GetToolkitFName() const
+{
+	return FName("%MODE_NAME%");
+}
+
+FText F%MODE_NAME%Toolkit::GetBaseToolkitName() const
+{
+	return NSLOCTEXT("%MODE_NAME%Toolkit", "DisplayName", "%MODE_NAME% Tool");
+}
+
+class FEdMode* F%MODE_NAME%Toolkit::GetEditorMode() const
+{
+	return GLevelEditorModeTools().GetActiveMode(F%MODE_NAME%::EM_%MODE_NAME%Id);
+}
+
+#undef LOCTEXT_NAMESPACE

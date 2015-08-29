@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2453154
+﻿INTSourceChangelist:2611277
 Availability: Public
 Title:2. 입력 및 게임 모드
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -58,7 +58,7 @@ Description:여기서는 우리 캐릭터 제어를 위한 입력 구성 및 조
 	이 프로세스 관련 상세 정보는 [](Gameplay\HowTo\SetUpInput\Blueprints) 문서를 참고하세요.
 	[/REGION]
 
-1.	프로젝트 세팅의 **게임** 섹션 아래 **맵 & 모드** 옵션을 클릭합니다.
+1.	프로젝트 세팅의 **프로젝트** 섹션 아래 **맵 & 모드** 옵션을 클릭합니다.
 
 1.	맵 & 모드 의 **Default Modes** 아래 **Default GameMode** 를 **MyGame** 게임 모드로 설정합니다.
 

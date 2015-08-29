@@ -64,8 +64,8 @@ public:
 	TSharedPtr< FUICommandInfo > SelectReferenceInLevel;
 	TSharedPtr< FUICommandInfo > AssignReferencedActor;
 
-	// Find variable references
-	TSharedPtr< FUICommandInfo > FindVariableReferences;
+	// Find references
+	TSharedPtr< FUICommandInfo > FindReferences;
 
 	// Goto native code actions
 	TSharedPtr< FUICommandInfo > GotoNativeFunctionDefinition;
@@ -77,6 +77,7 @@ public:
 	// Pin-specific actions
 	TSharedPtr< FUICommandInfo > BreakPinLinks;
 	TSharedPtr< FUICommandInfo > PromoteToVariable;
+	TSharedPtr< FUICommandInfo > PromoteToLocalVariable;
 	TSharedPtr< FUICommandInfo > SplitStructPin;
 	TSharedPtr< FUICommandInfo > RecombineStructPin;
 	TSharedPtr< FUICommandInfo > StartWatchingPin;
@@ -101,9 +102,6 @@ public:
 
 	//create a comment node
 	TSharedPtr< FUICommandInfo > CreateComment;
-
-	// Find instances of a Custom event node
-	TSharedPtr< FUICommandInfo > FindInstancesOfCustomEvent;
 
 	// Zoom in and out on the graph editor
 	TSharedPtr< FUICommandInfo > ZoomIn;

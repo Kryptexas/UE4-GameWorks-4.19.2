@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454950
+﻿INTSourceChangelist:2541616
 Availability:Public
 Title:Blueprints Only
 Crumbs: %ROOT%, Gameplay, Gameplay/ClassCreation
@@ -12,7 +12,7 @@ Description:ゲームプレイ プログラマ向けのアンリアルエンジ�
 
 ## クラス設定
 
-**LightSwitch_BPOnly** クラスは、**コンテンツ ブラウザ** の (Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) にあり、 **Actor** が親クラスとして選択されました。 
+**LightSwitch_BPOnly** クラスは、**コンテンツ ブラウザ** の [作成](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Creation) にあり、 **Actor** が親クラスとして選択されました。 
 
 コンポーネントは以下のいずれかによってブループリントに追加されます。すなわち **ブループリント エディタ** の [コンポーネント ウィンドウ](Engine/Blueprints/UserGuide/Components) に静的に追加、またはビジュアル スクリプティングを介して [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor) に動的に追加されます。
 LightSwitch クラスは PointLightComponent と SphereComponent を常に持つため、この場合、コンポーネントは静的に [コンポーネント ウィンドウ](Engine/Blueprints/UserGuide/Components) に追加されます。

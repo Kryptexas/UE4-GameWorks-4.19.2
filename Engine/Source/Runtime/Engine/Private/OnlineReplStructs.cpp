@@ -29,7 +29,7 @@ FArchive& operator<<( FArchive& Ar, FUniqueNetIdRepl& UniqueNetId)
 			IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface();
 			if (IdentityInt.IsValid())
 			{
-				TSharedPtr<FUniqueNetId> UniqueNetIdPtr = IdentityInt->CreateUniquePlayerId(Contents);
+				TSharedPtr<const FUniqueNetId> UniqueNetIdPtr = IdentityInt->CreateUniquePlayerId(Contents);
 				UniqueNetId.SetUniqueNetId(UniqueNetIdPtr);
 			}
 		}
@@ -57,11 +57,6 @@ bool FUniqueNetIdRepl::ExportTextItem(FString& ValueStr, FUniqueNetIdRepl const&
 	return true;
 }
 
-FString FUniqueNetIdRepl::ToString() const
-{
-	return IsValid() ? UniqueNetId->ToString() : TEXT("INVALID");
-}
-
 void TestUniqueIdRepl(UWorld* InWorld)
 {
 	bool bSuccess = true;
@@ -69,7 +64,7 @@ void TestUniqueIdRepl(UWorld* InWorld)
 	IOnlineIdentityPtr IdentityPtr = Online::GetIdentityInterface(InWorld);
 	if (IdentityPtr.IsValid())
 	{
-		TSharedPtr<FUniqueNetId> UserId = IdentityPtr->GetUniquePlayerId(0);
+		TSharedPtr<const FUniqueNetId> UserId = IdentityPtr->GetUniquePlayerId(0);
 
 		FUniqueNetIdRepl EmptyIdIn;
 		if (EmptyIdIn.IsValid())

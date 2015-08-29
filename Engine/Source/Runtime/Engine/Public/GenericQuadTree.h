@@ -151,7 +151,7 @@ TQuadTree<ElementType, NodeCapacity>::TQuadTree(const FBox2D& Box)
 template <typename ElementType, int32 NodeCapacity>
 TQuadTree<ElementType, NodeCapacity>::TQuadTree()
 {
-	EnsureRetrievingVTablePtr();
+	EnsureRetrievingVTablePtrDuringCtor(TEXT("TQuadTree()"));
 }
 #endif // WITH_HOT_RELOAD_CTORS
 

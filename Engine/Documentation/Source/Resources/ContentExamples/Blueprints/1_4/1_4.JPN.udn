@@ -1,16 +1,16 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2515926
 Availability:Public
 Title:1.4 - コンストラクション スクリプト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
-Description:ブループリントの事例概要、例1.4：コンストラクション スクリプト
-Related: Engine/Blueprints/Overview 
-Related: Engine/Blueprints/UserGuide/Components
-Related: Engine/Blueprints/UserGuide/Variables
-Related: Engine/Blueprints/UserGuide/BlueprintComms
-Related: Engine/Blueprints/UserGuide/Types/MacroLibrary
-Related: Engine/Animation/AnimBlueprints/EventGraph
-Related: Engine/Blueprints/UserGuide/UserConstructionScript
-Related: Gameplay/HowTo/SetUpInput/Blueprints
+Description:ブループリントの事例概要、例 1.4：コンストラクション スクリプト
+Related:Engine/Blueprints/Overview 
+Related:Engine/Blueprints/UserGuide/Components
+Related:Engine/Blueprints/UserGuide/Variables
+Related:Engine/Blueprints/UserGuide/BlueprintComms
+Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
+Related:Engine/Animation/AnimBlueprints/EventGraph
+Related:Engine/Blueprints/UserGuide/UserConstructionScript
+Related:Gameplay/HowTo/SetUpInput/Blueprints
 
 
 
@@ -46,11 +46,11 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [/REGION]
 
 
-## コンポーネント リストとコンストラクション スクリプトとの対比 
+## コンポーネント リストとコンストラクション スクリプト 
 
 この例では、2 つのオブジェクトが両方とも全く同じに見えることに気づくでしょう。しかし、1 つはコンポーネント リストからアセンブルされ、もう 1 つはコンストラクション スクリプトからアセンブルされます。このケースでは、例は主に教育目的の練習であり、各アプローチの利点を理解することが重要です。 
 
-コンポーネント リストでブループリントのコンポーネントをセットアップする場合、ブループリント エディタのコンポーネント タブを使用して作業しながら各コンポーネントを調整し、配置できる利点があります。この方法を使用すると、コンポーネントの正確な配置を非常に容易かつ直観的に行うことができます。一般的にこのタイプのセットアップは、事前にどのタイプのコンポーネントが必要であるかわかっている場合に理想的です。 
+コンポーネント リストでブループリントのコンポーネントをセットアップする場合、ブループリント エディタのコンポーネント タブを使用して作業しながら各コンポーネントを調整し、配置できる利点があります。この方法を使用すると、コンポーネントの正確な配置を非常に容易かつ直観的に行うことができます。一般的にこのタイプのセットアップは、事前にどのタイプのコンポーネントが必要であるかをわかっている場合に理想的です。 
 
 ブループリントで使用しているコンポーネントを変更する必要がある場合、そうしたコンポーネントはコンストラクション スクリプトでセットアップする方が便利です。右の例では、各コンポーネントを追加するためにコンストラクション スクリプトを使用し、Boolean 値をチェックすることで各タイプのコンポーネントを表示または非表示にするシステムをセットアップしました。 
 
@@ -62,7 +62,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 
 
-コンストラクション スクリプトでは、Branch ノードを使用します。これは、フロー制御の一形式です。詳細は、 [Flow Control documentation](Engine/Blueprints/UserGuide/FlowControl) を参照してください。またはこのレベルで [example 1.7](Resources\ContentExamples\Blueprints\1_7) をご覧ください。
+コンストラクション スクリプトでは、Branch ノードを使用します。これは、フロー制御の一形式です。詳細は、[フロー制御のドキュメント](Engine/Blueprints/UserGuide/FlowControl) を参照してください。またはこのレベルで [事例概要、例1.7](Resources\ContentExamples\Blueprints\1_7) をご覧ください。
 
 [REGION:fullwidth]
 ![](ComponentAddition.png)

@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2390426
+﻿INTSourceChangelist:2568528
 Availability:Public
 Title:スレートの概要
 Crumbs:%ROOT%, Programming, Programming/Slate
-Description:クロスプラットフォームに対応するスレート UI フレームワークの概要
+Description:クロスプラットフォームに対応するスレートUIフレームワークの概要
 Version:4.4
 
 [REGION:fullwidth]
@@ -14,10 +14,10 @@ Version:4.4
 ## 概要
 
 [EXCERPT:Intro]
-**スレート** は完全にカスタマイズ可能でプラットフォームに依存しない UI フレームワークで、例えばアンリアル エディタやインゲーム UI の独自の楽しみや効率性など、ツールやアプリケーションのユーザーインターフェースの構築にあわせた設計となっています。スレートは宣言記法を簡単にデザイン、レイアウト、及びスタイル コンポーネントを作成する機能と組み合わせることによって、 UI の作成や UI 上でのイタレーションが簡単にできます。
+**スレート** はカスタム仕様のプラットフォームに依存しない UI フレームワークで、例えばアンリアルエディタやインゲーム UI の独自の楽しみや効率性など、ツールやアプリケーションのユーザーインターフェースの構築にあわせた設計となっています。スレートは宣言記法を簡単にデザイン、レイアウト、及びスタイルコンポーネントを作成する機能と組み合わせることによって、 UI の作成や UI 上でのイタレーションが簡単にできます。
 [/EXCERPT:Intro]
 
-スレート UI ソリューションが、ツールやアプリケーションのグラフィック ユーザー インターフェースをとても簡単に統合し、これらをすばやく相互作用させます。 
+スレート UI ソリューションが、ツールやアプリケーションのグラフィックユーザーインターフェースをとても簡単に統合し、これらをすばやく相互作用させます。 
 
 ## 宣言記法
 
@@ -39,11 +39,11 @@ Version:4.4
 
 ##構成
 
-スレートの構成フレームワークは、プロトタイピングやイタレーションの際の UI コンポーネントの再配置を単純化します。
+スレートの構成フレームワークは、プロトタイピングやイタレーションの際に UI コンポーネントの再配置を単純化します。
 
 以下は構成中の UI の事例です。
 
-	// スタティックメッシュの新規セクションを追加します。
+	// Add a new section for static meshes
 	ContextualEditingWidget->AddSlot()
 	.Padding( 2.0f )
 	[
@@ -74,6 +74,7 @@ Version:4.4
 				]
 			]
 					]
+
 	];
 
 上記の構成は、以下の UI コンポーネントを作成します。
@@ -82,7 +83,7 @@ Version:4.4
 
 ## スタイル
 
-ウィジェットのさまざまな部分へスタイル作成および適用することができます。これにより UI でコンポーネントの外観をイタレートしたり、スタイルの共有や再利用が簡単にできます。
+ウィジェットのさまざまな部分へスタイルを作成および適用することができます。これにより UI でコンポーネントの外観をイタレートしたり、スタイルの共有や再利用が簡単にできます。
 
 	// Tool bar
 	{
@@ -92,16 +93,16 @@ Version:4.4
 		Set( "ToolBarButton.Pressed", FSlateBoxBrush( TEXT("Old/MenuItemButton_Pressed"), 4.0f/32.0f ) );
 		Set( "ToolBarButton.Hovered", FSlateBoxBrush( TEXT("Old/MenuItemButton_Hovered"), 4.0f/32.0f ) );
 
-		// Tool bar buttons are sometimes toggle buttons, so they need styles for "checked" state (ツールバー ボタンはトグルボタンの場合があるので、「チェックされた」ステート用のスタイルにする必要があります。)
+		// Tool bar buttons are sometimes toggle buttons, so they need styles for "checked" state
 		Set( "ToolBarButton.Checked", FSlateBoxBrush( TEXT("Old/MenuItemButton_Pressed"),  4.0f/32.0f, FLinearColor( 0.3f, 0.3f, 0.3f ) ) );
 		Set( "ToolBarButton.Checked_Hovered", FSlateBoxBrush( TEXT("Old/MenuItemButton_Hovered"),  4.0f/32.0f ) );
 		Set( "ToolBarButton.Checked_Pressed", FSlateBoxBrush( TEXT("Old/MenuItemButton_Pressed"),  4.0f/32.0f, FLinearColor( 0.5f, 0.5f, 0.5f ) ) );
 
-		// Tool bar button label font (ツールバーボタンラベルのフォント)
+		// Tool bar button label font
 		Set( "ToolBarButton.LabelFont", FSlateFontInfo( TEXT("Roboto-Regular"), 8 ) );
 	}
 
-構成に使用したスタイル:
+構成に使用したスタイル：
 
 	SNew( SBorder )
 	.BorderImage( FEditorStyle::GetBrush( "ToolBar.Background" ) )
@@ -109,7 +110,7 @@ Version:4.4
 	[
 		SNew(SHorizontalBox)
 
-		// Compile button (faked to look like a multibox button) (コンパイルボタン (マルチボックス ボタンのように見せかけています))
+		// Compile button (faked to look like a multibox button)
 		+SHorizontalBox::Slot()
 		[
 			SNew(SButton)
@@ -140,17 +141,17 @@ Version:4.4
 		]
 	]
 
-## 入力
+##入力
 
-スレートはマウスやキーボードからの入力をサポートします。任意のキーの組み合わせとコマンドのバインドを可能にする、柔軟性のあるキーバインディングシステムを提供します。これらのバインディングを動的に修正する機能も含みます。
+スレートはマウスやキーボードからの入力をサポートします。任意のキーの組み合わせとコマンドのバインドを可能にする柔軟性のあるキーバインディングシステムを提供します。これらのバインディングを動的に修正する機能も含みます。
 
 ## 出力
 
-スレートは、ターゲットに依存しないレンダリングプリミティブを使用して、あらゆるプラットフォーム上で実行が可能です。現在はアンリアル・エンジン 4 RHIを対象に、アンリアル・エンジン 4 が実行できる全てのプラットフォームで実行することができます。
+スレートは、ターゲットに依存しないレンダリングプリミティブを使用して、あらゆるプラットフォーム上で実行が可能です。現在はアンリアル・エンジン 4 RHI を対象に、アンリアル・エンジン 4 が実行できる全てのプラットフォームで実行することができます。
 
-## レイアウト プリミティブ
+## レイアウトプリミティブ
 
-レイアウトプリミティブによって、静的および動的レイアウトの構築が簡単に出来ます。
+レイアウトプリミティブによって静的および動的レイアウトの構築が簡単に出来ます。
 
 	FString DefaultLayout =
 					TEXT( "	{" )
@@ -189,13 +190,13 @@ Version:4.4
 
 ![Drag to Docking Area](docking_place.png)
 
-**ドックされたタブ**
+**固定されたタブ**
 
 ![Docked](docking_after.png)
 
 ##デベロッパー ツール
 
-**Slate Widget Inspector** は、デバッグ作業と UI および関連コードを分析する手段を提供します。バグや不適切な挙動の追跡に加え、ユーザーインターフェースのプロファイル化や最適化を支援します。
+ **Slate Widget Inspector** はデバッグ作業と UI および関連コードを分析する手段を提供します。バグや不適切な挙動の追跡に加え、ユーザーインターフェースのプロファイル化や最適化を支援します。
 
 [REGION:fullwidth]
 ![Widget Inspector](widget_inspector.png)
@@ -203,4 +204,4 @@ Version:4.4
 
 ## エンジンへのアクセス
 
-スレートUIシステムによって、プログラマーはエンジンとエディタへ直接アクセスすることができます。開発チームのワークフローやプロジェクトの必要最低条件に対応する新機能やツールの実装がとても簡単に出来ます。
+スレート UI システムによって、プログラマーはエンジンとエディタへ直接アクセスすることができます。開発チームのワークフローやプロジェクトの必要最低条件に対応する新機能やツールの実装がとても簡単に出来ます。

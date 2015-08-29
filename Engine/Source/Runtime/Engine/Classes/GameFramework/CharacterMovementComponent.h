@@ -197,10 +197,11 @@ public:
 	FQuat OldBaseQuat;
 
 	/**
-	 * Coefficient of friction.
-	 * This property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Setting that affects movement control. Higher values allow faster changes in direction.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero), where it is multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
 	 * This can be used to simulate slippery surfaces such as ice or oil by changing the value (possibly based on the material pawn is standing on).
-	 * @see BrakingDecelerationWalking
+	 * @see BrakingDecelerationWalking, BrakingFriction, bUseSeparateBrakingFriction, BrakingFrictionFactor
 	 */
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float GroundFriction;
@@ -228,6 +229,35 @@ public:
 	/** Max Acceleration (rate of change of velocity) */
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float MaxAcceleration;
+
+	/**
+	 * Factor used to multiply actual value of friction used when braking.
+	 * This applies to any friction value that is currently used, which may depend on bUseSeparateBrakingFriction.
+	 * @note This is 2 by default for historical reasons, a value of 1 gives the true drag equation.
+	 * @see bUseSeparateBrakingFriction, GroundFriction, BrakingFriction
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
+	float BrakingFrictionFactor;
+
+	/**
+	 * Friction (drag) coefficient applied when braking (whenever Acceleration = 0, or if character is exceeding max speed); actual value used is this multiplied by BrakingFrictionFactor.
+	 * When braking, this property allows you to control how much friction is applied when moving across the ground, applying an opposing force that scales with current velocity.
+	 * Braking is composed of friction (velocity-dependent drag) and constant deceleration.
+	 * This is the current value, used in all movement modes; if this is not desired, override it or bUseSeparateBrakingFriction when movement mode changes.
+	 * @note Only used if bUseSeparateBrakingFriction setting is true, otherwise current friction such as GroundFriction is used.
+	 * @see bUseSeparateBrakingFriction, BrakingFrictionFactor, GroundFriction, BrakingDecelerationWalking
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0", EditCondition="bUseSeparateBrakingFriction"))
+	float BrakingFriction;
+
+	/**
+	 * If true, BrakingFriction will be used to slow the character to a stop (when there is no Acceleration).
+	 * If false, braking uses the same friction passed to CalcVelocity() (ie GroundFriction when walking), multiplied by BrakingFrictionFactor.
+	 * This setting applies to all movement modes; if only desired in certain modes, consider toggling it when movement modes change.
+	 * @see BrakingFriction
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, BlueprintReadWrite)
+	uint32 bUseSeparateBrakingFriction:1;
 
 	/**
 	 * Deceleration when walking and not applying acceleration. This is a constant opposing force that directly lowers velocity by a constant value.
@@ -278,7 +308,11 @@ public:
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float AirControlBoostVelocityThreshold;
 
-	/** Friction to apply to lateral air movement when falling. */
+	/**
+	 * Friction to apply to lateral air movement when falling.
+	 * If bUseSeparateBrakingFriction is false, also affects the ability to stop more quickly when braking (whenever Acceleration is zero).
+	 * @see BrakingFriction, bUseSeparateBrakingFriction
+	 */
 	UPROPERTY(Category="Character Movement: Jumping / Falling", EditAnywhere, BlueprintReadWrite, meta=(ClampMin="0", UIMin="0"))
 	float FallingLateralFriction;
 
@@ -526,6 +560,18 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite, AdvancedDisplay, meta=(ClampMin="1", ClampMax="25", UIMin="1", UIMax="25"))
 	int32 MaxSimulationIterations;
 
+	/**
+	 * How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float NetworkSimulatedSmoothLocationTime;
+
+	/**
+	 * How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.
+	 */
+	UPROPERTY(Category="Character Movement (General Settings)", EditDefaultsOnly, AdvancedDisplay, meta=(ClampMin="0.0", ClampMax="1.0", UIMin="0.0", UIMax="1.0"))
+	float NetworkSimulatedSmoothRotationTime;
+
 	/** Used in determining if pawn is going off ledge.  If the ledge is "shorter" than this value then the pawn will be able to walk off it. **/
 	UPROPERTY(Category="Character Movement: Walking", EditAnywhere, BlueprintReadWrite, AdvancedDisplay)
 	float LedgeCheckThreshold;
@@ -554,10 +600,16 @@ public:
 	UPROPERTY(Category="Character Movement (General Settings)", EditAnywhere, BlueprintReadWrite)
 	TEnumAsByte<enum EMovementMode> DefaultWaterMovementMode;
 
-	/** Ground movement mode to switch to after falling */
+private:
+	/**
+	 * Ground movement mode to switch to after falling and resuming ground movement.
+	 * Only allowed values are: MOVE_Walking, MOVE_NavWalking.
+	 * @see SetGroundMovementMode(), GetGroundMovementMode()
+	 */
 	UPROPERTY(Transient)
 	TEnumAsByte<enum EMovementMode> GroundMovementMode;
 
+public:
 	/**
 	 * If true, walking movement always maintains horizontal velocity when moving up ramps, which causes movement up ramps to be faster parallel to the ramp surface.
 	 * If false, then walking movement maintains velocity magnitude parallel to the ramp surface.
@@ -789,6 +841,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Components|CharacterMovement")
 	virtual void SetMovementMode(EMovementMode NewMovementMode, uint8 NewCustomMode = 0);
 
+	/**
+	 * Set movement mode to use when returning to walking movement (either MOVE_Walking or MOVE_NavWalking).
+	 * If movement mode is currently one of Walking or NavWalking, this will also change the current movement mode (via SetMovementMode())
+	 * if the new mode is not the current ground mode.
+	 * 
+	 * @param  NewGroundMovementMode New ground movement mode. Must be either MOVE_Walking or MOVE_NavWalking, other values are ignored.
+	 * @see GroundMovementMode
+	 */
+	 void SetGroundMovementMode(EMovementMode NewGroundMovementMode);
+
+	/**
+	 * Get current GroundMovementMode value.
+	 * @return current GroundMovementMode
+	 * @see GroundMovementMode, SetGroundMovementMode()
+	 */
+	 EMovementMode GetGroundMovementMode() const { return GroundMovementMode; }
+
 protected:
 
 	/** Called after MovementMode has changed. Base implementation does special handling for starting certain modes, then notifies the CharacterOwner. */
@@ -887,7 +956,7 @@ public:
 	virtual void UpdateBasedMovement(float DeltaSeconds);
 
 	/** Update controller's view rotation as pawn's base rotates */
-	virtual void UpdateBasedRotation(FRotator &FinalRotation, const FRotator& ReducedRotation);
+	virtual void UpdateBasedRotation(FRotator& FinalRotation, const FRotator& ReducedRotation);
 
 	/** Update (or defer updating) OldBaseLocation and OldBaseQuat if there is a valid movement base. */
 	DEPRECATED(4.4, "CharacterMovementComponent::MaybeSaveBaseLocation() will be removed, call SaveBaseLocation().")
@@ -937,7 +1006,7 @@ public:
 	virtual void JumpOutOfWater(FVector WallNormal);
 
 	/** @return how far to rotate character during the time interval DeltaTime. */
-	virtual FRotator GetDeltaRotation(float DeltaTime);
+	virtual FRotator GetDeltaRotation(float DeltaTime) const;
 
 	/**
 	  * Compute a target rotation based on current movement. Used by PhysicsRotation() when bOrientRotationToMovement is true.
@@ -949,7 +1018,7 @@ public:
 	  *
 	  * @return The target rotation given current movement.
 	  */
-	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation);
+	virtual FRotator ComputeOrientToMovementRotation(const FRotator& CurrentRotation, float DeltaTime, FRotator& DeltaRotation) const;
 
 	/**
 	 * Use velocity requested by path following to compute a requested acceleration and speed.
@@ -978,7 +1047,7 @@ public:
 	/* Determine how deep in water the character is immersed.
 	 * @return float in range 0.0 = not in water, 1.0 = fully immersed
 	 */
-	virtual float ImmersionDepth();
+	virtual float ImmersionDepth() const;
 
 	/** 
 	 * Updates Velocity and Acceleration based on the current state, applying the effects of friction and acceleration or deceleration. Does not apply gravity.
@@ -1034,7 +1103,7 @@ public:
 	/** 
 	 * Move up steps or slope. Does nothing and returns false if CanStepUp(Hit) returns false.
 	 *
-	 * @param GravDir			Gravity vector
+	 * @param GravDir			Gravity vector direction (assumed normalized or zero)
 	 * @param Delta				Requested move
 	 * @param Hit				[In] The hit before the step up.
 	 * @param OutStepDownResult	[Out] If non-null, a floor check will be performed if possible as part of the final step down, and it will be updated to reflect this result.
@@ -1049,6 +1118,12 @@ public:
 	 * Update the base of the character, using the given floor result if it is walkable, or null if not. Calls SetBase().
 	 */
 	void SetBaseFromFloor(const FFindFloorResult& FloorResult);
+
+	/**
+	 * Applies downward force when walking on top of physics objects.
+	 * @param DeltaSeconds Time elapsed since last frame.
+	 */
+	virtual void ApplyDownwardForce(float DeltaSeconds);
 
 	/** Applies repulsion force to all touched components. */
 	virtual void ApplyRepulsionForce(float DeltaSeconds);
@@ -1067,7 +1142,7 @@ public:
 	void StartSwimming(FVector OldLocation, FVector OldVelocity, float timeTick, float remainingTime, int32 Iterations);
 
 	/* Swimming uses gravity - but scaled by (1.f - buoyancy) */
-	float Swim(FVector Delta, FHitResult &Hit);
+	float Swim(FVector Delta, FHitResult& Hit);
 
 	/** Get as close to waterline as possible, staying on same side as currently. */
 	FVector FindWaterLine(FVector Start, FVector End);
@@ -1116,8 +1191,7 @@ protected:
 	virtual float BoostAirControl(float DeltaTime, float TickAirControl, const FVector& FallAcceleration);
 
 	/**
-	 * Checks if air control will cause the player collision shape to hit something given the current location.
-	 * This function is used internally by PhysFalling().
+	 * (DEPRECATED) Checks if air control will cause the player collision shape to hit something given the current location.
 	 *
 	 * @param DeltaTime			Time step for the current update.
 	 * @param AdditionalTime	Time to look ahead further, applying acceleration and gravity.
@@ -1128,10 +1202,11 @@ protected:
 	 * @return True if there is an impact, in which case OutHitResult contains the result of that impact.
 	 * @see GetAirControl()
 	 */
+	DEPRECATED(4.9, "FindAirControlImpact is no longer used by engine code.")
 	virtual bool FindAirControlImpact(float DeltaTime, float AdditionalTime, const FVector& FallVelocity, const FVector& FallAcceleration, const FVector& Gravity, FHitResult& OutHitResult);
 
 	/**
-	 * Limits the air control to use during falling movement, given an impact from FindAirControlImpact().
+	 * Limits the air control to use during falling movement, given an impact while falling.
 	 * This function is used internally by PhysFalling().
 	 *
 	 * @param DeltaTime			Time step for the current update.
@@ -1139,7 +1214,7 @@ protected:
 	 * @param HitResult			Result of impact.
 	 * @param bCheckForValidLandingSpot If true, will use IsValidLandingSpot() to determine if HitResult is a walkable surface. If false, this check is skipped.
 	 * @return Modified air control acceleration to use during falling movement.
-	 * @see FindAirControlImpact()
+	 * @see PhysFalling()
 	 */
 	virtual FVector LimitAirControl(float DeltaTime, const FVector& FallAcceleration, const FHitResult& HitResult, bool bCheckForValidLandingSpot);
 	
@@ -1152,6 +1227,9 @@ protected:
 
 	/** Switch collision settings for NavWalking mode (ignore world collisions) */
 	virtual void SetNavWalkingPhysics(bool bEnable);
+
+	/** Get Navigation data for the Character. Returns null if there is no associated nav data. */
+	const class ANavigationData* GetNavData() const;
 
 	/** 
 	 * Checks to see if the current location is not encroaching blocking geometry so the character can leave NavWalking.
@@ -1190,22 +1268,22 @@ public:
 	virtual bool CanCrouchInCurrentState() const;
 	
 	/** @return true if there is a suitable floor SideStep from current position. */
-	bool CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir);
+	virtual bool CheckLedgeDirection(const FVector& OldLocation, const FVector& SideStep, const FVector& GravDir) const;
 
 	/** 
 	 * @param Delta is the current move delta (which ended up going over a ledge).
 	 * @return new delta which moves along the ledge
 	 */
-	FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir);
+	virtual FVector GetLedgeMove(const FVector& OldLocation, const FVector& Delta, const FVector& GravDir) const;
 
 	/** Check if pawn is falling */
-	bool CheckFall(const FFindFloorResult& OldFloor, const FHitResult& Hit, const FVector& Delta, const FVector& OldLocation, float remainingTime, float timeTick, int32 Iterations, bool bMustJump);
+	virtual bool CheckFall(const FFindFloorResult& OldFloor, const FHitResult& Hit, const FVector& Delta, const FVector& OldLocation, float remainingTime, float timeTick, int32 Iterations, bool bMustJump);
 	
 	/** 
 	 *  Revert to previous position OldLocation, return to being based on OldBase.
 	 *  if bFailMove, stop movement and notify controller
 	 */	
-	void RevertMove(const FVector& OldLocation, UPrimitiveComponent* OldBase, const FVector& OldBaseLocation, const FFindFloorResult& OldFloor, bool bFailMove);
+	void RevertMove(const FVector& OldLocation, UPrimitiveComponent* OldBase, const FVector& InOldBaseLocation, const FFindFloorResult& OldFloor, bool bFailMove);
 
 	/** Perform rotation over deltaTime */
 	virtual void PhysicsRotation(float DeltaTime);
@@ -1229,7 +1307,7 @@ public:
 	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
 	
 	/** @Return MovementMode string */
-	virtual FString GetMovementName();
+	virtual FString GetMovementName() const;
 
 	/** 
 	 * Add impulse to character. Impulses are accumulated each tick and applied together
@@ -1266,6 +1344,11 @@ public:
 	 * @param YPos - Y position on Canvas. YPos += YL, gives position to draw text for next debug line.
 	 */
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos);
+
+	/**
+	 * Draw in-world debug information for character movement (called with p.VisualizeMovement > 0).
+	 */
+	virtual void VisualizeMovement() const;
 
 	/** Check if swimming pawn just ran into edge of the pool and should jump out. */
 	virtual bool CheckWaterJump(FVector CheckPoint, FVector& WallNormal);
@@ -1368,7 +1451,7 @@ protected:
 	virtual bool ResolvePenetrationImpl(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation) override;
 
 	/** Handle a blocking impact. Calls ApplyImpactPhysicsForces for the hit, if bEnablePhysicsInteraction is true. */
-	virtual void HandleImpact(FHitResult const& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice=0.f, const FVector& MoveDelta = FVector::ZeroVector) override;
 
 	/**
 	 * Apply physics forces to the impacted component, if bEnablePhysicsInteraction is true.
@@ -1379,10 +1462,10 @@ protected:
 	virtual void ApplyImpactPhysicsForces(const FHitResult& Impact, const FVector& ImpactAcceleration, const FVector& ImpactVelocity);
 
 	/** Custom version of SlideAlongSurface that handles different movement modes separately; namely during walking physics we might not want to slide up slopes. */
-	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult &Hit, bool bHandleImpact) override;
+	virtual float SlideAlongSurface(const FVector& Delta, float Time, const FVector& Normal, FHitResult& Hit, bool bHandleImpact) override;
 
 	/** Custom version that allows upwards slides when walking if the surface is walkable. */
-	virtual void TwoWallAdjust(FVector &Delta, const FHitResult& Hit, const FVector &OldHitNormal) const override;
+	virtual void TwoWallAdjust(FVector& Delta, const FHitResult& Hit, const FVector& OldHitNormal) const override;
 
 	/**
 	 * Calculate slide vector along a surface.
@@ -1420,7 +1503,7 @@ protected:
 	 * Return true if the 2D distance to the impact point is inside the edge tolerance (CapsuleRadius minus a small rejection threshold).
 	 * Useful for rejecting adjacent hits when finding a floor or landing spot.
 	 */
-	bool IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const;
+	virtual bool IsWithinEdgeTolerance(const FVector& CapsuleLocation, const FVector& TestImpactPoint, const float CapsuleRadius) const;
 
 	/**
 	 * Sweeps a vertical trace to find the floor for the capsule at the given location. Will attempt to perch if ShouldComputePerchResult() returns true for the downward sweep result.
@@ -1504,7 +1587,7 @@ protected:
 
 	/** Called when the collision capsule touches another primitive component */
 	UFUNCTION()
-	void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	virtual void CapsuleTouched(AActor* Other, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	// Enum used to control GetPawnCapsuleExtent behavior
 	enum EShrinkCapsuleExtent
@@ -1607,7 +1690,7 @@ public:
 	//--------------------------------
 	// Client hook
 	//--------------------------------
-	virtual void SmoothCorrection(const FVector& OldLocation) override;
+	virtual void SmoothCorrection(const FVector& OldLocation, const FQuat& OldRotation) override;
 
 	virtual class FNetworkPredictionData_Client* GetPredictionData_Client() const override;
 	virtual class FNetworkPredictionData_Server* GetPredictionData_Server() const override;
@@ -1720,6 +1803,12 @@ public:
 	virtual void ServerMoveDual_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	virtual bool ServerMoveDual_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 
+	/** Replicated function sent by client to server - contains client movement and view info for two moves. First move is non root motion, second is root motion. */
+	UFUNCTION(unreliable, server, WithValidation)
+	virtual void ServerMoveDualHybridRootMotion(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	virtual void ServerMoveDualHybridRootMotion_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+	virtual bool ServerMoveDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 NewFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
+
 	/* Resending an (important) old move. Process it if not already processed. */
 	UFUNCTION(unreliable, server, WithValidation)
 	virtual void ServerMoveOld(float OldTimeStamp, FVector_NetQuantize10 OldAccel, uint8 OldMoveFlags);
@@ -1765,6 +1854,14 @@ public:
 
 	/** Simulate Root Motion physics on Simulated Proxies */
 	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);
+
+	/**
+	 * Calculate velocity from root motion. Under some movement conditions, only portions of root motion may be used (e.g. when falling Z may be ignored).
+	 * @param RootMotionDeltaMove	Change in location from root motion.
+	 * @param DeltaSeconds			Elapsed time
+	 * @param CurrentVelocity		Non-root motion velocity at current time, used for components of result that may ignore root motion.
+	 */
+	virtual FVector CalcRootMotionVelocity(const FVector& RootMotionDeltaMove, float DeltaSeconds, const FVector& CurrentVelocity) const;
 
 	// RVO Avoidance
 
@@ -1814,6 +1911,18 @@ public:
 	/** Stop completely when braking and velocity magnitude is lower than this. */
 	static const float BRAKE_TO_STOP_VELOCITY;
 };
+
+
+FORCEINLINE ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
+{
+	return CharacterOwner;
+}
+
+FORCEINLINE_DEBUGGABLE bool UCharacterMovementComponent::IsWalking() const
+{
+	return IsMovingOnGround();
+}
+
 
 
 /** FSavedMove_Character represents a saved move on the client that has been sent to the server and might need to be played back. */
@@ -1882,7 +1991,7 @@ public:
 	virtual void Clear();
 
 	/** Called to set up this saved move (when initially created) to make a predictive correction. */
-	virtual void SetMoveFor(ACharacter* C, float DeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData);
+	virtual void SetMoveFor(ACharacter* C, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData);
 
 	/** Set the properties describing the position, etc. of the moved pawn at the start of the move. */
 	virtual void SetInitialPosition(ACharacter* C);
@@ -1961,7 +2070,7 @@ class ENGINE_API FNetworkPredictionData_Client_Character : public FNetworkPredic
 {
 public:
 
-	FNetworkPredictionData_Client_Character();
+	FNetworkPredictionData_Client_Character(const UCharacterMovementComponent& ClientMovement);
 	virtual ~FNetworkPredictionData_Client_Character();
 
 	/** Client timestamp of last time it sent a servermove() to the server.  Used for holding off on sending movement updates to save bandwidth. */
@@ -1991,6 +2100,24 @@ public:
 	/** Used for position smoothing in net games */
 	FVector MeshTranslationOffset;
 
+	/** Used for rotation smoothing in net games */
+	FQuat MeshRotationOffset;
+
+	/** Used for position smoothing in net games */
+	FVector OriginalMeshTranslationOffset;
+
+	/** Used for rotation smoothing in net games */
+	FQuat OriginalMeshRotationOffset;
+
+	/** Used for remembering how much time has passed between server corrections */
+	float LastCorrectionDelta;
+
+	/** Used to track how much time has elapsed since last correction */
+	float CurrentSmoothTime;
+
+	/** Used to signify that linear smoothing is desired */
+	bool bUseLinearSmoothing;
+
 	/** Maximum location correction distance for which other pawn positions on a client will be smoothly updated */
 	float MaxSmoothNetUpdateDist;
 
@@ -1998,8 +2125,13 @@ public:
 	If it is between MaxSmoothNetUpdateDist and NoSmoothNetUpdateDist, pop to MaxSmoothNetUpdateDist away from the updated location */
 	float NoSmoothNetUpdateDist;
 
-	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be > 0.0 */
+	/** How long to take to smoothly interpolate from the old pawn position on the client to the corrected one sent by the server.  Must be >= 0.0 
+	This variable isn't used when bUseLinearSmoothing = true */
 	float SmoothNetUpdateTime;
+
+	/** How long to take to smoothly interpolate from the old pawn rotation on the client to the corrected one sent by the server.  Must be >= 0.0
+	This variable isn't used when bUseLinearSmoothing = true */
+	float SmoothNetUpdateRotationTime;
 	
 	// how long server will wait for client move update before setting position
 	// @TODO: don't duplicate between server and client data (though it's used by both)
@@ -2027,10 +2159,6 @@ public:
 	float UpdateTimeStampAndDeltaTime(float DeltaTime, ACharacter & CharacterOwner, class UCharacterMovementComponent & CharacterMovementComponent);
 };
 
-FORCEINLINE ACharacter* UCharacterMovementComponent::GetCharacterOwner() const
-{
-	return CharacterOwner;
-}
 
 class ENGINE_API FNetworkPredictionData_Server_Character : public FNetworkPredictionData_Server
 {

@@ -1,4 +1,4 @@
-INTSourceChangelist:2131338
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:셰이딩
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Shading, 셰이딩 카테고리에 있는 머티리얼 함수에 대
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 Shading 함수는 퍼지 셰이딩이나 스페큘러 하이라이트의 모양을 조절하는 등의 전문화된 셰이딩 기능을 제공하는 함수입니다.
 

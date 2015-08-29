@@ -8,7 +8,6 @@
 #include "FileManagerGeneric.h"
 #include "TaskGraphInterfaces.h"
 #include "StatsMallocProfilerProxy.h"
-#include "Runtime/Core/Public/Modules/ModuleVersion.h"
 
 #include "Projects.h"
 #include "UProjectInfo.h"
@@ -176,6 +175,22 @@ static TScopedPointer<FOutputDeviceConsole>	GScopedLogConsole;
 static TScopedPointer<FOutputDeviceStdOutput> GScopedStdOut;
 static TScopedPointer<FOutputDeviceTestExit> GScopedTestExit;
 
+
+#if WITH_ENGINE
+static void RHIExitAndStopRHIThread()
+{
+	RHIExit();
+
+	// Stop the RHI Thread
+	if (GUseRHIThread)
+	{
+		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
+		FGraphEventRef QuitTask = TGraphTask<FReturnGraphTask>::CreateTask(nullptr, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(ENamedThreads::RHIThread);
+		FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);
+	}
+}
+#endif
+
 /**
  * Initializes std out device and adds it to GLog
  **/
@@ -231,7 +246,7 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 	return false;
 }
 
-bool LaunchSetGameName(const TCHAR *InCmdLine)
+bool LaunchSetGameName(const TCHAR *InCmdLine, FString& OutGameProjectFilePathUnnormalized)
 {
 	if (GIsGameAgnosticExe)
 	{
@@ -247,6 +262,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			{
 				FApp::SetGameName(*LocalGameName);
 			}
+			OutGameProjectFilePathUnnormalized = ProjFilePath;
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
 #if UE_GAME
@@ -260,6 +276,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			if (LocalGameName != TEXT("UE4Game"))
 			{
 				ProjFilePath = FPaths::Combine(TEXT(".."), TEXT(".."), TEXT(".."), *LocalGameName, *FString(LocalGameName + TEXT(".") + FProjectDescriptor::GetExtension()));
+				OutGameProjectFilePathUnnormalized = ProjFilePath;
 				FPaths::SetProjectFilePath(ProjFilePath);
 			}
 		}
@@ -305,6 +322,7 @@ bool LaunchSetGameName(const TCHAR *InCmdLine)
 			{
 				FApp::SetGameName(*LocalGameName);
 			}
+			OutGameProjectFilePathUnnormalized = ProjFilePath;
 			FPaths::SetProjectFilePath(ProjFilePath);
 		}
 
@@ -461,7 +479,8 @@ bool LaunchCheckForFileOverride(const TCHAR* CmdLine, bool& OutFileOverrideFound
 			FString HostIpString;
 			FParse::Value(CmdLine, TEXT("-FileHostIP="), HostIpString);
 #if PLATFORM_REQUIRES_FILESERVER
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to connect to file server at %s. RETRYING.\n"), *HostIpString);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to connect to file server at %s. RETRYING in 5s.\n"), *HostIpString);
+			FPlatformProcess::Sleep(5.0f);
 			uint32 Result = 2;
 #else	//PLATFORM_REQUIRES_FILESERVER
 			// note that this can't be localized because it happens before we connect to a filserver - localizing would cause ICU to try to load.... from over the file server connection!
@@ -678,10 +697,10 @@ bool IsServerDelegateForOSS(FName WorldContextHandle)
 }
 #endif
 
+DECLARE_CYCLE_STAT( TEXT( "FEngineLoop::PreInit.AfterStats" ), STAT_FEngineLoop_PreInit_AfterStats, STATGROUP_LoadTime );
+
 int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 {
-	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Engine Pre-Initialized"), STAT_PreInit, STATGROUP_LoadTime);
-
 	if (FParse::Param(CmdLine, TEXT("UTF8Output")))
 	{
 		FPlatformMisc::SetUTF8Output();
@@ -707,8 +726,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif // STATS
 
+	// Name of project file before normalization (as specified in command line).
+	// Used to fixup project name if necessary.
+	FString GameProjectFilePathUnnormalized;
+
 	// Set GameName, based on the command line
-	if (LaunchSetGameName(CmdLine) == false)
+	if (LaunchSetGameName(CmdLine, GameProjectFilePathUnnormalized) == false)
 	{
 		// If it failed, do not continue
 		return 1;
@@ -762,6 +785,12 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				{
 					UE_LOG(LogInit, Display, TEXT("\tFound project file %s."), *GameProjectFile);
 					FPaths::SetProjectFilePath(GameProjectFile);
+
+					// Fixup command line if project file wasn't found in specified directory to properly parse next arguments.
+					FString OldCommandLine = FString(FCommandLine::Get());
+					OldCommandLine.ReplaceInline(*GameProjectFilePathUnnormalized, *GameProjectFile, ESearchCase::CaseSensitive);
+					FCommandLine::Set(*OldCommandLine);
+					CmdLine = FCommandLine::Get();
 				}
 			}
 		}
@@ -912,7 +941,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if (bHasCommandletToken)
 		{
 #if STATS
-			FThreadStats::MasterDisableForever();
+			// Leave the stats enabled.
+			if (!FStats::EnabledForCommandlet())
+			{
+				FThreadStats::MasterDisableForever();
+			}
 #endif
 			if (Token.StartsWith(TEXT("run=")))
 			{
@@ -946,23 +979,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
 
-	// Initialize random number generator.
-	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
-	{
-		FMath::RandInit( 0 );
-		FMath::SRandInit( 0 );
-		UE_LOG(LogInit, Display, TEXT("RandInit(0) SRandInit(0)."));
-	}
-	else
-	{
-		uint32 Cycles1 = FPlatformTime::Cycles();
-		FMath::RandInit(Cycles1);
-		uint32 Cycles2 = FPlatformTime::Cycles();
-		FMath::SRandInit(Cycles2);
-		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
-	}
-
-
 	FString CheckToken = Token;
 	bool bFoundValidToken = false;
 	while (!bFoundValidToken && (CheckToken.Len() > 0))
@@ -986,7 +1002,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	if (bHasCommandletToken)
 	{
 #if STATS
-		FThreadStats::MasterDisableForever();
+		// Leave the stats enabled.
+		if (!FStats::EnabledForCommandlet())
+		{
+			FThreadStats::MasterDisableForever();
+		}
 #endif
 		if (Token.StartsWith(TEXT("run=")))
 		{
@@ -1007,6 +1027,22 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	bHasEditorToken = false;
 #endif
 #endif	//UE_EDITOR
+
+	// Initialize random number generator.
+	if( FApp::IsBenchmarking() || FParse::Param(FCommandLine::Get(),TEXT("FIXEDSEED")) )
+	{
+		FMath::RandInit( 0 );
+		FMath::SRandInit( 0 );
+		UE_LOG(LogInit, Display, TEXT("RandInit(0) SRandInit(0)."));
+	}
+	else
+	{
+		uint32 Cycles1 = FPlatformTime::Cycles();
+		FMath::RandInit(Cycles1);
+		uint32 Cycles2 = FPlatformTime::Cycles();
+		FMath::SRandInit(Cycles2);
+		UE_LOG(LogInit, Display, TEXT("RandInit(%d) SRandInit(%d)."), Cycles1, Cycles2);
+	}
 
 #if !IS_PROGRAM
 	if ( !GIsGameAgnosticExe && FApp::HasGameName() && !FPaths::IsProjectFilePathSet() )
@@ -1037,6 +1073,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+	// initialize task graph sub-system with potential multiple threads
+	FTaskGraphInterface::Startup( FPlatformMisc::NumberOfCores() );
+	FTaskGraphInterface::Get().AttachToThread( ENamedThreads::GameThread );
+
+#if STATS
+	FThreadStats::StartThread();
+#endif
+
+	FScopeCycleCounter CycleCount_AfterStats( GET_STATID( STAT_FEngineLoop_PreInit_AfterStats ) );
+
 	// Load Core modules required for everything else to work (needs to be loaded before InitializeRenderingCVarsCaching)
 	LoadCoreModules();
 
@@ -1065,14 +1111,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		PRIVATE_GIsRunningCommandlet = true;
 	}
 #endif //WITH_EDITOR
-
-	// initialize task graph sub-system with potential multiple threads
-	FTaskGraphInterface::Startup( FPlatformMisc::NumberOfCores() );
-	FTaskGraphInterface::Get().AttachToThread( ENamedThreads::GameThread );
-
-#if STATS
-	FThreadStats::StartThread();
-#endif
 
 	if (FPlatformProcess::SupportsMultithreading())
 	{
@@ -1104,6 +1142,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	// Apply renderer settings from console variables stored in the INI.
 	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.RendererSettings"),*GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.StreamingSettings"), *GEngineIni, ECVF_SetByProjectSetting);
+	ApplyCVarSettingsFromIni(TEXT("/Script/Engine.GarbageCollectionSettings"), *GEngineIni, ECVF_SetByProjectSetting);
 
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer())
@@ -1176,6 +1216,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GIsEditor = true;
 #endif	//WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = true;
+
+		// Allow commandlet rendering based on command line switch (too early to let the commandlet itself override this).
+		PRIVATE_GAllowCommandletRendering = FParse::Param(FCommandLine::Get(), TEXT("AllowCommandletRendering"));
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.
@@ -1282,8 +1325,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	EndInitTextLocalization();
 
-	IStreamingManager::Get();
-
 	if (FPlatformProcess::SupportsMultithreading() && !IsRunningDedicatedServer() && (bIsRegularClient || bHasEditorToken))
 	{
 		FPlatformSplash::Show();
@@ -1352,6 +1393,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsExist();
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
+
+	// Initialize the texture streaming system (needs to happen after RHIInit and ProcessNewlyLoadedUObjects).
+	IStreamingManager::Get();
 
 	SlowTask.EnterProgressFrame(5);
 
@@ -1423,6 +1467,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 	SlowTask.EnterProgressFrame(5);
 
+	RHIPostInit();
+
 	if (GUseThreadedRendering)
 	{
 		if (GRHISupportsRHIThread)
@@ -1441,6 +1487,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		StartRenderingThread();
 	}
 	
+#if WITH_EDITOR
+	// We need to mount the shared resources for templates (if there are any) before we try and load and game classes
+	FUnrealEdMisc::Get().MountTemplateSharedPaths();
+#endif
+
 	if ( !LoadStartupModules() )
 	{
 		// At least one startup module failed to load, return 1 to indicate an error
@@ -1576,8 +1627,14 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
-			Commandlet->ParseParms( CommandletCommandLine );
+			Commandlet->ParseParms( CommandletCommandLine ); 
+#if	STATS
+			// We have to close the scope, otherwise we will end with broken stats.
+			CycleCount_AfterStats.StopAndResetStatId();
+#endif // STATS
+			FStats::TickCommandletStats();
 			int32 ErrorLevel = Commandlet->Main( CommandletCommandLine );
+			FStats::TickCommandletStats();
 
 			// Log warning/ error summary.
 			if( Commandlet->ShowErrorCount )
@@ -1769,6 +1826,8 @@ void FEngineLoop::LoadPreInitModules()
 
 	FModuleManager::Get().LoadModule(TEXT("Renderer"));
 
+	FModuleManager::Get().LoadModule(TEXT("AnimGraphRuntime"));
+
 	FPlatformMisc::LoadPreInitModules();
 	
 #if !UE_SERVER
@@ -1872,6 +1931,9 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// cooking needs this module too
 	FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
 
+	// Ability tasks are based on GameplayTasks, so we need to make sure that module is loaded as well
+	FModuleManager::Get().LoadModule(TEXT("GameplayTasksEditor"));
+
 	// -----------------------------------------------------
 
 	// HACK: load AbilitySystem editor as early as possible for statically initialized assets (non cooked BT assets needs it)
@@ -1901,6 +1963,11 @@ bool FEngineLoop::LoadStartupCoreModules()
 	// We need this for blueprint projects that have online functionality.
 	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
 
+	if (IsRunningCommandlet())
+	{
+		FModuleManager::Get().LoadModule(TEXT("IntroTutorials"));
+		FModuleManager::Get().LoadModule(TEXT("Blutility"));
+	}
 #endif //(WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 
 	return bSuccess;
@@ -1989,6 +2056,8 @@ void GameLoopIsStarved()
 
 int32 FEngineLoop::Init()
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FEngineLoop::Init" ), STAT_FEngineLoop_Init, STATGROUP_LoadTime );
+
 	FScopedSlowTask SlowTask(100);
 	SlowTask.EnterProgressFrame(10);
 
@@ -2040,9 +2109,10 @@ int32 FEngineLoop::Init()
 #endif
 
 #if WITH_EDITOR
-	if( GIsEditor )
+	FModuleManager::Get().LoadModule("AutomationController");
+	FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Init();
+	if (GIsEditor)
 	{
-		FModuleManager::GetModuleChecked<IAutomationControllerModule>("AutomationController").Init();
 		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
 	}
 #endif
@@ -2066,6 +2136,8 @@ int32 FEngineLoop::Init()
 
 void FEngineLoop::Exit()
 {
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "EngineLoop.Exit" ) );
+
 	GIsRunning	= 0;
 	GLogConsole	= NULL;
 
@@ -2136,7 +2208,7 @@ void FEngineLoop::Exit()
 	StopRenderingThread();
 
 	// Tear down the RHI.
-	RHIExit();
+	RHIExitAndStopRHIThread();
 
 #if WITH_ENGINE
 	// Save the hot reload state
@@ -2152,6 +2224,7 @@ void FEngineLoop::Exit()
 	// order they were loaded in, so that systems can unregister and perform general clean up.
 	FModuleManager::Get().UnloadModulesAtShutdown();
 
+	// Move earlier?
 #if STATS
 	FThreadStats::StopThread();
 #endif
@@ -2227,10 +2300,6 @@ bool FEngineLoop::ShouldUseIdleMode() const
 
 	return bIdleMode;
 }
-
-#if WITH_COREUOBJECT
-COREUOBJECT_API void DeleteLoaders();
-#endif
 
 void FEngineLoop::Tick()
 {
@@ -2399,16 +2468,15 @@ void FEngineLoop::Tick()
 #endif
 
 #if WITH_EDITOR
-		if( GIsEditor )
 		{
 #if WITH_ENGINE
-			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationController);
+			QUICK_SCOPE_CYCLE_COUNTER( STAT_FEngineLoop_Tick_AutomationController );
 #endif
-			static FName AutomationController("AutomationController");
+			static FName AutomationController( "AutomationController" );
 			//Check if module loaded to support the change to allow this to be hot compilable.
-			if (FModuleManager::Get().IsModuleLoaded(AutomationController))
+			if (FModuleManager::Get().IsModuleLoaded( AutomationController ))
 			{
-				FModuleManager::GetModuleChecked<IAutomationControllerModule>(AutomationController).Tick();
+				FModuleManager::GetModuleChecked<IAutomationControllerModule>( AutomationController ).Tick();
 			}
 		}
 #endif
@@ -2488,15 +2556,15 @@ void FEngineLoop::Tick()
 			RHICmdList.EndFrame();
 			RHICmdList.PopEvent();
 		});
-	} 
 
-	// Check for async platform hardware survey results
-	GEngine->TickHardwareSurvey();
+		// Check for async platform hardware survey results
+		GEngine->TickHardwareSurvey();
 
-	// Set CPU utilization stats.
-	const FCPUTime CPUTime = FPlatformTime::GetCPUTime();
-	SET_FLOAT_STAT(STAT_CPUTimePct,CPUTime.CPUTimePct);
-	SET_FLOAT_STAT(STAT_CPUTimePctRelative,CPUTime.CPUTimePctRelative);
+		// Set CPU utilization stats.
+		const FCPUTime CPUTime = FPlatformTime::GetCPUTime();
+		SET_FLOAT_STAT( STAT_CPUTimePct, CPUTime.CPUTimePct );
+		SET_FLOAT_STAT( STAT_CPUTimePctRelative, CPUTime.CPUTimePctRelative );
+	}
 }
 
 void FEngineLoop::ClearPendingCleanupObjects()
@@ -2749,7 +2817,7 @@ bool FEngineLoop::AppInit( )
 
 	//// Command line.
 	UE_LOG(LogInit, Log, TEXT("Version: %s"), *GEngineVersion.ToString());
-	UE_LOG(LogInit, Log, TEXT("API Version: %u"), MODULE_API_VERSION);
+	UE_LOG(LogInit, Log, TEXT("API Version: %u"), GCompatibleWithEngineVersion.GetChangelist());
 
 #if PLATFORM_64BITS
 	UE_LOG(LogInit, Log, TEXT("Compiled (64-bit): %s %s"), ANSI_TO_TCHAR(__DATE__), ANSI_TO_TCHAR(__TIME__));
@@ -2804,6 +2872,10 @@ bool FEngineLoop::AppInit( )
 	// Because most, if not all online subsystems will load HTTP themselves. This can cause problems though, as HTTP will be loaded *after* OSS, 
 	// and if OSS holds on to resources allocated by it, this will cause crash (modules are being unloaded in LIFO order with no dependency tracking).
 	// Loading HTTP before OSS works around this problem by making ModuleManager unload HTTP after OSS, at the cost of extra module for the few OSS (like Null) that don't use it.
+	if(FModuleManager::Get().ModuleExists(TEXT("XMPP")))
+	{
+		FModuleManager::Get().LoadModule(TEXT("XMPP"));
+	}
 	FModuleManager::Get().LoadModule(TEXT("HTTP"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));

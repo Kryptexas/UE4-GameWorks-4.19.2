@@ -42,6 +42,7 @@ enum class EPlaneConstraintAxisSetting : uint8
  *    - Utility functions for moving when there may be initial penetration (SafeMoveUpdatedComponent(), ResolvePenetration()).
  *    - Automatically registering the component tick and finding a component to move on the owning Actor.
  * Normally the root component of the owning actor is moved, however another component may be selected (see SetUpdatedComponent()).
+ * During swept (non-teleporting) movement only collision of UpdatedComponent is considered, attached components will teleport to the end location ignoring collision.
  */
 UCLASS(ClassGroup=Movement, abstract, BlueprintType)
 class ENGINE_API UMovementComponent : public UActorComponent
@@ -249,14 +250,15 @@ public:
 	 * Moves our UpdatedComponent by the given Delta, and sets rotation to NewRotation. Respects the plane constraint, if enabled.
 	 * @note This simply calls the virtual MoveUpdatedComponentImpl() which can be overridden to implement custom behavior.
 	 * @note The overload taking rotation as an FQuat is slightly faster than the version using FRotator (which will be converted to an FQuat).
+	 * @note The 'Teleport' flag is currently always treated as 'None' (not teleporting) when used in an active FScopedMovementUpdate.
 	 * @return True if some movement occurred, false if no movement occurred. Result of any impact will be stored in OutHit.
 	 */
-	bool MoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation,    bool bSweep, FHitResult* OutHit = NULL);
-	bool MoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL);
+	bool MoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation,    bool bSweep, FHitResult* OutHit = NULL, ETeleportType Teleport = ETeleportType::None);
+	bool MoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, ETeleportType Teleport = ETeleportType::None);
 
 protected:
 
-	virtual bool MoveUpdatedComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL);
+	virtual bool MoveUpdatedComponentImpl(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit = NULL, ETeleportType Teleport = ETeleportType::None);
 
 public:
 	
@@ -265,17 +267,18 @@ public:
 	 * Respects the plane constraint, if enabled.
 	 * @return True if some movement occurred, false if no movement occurred. Result of any impact will be stored in OutHit.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName = "MoveUpdatedComponent"))
-	bool K2_MoveUpdatedComponent(FVector Delta, FRotator NewRotation, FHitResult& OutHit, bool bSweep = true);
+	UFUNCTION(BlueprintCallable, Category="Components|Movement", meta=(DisplayName = "MoveUpdatedComponent", AdvancedDisplay="bTeleport"))
+	bool K2_MoveUpdatedComponent(FVector Delta, FRotator NewRotation, FHitResult& OutHit, bool bSweep = true, bool bTeleport = false);
 
 	/**
 	 * Calls MoveUpdatedComponent(), handling initial penetrations by calling ResolvePenetration().
 	 * If this adjustment succeeds, the original movement will be attempted again.
-	 * @note The overload taking rotation as an FQuat is slightly faster than the version using FRotator (which will be converted to an FQuat)..
+	 * @note The overload taking rotation as an FQuat is slightly faster than the version using FRotator (which will be converted to an FQuat).
+	 * @note The 'Teleport' flag is currently always treated as 'None' (not teleporting) when used in an active FScopedMovementUpdate.
 	 * @return result of the final MoveUpdatedComponent() call.
 	 */
-	bool SafeMoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation,    bool bSweep, FHitResult& OutHit);
-	bool SafeMoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult& OutHit);
+	bool SafeMoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation,    bool bSweep, FHitResult& OutHit, ETeleportType Teleport = ETeleportType::None);
+	bool SafeMoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult& OutHit, ETeleportType Teleport = ETeleportType::None);
 
 	/**
 	 * Calculate a movement adjustment to try to move out of a penetration from a failed move.
@@ -383,6 +386,10 @@ public:
 	/** Sets the origin of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
 	virtual void SetPlaneConstraintOrigin(FVector PlaneOrigin);
+	
+	/** Sets whether or not the plane constraint is enabled. */
+	UFUNCTION(BlueprintCallable, Category = "Components|Movement|Planar")
+	virtual void SetPlaneConstraintEnabled(bool bEnabled);
 
 	/** @return The normal of the plane that constrains movement, enforced if the plane constraint is enabled. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement|Planar")
@@ -446,19 +453,19 @@ inline EPlaneConstraintAxisSetting UMovementComponent::GetPlaneConstraintAxisSet
 	return PlaneConstraintAxisSetting;
 }
 
-FORCEINLINE_DEBUGGABLE bool UMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult& OutHit)
+FORCEINLINE_DEBUGGABLE bool UMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult& OutHit, ETeleportType Teleport)
 {
-	return SafeMoveUpdatedComponent(Delta, NewRotation.Quaternion(), bSweep, OutHit);
+	return SafeMoveUpdatedComponent(Delta, NewRotation.Quaternion(), bSweep, OutHit, Teleport);
 }
 
-FORCEINLINE_DEBUGGABLE bool UMovementComponent::MoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit)
+FORCEINLINE_DEBUGGABLE bool UMovementComponent::MoveUpdatedComponent(const FVector& Delta, const FQuat& NewRotation, bool bSweep, FHitResult* OutHit, ETeleportType Teleport)
 {
-	return MoveUpdatedComponentImpl(Delta, NewRotation, bSweep, OutHit);
+	return MoveUpdatedComponentImpl(Delta, NewRotation, bSweep, OutHit, Teleport);
 }
 
-FORCEINLINE_DEBUGGABLE bool UMovementComponent::MoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit)
+FORCEINLINE_DEBUGGABLE bool UMovementComponent::MoveUpdatedComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, ETeleportType Teleport)
 {
-	return MoveUpdatedComponentImpl(Delta, NewRotation.Quaternion(), bSweep, OutHit);
+	return MoveUpdatedComponentImpl(Delta, NewRotation.Quaternion(), bSweep, OutHit, Teleport);
 }
 
 FORCEINLINE_DEBUGGABLE bool UMovementComponent::ResolvePenetration(const FVector& Adjustment, const FHitResult& Hit, const FQuat& NewRotation)

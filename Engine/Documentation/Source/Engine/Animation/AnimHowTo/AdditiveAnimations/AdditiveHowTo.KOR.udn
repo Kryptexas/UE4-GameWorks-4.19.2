@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2467511
+﻿INTSourceChangelist:2615721
 Availability: Public
 Title:애디티브 애니메이션 사용하기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -30,9 +30,9 @@ Related: Engine/Animation/AnimationBlending
 
 여기서는 플레이어 캐릭터를 할당하고, 이동 애니메이션과 블렌딩할 애니메이션을 수정하도록 하겠습니다.
 
-1.  프로젝트를 열고, **콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **MyGame** 블루프린트를 엽니다.
+1.  프로젝트를 열고, **콘텐츠 브라우저** 에서 **Game/Blueprints** 폴더 아래 **ThirdPersonGameMode** 블루프린트를 엽니다.
 
-1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭한 다음 **ASP_Character** 를 선택합니다. 
+1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭한 다음 **Ue4ASP_Character** 를 선택합니다. 
 
 	![](Animations1.png)
 
@@ -66,7 +66,7 @@ Related: Engine/Animation/AnimationBlending
 
 다음으로 언제 발사 버튼을 눌렀는지 알 수 있도록 캐릭터 블루프린트를 약간 업데이트하도록 하겠습니다.
 
-1.	**콘텐츠 브라우저** 안에서 **Game/AnimStarterPack/Character** 아래 **ASP_Character** 블루프린트를 엽니다.
+1.	**콘텐츠 브라우저** 안에서 **Game/AnimStarterPack/Character** 아래 **Ue4ASP_Character** 블루프린트를 엽니다.
 
 1.	**Crouching** 섹션을 찾은 다음 (경고! 가 있는) **InputAction Crouch** 이벤트 사인을 삭제합니다.
 
@@ -102,7 +102,7 @@ Related: Engine/Animation/AnimationBlending
 
 여기서는 애니메이션 그래프를 셋업하고 현재 포즈와 무기 발사 애니메이션을 블렌딩하는 데 필요한 노드를 배치하도록 하겠습니다.
 
-1.	또 **Game/AnimStarterPack/Character** 아래, **ASP_HeroTPP_AnimBlueprint** 애니메이션 블루프린트를 엽니다.
+1.	또 **Game/AnimStarterPack/Character** 아래, **UE4ASP_HeroTPP_AnimBlueprint** 애니메이션 블루프린트를 엽니다.
 
 1.	**내 블루프린트** 창에서 **애님 그래프** 를 엽니다.
 
@@ -160,7 +160,7 @@ Related: Engine/Animation/AnimationBlending
 
 	![](Animations18b.png)
 
-1.	**Cast To ASP_Character** 노드의 **As ASP Character** 핀을 끌어 놓은 다음 **Get Fire Button Down** 노드를 추가합니다.
+1.	**Cast To Ue4ASP_Character** 노드의 **As Ue4ASP Character** 핀을 끌어 놓은 다음 **Get Fire Button Down** 노드를 추가합니다.
 
 	![](Animations19.png)
 
@@ -192,11 +192,26 @@ Related: Engine/Animation/AnimationBlending
 
 1.	**컴파일**, **저장** 후 **블루프린트** 를 닫고 에디터에서 플레이합니다.
 
-	![](AdditiveGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	N96shYlF0Aw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 이제 **왼쪽 마우스 버튼** 을 누르면 캐릭터에 발사 애님 몽타주가 재생되는 것이 보일 것입니다. 발사하면서 돌아다닐 수도 있고, 심지어 발사하면서 (**C** 키를 눌러) 웅크리는 것도 가능합니다.
 
 이 방법을 사용하여 근접 공격이나 재장전 애니메이션을 재생할 수도 있습니다. 이동 애니메이션 세트와 블렌딩하고자 하는 애니메이션에 대한 **애님 몽타주** 를 만든 다음, 위 8 단계에서 한 것처럼 **UpperBody** 슬롯에 할당해 주면 됩니다. 캐릭터의 애니메이션 블루프린트 내 애님 그래프에 슬롯이 구성되었기 때문에, 해당 슬롯을 사용하도록 설정된 애니메이션은 애니메이션 그래프에 전달되어 호출시 블렌드 인 됩니다.
+
+
+
+
+
 
 
 

@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2621701
 Availability: Public
 Title:2. 에디터에 변수와 함수를 노출
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/VariablesTimersEvents
 Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수를 에디터에 노출시킵니다.
-
+version:4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
@@ -12,7 +12,7 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\VariablesTimersEvents)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\VariablesTimersEvents\3 "%Programming\Tutorials\VariablesTimersEvents\3:title%")
@@ -22,7 +22,7 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 
 %Steps%
 
-1. 우리 카운트다운 타이머는 현재 3 초 값을 사용하도록 하드코딩되어 있습니다. 카운트다운 시간을 에디터에서 원하는 값으로 설정할 수 있다면 더욱 유용할텐데, 쉽게 가능한 일입니다. **Visual Studio** 에서 "Countdown.h" 를 열고 다음 줄을 찾습니다:
+1. 우리 카운트다운 타이머는 현재 3 초 값을 사용하도록 하드코딩되어 있습니다. 카운트다운 시간을 에디터에서 원하는 값으로 설정할 수 있다면 더욱 유용할텐데, 쉽게 가능한 일입니다. **Visual Studio** 에서 `Countdown.h` 를 열고 다음 줄을 찾습니다:
 
 		int32 CountdownTime;
 
@@ -50,7 +50,7 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 	
 	**언리얼 에디터** 로 돌아와서 **컴파일** 을 누르면, 앞서 배치한 **ACountdown** 의 **디테일 패널** 에 변수가 나타나며, 이 수치를 변경하고 **플레이** 를 누르는 것으로 다른 타이머를 테스트할 수 있습니다.
 
-1. 타이머 값 변경에 추가로, 프로그래머가 아닌 개발자가 타이머가 다 되면 벌어지는 일을 바꿀 수 있도록도 해 줍시다. **Visual Studio** 에서 "Countdown.h" 를 열고 다음 줄을 찾습니다:
+1. 타이머 값 변경에 추가로, 프로그래머가 아닌 개발자가 타이머가 다 되면 벌어지는 일을 바꿀 수 있도록도 해 줍시다. **Visual Studio** 에서 `Countdown.h` 를 열고 다음 줄을 찾습니다:
 
 		void CountdownHasFinished();
 
@@ -64,18 +64,18 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 	
 	1. **BlueprintCallable** 함수는 C++ 로 작성되어 **블루프린트 그래프** 에서 호출 가능하지만, C++ 코드 편집 없이는 변경이나 덮어쓰기가 불가능합니다. 이런 식으로 마킹된 함수는 프로그래머가 아닌 사람이 쓰도록 프로그래밍된 것이지만, 변경을 해서는 안되거나 변경하는 것이 바람직하지 않은 경우입니다. 쉬운 예제로 수학 함수를 들 수 있습니다.
 
-	1. **BlueprintImplementableEvent** 함수는 C++ 헤더 (".h") 파일에 구성되나, 함수 본문은 C++ 가 아닌 전적으로 **블루프린트 그래프** 에서 작성되는 것입니다. 이는 보통 프로그래머가 아닌 사람에게 예상된 기본 동작이나 표준 동작이 없는 특수 상황에 대한 반응을 입맛대로 만들 수 있는 능력을 주기 위해 쓰입니다. 이에 대한 예제로는 우주선 게임에서 플레이어의 우주선이 파워업을 먹었을 때 발생하는 이벤트같은 것을 들 수 있습니다.
+	1. **BlueprintImplementableEvent** 함수는 C++ 헤더 (`.h`) 파일에 구성되나, 함수 본문은 C++ 가 아닌 전적으로 **블루프린트 그래프** 에서 작성되는 것입니다. 이는 보통 프로그래머가 아닌 사람에게 예상된 기본 동작이나 표준 동작이 없는 특수 상황에 대한 반응을 입맛대로 만들 수 있는 능력을 주기 위해 쓰입니다. 이에 대한 예제로는 우주선 게임에서 플레이어의 우주선이 파워업을 먹었을 때 발생하는 이벤트같은 것을 들 수 있습니다.
 
 	1. **BlueprintNativeEvent** 함수는 **BlueprintCallable** 과 **BlueprintImplementableEvent** 함수를 조합한 것 같은 것입니다. C++ 로 기본 작동방식이 프로그래밍되어 있지만, **블루프린트 그래프** 로 덮어써서 보조 또는 대체 가능합니다. 이에 대한 프로그래밍을 할 때 C++ 코드는 아래처럼 항상 이름 끝에 "_Implementation" 이 붙는 가상 함수에 들어갑니다. 가장 유연한 옵션이므로, 이 튜토리얼에서는 이 옵션을 사용하겠습니다.
 	[/REGION]
 
-	프로그래머가 아닌 사람들에게 C++ 함수를 호출하고 **블루프린트** 로 덮어쓸 수 있도록 하기 위해서, "Countdown.h" 를 다음과 같이 변경해 줍니다:
+	프로그래머가 아닌 사람들에게 C++ 함수를 호출하고 **블루프린트** 로 덮어쓸 수 있도록 하기 위해서, `Countdown.h` 를 다음과 같이 변경해 줍니다:
 
 		UFUNCTION(BlueprintNativeEvent)
 		void CountdownHasFinished();
 		virtual void CountdownHasFinished_Implementation();
 
-	그리고 "Countdown.cpp" 에서, 다음과 같은 줄을:
+	그리고 `Countdown.cpp` 에서, 다음과 같은 줄을:
 
 		void ACountdown::CountdownHasFinished()
 
@@ -151,7 +151,6 @@ Description:UPROPERTY 와 UFUNCTION 매크로를 사용하여 변수와 함수�
 				CountdownText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("CountdownNumber"));
 				CountdownText->SetHorizontalAlignment(EHTA_Center);
 				CountdownText->SetWorldSize(150.0f);
-				CountdownText->AttachTo(RootComponent);
 				RootComponent = CountdownText;
 
 				CountdownTime = 3;

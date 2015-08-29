@@ -74,11 +74,8 @@ protected:
 	/** Whether or not profiling is active */
 	bool bActive;
 
-
-#ifdef DELEGATE_DEPRECATED
 	/** Handle to the registered OnNewFrame delegate */
 	FDelegateHandle OnNewFrameDelegateHandle;
-#endif
 };
 #endif
 

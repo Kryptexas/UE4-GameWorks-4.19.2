@@ -10,7 +10,7 @@
 
 // set by C++:
 //
-// 0:low / 1:high
+// 0:low / 1: medium / 2:high
 // SAMPLESET_QUALITY
 //
 // 0:no / 1:yes
@@ -26,7 +26,7 @@
 #define OPTIMIZATION_O1 1
 
 // 1:lowest quality, 2:medium , 3:high, more doesn't give too much (maybe HZB mip computations should be adjusted)
-#define SAMPLE_STEPS 3
+//#define SAMPLE_STEPS 3
 
 // 0:does not use normals (slightly faster, lower quality, WIP = not finished), 1: uses normals (slower but higher quality)
 #define SSAO_NORMAL_AFFECTED 1
@@ -40,9 +40,15 @@
 #if SAMPLESET_QUALITY == 0
 	// low
 	#define USE_SAMPLESET 1
-#else
+	#define SAMPLE_STEPS 1
+#elif SAMPLESET_QUALITY == 1
+	// medium
+	#define USE_SAMPLESET 1
+	#define SAMPLE_STEPS 3
+#else // SAMPLESET_QUALITY == 2
 	// high
 	#define USE_SAMPLESET 3
+	#define SAMPLE_STEPS 3
 #endif
 
 // 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
@@ -130,6 +136,7 @@ float4 NoiseScale;
 Texture2D RandomNormalTexture;
 SamplerState RandomNormalTextureSampler;
 
+float3 HzbUvAndStepMipLevelFactor;
 
 // could be moved to a more central spot
 // @param ScreenPos -1 .. 1
@@ -337,10 +344,10 @@ float2 Wedge(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, f
 
 	float2 ScreenSpacePos = ReconstructSSPosFromCS(SamplePosition2 * FovFix);
 
-#if USE_HZB
+#if USE_estmap 
 	float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-	float Abs = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+	float Abs = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 #else
 	float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -385,7 +392,7 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 	#else
 		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -418,7 +425,7 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-		AbsRight = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, UV, MipLevel).r);
+		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 	#else
 		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
 
@@ -559,7 +566,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 					// constant at run time
 					float Scale = (step + 1) / (float)SAMPLE_STEPS;
 					// constant at run time (higher is better for texture cache / performance, lower is better quality
-					float MipLevel = max(step, (uint)1);
+					float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
 					float2 StepSample = Wedge2(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 
@@ -581,7 +588,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 						// constant at run time
 						float Scale = (step + 1) / (float)SAMPLE_STEPS * mirror;
 						// constant at run time (higher is better for texture cache / performance, lower is better quality
-						float MipLevel = max(step, (uint)1);
+						float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
 						float2 StepSample = Wedge(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 

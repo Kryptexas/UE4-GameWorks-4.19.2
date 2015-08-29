@@ -8,7 +8,6 @@
 	#include <shellapi.h>
 	#include <shlobj.h>
 	#include <LM.h>
-	#include <tlhelp32.h>
 	#include <Psapi.h>
 
 	namespace ProcessConstants
@@ -158,7 +157,7 @@ void FWindowsPlatformProcess::PushDllDirectory(const TCHAR* Directory)
 void FWindowsPlatformProcess::PopDllDirectory(const TCHAR* Directory)
 {
 	// don't allow too many pops (indicates bad code that should be fixed, but won't kill anything, so using ensure)
-	ensureMsg(DllDirectoryStack.Num() > 0, TEXT("Tried to PopDllDirectory too many times"));
+	ensureMsgf(DllDirectoryStack.Num() > 0, TEXT("Tried to PopDllDirectory too many times"));
 	// verify we are popping the top
 	checkf(DllDirectoryStack.Top() == Directory, TEXT("There was a PushDllDirectory/PopDllDirectory mismatch (Popped %s, which didn't match %s)"), *DllDirectoryStack.Top(), Directory);
 	// pop it off
@@ -334,12 +333,12 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	STARTUPINFO StartupInfo = {
 		sizeof(STARTUPINFO),
 		NULL, NULL, NULL,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		0, 0, 0,
-		dwFlags,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)CW_USEDEFAULT,
+		(::DWORD)0, (::DWORD)0, (::DWORD)0,
+		(::DWORD)dwFlags,
 		ShowWindowFlags,
 		0, NULL,
 		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE),
@@ -351,7 +350,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
 	PROCESS_INFORMATION ProcInfo;
 
-	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
+	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, (::DWORD)CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
 	{
 		UE_LOG(LogWindows, Warning, TEXT("CreateProc failed (%u) %s %s"), ::GetLastError(), URL, Parms);
 		if (OutProcessID != nullptr)
@@ -607,9 +606,9 @@ bool FWindowsPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params
 
 	bool bSuccess = false;
 	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
-		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
+		(::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT, (::DWORD)CW_USEDEFAULT,
+		(::DWORD)0, (::DWORD)0, (::DWORD)0, (::DWORD)dwFlags, ShowWindowFlags, 0, NULL,
+		::GetStdHandle((::DWORD)ProcessConstants::WIN_STD_INPUT_HANDLE), WritablePipes[0], WritablePipes[1] };
 	if (CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags,
 		NULL, NULL, &StartupInfo, &ProcInfo))
 	{
@@ -848,7 +847,17 @@ const TCHAR* FWindowsPlatformProcess::UserName(bool bOnlyAlphaNumeric/* = true*/
 
 void FWindowsPlatformProcess::SetCurrentWorkingDirectoryToBaseDir()
 {
+	FPlatformMisc::CacheLaunchDir();
 	verify(SetCurrentDirectoryW(BaseDir()));
+}
+
+/** Get the current working directory (only really makes sense on desktop platforms) */
+FString FWindowsPlatformProcess::GetCurrentWorkingDirectory()
+{
+	// get the current working directory (uncached)
+	TCHAR CurrentDirectory[MAX_PATH];
+	GetCurrentDirectoryW(MAX_PATH, CurrentDirectory);
+	return CurrentDirectory;
 }
 
 const TCHAR* FWindowsPlatformProcess::ExecutableName(bool bRemoveExtension)
@@ -978,9 +987,9 @@ bool FWindowsPlatformProcess::ResolveNetworkPath( FString InUNCPath, FString& Ou
 
 void FWindowsPlatformProcess::Sleep( float Seconds )
 {
-	SCOPE_CYCLE_COUNTER(STAT_Sleep);
+	SCOPE_CYCLE_COUNTER( STAT_Sleep );
 	FThreadIdleStats::FScopeIdle Scope;
-	SleepNoStats(Seconds);
+	SleepNoStats( Seconds );
 }
 
 void FWindowsPlatformProcess::SleepNoStats(float Seconds)
@@ -1022,10 +1031,27 @@ FEvent* FWindowsPlatformProcess::CreateSynchEvent(bool bIsManualReset)
 
 bool FEventWin::Wait(uint32 WaitTime, const bool bIgnoreThreadIdleStats /*= false*/)
 {
-	FScopeCycleCounter Counter(StatID);
-	FThreadIdleStats::FScopeIdle Scope(bIgnoreThreadIdleStats);
-	check(Event);
-	return (WaitForSingleObject(Event, WaitTime) == WAIT_OBJECT_0);
+	WaitForStats();
+
+	SCOPE_CYCLE_COUNTER( STAT_EventWait );
+	check( Event );
+
+	FThreadIdleStats::FScopeIdle Scope( bIgnoreThreadIdleStats );
+	return (WaitForSingleObject( Event, WaitTime ) == WAIT_OBJECT_0);
+}
+
+void FEventWin::Trigger()
+{
+	TriggerForStats();
+	check( Event );
+	SetEvent( Event );
+}
+
+void FEventWin::Reset()
+{
+	ResetForStats();
+	check( Event );
+	ResetEvent( Event );
 }
 
 #include "HideWindowsPlatformTypes.h"
@@ -1112,6 +1138,35 @@ bool FWindowsPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Ou
 	}
 
 	return false;
+}
+
+bool FWindowsPlatformProcess::WritePipe(void* WritePipe, const FString& Message, FString* OutWritten)
+{
+	// If there is not a message or WritePipe is null
+	if (Message.Len() == 0 || WritePipe == nullptr)
+	{
+		return false;
+	}
+
+	// Convert input to UTF8CHAR
+	uint32 BytesAvailable = Message.Len();
+	UTF8CHAR* Buffer = new UTF8CHAR[BytesAvailable + 1];
+
+	if (!FString::ToBlob(Message, Buffer, BytesAvailable))
+	{
+		return false;
+	}
+
+	// Write to pipe
+	uint32 BytesWritten = 0;
+	bool bIsWritten = !!WriteFile(WritePipe, Buffer, BytesAvailable, (::DWORD*)&BytesWritten, nullptr);
+
+	if (OutWritten)
+	{
+		OutWritten->FromBlob(Buffer, BytesWritten);
+	}
+
+	return bIsWritten;
 }
 
 #include "AllowWindowsPlatformTypes.h"
@@ -1245,6 +1300,60 @@ bool FWindowsPlatformProcess::Daemonize()
 FProcHandle FWindowsPlatformProcess::OpenProcess(uint32 ProcessID)
 {
 	return FProcHandle(::OpenProcess(PROCESS_ALL_ACCESS, 0, ProcessID));
+}
+
+FWindowsPlatformProcess::FProcEnumerator::FProcEnumerator()
+{
+	SnapshotHandle = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	CurrentEntry.dwSize = 0;
+}
+
+FWindowsPlatformProcess::FProcEnumerator::~FProcEnumerator()
+{
+	::CloseHandle(SnapshotHandle);
+}
+
+FWindowsPlatformProcess::FProcEnumInfo::FProcEnumInfo(const PROCESSENTRY32& InInfo)
+	: Info(InInfo)
+{
+
+}
+
+bool FWindowsPlatformProcess::FProcEnumerator::MoveNext()
+{
+	if (CurrentEntry.dwSize == 0)
+	{
+		CurrentEntry.dwSize = sizeof(PROCESSENTRY32);
+
+		return ::Process32First(SnapshotHandle, &CurrentEntry) == TRUE;
+	}
+
+	return ::Process32Next(SnapshotHandle, &CurrentEntry) == TRUE;
+}
+
+FWindowsPlatformProcess::FProcEnumInfo FWindowsPlatformProcess::FProcEnumerator::GetCurrent() const
+{
+	return FProcEnumInfo(CurrentEntry);
+}
+
+uint32 FWindowsPlatformProcess::FProcEnumInfo::GetPID() const
+{
+	return Info.th32ProcessID;
+}
+
+uint32 FWindowsPlatformProcess::FProcEnumInfo::GetParentPID() const
+{
+	return Info.th32ParentProcessID;
+}
+
+FString FWindowsPlatformProcess::FProcEnumInfo::GetName() const
+{
+	return Info.szExeFile;
+}
+
+FString FWindowsPlatformProcess::FProcEnumInfo::GetFullPath() const
+{
+	return GetApplicationName(GetPID());
 }
 
 #include "HideWindowsPlatformTypes.h"

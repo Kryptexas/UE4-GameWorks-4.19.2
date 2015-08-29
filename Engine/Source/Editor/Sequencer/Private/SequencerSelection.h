@@ -27,13 +27,13 @@ public:
 	FSequencerSelection();
 
 	/** Gets a set of the selected keys. */
-	const TSet<FSelectedKey>* GetSelectedKeys() const;
+	const TSet<FSelectedKey>& GetSelectedKeys() const;
 
 	/** Gets a set of the selected sections */
-	const TSet<TWeakObjectPtr<UMovieSceneSection>>* GetSelectedSections() const;
+	const TSet<TWeakObjectPtr<UMovieSceneSection>>& GetSelectedSections() const;
 
 	/** Gets a set of the selected outliner nodes. */
-	const TSet<TSharedRef<const FSequencerDisplayNode>>* GetSelectedOutlinerNodes() const;
+	const TSet<TSharedRef<FSequencerDisplayNode>>& GetSelectedOutlinerNodes() const;
 
 	/** 
 	 * Gets the currently active selection.  This is used to determine which selection actions
@@ -48,7 +48,16 @@ public:
 	void AddToSelection(UMovieSceneSection* Section);
 
 	/** Adds an outliner node to the selection */
-	void AddToSelection(TSharedRef<const FSequencerDisplayNode> OutlinerNode);
+	void AddToSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
+
+	/** Removes a key from the selection */
+	void RemoveFromSelection(FSelectedKey Key);
+
+	/** Removes a section from the selection */
+	void RemoveFromSelection(UMovieSceneSection* Section);
+
+	/** Removes an outliner node from the selection */
+	void RemoveFromSelection(TSharedRef<FSequencerDisplayNode> OutlinerNode);
 
 	/** Returns whether or not the key is selected. */
 	bool IsSelected(FSelectedKey Key) const;
@@ -72,22 +81,28 @@ public:
 	void EmptySelectedOutlinerNodes();
 
 	/** Gets a multicast delegate which is called when the key selection changes. */
-	FOnSelectionChanged* GetOnKeySelectionChanged();
+	FOnSelectionChanged& GetOnKeySelectionChanged();
 
 	/** Gets a multicast delegate which is called when the section selection changes. */
-	FOnSelectionChanged* GetOnSectionSelectionChanged();
+	FOnSelectionChanged& GetOnSectionSelectionChanged();
 
 	/** Gets a multicast delegate which is called when the outliner node selection changes. */
-	FOnSelectionChanged* GetOnOutlinerNodeSelectionChanged();
+	FOnSelectionChanged& GetOnOutlinerNodeSelectionChanged();
+
+	/** Suspend or resume broadcast of selection changing  */
+	void SuspendBroadcast() { bSuspendBroadcast = true; }
+	void ResumeBroadcast() { bSuspendBroadcast = false; }
 	
 private:
 	TSet<FSelectedKey> SelectedKeys;
 	TSet<TWeakObjectPtr<UMovieSceneSection>> SelectedSections;
-	TSet<TSharedRef<const FSequencerDisplayNode>> SelectedOutlinerNodes;
+	TSet<TSharedRef<FSequencerDisplayNode>> SelectedOutlinerNodes;
 
 	FOnSelectionChanged OnKeySelectionChanged;
 	FOnSelectionChanged OnSectionSelectionChanged;
 	FOnSelectionChanged OnOutlinerNodeSelectionChanged;
 
 	EActiveSelection ActiveSelection;
+
+	bool bSuspendBroadcast;
 };

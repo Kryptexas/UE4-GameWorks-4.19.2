@@ -130,11 +130,15 @@ public partial class Project : CommandUtils
 
             try
             {
-                var CommandletParams = "-buildmachine -fileopenlog";
+                var CommandletParams = IsBuildMachine ? "-buildmachine -fileopenlog" : "-fileopenlog";
                 if (Params.UnversionedCookedContent)
                 {
                     CommandletParams += " -unversioned";
                 }
+				if (Params.FastCook)
+				{
+					CommandletParams += " -FastCook";
+				}
                 if (Params.UseDebugParamForEditorExe)
                 {
                     CommandletParams += " -debug";
@@ -170,6 +174,15 @@ public partial class Project : CommandUtils
                 if (Params.HasCreateReleaseVersion)
                 {
                     CommandletParams += " -createreleaseversion=" + Params.CreateReleaseVersion;
+                }
+                if ( Params.SkipCookingEditorContent)
+                {
+                    CommandletParams += " -skipeditorcontent";
+                }
+                if ( Params.NumCookersToSpawn != 0)
+                {
+                    CommandletParams += " -numcookerstospawn=" + Params.NumCookersToSpawn;
+
                 }
                 if (Params.HasDLCName)
                 {
@@ -214,11 +227,17 @@ public partial class Project : CommandUtils
             }
 			catch (Exception Ex)
 			{
-				// Delete cooked data (if any) as it may be incomplete / corrupted.
-				Log("Cook failed. Deleting cooked data.");
-				CleanupCookedData(PlatformsToCook.ToList(), Params);
-				AutomationTool.ErrorReporter.Error("Cook failed.", (int)AutomationTool.ErrorCodes.Error_UnknownCookFailure);
-				throw Ex;
+				if (Params.IgnoreCookErrors)
+				{
+					LogWarning("Ignoring cook failure.");
+				}
+				else
+				{
+					// Delete cooked data (if any) as it may be incomplete / corrupted.
+					Log("Cook failed. Deleting cooked data.");
+					CleanupCookedData(PlatformsToCook.ToList(), Params);
+					throw new AutomationException(ErrorCodes.Error_UnknownCookFailure, Ex, "Cook failed.");
+				}
 			}
 		}
 

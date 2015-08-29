@@ -55,8 +55,6 @@ class UK2Node_InputAction : public UK2Node
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReleasedPin() const;
 
 private:
-	void CreateInputActionEvent(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UEdGraphPin* InputActionPin, const EInputEvent InputKeyEvent);
-
 	/** Constructing FText strings can be costly, so we cache the node's title/tooltip */
 	FNodeTextCache CachedTooltip;
 	FNodeTextCache CachedNodeTitle;

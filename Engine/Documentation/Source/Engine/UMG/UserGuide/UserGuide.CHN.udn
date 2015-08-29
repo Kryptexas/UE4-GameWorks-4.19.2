@@ -1,0 +1,226 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: UMG UI Designer User Guide
+Crumbs:%ROOT%, Engine, Engine/UMG
+Description:A guide to using Unreal Motion Graphics to create UI elements. 
+
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG:title%](UMG_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/UMG:title%](UMG_Topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth raw]
+![](UserGuideHeader.png)(w:940 h:160 convert:false)
+[/REGION]
+
+## Overview
+
+[EXCERPT:umgheader]
+**Unreal Motion Graphics UI Designer (UMG)**  is a visual UI authoring tool which can be used to create UI elements such as in-game HUDs, menus or other interface related graphics you wish to present to your users. At the core of UMG are Widgets, which are a series of pre-made functions that can be used to construct your interface (things like buttons, checkboxes, sliders, progress bars, etc.). These Widgets are edited in a specialized Widget Blueprint, which uses two tabs for construction: the Designer tab allows for the visual layout of the interface and basic functions while the Graph tab provides the functionality behind the Widgets used. 
+[/EXCERPT:umgheader]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Getting Started
+	[/PARAM]
+	[PARAM:links]
+		[REGION:topics third]
+		[INCLUDE:#topics]
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:Topics]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/WidgetBlueprints:title%](WidgetBlueprintTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/WidgetBlueprints:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/WidgetBlueprints:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/WidgetBlueprints]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/CreatingWidgets:title%](CreateWidgetTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/CreatingWidgets:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/CreatingWidgets:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/CreatingWidgets]
+	[/PARAM]
+[/OBJECT]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/UMG/UserGuide/WidgetTypeReference:title%](WidgetTypeRefTopic.png)(w:291 h:120)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/blueprint_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/UMG/UserGuide/WidgetTypeReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/UMG/UserGuide/WidgetTypeReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/WidgetTypeReference]
+	[/PARAM]
+[/OBJECT]
+[/EXCERPT:Topics]
+		-->
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Further Reading
+	[/PARAM]
+	[PARAM:links]
+	[REGION:topics third]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](AnchorsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Anchors
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Anchors]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](AnimationTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Animation
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Animation]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](EventsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Events
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Events]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](PropertyBindingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Property Binding
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/PropertyBinding]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](ScalingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			DPI Scaling
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/DPIScaling]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](FontsTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Fonts
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Fonts]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](StylingTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Styling
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Styling]
+		[/PARAM]
+	[/OBJECT]
+	[OBJECT:TopicCompact]
+		[PARAM:image]
+			![](SlotTopic.png)(w:283 h:117)
+		[/PARAM]
+		[PARAM:title]
+			Slots
+		[/PARAM]
+		[PARAM:path]
+		[RELATIVE:Engine/UMG/UserGuide/Slots]
+		[/PARAM]
+	[/OBJECT]
+	[/REGION]
+	[/PARAM]
+[/OBJECT]

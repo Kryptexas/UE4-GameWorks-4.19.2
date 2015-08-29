@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2321424
+﻿INTSourceChangelist:2542856
 Availability:Public
 Title:GameMode
 Crumbs:%ROOT%, Gameplay/Framework
@@ -43,7 +43,7 @@ GameMode を Match ステートをトラックするステート マシーンま
 
 ### GameMode から生成したブループリント
 
-GameModeはブループリントで利用可能なクラスです。GameMode から生成した _ブループリント_ を作成して、プロジェクトやレベルのデフォルトのゲームモードとして使用することが可能です。
+GameMode はブループリントで利用可能なクラスです。GameMode から生成した _ブループリント_ を作成して、プロジェクトやレベルのデフォルトのゲームモードとして使用することが可能です。
 
 GameMode から生成したブループリントに以下のデフォルト値を設定することができます。
 * デフォルトの Pawn クラス
@@ -58,15 +58,15 @@ GameMode から生成したブループリントに以下のデフォルト値�
 
 レベルに GameMode を設定する方法は何通りかあります。優先度の低い方法から説明します。 
 
-「DefaultGame.ini」ファイルの「/Script/Engine.WorldSettings/」セクションに GlobalDefaultGameMode エントリを設定すると、プロジェクトの全マップに対してデフォルトのゲームモードが設定されます。 
+* DefaultGame.ini」ファイルの「/Script/Engine.WorldSettings/」セクションに GlobalDefaultGameMode エントリを設定すると、プロジェクトの全マップに対してデフォルトのゲームモードが設定されます。 
 
 		[/Script/Engine.WorldSettings]
 		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
 		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
 
-個別マップのプロジェクト設定をオーバーライドするには、エディタの **[ワールド設定]** タブで **GameMode Override** を設定します。 
+* 個別マップのプロジェクト設定をオーバーライドするには、エディタの **[World Settings]** タブで **GameMode Override** を設定します。 
 
-![](WorldSettings_GameMode.png)
+	![](WorldSettings_GameMode.png)
 
 * ゲーム起動時にある特定のオプションでを強制的に読み込ませる URL を実行ファイルへ渡すことができます。ゲームモードの設定は 「game」 オプションを使用します。詳細は [](Programming/Basics/CommandLineArguments) を参照してください。
 

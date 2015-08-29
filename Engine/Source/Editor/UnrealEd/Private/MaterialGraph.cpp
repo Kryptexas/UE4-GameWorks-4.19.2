@@ -31,11 +31,11 @@ void UMaterialGraph::RebuildGraph()
 	if (!MaterialFunction)
 	{
 		// Initialize the material input list.
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("BaseColor", "Base Color"), MP_BaseColor ) );	
+		MaterialInputs.Add( FMaterialInputInfo( GetBaseColorPinName(), MP_BaseColor ) );	
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Metallic", "Metallic"), MP_Metallic ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), MP_Specular ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Roughness", "Roughness"), MP_Roughness ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("EmissiveColor", "Emissive Color"), MP_EmissiveColor ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetEmissivePinName(), MP_EmissiveColor ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Opacity", "Opacity"), MP_Opacity ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("OpacityMask", "Opacity Mask"), MP_OpacityMask ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Normal", "Normal"), MP_Normal ) );
@@ -54,8 +54,10 @@ void UMaterialGraph::RebuildGraph()
 			MaterialInputs.Add( FMaterialInputInfo( FText::FromString(FString::Printf(TEXT("Customized UV%u"), UVIndex)), (EMaterialProperty)(MP_CustomizedUVs0 + UVIndex)) );
 		}
 
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("MaterialAttributes", "Material Attributes"), MP_MaterialAttributes) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("PixelDepthOffset", "Pixel Depth Offset"), MP_PixelDepthOffset ) );
+		MaterialInputs.Add(FMaterialInputInfo(LOCTEXT("PixelDepthOffset", "Pixel Depth Offset"), MP_PixelDepthOffset));
+
+		//^^^ New material properties go above here. ^^^^
+		MaterialInputs.Add(FMaterialInputInfo(LOCTEXT("MaterialAttributes", "Material Attributes"), MP_MaterialAttributes));
 
 		// Add Root Node
 		FGraphNodeCreator<UMaterialGraphNode_Root> NodeCreator(*this);
@@ -301,7 +303,7 @@ bool UMaterialGraph::IsInputActive(UEdGraphPin* GraphPin) const
 		{
 			if (RootNode->Pins[Index] == GraphPin)
 			{
-				return Material->IsPropertyActive(MaterialInputs[Index].Property);
+				return Material->IsPropertyActive(MaterialInputs[Index].GetProperty());
 			}
 		}
 	}
@@ -451,6 +453,16 @@ int32 UMaterialGraph::GetValidOutputIndex(FExpressionInput* Input) const
 	}
 
 	return OutputIndex;
+}
+
+FText UMaterialGraph::GetEmissivePinName() const
+{
+	return Material->IsUIMaterial() ? LOCTEXT("UIOutputColor", "Final Color") : LOCTEXT("EmissiveColor", "Emissive Color");
+}
+
+FText UMaterialGraph::GetBaseColorPinName() const
+{
+	return LOCTEXT("BaseColor", "Base Color");
 }
 
 #undef LOCTEXT_NAMESPACE

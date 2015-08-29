@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2493873
+﻿INTSourceChangelist:2599397
 Availability:Public
 Title:컴포넌트 창
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -47,8 +47,6 @@ Related: Engine/Blueprints/UserGuide/Functions
 [/VAR]
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 [INCLUDE:Shared\Glossary\C#glossary_component]
 
@@ -266,3 +264,7 @@ _블루프린트_ 의 **컴포넌트** 리스트에 컴포넌트를 추가하려
 	[/REGION:raw]
 
 [/EXCERPT:Main]
+
+
+
+

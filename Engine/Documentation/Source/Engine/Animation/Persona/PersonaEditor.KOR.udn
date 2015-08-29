@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2419781
+﻿INTSourceChangelist:2615776
 Availability:Public
 Title:페르소나 애니메이션 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:애니메이션 블루프린트, 애니메이션 시퀀스, 기타 애니메이션 애셋을 미리보고 편집하는 에디터입니다.
-Related: Engine/Animation/Persona/MenuBar
+
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
 
@@ -441,3 +441,7 @@ _애니메이션 블루프린트_ 를 테스트할 때, 애니메이션 블렌�
 
 
 --->
+
+
+
+

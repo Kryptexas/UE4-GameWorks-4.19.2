@@ -318,11 +318,22 @@ void FFXSystem::PreInitViews()
 	}
 }
 
-void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList)
+bool FFXSystem::UsesGlobalDistanceField() const
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
+		return UsesGlobalDistanceFieldInternal();
+	}
+
+	return false;
+}
+
+void FFXSystem::PreRender(FRHICommandListImmediate& RHICmdList, const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData)
+{
+	if (RHISupportsGPUParticles(FeatureLevel))
+	{
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Main, NULL, NULL, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDistanceField, NULL, GlobalDistanceFieldParameterData, FTexture2DRHIParamRef(), FTexture2DRHIParamRef());
 	}
 }
 
@@ -330,7 +341,7 @@ void FFXSystem::PostRenderOpaque(FRHICommandListImmediate& RHICmdList, const cla
 {
 	if (RHISupportsGPUParticles(FeatureLevel))
 	{
-		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::Collision, CollisionView, SceneDepthTexture, GBufferATexture);
+		SimulateGPUParticles(RHICmdList, EParticleSimulatePhase::CollisionDepthBuffer, CollisionView, NULL, SceneDepthTexture, GBufferATexture);
 		SortGPUParticles(RHICmdList);
 	}
 }

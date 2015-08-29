@@ -198,8 +198,8 @@ void MainRecombinePS(
 // PROTOTYPE CIRCLE DOF : WORK IN PROGRESS
 //
 
-// {radius, depth blur amp, depth blur radius}
-float3 CircleDofParams;
+// {radius, depth blur amp, depth blur radius, ViewPortScale}
+float4 CircleDofParams;
 
 // CIRCLE DOF: Compute circle of confusion size in pixels.
 float DepthToCoc(float Depth) 
@@ -211,6 +211,7 @@ float DepthToCoc(float Depth)
 	float ReturnCoc = max(abs(CocRadius), DepthBlurRadius);
 	if(CocRadius < 0.0) 
 	{
+		// near CoC is using negative values
 		ReturnCoc = -ReturnCoc;
 	}
 	return ReturnCoc;
@@ -347,7 +348,7 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 
 	// Fixed maximum search size (in terms of Circle of Confusion radius).
 	// Higher than 8 is too noizy for 4 samples.
-	float Coc = 8.0;
+	float Coc = 8.0 * CircleDofParams.w;
 
 	// Get base semi-random direction and dither along radius.
 	// Reused throughout the rest of the algorithm.
@@ -405,7 +406,7 @@ void CirclePS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Targe
 
 	// Used for sample pattern.
 	Coc = max(abs(FarCoc),abs(NearCoc));
-
+	
 	// Bring out to the smaller radius of sample sets.
 	// This has the highest chance of seeing a smaller overlapping CoC.
 	R1 = (RadiusBase+9.0/11.5) * Coc;

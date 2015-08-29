@@ -241,38 +241,38 @@ void FCrashDescription::UpdateIDs()
 
 void FCrashDescription::SendAnalytics()
 {
-	// Connect the crash report client analytics provider.
-	FCrashReportAnalytics::Initialize();
+		// Connect the crash report client analytics provider.
+		FCrashReportAnalytics::Initialize();
 
-	IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
+		IAnalyticsProvider& Analytics = FCrashReportAnalytics::GetProvider();
 
-	TArray<FAnalyticsEventAttribute> CrashAttributes;
+		TArray<FAnalyticsEventAttribute> CrashAttributes;
 
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "bHasCompleteData" ), bHasCompleteData ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "CrashDescriptionVersion" ), (int32)CrashDescriptionVersion ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "ReportName" ), ReportName ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "bHasCompleteData" ), bHasCompleteData ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "CrashDescriptionVersion" ), (int32)CrashDescriptionVersion ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "ReportName" ), ReportName ) );
 
-	//	AppID = GameName
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "GameName" ), GameName ) );
+		//	AppID = GameName
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "GameName" ), GameName ) );
 
-	//	AppVersion = EngineVersion
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineVersion" ), EngineVersion.ToString() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BuildVersion" ), BuildVersion ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BuiltFromCL" ), BuiltFromCL ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BranchName" ), BranchName ) );
+		//	AppVersion = EngineVersion
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineVersion" ), EngineVersion.ToString() ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BuildVersion" ), BuildVersion ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BuiltFromCL" ), BuiltFromCL ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "BranchName" ), BranchName ) );
 
-	// @see UpdateIDs()
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "MachineID" ), MachineId ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserName" ), UserName ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EpicAccountId" ), EpicAccountId ) );
+		// @see UpdateIDs()
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "MachineID" ), MachineId ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "UserName" ), UserName ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EpicAccountId" ), EpicAccountId ) );
 
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "Platform" ), Platform ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "TimeOfCrash" ), TimeOfCrash.GetTicks() ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineMode" ), EngineMode ) );
-	CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "LanguageLCID" ), LanguageLCID ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "Platform" ), Platform ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "TimeOfCrash" ), TimeOfCrash.GetTicks() ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "EngineMode" ), EngineMode ) );
+		CrashAttributes.Add( FAnalyticsEventAttribute( TEXT( "LanguageLCID" ), LanguageLCID ) );
 
-	Analytics.RecordEvent( TEXT( "CrashReportClient.ReportCrash" ), CrashAttributes );
+		Analytics.RecordEvent( TEXT( "CrashReportClient.ReportCrash" ), CrashAttributes );
 
-	// Shutdown analytics.
-	FCrashReportAnalytics::Shutdown();
-}
+		// Shutdown analytics.
+		FCrashReportAnalytics::Shutdown();
+	}

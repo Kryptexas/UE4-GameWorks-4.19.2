@@ -196,8 +196,23 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 	// Update vsync cvar
 	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
-		CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
+		FString ConfigSection = TEXT("SystemSettings");
+#if WITH_EDITOR
+		if (GIsEditor)
+		{
+			ConfigSection = TEXT("SystemSettingsEditor");
+		}
+#endif
+		int32 VSyncValue = 0;
+		if (GConfig->GetInt(*ConfigSection, TEXT("r.Vsync"), VSyncValue, GEngineIni))
+		{
+			// VSync was already set by system settings. We are capable of setting it here.
+		}
+		else
+		{
+			static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync"));
+			CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
+		}
 	}
 
 	// in init those are loaded earlier, after that we apply consolevariables.ini
@@ -248,7 +263,7 @@ void UGameUserSettings::LoadSettings( bool bForceReload/*=false*/ )
 	LoadConfig(GetClass(), *GGameUserSettingsIni);
 
 
-	// Note: Scalability::LoadState() should not be needed as we already loaed the settings earlier (needed so the engine can startup with that before the game is initialized)
+	// Note: Scalability::LoadState() should not be needed as we already loaded the settings earlier (needed so the engine can startup with that before the game is initialized)
 	ScalabilityQuality = Scalability::GetQualityLevels();
 
 	// Allow override using command-line settings
@@ -272,7 +287,8 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 
 void UGameUserSettings::SaveSettings()
 {
-	Scalability::SaveState(GGameUserSettingsIni);
+	// Save the Scalability state to the same ini file as it was loaded from in FEngineLoop::Preinit
+	Scalability::SaveState(GIsEditor ? GEditorSettingsIni : GGameUserSettingsIni);
 	SaveConfig(CPF_Config, *GGameUserSettingsIni);
 }
 
@@ -383,3 +399,7 @@ void UGameUserSettings::SetBenchmarkFallbackValues()
 	ScalabilityQuality.SetBenchmarkFallback();
 }
 
+void UGameUserSettings::SetAudioQualityLevel(int32 QualityLevel)
+{
+	AudioQualityLevel = QualityLevel;
+}

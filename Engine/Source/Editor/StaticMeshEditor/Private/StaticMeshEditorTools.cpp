@@ -85,26 +85,6 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 			}
 		}
 	}
-
-	// Only add the reimport button if we have reimport settings we can modify
-	// Note: this will get rebuilt if the asset is reimported so we don't need to use .Visibility on the button
-	const UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	if (StaticMesh->AssetImportData && StaticMesh->AssetImportData->GetClass() != UAssetImportData::StaticClass())
-	{
-		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh"), true)
-			.ValueContent()
-			[
-				SNew(SButton)
-				.OnClicked(this, &FStaticMeshDetails::Reimport)
-				.IsEnabled(this, &FStaticMeshDetails::CanReimport)
-				[
-					SNew(STextBlock)
-					.Text(LOCTEXT("Reimport", "Reimport"))
-					.Font(IDetailLayoutBuilder::GetDetailFont())
-				]
-			];
-	}
 }
 
 void SConvexDecomposition::Construct(const FArguments& InArgs)
@@ -205,25 +185,6 @@ void FStaticMeshDetails::ApplyChanges()
 	{
 		LevelOfDetailSettings->ApplyChanges();
 	}
-}
-
-FReply FStaticMeshDetails::Reimport()
-{
-	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	FReimportManager::Instance()->Reimport(StaticMesh, true);
-	return FReply::Handled();
-}
-
-bool FStaticMeshDetails::CanReimport() const
-{
-	const UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
-	check(StaticMesh);
-	if (StaticMesh->AssetImportData)
-	{
-		return StaticMesh->AssetImportData->bDirty;
-	}
-	return false;
 }
 
 SConvexDecomposition::~SConvexDecomposition()
@@ -393,6 +354,22 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("BuildAdjacencyBuffer", "Build Adjacency Buffer") )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("BuildAdjacencyBuffer", "Build Adjacency Buffer"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldBuildAdjacencyBuffer)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnBuildAdjacencyBufferChanged)
+		];
+	}
+
+	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
 		.NameContent()
 		[
@@ -499,6 +476,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 			.Y(this, &FMeshBuildSettingsLayout::GetBuildScaleY)
 			.Z(this, &FMeshBuildSettingsLayout::GetBuildScaleZ)
 			.bColorAxisLabels(false)
+			.AllowResponsiveLayout(true)
 			.OnXCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleXChanged)
 			.OnYCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleYChanged)
 			.OnZCommitted(this, &FMeshBuildSettingsLayout::OnBuildScaleZChanged)
@@ -613,6 +591,11 @@ ECheckBoxState FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
 	return BuildSettings.bRemoveDegenerates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+ECheckBoxState FMeshBuildSettingsLayout::ShouldBuildAdjacencyBuffer() const
+{
+	return BuildSettings.bBuildAdjacencyBuffer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 ECheckBoxState FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
 {
 	return BuildSettings.bUseFullPrecisionUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -708,6 +691,19 @@ void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ECheckBoxState NewStat
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bRemoveDegenerates"), bRemoveDegenerates ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bRemoveDegenerates = bRemoveDegenerates;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnBuildAdjacencyBufferChanged(ECheckBoxState NewState)
+{
+	const bool bBuildAdjacencyBuffer = (NewState == ECheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bBuildAdjacencyBuffer != bBuildAdjacencyBuffer)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bBuildAdjacencyBuffer"), bBuildAdjacencyBuffer ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bBuildAdjacencyBuffer = bBuildAdjacencyBuffer;
 	}
 }
 

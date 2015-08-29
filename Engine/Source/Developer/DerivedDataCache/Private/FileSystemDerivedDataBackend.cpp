@@ -6,10 +6,20 @@
 #include "DerivedDataBackendInterface.h"
 #include "DDCCleanup.h"
 
+#include "DDCStatsHelper.h"
+
 #define MAX_BACKEND_KEY_LENGTH (120)
 #define MAX_BACKEND_NUMBERED_SUBFOLDER_LENGTH (9)
-#define MAX_CACHE_DIR_LEN (119)
+#if PLATFORM_LINUX	// PATH_MAX on Linux is 4096 (getconf PATH_MAX /, also see limits.h), so this value can be larger (note that it is still arbitrary).
+                    // This should not affect sharing the cache between platforms as the absolute paths will be different anyway.
+	#define MAX_CACHE_DIR_LEN (3119)
+#else
+	#define MAX_CACHE_DIR_LEN (119)
+#endif // PLATFORM_LINUX
 #define MAX_CACHE_EXTENTION_LEN (4)
+
+
+
 
 /** 
  * Cache server that uses the OS filesystem
@@ -125,6 +135,11 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 		FDateTime TimeStamp = IFileManager::Get().GetTimeStamp(*Filename);
@@ -149,6 +164,12 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey,TArray<uint8>& Data) override
 	{
+		static FName NAME_GetCachedData(TEXT("GetCachedData"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		static FName NAME_FileDDCPath(TEXT("FileDDCPath"));
+		static FName NAME_Retrieved(TEXT("Retrieved"));
+		Stat.AddTag(NAME_FileDDCPath, CachePath);
+		
 		check(!bFailed);
 		FString Filename = BuildFilename(CacheKey);
 
@@ -161,10 +182,12 @@ public:
 			UE_CLOG(ReadSpeed < 0.5, LogDerivedDataCache, Warning, TEXT("%s access is very slow (%.2lfMB/s), consider disabling it."), *CachePath, ReadSpeed);
 
 			UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache hit on %s"),*Filename);
+			Stat.AddTag(NAME_Retrieved, TEXT("true"));
 			return true;
 		}
 		UE_LOG(LogDerivedDataCache, Verbose, TEXT("FileSystemDerivedDataBackend: Cache miss on %s"),*Filename);
 		Data.Empty();
+		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;	
 	}
 	/**

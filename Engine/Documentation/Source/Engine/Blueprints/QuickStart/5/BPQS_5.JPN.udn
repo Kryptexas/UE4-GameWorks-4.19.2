@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2492538
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:5.オーバーラップしているアクタのテスト
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
@@ -25,7 +25,7 @@ Description:レベルにアクタをいくつか作成したのでバリエー�
 ---
 
 現時点では、何かが Box トリガーにオーバーラップすると **OnComponentBeginOverlap** イベントが実行します。オーバーラップしている対象がアバターまたはポーンの場合は、
-実際に起動するビヘイビアだけを実行させるのが目的です。「Box トリガーにオーバーラップしているアクタは、ポーンと同じアクタか？」と考えてみてください。 
+実際に起動するビヘイビアだけを実行させるのが目的です。「Box にオーバーラップしているアクタは、ポーンと同じアクタをトリガーするか？」と考えてみてください。 
 
 **OnComponentBeginOverlap** イベントの [Other Actor] 出力を使用して設定していきます。 
 

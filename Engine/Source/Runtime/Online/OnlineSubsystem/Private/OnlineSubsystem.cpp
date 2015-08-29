@@ -101,7 +101,7 @@ static void ResetAchievements()
 		return;
 	}
 	
-	TSharedPtr<FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(0);
+	TSharedPtr<const FUniqueNetId> UserId = IdentityInterface->GetUniquePlayerId(0);
 	if(!UserId.IsValid())
 	{
 		UE_LOG_ONLINE(Warning, TEXT("ResetAchievements command: invalid UserId"));

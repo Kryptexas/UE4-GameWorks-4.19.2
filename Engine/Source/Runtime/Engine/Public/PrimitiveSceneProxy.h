@@ -379,6 +379,7 @@ public:
 	inline bool IsIndividuallySelected() const { return bIndividuallySelected; }
 	inline bool IsSelected() const { return IsParentSelected() || IsIndividuallySelected(); }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
+	inline uint8 GetCustomDepthStencilValue() const { return CustomDepthStencilValue; }
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
 	inline bool IsCollisionEnabled() const { return bCollisionEnabled; }
 	inline bool IsHovered() const { return bHovered; }
@@ -418,6 +419,7 @@ public:
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 	inline bool NeedsLevelAddedToWorldNotification() const { return bNeedsLevelAddedToWorldNotification; }
 	inline bool IsComponentLevelVisible() const { return bIsComponentLevelVisible; }
+	inline bool IsStaticPathAvailable() const { return !bDisableStaticPath; }
 
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -482,6 +484,10 @@ public:
 	 */
 	ENGINE_API virtual void ApplyWorldOffset(FVector InOffset);
 
+	/**
+	 * Updates the primitive proxy's uniform buffer.
+	 */
+	ENGINE_API void UpdateUniformBuffer();
 
 protected:
 
@@ -529,9 +535,6 @@ private:
 	/** True if the primitive will cache static lighting. */
 	uint32 bStaticLighting : 1;
 
-	/** This primitive has bRenderCustomDepth enabled */
-	uint32 bRenderCustomDepth : 1;
-
 	/** If true this primitive Renders in the mainPass */
 	uint32 bRenderInMainPass : 1;
 
@@ -547,6 +550,9 @@ private:
 	/** Whether the primitive should be treated as part of the background for occlusion purposes. */
 	uint32 bTreatAsBackgroundForOcclusion : 1;
 
+	friend class FLightPrimitiveInteraction;
+	/** Whether the renderer needs us to temporarily use only the dynamic drawing path */
+	uint32 bDisableStaticPath : 1;
 protected:
 
 	/** Whether the primitive should be statically lit but has unbuilt lighting, and a preview should be used. */
@@ -648,6 +654,12 @@ private:
 	/** Whether this primitive should be composited onto the scene after post processing (editor only) */
 	uint32 bUseEditorCompositing : 1;
 
+	/** This primitive has bRenderCustomDepth enabled */
+	uint32 bRenderCustomDepth : 1;
+
+	/** Optionally write this stencil value during the CustomDepth pass */
+	uint8 CustomDepthStencilValue;
+
 protected:
 	/** The bias applied to LPV injection */
 	float LpvBiasMultiplier;
@@ -727,14 +739,13 @@ private:
 	*	How many invalid lights for this primitive, just refer for scene outliner
 	*/
 	int32 NumUncachedStaticLightingInteractions;
-	friend class FLightPrimitiveInteraction;
 
 	/** this is used if world setting has EnableHierarchical LOD true */
 	int32 HierarchicalLODOverride;
 #endif
 
 	/** Updates the proxy's actor position, called from the game thread. */
-	ENGINE_API void UpdateActorPosition(FVector ActorPosition);
+	ENGINE_API void UpdateActorPosition(FVector InActorPosition);
 
 	/**
 	 * Updates the primitive proxy's cached transforms, and calls OnUpdateTransform to notify it of the change.
@@ -743,7 +754,12 @@ private:
 	 * @param InBounds - The new bounds of the primitive.
 	 * @param InLocalBounds - The local space bounds of the primitive.
 	 */
-	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector ActorPosition);
+	ENGINE_API void SetTransform(const FMatrix& InLocalToWorld, const FBoxSphereBounds& InBounds, const FBoxSphereBounds& InLocalBounds, FVector InActorPosition);
+
+	/**
+	 * Either updates the uniform buffer or defers it until it becomes visible depending on a cvar
+	 */
+	ENGINE_API void UpdateUniformBufferMaybeLazy();
 
 	/** Updates the hidden editor view visibility map on the render thread */
 	void SetHiddenEdViews_RenderThread( uint64 InHiddenEditorViews );

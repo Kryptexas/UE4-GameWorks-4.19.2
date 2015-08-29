@@ -1,0 +1,61 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:天气选择器内容示例
+Crumbs:%ROOT%, Resources
+Description:天气选择器示例关卡概述
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+##概述
+
+[REGION:fullwidth]
+
+[/REGION]
+
+[EXCERPT:Topics]
+##示例
+
+[REGION:topics third]
+%Resources/ContentExamples/WeatherSelector/1_1:TopicCompact%
+%Resources/ContentExamples/WeatherSelector/1_2:TopicCompact%
+[/REGION]
+[/EXCERPT:Topics]
+
+

@@ -6,6 +6,7 @@
 #include "LandscapeEditorObject.h"
 #include "LandscapeEditorDetails.h"
 #include "LandscapeEditorDetailCustomizations.h"
+#include "LandscapeEditorUtils.h"
 
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
@@ -223,6 +224,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	[
 		SNew(SRotatorInputBox)
 		.bColorAxisLabels(true)
+		.AllowResponsiveLayout(true)
 		.Font(DetailBuilder.GetDetailFont())
 		.Roll_Static(&GetOptionalPropertyValue<float>, PropertyHandle_Rotation_Roll)
 		.Pitch_Static(&GetOptionalPropertyValue<float>, PropertyHandle_Rotation_Pitch)

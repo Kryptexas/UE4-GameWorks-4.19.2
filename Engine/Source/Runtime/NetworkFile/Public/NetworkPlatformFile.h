@@ -148,6 +148,15 @@ protected:
 private:
 
 	/**
+	* Returns whether the passed in extension is a video
+	* extension. Extensions with and without trailing dots are supported.
+	*
+	* @param	Extension to test.
+	* @return	True if Ext is a video extension.  e.g. .mp4
+	*/
+	static bool IsMediaExtension(const TCHAR* Ext);
+
+	/**
 	 * @return true if the path exists in a directory that should always use the local filesystem
 	 * This version does not worry about initialization or thread safety, do not call directly
 	 */
@@ -163,15 +172,12 @@ private:
 	 */
 	void EnsureFileIsLocal(const FString& Filename);
 
+protected:
 	/**
-	 * This function will send a payload data (with header) and wait for a response, serializing
-	 * the response to a FBufferArchive
-	 *
-	 * @param Payload Bytes to send over the network
-	 * @param Response The archive to read the response into
-	 *
-	 * @return true if successful
-	 */
+	* Does normal path standardization, and also any extra modifications to make string comparisons against
+	* the internal directory list work properly.
+	*/
+	void MakeStandardNetworkFilename(FString& Filename);
 
 protected:
 
@@ -210,6 +216,8 @@ private:
 
     // Our network Transport. 
 	class ITransport* Transport; 
+
+	static FString MP4Extension;
 };
 
 class SOCKETS_API FNetworkFileHandle : public IFileHandle

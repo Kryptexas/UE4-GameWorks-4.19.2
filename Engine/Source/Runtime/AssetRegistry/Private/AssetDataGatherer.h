@@ -22,7 +22,7 @@ public:
 	void EnsureCompletion();
 
 	/** Gets search results from the data gatherer */
-	bool GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch);
+	bool GetAndTrimSearchResults(TArray<IGatheredAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch);
 
 	/** Adds a root path to the search queue. Only works when searching asynchronously */
 	void AddPathToSearch(const FString& Path);
@@ -80,7 +80,7 @@ private:
 	TArray<FString> PathsToSearch;
 
 	/** The asset data gathered from the searched files */
-	TArray<FBackgroundAssetData*> AssetResults;
+	TArray<IGatheredAssetData*> AssetResults;
 
 	/** Dependency data for scanned packages */
 	TArray<FPackageDependencyData> DependencyResults;

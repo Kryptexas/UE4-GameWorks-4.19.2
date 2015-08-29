@@ -113,6 +113,7 @@ UENUM()
 namespace EBTFlowAbortMode
 {
 	// keep in sync with DescribeFlowAbortMode()
+
 	enum Type
 	{
 		None				UMETA(DisplayName="Nothing"),

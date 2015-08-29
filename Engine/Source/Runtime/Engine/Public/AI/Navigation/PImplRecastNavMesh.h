@@ -50,11 +50,13 @@ public:
 
 struct ENGINE_API FRecastSpeciaLinkFilter : public dtQuerySpecialLinkFilter
 {
-	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner) {}
+	FRecastSpeciaLinkFilter(UNavigationSystem* NavSystem, const UObject* Owner) : NavSys(NavSystem), SearchOwner(Owner), CachedOwnerOb(nullptr) {}
 	virtual bool isLinkAllowed(const int32 UserId) const override;
+	virtual void initialize() override;
 
 	UNavigationSystem* NavSys;
-	const UObject* SearchOwner;
+	FWeakObjectPtr SearchOwner;
+	UObject* CachedOwnerOb;
 };
 
 /** Engine Private! - Private Implementation details of ARecastNavMesh */

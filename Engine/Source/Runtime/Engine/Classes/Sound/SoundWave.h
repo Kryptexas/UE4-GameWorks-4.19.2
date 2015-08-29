@@ -5,6 +5,7 @@
 /** 
  * Playable sound object for raw wave files
  */
+#include "BulkData.h"
 #include "Sound/SoundBase.h"
 #include "Sound/SoundGroups.h"
 #include "SoundWave.generated.h"
@@ -132,6 +133,9 @@ class ENGINE_API USoundWave : public USoundBase
 	/** Set to true for programmatically-generated, streamed audio. */
 	uint32 bProcedural:1;
 
+	/** Set to true for procedural waves that can be processed asynchronously. */
+	uint32 bCanProcessAsync:1;
+
 	/** Whether to free the resource data after it has been uploaded to the hardware */
 	uint32 bDynamicResource:1;
 
@@ -210,20 +214,23 @@ class ENGINE_API USoundWave : public USoundBase
 	TArray<struct FLocalizedSubtitle> LocalizedSubtitles;
 
 #if WITH_EDITORONLY_DATA
-	/** Path to the resource used to construct this sound node wave. Relative to the object's package, BaseDir() or absolute. */
-	UPROPERTY(Category=Info, VisibleAnywhere)
-	FString SourceFilePath;
+	UPROPERTY()
+	FString SourceFilePath_DEPRECATED;
+	UPROPERTY()
+	FString SourceFileTimestamp_DEPRECATED;
 
-	/** Date/Time-stamp of the file from the last import */
-	UPROPERTY(Category=Info, VisibleAnywhere)
-	FString SourceFileTimestamp;
-
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	class UAssetImportData* AssetImportData;
+	
 #endif // WITH_EDITORONLY_DATA
 
 public:	
 	/** Async worker that decompresses the audio data on a different thread */
 	typedef FAsyncTask< class FAsyncAudioDecompressWorker > FAsyncAudioDecompress;	// Forward declare typedef
 	FAsyncAudioDecompress*		AudioDecompressor;
+
+	/** Pointer to 16 bit PCM data - used to avoid synchronous operation to obtain first block of the relatime decompressed buffer */
+	uint8*						CachedRealtimeFirstBuffer;
 
 	/** Pointer to 16 bit PCM data - used to decompress data to and preview sounds */
 	uint8*						RawPCMData;

@@ -186,6 +186,14 @@ FVector2D FGeometry::LocalToAbsolute(FVector2D LocalCoordinate) const
 	return TransformPoint(GetAccumulatedRenderTransform(), LocalCoordinate);
 }
 
+FVector2D FGeometry::LocalToRoundedLocal(FVector2D LocalCoordinate) const
+{
+	const FVector2D AbsoluteCoordinate = LocalToAbsolute(LocalCoordinate);
+	const FVector2D AbsoluteCoordinateRounded = FVector2D(FMath::RoundToInt(AbsoluteCoordinate.X), FMath::RoundToInt(AbsoluteCoordinate.Y));
+
+	return AbsoluteToLocal(AbsoluteCoordinateRounded);
+}
+
 bool FGeometry::IsUnderLocation(const FVector2D& AbsoluteCoordinate) const
 {
 	// this render transform invert is a little expensive. We might consider caching it.

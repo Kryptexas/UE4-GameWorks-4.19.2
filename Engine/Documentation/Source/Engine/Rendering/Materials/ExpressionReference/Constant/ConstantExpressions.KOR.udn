@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481863
+﻿INTSourceChangelist:2590541
 Availability:Public
 Title:Constant 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -200,3 +200,21 @@ VertexColor 표현식은 스프라이트 파티클 이미터에 영향을 끼치
 
 위의 망은 파티클 시스템의 컬러와 알파 데이터를 직접 활용합니다. 이러한 망은 스파크같은 특수 효과에 이상적입니다.
 
+(#ViewProperty)
+## View Property
+
+ViewProperty 표현식은 필드 오브 뷰나 렌더 타겟 사이즈같은 뷰 종속 상수 프로퍼티를 출력합니다. 접근할 뷰 프로퍼티에 대한 환경설정이 가능하며, 출력 유형은 환경설정된 접근 프로퍼티에 따라 달라집니다.
+
+[REGION:fullwidth]
+![ViewPropertyExample.png](ViewPropertyExample.png)
+[/REGION]
+
+필드 오브 뷰가 50 도인 예제입니다.
+[REGION:fullwidth]
+![ViewPropertyExampleFOV50.png](ViewPropertyExampleFOV50.png)
+[/REGION]
+
+같은 예제에 필드 오브 뷰가 90 도입니다.
+[REGION:fullwidth]
+![ViewPropertyExampleFOV90.png](ViewPropertyExampleFOV90.png)
+[/REGION]

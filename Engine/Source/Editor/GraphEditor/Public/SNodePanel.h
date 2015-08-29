@@ -421,6 +421,33 @@ public:
 			return NewSlot;
 		}
 
+		FNodeSlot* GetSlot( const ENodeZone::Type SlotId )
+		{
+			FNodeSlot* Result = nullptr;
+			// Return existing
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == SlotId )
+				{
+					Result = &Children[ ChildIndex ];
+					break;
+				}
+			}
+			return Result;
+		}
+
+		void RemoveSlot( const ENodeZone::Type SlotId )
+		{
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == SlotId )
+				{
+					Children.RemoveAt( ChildIndex );
+					break;
+				}
+			}
+		}
+
 		/**
 		* @param NewPosition	The Node should be relocated to this position in the graph panel
 		* @param NodeFilter		Set of nodes to prevent movement on, after moving successfully a node is added to this set.
@@ -694,9 +721,6 @@ protected:
 	 */
 	static void ApplyMarqueeSelection(const FMarqueeOperation& InMarquee, const FGraphPanelSelectionSet& CurrentSelection, FGraphPanelSelectionSet& OutNewSelection);
 
-	/** @return a bounding rectangle around all the node locations; the graph bounds are padded out for the user's convenience */
-	FSlateRect ComputeSensibleGraphBounds() const;
-
 	/**
 	 * On the next tick, centers and selects the widget associated with the object if it exists
 	 *
@@ -704,6 +728,13 @@ protected:
 	 * @param bCenter			Whether or not to center the graph node
 	 */
 	void SelectAndCenterObject(const UObject* ObjectToSelect, bool bCenter);
+
+	/**
+	 * On the next tick, centers the widget associated with the object if it exists
+	 *
+	 * @param ObjectToCenter	The object to center
+	 */
+	void CenterObject(const UObject* ObjectToCenter);
 
 	/** Add a slot to the CanvasPanel dynamically */
 	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd);
@@ -743,6 +774,12 @@ protected:
 	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return TSharedPtr<SWidget>(); }
 	virtual bool OnHandleLeftMouseRelease(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) { return false; }
 protected:
+	/**
+	 * Get the bounds of the given node
+	 * @return True if successful
+	 */
+	bool GetBoundsForNode(const UObject* InNode, /*out*/ FVector2D& MinCorner, /*out*/ FVector2D& MaxCorner, float Padding = 0.0f);
+
 	/**
 	 * Get the bounds of the selected nodes 
 	 * @param bSelectionSetOnly If true, limits the query to just the selected nodes.  Otherwise it does all nodes.

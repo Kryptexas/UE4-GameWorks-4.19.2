@@ -1,0 +1,19 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Material Shading Models
+Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
+Description:Calculation models used by materials to determine how surfaces interact with light.
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/light_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Existing Models
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Rendering/Materials/LightingModels/SubSurface "%Engine/Rendering/Materials/LightingModels/SubSurface:description%")
+		* [](Engine/Rendering/Materials/LightingModels/SubSurfaceProfile "%Engine/Rendering/Materials/LightingModels/SubSurfaceProfile:description%")
+	[/PARAM]
+[/OBJECT]

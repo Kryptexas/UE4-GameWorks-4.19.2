@@ -18,16 +18,20 @@ public:
 	FSlateMaterialShaderPS() {}
 	FSlateMaterialShaderPS(const FMaterialShaderType::CompiledShaderInitializerType& Initializer);
 
-	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams );
+	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams);
 
 	void SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma);
+
+	void SetAdditionalTexture( FRHICommandList& RHICmdList, const FTextureRHIParamRef InTexture, const FSamplerStateRHIRef SamplerState );
 
 	virtual bool Serialize(FArchive& Ar) override;
 
 private:
-
 	FShaderParameter GammaValues;
 	FShaderParameter ShaderParams;
+	/** Extra texture (like a font atlas) to be used in addition to any material textures */
+	FShaderResourceParameter TextureParameterSampler;
+	FShaderResourceParameter AdditionalTextureParameter;
 };
 
 

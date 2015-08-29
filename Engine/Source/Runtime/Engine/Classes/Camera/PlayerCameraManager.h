@@ -183,6 +183,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=PlayerCameraManager)
 	float DefaultFOV;
 
+	float GetLockedFOV() const { return LockedFOV; }
+
 protected:
 	/** Value to lock FOV to, in degrees. Ignored if <= 0, utilized if > 0. */
 	float LockedFOV;
@@ -261,6 +263,10 @@ public:
 	/** Offset to Z free camera position (used in certain CameraStyles) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Debug)
 	FVector FreeCamOffset;
+
+	/** Offset to view target (used in certain CameraStyles) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	FVector ViewTargetOffset;
 
 	/** Current camera fade alpha range, where X = starting alpha and Y = final alpha (when bEnableFading == true) */
 	FVector2D FadeAlpha;
@@ -431,7 +437,7 @@ public:
 	// Begin AActor Interface
 	virtual bool ShouldTickIfViewportsOnly() const override;
 	virtual void PostInitializeComponents() override;
-	virtual void Destroyed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End AActor Interface
@@ -593,7 +599,7 @@ public:
 	 * @param NewViewTarget - New viewtarget actor.
 	 * @param TransitionParams - Optional parameters to define the interpolation from the old viewtarget to the new. Transition will be instant by default.
 	 */
-	void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
+	virtual void SetViewTarget(class AActor* NewViewTarget, FViewTargetTransitionParams TransitionParams = FViewTargetTransitionParams());
 	
 	/** 
 	 * Called to give PlayerCameraManager a chance to adjust view rotation updates before they are applied. 

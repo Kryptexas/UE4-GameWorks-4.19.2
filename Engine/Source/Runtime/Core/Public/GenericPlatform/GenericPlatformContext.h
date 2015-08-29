@@ -47,6 +47,16 @@ enum class ECrashDescVersions
 	VER_2_AddedNewProperties,
 };
 
+/** Enumerates crash dump modes. */
+enum class ECrashDumpMode : int32
+{
+	/** Default minidump settings. */
+	Default = 0,
+
+	/** Full memory crash minidump */
+	FullDump = 1,
+};
+
 /**
  *	Contains a runtime crash's properties that are common for all platforms.
  *	This may change in the future.
@@ -54,6 +64,12 @@ enum class ECrashDescVersions
 struct CORE_API FGenericCrashContext
 {
 public:
+
+	/**
+	* We can't gather memory stats in crash handling function, so we gather them just before raising
+	* exception and use in crash reporting.
+	*/
+	static FPlatformMemoryStats CrashMemoryStats;
 	static const ANSICHAR* CrashContextRuntimeXMLNameA;
 	static const TCHAR* CrashContextRuntimeXMLNameW;
 
@@ -86,6 +102,11 @@ public:
 	 * @return a globally unique crash name.
 	 */
 	const FString& GetUniqueCrashName();
+
+	/**
+	 * @return whether this crash is a full memory minidump
+	 */
+	const bool IsFullCrashDump();
 
 	/** Serializes crash's informations to the specified filename. */
 	void SerializeAsXML( const TCHAR* Filename );

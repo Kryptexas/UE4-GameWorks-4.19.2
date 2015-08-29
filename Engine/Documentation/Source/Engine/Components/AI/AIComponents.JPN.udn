@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:AI コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -8,7 +8,7 @@ Related:Gameplay/Framework/Pawn
 Related:Gameplay/Framework/Controller
 Related:Engine/Blueprints/UserGuide/Components
 
-AI Component は、ポーンが環境からの知覚を受信できるようにするある種のコンポーネントです。こうした知覚は、例えば、どこからノイズが発生しているか、ポーンから何かが見えているかなどのデータです。
+AI Component は、ポーンが環境からの知覚を受信できるようにするある種のコンポーネントです。例えば、どこからノイズが発生しているか、ポーンから何かが見えているかなどのデータです。
 
 ## AI Perception Component
 
@@ -16,11 +16,16 @@ AI Component は、ポーンが環境からの知覚を受信できるように�
 
 ## Pawn Noise Emitter Component
 
-**PawnNoiseEmitterComponent** は、**SensingComponents** がポーンを聴くために使用するノイズ イベント データを追跡します。このコンポーネントは Pawn またはその Controller のいずれかに存在するようになっています。ネットワーク クライアントに対しては何も行いません。 
+**PawnNoiseEmitterComponent** は、**SensingComponents** がポーンを聴くために使用する noise event データを追跡します。このコンポーネントは Pawn またはその Controller のいずれかに存在するようになっています。ネットワーク クライアントに対しては何も行いません。 
 
 ## Pawn Sensing Component
 
 Pawn **SensingComponent** はアクタに対して知覚 (すなわち、視覚と聴覚) 設定と機能をカプセル化します。これにより、アクタはワールド内のアクタを見たり、聴いたりすることができます。ネットワーク クライアントに対しては何も行いません。 
+
+
+
+
+
 
 
 

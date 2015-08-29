@@ -40,6 +40,15 @@ private:
 };
 
 /**
+ * Design constraints for Slate applications
+ */
+namespace SlateApplicationDefs
+{
+	/** How many users can we support at once? */
+	static const int32 MaxUsers = 8;
+}
+
+/**
  * Base class for Slate applications.
  *
  * This class currently serves a temporary workaround for solving SlateCore dependencies to FSlateApplication.
@@ -225,6 +234,15 @@ public:
 	virtual FSlateRect GetPreferredWorkArea( ) const = 0;
 
 	/**
+	 * Checks whether the specified widget has any descendants which are currently focused for the specified user user.
+	 *
+	 * @param Widget The widget to check.
+	 * @param InUserIndex Index of the user that we want to check for.
+	 * @return true if any descendants are focused, false otherwise.
+	 */
+	virtual bool HasUserFocusedDescendants(const TSharedRef< const SWidget >& Widget, int32 UserIndex) const = 0;
+
+	/**
 	 * Checks whether the specified widget has any descendants which are currently focused.
 	 *
 	 * @param Widget The widget to check.
@@ -327,6 +345,14 @@ public:
 	 */
 	virtual bool SetUserFocus(const uint32 InUserIndex, const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
 
+	/**
+	 * Sets the focus for all users to the specified widget.  The widget must be allowed to receive focus.
+	 *
+	 * @param InWidget WidgetPath to the Widget to being focused.
+	 * @param InCause The reason that focus is changing.
+	 */
+	virtual void SetAllUserFocus(const FWidgetPath& InFocusPath, const EFocusCause InCause) = 0;
+
 private:
 	/**
 	 * Implementation for active timer registration. See SWidget::RegisterActiveTimer.
@@ -350,6 +376,7 @@ protected:
 
 public:
 	const static uint32 CursorPointerIndex;
+	const static uint32 CursorUserIndex;
 
 	/**
 	 * Returns the current instance of the application. The application should have been initialized before
@@ -397,6 +424,14 @@ protected:
 	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
 	/**
+	 * Gets whether or not a particular widget is directly hovered.
+	 * Directly hovered means that the widget is directly under the pointer, is not true for ancestors tho they are Hovered.
+	 *
+	 * @return True if the widget is directly hovered, otherwise false.
+	 */
+	virtual bool IsWidgetDirectlyHovered(const TSharedPtr<const SWidget> Widget) const = 0;
+
+	/**
 	 * Gets whether or not a particular widget should show user focus.
 	 *
 	 * @return True if we should show user focus
@@ -421,5 +456,25 @@ protected:
 
 	// Holds a pointer to the platform application.
 	static TSharedPtr<class GenericApplication> PlatformApplication;
+
+public:
+
+	/**
+	 * Is Slate currently sleeping or not.
+	 *
+	 * @return True if Slate is sleeping.
+	 */
+	bool IsSlateAsleep();
+
+	TSharedPtr<ICursor> GetPlatformCursor()
+	{
+		return PlatformApplication->Cursor;
+	}
+
+protected:
+
+	// Gets set when Slate goes to sleep and cleared when active.
+	bool bIsSlateAsleep;
+
 };
 

@@ -130,6 +130,7 @@ struct ExistingSkelMeshData
 	TArray<UMorphTarget*>					ExistingMorphTargets;
 	TArray<UPhysicsAsset*>					ExistingPhysicsAssets;
 	USkeleton*								ExistingSkeleton;
+	TArray<FTransform>						ExistingRetargetBasePose;
 
 	bool									bExistingUseFullPrecisionUVs;
 

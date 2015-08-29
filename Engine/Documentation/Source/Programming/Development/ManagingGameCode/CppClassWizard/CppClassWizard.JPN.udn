@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2566652
 Availability:Public
 Title:C++ クラス ウィザード
 Crumbs: %ROOT%, Programming, Programming\Development
@@ -50,7 +50,7 @@ _C++ Class Wizard_ はユーザー固有の機能を拡張するために、ネ�
 		OS
 		[/PARAMLITERAL]
 		[PARAMLITERAL:id]
-		Windows
+		windows
 		[/PARAMLITERAL]
 		[PARAMLITERAL:active]
 		active_button_content
@@ -67,7 +67,7 @@ _C++ Class Wizard_ はユーザー固有の機能を拡張するために、ネ�
 		OS
 		[/PARAMLITERAL]
 		[PARAMLITERAL:id]
-		Mac
+		mac
 		[/PARAMLITERAL]
 		[PARAMLITERAL:active]
 		[/PARAMLITERAL]

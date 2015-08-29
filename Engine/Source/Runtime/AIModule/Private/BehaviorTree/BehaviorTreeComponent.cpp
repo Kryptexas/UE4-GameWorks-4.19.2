@@ -8,6 +8,7 @@
 #include "BehaviorTree/BehaviorTreeManager.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/Tasks/BTTask_RunBehaviorDynamic.h"
 
 #if USE_BEHAVIORTREE_DEBUGGER
 int32 UBehaviorTreeComponent::ActiveDebuggerCounter = 0;
@@ -55,15 +56,13 @@ void UBehaviorTreeComponent::UninitializeComponent()
 void UBehaviorTreeComponent::RestartLogic()
 {
 	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("UBehaviorTreeComponent::RestartLogic"));
-
-	bIsRunning = true;
 	RestartTree();
 }
 
 void UBehaviorTreeComponent::StopLogic(const FString& Reason) 
 {
 	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Stopping BT, reason: \'%s\'"), *Reason);
-	bIsRunning = false;
+	StopTree(EBTStopMode::Safe);
 }
 
 void UBehaviorTreeComponent::PauseLogic(const FString& Reason)
@@ -136,8 +135,9 @@ void UBehaviorTreeComponent::StartTree(UBehaviorTree& Asset, EBTExecutionMode::T
 
 	StopTree(EBTStopMode::Safe);
 
-	PendingInitialize.Asset = &Asset;
-	PendingInitialize.ExecuteMode = ExecuteMode;
+	TreeStartInfo.Asset = &Asset;
+	TreeStartInfo.ExecuteMode = ExecuteMode;
+	TreeStartInfo.bPendingInitialize = true;
 
 	ProcessPendingInitialize();
 }
@@ -153,7 +153,7 @@ void UBehaviorTreeComponent::ProcessPendingInitialize()
 	// finish cleanup
 	RemoveAllInstances();
 
-	bLoopExecution = (PendingInitialize.ExecuteMode == EBTExecutionMode::Looped);
+	bLoopExecution = (TreeStartInfo.ExecuteMode == EBTExecutionMode::Looped);
 	bIsRunning = true;
 
 #if USE_BEHAVIORTREE_DEBUGGER
@@ -167,9 +167,8 @@ void UBehaviorTreeComponent::ProcessPendingInitialize()
 	}
 
 	// push new instance
-	const bool bPushed = PushInstance(*PendingInitialize.Asset);
-
-	PendingInitialize = FBTPendingInitializeInfo();
+	const bool bPushed = PushInstance(*TreeStartInfo.Asset);
+	TreeStartInfo.bPendingInitialize = false;
 }
 
 void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
@@ -271,13 +270,26 @@ void UBehaviorTreeComponent::StopTree(EBTStopMode::Type StopMode)
 	// make sure to allow new execution requests
 	bRequestedFlowUpdate = false;
 	bRequestedStop = false;
+	bIsRunning = false;
 }
 
 void UBehaviorTreeComponent::RestartTree()
 {
 	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("UBehaviorTreeComponent::RestartTree"));
 	
-	if (InstanceStack.Num())
+	if (!bIsRunning)
+	{
+		if (TreeStartInfo.IsSet())
+		{
+			TreeStartInfo.bPendingInitialize = true;
+			ProcessPendingInitialize();
+		}
+	}
+	else if (bRequestedStop)
+	{
+		TreeStartInfo.bPendingInitialize = true;
+	}
+	else if (InstanceStack.Num())
 	{
 		FBehaviorTreeInstance& TopInstance = InstanceStack[0];
 		RequestExecution(TopInstance.RootNode, 0, TopInstance.RootNode, -1, EBTNodeResult::Aborted);
@@ -364,7 +376,7 @@ void UBehaviorTreeComponent::OnTaskFinished(const UBTTaskNode* TaskNode, EBTNode
 		UpdateAbortingTasks();
 	}
 
-	if (PendingInitialize.IsSet())
+	if (TreeStartInfo.HasPendingInitialize())
 	{
 		ProcessPendingInitialize();
 	}
@@ -904,14 +916,22 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearch
 					*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.TaskNode),
 					(NodeResult == EBTNodeResult::InProgress) ? TEXT("in progress") : TEXT("instant"));
 
-				// mark as pending abort
-				if (NodeResult == EBTNodeResult::InProgress)
+				// check if task node is still valid, could've received LatentAbortFinished during AbortTask call
+				const bool bStillValid = InstanceStack.IsValidIndex(UpdateInfo.InstanceIndex) &&
+					InstanceStack[UpdateInfo.InstanceIndex].ParallelTasks.IsValidIndex(ParallelTaskIdx) &&
+					InstanceStack[UpdateInfo.InstanceIndex].ParallelTasks[ParallelTaskIdx] == UpdateInfo.TaskNode;
+				
+				if (bStillValid)
 				{
-					UpdateInstance.ParallelTasks[ParallelTaskIdx].Status = EBTTaskStatus::Aborting;
-					bWaitingForAbortingTasks = true;
-				}
+					// mark as pending abort
+					if (NodeResult == EBTNodeResult::InProgress)
+					{
+						UpdateInstance.ParallelTasks[ParallelTaskIdx].Status = EBTTaskStatus::Aborting;
+						bWaitingForAbortingTasks = true;
+					}
 
-				OnTaskFinished(UpdateInfo.TaskNode, NodeResult);
+					OnTaskFinished(UpdateInfo.TaskNode, NodeResult);
+				}
 			}
 			else
 			{
@@ -1169,12 +1189,12 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		}
 		else
 		{
-			// apply new observer changes
-			ApplyDiscardedSearch();
-
 			// rollback search
 			ActiveInstanceIdx = PrevActiveInstanceIdx;
 			CopyInstanceMemoryFromPersistent();
+
+			// apply new observer changes
+			ApplyDiscardedSearch();
 		}
 
 		SearchData.bSearchInProgress = false;
@@ -1877,6 +1897,62 @@ void UBehaviorTreeComponent::AddCooldownTagDuration(FGameplayTag CooldownTag, fl
 	}
 }
 
+void SetDynamicSubtreeHelper(const UBTCompositeNode* TestComposite,
+	const FBehaviorTreeInstance& InstanceInfo, const UBehaviorTreeComponent* OwnerComp,
+	const FGameplayTag& InjectTag, UBehaviorTree* BehaviorAsset)
+{
+	for (int32 Idx = 0; Idx < TestComposite->Children.Num(); Idx++)
+	{
+		const FBTCompositeChild& ChildInfo = TestComposite->Children[Idx];
+		if (ChildInfo.ChildComposite)
+		{
+			SetDynamicSubtreeHelper(ChildInfo.ChildComposite, InstanceInfo, OwnerComp, InjectTag, BehaviorAsset);
+		}
+		else
+		{
+			UBTTask_RunBehaviorDynamic* SubtreeTask = Cast<UBTTask_RunBehaviorDynamic>(ChildInfo.ChildTask);
+			if (SubtreeTask && SubtreeTask->HasMatchingTag(InjectTag))
+			{
+				const uint8* NodeMemory = SubtreeTask->GetNodeMemory<uint8>(InstanceInfo);
+				UBTTask_RunBehaviorDynamic* InstancedNode = Cast<UBTTask_RunBehaviorDynamic>(SubtreeTask->GetNodeInstance(*OwnerComp, (uint8*)NodeMemory));
+				if (InstancedNode)
+				{
+					InstancedNode->SetBehaviorAsset(BehaviorAsset);
+					UE_VLOG(OwnerComp->GetOwner(), LogBehaviorTree, Log, TEXT("Replaced subtree in %s with %s (tag: %s)"),
+						*UBehaviorTreeTypes::DescribeNodeHelper(SubtreeTask), *GetNameSafe(BehaviorAsset), *InjectTag.ToString());
+				}
+			}
+		}
+	}
+}
+
+void UBehaviorTreeComponent::SetDynamicSubtree(FGameplayTag InjectTag, UBehaviorTree* BehaviorAsset)
+{
+	// replace at matching injection points
+	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
+	{
+		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
+		SetDynamicSubtreeHelper(InstanceInfo.RootNode, InstanceInfo, this, InjectTag, BehaviorAsset);
+	}
+
+	// restart subtree if it was replaced
+	for (int32 InstanceIndex = 0; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
+	{
+		const FBehaviorTreeInstance& InstanceInfo = InstanceStack[InstanceIndex];
+		if (InstanceInfo.ActiveNodeType == EBTActiveNode::ActiveTask)
+		{
+			const UBTTask_RunBehaviorDynamic* SubtreeTask = Cast<const UBTTask_RunBehaviorDynamic>(InstanceInfo.ActiveNode);
+			if (SubtreeTask && SubtreeTask->HasMatchingTag(InjectTag))
+			{
+				UBTCompositeNode* RestartNode = SubtreeTask->GetParentNode();
+				int32 RestartChildIdx = RestartNode->GetChildIndex(*SubtreeTask);
+
+				RequestExecution(RestartNode, InstanceIndex, SubtreeTask, RestartChildIdx, EBTNodeResult::Aborted);
+				break;
+			}
+		}
+	}
+}
 
 #if ENABLE_VISUAL_LOG
 void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const

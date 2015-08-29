@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2085691
+﻿INTSourceChangelist:2611149
 Availability: Public
 Title: 오디오 파일
 Crumbs: %ROOT%, Engine, Engine/Audio
@@ -49,8 +49,6 @@ Description:언리얼 엔진 4 에 사운드 파일을 들여오기 위한 기�
 
 [TOC (start:2 end:3)]
 
-## 개요
-
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
 		![](WAV_TitleIcon.png)(w:200 convert:false) 
@@ -95,28 +93,28 @@ Description:언리얼 엔진 4 에 사운드 파일을 들여오기 위한 기�
 
 **콘텐츠 브라우저** 에서:
 
-1. **추가** ![](CB_button_NewAsset.png) 버튼을 클릭합니다.
-1. 메뉴에서 _임포트_ 를 선택합니다.
-1. 임포트하려는 .WAV 파일을 선택합니다.
+1.	 콘텐츠 브라우저에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+	![](ImportButton_UI.png)
+1.	 임포트하려는 .WAV 파일을 선택합니다.
 
 또는
 
-1. 윈도우 파일 탐색기 창에서 사운드 파일을 선택합니다.
-1. 언리얼 엔진 4 의 **콘텐츠 브라우저** 속으로 끌어 놓습니다.
+1. 	윈도우 파일 탐색기 창에서 사운드 파일을 선택합니다.
+1. 	언리얼 엔진 4 의 **콘텐츠 브라우저** 속으로 끌어 놓습니다.
 
 ### 멀티채널 임포트
 
 **콘텐츠 브라우저** 에서:
 
-1. ![](CB_button_NewAsset.png) **애셋 추가** 버튼을 누릅니다.
-1. 메뉴에서 _임포트_ 를 선택합니다.
-1. 일정한 작명 규칙에 따라 사운드 애셋을 조성할 파일들을 선택합니다. 예: "Surround_fl.wav", "Surround_fr.wav", "Surround_sl.wav", "Surround_sr.wav".
-1. 그러면 "Surround" 라는 4채널 애셋이 생성됩니다.
+1.	 콘텐츠 브라우저에서 **임포트** 버튼을 클릭합니다 (아래 그림).
+	![](ImportButton_UI.png)
+1.	일정한 작명 규칙에 따라 사운드 애셋을 조성할 파일들을 선택합니다. 예: "Surround_fl.wav", "Surround_fr.wav", "Surround_sl.wav", "Surround_sr.wav".
+1.	그러면 "Surround" 라는 4채널 애셋이 생성됩니다.
 
 또는
 
-1. 윈도우 파일 탐색기 창에서 모든 파일을 선택합니다.
-1. 클릭한 다음 언리얼 에디터 4 의 **콘텐츠 브라우저** 에 끌어 놓습니다.
+1.	윈도우 파일 탐색기 창에서 모든 파일을 선택합니다.
+1.	클릭한 다음 언리얼 에디터 4 의 **콘텐츠 브라우저** 에 끌어 놓습니다.
 
 [/EXCERPT:wav01]
 

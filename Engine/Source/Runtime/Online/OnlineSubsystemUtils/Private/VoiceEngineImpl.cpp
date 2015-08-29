@@ -7,6 +7,7 @@
 
 #include "Engine.h"
 #include "SoundDefinitions.h"
+#include "Runtime/Engine/Classes/Sound/SoundWaveProcedural.h"
 #include "OnlineSubsystemUtils.h"
 
 /** Largest size preallocated for compressed data */
@@ -387,7 +388,7 @@ uint32 FVoiceEngineImpl::SubmitRemoteVoiceData(const FUniqueNetId& RemoteTalkerI
 			QueuedData.AudioComponent->Play();
 		}
 
-		USoundWaveStreaming* SoundStreaming = CastChecked<USoundWaveStreaming>(QueuedData.AudioComponent->Sound);
+		USoundWaveProcedural* SoundStreaming = CastChecked<USoundWaveProcedural>(QueuedData.AudioComponent->Sound);
 
 		if (0)
 		{

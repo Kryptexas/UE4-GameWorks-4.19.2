@@ -50,6 +50,7 @@
 #include "Distributions/DistributionVectorUniform.h"
 #include "Distributions/DistributionVectorUniformCurve.h"
 #include "UnrealEngine.h"
+#include "IMenu.h"
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
@@ -3149,6 +3150,9 @@ void FCascade::ExportSelectedEmitter()
 				}
 			}
 
+			ParticleSystem->SetupSoloing();		// we may have changed the number of LODs, so our soloing information could be invalid
+
+
 			if (!DuplicateEmitter(SelectedEmitter, DestPartSys, false))
 			{
 				FText Message = FText::Format( NSLOCTEXT("UnrealEd", "Error_FailedToCopyFormatting", "Failed to copy {0} to {1}"), 
@@ -3711,8 +3715,9 @@ void FCascade::OnSetMotionRadius()
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		PreviewViewport.ToSharedRef(),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -3932,8 +3937,9 @@ void FCascade::OnToggleWireframeSphere()
 			.SelectAllTextWhenFocused(true)
 			.ClearKeyboardFocusOnCommit(false);
 
-		EntryPopupWindow = FSlateApplication::Get().PushMenu(
+		EntryMenu = FSlateApplication::Get().PushMenu(
 			PreviewViewport.ToSharedRef(),
+			FWidgetPath(),
 			TextEntry,
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -4823,8 +4829,9 @@ void FCascade::OnRenameEmitter()
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	EntryPopupWindow = FSlateApplication::Get().PushMenu(
+	EntryMenu = FSlateApplication::Get().PushMenu(
 		EmitterCanvas.ToSharedRef(),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -5043,9 +5050,9 @@ void FCascade::OnRemoveDuplicateModules()
 
 void FCascade::CloseEntryPopup()
 {
-	if( EntryPopupWindow.IsValid() )
+	if (EntryMenu.IsValid())
 	{
-		EntryPopupWindow.Pin()->RequestDestroyWindow();
+		EntryMenu.Pin()->Dismiss();
 	}
 }
 

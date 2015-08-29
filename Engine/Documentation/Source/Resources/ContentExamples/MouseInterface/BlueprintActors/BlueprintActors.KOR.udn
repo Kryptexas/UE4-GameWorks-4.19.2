@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2298610
+﻿INTSourceChangelist:2620605
 Availability: Public
 Title:블루프린트 액터 셋업
 Crumbs:%ROOT%, Resources,  Resources/ContentExamples/MouseInterface
@@ -8,7 +8,7 @@ Description:마우스 인터페이스 데모렛에 사용된 블루프린트 액
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 
 게임플레이 도중 씬 안에 나열되어 있는 블루프린트 액터(MI_Sphere)를 마우스로 클릭하고 끌면 움직일 수 있습니다.
 

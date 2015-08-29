@@ -15,7 +15,7 @@
 
 
 /** A pixel shader which filters a texture. */
-// @param TextureType 0:Cube, 1:1D(not yet supported), 2:2D, 3:3D, 4:Cube[], 5:2D MSAA
+// @param TextureType 0:Cube, 1:1D(not yet supported), 2:2D no MSAA, 3:3D, 4:Cube[], 5:2D MSAA, 6:2D DepthStencil no MSAA (needed to avoid D3DDebug error)
 template<uint32 TextureType>
 class VisualizeTexturePS : public FGlobalShader
 {
@@ -90,9 +90,9 @@ public:
 			float FracScale = 1.0f;
 
 			// w * almost_1 to avoid frac(1) => 0
-			VisualizeParamValue[0] = FVector4(Data.RGBMul, Data.AMul, Add, FracScale * 0.9999f);
+			VisualizeParamValue[0] = FVector4(Data.RGBMul, Data.SingleChannelMul, Add, FracScale * 0.9999f);
 			VisualizeParamValue[1] = FVector4(BlinkState, Data.bSaturateInsteadOfFrac ? 1.0f : 0.0f, Data.ArrayIndex, Data.CustomMip);
-			VisualizeParamValue[2] = FVector4(Data.InputValueMapping, 0, 0,0);
+			VisualizeParamValue[2] = FVector4(Data.InputValueMapping, 0.0f, Data.SingleChannel );
 
 			SetShaderValueArray(RHICmdList, ShaderRHI, VisualizeParam, VisualizeParamValue, 3);
 		}
@@ -141,7 +141,7 @@ protected:
 #define VARIATION1(A) typedef VisualizeTexturePS<A> VisualizeTexturePS##A; \
 	IMPLEMENT_SHADER_TYPE2(VisualizeTexturePS##A, SF_Pixel);
 
-VARIATION1(0)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)
+VARIATION1(0)			VARIATION1(2)			VARIATION1(3)			VARIATION1(4)			VARIATION1(5)			VARIATION1(6)
 #undef VARIATION1
 
 
@@ -202,19 +202,20 @@ template<uint32 TextureType> void VisualizeTextureForTextureType(FRHICommandList
 
 	SetGlobalBoundShaderState(RHICmdList, FeatureLevel, BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
 	PixelShader->SetParameters(RHICmdList, Data);
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	DrawRectangle(
 		RHICmdList,
 		// XY
 		0, 0,
 		// SizeXY
-		GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y,
+		SceneContext.GetBufferSizeXY().X, SceneContext.GetBufferSizeXY().Y,
 		// UV
 		Data.Tex00.X, Data.Tex00.Y,
 		// SizeUV
 		Data.Tex11.X - Data.Tex00.X, Data.Tex11.Y - Data.Tex00.Y,
 		// TargetSize
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		// TextureSize
 		FIntPoint(1, 1),
 		*VertexShader,
@@ -234,8 +235,16 @@ void RenderVisualizeTexture(FRHICommandListImmediate& RHICmdList, ERHIFeatureLev
 		}
 		else
 		{
-			// non MSAA
-			VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
+			if(Data.Desc.Format == PF_DepthStencil)
+			{
+				// DepthStencil non MSAA (needed to avoid D3DDebug error)
+				VisualizeTextureForTextureType<6>(RHICmdList, FeatureLevel, Data);
+			}
+			else
+			{
+				// non MSAA
+				VisualizeTextureForTextureType<2>(RHICmdList, FeatureLevel, Data);
+			}
 		}
 	}
 	else if(Data.Desc.Is3DTexture())
@@ -261,6 +270,8 @@ FVisualizeTexture::FVisualizeTexture()
 {
 	Mode = 0;
 	RGBMul = 1.0f;
+	SingleChannelMul = 0.0f;
+	SingleChannel = -1;
 	AMul = 0.0f;
 	UVInputMapping = 3;
 	Flags = 0;
@@ -334,7 +345,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	Size.X = FMath::Max(Size.X, 1);
 	Size.Y = FMath::Max(Size.Y, 1);
 
-	FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_B8G8R8A8, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false));
+	FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false));
 	
 	GRenderTargetPool.FindFreeElement(OutputDesc, VisualizeTextureContent, TEXT("VisualizeTexture"));
 
@@ -351,7 +362,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	FIntPoint RTExtent = GSceneRenderTargets.GetBufferSizeXY();
+	FIntPoint RTExtent = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 
 	FVector2D Tex00 = FVector2D(0, 0);
 	FVector2D Tex11 = FVector2D(1, 1);
@@ -406,6 +417,8 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
 	
 	VisualizeTextureData.RGBMul = RGBMul;
+	VisualizeTextureData.SingleChannelMul = SingleChannelMul;
+	VisualizeTextureData.SingleChannel = SingleChannel;
 	VisualizeTextureData.AMul = AMul;
 	VisualizeTextureData.Tex00 = Tex00;
 	VisualizeTextureData.Tex11 = Tex11;
@@ -580,12 +593,23 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 			ExtendedName = FString::Printf(TEXT("%s"), Desc.DebugName);
 		}
 
-		FString Line = FString::Printf(TEXT("VisualizeTexture: %d \"%s\" RGB*%g+A*%g UV%d"),
+		FString Channels = TEXT("RGB");
+		switch( SingleChannel )
+		{
+			case 0: Channels = TEXT("R"); break;
+			case 1: Channels = TEXT("G"); break;
+			case 2: Channels = TEXT("B"); break;
+			case 3: Channels = TEXT("A"); break;
+		} 
+		float Multiplier = ( SingleChannel == -1 ) ? RGBMul : SingleChannelMul;
+
+		FString Line = FString::Printf(TEXT("VisualizeTexture: %d \"%s\" %s*%g UV%d"),
 			Mode,
 			*ExtendedName,
-			RGBMul,
-			AMul,
+			*Channels,
+			Multiplier,
 			UVInputMapping);
+
 		Canvas.DrawShadowedString( X, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 	}
 	{
@@ -593,7 +617,7 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 		Canvas.DrawShadowedString( X + 10, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 	}
 	{
-		FString Line = FString::Printf(TEXT("  BufferSize:(%d,%d)"), GSceneRenderTargets.GetBufferSizeXY().X, GSceneRenderTargets.GetBufferSizeXY().Y);
+		FString Line = FString::Printf(TEXT("  BufferSize:(%d,%d)"), FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY().X, FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY().Y);
 		Canvas.DrawShadowedString( X + 10, Y += YStep, *Line, GetStatsFont(), FLinearColor(1, 1, 1));
 	}
 

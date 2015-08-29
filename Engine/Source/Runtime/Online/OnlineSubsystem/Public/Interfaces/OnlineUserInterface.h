@@ -12,7 +12,7 @@
  * @param UserIds list of user ids that were queried
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryUserInfoComplete, int32, bool, const TArray< TSharedRef<class FUniqueNetId> >&, const FString&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnQueryUserInfoComplete, int32, bool, const TArray< TSharedRef<const FUniqueNetId> >&, const FString&);
 typedef FOnQueryUserInfoComplete::FDelegate FOnQueryUserInfoCompleteDelegate;
 
 /**
@@ -31,7 +31,7 @@ public:
 	 *
 	 * @return true if the read request was started successfully, false otherwise
 	 */
-	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<class FUniqueNetId> >& UserIds) = 0;
+	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId> >& UserIds) = 0;
 
 	/**
 	 * Delegate used when the user query request has completed
@@ -41,7 +41,7 @@ public:
 	 * @param UserIds list of user ids that were queried
 	 * @param ErrorStr string representing the error condition
 	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryUserInfoComplete, bool, const TArray< TSharedRef<class FUniqueNetId> >&, const FString&);
+	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnQueryUserInfoComplete, bool, const TArray< TSharedRef<const FUniqueNetId> >&, const FString&);
 
 	/**
 	 * Obtains the cached list of online user info 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2490420
+﻿INTSourceChangelist:2611530
 Availability: Public
 Title:1. 캐릭터 셋업
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\CharacterMovement, Gameplay\HowTo\CharacterMovement\Blueprints
@@ -31,11 +31,11 @@ Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필�
 [/REGION]
 
 
-1.	프로젝트를 열고 **콘텐츠 브라우저** 에 **우클릭** 한 다음 **애니메이션** - **애니메이션 블루프린트** 를 선택합니다.
+1.	프로젝트를 열고 **콘텐츠 브라우저** 에 **우클릭** 한 다음 **신규 추가** - **애니메이션** - **애니메이션 블루프린트** 를 선택합니다.
 
 	![](Characters_1b.png)
 
-1.	**타겟 스켈레톤** 창에서 **HeroTPP_Skeleton** 애셋을 선택합니다.
+1.	**타겟 스켈레톤** 창에서 **UE4_Mannequin_Skeleton** 애셋을 선택합니다.
 
 	![](Characters_1c.png)
 
@@ -49,7 +49,7 @@ Description:여기서는 캐릭터를 셋업한 다음 가이드 후반에 필�
 
 	![](ClickMesh.png)
 
-1.	**디테일** 패널에서 **스켈레탈 메시** 옆 **None** 박스를 클릭한 다음 **HeroTPP** 스켈레탈 메시를 할당합니다.
+1.	**디테일** 패널에서 **스켈레탈 메시** 옆 **None** 박스를 클릭한 다음 **UE4_Mannequin_Skeleton** 스켈레탈 메시를 할당합니다.
 
 	![](Characters_2.png)
 

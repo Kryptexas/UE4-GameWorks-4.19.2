@@ -29,7 +29,7 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 
 	/** List of the current entries in the enum (Pin Friendly Names) */
 	UPROPERTY()
-	TArray<FName> EnumEntryFriendlyNames;
+	TArray<FText> EnumEntryFriendlyNames;
 
 	/** Whether we need to reconstruct the node after the pins have changed */
 	UPROPERTY(Transient)
@@ -58,6 +58,7 @@ class UK2Node_Select : public UK2Node, public INodeDependingOnEnumInterface
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node interface
 
 	// INodeDependingOnEnumInterface

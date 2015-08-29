@@ -476,266 +476,6 @@ class TestMacZip : BuildCommand
 	}
 }
 
-[Help("Tests the temp storage operations.")]
-class TestTempStorage : BuildCommand
-{
-	public override void ExecuteBuild()
-	{
-		Log("TestTempStorage********");
-
-		DeleteLocalTempStorageManifests(CmdEnv);
-		DeleteSharedTempStorageManifests(CmdEnv, "Test");
-		if (TempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("storage should not exist");
-		}
-
-		string UnitTestFile = CombinePaths(CmdEnv.LocalRoot, "Engine", "Build", "Batchfiles", "TestFile.Txt");
-		Log("Test file {0}", UnitTestFile);
-
-		if (FileExists(UnitTestFile))
-		{
-			DeleteFile(UnitTestFile);
-		}
-		string[] LinesToWrite = new string[]
-		{
-			"This is a test",
-			"Of writing to file " + UnitTestFile
-		};
-		foreach (string Line in LinesToWrite)
-		{
-			WriteToFile(UnitTestFile, Line);
-		}
-
-		string UnitTestFile2 = CombinePaths(CmdEnv.LocalRoot, "TestFile2.Txt");
-		Log("Test file {0}", UnitTestFile2);
-
-		if (FileExists(UnitTestFile2))
-		{
-			DeleteFile(UnitTestFile2);
-		}
-		string[] LinesToWrite2 = new string[]
-		{
-			"This is a test",
-			"Of writing to file " + UnitTestFile2
-		};
-		foreach (string Line in LinesToWrite2)
-		{
-			WriteToFile(UnitTestFile2, Line);
-		}
-
-		string UnitTestFile3 = CombinePaths(CmdEnv.LocalRoot, "engine", "plugins", "TestFile3.Txt");
-		Log("Test file {0}", UnitTestFile3);
-
-		if (FileExists(UnitTestFile3))
-		{
-			DeleteFile(UnitTestFile3);
-		}
-		string[] LinesToWrite3 = new string[]
-		{
-			"This is a test",
-			"Of writing to file " + UnitTestFile3
-		};
-		foreach (string Line in LinesToWrite3)
-		{
-			WriteToFile(UnitTestFile3, Line);
-		}
-
-		{
-			string[] LinesRead = ReadAllLines(UnitTestFile);
-			if (LinesRead == null || LinesRead.Length != LinesToWrite.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead.Length; ++LineIndex)
-			{
-				if (LinesRead[LineIndex] != LinesToWrite[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-
-			string[] LinesRead2 = ReadAllLines(UnitTestFile2);
-			if (LinesRead2 == null || LinesRead2.Length != LinesToWrite2.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead2.Length; ++LineIndex)
-			{
-				if (LinesRead2[LineIndex] != LinesToWrite2[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-
-			string[] LinesRead3 = ReadAllLines(UnitTestFile3);
-			if (LinesRead3 == null || LinesRead3.Length != LinesToWrite3.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead3.Length; ++LineIndex)
-			{
-				if (LinesRead3[LineIndex] != LinesToWrite3[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-		}
-		var TestFiles = new List<string> { UnitTestFile, UnitTestFile2, UnitTestFile3 };
-
-		StoreToTempStorage(CmdEnv, "Test", TestFiles);
-
-		if (!LocalTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("local storage should exist");
-		}
-		if (!SharedTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("shared storage should exist");
-		}
-		DeleteLocalTempStorageManifests(CmdEnv);
-		if (LocalTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("local storage should not exist");
-		}
-		if (!TempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("some storage should exist");
-		}
-		DeleteFile(UnitTestFile);
-		DeleteFile(UnitTestFile2);
-		DeleteFile(UnitTestFile3);
-
-		bool WasLocal;
-		RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
-		if (!LocalTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("local storage should exist");
-		}
-		if (!SharedTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("shared storage should exist");
-		}
-		{
-			string[] LinesRead = ReadAllLines(UnitTestFile);
-			if (LinesRead == null || LinesRead.Length != LinesToWrite.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead.Length; ++LineIndex)
-			{
-				if (LinesRead[LineIndex] != LinesToWrite[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-
-			string[] LinesRead2 = ReadAllLines(UnitTestFile2);
-			if (LinesRead2 == null || LinesRead2.Length != LinesToWrite2.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead2.Length; ++LineIndex)
-			{
-				if (LinesRead2[LineIndex] != LinesToWrite2[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-
-			string[] LinesRead3 = ReadAllLines(UnitTestFile3);
-			if (LinesRead3 == null || LinesRead3.Length != LinesToWrite3.Length)
-			{
-				throw new AutomationException("Contents of the file created is different to the file read.");
-			}
-			for (int LineIndex = 0; LineIndex < LinesRead3.Length; ++LineIndex)
-			{
-				if (LinesRead3[LineIndex] != LinesToWrite3[LineIndex])
-				{
-					throw new AutomationException("Contents of the file created is different to the file read.");
-				}
-			}
-		}
-		DeleteSharedTempStorageManifests(CmdEnv, "Test");
-		if (SharedTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("shared storage should not exist");
-		}
-		RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal); // this should just rely on the local
-		if (!WasLocal || !LocalTempStorageExists(CmdEnv, "Test"))
-		{
-			throw new AutomationException("local storage should exist");
-		}
-
-		// and now lets test tampering
-		DeleteLocalTempStorageManifests(CmdEnv);
-		{
-			bool bFailedProperly = false;
-			var MissingFile = new List<string>(TestFiles);
-			MissingFile.Add(CombinePaths(CmdEnv.LocalRoot, "Engine", "SomeFileThatDoesntExist.txt"));
-			try
-			{
-				StoreToTempStorage(CmdEnv, "Test", MissingFile);
-			}
-			catch (AutomationException)
-			{
-				bFailedProperly = true;
-			}
-			if (!bFailedProperly)
-			{
-				throw new AutomationException("Missing file did not fail.");
-			}
-		}
-		DeleteSharedTempStorageManifests(CmdEnv, "Test"); // this ends up being junk
-		StoreToTempStorage(CmdEnv, "Test", TestFiles);
-		DeleteLocalTempStorageManifests(CmdEnv); // force a load from shared
-		var SharedFile = CombinePaths(SharedTempStorageDirectory("Test"), "Engine", "Build", "Batchfiles", "TestFile.Txt");
-		if (!FileExists_NoExceptions(SharedFile))
-		{
-			throw new AutomationException("Shared file {0} did not exist", SharedFile);
-		}
-		DeleteFile(SharedFile);
-		{
-			bool bFailedProperly = false;
-			try
-			{
-				RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
-			}
-			catch (AutomationException)
-			{
-				bFailedProperly = true;
-			}
-			if (!bFailedProperly)
-			{
-				throw new AutomationException("Did not fail to load from missing file.");
-			}
-		}
-		DeleteSharedTempStorageManifests(CmdEnv, "Test");
-		StoreToTempStorage(CmdEnv, "Test", TestFiles);
-		DeleteFile(UnitTestFile);
-		{
-			bool bFailedProperly = false;
-			try
-			{
-				RetrieveFromTempStorage(CmdEnv, "Test", out WasLocal);
-			}
-			catch (AutomationException)
-			{
-				bFailedProperly = true;
-			}
-			if (!bFailedProperly)
-			{
-				throw new AutomationException("Did not fail to load from missing local file.");
-			}
-		}
-		DeleteSharedTempStorageManifests(CmdEnv, "Test");
-		DeleteLocalTempStorageManifests(CmdEnv);
-		DeleteFile(UnitTestFile);
-		DeleteFile(UnitTestFile2);
-		DeleteFile(UnitTestFile3);
-	}
-}
-
 [Help("Reads the build time from build.properties")]
 class TestBuildTime : BuildCommand
 {
@@ -1966,6 +1706,58 @@ class TestStopProcess : BuildCommand
 	}
 }
 
+[Help("Looks through an XGE xml for overlapping obj files")]
+[Help("Source", "full path of xml to look at")]
+class LookForOverlappingBuildProducts : BuildCommand
+{
+	public override void ExecuteBuild()
+	{
+		var SourcePath = ParseParamValue("Source=");
+		if (String.IsNullOrEmpty(SourcePath))
+		{
+			SourcePath = "D:\\UAT_XGE.xml";
+		}
+		if (!FileExists_NoExceptions(SourcePath))
+		{
+			throw new AutomationException("Source path not found, please use -source=Path");
+		}
+		var Objs = new HashSet<string>( StringComparer.InvariantCultureIgnoreCase );
+//    /Fo&quot;D:\BuildFarm\buildmachine_++depot+UE4\Engine\Intermediate\Build\Win64\UE4Editor\Development\Projects\Module.Projects.cpp.obj&quot;
+		var FileText = ReadAllText(SourcePath);
+		string Start = "/Fo&quot;";
+		string End = "&quot;";
+		while (true)
+		{
+			var Index = FileText.IndexOf(Start);
+			if (Index >= 0)
+			{
+				FileText = FileText.Substring(Index + Start.Length);
+				Index = FileText.IndexOf(End);
+				if (Index >= 0)
+				{
+					var ObjFile = FileText.Substring(0, Index);
+					if (Objs.Contains(ObjFile))
+					{
+						LogError("Duplicate obj: {0}", ObjFile);
+					}
+					else
+					{
+						Objs.Add(ObjFile);
+					}
+					FileText = FileText.Substring(Index + End.Length);
+				}
+				else
+				{
+					break;
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+}
 
 [Help("Copies all files from source directory to destination directory using ThreadedCopyFiles")]
 [Help("Source", "Source path")]

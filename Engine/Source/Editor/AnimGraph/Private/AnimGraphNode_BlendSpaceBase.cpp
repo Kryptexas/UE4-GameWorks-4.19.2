@@ -7,6 +7,8 @@
 #include "AnimGraphNode_RotationOffsetBlendSpace.h"
 #include "GraphEditorActions.h"
 
+#define LOCTEXT_NAMESPACE "AnimGraphNode_BlendSpaceBase"
+
 /////////////////////////////////////////////////////
 
 // Action to add a sequence player node to the graph
@@ -34,7 +36,7 @@ struct FNewBlendSpacePlayerAction : public FEdGraphSchemaAction_K2NewNode
 
 		MenuDescription = NodeTemplate->GetNodeTitle(ENodeTitleType::ListView);
 
-		Category = TEXT("Animations");
+		Category = LOCTEXT("Animation", "Animations");
 
 		// Grab extra keywords
 		Keywords = FText::FromString(BlendSpace->GetPathName());
@@ -109,3 +111,5 @@ void UAnimGraphNode_BlendSpaceBase::PostProcessPinName(const UEdGraphPin* Pin, F
 
 	Super::PostProcessPinName(Pin, DisplayName);
 }
+
+#undef LOCTEXT_NAMESPACE

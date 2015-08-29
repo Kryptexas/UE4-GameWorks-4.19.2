@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436929
+﻿INTSourceChangelist:2538023
 Availability:Public
 Title:メインメニュー バー
 Crumbs:%ROOT%, Engine, Engine/UI
@@ -75,7 +75,7 @@ Windows アプリケーションを使用したことがあれば、エディタ
 |**Details**| **[詳細]** パネルを表示して、選択対象の各種プロパティへのアクセスを提供します。最高 4 つまでの**[詳細]** パネルを同時に表示できます。|
 |**Viewports**| ゲームの 3D ワールドのビューであるビューポートを表示します。ビューポートは最高 4 つまで表示できます。|
 |**Build and Submit**| レベルにライトを作成し、そのレベルを保存し、ソースコントロールへサブミットするための **[Build and Submit]** パネルを開きます。|
-| **Layers** | レベルを一連の表示レイヤーに分割する **[Layers]** パネルを開きます。 |
+| **Layers** | レベルを一連の表示レイヤに分割する **[Layers]** パネルを開きます。 |
 | **Levels** | 永続レベルと全てのストリーミング レベルを表示する**[Levels]** パネルを開きます。 |
 | **Modes** | ランドスケープとフォリッジなどの特殊なレベル編集ツールにアクセスする **[Modes]** パネルを表示します。 |
 | **World Outliner** | 現在レベル内にある全てのアクタの階層的分類である **ワールド アウトライナー** を開きます。 |
@@ -94,8 +94,8 @@ Windows アプリケーションを使用したことがあれば、エディタ
 | **Output Log** | 新しい **Output Log** を開きます。常に 1 つの **Output Log** のみが存在可能です。 |
 | **Plugins** | プラグインのブラウザタブを開きます。 |
 | [REGION:tablesection]**Unreal Frontend**[/REGION] ||
-| **Device Manager** | **[Device Manager]** タブを開きます。|
-| **Session Frontend** | [Automation System](Programming/Automation)、 Unreal Console などにアクセスを提供する [](Engine/Deployment/UnrealFrontend) ツールを開きます。 |
+| **Device Manager** | [デバイス マネージャ] タブを開きます。|
+| **Session Frontend** | [オートメーション システム](Programming/Automation)、 Unreal Console などにアクセスを提供する [](Engine/Deployment/UnrealFrontend) ツールを開きます。 |
 | [REGION:tablesection]**Layout**[/REGION] ||
 | **Reset Layout** | ユーザー設定のバックアップを作成してカスタマイズしたレイアウトをリセットします。
 | **Save Layout** | 現在のユーザーインターフェース (UI) のレイアウトを保存します。 |

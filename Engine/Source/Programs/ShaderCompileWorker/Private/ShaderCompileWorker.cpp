@@ -13,19 +13,21 @@
 
 #define DEBUG_USING_CONSOLE	0
 
-const int32 ShaderCompileWorkerInputVersion = 2;
+const int32 ShaderCompileWorkerInputVersion = 3;
 const int32 ShaderCompileWorkerOutputVersion = 1;
 
 double LastCompileTime = 0.0;
 
 static bool GShaderCompileUseXGE = false;
+static bool GFailedDueToShaderFormatVersion = false;
+
 static void WriteXGESuccessFile(const TCHAR* WorkingDirectory)
 {
 	// To signal compilation completion, create a zero length file in the working directory.
 	delete IFileManager::Get().CreateFileWriter(*FString::Printf(TEXT("%s/Success"), WorkingDirectory), FILEWRITE_EvenIfReadOnly);
 }
 
-const TArray<const IShaderFormat*>& GetShaderFormats()
+static const TArray<const IShaderFormat*>& GetShaderFormats()
 {
 	static bool bInitialized = false;
 	static TArray<const IShaderFormat*> Results;
@@ -55,7 +57,7 @@ const TArray<const IShaderFormat*>& GetShaderFormats()
 	return Results;
 }
 
-const IShaderFormat* FindShaderFormat(FName Name)
+static const IShaderFormat* FindShaderFormat(FName Name)
 {
 	const TArray<const IShaderFormat*>& ShaderFormats = GetShaderFormats();	
 
@@ -88,23 +90,6 @@ static void ProcessCompilationJob(const FShaderCompilerInput& Input,FShaderCompi
 	Compiler->CompileShader(Input.ShaderFormat, Input, Output, WorkingDirectory);
 }
 
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-static void VerifyResult(bool bResult, const TCHAR* InMessage = TEXT(""))
-{
-#if PLATFORM_WINDOWS
-	if (!bResult)
-	{
-		TCHAR ErrorBuffer[ MAX_SPRINTF ];
-		uint32 Error = GetLastError();
-		const TCHAR* Buffer = FWindowsPlatformMisc::GetSystemErrorMessage(ErrorBuffer, MAX_SPRINTF, Error);
-		FString Message = FString::Printf(TEXT("FAILED (%s) with GetLastError() %d: %s!\n"), InMessage, Error, ErrorBuffer);
-		FPlatformMisc::LowLevelOutputDebugStringf(*Message);
-		UE_LOG(LogShaders, Fatal, TEXT("%s"), *Message);
-	}
-#endif // PLATFORM_WINDOWS
-	verify(bResult != 0);
-}
-#endif
 
 class FWorkLoop
 {
@@ -112,10 +97,8 @@ public:
 	enum ECommunicationMode
 	{
 		ThroughFile,
-		ThroughNamedPipeOnce,
-		ThroughNamedPipe,
 	};
-	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, ECommunicationMode InCommunicationMode)
+	FWorkLoop(const TCHAR* ParentProcessIdText,const TCHAR* InWorkingDirectory,const TCHAR* InInputFilename,const TCHAR* InOutputFilename, ECommunicationMode InCommunicationMode, TMap<FString, uint16>& InFormatVersionMap)
 	:	ParentProcessId(FCString::Atoi(ParentProcessIdText))
 	,	WorkingDirectory(InWorkingDirectory)
 	,	InputFilename(InInputFilename)
@@ -123,10 +106,8 @@ public:
 	,	CommunicationMode(InCommunicationMode)
 	,	InputFilePath(InCommunicationMode == ThroughFile ? (FString(InWorkingDirectory) + InInputFilename) : InInputFilename)
 	,	OutputFilePath(InCommunicationMode == ThroughFile ? (FString(InWorkingDirectory) + InOutputFilename) : InOutputFilename)
+	,	FormatVersionMap(InFormatVersionMap)
 	{
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-		LastConnectionTime = FPlatformTime::Seconds();
-#endif
 	}
 
 	void Loop()
@@ -165,25 +146,6 @@ public:
 			// Change the output file name to requested one
 			IFileManager::Get().Move(*OutputFilePath, *TempFilePath);
 
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-			if (CommunicationMode == ThroughNamedPipeOnce || CommunicationMode == ThroughNamedPipe)
-			{
-				VerifyResult(Pipe.WriteInt32(TransferBufferOut.Num()), TEXT("Writing Transfer Size"));
-				VerifyResult(Pipe.WriteBytes(TransferBufferOut.Num(), TransferBufferOut.GetData()), TEXT("Writing Transfer Buffer"));
-//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** Closing pipe...\n"));
-				Pipe.Destroy();
-
-				if (CommunicationMode == ThroughNamedPipeOnce)
-				{
-					// Give up CPU time while we are waiting
-					FPlatformProcess::Sleep(0.02f);
-					break;
-				}
-
-				LastConnectionTime = FPlatformTime::Seconds();
-			}
-#endif	// PLATFORM_SUPPORTS_NAMED_PIPES
-
 			if (GShaderCompileUseXGE)
 			{
 				// To signal compilation completion, create a zero length file in the working directory.
@@ -212,19 +174,8 @@ private:
 
 	const FString InputFilePath;
 	const FString OutputFilePath;
+	TMap<FString, uint16> FormatVersionMap;
 	FString TempFilePath;
-
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-	FPlatformNamedPipe Pipe;
-	TArray<uint8> TransferBufferIn;
-	TArray<uint8> TransferBufferOut;
-	double LastConnectionTime;
-#endif	// PLATFORM_SUPPORTS_NAMED_PIPES
-
-	bool IsUsingNamedPipes() const
-	{
-		return (CommunicationMode == ThroughNamedPipeOnce || CommunicationMode == ThroughNamedPipe);
-	}
 
 	/** Opens an input file, trying multiple times if necessary. */
 	FArchive* OpenInputFile()
@@ -238,34 +189,6 @@ private:
 			{
 				InputFile = IFileManager::Get().CreateFileReader(*InputFilePath,FILEREAD_Silent);
 			}
-			else
-			{
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-				check(IsUsingNamedPipes()); //UE_LOG(LogShaders, Log, TEXT("Opening Pipe %s\n"), *InputFilePath);
-//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("*** Trying to open pipe %s\n"), *InputFilePath);
-				if (Pipe.Create(InputFilePath, false, false))
-				{
-//FPlatformMisc::LowLevelOutputDebugStringf(TEXT("\tOpened!!!\n"));
-					// Read the total number of bytes
-					int32 TransferSize = 0;
-					VerifyResult(Pipe.ReadInt32(TransferSize));
-
-					// Prealloc and read the full buffer
-					TransferBufferIn.Empty(TransferSize);
-					TransferBufferIn.AddUninitialized(TransferSize);	//UE_LOG(LogShaders, Log, TEXT("Reading Buffer\n"));
-					VerifyResult(Pipe.ReadBytes(TransferSize, TransferBufferIn.GetData()));
-
-					return new FMemoryReader(TransferBufferIn);
-				}
-
-				double DeltaTime = FPlatformTime::Seconds();
-				if (DeltaTime - LastConnectionTime > 20.0f)
-				{
-					// If can't connect for more than 20 seconds, let's exit
-					FPlatformMisc::RequestExit(false);
-				}
-#endif	// PLATFORM_SUPPORTS_NAMED_PIPES
-			}
 
 			if(!InputFile && !bFirstOpenTry)
 			{
@@ -278,6 +201,24 @@ private:
 		return InputFile;
 	}
 
+	void VerifyFormatVersions(TMap<FString, uint16>& ReceivedFormatVersionMap)
+	{
+		for (auto Pair : ReceivedFormatVersionMap)
+		{
+			auto* Found = FormatVersionMap.Find(Pair.Key);
+			if (Found)
+			{
+				GFailedDueToShaderFormatVersion = true;
+				if (Pair.Value != *Found)
+				{
+					FCString::Snprintf(GErrorExceptionDescription, sizeof(GErrorExceptionDescription), TEXT("Mismatched shader version for format %s; did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
+
+					checkf(Pair.Value == *Found, TEXT("Exiting due to mismatched shader version for format %s, version %d from ShaderCompilerWorker, received %d! Did you forget to build ShaderCompilerWorker?"), *Pair.Key, *Found, Pair.Value);
+				}
+			}
+		}
+	}
+
 	void ProcessInputFromArchive(FArchive* InputFilePtr, TArray<FJobResult>& OutJobResults)
 	{
 		int32 NumBatches = 0;
@@ -285,7 +226,12 @@ private:
 		FArchive& InputFile = *InputFilePtr;
 		int32 InputVersion;
 		InputFile << InputVersion;
-		check(ShaderCompileWorkerInputVersion == InputVersion);
+		checkf(ShaderCompileWorkerInputVersion == InputVersion, TEXT("Exiting due to ShaderCompilerWorker expecting input version %d, got %d instead! Did you forget to build ShaderCompilerWorker?"), ShaderCompileWorkerInputVersion, InputVersion);
+
+		TMap<FString, uint16> ReceivedFormatVersionMap;
+		InputFile << ReceivedFormatVersionMap;
+
+		VerifyFormatVersions(ReceivedFormatVersionMap);
 
 		InputFile << NumBatches;
 
@@ -364,16 +310,6 @@ private:
 				UE_LOG(LogShaders, Fatal,TEXT("Couldn't save output file %s"), *TempFilePath);
 			}
 		}
-		else
-		{
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-			check(IsUsingNamedPipes());
-
-			// Output Transfer Buffer...
-			TransferBufferOut.Empty(0);
-			OutputFilePtr = new FMemoryWriter(TransferBufferOut);
-#endif
-		}
 
 		return OutputFilePtr;
 	}
@@ -405,20 +341,10 @@ private:
 	/** Called in the idle loop, checks for conditions under which the helper should exit */
 	void CheckExitConditions()
 	{
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-		if (CommunicationMode == ThroughNamedPipeOnce)
+		if (!InputFilename.Contains(TEXT("Only")))
 		{
-			UE_LOG(LogShaders, Log, TEXT("PipeOnce: exiting after one job."));
+			UE_LOG(LogShaders, Log, TEXT("InputFilename did not contain 'Only', exiting after one job."));
 			FPlatformMisc::RequestExit(false);
-		}
-		else if (CommunicationMode == ThroughFile)
-#endif
-		{
-			if (!InputFilename.Contains(TEXT("Only")))
-			{
-				UE_LOG(LogShaders, Log, TEXT("InputFilename did not contain 'Only', exiting after one job."));
-				FPlatformMisc::RequestExit(false);
-			}
 		}
 
 #if PLATFORM_MAC || PLATFORM_LINUX
@@ -455,10 +381,7 @@ private:
 				// If we couldn't open the process then it is no longer running, exit
 				if (ParentProcessHandle == nullptr)
 				{
-					if (!IsUsingNamedPipes())
-					{
-						checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to OpenProcess(ParentProcessId) failing and the input file is present!"));
-					}
+					checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to OpenProcess(ParentProcessId) failing and the input file is present!"));
 					UE_LOG(LogShaders, Log, TEXT("Couldn't OpenProcess, Parent process no longer running, exiting"));
 					FPlatformMisc::RequestExit(false);
 				}
@@ -470,10 +393,7 @@ private:
 					uint32 WaitResult = WaitForSingleObject(ParentProcessHandle, 0);
 					if (WaitResult != WAIT_TIMEOUT)
 					{
-						if (!IsUsingNamedPipes())
-						{
-							checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to WaitForSingleObject(ParentProcessHandle) signaling and the input file is present!"));
-						}
+						checkf(IFileManager::Get().FileSize(*FilePath) == INDEX_NONE, TEXT("Exiting due to WaitForSingleObject(ParentProcessHandle) signaling and the input file is present!"));
 						UE_LOG(LogShaders, Log, TEXT("WaitForSingleObject signaled, Parent process no longer running, exiting"));
 						FPlatformMisc::RequestExit(false);
 					}
@@ -516,6 +436,7 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 	// We just enumerate the shader formats here for debugging.
 	const TArray<const class IShaderFormat*>& ShaderFormats = GetShaderFormats();
 	check(ShaderFormats.Num());
+	TMap<FString, uint16> FormatVersionMap;
 	for (int32 Index = 0; Index < ShaderFormats.Num(); Index++)
 	{
 		TArray<FName> OutFormats;
@@ -524,25 +445,15 @@ int32 GuardedMain(int32 argc, TCHAR* argv[])
 		for (int32 InnerIndex = 0; InnerIndex < OutFormats.Num(); InnerIndex++)
 		{
 			UE_LOG(LogShaders, Display, TEXT("Available Shader Format %s"), *OutFormats[InnerIndex].ToString());
+			uint16 Version = ShaderFormats[Index]->GetVersion(OutFormats[InnerIndex]);
+			FormatVersionMap.Add(OutFormats[InnerIndex].ToString(), Version);
 		}
 	}
 
 	LastCompileTime = FPlatformTime::Seconds();
 
-	FString InCommunicating = (argc > 6) ? argv[6] : FString();
-#if PLATFORM_SUPPORTS_NAMED_PIPES
-	const bool bThroughFile = GShaderCompileUseXGE || (InCommunicating == FString(TEXT("-communicatethroughfile")));
-	const bool bThroughNamedPipe = (InCommunicating == FString(TEXT("-communicatethroughnamedpipe")));
-	const bool bThroughNamedPipeOnce = (InCommunicating == FString(TEXT("-communicatethroughnamedpipeonce")));
-#else
-	const bool bThroughFile = true;
-	const bool bThroughNamedPipe = false;
-	const bool bThroughNamedPipeOnce = false;
-#endif
-	check((int32)bThroughFile + (int32)bThroughNamedPipe + (int32)bThroughNamedPipeOnce == 1);
-
-	FWorkLoop::ECommunicationMode Mode = bThroughFile ? FWorkLoop::ThroughFile : (bThroughNamedPipeOnce ? FWorkLoop::ThroughNamedPipeOnce : FWorkLoop::ThroughNamedPipe);
-	FWorkLoop WorkLoop(argv[2], argv[1], argv[4], argv[5], Mode);
+	FWorkLoop::ECommunicationMode Mode = FWorkLoop::ThroughFile;
+	FWorkLoop WorkLoop(argv[2], argv[1], argv[4], argv[5], Mode, FormatVersionMap);
 
 	WorkLoop.Loop();
 
@@ -565,6 +476,8 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 #if PLATFORM_WINDOWS
 	else
 	{
+		// Don't want 32 dialogs popping up when SCW fails
+		GUseCrashReportClient = false;
 		__try
 		{
 			GIsGuarded = 1;
@@ -578,7 +491,7 @@ int32 GuardedMainWrapper(int32 ArgC, TCHAR* ArgV[], const TCHAR* CrashOutputFile
 			int32 OutputVersion = ShaderCompileWorkerOutputVersion;
 			OutputFile << OutputVersion;
 
-			int32 ErrorCode = 1;
+			int32 ErrorCode = GFailedDueToShaderFormatVersion ? 2 : 1;
 			OutputFile << ErrorCode;
 
 			// Note: Can't use FStrings here as SEH can't be used with destructors

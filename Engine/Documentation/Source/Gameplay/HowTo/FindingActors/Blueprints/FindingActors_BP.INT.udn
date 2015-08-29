@@ -1,13 +1,11 @@
 Availability: Public
-Title:How to Find Actors in Blueprints
+Title:Finding Actors in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\FindingActors
 Description:A How To Guide for Finding Actors in Blueprints. 
 
 [TOC (start:2 end:2)]
 
-## Overview
-
-This page covers examples on how to find Actors in a level by using the **Get All Actors of Class** node. This node when called will retrieve all Actors in your level of the specified Class and place them in an **Array** (collection of variables) and from that Array, you can pull out all Actors or individual Actors based on criteria you wish to filter by. You can then access the properties of the Actor(s) or modify them in some way based on the type of Actor it is and what you wish to achieve. 
+This page covers examples on how to find Actors in a level by using the Get All Actors of Class node. This node when called will retrieve all Actors in your level of the specified Class and place them in an Array (collection of variables) and from that Array, you can pull out all Actors or individual Actors based on criteria you wish to filter by. You can then access the properties of the Actor(s) or modify them in some way based on the type of Actor it is and what you wish to achieve. 
  
 
 ## Get All Actors of Class
@@ -46,17 +44,7 @@ The steps below will show you how you can use the **Get All Actors of Class** no
 
 	The **Out Actors** is an **Array** of all the Actors (of the Class specified) and "For Each" of them we can do something.
 
-1.	On the **ForEachLoop**, drag off the **Array Element** and add a **Cast To Blueprint_Effect_Fire** node. 
-
-	![](Actors6.png)
-
-	In order to access/modify the **Blueprint_Effect_Fire** asset, we need to associate the Actor Reference with the Blueprint. By taking the Actor Reference and **Casting** to the Object we want to associate it with, we are saying "Yes Actor, you are indeed of this type so let me access and modify you."
-
-	[REGION:note]
-	For more on **Casting** and **Blueprint Communication**, refer to the [](Engine/Blueprints/UserGuide/BlueprintCommsUsage) documentation. 
-	[/REGION]
-
-1.	Off the **As Blueprint Effect Fire C** pin of the Cast node, get **P_Fire** and **Fire Audio**. 
+1.	Drag off the **Array Element** of the **ForEachLoop** node and get **P_Fire** and **Fire Audio**. 
 
 1.	**Right-click** in the graph and add a **Deactivate** node, then connect the fire and audio pins to the **Target**. 
 
@@ -77,7 +65,7 @@ Using this method, we were able to find all Actors of a particular Class and aff
 
 ## Get Specific Actors
 
-In the previous section, we learned that using the **Get All Actors of Class** node produces an **Array** of Actors of the specified Class. This section will show you how you can filter the Array results based on different criteria to get specific Actors or a single Actor from the Array. 
+In the previous section, we learned that using the **Get All Actors of Class** node produces an Array of Actors of the specified Class. This section will show you how you can filter the Array results based on different criteria to get specific Actors or a single Actor from the Array. 
 
 One method you can take is by using **Tags** on the Actor, for example: 
 
@@ -91,7 +79,7 @@ One method you can take is by using **Tags** on the Actor, for example:
 
 	![](Actors9.png)
 
-1.	Inside the **MyCharacter** Blueprint, off the **As Blueprint Effect Fire C** pin, add the **Get Tags** node. 
+1.	Inside the **MyCharacter** Blueprint, drag off the **Array Element** of the **ForEachLoop** and add the **Get Tags** node. 
 
 	![](Actors10.png)
 
@@ -103,15 +91,15 @@ One method you can take is by using **Tags** on the Actor, for example:
 
 1.	**Right-click** in the graph and add a **Branch** node. 
 
-1.	Drag off the **Condition** of the **Branch** and add a **Actor Has Tag** node. 
+1.	Drag off the **Condition** of the **Branch** and add an **Actor Has Tag** node. 
 
 1.	Connect the out pin from the **Get** node to the **Tag** pin on the **Actor Has Tag** node. 
 
-1.	Connect the **As Blueprint Effect Fire C** pin to the **Target** pin on the **Actor Has Tag** node. 
+1.	Connect the **Array Element** of the **ForEachLoop** pin to the **Target** pin on the **Actor Has Tag** node. 
 
 	![](Actors12.png)(w:800)
 
-1.	Drag off the **As Blueprint Effect Fire C** pin and get **P_Fire** and **Fire Audio** and connect them to a **Deactivate** node. 
+1.	Drag off the **Array Element** of the **ForEachLoop** pin to get **P_Fire** and **Fire Audio** and connect them to a **Deactivate** node. 
 
 	[REGION:lightbox]
 	[![](Actors13.png)(w:800)](Actors13.png)
@@ -140,7 +128,6 @@ You do not always need to **Cast** to an Object following the **ForEachLoop**, t
 _Click image for full view._
 
 Here we are getting all Actors in our level of the Class **TriggerBox** and disabling collision on them (turning off all triggers in the level). We did not need to **Cast To** a TriggerBox as we are not accessing Components of the TriggerBox but the TriggerBox Actor itself. Whenever you want to access the Components that comprise the Actor, that is when you would want to use the **Cast To** node. 
-
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2366678
+﻿INTSourceChangelist:2599318
 Availability:Public
 Title:ブループリントエディタ虎の巻
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -6,10 +6,9 @@ Description:ブループリント ショートカットと便利なアクショ�
 
 [TOC(start:2 end:2)]
 
-## 概要
 **ブループリント** エディタには生産性を強化するためにショートカットがたくさん組み込まれています。エディタを使用していれば自然と分かってくるものがほとんどですが、隠れて分かりにくいものもあります。これらのアクションをもっと効果的に実行できるように、最もよく使用するアクションとショートカットをこのページで紹介します。ショートカットの一覧は、以下からダウンロードできます。 
 
-[Download] をクリックします [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/White Version](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
+ダウンロードするには以下をクリックします。[Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/White Version](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
 
 ## グラフ アクション
 
@@ -40,7 +39,7 @@ Description:ブループリント ショートカットと便利なアクショ�
 
 ## ナビゲーション
 [REGION:fullwidth]
-![Navigation.png](Navigation.png) 
+![Navigation.png](Navigation.png)
 [/REGION] 
 
 | アクション | コマンド |
@@ -96,7 +95,7 @@ Description:ブループリント ショートカットと便利なアクショ�
 | ノードに移動する | ノード上で**左マウスボタン** をドラッグ |
 | 選択したノードに移動する | **矢印キー** |
 | 選択したノードを削除する | **Delete** |
-
+| ノードの名前を変更する / コメントを編集する | タイトル上を **左クリック** |
 | ノードの名前を変更する / コメントを編集する | **F2** |
 | ブレークポイントを切り替える | **F9** |
 | ブレークポイントをすべてクリアする | **Ctrl + Shift + F9** |

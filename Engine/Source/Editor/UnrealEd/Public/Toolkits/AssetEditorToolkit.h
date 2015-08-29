@@ -58,7 +58,8 @@ public:
 	virtual const TArray< UObject* >* GetObjectsCurrentlyBeingEdited() const override;
 	virtual FName GetToolkitFName() const override = 0;				// Must implement in derived class!
 	virtual FText GetBaseToolkitName() const override = 0;			// Must implement in derived class!
-	virtual FText GetToolkitName() const override;		
+	virtual FText GetToolkitName() const override;
+	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override = 0;	// Must implement in derived class!
 	virtual class FEdMode* GetEditorMode() const override;
 
@@ -154,7 +155,14 @@ public:
 	 * @param	InObject	The object we want a description of
 	 * @return a formatted description of the object state (e.g. "MyObject*")
 	 */
-	static FText GetDescriptionForObject(const UObject* InObject);
+	static FText GetLabelForObject(const UObject* InObject);
+
+	/** 
+	 * Gets the text to display in a toolkit tooltip for an object 
+	 * @param	InObject	The object we want a description of
+	 * @return a formatted description of the object
+	 */
+	static FText GetToolTipTextForObject(const UObject* InObject);
 
 protected:
 

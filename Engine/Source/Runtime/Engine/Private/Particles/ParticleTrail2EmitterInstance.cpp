@@ -2036,6 +2036,7 @@ void FParticleRibbonEmitterInstance::SetupTrailModules()
 
 void FParticleRibbonEmitterInstance::ResolveSource()
 {
+	check(IsInGameThread());
 	if (SourceModule && SourceModule->SourceName != NAME_None)
 	{
 		switch (SourceModule->SourceMethod)
@@ -2261,13 +2262,27 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 						SourceIndices[InTrailIdx] = Index;
 					}
 
+					bool bEncounteredNaNError = false;
+
 					// Grab the particle
 					FBaseParticle* SourceParticle = (SourceIndices[InTrailIdx] != -1) ? SourceEmitter->GetParticleDirect(SourceIndices[InTrailIdx]) : NULL;
 					if (SourceParticle != NULL)
 					{
-						OutPosition = SourceParticle->Location + SourceEmitter->SimulationToWorld.GetOrigin();
-						OutTangent = SourceParticle->Location - SourceParticle->OldLocation;
-						SourceTimes[InTrailIdx] = SourceParticle->RelativeTime;
+						const FVector WorldOrigin = SourceEmitter->SimulationToWorld.GetOrigin();
+						UParticleSystemComponent* Comp = SourceEmitter->Component;
+						if (!ensureMsgf(!SourceParticle->Location.ContainsNaN(), TEXT("NaN in SourceParticle Location. Template: %s, Component: %s"), Comp ? *GetNameSafe(Comp->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Comp)) ||
+							!ensureMsgf(!WorldOrigin.ContainsNaN(), TEXT("NaN in WorldOrigin. Template: %s, Component: %s"), Comp ? *GetNameSafe(Comp->Template) : TEXT("UNKNOWN"), *GetPathNameSafe(Comp))
+							)
+						{
+							// Contains NaN!
+							bEncounteredNaNError = true;
+						}
+						else
+						{
+							OutPosition = SourceParticle->Location + WorldOrigin;
+							OutTangent = SourceParticle->Location - SourceParticle->OldLocation;
+							SourceTimes[InTrailIdx] = SourceParticle->RelativeTime;
+						}
 					}
 					else
 					{
@@ -2287,7 +2302,7 @@ bool FParticleRibbonEmitterInstance::ResolveSourcePoint(int32 InTrailIdx,
 
 					//@todo. Support source offset
 
-					bSourceWasSet = true;
+					bSourceWasSet = !bEncounteredNaNError;
 				}
 			}
 			break;
@@ -3308,8 +3323,10 @@ float FParticleAnimTrailEmitterInstance::Spawn(float DeltaTime)
 	// Figure out spawn rate for this tick.
 	if (bProcessSpawnRate)
 	{
+		static IConsoleVariable* EffectsQuality = IConsoleManager::Get().FindConsoleVariable(TEXT("sg.EffectsQuality"));
+
 		float RateScale = LODLevel->SpawnModule->RateScale.GetValue(EmitterTime, Component) * LODLevel->SpawnModule->GetGlobalRateScale();
-		float QualityMult = 0.25f * (1 << Scalability::GetQualityLevels().EffectsQuality);
+		float QualityMult = 0.25f * (1 << EffectsQuality->GetInt());
 		RateScale *= SpriteTemplate->QualityLevelSpawnRateScale*QualityMult;
 		SpawnRate += LODLevel->SpawnModule->Rate.GetValue(EmitterTime, Component) * FMath::Clamp<float>(RateScale, 0.0f, RateScale);
 	}

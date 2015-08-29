@@ -327,7 +327,7 @@ protected:
 	virtual void DestroyPlayerInputComponent();
 
 	/** Allows a Pawn to set up custom input bindings. Called upon possession by a PlayerController, using the InputComponent created by CreatePlayerInputComponent(). */
-	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) { /* No bindings by default.*/ }
+	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) { /* No bindings by default.*/ }
 
 public:
 	/**
@@ -373,16 +373,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="ConsumeInput"))
 	virtual FVector ConsumeMovementInputVector();
 
-	/** Add input (affecting Pitch) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="up down"))
+	/**
+	 * Add input (affecting Pitch) to the Controller's ControlRotation, if it is a local PlayerController.
+	 * This value is multiplied by the PlayerController's InputPitchScale value.
+	 * @param Val Amount to add to Pitch. This value is multiplied by the PlayerController's InputPitchScale value.
+	 * @see PlayerController::InputPitchScale
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="up down addpitch"))
 	virtual void AddControllerPitchInput(float Val);
 
-	/** Add input (affecting Yaw) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="left right turn"))
+	/**
+	 * Add input (affecting Yaw) to the Controller's ControlRotation, if it is a local PlayerController.
+	 * This value is multiplied by the PlayerController's InputYawScale value.
+	 * @param Val Amount to add to Yaw. This value is multiplied by the PlayerController's InputYawScale value.
+	 * @see PlayerController::InputYawScale
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="left right turn addyaw"))
 	virtual void AddControllerYawInput(float Val);
 
-	/** Add input (affecting Roll) to the Controller's ControlRotation, if it is a local PlayerController. */
-	UFUNCTION(BlueprintCallable, Category="Pawn|Input")
+	/**
+	 * Add input (affecting Roll) to the Controller's ControlRotation, if it is a local PlayerController.
+	 * This value is multiplied by the PlayerController's InputRollScale value.
+	 * @param Val Amount to add to Roll. This value is multiplied by the PlayerController's InputRollScale value.
+	 * @see PlayerController::InputRollScale
+	 */
+	UFUNCTION(BlueprintCallable, Category="Pawn|Input", meta=(Keywords="addroll"))
 	virtual void AddControllerRollInput(float Val);
 
 	/** Helper to see if move input is ignored. If our controller is a PlayerController, checks Controller->IsMoveInputIgnored(). */

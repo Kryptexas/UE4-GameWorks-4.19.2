@@ -7,6 +7,7 @@
 #include "SGameplayTagWidget.h"
 #include "GameplayTagContainer.h"
 #include "ScopedTransaction.h"
+#include "SScaleBox.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagCustomization"
 
@@ -74,13 +75,13 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 		.AutoHeight()
 		.MaxHeight(400)
 		[
-			SNew(SGameplayTagWidget, EditableContainers)
-			.Filter(Categories)
-			.ReadOnly(bReadOnly)
-			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
-			.MultiSelect(false)
-			.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
-			.PropertyHandle(StructPropertyHandle)
+            SNew(SGameplayTagWidget, EditableContainers)
+            .Filter(Categories)
+            .ReadOnly(bReadOnly)
+            .TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
+            .MultiSelect(false)
+            .OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
+            .PropertyHandle(StructPropertyHandle)
 		];
 }
 

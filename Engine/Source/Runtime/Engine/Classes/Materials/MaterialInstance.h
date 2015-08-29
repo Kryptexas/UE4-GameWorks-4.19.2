@@ -252,6 +252,8 @@ public:
 	virtual ENGINE_API bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const override;
 	virtual ENGINE_API bool GetScalarParameterValue(FName ParameterName, float& OutValue) const override;
 	virtual ENGINE_API bool GetTextureParameterValue(FName ParameterName, class UTexture*& OutValue) const override;
+	/** Searches for a parameter override for the named parameter and returns true if one was found.  Does not search the base UMaterial. */
+	virtual ENGINE_API bool GetTextureParameterOverrideValue(FName ParameterName, class UTexture*& OutValue) const override;
 	virtual ENGINE_API bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const override;
 	virtual ENGINE_API void GetUsedTextures(TArray<UTexture*>& OutTextures, EMaterialQualityLevel::Type QualityLevel, bool bAllQualityLevels, ERHIFeatureLevel::Type FeatureLevel, bool bAllFeatureLevels) const override;
 	virtual ENGINE_API void OverrideTexture(const UTexture* InTextureToOverride, UTexture* OverrideTexture, ERHIFeatureLevel::Type InFeatureLevel) override;
@@ -270,7 +272,6 @@ public:
 	virtual ENGINE_API float GetEmissiveBoost() const override;
 	virtual ENGINE_API float GetDiffuseBoost() const override;
 	virtual ENGINE_API float GetExportResolutionScale() const override;
-	virtual ENGINE_API float GetDistanceFieldPenumbraScale() const override;
 	virtual ENGINE_API bool GetTexturesInPropertyChain(EMaterialProperty InProperty, TArray<UTexture*>& OutTextures,
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
 	virtual ENGINE_API void RecacheUniformExpressions() const override;
@@ -281,12 +282,14 @@ public:
 	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const override;
+	ENGINE_API virtual bool IsDitheredLODTransition(bool bIsGameThread = IsInGameThread()) const override;
 	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const override;
 
 	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
 	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
 	ENGINE_API EMaterialShadingModel RenderThread_GetShadingModel() const;
 	ENGINE_API bool RenderThread_IsTwoSided() const;
+	ENGINE_API bool RenderThread_IsDitheredLODTransition() const;
 	ENGINE_API bool RenderThread_IsMasked() const;
 	
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const override;

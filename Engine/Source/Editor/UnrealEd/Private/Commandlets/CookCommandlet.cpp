@@ -21,7 +21,6 @@
 #include "UnrealEdMessages.h"
 #include "GameDelegates.h"
 #include "ChunkManifestGenerator.h"
-#include "PhysicsPublic.h"
 #include "CookerSettings.h"
 #include "ShaderCompiler.h"
 #include "MemoryMisc.h"
@@ -451,34 +450,18 @@ bool UCookCommandlet::SaveCookedPackage( UPackage* Package, uint32 SaveFlags, bo
 				if (World)
 				{
 					World->PersistentLevel->OwningWorld = World;
-					if ( !World->bIsWorldInitialized)
-					{
-						// we need to initialize the world - at least need physics scene since BP construction script runs during cooking, otherwise trace won't work
-						World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
-					}
 				}
 
 				const FString FullFilename = FPaths::ConvertRelativePathToFull( PlatFilename );
 				if( FullFilename.Len() >= PLATFORM_MAX_FILEPATH_LENGTH )
 				{
-					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *PlatFilename );
+					UE_LOG( LogCookCommandlet, Error, TEXT( "Couldn't save package, filename is too long :%s" ), *FullFilename );
 					bSavedCorrectly = false;
 				}
 				else
 				{
 					bSavedCorrectly &= GEditor->SavePackage( Package, World, Flags, *PlatFilename, GError, NULL, bSwap, false, SaveFlags, Target, FDateTime::MinValue() );
 				}
-
-				if (World && World->bIsWorldInitialized)
-				{
-					// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
-					World->SetPhysicsScene(nullptr);
-					if ( GPhysCommandHandler )
-					{
-						GPhysCommandHandler->Flush();
-					}
-				}
-
 				
 				bOutWasUpToDate = false;
 			}
@@ -1070,6 +1053,12 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FString DLCName;
 	FParse::Value( *Params, TEXT("DLCNAME="), DLCName);
 
+	FString ChildCookFile;
+	FParse::Value(*Params, TEXT("cookchild="), ChildCookFile);
+
+	int32 NumProcesses = 0;
+	FParse::Value(*Params, TEXT("numcookerstospawn="), NumProcesses);
+
 	FString BasedOnReleaseVersion;
 	FParse::Value( *Params, TEXT("BasedOnReleaseVersion="), BasedOnReleaseVersion);
 
@@ -1192,7 +1181,8 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	StartupOptions.bErrorOnEngineContentUse = bErrorOnEngineContentUse;
 	StartupOptions.bGenerateDependenciesForMaps = Switches.Contains(TEXT("GenerateDependenciesForMaps"));
 	StartupOptions.bGenerateStreamingInstallManifests = bGenerateStreamingInstallManifests;
-
+	StartupOptions.ChildCookFileName = ChildCookFile;
+	StartupOptions.NumProcesses = NumProcesses;
 
 	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 
@@ -1201,7 +1191,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//	2. We have cooked non-map packages and...
 	//		a. we have accumulated 50 (configurable) of these since the last GC.
 	//		b. we have been idle for 20 (configurable) seconds.
-	bool bShouldGC = true;
+	bool bShouldGC = false;
 
 	// megamoth
 	uint32 NonMapPackageCountSinceLastGC = 0;
@@ -1215,53 +1205,57 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	FDateTime LastConnectionTime = FDateTime::UtcNow();
 	bool bHadConnection = false;
 
-	while ( CookOnTheFlyServer->IsCookByTheBookRunning() )
+	while (CookOnTheFlyServer->IsCookByTheBookRunning())
 	{
-		uint32 TickResults = 0;
-		static const float CookOnTheSideTimeSlice = 10.0f;
-		TickResults = CookOnTheFlyServer->TickCookOnTheSide(CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC);
-
-		if ( TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "NewCook.MainLoop" ), STAT_CookOnTheFly_MainLoop, STATGROUP_LoadTime );
 		{
-			LastCookActionTime = FPlatformTime::Seconds();
+			uint32 TickResults = 0;
+			static const float CookOnTheSideTimeSlice = 10.0f;
+			TickResults = CookOnTheFlyServer->TickCookOnTheSide( CookOnTheSideTimeSlice, NonMapPackageCountSinceLastGC );
+
+			if (TickResults & (UCookOnTheFlyServer::COSR_CookedMap | UCookOnTheFlyServer::COSR_CookedPackage))
+			{
+				LastCookActionTime = FPlatformTime::Seconds();
+			}
+
+
+			GShaderCompilingManager->ProcessAsyncResults( true, false );
+
+			if (NonMapPackageCountSinceLastGC > 0)
+			{
+				// We should GC if we have packages to collect and we've been idle for some time.
+				const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
+				const bool bExceededIdleTimeToGC = (IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
+				bShouldGC |= bExceededPackagesPerGC || bExceededIdleTimeToGC;
+			}
+
+			bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC) != 0;
+
+			bShouldGC |= HasExceededMaxMemory( MaxMemoryAllowance );
+
+
+			// don't clean up if we are waiting on cache of cooked data
+			if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0))
+			{
+				bShouldGC = false;
+				NonMapPackageCountSinceLastGC = 0;
+
+				UE_LOG( LogCookCommandlet, Display, TEXT( "GC..." ) );
+
+				CollectGarbage( RF_Native );
+			}
+			else
+			{
+				CookOnTheFlyServer->TickRecompileShaderRequests();
+
+				FPlatformProcess::Sleep( 0.0f );
+			}
+
+
+			ProcessDeferredCommands();
 		}
 
-
-		GShaderCompilingManager->ProcessAsyncResults(true, false);
-	
-		if (NonMapPackageCountSinceLastGC > 0)
-		{
-			// We should GC if we have packages to collect and we've been idle for some time.
-			const bool bExceededPackagesPerGC = (PackagesPerGC > 0) && (NonMapPackageCountSinceLastGC > PackagesPerGC);
-			const bool bExceededIdleTimeToGC = (IdleTimeToGC > 0) && ((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
-			bShouldGC |= bExceededPackagesPerGC || bExceededIdleTimeToGC;
-		}
-
-		bShouldGC |= (TickResults & UCookOnTheFlyServer::COSR_RequiresGC)!=0;
-
-		bShouldGC |= HasExceededMaxMemory(MaxMemoryAllowance);
-
-
-		// don't clean up if we are waiting on cache of cooked data
-		if (bShouldGC && ((TickResults & UCookOnTheFlyServer::COSR_WaitingOnCache) == 0) )
-		{
-			bShouldGC = false;
-			NonMapPackageCountSinceLastGC = 0;
-
-			UE_LOG(LogCookCommandlet, Display, TEXT("GC..."));
-
-			CollectGarbage( RF_Native );
-		}
-		else
-		{
-			CookOnTheFlyServer->TickRecompileShaderRequests();
-
-			FPlatformProcess::Sleep(0.0f);
-		}
-
-
-
-		ProcessDeferredCommands();
+		FStats::TickCommandletStats();
 	}
 
 	return true;
@@ -1271,7 +1265,7 @@ bool UCookCommandlet::HasExceededMaxMemory(uint64 MaxMemoryAllowance) const
 {
 	const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
 
-	uint64 UsedMemory = MemStats.UsedPhysical + MemStats.UsedVirtual;
+	uint64 UsedMemory = MemStats.UsedPhysical;
 	if ( (UsedMemory >= MaxMemoryAllowance) && 
 		(MaxMemoryAllowance > 0u) )
 	{
@@ -1364,7 +1358,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 	FChunkManifestGenerator ManifestGenerator(Platforms);
 	// Always clean manifest directories so that there's no stale data
 	ManifestGenerator.CleanManifestDirectories();
-	ManifestGenerator.Initialize(bGenerateStreamingInstallManifests);
+	// ManifestGenerator.Initialize(bGenerateStreamingInstallManifests);
 
 	for( int32 FileIndex = 0; ; FileIndex++ )
 	{
@@ -1391,7 +1385,7 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 					// Populate streaming install manifests
 					FString SandboxFilename = SandboxFile->ConvertToAbsolutePathForExternalAppForWrite(*Filename);
 					UE_LOG(LogCookCommandlet, Display, TEXT("Adding package to manifest %s, %s, %s"), *Pkg->GetName(), *SandboxFilename, *LastLoadedMapName);
-					ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
+					//ManifestGenerator.AddPackageToChunkManifest(Pkg, SandboxFilename, LastLoadedMapName, SandboxFile.GetOwnedPointer());
 				}
 					
 				if (!CookedPackages.Contains(Filename))
@@ -1479,12 +1473,6 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 		}
 
 		UE_LOG(LogCookCommandlet, Display, TEXT("Loading %s"), *Filename );
-
-		if (bGenerateStreamingInstallManifests)
-		{
-			UE_LOG(LogCookCommandlet, Display, TEXT("PrepareToLoadNewPackage %s"), *Filename );
-			ManifestGenerator.PrepareToLoadNewPackage(Filename);
-		}
 
 		UPackage* Package = LoadPackage( NULL, *Filename, LOAD_None );
 

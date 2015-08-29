@@ -154,6 +154,21 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 	}
 }
 
+#if WITH_HOT_RELOAD_CTORS
+UGameViewportClient::UGameViewportClient(FVTableHelper& Helper)
+	: Super(Helper)
+	, EngineShowFlags(ESFIM_Game)
+	, CurrentBufferVisualizationMode(NAME_None)
+	, HighResScreenshotDialog(NULL)
+	, bIgnoreInput(false)
+	, MouseCaptureMode(EMouseCaptureMode::CapturePermanently)
+	, bHideCursorDuringCapture(false)
+	, AudioDeviceHandle(INDEX_NONE)
+	, bHasAudioFocus(false)
+{
+
+}
+#endif // WITH_HOT_RELOAD_CTORS
 
 UGameViewportClient::~UGameViewportClient()
 {
@@ -259,26 +274,18 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 			FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle, bCreateNewAudioDevice);
 			if (NewAudioDevice)
 			{
-				if (NewAudioDevice->Init())
+				// Set the base mix of the new device based on the world settings of the world
+				if (World)
 				{
-					// Set the base mix of the new device based on the world settings of the world
-					if (World)
-					{
-						NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
+					NewAudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
 
-						// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
-						World->SetAudioDeviceHandle(AudioDeviceHandle);
-					}
+					// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
+					World->SetAudioDeviceHandle(AudioDeviceHandle);
+				}
 
-					// Set this audio device handle on the world context so future world's set onto the world context
-					// will pass the audio device handle to them and audio will play on the correct audio device
-					WorldContext.AudioDeviceHandle = AudioDeviceHandle;
-				}
-				else
-				{
-					// Shut it down if we failed to initialize
-					AudioDeviceManager->ShutdownAudioDevice(AudioDeviceHandle);
-				}
+				// Set this audio device handle on the world context so future world's set onto the world context
+				// will pass the audio device handle to them and audio will play on the correct audio device
+				WorldContext.AudioDeviceHandle = AudioDeviceHandle;
 			}
 		}
 	}
@@ -305,7 +312,7 @@ bool UGameViewportClient::InputKey(FViewport* InViewport, int32 ControllerId, FK
 {
 	if (IgnoreInput())
 	{
-		return false;
+		return ViewportConsole ? ViewportConsole->InputKey(ControllerId, Key, EventType, AmountDepressed, bGamepad) : false;
 	}
 
 	if (Key == EKeys::Enter && EventType == EInputEvent::IE_Pressed && FSlateApplication::Get().GetModifierKeys().IsAltDown() && GetDefault<UInputSettings>()->bAltEnterTogglesFullscreen)
@@ -408,19 +415,20 @@ bool UGameViewportClient::InputAxis(FViewport* InViewport, int32 ControllerId, F
 
 bool UGameViewportClient::InputChar(FViewport* InViewport, int32 ControllerId, TCHAR Character)
 {
-	if (IgnoreInput())
-	{
-		return false;
-	}
-
 	// should probably just add a ctor to FString that takes a TCHAR
 	FString CharacterString;
 	CharacterString += Character;
 
-	// route to subsystems that care
+	//Always route to the console
 	bool bResult = (ViewportConsole ? ViewportConsole->InputChar(ControllerId, CharacterString) : false);
 
-	if( InViewport->IsSlateViewport() && InViewport->IsPlayInEditorViewport() )
+	if (IgnoreInput())
+	{
+		return bResult;
+	}
+
+	// route to subsystems that care
+	if (!bResult && InViewport->IsSlateViewport() && InViewport->IsPlayInEditorViewport())
 	{
 		// Absorb all keys so game input events are not routed to the Slate editor frame
 		bResult = true;
@@ -508,10 +516,14 @@ void UGameViewportClient::MouseLeave(FViewport* InViewport)
 
 	if (InViewport && GetDefault<UInputSettings>()->bUseMouseForTouch)
 	{
-		FIntPoint LastViewportCursorPos;
-		InViewport->GetMousePos(LastViewportCursorPos, false);
-		FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
-		FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+		// Only send the touch end event if we're not drag/dropping, as that will end the drag/drop operation.
+		if ( !FSlateApplication::Get().IsDragDropping() )
+		{
+			FIntPoint LastViewportCursorPos;
+			InViewport->GetMousePos(LastViewportCursorPos, false);
+			FVector2D CursorPos(LastViewportCursorPos.X, LastViewportCursorPos.Y);
+			FSlateApplication::Get().SetGameIsFakingTouchEvents(false, &CursorPos);
+		}
 	}
 }
 
@@ -792,7 +804,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
 
-	const bool bStereoRendering = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
+	const bool bStereoRendering = GEngine->IsStereoscopic3D(InViewport);
 	if (DebugCanvas)
 	{
 		DebugCanvas->SetScaledToRenderTarget(bStereoRendering);
@@ -825,7 +837,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		}
 	}
 
-	if (bStereoRendering)
+	if (bStereoRendering && GEngine->HMDDevice.IsValid())
 	{
 		// Allow HMD to modify screen settings
 		GEngine->HMDDevice->UpdateScreenSettings(Viewport);
@@ -889,7 +901,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
 			int32 NumViews = bEnableStereo ? 2 : 1;
 
-			for (int i = 0; i < NumViews; ++i)
+			for (int32 i = 0; i < NumViews; ++i)
 			{
 				// Calculate the player's view information.
 				FVector		ViewLocation;
@@ -1000,6 +1012,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			}
 		}
 	}
+
+	FinalizeViews(&ViewFamily, PlayerViewMap);
 
 	if (bReverbSettingsFound)
 	{
@@ -1358,7 +1372,7 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 {
-	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
+	if (GetDefault<UInputSettings>()->bUseMouseForTouch && GetGameViewport() && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
 	}
@@ -1427,13 +1441,20 @@ void UGameViewportClient::PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver
 void UGameViewportClient::SSSwapControllers()
 {
 #if !UE_BUILD_SHIPPING
-	const int32 TmpControllerID = GetOuterUEngine()->GetFirstGamePlayer(this)->GetControllerId();
+	UEngine* const Engine = GetOuterUEngine();
 
-	for (int32 Idx=0; Idx<GetOuterUEngine()->GetNumGamePlayers(this)-1; ++Idx)
+	int32 const NumPlayers = Engine ? Engine->GetNumGamePlayers(this) : 0;
+	if (NumPlayers > 1)
 	{
-		GetOuterUEngine()->GetGamePlayer(this, Idx)->SetControllerId(GetOuterUEngine()->GetGamePlayer(this, Idx+1)->GetControllerId());
+		ULocalPlayer* const LP = Engine ? Engine->GetFirstGamePlayer(this) : nullptr;
+		const int32 TmpControllerID = LP ? LP->GetControllerId() : 0;
+
+		for (int32 Idx = 0; Idx<NumPlayers-1; ++Idx)
+		{
+			Engine->GetGamePlayer(this, Idx)->SetControllerId(Engine->GetGamePlayer(this, Idx + 1)->GetControllerId());
+		}
+		Engine->GetGamePlayer(this, NumPlayers-1)->SetControllerId(TmpControllerID);
 	}
-	GetOuterUEngine()->GetGamePlayer(this, GetOuterUEngine()->GetNumGamePlayers(this)-1)->SetControllerId(TmpControllerID);
 #endif
 }
 
@@ -2095,7 +2116,7 @@ bool UGameViewportClient::Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice&
 	{
 		return true;
 	}
-	else if ( GameInstance && GameInstance->Exec(InWorld, Cmd, Ar) )
+	else if ( GameInstance && (GameInstance->Exec(InWorld, Cmd, Ar) || GameInstance->ProcessConsoleExec(Cmd, Ar, nullptr)) )
 	{
 		return true;
 	}
@@ -2327,13 +2348,19 @@ void UGameViewportClient::ToggleShowCollision()
 		}
 
 		NumViewportsShowingCollision++;
-		ShowCollisionOnSpawnedActorsDelegateHandle = GetWorld()->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UGameViewportClient::ShowCollisionOnSpawnedActors));
+		if (World != nullptr)
+		{
+			ShowCollisionOnSpawnedActorsDelegateHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UGameViewportClient::ShowCollisionOnSpawnedActors));
+		}
 	}
 	else
 	{
 		NumViewportsShowingCollision--;
 		check(NumViewportsShowingCollision >= 0);
-		GetWorld()->RemoveOnActorSpawnedHandler(ShowCollisionOnSpawnedActorsDelegateHandle);
+		if (World != nullptr)
+		{
+			World->RemoveOnActorSpawnedHandler(ShowCollisionOnSpawnedActorsDelegateHandle);
+		}
 	}
 
 	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
@@ -2351,12 +2378,17 @@ void UGameViewportClient::ToggleShowCollision()
 	}
 	Mapping.Empty();
 
+	if (World == nullptr)
+	{
+		return;
+	}
+
 	if (NumViewportsShowingCollision > 0)
 	{
 		for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
 		{
 			UPrimitiveComponent* PrimitiveComponent = *It;
-			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == GetWorld()->Scene)
+			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == World->Scene)
 			{
 				if (PrimitiveComponent->GetOwner() && PrimitiveComponent->GetOwner()->GetWorld() && PrimitiveComponent->GetOwner()->GetWorld()->IsGameWorld())
 				{
@@ -2372,7 +2404,7 @@ void UGameViewportClient::ToggleShowCollision()
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (EngineShowFlags.Collision)
 	{
-		for (FLocalPlayerIterator It((UEngine*)GetOuter(), GetWorld()); It; ++It)
+		for (FLocalPlayerIterator It((UEngine*)GetOuter(), World); It; ++It)
 		{
 			APlayerController* PC = It->PlayerController;
 			if (PC != NULL && PC->GetPawn() != NULL)
@@ -2535,8 +2567,7 @@ bool UGameViewportClient::HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice
 
 	if (FPlatformProperties::SupportsWindowedMode() == false)
 	{
-		if(ViewModeIndex == VMI_Unlit
-			|| ViewModeIndex == VMI_ShaderComplexity
+		if(ViewModeIndex == VMI_Unlit			
 			|| ViewModeIndex == VMI_StationaryLightOverlap
 			|| ViewModeIndex == VMI_Lit_DetailLighting
 			|| ViewModeIndex == VMI_ReflectionOverride)
@@ -2545,7 +2576,7 @@ bool UGameViewportClient::HandleViewModeCommand( const TCHAR* Cmd, FOutputDevice
 			ViewModeIndex = VMI_Lit;
 		}
 	}
-	if (ViewModeIndex != VMI_Lit && !AllowDebugViewmodes())
+	if ((ViewModeIndex != VMI_Lit && ViewModeIndex != VMI_ShaderComplexity) && !AllowDebugViewmodes())
 	{
 		Ar.Logf(TEXT("Debug viewmodes not allowed on consoles by default.  See AllowDebugViewmodes()."));
 		ViewModeIndex = VMI_Lit;
@@ -2689,6 +2720,18 @@ bool UGameViewportClient::HandleToggleFullscreenCommand()
 			FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : EWindowMode::Fullscreen;
 		}
 	}
+
+	if (PLATFORM_WINDOWS && FullScreenMode == EWindowMode::Fullscreen)
+	{
+		// Handle fullscreen mode differently for D3D11/D3D12
+		static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+		if (bD3D12)
+		{
+			// Force D3D12 RHI to use windowed fullscreen mode
+			FullScreenMode = EWindowMode::WindowedFullscreen;
+		}
+	}
+
 	FSystemResolution::RequestResolutionChange(GSystemResolution.ResX, GSystemResolution.ResY, FullScreenMode);
 	return true;
 }

@@ -20,6 +20,7 @@
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "EngineAnalytics.h"
 #include "AI/Navigation/NavCollision.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
@@ -436,6 +437,8 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 		const FColor SelectedColor(149, 223, 157);
 		const FColor UnselectedColor(157, 149, 223);
 
+		const FVector VectorScaleOne(1.0f);
+
 		// Draw bodies
 		FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
 
@@ -447,7 +450,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKSphereElem& SphereElem = AggGeom->SphereElems[i];
 			const FTransform ElemTM = SphereElem.GetTransform();
-			SphereElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+			SphereElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
 
 			PDI->SetHitProxy(NULL);
 		}
@@ -460,7 +463,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKBoxElem& BoxElem = AggGeom->BoxElems[i];
 			const FTransform ElemTM = BoxElem.GetTransform();
-			BoxElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+			BoxElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
 
 			PDI->SetHitProxy(NULL);
 		}
@@ -473,7 +476,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKSphylElem& SphylElem = AggGeom->SphylElems[i];
 			const FTransform ElemTM = SphylElem.GetTransform();
-			SphylElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
+			SphylElem.DrawElemWire(PDI, ElemTM, VectorScaleOne, CollisionColor);
 
 			PDI->SetHitProxy(NULL);
 		}

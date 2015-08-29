@@ -1,4 +1,4 @@
-INTSourceChangelist:2112101
+﻿INTSourceChangelist:2603858
 Availability: Public
 Title:VFX 최적화 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
@@ -6,10 +6,6 @@ Description:파티클 시스템 최적화를 통한 퍼포먼스 문제 해결�
 
 
 [TOC (start:2 end:3)]
-
-
-
-## 개요
 
 이 문서는 캐스케이드, 머티리얼 에디터, 블루프린트, 마티네는 물론 퍼포먼스 이슈에 관계된 흔한 이펙트 사전 지식이 있다 가정합니다. 퍼포먼스 이슈 솔루션은 여러 갈래가 있지만, 여기서는 에픽의 이펙트 팀이 UE4 에서 사용할 수 있는 툴을 가지고 이러한 이슈를 해결해 나가는 과정을 개략적으로 담아 보겠습니다.
 

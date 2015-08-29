@@ -48,12 +48,12 @@ Description:The basics of Spot Lights.
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 [EXCERPT:Intro]
 A **Spot Light** emits light from a single point in a cone shape. Users are given two cones to shape the light - the **Inner Cone Angle** and **Outer Cone Angle**. Within the _Inner Cone Angle_, the light achieves full brightness. As you go from the extent of the inner radius to the extents of the _Outer Cone Angle_, a falloff takes place, creating a penumbra, or softening around the Spot Light's disc of illumination. The Radius of the light defines the length of the cones. More simply, this will work like a flash light or stage can light. 
 
-Like other lights, a **Spot Light** can be set to one of three **Mobility** settings: 
-[/EXCERPT:Intro]
+Like other lights, a Spot Light can be set to one of three Mobility settings: 
+
 
 
 [OBJECT:topiclistnotitle]
@@ -63,9 +63,10 @@ Like other lights, a **Spot Light** can be set to one of three **Mobility** sett
 	[PARAM:description]
 	**Static** - (pictured left) which means that the light cannot be changed in game. This is the fastest method for rendering and allows for baked lighting.
 
-	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by **Lightmass**, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
+	**Stationary** - (also pictured left) which means the light will only have its shadowing and bounced lighting from static geometry baked by Lightmass, all other lighting will be dynamic. This setting also allows for the light to change color and intensity in game, but, it does not move and allows partial baked lighting. 
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)
@@ -88,12 +89,12 @@ Two examples of a **Spot Light** placed inside a level are shown below demonstra
 
 ![](spotlight_example.png)
 
-On the left a **Spot Light** without its cones showing light radius, on the right the same **Spot Light** with its cone effectors showing.
+On the left a Spot Light without its cones showing light radius, on the right the same Spot Light with its cone effectors showing.
 
 
 ## Spot Light Properties
 
-The properties of a **Spot Light** are broken up into 4 categories: **Light**, **Light Profiles**, **Lightmass**, and **Light Function**. 
+The properties of a Spot Light are broken up into 4 categories: Light, Light Profiles, Lightmass, and Light Function. 
 
 ### Light
 Property | Description |

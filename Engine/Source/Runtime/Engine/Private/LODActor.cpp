@@ -10,13 +10,18 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 
+#if WITH_EDITOR	
+#include "Components/DrawSphereComponent.h"
+#endif // WITH_EDITOR
+
 #define LOCTEXT_NAMESPACE "LODActor"
 
 ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, LODDrawDistance(5000)
+	, LODDrawDistance(5000)	
 {
 	bCanBeDamaged = false;
+	bIsPreviewActor = false;
 
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent0"));
 	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
@@ -27,6 +32,14 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	StaticMeshComponent->CastShadow = false;
 
 	RootComponent = StaticMeshComponent;
+	
+#if WITH_EDITORONLY_DATA	
+	DrawSphereComponent = CreateEditorOnlyDefaultSubobject<UDrawSphereComponent>(TEXT("VisualizeComponent0"));
+	if (DrawSphereComponent)
+	{
+		DrawSphereComponent->SetSphereRadius(0.0f);
+	}
+#endif // WITH_EDITORONLY_DATA
 }
 
 FString ALODActor::GetDetailedInfoInternal() const
@@ -38,13 +51,25 @@ void ALODActor::PostRegisterAllComponents()
 {
 	Super::PostRegisterAllComponents();
 #if WITH_EDITOR
-	if (StaticMeshComponent->SceneProxy)
+	if (!bIsPreviewActor && StaticMeshComponent->SceneProxy)
 	{
 		ensure (LODLevel >= 1);
 		(StaticMeshComponent->SceneProxy)->SetHierarchicalLOD_GameThread(LODLevel);
 	}
 #endif
 }
+
+void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
+{
+	if (StaticMeshComponent)
+	{
+		StaticMeshComponent->StaticMesh = InStaticMesh;
+	}
+
+	// If given NULL for static mesh then this is a preview actor (only rendering the bounds)
+	bIsPreviewActor = (InStaticMesh == nullptr);
+}
+
 #if WITH_EDITOR
 
 void ALODActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -85,27 +110,31 @@ bool ALODActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 
 void ALODActor::CheckForErrors()
 {
-	Super::CheckForErrors();
-
 	FMessageLog MapCheck("MapCheck");
 
-	if( !StaticMeshComponent )
+	// Only check when this is not a preview actor and actually has a static mesh
+	if (!bIsPreviewActor)
 	{
-		MapCheck.Warning()
-			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(LOCTEXT( "MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete" ) ))
-			->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
-	}
+		Super::CheckForErrors();
+		if (!StaticMeshComponent)
+		{
+			MapCheck.Warning()
+				->AddToken(FUObjectToken::Create(this))
+				->AddToken(FTextToken::Create(LOCTEXT("MapCheck_Message_StaticMeshComponent", "Static mesh actor has NULL StaticMeshComponent property - please delete")))
+				->AddToken(FMapErrorToken::Create(FMapErrors::StaticMeshComponent));
+		}
 
-	if(StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
-	{
-		FFormatNamedArguments Arguments;
-		Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
-		FMessageLog("MapCheck").Error()
-			->AddToken(FUObjectToken::Create(this))
-			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorMissingMesh", "{ActorName} : Static mesh is missing for the built LODActor.  Did you remove the asset? Please delete it and build LOD again. "), Arguments)))
-			->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingStaticMesh));
+		if (StaticMeshComponent && StaticMeshComponent->StaticMesh == NULL)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("ActorName"), FText::FromString(GetName()));
+			FMessageLog("MapCheck").Error()
+				->AddToken(FUObjectToken::Create(this))
+				->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_InvalidLODActorMissingMesh", "{ActorName} : Static mesh is missing for the built LODActor.  Did you remove the asset? Please delete it and build LOD again. "), Arguments)))
+				->AddToken(FMapErrorToken::Create(FMapErrors::LODActorMissingStaticMesh));
+		}
 	}
+	
 
 	if (SubActors.Num() == 0)
 	{

@@ -49,6 +49,7 @@ class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 	virtual bool AllocateTransformData() override;
 	// End USkinnedMeshComponent Interface
 
+	bool IsRunningParallelEvaluation() const { return false; }
 	/**
 	 * Take the LocalAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (SpaceBases).
 	 * It will work down hierarchy multiplying the component-space transform of the parent by the relative transform of the child.

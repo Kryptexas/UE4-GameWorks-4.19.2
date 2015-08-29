@@ -211,6 +211,7 @@ ARecastNavMesh::FNavPolyFlags ARecastNavMesh::NavLinkFlag = ARecastNavMesh::FNav
 
 ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, bDrawFilledPolys(true)
 	, bDrawNavMeshEdges(true)
 	, bDrawNavLinks(true)
 	, bDistinctlyDrawTilesBeingBuilt(true)
@@ -440,7 +441,7 @@ UPrimitiveComponent* ARecastNavMesh::ConstructRenderingComponentImpl()
 
 	return NULL;
 #else
-	return NewObject<UNavMeshRenderingComponent>(this, TEXT("NavMeshRenderer"), RF_Transient);
+	return NewObject<UNavMeshRenderingComponent>(this, TEXT("NavRenderingComp"), RF_Transient);
 #endif // DO_NAVMESH_DEBUG_DRAWING_PER_TILE
 }
 
@@ -764,7 +765,10 @@ void ARecastNavMesh::Serialize( FArchive& Ar )
 			// empty, just skip over this data
 			Ar.Seek( RecastNavMeshSizePos + RecastNavMeshSizeBytes );
 			// if it's not getting filled it's better to just remove it
-			RecastNavMeshImpl->ReleaseDetourNavMesh();
+			if (RecastNavMeshImpl)
+			{
+				RecastNavMeshImpl->ReleaseDetourNavMesh();
+			}
 		}
 	}
 	else
@@ -1300,6 +1304,26 @@ bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& 
 	return bFound;
 }
 
+bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const
+{
+	bool bFound = false;
+	if (RecastNavMeshImpl)
+	{
+		uint16 PolyFlags = 0;
+
+		bFound = RecastNavMeshImpl->GetPolyData(PolyID, PolyFlags, Flags.Area);
+		if (bFound)
+		{
+			const UClass* AreaClass = GetAreaClass(Flags.Area);
+			const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+			Flags.AreaFlags = DefArea ? DefArea->GetAreaFlags() : 0;
+			Flags.PathFlags = (PolyFlags & GetNavLinkFlag()) ? 4 : 0;
+		}
+	}
+
+	return bFound;
+}
+
 bool ARecastNavMesh::GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const
 {
 	bool bFound = false;
@@ -1698,6 +1722,8 @@ bool ARecastNavMesh::AdjustLocationWithFilter(const FVector& StartLoc, FVector& 
 
 FPathFindingResult ARecastNavMesh::FindPath(const FNavAgentProperties& AgentProperties, const FPathFindingQuery& Query)
 {
+	SCOPE_CYCLE_COUNTER(STAT_Navigation_RecastPathfinding);
+
 	const ANavigationData* Self = Query.NavData.Get();
 	check(Cast<const ARecastNavMesh>(Self));
 
@@ -1769,7 +1795,7 @@ bool ARecastNavMesh::TestHierarchicalPath(const FNavAgentProperties& AgentProper
 	check(Cast<const ARecastNavMesh>(Self));
 
 	const ARecastNavMesh* RecastNavMesh = (const ARecastNavMesh*)Self;
-	if (Self == NULL || RecastNavMesh->RecastNavMeshImpl == NULL)
+	if (Self == nullptr || RecastNavMesh->RecastNavMeshImpl == nullptr || RecastNavMesh->RecastNavMeshImpl->DetourNavMesh == nullptr)
 	{
 		return false;
 	}
@@ -1979,7 +2005,7 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 				UpdatePolyRefBitsPreview();
 			}
 
-			if (HasAnyFlags(RF_ClassDefaultObject) == false)
+			if (!HasAnyFlags(RF_ClassDefaultObject) && UNavigationSystem::GetIsNavigationAutoUpdateEnabled())
 			{
 				RebuildAll();
 			}

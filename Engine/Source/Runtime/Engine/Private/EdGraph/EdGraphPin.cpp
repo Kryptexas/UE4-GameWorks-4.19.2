@@ -63,6 +63,15 @@ bool FEdGraphPinType::Serialize(FArchive& Ar)
 		}
 	}
 
+	if (Ar.UE4Ver() >= VER_UE4_SERIALIZE_PINTYPE_CONST)
+	{
+		Ar << bIsConst;
+	}
+	else if (Ar.IsLoading())
+	{
+		bIsConst = false;
+	}
+
 	return true;
 }
 
@@ -118,8 +127,8 @@ void UEdGraphPin::MakeLinkTo(UEdGraphPin* ToPin)
 			UEdGraphNode* MyNode = GetOwningNode();
 
 			// Check that the other pin does not link to us
-			ensureMsg(!ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("IsLinked", "is linked with pin").ToString(), ToPin));			    
-			ensureMsg(MyNode->GetOuter() == ToPin->GetOwningNode()->GetOuter(), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("OuterMismatch", "has a different outer than pin").ToString(), ToPin)); // Ensure both pins belong to the same graph
+			ensureMsgf(!ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("IsLinked", "is linked with pin").ToString(), ToPin));			    
+			ensureMsgf(MyNode->GetOuter() == ToPin->GetOwningNode()->GetOuter(), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("OuterMismatch", "has a different outer than pin").ToString(), ToPin)); // Ensure both pins belong to the same graph
 
 			// Add to both lists
 			LinkedTo.Add(ToPin);
@@ -145,13 +154,13 @@ void UEdGraphPin::BreakLinkTo(UEdGraphPin* ToPin)
 			LinkedTo.Remove(ToPin);
 
 			// Check that the other pin links to us
-			ensureMsg(ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("BreakLinkTo", "BreakLinkTo").ToString(), LOCTEXT("NotLinked", "not reciprocally linked with pin").ToString(), ToPin) );
+			ensureMsgf(ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("BreakLinkTo", "BreakLinkTo").ToString(), LOCTEXT("NotLinked", "not reciprocally linked with pin").ToString(), ToPin) );
 			ToPin->LinkedTo.Remove(this);
 		}
 		else
 		{
 			// Check that the other pin does not link to us
-			ensureMsg(!ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("IsLinked", "is linked with pin").ToString(), ToPin));
+			ensureMsgf(!ToPin->LinkedTo.Contains(this), *GetLinkInfoString( LOCTEXT("MakeLinkTo", "MakeLinkTo").ToString(), LOCTEXT("IsLinked", "is linked with pin").ToString(), ToPin));
 		}
 	}
 }
@@ -251,6 +260,7 @@ FString UEdGraphPin::GetDefaultAsString() const
 	}
 }
 
+#if WITH_EDITORONLY_DATA
 FText UEdGraphPin::GetDisplayName() const
 {
 	FText DisplayName = FText::GetEmpty();
@@ -272,6 +282,7 @@ FText UEdGraphPin::GetDisplayName() const
 	}
 	return DisplayName;
 }
+#endif // WITH_EDITORONLY_DATA
 
 const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, const FString& InInfoData, const UEdGraphPin* InToPin ) const
 {

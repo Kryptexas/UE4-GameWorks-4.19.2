@@ -22,24 +22,6 @@ struct FKeyDrawingInfo
 class IKeyArea
 {
 public:
-	/** Defines curve information for this key area. */
-	class FCurveInfo
-	{
-	public:
-		FCurveInfo( FRichCurve* InCurve, UMovieSceneSection* InOwningSection )
-			: Curve(InCurve)
-			, OwningSection(InOwningSection)
-		{
-		}
-
-		/** The curve associated with the key area. */
-		FRichCurve* const Curve;
-
-		/** The movie section which owns curve. */
-		UMovieSceneSection* const OwningSection;
-	};
-
-public:
 	virtual ~IKeyArea() {}
 
 	/** @return The array of unsorted key handles in the key area */
@@ -69,9 +51,30 @@ public:
 	 */
 	virtual void DeleteKey(FKeyHandle KeyHandle) = 0;
 
-	/** Gets any curve info associated with this key area.  This can be null but it must be valid in order to be
+	/**
+	 * Adds a key at the specified time if there isn't already a key present.  The value of the added key should
+	 * be the value which would be returned if the animation containing this key area was evaluated at the specified time.
+	 */
+	virtual void AddKeyUnique(float Time) = 0;
+
+	/** Gets the rich curve associated with this key area.  This can be null but it must be valid in order to be
 	  * edited by the curve editor. */
-	virtual FCurveInfo* GetCurveInfo() = 0;
+	virtual FRichCurve* GetRichCurve() = 0;
+
+	/**
+	 * Gets the section which owns this key area.
+	 */
+	virtual UMovieSceneSection* GetOwningSection() = 0;
+
+	/**
+	 * Returns true if this key area can create a key editor widget for the animation outliner.
+	 */
+	virtual bool CanCreateKeyEditor() = 0;
+
+	/**
+	* Creates a key editor for this key area for use in the animation outliner.
+	*/
+	virtual TSharedRef<SWidget> CreateKeyEditor(ISequencer* Sequencer) = 0;
 };
 
 

@@ -80,7 +80,8 @@ int32 FString::Find(const TCHAR* SubStr, ESearchCase::Type SearchCase, ESearchDi
 FString FString::ToUpper() const
 {
 	FString New( **this );
-	for( int32 i=0; i < New.Data.Num(); i++ )
+	const int32 StringLength = Len();
+	for( int32 i=0; i < StringLength; ++i )
 	{
 		New[i] = FChar::ToUpper(New[i]);
 	}
@@ -90,7 +91,8 @@ FString FString::ToUpper() const
 FString FString::ToLower() const
 {
 	FString New( **this );
-	for( int32 i=0; i < New.Data.Num(); i++ )
+	const int32 StringLength = Len();
+	for( int32 i=0; i < StringLength; ++i )
 	{
 		New[i] = FChar::ToLower(New[i]);
 	}
@@ -463,7 +465,7 @@ FString FString::ChrN( int32 NumCharacters, TCHAR Char )
 	{
 		Temp[Cx] = Char;
 	}
-	Temp[NumCharacters]=0;
+	Temp.Data[NumCharacters]=0;
 	return Temp;
 }
 

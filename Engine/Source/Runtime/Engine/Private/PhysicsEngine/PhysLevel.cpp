@@ -86,6 +86,12 @@ static TAutoConsoleVariable<int32> CVarAPEXSortDynamicChunksByBenefit(
 	TEXT("True if APEX should sort dynamic chunks by benefit."),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> CVarUseUnifiedHeightfield(
+	TEXT("p.bUseUnifiedHeightfield"),
+	1,
+	TEXT("Whether to use the PhysX unified heightfield. This feature of PhysX makes landscape collision consistent with triangle meshes but the thickness parameter is not supported for unified heightfields. 1 enables and 0 disables. Default: 1"),
+	ECVF_ReadOnly);
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -305,6 +311,9 @@ FString FEndClothSimulationFunction::DiagnosticMessage()
 	return TEXT("FStartClothSimulationFunction");
 }
 
+
+void PvdConnect(FString Host);
+
 //////// GAME-LEVEL RIGID BODY PHYSICS STUFF ///////
 void InitGamePhys()
 {
@@ -347,6 +356,8 @@ void InitGamePhys()
 	GPhysXSDK = PxCreatePhysics(PX_PHYSICS_VERSION, *GPhysXFoundation, PScale, false, GPhysXProfileZoneManager);
 	check(GPhysXSDK);
 
+	FPhysxSharedData::Initialize();
+
 	GPhysCommandHandler = new FPhysCommandHandler();
 
 	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(GPhysCommandHandler, &FPhysCommandHandler::Flush);
@@ -357,10 +368,23 @@ void InitGamePhys()
 	PxInitVehicleSDK(*GPhysXSDK);
 #endif
 
-	//Turn on PhysX 3.3 unified height field collision detection. 
-	//This approach shares the collision detection code between meshes and height fields such that height fields behave identically to the equivalent terrain created as a mesh. 
-	//This approach facilitates mixing the use of height fields and meshes in the application with no tangible difference in collision behavior between the two approaches
-	PxRegisterUnifiedHeightFields(*GPhysXSDK);
+	if (CVarUseUnifiedHeightfield.GetValueOnGameThread())
+	{
+		//Turn on PhysX 3.3 unified height field collision detection. 
+		//This approach shares the collision detection code between meshes and height fields such that height fields behave identically to the equivalent terrain created as a mesh. 
+		//This approach facilitates mixing the use of height fields and meshes in the application with no tangible difference in collision behavior between the two approaches except that 
+		//heightfield thickness is not supported for unified heightfields.
+		PxRegisterUnifiedHeightFields(*GPhysXSDK);
+	}
+	else
+	{
+		PxRegisterHeightFields(*GPhysXSDK);
+	}
+
+	if( FParse::Param( FCommandLine::Get(), TEXT( "PVD" ) ) )
+	{
+		PvdConnect(TEXT("localhost"));
+	}
 
 
 #if WITH_PHYSICS_COOKING || WITH_RUNTIME_PHYSICS_COOKING
@@ -464,6 +488,8 @@ void TermGamePhys()
 #endif
 
 #if WITH_PHYSX
+	FPhysxSharedData::Terminate();
+
 	// Do nothing if they were never initialized
 	if(GPhysXFoundation == NULL)
 	{

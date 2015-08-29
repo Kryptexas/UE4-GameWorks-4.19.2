@@ -912,7 +912,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 	ABrush* BuilderBrush = GeomMode->GetWorld()->GetDefaultBrush();
 
 	BuilderBrush->SetActorLocation(GeomMode->GetWidgetLocation(), false);
-	BuilderBrush->SetPrePivot(FVector::ZeroVector);
+	BuilderBrush->SetPivotOffset(FVector::ZeroVector);
 	BuilderBrush->SetFlags( RF_Transactional );
 	BuilderBrush->Brush->Polys->Element.Empty();
 
@@ -975,7 +975,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 e = 0 ; e < WindingVerts->Num() ; ++e )
 					{
-						FVector vtx = (*WindingVerts)[e] - delta - BrushShape->GetPrePivot();
+						FVector vtx = (*WindingVerts)[e] - delta - BrushShape->GetPivotOffset();
 
 						vtx = RotationMatrix.TransformPosition( vtx );
 
@@ -1043,7 +1043,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 v = 0 ; v < WindingVerts->Num() ; ++v )
 					{
-						Poly.Vertices.Add( (*WindingVerts)[v] - delta - BrushShape->GetPrePivot() );
+						Poly.Vertices.Add((*WindingVerts)[v] - delta - BrushShape->GetPivotOffset());
 					}
 
 					Poly.Finalize( BuilderBrush, 1 );
@@ -1089,7 +1089,7 @@ void UGeomModifier_Lathe::Apply( int32 InTotalSegments, int32 InSegments, EAxis:
 
 					for( int32 v = 0 ; v < WindingVerts->Num() ; ++v )
 					{
-						Poly.Vertices.Add( RotationMatrix.TransformPosition( (*WindingVerts)[v] - delta - BrushShape->GetPrePivot() ) );
+						Poly.Vertices.Add(RotationMatrix.TransformPosition((*WindingVerts)[v] - delta - BrushShape->GetPivotOffset()));
 					}
 
 					Poly.Finalize( BuilderBrush, 1 );
@@ -1238,7 +1238,7 @@ void UGeomModifier_Pen::Apply()
 		FlushRenderingCommands();
 		
 		ResultingBrush->SetActorLocation(BaseLocation, false);
-		ResultingBrush->SetPrePivot(FVector::ZeroVector);
+		ResultingBrush->SetPivotOffset(FVector::ZeroVector);
 		ResultingBrush->SetFlags( RF_Transactional );
 		ResultingBrush->Brush->Polys->Element.Empty();
 
@@ -1688,7 +1688,7 @@ namespace GeometryClipping {
 static void BuildGiantAlignedBrush( ABrush& OutGiantBrush, const FPlane& InPlane )
 {
 	OutGiantBrush.SetActorLocation(FVector::ZeroVector, false);
-	OutGiantBrush.SetPrePivot(FVector::ZeroVector);
+	OutGiantBrush.SetPivotOffset(FVector::ZeroVector);
 
 	verify( OutGiantBrush.Brush );
 	verify( OutGiantBrush.Brush->Polys );
@@ -1851,6 +1851,8 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	// Intersect the giant brush with the source brush's BSP.  This will give us the finished, clipping brush
 	// contained inside of the giant brush.
 
+	ClippedBrush->Modify();
+	InBrush->Brush->Modify();
 	GEditor->bspBrushCSG( ClippedBrush, InBrush->Brush, 0, Brush_MAX, CSG_Intersect, false, false, true );
 	FBSPOps::bspUnlinkPolys( ClippedBrush->Brush );
 
@@ -2689,7 +2691,7 @@ bool UGeomModifier_Split::OnApply()
 			}
 
 			// Replace the old polygon list with the new one
-			Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+			Brush->Brush->Polys->Element = NewPolygons;
 		}
 	}
 	else if( NumPolygonsSelected == 0 && NumEdgesSelected > 0 && NumVerticesSelected == 0 )
@@ -2746,7 +2748,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 	else if( NumPolygonsSelected == 1 && NumEdgesSelected == 0 && NumVerticesSelected == 2 )
 	{
@@ -2831,7 +2833,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 	else if( NumPolygonsSelected == 0 && NumEdgesSelected == 0 && NumVerticesSelected == 2 )
 	{
@@ -2888,7 +2890,7 @@ bool UGeomModifier_Split::OnApply()
 		}
 
 		// Replace the old polygon list with the new one
-		Brush->Brush->Polys->Element.AssignButKeepOwner(NewPolygons);
+		Brush->Brush->Polys->Element = NewPolygons;
 	}
 
 	mode->FinalizeSourceData();
@@ -2979,15 +2981,11 @@ UGeomModifier_Optimize::UGeomModifier_Optimize(const FObjectInitializer& ObjectI
 	bPushButton = true;
 }
 
-bool UGeomModifier_Optimize::Supports()
-{
-	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
-	return !mode->HaveVerticesSelected() && !mode->HaveEdgesSelected();
-}
-
-
 bool UGeomModifier_Optimize::OnApply()
 {
+	// First triangulate before performing optimize
+	Super::OnApply();
+
 	FEdModeGeometry* mode = (FEdModeGeometry*)GLevelEditorModeTools().GetActiveMode(FBuiltinEditorModes::EM_Geometry);
 
 	TArray<FPoly> Polygons;

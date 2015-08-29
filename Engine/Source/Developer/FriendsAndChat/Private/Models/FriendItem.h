@@ -21,8 +21,9 @@ public:
 	 * @param InOnlineUser The online user.
 	 * @param InListType The list type.
 	 */
-	FFriendItem( TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType )
-		: bIsUpdated(true)
+	FFriendItem(TSharedPtr< FOnlineFriend > InOnlineFriend, TSharedPtr< FOnlineUser > InOnlineUser, EFriendsDisplayLists::Type InListType, const TSharedRef<class FFriendsAndChatManager>& InFriendsAndChatManager)
+		: FriendsAndChatManager(InFriendsAndChatManager)
+		, bIsUpdated(true)
 		, GroupName(TEXT(""))
 		, OnlineFriend( InOnlineFriend )
 		, OnlineUser( InOnlineUser )
@@ -85,12 +86,6 @@ public:
 	virtual const FString GetClientName() const override;
 
 	/**
-	* Get the player's session id
-	* @return The session id the user is playing in
-	*/
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
-
-	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -109,6 +104,18 @@ public:
 	virtual bool IsGameJoinable() const override;
 
 	/**
+	 * Get if the user is in a party
+	 * @return The user in party state.
+	 */
+	virtual bool IsInParty() const override;
+
+	/**
+	 * Get if the user is in a joinable party
+	 * @return The user joinable party state.
+	 */
+	virtual bool CanJoinParty() const override;
+
+	/**
 	* Get if the user can join our game if we were to invite them
 	* @return True if we can invite them
 	*/
@@ -118,13 +125,19 @@ public:
 	 * Get if the user is online and his game is joinable
 	 * @return The user joinable game state.
 	 */
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
+
+	/**
+	 * Obtain info needed to join a party for this friend item
+	 * @return party info if available or null
+	 */
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const override;
 
 	/**
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const override;
+	virtual const TSharedRef<const FUniqueNetId> GetUniqueID() const override;
 
 	/**
 	 * Is this friend in the default list.
@@ -192,6 +205,8 @@ protected:
 		, GroupName(TEXT(""))
 	{ };
 
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
+
 private:
 
 	/** Holds if this item has been updated. */
@@ -207,7 +222,7 @@ private:
 	TSharedPtr<FOnlineUser> OnlineUser;
 
 	/** Holds the cached user id. */
-	TSharedPtr< FUniqueNetId > UniqueID;
+	TSharedPtr<const FUniqueNetId> UniqueID;
 
 	/** Holds if this is the list type. */
 	EFriendsDisplayLists::Type ListType;

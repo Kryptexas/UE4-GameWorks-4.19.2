@@ -740,3 +740,41 @@ TArray<uint8> FIOSPlatformMisc::GetSystemFontBytes()
 	return FontBytes;
 }
 
+TArray<FString> FIOSPlatformMisc::GetPreferredLanguages()
+{
+	TArray<FString> Results;
+
+	NSArray* Languages = [NSLocale preferredLanguages];
+	for (NSString* Language in Languages)
+	{
+		Results.Add(FString(Language));
+	}
+	return Results;
+}
+
+FString FIOSPlatformMisc::GetLocalCurrencyCode()
+{
+	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencyCode]);
+}
+
+FString FIOSPlatformMisc::GetLocalCurrencySymbol()
+{
+	return FString([[NSLocale currentLocale] objectForKey:NSLocaleCurrencySymbol]);
+}
+
+void FIOSPlatformMisc::RegisterForRemoteNotifications()
+{
+	UIApplication* application = [UIApplication sharedApplication];
+	if ([application respondsToSelector : @selector(registerUserNotifcationSettings:)])
+	{
+#ifdef __IPHONE_8_0
+		UIUserNotificationSettings * settings = [UIUserNotificationSettings settingsForTypes : (UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert) categories:nil];
+		[application registerUserNotificationSettings : settings];
+#endif
+	}
+	else
+	{
+		UIRemoteNotificationType myTypes = UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeAlert | UIRemoteNotificationTypeSound;
+		[application registerForRemoteNotificationTypes : myTypes];
+	}
+}

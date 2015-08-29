@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Paper 2D - How To...
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:The Paper 2D How To pages provides several short step-by-step guides for working with Paper 2D. 
@@ -17,3 +17,8 @@ Refer to the table below for more information and click each link to view its co
 | **[](Engine\Paper2D\HowTo\Sockets)** | %Engine\Paper2D\HowTo\Sockets:description% |
 | **[](Engine\Paper2D\HowTo\TopDown)** | %Engine\Paper2D\HowTo\TopDown:description% |
 | **[](Engine\Paper2D\HowTo\Animation)** | %Engine\Paper2D\HowTo\Animation:description% |
+
+
+
+
+

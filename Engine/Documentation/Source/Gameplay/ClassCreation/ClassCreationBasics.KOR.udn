@@ -1,13 +1,10 @@
-﻿INTSourceChangelist:2099361
+﻿INTSourceChangelist:2610988
 Availability:Public
 Title:클래스 생성 기초
 Crumbs: %ROOT%, Gameplay
 Description:블루프린트로만, C++ 로만, 또는 C++ 와 블루프린트를 조합해서 클래스를 만드는 법을 보여주는 예제입니다.
 
 ![](LightSwitchActor.png)(w:500 convert:false) 
-
-
-## 개요
 
 블루프린트로만, C++ 코드로만, 또는 C++ 코드와 블루프린트를 조합해서 클래스를 새로 만드는 법을 보여주는 예제입니다. 목표는 세 가지 작업방식으로 프로퍼티와 작동방식이 같은 
 LightSwitch 클래스를 만든 다음, 새로 만든 각 클래스의 인스턴스를 레벨에 추가하여, 세 개의 LightSwitch 액터를 새로 만드는 것입니다.

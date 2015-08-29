@@ -1,8 +1,13 @@
-INTSourceChangelist:2037903
+﻿INTSourceChangelist:2620588
 Availability: Public
 Title:마우스 인터페이스
 Crumbs:%ROOT%, Resources
 Description:마우스 상호작용에 대한 개요와 분석입니다.
+Related: Engine/Blueprints
+Related: Engine/Blueprints\Editor
+Related: Engine/Blueprints\Editor\Modes\Components
+Related: Engine/Blueprints\Editor\Modes\Defaults
+Related: Engine/Blueprints\Editor\Modes\GraphPanel
 
 
 [VAR:Topic]
@@ -53,8 +58,6 @@ Description:마우스 상호작용에 대한 개요와 분석입니다.
 
 [TOC(start:2 end:2)]
 
-
-## 개요
 
 
 Mouse Interface (마우스 인터페이스) 데모렛은 게임에서 마우스나 터치 입력을 활용하는 방법에 대한 예제입니다. 플레이나 실행 면에 있어서는 매우 간단한 예제입니다. 레벨은 구체 무리와 그 뒤를 왔다갔다 쫓아다니는 큐브로 구성되어 있습니다.
@@ -124,12 +127,4 @@ Mouse Interface (마우스 인터페이스) 데모렛은 게임에서 마우스�
 [/REGION]
 
 
-
-## 관련 글타래
-
-* [](Engine/Blueprints)
-* [](Engine/Blueprints\Editor)
-* [](Engine/Blueprints\Editor\Modes\Components)
-* [](Engine/Blueprints\Editor\Modes\Defaults)
-* [](Engine/Blueprints\Editor\Modes\GraphPanel)
 

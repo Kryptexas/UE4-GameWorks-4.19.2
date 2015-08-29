@@ -51,7 +51,7 @@ Description:Descriptions of all of the available Show Flags for the viewports.
 [TOC(start:2 end:2)]
 
 
-## Overview
+
 
 The Show Flags are found under the Viewport **Show** menu. They are a means by which you can show and hide many of the items that are viewed within the viewport. For example, you can hide all particles, all landscape objects, or something a bit more advanced like turning off all of the sprite icons.
 
@@ -135,7 +135,7 @@ The Show Flags are found under the Viewport **Show** menu. They are a means by w
 |---|---|
 |[REGION:tablesection]Name[/REGION]|[REGION:tablesection]Description[/REGION]|
 |**AI Debug**|This shows the paths an AI-driven pawn is using to navigate along a Nav Mesh.|
-|**Blur GBuffer**|Shows/hides the results of **Blue GBuffer Intensity**, a property found on Post Process Volumes. This feature blurs the GBuffer normals and adjusts the GBuffer roughness to reduce specular aliasing. It is, however, a high performance cost for the result and you should generally consider just using Temporal AA.  |
+|**Blur GBuffer**|Shows/hides the results of Blue GBuffer Intensity, a property found on Post Process Volumes. This feature blurs the GBuffer normals and adjusts the GBuffer roughness to reduce specular aliasing. It is, however, a high performance cost for the result and you should generally consider just using Temporal AA.  |
 |**GBuffer Hints (material attributes)**|Colorizes objects that have improper Materials. Yellow for objects that are impossibly non-reflective, red for objects that emit more light than they receive.|
 |**Hit Proxies**|Shows/hides the proxy shapes used by hit detection.|
 |**Log Visualizer**|Draws any data to the screen that is required by the Log Visualizer system.|

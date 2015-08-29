@@ -4,38 +4,59 @@
 #pragma once
 #include "InheritableComponentHandler.generated.h"
 
-class USCS_Node;
-class UActorComponent;
+class  USCS_Node;
+class  UActorComponent;
+struct FUCSComponentId;
+class  UBlueprint;
 
 USTRUCT()
 struct ENGINE_API FComponentKey
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
-	UBlueprintGeneratedClass* OwnerClass;
-
-	UPROPERTY()
-	FName VariableName;
-
-	UPROPERTY()
-	FGuid VariableGuid;
-
 	FComponentKey()
 		: OwnerClass(nullptr)
 	{}
 
 	FComponentKey(USCS_Node* SCSNode);
+#if WITH_EDITOR
+	FComponentKey(UBlueprint* Blueprint, const FUCSComponentId& UCSComponentID);
+#endif 
 
 	bool Match(const FComponentKey OtherKey) const;
 
+	bool IsSCSKey() const
+	{
+		return (SCSVariableName != NAME_None) && AssociatedGuid.IsValid();
+	}
+
+	bool IsUCSKey() const
+	{
+		return AssociatedGuid.IsValid() && (SCSVariableName == NAME_None);
+	}
+
 	bool IsValid() const
 	{
-		return OwnerClass && (VariableName != NAME_None) && VariableGuid.IsValid();
+		return OwnerClass && AssociatedGuid.IsValid() && (!IsSCSKey() || (SCSVariableName != NAME_None));
 	}
 
 	USCS_Node* FindSCSNode() const;
 	UActorComponent* GetOriginalTemplate() const;
+	bool RefreshVariableName();
+
+	UClass* GetComponentOwner()  const { return OwnerClass; }
+	FName   GetSCSVariableName() const { return SCSVariableName; }
+	FGuid   GetAssociatedGuid()  const { return AssociatedGuid; }
+
+private: 
+	UPROPERTY()
+	UBlueprintGeneratedClass* OwnerClass;
+
+	UPROPERTY()
+	FName SCSVariableName;
+
+	UPROPERTY()
+	FGuid AssociatedGuid;
 };
 
 USTRUCT()
@@ -86,7 +107,7 @@ public:
 		return 0 == Records.Num();
 	}
 
-	bool RenameTemplate(FComponentKey OldKey, FName NewName);
+	bool RefreshTemplateName(FComponentKey OldKey);
 
 	FComponentKey FindKey(UActorComponent* ComponentTemplate) const;
 #endif

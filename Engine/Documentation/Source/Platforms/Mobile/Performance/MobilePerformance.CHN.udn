@@ -1,0 +1,183 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Performance Guidelines for Mobile Devices
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:Optimizing content and features for mobile games.
+Platform:Mobile
+
+[TOC(start:2)]
+
+## Overview
+
+Below are things to watch out for or suggestions on how to set up your content in order to maximize performance 
+on mobile platforms. These are listed from most severe to least.
+
+* Make sure lighting is built before running on device.
+* Make sure most post process features are disabled.  In fact, the only ones you can use for iPad4 are Temporal AA and the Film ones, including vignette.  A bunch of expensive features like Bloom and DOF are enabled by default as we have the same settings between PC and mobile.  Post features can easily cost 60+ms with the default settings.  We hope to be able to use Bloom, DOF, and light shafts on higher end devices.  `show postprocessing` can be used on devices to toggle PP and see how much it is costing.
+* Make sure precomputed visibility is setup properly.  To do this, you need to place PrecomputedVisibilityVolumes around anywhere that the player can walk, and build lighting.  You need to make sure the same P level is used when building lighting and when running the game (aka do not build the sublevel by itself).  You can verify that it is working by entering `stat initviews` on device or in previewer and make sure the `Statically occluded primitives` is > 0.  Use `r.ShowPrecomputedVisibilityCells 1` to visualize the cells in the editor.
+* Use masked and translucent Materials sparingly, and only in places where they cover a small part of the screen.  iOS devices are very optimal in shading opaque surfaces, as they will only shade each pixel once, most of the time.  But for masked and translucency, every single layer will have to be shaded.  The total GPU time of a frame can easily be doubled or more by having overdraw.  Use the Shader complexity viewmode in Mobile previewer to investigate hot spots.
+* Draw calls of the entire scene should be &lt;= 700 for any view.  The areas with poor occlusion, like looking over the landscape, are going to be the biggest challenges for this.  This can be seen with `stat openglrhi` on device, `stat d3d11rhi` in ES2 previewer on PC.
+* Triangle count of the entire scene should be &lt;= 500k for any view.  This has been determined to be the poly count needed to hit 30fps on both iPad4 and iPad Air.  This can be seen with `stat openglrhi` on device, `stat d3d11rhi` in ES2 previewer on PC.
+* Materials should use as few texture lookups and instructions as possible.  You have 5 texture samplers available, but using all of those makes for a fairly expensive Material.  For now, use the PC instruction count to optimize, and ES2 previewer shader complexity to visualize the total cost.
+* Only use independent texture fetches in Materials.  This means UVs in the pixel shader (BaseColor, Roughness, etc) must not be manipulated in any way, such as scaling.  Use the new CustomizedUVs feature instead to do the scaling in the vertex shader.  Some special features like environment mapping require math on the UVs and that is ok for special cases. 
+* Prefer square textures as they have less memory waste, and always use power of 2 dimensions (512, 1024, 2048).  Use `listtextures` in the ES2 previewer to see where all the texture memory is going. 
+
+## Performance Tiers
+
+UE4 supports a variety of lighting features on mobile devices. Using these features costs performance and may cause your game to perform poorly on slower mobile devices. While it is possible to mix and match most of UE4's mobile lighting features, it can be useful to categorize these features in to the following tiers. When building a mobile game, you should decide which features to use based on the quality of graphics your game requires and the types of devices you need to support. Check the device compatibility pages under [iOS Development](Platforms/iOS/DeviceCompatibility) and [Android Development](Platforms/Android/DeviceCompatibility) for more information on what devices we have tested here at Epic and which tiers we think are most appropriate.
+
+###LDR (Low Dynamic Range)
+
+Low dynamic range or LDR mode is the highest performance tier supported in UE4 and is recommended for games that do not require lighting or post processing features. In order to use this mode, you must disable `Mobile HDR` for your project in the Rendering section of the [Project Settings Editor](Engine/UI/ProjectSettings). 
+
+**Advantages**
+
+* The fastest and lowest overhead mode available for mobile devices. Enables your game to run well on slower mobile devices.
+* Still provides full access to the Material editor to define custom shaders and even perform simple shading to fake lighting.
+
+
+**Limitations**
+
+* The scene's color is written out in gamma space with each color channel clamped to the range [0,1].
+* Translucent primitives are blended in gamma space. In most cases, this requires that you author your translucent textures and Materials differently than you would in HDR or for a normal PC game.
+* Post processing features are unavailable in this mode.
+
+
+**Recommendations**
+
+* Make sure all of your Materials have their shading model set to Unlit for maximum performance.
+* Do not place lights in your scene or otherwise depend on lighting for maximum performance.
+* Consider performing as many operations in the Material's vertex shader as possible. You can do so by enabling Customized UVs, connecting nodes to them, and reading them in the pixel shader using a Texture Coordinate node.
+
+
+### Basic Lighting
+
+In this tier, you leverage static lighting and fully rough Materials to create levels with interesting lighting while maximizing performance to reach a broader range of mobile devices.
+
+**Advantages**
+
+* Access to static lighting and global illumination features.
+* Full HDR pipeline with access to some post processing features like tone mapping.
+* Translucency is blended in linear space allowing you to author content as you normally would for any other UE4 game.
+
+
+**Limitations**
+
+* As you are marking all Materials as fully rough, your Materials will not have interesting specular reflections.
+* If you also choose to disable lightmap directionality, normal maps will have no effect.
+
+
+**Recommendations**
+
+* Author all of your Materials with the fully rough flag set.
+* Consider disabling light map directionality in your Materials for additional performance.
+* Use only static lights in your maps.
+* Disable bloom and anti-aliasing. Also stick to the basic set of film and color controls. See [mobile post process](Platforms/Mobile/PostProcessEffects) for more details.
+
+
+### Full HDR Lighting
+
+In this tier, you take advantage of most of the HDR lighting features available for mobile in UE4 as well as some of the post processing features. Using these features requires quite a bit of performance in exchange for high quality lighting features.
+
+**Advantages**
+
+* Access to static lighting and global illumination features.
+* Full HDR pipeline with access to some post processing features.
+* Translucency is blended in linear space allowing you to author content as you normally would for any other UE4 game.
+* Realistic specular reflections on surfaces with support for varying roughness.
+* Full support for normal mapped surfaces allows interesting surface detail without adding a lot of polygons to your meshes.
+
+
+**Recommendations**
+
+* Consider enabling bloom to take full advantage of the HDR lighting pipeline.
+* Realistic specular reflections in combination with HDR lighting can lead to specular aliasing. You should take advantage of the normal map to roughness feature to help reduce specular aliasing due to high frequency information in your normal map. You should also consider enabling anti-aliasing in the post process volume to help reduce this artifact.
+* Place reflection captures intelligently to get the best results.
+* Use only static lights in your scene.
+
+
+### Full HDR Lighting with per-pixel lighting from the Sun
+
+In this tier, you take advantage of all of the HDR lighting features available for mobile in UE4. This tier is the same as the 'Full HDR Lighting' tier and has the same advantages and recommendations except that a single directional light is rendered at much higher quality.
+
+**Advantages**
+
+* All of the features and advantages of the Full HDR Lighting tier.
+* Per-pixel diffuse and specular lighting for a single directional light.
+* High quality precomputed distance field shadows for a single directional light.
+
+
+**Recommendations**
+
+* All of the recommendations for the Full HDR Lighting tier apply here.
+* Use only static lights in your scene except for a single directional light that you should set to be stationary.
+
+ 
+## Shader Complexity View Mode
+
+You can use the shader complexity view mode in the PC ES2 previewer to get a sense of Material cost.  To use it, 
+just enter `viewmode shadercomplexity` on the console in the PC ES2 previewer. Just like the SM5 shader complexity, 
+green means good performance, bright red means very expensive, white or pink means EXTREMELY expensive.  Here are some 
+examples from the mobile showcase:
+
+[REGION:imagetable]
+| ![](1.png)(w:310) | ![](2.png)(w:310) | ![](3.png)(w:310) |
+| ----------------- | ----------------- | ----------------- |
+| [INCLUDE:#image1] | [INCLUDE:#image2] | [INCLUDE:#image3] |
+[/REGION]
+
+<!--
+[EXCERPT:Image1]
+The pillar Materials are fairly expensive here, and the translucent volumetric sheets are VERY expensive.  In this scene I asked to have the translucent sheets removed, as they cost too much. 
+[/EXCERPT:Image1]
+[EXCERPT:Image2]
+Here the pillars are quite expensive as they used all 5 texture lookups and did quite a bit of layering. Otherwise this is just about efficient enough for 30fps.
+[/EXCERPT:Image2]
+[EXCERPT:Image3]
+Here the tree is causing pixels to be EXTREMELY expensive.  If the player could ever get up close or cover his screen with that Material, the cost would be enormous.
+[/EXCERPT:Image3]
+-->
+
+## Mobile Content Scale Factor 
+Mobile Content Scale Factor is a way to scale the resolution of your project to best fit the screen resolution of the mobile device being used to view your project. 
+You can create and store multiple device profiles by creating a new .INI file called **DefaultDeviceProfiles.INI** in your project's config folder. 
+Inside of this file you can specify what will happen to the resolution of your project by entering the following command. 
+
+	 r.MobileContentScaleFactor = 
+
+In the following image you can see an example of the Mobile Content Scale Factor in action using the command listed above.
+
+![](T_MCF_INI_File.png)
+
+The image above was taken from the UE4 Tappy Chicken project and shows what will happen to the resolution of Tappy Chicken when it is played on various mobile devices.
+The top section of the file handles resolution scaling for iOS devices and the bottom section handles resolution scaling for Android devices.
+Make sure to note that each **r.MobileContentScaleFactor** has a number after it.
+The number that is used after the command is what determines if the projects resolution should be scaled up or down.
+
+
+### Mobile Content Scale Factor for iOS
+When using Mobile Content Scale Factor for iOS devices inputting the following number after the r.MobileContentScaleFactor will produce the following results.
+Please note that the actual resolution for any scale factor other than 0.0 will be corrected to match the aspect ratio of the screen and clamped to native resolution.
+
+[region:note]
+The iOS scale factor is directly related to Apple's scale factor system.
+[/region]
+
+**r.MobileContentScaleFactor 0.0**: This will use the native resolution of the device.
+
+**r.MobileContentScaleFactor 1.0**: On a Retina device is the non-retina resolution.
+
+**r.MobileContentScaleFactor 2.0**: Full native resolution on iPhone 5S, iPad Air, etc.
+
+**r.MobileContentScaleFactor 3.0**: Full native resolution for iPhone 6+.
+
+### Mobile Content Scale Factor for Android
+When using the Mobile Content Scale Factor for Android devices inputting the following number after the r.MobileContentScaleFactor will produce the following results.
+Please note that the actual resolution for any scale factor other than 0.0 will be corrected to match the aspect ratio of the screen and clamped to native resolution.
+
+**r.MobileContentScaleFactor 0.0**: This will use the native resolution of the device.
+
+**r.MobileContentScaleFactor 1.0**: This will try and give you a resolution of 1280 x 720 for Landscape and 720 x 1280 for portrait.
+
+**r.MobileContentScaleFactor 2.0**: This will try and give you a resolution of 2560 x 1440 for Landscape and 1440 x 2560 for portrait.
+

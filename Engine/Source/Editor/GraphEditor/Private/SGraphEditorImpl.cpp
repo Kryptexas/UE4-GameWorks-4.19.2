@@ -22,9 +22,9 @@ bool SGraphEditorImpl::IsNodeTitleVisible( const UEdGraphNode* Node, bool bEnsur
 	return GraphPanel->IsNodeTitleVisible(Node, bEnsureVisible);
 }
 
-void SGraphEditorImpl::JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename )
+void SGraphEditorImpl::JumpToNode( const UEdGraphNode* JumpToMe, bool bRequestRename, bool bSelectNode )
 {
-	GraphPanel->JumpToNode(JumpToMe, bRequestRename);
+	GraphPanel->JumpToNode(JumpToMe, bRequestRename, bSelectNode);
 	FocusLockedEditorHere();
 }
 
@@ -138,7 +138,7 @@ void SGraphEditorImpl::SelectAllNodes()
 		UEdGraphNode* Node = EdGraphObj->Nodes[NodeIndex];
 		if (Node)
 		{
-			ensureMsg(Node->IsValidLowLevel(), TEXT("Node is invalid"));
+			ensureMsgf(Node->IsValidLowLevel(), TEXT("Node is invalid"));
 			NewSet.Add(Node);
 		}
 	}
@@ -163,8 +163,8 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 {
 	Commands = MakeShareable( new FUICommandList() );
 	IsEditable = InArgs._IsEditable;
+	DisplayAsReadOnly = InArgs._DisplayAsReadOnly;
 	Appearance = InArgs._Appearance;
-	TitleBarEnabledOnly = InArgs._TitleBarEnabledOnly;
 	TitleBar	= InArgs._TitleBar;
 	bAutoExpandActionMenu = InArgs._AutoExpandActionMenu;
 	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
@@ -253,9 +253,9 @@ void SGraphEditorImpl::Construct( const FArguments& InArgs )
 			.OnSelectionChanged( InArgs._GraphEvents.OnSelectionChanged )
 			.OnNodeDoubleClicked( InArgs._GraphEvents.OnNodeDoubleClicked )
 			.IsEditable( this, &SGraphEditorImpl::IsGraphEditable )
+			.DisplayAsReadOnly( this, &SGraphEditorImpl::DisplayGraphAsReadOnly )
 			.OnDropActor( InArgs._GraphEvents.OnDropActor )
 			.OnDropStreamingLevel( InArgs._GraphEvents.OnDropStreamingLevel )
-			.IsEnabled(this, &SGraphEditorImpl::GraphEd_OnGetGraphEnabled)
 			.OnVerifyTextCommit( InArgs._GraphEvents.OnVerifyTextCommit )
 			.OnTextCommitted( InArgs._GraphEvents.OnTextCommitted )
 			.OnSpawnNodeByShortcut( InArgs._GraphEvents.OnSpawnNodeByShortcut )
@@ -413,12 +413,6 @@ void SGraphEditorImpl::OnClosedActionMenu()
 	GraphPanel->OnStopMakingConnection(/*bForceStop=*/ true);
 }
 
-bool SGraphEditorImpl::GraphEd_OnGetGraphEnabled() const
-{
-	const bool bTitleBarOnly = TitleBarEnabledOnly.Get();
-	return !bTitleBarOnly;
-}
-
 FActionMenuContent SGraphEditorImpl::GraphEd_OnGetContextMenuFor(const FGraphContextMenuArguments& SpawnInfo)
 {
 	if (EdGraphObj != NULL)
@@ -569,6 +563,11 @@ FSlateColor SGraphEditorImpl::GetZoomTextColorAndOpacity() const
 bool SGraphEditorImpl::IsGraphEditable() const
 {
 	return (EdGraphObj != NULL) && IsEditable.Get();
+}
+
+bool SGraphEditorImpl::DisplayGraphAsReadOnly() const
+{
+	return (EdGraphObj != NULL) && DisplayAsReadOnly.Get();
 }
 
 bool SGraphEditorImpl::IsLocked() const

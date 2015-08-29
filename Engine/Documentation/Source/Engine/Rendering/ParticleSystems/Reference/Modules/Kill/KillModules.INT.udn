@@ -5,12 +5,10 @@ Description:Kill modules will kill a given particle if it meets the rules define
 
 [TOC(start:2 end:3)]
 
-## Kill Modules 
-
 Kill modules will kill a given particle if it meets the rules defined by specific implementations. 
 
 
-### Kill Box
+## Kill Box
 
 ![](KillBox.png)
 
@@ -29,7 +27,7 @@ The Kill box module is used to kill particles when they move outside of a define
 If the 3D preview mode is enabled, the wire box will be drawn in the Cascade preview window.
 
 
-### Kill Height
+## Kill Height
 
 ![](KillHeight.png)
 

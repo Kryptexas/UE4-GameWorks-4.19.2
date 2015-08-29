@@ -10,7 +10,7 @@ class UEdGraph;
 struct FNotificationInfo;
 
 DECLARE_DELEGATE_ThreeParams( FOnNodeTextCommitted, const FText&, ETextCommit::Type, UEdGraphNode* );
-DECLARE_DELEGATE_RetVal_TwoParams( bool, FOnNodeVerifyTextCommit, const FText&, UEdGraphNode* );
+DECLARE_DELEGATE_RetVal_ThreeParams( bool, FOnNodeVerifyTextCommit, const FText&, UEdGraphNode*, FText& );
 
 typedef TSet<class UObject*> FGraphPanelSelectionSet;
 
@@ -111,8 +111,8 @@ public:
 	SLATE_BEGIN_ARGS(SGraphEditor)
 		: _AdditionalCommands( static_cast<FUICommandList*>(NULL) )
 		, _IsEditable(true)
+		, _DisplayAsReadOnly(false)
 		, _IsEmpty(false)
-		, _TitleBarEnabledOnly(false)
 		, _GraphToEdit(NULL)
 		, _GraphToDiff(NULL)
 		, _AutoExpandActionMenu(false)
@@ -121,10 +121,10 @@ public:
 
 		SLATE_ARGUMENT( TSharedPtr<FUICommandList>, AdditionalCommands )
 		SLATE_ATTRIBUTE( bool, IsEditable )		
+		SLATE_ATTRIBUTE( bool, DisplayAsReadOnly )		
 		SLATE_ATTRIBUTE( bool, IsEmpty )	
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )
 		SLATE_ATTRIBUTE( FGraphAppearanceInfo, Appearance )
-		SLATE_ATTRIBUTE( bool, TitleBarEnabledOnly )
 		SLATE_EVENT( FEdGraphEvent, OnGraphModuleReloaded )
 		SLATE_ARGUMENT( UEdGraph*, GraphToEdit )
 		SLATE_ARGUMENT( UEdGraph*, GraphToDiff )
@@ -215,11 +215,11 @@ public:
 	}
 
 	/** Bring the specified node into view */
-	virtual void JumpToNode( const class UEdGraphNode* JumpToMe, bool bRequestRename )
+	virtual void JumpToNode( const class UEdGraphNode* JumpToMe, bool bRequestRename = false, bool bSelectNode = true )
 	{
 		if (Implementation.IsValid())
 		{
-			Implementation->JumpToNode(JumpToMe, bRequestRename);
+			Implementation->JumpToNode(JumpToMe, bRequestRename, bSelectNode);
 		}
 	}
 

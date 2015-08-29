@@ -98,12 +98,6 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 CameraWorldPosition() override
-	{
-		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraWorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
-		return Compiler->Constant3(0.0f,0.0f,0.0f);
-	}
-
 	virtual int32 CameraVector() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraVector... Forcing constant (0.0f,0.0f,1.0f)."));
@@ -128,22 +122,13 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 		return Compiler->Constant3(0.0f,0.0f,-1.0f);
 	}
 
-	/**
-	 *	Generate shader code for transforming a vector
-	 */
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
+	virtual int32 TransformVector(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformVector... Passing thru source vector untouched."));
 		return A;
 	}
 
-	/**
-	 *	Generate shader code for transforming a position
-	 *
-	 *	@param	CoordType - type of transform to apply. see EMaterialExpressionTransformPosition 
-	 *	@param	A - index for input vector parameter's code
-	 */
-	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
+	virtual int32 TransformPosition(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformPosition... Passing thru source vector untouched."));
 		return A;
@@ -424,6 +409,14 @@ public:
 		if (MaterialInterface)
 		{
 			return MaterialInterface->IsTwoSided();
+		}
+		return false;
+	}
+	virtual bool IsDitheredLODTransition() const override
+	{
+		if (MaterialInterface)
+		{
+			return MaterialInterface->IsDitheredLODTransition();
 		}
 		return false;
 	}

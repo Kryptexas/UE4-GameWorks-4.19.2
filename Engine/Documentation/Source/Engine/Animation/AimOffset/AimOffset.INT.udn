@@ -72,7 +72,7 @@ Once you import each of the poses you need into Unreal Engine, you will need to 
 * **Additive Aim Type** - AAT_MeshSpace
 
 [REGION:note]
-Aim Offsets only accept animations with an Additve Aim Type of Mesh Space!
+Aim Offsets only accept animations with an Additive Aim Type of Mesh Space!
 [/REGION]
 
 
@@ -96,4 +96,9 @@ Mesh space is a bit of a different approach for extracting delta of additive ani
 This is solved with Mesh space rotation. Since rotation is based on the Skeletal Mesh's box, the orientation of that rotation remains constant no matter what the character is doing. So even though the character might be leaning sideways, the upward aim would still rotate in an upward direction. 
 
 Mesh space is set as a property of an Animation Sequence. Under the **Additive Settings** category, you will see the **Additive Anim Type** property. Setting this to _Mesh Space_ will utilize the Mesh coordinate space as described. This is a fairly expensive blending operation, and should generally only be used by certain types of Blend Spaces where you know you need the animation to move in a constant direction, such as in the case of an Aim Offset.
+
+
+
+
+
 

@@ -11,35 +11,36 @@ namespace UnrealBuildTool
 {
 	class HTML5ToolChain : VCToolChain
 	{
-        static string EMCCPath;
-        static string PythonPath;
-		static string EMSDKVersionString;
         // Debug options -- TODO: add these to SDK/Project setup?
         static bool   bEnableTracing = false;
 
 		// cache the location of SDK tools
 		public override void RegisterToolChain()
 		{
-            if (HTML5SDKInfo.IsSDKInstalled() && HTML5SDKInfo.IsPythonInstalled())
-            {
-                    EMCCPath = "\"" + HTML5SDKInfo.EmscriptenCompiler() + "\"";
-					PythonPath = HTML5SDKInfo.PythonPath();
-					EMSDKVersionString = HTML5SDKInfo.EmscriptenVersion().Replace(".", "");
-
-					// set some environment variable we'll need
-					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
-					Environment.SetEnvironmentVariable("EMCC_CORES", "8");
-					Environment.SetEnvironmentVariable("EMCC_FORCE_STDLIBS", "1");
-					Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
-					// finally register the toolchain that is now ready to go
-                    Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
-					UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
-
-   
+			if (HTML5SDKInfo.IsSDKInstalled())
+			{
+				// set some environment variable we'll need
+				//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
+				Environment.SetEnvironmentVariable("EMCC_CORES", "8");
+				Environment.SetEnvironmentVariable("EMCC_OPTIMIZE_NORMALLY", "1");
+				// finally register the toolchain that is now ready to go
+				Log.TraceVerbose("        Registered for {0}", CPPTargetPlatform.HTML5.ToString());
+				UEToolChain.RegisterPlatformToolChain(CPPTargetPlatform.HTML5, this);
 			}
 		}
 
-		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture)
+		public override void PreBuildSync()
+		{
+			Log.TraceInformation("Setting Emscripten SDK ");
+			HTML5SDKInfo.SetupEmscriptenTemp();
+			HTML5SDKInfo.SetUpEmscriptenConfigFile();
+			// set some environment variable we'll need.
+			// Forces emcc to use our generated .emscripten config, not the one in the users home directory.
+			Environment.SetEnvironmentVariable("EM_CONFIG", HTML5SDKInfo.DOT_EMSCRIPTEN);
+			Environment.SetEnvironmentVariable("EM_CACHE", HTML5SDKInfo.EMSCRIPTEN_CACHE); 
+		}
+	
+		static string GetSharedArguments_Global(CPPTargetConfiguration TargetConfiguration, string Architecture, bool bEnableShadowVariableWarning)
 		{
             string Result = " ";
 
@@ -63,6 +64,11 @@ namespace UnrealBuildTool
             Result += " -Wno-logical-op-parentheses"; // appErrorf triggers this
             Result += " -Wno-array-bounds"; // some VectorLoads go past the end of the array, but it's okay in that case
             Result += " -Wno-invalid-offsetof"; // too many warnings kills windows clang. 
+
+			if (bEnableShadowVariableWarning)
+			{
+				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow");
+			}
 
             // JavsScript option overrides (see src/settings.js)
 
@@ -89,13 +95,12 @@ namespace UnrealBuildTool
             {
             	Result += " --tracing";
             }
-
             return Result;
 		}
 		
 		static string GetCLArguments_Global(CPPEnvironment CompileEnvironment)
 		{
-			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture);
+			string Result = GetSharedArguments_Global(CompileEnvironment.Config.Target.Configuration, CompileEnvironment.Config.Target.Architecture, CompileEnvironment.Config.bEnableShadowVariableWarning);
 
 			if (CompileEnvironment.Config.Target.Architecture != "-win32")
 			{
@@ -164,7 +169,7 @@ namespace UnrealBuildTool
 
 		static string GetLinkArguments(LinkEnvironment LinkEnvironment)
 		{
-			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture);
+			string Result = GetSharedArguments_Global(LinkEnvironment.Config.Target.Configuration, LinkEnvironment.Config.Target.Architecture, false);
 
 			if (LinkEnvironment.Config.Target.Architecture != "-win32")
 			{
@@ -201,9 +206,7 @@ namespace UnrealBuildTool
 				}
 
 				Result += " -s CASE_INSENSITIVE_FS=1 ";
-
-
-			}
+		}
 
 			return Result;
 		}
@@ -322,9 +325,6 @@ namespace UnrealBuildTool
 				Arguments += string.Format(" -D__EMSCRIPTEN_TRACING__");
 			}
 
-			Arguments += string.Format(" -D__EMCC_VER__={0}", EMSDKVersionString);
-
-        
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
 
 			foreach (FileItem SourceFile in SourceFiles)
@@ -359,9 +359,9 @@ namespace UnrealBuildTool
 				}
 
 				CompileAction.WorkingDirectory = Path.GetFullPath(".");
-				CompileAction.CommandPath = PythonPath;
+				CompileAction.CommandPath = HTML5SDKInfo.Python();
 
-				CompileAction.CommandArguments = EMCCPath + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
+				CompileAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler() + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
 
                 //System.Console.WriteLine(CompileAction.CommandArguments); 
 				CompileAction.StatusDescription = Path.GetFileName(SourceFile.AbsolutePath);
@@ -464,19 +464,23 @@ namespace UnrealBuildTool
 			// Make the final javascript file
 			Action LinkAction = new Action(ActionType.Link);
 
+			// ResponseFile lines. 
+			List<string> ReponseLines = new List<string>(); 
+
 			LinkAction.bCanExecuteRemotely = false;
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
-			LinkAction.CommandPath = PythonPath;
-			LinkAction.CommandArguments = EMCCPath;
-		    LinkAction.CommandArguments += GetLinkArguments(LinkEnvironment);
+			LinkAction.CommandPath = HTML5SDKInfo.Python();
+			LinkAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler();
+			ReponseLines.Add(GetLinkArguments(LinkEnvironment));
 
 			// Add the input files to a response file, and pass the response file on the command-line.
 			foreach (FileItem InputFile in LinkEnvironment.InputFiles)
 			{
                 //System.Console.WriteLine("File  {0} ", InputFile.AbsolutePath);
-                LinkAction.CommandArguments += string.Format(" \"{0}\"", InputFile.AbsolutePath);
+                ReponseLines.Add(string.Format(" \"{0}\"", InputFile.AbsolutePath));
 				LinkAction.PrerequisiteItems.Add(InputFile);
 			}
+
 			if (!LinkEnvironment.Config.bIsBuildingLibrary)
 			{
                     // Make sure ThirdParty libs are at the end. 
@@ -496,24 +500,32 @@ namespace UnrealBuildTool
 
                         if (Item != null)
                         {
-                            if (Item.ToString().Contains(".js"))
-                                LinkAction.CommandArguments += string.Format(" --js-library \"{0}\"", Item.AbsolutePath);
-                            else
-                                LinkAction.CommandArguments += string.Format(" \"{0}\"", Item.AbsolutePath);
-                            LinkAction.PrerequisiteItems.Add(Item);
-                        }
-                    }
+							if (Item.ToString().Contains(".js"))
+								ReponseLines.Add(string.Format(" --js-library \"{0}\"", Item.AbsolutePath));
+							else
+								ReponseLines.Add(string.Format(" \"{0}\"", Item.AbsolutePath));
+							LinkAction.PrerequisiteItems.Add(Item);
+						}
+					}
 			}
 			// make the file we will create
+
+
 			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
-			LinkAction.CommandArguments += string.Format(" -o \"{0}\"", OutputFile.AbsolutePath);
+			ReponseLines.Add(string.Format(" -o \"{0}\"", OutputFile.AbsolutePath));
 
 		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
 		    LinkAction.ProducedItems.Add(OutputBC);
-			LinkAction.CommandArguments += " --emit-symbol-map " + string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath);
+			ReponseLines.Add( " --emit-symbol-map " + string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath));
 
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
+
+			string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+
+
+			LinkAction.CommandArguments += string.Format(" @\"{0}\""  , ResponseFile.Create(ResponseFileName, ReponseLines));
+
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
 
 			return OutputFile;

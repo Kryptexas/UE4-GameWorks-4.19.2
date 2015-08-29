@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2311102
+﻿INTSourceChangelist:2602509
 Availability: Public
 Title:볼륨 사용 안내서
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -28,7 +28,6 @@ Description:레벨의 작동방식이나 구성법 강화를 위한 볼륨 배�
 
 [TOC(start:2 end:2)]
 
-## 개요
 
 볼륨은 레벨에 있는 3차원 공간으로, 저마다 특정한 목적이 있으며, 그 목적은 다음과 같습니다:
 

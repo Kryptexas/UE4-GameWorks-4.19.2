@@ -354,7 +354,7 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	{
 		LevelViewportClient->SetViewLocation( EditorViewportDefs::DefaultPerspectiveViewLocation );
 		LevelViewportClient->SetViewRotation( EditorViewportDefs::DefaultPerspectiveViewRotation );
-		LevelViewportClient->SetAllowMatineePreview(true);
+		LevelViewportClient->SetAllowCinematicPreview(true);
 	}
 	LevelViewportClient->SetRealtime(ViewportInstanceSettings.bIsRealtime);
 	LevelViewportClient->SetShowStats(ViewportInstanceSettings.bShowStats);
@@ -372,6 +372,7 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->bDrawBaseInfo = true;
 	LevelViewportClient->bDrawVertices = true;
 	LevelViewportClient->ViewFOV = LevelViewportClient->FOVAngle = ViewportInstanceSettings.FOVAngle;
+	LevelViewportClient->OverrideFarClipPlane( ViewportInstanceSettings.FarViewPlane );
 	
 	// Set the selection outline flag based on preferences
 	LevelViewportClient->EngineShowFlags.SelectionOutline = GetDefault<ULevelEditorViewportSettings>()->bUseSelectionOutline;
@@ -775,8 +776,15 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, cons
 		}
 		else if ( bAllAssetWereLoaded && DroppedObjects.Num() > 0 )
 		{
-			TWeakPtr< SWindow > ContextMenuWindow = FSlateApplication::Get().PushMenu( SharedThis( this ),
-				BuildViewportDragDropContextMenu(), DragDropEvent.GetScreenSpacePosition(), FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+			FWidgetPath WidgetPath = DragDropEvent.GetEventPath() != nullptr ? *DragDropEvent.GetEventPath() : FWidgetPath();
+
+			FSlateApplication::Get().PushMenu(
+				SharedThis( this ),
+				WidgetPath,
+				BuildViewportDragDropContextMenu(),
+				DragDropEvent.GetScreenSpacePosition(),
+				FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ) );
+
 			bDropSuccessful = true;
 		}
 
@@ -1127,10 +1135,10 @@ void SLevelViewport::BindOptionCommands( FUICommandList& CommandList )
 
 
 	CommandList.MapAction(
-		ViewportActions.AllowMatineePreview,
-		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllowMatineePreview ),
+		ViewportActions.ToggleCinematicPreview,
+		FExecuteAction::CreateSP( this, &SLevelViewport::OnToggleAllowCinematicPreview ),
 		FCanExecuteAction(),
-		FIsActionChecked::CreateSP( this, &SLevelViewport::DoesAllowMatineePreview )
+		FIsActionChecked::CreateSP( this, &SLevelViewport::AllowsCinematicPreview )
 		);
 
 
@@ -1914,6 +1922,8 @@ void SLevelViewport::SaveConfig(const FString& ConfigName)
 	ViewportInstanceSettings.FOVAngle = LevelViewportClient->FOVAngle;
 	ViewportInstanceSettings.bIsRealtime = LevelViewportClient->IsRealtime();
 	ViewportInstanceSettings.bShowStats = LevelViewportClient->ShouldShowStats();
+	ViewportInstanceSettings.FarViewPlane = LevelViewportClient->GetFarClipPlaneOverride();
+
 	if (GetDefault<ULevelEditorViewportSettings>()->bSaveEngineStats)
 	{
 		const TArray<FString>* EnabledStats = NULL;
@@ -2030,18 +2040,18 @@ void SLevelViewport::OnClearAllBookMarks()
 	GLevelEditorModeTools().ClearAllBookmarks( LevelViewportClient.Get() );
 }
 
-void SLevelViewport::OnToggleAllowMatineePreview()
+void SLevelViewport::OnToggleAllowCinematicPreview()
 {
 	// Reset the FOV of Viewport for cases where we have been previewing the matinee with a changing FOV
-	LevelViewportClient->ViewFOV = LevelViewportClient->AllowMatineePreview() ? LevelViewportClient->ViewFOV : LevelViewportClient->FOVAngle;
+	LevelViewportClient->ViewFOV = LevelViewportClient->AllowsCinematicPreview() ? LevelViewportClient->ViewFOV : LevelViewportClient->FOVAngle;
 
-	LevelViewportClient->SetAllowMatineePreview( !LevelViewportClient->AllowMatineePreview() );
+	LevelViewportClient->SetAllowCinematicPreview( !LevelViewportClient->AllowsCinematicPreview() );
 	LevelViewportClient->Invalidate( false );
 }
 
-bool SLevelViewport::DoesAllowMatineePreview() const
+bool SLevelViewport::AllowsCinematicPreview() const
 {
-	return LevelViewportClient->AllowMatineePreview();
+	return LevelViewportClient->AllowsCinematicPreview();
 }
 
 void SLevelViewport::OnIncrementPositionGridSize()
@@ -2074,18 +2084,15 @@ void SLevelViewport::OnActorLockToggleFromMenu(AActor* Actor)
 	{
 		const bool bLockNewActor = Actor != LevelViewportClient->GetActiveActorLock().Get();
 
-		// Unlock the previous actor
-		OnActorUnlock();
-
 		// Lock the new actor if it wasn't the same actor that we just unlocked
 		if (bLockNewActor)
 		{
+			// Unlock the previous actor
+			OnActorUnlock();
+
 			LockActorInternal(Actor);
 		}
 	}
-
-	// this is currently called from a context menu containing a scene outliner widget that needs closing
-	FSlateApplication::Get().DismissAllMenus();
 }
 
 bool SLevelViewport::IsActorLocked(const TWeakObjectPtr<AActor> Actor) const
@@ -2971,7 +2978,7 @@ void SLevelViewport::PreviewActors( const TArray< AActor* >& ActorsToPreview )
 				ActorPreviewLevelViewportClient->bDisableInput = true;
 
 				// Never allow Matinee to possess these views
-				ActorPreviewLevelViewportClient->SetAllowMatineePreview( false );
+				ActorPreviewLevelViewportClient->SetAllowCinematicPreview( false );
 
 				// Our preview viewport is always visible if our owning SLevelViewport is visible, so we hook up
 				// to the same IsVisible method
@@ -3266,7 +3273,8 @@ void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, c
 	
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
 
-	PlayClient->SetViewportOverlayWidget( TSharedPtr<SWindow>(), PIEViewportOverlayWidget.ToSharedRef() );
+	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+	PlayClient->SetViewportOverlayWidget(ParentWindow, PIEViewportOverlayWidget.ToSharedRef());
 	PlayClient->SetGameLayerManager(GameLayerManager);
 
 	// Our viewport widget should start rendering the new viewport for the play in editor scene
@@ -3457,7 +3465,7 @@ void SLevelViewport::EndPlayInEditorSession()
 		ActiveViewport->OnPlayWorldViewportSwapped(*InactiveViewport);
 
 		// Play in editor viewport was active, swap back to our level editor viewport
-		ActiveViewport->SetViewportClient( NULL );
+		ActiveViewport->SetViewportClient( nullptr );
 
 		// We should be the only thing holding on to viewports
 		check( ActiveViewport.IsUnique() );
@@ -3473,8 +3481,11 @@ void SLevelViewport::EndPlayInEditorSession()
 	}
 	else
 	{
-		InactiveViewport->SetViewportClient( NULL );
+		InactiveViewport->SetViewportClient( nullptr );
 	}
+
+	// Remove camera roll from any PIE camera applied in this viewport. A rolled camera is hard to use for editing
+	LevelViewportClient->RemoveCameraRoll();
 
 	// Reset the inactive viewport
 	InactiveViewport.Reset();

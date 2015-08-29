@@ -1,4 +1,4 @@
-INTSourceChangelist:2100339
+﻿INTSourceChangelist:2596942
 Availability:Public
 Title:모바일 디바이스용 퍼포먼스 지침서
 Crumbs:%ROOT%, Platforms, Platforms/Mobile
@@ -137,3 +137,46 @@ PC ES2 프리뷰어의 콘솔에서 `viewmode shadercomplexity` 라 입력하면
 여기서는 나무의 픽셀 비용이 **극도로** 비싸지고 있습니다. 플레이어가 어쩌다가 이 머티리얼로 화면을 덮기라도 하는 경우엔, 그 비용은 엄청날 것입니다.
 [/EXCERPT:Image3]
 -->
+## 모바일 콘텐츠 스케일 팩터
+Mobile Content Scale Factor 는 프로젝트의 해상도가 이를 표현하는 모바일 디바이스의 화면 해상도에 가장 잘 맞도록 해상도에 스케일을 적용시키는 옵션입니다.
+프로젝트의 config 폴더에 **DefaultDeviceProfiles.INI** 라는 환경설정 파일을 새로 만들면 여러 개의 디바이스 프로파일을 만들어 저장할 수 있습니다.
+이 파일 안에서 다음 명령을 입력하면 프로젝트의 해상도를 어떻게 할지 지정할 수 있습니다.
+
+	 r.MobileContentScaleFactor = 
+
+다음 그림에서는 위의 명령줄을 통해 Mobile Content Scale Factor 의 실사용 예제를 확인할 수 있습니다.
+
+![](T_MCF_INI_File.png)
+
+위 그림은 UE4 태피 치킨 프로젝트에서 찍은 것으로, 다양한 모 바일 디바이스에서 태피 치킨을 플레이할 때 해상도에 어떤 변화가 일어나는지 보여줍니다.
+파일 상단 부분에서 iOS 디바이스에 대한 해상도 스케일을 처리하며, 하단 부분에서 안드로이드 디바이스에 대한 해상도 스케일을 처리합니다.
+참고로 각 **r.MobileContentScaleFactor** 마다 뒤에 수치가 있습니다.
+명령 뒤에 사용되는 수치를 통해 프로젝트 해상도의 스케일을 높일지 낮출지 결정합니다.
+
+
+### iOS 용 모바일 콘텐츠 스케일 팩터
+iOS 디바이스에 Mobile Content Scale Factor 를 사용할 때 r.MobileContentScaleFactor 뒤에 붙는 수치를 입력해 주면 다음과 같은 결과가 납니다.
+참고로 0.0 이외 스케일 팩터에 대한 실제 해상도는 화면 종횡비에 맞게끔 보정되고 원래 해상도에 제한됩니다.
+
+[region:note]
+iOS 스케일 팩터는 애플의 스케일 팩터 시스템에 직접 관련되어 있습니다.
+[/region]
+
+**r.MobileContentScaleFactor 0.0** : 디바이스의 원래 해상도를 사용합니다.
+
+**r.MobileContentScaleFactor 1.0**: 레티나 디바이스에서는 비-레티나 해상도입니다.
+
+**r.MobileContentScaleFactor 2.0**: 아이폰 5s, 아이패드 에어 등의 원래 전체 해상도입니다.
+
+**r.MobileContentScaleFactor 3.0**: 아이폰 6+ 용 원래 전체 해상도입니다.
+
+### 안드로이드용 모바일 콘텐츠 스케일 팩터
+안드로이드 디바이스용 Mobile Content Scale Factor 사용시 r.MobileContentScaleFactor 뒤에 입력하는 수치에 따른 결과는 다음과 같습니다.
+참고로 0.0 이외의 스케일 팩터에 대한 실제 해상도는 화면 종횡비에 맞도록 보정되고 원래 해상도에 제한됩니다.
+
+**r.MobileContentScaleFactor 0.0**: 디바이스의 원래 해상도를 사용합니다.
+
+**r.MobileContentScaleFactor 1.0**: 가로는 1280 x 720, 세로는 720 x 1280 해상도를 내도록 시도합니다.
+
+**r.MobileContentScaleFactor 2.0**: 가로는 2560 x 1440, 세로는 1440 x 2560 해상도를 내도록 시도합니다.
+

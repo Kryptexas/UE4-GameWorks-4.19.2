@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2460163
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:ライト コンポーネント
 Crumbs:%ROOT%, Engine, Engine/Components
@@ -11,34 +11,39 @@ Related:Engine/Blueprints/UserGuide/Components
 
 ![](light_component.png)(w:720)
 
-_上の画面では、**PointLightComponent** が **ブループリント** に追加されました。これには、機能するシーリング ランプを作成するための **スタティックメッシュ** も含まれています。_ 
+_上の画面では、**PointLight コンポーネント** が **ブループリント** に追加されました。これには、機能するシーリング ランプを作成するための **スタティックメッシュ** も含まれています。_ 
 
-## 指向性ライトのコンポーネント
+## 指向性ライト コンポーネント
 
-**DirectionalLightComponent** (指向性ライトのコンポーネント) ははるか遠くにある光源から放出されるライトをシミュレートします。つまりこのライトからキャストされるシャドウは全て平行になるため、指向性ライトは太陽光のシミュレーションに理想的な選択肢です。 
+**DirectionalLight コンポーネント** (指向性ライトのコンポーネント) は、はるか遠くにある光源から放出されるライトをシミュレートします。つまりこのライトからキャストされるシャドウは全て平行になるため、指向性ライトは太陽光のシミュレーションに理想的な選択肢です。 
 
 詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/Directional) をご覧ください。 
 
 
-## ポイントライトのコンポーネント
+## ポイントライト コンポーネント
 
-**PointLightComponent** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、PointLightComponents は、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。 
+**PointLight コンポーネント** は、電球のタングステン フィラメントから全方向に光を放射する現実世界の電球のように機能します。しかし、PointLight コンポーネントは、パフォーマンス上の理由から単純化されて、単に空間内のひとつのポイントから全方向に均一に光を放射するようになっています。 
 
 詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Point) をご覧ください。 
 
 
 ## スカイライト コンポーネント
 
-**SkyLightComponents** は、レベルの遠い部分 (Sky Distance Threshold 以遠全て) をキャプチャし、それをライトとしてシーンに適用します。つまり、空の外観とライティング / 反射が一致します。 
+**SkyLight コンポーネント** は、レベルの遠い部分 (Sky Distance Threshold 以遠全て) をキャプチャし、それをライトとしてシーンに適用します。つまり、空の外観とライティング / 反射が一致します。 
 
 詳細は、[](Engine/Rendering/LightingAndShadows/LightTypes/Spot) をご覧ください。 
 
 
 ## スポットライト コンポーネント
 
-**SpotLightComponent** は、ライトを一点からコーン (円錐) 形状に放射します。_Inner Cone Angle_ と _Outer Cone Angle_、および_Intensity_、 _Light Color_ などの他のタイプのライト設定、シャドウの設定などを調整するための設定があります。このタイプのライトは、内側 / 外側のコーンの半径を定義する機能があるため懐中電灯として優れています。
+**SpotLight コンポーネント** は、ライトを一点からコーン (円錐) 形状に放射します。_Inner Cone Angle_ と _Outer Cone Angle_、および _Intensity_、 _Light Color_ などの他のタイプのライト設定、シャドウの設定などを調整するための設定があります。このタイプのライトは、内側 / 外側のコーンの半径を定義する機能があるため懐中電灯として優れています。
 
 詳細は [](Engine/Rendering/LightingAndShadows/LightTypes/Skylight) をご覧ください。 
+
+
+
+
+
 
 
 

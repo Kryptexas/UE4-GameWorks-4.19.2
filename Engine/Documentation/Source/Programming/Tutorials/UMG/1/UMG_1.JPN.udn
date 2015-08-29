@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2573984
+Availability:Public
+Title:1.UMG にモジュールの依存関係を設定する方法
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
+Description:メニュー作成に必要なモジュールを追加するためにプロジェクトを変更する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\UMG\2 "%Programming\Tutorials\UMG\2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+[REGION:tip] **アンリアルエンジン4** の使用経験があまりないユーザーは、最初に [%Programming\QuickStart:title% tutorial](Programming\QuickStart) をお読みください。このチュートリアルの対象者は、 プロジェクトの作成、プロジェクトにC++コードを追加、またコードをコンパイルできる方を想定しています。関数とプロパティを **ブループリント** にも公開します。詳しく学びたい方は、 [%Programming\Tutorials\VariablesTimersEvents:title% tutorial](Programming\Tutorials\VariablesTimersEvents) が学習を始めるのに良いスタート地点です。[/REGION]
+
+1. まず新規プロジェクトを作成しましょう。
+	* C++ タブを選択します。
+	* Basic Code を選択します。
+	* Desktop/Console と With Starter Content のデフォルト値はそのままにしておきます。
+	* 名前に "HowTo_UMG" を使用します。
+
+	[![](UMG_ProjectSetup.png)](UMG_ProjectSetup.png)
+
+	[REGION:note] **Unreal Motion Graphics (UMG)** を使用するので、デフォルトでサポートしていないいくつかのモジュールに対応している **Visual Studio** へ移動します。[/REGION]
+
+1. メインエディタスクリーンの **File** ドロップダウンメニューから **Open Visual Studio** コマンドでプロジェクトコードの記述を開始します。
+
+	[![](OpenVisualStudio.png)](OpenVisualStudio.png)
+
+1. **UMG** はいくつかのモジュールと依存関係があるため、これらのモジュールを "HowTo_UMG.Build.cs" に追加しなくてはいけません。
+
+	[![](BuildCS.png)](BuildCS.png)
+
+	"HowTo_UMG.Build.CS" で、同梱されているパブリックモジュールのリストに "UMG" を追加して、同梱されているプリミティブモジュールのリストに "Slate" と "SlateCore" を追加します。HowTo_UMG のコンストラクタの1行目を以下のように変更します。
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+	次に以下の行を非コメント化します。
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+
+	通常通り参照するフルソースコードを以下に記載しますので、参照して自身のコードをダブルチェックしてください。
+
+
+----
+
+**UMG** を設定したら、ゲームのメニューを作成および表示するために、プロジェクトのカスタム **Game Mode** にコードを追加することができます。
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    作業中のコード
+    [/PARAM]
+    [PARAM:content]
+		**HowTo_UMG.Build.cs**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			using UnrealBuildTool;
+
+			public class HowTo_UMG :ModuleRules
+			{
+				public HowTo_UMG(TargetInfo Target)
+				{
+					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+					// Uncomment if you are using Slate UI
+					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		// Uncomment if you are using online features（オンライン機能を使用している場合は非コメント化する）
+
+					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+					// {
+					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+					//		{
+					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+					//		}
+					// }
+				}
+			}
+
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

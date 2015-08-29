@@ -352,6 +352,15 @@ void USceneCaptureComponent2D::PostEditChangeProperty(FPropertyChangedEvent& Pro
 }
 #endif // WITH_EDITOR
 
+void USceneCaptureComponent2D::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		PostProcessSettings.OnAfterLoad();
+	}
+}
 
 // -----------------------------------------------
 

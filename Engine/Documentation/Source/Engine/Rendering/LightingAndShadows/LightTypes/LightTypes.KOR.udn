@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2420648
+﻿INTSourceChangelist:2602348
 Availability: Public
 Title:라이트 유형
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -58,3 +58,7 @@ DescriptionLong:언리얼 엔진 4 에서 사용가능한 라이트 유형: 포�
 %Engine/Rendering/LightingAndShadows/LightTypes/Spot:topiccompact%
 %Engine/Rendering/LightingAndShadows/LightTypes/SkyLight:topiccompact%
 [/REGION]
+
+
+
+

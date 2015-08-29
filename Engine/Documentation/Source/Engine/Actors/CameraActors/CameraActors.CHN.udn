@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Camera Actors
+Crumbs: %ROOT%, Engine, Engine/Actors
+Description:Guide to placing and using Camera Actors within the Editor.
+
+![](CameraActorHeader.png)
+
+## Overview
+
+Just about every project will require a way to view it, and the most basic way to do this is through **Camera Actors**. These are primarily used in combination with **Matinee**, but can be used with Blueprints or C++ to create a fixed camera game, security cameras, or even short cut scenes using Camera Anims.
+
+If you select a Camera Actor (or a Blueprint that contains a Camera Component), the main 3D Viewport will have a "Picture in Picture" view from that camera (as seen in the image above).
+
+## Placing a Camera Actor
+
+The Camera Actor can be found in the **Modes** panel under the **Basic** category. To place one into the world, simply drag it from the **Modes** panel into the game world.
+
+![](cameraPlacedAnim.gif)(convert:false)
+
+## Using Camera Actors
+
+Using a Camera Actor is as easy as selecting it from the **Modes** panel and then dragging it into the world. Once you have the Camera Actor in the world, you can then use it in combination with the Blueprints or Matinee to use it as a view point for your level.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/related_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Related
+	[/PARAM]
+	[PARAM:links]
+		* [Using Cameras](Gameplay/HowTo/UsingCameras "%Gameplay/HowTo/UsingCameras%")
+		* [Using Cameras in Blueprints](Gameplay/HowTo/UsingCameras/Blueprints "Gameplay/HowTo/UsingCameras/Blueprints:description)
+	[/PARAM]
+[/OBJECT]
+

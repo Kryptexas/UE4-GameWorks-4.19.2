@@ -20,6 +20,9 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataReplication.h"
+#include "GameFramework/GameMode.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY( LogDemo );
 
@@ -50,18 +53,19 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 {
 	if ( Super::InitBase( bInitAsClient, InNotify, URL, bReuseAddressAndPort, Error ) )
 	{
-		DemoFilename			= URL.Map;
-		Time					= 0;
-		bIsRecordingDemoFrame	= false;
-		bDemoPlaybackDone		= false;
-		bChannelsArePaused		= false;
-		TimeToSkip				= 0.0f;
-		bIsFastForwarding		= false;
+		DemoFilename					= URL.Map;
+		Time							= 0;
+		bIsRecordingDemoFrame			= false;
+		bDemoPlaybackDone				= false;
+		bChannelsArePaused				= false;
+		TimeToSkip						= 0.0f;
+		bIsFastForwarding				= false;
 		GotoCheckpointSkipExtraTimeInMS = -1;
-		QueuedGotoTimeInSeconds	= -1.0f;
-		bIsLoadingCheckpoint	= false;
-		InitialLiveDemoTime		= 0;
-		bWasStartStreamingSuccessful = true;
+		QueuedGotoTimeInSeconds			= -1.0f;
+		bIsLoadingCheckpoint			= false;
+		InitialLiveDemoTime				= 0;
+		InitialLiveDemoTimeRealtime		= 0;
+		bWasStartStreamingSuccessful	= true;
 
 		ResetDemoState();
 
@@ -226,9 +230,27 @@ bool UDemoNetDriver::InitConnect( FNetworkNotify* InNotify, const FURL& ConnectU
 	ServerConnection = NewObject<UNetConnection>(GetTransientPackage(), UDemoNetConnection::StaticClass());
 	ServerConnection->InitConnection( this, USOCK_Pending, ConnectURL, 1000000 );
 
+	TArray< FString > UserNames;
+
+	if ( GetWorld()->GetGameInstance()->GetFirstGamePlayer() != nullptr )
+	{
+		TSharedPtr<const FUniqueNetId> ViewerId = GetWorld()->GetGameInstance()->GetFirstGamePlayer()->GetPreferredUniqueNetId();
+
+		if ( ViewerId.IsValid() )
+		{ 
+			UserNames.Add( ViewerId->ToString() );
+		}
+	}
+
 	bWasStartStreamingSuccessful = true;
-	// Friendly name isn't important for loading an existing replay.
-	ReplayStreamer->StartStreaming( DemoFilename, FString(), false, FNetworkVersion::GetReplayVersion(), FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
+
+	ReplayStreamer->StartStreaming( 
+		DemoFilename, 
+		FString(),		// Friendly name isn't important for loading an existing replay.
+		UserNames, 
+		false, 
+		FNetworkVersion::GetReplayVersion(), 
+		FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
 
 	return bWasStartStreamingSuccessful;
 }
@@ -395,9 +417,22 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	const TCHAR* FriendlyNameOption = ListenURL.GetOption( TEXT("DemoFriendlyName="), nullptr );
 
+	TArray< FString > UserNames;
+
+	for ( int32 i = 0; i < GetWorld()->GameState->PlayerArray.Num(); i++ )
+	{
+		APlayerState* PlayerState = GetWorld()->GameState->PlayerArray[i];
+
+		if ( !PlayerState->bIsABot && !PlayerState->bIsSpectator )
+		{
+			UserNames.Add( PlayerState->UniqueId.ToString() );
+		}
+	}
+
 	ReplayStreamer->StartStreaming(
 		DemoFilename,
 		FriendlyNameOption != nullptr ? FString(FriendlyNameOption) : World->GetMapName(),
+		UserNames,
 		true,
 		FNetworkVersion::GetReplayVersion(),
 		FOnStreamReadyDelegate::CreateUObject( this, &UDemoNetDriver::ReplayStreamingReady ) );
@@ -437,6 +472,7 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 	{
 		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::TickFlush: ReplayStreamer ERROR: %s" ), ENetworkReplayError::ToString( ReplayStreamer->GetLastError() ) );
 		StopDemo();
+		World->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::Generic, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::Generic ) ) );
 		return;
 	}
 
@@ -515,10 +551,19 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 		//	(we want to continue to fly around in real-time)
 		if ( SpectatorController != NULL )
 		{
-			SpectatorController->CustomTimeDilation = 1.0f;
+			if ( World->GetWorldSettings()->DemoPlayTimeDilation > KINDA_SMALL_NUMBER )
+			{
+				SpectatorController->CustomTimeDilation = 1.0f / World->GetWorldSettings()->DemoPlayTimeDilation;
+			}
+			else
+			{
+				SpectatorController->CustomTimeDilation = 1.0f;
+			}
 
 			if ( SpectatorController->GetSpectatorPawn() != NULL )
 			{
+				SpectatorController->GetSpectatorPawn()->CustomTimeDilation = SpectatorController->CustomTimeDilation;
+
 				// Disable collision on the spectator
 				SpectatorController->GetSpectatorPawn()->SetActorEnableCollision( false );
 					
@@ -528,7 +573,7 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 
 				if ( SpectatorMovement )
 				{
-					SpectatorMovement->bIgnoreTimeDilation = true;
+					//SpectatorMovement->bIgnoreTimeDilation = true;
 					SpectatorMovement->PrimaryComponentTick.bTickEvenWhenPaused = true;
 				}
 			}
@@ -826,10 +871,8 @@ void UDemoNetDriver::SaveCheckpoint()
 		DemoReplicateActor( World->GetWorldSettings(), CheckpointConnection, false );
 	}
 
-	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
+	for ( AActor* Actor : World->NetworkActors )
 	{
-		AActor* Actor = World->NetworkActors[i];
-
 		if ( CheckpointConnection->ActorChannels.Contains( Actor ) )
 		{
 			Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
@@ -930,9 +973,21 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 
 	DemoReplicateActor( World->GetWorldSettings(), ClientConnections[0], IsNetClient );
 
-	for ( int32 i = 0; i < World->NetworkActors.Num(); i++ )
+	for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 	{
-		AActor* Actor = World->NetworkActors[i];
+		AActor* Actor = *ActorIt;
+		
+		if ( Actor->IsPendingKill() )
+		{
+			ActorIt.RemoveCurrent();
+			continue;
+		}
+
+		if ( Actor->GetRemoteRole() == ROLE_None )
+		{
+			ActorIt.RemoveCurrent();
+			continue;
+		}
 
 		Actor->PreReplication( *FindOrCreateRepChangedPropertyTracker( Actor ).Get() );
 		DemoReplicateActor( Actor, ClientConnections[0], IsNetClient );
@@ -1162,12 +1217,14 @@ void UDemoNetDriver::SkipTime(const float InTimeToSkip)
 	TimeToSkip = InTimeToSkip;
 }
 
-void UDemoNetDriver::GotoTimeInSeconds( const float TimeInSeconds )
+void UDemoNetDriver::GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate)
 {
 	if ( QueuedGotoTimeInSeconds < 0 )
 	{
 		QueuedGotoTimeInSeconds = TimeInSeconds;
 	}
+
+	OnGotoTimeDelegate = InOnGotoTimeDelegate;
 }
 
 void UDemoNetDriver::JumpToEndOfLiveReplay()
@@ -1191,6 +1248,14 @@ void UDemoNetDriver::JumpToEndOfLiveReplay()
 	InitialLiveDemoTime = 0;
 }
 
+void UDemoNetDriver::AddUserToReplay( const FString& UserString )
+{
+	if ( ReplayStreamer.IsValid() )
+	{
+		ReplayStreamer->AddUserToReplay( UserString );
+	}
+}
+
 void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 {
 	if ( ServerConnection == NULL || ServerConnection->State == USOCK_Closed )
@@ -1209,10 +1274,18 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		}
 		else
 		{
-			const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
-
 			// Wait for the most recent live time
-			if ( ReplayStreamer->GetTotalDemoTime() == InitialLiveDemoTime )
+			const bool bHasNewReplayTime = ( ReplayStreamer->GetTotalDemoTime() != InitialLiveDemoTime );
+				
+			// If we haven't gotten a new time from the demo by now, assume it might not be live, and just jump to the end now so we don't hang forever
+			const bool bTimeExpired = ( FPlatformTime::Seconds() - InitialLiveDemoTimeRealtime >= 15 );
+
+			if ( bTimeExpired )
+			{
+				UE_LOG( LogDemo, Warning, TEXT( "UDemoNetDriver::TickDemoPlayback: Too much time since last live update." ) );
+			}
+
+			if ( !bHasNewReplayTime && !bTimeExpired )
 			{
 				return;
 			}
@@ -1277,6 +1350,12 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		TimeToSkip = 0.0f;
 	}
 
+	// If we have a checkpoint but and we don't need to fine scrub, we can load it now
+	if ( GotoCheckpointArchive != NULL && GotoCheckpointSkipExtraTimeInMS == -1 )
+	{
+		LoadCheckpoint();
+	}
+
 	// Make sure there is data available to read
 	if ( !ReplayStreamer->IsDataAvailable() )
 	{
@@ -1289,6 +1368,8 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 	{
 		LoadCheckpoint();
 	}
+
+	check( GotoCheckpointArchive == NULL );
 
 	// If we're at the end of the demo, just pause channels and return
 	if ( bDemoPlaybackDone )
@@ -1333,13 +1414,16 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 				{
 					for (auto& ReplicatorPair : ChannelPair.Value->ReplicationMap)
 					{
-						ReplicatorPair.Value->CallRepNotifies();
+						ReplicatorPair.Value->CallRepNotifies(true);
 					}
 				}
 			}
 		}
 
 		const auto FastForwardTotalSeconds = FPlatformTime::Seconds() - FastForwardStartSeconds;
+
+		OnGotoTimeDelegate.ExecuteIfBound(true);
+		OnGotoTimeDelegate.Unbind();
 
 		UE_LOG( LogDemo, Log, TEXT( "Fast forward took %.2f seconds." ), FastForwardTotalSeconds );
 	}
@@ -1349,7 +1433,7 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 {
 	check( Connection != NULL );
 
-	UClass* C = StaticLoadClass( AActor::StaticClass(), NULL, *DemoSpectatorClass, NULL, LOAD_None, NULL );
+	UClass* C = GetWorld()->GetAuthGameMode()->ReplaySpectatorPlayerControllerClass;
 
 	if ( C == NULL )
 	{
@@ -1389,6 +1473,7 @@ void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 	if ( !bSuccess )
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::ReplayStreamingReady: Failed." ) );
+		StopDemo();
 		GetWorld()->GetGameInstance()->HandleDemoPlaybackFailure( EDemoPlayFailure::DemoNotFound, FString( EDemoPlayFailure::ToString( EDemoPlayFailure::DemoNotFound ) ) );
 		return;
 	}
@@ -1415,6 +1500,7 @@ void UDemoNetDriver::ReplayStreamingReady( bool bSuccess, bool bRecord )
 			{
 				UE_LOG( LogDemo, Log, TEXT( "UDemoNetConnection::ReplayStreamingReady: Deferring checkpoint until next available time." ) );
 				InitialLiveDemoTime = ReplayStreamer->GetTotalDemoTime();
+				InitialLiveDemoTimeRealtime = FPlatformTime::Seconds();
 			}
 		}
 	}
@@ -1429,6 +1515,8 @@ void UDemoNetDriver::CheckpointReady( const bool bSuccess, const int64 SkipExtra
 	{
 		UE_LOG( LogDemo, Warning, TEXT( "UDemoNetConnection::CheckpointReady: Failed to go to checkpoint." ) );
 		DemoCurrentTime = OldDemoCurrentTime;
+		OnGotoTimeDelegate.ExecuteIfBound(false);
+		OnGotoTimeDelegate.Unbind();
 		return;
 	}
 
@@ -1446,8 +1534,6 @@ void UDemoNetDriver::LoadCheckpoint()
 		return;
 	}
 
-	bIsLoadingCheckpoint = true;
-
 	// Reset the never-queue GUID list, we'll rebuild it
 	NonQueuedGUIDsForScrubbing.Empty();
 
@@ -1457,6 +1543,19 @@ void UDemoNetDriver::LoadCheckpoint()
 	{
 		// Save off the SpectatorController's GUID so that we know not to queue his bunches
 		AddNonQueuedActorForScrubbing( SpectatorController );
+	}
+
+	// Remember the spectator controller's view target so we can restore it
+	FNetworkGUID ViewTargetGUID;
+
+	if ( SpectatorController && SpectatorController->GetViewTarget() )
+	{
+		ViewTargetGUID = GuidCache->NetGUIDLookup.FindRef( SpectatorController->GetViewTarget() );
+
+		if ( ViewTargetGUID.IsValid() )
+		{
+			AddNonQueuedActorForScrubbing( SpectatorController->GetViewTarget() );
+		}
 	}
 
 	PauseChannels( false );
@@ -1475,14 +1574,17 @@ void UDemoNetDriver::LoadCheckpoint()
 			AddNonQueuedActorForScrubbing(*It);
 		}
 		
-		if ( *It == SpectatorController )
+		if ( SpectatorController != nullptr )
 		{
-			continue;
-		}
+			if ( *It == SpectatorController || *It == SpectatorController->GetSpectatorPawn() )
+			{
+				continue;
+			}
 
-		if ( It->GetOwner() == SpectatorController )
-		{
-			continue;
+			if ( It->GetOwner() == SpectatorController )
+			{
+				continue;
+			}
 		}
 
 		if ( It->IsNetStartupActor() )
@@ -1566,11 +1668,14 @@ void UDemoNetDriver::LoadCheckpoint()
 		if ( GotoCheckpointSkipExtraTimeInMS != -1 )
 		{
 			DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
-			bIsFastForwarding = true;
+
+			bIsFastForwarding		= true;
+			bIsLoadingCheckpoint	= true;
 		}
 		else
 		{
-			bIsLoadingCheckpoint = false;
+			bIsLoadingCheckpoint	= false;
+			bIsFastForwarding		= false;
 		}
 
 		GotoCheckpointArchive			= NULL;
@@ -1612,7 +1717,16 @@ void UDemoNetDriver::LoadCheckpoint()
 
 	DemoCurrentTime = (float)SavedAbsTimeMS / 1000.0f;
 
-	bIsFastForwarding = true;
+	if ( GotoCheckpointSkipExtraTimeInMS != -1 )
+	{
+		bIsLoadingCheckpoint = true;
+		bIsFastForwarding = true;
+	}
+	else
+	{
+		bIsLoadingCheckpoint = false;
+		bIsFastForwarding = false;
+	}
 
 	ReadDemoFrame( GotoCheckpointArchive );
 
@@ -1621,14 +1735,20 @@ void UDemoNetDriver::LoadCheckpoint()
 	{
 		DemoCurrentTime += (float)GotoCheckpointSkipExtraTimeInMS / 1000;
 	}
-	else
-	{
-		bIsLoadingCheckpoint = false;
-	}
 
 	GotoCheckpointSkipExtraTimeInMS = -1;
 	GotoCheckpointArchive			= NULL;
 	bDemoPlaybackDone				= false;
+
+	if ( SpectatorController && ViewTargetGUID.IsValid() )
+	{
+		AActor* ViewTarget = Cast< AActor >( GuidCache->GetObjectFromNetGUID( ViewTargetGUID, false ) );
+
+		if ( ViewTarget )
+		{
+			SpectatorController->SetViewTarget( ViewTarget );
+		}
+	}
 }
 
 bool UDemoNetDriver::ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const
@@ -1667,12 +1787,12 @@ UDemoNetConnection::UDemoNetConnection( const FObjectInitializer& ObjectInitiali
 	InternalAck = true;
 }
 
-void UDemoNetConnection::InitConnection( UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed )
+void UDemoNetConnection::InitConnection( UNetDriver* InDriver, EConnectionState InState, const FURL& InURL, int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	// default implementation
 	Super::InitConnection( InDriver, InState, InURL, InConnectionSpeed );
 
-	MaxPacket = MAX_DEMO_READ_WRITE_BUFFER;
+	MaxPacket = (InMaxPacket == 0 || InMaxPacket > MAX_DEMO_READ_WRITE_BUFFER) ? MAX_DEMO_READ_WRITE_BUFFER : InMaxPacket;
 	InternalAck = true;
 
 	InitSendBuffer();
@@ -1699,6 +1819,8 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 	
 		*CheckpointArchive << Count;
 		CheckpointArchive->Serialize( Data, Count );
+
+		TrackSendForProfiler( Data, Count );
 		return;
 	}
 
@@ -1729,13 +1851,21 @@ void UDemoNetConnection::LowLevelSend( void* Data, int32 Count )
 		*FileAr << Count;
 		FileAr->Serialize( Data, Count );
 		
-		NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
-
+		TrackSendForProfiler( Data, Count );
+		
 #if DEMO_CHECKSUMS == 1
 		uint32 Checksum = FCrc::MemCrc32( Data, Count, 0 );
 		*FileAr << Checksum;
 #endif
 	}
+}
+
+void UDemoNetConnection::TrackSendForProfiler(const void* Data, int32 NumBytes)
+{
+	NETWORK_PROFILER(GNetworkProfiler.FlushOutgoingBunches(this));
+
+	// Track "socket send" even though we're not technically sending to a socket, to get more accurate information in the profiler.
+	NETWORK_PROFILER(GNetworkProfiler.TrackSocketSendToCore(TEXT("Unreal"), Data, NumBytes, NumPacketIdBits, NumBunchBits, NumAckBits, NumPaddingBits, 0));
 }
 
 FString UDemoNetConnection::LowLevelDescribe()

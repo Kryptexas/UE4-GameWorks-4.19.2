@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2620300
 Availability: Public
 Title:Acceleration 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,13 +6,21 @@ Description:파티클의 수명에 따라 속도를 변화시킬 수 있는 모�
 
 [TOC(start:2 end:3)]
 
-## Acceleration 모듈
-
 Acceleration(가속도)는 파티클에다 가속도 혹은 시간에 따른 속도의 변화를 적용시킬 수 있는 모듈입니다.
 
-### Acceleration
+## Acceleration
 
-![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o3TuesKDJ_A
+[/PARAMLITERAL]
+[/OBJECT]
 
  파티클의 초기 가속도를 설정하는 모듈입니다. 이 값은 각 파티클마다 저장되며, Update 호출시에 각 프레임에 적용됩니다. 포함되는 멤버는 다음과 같습니다: 
 
@@ -29,10 +37,20 @@ Acceleration(가속도)는 파티클에다 가속도 혹은 시간에 따른 속
 
 
 
-### Const Acceleration
+## Const Acceleration
 
 
-![psys_acceleration.gif](psys_acceleration.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+o3TuesKDJ_A
+[/PARAMLITERAL]
+[/OBJECT]
 
 Const Acceleration (상수 가속도) 모듈은 파티클에 초기 가속도를 적용한다는 점에서 Acceleration 모듈과 매우 유사합니다. 그러나 주요 차이점이라면 Const Acceleration 모듈은 *분포 프로퍼티를 받지 못한다* 는 점입니다.
 
@@ -49,9 +67,19 @@ Const Acceleration (상수 가속도) 모듈은 파티클에 초기 가속도를
 
 각 프레임마다 파티클의 현재 및 기본 속도값이 (속도 += 가속도 * 경과시간) 공식을 사용하여 업데이트되는데, 경과시간(DeltaTime)이란 지난 프레임 이후 경과된 기간을 말합니다.
 
-### Drag 
+## Drag 
 
-![phys_drag.gif](phys_drag.gif)(w:430 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+inAil0AgElQ
+[/PARAMLITERAL]
+[/OBJECT]
 
 Drag (드래그)는 각 파티클의 운동에 일정한 저항을 적용하는 모듈입니다. 계수값은 스폰 시간에 계산되어 매 프레임 파티클에 적용됩니다.
 
@@ -60,7 +88,7 @@ Drag (드래그)는 각 파티클의 운동에 일정한 저항을 적용하는 
 |[REGION:tablesection]Drag[/REGION]||
 | **Coefficient** | 계수 - 각 파티클에 적용할 인력 지수, 다른 말로 운동 저항력을 나타내는 실수 분포입니다. |
 
-### Drag Scale/Life
+## Drag Scale/Life
 
 Drag Scale/Life (수명에 따른 드래그 스케일)은 **기존의 Drag 모듈과 함께** 작동하는 배수값으로, 이를테면 커브를 통해 파티클의 수명에 따라 인력 크기 조절이 가능합니다.
 
@@ -73,7 +101,7 @@ Drag Scale/Life (수명에 따른 드래그 스케일)은 **기존의 Drag 모�
 |[REGION:tablesection]Drag Scale/Life[/REGION]||
 | **Drag Scale** | 드래그 스케일 - 기존 파티클 드래그 계수에 적용할 스케일 값을 나타내는 실수 분포입니다. |
 
-### AccelerationOverLife
+## AccelerationOverLife
 
 파티클의 수명에 따른 가속도를 설정하는 모듈입니다. 포함되는 멤버는 다음과 같습니다:
 

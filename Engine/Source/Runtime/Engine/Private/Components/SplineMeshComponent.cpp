@@ -774,7 +774,7 @@ UBodySetup* USplineMeshComponent::GetBodySetup()
 {
 	// Don't return a body setup that has no collision, it means we are interactively moving the spline and don't want to build collision.
 	// Instead we explicitly build collision with USplineMeshComponent::RecreateCollision()
-	if (BodySetup != NULL && (BodySetup->TriMesh != NULL || BodySetup->AggGeom.GetElementCount() > 0))
+	if (BodySetup != NULL && (BodySetup->TriMeshes.Num() || BodySetup->AggGeom.GetElementCount() > 0))
 	{
 		return BodySetup;
 	}
@@ -794,13 +794,16 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 		{
 			if (NavCollision->bHasConvexGeometry)
 			{
+				FVector Mask = FVector(1, 1, 1);
+				GetAxisValue(Mask, ForwardAxis) = 0;
+
 				TArray<FVector> VertexBuffer;
 				VertexBuffer.Reserve(FMath::Max(NavCollision->ConvexCollision.VertexBuffer.Num(), NavCollision->TriMeshCollision.VertexBuffer.Num()));
 
 				for (int32 i = 0; i < NavCollision->ConvexCollision.VertexBuffer.Num(); ++i)
 				{
 					FVector Vertex = NavCollision->ConvexCollision.VertexBuffer[i];
-					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex);
+					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex * Mask);
 					VertexBuffer.Add(Vertex);
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
@@ -811,7 +814,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExp
 				for (int32 i = 0; i < NavCollision->TriMeshCollision.VertexBuffer.Num(); ++i)
 				{
 					FVector Vertex = NavCollision->TriMeshCollision.VertexBuffer[i];
-					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex);
+					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex * Mask);
 					VertexBuffer.Add(Vertex);
 				}
 				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
@@ -859,7 +862,7 @@ void USplineMeshComponent::RecreateCollision()
 		BodySetup->BodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 		CachedMeshBodySetupGuid = StaticMesh->BodySetup->BodySetupGuid;
 
-		if (BodySetup->CollisionTraceFlag == CTF_UseComplexAsSimple)
+		if (BodySetup->GetCollisionTraceFlag() == CTF_UseComplexAsSimple)
 		{
 			BodySetup->AggGeom.EmptyElements();
 		}
@@ -958,12 +961,6 @@ public:
 	FVector StartTangent;
 	FVector EndTangent;
 };
-
-FName USplineMeshComponent::GetComponentInstanceDataType() const
-{
-	static const FName SplineMeshInstanceDataTypeName(TEXT("SplineMeshInstanceData"));
-	return SplineMeshInstanceDataTypeName;
-}
 
 FActorComponentInstanceData* USplineMeshComponent::GetComponentInstanceData() const
 {

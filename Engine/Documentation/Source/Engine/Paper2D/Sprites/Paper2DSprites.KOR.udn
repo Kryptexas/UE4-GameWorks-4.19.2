@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2515625
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Paper2D 스프라이트
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -147,3 +147,7 @@ Related: Engine/Content/Types/Textures
 ### 커스텀 스프라이트 머티리얼 만들기
 
 커스텀 스프라이트 머티리얼은 기존의 것 중 하나를 복제하거나, **콘텐츠 브라우저** 에서 새 머티리얼을 만드는 것으로 만들 수 있습니다. 스프라이트가 렌더링될 때, 스프라이트 애셋에 정의된 텍스처가 머티리얼의 **SpriteTexture** 라는 이름의 텍스처 파라미터에 흘러들어갑니다. **머티리얼 에디터** 에 **SpriteTextureSampler** 노드를 배치하여 이 작업을 자동으로 해줄 수 있습니다. 스프라이트 인스턴스는 자신의 컬러를 버텍스 컬러로 전달하지만, 색조 뿐 아닌 머티리얼 내 어느 것에도 사용 가능합니다.
+
+
+
+

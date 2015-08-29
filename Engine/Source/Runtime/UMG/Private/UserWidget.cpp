@@ -34,7 +34,7 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-void UUserWidget::Initialize()
+bool UUserWidget::Initialize()
 {
 	// If it's not initialized initialize it, as long as it's not the CDO, we never initialize the CDO.
 	if ( !bInitialized && !HasAnyFlags(RF_ClassDefaultObject) )
@@ -46,6 +46,11 @@ void UUserWidget::Initialize()
 		if ( BGClass != nullptr )
 		{
 			BGClass->InitializeWidget(this);
+		}
+
+		if ( WidgetTree == nullptr )
+		{
+			WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
 		}
 
 		// Map the named slot bindings to the available slots.
@@ -63,7 +68,10 @@ void UUserWidget::Initialize()
 				}
 			}
 		});
+
+		return true;
 	}
+	return false;
 }
 
 void UUserWidget::BeginDestroy()
@@ -190,15 +198,6 @@ UWorld* UUserWidget::GetWorld() const
 	return nullptr;
 }
 
-void UUserWidget::SetIsDesignTime(bool bInDesignTime)
-{
-	Super::SetIsDesignTime(bInDesignTime);
-
-	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
-		Widget->SetIsDesignTime(bInDesignTime);
-	});
-}
-
 void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops, EUMGSequencePlayMode::Type PlayMode)
 {
 	if( InAnimation )
@@ -224,6 +223,12 @@ void UUserWidget::PlayAnimation( const UWidgetAnimation* InAnimation, float Star
 		else
 		{
 			( *FoundPlayer )->Play( StartAtTime, NumberOfLoops, PlayMode );
+		}
+
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
 		}
 
 		OnAnimationStarted( InAnimation );
@@ -546,7 +551,7 @@ bool UUserWidget::IsInViewport() const
 	return FullScreenWidget.IsValid();
 }
 
-void UUserWidget::SetPlayerContext(FLocalPlayerContext InPlayerContext)
+void UUserWidget::SetPlayerContext(const FLocalPlayerContext& InPlayerContext)
 {
 	PlayerContext = InPlayerContext;
 }
@@ -558,8 +563,11 @@ const FLocalPlayerContext& UUserWidget::GetPlayerContext() const
 
 ULocalPlayer* UUserWidget::GetOwningLocalPlayer() const
 {
-	APlayerController* PC = PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
-	return PC ? Cast<ULocalPlayer>(PC->Player) : nullptr;
+	if (PlayerContext.IsValid())
+	{
+		return PlayerContext.GetLocalPlayer();
+	}
+	return nullptr;
 }
 
 void UUserWidget::SetOwningLocalPlayer(ULocalPlayer* LocalPlayer)
@@ -679,6 +687,15 @@ const FText UUserWidget::GetPaletteCategory()
 	return PaletteCategory;
 }
 
+void UUserWidget::SetDesignerFlags(EWidgetDesignFlags::Type NewFlags)
+{
+	Super::SetDesignerFlags(NewFlags);
+
+	WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+		Widget->SetDesignerFlags(NewFlags);
+	});
+}
+
 #endif
 
 void UUserWidget::OnAnimationStarted_Implementation(const UWidgetAnimation* Animation)
@@ -714,7 +731,7 @@ void UUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime)
 {
-	if ( bDesignTime )
+	if ( IsDesignTime() )
 	{
 		return;
 	}
@@ -725,13 +742,25 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 		Player->Tick(InDeltaTime);
 	}
 
+	const bool bWasPlayingAnimation = IsPlayingAnimation();
+
 	// The process of ticking the players above can stop them so we remove them after all players have ticked
 	for ( UUMGSequencePlayer* StoppedPlayer : StoppedSequencePlayers )
 	{
-		ActiveSequencePlayers.Remove(StoppedPlayer);
+		ActiveSequencePlayers.RemoveSwap(StoppedPlayer);
 	}
 
 	StoppedSequencePlayers.Empty();
+
+	// If we're no longer playing animations invalidate layout so that we recache the volatility of the widget.
+	if ( bWasPlayingAnimation && IsPlayingAnimation() == false )
+	{
+		TSharedPtr<SWidget> CachedWidget = GetCachedWidget();
+		if ( CachedWidget.IsValid() )
+		{
+			CachedWidget->Invalidate(EInvalidateWidget::LayoutAndVolatility);
+		}
+	}
 
 	UWorld* World = GetWorld();
 	if ( World )
@@ -885,6 +914,11 @@ FReply UUserWidget::NativeOnTouchEnded( const FGeometry& InGeometry, const FPoin
 FReply UUserWidget::NativeOnMotionDetected( const FGeometry& InGeometry, const FMotionEvent& InMotionEvent )
 {
 	return OnMotionDetected( InGeometry, InMotionEvent ).NativeReply;
+}
+
+FCursorReply UUserWidget::NativeOnCursorQuery( const FGeometry& InGeometry, const FPointerEvent& InCursorEvent )
+{
+	return FCursorReply::Unhandled();
 }
 
 void UUserWidget::PostLoad()

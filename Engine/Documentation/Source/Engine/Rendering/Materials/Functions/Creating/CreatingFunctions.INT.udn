@@ -8,7 +8,7 @@ Description:A guide to the creation process for material functions.
 ## Creating Material Functions
 
 
-You can create new material functions within the **Content Browser** by **right-clicking** and choosing **New** > **Materials & Textures** > **Material Function**. This will open up the new material function within the Material Editor.
+You can create new material functions within the **Content Browser** by **clicking** and choosing **Add New** > **Materials & Textures** > **Material Function**. This will open up the new material function within the Material Editor.
 
 ![CreateNewMenu.png](CreateNewMenu.png)
 
@@ -24,7 +24,7 @@ Your input node is now in place, and you are ready to create any network you lik
 
 ![SampleNetwork.png](SampleNetwork.png)(w:720)
 
-Functions define their interface to any materials they are used in by function inputs and outputs, which are just nodes that you place in the function.  Inputs and outputs can be named, so that people using the function in their materials know what they mean.  There must be at least one output for a function to be valid, and input and output names must be unique.
+Functions define their interface to any materials they are used in by function inputs and outputs, which are just nodes that you place in the function.  Inputs and outputs can be named so that people using the function in their materials know what they mean.  There must be at least one output for a function to be valid and input and output names must be unique.
 
 
 ## Publishing Your New Function

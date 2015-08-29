@@ -55,6 +55,8 @@ class Localise : BuildCommand
         ExportProjectToDirectory(oneSkyService, projectGroup, "EditorTutorials");
         ExportProjectToDirectory(oneSkyService, projectGroup, "PropertyNames");
         ExportProjectToDirectory(oneSkyService, projectGroup, "ToolTips");
+        ExportProjectToDirectory(oneSkyService, projectGroup, "Category");
+        ExportProjectToDirectory(oneSkyService, projectGroup, "Keywords");
 
         // Submit changelist for backed up POs from OneSky.
         if (P4Enabled)
@@ -86,8 +88,9 @@ class Localise : BuildCommand
 				String.Format("-config={0}", @"./Config/Localization/Editor.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
 				String.Format("-config={0}", @"./Config/Localization/EditorTutorials.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
 				String.Format("-config={0}", @"./Config/Localization/PropertyNames.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
-				String.Format("-config={0}", @"./Config/Localization/ToolTips.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
-				String.Format("-config={0}", @"./Config/Localization/WordCount.ini"),
+                String.Format("-config={0}", @"./Config/Localization/ToolTips.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
+                String.Format("-config={0}", @"./Config/Localization/Category.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
+				String.Format("-config={0}", @"./Config/Localization/Keywords.ini") + (string.IsNullOrEmpty(CommandletSCCArguments) ? "" : " " + CommandletSCCArguments),
 			};
 
 		// Execute commandlet for each set of arguments.
@@ -112,29 +115,8 @@ class Localise : BuildCommand
         UploadDirectoryToProject(GetProject(oneSkyService, "Unreal Engine", "EditorTutorials"), new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/EditorTutorials"), "*.po");
         UploadDirectoryToProject(GetProject(oneSkyService, "Unreal Engine", "PropertyNames"), new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/PropertyNames"), "*.po");
         UploadDirectoryToProject(GetProject(oneSkyService, "Unreal Engine", "ToolTips"), new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/ToolTips"), "*.po");
-
-		// Localisation statistics estimator.
-		if (P4Enabled)
-		{
-			// Available only for P4
-			var EstimatorExePath = CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/TranslatedWordsCountEstimator.exe");
-			var StatisticsFilePath = @"\\epicgames.net\root\UE3\Localization\WordCounts\udn.csv";
-
-			var Arguments = string.Format(
-				"{0} {1} {2} {3} {4}",
-				StatisticsFilePath,
-				P4Env.P4Port,
-				P4Env.User,
-				P4Env.Client,
-				Environment.GetEnvironmentVariable("P4PASSWD"));
-
-			var RunResult = Run(EstimatorExePath, Arguments);
-
-			if (RunResult.ExitCode != 0)
-			{
-				throw new AutomationException("Error while executing TranslatedWordsCountEstimator with arguments '{0}'", Arguments);
-			}
-		}
+        UploadDirectoryToProject(GetProject(oneSkyService, "Unreal Engine", "Category"), new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/Category"), "*.po");
+        UploadDirectoryToProject(GetProject(oneSkyService, "Unreal Engine", "Keywords"), new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/Keywords"), "*.po");
 	}
 
     private static ProjectGroup GetProjectGroup(OneSkyService oneSkyService, string GroupName)
@@ -250,14 +232,14 @@ class Localise : BuildCommand
         if (nativeCultureDirectory != null)
         {
             string[] files = Directory.GetFiles(nativeCultureDirectory.FullName, fileExtension, SearchOption.AllDirectories);
-            UploadFilesToProjectForLocale(project, files, nativeCultureDirectory.Name);
+            UploadFilesToProjectForLocale(project, files.Where((FilePath) => { return !FilePath.Contains("_FromOneSky"); }).ToArray(), nativeCultureDirectory.Name);
         }
 
         // Upload all other POs asynchronously.
         foreach (var foreignCultureDirectory in Array.FindAll(cultureDirectories, d => { return d != nativeCultureDirectory; }))
         {
             string[] files = Directory.GetFiles(foreignCultureDirectory.FullName, fileExtension, SearchOption.AllDirectories);
-            UploadFilesToProjectForLocale(project, files, foreignCultureDirectory.Name);
+            UploadFilesToProjectForLocale(project, files.Where((FilePath) => { return !FilePath.Contains("_FromOneSky");}).ToArray(), foreignCultureDirectory.Name);
         }
     }
 }

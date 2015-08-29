@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2445787
+﻿INTSourceChangelist:2597122
 Availability:Public
-Title:ブループリントのクラスの UI
+Title:Blueprint クラスの UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:ブループリントのクラスで作業する際のブループリント エディタの UI エレメントの分類
+Description:Blueprint クラスで作業する際のブループリント エディタの UI エレメントの分類
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,12 +24,9 @@ Description:ブループリントのクラスで作業する際のブループ�
 [/OBJECT]
 [/VAR]
 
-
-## 概要
-
 ![](ClassBlueprint.png)
 
- **Blueprint Class** エディタには、デフォルトでいくつかのタブがあります。
+**Blueprint クラス** エディタには、デフォルトでいくつかのタブがあります。
 
 
 |デフォルトで表示される UI コンポーネント| [Window] メニューで利用可能な機能|
@@ -68,7 +65,7 @@ Description:ブループリントのクラスで作業する際のブループ�
 
 
 
-ブループリントのクラスの作成に関する情報は、 [](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。
+Blueprint クラスの作成に関する情報は、 [](Engine/Blueprints\UserGuide\Types\ClassBlueprint\Creation) を参照してください。
 
-ブループリントのクラスの詳細情報は [ブループリントのクラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) を参照してください。
+Blueprint クラスの詳細情報は [Blueprint クラス](Engine/Blueprints\UserGuide\Types\ClassBlueprint) を参照してください。
 

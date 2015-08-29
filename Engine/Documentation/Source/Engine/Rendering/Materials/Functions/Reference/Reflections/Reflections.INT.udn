@@ -5,7 +5,7 @@ Description:Functions for aiding in the calculation of values for a variety of r
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The Reflections functions give you a variety of ways to speed up the handling of reflection calculations in your materials.
 

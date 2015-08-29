@@ -55,11 +55,13 @@ namespace LogVisualizer
 void FVisualLoggerCanvasRenderer::OnItemSelectionChanged(const struct FVisualLogEntry& EntryItem)
 {
 	SelectedEntry = EntryItem;
+	DirtyCachedData();
 }
 
 void FVisualLoggerCanvasRenderer::ObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
 {
 	CurrentTimeLine = TimeLine;
+	DirtyCachedData();
 }
 
 void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APlayerController*)
@@ -81,30 +83,44 @@ void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APla
 	const FString TimeStampString = FString::Printf(TEXT("%.2f"), SelectedEntry.TimeStamp);
 	LogVisualizer::DrawTextShadowed(Canvas, Font, TimeStampString, SelectedEntry.Location);
 
-	for (const auto CurrentData : SelectedEntry.DataBlocks)
+	if (bDirtyData)
 	{
-		const FName TagName = CurrentData.TagName;
-		const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.Category.ToString(), ELogVerbosity::All) && FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.TagName.ToString(), ELogVerbosity::All);
-		FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(TagName);
+		for (const auto& CurrentData : CachedDataBlocks)
+		{
+			if (FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(CurrentData.TagName))
+			{
+				Extension->DisableDrawingForData(FLogVisualizer::Get().GetWorld(), Canvas, NULL, CurrentData.TagName, CurrentData, SelectedEntry.TimeStamp);
+			}
+		}
+		CachedDataBlocks.Reset();
+
+		for (const auto& CurrentData : SelectedEntry.DataBlocks)
+		{
+			const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.Category.ToString(), ELogVerbosity::All) && FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.TagName.ToString(), ELogVerbosity::All);
+			if (bIsValidByFilter)
+			{
+				CachedDataBlocks.Add(CurrentData);
+			}
+		}
+	}
+
+	for (const auto CurrentData : CachedDataBlocks)
+	{
+		FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(CurrentData.TagName);
 		if (!Extension)
 		{
 			continue;
 		}
 
-		if (!bIsValidByFilter)
-		{
-			Extension->DisableDrawingForData(FLogVisualizer::Get().GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry.TimeStamp);
-		}
-		else
-		{
-			Extension->DrawData(FLogVisualizer::Get().GetWorld(), Canvas, NULL, TagName, CurrentData, SelectedEntry.TimeStamp);
-		}
+		Extension->DrawData(FLogVisualizer::Get().GetWorld(), Canvas, NULL, CurrentData.TagName, CurrentData, SelectedEntry.TimeStamp);
 	}
 
 	if (ULogVisualizerSessionSettings::StaticClass()->GetDefaultObject<ULogVisualizerSessionSettings>()->bEnableGraphsVisualization)
 	{
 		DrawHistogramGraphs(Canvas, NULL);
 	}
+
+	bDirtyData = false;
 }
 
 void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, class APlayerController*)
@@ -144,73 +160,105 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 	int32 LeftSideOutsideIndex = INDEX_NONE;
 	int32 RightSideOutsideIndex = INDEX_NONE;
 
-	for (int32 EntryIndex = 0; EntryIndex < ObjectItems.Num(); ++EntryIndex)
+	if (bDirtyData)
 	{
-		const FVisualLogEntry* CurrentEntry = &(ObjectItems[EntryIndex].Entry);
-		if (CurrentEntry->TimeStamp < TimeStampWindow.X)
+		CachedHistogramSamples.Reset();
+		TArray<FVisualLogHistogramSample> CurrentSamples;
+		for (int32 EntryIndex = 0; EntryIndex < ObjectItems.Num(); ++EntryIndex)
 		{
-			LeftSideOutsideIndex = EntryIndex;
-			continue;
-		}
-
-		if (CurrentEntry->TimeStamp > TimeStampWindow.Y)
-		{
-			RightSideOutsideIndex = EntryIndex;
-			break;
-		}
-
-		const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
-		for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
-		{
-			FVisualLogHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
-
-			const FName CurrentCategory = CurrentSample.Category;
-			const FName CurrentGraphName = CurrentSample.GraphName;
-			const FName CurrentDataName = CurrentSample.DataName;
-
-			FString GraphFilterName = CurrentSample.GraphName.ToString() +TEXT("$") + CurrentSample.DataName.ToString();
-			const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
-
-			if (bIsValidByFilter)
+			const FVisualLogEntry* CurrentEntry = &(ObjectItems[EntryIndex].Entry);
+			if (CurrentEntry->TimeStamp < TimeStampWindow.X)
 			{
-				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
-				FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
-				LineData.DataName = CurrentSample.DataName;
-				LineData.Samples.Add(CurrentSample.SampleValue);
+				LeftSideOutsideIndex = EntryIndex;
+				continue;
+			}
 
-				GraphData.Min.X = FMath::Min(GraphData.Min.X, CurrentSample.SampleValue.X);
-				GraphData.Min.Y = FMath::Min(GraphData.Min.Y, CurrentSample.SampleValue.Y);
+			if (CurrentEntry->TimeStamp > TimeStampWindow.Y)
+			{
+				RightSideOutsideIndex = EntryIndex;
+				break;
+			}
 
-				GraphData.Max.X = FMath::Max(GraphData.Max.X, CurrentSample.SampleValue.X);
-				GraphData.Max.Y = FMath::Max(GraphData.Max.Y, CurrentSample.SampleValue.Y);
+			CurrentSamples.Reset();
+			const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+			for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
+			{
+				const FVisualLogHistogramSample& CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+
+				const FName CurrentCategory = CurrentSample.Category;
+				const FName CurrentGraphName = CurrentSample.GraphName;
+				const FName CurrentDataName = CurrentSample.DataName;
+
+				FString GraphFilterName = CurrentSample.GraphName.ToString() + TEXT("$") + CurrentSample.DataName.ToString();
+				const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
+				if (bIsValidByFilter)
+				{
+					CurrentSamples.Add(CurrentSample);
+				}
+			}
+
+			if (CurrentSamples.Num() > 0)
+			{
+				CachedHistogramSamples.Add(CurrentSamples);
 			}
 		}
 	}
-	
-	const int32 ExtremeValueIndexes[] = { LeftSideOutsideIndex != INDEX_NONE ? LeftSideOutsideIndex : 0, RightSideOutsideIndex != INDEX_NONE ? RightSideOutsideIndex : ObjectItems.Num() - 1 };
-	for (int32 ObjectIndex = 0; ObjectIndex < 2; ++ObjectIndex)
+
+	for (int32 EntryIndex = 0; EntryIndex < CachedHistogramSamples.Num(); ++EntryIndex)
 	{
-		const FVisualLogEntry* CurrentEntry = &(ObjectItems[ExtremeValueIndexes[ObjectIndex]].Entry);
-		const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+		TArray<FVisualLogHistogramSample> &HistogramSamples = CachedHistogramSamples[EntryIndex];
+		const int32 SamplesNum = CachedHistogramSamples[EntryIndex].Num();
 		for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 		{
-			FVisualLogHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+			FVisualLogHistogramSample CurrentSample = HistogramSamples[SampleIndex];
 
-			const FName CurrentCategory = CurrentSample.Category;
-			const FName CurrentGraphName = CurrentSample.GraphName;
-			const FName CurrentDataName = CurrentSample.DataName;
+			FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
+			FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
+			LineData.DataName = CurrentSample.DataName;
+			LineData.Samples.Add(CurrentSample.SampleValue);
+			LineData.LeftExtreme = FVector2D::ZeroVector;
+			LineData.RightExtreme = FVector2D::ZeroVector;
 
-			FString GraphFilterName = CurrentSample.GraphName.ToString() + TEXT("_") + CurrentSample.DataName.ToString();
-			const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
-			if (bIsValidByFilter)
+			GraphData.Min.X = FMath::Min(GraphData.Min.X, CurrentSample.SampleValue.X);
+			GraphData.Min.Y = FMath::Min(GraphData.Min.Y, CurrentSample.SampleValue.Y);
+
+			GraphData.Max.X = FMath::Max(GraphData.Max.X, CurrentSample.SampleValue.X);
+			GraphData.Max.Y = FMath::Max(GraphData.Max.Y, CurrentSample.SampleValue.Y);
+		}
+	}
+	
+	if (bDirtyData)
+	{
+		const int32 ExtremeValueIndexes[] = { LeftSideOutsideIndex != INDEX_NONE ? LeftSideOutsideIndex : 0, RightSideOutsideIndex != INDEX_NONE ? RightSideOutsideIndex : ObjectItems.Num() - 1 };
+		for (int32 ObjectIndex = 0; ObjectIndex < 2; ++ObjectIndex)
+		{
+			const FVisualLogEntry* CurrentEntry = &(ObjectItems[ExtremeValueIndexes[ObjectIndex]].Entry);
+			const int32 SamplesNum = CurrentEntry->HistogramSamples.Num();
+			for (int32 SampleIndex = 0; SampleIndex < SamplesNum; ++SampleIndex)
 			{
-				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
-				FGraphLineData &LineData = GraphData.GraphLines.FindOrAdd(CurrentSample.DataName);
-				LineData.DataName = CurrentSample.DataName;
-				if (ObjectIndex == 0)
-					LineData.LeftExtreme = CurrentSample.SampleValue;
-				else
-					LineData.RightExtreme = CurrentSample.SampleValue;
+				FVisualLogHistogramSample CurrentSample = CurrentEntry->HistogramSamples[SampleIndex];
+
+				const FName CurrentCategory = CurrentSample.Category;
+				const FName CurrentGraphName = CurrentSample.GraphName;
+				const FName CurrentDataName = CurrentSample.DataName;
+
+				//FString GraphFilterName = CurrentSample.GraphName.ToString() + TEXT("_") + CurrentSample.DataName.ToString();
+				//const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
+				//if (bIsValidByFilter)
+				{
+					FGraphData *GraphData = CollectedGraphs.Find(CurrentSample.GraphName);
+					if (GraphData)
+					{
+						FGraphLineData *LineData = GraphData->GraphLines.Find(CurrentSample.DataName);
+						if (LineData)
+						{
+							if (ObjectIndex == 0)
+								LineData->LeftExtreme = CurrentSample.SampleValue;
+							else
+								LineData->RightExtreme = CurrentSample.SampleValue;
+						}
+					}
+				}
 			}
 		}
 	}

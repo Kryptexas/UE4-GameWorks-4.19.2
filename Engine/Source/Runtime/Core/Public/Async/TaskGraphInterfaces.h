@@ -22,7 +22,6 @@ DECLARE_STATS_GROUP(TEXT("Task Graph Tasks"), STATGROUP_TaskGraphTasks, STATCAT_
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FReturnGraphTask"), STAT_FReturnGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("FTriggerEventGraphTask"), STAT_FTriggerEventGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Unknown Graph Task"), STAT_UnknownGraphTask, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ParallelFor"), STAT_ParallelFor, STATGROUP_TaskGraphTasks, CORE_API);
 DECLARE_CYCLE_STAT_EXTERN(TEXT("ParallelForTask"), STAT_ParallelForTask, STATGROUP_TaskGraphTasks, CORE_API);
 
@@ -30,9 +29,7 @@ namespace ENamedThreads
 {
 	enum Type
 	{
-		/** not actually a thread index. Means "Unknown Thread" or "Any Unnamed Thread" **/
-		AnyThread = -1, 
-
+		UnusedAnchor = -1,
 		/** The always-present, named threads are listed next **/
 #if STATS
 		StatsThread, 
@@ -43,8 +40,10 @@ namespace ENamedThreads
 		ActualRenderingThread = GameThread + 1,
 		// CAUTION ThreadedRenderingThread must be the last named thread, insert new named threads before it
 
+		/** not actually a thread index. Means "Unknown Thread" or "Any Unnamed Thread" **/
+		AnyThread = 0xff, 
 
-		/** High bits are used for a queue index **/
+		/** High bits are used for a queue index and priority**/
 
 		MainQueue =			0x000,
 		LocalQueue =		0x100,
@@ -53,6 +52,16 @@ namespace ENamedThreads
 		ThreadIndexMask =	0xff,
 		QueueIndexMask =	0x100,
 		QueueIndexShift =	8,
+
+		/** High bits are used for a queue index and priority**/
+
+		NormalPriority =	0x000,
+		HighPriority =		0x200,
+
+		NumPriorities =		2,
+		PriorityMask =		0x200,
+		PriorityShift =		9,
+
 
 		/** Combinations **/
 #if STATS
@@ -66,14 +75,25 @@ namespace ENamedThreads
 
 	FORCEINLINE Type GetThreadIndex(Type ThreadAndIndex)
 	{
-		return (ThreadAndIndex == AnyThread) ? AnyThread : Type(ThreadAndIndex & ThreadIndexMask);
+		return ((ThreadAndIndex & ThreadIndexMask) == AnyThread) ? AnyThread : Type(ThreadAndIndex & ThreadIndexMask);
 	}
 
 	FORCEINLINE int32 GetQueueIndex(Type ThreadAndIndex)
 	{
-		return (ThreadAndIndex & ~ThreadIndexMask) >> QueueIndexShift;
+		return (ThreadAndIndex & QueueIndexMask) >> QueueIndexShift;
+	}
+
+	FORCEINLINE int32 GetPriority(Type ThreadAndIndex)
+	{
+		return (ThreadAndIndex & PriorityMask) >> PriorityShift;
+	}
+
+	FORCEINLINE Type HiPri(Type ThreadAndIndex)
+	{
+		return Type(ThreadAndIndex | HighPriority);
 	}
 }
+
 
 namespace ESubsequentsMode
 {
@@ -591,6 +611,12 @@ public:
 			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8), Forward<T9>(Arg9));
 			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
 		}		
+		template<typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9, typename T10>
+		FGraphEventRef ConstructAndDispatchWhenReady(T1&& Arg1, T2&& Arg2, T3&& Arg3, T4&& Arg4, T5&& Arg5, T6&& Arg6, T7&& Arg7, T8&& Arg8, T9&& Arg9, T10&& Arg10)
+		{
+			new ((void *)&Owner->TaskStorage) TTask(Forward<T1>(Arg1), Forward<T2>(Arg2), Forward<T3>(Arg3), Forward<T4>(Arg4), Forward<T5>(Arg5), Forward<T6>(Arg6), Forward<T7>(Arg7), Forward<T8>(Arg8), Forward<T9>(Arg9), Forward<T10>(Arg10));
+			return Owner->Setup(Prerequisites, CurrentThreadIfKnown);
+		}		
 	#endif
 
 	#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
@@ -947,7 +973,7 @@ public:
 	 **/
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		checkThreadGraph(ThreadToReturnFrom == CurrentThread); // we somehow are executing on the wrong thread.
+		checkThreadGraph(ENamedThreads::GetThreadIndex(ThreadToReturnFrom) == ENamedThreads::GetThreadIndex(CurrentThread)); // we somehow are executing on the wrong thread.
 		FTaskGraphInterface::Get().RequestReturn(ThreadToReturnFrom);
 	}
 

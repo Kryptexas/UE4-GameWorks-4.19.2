@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:2559390
+Availability:Public
+Title:Linux ゲームの開発
+Crumbs:%ROOT%, Platforms
+Description: Linux プラットフォーム向けのゲーム開発
+Platform:Linux
+Navigation:platform
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Linux Essentials
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+				      
+
+
+
+
+
+	       
+
+	   
+
+	   
+
+	  
+

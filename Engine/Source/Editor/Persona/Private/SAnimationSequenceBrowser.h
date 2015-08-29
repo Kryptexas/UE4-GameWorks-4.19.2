@@ -37,14 +37,18 @@ public:
 
 	void OnRequestOpenAsset(const FAssetData& AssetData, bool bFromHistory);
 
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+
 	virtual ~SAnimationSequenceBrowser();
 
 	/** Delegate that handles creation of context menu */
 	TSharedPtr<SWidget> OnGetAssetContextMenu(const TArray<FAssetData>& SelectedAssets);
 
-	/** Delegate to handle "Go To" context menu option 
-		Sends selected assets to be highlighted in active Content Browser */
-	void OnGoToInContentBrowser(TArray<FAssetData> ObjectsToSync);
+	/** Delegate to handle "Find in Content Browser" context menu option */
+	void FindInContentBrowser();
+
+	/** Delegate to handle enabling the "Find in Content Browser" context menu option */
+	bool CanFindInContentBrowser() const;
 
 	/** Delegate to handle "Save" context menu option */
 	void SaveSelectedAssets(TArray<FAssetData> ObjectsToSave) const;
@@ -175,6 +179,11 @@ protected:
 	 * The scene to show in the asset previews
 	 */
 	FPreviewScene PreviewScene;
+
+	/**
+	 * Commands handled by this widget
+	 */
+	TSharedPtr<FUICommandList> Commands;
 
 	// Pointer back to persona tool that owns us
 	TWeakPtr<class FPersona> PersonaPtr;

@@ -1,0 +1,186 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Blueprint Communication Usage
+Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
+Description:Overview of when to use different methods of Blueprint Communications. 
+Related: Engine\Blueprints\UserGuide\BlueprintComms
+Related: Engine/Blueprints/UserGuide/EventDispatcher
+Related: Engine/Blueprints/UserGuide/CastNodes
+Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%](Engine\Blueprints\UserGuide\bp_comms_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine\Blueprints\UserGuide\BlueprintCommsUsage:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine\Blueprints\UserGuide\BlueprintCommsUsage]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+[TOC(start:2 end:2)]
+
+When you are working with a **Blueprint**, you may sometimes find that you want to access the Functions, Events, or Variables that are contained in another **Blueprint**. Referred to as **Blueprint Communication** there are several methods in which you can access and communicate between multiple **Blueprints** depending upon your needs.
+
+Outlined below are the different methods of communication and sample use cases, refer to the links in each section for further documentation. 
+
+## Direct Blueprint Communication
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\2_9.png)
+
+**Direct Blueprint Communication** (or **Blueprint Comms**) is the most common method of communication and is excellent when you have two **Blueprint Actors** that you know you want to have talk 
+to each other at a certain point. 
+	
+This type of communication is always one-to-one, meaning one Blueprint (referred to as the **Working Blueprint**) is requesting to access another Blueprint (referred to as the **Target 
+Blueprint**). The simplest way to use **Blueprint Comms** is to get a reference to the **Target Blueprint** through a publicly exposed object variable and then specify which instance of 
+that Blueprint you want to access.
+
+Refer to [](Engine\Blueprints\UserGuide\BlueprintComms) for more detailed information. 
+
+### When to Use It...
+
+Below are some examples when you might use **Blueprint Comms**: 
+	
+*	**You have an Actor in your level that you want to communicate with another Actor in your level.**
+	*	Interacting with a switch in your level opens a specific door or turns on a specific light (each of which are separate Blueprints). 
+
+Refer to [Setting Up Direct Blueprint Communications](Engine\Blueprints\BP_HowTo\DirectBlueprintComs) for a walk through of how to set one up. 
+
+
+	
+## Event Dispatchers
+
+![](OpenDoorEventDispatch.png)
+
+**Event Dispatchers** are best suited for telling the world something happened, when you don't care what they do with that information.  The pattern for using these is often (but not always) that 
+something spawns another thing (e.g. the Level Blueprint spawns a boss), and they hook the Event Dispatcher to get a notification when something important happens for that spawned thing.  
+
+For the boss example, perhaps we want to open a door when the player kills the boss.  So, the Level Blueprint would spawn the boss, and then hook its OnDied Event Dispatcher to an event that 
+opened the door.  That allows the boss to stay general, as it doesn't care what level it's placed in, and just provides a "hook" for anyone that might cares it dies.  It doesn't just have to be
+ the locked door though. Maybe all his minions hook his OnDied delegate, and they all run away when the boss dies.  You can have as many things as you want hooked into a single Event Dispatcher.
+and all of the Events that are bound to the dispatcher will fire once the Event Dispatcher is called. 
+
+To sum up, Event Dispatchers are used to tell anyone interested that something just happened to you. The events called by an Event Dispatcher can be different for different instances of your Blueprint,
+or at different points in gameplay.
+
+
+Refer to [](Engine/Blueprints/UserGuide/EventDispatcher) for more detailed information. 
+
+### When to Use It...
+ 
+The examples below would be a case where an **Event Dispatcher** could be used: 
+
+*	**You want to communicate from your character Blueprint to your Level Blueprint.**
+	*	Your player character levels up and you want to open a previously locked area. 
+	*	Your player character presses an action button that does something in your level. 
+*	**You want to have Events fired when a spawned Actor has something done to it.** 
+	*	You spawn a boss and an Event is fired when the boss is killed which spawns a reward in the world.
+	*	You spawn an item in your level (weapon, health, boost, etc.) and through an Event, notify the item and character when it is picked up.
+
+Refer to [Setting Up Event Dispatchers](Engine\Blueprints\BP_HowTo\EventDispatcher) for a walk through of how to set one up. 
+
+
+## Blueprint Interfaces
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\InterfaceExample2_5.png)
+
+**Blueprint Interfaces** allow for a common method of interacting with multiple types of objects that all share some specific functionality. This means you can have completely different types of 
+objects, such as a car and a tree, that share one specific thing; they can both be shot by weapon fire and take damage. 
+
+By creating a **Blueprint Interface** that contains an **OnTakeWeaponFire** function and having both the car and the tree implement that **Blueprint Interface**, you can treat the car and the tree 
+as the same and simply call the **OnTakeWeaponFire** function when either of them is shot and have them respond differently.
+
+This is still a one-to-one style of communication, just like direct Blueprint communications, but unlike direct Blueprint communications, the Target may or may not receive the message.  An 
+interface is a contract of sorts.  It says "if you implement this interface, you promise to implement these specific functions, and respond to them when I call."  The difference between direct 
+Blueprint communications and interfaces is that with direct communications, you have to know specifically whether or not the Blueprint on the receiving end cares about a function or not.  
+Interface Messages you can send to anything, and they'll respond if they care, and ignore the message if they don't. Going back to the weapon fire example, you may not want your walls to react to damage, so they just wouldn't implement the interface with **OnTakeWeaponFire**. 
+
+Refer to [](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) for more detailed information. 
+
+### When to Use It...
+
+Each of the examples below are scenarios where a **Blueprint Interface** might be the best method of communication: 
+
+*	**You have some functionality in a Blueprint that can produce different results when interacted with or based off other variables you define.**
+	*	Player has a flamethrower that when used, fires an Event called **ElementalDamage**. A Tree Blueprint gets the call and burns the tree down while a Snowman Blueprint melts the snowman. 
+	*	Player has a "use" button, pressing the use button opens doors, turns off lights, picks up items, etc. 
+	*	Enemy has a special ability that changes based on player health. 
+
+Refer to [Setting Up Blueprint Interfaces](Engine\Blueprints\BP_HowTo\Interfaces) for a walkthrough of how to set one up. 
+
+
+## Casting For Communications
+
+![](Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo\Event6.png)
+
+When communicating between Blueprints, you will often need to make sure that your "Target" Blueprint is the one that you expect. For example, what if you want to communicate between an Actor in a level and a player character? Or, what if you want to access information inside an 
+Actor and the Actor itself is a variable (for instance, affect the Actor that enters a fire you have placed in your level differently depending upon the Actor that enters it). 
+
+Taking the player character example, suppose you want the player to take damage when they enter fire that is placed in your level. Since we want to apply damage to the player, the player character Blueprint would be the **Target Blueprint** we want to access, however we cannot specify it as the "target" as it is not a publicly exposed object variable and it does not exist in the world until we start the game. 
+
+In this situation we could use **Blueprint Casting** to take the playable character and **Cast To** our **Target Blueprint** (Character Blueprint), or in other words, **treat as X** where X is the **Target Blueprint** we want to gain access to. 
+
+### When to Use It...
+	
+Here are a few examples when you could use **Blueprint Casting**: 
+
+[EXCERPT:Castusage]
+*	**You have a character interact with an Actor in your level and in turn causes a change to the character in some way.**
+	*	Player picks up a health pack in the level, restoring health in the player character. 
+	*	Enemy walks in snow or mud, causing their movement speed to slow down. 
+*	**You want to pass variables to a HUD or UI Widget, Save Game, Controller, or Game Mode.** 
+	*	Passing player or enemy health from a Character Blueprint to a HUD or Widget Blueprint to display the value on screen. 
+	*	Passing variables (current health or energy, money, items, or abilities) to a Save Game Blueprint so that they can be restored later. 
+*	**You have multiple Blueprints which are children of another Blueprint and you want to access one of the children.**
+	*	You have Cat, Dog, and Bird Blueprints which share functionality from an Animal Blueprint. Using the Animal Blueprint, you **Cast To** the Bird Blueprint to execute a "Flying" function. 
+*	**You have a Blueprint that is dependent on another Blueprint's Variables, Events, or Functions.** 
+	*	Plugging a battery into a flashlight turns on the light and the intensity of the light is determined by a value in the battery. 
+*	**You want to access multiple Blueprints of the same class and modify them all the same way at once.**
+	*	You have several lights in your level and you want them all to turn on or off when an event occurs. 
+[/EXCERPT:Castusage]
+
+Refer to [Setting Up Blueprint Casts](Engine\Blueprints\BP_HowTo\Casting) for a walk through of how to set one up. 
+
+
+
+
+
+
+
+
+
+
+
+
+

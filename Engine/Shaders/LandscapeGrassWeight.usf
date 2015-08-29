@@ -55,7 +55,7 @@ int OutputPass;
 // Pixel Shader
 void PSMain( 
 	FLandscapeGrassWeightInterpolantsVSToPS Interpolants,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position
 	OPTIONAL_IsFrontFace,
 	out half4 OutColor	: SV_Target0
 	)

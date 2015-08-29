@@ -1,0 +1,46 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Configuring Unreal Build System for Windows
+Crumbs: %ROOT%, Programming, Programming/UnrealBuildSystem/Configuration
+Description:Configuring Unreal Build System to control how the engine is built for Windows.
+Version: 4.5
+
+The Unreal Build System can be configured through the `BuildConfiguration.cs` to modify the build process to suit a variety of needs.
+For Windows specific options, you can alter the `UEBuildWindows.cs` configuration
+
+## Adding Windows XP Support
+
+### Minimum Spec
+
+**Only Windows XP with Service Pack 3 is supported**.
+
+**You also must have a Video Card which supports OpenGL 3.2**.
+
+### Building with Windows XP support
+$ WindowsPlatform::SupportWindowsXP : If _true_, a build of UE4 which is compatible with Windows XP will be created.
+
+
+To enable XP support, find where it is forced off in the `SetupEnvironment` and update this, with:
+	public override void SetUpEnvironment(UEBuildTarget InBuildTarget)
+	{
+		...
+
+		// Win32 XP is only supported at this time.
+		SupportWindowsXP = InBuildTarget.Platform == UnrealTargetPlatform.Win32;
+
+Enabling a Windows XP compatible build forces the compiler to use `Windows SDK 7.1`. This will mean that any functionality which has been provided by the `Windows SDK 8.0` will not compile. You can wrap sdk specific code in a WINVER check:
+	#if WINVER == 0x0502
+		// Windows SDK 7.1 code should live inside this block
+	#else
+		// Windows SDK 8.0 code should live inside this block
+	#endif
+	
+### Getting the game running on Windows XP
+
+As Windows XP does not support DirectX 10 or DirectX 11, OpenGL must be included as a target RHI for your game.
+
+You can find the option to include this in the Editor:
+_Edit->Project Settings->Platform->Windows_
+[![](EnableOpenGLForWindows.png)](Programming/UnrealBuildSystem/Configuration/Windows)
+
+Once you have packaged your game, you should then be able to run the game executable from the binaries directory on a Windows XP machine.

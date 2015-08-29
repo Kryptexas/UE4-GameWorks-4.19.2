@@ -124,7 +124,7 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		uint FrameRandom = (View.FrameNumber & 15) * 1551;
 
 		uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
-		uint PixelIndex = reversebits( Morton ) >> 28;
+		uint PixelIndex = ReverseBits32( Morton ) >> 28;
 		//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
 		//PixelIndex = ( PixelIndex * 1551 ) & 15;
 
@@ -132,8 +132,15 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		float StepOffset = Offset / 15.0;
 		StepOffset -= 0.5;
 		
-		//float4 HitUVzTime = RayCastCheap( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, StepOffset );
-		float4 HitUVzTime = RayCast( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, 0, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, 12, StepOffset );
+		float4 HitUVzTime;
+		float HCBLevel;
+
+		RayCast(
+			HZBTexture, HZBSampler, float2(1, 1),
+			MaterialParameters.WorldPosition_CamRelative, MaterialParameters.ReflectionVector, 0, 0, MaterialParameters.ScreenPosition.w,
+			12, StepOffset,
+			HitUVzTime, HCBLevel
+		);
 
 		// if there was a hit
 		BRANCH if( HitUVzTime.w < 1 )
@@ -529,7 +536,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 {
 	float Ret = 1;
 
-#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
 	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
 	BRANCH
 	if (bEnableEditorPrimitiveDepthTest)
@@ -540,7 +547,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 #endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.ViewSizeAndSceneTexelSize.zw, 0).r;
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
 
 		float PixelDeviceZ = MaterialParameters.SVPosition.z;
 
@@ -550,7 +557,7 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 		// 0.5f is to bias around the actual value, 1 or 0 are another option
 		Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
 	}
-#endif	// USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
+#endif	// USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
 
 	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
 	return Ret;
@@ -597,10 +604,9 @@ void ApplyPixelDepthOffsetForBasePass(inout FMaterialPixelParameters MaterialPar
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position,
-
-	OPTIONAL_IsFrontFace,
-	out float4 OutColor		: SV_Target0
+	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
+	OPTIONAL_IsFrontFace
+	,out float4 OutColor		: SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
 	,out float4 OutGBufferA : SV_Target1 
 	,out float4 OutGBufferB : SV_Target2
@@ -638,7 +644,7 @@ void Main(
 #endif
 	);
 
-#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
+#if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
 	const bool bEditorWeightedZBuffering = true;
 #else
 	const bool bEditorWeightedZBuffering = false;
@@ -653,6 +659,13 @@ void Main(
 	{
 		GetMaterialCoverageAndClipping(MaterialParameters);
 	}
+
+#if HQ_TEXTURE_LIGHTMAP && USES_AO_MATERIAL_MASK && !MATERIAL_SHADINGMODEL_UNLIT
+	float2 LightmapUV0, LightmapUV1;
+	GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
+	// Must be computed before GetMaterialBaseColor
+	MaterialParameters.AOMaterialMask = GetAOMaterialMask(LightmapUV0 * float2(1, 2));
+#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	half3 BaseColor = GetMaterialBaseColor( MaterialParameters );
@@ -692,7 +705,7 @@ void Main(
 
 		FDBufferData DBufferData = GetDBufferData(ScreenUV);
 
-		// the material can disable the DBuffer effects for beter performance or control
+		// the material can disable the DBuffer effects for better performance or control
 		if((MATERIALDECALRESPONSEMASK & 0x1) == 0) { DBufferData.PreMulColor = 0; DBufferData.ColorOpacity = 1; }
 		if((MATERIALDECALRESPONSEMASK & 0x2) == 0) { DBufferData.PreMulWorldNormal = 0; DBufferData.NormalOpacity = 1; }
 		if((MATERIALDECALRESPONSEMASK & 0x4) == 0) { DBufferData.PreMulRoughness = 0; DBufferData.RoughnessOpacity = 1; }
@@ -712,10 +725,6 @@ void Main(
 		SpecularColor = SpecularColor * View.SpecularOverrideParameter.w + View.SpecularOverrideParameter.xyz;
 	}
 #endif
-
-	// TODO Replace with proper EnvBRDF for Burley diffuse model.
-	// Any indirect diffuse done in the base pass does not properly account for the Burley diffuse model besides this crude approximation.
-	DiffuseColor *= 1 - 0.3333 * Roughness;
 
 
 	half3 Color = 0;
@@ -846,24 +855,18 @@ void Main(
 
 			float ClearCoat				= GetMaterialClearCoat(MaterialParameters);
 			float ClearCoatRoughness	= GetMaterialClearCoatRoughness(MaterialParameters);
-			float Film = 1 * ClearCoat;
 			float MetalSpec = 0.9;
 
 			float NoV = saturate( dot( MaterialParameters.WorldNormal, MaterialParameters.CameraVector ) );
 
 			// Approximation of refraction's effect on EnvBRDF
 			float RefractionScale = ( (NoV * 0.5 + 0.5) * NoV - 1 ) * saturate( 1.25 - 1.25 * Roughness ) + 1;
-			RefractionScale = lerp( 1, RefractionScale, ClearCoat );
-
-			float3 AbsorptionColor = (1 - Film) + BaseColor * ( Film * (1 / MetalSpec) );
-			GBuffer.BaseColor = lerp( BaseColor, MetalSpec, Film );
-
+		
 			// Approximation of absorption integral, tuned for Roughness=0.4
+			float3 AbsorptionColor = BaseColor * (1 / MetalSpec);
 			float3 Absorption = AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + 1 );
-			//float Toe = 1 - exp2( -9 * NoV - 3.5 );
-			//float3 Absorption = Toe * AbsorptionColor * ( (NoV - 1) * 0.85 * ( 1 - lerp( AbsorptionColor, Square(AbsorptionColor), -0.78 ) ) + lerp( 0.93, 0.96, AbsorptionColor * 2 - 1 ) );
 
-			GBuffer.BaseColor *= Absorption * lerp( 1, RefractionScale, Metallic );
+			GBuffer.BaseColor = lerp( BaseColor, MetalSpec * Absorption * lerp( 1, RefractionScale, Metallic ), ClearCoat );
 			GBuffer.Specular *= Luminance( Absorption ) * RefractionScale;
 
 			GBuffer.CustomData.x = ClearCoat;

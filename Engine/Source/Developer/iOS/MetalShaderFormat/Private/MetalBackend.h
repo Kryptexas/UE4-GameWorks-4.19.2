@@ -26,7 +26,11 @@ public:
 
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) override;
 
+	virtual bool AllowsSharingSamplers() const override { return true; }
+
 	virtual bool UseSamplerInnerType() const { return true; }
+
+	virtual bool CanConvertBetweenHalfAndFloat() const { return false; }
 };
 
 struct FBuffers;
@@ -34,7 +38,7 @@ struct FBuffers;
 // Generates Metal compliant code from IR tokens
 struct FMetalCodeBackend : public FCodeBackend
 {
-	FMetalCodeBackend(unsigned int InHlslCompileFlags);
+	FMetalCodeBackend(unsigned int InHlslCompileFlags, EHlslCompileTarget InTarget);
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override;
 
@@ -50,4 +54,6 @@ struct FMetalCodeBackend : public FCodeBackend
 	void PromoteInputsAndOutputsGlobalHalfToFloat(exec_list* ir, _mesa_glsl_parse_state* state, EHlslShaderFrequency Frequency);
 	void ConvertHalfToFloatUniformsAndSamples(exec_list* ir, _mesa_glsl_parse_state* State, bool bConvertUniforms, bool bConvertSamples);
 	void BreakPrecisionChangesVisitor(exec_list* ir, _mesa_glsl_parse_state* State);
+
+	bool bIsDesktop;
 };

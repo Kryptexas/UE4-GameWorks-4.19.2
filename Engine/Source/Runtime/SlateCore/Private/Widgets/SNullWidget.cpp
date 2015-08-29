@@ -27,6 +27,7 @@ public:
 			InArgs._RenderTransform,
 			InArgs._RenderTransformPivot,
 			InArgs._Tag,
+			InArgs._ForceVolatile,
 			InArgs.MetaData
 		);
 	}
@@ -34,7 +35,7 @@ public:
 private:
 	virtual void SetVisibility( TAttribute<EVisibility> InVisibility ) override final
 	{
-		ensureMsg( false, TEXT("Attempting to SetVisibility() on SNullWidget. Mutating SNullWidget is not allowed.") );
+		ensureMsgf( false, TEXT("Attempting to SetVisibility() on SNullWidget. Mutating SNullWidget is not allowed.") );
 	}
 public:
 	

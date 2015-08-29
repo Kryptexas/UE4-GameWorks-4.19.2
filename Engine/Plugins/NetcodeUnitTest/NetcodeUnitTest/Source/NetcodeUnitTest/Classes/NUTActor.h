@@ -49,6 +49,10 @@ class ANUTActor : public AActor, public FSelfRegisteringExec
 {
 	GENERATED_UCLASS_BODY()
 
+private:
+	/** The name of the beacon net driver */
+	FName BeaconDriverName;
+
 public:
 	/** The value of World.RealTimeSeconds as of the last time the client was marked as still alive */
 	float LastAliveTime;
@@ -67,7 +71,11 @@ public:
 
 	virtual void PostActorCreated() override;
 
+#if TARGET_UE4_CL < CL_CONSTNETCONN
+	virtual UNetConnection* GetNetConnection() override;
+#else
 	virtual UNetConnection* GetNetConnection() const override;
+#endif
 
 	bool NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch);
 

@@ -7,7 +7,7 @@
 
 // FOnlineUserInfoFacebook
 
-TSharedRef<FUniqueNetId> FOnlineUserInfoFacebook::GetUserId() const
+TSharedRef<const FUniqueNetId> FOnlineUserInfoFacebook::GetUserId() const
 {
 	return UserId;
 }
@@ -45,7 +45,7 @@ FOnlineUserFacebook::~FOnlineUserFacebook()
 
 }
 
-bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<class FUniqueNetId> >& UserIds)
+bool FOnlineUserFacebook::QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId> >& UserIds)
 {
 	bool bTriggeredRequest = false;
 	

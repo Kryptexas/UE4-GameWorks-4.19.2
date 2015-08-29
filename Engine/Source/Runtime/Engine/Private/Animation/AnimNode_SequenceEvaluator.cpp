@@ -14,7 +14,7 @@ void FAnimNode_SequenceEvaluator::CacheBones(const FAnimationCacheBonesContext& 
 {
 }
 
-void FAnimNode_SequenceEvaluator::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_SequenceEvaluator::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
 	EvaluateGraphExposedInputs.Execute(Context);
 }
@@ -23,7 +23,7 @@ void FAnimNode_SequenceEvaluator::Evaluate(FPoseContext& Output)
 {
 	if ((Sequence != NULL) && (Output.AnimInstance->CurrentSkeleton->IsCompatible(Sequence->GetSkeleton())))
 	{
-		Output.AnimInstance->SequenceEvaluatePose(Sequence, Output.Pose, FAnimExtractContext(ExplicitTime));
+		Sequence->GetAnimationPose(Output.Pose, Output.Curve, FAnimExtractContext(ExplicitTime, Output.AnimInstance->ShouldExtractRootMotion()));
 	}
 	else
 	{

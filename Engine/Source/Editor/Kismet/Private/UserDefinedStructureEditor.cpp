@@ -36,7 +36,7 @@ public:
 
 		FStructureDetailsViewArgs StructureViewArgs;
 		StructureViewArgs.bShowObjects = false;
-		StructureViewArgs.bShowAssets = false;
+		StructureViewArgs.bShowAssets = true;
 		StructureViewArgs.bShowClasses = true;
 		StructureViewArgs.bShowInterfaces = false;
 
@@ -239,6 +239,15 @@ FText FUserDefinedStructureEditor::GetToolkitName() const
 	if (1 == GetEditingObjects().Num())
 	{
 		return FAssetEditorToolkit::GetToolkitName();
+	}
+	return GetBaseToolkitName();
+}
+
+FText FUserDefinedStructureEditor::GetToolkitToolTipText() const
+{
+	if (1 == GetEditingObjects().Num())
+	{
+		return FAssetEditorToolkit::GetToolkitToolTipText();
 	}
 	return GetBaseToolkitName();
 }

@@ -37,6 +37,7 @@
 #include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 #include "Engine/SCS_Node.h"
 #include "Components/TimelineComponent.h"
+#include "SPinTypeSelector.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintPalette"
 
@@ -652,6 +653,95 @@ public:
 };
 
 /*******************************************************************************
+* SPinTypeSelectorHelper
+*******************************************************************************/
+
+class SPinTypeSelectorHelper : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS( SPinTypeSelectorHelper ) {}
+	SLATE_END_ARGS()
+
+	/**
+	 * Constructs a PinTypeSelector widget (for variable actions only, so that 
+	 * the user can modify the variable's type without going to the details panel).
+	 * 
+	 * @param  InArgs					A set of slate arguments, defined above.
+	 * @param  InVariableProperty		The variable property to select
+	 * @param  InBlueprintEditor			A pointer to the blueprint editor that the palette belongs to.
+	 */
+	void Construct(const FArguments& InArgs, UProperty* InVariableProperty, UBlueprint* InBlueprint, TWeakPtr<FBlueprintEditor> InBlueprintEditor)
+	{
+		BlueprintObj = InBlueprint;
+		BlueprintEditorPtr = InBlueprintEditor;
+		VariableProperty = InVariableProperty;
+
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		this->ChildSlot
+		[
+			SNew(SPinTypeSelector, FGetPinTypeTree::CreateUObject(Schema, &UEdGraphSchema_K2::GetVariableTypeTree))
+			.Schema(Schema)
+			.TargetPinType(this, &SPinTypeSelectorHelper::OnGetVarType)
+			.OnPinTypeChanged(this, &SPinTypeSelectorHelper::OnVarTypeChanged)
+			.bAllowExec(false)
+			.bCompactSelector(true)
+		];
+	}
+
+private:
+	FEdGraphPinType OnGetVarType() const
+	{
+		if (VariableProperty)
+		{
+			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+			FEdGraphPinType Type;
+			K2Schema->ConvertPropertyToPinType(VariableProperty, Type);
+			return Type;
+		}
+		return FEdGraphPinType();
+	}
+
+	void OnVarTypeChanged(const FEdGraphPinType& InNewPinType)
+	{
+		if (FBlueprintEditorUtils::IsPinTypeValid(InNewPinType))
+		{
+			FName VarName = VariableProperty->GetFName();
+
+			if (VarName != NAME_None)
+			{
+				// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
+				BlueprintEditorPtr.Pin()->GetMyBlueprintWidget()->GetLastPinTypeUsed() = InNewPinType;
+
+				if (VariableProperty)
+				{
+					if (UFunction* LocalVariableScope = Cast<UFunction>(VariableProperty->GetOuter()))
+					{
+						FBlueprintEditorUtils::ChangeLocalVariableType(BlueprintObj, LocalVariableScope, VarName, InNewPinType);
+					}
+					else
+					{
+						FBlueprintEditorUtils::ChangeMemberVariableType(BlueprintObj, VarName, InNewPinType);
+					}
+				}
+			}
+		}
+	}
+
+private:
+	/** The action that the owning palette entry represents */
+	TWeakPtr<FEdGraphSchemaAction_K2Var> ActionPtr;
+
+	/** Pointer back to the blueprint that is being displayed: */
+	UBlueprint* BlueprintObj;
+
+	/** Pointer back to the blueprint editor that owns this, optional because of diff and merge views: */
+	TWeakPtr<FBlueprintEditor>     BlueprintEditorPtr;
+
+	/** Variable Property to change the type of */
+	UProperty* VariableProperty;
+};
+
+/*******************************************************************************
 * SPaletteItemVisibilityToggle
 *******************************************************************************/
 
@@ -685,7 +775,7 @@ public:
 			UStruct* VarSourceScope = (VariableProp != NULL) ? CastChecked<UStruct>(VariableProp->GetOuter()) : NULL;
 			const bool bIsBlueprintVariable = (VarSourceScope == BlueprintObj->SkeletonGeneratedClass);
 			const bool bIsComponentVar = (VariableObjProp != NULL) && (VariableObjProp->PropertyClass != NULL) && (VariableObjProp->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
-			bShouldHaveAVisibilityToggle = bIsBlueprintVariable && !bIsComponentVar;
+			bShouldHaveAVisibilityToggle = bIsBlueprintVariable && (!bIsComponentVar || FBlueprintEditorUtils::IsVariableCreatedByBlueprint(BlueprintObj, VariableObjProp));
 		}
 
 		this->ChildSlot[
@@ -876,6 +966,8 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	ActionPtr = InCreateData->Action;
 	BlueprintEditorPtr = InBlueprintEditor;
 
+	const bool bIsFullyReadOnly = !InBlueprintEditor.IsValid();
+	
 	// construct the icon widget
 	FSlateBrush const* IconBrush   = FEditorStyle::GetBrush(TEXT("NoBrush"));
 	FSlateColor        IconColor   = FSlateColor::UseForeground();
@@ -883,6 +975,7 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	FString			   IconDocLink, IconDocExcerpt;
 	GetPaletteItemIcon(GraphAction, Blueprint, IconBrush, IconColor, IconToolTip, IconDocLink, IconDocExcerpt);
 	TSharedRef<SWidget> IconWidget = CreateIconWidget(FText::FromString(IconToolTip), IconBrush, IconColor, IconDocLink, IconDocExcerpt);
+	IconWidget->SetEnabled(!bIsFullyReadOnly);
 
 	// Setup a meta tag for this node
 	FTutorialMetaData TagMeta("PaletteItem"); 
@@ -893,9 +986,32 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 	}
 	// construct the text widget
 	FSlateFontInfo NameFont = FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10);
-	bool bIsReadOnly = InBlueprintEditor.IsValid() ? FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin()) : true;
+	const bool bIsReadOnly = bIsFullyReadOnly || FBlueprintEditorUtils::IsPaletteActionReadOnly(GraphAction, InBlueprintEditor.Pin());
 	TSharedRef<SWidget> NameSlotWidget = CreateTextSlotWidget( NameFont, InCreateData, bIsReadOnly );
 	
+	// For Variables and Local Variables, we will convert the icon widget into a pin type selector.
+	if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId() || GraphAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+	{
+		UProperty* VariableProp = nullptr;
+
+		if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2Var::StaticGetTypeId())
+		{
+			VariableProp = StaticCastSharedPtr<FEdGraphSchemaAction_K2Var>(GraphAction)->GetProperty();
+		}
+		else if (GraphAction->GetTypeId() == FEdGraphSchemaAction_K2LocalVar::StaticGetTypeId())
+		{
+			VariableProp = StaticCastSharedPtr<FEdGraphSchemaAction_K2LocalVar>(GraphAction)->GetProperty();
+		}
+
+		// If the variable is not a local variable or created by the current Blueprint, do not use the PinTypeSelector
+		if (FBlueprintEditorUtils::IsVariableCreatedByBlueprint(Blueprint, VariableProp) || Cast<UFunction>(VariableProp->GetOuter()))
+		{
+			const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+			IconWidget = SNew(SPinTypeSelectorHelper, VariableProp, Blueprint, BlueprintEditorPtr)
+				.IsEnabled(!bIsFullyReadOnly);
+		}
+	}
+
 	// now, create the actual widget
 	ChildSlot
 	[
@@ -922,10 +1038,20 @@ void SBlueprintPaletteItem::Construct(const FArguments& InArgs, FCreateWidgetFor
 			.VAlign(VAlign_Center)
 		[
 			SNew(SPaletteItemVisibilityToggle, ActionPtr, InBlueprintEditor, InBlueprint)
+			.IsEnabled(!bIsFullyReadOnly)
 		]
 	];
 }
+
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+void SBlueprintPaletteItem::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
+{
+	if (BlueprintEditorPtr.IsValid())
+	{
+		SGraphPaletteItem::OnDragEnter(MyGeometry, DragDropEvent);
+	}
+}
 
 /*******************************************************************************
 * SBlueprintPaletteItem Private Methods
@@ -1428,7 +1554,10 @@ TSharedPtr<SToolTip> SBlueprintPaletteItem::ConstructToolTipWidget() const
 			if (GraphAction->EdGraph != NULL)
 			{
 				FGraphDisplayInfo DisplayInfo;
-				GraphAction->EdGraph->GetSchema()->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
+				if (auto GraphSchema = GraphAction->EdGraph->GetSchema())
+				{
+					GraphSchema->GetGraphDisplayInformation(*(GraphAction->EdGraph), DisplayInfo);
+				}
 
 				DocExcerptRef.DocLink = DisplayInfo.DocLink;
 				DocExcerptRef.DocExcerptName = DisplayInfo.DocExcerptName;

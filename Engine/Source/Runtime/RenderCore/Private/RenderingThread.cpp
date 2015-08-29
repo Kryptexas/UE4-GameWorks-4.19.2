@@ -78,8 +78,10 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 	bWasRenderingThreadRunning = GIsThreadedRendering;
 	if ( bRecreateThread )
 	{
-		GUseThreadedRendering = false;
 		StopRenderingThread();
+		// GUseThreadedRendering should be set to false after StopRenderingThread call since
+		// otherwise a wrong context could be used.
+		GUseThreadedRendering = false;
 		FPlatformAtomics::InterlockedIncrement( &GIsRenderingThreadSuspended );
 	}
 	else
@@ -183,15 +185,39 @@ FSuspendRenderingThread::~FSuspendRenderingThread()
 
 /** Static array of tickable objects that are ticked from rendering thread*/
 FTickableObjectRenderThread::FRenderingThreadTickableObjectsArray FTickableObjectRenderThread::RenderingThreadTickableObjects;
+FTickableObjectRenderThread::FRenderingThreadTickableObjectsArray FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects;
+
+void TickHighFrequencyTickables(double CurTime)
+{
+	static double LastHighFreqTime = FPlatformTime::Seconds();
+	float DeltaSecondsHighFreq = CurTime - LastHighFreqTime;
+
+	// tick any high frequency rendering thread tickables.
+	for (int32 ObjectIndex = 0; ObjectIndex < FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects.Num(); ObjectIndex++)
+	{
+		FTickableObjectRenderThread* TickableObject = FTickableObjectRenderThread::RenderingThreadHighFrequencyTickableObjects[ObjectIndex];
+		// make sure it wants to be ticked and the rendering thread isn't suspended
+		if (TickableObject->IsTickable())
+		{
+			STAT(FScopeCycleCounter(TickableObject->GetStatId());)
+				TickableObject->Tick(DeltaSecondsHighFreq);
+		}
+	}
+
+	LastHighFreqTime = CurTime;
+}
 
 void TickRenderingTickables()
 {
 	static double LastTickTime = FPlatformTime::Seconds();
+	
 
 	// calc how long has passed since last tick
 	double CurTime = FPlatformTime::Seconds();
 	float DeltaSeconds = CurTime - LastTickTime;
-	
+		
+	TickHighFrequencyTickables(CurTime);
+
 	if (DeltaSeconds < (1.f/GRenderingThreadMaxIdleTickFrequency))
 	{
 		return;
@@ -386,9 +412,7 @@ public:
 #if !PLATFORM_SEH_EXCEPTIONS_DISABLED
 			__except( ReportCrash( GetExceptionInformation() ) )
 			{
-#if WITH_EDITORONLY_DATA
 				GRenderingThreadError = GErrorHist;
-#endif
 
 				// Use a memory barrier to ensure that the game thread sees the write to GRenderingThreadError before
 				// the write to GIsRenderingThreadHealthy.
@@ -630,6 +654,8 @@ void StopRenderingThread()
 			delete GRenderingThread;
 			GRenderingThread = NULL;
 			
+			GRHICommandList.LatchBypass();
+
 			delete GRenderingThreadRunnable;
 			GRenderingThreadRunnable = NULL;
 		}
@@ -644,9 +670,7 @@ void CheckRenderingThreadHealth()
 {
 	if(!GIsRenderingThreadHealthy)
 	{
-#if WITH_EDITORONLY_DATA
 		GErrorHist[0] = 0;
-#endif
 		GIsCriticalError = false;
 		UE_LOG(LogRendererCore, Fatal,TEXT("Rendering thread exception:\r\n%s"),*GRenderingThreadError);
 	}

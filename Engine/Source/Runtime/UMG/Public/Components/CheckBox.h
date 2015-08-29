@@ -80,12 +80,12 @@ public:
 	TEnumAsByte<EHorizontalAlignment> HorizontalAlignment;
 
 	/** Spacing between the check box image and its content */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FMargin Padding;
+	UPROPERTY()
+	FMargin Padding_DEPRECATED;
 
 	/** The color of the background border */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FSlateColor BorderBackgroundColor;
+	UPROPERTY()
+	FSlateColor BorderBackgroundColor_DEPRECATED;
 
 public:
 

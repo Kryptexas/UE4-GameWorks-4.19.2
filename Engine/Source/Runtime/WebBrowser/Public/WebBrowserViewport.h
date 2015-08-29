@@ -18,10 +18,12 @@ public:
 	 * 
 	 * @param InWebBrowserWindow The Web Browser Window this viewport will display
 	 * @param InViewportWidget The Widget displaying this viewport (needed to capture mouse)
+	 * @param InIsPopup Used to initialize a viewport for showing browser popup menus instead of the main window.
 	 */
-	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, TSharedPtr<SWidget> InViewportWidget)
+	FWebBrowserViewport(TSharedPtr<IWebBrowserWindow> InWebBrowserWindow, TSharedPtr<SWidget> InViewportWidget, bool InIsPopup = false)
 		: WebBrowserWindow(InWebBrowserWindow)
 		, ViewportWidget(InViewportWidget)
+		, bIsPopup(InIsPopup)
 	{ }
 
 	/**
@@ -36,6 +38,7 @@ public:
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
 	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime ) override;
 	virtual bool RequiresVsync() const override;
+	virtual bool AllowScaling() const override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -55,4 +58,6 @@ private:
 	TSharedPtr<IWebBrowserWindow>	WebBrowserWindow;
 	/** The viewport widget using this interface */
 	TWeakPtr<SWidget>				ViewportWidget;
+	/** Whether this viewport is showing the browser window or a popup menu widget */
+	bool const						bIsPopup;
 };

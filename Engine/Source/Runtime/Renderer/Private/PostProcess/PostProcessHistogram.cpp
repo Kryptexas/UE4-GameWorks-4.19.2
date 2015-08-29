@@ -151,7 +151,7 @@ FIntPoint FRCPassPostProcessHistogram::ComputeThreadGroupCount(FIntPoint PixelEx
 
 FPooledRenderTargetDesc FRCPassPostProcessHistogram::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc UnmodifiedRet = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc UnmodifiedRet = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	UnmodifiedRet.Reset();
 	FIntPoint PixelExtent = UnmodifiedRet.Extent;
@@ -162,7 +162,7 @@ FPooledRenderTargetDesc FRCPassPostProcessHistogram::ComputeOutputDesc(EPassOutp
 	FIntPoint NewSize = FIntPoint(HistogramTexelCount, ThreadGroupCount.X * ThreadGroupCount.Y);
 
 	// format can be optimized later
-	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_FloatRGBA, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
+	FPooledRenderTargetDesc Ret(FPooledRenderTargetDesc::Create2DDesc(NewSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
 
 	Ret.DebugName = TEXT("Histogram");
 

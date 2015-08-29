@@ -31,6 +31,7 @@ const FText FFindInBlueprintSearchTags::FiB_Macros = LOCTEXT("Macros", "Macros")
 const FText FFindInBlueprintSearchTags::FiB_SubGraphs = LOCTEXT("Sub", "Sub");
 
 const FText FFindInBlueprintSearchTags::FiB_Name = LOCTEXT("Name", "Name");
+const FText FFindInBlueprintSearchTags::FiB_NativeName = LOCTEXT("NativeName", "Native Name");
 const FText FFindInBlueprintSearchTags::FiB_ClassName = LOCTEXT("ClassName", "ClassName");
 const FText FFindInBlueprintSearchTags::FiB_NodeGuid = LOCTEXT("NodeGuid", "NodeGuid");
 const FText FFindInBlueprintSearchTags::FiB_Tooltip = LOCTEXT("Tooltip", "Tooltip");
@@ -46,6 +47,51 @@ const FText FFindInBlueprintSearchTags::FiB_IsArray = LOCTEXT("IsArray", "IsArra
 const FText FFindInBlueprintSearchTags::FiB_IsReference = LOCTEXT("IsReference", "IsReference");
 const FText FFindInBlueprintSearchTags::FiB_Glyph = LOCTEXT("Glyph", "Glyph");
 const FText FFindInBlueprintSearchTags::FiB_GlyphColor = LOCTEXT("GlyphColor", "GlyphColor");
+
+/** Temporarily forces all nodes and pins to use non-friendly names, forces all schema to have nodes clear their cached values so they will re-cache, and then reverts at the end */
+struct FTemporarilyUseFriendlyNodeTitles
+{
+	FTemporarilyUseFriendlyNodeTitles()
+	{
+		UEditorStyleSettings* EditorSettings = GetMutableDefault<UEditorStyleSettings>();
+
+		// Cache the value of bShowFriendlyNames, we will force it to true for gathering BP search data and then restore it
+		bCacheShowFriendlyNames = EditorSettings->bShowFriendlyNames;
+
+		EditorSettings->bShowFriendlyNames = true;
+		ForceVisualizationCacheClear();
+	}
+
+	~FTemporarilyUseFriendlyNodeTitles()
+	{
+		UEditorStyleSettings* EditorSettings = GetMutableDefault<UEditorStyleSettings>();
+		EditorSettings->bShowFriendlyNames = bCacheShowFriendlyNames;
+		ForceVisualizationCacheClear();
+	}
+
+	/** Go through all Schemas and force a visualization cache clear, forcing nodes to refresh their titles */
+	void ForceVisualizationCacheClear()
+	{
+		// Only do the purge if the state was changed
+		if (!bCacheShowFriendlyNames)
+		{
+			// Find all Schemas and force a visualization cache clear
+			for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+			{
+				UClass* CurrentClass = *ClassIt;
+
+				if (UEdGraphSchema* Schema = Cast<UEdGraphSchema>(CurrentClass->GetDefaultObject()))
+				{
+					Schema->ForceVisualizationCacheClear();
+				}
+			}
+		}
+	}
+
+private:
+	/** Cached state of ShowFriendlyNames in EditorSettings */
+	bool bCacheShowFriendlyNames;
+};
 
 /** Helper functions for serialization of types to and from an FString */
 namespace FiBSerializationHelpers
@@ -87,7 +133,7 @@ namespace FiBSerializationHelpers
 		// Read, as a byte string, the number of characters composing the Lookup Table for the Json.
 		FString SizeOfDataAsHex;
 		SizeOfDataAsHex.GetCharArray().AddUninitialized(InBytes + 1);
-		SizeOfDataAsHex[InBytes] = TEXT('\0');
+		SizeOfDataAsHex.GetCharArray()[InBytes] = TEXT('\0');
 		InStream.Serialize((char*)SizeOfDataAsHex.GetCharArray().GetData(), sizeof(TCHAR) * InBytes);
 
 		// Convert the number (which is stored in 1 serialized byte per TChar) into an int32
@@ -337,10 +383,6 @@ namespace BlueprintSearchMetaDataHelpers
 		{ 
 			check( this->CurrentToken == EJsonToken::String ); 
 			// The string value from Json is a Hex value that must be looked up in the LookupTable to find the FText it represents
-			if(const FText* LookupText = LookupTable.Find(FCString::Atoi(*this->StringValue)))
-			{
-				return LookupText->ToString();
-			}
 			return this->StringValue;
 		}
 
@@ -573,7 +615,10 @@ namespace BlueprintSearchMetaDataHelpers
 					InWriter->WriteObjectStart();
 
 					FGraphDisplayInfo DisplayInfo;
-					Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+					if (auto GraphSchema = Graph->GetSchema())
+					{
+						GraphSchema->GetGraphDisplayInformation(*Graph, DisplayInfo);
+					}
 					InWriter->WriteValue(FFindInBlueprintSearchTags::FiB_Name, DisplayInfo.PlainName);
 
 					FText GraphDescription = FBlueprintEditorUtils::GetGraphDescription(Graph);
@@ -1011,7 +1056,9 @@ void FFindInBlueprintSearchManager::OnAssetLoaded(UObject* InAsset)
 }
 
 FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlueprint* Blueprint)
-{
+{	
+	FTemporarilyUseFriendlyNodeTitles TemporarilyUseFriendlyNodeTitles;
+
 	FString SearchMetaData;
 
 	// The search registry tags for a Blueprint are all in Json
@@ -1081,8 +1128,6 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 
 void FFindInBlueprintSearchManager::AddOrUpdateBlueprintSearchMetadata(UBlueprint* InBlueprint, bool bInForceReCache/* = false*/)
 {
-	double StartSeconds = FPlatformTime::Seconds();
-
 	check(InBlueprint);
 
 	// Allow only one thread modify the search data at a time
@@ -1282,8 +1327,7 @@ void FFindInBlueprintSearchManager::CleanCache()
 			FSearchData searchData;
 	 		ContinueSearchQuery(ActiveSearch, searchData);
 
-			// We will be looking the path up in the map, which uses the package path instead of the Blueprint, so rebuild the package path from the Blueprint path
-			FString CachePath = FPaths::GetPath(searchData.BlueprintPath) / FPaths::GetBaseFilename(searchData.BlueprintPath);
+			FString CachePath = searchData.BlueprintPath;
 	 		CacheQueries.Add(ActiveSearch, CachePath);
 	 	}
 	}
@@ -1299,7 +1343,7 @@ void FFindInBlueprintSearchManager::CleanCache()
 		if( !SearchArray[SearchValuePair.Value].bMarkedForDeletion && !(SearchArray[SearchValuePair.Value].Blueprint.IsValid() && SearchArray[SearchValuePair.Value].Blueprint->HasAllFlags(RF_PendingKill)) )
 		{
 			// Build the new map/array
-			NewSearchMap.Add(SearchValuePair.Key, NewSearchArray.Add(SearchArray[SearchValuePair.Value]) );
+			NewSearchMap.Add(SearchValuePair.Key, NewSearchArray.Add(MoveTemp(SearchArray[SearchValuePair.Value])) );
 		}
 		else
 		{
@@ -1325,8 +1369,8 @@ void FFindInBlueprintSearchManager::CleanCache()
 		}
 	}
 
-	SearchMap = NewSearchMap;
-	SearchArray = NewSearchArray;
+	SearchMap = MoveTemp( NewSearchMap );
+	SearchArray = MoveTemp( NewSearchArray );
 
 	// After the search, we have to place the active search queries where they belong
 	for( auto& CacheQuery : CacheQueries )
@@ -1395,12 +1439,12 @@ FString FFindInBlueprintSearchManager::ConvertFTextToHexString(FText InValue)
 	return BytesToHex(SerializedData.GetData(), SerializedData.Num());
 }
 
-void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive)
+void FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints(bool bInSourceControlActive, bool bCheckoutAndSave)
 {
 	// Multiple threads can be adding to this at the same time
 	FScopeLock ScopeLock(&SafeModifyCacheCriticalSection);
 
-	if(ISourceControlModule::Get().IsEnabled())
+	if(bInSourceControlActive && bCheckoutAndSave)
 	{
 		FEditorFileUtils::CheckoutPackages(UncachedBlueprints);
 	}
@@ -1417,7 +1461,7 @@ void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindIn
 		FText DialogTitle = LOCTEXT("ConfirmIndexAll_Title", "Indexing All");
 		FFormatNamedArguments Args;
 		Args.Add(TEXT("PackageCount"), UncachedBlueprints.Num());
-		const EAppReturnType::Type ReturnValue = FMessageDialog::Open(EAppMsgType::YesNoCancel, FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} Blueprints to load.\n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanant? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args), &DialogTitle);
+		const EAppReturnType::Type ReturnValue = FMessageDialog::Open(EAppMsgType::YesNoCancel, FText::Format(LOCTEXT("CacheAllConfirmationMessage", "This process can take a long time and the editor may become unresponsive; there are {PackageCount} Blueprints to load.\n\nWould you like to checkout, load, and save all Blueprints to make this indexing permanent? Otherwise, all Blueprints will still be loaded but you will be required to re-index the next time you start the editor!"), Args), &DialogTitle);
 
 		// If Yes is chosen, checkout and save all Blueprints, if No is chosen, only load all Blueprints
 		if (ReturnValue != EAppReturnType::Cancel)
@@ -1426,17 +1470,19 @@ void FFindInBlueprintSearchManager::CacheAllUncachedBlueprints(TWeakPtr< SFindIn
 			UncachedBlueprints.Append(FailedToCachePaths);
 			FailedToCachePaths.Empty();
 
-			CachingObject = new FCacheAllBlueprintsTickableObject(UncachedBlueprints, ReturnValue == EAppReturnType::Yes);
+			const bool bCheckoutAndSave = ReturnValue == EAppReturnType::Yes;
+			CachingObject = new FCacheAllBlueprintsTickableObject(UncachedBlueprints, bCheckoutAndSave);
 			OutActiveTimerDelegate.BindRaw(CachingObject, &FCacheAllBlueprintsTickableObject::Tick);
 
-			if(!ISourceControlModule::Get().IsEnabled() && ReturnValue == EAppReturnType::Yes)
+			const bool bIsSourceControlEnabled = ISourceControlModule::Get().IsEnabled();
+			if(!bIsSourceControlEnabled && bCheckoutAndSave)
 			{
 				// Offer to start up Source Control
-				ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed::CreateRaw(this, &FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
+				ISourceControlModule::Get().ShowLoginDialog(FSourceControlLoginClosed::CreateRaw(this, &FFindInBlueprintSearchManager::OnCacheAllUncachedBlueprints, bCheckoutAndSave), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
 			}
 			else
 			{
-				OnCacheAllUncachedBlueprints(true);
+				OnCacheAllUncachedBlueprints(bIsSourceControlEnabled, bCheckoutAndSave);
 			}
 
 			SourceCachingWidget = InSourceWidget;
@@ -1514,7 +1560,7 @@ bool FFindInBlueprintSearchManager::IsCacheInProgress() const
 	return CachingObject != nullptr;
 }
 
-TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObject(FString InJsonString)
+TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObject(FString InJsonString, TMap<int32, FText>& OutFTextLookupTable)
 {
 	/** The searchable data is more complicated than a Json string, the Json being the main searchable body that is parsed. Below is a diagram of the full data:
 	 *  | int32 "Size" | TMap "Lookup Table" | Json String |
@@ -1535,7 +1581,7 @@ TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObje
 
  	// With the size of the TMap in hand, let's serialize JUST that (as a byte string)
 	TMap<int32, FText> LookupTable;
-	LookupTable = FiBSerializationHelpers::Deserialize< TMap<int32, FText> >(ReaderStream, SizeOfData);
+	OutFTextLookupTable = LookupTable = FiBSerializationHelpers::Deserialize< TMap<int32, FText> >(ReaderStream, SizeOfData);
 
 	// The original BufferReader should be positioned at the Json
 	TSharedPtr< FJsonObject > JsonObject = NULL;

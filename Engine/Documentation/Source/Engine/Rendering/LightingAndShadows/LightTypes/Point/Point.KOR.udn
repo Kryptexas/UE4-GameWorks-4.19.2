@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2490853
+﻿INTSourceChangelist:2602348
 Availability: Public
 Title:포인트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -49,7 +49,7 @@ Description:포인트 라이트 기초입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 [EXCERPT:Intro]
 **Point Light** (포인트 라이트)는 현실에서의 백열전구가 텅스텐 필라멘트에서 모든 방향을 빛을 뿜듯이 작동하는 라이트입니다. 그러나 퍼포먼스상의 이유로, 포인트 라이트는 공간의 딱 한 지점에서 모든 방향으로 동등하게 빛을 뿜도록 단순화되어 있습니다.   The **Point Light** when placed can be set to one of three **Mobility** settings:

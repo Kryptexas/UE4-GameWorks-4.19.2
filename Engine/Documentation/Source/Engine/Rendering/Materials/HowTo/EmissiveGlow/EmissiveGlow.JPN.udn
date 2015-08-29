@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2469240
+﻿INTSourceChangelist:2533870
 Availability:Public
 Title: Emissive Material 入力の使用方法
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials/HowTo
@@ -25,7 +25,7 @@ Related:Resources/ContentExamples/MaterialNodes/1_5
 
 ## Lit & Unlit エミッシブ マテリアル
 
-エミッシブ マテリアルは自分で光ります、つまり、Lit と Unlit の両方のシェーディング モデルに使用できるのです。 
+エミッシブ マテリアルは自分で光る、つまり、Lit と Unlit の両方のシェーディング モデルに使用できるのです。 
 ただしエミッシブ マテリアルの場合は可能な限り、レンダリング負荷の低い Unlit シェーディング モデルを使うべきです。
  この 2 つのシェーディング モデルの間で、エミッシブ マテリアルのレンダリングのされ方という観点では見た目上に違いはありません。 
  従って、できる限り、Unlit シェーディング モデルを使ってください。 
@@ -75,6 +75,7 @@ Related:Resources/ContentExamples/MaterialNodes/1_5
 	* **Scalar Parameter** - Emissive_Strength - 1.0
 
 	完了すると以下のようになります。 
+
 	![](EM_Naming_Nodes.png)
 
 1. Material Expression ノードに名前が付きデータが入力されたので、次はすべてを接続していきます。正しい接続を確実に行うために重要となるのが、Emissive 入力です。 

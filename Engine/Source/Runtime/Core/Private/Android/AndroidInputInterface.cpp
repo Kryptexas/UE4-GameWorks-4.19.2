@@ -12,7 +12,7 @@ FCriticalSection FAndroidInputInterface::TouchInputCriticalSection;
 FAndroidControllerData FAndroidInputInterface::OldControllerData[MAX_NUM_CONTROLLERS];
 FAndroidControllerData FAndroidInputInterface::NewControllerData[MAX_NUM_CONTROLLERS];
 
-EControllerButtons::Type FAndroidInputInterface::ButtonMapping[MAX_NUM_CONTROLLER_BUTTONS];
+FGamepadKeyNames::Type FAndroidInputInterface::ButtonMapping[MAX_NUM_CONTROLLER_BUTTONS];
 float FAndroidInputInterface::InitialButtonRepeatDelay;
 float FAndroidInputInterface::ButtonRepeatDelay;
 
@@ -33,29 +33,37 @@ FAndroidInputInterface::~FAndroidInputInterface()
 {
 }
 
+namespace AndroidKeyNames
+{
+	const FGamepadKeyNames::Type Android_Back("Android_Back");
+	const FGamepadKeyNames::Type Android_Volume_Up("Android_Volume_Up");
+	const FGamepadKeyNames::Type Android_Volume_Down("Android_Volume_Down");
+	const FGamepadKeyNames::Type Android_Menu("Android_Menu");
+}
+
 FAndroidInputInterface::FAndroidInputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
 	: MessageHandler( InMessageHandler )
 {
-	ButtonMapping[0] = EControllerButtons::FaceButtonBottom;
-	ButtonMapping[1] = EControllerButtons::FaceButtonRight;
-	ButtonMapping[2] = EControllerButtons::FaceButtonLeft;
-	ButtonMapping[3] = EControllerButtons::FaceButtonTop;
-	ButtonMapping[4] = EControllerButtons::LeftShoulder;
-	ButtonMapping[5] = EControllerButtons::RightShoulder;
-	ButtonMapping[6] = EControllerButtons::SpecialRight;
-	ButtonMapping[7] = EControllerButtons::SpecialLeft;
-	ButtonMapping[8] = EControllerButtons::LeftThumb;
-	ButtonMapping[9] = EControllerButtons::RightThumb;
-	ButtonMapping[10] = EControllerButtons::LeftTriggerThreshold;
-	ButtonMapping[11] = EControllerButtons::RightTriggerThreshold;
-	ButtonMapping[12] = EControllerButtons::DPadUp;
-	ButtonMapping[13] = EControllerButtons::DPadDown;
-	ButtonMapping[14] = EControllerButtons::DPadLeft;
-	ButtonMapping[15] = EControllerButtons::DPadRight;
-	ButtonMapping[16] = EControllerButtons::AndroidBack;  // Technically just an alias for SpecialLeft
-	ButtonMapping[17] = EControllerButtons::AndroidVolumeUp;
-	ButtonMapping[18] = EControllerButtons::AndroidVolumeDown;
-	ButtonMapping[19] = EControllerButtons::AndroidMenu;  // Technically just an alias for SpecialRightNewControllerData[deviceId].ButtonStates[6] = buttonDown; 
+	ButtonMapping[0] = FGamepadKeyNames::FaceButtonBottom;
+	ButtonMapping[1] = FGamepadKeyNames::FaceButtonRight;
+	ButtonMapping[2] = FGamepadKeyNames::FaceButtonLeft;
+	ButtonMapping[3] = FGamepadKeyNames::FaceButtonTop;
+	ButtonMapping[4] = FGamepadKeyNames::LeftShoulder;
+	ButtonMapping[5] = FGamepadKeyNames::RightShoulder;
+	ButtonMapping[6] = FGamepadKeyNames::SpecialRight;
+	ButtonMapping[7] = FGamepadKeyNames::SpecialLeft;
+	ButtonMapping[8] = FGamepadKeyNames::LeftThumb;
+	ButtonMapping[9] = FGamepadKeyNames::RightThumb;
+	ButtonMapping[10] = FGamepadKeyNames::LeftTriggerThreshold;
+	ButtonMapping[11] = FGamepadKeyNames::RightTriggerThreshold;
+	ButtonMapping[12] = FGamepadKeyNames::DPadUp;
+	ButtonMapping[13] = FGamepadKeyNames::DPadDown;
+	ButtonMapping[14] = FGamepadKeyNames::DPadLeft;
+	ButtonMapping[15] = FGamepadKeyNames::DPadRight;
+	ButtonMapping[16] = AndroidKeyNames::Android_Back;  // Technically just an alias for SpecialLeft
+	ButtonMapping[17] = AndroidKeyNames::Android_Volume_Up;
+	ButtonMapping[18] = AndroidKeyNames::Android_Volume_Down;
+	ButtonMapping[19] = AndroidKeyNames::Android_Menu;  // Technically just an alias for SpecialRightNewControllerData[deviceId].ButtonStates[6] = buttonDown; 
 
 	InitialButtonRepeatDelay = 0.2f;
 	ButtonRepeatDelay = 0.1f;
@@ -639,39 +647,39 @@ void FAndroidInputInterface::SendControllerEvents()
 
 		if (NewControllerState.LXAnalog != OldControllerState.LXAnalog)
 		{
-			MessageHandler->OnControllerAnalog(EControllerButtons::LeftAnalogX, NewControllerState.DeviceId, NewControllerState.LXAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogX, NewControllerState.DeviceId, NewControllerState.LXAnalog);
 		}
 		if (NewControllerState.LYAnalog != OldControllerState.LYAnalog)
 		{
 			//LOGD("    Sending updated LeftAnalogY value of %f", NewControllerState.LYAnalog);
-			MessageHandler->OnControllerAnalog(EControllerButtons::LeftAnalogY, NewControllerState.DeviceId, NewControllerState.LYAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftAnalogY, NewControllerState.DeviceId, NewControllerState.LYAnalog);
 		}
 		if (NewControllerState.RXAnalog != OldControllerState.RXAnalog)
 		{
 			//LOGD("    Sending updated RightAnalogX value of %f", NewControllerState.RXAnalog);
-			MessageHandler->OnControllerAnalog(EControllerButtons::RightAnalogX, NewControllerState.DeviceId, NewControllerState.RXAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::RightAnalogX, NewControllerState.DeviceId, NewControllerState.RXAnalog);
 		}
 		if (NewControllerState.RYAnalog != OldControllerState.RYAnalog)
 		{
 			//LOGD("    Sending updated RightAnalogY value of %f", NewControllerState.RYAnalog);
-			MessageHandler->OnControllerAnalog(EControllerButtons::RightAnalogY, NewControllerState.DeviceId, NewControllerState.RYAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::RightAnalogY, NewControllerState.DeviceId, NewControllerState.RYAnalog);
 		}
 		if (NewControllerState.LTAnalog != OldControllerState.LTAnalog)
 		{
 			//LOGD("    Sending updated LeftTriggerAnalog value of %f", NewControllerState.LTAnalog);
-			MessageHandler->OnControllerAnalog(EControllerButtons::LeftTriggerAnalog, NewControllerState.DeviceId, NewControllerState.LTAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::LeftTriggerAnalog, NewControllerState.DeviceId, NewControllerState.LTAnalog);
 
 			// Handle the trigger theshold "virtual" button state
-			//check(ButtonMapping[10] == EControllerButtons::LeftTriggerThreshold);
+			//check(ButtonMapping[10] == FGamepadKeyNames::LeftTriggerThreshold);
 			NewControllerState.ButtonStates[10] = NewControllerState.LTAnalog >= 0.1f;
 		}
 		if (NewControllerState.RTAnalog != OldControllerState.RTAnalog)
 		{
 			//LOGD("    Sending updated RightTriggerAnalog value of %f", NewControllerState.RTAnalog);
-			MessageHandler->OnControllerAnalog(EControllerButtons::RightTriggerAnalog, NewControllerState.DeviceId, NewControllerState.RTAnalog);
+			MessageHandler->OnControllerAnalog(FGamepadKeyNames::RightTriggerAnalog, NewControllerState.DeviceId, NewControllerState.RTAnalog);
 
 			// Handle the trigger theshold "virtual" button state
-			//check(ButtonMapping[11] == EControllerButtons::RightTriggerThreshold);
+			//check(ButtonMapping[11] == FGamepadKeyNames::RightTriggerThreshold);
 			NewControllerState.ButtonStates[11] = NewControllerState.RTAnalog >= 0.1f;
 		}
 

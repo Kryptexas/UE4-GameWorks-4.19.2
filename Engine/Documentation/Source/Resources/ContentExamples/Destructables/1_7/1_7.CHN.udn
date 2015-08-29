@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:1.7 - Destruction Sounds
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/Destructables
+Description:An overview of the Destructibility example level, example 1.7: Destruction Sounds
+
+
+[VAR:Topic]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/Destructables/1_5:title%](Resources/ContentExamples/Destructables/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/Destructables/1_5:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/Destructables/1_5:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/Destructables/1_5]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+[REGION:fullwidth raw]
+![](Resources/ContentExamples/Destructables/physics_banner.png)
+[/REGION]
+
+Plays sound on Destruction event.
+
+[REGION:todo]
+Needs to point out either blueprint use or how this actually works, would be nice 
+[/REGION]
+
+<!--[REGION:lightbox]
+[![](1_5_solid.png)(w:300)](1_5_solid.png)
+[/REGION]-->

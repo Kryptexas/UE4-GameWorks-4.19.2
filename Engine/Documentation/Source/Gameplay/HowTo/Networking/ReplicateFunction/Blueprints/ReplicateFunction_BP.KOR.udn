@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2428609
+﻿INTSourceChangelist:2615757
 Availability: Public
-Title:블루프린트에서 함수 리플리케이트 비법
+Title:블루프린트에서 함수 리플리케이트
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateFunction
 Description:블루프린트로 멀티플레이 게임에서 함수를 리플리케이트시키는 방법 안내입니다.
 Related: Engine/Blueprints
@@ -8,8 +8,6 @@ Related: Resources/ContentExamples/Networking
 
 
 [TOC (start:2 end:2)]
-
-## 개요
 
 여기서는 여러가지 형태의 **리플리케이티드 함수** 구성 및 사용 방법을 보여드리겠습니다.
 
@@ -21,51 +19,51 @@ Related: Resources/ContentExamples/Networking
 
  **멀티캐스트** 리플리케이티드 함수 설정 방법은 아래와 같습니다.
  
-1.	먼서 레벨의 **PlayerStart** 를 선택한 다음 총 네 개가 되도록 세 번 복제합니다.
+1.	**플레이** 버튼 옆의 아래 화살표를 클릭한 다음 플레이어 수를 **4** 로 설정하여 플레이어 수를 늘립니다.
 
-1.	**W** (이동) 및 **E** (회전) 키를 사용하여 네 개의 스폰 지점이 아래와 비슷하게 서로를 향하도록 배치합니다.
-
-	![](HowTo1.png)
-
-1.	**플레이** 버튼 옆의 아래 화살표를 클릭한 다음 플레이어 수를 1 이외의 것으로 (여기서는 4 로) 설정합니다.
-
+	[REGION:raw]
 	![](HowTo2.png)
-
+	[/REGION]
+	
 	[REGION:tip]
 	**고급 세팅** 옵션 안에서 멀티플레이용으로 생성되는 창의 크기를 변경할 수 있습니다.
 	[/REGION]
 
-1.	다음으로 **Game/Blueprints** 폴더를 찾아 **MyCharacter** 블루프린트를 엽니다.
+1.	**콘텐츠 브라우저** 에서 **Content/ThirdPersonBP/Blueprints** 폴더 아래 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
-1.	그래프에 **우클릭** 한 다음 **Space Bar** Key Event 를 추가하고 **Spawn Actor from Class** 노드에 연결합니다.
+1.	그래프에 **우클릭** 한 다음 **Space Bar** Key Event 와 **Spawn Actor from Class** 노드를 추가합니다.
 
-1.	**Class** 는 **Blueprint_Effect_Fire** 로 설정한 다음 **Spawn Transform** 를 끌어놓고 **Get Actor Transform** 노드를 추가합니다.
+1.	**우클릭** 후 **Get Actor Transform** 노드를 추가하고 아래와 같이 연결한 뒤 **Class** 는 **Blueprint_Effect_Fire** 로 설정합니다. 
 
 	![](HowTo3.png)
 
-	위와 비슷한 구성상태일텐데, 키를 누르면 플레이어 캐릭터의 위치에 화염 이펙트를 스폰시킵니다.
+	키를 누르면 플레이어 캐릭터의 위치에 화염 이펙트를 스폰시킵니다.
 
 1.	**컴파일** 및 **저장** 후 블루프린트를 닫은 뒤 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
 1.	게임에서 "서버" 창 위치를 찾은 다음 **스페이스 바** 를 눌러 점프합니다.
-
+		
 	![](HowTo4.png)
+	
+	서버 창에서만 화염 이펙트가 스폰되고 다른 플레이어게는 그 이펙트 스폰이 안보이는 것이 보일 것입니다.
+	다른 플레이어를 가지고 점프 시도를 하면, 마찬가지로 로컬에서는 화염 이펙트가 스폰되지만 다른 플레이어들은 그 이펙트 스폰 여부를 알지 못합니다.
+	추가로, **Space Bar** 가 눌렸을 때만 캐릭터 위치에 스폰되도록 하기 위해서, 화염 이펙트를 캐릭터에 붙이지는 않았습니다.
 
-	서버 창에서만 화염 이펙트가 스폰되고 다른 플레이어게는 그 이펙트 스폰이 안보이는 것이 보일 것입니다. 다른 플레이어를 가지고 점프 시도를 하면, 마찬가지로 로컬에서는 화염 이펙트가 스폰되지만 다른 플레이어들은 그 이펙트 스폰 여부를 알지 못합니다.
+	[REGION:tip]
+	멀티플레이어 테스트 도중 **Shift + F1** 키를 누르면 마우스 콘트롤이 가능하여 게임 창을 돌아다닐 수 있습니다.
+	[/REGION]
 
-1.	**MyCharacter** 블루프린트로 돌아와 **Space Bar** Key Event 의 핀에 **우클릭** 한 다음 연결을 끊습니다.
+1.	**ThirdPersonCharacter** 블루프린트에서 **Space Bar** 노드의 **Pressed** 에 **우클릭** 한 다음 연결을 끊습니다.
 
-1.	**우클릭** 후 **Custom Event** 를 검색 추가한 다음 **MulticastSpawn** 이벤트 또는 직접 설정한 이름을 호출합니다.
+1.	**우클릭** 후 **Custom Event** 를 검색 추가한 다음 **MulticastSpawn** 이벤트를 호출합니다.
 
-1.	커스텀 이벤트에 클릭한 다음 **디테일** 패널에서 **Replicates** (리플리케이트) 드롭다운 메뉴를 **Multicaset** (멀티캐스트)로 설정합니다.
-
-1.	커스텀 이벤트를 **Spawn Actor from Class** 노드에 연결합니다.
+1.	커스텀 이벤트에 클릭한 다음 **디테일** 패널에서 **Replicates** (리플리케이트) 드롭다운 메뉴를 **Multicaset** (멀티캐스트)로 설정하고 아래와 같이 연결합니다.
 
 	![](HowTo5.png)
 
 	위의 마지막 몇 단계에서는 커스텀 이벤트가 **멀티캐스트** 리플리케이션을 사용하도록 설정했습니다.
 
-1.	**Space Bar** Key Event 를 끌어놓고, **MulticastSpawn** 함수 또는 직접 설정한 이름을 검색 추가한 뒤 호출합니다.
+1.	**Space Bar** Key Event 를 끌어놓고, **MulticastSpawn** 함수를 검색 추가한 뒤 호출합니다.
 
 	![](HowTo6.png)
 
@@ -88,12 +86,12 @@ Related: Resources/ContentExamples/Networking
 
  **Run on Server** (서버에서 실행) 리플리케이티드 함수 구성 방법은 다음과 같습니다.
  
-1.	**Game/Blueprints** 폴더의 **MyCharacter** 블루프린트를 엽니다.
+1.	**콘텐츠 브라우저** 에서 **Content/ThirdPersonBP/Blueprints** 아래 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
-1.	**Spawn Actor from Class** 노드에 묶인 커스텀 이벤트를 선택한 다음 **Replicates** (리플리케이트) 드롭다운 옵션을 **Run on Server** (서버에서 실행)으로 변경합니다.
+1.	**MulticastSpawn** Custom Event 를 선택한 다음 **Replicates** (리플리케이트) 드롭다운 옵션을 **Run on Server** (서버에서 실행)으로 변경합니다.
 
 	![](HowTo8.png)
-
+	
 	편의상 **그래프 노트** 이름도 **Run On Server** 로 업데이트했습니다.
 
 1.	**컴파일**, **저장** 후 블루프린트를 닫고 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
@@ -104,9 +102,9 @@ Related: Resources/ContentExamples/Networking
 
 	어느 플레이어가 점프를 하든 상관없이 서버에서만 화염 이펙트가 스폰되고 다른 플레이어에게는 보이지 않는 것을 알 수 있습니다. 이 스크립트로 서버에서 실행하라고 일러주기는 했고, 또 그렇게 했지만, 이펙트 자체가 서버 뿐만 아니라 모든 클라이언트에게도 전달되도록 리플리케이트 설정을 해 줘야 할 필요가 있습니다.
 
-1.	**Game/Blueprints** 폴더의 **Blueprint_Effect_Fire** 블루프린트를 열고 **디폴트** 탭으로 갑니다.
+1.	**Content/StarterContent/Blueprints** 폴더의 **Blueprint_Effect_Fire** 블루프린트를 엽니다.
 
-1.	**Replicates** (리플리케이트) 박스를 체크하여 리플리케이트되도록 합니다.
+1.	메인 툴바에서 **클래스 디폴트** 를 선택하고 **디테일** 패널에서 **리플리케이트** 박스를 체크합니다.
 
 	![](HowTo10.png)
 
@@ -127,29 +125,35 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
  **Run on owning Client** (소유 클라이언트에서 실행) 리플리케이티드 함수 구성 방법은 다음과 같습니다.
  
-1.	**Game/Blueprints** 폴더의 **MyCharacter** 블루프린트를 엽니다.
+1.	**Content/ThirdPersonBP/Blueprints** 폴더의 **ThirdPersonCharacter** 블루프린트를 엽니다.
 
-1.	**그래프 탭** 의 **내 블루프린트** 창에서 **스트링** 유형 변수를 새로 만든 다음 이름을 짓습니다 (여기서는 **Inventory** 입니다).
+1.	**내 블루프린트** 창에서 변수를 새로 만든 다음 이름을 **Inventory** 라 하고 **컴파일** 합니다.
+
+	![](Inventory.png)
 
 1.	**컴파일** 후 변수의 **디테일** 패널에서 **Editable** (편집가능), **Replicated** (리플리케이티드) 설정을 하고, **Default Value** (기본값)에는 **Empty** 를 입력합니다.
 
 	![](HowTo12.png)
 
-	[REGION:note]
-	이 변수를 **Replicated** (리플리케이티드) 설정하면 접속된 머신에 네트워크를 통해 리플리케이트되도록 합니다.
-	[/REGION]
+	이 변수를 **Replicated** (리플리케이티드) 설정하면 접속된 머신에 네트워크를 통해 리플리케이트되도록 합니다. 이를 통해 멀티플레이어 게임에서 캐릭터가 트리거 볼륨에 들어서면 아이템을 줍고 트리거를 나서면 아이템을 제거하는 상황을 시뮬레이션 하겠습니다.
 
-1.	**그래프** 에서 **P** Key Event 를 추가하고 **Print String** 노드에 연결한 다음, **Control** 키를 누르고 변수를 끌어놓아 다음과 같이 연결합니다.
+1.	**P** Key Event 를 추가하고 **Print String** 노드에 연결한 다음, **Control** 키를 누르고 **Inventory** 변수를 끌어놓아 다음과 같이 연결합니다.
 
 	![](HowTo13.png)
 
-1.	**컴파일**, **저장** 후 **MyCharacter** 블루프린트를 닫습니다.
+1.	**컴파일**, **저장** 후 **ThirdPersonCharacter** 블루프린트를 닫습니다.
 
-1.	다음, **모드** 창의 **기본** 탭에서 **박스 트리거** 를 끌어놓은 다음 플레이어 스타트 가운데 배치합니다.
+1.	**모드** 창에서 **기본** 아래 **박스 트리거** 를 끌어 레벨에 놓습니다.
 
 	![](HowTo14.png)
 
 	플레이어 캐릭터가 트리거에 들어서면, 우리가 만든 변수를 업데이트하되, 트리거 박스에 들어선 클라이언트만 업데이트합니다.
+
+1.	**박스 트리거** 의 **디테일** 패널에서 **Rendering** 아래 **Actor Hidden In Game** (게임에서 액터 숨김) 체크를 해제합니다. 
+
+	![](UnHideBox.png)
+
+	그러면 에디터에서 플레이시 레벨의 박스를 확인할 수 있어 테스트가 수월해-집니다.
 
 1.	**박스 트리거** 를 클릭하여 선택한 다음, 메인 툴바에서 **레벨 블루프린트** 를 엽니다.
 
@@ -177,6 +181,10 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 	![](HowTo18.png)
 
+	[REGION:note]
+	노드 생성 후 오류 경고가 보이는 경우, **컴파일** 버튼을 누르면 오류가 제거됩니다.
+	[/REGION]
+
 1.	**Add Item** 이벤트와 똑같은 세팅으로 **Remove Item** 이라는 **Custom Event** 를 하나 더 만듭니다.
 
 1.	두 개의 겹치는 이벤트에서 아래와 같이 **Add Item** 과 **Remove Item** 노드를 연결합니다.
@@ -185,11 +193,11 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 	여기서는 트리거에 겹칠 때, 서버에서 오버랩이 발생한 경우, 서버에서 **Add Item** 이벤트를 실행한 뒤 (트리거에 겹치는 캐릭터인) 소유 클라이언트에 리플리케이트시킵니다. 여기서 리플리케이트시키는 것은 **Add Item** 이 발동되면 호출되는 스크립트로, 서버에서만 실행되나 클라이언트에 리플리케이트되는 것입니다. 캐릭터가 트리거 박스를 떠나면, 다시금 서버에 의해 결정되고, 서버에서 **Remove Item** 이벤트를 실행한 다음 소유 클라이언트에 리플리케이트 시킵니다.
 
-1.	**Add Item** 이벤트에서 **Print String** 를 추가하고 (텍스트는 **Item Added** 로 설정), **Character** 를 끌어놓은 뒤 **Cast To MyCharacter** 합니다. 
+1.	**Add Item** 이벤트에서 **Print String** 를 추가하고 (텍스트는 **Item Added** 로 설정), **Character** 를 끌어놓은 뒤 **Cast To ThirdPersonCharacter** 합니다. 
 
 	![](HowTo20.png)
 
-1.	**As My Character** 핀을 끌어놓고 **Set Inventory** 노드를 검색 추가한 다음 Text 를 **Has the Item** 으로 설정합니다.
+1.	**As Third Person Character** 핀을 끌어놓고 **Set Inventory** 노드를 검색 추가한 다음 Text 를 **Has the Item** 으로 설정합니다.
 
 	![](HowTo21.png)
 
@@ -205,13 +213,22 @@ _이 예제에서는 위의 **멀티캐스트 리플리케이션** 예제를 이
 
 1.	**컴파일**, **저장** 후 **레벨 블루프린트** 를 닫고 에디터에서 플레이합니다.
 
-	[![](ExampleImage.png)](MultiplayerExampleVideo.mp4)
-
-	_클릭하면 비디오 예제를 재생합니다._
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	KiBrcLbXbYQ
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	위 비디오에서 게임이 시작되면, **P** 를 눌러 텍스트 변수를 화면에 출력하여 각 캐릭터에 대해 "empty" 라 표시합니다. 하지만 캐릭터 중 하나가 트리거 박스에 들어서면, "Item Added" 텍스트가 표시됩니다. 캐릭터가 **P** 를 누르면 텍스트가 **Has the Item** 으로 바뀌는 반면 다른 캐릭터 각각은 여전히 "empty" 로 표시됩니다. 캐릭터가 박스를 떠나면, "Item Removed" 텍스트가 표시되고, **P** 를 다시 누르면 텍스트가 다시 **empty** 로 변경됩니다.
 
 	이 예제는 서버에서 이벤트를 실행하고 그 이벤트를 개별 클라이언트에 리플리케이트시키는 방법을 보여줍니다.
+
 
 
 

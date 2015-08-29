@@ -21,6 +21,10 @@
 #include "ComponentReregisterContext.h"
 #include "Components/VectorFieldComponent.h"
 
+#if WITH_EDITORONLY_DATA
+	#include "EditorFramework/AssetImportData.h"
+#endif
+	
 #define MAX_GLOBAL_VECTOR_FIELDS (16)
 DEFINE_LOG_CATEGORY(LogVectorField)
 
@@ -317,6 +321,15 @@ void UVectorFieldStatic::PostLoad()
 	{
 		InitResource();
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && AssetImportData)
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
+		AssetImportData->SourceData = MoveTemp(Info);
+	}
+#endif
 }
 
 void UVectorFieldStatic::BeginDestroy()
@@ -336,9 +349,22 @@ void UVectorFieldStatic::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 #if WITH_EDITORONLY_DATA
 void UVectorFieldStatic::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
+	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UVectorFieldStatic::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
 }
 #endif
 

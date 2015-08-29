@@ -1,7 +1,8 @@
-﻿Availability:Docs
-Title:マテリアルのインスタンス
+﻿INTSourceChangelist:2620389
+Availability:Docs
+Title:マテリアル インスタンス
 Crumbs:%ROOT%, Resources
-Description:マテリアルインスタンスの事例概要
+Description:マテリアル インスタンスのサンプル レベル
 
 
 
@@ -42,15 +43,14 @@ Description:マテリアルインスタンスの事例概要
 [/OBJECT]
 [/VAR]
 
-<!--終了時にパスを挿入 [RELATIVE:Resources/ContentExamples/MaterialInstances]-->
+<!--Insert Path when done [RELATIVE:Resources/ContentExamples/MaterialInstances] -->
 
-## 概要
 
 [REGION:fullwidth]
 
 [/REGION]
 
-**マテリアル インスタンス** 事例へようこそ！
+**マテリアル インスタンス** のサンプル レベルへようこそ！
 
 [INCLUDE:Resources\ContentExamples\ExampleLevelOverview#ExampleLevel]
 

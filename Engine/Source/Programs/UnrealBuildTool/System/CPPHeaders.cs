@@ -6,12 +6,15 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.IO;
+using System.Runtime.Serialization;
+using System.Linq;
+using Tools.DotNETCommon.FileContentsCacheType;
 
 namespace UnrealBuildTool
 {
 	/** For C++ source file items, this structure is used to cache data that will be used for include dependency scanning */
 	[Serializable]
-	public class CPPIncludeInfo
+	public class CPPIncludeInfo : ISerializable
 	{
 		/** Ordered list of include paths for the module  */
 		public HashSet<string> IncludePaths = new HashSet<string>();
@@ -23,8 +26,23 @@ namespace UnrealBuildTool
 		public HashSet<string> SystemIncludePaths = new HashSet<string>();
 
 		/** Contains a mapping from filename to the full path of the header in this environment.  This is used to optimized include path lookups at runtime for any given single module. */
-		[NonSerialized]
 		public Dictionary<string, FileItem> IncludeFileSearchDictionary = new Dictionary<string, FileItem>();
+
+		public CPPIncludeInfo()
+		{
+		}
+
+		public CPPIncludeInfo(SerializationInfo Info, StreamingContext Context)
+		{
+			IncludePaths       = new HashSet<string>((string[])Info.GetValue("ip", typeof(string[])));
+			SystemIncludePaths = new HashSet<string>((string[])Info.GetValue("sp", typeof(string[])));
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("ip", IncludePaths.ToArray());
+			Info.AddValue("sp", SystemIncludePaths.ToArray());
+		}
 
 
 		/// <summary>
@@ -126,8 +144,15 @@ namespace UnrealBuildTool
 						{
 							throw new BuildException(Exception, "Failed to combine null or invalid include paths.");
 						}
-						string FullFilePath = Path.GetFullPath( RelativeFilePath );
-						if( DirectoryLookupCache.FileExists( FullFilePath ) )
+						string FullFilePath = null;
+						try
+						{
+							FullFilePath = Path.GetFullPath(RelativeFilePath);
+						}
+						catch (Exception)
+						{
+						}
+						if( FullFilePath != null && DirectoryLookupCache.FileExists( FullFilePath ) )
 						{
 							Result = FileItem.GetItemByFullPath( FullFilePath );
 							break;
@@ -250,8 +275,7 @@ namespace UnrealBuildTool
 				IncludedFilesMap.Add(CPPFile, IncludedFileList);
 
 				// Gather a list of names of files directly included by this C++ file.
-				bool HasUObjects;
-				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies( Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:bOnlyCachedDependencies, HasUObjects:out HasUObjects );
+				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies( Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:bOnlyCachedDependencies );
 
 				// Build a list of the unique set of files that are included by this file.
 				var DirectlyIncludedFiles = new HashSet<FileItem>();
@@ -366,18 +390,30 @@ namespace UnrealBuildTool
 		/** Regex that matches C++ code with UObject declarations which we will need to generated code for. */
 		static readonly Regex UObjectRegex = new Regex("^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Compiled | RegexOptions.Multiline );
 
-		/** Finds the names of files directly included by the given C++ file. */
-		public static List<DependencyInclude> GetDirectIncludeDependencies( UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies, out bool HasUObjects )
+		// Maintains a cache of file contents
+		private static FileContentsCacheType FileContentsCache = new FileContentsCacheType();
+
+		// Checks if a file contains UObjects
+		public static bool DoesFileContainUObjects(string Filename)
+		{
+			string Contents = FileContentsCache.GetContents(Filename);
+			return UObjectRegex.IsMatch(Contents);
+		}
+
+		/** Finds the names of files directly included by the given C++ file, and also whether the file contains any UObjects */
+		public static List<DependencyInclude> GetDirectIncludeDependencies( UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies )
 		{
 			// Try to fulfill request from cache first.
-			List<DependencyInclude> Result;
-			if( IncludeDependencyCache[Target].GetCachedDirectDependencies( CPPFile, out Result, out HasUObjects ) )
+			List<DependencyInclude> Info = IncludeDependencyCache[Target].GetCachedDependencyInfo( CPPFile );
+			if( Info != null )
+			{
+				return Info;
+			}
+
+			var Result = new List<DependencyInclude>();
+			if( bOnlyCachedDependencies )
 			{
 				return Result;
-			}
-			else if( bOnlyCachedDependencies )
-			{
-				return new List<DependencyInclude>();
 			}
 
 			var TimerStartTime = DateTime.UtcNow;
@@ -385,21 +421,17 @@ namespace UnrealBuildTool
 
 			// Get the adjusted filename
 			string FileToRead = CPPFile.AbsolutePath;
-
-			if (BuildPlatform.RequiresExtraUnityCPPWriter() == true &&
-				Path.GetFileName(FileToRead).StartsWith("Module."))
+			if (BuildPlatform.RequiresExtraUnityCPPWriter() && Path.GetFileName(FileToRead).StartsWith("Module."))
 			{
 				FileToRead += ".ex";
 			}
 
 			// Read lines from the C++ file.
-			string FileContents = Utils.ReadAllText( FileToRead );
-            if (string.IsNullOrEmpty(FileContents))
-            {
-                return new List<DependencyInclude>();
-            }
-
-			HasUObjects = CPPEnvironment.UObjectRegex.IsMatch(FileContents);
+			string FileContents = FileContentsCache.GetContents(FileToRead);
+			if (string.IsNullOrEmpty(FileContents))
+			{
+				return Result;
+			}
 
 			// Note: This depends on UBT executing w/ a working directory of the Engine/Source folder!
 			string EngineSourceFolder = Directory.GetCurrentDirectory();
@@ -410,7 +442,6 @@ namespace UnrealBuildTool
 				InstalledFolder = EngineSourceFolder.Substring(0, EngineSourceIdx);
 			}
 
-			Result = new List<DependencyInclude>();
 			if (Utils.IsRunningOnMono)
 			{
 				// Mono crashes when running a regex on a string longer than about 5000 characters, so we parse the file in chunks
@@ -424,18 +455,18 @@ namespace UnrealBuildTool
 						EndIndex = FileContents.Length;
 					}
 
-					CollectHeaders(CPPFile, Result, FileToRead, FileContents, InstalledFolder, StartIndex, EndIndex);
+					Result.AddRange(CollectHeaders(CPPFile, FileToRead, FileContents, InstalledFolder, StartIndex, EndIndex));
 
 					StartIndex = EndIndex + 1;
 				}
 			}
 			else
 			{
-				CollectHeaders(CPPFile, Result, FileToRead, FileContents, InstalledFolder, 0, FileContents.Length);
+				Result = CollectHeaders(CPPFile, FileToRead, FileContents, InstalledFolder, 0, FileContents.Length);
 			}
 
 			// Populate cache with results.
-			IncludeDependencyCache[Target].SetDependencyInfo( CPPFile, Result, HasUObjects );
+			IncludeDependencyCache[Target].SetDependencyInfo( CPPFile, Result );
 
 			CPPEnvironment.DirectIncludeCacheMissesTotalTime += ( DateTime.UtcNow - TimerStartTime ).TotalSeconds;
 
@@ -446,18 +477,19 @@ namespace UnrealBuildTool
 		/// Collects all header files included in a CPPFile
 		/// </summary>
 		/// <param name="CPPFile"></param>
-		/// <param name="Result"></param>
 		/// <param name="FileToRead"></param>
 		/// <param name="FileContents"></param>
 		/// <param name="InstalledFolder"></param>
 		/// <param name="StartIndex"></param>
 		/// <param name="EndIndex"></param>
-		private static void CollectHeaders(FileItem CPPFile, List<DependencyInclude> Result, string FileToRead, string FileContents, string InstalledFolder, int StartIndex, int EndIndex)
+		private static List<DependencyInclude> CollectHeaders(FileItem CPPFile, string FileToRead, string FileContents, string InstalledFolder, int StartIndex, int EndIndex)
 		{
+			var Result = new List<DependencyInclude>();
+
 			Match M = CPPHeaderRegex.Match(FileContents, StartIndex, EndIndex - StartIndex);
-			CaptureCollection CC = M.Groups["HeaderFile"].Captures;
-			Result.Capacity = Math.Max(Result.Count + CC.Count, Result.Capacity);
-			foreach (Capture C in CC)
+			CaptureCollection Captures = M.Groups["HeaderFile"].Captures;
+			Result.Capacity = Result.Count;
+			foreach (Capture C in Captures)
 			{
 				string HeaderValue = C.Value;
 
@@ -467,18 +499,10 @@ namespace UnrealBuildTool
 				}
 
 				//@TODO: The intermediate exclusion is to work around autogenerated absolute paths in Module.SomeGame.cpp style files
-				bool bIsIntermediateOrThirdParty = FileToRead.Contains("Intermediate") || FileToRead.Contains("ThirdParty");
-				bool bCheckForBackwardSlashes = FileToRead.StartsWith(InstalledFolder);
-				if (UnrealBuildTool.HasUProjectFile())
+				bool bCheckForBackwardSlashes = FileToRead.StartsWith(InstalledFolder) || (UnrealBuildTool.HasUProjectFile() && Utils.IsFileUnderDirectory(FileToRead, UnrealBuildTool.GetUProjectPath()));
+				if (bCheckForBackwardSlashes && !FileToRead.Contains("Intermediate") && !FileToRead.Contains("ThirdParty") && HeaderValue.IndexOf('\\', 0) >= 0)
 				{
-					bCheckForBackwardSlashes |= Utils.IsFileUnderDirectory(FileToRead, UnrealBuildTool.GetUProjectPath());
-				}
-				if (bCheckForBackwardSlashes && !bIsIntermediateOrThirdParty)
-				{
-					if (HeaderValue.IndexOf('\\', 0) >= 0)
-					{
-						throw new BuildException("In {0}: #include \"{1}\" contains backslashes ('\\'), please use forward slashes ('/') instead.", FileToRead, C.Value);
-					}
+					throw new BuildException("In {0}: #include \"{1}\" contains backslashes ('\\'), please use forward slashes ('/') instead.", FileToRead, C.Value);
 				}
 				HeaderValue = Utils.CleanDirectorySeparators(HeaderValue);
 				Result.Add(new DependencyInclude(HeaderValue));
@@ -489,13 +513,15 @@ namespace UnrealBuildTool
 			if (Ext == ".MM" || Ext == ".M")
 			{
 				M = MMHeaderRegex.Match(FileContents, StartIndex, EndIndex - StartIndex);
-				CC = M.Groups["HeaderFile"].Captures;
-				Result.Capacity += CC.Count;
-				foreach (Capture C in CC)
+				Captures = M.Groups["HeaderFile"].Captures;
+				Result.Capacity += Captures.Count;
+				foreach (Capture C in Captures)
 				{
 					Result.Add(new DependencyInclude(C.Value));
 				}
 			}
+
+			return Result;
 		}
 	}
 }

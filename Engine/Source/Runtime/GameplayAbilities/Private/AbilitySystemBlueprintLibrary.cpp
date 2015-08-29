@@ -80,7 +80,7 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	FGameplayAbilityTargetDataHandle		Handle(NewData);
 	return Handle;
 }
-FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TArray<TWeakObjectPtr<AActor>> ActorArray, bool OneTargetPerHandle)
+FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDataFromActorArray(TArray<AActor*> ActorArray, bool OneTargetPerHandle)
 {
 	// Construct TargetData
 	if (OneTargetPerHandle)
@@ -88,9 +88,9 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 		FGameplayAbilityTargetDataHandle		Handle;
 		for (int32 i = 0; i < ActorArray.Num(); ++i)
 		{
-			if (ActorArray[i].IsValid())
+			if (IsValid(ActorArray[i]))
 			{
-				FGameplayAbilityTargetDataHandle TempHandle = AbilityTargetDataFromActor(ActorArray[i].Get());
+				FGameplayAbilityTargetDataHandle TempHandle = AbilityTargetDataFromActor(ActorArray[i]);
 				Handle.Append(&TempHandle);
 			}
 		}
@@ -99,7 +99,11 @@ FGameplayAbilityTargetDataHandle UAbilitySystemBlueprintLibrary::AbilityTargetDa
 	else
 	{
 		FGameplayAbilityTargetData_ActorArray*	NewData = new FGameplayAbilityTargetData_ActorArray();
-		NewData->TargetActorArray = ActorArray;
+		NewData->TargetActorArray.Reset();
+		for (auto Actor : ActorArray)
+		{
+			NewData->TargetActorArray.Add(Actor);
+		}
 		FGameplayAbilityTargetDataHandle		Handle(NewData);
 		return Handle;
 	}
@@ -394,6 +398,11 @@ bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlled(FGameplayCueP
 	return Parameters.EffectContext.IsLocallyControlled();
 }
 
+bool UAbilitySystemBlueprintLibrary::IsInstigatorLocallyControlledPlayer(FGameplayCueParameters Parameters)
+{
+	return Parameters.EffectContext.IsLocallyControlledPlayer();
+}
+
 int32 UAbilitySystemBlueprintLibrary::GetActorCount(FGameplayCueParameters Parameters)
 {
 	return Parameters.EffectContext.GetActors().Num();
@@ -574,6 +583,36 @@ FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddGrantedTags(FGamepl
 	else
 	{
 		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddGrantedTags called with invalid SpecHandle"));
+	}
+
+	return SpecHandle;
+}
+
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddAssetTag(FGameplayEffectSpecHandle SpecHandle, FGameplayTag NewGameplayTag)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		Spec->DynamicAssetTags.AddTag(NewGameplayTag);
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddEffectTag called with invalid SpecHandle"));
+	}
+
+	return SpecHandle;
+}
+
+FGameplayEffectSpecHandle UAbilitySystemBlueprintLibrary::AddAssetTags(FGameplayEffectSpecHandle SpecHandle, FGameplayTagContainer NewGameplayTags)
+{
+	FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+	if (Spec)
+	{
+		Spec->DynamicAssetTags.AppendTags(NewGameplayTags);
+	}
+	else
+	{
+		ABILITY_LOG(Warning, TEXT("UAbilitySystemBlueprintLibrary::AddEffectTags called with invalid SpecHandle"));
 	}
 
 	return SpecHandle;

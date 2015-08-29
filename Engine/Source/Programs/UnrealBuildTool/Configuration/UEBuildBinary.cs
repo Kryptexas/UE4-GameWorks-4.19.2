@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Globalization;
+using Tools.DotNETCommon.CaselessDictionary;
 
 namespace UnrealBuildTool
 {	
@@ -38,7 +39,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The output file path. This must be set before a binary can be built using it.
 		/// </summary>
-		public string[] OutputFilePaths;
+		public List<string> OutputFilePaths = new List<string>();
 
 		/// <summary>
 		/// Returns the OutputFilePath if there is only one entry in OutputFilePaths
@@ -47,9 +48,9 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if (OutputFilePaths.Length != 1)
+				if (OutputFilePaths.Count != 1)
 				{
-					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Length);
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OutputFilePath property, but there are multiple (or no) OutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OutputFilePaths.Count);
 				}
 				return OutputFilePaths[0];
 			}
@@ -58,7 +59,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Original output filepath. This is the original binary name before hot-reload suffix has been appended to it.
 		/// </summary>
-		public string[] OriginalOutputFilePaths;
+		public List<string> OriginalOutputFilePaths;
 
 		/// <summary>
 		/// Returns the OriginalOutputFilePath if there is only one entry in OriginalOutputFilePaths
@@ -67,9 +68,9 @@ namespace UnrealBuildTool
 		{
 			get
 			{
-				if (OriginalOutputFilePaths.Length != 1)
+				if (OriginalOutputFilePaths.Count != 1)
 				{
-					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OriginalOutputFilePath property, but there are multiple (or no) OriginalOutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OriginalOutputFilePaths.Length);
+					throw new BuildException("Attempted to use UEBuildBinaryConfiguration.OriginalOutputFilePath property, but there are multiple (or no) OriginalOutputFilePaths. You need to handle multiple in the code that called this (size = {0})", OriginalOutputFilePaths.Count);
 				}
 				return OriginalOutputFilePaths[0];
 			}
@@ -138,7 +139,7 @@ namespace UnrealBuildTool
 		/// <param name="InModuleNames"></param>
 		public UEBuildBinaryConfiguration(
 				UEBuildBinaryType InType,
-				string[] InOutputFilePaths = null,
+				IEnumerable<string> InOutputFilePaths = null,
 				string InIntermediateDirectory = null,
 				bool bInAllowExports = false,
 				bool bInCreateImportLibrarySeparately = false,
@@ -147,11 +148,14 @@ namespace UnrealBuildTool
 				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
 				string InProjectFilePath = "",
-				List<string> InModuleNames = null
+				IEnumerable<string> InModuleNames = null
 			)
 		{
 			Type = InType;
-			OutputFilePaths = InOutputFilePaths != null ? (string[])InOutputFilePaths.Clone() : null;
+			if (InOutputFilePaths != null)
+			{
+				OutputFilePaths.AddRange(InOutputFilePaths);
+			}
 			IntermediateDirectory = InIntermediateDirectory;
 			bAllowExports = bInAllowExports;
 			bCreateImportLibrarySeparately = bInCreateImportLibrarySeparately;
@@ -308,7 +312,7 @@ namespace UnrealBuildTool
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Config.Type);
 			foreach (string OutputFilePath in Config.OutputFilePaths)
 			{
-				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt);
+				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt, ToolChain);
 			}
 
 			// Add the console app, if there is one
@@ -316,7 +320,7 @@ namespace UnrealBuildTool
 			{
 				foreach (string OutputFilePath in Config.OutputFilePaths)
 				{
-					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt);
+					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt, ToolChain);
 				}
 			}
 
@@ -331,11 +335,11 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, BuildReceipt Receipt)
+		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, BuildReceipt Receipt, IUEToolChain ToolChain)
 		{
 			Receipt.AddBuildProduct(OutputFile, OutputType);
 
-			if(!String.IsNullOrEmpty(DebugExtension))
+			if(!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType))
 			{
 				Receipt.AddBuildProduct(Path.ChangeExtension(OutputFile, DebugExtension), BuildProductType.SymbolFile);
 			}
@@ -466,23 +470,21 @@ namespace UnrealBuildTool
 		/// <returns>List of all referenced modules</returns>
 		public override List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
-			var OrderedModules = new List<UEBuildModule>();
-			var ReferencedModules = new Dictionary<string, UEBuildModule>( StringComparer.InvariantCultureIgnoreCase );
+			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
 			foreach( var ModuleName in ModuleNames )
 			{
 				if( !ReferencedModules.ContainsKey( ModuleName ) )
 				{
 					var Module = Target.GetModuleByName( ModuleName );
-					ReferencedModules[ ModuleName ] = Module;
+					ReferencedModules[ ModuleName ] = null;
 
-					bool bOnlyDirectDependencies = false;
-					Module.GetAllDependencyModules(ReferencedModules, OrderedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies);
+					Module.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
 
-					OrderedModules.Add( Module );
+					ReferencedModules[ ModuleName ] = new UEBuildModule.ModuleIndexPair{ Module = Module, Index = ReferencedModules.Count };
 				}
 			}
 
-			return OrderedModules;
+			return ReferencedModules.Values.OrderBy(M => M.Index).Select(M => M.Module).ToList();
 		}
 
 		/// <summary>
@@ -652,28 +654,23 @@ namespace UnrealBuildTool
 			}
 			
 			// Add runtime dependencies for all the modules in this binary, and build up a list of all the referenced modules
-			Dictionary<string, UEBuildModule> ReferencedModules = new Dictionary<string,UEBuildModule>();
-			List<UEBuildModule> OrderedModules = new List<UEBuildModule>();
+			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
 			foreach (string ModuleName in ModuleNames)
 			{
-				UEBuildModule Module = Target.GetModuleByName(ModuleName); 
+				UEBuildModule Module = Target.GetModuleByName(ModuleName);
 				foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 				{
 					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
 				}
-				Module.GetAllDependencyModules(ReferencedModules, OrderedModules, true, false, true);
+				Module.GetAllDependencyModules(ReferencedModules, true, false, true);
 			}
 
 			// Add runtime dependencies for all the referenced external modules. These may be introduce dependencies for the binary without actually being listed for inclusion in it.
-			foreach(UEBuildModule OrderedModule in OrderedModules)
+			foreach(UEBuildExternalModule ExternalModule in ReferencedModules.Values.OrderBy(x => x.Index).Select(x => x.Module).OfType<UEBuildExternalModule>())
 			{
-				UEBuildExternalModule ExternalModule = OrderedModule as UEBuildExternalModule;
-				if(ExternalModule != null)
+				foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
 				{
-					foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
-					{
-						Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
-					}
+					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
 				}
 			}
 			return Receipt;
@@ -759,7 +756,7 @@ namespace UnrealBuildTool
 			}
 
 			// Set the link output file.
-			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths != null ? (string[])Config.OutputFilePaths.Clone() : null;
+			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths.ToList();
 
 			// Set whether the link is allowed to have exports.
 			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
@@ -831,10 +828,7 @@ namespace UnrealBuildTool
 				var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
 				ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
 				ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
-				for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
-				{
-					ConsoleAppLinkEvironment.Config.OutputFilePaths[Index] = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePaths[Index]);
-				}
+				ConsoleAppLinkEvironment.Config.OutputFilePaths = ConsoleAppLinkEvironment.Config.OutputFilePaths.Select(Path => GetAdditionalConsoleAppPath(Path)).ToList();
 
 				// Link the console app executable
 				OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
@@ -860,7 +854,7 @@ namespace UnrealBuildTool
 
 			Action LinkAction = new Action(ActionType.Compile);
 			LinkAction.WorkingDirectory = Path.GetFullPath(".");
-			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"NotForLicensees", @"UnrealCodeAnalyzer.exe");
+			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);
 			LinkAction.CommandArguments = @"-AnalyzePCHFile -PCHFile=""" + ModulePrivatePCH.AbsolutePath + @""" -OutputFile=""" + OutputFileName + @""" -HeaderDataPath=""" + IntermediatePath + @""" -UsageThreshold " + BuildConfiguration.UCAUsageThreshold.ToString(CultureInfo.InvariantCulture);

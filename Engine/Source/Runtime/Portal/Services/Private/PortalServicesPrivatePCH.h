@@ -7,4 +7,9 @@
 *****************************************************************************/
 
 #include "Core.h"
-#include "IPortalServicesModule.h"
+
+
+/* Private includes
+*****************************************************************************/
+
+#include "PortalServiceLocator.h"

@@ -58,15 +58,14 @@ public class LevelEditor : ModuleRules
 				"WebBrowser",
                 "Persona",
                 "Kismet",
-				"KismetWidgets"
+				"KismetWidgets",
+				"Sequencer"
 			}
 		);
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
-				"PropertyEditor",
-				"SceneOutliner",
 				"ClassViewer",
 				"DeviceManager",
 				"SettingsEditor",
@@ -79,7 +78,6 @@ public class LevelEditor : ModuleRules
 				"WorkspaceMenuStructure",
 				"NewLevelDialog",
 				"DeviceProfileEditor",
-				"DeviceProfileServices",
                 "PlacementMode",
 				"UserFeedback",
 				"ReferenceViewer",

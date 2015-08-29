@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472241
+﻿INTSourceChangelist:2567016
 Title:UE4 の C++ プログラミング入門
 Crumbs:
 Description:初めてアンリアル エンジンを使う C++ プログラマー向け入門ガイド
@@ -13,7 +13,7 @@ Version:4.7
 
 始める前に、C++ あるいは他のプログラミング言語に既に慣れておくことがとても重要です。このページは、C++ の経験者を前提に記述されていますが、C# 、 Java 、 JavaScript の経験者の方でも、似ている点の多さを感じるはずです。
 
-プログラミングの経験が全くない方向けの説明もあります。[ブループリント ビジュアル スクリプト ガイド](https://docs.unrealengine.com/latest/INT/Engine/Blueprints/index.html) をお読み頂ければ、大丈夫です！ゲーム全体をブループリント スクリプトで作成することも可能です！
+プログラミングの経験が全くない方向けの説明もあります。[ブループリント ビジュアル スクリプト ガイド](Engine/Blueprints) をお読み頂ければ、大丈夫です！ゲーム全体をブループリント スクリプトで作成することも可能です！
 
 アンリアル エンジンで "古い単純な C++ コード" を書くことも可能ですが、この入門ガイドを通してアンリアルのプログラミング モデルの基礎を学習すれば、問題なくできるようになります。これについては、順番に説明していきます。
 
@@ -35,7 +35,7 @@ Version:4.7
 
 ![image alt text](image_2.png)
 
-クラスを作成することを選ぶと、ウィザードがファイルを生成して開発環境を開き、編集を始めることができるようになります。生成されたクラス定義がこちらになります。クラス ウィザードについては、こちらの [リンク](https://docs.unrealengine.com/latest/INT/Programming/Development/ManagingGameCode/CppClassWizard/index.html) をご覧ください。
+クラスを作成することを選ぶと、ウィザードがファイルを生成して開発環境を開き、編集を始めることができるようになります。生成されたクラス定義がこちらになります。クラス ウィザードについては、こちらの [リンク](Programming/Development/ManagingGameCode/CppClassWizard) をご覧ください。
 
 	#include "GameFramework/Actor.h"
 	#include "MyActor.generated.h"
@@ -45,7 +45,7 @@ Version:4.7
 	{
 		GENERATED_BODY()
 
-		public:
+	public:
 		// Sets default values for this actor's properties
 		AMyActor();
 		// Called when the game starts or when spawned
@@ -84,17 +84,17 @@ Version:4.7
 
 これでもう、エディタの値を編集することができるようになります。さらに、UPROPERTY() マクロへ情報を渡せば、編集方法や編集箇所を調整することができます。例えば、TotalDamage プロパティを関連プロパティのあるセクション中で表示させたい場合、分類機能を使います。以下のプロパティ宣言がそれに当たります。
 
-	UPROPERTY(EditAnywhere, Category="Damage”)
+	UPROPERTY(EditAnywhere, Category="Damage")
 	int32 TotalDamage;
 
 ユーザーがこのプロパティを編集しようとすると、同じカテゴリ名でマークされた他のプロパティと一緒に Damage という見出しの下に表示されるようになります。デザイナーが共通して使用する編集設定は、まとめて一緒にしておくと非常に便利です。
 
 それでは、いくつかプロパティをブループリントに公開してみましょう。
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage”)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 	int32 TotalDamage;
 
-お気づきのように、プロパティを読み書く可能にするブループリント固有のパラメータがあります。BlueprintReadOnly という別のオプションは、ブループリントでそのプロパティを *const* として扱いたい場合に使用します。エンジンへのプロパティの公開の方法は、様々なオプションを使って制御することができます。その他のオプションは、 [こちら](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Properties/Specifiers/index.html) でご覧いただけます。
+お気づきのように、プロパティを読み書く可能にするブループリント固有のパラメータがあります。BlueprintReadOnly という別のオプションは、ブループリントでそのプロパティを *const* として扱いたい場合に使用します。エンジンへのプロパティの公開の方法は、様々なオプションを使って制御することができます。その他のオプションは、こちらの [リンク](Programming/UnrealArchitecture/Reference/Properties/Specifiers) でご覧いただけます。
 
 以下のセクションを続ける前に、このサンプル クラスにプロパティをいくつか追加してみましょう。このアクタが対処するダメージをすべて制御するプロパティは既にありますが、もう少し進んでダメージを徐々に起こしてみましょう。以下のコードには、デザイナーが設定できるプロパティが 1 つと、デザイナーは見ることはできても変更はできないプロパティが 1 つ追加されています。
 
@@ -103,16 +103,16 @@ Version:4.7
 	{
 		GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage”)
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 		int32 TotalDamage;
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage”)
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 		float DamageTimeInSeconds;
 
-		UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Transient, Category="Damage”)
+		UPROPERTY(BlueprintReadOnly, VisibleAnywhere, Transient, Category="Damage")
 		float DamagePerSecond;
-	...
 
+		...
 	};
 
 DamageTimeInSeconds は、デザイナーが修正可能なプロパティです。DamagePerSecond プロパティは、デザイナーが設定を使って計算した値です (次のセクション参照)。VisibleAnywhere フラグは、そのプロパティを表示可能とマークしますが、アンリアル エディタにおいて編集はできません。Transient フラグは、そのプロパティはディスクから保存やロードがされないことを表します。つまり、派生した、非永続的なプロパティです。この画像は、プロパティがクラス デフォルトの一部であることを表しています。
@@ -153,7 +153,7 @@ DamageTimeInSeconds は、デザイナーが修正可能なプロパティです
 
 **ホット リロード機能**
 
-他のプロジェクトで C++ によるプログラミングに慣れている方には驚きの素晴らしい機能がアンリアルにはあります。**エディタをシャットダウンせずに C++ の変更をコンパイルすることができます** !方法は 2 通りあります。
+他のプロジェクトで C++ によるプログラミングに慣れている方には驚きの素晴らしい機能がアンリアルにはあります。**エディタをシャットダウンせずに C++ の変更をコンパイルすることができます** ! 方法は 2 通りあります。
 
 1. エディタを実行したまま、通常どおり **Visual Studio または Xcode からビルド** します。エディタは新しくコンパイルされた DLL を検出し、すぐに変更をリロードします！  
 
@@ -267,7 +267,7 @@ UFUNCTION() は、 C++ 関数をリフレクション システムへ公開す�
 * 設定可能なプロパティ値
 * プロパティとメソッドのネットワーク化のサポート
 
-**UObject** から派生する各クラスには、クラス インスタンスに関するメタデータをすべて含むシングルトン **UClass** が作成されています。**UObject** と **UClass** は、ゲームプレイ オブジェクトがライフタイムの間に行うすべてのルートです。**UObject** のイスタンスがどのように見えるのか、どのプロパティをシリアル化やネットワーク化に利用できるのかを *説明する* のが **UClass** だと考えると **UClass** と **UObject** の違いが一番分かりやすいと思います。ほとんどのゲームプレイ開発には **UObjects** からの派生ではなく **AActor** と **UActorComponent** が含まれます。ゲームプレイ コードを記述するために **UClass**/**UObject** の機能の詳細について知る必要はありませんが、このようなシステムが存在することを覚えておくと良いでしょう。
+**UObject** から派生する各クラスには、クラス インスタンスに関するメタデータをすべて含むシングルトン **UClass** が作成されています。**UObject** と **UClass** は、ゲームプレイ オブジェクトがライフタイムの間に行うすべてのルートです。**UObject** のインスタンスがどのように見えるのか、どのプロパティをシリアル化やネットワーク化に利用できるのかを *説明する* のが **UClass** だと考えると **UClass** と **UObject** の違いが一番分かりやすいと思います。ほとんどのゲームプレイ開発には **UObjects** からの派生ではなく **AActor** と **UActorComponent** が含まれます。ゲームプレイ コードを記述するために **UClass**/**UObject** の機能の詳細について知る必要はありませんが、このようなシステムが存在することを覚えておくと良いでしょう。
 
 #### AActor
 
@@ -295,14 +295,13 @@ AActor の詳細については、 [](Programming/UnrealArchitecture/Actors) を
 
 **UActorComponents** はそれぞれ独自のビヘイビアを持ち、ビジュアル メッシュ、パーティクルエフェクト、カメラ視点、物理インタラクションの提供など、通常 **AActors** の様々なタイプの間で共有する機能に関係しています。**AActors** はゲーム全体の役割に関係する大まかな目的が与えらるのに対して、 **UActorComponents** は通常これらの大まかな目標をサポートする個々のタスクを実行します。コンポーネントは別のコンポーネントにアタッチしたり、アクタのルート コンポーネントになることも可能です。コンポーネントは 1 つの親コンポーネントまたはアクタにしかアタッチすることができませんが、それ自体には多くの子コンポーネントをアタッチすることができます。コンポーネントのツリーを描いてみましょう。子コンポーネントには、親コンポーネントまたはアクタに相対的な位置、回転、スケールがあります。
 
-アクタまたはコンポーネントには様々な使い方があります。アクタが「これはなんですか？」という質問に答える一方で、コンポーネントは「これは何でできていますか？」という質問に答えると考えると、アクタとコンポーネントの関係性が分かると思います。
-
+アクタまたはコンポーネントには様々な使い方があります。アクタとコンポーネントの関係性については、アクタが「これはなんですか？」という質問に答え、コンポーネントは「これは何でできていますか？」という質問に答えると考えてください。
 * RootComponent - AActor のツリー内の上位レベルを維持する AActor のメンバです。
 * Ticking - 所有する AActor の Tick() の一部としてコンポーネントはティックされます。
 
 ##### 一人称キャラクターの分析
 
-ここまでの少しの間は、説明が多く、例をあまりお見せしませんでした。**AActor** と **UActorComponents** の関係性を図で説明するために、First Person Template を元に新規プロジェクトを生成した時に作成したブループリントを掘り下げ行ってみましょう。以下の画像はFirstPersonCharacter アクタのコンポーネント ツリーです。RootComponent は CapsuleComponent です。CapsuleComponent に ArrowComponent 、Mesh コンポーネント、FirstPersonCameraComponent がアタッチされています。一番左にあるコンポーネントは FirstPersonCameraComponent を親としてもつ Mesh1P コンポーネントです。つまり、一人称メッシュは一人称カメラと相対しています。 
+ここまでは説明が多く、例をあまりお見せしませんでした。**AActor** と **UActorComponents** の関係性を図で説明するために、First Person Template を元に新規プロジェクトを生成した時に作成したブループリントを掘り下げ行ってみましょう。以下の画像はFirstPersonCharacter アクタのコンポーネント ツリーです。RootComponent は CapsuleComponent です。CapsuleComponent に ArrowComponent 、Mesh コンポーネント、FirstPersonCameraComponent がアタッチされています。一番左にあるコンポーネントは FirstPersonCameraComponent を親としてもつ Mesh1P コンポーネントです。つまり、一人称メッシュは一人称カメラと相対しています。 
 
 ![image alt text](image_14.png)
 
@@ -316,7 +315,7 @@ AActor の詳細については、 [](Programming/UnrealArchitecture/Actors) を
 
 **UStruct** を使用するためには、特定のクラスから拡張する必要はなく、構造体に **USTRUCT()** とマークすれば、ビルド ツールが基本操作を行います。**UObject** と異なり、 **UStructs** はガーベジ コレクションでは *ありません* 。それらのダイナミック インスタンスを作成したら、ライフスタイルの管理を自分で行わなければなりません。**UStructs** は、アンリアル エディタ内での編集、ブループリントの操作、シリアル化、ネットワーク化等に対して **UObject** リフレクション サポートがされている単純な古いデータ タイプという意味です。
 
-ゲームプレイ クラス構築で使用する基本的な階層をお話しました。このまま読み進めるか、サンプルを使用してみるか、再度選択してください。ゲームプレイ クラスについては [こちら](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Classes/index.html) のページで、詳細が書かれたランチャーでサンプルを使用することができます。あるいは、次の章ではゲームをビルドするための C++ 機能についてさらに詳しく説明していきます。
+ゲームプレイ クラス構築で使用する基本的な階層をお話しました。このまま読み進めるか、サンプルを使用してみるか、再度選択してください。ゲームプレイ クラスについては [こちら](Programming/UnrealArchitecture/Reference/Classes) のページで、詳細が書かれたランチャーでサンプルを使用することができます。あるいは、次の章ではゲームをビルドするための C++ 機能についてさらに詳しく説明していきます。
 
 ## さらに深く掘り下げる
 
@@ -326,10 +325,10 @@ C++ 機能について、もっと詳しく知りたいと思われた皆様、�
 
 [Blog Post: Unreal Property System (Reflection)](https://www.unrealengine.com/blog/unreal-property-system-reflection)
 
-Gameplay クラスは特別なマークアップを使っているので、まずここで、アンリアル プロパティ システムの基本について少し説明します。UE4 は、ガーベジ コレクション、シリアル化、ネットワーク レプリケーション、ブループリント/C++ などの動的な機能を有効にするリフレクションの独自の実装を使用しています。これらの機能はオプトインです。つまり、正しいマークアップを自分のタイプに追加しなければなりません。そうしない場合、アンリアルはそれらを無視し、それらに対してレフレクション データを生成します。基本的なマークアップの概要はこのような感じになります。
+Gameplay クラスは特別なマークアップを使っているので、まずここで、アンリアル プロパティ システムの基本について少し説明します。UE4 は、ガーベジ コレクション、シリアル化、ネットワーク レプリケーション、ブループリント/C++ などの動的な機能を有効にするリフレクションの独自の実装を使用しています。これらの機能はオプトインです。つまり、正しいマークアップを自分のタイプに追加しなければなりません。そうしない場合、アンリアルはそれらを無視し、それらに対してリフレクション データを生成します。基本的なマークアップの概要はこのような感じになります。
 
-* **UCLASS() **- アンリアルにクラスのレフレクション データを生成するように命令します。クラスは **UObject** から派生しなければなりません。 
-* **USTRUCT() **- アンリアルに構造体のレフレクション データを生成するように命令します。
+* **UCLASS() **- アンリアルにクラスのリフレクション データを生成するように命令します。クラスは **UObject** から派生しなければなりません。 
+* **USTRUCT() **- アンリアルに構造体のリフレクション データを生成するように命令します。
 * **GENERATED_BODY()** - UE4 は、タイプ用に生成されたすべての必要なボイラープレート コードにこれを置き換えます。
 * **UPROPERTY() **- **UCLASS ** あるいは **USTRUCT** のメンバ変数を有効にして **UPROPERTY** として使用します。**UPROPERTY** はいろいろな用途があります。変数のレプリケート、シリアル化、ブループリントからのアクセスを可能にします。**UObject** に対するリファレンス数の追跡をするガーベジ コレクターによっても使用されます。
 * **UFUNCTION() **- **UCLASS** あるいは **USTRUCT ** のクラス メソッドを有効にして **UFUNCTION** として使用します。**UFUNCTION** は、クラス メソッドをブループリントから呼び出して、他の物の中で RPC として使用できるようにします。
@@ -364,13 +363,13 @@ Gameplay クラスは特別なマークアップを使っているので、ま�
 
 識別子の数は非常に多いので、ここにまとめることはできません。以下のリンクをご覧ください。
 
-[UCLASS 指定一覧](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
+[UCLASS 指定子一覧](Programming/UnrealArchitecture/Reference/Classes/Specifiers)
 
-[UPROPERTY 識別子一覧](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UP___367/index.html)
+[UPROPERTY 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Properties/Specifiers/index.html)
 
-[UFUNCTION 識別子一覧](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/UF___366/index.html)
+[UFUNCTION 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Functions/Specifiers/index.html)
 
-[USTRUCT 識別子一覧](https://docs.unrealengine.com/latest/INT/API/Runtime/CoreUObject/UObject/US___368/index.html)
+[USTRUCT 指定子一覧](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Reference/Structs/Specifiers/index.html)
 
 ### Object/Actor Iterators
 
@@ -585,7 +584,6 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 
 	TCHAR Upper(‘A’);
 	TCHAR Lower = FChar::ToLower(Upper); // ‘a’
-
 [REGION:note]
 **FChar** タイプは **TChar<TCHAR>** として定義されます (API でリストされているように)。
 [/REGION]
@@ -685,7 +683,7 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 	{
 	private:
 
-		// Using a TMap, we can refer to each piece by it’s position
+		// Using a TMap, we can refer to each piece by its position
 		TMap<FIntPoint, FPiece> Data;
 
 	public:
@@ -729,7 +727,7 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 
 #### TSet
 
-**TSet** は、 **std::set** のように、ユニークな値のコレクションを格納します。**AddUnique** メソッドと **Contains** メソッドで、 **TArrays** をセットで使用することができｋます。ただし、**TArrays** のようにこれらを **UPROPERTY** として使用できない点を我慢すれば、 **TSet** の方がこれらの操作の実行が速いです。**TSets** も ** **TArrays** のようなエレメントのインデックス化を行いません。
+**TSet** は、 **std::set** のように、ユニークな値のコレクションを格納します。**AddUnique** メソッドと **Contains** メソッドで、 **TArrays** をセットで使用することができｋます。ただし、**TArrays** のようにこれらを **UPROPERTY** として使用できない点を我慢すれば、 **TSet** の方がこれらの操作の実行が速いです。**TSets** も **TArrays** のようなエレメントのインデックス化を行いません。
 
 	TSet<AActor*> ActorSet = GetActorSetFromSomewhere();
 
@@ -824,7 +822,7 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 
 #### TSet/TMap (ハッシュ関数) で独自のタイプを使用する
 
-**TSet ** と **TMap ** は、内部的に *ハッシュ関数* の使用が必要になります。　**TSet** 内で、または **TMap** のキーとして使用したい独自クラスを作成する場合、独自のハッシュ関数を作成しなければなりません。一般的にこれらのタイプに分類されるほとんどの UE4 タイプは、独自のハッシュ関数を既に定義しています。
+**TSet ** と **TMap ** は、内部的に *ハッシュ関数* の使用が必要になります。**TSet** 内で、または **TMap** のキーとして使用したい独自クラスを作成する場合、独自のハッシュ関数を作成しなければなりません。一般的にこれらのタイプに分類されるほとんどの UE4 タイプは、独自のハッシュ関数を既に定義しています。
 
 ハッシュ関数は、タイプへの const ポインタ / リファレンスを受け取り、 **uint64** を返します。この戻り値がいわゆるオブジェクトの *ハッシュ コード* です。そのオブジェクトに対して疑似ユニークな数字になっています。等しい 2 つのオブジェクトは、常に同じハッシュ コードを返します。
 
@@ -850,7 +848,7 @@ FString MyStr = TEXT("Hello, Unreal 4!").
 		}
 	};
 
-**TSet&lt;FMyClass&gt; ** と **TMap&lt;FMyClass, ...&gt; ** は、キーをハッシュすると正しいハッシュ関数を使用します。ポインタをいいーとして使用する場合は (**TSet&lt;FMyClass*&gt;**) 、 **uint32 GetTypeHash(const FMyClass* MyClass)** も実行してください。
+**TSet&lt;FMyClass&gt; ** と **TMap&lt;FMyClass, ...&gt; ** は、キーをハッシュすると正しいハッシュ関数を使用します。ポインタをキーとして使用する場合は (**TSet&lt;FMyClass*&gt;**) 、 **uint32 GetTypeHash(const FMyClass* MyClass)** も実行してください。
 
 [Blog Post: UE4 Libraries You Should Know About](https://www.unrealengine.com/blog/ue4-libraries-you-should-know-about)
 

@@ -64,7 +64,8 @@ rem ## NOTE: We also pass along any arguments to the GenerateProjectFiles.bat he
 if not %ERRORLEVEL% == 0 goto Error_ProjectGenerationFailed
 
 rem ## Success!
-goto Exit
+popd
+exit /B 0
 
 
 :Error_BatchFileInWrongLocation
@@ -110,4 +111,4 @@ goto Exit
 :Exit
 rem ## Restore original CWD in case we change it
 popd
-
+exit /B 1

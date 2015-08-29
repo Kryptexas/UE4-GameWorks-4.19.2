@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2507192
+﻿INTSourceChangelist:2604022
 Availability:Public
 Title:컴포넌트
 Crumbs:%ROOT%, Engine
-Description:Component, 컴포넌트란 액터 안에 서브 오브젝트로 사용하도록 디자인된 특수 유형 오브젝트로, 여기서는 다양한 유형의 컴포넌트에 대해 다룹니다.
+Description:Component, 컴포넌트란 액터 안에 서브 오브젝트로 사용하도록 디자인된 여러가지 유형의 컴포넌트에 대한 개요입니다.
 
 [VAR:Topic]
 [OBJECT:Topic]

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2435757
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:ブループリント コンテンツのサンプル
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -52,12 +52,12 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 ## 概要
 
-**ブループリント** システムの強さと柔軟性の実演のため、**Content Examples** プロジェクト内に幾つか **Blueprint Maps** を用意いたしました。プレイヤー制御の定義、ヘルス値 / ピックアップ システムの実装、あるいはプレイヤーが近づくと開くドアを考えているのであれば、これらのマップで説明されている例からアプローチのアイデアを得ることができるはずです。 
+**ブループリント** システムの威力と柔軟性を示すため、**Content Examples** プロジェクト内に幾つか **Blueprint Map** を用意しました。プレイヤー制御の定義、ヘルス値 / ピックアップ システムの実装、あるいはプレイヤーが近づくと開くドアをお考えであれば、これらのマップで説明されている例からアプローチのアイデアを得ることができるはずです。 
 
-このページでは、マップ内の例の位置を示してありますので、興味のある場所へジャンプしてすぐにスクリプトを開始できます。ただし、**ブループリント** を初めてご利用になる場合は、**Blueprints_Overview** マップ から始めることをお勧めします。システムのコアとなる特性が説明されているので、着手しやすくなります。 
+このページでは、マップ内のサンプルの位置を示してありますので、ご興味のある場所へジャンプしてすぐにスクリプトを開始できます。ただし、**ブループリント** を初めてご利用になる場合は、**Blueprints_Overview** マップから始めることをお勧めします。システムの中心的な特性が説明されているので、着手しやすくなります。 
 
 [region:note]
-以下の表のサンプル名をクリックすると、サンプルがどのようにビルドされたか (該当する場合) 確認することができます。
+以下の表のサンプル名をクリックすると、サンプルがどのようにビルドされたかを (該当する場合) 確認できます。
 [/region]
  
 ## Blueprints_Overview Map
@@ -71,10 +71,10 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 | ------- | ------------|
 | **[1.1 Hello World Example](Resources\ContentExamples\Blueprints\1_1)** | 基本的な **ブループリント** を使用してレベル内にフローティング テキストを表示します (例えば、レベル内で再生すると「Hello World」と表示されます)。 |
 | **[1.2 Components Example](Resources\ContentExamples\Blueprints\1_2)** | **コンポーネント** の例と 1 つの **ブループリント** で使用できる複数の **コンポーネント** (例えば、 1 つの **ブループリント** で使用されるスプライト、スタティック メッシュ、ライト)。 |
-| **[1.3 Variables Example](Resources\ContentExamples\Blueprints\1_3)** | 「Public」 または 「Private」 への 変数 の設定および編集方法 (例えば、**[詳細]** パネルで変更可能または **ブループリント** のみで変更可能なライト カラー)。 |
+| **[1.3 Variables Example](Resources\ContentExamples\Blueprints\1_3)** | 「Public」 または 「Private」 への変数の設定および編集方法 (例えば、**[詳細]** パネルで変更可能または **ブループリント** のみで変更可能なライト カラー)。 |
 | **[1.4 Construction Script Example](Resources\ContentExamples\Blueprints\1_4)** | **ブループリント** の **コンポーネント** を **コンストラクション スクリプト** で有効化 / 無効化する方法を表示します (例えば、チェックボックスを使って **ブループリント** の **コンポーネント** のオンオフを切り替えます)。 |
 | **[1.5 Event Graph Example](Resources\ContentExamples\Blueprints\1_5)** | **コンストラクション スクリプト** と **イベント グラフ** を使って、マテリアルを編集せずにメッシュのカラーをカスタム化します (例えば、ユーザーは **[詳細]** パネルでロケットのカラーを定義します)。 |
-| **[1.6 Simple Math Example](Resources\ContentExamples\Blueprints\1_6)** | この **ブループリント** では、**イベント ティック** を使って時間経過に伴う単純に追加を行います (例えば、タイマーは 0 から 1 秒ずつ増えて表示されます)。 |
+| **[1.6 Simple Math Example](Resources\ContentExamples\Blueprints\1_6)** | この **ブループリント** では、**イベント ティック** を使って時間経過に伴う単純な追加を行います (例えば、タイマーは 0 から 1 秒ずつ増えて表示されます)。 |
 | **[1.7 Flow Example](Resources\ContentExamples\Blueprints\1_7)** | オブジェクトの移動、色、エフェクトの修正に様々なタイプの **フロー制御** を使う **ブループリント** です (例えば、コインが移動する方向、カラー、 **[詳細]** パネルでそのエフェクトを適用する場合)。 |
 
 
@@ -85,13 +85,13 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 **Blueprints_Advanced** マップは、コンテンツを作成するために **コンストラクション スクリプト** と **イベント グラフ** の使用方法の奥深くにジャンプします。 
 
 ### コンストラクション スクリプトのサンプル
-**[Construction Script]** セクションでは、指定された半径内でランダムにメッシュをスポーンする方法、アクターの回転軸に合わせて自動的にメッシュをスポーンする方法、シンメトリにメッシュをスポーンする方法、あるいはカスタマイズ可能なスポットライトに対して全てのコンポーネントを作成する方法について説明します。 
+**コンストラクション スクリプト** セクションでは、指定された半径内でランダムにメッシュをスポーンする方法、アクターの回転軸に合わせて自動的にメッシュをスポーンする方法、シンメトリにメッシュをスポーンする方法、あるいはカスタマイズ可能なスポットライトに対して全てのコンポーネントを作成する方法について説明します。 
 
 | 例 | 実演内容 |
 | ------- | ------------|
 | **[1.1 Randomly Scattered Meshes Example](Resources\ContentExamples\Blueprints_Advanced\1_1)** | 指定された半径内でランダムにスタティック メッシュをスポーンする方法 (例えば、半径内にグラウンド クラッターあるいは岩をランダムにスポーンする)。 |
 | **[1.2 Automatic Wall Example](Resources\ContentExamples\Blueprints_Advanced\1_2)** | アクタの回転軸からメッシュの行を拡張する方法 (例えば、長さでスケーリングが可能なフェンス)。 |
-| **[1.3 Automatic Ring Example](Resources\ContentExamples\Blueprints_Advanced\1_3)** | メッシュごとに定義された回転を使って、円の中で指定された数のメッシュを配置する方法 (例えば、メッシュのリングを等間隔で配置する)。 |
+| **[1.3 Automatic Ring Example](Resources\ContentExamples\Blueprints_Advanced\1_3)** | メッシュごとに定義された回転を使って円の中に指定された数のメッシュを配置する方法 (例えば、メッシュのリングを等間隔で配置する)。 |
 | **[1.4 Customizable Spotlight Example](Resources\ContentExamples\Blueprints_Advanced\1_4)** | スポットライトのコンポーネントを全部まとめて 1 つのアクタにするための **コンストラクション スクリプト** の使用方法 (例えば、オンオフのステート、ライト カラー、方向、半径などのカスタマイズが可能なスポットライト)。  |
 
 
@@ -119,8 +119,8 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 | 例 | 実演内容 |
 | ------- | ------------|
-| **1.1 基本的な通信 (ターゲット ブループリント)** | カスタム イベントを介してライトの **Blueprint** のオンオフを切り替えるボタン、**Blueprint** の例。 |
-| **1.2 基本的な通信 (アクタのキャスティング)** | オーバーラップ イベントを使用して、特定クラスの **ブループリント** を検知する方法 (例、バッテリを接続することで電球がオン/オフする)。|
+| **1.1 Basic Communication (Target Blueprint)** | カスタム イベントを介してライトの **Blueprint** のオンオフを切り替えるボタン、**Blueprint** の例。 |
+| **1.2 Basic Communication (Actor Casting)** | オーバーラップ イベントを使用して、特定クラスの **ブループリント** を検知する方法 (例、バッテリを接続することで電球がオン/オフする)。|
 | **1.3 Communication (Actor Casting To Child Blueprints)** | 親と機能を共有すると同時に固有の機能も所有する **子ブループリント** の使用方法 (例えば、異なるエネルギー値でのバッテリー接続によるライトのオンオフ)。  |
 | **1.4 Communication with All Actors of a Specific Class** | 特定のクラスの複数のアクタとの通信方法 (例えば、それぞれ別の機能で幾つかのライトを一度にオンにする)。  |
 
@@ -131,7 +131,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 
 | 例 | 実演内容 |
 | ------- | ------------|
-| **2.1 イベント ディスパッチャーを使用する** | **レベルブループリント** 内でイベントを呼び出すために **イベントディスパッチャー** を使用する方法 (例、 **Event Dispatcher** を使用してライトのオンオフを切り替える)。 |
+| **2.1 Using Event Dispatchers** | **レベルブループリント** 内でイベントを呼び出すために **イベントディスパッチャー** を使用する方法 (例、 **Event Dispatcher** を使用してライトのオンオフを切り替える)。 |
 | **2.2 Binding Event Dispatchers to A Custom Event** | **イベント ディスパッチャー** の **Level ブループリント** 内のカスタム イベントへの結合を示しています　(例えば、時間経過とともにオブジェクトを回転させるボタンの切り替え)。 |
 | **2.3 Binding Event Dispatchers to A Custom Event on Spawn** | スポーンされたアクタが破壊されると呼ばれる **イベント ディスパッチャー** でのトリガーを有効 / 無効化する方法を示します (例えば、爆弾をスポーンするボタンを押すと、前の爆弾が爆発するまで別の爆弾はスポーンされません)。 |
 
@@ -184,7 +184,7 @@ Blueprint_HUD マップの詳細は以下でご覧いただけます。
 
 <!--
 [EXCERPT:BlueprintsCEInstructions]
-コンテンツの例の [ブループリントを開く] (Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening)から、各ブループリントの作成に設定された [デフォルト] (Engine/Blueprints/Editor\Modes\Defaults), [コンポーネント] (Engine/Blueprints/UserGuide\Components)、そして [グラフ] (Engine/Blueprints/Editor\Modes\GraphPanel) を確認することができます。
+コンテンツ サンプルの [ブループリントを開く](Engine/Blueprints/UserGuide/Types/ClassBlueprint/Opening) から、各ブループリントの作成で [デフォルト](Engine/Blueprints/Editor\Modes\Defaults), [コンポーネント](Engine/Blueprints/UserGuide\Components)、そして [グラフ](Engine/Blueprints/Editor\Modes\GraphPanel) がどのように設定されたかを確認することができます。
 [/EXCERPT:BlueprintsCEInstructions]
 
 -->

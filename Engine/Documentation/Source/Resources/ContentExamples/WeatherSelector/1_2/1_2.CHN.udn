@@ -1,0 +1,48 @@
+﻿INTSourceChangelist:2033300
+Availability: Docs
+Title:1.2 - 天气
+Crumbs:%ROOT%, Resources, Resources/ContentExamples/WeatherSelector
+Description:天气选择器示例关卡概述，示例1.2：天气
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector/1_2:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Resources/ContentExamples/WeatherSelector/1_2:title%]()
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%\rendering_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Resources/ContentExamples/WeatherSelector/1_2:title%
+	[/PARAM]
+	[PARAM:description]
+		%Resources/ContentExamples/WeatherSelector/1_2:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Resources/ContentExamples/WeatherSelector/1_2]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[REGION:fullwidth]
+
+[/REGION]

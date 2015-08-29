@@ -145,13 +145,13 @@ void FMaterialEditorUtilities::GetMaterialExpressionActions(FGraphActionMenuBuil
 
 	if (bUseUnsortedMenus)
 	{
-		AddMaterialExpressionCategory(ActionMenuBuilder, TEXT(""), &ExpressionClasses->AllExpressionClasses, bMaterialFunction);
+		AddMaterialExpressionCategory(ActionMenuBuilder, FText::GetEmpty(), &ExpressionClasses->AllExpressionClasses, bMaterialFunction);
 	}
 	else
 	{
 		// Add Favourite expressions as a category
 		const FText FavouritesCategory = LOCTEXT("FavoritesMenu", "Favorites");
-		AddMaterialExpressionCategory(ActionMenuBuilder, FavouritesCategory.ToString(), &ExpressionClasses->FavoriteExpressionClasses, bMaterialFunction);
+		AddMaterialExpressionCategory(ActionMenuBuilder, FavouritesCategory, &ExpressionClasses->FavoriteExpressionClasses, bMaterialFunction);
 
 		// Add each category to the menu
 		for (int32 CategoryIndex = 0; CategoryIndex < ExpressionClasses->CategorizedExpressionClasses.Num(); ++CategoryIndex)
@@ -162,7 +162,7 @@ void FMaterialEditorUtilities::GetMaterialExpressionActions(FGraphActionMenuBuil
 
 		if (ExpressionClasses->UnassignedExpressionClasses.Num() > 0)
 		{
-			AddMaterialExpressionCategory(ActionMenuBuilder, TEXT(""), &ExpressionClasses->UnassignedExpressionClasses, bMaterialFunction);
+			AddMaterialExpressionCategory(ActionMenuBuilder, FText::GetEmpty(), &ExpressionClasses->UnassignedExpressionClasses, bMaterialFunction);
 		}
 	}
 }
@@ -500,6 +500,8 @@ void FMaterialEditorUtilities::GetVisibleMaterialParametersFromExpression(
 	}
 	else if (FunctionInputExpression)
 	{
+		GetVisibleMaterialParametersFromExpression(FMaterialExpressionKey(FunctionInputExpression->Preview.Expression, FunctionInputExpression->Preview.OutputIndex), MaterialInstance, VisibleExpressions, FunctionStack);
+		
 		FGetVisibleMaterialParametersFunctionState* FunctionState = FunctionStack.Pop();
 
 		const FFunctionExpressionInput* MatchingInput = FindInputById(FunctionInputExpression, FunctionState->FunctionCall->FunctionInputs);
@@ -545,7 +547,7 @@ TSharedPtr<class IMaterialEditor> FMaterialEditorUtilities::GetIMaterialEditorFo
 	return MaterialEditor;
 }
 
-void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBuilder& ActionMenuBuilder, FString CategoryName, TArray<struct FMaterialExpression>* MaterialExpressions, bool bMaterialFunction)
+void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBuilder& ActionMenuBuilder, FText CategoryName, TArray<struct FMaterialExpression>* MaterialExpressions, bool bMaterialFunction)
 {
 	// Get type of dragged pin
 	uint32 FromPinType = 0;
@@ -568,9 +570,9 @@ void FMaterialEditorUtilities::AddMaterialExpressionCategory(FGraphActionMenuBui
 					CategoryName,
 					FText::FromString(MaterialExpression.Name),
 					ToolTip.ToString(), 0));
-				ActionMenuBuilder.AddAction(NewNodeAction);
 				NewNodeAction->MaterialExpressionClass = MaterialExpression.MaterialClass;
 				NewNodeAction->Keywords = CastChecked<UMaterialExpression>(MaterialExpression.MaterialClass->GetDefaultObject())->GetKeywords();
+				ActionMenuBuilder.AddAction(NewNodeAction);
 			}
 		}
 	}

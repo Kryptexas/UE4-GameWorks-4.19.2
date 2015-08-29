@@ -5,56 +5,8 @@
 #include "Editor/Sequencer/Public/ISequencerObjectBindingManager.h"
 
 class FSequencer;
+struct FPuppetActorInfo;
 
-namespace EPuppetObjectType
-{
-	enum Type
-	{
-		/** Puppet actor */
-		Actor,
-	};
-}
-
-
-/**
- * Stores the relationship between a spawned puppet object (e.g. actor) and it's data descriptor (e.g. blueprint)
- */
-class FBasePuppetInfo
-{	
-
-public:
-
-	/** @return Gets the type of puppet */
-	virtual EPuppetObjectType::Type GetType() const = 0;
-};
-
-
-/**
- * Puppet actor info
- */
-struct FPuppetActorInfo : public FBasePuppetInfo
-{	
-
-public:
-
-	virtual ~FPuppetActorInfo() {}
-
-	/** @return Gets the type of puppet */
-	virtual EPuppetObjectType::Type GetType() const override
-	{
-		return EPuppetObjectType::Actor;
-	}
-
-
-public:
-
-	/** Spawnable guid */
-	FGuid SpawnableGuid;
-
-	/** The actual puppet actor that we are actively managing.  These actors actually live in the editor level
-	    just like any other actor, but we'll directly manage their lifetimes while in the editor */
-	TWeakObjectPtr< class AActor > PuppetActor;	
-};
 
 
 /**
@@ -70,7 +22,7 @@ public:
 	 *
 	 * @param	InWorld	The world to spawn actors in
 	 */
-	FSequencerActorBindingManager( UWorld* InWorld, TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer );
+	FSequencerActorBindingManager( TSharedRef<ISequencerObjectChangeListener> InObjectChangeListener, TSharedRef<FSequencer> InSequencer );
 
 
 	/** Destructor */
@@ -81,12 +33,14 @@ public:
 	virtual bool AllowsSpawnableObjects() const override { return true; }
 	virtual FGuid FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const override;
 	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) override;
+	virtual void RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) override;
 	virtual void DestroyAllSpawnedObjects() override;
 	virtual bool CanPossessObject( UObject& Object ) const override;
 	virtual void BindPossessableObject( const FGuid& PossessableGuid, UObject& PossessedObject ) override;
 	virtual void UnbindPossessableObjects( const FGuid& PossessableGuid ) override;
 	virtual void GetRuntimeObjects( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, TArray<UObject*>& OutRuntimeObjects ) const override;
-	virtual bool TryGetObjectBindingDisplayName(const FGuid& ObjectGuid, FText& DisplayName) const override { return false; }
+	virtual bool TryGetObjectBindingDisplayName(const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName) const override;
+	virtual UObject* GetParentObject( UObject* Object ) const override;
 
 protected:
 	
@@ -147,9 +101,11 @@ protected:
 	 */
 	class UK2Node_PlayMovieScene* BindToPlayMovieSceneNode( const bool bCreateIfNotFound ) const;
 	
+	/**
+	 * @return The world that possessed actors belong to or where spawned actors should go
+	 */
+	UWorld* GetWorld() const;
 private:
-	TWeakObjectPtr< UWorld > ActorWorld;
-	
 	/** 'PlayMovieScene' node in level script that we're currently associating with the active MovieScene.  This node contains the bindings
 	 information that we need to be able to preview possessed actors in the level */
 	mutable TWeakObjectPtr< UK2Node_PlayMovieScene > PlayMovieSceneNode;

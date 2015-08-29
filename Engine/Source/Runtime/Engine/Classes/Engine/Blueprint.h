@@ -14,46 +14,44 @@
 UENUM()
 enum EBlueprintStatus
 {
-	// Blueprint is in an unknown state
+	/** Blueprint is in an unknown state. */
 	BS_Unknown,
-	// Blueprint has been modified but not recompiled
+	/** Blueprint has been modified but not recompiled. */
 	BS_Dirty,
-	// Blueprint tried but failed to be compiled
+	/** Blueprint tried but failed to be compiled. */
 	BS_Error,
-	// Blueprint has been compiled since it was last modified
+	/** Blueprint has been compiled since it was last modified. */
 	BS_UpToDate,
-	// Blueprint is in the process of being created for the first time
+	/** Blueprint is in the process of being created for the first time. */
 	BS_BeingCreated,
-	// Blueprint has been compiled since it was last modified. There are warnings.
+	/** Blueprint has been compiled since it was last modified. There are warnings. */
 	BS_UpToDateWithWarnings,
 	BS_MAX,
 };
 
 
-/**
- * Enumerates types of blueprints.
- */
+/** Enumerates types of blueprints. */
 UENUM()
 enum EBlueprintType
 {
-	// Normal blueprint
+	/** Normal blueprint. */
 	BPTYPE_Normal				UMETA(DisplayName="Blueprint Class"),
-	// Blueprint that is const during execution (no state graph and methods cannot modify member variables)
+	/** Blueprint that is const during execution (no state graph and methods cannot modify member variables). */
 	BPTYPE_Const				UMETA(DisplayName="Const Blueprint Class"),
-	// Blueprint that serves as a container for macros to be used in other blueprints
+	/** Blueprint that serves as a container for macros to be used in other blueprints. */
 	BPTYPE_MacroLibrary			UMETA(DisplayName="Blueprint Macro Library"),
-	// Blueprint that serves as an interface to be implemented by other blueprints
+	/** Blueprint that serves as an interface to be implemented by other blueprints. */
 	BPTYPE_Interface			UMETA(DisplayName="Blueprint Interface"),
-	// Blueprint that handles level scripting
+	/** Blueprint that handles level scripting. */
 	BPTYPE_LevelScript			UMETA(DisplayName="Level Blueprint"),
-	// Blueprint that servers as a container for functions to be used in other blueprints
+	/** Blueprint that servers as a container for functions to be used in other blueprints. */
 	BPTYPE_FunctionLibrary		UMETA(DisplayName="Blueprint Function Library"),
 
 	BPTYPE_MAX,
 };
 
 
-// Type of compilation
+/** Type of compilation. */
 namespace EKismetCompileType
 {
 	enum Type
@@ -75,6 +73,9 @@ public:
 
 	/** Whether or not to save intermediate build products (temporary graphs and expanded macros) for debugging */
 	bool bSaveIntermediateProducts;
+
+	/** Whether to regenerate the skeleton first, when compiling on load we don't need to regenerate the skeleton. */
+	bool bRegenerateSkelton;
 
 	/** Whether or not this compile is for a duplicated blueprint */
 	bool bIsDuplicationInstigated;
@@ -104,6 +105,7 @@ public:
 	FKismetCompilerOptions()
 		: CompileType(EKismetCompileType::Full)
 		, bSaveIntermediateProducts(false)
+		, bRegenerateSkelton(true)
 		, bIsDuplicationInstigated(false)
 	{
 	};
@@ -159,7 +161,7 @@ struct FBPVariableDescription
 
 	/** Category this variable should be in */
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
-	FName Category;
+	FText Category;
 
 	/** Property flags for this variable - Changed from int32 to uint64*/
 	UPROPERTY(EditAnywhere, Category=BPVariableDescription)
@@ -473,6 +475,9 @@ public:
 	bool bCachedDependenciesUpToDate;
 	TSet<TWeakObjectPtr<UBlueprint>> CachedDependencies;
 
+	// User Defined Structures, the blueprint depends on
+	TSet<TWeakObjectPtr<UStruct>> CachedUDSDependencies;
+
 	bool IsUpToDate() const
 	{
 		return BS_UpToDate == Status || BS_UpToDateWithWarnings == Status;
@@ -580,6 +585,9 @@ public:
 
 	UInheritableComponentHandler* GetInheritableComponentHandler(bool bCreateIfNecessary);
 
+	/** Collect blueprints that depend on this blueprint. */
+	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const;
+
 #endif	//#if WITH_EDITOR
 
 	// Begin UObject interface
@@ -655,6 +663,12 @@ public:
 
 	static FName GetFunctionNameFromClassByGuid(const UClass* InClass, const FGuid FunctionGuid);
 	static bool GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid);
+
+	/**
+	 * Gets the last edited uber graph.  If no graph was found in the last edited document set, the first
+	 * ubergraph is returned.  If there are no ubergraphs nullptr is returned.
+	 */
+	UEdGraph* GetLastEditedUberGraph() const;
 #endif
 
 	/** Find a function given its name and optionally an object property name within this Blueprint */

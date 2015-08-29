@@ -190,7 +190,7 @@ public:
 
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
-	void SetLightColor(FLinearColor NewLightColor);
+	void SetLightColor(FLinearColor NewLightColor, bool bSRGB = true);
 
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Light")
 	void SetTemperature(float NewTemperature);
@@ -250,7 +250,7 @@ public:
 	 * @param Bounds - The bounding volume to test.
 	 * @return True if the light affects the bounding volume
 	 */
-	virtual bool AffectsBounds(const FBoxSphereBounds& Bounds) const;
+	virtual bool AffectsBounds(const FBoxSphereBounds& InBounds) const;
 
 	/**
 	 * Return the world-space bounding box of the light's influence.
@@ -272,7 +272,9 @@ public:
 	*/
 	virtual ELightComponentType GetLightType() const PURE_VIRTUAL(ULightComponent::GetLightType,return LightType_MAX;);
 
+	virtual FLightmassLightSettings GetLightmassSettings() const PURE_VIRTUAL(ULightComponent::GetLightmassSettings,return FLightmassLightSettings(););
 
+	virtual float GetUniformPenumbraSize() const PURE_VIRTUAL(ULightComponent::GetUniformPenumbraSize,return 0;);
 
 	/**
 	 * Update/reset light GUIDs.
@@ -308,7 +310,6 @@ public:
 	// End UObject interface.
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	 void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
 
 	/** @return number of material elements in this primitive */

@@ -218,6 +218,7 @@ void FSlateOpenGLShaderProgram::LinkShaders( const FSlateOpenGLVS& VertexShader,
 	glBindAttribLocation(ProgramID, 2, "InClipOrigin");
 	glBindAttribLocation(ProgramID, 3, "InClipExtents");
 	glBindAttribLocation(ProgramID, 4, "InColor");
+	glBindAttribLocation(ProgramID, 5, "InMaterialTexCoords");
 
 	// Link the shaders
 	glLinkProgram( ProgramID );

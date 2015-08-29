@@ -5,7 +5,7 @@ Description:Procedurally generated gradients to add to your materials, eliminati
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The Gradient functions produce procedurally generated gradients made from Texture coordinate expressions. They save memory over having to create a texture-based gradient.
 

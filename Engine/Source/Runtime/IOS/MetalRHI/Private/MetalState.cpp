@@ -199,10 +199,8 @@ FMetalDepthStencilState::FMetalDepthStencilState(const FDepthStencilStateInitial
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.FrontFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		// @todo metal: We had to swap, but I can't remember why these are backwards.
-		// Should the culling stuff be flipped instead? 
-		Desc.backFaceStencil = Stencil;
-		
+
+		Desc.frontFaceStencil = Stencil;
 		[Stencil release];
 	}
 	
@@ -216,11 +214,16 @@ FMetalDepthStencilState::FMetalDepthStencilState(const FDepthStencilStateInitial
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.BackFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		Desc.frontFaceStencil = Stencil;
-		
+
+		Desc.backFaceStencil = Stencil;
 		[Stencil release];
 	}
-			
+	else if(Initializer.bEnableFrontFaceStencil)
+	{
+		// Set backface to match frontface, an RHI requirement.
+		Desc.backFaceStencil = [Desc.frontFaceStencil copy];
+	}
+
 	// bake out the descriptor
 	State = [FMetalManager::GetDevice() newDepthStencilStateWithDescriptor:Desc];
 	TRACK_OBJECT(State);

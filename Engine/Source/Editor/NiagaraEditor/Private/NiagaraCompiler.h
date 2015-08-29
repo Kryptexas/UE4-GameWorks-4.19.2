@@ -62,13 +62,17 @@ public:
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
 	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
+	virtual TNiagaraExprPtr GetExternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)override;
 	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, float Default)override;
 	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FVector4& Default)override;
 	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const FMatrix& Default)override;
-	virtual TNiagaraExprPtr GetExternalCurveConstant(const FNiagaraVariableInfo& Constant)override;
+	virtual TNiagaraExprPtr GetInternalConstant(const FNiagaraVariableInfo& Constant, const UNiagaraDataObject* Default)override;
 
-	virtual void CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)override;
-	virtual void CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)override;
+	virtual bool CheckInputs(FName OpName, TArray<TNiagaraExprPtr>& Inputs)override;
+	virtual bool CheckOutputs(FName OpName, TArray<TNiagaraExprPtr>& Outputs)override;
+
+	virtual void Error(FText ErrorText, UNiagaraNode* Node, UEdGraphPin* Pin)override;
+	virtual void Warning(FText WarningText, UNiagaraNode* Node, UEdGraphPin* Pin)override;
 	//End INiagaraCompiler Interface
 	
 	/** Gets the index into a constants table of the constant specified by Name and bInternal. */

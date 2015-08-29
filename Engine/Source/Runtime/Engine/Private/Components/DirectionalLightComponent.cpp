@@ -127,6 +127,9 @@ public:
 			FarShadowDistance = Component->FarShadowDistance;
 			FarShadowCascadeCount = Component->FarShadowCascadeCount;
 		}
+
+		bCastModulatedShadows = Component->bCastModulatedShadows;
+		ModulatedShadowColor = FLinearColor(Component->ModulatedShadowColor);
 	}
 
 	void UpdateLightShaftOverrideDirection_GameThread(const UDirectionalLightComponent* Component)
@@ -329,7 +332,7 @@ private:
 	uint32 GetNumShadowMappedCascades(uint32 MaxShadowCascades, bool bPrecomputedLightingIsValid) const
 	{
 		const int32 EffectiveNumDynamicShadowCascades = bPrecomputedLightingIsValid ? DynamicShadowCascades : FMath::Max(0, CVarUnbuiltNumWholeSceneDynamicShadowCascades.GetValueOnAnyThread());
-		const int32 NumCascades = GetEffectiveWholeSceneDynamicShadowRadius(bPrecomputedLightingIsValid) > 0.0f ? EffectiveNumDynamicShadowCascades : 0;
+		const int32 NumCascades = GetCSMMaxDistance(bPrecomputedLightingIsValid) > 0.0f ? EffectiveNumDynamicShadowCascades : 0;
 		return FMath::Min<int32>(NumCascades, MaxShadowCascades);
 	}
 
@@ -337,7 +340,7 @@ private:
 	{
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.Shadow.DistanceScale"));
 		 
-		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.1f, 2.0f);
+		float Scale = FMath::Clamp(CVar->GetValueOnRenderThread(), 0.0f, 2.0f);
 		float Distance = GetEffectiveWholeSceneDynamicShadowRadius(bPrecomputedLightingIsValid) * Scale;
 		return Distance;
 	}
@@ -680,6 +683,8 @@ UDirectionalLightComponent::UDirectionalLightComponent(const FObjectInitializer&
 	IndirectLightingIntensity = 1.0f;
 	CastTranslucentShadows = true;
 	bUseInsetShadowsForMovableObjects = true;
+
+	ModulatedShadowColor = FColor(128, 128, 128);
 }
 
 #if WITH_EDITOR
@@ -758,6 +763,11 @@ bool UDirectionalLightComponent::CanEditChange(const UProperty* InProperty) cons
 		{
 			return bEnableLightShaftOcclusion;
 		}
+
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, ModulatedShadowColor))
+		{
+			return bCastModulatedShadows;
+		}
 	}
 
 	return Super::CanEditChange(InProperty);
@@ -781,6 +791,20 @@ FVector4 UDirectionalLightComponent::GetLightPosition() const
 ELightComponentType UDirectionalLightComponent::GetLightType() const
 {
 	return LightType_Directional;
+}
+
+float UDirectionalLightComponent::GetUniformPenumbraSize() const
+{
+	if (LightmassSettings.bUseAreaShadowsForStationaryLight)
+	{
+		// Interpret distance as shadow factor directly
+		return 1.0f;
+	}
+	else
+	{
+		// Heuristic to derive uniform penumbra size from light source angle
+		return FMath::Clamp(LightmassSettings.LightSourceAngle * .05f, .0001f, 1.0f);
+	}
 }
 
 void UDirectionalLightComponent::SetDynamicShadowDistanceMovableLight(float NewValue)

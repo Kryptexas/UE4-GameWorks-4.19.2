@@ -13,7 +13,7 @@ public:
 
 	// IDetailCustomization interface
 
-	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
+	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 public:
 
@@ -33,7 +33,7 @@ private:
 	TSharedRef<SWidget> HandleVideoTrackComboButtonMenuContent() const;
 
 	/** Callback for selecting a track in the VideoTrack combo box. */
-	void HandleVideoTrackComboButtonMenuEntryExecute( uint32 TrackIndex );
+	void HandleVideoTrackComboButtonMenuEntryExecute(int32 TrackIndex);
 
 	/** Callback for getting the text of the VideoTrack combo box. */
 	FText HandleVideoTrackComboButtonText() const;

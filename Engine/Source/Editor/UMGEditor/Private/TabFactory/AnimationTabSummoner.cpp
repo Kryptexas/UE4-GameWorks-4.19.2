@@ -239,7 +239,7 @@ public:
 					.Padding(2.0f, 0.0f)
 					.VAlign( VAlign_Center )
 					[
-						SNew(SSearchBox)
+						SAssignNew(SearchBoxPtr, SSearchBox)
 						.HintText(LOCTEXT("Search Animations", "Search Animations"))
 						.OnTextChanged(this, &SUMGAnimationList::OnSearchChanged)
 					]
@@ -347,6 +347,7 @@ private:
 			TTextFilter<UWidgetAnimation*> TextFilter(TTextFilter<UWidgetAnimation*>::FItemToStringArray::CreateStatic(&Local::UpdateFilterStrings));
 
 			TextFilter.SetRawFilterText(InSearchText);
+			SearchBoxPtr->SetError(TextFilter.GetFilterErrorText());
 
 			Animations.Reset();
 
@@ -362,6 +363,8 @@ private:
 		}
 		else
 		{
+			SearchBoxPtr->SetError(FText::GetEmpty());
+
 			// Just regenerate the whole list
 			UpdateAnimationList();
 		}
@@ -369,7 +372,6 @@ private:
 
 	void OnSelectionChanged( TSharedPtr<FWidgetAnimationListItem> InSelectedItem, ESelectInfo::Type SelectionInfo )
 	{
-		UWidgetBlueprint* WidgetBlueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		UWidgetAnimation* WidgetAnimation;
 		if( InSelectedItem.IsValid() )
 		{
@@ -379,7 +381,12 @@ private:
 		{
 			WidgetAnimation = UWidgetAnimation::GetNullAnimation();
 		}
-		BlueprintEditor.Pin()->ChangeViewedAnimation( *WidgetAnimation );
+
+		const UWidgetAnimation* CurrentWidgetAnimation = BlueprintEditor.Pin()->RefreshCurrentAnimation();
+		if (WidgetAnimation != CurrentWidgetAnimation)
+		{
+			BlueprintEditor.Pin()->ChangeViewedAnimation( *WidgetAnimation );
+		}
 	}
 
 	TSharedPtr<SWidget> OnContextMenuOpening() const
@@ -504,6 +511,7 @@ private:
 	TWeakPtr<FWidgetBlueprintEditor> BlueprintEditor;
 	TSharedPtr<SWidgetAnimationListView> AnimationListView;
 	TArray< TSharedPtr<FWidgetAnimationListItem> > Animations;
+	TSharedPtr<SSearchBox> SearchBoxPtr;
 };
 
 

@@ -50,6 +50,10 @@ public class Launch : ModuleRules
 			if ((Target.Platform == UnrealTargetPlatform.Win32) ||
 				(Target.Platform == UnrealTargetPlatform.Win64))
 			{
+				if (!WindowsPlatform.IsWindowsXPSupported())
+				{
+					DynamicallyLoadedModuleNames.Add("D3D12RHI");
+				}
 				DynamicallyLoadedModuleNames.Add("D3D11RHI");
 				DynamicallyLoadedModuleNames.Add("XAudio2");
 			}
@@ -71,7 +75,6 @@ public class Launch : ModuleRules
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
 			        "SlateRHIRenderer",
-					"HeadMountedDisplay"
 		        }
             );
         }
@@ -129,7 +132,6 @@ public class Launch : ModuleRules
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
 					"AutomationController",
-					"AutomationWorker",
 					"AutomationWindow",
 					"ProfilerClient",
 					"Toolbox",
@@ -183,7 +185,7 @@ public class Launch : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.HTML5 )
         {
-            PrivateDependencyModuleNames.Add("HTML5Audio");
+			PrivateDependencyModuleNames.Add("ALAudio");
 			if (Target.Architecture == "-win32")
 			{
                 PrivateDependencyModuleNames.Add("HTML5Win32");

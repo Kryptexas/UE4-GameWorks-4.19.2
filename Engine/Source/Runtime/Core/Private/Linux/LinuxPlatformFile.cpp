@@ -193,7 +193,7 @@ private:
 			{
 				ReserveSlot();
 				
-				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY);
+				FileHandle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY | O_CLOEXEC);
 				if( FileHandle != -1 )
 				{
 					lseek(FileHandle, FileOffset, SEEK_SET);
@@ -507,7 +507,7 @@ public:
 		}
 
 		// try opening right away
-		int32 Handle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY);
+		int32 Handle = open(TCHAR_TO_UTF8(*Filename), O_RDONLY | O_CLOEXEC);
 		if (Handle != -1)
 		{
 			MappedToFilename = Filename;
@@ -518,7 +518,7 @@ public:
 			if (ENOENT != errno)
 			{
 				int ErrNo = errno;
-				UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', ORDONLY) failed: errno=%d (%s)" ), *Filename, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+				UE_LOG(LogLinuxPlatformFile, Warning, TEXT( "open('%s', O_RDONLY | O_CLOEXEC) failed: errno=%d (%s)" ), *Filename, ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
 			}
 			else
 			{
@@ -532,7 +532,7 @@ public:
 					FString FoundFilename(TEXT("/"));	// start with root
 					if (MapFileRecursively(Filename, 0, MaxPathComponents, FoundFilename))
 					{
-						Handle = open(TCHAR_TO_UTF8(*FoundFilename), O_RDONLY);
+						Handle = open(TCHAR_TO_UTF8(*FoundFilename), O_RDONLY | O_CLOEXEC);
 						if (Handle != -1)
 						{
 							MappedToFilename = FoundFilename;
@@ -770,7 +770,7 @@ FString FLinuxPlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
 IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
 	FString MappedToName;
-	int32 Handle = GCaseInsensMapper.OpenCaseInsensitiveRead(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), MappedToName);
+	int32 Handle = GCaseInsensMapper.OpenCaseInsensitiveRead(NormalizeFilename(Filename), MappedToName);
 	if (Handle != -1)
 	{
 		return new FFileHandleLinux(Handle, *MappedToName, true);
@@ -781,10 +781,6 @@ IFileHandle* FLinuxPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrit
 IFileHandle* FLinuxPlatformFile::OpenWrite(const TCHAR* Filename, bool bAppend, bool bAllowRead)
 {
 	int Flags = O_CREAT | O_CLOEXEC;	// prevent children from inheriting this
-	if (bAppend)
-	{
-		Flags |= O_APPEND;
-	}
 
 	if (bAllowRead)
 	{

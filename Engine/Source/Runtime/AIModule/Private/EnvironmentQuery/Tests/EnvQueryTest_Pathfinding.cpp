@@ -75,7 +75,7 @@ void UEnvQueryTest_Pathfinding::RunTest(FEnvQueryInstance& QueryInstance) const
 
 				if (bDiscardFailed && PathValue >= BIG_NUMBER)
 				{
-					It.DiscardItem();
+					It.ForceItemState(EEnvItemStatus::Failed);
 				}
 			}
 		}

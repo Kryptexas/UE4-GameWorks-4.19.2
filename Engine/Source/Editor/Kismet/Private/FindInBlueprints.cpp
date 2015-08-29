@@ -17,6 +17,17 @@
 /** Some utility functions to help with Find-in-Blueprint functionality */
 namespace FindInBlueprintsHelpers
 {
+	/** Looks up a JsonValue's FText from the passed lookup table */
+	FText AsFText(TSharedPtr< FJsonValue > InJsonValue, const TMap<int32, FText>& InLookupTable)
+	{
+		if(const FText* LookupText = InLookupTable.Find(FCString::Atoi(*InJsonValue->AsString())))
+		{
+			return *LookupText;
+		}
+		// Let's never get here.
+		return LOCTEXT("FiBSerializationError", "There was an error in serialization!");
+	}
+
 	/**
 	 * Retrieves the pin type as a string value
 	 *
@@ -83,7 +94,7 @@ namespace FindInBlueprintsHelpers
 	 * @param InGraphType					There is nothing in the Json script to identify graphs, they are all grouped by category, so pass in what type they should be considered
 	 * @param OutBlueprintCategory			The search category these graphs will be children to
 	 */
-	void ExtractGraph( TSharedPtr< FJsonObject > InJsonObject, FString InCategoryTitle, const TArray<FString>& InTokens, EGraphType InGraphType, FSearchResult& OutBlueprintCategory )
+	void ExtractGraph( const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonObject, FString InCategoryTitle, const TArray<FString>& InTokens, EGraphType InGraphType, FSearchResult& OutBlueprintCategory )
 	{
 		if(InJsonObject->HasField(InCategoryTitle))
 		{
@@ -93,7 +104,7 @@ namespace FindInBlueprintsHelpers
 			{
 				FSearchResult Result(new FFindInBlueprintsGraph(FText::GetEmpty(), OutBlueprintCategory, InGraphType) );
 
-				if( Result->ExtractContent(FunctionValue->AsObject(), InTokens) )
+				if( Result->ExtractContent(InLookupTable, FunctionValue->AsObject(), InTokens) )
 				{
 					OutBlueprintCategory->Children.Add(Result);
 				}
@@ -117,7 +128,8 @@ namespace FindInBlueprintsHelpers
 		}
 
 		TSharedPtr< FJsonObject > JsonObject = NULL;
-		JsonObject = FFindInBlueprintSearchManager::ConvertJsonStringToObject(InBuffer);
+		TMap<int32, FText> LookupTable;
+		JsonObject = FFindInBlueprintSearchManager::ConvertJsonStringToObject(InBuffer, LookupTable);
 
 		if(JsonObject.IsValid())
 		{
@@ -129,17 +141,17 @@ namespace FindInBlueprintsHelpers
 				{
 					FSearchResult Result(new FFindInBlueprintsProperty(FText::GetEmpty(), OutBlueprintCategory) );
 
-					if( Result->ExtractContent(PropertyValue->AsObject(), InTokens) )
+					if( Result->ExtractContent(LookupTable, PropertyValue->AsObject(), InTokens) )
 					{
 						OutBlueprintCategory->Children.Add(Result);
 					}
 				}
 			}
 
-			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_Functions.ToString(), InTokens, EGraphType::GT_Function, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_Macros.ToString(), InTokens, EGraphType::GT_Macro, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_UberGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_SubGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
+			ExtractGraph(LookupTable, JsonObject, FFindInBlueprintSearchTags::FiB_Functions.ToString(), InTokens, EGraphType::GT_Function, OutBlueprintCategory);
+			ExtractGraph(LookupTable, JsonObject, FFindInBlueprintSearchTags::FiB_Macros.ToString(), InTokens, EGraphType::GT_Macro, OutBlueprintCategory);
+			ExtractGraph(LookupTable, JsonObject, FFindInBlueprintSearchTags::FiB_UberGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
+			ExtractGraph(LookupTable, JsonObject, FFindInBlueprintSearchTags::FiB_SubGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
 
 			if(JsonObject->HasField(FFindInBlueprintSearchTags::FiB_Components.ToString()))
 			{
@@ -151,7 +163,7 @@ namespace FindInBlueprintsHelpers
 				{
 					FSearchResult Result(new FFindInBlueprintsProperty(FText::GetEmpty(), ComponentsResult) );
 
-					if( Result->ExtractContent(ComponentValue->AsObject(), InTokens) )
+					if( Result->ExtractContent(LookupTable, ComponentValue->AsObject(), InTokens) )
 					{
 						ComponentsResult->Children.Add(Result);
 					}
@@ -175,27 +187,27 @@ namespace FindInBlueprintsHelpers
 	 * @param InOutPinSubCategory	When the pin's sub-category is found, this value will be changed. This value will never be wiped during other translations. It is not thread safe to determine the sub-object.
 	 * @return						TRUE when the parsing is successful
 	 */
-	bool ParsePinType(FString InKey, FText InValue, FEdGraphPinType& InOutPinType, FString& OutPinSubCategory)
+	bool ParsePinType(FText InKey, FText InValue, FEdGraphPinType& InOutPinType, FString& OutPinSubCategory)
 	{
 		bool bParsed = true;
 
-		if(InKey == FFindInBlueprintSearchTags::FiB_PinCategory.ToString())
+		if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_PinCategory) == 0)
 		{
 			InOutPinType.PinCategory = InValue.ToString();
 		}
-		else if(InKey == FFindInBlueprintSearchTags::FiB_PinSubCategory.ToString())
+		else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_PinSubCategory) == 0)
 		{
 			InOutPinType.PinSubCategory = InValue.ToString();
 		}
-		else if(InKey == FFindInBlueprintSearchTags::FiB_ObjectClass.ToString())
+		else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_ObjectClass) == 0)
 		{
 			OutPinSubCategory = InValue.ToString();
 		}
-		else if(InKey == FFindInBlueprintSearchTags::FiB_IsArray.ToString())
+		else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsArray) == 0)
 		{
 			InOutPinType.bIsArray = InValue.ToString().ToBool();
 		}
-		else if(InKey == FFindInBlueprintSearchTags::FiB_IsReference.ToString())
+		else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsReference) == 0)
 		{
 			InOutPinType.bIsReference = InValue.ToString().ToBool();
 		}
@@ -241,26 +253,30 @@ FReply FFindInBlueprintsResult::OnClick()
 	return FReply::Handled();
 }
 
-bool FFindInBlueprintsResult::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+bool FFindInBlueprintsResult::ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
 	// By default, nothing much gets processed, just check to see if it matches the search requirements
 	return FindInBlueprintsHelpers::TextMatchesSearchTokens(InTokens, InValue);
 }
 
-void FFindInBlueprintsResult::AddExtraSearchInfo(FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+void FFindInBlueprintsResult::AddExtraSearchInfo(FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
 	FText ExtraSearchInfoText;
 
 	FFormatNamedArguments Args;
-	Args.Add(TEXT("Key"), FText::FromString(InKey));
+	Args.Add(TEXT("Key"), InKey);
 	Args.Add(TEXT("Value"), InValue);
 	ExtraSearchInfoText = FText::Format(LOCTEXT("ExtraSearchInfo", "{Key}: {Value}"), Args);
 
 	TSharedPtr< FFindInBlueprintsResult > SearchResult(new FFindInBlueprintsResult(ExtraSearchInfoText, InParent) );
-	InParent->Children.Add(SearchResult);
+
+	if (InKey.CompareTo(FFindInBlueprintSearchTags::FiB_NativeName) != 0)
+	{
+		InParent->Children.Add(SearchResult);
+	}
 }
 
-bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride)
+bool FFindInBlueprintsResult::ExtractJsonValue(const TMap<int32, FText>& InLookupTable, const TArray<FString>& InTokens, FText InKey, TSharedPtr< FJsonValue > InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride)
 {
 	bool bMatchesSearchResults = false;
 
@@ -276,11 +292,11 @@ bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, 
 		{
 			if(Array[ArrayIdx]->Type == EJson::String)
 			{
-				bArrayHasMatches |= ParseSearchInfo(InTokens, FString::FromInt(ArrayIdx), FText::FromString(Array[ArrayIdx]->AsString()), ArrayHeader);
+				bArrayHasMatches |= ParseSearchInfo(InTokens, FText::FromString(FString::FromInt(ArrayIdx)), FindInBlueprintsHelpers::AsFText(Array[ArrayIdx], InLookupTable), ArrayHeader);
 			}
 			else
 			{
-				bArrayHasMatches |= ExtractJsonValue(InTokens, FText::FromString(FString::FromInt(ArrayIdx)), Array[ArrayIdx], ArrayHeader);
+				bArrayHasMatches |= ExtractJsonValue(InLookupTable, InTokens, FText::FromString(FString::FromInt(ArrayIdx)), Array[ArrayIdx], ArrayHeader);
 			}
 		}
 
@@ -295,7 +311,7 @@ bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, 
 	{
 		TSharedPtr< FFindInBlueprintsResult > ObjectResultHeader = MakeShareable(new FFindInBlueprintsResult(InKey, ParentResultPtr) );
 
-		bMatchesSearchResults |= ExtractContent(InValue->AsObject(), InTokens, ObjectResultHeader);
+		bMatchesSearchResults |= ExtractContent(InLookupTable, InValue->AsObject(), InTokens, ObjectResultHeader);
 
 		if(bMatchesSearchResults)
 		{
@@ -304,17 +320,17 @@ bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, 
 	}
 	else if(InValue->Type == EJson::String)
 	{
-		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey.ToString(), FText::FromString(InValue->AsString()), ParentResultPtr);
+		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey, FindInBlueprintsHelpers::AsFText(InValue, InLookupTable), ParentResultPtr);
 	}
 	else
 	{
-		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey.ToString(), FText::FromString(InValue->AsString()), ParentResultPtr);
+		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey, FindInBlueprintsHelpers::AsFText(InValue, InLookupTable), ParentResultPtr);
 	}
 
 	return bMatchesSearchResults;
 }
 
-bool FFindInBlueprintsResult::ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride)
+bool FFindInBlueprintsResult::ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens, TSharedPtr< FFindInBlueprintsResult > InParentOverride)
 {
 	bool bMatchesSearchResults = false;
 
@@ -322,7 +338,7 @@ bool FFindInBlueprintsResult::ExtractContent(TSharedPtr< FJsonObject > InJsonNod
 
 	for( auto MapValues : InJsonNode->Values )
 	{
-		bMatchesSearchResults |= ExtractJsonValue(InTokens, FText::FromString(MapValues.Key), MapValues.Value, ParentResultPtr);
+		bMatchesSearchResults |= ExtractJsonValue(InLookupTable, InTokens, FText::FromString(MapValues.Key), MapValues.Value, ParentResultPtr);
 	}
 	return bMatchesSearchResults;
 }
@@ -427,9 +443,9 @@ TSharedRef<SWidget> FFindInBlueprintsGraphNode::CreateIcon() const
 		.ToolTipText( GetCategory() );
 }
 
-bool FFindInBlueprintsGraphNode::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+bool FFindInBlueprintsGraphNode::ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
-	if(InKey == FFindInBlueprintSearchTags::FiB_NodeGuid.ToString())
+	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_NodeGuid) == 0)
 	{
 		FString NodeGUIDAsString = InValue.ToString();
 		FGuid::Parse(NodeGUIDAsString, NodeGuid);
@@ -440,25 +456,25 @@ bool FFindInBlueprintsGraphNode::ParseSearchInfo(const TArray<FString> &InTokens
 
 	bool bMatchesTokens = FindInBlueprintsHelpers::TextMatchesSearchTokens(InTokens, InValue);
 
-	if(InKey == FFindInBlueprintSearchTags::FiB_ClassName.ToString())
+	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_ClassName) == 0)
 	{
 		ClassName = InValue.ToString();
 		bMatchesTokens = false;
 	}
-	else if(InKey == FFindInBlueprintSearchTags::FiB_Name.ToString())
+	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Name) == 0)
 	{
 		DisplayText = InValue;
 	}
-	else if(InKey == FFindInBlueprintSearchTags::FiB_Comment.ToString())
+	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Comment) == 0)
 	{
 		CommentText = InValue.ToString();
 	}
-	else if(InKey == FFindInBlueprintSearchTags::FiB_Glyph.ToString())
+	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Glyph) == 0)
 	{
 		GlyphBrush = FEditorStyle::GetBrush(*InValue.ToString());
 		bMatchesTokens = false;
 	}
-	else if(InKey == FFindInBlueprintSearchTags::FiB_GlyphColor.ToString())
+	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_GlyphColor) == 0)
 	{
 		GlyphColor.InitFromString(InValue.ToString());
 		bMatchesTokens = false;
@@ -475,14 +491,14 @@ bool FFindInBlueprintsGraphNode::ParseSearchInfo(const TArray<FString> &InTokens
 	return bMatchesTokens;
 }
 
-bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens)
+bool FFindInBlueprintsGraphNode::ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens)
 {
 	// Very important to get the schema first, other bits of data depend on it
 	FString SchemaName;
 	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::String >(FFindInBlueprintSearchTags::FiB_SchemaName.ToString());
 	if(SchemaNameValue.IsValid())
 	{
-		SchemaName = SchemaNameValue->AsString();
+		SchemaName = FindInBlueprintsHelpers::AsFText(SchemaNameValue, InLookupTable).ToString();
 	}
 
 	bool bMatchesSearchResults = false;
@@ -499,7 +515,7 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 			{
 				// The pin
 				TSharedPtr< FFindInBlueprintsPin > PinResult(new FFindInBlueprintsPin(FText::GetEmpty(), SharedThis( this ), SchemaName) );
-				if(PinResult->ExtractContent(Pin->AsObject(), InTokens))
+				if(PinResult->ExtractContent(InLookupTable, Pin->AsObject(), InTokens))
 				{
 					Children.Add(PinResult);
 					bMatchesSearchResults = true;
@@ -513,7 +529,7 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 		}
 		else
 		{
-			bMatchesSearchResults |= ExtractJsonValue(InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ));
+			bMatchesSearchResults |= ExtractJsonValue(InLookupTable, InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ));
 		}
 	}
 	return bMatchesSearchResults;
@@ -587,11 +603,11 @@ TSharedRef<SWidget> FFindInBlueprintsPin::CreateIcon() const
 		.ToolTipText(FText::FromString(FindInBlueprintsHelpers::GetPinTypeAsString(PinType)));
 }
 
-bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
 	bool bMatchesTokens = FindInBlueprintsHelpers::TextMatchesSearchTokens(InTokens, InValue);
 
-	if(InKey == FFindInBlueprintSearchTags::FiB_Name.ToString())
+	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Name) == 0)
 	{
 		DisplayText = InValue;
 		bMatchesTokens = FindInBlueprintsHelpers::StringMatchesSearchTokens(InTokens, DisplayText.ToString());
@@ -599,7 +615,7 @@ bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FStr
 	else if(FindInBlueprintsHelpers::ParsePinType(InKey, InValue, PinType, PinSubCategory))
 	{
 		// For pins, the only information in the Pin Type we care about is the object class, so return false if the Key is not that
-		if(InKey != FFindInBlueprintSearchTags::FiB_ObjectClass.ToString())
+		if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_ObjectClass) != 0)
 		{
 			return false;
 		}
@@ -667,23 +683,23 @@ TSharedRef<SWidget> FFindInBlueprintsProperty::CreateIcon() const
 		.ToolTipText( FText::FromString(FindInBlueprintsHelpers::GetPinTypeAsString(PinType)) );
 }
 
-bool FFindInBlueprintsProperty::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+bool FFindInBlueprintsProperty::ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
 	bool bMatchesTokens = FindInBlueprintsHelpers::TextMatchesSearchTokens(InTokens, InValue);
 
-	if(InKey == FFindInBlueprintSearchTags::FiB_Name.ToString())
+	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Name) == 0)
 	{
 		DisplayText = InValue;
 	}
 	else if(FindInBlueprintsHelpers::ParsePinType(InKey, InValue, PinType, PinSubCategory))
 	{
 		// For properties, we care about all the information in the pin type, except whether its a reference or an array
-		if(InKey == FFindInBlueprintSearchTags::FiB_IsArray.ToString() || InKey == FFindInBlueprintSearchTags::FiB_IsReference.ToString())
+		if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsArray) == 0 || InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsReference) == 0)
 		{
 			return false;
 		}
 	}
-	else if(InKey == FFindInBlueprintSearchTags::FiB_IsSCSComponent.ToString())
+	else if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_IsSCSComponent) == 0)
 	{
 		bIsSCSComponent = true;
 
@@ -776,7 +792,7 @@ TSharedRef<SWidget> FFindInBlueprintsGraph::CreateIcon() const
 		.ToolTipText( GetCategory() );
 }
 
-bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens)
+bool FFindInBlueprintsGraph::ExtractContent(const TMap<int32, FText>& InLookupTable, TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens)
 {
 	bool bMatchesSearchResults = false;
 
@@ -792,7 +808,7 @@ bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode
 			{
 				TSharedPtr< FFindInBlueprintsGraphNode > NodeResult(new FFindInBlueprintsGraphNode(FText::GetEmpty(), SharedThis( this )) );
 
-				if( NodeResult->ExtractContent(NodeValue->AsObject(), InTokens) )
+				if( NodeResult->ExtractContent(InLookupTable, NodeValue->AsObject(), InTokens) )
 				{
 					Children.Add(NodeResult);
 					bMatchesSearchResults = true;
@@ -812,7 +828,7 @@ bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode
 			{
 				FSearchResult Result(new FFindInBlueprintsProperty(FText::GetEmpty(), SharedThis( this )) );
 
-				if( Result->ExtractContent(PropertyValue->AsObject(), InTokens) )
+				if( Result->ExtractContent(InLookupTable, PropertyValue->AsObject(), InTokens) )
 				{
 					Children.Add(Result);
 					bMatchesSearchResults = true;
@@ -821,17 +837,17 @@ bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode
 		}
 		else
 		{
-			bMatchesSearchResults |= ExtractJsonValue( InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ) );
+			bMatchesSearchResults |= ExtractJsonValue( InLookupTable, InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ) );
 		}
 	}
 	return bMatchesSearchResults;
 }
 
-bool FFindInBlueprintsGraph::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
+bool FFindInBlueprintsGraph::ParseSearchInfo(const TArray<FString> &InTokens, FText InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
 	bool bMatchesTokens = FindInBlueprintsHelpers::TextMatchesSearchTokens(InTokens, InValue);
 
-	if(InKey == FFindInBlueprintSearchTags::FiB_Name.ToString())
+	if(InKey.CompareTo(FFindInBlueprintSearchTags::FiB_Name) == 0)
 	{
 		DisplayText = InValue;
 	}
@@ -1086,6 +1102,7 @@ void SFindInBlueprints::ConditionallyAddCacheBar()
 
 					FSlateApplication::Get().PushMenu(
 						InParentWidget.Pin().ToSharedRef(),
+						FWidgetPath(),
 						DisplayWidget,
 						FSlateApplication::Get().GetCursorPos(),
 						FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)

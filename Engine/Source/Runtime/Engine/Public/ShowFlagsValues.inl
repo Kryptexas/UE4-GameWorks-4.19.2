@@ -57,11 +57,11 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeBuffer, SFG_Hidden, LOCTEXT("VisualizeBuffer
 /** Allows to disable all direct lighting (does not affect indirect light) */
 SHOWFLAG_FIXED_IN_SHIPPING(DirectLighting, 1, SFG_LightingComponents, LOCTEXT("DirectLightingSF", "Direct Lighting"))
 /** Allows to disable lighting from Directional Lights */
-SHOWFLAG_FIXED_IN_SHIPPING(DirectionalLights, 1, SFG_LightingComponents, LOCTEXT("DirectionalLightsSF", "Directional Lights"))
+SHOWFLAG_FIXED_IN_SHIPPING(DirectionalLights, 1, SFG_LightTypes, LOCTEXT("DirectionalLightsSF", "Directional Lights"))
 /** Allows to disable lighting from Point Lights */
-SHOWFLAG_FIXED_IN_SHIPPING(PointLights, 1, SFG_LightingComponents, LOCTEXT("PointLightsSF", "Point Lights"))
+SHOWFLAG_FIXED_IN_SHIPPING(PointLights, 1, SFG_LightTypes, LOCTEXT("PointLightsSF", "Point Lights"))
 /** Allows to disable lighting from Spot Lights */
-SHOWFLAG_FIXED_IN_SHIPPING(SpotLights, 1, SFG_LightingComponents, LOCTEXT("SpotLightsSF", "Spot Lights"))
+SHOWFLAG_FIXED_IN_SHIPPING(SpotLights, 1, SFG_LightTypes, LOCTEXT("SpotLightsSF", "Spot Lights"))
 /** Color correction after tone mapping */
 SHOWFLAG_ALWAYS_ACCESSIBLE(ColorGrading, SFG_PostProcess, LOCTEXT("ColorGradingSF", "Color Grading"))
 /** Visualize vector fields. */
@@ -257,7 +257,7 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLightCulling, SFG_Hidden, LOCTEXT("Visualize
 /** To disable precomputed visibility */
 SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibility, SFG_Advanced, LOCTEXT("PrecomputedVisibilitySF", "Precomputed Visibility"))
 /** Contribution from sky light */
-SHOWFLAG_ALWAYS_ACCESSIBLE(SkyLighting, SFG_LightingComponents, LOCTEXT("SkyLightingSF", "Sky Lighting"))
+SHOWFLAG_ALWAYS_ACCESSIBLE(SkyLighting, SFG_LightTypes, LOCTEXT("SkyLightingSF", "Sky Lighting"))
 /** Visualize Light Propagation Volume, for developer (by default off): */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeLPV, SFG_Visualize, LOCTEXT("VisualizeLPVSF", "Light Propagation Volume"))
 /** Visualize preview shadow indicator */
@@ -266,8 +266,6 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(PreviewShadowsIndicator, SFG_Visualize, LOCTEXT("Prev
 SHOWFLAG_ALWAYS_ACCESSIBLE(PrecomputedVisibilityCells, SFG_Visualize, LOCTEXT("PrecomputedVisibilityCellsSF", "Precomputed Visibility Cells"))
 /** Visualize volume lighting samples used for GI on dynamic objects */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VolumeLightingSamples, SFG_Visualize, LOCTEXT("VolumeLightingSamplesSF", "Volume Lighting Samples"))
-/** needed for VMI_LpvLightingViewMode, Whether to show only LPV lighting*/
-SHOWFLAG_ALWAYS_ACCESSIBLE(LpvLightingOnly, SFG_Hidden, LOCTEXT("VisualizeLPVSF_ViewMode", "Visualize LPV"))
 /** Render Paper2D sprites */
 SHOWFLAG_ALWAYS_ACCESSIBLE(Paper2DSprites, SFG_Advanced, LOCTEXT("Paper2DSpritesSF", "Paper 2D Sprites"))
 /** Visualization of distance field AO */
@@ -276,6 +274,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeDistanceFieldAO, SFG_Visualize, LOCTEXT("Vis
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeDistanceFieldGI, SFG_Visualize, LOCTEXT("VisualizeDistanceFieldGISF", "Distance Field Global Illumination"))
 /** Mesh Distance fields */
 SHOWFLAG_ALWAYS_ACCESSIBLE(VisualizeMeshDistanceFields, SFG_Visualize, LOCTEXT("MeshDistanceFieldsSF", "Mesh DistanceFields"))
+/** Screen space AO */
+SHOWFLAG_ALWAYS_ACCESSIBLE(ScreenSpaceAO, SFG_LightingFeatures, LOCTEXT("ScreenSpaceAOSF", "Screen Space Ambient Occlusion"))
 /** Distance field AO */
 SHOWFLAG_ALWAYS_ACCESSIBLE(DistanceFieldAO, SFG_LightingFeatures, LOCTEXT("DistanceFieldAOSF", "Distance Field Ambient Occlusion"))
 /** Distance field GI */

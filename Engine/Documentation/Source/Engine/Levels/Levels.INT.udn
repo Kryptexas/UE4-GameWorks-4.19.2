@@ -7,10 +7,49 @@ Related: Engine/Actors
 Related: Engine/LevelStreaming
 Related: Resources/ContentExamples/LevelDesign
 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 [TOC(start:2 end:3)]
 
 ![](Level_Intro.png)
-## Overview
+
 When playing a Video Game, every object that you see or interact with in the world resides in what is known as a **Level**. In Unreal Engine 4 terms, a Level is made up of a collection of Static Meshes, Volumes, Lights, and Blueprints all working together to bring the desired experience to the player. Levels in UE4 can range in size from massive terrain based worlds to very small levels for just a single mini-game to take place in. The following guide will tell you all you need to know about creating and managing Levels inside of UE4. 
 
 ## How to Create Levels
@@ -147,6 +186,11 @@ During the process of migrating a level, you might receive a few error messages.
 * This error message means that you are trying to migrate content to another location that is not inside the content folder. For migrated content to work correctly, you must make sure that you always use the main **Content Folder** of your project. If not, you run the risk of the migration not working correctly. 
 
 	![](Level_Error_Level_Not_In_Content_Folder.png)
+
+
+
+
+
 
 
 

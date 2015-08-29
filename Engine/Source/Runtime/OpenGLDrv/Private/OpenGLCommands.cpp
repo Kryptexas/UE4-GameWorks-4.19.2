@@ -99,7 +99,7 @@ namespace OpenGLConsoleVariables
 		ECVF_ReadOnly|ECVF_RenderThreadSafe);
 };
 
-TGlobalResource<FVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
+TGlobalResource<FOpenGLVector4VertexDeclaration> GOpenGLVector4VertexDeclaration;
 
 #if PLATFORM_64BITS
 #define INDEX_TO_VOID(Index) (void*)((uint64)(Index))
@@ -262,9 +262,6 @@ static FORCEINLINE GLint ModifyFilterByMips(GLint Filter, bool bHasMips)
 
 	return Filter;
 }
-
-// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
-#if !UE_BUILD_DOCS
 
 void FOpenGLDynamicRHI::RHIGpuTimeBegin(uint32 Hash, bool bCompute)
 {
@@ -1831,7 +1828,30 @@ void FOpenGLDynamicRHI::RHISetRenderTargetsAndClear(const FRHISetRenderTargetsIn
 		nullptr);
 	if (RenderTargetsInfo.bClearColor || RenderTargetsInfo.bClearStencil || RenderTargetsInfo.bClearDepth)
 	{
-		this->RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, RenderTargetsInfo.ClearColors, RenderTargetsInfo.bClearDepth, RenderTargetsInfo.DepthClearValue, RenderTargetsInfo.bClearStencil, RenderTargetsInfo.StencilClearValue, FIntRect());
+		FLinearColor ClearColors[MaxSimultaneousRenderTargets];
+		float DepthClear = 0.0;
+		uint32 StencilClear = 0;
+
+		if (RenderTargetsInfo.bClearColor)
+		{
+			for (int32 i = 0; i < RenderTargetsInfo.NumColorRenderTargets; ++i)
+			{
+				if (RenderTargetsInfo.ColorRenderTarget[i].Texture != nullptr)
+				{
+					const FClearValueBinding& ClearValue = RenderTargetsInfo.ColorRenderTarget[i].Texture->GetClearBinding();
+					checkf(ClearValue.ColorBinding == EClearBinding::EColorBound, TEXT("Texture: %s does not have a color bound for fast clears"), *RenderTargetsInfo.ColorRenderTarget[i].Texture->GetName().GetPlainNameString());
+					ClearColors[i] = ClearValue.GetClearColor();
+				}
+			}
+		}
+		if (RenderTargetsInfo.bClearDepth || RenderTargetsInfo.bClearStencil)
+		{
+			const FClearValueBinding& ClearValue = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetClearBinding();
+			checkf(ClearValue.ColorBinding == EClearBinding::EDepthStencilBound, TEXT("Texture: %s does not have a DS value bound for fast clears"), *RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetName().GetPlainNameString());
+			ClearValue.GetDepthStencil(DepthClear, StencilClear);
+		}
+
+		this->RHIClearMRT(RenderTargetsInfo.bClearColor, RenderTargetsInfo.NumColorRenderTargets, ClearColors, RenderTargetsInfo.bClearDepth, DepthClear, RenderTargetsInfo.bClearStencil, StencilClear, FIntRect());
 	}
 }
 
@@ -3379,11 +3399,6 @@ void FOpenGLDynamicRHI::RHIClearMRT(bool bClearColor,int32 NumClearColors,const 
 	}
 }
 
-void FOpenGLDynamicRHI::RHIBindClearMRTValues(bool bClearColor, int32 NumClearColors, const FLinearColor* ClearColorArray, bool bClearDepth, float Depth, bool bClearStencil, uint32 Stencil)
-{
-	// Not necessary for opengl.
-}
-
 // Functions to yield and regain rendering control from OpenGL
 
 void FOpenGLDynamicRHI::RHISuspendRendering()
@@ -3516,6 +3531,20 @@ void FOpenGLDynamicRHI::RHIDispatchIndirectComputeShader(FVertexBufferRHIParamRe
 	}
 }
 
+void FOpenGLDynamicRHI::RHIBeginAsyncComputeJob_DrawThread(EAsyncComputePriority Priority) 
+{
+	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
+}
+
+void FOpenGLDynamicRHI::RHIEndAsyncComputeJob_DrawThread(uint32 FenceIndex)
+{
+	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
+}
+
+void FOpenGLDynamicRHI::RHIGraphicsWaitOnAsyncComputeJob(uint32 FenceIndex)
+{
+	UE_LOG(LogRHI, Fatal,TEXT("%s not implemented yet"),ANSI_TO_TCHAR(__FUNCTION__));
+}
 
 void FOpenGLDynamicRHI::RHISetMultipleViewports(uint32 Count, const FViewportBounds* Data)
 {
@@ -3557,4 +3586,3 @@ IRHICommandContextContainer* FOpenGLDynamicRHI::RHIGetCommandContextContainer()
 }
 
 
-#endif

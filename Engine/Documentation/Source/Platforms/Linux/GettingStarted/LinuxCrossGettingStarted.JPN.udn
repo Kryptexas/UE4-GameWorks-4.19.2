@@ -1,0 +1,96 @@
+﻿INTSourceChangelist:2543338
+Availability:Docs
+Title:入門編:Linux プロジェクトの開発
+Crumbs:%ROOT%, Platforms, Platforms/Linux
+Description:Linux プラットフォーム開発の環境設定
+
+[TOC(start:2 end:3)]
+
+## ご注意
+
+%Globals:BinarySourceSelectVar%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%binary%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%source%
+	[/PARAM]
+[/OBJECT]
+
+
+[VAR:source]
+## ソースと Github ユーザー向け
+
+Linux ターゲットプラットフォームは、Windows ホストプラットフォームと Linux プラットフォームをサポートしています（Macプラットフォームはまだサポートしていません）。 このユーザーガイドは Linux 向けにクロスコンパイルを行う Windows ユーザー向けです。 Linux でアンリアルエンジンを実行する場合は、現時点では単独に行わなくてはいけない手順はありません。
+（現時点のLinux はシステムで利用可能なコンパイラを使用しています。将来的には、配布に依存しない方法でバイナリの準備も可能にする安定したビルド環境を提供するためにひとまとまりになる可能性があります）。
+
+Windowsは、 Linux バイナリのクロスコンパイルに [クロスコンパイラーツールチェーン](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) を使用します。 
+
+### ソースからのインストール方法： 
+
+このガイドは Windows を実行していることを仮定しているので、最初にツールチェーンをインストールしなくてはいけません。
+
+* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### ツールチェーンの設定
+
+スペースや非ASCII文字を含まないパスへ上記のファイルを解凍して（例えば C:\CrossToolchain350 が良い例）、ツールチェーン（例えば C:\CrossToolchain350\toolchain\)の「toolchain」ディレクトリへ絶対パスを格納するために LINUX_ROOT 環境変数を設定します。
+詳細は https://wiki.unrealengine.com/Compiling_For_Linux を参照してください。
+
+### アンリアルエンジン4の設定方法 
+
+* アンリアルエンジン4のレポジトリをフォークおよびクローンします \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
+
+* シェルで `Setup.bat -include=Linux` を実行します。
+
+ [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) に掲載されている指示に従ってエディタをビルドします。ソリューションコンフィギュレーションを **Development** 、ソリューションプラットフォームを **Linux** に設定して Linux ターゲットをビルドします。
+
+[/VAR]
+
+
+
+
+
+
+[VAR:binary]
+
+## バイナリとランチャーユーザー向け
+
+Linux ターゲットプラットフォームは、Windows ホストプラットフォームと Linux プラットフォームをサポートしています（Macプラットフォームはまだサポートしていません）。 このユーザーガイドは Linux 向けにクロスコンパイルを行う Windows ユーザー向けです。 Linux でアンリアルエンジンを実行する場合は、現時点では単独に行わなくてはいけない手順はありません。
+（現時点のLinux はシステムで利用可能なコンパイラを使用しています。将来的には、配布に依存しない方法でバイナリの準備も可能にする安定したビルド環境を提供するためにひとまとまりになる可能性があります）。
+
+Windowsは、 Linux バイナリのクロスコンパイルに [クロスコンパイラーツールチェーン](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) を使用します。 
+
+### インストール方法 
+
+このガイドは Windows を実行していることを仮定しているので、最初にツールチェーンをインストールしなくてはいけません。
+
+* [Clang-3.5.0 based tool chain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip)
+
+### ツールチェーンの設定
+
+スペースや非ASCII文字を含まないパスへ上記のファイルを解凍して（例えば C:\CrossToolchain350 が良い例）、ツールチェーン（例えば C:\CrossToolchain350\toolchain\)の「toolchain」ディレクトリへ絶対パスを格納するために LINUX_ROOT 環境変数を設定します。
+詳細は https://wiki.unrealengine.com/Compiling_For_Linux を参照してください。
+
+[/VAR]

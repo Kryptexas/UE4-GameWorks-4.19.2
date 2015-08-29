@@ -321,8 +321,8 @@ half CocMaxRadiusInPixelsRcp()
 
 half2 CocBlendScaleBias() 
 {
-	half2 Start = 0.25 * CocMaxRadiusInPixelsRcp();
-	half2 End = 1.0 * CocMaxRadiusInPixelsRcp();
+	half Start = 0.25 * CocMaxRadiusInPixelsRcp();
+	half End = 1.0 * CocMaxRadiusInPixelsRcp();
 	half2 ScaleBias;
 	ScaleBias.x = 1.0/(End-Start);
 	ScaleBias.y = (-Start)*ScaleBias.x;
@@ -331,8 +331,8 @@ half2 CocBlendScaleBias()
 
 half2 CocBlendScaleBiasFine() 
 {
-	half2 Start = 0.0 * CocMaxRadiusInPixelsRcp();
-	half2 End = 0.5 * CocMaxRadiusInPixelsRcp();
+	half Start = 0.0 * CocMaxRadiusInPixelsRcp();
+	half End = 0.5 * CocMaxRadiusInPixelsRcp();
 	half2 ScaleBias;
 	ScaleBias.x = 1.0/(End-Start);
 	ScaleBias.y = (-Start)*ScaleBias.x;
@@ -347,7 +347,7 @@ void MainPS_ES2(
 	in float4 FullViewUV : TEXCOORD2,
 	in float2 InVignette : TEXCOORD3,
 	in float2 InTexCoords[4] : TEXCOORD4,
-	#if USE_HDR_MOSAIC
+	#if USE_32BPP_HDR
 		in float4 SvPosition : SV_Position,
 	#endif
 	out half4 OutColor : SV_Target0
@@ -388,10 +388,8 @@ void MainPS_ES2(
 			// Blend in coarse DOF.
 			SceneColor.rgb = lerp(SceneColor.rgb, Dof.rgb, DofAmount);
 		#else
-			// Set so temporal AA shader knows everything is in focus.
-			SceneColor.a = 0.0;
 			#if USE_GRAIN_JITTER
-				#if USE_HDR_MOSAIC
+				#if USE_32BPP_HDR
 					// This has grain jitter off.
 				#else
 					// Do jitter for grain.
@@ -407,7 +405,8 @@ void MainPS_ES2(
 			SceneColor.rgb *= rcp(SceneColor.r*(-0.299) + SceneColor.g*(-0.587) + SceneColor.b*(-0.114) + 1.0);
 		#endif
 
-		#if USE_HDR_MOSAIC
+		#if USE_32BPP_HDR
+		{
 			// TODO: Support odd frame inversion of mosaic pattern?
 			#if 0
 				half3 SceneColorE = PostprocessInput0.Sample(PostprocessInput0Sampler, InTexCoords[1].xy).rgb;
@@ -425,21 +424,39 @@ void MainPS_ES2(
 				{
 					SceneColorH = SceneColorV;
 				}
-				SceneColor.rgb = HdrDemosaic(SceneColor.rgb, SceneColorH, SvPosition.xy);
+				SceneColor.rgb = Decode32BPPHDR(SceneColor, SceneColorH, SvPosition.xy);
+				SceneColor.a = 0.0;
 			#endif
+		}
+		#endif
+
+		#if !USE_DOF
+			// Set so temporal AA shader knows everything is in focus.
+			SceneColor.a = 0.0;
 		#endif
 
 		// Match PC naming.
 		half3 LinearColor = SceneColor.rgb;
 
-		#if USE_HDR_MOSAIC && USE_VIGNETTE
+		#if USE_32BPP_HDR && USE_VIGNETTE
 			LinearColor.rgb *= ComputeVignetteMask( InVignette, VignetteIntensity );
+			LinearColor = max(LinearColor, float3(0, 0, 0));
 		#endif
 
 		// It is faster to do vignette as a texture lookup + mad because this is an ALU bound shader.
-		#if (!USE_HDR_MOSAIC) && (USE_BLOOM || USE_LIGHT_SHAFTS || USE_VIGNETTE)
-			half4 CombinedBloomSunVignette = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, FullViewUV.xy);
-			LinearColor.rgb = LinearColor.rgb * CombinedBloomSunVignette.a + CombinedBloomSunVignette.rgb;
+		#if (USE_BLOOM || USE_LIGHT_SHAFTS || USE_VIGNETTE)
+		{
+			if (GetHDR32bppEncodeMode() != HDR_ENCODE_MOSAIC)
+			{
+				half4 CombinedBloomSunVignette = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, FullViewUV.xy);
+				#if USE_32BPP_HDR
+					CombinedBloomSunVignette.rgb = Decode32BPPHDR(CombinedBloomSunVignette);
+					LinearColor.rgb = LinearColor.rgb + CombinedBloomSunVignette.rgb;
+				#else
+					LinearColor.rgb = LinearColor.rgb * CombinedBloomSunVignette.a + CombinedBloomSunVignette.rgb;
+				#endif
+			}
+		}
 		#endif
 
 		#if USE_GRAIN_INTENSITY
@@ -472,7 +489,7 @@ void MainPS_ES2(
 			TonemappedColor.rgb += GrainAdd;
 		#endif
 			
-		OutColor = half4(TonemappedColor, SceneColor.a);
+			OutColor = half4(TonemappedColor, SceneColor.a);
 
 	#endif
 }

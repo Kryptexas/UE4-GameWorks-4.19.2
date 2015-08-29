@@ -5,7 +5,6 @@ Description:Reference covering Blueprint shortcuts and useful actions.
 
 [TOC(start:2 end:2)]
 
-## Overview
 The **Blueprint** editor has a lot of productivity boosting shortcuts built-in, and while many will come naturally as you use the editor, others are a little bit hidden. This page covers the most commonly used actions and the shortcuts that can be used to perform those actions more efficiently. You can also download this list of shortcuts below. 
 
 Click to download: [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/White Version](BlueprintCheatSheet_BlackAndWhite-1276559864.pdf)
@@ -65,7 +64,7 @@ Click to download: [Color Version](BlueprintCheatSheet-1989117414.pdf) | [Black/
 | Undo | **Ctrl + Z** |
 | Find in this Blueprint | **Ctrl + F**|
 | Find in any Blueprint | **Ctrl + Shift + F** |
-| Complie the Blueprint | **F7** |
+| Compile the Blueprint | **F7** |
 
 
 ## Variable Actions (My Blueprint)

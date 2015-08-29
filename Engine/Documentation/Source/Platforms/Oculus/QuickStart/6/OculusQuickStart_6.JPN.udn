@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2385999
+﻿INTSourceChangelist:2565490
 Title:6.追加のリソース
 Crumbs:%ROOT%, Platforms, Platforms/Oculus, Platforms/Oculus/QuickStart
 Description:アンリアル エンジンによる Oculus 開発についての追加情報
@@ -33,7 +33,7 @@ Availability:Public
 	* [](Platforms\VR)
 		* [](Platforms\VR\CheatSheet)
 		* [](Platforms\Oculus\BestPractices)
-	* [Oculus ドキュメント](https://developer.oculus.com/documents/)
+	* [Oculus ドキュメント](https://developer.oculus.com/documentation/)
 		* [ユーザーガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_User_Guide_0.4.4.pdf)
 		* [デベロッパー ガイド](http://static.oculus.com/sdk-downloads/documents/Oculus_Developer_Guide_0.4.4.pdf)
 	[/PARAM]

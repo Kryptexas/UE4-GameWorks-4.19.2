@@ -2,17 +2,23 @@
 
 #include "SequencerPrivatePCH.h"
 #include "SectionDragOperations.h"
+#include "Sequencer.h"
 #include "MovieSceneSection.h"
 #include "ISequencerSection.h"
 #include "IKeyArea.h"
 #include "CommonMovieSceneTools.h"
 #include "MovieScene.h"
 #include "MovieSceneTrack.h"
-#include "MovieSceneDirectorTrack.h"
-#include "Sequencer.h"
+#include "MovieSceneShotTrack.h"
 
 /** How many pixels near the mouse has to be before snapping occurs */
 const float PixelSnapWidth = 10.f;
+
+FSequencerDragOperation::FSequencerDragOperation( FSequencer& InSequencer )
+	: Sequencer(InSequencer)
+{
+	Settings = Sequencer.GetSettings();
+}
 
 void FSequencerDragOperation::BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc )
 {
@@ -78,10 +84,10 @@ void FSequencerDragOperation::GetSectionSnapTimes(TArray<float>& OutSnapTimes, U
 	// snap to director track if it exists, and we are not the director track
 	UMovieSceneTrack* OuterTrack = Cast<UMovieSceneTrack>(Section->GetOuter());
 	UMovieScene* MovieScene = Cast<UMovieScene>(OuterTrack->GetOuter());
-	UMovieSceneTrack* DirectorTrack = MovieScene->FindMasterTrack(UMovieSceneDirectorTrack::StaticClass());
-	if (DirectorTrack && OuterTrack != DirectorTrack)
+	UMovieSceneTrack* ShotTrack = MovieScene->FindMasterTrack(UMovieSceneShotTrack::StaticClass());
+	if (ShotTrack && OuterTrack != ShotTrack)
 	{
-		TArray<UMovieSceneSection*> ShotSections = DirectorTrack->GetAllSections();
+		const TArray<UMovieSceneSection*>& ShotSections = ShotTrack->GetAllSections();
 		for (int32 SectionIndex = 0; SectionIndex < ShotSections.Num(); ++SectionIndex)
 		{
 			auto Shot = ShotSections[SectionIndex];
@@ -147,12 +153,18 @@ void FResizeSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTra
 	if( Section.IsValid() )
 	{
 		BeginTransaction( *Section, NSLOCTEXT("Sequencer", "DragSectionEdgeTransaction", "Resize section") );
+
+		DraggedKeyHandles.Empty();
+
+		Section->GetKeyHandles(DraggedKeyHandles);
 	}
 }
 
 void FResizeSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
 	EndTransaction();
+
+	DraggedKeyHandles.Empty();
 }
 
 void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode )
@@ -201,7 +213,7 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			{
 				float NewSize = NewTime - Section->GetStartTime();
 				float DilationFactor = NewSize / Section->GetTimeSize();
-				Section->DilateSection(DilationFactor, Section->GetStartTime());
+				Section->DilateSection(DilationFactor, Section->GetStartTime(), DraggedKeyHandles);
 			}
 			else
 			{
@@ -218,7 +230,7 @@ void FResizeSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& L
 			{
 				float NewSize = Section->GetEndTime() - NewTime;
 				float DilationFactor = NewSize / Section->GetTimeSize();
-				Section->DilateSection(DilationFactor, Section->GetEndTime());
+				Section->DilateSection(DilationFactor, Section->GetEndTime(), DraggedKeyHandles);
 			}
 			else
 			{
@@ -242,18 +254,33 @@ void FMoveSection::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrack
 		BeginTransaction( *Section, NSLOCTEXT("Sequencer", "MoveSectionTransaction", "Move Section") );
 		
 		DragOffset = LocalMousePos;
+
+		DraggedKeyHandles.Empty();
+
+		Section->GetKeyHandles(DraggedKeyHandles);
 	}
 }
 
 void FMoveSection::OnEndDrag(TSharedPtr<FTrackNode> SequencerNode)
 {
-	EndTransaction();
+	DraggedKeyHandles.Empty();
 
 	if (Section.IsValid())
 	{
 		SequencerNode->FixRowIndices();
+
+		UMovieSceneTrack* OuterTrack = Cast<UMovieSceneTrack>(Section->GetOuter());
+
+		if (OuterTrack)
+		{
+			OuterTrack->Modify();
+			OuterTrack->OnSectionMoved(*Section);
+		}
 	}
+
+	EndTransaction();
 }
+
 
 void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalMousePos, const FTimeToPixel& TimeToPixelConverter, TSharedPtr<FTrackNode> SequencerNode )
 {
@@ -266,8 +293,16 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 			MovieSceneSections.Add(Sections[i]->GetSectionObject());
 		}
 		
-
 		FVector2D TotalDelta = LocalMousePos - DragOffset;
+		
+		// When the section is not infinite, the local mouse pos is relative to the start time of the section which continually updates as the section is dragged. 
+		// When the section is infinite, the local mouse pos is relative to the track extents, which do not change. 
+		// Reset the drag offset so that the motion is relative to the last moved position.
+		if (Section.Get()->IsInfinite())
+		{
+			DragOffset = LocalMousePos;
+		}
+
 		float DistanceMoved = TotalDelta.X / TimeToPixelConverter.GetPixelsPerInput();
 		
 		float DeltaTime = DistanceMoved;
@@ -276,22 +311,22 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		{
 			bool bSnappedToSection = false;
 			if ( Settings->GetSnapSectionTimesToSections() )
-		{
-			TArray<float> TimesToSnapTo;
-			GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, true);
-
-			TArray<float> TimesToSnap;
-			TimesToSnap.Add(DistanceMoved + Section->GetStartTime());
-			TimesToSnap.Add(DistanceMoved + Section->GetEndTime());
-
-			float OutSnappedTime = 0.f;
-			float OutNewTime = 0.f;
-				if ( SnapToTimes( TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime ) )
 			{
-				DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
+				TArray<float> TimesToSnapTo;
+				GetSectionSnapTimes(TimesToSnapTo, Section.Get(), SequencerNode, true);
+
+				TArray<float> TimesToSnap;
+				TimesToSnap.Add(DistanceMoved + Section->GetStartTime());
+				TimesToSnap.Add(DistanceMoved + Section->GetEndTime());
+
+				float OutSnappedTime = 0.f;
+				float OutNewTime = 0.f;
+				if (SnapToTimes(TimesToSnap, TimesToSnapTo, TimeToPixelConverter, OutSnappedTime, OutNewTime))
+				{
+					DeltaTime = OutNewTime - (OutSnappedTime - DistanceMoved);
 					bSnappedToSection = true;
+				}
 			}
-		}
 
 			if ( bSnappedToSection == false && Settings->GetSnapSectionTimesToInterval() )
 			{
@@ -329,7 +364,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 		if (bDeltaX && bDeltaY &&
 			!Section->OverlapsWithSections(MovieSceneSections, TargetRowIndex - Section->GetRowIndex(), DeltaTime))
 		{
-			Section->MoveSection(DeltaTime);
+			Section->MoveSection(DeltaTime, DraggedKeyHandles);
 			Section->SetRowIndex(TargetRowIndex);
 		}
 		else
@@ -344,7 +379,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 			{
 				if (!Section->OverlapsWithSections(MovieSceneSections, 0, DeltaTime))
 				{
-					Section->MoveSection(DeltaTime);
+					Section->MoveSection(DeltaTime, DraggedKeyHandles);
 				}
 				else
 				{
@@ -355,7 +390,7 @@ void FMoveSection::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& Loc
 					float RightMovementMaximum = SectionBoundaries.GetUpperBoundValue() - Section->GetEndTime();
 
 					// Tell the section to move itself and any data it has
-					Section->MoveSection( FMath::Clamp(DeltaTime, LeftMovementMaximum, RightMovementMaximum) );
+					Section->MoveSection( FMath::Clamp(DeltaTime, LeftMovementMaximum, RightMovementMaximum), DraggedKeyHandles );
 				}
 			}
 		}
@@ -386,13 +421,13 @@ bool FMoveSection::IsSectionAtNewLocationValid(UMovieSceneSection* InSection, in
 
 void FMoveKeys::OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode)
 {
-	check( SelectedKeys->Num() > 0 )
+	check( SelectedKeys.Num() > 0 )
 
 	// Begin an editor transaction and mark the section as transactional so it's state will be saved
 	GEditor->BeginTransaction( NSLOCTEXT("Sequencer", "MoveKeysTransaction", "Move Keys") );
 
 	TSet<UMovieSceneSection*> ModifiedSections;
-	for( FSelectedKey SelectedKey : *SelectedKeys )
+	for( FSelectedKey SelectedKey : SelectedKeys )
 	{
 		UMovieSceneSection* OwningSection = SelectedKey.Section;
 
@@ -435,7 +470,7 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 				GetKeySnapTimes(OutSnapTimes, SequencerNode);
 
 				TArray<float> InitialTimes;
-				for ( FSelectedKey SelectedKey : *SelectedKeys )
+				for ( FSelectedKey SelectedKey : SelectedKeys )
 				{
 					InitialTimes.Add(SelectedKey.KeyArea->GetKeyTime(SelectedKey.KeyHandle.GetValue()) + DistanceMoved);
 				}
@@ -454,7 +489,9 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 			}
 		}
 
-		for( FSelectedKey SelectedKey : *SelectedKeys )
+		float PrevNewKeyTime = FLT_MAX;
+
+		for( FSelectedKey SelectedKey : SelectedKeys )
 		{
 			UMovieSceneSection* Section = SelectedKey.Section;
 
@@ -477,6 +514,21 @@ void FMoveKeys::OnDrag( const FPointerEvent& MouseEvent, const FVector2D& LocalM
 			{
 				Section->SetStartTime( NewKeyTime );
 			}
+
+			if (PrevNewKeyTime == FLT_MAX)
+			{
+				PrevNewKeyTime = NewKeyTime;
+			}
+			else if (!FMath::IsNearlyEqual(NewKeyTime, PrevNewKeyTime))
+			{
+				PrevNewKeyTime = -FLT_MAX;
+			}
+		}
+
+		// Snap the play time to the new dragged key time if all the keyframes were dragged to the same time
+		if (Settings->GetSnapPlayTimeToDraggedKey() && PrevNewKeyTime != FLT_MAX && PrevNewKeyTime != -FLT_MAX)
+		{
+			Sequencer.SetGlobalTime(PrevNewKeyTime);
 		}
 	}
 }
@@ -499,7 +551,7 @@ void FMoveKeys::GetKeySnapTimes(TArray<float>& OutSnapTimes, TSharedPtr<FTrackNo
 			{
 				FKeyHandle KeyHandle = KeyHandles[KeyIndex];
 				bool bKeyIsSnappable = true;
-				for ( FSelectedKey SelectedKey : *SelectedKeys )
+				for ( FSelectedKey SelectedKey : SelectedKeys )
 				{
 					if (SelectedKey.KeyArea == KeyArea && SelectedKey.KeyHandle.GetValue() == KeyHandle)
 					{

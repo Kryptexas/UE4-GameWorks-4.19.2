@@ -1,4 +1,4 @@
-INTSourceChangelist:2125630
+﻿INTSourceChangelist:2621829
 Availability: Public
 title:기타
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Misc, 기타 카테고리에 있는 머티리얼 함수에 대한 �
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 다른 카테고리에는 그리 잘 맞지 않는 다양한 일회성 함수들을 포함한 기타 함수입니다. 함수가 딱 하나밖에 없는 카테고리가 너무 많이 생기는 것을 방지하기 위해서입니다.
 
@@ -28,7 +28,9 @@ TimeWithSpeedVariable (속력 변수가 있는 시간) 함수는 Time 노드와 
 
 ![Time with Speed Offset](TimeWithSpeedVariable_Demo.png)
 
-**주: 출력 결과창에서 기본적으로 노드를 미리봅니다. 이 경우 노드는 깜빡입니다.**
+[REGION:note]
+출력 결과창에서 기본적으로 노드를 미리봅니다. 이 경우 노드는 깜빡입니다.**
+[/REGION]
 
 ### OffsetAndScaleTo1
 
@@ -64,7 +66,7 @@ SplitComponents (컴포넌트 분할) 함수는 입력받은 색이나 이미지
 
 ![Split Components](SplitComponents_Demo.png)
 
-### FlipBook
+### Flipbook
 
 스프라이트 프레임으로 이루어진 그리드같은 Texture2D 를 받은 다음 그 애니메이션을 순서대로 재생 출력하는 함수입니다.
 

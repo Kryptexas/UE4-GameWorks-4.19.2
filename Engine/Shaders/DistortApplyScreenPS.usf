@@ -59,3 +59,11 @@ void Main(
 	half4 DistColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, NewTexCoord);
 	OutColor = DistColor;
 }
+
+void Merge(
+	in float4 TexCoord: TEXCOORD0,
+	out float4 OutColor : SV_Target0
+	)
+{
+	OutColor = Texture2DSample(SceneColorTexture, SceneColorTextureSampler, TexCoord.xy);
+}

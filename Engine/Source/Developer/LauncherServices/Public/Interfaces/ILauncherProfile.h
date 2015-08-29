@@ -438,6 +438,34 @@ public:
 	 */
 	virtual const FString& GetCookOptions( ) const = 0;
 
+
+	/**
+	 * Get the number of cookers we want to spawn during cooking
+	 *
+	 * @return number of cookers we want to spawn in addition to the master cooker
+	 */
+	virtual const int32 GetNumCookersToSpawn() const = 0;
+
+	/**
+	 * Set the number of cookers we want to spawn during cooking
+	 * 
+	 * @param InNumCookersToSpawn number of cookers we want to spawn in addition to the master cooker
+	 */
+	virtual void SetNumCookersToSpawn(const int32 InNumCookersToSpawn) = 0; 
+
+
+
+	virtual const bool GetSkipCookingEditorContent() const = 0; 
+
+	/**
+	 * Skip editor content while cooking, 
+	 * This will strip editor content from final builds
+	 * 
+	 * @param InSkipCookingEditorContent
+	 */
+	virtual void SetSkipCookingEditorContent(const bool InSkipCookingEditorContent) = 0;
+
+
 	/**
 	 * Gets the list of cooked culture.
 	 *

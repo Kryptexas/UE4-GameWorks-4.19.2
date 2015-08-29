@@ -212,7 +212,8 @@ private:
 			}
 			NewMenu.EndSection();
 
-			FSlateApplication::Get().PushMenu( SharedThis( this ), NewMenu.MakeWidget(), MouseEvent.GetScreenSpacePosition(), FPopupTransitionEffect( FPopupTransitionEffect::None ) );
+			FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+			FSlateApplication::Get().PushMenu(SharedThis(this), WidgetPath, NewMenu.MakeWidget(), MouseEvent.GetScreenSpacePosition(), FPopupTransitionEffect(FPopupTransitionEffect::None));
 
 			return FReply::Handled();
 		}
@@ -936,11 +937,11 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 
 								Poly->TextureU /= ScaleVec;
 								Poly->TextureV /= ScaleVec;
-								Poly->Base = ((Poly->Base - Brush->GetPrePivot()) * ScaleVec) + Brush->GetPrePivot();
+								Poly->Base = ((Poly->Base - Brush->GetPivotOffset()) * ScaleVec) + Brush->GetPivotOffset();
 
 								for( int32 vtx = 0 ; vtx < Poly->Vertices.Num() ; vtx++ )
 								{
-									Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPrePivot()) * ScaleVec) + Brush->GetPrePivot();
+									Poly->Vertices[vtx] = ((Poly->Vertices[vtx] - Brush->GetPivotOffset()) * ScaleVec) + Brush->GetPivotOffset();
 
 									// "Then snap the vertices new positions by the specified Snap amount"
 									if ( bSnap )
@@ -1102,20 +1103,27 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		{
 			static bool RemoveSourcePath( UAssetImportData* Data, const TArray<FString>& SearchTerms )
 			{
-				const FString& SourceFilePath = Data->SourceFilePath;
-				if( !SourceFilePath.IsEmpty() )
+				FAssetImportInfo AssetImportInfo;
+
+				bool bModified = false;
+				for (const auto& File : Data->SourceData.SourceFiles)
 				{
-					for (const FString& SearchTerm : SearchTerms)
+					if( !File.RelativeFilename.IsEmpty() && !SearchTerms.ContainsByPredicate([&](const FString& SearchTerm){ return File.RelativeFilename.Contains(SearchTerm); }) )
 					{
-						if (SourceFilePath.Contains(SearchTerm))
-						{
-							Data->Modify();
-							UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *SourceFilePath);
-							Data->SourceFilePath.Empty();
-							Data->SourceFileTimestamp.Empty();
-							return true;
-						}
+						AssetImportInfo.Insert(File);
 					}
+					else
+					{
+						UE_LOG(LogUnrealEdSrv, Log, TEXT("Removing Path: %s"), *File.RelativeFilename);
+						bModified = true;
+					}
+				}
+
+				if (bModified)
+				{
+					Data->Modify();
+					Data->SourceData = AssetImportInfo;
+					return true;
 				}
 
 				return false;
@@ -1685,6 +1693,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 		NoteActorMovement();
 		SetPivot( ClickLocation, false, false );
 		FinishAllSnaps();
+		SetPivotMovedIndependently(true);
 		RedrawLevelEditingViewports();
 	}
 	else if( FParse::Command(&Str,TEXT("SNAPPED")) )
@@ -1692,6 +1701,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 		NoteActorMovement();
 		SetPivot( ClickLocation, true, false );
 		FinishAllSnaps();
+		SetPivotMovedIndependently(true);
 		RedrawLevelEditingViewports();
 	}
 	else if( FParse::Command(&Str,TEXT("CENTERSELECTION")) )
@@ -1705,10 +1715,43 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 
 		for ( FSelectionIterator It( GetSelectedActorIterator() ) ; It ; ++It )
 		{
-			AActor* Actor = static_cast<AActor*>( *It );
-			checkSlow( Actor->IsA(AActor::StaticClass()) );
+			AActor* Actor = CastChecked<AActor>(*It);
 
-			Center += Actor->GetActorLocation();
+			if (ABrush* Brush = Cast<ABrush>(Actor))
+			{
+				// Treat brushes as a special case; calculate an effective position from the center point of the vertices.
+				// This way, "Center on Selection" has a special meaning for brushes.
+				TSet<FVector> UniqueVertices;
+				FVector VertexCenter = FVector::ZeroVector;
+
+				if (Brush->Brush && Brush->Brush->Polys)
+				{
+					for (const auto& Element : Brush->Brush->Polys->Element)
+					{
+						for (const auto& Vertex : Element.Vertices)
+						{
+							UniqueVertices.Add(Vertex);
+						}
+					}
+
+					for (const auto& Vertex : UniqueVertices)
+					{
+						VertexCenter += Vertex;
+					}
+
+					if (UniqueVertices.Num() > 0)
+					{
+						VertexCenter /= UniqueVertices.Num();
+					}
+				}
+
+				Center += Brush->GetTransform().TransformPosition(VertexCenter);
+			}
+			else
+			{
+				Center += Actor->GetActorLocation();
+			}
+
 			Count++;
 		}
 
@@ -1721,6 +1764,7 @@ bool UUnrealEdEngine::Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar )
 
 			SetPivot( ClickLocation, false, false );
 			FinishAllSnaps();
+			SetPivotMovedIndependently(true);
 		}
 
 		RedrawLevelEditingViewports();
@@ -1745,45 +1789,23 @@ static void MirrorActors(const FVector& MirrorScale)
 		ABrush* Brush = Cast< ABrush >( Actor );
 		if( Brush && Brush->Brush )
 		{
+			// Brushes have to reverse their poly vertex order and recalculate the normal as negating one of the scale axes
+			// changes the handedness of the local transform.
 			Brush->Modify();
 			Brush->Brush->Modify();
 			Brush->Brush->Polys->Modify();
-
-			const FVector LocalToWorldOffset = ( Brush->GetActorLocation() - PivotLocation );
-			const FVector LocationOffset = ( LocalToWorldOffset * MirrorScale ) - LocalToWorldOffset;
-
-			Brush->SetActorLocation( Brush->GetActorLocation() + LocationOffset, false );
-			Brush->SetPrePivot( Brush->GetPrePivot() * MirrorScale );
 
 			for( int32 poly = 0 ; poly < Brush->Brush->Polys->Element.Num() ; poly++ )
 			{
 				FPoly* Poly = &(Brush->Brush->Polys->Element[poly]);
 
-				Poly->TextureU *= MirrorScale;
-				Poly->TextureV *= MirrorScale;
-
-				Poly->Base += LocalToWorldOffset;
-				Poly->Base *= MirrorScale;
-				Poly->Base -= LocalToWorldOffset;
-				Poly->Base -= LocationOffset;
-
-				for( int32 vtx = 0 ; vtx < Poly->Vertices.Num(); vtx++ )
-				{
-					Poly->Vertices[vtx] += LocalToWorldOffset;
-					Poly->Vertices[vtx] *= MirrorScale;
-					Poly->Vertices[vtx] -= LocalToWorldOffset;
-					Poly->Vertices[vtx] -= LocationOffset;
-				}
-
 				Poly->Reverse();
 				Poly->CalcNormal();
 			}
 		}
-		else
-		{
-			Actor->Modify();
-			Actor->EditorApplyMirror( MirrorScale, PivotLocation );
-		}
+
+		Actor->Modify();
+		Actor->EditorApplyMirror( MirrorScale, PivotLocation );
 
 		Actor->InvalidateLightingCache();
 		Actor->PostEditMove( true );
@@ -1836,11 +1858,11 @@ TArray<FPoly*> GetSelectedPolygons()
 					int32 NumLods = StaticMesh->GetNumLODs();
 					if ( NumLods )
 					{
-						FStaticMeshLODResources& MeshLodZero = StaticMesh->GetLODForExport(0);
+						const FStaticMeshLODResources& MeshLodZero = StaticMesh->GetLODForExport(0);
 						int32 NumTriangles = MeshLodZero.GetNumTriangles();
 						int32 NumVertices = MeshLodZero.GetNumVertices();
 			
-						FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
+						const FPositionVertexBuffer& PositionVertexBuffer = MeshLodZero.PositionVertexBuffer;
 						FIndexArrayView Indices = MeshLodZero.DepthOnlyIndexBuffer.GetArrayView();
 
 						for ( int32 TriangleIndex = 0; TriangleIndex < NumTriangles; TriangleIndex++ )
@@ -2605,7 +2627,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FScopedLevelDirtied				LevelDirtyCallback;
 		FScopedActorPropertiesChange	ActorPropertiesChangeCallback;
 
-		// Bakes the current pivot position into all selected brushes as their PrePivot
+		// Bakes the current pivot position into all selected actors
 
 		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
@@ -2616,16 +2638,10 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 			FVector Delta( EditorModeTools.PivotLocation - Actor->GetActorLocation() );
 
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush )
-			{
-				Brush->Modify();
-
-				Brush->SetActorLocation(Actor->GetActorLocation() + Delta, false);
-				Brush->SetPrePivot(Brush->GetPrePivot() + Delta);
-
-				Brush->PostEditMove( true );
-			}
+			Actor->Modify();
+			Actor->SetPivotOffset(Actor->GetTransform().InverseTransformVector(Delta));
+			SetPivotMovedIndependently(false);
+			Actor->PostEditMove(true);
 		}
 
 		GUnrealEd->NoteSelectionChange();
@@ -2635,7 +2651,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 		FScopedLevelDirtied		LevelDirtyCallback;
 		FScopedActorPropertiesChange	ActorPropertiesChangeCallback;
 
-		// Resets the PrePivot of the selected brushes to 0,0,0 while leaving them in the same world location.
+		// Resets the PrePivot of the selected actors to 0,0,0 while leaving them in the same world location.
 
 		FEditorModeTools& EditorModeTools = GLevelEditorModeTools();
 
@@ -2644,18 +2660,10 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 			AActor* Actor = static_cast<AActor*>( *It );
 			checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-			ABrush* Brush = Cast<ABrush>(Actor);
-			if( Brush )
-			{
-				Brush->Modify();
-
-				FVector Delta = Brush->GetPrePivot();
-
-				Brush->SetActorLocation(Actor->GetActorLocation() - Delta, false);
-				Brush->SetPrePivot(FVector::ZeroVector);
-
-				Brush->PostEditMove( true );
-			}
+			Actor->Modify();
+			Actor->SetPivotOffset(FVector::ZeroVector);
+			SetPivotMovedIndependently(false);
+			Actor->PostEditMove(true);
 		}
 
 		GUnrealEd->NoteSelectionChange();
@@ -2717,12 +2725,9 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				{
 					Actor->SetActorLocation(FVector::ZeroVector, false);
 				}
-				ABrush* Brush = Cast< ABrush >( Actor );
-				if( bPivot && Brush )
+				if( bPivot )
 				{
-					Brush->SetActorLocation(Brush->GetActorLocation() - Brush->GetPrePivot(), false);
-					Brush->SetPrePivot(FVector::ZeroVector);
-					Brush->PostEditChange();
+					Actor->SetPivotOffset(FVector::ZeroVector);
 				}
 
 				if( bScale && Actor->GetRootComponent() != NULL ) 

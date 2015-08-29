@@ -8,6 +8,26 @@
 #include "RenderingCompositionGraph.h"
 #include "HighResScreenshot.h"
 
+void ExecuteCompositionGraphDebug();
+
+static TAutoConsoleVariable<int32> CVarCompositionGraphOrder(
+	TEXT("r.CompositionGraphOrder"),
+	1,
+	TEXT("Defines in which order the nodes in the CompositionGraph are executed (affects postprocess and some lighting).\n")
+	TEXT("Option 1 provides more control, which can be useful for preserving ESRAM, avoid GPU sync, cluster up compute shaders for performance and control AsyncCompute.\n")
+	TEXT(" 0: tree order starting with the root, first all inputs then dependencies (classic UE4, unconnected nodes are not getting executed)\n")
+	TEXT(" 1: RegisterPass() call order, unless the dependencies (input and additional) require a different order (might become new default as it provides more control, executes all registered nodes)"),
+	ECVF_RenderThreadSafe);
+
+#if !UE_BUILD_SHIPPING
+FAutoConsoleCommand CmdCompositionGraphDebug(
+	TEXT("r.CompositionGraphDebug"),
+	TEXT("Execute this command to get a single frame dump of the composition graph of one frame (post processing and lighting)."),
+	FConsoleCommandDelegate::CreateStatic(ExecuteCompositionGraphDebug)
+	);
+#endif
+
+
 // render thread, 0:off, >0 next n frames should be debugged
 uint32 GDebugCompositionGraphFrames = 0;
 
@@ -94,30 +114,17 @@ void CompositionGraph_OnStartFrame()
 #endif
 }
 
-
-#if !UE_BUILD_SHIPPING
-FAutoConsoleCommand CmdCompositionGraphDebug(
-	TEXT("r.CompositionGraphDebug"),
-	TEXT("Execute to get a single frame dump of the composition graph of one frame (post processing and lighting)."),
-	FConsoleCommandDelegate::CreateStatic(ExecuteCompositionGraphDebug)
-	);
-#endif
-
 FRenderingCompositePassContext::FRenderingCompositePassContext(FRHICommandListImmediate& InRHICmdList, FViewInfo& InView/*, const FSceneRenderTargetItem& InRenderTargetItem*/)
 	: View(InView)
 	, ViewState((FSceneViewState*)InView.State)
-	//		, CompositingOutputRTItem(InRenderTargetItem)
 	, Pass(0)
 	, RHICmdList(InRHICmdList)
 	, ViewPortRect(0, 0, 0 ,0)
 	, FeatureLevel(View.GetFeatureLevel())
 	, ShaderMap(InView.ShaderMap)
+	, bWasProcessed(false)
 {
 	check(!IsViewportValid());
-
-	Root = Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessRoot());
-
-	Graph.ResetDependencies();
 }
 
 FRenderingCompositePassContext::~FRenderingCompositePassContext()
@@ -125,8 +132,13 @@ FRenderingCompositePassContext::~FRenderingCompositePassContext()
 	Graph.Free();
 }
 
-void FRenderingCompositePassContext::Process(const TCHAR *GraphDebugName)
+void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, const TCHAR *GraphDebugName)
 {
+	// call this method only once afetr the graph is finished
+	check(!bWasProcessed);
+
+	bWasProcessed = true;
+
 	if(Root)
 	{
 		if(ShouldDebugCompositionGraph())
@@ -145,10 +157,25 @@ void FRenderingCompositePassContext::Process(const TCHAR *GraphDebugName)
 			GGMLFileWriter.WriteLine("\tdirected\t1");
 		}
 
-		FRenderingCompositeOutputRef Output(Root);
+		bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
 
-		Graph.RecursivelyGatherDependencies(Output);
-		Graph.RecursivelyProcess(Root, *this);
+		if(bNewOrder)
+		{
+			for (FRenderingCompositePass* Node : Graph.Nodes)
+			{
+				Graph.RecursivelyGatherDependencies(Node);
+			}
+
+			for (FRenderingCompositePass* Node : Graph.Nodes)
+			{
+				Graph.RecursivelyProcess(Node, *this);
+			}
+		}
+		else
+		{
+			Graph.RecursivelyGatherDependencies(Root);
+			Graph.RecursivelyProcess(Root, *this);
+		}
 
 		if(ShouldDebugCompositionGraph())
 		{
@@ -190,16 +217,16 @@ void FRenderingCompositionGraph::Free()
 	Nodes.Empty();
 }
 
-void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingCompositeOutputRef& InOutputRef)
+void FRenderingCompositionGraph::RecursivelyGatherDependencies(FRenderingCompositePass *Pass)
 {
-	FRenderingCompositePass *Pass = InOutputRef.GetPass();
+	checkSlow(Pass);
 
-	if(Pass->bGraphMarker)
+	if(Pass->bComputeOutputDescWasCalled)
 	{
 		// already processed
 		return;
 	}
-	Pass->bGraphMarker = true;
+	Pass->bComputeOutputDescWasCalled = true;
 
 	// iterate through all inputs and additional dependencies of this pass
 	uint32 Index = 0;
@@ -213,10 +240,10 @@ void FRenderingCompositionGraph::RecursivelyGatherDependencies(const FRenderingC
 			InputOutput->AddDependency();
 		}
 		
-		if(OutputRefIt->GetPass())
+		if(FRenderingCompositePass* OutputRefItPass = OutputRefIt->GetPass())
 		{
 			// recursively process all inputs of this Pass
-			RecursivelyGatherDependencies(*OutputRefIt);
+			RecursivelyGatherDependencies(OutputRefItPass);
 		}
 	}
 
@@ -311,12 +338,12 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 	check(Pass);
 	check(Output);
 
-	if(!Pass->bGraphMarker)
+	if(Pass->bProcessWasCalled)
 	{
 		// already processed
 		return;
 	}
-	Pass->bGraphMarker = false;
+	Pass->bProcessWasCalled = true;
 
 	// iterate through all inputs and additional dependencies of this pass
 	{
@@ -337,7 +364,7 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 				// to track down an issue, should never happen
 				check(OutputRefIt->GetPass());
 
-				if(GRenderTargetPool.IsEventRecordingEnabled() && Pass != Context.Root)
+				if(GRenderTargetPool.IsEventRecordingEnabled())
 				{
 					GRenderTargetPool.AddPhaseEvent(*Pass->ConstructDebugName());
 				}
@@ -620,24 +647,6 @@ int32 FRenderingCompositionGraph::ComputeUniqueOutputId(FRenderingCompositePass*
 	return -1;
 }
 
-
-void FRenderingCompositionGraph::ResetDependencies()
-{
-	for(uint32 i = 0; i < (uint32)Nodes.Num(); ++i)
-	{
-		FRenderingCompositePass *Element = Nodes[i];
-
-		Element->bGraphMarker = false;
-
-		uint32 OutputId = 0;
-
-		while(FRenderingCompositeOutput* Output = Element->GetOutput((EPassOutputId)(OutputId++)))
-		{
-			Output->ResetDependency();
-		}
-	}
-}
-
 FRenderingCompositeOutput *FRenderingCompositeOutputRef::GetOutput() const
 {
 	if(Source == 0)
@@ -740,9 +749,7 @@ void FPostProcessPassParameters::Set(
 		}
 
 		{
-			FVector4 Value(LocalViewport.Min.X, LocalViewport.Min.Y, LocalViewport.Max.X, LocalViewport.Max.Y);
-
-			SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Value);
+			SetShaderValue(RHICmdList, ShaderRHI, ViewportRect, Context.GetViewport());
 		}
 
 		{
@@ -757,7 +764,7 @@ void FPostProcessPassParameters::Set(
 
 	//Calculate a base scene texture min max which will be pulled in by a pixel for each PP input.
 	FIntRect ContextViewportRect = Context.IsViewportValid() ? Context.GetViewport() : FIntRect(0,0,0,0);
-	const FIntPoint SceneRTSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint SceneRTSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	FVector4 BaseSceneTexMinMax(	((float)ContextViewportRect.Min.X/SceneRTSize.X), 
 									((float)ContextViewportRect.Min.Y/SceneRTSize.Y), 
 									((float)ContextViewportRect.Max.X/SceneRTSize.X), 

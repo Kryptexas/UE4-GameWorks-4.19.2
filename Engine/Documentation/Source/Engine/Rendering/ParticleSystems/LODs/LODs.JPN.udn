@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:2226949
-Availability:Public
+﻿Availability:Public
 Title:パーティクル システムの詳細度 (LOD)
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:膨大な数のパーティクルに対しいつでも実施可能な GPU シミュレーション
@@ -32,15 +31,15 @@ Description:膨大な数のパーティクルに対しいつでも実施可能�
 本ドキュメントでは、詳細度 (LOD) に関して、インゲームでの使用方法に加えてお使いのパーティクル システムでの作成方法について記述します。
 
 
-## Cascade による LOD の制御
+## カスケードによる LOD の制御
 
-Cascade ツールバーの以下の部分が LOD 制御に関わります。
+カスケード ツールバーの以下の部分が LOD 制御に関わります。
 
-**Cascade LOD コントロール**
+**カスケードの LOD コントロール**
 
 ![Cascade_Toolbar.png](Cascade_Toolbar.png)
 
-各コントロールの説明は以下のとおりです。
+以下が各コントロールの内訳です。
 
 
 | **ボタン** | **名前** | **説明** |
@@ -100,7 +99,7 @@ Cascade ツールバーの以下の部分が LOD 制御に関わります。
 | **オプション** | **説明** |
 | ---- | ---- |
 | **Duplicate from Higher** | 次に高い LOD から設定をコピーしてモジュールを編集可能にします。 |
-| **Share from Higher** | 次に高い LOD と設定を共有してモジュールを編集可能にします。つまり、一方への編集が自動的にもう一方への編集になります。 |
+| **Share from Higher** | 次に高い LOD の設定を共有してモジュールを編集可能にします。つまり、一方への編集が自動的にもう一方への編集になります。 |
 | **Duplicate from Highest** | 最高 LOD から設定をコピーしてモジュールを編集可能にします。 |
 
 
@@ -112,7 +111,7 @@ Cascade ツールバーの以下の部分が LOD 制御に関わります。
 
 スポーンレートが最高 LOD レベルの 10% に自動的に設定されている点に注意してください。 
 
-次のステップでは、  ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)(w:32) **[Add LOD before current]** ボタンを押して最高レベルと最低レベルの間に静的 LOD を追加します (まだ最低 LOD のビューを見ているものとします)。SubImage Index モジュールが有効になり、そのインデックスが 1 に設定されます。この結果、下の図のようにエミッターには 2 がブルーで表示されます。   
+次のステップでは、 ![Cascade_Toolbar_AddLOD_Before.png](Cascade_Toolbar_AddLOD_Before.png)(w:32) **[Add LOD before current]** ボタンを押して最高レベルと最低レベルの間に静的 LOD を追加します (まだ最低 LOD のビューを見ているものとします)。SubImage Index モジュールが有効になり、そのインデックスが 1 に設定されます。この結果、下の図のようにエミッターには 2 がブルーで表示されます。   
 
 **LOD レベル 1**
 
@@ -146,8 +145,8 @@ LODDistanceCheckTime では、Automatic モードに設定された各 ParticleS
 | [REGION:tablesection]LOD[/REGION] ||
 | **LOD Distance Check Time** | 使用する LOD レベルを決定するためにシステムが距離チェックを実行する間隔 (秒) です。(LODMethod が Automatic に設定時のみ使用します。) |
 | **LOD Method** | システムが適切な LOD レベルの選択に利用する手法を示す列挙型変数です。利用可能な手法が 2 通りあります： [INCLUDE:#LODMethod] |
-| **LODDistances** | 使用する LOD レベルを決定するための距離の配列です。(LODMethod が Automatic に設定時のみ使用します。)これらの数値は、選択する LOD レベルに推奨する最少距離を示します。例えば 3 つの LOD レベルをもつシステムを想定してみましょう：[INCLUDE:#LODDistance] |
-| **LODSettings** | 各 LOD に使用する具体的な設定を決定する ParticleSystem がライトを受け取ると、常に _Lit_ が制御する唯一の設定です。|
+| **LODDistances** | 使用する LOD レベルを決定するための距離の配列です(LODMethod が Automatic に設定時のみ使用します)。これらの数値は、選択する LOD レベルに推奨する最少距離を示します。例えば 3 つの LOD レベルをもつシステムを想定してみましょう。[INCLUDE:#LODDistance] |
+| **LODSettings** | 個々の LOD に使用する具体的な設定を決定する構造体の配列です。現在、任意の LOD を使用中にライトを受けるか否かを制御するのは _Lit_ だけです。|
 
 <!----
 [EXCERPT:LODDistance]

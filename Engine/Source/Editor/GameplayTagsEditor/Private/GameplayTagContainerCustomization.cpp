@@ -154,12 +154,11 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 		.PropertyHandle( StructPropertyHandle )
 	];
 
-	GameplayTagWidgetWindow->SetOnWindowDeactivated( FOnWindowDeactivated::CreateRaw( this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate ) );
+	GameplayTagWidgetWindow->GetOnWindowDeactivatedEvent().AddRaw(this, &FGameplayTagContainerCustomization::OnGameplayTagWidgetWindowDeactivate);
 
-	IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
-	if (MainFrameModule.GetParentWindow().IsValid())
+	if (FGlobalTabmanager::Get()->GetRootWindow().IsValid())
 	{
-		FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagWidgetWindow.ToSharedRef(), MainFrameModule.GetParentWindow().ToSharedRef());
+		FSlateApplication::Get().AddWindowAsNativeChild(GameplayTagWidgetWindow.ToSharedRef(), FGlobalTabmanager::Get()->GetRootWindow().ToSharedRef());
 	}
 	else
 	{

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516187
+﻿INTSourceChangelist:2615103
 Availability: Public
 Title:랜드스케이프 만들기
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -25,9 +25,6 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 [/VAR]
 
 [TOC(start:2)]
-
-
-## 개요
 
 프로젝트에 쓸 대규모 터레인 기반 월드를 만드는 것은, 언리얼 엔진 4 (UE4) 에 내장된 터레인 편집 툴 Landscape (랜드스케이프)로 매우 잘 처리할 수 있는 작업입니다.
 랜드스케이프 툴을 통해 여러가지 다양한 디바이스에 걸쳐 플레이 가능한 프레임 속도를 유지하면서도 대규모 터레인 기반 월드를 만들 수 있습니다.
@@ -117,7 +114,17 @@ Description:랜드스케이프 터레인을 새로 만드는 방법 안내서입
 
 [REGION:tip]
 랜드스케이프 액터는 다른 액터처럼 이동, 회전, 스케일 조절 가능합니다. 미리보기 랜드스케이프의 에지를 끄는 것으로 공간에 맞도록 쉽게 크기를 조절할 수도 있습니다.
-![](Landscape_Move_In_Viewport.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+og7fnKaqYdI
+[/PARAMLITERAL]
+[/OBJECT]
 [/REGION]
 
 

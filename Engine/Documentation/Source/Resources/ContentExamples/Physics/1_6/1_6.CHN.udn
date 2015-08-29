@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:1903621
-Availability: Public
+﻿Availability: Public
 Title:1.6 -角发动机
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.6： 带物理约束的角发动机
+Related: Engine/Physics/PhysicsBodies
+Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/Constraints/ConstraintsReference
+Related: Engine/Physics/Constraints/ConstraintsUserGuide
+Related: Engine/Physics/Collision
+Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 
 
 [VAR:TopicCompact]
@@ -45,10 +50,9 @@ Description:物理表现示例关卡概述，示例1.6： 带物理约束的角�
 [/VAR]
 
 [REGION:fullwidth]
-
+	![](physics_1_6_001.png)
 [/REGION]
 
-![](physics_1_6_001.png)(w:900)
 
 一个带角发动机的约束将会旋转，但细节在于它 **如何** 旋转。 **Driven by Velocity** （由速度驱动）的角发动机将会应用一个约束力，从而"旋转"，而 **Driven by Position** （由位置驱动）的角发动机会基于弹簧尺寸和应用于该弹簧的阻尼来获取角度。
 
@@ -64,4 +68,4 @@ Description:物理表现示例关卡概述，示例1.6： 带物理约束的角�
 _对红色立方体启用 **Simulate Physics** （模拟物理行为）会造成它在整个房间内运动。_
 </div>
 
-[INCLUDE:Resources\ContentExamples\Physics#PhysicsContentExamples]
+

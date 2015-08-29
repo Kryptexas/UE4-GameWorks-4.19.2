@@ -1,4 +1,4 @@
-INTSourceChangelist:2109560
+﻿INTSourceChangelist:2600600
 Availability:Public
 Title:탄젠트 스페이스 없는 범프 매핑
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -161,7 +161,7 @@ ddx 와 ddy 가 제공하는 파생물보다 더욱 정교한 계산으로 보�
 샘플 위치 셋을 계산하는 함수입니다.
 
 [REGION:lightbox]
-	[![UsingPerturbHQ.png](UsingPerturbHQ.png)(w:720)](UsingPerturbHQ.png)
+	[![UsingPerturbHQ.png](UsingPerturbHQ.png)(w:720)](UsingPerturbHQ.png)  
 [/REGION]
 
 | 항목 | 설명 |

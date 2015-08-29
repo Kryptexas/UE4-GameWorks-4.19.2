@@ -69,7 +69,7 @@ TSharedRef< SWidget > SWorldHierarchyItem::GenerateWidgetForColumn( const FName&
 				.Text(this, &SWorldHierarchyItem::GetLevelDisplayNameText)
 				.ColorAndOpacity(this, &SWorldHierarchyItem::GetLevelDisplayNameColorAndOpacity)
 				.HighlightText(HighlightText)
-				.ToolTipText(LOCTEXT("DoubleClickToolTip", "Double-Click to make this the current Level"))
+				.ToolTipText(this, &SWorldHierarchyItem::GetLevelDisplayNameTooltip)
 			]
 		;
 	}
@@ -201,6 +201,19 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 FText SWorldHierarchyItem::GetLevelDisplayNameText() const
 {
 	return FText::FromString(LevelModel->GetDisplayName());
+}
+
+FText SWorldHierarchyItem::GetLevelDisplayNameTooltip() const
+{
+	FString PackageName = LevelModel->GetLongPackageName().ToString();
+	if (FPackageName::DoesPackageExist(PackageName))
+	{
+		return FText::FromString(PackageName);
+	}
+	else
+	{
+		return LOCTEXT("UnsavedLevel", "Unsaved Level");
+	}
 }
 
 bool SWorldHierarchyItem::IsSaveEnabled() const

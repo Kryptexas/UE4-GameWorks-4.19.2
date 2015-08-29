@@ -1,4 +1,4 @@
-INTSourceChangelist:2251654
+﻿INTSourceChangelist:2621684
 Availability: Docs
 Title:1.3 - 스폰된 액터
 Crumbs:%ROOT%, Resources, Resources/ContentExamples/LevelScripting
@@ -26,8 +26,6 @@ Description:Level Scripting 예제 레벨에 대한 개요로, 예제 1.3: Spawn
 [REGION:fullwidth]
 
 ![](levelscripting_1_3.png)
-
-## 개요
 
 이 예제에서는, 플레이어가 박스 트리거로 걸어들어갈 때 여덟개의 코인 픽업이 스폰되며, 그 각각에는 플레이어가 그 코인을 획득했을 때의 디스패치 함수가 들어 있습니다. 다음 문 세트를 열기 위해서 플레이어는 여덟개의 코인을 모두 모아야 합니다. 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2385867
+﻿INTSourceChangelist:2527287
 Availability:Public
 Title:メニュー アンカー
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide, Engine/UMG/UserGuide/WidgetTypeReference
@@ -25,7 +25,13 @@ Related:Engine/UMG/UserGuide/Slots
 | -------- | ----------- |
 | **Menu Class** | メニューが呼び出された場合にスポーンする Widget ブループリント (ポップアップ)。毎回ウィジェットを新たに作成します。 |
 | **Placement** | 作成したウィジェットの位置を決めるために使用するいくつかの配置オプション。 |
-| **OnGetMenuContent** | ポップアップをカスタマイズできるようにします。これは、関数またはプロパティを、ポップアップを表示するときに呼び出される **OnGetMenuContent** イベントにバインドして行います。 |
+| **OnGetMenuContent** | ポップアップをカスタマイズできるようにします。これは、関数またはプロパティを、ポップアップを表示するときに呼び出される **OnGetMenuContent** イベントにバインドして行います (以下参照)。 |
+
+**OnGetMenuContent** イベントでは、**[詳細]** パネルから直接関数を作成し、バインドできます。これは、メニュー アンカーが呼び出されるたびに呼び出されます。これにより、ポップアップメニューの作成で追加の機能を提供することができます。例えば、以下ではプレイヤーが _In Battle_ (戦闘中) であるかを判断するチェックを実行し、_In Battle_ でなければ、ポップアップメニューにアクセスできるようにします。_In Battle_ ならば、ポップアップメニューにアクセスできないようにします。 
+
+![](ExampleGetMenu.png)(w:840)
+
+### メニュー アンカーのブループリント関数
 
 **Menu Anchor** ウィジェットには以下で説明するスクリプトを介して呼び出し可能ないくつかのウィジェット特有のノードがあります。 
 
@@ -36,7 +42,7 @@ Related:Engine/UMG/UserGuide/Slots
 | **Close** | 現在開いていればメニューを閉じます。 |
 | **Is Open** | ターゲットのメニューアンカーが現在開いているかをチェックし、Boolean を戻します。 |
 | **Open** | 現在閉じていればメニューを開きます。 |
-| **Toggle Open** | メニューのオープン ステートを切り替えます。開/閉の代わりに使用できます。 |
+| **Toggle Open** | メニューのオープン状態を切り替えます。開/閉の代わりに使用できます。 |
 
 ## 使用例
 
@@ -48,13 +54,13 @@ Related:Engine/UMG/UserGuide/Slots
 
 ![](PopUpDesigner.png)(w:720)
 
-上の画像では、**MenuPopUp** と呼ばれる単純な **Widget Blueprint** を作成します。これには、垂直ボックス内に 3 つのボタンがあります。 
+上の画像では、垂直ボックス内に 3 つのボタンがある **MenuPopUp** と呼ばれる単純な **Widget ブループリント** を作成しました。 
 
-次にインベントリ メニューで他のWidget ブループリントを作成する必要があります。これは以下で **HUD** と呼んでいるものです。 
+次にインベントリ メニューでもうひとつ Widget ブループリントを作成する必要があります。これは以下で **HUD** と呼んでいるものです。 
 
 ![](MakeInventoryMenu.png)(w:720)
 
-インベントリ メニューを作成したら **Menu Anchor** ウィジェット (**Primitive** の下にあります) も追加します。 
+インベントリ メニューを作成したら **Menu Anchor** ウィジェット (**Primitive** の配下にあります) も追加します。 
 
 ![](AddMenuAnchor.png)
 

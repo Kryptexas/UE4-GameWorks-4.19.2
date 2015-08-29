@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2444099
+﻿INTSourceChangelist:2597248
 Availability:Public
 Title: 팔레트
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
@@ -6,8 +6,6 @@ Description:블루프린트에서 사용할 수 있는 모든 함수와 변수�
 
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 **팔레트** 탭에는 블루프린트에서 사용할 수 있는 모든 함수와 변수가 목록으로 표시됩니다. 전체에 대해 검색도 가능하며, 자주 사용하는 노드로 채울 수 있는 즐겨찾기 패널도 있고, 특정 클래스 유형과 호환되는 노드만 검색할 수 있도록 필터를 적용할 수도 있습니다. 팔레트 목록에 있는 노드를 끌어 망에 놓는 것으로 간단히 추가할 수도 있습니다.

@@ -7,6 +7,7 @@
 #include "KismetCompiler.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_BaseAsyncTask.h"
 
 #define LOCTEXT_NAMESPACE "UK2Node_BaseAsyncTask"
 
@@ -54,17 +55,27 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
+	bool bExposeProxy = false;
+	for (const UStruct* TestStruct = ProxyClass; TestStruct && !bExposeProxy; TestStruct = TestStruct->GetSuperStruct())
+	{
+		bExposeProxy = TestStruct->HasMetaData(TEXT("ExposedAsyncProxy"));
+	}
+	if (bExposeProxy)
+	{
+		CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), ProxyClass, false, false, FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	}
+
 	UFunction* DelegateSignatureFunction = NULL;
 	for (TFieldIterator<UProperty> PropertyIt(ProxyClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 	{
 		if (UMulticastDelegateProperty* Property = Cast<UMulticastDelegateProperty>(*PropertyIt))
 		{
-		CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, *Property->GetName());
-		if (!DelegateSignatureFunction)
-		{
-			DelegateSignatureFunction = Property->SignatureFunction;
+			CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, *Property->GetName());
+			if (!DelegateSignatureFunction)
+			{
+				DelegateSignatureFunction = Property->SignatureFunction;
+			}
 		}
-	}
 	}
 
 	if (DelegateSignatureFunction)
@@ -130,6 +141,11 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	Super::AllocateDefaultPins();
 }
 
+const FString& UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::GetAsyncTaskProxyName()
+{
+	static const FString Name(TEXT("AsyncTaskProxy"));
+	return Name;
+}
 
 bool UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::ValidDataPin(const UEdGraphPin* Pin, EEdGraphPinDirection Direction, const UEdGraphSchema_K2* Schema)
 {
@@ -219,11 +235,12 @@ bool UK2Node_BaseAsyncTask::FBaseAsyncTaskHelper::HandleDelegateImplementation(
 	{
 		UEdGraphPin* PinWithData = CurrentCENode->FindPin(OutputPair.OutputPin->PinName);
 		if (PinWithData == NULL)
-	{
-			FText ErrorMessage = FText::Format(LOCTEXT("MissingDataPin", "ICE: Pin @@ was expecting a data output pin named {0} on @@ (each delegate must have the same signature)"), FText::FromString(OutputPair.OutputPin->PinName));
+		{
+			/*FText ErrorMessage = FText::Format(LOCTEXT("MissingDataPin", "ICE: Pin @@ was expecting a data output pin named {0} on @@ (each delegate must have the same signature)"), FText::FromString(OutputPair.OutputPin->PinName));
 			CompilerContext.MessageLog.Error(*ErrorMessage.ToString(), OutputPair.OutputPin, CurrentCENode);
-			return false;
-	}
+			return false;*/
+			continue;
+		}
 
 		UK2Node_AssignmentStatement* AssignNode = CompilerContext.SpawnIntermediateNode<UK2Node_AssignmentStatement>(CurrentNode, SourceGraph);
 		AssignNode->AllocateDefaultPins();
@@ -273,11 +290,16 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 		}
 	}
 
+	UEdGraphPin* const ProxyObjectPin = CallCreateProxyObjectNode->GetReturnValuePin();
+	check(ProxyObjectPin);
+	UEdGraphPin* OutputAsyncTaskProxy = FindPin(FBaseAsyncTaskHelper::GetAsyncTaskProxyName());
+	bIsErrorFree &= !OutputAsyncTaskProxy || CompilerContext.MovePinLinksToIntermediate(*OutputAsyncTaskProxy, *ProxyObjectPin).CanSafeConnect();
+
 	// GATHER OUTPUT PARAMETERS AND PAIR THEM WITH LOCAL VARIABLES
 	TArray<FBaseAsyncTaskHelper::FOutputPinAndLocalVariable> VariableOutputs;
 	for (auto CurrentPin : Pins)
 	{
-		if (FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output, Schema))
+		if ((OutputAsyncTaskProxy != CurrentPin) && FBaseAsyncTaskHelper::ValidDataPin(CurrentPin, EGPD_Output, Schema))
 		{
 			const FEdGraphPinType& PinType = CurrentPin->PinType;
 			UK2Node_TemporaryVariable* TempVarOutput = CompilerContext.SpawnInternalVariable(
@@ -289,7 +311,6 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 
 	// FOR EACH DELEGATE DEFINE EVENT, CONNECT IT TO DELEGATE AND IMPLEMENT A CHAIN OF ASSIGMENTS
 	UEdGraphPin* LastThenPin = CallCreateProxyObjectNode->FindPinChecked(Schema->PN_Then);
-	UEdGraphPin* const ProxyObjectPin = CallCreateProxyObjectNode->GetReturnValuePin();
 	for (TFieldIterator<UMulticastDelegateProperty> PropertyIt(ProxyClass, EFieldIteratorFlags::ExcludeSuper); PropertyIt && bIsErrorFree; ++PropertyIt)
 	{
 		bIsErrorFree &= FBaseAsyncTaskHelper::HandleDelegateImplementation(*PropertyIt, VariableOutputs, ProxyObjectPin, LastThenPin, this, SourceGraph, CompilerContext);
@@ -334,23 +355,24 @@ void UK2Node_BaseAsyncTask::ExpandNode(class FKismetCompilerContext& CompilerCon
 	BreakAllNodeLinks();
 }
 
-bool UK2Node_BaseAsyncTask::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
+bool UK2Node_BaseAsyncTask::HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 
-	const bool bProxyFactoryResult = (ProxyFactoryClass != NULL) && (ProxyFactoryClass->ClassGeneratedBy != NULL) && (ProxyFactoryClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bProxyFactoryResult = (ProxyFactoryClass != NULL) && (ProxyFactoryClass->ClassGeneratedBy != SourceBlueprint);
 	if (bProxyFactoryResult && OptionalOutput)
 	{
-		OptionalOutput->Add(ProxyFactoryClass);
+		OptionalOutput->AddUnique(ProxyFactoryClass);
 	}
 
-	const bool bProxyResult = (ProxyClass != NULL) && (ProxyClass->ClassGeneratedBy != NULL) && (ProxyClass->ClassGeneratedBy != SourceBlueprint);
+	const bool bProxyResult = (ProxyClass != NULL) && (ProxyClass->ClassGeneratedBy != SourceBlueprint);
 	if (bProxyResult && OptionalOutput)
 	{
-		OptionalOutput->Add(ProxyClass);
+		OptionalOutput->AddUnique(ProxyClass);
 	}
 
-	return bProxyFactoryResult || bProxyResult || Super::HasExternalBlueprintDependencies(OptionalOutput);
+	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
+	return bProxyFactoryResult || bProxyResult || bSuperResult;
 }
 
 FName UK2Node_BaseAsyncTask::GetCornerIcon() const
@@ -361,7 +383,7 @@ FName UK2Node_BaseAsyncTask::GetCornerIcon() const
 FText UK2Node_BaseAsyncTask::GetMenuCategory() const
 {	
 	UFunction* TargetFunction = GetFactoryFunction();
-	return FText::FromString(UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, TEXT("")));
+	return UK2Node_CallFunction::GetDefaultCategoryForFunction(TargetFunction, FText::GetEmpty());
 }
 
 void UK2Node_BaseAsyncTask::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const

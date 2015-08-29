@@ -8,11 +8,11 @@
 UENUM()
 enum EDepthOfFieldFunctionValue
 {
-	// 0:in Focus .. 1:Near or Far
+	/** 0:in Focus .. 1:Near or Far. */
 	TDOF_NearAndFarMask,
-	// 0:in Focus or Far .. 1:Near
+	/** 0:in Focus or Far .. 1:Near. */
 	TDOF_NearMask,
-	// 0:in Focus or Near .. 1:Far
+	/** 0:in Focus or Near .. 1:Far. */
 	TDOF_FarMask,
 	TDOF_MAX,
 };

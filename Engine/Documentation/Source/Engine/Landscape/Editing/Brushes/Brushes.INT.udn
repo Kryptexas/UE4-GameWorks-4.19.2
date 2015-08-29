@@ -26,8 +26,6 @@ Description:Guide to the brushes available for modifying Landscapes.
 
 [TOC(start:2 end:2)]
 
-## Overview
-
 The Landscape tool's brush defines the size and shape of the area of the Landscape that will be affected by either sculpting or painting. Brushes can have different shapes, sizes, and falloffs. Brushes should be a familiar concept to anyone who has experience using Photoshop or a similar image-editing application. 
 
 You can set the brush type and falloff in either **Sculpt** or **Paint** mode.

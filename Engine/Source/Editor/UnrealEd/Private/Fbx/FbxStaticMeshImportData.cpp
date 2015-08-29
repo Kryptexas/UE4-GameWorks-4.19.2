@@ -8,6 +8,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& Obj
 {
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;
+	bBuildAdjacencyBuffer = true;
 	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
 	bAutoGenerateCollision = true;
@@ -26,8 +27,7 @@ UFbxStaticMeshImportData* UFbxStaticMeshImportData::GetImportDataForStaticMesh(U
 		// Try to preserve the source file path if possible
 		if ( StaticMesh->AssetImportData != NULL )
 		{
-			ImportData->SourceFilePath = StaticMesh->AssetImportData->SourceFilePath;
-			ImportData->SourceFileTimestamp = StaticMesh->AssetImportData->SourceFileTimestamp;
+			ImportData->SourceData = StaticMesh->AssetImportData->SourceData;
 		}
 
 		StaticMesh->AssetImportData = ImportData;

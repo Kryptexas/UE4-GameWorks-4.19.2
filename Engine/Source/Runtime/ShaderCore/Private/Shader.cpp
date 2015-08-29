@@ -376,7 +376,7 @@ void FShaderResource::AddRef()
 {
 	// Lock shader id map to prevent anything from acquiring shaders while we manipulate their references
 	FScopeLock ShaderResourceIdMapLock(&ShaderResourceIdMapCritical);
-	check(Canary != FShader::ShaderMagic_CleaningUp);
+	check(Canary != FShader::ShaderMagic_CleaningUp);	
 	++NumRefs;
 }
 
@@ -389,7 +389,7 @@ void FShaderResource::Release()
 	check(NumRefs != 0);
 	if(--NumRefs == 0)
 	{
-			ShaderResourceIdMap.Remove(GetId());
+		ShaderResourceIdMap.Remove(GetId());
 
 		// Send a release message to the rendering thread when the shader loses its last reference.
 		BeginReleaseResource(this);
@@ -927,6 +927,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 			FShaderResourceId ResourceId;
 			ResourceId.Target = Target;
 			ResourceId.OutputHash = OutputHash;
+			ResourceId.SpecificShaderTypeName = Type->LimitShaderResourceToThisType() ? Type->GetName() : NULL;
 
 			// use it to look up in the registered resource map
 			TRefCountPtr<FShaderResource> ExistingResource = FShaderResource::FindShaderResourceById(ResourceId);
@@ -938,7 +939,7 @@ bool FShader::SerializeBase(FArchive& Ar, bool bShadersInline)
 }
 
 void FShader::AddRef()
-{
+{	
 	check(Canary != ShaderMagic_CleaningUp);
 	// Lock shader Id maps
 	LockShaderIdMap();

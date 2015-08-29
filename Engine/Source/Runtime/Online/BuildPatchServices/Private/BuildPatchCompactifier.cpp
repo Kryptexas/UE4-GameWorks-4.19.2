@@ -280,7 +280,7 @@ bool FBuildDataCompactifier::DeleteNonReferencedManifests(TArray<FString>& AllMa
 			if (!bPreview && !bNoPatchDelete)
 			{
 				IFileManager::Get().Delete(*ManifestPath);
-				if (FPaths::FileExists(ManifestPath))
+				if (FPlatformFileManager::Get().GetPlatformFile().FileExists(*ManifestPath))
 				{
 					// Something went wrong ... the file still exists!
 					GLog->Logf(ELogVerbosity::Error, TEXT("Compactify could not delete manifest file %s"), *Manifest);

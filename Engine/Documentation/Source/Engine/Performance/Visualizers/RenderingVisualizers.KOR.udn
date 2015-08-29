@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2362484
+﻿INTSourceChangelist:2607784
 Availability:Public
 Title: 렌더링 비주얼라이저
 Crumbs: %ROOT%, Engine, Engine/Performance
@@ -48,9 +48,8 @@ Description:여러가지 렌더링 기능에 대한 결과 확인을 위한 디�
 [/REGION]
 
 
-## 개요
 
-언리얼 엔진 4 에는 여러가지 비주얼라이저가 있어, 언리얼 엔진 4 가 내부적으로 어떠한 작업을 하고 있는지 간단히 보여주고 디버깅할 수 있습니다. 뎁스 패스 확인과 같은 렌더링 단계일 수도 있고, 모션 블러 벡터 비주얼라이저와 같은 특수한 뷰일 수도 있습니다.
+언리얼 엔진 4 (UE4) 에는 여러가지 비주얼라이저가 있어, 언리얼 엔진 4 가 내부적으로 어떠한 작업을 하고 있는지 간단히 보여주고 디버깅할 수 있습니다. 뎁스 패스 확인과 같은 렌더링 단계일 수도 있고, 모션 블러 벡터 비주얼라이저와 같은 특수한 뷰일 수도 있습니다.
 
 [REGION:topics third]
 %Engine/Performance/Visualizers/OutOfBoundsPixels:topiccompact%

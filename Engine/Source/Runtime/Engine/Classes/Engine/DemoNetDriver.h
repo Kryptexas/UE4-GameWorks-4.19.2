@@ -6,6 +6,8 @@
 
 DECLARE_LOG_CATEGORY_EXTERN( LogDemo, Log, All );
 
+DECLARE_DELEGATE_OneParam(FOnGotoTimeDelegate, const bool);
+
 /**
  * Simulated network driver for recording and playing back game sessions.
  */
@@ -47,9 +49,6 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	/** This is our spectator controller that is used to view the demo world from */
 	APlayerController* SpectatorController;
 
-	UPROPERTY(config)
-	FString DemoSpectatorClass;
-
 	/** Our network replay streamer */
 	TSharedPtr< class INetworkReplayStreamer >	ReplayStreamer;
 
@@ -63,6 +62,7 @@ class ENGINE_API UDemoNetDriver : public UNetDriver
 	float		TimeToSkip;
 	float		QueuedGotoTimeInSeconds;
 	uint32		InitialLiveDemoTime;
+	double		InitialLiveDemoTimeRealtime;
 
 	bool		bSavingCheckpoint;
 	double		LastCheckpointTime;
@@ -84,6 +84,8 @@ private:
 	// If a channel is associated with Actor, adds the channel's GUID to the list of GUIDs excluded from queuing bunches during scrubbing.
 	void		AddNonQueuedActorForScrubbing(AActor* Actor);
 
+	FOnGotoTimeDelegate OnGotoTimeDelegate;
+
 public:
 
 	// UNetDriver interface.
@@ -97,11 +99,12 @@ public:
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr ) override;
 	virtual bool IsAvailable() const override { return true; }
 	void SkipTime(const float InTimeToSkip);
-	void GotoTimeInSeconds( const float TimeInSeconds );
 	bool InitConnectInternal( FString& Error );
 	virtual bool ShouldClientDestroyTearOffActors() const override;
 	virtual bool ShouldSkipRepNotifies() const override;
 	virtual bool ShouldQueueBunchesForActorGUID(FNetworkGUID InGUID) const override;
+
+	void GotoTimeInSeconds(const float TimeInSeconds, const FOnGotoTimeDelegate& InOnGotoTimeDelegate = FOnGotoTimeDelegate());
 
 public:
 
@@ -128,6 +131,14 @@ public:
 	void SpawnDemoRecSpectator( UNetConnection* Connection );
 	void ResetDemoState();
 	void JumpToEndOfLiveReplay();
+	virtual bool IsFastForwarding() { return bIsFastForwarding; }
+
+	/**
+	 * Adds a join-in-progress user to the set of users associated with the currently recording replay (if any)
+	 *
+	 * @param UserString a string that uniquely identifies the user, usually his or her FUniqueNetId
+	 */
+	void AddUserToReplay(const FString& UserString);
 
 	void StopDemo();
 

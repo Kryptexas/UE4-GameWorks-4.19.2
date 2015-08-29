@@ -9,6 +9,7 @@ class UReimportDataTableFactory : public UCSVImportFactory, public FReimportHand
 	GENERATED_UCLASS_BODY()
 
 	// Begin FReimportHandler interface
+	virtual bool FactoryCanImport( const FString& Filename ) override;
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;
 	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) override;
 	virtual EReimportResult::Type Reimport( UObject* Obj ) override;

@@ -116,7 +116,7 @@ enum ELoopingMode
 	LOOP_Forever
 };
 
-struct FNotifyBufferFinishedHooks
+struct ENGINE_API FNotifyBufferFinishedHooks
 {
 	void AddNotify(USoundNode* NotifyNode, UPTRINT WaveInstanceHash);
 	UPTRINT GetHashForNode(USoundNode* NotifyNode) const;

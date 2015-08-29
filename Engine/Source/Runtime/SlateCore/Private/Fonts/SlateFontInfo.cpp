@@ -10,6 +10,7 @@
 
 FSlateFontInfo::FSlateFontInfo( )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(0)
@@ -21,6 +22,7 @@ FSlateFontInfo::FSlateFontInfo( )
 
 FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont, const int32 InSize, const FName& InTypefaceFontName )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont(InCompositeFont)
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
@@ -36,6 +38,7 @@ FSlateFontInfo::FSlateFontInfo( TSharedPtr<const FCompositeFont> InCompositeFont
 
 FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize, const FName& InTypefaceFontName )
 	: FontObject(InFontObject)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName(InTypefaceFontName)
 	, Size(InSize)
@@ -59,6 +62,7 @@ FSlateFontInfo::FSlateFontInfo( const UObject* InFontObject, const int32 InSize,
 
 FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontHinting InHinting )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
@@ -74,6 +78,7 @@ FSlateFontInfo::FSlateFontInfo( const FString& InFontName, uint16 InSize, EFontH
 
 FSlateFontInfo::FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHinting InHinting )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
@@ -89,6 +94,7 @@ FSlateFontInfo::FSlateFontInfo( const FName& InFontName, uint16 InSize, EFontHin
 
 FSlateFontInfo::FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFontHinting InHinting )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)
@@ -104,6 +110,7 @@ FSlateFontInfo::FSlateFontInfo( const ANSICHAR* InFontName, uint16 InSize, EFont
 
 FSlateFontInfo::FSlateFontInfo( const WIDECHAR* InFontName, uint16 InSize, EFontHinting InHinting )
 	: FontObject(nullptr)
+	, FontMaterial(nullptr)
 	, CompositeFont()
 	, TypefaceFontName()
 	, Size(InSize)

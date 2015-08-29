@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2426077
+﻿INTSourceChangelist:2565630
 Availability:Public
-Title:プラットフォーム別開発ガイド
+Title:プラットフォーム開発
 Crumbs:%ROOT%
-Description:ＰＣ以外への開発ティップスをみてみましょう。
+Description:PC 以外のプラットフォームの開発に関する情報
 Navigation:platform
 
 [VAR:Params]
@@ -62,7 +62,7 @@ Navigation:platform
 			[/PUBLISH]
 			* [](Platforms/iOS/DeviceCompatibility "%Platforms/iOS/DeviceCompatibility:description%")
 			* [](Platforms/iOS/PackagedGameSize "%Platforms/iOS/PackagedGameSize:description%")
-		* [](Platforms/Android "")
+		* [](Platforms/Android)
 			* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
 			* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
 			* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
@@ -89,6 +89,23 @@ Navigation:platform
 		* [](Platforms/Oculus "%Platforms/Oculus:description%")
 			* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
 			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/Linux)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
 	[/PARAM]
 [/OBJECT]
 
@@ -103,7 +120,7 @@ Navigation:platform
 	[/PARAM]
 	[PARAM:links]
 		* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
-		* [](Platforms/HTML5/BuildingEmscripten "%Platforms/HTML5/BuildingEmscripten:description%")
+
 	[/PARAM]
 [/OBJECT]
 

@@ -33,7 +33,6 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
-#include "FeedbackContextEditor.h"
 
 #include "Factories.h"
 #include "Engine.h"
@@ -189,6 +188,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	{
 		UFbxStaticMeshImportData* StaticMeshData	= ImportUI->StaticMeshImportData;
 		InOutImportOptions.NormalImportMethod		= StaticMeshData->NormalImportMethod;
+		InOutImportOptions.NormalGenerationMethod	= StaticMeshData->NormalGenerationMethod;
 		InOutImportOptions.ImportTranslation		= StaticMeshData->ImportTranslation;
 		InOutImportOptions.ImportRotation			= StaticMeshData->ImportRotation;
 		InOutImportOptions.ImportUniformScale		= StaticMeshData->ImportUniformScale;
@@ -197,6 +197,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	{
 		UFbxSkeletalMeshImportData* SkeletalMeshData	= ImportUI->SkeletalMeshImportData;
 		InOutImportOptions.NormalImportMethod			= SkeletalMeshData->NormalImportMethod;
+		InOutImportOptions.NormalGenerationMethod		= SkeletalMeshData->NormalGenerationMethod;
 		InOutImportOptions.ImportTranslation			= SkeletalMeshData->ImportTranslation;
 		InOutImportOptions.ImportRotation				= SkeletalMeshData->ImportRotation;
 		InOutImportOptions.ImportUniformScale			= SkeletalMeshData->ImportUniformScale;
@@ -220,8 +221,6 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 		InOutImportOptions.ImportUniformScale	= AnimData->ImportUniformScale;
 	}
 
-	// only re-sample if they don't want to use default sample rate
-	InOutImportOptions.bResample = ImportUI->bUseDefaultSampleRate==false;
 	InOutImportOptions.bImportMorph = ImportUI->SkeletalMeshImportData->bImportMorphTargets;
 	InOutImportOptions.bUpdateSkeletonReferencePose = ImportUI->SkeletalMeshImportData->bUpdateSkeletonReferencePose;
 	InOutImportOptions.bImportRigidMesh = ImportUI->OriginalImportType == FBXIT_StaticMesh && ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
@@ -232,6 +231,7 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
 	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
+	InOutImportOptions.bBuildAdjacencyBuffer = ImportUI->StaticMeshImportData->bBuildAdjacencyBuffer;
 	InOutImportOptions.bGenerateLightmapUVs = ImportUI->StaticMeshImportData->bGenerateLightmapUVs;
 	InOutImportOptions.bOneConvexHullPerUCX = ImportUI->StaticMeshImportData->bOneConvexHullPerUCX;
 	InOutImportOptions.bAutoGenerateCollision = ImportUI->StaticMeshImportData->bAutoGenerateCollision;
@@ -244,6 +244,8 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.AnimationRange.X = ImportUI->AnimSequenceImportData->StartFrame;
 	InOutImportOptions.AnimationRange.Y = ImportUI->AnimSequenceImportData->EndFrame;
 	InOutImportOptions.AnimationName = ImportUI->AnimationName;
+	// only re-sample if they don't want to use default sample rate
+	InOutImportOptions.bResample = !ImportUI->AnimSequenceImportData->bUseDefaultSampleRate;
 	InOutImportOptions.bPreserveLocalTransform = ImportUI->AnimSequenceImportData->bPreserveLocalTransform;
 	InOutImportOptions.bDeleteExistingMorphTargetCurves = ImportUI->AnimSequenceImportData->bDeleteExistingMorphTargetCurves;
 	InOutImportOptions.bImportCustomAttribute = ImportUI->AnimSequenceImportData->bImportCustomAttribute;
@@ -368,6 +370,7 @@ void FFbxImporter::ReleaseScene()
 	CollisionModels.Clear();
 	CurPhase = NOTSTARTED;
 	bFirstMesh = true;
+	LastMergeBonesChoice = EAppReturnType::Ok;
 }
 
 FBXImportOptions* UnFbx::FFbxImporter::GetImportOptions() const
@@ -397,30 +400,52 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 			UE_LOG(LogFbx, Log, TEXT("ItemName: %s, ItemCount : %d"), *NameBuffer, ItemCount);
 		}
 
-		for ( ItemIndex = 0; ItemIndex < Statistics.GetNbItems(); ItemIndex++ )
+		FbxSceneInfo SceneInfo;
+		if (GetSceneInfo(Filename, SceneInfo))
 		{
-			Statistics.GetItemPair(ItemIndex, ItemName, ItemCount);
-			const char* NameBuffer = ItemName.Buffer();
-			if ( ItemName == "Deformer" && ItemCount > 0 )
+			if (SceneInfo.SkinnedMeshNum > 0)
 			{
-				// if SkeletalMesh is found, just return
 				Result = 1;
-				break;
 			}
-			// if Geometry is found, sets it, but it can be overwritten by Deformer
-			else if ( ItemName == "Geometry" && ItemCount > 0)
+			else if (SceneInfo.TotalGeometryNum > 0)
 			{
-				// let it still loop through even if Geometry is found
-				// Deformer can overwrite this information
 				Result = 0;
 			}
-			// Check for animation data. It can be overwritten by Geometry or Deformer
-			else if ( (ItemName == "AnimationCurve" || ItemName == "AnimationCurveNode") && ItemCount > 0 )
+
+			bHasAnimation = SceneInfo.bHasAnimation;
+		}
+		else
+		{
+			for(ItemIndex = 0; ItemIndex < Statistics.GetNbItems(); ItemIndex++)
 			{
-				bHasAnimation = true;
+				Statistics.GetItemPair(ItemIndex, ItemName, ItemCount);
+				const char* NameBuffer = ItemName.Buffer();
+				if(ItemName == "Deformer" && ItemCount > 0)
+				{
+					// if SkeletalMesh is found, just return
+					Result = 1;
+					break;
+				}
+				// if Geometry is found, sets it, but it can be overwritten by Deformer
+				else if(ItemName == "Geometry" && ItemCount > 0)
+				{
+					// let it still loop through even if Geometry is found
+					// Deformer can overwrite this information
+					Result = 0;
+				}
+				// Check for animation data. It can be overwritten by Geometry or Deformer
+				else if((ItemName == "AnimationCurve" || ItemName == "AnimationCurveNode") && ItemCount > 0)
+				{
+					bHasAnimation = true;
+				}
 			}
 		}
-		Importer->Destroy();
+
+		if (Importer)
+		{
+			Importer->Destroy();
+		}
+
 		Importer = NULL;
 		CurPhase = NOTSTARTED;
 
@@ -442,8 +467,7 @@ int32 FFbxImporter::GetImportType(const FString& InFilename)
 bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 {
 	bool Result = true;
-	FFeedbackContextEditor FbxImportWarn;
-	FbxImportWarn.BeginSlowTask( NSLOCTEXT("FbxImporter", "BeginGetSceneInfoTask", "Parse FBX file to get scene info"), true );
+	GWarn->BeginSlowTask( NSLOCTEXT("FbxImporter", "BeginGetSceneInfoTask", "Parse FBX file to get scene info"), true );
 	
 	bool bSceneInfo = true;
 	switch (CurPhase)
@@ -454,14 +478,14 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 			Result = false;
 			break;
 		}
-		FbxImportWarn.UpdateProgress( 40, 100 );
+		GWarn->UpdateProgress( 40, 100 );
 	case FILEOPENED:
 		if (!ImportFile(Filename))
 		{
 			Result = false;
 			break;
 		}
-		FbxImportWarn.UpdateProgress( 90, 100 );
+		GWarn->UpdateProgress( 90, 100 );
 	case IMPORTED:
 	
 	default:
@@ -560,17 +584,21 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 			}
 		}
 		
-		// TODO: display multiple anim stack
-		SceneInfo.TakeName = NULL;
-		for (int32 AnimStackIndex = 0; AnimStackIndex < Scene->GetSrcObjectCount<FbxAnimStack>(); AnimStackIndex++)
+		SceneInfo.bHasAnimation = false;
+		int32 AnimCurveNodeCount = Scene->GetSrcObjectCount<FbxAnimCurveNode>();
+		// sadly Max export with animation curve node by default without any change, so 
+		// we'll have to skip the first two curves, which is translation/rotation
+		// if there is a valid animation, we'd expect there are more curve nodes than 2. 
+		for (int32 AnimCurveNodeIndex = 2; AnimCurveNodeIndex < AnimCurveNodeCount; AnimCurveNodeIndex++)
 		{
-			FbxAnimStack* CurAnimStack = Scene->GetSrcObject<FbxAnimStack>(0);
-			// TODO: skip empty anim stack
-			const char* AnimStackName = CurAnimStack->GetName();
-			SceneInfo.TakeName = new char[FCStringAnsi::Strlen(AnimStackName) + 1];
-
-			FCStringAnsi::Strcpy(SceneInfo.TakeName, FCStringAnsi::Strlen(AnimStackName) + 1, AnimStackName);
+			FbxAnimCurveNode* CurAnimCruveNode = Scene->GetSrcObject<FbxAnimCurveNode>(AnimCurveNodeIndex);
+			if (CurAnimCruveNode->IsAnimated(true))
+			{
+				SceneInfo.bHasAnimation = true;
+				break;
+			}
 		}
+
 		SceneInfo.FrameRate = FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode());
 		
 		if ( GlobalTimeSpan.GetDirection() == FBXSDK_TIME_FORWARD)
@@ -583,7 +611,7 @@ bool FFbxImporter::GetSceneInfo(FString Filename, FbxSceneInfo& SceneInfo)
 		}
 	}
 	
-	FbxImportWarn.EndSlowTask();
+	GWarn->EndSlowTask();
 	return Result;
 }
 

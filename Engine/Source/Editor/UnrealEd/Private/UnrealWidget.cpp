@@ -532,17 +532,17 @@ void FWidget::Render_Rotate( const FSceneView* View,FPrimitiveDrawInterface* PDI
 		//no draw the arc segments
 		if( DrawAxis&EAxisList::X )
 		{
-			DrawRotationArc(View, PDI, EAxisList::X, InLocation, ZAxis, YAxis, DirectionToWidget, AxisColorX, Scale, XAxisDir);
+			DrawRotationArc(View, PDI, EAxisList::X, InLocation, ZAxis, YAxis, DirectionToWidget, AxisColorX.ToFColor(true), Scale, XAxisDir);
 		}
 
 		if( DrawAxis&EAxisList::Y )
 		{
-			DrawRotationArc(View, PDI, EAxisList::Y, InLocation, XAxis, ZAxis, DirectionToWidget, AxisColorY, Scale, YAxisDir);
+			DrawRotationArc(View, PDI, EAxisList::Y, InLocation, XAxis, ZAxis, DirectionToWidget, AxisColorY.ToFColor(true), Scale, YAxisDir);
 		}
 
 		if( DrawAxis&EAxisList::Z )
 		{
-			DrawRotationArc(View, PDI, EAxisList::Z, InLocation, XAxis, YAxis, DirectionToWidget, AxisColorZ, Scale, ZAxisDir);
+			DrawRotationArc(View, PDI, EAxisList::Z, InLocation, XAxis, YAxis, DirectionToWidget, AxisColorZ.ToFColor(true), Scale, ZAxisDir);
 		}
 	}
 }
@@ -669,10 +669,10 @@ void FWidget::Render_TranslateRotateZ( const FSceneView* View, FPrimitiveDrawInt
 	// Figure out axis colors
 
 	FColor XYPlaneColor  = ( (CurrentAxis&EAxisList::XY) ==  EAxisList::XY) ? CurrentColor : PlaneColorXY;
-	FColor ZRotateColor  = ( (CurrentAxis&EAxisList::ZRotation) == EAxisList::ZRotation ) ? CurrentColor : (FColor)AxisColorZ ;
-	FColor XColor        = ( (CurrentAxis&EAxisList::X ) == EAxisList::X )? CurrentColor : (FColor)AxisColorX;
-	FColor YColor        = ( (CurrentAxis&EAxisList::Y) == EAxisList::Y && CurrentAxis != EAxisList::ZRotation ) ? CurrentColor : (FColor)AxisColorY;
-	FColor ZColor        = ( (CurrentAxis&EAxisList::Z) == EAxisList::Z) ? CurrentColor : (FColor)AxisColorZ;
+	FColor ZRotateColor  = ( ( CurrentAxis&EAxisList::ZRotation ) == EAxisList::ZRotation ) ? CurrentColor : AxisColorZ.ToFColor(true);
+	FColor XColor        = ( ( CurrentAxis&EAxisList::X ) == EAxisList::X ) ? CurrentColor : AxisColorX.ToFColor(true);
+	FColor YColor        = ( ( CurrentAxis&EAxisList::Y ) == EAxisList::Y && CurrentAxis != EAxisList::ZRotation ) ? CurrentColor : AxisColorY.ToFColor(true);
+	FColor ZColor        = ( ( CurrentAxis&EAxisList::Z ) == EAxisList::Z ) ? CurrentColor : AxisColorZ.ToFColor(true);
 
 	// Figure out axis materials
 	UMaterialInterface* ZRotateMaterial = (CurrentAxis&EAxisList::ZRotation) == EAxisList::ZRotation? CurrentAxisMaterial : AxisMaterialZ;
@@ -912,7 +912,7 @@ void FWidget::Render_2D(const FSceneView* View, FPrimitiveDrawInterface* PDI, FE
 			uint8 Alpha = ((CurrentAxis&EAxisList::XZ) == EAxisList::XZ ? HoverAlpha : NormalAlpha);
 			PDI->SetHitProxy(new HWidgetAxis(EAxisList::XZ, bDisabled));
 			{
-				FColor Color = YColor;
+				FColor Color = YColor.ToFColor(true);
 				DrawCircle(PDI, InLocation, CustomCoordSystem.TransformPosition(FVector(1, 0, 0)), CustomCoordSystem.TransformPosition(FVector(0, 0, 1)), Color, ScaledRadius, CircleSides, SDPG_Foreground);
 				Color.A = Alpha;
 				DrawDisc(PDI, InLocation, CustomCoordSystem.TransformPosition(FVector(1, 0, 0)), CustomCoordSystem.TransformPosition(FVector(0, 0, 1)), Color, ScaledRadius, CircleSides, TransparentPlaneMaterialXY->GetRenderProxy(false), SDPG_Foreground);
@@ -921,7 +921,7 @@ void FWidget::Render_2D(const FSceneView* View, FPrimitiveDrawInterface* PDI, FE
 
 			PDI->SetHitProxy(new HWidgetAxis(EAxisList::Rotate2D, bDisabled));
 			{
-				FColor Color = YColor;
+				FColor Color = YColor.ToFColor(true);
 				Color.A = ((CurrentAxis&EAxisList::Rotate2D) == EAxisList::Rotate2D ? HoverAlpha : NormalAlpha);
 
 				FVector XAxis = CustomCoordSystem.TransformPosition(FVector(1, 0, 0).RotateAngleAxis((EditorModeTools ? EditorModeTools->TranslateRotate2DAngle : 0), FVector(0, -1, 0)));

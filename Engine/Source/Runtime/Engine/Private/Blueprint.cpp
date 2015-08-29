@@ -834,16 +834,6 @@ UTimelineTemplate* UBlueprint::FindTimelineTemplateByVariableName(const FName& T
 	return Timeline;
 }
 
-UBlueprint* UBlueprint::GetBlueprintFromClass(const UClass* InClass)
-{
-	UBlueprint* BP = NULL;
-	if(InClass != NULL)
-	{
-		BP = Cast<UBlueprint>(InClass->ClassGeneratedBy);
-	}
-	return BP;
-}
-
 bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 {
 	const UBlueprintGeneratedClass* GeneratedClass = Cast<const UBlueprintGeneratedClass>(InClass);
@@ -925,23 +915,45 @@ bool UBlueprint::ValidateGeneratedClass(const UClass* InClass)
 	return true;
 }
 
+#endif // WITH_EDITOR
+
+UBlueprint* UBlueprint::GetBlueprintFromClass(const UClass* InClass)
+{
+	UBlueprint* BP = NULL;
+	if (InClass != NULL)
+	{
+		BP = Cast<UBlueprint>(InClass->ClassGeneratedBy);
+	}
+	return BP;
+}
+
 bool UBlueprint::GetBlueprintHierarchyFromClass(const UClass* InClass, TArray<UBlueprint*>& OutBlueprintParents)
 {
 	OutBlueprintParents.Empty();
 
 	bool bNoErrors = true;
 	const UClass* CurrentClass = InClass;
-	while( UBlueprint* BP = UBlueprint::GetBlueprintFromClass(CurrentClass) )
+	while (UBlueprint* BP = UBlueprint::GetBlueprintFromClass(CurrentClass))
 	{
 		OutBlueprintParents.Add(BP);
+
+#if WITH_EDITORONLY_DATA
 		bNoErrors &= (BP->Status != BS_Error);
-		CurrentClass = CurrentClass->GetSuperClass();
+#endif // #if WITH_EDITORONLY_DATA
+
+		// If valid, use stored ParentClass rather than the actual UClass::GetSuperClass(); handles the case when the class has not been recompiled yet after a reparent operation.
+		if(const UClass* ParentClass = BP->ParentClass)
+		{
+			CurrentClass = ParentClass;
+		}
+		else
+		{
+			CurrentClass = CurrentClass->GetSuperClass();
+		}
 	}
 
 	return bNoErrors;
 }
-
-#endif // WITH_EDITOR
 
 ETimelineSigType UBlueprint::GetTimelineSignatureForFunctionByName(const FName& FunctionName, const FName& ObjectPropertyName)
 {
@@ -1275,6 +1287,11 @@ bool UBlueprint::Modify(bool bAlwaysMarkDirty)
 	return Super::Modify(bAlwaysMarkDirty);
 }
 
+void UBlueprint::GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const
+{
+
+}
+
 UInheritableComponentHandler* UBlueprint::GetInheritableComponentHandler(bool bCreateIfNecessary)
 {
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
@@ -1304,6 +1321,33 @@ FName UBlueprint::GetFunctionNameFromClassByGuid(const UClass* InClass, const FG
 bool UBlueprint::GetFunctionGuidFromClassByFieldName(const UClass* InClass, const FName FunctionName, FGuid& FunctionGuid)
 {
 	return FBlueprintEditorUtils::GetFunctionGuidFromClassByFieldName(InClass, FunctionName, FunctionGuid);
+}
+
+UEdGraph* UBlueprint::GetLastEditedUberGraph() const
+{
+	for ( int32 LastEditedIndex = LastEditedDocuments.Num() - 1; LastEditedIndex >= 0; LastEditedIndex-- )
+	{
+		if ( UObject* Obj = LastEditedDocuments[LastEditedIndex].EditedObject )
+		{
+			if ( UEdGraph* Graph = Cast<UEdGraph>(Obj) )
+			{
+				for ( int32 GraphIndex = 0; GraphIndex < UbergraphPages.Num(); GraphIndex++ )
+				{
+					if ( Graph == UbergraphPages[GraphIndex] )
+					{
+						return UbergraphPages[GraphIndex];
+					}
+				}
+			}
+		}
+	}
+
+	if ( UbergraphPages.Num() > 0 )
+	{
+		return UbergraphPages[0];
+	}
+
+	return nullptr;
 }
 
 #endif //WITH_EDITOR

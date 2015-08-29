@@ -431,50 +431,13 @@ public:
 	 */
 	inline RetValType Execute(ParamTypes... Params) const
 	{
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
+		TDelegateInstanceInterface* LocalDelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
 
 		// If this assert goes off, Execute() was called before a function was bound to the delegate.
 		// Consider using ExecuteIfSafe() instead.
-		checkSlow(DelegateInstance != nullptr);
+		checkSlow(LocalDelegateInstance != nullptr);
 
-		return DelegateInstance->Execute(Params...);
-	}
-
-	/**
-	 * Equality operator.
-	 *
-	 * @return true if this delegate equals the other, false otherwise.
-	 */
-	DELEGATE_DEPRECATED("Delegate comparison is deprecated - please replace any usage with comparison of FDelegateHandles.")
-	bool operator==( const TBaseDelegate& Other ) const
-	{
-		return DEPRECATED_Compare(Other);
-	}
-
-	/**
-	 * Delegate comparison operator.
-	 *
-	 * @return true if this delegate equals the other, false otherwise.
-	 */
-	bool DEPRECATED_Compare( const TBaseDelegate& Other ) const
-	{
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)GetDelegateInstance();
-		TDelegateInstanceInterface* OtherInstance = (TDelegateInstanceInterface*)Other.GetDelegateInstance();
-		
-		// The function these delegates point to must be the same
-		if ((DelegateInstance != nullptr) && (OtherInstance != nullptr))
-		{
-			return DelegateInstance->IsSameFunction(*OtherInstance);
-		}
-		
-		// If neither delegate is initialized to anything yet, then we treat them as equal
-		if ((DelegateInstance == nullptr) && (OtherInstance == nullptr))
-		{
-			return true;
-		}
-		
-		// No match!
-		return false;
+		return LocalDelegateInstance->Execute(Params...);
 	}
 };
 
@@ -597,6 +560,18 @@ public:
 	inline FDelegateHandle AddStatic(typename TBaseStaticDelegateInstance<void (ParamTypes...), VarTypes...>::FFuncPtr InFunc, VarTypes... Vars)
 	{
 		return Add(FDelegate::CreateStatic(InFunc, Vars...));
+	}
+
+	/**
+	 * Adds a C++ lambda delegate
+	 * technically this works for any functor types, but lambdas are the primary use case
+	 *
+	 * @param	InFunctor	Functor (e.g. Lambda)
+	 */
+	template<typename FunctorType, typename... VarTypes>
+	inline FDelegateHandle AddLambda(FunctorType&& InFunctor, VarTypes... Vars)
+	{
+		return Add(FDelegate::CreateLambda(Forward<FunctorType>(InFunctor), Vars...));
 	}
 
 	/**
@@ -740,203 +715,6 @@ public:
 		RemoveDelegateInstance(Handle);
 	}
 
-	/**
-	 * Removes a delegate instance from this multi-cast delegate's invocation list (performance is O(N)).
-	 *
-	 * Note that the order of the delegate instances may not be preserved!
-	 *
-	 * @param DelegateInstance The delegate instance to remove.
-	 */
-	DELEGATE_DEPRECATED("This Remove overload is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	void Remove( const TDelegateInstanceInterface& DelegateInstance )
-	{
-		DEPRECATED_Remove(DelegateInstance);
-	}
-
-	void DEPRECATED_Remove( const TDelegateInstanceInterface& DelegateInstance )
-	{
-		// Provided to help implement other deprecated functions without giving multiple warnings.
-		// Should not be called directly.
-
-		DEPRECATED_RemoveDelegateInstance(&DelegateInstance);
-	}
-
-	/**
-	 * DEPRECATED: Removes a unicast delegate from this multi-cast delegate's invocation list (performance is O(N)).
-	 *
-	 * The order of the delegates may not be preserved!
-	 * This function is retained for backwards compatibility.
-	 *
-	 * @param Delegate The delegate to remove.
-	 */
-	DELEGATE_DEPRECATED("This Remove overload is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	void Remove( const FDelegate& Delegate )
-	{
-		DEPRECATED_Remove(Delegate);
-	}
-
-	void DEPRECATED_Remove( const FDelegate& Delegate )
-	{
-		// Provided to help implement other deprecated functions without giving multiple warnings.
-		// Should not be called directly.
-
-		TDelegateInstanceInterface* DelegateInstance = (TDelegateInstanceInterface*)Delegate.GetDelegateInstance();
-
-		if (DelegateInstance != nullptr)
-		{
-			DEPRECATED_RemoveDelegateInstance(DelegateInstance);
-		}		
-	}
-
-	// NOTE: These direct Remove methods are only supported for multi-cast delegates with no payload attached.
-	// See the comment in the multi-cast delegate Remove() method above for more details.
-
-	/**
-	 * Removes a raw C++ pointer global function delegate (performance is O(N)).  Note that the order of the
-	 * delegates may not be preserved!
-	 *
-	 * @param	InFunc	Function pointer
-	 */
-	DELEGATE_DEPRECATED("RemoveStatic is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveStatic( typename TBaseStaticDelegateInstance< void (ParamTypes...) >::FFuncPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateStatic( InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a raw C++ pointer delegate (performance is O(N)).  Note that the order of the delegates may not
-	 * be preserved!
-	 *
-	 * @param	InUserObject	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveRaw is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveRaw( UserClass* InUserObject, typename TBaseRawMethodDelegateInstance<false, UserClass, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateRaw( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveRaw is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveRaw( UserClass* InUserObject, typename TBaseRawMethodDelegateInstance<true , UserClass, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateRaw( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
-	 * the delegates may not be preserved!
-	 *
-	 * @param	InUserObjectRef	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveSP( const TSharedRef< UserClass, ESPMode::Fast >& InUserObjectRef, typename TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateSP( InUserObjectRef, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveSP( const TSharedRef< UserClass, ESPMode::Fast >& InUserObjectRef, typename TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateSP( InUserObjectRef, InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
-	 * the delegates may not be preserved!
-	 *
-	 * @param	InUserObject	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveSP( UserClass* InUserObject, typename TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::Fast, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateSP( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveSP( UserClass* InUserObject, typename TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::Fast, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateSP( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
-	 * the delegates may not be preserved!
-	 *
-	 * @param	InUserObjectRef	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveThreadSafeSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveThreadSafeSP( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObjectRef, typename TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateThreadSafeSP( InUserObjectRef, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveThreadSafeSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveThreadSafeSP( const TSharedRef< UserClass, ESPMode::ThreadSafe >& InUserObjectRef, typename TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateThreadSafeSP( InUserObjectRef, InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a shared pointer-based member function delegate (performance is O(N)).  Note that the order of
-	 * the delegates may not be preserved!
-	 *
-	 * @param	InUserObject	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveThreadSafeSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveThreadSafeSP( UserClass* InUserObject, typename TBaseSPMethodDelegateInstance<false, UserClass, ESPMode::ThreadSafe, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateThreadSafeSP( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveThreadSafeSP is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveThreadSafeSP( UserClass* InUserObject, typename TBaseSPMethodDelegateInstance<true , UserClass, ESPMode::ThreadSafe, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateThreadSafeSP( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a UFunction-based member function delegate (performance is O(N)).  Note that the order of the
-	 * delegates may not be preserved!
-	 *
-	 * @param	InUserObject	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UObjectTemplate >
-	DELEGATE_DEPRECATED("RemoveUFunction is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveUFunction( UObjectTemplate* InUserObject, const FName& InFunctionName )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateUFunction( InUserObject, InFunctionName ).GetDelegateInstance() );
-	}
-
-	/**
-	 * Removes a UObject-based member function delegate (performance is O(N)).  Note that the order of the
-	 * delegates may not be preserved!
-	 *
-	 * @param	InUserObject	User object to unbind from
-	 * @param	InFunc			Class method function address
-	 */
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveUObject is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveUObject( UserClass* InUserObject, typename TBaseUObjectMethodDelegateInstance<false, UserClass, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateUObject( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-	template< class UserClass >
-	DELEGATE_DEPRECATED("RemoveUObject is deprecated - please remove delegates using the FDelegateHandle returned by the Add function.")
-	inline void RemoveUObject( UserClass* InUserObject, typename TBaseUObjectMethodDelegateInstance<true , UserClass, void (ParamTypes...)>::FMethodPtr InFunc )
-	{
-		DEPRECATED_RemoveDelegateInstance( (TDelegateInstanceInterface*)FDelegate::CreateUObject( InUserObject, InFunc ).GetDelegateInstance() );
-	}
-
 protected:
 
 	/** 
@@ -1020,13 +798,13 @@ public:
 
 		LockInvocationList();
 		{
-			const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+			const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
 			// call bound functions in reverse order, so we ignore any instances that may be added by callees
-			for (int32 InvocationListIndex = InvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
+			for (int32 InvocationListIndex = LocalInvocationList.Num() - 1; InvocationListIndex >= 0; --InvocationListIndex)
 			{
 				// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)InvocationList[InvocationListIndex];
+				TDelegateInstanceInterface* DelegateInstanceInterface = (TDelegateInstanceInterface*)LocalInvocationList[InvocationListIndex];
 
 				if ((DelegateInstanceInterface == nullptr) || !DelegateInstanceInterface->ExecuteIfSafe(Params...))
 				{
@@ -1053,64 +831,24 @@ protected:
 	 */
 	void RemoveDelegateInstance( FDelegateHandle Handle )
 	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
+		const TArray<IDelegateInstance*>& LocalInvocationList = GetInvocationList();
 
-		// NOTE: We assume that this method is never called with a nullptr object, in which case the
-		//       the following algorithm would break down (it would remove the first found instance
-		//       of a matching function binding, which is not necessarily the instance we wish to remove).
-
-		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
+		for (int32 InvocationListIndex = 0; InvocationListIndex < LocalInvocationList.Num(); ++InvocationListIndex)
 		{
-			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface*& DelegateInstanceRef = (TDelegateInstanceInterface*&)InvocationList[InvocationListIndex];
+			// InvocationList is const, so we const_cast to be able to null the entry
+			// TODO: This is horrible, can we get the base class to do it?
+			IDelegateInstance*& DelegateInstanceRef = const_cast<IDelegateInstance*&>(LocalInvocationList[InvocationListIndex]);
 
-			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
-			//       delegate pointers can refer to the exact same object and method
 			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->GetHandle() == Handle)
 			{
 				delete DelegateInstanceRef;
 				DelegateInstanceRef = nullptr;
 
-				break;	// no need to continue, as we never allow the same delegate to be bound twice
+				break; // each delegate binding has a unique handle, so once we find it, we can stop
 			}
 		}
 
-		const_cast<TBaseMulticastDelegate*>(this)->CompactInvocationList();
-	}
-
-	/**
-	 * Removes a function from this multi-cast delegate's invocation list (performance is O(N)).
-	 *
-	 * The function is not actually removed, but deleted and marked as removed.
-	 * It will be removed next time the invocation list is compacted within Broadcast().
-	 *
-	 * @param InDelegateInstance The delegate instance to remove.
-	 */
-	void DEPRECATED_RemoveDelegateInstance( const TDelegateInstanceInterface* InDelegateInstance )
-	{
-		const TArray<IDelegateInstance*>& InvocationList = GetInvocationList();
-
-		// NOTE: We assume that this method is never called with a nullptr object, in which case the
-		//       the following algorithm would break down (it would remove the first found instance
-		//       of a matching function binding, which is not necessarily the instance we wish to remove).
-
-		for (int32 InvocationListIndex = 0; InvocationListIndex < InvocationList.Num(); ++InvocationListIndex)
-		{
-			// this down-cast is OK! allows for managing invocation list in the base class without requiring virtual functions
-			TDelegateInstanceInterface*& DelegateInstanceRef = (TDelegateInstanceInterface*&)InvocationList[InvocationListIndex];
-
-			// NOTE: We must do a deep compare here, not just compare delegate pointers, because multiple
-			//       delegate pointers can refer to the exact same object and method
-			if ((DelegateInstanceRef != nullptr) && DelegateInstanceRef->IsSameFunction(*InDelegateInstance))
-			{
-				delete DelegateInstanceRef;
-				DelegateInstanceRef = nullptr;
-				
-				break;	// no need to continue, as we never allow the same delegate to be bound twice
-			}
-		}
-
-		const_cast<TBaseMulticastDelegate*>(this)->CompactInvocationList();
+		CompactInvocationList();
 	}
 };
 

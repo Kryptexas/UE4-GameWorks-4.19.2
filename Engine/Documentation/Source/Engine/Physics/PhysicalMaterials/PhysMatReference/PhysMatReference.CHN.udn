@@ -1,0 +1,229 @@
+﻿Availability: Public
+Title:物理材质引用
+Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhysicalMaterials
+Description:直接应用于物理模拟的图元资源或通过使用的材质来配置和控制由模拟使用的物理属性。
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Physics/PhysicalMaterials/PhysMatReference:title%](Engine/Physics/physics_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/physics_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Physics/PhysicalMaterials/PhysMatReference:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Physics/PhysicalMaterials/PhysMatReference]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+[INCLUDE:Shared/Glossary/P/#Glossary_Physical_Material]
+
+## 属性
+
+以下是按主要分类所分隔的物理材质属性。
+
+[OBJECT:modulesectionexpanded]
+	[PARAMLITERAL:id]
+		physmat
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physical Material（物理材质）
+	[/PARAM]
+	[PARAM:content]
+		%p1%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p1]
+
+这个分类包含了物理材质的核心属性。 摩擦力、回复力和密度。
+
+![](p1.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| -------- | --- | :---------- |
+| **Friction（摩擦力）** || 这是表面的摩擦力值，它控制了物体在此表面滑动的方便程度。 |
+| **Friction Combine Mode（摩擦力组合模式）** || [INCLUDE:#FcombineMode]  |
+| **Override Friction Combine Mode（重载摩擦力组合模式）** || 默认情况下，摩擦力组合模式被设置为 **平均** ，通过启用这个属性，您可以变更摩擦力如何在接触的物理材质间进行组合。
+| **Restitution（回复力）** || 它表示表面的"弹性"，或者当其与其它表面进行碰撞时保留的能量。 |
+| **Restitution Combine Mode（回复力组合模式）** || [INCLUDE:#RcombineMode] |
+| **Override Restitution Combine Mode（重载回复力组合模式）** || 默认情况下，回复力组合模式被设置为 **平均** ，通过启用这个属性，您可以变更回复力如何在接触的物理材质间进行组合。 |
+| **Density（密度）** || 用于和对象的形状结合以计算它的质量属性。 数字越大，物体越重。 按照每立方 **厘米** 为 **g** 进行计算。 |
+[/REGION]
+
+[/VAR]
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		adv
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Advanced（高级）
+	[/PARAM]
+	[PARAM:content]
+		%p2%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p2]
+
+这个分类包含了通过变更大小来影响应用了物理材质的Actor的质量的属性。
+
+![](p2.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| -------- | --- | :---------- |
+| **Raise Mass To Power（提升质量为幂）** || 用于调整随着对象变大，对象质量增加的方式。 它基于"固体"对象的计算来应用到质量上。 实际上，更大的物体不一定是固体，而且会变得更类似于"壳体"（例如，汽车不是金属固体）。 值会区间限定到1或者比1小的数。 |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		dest
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Destruction（销毁）
+	[/PARAM]
+	[PARAM:content]
+		%p3%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p3]
+
+虚幻引擎4中销毁系统特定的属性。
+
+![](p3.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| -------- | :---: | :---------- |
+| **Destructible Damage Threshold Scale（可销毁的损伤阀值范围）** || 通过应用材质的任何可破坏物体，增大或减少损毁阀值的程度。 |
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		physpro
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Physical Properties（物理属性）
+	[/PARAM]
+	[PARAM:content]
+		%p4%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p4]
+
+物理材质的游戏相关属性。
+
+![](p4.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| -------- | --- | :---------- |
+| **Surface Type（表面类型）**|| [INCLUDE:#one]|
+[/REGION]
+
+[/VAR]
+
+
+
+[OBJECT:modulesection]
+	[PARAMLITERAL:id]
+		vehicles
+	[/PARAMLITERAL]
+	[PARAM:heading]
+		Vehicles（载具）
+	[/PARAM]
+	[PARAM:content]
+		%p5%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:p5]
+
+这些属性是虚幻引擎4中的载具特定属性。可能标注的是轮胎属性，但是只有在应用到载具上时才有效（因为轮胎数据类型和车轮的蓝图不会直接引用物理材质）。
+
+![](p5.png)
+
+[REGION:raw]
+| 属性 | %spacer% | 描述 |
+| -------- | :---: | :---------- |
+| **Tire Friction Scale（轮胎摩擦力范围）** || 当此物理材质应用于载具时的总体轮胎摩擦力范围。 这个值和载具的轮胎特定的摩擦力大小值相乘。 |
+| **Tire Friction Scale（轮胎摩擦力范围）** || 当此物理材质应用于载具时的特定车轮的摩擦力范围。 这些值和载具的轮胎特定的摩擦力大小值相乘。 |
+[/REGION]
+
+[/VAR]
+
+[VAR:spacer]![](spacer.png)(w:150 convert:false)[/VAR]
+
+<!--
+[EXCERPT:one]
+您的项目可以在`DefaultEngine.ini`文件中设置表面类型。 其中定义了引擎中使用的枚举，从而定义任意数量的对象，这些数量包括了当角色从表面走过时应发出的声音到爆炸应在不同的表面上留下的贴花类型。
+
+您可以使用ProjectSetting/Physics/Physical Surfaces
+
+这个数据可以放到代码或蓝图中：
+
+![](SurfaceType.png)(w:600)
+
+默认情况下，在不编辑源代码的情况下，您最多可以使用30种表面类型，分别从SurfaceType1标记到SurfaceType30。
+
+[/EXCERPT:one]
+
+[EXCERPT:FcombineMode]
+这个属性让您可以调整物理材质摩擦力组合的方式。 默认情况下设置它为Average（平均），但可以使用 **Override Friction Combine Mode（重载摩擦力组合模式）** 属性来进行重载。 
+
+| --- | --- |
+| **Average（平均）** | 使用触摸材质的平均值： (a+b)/2 |
+| **Min（最小值）** | 使用触摸材质的较小值： min(a,b) |
+| **Multiply（相乘）** | 与触碰材质的值相乘： a*b |
+| **Max（最大值）** | 使用触摸材质的较大值： max(a,b) |
+[/EXCERPT]
+
+[EXCERPT:RcombineMode]
+这个属性让您可以调整物理材质回复力组合的方式。 这个默认情况下设置为Average（平均），但可以使用 **Override Restitution Combine Mode（重载回复力组合模式）** 属性来进行重载。 
+
+| --- | --- |
+| **Average（平均）** | 使用触摸材质的平均值： (a+b)/2 |
+| **Min（最小值）** | 使用触摸材质的较小值： min(a,b) |
+| **Multiply（相乘）** | 与触碰材质的值相乘： a*b |
+| **Max（最大值）** | 使用触摸材质的较大值： max(a,b) |
+[/EXCERPT]
+-->

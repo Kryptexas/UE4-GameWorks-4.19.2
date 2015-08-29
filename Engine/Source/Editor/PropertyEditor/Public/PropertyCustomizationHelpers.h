@@ -211,11 +211,12 @@ class FDetailArrayBuilder : public IDetailCustomNodeBuilder
 {
 public:
 
-	FDetailArrayBuilder( TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true, bool InDisplayResetToDefault = true)
+	FDetailArrayBuilder(TSharedRef<IPropertyHandle> InBaseProperty, bool InGenerateHeader = true, bool InDisplayResetToDefault = true, bool InDisplayElementNum = true)
 		: ArrayProperty( InBaseProperty->AsArray() )
 		, BaseProperty( InBaseProperty )
 		, bGenerateHeader( InGenerateHeader)
 		, bDisplayResetToDefault(InDisplayResetToDefault)
+		, bDisplayElementNum(InDisplayElementNum)
 	{
 		check( ArrayProperty.IsValid() );
 
@@ -258,7 +259,17 @@ public:
 		if (bGenerateHeader)
 		{
 			const bool bDisplayResetToDefaultInNameContent = false;
+
 			TSharedPtr<SHorizontalBox> ContentHorizontalBox;
+			SAssignNew(ContentHorizontalBox, SHorizontalBox);
+			if (bDisplayElementNum)
+			{
+				ContentHorizontalBox->AddSlot()
+				[
+					BaseProperty->CreatePropertyValueWidget()
+				];
+			}
+
 			NodeRow
 			.FilterString(!DisplayName.IsEmpty() ? DisplayName : BaseProperty->GetPropertyDisplayName())
 			.NameContent()
@@ -267,11 +278,7 @@ public:
 			]
 			.ValueContent()
 			[
-				SAssignNew(ContentHorizontalBox, SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				[
-					BaseProperty->CreatePropertyValueWidget()
-				]
+				ContentHorizontalBox.ToSharedRef()
 			];
 
 			if (bDisplayResetToDefault)
@@ -321,6 +328,7 @@ private:
 	FSimpleDelegate OnRebuildChildren;
 	bool bGenerateHeader;
 	bool bDisplayResetToDefault;
+	bool bDisplayElementNum;
 };
 
 /**

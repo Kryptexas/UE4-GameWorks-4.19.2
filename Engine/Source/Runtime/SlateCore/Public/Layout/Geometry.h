@@ -281,6 +281,14 @@ public:
 	 * @return  Absolute coordinates
 	 */
 	FVector2D LocalToAbsolute( FVector2D LocalCoordinate ) const;
+
+	/**
+	 * Translates the local coordinates into local coordinates that after being transformed into absolute space will be rounded
+	 * to a whole number or approximately a whole number.  This is important for cases where you want to show a popup or a tooltip
+	 * and not have the window start on a half pixel, which can cause the contents to jitter in relation to eachother as the tooltip 
+	 * or popup moves around.
+	 */
+	FVector2D LocalToRoundedLocal( FVector2D LocalCoordinate ) const;
 	
 	/**
 	 * !!! DEPRECATED !!! This legacy function does not account for render transforms.

@@ -154,6 +154,9 @@ protected:
 	/** @return combines the user-specified margin and the button's internal margin. */
 	FMargin GetCombinedPadding() const;
 
+	/** @return True if the disab;ed effect should be shown. */
+	bool GetShowDisabledEffect() const;
+
 	/** Padding specified by the user; it will be combind with the button's internal padding. */
 	TAttribute<FMargin> ContentPadding;
 
@@ -184,6 +187,8 @@ protected:
 	const FSlateBrush* HoverImage;
 	/** Brush resource that represents a button when it is pressed */
 	const FSlateBrush* PressedImage;
+	/** Brush resource that represents a button when it is disabled */
+	const FSlateBrush* DisabledImage;
 
 	/** Sets whether a click should be triggered on mouse down, mouse up, or that both a mouse down and up are required. */
 	EButtonClickMethod::Type ClickMethod;

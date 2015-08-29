@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2283200
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Kill 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,12 +6,10 @@ Description:Kill 은 구현에 정의된 규칙을 만족하는 경우 주어진
 
 [TOC(start:2 end:3)]
 
-## Kill 모듈
-
 Kill 은 구현에 정의된 규칙을 만족하는 경우 주어진 파티클을 죽이는 모듈입니다.
 
 
-### Kill Box
+## Kill Box
 
 ![](KillBox.png)
 
@@ -30,7 +28,7 @@ Kill box(킬 박스)는 정의된 박스 밖으로 움직일 때 파티클을 �
 3D 미리보기 모드를 켜면 캐스케이드 미리보기 창에 와이어 박스가 그려집니다.
 
 
-### Kill Height
+## Kill Height
 
 ![](KillHeight.png)
 

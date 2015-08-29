@@ -1,4 +1,4 @@
-﻿Title: 언리얼 엔진 4.4 릴리즈 노트
+﻿INTSourceChangelist:2618178
 Crumbs:%ROOT%, Support/Builds
 Description:
 Availability:Public
@@ -786,7 +786,7 @@ Clear Coat (클리어 코팅) 셰이딩 모델은 반투명 코팅이 덮여있�
 * New: Added a PostEngineInit load phase for modules, which allows modules to be registered after GEngine/GEditor have been created.
 * New: Ability to override config options on the commandline. Use the following format:
 	* -ini:IniName:[Section1]:Key1=Value1,[Section2]:Key2=Value2
-* New: Added file system block alignment option in Unreal pak. Prevents small files crossing a file system block boundary which can incur a performance hit on some platforms. This option help reduce that cost. Use -blocksize=X[KB|MB] to enable.
+* New: Added file system block alignment option in Unreal pak. Prevents small files crossing a file system block boundary which can incur a performance hit on some platforms. This option help reduce that cost. Use blocksize=X[KB|MB] to enable.
 * Added ENGINE_API to FComponentInstanceDataBase so it could be used in other modules.
 * Added ISourceControlLabel::Sync() overload that takes multiple files.
 * New: Added a proper error message if a file cannot be deleted during project upgrade, and added functionality to checkout the project file if necessary.
@@ -824,8 +824,8 @@ Clear Coat (클리어 코팅) 셰이딩 모델은 반투명 코팅이 덮여있�
 * Fixed a bug that cause low-frequency GC to happen at inappropriate times.
 * Fixed crash when project module fails to load.
 * Fixed compiler errors when brute forcing STAT to be true in Shipping builds.
-* Fixed for multithreaded crash in ValidateHeap() &amp; dumpAllocatorStats() in FMallocBinned.
-* Fixed not being able to toggle fullscreen mode when launched with &ndash;windowed on the command line.
+* Fixed for multithreaded crash in ValidateHeap() & dumpAllocatorStats() in FMallocBinned.
+* Fixed not being able to toggle fullscreen mode when launched with windowed on the command line.
 * Fixed compile-on-startup when plugin modules don't already exist on startup.
 * Fixed compiling from the editor where the target does not match the game name.
 * Fixed scraping of UnrealBuildTool environment variables in non-US locales.
@@ -866,7 +866,7 @@ Clear Coat (클리어 코팅) 셰이딩 모델은 반투명 코팅이 덮여있�
 * New: Faster startup time (reduced time spent scanning includes for UObjects).
 * New: UBT now adds /FS flag in VCToolChain for VS2013 to ensure parallel builds that use PDB work properly.
 * New: UBT is now detecting redistribution dependency violations. Modules can be marked as redistributable or not -- depends mostly on location, Editor and Development folder modules are non-redistributable, but it can be overridden if needed. In non-Debug and non-Editor builds UBT is checking if game being built is depending on some non-redistributable module. Programs are also not verified.
-* UBT will no longer use ini files to get the list of plugins to compile for programs. Program target rules file should specify the plugins to compile for it.
+* UBT will no longer use ini files to get the list of plugins to compile for programs. Program target rules file should specify the plugins to compile for it. 
 * UnrealBuildTool performance: Disabled verbose output in Release builds.
 	* TRACE is no longer defined by default in Release builds.
 	* If you want bPrintDebugInfo to work, use a Debug build or define TRACE to 1.

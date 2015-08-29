@@ -9,32 +9,82 @@ IMPLEMENT_MODULE(FDefaultModuleImpl, VectorVM);
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorVM, All, All);
 
-//#define VM_FORCEINLINE 
+//#define VM_FORCEINLINE
 #define VM_FORCEINLINE FORCEINLINE
 
-#define SRCOP_RRRR 0x00
-#define SRCOP_RRRC 0x01
-#define SRCOP_RRCR 0x02
-#define SRCOP_RRCC 0x03
-#define SRCOP_RCRR 0x04
-#define SRCOP_RCRC 0x05
-#define SRCOP_RCCR 0x06
-#define SRCOP_RCCC 0x07
-#define SRCOP_CRRR 0x08
-#define SRCOP_CRRC 0x09
-#define SRCOP_CRCR 0x0a
-#define SRCOP_CRCC 0x0b
-#define SRCOP_CCRR 0x0c
-#define SRCOP_CCRC 0x0d
-#define SRCOP_CCCR 0x0e
-#define SRCOP_CCCC 0x0f
+#define OP_REGISTER (0)
+#define OP0_CONST (1 << 0)
+#define OP1_CONST (1 << 1)
+#define OP2_CONST (1 << 2)
+#define OP3_CONST (1 << 3)
+#define OP0_DATAOBJ (1 << 4)
+#define OP1_DATAOBJ (1 << 5)
+#define OP2_DATAOBJ (1 << 6)
+#define OP3_DATAOBJ (1 << 7)
 
-#define SRCOP_RRRB 0x10
-#define SRCOP_RRBR 0x20
-#define SRCOP_RRBB 0x30
+#define SRCOP_RRRR (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP_REGISTER)
+#define SRCOP_RRRC (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP0_CONST)
+#define SRCOP_RRCR (OP_REGISTER | OP_REGISTER | OP1_CONST | OP_REGISTER)
+#define SRCOP_RRCC (OP_REGISTER | OP_REGISTER | OP1_CONST | OP0_CONST)
+#define SRCOP_RCRR (OP_REGISTER | OP2_CONST | OP_REGISTER | OP_REGISTER)
+#define SRCOP_RCRC (OP_REGISTER | OP2_CONST | OP_REGISTER | OP0_CONST)
+#define SRCOP_RCCR (OP_REGISTER | OP2_CONST | OP1_CONST | OP_REGISTER)
+#define SRCOP_RCCC (OP_REGISTER | OP2_CONST | OP1_CONST | OP0_CONST)
+#define SRCOP_CRRR (OP3_CONST | OP_REGISTER | OP_REGISTER | OP_REGISTER)
+#define SRCOP_CRRC (OP3_CONST | OP_REGISTER | OP_REGISTER | OP0_CONST)
+#define SRCOP_CRCR (OP3_CONST | OP_REGISTER | OP1_CONST | OP_REGISTER)
+#define SRCOP_CRCC (OP3_CONST | OP_REGISTER | OP1_CONST | OP0_CONST)
+#define SRCOP_CCRR (OP3_CONST | OP2_CONST | OP_REGISTER | OP_REGISTER)
+#define SRCOP_CCRC (OP3_CONST | OP2_CONST | OP_REGISTER | OP0_CONST)
+#define SRCOP_CCCR (OP3_CONST | OP2_CONST | OP1_CONST | OP_REGISTER)
+#define SRCOP_CCCC (OP3_CONST | OP2_CONST | OP1_CONST | OP0_CONST)
+
+#define SRCOP_RRRB (OP_REGISTER | OP_REGISTER | OP_REGISTER | OP0_DATAOBJ)
+#define SRCOP_RRBR (OP_REGISTER | OP_REGISTER | OP1_DATAOBJ | OP_REGISTER)
+#define SRCOP_RRBB (OP_REGISTER | OP_REGISTER | OP1_DATAOBJ | OP0_DATAOBJ)
+
+#define SRCOP_RRCB (OP_REGISTER | OP_REGISTER | OP1_CONST | OP0_DATAOBJ)
+
+uint8 VectorVM::CreateSrcOperandMask(VectorVM::EOperandType Type1, VectorVM::EOperandType Type2, VectorVM::EOperandType Type3, VectorVM::EOperandType Type4)
+{
+	return	(Type1 == VectorVM::ConstantOperandType ? OP0_CONST : OP_REGISTER) |
+		(Type2 == VectorVM::ConstantOperandType ? OP1_CONST : OP_REGISTER) |
+		(Type3 == VectorVM::ConstantOperandType ? OP2_CONST : OP_REGISTER) |
+		(Type4 == VectorVM::ConstantOperandType ? OP3_CONST : OP_REGISTER) |
+		(Type1 == VectorVM::DataObjConstantOperandType ? OP0_DATAOBJ : OP_REGISTER) |
+		(Type2 == VectorVM::DataObjConstantOperandType ? OP1_DATAOBJ : OP_REGISTER) |
+		(Type3 == VectorVM::DataObjConstantOperandType ? OP2_DATAOBJ : OP_REGISTER) |
+		(Type4 == VectorVM::DataObjConstantOperandType ? OP3_DATAOBJ : OP_REGISTER);
+}
+
+
+UNiagaraDataObject::UNiagaraDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
+UNiagaraCurveDataObject::UNiagaraCurveDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+}
+
+FVector4 UNiagaraCurveDataObject::Sample(const FVector4& InCoords) const
+{
+	FVector Vec = CurveObj->GetVectorValue(InCoords.X);
+	return FVector4(Vec, 0.0f);
+}
 
 
 
+
+UNiagaraSparseVolumeDataObject::UNiagaraSparseVolumeDataObject(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+{
+	Size = 64;
+	NumBuckets = Size*Size*Size;
+	//Data.AddZeroed(NumBuckets);
+	Data.Init(FVector4(0.1f, 0.1f, 0.1f, 0.1f), NumBuckets);
+}
 
 
 
@@ -51,7 +101,7 @@ struct FVectorVMContext
 	/** Pointer to the constant table. */
 	FVector4 const* RESTRICT ConstantTable;
 	/** Pointer to the data object constant table. */
-	FNiagaraDataObject * RESTRICT *DataObjConstantTable;
+	UNiagaraDataObject * RESTRICT *DataObjConstantTable;
 
 	/** The number of vectors to process. */
 	int32 NumVectors;
@@ -61,7 +111,7 @@ struct FVectorVMContext
 		const uint8* InCode,
 		VectorRegister** InRegisterTable,
 		const FVector4* InConstantTable,
-		FNiagaraDataObject** InDataObjTable,
+		UNiagaraDataObject** InDataObjTable,
 		int32 InNumVectors
 		)
 		: Code(InCode)
@@ -96,16 +146,16 @@ static VM_FORCEINLINE VectorRegister DecodeConstant(FVectorVMContext& Context)
 }
 
 /** Decode a constant from the bytecode. */
-static /*VM_FORCEINLINE*/ const FNiagaraDataObject *DecodeDataObjConstant(FVectorVMContext& Context)
+static /*VM_FORCEINLINE*/ const UNiagaraDataObject *DecodeDataObjConstant(FVectorVMContext& Context)
 {
-	const FNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
+	const UNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
 	return Obj;
 }
 
 /** Decode a constant from the bytecode. */
-static /*VM_FORCEINLINE*/ FNiagaraDataObject *DecodeWritableDataObjConstant(FVectorVMContext& Context)
+static /*VM_FORCEINLINE*/ UNiagaraDataObject *DecodeWritableDataObjConstant(FVectorVMContext& Context)
 {
-	FNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
+	UNiagaraDataObject* Obj = Context.DataObjConstantTable[*Context.Code++];
 	return Obj;
 }
 
@@ -135,21 +185,21 @@ struct FConstantHandler
 /** Handles reading of a data object constant. */
 struct FDataObjectConstantHandler
 {
-	const FNiagaraDataObject *Constant;
+	const UNiagaraDataObject *Constant;
 	FDataObjectConstantHandler(FVectorVMContext& Context)
 		: Constant(DecodeDataObjConstant(Context))
 	{}
-	VM_FORCEINLINE const FNiagaraDataObject *Get(){ return Constant; }
+	VM_FORCEINLINE const UNiagaraDataObject *Get(){ return Constant; }
 };
 
 /** Handles reading of a data object constant. */
 struct FWritableDataObjectConstantHandler
 {
-	FNiagaraDataObject *Constant;
+	UNiagaraDataObject *Constant;
 	FWritableDataObjectConstantHandler(FVectorVMContext& Context)
 		: Constant(DecodeWritableDataObjConstant(Context))
 	{}
-	VM_FORCEINLINE FNiagaraDataObject *Get(){ return Constant; }
+	VM_FORCEINLINE UNiagaraDataObject *Get(){ return Constant; }
 };
 
 
@@ -264,6 +314,7 @@ struct TBinaryVectorKernelData
 		switch (SrcOpTypes)
 		{
 		case SRCOP_RRRB:	VectorBinaryLoop<Kernel, FDataObjectConstantHandler, FRegisterHandler>(Context, Dst, NumVectors); break;
+		case SRCOP_RRCB:	VectorBinaryLoop<Kernel, FDataObjectConstantHandler, FConstantHandler>(Context, Dst, NumVectors); break;
 		default: check(0); break;
 		};
 	}
@@ -375,6 +426,15 @@ struct FVectorKernelMul : public TBinaryVectorKernel<FVectorKernelMul>
 	}
 };
 
+struct FVectorKernelDiv : public TBinaryVectorKernel<FVectorKernelDiv>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		*Dst = VectorDivide(Src0, Src1);
+	}
+};
+
+
 struct FVectorKernelMad : public TTrinaryVectorKernel<FVectorKernelMad>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst,VectorRegister Src0,VectorRegister Src1,VectorRegister Src2)
@@ -480,7 +540,7 @@ struct FVectorKernelSin : public TUnaryVectorKernel<FVectorKernelSin>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
-		*Dst = VectorSin( VectorMultiply(Src0, GlobalVectorConstants::Pi));
+		*Dst = VectorSin( VectorMultiply(Src0, GlobalVectorConstants::PiByTwo));
 	}
 };
 
@@ -488,7 +548,7 @@ struct FVectorKernelCos : public TUnaryVectorKernel<FVectorKernelCos>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
  	{
-		*Dst = VectorCos(VectorMultiply(Src0, GlobalVectorConstants::Pi));
+		*Dst = VectorCos(VectorMultiply(Src0, GlobalVectorConstants::PiByTwo));
 	}
 };
 
@@ -496,7 +556,7 @@ struct FVectorKernelTan : public TUnaryVectorKernel<FVectorKernelTan>
 {
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
-		*Dst = VectorTan(VectorMultiply(Src0, GlobalVectorConstants::Pi));
+		*Dst = VectorTan(VectorMultiply(Src0, GlobalVectorConstants::PiByTwo));
 	}
 };
 
@@ -590,7 +650,7 @@ struct FVectorKernelLessThan : public TBinaryVectorKernel<FVectorKernelLessThan>
 
 struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
 {
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const FNiagaraDataObject *Src0, VectorRegister Src1)
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, const UNiagaraDataObject *Src0, VectorRegister Src1)
 	{
 		if (Src0)
 		{
@@ -603,7 +663,7 @@ struct FVectorKernelSample : public TBinaryVectorKernelData<FVectorKernelSample>
 
 struct FVectorKernelBufferWrite : public TTrinaryVectorKernelData<FVectorKernelBufferWrite>
 {
-	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, FNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
+	static void FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, UNiagaraDataObject *Src0, VectorRegister Src1, VectorRegister Src2)
 	{
 		if (Src0)
 		{
@@ -663,6 +723,38 @@ struct FVectorKernelRandom : public TUnaryVectorKernel<FVectorKernelRandom>
 };
 
 
+/* gaussian distribution random number (not working yet) */
+struct FVectorKernelRandomGauss : public TBinaryVectorKernel<FVectorKernelRandomGauss>
+{
+	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0, VectorRegister Src1)
+	{
+		const float rm = RAND_MAX;
+		VectorRegister Result = MakeVectorRegister(static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm,
+			static_cast<float>(FMath::Rand()) / rm);
+
+		Result = VectorSubtract(Result, MakeVectorRegister(0.5f, 0.5f, 0.5f, 0.5f));
+		Result = VectorMultiply(MakeVectorRegister(3.0f, 3.0f, 3.0f, 3.0f), Result);
+
+		// taylor series gaussian approximation
+		const VectorRegister SPi2 = VectorReciprocal(VectorReciprocalSqrt(MakeVectorRegister(2 * PI, 2 * PI, 2 * PI, 2 * PI)));
+		VectorRegister Gauss = VectorReciprocal(SPi2);
+		VectorRegister Div = VectorMultiply(MakeVectorRegister(2.0f, 2.0f, 2.0f, 2.0f), SPi2);
+		Gauss = VectorSubtract(Gauss, VectorDivide(VectorMultiply(Result, Result), Div));
+		Div = VectorMultiply(MakeVectorRegister(8.0f, 8.0f, 8.0f, 8.0f), SPi2);
+		Gauss = VectorAdd(Gauss, VectorDivide(VectorPow(MakeVectorRegister(4.0f, 4.0f, 4.0f, 4.0f), Result), Div));
+		Div = VectorMultiply(MakeVectorRegister(48.0f, 48.0f, 48.0f, 48.0f), SPi2);
+		Gauss = VectorSubtract(Gauss, VectorDivide(VectorPow(MakeVectorRegister(6.0f, 6.0f, 6.0f, 6.0f), Result), Div));
+
+		Gauss = VectorDivide(Gauss, MakeVectorRegister(0.4f, 0.4f, 0.4f, 0.4f));
+		Gauss = VectorMultiply(Gauss, Src0);
+		*Dst = Gauss;
+	}
+};
+
+
+
 
 struct FVectorKernelMin : public TBinaryVectorKernel<FVectorKernelMin>
 {
@@ -706,20 +798,20 @@ struct FVectorKernelStep : public TUnaryVectorKernel<FVectorKernelStep>
 
 struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 {
-	static VectorRegister RandomTable[10][10][10];
+	static VectorRegister RandomTable[17][17][17];
 
 	static void VM_FORCEINLINE DoKernel(VectorRegister* RESTRICT Dst, VectorRegister Src0)
 	{
 		const VectorRegister One = MakeVectorRegister(1.0f, 1.0f, 1.0f, 1.0f);
-		const VectorRegister VecEight = MakeVectorRegister(8.0f, 8.0f, 8.0f, 8.0f);
-		const VectorRegister OneHalf = MakeVectorRegister(0.5f, 0.5f, 0.5f, 0.5f);
+		const VectorRegister VecSize = MakeVectorRegister(16.0f, 16.0f, 16.0f, 16.0f);
+
 		*Dst = MakeVectorRegister(0.0f, 0.0f, 0.0f, 0.0f);
 		
 		for (uint32 i = 1; i < 2; i++)
 		{
 			float Di = 0.2f * (1.0f/(1<<i));
 			VectorRegister Div = MakeVectorRegister(Di, Di, Di, Di);
-			VectorRegister Coords = VectorMod( VectorAbs( VectorMultiply(Src0, Div) ), VecEight );
+			VectorRegister Coords = VectorMod( VectorAbs( VectorMultiply(Src0, Div) ), VecSize );
 			const float *CoordPtr = reinterpret_cast<float const*>(&Coords);
 			const int32 Cx = CoordPtr[0];
 			const int32 Cy = CoordPtr[1];
@@ -748,7 +840,7 @@ struct FVectorKernelNoise : public TUnaryVectorKernel<FVectorKernelNoise>
 	}
 };
 
-VectorRegister FVectorKernelNoise::RandomTable[10][10][10];
+VectorRegister FVectorKernelNoise::RandomTable[17][17][17];
 
 template<int32 Component>
 struct FVectorKernelSplat : public TUnaryVectorKernel<FVectorKernelSplat<Component>>
@@ -823,21 +915,81 @@ void VectorVM::Init()
 	static bool Inited = false;
 	if (Inited == false)
 	{
-		for (int z = 0; z < 10; z++)
+		// random noise
+		float TempTable[17][17][17];
+		for (int z = 0; z < 17; z++)
 		{
-			for (int y = 0; y < 10; y++)
+			for (int y = 0; y < 17; y++)
 			{
-				for (int x = 0; x < 10; x++)
+				for (int x = 0; x < 17; x++)
 				{
 					float f1 = (float)FMath::FRandRange(-1.0f, 1.0f);
-					float f2 = (float)FMath::FRandRange(-1.0f, 1.0f);
-					float f3 = (float)FMath::FRandRange(-1.0f, 1.0f);
-					float f4 = (float)FMath::FRandRange(-1.0f, 1.0f);
-
-					FVectorKernelNoise::RandomTable[x][y][z] = MakeVectorRegister(f1, f2, f3, f4);
+					TempTable[x][y][z] = f1;
 				}
 			}
 		}
+
+		// pad
+		for (int i = 0; i < 17; i++)
+		{
+			for (int j = 0; j < 17; j++)
+			{
+				TempTable[i][j][16] = TempTable[i][j][0];
+				TempTable[i][16][j] = TempTable[i][0][j];
+				TempTable[16][j][i] = TempTable[0][j][i];
+			}
+		}
+
+		// compute gradients
+		FVector TempTable2[17][17][17];
+		for (int z = 0; z < 16; z++)
+		{
+			for (int y = 0; y < 16; y++)
+			{
+				for (int x = 0; x < 16; x++)
+				{
+					FVector XGrad = FVector(1.0f, 0.0f, TempTable[x][y][z] - TempTable[x+1][y][z]);
+					FVector YGrad = FVector(0.0f, 1.0f, TempTable[x][y][z] - TempTable[x][y + 1][z]);
+					FVector ZGrad = FVector(0.0f, 1.0f, TempTable[x][y][z] - TempTable[x][y][z+1]);
+
+					FVector Grad = FVector(XGrad.Z, YGrad.Z, ZGrad.Z);
+					TempTable2[x][y][z] = Grad;
+				}
+			}
+		}
+
+		// pad
+		for (int i = 0; i < 17; i++)
+		{
+			for (int j = 0; j < 17; j++)
+			{
+				TempTable2[i][j][16] = TempTable2[i][j][0];
+				TempTable2[i][16][j] = TempTable2[i][0][j];
+				TempTable2[16][j][i] = TempTable2[0][j][i];
+			}
+		}
+
+
+		// compute curl of gradient field
+		for (int z = 0; z < 16; z++)
+		{
+			for (int y = 0; y < 16; y++)
+			{
+				for (int x = 0; x < 16; x++)
+				{
+					FVector Dy = TempTable2[x][y][z] - TempTable2[x][y + 1][z];
+					FVector Sy = TempTable2[x][y][z] + TempTable2[x][y + 1][z];
+					FVector Dx = TempTable2[x][y][z] - TempTable2[x + 1][y][z];
+					FVector Sx = TempTable2[x][y][z] + TempTable2[x + 1][y][z];
+					FVector Dz = TempTable2[x][y][z] - TempTable2[x][y][z + 1];
+					FVector Sz = TempTable2[x][y][z] + TempTable2[x][y][z + 1];
+					FVector Dir = FVector(Dy.Z - Sz.Y, Dz.X - Sx.Z, Dx.Y - Sy.X);
+
+					FVectorKernelNoise::RandomTable[x][y][z] = MakeVectorRegister(Dir.X, Dir.Y, Dir.Z, 0.0f);
+				}
+			}
+		}
+
 
 		Inited = true;
 	}
@@ -850,7 +1002,7 @@ void VectorVM::Exec(
 	VectorRegister** OutputRegisters,
 	int32 NumOutputRegisters,
 	FVector4 const* ConstantTable,
-	FNiagaraDataObject* *DataObjConstTable,
+	UNiagaraDataObject* *DataObjConstTable,
 	int32 NumVectors
 	)
 {
@@ -892,6 +1044,7 @@ void VectorVM::Exec(
 			case EOp::add: FVectorKernelAdd::Exec(Context); break;
 			case EOp::sub: FVectorKernelSub::Exec(Context); break;
 			case EOp::mul: FVectorKernelMul::Exec(Context); break;
+			case EOp::div: FVectorKernelDiv::Exec(Context); break;
 			case EOp::mad: FVectorKernelMad::Exec(Context); break;
 			case EOp::lerp: FVectorKernelLerp::Exec(Context); break;
 			case EOp::rcp: FVectorKernelRcp::Exec(Context); break;
@@ -962,26 +1115,6 @@ void VectorVM::Exec(
 uint8 VectorVM::GetNumOpCodes()
 {
 	return (uint8)EOp::NumOpcodes;
-}
-
-uint8 VectorVM::CreateSrcOperandMask(bool bIsOp0Constant, bool bIsOp1Constant, bool bIsOp2Constant, bool bIsOp3Constant)
-{
-	return	(bIsOp0Constant ? (1 << 0) : 0) |
-			(bIsOp1Constant ? (1 << 1) : 0) |
-			(bIsOp2Constant ? (1 << 2) : 0) |
-			(bIsOp3Constant ? (1 << 3) : 0) ;
-}
-
-uint8 VectorVM::CreateSrcOperandMask(VectorVM::EOperandType Type1, VectorVM::EOperandType Type2, VectorVM::EOperandType Type3, VectorVM::EOperandType Type4)
-{
-	return	(Type1==VectorVM::ConstantOperandType ? (1 << 0) : 0) |
-		(Type2 == VectorVM::ConstantOperandType ? (1 << 1) : 0) |
-		(Type3 == VectorVM::ConstantOperandType ? (1 << 2) : 0) |
-		(Type4 == VectorVM::ConstantOperandType ? (1 << 3) : 0) |
-		(Type1 == VectorVM::DataObjConstantOperandType ? (1 << 4) : 0) | 
-		(Type2 == VectorVM::DataObjConstantOperandType ? (1 << 5) : 0) |
-		(Type3 == VectorVM::DataObjConstantOperandType ? (1 << 6) : 0) |
-		(Type4 == VectorVM::DataObjConstantOperandType ? (1 << 7) : 0);
 }
 
 /*------------------------------------------------------------------------------

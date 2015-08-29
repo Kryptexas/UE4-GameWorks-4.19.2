@@ -42,7 +42,10 @@ public:
 	ENGINE_API virtual void SwitchController( class APlayerController* PC );
 
 	/**
-	 * Return the main menu after graceful cleanup
+	 * Executes the Exec() command
+	 *
+	 * @param Command command to execute (string of commands optionally separated by a | (pipe))
+	 * @param bWriteToLog write out to the log
 	 */
-	virtual void HandleDisconnect(class UWorld *World, class UNetDriver *NetDriver) {}
+	ENGINE_API FString ConsoleCommand(const FString& Cmd, bool bWriteToLog = true);
 };

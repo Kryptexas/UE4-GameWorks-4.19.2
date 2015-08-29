@@ -2,7 +2,7 @@
 
 #pragma once
 #include "AnimGraphNode_SkeletalControlBase.h"
-#include "Animation/BoneControllers/AnimNode_TwoBoneIK.h"
+#include "BoneControllers/AnimNode_TwoBoneIK.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
 #include "AnimGraphNode_TwoBoneIK.generated.h"
 
@@ -70,9 +70,6 @@ protected:
 
 	// local conversion function for drawing
 	void DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, EBoneControlSpace SpaceBase, FName SpaceBoneName, const FVector & TargetLocation, const FColor & TargetColor, const FColor & BoneColor) const;
-
-	// make Pins showed / hidden by options
-	bool SetPinsVisibility(bool bShow);
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

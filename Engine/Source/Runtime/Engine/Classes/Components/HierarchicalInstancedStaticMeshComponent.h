@@ -121,13 +121,20 @@ public:
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void PostLoad() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& BoundTransform) const override;
+#if WITH_EDITOR
+	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
+#endif
 
 	// UInstancedStaticMesh interface
 	virtual int32 AddInstance(const FTransform& InstanceTransform) override;
 	virtual bool RemoveInstance(int32 InstanceIndex) override;
 	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace, bool bMarkRenderStateDirty = false) override;
 	virtual void ClearInstances() override;
+	virtual TArray<int32> GetInstancesOverlappingSphere(const FVector& Center, float Radius, bool bSphereInWorldSpace = true) const override;
 
+	/** Removes all the instances with indices specified in the InstancesToRemove array. Returns true on success. */
+	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
+	bool RemoveInstances(const TArray<int32>& InstancesToRemove);
 
 	/** Get the number of instances that overlap a given sphere */
 	int32 GetOverlappingSphereCount(const FSphere& Sphere) const;
@@ -160,6 +167,9 @@ public:
 	int32 DesiredInstancesPerLeaf();
 
 protected:
+	/** Removes a single instance without extra work such as rebuilding the tree or marking render state dirty. */
+	void RemoveInstanceInternal(int32 InstanceIndex);
+
 	/** Gets and approximate number of verts for each LOD to generate heuristics **/
 	int32 GetVertsForLOD(int32 LODIndex);
 	/** Average number of instances per leaf **/

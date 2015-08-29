@@ -2,7 +2,7 @@ Title: Config
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Classes, Programming/UnrealArchitecture/Reference/Classes/Specifiers
 Description:
 Availability:Public
-Version: 4.5
+Version: 4.9
 
 Indicates that this class is allowed to store data in a configuration file (`.ini`). If there are any configurable variables in the class (declared with the `config` or `globalconfig` variable specifiers), this specifier causes those variables to be stored in the specified configuration file inside the *(* and *)*. This flag is propagated to all child classes and cannot be negated, but child classes can change the `.ini` file by re-declaring the `config` keyword and specifying a different file name. The value of *IniName* is appended to the game name - minus the "Game" part - to specify the name of the `.ini` file to store data in (for instance, in UDKGame specifying `config(Camera)` will cause the class to use the `UDKCamera.ini` file). The keyword inherit can also be specified as the *IniName*, which will cause the class to use the same config file as its parent. Some `.ini` files exist by default, such as:
 

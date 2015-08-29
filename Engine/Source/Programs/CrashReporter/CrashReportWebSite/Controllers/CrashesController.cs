@@ -56,7 +56,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 							if( !string.IsNullOrEmpty( CrashesForm["SetTTP"] ) )
 							{
-								CurrentCrash.TTPID = CrashesForm["SetTTP"];
+								CurrentCrash.Jira = CrashesForm["SetTTP"];
 							}
 						}
 					}
@@ -116,7 +116,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				FormValue = CrashesForm["SetTTP"];
 				if( !string.IsNullOrEmpty( FormValue ) )
 				{
-					CurrentCrash.TTPID = FormValue;
+					CurrentCrash.Jira = FormValue;
 				}
 
 				// Valid to set description to an empty string

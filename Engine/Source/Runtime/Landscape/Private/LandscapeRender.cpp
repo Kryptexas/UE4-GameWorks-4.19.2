@@ -619,7 +619,7 @@ FLandscapeComponentSceneProxy::FLandscapeComponentSceneProxy(ULandscapeComponent
 	ComponentLightInfo = MakeUnique<FLandscapeLCI>(InComponent);
 	check(ComponentLightInfo);
 
-	const bool bHasStaticLighting = InComponent->LightMap != nullptr || InComponent->ShadowMap != nullptr;
+	const bool bHasStaticLighting = InComponent->bHasCachedStaticLighting;
 
 	// Check material usage
 	if (MaterialInterface == nullptr ||
@@ -713,7 +713,7 @@ void FLandscapeComponentSceneProxy::CreateRenderThreadResources()
 		SharedBuffers->AdjacencyIndexBuffers->AddRef();
 
 		// Delayed Initialize for IndexBuffers
-		for (int i = 0; i < SharedBuffers->NumIndexBuffers; i++)
+		for (int32 i = 0; i < SharedBuffers->NumIndexBuffers; i++)
 		{
 			SharedBuffers->IndexBuffers[i]->InitResource();
 		}
@@ -870,14 +870,14 @@ FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FS
 		View->Family->EngineShowFlags.Wireframe ||
 #if WITH_EDITOR
 		(IsSelected() && !GLandscapeEditModeActive) ||
-		GLandscapeViewMode != ELandscapeViewMode::Normal
+		GLandscapeViewMode != ELandscapeViewMode::Normal ||
 #else
-		IsSelected()
+		IsSelected() ||
 #endif
-		)
+		 !IsStaticPathAvailable())
 	{
 		Result.bDynamicRelevance = true;
-}
+	}
 	else
 	{
 		Result.bStaticRelevance = true;
@@ -1559,11 +1559,11 @@ void FLandscapeComponentSceneProxy::GetDynamicMeshElements(const TArray<const FS
 					GLandscapeDebugOptions.bDisableStatic ||
 					bIsWireframe ||
 #if WITH_EDITOR
-					(IsSelected() && !GLandscapeEditModeActive)
+					(IsSelected() && !GLandscapeEditModeActive) ||
 #else
-					IsSelected()
+					IsSelected() ||
 #endif
-					)
+					!IsStaticPathAvailable())
 				{
 					Mesh.MaterialRenderProxy = MaterialInterface->GetRenderProxy(false);
 
@@ -1694,8 +1694,9 @@ void FLandscapeVertexBuffer::InitRHI()
 {
 	// create a static vertex buffer
 	FRHIResourceCreateInfo CreateInfo;
-	VertexBufferRHI = RHICreateVertexBuffer(NumVertices * sizeof(FLandscapeVertex), BUF_Static, CreateInfo);
-	FLandscapeVertex* Vertex = (FLandscapeVertex*)RHILockVertexBuffer(VertexBufferRHI, 0, NumVertices * sizeof(FLandscapeVertex), RLM_WriteOnly);
+	void* BufferData = nullptr;
+	VertexBufferRHI = RHICreateAndLockVertexBuffer(NumVertices * sizeof(FLandscapeVertex), BUF_Static, CreateInfo, BufferData);
+	FLandscapeVertex* Vertex = (FLandscapeVertex*)BufferData;
 	int32 VertexIndex = 0;
 	for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 	{
@@ -1871,7 +1872,7 @@ void FLandscapeSharedBuffers::CreateIndexBuffers(ERHIFeatureLevel::Type InFeatur
 		else
 		{
 			// non-ES2 version
-			int SubOffset = 0;
+			int32 SubOffset = 0;
 			for (int32 SubY = 0; SubY < NumSubsections; SubY++)
 			{
 				for (int32 SubX = 0; SubX < NumSubsections; SubX++)
@@ -2128,7 +2129,7 @@ FLandscapeSharedAdjacencyIndexBuffer::FLandscapeSharedAdjacencyIndexBuffer(FLand
 
 FLandscapeSharedAdjacencyIndexBuffer::~FLandscapeSharedAdjacencyIndexBuffer()
 {
-	for (int i = 0; i < IndexBuffers.Num(); ++i)
+	for (int32 i = 0; i < IndexBuffers.Num(); ++i)
 	{
 		IndexBuffers[i]->ReleaseResource();
 		delete IndexBuffers[i];

@@ -11,6 +11,8 @@ using System.Xml.Serialization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Linq;
+using Tools.DotNETCommon.CaselessDictionary;
+using Tools.DotNETCommon.HarvestEnvVars;
 
 namespace UnrealBuildTool
 {
@@ -203,179 +205,28 @@ namespace UnrealBuildTool
 			return Default;
 		}
 
-		[Serializable]
-		[DebuggerDisplay("\\{{Key}={Value}\\}")]
-		public struct EnvVar
-		{
-			[XmlAttribute("Key")]
-			public string Key;
-
-			[XmlAttribute("Value")]
-			public string Value;
-		}
-
-		private static XmlSerializer EnvVarListSerializer = XmlSerializer.FromTypes(new Type[]{ typeof(List<EnvVar>) })[0];
-
-		[DllImport("kernel32.dll", SetLastError=true)]
-		private static extern int GetShortPathName(string pathName, StringBuilder shortName, int cbShortName);
-
-		public static string GetShortPathName(string Path)
-		{
-			int BufferSize = GetShortPathName(Path, null, 0);
-			if (BufferSize == 0)
-			{
-				throw new BuildException("Unable to convert path {0} to 8.3 format", Path);
-			}
-
-			var Builder = new StringBuilder(BufferSize);
-			int ConversionResult = GetShortPathName(Path, Builder, BufferSize);
-			if (ConversionResult == 0)
-			{
-				throw new BuildException("Unable to convert path {0} to 8.3 format", Path);
-			}
-
-			return Builder.ToString();
-		}
-
 		/**
 		 * Sets the environment variables from the passed in batch file
 		 * 
 		 * @param	BatchFileName	Name of the batch file to parse
+		 * @param	Parameters		Optional command-line parameters to pass to the batch file when running it
 		 */
-		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName)
+		public static void SetEnvironmentVariablesFromBatchFile(string BatchFileName, string Parameters = "")
 		{
 			// @todo ubtmake: Experiment with changing this to run asynchronously at startup, and only blocking if accessed before the .bat file finishes
-			if( File.Exists( BatchFileName ) )
+			CaselessDictionary<string> EnvVars;
+			try
 			{
-				// Create a wrapper batch file that echoes environment variables to a text file
-                string EnvOutputFileName;
-                string EnvReaderBatchFileName;
-                try
-                {
-					EnvOutputFileName = Path.GetTempFileName();
-					EnvReaderBatchFileName = EnvOutputFileName + ".bat";
-
-					Log.TraceVerbose( "Creating .bat file {0} for harvesting environment variables.", EnvReaderBatchFileName );
-
-					var EnvReaderBatchFileContent = new List<string>();
-
-					var EnvVarsToXMLExePath = Path.Combine( GetExecutingAssemblyDirectory(), "EnvVarsToXML.exe" );
-
-					// Convert every path to short filenames to ensure we don't accidentally write out a non-ASCII batch file
-					var ShortBatchFileName       = GetShortPathName(BatchFileName);
-					var ShortEnvOutputFileName   = GetShortPathName(EnvOutputFileName);
-					var ShortEnvVarsToXMLExePath = GetShortPathName(EnvVarsToXMLExePath);
-
-					// Run 'vcvars32.bat' (or similar x64 version) to set environment variables
-					EnvReaderBatchFileContent.Add( String.Format( "call \"{0}\"", ShortBatchFileName ) );
-
-					// Pipe all environment variables to a file where we can read them in.
-					// We use a separate executable which runs after the batch file because we want to capture
-					// the environment after it has been set, and there's no easy way of doing this, and parsing
-					// the output of the set command is problematic when the vars contain non-ASCII characters.
-					EnvReaderBatchFileContent.Add( String.Format( "\"{0}\" \"{1}\"", ShortEnvVarsToXMLExePath, ShortEnvOutputFileName ) );
-
-					ResponseFile.Create( EnvReaderBatchFileName, EnvReaderBatchFileContent );
-                }
-                catch (Exception Ex)
-                {
-                    throw new BuildException(Ex, "Failed to create temporary batch file to harvest environment variables (\"{0}\")", Ex.Message);
-                }
-
-				Log.TraceVerbose( "Finished creating .bat file.  Environment variables will be written to {0}.", EnvOutputFileName );
-
-				// process needs to be disposed when done
-				using(var BatchFileProcess = new Process())
-				{
-					// Run the batch file using cmd.exe with the /U option, to force Unicode output. Many locales have non-ANSI characters in system paths.
-					var StartInfo = BatchFileProcess.StartInfo;
-
-					StartInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
-					StartInfo.Arguments = String.Format("/U /C \"{0}\"", EnvReaderBatchFileName);
-					StartInfo.CreateNoWindow = true;
-					StartInfo.UseShellExecute = false;
-
-					// The engine adds a lot of DLL search paths to the PATH environment variable, and this gets propagated through to UBT. MSVC wants
-					// to add a lot more, so reset it to the system default before spawning the batch file, otherwise we can overflow the max length and fail.
-					string NewPathVariable = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.Machine) ?? "";
-					if(String.IsNullOrEmpty(NewPathVariable))
-					{
-						NewPathVariable = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
-					}
-					else
-					{
-						NewPathVariable += ";" + Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User);
-					}
-					StartInfo.EnvironmentVariables["PATH"] = NewPathVariable;
-
-					StartInfo.RedirectStandardOutput = true;
-					StartInfo.RedirectStandardError = true;
-					StartInfo.RedirectStandardInput = true;
-
-					Log.TraceVerbose( "Launching {0} to harvest Visual Studio environment settings...", StartInfo.FileName );
-
-					// Try to launch the process, and produce a friendly error message if it fails.
-					try
-					{
-						// Start the process up and then wait for it to finish
-						BatchFileProcess.Start();
-						BatchFileProcess.WaitForExit();
-					}
-					catch(Exception ex)
-					{
-						throw new BuildException( ex, "Failed to start local process for action (\"{0}\"): {1} {2}", ex.Message, StartInfo.FileName, StartInfo.Arguments );
-					}
-
-					Log.TraceVerbose( "Finished launching {0}.", StartInfo.FileName );
-				}
-
-				// Accept chars which are technically not valid XML - they were written out by XmlSerializer anyway!
-				var Settings = new XmlReaderSettings();
-				Settings.CheckCharacters  = false;
-
-				List<EnvVar> EnvVars;
-				try
-				{
-					using (var Stream = new StreamReader(EnvOutputFileName))
-					using (var Reader = XmlReader.Create(Stream, Settings))
-					{
-						EnvVars = (List<EnvVar>)EnvVarListSerializer.Deserialize(Reader);
-					}
-				}
-				catch (Exception e)
-				{
-					throw new BuildException(e, "Failed to read environment variables from XML file: {0}", EnvOutputFileName);
-				}
-
-				foreach (var EnvVar in EnvVars)
-				{
-					Environment.SetEnvironmentVariable(EnvVar.Key, EnvVar.Value);
-				}
-
-				// Clean up the temporary files we created earlier on, so the temp directory doesn't fill up
-				// with these guys over time
-				try
-				{
-					File.Delete( EnvOutputFileName );
-				}
-				catch( Exception )
-				{
-					// Unable to delete the temporary file.  Not a big deal.
-					Log.TraceInformation( "Warning: Was not able to delete temporary file created by Unreal Build Tool: " + EnvOutputFileName );
-				}
-				try
-				{
-					File.Delete( EnvReaderBatchFileName );
-				}
-				catch( Exception )
-				{
-					// Unable to delete the temporary file.  Not a big deal.
-					Log.TraceInformation( "Warning: Was not able to delete temporary file created by Unreal Build Tool: " + EnvReaderBatchFileName );
-				}
+				EnvVars = HarvestEnvVars.HarvestEnvVarsFromBatchFile(BatchFileName, Parameters, HarvestEnvVars.EPathOverride.User);
 			}
-			else
+			catch (Exception Ex)
 			{
-				throw new BuildException("SetEnvironmentVariablesFromBatchFile: BatchFile {0} does not exist!", BatchFileName);
+				throw new BuildException(Ex, "Failed to harvest environment variables");
+			}
+
+			foreach (var EnvVar in EnvVars)
+			{
+				Environment.SetEnvironmentVariable(EnvVar.Key, EnvVar.Value);
 			}
 		}
 
@@ -422,6 +273,30 @@ namespace UnrealBuildTool
 			LocalProcess.OutputDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceInformation(Line.Data); };
 			LocalProcess.ErrorDataReceived += (Sender, Line) => { if(Line != null && Line.Data != null) Log.TraceError(Line.Data); };
 			return RunLocalProcess(LocalProcess);
+		}
+
+		/// <summary>
+		/// Runs a command line process, and returns simple StdOut output. This doesn't handle errors or return codes
+		/// </summary>
+		/// <returns>The entire StdOut generated from the process as a single trimmed string</returns>
+		/// <param name="Command">Command to run</param>
+		/// <param name="Args">Arguments to Command</param>
+		public static string RunLocalProcessAndReturnStdOut(string Command, string Args)
+		{
+			var StartInfo = new ProcessStartInfo(Command, Args);
+			StartInfo.UseShellExecute = false;
+			StartInfo.RedirectStandardOutput = true;
+			StartInfo.CreateNoWindow = true;
+
+			string FullOutput = "";
+			using (var LocalProcess = Process.Start(StartInfo))
+			{
+				StreamReader OutputReader = LocalProcess.StandardOutput;
+				// trim off any extraneous new lines, helpful for those one-line outputs
+				FullOutput = OutputReader.ReadToEnd().Trim();
+			}
+
+			return FullOutput;
 		}
 
 		/// <summary>
@@ -925,44 +800,19 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public static int GetEngineVersionFromObjVersionCPP()
 		{
-			if(UnrealBuildTool.RunningRocket() == false)
+			try
 			{
-				try
-				{
-					return
-						(from line in File.ReadLines("Runtime/Core/Private/UObject/ObjectVersion.cpp", Encoding.ASCII)
-						 where line.StartsWith("#define	ENGINE_VERSION")
-						 select int.Parse(line.Split()[2])).Single();
-				}
-				catch (Exception ex)
-				{
-					// Don't do a stack trace so we don't pollute the logs with spurious exception data, as we don't crash on this case.
-					Log.TraceWarning("Could not parse Engine Version from ObjectVersion.cpp: {0}", ex.Message);
-				}
+				return
+					(from line in File.ReadLines("Runtime/Core/Private/UObject/ObjectVersion.cpp", Encoding.ASCII)
+						where line.StartsWith("#define	ENGINE_VERSION")
+						select int.Parse(line.Split()[2])).Single();
 			}
-			return 0;
-		}
-
-		/// <summary>
-		/// Gets the executing assembly path (including filename).
-		/// This method is using Assembly.CodeBase property to properly resolve original
-		/// assembly path in case shadow copying is enabled.
-		/// </summary>
-		/// <returns>Absolute path to the executing assembly including the assembly filename.</returns>
-		public static string GetExecutingAssemblyLocation()
-		{
-			return new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
-		}
-
-		/// <summary>
-		/// Gets the executing assembly directory.
-		/// This method is using Assembly.CodeBase property to properly resolve original
-		/// assembly directory in case shadow copying is enabled.
-		/// </summary>
-		/// <returns>Absolute path to the directory containing the executing assembly.</returns>
-		public static string GetExecutingAssemblyDirectory()
-		{
-			return Path.GetDirectoryName(GetExecutingAssemblyLocation());
+			catch (Exception ex)
+			{
+				// Don't do a stack trace so we don't pollute the logs with spurious exception data, as we don't crash on this case.
+				Log.TraceWarning("Could not parse Engine Version from ObjectVersion.cpp: {0}", ex.Message);
+				return 0;
+			}
 		}
 
 		/// <summary>
@@ -1018,6 +868,7 @@ namespace UnrealBuildTool
 		bool bWriteToConsole;
 		string Message;
 		int NumCharsToBackspaceOver;
+		string CurrentProgressString;
 
 		public ProgressWriter(string InMessage, bool bInWriteToConsole)
 		{
@@ -1042,177 +893,392 @@ namespace UnrealBuildTool
 		{
 			float ProgressValue = Denominator > 0 ? ((float)Numerator / (float)Denominator) : 1.0f;
 			string ProgressString = String.Format("{0}%", Math.Round(ProgressValue * 100.0f));
-
-			if (bWriteMarkup)
+			if (ProgressString != CurrentProgressString)
 			{
-				Log.WriteLine(TraceEventType.Information, "@progress '{0}' {1}", Message, ProgressString);
-			}
-			else if (bWriteToConsole)
-			{
-				// Backspace over previous progress value
-				while (NumCharsToBackspaceOver-- > 0)
+				CurrentProgressString = ProgressString;
+				if (bWriteMarkup)
 				{
-					Console.Write("\b");
+					Log.WriteLine(TraceEventType.Information, "@progress '{0}' {1}", Message, ProgressString);
+				}
+				else if (bWriteToConsole)
+				{
+					// Backspace over previous progress value
+					while (NumCharsToBackspaceOver-- > 0)
+					{
+						Console.Write("\b");
+					}
+
+					// Display updated progress string and keep track of how long it was
+					NumCharsToBackspaceOver = ProgressString.Length;
+					Console.Write(ProgressString);
+				}
+			}
+		}
+	}
+
+    /// <summary>
+    /// UAT/UBT Custom log system.
+    /// 
+    /// This lets you use any TraceListeners you want, but you should only call the static 
+    /// methods below, not call Trace.XXX directly, as the static methods
+    /// This allows the system to enforce the formatting and filtering conventions we desire.
+    ///
+    /// For posterity, we cannot use the Trace or TraceSource class directly because of our special log requirements:
+    ///   1. We possibly capture the method name of the logging event. This cannot be done as a macro, so must be done at the top level so we know how many layers of the stack to peel off to get the real function.
+    ///   2. We have a verbose filter we would like to apply to all logs without having to have each listener filter individually, which would require our string formatting code to run every time.
+    ///   3. We possibly want to ensure severity prefixes are logged, but Trace.WriteXXX does not allow any severity info to be passed down.
+    /// </summary>
+    static public class Log
+    {
+        /// <summary>
+        /// Guard our initialization. Mainly used by top level exception handlers to ensure its safe to call a logging function.
+        /// In general user code should not concern itself checking for this.
+        /// </summary>
+        private static bool bIsInitialized = false;
+        /// <summary>
+        /// When true, verbose loggin is enabled.
+        /// </summary>
+        private static bool bLogVerbose = false;
+        /// <summary>
+        /// When true, warnings and errors will have a WARNING: or ERROR: prexifx, respectively.
+        /// </summary>
+        private static bool bLogSeverity = false;
+        /// <summary>
+        /// When true, logs will have the calling mehod prepended to the output as MethodName:
+        /// </summary>
+        private static bool bLogSources = false;
+        /// <summary>
+        /// When true, will detect warnings and errors and set the console output color to yellow and red.
+        /// </summary>
+        private static bool bColorConsoleOutput = false;
+        /// <summary>
+        /// When configured, this tracks time since initialization to prepend a timestamp to each log.
+        /// </summary>
+        private static Stopwatch Timer;
+
+        /// <summary>
+        /// Expose the log level. This is a hack for ProcessResult.LogOutput, which wants to bypass our normal formatting scheme.
+        /// </summary>
+        public static bool bIsVerbose { get { return bLogVerbose; } }
+
+		/// <summary>
+		/// A collection of strings that have been already written once
+		/// </summary>
+		private static List<string> WriteOnceSet = new List<string>();
+
+        /// <summary>
+        /// Allows code to check if the log system is ready yet.
+        /// End users should NOT need to use this. It pretty much exists
+        /// to work around startup issues since this is a global singleton.
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsInitialized() 
+        { 
+            return bIsInitialized; 
+        }
+
+        /// <summary>
+        /// Allows us to change verbosity after initializing. This can happen since we initialize logging early, 
+        /// but then read the config and command line later, which could change this value.
+        /// </summary>
+        /// <param name="bLogVerbose">Whether to log verbose logs.</param>
+        public static void SetVerboseLogging(bool bLogVerbose)
+        {
+            Log.bLogVerbose = bLogVerbose;
+        }
+
+        /// <summary>
+        /// This class allows InitLogging to be called more than once to work around chicken and eggs issues with logging and parsing command lines (see UBT startup code).
+        /// </summary>
+        /// <param name="bLogTimestamps">If true, the timestamp from Log init time will be prepended to all logs.</param>
+        /// <param name="bLogVerbose">If true, any Verbose log method method will not be ignored.</param>
+        /// <param name="bLogSeverity">If true, warnings and errors will have a WARNING: and ERROR: prefix to them. </param>
+        /// <param name="bLogSources">If true, logs will have the originating method name prepended to them.</param>
+        /// <param name="TraceListeners">Collection of trace listeners to attach to the Trace.Listeners, in addition to the Default listener. The existing listeners (except the Default listener) are cleared first.</param>
+        public static void InitLogging(bool bLogTimestamps, bool bLogVerbose, bool bLogSeverity, bool bLogSources, bool bColorConsoleOutput, IEnumerable<TraceListener> TraceListeners)
+        {
+            bIsInitialized = true;
+            Timer = (bLogTimestamps && Timer == null) ? Stopwatch.StartNew() : null;
+            Log.bLogVerbose = bLogVerbose;
+            Log.bLogSeverity = bLogSeverity;
+            Log.bLogSources = bLogSources;
+            Log.bColorConsoleOutput = bColorConsoleOutput;
+
+            // ensure that if InitLogging is called more than once we don't stack listeners.
+            // but always leave the default listener around.
+            for (int ListenerNdx = 0; ListenerNdx < Trace.Listeners.Count; )
+			{
+                if (Trace.Listeners[ListenerNdx].GetType() != typeof(DefaultTraceListener))
+				{
+                    Trace.Listeners.RemoveAt(ListenerNdx);
+				}
+				else
+				{
+                    ++ListenerNdx;
+				}
+			}
+            // don't add any null listeners
+            Trace.Listeners.AddRange(TraceListeners.Where(l => l != null).ToArray());
+            Trace.AutoFlush = true;
+        }
+
+        /// <summary>
+        /// Gets the name of the Method N levels deep in the stack frame. Used to trap what method actually made the logging call.
+        /// Only used when bLogSources is true.
+        /// </summary>
+        /// <param name="StackFramesToSkip"></param>
+        /// <returns>ClassName.MethodName</returns>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        private static string GetSource(int StackFramesToSkip)
+        {
+            StackFrame Frame = new StackFrame(2 + StackFramesToSkip);
+            System.Reflection.MethodBase Method = Frame.GetMethod();
+            return String.Format("{0}.{1}", Method.DeclaringType.Name, Method.Name);
+        }
+
+        /// <summary>
+        /// Converts a TraceEventType into a log prefix. Only used when bLogSeverity is true.
+        /// </summary>
+        /// <param name="EventType"></param>
+        /// <returns></returns>
+        private static string GetSeverityPrefix(TraceEventType Severity)
+        {
+            return Severity <= TraceEventType.Error ? "ERROR: " : Severity == TraceEventType.Warning ? "WARNING: " : "";
+        }
+
+		/// <summary>
+		/// Converts a TraceEventType into a message code
+		/// </summary>
+		/// <param name="EventType"></param>
+		/// <returns></returns>
+		private static int GetMessageCode(TraceEventType Severity)
+		{
+			return (int)Severity;
+		}
+
+        /// <summary>
+        /// Formats message for logging. Enforces the configured options.
+        /// </summary>
+        /// <param name="StackFramesToSkip">Number of frames to skip to get to the originator of the log request.</param>
+        /// <param name="CustomSource">Custom source string to use. Use the Class.Method string if null. Only used if bLogSources = true.</param>
+        /// <param name="Verbosity">Message verbosity level</param>
+        /// <param name="Format">Message text format string</param>
+        /// <param name="Args">Message text parameters</param>
+        /// <returns>Formatted message</returns>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        private static string FormatMessage(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            return string.Format("{4}{0}{1}{2}{3}",
+                    Timer != null ? String.Format("[{0:hh\\:mm\\:ss\\.fff}] ", Timer.Elapsed) : "",
+                    bLogSources ? string.Format("{0}: ", string.IsNullOrEmpty(CustomSource) ? GetSource(StackFramesToSkip) : CustomSource) : "",
+                    bLogSeverity ? GetSeverityPrefix(Verbosity) : "",
+                    // If there are no extra args, don't try to format the string, in case it has any format control characters in it (our LOCTEXT strings tend to).
+                    Args.Length > 0 ? string.Format(Format, Args) : Format,
+					GetMessageCode(Verbosity).ToString("X3"));
+        }
+
+        /// <summary>
+        /// Writes a formatted message to the console. All other functions should boil down to calling this method.
+        /// </summary>
+        /// <param name="StackFramesToSkip">Number of frames to skip to get to the originator of the log request.</param>
+        /// <param name="CustomSource">Custom source string to use. Use the default if null.</param>
+		/// <param name="bWriteOnce">If true, this message will be written only once</param>
+        /// <param name="Verbosity">Message verbosity level. We only meaningfully use values up to Verbose</param>
+        /// <param name="Format">Message format string.</param>
+        /// <param name="Args">Optional arguments</param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        private static void WriteLinePrivate(int StackFramesToSkip, string CustomSource, bool bWriteOnce, TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            if (!bIsInitialized)
+            {
+                throw new BuildException("Tried to using Logging system before it was ready");
+            }
+
+			// if we want this message only written one time, check if it was already written out
+			if (bWriteOnce)
+			{
+				string Formatted = string.Format(Format, Args);
+				if (WriteOnceSet.Contains(Formatted))
+				{
+					return;
 				}
 
-				// Display updated progress string and keep track of how long it was
-				NumCharsToBackspaceOver = ProgressString.Length;
-				Console.Write(ProgressString);
+				WriteOnceSet.Add(Formatted);
 			}
-		}
-	}
 
-	/// <summary>
-	/// Verbosity filter
-	/// </summary>
-	class VerbosityFilter : TraceFilter
-	{
-		public override bool ShouldTrace(TraceEventCache Cache, string Source, TraceEventType EventType, int Id, string FormatOrMessage, object[] Args, object Data1, object[] Data)
-		{
-			return EventType < TraceEventType.Verbose || BuildConfiguration.bPrintDebugInfo;
-		}
-	}
+//            if (Verbosity < TraceEventType.Verbose || bLogVerbose)
+            {
+                // Do console color highlighting here.
+                ConsoleColor DefaultColor = ConsoleColor.Gray;
+				bool bIsWarning = false;
+				bool bIsError = false;
+                // don't try to touch the console unless we are told to color the output.
+                if (bColorConsoleOutput)
+                {
+                    DefaultColor = Console.ForegroundColor;
+                    bIsWarning = Verbosity == TraceEventType.Warning;
+                    bIsError = Verbosity <= TraceEventType.Error;
+					// @todo mono - mono doesn't seem to initialize the ForegroundColor properly, so we can't restore it properly.
+					// Avoid touching the console color unless we really need to.
+					if (bIsWarning || bIsError)
+					{
+                    	Console.ForegroundColor = bIsWarning ? ConsoleColor.Yellow : ConsoleColor.Red;
+					}
+                }
+                try
+                {
+					// @todo mono: mono has some kind of bug where calling mono recursively by spawning
+					// a new process causes Trace.WriteLine to stop functioning (it returns, but does nothing for some reason).
+					// work around this by simulating Trace.WriteLine on mono.
+					// We use UAT to spawn UBT instances recursively a lot, so this bug can effectively
+					// make all build output disappear outside of the top level UAT process.
+					#if MONO
+					    lock (((System.Collections.ICollection)Trace.Listeners).SyncRoot)
+						{
+						    foreach (TraceListener l in Trace.Listeners) 
+						    {
+                                l.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
+							    l.Flush();
+						    }
+						}
+					#else
+                    	// Call Trace directly here. Trace ensures that our logging is threadsafe using the GlobalLock.
+                    	Trace.WriteLine(FormatMessage(StackFramesToSkip + 1, CustomSource, Verbosity, Format, Args));
+					#endif
+                }
+                finally
+                {
+                    // make sure we always put the console color back.
+                    if (bColorConsoleOutput && (bIsWarning || bIsError))
+                    {
+                        Console.ForegroundColor = DefaultColor;
+                    }
+                }
+            }
+        }
 
-	/// <summary>
-	/// Console Trace listener for UBT
-	/// </summary>
-	class ConsoleListener : TextWriterTraceListener
-	{
-		public override void Write(string Message)
-		{
-			Console.Write(Message);
-		}
+        /// <summary>
+        /// Similar to Trace.WriteLineIf
+        /// </summary>
+        /// <param name="Condition"></param>
+        /// <param name="Verbosity"></param>
+        /// <param name="Format"></param>
+        /// <param name="Args"></param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void WriteLineIf(bool Condition, TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            if (Condition)
+            {
+				WriteLinePrivate(1, null, false, Verbosity, Format, Args);
+            }
+        }
 
-		public override void WriteLine(string Message)
-		{
-			Console.WriteLine(Message);
-		}
+        /// <summary>
+        /// Mostly an internal function, but expose StackFramesToSkip to allow UAT to use existing wrapper functions and still get proper formatting.
+        /// </summary>
+        /// <param name="StackFramesToSkip"></param>
+        /// <param name="CustomSource">Custom source string to use. Use the default if null.</param>
+        /// <param name="Verbosity"></param>
+        /// <param name="Format"></param>
+        /// <param name="Args"></param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void WriteLine(int StackFramesToSkip, TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            WriteLinePrivate(StackFramesToSkip + 1, null, false, Verbosity, Format, Args);
+        }
 
-		public override void TraceEvent(TraceEventCache EventCache, string Source, TraceEventType EventType, int Id, string Message)
-		{
-			if (Filter == null || Filter.ShouldTrace(EventCache, Source, EventType, Id, Message, null, null, null))
-			{
-				WriteLine(Message);
-			}
-		}
+        /// <summary>
+        /// Mostly an internal function, but expose StackFramesToSkip and a custom Source to alow UAT to use existing wrapper functions and still get proper formatting.
+        /// </summary>
+        /// <param name="StackFramesToSkip"></param>
+        /// <param name="CustomSource">Custom source string to use. Use the default if null.</param>
+        /// <param name="Verbosity"></param>
+        /// <param name="Format"></param>
+        /// <param name="Args"></param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void WriteLine(int StackFramesToSkip, string CustomSource, TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            WriteLinePrivate(StackFramesToSkip + 1, CustomSource, false, Verbosity, Format, Args);
+        }
 
-		public override void TraceEvent(TraceEventCache EventCache, string Source, TraceEventType EventType, int Id, string Format, params object[] Args)
-		{
-			if (Filter == null || Filter.ShouldTrace(EventCache, Source, EventType, Id, Format, Args, null, null))
-			{
-				WriteLine(String.Format(Format, Args));
-			}
-		}
-	}
+        /// <summary>
+        /// Similar to Trace.WriteLin
+        /// </summary>
+        /// <param name="Verbosity"></param>
+        /// <param name="Format"></param>
+        /// <param name="Args"></param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void WriteLine(TraceEventType Verbosity, string Format, params object[] Args)
+        {
+            WriteLinePrivate(1, null, false, Verbosity, Format, Args);
+        }
 
-	/// <summary>
-	/// UnrealBuiltTool console logging system.
-	/// </summary>
-	public sealed class Log
-	{
+        /// <summary>
+        /// Writes an error message to the console.
+        /// </summary>
+        /// <param name="Format">Message format string</param>
+        /// <param name="Args">Optional arguments</param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void TraceError(string Format, params object[] Args)
+        {
+			WriteLinePrivate(1, null, false, TraceEventType.Error, Format, Args);
+        }
+
+        /// <summary>
+        /// Writes a verbose message to the console.
+        /// </summary>
+        /// <param name="Format">Message format string</param>
+        /// <param name="Args">Optional arguments</param>
+        [Conditional("TRACE")]
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void TraceVerbose(string Format, params object[] Args)
+        {
+			WriteLinePrivate(1, null, false, TraceEventType.Verbose, Format, Args);
+        }
+
+        /// <summary>
+        /// Writes a message to the console.
+        /// </summary>
+        /// <param name="Format">Message format string</param>
+        /// <param name="Args">Optional arguments</param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void TraceInformation(string Format, params object[] Args)
+        {
+			WriteLinePrivate(1, null, false, TraceEventType.Information, Format, Args);
+        }
+
+        /// <summary>
+        /// Writes a warning message to the console.
+        /// </summary>
+        /// <param name="Format">Message format string</param>
+        /// <param name="Args">Optional arguments</param>
+        [MethodImplAttribute(MethodImplOptions.NoInlining)]
+        public static void TraceWarning(string Format, params object[] Args)
+        {
+            WriteLinePrivate(1, null, false, TraceEventType.Warning, Format, Args);
+        }
+
+		/// <summary>
+		/// Similar to Trace.WriteLin
+		/// </summary>
+		/// <param name="Verbosity"></param>
+		/// <param name="Format"></param>
+		/// <param name="Args"></param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		private static string GetSource(int StackFramesToSkip)
+		public static void WriteLineOnce(TraceEventType Verbosity, string Format, params object[] Args)
 		{
-			StackFrame Frame = new StackFrame(2 + StackFramesToSkip);
-			System.Reflection.MethodBase Method = Frame.GetMethod();
-			return String.Format("{0}.{1}", Method.DeclaringType.Name, Method.Name);
+			WriteLinePrivate(1, null, true, Verbosity, Format, Args);
 		}
 
 		/// <summary>
-		/// Writes a formatted message to the console.
+		/// Writes an error message to the console.
 		/// </summary>
-		/// <param name="Verbosity">Message verbosity level.</param>
-		/// <param name="Format">Message format string.</param>
-		/// <param name="Args">Optional arguments</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLine(int StackFramesToSkip, TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			var Source = GetSource(StackFramesToSkip);
-			var EventCache = new TraceEventCache();
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Format, Args);
-			}
-		}
-
-		/// <summary>
-		/// Writes a message to the console.
-		/// </summary>
-		/// <param name="Verbosity">Message verbosity level.</param>
-		/// <param name="Message">Message text.</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLine(int StackFramesToSkip, TraceEventType Verbosity, string Message)
-		{
-			var Source = GetSource(StackFramesToSkip);
-			var EventCache = new TraceEventCache();
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Message);
-			}
-		}
-
-		/// <summary>
-		/// Writes a formatted message to the console.
-		/// </summary>
-		/// <param name="Verbosity">Message verbosity level.</param>
-		/// <param name="Format">Message format string.</param>
-		/// <param name="Args">Optional arguments</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLine(TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			var Source = GetSource(0);
-			var EventCache = new TraceEventCache();
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Format, Args);
-			}
-		}
-
-		/// <summary>
-		/// Writes a message to the console.
-		/// </summary>
-		/// <param name="Verbosity">Message verbosity level.</param>
-		/// <param name="Message">Message text.</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLine(TraceEventType Verbosity, string Message)
-		{
-			var Source = GetSource(0);
-			var EventCache = new TraceEventCache();
-			foreach (TraceListener Listener in Trace.Listeners)
-			{
-				Listener.TraceEvent(EventCache, Source, Verbosity, (int)Verbosity, Message);
-			}
-		}
-
-		/// <summary>
-		/// Writes a formatted message to the console if the condition is met.
-		/// </summary>
-		/// <param name="Condition">Condition</param>
-		/// <param name="Verbosity">Message verbosity level</param>
 		/// <param name="Format">Message format string</param>
 		/// <param name="Args">Optional arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLineIf(bool Condition, TraceEventType Verbosity, string Format, params object[] Args)
+		public static void TraceErrorOnce(string Format, params object[] Args)
 		{
-			if (Condition)
-			{
-				WriteLine(1, Verbosity, Format, Args);
-			}
-		}
-
-		/// <summary>
-		/// Writes a message to the console if the condition is met.
-		/// </summary>
-		/// <param name="Condition">Condition.</param>
-		/// <param name="Verbosity">Message verbosity level</param>
-		/// <param name="Message">Message text</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void WriteLineIf(bool Condition, TraceEventType Verbosity, string Message)
-		{
-			if (Condition)
-			{
-				WriteLine(1, Verbosity, Message);
-			}
+			WriteLinePrivate(1, null, true, TraceEventType.Error, Format, Args);
 		}
 
 		/// <summary>
@@ -1222,20 +1288,9 @@ namespace UnrealBuildTool
 		/// <param name="Args">Optional arguments</param>
 		[Conditional("TRACE")]
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceVerbose(string Format, params object[] Args)
+		public static void TraceVerboseOnce(string Format, params object[] Args)
 		{
-			WriteLine(1, TraceEventType.Verbose, Format, Args);
-		}
-
-		/// <summary>
-		/// Writes a verbose message to the console.
-		/// </summary>
-		/// <param name="Message">Message text</param>
-		[Conditional("TRACE")]
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceVerbose(string Message)
-		{
-			WriteLine(1, TraceEventType.Verbose, Message);
+			WriteLinePrivate(1, null, true, TraceEventType.Verbose, Format, Args);
 		}
 
 		/// <summary>
@@ -1244,19 +1299,9 @@ namespace UnrealBuildTool
 		/// <param name="Format">Message format string</param>
 		/// <param name="Args">Optional arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceInformation(string Format, params object[] Args)
+		public static void TraceInformationOnce(string Format, params object[] Args)
 		{
-			WriteLine(1, TraceEventType.Information, Format, Args);
-		}
-
-		/// <summary>
-		/// Writes a message to the console.
-		/// </summary>
-		/// <param name="Message">Message text</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceInformation(string Message)
-		{
-			WriteLine(1, TraceEventType.Information, Message);
+			WriteLinePrivate(1, null, true, TraceEventType.Information, Format, Args);
 		}
 
 		/// <summary>
@@ -1265,59 +1310,12 @@ namespace UnrealBuildTool
 		/// <param name="Format">Message format string</param>
 		/// <param name="Args">Optional arguments</param>
 		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceWarning(string Format, params object[] Args)
+		public static void TraceWarningOnce(string Format, params object[] Args)
 		{
-			WriteLine(1, TraceEventType.Warning, Format, Args);
+			WriteLinePrivate(1, null, true, TraceEventType.Warning, Format, Args);
 		}
 
-		/// <summary>
-		/// Writes a warning message to the console.
-		/// </summary>
-		/// <param name="Message">Message text</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceWarning(string Message)
-		{
-			WriteLine(1, TraceEventType.Warning, Message);
-		}
 
-		/// <summary>
-		/// Writes an error message to the console.
-		/// </summary>
-		/// <param name="Format">Message format string</param>
-		/// <param name="Args">Optional arguments</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceError(string Format, params object[] Args)
-		{
-			WriteLine(1, TraceEventType.Error, Format, Args);
-		}
-
-		/// <summary>
-		/// Writes an error message to the console.
-		/// </summary>
-		/// <param name="Message">Message text</param>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceError(string Message)
-		{
-			WriteLine(1, TraceEventType.Error, Message);
-		}
-
-		/// <summary>
-		/// Writes a message with the specified verbosity to the console.
-		/// </summary>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceEvent(TraceEventType Verbosity, string Message)
-		{
-			WriteLine(1, Verbosity, Message);
-		}
-
-		/// <summary>
-		/// Writes a formatted message with the specified verbosity to the console.
-		/// </summary>
-		[MethodImplAttribute(MethodImplOptions.NoInlining)]
-		public static void TraceEvent(TraceEventType Verbosity, string Format, params object[] Args)
-		{
-			WriteLine(1, Verbosity, Format, Args);
-		}
 	}
 
     #region StreamUtils
@@ -1543,7 +1541,7 @@ namespace UnrealBuildTool
 			var IndentText = new StringBuilder(LogIndent * 2);
 			IndentText.Append(' ', LogIndent * 2);
 			
-			Log.TraceEvent(Verbosity, "{0}{1} took {2}s", IndentText.ToString(), TimerName, TotalSeconds);
+			Log.WriteLine(Verbosity, "{0}{1} took {2}s", IndentText.ToString(), TimerName, TotalSeconds);
 		}
 	}
 
@@ -1613,7 +1611,7 @@ namespace UnrealBuildTool
 
 		static private void LogAccumulator(string Name, Accumulator Counter)
 		{
-			Log.TraceEvent(Counter.Verbosity, "{0} took {1}s", Name, Counter.Time);
+			Log.WriteLine(Counter.Verbosity, "{0} took {1}s", Name, Counter.Time);
 		}
 
 		/// <summary>
@@ -1629,4 +1627,41 @@ namespace UnrealBuildTool
 	}
 
 	#endregion
+
+	#region FilteredConsoleTraceListener
+
+	/// <summary>
+	///  Filtered Console Trace Listener
+	///  </summary>
+	public class FilteredConsoleTraceListener : TextWriterTraceListener
+	{
+		public FilteredConsoleTraceListener()
+			: base(Console.OpenStandardOutput())
+		{ }
+
+		#region TraceListener Interface
+
+		public override void WriteLine(string message)
+		{
+			// strip off the message code
+			int Code = 0;
+			if (Int32.TryParse(message.Substring(0, 3), System.Globalization.NumberStyles.HexNumber, null, out Code))
+			{
+				// filter the message based on the code
+				if (Code < (int)TraceEventType.Verbose || Log.bIsVerbose)
+				{
+					// filter based on the message code
+					base.WriteLine(message.Substring(3));
+				}
+			}
+			else
+			{
+				base.WriteLine(message);
+			}
+		}
+
+		#endregion
+	}
+	#endregion
+
 }

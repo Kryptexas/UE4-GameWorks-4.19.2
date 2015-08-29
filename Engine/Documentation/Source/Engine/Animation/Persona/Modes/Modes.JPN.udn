@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419781
+﻿INTSourceChangelist:2593442
 Availability:Public
 Title:ペルソナの編集モード
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -57,7 +57,7 @@ Description:ペルソナのアニメーション エディタで利用出来る�
 [/EXCERPT:SkeletonMode]
 
 [REGION:note]
-ペルソナの **[詳細]** パネルには、アニメーション アセットに関連したプロパティのみが表示されます。ただし、機能的にはメイン エディタ ウィンドウの標準的な [詳細] パネルと同様です。
+ペルソナの **[Details]** (詳細) パネルには、アニメーション アセットに関連したプロパティのみが表示されます。ただし、機能的にはメイン エディタ ウィンドウの標準的な **[Details]** パネルと同様です。
 [/REGION]
 
 [EXCERPT:MeshMode]

@@ -1,8 +1,13 @@
-﻿INTSourceChangelist:1903621
-Availability: Public
+﻿Availability: Public
 Title:1.7 -线性发动机
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.7： 带物理约束的线性发动机
+Related: Engine/Physics/PhysicsBodies
+Related: Engine/Physics/PhAT/UserGuide
+Related: Engine/Physics/Constraints/ConstraintsReference
+Related: Engine/Physics/Constraints/ConstraintsUserGuide
+Related: Engine/Physics/Collision
+Related: Engine/Physics/PhysicalMaterials/PhysMatReference
 
 
 [VAR:TopicCompact]
@@ -46,10 +51,9 @@ Description:物理表现示例关卡概述，示例1.7： 带物理约束的线�
 
 
 [REGION:fullwidth]
-
+	![](physics_1_7_001.png)
 [/REGION]
 
-![](physics_1_7_001.png)(w:900)
 
 启用 **PhyiscsConstraint** （物理约束）的线性发动机将会使附加的物理模拟对象以两种方式之一沿着坐标轴（或轴线）移动。
 
@@ -60,4 +64,4 @@ Linear Velocity Drive（线性速度驱动）会从约束所在的位置处对�
 
 
 
-[INCLUDE:Resources\ContentExamples\Physics#PhysicsContentExamples]
+

@@ -1,5 +1,4 @@
-﻿INTSourceChangelist:1903621
-Availability: Public
+﻿Availability: Public
 Title:1.5 -物理约束
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Physics
 Description:物理表现示例关卡概述，示例1.5： 物理约束
@@ -47,12 +46,11 @@ Description:物理表现示例关卡概述，示例1.5： 物理约束
 
 
 [REGION:fullwidth]
-
+	![](physics_1_5_001.png)
 [/REGION]
 
-![](physics_1_5_001.png)(w:900)
 
-约束实际上是节点的一种类型。它使您能够将两个Actor连接在一起（假设两者有一个物理模拟），同时应用限制或者力。虚幻引擎4有非常灵活的和数据驱动的约束系统，允许设计者通过简单地更改一些选项来制作许多不同类型的节点。该引擎有一些默认的节点类型（ball-and-socket（球窝式）、hinge（铰链）式、Prismatic（棱柱）式），但它们仅仅在设置上有所不同。您可以自由地从任意类型的节点入手，通过不同的配置进行实验。
+[INCLUDE:Engine/Physics\Constraints\ConstraintsUserGuide#PhysXConstraints_001]
 
 在内容示例中，从左向右：
 
@@ -68,4 +66,4 @@ Description:物理表现示例关卡概述，示例1.5： 物理约束
 
 
 
-[INCLUDE:Resources\ContentExamples\Physics#PhysicsContentExamples]
+

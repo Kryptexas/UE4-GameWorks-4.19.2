@@ -10,13 +10,13 @@
 UENUM()
 enum EPackageNotifyState
 {
-	// The user has been prompted with the balloon taskbar message
+	/** The user has been prompted with the balloon taskbar message. */
 	NS_BalloonPrompted,
-	// The user responded to the balloon task bar message and got the modal prompt to checkout dialog and responded to it
+	/** The user responded to the balloon task bar message and got the modal prompt to checkout dialog and responded to it. */
 	NS_DialogPrompted,
-	// The package has been marked dirty and is pending a balloon prompt
+	/** The package has been marked dirty and is pending a balloon prompt. */
 	NS_PendingPrompt,
-	// The package has been marked dirty but cannot be checked out, and is pending a modal warning dialog
+	/** The package has been marked dirty but cannot be checked out, and is pending a modal warning dialog. */
 	NS_PendingWarning,
 	NS_MAX,
 };
@@ -24,11 +24,11 @@ enum EPackageNotifyState
 UENUM()
 enum EWriteDisallowedWarningState
 {
-	// The user needs to be warned about the package
+	/** The user needs to be warned about the package. */
 	WDWS_PendingWarn,
-	// The user has been warned about the package
+	/** The user has been warned about the package. */
 	WDWS_Warned,
-	// Warning for the package unnecessary
+	/** Warning for the package unnecessary. */
 	WDWS_WarningUnnecessary,
 	WDWS_MAX,
 };
@@ -186,6 +186,7 @@ public:
 	virtual void SelectComponent(class UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden = false) override;
 	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) override;
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) override;
+	virtual void DeselectAllSurfaces() override;
 	virtual void NoteSelectionChange() override;
 	virtual void NoteActorMovement() override;
 	virtual void FinishAllSnaps() override;
@@ -201,6 +202,7 @@ public:
 	virtual bool ShouldAbortActorDeletion() const override;
 	virtual void CloseEditor() override;
 	virtual void OnOpenMatinee() override;
+	virtual bool IsAutosaving() const override;
 	// End UEditorEngine Interface 
 	
 	// Begin FExec Interface
@@ -263,6 +265,16 @@ public:
 	 * @param InActor - the actor to toggle view flags for
 	 */
 	virtual void SetActorSelectionFlags (AActor* InActor);
+
+	/**
+	 * Set whether the pivot has been moved independently or not
+	 */
+	void SetPivotMovedIndependently( bool bMovedIndependently );
+
+	/**
+	 * Return whether the pivot has been moved independently or not
+	 */
+	bool IsPivotMovedIndependently() const;
 
 	/**
 	 * Called to reset the editor's pivot (widget) location using the currently selected objects.  Usually
@@ -755,4 +767,7 @@ protected:
 
 	/** Handle to the registered OnMatineeEditorClosed delegate. */
 	FDelegateHandle OnMatineeEditorClosedDelegateHandle;
+
+	/** Whether the pivot has been moved independently */
+	bool bPivotMovedIndependently;
 };

@@ -89,7 +89,7 @@ public:
 	FMaterialSpriteSceneProxy(const UMaterialBillboardComponent* InComponent)
 	: FPrimitiveSceneProxy(InComponent)
 	, Elements(InComponent->Elements)
-	, BaseColor(FLinearColor::White)
+	, BaseColor(FColor::White)
 	{
 		AActor* Owner = InComponent->GetOwner();
 		if (Owner)
@@ -179,7 +179,7 @@ public:
 
 						for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
 						{
-							VertexArray.Vertices[VertexIndex].Color = Color;
+							VertexArray.Vertices[VertexIndex].Color = Color.ToFColor(true);
 							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.GetSafeNormal());
 							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.GetSafeNormal());
 						}

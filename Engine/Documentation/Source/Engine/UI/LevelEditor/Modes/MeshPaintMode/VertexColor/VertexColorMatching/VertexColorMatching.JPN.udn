@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2286220
 Availability:Public
-Title:頂点カラーの整合性 Vertex Color Matching
+Title:頂点カラーを一致
 Crumbs:%ROOT%, Engine, Engine/UI/LevelEditor/Modes/MeshPaintMode/VertexColor
 Description:新バージョンのメッシュが異なる頂点カウント数でインポートされた場合に、頂点カラーを修正するツール
 
@@ -12,7 +12,7 @@ Description:新バージョンのメッシュが異なる頂点カウント数�
 [REGION:codesnippet]
 
     
-     (LOD ) has hand-painted vertex colors that no longer match the original StaticMesh ()
+     (LOD ) にハンド ペイントされた頂点カラーがありますが、オリジナルのスタティックメッシュ () とは合わなくなっています。
     
 
 

@@ -20,6 +20,15 @@ enum EShaderFrequency
 	SF_Compute			= 5,
 
 	SF_NumFrequencies	= 6,
+
+#if USE_ASYNC_COMPUTE_CONTEXT 
+	SF_AsyncCompute		= 6, // "Special" frequency to distinguish between Device Contexts, 
+							 // TODO: maybe have a separate enum for this
+	SF_NumFrequenciesIncludingAsync,
+#else
+	SF_NumFrequenciesIncludingAsync = SF_NumFrequencies,
+#endif
+
 	SF_NumBits			= 3,
 };
 static_assert(SF_NumFrequencies <= (1 << SF_NumBits), "SF_NumFrequencies will not fit on SF_NumBits");
@@ -48,8 +57,10 @@ enum EShaderPlatform
 	SP_PCD3D_ES3_1		= 15,
 	/** Used when running in Feature Level ES3_1 in OpenGL. */
 	SP_OPENGL_PCES3_1	= 16,
+	SP_METAL_SM5		= 17,
+	SP_VULKAN_ES2		= 18,
 
-	SP_NumPlatforms		= 17,
+	SP_NumPlatforms		= 19,
 	SP_NumBits			= 5,
 };
 static_assert(SP_NumPlatforms <= (1 << SP_NumBits), "SP_NumPlatforms will not fit on SP_NumBits");
@@ -400,8 +411,8 @@ enum EBufferUsageFlags
 {
 	// Mutually exclusive write-frequency flags
 	BUF_Static            = 0x0001, // The buffer will be written to once.
-	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally.
-	BUF_Volatile          = 0x0004, // The buffer will be written to frequently.
+	BUF_Dynamic           = 0x0002, // The buffer will be written to occasionally.  The data lifetime is until the next update, or the buffer is destroyed.
+	BUF_Volatile          = 0x0004, // The buffer's data will have a lifetime of one frame.  It MUST be written to each frame, or a new one created each frame.
 
 	// Mutually exclusive bind flags.
 	BUF_UnorderedAccess   = 0x0008, // Allows an unordered access view to be created for the buffer.
@@ -529,8 +540,15 @@ enum ETextureCreateFlags
 	TexCreate_TargetArraySlicesIndependently	= 1<<23,
 	// Texture that may be shared with DX9 or other devices
 	TexCreate_Shared = 1 << 24,
+	// RenderTarget will not use full-texture fast clear functionality.
+	TexCreate_NoFastClear = 1 << 25,
 };
 
+enum EAsyncComputePriority
+{
+	AsyncComputePriority_Default = 0,
+	AsyncComputePriority_High,
+};
 /**
  * Async texture reallocation status, returned by RHIGetReallocateTexture2DStatus().
  */
@@ -571,11 +589,8 @@ enum class ESimpleRenderTargetMode
 	EUninitializedColorAndDepth,					// Color = ????, Depth = ????
 	EUninitializedColorExistingDepth,				// Color = ????, Depth = Existing
 	EUninitializedColorClearDepth,					// Color = ????, Depth = Default
-	EClearToDefault,								// Default Color = (0,0,0,0), Default Depth = 0.0f
-	EClearColorToBlack,								// Color = (0,0,0,0), Depth = Existing
-	EClearColorToBlackWithFullAlpha,				// Color = (0,0,0,1), Depth = Existing
-	EClearColorToWhite,								// Color = (1,1,1,1), Depth = Existing
-	EClearDepthToOne,								// Color = Existing, Depth = 1.0
+	EClearColorExistingDepth,						// Clear Color = whatever was bound to the rendertarget at creation time. Depth = Existing
+	EClearColorAndDepth,							// Clear color and depth to bound clear values.
 	EExistingContents_NoDepthStore,					// Load existing contents, but don't store depth out.  depth can be written.
 
 	// If you add an item here, make sure to add it to DecodeRenderTargetMode() as well!
@@ -583,13 +598,13 @@ enum class ESimpleRenderTargetMode
 
 inline bool IsPCPlatform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1;
+	return Platform == SP_PCD3D_SM5 || Platform == SP_PCD3D_SM4 || Platform == SP_PCD3D_ES2 || Platform == SP_PCD3D_ES3_1 || Platform ==  SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_PCES3_1 || (PLATFORM_MAC && (Platform == SP_METAL_MRT || Platform == SP_METAL_SM5));
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
 inline bool IsES2Platform(const EShaderPlatform Platform)
 {
-	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL; 
+	return Platform == SP_PCD3D_ES2 || Platform == SP_OPENGL_PCES2 || Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_METAL || Platform == SP_VULKAN_ES2; 
 }
 
 /** Whether the shader platform corresponds to the ES2 feature level. */
@@ -601,7 +616,7 @@ inline bool IsMobilePlatform(const EShaderPlatform Platform)
 inline bool IsOpenGLPlatform(const EShaderPlatform Platform)
 {
 	return Platform == SP_OPENGL_SM4 || Platform == SP_OPENGL_SM4_MAC || Platform == SP_OPENGL_SM5 || Platform == SP_OPENGL_PCES2
-		|| Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT;
+		|| Platform == SP_OPENGL_ES2 || Platform == SP_OPENGL_ES2_WEBGL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES31_EXT || Platform == SP_VULKAN_ES2;
 }
 
 inline bool IsConsolePlatform(const EShaderPlatform Platform)
@@ -618,6 +633,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_PS4:
 	case SP_XBOXONE:
 	case SP_OPENGL_ES31_EXT:
+	case SP_METAL_SM5:
 		return ERHIFeatureLevel::SM5;
 	case SP_PCD3D_SM4:
 	case SP_OPENGL_SM4:
@@ -629,6 +645,7 @@ inline ERHIFeatureLevel::Type GetMaxSupportedFeatureLevel(EShaderPlatform InShad
 	case SP_OPENGL_ES2:
 	case SP_OPENGL_ES2_WEBGL:
 	case SP_OPENGL_ES2_IOS:
+	case SP_VULKAN_ES2:
 		return ERHIFeatureLevel::ES2;
 	case SP_METAL:
 	case SP_PCD3D_ES3_1:
@@ -658,6 +675,7 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	case SP_OPENGL_PCES3_1:
 		return InFeatureLevel <= ERHIFeatureLevel::ES3_1;
 	case SP_OPENGL_ES2:
+	case SP_VULKAN_ES2:
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
 	case SP_OPENGL_ES2_WEBGL: 
 		return InFeatureLevel <= ERHIFeatureLevel::ES2;
@@ -678,6 +696,8 @@ inline bool IsFeatureLevelSupported(EShaderPlatform InShaderPlatform, ERHIFeatur
 	case SP_METAL_MRT:
 		return InFeatureLevel <= ERHIFeatureLevel::SM4;
 	case SP_OPENGL_ES31_EXT:
+		return InFeatureLevel <= ERHIFeatureLevel::SM5;
+	case SP_METAL_SM5:
 		return InFeatureLevel <= ERHIFeatureLevel::SM5;
 	default:
 		return false;
@@ -712,23 +732,23 @@ inline bool RHISupportsInstancing(ERHIFeatureLevel::Type FeatureLevel)
 inline bool RHISupportsSeparateMSAAAndResolveTextures(const EShaderPlatform Platform)
 {
 	// Metal needs to handle MSAA and resolve textures internally (unless RHICreateTexture2D was changed to take an optional resolve target)
-	return Platform != SP_METAL && Platform != SP_METAL_MRT;
+	return Platform != SP_METAL && Platform != SP_METAL_MRT && Platform != SP_METAL_SM5;
 }
 
 inline bool RHISupportsComputeShaders(const EShaderPlatform Platform)
 {
 	//@todo-rco: Add Metal support
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5) || (Platform == SP_METAL_MRT);
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM5);
 }
 
 inline bool RHISupportsGeometryShaders(const EShaderPlatform Platform)
 {
-	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && Platform != SP_METAL_MRT;
+	return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && Platform != SP_METAL_MRT && Platform != SP_METAL_SM5;
 }
 
 inline bool RHIHasTiledGPU(const EShaderPlatform Platform)
 {
-	return Platform == SP_METAL_MRT|| Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
+	return (PLATFORM_IOS && Platform == SP_METAL_MRT) || Platform == SP_METAL || Platform == SP_OPENGL_ES2_IOS || Platform == SP_OPENGL_ES2;
 }
 
 inline uint32 GetFeatureLevelMaxTextureSamplers(ERHIFeatureLevel::Type FeatureLevel)

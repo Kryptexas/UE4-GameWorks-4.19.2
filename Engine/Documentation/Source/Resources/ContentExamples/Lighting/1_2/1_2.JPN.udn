@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618582
 Availability:Public
 Title:1.2 - スポットライト
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 1.2：スポットライト
+Description:ライティングのサンプルレベルの概要、1.2：スポットライト
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -38,11 +38,11 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\1_2:title%](Resources\ContentExamples\Lighting\Lighting_1_2.png)
 [/REGION]
 
-ポイントライトはライトを一点からコーン (円錐) 形状に放射します。ユーザーは **Inner Cone Angle** と **Outer Cone Angle** の 2 つのライト形状を使用できます。ライトは **Inner Cone Angle** 内で最大輝度を放ちます。内半径から **Outer Cone Angle** へ移動するとフォールオフが発生し、半暗部を作成したりスポットライトの円盤型イルミネーション周りをソフトにします。
+**Spot Light** はライトを一点からコーン (円錐) 形状に放射します。ユーザーは **Inner Cone Angle** と Outer Cone Angle の 2 つのライト形状を使用できます。ライトは Inner Cone Angle 内で最大輝度を放ちます。内半径から Outer Cone Angle へ移動するとフォールオフが発生し、半暗部を作成したりスポットライトの円盤型イルミネーション周りをソフトにします。
 
 ![](ConeRadius.png)(w:500)
 
-非常に狭い範囲の **Inner Cone Angle** と広範囲に渡る **Outer Cone Angle** が、上記の画像に表示されています。ライトの選択時に **[Details]** パネルで定義されます。
+非常に狭い範囲の Inner Cone Angle と広範囲に渡る Outer Cone Angle が、上記の画像に表示されています。ライトの選択時に **[Details]** パネルで定義されます。
 
 
 

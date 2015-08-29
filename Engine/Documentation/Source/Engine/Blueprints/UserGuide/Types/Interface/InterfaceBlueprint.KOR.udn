@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2495740
+﻿INTSourceChangelist:2600509
 Availability:Public
 Title:블루프린트 인터페이스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -43,8 +43,6 @@ Description:블루프린트 사이의 인터페이스 정의를 위한 함수를
 [/VAR]
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 **Blueprint Interface** (블루프린트 인터페이스)란 하나 이상의 함수를 구현 없이 이름만 모아놓은 것으로, 다른 블루프린트에 

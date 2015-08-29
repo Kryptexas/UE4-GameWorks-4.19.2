@@ -1,0 +1,15 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:How to Respawn a Player in Code
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/RespawnPlayer
+Description:A How To Guide for respawning a player character through Code in Unreal Engine 4. 
+
+[TOC (start:2)]
+
+## Overview
+
+ Here you will learn how to respawn a player character in a single player game in **Code**. 
+
+## Spawning an Actor
+
+Below you will find steps to spawn an Actor in the level by pressing a key. 

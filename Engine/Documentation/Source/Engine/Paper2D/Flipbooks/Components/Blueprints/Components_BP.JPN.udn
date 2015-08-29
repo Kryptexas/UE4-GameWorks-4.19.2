@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2410416
+﻿INTSourceChangelist:2514961
 Availability:Public
 Title:ブループリントにおける Flipbook コンポーネント
 Crumbs: %ROOT%, Engine, Engine/Paper2D, Engine/Paper2D/Flipbooks, Engine\Paper2D\Flipbooks\Components
@@ -24,13 +24,9 @@ Related:Engine/Blueprints
 
 ## Flipbook コンポーネントの追加
 
-ブループリントの **[Components]** タブから Flipbook コンポーネントを追加することができます。 
+ブループリントの **[Components]** ウィンドウから Flipbook コンポーネントを追加することができます。 
 
-1. ブループリントを開いて、右上隅の **[Components]** タブをクリックします。 
-
-	![](Components0.png)
-
-1. **[Components]** タブの **[Components]** ウィンドウの中の **[Add Component]** ボタンをクリックします。 
+1. ブループリントで、[Components] ウィンドウから **[Add Component]** ボタンをクリックして、 **Paper Flipbook** を検索して追加します。 
 
 	![](Components1.png)	
 
@@ -38,21 +34,21 @@ Related:Engine/Blueprints
 
 	![](Components2.png)
 
-	**[詳細]** パネルの Flipbook コンポーネントの **Properties** の調整ができるようになります。 
+	**[Details]** パネルの Flipbook コンポーネントの **Properties** の調整ができるようになります。 
 
-**Replace With Composited Blueprint** オプションを使っても、 Flipbook コンポーネントをブループリントに追加することができます。 
+**Blueprint/Add Script** オプションを使っても、 Flipbook コンポーネントをブループリントに追加することができます。 
 
-1.	**Flipbook** をレベル内に配置して選択し、 **[詳細]** パネルへ行きます。 
+1.	**Flipbook** をレベル内に配置して選択し、 **[Details]** パネルへ行きます。 
 
-1.	**[詳細]** の下の方にある **Replace With Composited Blueprint** オプションを選択します。 
+1.	**[Blueprint/Add Script]** ボタンをクリックしじます。 
 
 	![](Components3.png)
 
-	これにより、ブループリントが新規作成され、そのコンポーネントとして選択されたフリップブックが自動的に割り当てられます。 
+	これにより、ブループリントが新規作成され (名前入力を求められます)、そのコンポーネントとして選択されたフリップブックが自動的に割り当てられます。 
 
 ## Flipbook Component プロパティ
 
-Flipbook コンポーネントの **[詳細]** パネル内で調整できるプロパティもありますが、最も重要なものは **Sprite** セクションにあります。ここでは使用する **Source Flipbook** の定義、使用するフリップブックの初期の **Play Rate** と **Sprite Color** を定義します。 
+Flipbook コンポーネントの **[Details]** パネル内で調整できるプロパティもありますが、最も重要なものは **Sprite** セクションにあります。ここでは使用する **Source Flipbook** の定義、使用するフリップブックの初期の **Play Rate** と **Sprite Color** を定義します。 
 
 ![](Details1.png)
 
@@ -74,15 +70,19 @@ Flipbook アセットがポップアップ ウィンドウで選択したり、�
 
 ### Collision プロパティ
 
-現時点において Flipbooks はまだ生産段階ではなく、アーリーアクセス ステートなので、いずれのコリジョンもサポートされていません。Flipbook と一緒に **Box** 、 **Capsule** 、 **Sphere** コンポーネントを使えば、必要とする関連コリジョンを表すことができます。 
+コリジョンはフリップブックに直接適用できますが (詳細は [](Engine\Paper2D\Flipbooks\Editor) を参照)、パフォーマンスを下げないためにもコリジョン形状の使用を推奨します。例えば、Flipbook と一緒に **Box** 、 **Capsule** 、 **Sphere** コンポーネントを使えば、必要とする関連コリジョンを表すことができます。 
+
+また、ブループリントで、**[Add Component]** ボタンをクリックして、**Collision** を検索します。 
 
 ![](Collision1.png)
 
+フリップブック上で指定するのではなく、フリップブック用のコリジョンとして使用するために、異なる形状を適用することができます。 
+
 以下はそのようなケースの例です。 
 
-![](Collision2.png)(w:720)
+![](Collision2.png)(w:820)
 
-上の例では、(**Collision** と呼ばれる) Sphere を Flipbook の親にして、 **Sphere Radius** でコリジョンのサイズを調節し、 **Simulate Physics** オプションで物理を有効にし、 **Locked Axis** オプションを使って物理シミュレーションを Y 軸のみにロックし、最後にそのコリジョンを **BlockAll** に設定してレベル内のすべてのものと衝突するようにしました。このような設定により、レベル内に配置することができ、レベル内の他のアクタに反応し、1 つの軸に沿って正しく物理をシミュレートする丸いアクタができます。 
+上の例では、点滅するシンプルなボックスのブループリントを作成し、**Box Extent** 変数を変更してボックスをカプセル化し、実際のコリジョンを与えるために **Collision Presets** を **Block All** に変更して、ボックスにコリジョンを与えるために Box Collision を追加しました。 
 
 ## Flipbook コンポーネントの使用方法
 

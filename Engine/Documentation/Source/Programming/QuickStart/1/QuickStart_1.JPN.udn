@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2478927
+﻿INTSourceChangelist:2558633
 Availability:Public
 Title:1.基本プロジェクト設定
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -28,6 +28,6 @@ Description:必要な仕様を使って新規プロジェクトを作成する�
 
 ----
 
-**アンリアル エディタ** が新規プロジェクトを開きます。
+**アンリアル エディタ** が新規プロジェクトを開きます。**Visual Studio** も開き、プロジェクトが作成したソリューション ファイルをロードします。
 
 %Steps%

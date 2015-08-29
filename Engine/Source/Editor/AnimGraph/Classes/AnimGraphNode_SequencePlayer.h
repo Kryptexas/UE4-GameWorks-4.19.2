@@ -4,10 +4,11 @@
 #include "AnimGraphNode_Base.h"
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTitleTextTable
+#include "AnimGraphNode_AssetPlayerBase.h"
 #include "AnimGraphNode_SequencePlayer.generated.h"
 
 UCLASS(MinimalAPI)
-class UAnimGraphNode_SequencePlayer : public UAnimGraphNode_Base
+class UAnimGraphNode_SequencePlayer : public UAnimGraphNode_AssetPlayerBase
 {
 	GENERATED_UCLASS_BODY()
 

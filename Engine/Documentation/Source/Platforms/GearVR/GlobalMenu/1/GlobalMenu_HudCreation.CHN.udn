@@ -1,0 +1,82 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Samsung Gear VR Global Menu HUD Creation
+Crumbs:%ROOT%, Platforms/GearVR
+Description:Instructions on how to create a new HUD to use with your Gear VR project.
+Navigation:platform
+Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms\GearVR\GlobalMenu)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms\GearVR\GlobalMenu\2 "%Platforms/GearVR/QuickStart/2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+%Steps%
+
+
+Before we can start to build the Global Menu HUD we first need to create a new HUD Actor so that the Blueprint code that we create has a location to be stored. 
+In the following section of this Quick Start we will go over how to create a new HUD to your Gear VR project.
+
+1. First need to create a new HUD by **Right - Clicking** in the **Content Browser** and then selecting the **Blueprint Class** option from the **Create Basic Asset** section.
+	
+	![](T_Create_New_BP.png)
+
+1. From the **Pick Parent Class** menu, input **HUD** into the **Search** and the select the **HUD** class.
+
+	![](T_Find&Select_HUD.png)
+
+1. Once created, give the HUD a name. For this example we will use **GearVR_GlobalMenu** as the name for this Blueprint HUD.
+
+	![](T_Named_HUD.png)
+
+
+%Steps%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

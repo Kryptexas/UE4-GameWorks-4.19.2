@@ -117,6 +117,7 @@ void FStaticLightingMesh::Import( FLightmassImporter& Importer )
 		CurrentMaterialElement.bUseTwoSidedLighting = METempData.bUseTwoSidedLighting;
 		CurrentMaterialElement.bShadowIndirectOnly = METempData.bShadowIndirectOnly;
 		CurrentMaterialElement.bUseEmissiveForStaticLighting = METempData.bUseEmissiveForStaticLighting;
+		CurrentMaterialElement.bUseVertexNormalForHemisphereGather = METempData.bUseVertexNormalForHemisphereGather;
 		// Validating data here instead of in Unreal since EmissiveLightFalloffExponent is used in so many different object types
 		CurrentMaterialElement.EmissiveLightFalloffExponent = FMath::Max(METempData.EmissiveLightFalloffExponent, 0.0f);
 		CurrentMaterialElement.EmissiveLightExplicitInfluenceRadius = FMath::Max(METempData.EmissiveLightExplicitInfluenceRadius, 0.0f);
@@ -461,7 +462,7 @@ void FStaticLightingMesh::CreateMeshAreaLights(
 					{
 						// Initialize all of the mesh area light's unused properties to 0
 						FMeshAreaLight* NewLight = new FMeshAreaLight(ForceInit);
-						NewLight->LightFlags = GI_LIGHT_HASSTATICLIGHTING | GI_LIGHT_USEDIRECTLIGHTMAP | GI_LIGHT_CASTSHADOWS | GI_LIGHT_CASTSTATICSHADOWS;
+						NewLight->LightFlags = GI_LIGHT_HASSTATICLIGHTING | GI_LIGHT_CASTSHADOWS | GI_LIGHT_CASTSTATICSHADOWS;
 						NewLight->SetPrimitives(
 							TrimmedEmissivePrimitives[LightIndex], 
 							MaterialElements[MaterialIndex].EmissiveLightFalloffExponent, 

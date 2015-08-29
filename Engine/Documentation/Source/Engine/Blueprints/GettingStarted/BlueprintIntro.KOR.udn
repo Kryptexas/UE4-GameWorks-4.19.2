@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2597355
 Availability:Public
 Title: 블루프린트 소개
 Crumbs: %ROOT%, Engine, Engine/Blueprints
@@ -26,8 +26,6 @@ Description:블루프린트가 처음이신 분들에게 블루프린트란 무�
 
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:BlueprintIntro]
 **Blueprint** (블루프린트)란 직관적인 노드 기반 인터페이스를 통해 새로운 액터 유형과 스크립트 레벨 이벤트를 만들 수 있는 

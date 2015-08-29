@@ -6,10 +6,11 @@
 #include "StaticMesh.generated.h"
 
 /** The maximum number of static mesh LODs allowed. */
-#define MAX_STATIC_MESH_LODS 4
+#define MAX_STATIC_MESH_LODS 8
 
 // Forward declarations
 class UFoliageType_InstancedStaticMesh;
+struct FStaticMeshLODResources;
 
 /*-----------------------------------------------------------------------------
 	Legacy mesh optimization settings.
@@ -418,6 +419,16 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	/** Data that is only available if this static mesh is an imported SpeedTree */
 	TSharedPtr<class FSpeedTreeWind> SpeedTreeWind;
 
+	/** Bound extension values in the positive direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = StaticMesh)
+	FVector PositiveBoundsExtension;
+	/** Bound extension values in the negative direction of XYZ, positive value increases bound size */
+	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, Category = StaticMesh)
+	FVector NegativeBoundsExtension;
+	/** Original mesh bounds extended with Positive/NegativeBoundsExtension */
+	UPROPERTY()
+	FBoxSphereBounds ExtendedBounds;
+
 protected:
 	/**
 	 * Index of an element to ignore while gathering streaming texture factors.
@@ -434,7 +445,6 @@ public:
 	/** Pre-build navigation collision */
 	UPROPERTY(VisibleAnywhere, transient, duplicatetransient, Instanced, Category = Navigation)
 	class UNavCollision* NavCollision;
-	
 public:
 	/**
 	 * Default constructor
@@ -448,6 +458,7 @@ public:
 	ENGINE_API virtual void GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const override;
 #endif // WITH_EDITOR
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
+	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void PostLoad() override;
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
@@ -501,6 +512,10 @@ public:
 	 */
 	ENGINE_API FBoxSphereBounds GetBounds() const;
 
+	/** Returns the bounding box, in local space including bounds extension(s), of the StaticMesh asset */
+	UFUNCTION(BlueprintCallable, Category="StaticMesh")
+	ENGINE_API FBox GetBoundingBox() const;
+
 	/**
 	 * Gets a Material given a Material Index and an LOD number
 	 *
@@ -512,7 +527,7 @@ public:
 	 * Returns the render data to use for exporting the specified LOD. This method should always
 	 * be called when exporting a static mesh.
 	 */
-	ENGINE_API struct FStaticMeshLODResources& GetLODForExport( int32 LODIndex );
+	ENGINE_API const FStaticMeshLODResources& GetLODForExport(int32 LODIndex) const;
 
 	/**
 	 * Static: Processes the specified static mesh for light map UV problems
@@ -628,5 +643,8 @@ private:
 	 * Caches derived renderable data.
 	 */
 	void CacheDerivedData();
+
+	/** Calculates the extended bounds */
+	void CalculateExtendedBounds();
 #endif // #if WITH_EDITOR
 };

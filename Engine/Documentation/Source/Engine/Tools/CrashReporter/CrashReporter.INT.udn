@@ -5,7 +5,7 @@ Description:Application for collecting information from crashes in Unreal Engine
 
 [TOC (start:2 end:3)]
 
-The Crash Reporter suite of programs is desgined to capture and analyse application crashes both internal to the company, and externally from end users.
+The Crash Reporter suite of programs is designed to capture and analyze application crashes both internal to the company, and externally from end users.
 
 ## Requirements
 
@@ -111,4 +111,8 @@ physical locations of 'ProcessedReports' and 'ProcessedVideos' in the Report Pro
 
 The RegisterPII application maps the anonymous machine Guid from the Windows Error Report to a known user and machine name. It should only be run for developers to ease tracking down of crashes, as collecting such data for end users is illegal.
 PII stands for Personally Identifiable Information which is described here http://en.wikipedia.org/wiki/Personally_identifiable_information
+
+
+
+
 

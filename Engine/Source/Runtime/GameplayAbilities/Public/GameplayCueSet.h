@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GameplayEffectTypes.h"
 #include "GameplayCueSet.generated.h"
 
 USTRUCT()
@@ -62,17 +63,16 @@ class GAMEPLAYABILITIES_API UGameplayCueSet : public UDataAsset
 	virtual void Empty();
 
 	virtual void PrintCues() const;
-
-protected:
-	virtual bool HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
-	virtual void BuildAccelerationMap_Internal();
 	
-	static FGameplayTag	BaseGameplayCueTag();
-
-protected:
 	UPROPERTY(EditAnywhere, Category=CueSet)
 	TArray<FGameplayCueNotifyData> GameplayCueData;
 
 	/** Maps GameplayCue Tag to index into above GameplayCues array. */
 	TMap<FGameplayTag, int32> GameplayCueDataMap;
+
+	static FGameplayTag	BaseGameplayCueTag();
+
+protected:
+	virtual bool HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, const FGameplayCueParameters& Parameters);
+	virtual void BuildAccelerationMap_Internal();	
 };

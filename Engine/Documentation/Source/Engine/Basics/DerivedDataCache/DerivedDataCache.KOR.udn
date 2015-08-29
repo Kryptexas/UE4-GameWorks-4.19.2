@@ -1,7 +1,7 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2560162
 Availability:Public
 Title:파생 데이터 캐시
-Crumbs:%ROOT%, Engine, Engine/Basics
+Crumbs:%ROOT%, Engine
 Description: Derived Data Cache 및 UE4 와 그 타겟 플랫폼에서 사용되는 포맷의 애셋 저장에 대한 개요입니다.
 
 **Derived Data Cache** (DDC, 파생 데이터 캐시)는 여러 버전의 애셋을 엔진과 그 타겟 플랫폼에서 

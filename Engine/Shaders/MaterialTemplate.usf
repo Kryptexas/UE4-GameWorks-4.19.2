@@ -9,6 +9,7 @@
 
 // for MaterialExpressionDepthOfFieldFunction
 #include "DepthOfFieldCommon.usf"
+#include "GlobalDistanceFieldShared.usf"
 
 #if USES_SPEEDTREE
 	#include "SpeedTreeCommon.usf"
@@ -20,6 +21,8 @@
 #if MATERIAL_ATMOSPHERIC_FOG
 	#include "AtmosphereCommon.usf"
 #endif
+
+#include "PaniniProjection.usf"
 
 #ifndef USE_DITHERED_LOD_TRANSITION
 	#define USE_DITHERED_LOD_TRANSITION 0
@@ -64,6 +67,15 @@ struct FMaterialParticleParameters
 	/** The size of the particle. */
 	float2 Size;
 };
+
+float4 GetDynamicParameter(FMaterialParticleParameters Parameters, float4 Default)
+{
+	#if PARTICLE_FACTORY
+	return Parameters.DynamicParameter;
+	#else
+	return Default;
+	#endif
+}
 
 /** 
  * Parameters needed by pixel shader material inputs.
@@ -140,6 +152,8 @@ struct FMaterialPixelParameters
 	/** Offset applied to the lighting position for translucency, used to break up aliasing artifacts. */
 	half3 LightingPositionOffset;
 
+	float AOMaterialMask;
+
 #if LIGHTMAP_UV_ACCESS
 	float2	LightmapUVs;
 #endif
@@ -187,6 +201,7 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.Particle.MotionBlurFade = 0;
 	MPP.Particle.Velocity = 0;
 	MPP.LightingPositionOffset = 0;
+	MPP.AOMaterialMask = 0;
 	MPP.Particle.Color = 0;
 	MPP.Particle.PositionAndSize = 0;
 	MPP.Particle.MacroUV = 0;
@@ -221,6 +236,7 @@ struct FMaterialTessellationParameters
 	float2 TexCoords[NUM_MATERIAL_TEXCOORDS];
 #endif
 	float4 VertexColor;
+	// TODO: Non translated world position
 	float3 WorldPosition;
 	float3 TangentToWorldPreScale;
 
@@ -234,8 +250,10 @@ struct FMaterialTessellationParameters
  */
 struct FMaterialVertexParameters
 {
+	// Position in the translated world (VertexFactoryGetWorldPosition).
+	// Previous position in the translated world (VertexFactoryGetPreviousWorldPosition) if
+	//    computing material's output for previous frame (See {BasePassVertex,Velocity}Shader.usf).
 	float3 WorldPosition;
-	float3 PrevWorldPosition;
 	// TangentToWorld[2] is WorldVertexNormal
 	half3x3 TangentToWorld;
 #if USE_INSTANCING
@@ -260,6 +278,61 @@ struct FMaterialVertexParameters
 	FMaterialParticleParameters Particle;
 };
 
+float3 GetTranslatedWorldPosition(FMaterialVertexParameters Parameters)
+{
+	return Parameters.WorldPosition;
+}
+
+float3 GetPrevTranslatedWorldPosition(FMaterialVertexParameters Parameters)
+{
+	// Previous world position and current world position are sharing the
+	// same attribute in Parameters, because in BasePassVertexShader.usf
+	// and in VelocityShader.usf, we are regenerating a Parameters from
+	// VertexFactoryGetPreviousWorldPosition() instead of
+	// VertexFactoryGetWorldPosition().
+	return GetTranslatedWorldPosition(Parameters);
+}
+
+float3 GetWorldPosition(FMaterialVertexParameters Parameters)
+{
+	return GetTranslatedWorldPosition(Parameters) - View.PreViewTranslation;
+}
+
+float3 GetPrevWorldPosition(FMaterialVertexParameters Parameters)
+{
+	return GetPrevTranslatedWorldPosition(Parameters) - View.PrevPreViewTranslation;
+}
+
+//TODO(bug UE-17131): We should compute world displacement for the previous frame
+float3 GetWorldPosition(FMaterialTessellationParameters Parameters)
+{
+	return Parameters.WorldPosition;
+}
+
+float3 GetTranslatedWorldPosition(FMaterialTessellationParameters Parameters)
+{
+	return Parameters.WorldPosition + View.PreViewTranslation;
+}
+
+float3 GetWorldPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition;
+}
+
+float3 GetWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_NoOffsets;
+}
+
+float3 GetTranslatedWorldPosition(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_CamRelative;
+}
+
+float3 GetTranslatedWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Parameters)
+{
+	return Parameters.WorldPosition_NoOffsets_CamRelative;
+}
 
 #if DECAL_RENDERSTAGE && NUM_MATERIAL_TEXCOORDS
 	/*
@@ -333,8 +406,6 @@ struct FMaterialVertexParameters
 	}
 #endif //DECAL_RENDERSTAGE
 
-#if HAS_PRIMITIVE_UNIFORM_BUFFER
-
 /** Transforms a vector from tangent space to world space, prescaling by an amount calculated previously */
 MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationParameters Parameters, MaterialFloat3 InTangentVector)
 {
@@ -350,25 +421,11 @@ MaterialFloat3 TransformTangentVectorToWorld_PreScaled(FMaterialTessellationPara
 #endif // #if FEATURE_LEVEL_SM5
 }
 
-/** Transforms a vector from tangent space to local space */
-MaterialFloat3 TransformTangentVectorToLocal(FMaterialPixelParameters Parameters, MaterialFloat3 InTangentVector)
-{
-	// Transform to world space and then to local space
-	return mul(mul(InTangentVector, Parameters.TangentToWorld), (MaterialFloat3x3)Primitive.WorldToLocal);
-}
-
 /** Transforms a vector from tangent space to view space */
 MaterialFloat3 TransformTangentVectorToView(FMaterialPixelParameters Parameters, MaterialFloat3 InTangentVector)
 {
 	// Transform from tangent to world, and then to view space
 	return mul(mul(InTangentVector, Parameters.TangentToWorld), (MaterialFloat3x3)View.TranslatedWorldToView);
-}
-
-/** Transforms a vector from local space to tangent space */
-MaterialFloat3 TransformLocalVectorToTangent(FMaterialPixelParameters Parameters, MaterialFloat3 InLocalVector)
-{
-	// Transform from local to world space, and then to tangent space.
-	return mul(Parameters.TangentToWorld, mul(InLocalVector, GetLocalToWorld3x3()));
 }
 
 /** Transforms a vector from local space to world space (VS version) */
@@ -387,22 +444,12 @@ MaterialFloat3 TransformLocalVectorToWorld(FMaterialPixelParameters Parameters,M
 	return mul(InLocalVector, GetLocalToWorld3x3());
 }
 
-/** Transforms a vector from local space to view space */
-MaterialFloat3 TransformLocalVectorToView(MaterialFloat3 InLocalVector)
-{
-	return mul(mul(InLocalVector, GetLocalToWorld3x3()), (MaterialFloat3x3)View.TranslatedWorldToView);
-}
+#if HAS_PRIMITIVE_UNIFORM_BUFFER
 
 /** Transforms a vector from world space to local space */
 MaterialFloat3 TransformWorldVectorToLocal(MaterialFloat3 InWorldVector)
 {
 	return mul(InWorldVector, (MaterialFloat3x3)Primitive.WorldToLocal);
-}
-
-/** Transforms a vector from view space to local space */
-MaterialFloat3 TransformViewVectorToLocal(MaterialFloat3 InViewVector)
-{
-	return mul(mul(InViewVector, (MaterialFloat3x3)View.ViewToTranslatedWorld), (MaterialFloat3x3)Primitive.WorldToLocal);
 }
 
 /** Transforms a position from local space to absolute world space */
@@ -421,11 +468,9 @@ float3 TransformLocalPositionToWorld(FMaterialVertexParameters Parameters,float3
 	#endif
 }
 
-/** Transforms a position from absolute world space to local space */
-float3 TransformWorldPositionToLocal(float3 InWorldPosition)
-{
-	return mul(float4(InWorldPosition, 1), Primitive.WorldToLocal).xyz;
-}
+#endif
+
+#if HAS_PRIMITIVE_UNIFORM_BUFFER
 
 /** Return the object's position in world space */
 float3 GetObjectWorldPosition(FMaterialPixelParameters Parameters)
@@ -447,6 +492,8 @@ float3 GetObjectWorldPosition(FMaterialVertexParameters Parameters)
 		return Primitive.ObjectWorldPositionAndRadius.xyz;
 	#endif
 }
+
+#endif
 
 /** Get the per-instance random value when instancing */
 float GetPerInstanceRandom(FMaterialVertexParameters Parameters)
@@ -491,20 +538,6 @@ float GetPerInstanceFadeAmount(FMaterialVertexParameters Parameters)
 MaterialFloat GetDistanceCullFade()
 {
 	return saturate( View.RealTime * PrimitiveFade.FadeTimeScaleBias.x + PrimitiveFade.FadeTimeScaleBias.y );
-}
-
-#endif // #if HAS_PRIMITIVE_UNIFORM_BUFFER
-
-/** Transforms a vector from view space to world space */
-MaterialFloat3 TransformViewVectorToWorld(MaterialFloat3 InViewVector)
-{
-	return mul(InViewVector, (MaterialFloat3x3)View.ViewToTranslatedWorld);
-}
-
-/** Transforms a vector from world space to view space */
-MaterialFloat3 TransformWorldVectorToView(MaterialFloat3 InWorldVector)
-{
-	return mul(InWorldVector, (MaterialFloat3x3)View.TranslatedWorldToView);
 }
 
 /** Rotates Position about the given axis by the given angle, in radians, and returns the offset to Position. */
@@ -627,15 +660,15 @@ MaterialFloat2 GetParticleMacroUV(FMaterialPixelParameters Parameters)
 	return (Parameters.ScreenPosition.xy / Parameters.ScreenPosition.w - Parameters.Particle.MacroUV.xy) * Parameters.Particle.MacroUV.zw + MaterialFloat2(.5, .5);
 }
 
-#ifndef ES2_EMULATION
-#define ES2_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !METAL_PROFILE))
+#ifndef MOBILE_EMULATION
+#define MOBILE_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2 || FEATURE_LEVEL == FEATURE_LEVEL_ES3_1) && (!COMPILER_GLSL_ES2 && USE_DEVELOPMENT_SHADERS && !METAL_PROFILE))
 #endif
 
 MaterialFloat4 ProcessMaterialColorTextureLookup(MaterialFloat4 TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
-	#if ES2_EMULATION
-	if( View.ES2PreviewMode > 0.5f)
+	#if MOBILE_EMULATION
+	if( View.MobilePreviewMode > 0.5f)
 	{
 		// undo HW srgb->lin
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -656,8 +689,8 @@ MaterialFloat4 ProcessMaterialLinearColorTextureLookup(MaterialFloat4 TextureVal
 MaterialFloat ProcessMaterialGreyscaleTextureLookup(MaterialFloat TextureValue)
 {
 #if (ES2_PROFILE || ES3_1_PROFILE)
-	#if ES2_EMULATION
-	if( View.ES2PreviewMode > 0.5f )
+	#if MOBILE_EMULATION
+	if( View.MobilePreviewMode > 0.5f )
 	{
 		// undo HW srgb->lin
 		TextureValue = pow(TextureValue, 1.0f/2.2f); // TODO: replace with a more accurate lin -> sRGB conversion.
@@ -786,7 +819,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		}
 	#else
 		float3x3 LocalToWorld = (float3x3)Primitive.LocalToWorld;
-		float3 LocalPosition = mul(float4(Parameters.WorldPosition.xyz, 1), Primitive.WorldToLocal).xyz;
+		float3 LocalPosition = mul(float4(GetWorldPosition(Parameters), 1), Primitive.WorldToLocal).xyz;
 	#endif
 
 	float3 TreePos = GetObjectWorldPosition(Parameters);
@@ -796,11 +829,11 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 #if !USE_INSTANCING || !USE_DITHERED_LOD_TRANSITION
 	if (LODType == SPEEDTREE_LOD_TYPE_SMOOTH) 
 	{
-		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndSceneTexelSize.x * View.ViewToClip[0][0],
-												View.ViewSizeAndSceneTexelSize.y * View.ViewToClip[1][1]);
+		const float ScreenMultiple = 0.5 * max(View.ViewSizeAndInvSize.x * View.ViewToClip[0][0],
+												View.ViewSizeAndInvSize.y * View.ViewToClip[1][1]);
 		const float ScreenRadius = ScreenMultiple * Primitive.ObjectWorldPositionAndRadius.w / 
 									max(1.0, dot(TreePos - View.ViewOrigin.xyz, View.ViewForward.xyz));
-		const float ScreenArea = PI * ScreenRadius * ScreenRadius / (View.ViewSizeAndSceneTexelSize.x * View.ViewSizeAndSceneTexelSize.y);
+		const float ScreenArea = PI * ScreenRadius * ScreenRadius * View.ViewSizeAndInvSize.z * View.ViewSizeAndInvSize.w;
 		LodInterp = saturate((ScreenArea - SpeedTreeLODInfo.x) / SpeedTreeLODInfo.z);
 	}
 #endif
@@ -1023,6 +1056,10 @@ float4 GetPostProcessInputMinMax(uint Index)
 /** Applies an offset to the scene texture lookup and decodes the HDR linear space color. */
 float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 {
+#if SCENE_TEXTURES_DISABLED
+	return float4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
+
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV, false);
 
 #if PS4_PROFILE
@@ -1054,6 +1091,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 21)	return ScreenSpaceData.GBuffer.DecalMask;
 	else if (SceneTextureIndex == 22)	return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 	else if (SceneTextureIndex == 23)	return ScreenSpaceData.AmbientOcclusion;
+	else if (SceneTextureIndex == 24)	return ScreenSpaceData.GBuffer.CustomStencil;
 #else
 	switch(SceneTextureIndex)
 	{
@@ -1111,6 +1149,8 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		case 22: return float4(GetShadingModelColor(ScreenSpaceData.GBuffer), 1);
 		// PPI_AmbientOcclusion
 		case 23: return ScreenSpaceData.AmbientOcclusion;
+		// PPI_CustomStencil
+		case 24: return ScreenSpaceData.GBuffer.CustomStencil;
 		default:
 			return float4(0, 0, 0, 0);
 	}
@@ -1280,8 +1320,7 @@ half GetMaterialOpacityRaw(FMaterialPixelParameters Parameters)
 %s;
 }
 
-
-#if MATERIALBLENDING_MASKED
+#if MATERIALBLENDING_MASKED || (DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC)
 // Returns the material mask value generated from the material expressions.
 // Use GetMaterialMask() to get the value altered depending on the material blend mode.
 half GetMaterialMaskInputRaw(FMaterialPixelParameters Parameters)
@@ -1455,13 +1494,20 @@ void ClipLODTransition(FMaterialPixelParameters Parameters)
 	ClipLODTransition(Parameters, Parameters.PerInstanceParams.w);
 }
 #elif USE_DITHERED_LOD_TRANSITION
+float NonInstancedDitherLODFactor;
 void ClipLODTransition(FMaterialPixelParameters Parameters)
 {
-	ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
+	if (NonInstancedDitherLODFactor != 0.0)
+	{
+		ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
+	}
 }
 void ClipLODTransition(float2 SVPosition)
 {
-	ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+	if (NonInstancedDitherLODFactor != 0.0)
+	{
+		ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+	}
 }
 #else
 void ClipLODTransition(FMaterialPixelParameters Parameters)
@@ -1506,7 +1552,7 @@ void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters)
 	#define OPTIONAL_IsFrontFace
 	static const FIsFrontFace bIsFrontFace = 1;
 #else
-	#define OPTIONAL_IsFrontFace in FIsFrontFace bIsFrontFace : FrontFaceSemantic
+	#define OPTIONAL_IsFrontFace , in FIsFrontFace bIsFrontFace : FrontFaceSemantic
 #endif
 
 /** Initializes the subset of Parameters that was not set in GetMaterialPixelParameters. */
@@ -1532,7 +1578,7 @@ void CalcMaterialParameters(
 
 	{
 		float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
-		Parameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
+		Parameters.ScreenPosition.xy = ( PixelPos * View.ViewSizeAndInvSize.zw - 0.5 ) * float2(2,-2);
 		Parameters.ScreenPosition.zw = SvPosition.zw;
 		Parameters.ScreenPosition.xyz *= Parameters.ScreenPosition.w;
 	}
@@ -1612,13 +1658,23 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 
 // Whether to use the hidden d3d11 feature that supports depth writes with ZCull by only pushing into the screen
 //@todo - use for other SM5 platforms
-#define USE_CONSERVATIVE_DEPTH_WRITES (OUTPUT_PIXEL_DEPTH_OFFSET && COMPILER_HLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5)
+#define SUPPORTS_CONSERVATIVE_DEPTH_WRITES ((COMPILER_HLSL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5) || (PS4_PROFILE))
+#define USE_CONSERVATIVE_DEPTH_WRITES (OUTPUT_PIXEL_DEPTH_OFFSET && SUPPORTS_CONSERVATIVE_DEPTH_WRITES) 
 
 #if USE_CONSERVATIVE_DEPTH_WRITES
+
+#if COMPILER_HLSL
 	// Note: for some reason using SV_DepthLessEqual without these interpolation modifiers causes a compile error in d3d
 	#define INPUT_POSITION_QUALIFIERS linear noperspective centroid
 	// Use conservative depth output so we still get Z Cull.  Note, this is a reversed Z depth surface.
 	#define DEPTH_WRITE_SEMANTIC SV_DepthLessEqual
+#elif PS4_PROFILE
+	#define INPUT_POSITION_QUALIFIERS
+	#define DEPTH_WRITE_SEMANTIC S_DEPTH_LE_OUTPUT
+#else
+	#error USE_CONSERVATIVE_DEPTH_WRITES enabled for unsupported platform
+#endif
+
 #else
 	#define INPUT_POSITION_QUALIFIERS 
 	#define DEPTH_WRITE_SEMANTIC SV_DEPTH

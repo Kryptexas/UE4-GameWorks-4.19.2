@@ -264,14 +264,14 @@ bool FJsonStructDeserializerBackend::ReadProperty( UProperty* Property, UPropert
 			if (Property->GetClass() == UByteProperty::StaticClass())
 			{
 				UByteProperty* ByteProperty = Cast<UByteProperty>(Property);
-				int32 Index = ByteProperty->Enum->FindEnumIndex(*StringValue);
+				int32 Value = ByteProperty->Enum->GetValueByName(*StringValue);
 
-				if (Index == INDEX_NONE)
+				if (Value == INDEX_NONE)
 				{
 					return false;
 				}
 
-				return SetPropertyValue<UByteProperty, uint8>(Property, Outer, Data, ArrayIndex, (uint8)Index);
+				return SetPropertyValue<UByteProperty, uint8>(Property, Outer, Data, ArrayIndex, (uint8)Value);
 			}
 			
 			if (Property->GetClass() == UClassProperty::StaticClass())

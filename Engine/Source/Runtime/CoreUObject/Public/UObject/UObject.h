@@ -444,21 +444,17 @@ public:
 		return false;
 	}
 
-	/** Special value meaning that the resource size is not defined */
-	static const SIZE_T RESOURCE_SIZE_NONE = static_cast<SIZE_T>(-1);
-
 	/**
 	 * Returns the size of the object/ resource for display to artists/ LDs in the Editor. The
-	 * default behavior is to return RESOURCE_SIZE_NONE which indicates that the resource shouldn't
-	 * display its size which is used to not confuse people by displaying small sizes
-	 * e.g. for objects like materials.
+	 * default behavior is to return 0 which indicates that the resource shouldn't
+	 * display its size.
 	 *
 	 * @param	Type	Indicates which resource size should be returned
 	 * @return	Size of resource as to be displayed to artists/ LDs in the Editor.
 	 */
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode)
 	{
-		return RESOURCE_SIZE_NONE;
+		return 0;
 	}
 
 	/** 
@@ -628,6 +624,9 @@ public:
 	/** Called right after receiving a bunch */
 	virtual void PostNetReceive();
 
+	/** Called right before being marked for destruction due to network replication */
+	virtual void PreDestroyFromReplication();
+
 	/**
  	 *******************************************************
 	 * Non virtual functions, not intended to be overridden
@@ -774,7 +773,7 @@ public:
 	 * @warning: Must be safe on class-default metaobjects.
 	 * !!may benefit from hierarchical propagation, deleting keys that match superclass...not sure what's best yet.
 	 */
-	void SaveConfig( uint64 Flags=CPF_Config, const TCHAR* Filename=NULL, FConfigCacheIni* Config=GConfig );
+	virtual void SaveConfig( uint64 Flags=CPF_Config, const TCHAR* Filename=NULL, FConfigCacheIni* Config=GConfig );
 
 	/**
 	 * Saves just the section(s) for this class into the default ini file for the class (with just the changes from base)
@@ -825,7 +824,7 @@ public:
 	 * @param	PropagationFlags	indicates how this call to LoadConfig should be propagated; expects a bitmask of UE4::ELoadConfigPropagationFlags values.
 	 * @param	PropertyToLoad		if specified, only the ini value for the specified property will be imported.
 	 */
-	void LoadConfig( UClass* ConfigClass=NULL, const TCHAR* Filename=NULL, uint32 PropagationFlags=UE4::LCPF_None, class UProperty* PropertyToLoad=NULL );
+	virtual void LoadConfig( UClass* ConfigClass=NULL, const TCHAR* Filename=NULL, uint32 PropagationFlags=UE4::LCPF_None, class UProperty* PropertyToLoad=NULL );
 
 	/**
 	 * Wrapper method for LoadConfig that is used when reloading the config data for objects at runtime which have already loaded their config data at least once.
@@ -861,26 +860,6 @@ public:
 	 * @param bShouldDetachExisting		If true, detach existing linker and call PostLinkerChange
 	 */
 	void SetLinker( FLinkerLoad* LinkerLoad, int32 LinkerIndex, bool bShouldDetachExisting=true );
-
-	/**
-	 * Creates a new archetype based on this UObject.  The archetype's property values will match
-	 * the current values of this UObject.
-	 *
-	 * @param	ArchetypeName			the name for the new class
-	 * @param	ArchetypeOuter			the outer to create the new class in (package?)
-	 * @param	AlternateArchetype		if specified, is set as the ObjectArchetype for the newly created archetype, after the new archetype
-	 *									is initialized against "this".  Should only be specified in cases where you need the new archetype to
-	 *									inherit the property values of this object, but don't want this object to be the new archetype's ObjectArchetype.
-	 * @param	InstanceGraph			contains the mappings of instanced objects and components to their templates
-	 *
-	 * @return	a pointer to a UObject which has values identical to this object
-	 */
-	UObject* CreateArchetype( const TCHAR* ArchetypeName, UObject* ArchetypeOuter, UObject* AlternateArchetype=NULL, struct FObjectInstancingGraph* InstanceGraph=NULL );
-
-	/**
-	 *	Update the ObjectArchetype of this UObject based on this UObject's properties.
-	 */
-	void UpdateArchetype();
 
 	/**
 	 * Return the template that an object with this class, outer and name would be
@@ -1104,6 +1083,7 @@ public:
 	DECLARE_FUNCTION(execUnicodeStringConst);
 	DECLARE_FUNCTION(execTextConst);
 	DECLARE_FUNCTION(execObjectConst);
+	DECLARE_FUNCTION(execAssetConst);
 
 	// @todo delegate: Multi-cast versions needed for script execution!		(Need Add, Remove, Clear/Empty)
 	DECLARE_FUNCTION(execInstanceDelegate);
@@ -1161,6 +1141,10 @@ public:
 	DECLARE_FUNCTION(execCallMulticastDelegate);
 
 	DECLARE_FUNCTION(execLetValueOnPersistentFrame);
+
+	DECLARE_FUNCTION(execCallMathFunction);
+
+	DECLARE_FUNCTION(execSwitchValue);
 
 	// -- K2 support functions
 	struct Object_eventExecuteUbergraph_Parms

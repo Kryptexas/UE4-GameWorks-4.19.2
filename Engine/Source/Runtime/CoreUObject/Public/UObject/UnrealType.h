@@ -24,9 +24,13 @@ enum EPropertyExportCPPFlags
 	/** Indicates that we are exporting this property's CPP text for an argument or return value */
 	CPPF_ArgumentOrReturnValue		=	0x00000002,
 	/** Indicates thet we are exporting this property's CPP text for C++ definition of a function. */
-	CPPF_Implementation = 0x00000004,
+	CPPF_Implementation				=	0x00000004,
 	/** Indicates thet we are exporting this property's CPP text with an custom type name */
 	CPPF_CustomTypeName				=	0x00000008,
+	/** No 'const' keyword */
+	CPPF_NoConst					=	0x00000010,
+	/** No reference '&' sign */
+	CPPF_NoRef						=	0x00000020,
 };
 
 namespace EExportedDeclaration
@@ -1989,6 +1993,7 @@ class COREUOBJECT_API UAssetObjectProperty : public TUObjectPropertyBase<FAssetP
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
 	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
 	// UProperty interface
@@ -2018,6 +2023,28 @@ private:
 		return GetTypeHash(GetPropertyValue(Src));
 	}
 public:
+
+	// ScriptVM should store Asset as FAssetPtr not as UObject.
+
+	virtual void CopySingleValueToScriptVM(void* Dest, void const* Src) const override
+	{
+		CopySingleValue(Dest, Src);
+	}
+
+	virtual void CopyCompleteValueToScriptVM(void* Dest, void const* Src) const override
+	{
+		CopyCompleteValue(Dest, Src);
+	}
+
+	virtual void CopySingleValueFromScriptVM(void* Dest, void const* Src) const override
+	{
+		CopySingleValue(Dest, Src);
+	}
+
+	virtual void CopyCompleteValueFromScriptVM(void* Dest, void const* Src) const override
+	{
+		CopyCompleteValue(Dest, Src);
+	}
 	// End of UObjectProperty interface
 };
 
@@ -2110,6 +2137,7 @@ public:
 	// UHT interface
 	virtual FString GetCPPMacroType( FString& ExtendedTypeText ) const  override;
 	virtual FString GetCPPType( FString* ExtendedTypeText, uint32 CPPExportFlags ) const override;
+	virtual FString GetCPPTypeForwardDeclaration() const override;
 	// End of UHT interface
 
 	// UObject interface

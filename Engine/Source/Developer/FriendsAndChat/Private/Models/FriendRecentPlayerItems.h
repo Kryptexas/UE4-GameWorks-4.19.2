@@ -19,6 +19,11 @@ public:
 		: RecentPlayer(InRecentPlayer)
 	{ }
 
+	FFriendRecentPlayerItem(const TSharedPtr<const FUniqueNetId> InUniqueID, const FText InUsername)
+		:UniqueID(InUniqueID)
+		,Username(InUsername)
+	{}
+
 public:
 
 	/**
@@ -62,12 +67,6 @@ public:
 	virtual const FString GetClientName() const override;
 
 	/**
-	* Get the player's session id
-	* @return The session id the user is playing in
-	*/
-	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const override;
-
-	/**
 	 * Get if the user is online.
 	 * @return The user online state.
 	 */
@@ -83,7 +82,7 @@ public:
 	 * Get the Unique ID.
 	 * @return The Unique Net ID.
 	 */
-	virtual const TSharedRef< FUniqueNetId > GetUniqueID() const override;
+	virtual const TSharedRef< const FUniqueNetId > GetUniqueID() const override;
 
 	/**
 	 * Is this friend in the default list.
@@ -128,11 +127,25 @@ public:
 	/** Is the player in a game that is joinable */
 	virtual bool IsGameJoinable() const override;
 
+	/**
+	 * Get if the user is in a party
+	 * @return The user in party state.
+	 */
+	virtual bool IsInParty() const override;
+
+	/**
+	 * Get if the user is in a joinable party
+	 * @return The user joinable party state.
+	 */
+	virtual bool CanJoinParty() const override;
+
 	/** Get if the user can join our game if we were to invite them*/
 	virtual bool CanInvite() const override;
 
 	/** Get if the user is online and his game is joinable */
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
+	
+	virtual TSharedPtr<IOnlinePartyJoinInfo> GetPartyJoinInfo() const override;
 
 	/**
 	 * Get the invitation status.
@@ -152,4 +165,6 @@ private:
 	// Holds the recent player struct
 	TSharedPtr< FOnlineRecentPlayer > RecentPlayer;
 	TSharedPtr<FOnlineUser> OnlineUser;
+	const TSharedPtr<const FUniqueNetId> UniqueID;
+	FText Username;
 };

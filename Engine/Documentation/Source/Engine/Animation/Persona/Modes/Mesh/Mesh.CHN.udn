@@ -1,0 +1,154 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Mesh Mode
+Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona, Engine/Animation/Persona/Modes
+Description:User guide for Mesh Mode in the Persona animation editor.
+
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Animation/Persona/Modes/Mesh:title%](Engine/Animation/animation_topic.png)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/content_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Animation/Persona/Modes/Mesh:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Animation/Persona/Modes/Mesh:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Animation/Persona/Modes/Mesh]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+##Overview 
+[EXCERPT:Overview]
+**Mesh Mode** of the **Persona** animation editor (accessed by clicking the **Mesh** tab) shares some of the same windows that are available while in other Editing Modes, however there are two windows which are specific to **Mesh Mode** (highlighted below): [Mesh Details](Engine/Animation/Persona\MeshDetails) and [Morph Target Previewer](Engine/Animation/Persona\MorphTargetPreviewer). 
+[/EXCERPT:Overview]
+
+[REGION:fullwidth]
+![](MeshModeWindows.png)
+[/REGION]
+
+##Mesh Details
+The **Mesh Details** window allow you to modify properties pertaining to the mesh of the Skeletal Mesh such as **Material** and **LOD** settings, assigning **Apex Clothing**, adding meshes to the existing mesh, adjusting **Mirroring** settings or assigning a **Physics Asset** to the mesh. You can also **Reimport** asset data, adjust **Thumbnail Orbit** or **Texture Streaming** settings. 
+
+###LOD Settings
+
+[REGION:fullwidth]
+![](LOD_Settings.png)
+[/REGION]
+
+In this section, you can assign **Materials** to aspects of the Skeletal Mesh and toggle whether or not those **Materials** cast shadows or not. 
+
+In the **LOD Info** section, there are settings that allow you to modify how the **LOD(s)** function: 
+
+| Property| Description |
+|--- | --- |
+| **Display Factor** | Indicates when to use the LOD. A smaller number means use the LOD when further away.|
+| **LODHysteresis** | Used to avoid "flickering" when on LOD boundary. Only taken into account when moving from complex to single. |
+| **LODMaterial Map** | Specifies the mapping table from the LOD's materials to the USkeletalMesh materials array. |
+| **Triangle Sorting** | Set the current triangle sorting method. |
+| **Custom Left Right Axis** | Set the Left Right Axis.  |
+| **Custom Left Right Bone Name** | Set the Left Right Bone name.  |
+
+###Clothing
+
+![](AddClothing.png)
+
+This section of the **Mesh Details** allows you assign **Apex Cloth** assets to the mesh and view information about the assets assigned, there are also **Physics Properties** that can be adjusted for each asset assigned. 
+
+| Property| Description |
+|--- | --- |
+| **Bend Resistance** | Bending stiffness of the cloth in the range [0,1]. |
+| **Shear Resistance** | Shearing stiffness of the cloth in the range [0,1]. |
+| **Stretch Limit** | Make cloth simulation less stretchy. A value smaller than 1 will turn it off. |
+| **Friction** | Friction coefficient in the range [0,1]. |
+| **Damping** | Spring damping of the cloth in range [0,1].  |
+| **Drag** | Drag coefficient in the range [0,1].  |
+| **Gravity Scale** | Amount of gravity that is applied to the cloth. |
+| **Inertia Blend** | Amount of inertia that is kept when using local space simulation. Internal name is inertia scale. |
+| **Self Collision Thickness** | Minimal amount of distance particles will keep of each other. |
+
+###Additional Meshes
+
+This section allows you to add meshes to the existing mesh or remove meshes that have been added. 
+
+###Mesh
+
+This section lists the **Skeleton** that is used with the **Skeletal Mesh** and its location inside the **Content Browser**. 
+
+###Skeletal Mesh
+
+![](SkeletalMeshSection.png)
+
+The **Skeletal Mesh** section allows you to define **Materials** for any **Material Interfaces** that exist and whether or not to enable **Shadow Casting** from the **Material**. The ability to set whether or not to **Use Full Precision UVs** is available which if _true_, will use 32 bit UVs and if _false_, will use 16 bit UVs to save memory. 
+
+###Mirroring
+
+![](MirroringSection.png)
+
+There are two options available inside the **Mirroring** section that can be set: 
+
+| Property| Description |
+|--- | --- |
+| **Skel Mirror Table** | This lists all the bones that should be mirrored. |
+| **Skel Mirror Axis** | Set the Mirror Axis to X, Y, Z or None. |
+| **Skel Mirror Flip Axis** | Set the Mirror Flip Axis to X, Y, Z or None. |
+
+###Physics
+
+In the **Physics** section, you can assign a **Physics Asset** to the mesh. The location of the asset in the **Content Browser** (if applicable) is also shown. 
+
+###Reimport
+
+![](ReimportSection.png)
+
+This option allows you to reimport the asset being used and adjust the import settings (also shows the currently used import data and settings when applied).
+
+| Property| Description |
+|--- | --- |
+| **Update Skeleton Reference Pose** | If enabled, update the Skeleton (of the mesh being imported)'s reference pose. |
+| **Use T0As Ref Pose** | Enable this option to use frame 0 as the reference pose.  |
+| **Preserve Smoothing Groups** | If checked, triangles with non-matching smoothing groups will be physically split. |
+| **Import Meshes in Bone Hierarchy** | If checked, meshes nested in bone hierarchies will be imported instead of being converted to bones.  |
+| **Import Morph Targets** | If enabled, creates Unreal morph objects for the imported meshes. |
+| **Import Mesh LODs** | If enabled, creates LOD models for Unreal meshes from LODs in the imported file; if not enabled, only the base mesh from the LOD group is imported. |
+| **Normal Import Method** | Enabling this option will read the tangents (tangent, binormal, normal) from FBX files instead of generating them automatically.  |
+| **Source File Path** | This is the path to the resource used to construct the Static Mesh. |
+| **Source File Timestamp** | Date/Time-stamp of the file from the last import. |
+
+###Thumbnail
+
+![](ThumbnailSection.png)
+
+The **Thumbnail** section allows you to set the **Orbit Pitch**, **Orbit Yaw** and **Orbit Zoom** of the camera around the asset.
+
+| Property| Description |
+|--- | --- |
+| **Orbit Pitch** | The pitch of the orbit camera around the asset. |
+| **Orbit Yaw** | The yaw of the orbit camera around the asset. |
+| **Orbit Zoom** | The offset from the bounds sphere distance from the asset. |
+
+###Texture Streaming
+
+![](TextureStreamingSection.png)
+
+**Texture Streaming** allows artists to adjust the distance where textures using UV 0 are streamed in/out.
+
+| Property| Description |
+|--- | --- |
+| **Streaming Distance Multiplier** | 1.0 is the default, where a higher value increases the streamed-in resolution. |
+
+
+
+##Morph Target Previewer
+
+[INCLUDE:Engine/Animation/Persona/MorphTargetPreviewer#Overview]
+
+For more information, refer to the [Morph Target Previewer](Engine/Animation/Persona/MorphTargetPreviewer/) documentation. 
+
+

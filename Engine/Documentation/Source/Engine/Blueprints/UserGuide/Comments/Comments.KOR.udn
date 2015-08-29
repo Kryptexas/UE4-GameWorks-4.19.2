@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2599333
 Availability:Public
 Title:코멘트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -42,8 +42,6 @@ Description: 관련이 있는 노드를 그룹으로 묶고 그 기능에 대한
 [/OBJECT]
 [/VAR]
 
-
-## 개요
 
 [EXCERPT:Intro]
 **Comment** (코멘트)는 관련된 노드를 묶어 그 기능에 대한 설명을 다는 데 사용할 수 있는 그릇같은 것입니다.

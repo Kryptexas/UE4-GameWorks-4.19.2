@@ -131,11 +131,6 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	// set camera mode
 	bCameraFollow = false;
 
-	//wind actor's initial position, rotation and strength
-	PrevWindLocation = FVector(100, 100, 100);
-	PrevWindRotation = FRotator(0,0,0); // roll, yaw, pitch
-	PrevWindStrength = 0.2f;
-
 	bDrawUVs = false;
 	UVChannelToDraw = 0;
 
@@ -146,6 +141,25 @@ FAnimationViewportClient::FAnimationViewportClient(FAnimationEditorPreviewScene&
 	if(World)
 	{
 		World->bAllowAudioPlayback = !ConfigOption->bMuteAudio;
+	}
+
+	// Grab a wind actor if it exists (could have been placed in the scene before a mode transition)
+	TActorIterator<AWindDirectionalSource> WindIter(World);
+	if(WindIter)
+	{
+		AWindDirectionalSource* WindActor = *WindIter;
+		WindSourceActor = WindActor;
+
+		PrevWindLocation = WindActor->GetActorLocation();
+		PrevWindRotation = WindActor->GetActorRotation();
+		PrevWindStrength = WindActor->GetComponent()->Strength;
+	}
+	else
+	{
+		//wind actor's initial position, rotation and strength
+		PrevWindLocation = FVector(100, 100, 100);
+		PrevWindRotation = FRotator(0, 0, 0); // roll, yaw, pitch
+		PrevWindStrength = 0.2f;
 	}
 }
 
@@ -449,7 +463,7 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 
 	if ( PersonaPtr.IsValid() && PreviewSkelMeshComp.IsValid() )
 	{
-		// select all nodes, and if skeletalcontrol, allow them to draw 
+		// Allow selected nodes to draw debug rendering if they support it
 		const FGraphPanelSelectionSet SelectedNodes = PersonaPtr.Pin()->GetSelectedNodes();
 		for (FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes); NodeIt; ++NodeIt)
 		{
@@ -588,6 +602,9 @@ void FAnimationViewportClient::FindSelectedAnimGraphNode()
 	// finding a selected node
 	if (PersonaPtr.IsValid() && PreviewSkelMeshComp.IsValid())
 	{
+		USkeletalMeshComponent* PreviewComponent = PreviewSkelMeshComp.Get();
+		check(PreviewComponent);
+
 		const FGraphPanelSelectionSet SelectedNodes = PersonaPtr.Pin()->GetSelectedNodes();
 
 		// don't support multi-selection
@@ -608,23 +625,18 @@ void FAnimationViewportClient::FindSelectedAnimGraphNode()
 					// when selected first after AnimGraph is opened, assign previous data to current node
 					if (SelectedSkelControlAnimGraph != AnimGraphNode)
 					{
+
 						if (SelectedSkelControlAnimGraph.IsValid())
 						{
-							SelectedSkelControlAnimGraph->DeselectActor(PreviewSkelMeshComp.Get());
+							SelectedSkelControlAnimGraph->DeselectActor(PreviewComponent);
 						}
 
 						// make same values to ensure data consistency
 						AnimGraphNode->CopyNodeDataTo(AnimNode);
 
-						WidgetMode = (FWidget::EWidgetMode)AnimGraphNode->GetWidgetMode(PreviewSkelMeshComp.Get());
-						if (WidgetMode == FWidget::WM_Scale)
-						{
-							SetWidgetCoordSystemSpace(COORD_Local);
-						}
-						else
-						{
-							SetWidgetCoordSystemSpace(COORD_World);
-						}
+						WidgetMode = (FWidget::EWidgetMode)AnimGraphNode->GetWidgetMode(PreviewComponent);
+						ECoordSystem DesiredCoordSystem = (ECoordSystem)AnimGraphNode->GetWidgetCoordinateSystem(PreviewComponent);
+						SetWidgetCoordSystemSpace(DesiredCoordSystem);
 					}
 					else
 					{
@@ -636,20 +648,20 @@ void FAnimationViewportClient::FindSelectedAnimGraphNode()
 						}
 					}
 
-					AnimGraphNode->MoveSelectActorLocation(PreviewSkelMeshComp.Get(), AnimNode);
+					AnimGraphNode->MoveSelectActorLocation(PreviewComponent, AnimNode);
 					SelectedSkelControlAnimGraph = AnimGraphNode;
 				}
 			}
 		}
-	}
 
-	if (!bSelected)
-	{
-		if (SelectedSkelControlAnimGraph.IsValid())
+		if (!bSelected)
 		{
-			SelectedSkelControlAnimGraph->DeselectActor(PreviewSkelMeshComp.Get());
+			if (SelectedSkelControlAnimGraph.IsValid())
+			{
+				SelectedSkelControlAnimGraph->DeselectActor(PreviewComponent);
+			}
+			SelectedSkelControlAnimGraph.Reset();
 		}
-		SelectedSkelControlAnimGraph.Reset();
 	}
 }
 
@@ -1529,9 +1541,9 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 			int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(BoneName);
 			if (BoneIndex != INDEX_NONE)
 			{
-			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
-			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
-		}
+				FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
+				return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
+			}
 		}
 		else if ( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
 		{
@@ -2148,7 +2160,7 @@ void FAnimationViewportClient::EnableWindActor(bool bEnableWind)
 			WindSourceActor = CreateWindActor(World);
 		}
 	}
-	else
+	else if(WindSourceActor.IsValid())
 	{
 		PrevWindLocation = WindSourceActor->GetActorLocation();
 		PrevWindRotation = WindSourceActor->GetActorRotation();

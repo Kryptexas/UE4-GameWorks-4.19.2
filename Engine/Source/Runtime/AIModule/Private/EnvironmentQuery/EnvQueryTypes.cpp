@@ -232,6 +232,18 @@ void FEnvTraceData::SetNavmeshOnly()
 	bCanDisableTrace = false;
 }
 
+void FEnvTraceData::OnPostLoad()
+{
+	if (VersionNum == 0)
+	{
+		// update trace channels
+		SerializedChannel = UEngineTypes::ConvertToCollisionChannel(TraceChannel.GetValue());
+	}
+
+	TraceChannel = UEngineTypes::ConvertToTraceType(SerializedChannel);
+	VersionNum = 1;
+}
+
 void FEnvBoolParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider)
 {
 	ValueProvider.DefaultValue = Value;

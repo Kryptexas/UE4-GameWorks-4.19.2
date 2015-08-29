@@ -46,6 +46,10 @@ AGameplayDebuggingHUDComponent::AGameplayDebuggingHUDComponent(const FObjectInit
 	bEditable = false;
 #	endif
 #endif
+
+	ItemDescriptionWidth = 312.f; // 200.0f;
+	ItemScoreWidth = 50.0f;
+	TestScoreWidth = 100.0f;
 }
 
 void AGameplayDebuggingHUDComponent::Render()
@@ -113,7 +117,7 @@ void AGameplayDebuggingHUDComponent::PrintAllData()
 		DebugComponent = GetDebuggingReplicator()->GetDebugComponent();
 	}
 				
-	if (DebugComponent && DebugComponent->GetSelectedActor())
+	if (DebugComponent)
 	{
 		APlayerController* const MyPC = Cast<APlayerController>(PlayerOwner);
 		DrawDebugComponentData(MyPC, DebugComponent);
@@ -241,7 +245,7 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		DrawNavMeshSnapshot(MyPC, DebugComponent);
 	}
 
-	if (DebugComponent->GetSelectedActor() && bDrawFullData)
+	if (SelectedActor && bDrawFullData)
 	{
 		if (DebuggerSettings.CheckFlag(EAIDebugDrawDataView::Basic) /*|| EngineShowFlags.DebugAI*/)
 		{
@@ -270,9 +274,9 @@ void AGameplayDebuggingHUDComponent::DrawDebugComponentData(APlayerController* M
 		{
 			DrawPerception(MyPC, DebugComponent);
 		}
-
-		DrawGameSpecificView(MyPC, DebugComponent);
 	}
+
+	DrawGameSpecificView(MyPC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
@@ -391,7 +395,7 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 		PrintString(DefaultContext, FString::Printf(TEXT("Behavior: {yellow}%s{white}, Tree: {yellow}%s\n"), *DebugComponent->CurrentAIState, *DebugComponent->CurrentAIAssets));
 		PrintString(DefaultContext, FString::Printf(TEXT("Active task: {yellow}%s\n"), *DebugComponent->CurrentAITask));
 	}
-
+		
 	// ability + animation
 	if (DebugComponent->bIsUsingAbilities && DebugComponent->bIsUsingCharacter)
 	{
@@ -405,6 +409,9 @@ void AGameplayDebuggingHUDComponent::DrawBasicData(APlayerController* PC, class 
 	{
 		PrintString(DefaultContext, FString::Printf(TEXT("Ability: {yellow}%s\n"), *DebugComponent->AbilityInfo));
 	}
+
+	// putting gameplay tasks' stuff last since it can expand heavily
+	PrintString(DefaultContext, FString::Printf(TEXT("GameplayTasks:\n{yellow}%s\n"), *DebugComponent->GameplayTasksState));
 
 	DrawPath(PC, DebugComponent);
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -550,15 +557,15 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 
 			float HeaderX = DefaultContext.CursorX;
 			PrintString(DefaultContext, FColor::Yellow, FString::Printf(TEXT("Num items: %d"), CurrentLocalData.NumValidItems), HeaderX, HeaderY);
-			HeaderX += 200.0f;
+			HeaderX += ItemDescriptionWidth;
 
 			PrintString(DefaultContext, FColor::White, TEXT("Score"), HeaderX, HeaderY);
-			HeaderX += 50.0f;
+			HeaderX += ItemScoreWidth;
 
 			for (int32 TestIdx = 0; TestIdx < NumTests; TestIdx++)
 			{
 				PrintString(DefaultContext, FColor::White, FString::Printf(TEXT("Test %d"), TestIdx), HeaderX, HeaderY);
-				HeaderX += 100.0f;
+				HeaderX += TestScoreWidth;
 			}
 
 			DefaultContext.CursorY += RowHeight;
@@ -601,11 +608,11 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 	const EQSDebug::FItemData& ItemData = CurrentLocalData.Items[ItemIdx];
 
 	PrintString(DefaultContext, FColor::White, ItemData.Desc, PosX, PosY);
-	PosX += 200.0f;
+	PosX += ItemDescriptionWidth;
 
 	FString ScoreDesc = FString::Printf(TEXT("%.2f"), ItemData.TotalScore);
 	PrintString(DefaultContext, FColor::Yellow, ScoreDesc, PosX, PosY);
-	PosX += 50.0f;
+	PosX += ItemScoreWidth;
 
 	FCanvasTileItem ActiveTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor::Yellow);
 	FCanvasTileItem BackTileItem(FVector2D(0, PosY + 15.0f), GWhiteTexture, FVector2D(0, 2.0f), FLinearColor(0.1f, 0.1f, 0.1f));
@@ -637,7 +644,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 		DrawItem(DefaultContext, BackTileItem, BackTileItem.Position.X, BackTileItem.Position.Y);
 
 		PrintString(DefaultContext, FColor::Green, TestDesc, PosX, PosY);
-		PosX += 100.0f;
+		PosX += TestScoreWidth;
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST) && WITH_EQS
 }

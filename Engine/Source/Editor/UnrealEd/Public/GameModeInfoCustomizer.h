@@ -155,12 +155,13 @@ public:
 		static FName SelectedGameModeDetailsName(TEXT("SelectedGameModeDetails"));		
 		IDetailGroup& Group = CategoryBuilder.AddGroup(SelectedGameModeDetailsName, LOCTEXT("SelectedGameModeDetails", "Selected GameMode"));
 
-
 		// Then add rows to show key properties and let you edit them
 		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, DefaultPawnClass));
 		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, HUDClass));
 		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, PlayerControllerClass));
 		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, GameStateClass));
+		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, PlayerStateClass));
+		CustomizeGameModeDefaultClass(Group, GET_MEMBER_NAME_CHECKED(AGameMode, SpectatorClass));
 	}
 
 	/** Get the currently set GameMode class */
@@ -173,11 +174,13 @@ public:
 		ConstructorHelpers::StripObjectClass(ClassName);
 
 		// Do we have a valid cached class pointer? (Note: We can't search for the class while a save is happening)
-		if ((!CachedGameModeClass || CachedGameModeClass->GetPathName() != ClassName) && !GIsSavingPackage)
+		const UClass* GameModeClass = CachedGameModeClass.Get();
+		if ((!GameModeClass || GameModeClass->GetPathName() != ClassName) && !GIsSavingPackage)
 		{
-			CachedGameModeClass = FEditorClassUtils::GetClassFromString(ClassName);
+			GameModeClass = FEditorClassUtils::GetClassFromString(ClassName);
+			CachedGameModeClass = GameModeClass;
 		}
-		return CachedGameModeClass;
+		return GameModeClass;
 	}
 
 	void SetCurrentGameModeClass(const UClass* NewGameModeClass)
@@ -339,7 +342,7 @@ private:
 	/** Handle to the DefaultGameMode property */
 	TSharedPtr<IPropertyHandle> DefaultGameModeClassHandle;
 	/** Cached class pointer from the DefaultGameModeClassHandle */
-	mutable const UClass* CachedGameModeClass;
+	mutable TWeakObjectPtr<UClass> CachedGameModeClass;
 };
 
 #undef LOCTEXT_NAMESPACE

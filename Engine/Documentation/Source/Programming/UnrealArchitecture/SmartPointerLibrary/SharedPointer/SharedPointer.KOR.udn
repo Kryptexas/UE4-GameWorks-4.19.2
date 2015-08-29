@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2622022
 Availability:Public
 Title:공유 포인터
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/SmartPointerLibrary
 Description:공유 소유권, 실효성 자동검증, 약 레퍼런스 등을 지원하는 스마트 포인터 입니다.
-Version: 4.5
+Version: 4.9
 
 [TOC(start:2)]
 
@@ -43,10 +43,10 @@ Version: 4.5
 
 이 오브젝트는 더이상 가리키는 공유 포인터가 없을 때까지 지속됩니다.
 
-공유 포인터는 `Reset()` 메소드를 사용하거나 NULL 을 할당시켜 리셋시킬 수 있습니다.
+공유 포인터는 `Reset()` 메소드를 사용하거나 null 을 할당시켜 리셋시킬 수 있습니다.
 
 	Node.Reset();
-	Node = NULL;
+	Node = null;
 
 ## 레퍼런스 해제와 접근
 
@@ -67,14 +67,14 @@ Version: 4.5
 		...
 	}
 
-공유 포인터는 `IsValid()` 메소드를 사용하거나 날 포인터에 접근한 다음 비교를 하여 테스트 가능합니다.
+공유 포인터는 `IsValid()` 메소드를 사용하거나 raw 포인터에 접근한 다음 비교를 하여 null 테스트 가능합니다.
 
 	if( Node.IsValid() )
 	{
 		...
 	}
 
-	if( Node.Get() != NULL )
+	if( Node.Get() != null )
 	{
 		...
 	}

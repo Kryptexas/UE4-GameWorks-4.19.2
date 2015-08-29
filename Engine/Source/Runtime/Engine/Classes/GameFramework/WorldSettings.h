@@ -93,6 +93,14 @@ struct FLightmassWorldInfoSettings
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
 	uint32 bUseAmbientOcclusion:1;
 
+	/** 
+	 * Whether to generate textures storing the AO computed by Lightmass.
+	 * These can be accessed through the PrecomputedAmbientOcclusion material node, 
+	 * Which is useful for blending between material layers on environment assets.
+	 */
+	UPROPERTY(EditAnywhere, Category=LightmassOcclusion)
+	uint32 bGenerateAmbientOcclusionMaterialMask:1;
+
 	/** How much of the AO to apply to direct lighting. */
 	UPROPERTY(EditAnywhere, Category=LightmassOcclusion, meta=(UIMin = "0", UIMax = "1"))
 	float DirectIlluminationOcclusionFraction;
@@ -145,6 +153,7 @@ struct FLightmassWorldInfoSettings
 		, EmissiveBoost(1.0f)
 		, DiffuseBoost(1.0f)
 		, bUseAmbientOcclusion(false)
+		, bGenerateAmbientOcclusionMaterialMask(false)
 		, DirectIlluminationOcclusionFraction(0.5f)
 		, IndirectIlluminationOcclusionFraction(1.0f)
 		, OcclusionExponent(1.0f)
@@ -259,11 +268,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, config, Category=World, AdvancedDisplay)
 	uint32 bEnableNavigationSystem:1;
 
-#if WITH_EDITORONLY_DATA
-	/** if set to true, hierarchical LODs will be built, which will create hierarchical LODActors*/
-	UPROPERTY(EditAnywhere, config, Category=World, AdvancedDisplay)
-	uint32 bEnableHierarchicalLODSystem:1;
-#endif
 	/** 
 	 * Enables tools for composing a tiled world. 
 	 * Level has to be saved and all sub-levels removed before enabling this option.
@@ -298,6 +302,10 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	// optional level specific gravity override set by level designer
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, meta=(editcondition = "bGlobalGravitySet"))
 	float GlobalGravityZ;
+
+	// level specific default physics volume
+	UPROPERTY(EditAnywhere, noclear, BlueprintReadOnly, Category=Physics, AdvancedDisplay)
+	TSubclassOf<class ADefaultPhysicsVolume> DefaultPhysicsVolumeClass;
 
 	// optional level specific collision handler
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics, AdvancedDisplay)
@@ -402,8 +410,12 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	class USoundMix* DefaultBaseSoundMix;
 
 #if WITH_EDITORONLY_DATA
+	/** if set to true, hierarchical LODs will be built, which will create hierarchical LODActors*/
+	UPROPERTY(EditAnywhere, config, Category=LODSystem)
+	uint32 bEnableHierarchicalLODSystem:1;
+
 	/** Hierarchical LOD Setup */
-	UPROPERTY(EditAnywhere, Category=LODSystem, AdvancedDisplay, meta=(editcondition = "bEnableHierarchicalLODSystem"))
+	UPROPERTY(EditAnywhere, Category=LODSystem, meta=(editcondition = "bEnableHierarchicalLODSystem"))
 	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
 #endif
 	/************************************/
@@ -468,6 +480,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 
 public:
 	// Begin UObject interface.
+	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -495,7 +508,12 @@ public:
 		return TimeDilation * MatineeTimeDilation * DemoPlayTimeDilation;
 	}
 
-	/** 
+	/**
+	 * Returns the delta time to be used by the tick. Can be overridden if game specific logic is needed.
+	 */
+	virtual float FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds);
+
+	/**
 	 * Called by GameMode.HandleMatchIsWaitingToStart, calls BeginPlay on all actors
 	 */
 	virtual void NotifyBeginPlay();

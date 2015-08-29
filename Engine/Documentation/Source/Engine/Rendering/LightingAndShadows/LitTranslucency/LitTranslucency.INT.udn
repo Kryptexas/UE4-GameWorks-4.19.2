@@ -25,7 +25,7 @@ Description:Explanation of how translucent surfaces are lit and cast shadows inc
 
 [TOC(start:2)]
 
-## Overview
+
 
 Translucent effects generally fall into a few categories: volumetric, volumetric but dense enough to have normal information, and surfaces.  Different lighting techniques are needed for each of these, so a material must specify the Translucency Lighting Mode that should be used.
 
@@ -49,7 +49,7 @@ _The left sphere is lit translucency using the *Indirect Lighting Cache*, the ri
 
 Translucency can cast shadows onto the opaque world and onto itself and other lit translucency Actors. This is implemented with Fourier Opacity maps, which do a great job for shadowing from blobby volumes, but have severe ringing artifacts with more opaque translucent surfaces. Translucency self shadowing goes through the lighting volume for point and spot lights, so it is often not visible due to low resolution unless the effect is very large and dense. Directional lights however do translucent self shadowing per-pixel, and get much higher quality. Directional lights also have subsurface shading for lit materials using the subsurface shading model.
 
-Translucent self-shadowing uses per-object shadows, which means that it needs user specified fixed particle system bounds and they need to be correct. The easiest way to set this up is to author your particle movement, then **right-click** on the 'show bounds' button on the Cascade toolbar, which will pop up a dialog that allows you to generate fixed bounds.  Very large self-shadowing particle systems will get reduced shadowmap resolution, since the shadowmap is stretched to cover the system bounds.  Verify that your bounds are reasonable by enabling Show Bounds, which can be found under **Show** -> **Advanced** -> **Bounds**.  Then select the emitter in the editor and it will draw the bounding box and sphere.
+Translucent self-shadowing uses per-object shadows, which means that it needs user specified fixed particle system bounds and they need to be correct. The easiest way to set this up is to author your particle movement, then **right-click** on the 'show bounds' button on the Cascade toolbar, which will pop up a dialog that allows you to generate fixed bounds.  Very large self-shadowing particle systems will get reduced shadowmap resolution, since the shadowmap is stretched to cover the system bounds.  Verify that your bounds are reasonable by enabling Show Bounds, which can be found under Show -> Advanced -> Bounds.  Then select the emitter in the editor and it will draw the bounding box and sphere.
 
 [REGION:imagetable]
 ![Translucent Particle Self-Shadowing](Engine/Rendering/Overview/self_shadow_1.png)(w:456) | ![Translucent Particle Self-Shadowing](Engine/Rendering/Overview/self_shadow_2.png)(w:456) |
@@ -69,6 +69,6 @@ _The left sphere is translucent, the right is opaque, and they are both setup as
 
 ## Limitations
 
-* **Static** shadowing from static lights is currently not handled for lit translucency. However, **dynamic** shadows from stationary lights is supported.
+* Static shadowing from static lights is currently not handled for lit translucency. However, dynamic shadows from stationary lights is supported.
 * Lit translucent surfaces are missing direct specular.
 * Lit translucent surfaces get all their direct lighting through the translucency volume lighting texture, which causes them to be lower resolution than needed for most surface materials (glass, water).

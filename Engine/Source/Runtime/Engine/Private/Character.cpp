@@ -2,7 +2,6 @@
 
 /*=============================================================================
 	Character.cpp: ACharacter implementation
-	TODO: Put description here
 =============================================================================*/
 
 #include "EnginePrivate.h"
@@ -93,11 +92,13 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 		Mesh->bChartDistanceFactor = true;
 		Mesh->AttachParent = CapsuleComponent;
-		static FName CollisionProfileName(TEXT("CharacterMesh"));
-		Mesh->SetCollisionProfileName(CollisionProfileName);
+		static FName MeshCollisionProfileName(TEXT("CharacterMesh"));
+		Mesh->SetCollisionProfileName(MeshCollisionProfileName);
 		Mesh->bGenerateOverlapEvents = false;
 		Mesh->bCanEverAffectNavigation = false;
 	}
+
+	BaseRotationOffset = FQuat::Identity;
 }
 
 void ACharacter::PostInitializeComponents()
@@ -109,6 +110,7 @@ void ACharacter::PostInitializeComponents()
 		if (Mesh)
 		{
 			BaseTranslationOffset = Mesh->RelativeLocation;
+			BaseRotationOffset = Mesh->RelativeRotation.Quaternion();
 
 			// force animation tick after movement component updates
 			if (Mesh->PrimaryComponentTick.bCanEverTick && CharacterMovement)
@@ -279,6 +281,23 @@ void ACharacter::OnRep_IsCrouched()
 		else
 		{
 			CharacterMovement->UnCrouch(true);
+		}
+	}
+}
+
+void ACharacter::SetReplicateMovement(bool bInReplicateMovement)
+{
+	Super::SetReplicateMovement(bInReplicateMovement);
+
+	if (CharacterMovement != nullptr)
+	{
+		// Set prediction data time stamp to current time to stop extrapolating
+		// from time bReplicateMovement was turned off to when it was turned on again
+		FNetworkPredictionData_Server* NetworkPrediction = CharacterMovement->GetPredictionData_Server();
+
+		if (NetworkPrediction != nullptr)
+		{
+			NetworkPrediction->ServerTimeStamp = GetWorld()->GetTimeSeconds();
 		}
 	}
 }
@@ -934,6 +953,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 	{
 		// Update transform relative to movement base
 		const FVector OldLocation = GetActorLocation();
+		const FQuat OldRotation = GetActorQuat();
 		MovementBaseUtility::GetMovementBaseTransform(ReplicatedBasedMovement.MovementBase, ReplicatedBasedMovement.BoneName, CharacterMovement->OldBaseLocation, CharacterMovement->OldBaseQuat);
 		const FVector NewLocation = CharacterMovement->OldBaseLocation + ReplicatedBasedMovement.Location;
 
@@ -960,7 +980,7 @@ void ACharacter::OnRep_ReplicatedBasedMovement()
 		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
 		{
-			PredictionInterface->SmoothCorrection(OldLocation);
+			PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
 		}
 	}
 }
@@ -1013,6 +1033,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 		if( MoveIndex != INDEX_NONE )
 		{
 			const FVector OldLocation = GetActorLocation();
+			const FQuat OldRotation = GetActorQuat();
 			// Move Actor back to position of that buffered move. (server replicated position).
 			const FSimulatedRootMotionReplicatedMove& RootMotionRepMove = RootMotionRepMoves[MoveIndex];
 			if( RestoreReplicatedMove(RootMotionRepMove) )
@@ -1042,7 +1063,7 @@ void ACharacter::SimulatedRootMotionPositionFixup(float DeltaSeconds)
 							INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 							if (PredictionInterface)
 							{
-								PredictionInterface->SmoothCorrection(OldLocation);
+								PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
 							}
 						}
 					}
@@ -1163,13 +1184,16 @@ void ACharacter::UpdateSimulatedPosition(const FVector& NewLocation, const FRota
 	if( (NewLocation != GetActorLocation()) || (CreationTime == GetWorld()->TimeSeconds) )
 	{
 		FVector FinalLocation = NewLocation;
-		if( GetWorld()->EncroachingBlockingGeometry(this, NewLocation, NewRotation) )
+
+		// Only need to check for encroachment when teleported without any velocity.
+		// Normal movement pops the character out of geometry anyway, no use doing it before and after (with different rules).
+		bSimGravityDisabled = false;
+		if (CharacterMovement->Velocity.IsZero())
 		{
-			bSimGravityDisabled = true;
-		}
-		else
-		{
-			bSimGravityDisabled = false;
+			if (GetWorld()->EncroachingBlockingGeometry(this, NewLocation, NewRotation))
+			{
+				bSimGravityDisabled = true;
+			}
 		}
 		
 		// Don't use TeleportTo(), that clears our base.
@@ -1190,12 +1214,13 @@ void ACharacter::PostNetReceiveLocationAndRotation()
 		if (!ReplicatedBasedMovement.HasRelativeLocation())
 		{
 			const FVector OldLocation = GetActorLocation();
+			const FQuat OldRotation = GetActorQuat();
 			UpdateSimulatedPosition(ReplicatedMovement.Location, ReplicatedMovement.Rotation);
 
 			INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 			if (PredictionInterface)
 			{
-				PredictionInterface->SmoothCorrection(OldLocation);
+				PredictionInterface->SmoothCorrection(OldLocation, OldRotation);
 			}
 		}
 	}
@@ -1287,7 +1312,7 @@ float ACharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayR
 			// Start at a given Section.
 			if( StartSectionName != NAME_None )
 			{
-				AnimInstance->Montage_JumpToSection(StartSectionName);
+				AnimInstance->Montage_JumpToSection(StartSectionName, AnimMontage);
 			}
 
 			return Duration;

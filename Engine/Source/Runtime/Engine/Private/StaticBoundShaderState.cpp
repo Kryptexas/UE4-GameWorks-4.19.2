@@ -235,6 +235,7 @@ void SetGlobalBoundShaderState(
 	// We need to do this on the render thread
 
 	FRHICommandList* CmdList = new FRHICommandList;
+	CmdList->CopyRenderThreadContexts(RHICmdList);
 	FGraphEventRef RenderThreadCompletionEvent = TGraphTask<FSetGlobalBoundShaderStateRenderThreadTask>::CreateTask().ConstructAndDispatchWhenReady(*CmdList, GlobalBoundShaderState, FeatureLevel);
 	RHICmdList.QueueRenderThreadCommandListSubmit(RenderThreadCompletionEvent, CmdList);
 }

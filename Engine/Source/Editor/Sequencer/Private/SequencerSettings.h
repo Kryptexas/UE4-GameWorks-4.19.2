@@ -4,29 +4,30 @@
 
 #include "SequencerSettings.generated.h"
 
-/** Defines visibility states for the curves in the curve editor. */
-UENUM()
-namespace ESequencerCurveVisibility
+/** Empty class used to house multiple named USequencerSettings */
+UCLASS()
+class USequencerSettingsContainer : public UObject
 {
-	enum Type
-	{
-		/** All curves should be visible. **/
-		AllCurves,
-		/** Only curves from selected nodes should be visible. **/
-		SelectedCurves,
-		/** Only curves which have keyframes should be visible. **/
-		AnimatedCurves
-	};
-}
+public:
+	GENERATED_BODY()
+
+	/** Get or create a settings object for the specified name */
+	static USequencerSettings* GetOrCreate(const TCHAR* InName);
+};
 
 /** Serializable options for sequencer. */
-UCLASS(config=EditorPerProjectUserSettings)
+UCLASS(config=EditorPerProjectUserSettings, PerObjectConfig)
 class USequencerSettings : public UObject
 {
 public:
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_MULTICAST_DELEGATE( FOnCurveVisibilityChanged );
+	DECLARE_MULTICAST_DELEGATE( FOnShowCurveEditorChanged );
+
+	/** Gets whether or not auto key is enabled. */
+	bool GetAutoKeyEnabled() const;
+	/** Sets whether or not auto key is enabled. */
+	void SetAutoKeyEnabled(bool InbAutoKeyEnabled);
 
 	/** Gets whether or not snapping is enabled. */
 	bool GetIsSnapEnabled() const;
@@ -63,6 +64,11 @@ public:
 	/** Sets whether or not to snap the play time to the interval while scrubbing. */
 	void SetSnapPlayTimeToInterval(bool InbSnapPlayTimeToInterval);
 
+	/** Gets whether or not to snap the play time to the dragged key. */
+	bool GetSnapPlayTimeToDraggedKey() const;
+	/** Sets whether or not to snap the play time to the dragged key. */
+	void SetSnapPlayTimeToDraggedKey(bool InbSnapPlayTimeToDraggedKey);
+
 	/** Gets the snapping interval for curve values. */
 	float GetCurveValueSnapInterval() const;
 	/** Sets the snapping interval for curve values. */
@@ -78,6 +84,11 @@ public:
 	/** Sets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
 	void SetIsUsingCleanView(bool InbIsUsingCleanView);
 
+	/** Gets whether or not auto-scroll is enabled. */
+	bool GetAutoScrollEnabled() const;
+	/** Sets whether or not auto-scroll is enabled. */
+	void SetAutoScrollEnabled(bool bInAutoScrollEnabled);
+
 	/** Gets whether or not the curve editor should be shown. */
 	bool GetShowCurveEditor() const;
 	/** Sets whether or not the curve editor should be shown. */
@@ -88,18 +99,16 @@ public:
 	/** Sets whether or not to show curve tool tips in the curve editor. */
 	void SetShowCurveEditorCurveToolTips(bool InbShowCurveEditorCurveToolTips);
 
-	/** Gets the current curve visibility. */
-	ESequencerCurveVisibility::Type GetCurveVisibility() const;
-	/** Sets the current curve visibility. */
-	void SetCurveVisibility(ESequencerCurveVisibility::Type InCurveVisibility);
-
 	/** Snaps a time value in seconds to the currently selected interval. */
 	float SnapTimeToInterval(float InTimeValue) const;
 
-	/** Gets the multicast delegate which is run whenever the CurveVisibility value changes. */
-	FOnCurveVisibilityChanged* GetOnCurveVisibilityChanged();
+	/** Gets the multicast delegate which is run whenever the curve editor is shown/hidden. */
+	FOnShowCurveEditorChanged& GetOnShowCurveEditorChanged();
 
 protected:
+	UPROPERTY( config )
+	bool bAutoKeyEnabled;
+
 	UPROPERTY( config )
 	bool bIsSnapEnabled;
 
@@ -122,6 +131,9 @@ protected:
 	bool bSnapPlayTimeToInterval;
 
 	UPROPERTY( config )
+	bool bSnapPlayTimeToDraggedKey;
+
+	UPROPERTY( config )
 	float CurveValueSnapInterval;
 
 	UPROPERTY( config )
@@ -131,13 +143,13 @@ protected:
 	bool bIsUsingCleanView;
 
 	UPROPERTY( config )
+	bool bAutoScrollEnabled;
+
+	UPROPERTY( config )
 	bool bShowCurveEditor;
 
 	UPROPERTY( config )
 	bool bShowCurveEditorCurveToolTips;
 
-	UPROPERTY( config )
-	TEnumAsByte<ESequencerCurveVisibility::Type> CurveVisibility;
-
-	FOnCurveVisibilityChanged OnCurveVisibilityChanged;
+	FOnShowCurveEditorChanged OnShowCurveEditorChanged;
 };

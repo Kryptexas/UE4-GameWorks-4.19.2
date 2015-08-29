@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2474759
+﻿INTSourceChangelist:2618795
 Title: 언리얼 엔진 4.7 릴리즈 노트
 Crumbs:%ROOT%, Support/Builds
 Description:
@@ -249,7 +249,17 @@ C++ 클래스 아이콘에 더블클릭하면 Visual Stuio 또는 Xcode 에서 �
 #### 즉석 본 콘트롤러 프리뷰
 Bone Controller 노드는 이제 뷰포트 기즈모를 사용하여 대화식으로 조절 가능하며, 매번 컴파일할 필요가 없습니다!
 
-![](InstantBonePreview.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+VthaM3yZbVM
+[/PARAMLITERAL]
+[/OBJECT]
 
 현재 이 기능은 TwoBoneIK, ModifyBone & Fabrik 노드에서만 작동하나, 현재 추가 작업중입니다.
 

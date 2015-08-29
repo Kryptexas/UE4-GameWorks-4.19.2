@@ -1,0 +1,92 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Placing Actors
+Crumbs: %ROOT%, Gameplay, GettingStarted\HowTo
+Description:Shows how you can place Actors (props, lights, cameras, etc.) in your levels. 
+Related: Engine/Actors/Placement
+Related: Engine/UI/LevelEditor/Modes/PlaceMode
+Related: Engine/UI/ClassViewer
+Related: GettingStarted\HowTo\ManipulatingActors
+
+At the most fundamental level, an **Actor** is any Object that you can place in a level and this page will show you the various methods in which you can place those Actors inside your levels. 
+
+[TOC(start:2)]
+
+[REGION:note]
+For this How To guide, we have created a new project using the **Blueprint Third Person** template with **Starter Content** enabled. If you have not created a project based off a template before or are not sure how to enable Starter Content, refer to the [](Engine/Basics/Projects/Browser) page for information on creating/opening projects, templates, and project settings. 
+[/REGION]
+
+## Place Mode
+
+This section will show you how to place Actors from the **Modes** menu while in [Place Mode](Engine/UI/LevelEditor/Modes/PlaceMode). 
+
+1.  With your project open, in the upper left corner of the screen you will see the **Modes** window. 
+
+	![](Place0.png)
+
+1.	While in **Place** mode (1), click the **Basic** tab (2) then **Left-click** on and drag the **Point Light** (3) into the level viewport. 
+
+	![](Place1.png)
+
+	Each Actor displayed on each tab under Place Mode can be dragged-and-dropped into a level. 
+
+## Context Menu
+
+This section will demonstrate how to place Actors from the [Content Browser](Engine/Content/Browser) in your level through a **Context Menu**. 
+
+1.  Inside your project, in the lower left corner of the screen you will see the **Content Browser**. 
+
+	![](Place2.png)
+
+1.	**Double Left-click** on the **Starter Content** folder to open it, then open the **Props** folder. 
+
+1.	**Left-click** on the **SM_Chair** asset so that it is highlighted. 
+
+	![](Place3.png)
+
+1.	Inside the Level Viewport, **Right-click** anywhere to bring up the **Context Menu** and select **SM_Chair** under the _Place Actor_ section.
+
+	![](Place4.png)
+
+	After selecting it, you should now see the chair placed inside the level. 
+
+	[REGION:note]
+	Additional options can be performed with the **Context Menu** which are discussed on the [](Engine/Actors/Placement) page. 
+	[/REGION]
+
+
+## Drag-and-Drop
+
+This method of placing an Actor involves using the **Content Browser** and dragging an Actor into and dropping it in the level. 
+
+1.  Inside your project, in the lower left corner of the screen you will see the **Content Browser**. 
+
+	![](Place2.png)
+
+1.	**Double Left-click** on the **Starter Content** folder to open it, then open the **Props** folder. 
+
+1.	**Left-click** on the **SM_Couch** and **drag-and-drop** it in the Level Viewport. 
+
+	![](Place5.png)
+	
+## Class Viewer
+
+A more advanced method of placing Actors is performed by using the [](Engine/UI/ClassViewer), which is a hierarchical list of classes used by the Editor.
+
+1.  To open the **Class Viewer**, click **Window** then **Developer Tools** and under _Miscellaneous_, select **Class Viewer**. 
+
+	![](Place6.png)
+
+	The **Class Viewer** window will open. 
+
+	![](Place7.png)
+
+	Any Actor that can be placed in the level will be tinted in **Blue** in this window. 
+
+1.	Select the **Blueprint_Effect_Fire** asset, then **drag-and-drop** it in the Level Viewport. 
+
+	![](Place8.png)
+
+
+
+	

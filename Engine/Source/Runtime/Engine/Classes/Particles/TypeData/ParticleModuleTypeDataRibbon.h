@@ -19,7 +19,7 @@ enum ETrailsRenderAxisOption
 	Trails_MAX,
 };
 
-UCLASS(editinlinenew, hidecategories=Object, meta=(DisplayName = "Ribbon Data"))
+UCLASS(MinimalAPI, editinlinenew, hidecategories=Object, meta=(DisplayName = "Ribbon Data"))
 class UParticleModuleTypeDataRibbon : public UParticleModuleTypeDataBase
 {
 	GENERATED_UCLASS_BODY()

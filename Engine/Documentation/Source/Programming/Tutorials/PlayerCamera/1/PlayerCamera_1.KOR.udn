@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2465675
+﻿INTSourceChangelist:2620109
 Availability: Public
 Title:1. 폰에 카메라 붙이기
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:스프링 암과 카메라를 만들어 붙입니다.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[프로그래밍 튜토리얼 홈](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
 		[다음 단계](Programming\Tutorials\PlayerCamera\2 "%Programming\Tutorials\PlayerCamera\2:title%")
@@ -27,15 +28,16 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 
 	[![](NamePawnClass.png)](NamePawnClass.png)
 
-1. 다음으로 **Visual Studio** 에서, "PawnWithCamera.h" 를 열고 클래스 정의 아래 다음 코드 줄을 추가합니다:
+1. 다음으로 **Visual Studio** 에서, `PawnWithCamera.h` 를 열고 클래스 정의 아래 다음 코드 줄을 추가합니다:
 
 		protected:
+			UPROPERTY(EditAnywhere)
 			USpringArmComponent* OurCameraSpringArm;
 			UCameraComponent* OurCamera;
 
 	이 변수를 사용하여 끝에 **Camera** 컴포넌트가 붙은 **Spring Arm** 컴포넌트를 만들겠습니다. 스프링 암은 카메라가 이동하면서 너무 딱딱하지 않은 유연한 느낌을 낼 수 있도록 카메라(나 다른 **컴포넌트**) 를 붙일 수 있는 간편하고 좋은 방법입니다.
 
-1. 그 후, 생성자에서 실제 **컴포넌트** 를 생성해 줘야 합니다. "PawnWithCamera.cpp" 의 **APawnWithCamera::APawnWithCamera** 안에 다음 코드를 추가합니다:
+1. 그 후, 생성자에서 실제 **컴포넌트** 를 생성해 줘야 합니다. `PawnWithCamera.cpp` 의 **APawnWithCamera::APawnWithCamera** 안에 다음 코드를 추가합니다:
 
 		//컴포넌트를 생성합니다
 		RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
@@ -95,6 +97,7 @@ Description:스프링 암과 카메라를 만들어 붙입니다.
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
 			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};

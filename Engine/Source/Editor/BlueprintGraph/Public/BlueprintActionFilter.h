@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "BlueprintNodeBinder.h" // for IBlueprintNodeBinder::FBindingSet
+#include "BlueprintNodeBinder.h"  // for IBlueprintNodeBinder::FBindingSet
+#include "BlueprintGraphModule.h" // for FActionMenuRejectionTest
 
 // Forward declarations
 class UBlueprintNodeSpawner;
@@ -150,7 +151,7 @@ class BLUEPRINTGRAPH_API FBlueprintActionFilter
 {
 public:
 	/** The filter uses a series of rejection tests matching */
-	DECLARE_DELEGATE_RetVal_TwoParams(bool, FRejectionTestDelegate, FBlueprintActionFilter const&, FBlueprintActionInfo&);
+	typedef FBlueprintGraphModule::FActionMenuRejectionTest FRejectionTestDelegate;
 
 public:
 	enum EFlags // Flags, which configure certain rejection tests.

@@ -56,7 +56,7 @@ class UTextureRenderTargetCube : public UTextureRenderTarget
 	* @param	Flags			Various control flags for operation (see EObjectFlags)
 	* @return					New UTextureCube object.
 	*/
-	ENGINE_API class UTextureCube* ConstructTextureCube(UObject* Outer, const FString& NewTexName, EObjectFlags InFlags);
+	ENGINE_API class UTextureCube* ConstructTextureCube(UObject* InOuter, const FString& NewTexName, EObjectFlags InFlags);
 
 	// Begin UTexture interface.
 	virtual float GetSurfaceWidth() const  override { return SizeX; }

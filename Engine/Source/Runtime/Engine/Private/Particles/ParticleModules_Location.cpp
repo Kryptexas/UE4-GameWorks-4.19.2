@@ -1728,6 +1728,7 @@ uint32 UParticleModuleLocationBoneSocket::PrepPerInstanceBlock(FParticleEmitterI
 
 void UParticleModuleLocationBoneSocket::AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp)
 {
+	check(IsInGameThread());
 	bool bFound = false;
 	for (int32 ParamIdx = 0; ParamIdx < PSysComp->InstanceParameters.Num(); ParamIdx++)
 	{
@@ -2406,6 +2407,7 @@ uint32 UParticleModuleLocationSkelVertSurface::RequiredBytesPerInstance(FParticl
 
 void UParticleModuleLocationSkelVertSurface::AutoPopulateInstanceProperties(UParticleSystemComponent* PSysComp)
 {
+	check(IsInGameThread());
 	bool bFound = false;
 	for (int32 ParamIdx = 0; ParamIdx < PSysComp->InstanceParameters.Num(); ParamIdx++)
 	{

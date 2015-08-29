@@ -415,7 +415,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	}
 	else
 	{
-		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString());
+		UMaterialInterface* FoundMaterial = LoadObject<UMaterialInterface>(NULL, *ObjectPath.ToString(), NULL, LOAD_Quiet);
 		// do not override existing materials
 		if (FoundMaterial)
 		{

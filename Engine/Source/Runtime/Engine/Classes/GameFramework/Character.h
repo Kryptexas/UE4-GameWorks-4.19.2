@@ -198,7 +198,7 @@ typedef FBasedMovementInfo FRepRelativeMovement;
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
  */ 
 
-UCLASS(config=Game, BlueprintType, hideCategories=("Pawn|Character|InternalEvents"), meta=(ShortTooltip="A character is a type of Pawn that includes the ability to walk around."))
+UCLASS(config=Game, BlueprintType, meta=(ShortTooltip="A character is a type of Pawn that includes the ability to walk around."))
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_BODY()
@@ -259,10 +259,18 @@ public:
 	UFUNCTION()
 	virtual void OnRep_ReplicatedBasedMovement();
 
+	/** Set whether this actor's movement replicates to network clients. */
+	UFUNCTION(BlueprintCallable, Category = "Replication")
+	virtual void SetReplicateMovement(bool bInReplicateMovement) override;
+
 protected:
-	/** Desired translation offset of mesh. */
+	/** Saved translation offset of mesh. */
 	UPROPERTY()
 	FVector BaseTranslationOffset;
+
+	/** Saved rotation offset of mesh. */
+	UPROPERTY()
+	FQuat BaseRotationOffset;
 
 	/** Event called after actor's base changes (if SetBase was requested to notify us with bNotifyPawn). */
 	virtual void BaseChange();
@@ -289,8 +297,11 @@ public:
 	/** Returns ReplicatedMovementMode */
 	uint8 GetReplicatedMovementMode() const { return ReplicatedMovementMode; }
 
-	/** @return Desired translation offset of mesh. */
+	/** @return Saved translation offset of mesh. */
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
+
+	/** @return Saved rotation offset of mesh. */
+	const FQuat& GetBaseRotationOffset() const { return BaseRotationOffset; }
 
 	// Begin INavAgentInterface Interface
 	virtual FVector GetNavAgentLocation() const override;
@@ -327,6 +338,10 @@ public:
 	/** Disable simulated gravity (set when character encroaches geometry on client, to keep him from falling through floors) */
 	UPROPERTY()
 	uint32 bSimGravityDisabled:1;
+
+	/** Disable root motion on the server. When receiving a DualServerMove, where the first move is not root motion and the second is. */
+	UPROPERTY(Transient)
+	uint32 bServerMoveIgnoreRootMotion:1;
 
 	/** 
 	 * Jump key Held Time.
@@ -372,7 +387,7 @@ public:
 	virtual void PawnClientRestart() override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* InInputComponent) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void RecalculateBaseEyeHeight() override;
 	virtual void UpdateNavigationRelevance() override;
@@ -425,7 +440,7 @@ protected:
 	 * @Return Whether the character can jump in the current state. 
 	 */
 
-	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(DisplayName="CanJump"))
+	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character", meta=(DisplayName="CanJump"))
 	bool CanJumpInternal() const;
 	virtual bool CanJumpInternal_Implementation() const;
 

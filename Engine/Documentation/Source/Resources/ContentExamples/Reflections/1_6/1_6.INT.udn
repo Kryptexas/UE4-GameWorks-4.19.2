@@ -51,7 +51,6 @@ Related: Engine/Rendering/PostProcessEffects
 [REGION:fullwidth]
 
 ![](Reflections_1_6_Header.png)
-## Overview
 
 **Scene Capture Cubes** capture a fully dynamic cube map from their location _on every frame_. This requires a Cubemap Render Target to actually capture to, and then that Render Target can be used as a texture within any Material. 
 

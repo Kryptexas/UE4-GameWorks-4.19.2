@@ -9,7 +9,7 @@
 const ANSICHAR* FGenericCrashContext::CrashContextRuntimeXMLNameA = "CrashContext.runtime-xml";
 const TCHAR* FGenericCrashContext::CrashContextRuntimeXMLNameW = TEXT( "CrashContext.runtime-xml" );
 bool FGenericCrashContext::bIsInitialized = false;
-
+FPlatformMemoryStats FGenericCrashContext::CrashMemoryStats = FPlatformMemoryStats();
 namespace NCachedCrashContextProperties
 {
 	static bool bIsInternalBuild;
@@ -32,6 +32,7 @@ namespace NCachedCrashContextProperties
 	static FString PrimaryGPUBrand;
 	static FString UserName;
 	static FString DefaultLocale;
+	static int32 CrashDumpMode;
 
 	static FString CrashGUID;
 }
@@ -59,6 +60,17 @@ void FGenericCrashContext::Initialize()
 	NCachedCrashContextProperties::PrimaryGPUBrand = FPlatformMisc::GetPrimaryGPUBrand();
 	NCachedCrashContextProperties::UserName = FPlatformProcess::UserName();
 	NCachedCrashContextProperties::DefaultLocale = FPlatformMisc::GetDefaultLocale();
+
+	// Using the -fullcrashdump parameter will cause full memory minidumps to be created for crashes
+	NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::Default;
+	if (FCommandLine::IsInitialized())
+	{
+		const TCHAR* CmdLine = FCommandLine::Get();
+		if (FParse::Param( CmdLine, TEXT("fullcrashdump") ))
+		{
+			NCachedCrashContextProperties::CrashDumpMode = (int32)ECrashDumpMode::FullDump;
+		}
+	}
 
 	const FGuid Guid = FGuid::NewGuid();
 	NCachedCrashContextProperties::CrashGUID = FString::Printf(TEXT("UE4CC-%s-%s"), *NCachedCrashContextProperties::PlatformNameIni, *Guid.ToString(EGuidFormats::Digits));
@@ -131,6 +143,8 @@ void FGenericCrashContext::SerializeContentToBuffer()
 	AddCrashProperty(TEXT("MiscOSVersionMajor"), *NCachedCrashContextProperties::OsVersion);
 	AddCrashProperty(TEXT("MiscOSVersionMinor"), *NCachedCrashContextProperties::OsSubVersion);
 
+	AddCrashProperty( TEXT( "CrashDumpMode" ), NCachedCrashContextProperties::CrashDumpMode );
+
 
 	// @TODO yrx 2014-10-08 Move to the crash report client.
 	/*if( CanUseUnsafeAPI() )
@@ -153,18 +167,15 @@ void FGenericCrashContext::SerializeContentToBuffer()
 		AddCrashProperty( TEXT( "MemoryStatsTotalPhysicalGB" ), MemConstants.TotalPhysicalGB );
 	}
 
-	// @TODO yrx 2014-10-08 Move to the crash report client.
-	/*if( CanUseUnsafeAPI() )
-	{
-		const FPlatformMemoryStats MemStats = FPlatformMemory::GetStats();
-		AddCrashProperty( TEXT( "MemoryStatsAvailablePhysical" ), (uint64)MemStats.AvailablePhysical );
-		AddCrashProperty( TEXT( "MemoryStatsAvailableVirtual" ), (uint64)MemStats.AvailableVirtual );
-		AddCrashProperty( TEXT( "MemoryStatsUsedPhysical" ), (uint64)MemStats.UsedPhysical );
-		AddCrashProperty( TEXT( "MemoryStatsPeakUsedPhysical" ), (uint64)MemStats.PeakUsedPhysical );
-		AddCrashProperty( TEXT( "MemoryStatsUsedVirtual" ), (uint64)MemStats.UsedVirtual );
-		AddCrashProperty( TEXT( "MemoryStatsPeakUsedVirtual" ), (uint64)MemStats.PeakUsedVirtual );
-		AddCrashProperty( TEXT( "MemoryStatsbIsOOM" ), (int32)FPlatformMemory::bIsOOM );
-	}*/
+	AddCrashProperty( TEXT( "MemoryStatsAvailablePhysical" ), (uint64)CrashMemoryStats.AvailablePhysical );
+	AddCrashProperty( TEXT( "MemoryStatsAvailableVirtual" ), (uint64)CrashMemoryStats.AvailableVirtual );
+	AddCrashProperty( TEXT( "MemoryStatsUsedPhysical" ), (uint64)CrashMemoryStats.UsedPhysical );
+	AddCrashProperty( TEXT( "MemoryStatsPeakUsedPhysical" ), (uint64)CrashMemoryStats.PeakUsedPhysical );
+	AddCrashProperty( TEXT( "MemoryStatsUsedVirtual" ), (uint64)CrashMemoryStats.UsedVirtual );
+	AddCrashProperty( TEXT( "MemoryStatsPeakUsedVirtual" ), (uint64)CrashMemoryStats.PeakUsedVirtual );
+	AddCrashProperty( TEXT( "MemoryStatsbIsOOM" ), (int32)FPlatformMemory::bIsOOM );
+	AddCrashProperty( TEXT( "MemoryStatsOOMAllocationSize"), (uint64)FPlatformMemory::OOMAllocationSize );
+	AddCrashProperty( TEXT( "MemoryStatsOOMAllocationAlignment"), (int32)FPlatformMemory::OOMAllocationAlignment );
 
 	//Architecture
 	//CrashedModuleName
@@ -182,6 +193,11 @@ void FGenericCrashContext::SerializeContentToBuffer()
 const FString& FGenericCrashContext::GetUniqueCrashName()
 {
 	return NCachedCrashContextProperties::CrashGUID;
+}
+
+const bool FGenericCrashContext::IsFullCrashDump()
+{
+	return (NCachedCrashContextProperties::CrashDumpMode == (int32)ECrashDumpMode::FullDump);
 }
 
 void FGenericCrashContext::SerializeAsXML( const TCHAR* Filename )

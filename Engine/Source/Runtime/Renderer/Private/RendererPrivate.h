@@ -64,9 +64,21 @@ public:
 	virtual void RegisterCustomCullingImpl(ICustomCulling* impl) override;
 	virtual void UnregisterCustomCullingImpl(ICustomCulling* impl) override;
 
+	virtual void RegisterPostOpaqueRenderDelegate(const FPostOpaqueRenderDelegate& PostOpaqueRenderDelegate) override;
+	virtual void RegisterOverlayRenderDelegate(const FPostOpaqueRenderDelegate& OverlayRenderDelegate) override;
+	virtual void RenderPostOpaqueExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) override;
+	virtual void RenderOverlayExtensions(const FSceneView& View, FRHICommandListImmediate& RHICmdList, FSceneRenderTargets& SceneContext) override;
+
+	virtual bool HasPostOpaqueExtentions() const override
+	{
+		return PostOpaqueRenderDelegate.IsBound();
+	}
+
 private:
 	TSet<FSceneInterface*> AllocatedScenes;
 	ICustomCulling* CustomCullingImpl;
+	FPostOpaqueRenderDelegate PostOpaqueRenderDelegate;
+	FPostOpaqueRenderDelegate OverlayRenderDelegate;
 };
 
 extern ICustomCulling* GCustomCullingImpl;

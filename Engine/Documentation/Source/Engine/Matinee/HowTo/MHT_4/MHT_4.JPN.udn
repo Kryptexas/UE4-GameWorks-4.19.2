@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2468818
+﻿INTSourceChangelist:2517824
 Availability:Public
 Title:カメラ エフェクトの使用
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
-Description:複数の FOV アングルとポストプロセス エフェクト を使ってフェードイン/アウトするシンプルなシーンです。
+Description:複数の FOV アングルとポストプロセス エフェクト を使ってフェードイン/アウトするシンプルなシーンです。 
 
 ---
 この操作ガイド シリーズでは、様々な FOV (Field of View:視野角)、被写界深度、それらに適用されたその他のポストプロセス エフェクトを持つ複数のカメラ アングルを使用する短いシーケンスを作成します。 
@@ -101,7 +101,6 @@ Description:複数の FOV アングルとポストプロセス エフェクト �
 1. 手順 7 と 8 を繰り返しますが、**CameraComponent.PostProcessSettings.FilmContrast** オプションを追加し、**Ok** を押します。 
 
 1. 再度手順 7 と 8 を繰り返しますが、今回は、**CameraComponent.PostProcessSettings.FilmSaturation** オプションを追加し、**Ok** を押します。 
-
 1. これで **Camera1** グループは、以下のように **Movement** トラックと **FOV** トラック、さらに 3 つの **Float Property** トラックを持つようになります。 
 
 	![](MHT4_Camera1PropertiesComplete.png)
@@ -393,5 +392,7 @@ Description:複数の FOV アングルとポストプロセス エフェクト �
 1. メイン ツールバーで **Build** アイコン (必要に応じてライティングをビルドするオプション) をクリックし、次に **Play** アイコンをクリックしてエディタで再生します。 
 
 	[![](MovieThumbnail.png)](MHT4_FinalVideo.wmv)
+
 	_最終成果物は、様々な FOV (Field of View:視野角)、被写界深度、ポストプロセス エフェクトを使用したショットになるはずです。_
+
 

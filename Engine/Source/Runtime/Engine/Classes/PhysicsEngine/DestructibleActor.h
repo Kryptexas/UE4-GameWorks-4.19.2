@@ -34,9 +34,11 @@ public:
 	// Begin AActor interface.
 #if WITH_EDITOR
 	ENGINE_API virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	// End AActor interface.
 
+	virtual void PostLoad() override;
 
 
 public:

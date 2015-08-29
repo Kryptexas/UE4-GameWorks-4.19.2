@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2311102
+﻿INTSourceChangelist:2602509
 Availability:Public
 Title:ボリュームに関するユーザーガイド
 Crumbs:%ROOT%, Engine, Engine/Actors
@@ -10,10 +10,10 @@ Description:ビヘイビアとレベル設定を拡張するためにボリュ�
 		LevelDesign_Beginner
 	[/PARAMLITERAL]
 	[PARAM:previous]
-		[前のトピック](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
+		[Previous Topic](Engine/Actors/Brushes "%Engine/Actors/Brushes:title%")
 	[/PARAM]
 	[PARAM:next]
-		[次のトピック](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
+		[Next Topic](Engine/Actors/Triggers "%Engine/Actors/Triggers:title%")
 	[/PARAM]
 	[PARAM:home]
 		[](Tracks/LevelDesign/Beginner)
@@ -28,7 +28,6 @@ Description:ビヘイビアとレベル設定を拡張するためにボリュ�
 
 [TOC(start:2 end:2)]
 
-## 概要
 
 **ボリューム** とはレベル内の 3D 領域のことです。各ボリュームは特定の目的を果たします。以下の目的が含まれます。
 
@@ -44,7 +43,7 @@ Description:ビヘイビアとレベル設定を拡張するためにボリュ�
 レベル内で賢く利用することは、新規レベルを作成する際にデザイナーにとって非常に重要なボリュームの特性の 1 つであることを特記しておきます。2 つの主要ポイントに要約出来ます。 
 
 1. ボリュームはゲームプレイ中は目に見えないため、プレイヤーが見ることはできません！
-1. 最初のポイントが原因で、 **ボリューム自体を何かしらのエフェクトに使用することはほとんどありません。** 
+1. 最初のポイントが原因で、 ボリューム自体を何かしらのエフェクトに使用することはほとんどありません。 
 
 ボリュームは不可視であるため、レベルデザイナーが多少なりとも助けない限り、プレイヤーはボリュームへ入ったことに通常気づきません。ボリュームは、理解しやすくエフェクトを完了させるためのビジュアル キューとして他のレベル エレメントを機能させているので、通常エフェクトが大きめのコンポーネントとして見なすべきです。
 
@@ -75,7 +74,7 @@ h:301
 
 ## ボリュームの作成
 
-ボリュームは **[モード]** メニューの **[ボリューム]** タブからボリュームを選択し、レベル ビューポートへドラッグ＆ドロップすると作成できます。 
+ボリュームは **[Modes]** メニューの **[Volumes]** タブからボリュームを選択し、レベル ビューポートへドラッグ＆ドロップすると作成できます。 
 
 ![](creatingVolumes.png)
 
@@ -95,7 +94,7 @@ Blocking Volume はコリジョン サーフェスの場所、特に構造体の
 
 ### Camera Blocking Volume
 
-**Camera Blocking Volumes** は、カメラ アクタがパスされないようにされている空間の定義に使用されるという点で本質的に Blocking Volume と似ています。3 人称視点がこの例になります。プレイヤーのカメラを再生空間に制限したまま、ワールドの外部でカメラを回転させない場合です。 
+**Camera Blocking Volumes** は、カメラ アクタがパスされないようにされている空間の定義に使用されるという点で本質的に Blocking Volume と似ています。サードパーソン視点がこの例になります。プレイヤーのカメラを再生空間に制限したまま、ワールドの外部でカメラを回転させない場合です。 
 
 Camera Blocking Volume のプロパティはコリジョン チャンネルを調整する Blocking Volume と同じ方法で調節できます。 
 
@@ -127,7 +126,7 @@ Nav Mesh Bounds Volume を使用するには、レベルの中のナビゲーシ
 
 **Physics Volume** は、物理設定でキャラクターに影響を及ぼし、物理オブジェクトの操作を可能にします。主に、プレイヤーが泳がなければならない水のある環境の作成に使用されます。ただし、重力が低い、または無重量の領域を作成し、そこを通るオブジェクトの終端速度に影響を与えるためにも使用できます。
 
-このボリューム用に作成されたプロパティの中には、以下の画像のように、 **[詳細]** パネルから調整可能なものもあります。 
+このボリューム用に作成されたプロパティの中には、以下の画像のように、 **[Details]** パネルから調整可能なものもあります。 
 
 ![](killZdetails.png)
 
@@ -168,7 +167,7 @@ Physics Volume から割り当てが可能なプロパティの他に、 Pain Ca
 
 **Level Streaming Volume** はレベル ストリーミング プロセス支援のために使用します。また、プレイヤーのボリュームの出入りに合わせてレベルがメモリに入出力される際、レベルを簡単にカプセル化および制御できるようにします。 
 
-以下の画像のように、 **[詳細]** パネルからプロパティを調整して、 Level Streaming Volume がレベル ストリーミングの処理方法を調整できます。 
+以下の画像のように、 **[Details]** パネルからプロパティを調整して、 Level Streaming Volume がレベル ストリーミングの処理方法を調整できます。 
 
 ![](levelstreamingvolume.png)
 
@@ -184,7 +183,7 @@ Physics Volume から割り当てが可能なプロパティの他に、 Pain Ca
 
 **Cull Distance Volumes** は、オブジェクトのカメラからの位置によって、オブジェクトがあるサイズまたはあるサイズ以下にカリング (またはスクリーンに描画されないように) できる最適化ツールです。Cull Distance Volume は、一定のサイズのオブジェクトをシーンに描画しないことにより最適化しやすくしています。サイズは、最長寸法に合わせて境界ボックスで計算されます。 
 
-Cull Distance Volume 設定は、以下の **[詳細]** パネルに **Cull Distances** プロパティにより異なります。
+Cull Distance Volume 設定は、以下の **[Details]** パネルに **Cull Distances** プロパティにより異なります。
 
 ![](CullDistancesProperty.png)
 
@@ -199,7 +198,7 @@ Cull Distances 配列にエントリを新規に追加して設定を開始し�
 ### Audio Volume
 **Audio Volumes** は、ボリュームの内外で聞こえるものを制御する区切られたオーディオゾーンを作成する方法を提供するだけでなく、レベル内で様々なサウンドの制御と適用を可能にします。Audio Volumes を使用すると、フェーディングによりオーディオ間のトランジションを生成し、ボリューム自体の中で Ambient Zone 設定を制御することができます。 
 
-このボリュームの **[詳細]** パネルからプロパティをいくつか調整し、下図のようにエフェクトをより制御できるようになります。 
+このボリュームの **[Details]** パネルからプロパティをいくつか調整し、下図のようにエフェクトをより制御できるようになります。 
 
 ![](audiovolume.png)
 
@@ -212,7 +211,7 @@ Cull Distances 配列にエントリを新規に追加して設定を開始し�
 | Fade Time | 現在のリバーブ設定からボリューム設定へフェードする時間 (秒) です。  |
 | Enabled | ボリュームが有効でサウンドに影響を与えることができるかどうかを判断します。 |
 
-Ambient Zone は、関連する Audio Volume 内に置かれているサウンド アクタがプレイヤーの位置によってどのように変化するかを定義します。Ambient Zone の設定は **[詳細]** パネルからも調整することができます。 
+Ambient Zone は、関連する Audio Volume 内に置かれているサウンド アクタがプレイヤーの位置によってどのように変化するかを定義します。Ambient Zone の設定は **[Details]** パネルからも調整することができます。 
 
 | プロパティ | 説明 |
 | ------- | ------------ |
@@ -225,11 +224,11 @@ Ambient Zone は、関連する Audio Volume 内に置かれているサウン�
 | Interior LPF | プレイヤーがボリュームの外側にいる時の内側のサウンドのローパスフィルタ乗数 (最大適用 LPF は 0.1)。 |
 | Interior LPFTime | 新規のローパスフィルタ レベルにフェードする秒時間。 |
 
-Ambient Zones に関する情報については、以下を参照してください。[Ambient Zones Documentation](Engine/Audio/AmbientZones).-->
+Ambient Zones に関する情報については、以下を参照してください。(Engine/Audio/AmbientZones).-->
 
 ### Post Process Volume
 
-**Post Process Volume** は **[詳細]** パネルのプロパティを調整することでオーバーライドできるカメラに適用される Post Process 設定のあるスペースです。 
+**Post Process Volume** は **[Details]** パネルのプロパティを調整することでオーバーライドできるカメラに適用される Post Process 設定のあるスペースです。 
 
 ポストプロセスエフェクトに関する詳細は [ポストプロセス エフェクト](Engine/Rendering/PostProcessEffects) を参照してください。
  

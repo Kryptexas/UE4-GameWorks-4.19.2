@@ -512,6 +512,12 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Give blueprint a chance to react
 		K2_OnEndAbility();
 
+		// Protect against blueprint causing us to EndAbility already
+		if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+		{
+			return;
+		}
+
 		// Stop any timers or latent actions for the ability
 		UWorld* MyWorld = ActorInfo ? ActorInfo->AbilitySystemComponent->GetOwner()->GetWorld() : nullptr;
 		if (MyWorld)
@@ -532,10 +538,10 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		// Tell all our tasks that we are finished and they should cleanup
 		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0 && ActiveTasks.Num() > 0; --TaskIdx)
 		{
-			TWeakObjectPtr<UAbilityTask> Task = ActiveTasks[TaskIdx];
+			TWeakObjectPtr<UGameplayTask> Task = ActiveTasks[TaskIdx];
 			if (Task.IsValid())
 			{
-				Task.Get()->AbilityEnded();
+				Task.Get()->TaskOwnerEnded();
 			}
 		}
 		ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
@@ -744,7 +750,8 @@ float UGameplayAbility::GetCooldownTimeRemaining(const FGameplayAbilityActorInfo
 	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
 	if (CooldownTags && CooldownTags->Num() > 0)
 	{
-		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
+		FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(*CooldownTags);
+		TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
 		if (Durations.Num() > 0)
 		{
 			Durations.Sort();
@@ -767,10 +774,11 @@ void UGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbilitySpecH
 	const FGameplayTagContainer* CooldownTags = GetCooldownTags();
 	if (CooldownTags && CooldownTags->Num() > 0)
 	{
-		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(FActiveGameplayEffectQuery(CooldownTags));
+		FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(*CooldownTags);
+		TArray< float > DurationRemaining = ActorInfo->AbilitySystemComponent->GetActiveEffectsTimeRemaining(Query);
 		if (DurationRemaining.Num() > 0)
 		{
-			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(FActiveGameplayEffectQuery(CooldownTags));
+			TArray< float > Durations = ActorInfo->AbilitySystemComponent->GetActiveEffectsDuration(Query);
 			check(Durations.Num() == DurationRemaining.Num());
 			int32 BestIdx = 0;
 			float LongestTime = DurationRemaining[0];
@@ -984,35 +992,64 @@ FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFr
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::ActorTransform;
 	ReturnLocation.SourceActor = GetActorInfo().AvatarActor.Get();
+	ReturnLocation.SourceAbility = this;
 	return ReturnLocation;
 }
 
-FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName) const
+FGameplayAbilityTargetingLocationInfo UGameplayAbility::MakeTargetLocationInfoFromOwnerSkeletalMeshComponent(FName SocketName)
 {
 	FGameplayAbilityTargetingLocationInfo ReturnLocation;
 	ReturnLocation.LocationType = EGameplayAbilityTargetingLocationType::SocketTransform;
 	ReturnLocation.SourceComponent = GetActorInfo().AnimInstance.IsValid() ? GetActorInfo().AnimInstance.Get()->GetOwningComponent() : NULL;
+	ReturnLocation.SourceAbility = this;
 	ReturnLocation.SourceSocketName = SocketName;
 	return ReturnLocation;
 }
 
 //----------------------------------------------------------------------
 
-void UGameplayAbility::TaskStarted(UAbilityTask* NewTask)
+UGameplayTasksComponent* UGameplayAbility::GetGameplayTasksComponent(const UGameplayTask& Task) const
 {
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *NewTask->GetName());
+	return GetCurrentActorInfo() ? GetCurrentActorInfo()->AbilitySystemComponent.Get() : nullptr;
+}
 
-	ActiveTasks.Add(NewTask);
+AActor* UGameplayAbility::GetOwnerActor(const UGameplayTask* Task) const
+{
+	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
+	return Info ? Info->OwnerActor.Get() : nullptr;
+}
+
+AActor* UGameplayAbility::GetAvatarActor(const UGameplayTask* Task) const
+{
+	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
+	return Info ? Info->AvatarActor.Get() : nullptr;
+}
+
+void UGameplayAbility::OnTaskInitialized(UGameplayTask& Task)
+{
+	UAbilityTask* AbilityTask = Cast<UAbilityTask>(&Task);
+	if (AbilityTask)
+	{
+		AbilityTask->SetAbilitySystemComponent(GetCurrentActorInfo()->AbilitySystemComponent.Get());
+		AbilityTask->Ability = this;
+	}
+}
+
+void UGameplayAbility::OnTaskActivated(UGameplayTask& Task)
+{
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Started %s"), *Task.GetName());
+
+	ActiveTasks.Add(&Task);
 }
 
 void UGameplayAbility::ConfirmTaskByInstanceName(FName InstanceName, bool bEndTask)
 {
-	TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+	TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 	for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 	{
 		if (NamedTasks[i].IsValid())
 		{
-			UAbilityTask* CurrentTask = NamedTasks[i].Get();
+			UGameplayTask* CurrentTask = NamedTasks[i].Get();
 			CurrentTask->ExternalConfirm(bEndTask);
 		}
 	}
@@ -1023,12 +1060,12 @@ void UGameplayAbility::EndOrCancelTasksByInstanceName()
 	for (int32 j = 0; j < EndTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = EndTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
 			if (NamedTasks[i].IsValid())
 			{
-				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->EndTask();
 			}
 		}
@@ -1038,12 +1075,12 @@ void UGameplayAbility::EndOrCancelTasksByInstanceName()
 	for (int32 j = 0; j < CancelTaskInstanceNames.Num(); ++j)
 	{
 		FName InstanceName = CancelTaskInstanceNames[j];
-		TArray<TWeakObjectPtr<UAbilityTask>> NamedTasks = ActiveTasks.FilterByPredicate<FAbilityInstanceNamePredicate>(FAbilityInstanceNamePredicate(InstanceName));
+		TArray<TWeakObjectPtr<UGameplayTask>> NamedTasks = ActiveTasks.FilterByPredicate<FGameplayTaskInstanceNamePredicate>(FGameplayTaskInstanceNamePredicate(InstanceName));
 		for (int32 i = NamedTasks.Num() - 1; i >= 0; --i)
 		{
 			if (NamedTasks[i].IsValid())
 			{
-				UAbilityTask* CurrentTask = NamedTasks[i].Get();
+				UGameplayTask* CurrentTask = NamedTasks[i].Get();
 				CurrentTask->ExternalCancel();
 			}
 		}
@@ -1075,11 +1112,11 @@ void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
 	}
 }
 
-void UGameplayAbility::TaskEnded(UAbilityTask* Task)
+void UGameplayAbility::OnTaskDeactivated(UGameplayTask& Task)
 {
-	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task->GetName());
+	ABILITY_VLOG(CastChecked<AActor>(GetOuter()), Log, TEXT("Task Ended %s"), *Task.GetName());
 
-	ActiveTasks.Remove(Task);
+	ActiveTasks.Remove(&Task);
 }
 
 /**
@@ -1092,6 +1129,12 @@ void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGamep
 {
 	check(CurrentActorInfo);
 	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, Context);
+}
+
+void UGameplayAbility::K2_ExecuteGameplayCueWithParams(FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters)
+{
+	check(CurrentActorInfo);
+	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, GameplayCueParameters);
 }
 
 void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)
@@ -1383,8 +1426,7 @@ void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithAssetTags(FGameplayTa
 		return;
 	}
 
-	FActiveGameplayEffectQuery Query;
-	Query.EffectTagContainer = &WithTags;
+	FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyEffectTags(WithTags);
 	CurrentActorInfo->AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
 }
 
@@ -1395,8 +1437,7 @@ void UGameplayAbility::BP_RemoveGameplayEffectFromOwnerWithGrantedTags(FGameplay
 		return;
 	}
 
-	FActiveGameplayEffectQuery Query;
-	Query.OwningTagContainer = &WithGrantedTags;
+	FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(WithGrantedTags);
 	CurrentActorInfo->AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
 }
 

@@ -46,7 +46,7 @@ Description:Light Mobility and how it affects lighting and shadowing.
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-## Overview
+
 
 On every light, within the **Transform** category, you will find a property called **Mobility**.
 

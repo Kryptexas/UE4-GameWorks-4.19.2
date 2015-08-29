@@ -2,11 +2,14 @@
 
 #pragma once
 
+
 class IDetailPropertyRow;
 class IDetailCategoryBuilder;
 class FDetailWidgetRow;
 class IDetailGroup;
 class IDetailCustomNodeBuilder;
+class IPropertyHandle;
+
 
 /** The location of a property within a category */
 namespace EPropertyLocation

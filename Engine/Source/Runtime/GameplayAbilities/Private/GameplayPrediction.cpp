@@ -156,7 +156,8 @@ void FPredictionKeyDelegates::NewRejectOrCaughtUpDelegate(FPredictionKey::KeyTyp
 
 void FPredictionKeyDelegates::BroadcastRejectedDelegate(FPredictionKey::KeyType Key)
 {
-	TArray<FPredictionKeyEvent>& DelegateList = Get().DelegateMap.FindOrAdd(Key).RejectedDelegates;
+	// Intentionally making a copy of the delegate list since it may change when firing one of the delegates
+	TArray<FPredictionKeyEvent> DelegateList = Get().DelegateMap.FindOrAdd(Key).RejectedDelegates;
 	for (auto Delegate : DelegateList)
 	{
 		Delegate.ExecuteIfBound();
@@ -165,7 +166,8 @@ void FPredictionKeyDelegates::BroadcastRejectedDelegate(FPredictionKey::KeyType 
 
 void FPredictionKeyDelegates::BroadcastCaughtUpDelegate(FPredictionKey::KeyType Key)
 {
-	TArray<FPredictionKeyEvent>& DelegateList = Get().DelegateMap.FindOrAdd(Key).CaughtUpDelegates;
+	// Intentionally making a copy of the delegate list since it may change when firing one of the delegates
+	TArray<FPredictionKeyEvent> DelegateList = Get().DelegateMap.FindOrAdd(Key).CaughtUpDelegates;
 	for (auto Delegate : DelegateList)
 	{
 		Delegate.ExecuteIfBound();

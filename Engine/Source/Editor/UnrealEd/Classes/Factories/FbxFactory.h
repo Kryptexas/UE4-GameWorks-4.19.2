@@ -26,6 +26,7 @@ class UNREALED_API UFbxFactory : public UFactory
 	virtual bool DoesSupportClass(UClass * Class) override;
 	virtual UClass* ResolveSupportedClass() override;
 	virtual UObject* FactoryCreateBinary(UClass* InClass, UObject* InParent, FName InName, EObjectFlags Flags, UObject* Context, const TCHAR* Type, const uint8*& Buffer, const uint8* BufferEnd, FFeedbackContext* Warn, bool& bOutOperationCanceled) override;
+	virtual bool FactoryCanImport(const FString& Filename) override;
 	// End UFactory Interface
 	
 	/**

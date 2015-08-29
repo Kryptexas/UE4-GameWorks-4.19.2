@@ -54,6 +54,11 @@ class ENGINE_API UGameViewportClient : public UScriptViewportClient, public FExe
 	GENERATED_UCLASS_BODY()
 
 public:
+#if WITH_HOT_RELOAD_CTORS
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
+	UGameViewportClient(FVTableHelper& Helper);
+#endif // WITH_HOT_RELOAD_CTORS
+
 	virtual ~UGameViewportClient();
 
 	/** The viewport's console.   Might be null on consoles */
@@ -158,6 +163,10 @@ public:
 	virtual void MouseLeave(FViewport* Viewport) override;
 	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) override;
 	// End of FViewportClient interface.
+
+	/** make any adjustments to the views after they've been completely set up */
+	virtual void FinalizeViews(class FSceneViewFamily* ViewFamily, const TMap<ULocalPlayer*, FSceneView*>& PlayerViewMap)
+	{}
 
 	// Begin FExec interface.
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) override;
@@ -275,12 +284,20 @@ public:
 		GameLayerManagerPtr = LayerManager;
 	}
 
+	/**
+	 * Gets the layer manager for the UI.
+	 */
+	TSharedPtr< IGameLayerManager > GetGameLayerManager() const
+	{
+		return GameLayerManagerPtr.Pin();
+	}
+
 	/** Returns access to this viewport's Slate window */
 	TSharedPtr< SWindow > GetWindow()
 	{
 		 return Window.Pin();
 	}
-	 
+	
 	/** 
 	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
 	 *
@@ -455,7 +472,7 @@ public:
 	 * @param	FailureType	the type of error
 	 * @param	ErrorString	additional string detailing the error
 	 */
-	virtual void PeekNetworkFailureMessages(UWorld *World, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
+	virtual void PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver *NetDriver, enum ENetworkFailure::Type FailureType, const FString& ErrorString);
 
 	/** Make sure all navigation objects have appropriate path rendering components set.  Called when EngineShowFlags.Navigation is set. */
 	virtual void VerifyPathRenderingComponents();

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2426166
+﻿INTSourceChangelist:2609501
 Availability:Public
 Title: 프로퍼티 바인딩
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
 Description:UMG 에서의 프로퍼티 바인딩 안내서입니다.
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 **UMG** 내부에서 가장 유용한 측면 중 하나는, **블루프린트** 안에서 **함수** 나 **프로퍼티** 에 위젯의 프로퍼티를 바인딩하는 기능입니다. 프로퍼티를 **블루프린트** 에 있는 함수나 프로퍼티 변수에 바인딩하면, 그 함수가 호출되거나 프로퍼티가 업데이트될 때마다 위젯에 반영됩니다.
 

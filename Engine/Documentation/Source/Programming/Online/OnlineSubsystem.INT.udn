@@ -2,7 +2,7 @@ Availability:Public
 Title:Online Subsystem Overview
 Crumbs:%ROOT%, Programming
 Description:Overview of the various systems related to the online platform.
-Version: 4.5
+Version: 4.9
 
 
 [VAR:Topic]
@@ -57,7 +57,7 @@ Portability is one of the main goals.
 
 ### Basic design
 
-The base module OnlineSubsystem is responsible for regulating how platform specific modules are defined and registered with the engine.    All access to a platform service will go through this module.   When loaded, this module will in turn try to load the default platform service module specified in the `engine.ini` file.
+The base module OnlineSubsystem is responsible for regulating how platform specific modules are defined and registered with the engine.    All access to a platform service will go through this module.   When loaded, this module will in turn try to load the default platform service module specified in the engine.ini file.
 
 	[OnlineSubsystem]
 	DefaultPlatformService=<Default Platform Identifier>
@@ -85,13 +85,13 @@ Not all platforms will implement all interfaces and game code should plan accord
 
 Interface definition for the online services profile services. Profile services are defined as anything related to a given user profile and its associated metadata (online presence, access permissions, etc).
 
-Details can be found on the [](Programming/Online/Interfaces/Profile) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/Profile) page.-->
 
 #### Friends
 
 Interface definition for the online services friends services.  Friends services are anything related to the maintenance of friends and friends lists.
 
-Details can be found on the [](Programming/Online/Interfaces/Friends) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/Friends) page.-->
 
 #### Sessions
 
@@ -103,37 +103,37 @@ Details can be found on the [](Programming/Online/Interfaces/Session) page.
 
 Provides the interface for sharing files already on the cloud (see [User Cloud](#UserCloud) with other users).
 
-Details can be found on the [](Programming/Online/Interfaces/SharedCloud) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/SharedCloud) page.-->
 
 #### User Cloud
 
 Provides the interface for per user cloud file storage.
 
-Details can be found on the [](Programming/Online/Interfaces/UserCloud) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/UserCloud) page.-->
 
 #### Leaderboards
 
 Provides the interface for accessing online leaderboards.
 
-Details can be found on the [](Programming/Online/Interfaces/Leaderboards) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/Leaderboards) page.-->
 
 #### Voice
 
 Provides the interface for voice communication over network while in the game (NOT IMPLEMENTED YET).
 
-Details can be found on the [](Programming/Online/Interfaces/Voice) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/Voice) page.-->
 
 #### Achievements
 
 Provides the interface for reading/writing/unlocking achievements (NOT IMPLEMENTED YET).
 
-Details can be found on the [](Programming/Online/Interfaces/Achievements) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/Achievements) page.-->
 
 #### External UI
 
 Provides the interface for accessing a given platform's external interfaces if available.
 
-Details can be found on the [](Programming/Online/Interfaces/ExternalUI) page.
+<!--Details can be found on the [](Programming/Online/Interfaces/ExternalUI) page.-->
 
 
 [OBJECT:TopicButtonList]
@@ -146,17 +146,17 @@ Details can be found on the [](Programming/Online/Interfaces/ExternalUI) page.
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Online/Interfaces/Profile "%Programming/Online/Interfaces/Profile:Description%")
-		* [](Programming/Online/Interfaces/Friends "%Programming/Online/Interfaces/Friends:Description%")
+		<!--* [](Programming/Online/Interfaces/Profile "%Programming/Online/Interfaces/Profile:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Friends "%Programming/Online/Interfaces/Friends:Description%")-->
 		* [](Programming/Online/Interfaces/Session "%Programming/Online/Interfaces/Session:Description%")
-		* [](Programming/Online/Interfaces/SharedCloud "%Programming/Online/Interfaces/SharedCloud:Description%")
-		* [](Programming/Online/Interfaces/UserCloud "%Programming/Online/Interfaces/UserCloud:Description%")
-		* [](Programming/Online/Interfaces/Leaderboards "%Programming/Online/Interfaces/Leaderboards:Description%")
-		* [](Programming/Online/Interfaces/Voice "%Programming/Online/Interfaces/Voice:Description%")
-		* [](Programming/Online/Interfaces/Achievements "%Programming/Online/Interfaces/Achievements:Description%")
-		* [](Programming/Online/Interfaces/ExternalUI "%Programming/Online/Interfaces/ExternalUI:Description%")
+		<!--* [](Programming/Online/Interfaces/SharedCloud "%Programming/Online/Interfaces/SharedCloud:Description%")-->
+		<!--* [](Programming/Online/Interfaces/UserCloud "%Programming/Online/Interfaces/UserCloud:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Leaderboards "%Programming/Online/Interfaces/Leaderboards:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Voice "%Programming/Online/Interfaces/Voice:Description%")-->
+		<!--* [](Programming/Online/Interfaces/Achievements "%Programming/Online/Interfaces/Achievements:Description%")-->
+		<!--* [](Programming/Online/Interfaces/ExternalUI "%Programming/Online/Interfaces/ExternalUI:Description%")-->
 		* [](Programming/Online/Types/ "%Programming/Online/Types:Description%")
-		* [](Programming/Online/AsyncManager/ "%Programming/Online/AsyncManager:Description%")
+		<!--* [](Programming/Online/AsyncManager/ "%Programming/Online/AsyncManager:Description%")-->
 	[/PARAM]
 [/OBJECT]
 

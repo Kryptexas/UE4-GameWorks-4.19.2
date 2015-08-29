@@ -26,6 +26,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = Constant)
 	FMatrix MatrixDefault;
 
+	UPROPERTY(Instanced, EditAnywhere, Category = Constant)
+	UNiagaraDataObject* DataObjectDefault;
+
 	/** Allows code to explicitly disable exposing of certain inputs e.g. system constants such as Delta Time. */
 	UPROPERTY()
 	uint32 bCanBeExposed:1;
@@ -42,6 +45,7 @@ public:
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
 	// End EdGraphNode interface
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;

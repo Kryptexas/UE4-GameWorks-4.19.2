@@ -1,0 +1,95 @@
+﻿Availability:NoPublish
+Title: アンリアル・エンジンを ZIP ファイルでダウンロードする
+Crumbs:%ROOT%, GettingStarted, GettingStarted/DownloadingUnrealEngine
+Description:アンリアル エンジンのソースコードを ZIP ファイルでダウンロードしてみましょう。
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	GitHubページへ **移動** します。
+	1.	**Download ZIP** ボタン (上図) を **クリック** します。
+		![](DownloadZipButton.png)
+		[REGION:warning]
+		ビルトインされた Windows のジップ ユーティリティが、ダウンロードした ZIP ファイルのコンテンツは実行する安全性が確認できないことを示します。  
+		ZIP ファイルを解凍する前に以下を行います：
+
+		1.	ZIP ファイルを **右クリック** する。
+		1.	**'Properties...' をクリックする** 。
+		1.	**'Unblock' を選択する**。
+
+		サードパーティの ZIP ユーティリティの場合は、解凍時に上記の手順を要求しない場合もあります。
+		[/REGION]
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	Visual Studio 2013 をインストールしてない場合は、**インストール** します。MFC ライブラリは Visual Studio のインストール設定にデフォルトで含まれていますが、MFC ライブラリが ATL サポート用に含まれていることを確認してください。
+		[REGION:note]
+		デベロッパーは Microsoft の無料版 Visual Studio のすべてのデスクトップ版で UE4 をビルドします ([Visual Studio Community 2013](https://www.visualstudio.com/products/visual-studio-community-vs))。
+		[/REGION]
+	1.	エクスプローラでソースフォルダを **開き** **Setup.bat を実行します**。
+		[REGION:note]
+		セットアップ用バッチファイルが、エンジン用バイナリ コンテンツのダウンロード、前提条件のインストール、アンリアル ファイルの関連付けの設定を行います。現在エンジン バイナリには 4GB のメモリが必要なので、ダウンロードには若干時間がかかる場合があります。それ以降チェックアウトする場合、ダウンロード時間は短くなります。
+		[/REGION]
+		[REGION:warning]
+		SmartScreen からの警告が Windows 8 に表示される場合があります。まず **[More Info]**、次に **[Run Anyway]** をクリックしてセットアップ用バッチファイルの実行を継続します。
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	GitHubページへ **移動** します。
+	1.	**Download ZIP**ボタン (上図) を **クリック** します。
+		![](DownloadZipButton.png)
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	[Xcode](https://itunes.apple.com/us/app/xcode/id497799835) の最新版をまだインストールしていない場合は、**インストール** してください。
+	1.	Finder でソースフォルダを **開き** **Setup.command を実行します**。
+		[REGION:note]
+		Setup.command によるエンジン用バイナリ コンテンツのダウンロード、前提条件のインストール、アンリアル ファイルの関連付けの設定が終了したら、端末のウィンドウを **終了** します。
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	linux
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	1.	GitHubページへ **移動** します。
+	1.	**[Download ZIP]** ボタン (上図) を **クリック** します。
+		![](DownloadZipButton.png)
+	1.	'UnrealEngine-(branch_name).zip' をハードディスク上に **解凍します** 。
+	1.	ルート フォルダで、端末から **Setup.sh を実行** して、エンジンのバイナリ コンテキスト (下図参照) を **ダウンロード** します。
+
+		![](RunSetupShellScript_Linux.png)
+
+		[REGION:note]
+		このステップを実行しても ** \*\*SUCCESS\*\* ** メッセージが表示されない場合は、**BuildThirdParty.log** ファイルで詳細を確認してください。BuildThirdParty.log は `Engine/Build/BatchFiles/Linux` ディレクトリにあります。
+		[/REGION]
+	[/PARAM]
+[/OBJECT]
+
+## 次のステップ
+
+アンリアル エンジンのダウンロードとセットアップが終了しました。つぎは、[ソースからエンジンをビルドする][build the engine from source](Programming/Development/BuildingUnrealEngine) へ進みます。

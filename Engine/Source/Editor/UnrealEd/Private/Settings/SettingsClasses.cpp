@@ -104,7 +104,7 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bEnableSourceControlCompatabilityCheck(true)
-	, bMonitorContentDirectories(false)
+	, bMonitorContentDirectories(true)
 	, AutoReimportThreshold(3.f)
 	, bAutoCreateAssets(true)
 	, bAutoDeleteAssets(true)
@@ -349,7 +349,11 @@ ULevelEditorPlaySettings::ULevelEditorPlaySettings( const FObjectInitializer& Ob
 	PlayNetDedicated = false;
 	RunUnderOneProcess = true;
 	RouteGamepadToSecondWindow = false;
+	AutoConnectToServer = true;
 	BuildGameBeforeLaunch = EPlayOnBuildMode::PlayOnBuild_Default;
+	bAutoCompileBlueprintsOnLaunch = true;
+	CenterNewWindow = true;
+	CenterStandaloneWindow = true;
 }
 
 void ULevelEditorPlaySettings::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)

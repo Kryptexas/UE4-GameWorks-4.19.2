@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2518141
+﻿INTSourceChangelist:2590930
 Title:Paper 2D Flipbooks
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:페이퍼 2D 플립북에 대한 설명과 제작법입니다.
@@ -121,6 +121,9 @@ JSON 포맷의 스프라이트 시트 설명을 임포트하면, 연관된 텍�
 [REGION:warning]
 플립북을 자동 생성할 때, 포함되는 스프라이트에 사용할 작명 규칙이 **매우 중요** 한데, 스프라이트는 플립북에 알파벳 순서대로 추가되기 때문입니다. 위 예제에서 Idle 제작에 필요한 각 스프라이트 이름을 **Idle_x** 로 했는데, x 는 나타나는 순서를 뜻합니다.
 [/REGION]
+
+
+
 
 
 

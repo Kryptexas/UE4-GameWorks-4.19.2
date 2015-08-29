@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2075534
+﻿INTSourceChangelist:2602324
 Availability: Public
 Title:라이트 모빌리티
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -47,7 +47,7 @@ Description:라이트 모빌리티와 그것이 빛과 그림자에 어떠한 �
 ![](Engine/Rendering/LightingAndShadows/lighting_overview_banner_001.png)(convert:false)
 [/REGION]
 
-## 개요
+
 
 모든 라이트마다 **Transform** (트랜스폼) 카테고리 안에 **Mobility** (모빌리티)라는 프로퍼티가 있습니다.
 

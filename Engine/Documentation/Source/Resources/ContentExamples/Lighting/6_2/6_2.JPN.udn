@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618752
 Availability:Public
 Title:6.2 - Shadow Filter Sharpen
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 6.2：Shadow Filter Sharpen (可動ライト)
+Description:ライティングのサンプル レベル、6.2：Shadow Filter Sharpen (可動ライト)
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -38,7 +38,7 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\6_2:title%](Resources\ContentExamples\Lighting\Lighting_6_2.png)
 [/REGION]
 
-最後に紹介する例は Shadow Filter Sharpen プロパティです。シャドウのエッジのシャープネスを強化する際に使用します。このプロパティは可動または固定ライトのみに実用的で、動的オブジェクトからのシャドウのみと機能します。最大効果を発揮するには、シャドウ周りに近接しなくてはいけません。頻繁に使用するプロパティではありませんが、オブジェクト上にはるかに鮮明なシャドウを作成し、より近い光源またはより小さな光源などの錯覚を上手く表現する手法です。
+最後に紹介する例は **Shadow Filter Sharpen** プロパティです。シャドウのエッジのシャープネスを強化する際に使用します。このプロパティは **可動** または **固定** ライトのみに実用的で、動的オブジェクトからのシャドウのみと機能します。最大効果を発揮するには、シャドウ周りに近接しなくてはいけません。頻繁に使用するプロパティではありませんが、オブジェクト上にはるかに鮮明なシャドウを作成し、より近い光源またはより小さな光源などの錯覚を上手く表現する手法です。
 
 以下の画像で、この例を間近でご覧に慣れます。右側のシャドウは左のシャドウよりもかなり鮮明なシャドウであることに注目してください。
 

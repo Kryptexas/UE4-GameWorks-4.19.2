@@ -60,6 +60,7 @@ public:
 	bool Delete( const TCHAR* Filename, bool RequireExists=0, bool EvenReadOnly=0, bool Quiet=0 ) override;
 	bool IsReadOnly( const TCHAR* Filename ) override;
 	bool Move( const TCHAR* Dest, const TCHAR* Src, bool Replace=1, bool EvenIfReadOnly=0, bool Attributes=0, bool bDoNotRetryOrError=0 ) override;
+	bool FileExists( const TCHAR* Filename ) override;
 	bool DirectoryExists(const TCHAR* InDirectory) override;
 	void FindFiles( TArray<FString>& Result, const TCHAR* Filename, bool Files, bool Directories ) override;
 	void FindFilesRecursive( TArray<FString>& FileNames, const TCHAR* StartDirectory, const TCHAR* Filename, bool Files, bool Directories, bool bClearFileNames=true) override;
@@ -72,6 +73,19 @@ public:
 	virtual uint32	Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress ) override;
 	virtual bool	MakeDirectory( const TCHAR* Path, bool Tree=0 ) override;
 	virtual bool	DeleteDirectory( const TCHAR* Path, bool RequireExists=0, bool Tree=0 ) override;
+
+
+	/**
+	 * Finds all the files within the given directory, with optional file extension filter.
+	 *
+	 * @param Directory, the absolute path to the directory to search. Ex: "C:\UE4\Pictures"
+	 *
+	 * @param FileExtension, If FileExtension is NULL, or an empty string "" then all files are found.
+	 * 			Otherwise FileExtension can be of the form .EXT or just EXT and only files with that extension will be returned.
+	 *
+	 * @return FoundFiles, All the files that matched the optional FileExtension filter, or all files if none was specified.
+	 */
+	virtual void FindFiles(TArray<FString>& FoundFiles, const TCHAR* Directory, const TCHAR* FileExtension = nullptr) override;
 
 	/** 
 	 * Call the Visit function of the visitor once for each file or directory in a single directory. This function does not explore subdirectories.
@@ -222,7 +236,7 @@ public:
 	{
 		return Pos;
 	}
-	virtual int64 TotalSize();
+	virtual int64 TotalSize() override;
 	virtual bool Close() final;
 	virtual void Serialize( void* V, int64 Length ) final;
 	virtual void Flush() final;

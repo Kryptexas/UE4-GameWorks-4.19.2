@@ -22,7 +22,7 @@ enum class ECookInitializationFlags
 	AutoTick = 0x10,				// enable ticking (only works in the editor)
 	AsyncSave = 0x20,				// save packages async
 	IncludeServerMaps = 0x80,		// should we include the server maps when cooking
-	UseSerializationForPackageDependencies = 0x100, // should we use the serialization code path for generating package dependencies (old method will be depricated)
+	UseSerializationForPackageDependencies = 0x100, // should we use the serialization code path for generating package dependencies (old method will be deprecated)
 };
 ENUM_CLASS_FLAGS(ECookInitializationFlags);
 
@@ -43,10 +43,14 @@ namespace ECookMode
 {
 	enum Type
 	{
-		CookOnTheFly,				// default mode, handles requests from network
-		CookOnTheFlyFromTheEditor,	// cook on the side
-		CookByTheBookFromTheEditor,	// precook all resources while in the editor
-		CookByTheBook,				// cooking by the book (not in the editor)
+		/** Default mode, handles requests from network. */
+		CookOnTheFly,
+		/** Cook on the side. */
+		CookOnTheFlyFromTheEditor,
+		/** Precook all resources while in the editor. */
+		CookByTheBookFromTheEditor,
+		/** Cooking by the book (not in the editor). */
+		CookByTheBook,
 	};
 }
 
@@ -401,7 +405,17 @@ private:
 			return false;
 		}
 
-
+		void GetCookedFilesForPlatform(const FName& PlatformName, TArray<FName>& CookedFiles)
+		{
+			FScopeLock ScopeLock(&SynchronizationObject);
+			for (const auto& CookedFile : FilesProcessed)
+			{
+				if (CookedFile.Value.HasPlatform(PlatformName))
+				{
+					CookedFiles.Add(CookedFile.Value.GetFilename());
+				}
+			}
+		}
 		void Empty(int32 ExpectedNumElements = 0)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -417,6 +431,7 @@ private:
 		TMap<FName, TArray<FName>> PlatformList;
 		mutable FCriticalSection SynchronizationObject;
 	public:
+		const TArray<FName> &GetQueue() const { return Queue;  }
 		void EnqueueUnique(const FFilePlatformRequest& Request, bool ForceEnqueFront = false)
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
@@ -486,6 +501,14 @@ private:
 				if ( !Platforms->Contains( PlatformName ) )
 					return false;
 			}
+			return true;
+		}
+
+		bool Exists(const FName& Filename)
+		{
+			const TArray<FName>* Platforms = PlatformList.Find(Filename);
+			if (Platforms == NULL)
+				return false;
 			return true;
 		}
 		
@@ -584,6 +607,20 @@ private:
 	FString OutputDirectoryOverride;
 	//////////////////////////////////////////////////////////////////////////
 	// Cook by the book options
+public:
+	struct FChildCooker
+	{
+		FChildCooker() : ReadPipe(nullptr), ReturnCode(-1), bFinished(false),  Thread(nullptr) { }
+
+		FProcHandle ProcessHandle;
+		FString ResponseFileName;
+		FString BaseResponseFileName;
+		void* ReadPipe;
+		int32 ReturnCode;
+		bool bFinished;
+		FRunnableThread* Thread;
+	};
+private:
 	struct FCookByTheBookOptions
 	{
 	public:
@@ -595,7 +632,8 @@ private:
 			CookStartTime( 0.0 ), 
 			bErrorOnEngineContentUse(false),
 			bForceEnableCompressedPackages(false),
-			bForceDisableCompressedPackages(false)
+			bForceDisableCompressedPackages(false),
+			bIsChildCooker(false)
 		{ }
 
 		/** Should we test for UObject leaks */
@@ -617,9 +655,11 @@ private:
 		/** Map of platform name to manifest generator, manifest is only used in cook by the book however it needs to be maintained across multiple cook by the books. */
 		TMap<FName, FChunkManifestGenerator*> ManifestGenerators;
 		/** Dependency graph of maps as root objects. */
-		TMap< FName, TSet <FName> > MapDependencyGraph; 
+		TMap<FName, TMap< FName, TSet <FName> > > MapDependencyGraphs; 
 		/** If a cook is cancelled next cook will need to resume cooking */ 
 		TArray<FFilePlatformRequest> PreviousCookRequests; 
+		/** If we are based on a release version of the game this is the set of packages which were cooked in that release */
+		TMap<FName,TArray<FName> > BasedOnReleaseCookedPackages;
 		/** Timing information about cook by the book */
 		double CookTime;
 		double CookStartTime;
@@ -628,6 +668,12 @@ private:
 		/** force this cook by the book to enable \ disable package compression */
 		bool bForceEnableCompressedPackages;
 		bool bForceDisableCompressedPackages;
+		bool bIsChildCooker;
+		FString ChildCookFilename;
+		TSet<FName> ChildUnsolicitedPackages;
+		TArray<FChildCooker> ChildCookers;
+		TArray<FName> TargetPlatformNames;
+		
 	};
 	FCookByTheBookOptions* CookByTheBookOptions;
 	
@@ -710,6 +756,7 @@ public:
 		COSR_ErrorLoadingPackage= 0x00000004,
 		COSR_RequiresGC			= 0x00000008,
 		COSR_WaitingOnCache		= 0x00000010,
+		COSR_WaitingOnChildCookers = 0x00000020,
 	};
 
 
@@ -760,16 +807,18 @@ public:
 		FString DLCName;
 		FString CreateReleaseVersion;
 		FString BasedOnReleaseVersion;
+		FString ChildCookFileName; // if we are the child cooker 
 		bool bGenerateStreamingInstallManifests; 
 		bool bGenerateDependenciesForMaps; 
 		bool bErrorOnEngineContentUse; // this is a flag for dlc, will cause the cooker to error if the dlc references engine content
-
+		int32 NumProcesses;
 		FCookByTheBookStartupOptions() :
 			CookOptions(ECookByTheBookOptions::None),
 			DLCName(FString()),
 			bGenerateStreamingInstallManifests(false),
 			bGenerateDependenciesForMaps(false),
-			bErrorOnEngineContentUse(false)
+			bErrorOnEngineContentUse(false),
+			NumProcesses(0)
 		{ }
 	};
 
@@ -778,6 +827,12 @@ public:
 	 * Cook on the fly can't run at the same time as cook by the book
 	 */
 	void StartCookByTheBook( const FCookByTheBookStartupOptions& CookByTheBookStartupOptions );
+
+	/**
+	 * ValidateCookByTheBookSettings
+	 * look at the cookByTheBookOptions and ensure there isn't any conflicting settings
+	 */
+	void ValidateCookByTheBookSettings() const;
 
 	/**
 	 * Queue a cook by the book cancel (you might want to do this instead of calling cancel directly so that you don't have to be in the game thread when canceling
@@ -811,6 +866,15 @@ public:
 	 * @param name of the platform to clear the cooked packages for
 	 */
 	void ClearPlatformCookedData( const FName& PlatformName );
+
+
+	/**
+	 * Recompile any global shader changes 
+	 * if any are detected then clear the cooked platform data so that they can be rebuilt
+	 * 
+	 * @return return true if shaders were recompiled
+	 */
+	bool RecompileChangedShaders(const TArray<FName>& TargetPlatforms);
 
 
 	/**
@@ -877,6 +941,25 @@ public:
 	uint64 GetMaxMemoryAllowance() const;
 
 	/**
+	* RequestPackage to be cooked
+	*
+	* @param StandardPackageFName name of the package in standard format as returned by FPaths::MakeStandardFilename
+	* @param TargetPlatforms name of the targetplatforms we want this package cooked for
+	* @param bForceFrontOfQueue should we put this package in the front of the cook queue (next to be processed) or at the end
+	*/
+	bool RequestPackage(const FName& StandardPackageFName, const TArray<FName>& TargetPlatforms, const bool bForceFrontOfQueue);
+
+	/**
+	* RequestPackage to be cooked
+	* This function can only be called while the cooker is in cook by the book mode
+	*
+	* @param StandardPackageFName name of the package in standard format as returned by FPaths::MakeStandardFilename
+	* @param bForceFrontOfQueue should we put this package in the front of the cook queue (next to be processed) or at the end
+	*/
+	bool RequestPackage(const FName& StandardPackageFName, const bool bForceFrontOfQueue);
+
+
+	/**
 	 * Callbacks from editor 
 	 */
 
@@ -891,6 +974,14 @@ public:
 	 */
 	void MarkPackageDirtyForCooker( UPackage *Package );
 
+	/**
+	 * MaybeMarkPackageAsAlreadyLoaded
+	 * Mark the package as already loaded if we have already cooked the package for all requested target platforms
+	 * this hints to the objects on load that we don't need to load all our bulk data
+	 * 
+	 * @param Package to mark as not requiring reload
+	 */
+	void MaybeMarkPackageAsAlreadyLoaded(UPackage* Package);
 
 
 private:
@@ -915,6 +1006,28 @@ private:
 	void CookByTheBookFinished();
 
 	/**
+	 * StartChildCookers to help out with cooking
+	 * only valid in cook by the book (not from the editor)
+	 * 
+	 * @param NumChildCookersToSpawn, number of child cookers we want to use
+	 */
+	void StartChildCookers(int32 NumChildCookersToSpawn, const TArray<FName>& TargetPlatformNames );
+
+	/**
+	 * TickChildCookers
+	 * output the information form the child cookers to the main cooker output
+	 * 
+	 * @return return true if all child cookers are finished
+	 */
+	bool TickChildCookers();
+
+	/**
+	 * CleanUPChildCookers
+	 * can only be called after TickChildCookers returns true
+	 */
+	void CleanUpChildCookers();
+
+	/**
 	 * Get all the packages which are listed in asset registry passed in.  
 	 *
 	 * @param AssetRegistryPath path of the assetregistry.bin file to read
@@ -922,6 +1035,36 @@ private:
 	 * @return true if successfully read false otherwise
 	 */
 	bool GetAllPackagesFromAssetRegistry( const FString& AssetRegistryPath, TArray<FName>& OutPackageNames ) const;
+
+	/**
+	 * BuildMapDependencyGraph
+	 * builds a map of dependencies from maps
+	 * 
+	 * @param PlatformName name of the platform we want to build a map for
+	 */
+	void BuildMapDependencyGraph(const FName& PlatformName);
+
+	/**
+	* WriteMapDependencyGraph
+	* write a previously built map dependency graph out to the sandbox directory for a platform
+	*
+	* @param PlatformName name of the platform we want to save out the dependency graph for
+	*/
+	void WriteMapDependencyGraph(const FName& PlatformName);
+
+	/**
+	 * IsChildCooker, 
+	 * returns if this cooker is a sue chef for some other master chef.
+	 */
+	bool IsChildCooker() const
+	{
+		if (IsCookByTheBookMode())
+		{
+			return CookByTheBookOptions->bIsChildCooker;
+		}
+		return false;
+	}
+
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -977,6 +1120,7 @@ private:
 
 	/**
 	 * GetDependencies
+	 * get package dependencies according to the asset registry
 	 * 
 	 * @param Packages List of packages to use as the root set for dependency checking
 	 * @param Found return value, all objects which package is dependent on
@@ -984,12 +1128,40 @@ private:
 	void GetDependentPackages( const TSet<UPackage*>& Packages, TSet<FName>& Found);
 
 	/**
+	 * GetDependencies
+	 * get package dependencies according to the asset registry
+	 *
+	 * @param Root set of packages to use when looking for dependencies
+	 * @param FoundPackages list of packages which were found
+	 */
+	void GetDependentPackages(const TSet<FName>& RootPackages, TSet<FName>& FoundPackages);
+	/**
 	 * GenerateManifestInfo
 	 * generate the manifest information for a given package
 	 *
 	 * @param Package package to generate manifest information for
 	 */
 	void GenerateManifestInfo( UPackage* Package, const TArray<FName>& TargetPlatformNames );
+
+
+	/**
+	 * GenerateManifestInfo
+	 * generate manfiest information for the given package and add it to the manifest
+	 * this version is teh same as GenerateManifestInfo which takes in a UPackageObject except that doesn't require the package to be loaded
+	 *
+	 * @param Package name of the package to generate the manifest information for
+	 * @param TargetPlatformNames to add the manifest information to
+	 */
+	void GenerateManifestInfo(const FName& Package, const TArray<FName>& TargetPlatformNames);
+
+	/**
+	 * ContainsWorld
+	 * use the asset registry to determine if a Package contains a UWorld or ULevel object
+	 * 
+	 * @param PackageName to return if it contains the a UWorld object or a ULevel
+	 * @return true if the Package contains a UWorld or ULevel false otherwise
+	 */
+	bool ContainsMap(const FName& PackageName) const;
 
 	/**
 	 * GetCurrentIniVersionStrings gets the current ini version strings for compare against previous cook
@@ -1015,8 +1187,6 @@ private:
 	 */
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite = false ) const;
 	FString ConvertToFullSandboxPath( const FString &FileName, bool bForWrite, const FString& PlatformName ) const;
-
-
 
 	/**
 	 * GetSandboxAssetRegistryFilename
@@ -1045,6 +1215,13 @@ private:
 		return false;
 	}
 
+	/**
+	 * GetDLCContentPath
+	 * 
+	 * @return return the path to the source dlc content
+	 */
+	FString GetDLCContentPath();
+	
 	inline bool IsCreatingReleaseVersion()
 	{
 		if ( CookByTheBookOptions )

@@ -176,6 +176,7 @@ public:
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FText GetToolkitName() const override;
+	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual void SaveAsset_Execute() override;
@@ -206,7 +207,18 @@ public:
 	/** Refresh Preview Instance Track Curves **/
 	void RefreshPreviewInstanceTrackCurves();
 
+	void RecompileAnimBlueprintIfDirty();
+
+	/* Reference Pose Handler */
+	bool IsShowReferencePoseEnabled() const;
+	bool CanShowReferencePose() const;
+	void ShowReferencePose(bool bReferencePose);
+
 protected:
+	bool IsPreviewAssetEnabled() const;
+	bool CanPreviewAsset() const;
+	FText GetPreviewAssetTooltip() const;
+
 	// FBlueprintEditor interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
@@ -269,6 +281,7 @@ protected:
 
 protected:
 	USkeleton* TargetSkeleton;
+	TWeakObjectPtr<UObject> CachedPreviewAsset;
 
 public:
 	class UDebugSkelMeshComponent* PreviewComponent;
@@ -510,6 +523,24 @@ public:
 		OnGenericDelete.RemoveAll(Widget);
 	}
 
+	/** Broadcasts section changes */
+	FSimpleMulticastDelegate OnSectionsChanged;
+
+	// Called when a section is changed
+	typedef FSimpleMulticastDelegate::FDelegate FOnSectionsChanged;
+
+	// Register a delegate to be called when a montage section changes
+	void RegisterOnSectionsChanged(const FOnSectionsChanged& Delegate)
+	{
+		OnSectionsChanged.Add(Delegate);
+	}
+
+	// Unregister a delegate to be called when a montage section changes
+	void UnregisterOnSectionsChanged(SWidget* Widget)
+	{
+		OnSectionsChanged.RemoveAll(Widget);
+	}
+
 	/** Apply Compression to list of animations */
 	void ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences);
 	/** Export to FBX files of the list of animations */
@@ -581,6 +612,7 @@ private:
 	void OnExportToFBX();
 	void OnAddLoopingInterpolation();
 	bool HasValidAnimationSequencePlaying() const;
+	/** Return true if currently in the given mode */
 	bool IsInPersonaMode(const FName InPersonaMode) const;
 
 	/** Animation Editing Features **/

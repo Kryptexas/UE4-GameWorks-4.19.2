@@ -1,0 +1,154 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Getting Started: Developing HTML5 Projects
+Crumbs:%ROOT%, Platforms, Platforms/HTML5
+Description:Setting up for development for the HTML5 platform.
+
+[TOC(start:2 end:3)]
+
+## Disclaimer
+
+[REGION:todo]
+The HTML5 pipeline is currently experimental. Some projects may not run properly when built for the HTML5 platform. Expect some rough edges.
+[/REGION:todo]
+
+%Globals:BinarySourceSelectVar%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%binary%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%source%
+	[/PARAM]
+[/OBJECT]
+
+
+[VAR:source]
+## Source and Github Users
+
+Building HTML5 platform as a target platform is supported on both Windows and Mac Host platforms. 
+
+HTML5 uses the [**emscripten**](https://github.com/kripken/emscripten) tool chain from [Mozilla](https://www.mozilla.org/en-US/) to cross compile C++ into javascript. It is distributed in source form, published SDKs or portable distributions. UE4 build system supports all of them with few steps. 
+
+### Installing from Source: 
+
+Install prerequisites: 
+
+* [Node.js](http://nodejs.org/)
+
+* [Python (2.X series)](https://www.python.org/downloads/)
+
+	* Make sure python.exe is in the Path environment variable. 
+
+* [Java](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+
+* Clone **emscripten** repository \[[emscripten Repository](https://github.com/kripken/emscripten)\]
+
+* Clone **Fastcomp** repository and build it \[[howto](http://kripken.github.io/emscripten-site/docs/building_from_source/building_fastcomp_manually_from_source.html)\]
+
+### .emscripten Config File Setup
+
+The **emscripten** tool chain a needs a config file .emscripten to function properly. Follow this emscripten [document](http://kripken.github.io/emscripten-site/docs/building_from_source/configuring_emscripten_settings.html) to setup the file correctly. 
+
+### Installing from SDK. 
+
+Follow instructions on emscripten [website](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). It’s normally best to install the latest SDK version.
+
+### Unreal Engine 4 Setup. 
+
+* Fork and clone the Unreal Engine 4 repository \[[UnrealEngine](https://github.com/EpicGames/UnrealEngine)\]
+
+* Within a shell run `Setup.bat -include=HTML5`
+
+* Edit  `Engine\Config\HTML5\HTML5Engine.ini` and setup path to the SDK for your OS under `\[HTML5SDkPaths\]` section. Add the section if required. Also add the path to your Python install, normally this is included in you emscripten SDK install. If Python is on your PATH you can skip this step. It should look like: 
+
+		\[HTML5SDKPaths\]
+		Emscripten="C:/Program Files/Emscripten/emscripten/X.YY.Z"
+		Python="C:/Program Files/Emscripten/python/X.YY.Z_64bit/python.exe"
+
+If you need to specify different paths for different OSs you can do the following
+
+	\[HTML5SDKPaths\]
+	Windows="C:/html5sdk/path/on/windows"
+	Mac="/html5sdk/path/on/mac”
+
+Make sure you have major browsers installed and links in `HTML5Engine.ini` under `\[HTML5DevicesWindows\]` section point to the right browser binaries. 
+
+For example:
+
+	\[HTML5DevicesWindows\]
+	Firefox="C:/Program Files (x86)/Mozilla Firefox/firefox.exe”
+	Chrome(32bit)="C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"
+	Chrome(64bit)="C:/Program Files/Google/Chrome/Application/chrome.exe"
+
+Follow the instuctions on [https://github.com/EpicGames/UnrealEngine](https://github.com/EpicGames/UnrealEngine) to build the editor.  Set your solution configuration to **Development** and your solution platform to **HTML5** to build HTML5. 
+
+### Mac OS
+
+Please refer to [http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html#verifying-the-installation) for emscripten on Mac OS issues. And follow the above steps to setup UE4. Right now there’s no way to build HTML5 within xcode - however you can build HTML5 from command line using existing scripts which are invoked by xcode.  e.g.
+
+	Engine\Build\Batchfiles\Mac\Build.sh UE4Game HTML5 Development
+
+[/VAR]
+
+
+
+
+
+
+[VAR:binary]
+
+## Binary and Launcher Users
+
+1. [Install emscripten](http://kripken.github.io/emscripten-site/docs/getting_started/downloads.html). For Windows users, it's advised to simply use the [emscripten SDK Web Installer](https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-1.29.0-web-64bit.exe).
+
+	[REGION:note]
+	Though the web installer for emscripten will append its path to the System Path environment variable, just check to make sure it was.
+	[/REGION]
+
+1. [Install Python 2.7](https://www.python.org/download/releases/2.7/)
+
+	Any version of Python **2.7** will do. As of this writing, 2.7.9 is the latest 2.7 release. Do not use Python 3.X.
+
+1. Update your `Engine\Config\HTML5\HTML5Engine.ini` file:
+
+		[HTML5SDKPaths]
+		Mac="/path/to/emscripten/sdk"
+		Emscripten="C:/Program Files/Emscripten/emscripten/1.29.0"
+		Python="C:/Python27"
+
+[REGION:warning]
+If you choose to install anything into a different location, such as Chrome or Firefox, make sure to change it in this file.
+[/REGION]
+
+
+### 64-bit browser requirement
+
+A 64-bit browser is currently required to run HTML5 builds.
+
+* [Download Firefox nightlies](ftp://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-mozilla-central/)
+* [Download Chromium builds](http://chromium.woolyss.com/#windows-64-bit)
+
+[/VAR]
+
+

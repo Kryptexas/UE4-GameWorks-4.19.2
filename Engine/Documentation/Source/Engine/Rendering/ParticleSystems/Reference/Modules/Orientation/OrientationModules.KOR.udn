@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Orientation 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,11 +6,9 @@ Description:파티클의 오리엔테이션, 즉 일정한 축에 대한 회전�
 
 [TOC(start:2 end:3)]
 
-## Orientation 모듈
-
 파티클의 오리엔테이션, 즉 일정한 축에 대한 회전을 못하게 하는 모듈입니다.
 
-### Axis Lock
+## Axis Lock
 
 Axis Lock (축 고정)은 파티클을 주어진 축에 고정시키는 데 사용되는 모듈입니다. 현재 이 모듈은 스프라이트 기반 모듈 전용입니다. 포함된 멤버는 다음과 같습니다:
 

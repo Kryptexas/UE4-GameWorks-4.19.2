@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2464839
+﻿INTSourceChangelist:2559056
 Availability:Public
 Title:2.Android Device を設定する
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -46,7 +46,7 @@ Description:Android Device を開発用に設定する
 	* デバイスが表示されてはいても権限がないことが表示される場合は、デバイスに PC に認証させるかどうかを尋ねさせる必要があります。
 	* デバイスを表示させるためには、デバイスをアンプラグし再接続する必要のある場合があります。
 	* [Always allow] チェックボックスにチェックを入れておくことを推奨します。
-	* **Camera (PTP)** ではなく **Media Device (MTP)** として接続されている場合、正しく設定されているデバイスが表示されない場合があります。この段階でご自分のデバイスが「adb devices」として全く表示されない場合は、 **Camera (PTP)** オプションを選択してください。
+	* **Camera (PTP)** ではなく **Media Device (MTP)** として接続されている場合、正しく設定されているデバイスが表示されない場合があります。この段階でご自分のデバイスが `adb devices`として全く表示されない場合は、 **Camera (PTP)** オプションを選択してください。
 
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2368981
+﻿INTSourceChangelist:2595379
 Availability: Public
 Title: UE4 에서 SVN 소스 콘트롤 사용하기
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
@@ -139,7 +139,7 @@ Mac 에서는 암호와 같은 보안 정보 저장 방식이 다르기 때문�
 로그에 다음과 같은 에러가 보이면 이 단계를 밟아줘야 합니다:
 
 	E175002: Unexpected HTTP status 400 'Bad Request' on '/projectname/'
-	E175002: Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/�
+	E175002: Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/'
 	E215004: Authentication failed and interactive prompting is disabled; see the --force-interactive option
 	E215004: No more credentials or we tried too many times.
 
@@ -159,5 +159,10 @@ Mac 에서는 암호와 같은 보안 정보 저장 방식이 다르기 때문�
 	Password for 'me':
 
 암호를 입력하면 키체인에 저장됩니다. 이제부터는 에디터에서 정상적으로 접속이 가능할 것입니다.
+
+
+
+
+
 
 

@@ -103,8 +103,8 @@ struct FParticleEmitterBuildInfo
 	/** Enable collision? */
 	bool bEnableCollision;
 	/** How particles respond to collision. */
-	//EParticleCollisionResponse::Type CollisionResponse;
 	uint8 CollisionResponse;
+	uint8 CollisionMode;
 	/** Radius scale applied to friction. */
 	float CollisionRadiusScale;
 	/** Bias applied to the collision radius. */

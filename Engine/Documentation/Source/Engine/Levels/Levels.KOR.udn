@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2417096
+﻿INTSourceChangelist:2604022
 Availability: Public
 Title:레벨
 Crumbs: %ROOT%, Engine
@@ -8,10 +8,49 @@ Related: Engine/Actors
 Related: Engine/LevelStreaming
 Related: Resources/ContentExamples/LevelDesign
 
+[VAR:Topic]
+[OBJECT:Topic]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+	[PARAM:image]
+		![%Engine/Levels:title%](level_topic.png)(convert:false)
+	[/PARAM]
+	[PARAM:icon]
+		![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Engine/Levels:title%
+	[/PARAM]
+	[PARAM:description]
+		%Engine/Levels:description%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Engine/Levels]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
 [TOC(start:2 end:3)]
 
 ![](Level_Intro.png)
-## 개요
+
 비디오 게임을 플레이할 때, 월드에서 보거나 만지는 모든 오브젝트는 **Level**, 레벨이라 불리는 것에 들어있습니다. 언리얼 엔진 4 용어로 레벨이란 스태틱 메시, 볼륨, 라이트, 블루프린트 등으로 이루어진 것으로, 이 모든 것이 어우러져 플레이어에게 바람직한 경험을 선사해 줍니다. UE4 의 레벨 규모는 거대 지형 기반 월드에서 미니 게임 하나면 꽉 찰 매우 작은 레벨까지 이릅니다. 이 가이드에서는 UE4 에서 레벨을 만들고 관리하는 데 있어 알아야 할 모든 것들을 알려드리겠습니다.
 
 ## 레벨 제작 방법
@@ -148,6 +187,11 @@ UE4 에서 레벨 저장하기는 다음과 같이 매우 간단합니다.
 * 이 오류 메시지는, content 폴더가 아닌 다른 위치에 콘텐츠를 이주시키고자 했다는 뜻입니다. 이주시킨 콘텐츠의 정상 작동을 위해서는, 반드시 프로젝트의 메인 **Content** 폴더를 사용했는지 확인해야 합니다. 그렇지 않은 경우, 이주가 정상 작동하지 않을 수 있는 위험이 있습니다.
 
 	![](Level_Error_Level_Not_In_Content_Folder.png)
+
+
+
+
+
 
 
 

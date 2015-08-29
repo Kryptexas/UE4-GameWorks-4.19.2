@@ -68,7 +68,6 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='debug|Win32'">
 		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
 			<StringPooling>true</StringPooling>
 			<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
 			<RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -115,7 +114,6 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='checked|Win32'">
 		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
 			<StringPooling>true</StringPooling>
 			<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
 			<RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -161,7 +159,6 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='profile|Win32'">
 		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
 			<StringPooling>true</StringPooling>
 			<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
 			<RuntimeTypeInfo>false</RuntimeTypeInfo>
@@ -207,7 +204,6 @@
 	</PropertyGroup>
 	<ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='release|Win32'">
 		<ClCompile>
-			<TreatWarningAsError>true</TreatWarningAsError>
 			<StringPooling>true</StringPooling>
 			<EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
 			<RuntimeTypeInfo>false</RuntimeTypeInfo>

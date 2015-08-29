@@ -1,0 +1,18 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Interfaces
+Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference
+Description:Reference to creating and implementing interfaces.
+Version: 4.5
+
+[TOC(start:2)]
+
+
+Declaring an interface class is very similar to declaring a regular class. The only major difference in the syntax is the descriptors are passed to the `UINTERFACE` macro instead of the `UCLASS` macro.
+
+	UINTERFACE([specifier, specifier, ...], [meta(key=value, key=value, ...)])
+	class ClassName : ParentName
+
+## Interface Specifiers
+
+[INCLUDE:Programming/UnrealArchitecture/Reference/Interfaces/Specifiers#main(offset:1)]

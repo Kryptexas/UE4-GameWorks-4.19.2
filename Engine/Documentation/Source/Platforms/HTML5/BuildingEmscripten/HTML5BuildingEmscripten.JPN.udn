@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2406382
+﻿INTSourceChangelist:2559454
 Availability:Docs
 Title:ソースから Emscripten をビルドする
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
@@ -36,7 +36,7 @@ Fastcomp-enabled LLVM backend の取得は 4 つのステップで行います�
 
 1. Emscripten ソース レポジトリの特定のバージョンを複製します。
 2. LLVM ソリューション ファイルを生成します。
-3.  ソリューション ファイルをコンパイルします。
+3. ソリューション ファイルをコンパイルします。
 4. 環境変数を更新します。
 
 ### Emscripten SDK の入力ブランチの複製
@@ -77,4 +77,4 @@ CMake コマンドは LLVM.sln を出力します。それを Visual Studio 2010
 
 Emscripten の通常のインストール プロセスでは、すべての環境変数が正しく設定されていることを確認する必要があります。ソースから Emscripten をビルドする手順の性質上、これらの変数のほとんどを修正する必要があると思われます。
 
-詳細は [](Platforms/HTML5/GettingStarted) ページの [環境変数](Platforms/HTML5/GettingStarted#環境変数) セクションを参照ください。
+詳細は [](Platforms/HTML5/GettingStarted) ページを参照ください。

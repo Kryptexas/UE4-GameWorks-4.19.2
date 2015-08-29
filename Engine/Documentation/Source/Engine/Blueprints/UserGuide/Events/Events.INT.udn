@@ -46,8 +46,6 @@ Description: Nodes that are called from gameplay code to begin execution of an i
 
 [TOC (start:2)]
 
-## Overview
-
 [EXCERPT:Intro]
 **Events** are nodes that are called from gameplay code to begin execution of an individual network 
 within the **EventGraph**. They allow _Blueprints_ to perform a series of actions in response to 
@@ -92,7 +90,7 @@ This Blueprint Event node executes only on the server. For single player games, 
 
 ![LevelReset.png](LevelReset.png)
 
-The LevelReset events sends out an execution signal when the level restarts. This is useful when you 
+The LevelReset event sends out an execution signal when the level restarts. This is useful when you 
 need something to be triggered once a level has reloaded, such as in a gaming situation when the player 
 has died but the level does not need to reload.
 
@@ -155,7 +153,7 @@ This event will only execute if the collision settings on both Actors involved i
 | **My Comp** | **PrimitiveComponent** - The Component on the executing Actor that was hit. |
 | **Other** | **Actor** - The other Actor involved in the collision. |
 | **Other Comp** | **PrimitiveComponent** - The component on the other Actor involved in the collision that was hit. |
-| **Self Moved** | **Boolean** - |
+| **Self Moved** | **Boolean** - Used when receiving a hit from another object's movement (if false), the directions of Hit Normal and Hit Impact Normal will be adjusted to indicate force from the other object against the object being hit. |
 | **Hit Location** | **Vector** - The location of contact between the two colliding Actors. |
 | **Hit Normal** | **Vector** - The direction of the collision. |
 | **Normal Impulse** | **Vector** - The force that the Actors collided with. |

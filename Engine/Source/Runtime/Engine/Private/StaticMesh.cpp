@@ -1024,6 +1024,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bRecomputeTangents;
 	Ar << BuildSettings.bUseMikkTSpace;
 	Ar << BuildSettings.bRemoveDegenerates;
+	Ar << BuildSettings.bBuildAdjacencyBuffer;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1239,6 +1240,17 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 	MinLOD = 0;
 }
 
+void UStaticMesh::PostInitProperties()
+{
+#if WITH_EDITORONLY_DATA
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+#endif
+	Super::PostInitProperties();
+}
+
 /**
  * Initializes the static mesh's render resources.
  */
@@ -1367,12 +1379,12 @@ bool UStaticMesh::HasValidRenderData() const
 
 FBoxSphereBounds UStaticMesh::GetBounds() const
 {
-	FBoxSphereBounds Bounds(ForceInit);
-	if (RenderData)
-	{
-		Bounds = RenderData->Bounds;
-	}
-	return Bounds;
+	return ExtendedBounds;
+}
+
+FBox UStaticMesh::GetBoundingBox() const
+{
+	return ExtendedBounds.GetBox();
 }
 
 float UStaticMesh::GetStreamingTextureFactor(int32 RequestedUVIndex)
@@ -1461,6 +1473,11 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 		GEngine->TriggerStreamingDataRebuild();
 	}
 
+	if (PropertyChangedEvent.MemberProperty && ( (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, PositiveBoundsExtension) ) || ( PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, NegativeBoundsExtension) ) ))
+	{
+		// Update the extended bounds
+		CalculateExtendedBounds();
+	}
 	AutoLODPixelError = FMath::Max(AutoLODPixelError, 1.0f);
 
 	if (!bAutoComputeLODScreenSize
@@ -1539,7 +1556,7 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 #if WITH_EDITORONLY_DATA
 	if (AssetImportData)
 	{
-		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
 	}
 #endif
 
@@ -1748,6 +1765,29 @@ void UStaticMesh::CacheDerivedData()
 		}
 	}
 }
+
+void UStaticMesh::CalculateExtendedBounds()
+{
+	FBoxSphereBounds Bounds(ForceInit);
+	if (RenderData)
+	{
+		Bounds = RenderData->Bounds;
+	}
+
+	// Convert to Min and Max
+	FVector Min = Bounds.Origin - Bounds.BoxExtent;
+	FVector Max = Bounds.Origin + Bounds.BoxExtent;
+	// Apply bound extensions
+	Min -= NegativeBoundsExtension;
+	Max += PositiveBoundsExtension;
+	// Convert back to Origin, Extent and update SphereRadius
+	Bounds.Origin = (Min + Max) / 2;
+	Bounds.BoxExtent = (Max - Min) / 2;	
+	Bounds.SphereRadius = Bounds.BoxExtent.GetAbsMax();
+
+	ExtendedBounds = Bounds;
+}
+
 #endif // #if WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
@@ -1873,16 +1913,20 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITORONLY_DATA
-	// SourceFilePath and SourceFileTimestamp were moved into a subobject
-	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_FBX_ASSET_IMPORT_DATA )
+	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ASSET_IMPORT_DATA_AS_JSON && !AssetImportData)
 	{
-		if ( AssetImportData == NULL )
-		{
-			AssetImportData = NewObject<UAssetImportData>(this);
-		}
-
-		AssetImportData->SourceFilePath = SourceFilePath_DEPRECATED;
-		AssetImportData->SourceFileTimestamp = SourceFileTimestamp_DEPRECATED;
+		// AssetImportData should always be valid
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+	
+	// SourceFilePath and SourceFileTimestamp were moved into a subobject
+	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ADDED_FBX_ASSET_IMPORT_DATA && AssetImportData )
+	{
+		// AssetImportData should always have been set up in the constructor where this is relevant
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
+		AssetImportData->SourceData = MoveTemp(Info);
+		
 		SourceFilePath_DEPRECATED = TEXT("");
 		SourceFileTimestamp_DEPRECATED = TEXT("");
 	}
@@ -1922,6 +1966,27 @@ void UStaticMesh::PostLoad()
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
 		{
 			SourceModels[i].BuildSettings.bUseMikkTSpace = true;
+		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED)
+	{
+		FRawMesh TempRawMesh;
+		uint32 TotalIndexCount = 0;
+
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			FRawMeshBulkData* RawMeshBulkData = SourceModels[i].RawMeshBulkData;
+			if (RawMeshBulkData)
+			{
+				RawMeshBulkData->LoadRawMesh(TempRawMesh);
+				TotalIndexCount += TempRawMesh.WedgeIndices.Num();
+			}
+		}
+
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			SourceModels[i].BuildSettings.bBuildAdjacencyBuffer = (TotalIndexCount < 50000);
 		}
 	}
 
@@ -1966,6 +2031,13 @@ void UStaticMesh::PostLoad()
 	{
 		InitResources();
 	}
+
+#if WITH_EDITOR
+	if (GetLinkerUE4Version() < VER_UE4_STATIC_MESH_EXTENDED_BOUNDS)
+	{
+		CalculateExtendedBounds();
+	}
+#endif // #if WITH_EDITOR
 
 	// We want to always have a BodySetup, its used for per-poly collision as well
 	if(BodySetup == NULL)
@@ -2249,9 +2321,16 @@ void UStaticMesh::EnforceLightmapRestrictions()
 
 	int32 NumUVs = 16;
 
-	for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+	if (RenderData)
 	{
-		NumUVs = FMath::Min(RenderData->LODResources[LODIndex].GetNumTexCoords(), NumUVs);
+		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+		{
+			NumUVs = FMath::Min(RenderData->LODResources[LODIndex].GetNumTexCoords(),NumUVs);
+		}
+	}
+	else
+	{
+		NumUVs = 1;
 	}
 
 	// Clamp LightMapCoordinateIndex to be valid for all lightmap uvs
@@ -2269,6 +2348,14 @@ void UStaticMesh::EnforceLightmapRestrictions()
  */
 void UStaticMesh::CheckLightMapUVs( UStaticMesh* InStaticMesh, TArray< FString >& InOutAssetsWithMissingUVSets, TArray< FString >& InOutAssetsWithBadUVSets, TArray< FString >& InOutAssetsWithValidUVSets, bool bInVerbose )
 {
+	static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+	const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
+	if (!bAllowStaticLighting)
+	{
+		// We do not need to check for lightmap UV problems when we do not allow static lighting
+		return;
+	}
+
 	struct FLocal
 	{
 		/**
@@ -2520,7 +2607,7 @@ UMaterialInterface* UStaticMesh::GetMaterial(int32 MaterialIndex) const
  * Returns the render data to use for exporting the specified LOD. This method should always
  * be called when exporting a static mesh.
  */
-FStaticMeshLODResources& UStaticMesh::GetLODForExport( int32 LODIndex )
+const FStaticMeshLODResources& UStaticMesh::GetLODForExport(int32 LODIndex) const
 {
 	check(RenderData);
 	LODIndex = FMath::Clamp<int32>( LODIndex, 0, RenderData->LODResources.Num()-1 );
@@ -2684,8 +2771,11 @@ bool UStaticMeshSocket::AttachActor(AActor* Actor,  UStaticMeshComponent* MeshCo
 			Actor->GetRootComponent()->SnapTo( MeshComp, SocketName );
 
 #if WITH_EDITOR
-			Actor->PreEditChange( NULL );
-			Actor->PostEditChange();
+			if (GIsEditor)
+			{
+				Actor->PreEditChange(NULL);
+				Actor->PostEditChange();
+			}
 #endif // WITH_EDITOR
 
 			bAttached = true;

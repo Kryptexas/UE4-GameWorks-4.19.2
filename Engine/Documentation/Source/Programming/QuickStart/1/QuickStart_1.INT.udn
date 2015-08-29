@@ -1,7 +1,9 @@
 Availability: Public
-Title:1. Essential Project Setup
+Title:1 - Essential Project Setup
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:Creating a new project with the specifications we need
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -19,6 +21,11 @@ Description:Creating a new project with the specifications we need
 [/VAR]
 
 %Steps%
+
+[REGION:note]
+You should have a copy of **Visual Studio 2013** for Deskstop (Preferably Community or Professional) installed before starting this tutorial.
+[/REGION]
+
 1. Open **Unreal Engine** from the Launcher. The [](Engine/Basics/Projects/Browser) will appear.
 
 1. Click on the **New Project** tab and then select the **C++** tab. From there, select **Basic Code** so we have a clean starting point, and make sure "With Starter Content" is set. We'll need to enter a project name, so we'll use "QuickStart". We can now click **Create Project** and get started.
@@ -27,6 +34,6 @@ Description:Creating a new project with the specifications we need
 
 ----
 
-The **Unreal Editor** will now open our new project.
+The **Unreal Editor** will now open our new project. **Visual Studio** will also open and load the solution file that our project has created.
 
 %Steps%

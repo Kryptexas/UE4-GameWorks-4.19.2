@@ -59,6 +59,15 @@ void FNiagaraOpInfo::Init()
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Multiply);
 
+	Op = &OpInfos.Add(Divide);
+	Op->Name = Divide;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Divide Name", "Divide");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Divide Desc", "Result = A / B = {{A.x / B.x, A.y / B.y, A.z / B.z, A.w / B.w}}");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
+	Op->OpDelegate.BindStatic(&INiagaraCompiler::Divide);
+
 	Op = &OpInfos.Add(MultiplyAdd);
 	Op->Name = MultiplyAdd;
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "MultiplyAdd Name", "MultiplyAdd");
@@ -441,7 +450,7 @@ void FNiagaraOpInfo::Init()
 
 	Op = &OpInfos.Add(Split);
 	Op->Name = Split;
-	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Split Name", "Compose");
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Split Name", "Split");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Split Desc", "X = A.xxxx, Y = A.yyyy, Z = A.zzzz, W = A.wwww");
 	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(X, ENiagaraDataType::Vector, XText, XText, DefaultStr_VecOne));
@@ -605,7 +614,7 @@ TMap<FName, FNiagaraOpInfo>& FNiagaraOpInfo::GetOpInfoMap()
 
 //Debugging variant that checks inputs and outputs match expectations of FNiagaraOpInfo.
 #if DO_CHECK
-#define NiagaraOp(OpName) void INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
+#define NiagaraOp(OpName) bool INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
 {\
 	Compiler->CheckInputs(FNiagaraOpInfo::OpName, InputExpressions); \
 	return Compiler->OpName##_Internal(InputExpressions, OutputExpressions); \
@@ -616,7 +625,7 @@ NiagaraOpList
 
 #else//DO_CHECK
 
-#define NiagaraOp(OpName) void INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
+#define NiagaraOp(OpName) bool INiagaraCompiler::OpName(INiagaraCompiler* Compiler, TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)\
 { \
 	return Compiler->OpName##_Internal(InputExpressions, OutputExpressions); \
 }

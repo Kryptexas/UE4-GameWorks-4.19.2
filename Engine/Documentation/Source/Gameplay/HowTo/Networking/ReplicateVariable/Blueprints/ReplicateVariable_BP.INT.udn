@@ -1,5 +1,5 @@
 Availability: Public
-Title:How to Replicate Variables in Blueprints
+Title:Replicating Variables in Blueprints
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking\ReplicateVariable
 Description:Guide to using Replicated and RepNotify Variables in Blueprints.
 Related: Engine/Blueprints
@@ -7,8 +7,6 @@ Related: Resources/ContentExamples/Networking
 
 
 [TOC (start:2 end:2)]
-
-## Overview
 
 [INCLUDE:Gameplay/HowTo/Networking/ReplicateVariable#overview]
 
@@ -18,23 +16,25 @@ This page covers some sample use cases for both **Replicated** variables and a *
 
  _For this example, we are using the **Blueprint Third Person Template with Starter Content**._
 
-In this example, we will create a **Replicated** variable that is used for a countdown timer that both the Server and Clients can see. 
+In this example, we will create a Replicated variable that is used for a countdown timer that both the Server and Clients can see. 
 
-1.	Inside the **Game/StarterContent/Blueprints** folder, open the **Blueprint_Effect_Fire** Blueprint and click the **Defaults** tab. 
+1.	Inside the **Content/StarterContent/Blueprints** folder, open the **Blueprint_Effect_Fire** Blueprint. 
 
-1.	Under **Replication**, check the **Replicates** option to enable this Blueprint for replication. 
+1.	With **Class Defaults** selected, in the **Details** panel Under **Replication**, check the **Replicates** option. 
 
 	![](HT_0.png)
 
-1.	Click the **Components** tab, then click the **Add Component** button and search for and add a **Text Render** component. 
+	This will ensure that this Blueprint is replicated across the network to all connect machines. 
+
+1.	In the **Components** window, click the **Add Component** button and search for and add a **Text Render** component. 
 
 	![](HT_1.png)
 
-1.	Inside the viewport, move the text to a desired location so that it is more visible. 
+1.	On the **Viewport** tab, move the text to a desired location above the fire so that it is more visible. 
 
 	![](HT_2.png)
 
-1.	Click the **Graph** tab, **Right-click** in the graph and add an **Event Begin Play** node. 
+1.	Click the **Event Graph** tab, **Right-click** in the graph and add an **Event Begin Play** node. 
 
 1.	Drag off the **Event Begin Play**, search for and add the **Switch Has Authority** node. 
 
@@ -42,17 +42,17 @@ In this example, we will create a **Replicated** variable that is used for a cou
 
 	![](HT_3.png)
 
-	Here we used the **Switch Has Authority** node to call the **Set Timer** function only on the Authority (Server) when this Blueprint is spawned. We are using this node to ensure that the Timer function is executed by the server only and not by a client. If this script were to be handling game critical data, we would only want the server to execute it then replicate any data to client machines rather than the client run it as to prevent any cheating. 
+	Here we used the Switch Has Authority node to call the Set Timer function only on the Authority (Server) when this Blueprint is spawned. We are using this node to ensure that the Timer function is executed by the server only and not by a client. If this script were to be handling game critical data, we would only want the server to execute it then replicate any data to client machines rather than the client run it as to prevent any cheating. 
 
-1.	In the **MyBlueprint** window, create a new **Integer** variable called **CountDownTimer**. 
+1.	In the **MyBlueprint** window, create a new variable called **CountDownTimer**. 
 
-1.	Click **Compile**, then set the **Default Value** for the timer to **10**. 
+1.	In the **Details** panel for the variable, change it to an **Integer** type, **Compile** and set the **Default Value** to **10**. 
 
 	![](HT_4.png)
 
-1.	**Right-click** in the graph and create a new **Custom Event** called **Update Timer**. 
+1.	**Right-click** in the graph and create a new **Custom Event** and call it **Update Timer**. 
 
-1.	Connect the event to a **Branch** node, then off the **True** pin, add the **Set CountDownTimer** node. 
+1.	Connect **Update Timer** to a **Branch** node, then off the **True** pin, add the **Set CountDownTimer** node. 
 
 1.	**Right-click** in the graph and add the **Get CountDownTimer** node, then drag off it and use the **Int - Int** node and enter 1 in the box. 
 
@@ -70,13 +70,13 @@ In this example, we will create a **Replicated** variable that is used for a cou
 
 1.	**Right-click** in the graph and add the **Event Tick** node. 
 
-1.	Hold **Control** and drag in the **TextRender1** component from the **MyBlueprint** window, then drag off it and use the **Set Text** node. 
+1.	Hold **Control** and drag in the **TextRender** component from the **MyBlueprint** window, then drag off it and use the **Set Text** node. 
 
 1.	Hold **Control** and drag in the **CountDownTimer** variable and plug it into the **Value** of the **Set Text** node. 
 
 	![](HT_7.png)
 
-	Here we are using a simple method to update the text in our text render to display to the value of the **CountDownTimer**. 
+	A conversion node will automatically be created and here we are setting the text to the value of our countdown timer. 
 
 1.	**Compile** and **Save** then close the Blueprint. 
 
@@ -84,13 +84,11 @@ In this example, we will create a **Replicated** variable that is used for a cou
 
 	![](HT_9.png)
 
-1.	Select the **PlayerStart** icon in the level, press **Control+W** to duplicate it. 
+1.	On the Main Toolbar, click the down arrow next to the **Play** button and set the **Number of Players** to 2. 
 
-1.	Arrange the **PlayerStart** and the fire effect in the level so that it is positioned in front of the player starts. 
-
-	![](HT_10.png)
-
-1.	On the Main Toolbar, click the down arrow next to the **Play** button and set the **Number of Players** to 2 (or greater). 
+	[REGION:raw]
+	![](NoOfPlayers.png)
+	[/REGION]
 
 1.	Click the **Play** button to play in the editor. 
 
@@ -100,35 +98,35 @@ In this example, we will create a **Replicated** variable that is used for a cou
 
 1.	Return to the **Blueprint_Effect_Fire** Blueprint. 
 
-1.	In the **MyBlueprint** window, click on the **CountDownTimer** variable and change the **Replication** option to use **Replicated**. 
+1.	In the **Details** panel for the **CountDownTimer** variable, under **Replication**, set it to **Replicated**. 
 
 	![](HT_12.png)
 
-1.	The graph should update, the **CountDownTimer** variable will also show an error and an icon will appear above the node. 
+	This will enable this property to be replicated to connected machines. 
+
+1.	The graph will update and each of the instances of the **CountDownTimer** variable will contain a replicated icon. 
 
 	![](HT_13.png)
-
-	When you click **Compile**, the error message will go away. The icon however (in the yellow box above) indicates that the variable is set to **Replicated** and makes it easier to determine which variables are replicated and which are not when looking at them in the graph. 
 
 1.	**Compile** and **Save** then close the Blueprint and play in the editor. 
 
 	![](HT_14.png)
 
-	You should now see both the server and the client counting down from 10 and displaying the text appropriately. While we are using the integer to update a text render, this variable could just as easily be used to represent a player characters health, ammo, or other gameplay related variable. 
+	You will now see both the server and the client counting down from 10 and displaying the text appropriately. While we are using the integer to update a text render, this variable could just as easily be used to represent a player characters health, ammo, or other gameplay related variable. 
 
 
 
 ## RepNotify
 
- _For this example, we are continuing from the **Replicated** example provided above._
+ _For this example, we are continuing from the Replicated example provided above._
 
-In the **Replicated** example provided above, we created a countdown timer that is displayed on both the Server and Client. In this example, we will use a **RepNotify** variable to signal when the countdown timer reaches 0 at which point we will deactivate the fire effect on both the server and the client machines. 
+In the Replicated example provided above, we created a countdown timer that is displayed on both the Server and Client. In this example, we will use a RepNotify variable to signal when the countdown timer reaches 0 at which point we will deactivate the fire effect on both the server and the client machines. 
 
-1.	Inside the **Game/StarterContent/Blueprints** folder, open the **Blueprint_Effect_Fire** Blueprint. 
+1.	Open the **Blueprint_Effect_Fire** Blueprint. 
 
 1.	In the **MyBlueprint** window, hold **Control** and drag in the **P_Fire** effect, then drag off it and use the **Deactivate** node. 
 
-1. Off the **False** pin of the **Branch** connected to **Update** timer, connect it to the **Deactivate** node. 
+1. Off the **False** pin of the **Branch** connected to **UpdateTimer**, connect the **Deactivate** node as shown below. 
 
 	![](HT_15.png)
 
@@ -138,7 +136,7 @@ In the **Replicated** example provided above, we created a countdown timer that 
 
 	![](HT_16.png)
 
-	When you play in the editor, you should see that the fire effect is deactivated when reaching 0 only on the server. 
+	When you play in the editor, you will see that the fire effect is deactivated when reaching 0 only on the server. 
 
 1.	Return to the **Blueprint_Effect_Fire** Blueprint and create a new variable of the **Boolean** type called **Deactivate**. 
 
@@ -146,11 +144,11 @@ In the **Replicated** example provided above, we created a countdown timer that 
 
 	![](HT_17.png)
 
-1.	After setting the variable to **RepNotify**, you should see that a new Function has been automatically created. 
+1.	After setting the variable to **RepNotify**, you will see that a new Function has been automatically created. 
 
 	![](HT_18.png)
 
-	This function will be called whenever the variable we assigned as **RepNotify** changes and will be executed on both the server and client machines. 
+	This is called whenever the variable we assigned as RepNotify changes and will be executed on both the server and client machines. 
 
 1.	**Double-click** on the **On Rep Deactivate** Function to open it up. 
 
@@ -170,6 +168,6 @@ In the **Replicated** example provided above, we created a countdown timer that 
 
 	![](HT_21.png)
 
-	When you play in the editor this time, you should see that both client and server deactivate the fire effect when the timer reaches 0. 
+	When you play in the editor this time, you will see that both client and server deactivate the fire effect when the timer reaches 0. 
 
 

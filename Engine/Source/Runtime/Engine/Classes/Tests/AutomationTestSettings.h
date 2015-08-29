@@ -242,6 +242,42 @@ struct FBuildPromotionNewProjectSettings
 };
 
 /**
+* Holds settings for the material editor build promotion tests
+*/
+USTRUCT()
+struct FMaterialEditorPromotionSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath DefaultMaterialAsset;
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath DefaultDiffuseTexture;
+
+	/** Default material asset to apply to static meshes **/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath DefaultNormalTexture;
+
+};
+
+
+/**
+* Holds settings for the particle editor build promotion tests
+*/
+USTRUCT()
+struct FParticleEditorPromotionSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Default particle asset to use for tests*/
+	UPROPERTY(EditAnywhere, Category = Automation, meta = (FilePathFilter = "uasset"))
+	FFilePath DefaultParticleAsset;
+};
+
+/**
 * Holds settings for the editor build promotion test
 */
 USTRUCT()
@@ -335,6 +371,18 @@ public:
 	*/
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	FBuildPromotionTestSettings BuildPromotionTest;
+
+	/**
+	* Material editor promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FMaterialEditorPromotionSettings MaterialEditorPromotionTest;
+
+	/**
+	* Particle editor promotion test settings
+	*/
+	UPROPERTY(EditAnywhere, config, Category = Automation)
+	FParticleEditorPromotionSettings ParticleEditorPromotionTest;
 
 	/**
 	* Modules to load that have engine tests

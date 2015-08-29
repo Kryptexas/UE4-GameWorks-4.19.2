@@ -36,13 +36,15 @@
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
 
+extern TAutoConsoleVariable<int32> CVarEnableClothPhysics;
+
 void FSkeletalMeshComponentPreClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(FSkeletalMeshComponentPreClothTickFunction_ExecuteTick);
 
 	if ((TickType == LEVELTICK_All) && Target && !Target->HasAnyFlags(RF_PendingKill | RF_Unreachable))
 	{
-		Target->PreClothTick(DeltaTime);
+		Target->PreClothTick(DeltaTime, *this);
 	}
 }
 
@@ -60,7 +62,7 @@ void FClothingActor::Clear(bool bReleaseResource)
 {
 	if(bReleaseResource)
 	{
-		PhysScene->DeferredCommandHandler.DeferredRelease(ApexClothingActor);
+		GPhysCommandHandler->DeferredRelease(ApexClothingActor);
 	}
 
 	ParentClothingAsset = NULL;
@@ -454,6 +456,8 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 			}
 		}
 	}
+
+	UpdatePreClothTickRegisteredState();
 }
 
 void USkeletalMeshComponent::OnComponentCollisionSettingsChanged()
@@ -589,7 +593,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			FVector DeltaLoc = NewPos - RootBodyTM.GetLocation();
 			RootBodyTM.SetTranslation(NewPos);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 #if DO_CHECK
 			FVector RelativeVector = (RootBI->GetUnrealWorldTransform().GetLocation() - NewPos);
@@ -606,7 +610,7 @@ void USkeletalMeshComponent::SetAllPhysicsPosition(FVector NewPos)
 
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLoc);
-					BI->SetBodyTransform(BodyTM, true);
+					BI->SetBodyTransform(BodyTM, ETeleportType::TeleportPhysics);
 				}
 			}
 
@@ -630,7 +634,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			FQuat DeltaQuat = RootBodyTM.GetRotation().Inverse() * NewRotQuat;
 			RootBodyTM.SetRotation(NewRotQuat);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
@@ -642,7 +646,7 @@ void USkeletalMeshComponent::SetAllPhysicsRotation(FRotator NewRot)
 
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaQuat);
-					BI->SetBodyTransform( BodyTM, true );
+					BI->SetBodyTransform( BodyTM, ETeleportType::TeleportPhysics );
 				}
 			}
 
@@ -665,7 +669,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 			FTransform RootBodyTM = RootBI->GetUnrealWorldTransform();
 			RootBodyTM.SetRotation(RootBodyTM.GetRotation() * DeltaRotation);
 			RootBodyTM.SetTranslation(RootBodyTM.GetTranslation() + DeltaLocation);
-			RootBI->SetBodyTransform(RootBodyTM, true);
+			RootBI->SetBodyTransform(RootBodyTM, ETeleportType::TeleportPhysics);
 
 			// apply the delta to all the other bodies
 			for (int32 i = 0; i < Bodies.Num(); i++)
@@ -678,7 +682,7 @@ void USkeletalMeshComponent::ApplyDeltaToAllPhysicsTransforms(const FVector& Del
 					FTransform BodyTM = BI->GetUnrealWorldTransform();
 					BodyTM.SetRotation(BodyTM.GetRotation() * DeltaRotation);
 					BodyTM.SetTranslation(BodyTM.GetTranslation() + DeltaLocation);
-					BI->SetBodyTransform( BodyTM, true );
+					BI->SetBodyTransform( BodyTM, ETeleportType::TeleportPhysics );
 				}
 			}
 
@@ -1026,6 +1030,8 @@ void USkeletalMeshComponent::SetAllBodiesSimulatePhysics(bool bNewSimulate)
 	{
 		Bodies[i]->SetInstanceSimulatePhysics(bNewSimulate);
 	}
+
+	UpdatePreClothTickRegisteredState();
 }
 
 
@@ -1069,6 +1075,8 @@ void USkeletalMeshComponent::SetAllBodiesBelowSimulatePhysics( const FName& InBo
 		//UE_LOG(LogSkeletalMesh, Warning, TEXT( "ForceAllBodiesBelowUnfixed %s" ), *InAsset->BodySetup(BodyIndices(i))->BoneName.ToString() );
 		Bodies[BodyIndices[i]]->SetInstanceSimulatePhysics(bNewSimulate);
 	}
+
+	UpdatePreClothTickRegisteredState();
 }
 
 
@@ -1327,20 +1335,29 @@ FConstraintInstance* USkeletalMeshComponent::FindConstraintInstance(FName ConNam
 	return NULL;
 }
 
-void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
+#ifndef OLD_FORCE_UPDATE_BEHAVIOR
+#define OLD_FORCE_UPDATE_BEHAVIOR 0
+#endif
+
+void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport)
 {
 	// We are handling the physics move below, so don't handle it at higher levels
-	Super::OnUpdateTransform(true);
+	Super::OnUpdateTransform(true, Teleport);
 
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove)
 	{
-		UpdateKinematicBonesToAnim(GetSpaceBases(), false, false, true);
+#if !OLD_FORCE_UPDATE_BEHAVIOR
+		UpdateKinematicBonesToAnim(GetSpaceBases(), Teleport, false);
+#else
+		UpdateKinematicBonesToAnim(GetSpaceBases(), ETeleportType::TeleportPhysics, false);
+#endif
 	}
 
 #if WITH_APEX_CLOTHING
 	if(ClothingActors.Num() > 0)
 	{
+		//@todo: Should cloth know whether we're teleporting?
 		// Updates cloth animation states because transform is updated
 		UpdateClothTransform();
 	}
@@ -2154,11 +2171,13 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::
 	ClothingActor->forcePhysicalLod(1); // 1 will be changed to "GetActivePhysicalLod()" later
 	ClothingActor->setFrozen(false);
 
+#if WITH_CLOTH_COLLISION_DETECTION
 	// process clothing collisions once for the case that this component doesn't move
 	if(bCollideWithEnvironment)
 	{
 		ProcessClothCollisionWithEnvironment();
 	}
+#endif // WITH_CLOTH_COLLISION_DETECTION
 
 	return true;
 }
@@ -2276,7 +2295,7 @@ void USkeletalMeshComponent::ApplyWindForCloth(FClothingActor& ClothingActor)
 
 			physx::PxVec3 WindVelocity(WindDirection.X, WindDirection.Y, WindDirection.Z);
 
-			WindVelocity *= WindUnitAmout;
+			WindVelocity *= WindUnitAmout * WindSpeed;
 			float WindAdaption = rand()%20 * 0.1f; // make range from 0 to 2
 
 			NxParameterized::Interface* ActorDesc = ApexClothingActor->getActorDesc();
@@ -3096,7 +3115,7 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
 
-void USkeletalMeshComponent::PreClothTick(float DeltaTime)
+void USkeletalMeshComponent::PreClothTick(float DeltaTime, FTickFunction& ThisTickFunction)
 {
 	//IMPORTANT!
 	//
@@ -3107,7 +3126,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
 	{
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 		return;
 	}
 
@@ -3128,19 +3147,17 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	{
 		if (IsRegistered())
 		{
-			BlendInPhysics();
+			BlendInPhysics(ThisTickFunction);
 		}
-		// If we aren't blending we will have already flipped this
-		FlipEditableSpaceBases();
 	}
 
-	//TODO: move this into pre physics tick
+
 
 #if WITH_APEX_CLOTHING
 	// if skeletal mesh has clothing assets, call TickClothing
 	if (SkeletalMesh && SkeletalMesh->ClothingAssets.Num() > 0)
 	{
-		TickClothing(DeltaTime);
+		TickClothing(DeltaTime, ThisTickFunction);
 	}
 #endif
 }
@@ -3477,6 +3494,11 @@ void USkeletalMeshComponent::UpdateClothMorphTarget()
 
 void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 {
+	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
+
 	// if turned on bClothMorphTarget option
 	if (bClothMorphTarget)
 	{
@@ -3647,8 +3669,48 @@ bool USkeletalMeshComponent::GetClothSimulatedPosition(int32 AssetIndex, int32 V
 
 #endif// #if WITH_APEX_CLOTHING
 
-void USkeletalMeshComponent::TickClothing(float DeltaTime)
+class FTickClothingTask
 {
+	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
+	float DeltaTime;
+
+public:
+	FTickClothingTask(TWeakObjectPtr<USkeletalMeshComponent> InSkeletalMeshComponent, float InDeltaTime)
+		: SkeletalMeshComponent(InSkeletalMeshComponent)
+		, DeltaTime(InDeltaTime)
+	{
+	}
+
+	FORCEINLINE TStatId GetStatId() const
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickClothingTask, STATGROUP_TaskGraphTasks);
+	}
+	static ENamedThreads::Type GetDesiredThread()
+	{
+		return ENamedThreads::GameThread;
+	}
+	static ESubsequentsMode::Type GetSubsequentsMode()
+	{
+		return ESubsequentsMode::TrackSubsequents;
+	}
+
+	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+	{
+		//SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
+		if (USkeletalMeshComponent* Comp = SkeletalMeshComponent.Get())
+		{
+			Comp->PerformTickClothing(DeltaTime);
+		}
+	}
+};
+
+void USkeletalMeshComponent::PerformTickClothing(float DeltaTime)
+{
+	if (CVarEnableClothPhysics.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
+
 #if WITH_APEX_CLOTHING
 	// animated but bone transforms were not updated because it was not rendered
 	if(PoseTickedThisFrame() && !bRecentlyRendered)
@@ -3666,9 +3728,28 @@ void USkeletalMeshComponent::TickClothing(float DeltaTime)
 #endif// #if WITH_APEX_CLOTHING
 }
 
-void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData)
+void USkeletalMeshComponent::TickClothing(float DeltaTime, FTickFunction& ThisTickFunction)
+{
+	if(IsValidRef(ParallelBlendPhysicsCompletionTask))
+	{
+		FGraphEventArray Prerequistes;
+		Prerequistes.Add(ParallelBlendPhysicsCompletionTask);
+		FGraphEventRef TickClothingCompletionEvent = TGraphTask<FTickClothingTask>::CreateTask(&Prerequistes).ConstructAndDispatchWhenReady(this, DeltaTime);
+		ThisTickFunction.GetCompletionHandle()->DontCompleteUntil(TickClothingCompletionEvent);
+	}else
+	{
+		PerformTickClothing(DeltaTime);
+	}
+}
+
+void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent)
 {
 #if WITH_APEX_CLOTHING
+
+	if (CVarEnableClothPhysics.GetValueOnAnyThread() == 0)
+	{
+		return;
+	}
 
 	int32 NumClothingActors = ClothingActors.Num();
 
@@ -3723,7 +3804,7 @@ void USkeletalMeshComponent::GetUpdateClothSimulationData(TArray<FClothSimulData
 				if (bLocalSpaceSimulation)
 				{
 					FMatrix ClothRootBoneMatrix;
-					GetClothRootBoneMatrix(ActorIndex, ClothRootBoneMatrix);
+					(OverrideLocalRootComponent) ? OverrideLocalRootComponent->GetClothRootBoneMatrix(ActorIndex, ClothRootBoneMatrix) : GetClothRootBoneMatrix(ActorIndex, ClothRootBoneMatrix);
 					for (uint32 VertexIndex = 0; VertexIndex < NumSimulVertices; VertexIndex++)
 					{						
 						ClothData.ClothSimulPositions[VertexIndex] = ClothRootBoneMatrix.TransformPosition(P2UVector(Vertices[VertexIndex]));

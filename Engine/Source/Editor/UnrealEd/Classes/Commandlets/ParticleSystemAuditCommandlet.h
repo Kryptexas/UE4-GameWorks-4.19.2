@@ -25,8 +25,6 @@ class UParticleSystemAuditCommandlet : public UCommandlet
 	TSet<FString> ParticleSystemsWithMissingMaterials;
 	/** All particle systems w/ no emitters */
 	TSet<FString> ParticleSystemsWithNoEmitters;
-	/** All particle systems w/ collision on in at least one emitter */
-	TSet<FString> ParticleSystemsWithCollisionEnabled;
 	/** All particle systems w/ a high spawn rate or burst */
 	TSet<FString> ParticleSystemsWithHighSpawnRateOrBurst;
 	/** All particle systems w/ a far LODDistance */

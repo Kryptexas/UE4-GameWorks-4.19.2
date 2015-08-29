@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2436813
+﻿INTSourceChangelist:2602175
 Availability:Public
 Title:アクタを選択する
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -84,7 +84,7 @@ Description:レベルエディタのビューポートでアクタを選択す�
 ![](LE_SelectedActors.png)
 [/REGION]
 
-複数のアクタを選択すると、それを 1 つのグループとして移動したり、**[詳細]** パネルでそのプロパティを修正したりすることができます。
+複数のアクタを選択すると、それを 1 つのグループとして移動したり、**Details** (詳細) パネルでそのプロパティを修正したりすることができます。
 
 [REGION:tip]
 2 つ以上のアクタを選択する場合、選択と操作を行いやすくするために、そうしたアクタを 1 つのグループに追加することができます。アクタのグループ化に関する詳細については、[](Engine/Actors/Grouping) をご覧ください。

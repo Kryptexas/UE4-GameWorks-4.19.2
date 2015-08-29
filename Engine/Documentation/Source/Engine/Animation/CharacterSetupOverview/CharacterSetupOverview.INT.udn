@@ -168,7 +168,7 @@ So, to summarize the flow of setup back up the chain:
 * The GameMode specifies which Pawn (Character) Class and which PlayerController Class you will need to play the game.
 * The Character Class: 
 	* Contains the Skeletal Mesh that you imported via FBX.
-	* Takes in data from the PlayerController Class and converts it to movement (not aniamtion).
+	* Takes in data from the PlayerController Class and converts it to movement (not animation).
 	* Stores which Animation Blueprint will be used to drive skeletal animation within its Mesh Component.
 * The Animation Blueprint:
 	* Takes data from the Character Class into its Event Graph.
@@ -201,3 +201,8 @@ Note that each of these Templates is available in a code form or a Blueprint for
 [/REGION]
 
 Content Examples are specialized versions of content designed by artists and technicians here at Epic. They are found within a project named **ContentExamples**, which can be downloaded by users via the **Marketplace**. Of particular importance would be the assets found within the _Animation.umap_ level, which shows a variety of uses for Skeletal Mesh animation on a character.
+
+
+
+
+

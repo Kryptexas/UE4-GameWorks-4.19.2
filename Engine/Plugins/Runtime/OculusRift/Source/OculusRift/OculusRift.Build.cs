@@ -10,6 +10,7 @@ namespace UnrealBuildTool.Rules
 				new string[] {
 					"OculusRift/Private",
  					"../../../../Source/Runtime/Renderer/Private",
+ 					"../../../../Source/ThirdParty/Oculus/Common",
 					// ... add other private include paths required here ...
 				}
 				);
@@ -54,10 +55,15 @@ namespace UnrealBuildTool.Rules
     				        }
                         );
                 }
-                if (Target.Platform == UnrealTargetPlatform.Mac)
-                {
-               		AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
-                }
+
+           		AddThirdPartyPrivateStaticDependencies(Target, "OpenGL");
+
+                PrivateIncludePaths.AddRange(
+                    new string[] {
+			        	"../../../../Source/Runtime/OpenGLDrv/Private",
+					    // ... add other private include paths required here ...
+    				    }
+                   );
             }
 		}
 	}

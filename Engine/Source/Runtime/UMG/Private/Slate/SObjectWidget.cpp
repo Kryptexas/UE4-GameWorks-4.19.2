@@ -74,6 +74,16 @@ int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGe
 	return MaxLayer;
 }
 
+bool SObjectWidget::ComputeVolatility() const
+{
+	if ( CanRouteEvent() )
+	{
+		return SCompoundWidget::ComputeVolatility() || WidgetObject->IsPlayingAnimation();
+	}
+
+	return SCompoundWidget::ComputeVolatility();
+}
+
 bool SObjectWidget::IsInteractable() const
 {
 	if ( CanRouteEvent() )
@@ -146,6 +156,8 @@ FReply SObjectWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& In
 		{
 			return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
@@ -160,6 +172,8 @@ FReply SObjectWidget::OnKeyUp(const FGeometry& MyGeometry, const FKeyEvent& InKe
 		{
 			return SCompoundWidget::OnKeyUp(MyGeometry, InKeyEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
@@ -174,6 +188,8 @@ FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FA
 		{
 			return SCompoundWidget::OnAnalogValueChanged(MyGeometry, InAnalogInputEvent);
 		}
+
+		return Result;
 	}
 
 	return FReply::Unhandled();
@@ -256,7 +272,11 @@ FReply SObjectWidget::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEv
 
 FCursorReply SObjectWidget::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
 {
-	// TODO UMG  Allow conditional overriding of the cursor logic.
+	if ( CanRouteEvent() )
+	{
+		return WidgetObject->NativeOnCursorQuery( MyGeometry, CursorEvent );
+	}
+
 	return FCursorReply::Unhandled();
 }
 
@@ -275,7 +295,7 @@ FReply SObjectWidget::OnDragDetected(const FGeometry& MyGeometry, const FPointer
 	if ( CanRouteEvent() )
 	{
 		UDragDropOperation* Operation = nullptr;
-	WidgetObject->NativeOnDragDetected( MyGeometry, PointerEvent, Operation );
+		WidgetObject->NativeOnDragDetected( MyGeometry, PointerEvent, Operation );
 
 		if ( Operation )
 		{
@@ -300,7 +320,7 @@ void SObjectWidget::OnDragEnter(const FGeometry& MyGeometry, const FDragDropEven
 	{
 		if ( CanRouteEvent() )
 		{
-		WidgetObject->NativeOnDragEnter( MyGeometry, DragDropEvent, NativeOp->GetOperation() );
+			WidgetObject->NativeOnDragEnter( MyGeometry, DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -312,7 +332,7 @@ void SObjectWidget::OnDragLeave(const FDragDropEvent& DragDropEvent)
 	{
 		if ( CanRouteEvent() )
 		{
-		WidgetObject->NativeOnDragLeave( DragDropEvent, NativeOp->GetOperation() );
+			WidgetObject->NativeOnDragLeave( DragDropEvent, NativeOp->GetOperation() );
 		}
 	}
 }
@@ -324,7 +344,7 @@ FReply SObjectWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDropEve
 	{
 		if ( CanRouteEvent() )
 		{
-		if ( WidgetObject->NativeOnDragOver( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
+			if ( WidgetObject->NativeOnDragOver( MyGeometry, DragDropEvent, NativeOp->GetOperation() ) )
 			{
 				return FReply::Handled();
 			}

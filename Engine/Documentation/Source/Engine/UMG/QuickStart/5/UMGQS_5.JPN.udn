@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2362600
+﻿INTSourceChangelist:2541375
 Availability:Public
-Title:5.エクスペリエンスバーとホットバーボタン
+Title:5.ゲーム内の一時停止メニューの作成 / スクリプティング
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/QuickStart
-Description:UMG クイックスタートガイドの 5 番目のステップでは、エクスペリエンスバーとホットバー ボタンを作成します。 
+Description:ゲームを一時停止または終了できるゲーム内の一時停止メニューを作成します。 
 
 
 [VAR:Steps]
@@ -16,7 +16,7 @@ Description:UMG クイックスタートガイドの 5 番目のステップで�
 		[Quick Start Home](Engine/UMG\QuickStart) 
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
+	[Next Step](Engine/UMG\QuickStart\6 "%Engine/UMG\QuickStart\6:title%") 
 	[/PARAM]
 [/OBJECT]
 [/VAR]
@@ -25,177 +25,161 @@ Description:UMG クイックスタートガイドの 5 番目のステップで�
 
 ---
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		エクスペリエンスバーとホットバーボタンを追加する
-	[/PARAM]
-	[PARAM:description]
-	このセクションでは、HUD を更新し、エクスペリエンスバー、レベルアップ テキスト、アクションバー ボタンを用意します。 
-	[/PARAM]
-[/OBJECT]
-
-1. **コンテンツ ブラウザ** で、**UMG** フォルダを選択し、**GameHUD** ブループリントを開きます。 
-
-1. **[Common]** の **[Palette]** ウィンドウ内から **Progress Bar** を **[Hierarchy]** (階層) ウィンドウの **キャンバスパネル** にドラッグします。 
-
-1. お好きな場所にバーを移動し、リサイズします (ここでは一番下に配置しました)。 
-
-	![](New_1.png)
-
-	**[詳細]** パネルで、必要な場所にバーを **固定** します。 (ここでは、中央下部に固定しました)。
-
-1. **テキスト ブロック** を **キャンバスパネル** に追加します。このテキストはユーザーに「レベルアップ」したことを伝えるために使用します。
-
-1. **テキスト ブロック** を表示するテキストと共にお好みの場所に配置します。
-
-	![](New_2.png)
-
-	 ここでは、"Super Jump Unlocked!" というテキストを使用し、下部に固定しました。
-
-1. 次に、**キャンバスパネル** に **ボタン** を追加し、必要に応じて移動およびサイズ調整してください (ここでは、エクスペリエンスバーの下に配置しました)。 
-
-	![](New_4.png)
-
-1. **Behavior** にあるボタンの **[詳細]** パネルで、**[Is Enabled]** ボタンのチェックを外します (プレイヤーがレベルアップするとオンにするため)。 
-
-	![](New_3.png)
-
-1. **[IsEnabled]**チェックボックスの隣で、**Bind** ボタンをクリックし、**[Create Binding]** を選択します。 
-
-1. グラフ内で、**H_LevelUp** という新規 **Bool** 変数を作成してそれを **Return Value** に接続します。 
-
-	![](New_5.png)
-
-1. **Design** タブに戻り、エクスペリエンスバーをクリックします。 
-
-1. **[詳細]** パネルで、バーに色を割り当てます。次に、**Percent** の隣にある **Bind** をクリックし、**Create Binding** (バインディングを作成する) を選択します。 
-
-1. グラフ内で、**H_Experience** という新規 **Float** 変数を作成してそれを **Return Value** に接続します。 
-
-	![](New_7.png)
-
-1. **[MyBlueprint]** ウィンドウで、**イベントグラフ** を **ダブルクリック** してイベントグラフにジャンプします。 
-
-	![](New_15.png)
-
-1. グラフ内で **右クリック** して、**Branch** に接続された **Event Tick** ノードを追加します。 
-
-1. その条件に対して、**Control** キーを押しながら **H_Experience** 変数内をドラッグし、それを **>=** ノード (**1.0** に設定) に接続します。 
-
-1. **H_UnlockedText** と呼ばれる新規 **Text** 変数を作成します。 
-
-1. 次に **Alt** キーを押しながら **H_UnlockedText** 変数内でドラッグして、能力をアンロックしたときに表示するテキストを入力します。 
-
-	![](New_13.png)
-
-1. 	**Designer** タブに戻り、**Text** 欄の隣でアンロック テキストを選択します。**Bind** をクリックし、**H_UnlockedText** 変数を選択します。
-
-	![](New_13b.png)
-
-	これで、表示されるテキストを変数が何であってもバインドします。 
-
-1. **[グラフ]** タブに戻ります。 
-
-1. アンロックのテキストの後に、**Delay** ノードを追加します (1 秒に設定)。 
-
-1. **Delay** の後に、**Set H_Experience** を **0.0** に、**Set H_UnlockedText** を **Blank** に設定し、最後に **H_LevelUp** を **True** に設定します。 
-
-	[REGION:lightbox]
-	[![](New_14.png)(w:840)](New_14.png)
-	[/REGION]
-	完成したグラフは上の画面のように見えるはずです。フルサイズ表示にするには画像をクリックしてください。エクスペリエンスが十分になったら、能力をアンロックした旨のテキストを表示し、その後、テキストを取り除き、エクスペリエンス バーをリセットします。
-
-	1. **コンパイル** し **保存** してから、ブループリントを終了します。 
+最後に、シンプルな一時停止 (Pause) メニューを作成します。このメニューを使うとプレイヤーはゲームを一時停止または終了できます。 
 
 
-[OBJECT:TopicList]
-	[PARAM:icon]
-		![](%ROOT%/build_icon.png)(convert:false)
-	[/PARAM]
-	[PARAM:title]
-		エクスペリエンスの生成と仕上げ
-	[/PARAM]
-	[PARAM:description]
-	このセクションでは、ボックスを撃つとエクスペリエンスを生成し、HUD を更新するようにセットアップします。 
-	[/PARAM]
-[/OBJECT]
+## ビジュアル：一時停止メニューのレイアウト
 
-1. **ゲーム / ブループリント** の **コンテンツ ブラウザ** から **MyProjectile** ブループリントを開きます。 
+このセクションでは基本的な一時停止メニューの視覚的レイアウトを作ります。 
 
-1. グラフ内で、**Destroy Actor** ノードの後に、**Get Player Character** ノードを追加し、**Cast To MyCharacter** にします。 
+1.	**Pause Menu** Widget ブループリントを開きます。 
 
-1. **As My Character C** ピンから、**Get GameHUDWidget** (Widget ブループリント) ノードを追加します。 
+1.	**Designer** タブで、**Palette** からウィジェットをドラッグして **Hierarchy** にドロップして以下のようにセットアップします。 
 
-	![](New_8.png)
+	![](Pause1.png)
 
-1. 以下のように、**GameHUDWidget** ピンから、**Set H_Experience** を **H_Experience** + **0.10** に接続します。 
+	**Canvas Panel** には、**Text** 付き **Vertical Box** を含む **Border** が 1 つ、およびそれぞれ **Text** を持つ 2 つの **Button** があります。 
 
-	![](New_9.png)
-	完成したシーケンスは上の画面のようになるはずです。フルサイズ表示にするには画像をクリックしてください。
+1.	**Designer** ウィンドウで、 **Border** をサイズ調整して点線のウィンドウ全体を占有するようにします (画面を満たす)。 
+
+	![](Pause2.png)
+
+	**[詳細]** パネル内の **Brush Color** オプションから色を変更することもできます。 
+
+	![](Pause3.png)
+
+	色の **Alpha** を **0.5** に設定して、少し透明にします。ゲームプレイ中に一時停止メニューが開くと、Border が画面を満たしますが、少し透明にすることでバックグラウンドでゲームが見えるようにします。 
+
+1.	 **[詳細]** パネルの **Border** で、画面を満たすアンカーを使用するようにしてください。 
+
+	![](Pause4.png)
+
+	これにより、画面サイズに関係なく Border が画面を満たすようになります。 
+
+1.	**[Hierarchy]** の **Vertical Box** を選択します。次に、 **[詳細]** パネルで水平方向、垂直方向ともセンタリングします。 
+
+	![](Pause5.png)
+
+1.	**Vertical Box** の下にある **Text** を選択して、**コンテンツ** の **[詳細]** パネルで **Pause Menu** (一時停止メニュー) と入力します。 
+
+	![](Pause6.png)
+
+1.	他の 2 つの **Text** ブロックに **Resume** (再開) と **Quit** (終了) を入力します。 
+
+	![](Pause7.png)
+
+1.	**Ctrl** を押したまま、**Hierarchy** にある両方の **Button** を選択します。次に **[詳細]** パネルの **Style** で **Hovered** に対して色を割り当てます。 
+
+	![](Pause8.png)
+
+1.	 **[詳細]** パネル内で **Button** を **Resume** と **Quit** にそれぞれ名前変更します。 
+
+	![](Pause9.png)
 
 
-1. **コンパイル** し **保存** してから、ブループリントを終了します。
+## スクリプト：一時停止メニューの機能
 
-1. **ゲーム / ブループリント** の **コンテンツ ブラウザ** から **MyCharacter** ブループリントを開きます。 
+ビジュアル面を設定したら、次にスクリプティングした機能を一時停止メニューに設定します。 
 
-1. **右クリック** して **1** Key Press イベントを追加して、**GameHUDWidget** 変数内をドラッグして、そこから ****H_LevelUp** をget します。 
+1.	[Widget Blueprint Editor] ウィンドウの右上隅にある **[Graph]** ボタンをクリックします。 
 
-1. **1** Key Press イベントの **Pressed** ピンから条件が **H_LevelUp** である **Branch** を追加します。 
+1.	**[My Blueprint]** ウィンドウの **[グラフ]** タブ上で、 **QuitButton** をクリックします。 **Details** パネルで **OnClicked** イベントを追加します。 
 
-	![](New_10.png)
+	![](PauseScript1.png)
 
-1. **Branch** の **True** から、**Launch Character** ノードを追加し、**Launch Velocity** X を **50** に設定し、Z を **1000.0** に設定します。 
+1.	**ResumeButton** にも **OnClicked** イベントを追加します。 
 
-1. **Alt** キーを押しながら、**P_Energy** 変数内をドラッグして、それを **Control** キーを押しながら 0.5 に設定された **Float - Float** ノードに接続します。 
+1.	**Graph** ウィンドウで **右クリック** し、 **Get Player Controller** ノードを追加します。 
 
-	![](New_11.png)
+	![](PauseScript2.png)
 
-	これで、空中のキャラクターを起動し、キャラクターからエネルギーを差し引き、それが HUD に表示されるようになります。
+1.	**Get Player Controller** から **Set Input Mode Game Only** を使用し、次に **Remove from Parent** と **Set Game Paused** を以下のように使用します。 
 
-1. このシーケンスの **GameHUDWidget** ノードから再度ドラッグして、**Set H_LevelUp** を **False** (未チェック) に接続します。 
+	![](PauseScript3.png)
 
-1. 上記の手順に続いて、**Delay** ノード (**2** に設定) を追加し、次に **Set H_Levelup** を **True** (チェック済み) に接続します。 
+	**Resume Button** をクリックすると、入力モードはゲームのみになり、一時停止メニューが有効な時に表示されるカーソルが取り除かれます。**Set Game Paused** ノードを使用して **Paused** のチェックは外して一時停止状態から離れる前に、**Remove from Parent** ノードを使用して、実際の Pause Menu ウィジェットを取り除きます。 
+
+1.	**Remove HUD** という **Function** を作成します。 
+
+	![](PauseScript4.png)
+
+	一時停止メニューが有効になると、これを使用してプレイヤーのビューから HUD を取り除きます。 
+
+1.	この関数内で **Get Player Character** ノードを追加し、 **Return Value** から、**Cast ToFirstPersonCharacter** ノードを追加します。 
+
+	![](PauseScript5.png)
+
+	これで、プレイヤーが使用する Character ブループリントとプレイヤーが使用しているゲームの HUD にアクセスできます。 
+
+1.	以下の画面のように **As First Person Character** から **Get HUD Reference** を使用し、次に **Remove from Parent** を使用します。 
+
+	![](PauseScript6.png)(w:840)
+
+	これでプレイヤー キャラクターが使用する HUD にアクセスし、ゲームをやめるときにビューポートから取り除きます。 
+
+1.	**イベントグラフ** で **Get Player Controller** から、**True** に set された **Set Show Mouse Cursor** ノードを使用します。 
+
+	![](PauseScript7.png)(w:840)
+
+	**Quit** をクリックすると、メインメニューに戻るときにメニューを移動するためにマウス カーソルがオンになります。 
+
+1.	上記で作成した **Remove HUD** 関数を追加し、その後に **Open Level** (**MainMenu** に設定) を追加し、以下のように接続します。 
 
 	[REGION:lightbox]
-	[![](New_12.png)(w:840)](New_12.png)
+	[![](PauseScript8.png)(w:840)](PauseScript8.png)
 	[/REGION]
 
-	_画像をクリックしてフルサイズで表示_
+	_クリックしてフルサイズで表示_
 
-	**1** を押すと、プレイヤーがアンロックされた能力を持つ場合、それを起動し、一部のエネルギーを取り除き、2 秒のクールダウンを能力に加えます。
+	ボタンを両方ともセットアップしたので、最後にやるべきことはプレイヤーが一時停止メニューを呼び出し、ゲームを停止できるようにすることです。  
 
-1. 次に **F** key press イベントを探し、**Set P_Health** ノードの後に condition が **P_Health** <= **0.0** である **Branch** を追加します。 
+1.	**コンテンツ ブラウザ** の **Content/FirstPersonBP/Blueprints** で **FirstPersonCharacter** ブループリントを開きます。 
 
-1. **Control** キーを押しながら、**GameHUDWidget** 変数をドラッグし、**Branch** の下に配置し、そこからドラッグして **Remove from Viewport** ノードを追加します。 
+	![](PauseScript9.png)
 
-1. **Remove from Viewport** ノードを **Branch** の **True** に接続し、出口ピンから **You're Dead!** というテキストを持つ **Print String** を追加します。 
+1.	グラフ内で **M** Key Event と **Create Widget** ノード (**Pause Menu** に設定) を追加し、その **Return Value** を変数に昇格します。 
+
+	![](PauseScript10.png)
+
+	一時停止メニューを表示させるために **M** Key を入力として使用しましたが、どのキーでもご利用いただけます。昇格した変数に対して、作成した一時停止メニューへの参照を格納するため変数 **Pause Menu Reference** を呼び出しました。 
+
+1.	**Ctrl** を押しながら、**MyBlueprint** ウィンドウから変数をドラッグしてそれを **IsValid** ノードに接続します。 
+
+	![](PauseScript11.png)
+
+	一時停止メニュー ウィジェットが作成され、この変数に格納されたかを確認します。 
+
+1.	**Is Not Valid** ピンを **Create PauseMenu_C Widget** に接続します。 
+
+	![](PauseScript12.png)
+
+1.	**右クリック** して、**Get Player Controller** ノードを追加し、次に **Set Input Mode UI Only** を追加し、以下のように接続します。 
+
+	![](PauseScript13.png)
+
+	**M** を押すと、一時停止メニューに以前アクセスしたことがあれば、再度作成する必要なく、代わりにこの変数にアクセスします。もしこれが一時停止メニューに初めてアクセスする時であれば、それを作成し、変数として格納して後でアクセスできるようにします。いずれの場合も、一時停止メニューを表示する (これは以下で行います) 前は、入力モードは UI のみに設定されます。 
+
+1.	**Pause Menu Reference** 変数から **Add to Viewport** ノードを使用し、次に **Set Game Paused** (**Paused** を **True** に設定) を使用します。 
 
 	[REGION:lightbox]
-	[![](New_16.png)(w:800)](New_16.png)
+	[![](PauseScript14.png)(w:840)](PauseScript14.png)
 	[/REGION]
+	_クリックしてフルサイズで表示_
 
-	最後のいくつかの手順は、上のような結果になるはずです。フルサイズ表示にするにはクリックしてください。プレイヤーのヘルスがなくなると (すなわち死亡) 、HUD が取り除かれます。
+	一時停止メニューをセットアップしたので、テストします。 
 
-	[REGION:note]
-	注記:**Remove from Viewport** オプションが表示されない場合は、代わりに **Remove from Parent** オプションを使用してください。
-	[/REGION]
+1.	**Compile** ボタンと **Save** ボタンをクリックします。次に、エディタで再生するために **Play** ボタンをクリックします。 
 
-1. **コンパイル** し **保存** してから、エディタで再生します。
+	[![](Engine\UMG\QuickStart\4\MenuImage.png)(w:720)](PauseMovie.mp4)
 
-	![](Gif1.gif)(convert:false)
+	ゲーム内で、**M** Key (または割り当てた任意のキー) を押すと、ゲームが一時停止し、一時停止メニューが表示されるのがわかります。ここから **Resume** ボタンでゲームプレイを再開するか、**Quit** ボタンを使用して終了してメインメニューに戻ります。 
+	次のセクションでは、 **UMG (Unreal Motion Graphics)** と **ブループリント** を使用した作業に関する追加情報を提供します。 
 
-	これで、10 個のボックスをヒットするとレベルアップし、画面上にテキストが表示されるはずです。少し経ったら、1 を押して能力を遂行し、ボタンにクールダウンを適用することができます。また、ヘルスがなくなるまで **F** キーを何回か押すとその時点で HUD が消えるはずです。
-
-	これは簡単な例であり、さらに数多くのことが行えますが、**UMG** を使用して画面を作成し、実装する方法、さらに様々な方法を使用して変数を渡し、やりとりする方法について理解したことでしょう。このガイドの最終ステップでは、**UMG** と **ブループリント ビジュアル スクリプティング** を使用するうえでのさらに詳しいドキュメントのリンク先を追加で提示します。これを使用して、ガイドで取り上げた例をさらに深めて独自のものにすることができます !
 
 
 ---
 
 %Steps%
-
 
 
 

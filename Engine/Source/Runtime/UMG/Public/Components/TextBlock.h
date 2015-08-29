@@ -24,6 +24,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetColorAndOpacity(FSlateColor InColorAndOpacity);
 
+	/**
+	* Sets the opacity of the text in this text block
+	*
+	* @param InOpacity		The new text opacity
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetOpacity(float InOpacity);
+
 	/**  
 	 * Sets the color and opacity of the text drop shadow
 	 * Note: if opacity is zero no shadow will be drawn
@@ -41,6 +49,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetShadowOffset(FVector2D InShadowOffset);
 
+	/**
+	 * Dynamically set the font info for this text block
+	 * 
+	 * @param InFontInfo THe new font info
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Appearance")
+	void SetFont(FSlateFontInfo InFontInfo);
 	/**
 	 *  Set the text justification for this text block
 	 *

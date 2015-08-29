@@ -26,10 +26,11 @@ protected:
 public:
 	UAISenseConfig(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	virtual TSubclassOf<UAISense> GetSenseImplementation() const { return UAISense::StaticClass(); }
+	virtual TSubclassOf<UAISense> GetSenseImplementation() const;
+
 	FAISenseID GetSenseID() const;
 	
-	float GetMaxAge() const { return MaxAge; }
+	float GetMaxAge() const { return MaxAge == 0.f ? FAIStimulus::NeverHappenedAge : MaxAge; }
 	bool IsEnabled() const { return bStartsEnabled; }
 
 #if !UE_BUILD_SHIPPING

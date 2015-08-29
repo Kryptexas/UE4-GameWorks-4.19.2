@@ -242,13 +242,13 @@ FArchive& FNameAsStringProxyArchive::operator<<( class FName& N )
 		FString LoadedString;
 		InnerArchive << LoadedString;
 		N = FName(*LoadedString);
-		return InnerArchive;
 	}
 	else
 	{
 		FString SavedString(N.ToString());
-		return InnerArchive << SavedString;
+		InnerArchive << SavedString;
 	}
+	return *this;
 }
 
 /** 

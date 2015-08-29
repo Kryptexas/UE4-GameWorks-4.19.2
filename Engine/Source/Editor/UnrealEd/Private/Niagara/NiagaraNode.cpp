@@ -7,6 +7,37 @@ UNiagaraNode::UNiagaraNode(const FObjectInitializer& ObjectInitializer)
 {
 }
 
+void UNiagaraNode::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	Super::AutowireNewNode(FromPin);
+
+	if (FromPin != nullptr)
+	{
+		const UEdGraphSchema_Niagara* Schema = CastChecked<UEdGraphSchema_Niagara>(GetSchema());
+		check(Schema);
+		
+		ENiagaraDataType FromType = Schema->GetPinType(FromPin);
+
+		//Find first of this nodes pins with the right type and direction.
+		UEdGraphPin* FirstPinOfSameType = NULL;
+		EEdGraphPinDirection DesiredDirection = FromPin->Direction == EGPD_Output ? EGPD_Input : EGPD_Output;
+		for (UEdGraphPin* Pin : Pins)
+		{
+			ENiagaraDataType ToType = Schema->GetPinType(Pin);
+			if (FromType == ToType && Pin->Direction == DesiredDirection)
+			{
+				FirstPinOfSameType = Pin;
+				break;
+			}			
+		}
+
+		if (FirstPinOfSameType && GetSchema()->TryCreateConnection(FromPin, FirstPinOfSameType))
+		{
+			FromPin->GetOwningNode()->NodeConnectionListChanged();
+		}
+	}
+}
+
 const UNiagaraGraph* UNiagaraNode::GetNiagaraGraph()const
 {
 	return CastChecked<UNiagaraGraph>(GetGraph());

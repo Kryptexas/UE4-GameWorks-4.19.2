@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2088454
+﻿INTSourceChangelist:2608015
 Availability: Public
 Title:APEX 유형
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Apex
@@ -46,7 +46,6 @@ Description:Nvidia APEX Physics Lab APX 및 APB 파일 관련 문서입니다.
 [TOC (start:2 end:3)]
 
 
-## 개요
 
 [OBJECT:topiclistnotitle]
 	[PARAM:icon]
@@ -66,7 +65,6 @@ APEX 애셋 생성 및 익스포트 관련해서는 [](Engine/Physics/Apex) 문�
 콘텐츠 브라우저에서:
 
 1. ![New Asset](CB_button_NewAsset.png) 버튼을 클릭합니다.
-1. 메뉴에서 _임포트_ 를 선택합니다.
 1. .APX 또는 .APB 파일을 선택합니다.
 
 또는

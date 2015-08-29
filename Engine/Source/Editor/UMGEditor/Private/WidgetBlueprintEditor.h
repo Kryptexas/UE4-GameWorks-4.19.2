@@ -121,6 +121,9 @@ public:
 
 	TArray< TFunction<void()> >& GetQueuedDesignerActions();
 
+	/** Get the current designer flags that are in effect for the current user widget we're editing. */
+	EWidgetDesignFlags::Type GetCurrentDesignerFlags() const;
+
 public:
 	/** Fires whenever a new widget is being hovered over */
 	FOnHoveredWidgetSet OnHoveredWidgetSet;
@@ -171,6 +174,21 @@ private:
 
 	/** Tick the current preview GUI object */
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
+
+	/** Populates the sequencer add menu. */
+	TSharedRef<SWidget> OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer);
+
+	/** Adds the supplied UObject to the current animation. */
+	void AddObjectToAnimation(UObject* ObjectToAnimate);
+
+	/** Gets the extender to use for sequencers context sensitive menus and toolbars. */
+	TSharedRef<FExtender> GetContextSensitiveSequencerExtender( const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects );
+
+	/** Extends the sequencer add track menu. */
+	void ExtendSequencerAddTrackMenu( FMenuBuilder& AddTrackMenuBuilder, TArray<UObject*> ContextObjects );
+
+	/** Add an animation track for the supplied slot to the current animation. */
+	void AddSlotTrack( UPanelSlot* Slot );
 
 private:
 	/** The preview scene that owns the preview GUI */
@@ -225,4 +243,6 @@ private:
 	bool bIsRealTime;
 
 	TArray< TFunction<void()> > QueuedDesignerActions;
+
+	FDelegateHandle SequencerExtenderHandle;
 };

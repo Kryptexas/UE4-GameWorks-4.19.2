@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2501141
+﻿INTSourceChangelist:2600515
 Availability:Public
 Title:블루프린트 매크로 라이브러리
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -43,8 +43,6 @@ Description:다른 블루프린트에서 재사용할 매크로를 선언하고 
 [/VAR]
 
 [TOC(start:2)]
-
-## Overview
 
 [EXCERPT:Intro]
 **Blueprint Macro Library** (블루프린트 매크로 라이브러리)란 다른 _블루프린트_ 에 넣어 사용할 수 있는 _매크로_ 또는 

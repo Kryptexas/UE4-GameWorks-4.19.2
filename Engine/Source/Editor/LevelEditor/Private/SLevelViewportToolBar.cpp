@@ -516,7 +516,7 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 
 			if( bIsPerspective )
 			{
-				OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View") );
+				OptionsMenuBuilder.AddWidget( GenerateFOVMenu(), LOCTEXT("FOVAngle", "Field of View (H)") );
 				OptionsMenuBuilder.AddWidget( GenerateFarViewPlaneMenu(), LOCTEXT("FarViewPlane", "Far View Plane") );
 			}
 		}
@@ -526,8 +526,8 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateOptionsMenu() const
 		{
 			if( bIsPerspective )
 			{
-				// Allow matinee preview only applies to perspective
-				OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.AllowMatineePreview );
+				// Cinematic preview only applies to perspective
+				OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleCinematicPreview );
 			}
 
 			OptionsMenuBuilder.AddMenuEntry( LevelViewportActions.ToggleGameView );
@@ -671,6 +671,25 @@ void SLevelViewportToolBar::SetLevelProfile( FString DeviceProfileName )
 	UIManager->SetProfile( DeviceProfileName );
 }
 
+void SLevelViewportToolBar::GeneratePlacedCameraMenuEntries( FMenuBuilder& Builder, TArray<ACameraActor*> Cameras ) const
+{
+	FSlateIcon CameraIcon( FEditorStyle::GetStyleSetName(), "ClassIcon.CameraComponent" );
+
+	for( ACameraActor* CameraActor : Cameras )
+	{
+		// Needed for the delegate hookup to work below
+		AActor* GenericActor = CameraActor;
+
+		FText ActorDisplayName = FText::FromString(CameraActor->GetActorLabel());
+		FUIAction LookThroughCameraAction(
+			FExecuteAction::CreateSP(Viewport.Pin().ToSharedRef(), &SLevelViewport::OnActorLockToggleFromMenu, GenericActor),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(Viewport.Pin().ToSharedRef(), &SLevelViewport::IsActorLocked, TWeakObjectPtr<AActor>(GenericActor))
+			);
+
+		Builder.AddMenuEntry( ActorDisplayName, FText::Format(LOCTEXT("LookThroughCameraActor_ToolTip", "Look through and pilot {0}"), ActorDisplayName), CameraIcon, LookThroughCameraAction, NAME_None, EUserInterfaceActionType::RadioButton );
+	}
+}
 
 TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 {
@@ -690,6 +709,31 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Front);
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Back);
 	CameraMenuBuilder.EndSection();
+
+
+	TArray<ACameraActor*> Cameras;
+
+	for( TActorIterator<ACameraActor> It(GetWorld().Get()); It; ++It )
+	{
+		Cameras.Add( *It );
+	}
+
+	FText CameraActorsHeading = LOCTEXT("CameraActorsHeading", "Placed Cameras");
+
+	// Don't add too many cameras to the top level menu or else it becomes too large
+	const uint32 MaxCamerasInTopLevelMenu = 10;
+	if( Cameras.Num() > MaxCamerasInTopLevelMenu )
+	{
+		CameraMenuBuilder.BeginSection("CameraActors");
+			CameraMenuBuilder.AddSubMenu( CameraActorsHeading, LOCTEXT("LookThroughCameraActor_ToolTip", "Look through and pilot placed cameras"), FNewMenuDelegate::CreateSP(this, &SLevelViewportToolBar::GeneratePlacedCameraMenuEntries, Cameras ) );
+		CameraMenuBuilder.EndSection();
+	}
+	else
+	{
+		CameraMenuBuilder.BeginSection("CameraActors", CameraActorsHeading );
+			GeneratePlacedCameraMenuEntries( CameraMenuBuilder, Cameras );
+		CameraMenuBuilder.EndSection();
+	}
 
 	return CameraMenuBuilder.MakeWidget();
 }
@@ -851,6 +895,9 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateShowMenu() const
 		{
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("PostProcessShowFlagsMenu", "Post Processing"), LOCTEXT("PostProcessShowFlagsMenu_ToolTip", "Post process show flags"),
 				FNewMenuDelegate::CreateStatic( &FillShowMenu, ShowMenu[SFG_PostProcess], 0 ) );
+
+			ShowMenuBuilder.AddSubMenu( LOCTEXT("LightTypesShowFlagsMenu", "Light Types"), LOCTEXT("LightTypesShowFlagsMenu_ToolTip", "Light Types show flags"),
+				FNewMenuDelegate::CreateStatic( &FillShowMenu, ShowMenu[SFG_LightTypes], 0 ) );
 
 			ShowMenuBuilder.AddSubMenu( LOCTEXT("LightingComponentsShowFlagsMenu", "Lighting Components"), LOCTEXT("LightingComponentsShowFlagsMenu_ToolTip", "Lighting Components show flags"),
 				FNewMenuDelegate::CreateStatic( &FillShowMenu, ShowMenu[SFG_LightingComponents], 0 ) );

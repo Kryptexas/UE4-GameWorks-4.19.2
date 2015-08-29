@@ -248,15 +248,12 @@ void FMaterialCompilationOutput::Serialize(FArchive& Ar)
 {
 	UniformExpressionSet.Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
-	{
-		Ar << bRequiresSceneColorCopy;
-	}
-
+	Ar << bRequiresSceneColorCopy;
 	Ar << bNeedsSceneTextures;
 	Ar << bUsesEyeAdaptation;
 	Ar << bModifiesMeshPosition;
 	Ar << bNeedsGBuffer;
+	Ar << bUsesGlobalDistanceField;
 }
 
 void FMaterial::GetShaderMapId(EShaderPlatform Platform, FMaterialShaderMapId& OutId) const
@@ -503,6 +500,11 @@ bool FMaterial::UsesEyeAdaptation() const
 	return false;
 }
 
+bool FMaterial::UsesGlobalDistanceField_GameThread() const 
+{ 
+	return GameThreadShaderMap.GetReference() ? GameThreadShaderMap->UsesGlobalDistanceField() : false; 
+}
+
 bool FMaterial::MaterialModifiesMeshPosition_RenderThread() const
 { 
 	check(IsInParallelRenderingThread());
@@ -524,7 +526,8 @@ bool FMaterial::MaterialMayModifyMeshPosition() const
 {
 	// Conservative estimate when called before material translation has occurred. 
 	// This function is only intended for use in deciding whether or not shader permutations are required.
-	return HasVertexPositionOffsetConnected() || HasPixelDepthOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation;
+	return HasVertexPositionOffsetConnected() || HasPixelDepthOffsetConnected() || HasMaterialAttributesConnected() || GetTessellationMode() != MTM_NoTessellation
+		|| (GetMaterialDomain() == MD_DeferredDecal && GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
 }
 
 FMaterialShaderMap* FMaterial::GetRenderingThreadShaderMap() const 
@@ -696,13 +699,15 @@ bool IsTranslucentBlendMode(EBlendMode BlendMode)
 }
 
 int32 FMaterialResource::GetMaterialDomain() const { return Material->MaterialDomain; }
-bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || Material->Normal.Expression == NULL; }
+bool FMaterialResource::IsTangentSpaceNormal() const { return Material->bTangentSpaceNormal || (Material->Normal.Expression == NULL && !Material->bUseMaterialAttributes); }
 bool FMaterialResource::ShouldInjectEmissiveIntoLPV() const { return Material->bUseEmissiveForDynamicAreaLighting; }
+bool FMaterialResource::ShouldBlockGI() const { return Material->bBlockGI; }
 bool FMaterialResource::ShouldGenerateSphericalParticleNormals() const { return Material->bGenerateSphericalParticleNormals; }
 bool FMaterialResource::ShouldDisableDepthTest() const { return Material->bDisableDepthTest; }
 bool FMaterialResource::ShouldEnableResponsiveAA() const { return Material->bEnableResponsiveAA; }
 bool FMaterialResource::ShouldDoSSR() const { return Material->bScreenSpaceReflections; }
 bool FMaterialResource::IsWireframe() const { return Material->Wireframe; }
+bool FMaterialResource::IsUIMaterial() const { return Material->MaterialDomain == MD_UI; }
 bool FMaterialResource::IsLightFunction() const { return Material->MaterialDomain == MD_LightFunction; }
 bool FMaterialResource::IsUsedWithEditorCompositing() const { return Material->bUsedWithEditorCompositing; }
 bool FMaterialResource::IsUsedWithDeferredDecal() const { return Material->MaterialDomain == MD_DeferredDecal; }
@@ -769,7 +774,7 @@ bool FMaterialResource::IsUsedWithAPEXCloth() const
 
 bool FMaterialResource::IsUsedWithUI() const
 {
-	return Material->bUsedWithUI;
+	return IsUIMaterial();
 }
 
 EMaterialTessellationMode FMaterialResource::GetTessellationMode() const 
@@ -846,6 +851,11 @@ bool FMaterialResource::IsTwoSided() const
 	return MaterialInstance ? MaterialInstance->IsTwoSided() : Material->IsTwoSided();
 }
 
+bool FMaterialResource::IsDitheredLODTransition() const 
+{
+	return MaterialInstance ? MaterialInstance->IsDitheredLODTransition() : Material->IsDitheredLODTransition();
+}
+
 bool FMaterialResource::IsMasked() const 
 {
 	return MaterialInstance ? MaterialInstance->IsMasked() : Material->IsMasked();
@@ -913,23 +923,40 @@ void FMaterialResource::GetRepresentativeInstructionCounts(TArray<FString> &Desc
 	{
 		GetRepresentativeShaderTypesAndDescriptions(ShaderTypeNames, ShaderTypeDescriptions);
 
-		const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap->GetMeshShaderMap(&FLocalVertexFactory::StaticType);
-		if (MeshShaderMap)
+		if( IsUIMaterial() )
 		{
-			Descriptions.Empty();
-			InstructionCounts.Empty();
-
 			for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
 			{
 				FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
-				if (ShaderType)
+				const FShader* Shader = MaterialShaderMap->GetShader(ShaderType);
+				if (Shader && Shader->GetNumInstructions() > 0)
 				{
-					const FShader* Shader = MeshShaderMap->GetShader(ShaderType);
-					if (Shader && Shader->GetNumInstructions() > 0)
+					//if the shader was found, add it to the output arrays
+					InstructionCounts.Push(Shader->GetNumInstructions());
+					Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+				}
+			}
+		}
+		else
+		{
+			const FMeshMaterialShaderMap* MeshShaderMap = MaterialShaderMap->GetMeshShaderMap(&FLocalVertexFactory::StaticType);
+			if (MeshShaderMap)
+			{
+				Descriptions.Empty();
+				InstructionCounts.Empty();
+
+				for (int32 InstructionIndex = 0; InstructionIndex < ShaderTypeNames.Num(); InstructionIndex++)
+				{
+					FShaderType* ShaderType = FindShaderTypeByName(*ShaderTypeNames[InstructionIndex]);
+					if (ShaderType)
 					{
-						//if the shader was found, add it to the output arrays
-						InstructionCounts.Push(Shader->GetNumInstructions());
-						Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+						const FShader* Shader = MeshShaderMap->GetShader(ShaderType);
+						if (Shader && Shader->GetNumInstructions() > 0)
+						{
+							//if the shader was found, add it to the output arrays
+							InstructionCounts.Push(Shader->GetNumInstructions());
+							Descriptions.Push(ShaderTypeDescriptions[InstructionIndex]);
+						}
 					}
 				}
 			}
@@ -944,7 +971,12 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 	static auto* MobileHDR = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
 	bool bMobileHDR = MobileHDR && MobileHDR->GetValueOnAnyThread() == 1;
 
-	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+	if( IsUIMaterial() )
+	{
+		new(ShaderTypeNames) FString(TEXT("TSlateMaterialShaderPSDefaultfalse"));
+		new(ShaderTypeDescriptions) FString(TEXT("Default UI Shader"));
+	}
+	else if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
 		if (GetShadingModel() == MSM_Unlit)
 		{
@@ -983,7 +1015,7 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 		if (GetShadingModel() == MSM_Unlit)
 		{
 			//unlit materials are never lightmapped
-			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy%s"), ShaderSuffix));
+			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFNoLightMapPolicy0%s"), ShaderSuffix));
 			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader without light map%s"), DescSuffix));
 		}
 		else
@@ -991,16 +1023,16 @@ void FMaterialResource::GetRepresentativeShaderTypesAndDescriptions(TArray<FStri
 			if (IsUsedWithStaticLighting())
 			{
 				//lit materials are usually lightmapped
-				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTLightMapPolicyLQ%s"), ShaderSuffix));
+				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTLightMapPolicy0LQ%s"), ShaderSuffix));
 				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with static lighting%s"), DescSuffix));
 
 				// + distance field shadows
-				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicyLQ%s"), ShaderSuffix));
+				new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSTDistanceFieldShadowsAndLightMapPolicy0LQ%s"), ShaderSuffix));
 				new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with distance field shadows%s"), DescSuffix));
 			}
 
 			//also show a dynamically lit shader
-			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy%s"), ShaderSuffix));
+			new (ShaderTypeNames)FString(FString::Printf(TEXT("TBasePassForForwardShadingPSFSimpleDirectionalLightAndSHIndirectPolicy0%s"), ShaderSuffix));
 			new (ShaderTypeDescriptions)FString(FString::Printf(TEXT("Mobile base pass shader with only dynamic lighting%s"), DescSuffix));
 		}
 
@@ -1142,13 +1174,13 @@ void FMaterial::SetupMaterialEnvironment(
 
 	switch(GetBlendMode())
 	{
-	case BLEND_Opaque: OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_SOLID"),TEXT("1")); break;
+	case BLEND_Opaque:
 	case BLEND_Masked:
 		{
 			// Only set MATERIALBLENDING_MASKED if the material is truly masked
 			//@todo - this may cause mismatches with what the shader compiles and what the renderer thinks the shader needs
 			// For example IsTranslucentBlendMode doesn't check IsMasked
-			if(IsMasked())
+			if(!WritesEveryPixel())
 			{
 				OutEnvironment.SetDefine(TEXT("MATERIALBLENDING_MASKED"),TEXT("1"));
 			}
@@ -1189,6 +1221,7 @@ void FMaterial::SetupMaterialEnvironment(
 		OutEnvironment.SetDefine(TEXT("MATERIALDECALRESPONSEMASK"), MaterialDecalResponseMask);
 	}
 
+	OutEnvironment.SetDefine(TEXT("USE_DITHERED_LOD_TRANSITION"), IsDitheredLODTransition() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TWOSIDED"), IsTwoSided() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_TANGENTSPACENORMAL"), IsTangentSpaceNormal() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("GENERATE_SPHERICAL_PARTICLE_NORMALS"),ShouldGenerateSphericalParticleNormals() ? TEXT("1") : TEXT("0"));
@@ -1198,6 +1231,7 @@ void FMaterial::SetupMaterialEnvironment(
 	OutEnvironment.SetDefine(TEXT("MATERIAL_USE_LM_DIRECTIONALITY"), UseLmDirectionality() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_INJECT_EMISSIVE_INTO_LPV"), ShouldInjectEmissiveIntoLPV() ? TEXT("1") : TEXT("0"));
 	OutEnvironment.SetDefine(TEXT("MATERIAL_SSR"), ShouldDoSSR() ? TEXT("1") : TEXT("0"));
+	OutEnvironment.SetDefine(TEXT("MATERIAL_BLOCK_GI"), ShouldBlockGI() ? TEXT("1") : TEXT("0"));
 
 	{
 		auto DecalBlendMode = (EDecalBlendMode)GetDecalBlendMode();
@@ -1625,6 +1659,7 @@ FMaterialRenderProxy::FMaterialRenderProxy()
 	: bSelected(false)
 	, bHovered(false)
 	, SubsurfaceProfileRT(0)
+	, DeletedFlag(0)
 {
 }
 
@@ -1632,6 +1667,7 @@ FMaterialRenderProxy::FMaterialRenderProxy(bool bInSelected, bool bInHovered)
 	: bSelected(bInSelected)
 	, bHovered(bInHovered)
 	, SubsurfaceProfileRT(0)
+	, DeletedFlag(0)
 {
 }
 
@@ -1642,6 +1678,8 @@ FMaterialRenderProxy::~FMaterialRenderProxy()
 		check(IsInRenderingThread());
 		ReleaseResource();
 	}
+
+	DeletedFlag = 1;
 }
 
 void FMaterialRenderProxy::InitDynamicRHI()
@@ -1751,8 +1789,12 @@ FString FMaterialResource::GetMaterialUsageDescription() const
 
 	// this changed from ",SpecialEngine, TwoSided" to ",SpecialEngine=1, TwoSided=1, TSNormal=0, ..." to be more readable
 	BaseDescription += FString::Printf(
-		TEXT("SpecialEngine=%d, TwoSided=%d, TSNormal=%d, InjectEmissiveIntoLPV=%d, Masked=%d, Distorted=%d, Usage={"),
-		(int32)IsSpecialEngineMaterial(), (int32)IsTwoSided(), (int32)IsTangentSpaceNormal(), (int32)ShouldInjectEmissiveIntoLPV(), (int32)IsMasked(), (int32)IsDistorted());
+		TEXT("SpecialEngine=%d, TwoSided=%d, TSNormal=%d, InjectEmissiveIntoLPV=%d, Masked=%d, Distorted=%d")
+		TEXT(", BlockGI=%d")
+		TEXT(", Usage={"),
+		(int32)IsSpecialEngineMaterial(), (int32)IsTwoSided(), (int32)IsTangentSpaceNormal(), (int32)ShouldInjectEmissiveIntoLPV(), (int32)IsMasked(), (int32)IsDistorted()
+		, (int32)ShouldBlockGI()
+		);
 
 	bool bFirst = true;
 	for (int32 MaterialUsageIndex = 0; MaterialUsageIndex < MATUSAGE_MAX; MaterialUsageIndex++)
@@ -2101,90 +2143,63 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 		);
 }
 
+const TMap<EMaterialProperty, int32> CreatePropertyToIOIndexMap()
+{	
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of \"real\" properties in this map. Immediately before MP_MaterialAttributes . \
+		The order of properties here should match the material results pins, the inputs to MakeMaterialAttriubtes and the outputs of BreakMaterialAttriubtes.\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
+
+	TMap<EMaterialProperty, int32> Ret;
+	Ret.Add(MP_BaseColor, 0);
+	Ret.Add(MP_Metallic, 1);
+	Ret.Add(MP_Specular, 2);
+	Ret.Add(MP_Roughness, 3);
+	Ret.Add(MP_EmissiveColor, 4);
+	Ret.Add(MP_Opacity, 5);
+	Ret.Add(MP_OpacityMask, 6);
+	Ret.Add(MP_Normal, 7);
+	Ret.Add(MP_WorldPositionOffset, 8);
+	Ret.Add(MP_WorldDisplacement, 9);
+	Ret.Add(MP_TessellationMultiplier, 10);
+	Ret.Add(MP_SubsurfaceColor, 11);
+	Ret.Add(MP_ClearCoat, 12);
+	Ret.Add(MP_ClearCoatRoughness, 13);
+	Ret.Add(MP_AmbientOcclusion, 14);
+	Ret.Add(MP_Refraction, 15);
+	Ret.Add(MP_CustomizedUVs0, 16);
+	Ret.Add(MP_CustomizedUVs1, 17);
+	Ret.Add(MP_CustomizedUVs2, 18);
+	Ret.Add(MP_CustomizedUVs3, 19);
+	Ret.Add(MP_CustomizedUVs4, 20);
+	Ret.Add(MP_CustomizedUVs5, 21);
+	Ret.Add(MP_CustomizedUVs6, 22);
+	Ret.Add(MP_CustomizedUVs7, 23);
+	Ret.Add(MP_PixelDepthOffset, 24);
+	//^^^^ New properties go above here ^^^^
+	//Below here are legacy or utility properties that don't match up to material inputs.
+	Ret.Add(MP_MaterialAttributes, INDEX_NONE);
+	Ret.Add(MP_DiffuseColor, INDEX_NONE);
+	Ret.Add(MP_SpecularColor, INDEX_NONE);
+	Ret.Add(MP_MAX, INDEX_NONE);
+	return Ret;
+}
+static const TMap<EMaterialProperty, int32> PropertyToIOIndexMap = CreatePropertyToIOIndexMap();
+
 EMaterialProperty GetMaterialPropertyFromInputOutputIndex(int32 Index)
 {
-	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
-
-	switch(Index)
-	{
-	case 0: return MP_BaseColor;
-	case 1: return MP_Metallic;
-	case 2: return MP_Specular;
-	case 3: return MP_Roughness;
-	case 4: return MP_EmissiveColor;
-	case 5: return MP_Opacity;
-	case 6: return MP_OpacityMask;
-	case 7: return MP_Normal;
-	case 8: return MP_WorldPositionOffset;
-	case 9: return MP_WorldDisplacement;
-	case 10: return MP_TessellationMultiplier;
-	case 11: return MP_SubsurfaceColor;
-	case 12: return MP_ClearCoat;
-	case 13: return MP_ClearCoatRoughness;
-	case 14: return MP_AmbientOcclusion;
-	case 15: return MP_Refraction;
-	};
-
-	const int32 UVStart = 16;
-	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
-
-	if (Index >= UVStart && Index <= UVEnd)
-	{
-		return (EMaterialProperty)(MP_CustomizedUVs0 + Index - UVStart);
-	}
-
-	if (Index == UVEnd + 1)
-	{
-		return MP_MaterialAttributes;
-	}
-
-	if (Index == UVEnd + 2)
-	{
-		return MP_PixelDepthOffset;
-	}
-
-	return MP_MAX;
+	const EMaterialProperty* Property = PropertyToIOIndexMap.FindKey(Index);
+	check(Property);
+	return *Property;
 }
 
 int32 GetInputOutputIndexFromMaterialProperty(EMaterialProperty Property)
 {
-	// Warning: If you change this mapping, you will need to handle backwards compatibility for nodes that use it, otherwise pins will get swapped
-
-	switch(Property)
-	{
-	case MP_BaseColor: return 0;
-	case MP_Metallic: return 1;
-	case MP_Specular: return 2;
-	case MP_Roughness: return 3;
-	case MP_EmissiveColor: return 4;
-	case MP_Opacity: return 5;
-	case MP_OpacityMask: return 6;
-	case MP_Normal: return 7;
-	case MP_WorldPositionOffset: return 8;
-	case MP_WorldDisplacement: return 9;
-	case MP_TessellationMultiplier: return 10;
-	case MP_SubsurfaceColor: return 11;
-	case MP_ClearCoat: return 12;
-	case MP_ClearCoatRoughness: return 13;
-	case MP_AmbientOcclusion: return 14;
-	case MP_Refraction: return 15;
-	case MP_MaterialAttributes: UE_LOG(LogMaterial, Fatal, TEXT("We should never need the IO index of the MaterialAttriubtes property."));
-	};
-
-	const int32 UVStart = 16;
-	const int32 UVEnd = UVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0;
-
-	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
-	{
-		return UVStart + Property - MP_CustomizedUVs0;
-	}
-
-	if (Property == MP_PixelDepthOffset)
-	{
-		return UVEnd + 2;
-	}
-
-	return -1;
+	const int32* Index = PropertyToIOIndexMap.Find(Property);
+	check(Index);
+	check(*Index != INDEX_NONE);
+	return *Index;
 }
 
 int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMaterialProperty Property)
@@ -2291,6 +2306,9 @@ int32 UMaterialInterface::CompileProperty(FMaterialCompiler* Compiler, EMaterial
 	}
 }
 
+//Reorder the output index for any FExpressionInput connected to a UMaterialExpressionBreakMaterialAttributes.
+//If the order of pins in the material results or the make/break attributes nodes changes 
+//then the OutputIndex stored in any FExpressionInput coming from UMaterialExpressionBreakMaterialAttributes will be wrong and needs reordering.
 void DoMaterialAttributeReorder(FExpressionInput* Input, int32 UE4Ver)
 {
 	if( Input && Input->Expression && Input->Expression->IsA(UMaterialExpressionBreakMaterialAttributes::StaticClass()) )
@@ -2329,11 +2347,13 @@ FMaterialInstanceBasePropertyOverrides::FMaterialInstanceBasePropertyOverrides()
 	:bOverride_OpacityMaskClipValue(false)
 	,bOverride_BlendMode(false)
 	,bOverride_ShadingModel(false)
+	,bOverride_DitheredLODTransition(false)
 	,bOverride_TwoSided(false)
 	,OpacityMaskClipValue(.333333f)
 	,BlendMode(BLEND_Opaque)
 	,ShadingModel(MSM_DefaultLit)
 	,TwoSided(0)
+	,DitheredLODTransition(0)
 {
 
 }
@@ -2344,10 +2364,12 @@ bool FMaterialInstanceBasePropertyOverrides::operator==(const FMaterialInstanceB
 			bOverride_BlendMode == Other.bOverride_BlendMode &&
 			bOverride_ShadingModel == Other.bOverride_ShadingModel &&
 			bOverride_TwoSided == Other.bOverride_TwoSided &&
+			bOverride_DitheredLODTransition == Other.bOverride_DitheredLODTransition &&
 			OpacityMaskClipValue == Other.OpacityMaskClipValue &&
 			BlendMode == Other.BlendMode &&
 			ShadingModel == Other.ShadingModel &&
-			TwoSided == Other.TwoSided;
+			TwoSided == Other.TwoSided &&
+			DitheredLODTransition == Other.DitheredLODTransition;
 }
 
 bool FMaterialInstanceBasePropertyOverrides::operator!=(const FMaterialInstanceBasePropertyOverrides& Other)const

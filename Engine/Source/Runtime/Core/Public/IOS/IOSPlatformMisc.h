@@ -62,12 +62,12 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	}
 
 	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
-	FORCEINLINE static bool DebugBreakAndPromptForRemoteReturningFalse()
+	FORCEINLINE static bool DebugBreakAndPromptForRemoteReturningFalse(bool bIsEnsure = false)
 	{
 #if !UE_BUILD_SHIPPING
 		if (!IsDebuggerPresent())
 		{
-			PromptForRemoteDebugging(false);
+			PromptForRemoteDebugging(bIsEnsure);
 		}
 
 		DebugBreak();
@@ -94,6 +94,11 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	static bool SetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, const FString& InValue);
 	static bool GetStoredValue(const FString& InStoreId, const FString& InSectionName, const FString& InKeyName, FString& OutValue);
 	static TArray<uint8> GetSystemFontBytes();
+	static TArray<FString> GetPreferredLanguages();
+	static FString GetLocalCurrencyCode();
+	static FString GetLocalCurrencySymbol();
+
+	static void RegisterForRemoteNotifications();
 
 	static class IPlatformChunkInstall* GetPlatformChunkInstall();
     

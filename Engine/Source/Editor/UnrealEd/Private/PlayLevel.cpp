@@ -92,10 +92,6 @@ void UEditorEngine::EndPlayMap()
 	// Enable screensavers when ending PIE.
 	EnableScreenSaver( true );
 
-	// Move SelectedActors and SelectedComponents object back to the transient package.
-	GetSelectedActors()->Rename(nullptr, GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional);
-	GetSelectedComponents()->Rename(nullptr,GetTransientPackage(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional);
-
 	// Make a list of all the actors that should be selected
 	TArray<UObject *> SelectedActors;
 	if ( ActorsThatWereSelected.Num() > 0 )
@@ -158,7 +154,6 @@ void UEditorEngine::EndPlayMap()
 	}
 	CleanupGameViewport();
 
-
 	// find objects like Textures in the playworld levels that won't get garbage collected as they are marked RF_Standalone
 	for( FObjectIterator It; It; ++It )
 	{
@@ -178,7 +173,7 @@ void UEditorEngine::EndPlayMap()
 
 	// Clean up each world individually
 	TArray<FName> OnlineIdentifiers;
-	TSet<UWorld*> CurrentPlayWorlds;
+	TArray<UWorld*> WorldsBeingCleanedUp;
 	for (int32 WorldIdx = WorldList.Num()-1; WorldIdx >= 0; --WorldIdx)
 	{
 		FWorldContext &ThisContext = WorldList[WorldIdx];
@@ -186,13 +181,7 @@ void UEditorEngine::EndPlayMap()
 		{
 			if (ThisContext.World())
 			{
-				for (auto LevelIt(ThisContext.World()->GetLevelIterator()); LevelIt; ++LevelIt)
-				{
-					if (const ULevel* Level = *LevelIt)
-					{
-						CurrentPlayWorlds.Add(CastChecked<UWorld>(Level->GetOuter()));
-					}
-				}
+				WorldsBeingCleanedUp.Add(ThisContext.World());
 			}
 
 			TeardownPlaySession(ThisContext);
@@ -251,17 +240,34 @@ void UEditorEngine::EndPlayMap()
 	EditorWorld = NULL;
 
 	// mark everything contained in the PIE worlds to be deleted
-	for (TObjectIterator<UObject> It(RF_PendingKill); It; ++It)
+	for (UWorld* World : WorldsBeingCleanedUp)
 	{
-		UWorld* InWorld = It->GetTypedOuter<UWorld>();
-		if (InWorld && CurrentPlayWorlds.Contains(InWorld))
+		for (auto LevelIt(World->GetLevelIterator()); LevelIt; ++LevelIt)
 		{
-			It->MarkPendingKill();
+			if (const ULevel* Level = *LevelIt)
+			{
+				CastChecked<UWorld>(Level->GetOuter())->MarkObjectsPendingKill();
+			}
 		}
 	}
 
-	// Garbage Collect
-	CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+	// Flush any render commands and released accessed UTextures and materials to give them a chance to be collected.
+	if ( FSlateApplication::IsInitialized() )
+	{
+		FSlateApplication::Get().FlushRenderState();
+	}
+
+	// Clean up any PIE world objects
+	{
+		// The trans buffer should never have a PIE object in it.  If it does though, as a s
+		if( GEditor->Trans->ContainsPieObject() )
+		{
+			GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "TransactionContainedPIEObject", "A PIE object was in the transaction buffer and had to be destroyed") );
+		}
+
+		// Garbage Collect
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	}
 
 	// Make sure that all objects in the temp levels were entirely garbage collected.
 	for( FObjectIterator ObjectIt; ObjectIt; ++ObjectIt )
@@ -272,7 +278,7 @@ void UEditorEngine::EndPlayMap()
 			UWorld* TheWorld = UWorld::FindWorldInPackage(Object->GetOutermost());
 			if ( TheWorld )
 			{
-				StaticExec(GWorld, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *TheWorld->GetPathName()));
+				StaticExec(nullptr, *FString::Printf(TEXT("OBJ REFS CLASS=WORLD NAME=%s"), *TheWorld->GetPathName()));
 			}
 			else
 			{
@@ -344,7 +350,7 @@ void UEditorEngine::EndPlayMap()
 	bUseVRPreviewForPlayWorld = false;
 
 	// display any info if required.
-	FMessageLog("PIE").Notify( LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."), EMessageSeverity::Warning );
+	FMessageLog("PIE").Notify(LOCTEXT("PIEErrorsPresent", "Errors/warnings reported while playing in editor."));
 }
 
 void UEditorEngine::CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers)
@@ -529,6 +535,7 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 	if (PhysScene)
 	{
 		PhysScene->WaitPhysScenes();
+		PhysScene->KillVisualDebugger();
 	}
 
 	// Clean up the temporary play level.
@@ -1094,7 +1101,7 @@ void UEditorEngine::SaveWorldForPlay(TArray<FString>& SavedMapNames)
 		if( PlayerStart == NULL )
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			PlayerStart = World->SpawnActor<AActor>( APlayerStart::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnInfo );
 
 			bCreatedPlayerStart = true;
@@ -1154,7 +1161,7 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	{
 		CmdLine = GenerateCmdLineForNextPieInstance(*WindowPos, PIENum, bIsServer && CanPlayNetDedicated);
 	}
-	
+
 	const FString URLParms = bIsServer && !CanPlayNetDedicated ? TEXT("?Listen") : FString();
 
 	// select map to play
@@ -1184,22 +1191,20 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	}
 
 	FString GameNameOrProjectFile;
-	FString AdditionalParameters(TEXT(""));
 	if (FPaths::IsProjectFilePathSet())
 	{
 		GameNameOrProjectFile = FString::Printf(TEXT("\"%s\""), *FPaths::GetProjectFilePath());
-
-		//@todo.Rocket: Add shipping support
-		bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
-
-		if (bRunningDebug)
-		{
-			AdditionalParameters = TEXT(" -debug");
-		}
 	}
 	else
 	{
 		GameNameOrProjectFile = FApp::GetGameName();
+	}
+
+	FString AdditionalParameters(TEXT(""));
+	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	if (bRunningDebug)
+	{
+		AdditionalParameters += TEXT(" -debug");
 	}
 
 	// apply additional settings
@@ -1226,15 +1231,36 @@ void UEditorEngine::PlayStandaloneLocalPc(FString MapNameOverride, FIntPoint* Wi
 	FIntPoint WinSize(0, 0);
 	GetWindowSizeForInstanceType(WinSize, PlayInSettings);
 	
-	FString Params = FString::Printf(TEXT("%s %s -game -PIEVIACONSOLE -ResX=%d -ResY=%d %s%s %s"),
-		*GameNameOrProjectFile,
-		*BuildPlayWorldURL(*SavedMapNames[0], false, URLParms),
-		WinSize.X,
-		WinSize.Y,
-		*FCommandLine::GetSubprocessCommandline(),
-		*AdditionalParameters,
-		*CmdLine
-	);
+	// Check if centered
+	FString Params;
+	if (PlayInSettings->CenterStandaloneWindow)
+	{
+		Params = FString::Printf(TEXT("%s %s -game -PIEVIACONSOLE -ResX=%d -ResY=%d %s%s %s"),
+			*GameNameOrProjectFile,
+			*BuildPlayWorldURL(*SavedMapNames[0], false, URLParms),
+			WinSize.X,
+			WinSize.Y,
+			*FCommandLine::GetSubprocessCommandline(),
+			*AdditionalParameters,
+			*CmdLine
+			);
+	}
+	else
+	{
+		FIntPoint WinPos(0, 0);
+
+		Params = FString::Printf(TEXT("%s %s -game -PIEVIACONSOLE -WinX=%d -WinY=%d -ResX=%d -ResY=%d %s%s %s"),
+			*GameNameOrProjectFile,
+			*BuildPlayWorldURL(*SavedMapNames[0], false, URLParms),
+			PlayInSettings->StandaloneWindowPosition.X,
+			PlayInSettings->StandaloneWindowPosition.Y,
+			WinSize.X,
+			WinSize.Y,
+			*FCommandLine::GetSubprocessCommandline(),
+			*AdditionalParameters,
+			*CmdLine
+		);
+	}
 
 	// launch the game process
 	FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
@@ -1465,6 +1491,136 @@ static void HandleHyperlinkNavigate()
 	FGlobalTabmanager::Get()->InvokeTab(FName("OutputLog"));
 }
 
+struct FInternalPlayLevelUtils
+{
+	static int32 ResolveDirtyBlueprints(const bool bPromptForCompile, TArray<UBlueprint*>& ErroredBlueprints, const bool bForceLevelScriptRecompile = true)
+	{
+		const bool bAutoCompile = !bPromptForCompile;
+		FString PromtDirtyList;
+
+		TArray<UBlueprint*> InNeedOfRecompile;
+		ErroredBlueprints.Empty();
+
+		double BPRegenStartTime = FPlatformTime::Seconds();
+		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		{
+			UBlueprint* Blueprint = *BlueprintIt;
+
+			// ignore up-to-date BPs
+			if (Blueprint->IsUpToDate())
+			{
+				continue;
+			}
+
+			// do not try to recompile BPs that have not changed since they last failed to compile, so don't check Blueprint->IsUpToDate()
+			const bool bIsDirtyAndShouldBeRecompiled = Blueprint->IsPossiblyDirty();
+			if (!FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint)
+				&& (bIsDirtyAndShouldBeRecompiled || (FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint) && bForceLevelScriptRecompile))
+				&& (Blueprint->Status != BS_Unknown)
+				&& !Blueprint->IsPendingKill())
+			{
+				InNeedOfRecompile.Add(Blueprint);
+
+				if (bPromptForCompile)
+				{
+					PromtDirtyList += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
+				}
+			}
+			else if (BS_Error == Blueprint->Status && Blueprint->bDisplayCompilePIEWarning)
+			{
+				ErroredBlueprints.Add(Blueprint);
+			}
+		}
+
+		bool bRunCompilation = bAutoCompile;
+		if (bPromptForCompile)
+		{
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("DirtyBlueprints"), FText::FromString(PromtDirtyList));
+			const FText PromptMsg = FText::Format(NSLOCTEXT("PlayInEditor", "PrePIE_BlueprintsDirty", "One or more blueprints have been modified without being recompiled. Do you want to compile them now? \n{DirtyBlueprints}"), Args);
+
+			EAppReturnType::Type PropmtResponse = FMessageDialog::Open(EAppMsgType::YesNo, PromptMsg);
+			bRunCompilation = (PropmtResponse == EAppReturnType::Yes);
+		}
+		int32 RecompiledCount = 0;
+
+		FMessageLog BlueprintLog("BlueprintLog");
+		if (bRunCompilation && (InNeedOfRecompile.Num() > 0))
+		{
+			const FText LogPageLabel = (bAutoCompile) ? LOCTEXT("BlueprintAutoCompilationPageLabel", "Pre-Play auto-recompile") :
+				LOCTEXT("BlueprintCompilationPageLabel", "Pre-Play recompile");
+			BlueprintLog.NewPage(LogPageLabel);
+
+			// Recompile all necessary blueprints in a single loop, saving GC until the end
+			for (auto BlueprintIt = InNeedOfRecompile.CreateIterator(); BlueprintIt; ++BlueprintIt)
+			{
+				UBlueprint* Blueprint = *BlueprintIt;
+
+				int32 CurrItIndex = BlueprintIt.GetIndex();
+				// gather dependencies so we can ensure that they're getting recompiled as well
+				TArray<UBlueprint*> Dependencies;
+				FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, Dependencies);
+				// if the user made a change, but didn't hit "compile", then dependent blueprints
+				// wouldn't have been marked dirty, so here we make sure to add those dependencies 
+				// to the end of the InNeedOfRecompile array (so we hit them too in this loop)
+				for (auto DependencyIt = Dependencies.CreateIterator(); DependencyIt; ++DependencyIt)
+				{
+					UBlueprint* DependentBp = *DependencyIt;
+
+					int32 ExistingIndex = InNeedOfRecompile.Find(DependentBp);
+					// if this dependent blueprint is already set up to compile 
+					// later in this loop, then there is no need to add it to be recompiled again
+					if (ExistingIndex >= CurrItIndex)
+					{
+						continue;
+					}
+
+					// if this blueprint wasn't slated to  be recompiled
+					if (ExistingIndex == INDEX_NONE)
+					{
+						// we need to make sure this gets recompiled as well 
+						// (since it depends on this other one that is dirty)
+						InNeedOfRecompile.Add(DependentBp);
+					}
+					// else this is a circular dependency... it has previously been compiled
+					// ... is there a case where we'd want to recompile this again?
+				}
+
+				Blueprint->BroadcastChanged();
+
+				UE_LOG(LogPlayLevel, Log, TEXT("[PlayLevel] Compiling %s before play..."), *Blueprint->GetName());
+				FKismetEditorUtilities::CompileBlueprint(Blueprint, /*bIsRegeneratingOnLoad =*/false, /*bSkipGarbageCollection =*/true);
+				const bool bHadError = (!Blueprint->IsUpToDate() && Blueprint->Status != BS_Unknown);
+
+				// Check if the Blueprint has already been added to the error list to prevent it from being added again
+				if (bHadError && ErroredBlueprints.Find(Blueprint) == INDEX_NONE)
+				{
+					ErroredBlueprints.Add(Blueprint);
+
+					FFormatNamedArguments Arguments;
+					Arguments.Add(TEXT("Name"), FText::FromString(Blueprint->GetName()));
+
+					BlueprintLog.Info(FText::Format(LOCTEXT("BlueprintCompileFailed", "Blueprint {Name} failed to compile"), Arguments));
+				}
+				else
+				{
+					++RecompiledCount;
+				}
+
+				UE_LOG(LogPlayLevel, Log, TEXT("PlayLevel: Blueprint regeneration took %d ms (%i blueprints)"), (int32)((FPlatformTime::Seconds() - BPRegenStartTime) * 1000), InNeedOfRecompile.Num());
+			}
+
+			CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+		}
+		else if (bAutoCompile)
+		{
+			UE_LOG(LogPlayLevel, Log, TEXT("PlayLevel: No blueprints needed recompiling"));
+		}
+
+		return RecompiledCount;
+	}
+};
+
 void UEditorEngine::PlayUsingLauncher()
 {
 	if (!PlayUsingLauncherDeviceId.IsEmpty())
@@ -1483,9 +1639,10 @@ void UEditorEngine::PlayUsingLauncher()
 		bPlayUsingLauncherHasCode = GameProjectModule.Get().ProjectRequiresBuild(FName(*PlayUsingLauncherDeviceId.Left(PlayUsingLauncherDeviceId.Find(TEXT("@")))));
 		bPlayUsingLauncherHasCompiler = FSourceCodeNavigation::IsCompilerAvailable();
 
+		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 		// Setup launch profile, keep the setting here to a minimum.
 		ILauncherProfileRef LauncherProfile = LauncherServicesModule.CreateProfile(TEXT("Play On Device"));
-		EPlayOnBuildMode bBuildType = GetDefault<ULevelEditorPlaySettings>()->BuildGameBeforeLaunch;
+		EPlayOnBuildMode bBuildType = PlayInSettings->BuildGameBeforeLaunch;
 		if ((bBuildType == EPlayOnBuildMode::PlayOnBuild_Always) || (bBuildType == PlayOnBuild_Default && (bPlayUsingLauncherHasCode) && bPlayUsingLauncherHasCompiler))
 		{
 			LauncherProfile->SetBuildGame(true);
@@ -1546,26 +1703,33 @@ void UEditorEngine::PlayUsingLauncher()
 			LauncherProfile->SetDeploymentMode(ELauncherProfileDeploymentModes::FileServer);
 		}
 
+		TArray<UBlueprint*> ErroredBlueprints;
+		FInternalPlayLevelUtils::ResolveDirtyBlueprints(!PlayInSettings->bAutoCompileBlueprintsOnLaunch, ErroredBlueprints, false);
+
 		TArray<FString> MapNames;
 		FWorldContext & EditorContext = GetEditorWorldContext();
 		if (EditorContext.World()->WorldComposition || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::ByTheBookInEditor) || (LauncherProfile->GetCookMode() == ELauncherProfileCookModes::OnTheFlyInEditor) )
 		{
+			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
+			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
+			// if this returns false, it means we should stop what we're doing and return to the editor
+			bool bPromptUserToSave = true;
+			bool bSaveMapPackages = true;
+			bool bSaveContentPackages = true;
+			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
+			{
+				CancelRequestPlaySession();
+				return;
+			}
+
+
 			// Open world composition from original folder
 			// Or if using by book in editor don't need to resave the package just cook it by the book 
 			FString MapName = EditorContext.World()->GetOutermost()->GetName();
 			MapNames.Add(MapName);
 
 
-			// Daniel: Only reason we actually need to save any packages is because if a new package is created it won't be on disk yet and CookOnTheFly will early out if the package doesn't exist (even though it could be in memory and not require loading at all)
-			//			future me can optimize this by either adding extra allowances to CookOnTheFlyServer code or only saving packages which doesn't exist if it becomes a problem
-			// if this returns false, it means we should stop what we're doing and return to the editor
-			bool bPromptUserToSave = true;
-			bool bSaveMapPackages = false;
-			bool bSaveContentPackages = true;
-			if (!FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages))
-			{
-				return;
-			}
+			
 		}
 		else
 		{
@@ -1573,7 +1737,7 @@ void UEditorEngine::PlayUsingLauncher()
 
 			if (MapNames.Num() == 0)
 			{
-				GEditor->CancelRequestPlaySession();
+				CancelRequestPlaySession();
 				return;
 			}
 		}
@@ -1789,6 +1953,12 @@ void UEditorEngine::PlayForMovieCapture()
 		Params += TEXT(" -rocket");
 	}
 
+	bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
+	if (bRunningDebug)
+	{
+		Params += TEXT(" -debug");
+	}
+
 	FProcHandle ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *Params, true, false, false, NULL, 0, NULL, NULL);
 
 	if (ProcessHandle.IsValid())
@@ -1978,205 +2148,41 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		InWorld->GetNavigationSystem()->OnPIEStart();
 	}
 
-	ULevelEditorPlaySettings const* EditorPlayInSettings = GetDefault<ULevelEditorPlaySettings>();
-	check(EditorPlayInSettings);
+	ULevelEditorPlaySettings* PlayInSettings = GetMutableDefault<ULevelEditorPlaySettings>();
+	check(PlayInSettings);
 
-	// Prompt the user to compile any dirty Blueprints before PIE can occur.
-	TArray< UBlueprint* > ErrorBlueprintList;
-	bool bAnyBlueprintsDirty = false;
+	TArray<UBlueprint*> ErroredBlueprints;
+	FInternalPlayLevelUtils::ResolveDirtyBlueprints(!PlayInSettings->AutoRecompileBlueprints, ErroredBlueprints);
+
+	if (ErroredBlueprints.Num() && !GIsDemoMode)
 	{
-		FString DirtyBlueprints;
-		FString ErrorBlueprints;
-
-		TArray<UBlueprint*> BlueprintsToRecompile;
-
-		double BPRegenStartTime = FPlatformTime::Seconds();
-		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		FString ErroredBlueprintList;
+		for (auto Blueprint : ErroredBlueprints)
 		{
-			UBlueprint* Blueprint = *BlueprintIt;
-
-			// If the blueprint isn't fresh, try to recompile it automatically
-			if( EditorPlayInSettings->AutoRecompileBlueprints )
-			{
-				// do not try to recompile BPs that have not changed since they last failed to compile, so don't check Blueprint->IsUpToDate()
-				const bool bIsDirtyAndShouldBeRecompiled = Blueprint->IsPossiblyDirty();
-				if( !FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) 
-					&& (bIsDirtyAndShouldBeRecompiled || FBlueprintEditorUtils::IsLevelScriptBlueprint(Blueprint))
-					&& (Blueprint->Status != BS_Unknown)
-					&& !Blueprint->IsPendingKill() )
-				{
-					BlueprintsToRecompile.Add(Blueprint);
-				}
-				else if(BS_Error == Blueprint->Status && Blueprint->bDisplayCompilePIEWarning)
-				{
-					ErrorBlueprintList.Add(Blueprint);
-					ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
-				}
-			}
-			else
-			{
-				// Record blueprints that are not fully recompiled or had an error
-				switch (Blueprint->Status)
-				{
-				case BS_Unknown:
-					// Treating unknown as up to date for right now
-					break;
-				case BS_Error:
-					if( Blueprint->bDisplayCompilePIEWarning)
-					{
-						ErrorBlueprintList.Add(Blueprint);
-						ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
-					}
-					break;
-				case BS_UpToDate:
-				case BS_UpToDateWithWarnings:
-					break;
-				default:
-				case BS_Dirty:
-					bAnyBlueprintsDirty = true;
-					DirtyBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
-					break;
-				}
-			}
+			ErroredBlueprintList += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
 		}
 
-		FMessageLog BlueprintLog("BlueprintLog");
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("ErrorBlueprints"), FText::FromString(ErroredBlueprintList));
 
-		if( EditorPlayInSettings->AutoRecompileBlueprints )
+		// There was at least one blueprint with an error, make sure the user is OK with that.
+		const bool bContinuePIE = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format( NSLOCTEXT("PlayInEditor", "PrePIE_BlueprintErrors", "One or more blueprints has an unresolved compiler error, are you sure you want to Play in Editor?{ErrorBlueprints}"), Args ) );
+		if ( !bContinuePIE )
 		{
-			if( BlueprintsToRecompile.Num() > 0 )
+			FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
+			if (InWorld->GetNavigationSystem())
 			{
-				BlueprintLog.NewPage(LOCTEXT("BlueprintAutoCompilationPageLabel", "Pre-PIE auto-recompile"));
-
-				// Recompile all necessary blueprints in a single loop, saving GC until the end
-				for( auto BlueprintIt = BlueprintsToRecompile.CreateIterator(); BlueprintIt; ++BlueprintIt )
-				{
-					UBlueprint* Blueprint = *BlueprintIt;
-
-					int32 CurrItIndex = BlueprintIt.GetIndex();
-					// gather dependencies so we can ensure that they're getting recompiled as well
-					TArray<UBlueprint*> Dependencies;
-					FBlueprintEditorUtils::GetDependentBlueprints(Blueprint, Dependencies);
-					// if the user made a change, but didn't hit "compile", then dependent blueprints
-					// wouldn't have been marked dirty, so here we make sure to add those dependencies 
-					// to the end of the BlueprintsToRecompile array (so we hit them too in this loop)
-					for (auto DependencyIt = Dependencies.CreateIterator(); DependencyIt; ++DependencyIt)
-					{
-						UBlueprint* DependentBp = *DependencyIt;
-
-						int32 ExistingIndex = BlueprintsToRecompile.Find(DependentBp);
-						// if this dependent blueprint is already set up to compile 
-						// later in this loop, then there is no need to add it to be recompiled again
-						if (ExistingIndex >= CurrItIndex)
-						{
-							continue;
-						}
-
-						// if this blueprint wasn't slated to  be recompiled
-						if (ExistingIndex == INDEX_NONE)
-						{
-							// we need to make sure this gets recompiled as well 
-							// (since it depends on this other one that is dirty)
-							BlueprintsToRecompile.Add(DependentBp);
-						}
-						// else this is a circular dependency... it has previously been compiled
-						// ... is there a case where we'd want to recompile this again?
-					}
-
-					Blueprint->BroadcastChanged();
-
-					UE_LOG(LogPlayLevel, Log, TEXT("[PIE] Compiling %s before PIE..."), *Blueprint->GetName());
-					FKismetEditorUtilities::CompileBlueprint(Blueprint, false, true);
-					const bool bHadError = (!Blueprint->IsUpToDate() && Blueprint->Status != BS_Unknown);
-
-					// Check if the Blueprint has already been added to the error list to prevent it from being added again
-					if (bHadError && ErrorBlueprintList.Find(Blueprint) == INDEX_NONE)
-					{
-						ErrorBlueprintList.Add(Blueprint);
-						ErrorBlueprints += FString::Printf(TEXT("\n   %s"), *Blueprint->GetName());
-
-						FFormatNamedArguments Arguments;
-						Arguments.Add(TEXT("Name"), FText::FromString(Blueprint->GetName()));
-
-						BlueprintLog.Info( FText::Format(LOCTEXT("BlueprintCompileFailed", "Blueprint {Name} failed to compile"), Arguments) );
-					}
-				}
-
-				CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-
-				UE_LOG(LogPlayLevel, Log, TEXT("PIE:  Blueprint regeneration took %d ms (%i blueprints)"), (int32)((FPlatformTime::Seconds() - BPRegenStartTime) * 1000), BlueprintsToRecompile.Num());
+				InWorld->GetNavigationSystem()->OnPIEEnd();
 			}
-			else
-			{
-				UE_LOG(LogPlayLevel, Log, TEXT("PIE:  No blueprints needed recompiling"));
-			}
+
+			return;
 		}
 		else
 		{
-			if (bAnyBlueprintsDirty)
+			// The user wants to ignore the compiler errors, mark the Blueprints and do not warn them again unless the Blueprint attempts to compile
+			for (auto Blueprint : ErroredBlueprints)
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("DirtyBlueprints"), FText::FromString( DirtyBlueprints ) );
-
-				const bool bCompileDirty = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format( NSLOCTEXT("PlayInEditor", "PrePIE_BlueprintsDirty", "One or more blueprints have been modified without being recompiled.  Do you want to compile them now?{DirtyBlueprints}"), Args ) );
-				
-				if ( bCompileDirty)
-				{
-					BlueprintLog.NewPage(LOCTEXT("BlueprintCompilationPageLabel", "Pre-PIE recompile"));
-
-					// Compile all blueprints that aren't up to date
-					for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
-					{
-						UBlueprint* Blueprint = *BlueprintIt;
-						// do not try to recompile BPs that have not changed since they last failed to compile, so don't check Blueprint->IsUpToDate()
-						const bool bIsDirtyAndShouldBeRecompiled = Blueprint->IsPossiblyDirty();
-						if (!FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) && bIsDirtyAndShouldBeRecompiled)
-						{
-							// Cache off the dirty flag for the package, so we can restore it later
-							UPackage* Package = Cast<UPackage>(Blueprint->GetOutermost());
-							const bool bIsPackageDirty = Package ? Package->IsDirty() : false;
-
-							FKismetEditorUtilities::CompileBlueprint(Blueprint);
-							if (Blueprint->Status == BS_Error && Blueprint->bDisplayCompilePIEWarning)
-							{
-								ErrorBlueprintList.Add(Blueprint);
-							}
-
-							// Restore the dirty flag
-							if (Package)
-							{
-								Package->SetDirtyFlag(bIsPackageDirty);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		if ( ErrorBlueprintList.Num() && !GIsDemoMode )
-		{
-			FFormatNamedArguments Args;
-			Args.Add( TEXT("ErrorBlueprints"), FText::FromString( ErrorBlueprints ) );
-
-			// There was at least one blueprint with an error, make sure the user is OK with that.
-			const bool bContinuePIE = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, FText::Format( NSLOCTEXT("PlayInEditor", "PrePIE_BlueprintErrors", "One or more blueprints has an unresolved compiler error, are you sure you want to Play in Editor?{ErrorBlueprints}"), Args ) );
-			if ( !bContinuePIE )
-			{
-				FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
-				if (InWorld->GetNavigationSystem())
-				{
-					InWorld->GetNavigationSystem()->OnPIEEnd();
-				}
-
-				return;
-			}
-			else
-			{
-				// The user wants to ignore the compiler errors, mark the Blueprints and do not warn them again unless the Blueprint attempts to compile
-				for( auto Blueprint : ErrorBlueprintList )
-				{
-					Blueprint->bDisplayCompilePIEWarning = false;
-				}
+				Blueprint->bDisplayCompilePIEWarning = false;
 			}
 		}
 	}
@@ -2212,8 +2218,6 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
-	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
-
 	if (!PlayInSettings->EnableSound && AudioDevice)
 	{
 		AudioDevice->TransientMasterVolume = 0.0f;
@@ -2233,10 +2237,12 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	{
 		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
-		if (!CanPlayNetDedicated && (PlayNumberOfClients == 1))
+		const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+		if (!CanPlayNetDedicated && (PlayNumberOfClients == 1 || !WillAutoConnectToServer))
 		{
 			// Since we don't expose PlayNetMode as an option when doing RunUnderOnProcess,
 			// we take 1 player and !PlayNetdedicated and being standalone.
+			// If auto connect is off, launch as standalone unless there is a dedicated server
 			PlayNetMode = EPlayNetMode::PIE_Standalone;
 		}
 		else
@@ -2250,13 +2256,13 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	// Can't allow realtime viewports whilst in PIE so disable it for ALL viewports here.
 	DisableRealtimeViewports();
 
-	bool bAnyBlueprintErrors = ErrorBlueprintList.Num()? true : false;
+	bool bAnyBlueprintErrors = ErroredBlueprints.Num() ? true : false;
 	bool bStartInSpectatorMode = false;
 	bool bSupportsOnlinePIE = false;
+	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 
 	if (SupportsOnlinePIE())
 	{
-		const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 		bool bHasRequiredLogins = PlayNumberOfClients <= PIELogins.Num();
 
 		if (bHasRequiredLogins)
@@ -2280,7 +2286,7 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	}
 
 	CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
-	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
+	if (bInSimulateInEditor || (PlayNetMode == EPlayNetMode::PIE_Standalone && PlayNumberOfClients <= 1 && !bSupportsOnlinePIE) || !CanRunUnderOneProcess)
 	{
 		// Only spawning 1 PIE instance under this process, only set the PIEInstance value if we're not connecting to another local instance of the game, otherwise it will run the wrong streaming levels
 		const int32 PIEInstance = ( !CanRunUnderOneProcess && PlayNetMode == EPlayNetMode::PIE_Client ) ? INDEX_NONE : 0;
@@ -2333,13 +2339,14 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	int32 ClientNum = 0;
 
 	PIEInstance = 1;
+	const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
+	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 	// Server
 	FString ServerPrefix;
+	if (CanPlayNetDedicated || WillAutoConnectToServer)
 	{
 		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_ListenServer);
-
-		const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
 
 		if (!CanPlayNetDedicated)
 		{
@@ -2352,6 +2359,11 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 		{
 			ServerPrefix = ServerGameInstance->GetWorldContext()->PIEPrefix;
 		}
+		else
+		{
+			// Failed, abort
+			return;
+		}
 
 		PIEInstance++;
 	}
@@ -2360,7 +2372,15 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	const int32 PlayNumberOfClients = [&PlayInSettings]{ int32 NumberOfClients(0); return (PlayInSettings->GetPlayNumberOfClients(NumberOfClients) ? NumberOfClients : 0); }();
 	for (; ClientNum < PlayNumberOfClients; ++ClientNum)
 	{
-		PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
+		// Only launch as clients if they should connect
+		if (WillAutoConnectToServer)
+		{
+			PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Client);
+		}
+		else
+		{
+			PlayInSettings->SetPlayNetMode(EPlayNetMode::PIE_Standalone);
+		}
 
 		GetMultipleInstancePositions(SettingsIndex++, NextX, NextY);
 
@@ -2368,6 +2388,11 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 		if (ClientGameInstance)
 		{
 			ClientGameInstance->GetWorldContext()->PIERemapPrefix = ServerPrefix;
+		}
+		else
+		{
+			// Failed, abort
+			return;
 		}
 
 		PIEInstance++;
@@ -2377,7 +2402,7 @@ void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bS
 	GetMultipleInstancePositions(0, NextX, NextY);	// restore cached settings
 }
 
-void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
+bool UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct)
 {
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
 	PlayInSettings->SetPlayNetMode(PlayNetMode);
@@ -2386,36 +2411,54 @@ void UEditorEngine::CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPla
 	GetMultipleInstancePositions(DataStruct.SettingsIndex, DataStruct.NextX, DataStruct.NextY);
 	
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
-	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, PlayNetMode == EPlayNetMode::PIE_Client ? false : CanPlayNetDedicated, DataStruct.PIEStartTime);
+	const bool ActAsClient = PlayNetMode == EPlayNetMode::PIE_Client || PlayNetMode == EPlayNetMode::PIE_Standalone;
+	UGameInstance* const GameInstance = CreatePIEGameInstance(PieWorldContext.PIEInstance, false, DataStruct.bAnyBlueprintErrors, DataStruct.bStartInSpectatorMode, ActAsClient ? false : CanPlayNetDedicated, DataStruct.PIEStartTime);
 	
 	// Restore window settings
 	GetMultipleInstancePositions(0, DataStruct.NextX, DataStruct.NextY);	// restore cached settings
 
-	GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
-
-	if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
+	if (GameInstance)
 	{
-		// If any clients finished before us, update their PIERemapPrefix
-		for (FWorldContext &WorldContext : WorldList)
+		GameInstance->GetWorldContext()->bWaitingOnOnlineSubsystem = false;
+
+		if (PlayNetMode == EPlayNetMode::PIE_ListenServer)
 		{
-			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+			// If any clients finished before us, update their PIERemapPrefix
+			for (FWorldContext &WorldContext : WorldList)
 			{
-				WorldContext.PIERemapPrefix = PieWorldContext.PIEPrefix;
+				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+				{
+					WorldContext.PIERemapPrefix = PieWorldContext.PIEPrefix;
+				}
 			}
 		}
+		else
+		{
+			// Grab a valid PIERemapPrefix
+			for (FWorldContext &WorldContext : WorldList)
+			{
+				// This relies on the server being the first in the WorldList. Might be risky.
+				if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
+				{
+					PieWorldContext.PIERemapPrefix = WorldContext.PIEPrefix;
+					break;
+				}
+			}
+		}
+
+		return true;
 	}
 	else
 	{
-		// Grab a valid PIERemapPrefix
-		for (FWorldContext &WorldContext : WorldList)
-		{
-			// This relies on the server being the first in the WorldList. Might be risky.
-			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() != NULL && WorldContext.ContextHandle != PieWorldContext.ContextHandle)
-			{
-				PieWorldContext.PIERemapPrefix = WorldContext.PIEPrefix;
-				break;
-			}
-		}
+		return false;
+	}
+}
+
+void UEditorEngine::CancelPlayingViaLauncher()
+{
+	if (LauncherWorker.IsValid())
+	{
+		LauncherWorker->Cancel();
 	}
 }
 
@@ -2449,8 +2492,10 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 	const EPlayNetMode PlayNetMode = [&PlayInSettings]{ EPlayNetMode NetMode(PIE_Standalone); return (PlayInSettings->GetPlayNetMode(NetMode) ? NetMode : PIE_Standalone); }();
 	const bool CanPlayNetDedicated = [&PlayInSettings]{ bool PlayNetDedicated(false); return (PlayInSettings->GetPlayNetDedicated(PlayNetDedicated) && PlayNetDedicated); }();
+	const bool WillAutoConnectToServer = [&PlayInSettings]{ bool AutoConnectToServer(false); return (PlayInSettings->GetAutoConnectToServer(AutoConnectToServer) && AutoConnectToServer); }();
 
 	// Server
+	if (WillAutoConnectToServer || CanPlayNetDedicated)
 	{
 		FWorldContext &PieWorldContext = CreateNewWorldContext(EWorldType::PIE);
 		PieWorldContext.PIEInstance = PIEInstance++;
@@ -2495,8 +2540,15 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		{
 			// Dedicated servers don't use a login
 			OnlineSub->SetForceDedicated(true);
-			CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct);
-			FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
+			if (CreatePIEWorldFromLogin(PieWorldContext, EPlayNetMode::PIE_ListenServer, DataStruct))
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggingInDedicated", "Dedicated Server logged in"));
+			}
+			else
+			{
+				// Failed to create world, this creates a dialog elsewhere
+				return;
+			}
 		}
 	}
 
@@ -2515,7 +2567,7 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 		DataStruct.NextX = NextX;
 		DataStruct.NextY = NextY;
 		GetMultipleInstancePositions(DataStruct.SettingsIndex, NextX, NextY);
-		DataStruct.NetMode = EPlayNetMode::PIE_Client;
+		DataStruct.NetMode = WillAutoConnectToServer ? EPlayNetMode::PIE_Client : EPlayNetMode::PIE_Standalone;
 
 		FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
 		UE_LOG(LogPlayLevel, Display, TEXT("Creating online subsystem for client %s"), *OnlineIdentifier.ToString());
@@ -2542,10 +2594,22 @@ void UEditorEngine::LoginPIEInstances(bool bAnyBlueprintErrors, bool bStartInSpe
 
 void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct)
 {
-	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
-	FWorldContext& PieWorldContext = GetWorldContextFromHandleChecked(DataStruct.WorldContextHandle);
+	// This is needed because pie login may change the state of the online objects that called this function
+	GetTimerManager()->SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &UEditorEngine::OnLoginPIEComplete_Deferred, LocalUserNum, bWasSuccessful, ErrorString, DataStruct));
+}
 
-	FName OnlineIdentifier = GetOnlineIdentifier(PieWorldContext);
+void UEditorEngine::OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("OnLoginPIEComplete LocalUserNum: %d bSuccess: %d %s"), LocalUserNum, bWasSuccessful, *ErrorString);
+	FWorldContext* PieWorldContext = GetWorldContextFromHandle(DataStruct.WorldContextHandle);
+
+	if (!PieWorldContext)
+	{
+		// This will fail if PIE was ended before this callback happened, silently return
+		return;
+	}
+
+	FName OnlineIdentifier = GetOnlineIdentifier(*PieWorldContext);
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(OnlineIdentifier);
 
 	// Cleanup the login delegate before calling create below
@@ -2557,29 +2621,30 @@ void UEditorEngine::OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, 
 	}
 
 	// Create the new world
-	CreatePIEWorldFromLogin(PieWorldContext, DataStruct.NetMode, DataStruct);
-
-	// Logging after the create so a new MessageLog Page is created
-	if (bWasSuccessful)
+	if (CreatePIEWorldFromLogin(*PieWorldContext, DataStruct.NetMode, DataStruct))
 	{
-		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+		// Logging after the create so a new MessageLog Page is created
+		if (bWasSuccessful)
 		{
-			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Server logged in"));
+			}
+			else
+			{
+				FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
+			}
 		}
 		else
 		{
-			FMessageLog("PIE").Info(LOCTEXT("LoggedInClient", "Client logged in"));
-		}
-	}
-	else
-	{
-		if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
-		{
-			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
-		}
-		else
-		{
-			FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+			if (DataStruct.NetMode != EPlayNetMode::PIE_Client)
+			{
+				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Server failed to login"));
+			}
+			else
+			{
+				FMessageLog("PIE").Warning(LOCTEXT("LoggedInClientFailure", "Client failed to login"));
+			}
 		}
 	}
 }
@@ -2704,11 +2769,6 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 		}
 	}
 
-	// Move SelectedActors global object to the PIE package for the duration of the PIE session.
-	// This will stop any transactions on it from being saved during PIE.
-	GetSelectedActors()->Rename(nullptr, GWorld->GetOutermost(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional);
-	GetSelectedComponents()->Rename(nullptr, GWorld->GetOutermost(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_NonTransactional);
-
 	// For play in editor, this is the viewport widget where the game is being displayed
 	TSharedPtr<SViewport> PieViewportWidget;
 
@@ -2813,7 +2873,20 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				FOnSwitchWorldHack OnWorldSwitch = FOnSwitchWorldHack::CreateUObject( this, &UEditorEngine::OnSwitchWorldForSlatePieWindow );
 				PieWindow->SetOnWorldSwitchHack( OnWorldSwitch );
 
-				FSlateApplication::Get().AddWindow( PieWindow );
+				// Mac does not support parenting, do not keep on top
+#if PLATFORM_MAC
+				FSlateApplication::Get().AddWindow(PieWindow);
+#else
+				TSharedRef<SWindow, ESPMode::NotThreadSafe> MainWindow = FModuleManager::LoadModuleChecked<IMainFrameModule>(TEXT("MainFrame")).GetParentWindow().ToSharedRef();
+				if (PlayInSettings->PIEAlwaysOnTop)
+				{
+					FSlateApplication::Get().AddWindowAsNativeChild(PieWindow, MainWindow, true);
+				}
+				else
+				{
+					FSlateApplication::Get().AddWindow(PieWindow);
+				}
+#endif
 
 				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
 
@@ -2904,7 +2977,10 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				ViewportClient->Viewport->SetPlayInEditorViewport( ViewportClient->bIsPlayInEditorViewport );
 
 				// Ensure the window has a valid size before calling BeginPlay
-				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->ResizeFrame( PieWindow->GetSizeInScreen().X, PieWindow->GetSizeInScreen().Y, EWindowMode::Windowed, PieWindow->GetPositionInScreen().X, PieWindow->GetPositionInScreen().Y );
+				SlatePlayInEditorSession.SlatePlayInEditorWindowViewport->ResizeFrame( NewWindowWidth, NewWindowHeight, EWindowMode::Windowed, PieWindow->GetPositionInScreen().X, PieWindow->GetPositionInScreen().Y );
+
+				// Change the system resolution to match our window, to make sure game and slate window are kept syncronised
+				FSystemResolution::RequestResolutionChange(NewWindowWidth, NewWindowHeight, EWindowMode::Windowed);
 
 				if (bUseVRPreviewForPlayWorld && GEngine->HMDDevice.IsValid())
 				{
@@ -2918,6 +2994,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 					}
 				}
 			}
+
+			UGameViewportClient::OnViewportCreated().Broadcast();
 		}
 	}
 
@@ -2941,6 +3019,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	bSuccess = GameInstance->StartPIEGameInstance(NewLocalPlayer, bInSimulateInEditor, bAnyBlueprintErrors, bStartInSpectatorMode);
 	if (!bSuccess)
 	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_CouldntStartInstance", "Failed to start PIE game instance"));
 		RestoreEditorWorld( EditorWorld );
 		EndPlayMap();
 		return nullptr;
@@ -2996,7 +3075,7 @@ FViewport* UEditorEngine::GetActiveViewport()
 		return ActiveLevelViewport->GetActiveViewport();
 	}
 	
-	return NULL;
+	return nullptr;
 }
 
 FViewport* UEditorEngine::GetPIEViewport()
@@ -3016,7 +3095,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 				// We can't use FindChecked here because when using the dedicated server option we don't initialize this map 
 				//	(we don't use a viewport for the PIE context in this case)
 				FSlatePlayInEditorInfo * SlatePlayInEditorSessionPtr = SlatePlayInEditorMap.Find(WorldContext.ContextHandle);
-				if (SlatePlayInEditorSessionPtr != NULL && SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.IsValid() )
+				if ( SlatePlayInEditorSessionPtr != nullptr && SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.IsValid() )
 				{
 					return SlatePlayInEditorSessionPtr->SlatePlayInEditorWindowViewport.Get();
 				}
@@ -3024,7 +3103,7 @@ FViewport* UEditorEngine::GetPIEViewport()
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
@@ -3033,7 +3112,7 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 
 	// The first PIE world context is the one that can toggle between PIE and SIE
 	// Network PIE/SIE toggling is not really meant to be supported.
-	FSlatePlayInEditorInfo * SlateInfoPtr = NULL;
+	FSlatePlayInEditorInfo * SlateInfoPtr = nullptr;
 	for (auto It = WorldList.CreateIterator(); It && !SlateInfoPtr; ++It)
 	{
 		FWorldContext &WorldContext = *It;
@@ -3353,7 +3432,8 @@ UWorld* UEditorEngine::CreatePIEWorldByDuplication(FWorldContext &WorldContext, 
 	PlayWorldPackage->FileName = InPackage->FileName;
 	PlayWorldPackage->SetGuid( InPackage->GetGuid() );
 
-	check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
+	// check(GPlayInEditorID == -1 || GPlayInEditorID == WorldContext.PIEInstance);
+	// Currently GPlayInEditorID is not correctly reset after map loading, so it's not safe to assert here
 	GPlayInEditorID = WorldContext.PIEInstance;
 
 	{

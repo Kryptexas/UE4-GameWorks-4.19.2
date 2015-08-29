@@ -132,9 +132,6 @@ FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
 	}
 }
 
-// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
-#if !UE_BUILD_DOCS
-
 void FOpenGLDynamicRHI::RHIBeginFrame()
 {
 	RHIPrivateBeginFrame();
@@ -177,7 +174,7 @@ void FOpenGLDynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
-#endif
+
 
 bool GDisableOpenGLDebugOutput = false;
 
@@ -231,7 +228,7 @@ static const TCHAR* GetOpenGLDebugTypeStringARB(GLenum Type)
 	}
 #ifdef GL_KHR_debug	
 	{
-		static const TCHAR* TypeStrings[] =
+		static const TCHAR* DebugTypeStrings[] =
 		{
 			TEXT("Marker"),
 			TEXT("PushGroup"),
@@ -240,7 +237,7 @@ static const TCHAR* GetOpenGLDebugTypeStringARB(GLenum Type)
 
 		if (Type >= GL_DEBUG_TYPE_MARKER && Type <= GL_DEBUG_TYPE_POP_GROUP)
 		{
-			return TypeStrings[Type - GL_DEBUG_TYPE_MARKER];
+			return DebugTypeStrings[Type - GL_DEBUG_TYPE_MARKER];
 		}
 	}
 #endif
@@ -428,29 +425,31 @@ void InitDebugContext()
 	// Set the debug output callback if the driver supports it.
 	VERIFY_GL(__FUNCTION__);
 	bool bDebugOutputInitialized = false;
-#if defined(GL_ARB_debug_output)
-	if (glDebugMessageCallbackARB)
-	{
-		// Synchronous output can slow things down, but we'll get better callstack if breaking in or crashing in the callback. This is debug only after all.
-		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-		glDebugMessageCallbackARB(GLDEBUGPROCARB(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
-		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
-	}
-#elif defined(GL_KHR_debug)
-	// OpenGLES names the debug functions differently, but they behave the same
-	if (glDebugMessageCallbackKHR)
-	{
-		glDebugMessageCallbackKHR(GLDEBUGPROCKHR(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
-		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
-	}
-#endif // GL_ARB_debug_output / GL_KHR_debug
-#if defined(GL_AMD_debug_output)
-	if (glDebugMessageCallbackAMD && !bDebugOutputInitialized)
-	{
-		glDebugMessageCallbackAMD(OpenGLDebugMessageCallbackAMD, /*UserParam=*/ NULL);
-		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
-	}
-#endif // GL_AMD_debug_output
+#if !ENABLE_VERIFY_GL
+	#if defined(GL_ARB_debug_output)
+		if (glDebugMessageCallbackARB)
+		{
+			// Synchronous output can slow things down, but we'll get better callstack if breaking in or crashing in the callback. This is debug only after all.
+			glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+			glDebugMessageCallbackARB(GLDEBUGPROCARB(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
+			bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
+		}
+	#elif defined(GL_KHR_debug)
+		// OpenGLES names the debug functions differently, but they behave the same
+		if (glDebugMessageCallbackKHR)
+		{
+			glDebugMessageCallbackKHR(GLDEBUGPROCKHR(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
+			bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
+		}
+	#endif // GL_ARB_debug_output / GL_KHR_debug
+	#if defined(GL_AMD_debug_output)
+		if (glDebugMessageCallbackAMD && !bDebugOutputInitialized)
+		{
+			glDebugMessageCallbackAMD(OpenGLDebugMessageCallbackAMD, /*UserParam=*/ NULL);
+			bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
+		}
+	#endif // GL_AMD_debug_output
+#endif // !ENABLE_VERIFY_GL
 	if (!bDebugOutputInitialized && !PLATFORM_MAC)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
@@ -466,7 +465,7 @@ void InitDebugContext()
 #ifdef GL_KHR_debug
 		glDebugMessageControlARB(GL_DEBUG_SOURCE_API_ARB, GL_DEBUG_TYPE_OTHER_ARB, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 #endif
-		UE_LOG(LogRHI,Warning,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
+		UE_LOG(LogRHI,Verbose,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 	}
 #elif ENABLE_OPENGL_DEBUG_GROUPS && !defined(GL_ARB_debug_output) && GL_KHR_debug
 	if(glDebugMessageControlKHR)
@@ -475,7 +474,7 @@ void InitDebugContext()
 		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_PUSH_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, GL_DEBUG_TYPE_POP_GROUP, GL_DONT_CARE, 0, NULL, GL_FALSE);
 		glDebugMessageControlKHR(GL_DEBUG_SOURCE_API_KHR, GL_DEBUG_TYPE_OTHER_KHR, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
-		UE_LOG(LogRHI,Warning,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
+		UE_LOG(LogRHI,Verbose,TEXT("disabling reporting back of debug groups and markers to the OpenGL debug output callback"));
 	}
 #endif
 }
@@ -494,7 +493,7 @@ static void InitRHICapabilitiesForGL()
 #endif
 
 	// GL vendor and version information.
-#if !defined(__GNUC__) && !defined(__clang__)
+#if !defined(__GNUC__) && !defined(__clang__) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#StringEnum) ## TEXT(": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
 #else
 	#define LOG_GL_STRING(StringEnum) UE_LOG(LogRHI, Log, TEXT("  " #StringEnum ": %s"), ANSI_TO_TCHAR((const ANSICHAR*)glGetString(StringEnum)))
@@ -563,7 +562,7 @@ static void InitRHICapabilitiesForGL()
 	FOpenGL::InitDebugContext();
 
 	// Log and get various limits.
-#if !defined(__GNUC__) && !defined(__clang__)
+#if !defined(__GNUC__) && !defined(__clang__) && !(defined(_MSC_VER) && _MSC_VER >= 1900)
 #define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  ") ## TEXT(#IntEnum) ## TEXT(": %d"), Value_##IntEnum)
 #else
 #define LOG_AND_GET_GL_INT_TEMP(IntEnum,Default) GLint Value_##IntEnum = Default; if (IntEnum) {glGetIntegerv(IntEnum, &Value_##IntEnum); glGetError();} else {Value_##IntEnum = Default;} UE_LOG(LogRHI, Log, TEXT("  " #IntEnum ": %d"), Value_##IntEnum)
@@ -694,9 +693,12 @@ static void InitRHICapabilitiesForGL()
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
+	GSupportsShaderDepthStencilFetch = FOpenGL::SupportsShaderDepthStencilFetch();
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
+
+	GSupportsHDR32bppEncodeModeIntrinsic = FOpenGL::SupportsHDR32bppEncodeModeIntrinsic();
 
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES3_1;
@@ -753,25 +755,37 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_A2B10G10R10,		FOpenGLTextureFormat( GL_RGB10_A2,				GL_RGB10_A2,			GL_RGBA,		GL_UNSIGNED_INT_2_10_10_10_REV,		false,	false));
 		SetupTextureFormat( PF_R16F,			FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
 		SetupTextureFormat( PF_R16F_FILTER,		FOpenGLTextureFormat( GL_R16F,					GL_R16F,				GL_RED,			GL_HALF_FLOAT,						false,	false));
-		SetupTextureFormat( PF_FloatRGB,		FOpenGLTextureFormat( GL_R11F_G11F_B10F,		GL_R11F_G11F_B10F,		GL_RGB,			GL_UNSIGNED_INT_10F_11F_11F_REV,	false,	false));
-		SetupTextureFormat( PF_V8U8,			FOpenGLTextureFormat( GL_RG8_SNORM,				GL_NONE,				GL_RG,			GL_BYTE,							false,	false));
+		if (FOpenGL::SupportsR11G11B10F())
+		{
+			// Note: Also needs to include support for compute shaders to be defined here (e.g. glBindImageTexture)
+			SetupTextureFormat(PF_FloatRGB, FOpenGLTextureFormat(GL_R11F_G11F_B10F, GL_R11F_G11F_B10F, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, false, false));
+			SetupTextureFormat(PF_FloatR11G11B10, FOpenGLTextureFormat(GL_RGBA16F, GL_RGBA16F, GL_RGB, GL_HALF_FLOAT, false, false));
+		}
+		else
+		{
+			SetupTextureFormat(PF_FloatRGB, FOpenGLTextureFormat(GL_RGBA16F, GL_RGBA16F, GL_RGB, GL_HALF_FLOAT, false, false));
+			SetupTextureFormat(PF_FloatR11G11B10, FOpenGLTextureFormat(GL_R11F_G11F_B10F, GL_R11F_G11F_B10F, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, false, false));
+		}
+		SetupTextureFormat(PF_V8U8, FOpenGLTextureFormat(GL_RG8_SNORM, GL_NONE, GL_RG, GL_BYTE, false, false));
 		SetupTextureFormat( PF_R8G8,			FOpenGLTextureFormat( GL_RG8,					GL_NONE,				GL_RG,			GL_UNSIGNED_BYTE,					false,	false));
 		SetupTextureFormat( PF_BC5,				FOpenGLTextureFormat( GL_COMPRESSED_RG_RGTC2,	GL_COMPRESSED_RG_RGTC2,	GL_RG,			GL_UNSIGNED_BYTE,					true,	false));
-		SetupTextureFormat( PF_BC4,				FOpenGLTextureFormat( GL_COMPRESSED_RED_RGTC1,	GL_COMPRESSED_RED_RGTC1,	GL_RED,			GL_UNSIGNED_BYTE,					true,	false));
+		SetupTextureFormat( PF_BC4,				FOpenGLTextureFormat( GL_COMPRESSED_RED_RGTC1,	GL_COMPRESSED_RED_RGTC1,GL_RED,			GL_UNSIGNED_BYTE,					true,	false));
 		SetupTextureFormat( PF_A8,				FOpenGLTextureFormat( GL_R8,					GL_NONE,				GL_RED,			GL_UNSIGNED_BYTE,					false,	false));
 		SetupTextureFormat( PF_R32_UINT,		FOpenGLTextureFormat( GL_R32UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_INT,					false,	false));
 		SetupTextureFormat( PF_R32_SINT,		FOpenGLTextureFormat( GL_R32I,					GL_NONE,				GL_RED_INTEGER,	GL_INT,								false,	false));
 		SetupTextureFormat( PF_R16_UINT,		FOpenGLTextureFormat( GL_R16UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_SHORT,					false,	false));
 		SetupTextureFormat( PF_R16_SINT,		FOpenGLTextureFormat( GL_R16I,					GL_NONE,				GL_RED_INTEGER,	GL_SHORT,							false,	false));
 		SetupTextureFormat( PF_FloatRGBA,		FOpenGLTextureFormat( GL_RGBA16F,				GL_RGBA16F,				GL_RGBA,		GL_HALF_FLOAT,						false,	false));
-		SetupTextureFormat( PF_FloatR11G11B10,	FOpenGLTextureFormat( GL_R11F_G11F_B10F,		GL_R11F_G11F_B10F,		GL_RGB,			GL_UNSIGNED_INT_10F_11F_11F_REV,	false,	false));
 		if (FOpenGL::GetShaderPlatform() == EShaderPlatform::SP_OPENGL_ES31_EXT)
 		{
 			SetupTextureFormat(PF_G8, FOpenGLTextureFormat(GL_R8, GL_R8, GL_RED, GL_UNSIGNED_BYTE, false, false));
 			SetupTextureFormat(PF_B8G8R8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, false, true));
 			SetupTextureFormat(PF_R8G8B8A8, FOpenGLTextureFormat(GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE, false, false));
-			// GL_RG16 is not supported in OpenGL ES. There is currently no extension for it either. The user should check for support and implement a fallback.
-//			SetupTextureFormat(PF_G16R16, FOpenGLTextureFormat(GL_RG16, GL_RG16, GL_RG, GL_UNSIGNED_SHORT, false, false));
+			if (FOpenGL::SupportsRG16UI())
+			{
+				// The user should check for support for PF_G16R16 and implement a fallback if it's not supported!
+				SetupTextureFormat(PF_G16R16, FOpenGLTextureFormat(GL_RG16, GL_RG16, GL_RG, GL_UNSIGNED_SHORT, false, false));
+			}
 		}
 		else
 		{
@@ -988,15 +1002,22 @@ static void CheckVaryingLimit()
 
 		// Do not need to do this check if more than 8 varyings supported
 		if (FOpenGL::GetMaxVaryingVectors() > 8)
+		{
 			return;
+		}
 
 		// Make sure MobileHDR is on and device needs mosaic
 		static auto* MobileHDRCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR"));
-		static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
+		static auto* MobileHDR32bppModeCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bppMode"));
+
 		const bool bMobileHDR32bpp = (MobileHDRCvar && MobileHDRCvar->GetValueOnAnyThread() == 1)
-			&& (FAndroidMisc::SupportsFloatingPointRenderTargets() == false || (MobileHDR32bppCvar && MobileHDR32bppCvar->GetValueOnAnyThread() == 1));
-		if (!bMobileHDR32bpp)
+			&& (FAndroidMisc::SupportsFloatingPointRenderTargets() == false || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() != 0));
+		const bool bRequiresMosaic = bMobileHDR32bpp && (!FAndroidMisc::SupportsShaderFramebufferFetch() || (MobileHDR32bppModeCvar && MobileHDR32bppModeCvar->GetValueOnAnyThread() == 1));
+
+		if (!bRequiresMosaic)
+		{
 			return;
+		}
 
 		UE_LOG(LogRHI, Display, TEXT("Testing for gl_FragCoord requiring a varying since mosaic is enabled"));
 		const ANSICHAR* TestVertexProgram = "\n"
@@ -1335,10 +1356,24 @@ void FOpenGLDynamicRHI::RHIAcquireThreadOwnership()
 	PlatformRebindResources(PlatformDevice);
 	bIsRenderingContextAcquired = true;
 	VERIFY_GL(RHIAcquireThreadOwnership);
+	{
+		FScopeLock lock(&CustomPresentSection);
+		if (CustomPresent)
+		{
+			CustomPresent->OnAcquireThreadOwnership();
+		}
+	}
 }
 
 void FOpenGLDynamicRHI::RHIReleaseThreadOwnership()
 {
+	{
+		FScopeLock lock(&CustomPresentSection);
+		if (CustomPresent)
+		{
+			CustomPresent->OnReleaseThreadOwnership();
+		}
+	}
 	VERIFY_GL(RHIReleaseThreadOwnership);
 	bIsRenderingContextAcquired = false;
 	PlatformNULLContextSetup();
@@ -1356,9 +1391,6 @@ void FOpenGLDynamicRHI::UnregisterQuery( FOpenGLRenderQuery* Query )
 	Queries.RemoveSingleSwap(Query);
 }
 
-// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
-#if !UE_BUILD_DOCS
-
 void FOpenGLDynamicRHI::RHIAutomaticCacheFlushAfterComputeShader(bool bEnable)
 {
 	// Nothing to do here...
@@ -1369,7 +1401,7 @@ void FOpenGLDynamicRHI::RHIFlushComputeShaderCache()
 	// Nothing to do here...
 }
 
-#endif
+
 
 void* FOpenGLDynamicRHI::RHIGetNativeDevice()
 {
@@ -1395,6 +1427,12 @@ void FOpenGLDynamicRHI::InvalidateQueries( void )
 			TimerQueries[Index]->bInvalidResource = true;
 		}
 	}
+}
+
+void FOpenGLDynamicRHI::SetCustomPresent(FRHICustomPresent* InCustomPresent)
+{
+	FScopeLock lock(&CustomPresentSection);
+	CustomPresent = InCustomPresent;
 }
 
 bool FOpenGLDynamicRHIModule::IsSupported()

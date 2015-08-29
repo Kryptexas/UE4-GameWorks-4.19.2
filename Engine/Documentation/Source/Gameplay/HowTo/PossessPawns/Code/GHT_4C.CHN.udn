@@ -1,0 +1,41 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:How to Possess Pawns in Code
+Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/PossessPawns
+Description:A How To Guide for switching between characters or possessing different types of pawns in Code.
+
+[TOC (start:2)]
+
+## Overview
+
+On this page you will learn about **Pawn Possessing** and how to switch between multiple characters in a level. You will also learn how to switch from a 3rd person character and enter/exit a drivable vehicle. 
+ 
+## Switching Between Multiple Characters
+
+Below you will find steps you can take to switch between multiple characters. 
+
+
+
+
+## Entering/Exiting a Vehicle
+
+Below you will find steps that can be used to have a third person character enter/exit a drivable vehicle. 
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+

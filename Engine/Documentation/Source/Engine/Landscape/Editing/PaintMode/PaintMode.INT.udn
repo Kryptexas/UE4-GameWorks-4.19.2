@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Paint Mode
 Crumbs: %ROOT%, Engine, Engine/Landscape, Engine/Landscape/Editing
 Description:Guide to the Landscape tool's Paint mode.
@@ -24,8 +24,6 @@ Description:Guide to the Landscape tool's Paint mode.
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## Overview
 
 The tools in **Paint** mode enable you to modify the appearance of your Landscape by selectively applying Material layers to parts of your Landscape.
 
@@ -211,3 +209,8 @@ When you are reducing a weight-blended layer by holding down **Ctrl + Shift** wh
 
 
 [INCLUDE:Engine/Landscape#landscape002]
+
+
+
+
+

@@ -35,7 +35,7 @@ public class Twitch : ModuleRules
 			}
 			else
 			{
-				// Other platforms link with Twitch dynamically, and don't need an import library to be statically linked
+				// Other platforms link with Twitch dynamically, so they don't need an import library to be statically linked
 			}
 		}
 	}

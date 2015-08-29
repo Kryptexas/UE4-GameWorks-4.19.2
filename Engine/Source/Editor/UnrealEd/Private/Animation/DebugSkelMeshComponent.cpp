@@ -247,13 +247,17 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 
 	if (IsPreviewOn())
 	{
-		if (UBlendSpace* BlendSpace = Cast<UBlendSpace>(PreviewInstance->CurrentAsset))
+		if (UBlendSpaceBase* BlendSpace = Cast<UBlendSpaceBase>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("BlendSpace", "Blend Space {0}"), FText::FromString(BlendSpace->GetName()) ).ToString();
 		}
 		else if (UAnimMontage* Montage = Cast<UAnimMontage>(PreviewInstance->CurrentAsset))
 		{
 			return FText::Format( LOCTEXT("Montage", "Montage {0}"), FText::FromString(Montage->GetName()) ).ToString();
+		}
+		else if(UAnimComposite* Composite = Cast<UAnimComposite>(PreviewInstance->CurrentAsset))
+		{
+			return FText::Format(LOCTEXT("Composite", "Composite {0}"), FText::FromString(Composite->GetName())).ToString();
 		}
 		else if (UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
 		{
@@ -265,7 +269,7 @@ FString UDebugSkelMeshComponent::GetPreviewText() const
 		}
 	}
 
-	return LOCTEXT("None", "None").ToString();
+	return LOCTEXT("ReferencePose", "Reference Pose").ToString();
 
 #undef LOCTEXT_NAMESPACE
 }
@@ -413,9 +417,11 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 {
 	TArray<FTransform> TempLocalAtoms;
+	TempLocalAtoms.AddUninitialized(OutSpaceBases.Num());
 	TArray<FActiveVertexAnim> TempVertexAnims;
 	FVector TempRootBoneTranslation;
-	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, CachedLocalAtoms, TempVertexAnims, TempRootBoneTranslation);
+	FBlendedCurve TempCurve;
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, TempLocalAtoms, TempVertexAnims, TempRootBoneTranslation, TempCurve);
 }
 
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
@@ -485,14 +491,19 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 		{ 
 			if (Sequence->IsValidAdditive()) 
 			{ 
-				AdditiveBasePoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
-				Sequence->GetAdditiveBasePose(AdditiveBasePoses, PreviewInstance->RequiredBones, FAnimExtractContext(PreviewInstance->CurrentTime));
-				
-				FA2CSPose CSPose;
-				CSPose.AllocateLocalPoses(AnimScriptInstance->RequiredBones, AdditiveBasePoses);
-				for(int32 i=0; i<AdditiveBasePoses.Num(); ++i)
+				FCSPose<FCompactPose> CSAdditiveBasePose;
 				{
-					AdditiveBasePoses[i] = CSPose.GetComponentSpaceTransform(i);
+					FCompactPose AdditiveBasePose;
+					FBlendedCurve AdditiveCurve(PreviewInstance);
+					AdditiveBasePose.SetBoneContainer(&PreviewInstance->RequiredBones);
+					Sequence->GetAdditiveBasePose(AdditiveBasePose, AdditiveCurve, FAnimExtractContext(PreviewInstance->CurrentTime));
+					CSAdditiveBasePose.InitPose(AdditiveBasePose);
+				}
+
+				for (int32 i = 0; i < AdditiveBasePoses.Num(); ++i)
+				{
+					FCompactPoseBoneIndex CompactIndex = PreviewInstance->RequiredBones.MakeCompactPoseIndex(FMeshPoseBoneIndex(i));
+					AdditiveBasePoses[i] = CSAdditiveBasePose.GetComponentSpaceTransform(CompactIndex);
 				}
 			}
 		}

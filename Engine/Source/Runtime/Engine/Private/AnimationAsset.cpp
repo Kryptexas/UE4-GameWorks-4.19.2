@@ -225,6 +225,43 @@ void FBoneContainer::Initialize()
 		// Right now we only support a single Skeleton. Skeleton hierarchy coming soon!
 		RemapFromSkeleton(*AssetSkeleton.Get());
 	}
+
+	//Set up compact pose data
+	int32 NumReqBones = BoneIndicesArray.Num();
+	CompactPoseParentBones.Empty(NumReqBones);
+	
+	CompactPoseRefPoseBones.Empty(NumReqBones);
+	CompactPoseRefPoseBones.AddUninitialized(NumReqBones);
+	
+	CompactPoseToSkeletonIndex.Empty(NumReqBones);
+	CompactPoseToSkeletonIndex.AddUninitialized(NumReqBones);
+	
+	SkeletonToCompactPose.Empty(SkeletonToPoseBoneIndexArray.Num());
+
+	const TArray<FTransform>& RefPoseArray = RefSkeleton->GetRefBonePose();
+
+	for (int32 CompactBoneIndex = 0; CompactBoneIndex < NumReqBones; ++CompactBoneIndex)
+	{
+		FBoneIndexType MeshPoseIndex = BoneIndicesArray[CompactBoneIndex];
+
+		//Parent Bone
+		const int32 ParentIndex = GetParentBoneIndex(MeshPoseIndex);
+		const int32 CompactParentIndex = ParentIndex == INDEX_NONE ? INDEX_NONE : BoneIndicesArray.IndexOfByKey(ParentIndex);
+
+		CompactPoseParentBones.Add(FCompactPoseBoneIndex(CompactParentIndex));
+
+		//Ref Pose
+		CompactPoseRefPoseBones[CompactBoneIndex] = RefPoseArray[MeshPoseIndex];
+
+		CompactPoseToSkeletonIndex[CompactBoneIndex] = PoseToSkeletonBoneIndexArray[MeshPoseIndex];
+	}
+
+	for (int32 SkeletonBoneIndex = 0; SkeletonBoneIndex < SkeletonToPoseBoneIndexArray.Num(); ++SkeletonBoneIndex)
+	{
+		int32 PoseBoneIndex = SkeletonToPoseBoneIndexArray[SkeletonBoneIndex];
+		int32 CompactIndex  = (PoseBoneIndex != INDEX_NONE) ? (BoneIndicesArray.IndexOfByKey(PoseBoneIndex)) : INDEX_NONE;
+		SkeletonToCompactPose.Add(FCompactPoseBoneIndex(CompactIndex));
+	}
 }
 
 int32 FBoneContainer::GetPoseBoneIndexForBoneName(const FName& BoneName) const
@@ -238,6 +275,13 @@ int32 FBoneContainer::GetParentBoneIndex(const int32& BoneIndex) const
 	checkSlow( IsValid() );
 	checkSlow(BoneIndex != INDEX_NONE);
 	return RefSkeleton->GetParentIndex(BoneIndex);
+}
+
+FCompactPoseBoneIndex FBoneContainer::GetParentBoneIndex(const FCompactPoseBoneIndex& BoneIndex) const
+{
+	checkSlow(IsValid());
+	checkSlow(BoneIndex != INDEX_NONE);
+	return CompactPoseParentBones[BoneIndex.GetInt()];
 }
 
 int32 FBoneContainer::GetDepthBetweenBones(const int32& BoneIndex, const int32& ParentBoneIndex) const

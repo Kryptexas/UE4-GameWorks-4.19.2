@@ -9,6 +9,7 @@
 #include "SCurveEditor.h"
 #include "SAnimTrackPanel.h"
 #include "SAnimEditorBase.h"
+#include "SAnimTimingPanel.h"
 
 DECLARE_DELEGATE_OneParam( FOnSelectionChanged, const FGraphPanelSelectionSet& )
 DECLARE_DELEGATE( FOnTrackSelectionChanged )
@@ -168,7 +169,9 @@ public:
 	SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 	SLATE_EVENT( FOnSelectionChanged, OnSelectionChanged )
 	SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
-	SLATE_EVENT( FRefreshOffsetsRequest, OnRequestRefreshOffsets)
+	SLATE_EVENT( FRefreshOffsetsRequest, OnRequestRefreshOffsets )
+	SLATE_EVENT( FOnGetTimingNodeVisibility, OnGetTimingNodeVisibility )
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -229,7 +232,8 @@ private:
 	TAttribute<float> CurrentPosition;
 	FOnSelectionChanged OnSelectionChanged;
 	FOnGetScrubValue OnGetScrubValue;
-	
+	FOnGetTimingNodeVisibility OnGetTimingNodeVisibility;
+
 	/** Manager for mouse controlled marquee selection */
 	FNotifyMarqueeOperation Marquee;
 

@@ -1036,7 +1036,7 @@ FSCSEditorTreeNodeComponent::FSCSEditorTreeNodeComponent(UActorComponent* InComp
 	AActor* Owner = InComponentTemplate->GetOwner();
 	if (Owner != nullptr)
 	{
-		ensureMsg(Owner->HasAllFlags(RF_ClassDefaultObject), TEXT("Use a different node class for instanced components"));
+		ensureMsgf(Owner->HasAllFlags(RF_ClassDefaultObject), TEXT("Use a different node class for instanced components"));
 	}
 }
 
@@ -1237,7 +1237,7 @@ UActorComponent* FSCSEditorTreeNodeComponent::INTERNAL_GetOverridenComponentTemp
 	const bool BlueprintCanOverrideComponentFromKey = Key.IsValid()
 		&& Blueprint
 		&& Blueprint->ParentClass
-		&& Blueprint->ParentClass->IsChildOf(Key.OwnerClass);
+		&& Blueprint->ParentClass->IsChildOf(Key.GetComponentOwner());
 
 	if (BlueprintCanOverrideComponentFromKey)
 	{
@@ -1875,7 +1875,8 @@ FReply SSCS_RowWidget::HandleOnDragDetected( const FGeometry& MyGeometry, const 
 		TSharedPtr<FSCSEditorTreeNode> FirstNode = SelectedNodePtrs[0];
 		if (FirstNode->GetNodeType() == FSCSEditorTreeNode::ComponentNode)
 		{
-			UBlueprint* Blueprint = FirstNode->GetBlueprint();
+			// Do not use the Blueprint from FirstNode, it may still be referencing the parent.
+			UBlueprint* Blueprint = GetBlueprint();
 			const FName VariableName = FirstNode->GetVariableName();
 			UStruct* VariableScope = (Blueprint != nullptr) ? Blueprint->SkeletonGeneratedClass : nullptr;
 
@@ -2273,13 +2274,17 @@ FReply SSCS_RowWidget::HandleOnAcceptDrop( const FDragDropEvent& DragDropEvent, 
 			break;
 
 		case FSCSRowDragDropOp::DropAction_AttachToOrMakeNewRoot:
-			check(DragRowOp->SourceNodes.Num() == 1);
-			FSlateApplication::Get().PushMenu(
-				SharedThis(this),
-				BuildSceneRootDropActionMenu(DragRowOp->SourceNodes[0]).ToSharedRef(),
-				FSlateApplication::Get().GetCursorPos(),
-				FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
-			);
+			{
+				check(DragRowOp->SourceNodes.Num() == 1);
+				FWidgetPath WidgetPath = DragDropEvent.GetEventPath() != nullptr ? *DragDropEvent.GetEventPath() : FWidgetPath();
+				FSlateApplication::Get().PushMenu(
+					SharedThis(this),
+					WidgetPath,
+					BuildSceneRootDropActionMenu(DragRowOp->SourceNodes[0]).ToSharedRef(),
+					FSlateApplication::Get().GetCursorPos(),
+					FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
+				);
+			}
 			break;
 
 		case FSCSRowDragDropOp::DropAction_None:
@@ -2807,7 +2812,7 @@ FText SSCS_RowWidget::GetTooltipText() const
 		}
 		else
 		{
-			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted.\nAdding a new scene component will automatically replace it as the new root.");
+			return LOCTEXT("DefaultSceneRootToolTip", "This is the default scene root component. It cannot be copied, renamed or deleted.\nIt can be replaced by drag/dropping another scene component over it.");
 		}
 	}
 	else
@@ -3237,6 +3242,7 @@ void SSCSEditor::Construct( const FArguments& InArgs )
 	OnHighlightPropertyInDetailsView = InArgs._OnHighlightPropertyInDetailsView;
 	bUpdatingSelection = false;
 	bHasAddedSceneAndBehaviorComponentSeparator = false;
+	bAllowTreeUpdates = true;
 
 	CommandList = MakeShareable( new FUICommandList );
 	CommandList->MapAction( FGenericCommands::Get().Cut,
@@ -4183,6 +4189,12 @@ void SSCSEditor::UpdateTree(bool bRegenerateTreeNodes)
 {
 	check(SCSTreeWidget.IsValid());
 
+	// Early exit if we're deferring tree updates
+	if(!bAllowTreeUpdates)
+	{
+		return;
+	}
+
 	if(bRegenerateTreeNodes)
 	{
 		// Obtain the set of expandable tree nodes that are currently collapsed
@@ -4607,8 +4619,15 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 		Blueprint->Modify();
 		SaveSCSCurrentState(Blueprint->SimpleConstructionScript);
 
+		// Defer Blueprint class regeneration and tree updates if we need to copy object properties from a source template.
+		const bool bMarkBlueprintModified = !ComponentTemplate;
+		if(!bMarkBlueprintModified)
+		{
+			bAllowTreeUpdates = false;
+		}
+		
 		const FName NewVariableName = (Asset ? FName(*FComponentEditorUtils::GenerateValidVariableNameFromAsset(Asset, nullptr)) : NAME_None);
-		NewComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass, NewVariableName), Asset, true);
+		NewComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewComponentClass, NewVariableName), Asset, bMarkBlueprintModified);
 
 		if (ComponentTemplate)
 		{
@@ -4617,6 +4636,10 @@ UActorComponent* SSCSEditor::AddNewComponent( UClass* NewComponentClass, UObject
 			FObjectWriter Writer(ComponentTemplate, SavedProperties);
 			FObjectReader(NewComponent, SavedProperties);
 			NewComponent->UpdateComponentToWorld();
+
+			// Wait until here to mark as structurally modified because we don't want any RerunConstructionScript() calls to happen until AFTER we've serialized properties from the source object.
+			bAllowTreeUpdates = true;
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 		}
 	}
 	else    // EComponentEditorMode::ActorInstance
@@ -5104,6 +5127,19 @@ void SSCSEditor::RemoveComponentNode(FSCSEditorTreeNodePtrType InNodePtr)
 
 			// Clear the delegate
 			SCS_Node->SetOnNameChanged(FSCSNodeNameChanged());
+
+			// on removal, since we don't move the template from the 
+			// GeneratedClass (which we shouldn't, as it would create a 
+			// discrepancy with existing instances), we rename it instead so that 
+			// we can re-use the name without having to compile (we still have a 
+			// problem if they attempt to name it to what ever we choose here, 
+			// but that is unlikely)
+			if (SCS_Node->ComponentTemplate != nullptr)
+			{
+				SCS_Node->ComponentTemplate->Modify();
+				const FString RemovedName = SCS_Node->GetVariableName().ToString() + TEXT("_REMOVED_") + FGuid::NewGuid().ToString();
+				SCS_Node->ComponentTemplate->Rename(*RemovedName, /*NewOuter =*/nullptr, REN_DontCreateRedirectors);
+			}
 		}
 	}
 	else    // EComponentEditorMode::ActorInstance

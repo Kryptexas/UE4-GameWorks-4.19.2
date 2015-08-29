@@ -32,6 +32,7 @@ FAudioDevice::FAudioDevice()
 	, DefaultBaseSoundMix(nullptr)
 	, Effects(nullptr)
 	, CurrentAudioVolume(nullptr)
+	, PlatformAudioHeadroom(1.0f)
 	, HighestPriorityReverb(nullptr)
 	, SpatializationPlugin(nullptr)
 	, SpatializeProcessor(nullptr)
@@ -48,7 +49,7 @@ FAudioEffectsManager* FAudioDevice::CreateEffectsManager()
 	return new FAudioEffectsManager(this);
 }
 
-bool FAudioDevice::Init()
+bool FAudioDevice::Init(int32 InMaxChannels)
 {
 	if (bIsInitialized)
 	{
@@ -57,11 +58,19 @@ bool FAudioDevice::Init()
 
 	bool bDeferStartupPrecache = false;
 	// initialize config variables
-	verify(GConfig->GetInt(TEXT("Audio"), TEXT("MaxChannels"), MaxChannels, GEngineIni));
+	MaxChannels = InMaxChannels;
 	verify(GConfig->GetInt(TEXT("Audio"), TEXT("CommonAudioPoolSize"), CommonAudioPoolSize, GEngineIni));
-	
+
 	// If this is true, skip the initial startup precache so we can do it later in the flow
 	GConfig->GetBool(TEXT("Audio"), TEXT("DeferStartupPrecache"), bDeferStartupPrecache, GEngineIni);
+
+	// Get an optional engine ini setting for platform headroom. 
+	float Headroom = 1.0f;
+	if (GConfig->GetFloat(TEXT("Audio"), TEXT("PlatformHeadroomDB"), Headroom, GEngineIni))
+	{
+		// Convert dB to linear volume
+		PlatformAudioHeadroom = FMath::Pow(10.0f, Headroom / 10.0f);
+	}
 
 	const FStringAssetReference DefaultBaseSoundMixName = GetDefault<UAudioSettings>()->DefaultBaseSoundMix;
 	if (DefaultBaseSoundMixName.IsValid())
@@ -217,7 +226,10 @@ void FAudioDevice::AddReferencedObjects( FReferenceCollector& Collector )
 		Collector.AddReferencedObject(It.Key());
 	}
 
-	Effects->AddReferencedObjects(Collector);
+	if (Effects)
+	{
+		Effects->AddReferencedObjects(Collector);
+	}
 
 	for( int32 i = 0; i < ActiveSounds.Num(); ++i )
 	{
@@ -233,11 +245,11 @@ void FAudioDevice::ResetInterpolation( void )
 {
 	for (FListener& Listener : Listeners)
 	{
-		Listener.InteriorStartTime = 0.0;
-		Listener.InteriorEndTime = 0.0;
-		Listener.ExteriorEndTime = 0.0;
-		Listener.InteriorLPFEndTime = 0.0;
-		Listener.ExteriorLPFEndTime = 0.0;
+		Listener.InteriorStartTime = 0.f;
+		Listener.InteriorEndTime = 0.f;
+		Listener.ExteriorEndTime = 0.f;
+		Listener.InteriorLPFEndTime = 0.f;
+		Listener.ExteriorLPFEndTime = 0.f;
 
 		Listener.InteriorVolumeInterp = 0.0f;
 		Listener.InteriorLPFInterp = 0.0f;
@@ -315,7 +327,7 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
 		{
 			// Presume one class per sound node wave
-			USoundWave *SoundWave = WavePlayers[ WaveIndex ]->SoundWave;
+			USoundWave *SoundWave = WavePlayers[ WaveIndex ]->GetSoundWave();
 			if (SoundWave && SoundCue->GetSoundClass())
 			{
 				SoundWaveClasses.Add( SoundWave, SoundCue->GetSoundClass()->GetFName() );
@@ -594,7 +606,7 @@ bool FAudioDevice::HandlePlaySoundCueCommand( const TCHAR* Cmd, FOutputDevice& A
 			Cue->RecursiveFindNode<USoundNodeWavePlayer>( Cue->FirstNode, WavePlayers );
 			for( int32 i = 0; i < WavePlayers.Num(); ++i )
 			{
-				USoundWave* SoundWave = WavePlayers[ i ]->SoundWave;
+				USoundWave* SoundWave = WavePlayers[ i ]->GetSoundWave();
 				if (SoundWave)
 				{
 					SoundWave->LogSubtitle( Ar );
@@ -1061,7 +1073,7 @@ bool FAudioDevice::ApplySoundMix( USoundMix* NewMix, FSoundMixState* SoundMixSta
 void FAudioDevice::UpdateSoundMix(class USoundMix* SoundMix, FSoundMixState* SoundMixState)
 {
 	// If this SoundMix will automatically end, add some more time
-	if (SoundMixState->FadeOutStartTime >= 0.0)
+	if (SoundMixState->FadeOutStartTime >= 0.f)
 	{
 		if (SoundMixState->CurrentState == ESoundMixState::FadingOut)
 		{
@@ -1147,7 +1159,7 @@ bool FAudioDevice::TryClearingSoundMix(USoundMix* SoundMix, FSoundMixState* Soun
 		if (SoundMixState->ActiveRefCount == 0 && SoundMixState->PassiveRefCount == 0 && SoundMixState->IsBaseSoundMix == false)
 		{
 			// do whatever is needed to remove influence of this SoundMix
-			if (SoundMix->FadeOutTime > 0.0)
+			if (SoundMix->FadeOutTime > 0.f)
 			{
 				if (SoundMixState->CurrentState == ESoundMixState::Inactive)
 				{
@@ -1310,7 +1322,7 @@ void FAudioDevice::UpdateSoundClassProperties()
 			SoundMixState->CurrentState = ESoundMixState::FadingIn;
 		}
 		else if( FApp::GetCurrentTime() >= SoundMixState->FadeInEndTime
-			&& ( SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.0 || FApp::GetCurrentTime() < SoundMixState->FadeOutStartTime ) )
+			&& ( SoundMixState->IsBaseSoundMix || SoundMixState->PassiveRefCount > 0 || SoundMixState->FadeOutStartTime < 0.f || FApp::GetCurrentTime() < SoundMixState->FadeOutStartTime ) )
 		{
 			// .. ensure the full mix is applied between the end of the fade in time and the start of the fade out time
 			// or if SoundMix is the base or active via a passive push - ignores duration.
@@ -1330,7 +1342,7 @@ void FAudioDevice::UpdateSoundClassProperties()
 		}
 		else
 		{
-			check( SoundMixState->EndTime >= 0.0 && FApp::GetCurrentTime() >= SoundMixState->EndTime );
+			check( SoundMixState->EndTime >= 0.f && FApp::GetCurrentTime() >= SoundMixState->EndTime );
 			// Clear the effect of this SoundMix - may need to revisit for passive
 			SoundMixState->InterpValue = 0.0f;
 			SoundMixState->CurrentState = ESoundMixState::AwaitingRemoval;
@@ -1479,6 +1491,12 @@ void FAudioDevice::PushSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
 		}
 		else
 		{
+			// Make sure that even if UpdateSoundClasses hasn't been run since we indicated we wanted the
+			// mix to fade out that we flag is as such so the push is applied correctly
+			if (SoundMixState->FadeOutStartTime > 0.f)
+			{
+				SoundMixState->CurrentState = ESoundMixState::FadingOut;
+			}
 			UpdateSoundMix(SoundMix, SoundMixState);
 		}
 
@@ -1508,7 +1526,7 @@ void FAudioDevice::PopSoundMixModifier(USoundMix* SoundMix, bool bIsPassive)
 				if (SoundMixState->PassiveRefCount == 0)
 				{
 					// Check whether Fade out time was previously set and reset it to current time
-					if (SoundMixState->FadeOutStartTime >= 0.0 && FApp::GetCurrentTime() > SoundMixState->FadeOutStartTime)
+					if (SoundMixState->FadeOutStartTime >= 0.f && FApp::GetCurrentTime() > SoundMixState->FadeOutStartTime)
 					{
 						SoundMixState->FadeOutStartTime = FApp::GetCurrentTime();
 						SoundMixState->EndTime = SoundMixState->FadeOutStartTime + SoundMix->FadeOutTime;
@@ -1671,6 +1689,12 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 	{
 		FActiveSound* ActiveSound = ActiveSoundsCopy[i];
 
+		if (!ActiveSound)
+		{
+			UE_LOG(LogAudio, Error, TEXT("Null sound at index %d in ActiveSounds Array!"), i);
+			continue;
+		}
+		
 		if( !ActiveSound->Sound )
 		{
 			// No sound - cleanup and remove
@@ -1679,27 +1703,39 @@ int32 FAudioDevice::GetSortedActiveWaveInstances(TArray<FWaveInstance*>& WaveIns
 		// If the world scene allows audio - tick wave instances.
 		else if( ActiveSound->World == NULL || ActiveSound->World->AllowAudioPlayback() )
 		{
-			const float Duration = ActiveSound->Sound->GetDuration();
-			// Divide by minimum pitch for longest possible duration
-			if( Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH )
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+			if ( !ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("ActiveSound with INVALID sound. AudioComponent=%s. DebugOriginalSoundName=%s"),
+				 ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+				 *ActiveSound->DebugOriginalSoundName.ToString() ))
 			{
-				UE_LOG(LogAudio, Log, TEXT( "Sound stopped due to duration: %g > %g : %s %s" ), 
-					ActiveSound->PlaybackTime, 
-					Duration, 
-					*ActiveSound->Sound->GetName(), 
-					(ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT")));
+				// Sound was not valid, stop playing it.
 				ActiveSound->Stop(this);
 			}
 			else
+#endif
 			{
-				// If not in game, do not advance sounds unless they are UI sounds.
-				float UsedDeltaTime = FApp::GetDeltaTime();
-				if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
+				const float Duration = ActiveSound->Sound->GetDuration();
+				// Divide by minimum pitch for longest possible duration
+				if( Duration < INDEFINITELY_LOOPING_DURATION && ActiveSound->PlaybackTime > Duration / MIN_PITCH )
 				{
-					UsedDeltaTime = 0.0f;
+					UE_LOG(LogAudio, Log, TEXT( "Sound stopped due to duration: %g > %g : %s %s" ), 
+						ActiveSound->PlaybackTime, 
+						Duration, 
+						*ActiveSound->Sound->GetName(), 
+						(ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetName() : TEXT("NO COMPONENT")));
+					ActiveSound->Stop(this);
 				}
+				else
+				{
+					// If not in game, do not advance sounds unless they are UI sounds.
+					float UsedDeltaTime = FApp::GetDeltaTime();
+					if (GetType == ESortedActiveWaveGetType::QueryOnly || (GetType == ESortedActiveWaveGetType::PausedUpdate && !ActiveSound->bIsUISound))
+					{
+						UsedDeltaTime = 0.0f;
+					}
 
-				ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
+					ActiveSound->UpdateWaveInstances( this, WaveInstances, UsedDeltaTime );
+				}
 			}
 		}
 	}
@@ -2044,6 +2080,30 @@ void FAudioDevice::AddNewActiveSound( const FActiveSound& NewActiveSound )
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	FActiveSound* ActiveSound = new FActiveSound(NewActiveSound);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (ActiveSound->Sound)
+	{
+		if (!ensureMsgf(ActiveSound->Sound->IsValidLowLevel(), TEXT("AddNewActiveSound with INVALID sound. AudioComponent=%s"),
+			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT") ))
+		{
+			static FName InvalidSoundName(TEXT("INVALID_Sound"));
+			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
+		}
+		else if (!ensureMsgf(ActiveSound->Sound->GetFName() != NAME_None, TEXT("AddNewActiveSound with DESTROYED sound %s. AudioComponent=%s. IsPendingKill=%d. BeginDestroy=%d"),
+			*ActiveSound->Sound->GetPathName(),
+			ActiveSound->AudioComponent.IsValid() ? *ActiveSound->AudioComponent->GetPathName() : TEXT("NO COMPONENT"),
+			(int32)ActiveSound->Sound->IsPendingKill(),
+			(int32)ActiveSound->Sound->HasAnyFlags(RF_BeginDestroyed)))
+		{
+			static FName InvalidSoundName(TEXT("DESTROYED_Sound"));
+			ActiveSound->DebugOriginalSoundName = InvalidSoundName;
+		}
+		else
+		{
+			ActiveSound->DebugOriginalSoundName = ActiveSound->Sound->GetFName();
+		}
+	}
+#endif
 	ActiveSounds.Add(ActiveSound);
 }
 
@@ -2284,6 +2344,7 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		if (FPlatformProperties::SupportsAudioStreaming() && SoundWave->IsStreaming())
 		{
 			SoundWave->DecompressionType = DTYPE_Streaming;
+			SoundWave->bCanProcessAsync = false;
 		}
 		else if (SupportsRealtimeDecompression() && 
 			(bDisableAudioCaching || (!SoundGroup.bAlwaysDecompressOnLoad && SoundWave->Duration > SoundGroup.DecompressedDuration)))
@@ -2309,9 +2370,8 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 		// Grab the compressed audio data
 		SoundWave->InitAudioResource(GetRuntimeFormat(SoundWave));
 
-		if (SoundWave->AudioDecompressor == NULL && SoundWave->DecompressionType == DTYPE_Native)
+		if (SoundWave->AudioDecompressor == nullptr && (SoundWave->DecompressionType == DTYPE_Native || SoundWave->DecompressionType == DTYPE_RealTime))
 		{
-			check(!SoundWave->AudioDecompressor); // should not have had a valid pointer at this point
 			// Create a worker to decompress the audio data
 			if (bSynchronous)
 			{
@@ -2329,7 +2389,10 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 			SoundWave->bDecompressedFromOgg = GetRuntimeFormat(SoundWave) == NAME_OGG;
 
 			// the audio decompressor will track memory
-			bTrackMemory = false;
+			if (SoundWave->DecompressionType == DTYPE_Native)
+			{
+				bTrackMemory = false;
+			}
 		}
 	}
 	else

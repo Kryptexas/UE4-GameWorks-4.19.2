@@ -88,14 +88,26 @@ namespace UnrealBuildTool
 			FlatCPPIncludeDependencyCache Result = null;
 			try
 			{
-				using (FileStream Stream = new FileStream(Cache.AbsolutePath, FileMode.Open, FileAccess.Read))
-				{	
-					// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
-					// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
-					BinaryFormatter Formatter = new BinaryFormatter();
-					Result = Formatter.Deserialize(Stream) as FlatCPPIncludeDependencyCache;
-					Result.CacheFileItem = Cache;
-					Result.bIsDirty = false;
+				string CacheBuildMutexPath = Cache.AbsolutePath + ".buildmutex";
+
+				// If the .buildmutex file for the cache is present, it means that something went wrong between loading
+				// and saving the cache last time (most likely the UBT process being terminated), so we don't want to load
+				// it.
+				if (!File.Exists(CacheBuildMutexPath))
+				{
+					using (File.Create(CacheBuildMutexPath))
+					{
+					}
+
+					using (FileStream Stream = new FileStream(Cache.AbsolutePath, FileMode.Open, FileAccess.Read))
+					{
+						// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
+						// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
+						BinaryFormatter Formatter = new BinaryFormatter();
+						Result = Formatter.Deserialize(Stream) as FlatCPPIncludeDependencyCache;
+						Result.CacheFileItem = Cache;
+						Result.bIsDirty = false;
+					}
 				}
 			}
 			catch (Exception Ex)
@@ -158,6 +170,15 @@ namespace UnrealBuildTool
 				{
 					Log.TraceInformation("FlatCPPIncludeDependencyCache did not need to be saved (bIsDirty=false)");
 				}
+			}
+
+			try
+			{
+				File.Delete(CacheFileItem.AbsolutePath + ".buildmutex");
+			}
+			catch
+			{
+				// We don't care if we couldn't delete this file, as maybe it couldn't have been created in the first place.
 			}
 		}
 

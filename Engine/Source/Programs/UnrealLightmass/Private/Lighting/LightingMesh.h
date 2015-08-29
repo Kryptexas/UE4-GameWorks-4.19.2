@@ -315,6 +315,7 @@ public:
 	inline int32 GetNumElements() const { return MaterialElements.Num(); }
 	inline bool ShouldColorInvalidTexels() const { return bColorInvalidTexels; }
 	inline bool HasImportedNormal(int32 ElementIndex) const { return MaterialElements[ElementIndex].Material->NormalSize > 0; }
+	inline bool UseVertexNormalForHemisphereGather(int32 ElementIndex) const { return MaterialElements[ElementIndex].bUseVertexNormalForHemisphereGather; }
 
 	/**
 	 *	Returns the Guid for the object associated with this lighting mesh.
@@ -384,6 +385,12 @@ public:
 
 	/** For debugging */
 	virtual void SetDebugMaterial(bool bUseDebugMaterial, FLinearColor Diffuse);
+
+	/** 
+	 * Whether mesh is always opaque for visibility calculations, 
+	 * otherwise opaque property will be checked for each triangle 
+	 */
+	virtual bool IsAlwaysOpaqueForVisibility() const { return false; }
 
 	/** Evaluates the mesh's Bidirectional Reflectance Distribution Function. */
 	FLinearColor EvaluateBRDF(

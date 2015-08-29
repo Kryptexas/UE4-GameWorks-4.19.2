@@ -58,8 +58,9 @@ void FOnlineSubsystemModule::StartupModule()
 {
 	FString InterfaceString;
 
-	// Load the platform defined "default" online services module
-	if (GConfig->GetString(TEXT("OnlineSubsystem"), TEXT("DefaultPlatformService"), InterfaceString, GEngineIni) &&
+	// Try to load the right service defined by an overload as a command line argument or as a value in the config
+	if ((FParse::Value(FCommandLine::Get(), *FString::Printf(TEXT("PlatformService=")), InterfaceString) ||
+		GConfig->GetString(TEXT("OnlineSubsystem"), TEXT("DefaultPlatformService"), InterfaceString, GEngineIni)) &&
 		InterfaceString.Len() > 0)
 	{
 		FName InterfaceName = FName(*InterfaceString);
@@ -72,7 +73,7 @@ void FOnlineSubsystemModule::StartupModule()
 		}
 		else
 		{
-			UE_LOG(LogOnline, Warning, TEXT("Unable to load default OnlineSubsystem module %s, using NULL interface"), *InterfaceString);
+			UE_LOG(LogOnline, Log, TEXT("Unable to load default OnlineSubsystem module %s, using NULL interface"), *InterfaceString);
 			InterfaceString = TEXT("Null");
 			InterfaceName = FName(*InterfaceString);
 
@@ -87,7 +88,7 @@ void FOnlineSubsystemModule::StartupModule()
 	}
 	else
 	{
-		UE_LOG(LogOnline, Warning, TEXT("No default platform service specified for OnlineSubsystem"));
+		UE_LOG(LogOnline, Log, TEXT("No default platform service specified for OnlineSubsystem"));
 	}
 }
 
@@ -202,7 +203,12 @@ IOnlineSubsystem* FOnlineSubsystemModule::GetOnlineSubsystem(const FName InSubsy
 				}
 				else
 				{
-					UE_LOG(LogOnline, Warning, TEXT("Unable to create OnlineSubsystem module %s"), *SubsystemName.ToString());
+					bool* bNotedPreviously = OnlineSubsystemFailureNotes.Find(KeyName);
+					if (!bNotedPreviously || !(*bNotedPreviously))
+					{
+						UE_LOG(LogOnline, Log, TEXT("Unable to create OnlineSubsystem module %s"), *SubsystemName.ToString());
+						OnlineSubsystemFailureNotes.Add(KeyName, true);
+					}
 				}
 			}
 			else
@@ -229,6 +235,7 @@ void FOnlineSubsystemModule::DestroyOnlineSubsystem(const FName InSubsystemName)
 		if (OnlineSubsystem.IsValid())
 		{
 			OnlineSubsystem->Shutdown();
+			OnlineSubsystemFailureNotes.Remove(KeyName);
 		}
 		else
 		{

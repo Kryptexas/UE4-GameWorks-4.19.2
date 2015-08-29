@@ -38,7 +38,7 @@ public:
 #if ENABLE_NAN_DIAGNOSTIC
 	FORCEINLINE void DiagnosticCheckNaN() const
 	{
-		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
+		ensureMsgf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
 	}
 #else
 	FORCEINLINE void DiagnosticCheckNaN() const {}
@@ -909,6 +909,12 @@ public:
 		return Ar << V.X << V.Y << V.Z;
 	}
 	
+	bool Serialize( FArchive& Ar )
+	{
+		Ar << *this;
+		return true;
+	}
+
 	/** 
 	 * Network serialization function.
 	 * FVectors NetSerialize without quantization (ie exact values are serialized).
@@ -1276,7 +1282,7 @@ FORCEINLINE bool FVector::Equals(const FVector& V, float Tolerance) const
 
 FORCEINLINE bool FVector::AllComponentsEqual(float Tolerance) const
 {
-	return FMath::Abs( X - Y ) < Tolerance && FMath::Abs( X - Z ) < Tolerance && FMath::Abs( Y - Z ) < Tolerance;
+	return FMath::Abs( X - Y ) <= Tolerance && FMath::Abs( X - Z ) <= Tolerance && FMath::Abs( Y - Z ) <= Tolerance;
 }
 
 
@@ -1429,9 +1435,9 @@ FORCEINLINE float FVector::SizeSquared2D() const
 FORCEINLINE bool FVector::IsNearlyZero(float Tolerance) const
 {
 	return
-		FMath::Abs(X)<Tolerance
-		&&	FMath::Abs(Y)<Tolerance
-		&&	FMath::Abs(Z)<Tolerance;
+		FMath::Abs(X)<=Tolerance
+		&&	FMath::Abs(Y)<=Tolerance
+		&&	FMath::Abs(Z)<=Tolerance;
 }
 
 FORCEINLINE bool FVector::IsZero() const
@@ -1641,7 +1647,7 @@ FORCEINLINE FVector FVector::Reciprocal() const
 
 FORCEINLINE bool FVector::IsUniform(float Tolerance) const
 {
-	return (FMath::Abs(X-Y) < Tolerance) && (FMath::Abs(Y-Z) < Tolerance);
+	return (FMath::Abs(X-Y) <= Tolerance) && (FMath::Abs(Y-Z) <= Tolerance);
 }
 
 FORCEINLINE FVector FVector::MirrorByVector( const FVector& MirrorNormal ) const

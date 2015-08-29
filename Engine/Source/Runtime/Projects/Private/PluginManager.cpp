@@ -184,7 +184,11 @@ void FPluginManager::ReadPluginsInDirectory(const FString& PluginsDirectory, con
 			else
 			{
 				// NOTE: Even though loading of this plugin failed, we'll keep processing other plugins
-				UE_LOG(LogPluginManager, Error, TEXT("%s (%s)"), *FailureReason.ToString(), *FileName);
+				FString FullPath = FPaths::ConvertRelativePathToFull(FileName);
+				FText FailureMessage = FText::Format(LOCTEXT("FailureFormat", "{0} ({1})"), FailureReason, FText::FromString(FullPath));
+				FText DialogTitle = LOCTEXT("PluginFailureTitle", "Failed to load Plugin");
+				UE_LOG(LogPluginManager, Error, TEXT("%s"), *FailureMessage.ToString());
+				FMessageDialog::Open(EAppMsgType::Ok, FailureMessage, &DialogTitle);
 			}
 		}
 	}
@@ -267,7 +271,9 @@ bool FPluginManager::ConfigureEnabledPlugins()
 		const FProjectDescriptor *Project = IProjectManager::Get().GetCurrentProject();
 		if(Project != nullptr)
 		{
-			for(const FPluginReferenceDescriptor& Plugin: Project->Plugins)
+			// Take a copy of the Project's plugins as we may remove some
+			TArray<FPluginReferenceDescriptor> PluginsCopy = Project->Plugins;
+			for(const FPluginReferenceDescriptor& Plugin: PluginsCopy)
 			{
 				if(Plugin.bEnabled && !FindPluginInstance(Plugin.Name).IsValid())
 				{
@@ -284,21 +290,45 @@ bool FPluginManager::ConfigureEnabledPlugins()
 					}
 					else
 					{
-						FString Description = (Plugin.Description.Len() > 0)? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
+						FString Description = (Plugin.Description.Len() > 0) ? FString::Printf(TEXT("\n\n%s"), *Plugin.Description) : FString();
 						FMessageDialog::Open(EAppMsgType::Ok, FText::Format(LOCTEXT("PluginMissingError", "This project requires the {0} plugin. {1}"), FText::FromString(Plugin.Name), FText::FromString(Description)), &Caption);
-					}
+						
+						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingDisable", "Would you like to disable {0}? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
+						{
+							return false;
+						}
 
-					if(FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("PluginMissingDisable", "Would you like to disable {0}? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
-					{
-						return false;
-					}
-
-					FText FailReason;
-					if(!IProjectManager::Get().SetPluginEnabled(*Plugin.Name, false, FailReason))
-					{
-						FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+						FText FailReason;
+						if (!IProjectManager::Get().SetPluginEnabled(*Plugin.Name, false, FailReason))
+						{
+							FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+						}
 					}
 				}
+#if !IS_MONOLITHIC
+				// Only check this when in a non-monolithic build where modules could be in separate binaries
+				else if (Plugin.bEnabled && Project->Modules.Num() == 0)
+				{
+					// Content only project - check whether any plugins are incompatible and offer to disable instead of trying to build them later
+					TSharedPtr<FPlugin> PluginInstance = FindPluginInstance(Plugin.Name);
+					TArray<FString> IncompatibleFiles;
+					if (!FModuleDescriptor::CheckModuleCompatibility(PluginInstance->Descriptor.Modules, PluginInstance->LoadedFrom == EPluginLoadedFrom::GameProject, IncompatibleFiles))
+					{
+						// Ask whether to disable plugin if incompatible
+						FText Caption(LOCTEXT("IncompatiblePluginCaption", "Plugin missing or incompatible"));
+						if (FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(LOCTEXT("IncompatiblePluginText", "Missing or incompatible modules in {0} plugin - would you like to disable it? You will no longer be able to open any assets created using it."), FText::FromString(Plugin.Name)), &Caption) == EAppReturnType::No)
+						{
+							return false;
+						}
+
+						FText FailReason;
+						if (!IProjectManager::Get().SetPluginEnabled(*Plugin.Name, false, FailReason))
+						{
+							FMessageDialog::Open(EAppMsgType::Ok, FailReason);
+						}
+					}
+				}
+#endif //!IS_MONOLITHIC
 			}
 		}
 
@@ -490,7 +520,7 @@ bool FPluginManager::CheckModuleCompatibility(TArray<FString>& OutIncompatibleMo
 	for (TArray< TSharedRef< FPlugin > >::TConstIterator Iter(AllPlugins); Iter; ++Iter)
 	{
 		const TSharedRef< FPlugin > &Plugin = *Iter;
-		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatbility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
+		if (Plugin->bEnabled && !FModuleDescriptor::CheckModuleCompatibility(Plugin->Descriptor.Modules, Plugin->LoadedFrom == EPluginLoadedFrom::GameProject, OutIncompatibleModules))
 		{
 			bResult = false;
 		}

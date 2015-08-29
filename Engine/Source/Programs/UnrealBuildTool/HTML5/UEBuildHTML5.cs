@@ -8,20 +8,11 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-    class HTML5Platform : UEBuildPlatform
-    {
-        // use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
-        [XmlConfig]
-        public static string HTML5Architecture = "";
-
-
-        static private string TargetPlatformName = "HTML5";
-
-		// This is the SDK version we support in //CarefullyRedist.
-		// May include minor revisions or descriptions that a default install from SDK_Manager won't have.
-		// e.g. 1.600_Patch001, or 1.610.001.  The SDK_Manager always installs minor revision patches straight into
-		// the default major revision folder.
-		static private string ExpectedSDKVersion = "1.25.0";
+	class HTML5Platform : UEBuildPlatform
+	{
+		// use -win32 for win32 builds. ( build html5 platform as a win32 binary for debugging )
+		[XmlConfig]
+		public static string HTML5Architecture = "";
 
 		/** 
 		 * Whether platform supports switching SDKs during runtime
@@ -30,13 +21,13 @@ namespace UnrealBuildTool
 		 */
 		protected override bool PlatformSupportsAutoSDKs()
 		{
-			return true;
+			return false;
 		}
 		
 		public override string GetSDKTargetPlatformName()
-        {
-            return TargetPlatformName;
-        }
+		{
+			return "HTML5";
+		}
 
 		/** 
 		 * Returns SDK string as required by the platform 
@@ -45,64 +36,38 @@ namespace UnrealBuildTool
 		 */
 		protected override string GetRequiredSDKString()
 		{
-			if (HTML5SDKInfo.IsSDKVersionOverridden())
-				return HTML5SDKInfo.OverriddenSDKVersion();
-			return ExpectedSDKVersion;
+			return HTML5SDKInfo.EmscriptenVersion();
 		}
 
-		// force rebuild for platform every time to force install AutoSDK for HTML5 4.8
 		protected override String GetRequiredScriptVersionString()
 		{
-			return "2.0";
-		}		
+			return "3.0";
+		}
 		
 		// The current architecture - affects everything about how UBT operates on HTML5
-        public override string GetActiveArchitecture()
-        {
-            // by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
-            return HTML5Architecture;
-        }
+		public override string GetActiveArchitecture()
+		{
+			// by default, use an empty architecture (which is really just a modifier to the platform for some paths/names)
+			return HTML5Architecture;
+		}
 
-        // F5 should always try to run the Win32 version
-        public override string ModifyNMakeOutput(string ExeName)
-        {
-            // nmake Run should always run the win32 version
-            return Path.ChangeExtension(ExeName+"-win32", ".exe");
-        }
+		// F5 should always try to run the Win32 version
+		public override string ModifyNMakeOutput(string ExeName)
+		{
+			// nmake Run should always run the win32 version
+			return Path.ChangeExtension(ExeName+"-win32", ".exe");
+		}
 
-        /**
-         *	Whether the required external SDKs are installed for this platform
-         */
-        protected override SDKStatus HasRequiredManualSDKInternal()
-        {
-			// if any autosdk setup has been done then the local process environment is suspect
-			if (HasSetupAutoSDK())
-			{
-				return SDKStatus.Invalid;
-            }
+		/**
+			*	Whether the required external SDKs are installed for this platform
+			*/
+		protected override SDKStatus HasRequiredManualSDKInternal()
+		{
 			if (!HTML5SDKInfo.IsSDKInstalled())
 			{
 				return SDKStatus.Invalid;
 			}
-            try
-            {
-                int InstalledVersion = Convert.ToInt32(HTML5SDKInfo.EmscriptenVersion().Replace(".","")); 
-                int RequiredVersion = Convert.ToInt32(GetRequiredSDKString().Replace(".","")); 
-
-                if (InstalledVersion >= RequiredVersion)
-                {
-                    return SDKStatus.Valid;
-                }
-                else
-                {
-					Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is older than " + RequiredVersion + " Please install the latest emscripten SDK");
-                    return SDKStatus.Invalid;
-                }
-            }
-            catch (Exception /*ex*/)
-            {
-                 return SDKStatus.Invalid;
-            }
+			return SDKStatus.Valid;
         }
 
         public override bool CanUseXGE()
@@ -142,34 +107,7 @@ namespace UnrealBuildTool
                     {
                         UEBuildPlatform.RegisterPlatformWithGroup(UnrealTargetPlatform.HTML5, UnrealPlatformGroup.Device);
                     }
-
-					string SDKPath = GetPathToPlatformAutoSDKs();
-					if (SDKPath != null && SDKPath != "")
-					{
-						// We have autosdk running.
-	 					// recreate configuration files. 
-						string UserFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-						string ConfigFile = Path.Combine(UserFolder, ".emscripten");
-
-						string CompletePath = Path.Combine(SDKPath, ExpectedSDKVersion);
-						// (re)create .emscripten config file. 
-						{
-							var ConfigString = String.Join(
-								Environment.NewLine,
-								"import os",
-								"EMSCRIPTEN='" + Path.Combine(CompletePath, "Emscripten", ExpectedSDKVersion) + "'",
-								"PYTHON='" + Path.Combine(CompletePath, "Emscripten", "python", "2.7.5.3_64bit", "python.exe") + "'",
-								"LLVM='" + Path.Combine(CompletePath, "Emscripten", "clang", "e" + ExpectedSDKVersion + "_64bit") + "'",
-								"LLVM_ROOT='" + Path.Combine(CompletePath, "Emscripten", "clang", "e" + ExpectedSDKVersion + "_64bit") + "'",
-								"NODE= '" + Path.Combine(CompletePath, "Emscripten", "node", "0.10.17_64bit", "node.exe") + "'",
-								"NODE_JS= '" + Path.Combine(CompletePath, "Emscripten", "node", "0.10.17_64bit", "node.exe") + "'",
-								"JS_ENGINES = [NODE]",
-								"COMPILER_ENGINE = NODE_JS"
-								);
-							File.WriteAllText(ConfigFile, ConfigString.Replace("\\", "/"));
-						}
-	                }
-				}
+                }
             }
 
         }

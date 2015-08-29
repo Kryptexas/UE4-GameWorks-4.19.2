@@ -154,7 +154,7 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (Replicator)
 	{
-		Replicator->OnChangeEQSQuery.AddUObject(this, &UGameplayDebuggingComponent::OnChangeEQSQuery);
+		Replicator->OnCycleDetailsView.AddUObject(this, &UGameplayDebuggingComponent::OnCycleDetailsView);
 		FGameplayDebuggerSettings Settings = GameplayDebuggerSettings(Replicator);
 		for (int32 Index = EAIDebugDrawDataView::Empty + 1; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
@@ -214,6 +214,8 @@ void UGameplayDebuggingComponent::GetLifetimeReplicatedProps( TArray< FLifetimeP
 	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIState);
 	DOREPLIFETIME(UGameplayDebuggingComponent, CurrentAIAssets);
 
+	DOREPLIFETIME(UGameplayDebuggingComponent, GameplayTasksState);
+
 	DOREPLIFETIME(UGameplayDebuggingComponent, bIsUsingAbilities);
 	DOREPLIFETIME(UGameplayDebuggingComponent, AbilityInfo);
 
@@ -248,6 +250,10 @@ void UGameplayDebuggingComponent::ClientEnableTargetSelection_Implementation(boo
 void UGameplayDebuggingComponent::SetActorToDebug(AActor* Actor)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (TargetActor != Actor)
+	{
+		MarkRenderStateDirty();
+	}
 	TargetActor = Actor;
 	EQSLocalData.Reset();
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -336,6 +342,7 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 			if (AGameplayDebuggingReplicator* DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(GetOwner()))
 			{
 				DebuggingReplicator->ServerSetActorToDebug(Cast<AActor>(PossibleTarget));
+				MarkRenderStateDirty();
 			}
 
 			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
@@ -347,7 +354,8 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 void UGameplayDebuggingComponent::CollectDataToReplicate(bool bCollectExtendedData)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (!GetSelectedActor())
+	const AActor *SelectedActor = GetSelectedActor();
+	if (!SelectedActor || SelectedActor->IsPendingKill())
 	{
 		return;
 	}
@@ -451,7 +459,7 @@ void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyPawn->GetWorld());
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 
-	const ANavigationData* NavData = NavSys->GetNavDataForProps(MyAIController->GetNavAgentPropertiesRef());
+	const ANavigationData* NavData = NavSys ? NavSys->GetNavDataForProps(MyAIController->GetNavAgentPropertiesRef()) : nullptr;
 	if (NavData)
 	{
 		NavDataInfo = NavData->GetConfig().Name.ToString();
@@ -524,6 +532,16 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 		CurrentAITask = TEXT("");
 		CurrentAIState = TEXT("");
 		CurrentAIAssets = TEXT("");
+	}
+
+	UGameplayTasksComponent* GTComponent = MyPawn->FindComponentByClass<UGameplayTasksComponent>();
+	if (GTComponent)
+	{
+		GameplayTasksState = FString::Printf(TEXT("Ticking Tasks: %s\nTask Queue: %s"), *GTComponent->GetTickingTasksDescription(), *GTComponent->GetTasksPriorityQueueDescription());
+	}
+	else
+	{
+		GameplayTasksState = TEXT("");
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -790,10 +808,9 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 //////////////////////////////////////////////////////////////////////////
 // EQS Data
 //////////////////////////////////////////////////////////////////////////
-void UGameplayDebuggingComponent::OnChangeEQSQuery()
+void UGameplayDebuggingComponent::OnCycleDetailsView()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (++CurrentEQSIndex >= EQSLocalData.Num())
 	{
 		CurrentEQSIndex = 0;
@@ -938,7 +955,7 @@ void UGameplayDebuggingComponent::CollectEQSData()
 void UGameplayDebuggingComponent::OnRep_UpdateNavmesh()
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
+	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1));
 	UpdateBounds();
 	MarkRenderStateDirty();
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1377,7 +1394,8 @@ public:
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);
 		Result.bDynamicRelevance = true;
-		Result.bNormalTranslucencyRelevance = IsShown(View);
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		Result.bSeparateTranslucencyRelevance = Result.bNormalTranslucencyRelevance = IsShown(View);
 		return Result;
 	}
 
@@ -1393,7 +1411,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		return NULL;
 	}
 
-	if (!Replicator || !Replicator->IsDrawEnabled())
+	if (!Replicator || !Replicator->IsDrawEnabled() || Replicator->IsPendingKill() || IsPendingKill())
 	{
 		return NULL;
 	}
@@ -1407,14 +1425,14 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		NewNavmeshRenderData.bEnableDrawing = false;
 		PrepareNavMeshData(&NewNavmeshRenderData);
 
-		NavMeshBounds = NewNavmeshRenderData.Bounds;
+		NavMeshBounds = NewNavmeshRenderData.Bounds.GetCenter().ContainsNaN() || NewNavmeshRenderData.Bounds.GetExtent().ContainsNaN() ? FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1)) : NewNavmeshRenderData.Bounds;
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
 		CompositeProxy->AddChild(new FRecastRenderingSceneProxy(this, &NewNavmeshRenderData, true));
 	}
 #endif
 
 #if USE_EQS_DEBUGGER
-	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled())
+	if (ShouldReplicateData(EAIDebugDrawDataView::EQS) && IsClientEQSSceneProxyEnabled() && GetSelectedActor() != NULL)
 	{
 		const int32 EQSIndex = EQSLocalData.Num() > 0 ? FMath::Clamp(CurrentEQSIndex, 0, EQSLocalData.Num() - 1) : INDEX_NONE;
 		if (EQSLocalData.IsValidIndex(EQSIndex))
@@ -1434,8 +1452,8 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		}
 	}
 #endif // USE_EQS_DEBUGGER
-
-	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor();
+	
+	const bool bDrawFullData = Replicator->GetSelectedActorToDebug() == GetSelectedActor() && GetSelectedActor() != NULL;
 	if (bDrawFullData && ShouldReplicateData(EAIDebugDrawDataView::Basic))
 	{
 		CompositeProxy = CompositeProxy ? CompositeProxy : (new FDebugRenderSceneCompositeProxy(this));
@@ -1507,7 +1525,7 @@ FBoxSphereBounds UGameplayDebuggingComponent::CalcBounds(const FTransform& Local
 #if USE_EQS_DEBUGGER
 	if ((EQSRepData.Num() && ShouldReplicateData(EAIDebugDrawDataView::EQS)) || PathCorridorPolygons.Num())
 	{
-		MyBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
+		MyBounds = FBox(FVector(-HALF_WORLD_MAX1, -HALF_WORLD_MAX1, -HALF_WORLD_MAX1), FVector(HALF_WORLD_MAX1, HALF_WORLD_MAX1, HALF_WORLD_MAX1));
 	}
 #endif // USE_EQS_DEBUGGER
 

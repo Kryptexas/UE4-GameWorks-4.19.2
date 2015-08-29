@@ -20,6 +20,7 @@
 #include "ScopedTransaction.h"
 
 #include "ISourceControlModule.h"
+#include "ILocalizationServiceModule.h"
 #include "PackageBackup.h"
 #include "LevelUtils.h"
 #include "Layers/Layers.h"
@@ -110,6 +111,10 @@
 #include "UnrealEngine.h"
 #include "EngineStats.h"
 #include "Engine/SimpleConstructionScript.h"
+#include "PackageTools.h"
+
+#include "PhysicsPublic.h"
+#include "Engine/CoreSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -438,7 +443,7 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher(false, TEXT(""));
+			DesktopPlatform->OpenLauncher(false, FString(), FString());
 		}
 	}
 
@@ -978,7 +983,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.	
-		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// Look for realtime flags.
@@ -1116,9 +1121,12 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 	// tick the directory watcher
 	// @todo: Put me into an FTicker that is created when the DW module is loaded
-	static FName DirectoryWatcherName("DirectoryWatcher");
-	FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(DirectoryWatcherName);
-	DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
+	if( !FApp::IsGameNameEmpty() )
+	{
+		static FName DirectoryWatcherName("DirectoryWatcher");
+		FDirectoryWatcherModule& DirectoryWatcherModule = FModuleManager::Get().LoadModuleChecked<FDirectoryWatcherModule>(DirectoryWatcherName);
+		DirectoryWatcherModule.Get()->Tick(DeltaSeconds);
+	}
 
 	if( bShouldTickEditorWorld )
 	{ 
@@ -1429,8 +1437,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 
 
 	// Commit changes to the BSP model.
-	EditorContext.World()->CommitModelSurfaces();
-	EditorContext.World()->SendAllEndOfFrameUpdates();
+	EditorContext.World()->CommitModelSurfaces();	
 
 	bool bUpdateLinkedOrthoViewports = false;
 	/////////////////////////////
@@ -1485,6 +1492,7 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	}
 
 	ISourceControlModule::Get().Tick();
+	ILocalizationServiceModule::Get().Tick();
 
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() )
 	{
@@ -1740,17 +1748,6 @@ void UEditorEngine::InvalidateAllViewportsAndHitProxies()
 	}
 }
 
-void UEditorEngine::InvalidateAllLevelEditorViewportClientHitProxies()
-{
-	for (const auto* LevelViewportClient : LevelViewportClients)
-	{
-		if (LevelViewportClient->Viewport != nullptr)
-		{
-			LevelViewportClient->Viewport->InvalidateHitProxy();
-		}
-	}
-}
-
 void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	// Propagate the callback up to the superclass.
@@ -1802,10 +1799,56 @@ void UEditorEngine::Cleanse( bool ClearSelection, bool Redraw, const FText& Tran
 			RedrawLevelEditingViewports();
 		}
 
-		// Attempt to unload any loaded redirectors. Redirectors should not be referenced in memory and are only used to forward references at load time
+		// Attempt to unload any loaded redirectors. Redirectors should not
+		// be referenced in memory and are only used to forward references
+		// at load time.
+		//
+		// We also have to remove packages that redirectors were contained
+		// in if those were from redirector-only package, so they can be
+		// loaded again in the future. If we don't do it loading failure
+		// will occur next time someone tries to use it. This is caused by
+		// the fact that the loading routing will check that already
+		// existed, but the object was missing in cache.
+		const EObjectFlags FlagsToClear = RF_Standalone | RF_RootSet | RF_Transactional;
+		TArray<UPackage*> PackagesToUnload;
 		for (TObjectIterator<UObjectRedirector> RedirIt; RedirIt; ++RedirIt)
 		{
-			RedirIt->ClearFlags(RF_Standalone | RF_RootSet | RF_Transactional);
+			UPackage* RedirectorPackage = RedirIt->GetOutermost();
+
+			if (RedirectorPackage == GetTransientPackage())
+			{
+				continue;
+			}
+
+			TArray<UObject*> PackageObjects;
+			GetObjectsWithOuter(RedirectorPackage, PackageObjects);
+
+			if (!PackageObjects.ContainsByPredicate(
+					[](UObject* Object)
+					{
+						return !Object->IsA<UMetaData>() && !Object->IsA<UObjectRedirector>();
+					})
+				)
+			{
+				PackagesToUnload.Add(RedirectorPackage);
+			}
+			else
+			{
+				// In case this isn't redirector-only package, clear just the redirector.
+				RedirIt->ClearFlags(FlagsToClear);
+			}
+		}
+
+		for (auto* PackageToUnload : PackagesToUnload)
+		{
+			TArray<UObject*> PackageObjects;
+			GetObjectsWithOuter(PackageToUnload, PackageObjects);
+			for (auto* Object : PackageObjects)
+			{
+				Object->ClearFlags(FlagsToClear);
+			}
+
+			PackageToUnload->ClearFlags(FlagsToClear);
 		}
 
 		// Collect garbage.
@@ -1884,7 +1927,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 {
 	// Only play sounds if the user has that feature enabled
-	if( GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds && !GIsSavingPackage )
+	if( !GIsSavingPackage && IsInGameThread() && GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds )
 	{
 		USoundBase* Sound = Cast<USoundBase>( StaticFindObject( USoundBase::StaticClass(), NULL, *SoundAssetName ) );
 		if( Sound == NULL )
@@ -2129,15 +2172,6 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		InActor->Modify();
 	}
 	
-	ABrush* Brush = Cast< ABrush >( InActor );
-	if( Brush )
-	{
-		if( Brush->GetBrushComponent() && Brush->GetBrushComponent()->Brush )
-		{
-			Brush->GetBrushComponent()->Brush->Polys->Element.ModifyAllItems();
-		}
-	}
-
 	FNavigationLockContext LockNavigationUpdates(InActor->GetWorld(), ENavigationLockReason::ContinuousEditorMove);
 
 	bool bTranslationOnly = true;
@@ -3260,7 +3294,7 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 				
 				FActorSpawnParameters SpawnInfo;
 				SpawnInfo.OverrideLevel = Info.SourceLevel;
-				SpawnInfo.bNoCollisionFail = true;
+				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				if( bToStaticMesh )
 				{					
 					AStaticMeshActor* SMActor = CastChecked<AStaticMeshActor>( World->SpawnActor( ToClass, &Info.Location, &Info.Rotation, SpawnInfo ) );
@@ -3309,23 +3343,29 @@ void UEditorEngine::ConvertActorsFromClass( UClass* FromClass, UClass* ToClass )
 
 bool UEditorEngine::ShouldOpenMatinee(AMatineeActor* MatineeActor) const
 {
+	if( PlayWorld )
+	{
+		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_MatineeCantOpenDuringPIE", "Matinee cannot be opened during Play in Editor.") );
+		return false;
+	}
+
 	if ( MatineeActor && !MatineeActor->MatineeData )
 	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_MatineeActionMustHaveData", "UnrealMatinee must have valid InterpData assigned before being edited.") );
+		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_MatineeActionMustHaveData", "Matinee must have valid InterpData assigned before being edited.") );
 		return false;
 	}
 
 	// Make sure we can't open the same action twice in Matinee.
 	if( GLevelEditorModeTools().IsModeActive(FBuiltinEditorModes::EM_InterpEdit) )
 	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MatineeActionAlreadyOpen", "An UnrealMatinee sequence is currently open in an editor.  Please close it before proceeding.") );
+		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "MatineeActionAlreadyOpen", "An Matinee sequence is currently open in an editor.  Please close it before proceeding.") );
 		return false;
 	}
 
 	// Don't let you open Matinee if a transaction is currently active.
 	if( GEditor->IsTransactionActive() )
 	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "TransactionIsActive", "Undo Transaction Is Active - Cannot Open UnrealMatinee.") );
+		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "TransactionIsActive", "Undo Transaction Is Active - Cannot Open Matinee.") );
 		return false;
 	}
 
@@ -3460,7 +3500,7 @@ bool UEditorEngine::DetachSelectedActors()
 			OldParentActor->Modify();
 			RootComp->DetachFromParent(true);
 			bDetachOccurred = true;
-			Actor->SetFolderPath(OldParentActor->GetFolderPath());
+			Actor->SetFolderPath_Recursively(OldParentActor->GetFolderPath());
 		}
 	}
 	return bDetachOccurred;
@@ -3674,9 +3714,55 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 	SlowTask.EnterProgressFrame(10);
 
 	UWorld* World = Cast<UWorld>(Base);
+	bool bInitializedPhysicsSceneForSave = false;
+	
+	UWorld *OriginalOwningWorld = nullptr;
 	if ( World )
 	{
+		// We need a physics scene at save time in case code does traces during onsave events.
+		bool bHasPhysicsScene = false;
+
+		// First check if our owning world has a physics scene
+		if (World->PersistentLevel && World->PersistentLevel->OwningWorld)
+		{
+			bHasPhysicsScene = (World->PersistentLevel->OwningWorld->GetPhysicsScene() != nullptr);
+		}
+		
+		// If we didn't already find a physics scene in our owning world, maybe we personally have our own.
+		if (!bHasPhysicsScene)
+		{
+			bHasPhysicsScene = (World->GetPhysicsScene() != nullptr);
+		}
+
+		
+		// If we didn't find any physics scene we will synthesize one and remove it after save
+		if (!bHasPhysicsScene)
+		{
+			// Clear world components first so that UpdateWorldComponents below properly adds them all to the physics scene
+			World->ClearWorldComponents();
+
+			if (World->bIsWorldInitialized)
+			{
+				// If we don't have a physics scene and the world was initialized without one (i.e. an inactive world) then we should create one here. We will remove it down below after the save
+				World->CreatePhysicsScene();
+			}
+			else
+			{
+				// If we aren't already initialized, initialize now and create a physics scene
+				World->InitWorld(UWorld::InitializationValues().RequiresHitProxies(false).ShouldSimulatePhysics(false).EnableTraceCollision(false).CreateNavigation(false).CreateAISystem(false).AllowAudioPlayback(false).CreatePhysicsScene(true));
+			}
+
+			// Update components now that a physics scene exists.
+			World->UpdateWorldComponents(true, true);
+
+			// Set this to true so we can clean up what we just did down below
+			bInitializedPhysicsSceneForSave = true;
+		}
+
 		OnPreSaveWorld(SaveFlags, World);
+
+		OriginalOwningWorld = World->PersistentLevel->OwningWorld;
+		World->PersistentLevel->OwningWorld = World;
 	}
 
 	// See if the package is a valid candidate for being auto-added to the default changelist.
@@ -3717,7 +3803,23 @@ bool UEditorEngine::SavePackage( UPackage* InOuter, UObject* InBase, EObjectFlag
 
 	if ( World )
 	{
+		if (OriginalOwningWorld)
+		{
+			World->PersistentLevel->OwningWorld = OriginalOwningWorld;
+		}
+
 		OnPostSaveWorld(SaveFlags, World, OriginalPackageFlags, bSuccess);
+
+		if (bInitializedPhysicsSceneForSave)
+		{
+			// Make sure we clean up the physics scene here. If we leave too many scenes in memory, undefined behavior occurs when locking a scene for read/write.
+			World->ClearWorldComponents();
+			World->SetPhysicsScene(nullptr);
+			if (GPhysCommandHandler)
+			{
+				GPhysCommandHandler->Flush();
+			}
+		}
 	}
 
 	return bSuccess;
@@ -3913,7 +4015,7 @@ void UEditorEngine::CloseEntryPopupWindow()
 
 EAppReturnType::Type UEditorEngine::OnModalMessageDialog(EAppMsgType::Type InMessage, const FText& InText, const FText& InTitle)
 {
-	if( FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
+	if( IsInGameThread() && FSlateApplication::IsInitialized() && FSlateApplication::Get().CanAddModalWindow() )
 	{
 		return OpenMsgDlgInt(InMessage, InText, InTitle);
 	}
@@ -5144,7 +5246,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 				{
 					FActorSpawnParameters SpawnInfo;
 					SpawnInfo.OverrideLevel = ActorLevel;
-					SpawnInfo.bNoCollisionFail = true;
+					SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 					NewActor = World->SpawnActor( ConvertToClass, &SpawnLoc, &SpawnRot, SpawnInfo );
 
 					if (NewActor)
@@ -5428,7 +5530,7 @@ AActor* UEditorEngine::AddActor(ULevel* InLevel, UClass* Class, const FTransform
 
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.OverrideLevel = DesiredLevel;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.ObjectFlags = ObjectFlags;
 		const auto Location = Transform.GetLocation();
 		const auto Rotation = Transform.GetRotation().Rotator();
@@ -6202,6 +6304,26 @@ UWorld::InitializationValues UEditorEngine::GetEditorWorldInitializationValues()
 	return UWorld::InitializationValues()
 		.ShouldSimulatePhysics(false)
 		.EnableTraceCollision(true);
+}
+
+void UEditorEngine::HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString)
+{
+	// If the failure occurred during PIE while connected to another process, simply end the PIE session before
+	// trying to travel anywhere.
+	if (PlayOnLocalPCSessions.Num() > 0)
+	{
+		for (const FWorldContext& WorldContext : WorldList)
+		{
+			if (WorldContext.WorldType == EWorldType::PIE && WorldContext.World() == World)
+			{
+				RequestEndPlayMap();
+				return;
+			}
+		}
+	}
+
+	// Otherwise, perform normal engine failure handling.
+	Super::HandleNetworkFailure(World, NetDriver, FailureType, ErrorString);
 }
 
 //////////////////////////////////////////////////////////////////////////

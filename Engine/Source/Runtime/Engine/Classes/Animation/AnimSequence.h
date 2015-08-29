@@ -13,6 +13,8 @@
 typedef TArray<FTransform> FTransformArrayA2;
 
 class USkeletalMesh;
+struct FCompactPose;
+
 
 /**
  * Indicates animation data compression format.
@@ -31,7 +33,7 @@ enum AnimationCompressionFormat
 };
 
 /**
- * Indicates animation data compression format.
+ * Indicates animation data key format.
  */
 UENUM()
 enum AnimationKeyFormat
@@ -43,35 +45,18 @@ enum AnimationKeyFormat
 };
 
 /** 
- * AdditiveAnimationType
- * 
- * This dictates if this is additive or not, If it is, what kind of additive
- */
-UENUM()
-enum EAdditiveAnimationType
-{
-	/** No additive */
-	AAT_None  UMETA(DisplayName="No additive"),
-	/* Create Additive from LocalSpace Base */
-	AAT_LocalSpaceBase UMETA(DisplayName="Local Space"),
-	/* Create Additive from MeshSpace Rotation Only, Translation still will be LocalSpace */
-	AAT_RotationOffsetMeshSpace UMETA(DisplayName="Mesh Space"),
-	AAT_MAX,
-};
-
-/** 
- * What kind of additive animation
+ * For an additive animation, indicates what the animation is relative to.
  */
 UENUM()
 enum EAdditiveBasePoseType
 {
-	// will be deprecated
+	/** Will be deprecated. */
 	ABPT_None UMETA(DisplayName="None"),
-	// use ref pose of Skeleton as base
+	/** Use the Skeleton's ref pose as base. */
 	ABPT_RefPose UMETA(DisplayName="Reference Pose"),
-	// use whole animation as a base pose. Need BasePoseSeq.
+	/** Use a whole animation as a base pose. BasePoseSeq must be set. */
 	ABPT_AnimScaled UMETA(DisplayName="Selected animation scaled"),
-	// use animation as a base pose. Need BasePoseSeq and RefFrameIndex (will clamp if outside).
+	/** Use one frame of an animation as a base pose. BasePoseSeq and RefFrameIndex must be set (RefFrameIndex will be clamped). */
 	ABPT_AnimFrame UMETA(DisplayName="Selected animation frame"),
 	ABPT_MAX,
 };
@@ -82,7 +67,7 @@ enum EAdditiveBasePoseType
  * reduced to 1 key that is constant over the entire sequence.
  */
 USTRUCT()
-struct FRawAnimSequenceTrack
+struct ENGINE_API FRawAnimSequenceTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -113,13 +98,11 @@ struct FRawAnimSequenceTrack
 	}
 };
 
-/**
- * These two always should go together, but it is not right now. 
- * I wonder in the future, we change all compressed to be inside as well, so they all stay together
- * When remove tracks, it should be handled together
- */
+// These two always should go together, but it is not right now. 
+// I wonder in the future, we change all compressed to be inside as well, so they all stay together
+// When remove tracks, it should be handled together 
 USTRUCT()
-struct FAnimSequenceTrackContainer
+struct ENGINE_API FAnimSequenceTrackContainer
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -152,20 +135,20 @@ struct FAnimSequenceTrackContainer
 		return (AnimationTracks.Num());
 	}
 };
-/**
- *	@note we have plan to support skeleton hierarchy. 
- *	when that happens, we'd like to keep skeleton indexing
- */
+
+// @note We have a plan to support skeletal hierarchy. When that happens, we'd like to keep skeleton indexing.
 USTRUCT()
-struct FTrackToSkeletonMap
+struct ENGINE_API FTrackToSkeletonMap
 {
 	GENERATED_USTRUCT_BODY()
 
+	// 0 is the current Skeleton (the one above), and N is the Nth parent.
 	UPROPERTY()
-	int32 SkeletonIndex_DEPRECATED;    // 0 as current Skeleton (the one above), and N is the N'th parent
+	int32 SkeletonIndex_DEPRECATED;
 
+	// Index of Skeleton.BoneTree this Track belongs to.
 	UPROPERTY()
-	int32 BoneTreeIndex;    // Index of Skeleton.BoneTree this Track belongs to
+	int32 BoneTreeIndex;
 
 
 	FTrackToSkeletonMap()
@@ -183,7 +166,7 @@ struct FTrackToSkeletonMap
  * Keyframe position data for one track.  Pos(i) occurs at Time(i).  Pos.Num() always equals Time.Num().
  */
 USTRUCT()
-struct FTranslationTrack
+struct ENGINE_API FTranslationTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -198,7 +181,7 @@ struct FTranslationTrack
  * Keyframe rotation data for one track.  Rot(i) occurs at Time(i).  Rot.Num() always equals Time.Num().
  */
 USTRUCT()
-struct FRotationTrack
+struct ENGINE_API FRotationTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -213,7 +196,7 @@ struct FRotationTrack
  * Keyframe scale data for one track.  Scale(i) occurs at Time(i).  Rot.Num() always equals Time.Num().
  */
 USTRUCT()
-struct FScaleTrack
+struct ENGINE_API FScaleTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -231,7 +214,7 @@ struct FScaleTrack
  * CurveWeights: List of weights for each frame
  */
 USTRUCT()
-struct FCurveTrack
+struct ENGINE_API FCurveTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -242,7 +225,7 @@ struct FCurveTrack
 	TArray<float> CurveWeights;
 
 	/** Returns true if valid curve weight exists in the array*/
-	ENGINE_API bool IsValidCurveTrack();
+	bool IsValidCurveTrack();
 	
 	/** This is very simple cut to 1 key method if all is same since I see so many redundant same value in every frame 
 	 *  Eventually this can get more complicated 
@@ -251,7 +234,7 @@ struct FCurveTrack
 };
 
 USTRUCT()
-struct FCompressedTrack
+struct ENGINE_API FCompressedTrack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -283,7 +266,7 @@ struct FCompressedTrack
 };
 
 USTRUCT()
-struct FCompressedOffsetData
+struct ENGINE_API FCompressedOffsetData
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -342,8 +325,8 @@ struct FCompressedOffsetData
 	}
 };
 
-UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
-class UAnimSequence : public UAnimSequenceBase
+UCLASS(config=Engine, hidecategories=(UObject, Length), BlueprintType)
+class ENGINE_API UAnimSequence : public UAnimSequenceBase
 {
 	GENERATED_UCLASS_BODY()
 
@@ -469,7 +452,7 @@ class UAnimSequence : public UAnimSequenceBase
 
 	class AnimEncoding* ScaleCodec;
 
-	/** Additive animation type **/
+	/** Additive animation type. **/
 	UPROPERTY(EditAnywhere, Category=AdditiveSettings, AssetRegistrySearchable)
 	TEnumAsByte<enum EAdditiveAnimationType> AdditiveAnimType;
 
@@ -525,7 +508,7 @@ class UAnimSequence : public UAnimSequenceBase
 	uint32 bWasCompressedWithoutTranslations:1;
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, Instanced, Category=Reimport)
+	UPROPERTY(EditAnywhere, Instanced, Category=ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/***  for Reimport **/
@@ -544,30 +527,31 @@ class UAnimSequence : public UAnimSequenceBase
 
 public:
 	// Begin UObject interface
-	ENGINE_API virtual void Serialize(FArchive& Ar) override;
-	ENGINE_API virtual void PostLoad() override;
+	virtual void Serialize(FArchive& Ar) override;
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	virtual void PreSave() override;
 #if WITH_EDITOR
-	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #endif // WITH_EDITOR
-	ENGINE_API virtual void BeginDestroy() override;
-	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+	virtual void BeginDestroy() override;
+	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	// End of UObject interface
 
 	// Begin UAnimationAsset interface
-	ENGINE_API virtual bool IsValidAdditive() const override;
+	virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
-	ENGINE_API virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
-	ENGINE_API virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
-	ENGINE_API virtual int32 GetNumberOfFrames() const override { return NumFrames; }
+	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
+	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
+	virtual int32 GetNumberOfFrames() const override { return NumFrames; }
 #endif
 	// End of UAnimationAsset interface
 
 	// Begin UAnimSequenceBase interface
-	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
-	ENGINE_API virtual bool HasRootMotion() const override { return bEnableRootMotion; }
+	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
+	virtual bool HasRootMotion() const override { return bEnableRootMotion; }
 	// End UAnimSequenceBase interface
 
 	// Extract Root Motion transform from the animation
@@ -581,64 +565,65 @@ public:
 
 	// Begin Transform related functions 
 
-	/** 
-	 * Get Bone Transform of the Time given, relative to Parent for all RequiredBones
-	 * This returns different transform based on additive or not. Or what kind of additive.
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	void GetAnimationPose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the Time given, relative to Parent for all RequiredBones
+	* This returns different transform based on additive or not. Or what kind of additive.
+	*
+	* @param	OutPose				[out] Pose object to fill
+	* @param	OutCurve			[out] Curves to fill
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	virtual void GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const override;
 
-	/** 
-	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetBonePose( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose				[out] Array of output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
+	* @param	RequiredBones		Array of Desired Tracks
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 private:
 	/** 
 	 * Utility function.
 	 * When extracting root motion, this function resets the root bone to the first frame of the animation.
 	 * 
-	 * @param	BoneTransforms		Bone Transforms to read/write root bone transform.
+	 * @param	BoneTransform		Root Bone Transform
 	 * @param	RequiredBones		BoneContainer
 	 * @param	ExtractionContext	Extraction Context to access root motion extraction information.
 	 */
-	void ResetRootBoneForRootMotion(FTransformArrayA2 & BoneTransforms, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const;
-	
-	/** 
-	 * Retarget a single bone transform, to apply right after extraction.
-	 * 
-	 * @param	BoneTransform		BoneTransform to read/write from.
-	 * @param	SkeletonBoneIndex	Bone Index in USkeleton.
-	 * @param	PoseBoneIndex		Bone Index in Bone Transform array.
-	 * @param	RequiredBones		BoneContainer
-	 */	
-	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const int32& PoseBoneIndex, const FBoneContainer& RequiredBones) const;
+	void ResetRootBoneForRootMotion(FTransform& BoneTransform, const FBoneContainer & RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const;
+
+	/**
+	* Retarget a single bone transform, to apply right after extraction.
+	*
+	* @param	BoneTransform		BoneTransform to read/write from.
+	* @param	SkeletonBoneIndex	Bone Index in USkeleton.
+	* @param	BoneIndex			Bone Index in Bone Transform array.
+	* @param	RequiredBones		BoneContainer
+	*/
+	void RetargetBoneTransform(FTransform& BoneTransform, const int32& SkeletonBoneIndex, const FCompactPoseBoneIndex& BoneIndex, const FBoneContainer& RequiredBones) const;
 
 public:
-	/** 
-	 * Get Bone Transform of the additive animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetBonePose_Additive( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the additive animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetBonePose_Additive(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
-	/** 
-	 * Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones 
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	ENGINE_API void GetAdditiveBasePose(FTransformArrayA2 & OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the base (reference) pose of the additive animation for the Time given, relative to Parent for all RequiredBones
+	*
+	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetAdditiveBasePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 	/**
 	 * Get Bone Transform of the Time given, relative to Parent for the Track Given
@@ -648,7 +633,7 @@ public:
 	 * @param	Time			Time on track to interpolate to.
 	 * @param	bUseRawData		If true, use raw animation data instead of compressed data.
 	 */
-	ENGINE_API void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
+	void GetBoneTransform(FTransform& OutAtom, int32 TrackIndex, float Time, bool bUseRawData) const;
 
 	/**
 	 * Extract Bone Transform of the Time given, from InRawAnimationData
@@ -658,7 +643,7 @@ public:
 	 * @param	TrackIndex			Index of track to interpolate.
 	 * @param	Time				Time on track to interpolate to.
 	 */
-	ENGINE_API void ExtractBoneTransform(const TArray<struct FRawAnimSequenceTrack> & InRawAnimationData, FTransform& OutAtom, int32 TrackIndex, float Time) const;
+	void ExtractBoneTransform(const TArray<struct FRawAnimSequenceTrack> & InRawAnimationData, FTransform& OutAtom, int32 TrackIndex, float Time) const;
 
 	// End Transform related functions 
 
@@ -666,7 +651,7 @@ public:
 	/**
 	 * @return		The approximate size of raw animation data.
 	 */
-	ENGINE_API int32 GetApproxRawSize() const;
+	int32 GetApproxRawSize() const;
 
 	/**
 	 * @return		The approximate size of key-reduced animation data.
@@ -676,7 +661,7 @@ public:
 	/**
 	 * @return		The approximate size of compressed animation data.
 	 */
-	ENGINE_API int32 GetApproxCompressedSize() const;
+	int32 GetApproxCompressedSize() const;
 
 	/** 
 	 *  Utility function for lossless compression of a FRawAnimSequenceTrack 
@@ -690,7 +675,7 @@ public:
 	 * go down to a single frame, the time is stripped out as well.
 	 * @return true if keys were removed.
 	 */
-	ENGINE_API bool CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff);
+	bool CompressRawAnimData(float MaxPosDiff, float MaxAngleDiff);
 
 	/**
 	 * Removes trivial frames -- frames of tracks when position or orientation is constant
@@ -698,7 +683,7 @@ public:
 	 * go down to a single frame, the time is stripped out as well.
 	 * @return true if keys were removed.
 	 */
-	ENGINE_API bool CompressRawAnimData();
+	bool CompressRawAnimData();
 	// End Memory related functions
 
 	// Begin Utility functions
@@ -713,7 +698,7 @@ public:
 	}
 
 	/** Clears any data in the AnimSequence, so it can be recycled when importing a new animation with same name over it. */
-	ENGINE_API void RecycleAnimSequence();
+	void RecycleAnimSequence();
 
 	/** 
 	 * Utility function to copy all UAnimSequence properties from Source to Destination.
@@ -724,12 +709,12 @@ public:
 	/** 
 	 * Copy AnimNotifies from one UAnimSequence to another.
 	 */
-	ENGINE_API static bool CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
+	static bool CopyNotifies(UAnimSequence* SourceAnimSeq, UAnimSequence* DestAnimSeq);
 
 	/**
 	 * Flip Rotation's W For NonRoot items, and compress it again if SkelMesh exists
 	 */
-	ENGINE_API void FlipRotationWForNonRoot(USkeletalMesh * SkelMesh);
+	void FlipRotationWForNonRoot(USkeletalMesh * SkelMesh);
 
 	/** 
 	 * Return number of tracks in this animation
@@ -741,43 +726,43 @@ public:
 	/**
 	 * After imported or any other change is made, call this to apply post process
 	 */
-	ENGINE_API void PostProcessSequence();
+	void PostProcessSequence();
 	/** 
 	 * Insert extra frame of the first frame at the end of the frame so that it improves the interpolation when it loops
 	 * This increases framecount + time, so that it requires recompression
 	 */
-	ENGINE_API bool AddLoopingInterpolation();
+	bool AddLoopingInterpolation();
 
 	/** 
 	 * Bake Transform Curves.TransformCurves to RawAnimation after making a back up of current RawAnimation
 	 */
-	ENGINE_API void BakeTrackCurvesToRawAnimation();
+	void BakeTrackCurvesToRawAnimation();
 
 	/**
 	 * Add Key to Transform Curves
 	 */
-	ENGINE_API void AddKeyToSequence(float Time, const FName& BoneName, const FTransform& AdditiveTransform);
+	void AddKeyToSequence(float Time, const FName& BoneName, const FTransform& AdditiveTransform);
 	/**
 	 * Return true if it needs to re-bake
 	 */
-	ENGINE_API bool DoesNeedRebake() const;
+	bool DoesNeedRebake() const;
 	/**
 	 * Return true if it contains transform curves
 	 */
-	ENGINE_API bool DoesContainTransformCurves() const;
+	bool DoesContainTransformCurves() const;
 
 	/**
 	 * Create Animation Sequence from Reference Pose of the Mesh
 	 */
-	ENGINE_API bool CreateAnimation(class USkeletalMesh * Mesh);
+	bool CreateAnimation(class USkeletalMesh * Mesh);
 	/**
 	 * Create Animation Sequence from the Mesh Component's current bone trasnform
 	 */
-	ENGINE_API bool CreateAnimation(class USkeletalMeshComponent * MeshComponent);
+	bool CreateAnimation(class USkeletalMeshComponent * MeshComponent);
 	/**
 	 * Create Animation Sequence from the given animation
 	 */
-	ENGINE_API bool CreateAnimation(class UAnimSequence * Sequence);
+	bool CreateAnimation(class UAnimSequence * Sequence);
 
 	/**
 	 * Crops the raw anim data either from Start to CurrentTime or CurrentTime to End depending on
@@ -787,7 +772,7 @@ public:
 	 * @param	bFromStart		whether marker is begin or end marker
 	 * @return					true if the operation was successful.
 	 */
-	ENGINE_API bool CropRawAnimData( float CurrentTime, bool bFromStart );
+	bool CropRawAnimData( float CurrentTime, bool bFromStart );
 
 		
 	/**
@@ -799,24 +784,24 @@ public:
 	 * @param	CopyFrame		A frame that we copy from (0-based)
 	 * @return					true if the operation was successful.
 	 */
-	ENGINE_API bool InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame);
+	bool InsertFramesToRawAnimData( int32 StartFrame, int32 EndFrame, int32 CopyFrame);
 
 	/** 
 	 * Add validation check to see if it's being ready to play or not
 	 */
-	ENGINE_API virtual bool IsValidToPlay() const override;
+	virtual bool IsValidToPlay() const override;
 #endif
 
 private:
-	/** 
-	 * Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones 
-	 * This return mesh rotation only additive pose
-	 * 
-	 * @param	OutAtoms			[out] Array of output bone transforms
-	 * @param	RequiredBones		Array of Desired Tracks
-	 * @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
-	 */
-	void GetBonePose_AdditiveMeshRotationOnly( FTransformArrayA2& OutAtoms, const FBoneContainer& RequiredBones, const FAnimExtractContext& ExtractionContext) const;
+	/**
+	* Get Bone Transform of the animation for the Time given, relative to Parent for all RequiredBones
+	* This return mesh rotation only additive pose
+	*
+	* @param	OutPose				[out] Output bone transforms
+	* @param	OutCurve			[out] Curves to fill	
+	* @param	ExtractionContext	Extraction Context (position, looping, root motion, etc.)
+	*/
+	void GetBonePose_AdditiveMeshRotationOnly(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const;
 
 #if WITH_EDITOR
 	/**
@@ -849,7 +834,11 @@ private:
 	 */
 	int32 InsertTrack(const FName& BoneName);
 
-	void ResizeSequence(float NewLength, int32 NewNumFrames);
+	/**
+	 * Utility function to resize the sequence
+	 * It rearranges curve data + notifies
+	 */
+	void ResizeSequence(float NewLength, int32 NewNumFrames, bool bInsert, int32 StartFrame/*inclusive */, int32 EndFrame/*inclusive*/);
 
 #endif
 

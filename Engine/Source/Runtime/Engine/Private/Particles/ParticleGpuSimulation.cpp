@@ -30,6 +30,7 @@
 #include "VectorField/VectorField.h"
 #include "SceneUtils.h"
 #include "MeshBatch.h"
+#include "GlobalDistanceFieldParameters.h"
 
 /*------------------------------------------------------------------------------
 	Constants to tune memory and performance for GPU particle simulation.
@@ -102,6 +103,7 @@ public:
 	 */
 	uint32 Allocate()
 	{
+		FScopeLock Lock(&CriticalSection);
 		if ( FreeTileCount > 0 )
 		{
 			FreeTileCount--;
@@ -116,6 +118,7 @@ public:
 	 */
 	void Free( uint32 TileIndex )
 	{
+		FScopeLock Lock(&CriticalSection);
 		check( TileIndex < GParticleSimulationTileCount );
 		check( FreeTileCount < GParticleSimulationTileCount );
 		FreeTiles[FreeTileCount] = TileIndex;
@@ -127,6 +130,7 @@ public:
 	 */
 	int32 GetFreeTileCount() const
 	{
+		FScopeLock Lock(&CriticalSection);
 		return FreeTileCount;
 	}
 
@@ -136,6 +140,8 @@ private:
 	uint32 FreeTiles[GParticleSimulationTileCount];
 	/** How many tiles are in the free list. */
 	int32 FreeTileCount;
+
+	mutable FCriticalSection CriticalSection;
 };
 
 /*-----------------------------------------------------------------------------
@@ -181,7 +187,7 @@ public:
 		check( !IsValidRef( PositionTextureTargetRHI ) );
 		check( !IsValidRef( PositionTextureRHI ) );
 
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::Transparent);
 		RHICreateTargetableShaderResource2D(
 			SizeX,
 			SizeY,
@@ -247,14 +253,14 @@ public:
 		const int32 SizeX = GParticleSimulationTextureSizeX;
 		const int32 SizeY = GParticleSimulationTextureSizeY;
 
-		FRHIResourceCreateInfo CreateInfo;
+		FRHIResourceCreateInfo CreateInfo(FClearValueBinding::None);
 		RHICreateTargetableShaderResource2D(
 			SizeX,
 			SizeY,
 			PF_B8G8R8A8,
 			/*NumMips=*/ 1,
 			TexCreate_None,
-			TexCreate_RenderTargetable,
+			TexCreate_RenderTargetable | TexCreate_NoFastClear,
 			/*bForceSeparateTargetAndShaderResource=*/ false,
 			CreateInfo,
 			TextureTargetRHI,
@@ -831,10 +837,23 @@ private:
 	FShaderResourceParameter TileOffsets;
 };
 
+enum EParticleCollisionShaderMode
+{
+	PCM_None,
+	PCM_DepthBuffer,
+	PCM_DistanceField
+};
+
+/** Helper function to determine whether the given particle collision shader mode is supported on the given shader platform */
+inline bool IsParticleCollisionModeSupported(EShaderPlatform InPlatform, EParticleCollisionShaderMode InCollisionShaderMode)
+{
+	return IsFeatureLevelSupported(InPlatform, ERHIFeatureLevel::SM5) || InCollisionShaderMode != PCM_DistanceField;
+}
+
 /**
  * Pixel shader for simulating particles on the GPU.
  */
-template <bool bUseDepthBufferCollision>
+template <EParticleCollisionShaderMode CollisionMode>
 class TParticleSimulationPS : public FGlobalShader
 {
 	DECLARE_SHADER_TYPE(TParticleSimulationPS,Global);
@@ -843,7 +862,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
-		return SupportsGPUParticles(Platform);
+		return SupportsGPUParticles(Platform) && IsParticleCollisionModeSupported(Platform, CollisionMode);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
@@ -851,7 +870,8 @@ public:
 		FGlobalShader::ModifyCompilationEnvironment(Platform, OutEnvironment);
 		OutEnvironment.SetDefine(TEXT("PARTICLE_SIMULATION_PIXELSHADER"), 1);
 		OutEnvironment.SetDefine(TEXT("MAX_VECTOR_FIELDS"), MAX_VECTOR_FIELDS);
-		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), (uint32)(bUseDepthBufferCollision ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("DEPTH_BUFFER_COLLISION"), (uint32)(CollisionMode == PCM_DepthBuffer ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("DISTANCE_FIELD_COLLISION"), (uint32)(CollisionMode == PCM_DistanceField ? 1 : 0));
 		OutEnvironment.SetRenderTargetOutputFormat(0, PF_A32B32G32R32F);
 	}
 
@@ -888,6 +908,7 @@ public:
 		GBufferATextureParameterSampler.Bind(Initializer.ParameterMap,TEXT("GBufferATextureSampler"));
 		CollisionDepthBounds.Bind(Initializer.ParameterMap,TEXT("CollisionDepthBounds"));
 		PerFrameParameters.Bind(Initializer.ParameterMap);
+		GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
 	}
 
 	/** Serialization. */
@@ -918,6 +939,7 @@ public:
 		Ar << GBufferATextureParameterSampler;
 		Ar << CollisionDepthBounds;
 		Ar << PerFrameParameters;
+		Ar << GlobalDistanceFieldParameters;
 		return bShaderHasOutdatedParameters;
 	}
 
@@ -930,6 +952,7 @@ public:
 		const FParticleAttributesTexture& InAttributesTexture,
 		const FParticleAttributesTexture& InRenderAttributesTexture,
 		const FSceneView* CollisionView,
+		const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 		FTexture2DRHIParamRef SceneDepthTexture,
 		FTexture2DRHIParamRef GBufferATexture
 		)
@@ -941,7 +964,8 @@ public:
 		SetTextureParameter(RHICmdList, PixelShaderRHI, VelocityTexture, VelocityTextureSampler, SamplerStatePoint, TextureResources.VelocityTextureRHI);
 		SetTextureParameter(RHICmdList, PixelShaderRHI, AttributesTexture, AttributesTextureSampler, SamplerStatePoint, InAttributesTexture.TextureRHI);
 		SetTextureParameter(RHICmdList, PixelShaderRHI, CurveTexture, CurveTextureSampler, SamplerStateLinear, GParticleCurveTexture.GetCurveTexture());
-		if (bUseDepthBufferCollision)
+
+		if (CollisionMode == PCM_DepthBuffer)
 		{
 			check(CollisionView != NULL);
 			FGlobalShader::SetParameters(RHICmdList, PixelShaderRHI,*CollisionView);
@@ -970,6 +994,19 @@ public:
 				InRenderAttributesTexture.TextureRHI
 				);
 			SetShaderValue(RHICmdList, PixelShaderRHI, CollisionDepthBounds, FXConsoleVariables::GPUCollisionDepthBounds);
+		}
+		else if (CollisionMode == PCM_DistanceField)
+		{
+			GlobalDistanceFieldParameters.Set(RHICmdList, PixelShaderRHI, *GlobalDistanceFieldParameterData);
+
+			SetTextureParameter(
+				RHICmdList, 
+				PixelShaderRHI,
+				RenderAttributesTexture,
+				RenderAttributesTextureSampler,
+				SamplerStatePoint,
+				InRenderAttributesTexture.TextureRHI
+				);
 		}
 	}
 
@@ -1059,6 +1096,7 @@ private:
 	FParticlePerFrameSimulationShaderParameters PerFrameParameters;
 	/** Collision depth bounds. */
 	FShaderParameter CollisionDepthBounds;
+	FGlobalDistanceFieldParameters GlobalDistanceFieldParameters;
 };
 
 /**
@@ -1103,8 +1141,9 @@ public:
 
 /** Implementation for all shaders used for simulation. */
 IMPLEMENT_SHADER_TYPE(,FParticleTileVS,TEXT("ParticleSimulationShader"),TEXT("VertexMain"),SF_Vertex);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<false>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
-IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<true>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_None>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DepthBuffer>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
+IMPLEMENT_SHADER_TYPE(template<>,TParticleSimulationPS<PCM_DistanceField>,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
 IMPLEMENT_SHADER_TYPE(,FParticleSimulationClearPS,TEXT("ParticleSimulationShader"),TEXT("PixelMain"),SF_Pixel);
 
 /**
@@ -1163,8 +1202,8 @@ static void BuildTileVertexBuffer( FParticleBufferParamRef TileOffsetsRef, const
 		TileOffset[Index].X = 100.0f;
 		TileOffset[Index].Y = 100.0f;
 	}
-	RHIUnlockVertexBuffer( TileOffsetsRef );
-}
+		RHIUnlockVertexBuffer( TileOffsetsRef );
+	}
 
 /**
  * Builds a vertex buffer containing the offsets for a set of tiles.
@@ -1248,7 +1287,7 @@ struct FSimulationCommandGPU
  * @param CollisionView		The view to use for collision, if any.
  * @param SceneDepthTexture The depth texture to use for collision, if any.
  */
-template <bool bUseDepthBufferCollision>
+template <EParticleCollisionShaderMode CollisionMode>
 void ExecuteSimulationCommands(
 	FRHICommandList& RHICmdList,
 	ERHIFeatureLevel::Type FeatureLevel,
@@ -1257,13 +1296,14 @@ void ExecuteSimulationCommands(
 	const FParticleAttributesTexture& AttributeTexture,
 	const FParticleAttributesTexture& RenderAttributeTexture,
 	const FSceneView* CollisionView,
+	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
 	FTexture2DRHIParamRef GBufferATexture
 	)
 {
 	// Grab shaders.
 	TShaderMapRef<FParticleTileVS> VertexShader(GetGlobalShaderMap(FeatureLevel));
-	TShaderMapRef<TParticleSimulationPS<bUseDepthBufferCollision> > PixelShader(GetGlobalShaderMap(FeatureLevel));
+	TShaderMapRef<TParticleSimulationPS<CollisionMode> > PixelShader(GetGlobalShaderMap(FeatureLevel));
 
 	// Bound shader state.
 	
@@ -1278,7 +1318,7 @@ void ExecuteSimulationCommands(
 		0
 		);
 
-	PixelShader->SetParameters(RHICmdList, TextureResources, AttributeTexture, RenderAttributeTexture, CollisionView, SceneDepthTexture, GBufferATexture);
+	PixelShader->SetParameters(RHICmdList, TextureResources, AttributeTexture, RenderAttributeTexture, CollisionView, GlobalDistanceFieldParameterData, SceneDepthTexture, GBufferATexture);
 
 	// Draw tiles to perform the simulation step.
 	const int32 CommandCount = SimulationCommands.Num();
@@ -1558,17 +1598,9 @@ void InjectNewParticles(FRHICommandList& RHICmdList, ERHIFeatureLevel::Type Feat
 		// Copy new particles in to the vertex buffer.
 		const int32 ParticlesThisDrawCall = FMath::Min<int32>( ParticleCount, MaxParticlesPerDrawCall );
 		const void* Src = NewParticles.GetData() + FirstParticle;
-		if (GRHIThread)
-		{
-			RHICmdList.UpdateVertexBuffer(ScratchVertexBufferRHI, Src, ParticlesThisDrawCall * sizeof(FNewParticle));
-		}
-		else
-		{
-			void* Dest = RHILockVertexBuffer( ScratchVertexBufferRHI, 0, ParticlesThisDrawCall * sizeof(FNewParticle), RLM_WriteOnly );
-			FMemory::Memcpy( Dest, Src, ParticlesThisDrawCall * sizeof(FNewParticle) );
-			RHIUnlockVertexBuffer( ScratchVertexBufferRHI );
-
-		}
+		void* Dest = RHILockVertexBuffer( ScratchVertexBufferRHI, 0, ParticlesThisDrawCall * sizeof(FNewParticle), RLM_WriteOnly );
+		FMemory::Memcpy( Dest, Src, ParticlesThisDrawCall * sizeof(FNewParticle) );
+		RHIUnlockVertexBuffer( ScratchVertexBufferRHI );
 		ParticleCount -= ParticlesThisDrawCall;
 		FirstParticle += ParticlesThisDrawCall;
 
@@ -2293,6 +2325,8 @@ public:
 	/** True if the simulation wants collision enabled. */
 	bool bWantsCollision;
 
+	EParticleCollisionMode::Type CollisionMode;
+
 	/** Flag that specifies the simulation's resources are dirty and need to be updated. */
 	bool bDirty_GameThread;
 	bool bReleased_GameThread;
@@ -2305,6 +2339,7 @@ public:
 		, SimulationIndex(INDEX_NONE)
 		, SimulationPhase(EParticleSimulatePhase::Main)
 		, bWantsCollision(false)
+		, CollisionMode(EParticleCollisionMode::SceneDepth)
 		, bDirty_GameThread(true)
 		, bReleased_GameThread(true)
 		, bDestroyed_GameThread(false)
@@ -2580,9 +2615,25 @@ struct FGPUSpriteDynamicEmitterData : FDynamicEmitterDataBase
 		// If the simulation wants to collide against the depth buffer
 		// and we're not rendering with an opaque material put the 
 		// simulation in the collision phase.
-		if (bTranslucent && Simulation->bWantsCollision)
+		if (bTranslucent && Simulation->bWantsCollision && Simulation->CollisionMode == EParticleCollisionMode::SceneDepth)
 		{
-			Simulation->SimulationPhase = EParticleSimulatePhase::Collision;
+			Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDepthBuffer;
+		}
+		else if (Simulation->bWantsCollision && Simulation->CollisionMode == EParticleCollisionMode::DistanceField)
+		{
+			if (IsParticleCollisionModeSupported(FXSystem->GetShaderPlatform(), PCM_DistanceField))
+			{
+				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDistanceField;
+			}
+			else if (bTranslucent)
+			{
+				// Fall back to scene depth collision if translucent
+				Simulation->SimulationPhase = EParticleSimulatePhase::CollisionDepthBuffer;
+			}
+			else
+			{
+				Simulation->SimulationPhase = EParticleSimulatePhase::Main;
+			}
 		}
 	}
 
@@ -2813,6 +2864,7 @@ public:
 			EmitterInfo.LocalVectorField.Field->InitInstance(&Simulation->LocalVectorField, /*bPreviewInstance=*/ false);
 		}
 		Simulation->bWantsCollision = InEmitterInfo.bEnableCollision;
+		Simulation->CollisionMode = InEmitterInfo.CollisionMode;
 
 #if TRACK_TILE_ALLOCATIONS
 		TSet<class FGPUSpriteParticleEmitterInstance*>* EmitterSet = GPUSpriteParticleEmitterInstances.Find(FXSystem);
@@ -3016,7 +3068,6 @@ public:
 
 		FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
 		const int32 MinTileCount = GetMinTileCount();
-		const int32 CheckTileCount = ParticleSimulationResources->GetFreeTileCount();
 		int32 NumAllocated = 0;
 		while (AllocatedTiles.Num() < MinTileCount)
 		{
@@ -3034,7 +3085,6 @@ public:
 		}
 		
 #if TRACK_TILE_ALLOCATIONS
-		check(ParticleSimulationResources->GetFreeTileCount() + NumAllocated == CheckTileCount);
 		UE_LOG(LogParticles,VeryVerbose,
 			TEXT("%s|%s|0x%016x [Init] %d tiles"),
 			*Component->GetName(),*Component->Template->GetName(),(PTRINT)this, AllocatedTiles.Num());
@@ -3381,7 +3431,6 @@ private:
 		if (TilesToFree > 0)
 		{
 			FParticleSimulationResources* SimulationResources = FXSystem->GetParticleSimulationResources();
-			const int32 CheckTileCount = SimulationResources->GetFreeTileCount();
 			const int32 FirstTileIndex = AllocatedTiles.Num() - TilesToFree;
 			const int32 LastTileIndex = FirstTileIndex + TilesToFree;
 			for (int32 TileIndex = FirstTileIndex; TileIndex < LastTileIndex; ++TileIndex)
@@ -3392,9 +3441,6 @@ private:
 			AllocatedTiles.RemoveAt(FirstTileIndex, TilesToFree);
 			TileTimeOfDeath.RemoveAt(FirstTileIndex, TilesToFree);
 			Simulation->bDirty_GameThread = true;
-#if TRACK_TILE_ALLOCATIONS
-			check(SimulationResources->GetFreeTileCount() == CheckTileCount + TilesToFree);
-#endif // #if TRACK_TILE_ALLOCATIONS
 		}
 		return TilesToFree;
 	}
@@ -3412,7 +3458,6 @@ private:
 			if (!GIsRequestingExit)
 			{
 				FParticleSimulationResources* ParticleSimulationResources = FXSystem->GetParticleSimulationResources();
-				const int32 CheckTileCount = ParticleSimulationResources->GetFreeTileCount();
 				const int32 TileCount = AllocatedTiles.Num();
 				for ( int32 ActiveTileIndex = 0; ActiveTileIndex < TileCount; ++ActiveTileIndex )
 				{
@@ -3421,7 +3466,6 @@ private:
 				}
 				AllocatedTiles.Reset();
 #if TRACK_TILE_ALLOCATIONS
-				check(ParticleSimulationResources->GetFreeTileCount() == CheckTileCount + TileCount);
 				UE_LOG(LogParticles,VeryVerbose,
 					TEXT("%s|%s|0x%016p [ReleaseSimulationResources] %d tiles"),
 					*Component->GetName(),*Component->Template->GetName(),(PTRINT)this, AllocatedTiles.Num());
@@ -4027,10 +4071,27 @@ static void SetParametersForVectorField(FVectorFieldUniformParameters& OutParame
 	OutParameters.TilingAxes[Index].Z = VectorFieldInstance->bTileZ ? 1.0f : 0.0f;
 }
 
+bool FFXSystem::UsesGlobalDistanceFieldInternal() const
+{
+	for (TSparseArray<FParticleSimulationGPU*>::TConstIterator It(GPUSimulations); It; ++It)
+	{
+		const FParticleSimulationGPU* Simulation = *It;
+
+		if (Simulation->SimulationPhase == EParticleSimulatePhase::CollisionDistanceField
+			&& Simulation->TileVertexBuffer.AlignedTileCount > 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FFXSystem::SimulateGPUParticles(
 	FRHICommandListImmediate& RHICmdList,
 	EParticleSimulatePhase::Type Phase,
 	const class FSceneView* CollisionView,
+	const FGlobalDistanceFieldParameterData* GlobalDistanceFieldParameterData,
 	FTexture2DRHIParamRef SceneDepthTexture,
 	FTexture2DRHIParamRef GBufferATexture
 	)
@@ -4048,16 +4109,16 @@ void FFXSystem::SimulateGPUParticles(
 	// On some platforms, the textures are filled with garbage after creation, so we need to clear them to black the first time we use them
 	if ( !CurrentStateTextures.bTexturesCleared )
 	{
-		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
-		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
+		SetRenderTarget(RHICmdList, CurrentStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		SetRenderTarget(RHICmdList, CurrentStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 
 		CurrentStateTextures.bTexturesCleared = true;
 	}
 
 	if ( !PrevStateTextures.bTexturesCleared )
 	{
-		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
-		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearToDefault);
+		SetRenderTarget(RHICmdList, PrevStateTextures.PositionTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		SetRenderTarget(RHICmdList, PrevStateTextures.VelocityTextureTargetRHI, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorAndDepth);
 		RHICmdList.CopyToResolveTarget(PrevStateTextures.PositionTextureTargetRHI, PrevStateTextures.PositionTextureTargetRHI, true, FResolveParams());
 		RHICmdList.CopyToResolveTarget(PrevStateTextures.VelocityTextureTargetRHI, PrevStateTextures.VelocityTextureTargetRHI, true, FResolveParams());
 		
@@ -4184,10 +4245,10 @@ void FFXSystem::SimulateGPUParticles(
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, ParticleSimulation);
 
-		if (Phase == EParticleSimulatePhase::Collision && CollisionView)
+		if (Phase == EParticleSimulatePhase::CollisionDepthBuffer && CollisionView)
 		{
 			/// ?
-			ExecuteSimulationCommands<true>(
+			ExecuteSimulationCommands<PCM_DepthBuffer>(
 				RHICmdList,
 				FeatureLevel,
 				SimulationCommands,
@@ -4195,6 +4256,23 @@ void FFXSystem::SimulateGPUParticles(
 				ParticleSimulationResources->SimulationAttributesTexture,
 				ParticleSimulationResources->RenderAttributesTexture,
 				CollisionView,
+				GlobalDistanceFieldParameterData,
+				SceneDepthTexture,
+				GBufferATexture
+				);
+		}
+		else if (Phase == EParticleSimulatePhase::CollisionDistanceField && GlobalDistanceFieldParameterData)
+		{
+			/// ?
+			ExecuteSimulationCommands<PCM_DistanceField>(
+				RHICmdList,
+				FeatureLevel,
+				SimulationCommands,
+				PrevStateTextures,
+				ParticleSimulationResources->SimulationAttributesTexture,
+				ParticleSimulationResources->RenderAttributesTexture,
+				CollisionView,
+				GlobalDistanceFieldParameterData,
 				SceneDepthTexture,
 				GBufferATexture
 				);
@@ -4202,7 +4280,7 @@ void FFXSystem::SimulateGPUParticles(
 		else
 		{
 			/// ?
-			ExecuteSimulationCommands<false>(
+			ExecuteSimulationCommands<PCM_None>(
 				RHICmdList,
 				FeatureLevel,
 				SimulationCommands,
@@ -4210,6 +4288,7 @@ void FFXSystem::SimulateGPUParticles(
 				ParticleSimulationResources->SimulationAttributesTexture,
 				ParticleSimulationResources->RenderAttributesTexture,
 				NULL,
+				GlobalDistanceFieldParameterData,
 				FTexture2DRHIParamRef(),
 				FTexture2DRHIParamRef()
 				);

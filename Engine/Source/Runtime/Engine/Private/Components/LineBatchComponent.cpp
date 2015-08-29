@@ -21,7 +21,8 @@ public:
 		bWillEverBeLit = false;
 		ViewRelevance.bDrawRelevance = true;
 		ViewRelevance.bDynamicRelevance = true;
-		ViewRelevance.bNormalTranslucencyRelevance = true;
+		// ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+		ViewRelevance.bSeparateTranslucencyRelevance = ViewRelevance.bNormalTranslucencyRelevance = true;
 	}
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override

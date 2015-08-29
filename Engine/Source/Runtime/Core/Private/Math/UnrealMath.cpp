@@ -12,8 +12,8 @@ DEFINE_LOG_CATEGORY(LogUnrealMath);
 * Math stats
 */
 
-DECLARE_CYCLE_STAT( TEXT( "Convert Rotator to Quat" ), STAT_MathConvertRotatorToQuat, STATGROUP_Math );
-DECLARE_CYCLE_STAT( TEXT( "Convert Quat to Rotator" ), STAT_MathConvertQuatToRotator, STATGROUP_Math );
+DECLARE_CYCLE_STAT( TEXT( "Convert Rotator to Quat" ), STAT_MathConvertRotatorToQuat, STATGROUP_MathVerbose );
+DECLARE_CYCLE_STAT( TEXT( "Convert Quat to Rotator" ), STAT_MathConvertQuatToRotator, STATGROUP_MathVerbose );
 
 /*-----------------------------------------------------------------------------
 	Globals
@@ -272,56 +272,64 @@ CORE_API FVector FRotator::Vector() const
 }
 
 
+FRotator FRotator::GetInverse() const
+{
+	return Quaternion().Inverse().Rotator();
+}
+
+
 FQuat FRotator::Quaternion() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MathConvertRotatorToQuat);
 
-#if USE_MATRIX_ROTATOR 
-	FQuat RotationMatrix = FQuat( FRotationMatrix( *this ) );
-#endif
+#if PLATFORM_ENABLE_VECTORINTRINSICS
+	const VectorRegister Angles = MakeVectorRegister(Pitch, Yaw, Roll, 0.0f);
+	const VectorRegister HalfAngles = VectorMultiply(Angles, GlobalVectorConstants::DEG_TO_RAD_HALF);
 
-#if WITH_DIRECTXMATH	// Currently VectorSinCos() is only vectorized in DirectX implementation. Other platforms become slower if they use this.
-	VectorRegister Angles = MakeVectorRegister(Roll, Pitch, Yaw, 0.0f);
-	VectorRegister HalfAngles = VectorMultiply(Angles, GlobalVectorConstants::DEG_TO_RAD_HALF);
+	VectorRegister SinAngles, CosAngles;
+	VectorSinCos(&SinAngles, &CosAngles, &HalfAngles);
 
-	union { VectorRegister v; float f[4]; } SinAngles, CosAngles;	
-	VectorSinCos(&SinAngles.v, &CosAngles.v, &HalfAngles);
+	// Vectorized conversion, measured 20% faster than using scalar version after VectorSinCos.
+	// Indices within VectorRegister (for shuffles): P=0, Y=1, R=2
+	const VectorRegister SR = VectorReplicate(SinAngles, 2);
+	const VectorRegister CR = VectorReplicate(CosAngles, 2);
 
-	const float	SR	= SinAngles.f[0];
-	const float	SP	= SinAngles.f[1];
-	const float	SY	= SinAngles.f[2];
-	const float	CR	= CosAngles.f[0];
-	const float	CP	= CosAngles.f[1];
-	const float	CY	= CosAngles.f[2];
+	const VectorRegister SY_SY_CY_CY_Temp = VectorShuffle(SinAngles, CosAngles, 1, 1, 1, 1);
 
+	const VectorRegister SP_SP_CP_CP = VectorShuffle(SinAngles, CosAngles, 0, 0, 0, 0);
+	const VectorRegister SY_CY_SY_CY = VectorShuffle(SY_SY_CY_CY_Temp, SY_SY_CY_CY_Temp, 0, 2, 0, 2);
+
+	const VectorRegister CP_CP_SP_SP = VectorShuffle(CosAngles, SinAngles, 0, 0, 0, 0);
+	const VectorRegister CY_SY_CY_SY = VectorShuffle(SY_SY_CY_CY_Temp, SY_SY_CY_CY_Temp, 2, 0, 2, 0);
+
+	const uint32 Neg = uint32(1 << 31);
+	const uint32 Pos = uint32(0);
+	const VectorRegister SignBitsLeft  = MakeVectorRegister(Pos, Neg, Pos, Pos);
+	const VectorRegister SignBitsRight = MakeVectorRegister(Neg, Neg, Neg, Pos);
+	const VectorRegister LeftTerm  = VectorBitwiseXor(SignBitsLeft , VectorMultiply(CR, VectorMultiply(SP_SP_CP_CP, SY_CY_SY_CY)));
+	const VectorRegister RightTerm = VectorBitwiseXor(SignBitsRight, VectorMultiply(SR, VectorMultiply(CP_CP_SP_SP, CY_SY_CY_SY)));
+
+	FQuat RotationQuat;
+	const VectorRegister Result = VectorAdd(LeftTerm, RightTerm);	
+	VectorStoreAligned(Result, &RotationQuat);
 #else
-	static const float DEG_TO_RAD = PI/(180.f);
-	static const float DIVIDE_BY_2 = DEG_TO_RAD/2.f;
-
+	const float DEG_TO_RAD = PI/(180.f);
+	const float DIVIDE_BY_2 = DEG_TO_RAD/2.f;
 	float SP, SY, SR;
 	float CP, CY, CR;
 
 	FMath::SinCos(&SP, &CP, Pitch*DIVIDE_BY_2);
 	FMath::SinCos(&SY, &CY, Yaw*DIVIDE_BY_2);
 	FMath::SinCos(&SR, &CR, Roll*DIVIDE_BY_2);
-#endif
 
 	FQuat RotationQuat;
-	RotationQuat.W = CR*CP*CY + SR*SP*SY;
-	RotationQuat.X = CR*SP*SY - SR*CP*CY;
+	RotationQuat.X =  CR*SP*SY - SR*CP*CY;
 	RotationQuat.Y = -CR*SP*CY - SR*CP*SY;
-	RotationQuat.Z = CR*CP*SY - SR*SP*CY;
+	RotationQuat.Z =  CR*CP*SY - SR*SP*CY;
+	RotationQuat.W =  CR*CP*CY + SR*SP*SY;
+#endif // PLATFORM_ENABLE_VECTORINTRINSICS
 
-#if USE_MATRIX_ROTATOR 
-	if (!RotationMatrix.Equals(RotationQuat, KINDA_SMALL_NUMBER) && !RotationMatrix.Equals(RotationQuat*-1.f, KINDA_SMALL_NUMBER))
-	{
-		UE_LOG(LogUnrealMath, Log, TEXT("RotationMatrix (%s), RotationQuat (%s)"), *RotationMatrix.ToString(), *RotationQuat.ToString());
-	}
-	return RotationMatrix;
-
-#else
 	return RotationQuat;
-#endif
 }
 
 FVector FRotator::Euler() const
@@ -411,18 +419,26 @@ void FMatrix::DebugPrint() const
 	UE_LOG(LogUnrealMath, Log, TEXT("%s"), *ToString());
 }
 
+uint32 FMatrix::ComputeHash() const
+{
+	uint32 Ret = 0;
+
+	const uint32* Data = (uint32*)this;
+
+	for(uint32 i = 0; i < 16; ++i)
+	{
+		Ret ^= Data[i] + i;
+	}
+
+	return Ret;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FQuat
 
 FRotator FQuat::Rotator() const
 {
 	SCOPE_CYCLE_COUNTER(STAT_MathConvertQuatToRotator);
-
-#if USE_MATRIX_ROTATOR 
-	// if you think this function is problem, you can undo previous matrix rotator by returning RotatorFromMatrix
-	FRotator RotatorFromMatrix = FQuatRotationTranslationMatrix(*this, FVector::ZeroVector).Rotator();
-	checkSlow(IsNormalized());
-#endif
 
 	const float SingularityTest = Z*X-W*Y;
 	const float YawY = 2.f*(W*Z+X*Y);
@@ -436,61 +452,20 @@ FRotator FQuat::Rotator() const
 	// but that isn't the case for us, so I went through different testing, and finally found the case 
 	// where both of world lives happily. 
 	const float SINGULARITY_THRESHOLD = 0.4999995f;
-
-#if PLATFORM_ENABLE_VECTORINTRINSICS
-
-	FRotator RotatorFromQuat;
-	union { VectorRegister v; float f[4]; } VRotatorFromQuat;
-
-	if (SingularityTest < -SINGULARITY_THRESHOLD)
-	{
-		// Pitch
-		VRotatorFromQuat.f[0] = 3.0f*HALF_PI;	// 270 deg
-		// Yaw
-		VRotatorFromQuat.f[1] = FMath::Atan2(YawY, YawX);
-		// Roll
-		VRotatorFromQuat.f[2] = -VRotatorFromQuat.f[1] - (2.f * FMath::Atan2(X, W));
-	}
-	else if (SingularityTest > SINGULARITY_THRESHOLD)
-	{
-		// Pitch
-		VRotatorFromQuat.f[0] = HALF_PI;	// 90 deg
-		// Yaw
-		VRotatorFromQuat.f[1] = FMath::Atan2(YawY, YawX);
-		//Roll
-		VRotatorFromQuat.f[2] = VRotatorFromQuat.f[1] - (2.f * FMath::Atan2(X, W));
-	}
-	else
-	{
-		//Pitch
-		VRotatorFromQuat.f[0] = FMath::FastAsin(2.f*(SingularityTest));
-		// Yaw
-		VRotatorFromQuat.f[1] = FMath::Atan2(YawY, YawX);
-		// Roll
-		VRotatorFromQuat.f[2] = FMath::Atan2(-2.f*(W*X+Y*Z), (1.f-2.f*(FMath::Square(X) + FMath::Square(Y))));
-	}
-
-	VRotatorFromQuat.f[3] = 0.f; // We should initialize this, otherwise the value can be denormalized which is bad for floating point perf.
-	VRotatorFromQuat.v = VectorMultiply(VRotatorFromQuat.v, GlobalVectorConstants::RAD_TO_DEG);
-	VRotatorFromQuat.v = VectorNormalizeRotator(VRotatorFromQuat.v);
-	VectorStoreFloat3(VRotatorFromQuat.v, &RotatorFromQuat);
-
-#else // PLATFORM_ENABLE_VECTORINTRINSICS
-
-	static const float RAD_TO_DEG = (180.f)/PI;
+	const float RAD_TO_DEG = (180.f)/PI;
 	FRotator RotatorFromQuat;
 
 	if (SingularityTest < -SINGULARITY_THRESHOLD)
 	{
-		RotatorFromQuat.Pitch = 270.f;
+		RotatorFromQuat.Pitch = -90.f;
 		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = -RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG);
+		RotatorFromQuat.Roll = FRotator::NormalizeAxis(-RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG));
 	}
 	else if (SingularityTest > SINGULARITY_THRESHOLD)
 	{
 		RotatorFromQuat.Pitch = 90.f;
 		RotatorFromQuat.Yaw = FMath::Atan2(YawY, YawX) * RAD_TO_DEG;
-		RotatorFromQuat.Roll = RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG);
+		RotatorFromQuat.Roll = FRotator::NormalizeAxis(RotatorFromQuat.Yaw - (2.f * FMath::Atan2(X, W) * RAD_TO_DEG));
 	}
 	else
 	{
@@ -499,24 +474,7 @@ FRotator FQuat::Rotator() const
 		RotatorFromQuat.Roll = FMath::Atan2(-2.f*(W*X+Y*Z), (1.f-2.f*(FMath::Square(X) + FMath::Square(Y)))) * RAD_TO_DEG;
 	}
 
-	RotatorFromQuat.Normalize();
-
-#endif // PLATFORM_ENABLE_VECTORINTRINSICS
-
-
-#if USE_MATRIX_ROTATOR
-	RotatorFromMatrix = RotatorFromMatrix.Clamp();
-
-	// this Euler is degree, so less 1 is negligible
-	if (!DebugRotatorEquals(RotatorFromQuat, RotatorFromMatrix, 0.1f))
-	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("WRONG: (Singularity: %.9f) RotationMatrix (%s), RotationQuat(%s)"), SingularityTest, *RotatorFromMatrix.ToString(), *RotatorFromQuat.ToString());
-	}
-
-	return RotatorFromMatrix;
-#else
 	return RotatorFromQuat;
-#endif
 }
 
 FQuat FQuat::MakeFromEuler(const FVector& Euler)
@@ -3007,4 +2965,16 @@ void FMath::ApplyScaleToFloat(float& Dst, const FVector& DeltaScale, float Magni
 	const float Multiplier = ( DeltaScale.X > 0.0f || DeltaScale.Y > 0.0f || DeltaScale.Z > 0.0f ) ? Magnitude : -Magnitude;
 	Dst += Multiplier * DeltaScale.Size();
 	Dst = FMath::Max( 0.0f, Dst );
+}
+
+void FMath::CartesianToPolar(const FVector2D InCart, FVector2D& OutPolar)
+{
+	OutPolar.X = Sqrt(Square(InCart.X) + Square(InCart.Y));
+	OutPolar.Y = Atan2(InCart.Y, InCart.X);
+}
+
+void FMath::PolarToCartesian(const FVector2D InPolar, FVector2D& OutCart)
+{
+	OutCart.X = InPolar.X * Cos(InPolar.Y);
+	OutCart.Y = InPolar.X * Sin(InPolar.Y);
 }

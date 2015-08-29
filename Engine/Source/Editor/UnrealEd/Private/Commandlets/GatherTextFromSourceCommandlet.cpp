@@ -527,7 +527,10 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 				{
 					// Do the parse now
 					Parsables[PendingParseIdx]->TryParse(FString(ParsePoint), ParseCtxt);
-					ParsableMatchCounters[PendingParseIdx] = 0;
+					for(auto& Element : ParsableMatchCounters)
+					{
+						Element = 0;
+					}
 					PendingParseIdx = -1;
 					ParsePoint = NULL;
 				}

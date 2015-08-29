@@ -36,6 +36,8 @@
 #include "EngineUtils.h"
 #include "GameMapsSettings.h"
 #include "ScopedTransaction.h"
+#include "Features/IModularFeatures.h"
+#include "Features/EditorFeatures.h"
 
 namespace LevelEditorActionHelpers
 {
@@ -1560,9 +1562,10 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateBuildMenuContent( TSharedRef<
 	}
 	MenuBuilder.EndSection();
 
-	MenuBuilder.BeginSection("LevelEditorLOD", LOCTEXT("LODHeading", "Hiearchical LOD"));
+	MenuBuilder.BeginSection("LevelEditorLOD", LOCTEXT("LODHeading", "Hierarchical LOD"));
 	{
 		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().BuildLODsOnly);
+		MenuBuilder.AddMenuEntry(FLevelEditorCommands::Get().PreviewHLODClustersOnly);
 	}
 	MenuBuilder.EndSection();
 
@@ -1675,9 +1678,14 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateQuickSettingsMenu( TSharedRef
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("ProjectSettingsMenuLabel", "Project Settings..."),
 			LOCTEXT("ProjectSettingsMenuToolTip", "Change the settings of the currently loaded project"),
-			FSlateIcon(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "ProjectSettings.TabIcon"),
 			FUIAction(FExecuteAction::CreateStatic(&Local::OpenSettings, FName("Project"), FName("Project"), FName("General")))
 			);
+
+		if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor))
+		{
+			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
+		}
 	}
 	MenuBuilder.EndSection();
 
@@ -2009,7 +2017,8 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 		// We hide the header row to keep the UI compact.
 		// @todo: Might be useful to have this sometimes, actually.  Ideally the user could summon it.
 		InitOptions.bShowHeaderRow = false;
-
+		InitOptions.bShowSearchBox = false;
+		InitOptions.bShowCreateNewFolder = false;
 		struct Local
 		{
 			static bool IsMatineeActor( const AActor* const Actor )
@@ -2075,14 +2084,14 @@ TSharedRef< SWidget > FLevelEditorToolBar::GenerateMatineeMenuContent( TSharedRe
 	bool bHasAnyMatineeActors = false;
 	TActorIterator<AMatineeActor> MatineeIt( LevelEditorWeakPtr.Pin()->GetWorld() );
 
-	bHasAnyMatineeActors = MatineeIt;
+	bHasAnyMatineeActors = !!MatineeIt;
 
 	//Add a heading to separate the existing matinees from the 'Add New Matinee Actor' button
 	MenuBuilder.BeginSection("LevelEditorExistingMatinee", LOCTEXT( "MatineeMenuCombo_ExistingHeading", "Edit Existing Matinee" ) );
 	{
 		if( bHasAnyMatineeActors )
 		{
-			MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), false);
+			MenuBuilder.AddWidget(MiniSceneOutliner, FText::GetEmpty(), true);
 		}
 	}
 	MenuBuilder.EndSection();

@@ -1,4 +1,4 @@
-INTSourceChangelist:2087544
+﻿INTSourceChangelist:2600962
 Availability:Public
 Title:페르소나 툴바
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
@@ -85,7 +85,7 @@ Description:페르소나 애니메이션 에디터의 툴바 사용 안내서입
 
 ## 모드 전환 탭
 
-![](Engine/Animation/Persona\ModeSelector.gif)(convert:false)
+![](ModeTabPersona.png)
 
 페르소나 툴바에는 네 가지 모드를 전환하는 버튼도 들어있습니다. 이 버튼 자체적으로 특정 애니메이션 애셋 추적시 유용하게 쓸 수 있는 기능이 있습니다. 페르소나의 모드는 단순히 해당 모드 버튼을 클릭하는 것으로 바꿀 수 있습니다.
 

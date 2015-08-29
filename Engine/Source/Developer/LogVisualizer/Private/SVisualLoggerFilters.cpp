@@ -150,6 +150,7 @@ void SVisualLoggerFilters::GraphFilterCategoryClicked(FName MenuCategory)
 
 		if (bChanged)
 		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 			InvalidateCanvas();
 		}
 	}
@@ -211,6 +212,7 @@ void SVisualLoggerFilters::FilterByTypeClicked(FName InGraphName, FName InDataNa
 
 		if (bChanged)
 		{
+			FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged.ExecuteIfBound();
 			InvalidateCanvas();
 		}
 	}
@@ -283,7 +285,7 @@ void SVisualLoggerFilters::AddFilter(const FString& InFilterName)
 		}
 	}
 
-	const FLinearColor Color = FLogVisualizer::Get().GetColorForCategory(Filters.Num());
+	const FLinearColor Color = FLogVisualizer::Get().GetColorForCategory(InFilterName);
 	TSharedRef<SFilterWidget> NewFilter =
 		SNew(SFilterWidget)
 		.FilterName(*InFilterName)

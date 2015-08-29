@@ -19,6 +19,10 @@ class UReimportFbxStaticMeshFactory : public UFbxFactory, public FReimportHandle
 	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
 	virtual int32 GetPriority() const override;
 	// End FReimportHandler interface
+
+	// Begin UFactory Interface
+	virtual bool FactoryCanImport(const FString& Filename) override;
+	// End UFactory Interface
 };
 
 

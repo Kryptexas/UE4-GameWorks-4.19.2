@@ -117,7 +117,7 @@ void FPDBCache::InitializePDBCache()
 	IFileManager::Get().MakeDirectory( *PDBCachePath, true );
 
 	TArray<FString> PDBCacheEntryDirectories;
-	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *PDBCachePath, false, true );
+	IFileManager::Get().FindFiles( PDBCacheEntryDirectories, *(PDBCachePath / TEXT( "*" )), false, true );
 
 	for( const auto& Directory : PDBCacheEntryDirectories )
 	{
@@ -325,7 +325,7 @@ FPDBCacheEntryRef FPDBCache::ReadPDBCacheEntry( const FString& Directory )
 	else
 	{
 		// Something wrong.
-		check( 0 );
+		checkf( 0, TEXT( "Invalid symbol cache entry: %s" ), *EntryDirectory );
 	}
 
 	return NewEntry.ToSharedRef();

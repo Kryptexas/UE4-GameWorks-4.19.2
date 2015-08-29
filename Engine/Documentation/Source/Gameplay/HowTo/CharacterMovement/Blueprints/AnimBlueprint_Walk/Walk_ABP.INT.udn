@@ -24,7 +24,7 @@ Description:Here in this step, we'll create the logic for Idle and Walking state
 In this section, we will set up the **Animation Blueprint** that will determine what animations to play based on the actions that are taken in game by the player. We will then set up a **State Machine** and create an **Idle** and **Walk** state and set up the transition between each state. 
 
 [REGION:note]
-For more information on **Animation Blueprints**, refer to the [](Engine/Animation/AnimBlueprints) documentation. 
+For more information on Animation Blueprints, refer to the [](Engine/Animation/AnimBlueprints) documentation. 
 [/REGION]
 
 The steps below will show you how to set up the Animation Blueprint: 
@@ -47,7 +47,7 @@ The steps below will show you how to set up the Animation Blueprint:
 	
 	_Click image for full view._
 
-	In the graph above, we are getting the direction of the player character and their speed and assiging them to variables that will be used inside the Animation Blueprint. We are also getting variables from our **MyCharacter** Blueprint (by dragging off the **Try Get Pawn Owner** node and **Casting** to our Character Blueprint) which corresponds to actions taken by the player. Those variables are then passed to variables inside the Animation Blueprint that will determine when to transition to/from Animation States. 
+	In the graph above, we are getting the direction of the player character and their speed and assigning them to variables that will be used inside the Animation Blueprint. We are also getting variables from our **MyCharacter** Blueprint (by dragging off the **Try Get Pawn Owner** node and **Casting** to our Character Blueprint) which corresponds to actions taken by the player. Those variables are then passed to variables inside the Animation Blueprint that will determine when to transition to/from Animation States. 
 
 1.	Click the **Anim Graph** tab, **Right-click** in the graph and search for and add a new **State Machine**. 
 

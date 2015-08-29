@@ -32,6 +32,12 @@
 #define S_OK 0
 #endif
 
+const FName GameSessionName(TEXT("Game"));
+const FName PartySessionName(TEXT("Party"));
+
+const FName GamePort(TEXT("GamePort"));
+const FName BeaconPort(TEXT("BeaconPort"));
+
 /**
  * Generates a random nonce (number used once) of the desired length
  *
@@ -711,7 +717,7 @@ public:
  * Abstraction of a profile service online Id 
  * The class is meant to be opaque (see IOnlinePlatformData)
  */
-class FUniqueNetId : public IOnlinePlatformData
+class FUniqueNetId : public IOnlinePlatformData, public TSharedFromThis<FUniqueNetId>
 {
 protected:
 
@@ -778,7 +784,7 @@ public:
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
-	bool operator()(const TSharedPtr<FUniqueNetId>& Candidate) const
+	bool operator()(const TSharedPtr<const FUniqueNetId>& Candidate) const
 	{
 		return UniqueIdTarget == *Candidate;
 	}
@@ -788,7 +794,7 @@ public:
 	 *
 	 * @return true if they are an exact match, false otherwise
 	 */
-	bool operator()(const TSharedRef<FUniqueNetId>& Candidate) const
+	bool operator()(const TSharedRef<const FUniqueNetId>& Candidate) const
 	{
 		return UniqueIdTarget == *Candidate;
 	}
@@ -1031,10 +1037,15 @@ struct FCloudFile
 class FOnlineUser
 {
 public:
+	/**
+	 * destructor
+	 */
+	virtual ~FOnlineUser() {}
+
 	/** 
 	 * @return Id associated with the user account provided by the online service during registration 
 	 */
-	virtual TSharedRef<FUniqueNetId> GetUserId() const = 0;
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const = 0;
 	/**
 	 * @return the real name for the user if known
 	 */
@@ -1277,53 +1288,6 @@ namespace EOnlineStatusUpdatePrivacy
 		}
 	}
 }
-
-class FJsonValue;
-
-
-/** Notification object, used to send messages between systems */
-struct FOnlineNotification
-{
-	/** A string defining the type of this notification, used to determine how to parse the payload */
-	FString TypeStr;
-
-	/** The payload of this notification */
-	TSharedPtr<FJsonValue> Payload;
-
-	/** User to deliver the notification to.  Can be null for system notifications. */
-	TSharedPtr<FUniqueNetId> ToUserId;
-
-	/** User who sent the notification, optional. */
-	TSharedPtr<FUniqueNetId> FromUserId;
-
-	FOnlineNotification() :
-		Payload(nullptr),
-		ToUserId(nullptr),
-		FromUserId(nullptr)
-	{
-
-	}
-
-	// Treated as a system notification unless ToUserId is added
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(nullptr), FromUserId(nullptr)
-	{
-
-	}
-
-	// Notification to a specific user.  FromUserId is optional
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(nullptr)
-	{
-
-	}
-
-	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId)
-		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(InFromUserId)
-	{
-
-	}
-};
 
 /**
 * unique identifier for notification transports

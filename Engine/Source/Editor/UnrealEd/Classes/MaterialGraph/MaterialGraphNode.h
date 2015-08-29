@@ -39,7 +39,7 @@ public:
 	UNREALED_API void RecreateAndLinkNode();
 
 	/** Get the Material Expression output index from an output pin */
-	int32 GetOutputIndex(const UEdGraphPin* OutputPin);
+	UNREALED_API int32 GetOutputIndex(const UEdGraphPin* OutputPin);
 	/** Get the Material value type of an output pin */
 	uint32 GetOutputType(const UEdGraphPin* OutputPin);
 
@@ -60,6 +60,7 @@ public:
 	virtual void NodeConnectionListChanged() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual void OnUpdateCommentText( const FString& NewComment ) override;
+	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual FString GetDocumentationExcerptName() const override;
 	// End UEdGraphNode interface.
@@ -67,7 +68,7 @@ public:
 	// UMaterialGraphNode_Base interface
 	virtual void CreateInputPins() override;
 	virtual void CreateOutputPins() override;
-	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
+	virtual UNREALED_API int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
 	// End of UMaterialGraphNode_Base interface
 

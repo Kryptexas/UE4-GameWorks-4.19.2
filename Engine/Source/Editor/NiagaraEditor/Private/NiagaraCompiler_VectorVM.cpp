@@ -189,7 +189,7 @@ TNiagaraExprPtr FNiagaraCompiler_VectorVM::Output(const FNiagaraVariableInfo& At
 	return Expressions[Index];
 }
 
-void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
+bool FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 {
 	//TODO - Most of this function can be refactored up into FNiagaraCompiler once we know how the compute script and VM script will coexist in the UNiagaraScript.
 
@@ -198,6 +198,27 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	Script = InScript;
 	Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
 
+	//Clear previous graph errors.
+	if (InScript->ByteCode.Num() == 0)
+	{
+		bool bChanged = false;
+		for (UEdGraphNode* Node : Source->NodeGraph->Nodes)
+		{
+			if (Node->bHasCompilerMessage)
+			{
+				Node->ErrorMsg.Empty();
+				Node->ErrorType = EMessageSeverity::Info;
+				Node->bHasCompilerMessage = false;
+				Node->Modify(true);
+				bChanged = true;
+			}
+		}
+		if (bChanged)
+		{
+			Source->NodeGraph->NotifyGraphChanged();
+		}
+	}
+	
 	//Should we roll our own message/error log and put it in a window somewhere?
 	MessageLog.SetSourceName(InScript->GetPathName());
 
@@ -205,51 +226,57 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	SourceGraph = CastChecked<UNiagaraGraph>(FEdGraphUtilities::CloneGraph(Source->NodeGraph, NULL, &MessageLog));
 	FEdGraphUtilities::MergeChildrenGraphsIn(SourceGraph, SourceGraph, /*bRequireSchemaMatch=*/ true);
 
-	if (!MergeInFunctionNodes())
-	{ 
-		//TODO: Insert a good error reporting and compile failure system.
-		InScript->Attributes.Empty();
-		InScript->ByteCode.Empty();
-		InScript->ConstantData.Empty();
-		return;
-	}
-
-	TempRegisters.AddZeroed(VectorVM::NumTempRegisters);
-
-	// Find the output node.
-	UNiagaraNodeOutput* OutputNode = SourceGraph->FindOutputNode();
-
-	TArray<FNiagaraNodeResult> OutputExpressions;
-	OutputNode->Compile(this, OutputExpressions);
-
-	//Todo - track usage of temp registers so we can allocate and free and reuse from a smaller set.
-	int32 NextTempRegister = 0;
-	Script->ByteCode.Empty();
-
-	//Now we have a set of expressions from which we can generate the bytecode.
-	for (int32 i = 0; i < Expressions.Num() ; ++i)
+	if (MergeInFunctionNodes())
 	{
-		TNiagaraExprPtr Expr = Expressions[i];
-		if (Expr.IsValid())
+		TempRegisters.AddZeroed(VectorVM::NumTempRegisters);
+
+		// Find the output node.
+		UNiagaraNodeOutput* OutputNode = SourceGraph->FindOutputNode();
+
+		TArray<FNiagaraNodeResult> OutputExpressions;
+		OutputNode->Compile(this, OutputExpressions);
+
+		//Todo - track usage of temp registers so we can allocate and free and reuse from a smaller set.
+		int32 NextTempRegister = 0;
+		Script->ByteCode.Empty();
+
+		//Now we have a set of expressions from which we can generate the bytecode.
+		for (int32 i = 0; i < Expressions.Num(); ++i)
 		{
-			Expr->Process();
-			Expr->PostProcess();
-		}
-		else
-		{
-			check(0);//Replace with graceful bailout?
+			TNiagaraExprPtr Expr = Expressions[i];
+			if (Expr.IsValid())
+			{
+				Expr->Process();
+				Expr->PostProcess();
+			}
+			else
+			{
+				check(0);//Replace with graceful bailout?
+			}
+
+			Expressions[i].Reset();
 		}
 
-		Expressions[i].Reset();
+		PinToExpression.Empty();//TODO - Replace this with expression caching at a lower level. Will be more useful and nicer.
+
+		if (MessageLog.NumErrors == 0)
+		{
+			// Terminate with the 'done' opcode.
+			Script->ByteCode.Add((int8)VectorVM::EOp::done);
+			Script->ConstantData = ConstantData;
+			Script->Attributes = OutputNode->Outputs;
+			return true;
+		}
 	}
 
-	PinToExpression.Empty();//TODO - Replace this with expression caching at a lower level. Will be more useful and nicer.
-
-	// Terminate with the 'done' opcode.
-	Script->ByteCode.Add((int8)VectorVM::EOp::done);
-
-	Script->ConstantData = ConstantData;
-	Script->Attributes = OutputNode->Outputs;
+	//Compilation has failed.
+	InScript->Attributes.Empty();
+	InScript->ByteCode.Empty();
+	InScript->ConstantData.Empty();
+	//Tell the graph to show the errors.
+	Source->NodeGraph->NotifyGraphChanged();
+		
+	return false;
 }
 
 TNiagaraExprPtr FNiagaraCompiler_VectorVM::Expression_VMNative(VectorVM::EOp Op, TArray<TNiagaraExprPtr>& InputExpressions)
@@ -283,268 +310,325 @@ TNiagaraExprPtr FNiagaraCompiler_VectorVM::Expression_VMNative(VectorVM::EOp Op,
 	return Expression_VMNative(Op, In);
 }
 
-void FNiagaraCompiler_VectorVM::Add_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Add_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::add, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Subtract_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Subtract_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add((Expression_VMNative(VectorVM::EOp::sub, InputExpressions)));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Multiply_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Multiply_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::mul, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::MultiplyAdd_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Divide_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+{
+	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::div, InputExpressions));
+	return true;
+}
+
+bool FNiagaraCompiler_VectorVM::MultiplyAdd_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::mad, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Lerp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Lerp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::lerp, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Reciprocal_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Reciprocal_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::rcp, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ReciprocalSqrt_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ReciprocalSqrt_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::rsq, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Sqrt_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Sqrt_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sqrt, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Negate_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Negate_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::neg, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Abs_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Abs_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::abs, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Exp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Exp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::exp, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Exp2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Exp2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::exp2, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Log_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Log_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::log, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::LogBase2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::LogBase2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::log2, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Sin_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Sin_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sin, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Cos_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Cos_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::cos, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Tan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Tan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::tan, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ASin_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ASin_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::asin, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ACos_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ACos_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::acos, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ATan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ATan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::atan, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ATan2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ATan2_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::atan2, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Ceil_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Ceil_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::ceil, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Floor_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Floor_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::floor, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Modulo_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Modulo_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::fmod, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Fractional_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Fractional_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::frac, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Truncate_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Truncate_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::trunc, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Clamp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Clamp_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::clamp, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Min_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Min_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::min, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Max_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Max_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::max, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Pow_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Pow_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::pow, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Sign_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Sign_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sign, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Step_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Step_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::step, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Dot_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Dot_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::dot, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Cross_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Cross_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::cross, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Normalize_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Normalize_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::normalize, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Random_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Random_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::random, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Length_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Length_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::length, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Noise_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Noise_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::noise, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Scalar_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Scalar_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
-	GetX_Internal(InputExpressions,OutputExpressions);
+	GetX_Internal(InputExpressions, OutputExpressions);
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Vector_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Vector_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(InputExpressions[0]);
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Matrix_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Matrix_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	//Just collect the matrix rows into an expression for what ever use subsequent expressions have.
 	TNiagaraExprPtr MatrixExpr = Expression_Collection(InputExpressions);
 	MatrixExpr->Result.Type = ENiagaraDataType::Matrix;
 	OutputExpressions.Add(MatrixExpr);
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Compose_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Compose_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::compose, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ComposeX_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ComposeX_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::composex, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ComposeY_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ComposeY_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::composey, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ComposeZ_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ComposeZ_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::composez, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::ComposeW_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::ComposeW_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::composew, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Split_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Split_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	GetX_Internal(InputExpressions, OutputExpressions);
 	GetY_Internal(InputExpressions, OutputExpressions);
 	GetZ_Internal(InputExpressions, OutputExpressions);
 	GetW_Internal(InputExpressions, OutputExpressions);
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::GetX_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::GetX_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::splatx, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::GetY_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::GetY_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::splaty, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::GetZ_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::GetZ_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::splatz, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::GetW_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::GetW_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::splatw, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::TransformVector_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::TransformVector_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	TNiagaraExprPtr MatrixExpr = InputExpressions[0];
 	check(MatrixExpr->SourceExpressions.Num() == 4);
@@ -569,9 +653,10 @@ void FNiagaraCompiler_VectorVM::TransformVector_Internal(TArray<TNiagaraExprPtr>
 	Temp[0] = Expression_VMNative(VectorVM::EOp::add, Temp[0], Temp[1]);
 	Temp[1] = Expression_VMNative(VectorVM::EOp::add, Temp[2], Temp[3]);
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::add, Temp[0], Temp[1]));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Transpose_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Transpose_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	TNiagaraExprPtr MatrixExpr = InputExpressions[0];
 	check(MatrixExpr->SourceExpressions.Num() == 4);
@@ -589,47 +674,53 @@ void FNiagaraCompiler_VectorVM::Transpose_Internal(TArray<TNiagaraExprPtr>& Inpu
 	Columns.Add(Expression_VMNative(VectorVM::EOp::composew, Row0, Row1, Row2, Row3));
 
 	Matrix_Internal(Columns, OutputExpressions);
+	return true;
 }
 
 
-void FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
-	//OutputExpressions.Add(Expression_UnknownError());
-
-	
+	Error(LOCTEXT("VMNoImpl", "VM Operation not yet implemented"), nullptr, nullptr);
+	return false;
 }
 
 
-void FNiagaraCompiler_VectorVM::LessThan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::LessThan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::lessthan, InputExpressions));
+	return true;
 }
 
 
-void FNiagaraCompiler_VectorVM::Sample_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Sample_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sample, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::Write_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::Write_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::bufferwrite, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::EventBroadcast_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::EventBroadcast_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::eventbroadcast, InputExpressions));
+	return true;
 }
 
-void FNiagaraCompiler_VectorVM::EaseIn_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::EaseIn_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::easein, InputExpressions));
+	return true;
 }
 
 
-void FNiagaraCompiler_VectorVM::EaseInOut_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+bool FNiagaraCompiler_VectorVM::EaseInOut_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::easeinout, InputExpressions));
+	return true;
 }
 
 

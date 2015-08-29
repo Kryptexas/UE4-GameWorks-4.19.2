@@ -49,20 +49,20 @@ public:
 	float WrapTextAt;
 
 	/** Font color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FSlateFontInfo Font;
+	UPROPERTY()
+	FSlateFontInfo Font_DEPRECATED;
 
 	/** Text color and opacity (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor ForegroundColor;
+	UPROPERTY()
+	FLinearColor ForegroundColor_DEPRECATED;
 
 	/** The color of the background/border around the editable text (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor BackgroundColor;
+	UPROPERTY()
+	FLinearColor BackgroundColor_DEPRECATED;
 
 	/** Text color and opacity when read-only (overrides Style) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Appearance)
-	FLinearColor ReadOnlyForegroundColor;
+	UPROPERTY()
+	FLinearColor ReadOnlyForegroundColor_DEPRECATED;
 
 	/** Called whenever the text is changed interactively by the user */
 	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Text Box)"))

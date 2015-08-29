@@ -1,9 +1,7 @@
-﻿Availability:Public
+Availability:Public
 Title: Behavior Tree Quick Start Guide
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:Overviews and examples AI
-Prereq:Engine/Blueprints/BP_HowTo/BasicUsage
-Prereq:Engine/Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]

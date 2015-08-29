@@ -142,12 +142,6 @@ public:
 	TArray<FAttachedActorInfo> AttachedActors;
 };
 
-FName UChildActorComponent::GetComponentInstanceDataType() const
-{
-	static const FName ChildActorComponentInstanceDataName(TEXT("ChildActorInstanceData"));
-	return ChildActorComponentInstanceDataName;
-}
-
 FActorComponentInstanceData* UChildActorComponent::GetComponentInstanceData() const
 {
 	FChildActorComponentInstanceData* InstanceData = CachedInstanceData;
@@ -249,7 +243,7 @@ void UChildActorComponent::CreateChildActor()
 			if (bSpawn)
 			{
 				FActorSpawnParameters Params;
-				Params.bNoCollisionFail = true;
+				Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 				Params.bDeferConstruction = true; // We defer construction so that we set ParentComponentActor prior to component registration so they appear selected
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = (MyOwner ? MyOwner->GetLevel() : nullptr);

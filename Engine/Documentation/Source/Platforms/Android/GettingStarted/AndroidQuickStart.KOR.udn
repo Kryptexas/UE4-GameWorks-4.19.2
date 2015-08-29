@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2590652
 Availability: Public
 Title: 안드로이드 퀵 스타트
 Crumbs:%ROOT%, Platforms, Platforms/Android
@@ -40,6 +40,7 @@ Description:안드로이드 플랫폼용 개발 셋업하기 입니다.
 
 이 안드로이드 퀵 스타트에서는 컴퓨터와 안드로이드 디바이스를 디플로이용으로 셋업, 런칭 및 패키징 기능을 둘 다 사용하여 디바이스에 템플릿 게임을 넣는 데까지 안내해 드립니다.
 이 가이드는 안드로이드 SDK 로 TADP  를 사용하나, 다른 SDK 셋업 방법을 알아보려면 [](Platforms\Android\Reference) 문서를 참고하세요.
+
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]

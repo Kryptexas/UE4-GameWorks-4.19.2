@@ -2,14 +2,12 @@
 
 #include "InternationalizationSettingsModulePrivatePCH.h"
 
-
 /* UInternationalizationSettingsModel interface
  *****************************************************************************/
 
 UInternationalizationSettingsModel::UInternationalizationSettingsModel( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 { }
-
 
 void UInternationalizationSettingsModel::SaveDefaults()
 {
@@ -26,12 +24,13 @@ void UInternationalizationSettingsModel::SaveDefaults()
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEngineIni );
 }
 
-
 void UInternationalizationSettingsModel::ResetToDefault()
 {
 	FString SavedCultureName;
 	GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEngineIni );
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *SavedCultureName, GEditorSettingsIni );
+
+	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), TEXT(""), GEditorSettingsIni );
 
 	bool bShouldLoadLocalizedPropertyNames = true;
 	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), bShouldLoadLocalizedPropertyNames, GEngineIni );
@@ -41,11 +40,10 @@ void UInternationalizationSettingsModel::ResetToDefault()
 	GConfig->GetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEngineIni );
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), bShowNodesAndPinsUnlocalized, GEditorSettingsIni );
 
-	SettingChangedEvent.Broadcast();
+	SettingsChangedEvent.Broadcast();
 }
 
-
-FString UInternationalizationSettingsModel::GetCultureName() const
+FString UInternationalizationSettingsModel::GetEditorCultureName() const
 {
 	FString SavedCultureName;
 	if( !GConfig->GetString( TEXT("Internationalization"), TEXT("Culture"), SavedCultureName, GEditorSettingsIni ) )
@@ -55,13 +53,24 @@ FString UInternationalizationSettingsModel::GetCultureName() const
 	return SavedCultureName;
 }
 
-
-void UInternationalizationSettingsModel::SetCultureName(const FString& CultureName)
+void UInternationalizationSettingsModel::SetEditorCultureName(const FString& CultureName)
 {
 	GConfig->SetString( TEXT("Internationalization"), TEXT("Culture"), *CultureName, GEditorSettingsIni );
-	SettingChangedEvent.Broadcast();
+	SettingsChangedEvent.Broadcast();
 }
 
+FString UInternationalizationSettingsModel::GetNativeGameCultureName() const
+{
+	FString SavedCultureName;
+	GConfig->GetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), SavedCultureName, GEditorSettingsIni );
+	return SavedCultureName;
+}
+
+void UInternationalizationSettingsModel::SetNativeGameCultureName(const FString& CultureName)
+{
+	GConfig->SetString( TEXT("Internationalization"), TEXT("NativeGameCulture"), *CultureName, GEditorSettingsIni );
+	SettingsChangedEvent.Broadcast();
+}
 
 bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() const
 {
@@ -73,11 +82,10 @@ bool UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames() cons
 	return bShouldLoadLocalizedPropertyNames;
 }
 
-
 void UInternationalizationSettingsModel::ShouldLoadLocalizedPropertyNames(const bool Value)
 {
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShouldLoadLocalizedPropertyNames"), Value, GEditorSettingsIni );
-	SettingChangedEvent.Broadcast();
+	SettingsChangedEvent.Broadcast();
 }
 
 bool UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized() const
@@ -93,4 +101,5 @@ bool UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized() con
 void UInternationalizationSettingsModel::ShouldShowNodesAndPinsUnlocalized(const bool Value)
 {
 	GConfig->SetBool( TEXT("Internationalization"), TEXT("ShowNodesAndPinsUnlocalized"), Value, GEditorSettingsIni );
+	SettingsChangedEvent.Broadcast();
 }

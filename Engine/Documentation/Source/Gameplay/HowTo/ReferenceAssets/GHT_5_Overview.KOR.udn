@@ -1,11 +1,9 @@
-﻿INTSourceChangelist:2428653
+﻿INTSourceChangelist:2605834
 Availability: Public
-Title:액터 레퍼런싱 비법
+Title:액터 레퍼런싱
 Crumbs: %ROOT%, Gameplay
 Description:언리얼 엔진 4 에서 액터를 레퍼런싱하는 방법 안내서입니다.
 
-
-##개요
 [EXCERPT:ReferenceOverview]
 액터로의 레퍼런스를 구성하면, 게임플레이 도중 블루프린트나 C++ 를 통해 그 액터의 프로퍼티, 변수, 이벤트나 함수에 접근하여 게임플레이 요구에 맞게 변경하는 것이 가능합니다.
 

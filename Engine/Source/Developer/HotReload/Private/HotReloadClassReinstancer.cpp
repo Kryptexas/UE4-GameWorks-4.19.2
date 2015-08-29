@@ -228,6 +228,8 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	// Re-create the CDO, re-running its constructor
 	ReconstructClassDefaultObject(InOldClass, CDOOuter, CDOName, CDOFlags);
 
+	ReconstructedCDOsMap.Add(OriginalCDO, InOldClass->GetDefaultObject());
+
 	// Collect the property values after re-constructing the CDO
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), ReconstructedCDOProperties);
 
@@ -260,10 +262,13 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	}
 }
 
-FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass)
+FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass, TMap<UObject*, UObject*>& OutReconstructedCDOsMap, TSet<UBlueprint*>& InBPSetToRecompile, TSet<UBlueprint*>& InBPSetToRecompileBytecodeOnly)
 	: NewClass(nullptr)
 	, bNeedsReinstancing(false)
 	, CopyOfPreviousCDO(nullptr)
+	, ReconstructedCDOsMap(OutReconstructedCDOsMap)
+	, BPSetToRecompile(InBPSetToRecompile)
+	, BPSetToRecompileBytecodeOnly(InBPSetToRecompileBytecodeOnly)
 {
 	ensure(InOldClass);
 	ensure(!HotReloadedOldClass && !HotReloadedNewClass);
@@ -491,6 +496,40 @@ void FHotReloadClassReinstancer::AddReferencedObjects(FReferenceCollector& Colle
 {
 	FBlueprintCompileReinstancer::AddReferencedObjects(Collector);
 	Collector.AddReferencedObject(CopyOfPreviousCDO);
+}
+
+void FHotReloadClassReinstancer::EnlistDependentBlueprintToRecompile(UBlueprint* BP, bool bBytecodeOnly)
+{
+	if (IsValid(BP))
+	{
+		if (bBytecodeOnly)
+		{
+			if (!BPSetToRecompile.Contains(BP) && !BPSetToRecompileBytecodeOnly.Contains(BP))
+			{
+				BPSetToRecompileBytecodeOnly.Add(BP);
+			}
+		}
+		else
+		{
+			if (!BPSetToRecompile.Contains(BP))
+			{
+				if (BPSetToRecompileBytecodeOnly.Contains(BP))
+				{
+					BPSetToRecompileBytecodeOnly.Remove(BP);
+				}
+
+				BPSetToRecompile.Add(BP);
+			}
+		}
+	}
+}
+
+void FHotReloadClassReinstancer::BlueprintWasRecompiled(UBlueprint* BP, bool bBytecodeOnly)
+{
+	BPSetToRecompile.Remove(BP);
+	BPSetToRecompileBytecodeOnly.Remove(BP);
+
+	FBlueprintCompileReinstancer::BlueprintWasRecompiled(BP, bBytecodeOnly);
 }
 
 #endif

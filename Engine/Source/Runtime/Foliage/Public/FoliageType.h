@@ -22,15 +22,15 @@ namespace EHasCustomNavigableGeometry
 UENUM()
 enum class EFoliageScaling : uint8
 {
-	// Foliage instances will have uniform X,Y and Z scales
+	/** Foliage instances will have uniform X,Y and Z scales. */
 	Uniform,
-	// Foliage instances will have random X,Y and Z scales
+	/** Foliage instances will have random X,Y and Z scales. */
 	Free,
-	// Locks the X and Y axis scale
+	/** Locks the X and Y axis scale. */
 	LockXY,
-	// Locks the X and Z axis scale
+	/** Locks the X and Z axis scale. */
 	LockXZ,
-	// Locks the Y and Z axis scale
+	/** Locks the Y and Z axis scale. */
 	LockYZ
 };
 
@@ -44,6 +44,9 @@ class UFoliageType : public UObject
 	virtual UStaticMesh* GetStaticMesh() const PURE_VIRTUAL(UFoliageType::GetStaticMesh, return nullptr; );
 	virtual void SetStaticMesh(UStaticMesh* InStaticMesh) PURE_VIRTUAL(UFoliageType::SetStaticMesh,);
 
+	/* Gets the component class to use for instances of this FoliageType */
+	virtual UClass* GetComponentClass() const PURE_VIRTUAL(UFoliageType::GetComponentClass(), return nullptr;);
+	
 	virtual void Serialize(FArchive& Ar) override;
 
 	virtual bool IsNotAssetOrBlueprint() const;
@@ -173,6 +176,10 @@ public:
 public:
 	// INSTANCE SETTINGS
 
+	/** Mobility property to apply to foliage components */
+	UPROPERTY(Category = InstanceSettings, EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<EComponentMobility::Type> Mobility;
+
 	/**
 	 * The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables.
 	 * When the entire cluster is beyond this distance, the cluster is completely culled and not rendered at all.
@@ -180,16 +187,16 @@ public:
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(UIMin=0))
 	FInt32Interval CullDistance;
 
-	/** Controls whether the foliage should take part in static lighting/shadowing. If false, mesh will not receive or cast static lighting or shadows, regardless of other settings. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
-	uint32 bEnableStaticLighting : 1;
+	/** Deprecated. Now use the Mobility setting to control static/dynamic lighting */
+	UPROPERTY()
+	uint32 bEnableStaticLighting_DEPRECATED : 1;
 
 	/** Controls whether the foliage should cast a shadow or not. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
 	uint32 CastShadow:1;
 
 	/** Controls whether the foliage should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(EditCondition="CastShadow"))
 	uint32 bAffectDynamicIndirectLighting:1;
 
 	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. */
@@ -197,15 +204,15 @@ public:
 	uint32 bAffectDistanceFieldLighting:1;
 
 	/** Controls whether the foliage should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(EditCondition="CastShadow"))
 	uint32 bCastDynamicShadow:1;
 
 	/** Whether the foliage should cast a static shadow from shadow casting lights.  This flag is only used if CastShadow is true. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(EditCondition="CastShadow"))
 	uint32 bCastStaticShadow:1;
 
 	/** Whether this foliage should cast dynamic shadows as if it were a two sided material. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=InstanceSettings, meta=(EditCondition="bCastDynamicShadow"))
 	uint32 bCastShadowAsTwoSided:1;
 
 	/** Whether the foliage receives decals. */
@@ -227,9 +234,6 @@ public:
 	/** Force navmesh */
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
-
-	UPROPERTY()
-	int32 DisplayOrder;
 
 	UPROPERTY()
 	uint32 IsSelected:1;

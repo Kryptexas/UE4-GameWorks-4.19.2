@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Event 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,12 +6,10 @@ Description:Event (이벤트)는 파티클 자체나 레벨의 다른 액터에 
 
 [TOC(start:2 end:3)]
 
-## Event 모듈
-
 Event (이벤트)는 파티클 자체나 레벨의 다른 액터에 따라 이벤트를 생성한 다음, 그 이벤트 발생을 기다리다가 파티클 시스템 상호간의 반응을 유발시키는 모듈입니다. 파티클이 월드와 충돌할 때마다 네임드 콜리전 이벤트를 생성시키고, 그러한 충돌 발생시마다 파티클을 스폰시키는 정도가 좋은 예입니다.
 
 
-### Event Generator
+## Event Generator
 
 Event Generator (이벤트 생성기) 모듈은 지정한 조건에 따라 (하나 또는 다수의) 이벤트를 발생시키는 모듈입니다. 이 모듈에 있는 하나의 **Events** 배열에 이미터가 생성할 수 있었으면 하는 모든 이벤트가 나열됩니다. _Events_ 배열의 각 아이템에는 다음과 같은 프로퍼티가 있습니다:
 
@@ -48,7 +46,7 @@ Event Generator (이벤트 생성기) 모듈은 지정한 조건에 따라 (하�
 -------------End Event Generator Includes--------------->
 
 
-### Event Receiver Kill All (EventRcvr KillAll)
+## Event Receiver Kill All (EventRcvr KillAll)
 
 네임드 이벤트를 기다리다가 발동되면 이미터의 모든 파티클을 죽입니다.
 
@@ -81,7 +79,7 @@ Event Generator (이벤트 생성기) 모듈은 지정한 조건에 따라 (하�
 
 -------------End Event Generator Includes--------------->
 
-### Event Receiver Spawn (EventRcvr Spawn)
+## Event Receiver Spawn (EventRcvr Spawn)
 
 네임드 이벤트를 기다리다가 발동된 이벤트에 따라 파티클을 스폰합니다.
 

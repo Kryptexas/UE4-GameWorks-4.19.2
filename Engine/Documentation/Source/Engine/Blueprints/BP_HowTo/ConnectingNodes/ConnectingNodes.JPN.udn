@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2369064
+﻿INTSourceChangelist:2595877
 Availability:Public
 Title:ノードを接続する
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -63,7 +63,7 @@ Related:Engine/Blueprints/UserGuide/CheatSheet
 再接続する必要なく、これであるピンから別のピンに接続を移動することができます。
 
 
-###ピンのアクション
+### ピンのアクション
 以下の表で説明するように、ノードに対して行うことができるピン関連のアクションがさらにいくつかあります。 
 
 [INCLUDE:Engine\Blueprints\UserGuide\CheatSheet#pinactions]
@@ -76,7 +76,7 @@ Related:Engine/Blueprints/UserGuide/CheatSheet
 
 ![](NodeToNode1.png)
 
-上記では、**Event Begin Play** があり、これは **Boolean Variable 2** を false に設定しており、代わりに作成した**Float** 値を設定するように取り換えるとします。Float 変数を Set 変数にドラッグすることができます。すると、行おうとしているアクションが、ノードを変更して'Float Variable' を書き込むか、それを "Set"するかであることを示すツールチップが表示されます。 
+上記では、**Event Begin Play** があり、これは **Boolean Variable 2** を false に設定しており、代わりに作成した **Float** 値を設定するように取り換えるとします。Float 変数を Set 変数にドラッグすることができます。すると、行おうとしているアクションが、ノードを変更して'Float Variable' を書き込むか、それを "Set"するかであることを示すツールチップが表示されます。 
 
 ![](NodeToNode2.png)
 
@@ -103,7 +103,7 @@ Related:Engine/Blueprints/UserGuide/CheatSheet
 
 ## 接続を再ルーティング
 
-複雑または大きなブループリントで作業をする場合、線があちこちに広がり、視覚的にわかりやすくするためにグラフ内での外観を変更したい場合があるかもしれません。**Reroute** ノードを追加するオプションがあります。これにより、出力ピンに「延長コード」のようなものを追加して線を移動できるようになります。
+複雑だったり、大きなブループリントで作業をする場合、線があちこちに広がり、視覚的にわかりやすくするためにグラフ内での外観を変更したい場合があるかもしれません。**Reroute** ノードを追加するオプションがあります。これにより、出力ピンに「延長コード」のようなものを追加して線を移動できるようになります。
 
 ここでは別のノードに隠れた出力ピンの線があり、ボックス内に示されています。 
 
@@ -126,6 +126,11 @@ Related:Engine/Blueprints/UserGuide/CheatSheet
 ![](ReRoute5.png)
 
 Reroute ノードを使用すると、ブループリントをクリーンな状態に保ち、誰がそのブループリントを利用しても接続をわかりやすく見ることができます。 
+
+
+
+
+
 
 
 

@@ -37,7 +37,6 @@ public:
 	{ 
 		return BranchPurpose::MAX;
 	}
-	virtual void CreateStartingConnectors( void ) override;
 
 	virtual void RemoveChildNode( int32 Index ) override
 	{
@@ -45,8 +44,8 @@ public:
 	}
 
 #if WITH_EDITOR
-	virtual FString GetInputPinName(int32 PinIndex) const override;
-	virtual FString GetTitle() const override;
+	virtual FText GetInputPinName(int32 PinIndex) const override;
+	virtual FText GetTitle() const override;
 #endif //WITH_EDITOR
 	// End USoundNode interface.
 };

@@ -134,6 +134,15 @@ public:
 		return false;
 	}
 
+	/**
+	 * Get the instance name, which is typically "default" or "none" but distinguishes
+	 * one instance from another in "Play In Editor" mode.  Most platforms can't do this
+	 * because of third party requirements that only allow one login per machine instance
+	 *
+	 * @return the instance name of this subsystem
+	 */
+	virtual FName GetInstanceName() const = 0;
+
 	/** 
 	 * Get the interface for accessing the session management services
 	 * @return Interface pointer for the appropriate session service
@@ -169,13 +178,6 @@ public:
 	* @return Interface pointer for the appropriate cloud service
 	*/
 	virtual IOnlineUserCloudPtr GetUserCloudInterface() const = 0;
-
-	/**
-	* Get the interface for accessing user files in the cloud for a specific service
-	* @param Key   The key for the required user cloud interface
-	* @return      Interface pointer for the appropriate cloud service
-	*/
-	virtual IOnlineUserCloudPtr GetUserCloudInterface(const FString& Key) const = 0;
 
 	/**
 	 * Get the interface for accessing user entitlements

@@ -179,6 +179,7 @@ public:
 	virtual void FlushCommands() const override;
 	virtual void Sync() const override;
 	virtual void ReleaseDynamicResource( const FSlateBrush& InBrush ) override;
+	virtual void RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove ) override;
 	virtual FIntPoint GenerateDynamicImageResource(const FName InTextureName) override;
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) override;
 	virtual void* GetViewportResource( const SWindow& Window ) override;
@@ -186,9 +187,10 @@ public:
 	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
 	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
+	virtual void ReleaseAccessedResources() override;
 
 	/** Draws windows from a FSlateDrawBuffer on the render thread */
-	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, const FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
+	void DrawWindow_RenderThread(FRHICommandListImmediate& RHICmdList, const FSlateRHIRenderer::FViewportInfo& ViewportInfo, FSlateWindowElementList& WindowElementList, bool bLockToVsync, bool bClear);
 
 
 	/**
@@ -288,6 +290,8 @@ private:
 
 	/** Drawing policy */
 	TSharedPtr<FSlateRHIRenderingPolicy> RenderingPolicy;
+
+	TArray< TSharedPtr<FSlateDynamicImageBrush> > DynamicBrushesToRemove[NumDrawBuffers];
 
 	/** The resource which allows us to capture the editor to a buffer */
 	FSlateCrashReportResource* CrashTrackerResource;

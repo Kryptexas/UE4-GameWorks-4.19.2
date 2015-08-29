@@ -13,7 +13,7 @@ UHeadMountedDisplayFunctionLibrary::UHeadMountedDisplayFunctionLibrary(const FOb
 
 bool UHeadMountedDisplayFunctionLibrary::IsHeadMountedDisplayEnabled()
 {
-	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed();
+	return GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled();
 }
 
 bool UHeadMountedDisplayFunctionLibrary::EnableHMD(bool bEnable)
@@ -154,4 +154,17 @@ float UHeadMountedDisplayFunctionLibrary::GetScreenPercentage()
 		return GEngine->StereoRenderingDevice->GetScreenPercentage();
 	}
 	return 0.0f;
+}
+
+void UHeadMountedDisplayFunctionLibrary::SetWorldToMetersScale(UObject* WorldContext, float NewScale)
+{
+	if (WorldContext)
+	{
+		WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters = NewScale;
+	}
+}
+
+float UHeadMountedDisplayFunctionLibrary::GetWorldToMetersScale(UObject* WorldContext)
+{
+	return WorldContext ? WorldContext->GetWorld()->GetWorldSettings()->WorldToMeters : 0.f;
 }

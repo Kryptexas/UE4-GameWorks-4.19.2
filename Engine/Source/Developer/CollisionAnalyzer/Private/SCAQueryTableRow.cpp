@@ -12,7 +12,7 @@ void SCAQueryTableRow::Construct(const FArguments& InArgs, const TSharedRef<STab
 
 	if(Item->bIsGroup)
 	{
-		BorderImage = FEditorStyle::GetBrush("CollisionAnalyzer.GroupBackground");
+		BorderImage = FCollisionAnalyzerStyle::Get()->GetBrush("CollisionAnalyzer.GroupBackground");
 	}
 }
 
@@ -30,25 +30,25 @@ TSharedRef<SWidget> SCAQueryTableRow::GenerateWidgetForColumn(const FName& Colum
 		else if (ColumnName == TEXT("Frame") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByFrameNum)
 		{
 			return	SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("BoldFont"))
+					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::AsNumber(Item->FrameNum));
 		}
 		else if (ColumnName == TEXT("Tag") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByTag)
 		{
 			return	SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("BoldFont"))
+					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::FromName(Item->GroupName));
 		}
 		else if (ColumnName == TEXT("Owner") && OwnerAnalyzerWidget->GroupBy == EQueryGroupMode::ByOwnerTag)
 		{
 			return	SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("BoldFont"))
+					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(FText::FromName(Item->GroupName));
 		}
 		else if (ColumnName == TEXT("Time"))
 		{
 			return	SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle("BoldFont"))
+					.Font(FCollisionAnalyzerStyle::Get()->GetFontStyle("BoldFont"))
 					.Text(this, &SCAQueryTableRow::GetTotalTimeText);
 		}
 	}

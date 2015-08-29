@@ -47,7 +47,7 @@ Description:Explanation of random streams and how to use them in Blueprints.
 
 [EXCERPT:Intro]
 **_RandomStreams_** allow repeatable, random numbers to be generated and used inside of _Blueprints_ and _Level Blueprints_, as well as _AnimBlueprints_ for animations. This can be extremely useful when 
-setting up effects, such as scattering objects or building precedural environments, where you want a random effect, but also a consistent distribution each time the graph is evaluated. Previously, 
+setting up effects, such as scattering objects or building procedural environments, where you want a random effect, but also a consistent distribution each time the graph is evaluated. Previously, 
 using random values would result in a different distribution each time the graph was evaluated, meaning moving the _Blueprint_ or performing any action which caused the graph to be re-evaluated 
 resulting in a completely different effect. With _RandomStreams_, you can tweak the effect based on a seed value to get the desired result, and then perform any other modifications you want while 
 maintaining the overall effect.

@@ -10,6 +10,8 @@
 #include "AudioDerivedData.h"
 #include "SubtitleManager.h"
 #include "DerivedDataCacheInterface.h"
+#include "EditorFramework/AssetImportData.h"
+
 /*-----------------------------------------------------------------------------
 	FStreamedAudioChunk
 -----------------------------------------------------------------------------*/
@@ -65,10 +67,17 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 {
 	int32 CalculatedResourceSize = 0;
 
-	if( DecompressionType == DTYPE_Native )
+	if (DecompressionType == DTYPE_Native)
 	{
 		// If we've been decompressed, need to account for decompressed and also compressed
 		CalculatedResourceSize += RawPCMDataSize;
+	}
+	else if (DecompressionType == DTYPE_RealTime)
+	{
+		if (CachedRealtimeFirstBuffer)
+		{
+			CalculatedResourceSize += MONO_PCM_BUFFER_SIZE * NumChannels;
+		}
 	}
 
 	if (GEngine && GEngine->GetMainAudioDevice())
@@ -129,7 +138,10 @@ void USoundWave::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	Super::GetAssetRegistryTags(OutTags);
 	
 #if WITH_EDITORONLY_DATA
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden) );
+	}
 #endif
 	// GetCompressedDataSize could technically modify this->CompressedFormatData therefore it is not const, however this information
 	// is very useful in the asset registry so we will allow GetCompressedDataSize to be modified if the formats do not exist
@@ -162,12 +174,20 @@ void USoundWave::Serialize( FArchive& Ar )
 		Ar << CompressionName;
 	}
 
+	bool bSupportsStreaming = false;
+	if (Ar.IsLoading() && FPlatformProperties::SupportsAudioStreaming())
+	{
+		bSupportsStreaming = true;
+	}
+	else if (Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming))
+	{
+		bSupportsStreaming = true;
+	}
+
 	if (bCooked)
 	{
 		// Only want to cook/load full data if we don't support streaming
-		if (!IsStreaming() ||
-			(Ar.IsLoading() && !FPlatformProperties::SupportsAudioStreaming()) ||
-			(Ar.IsCooking() && !Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
+		if (!IsStreaming() || !bSupportsStreaming)
 		{
 			if (Ar.IsCooking())
 			{
@@ -203,8 +223,7 @@ void USoundWave::Serialize( FArchive& Ar )
 		if (bCooked)
 		{
 			// only cook/load streaming data if it's supported
-			if ((Ar.IsLoading() && FPlatformProperties::SupportsAudioStreaming()) ||
-				(Ar.IsCooking() && Ar.CookingTarget()->SupportsFeature(ETargetPlatformFeatures::AudioStreaming)))
+			if (bSupportsStreaming)
 			{
 				SerializeCookedPlatformData(Ar);
 			}
@@ -255,6 +274,13 @@ void USoundWave::PostInitProperties()
 	{
 		InvalidateCompressedData();
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+#endif
 }
 
 FByteBulkData* USoundWave::GetCompressedData(FName Format)
@@ -341,6 +367,15 @@ void USoundWave::PostLoad()
 #endif // #if WITH_EDITORONLY_DATA
 		IStreamingManager::Get().GetAudioStreamingManager().AddStreamingSoundWave(this);
 	}
+
+#if WITH_EDITORONLY_DATA
+	if (!SourceFilePath_DEPRECATED.IsEmpty() && AssetImportData)
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(SourceFilePath_DEPRECATED));
+		AssetImportData->SourceData = MoveTemp(Info);
+	}
+#endif // #if WITH_EDITORONLY_DATA
 
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTime, Duration );
 	INC_FLOAT_STAT_BY( STAT_AudioBufferTimeChannels, NumChannels * Duration );
@@ -442,18 +477,24 @@ void USoundWave::FreeResources()
 	{
 		// Notify the audio device to free the bulk data associated with this wave.
 		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-		if (AudioDeviceManager != NULL)
+		if (AudioDeviceManager)
 		{
 			AudioDeviceManager->StopSoundsUsingWave(this);
 			AudioDeviceManager->FreeResource(this);
 		}
 	}
 
+	if (CachedRealtimeFirstBuffer)
+	{
+		FMemory::Free(CachedRealtimeFirstBuffer);
+		CachedRealtimeFirstBuffer = nullptr;
+	}
+
 	// Just in case the data was created but never uploaded
-	if (RawPCMData != NULL)
+	if (RawPCMData)
 	{
 		FMemory::Free(RawPCMData);
-		RawPCMData = NULL;
+		RawPCMData = nullptr;
 	}
 
 	// Remove the compressed copy of the data
@@ -491,7 +532,7 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 				// intercept the subtitles if the delegate is set
 				ActiveSound.AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, Duration );
 			}
-			else
+			else if( ActiveSound.World.IsValid() )
 			{
 				// otherwise, pass them on to the subtitle manager for display
 				// Subtitles are hashed based on the associated sound (wave instance).
@@ -640,7 +681,7 @@ void USoundWave::Parse( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanc
 		ActiveSound.bFinished = false;
 
 		// Sanity check
-		if( NumChannels >= 2 && WaveInstance->bUseSpatialization && !WaveInstance->bReportedSpatializationWarning)
+		if( NumChannels > 2 && WaveInstance->bUseSpatialization && !WaveInstance->bReportedSpatializationWarning)
 		{
 			static TSet<USoundWave*> ReportedSounds;
 			if (!ReportedSounds.Contains(this))

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2473781
+﻿INTSourceChangelist:2534164
 Availability:Public
 Title:マテリアル エディタ- マテリアルでサブサーフェス プロファイルを使用する方法 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials
@@ -100,7 +100,8 @@ Related:Resources/ContentExamples/MaterialNodes/1_7
 
 [EXCERPT:USSP]
 1. マテリアルを作成し、コンパイルしたらより迅速にパラメータを微調整するためにマテリアル インスタンスを作成します。 
-マテリアルからマテリアル インスタンスを作るには、まず **コンテンツ ブラウザ ** でマテリアルを探します。次にその上で **右クリック** し、[Create Material Instance] オプションを選択します。 完了すると、**[コンテンツ ブラウザ]** は以下のようになります。
+マテリアルからマテリアル インスタンスを作るには、まず **コンテンツ ブラウザ ** でマテリアルを探します。次にその上で **右クリック** し、[Create Material Instance] オプションを選択します。 
+完了すると、**[コンテンツ ブラウザ]** は以下のようになります。
 
 	![](SSP_Create_New_Material_Instance.png)
 
@@ -117,7 +118,6 @@ Related:Resources/ContentExamples/MaterialNodes/1_7
 	[/region]
 
 [/EXCERPT:USSP]
-
 ## サブサーフェス プロファイル マテリアルの適用
 1. マテリアル インスタンスが作成されたので、新規マテリアルを実際に試してみます。 
 	これを行うには、最初に作業する新規ブランクレベルを作成する必要があります。メイン メニューに進み **ファイル** オプションで **New Level** (新規レベル) を選択します。 

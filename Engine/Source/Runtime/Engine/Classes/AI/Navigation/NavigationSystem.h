@@ -19,6 +19,7 @@ class UCrowdManager;
 struct FNavDataConfig;
 struct FPathFindingResult;
 class UActorComponent;
+class USceneComponent;
 class AActor;
 class UEnum;
 class AController;
@@ -50,21 +51,33 @@ namespace NavigationDebugDrawing
 	extern const ENGINE_API FVector PathNodeBoxExtent;
 }
 
-namespace FNavigationSystem
+UENUM()
+enum class FNavigationSystemRunMode : uint8
 {
-	enum EMode
-	{
-		InvalidMode = -1,
-		GameMode,
-		EditorMode,
-		SimulationMode,
-		PIEMode,
-	};
-	
+	InvalidMode,
+	GameMode,
+	EditorMode,
+	SimulationMode,
+	PIEMode,
+};
+
+namespace FNavigationSystem
+{	
 	/** 
 	 * Used to construct an ANavigationData instance for specified navigation data agent 
 	 */
 	typedef ANavigationData* (*FNavigationDataInstanceCreator)(UWorld*, const FNavDataConfig&);
+
+	struct ENGINE_API FCustomLinkOwnerInfo
+	{
+		FWeakObjectPtr LinkOwner;
+		INavLinkCustomInterface* LinkInterface;
+
+		FCustomLinkOwnerInfo() : LinkInterface(nullptr) {}
+		FCustomLinkOwnerInfo(INavLinkCustomInterface* Link);
+
+		bool IsValid() const { return LinkOwner.IsValid(); }
+	};
 }
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
@@ -73,6 +86,17 @@ struct FNavigationSystemExec: public FSelfRegisteringExec
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	// End FExec Interface
 };
+
+namespace ENavigationBuildLock
+{
+	enum Type
+	{
+		LoadingAreas = 1 << 1,			// navigation areas are being loaded
+		NoUpdateInEditor = 1 << 2,		// editor doesn't allow automatic updates
+		InitialLock = 1 << 3,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
+		Custom = 1 << 4,
+	};
+}
 
 namespace ENavigationLockReason
 {
@@ -544,6 +568,9 @@ protected:
 	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
 	void ProcessNavAreaPendingRegistration();
 
+	/** registers CustomLinks awaiting registration in PendingCustomLinkRegistration */
+	void ProcessCustomLinkPendingRegistration();
+
 	/** used to apply updates of nav volumes in navigation system's tick */
 	void PerformNavigationBoundsUpdate(const TArray<FNavigationBoundsUpdateRequest>& UpdateRequests);
 	
@@ -569,6 +596,9 @@ public:
 	static void UpdateNavOctree(UActorComponent* Comp);
 	/** update all navoctree entries for actor and its components */
 	static void UpdateNavOctreeAll(AActor* Actor);
+	/** update all navoctree entries for actor and its non scene components after root movement */
+	static void UpdateNavOctreeAfterMove(USceneComponent* Comp);
+
 	/** removes all navoctree entries for actor and its components */
 	static void ClearNavOctreeAll(AActor* Actor);
 	/** updates bounds of all components implementing INavRelevantInterface */
@@ -606,6 +636,9 @@ public:
 	void RegisterCustomLink(INavLinkCustomInterface& CustomLink);
 	void UnregisterCustomLink(INavLinkCustomInterface& CustomLink);
 	
+	static void RequestCustomLinkRegistering(INavLinkCustomInterface& CustomLink, UObject* OwnerOb);
+	static void RequestCustomLinkUnregistering(INavLinkCustomInterface& CustomLink, UObject* ObjectOb);
+
 	/** find custom link by unique ID */
 	INavLinkCustomInterface* GetCustomLink(uint32 UniqueLinkId) const;
 
@@ -650,7 +683,13 @@ public:
 	void OnPIEEnd();
 	
 	// @todo document
-	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
+	FORCEINLINE bool IsNavigationBuildingLocked() const { return NavBuildingLockFlags != 0; }
+
+	/** check if building is permanently locked to avoid showing navmesh building notify (due to queued dirty areas) */
+	FORCEINLINE bool IsNavigationBuildingPermanentlyLocked() const
+	{
+		return (NavBuildingLockFlags & ~(ENavigationBuildLock::LoadingAreas | ENavigationBuildLock::InitialLock)) != 0; 
+	}
 
 	// @todo document
 	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
@@ -686,14 +725,17 @@ public:
 	virtual void OnInitializeActors();
 
 	/** */
-	virtual void OnWorldInitDone(FNavigationSystem::EMode Mode);
+	virtual void OnWorldInitDone(FNavigationSystemRunMode Mode);
 
 	/** adds BSP collisions of currently streamed in levels to octree */
 	void InitializeLevelCollisions();
 
+	FORCEINLINE void AddNavigationBuildLock(uint8 Flags) { NavBuildingLockFlags |= Flags; }
+	void RemoveNavigationBuildLock(uint8 Flags, bool bSkipRebuildInEditor = false);
+
 #if WITH_EDITOR
 	/** allow editor to toggle whether seamless navigation building is enabled */
-	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationsystem);
+	static void SetNavigationAutoUpdateEnabled(bool bNewEnable, UNavigationSystem* InNavigationSystem);
 
 	/** check whether seamless navigation building is enabled*/
 	FORCEINLINE static bool GetIsNavigationAutoUpdateEnabled() { return bNavigationAutoUpdateEnabled; }
@@ -726,7 +768,7 @@ public:
 	static UNavigationSystem* GetCurrent(UObject* WorldContextObject);
 	
 	/** try to create and setup navigation system */
-	static void InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode);
+	static void InitializeForWorld(UWorld* World, FNavigationSystemRunMode Mode);
 
 	// Fetch the array of all nav-agent properties.
 	void GetNavAgentPropertiesArray(TArray<FNavAgentProperties>& OutNavAgentProperties) const;
@@ -748,11 +790,9 @@ public:
 	void CycleNavigationDataDrawn();
 
 protected:
-#if WITH_EDITOR
-	uint8 NavUpdateLockFlags;
-#endif
 
-	FNavigationSystem::EMode OperationMode;
+	UPROPERTY()
+	FNavigationSystemRunMode OperationMode;
 
 	TSharedPtr<FNavigationOctree, ESPMode::ThreadSafe> NavOctree;
 
@@ -768,7 +808,7 @@ protected:
 	TMultiMap<UObject*, FWeakObjectPtr> OctreeChildNodesMap;
 
 	/** Map of all custom navigation links, that are relevant for path following */
-	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
+	TMap<uint32, FNavigationSystem::FCustomLinkOwnerInfo> CustomLinksMap;
 
 	/** stores areas marked as dirty throughout the frame, processes them 
 	 *	once a frame in Tick function */
@@ -777,12 +817,19 @@ protected:
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
 	static FCriticalSection NavAreaRegistrationSection;
+	static FCriticalSection CustomLinkRegistrationSection;
 	
-	uint32 bNavigationBuildingLocked:1;
-	uint32 bInitialBuildingLockActive:1;
-	uint32 bInitialSetupHasBeenPerformed:1;
-	uint32 bInitialLevelsAdded:1;
-	uint32 bAsyncBuildPaused:1;
+#if WITH_EDITOR
+	uint8 NavUpdateLockFlags;
+#endif
+	uint8 NavBuildingLockFlags;
+
+	/** set of locking flags applied on startup of navigation system */
+	uint8 InitialNavBuildingLockFlags;
+
+	uint8 bInitialSetupHasBeenPerformed:1;
+	uint8 bInitialLevelsAdded:1;
+	uint8 bAsyncBuildPaused:1;
 
 	/** cached navigable world bounding box*/
 	mutable FBox NavigableWorldBounds;
@@ -792,7 +839,7 @@ protected:
 
 	/** temporary cumulative time to calculate when we need to update dirty areas */
 	float DirtyAreasUpdateTime;
-
+	
 #if !UE_BUILD_SHIPPING
 	/** self-registering exec command to handle nav sys console commands */
 	static FNavigationSystemExec ExecHandler;
@@ -803,6 +850,7 @@ protected:
 
 	static bool bUpdateNavOctreeOnComponentChange;
 
+	static TMap<INavLinkCustomInterface*, FWeakObjectPtr> PendingCustomLinkRegistration;
 	static TArray<UClass*> PendingNavAreaRegistration;
 	static TArray<const UClass*> NavAreaClasses;
 	static TSubclassOf<UNavArea> DefaultWalkableArea;
@@ -816,7 +864,14 @@ protected:
 #endif
 	/** delegate handler called when navigation is dirtied*/
 	void OnNavigationDirtied(const FBox& Bounds);
-	
+
+#if WITH_HOT_RELOAD
+	FDelegateHandle HotReloadDelegateHandle;
+
+	/** called to notify NavigaitonSystem about finished hot reload */
+	virtual void OnHotReload(bool bWasTriggeredAutomatically);
+#endif // WITH_HOT_RELOAD
+
 	/** Registers given navigation data with this Navigation System.
 	 *	@return RegistrationSuccessful if registration was successful, other results mean it failed
 	 *	@see ERegistrationResult
@@ -847,14 +902,16 @@ protected:
 	/** Remove BSP collision data from navigation octree */
 	void RemoveLevelCollisionFromOctree(ULevel* Level);
 
-	/** registers or unregisters all generators from rebuilding callbacks */
-	void EnableAllGenerators(bool bEnable, bool bForce = false);
+	DEPRECATED(4.8, "EnableAllGenerators is deprecated. Use AddNavigationBuildLock / RemoveNavigationBuildLock instead.")
+	void EnableAllGenerators(bool bEnable, bool bForce = false) {}
 
 private:
-	// @todo document
-	void NavigationBuildingLock();
-	// @todo document
-	void NavigationBuildingUnlock(bool bForce = false);
+	DEPRECATED(4.8, "NavigationBuildingLock is deprecated. Use AddNavigationBuildLock instead.")
+	void NavigationBuildingLock() { return AddNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
+
+	DEPRECATED(4.8, "NavigationBuildingUnlock is deprecated. Use RemoveNavigationBuildLock instead.")
+	void NavigationBuildingUnlock(bool bForce = false) { RemoveNavigationBuildLock(ENavigationBuildLock::NoUpdateInEditor); }
+
 	// adds navigation bounds update request to a pending list
 	void AddNavigationBoundsUpdateRequest(const FNavigationBoundsUpdateRequest& UpdateRequest);
 
@@ -907,13 +964,13 @@ public:
 	void RegisterCustomLink(INavLinkCustomInterface* CustomLink);
 	DEPRECATED(4.8, "This version is deprecated. Please use the one taking reference to INavLinkCustomInterface rather than a pointer instead.")
 	void UnregisterCustomLink(INavLinkCustomInterface* CustomLink);
-	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace")
-	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
+	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
+	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext", DeprecatedFunction, DeprecatedMessage = "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace"))
 	static FVector GetRandomPointInRadius(UObject* WorldContext, const FVector& Origin, float Radius, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
-	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace")
+	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
 	bool GetRandomPointInRadius(const FVector& Origin, float Radius, FNavLocation& ResultLocation, ANavigationData* NavData = NULL, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL) const;
-	DEPRECATED(4.8, "GetRandomPointInRadius is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace")
-	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
+	DEPRECATED(4.8, "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableRadius")
+	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext", DeprecatedFunction, DeprecatedMessage = "GetRandomPoint is deprecated. Use either GetRandomReachablePointInRadius or GetRandomPointInNavigableSpace"))
 	static FVector GetRandomPoint(UObject* WorldContext, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
 };
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2464839
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:5. 게임 패키징
 Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
@@ -20,12 +20,43 @@ Description:설치를 위해 게임을 패키징합니다.
 [/OBJECT]
 [/VAR]
 
-
-
-
 %Steps%
 
-1.	이제 전체 게임을 안드로이드 디바이스에 푸시하려면, 패키징을 해 줘야 합니다. **파일** 메뉴에서 **패키지 프로젝트** 에 커서를 올리면 전체 옵션 목록이 펼쳐집니다. 여기서 다시 한 번 텍스처 포맷 목록을 확인할 수 있으며, 올바른 (또는 라벨이 없는) 것을 선택해야 합니다. 무엇을 선택할지 확실치 않으면, **ETC1** 을 사용하세요.
+%Globals:OSSelect%
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	windows
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#WindowsSetup]
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	OS
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	mac
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	[INCLUDE:#MacOSSetup]
+	[/PARAM]
+[/OBJECT]
+
+<!--
+[EXCERPT:WindowsSetup]
+
+1.	전체 게임을 안드로이드 디바이스에 푸시하려면, 패키징을 해 줘야 합니다. **파일** 메뉴에서 **패키지 프로젝트** 에 커서를 올리면 전체 옵션 목록이 펼쳐집니다. 여기서 다시 한 번 텍스처 포맷 목록을 확인할 수 있으며, 올바른 (또는 라벨이 없는) 것을 선택해야 합니다. 무엇을 선택할지 확실치 않으면, **ETC1** 을 사용하세요.
 
 	[REGION:raw]  
 	![](package_menu.png)
@@ -42,6 +73,36 @@ Description:설치를 위해 게임을 패키징합니다.
 	![](batch_file.png)
 1.	이제 게임이 설치되어 앱 드로어에서 열 수 있습니다.
 
+[/EXCERPT:WindowsSetup]
 
+[EXCERPT:MacOSSetup]
+1.	전체 게임을 안드로이드 디바이스에 푸시하려면, 패키징을 해 줘야 합니다. **파일** 메뉴에서 **패키지 프로젝트** 에 커서를 올리면 전체 옵션 목록이 펼쳐집니다. 여기서 다시 한 번 텍스처 포맷 목록을 확인할 수 있으며, 올바른 (또는 라벨이 없는) 것을 선택해야 합니다.
+
+	![](AQS_Mac_01.png)
+
+현재 이 게임을 테스트중이기 때문에 **Development** 로 패키징하고 있습니다만, 게임 완료시 **패키지 프로젝트** 메뉴의 **빌드 환경설정** 옵션에 커서를 올린 뒤 **Shipping** 으로 패키징하면 됩니다.
+
+1. 패키징된 게임의 저장 위치를 뭊는 창이 뜨는데, 기본으로 프로젝트 폴더로 설정되어 있을 것입니다.
+
+	![](AQS_Mac_02.png)
+
+1. 게임 패키징이 진행되는 동안 패키징 메시지가 에디터 우하단 구석에 나타납니다.
+
+	![](AQS_Mac_03.png)
+
+1. 패키징에 성공하면 '패키징 완료' 메시지가 에디터 우하단 구석에 나타납니다.
+
+1. 방금 설정한 저장 위치로 이동합니다.
+
+1. 이 폴더 안에는 텍스처 유형에 맞는 이름의 폴더가 생깁니다. 이 예제에서 폴더 이름은 Android_DXT 입니다. 이 폴더를 엽니다.
+
+1. Install_[ProjectName]_Development-arm*.command 스크립트 파일을 더블클릭합니다.
+
+	![](AQS_Mac_04.png)
+
+1. 이제 게임이 설치되어 앱 드로어에서 열 수 있습니다.
+
+[/EXCERPT:MacOSSetup]
+-->
 
 %Steps%

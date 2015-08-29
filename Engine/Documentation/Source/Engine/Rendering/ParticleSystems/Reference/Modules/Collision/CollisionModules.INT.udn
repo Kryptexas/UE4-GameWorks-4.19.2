@@ -11,7 +11,17 @@ These modules handle how particles will deal with Actor collisions.
 
 ### Collision
 
-![psys_collision.gif](psys_collision.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+uD7MQf6sZZU
+[/PARAMLITERAL]
+[/OBJECT]
 
 Parameters for having the emitter handle collisions of particles. It contains the following member(s):
 

@@ -67,6 +67,12 @@ public:
 	/** Set scalability settings to sensible fallback values, for use when the benchmark fails or potentially causes a crash */
 	void SetBenchmarkFallbackValues();
 
+	/** Sets the user's audio quality level setting */
+	void SetAudioQualityLevel(int32 QualityLevel);
+
+	/** Returns the user's audio quality level setting */
+	int32 GetAudioQualityLevel() const { return AudioQualityLevel; }
+
 	/** Checks if any user settings is different from current */
 	virtual bool IsDirty() const;
 
@@ -162,6 +168,9 @@ protected:
 	/** All settings will be wiped and set to default if the serialized version differs from UE_GAMEUSERSETTINGS_VERSION. */
 	UPROPERTY(config)
 	uint32 Version;
+
+	UPROPERTY(config)
+	int32 AudioQualityLevel;
 
 	/**
 	 * Check if the current version of the game user settings is valid. Sub-classes can override this to provide game-specific versioning as necessary.

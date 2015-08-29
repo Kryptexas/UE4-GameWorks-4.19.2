@@ -14,7 +14,7 @@ Template:PDF.html
 
 **扩展阅读:**
 * 有关虚幻引擎4特性的扩展阅读内容，在线文档可在[虚幻开发者网络 (UDN)](https://udn.unrealengine.com/docs/ue4/INT/index.html)中找到。
-* [UDN](https://udn.unrealengine.com/index.html) 同时提供您与Epic进行交互的渠道，并可就您在使用中所遇到的问题进行提问。 在[开始使用UDN文档](https://udn.unrealengine.com/docs/ue4/INT/Support/UDNGettingStarted/index.html)中获得UDN的更多信息。 
+* [UDN](https://udn.unrealengine.com/index.html) 同时提供您与Epic进行交互的渠道，并可就您在在使用中所遇到的问题进行提问。 在[开始使用UDN文档](https://udn.unrealengine.com/docs/ue4/INT/Support/UDNGettingStarted/index.html)中获得UDN的更多信息。 
 
 
 ## 软硬件要求
@@ -34,7 +34,9 @@ Template:PDF.html
 
 ## 创建您的首个项目
 
-[INCLUDE:Engine/Basics/Projects\CreatingProjects#Main(offset:1)]
+当您打开虚幻编辑器时，会出现项目浏览器。 项目浏览器提供了一个入口点，使您可以创建项目，打开现有项目，或者打开示例游戏和演示项目等示例内容。
+
+[INCLUDE:Engine/Basics/Projects/Browser#CreatingProjects(offset:1)]
 
 
 ## 编译代码项目

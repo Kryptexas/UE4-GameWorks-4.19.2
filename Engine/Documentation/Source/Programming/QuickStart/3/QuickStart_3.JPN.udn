@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2481542
+﻿INTSourceChangelist:2558633
 Availability:Public
 Title:3.C++ コードの記述とコンパイル
 Crumbs:%ROOT%, Programming, Programming/QuickStart
@@ -22,17 +22,17 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 
 %Steps%
 
-1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は "FloatingActor.cpp" と "FloatingActor.h" 、保存場所は「QuickStart」プロジェクトです。
+1. **Visual Studio** では、**[Solution Explorer]** ペインを使って、新規に作成した C++ ファイルを検索します。このサンプルでは、ファイル名は `FloatingActor.cpp` と `FloatingActor.h` 、保存場所は「QuickStart」プロジェクトです。
 
 	[![](SolutionExplorer_Files.png)](SolutionExplorer_Files.png)
 
-	[REGION:note] コードを追加するところです。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
+	[REGION:note] コードを記述していきます。このチュートリアルで使用するすべてのコードは、ページの説明を完了した時点の現在のステートで、ページの下に表示されます。[/REGION]
 
-2. "FloatingActor.h" に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
+2. `FloatingActor.h` に対して、ファイルの終わりの右中括弧とセミコロンの直前に、以下のコードを追加します。
 
 		float RunningTime;
 
-3. "FloatingActor.cpp" へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
+3. `FloatingActor.cpp` へ切り替えて、以下のコードを **AFloatingActor::Tick** の右中括弧の直前に追加します。
 
 		FVector NewLocation = GetActorLocation();
 		float DeltaHeight = (FMath::Sin(RunningTime + DeltaTime) - FMath::Sin(RunningTime));
@@ -46,11 +46,11 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 
 	[![](CompileFromVS.png)](CompileFromVS.png)
 
-	(in **Visual Studio**)
+	(**Visual Studio**)
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-	(in the **Unreal Editor**)
+	(**Unreal Editor**)
 
 ----
 
@@ -77,7 +77,7 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 			{
 				GENERATED_BODY()
 
-	public:
+			public:
 				// Sets default values for this actor's properties
 				AFloatingActor();
 
@@ -109,7 +109,7 @@ Description:アンリアル エンジンで C++ クラスを記述しコンパ�
 			{
 				Super::BeginPlay();
 
-	}
+			}
 
 			// Called every frame
 			void AFloatingActor::Tick( float DeltaTime )

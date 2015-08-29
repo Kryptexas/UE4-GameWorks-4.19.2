@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2109550
+﻿INTSourceChangelist:2602348
 Availability:Public
 Title:라이트 섀프트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -49,7 +49,7 @@ Description:대기에 흩어지는 빛줄기에 대한 시뮬레이션입니다.
 
 [TOC(start:2)]
 
-## 개요
+
 
 [EXCERPT:Lightshafts]
 **Light Shaft** (라이트 섀프트)는 디렉셔널 라이트에 의해 생성 가능한 것으로, 현실에서 구름 사이를 뚫고 나오는 빛줄기에 대한 시뮬레이션입니다. 어느 씬에도 입체감과 현실감을 더해줄 수 있는 효과입니다.

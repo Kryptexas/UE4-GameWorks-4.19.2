@@ -170,7 +170,7 @@
 	Basic options that by default depend on the build configuration and platform
 
 	DO_GUARD_SLOW									If true, then checkSlow, checkfSlow and verifySlow are compiled into the executable.
-	DO_CHECK										If true, then checkCode, checkf, verify, check, checkNoEntry, checkNoReentry, checkNoRecursion, verifyf, checkf, ensure, ensureMsg, and ensureMsgf are compiled into the executables
+	DO_CHECK										If true, then checkCode, checkf, verify, check, checkNoEntry, checkNoReentry, checkNoRecursion, verifyf, checkf, ensure, ensureAlways, ensureMsgf and ensureAlwaysMsgf are compiled into the executables
 	STATS											If true, then the stats system is compiled into the executable.
 	ALLOW_DEBUG_FILES								If true, then debug files like screen shots and profiles can be saved from the executable.
 	NO_LOGGING										If true, then no logs or text output will be produced

@@ -1,0 +1,12 @@
+{
+	"FileVersion": 3,
+	"EngineVersion": "4.3.0-0+UE4",
+	"PackageFileUE4Version": 376,
+	"PackageFileLicenseeUE4Version": 0,
+	"Plugins": [
+		{
+			"Name": "Paper2D",
+			"Enabled": true
+		}
+	]
+}

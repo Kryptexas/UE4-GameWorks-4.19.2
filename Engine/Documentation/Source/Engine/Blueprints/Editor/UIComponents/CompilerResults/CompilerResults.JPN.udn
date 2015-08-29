@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2380839
+﻿INTSourceChangelist:2597179
 Availability:Public
 Title:コンパイラの結果
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
@@ -9,9 +9,7 @@ Description:ブループリントエディタの [Compiler Results] パネルの
 ![](CompilerWindow.png)
 [/REGION]
 
-## 概要
-
-[Compiler Results] パネルでは、ブループリント スクリプトのコンパイルに関するフィードバックを提供します。ブループリント スクリプトのコンパイルが成功したか、または _エラー_ や _警告_ があったかを示します。エラーや警告が見つかると、**[Compiler Results]** パネルはそれに関する情報を示し、ハイパーリンク アクセスを示し、グラフビューから問題源に直接ジャンプできるようにします。
+[Compiler Results] （コンパイラ結果）パネルでは、ブループリント スクリプトのコンパイルに関するフィードバックを提供します。ブループリント スクリプトのコンパイルが成功したか、または _エラー_ や _警告_ があったかを示します。エラーや警告が見つかると、**[Compiler Results]** パネルはそれに関する情報を示し、ハイパーリンク アクセスを示し、グラフビューから問題源に直接ジャンプできるようにします。
 
 ## インターフェース
 
@@ -48,6 +46,7 @@ Description:ブループリントエディタの [Compiler Results] パネルの
 	![](WarningFocus.png)(w:750)
 	[/REGION]
 	* パネルの右下隅の **[Clear]** ボタンをクリックして既存のメッセージをクリアします。
+
 
 	![](ClearButtons.png)
 

@@ -110,7 +110,7 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
 		}
 	}
 
-	CapsuleHalfHeight = FMath::Max(CapsuleHalfHeight, CapsuleRadius);
+	CapsuleHalfHeight = FMath::Max3(0.f, CapsuleHalfHeight, CapsuleRadius);
 }
 
 #if WITH_EDITOR
@@ -122,11 +122,11 @@ void UCapsuleComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	// things like propagation from CDO to instances don't work correctly if changing one property causes a different property to change
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleHalfHeight))
 	{
-		CapsuleHalfHeight = FMath::Max(CapsuleHalfHeight, CapsuleRadius);
+		CapsuleHalfHeight = FMath::Max3(0.f, CapsuleHalfHeight, CapsuleRadius);
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleRadius))
 	{
-		CapsuleRadius = FMath::Min(CapsuleHalfHeight, CapsuleRadius);
+		CapsuleRadius = FMath::Clamp(CapsuleRadius, 0.f, CapsuleHalfHeight);
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -135,8 +135,8 @@ void UCapsuleComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 
 void UCapsuleComponent::SetCapsuleSize(float NewRadius, float NewHalfHeight, bool bUpdateOverlaps)
 {
-	CapsuleHalfHeight = FMath::Max(NewHalfHeight, NewRadius);
-	CapsuleRadius = NewRadius;
+	CapsuleHalfHeight = FMath::Max3(0.f, NewHalfHeight, NewRadius);
+	CapsuleRadius = FMath::Max(0.f, NewRadius);
 	MarkRenderStateDirty();
 
 	// do this if already created

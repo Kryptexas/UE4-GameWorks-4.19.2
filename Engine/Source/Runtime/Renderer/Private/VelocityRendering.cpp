@@ -17,6 +17,23 @@ static TAutoConsoleVariable<int32> CVarBasePassOutputsVelocity(
 	TEXT(" 1: Renders during the regular base pass adding an extra GBuffer, but allowing motion blur on materials with Time-based WPO."),
 	ECVF_ReadOnly | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CVarParallelVelocity(
+	TEXT("r.ParallelVelocity"),
+	1,  
+	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect."),
+	ECVF_RenderThreadSafe
+	);
+
+static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
+	TEXT("r.RHICmdVelocityPassDeferredContexts"),
+	1,
+	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
+
+bool IsParallelVelocity()
+{
+	return GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread();
+}
+
 //=============================================================================
 /** Encapsulates the Velocity vertex shader. */
 class FVelocityVS : public FMeshMaterialShader
@@ -30,9 +47,9 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetVertexShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh, int32 BatchElementIndex, float DitheredLODTransitionValue, const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, const FMatrix& InPreviousLocalToWorld)
 	{
-		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(), VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex]);
+		FMeshMaterialShader::SetMesh(RHICmdList, GetVertexShader(), VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
 
 		SetShaderValue(RHICmdList, GetVertexShader(), PreviousLocalToWorld, InPreviousLocalToWorld.ConcatTranslation(View.PrevViewMatrices.PreViewTranslation));
 	}
@@ -45,7 +62,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
-		return ((Material->IsSpecialEngineMaterial() || Material->IsMasked() 
+		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
 			//or if the material is opaque and two-sided,
 			|| (Material->IsTwoSided() && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			// or if the material modifies meshes
@@ -133,7 +150,7 @@ public:
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
 		//Only compile the velocity shaders for the default material or if it's masked,
-		return ((Material->IsSpecialEngineMaterial() || Material->IsMasked() 
+		return ((Material->IsSpecialEngineMaterial() || !Material->WritesEveryPixel() 
 			//or if the material is opaque and two-sided,
 			|| (Material->IsTwoSided() && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			// or if the material modifies meshes
@@ -159,11 +176,11 @@ public:
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(), MaterialRenderProxy, *MaterialRenderProxy->GetMaterial(View.GetFeatureLevel()), View, ESceneRenderTargetsMode::DontSet);
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory, const FMeshBatch& Mesh,int32 BatchElementIndex, float DitheredLODTransitionValue,const FViewInfo& View, const FPrimitiveSceneProxy* Proxy, bool bBackFace)
 	{
 		const FPixelShaderRHIParamRef ShaderRHI = GetPixelShader();
 		
-		FMeshMaterialShader::SetMesh(RHICmdList, ShaderRHI, VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex]);
+		FMeshMaterialShader::SetMesh(RHICmdList, ShaderRHI, VertexFactory, View, Proxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
@@ -249,6 +266,7 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	const FMeshBatch& Mesh,
 	int32 BatchElementIndex,
 	bool bBackFace,
+	float DitheredLODTransitionValue,
 	const ElementDataType& ElementData,
 	const ContextDataType PolicyContext
 	) const
@@ -264,22 +282,22 @@ void FVelocityDrawingPolicy::SetMeshRenderState(
 	// previous transform can be stored in the scene for each primitive
 	if(Scene->MotionBlurInfoData.GetPrimitiveMotionBlurInfo(PrimitiveSceneProxy->GetPrimitiveSceneInfo(), PreviousLocalToWorld))
 	{
-		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, View, PrimitiveSceneProxy, PreviousLocalToWorld);
+		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DitheredLODTransitionValue, View, PrimitiveSceneProxy, PreviousLocalToWorld);
 	}	
 	else
 	{
 		const FMatrix& LocalToWorld = PrimitiveSceneProxy->GetLocalToWorld();		// different implementation from UE4
-		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, View, PrimitiveSceneProxy, LocalToWorld);
+		VertexShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, DitheredLODTransitionValue, View, PrimitiveSceneProxy, LocalToWorld);
 	}
 
 	if (HullShader && DomainShader)
 	{
-		DomainShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex]);
-		HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex]);
+		DomainShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
+		HullShader->SetMesh(RHICmdList, VertexFactory, View, PrimitiveSceneProxy, Mesh.Elements[BatchElementIndex],DitheredLODTransitionValue);
 	}
 
-	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex, View, PrimitiveSceneProxy, bBackFace);
-	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, ElementData, PolicyContext);
+	PixelShader->SetMesh(RHICmdList, VertexFactory, Mesh, BatchElementIndex,DitheredLODTransitionValue, View, PrimitiveSceneProxy, bBackFace);
+	FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, DitheredLODTransitionValue, ElementData, PolicyContext);
 }
 
 bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitiveSceneInfo* PrimitiveSceneInfo)
@@ -410,7 +428,7 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 	    EBlendMode BlendMode = Material->GetBlendMode();
 	    if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 	    {
-			if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
+			if (Material->WritesEveryPixel() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
 		    {
 			    // Default material doesn't handle masked or mesh-mod, and doesn't have the correct bIsTwoSided setting.
 			    MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -448,7 +466,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 		// This should be enforced at a higher level
 		//@todo - figure out why this is failing and re-enable
 		//check(FVelocityDrawingPolicy::HasVelocity(View, PrimitiveSceneInfo));
-		if (!Material->IsMasked() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
+		if (Material->WritesEveryPixel() && !Material->IsTwoSided() && !Material->MaterialModifiesMeshPosition_RenderThread())
 		{
 			// Default material doesn't handle masked, and doesn't have the correct bIsTwoSided setting.
 			MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false);
@@ -460,7 +478,7 @@ bool FVelocityDrawingPolicyFactory::DrawDynamicMesh(
 			DrawingPolicy.SetSharedState(RHICmdList, &View, FVelocityDrawingPolicy::ContextDataType());
 			for (int32 BatchElementIndex = 0, BatchElementCount = Mesh.Elements.Num(); BatchElementIndex < BatchElementCount; ++BatchElementIndex)
 			{
-				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
+				DrawingPolicy.SetMeshRenderState(RHICmdList, View, PrimitiveSceneProxy, Mesh, BatchElementIndex, bBackFace, Mesh.DitheredLODTransitionAlpha, FMeshDrawingPolicy::ElementDataType(), FVelocityDrawingPolicy::ContextDataType());
 				DrawingPolicy.DrawMesh(RHICmdList, Mesh, BatchElementIndex);
 			}
 			return true;
@@ -563,16 +581,14 @@ public:
 static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT, bool bPerformClear)
 {
 	FTextureRHIRef VelocityTexture = VelocityRT->GetRenderTargetItem().TargetableTexture;
-	FTexture2DRHIRef DepthTexture = GSceneRenderTargets.GetSceneDepthTexture();
-	FLinearColor VelocityClearColor = FLinearColor::Black;
+	FTexture2DRHIRef DepthTexture = FSceneRenderTargets::Get(RHICmdList).GetSceneDepthTexture();	
 	if (bPerformClear)
 	{
 		// now make the FRHISetRenderTargetsInfo that encapsulates all of the info
 		FRHIRenderTargetView ColorView(VelocityTexture, 0, -1, ERenderTargetLoadAction::EClear, ERenderTargetStoreAction::EStore);
 		FRHIDepthRenderTargetView DepthView(DepthTexture, ERenderTargetLoadAction::ELoad, ERenderTargetStoreAction::ENoAction, FExclusiveDepthStencil::DepthRead_StencilWrite);
 
-		FRHISetRenderTargetsInfo Info(1, &ColorView, DepthView);
-		Info.ClearColors[0] = VelocityClearColor;
+		FRHISetRenderTargetsInfo Info(1, &ColorView, DepthView);		
 
 		// Clear the velocity buffer (0.0f means "use static background velocity").
 		RHICmdList.SetRenderTargetsAndClear(Info);		
@@ -583,13 +599,13 @@ static void BeginVelocityRendering(FRHICommandList& RHICmdList, TRefCountPtr<IPo
 
 		// some platforms need the clear color when rendertargets transition to SRVs.  We propagate here to allow parallel rendering to always
 		// have the proper mapping when the RT is transitioned.
-		RHICmdList.BindClearMRTValues(true, 1, &VelocityClearColor, false, (float)ERHIZBuffer::FarPlane, false, 0);
+		RHICmdList.BindClearMRTValues(true, false, false);
 	}
 }
 
 static void SetVelocitiesState(FRHICommandList& RHICmdList, const FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
-	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
 
 	const uint32 MinX = View.ViewRect.Min.X * VelocityBufferSize.X / BufferSize.X;
@@ -608,8 +624,8 @@ class FVelocityPassParallelCommandListSet : public FParallelCommandListSet
 {
 	TRefCountPtr<IPooledRenderTarget>& VelocityRT;
 public:
-	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandList& InParentCmdList, bool* InOutDirty, bool bInParallelExecute, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
-		: FParallelCommandListSet(InView, InParentCmdList, InOutDirty, bInParallelExecute)
+	FVelocityPassParallelCommandListSet(const FViewInfo& InView, FRHICommandListImmediate& InParentCmdList, bool bInParallelExecute, bool bInCreateSceneContext, TRefCountPtr<IPooledRenderTarget>& InVelocityRT)
+		: FParallelCommandListSet(InView, InParentCmdList, bInParallelExecute, bInCreateSceneContext)
 		, VelocityRT(InVelocityRT)
 	{
 		SetStateOnCommandList(ParentCmdList);
@@ -627,26 +643,30 @@ public:
 	}
 };
 
-static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
-	TEXT("r.RHICmdVelocityPassDeferredContexts"),
-	1,
-	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
+static TAutoConsoleVariable<int32> CVarRHICmdFlushRenderThreadTasksVelocityPass(
+	TEXT("r.RHICmdFlushRenderThreadTasksVelocityPass"),
+	0,
+	TEXT("Wait for completion of parallel render thread tasks at the end of the velocity pass.  A more granular version of r.RHICmdFlushRenderThreadTasks. If either r.RHICmdFlushRenderThreadTasks or r.RHICmdFlushRenderThreadTasksVelocityPass is > 0 we will flush."));
 
 void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
 	// parallel version
-	FScopedCommandListWaitForTasks Flusher(RHICmdList);
+	FScopedCommandListWaitForTasks Flusher(CVarRHICmdFlushRenderThreadTasksVelocityPass.GetValueOnRenderThread() > 0 || CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() > 0, RHICmdList);
 
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
 
-		FVelocityPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, nullptr, CVarRHICmdVelocityPassDeferredContexts.GetValueOnRenderThread() > 0, VelocityRT);
+		FVelocityPassParallelCommandListSet ParallelCommandListSet(View, 
+			RHICmdList, 
+			CVarRHICmdVelocityPassDeferredContexts.GetValueOnRenderThread() > 0, 
+			CVarRHICmdFlushRenderThreadTasksVelocityPass.GetValueOnRenderThread() == 0 && CVarRHICmdFlushRenderThreadTasks.GetValueOnRenderThread() == 0, 
+			VelocityRT);
 
 		Scene->VelocityDrawList.DrawVisibleParallel(View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility, ParallelCommandListSet);
 
 		int32 NumPrims = View.DynamicMeshElements.Num();
-		int32 EffectiveThreads = FMath::Min<int32>(NumPrims, ParallelCommandListSet.Width);
+		int32 EffectiveThreads = FMath::Min<int32>(FMath::DivideAndRoundUp(NumPrims, ParallelCommandListSet.MinDrawsPerCommandList), ParallelCommandListSet.Width);
 
 		int32 Start = 0;
 		if (EffectiveThreads)
@@ -664,7 +684,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 
 				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
-				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(nullptr, ENamedThreads::RenderThread)
+				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FRenderVelocityDynamicThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
 					.ConstructAndDispatchWhenReady(*this, *CmdList, View, Start, Last);
 
 				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent);
@@ -688,15 +708,6 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 		RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
 	}
 }
-
-
-
-static TAutoConsoleVariable<int32> CVarParallelVelocity(
-	TEXT("r.ParallelVelocity"),
-	1,  
-	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect."),
-	ECVF_RenderThreadSafe
-	);
 
 bool FDeferredShadingSceneRenderer::ShouldRenderVelocities() const
 {
@@ -748,13 +759,15 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	}
 
 	{
-		GPrevPerBoneMotionBlur.StartAppend(ViewFamily.bWorldIsPaused);
+		FSceneRenderTargets::Get(RHICmdList).SetVelocityPass(true);
+		GPrevPerBoneMotionBlur.StartAppend(RHICmdList, ViewFamily.bWorldIsPaused);
 
 		BeginVelocityRendering(RHICmdList, VelocityRT, true);
 
-		if (GRHICommandList.UseParallelAlgorithms() && CVarParallelVelocity.GetValueOnRenderThread())
+		if (IsParallelVelocity())
 		{
 			RenderVelocitiesInnerParallel(RHICmdList, VelocityRT);
+			GPrevPerBoneMotionBlur.EndAppendFence(RHICmdList);
 		}
 		else
 		{
@@ -762,8 +775,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 		}
 
 		RHICmdList.CopyToResolveTarget(VelocityRT->GetRenderTargetItem().TargetableTexture, VelocityRT->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());
-
-		GPrevPerBoneMotionBlur.EndAppend();
+		FSceneRenderTargets::Get(RHICmdList).SetVelocityPass(false);
 	}
 
 	// restore any color write state changes
@@ -776,9 +788,9 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 FPooledRenderTargetDesc FVelocityRendering::GetRenderTargetDesc()
 {
-	const FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+	const FIntPoint BufferSize = FSceneRenderTargets::Get_FrameConstantsOnly().GetBufferSizeXY();
 	const FIntPoint VelocityBufferSize = BufferSize;		// full resolution so we can reuse the existing full res z buffer
-	return FPooledRenderTargetDesc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, TexCreate_None, TexCreate_RenderTargetable, false));
+	return FPooledRenderTargetDesc(FPooledRenderTargetDesc::Create2DDesc(VelocityBufferSize, PF_G16R16, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable, false));
 }
 
 bool FVelocityRendering::OutputsToGBuffer()

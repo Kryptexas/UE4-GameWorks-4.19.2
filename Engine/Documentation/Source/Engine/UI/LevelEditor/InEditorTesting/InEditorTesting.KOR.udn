@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2488442
+﻿INTSourceChangelist:2604405
 Availability:Public
 Title:에디터내 테스팅 (플레이 & 시뮬레이트)
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
@@ -62,7 +62,6 @@ Description:에디터 안에서 바로 레벨과 게임플레이를 테스트하
 [/OBJECT]
 [/VAR]
 
-## 개요
 [EXCERPT:overview]
 언리얼 에디터에서는 파일을 저장하지 않고도 에디터 안에서 아무데나 플레이어를 스폰시키고 게임을 바로 미리볼 수 있습니다. 사용할 수 있는 프리뷰 모드는 두 가지, 메인 툴바에 위치한 **플레이** 버튼을 통해 직접 접근할 수 있는 **에디터에서 플레이** (Play In Editor, PIE) 와 
 **플레이** 버튼의 드롭다운 메뉴로 (또는 **Alt+S** 키를 눌러) 접근할 수 있는 **에디터에서 시뮬레이트** (Simulate In Editor, SIE) 입니다. 에디터내 프리뷰 시스템은 _에디터에서 플레이_ 와 _에디터에서 시뮬레이트_ 세션 사이 전환을 지원하므로, 게임플레이나 애셋에 대한 트윅 반복작업을 하면서 

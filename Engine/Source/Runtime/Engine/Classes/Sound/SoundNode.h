@@ -141,9 +141,9 @@ public:
 	virtual void SetChildNodes(TArray<USoundNode*>& InChildNodes);
 
 	/** Get the name of a specific input pin */
-	virtual FString GetInputPinName(int32 PinIndex) const { return TEXT(""); }
+	virtual FText GetInputPinName(int32 PinIndex) const { return FText::GetEmpty(); }
 
-	virtual FString GetTitle() const { return GetClass()->GetDescription(); }
+	virtual FText GetTitle() const { return GetClass()->GetDisplayNameText(); }
 
 	/** Helper function to set the position of a sound node on a grid */
 	void PlaceNode(int32 NodeColumn, int32 NodeRow, int32 RowCount );

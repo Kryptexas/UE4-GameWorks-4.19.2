@@ -1,0 +1,14 @@
+#include "%PLUGIN_NAME%PrivatePCH.h"
+#include "%PLUGIN_NAME%BPLibrary.h"
+
+U%PLUGIN_NAME%BPLibrary::U%PLUGIN_NAME%BPLibrary(const FObjectInitializer& ObjectInitializer) 
+: Super(ObjectInitializer)
+{
+
+}
+
+float U%PLUGIN_NAME%BPLibrary::%PLUGIN_NAME%SampleFunction(float Param)
+{
+	return -1;
+}
+

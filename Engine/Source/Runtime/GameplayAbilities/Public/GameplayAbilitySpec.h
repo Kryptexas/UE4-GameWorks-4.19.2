@@ -81,7 +81,7 @@ enum class EGameplayEffectGrantedAbilityRemovePolicy : uint8
 	CancelAbilityImmediately,
 	/** Active abilities are allowed to finish, and then removed. */
 	RemoveAbilityOnEnd,
-	/** Granted abilties are left lone when the granting GameplayEffect is removed */
+	/** Granted abilties are left lone when the granting GameplayEffect is removed. */
 	DoNothing,
 };
 

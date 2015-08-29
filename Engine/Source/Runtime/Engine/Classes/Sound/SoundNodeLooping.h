@@ -14,7 +14,7 @@ class USoundNodeLooping : public USoundNode
 	GENERATED_UCLASS_BODY()
 
 	/* The amount of times to loop */
-	UPROPERTY(EditAnywhere, Category = Looping, meta = (ClampMin = 1))
+	UPROPERTY(EditAnywhere, Category = Looping, meta = (ClampMin = 1, EditCondition = "!bLoopIndefinitely"))
 	int32 LoopCount;
 
 	/* If enabled, the node will continue to loop indefinitely regardless of the Loop Count value. */

@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2227215
+﻿INTSourceChangelist:2604000
 Availability:Public
 Title: 파티클 시스템 사용 안내서
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems
 Description:파티클 시스템과 캐스케이드의 일반적인 사용법입니다.
 
 [TOC(start:2 end:3)]
-
-## 개요
 
 이 문서는 파티클 시스템 작업시 가장 자주 사용되는 작업방식과 파티클 시스템 에디터인 **Cascade** (캐스케이드)에 대한 설명서입니다. 좀 더 상세한 설명서가 있는 경우 그 링크가 제공됩니다.
 

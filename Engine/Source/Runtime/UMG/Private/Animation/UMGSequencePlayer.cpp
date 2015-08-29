@@ -8,6 +8,7 @@
 #include "MovieScene.h"
 #include "WidgetAnimation.h"
 
+
 UUMGSequencePlayer::UUMGSequencePlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -25,12 +26,8 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 	// Cache the time range of the sequence to determine when we stop
 	TimeRange = MovieScene->GetTimeRange();
 
-	RuntimeBindings = NewObject<UMovieSceneBindings>(this);
-	RuntimeBindings->SetRootMovieScene( MovieScene );
-
 	UWidgetTree* WidgetTree = UserWidget.WidgetTree;
 
-	TMap<FGuid, TArray<UObject*> > GuidToRuntimeObjectMap;
 	// Bind to Runtime Objects
 	for (const FWidgetAnimationBinding& Binding : InAnimation.AnimationBindings)
 	{
@@ -42,12 +39,6 @@ void UUMGSequencePlayer::InitSequencePlayer( const UWidgetAnimation& InAnimation
 			Objects.Add(FoundObject);
 		}
 	}
-
-	for( auto It = GuidToRuntimeObjectMap.CreateConstIterator(); It; ++It )
-	{
-		RuntimeBindings->AddBinding( It.Key(), It.Value() );
-	}
-
 }
 
 void UUMGSequencePlayer::Tick(float DeltaTime)
@@ -160,7 +151,16 @@ void UUMGSequencePlayer::Stop()
 
 void UUMGSequencePlayer::GetRuntimeObjects( TSharedRef<FMovieSceneInstance> MovieSceneInstance, const FGuid& ObjectHandle, TArray< UObject* >& OutObjects ) const
 {
-	OutObjects = RuntimeBindings->FindBoundObjects( ObjectHandle );
+	const TArray<UObject*>* FoundObjects = GuidToRuntimeObjectMap.Find( ObjectHandle );
+
+	if( FoundObjects )
+	{
+		OutObjects.Append(*FoundObjects);
+	}
+	else
+	{
+		UE_LOG( LogUMG, Warning, TEXT("Failed to find runtime objects for %s animation"), Animation ? *Animation->GetPathName() : TEXT("(none)") );
+	}
 }
 
 EMovieScenePlayerStatus::Type UUMGSequencePlayer::GetPlaybackStatus() const

@@ -33,6 +33,17 @@ public:
 
 	/** Inclusive number of other perf events that this is the parent of. */
 	uint32 NumEvents;
+
+	const FGPUProfilerEventNodeStats operator+=(const FGPUProfilerEventNodeStats& rhs)
+	{
+		NumDraws += rhs.NumDraws;
+		NumPrimitives += rhs.NumPrimitives;
+		NumVertices += rhs.NumVertices;
+		TimingResult += rhs.TimingResult;
+		NumEvents += rhs.NumEvents;
+
+		return *this;
+	}
 };
 
 /** Stats for a single perf event node. */

@@ -106,9 +106,6 @@ extern ENGINE_API class FPhysXAllocator* GPhysXAllocator;
 /** Pointer to PhysX Command Handler */
 extern ENGINE_API class FPhysCommandHandler* GPhysCommandHandler;
 
-/** Convert PhysX PxVec3 to Unreal FVector */
-ENGINE_API FVector P2UVector(const PxVec3& PVec);
-
 #if WITH_APEX
 
 namespace NxParameterized
@@ -213,6 +210,7 @@ public:
 	
 	/** Executes pending commands and clears buffer **/
 	void ENGINE_API Flush();
+	bool ENGINE_API HasPendingCommands();
 
 #if WITH_APEX
 	/** enqueues a command to release destructible actor once apex has finished simulating */
@@ -256,6 +254,16 @@ private:
 	TArray<FPhysPendingCommand> PendingCommands;
 };
 
+namespace SleepEvent
+{
+	enum Type
+	{
+		SET_Wakeup,
+		SET_Sleep
+	};
+
+}
+
 /** Container object for a physics engine 'scene'. */
 
 class FPhysScene
@@ -281,7 +289,7 @@ public:
 	UWorld*							OwningWorld;
 
 	/** These indices are used to get the actual PxScene or NxApexScene from the GPhysXSceneMap. */
-	int32								PhysXSceneIndex[PST_MAX];
+	int16								PhysXSceneIndex[PST_MAX];
 
 	/** Whether or not the given scene is between its execute and sync point. */
 	bool							bPhysXSceneExecuting[PST_MAX];
@@ -324,6 +332,8 @@ public:
 	 *	@param SceneType - The scene type to add the actor to
 	 */
 	void DeferRemoveActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType);
+
+	void AddPendingSleepingEvent(PxActor* Actor, SleepEvent::Type SleepEventType, int32 SceneType);
 #endif
 
 private:
@@ -372,7 +382,7 @@ private:
 	/** Dispatcher for CPU tasks */
 	class PxCpuDispatcher*			CPUDispatcher;
 	/** Simulation event callback object */
-	class FPhysXSimEventCallback*			SimEventCallback;
+	class FPhysXSimEventCallback*			SimEventCallback[PST_MAX];
 #if WITH_VEHICLE
 	/** Vehicle scene */
 	class FPhysXVehicleManager*			VehicleManager;
@@ -416,7 +426,7 @@ public:
 	ENGINE_API void StartFrame();
 
 	/** Ends a frame */
-	ENGINE_API void EndFrame(ULineBatchComponent* LineBatcher);
+	ENGINE_API void EndFrame(ULineBatchComponent* InLineBatcher);
 
 	/** Starts cloth Simulation*/
 	ENGINE_API void StartCloth();
@@ -432,6 +442,9 @@ public:
 
 	/** Waits for all physics scenes to complete */
 	ENGINE_API void WaitPhysScenes();
+
+	/** Kill the visual debugger */
+	ENGINE_API void KillVisualDebugger();
 
 	/** Waits for cloth scene to complete */
 	ENGINE_API void WaitClothScene();
@@ -562,15 +575,10 @@ public:
 	/** Adds to queue of skelmesh we want to remove from collision disable table */
 	void DeferredRemoveCollisionDisableTable(uint32 SkelMeshCompID);
 
-#if WITH_SUBSTEPPING
 #if WITH_APEX
-	/** Adds a damage event to be fired when substepping is done */
-	void DeferredDestructibleDamageNotify(const NxApexDamageEventReportData& damageEvent);
+	/** Adds a damage event to be fired when fetchResults is done */
+	void AddPendingDamageEvent(class UDestructibleComponent* DestructibleComponent, const NxApexDamageEventReportData& DamageEvent);
 #endif
-#endif
-
-	/** DeferredCommandHandler - this is mainly used for scene specific APEX calls that need to be deferred */
-	FPhysCommandHandler DeferredCommandHandler;
 
 private:
 	/** Initialize a scene of the given type.  Must only be called once for each scene type. */
@@ -600,7 +608,7 @@ private:
 
 	/** Fetch results from simulation and get the active transforms. Make sure to lock before calling this function as the fetch and data you use must be treated as an atomic operation */
 	void UpdateActiveTransforms(uint32 SceneType);
-	void RemoveActiveBody(FBodyInstance* BodyInstance, uint32 SceneType);
+	void RemoveActiveBody_AssumesLocked(FBodyInstance* BodyInstance, uint32 SceneType);
 
 #endif
 
@@ -608,7 +616,7 @@ private:
 	class FPhysSubstepTask * PhysSubSteppers[PST_MAX];
 
 #if WITH_APEX
-	TArray<NxApexDamageEventReportData> DestructibleDamageEventQueue;
+	TUniquePtr<struct FPendingApexDamageManager> PendingApexDamageManager;
 #endif
 #endif
 
@@ -626,6 +634,10 @@ private:
 
 	/** Map from SkeletalMeshComponent UniqueID to a pointer to the collision disable table inside its PhysicsAsset */
 	TMap< uint32, TMap<struct FRigidBodyIndexPair, bool>* >		CollisionDisableTableLookup;
+
+#if WITH_PHYSX
+	TMap<PxActor*, SleepEvent::Type> PendingSleepEvents[PST_MAX];
+#endif
 };
 
 /**

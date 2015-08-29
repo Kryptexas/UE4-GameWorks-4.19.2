@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2345306
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:昼光シーンの光源処理
 Crumbs:%ROOT%, Resources, Resources/Showcases/RealisticRendering
@@ -21,16 +21,16 @@ Related:Resources/ContentExamples/Lighting/4_2
 
 昼光シーンには 3 タイプの光源処理が使用されています。
 
-1. **Directional Light Stationary** - シーンに太陽光、つまり反射光のほとんどをもたらします。
-1. **Spot Light Static**  - ウィンドウのすぐ外側に配置され部屋をあちこち移動するアンビエント(環境) をシミュレートします。
-1. **Spot Light Stationary** - 部屋に飾ってある額縁の上に配置されます。
+1. **Directional Light Stationary** - （指向性ライト固定）シーンに太陽光、つまり反射光のほとんどをもたらします。
+1. **Spot Light Static** - （スポットライト静的）ウィンドウのすぐ外側に配置され部屋全体で反射するアンビエント(環境) をシミュレートします。
+1. **Spot Light Stationary** - （スポットライト固定）部屋に飾ってある額縁の上に配置されます。
 
 
 ## 設定配慮
 
-昼光シーン ( _Room.umap_ ) へは、Stationary Directional Light が主要な太陽光をもたらします。Atomospheric Fog アクタが追加され、Atomosphere Sun Light として使用するために Stationary Directional light が設定されました。太陽の円に方向性をもたせます。 
+昼光シーン ( _Room.umap_ ) へは、Stationary Directional Light が主要な太陽光をもたらします。Atomospheric Fog (大気フォグ) アクタが追加され、Atomosphere Sun Light として使用するために Stationary Directional light が設定されました。太陽の円に方向性をもたせます。 
 
-日光はライトマスによって移動しますが、空からの反射光をシミュレートする 4 つの Static Spot light (スタティック スポットライト) があります。これは **World Settings** にある **Lightmass Environment Light** の代わりに使用し、部屋を反射する光をより正確に制御します。
+日光はライトマスによって移動しますが、空からの反射光をシミュレートする 4 つの Static Spot light (静的スポットライト) があります。これは **World Settings** にある **Lightmass Environment Light** の代わりに使用し、部屋を反射する光をより正確に制御します。
 
 [REGION:imagetable]
 | 反射光の比較 ||

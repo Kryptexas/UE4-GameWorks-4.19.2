@@ -102,6 +102,14 @@ private:
 	TSharedRef<SWidget> GenerateCameraMenu() const;
 
 	/**
+	 * Generates menu entries for placed cameras (e.g CameraActors
+	 *
+	 * @param Builder	The menu builder to add menu entries to
+	 * @param Cameras	The list of cameras to add
+	 */
+	void GeneratePlacedCameraMenuEntries( FMenuBuilder& Builder, TArray<ACameraActor*> Cameras ) const;
+
+	/**
 	 * Generates the toolbar view menu content 
 	 *
 	 * @return The widget containing the view menu content

@@ -421,10 +421,6 @@ void AHUD::DrawDebugTextList()
 		PlayerOwner->GetPlayerViewPoint(CameraLoc, CameraRot);
 
 		FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), GEngine->GetSmallFont(), FLinearColor::White );
-		if (bEnableDebugTextShadow == true)
-		{
-			TextItem.EnableShadow(FLinearColor::Black);
-		}
 		for (int32 Idx = 0; Idx < DebugTextList.Num(); Idx++)
 		{
 			if (DebugTextList[Idx].SrcActor == NULL)
@@ -462,6 +458,15 @@ void AHUD::DrawDebugTextList()
 				}
 			}
 
+			if (bEnableDebugTextShadow || DebugTextList[Idx].bDrawShadow)
+			{
+				TextItem.EnableShadow(FLinearColor::Black);
+			}
+			else
+			{
+				TextItem.DisableShadow();
+			}
+				
 			// don't draw text behind the camera
 			if ( ((WorldTextLoc - CameraLoc) | CameraRot.Vector()) > 0.f )
 			{
@@ -496,11 +501,12 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 										 bool bAbsoluteLocation,
 										 bool bKeepAttachedToActor,
 										 UFont* InFont,
-										 float FontScale
+										 float FontScale,
+										 bool bDrawShadow
 										 )
 {
 	// set a default color
-	if (TextColor == FLinearColor::Transparent)
+	if (TextColor == FColor::Transparent)
 	{
 		TextColor = FColor::White;
 	}
@@ -514,7 +520,6 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 		}
 		else
 		{
-			//`log("Adding debug text:"@DebugText@"for actor:"@SrcActor);
 			// search for an existing entry
 			int32 Idx = 0;
 			if (!bSkipOverwriteCheck)
@@ -550,6 +555,7 @@ void AHUD::AddDebugText_Implementation(const FString& DebugText,
 			DebugTextList[Idx].OrigActorLocation = SrcActor->GetActorLocation();
 			DebugTextList[Idx].Font = InFont;
 			DebugTextList[Idx].FontScale = FontScale;
+			DebugTextList[Idx].bDrawShadow = bDrawShadow;
 		}
 	}
 }

@@ -43,6 +43,8 @@ public:
 	void Goto(float ScrubPosition);
 	void GotoNextItem();
 	void GotoPreviousItem();
+	void MoveCursorByDistance(int32 Distance);
+	void UpdateCameraPosition();
 
 protected:
 	TArray<FVisualLogDevice::FVisualLogEntryItem> Entries;

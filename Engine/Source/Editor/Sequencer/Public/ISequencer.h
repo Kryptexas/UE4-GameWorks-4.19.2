@@ -3,7 +3,9 @@
 #pragma once
 
 
-#include "Runtime/MovieSceneCore/Public/IMovieScenePlayer.h"
+#include "Runtime/MovieScene/Public/IMovieScenePlayer.h"
+#include "Editor/SequencerWidgets/Public/ITimeSlider.h"
+#include "KeyPropertyParams.h"
 
 class UMovieScene;
 class FSequencerSelection;
@@ -55,7 +57,10 @@ public:
 	virtual void AddSubMovieScene( UMovieScene* SubMovieScene ) = 0;
 
 	/** @return Returns whether auto-key is enabled in this sequencer */
-	virtual bool IsAutoKeyEnabled() const = 0;
+	virtual bool GetAutoKeyEnabled() const = 0;
+
+	/** Sets whether autokey is enabled in this sequencer. */
+	virtual void SetAutoKeyEnabled(bool bAutoKeyEnabled) = 0;
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;
@@ -100,6 +105,9 @@ public:
 	 */
 	virtual void SetGlobalTime(float Time) = 0;
 
+	/** @return The current view range */
+	virtual FAnimatedRange GetViewRange() const { return FAnimatedRange(); }
+
 	/**
 	 * Sets whether perspective viewport hijacking is enabled.
 	 */
@@ -118,9 +126,9 @@ public:
 	 */
 	virtual class ISequencerObjectChangeListener& GetObjectChangeListener() = 0;
 
-	virtual bool CanKeyProperty(const UClass& ObjectClass, const class IPropertyHandle& PropertyHandle) const = 0;
+	virtual bool CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const = 0;
 
-	virtual void KeyProperty( const TArray<UObject*>& ObjectsToKey, const class IPropertyHandle& PropertyHandle ) = 0;
+	virtual void KeyProperty(FKeyPropertyParams KeyPropertyParams) = 0;
 
 	virtual void NotifyMovieSceneDataChanged() = 0;
 
@@ -128,5 +136,5 @@ public:
 
 	virtual TSharedRef<ISequencerObjectBindingManager> GetObjectBindingManager() const = 0;
 
-	virtual FSequencerSelection* GetSelection() = 0;
+	virtual FSequencerSelection& GetSelection() = 0;
 };

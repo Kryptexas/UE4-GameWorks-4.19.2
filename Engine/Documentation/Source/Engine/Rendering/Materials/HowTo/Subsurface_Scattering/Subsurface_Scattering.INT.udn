@@ -9,7 +9,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 
 [TOC(start:2)]
 
-## Overview 
+
 Subsurface scattering is the term used to describe the lighting phenomenon where light scatters as it passes through a translucent / semi translucent surface.
  Unreal Engine 4 (UE4) offers a special [Shading Model ](Engine/Rendering/Materials/MaterialProperties/LightingModels) called [Subsurface](Engine/Rendering/Materials/LightingModels/SubSurface) that is used specifically for materials that need this interaction like skin or wax.
  The following How To guide will walk you through all you need to know about how to use Subsurface scattering in your Materials.
@@ -29,14 +29,24 @@ When completed, your **Content Browser** should look like this.
 
 1. Now with the Material open, we need to change the Material's **Shading Model** from **Default Lit** to **Subsurface**. 
 
-	![](SSM_Setting_Shading_Model.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	_SnzU14R4Y4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. The Material is now ready to be used as a Subsurface Material. 
 	
 
 ## Setting up a Subsurface Material
 
-Continuing with our Material from above that has Subsurface Scattering enabled, lets setup a basic Material so that we can see the Subsurface scattering in action in a level. 
+Continuing with our Material from above that has Subsurface Scattering enabled, let's setup a basic Material so that we can see the Subsurface scattering in action in a level. 
 	
 1. We need to place down some Material Expression nodes so that we have something to work with. 
    For this example, we are going to be adding the following nodes. 
@@ -60,25 +70,55 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 	| **Subsurface _Amount**| 0.5|
 	| **Subsurface_Color**|r:1.0, b:0, g:0|
 1. Once the Material Nodes have been named and filled in with the correct data, it is then time to connect the Material nodes to the Main Material Node. 
-	To wire a node to the main Material node, use the **Left Mouse Button** to click on the **White Circle** that is on the **Right Side** of the node. 
+	To wire a node to the main Material node, use the **Left Mouse Button** to click on the White Circle that is on the Right Side of the node. 
 	With the **Left Mouse Button** still held down, drag to the **Right** and the connection wire will appear. 
-	Keep dragging to the **Right** with the  **Left Mouse Button** still held until you come to the input you want to use on the Main Material node. 
+	Keep dragging to the Right with the  **Left Mouse Button** still held until you come to the input you want to use on the Main Material node. 
 	Once your mouse is over the input you want to use, release the  **Left Mouse Button** to connect.
 
-	![](SSM_Connecting_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	44PbkN_uoP4
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. Now that all the nodes have been connected, make sure that you compile the Material by pressing the **Apply** button. Once compiled, you should have something that looks like this. 
 	![](SSM_Finshed_Material.png)
 
 1. Once the Material has been compiled, you can now close the Material window. Then inside of the **Content Browser**, select the Material, **Right-Click** on it, and then select the **Create Material Instance** option from the menu.  
-	![](SSM_Create_New_Material_Instance.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	akSnwKBLMtw
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 ## Applying a Subsurface Material
 1. Now that the Material Instance has been created, it is now time to test out our new Material. 
 	To do this, we first need to create a new blank level to work in by going to the main menu and under the **File** option select **New Level**. 
 	When prompted what type of level to select, select the **Empty Level**. 
-	![](SSM_Create_New_Level.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	bRuKiOW0i-w
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. With the new level created, we need to now add some lights so that we can test how our Subsurface Material will look. The first light that we are going to add is a **Point Light**. To add a Point Light to the scene, we first need to find the Point Light which is in the **Modes** menu under the **Lights** option. Once the Point Light is located, you can add one to the screen by first selecting it with the **Left Mouse Button**  and then with the **Left Mouse Button** still held down dragging the Point Light into the scene and releasing the **Left Mouse Button** to add it. Once added to the scene, select the light by clicking on it with the **Left Mouse Button**. Then enter the following values.
 	| Property Name| Value|
@@ -99,10 +139,10 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 
 1. With all of the lights added, we can now add a Static Mesh to test with. For this example, we will be using the following mesh. 
 
-	**StaticMesh'/Game/StarterContent/Props/SM_Chair.SM_Chair'**
+	StaticMesh'/Game/StarterContent/Props/SM_Chair.SM_Chair'
 
 	[region:tip]
-	If you can not find the SM_Chair mesh, it is probably because you did not include the Starter Content with your project. 
+	If you cannot find the SM_Chair mesh, it is probably because you did not include the Starter Content with your project. 
 	To find more about the Starter Content, please check out the [Starter Content](Engine/Content/Packs) documentation page.
 	[/region]
 
@@ -114,7 +154,17 @@ Continuing with our Material from above that has Subsurface Scattering enabled, 
 1. Now that the Static Mesh has been placed in the level, we can now apply our Subsurface Material to it. 
 	To do this, first find the Subsurface Material in the **Content Browser**. 
 	Once the Material has been located, Drag it from the **Content Browser** on to the mesh to apply it. 
-	![](SSM_Applying_Material.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	j0xDDl7J8z0
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 ## Working with the Subsurface Material
 Now that the Subsurface Material has been applied, it is time to tweak the settings of the Material Instance. 
@@ -128,7 +178,7 @@ Notice as the numbers go from 0 to 1, the amount of light we see passing through
 ![](SSM_Different_Opacity_Settings.png)
 
 [region:tip]
-While the Opacity does help to get rid of a lot of the scattered light, you might notice that there is still some Subsurface scattering happening. To get completely rid of the effect, you are also going to have to adjust the **Value** of the Subsurface Color. More on this in the Subsurface Color Value section below. 
+While the Opacity does help to get rid of a lot of the scattered light, you might notice that there is still some Subsurface scattering happening. To get completely rid of the effect, you are also going to have to adjust the **Value** of the Subsurface Color (More on this in the Subsurface Color Value section below.)
 [/region]
 
 ### Subsurface Color Value
@@ -140,7 +190,17 @@ If you do the opposite of this, adjusting  the **Value** slider in the **Color P
  ![](SSM_Color_Value_Example_01.png)
 
 Here is an example of adjusting the value in real time. Notice how as the Value of the color is adjusted from Red to Black, the amount of Subsurface scattering influence is affected.  
-![](SSM_Value_On_SSS_Influance.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+yKmyUwXmSJE
+[/PARAMLITERAL]
+[/OBJECT]
 ## Using a Texture as a Subsurface Influence Mask
 You can use a Texture as a Mask to have more control over what areas receive or do not receive  Subsurface scattering. 
 To do this, all you need to do is plug the Texture you want to use as the Mask into the **Opacity** Channel of your Material. 
@@ -157,6 +217,10 @@ Notice the Black spots on the chair.
 Those Black spots are the result of using a pure white value in the Mask Texture.  
 
 ![](SSM_Masked_Texture_Result.png)
+
+
+
+
 
 
 

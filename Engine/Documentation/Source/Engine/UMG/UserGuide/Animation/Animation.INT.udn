@@ -10,9 +10,6 @@ Description:How to create animated UI elements in UMG.
 
 [TOC(start:2 end:2)]
 
-
-## Overview
-
 Located along the bottom of the **Widget Blueprint Editor** are two windows which allow you to implement and control animations for your UI Widgets. The first, the **Animations** window, allows you to create essentially animation tracks which are used to drive the animation of your Widgets. The second, the **Timeline** window, is how an animation is applied to a Widget over time which is done by placing **Keyframes** at specified times then defining how the attached Widget should appear at that Keyframe (this could be size, shape, location, or even coloring options). 
 
 
@@ -74,7 +71,17 @@ Below are two example animations used to mimic a simple **Main Menu** screen whe
 This example is for demonstrating how to set up animation in UMG only as the Buttons do not do anything when clicked on. 
 [/REGION]
 
-![](UMGMenuGIF.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+R_8nsjHZ9ak
+[/PARAMLITERAL]
+[/OBJECT]
 
 1.	Set up your Main Menu however you see fit and include a **Vertical Box** containing **Buttons** on your screen. 
 

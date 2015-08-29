@@ -9,7 +9,7 @@
 DEFINE_LOG_CATEGORY_STATIC(LogSubsurfaceProfile, Log, All);
 
 // lives on the render thread
-ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsufaceProfileTextureObject;
+ENGINE_API TGlobalResource<FSubsurfaceProfileTexture> GSubsurfaceProfileTextureObject;
 
 // Texture with one or more SubSurfaceProfiles or 0 if there is no user
 static TRefCountPtr<IPooledRenderTarget> GSSProfiles;
@@ -140,7 +140,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 	const uint32 Width = 32;
 
 	// at minimum 64 lines (less reallocations)
-	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(Width, FMath::Max(Height, (uint32)64)), PF_B8G8R8A8, TexCreate_FastVRAM, TexCreate_None, false));
+	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(Width, FMath::Max(Height, (uint32)64)), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_FastVRAM, TexCreate_None, false));
 
 	if (b16Bit)
 	{
@@ -299,7 +299,7 @@ ENGINE_API const IPooledRenderTarget* GetSubsufaceProfileTexture_RT(FRHICommandL
 {
 	check(IsInRenderingThread());
 
-	return GSubsufaceProfileTextureObject.GetTexture(RHICmdList);
+	return GSubsurfaceProfileTextureObject.GetTexture(RHICmdList);
 }
 
 // ------------------------------------------------------
@@ -315,7 +315,7 @@ void USubsurfaceProfile::BeginDestroy()
 		RemoveSubsurfaceProfile,
 		USubsurfaceProfile*, Ref, this,
 		{
-			GSubsufaceProfileTextureObject.RemoveProfile(Ref);
+			GSubsurfaceProfileTextureObject.RemoveProfile(Ref);
 		});
 
 	Super::BeginDestroy();
@@ -329,6 +329,6 @@ void USubsurfaceProfile::PostEditChangeProperty(struct FPropertyChangedEvent& Pr
 		USubsurfaceProfile*, Profile, this,
 	{
 		// any changes to the setting require an update of the texture
-		GSubsufaceProfileTextureObject.UpdateProfile(Settings, Profile);
+		GSubsurfaceProfileTextureObject.UpdateProfile(Settings, Profile);
 	});
 }

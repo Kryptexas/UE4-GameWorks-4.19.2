@@ -6,8 +6,9 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/BodySetup.h"
 #include "TargetPlatform.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
@@ -18,12 +19,9 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_PHYSX
-	namespace
-	{
-		// Quaternion that converts Sphyls from UE space to PhysX space (negate Y, swap X & Z)
-		// This is equivalent to a 180 degree rotation around the normalized (1, 0, 1) axis
-		static const PxQuat U2PSphylBasis( PI, PxVec3( 1.0f / FMath::Sqrt( 2.0f ), 0.0f, 1.0f / FMath::Sqrt( 2.0f ) ) );
-	}
+	// Quaternion that converts Sphyls from UE space to PhysX space (negate Y, swap X & Z)
+	// This is equivalent to a 180 degree rotation around the normalized (1, 0, 1) axis
+	const physx::PxQuat U2PSphylBasis( PI, PxVec3( 1.0f / FMath::Sqrt( 2.0f ), 0.0f, 1.0f / FMath::Sqrt( 2.0f ) ) );
 #endif // WITH_PHYSX
 
 // CVars
@@ -122,7 +120,7 @@ void UBodySetup::CreatePhysicsMeshes()
 
 		FPhysXFormatDataReader CookedDataReader(*FormatData);
 
-		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
+		if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 		{
 			bool bNeedsCooking = bGenerateNonMirroredCollision && CookedDataReader.ConvexMeshes.Num() != AggGeom.ConvexElems.Num();
 			bNeedsCooking = bNeedsCooking || (bGenerateMirroredCollision && CookedDataReader.ConvexMeshesNegX.Num() != AggGeom.ConvexElems.Num());
@@ -138,7 +136,7 @@ void UBodySetup::CreatePhysicsMeshes()
 		
 		ClearPhysicsMeshes();
 
-		if (CollisionTraceFlag != CTF_UseComplexAsSimple)
+		if (GetCollisionTraceFlag() != CTF_UseComplexAsSimple)
 		{
 
 			ensure(!bGenerateNonMirroredCollision || CookedDataReader.ConvexMeshes.Num() == 0 || CookedDataReader.ConvexMeshes.Num() == AggGeom.ConvexElems.Num());
@@ -168,16 +166,11 @@ void UBodySetup::CreatePhysicsMeshes()
 			}
 		}
 
-		if(bGenerateNonMirroredCollision)
+		for(PxTriangleMesh* TriMesh : CookedDataReader.TriMeshes)
 		{
-			TriMesh = CookedDataReader.TriMesh;
+			check(TriMesh);
+			TriMeshes.Add(TriMesh);
 			FPhysxSharedData::Get().Add(TriMesh);
-		}
-
-		if(bGenerateMirroredCollision)
-		{
-			TriMeshNegX = CookedDataReader.TriMeshNegX;
-			FPhysxSharedData::Get().Add(TriMeshNegX);
 		}
 	}
 	else
@@ -220,19 +213,13 @@ void UBodySetup::ClearPhysicsMeshes()
 		}
 	}
 
-	if(TriMesh != NULL)
+	for(int32 ElementIndex = 0; ElementIndex < TriMeshes.Num(); ++ElementIndex)
 	{
-		GPhysXPendingKillTriMesh.Add(TriMesh);
-		FPhysxSharedData::Get().Remove(TriMesh);
-		TriMesh = NULL;
+		GPhysXPendingKillTriMesh.Add(TriMeshes[ElementIndex]);
+		FPhysxSharedData::Get().Remove(TriMeshes[ElementIndex]);
+		TriMeshes[ElementIndex] = NULL;
 	}
-
-	if(TriMeshNegX != NULL)
-	{
-		GPhysXPendingKillTriMesh.Add(TriMeshNegX);
-		FPhysxSharedData::Get().Remove(TriMeshNegX);
-		TriMeshNegX = NULL;
-	}
+	TriMeshes.Empty();
 
 	bCreatedPhysicsMeshes = false;
 #endif
@@ -383,7 +370,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PSphereGeom.radius);
-					AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset);
+					PxShape* PShape = AttachShape_AssumesLocked(PSphereGeom, PLocalPose, ContactOffset, &SphereElem);
 				}
 			}
 			else
@@ -418,7 +405,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoxGeom.halfExtents.minElement());
-					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PBoxGeom, PLocalPose, ContactOffset, &BoxElem);
 				}
 			}
 			else
@@ -464,7 +451,7 @@ public:
 				ensure(PLocalPose.isValid());
 				{
 					const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PCapsuleGeom.radius);
-					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset);
+					AttachShape_AssumesLocked(PCapsuleGeom, PLocalPose, ContactOffset, &SphylElem);
 				}
 			}
 			else
@@ -512,7 +499,7 @@ public:
 						ensure(PLocalPose.isValid());
 						{
 							const float ContactOffset = FMath::Min(MaxContactOffset, ContactOffsetFactor * PBoundsExtents.minElement());
-							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset);
+							AttachShape_AssumesLocked(PConvexGeom, PLocalPose, ContactOffset, &ConvexElem);
 						}
 					}
 					else
@@ -537,58 +524,47 @@ public:
 		float ContactOffsetFactor, MaxContactOffset;
 		GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
 
-		if (BodySetup->TriMesh || BodySetup->TriMeshNegX)
+		for(PxTriangleMesh* TriMesh : BodySetup->TriMeshes)
 		{
-			PxTransform PLocalPose;
-			bool bUseNegX = CalcMeshNegScaleCompensation(Scale3D, PLocalPose);
-
-			// Only case where TriMeshNegX should be null is BSP, which should not require negX version
-			if (bUseNegX && BodySetup->TriMeshNegX == NULL)
+		
+			PxTriangleMeshGeometry PTriMeshGeom;
+			PTriMeshGeom.triangleMesh = TriMesh;
+			PTriMeshGeom.scale.scale = U2PVector(Scale3D);
+			if (BodySetup->bDoubleSidedGeometry)
 			{
-				UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: Want to use NegX but it doesn't exist! %s"), *BodySetup->GetPathName());
+				PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
 			}
 
-			PxTriangleMesh* UseTriMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-			if (UseTriMesh != NULL)
+			if (PTriMeshGeom.isValid())
 			{
-				PxTriangleMeshGeometry PTriMeshGeom;
-				PTriMeshGeom.triangleMesh = bUseNegX ? BodySetup->TriMeshNegX : BodySetup->TriMesh;
-				PTriMeshGeom.scale.scale = U2PVector(Scale3DAbs);
-				if (BodySetup->bDoubleSidedGeometry)
-				{
-					PTriMeshGeom.meshFlags |= PxMeshGeometryFlag::eDOUBLE_SIDED;
-				}
+				PxTransform PElementTransform = U2PTransform(RelativeTM);
+				PElementTransform.p.x *= Scale3D.X;
+				PElementTransform.p.y *= Scale3D.Y;
+				PElementTransform.p.z *= Scale3D.Z;
 
-
-				if (PTriMeshGeom.isValid())
+				// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
+				if (!AttachShape_AssumesLocked(PTriMeshGeom, PElementTransform, MaxContactOffset, nullptr, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
 				{
-					ensure(PLocalPose.isValid());
-
-					// Create without 'sim shape' flag, problematic if it's kinematic, and it gets set later anyway.
-					{
-						if (!AttachShape_AssumesLocked(PTriMeshGeom, PLocalPose, MaxContactOffset, PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eVISUALIZATION))
-						{
-							UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
-						}
-					}
+					UE_LOG(LogPhysics, Log, TEXT("Can't create new mesh shape in AddShapesToRigidActor"));
 				}
-				else
-				{
-					UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: TriMesh invalid"));
-				}
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Log, TEXT("AddTriMeshToRigidActor: TriMesh invalid"));
 			}
 		}
 	}
 
 private:
 
-	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
+	PxShape* AttachShape_AssumesLocked(const PxGeometry& PGeom, const PxTransform& PLocalPose, const float ContactOffset, const FKShapeElem* ShapeElem, PxShapeFlags PShapeFlags = PxShapeFlag::eVISUALIZATION | PxShapeFlag::eSCENE_QUERY_SHAPE | PxShapeFlag::eSIMULATION_SHAPE) const
 	{
 		const PxMaterial* PMaterial = GetDefaultPhysMaterial(); 
 		PxShape* PNewShape = bShapeSharing ? GPhysXSDK->createShape(PGeom, *PMaterial, /*isExclusive =*/ false, PShapeFlags) : PDestActor->createShape(PGeom, *PMaterial, PShapeFlags);
 
 		if (PNewShape)
 		{
+			PNewShape->userData = ShapeElem ? ((void*) ShapeElem->GetUserData()) : nullptr;
 			PNewShape->setLocalPose(PLocalPose);
 
 			if (NewShapes)
@@ -633,7 +609,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 
 	// Create shapes for simple collision if we do not want to use the complex collision mesh 
 	// for simple queries as well
-	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple)
+	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseComplexAsSimple)
 	{
 		AddShapesHelper.AddSpheresToRigidActor_AssumesLocked();
 		AddShapesHelper.AddBoxesToRigidActor_AssumesLocked();
@@ -643,7 +619,7 @@ void UBodySetup::AddShapesToRigidActor_AssumesLocked(FBodyInstance* OwningInstan
 
 	// Create tri-mesh shape, when we are not using simple collision shapes for 
 	// complex queries as well
-	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex)
+	if (GetCollisionTraceFlag() != ECollisionTraceFlag::CTF_UseSimpleAsComplex)
 	{
 		AddShapesHelper.AddTriMeshToRigidActor_AssumesLocked();
 	}
@@ -887,16 +863,19 @@ void UBodySetup::UpdateTriMeshVertices(const TArray<FVector> & NewPositions)
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateTriMeshVertices);
 #if WITH_PHYSX
-	if (TriMesh)
+	if (TriMeshes.Num())
 	{
-		
-		PxVec3 * PNewPositions = TriMesh->getVerticesForModification();
-		for (int32 i = 0; i < NewPositions.Num(); ++i)
+		check(TriMeshes[0] != nullptr);
+		PxU32 PNumVerts = TriMeshes[0]->getNbVertices(); // Get num of verts we expect
+		PxVec3 * PNewPositions = TriMeshes[0]->getVerticesForModification();	//we only update the first trimesh. We assume this per poly case is not updating welded trimeshes
+
+		int32 NumToCopy = FMath::Min<int32>(PNumVerts, NewPositions.Num()); // Make sure we don't write off end of array provided
+		for (int32 i = 0; i < NumToCopy; ++i)
 		{
 			PNewPositions[i] = U2PVector(NewPositions[i]);
 		}
 
-		TriMesh->refitBVH();
+		TriMeshes[0]->refitBVH();
 	}
 #endif
 }
@@ -992,14 +971,9 @@ SIZE_T UBodySetup::GetResourceSize( EResourceSizeMode::Type Mode )
 
 #if WITH_PHYSX
 	// Count PhysX trimesh mem usage
-	if (TriMesh != NULL)
+	for(PxTriangleMesh* TriMesh : TriMeshes)
 	{
 		ResourceSize += GetPhysxObjectSize(TriMesh, NULL);
-	}
-
-	if (TriMeshNegX != NULL)
-	{
-		ResourceSize += GetPhysxObjectSize(TriMeshNegX, NULL);
 	}
 
 	// Count PhysX convex mem usage
@@ -1281,4 +1255,10 @@ float UBodySetup::CalculateMass(const UPrimitiveComponent* Component) const
 float UBodySetup::GetVolume(const FVector& Scale) const
 {
 	return AggGeom.GetVolume(Scale);
+}
+
+TEnumAsByte<enum ECollisionTraceFlag> UBodySetup::GetCollisionTraceFlag() const
+{
+	TEnumAsByte<enum ECollisionTraceFlag> DefaultFlag = UPhysicsSettings::Get()->bDefaultHasComplexCollision ? ECollisionTraceFlag::CTF_UseDefault : ECollisionTraceFlag::CTF_UseSimpleAsComplex;
+	return CollisionTraceFlag == ECollisionTraceFlag::CTF_UseDefault ? DefaultFlag : CollisionTraceFlag;
 }

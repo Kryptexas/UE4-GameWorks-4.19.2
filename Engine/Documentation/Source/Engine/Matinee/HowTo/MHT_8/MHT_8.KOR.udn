@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2517887
+﻿INTSourceChangelist:2617248
 Availability: Public
 Title:트리거 이벤트 및 표시여부 토글
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -212,7 +212,17 @@ Description:이벤트와 표시여부를 사용하여 카운트다운 이후 폭
 
 1.	메인 툴바의 **플레이** 버튼을 클릭하여 에디터에서 플레이합니다.
 
-	![](MHT8_Gif.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	8dIuZDHHQa8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	_텍스트 카운트다운이 보이다가 파티클 및 사운드 이펙트와 함께 바위가 폭발하고, 그 바위가 있던 위치에 불이 나는 것을 볼 수 있습니다._
 

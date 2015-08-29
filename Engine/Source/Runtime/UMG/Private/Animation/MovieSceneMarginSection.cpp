@@ -9,25 +9,61 @@ UMovieSceneMarginSection::UMovieSceneMarginSection( const FObjectInitializer& Ob
 {
 }
 
-void UMovieSceneMarginSection::MoveSection( float DeltaTime )
+void UMovieSceneMarginSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection( DeltaTime );
+	Super::MoveSection( DeltaTime, KeyHandles );
 
 	// Move all the curves in this section
-	LeftCurve.ShiftCurve(DeltaTime);
-	TopCurve.ShiftCurve(DeltaTime);
-	RightCurve.ShiftCurve(DeltaTime);
-	BottomCurve.ShiftCurve(DeltaTime);
+	LeftCurve.ShiftCurve(DeltaTime, KeyHandles);
+	TopCurve.ShiftCurve(DeltaTime, KeyHandles);
+	RightCurve.ShiftCurve(DeltaTime, KeyHandles);
+	BottomCurve.ShiftCurve(DeltaTime, KeyHandles);
 }
 
-void UMovieSceneMarginSection::DilateSection( float DilationFactor, float Origin )
+void UMovieSceneMarginSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 
-	LeftCurve.ScaleCurve(Origin, DilationFactor);
-	TopCurve.ScaleCurve(Origin, DilationFactor);
-	RightCurve.ScaleCurve(Origin, DilationFactor);
-	BottomCurve.ScaleCurve(Origin, DilationFactor);
+	LeftCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	TopCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	RightCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+	BottomCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
+}
+
+void UMovieSceneMarginSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (auto It(LeftCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = LeftCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(TopCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = TopCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(RightCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = RightCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+	for (auto It(BottomCurve.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = BottomCurve.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
 }
 
 FMargin UMovieSceneMarginSection::Eval( float Position, const FMargin& DefaultValue ) const

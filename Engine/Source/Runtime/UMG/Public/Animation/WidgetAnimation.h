@@ -3,66 +3,50 @@
 #pragma once
 
 #include "IMovieScenePlayer.h"
+#include "WidgetAnimationBinding.h"
 #include "WidgetAnimation.generated.h"
 
+
 class UMovieScene;
-class UWidgetTree;
-
-/** A single object bound to a umg sequence */
-USTRUCT()
-struct FWidgetAnimationBinding
-{
-	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	FName WidgetName;
-
-	UPROPERTY()
-	FName SlotWidgetName;
-
-	UPROPERTY()
-	FGuid AnimationGuid;
-
-public:
-	/**
-	 * Locates a runtime object to animate from the provided tree of widgets
-	 * @return the runtime object to animate or null if not found 
-	 */
-	UMG_API UObject* FindRuntimeObject(UWidgetTree& WidgetTree) const;
-
-	bool operator==(const FWidgetAnimationBinding& Other) const
-	{
-		return WidgetName == Other.WidgetName && SlotWidgetName == Other.SlotWidgetName && AnimationGuid == Other.AnimationGuid;
-	}
-
-	friend FArchive& operator<<(FArchive& Ar, FWidgetAnimationBinding& Binding)
-	{
-		Ar << Binding.WidgetName;
-		Ar << Binding.SlotWidgetName;
-		Ar << Binding.AnimationGuid;
-		return Ar;
-	}
-};
 
 
-UCLASS(MinimalAPI)
-class UWidgetAnimation : public UObject
+UCLASS(BlueprintType, MinimalAPI)
+class UWidgetAnimation
+	: public UObject
 {
 	GENERATED_UCLASS_BODY()
 
 public:
 
 #if WITH_EDITOR
+	/**
+	 * Get a placeholder animation.
+	 *
+	 * @return Placeholder animation.
+	 */
 	static UMG_API UWidgetAnimation* GetNullAnimation();
 #endif
 
+	/**
+	 * Get the start time of this animation.
+	 *
+	 * @return Start time in seconds.
+	 * @see GetEndTime
+	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	UMG_API float GetStartTime() const;
 
+	/**
+	 * Get the end time of this animation.
+	 *
+	 * @return End time in seconds.
+	 * @see GetStartTime
+	 */
 	UFUNCTION(BlueprintCallable, Category="Animation")
 	UMG_API float GetEndTime() const;
 
 public:
+
 	UPROPERTY()
 	UMovieScene* MovieScene;
 

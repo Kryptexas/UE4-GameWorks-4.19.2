@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 9. Place the Character
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 9. Place the Character
@@ -21,11 +21,22 @@ Description:Step 9. Place the Character
 
 %Steps%
 
-1. From the **Content Browser**, click and drag the **Character** you created back in step 3 into the level.
+[EXCERPT:s9]
+
+We need to place our AI_Character into the level so it can interact with the player or environment.
+
+## Steps
+
+* From the **Content Browser**, click and drag the `AI_Character`, that you created earlier, into the level.
 
 [REGION:lightbox]
 [![](placeCharacter.png)(w:940 convert:false)](placeCharacter.png)
 [/REGION]
-
+[/EXCERPT:s9]
 
 %Steps%
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2369163
+﻿INTSourceChangelist:2609472
 Availability:Public
 Title: 폰트
 Crumbs:%ROOT%, Engine, Engine/UMG, Engine/UMG/UserGuide
@@ -8,8 +8,6 @@ Related: Engine/UMG/UserGuide/WidgetBlueprints
 Related: Engine/UMG/UserGuide/WidgetTypeReference
 
 [TOC(start:2 end:2)]
-
-## 개요
 
 여기서는 별도의 폰트 임포트 방법, **폰트 에디터** 사용법, **언리얼 모션 그래픽 (UMG) UI 디자이너** 에서 폰트 사용법을 다룹니다.
 
@@ -117,6 +115,10 @@ _이미지를 클릭하면 원래 크기로 봅니다._
 ![](UMGFonts4.png)
 
 현재 UMG 는 **런타임** 캐시 폰트 애셋만 지원합니다. 또한, 구형 방식을 사용하여 폰트를 할당한다 해도 기존 파일 기반 세팅을 잃게 되지는 않지만, 앞으로는 UMG 에서 커스텀 폰트를 사용하려면 컴포짓 폰트 애셋을 만들어야 합니다.
+
+
+
+
 
 
 

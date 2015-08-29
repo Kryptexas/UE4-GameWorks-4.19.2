@@ -148,9 +148,9 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	Schema->TrySetDefaultObject(*EnumPin, Enum);
 	check(EnumPin->DefaultObject == Enum);
 
-	//INDEX PIN
+	//VALUE PIN
 	UEdGraphPin* OrgInputPin = FindPinChecked(EnumeratorPinName);
-	UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorIndex"));
+	UEdGraphPin* IndexPin = CallGetName->FindPinChecked(TEXT("EnumeratorValue"));
 	check(EGPD_Input == IndexPin->Direction && Schema->PC_Byte == IndexPin->PinType.PinCategory);
 	CompilerContext.MovePinLinksToIntermediate(*OrgInputPin, *IndexPin);
 
@@ -158,7 +158,7 @@ void UK2Node_GetEnumeratorName::ExpandNode(class FKismetCompilerContext& Compile
 	{
 		//MAKE LITERAL BYTE FROM LITERAL ENUM
 		const FString EnumLiteral = IndexPin->GetDefaultAsString();
-		const int32 NumericValue = Enum->FindEnumIndex(*EnumLiteral);
+		const int32 NumericValue = Enum->GetValueByName(*EnumLiteral);
 		if (NumericValue == INDEX_NONE) 
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "GetEnumeratorNam_Error_InvalidName", "@@ has invalid enum value '%s'").ToString(), *EnumLiteral), this);

@@ -1,0 +1,49 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Development Setup
+Crumbs: %ROOT%, Programming
+Description:Setting up your code environment, creating code projects, and working with Unreal Engine source.
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		General Developer Information
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/VisualStudioSetup "%Programming/Development/VisualStudioSetup:description%")
+		* [](Programming/Development/Tools "%Programming/Development/Tools:description%")
+		* [](Programming/Development/CodingStandard "%Programming/Development/CodingStandard:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		Working With Code Projects
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Programming/Development/ManagingGameCode "%Programming/Development/ManagingGameCode:description%")
+			* [](Programming/Development/ManagingGameCode/CppClassWizard "%Programming/Development/ManagingGameCode/CppClassWizard:description%")
+		* [](Programming/Development/CompilingProjects "%Programming/Development/CompilingProjects:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	[/PARAM]
+	[PARAM:title]
+		Working With Engine Source
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](GettingStarted/DownloadingUnrealEngine "%GettingStarted/DownloadingUnrealEngine:description%")
+		* [](Programming/Development/BuildingUnrealEngine "%Programming/Development/BuildingUnrealEngine:description%")
+	[/PARAM]
+[/OBJECT]

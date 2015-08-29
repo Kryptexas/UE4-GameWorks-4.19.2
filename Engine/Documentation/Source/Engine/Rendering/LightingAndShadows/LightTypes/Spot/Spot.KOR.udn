@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2521845
+﻿INTSourceChangelist:2602426
 Availability: Public
 Title:스포트 라이트
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -49,12 +49,12 @@ Description:스포트 라이트에 대한 기초입니다.
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 [EXCERPT:Intro]
 **Spot Light** (스포트 라이트)는 한 지점에서 원뿔 모양으로 빛을 내뿜습니다. 이 라이트의 모양을 내는 데는 **Inner Cone Angle** (내부 원뿔 각)과 **Outer Cone Angle** (외부 원뿔 각) 두 개의 원뿔이 주어집니다. _내부 원뿔 각_ 안에서 라이트는 최대의 밝기를 냅니다. 내측 반경의 경계에서부터 _외부 원뿔 각_ 의 경계에 이르기까지 감쇠가 일어나면서 반그늘, 즉 스포트 라이트 조명이 연해지는 부분이 생깁니다. 라이트의 반경은 원뿔의 길이를 나타냅니다. 더욱 간단하게, 손전등이나 무대조명을 생각해 보면 되겠습니다.
 
 다른 라이트처럼 **스포트 라이트** 도 세 가지 **모빌리티** 세팅 중 하나로 설정할 수 있습니다:
-[/EXCERPT:Intro]
+
 
 
 [OBJECT:topiclistnotitle]
@@ -67,6 +67,7 @@ Description:스포트 라이트에 대한 기초입니다.
 	**스테이셔너리** - (역시 왼쪽 그림) 스태틱 지오메트리에서의 반사광과 그림자만 **라이트매스** 로 굽고, 다른 모든 라이팅은 다이내믹이 되는 라이트입니다. 이 세팅은 게임에서 라이트의 색과 강도를 변경할 수 있지만 이동할 수는 없으며, 라이팅을 부분적으로 굽는 것이 가능합니다.
 	[/PARAM]
 [/OBJECT]
+[/EXCERPT:Intro]
 
 [REGION:raw]
 ![](spacer.png)

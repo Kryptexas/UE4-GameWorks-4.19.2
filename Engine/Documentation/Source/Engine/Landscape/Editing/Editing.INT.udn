@@ -1,4 +1,4 @@
-﻿Availability: Public
+Availability: Public
 Title:Editing Landscapes
 Crumbs: %ROOT%, Engine, Engine/Landscape
 Description:Guide to using the tools for editing Landscape terrains.
@@ -24,9 +24,6 @@ Description:Guide to using the tools for editing Landscape terrains.
 [/VAR]
 
 [TOC(start:2 end:2)]
-
-
-## Overview
 
 After you have created a Landscape, you can now do any of the following to it:
 
@@ -132,6 +129,11 @@ For examples of the Landscape tool in action, see the **[](Resources\ContentExam
 ![Editing Banner](Landscape_Editing_banner.png)
 [/REGION]
 ---->
+
+
+
+
+
 
 
 

@@ -118,10 +118,10 @@ void FSteamVRHMD::D3D11Bridge::Reset()
 {
 }
 
-void FSteamVRHMD::D3D11Bridge::UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI)
+void FSteamVRHMD::D3D11Bridge::UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI)
 {
 	check(IsInGameThread());
-	check(ViewportRHI);
+	check(InViewportRHI);
 
 	const FTexture2DRHIRef& RT = Viewport.GetRenderTargetTexture();
 	check(IsValidRef(RT));
@@ -134,7 +134,7 @@ void FSteamVRHMD::D3D11Bridge::UpdateViewport(const FViewport& Viewport, FRHIVie
 	RenderTargetTexture = (ID3D11Texture2D*)RT->GetNativeResource();
 	RenderTargetTexture->AddRef();
 
-	ViewportRHI->SetCustomPresent(this);
+	InViewportRHI->SetCustomPresent(this);
 }
 
 

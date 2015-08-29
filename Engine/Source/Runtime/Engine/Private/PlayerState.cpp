@@ -247,7 +247,7 @@ void APlayerState::OnRep_UniqueId()
 	RegisterPlayerWithSession(false);
 }
 
-void APlayerState::SetUniqueId(const TSharedPtr<FUniqueNetId>& InUniqueId)
+void APlayerState::SetUniqueId(const TSharedPtr<const FUniqueNetId>& InUniqueId)
 {
 	UniqueId.SetUniqueNetId(InUniqueId);
 }
@@ -287,7 +287,7 @@ APlayerState* APlayerState::Duplicate()
 {
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save player states into a map
 	APlayerState* NewPlayerState = GetWorld()->SpawnActor<APlayerState>(GetClass(), SpawnInfo );
 	// Can fail in case of multiplayer PIE teardown

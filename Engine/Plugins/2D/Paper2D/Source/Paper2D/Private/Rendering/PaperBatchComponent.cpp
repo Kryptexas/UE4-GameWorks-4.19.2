@@ -26,8 +26,8 @@ FPrimitiveSceneProxy* UPaperBatchComponent::CreateSceneProxy()
 FBoxSphereBounds UPaperBatchComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
 	// Always visible
-	FBoxSphereBounds Bounds(FVector::ZeroVector, FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX), HALF_WORLD_MAX);
-	return Bounds;
+	FBoxSphereBounds BoxSphereBounds(FVector::ZeroVector, FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX), HALF_WORLD_MAX);
+	return BoxSphereBounds;
 }
 
 void UPaperBatchComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

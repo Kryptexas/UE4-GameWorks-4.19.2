@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2420636
+﻿INTSourceChangelist:2602348
 Availability: Docs
 Title:포스트 프로세스 이펙트 포함 라이팅
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
@@ -49,7 +49,7 @@ Description:라이트와 포스트 프로세스 체인의 상호작용에 대해
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 
 포스트 프로세스 파이프라인은 씬의 라이팅을 받아 여러가지 방식으로 활용하여, 광량의 변화에 맞춘 유기적인 눈 순응 효과나, 카메라의 다양한 굴절 렌즈 효과를 시뮬레이션해 냅니다. 첫 단추를 끼우는 것은 씬의 라이팅 단계겠지만, 다수의 이펙트를 돌리는 것은 포스트 프로세스 단계입니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2298466
+﻿INTSourceChangelist:2591123
 Availability:Public
 Title:ハードウェア＆ソフトウェアの仕様
 Crumbs: %ROOT%, GettingStarted
@@ -79,7 +79,7 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | -------- | --- |
 | **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
 | **メモリ** | 8+ GB RAM |
-| **ビデオカード** | 2GB の GDDR5 メモリを搭載した DirectX 11 |  
+| **ビデオカード** | 2GB の GDDR5 メモリを搭載した DirectX 11 |
 | **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
 [/EXCERPT:WindowsRecHardware]
 [EXCERPT:MacOSRecHardware]
@@ -87,14 +87,14 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | -------- | --- |
 | **プロセッサ** | 4 コア > 2.5 GHz もしくはそれ以上の CPU |
 | **メモリ** | 8+ GB RAM |
-| **ビデオカード** | 2GB の GDDR5 メモリ |  
-| **モニター** | 1680x1050 かそれ以上のスペックのモニター 2 つ |
+| **ビデオカード** | 2GB の GDDR5 メモリ |
+| **モニター** | 1680x1050 以上のスペックのモニター 2 つ |
 [/EXCERPT:MacOSRecHardware]
 -->
 
 [PUBLISH:Licensee]
 [REGION:note]
-**注記：**ネットワーキング コードの作業にはデュアル プロセッサ設定が大変便利です。同一 PC 上でサーバーとクライアントを高速で実行することができます。
+**注記:** ネットワーキング コードの作業にはデュアル プロセッサ設定が大変便利です。同一 PC 上でサーバーとクライアントを高速で実行することができます。
 [/REGION]
 [/PUBLISH:Licensee]
 
@@ -112,7 +112,7 @@ Description:アンリアル エンジンを用いた開発に必要なハード�
 | **Visual C++ ランタイム** | [Microsoft Visual C++ 2013 Redistributables](http://www.microsoft.com/en-us/download/details.aspx?id=40784) |
 
 [REGION:note]
-**注記：**「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
+**注記:** 「//depot/UE4/Engine/Extras/Redist/en-us」 に格納されている 「UE4PrereqSetup.msi」 ファイルを実行すると、上記で言及した DirectX や VC++ ランタイムなど、アンリアル エンジン 4 の実行に必要なソフトウェアがインストールされます。
 [/REGION]
 [/PUBLISH:Licensee]
 

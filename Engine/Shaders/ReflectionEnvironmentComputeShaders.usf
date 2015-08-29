@@ -554,7 +554,7 @@ void GatherRadiance(inout float4 Color, float3 WorldPosition, float3 RayDirectio
 	{
 		// Normalize for static skylight types which mix with lightmaps
 		bool bNormalize = SkyLightParameters.z < 1 && USE_LIGHTMAPS;
-		float3 SkyLighting = GetSkyLightReflection( RayDirection, Roughness, bNormalize );
+		float3 SkyLighting = GetSkyLightReflectionSupportingBlend( RayDirection, Roughness, bNormalize );
 
 		FLATTEN
 		if (bNormalize)
@@ -673,7 +673,7 @@ void ReflectionEnvironmentTiledDeferredMain(
 		
 			// F_Schlick
 			float F0 = 0.04;
-			float Fc = pow( 1 - NoV, 5 );
+			float Fc = Pow5( 1 - NoV );
 			float F = Fc + (1 - Fc) * F0;
 			F *= ClearCoat;
 			
@@ -682,10 +682,13 @@ void ReflectionEnvironmentTiledDeferredMain(
 			Color.rgb *= LayerAttenuation;
 			Color.a = F;
 		
-			Color.rgb += SSR.rgb * F;
-			Color.a *= 1 - SSR.a;
+			#if 1//APPLY_SSR
+				Color.rgb += SSR.rgb * F;
+				Color.a *= 1 - SSR.a;
+			#endif
 			Color.a *= SpecularOcclusion;
 
+			R = 2 * dot( V, N ) * N - V;
 			GatherRadiance(Color, WorldPosition, R, ClearCoatRoughness, ScreenPosition, IndirectIrradiance, GBuffer.ShadingModelID);			
 		}
 		else

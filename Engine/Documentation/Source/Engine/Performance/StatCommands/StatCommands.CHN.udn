@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Stat Commands
+Crumbs: %ROOT%, Engine
+Description:Console commands specific to displaying game statistics.
+Navigation:topic
+
+Here is a list of currently available stat commands that can be entered into the console to aid with profiling.
+
+| Command | Description |
+| -------- | ----------- |
+| **stat Unit** | Overall frame time as well as the game thread, rendering thread, and GPU times. |
+| **stat UnitGraph** | To see a graph with the stat unit data, use **stat Raw** to see the unfiltered data. |
+| **stat Hitches** | Set **t.HitchThreshold** to define the time in seconds that is considered a hitch. Will also dump all hitches to the log/visual studio debug e.g. `[0327.87] LogEngine:Warning: HITCH @ 00m:01s:643ms,1643,72,2.`  |
+| **stat InitViews** | Displays information on how long visibility culling took and how effective it was. Visible section count is the single most important stat with respect to rendering thread performance, and that is dominanted by Visible Static Mesh Elements under STAT INITVIEWS, but Visible Dynamic Primitives also factors in.  |
+| **stat Scenerendering** | Shows general rendering statistics. This is a good starting point to find general areas of slow performance in the rendering process. |
+| **stat D3d11rhi** **stat OpenGL** | Direct3D 11 or OpenGL RHI.  |
+| **stat Sceneupdate** | Displays information about updating the world, including the time taken to add, update, and remove lights as well as add and remove primitives in the scene.  |
+| **stat Engine** | Engine.  |
+| **stat Game** | Game. |
+| **stat Anim** | Animation. |
+| **stat Particles** | Particles. |
+| **stat ShadowRendering** | Shadow rendering. |
+| **stat LightRendering** | Light rendering. |
+| **stat Memory** | Memory. |
+| **stat Streaming** | Streaming. |
+| **stat StreamingDetails** | More details for Streaming. |
+| **stat Slow 0.012 10** | Show any stat that has been >12ms in the last 10 seconds (good starting point). |
+| **stat Grouped** | To disable stat Slow.|
+
+<!--
+Note: removed until this can be checked against profiler info. StatsViewer didn't appear to be in P4 or a binary build
+| **stat StartFile** **stat StopFile** | Generates a .ue4stats file that can be analyzed offline (With the StatsViewer tool from: UE4\Engine\Binaries\DotNET\StatsViewer). A GPU stall can appear as high workload the frame before.
+
+
+
+-->
+
+
+
+
+

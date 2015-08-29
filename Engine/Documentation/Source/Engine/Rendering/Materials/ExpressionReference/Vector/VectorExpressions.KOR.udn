@@ -1,4 +1,4 @@
-INTSourceChangelist:2116766
+﻿INTSourceChangelist:2590541
 Availability:Public
 Title:Vector 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -11,7 +11,7 @@ Description:위치나 노멀같은 벡터값을 출력하는 표현식입니다.
 [EXCERPT:ActorPositionWS]
 ## ActorPositionWS
 
-ActorPositionWS 는 월드 스페이스에서 이 머티리얼을 가진 오브젝트의 위치를 나타내는 3벡터 (RGB) 데이터를 출력합니다.
+ActorPositionWS 는 월드 스페이스에서 이 머티리얼을 가진 오브젝트의 위치를 나타내는 Vector3 (RGB) 데이터를 출력합니다.
 
 ![](ActorPositionColors.png)(w:434) ![](ActorPositionNetwork.png)(w:490)
 
@@ -53,9 +53,9 @@ CameraVector 는 표면에 대한 카메라의 방향, 다른 말로 픽셀에�
 
 
 ## LightVector
-
+[REGION:warning]
 **언리얼 엔진 4 에서 라이팅 계산이 디퍼드 방식으로 바뀌어서 이 표현식은 폐기상태가 되었습니다.**
-
+[/REGION:warning]
 <!--
 LightVector 는 표면에 대한 빛의 방향을 나타내는 3채널 벡터 값 표현식입니다.
 
@@ -82,7 +82,7 @@ Object Bounds (오브젝트 바운드)는 오브젝트 각 축의 크기를 출�
 ## ObjectOrientation
 
 
-ObjectOrientation 는 오브젝트의 월드 스페이스 업 벡터를 출력하는 표현식입니다. 다른 말로 머티리얼이 적용된 오브젝트의 로컬 양수 Z 축이 가리키고 있는 방향입니다.
+ObjectOrientation 는 오브젝트의 월드 스페이스 업 벡터를 출력하는 표현식입니다. 다른 말로 오브젝트의 로컬 양수 Z 축이 이 방향을 가리킨다는 것입니다.
 
 ![ObjectOrientationExample.png](ObjectOrientationExample.png)
 [/EXCERPT:ObjectOrientation]

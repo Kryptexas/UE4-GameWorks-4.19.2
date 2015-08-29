@@ -243,6 +243,15 @@ namespace UnrealBuildTool.IOS
 				MinVersion = "6.1";
 			}
 
+			// Get Facebook Support details
+			bool bEnableFacebookSupport = true;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableFacebookSupport", out bEnableFacebookSupport);
+
+			// Write the Facebook App ID if we need it.
+			string FacebookAppID = "";
+			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "FacebookAppID", out FacebookAppID);
+			bEnableFacebookSupport = bEnableFacebookSupport && !string.IsNullOrWhiteSpace(FacebookAppID);
+
 			// extra plist data
 			string ExtraData = "";
 			Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalPlistData", out ExtraData);
@@ -261,6 +270,11 @@ namespace UnrealBuildTool.IOS
 			Text.AppendLine("\t\t\t<key>CFBundleURLSchemes</key>");
 			Text.AppendLine("\t\t\t<array>");
 			Text.AppendLine(string.Format("\t\t\t\t<string>{0}</string>", bIsUE4Game ? "UE4Game" : GameName));
+			if (bEnableFacebookSupport)
+			{
+				// This is needed for facebook login to redirect back to the app after completion.
+				Text.AppendLine(string.Format("\t\t\t\t<string>fb{0}</string>", FacebookAppID));
+			}
 			Text.AppendLine("\t\t\t</array>");
 			Text.AppendLine("\t\t</dict>");
 			Text.AppendLine("\t</array>");
@@ -288,6 +302,8 @@ namespace UnrealBuildTool.IOS
 			Text.AppendLine("\t<true/>");
 			Text.AppendLine("\t<key>UIStatusBarHidden</key>");
 			Text.AppendLine("\t<true/>");
+			Text.AppendLine("\t<key>UIViewControllerBasedStatusBarAppearance</key>");
+			Text.AppendLine("\t<false/>");
 			Text.AppendLine("\t<key>UISupportedInterfaceOrientations</key>");
 			Text.AppendLine("\t<array>");
 			foreach (string Line in SupportedOrientations.Split("\r\n".ToCharArray()))
@@ -418,6 +434,12 @@ namespace UnrealBuildTool.IOS
 			Text.AppendLine("\t</array>");
 			Text.AppendLine("\t<key>MinimumOSVersion</key>");
 			Text.AppendLine(string.Format("\t<string>{0}</string>", MinVersion));
+			if (bEnableFacebookSupport)
+			{
+				Text.AppendLine("\t<key>FacebookAppID</key>");
+				Text.AppendLine(string.Format("\t<string>{0}</string>", FacebookAppID));
+				
+			}
 			if (!string.IsNullOrEmpty(ExtraData))
 			{
 				ExtraData = ExtraData.Replace("\\n", "\n");
@@ -724,11 +746,35 @@ namespace UnrealBuildTool.IOS
 
 		private void WriteEntitlementsFile(string OutputFilename)
 		{
+			// get the settings from the ini file
+			// plist replacements
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			bool bSupported = false;
+			Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bEnableCloudKitSupport", out bSupported);
+
 			Directory.CreateDirectory(Path.GetDirectoryName(OutputFilename));
 			// we need to have something so Xcode will compile, so we just set the get-task-allow, since we know the value, 
 			// which is based on distribution or not (true means debuggable)
-			File.WriteAllText(OutputFilename, string.Format("<plist><dict><key>get-task-allow</key><{0}/></dict></plist>",
-				/*Config.bForDistribution ? "false" : */"true"));
+			StringBuilder Text = new StringBuilder();
+			Text.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+			Text.AppendLine("<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">");
+			Text.AppendLine("<plist version=\"1.0\">");
+			Text.AppendLine("<dict>");
+			Text.AppendLine(string.Format("\t<key>get-task-allow</key><{0}/>",	/*Config.bForDistribution ? "false" : */"true"));
+			if (bSupported)
+			{
+				Text.AppendLine("\t<key>com.apple.developer.icloud-container-identifiers</key>");
+				Text.AppendLine("\t<array>");
+				Text.AppendLine("\t\t<string>iCloud.$(CFBundleIdentifier)</string>");
+				Text.AppendLine("\t</array>");
+				Text.AppendLine("\t<key>com.apple.developer.icloud-services</key>");
+				Text.AppendLine("\t<array>");
+				Text.AppendLine("\t\t<string>CloudKit</string>");
+				Text.AppendLine("\t</array>");
+			}
+			Text.AppendLine("</dict>");
+			Text.AppendLine("</plist>");
+			File.WriteAllText(OutputFilename, Text.ToString());
 		}
 
 		static void SafeFileCopy(FileInfo SourceFile, string DestinationPath, bool bOverwrite)

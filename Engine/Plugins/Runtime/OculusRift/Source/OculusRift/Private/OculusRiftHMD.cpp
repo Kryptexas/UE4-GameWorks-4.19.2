@@ -122,9 +122,9 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FOculusRiftHMD::CreateNewSettings(
 	return Result;
 }
 
-bool FOculusRiftHMD::OnStartGameFrame()
+bool FOculusRiftHMD::OnStartGameFrame( FWorldContext& WorldContext )
 {
-	bool rv = FHeadMountedDisplay::OnStartGameFrame();
+	bool rv = FHeadMountedDisplay::OnStartGameFrame( WorldContext );
 	if (!rv)
 	{
 		return false;
@@ -267,7 +267,7 @@ void FOculusRiftHMD::GetPositionalTrackingCameraProperties(FVector& OutOrigin, F
 	frame->PoseToOrientationAndPosition(cameraPose, Orient, Pos);
 
 	OutOrientation = Orient;
-	OutOrigin = Pos;
+	OutOrigin = Pos + frame->Settings->PositionOffset;
 }
 
 bool FOculusRiftHMD::IsInLowPersistenceMode() const
@@ -471,6 +471,87 @@ bool FOculusRiftHMD::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar 
 			return true;
 		}
 #endif //UE_BUILD_SHIPPING
+		else
+		{
+			FString CmdName = FParse::Token(Cmd, 0);
+			if (CmdName.StartsWith(TEXT("SET")))
+			{
+				FString ValueNameStr = FParse::Token(Cmd, 0);
+				FString ValueStr = FParse::Token(Cmd, 0);
+
+				ovrBool res = ovrTrue;
+				CmdName = CmdName.Replace(TEXT("SET"), TEXT(""));
+				if (CmdName.Equals(TEXT("INT"), ESearchCase::IgnoreCase))
+				{
+					int v = FCString::Atoi(*ValueStr);
+					res = ovrHmd_SetInt(Hmd, TCHAR_TO_ANSI(*ValueNameStr), v);
+				}
+				else if (CmdName.Equals(TEXT("FLOAT"), ESearchCase::IgnoreCase))
+				{
+					float v = FCString::Atof(*ValueStr);
+					res = ovrHmd_SetFloat(Hmd, TCHAR_TO_ANSI(*ValueNameStr), v);
+				}
+				else if (CmdName.Equals(TEXT("BOOL"), ESearchCase::IgnoreCase))
+				{
+					ovrBool v;
+					if (ValueStr == TEXT("0") || ValueStr.Equals(TEXT("false"), ESearchCase::IgnoreCase))
+					{
+						v = ovrFalse;
+					}
+					else
+					{
+						v = ovrTrue;
+					}
+					res = ovrHmd_SetBool(Hmd, TCHAR_TO_ANSI(*ValueNameStr), v);
+				}
+				else if (CmdName.Equals(TEXT("STRING"), ESearchCase::IgnoreCase))
+				{
+					res = ovrHmd_SetString(Hmd, TCHAR_TO_ANSI(*ValueNameStr), TCHAR_TO_ANSI(*ValueStr));
+				}
+#if !UE_BUILD_SHIPPING
+				if (!res)
+				{
+					Ar.Logf(TEXT("HMD parameter %s was not set to value %s"), *ValueNameStr, *ValueStr);
+				}
+#endif // #if !UE_BUILD_SHIPPING
+				return true;
+			}
+#if !UE_BUILD_SHIPPING
+			else if (CmdName.StartsWith(TEXT("GET")))
+			{
+				FString ValueNameStr = FParse::Token(Cmd, 0);
+
+				CmdName = CmdName.Replace(TEXT("GET"), TEXT(""));
+				FString ValueStr;
+				if (CmdName.Equals(TEXT("INT"), ESearchCase::IgnoreCase))
+				{
+					int v = ovrHmd_GetInt(Hmd, TCHAR_TO_ANSI(*ValueNameStr), 0);
+					TCHAR buf[32];
+					FCString::Snprintf(buf, sizeof(buf) / sizeof(buf[0]), TEXT("%d"), v);
+					ValueStr = buf;
+				}
+				else if (CmdName.Equals(TEXT("FLOAT"), ESearchCase::IgnoreCase))
+				{
+					float v = ovrHmd_GetFloat(Hmd, TCHAR_TO_ANSI(*ValueNameStr), 0);
+					TCHAR buf[32];
+					FCString::Snprintf(buf, sizeof(buf)/sizeof(buf[0]), TEXT("%f"), v);
+					ValueStr = buf;
+				}
+				else if (CmdName.Equals(TEXT("BOOL"), ESearchCase::IgnoreCase))
+				{
+					ovrBool v = ovrHmd_GetBool(Hmd, TCHAR_TO_ANSI(*ValueNameStr), ovrFalse);
+					ValueStr = (v == ovrFalse) ? TEXT("false") : TEXT("true");
+				}
+				else if (CmdName.Equals(TEXT("STRING"), ESearchCase::IgnoreCase))
+				{
+					ValueStr = ANSI_TO_TCHAR(ovrHmd_GetString(Hmd, TCHAR_TO_ANSI(*ValueNameStr), ""));
+				}
+				Ar.Logf(TEXT("HMD parameter %s is set to value %s"), *ValueNameStr, *ValueStr);
+
+				return true;
+			}
+#endif // #if !UE_BUILD_SHIPPING
+		}
 	}
 	else if (FParse::Command(&Cmd, TEXT("HMDMAG")))
 	{
@@ -630,6 +711,9 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 		}
 	}
 
+	// Uncap fps to enable FPS higher than 62
+	GEngine->bForceDisableFrameRateSmoothing = bStereo;
+
 	bool wasFullscreenAllowed = IsFullscreenAllowed();
 	if (OnOculusStateChange(stereoToBeEnabled))
 	{
@@ -680,11 +764,11 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 							// returns false.
 							if (GIsEditor)
 							{
-								FSlateRect PreFullScreenRect;
-								PopPreFullScreenRect(PreFullScreenRect);
-								if (PreFullScreenRect.GetSize().X > 0 && PreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
+								FSlateRect LocalPreFullScreenRect;
+								PopPreFullScreenRect(LocalPreFullScreenRect);
+								if (LocalPreFullScreenRect.GetSize().X > 0 && LocalPreFullScreenRect.GetSize().Y > 0 && IsFullscreenAllowed())
 								{
-									Window->MoveWindowTo(FVector2D(PreFullScreenRect.Left, PreFullScreenRect.Top));
+									Window->MoveWindowTo(FVector2D(LocalPreFullScreenRect.Left, LocalPreFullScreenRect.Top));
 								}
 							}
 							else
@@ -794,7 +878,7 @@ void FOculusRiftHMD::CalculateStereoViewOffset(const EStereoscopicPass StereoPas
 			// The HMDPosition already has HMD orientation applied.
 			// Apply rotational difference between HMD orientation and ViewRotation
 			// to HMDPosition vector. 
-			const FVector vEyePosition = DeltaControlOrientation.RotateVector(HmdToEyeOffset);
+			const FVector vEyePosition = DeltaControlOrientation.RotateVector(HmdToEyeOffset) + frame->Settings->PositionOffset;
 			ViewLocation += vEyePosition;
 			
 			//UE_LOG(LogHMD, Log, TEXT("DLTPOS: %.3f %.3f %.3f"), vEyePosition.X, vEyePosition.Y, vEyePosition.Z);
@@ -1055,9 +1139,6 @@ void FOculusRiftHMD::Startup()
 		Settings->Flags.InitStatus = 0;
 		return;
 	}
-
-	// Uncap fps to enable FPS higher than 62
-	GEngine->bSmoothFrameRate = false;
 
 #if defined(OVR_D3D_VERSION) && (OVR_D3D_VERSION == 11)
 	if (IsPCPlatform(GMaxRHIShaderPlatform) && !IsOpenGLPlatform(GMaxRHIShaderPlatform))
@@ -1323,8 +1404,8 @@ void FOculusRiftHMD::UpdateStereoRenderingParams()
 		CurrentSettings->EyeRenderDesc[1] = ovrHmd_GetRenderDesc(Hmd, ovrEye_Right, CurrentSettings->EyeFov[1]);
 		if (CurrentSettings->Flags.bOverrideIPD)
 		{
-			CurrentSettings->EyeRenderDesc[0].HmdToEyeViewOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
-			CurrentSettings->EyeRenderDesc[1].HmdToEyeViewOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[0].HmdToEyeViewOffset.x = -CurrentSettings->InterpupillaryDistance * 0.5f;
+			CurrentSettings->EyeRenderDesc[1].HmdToEyeViewOffset.x = CurrentSettings->InterpupillaryDistance * 0.5f;
 		}
 
 		const unsigned int ProjModifiers = ovrProjection_None; //@TODO revise to use ovrProjection_FarClipAtInfinity and/or ovrProjection_FarLessThanNear
@@ -1550,6 +1631,7 @@ void FOculusRiftHMD::OnBeginPlay()
 	// This call make sense when 'Play' is used from the Editor;
 	if (GIsEditor)
 	{
+		Settings->PositionOffset = FVector::ZeroVector;
 		Settings->BaseOrientation = FQuat::Identity;
 		Settings->BaseOffset = FVector::ZeroVector;
 		Settings->WorldToMetersScale = 100.f;
@@ -1614,6 +1696,16 @@ bool FOculusRiftHMD::GetUserProfile(UserProfile& OutProfile)
 		return true;
 	}
 	return false; 
+}
+
+void FOculusRiftHMD::ApplySystemOverridesOnStereo(bool force)
+{
+	check(IsInGameThread());
+	// ALWAYS SET r.FinishCurrentFrame to 0! Otherwise the perf might be poor.
+	// @TODO: revise the FD3D11DynamicRHI::RHIEndDrawingViewport code (and other renderers)
+	// to ignore this var completely.
+	static const auto CFinishFrameVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FinishCurrentFrame"));
+	CFinishFrameVar->Set(0);
 }
 
 //////////////////////////////////////////////////////////////////////////

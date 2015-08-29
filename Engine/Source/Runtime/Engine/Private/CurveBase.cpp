@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "CsvParser.h"
+#include "EditorFramework/AssetImportData.h"
 
 void FKeyHandleMap::Add( const FKeyHandle& InHandle, int32 InIndex )
 {
@@ -291,6 +292,34 @@ FRichCurveKey FRichCurve::GetLastKey() const
 	return Keys[Keys.Num()-1];
 }
 
+FKeyHandle FRichCurve::GetNextKey(FKeyHandle KeyHandle) const
+{
+	int32 KeyIndex = GetIndex(KeyHandle);
+	KeyIndex++;
+	if (Keys.IsValidIndex(KeyIndex))
+	{
+		return GetKeyHandle(KeyIndex);
+	}
+	else
+	{
+		return FKeyHandle();
+	}
+}
+
+FKeyHandle FRichCurve::GetPreviousKey(FKeyHandle KeyHandle) const
+{
+	int32 KeyIndex = GetIndex(KeyHandle);
+	KeyIndex--;
+	if (Keys.IsValidIndex(KeyIndex))
+	{
+		return GetKeyHandle(KeyIndex);
+	}
+	else
+	{
+		return FKeyHandle();
+	}
+}
+
 int32 FRichCurve::GetNumKeys() const
 {
 	return Keys.Num();
@@ -459,19 +488,37 @@ float FRichCurve::GetKeyValue(FKeyHandle KeyHandle) const
 
 void FRichCurve::ShiftCurve(float DeltaTime)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ShiftCurve(DeltaTime, KeyHandles);
+}
+
+void FRichCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time += DeltaTime;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, GetKeyTime(KeyHandle)+DeltaTime);
+		}
 	}
 }
 
 void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ScaleCurve(ScaleOrigin, ScaleFactor, KeyHandles);
+}
+
+void FRichCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time = (Keys[KeyIndex].Time - ScaleOrigin) * ScaleFactor + ScaleOrigin;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, (GetKeyTime(KeyHandle) - ScaleOrigin) * ScaleFactor + ScaleOrigin);
+		}
 	}
 }
 
@@ -664,8 +711,88 @@ void FRichCurve::AutoSetTangents(float Tension)
 	}
 }
 
-void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
+void FRichCurve::ReadjustTimeRange(float NewMinTimeRange, float NewMaxTimeRange, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime)
 {
+	// first readjust modified time keys
+	float ModifiedDuration = OldEndTime - OldStartTime;
+	if (bInsert)
+	{
+		for(int32 KeyIndex=0; KeyIndex<Keys.Num(); ++KeyIndex)
+		{
+			float& CurrentTime = Keys[KeyIndex].Time;
+			if (CurrentTime >= OldStartTime)
+			{
+				CurrentTime += ModifiedDuration;
+			}
+		}
+	}
+	else
+	{
+		// since we only allow one key at a given time, we will just cache the value that needs to be saved
+		// this is the key to be replaced when this section is gone
+		bool bAddNewKey = false; 
+		float NewValue = 0.f;
+		TArray<int32> KeysToDelete;
+
+		for(int32 KeyIndex=0; KeyIndex<Keys.Num(); ++KeyIndex)
+		{
+			float& CurrentTime = Keys[KeyIndex].Time;
+			// if this key exists between range of deleted
+			// we'll evaluate the value at the "OldStartTime"
+			// and re-add key, so that it keeps the previous value at the
+			// start time
+			// But that means if there are multiple keys, 
+			// since we don't want multiple values in the same time
+			// the last one will override the value
+			if( CurrentTime >= OldStartTime && CurrentTime <= OldEndTime)
+			{
+				// get new value and add new key on one of OldStartTime, OldEndTime;
+				// this is a bit complicated problem since we don't know if OldStartTime or OldEndTime is preferred. 
+				// generall we use OldEndTime unless OldStartTime == 0.f
+				// which means it's cut in the beginning. Otherwise it will always use the end time. 
+				bAddNewKey = true;
+				if (OldStartTime != 0.f)
+				{
+					NewValue = Eval(OldStartTime);
+				}
+				else
+				{
+					NewValue = Eval(OldEndTime);
+				}
+				// remove this key, but later because it might change eval result
+				KeysToDelete.Add(KeyIndex);
+			}
+			else if (CurrentTime > OldEndTime)
+			{
+				CurrentTime -= ModifiedDuration;
+			}
+		}
+
+		if (bAddNewKey)
+		{
+			for (auto KeyIndex : KeysToDelete)
+			{
+				const FKeyHandle* KeyHandle = KeyHandlesToIndices.FindKey(KeyIndex);
+				if(KeyHandle)
+				{
+					DeleteKey(*KeyHandle);
+				}
+			}
+
+			UpdateOrAddKey(OldStartTime, NewValue);
+		}
+	}
+
+	// now remove all redundant key
+	TArray<FRichCurveKey> NewKeys;
+	Exchange(NewKeys, Keys);
+
+	for(int32 KeyIndex=0; KeyIndex<NewKeys.Num(); ++KeyIndex)
+	{
+		UpdateOrAddKey(NewKeys[KeyIndex].Time, NewKeys[KeyIndex].Value);
+	}
+
+	// now cull out all out of range 
 	float MinTime, MaxTime;
 	GetTimeRange(MinTime, MaxTime);
 
@@ -675,7 +802,7 @@ void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
 	if (MinTime < NewMinTimeRange)
 	{
 		float NewValue = Eval(NewMinTimeRange);
-		AddKey(NewMinTimeRange, NewValue);
+		UpdateOrAddKey(NewMinTimeRange, NewValue);
 
 		bNeedToDeleteKey = true;
 	}
@@ -684,7 +811,7 @@ void FRichCurve::ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange)
 	if(MaxTime > NewMaxTimeRange)
 	{
 		float NewValue = Eval(NewMaxTimeRange);
-		AddKey(NewMaxTimeRange, NewValue);
+		UpdateOrAddKey(NewMaxTimeRange, NewValue);
 
 		bNeedToDeleteKey = true;
 	}
@@ -731,8 +858,98 @@ static float BezierInterp2(float P0, float Y1, float Y2, float P3, float mu)
 	return Result;
 }
 
-float FRichCurve::Eval(const float InTime, float DefaultValue) const
+static void CycleTime(float MinTime, float MaxTime, float& InTime, int& CycleCount)
 {
+	float InitTime = InTime;
+	float Duration = MaxTime - MinTime;
+
+	if (InTime > MaxTime)
+	{
+		CycleCount = FMath::FloorToInt((MaxTime-InTime)/Duration);
+		InTime = InTime + Duration*CycleCount;
+	}
+	else if (InTime < MinTime)
+	{
+		CycleCount = FMath::FloorToInt((InTime-MinTime)/Duration);
+		InTime = InTime - Duration*CycleCount;
+	}
+
+	if (InTime == MaxTime && InitTime < MinTime)
+	{
+		InTime = MinTime;
+	}
+
+	if (InTime == MinTime && InitTime > MaxTime)
+	{
+		InTime = MaxTime;
+	}
+
+	CycleCount = FMath::Abs(CycleCount);
+}
+
+void FRichCurve::RemapTimeValue(float& InTime, float& CycleValueOffset) const
+{
+	const int32 NumKeys = Keys.Num();
+	if (NumKeys < 2)
+	{
+		return;
+	} 
+	else if (InTime <= Keys[0].Time)
+	{
+		if (PreInfinityExtrap != RCCE_Linear && PreInfinityExtrap != RCCE_Constant)
+		{
+			float MinTime = Keys[0].Time;
+			float MaxTime = Keys[NumKeys - 1].Time;
+
+			int CycleCount = 0;
+			CycleTime(MinTime, MaxTime, InTime, CycleCount);
+
+			if (PreInfinityExtrap == RCCE_CycleWithOffset)
+			{
+				float DV = Keys[0].Value - Keys[NumKeys - 1].Value;
+				CycleValueOffset = DV * CycleCount;
+			}
+			else if (PreInfinityExtrap == RCCE_Oscillate)
+			{
+				if (CycleCount % 2 == 1)
+				{
+					InTime = MinTime + (MaxTime - InTime);
+				}
+			}
+		}
+	}
+	else if (InTime >= Keys[NumKeys - 1].Time)
+	{
+		if (PostInfinityExtrap != RCCE_Linear && PostInfinityExtrap != RCCE_Constant)
+		{
+			float MinTime = Keys[0].Time;
+			float MaxTime = Keys[NumKeys - 1].Time;
+
+			int CycleCount = 0; 
+			CycleTime(MinTime, MaxTime, InTime, CycleCount);
+
+			if (PostInfinityExtrap == RCCE_CycleWithOffset)
+			{
+				float DV = Keys[NumKeys - 1].Value - Keys[0].Value;
+				CycleValueOffset = DV * CycleCount;
+			}
+			else if (PostInfinityExtrap == RCCE_Oscillate)
+			{
+				if (CycleCount % 2 == 1)
+				{
+					InTime = MinTime + (MaxTime - InTime);
+				}
+			}
+		}
+	}
+}
+
+float FRichCurve::Eval(float InTime, float DefaultValue) const
+{
+	// Remap time if extrapolation is present and compute offset value to use if cycling 
+	float CycleValueOffset = 0;
+	RemapTimeValue(InTime, CycleValueOffset);
+
 	const int32 NumKeys = Keys.Num();
 	float InterpVal = DefaultValue;
 
@@ -743,8 +960,26 @@ float FRichCurve::Eval(const float InTime, float DefaultValue) const
 	} 
 	else if (NumKeys < 2 || (InTime <= Keys[0].Time))
 	{
-		// If only one point, or before the first point in the curve, return the first points value.
-		InterpVal = Keys[0].Value;
+		if (PreInfinityExtrap == RCCE_Linear && NumKeys > 1)
+		{
+			float DT = Keys[1].Time - Keys[0].Time;
+			
+			if (FMath::IsNearlyZero(DT))
+			{
+				InterpVal = Keys[0].Value;
+			}
+			else
+			{
+				float DV = Keys[1].Value - Keys[0].Value;
+				float Slope = DV / DT;
+				InterpVal = Slope * (InTime - Keys[0].Time) + Keys[0].Value;
+			}
+		}
+		else
+		{
+			// Otherwise if constant or in a cycle or oscillate, always use the first key value
+			InterpVal = Keys[0].Value;
+		}
 	}
 	else if (InTime < Keys[NumKeys - 1].Time)
 	{
@@ -798,11 +1033,29 @@ float FRichCurve::Eval(const float InTime, float DefaultValue) const
 	}
 	else
 	{
-		// If beyond the last point in the curve, return its value.
-		InterpVal = Keys[NumKeys - 1].Value;
+		if (PostInfinityExtrap == RCCE_Linear)
+		{
+			float DT = Keys[NumKeys - 2].Time - Keys[NumKeys - 1].Time;
+			
+			if (FMath::IsNearlyZero(DT))
+			{
+				InterpVal = Keys[NumKeys - 1].Value;
+			}
+			else
+			{
+				float DV = Keys[NumKeys - 2].Value - Keys[NumKeys - 1].Value;
+				float Slope = DV / DT;
+				InterpVal = Slope * (InTime - Keys[NumKeys - 1].Time) + Keys[NumKeys - 1].Value;
+			}
+		}
+		else
+		{
+			// Otherwise if constant or in a cycle or oscillate, always use the last key value
+			InterpVal = Keys[NumKeys - 1].Value;
+		}
 	}
 
-	return InterpVal;
+	return InterpVal+CycleValueOffset;
 }
 
 
@@ -819,6 +1072,12 @@ bool FRichCurve::operator==(const FRichCurve& Curve) const
 			return false;
 		}
 	}
+
+	if (PreInfinityExtrap != Curve.PreInfinityExtrap || PostInfinityExtrap != Curve.PostInfinityExtrap)
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -833,9 +1092,33 @@ UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 #if WITH_EDITORONLY_DATA
 void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
-	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+	if (AssetImportData)
+	{
+		OutTags.Add(FAssetRegistryTag(SourceFileTagName(), AssetImportData->GetSourceData().ToJson(), FAssetRegistryTag::TT_Hidden));
+	}
 
 	Super::GetAssetRegistryTags(OutTags);
+}
+
+void UCurveBase::PostInitProperties()
+{
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		AssetImportData = NewObject<UAssetImportData>(this, TEXT("AssetImportData"));
+	}
+
+	Super::PostInitProperties();
+}
+
+void UCurveBase::PostLoad()
+{
+	Super::PostLoad();
+	if (!ImportPath_DEPRECATED.IsEmpty() && AssetImportData)
+	{
+		FAssetImportInfo Info;
+		Info.Insert(FAssetImportInfo::FSourceFile(ImportPath_DEPRECATED));
+		AssetImportData->SourceData = MoveTemp(Info);
+	}
 }
 #endif
 
@@ -874,7 +1157,7 @@ void UCurveBase::GetValueRange(float& MinValue, float& MaxValue) const
 			Curves[i].CurveToEdit->GetValueRange(CurveMin, CurveMax);
 
 			MinValue = FMath::Min(CurveMin, MinValue);
-			MaxValue = FMath::Min(CurveMax, MaxValue);
+			MaxValue = FMath::Max(CurveMax, MaxValue);
 		}
 	}
 }
@@ -984,16 +1267,37 @@ bool FIntegralCurve::IsKeyHandleValid(FKeyHandle KeyHandle) const
 	return bValid;
 }
 
-int32 FIntegralCurve::Evaluate(float Time) const
+int32 FIntegralCurve::Evaluate(float Time, int32 DefaultValue) const
 {
-	for (int32 i = 0; i < Keys.Num(); ++i)
+	int32 ReturnVal = DefaultValue;
+	if( Keys.Num() == 0 )
 	{
-		if (Time < Keys[i].Time)
+		ReturnVal = DefaultValue;
+	}
+	else if( Keys.Num() < 2 || Time < Keys[0].Time )
+	{
+		// There is only one key or the time is before the first value. Return the first value
+		ReturnVal = Keys[0].Value;
+	}
+	else if( Time < Keys[Keys.Num()-1].Time )
+	{
+		// The key is in the range of Key[0] to Keys[Keys.Num()-1].  Find it by searching
+		for(int32 i = 0; i < Keys.Num(); ++i)
 		{
-			return Keys[FMath::Max(0, i - 1)].Value;
+			if(Time < Keys[i].Time)
+			{
+				ReturnVal = Keys[FMath::Max(0, i - 1)].Value;
+				break;
+			}
 		}
 	}
-	return Keys.Num() ? Keys.Last().Value : 0;
+	else
+	{
+		// Key is beyon the last point in the curve.  Return it's value
+		ReturnVal = Keys[Keys.Num() - 1].Value;
+	}
+
+	return ReturnVal;
 }
 
 TArray<FIntegralKey>::TConstIterator FIntegralCurve::GetKeyIterator() const
@@ -1086,19 +1390,37 @@ float FIntegralCurve::GetKeyTime(FKeyHandle KeyHandle) const
 
 void FIntegralCurve::ShiftCurve(float DeltaTime)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ShiftCurve(DeltaTime, KeyHandles);
+}
+
+void FIntegralCurve::ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time += DeltaTime;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, GetKeyTime(KeyHandle) + DeltaTime);
+		}
 	}
 }
 
 void FIntegralCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor)
 {
-	// Indices will not change, so we are ok to do this without regenerating the index handle map
-	for( int32 KeyIndex = 0; KeyIndex < Keys.Num(); ++KeyIndex )
+	TSet<FKeyHandle> KeyHandles;
+	ScaleCurve(ScaleOrigin, ScaleFactor, KeyHandles);
+}
+
+void FIntegralCurve::ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles)
+{
+	for (auto It = KeyHandlesToIndices.CreateIterator(); It; ++It)
 	{
-		Keys[KeyIndex].Time = (Keys[KeyIndex].Time - ScaleOrigin) * ScaleFactor + ScaleOrigin;
+		const FKeyHandle& KeyHandle = It.Key();
+		if (KeyHandles.Num() != 0 && KeyHandles.Contains(KeyHandle))
+		{
+			SetKeyTime(KeyHandle, (GetKeyTime(KeyHandle) - ScaleOrigin) * ScaleFactor + ScaleOrigin);
+		}
 	}
 }
 
@@ -1112,4 +1434,32 @@ FIntegralKey FIntegralCurve::GetKey(FKeyHandle KeyHandle) const
 {
 	EnsureAllIndicesHaveHandles();
 	return Keys[GetIndex(KeyHandle)];
+}
+
+FKeyHandle FIntegralCurve::FindKey(float KeyTime) const
+{
+	int32 Start = 0;
+	int32 End = Keys.Num() - 1;
+
+	// Binary search since the keys are in sorted order
+	while (Start <= End)
+	{
+		int32 TestPos = Start + (End - Start) / 2;
+
+		float TestKeyTime = Keys[TestPos].Time;
+		if (TestKeyTime == KeyTime)
+		{
+			return GetKeyHandle(TestPos);
+		}
+		else if (TestKeyTime < KeyTime)
+		{
+			Start = TestPos + 1;
+		}
+		else
+		{
+			End = TestPos - 1;
+		}
+	}
+
+	return FKeyHandle();
 }

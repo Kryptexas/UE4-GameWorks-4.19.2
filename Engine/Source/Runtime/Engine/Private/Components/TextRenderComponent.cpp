@@ -115,10 +115,10 @@ public:
 	virtual void InitRHI() override
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		VertexBufferRHI = RHICreateVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo);
+		void* VertexBufferData = nullptr;
+		VertexBufferRHI = RHICreateAndLockVertexBuffer(Vertices.Num() * sizeof(FDynamicMeshVertex),BUF_Static,CreateInfo, VertexBufferData);
 
-		// Copy the vertex data into the vertex buffer.
-		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI,0,Vertices.Num() * sizeof(FDynamicMeshVertex), RLM_WriteOnly);
+		// Copy the vertex data into the vertex buffer.		
 		FMemory::Memcpy(VertexBufferData,Vertices.GetData(),Vertices.Num() * sizeof(FDynamicMeshVertex));
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
@@ -133,10 +133,10 @@ public:
 	void InitRHI()
 	{
 		FRHIResourceCreateInfo CreateInfo;
-		IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), Indices.Num() * sizeof(uint16), BUF_Static, CreateInfo);
+		void* Buffer = nullptr;
+		IndexBufferRHI = RHICreateAndLockIndexBuffer(sizeof(uint16), Indices.Num() * sizeof(uint16), BUF_Static, CreateInfo, Buffer);
 
-		// Copy the index data into the index buffer.
-		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(uint16), RLM_WriteOnly);
+		// Copy the index data into the index buffer.		
 		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(uint16));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
@@ -581,8 +581,6 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 	float FirstLineHeight = -1; // Only kept around for legacy positioning support
 	float StartY = 0;
 
-	FLinearColor ActualColor = TextRenderColor;
-
 	const float CharIncrement = ( (float)Font->Kerning + HorizSpacingAdjust ) * XScale;
 
 	float LineX = 0;
@@ -650,10 +648,10 @@ bool  FTextRenderSceneProxy::BuildStringMesh( TArray<FDynamicMeshVertex>& OutVer
 				FVector TangentY(0, 0, -1);
 				FVector TangentZ(1, 0, 0);
 
-				int32 V00 = OutVertices.Add( FDynamicMeshVertex( V0, TangentX, TangentZ, FVector2D(U, V), ActualColor));
-				int32 V10 = OutVertices.Add( FDynamicMeshVertex( V1, TangentX, TangentZ, FVector2D(U + SizeU,	V),	ActualColor));
-				int32 V01 = OutVertices.Add( FDynamicMeshVertex( V2, TangentX, TangentZ, FVector2D(U,	V + SizeV), ActualColor));
-				int32 V11 = OutVertices.Add( FDynamicMeshVertex( V3, TangentX, TangentZ, FVector2D(U + SizeU,	V + SizeV), ActualColor));
+				int32 V00 = OutVertices.Add(FDynamicMeshVertex(V0, TangentX, TangentZ, FVector2D(U, V), TextRenderColor));
+				int32 V10 = OutVertices.Add(FDynamicMeshVertex(V1, TangentX, TangentZ, FVector2D(U + SizeU, V), TextRenderColor));
+				int32 V01 = OutVertices.Add(FDynamicMeshVertex(V2, TangentX, TangentZ, FVector2D(U, V + SizeV), TextRenderColor));
+				int32 V11 = OutVertices.Add(FDynamicMeshVertex(V3, TangentX, TangentZ, FVector2D(U + SizeU, V + SizeV), TextRenderColor));
 
 				check(V00 < 65536);
 				check(V10 < 65536);
@@ -767,7 +765,9 @@ UMaterialInterface* UTextRenderComponent::GetMaterial(int32 ElementIndex) const
 
 bool UTextRenderComponent::ShouldRecreateProxyOnUpdateTransform() const
 {
-	return true;
+	// We used to rebuild the text every time we moved it, but
+	// now we rely on transforms, so it is no longer necessary.
+	return false;
 }
 
 FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld) const

@@ -43,8 +43,6 @@ Description:Blueprints that declare and define macros for reuse in other Bluepri
 
 [TOC(start:2)]
 
-## Overview
-
 [EXCERPT:Intro]
 A **Blueprint Macro Library** is a container that holds a collection of _Macros_ or self-contained graphs that can 
 be placed as nodes in other _Blueprints_. These can be time-savers as they can store commonly used sequences of nodes 

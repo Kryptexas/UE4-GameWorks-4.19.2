@@ -1,10 +1,8 @@
-﻿INTSourceChangelist:2482628
+﻿INTSourceChangelist:2572470
 Availability:Public
 Title:ビヘイビアツリーのクイックスタートガイド
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees
 Description:AI の概要とサンプル
-Prereq:Engine/Blueprints/BP_HowTo/BasicUsage
-Prereq:Engine/Blueprints
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -49,7 +47,7 @@ Prereq:Engine/Blueprints
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		手順
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

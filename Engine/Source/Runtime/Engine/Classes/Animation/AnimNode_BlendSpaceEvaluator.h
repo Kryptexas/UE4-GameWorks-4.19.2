@@ -22,7 +22,7 @@ public:
 	FAnimNode_BlendSpaceEvaluator();
 
 	// FAnimNode_Base interface
-	virtual void Update(const FAnimationUpdateContext& Context) override;
+	virtual void UpdateAssetPlayer(const FAnimationUpdateContext& Context) override;
 	virtual void GatherDebugData(FNodeDebugData& DebugData) override;
 	// End of FAnimNode_Base interface
 };

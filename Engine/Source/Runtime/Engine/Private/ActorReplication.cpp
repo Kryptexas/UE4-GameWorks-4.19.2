@@ -221,6 +221,7 @@ void AActor::GatherCurrentMovement()
 			ReplicatedMovement.Location = RootComponent->GetComponentLocation();
 			ReplicatedMovement.Rotation = RootComponent->GetComponentRotation();
 			ReplicatedMovement.LinearVelocity = GetVelocity();
+			ReplicatedMovement.AngularVelocity = FVector::ZeroVector;
 			ReplicatedMovement.bRepPhysics = false;
 		}
 	}
@@ -234,6 +235,7 @@ void AActor::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & OutLifeti
 		BPClass->GetLifetimeBlueprintReplicationList(OutLifetimeProps);
 	}
 
+	DOREPLIFETIME( AActor, bReplicateMovement );
 	DOREPLIFETIME( AActor, Role );
 	DOREPLIFETIME( AActor, RemoteRole );
 	DOREPLIFETIME( AActor, Owner );

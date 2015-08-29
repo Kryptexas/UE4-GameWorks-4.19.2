@@ -1,0 +1,31 @@
+﻿INTSourceChangelist:0
+Availability: Public
+Title:Navigating the Graph
+Crumbs:
+Description:Description of the different graph elements and how to move around the graph.
+
+[OBJECT:Redirect]
+[PARAM:link]
+[](Engine/Blueprints/Editor/UIComponents/GraphEditor "%Engine/Blueprints/Editor/UIComponents/GraphEditor:description%")
+[/PARAM]
+[/OBJECT]
+
+<!--
+This page covers how to work inside the **Graph Editor** window on the **Graph** tab of a Blueprint. 
+
+For information on the different options available within the **Graph Tab** itself, refer to the [](Engine/Blueprints/Editor/Modes/GraphPanel) documentation.
+
+## Graph Editor Interface
+
+The image below outlines the core components to the **Graph Editor** followed by descriptions of each component. 
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/GraphEditor#interface]
+
+## Graph Editor Controls
+
+The table below indicates how to perform different actions within the graph itself. 
+
+[INCLUDE:Engine/Blueprints/Editor/UIComponents/GraphEditor#controls]
+-->
+
+

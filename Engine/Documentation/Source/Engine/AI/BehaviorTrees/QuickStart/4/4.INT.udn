@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: 4. Setup the Character Blueprint
 Crumbs:%ROOT%, Engine, Gameplay, Engine/AI/BehaviorTrees, Engine/AI/BehaviorTrees/QuickStart
 Description:Step 4. Setup the Character Blueprint
@@ -21,7 +21,11 @@ Description:Step 4. Setup the Character Blueprint
 
 %Steps%
 
-As we have created a project with a character already in it, we have access to a humanoid Skeletal Mesh and its Animation Blueprint. We will use these in the tutorial, but feel free to use your own if you have them available.
+As we have created a project with a **Character** already in it, we have access to a humanoid **Skeletal Mesh** and its **Animation Blueprint**. We will use these in the tutorial, but feel free to use your own if you have them available.
+
+This Character will become our new AI Character. The reason we use a Character, over say a Pawn, is to gain access to the Character Movement Component's functionality.
+
+## Steps
 
 1. **Double-click** the AI_Character Blueprint in the **Content Browser** to open it for editing.
 
@@ -34,6 +38,8 @@ As we have created a project with a character already in it, we have access to a
 	![](assignSkelMesh.png)
 
 1. Move the **Mesh** Component to center it up inside in the capsule.
+
+1. Rotate the **Mesh** Component so it faces the direction the blue Arrow Component is pointing.
 
 1. In the **Details** panel, find the **Animation** category and assign the `HeroTPP_AnimBlueprint` to the **Animation Blueprint Generated Class** property.
 
@@ -57,7 +63,7 @@ As we have created a project with a character already in it, we have access to a
 	
 	![](maxWalk.png)
 
-1. Click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) button and assign the new AI Controller (`Follower_AI_CON`) to the **AIController Class** property in the **AI** category.
+1. Click the **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\defaultsButton.png) button and assign the new AI Controller (`Follower_AI_CON`) to the **AIController Class** property in the **Pawn** category.
 
 	![](AI_con.png)
 
@@ -65,3 +71,8 @@ As we have created a project with a character already in it, we have access to a
 
 
 %Steps%
+
+
+
+
+

@@ -119,6 +119,17 @@ void FReferenceSkeleton::RebuildNameToIndexMap()
 	checkSlow(NameToIndexMap.Num() == NumBones);
 }
 
+SIZE_T FReferenceSkeleton::GetDataSize() const
+{
+	SIZE_T ResourceSize = 0;
+
+	ResourceSize += RefBoneInfo.GetAllocatedSize();
+	ResourceSize += RefBonePose.GetAllocatedSize();
+	ResourceSize += NameToIndexMap.GetAllocatedSize();
+
+	return ResourceSize;
+}
+
 FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 {
 	Ar << F.RefBoneInfo;
@@ -140,3 +151,4 @@ FArchive & operator<<(FArchive & Ar, FReferenceSkeleton & F)
 
 	return Ar;
 }
+

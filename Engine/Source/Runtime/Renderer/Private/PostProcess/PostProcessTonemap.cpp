@@ -32,7 +32,7 @@ typedef enum {
 	TonemapperDOF               = (1<<8),
 	TonemapperVignette          = (1<<9),
 	TonemapperLightShafts       = (1<<10),
-	TonemapperMosaic            = (1<<11),
+	Tonemapper32BPPHDR          = (1<<11),
 	TonemapperColorFringe       = (1<<12),
 	TonemapperMsaa              = (1<<13),
 } TonemapperOption;
@@ -222,89 +222,97 @@ static uint32 TonemapperConfBitmaskMobile[39] = {
 
 
 	//
-	// 14 for MOSAIC PATH
+	// 14 for 32 bit HDR PATH
 	//
 
-	// This is mosaic without film post.
-	TonemapperMosaic +
+	// This is 32bpp hdr without film post.
+	Tonemapper32BPPHDR +
 	TonemapperGammaOnly +
 	0,
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	0,
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperVignette +
-	0,
-
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperVignette +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
 	TonemapperVignette +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperVignette +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperBloom +
 	0,
 
 	// With grain
 
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperGrainIntensity +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
-	TonemapperShadowTint +
 	TonemapperGrainIntensity +
 	0,
 
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperVignette +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
-	TonemapperContrast +
-	TonemapperColorMatrix +
-	TonemapperVignette +
-	TonemapperGrainIntensity +
-	0,
-
-	TonemapperMosaic + 
+	Tonemapper32BPPHDR + 
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
 	TonemapperVignette +
 	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperVignette +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
+	0,
+
+	Tonemapper32BPPHDR + 
+	TonemapperContrast +
+	TonemapperColorMatrix +
+	TonemapperShadowTint +
+	TonemapperVignette +
+	TonemapperGrainIntensity +
+	TonemapperBloom +
 	0,
 
 
@@ -392,7 +400,7 @@ static uint32 TonemapperFindLeastExpensive(uint32* RESTRICT Table, uint32 TableE
 	// Custom logic to insure fail cases do not happen.
 	uint32 MustNotHaveBitmask = 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperDOF) == 0) ? TonemapperDOF : 0;
-	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMosaic) == 0) ? TonemapperMosaic : 0;
+	MustNotHaveBitmask += ((RequiredOptionsBitmask & Tonemapper32BPPHDR) == 0) ? Tonemapper32BPPHDR : 0;
 	MustNotHaveBitmask += ((RequiredOptionsBitmask & TonemapperMsaa) == 0) ? TonemapperMsaa : 0;
 
 	// Search for exact match first.
@@ -526,10 +534,7 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.SceneColorFringeQuality")); 
 
 	int32 FringeQuality = CVar->GetValueOnRenderThread();
-	if(View->Family->EngineShowFlags.SceneColorFringe
-		// Removed this from the camera imperfections toggle because this no longer takes an extra pass.
-		// && Context->View.Family->EngineShowFlags.CameraImperfections
-		&& View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f
+	if( View->FinalPostProcessSettings.SceneFringeIntensity > 0.01f
 		&& FringeQuality > 0)
 	{
 		Bitmask |= TonemapperColorFringe;
@@ -545,18 +550,18 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 
 	uint32 Bitmask = TonemapperGenerateBitmask(View, bGammaOnly, true);
 
-	bool bUseMosaic = IsMobileHDR32bpp();
+	bool bUse32BPPHDR = IsMobileHDR32bpp();
+	bool bUseMosaic = IsMobileHDRMosaic();
 
 	// Must early exit if gamma only.
 	if(Bitmask == TonemapperGammaOnly)
 	{
-		return Bitmask + (bUseMosaic ? TonemapperMosaic : 0);
+		return Bitmask + (bUse32BPPHDR ? Tonemapper32BPPHDR : 0);
 	}
 
-	// Check if mosaic mode is on and exit if on.
-	if(bUseMosaic)
+	if (bUseMosaic)
 	{
-		return Bitmask + TonemapperMosaic;
+		return Bitmask + Tonemapper32BPPHDR;
 	}
 
 	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
@@ -565,16 +570,22 @@ static uint32 TonemapperGenerateBitmaskMobile(const FViewInfo* RESTRICT View, bo
 		Bitmask += TonemapperMsaa;
 	}
 
-	// Only add mobile post if FP16 is supported.
-	if(GSupportsRenderTargetFormat_PF_FloatRGBA)
+	if (bUse32BPPHDR)
 	{
+		// add limited post for 32 bit encoded hdr.
+		Bitmask += Tonemapper32BPPHDR;
+		Bitmask += TonemapperGenerateBitmaskPost(View);
+	}
+	else if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+	{
+		// add full mobile post if FP16 is supported.
 		Bitmask += TonemapperGenerateBitmaskPost(View);
 		Bitmask += (View->FinalPostProcessSettings.DepthOfFieldScale > 0.0f) ? TonemapperDOF         : 0;
 		Bitmask += (View->bLightShaftUse)                                    ? TonemapperLightShafts : 0;
-
-		// Mobile is not supporting grain quantization and grain jitter currently.
-		Bitmask &= ~(TonemapperGrainQuantization | TonemapperGrainJitter);
 	}
+
+	// Mobile is not supporting grain quantization and grain jitter currently.
+	Bitmask &= ~(TonemapperGrainQuantization | TonemapperGrainJitter);
 	return Bitmask;
 }
 
@@ -889,7 +900,18 @@ public:
 		
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
-		PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
+		{
+			// filtering can cost performance so we use point where possible, we don't want anisotropic sampling
+			FSamplerStateRHIParamRef Filters[] =
+			{
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI(),		// todo: could be SF_Point if fringe is disabled
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI(),
+				TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI(),
+				TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp, 0, 1>::GetRHI(),
+			};
+
+			PostprocessParameter.SetPS(ShaderRHI, Context, 0, false, Filters);
+		}
 			
 		SetShaderValue(Context.RHICmdList, ShaderRHI, OverlayColor, Context.View.OverlayColor);
 
@@ -1095,6 +1117,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		default:
 			check(0);
 	}
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(Context.RHICmdList);
 
 	// Draw a quad mapping scene color to the view's render target
 	TShaderMapRef<FPostProcessTonemapVS> VertexShader(Context.GetShaderMap());
@@ -1106,7 +1129,7 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		SceneContext.GetBufferSizeXY(),
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -1117,13 +1140,13 @@ void FRCPassPostProcessTonemap::Process(FRenderingCompositePassContext& Context)
 	{
 		// The RT should be released as early as possible to allow sharing of that memory for other purposes.
 		// This becomes even more important with some limited VRam (XBoxOne).
-		GSceneRenderTargets.SetSceneColor(0);
+		SceneContext.SetSceneColor(0);
 	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemap::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	// RGB is the color in LDR, A is the luminance for PostprocessAA
@@ -1164,7 +1187,7 @@ class FPostProcessTonemapPS_ES2 : public FGlobalShader
 		OutEnvironment.SetDefine(TEXT("USE_COLOR_MATRIX"),       TonemapperIsDefined(ConfigBitmask, TonemapperColorMatrix));
 		OutEnvironment.SetDefine(TEXT("USE_SHADOW_TINT"),        TonemapperIsDefined(ConfigBitmask, TonemapperShadowTint));
 		OutEnvironment.SetDefine(TEXT("USE_CONTRAST"),           TonemapperIsDefined(ConfigBitmask, TonemapperContrast));
-		OutEnvironment.SetDefine(TEXT("USE_HDR_MOSAIC"),         TonemapperIsDefined(ConfigBitmask, TonemapperMosaic));
+		OutEnvironment.SetDefine(TEXT("USE_32BPP_HDR"),         TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR));
 		OutEnvironment.SetDefine(TEXT("USE_BLOOM"),              TonemapperIsDefined(ConfigBitmask, TonemapperBloom));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_JITTER"),       TonemapperIsDefined(ConfigBitmask, TonemapperGrainJitter));
 		OutEnvironment.SetDefine(TEXT("USE_GRAIN_INTENSITY"),    TonemapperIsDefined(ConfigBitmask, TonemapperGrainIntensity));
@@ -1247,8 +1270,8 @@ public:
 		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
 
 		const uint32 ConfigBitmask = TonemapperConfBitmaskMobile[ConfigIndex];
-			
-		if (TonemapperIsDefined(ConfigBitmask, TonemapperMosaic))
+
+		if (TonemapperIsDefined(ConfigBitmask, Tonemapper32BPPHDR) && IsMobileHDRMosaic())
 		{
 			PostprocessParameter.SetPS(ShaderRHI, Context, TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI());
 		}
@@ -1427,7 +1450,8 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
 
 	FIntRect SrcRect = ViewRect;
-	FIntRect DestRect = View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
+	// no upscale if separate ren target is used.
+	FIntRect DestRect = (ViewFamily.bUseSeparateRenderTarget) ? ViewRect : View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
 	FIntPoint SrcSize = InputDesc->Extent;
 	FIntPoint DstSize = OutputDesc.Extent;
 
@@ -1435,7 +1459,10 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
 
 	// Full clear to avoid restore
-	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+	if (View.StereoPass == eSSP_FULL || View.StereoPass == eSSP_LEFT_EYE)
+	{
+		Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
+	}
 
 	Context.SetViewportAndCallRHI(DestRect);
 
@@ -1518,7 +1545,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 
 FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;

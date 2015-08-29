@@ -1791,7 +1791,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 		float	NewLeftover = OldLeftover + DeltaTime * SpawnRate;
 		int32		Number		= FMath::FloorToInt(NewLeftover);
 		float	Increment	= (SpawnRate > 0.0f) ? (1.f / SpawnRate) : 0.0f;
-		float	StartTime	= DeltaTime + OldLeftover * Increment - Increment;
+		float	StartTime = DeltaTime + OldLeftover * Increment - Increment;
 		NewLeftover			= NewLeftover - Number;
 
 		// Handle growing arrays.
@@ -1806,6 +1806,10 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 			Number = FMath::Min(MaxNewParticles, Number);
 			NewCount = ActiveParticles + Number + BurstCount;
 		}
+
+		float	BurstIncrement = (BurstCount > 0.0f) ? (1.f / BurstCount) : 0.0f;
+		float	BurstStartTime = DeltaTime * BurstIncrement;
+
 
 		if (NewCount >= MaxActiveParticles)
 		{
@@ -1837,7 +1841,7 @@ float FParticleEmitterInstance::Spawn(float DeltaTime)
 			SpawnParticles( Number, StartTime, Increment, InitialLocation, FVector::ZeroVector, EventPayload );
 
 			// Burst particles.
-			SpawnParticles( BurstCount, StartTime, 0.0f, InitialLocation, FVector::ZeroVector, EventPayload );
+			SpawnParticles(BurstCount, BurstStartTime, BurstIncrement, InitialLocation, FVector::ZeroVector, EventPayload);
 
 			return NewLeftover;
 		}
@@ -2942,14 +2946,25 @@ void FParticleMeshEmitterInstance::Tick(float DeltaTime, bool bSuppressSpawning)
 					PayloadData->Rotation = PayloadData->InitRotation + PayloadData->CurContinuousRotation;
 				}
 			}
-
-			PayloadData->CurContinuousRotation += DeltaTime * PayloadData->RotationRate;
 		}
 	}
 
 
 	// Call the standard tick
 	FParticleEmitterInstance::Tick(DeltaTime, bSuppressSpawning);
+	
+	if (MeshRotationActive)
+	{
+		//Must do this (at least) after module update other wise the reset value of RotationRate is used.
+		//Probably the other stuff before the module tick should be brought down here too and just leave the RotationRate reset before.
+		//Though for the sake of not breaking existing behavior, leave things as they are for now.
+		for (int32 i = 0; i < ActiveParticles; i++)
+		{
+			DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[i]);
+			FMeshRotationPayloadData* PayloadData = (FMeshRotationPayloadData*)((uint8*)&Particle + MeshRotationOffset);
+			PayloadData->CurContinuousRotation += DeltaTime * PayloadData->RotationRate;
+		}
+	}
 
 	// Remove from the Sprite count... happens because we use the Super::Tick
 	DEC_DWORD_STAT_BY(STAT_SpriteParticles, ActiveParticles);
@@ -3334,6 +3349,7 @@ SIZE_T FParticleMeshEmitterInstance::GetResourceSize(EResourceSizeMode::Type Mod
  */
 void FParticleMeshEmitterInstance::SetMeshMaterials( const TArray<UMaterialInterface*>& InMaterials )
 {
+	check(IsInGameThread());
 	CurrentMaterials = InMaterials;
 }
 

@@ -6,13 +6,14 @@
 
 #include "Common.usf"
 #include "PostProcessCommon.usf"
+#include "PaniniProjection.usf"
 
 // only for MainPS
 float UpscaleSoftness;
 
 // only for MainVS()
 // .x:HalfFOV .y:tan(HalfFov) .z:CylinderDistortion(0=none, 1:full) .w:Correction to scale Y the same as X is scaled in the center
-float4 DistortionParams;
+float3 PaniniParams;
 
 // to avoid compiler errors on the PS
 #ifndef TESS_RECT_X
@@ -34,22 +35,27 @@ float Gaussian(float Scale, float2 Offset)
 	return exp2(Scale * dot(Offset, Offset));
 }
 
-// @param In -1 .. 1 range
-// @return In -1 .. 1 range
-float2 CylindricalDistortPos(float2 In)
+// Panini projection in the screen pos
+// @param InScreenPos: the position to project in the screen space
+// @return the panini projected postion in screen space
+float2 PaniniProjectionScreenPos(float2 InScreenPos)
 {
-	float HalfFov = DistortionParams.x;
-	float TanHalfFov = DistortionParams.y;
-	float InvHalfFov = 1.0f / HalfFov;
-	float CylinderDistortion = DistortionParams.z;
-	float Correction = DistortionParams.w;
+	const float d = PaniniParams.x;
+	const float s = PaniniParams.y;
+	const float OutScreenPosScale = PaniniParams.z;
+#if 0
+	const float2 ScreenSpaceToPaniniFactor = tan(0.5 * View.FieldOfViewWideAngles);
+	const float2 PaniniToScreenSpaceFactor = 1 / ScreenSpaceToPaniniFactor;
+#else
+	const float2 ScreenSpaceToPaniniFactor = GetTanHalfFieldOfView();
+	const float2 PaniniToScreenSpaceFactor = GetCotanHalfFieldOfView();
+#endif
 
-	float X = In.x * TanHalfFov;
-	float AngleX = atan(X);
+	const float2 PaniniDirection = InScreenPos * ScreenSpaceToPaniniFactor;
+	const float2 PaniniPosition = PaniniProjection(PaniniDirection, d, s);
 
-	float2 Ret = float2(AngleX * InvHalfFov, In.y * cos(AngleX) * Correction);
-
-	return lerp(In, Ret, CylinderDistortion);
+	// Return the new position back in the screen space frame
+	return PaniniPosition * PaniniToScreenSpaceFactor * OutScreenPosScale;
 }
 
 
@@ -71,7 +77,7 @@ void MainVS(
 	float2 PlanarScreenPos = TexCoord * 2 - 1;
 
 	// distort pos
-	Position.xy = CylindricalDistortPos(PlanarScreenPos) * 0.5f + 0.5f;
+	Position.xy = PaniniProjectionScreenPos(PlanarScreenPos) * 0.5f + 0.5f;
 
 	DrawRectangle(Position, TexCoord, OutPosition, OutTexCoord.xy);
 	OutTexCoord.zw =  OutPosition.xy;

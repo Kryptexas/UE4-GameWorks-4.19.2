@@ -142,9 +142,16 @@ protected:
 		id(ID++)
 	{
 		ir_type = ir_type_unset;
+		if (id == BREAK_ON_ID)
+		{
+#if WIN32
+			__debugbreak();
+#endif
+        }
 	}
 
 	static int ID;
+	static int BREAK_ON_ID;
 };
 
 

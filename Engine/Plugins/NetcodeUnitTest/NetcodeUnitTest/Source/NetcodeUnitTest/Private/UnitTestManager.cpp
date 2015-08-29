@@ -12,9 +12,10 @@
 #include "SLogWindow.h"
 #include "SLogDialog.h"
 
+#include "NUTUtil.h"
+#include "NUTUtilDebug.h"
 #include "NUTUtilNet.h"
 #include "NUTUtilProfiler.h"
-#include "NUTUtil.h"
 
 // @todo JohnB: Add an overall-timer, and then start debugging the memory management in more detail
 
@@ -146,14 +147,15 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 								UnitTestClass != UClientUnitTest::StaticClass();
 
 	UUnitTest* UnitTestDefault = (bValidUnitTestClass ? Cast<UUnitTest>(UnitTestClass->GetDefaultObject()) : NULL);
+	bool bSupportsAllGames = (bValidUnitTestClass ? UnitTestDefault->GetSupportedGames().Contains("NullUnitEnv") : false);
 
 	bValidUnitTestClass = UnitTestDefault != NULL;
 
 
-	if (bValidUnitTestClass && UUnitTest::UnitEnv != NULL)
+	if (bValidUnitTestClass && (UUnitTest::UnitEnv != NULL || bSupportsAllGames))
 	{
 		FString UnitTestName = UnitTestDefault->GetUnitTestName();
-		bool bCurrentGameSupported = UnitTestDefault->GetSupportedGames().Contains(FApp::GetGameName());
+		bool bCurrentGameSupported = bSupportsAllGames || UnitTestDefault->GetSupportedGames().Contains(FApp::GetGameName());
 
 		if (bCurrentGameSupported)
 		{
@@ -219,8 +221,20 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 	}
 	else if (UUnitTest::UnitEnv == NULL)
 	{
-		STATUS_LOG(ELogType::StatusError | ELogType::StyleBold,
-					TEXT("No unit test environment found (need to load unit test environment module for this game, or create it)."));
+		ELogType StatusType = ELogType::StyleBold;
+
+		// @todo JohnB: This should be enabled by default instead, so automation testing does give an error when a game doesn't
+		//				have a unit test environment. You should probably setup a whitelist of 'known-unsupported-games' somewhere,
+		//				to keep track of what games need support added, without breaking automation testing (but without breaking the
+		//				flow of setting-up/running automation tests)
+		if (!GIsAutomationTesting)
+		{
+			StatusType |= ELogType::StatusError;
+		}
+
+		STATUS_LOG(StatusType,
+				TEXT("No unit test environment found (need to load unit test environment module for this game '%s', or create it)."),
+				FApp::GetGameName());
 	}
 
 	return bSuccess;
@@ -318,6 +332,12 @@ bool UUnitTestManager::WithinUnitTestLimits(UClass* PendingUnitTest/*=NULL*/)
 	// Check max unit test count
 	bReturnVal = !bCapUnitTestCount || ActiveUnitTests.Num() < MaxUnitTestCount;
 
+	int32 CommandlineCap = 0;
+
+	if (bReturnVal && FParse::Value(FCommandLine::Get(), TEXT("UnitTestCap="), CommandlineCap) && CommandlineCap > 0)
+	{
+		bReturnVal = ActiveUnitTests.Num() < CommandlineCap;
+	}
 
 	// Limit the number of first-run unit tests (which don't have any stats gathered), to MaxUnitTestCount, even if !bCapUnitTestCount.
 	// If any first-run unit tests have had to be aborted, this might signify a problem, so make the cap very strict (two at a time)
@@ -1027,7 +1047,7 @@ void UUnitTestManager::OpenStatusWindow()
 						{
 							FString LogLine = FOutputDevice::FormatLogLine(Verbosity, Category, V);
 
-							STATUS_LOG_BASE(, TEXT("%s"), *LogLine);
+							STATUS_LOG_BASE(ELogType::OriginConsole, TEXT("%s"), *LogLine);
 						});
 
 
@@ -1293,54 +1313,78 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 	// Debug unit test commands
 	else if (UnitTestName == TEXT("debug"))
 	{
-		if (InWorld != NULL)
-		{
-			UUnitTest** TargetUnitTestRef = ActiveUnitTests.FindByPredicate(
-				[&InWorld](const UUnitTest* InElement)
-				{
-					auto CurUnitTest = Cast<UClientUnitTest>(InElement);
-
-					return CurUnitTest != NULL && CurUnitTest->UnitWorld == InWorld;
-				});
-
-			UClientUnitTest* TargetUnitTest = (TargetUnitTestRef != NULL ? Cast<UClientUnitTest>(*TargetUnitTestRef) : NULL);
-
-			if (TargetUnitTest != NULL)
+		UUnitTest** TargetUnitTestRef = (InWorld != NULL ? ActiveUnitTests.FindByPredicate(
+			[&InWorld](const UUnitTest* InElement)
 			{
-				if (FParse::Command(&Cmd, TEXT("Requirements")))
+				auto CurUnitTest = Cast<UClientUnitTest>(InElement);
+
+				return CurUnitTest != NULL && CurUnitTest->UnitWorld == InWorld;
+			})
+			: NULL);
+
+		UClientUnitTest* TargetUnitTest = (TargetUnitTestRef != NULL ? Cast<UClientUnitTest>(*TargetUnitTestRef) : NULL);
+
+		// Alternatively, if a unit test has not launched started connecting to a server, its world may not be setup,
+		// so can detect by checking the active log unit test too
+		if (TargetUnitTest == NULL && GActiveLogUnitTest != NULL)
+		{
+			TargetUnitTest = Cast<UClientUnitTest>(GActiveLogUnitTest);
+		}
+
+		if (TargetUnitTest != NULL)
+		{
+			if (FParse::Command(&Cmd, TEXT("Requirements")))
+			{
+				EUnitTestFlags RequirementsFlags = (TargetUnitTest->UnitTestFlags & EUnitTestFlags::RequirementsMask);
+				EUnitTestFlags MetRequirements = TargetUnitTest->GetMetRequirements();
+
+				// Iterate over the requirements mask flag bits
+				FString RequiredBits = TEXT("");
+				FString MetBits = TEXT("");
+				FString FailBits = TEXT("");
+				TArray<FString> FlagResults;
+				EUnitTestFlags FirstFlag =
+					(EUnitTestFlags)(1UL << (31 - FMath::CountLeadingZeros((uint32)EUnitTestFlags::RequirementsMask)));
+
+				for (EUnitTestFlags CurFlag=FirstFlag; !!(CurFlag & EUnitTestFlags::RequirementsMask);
+						CurFlag = (EUnitTestFlags)((uint32)CurFlag >> 1))
 				{
-					EUnitTestFlags RequirementsFlags = (TargetUnitTest->UnitTestFlags & EUnitTestFlags::RequirementsMask);
-					EUnitTestFlags MetRequirements = TargetUnitTest->GetMetRequirements();
+					bool bCurFlagReq = !!(CurFlag & RequirementsFlags);
+					bool bCurFlagSet = !!(CurFlag & MetRequirements);
 
-					// Iterate over the requirements mask flag bits
-					FString RequiredBits = TEXT("");
-					FString MetBits = TEXT("");
-					FString FailBits = TEXT("");
-					TArray<FString> FlagResults;
-					EUnitTestFlags FirstFlag =
-						(EUnitTestFlags)(1UL << (31 - FMath::CountLeadingZeros((uint32)EUnitTestFlags::RequirementsMask)));
+					RequiredBits += (bCurFlagReq ? TEXT("1") : TEXT("0"));
+					MetBits += (bCurFlagSet ? TEXT("1") : TEXT("0"));
+					FailBits += ((bCurFlagReq && !bCurFlagSet) ? TEXT("1") : TEXT("0"));
 
-					for (EUnitTestFlags CurFlag=FirstFlag; !!(CurFlag & EUnitTestFlags::RequirementsMask);
-							CurFlag = (EUnitTestFlags)((uint32)CurFlag >> 1))
-					{
-						bool bCurFlagReq = !!(CurFlag & RequirementsFlags);
-						bool bCurFlagSet = !!(CurFlag & MetRequirements);
+					FlagResults.Add(FString::Printf(TEXT(" - %s: Required: %i, Set: %i, Failed: %i"), *GetUnitTestFlagName(CurFlag),
+									(uint32)bCurFlagReq, (uint32)bCurFlagSet, (uint32)(bCurFlagReq && !bCurFlagSet)));
+				}
 
-						RequiredBits += (bCurFlagReq ? TEXT("1") : TEXT("0"));
-						MetBits += (bCurFlagSet ? TEXT("1") : TEXT("0"));
-						FailBits += ((bCurFlagReq && !bCurFlagSet) ? TEXT("1") : TEXT("0"));
+				Ar.Logf(TEXT("Requirements flags for unit test '%s': Required: %s, Set: %s, Failed: %s"),
+						*TargetUnitTest->GetUnitTestName(), *RequiredBits, *MetBits, *FailBits);
 
-						FlagResults.Add(FString::Printf(TEXT(" - %s: Required: %i, Set: %i, Failed: %i"), *GetUnitTestFlagName(CurFlag),
-										(uint32)bCurFlagReq, (uint32)bCurFlagSet, (uint32)(bCurFlagReq && !bCurFlagSet)));
-					}
+				for (auto CurResult : FlagResults)
+				{
+					Ar.Logf(*CurResult);
+				}
+			}
+			else if (FParse::Command(&Cmd, TEXT("ForceReady")))
+			{
+				if (TargetUnitTest != NULL && !!(TargetUnitTest->UnitTestFlags & EUnitTestFlags::LaunchServer) &&
+					TargetUnitTest->ServerHandle.IsValid() && TargetUnitTest->UnitPC == NULL)
+				{
+					Ar.Logf(TEXT("Forcing unit test '%s' as ready to connect client."), *TargetUnitTest->GetUnitTestName());
 
-					Ar.Logf(TEXT("Requirements flags for unit test '%s': Required: %s, Set: %s, Failed: %s"),
-							*TargetUnitTest->GetUnitTestName(), *RequiredBits, *MetBits, *FailBits);
+					TargetUnitTest->ConnectFakeClient();
+				}
+			}
+			else if (FParse::Command(&Cmd, TEXT("Disconnect")))
+			{
+				if (TargetUnitTest != NULL && TargetUnitTest->UnitConn != NULL)
+				{
+					Ar.Logf(TEXT("Forcing unit test '%s' to disconnect."), *TargetUnitTest->GetUnitTestName());
 
-					for (auto CurResult : FlagResults)
-					{
-						Ar.Logf(*CurResult);
-					}
+					TargetUnitTest->UnitConn->Close();
 				}
 			}
 		}
@@ -1490,8 +1534,9 @@ void UUnitTestManager::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosit
 				}
 
 				TSharedRef<FString> LogLineRef = MakeShareable(LogLine);
+				bool bRequestFocus = !!(CurLogType & ELogType::FocusMask);
 
-				LogWidget->AddLine(CurLogType, LogLineRef, StatusColor);
+				LogWidget->AddLine(CurLogType, LogLineRef, StatusColor, bRequestFocus);
 
 
 				if (bSetTypeColor)
@@ -1609,6 +1654,141 @@ static bool UnitTestExec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar)
 		NUTNet::CleanupUnitTestWorlds();
 
 		return true;
+	}
+	/**
+	 * Special 'StackTrace' command, for adding complex arbitrary stack tracing, as a debugging method.
+	 *
+	 * Usage: (NOTE: Replace 'TraceName' as desired, to help identify traces in logs)
+	 *
+	 * Once-off stack trace/dump:
+	 *	GEngine->Exec(NULL, TEXT("StackTrace TraceName"));
+	 *
+	 *
+	 * Multiple tracked stack traces: (grouped by TraceName)
+	 *	- Add a stack trace to tracking: ('-Log' also logs that a stack trace was added, and '-Dump' immediately dumps it to log,
+	 *										'-StartDisabled' only begins tracking once the 'enable' command below is called)
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Add"));
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Add -Log"));
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Add -Log -Dump"));
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Add -StartDisabled"));
+	 *
+	 *	- Dump collected/tracked stack traces: (also removes from tracking by default, unless -Keep is added)
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Dump"));
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Dump -Keep"));
+	 *
+	 *	- Temporarily disable tracking: (NOTE: Dump must be used with -Keep to use this)
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Disable"));
+	 *
+	 *	- Enable/re-enable tracking: (usually not necessary, unless tracking was previously disabled)
+	 *		GEngine->Exec(NULL, TEXT("StackTrace TraceName Enable"));
+	 *
+	 *
+	 * Additional commands:
+	 * - Dump all active stack traces (optionally skip resetting built up stack traces, and optionally stop all active traces)
+	 *		"StackTrace DumpAll"
+	 *		"StackTrace DumpAll -NoReset"
+	 *		"StackTrace DumpAll -Stop"
+	 */
+	else if (FParse::Command(&Cmd, TEXT("StackTrace")))
+	{
+		FString TraceName;
+
+		if (FParse::Command(&Cmd, TEXT("DumpAll")))
+		{
+			bool bKeepTraceHistory = FParse::Param(Cmd, TEXT("KEEPHISTORY"));
+			bool bStopTracking = FParse::Param(Cmd, TEXT("STOP"));
+
+			GTraceManager.DumpAll(bKeepTraceHistory, !bStopTracking);
+		}
+		else if (FParse::Token(Cmd, TraceName, true))
+		{
+			if (FParse::Command(&Cmd, TEXT("Enable")))
+			{
+				GTraceManager.Enable(TraceName);
+			}
+			else if (FParse::Command(&Cmd, TEXT("Disable")))
+			{
+				GTraceManager.Disable(TraceName);
+			}
+			else if (FParse::Command(&Cmd, TEXT("Add")))
+			{
+				bool bLogAdd = FParse::Param(Cmd, TEXT("LOG"));
+				bool bDump = FParse::Param(Cmd, TEXT("DUMP"));
+				bool bStartDisabled = FParse::Param(Cmd, TEXT("STARTDISABLED"));
+
+				GTraceManager.AddTrace(TraceName, bLogAdd, bDump, bStartDisabled);
+			}
+			else if (FParse::Command(&Cmd, TEXT("Dump")))
+			{
+				GTraceManager.Dump(TraceName);
+			}
+			// If no subcommands above are specified, assume this is a once-off stack trace dump
+			// @todo JohnB: This will also capture mistyped commands, so find a way to detect that
+			else
+			{
+				GTraceManager.TraceAndDump(TraceName);
+			}
+		}
+		else
+		{
+			Ar.Logf(TEXT("Need to specify TraceName, i.e. 'StackTrace TraceName'"));
+		}
+	}
+	/**
+	 * Special 'LogTrace' command, which ties into the stack tracking code as used by the 'StackTrace' command.
+	 * Every time a matching log entry is encountered, a stack trace is dumped.
+	 *
+	 * NOTE: Does not track the category or verbosity of log entries
+	 *
+	 * Usage: (NOTE: Replace 'LogLine' with the log text to be tracked)
+	 *
+	 *	- Add an exact log line to tracking (case sensitive, and must match length too):
+	 *		GEngine->Exec(NULL, TEXT("LogTrace Add LogLine"));
+	 *
+	 *	- Add a partial log line to tracking (case insensitive, and can match substrings):
+	 *		GEngine->Exec(NULL, TEXT("LogTrace AddPartial LogLine"));
+	 *
+	 *	- Dump accumulated log entries, for a specified log line, and clears it from tracing:
+	 *		GEngine->Exec(NULL, TEXT("LogTrace Dump LogLine"));
+	 *
+	 *	- Clear the specified log line from tracing:
+	 *		GEngine->Exec(NULL, TEXT("LogTrace Clear LogLine"));
+	 *
+	 *	- Clear all log lines from tracing:
+	 *		GEngine->Exec(NULL, TEXT("LogTrace ClearAll"));
+	 *		GEngine->Exec(NULL, TEXT("LogTrace ClearAll -Dump"));
+	 */
+	else if (FParse::Command(&Cmd, TEXT("LogTrace")))
+	{
+		FString LogLine = TEXT("NotSet");
+
+		if (FParse::Command(&Cmd, TEXT("Add")) && (LogLine = Cmd).Len() > 0)
+		{
+			GLogTraceManager.AddLogTrace(LogLine, false);
+		}
+		else if (FParse::Command(&Cmd, TEXT("AddPartial")) && (LogLine = Cmd).Len() > 0)
+		{
+			GLogTraceManager.AddLogTrace(LogLine, true);
+		}
+		else if (FParse::Command(&Cmd, TEXT("Dump")) && (LogLine = Cmd).Len() > 0)
+		{
+			GLogTraceManager.ClearLogTrace(LogLine, true);
+		}
+		else if (FParse::Command(&Cmd, TEXT("Clear")) && (LogLine = Cmd).Len() > 0)
+		{
+			GLogTraceManager.ClearLogTrace(LogLine, false);
+		}
+		else if (FParse::Command(&Cmd, TEXT("ClearAll")))
+		{
+			bool bDump = FParse::Param(Cmd, TEXT("DUMP"));
+
+			GLogTraceManager.ClearAll(bDump);
+		}
+		// If LogLine is now zero-length instead of 'NotSet', that means a valid command was encountered, but no LogLine specified
+		else if (LogLine.Len() == 0)
+		{
+			Ar.Logf(TEXT("Need to specify a log line for tracing."));
+		}
 	}
 
 	return bReturnVal;

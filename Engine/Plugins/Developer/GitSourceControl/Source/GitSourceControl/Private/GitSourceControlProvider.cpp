@@ -143,16 +143,6 @@ TArray<FSourceControlStateRef> FGitSourceControlProvider::GetCachedStateByPredic
 	return Result;
 }
 
-void FGitSourceControlProvider::RegisterSourceControlStateChanged(const FSourceControlStateChanged::FDelegate& SourceControlStateChanged)
-{
-	OnSourceControlStateChanged.Add( SourceControlStateChanged );
-}
-
-void FGitSourceControlProvider::UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.DEPRECATED_Remove( SourceControlStateChanged );
-}
-
 FDelegateHandle FGitSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return OnSourceControlStateChanged.Add( SourceControlStateChanged );
@@ -339,6 +329,12 @@ ECommandResult::Type FGitSourceControlProvider::ExecuteSynchronousCommand(FGitSo
 
 	// Delete the command now (asynchronous commands are deleted in the Tick() method)
 	check(!InCommand.bAutoDelete);
+
+	// ensure commands that are not auto deleted do not end up in the command queue
+	if ( CommandQueue.Contains( &InCommand ) ) 
+	{
+		CommandQueue.Remove( &InCommand );
+	}
 	delete &InCommand;
 
 	return Result;

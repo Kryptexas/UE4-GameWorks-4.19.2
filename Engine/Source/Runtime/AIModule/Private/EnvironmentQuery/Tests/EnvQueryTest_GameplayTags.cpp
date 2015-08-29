@@ -70,7 +70,7 @@ void UEnvQueryTest_GameplayTags::RunTest(FEnvQueryInstance& QueryInstance) const
 		}
 		else // If no GameplayTagAssetInterface is found, this test doesn't apply at all, so just skip the item.
 		{	 // Currently 
-			It.SkipItem();
+			It.ForceItemState(EEnvItemStatus::Passed);
 		}
 	}
 }

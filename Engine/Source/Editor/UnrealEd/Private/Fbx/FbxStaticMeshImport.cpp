@@ -48,6 +48,7 @@
 #include "FbxErrors.h"
 #include "Engine/StaticMeshSocket.h"
 #include "Engine/Polys.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "FbxStaticMeshImport"
 
@@ -244,7 +245,11 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	int32 LayerSmoothingCount = Mesh->GetLayerCount(FbxLayerElement::eSmoothing);
 	for(int32 i = 0; i < LayerSmoothingCount; i++)
 	{
-		GeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (Mesh, i);
+		FbxLayerElementSmoothing const* SmoothingInfo = Mesh->GetLayer(0)->GetSmoothing();
+		if (SmoothingInfo && SmoothingInfo->GetMappingMode() != FbxLayerElement::eByPolygon)
+		{
+			GeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing (Mesh, i);
+		}
 	}
 
 	if (!Mesh->IsTriangleMesh())
@@ -331,14 +336,6 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 	FbxLayerElement::EMappingMode SmoothingMappingMode(FbxLayerElement::eByEdge);
 	if (SmoothingInfo)
 	{
-		if( SmoothingInfo->GetMappingMode() == FbxLayerElement::eByEdge )
-		{
-			if (!GeometryConverter->ComputePolygonSmoothingFromEdgeSmoothing(Mesh))
-			{
-				AddTokenizedErrorMessage(FTokenizedMessage::Create(EMessageSeverity::Warning, FText::Format(LOCTEXT("Error_FailedtoConvertSmoothingGroup", "Unable to fully convert the smoothing groups for mesh '{0}'"), FText::FromString(Mesh->GetName()))), FFbxErrors::Generic_Mesh_ConvertSmoothingGroupFailed);
-				bSmoothingAvailable = false;
-			}
-		}
 
 		if( SmoothingInfo->GetMappingMode() == FbxLayerElement::eByPolygon )
 		{
@@ -925,6 +922,9 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 
 			// Create a package for each mesh
 			Package = CreatePackage(NULL, *NewPackageName);
+
+			// Require the parent because it will have been invalidated from the garbage collection
+			Parent = Package;
 		}
 		else
 		{
@@ -1206,15 +1206,14 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		}
 
 		UFbxStaticMeshImportData* ImportData = UFbxStaticMeshImportData::GetImportDataForStaticMesh(StaticMesh, TemplateImportData);
-		ImportData->SourceFilePath = FReimportManager::SanitizeImportFilename(UFactory::CurrentFilename, StaticMesh);
-		ImportData->SourceFileTimestamp = IFileManager::Get().GetTimeStamp(*UFactory::CurrentFilename).ToString();
-		ImportData->bDirty = false;
+		ImportData->Update(UFactory::CurrentFilename);
 
 		// @todo This overrides restored values currently but we need to be able to import over the existing settings if the user chose to do so.
 		SrcModel.BuildSettings.bRemoveDegenerates = ImportOptions->bRemoveDegenerates;
+		SrcModel.BuildSettings.bBuildAdjacencyBuffer = ImportOptions->bBuildAdjacencyBuffer;
 		SrcModel.BuildSettings.bRecomputeNormals = ImportOptions->NormalImportMethod == FBXNIM_ComputeNormals;
 		SrcModel.BuildSettings.bRecomputeTangents = ImportOptions->NormalImportMethod != FBXNIM_ImportNormalsAndTangents;
-
+		SrcModel.BuildSettings.bUseMikkTSpace = ImportOptions->NormalGenerationMethod == EFBXNormalGenerationMethod::MikkTSpace;
 		if( ImportOptions->bGenerateLightmapUVs )
 		{
 			SrcModel.BuildSettings.bGenerateLightmapUVs = true;

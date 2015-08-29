@@ -1107,27 +1107,17 @@ bool SAnimationEditorViewportTabBody::IsPlaybackSpeedSelected(int32 PlaybackSpee
 
 void SAnimationEditorViewportTabBody::ShowReferencePose()
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(PreviewComponent)
-	{
-		PreviewComponent->bForceRefpose = !PreviewComponent->bForceRefpose;
-	}
+	PersonaPtr.Pin()->ShowReferencePose(IsShowReferencePoseEnabled() == false);
 }
 
 bool SAnimationEditorViewportTabBody::CanShowReferencePose() const
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	return PreviewComponent != NULL;
+	return PersonaPtr.Pin()->CanShowReferencePose();
 }
 
 bool SAnimationEditorViewportTabBody::IsShowReferencePoseEnabled() const
 {
-	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
-	if(PreviewComponent)
-	{
-		return PreviewComponent->bForceRefpose;
-	}
-	return false;
+	return PersonaPtr.Pin()->IsShowReferencePoseEnabled();
 }
 
 void SAnimationEditorViewportTabBody::ShowRetargetBasePose()
@@ -2030,16 +2020,13 @@ FReply SAnimationEditorViewportTabBody::ClickedOnViewportCornerText()
 	TSharedPtr<FPersona> Persona = PersonaPtr.Pin();
 	// if it's recording, it won't be able to see the message
 	// so disable it
-	if( Persona->Recorder.InRecording() )
+	if (Persona->Recorder.InRecording())
 	{
 		Persona->Recorder.StopRecord(true);
 	}
-	else if(UBlueprint* Blueprint = Persona->GetBlueprintObj())
+	else 
 	{
-		if(!Blueprint->IsUpToDate())
-		{
-			FKismetEditorUtilities::CompileBlueprint(Blueprint);
-		}
+		Persona->RecompileAnimBlueprintIfDirty();
 	}
 
 	return FReply::Handled();

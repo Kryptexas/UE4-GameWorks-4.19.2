@@ -1,13 +1,13 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2623201
 Availability: Public
 Title:FString
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Properties, Programming/UnrealArchitecture/StringHandling
 Description:
-Version: 4.5
+Version: 4.9
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 [EXCERPT:Overview]
 FName 이나 FText 와는 달리, FString 은 조작이 가능한 유일한 스트링 클래스입니다. 대소문자 변환, 부분문자열 발췌, 역순 등 사용가능한 메소드는 많습니다.

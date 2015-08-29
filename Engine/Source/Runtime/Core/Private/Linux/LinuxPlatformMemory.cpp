@@ -25,6 +25,16 @@ void FLinuxPlatformMemory::Init()
 
 class FMalloc* FLinuxPlatformMemory::BaseAllocator()
 {
+	// This function gets executed very early, way before main() (because global constructors will allocate memory).
+	// This makes it ideal, if unobvious, place for a root privilege check.
+	if (geteuid() == 0)
+	{
+		fprintf(stderr, "Refusing to run with the root privileges.\n");
+		FPlatformMisc::RequestExit(true);
+		// unreachable
+		return nullptr;
+	}
+
 	enum EAllocatorToUse
 	{
 		Ansi,

@@ -1,4 +1,5 @@
-﻿Availability:Docs
+﻿INTSourceChangelist:2591123
+Availability:Docs
 Title:アンビエント オクルージョン
 Crumbs:%ROOT%, Resources, Resources/Showcases/PostProcessing
 Description:UE4 に同梱されているマチネのポストプロセスの例として紹介するアンビエント オクルージョンの利用概要
@@ -13,7 +14,7 @@ Description:UE4 に同梱されているマチネのポストプロセスの例�
 
 | **プロパティ** | **このシーンでの使用** | **使用前 /使用後** |
 |---|---|:---:|
-| **Static Fraction** | スタティック ライティングからシーンへ適用された AP 量を _pull back_ するために値は 0.7 (70 %) に設定しています。結果としてライトがキャラクター上に跳ね返っているように表示されます。 <br><br> 最終効果の作成はグローバル イルミネーション設定と連携していることに注目してください。アンビエント オクルージョンの設定に関する詳細は[Ambient Occlusion section of the Post Process Effects documentation](Engine/Rendering\LightingAndShadows\AmbientOcclusion) を参照してください。  | [INCLUDE:#AO] |
+| **Static Fraction** | 静的ライティングからシーンへ適用された AO（アンビエント オクルージョン） 量を _pull back_ するために値は 0.7 (70 %) に設定しています。結果としてライトがキャラクター上に跳ね返っているように表示されます。 <br><br> 最終効果の作成はグローバル イルミネーション設定と連携していることに注目してください。アンビエント オクルージョンの設定に関する詳細は [ポストプロセス エフェクトのドキュメントのアンビエント オクルージョンのセクション](Engine/Rendering\LightingAndShadows\AmbientOcclusion) を参照してください。  | [INCLUDE:#AO] |
 
 
 

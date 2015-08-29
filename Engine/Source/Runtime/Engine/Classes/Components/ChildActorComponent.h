@@ -14,7 +14,7 @@ class UChildActorComponent : public USceneComponent
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, Category=ChildActorComponent)
-	ENGINE_API void SetChildActorClass(TSubclassOf<AActor> Class);
+	ENGINE_API void SetChildActorClass(TSubclassOf<AActor> InClass);
 
 	TSubclassOf<AActor> GetChildActorClass() const { return ChildActorClass; }
 
@@ -48,7 +48,6 @@ public:
 	virtual void OnComponentDestroyed() override;
 	virtual void OnRegister() override;
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface.
 
 	/** Apply the component instance data to the child actor component */

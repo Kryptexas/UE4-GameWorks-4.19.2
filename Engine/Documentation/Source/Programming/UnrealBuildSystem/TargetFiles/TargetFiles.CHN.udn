@@ -1,0 +1,122 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Unreal Build System Target Files
+Crumbs: %ROOT%, Programming, Programming\UnrealBuildSystem
+Description:Reference for the target files used by Unreal Build System when building modules.
+Version: 4.5
+
+[TOC (start:2 end:3)]
+
+## Overview
+
+The Unreal Build System makes use of **Target** files for each application UnrealBuildTool builds that get compiled into the dynamic Rules module. These files replace the old `UEBuild*.cs` files that were originally compiled directly into UnrealBuildTool. Each target file defines a class used by UnrealBuildtool to determine how a game or program is built.
+
+UnrealBuildTool now retrieves the proper target for the project being built from the RulesModule.dll.
+
+There are 2 types of target:
+
+* **Game** - This is a target that utilizes the 'shared' UE4 executable.
+* **Program** - This is a target that is a stand-alone executable. ShaderCompileWorker, SlateViewer, and UnrealHeaderTool are this type of target.
+
+
+## Target File Naming and Location
+
+The Target file must be located in the root directory of a program or `Source` directory of a game and be named using the convention: `[APPNAME].Target.cs`
+
+As an example, the ShaderCompileWorker program directory at `\UE4\Engine\Source\Programs\ShaderCompileWorker` contains the `ShaderCompileWorker.Target.cs` file.
+
+Similarly, the ExampleGame `Source` directory located at `UE4\ExampleGame|Source` contains the `ExampleGame.Target.cs` file.
+
+## Target File Contents
+
+The class defined in the Target file for each game or program is derived from `TargetRules` (found in `RulesCompiler.cs`). 
+
+The name of the class is constructed by adding the name of the tool or game followed by `target`. For instance, the class defined in the target file for the ShaderCompileWorker tool would be `ShaderCompileWorkerTarget`. The `Target` at the end is **REQUIRED**. It was added to avoid name collisions with the existing `*.Build.cs` module rules classes, since they all get compiled into the same DLL.
+
+UnrealBuildTool takes `[APPNAME]` and appends `Target` when requesting the build target from the Rules DLL. So, using the same example as above, when UnrealBuildTool is passed `ShaderCompileWorker Win64 Development` it will request `ShaderCompileWorkerTarget` as the `TargetRules` class name of interest.
+
+### Constructor
+
+The constructor sets the name of the application and the type of target to generate. Here is the constructor for ExampleGameTarget for comparison:
+	
+	public ExampleGameTarget(TargetInfo Target)
+	{
+		Type = TargetType.Game;
+		Name = "ExampleGame";
+	}
+
+### Setup Binaries
+
+`TargetRules::SetupBinaries()` is used to generate a list of `UEBuildBinaryConfiguration` instances which UnrealBuildTool will use to fill in the AppBinaries array (these are what it will generate).
+
+### Setup Global Environment
+
+`TargetRules::SetupGlobalEnvironment()` is used to set various build configuration settings for UnrealBuildTool for the target as well as setup the global Compile and Link environments.
+
+[REGION:note]
+**Note:** The current games do not contain this function, as the UEBuildGame class takes care of their needs by default. However, if a game needed to override these settings, it certainly can do so.
+[/REGION]
+
+## Example Target File
+
+Here is the ShaderCompileWorker.Target.cs file as a complete example:
+
+	// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+	using UnrealBuildTool;
+	using System.Collections.Generic;
+
+	public class ShaderCompileWorkerTarget : TargetRules
+	{
+		public ShaderCompileWorkerTarget(TargetInfo Target)
+		{
+			Type = TargetType.Program;
+			Name = "ShaderCompileWorker";
+		}
+
+		//
+		// TargetRules interface.
+		//
+
+		public override void SetupBinaries(
+			TargetInfo Target,
+			ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
+			ref List<string> OutExtraModuleNames
+			)
+		{
+			List<string> LinkModules = new List<string>() { "Core", "ShaderCore", "RenderCore", "RHI", "WindowsTools", "ShaderCompileWorker" };
+			OutBuildBinaryConfigurations.Add(
+				new UEBuildBinaryConfiguration(	InType: UEBuildBinaryType.Executable,
+												InModuleNames: LinkModules )
+				);
+		}
+
+		public override void SetupGlobalEnvironment(
+			TargetInfo Target,
+			ref LinkEnvironmentConfiguration OutLinkEnvironmentConfiguration,
+			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
+			)
+		{
+			// Turn off various third party features we don't need
+			UEBuildConfiguration.bAllowSteamworks = false;
+			UEBuildConfiguration.bAllowLive = false;
+			UEBuildConfiguration.bCompilePerforce = false;
+
+			// Currently we force Lean and Mean mode
+			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
+
+			// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
+			UEBuildConfiguration.bCompileAgainstEngine = false;
+
+			// ShaderCompileWorker is a console application, not a Windows app (sets entry point to main(), instead of WinMain())
+			OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = true;
+
+			// Disable logging, as the workers are spawned often and logging will just slow them down
+			OutCPPEnvironmentConfiguration.Definitions.Add("ALLOW_LOG_FILE=0");
+			OutCPPEnvironmentConfiguration.Definitions.Add("HACK_HEADER_GENERATOR=1");
+			OutCPPEnvironmentConfiguration.Definitions.Add("HACK_SHADER_COMPILER_WORKER=1");
+		}
+	}
+
+
+

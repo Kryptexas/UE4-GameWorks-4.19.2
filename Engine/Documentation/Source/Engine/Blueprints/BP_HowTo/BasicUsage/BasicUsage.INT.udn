@@ -1,4 +1,4 @@
-Availability: Public
+Availability: docs
 Title:Blueprint Basic User Guide
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:A quick guide on the elements needed to begin working with Blueprints. 
@@ -158,4 +158,9 @@ Once you have created a variable, you will need be able to define the properties
 [INCLUDE:Engine/Blueprints/UserGuide/Variables#addvariables]
 
 * See [](Engine/Blueprints/UserGuide/Variables) for more information on variable types and more on working with them. 
+
+
+
+
+
 

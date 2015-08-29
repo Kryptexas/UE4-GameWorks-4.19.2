@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2428846
+﻿INTSourceChangelist:2561449
 Availability:Public
 Title:ブループリントにおけるレイキャスト（トレーシング）の使い方
 Crumbs: %ROOT%, Gameplay, Gameplay/HowTo/UseRaycasts
@@ -20,7 +20,7 @@ Description:ブループリントにおけるレイキャスト（トレーシ�
 
 1. **Include Starter Content** の **Blueprint First Person** テンプレートを使ってプロジェクトを作成し **Include Starter Content** プロジェクトを開きます。 
 
-1. 「**ゲーム / ブループリント** 」フォルダから **MyCharacter** ブループリントを開きます。 
+1. **FirstPersonBP/Blueprints** フォルダから **FirstPersonCharacter** ブループリントを開きます。 
 
 1. グラフをどこか **右クリック** して、 **Event Tick** ノードを検索して追加します。 
 
@@ -87,8 +87,8 @@ Description:ブループリントにおけるレイキャスト（トレーシ�
 	![](GHT2B_11.png)(w:800)
 
 	_ここでは一人称視点から離れているので、トレースの視野角を見ることができます。_
-
 	トレースがキューブにヒットすると、キューブが画面へプリントされるので、いつヒットしたか分かります。 
+
 
 上の例では、提供されている Trace Channel へ反応する設定のすべてのオブジェクトを返しますが、所定のオブジェクトだけを返したい場合もあると思います。上の例では、トレースに無視されるアクタの **Array** を受け取る **Actors to Ignore** ピンを使うことができますが、無視する個々のアクタを指定しなければなりません。 
 
@@ -150,7 +150,6 @@ Description:ブループリントにおけるレイキャスト（トレーシ�
 1. **Array Element** を引き出して **Break Hit Result** を追加したら、 **Hit Actor** を引き出して **To String (Object)** を追加して **Print String** に接続します。 
 
 	[REGION:lightbox]
-
 	[![](GHT2B_19.png)(w:800)](GHT2B_19.png)
 	[/REGION]
 

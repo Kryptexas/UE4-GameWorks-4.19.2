@@ -289,12 +289,12 @@ public:
 	/**
 	 * This method is called when new game frame begins (called on a game thread).
 	 */
-	virtual bool OnStartGameFrame() { return false; }
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) { return false; }
 
 	/**
 	 * This method is called when game frame ends (called on a game thread).
 	 */
-	virtual bool OnEndGameFrame() { return false; }
+	virtual bool OnEndGameFrame( FWorldContext& WorldContext ) { return false; }
 
 	/** 
 	 * Additional optional distorion rendering parameters

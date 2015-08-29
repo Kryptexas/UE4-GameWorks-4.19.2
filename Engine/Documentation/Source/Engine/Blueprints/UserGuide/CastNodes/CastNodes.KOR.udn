@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2422946
+﻿INTSourceChangelist:2599318
 Availability:Public
 Title:형변환 (Cast)
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -48,8 +48,6 @@ Related: Engine/Blueprints/HowTo
 
 [TOC (start:2 end:2)]
 
-## 개요
-
 **블루프린트** 에서 **Cast To**, 형변환 노드를 사용할 때, 간단히 말해, 형변환을 하려는 오브젝트가 형변환 대상 오브젝트와 같은지 검사 시도하는 것입니다. 다른 말로 특수한 캐릭터 블루프린트 (예를 들어 MyCharacter) 가 있는데 그 안에 변수와 기타 커스텀 함수성이 들어있으며, 그것을 디폴트 폰 클래스( 또는 모든 플레이어 캐릭터가 기본으로 사용하는 캐릭터 블루프린트)로 할당했다 칩시다.
 
 다른 블루프린트에서 플레이어 캐릭터의 프로퍼티에 접근하고자 하는 경우, **Get Player Character** 노드를 사용하여 매우 일반적인 방식으로 플레이어 캐릭터에 영향을 끼칠 (위치나 회전 등을 구할) 수는 있지만, MyCharacter 블루프린트에 추가한 커스텀 함수성에 접근할 수는 없는데, 플레이어 캐릭터를 구하도록 셋업된 것이지 특정 유형 캐릭터를 구하는 것으로 셋업된 것은 아니기 때문입니다.
@@ -79,6 +77,11 @@ Related: Engine/Blueprints/HowTo
 ## 기타 형변환 유형
 
 [INCLUDE:Engine\Blueprints\UserGuide\BlueprintCommsUsage\BPComHowTo#othercasting]
+
+
+
+
+
 
 
 

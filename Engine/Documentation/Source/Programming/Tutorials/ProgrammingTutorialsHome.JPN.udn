@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2466035
+﻿INTSourceChangelist:2537337
 Availability:Public
 Title:C++ プログラミングのチュートリアル
 Crumbs: %ROOT%, Programming
@@ -70,7 +70,7 @@ Description:アンリアルエンジン実践型プログラミングのステ�
 [/OBJECT]
 [/VAR]
 
-## 初心者
+## 初心者向け
 
 [REGION:features third]
 [OBJECT:Role]
@@ -87,7 +87,7 @@ Description:アンリアルエンジン実践型プログラミングのステ�
 		%Programming/QuickStart:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		quickstart
+		クイックスタート
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -105,7 +105,7 @@ Description:アンリアルエンジン実践型プログラミングのステ�
 		%Programming/Tutorials/PlayerInput:description%
 	[/PARAM]
 	[PARAMLITERAL:id]
-		PlayerInput (プレイヤー入力)
+		playerinput
 	[/PARAMLITERAL]
 [/OBJECT]
 
@@ -185,4 +185,23 @@ Description:アンリアルエンジン実践型プログラミングのステ�
 		components
 	[/PARAMLITERAL]
 [/OBJECT]
+
+[OBJECT:Role]
+	[PARAM:icon]
+		![](%ROOT%/start_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		%Programming/Tutorials/UMG:title%
+	[/PARAM]
+	[PARAM:path]
+		[RELATIVE:Programming/Tutorials/UMG]
+	[/PARAM]
+	[PARAM:description]
+		%Programming/Tutorials/UMG:description%
+	[/PARAM]
+	[PARAMLITERAL:id]
+		umg
+	[/PARAMLITERAL]
+[/OBJECT]
+
 [/REGION]

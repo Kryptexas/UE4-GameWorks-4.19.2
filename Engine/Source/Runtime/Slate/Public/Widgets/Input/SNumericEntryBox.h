@@ -76,6 +76,8 @@ public:
 		SLATE_ATTRIBUTE( float, SliderExponent )
 		/** The minimum desired width for the value portion of the control. */
 		SLATE_ATTRIBUTE( float, MinDesiredValueWidth )
+		/** The text margin to use if overridden. */
+		SLATE_ATTRIBUTE( FMargin, OverrideTextMargin )
 		/** Called whenever the text is changed interactively by the user */
 		SLATE_EVENT( FOnValueChanged, OnValueChanged )
 		/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
@@ -108,8 +110,8 @@ public:
 		BorderImageNormal = &InArgs._EditableTextBoxStyle->BackgroundImageNormal;
 		BorderImageHovered = &InArgs._EditableTextBoxStyle->BackgroundImageHovered;
 		BorderImageFocused = &InArgs._EditableTextBoxStyle->BackgroundImageFocused;
-		const FMargin& TextMargin = InArgs._EditableTextBoxStyle->Padding;
-		
+		TAttribute<FMargin> TextMargin = InArgs._OverrideTextMargin.IsSet() ? InArgs._OverrideTextMargin : InArgs._EditableTextBoxStyle->Padding;
+
 		Interface = InArgs._TypeInterface.IsValid() ? InArgs._TypeInterface : MakeShareable( new TDefaultNumericTypeInterface<NumericType> );
 
 		TSharedPtr<SWidget> FinalWidget;

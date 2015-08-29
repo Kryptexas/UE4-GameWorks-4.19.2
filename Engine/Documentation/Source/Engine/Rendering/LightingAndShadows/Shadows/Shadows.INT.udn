@@ -49,7 +49,7 @@ Related: Engine/Rendering/LightingAndShadows/RayTracedDistanceFieldShadowing
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 Shadows make objects feel grounded in the world and give the viewer a sense of depth and space. Static shadows are free as far as rendering goes, but dynamic shadows can be one of the biggest drains on performance. This document covers the basics of the 4 types of shadow casting you can have in Unreal Engine 4.
 
@@ -105,5 +105,9 @@ If you wish to tweak the Light Function Material used to project this text, it c
 When all the shadows are brought together, each bringing their strengths to make up for the weakness of the others, impressive and rapidly rendered visuals can be brought to life.
 
 ![](LO_Shadows_Footer.png)
+
+
+
+
 
 

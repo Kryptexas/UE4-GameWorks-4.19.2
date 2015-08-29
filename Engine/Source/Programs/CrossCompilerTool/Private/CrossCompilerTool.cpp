@@ -9,6 +9,7 @@
 #include "HlslLexer.h"
 #include "HlslParser.h"
 #include "ShaderPreprocessor.h"
+#include "ShaderCompilerCommon.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -36,11 +37,12 @@ namespace CCT
 
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
 		Flags |= RunInfo.bForcePackedUBs ? (HLSLCC_PackUniforms | HLSLCC_FlattenUniformBufferStructures | HLSLCC_FlattenUniformBuffers) : 0;
+		Flags |= RunInfo.bPackGlobalsIntoUB ? HLSLCC_PackUniformsIntoUniformBuffers : 0;
 
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
-		FGlslCodeBackend GlslBackend(Flags);
+		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags);
+		FMetalCodeBackend MetalBackend(Flags, RunInfo.Target);
 
 		switch (RunInfo.BackEnd)
 		{
@@ -166,6 +168,22 @@ namespace CCT
 			if (RunInfo.OutputFile.Len() > 0)
 			{
 				FFileHelper::SaveStringToFile(OutSource, *RunInfo.OutputFile);
+			}
+		}
+
+		if (ShaderSource)
+		{
+			const ANSICHAR* USFSource = ShaderSource;
+			CrossCompiler::FHlslccHeader CCHeader;
+			int32 Len = FCStringAnsi::Strlen(USFSource);
+			if (!CCHeader.Read(USFSource, Len))
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found"));
+			}
+
+			if (Language == &GlslLanguage && *USFSource != '#')
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Bad hlslcc header found! Missing '#'!"));
 			}
 		}
 

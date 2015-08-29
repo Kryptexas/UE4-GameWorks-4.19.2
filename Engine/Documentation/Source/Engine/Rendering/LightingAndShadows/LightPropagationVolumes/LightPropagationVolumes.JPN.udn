@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2400385
+﻿INTSourceChangelist:2522250
+Availability:Public
 Title:Light Propagation Volume
 Crumbs:%ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:グローバル イルミネーションを動的に生成するシステム
-Availability:Public
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -170,8 +170,8 @@ unbound にし、適切な優先度を持たせるようにします)。
 * ライトのバウンスに対して 1 つ以上の平行光源をサポートしています。
 * ランタイムにサイズを変更すると、時間の経過とともに徐々に薄くなる小さなアーティファクトが生じます。
 * 負荷が小さいエリアのライトに対するエミッシブ ライティング (現時点では未対応)
-* オクルージョン(現時点では未対応)
-* ポイントライトシャドウをオクルージョンによって近似値化 (現時点では未対応)
+* オクルージョン (現時点では未対応)
+* ポイント ライトシャドウをオクルージョンによって近似値化 (現時点では未対応)
 * パフォーマンス コストは多少かかりますが、クオリティは非常に高くなるジオメトリのボクセル化によるセカンダリ オクルージョン(現時点では未対応)
 
 

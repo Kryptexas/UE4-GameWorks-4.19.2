@@ -13,6 +13,7 @@ PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include <unicode/numfmt.h>
 #include <unicode/msgfmt.h>
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
+#include <unicode/uniset.h>
 
 #include "ICUUtilities.h"
 #include "ICUTextCharacterIterator.h"
@@ -220,6 +221,14 @@ FText::FSortPredicate::FSortPredicate(const ETextComparisonLevel::Type Compariso
 bool FText::FSortPredicate::operator()(const FText& A, const FText& B) const
 {
 	return Implementation->Compare(A, B);
+}
+
+bool FText::IsLetter( const TCHAR Char )
+{
+	icu::UnicodeString PatternString = ICUUtilities::ConvertString(TEXT("[\\p{L}]"));
+	UErrorCode ICUStatus = U_ZERO_ERROR;
+	icu::UnicodeSet Uniscode(PatternString, ICUStatus);
+	return Uniscode.contains(Char) != 0;
 }
 
 #endif

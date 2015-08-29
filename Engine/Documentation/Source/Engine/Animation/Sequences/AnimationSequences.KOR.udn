@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346177
+﻿INTSourceChangelist:2600977
 Availability:Public
 Title:애니메이션 시퀀스
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -36,7 +36,17 @@ Related: Engine/Content/Tools/MayaRiggingTool
 **AnimationSequence** (애니메이션 시퀀스)란 스켈레탈 메시에 재생할 수 있는 하나의 애니메이션 애셋입니다. 여기에는 일정 시점에서 본의 위치와 방향과 크기를 나타내는 키프레임이 들어갑니다. 이러한 키프레임을 순서대로 재생도 하고 블렌딩도 하면서 _스켈레탈 메시_ 의 본에 부드러운 애니메이션을 줄 수 있는 것입니다.
 [/EXCERPT:Intro]
 
-![](HuskRun2.gif)(w:720 convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Qo4hH0h9ZZA
+[/PARAMLITERAL]
+[/OBJECT]
 
 각 _애니메이션 시퀀스_ 애셋은 특정 스켈레톤을 타겟으로 하며, 딱 그 스켈레톤에서만 재생 가능합니다. 즉 여러 스켈레탈 메시 사이에 애니메이션을 공유하고자 한다면 메시 각각은 반드시 같은 스켈레톤 애셋을 공유해야 합니다.
 
@@ -94,5 +104,10 @@ _애니메이션 블루프린트_ 안에서 _애니메이션 시퀀스_ 를 사�
 | **Remove Linear Keys** | 선형 키 제거 - 주변 키의 선형 보간으로 처리되는 키를 지우는 단순한 키프레임 감소 알고리즘입니다. |
 | **Compress each track independently** | 각 트랙 독립적 압축 - 주변 키를 선형 보간으로 처리되는 키를 지울 뿐만 아니라 각 트랙마다 최적의 비트단위 압축을 독립적으로 선택하는 키프레임 감소 알고리즘입니다. |
 | **Remove Trivial Keys** | 사소한 키 제거 - 원본 애니메이션 데이터에서 전체 애니메이션 전반적으로 위치나 방향이 일정할 때 트랙의 사소한 프레임을 제거합니다. |
+
+
+
+
+
 
 

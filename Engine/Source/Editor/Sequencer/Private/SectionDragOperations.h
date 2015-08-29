@@ -2,17 +2,15 @@
 
 #pragma once
 
+class USequencerSettings;
+
 /**
  * An drag operation that occurs on a section or key
  */
 class FSequencerDragOperation
 {
 public:
-	FSequencerDragOperation( FSequencer& InSequencer )
-		: Sequencer(InSequencer)
-	{
-		Settings = GetDefault<USequencerSettings>();
-	}
+	FSequencerDragOperation( FSequencer& InSequencer );
 
 	virtual ~FSequencerDragOperation(){}
 	void BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc );
@@ -102,6 +100,8 @@ private:
 	TWeakObjectPtr<UMovieSceneSection> Section;
 	/** true if dragging  the end of the section, false if dragging the start */
 	bool bDraggingByEnd;
+	/** The exact key handles that we're dragging */
+	TSet<FKeyHandle> DraggedKeyHandles;
 };
 
 /**
@@ -127,6 +127,8 @@ private:
 	TWeakObjectPtr<UMovieSceneSection> Section;
 	/** Local mouse position when dragging the section */
 	FVector2D DragOffset;
+	/** The exact key handles that we're dragging */
+	TSet<FKeyHandle> DraggedKeyHandles;
 };
 
 /**
@@ -135,7 +137,7 @@ private:
 class FMoveKeys : public FSequencerDragOperation
 {
 public:
-	FMoveKeys( FSequencer& Sequencer,  const TSet<FSelectedKey>* InSelectedKeys, FSelectedKey& PressedKey )
+	FMoveKeys( FSequencer& Sequencer,  const TSet<FSelectedKey>& InSelectedKeys, FSelectedKey& PressedKey )
 		: FSequencerDragOperation(Sequencer)
 		, SelectedKeys( InSelectedKeys )
 		, DraggedKey( PressedKey )
@@ -152,7 +154,7 @@ protected:
 
 private:
 	/** The selected keys being moved. */
-	const TSet<FSelectedKey>* SelectedKeys;
+	const TSet<FSelectedKey>& SelectedKeys;
 	/** The exact key that we're dragging */
 	FSelectedKey DraggedKey;
 };

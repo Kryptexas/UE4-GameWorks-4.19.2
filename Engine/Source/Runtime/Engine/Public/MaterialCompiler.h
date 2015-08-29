@@ -10,6 +10,7 @@
 #include "Materials/MaterialExpressionSpeedTree.h"
 #include "Materials/MaterialExpressionTextureSample.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionViewProperty.h"
 
 /** 
  * The interface used to translate material expressions into executable code. 
@@ -57,6 +58,8 @@ public:
 	virtual int32 Constant3(float X,float Y,float Z) = 0;
 	virtual int32 Constant4(float X,float Y,float Z,float W) = 0;
 
+	virtual	int32 ViewProperty(EMaterialExposedViewProperty Property, bool InvProperty = false) = 0;
+
 	virtual int32 GameTime(bool bPeriodic, float Period) = 0;
 	virtual int32 RealTime(bool bPeriodic, float Period) = 0;
 	virtual int32 PeriodicHint(int32 PeriodicCode) { return PeriodicCode; }
@@ -73,12 +76,9 @@ public:
 	virtual int32 ReflectionVector() = 0;
 	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) = 0;
 	virtual int32 CameraVector() = 0;
-	virtual int32 CameraWorldPosition() = 0;
 	virtual int32 LightVector() = 0;
 
 	virtual int32 ScreenPosition() = 0;
-	virtual int32 ViewSize() = 0;
-	virtual int32 SceneTexelSize() = 0;
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) = 0;
 	virtual int32 ObjectWorldPosition() = 0;
 	virtual int32 ObjectRadius() = 0;
@@ -100,7 +100,7 @@ public:
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) = 0;
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) = 0;
-	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
+	virtual int32 TextureSample(int32 Texture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index=INDEX_NONE,int32 MipValue1Index=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) = 0;
 
 	virtual int32 TextureDecalMipmapLevel(int32 TextureSizeInput) = 0;
 
@@ -135,6 +135,7 @@ public:
 	virtual int32 Cross(int32 A,int32 B) = 0;
 
 	virtual int32 Power(int32 Base,int32 Exponent) = 0;
+	virtual int32 Logarithm2(int32 X) = 0;
 	virtual int32 SquareRoot(int32 X) = 0;
 	virtual int32 Length(int32 X) = 0;
 
@@ -146,11 +147,12 @@ public:
 
 	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) = 0;
 	virtual int32 AppendVector(int32 A,int32 B) = 0;
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) = 0;
-	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A) = 0;
+	virtual int32 TransformVector(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) = 0;
+	virtual int32 TransformPosition(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) = 0;
 
-	virtual int32 DynamicParameter() = 0;
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) = 0;
 	virtual int32 LightmapUVs() = 0;
+	virtual int32 PrecomputedAOMask()  = 0;
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) = 0;
 	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) = 0;
@@ -172,6 +174,8 @@ public:
 	virtual int32 AntialiasedTextureMask(int32 Tex, int32 UV, float Threshold, uint8 Channel) = 0;
 	virtual int32 Noise(int32 Position, float Scale, int32 Quality, uint8 NoiseFunction, bool bTurbulence, int32 Levels, float OutputMin, float OutputMax, float LevelScale, int32 FilterWidth) = 0;
 	virtual int32 BlackBody( int32 Temp ) = 0;
+	virtual int32 DistanceToNearestSurface(int32 PositionArg) = 0;
+	virtual int32 DistanceFieldGradient(int32 PositionArg) = 0;
 	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) = 0;
 	virtual int32 AtmosphericFogColor(int32 WorldPosition) = 0;
 	virtual int32 SpeedTree(ESpeedTreeGeometryType GeometryType, ESpeedTreeWindType WindType, ESpeedTreeLODType LODType, float BillboardThreshold, bool bAccurateWindVelocities) = 0;
@@ -218,6 +222,8 @@ public:
 	virtual int32 Constant2(float X,float Y) override { return Compiler->Constant2(X,Y); }
 	virtual int32 Constant3(float X,float Y,float Z) override { return Compiler->Constant3(X,Y,Z); }
 	virtual int32 Constant4(float X,float Y,float Z,float W) override { return Compiler->Constant4(X,Y,Z,W); }
+	
+	virtual	int32 ViewProperty(EMaterialExposedViewProperty Property, bool InvProperty) override { return Compiler->ViewProperty(Property, InvProperty); }
 
 	virtual int32 GameTime(bool bPeriodic, float Period) override { return Compiler->GameTime(bPeriodic, Period); }
 	virtual int32 RealTime(bool bPeriodic, float Period) override { return Compiler->RealTime(bPeriodic, Period); }
@@ -235,12 +241,9 @@ public:
 
 	virtual int32 ReflectionVector() override { return Compiler->ReflectionVector(); }
 	virtual int32 CameraVector() override { return Compiler->CameraVector(); }
-	virtual int32 CameraWorldPosition() override { return Compiler->CameraWorldPosition(); }
 	virtual int32 LightVector() override { return Compiler->LightVector(); }
 
 	virtual int32 ScreenPosition() override { return Compiler->ScreenPosition(); }
-	virtual int32 ViewSize() override { return Compiler->ViewSize(); }
-	virtual int32 SceneTexelSize() override { return Compiler->SceneTexelSize(); }
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override { return Compiler->WorldPosition(WorldPositionIncludedOffsets); }
 	virtual int32 ObjectWorldPosition() override { return Compiler->ObjectWorldPosition(); }
 	virtual int32 ObjectRadius() override { return Compiler->ObjectRadius(); }
@@ -256,8 +259,8 @@ public:
 
 	virtual int32 If(int32 A,int32 B,int32 AGreaterThanB,int32 AEqualsB,int32 ALessThanB,int32 Threshold) override { return Compiler->If(A,B,AGreaterThanB,AEqualsB,ALessThanB,Threshold); }
 
-	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,EMaterialSamplerType SamplerType,int32 MipValueIndex=INDEX_NONE,ETextureMipValueMode MipValueMode=TMVM_None,ESamplerSourceMode SamplerSource=SSM_FromTextureAsset) override 
-		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValueIndex,MipValueMode,SamplerSource); }
+	virtual int32 TextureSample(int32 InTexture,int32 Coordinate,enum EMaterialSamplerType SamplerType,int32 MipValue0Index,int32 MipValue1Index,ETextureMipValueMode MipValueMode,ESamplerSourceMode SamplerSource) override 
+		{ return Compiler->TextureSample(InTexture,Coordinate,SamplerType,MipValue0Index,MipValue1Index,MipValueMode,SamplerSource); }
 
 	virtual int32 TextureCoordinate(uint32 CoordinateIndex, bool UnMirrorU, bool UnMirrorV) override { return Compiler->TextureCoordinate(CoordinateIndex, UnMirrorU, UnMirrorV); }
 
@@ -290,6 +293,7 @@ public:
 	virtual int32 Cross(int32 A,int32 B) override { return Compiler->Cross(A,B); }
 
 	virtual int32 Power(int32 Base,int32 Exponent) override { return Compiler->Power(Base,Exponent); }
+	virtual int32 Logarithm2(int32 X) override { return Compiler->Logarithm2(X); }
 	virtual int32 SquareRoot(int32 X) override { return Compiler->SquareRoot(X); }
 	virtual int32 Length(int32 X) override { return Compiler->Length(X); }
 
@@ -301,11 +305,18 @@ public:
 
 	virtual int32 ComponentMask(int32 Vector,bool R,bool G,bool B,bool A) override { return Compiler->ComponentMask(Vector,R,G,B,A); }
 	virtual int32 AppendVector(int32 A,int32 B) override { return Compiler->AppendVector(A,B); }
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override { return Compiler->TransformVector(SourceCoordType,DestCoordType,A); }
-	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override { return Compiler->TransformPosition(SourceCoordType,DestCoordType,A); }
+	virtual int32 TransformVector(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
+	{
+		return Compiler->TransformVector(SourceCoordBasis, DestCoordBasis, A);
+	}
+	virtual int32 TransformPosition(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
+	{
+		return Compiler->TransformPosition(SourceCoordBasis, DestCoordBasis, A);
+	}
 
-	virtual int32 DynamicParameter() override { return Compiler->DynamicParameter(); }
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) override { return Compiler->DynamicParameter(DefaultValue); }
 	virtual int32 LightmapUVs() override { return Compiler->LightmapUVs(); }
+	virtual int32 PrecomputedAOMask() override { return Compiler->PrecomputedAOMask(); }
 
 	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Realtime; }
 	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) override { return Compiler->GIReplace(Direct, StaticIndirect, DynamicIndirect); }
@@ -332,6 +343,8 @@ public:
 		return Compiler->Noise(Position, Scale, Quality, NoiseFunction, bTurbulence, Levels, OutputMin, OutputMax, LevelScale, FilterWidth);
 	}
 	virtual int32 BlackBody( int32 Temp ) override { return Compiler->BlackBody(Temp); }
+	virtual int32 DistanceToNearestSurface(int32 PositionArg) override { return Compiler->DistanceToNearestSurface(PositionArg); }
+	virtual int32 DistanceFieldGradient(int32 PositionArg) override { return Compiler->DistanceFieldGradient(PositionArg); }
 	virtual int32 PerInstanceRandom() override { return Compiler->PerInstanceRandom(); }
 	virtual int32 PerInstanceFadeAmount() override { return Compiler->PerInstanceFadeAmount(); }
 	virtual int32 DepthOfFieldFunction(int32 Depth, int32 FunctionValueIndex) override

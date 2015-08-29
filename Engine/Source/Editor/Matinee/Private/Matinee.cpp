@@ -339,7 +339,7 @@ void FMatinee::SetAudioRealtimeOverride( bool bAudioIsRealtime ) const
 		FEditorViewportClient* const LevelVC = GEditor->LevelViewportClients[i];
 		if (LevelVC)
 		{
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+			if(LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 			{
 				LevelVC->SetForcedAudioRealtime(bAudioIsRealtime);
 			}
@@ -351,7 +351,7 @@ void FMatinee::OnToggleAspectRatioBars()
 {
 	if (GCurrentLevelEditingViewportClient)
 	{
-		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
+		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowsCinematicPreview() )
 		{
 			bool bEnabled = !AreAspectRatioBarsEnabled();
 			GCurrentLevelEditingViewportClient->SetShowAspectRatioBarDisplay(bEnabled);
@@ -365,7 +365,7 @@ void FMatinee::OnToggleSafeFrames()
 {
 	if (GCurrentLevelEditingViewportClient)
 	{
-		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowMatineePreview() )
+		if(GCurrentLevelEditingViewportClient->IsPerspective() && GCurrentLevelEditingViewportClient->AllowsCinematicPreview() )
 		{
 			bool bEnabled = !IsSafeFrameDisplayEnabled();
 			GCurrentLevelEditingViewportClient->SetShowSafeFrameBoxDisplay(bEnabled);
@@ -937,7 +937,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 		if(LevelVC)
 		{
 			// If there is a director group, set the perspective viewports to realtime automatically.
-			if(LevelVC->IsPerspective() && LevelVC->AllowMatineePreview())
+			if(LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview())
 			{				
 				//Ensure Realtime is turned on and store the original setting so we can restore it later.
 				LevelVC->SetRealtime(true, true);
@@ -2060,7 +2060,7 @@ void FMatinee::OnClose()
 		if(LevelVC)
 		{
 			// Turn off realtime when exiting.
-			if( LevelVC->IsPerspective() && LevelVC->AllowMatineePreview() )
+			if( LevelVC->IsPerspective() && LevelVC->AllowsCinematicPreview() )
 			{				
 				//Specify true so RestoreRealtime will allow us to disable Realtime if it was original disabled
 				LevelVC->RestoreRealtime(true);
@@ -2176,7 +2176,7 @@ static void DrawTransparentLine( FCanvas* Canvas, const FVector2D& Start, const 
 
 void FMatinee::DrawModeHUD(FEditorViewportClient* ViewportClient,FViewport* Viewport,const FSceneView* View,FCanvas* Canvas)
 {
-	if( ViewportClient->AllowMatineePreview() )
+	if( ViewportClient->AllowsCinematicPreview() )
 	{
 		// Get the size of the viewport
 		const int32 SizeX = Viewport->GetSizeXY().X;

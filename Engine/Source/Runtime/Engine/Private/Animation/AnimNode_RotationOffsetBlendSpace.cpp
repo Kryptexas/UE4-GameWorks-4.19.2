@@ -18,22 +18,26 @@ void FAnimNode_RotationOffsetBlendSpace::CacheBones(const FAnimationCacheBonesCo
 	BasePose.CacheBones(Context);
 }
 
-void FAnimNode_RotationOffsetBlendSpace::Update(const FAnimationUpdateContext& Context)
+void FAnimNode_RotationOffsetBlendSpace::UpdateAssetPlayer(const FAnimationUpdateContext& Context)
 {
-	FAnimNode_BlendSpacePlayer::Update(Context);
+	FAnimNode_BlendSpacePlayer::UpdateAssetPlayer(Context);
 	BasePose.Update(Context);
 }
 
 void FAnimNode_RotationOffsetBlendSpace::Evaluate(FPoseContext& Context)
 {
-	FPoseContext BlendSpacePose(Context);
-	FAnimNode_BlendSpacePlayer::Evaluate(BlendSpacePose);
+	// Evaluate base pose
+	BasePose.Evaluate(Context);
 
-	FPoseContext BasePoseContext(Context);
-	BasePose.Evaluate(BasePoseContext);
+	// Evaluate MeshSpaceRotation additive blendspace
+	FPoseContext MeshSpaceRotationAdditivePoseContext(Context);
+	FAnimNode_BlendSpacePlayer::Evaluate(MeshSpaceRotationAdditivePoseContext);
 
-	const float Alpha = 1.0f;
-	Context.AnimInstance->BlendRotationOffset(BasePoseContext.Pose, BlendSpacePose.Pose, Alpha, Context.Pose);
+	// Accumulate poses together
+	FAnimationRuntime::AccumulateMeshSpaceRotationAdditiveToLocalPose(Context.Pose, MeshSpaceRotationAdditivePoseContext.Pose, Context.Curve, MeshSpaceRotationAdditivePoseContext.Curve, 1.f);
+
+	// Resulting rotations are not normalized, so normalize here.
+	Context.Pose.NormalizeRotations();
 }
 
 void FAnimNode_RotationOffsetBlendSpace::GatherDebugData(FNodeDebugData& DebugData)

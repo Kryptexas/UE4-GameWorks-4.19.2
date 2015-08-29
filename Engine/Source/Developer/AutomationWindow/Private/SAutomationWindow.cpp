@@ -1032,9 +1032,9 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestsOptionsMenuContent( )
 			[
 				SNew(SSpinBox<int32>)
 				.MinValue(1)
-				.MaxValue(10)
+				.MaxValue(1000)
 				.MinSliderValue(1)
-				.MaxSliderValue(10)
+				.MaxSliderValue(1000)
 				.Value(this,&SAutomationWindow::GetRepeatCount)
 				.OnValueChanged(this,&SAutomationWindow::OnChangeRepeatCount)
 				.IsEnabled( this, &SAutomationWindow::IsAutomationControllerIdle )
@@ -1566,6 +1566,7 @@ FReply SAutomationWindow::RunTests()
 void SAutomationWindow::OnFilterTextChanged( const FText& InFilterText )
 {
 	AutomationTextFilter->SetRawFilterText( InFilterText );
+	AutomationSearchBox->SetError( AutomationTextFilter->GetFilterErrorText() );
 
 	//update the widget
 	OnRefreshTestCallback();

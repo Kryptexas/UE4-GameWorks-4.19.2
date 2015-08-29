@@ -489,21 +489,31 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 		return RaycastMulti(this, OutHits, Start, End, TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels()));
 	}
 
-	OutHits.Empty();
+	OutHits.Reset();
 
 #if UE_WITH_PHYSICS
-	if (!PrimComp->BodyInstance.IsValidBodyInstance())
+	const FBodyInstance* BodyInstance = PrimComp->GetBodyInstance();
+
+	if (!BodyInstance || !BodyInstance->IsValidBodyInstance())
 	{
 		UE_LOG(LogCollision, Log, TEXT("ComponentSweepMulti : (%s) No physics data"), *PrimComp->GetReadableName());
 		return false;
 	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if(PrimComp->IsA(USkeletalMeshComponent::StaticClass()))
+	{
+		UE_LOG(LogCollision, Warning, TEXT("ComponentSweepMulti : SkeletalMeshComponent support only root body (%s) "), *PrimComp->GetReadableName());
+	}
+#endif
+
 #endif
 
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomSweepMultiple);
 	bool bHaveBlockingHit = false;
 
 #if WITH_PHYSX
-	ExecuteOnPxRigidActorReadOnly(&PrimComp->BodyInstance, [&] (const PxRigidActor* PRigidActor)
+	ExecuteOnPxRigidActorReadOnly(BodyInstance, [&] (const PxRigidActor* PRigidActor)
 	{
 		// Get all the shapes from the actor
 		TArray<PxShape*, TInlineAllocator<16>> PShapes;
@@ -525,8 +535,6 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 
 			if (PGeom != NULL)
 			{
-				TArray<struct FHitResult> Hits;
-
 				// Calc shape global pose
 				const PxTransform PLocalShape = PShape->getLocalPose();
 				const PxTransform PShapeGlobalStartPose = PGlobalStartPose.transform(PLocalShape);
@@ -534,12 +542,10 @@ bool UWorld::ComponentSweepMulti(TArray<struct FHitResult>& OutHits, class UPrim
 				// consider localshape rotation for shape rotation
 				const PxQuat PShapeRot = PGeomRot * PLocalShape.q;
 
-				if (GeomSweepMulti_PhysX(this, *PGeom, PShapeRot, Hits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
+				if (GeomSweepMulti_PhysX(this, *PGeom, PShapeRot, OutHits, P2UVector(PShapeGlobalStartPose.p), P2UVector(PShapeGlobalEndPose.p), TraceChannel, Params, FCollisionResponseParams(PrimComp->GetCollisionResponseToChannels())))
 				{
 					bHaveBlockingHit = true;
 				}
-
-				OutHits.Append(Hits);
 			}
 		}
 	});

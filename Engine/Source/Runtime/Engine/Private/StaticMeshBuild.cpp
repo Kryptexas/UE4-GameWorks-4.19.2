@@ -141,6 +141,9 @@ void UStaticMesh::Build(bool bSilent, TArray<FText>* OutErrors)
 
 	}
 
+	// Calculate extended bounds
+	CalculateExtendedBounds();
+
 	if(!bSilent)
 	{
 		GWarn->EndSlowTask();

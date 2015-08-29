@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2316302
+﻿INTSourceChangelist:2521805
 Availability:Public
 Title:指向性ライト
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows, Engine/Rendering/LightingAndShadows/LightTypes
@@ -113,7 +113,7 @@ Description:指向性ライトの基礎
 
 ## 指向性ライトのプロパティ
 
-**指向性ライト** のプロパティは以下の 5 つのカテゴリに分類されます。**Light**、**Light Shafts**、**Lightmass**、**Light Function**、および **Cascaded Shadow Maps** 
+**指向性ライト** のプロパティは、以下の 5 つのカテゴリに分類されます。すなわち、**Light**、**Light Shafts**、**Lightmass**、**Light Function**、および **Cascaded Shadow Maps** の 5 つです。 
 
 
 ###Light
@@ -137,8 +137,8 @@ Description:指向性ライトの基礎
 ### Light Shafts
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Enable Light Shaft Occlusion** | ライトからのスクリーン空間の不明瞭なオクルージョンで、フォグと大気中のインスキャッタリングをオクルードするか否かを設定するプロパティです。 |
-| **Occlusion Mask Darkness** | オクルージョンマスキングの暗部の濃さです。値 1 では濃くなりません。 |
+| **Enable Light Shaft Occlusion** | このライトからのスクリーン空間の不明瞭なオクルージョンでフォグと大気中の中間スキャッタリングをオクルードするか否かを設定するプロパティです。 |
+| **Occlusion Mask Darkness** | オクルージョン マスキングの暗部の濃さです。値 1 では濃くなりません。 |
 | **Occlusion Depth Range** | この距離よりもカメラに近いものは全てライトシャフトをオクルードします。 |
 | **Enable Light Shaft Bloom**  | ライトに対してライトシャフト ブルームをレンダリングするか否かを設定するプロパティです。|
 | **Bloom Scale** | ブルームの追加色をスケーリングします。 |
@@ -159,7 +159,7 @@ Description:指向性ライトの基礎
 | **Light Function Material** | ライトに適用するライト関数マテリアルです。 |
 | **Light Function Scale** | ライト関数プロジェクションをスケーリングします。 |
 | **Light Function Fade Distance** | ライト関数が **Disabled Brightness** の値で完全に弱まる距離です。 |
-| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |
+| **Disabled Brightness** | ライト関数が指定されていながら無効になっている時、ライトに適用する輝度係数です。仮に上記のプロパティをあげるなら **Light Function Fade Distance** です。 |
 
 ### Cascaded Shadow Maps
 | プロパティ | 説明 |
@@ -168,6 +168,6 @@ Description:指向性ライトの基礎
 | **Dynamic Shadow Distance StationaryLight** | カメラ位置から計測した、**カスケード シャドウマップ** の動的シャドウが固定ライトをカバーする距離。
 | **Num Dynamic Shadow Cascades** | 視錐台をシーン全体に分割するカスケード数。  |
 | **Cascade Distribution Exponent** | カスケードがカメラにより近く分散するか (より大きな指数) 、またはカメラからより離れて分散するか (より小さな指数) を制御します。 |
-| **Cascade Transition Fraction** | あるカスケードから次のカスケードへフェードする割合です。 |
+| **Cascade Transition Fraction** | あるカスケードから次のカスケードへのフェード領域の割合です。
 | **Shadow Distance Fadeout Fraction** | 動的シャドウの影響から離れた場所でのフェードアウト領域のサイズを制御します。|
 | **Use Inset Shadows for Movable Objects** | (固定ライトのみ) カスケード化されたシャドウマップは有効になっているが、可動コンポーネントに対してオブジェクト単位のはめ込みシャドウを使用するか否かを指定します。 |

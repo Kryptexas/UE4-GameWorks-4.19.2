@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2472961
+﻿INTSourceChangelist:2607789
 Availability:Public
 Title: 컴포넌트 리플리케이션
 Crumbs:Gameplay, Gameplay/Networking, Gameplay/Networking/Actors
@@ -9,7 +9,6 @@ Related: Gameplay/Networking/Actors/ReplicationPerformance
 
 [TOC (start:2 end:3)]
 
-## 개요
 언리얼 엔진 4 는 컴포넌트 리플리케이션을 지원합니다. 사용법이 간단하기는 하지만, 대부분의 컴포넌트가 리플리케이트되지는 않기에 그리 흔한 일은 아닙니다. 대부분의 게임플레이 로직은 액터 클래스에서 이루어지며,
 컴포넌트는 그저 액터를 이루는 작은 조각을 나타냅니다. 액터의 그 게임플레이 로직이 리플리케이트되는 것이고, 그 결과가 가끔은 컴포넌트에 대한 호출/변화로 나타납니다. 그러나 가끔은 
 컴포넌트의 프로퍼티나 이벤트 자체적으로 직접 리플리케이트해야 할 때도 있습니다. 여기서는 그 방법에 대해 설명해 드립니다.

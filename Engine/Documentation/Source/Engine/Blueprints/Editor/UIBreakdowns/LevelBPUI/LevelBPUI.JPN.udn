@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2445736
+﻿INTSourceChangelist:2597145
 Availability:Public
 Title:レベル ブループリント UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
@@ -27,15 +27,13 @@ Description:レベル ブループリントのエディタ インターフェー
 
 [TOC (start:2)]
 
-## 概要
-
 [INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
 
 ## インターフェース
 
 
 
-レベルブループリントの編集時は、以下のセクションがブループリントエディタにあります。
+Level ブループリントの編集時は、以下のセクションがブループリント エディタにあります。
 
 [REGION:fullwidth]
 ![](LevelBlueprintUI.png)

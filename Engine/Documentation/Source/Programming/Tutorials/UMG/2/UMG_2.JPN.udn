@@ -1,0 +1,187 @@
+﻿INTSourceChangelist:2574074
+Availability:Public
+Title:2.ゲームモードの拡張
+Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/UMG
+Description:スクリーンにメニューを追加したり削除するためにプロジェクトの Game Mode を拡張する
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[前の手順](Programming\Tutorials\UMG\1 "%Programming\Tutorials\UMG\1:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[プログラミングチュートリアルのホームページ](Programming\Tutorials\)
+	[/PARAM]
+	[PARAM:next]
+		[次の手順](Programming\Tutorials\UMG\3 "%Programming\Tutorials\UMG\3:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
+
+1. これから作成するメニューは **User Widgets（ユーザーウィジェット）** から作成します。新規の **User Widget** を作成したら表示する関数を記述して、ゲームが開始したらこの関数を呼び出します。後に削除が出来るように、作成したものはすべて覚えておかなくてはいけません。それぞれのプロジェクトはカスタム **Game Mode** クラスと一緒に提供されるため、「 `HowTo_UMGGameMode.h` 」ファイルに定義されているこのクラスを開きます。以下の関数とプロパティをクラスの下に追加します。
+
+		public:
+			/** Called when the game starts. */
+			virtual void BeginPlay() override;
+
+			/** Remove the current menu widget and create a new one from the specified class, if provided. */
+			UFUNCTION(BlueprintCallable, Category = "UMG Game")
+			void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
+
+		protected:
+			/** The widget class we will use as our menu when the game starts. */
+			UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
+			TSubclassOf<UUserWidget> StartingWidgetClass;
+
+			/** The widget instance that we are using as our menu. */
+			UPROPERTY()
+			UUserWidget* CurrentWidget;
+
+1. コードで **User Widgets** を使用するために、 "#include" セクションの上に次のラインを追加します。
+
+		#include "Blueprint/UserWidget.h"
+
+1. ここで「 `HowTo_UMGGameMode.cpp` 」へ移動して、宣言した2つの関数のボディにコードを記述します。BeginPlay() のオーバーライドから始めます。
+
+		void AHowTo_UMGGameMode::BeginPlay()
+		{
+			Super::BeginPlay();
+			ChangeMenuWidget(StartingWidgetClass);
+		}
+
+	[REGION:note]この時に _BeginPlay_ をオーバーライドするように、親クラスから関数をオーバーライドする時は（「Super」が参照）、この関数の親クラスを呼ぶことが重要になります。ここでの関数バージョンは、既存プロシージャーの終わりに手順を1つだけ追加するだけなので、関数の1行目で _Super::BeginPlay_ を呼び出します。[/REGION]
+
+1. 次に「 `HowTo_UMGGameMode.cpp` 」に、メニューが画面遷移する方法を定義しなくてはいけません。必要な場合は、アクティブな **ユーザーウィジェット** をすべてビューポートから削除します。次に **User Widget** を新規に作成して、ビューポートに追加します。
+
+		void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
+		{
+			if (CurrentWidget != nullptr)
+			{
+				CurrentWidget->RemoveFromViewport();
+				CurrentWidget = nullptr;
+			}
+			if (NewWidgetClass != nullptr)
+			{
+				CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
+				if (CurrentWidget != nullptr)
+				{
+					CurrentWidget->AddToViewport();
+				}
+			}
+		}
+
+	[REGION:note]このコードは作成した **ウィジェット** のインスタンスを生成して、スクリーンにこれを配置します。 **アンリアルエンジン** は一度に多数の **ウィジェット** の表示とインタラクションを処理しますが、コードはウィジェットの削除も行うため、一度に1つのウィジェットのみがアクティブになります。**アンリアルエンジン** のガーベジコレクションシステムがビューポートからウィジェットを削除したり、ウィジェットが参照するすべての変数をクリア（または変更）するため、ウィジェットを直接破壊する必要はありません。[/REGION]
+
+
+----
+
+メニューの作成と表示、また不要になったら削除を行うコードフレームワークを作成しました。**アンリアルエディタ** へ戻る準備が整ったので、メニューアセットをデザインしましょう！
+
+[OBJECT:Section]
+    [PARAMLITERAL:id]
+    コード
+    [/PARAMLITERAL]
+    [PARAM:heading]
+    完成コード
+    [/PARAM]
+    [PARAM:content]
+		**HowTo_UMG.Build.cs**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			using UnrealBuildTool;
+
+			public class HowTo_UMG :ModuleRules
+			{
+				public HowTo_UMG(TargetInfo Target)
+				{
+					PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG" });
+
+					//PrivateDependencyModuleNames.AddRange(new string[] {  });
+
+					// Uncomment if you are using Slate UI
+					PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		// Uncomment if you are using online features
+
+					// PrivateDependencyModuleNames.Add("OnlineSubsystem");
+					// if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+					// {
+					//		if (UEBuildConfiguration.bCompileSteamOSS == true)
+					//		{
+					//			DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
+					//		}
+					// }
+				}
+			}
+
+		**HowTo_UMGGameMode.h**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#pragma once
+
+			#include "Blueprint/UserWidget.h"
+			#include "GameFramework/GameMode.h"
+			#include "HowTo_UMGGameMode.generated.h"
+
+			/**
+			 * 
+			 */
+			UCLASS()
+			class HOWTO_UMG_API AHowTo_UMGGameMode : public AGameMode
+			{
+				GENERATED_BODY()
+
+			public:
+				/** Called when the game starts. */
+				virtual void BeginPlay() override;
+
+				/** Remove the current menu widget and create a new one from the specified class, if provided. */
+				UFUNCTION(BlueprintCallable, Category = "UMG Game")
+				void ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass);
+
+			protected:
+				/** The widget class we will use as our menu when the game starts. */
+				UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UMG Game")
+				TSubclassOf<UUserWidget> StartingWidgetClass;
+
+				/** The widget instance that we are using as our menu. */
+				UPROPERTY()
+				UUserWidget* CurrentWidget;
+			};
+
+		**HowTo_UMGGameMode.cpp**
+			// Copyright 1998-2015 Epic Games, Inc.All Rights Reserved.
+
+			#include "HowTo_UMG.h"
+			#include "HowTo_UMGGameMode.h"
+
+			void AHowTo_UMGGameMode::BeginPlay()
+			{
+				Super::BeginPlay();
+				ChangeMenuWidget(StartingWidgetClass);
+			}
+
+			void AHowTo_UMGGameMode::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
+			{
+				if (CurrentWidget != nullptr)
+				{
+					CurrentWidget->RemoveFromViewport();
+					CurrentWidget = nullptr;
+				}
+				if (NewWidgetClass != nullptr)
+				{
+					CurrentWidget = CreateWidget<UUserWidget>(GetWorld(), NewWidgetClass);
+					if (CurrentWidget != nullptr)
+					{
+						CurrentWidget->AddToViewport();
+					}
+				}
+			}
+    [/PARAM]
+[/OBJECT]
+
+%Steps%

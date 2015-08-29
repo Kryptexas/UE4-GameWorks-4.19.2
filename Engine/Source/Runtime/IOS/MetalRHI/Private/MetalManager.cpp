@@ -183,6 +183,7 @@ FMetalManager::FMetalManager()
 	, SceneFrameCounter(0)
 	, ResourceTableFrameCounter(INDEX_NONE)
 {
+    bPreviousSurfaceWasBackBuffer = false;
 	for (int32 Index = 0; Index < ARRAY_COUNT(CurrentColorRenderTextures); Index++)
 	{
 		CurrentColorRenderTextures[Index] = nil;
@@ -609,12 +610,9 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		//		}
 #endif
         
-		// Check if CurrentCommandBuffer was rendering to the BackBuffer.
 		if( PreviousRenderTargetsInfo.NumColorRenderTargets == 1 )
 		{
-			const FRHIRenderTargetView& RenderTargetView = PreviousRenderTargetsInfo.ColorRenderTarget[0];
-			FMetalSurface& Surface = *GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
-			if(&Surface == &BackBuffer->Surface && CurrentDrawable != nil)
+			if(bPreviousSurfaceWasBackBuffer && CurrentDrawable != nil)
 			{
                 // release our record of it to ensure we are allocated a new drawable.
 				CurrentDrawable = nil;
@@ -625,6 +623,13 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 	
 	// back this up for next frame
 	PreviousRenderTargetsInfo = RenderTargetsInfo;
+    // Check if CurrentCommandBuffer was rendering to the BackBuffer.
+    if( RenderTargetsInfo.NumColorRenderTargets == 1 )
+    {
+        const FRHIRenderTargetView& RenderTargetView = RenderTargetsInfo.ColorRenderTarget[0];
+        FMetalSurface* PreviousSurface = GetMetalSurfaceFromRHITexture(RenderTargetView.Texture);
+        bPreviousSurfaceWasBackBuffer = PreviousSurface == &BackBuffer->Surface;
+    }
 
 	FIntPoint MaxDimensions(TNumericLimits<decltype(FIntPoint::X)>::Max(),TNumericLimits<decltype(FIntPoint::Y)>::Max());
 	// at this point, we need to fully set up an encoder/command buffer, so make a new one (autoreleased)
@@ -687,11 +692,15 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 				ColorAttachment.storeAction = GetMetalRTStoreAction(RenderTargetView.StoreAction);
 				Pipeline.SampleCount = 1;
 			}
+			ERenderTargetLoadAction ColorLoadAction = RenderTargetView.LoadAction;
 			ColorAttachment.level = RenderTargetView.MipIndex;
 			ColorAttachment.slice = ArraySliceIndex;
-			ColorAttachment.loadAction = GetMetalRTLoadAction(RenderTargetView.LoadAction);
-			const FLinearColor& ClearColor = RenderTargetsInfo.ClearColors[RenderTargetIndex];
-			ColorAttachment.clearColor = MTLClearColorMake(ClearColor.R, ClearColor.G, ClearColor.B, ClearColor.A);
+			ColorAttachment.loadAction = GetMetalRTLoadAction(ColorLoadAction);
+			if (ColorLoadAction == ERenderTargetLoadAction::EClear)
+			{
+				const FLinearColor& ClearColor = RenderTargetsInfo.ColorRenderTarget[RenderTargetIndex].Texture->GetClearColor();
+				ColorAttachment.clearColor = MTLClearColorMake(ClearColor.R, ClearColor.G, ClearColor.B, ClearColor.A);
+			}
 
 			// assign the attachment to the slot
 			[RenderPass.colorAttachments setObject:ColorAttachment atIndexedSubscript:RenderTargetIndex];
@@ -724,11 +733,16 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 		{
 			MTLRenderPassDepthAttachmentDescriptor* DepthAttachment = [[MTLRenderPassDepthAttachmentDescriptor alloc] init];
 
+			
 			// set up the depth attachment
+			ERenderTargetLoadAction DepthLoadAction = RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction;
 			DepthAttachment.texture = Surface.Texture;
-			DepthAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthLoadAction);
+			DepthAttachment.loadAction = GetMetalRTLoadAction(DepthLoadAction);
 			DepthAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.DepthStoreAction);
-			DepthAttachment.clearDepth = RenderTargetsInfo.DepthClearValue;
+			if (DepthLoadAction == ERenderTargetLoadAction::EClear)
+			{
+				DepthAttachment.clearDepth = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetDepthClearValue();
+			}
 
 			Pipeline.DepthTargetFormat = DepthAttachment.texture.pixelFormat;
 			if (Pipeline.SampleCount == 0)
@@ -746,10 +760,14 @@ void FMetalManager::SetRenderTargetsInfo(const FRHISetRenderTargetsInfo& RenderT
 			MTLRenderPassStencilAttachmentDescriptor* StencilAttachment = [[MTLRenderPassStencilAttachmentDescriptor alloc] init];
 
 			// set up the stencil attachment
+			ERenderTargetLoadAction StencilLoadAction = RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction;
 			StencilAttachment.texture = Surface.StencilTexture;
 			StencilAttachment.loadAction = GetMetalRTLoadAction(RenderTargetsInfo.DepthStencilRenderTarget.StencilLoadAction);
 			StencilAttachment.storeAction = GetMetalRTStoreAction(RenderTargetsInfo.DepthStencilRenderTarget.GetStencilStoreAction());
-			StencilAttachment.clearStencil = RenderTargetsInfo.StencilClearValue;
+			if (StencilLoadAction == ERenderTargetLoadAction::EClear)
+			{
+				StencilAttachment.clearStencil = RenderTargetsInfo.DepthStencilRenderTarget.Texture->GetStencilClearValue();
+			}
 
 			Pipeline.StencilTargetFormat = StencilAttachment.texture.pixelFormat;
 			if (Pipeline.SampleCount == 0)

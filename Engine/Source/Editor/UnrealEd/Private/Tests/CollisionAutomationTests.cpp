@@ -238,6 +238,7 @@ bool FLineTraceSingleByChannel::RunTest(const FString& Parameters)
 	// Create map
 	UWorld* World = AutomationEditorCommonUtils::CreateNewMap();
 	TestNotNull(TEXT("Failed to create world for Physics.Collision.Ray Test. Tests aborted."), World);
+	CollisionAutomationTests::TestBase = this;
 
 	static FName TraceIdent = FName(TEXT("TestTrace"));
 

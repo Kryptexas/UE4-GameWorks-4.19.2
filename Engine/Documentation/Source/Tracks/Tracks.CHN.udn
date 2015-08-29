@@ -1,0 +1,29 @@
+﻿INTSourceChangelist:2305620
+Title:学习课程
+Crumbs:%ROOT%
+Description:
+Availability:Docs
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	![](%ROOT%/levels_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	关卡设计课程
+	[/PARAM]
+	[PARAM:links]
+	* [](Tracks/LevelDesign/Beginner "%Tracks/LevelDesign/Beginner:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+	![](%ROOT%/prog_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+	编程课程
+	[/PARAM]
+	[PARAM:links]
+	* [](Tracks/Programming/Beginner "%Tracks/Programming/Beginner:description%")
+	[/PARAM]
+[/OBJECT]

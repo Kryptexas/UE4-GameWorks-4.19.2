@@ -166,7 +166,6 @@ void ALeapMotionHandActor::UpdateBones(float DeltaSeconds)
 			FRotator TargetOrientation;
 
 			bool Success = Device->GetBonePostionAndOrientation(HandId, LeapBone, TargetPosition, TargetOrientation);
-
 			if (Success)
 			{
 				// Offset target position & rotation by the SpawnReference actor's transform
@@ -176,26 +175,10 @@ void ALeapMotionHandActor::UpdateBones(float DeltaSeconds)
 
 				// Get current position & rotation
 				ALeapMotionBoneActor* BoneActor = BoneActors[BoneArrayIndex++];
-
 				UPrimitiveComponent* PrimitiveComponent = Cast<UPrimitiveComponent>(BoneActor->GetRootComponent());
-				if (PrimitiveComponent && PrimitiveComponent->IsSimulatingPhysics())
+				if (PrimitiveComponent)
 				{
-					FVector CurrentPositon = PrimitiveComponent->GetComponentLocation();
-					FRotator CurrentRotation = PrimitiveComponent->GetComponentRotation();
-
-					// Compute linear velocity
-					FVector LinearVelocity = (TargetPosition - CurrentPositon) / DeltaSeconds;
-
-					// Compute angular velocity
-					FVector Axis;
-					float Angle;
-					ConvertDeltaRotationsToAxisAngle(CurrentRotation, TargetOrientation, Axis, Angle);
-					if (Angle > PI) { Angle -= 2 * PI; }
-					FVector AngularVelcity = Axis * (Angle / DeltaSeconds);
-
-					// Apply velocities
-					PrimitiveComponent->SetPhysicsLinearVelocity(LinearVelocity);
-					PrimitiveComponent->SetAllPhysicsAngularVelocity(AngularVelcity * 180.0f / PI);
+					PrimitiveComponent->SetRelativeLocationAndRotation(TargetPosition, TargetOrientation, true);
 				}
 			}
 		}

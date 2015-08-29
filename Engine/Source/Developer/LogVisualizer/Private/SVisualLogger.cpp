@@ -130,7 +130,7 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnFiltersChanged = FOnFiltersChanged::CreateRaw(this, &SVisualLogger::OnFiltersChanged);
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnObjectSelectionChanged = FOnObjectSelectionChanged::CreateRaw(this, &SVisualLogger::OnObjectSelectionChanged);
 	FLogVisualizer::Get().GetVisualLoggerEvents().OnLogLineSelectionChanged = FOnLogLineSelectionChanged::CreateRaw(this, &SVisualLogger::OnLogLineSelectionChanged);
-
+	FLogVisualizer::Get().GetVisualLoggerEvents().OnKeyboardEvent = FOnKeyboardEvent::CreateRaw(this, &SVisualLogger::OnKeyboaedRedirection);
 	//////////////////////////////////////////////////////////////////////////
 	// Command Action Lists
 	const FVisualLoggerCommands& Commands = FVisualLoggerCommands::Get();
@@ -145,7 +145,8 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	ActionList.MapAction(Commands.Resume, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleResumeCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleResumeCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleResumeCommandIsVisible));
 	ActionList.MapAction(Commands.LoadFromVLog, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleLoadCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleLoadCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleLoadCommandCanExecute));
 	ActionList.MapAction(Commands.SaveToVLog, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute));
-	ActionList.MapAction(Commands.FreeCamera, 
+	ActionList.MapAction(Commands.SaveAllToVLog, FExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveAllCommandExecute), FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute), FIsActionChecked(), FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleSaveCommandCanExecute));
+	ActionList.MapAction(Commands.FreeCamera,
 		FExecuteAction::CreateRaw(this, &SVisualLogger::HandleCameraCommandExecute), 
 		FCanExecuteAction::CreateRaw(this, &SVisualLogger::HandleCameraCommandCanExecute), 
 		FIsActionChecked::CreateRaw(this, &SVisualLogger::HandleCameraCommandIsChecked),
@@ -306,12 +307,6 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 	//UGameplayDebuggingComponent::OnDebuggingTargetChangedDelegate.AddSP(this, &SVisualLogger::SelectionChanged);
 }
 
-FReply SVisualLogger::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
-{
-	FUICommandList& ActionList = *CommandList;
-	return ActionList.ProcessCommandBindings(InKeyEvent) ? FReply::Handled() : FReply::Unhandled();
-}
-
 void SVisualLogger::HandleMajorTabPersistVisualState()
 {
 	// save any settings here
@@ -328,6 +323,7 @@ void SVisualLogger::FillFileMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTa
 	{
 		MenuBuilder.AddMenuEntry(FVisualLoggerCommands::Get().LoadFromVLog);
 		MenuBuilder.AddMenuEntry(FVisualLoggerCommands::Get().SaveToVLog);
+		MenuBuilder.AddMenuEntry(FVisualLoggerCommands::Get().SaveAllToVLog);
 	}
 	MenuBuilder.EndSection();
 	MenuBuilder.BeginSection("LogFilters", LOCTEXT("FIlterMenu", "Log Filters"));
@@ -387,7 +383,7 @@ TSharedRef<SDockTab> SVisualLogger::HandleTabManagerSpawnTab(const FSpawnTabArgs
 	bool AutoSizeTab = false;
 
 	if (TabIdentifier == ToolbarTabId)
-	{
+	{ 
 		TabWidget = SNew(SVisualLoggerToolbar, CommandList);
 		AutoSizeTab = true;
 	}
@@ -411,10 +407,10 @@ TSharedRef<SDockTab> SVisualLogger::HandleTabManagerSpawnTab(const FSpawnTabArgs
 		TabWidget = SAssignNew(StatusView, SVisualLoggerStatusView, CommandList);
 		AutoSizeTab = false;
 	}
-	
-	return SNew(SDockTab)
+
+	return SNew(SVisualLoggerTab)
 		.ShouldAutosize(AutoSizeTab)
-		.TabRole(ETabRole::PanelTab)
+		.TabRole(ETabRole::DocumentTab)
 		[
 			TabWidget.ToSharedRef()
 		];
@@ -445,9 +441,15 @@ bool SVisualLogger::HandleStopRecordingCommandCanExecute() const
 
 void SVisualLogger::HandleStopRecordingCommandExecute()
 {
+	UWorld* World = FLogVisualizer::Get().GetWorld();
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("LogNavOctree")) == false && ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bLogNavOctreeOnStop)
+	{
+		FVisualLogger::NavigationDataDump(World, LogNavigation, ELogVerbosity::Log, INDEX_NONE, FBox());
+	}
+
 	FVisualLogger::Get().SetIsRecording(false);
 
-	UWorld* World = FLogVisualizer::Get().GetWorld();
 	if (AVisualLoggerCameraController::IsEnabled(World))
 	{
 		AVisualLoggerCameraController::DisableCamera(World);
@@ -620,10 +622,20 @@ bool SVisualLogger::HandleSaveCommandCanExecute() const
 	return OutTimelines.Num() > 0;
 }
 
+void SVisualLogger::HandleSaveAllCommandExecute()
+{
+	HandleSaveCommand(true);
+}
+
 void SVisualLogger::HandleSaveCommandExecute()
 {
+	HandleSaveCommand(false);
+}
+
+void SVisualLogger::HandleSaveCommand(bool bSaveAllData)
+{
 	TArray<TSharedPtr<class STimeline> > OutTimelines;
-	MainView->GetTimelines(OutTimelines, true);
+	MainView->GetTimelines(OutTimelines, !bSaveAllData);
 	if (OutTimelines.Num() == 0)
 	{
 		MainView->GetTimelines(OutTimelines);
@@ -713,7 +725,8 @@ void SVisualLogger::ResetData()
 	if (HelperActor)
 	{
 		HelperActor->OnItemSelectionChanged(FVisualLogDevice::FVisualLogEntryItem());
-		HelperActor->ObjectSelectionChanged(NULL);
+		TArray<TSharedPtr<class STimeline> > TimeLines;
+		HelperActor->ObjectSelectionChanged(TimeLines);
 	}
 
 	bGotHistogramData = false;
@@ -780,18 +793,31 @@ void SVisualLogger::OnFiltersChanged()
 {
 	LogsList->OnFiltersChanged();
 	MainView->OnFiltersChanged();
+	if (AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FLogVisualizer::Get().GetVisualLoggerHelperActor()))
+	{
+		HelperActor->OnItemSelectionChanged(LogsList->GetCurrentLogEntry());
+		HelperActor->MarkComponentsRenderStateDirty();
+	}
+	VisualLoggerCanvasRenderer->OnItemSelectionChanged(LogsList->GetCurrentLogEntry().Entry);
 }
 
 void SVisualLogger::OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine)
 {
+	TArray<TSharedPtr<class STimeline> > TimeLines;
+	GetTimelines(TimeLines, true);
+
+	LogsList->ObjectSelectionChanged(TimeLines);
+
 	VisualLoggerCanvasRenderer->ObjectSelectionChanged(TimeLine);
 	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FLogVisualizer::Get().GetVisualLoggerHelperActor());
 	if (HelperActor)
 	{
-		HelperActor->ObjectSelectionChanged(TimeLine);
+		HelperActor->ObjectSelectionChanged(TimeLines);
 	}
 	MainView->OnObjectSelectionChanged(TimeLine);
 	FLogVisualizer::Get().OnObjectSelectionChanged(TimeLine);
+
+	StatusView->ObjectSelectionChanged(TimeLines);
 }
 
 void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)
@@ -814,8 +840,8 @@ void SVisualLogger::OnFiltersSearchChanged(const FText& Filter)
 
 void SVisualLogger::OnLogLineSelectionChanged(TSharedPtr<struct FLogEntryItem> SelectedItem, int64 UserData, FName TagName)
 {
-	TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
-	for (auto Iterator = AllExtensions.CreateIterator(); Iterator; ++Iterator)
+	const TMap<FName, FVisualLogExtensionInterface*>& AllExtensions = FVisualLogger::Get().GetAllExtensions();
+	for (auto Iterator = AllExtensions.CreateConstIterator(); Iterator; ++Iterator)
 	{
 		FVisualLogExtensionInterface* Extension = (*Iterator).Value;
 		if (Extension != NULL)
@@ -834,12 +860,38 @@ void SVisualLogger::OnLogLineSelectionChanged(TSharedPtr<struct FLogEntryItem> S
 
 void SVisualLogger::OnMoveCursorLeftCommand()
 {
-	FLogVisualizer::Get().GotoNextItem();
+	FLogVisualizer::Get().GotoNextItem(1);
 }
 
 void SVisualLogger::OnMoveCursorRightCommand()
 {
-	FLogVisualizer::Get().GotoPreviousItem();
+	FLogVisualizer::Get().GotoPreviousItem(1);
+}
+
+FReply SVisualLogger::OnKeyboaedRedirection(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply ReturnValue = FReply::Unhandled();
+
+	if (InKeyEvent.GetKey() == EKeys::Left)
+	{
+		FLogVisualizer::Get().GotoPreviousItem(InKeyEvent.IsLeftControlDown() ? InKeyEvent.IsLeftShiftDown() ? 20 : 10 : 1);
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Right)
+	{
+		FLogVisualizer::Get().GotoNextItem(InKeyEvent.IsLeftControlDown() ? InKeyEvent.IsLeftShiftDown() ? 20 : 10 : 1);
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Enter)
+	{
+		FLogVisualizer::Get().MoveCamera();
+		ReturnValue = FReply::Handled();
+	}
+	else if (InKeyEvent.GetKey() == EKeys::Up || InKeyEvent.GetKey() == EKeys::Down)
+	{
+		ReturnValue = FReply::Handled();
+	}
+	return ReturnValue;
 }
 
 void SVisualLogger::GetTimelines(TArray<TSharedPtr<class STimeline> >& TimeLines, bool bOnlySelectedOnes)

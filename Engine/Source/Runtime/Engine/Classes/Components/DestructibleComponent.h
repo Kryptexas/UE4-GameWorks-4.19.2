@@ -107,7 +107,7 @@ public:
 
 	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
 	// End USceneComponent interface.
@@ -136,6 +136,7 @@ public:
 	virtual void SetEnableGravity(bool bGravityEnabled) override;
 
 	virtual void WakeRigidBody(FName BoneName /* = NAME_None */) override;
+	virtual void SetSimulatePhysics(bool bSimulate) override;
 
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
 	// End UPrimitiveComponent interface.
@@ -172,7 +173,7 @@ public:
 	 * @param ChunkIndex - Which chunk to affect.  ChunkIndex must lie in the range: 0 <= ChunkIndex < ((DestructibleMesh*)USkeletalMesh)->ApexDestructibleAsset->chunkCount().
 	 * @param bVisible - If true, the chunk will be made visible.  Otherwise, the chunk is made invisible.
 	 */
-	void SetChunkVisible( int32 ChunkIndex, bool bVisible );
+	void SetChunkVisible( int32 ChunkIndex, bool bInVisible );
 
 #if WITH_APEX
 	/** This method takes a collection of active actors and updates the chunks in one pass. Saves a lot of duplicate work instead of calling each individual chunk

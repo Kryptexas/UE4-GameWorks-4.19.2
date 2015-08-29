@@ -65,8 +65,6 @@ Related: Engine/Rendering/ParticleSystems
 
 [TOC(start:2)]
 
-## Overview
-
 The First Person Shooter sample is an example of a PC multiplayer first-person shooter. It includes basic implementations of 
 weapons and gametypes along with a simple front end menu system.
 

@@ -227,6 +227,8 @@ GL_APICALL void GL_APIENTRY glGetVertexAttribLui64vNV(GLuint index, GLenum pname
 	EnumMacro(PFNGLUNMAPBUFFEROESPROC, glUnmapBufferOES) \
 	EnumMacro(PFNGLQUERYCOUNTEREXTPROC, glQueryCounterEXT) \
 	EnumMacro(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT) \
+	EnumMacro(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT) \
+	EnumMacro(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC, glRenderbufferStorageMultisampleEXT) \
 	EnumMacro(PFNGLGETTEXTUREHANDLENVPROC, glGetTextureHandleNV)\
 	EnumMacro(PFNGLGETTEXTURESAMPLERHANDLENVPROC, glGetTextureSamplerHandleNV)\
 	EnumMacro(PFNGLMAKETEXTUREHANDLERESIDENTNVPROC, glMakeTextureHandleResidentNV)\
@@ -338,7 +340,7 @@ struct FAndroidES31OpenGL : public FOpenGLES31
 		glGetQueryObjectuiv(QueryId, QueryName, OutResult);
 	}
 
-	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, uint64* OutResult)
+	static FORCEINLINE void GetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint64* OutResult)
 	{
 		GLenum QueryName = (QueryMode == QM_Result) ? GL_QUERY_RESULT_EXT : GL_QUERY_RESULT_AVAILABLE_EXT;
 		GLuint64 Result = 0;

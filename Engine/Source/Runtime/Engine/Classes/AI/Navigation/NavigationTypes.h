@@ -54,6 +54,7 @@ namespace ENavigationOptionFlag
 	{
 		Default,
 		Enable UMETA(DisplayName = "Yes"),	// UHT was complaining when tried to use True as value instead of Enable
+
 		Disable UMETA(DisplayName = "No"),
 
 		MAX UMETA(Hidden)
@@ -86,11 +87,90 @@ struct FNavigationDirtyArea
 	FORCEINLINE bool HasFlag(ENavigationDirtyFlag::Type Flag) const { return (Flags & Flag) != 0; }
 };
 
+USTRUCT()
+struct ENGINE_API FNavAgentSelector
+{
+	GENERATED_USTRUCT_BODY()
+
+#if CPP
+	union
+	{
+		struct
+		{
+#endif
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent0 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent1 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent2 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent3 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent4 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent5 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent6 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent7 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent8 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent9 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent10 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent11 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent12 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent13 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent14 : 1;
+			UPROPERTY(EditAnywhere, Category = Default)
+			uint32 bSupportsAgent15 : 1;
+#if CPP
+		};
+		uint32 PackedBits;
+	};
+#endif
+
+	FNavAgentSelector();
+
+	FORCEINLINE bool Contains(int32 AgentIndex) const
+	{
+		return (AgentIndex >= 0 && AgentIndex < 16) ? !!(PackedBits & (1 << AgentIndex)) : false;
+	}
+
+	FORCEINLINE bool IsInitialized() const
+	{
+		return (PackedBits & 0x80000000) != 0;
+	}
+
+	FORCEINLINE void MarkInitialized()
+	{
+		PackedBits |= 0x80000000;
+	}
+
+	bool Serialize(FArchive& Ar);
+};
+
+template<>
+struct TStructOpsTypeTraits< FNavAgentSelector > : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithSerializer = true,
+	};
+};
+
 struct FNavigationBounds
 {
-	uint32						UniqueID;
-	FBox						AreaBox;	 
-	TWeakObjectPtr<ULevel>		Level;		// The level this bounds belongs to
+	uint32 UniqueID;
+	FBox AreaBox;
+	FNavAgentSelector SupportedAgents;
+	TWeakObjectPtr<ULevel> Level;		// The level this bounds belongs to
 
 	bool operator==(const FNavigationBounds& Other) const 
 	{ 
@@ -259,6 +339,11 @@ struct ENGINE_API FNavPathType
 	bool operator==(const FNavPathType& Other) const
 	{
 		return Id == Other.Id || (ParentType != nullptr && *ParentType == Other);
+	}
+
+	bool IsA(const FNavPathType& Other) const
+	{
+		return (Id == Other.Id) || (ParentType && ParentType->IsA(Other));
 	}
 
 private:
@@ -436,9 +521,14 @@ struct FNavigationProjectionWork
 	const FVector Point;
 	FNavLocation OutLocation;
 	bool bResult;
+	bool bIsValid;
 
 	explicit FNavigationProjectionWork(const FVector& StartPoint)
-		: Point(StartPoint), bResult(false)
+		: Point(StartPoint), bResult(false), bIsValid(true)
+	{}
+
+	FNavigationProjectionWork()
+		: Point(FNavigationSystem::InvalidLocation), bResult(false), bIsValid(false)
 	{}
 };
 

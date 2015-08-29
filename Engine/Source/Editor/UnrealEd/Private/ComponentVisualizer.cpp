@@ -8,7 +8,6 @@ IMPLEMENT_HIT_PROXY(HComponentVisProxy, HHitProxy);
 
 FName FComponentVisualizer::GetComponentPropertyName(const UActorComponent* Component)
 {
-	FName PropertyName = NAME_None;
 	if (Component)
 	{
 		const AActor* CompOwner = Component->GetOwner();
@@ -23,13 +22,15 @@ FName FComponentVisualizer::GetComponentPropertyName(const UActorComponent* Comp
 				UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(CompOwner));
 				if (Object == Component)
 				{
-					// It does! Remember this name
-					PropertyName = ObjectProp->GetFName();
+					// It does! Return this name
+					return ObjectProp->GetFName();
 				}
 			}
 		}
 	}
-	return PropertyName;
+
+	// Didn't find actor property referencing this component
+	return NAME_None;
 }
 
 UActorComponent* FComponentVisualizer::GetComponentFromPropertyName(const AActor* CompOwner, FName PropertyName)

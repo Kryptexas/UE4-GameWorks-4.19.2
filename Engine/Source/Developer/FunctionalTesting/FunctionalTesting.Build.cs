@@ -26,11 +26,5 @@ public class FunctionalTesting : ModuleRules
 				"Developer/FunctionalTesting/Private",
 			}
 			);
-
-		DynamicallyLoadedModuleNames.AddRange(
-			new string[] {
-				"MessageLog",
-			}
-			);
 	}
 }

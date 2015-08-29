@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454757
+﻿INTSourceChangelist:2552957
 Availability:Public
 Title:ブループリントでアクタをレプリケートする方法
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\Networking/ReplicateActor
@@ -28,7 +28,7 @@ Related:Resources/ContentExamples/Networking
 
 	![](HowTo2.png)
 
-1.	 **Fire_NoReplicate** ブループリントを開いて、 **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、 **[Details]** パネルでブループリント デフォルトを開きます。そして **[Net Load on Client]** のチェックを外します。 
+1.	 **Fire_NoReplicate** ブループリントを開いて、 Class Defaults ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、次に **[Details]** パネルでブループリント デフォルトを開いて **[Net Load on Client]** のチェックを外します。 
 
 	![](HowTo3.png)
 
@@ -36,11 +36,9 @@ Related:Resources/ContentExamples/Networking
 
 1.	**コンパイル** し **保存** してから、ブループリントを終了し、 **Fire_Replicate** ブループリントを開きます。 
 
-1.	**Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、 **[Details]** パネルでブループリント デフォルトを開きます。そして **[Replicates]** のチェックボックスにチェックを入れます。
+1.	![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、 **[Details]** パネルでブループリント デフォルトを開きます。そして **[Replicates]** のチェックボックスにチェックを入れます。
 
-	[REGION:raw]
-	![](HowTo4.png)
-	[/REGION]
+	![](HowTo4.png)	
 
 	**[Replicates]** にチェックを入れると、クライアント マシン上でこのアクタのレプリケートが可能になります。**[Net Load on Client]** にもチェックを入れると、マップがロードされてクライアント マシン上に表示された時にアクタが自動的にロードされます。マップのロード時ではなくゲームプレイ中のどこかでこのアクタをスポーンしたい場合、アクタのスポーン時にレプリケート済みの複製をクライアント マシン上にするよう指示するために **[Replicates]** を有効にします。 
 
@@ -53,12 +51,6 @@ Related:Resources/ContentExamples/Networking
 1.	**コンテンツ ブラウザ** から、レベル内に **Fire_Replicate** ブループリントをドロップ＆ドラッグします。 
 
 	![](HowTo6.png)(w:700)
-
-1.	レベルで **PlayerStart** を選択し **Control+W** を押してコピーし、 **W** を押して少し移動させます。 
-
-	![](HowTo7.png)
-
-	この操作により、ゲームが開始されると、マルチプレイヤーのためにスポーン地点が追加で作成されます。 
 
 1.	**[Play]** ボタンの隣の下向き矢印をクリックして **[Number of Players]** オプションを **2** に変更します。 
 
@@ -81,9 +73,9 @@ Related:Resources/ContentExamples/Networking
 
 1.	レベル ビューポートで、 **Fire_Replicate** と **Fire_NoReplicate** アクタをレベルから削除します。
 
-1.	**[Modes]** メニューから、 **ターゲット ポイント** を 2 つドラッグしてレベル内に置きます。 
+1.	**[Modes]** メニューの **[All Classess] **から 2 つの **Target Points** をレベル内にドラッグします。 
 
-	![](Switch1.png)
+	![](Switch1.png)(w:820)
 
 1.	片方のターゲット ポイントに「 **No_Replicate** 」、もう片方に「 **Replicate** 」という名前を付けて、 **ワールド アウトライナー** で両方を選択します。 
 
@@ -139,7 +131,7 @@ Related:Resources/ContentExamples/Networking
 
 	![](Switch11.png)
 
-1.	**コンパイル** したら **Level ブループリント** を終了し、エディタで **再生します。 
+1.	**コンパイル** したら **Level ブループリント** を終了し、エディタで再生します。 
 
 	![](Switch12.png)
 

@@ -1,12 +1,13 @@
-﻿INTSourceChangelist:2290830
+﻿INTSourceChangelist:2567301
 Availability:Public
 Title:シェーダー開発
 Crumbs:%ROOT%, Programming, Programming/Rendering
 Description:シェーダーを記述するプログラマ向けのグラフィックス情報
+Version:4.5
 
 ## クイック スタート
 
-**シェーダーで作業をする場合、r.ShaderDevelopmentMode を必ず 1 に設定して有効にしてください。**最も簡単な方法は、`ConsoleVariables.ini` を編集して、ロード時に毎回有効になるようにします。これで、エラー時のリトライ、シェーダー開発関連のログ、および警告が有効になります。
+**シェーダーで作業をする場合、r.ShaderDevelopmentMode を必ず 1 に設定して有効にしてください。**  最も簡単な方法は、`ConsoleVariables.ini` を編集して、ロード時に毎回有効になるようにします。これで、エラー時のリトライ、シェーダー開発関連のログ、および警告が有効になります。
 
 **Ctrl+Shift+.** を使用して、変更を usf ファイルに保存してから変更が加えられたシェーダーを再コンパイルします。
 多くのシェーダーに含まれるファイル (例、common.usf) を変更した場合は再コンパイルの時間がしばらくかかることがあります。マテリアルでイタレーションする場合、マテリアルに若干の変更を加えて (例、ノードの移動)、マテリアル エディタで 'Apply' を使用することでマテリアルの再コンパイルをトリガーできます。
@@ -18,7 +19,7 @@ Description:シェーダーを記述するプログラマ向けのグラフィ�
 グローバル シェーダーは、(フルスクリーン クアッドのように) 固定ジオメトリで機能するシェーダーであり、マテリアルとのインターフェースを必要としません。例としては、シャドウのフィルタリングやポストプロセスがあります。任意のグローバル シェーダのタイプに対して 1 つのシェーダーのみがメモリに存在します。
 #### マテリアルとメッシュ タイプ
 
-マテリアルは、マテリアルがどのようにレンダリングされるかの状態のセット (ブレンド モード、二面など) とマテリアルが様々なレンダリング パス (ベースカラー、ラフネス、法線など) とどのようにインタラクションするかを制御するマテリアル入力のセットによって定義されます。
+マテリアルは、マテリアルがどのようにレンダリングされるかの状態のセット (ブレンド モード、二面など) とマテリアルが様々なレンダリング パス (ベースカラー、ラフネス、法線など) とどのように相互作用するかを制御するマテリアル入力のセットによって定義されます。
 #### 頂点ファクトリ
 
 マテリアルは様々なメッシュ タイプへの適用をサポートしなければなりません。これは頂点ファクトリによって実現します。**FVertexFactoryType** は、固有のメッシュタイプを表し、FVertexFactory インスタンスはインスタンス毎のデータを格納し、固有のメッシュタイプをサポートします。例えば、FGPUSkinVertexFactory はスキニングに必要なボーン マトリックス、およびGPU スキン頂点ファクトリ シェーダ コードが入力として必要とする様々な頂点バッファへの参照も格納します。頂点ファクトリ シェーダー コードは、暗黙的なインターフェイスであり、様々なパス シェーダーによってメッシュ タイプの違いを抽象化するために使用されます。頂点ファクトリは、主に頂点シェーダー コードから構成されますが、一部のピクセル シェーダー コードも含まれます。頂点ファクトリ シェーダー コードの重要なコンポーネントは以下の通りです。
@@ -28,7 +29,7 @@ Description:シェーダーを記述するプログラマ向けのグラフィ�
 |FVertexFactoryInput| 頂点シェーダーへの入力として頂点ファクトリが何を必要とするかを定義します。これらは、C++ 側の FVertexFactory の頂点の宣言と一致しなければなりません。例えば、LocalVertexFactory の FVertexFactoryInput には、float4 Position、POSITION があります。これは、FStaticMeshLODResources::SetupVertexFactory にある位置ストリームの宣言に対応します。|
 |FVertexFactoryIntermediates|複数の頂点ファクトリ関数で使用されるキャッシュされた中間データを格納するために使用します。一般的な例は、TangentToLocal マトリックスであり、パックされない頂点入力から計算されなくてはなりません。
 |FVertexFactoryInterpolantsVSToPS|頂点シェーダーからピクセル シェーダーに渡される頂点ファクトリ データ。 |
-|VertexFactoryGetWorldPosition|ワールド空間頂点位置を得るために頂点シェーダーから呼び出されます。スタティック メッシュでは、これは単にLocalToWorld マトリックスを使用して頂点バッファからのローカル空間の位置をワールド空間に変換します。GPU スキン メッシュでは、この位置は最初にスキンされ、次にワールド空間に変換されます。|
+|VertexFactoryGetWorldPosition|ワールド空間頂点位置を得るために頂点シェーダーから呼び出されます。スタティック メッシュでは、これは単にLocalToWorld マトリックスを使用して頂点バッファからのローカル空間の位置をワールド空間に変換します。GPU スキン メッシュでは、この位置は最初にスキニングされ、次にワールド空間に変換されます。|
 |VertexFactoryGetInterpolantsVSToPS| FVertexFactoryInput を FVertexFactoryInterpolants に変換します。これは、ピクセル シェーダーに渡される前にグラフィックス ハードウェアによって補間されます。|
 |GetMaterialPixelParameters|これはピクセル シェーダーで呼び出され、頂点ファクトリ固有の補間式 (FVertexFactoryInterpolants) を、そのパスのピクセル シェーダーが使用する FMaterialPixelParameters 構造体に変換します。|
 
@@ -48,9 +49,9 @@ Description:シェーダーを記述するプログラマ向けのグラフィ�
             TDepthOnlyVS - FMeshMaterialShaderType
             TBasePassPS - FMeshMaterialShaderType
             TBasePassVS - FMeshMaterialShaderType
-            など
+            Etc
         FGPUSkinVertexFactory - FVertexFactoryType
-            など
+            Etc
 
 頂点ファクトリはマテリアルの用途に依存する ShouldCache 関数に基づきこのマトリックスに含まれます。例えば、bUsedWithSkeletalMesh が `true` の場合は GPU のスキン頂点ファクトリを含みます。FMeshMaterialShaderType は、マテリアルと頂点ファクトリの属性に依存するShouldCache 関数に基づきこのマトリックスに含まれます。これはシェーダーをキャッシングするための疎行列 (sparse matrix) アプローチであり、非常に速くシェーダーが多数になり、メモリを消費し、コンパイル時間が長くなります。実際に必要なシェーダーのリストを保存するのに比べて主な利点は、リストを生成する必要がなく、コンソールでのランタイム前に必要なシェーダーは常にコンパイル済みであるという点です。UE4 ではシェーダーのメモリ問題をシェーダーの圧縮によって軽減し、コンパイル時間の問題はマルチコアのシェーダーのコンパイルで短縮しています。
 #### マテリアル シェーダーを作成する
@@ -150,3 +151,9 @@ _r.DumpShaderDebugInfo=1_ を使用してコンパイルするすべてのシェ
 ## クロス コンパイラ
 
 [HLSL クロス コンパイラ](Programming/Rendering/ShaderDevelopment/HLSLCrossCompiler) を使用して OpenGL プラットフォーム向けに HLSL をGLSL に自動的に変換します。これにより、シェーダーをすべてのプラットフォームに対して一度だけオーサリングできます。オフラインのシェーダーのコンパイル時に実行し、OpenGL ドライバでは行われないことが多いコードに対する様々な最適化を行います。
+
+## AsyncCompute
+
+[AsyncCompute](Programming/Rendering/ShaderDevelopment/AsyncCompute) は、特定の GPU で機能する API で利用可能なハードウェア機能です。
+GPU のハードウェア ユニットをより効率的に活用できるようにインターリーブします。
+

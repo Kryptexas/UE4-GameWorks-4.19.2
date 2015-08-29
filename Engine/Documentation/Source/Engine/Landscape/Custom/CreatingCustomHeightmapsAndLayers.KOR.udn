@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2516198
+﻿INTSourceChangelist:2609228
 Availability: Public
 Title:커스텀 하이트맵 및 레이어 제작 및 사용
 Crumbs: %ROOT%, Engine, Engine/Landscape
@@ -7,8 +7,6 @@ Description:랜드스케이프에 쓸 커스텀 하이트맵 및 레이어를 �
 
 [TOC(start:2 end:3)]
 
-
-## 개요
 ![](Landscape_Example_Image.png)
 
 가끔 랜드스케이프는 외부 프로그램을 사용하여 필요한 레이어와 하이트맵을 만들어야 할 때가 있습니다.

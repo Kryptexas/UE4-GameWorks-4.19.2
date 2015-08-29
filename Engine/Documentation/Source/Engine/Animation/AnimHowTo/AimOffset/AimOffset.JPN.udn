@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2467660
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:Aim Offset を作成する
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -131,7 +131,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 1.	**AimPoses** フォルダから **Aim_Center** アニメーションを開きます。 
 
-1.	**Anim Asset Details** ウィンドウの **Additive Settings**  で **No additive** オプションをクリックし、それを **Mesh Space** に変更します。 
+1.	**Anim Asset Details** （Anim アセットの詳細）ウィンドウの **Additive Settings** （加算設定）で **No additive** （加算なし）オプションをクリックし、それを **Mesh Space** に変更します。 
 
 	![](AimOffset18.png)
 
@@ -139,7 +139,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 	アニメーションが Aim Offset と互換性があるようにするには、必ず **Mesh Space** のAdditive Anim Type を使用するように設定しなければなりません。 
 	[/REGION:note]
 
-1.	**Reference Pose** オプションをクリックし、それを **Selected animation frame** に変更します。 
+1.	**Reference Pose** （参照ポーズ）オプションをクリックし、それを **Selected animation frame** （アニメーション フレームを選択）に変更します。 
 
 	![](AimOffset19.png)
 
@@ -153,7 +153,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 	それぞれ、**Mesh Space** の **Additive Anim Type** を使用するように設定し、**Idle_Rifle_Ironsights** Base Pose を割り当てるようにしてください。 
 
-1.	上記を行ったら **コンテンツ ブラウザ** に戻り、**[Save All]** ボタンをクリックします。 
+1.	上記を行ったら **コンテンツ ブラウザ** に戻り、**[Save All]** （全てを保存）ボタンをクリックします。 
 
 	![](AimOffset22.png)
 
@@ -161,17 +161,17 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 ポーズを作成したら次に Aim Offset アセットを作成し、ブレンドのためにポーズをセットアップします。 
 
-1.	**コンテンツ ブラウザ** で、**[Create]** ボタンをクリックします。次に **[Animation]** で **[Aim Offset]** を選択します。 
+1.	**コンテンツ ブラウザ** で、**[Create]** （作成）ボタンをクリックします。次に **[Animation]** で **[Aim Offset]** を選択します。 
 
 	![](AimOffset23.png)
 
-1.	**[Pick Skeleton]** ウィンドウで、 **Game/AnimStarterPack/Character** フォルダにある **HeroTPP_Skeleton** を選択するようにしてください。 
+1.	**[Pick Skeleton]** （スケルトンを選択）ウィンドウで、 **Game/AnimStarterPack/Character** フォルダにある **HeroTPP_Skeleton** を選択するようにしてください。 
 
 	![](AimOffset24.png)
 
 	この Aim Offset に **Hero_AimOffset** と名前を付けて開いてください。 
 
-1.	**Hero_AimOffset** 内の **Anim Asset Details** パネルで **Additive Settings** にある **Preview Base Pose** をクリックします。 
+1.	**Hero_AimOffset** 内の **Anim Asset Details** （Anim アセットの詳細）パネルで **Additive Settings** にある **Preview Base Pose** （ベースポーズのプレビュー）をクリックします。 
 
 1.	ポップアップ ウィンドウで、**Idle_Rifle_Ironsights** アニメーション シーケンスを探して追加します。 
 
@@ -183,13 +183,13 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 	![](AimOffset26.png)
 
-	**X Axis Label** を **Yaw** (左右回転) に、**Y Axis Label** を **Pitch** (上下動) に設定します。次に両方の Axis Ranges を **-90 から 90** に設定し、**Apply Parameter Changes** をクリックします。 
+	**X Axis Label** を **Yaw** (左右回転) に、**Y Axis Label** を **Pitch** (上下動) に設定します。次に両方の Axis Ranges を **-90 から 90** に設定し、**Apply Parameter Changes** （パラメータ変更の適用）をクリックします。 
 
 	[REGION:note]
-	**Blend Spaces** がどのように機能するかについての情報は、 [](Engine/Animation/Blendspaces) (Aim Offsets の元になっているもの)をご覧ください。 
+	**Blend Spaces** （ブレンドスペース）がどのように機能するかについての情報は、 [](Engine/Animation/Blendspaces) (Aim Offsets の元になっているもの)をご覧ください。 
 	[/REGION]
 
-1.	**Asset Browser** で **Aim** を検索し、**Aim_Center** アニメーションを以下の画面のようにグラフの中央部にドラッグします。 
+1.	**Asset Browser** （アセット ブラウザ）で **Aim** を検索し、**Aim_Center** アニメーションを以下の画面のようにグラフの中央部にドラッグします。 
 
 	![](AimOffset27.png)
 
@@ -230,7 +230,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 	これで [](Engine/Animation/AnimBlueprints/AnimGraph) タブが開きます。このタブに Aim Offset を実装します。 
 
-1.	**[MyBlueprint]** ウィンドウで、 **[変数を追加]** ボタンをクリックし、新しい変数を作成します。 
+1.	**[MyBlueprint]** ウィンドウで、 **Add Variable** （変数を追加）ボタンをクリックし、新しい変数を作成します。 
 
 	![](AimOffset33.png)
 
@@ -309,7 +309,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 	上の画面のようにノードを接続します。 
 	**PlayerAimPitch** と **PlayerAimYaw** の現在の値を取得し、プレイヤーの実際の Pitch/Yaw に滑らかに移行します。 
 
-1.	**Movement** セクションの始まりで、**Event Blueprint Update Animation** の **Delta Time X** をドラッグし、**Promote to variable** を追加します。 
+1.	**Movement** セクションの始まりで、**Event Blueprint Update Animation** の **Delta Time X** をドラッグし、**Promote to variable** （変数に昇格）を追加します。 
 
 	![](AimOffset49.png)
 
@@ -325,7 +325,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 	時間への参照を割り当て、プレイヤーの古い pitch/yaw の位置から新しい位置に移動する速度を設定しました。
 
-1.	**RInterp To** ノードの **Return Value** をドラッグして、**Break Rot** (Break Rotation) ノードを追加します。 
+1.	**RInterp To** ノードの **Return Value** （戻り値）をドラッグして、**Break Rot** (Break Rotation) ノードを追加します。 
 
 	![](AimOffset52.png)
 
@@ -381,7 +381,7 @@ Related:Engine\Animation\AnimHowTo\AdditiveAnimations
 
 エディタで再生する場合、キャラクターは静止状態で照準を合わせ、マウスの動きに反応し、マウスの方向を指し示します。マウスがキャラクターの背後にある場合、およびキャラクターが走っている間、キャラクターが後ろを向かないようにいくつかの制約があります。マウスを動かすとキャラクターの胴もポイントしている方向に向きます。 
 
-さらに、複数のアニメーションをまとめてブレンドする方法について学ぶための [](Engine\Animation\AnimHowTo\AdditiveAnimations) の操作ガイドを参照し、手を加えて以下を行うことができます。すなわち、キャラクターがある方向に照準を合わせ、その方向に射撃アニメーションを再生、および (または) キャラクターがある方向に移動またはしゃがんでいる間に射撃アニメーションを再生します。または、[スケルタルメッシュのソケット](Engine\Content\Types\SkeletalMeshes\Sockets) を参照して、照準できるようになったキャラクターの手に武器をアタッチする例を見ることができます。 
+さらに、複数のアニメーションをまとめてブレンドする方法について学ぶための [](Engine\Animation\AnimHowTo\AdditiveAnimations) の操作ガイドを参照し、手を加えて以下を行うことができます。すなわち、キャラクターがある方向に照準を合わせ、その方向に射撃アニメーションを再生、および (または) キャラクターがある方向に移動またはしゃがんでいる間に射撃アニメーションを再生します。または、[スケルタルメッシュのソケット](Engine\Content\Types\SkeletalMeshes\Sockets) を参照すると、照準できるようになったキャラクターの手に武器をアタッチする例があります。 
 
 
 

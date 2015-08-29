@@ -8,16 +8,6 @@
 	#define INTERNAL_DECORATOR(Method) CmdList.GetContext().RHI##Method
 #endif
 
-// set this one to get a stat for each RHI command 
-#define RHI_STATS 0
-
-#if RHI_STATS
-	DECLARE_STATS_GROUP(TEXT("RHICommands"),STATGROUP_RHI_COMMANDS, STATCAT_Advanced);
-	#define RHISTAT(Method)	DECLARE_SCOPE_CYCLE_COUNTER(TEXT(#Method), STAT_RHI##Method, STATGROUP_RHI_COMMANDS)
-#else
-	#define RHISTAT(Method)
-#endif
-
 void FRHICommandSetRasterizerState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(SetRasterizerState);
@@ -175,12 +165,8 @@ void FRHICommandBindClearMRTValues::Execute(FRHICommandListBase& CmdList)
 	RHISTAT(BindClearMRTValues);
 	INTERNAL_DECORATOR(BindClearMRTValues)(
 		bClearColor,
-		NumClearColors,
-		ColorArray,
 		bClearDepth,
-		Depth,
-		bClearStencil,
-		Stencil	
+		bClearStencil		
 		);
 }
 
@@ -291,6 +277,24 @@ void FRHICommandClearMRT::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(ClearMRT)(bClearColor, NumClearColors, ColorArray, bClearDepth, Depth, bClearStencil, Stencil, ExcludeRect);
 }
 
+void FRHIBeginAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(BeginAsyncComputeJob_DrawThread);
+	INTERNAL_DECORATOR(BeginAsyncComputeJob_DrawThread)(Priority);
+}
+
+void FRHIEndAsyncComputeJob_DrawThread::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(EndAsyncComputeJob_DrawThread);
+	INTERNAL_DECORATOR(EndAsyncComputeJob_DrawThread)(FenceIndex);
+}
+
+void FRHIGraphicsWaitOnAsyncComputeJob::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(GraphicsWaitOnAsyncComputeJob);
+	INTERNAL_DECORATOR(GraphicsWaitOnAsyncComputeJob)(FenceIndex);
+}
+
 void FRHICommandBuildLocalBoundShaderState::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BuildLocalBoundShaderState);
@@ -375,6 +379,12 @@ void FRHICommandSubmitCommandsHint::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(SubmitCommandsHint)();
 }
 
+void FRHICommandUpdateTextureReference::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(UpdateTextureReference);
+	INTERNAL_DECORATOR(UpdateTextureReference)(TextureRef, NewTexture);
+}
+
 void FRHICommandBeginScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(BeginScene);
@@ -385,14 +395,6 @@ void FRHICommandEndScene::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(EndScene);
 	INTERNAL_DECORATOR(EndScene)();
-}
-
-void FRHICommandUpdateVertexBuffer::Execute(FRHICommandListBase& CmdList)
-{
-	RHISTAT(UpdateVertexBuffer);
-	void* Data = LockVertexBuffer_Internal(VertexBuffer, 0, BufferSize, RLM_WriteOnly);
-	FMemory::Memcpy(Data, Buffer, BufferSize);
-	UnlockVertexBuffer_Internal(VertexBuffer);
 }
 
 void FRHICommandBeginFrame::Execute(FRHICommandListBase& CmdList)

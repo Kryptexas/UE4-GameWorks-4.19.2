@@ -213,6 +213,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, ShadowMapChannel(InLightComponent->ShadowMapChannel)
 	, PreviewShadowMapChannel(InLightComponent->PreviewShadowMapChannel)
 	, IESTexture(0)
+	, bMovable(InLightComponent->IsMovable())
 	, bStaticLighting(InLightComponent->HasStaticLighting())
 	, bStaticShadowing(InLightComponent->HasStaticShadowing())
 	, bCastDynamicShadow(InLightComponent->CastShadows && InLightComponent->CastDynamicShadows)
@@ -231,6 +232,7 @@ FLightSceneProxy::FLightSceneProxy(const ULightComponent* InLightComponent)
 	, StatId(InLightComponent->GetStatID(true))
 	, FarShadowDistance(0)
 	, FarShadowCascadeCount(0)
+	, bCastModulatedShadows(false)
 {
 	// Brightness in Lumens
 	float LightBrightness = InLightComponent->ComputeLightBrightness();
@@ -571,6 +573,8 @@ void ULightComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, OcclusionMaskDarkness) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, OcclusionDepthRange) &&
 		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, LightShaftOverrideDirection) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, bCastModulatedShadows) &&
+		PropertyName != GET_MEMBER_NAME_STRING_CHECKED(UDirectionalLightComponent, ModulatedShadowColor) &&
 		// Properties that should only unbuild lighting for a Static light (can be changed dynamically on a Stationary light)
 		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, Intensity) || Mobility == EComponentMobility::Static) &&
 		(PropertyName != GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, LightColor) || Mobility == EComponentMobility::Static) &&
@@ -638,7 +642,7 @@ void ULightComponent::CreateRenderState_Concurrent()
 
 	bool bHidden = false;
 #if WITH_EDITORONLY_DATA
-	bHidden = GetOwner() ? GetOwner()->bHiddenEdLevel : false;
+	bHidden = GetOwner() ? GetOwner()->IsHiddenEd() : false;
 #endif // WITH_EDITORONLY_DATA
 
 	if(!ShouldComponentAddToScene())
@@ -716,9 +720,9 @@ void ULightComponent::SetIndirectLightingIntensity(float NewIntensity)
 }
 
 /** Set color of the light */
-void ULightComponent::SetLightColor(FLinearColor NewLightColor)
+void ULightComponent::SetLightColor(FLinearColor NewLightColor, bool bSRGB)
 {
-	FColor NewColor(NewLightColor);
+	FColor NewColor(NewLightColor.ToFColor(bSRGB));
 
 	// Can't set color on a static light
 	if (AreDynamicDataChangesAllowed()
@@ -953,12 +957,6 @@ public:
 	int32 PreviewShadowMapChannel;
 	bool bPrecomputedLightingIsValid;
 };
-
-FName ULightComponent::GetComponentInstanceDataType() const
-{
-	static const FName PrecomputedLightInstanceDataTypeName(TEXT("PrecomputedLightInstanceData"));
-	return PrecomputedLightInstanceDataTypeName;
-}
 
 FActorComponentInstanceData* ULightComponent::GetComponentInstanceData() const
 {

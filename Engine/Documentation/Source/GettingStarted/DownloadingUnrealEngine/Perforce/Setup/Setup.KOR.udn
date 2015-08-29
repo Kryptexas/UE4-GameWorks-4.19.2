@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2286745
+﻿INTSourceChangelist:2612584
 Availability: Licensee
 Title:퍼포스 연결 셋업하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics, GettingStarted/DownloadingUnrealEngine/Perforce
 Description:에픽의 퍼포스 서버에 접속하여 언리얼 엔진 4 빌드를 구하는 방법 안내서입니다.
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 에픽 게임스는 다른 전문화된 코드 드롭과 마찬가지로 언리얼 엔진 4의 QA-승인 빌드를 만들어서 
 외부적으로 접근 가능한 퍼포스 디포를 통해 라이선시에게 제공합니다. 

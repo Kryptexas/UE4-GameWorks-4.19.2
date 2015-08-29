@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2472822
+﻿INTSourceChangelist:2534001
 Availability:Public
 Title:マテリアル エディタ - テクスチャ マスクの操作ガイド 
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/HowTo
-Description:マテリアルでテクスチャ マスクの操作ガイド 
+Description:マテリアルでテクスチャ マスクを使用するための操作ガイド 
 Related:Engine/Content/Types/Textures/Properties
 Related:Engine/Content/Types/Textures/SupportAndSettings
 Related:Engine/Content/Types/Textures/Properties/Interface
@@ -19,7 +19,7 @@ Related:Engine/Rendering/Materials/HowTo/Instancing
 これを行う簡単で負荷が低い方法は、テクスチャ マスクを使用するものです。テクスチャ マスクはどのサーフェスがマテリアルのどのセクションによって影響を受けるかを定義します。 
 以下の操作ガイドではアンリアル エンジン 4 のマテリアル内でテクスチャ マスクを使用する方法について説明します。
 
-## テクスチャ マスクとは何でしょう？
+## テクスチャ マスク
 
 テクスチャ マスクはグレースケールのテクスチャ、またはテクスチャの単一チャンネル (R, G, B, または A) であり、マテリアル内のエフェクト領域を制限するものです。 
 多くの場合、マスクは他のテクスチャの単一チャンネル内に入っています。例えば、Diffuse または Normal map の **Alpha Channel** などです。 
@@ -80,7 +80,7 @@ Related:Engine/Rendering/Materials/HowTo/Instancing
 
 ### マテリアルのマスキング 
 
-マスク テクスチャでもうひとつ一般的なのは、様々な種類のテクスチャ情報を各R, G, B, およびアルファ チャンネルに格納することです。 
+マスク テクスチャでもうひとつ一般的なのは、様々な種類のテクスチャ情報を各 R, G, B, およびアルファ チャンネルに格納することです。 
 この技術を表す最適な例として、スターター コンテンツに入っている **SM_Chair** スタティックメッシュをご覧ください。 
 
 [region:tip]

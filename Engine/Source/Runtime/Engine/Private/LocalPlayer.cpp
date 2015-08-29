@@ -185,47 +185,11 @@ void ULocalPlayer::PlayerAdded(UGameViewportClient* InViewportClient, int32 InCo
 
 void ULocalPlayer::InitOnlineSession()
 {
-	if (OnlineSession == NULL)
-	{
-		UClass* SpawnClass = GetOnlineSessionClass();
-		OnlineSession = NewObject<UOnlineSession>(this, SpawnClass);
-		if (OnlineSession)
-		{
-			UWorld* World = GetWorld();
-			if (World != NULL)
-			{
-				OnlineSession->RegisterOnlineDelegates(World);
-			}
-		}
-	}
+	// FIXME: This may be obsolete, still here to support a few straggler cases that do stuff in child classes
 }
 
 void ULocalPlayer::PlayerRemoved()
 {
-	// Clear all online delegates
-	if (OnlineSession != NULL)
-	{
-		OnlineSession->ClearOnlineDelegates(GetWorld());
-		OnlineSession = NULL;
-	}
-}
-
-TSubclassOf<UOnlineSession> ULocalPlayer::GetOnlineSessionClass()
-{
-	return UOnlineSession::StaticClass();
-}
-
-void ULocalPlayer::HandleDisconnect(UWorld *World, UNetDriver *NetDriver)
-{
-	if (OnlineSession)
-	{
-		OnlineSession->HandleDisconnect(World, NetDriver);
-	}
-	else
-	{
-		// Let the engine cleanup this disconnect
-		GEngine->HandleDisconnect(World, NetDriver);
-	}
 }
 
 bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* InWorld)
@@ -250,7 +214,7 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 		}
 
 		// Get player unique id
-		TSharedPtr<FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
+		TSharedPtr<const FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
 
 		PlayerController = InWorld->SpawnPlayActor(this, ROLE_SimulatedProxy, PlayerURL, UniqueId, OutError, GEngine->GetGamePlayers(InWorld).Find(this));
 	}
@@ -370,7 +334,7 @@ public:
 	 * @param OutFOV			The FOV at which the view was locked.
 	 * @returns true if the view is locked, false if it is not.
 	 */
-	bool GetViewPoint(ULocalPlayer* Player, FVector& OutViewLocation, FRotator& OutViewRotation, float& OutFOV)
+	bool GetViewPoint(ULocalPlayer const* Player, FVector& OutViewLocation, FRotator& OutViewRotation, float& OutFOV)
 	{
 		FPlayerState PlayerState = PlayerStates.GetAnnotation(Player);
 		if (PlayerState.bLocked)
@@ -386,7 +350,7 @@ public:
 	/**
 	 * Returns true if the player's viewpoint is locked.
 	 */
-	bool IsViewLocked(ULocalPlayer* Player)
+	bool IsViewLocked(ULocalPlayer const* Player)
 	{
 		FPlayerState PlayerState = PlayerStates.GetAnnotation(Player);
 		return PlayerState.bLocked;
@@ -640,7 +604,7 @@ FAutoConsoleCommand FLockedViewState::CmdCopyLockedViews(
 	FConsoleCommandDelegate::CreateStatic(FLockedViewState::CopyLockedViews)
 	);
 
-void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass)
+void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass) const
 {
 	if (FLockedViewState::Get().GetViewPoint(this, OutViewInfo.Location, OutViewInfo.Rotation, OutViewInfo.FOV) == false
 		&& PlayerController != NULL)
@@ -903,7 +867,7 @@ bool ULocalPlayer::GetPixelPoint(const FVector& InPoint, FVector2D& OutPoint, co
 	return bInFrontOfCamera;
 }
 
-bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData)
+bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass StereoPass, FSceneViewProjectionData& ProjectionData) const
 {
 	// If the actor
 	if ((Viewport == NULL) || (PlayerController == NULL) || (Viewport->GetSizeXY().X == 0) || (Viewport->GetSizeXY().Y == 0))
@@ -1481,7 +1445,7 @@ FString ULocalPlayer::GetNickname() const
 	return TEXT("");
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() const
 {
 	UWorld* World = GetWorld();
 	if (World != NULL)
@@ -1489,7 +1453,7 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() co
 		IOnlineIdentityPtr OnlineIdentityInt = Online::GetIdentityInterface(World);
 		if (OnlineIdentityInt.IsValid())
 		{
-			TSharedPtr<FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
+			TSharedPtr<const FUniqueNetId> UniqueId = OnlineIdentityInt->GetUniquePlayerId(ControllerId);
 			if (UniqueId.IsValid())
 			{
 				return UniqueId;
@@ -1500,17 +1464,17 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetUniqueNetIdFromCachedControllerId() co
 	return NULL;
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetCachedUniqueNetId() const
 {
 	return CachedUniqueNetId;
 }
 
-void ULocalPlayer::SetCachedUniqueNetId( TSharedPtr<class FUniqueNetId> NewUniqueNetId )
+void ULocalPlayer::SetCachedUniqueNetId(TSharedPtr<const FUniqueNetId> NewUniqueNetId)
 {
 	CachedUniqueNetId = NewUniqueNetId;
 }
 
-TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
+TSharedPtr<const FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
 {
 	// Prefer the cached unique net id (only if it's valid)
 	// This is for backwards compatibility for games that don't yet cache the unique id properly
@@ -1526,7 +1490,7 @@ TSharedPtr<FUniqueNetId> ULocalPlayer::GetPreferredUniqueNetId() const
 bool ULocalPlayer::IsCachedUniqueNetIdPairedWithControllerId() const
 {
 	// Get the UniqueNetId that is paired with the controller
-	TSharedPtr<FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
+	TSharedPtr<const FUniqueNetId> UniqueIdFromController = GetUniqueNetIdFromCachedControllerId();
 
 	if (CachedUniqueNetId.IsValid() != UniqueIdFromController.IsValid())
 	{

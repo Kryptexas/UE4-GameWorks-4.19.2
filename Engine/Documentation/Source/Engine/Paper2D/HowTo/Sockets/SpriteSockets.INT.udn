@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Using Sprite Sockets
 Crumbs: %ROOT%, Engine, Engine/Paper2D
 Description:How to attach objects to sockets defined in a Paper 2D Sprite. 
@@ -86,6 +86,11 @@ Now that we have a socket attached to each frame of our Flipbook, we can tell ou
 	![](Example_GIF.gif)(convert:false)
 
 You could add a socket to a sprite and attach any number of different things in that socket, whether or not the sprite is part of a Flipbook and is animated as well as what goes in the socket is entirely up to you. 
+
+
+
+
+
 
 
 

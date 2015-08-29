@@ -13,6 +13,7 @@
 #endif
 #include "Engine/LevelStreamingKismet.h"
 #include "Components/BrushComponent.h"
+#include "Engine/CoreSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
@@ -171,7 +172,7 @@ bool FStreamLevelAction::UpdateLevel( ULevelStreaming* LevelStreamingObject )
 		return true;
 	}
 	// Level shouldn't be loaded but is as background level streaming is enabled so we need to fire finished event regardless.
-	else if( LevelStreamingObject->GetLoadedLevel() && !LevelStreamingObject->bShouldBeLoaded && !GEngine->bUseBackgroundLevelStreaming )
+	else if (LevelStreamingObject->GetLoadedLevel() && !LevelStreamingObject->bShouldBeLoaded && !GUseBackgroundLevelStreaming)
 	{
 		return true;
 	}
@@ -469,7 +470,7 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			{
 				// Load localized part of level first in case it exists. We don't need to worry about GC or completion 
 				// callback as we always kick off another async IO for the level below.
-				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), nullptr, NAME_None, *LocalizedPackageName, FLoadPackageAsyncDelegate(), PackageFlags, PIEInstanceID);
+				LoadPackageAsync(*(GetWorldAssetPackageName() + LOCALIZED_SEEKFREE_SUFFIX), nullptr, *LocalizedPackageName, FLoadPackageAsyncDelegate(), PackageFlags, PIEInstanceID);
 			}
 		}
 
@@ -481,14 +482,15 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 			UWorld::WorldTypePreLoadMap.FindOrAdd(DesiredPackageName) = PersistentWorld->WorldType;
 
 			// Kick off async load request.
-			LoadPackageAsync(DesiredPackageName.ToString(), nullptr, NAME_None, *PackageNameToLoadFrom, FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), PackageFlags, PIEInstanceID);
+			STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "RequestLevel - " ) + DesiredPackageName.ToString() )) );
+			LoadPackageAsync(DesiredPackageName.ToString(), nullptr, *PackageNameToLoadFrom, FLoadPackageAsyncDelegate::CreateUObject(this, &ULevelStreaming::AsyncLevelLoadComplete), PackageFlags, PIEInstanceID);
 
 			// streamingServer: server loads everything?
 			// Editor immediately blocks on load and we also block if background level streaming is disabled.
 			if (bBlockOnLoad || ShouldBeAlwaysLoaded())
 			{
 				// Finish all async loading.
-				FlushAsyncLoading( NAME_None );
+				FlushAsyncLoading();
 			}
 		}
 		else
@@ -596,7 +598,8 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 					FLinkerLoad* PackageLinker = FLinkerLoad::FindExistingLinkerForPackage(LevelPackage);
 					if (PackageLinker)
 					{
-						delete PackageLinker;
+						PackageLinker->Detach();
+						DeleteLoader(PackageLinker);
 						PackageLinker = nullptr;
 					}
 
@@ -642,6 +645,8 @@ void ULevelStreaming::AsyncLevelLoadComplete(const FName& InPackageName, UPackag
 	// Clean up the world type list and owning world list now that PostLoad has occurred
 	UWorld::WorldTypePreLoadMap.Remove(InPackageName);
 	ULevel::StreamedLevelsOwningWorld.Remove(InPackageName);
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, *(FString( TEXT( "RequestLevelComplete - " ) + InPackageName.ToString() )) );
 }
 
 bool ULevelStreaming::IsLevelVisible() const
@@ -966,6 +971,15 @@ bool ULevelStreamingKismet::ShouldBeVisible() const
 bool ULevelStreamingKismet::ShouldBeLoaded() const
 {
 	return bShouldBeLoaded;
+}
+
+ALevelScriptActor* ULevelStreaming::GetLevelScriptActor()
+{
+	if (LoadedLevel)
+	{
+		return LoadedLevel->GetLevelScriptActor();
+	}
+	return nullptr;
 }
 
 /*-----------------------------------------------------------------------------

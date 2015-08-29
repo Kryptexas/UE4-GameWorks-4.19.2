@@ -12,7 +12,7 @@ Description:In this section we will use a Bind Event which is bound to OnHit to 
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[How-To Home](Engine\Blueprints\HowTo "%Engine\Blueprints\HowTo:Title%")
+		[How To Home](Engine\Blueprints\HowTo "%Engine\Blueprints\HowTo:Title%")
 	[/PARAM]
 	[PARAM:next]
 	[Next Step](Engine\Blueprints\HowTo\BPHT_6 "%Engine\Blueprints\HowTo\BPHT_6:title%") 

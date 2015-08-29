@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2420416
+﻿INTSourceChangelist:2601100
 Availability: Public
 Title:블렌드 스페이스 만들기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -29,7 +29,7 @@ Related: Engine/Animation/StateMachines
 
 1.  프로젝트를 열고 **콘텐츠 브라우저** 안에서 **Game/Blueprints** 폴더 아래 **MyGame** 블루프린트를 엽니다.
 
-1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭하고 **ASP_Character** 를 선택합니다. 
+1.	**Default Pawn Class** 아래 드롭다운 메뉴를 클릭하고 **Ue4ASP_Character** 를 선택합니다. 
 
 	![](Engine\Animation\AnimHowTo\AdditiveAnimations\Animations1.png)
 
@@ -85,7 +85,7 @@ Related: Engine/Animation/StateMachines
 
 	그러면 _블렌드 스페이스_ 의 애니메이션 사이의 전환을 부드럽게 하여 포즈에서 포즈 사이 튀는 현상이 방지됩니다.
 
-1.	**저장** 을 누른 다음 _블렌드 스페이스_ 를 닫고, **콘텐츠 브라우저** 에서 **ASP_HeroTPP_AnimBlueprint** 를 엽니다. 
+1.	**저장** 을 누른 다음 _블렌드 스페이스_ 를 닫고, **콘텐츠 브라우저** 에서 **Ue4ASP_HeroTPP_AnimBlueprint** 를 엽니다. 
 
 1.	_애니메이션 블루프린트_ 안에서 **내 블루프린트** 탭을 클릭한 다음, **애님 그래프** 를 펼치고 **Locomotion** 을 **더블클릭** 합니다. 
 
@@ -107,7 +107,7 @@ Related: Engine/Animation/StateMachines
 
 1.	**컴파일**, **저장** 을 클릭한 다음 _애니메이션 블루프린트_ 를 닫습니다.
 
-1.	**콘텐츠 브라우저** 에서 **ASP_Character** _블루프린트_ 를 엽니다.
+1.	**콘텐츠 브라우저** 에서 **Ue4ASP_Character** _블루프린트_ 를 엽니다.
 
 1.	_블루프린트_ 를 열고 **Crouching** 섹션을 찾은 다음 **InputAction Crouch** 노드를 **C** Key Event 로 대체합니다. 
 
@@ -164,6 +164,11 @@ Related: Engine/Animation/StateMachines
 
 
 	
+
+
+
+
+
 
 
 

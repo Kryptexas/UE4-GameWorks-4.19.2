@@ -1,4 +1,4 @@
-INTSourceChangelist:2170270
+﻿INTSourceChangelist:2602131
 Availability: Public
 title:리플렉션
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Reflections (리플렉션) 카테고리 아래 나열된 머티리�
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 Reflections (반사) 함수는 머티리얼 내에서의 리플렉션 계산 처리 가속을 위한 여러가지 방법을 제공합니다.
 

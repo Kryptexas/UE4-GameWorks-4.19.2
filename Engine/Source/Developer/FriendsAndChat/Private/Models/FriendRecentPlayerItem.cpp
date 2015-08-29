@@ -22,7 +22,11 @@ const FString FFriendRecentPlayerItem::GetName() const
 	{
 		return OnlineUser->GetDisplayName();
 	}
-	return RecentPlayer->GetDisplayName();
+	if (RecentPlayer.IsValid())
+	{
+		return RecentPlayer->GetDisplayName();
+	}
+	return Username.ToString();
 }
 
 const FText FFriendRecentPlayerItem::GetFriendLocation() const
@@ -40,11 +44,6 @@ const FString FFriendRecentPlayerItem::GetClientName() const
 	return TEXT("");
 }
 
-const TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetSessionId() const
-{
-	return nullptr;
-}
-
 const bool FFriendRecentPlayerItem::IsOnline() const
 {
 	return false;
@@ -55,9 +54,13 @@ const EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() cons
 	return EOnlinePresenceState::Offline;
 }
 
-const TSharedRef< FUniqueNetId > FFriendRecentPlayerItem::GetUniqueID() const
+const TSharedRef<const FUniqueNetId> FFriendRecentPlayerItem::GetUniqueID() const
 {
-	return RecentPlayer->GetUserId();
+	if (RecentPlayer.IsValid())
+	{
+		return RecentPlayer->GetUserId();
+	}
+	return UniqueID.ToSharedRef();
 }
 
 const EFriendsDisplayLists::Type FFriendRecentPlayerItem::GetListType() const
@@ -107,7 +110,22 @@ bool FFriendRecentPlayerItem::CanInvite() const
 	return false;
 }
 
-TSharedPtr<FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
+bool FFriendRecentPlayerItem::IsInParty() const
+{
+	return false;
+}
+
+bool FFriendRecentPlayerItem::CanJoinParty() const
+{
+	return false;
+}
+
+TSharedPtr<const FUniqueNetId> FFriendRecentPlayerItem::GetGameSessionId() const
+{
+	return nullptr;
+}
+
+TSharedPtr<IOnlinePartyJoinInfo> FFriendRecentPlayerItem::GetPartyJoinInfo() const
 {
 	return nullptr;
 }

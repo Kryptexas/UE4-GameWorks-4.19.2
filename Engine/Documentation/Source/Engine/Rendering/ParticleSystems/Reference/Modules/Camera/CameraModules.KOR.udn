@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2074246
+﻿INTSourceChangelist:2604027
 Availability: Public
 Title:Camera 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,12 +6,10 @@ Description:카메라에 관련된 이미터 행위를 변경하는 모듈입니
 
 [TOC(start:2 end:3)]
 
-## Camera 모듈
-
 카메라에 관련된 이미터 행위를 변경하는 모듈입니다.
 
 
-### Camera Offset
+## Camera Offset
 
 ![CameraOffset.png](CameraOffset.png)
 

@@ -299,9 +299,11 @@ private:
 
 	/** Map of Tags to Nodes - Internal use only */
 	TMap<FGameplayTag, TSharedPtr<FGameplayTagNode>> GameplayTagNodeMap;
+	mutable FCriticalSection GameplayTagNodeMapCritical;
 
 	/** Map of Names to tags - Internal use only */
 	TMap<FName, FGameplayTag> GameplayTagMap;
+	mutable FCriticalSection GameplayTagMapCritical;
 
 	/** Sorted list of nodes, used for network replication */
 	TArray<TSharedPtr<FGameplayTagNode>> NetworkGameplayTagNodeIndex;

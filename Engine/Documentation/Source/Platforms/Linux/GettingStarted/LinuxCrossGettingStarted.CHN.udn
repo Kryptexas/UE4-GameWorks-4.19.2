@@ -1,0 +1,107 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title: Getting Started: Developing Linux Projects
+Crumbs:%ROOT%, Platforms, Platforms/Linux
+Description:Setting up for development for the Linux platform.
+
+%Globals:BinarySourceSelectVar%
+
+[TOC(start:2 end:3)]
+
+## Why cross-compilation
+
+Cross-compilation was chosen in order to make it easier for game developers (who tend to have Windows-centric workflow) to target Linux. At the moment, this is only supported for Windows, Mac users currently have to resort to [native compilation](https://wiki.unrealengine.com/Building_On_Linux). We support and test Linux-x86_64, but we provide the libraries and the toolchain (clang-3.5.0-arm) which allow you to compile for Linux ARM as well (original Raspberry Pi and up), although this will require you to make a (minor) code change in UBT.
+
+From this point on we assume that you are targeting x86_64 Linux; although the most of below will apply to compiling for ARM as well (except for the different toolchain). Note that you can [build your own](https://wiki.unrealengine.com/Building_Linux_cross-toolchain) toolchain if you want different versions of the tools or want to target a different architecture.
+
+## Setting up the toolchain 
+
+Add an environment variable (Control Panel->System->Advanced system settings->Advanced->Environment variables) named LINUX_ROOT, value of which is the absolute path to your toolchain, without trailing backslash:
+
+![](image00.png)
+
+After you made sure that variable is set, regenerate UE4 project files (using GenerateProjectFiles.bat) and restart Visual Studio. After this, you should have "Linux" available among Win32/Win64 configurations, and you should be able to cross-compile for it.
+
+## Setting up packaging for Linux
+
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	binaryinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	active_button_content
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%binary%
+	[/PARAM]
+[/OBJECT]
+[OBJECT:ToggleButtonContent]
+	[PARAMLITERAL:category]
+	BinarySourceSelect
+	[/PARAMLITERAL]
+	[PARAMLITERAL:id]
+	sourceinstall
+	[/PARAMLITERAL]
+	[PARAMLITERAL:active]
+	[/PARAMLITERAL]
+	[PARAM:content]
+	%source%
+	[/PARAM]
+[/OBJECT]
+
+[VAR:source]
+For packaging for Linux platform you will need to build the following targets:
+
+For Linux:
+
+* CrashReportClient
+* UE4Game (if you project is content-only, otherwise just build your project)
+
+For Windows:
+
+* The editor itself (this is needed to get Linux target modules built, so that Unreal Editor and Unreal Frontend know how to cook/package games for Linux).
+* UnrealPak and ShaderCompileWorker (you probably have those built anyway, but mentioning it for completeness).
+
+[/VAR]
+
+[VAR:binary]
+Note that binary release can only package content-only projects. If you want to package a code-based project for Linux (or a project that has non-default third party plugins), you will have to set up a source build. Otherwise, if you are fine with content-only, there are no need to build anything as Linux binaries of UE4Game and CrashReportClient are bundled.
+[/VAR]
+
+## Packaging for Linux
+
+The easiest way to package a project is to open it in the editor and then using File->Package To->Linux (assuming that you have a cross-toolchain installed in the previous step and Linux target modules are built for the editor in question - if you don't see Linux in the list, then it's likely that one of the former is not true - see above). After some time (which depends on the project in question and is rather short for sample project) you will have game assets and binaries in the directory you chose to package to.
+
+The details of the packaging process can be seen by clicking the "Show Output Log" link. If this process fails with error message "unable to find UnrealPak or ShaderCompileWorker" see above about building them for the host (windows) platform.
+
+Scp or otherwise copy it to a target machine (mounting a Samba share - if you know how to do that - may be better if target machine is low on disk space, this also reduces iteration times), chmod +x the target executable (which will be located in LinuxNoEditor/<ProjectName>/Binaries/Linux/ directory) and run it.
+
+### Changes for Linux-ARM platforms
+
+If you are using the Linux-ARM cross compile toolchain before running GenerateProjectFiles.bat below edit the following file in the UE4 source code: 
+
+.../UnrealEngine/Engine/Source/Programs/UnrealBuildTool/Linux/UEBuildLinux.cs 
+
+by commenting out the following line: 
+
+static private string DefaultArchitecture = "x86_64-unknown-linux-gnu"; 
+
+and un-commenting the linux-arm architecture line just below it: 
+
+//static private string DefaultArchitecture = "arm-unknown-linux-gnueabihf";
+
+An additional step is required for the packaged project to be runnable on Linux-ARM platforms. Assuming the packaged project is located at \foo\bar\SunTemple_Linux open the following location:
+
+\foo\bar\SunTemple_Linux\LinuxNoEditor\Engine\Binaries\Linux 
+
+and replace libopenal.so.1 with the version from: 
+
+...\UnrealEngine\Engine\Source\ThirdParty\OpenAL\1.15.1\lib\Linux\arm-unknown-linux-gnueabihf\libopenal.so 
+
+where ...\UnrealEngine is the location of the UE4 source code. Please be sure to rename libopenal.so to libopenal.so.1.
+
+Now the project can be copied over to the target machine, chmod+x the target executable and run it as instructed above.
+

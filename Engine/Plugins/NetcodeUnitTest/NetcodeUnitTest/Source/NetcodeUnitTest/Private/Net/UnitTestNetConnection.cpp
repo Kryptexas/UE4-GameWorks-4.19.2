@@ -38,7 +38,7 @@ void UUnitTestNetConnection::InitBase(UNetDriver* InDriver, class FSocket* InSoc
 }
 
 void UUnitTestNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InState, const FURL& InURL,
-											int32 InConnectionSpeed/*=0*/)
+											int32 InConnectionSpeed, int32 InMaxPacket)
 {
 	Super::InitConnection(InDriver, InState, InURL, InConnectionSpeed);
 

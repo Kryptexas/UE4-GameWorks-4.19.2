@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2438523
+﻿INTSourceChangelist:2517850
 Availability:Public
 Title:ライトの調整
 Crumbs: %ROOT%, Engine, Engine/Matinee, Engine/Matinee/HowTo
@@ -188,7 +188,7 @@ Description:シーンにおいてライトのカラー、輝度を始めとす�
 
 	![](MHT5_ApplyLighting.png)
 
-	_上の画面が表示されます。**Apply Now** ボタンをクリックします。_
+	_が表示されます。**Apply Now** ボタンをクリックします。_
 
 1. メイン ツールバーで **Play** アイコンをクリックしてエディタで再生します。 
 

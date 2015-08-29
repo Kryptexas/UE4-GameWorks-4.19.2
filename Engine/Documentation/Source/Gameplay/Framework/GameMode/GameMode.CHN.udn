@@ -1,0 +1,83 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:GameMode
+Crumbs:%ROOT%, Gameplay/Framework
+Description:The GameMode is responsible for setting the rules of the game.
+
+Even the most open-ended game has an underpinning of rules, and these rules make up a gametype.  On the most basic level, these rules include:
+
+* The number of players and spectators present, as well as the maximum number of players and spectators allowed.
+* How players enter the game, which can include spawn locations and spawn/respawn behavior.
+* Whether or not the game can be paused, and how pausing the game is handled.
+* Transitions between levels, including whether or not the game should start in cinematic mode.
+
+While all gametypes have certain fundamentals in common, they have limitless variations depending on the genre of the game you are developing. Familiar gametypes from first-person shooters include Deathmatch, Capture the Flag, and Last Man Standing - selecting these gametypes is often a menu option during match setup so they are highly visible.  Other genres, like role-playing adventure games or platformers, may have less variable and less visible gametypes, but they are still there setting the conditions of the game.  For instance, there may be a time limit imposed on the player and the level is complete when the player reaches a certain point or defeats a "boss" character. A more complex case would be that of a dungeon crawler type game. In the main world, there would be an overarching gametype that would keep track of the game progress and conditions. Within each dungeon there could be a gametype specific to that dungeon, allowing each dungeon to be completely unique and have its own set of rules and objectives.
+
+There are two main classes which handle information about a gametype: GameMode and GameState. 
+
+## GameMode
+
+
+The `AGameMode` class defines the game being played, and enforces the game rules. Some of the default functionality in `AGameMode` includes: 
+
+
+Any new functions or variables that set game rules should be added in a subclass of the `AGameMode` class.  Anything from what inventory items a player starts with or how many lives are available to time limits and the score needed to end the game belongs to GameMode. A subclass of the `AGameMode` class may be created for each gametype the game should include. A game may have any number of gametypes, and thus subclasses of the `AGameMode` class; however, only one gametype may be in use at any given time. A GameMode Actor is instantiated each time a level is initialized for play via the `UGameEngine::LoadMap()` function. The gametype this Actor defines will be used for the duration of the level.
+
+<!--
+	[/Script/Engine.GameMode]
+	+GameModeClassAliases=(ShortName="DM",GameClassName="UTGame.UTDeathmatch")
+-->
+
+### Match State
+
+The GameMode contains a state machine that tracks the state of the Match, or the general gameplay flow. To query the current state, you can use GetMatchState, or wrappers like HasMatchStarted, IsMatchInProgress, and HasMatchEnded. Here are the possible Match states:
+
+* EnteringMap is the initial state. Actors are not yet ticking and the world has not been fully initialized. It will transition to the next state when things are fully loaded.
+* WaitingToStart is the next state, and HandleMatchIsWaitingToStart is called when entering. Actors are ticking, but players have not yet spawned in. It transitions to the next state if ReadyToStartMatch returns _true_, or if someone calls StartMatch.
+* InProgress is the next state, and HandleMatchHasStarted is called when entering, which calls BeginPlay on all Actors. Normal gameplay is in progress. It transitions to the next state if ReadyToEndMatch returns _true_, or if someone calls EndMatch.
+* WaitingPostMatch is the next state, and HandleMatchHasEnded is called when entering. Actors are still ticking but new players are not accepted. It transitions to the next state when a map transfer starts.
+* LeavingMap is the last state, and HandleLeavingMap is called when entering. The match stays in this state while transferring to a new map.
+* Aborted is the failure state, started from AbortMatch. This is set when there is an unrecoverable error.
+
+By default, the Match state will almost always be InProgress. But, individual games can override this behavior to build a multiplayer game with more complicated rules.
+
+### GameMode-Derived Blueprints
+
+GameMode is a Blueprintable class. It is possible to create _Blueprints_ derived from GameMode, and use these as the default game mode for your project or your level.
+
+Blueprints derived from GameMode can set the following defaults:
+* Default Pawn Class
+* HUD Class
+* Player Controller Class
+* Spectator Class
+* Game State Class
+* Player State Class 
+
+
+### Setting the GameMode
+
+There are several methods to set the GameMode for a level, ordered here from lowest priority to highest priority: 
+
+* Setting the `GlobalDefaultGameMode` entry in the `/Script/Engine.WorldSettings/` section of the `DefaultGame.ini` file will set the default game mode for all maps in the project. 
+
+		[/Script/Engine.WorldSettings]
+		GlobalDefaultGameMode="/Script/MyGame.MyGameGameMode"
+		GlobalDefaultServerGameMode="/Script/MyGame.MyGameGameMode"
+
+* To override the project settings for an individual map, set the **GameMode Override** in the **World Settings** tab in the editor. 
+		
+	![](WorldSettings_GameMode.png)
+
+* URLs can be passed to the executable to force the game to load with specific options. Use the `game` option to set the game mode.  See [](Programming/Basics/CommandLineArguments) for more information.
+
+		UE4Editor.exe /Game/Maps/MyMap?game=MyGameMode -game
+
+* Finally, map prefixes can be set in the `/Script/Engine.WorldSettings/` section of the `DefaultGame.ini` file. These prefixes set the default game mode for all maps that have a given prefix. 
+
+		[/Script/Engine.WorldSettings]
+		+DefaultMapPrefixes=(Prefix="DM",GameMode="UTGame.UTDeathmatch")
+
+
+[REGION:note]
+For an example of setting up a **Game Mode**, refer to the [Setting Up a Game Mode](Gameplay\HowTo\SettingUpAGameMode) documentation.
+[/REGION]

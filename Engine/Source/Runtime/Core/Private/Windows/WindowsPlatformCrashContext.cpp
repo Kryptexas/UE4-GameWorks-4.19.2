@@ -1,10 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
-#include "MallocCrash.h"
+#include "PlatformMallocCrash.h"
 #include "ExceptionHandling.h"
 #include "WindowsPlatformCrashContext.h"
-#include "../../Launch/Resources/Version.h"
+#include "EngineVersion.h"
+#include "EngineBuildSettings.h"
 
 #include "AllowWindowsPlatformTypes.h"
 
@@ -62,6 +63,10 @@ bool WriteMinidump(const TCHAR* Path, LPEXCEPTION_POINTERS ExceptionInfo)
 	CrashContextStreamInformation.UserStreamArray = &CrashContextStream;
 
 	MINIDUMP_TYPE MinidumpType = MiniDumpNormal;//(MINIDUMP_TYPE)(MiniDumpWithPrivateReadWriteMemory|MiniDumpWithDataSegs|MiniDumpWithHandleData|MiniDumpWithFullMemoryInfo|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
+	if (CrashContext.IsFullCrashDump())
+	{
+		MinidumpType = (MINIDUMP_TYPE)(MiniDumpWithFullMemory|MiniDumpWithFullMemoryInfo|MiniDumpWithHandleData|MiniDumpWithThreadInfo|MiniDumpWithUnloadedModules);
+	}
 
 	const BOOL Result = MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), FileHandle, MinidumpType, &DumpExceptionInfo, &CrashContextStreamInformation, NULL);
 	CloseHandle(FileHandle);
@@ -190,7 +195,7 @@ void SetReportParameters( HREPORT ReportHandle, EXCEPTION_POINTERS* ExceptionInf
 	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "!%s!AssertLog=\"%s\"" ), FCommandLine::GetOriginal(), LocalBuffer );
 	Result = WerReportSetParameter( ReportHandle, WER_P8, TEXT( "Commandline" ), StringBuffer );
 
-	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), TEXT( BRANCH_NAME ), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), BUILT_FROM_CHANGELIST );
+	StringCchPrintf( StringBuffer, MAX_SPRINTF, TEXT( "%s!%s!%s!%d" ), *FApp::GetBranchName(), FPlatformProcess::BaseDir(), FPlatformMisc::GetEngineMode(), GEngineVersion.GetChangelist() );
 	Result = WerReportSetParameter( ReportHandle, WER_P9, TEXT( "BranchBaseDir" ), StringBuffer );
 }
 
@@ -364,6 +369,7 @@ int32 ReportCrashUsingCrashReportClient(EXCEPTION_POINTERS* ExceptionInfo, const
 static FCriticalSection EnsureLock;
 static bool bReentranceGuard = false;
 
+// #YRX_Crash: 2015-05-28 This should be named EngineEnsureHandler
 /** 
  * Report an ensure to the crash reporting system
  */
@@ -449,18 +455,15 @@ void CreateExceptionInfoString(EXCEPTION_RECORD* ExceptionRecord)
 		ErrorString += FString::Printf(TEXT("0x%08x"), (uint32)ExceptionRecord->ExceptionCode);
 	}
 
-#if WITH_EDITORONLY_DATA
 	FCString::Strncpy(GErrorExceptionDescription, *ErrorString, ARRAY_COUNT(GErrorExceptionDescription));
-#endif
+
 #undef HANDLE_CASE
 }
 #include "HideWindowsPlatformTypes.h"
 
+// #YRX_Crash: 2015-05-28 THis should be named EngineCrashHandler
 int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 {
-	// Switch to malloc crash.
-	FMallocCrash::Get().SetAsGMalloc();
-
 	// Only create a minidump the first time this function is called.
 	// (Can be called the first time from the RenderThread, then a second time from the MainThread.)
 	if( FPlatformAtomics::InterlockedIncrement( &ReportCrashCallCount ) != 1 )
@@ -468,41 +471,47 @@ int32 ReportCrash( LPEXCEPTION_POINTERS ExceptionInfo )
 		return EXCEPTION_EXECUTE_HANDLER;
 	}
 
-	FCoreDelegates::OnHandleSystemError.Broadcast();
+	GLog->PanicFlushThreadedLogs();
 
-	// Note: ReportCrashUsingCrashReportClient reads the callstack from GErrorHist
-	const SIZE_T StackTraceSize = 65535;
-	ANSICHAR* StackTrace = (ANSICHAR*) GMalloc->Malloc( StackTraceSize );
-	StackTrace[0] = 0;
-	// Walk the stack and dump it to the allocated memory.
-	FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
-
-	// @TODO yrx 2014-08-20 Make this constant.
-	if( ExceptionInfo->ExceptionRecord->ExceptionCode != 1 )
-	{
-		CreateExceptionInfoString( ExceptionInfo->ExceptionRecord );
-		FCString::Strncat( GErrorHist, GErrorExceptionDescription, ARRAY_COUNT( GErrorHist ) );
-		FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
-	}
-
-	FCString::Strncat( GErrorHist, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(GErrorHist) );
-
-	GMalloc->Free( StackTrace );
-
+	// First launch the crash reporter client.
 #if WINVER > 0x502	// Windows Error Reporting is not supported on Windows XP
 	if (GUseCrashReportClient)
 	{
-		ReportCrashUsingCrashReportClient(ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog);
+		ReportCrashUsingCrashReportClient( ExceptionInfo, GErrorMessage, EErrorReportUI::ShowDialog );
 	}
 	else
 #endif		// WINVER
 	{
-		WriteMinidump(MiniDumpFilenameW, ExceptionInfo);
+		WriteMinidump( MiniDumpFilenameW, ExceptionInfo );
 
 #if UE_BUILD_SHIPPING && WITH_EDITOR
 		uint32 dwOpt = 0;
-		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt);
+		EFaultRepRetVal repret = ReportFault( ExceptionInfo, dwOpt );
 #endif
+	}
+
+	// Then try run time crash processing and broadcast information about a crash.
+	FCoreDelegates::OnHandleSystemError.Broadcast();
+
+	const bool bGenerateRuntimeCallstack = FEngineBuildSettings::IsInternalBuild() || FEngineBuildSettings::IsPerforceBuild() || FEngineBuildSettings::IsSourceDistribution();
+	if (bGenerateRuntimeCallstack)
+	{
+		const SIZE_T StackTraceSize = 65535;
+		ANSICHAR* StackTrace = (ANSICHAR*)GMalloc->Malloc( StackTraceSize );
+		StackTrace[0] = 0;
+		// Walk the stack and dump it to the allocated memory. This process usually allocates a lot of memory.
+		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, 0, ExceptionInfo->ContextRecord );
+
+		if (ExceptionInfo->ExceptionRecord->ExceptionCode != 1)
+		{
+			CreateExceptionInfoString( ExceptionInfo->ExceptionRecord );
+			FCString::Strncat( GErrorHist, GErrorExceptionDescription, ARRAY_COUNT( GErrorHist ) );
+			FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
+		}
+
+		FCString::Strncat( GErrorHist, ANSI_TO_TCHAR( StackTrace ), ARRAY_COUNT( GErrorHist ) );
+
+		GMalloc->Free( StackTrace );
 	}
 
 	return EXCEPTION_EXECUTE_HANDLER;

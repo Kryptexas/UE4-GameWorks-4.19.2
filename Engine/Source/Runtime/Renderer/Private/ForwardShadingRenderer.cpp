@@ -21,6 +21,8 @@ uint32 GetShadowQuality();
 FForwardShadingSceneRenderer::FForwardShadingSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyConsumer* HitProxyConsumer)
 	:	FSceneRenderer(InViewFamily, HitProxyConsumer)
 {
+	bModulatedShadowsInUse = false;
+	bCSMShadowsInUse = false;
 }
 
 /**
@@ -88,22 +90,23 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Initialize global system textures (pass-through if already initialized).
 	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.
-	GSceneRenderTargets.Allocate(ViewFamily);
+	SceneContext.Allocate(ViewFamily);
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 	
-	RenderShadowDepthMaps(RHICmdList);
-
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
 	{
-		Scene->FXSystem->PreRender(RHICmdList);
+		Scene->FXSystem->PreRender(RHICmdList, NULL);
 	}
 
 	GRenderTargetPool.VisualizeTexture.OnStartFrame(Views[0]);
+
+	RenderShadowDepthMaps(RHICmdList);
 
 	// Dynamic vertex and index buffers need to be committed before rendering.
 	FGlobalDynamicVertexBuffer::Get().Commit();
@@ -114,17 +117,17 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FViewInfo& View = Views[0];
 
 	const bool bGammaSpace = !IsMobileHDR();
-	const bool bRequiresUpscale = ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
+	const bool bRequiresUpscale = !ViewFamily.bUseSeparateRenderTarget && ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
 	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View);
 
 	if (bGammaSpace && !bRenderToScene)
 	{
-		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearToDefault);
+		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), SceneContext.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 	else
 	{
 		// Begin rendering to scene color
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearToDefault);
+		SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 
 	if (GIsEditor)
@@ -135,13 +138,20 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderForwardShadingBasePass(RHICmdList);
 
 	// Make a copy of the scene depth if the current hardware doesn't support reading and writing to the same depth buffer
-	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+	ConditionalResolveSceneDepth(RHICmdList);
+	
+	if (ViewFamily.EngineShowFlags.Decals)
+	{
+		RenderDecals(RHICmdList);
+	}
 
 	// Notify the FX system that opaque primitives have been rendered.
 	if (Scene->FXSystem)
 	{
 		Scene->FXSystem->PostRenderOpaque(RHICmdList);
 	}
+
+	RenderModulatedShadowProjections(RHICmdList);
 
 	// Draw translucency.
 	if (ViewFamily.EngineShowFlags.Translucency)
@@ -174,20 +184,19 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.
 		// This is done before resolve on hardware with framebuffer fetch.
 		// This will break when PrePostSourceViewportSize is not full size.
-		FIntPoint PrePostSourceViewportSize = GSceneRenderTargets.GetBufferSizeXY();
+		FIntPoint PrePostSourceViewportSize = SceneContext.GetBufferSizeXY();
 
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
 		FRenderingCompositePass* PostProcessSunMask = CompositeContext.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMaskES2(PrePostSourceViewportSize, true));
-		CompositeContext.Root->AddDependency(FRenderingCompositeOutputRef(PostProcessSunMask));
-		CompositeContext.Process(TEXT("OnChipAlphaTransform"));
+		CompositeContext.Process(PostProcessSunMask, TEXT("OnChipAlphaTransform"));
 	}
 
 	if (!bGammaSpace || bRenderToScene)
 	{
 		// Resolve the scene color for post processing.
-		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		// Drop depth and stencil before post processing to avoid export.
 		RHICmdList.DiscardRenderTargets(true, true, 0);
@@ -198,17 +207,6 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// Finish rendering for each view, or the full stereo buffer if enabled
 		if (ViewFamily.bResolveScene)
 		{
-			if (ViewFamily.EngineShowFlags.StereoRendering)
-			{
-				check(Views.Num() > 1);
-
-				//@todo ES2 stereo post: until we get proper stereo postprocessing for ES2, process the stereo buffer as one view
-				FIntPoint OriginalMax0 = Views[0].ViewRect.Max;
-				Views[0].ViewRect.Max = Views[1].ViewRect.Max;
-				GPostProcessing.ProcessES2(RHICmdList, Views[0], bOnChipSunMask);
-				Views[0].ViewRect.Max = OriginalMax0;
-			}
-			else
 			{
 				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
 				SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
@@ -222,7 +220,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	else if (bRenderToScene)
 	{
-		BasicPostProcess(RHICmdList, View, bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(View));
+		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
+		{
+			BasicPostProcess(RHICmdList, Views[ViewIndex], bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(Views[ViewIndex]));
+		}
 	}
 	RenderFinish(RHICmdList);
 }
@@ -235,7 +236,7 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 
 	if (bDoUpscale)
 	{	// simple bilinear upscaling for ES2.
-		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(1, 0.0f));
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(1));
 
 		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 		Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));
@@ -270,6 +271,38 @@ void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RH
 	Context.FinalOutput.GetOutput()->PooledRenderTarget = Temp;
 	Context.FinalOutput.GetOutput()->RenderTargetDesc = Desc;
 
-	CompositeContext.Root->AddDependency(Context.FinalOutput);
-	CompositeContext.Process(TEXT("ES2BasicPostProcess"));
+	CompositeContext.Process(Context.FinalOutput.GetPass(), TEXT("ES2BasicPostProcess"));
+}
+
+void FForwardShadingSceneRenderer::ConditionalResolveSceneDepth(FRHICommandListImmediate& RHICmdList)
+{
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	
+	SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+
+#if !PLATFORM_HTML5
+	auto ShaderPlatform = ViewFamily.GetShaderPlatform();
+
+	if (IsMobilePlatform(ShaderPlatform) 
+		&& !IsPCPlatform(ShaderPlatform)) // exclude mobile emulation on PC
+	{
+		bool bSceneDepthInAlpha = (SceneContext.GetSceneColor()->GetDesc().Format == PF_FloatRGBA);
+		bool bOnChipDepthFetch = (GSupportsShaderDepthStencilFetch || (bSceneDepthInAlpha && GSupportsShaderFramebufferFetch));
+		
+		if (!bOnChipDepthFetch)
+		{
+			// Only these features require depth texture
+			bool bDecals = ViewFamily.EngineShowFlags.Decals && Scene->Decals.Num();
+			bool bModulatedShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0 && bModulatedShadowsInUse;
+
+			if (bDecals || bModulatedShadows)
+			{
+				// Switch depth target to force hardware flush current depth to texture
+				FTextureRHIRef DummyDepthTarget = GSystemTextures.DepthDummy->GetRenderTargetItem().TargetableTexture;
+				SetRenderTarget(RHICmdList, SceneContext.GetSceneColorSurface(), DummyDepthTarget, ESimpleRenderTargetMode::EUninitializedColorClearDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+				RHICmdList.DiscardRenderTargets(true, true, 0);
+			}
+		}
+	}
+#endif //!PLATFORM_HTML5
 }

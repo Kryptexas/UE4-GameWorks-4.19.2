@@ -24,7 +24,7 @@ struct FGroupDisplayInfo
 struct FGroupInfo
 {
 	/** Get the group */
-	TSharedPtr<FUniqueNetId> GroupId;
+	TSharedPtr<const FUniqueNetId> GroupId;
 
 	/** Arbitrary namespace string used to filter group groups in some queries or client side. Usually this would be the game codename */
 	FString Namespace;
@@ -36,7 +36,7 @@ struct FGroupInfo
 	FGroupDisplayInfo DisplayInfo;
 
 	/** GUID of the user account that holds the owner role for this group (will only be one) */
-	TSharedPtr<FUniqueNetId> Owner;
+	TSharedPtr<const FUniqueNetId> Owner;
 
 	/** When was this group created */
 	FDateTime CreatedAt;
@@ -74,7 +74,7 @@ enum class EGroupRole
  */
 struct FGroupEntry
 {
-	TSharedPtr<FUniqueNetId> Id;
+	TSharedPtr<const FUniqueNetId> Id;
 	EGroupRole Role;
 };
 
@@ -83,7 +83,7 @@ struct FGroupEntry
  */
 struct FGroupRoster
 {
-	TSharedPtr<FUniqueNetId> GroupId;
+	TSharedPtr<const FUniqueNetId> GroupId;
 	TArray<FGroupEntry> Users;
 
 	const FGroupEntry* GetUser(const FUniqueNetId& UserId) const { return Users.FindByPredicate([&](const FGroupEntry& Entry) { return *Entry.Id == UserId; }); }
@@ -95,7 +95,7 @@ struct FGroupRoster
  */
 struct FUserMembership
 {
-	TSharedPtr<FUniqueNetId> UserId;
+	TSharedPtr<const FUniqueNetId> UserId;
 	TArray<FGroupEntry> Groups;
 
 	const FGroupEntry* GetGroup(const FUniqueNetId& GroupId) const { return Groups.FindByPredicate([&](const FGroupEntry& Entry) { return *Entry.Id == GroupId; }); }
@@ -107,7 +107,7 @@ struct FUserMembership
  */
 struct FGroupsResult
 {
-	TSharedPtr<FUniqueNetId> PrimaryId;
+	TSharedPtr<const FUniqueNetId> PrimaryId;
 	int32 HttpStatus;
 
 	inline bool DidSucceed() const { return (HttpStatus / 100) == 2; }
@@ -244,7 +244,7 @@ public: // can be called by any account
 	 * @param OnCompleted This callback is invoked after contacting the server. It is guaranteed to occur
 	 *        (regardless of success/fail) and will not be called before this function returns.
 	 */
-	virtual void QueryGroupInfo(const FUniqueNetId& ContextUserId, const TArray< TSharedRef<FUniqueNetId> >& GroupIds, const FOnGroupsRequestCompleted& OnCompleted) = 0;
+	virtual void QueryGroupInfo(const FUniqueNetId& ContextUserId, const TArray< TSharedRef<const FUniqueNetId> >& GroupIds, const FOnGroupsRequestCompleted& OnCompleted) = 0;
 
 	/**
 	 * Get the cached Roster (membership) information for a group. If the information is not cached locally, call 

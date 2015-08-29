@@ -5,13 +5,11 @@ Description:Preconfigured mathematical functions such as calculation of pi, addi
 
 [TOC (start:2 end:3)]
 
-## Overview
-
 Math functions perform basic math equations on the values of pixels within a texture. 
 
 ## Math Functions
 
-The following is a list of all the functions underneath the Math category.
+The following is a list of all the functions found in the Math category.
 
 ### Add Components
 
@@ -32,7 +30,7 @@ This function takes in a Vector2, a Vector3, or a Vector4, combines their compon
 ![Add Components](AddComponents_Demo.png)
 
 [REGION:note]
-	Since each input is calculated individually for its corresponding output, you may use all three inputs on a single node, so long as you also use an output for each one. For instance, you may use one AddComponents function node to combine the components of a Vector2, utilizing the *f2* output, and use the same node to combine the componets of a Vector3, utilizing the *f3* output.
+	Since each input is calculated individually for its corresponding output, you may use all three inputs on a single node, so long as you also use an output for each one. For instance, you may use one AddComponents function node to combine the components of a Vector2, utilizing the *f2* output, and use the same node to combine the components of a Vector3, utilizing the *f3* output.
 [/REGION]
 
 ### Pi
@@ -67,7 +65,7 @@ The LinearSine function takes in a scalar value and outputs the linear sine (or 
 
 ### VectorToRadialValue
 
-This function transforms the vector of a Vector2 into an angle, or transforms UV coordinate data into radial coordinates. In the case of a vector, the angle will be output in one channel and the length of the vector in the other.
+This function transforms the vector of a Vector2 into an angle, or transforms UV coordinate data into radial coordinates. In the case of a vector, the angle will output in one channel and the length of the vector in the other.
 
 | Item | Description |
 | -------- | -------- |
@@ -77,7 +75,7 @@ This function transforms the vector of a Vector2 into an angle, or transforms UV
 |[REGION:tablesection]Outputs[/REGION] ||
 | **Radial Coordinates** | Returns the radial coordinates of the input. In the case of a vector, the angle is on one channel and the distance is on the other.|
 | **Vector Converted to Angle** | Returns the angle of the input vector or a radial gradient in the case of UVs.|
-| **Linear Distance** | Returns the linear length of the input vector, or in the case of UVs outputs a radial gradient of distances.|
+| **Linear Distance** | Returns the linear length of the input vector, or in the case of UVs, outputs a radial gradient of distances.|
 
 
 ![Vector To Radial Value](VectorToRadialValue_Demo.png)

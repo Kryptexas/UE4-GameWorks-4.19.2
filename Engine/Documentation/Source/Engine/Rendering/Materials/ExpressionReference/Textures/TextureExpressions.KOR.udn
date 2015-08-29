@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2281696
+﻿INTSourceChangelist:2617143
 Availability:Public
 Title:Texture 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -71,9 +71,11 @@ TextureSample 표현식은 텍스처에서 색 값을 출력합니다. 이 텍�
 | [REGION:tablesection]프로퍼티[/REGION] ||
 | **Texture** | 텍스처 - 표현식이 샘플을 뽑는 텍스처를 나타냅니다. 텍스처를 설정하려면 먼저 콘텐츠 브라우저에서 텍스처를 선택합니다. 그런 다음 표현식의 프로퍼티 창에서 Texture 프로퍼티를 선택한 다음 '현재 선택 사용' 버튼을 클릭합니다. |
 | **Sampler Type** | 샘플러 유형 - 노드에서 샘플링하여 출력시킬 데이터 유형입니다. |
-| **MipValueMode** | 밉 밸류 모드 - 텍스처에 노이즈 값을 적용합니다. 외양과 퍼포먼스에 영향을 끼칩니다. |
+| **MipValueMode** | 밉 밸류 모드 - 샘플의 밉레벨 커스터마이징 방법 또는 기본 하드웨어 계산에서의 파생물(Derivative)을 선택합니다. |
 | [REGION:tablesection]입력[/REGION] ||
 | **UVs** | 텍스처에 사용할 UV 텍스처 좌표를 받습니다. UVs 에 입력된 값이 없다면, 머티리얼이 적용된 메시의 텍스처 좌표가 사용됩니다. TextureSample 이 큐브맵 텍스처를 나타낸다면, UVs 좌표는 2채널 값이기 보다는 3채널 값이 되어야 합니다. |
+| **DDX(UVs)** | DDX(UVs) - 어나이소트로픽 필터링에 대한 UV 입력을 받습니다. 기본적으로 하드웨어에서 자동으로 해 주며, 더 빠릅니다. 하지만 디퍼드 데칼에서 2x2 픽셀이 각지는 부작용을 피하기 위해 명시적으로 설정해 줘야 하는 경우도 있을 수 있습니다. **MipValueMode** = **Derivative** 일 경우에만 사용 가능합니다. |
+| **DDY(UVs)** | DDY(UVs) - DDX(UVs) 가 어나이스트로픽 필터링에 UVs 입력에 대해 DDX 를 받는 것처럼 DDY 를 받습니다. |
 | [REGION:tablesection]출력[/REGION] ||
 | **RGB** | 색의 3채널 RGB 벡터값을 출력합니다. |
 | **R** | 색의 빨강 채널을 출력합니다. |
@@ -84,6 +86,9 @@ TextureSample 표현식은 텍스처에서 색 값을 출력합니다. 이 텍�
 
 ![TextureSampleExample.png](TextureSampleExample.png)
 
+DDX(UVs) 와 DDY(UVs) 입력의 이해를 돕기 위해, 이렇게 해 보면 됩니다. 참고로 이렇게 하면 **MipValueMode** = **None** 일 때와 결과물은 같지만 더 느립니다. DDX(UVs) 와 DDY(UVs) 는 DDX/DDY 머티리얼 표현식을 사용할 때와는 다른 방식으로 계산을 하기에, 기본 하드웨어 계산을 덮어쓸 필요가 있을 때만 사용해야 할 것입니다.
+
+![SampleTextureDerivative.png](SampleTextureDerivative.png)
 
 [INCLUDE:Engine/Rendering/Materials/ExpressionReference/Particles#ParticleSubUV]
 

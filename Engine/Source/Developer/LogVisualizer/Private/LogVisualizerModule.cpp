@@ -3,7 +3,6 @@
 #include "LogVisualizer.h"
 #include "Runtime/Core/Public/Features/IModularFeatures.h"
 #include "LogVisualizerStyle.h"
-#include "SDockTab.h"
 #include "VisualLoggerRenderingActor.h"
 #include "LogVisualizerSettings.h"
 #if WITH_EDITOR
@@ -80,7 +79,7 @@ void FLogVisualizerModule::ShutdownModule()
 
 TSharedRef<SDockTab> FLogVisualizerModule::SpawnLogVisualizerTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	const TSharedRef<SDockTab> MajorTab = SNew(SDockTab)
+	const TSharedRef<SDockTab> MajorTab = SNew(SVisualLoggerTab)
 		.TabRole(ETabRole::NomadTab);
 
 	TSharedPtr<SWidget> TabContent;
@@ -99,12 +98,12 @@ void FLogVisualizerModule::Goto(float Timestamp, FName LogOwner)
 
 void FLogVisualizerModule::GotoNextItem()
 {
-	FLogVisualizer::Get().GotoNextItem();
+	FLogVisualizer::Get().GotoNextItem(1);
 }
 
 void FLogVisualizerModule::GotoPreviousItem()
 {
-	FLogVisualizer::Get().GotoPreviousItem();
+	FLogVisualizer::Get().GotoPreviousItem(1);
 }
 
 

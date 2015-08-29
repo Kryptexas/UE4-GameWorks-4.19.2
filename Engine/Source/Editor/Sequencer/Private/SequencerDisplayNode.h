@@ -37,6 +37,13 @@ public:
 	FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/**
+	* Adds an object binding node to this node.
+	*
+	* @param ObjectBindingNode The node to add
+	*/
+	void AddObjectBindingNode( TSharedRef<FObjectBindingNode> ObjectBindingNode );
+
+	/**
 	 * Adds a category to this node
 	 * 
 	 * @param CategoryName	Name of the category
@@ -80,12 +87,18 @@ public:
 	virtual FText GetDisplayName() const = 0;
 
 	/**
-	 * Generates a widget for display in the animation outliner portion of the track area
+	 * Generates a container widget for tree display in the animation outliner portion of the track area
 	 * 
-	 * @param Sequencer	Sequencer interface to pass to outliner widgets
-	 * @return Generated outliner widget
+	 * @return Generated outliner container widget
 	 */
-	virtual TSharedRef<SWidget> GenerateWidgetForOutliner( TSharedRef<class FSequencer> Sequencer );
+	virtual TSharedRef<SWidget> GenerateContainerWidgetForOutliner();
+
+	/**
+	* Generates a widget editing a row in the animation outliner portion of the track area
+	*
+	* @return Generated outliner edit widget
+	*/
+	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner();
 
 	/**
 	 * Generates a widget for display in the section area portion of the track area
@@ -124,6 +137,19 @@ public:
 	const TArray< TSharedRef<FSequencerDisplayNode> >& GetChildNodes() const { return ChildNodes; }
 
 	/**
+	 * Sorts the child nodes with the supplied predicate
+	 */
+	template <class PREDICATE_CLASS>
+	void SortChildNodes(const PREDICATE_CLASS& Predicate)
+	{
+		ChildNodes.StableSort(Predicate);
+		for (TSharedRef<FSequencerDisplayNode> ChildNode : ChildNodes)
+		{
+			ChildNode->SortChildNodes(Predicate);
+		}
+	}
+
+	/**
 	 * @return The parent of this node                                                              
 	 */
 	TSharedPtr<FSequencerDisplayNode> GetParent() const { return ParentNode.Pin(); }
@@ -131,6 +157,9 @@ public:
 	/** Gets the sequencer that owns this node */
 	FSequencer& GetSequencer() const { return ParentTree.GetSequencer(); }
 	
+	/** Gets the parent tree that this node is in */
+	FSequencerNodeTree& GetParentTree() const { return ParentTree; }
+
 	/** Gets all the key area nodes recursively, including this node if applicable */
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const;
 
@@ -238,6 +267,7 @@ public:
 	virtual float GetNodeHeight() const override;
 	virtual FText GetDisplayName() const override { return DisplayName; }
 	virtual bool GetShotFilteredVisibilityToCache() const override;
+	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
 	/**
 	 * Adds a key area to this node
@@ -295,6 +325,7 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
+	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
 	/**
 	 * Adds a section to this node
@@ -366,6 +397,7 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual bool GetShotFilteredVisibilityToCache() const override;
+	TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 	
 	/** @return The object binding on this node */
 	const FGuid& GetObjectBinding() const { return ObjectBinding; }
@@ -374,6 +406,13 @@ public:
 	virtual TSharedPtr<SWidget> OnSummonContextMenu(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 
 private:
+	TSharedRef<SWidget> OnGetAddPropertyTrackMenuContent();
+
+	void AddTrackForProperty(TArray<UProperty*> PropertyPath);
+
+	/** Get class for object binding */
+	const UClass* GetClassForObjectBinding();
+
 	/** The binding to live objects */
 	FGuid ObjectBinding;
 	/** The default display name of the object which is used if the binding manager doesn't provide one. */

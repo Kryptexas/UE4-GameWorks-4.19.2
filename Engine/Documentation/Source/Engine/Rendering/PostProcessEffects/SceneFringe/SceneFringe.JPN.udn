@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2291853
+﻿INTSourceChangelist:2537714
 Availability:Public
 Title:シーンフリンジ (収差)
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
-Description:実際のカメラレンズ端付近の色の移り変わりをシミュレートする色収差エフェクト　
+Description:実際のカメラレンズ端付近の色の移り変わりをシミュレートする色収差エフェクト
 
 [EXCERPT:SceneFringe_Desc]
 **Scene Fringe** は色収差エフェクトで、現実世界のカメラレンズで色の移り変わりをシミュレートします。エフェクトは、主に画像の輪郭に顕著に現れます。
@@ -17,7 +17,7 @@ Description:実際のカメラレンズ端付近の色の移り変わりをシ�
 
 | プロパティ | 説明 |
 | -------- | ----------- |
-| **Fringe Intensity** | 変化の度合いを制御するスケーリング係数です。 [INCLUDE:#Intensity] |
+| **Fringe Intensity** | 変化の度合いを制御するスケーリング係数です。[INCLUDE:#Intensity] |
 | **Fringe Saturation** | 変化させた色の彩度を制御するスケーリング係数です。小さい値はよりぼやけた結果となり、高い値は色の移り変わりがより顕著になります。|
 
 <!--

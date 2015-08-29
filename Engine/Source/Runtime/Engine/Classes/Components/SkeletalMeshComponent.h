@@ -7,6 +7,7 @@
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "SkeletalMeshTypes.h"
 #include "Animation/AnimationAsset.h"
+#include "AnimCurveTypes.h"
 #include "SkeletalMeshComponent.generated.h"
 
 class UAnimInstance;
@@ -27,6 +28,9 @@ struct FAnimationEvaluationContext
 	TArray<FActiveVertexAnim> VertexAnims;
 	FVector RootBoneTranslation;
 
+	// Double buffer curve data
+	FBlendedCurve	Curve;
+
 	// Are we performing interpolation this tick
 	bool bDoInterpolation;
 
@@ -35,6 +39,9 @@ struct FAnimationEvaluationContext
 
 	// Are we storing data in cache bones this tick
 	bool bDuplicateToCacheBones;
+
+	// duplicate the cache curves
+	bool bDuplicateToCacheCurve;
 
 	FAnimationEvaluationContext()
 	{
@@ -145,37 +152,37 @@ public:
 	ClothCollisionPrimType	PrimType;
 };
 
-/** to interact with environments */
+/** Used to define what type of objects cloth will react to. */
 struct FApexClothCollisionInfo
 {
 	enum OverlappedComponentType
 	{
-		// static objects
+		/** Interact with static objects only. */
 		OCT_STATIC,
-		// clothing objects
+		/** Interact with clothing objects. */
 		OCT_CLOTH,
 		OCT_MAX
 	};
 
 	OverlappedComponentType OverlapCompType;
-	// to verify validation of collision info
+	/** To verify validation of collision info. */
 	uint32 Revision;
-	// ClothingCollisions will be all released when clothing doesn't intersect with this component anymore
+	/** ClothingCollisions will be all released when clothing doesn't intersect with this component anymore. */
 	TArray<physx::apex::NxClothingCollision*> ClothingCollisions;			
 };
 #endif // #if WITH_CLOTH_COLLISION_DETECTION
 
-/** This enum defines how you'd like to update bones to physics world
-	If bone is simulating, you don't have to waste time on updating bone transform from kinematic
-	But also sometimes you don't like fixed bones to be updated by animation data **/
+/** This enum defines how you'd like to update bones to physics world.
+	If bone is simulating, you don't have to waste time on updating bone transform from kinematic.
+	But also sometimes you don't like fixed bones to be updated by animation data. */
 UENUM()
 namespace EKinematicBonesUpdateToPhysics
 {
 	enum Type
 	{
-		/** Update any bones that are not simulating*/
+		/** Update any bones that are not simulating. */
 		SkipSimulatingBones,
-		/** Skip physics update from kinematic changes **/
+		/** Skip physics update from kinematic changes. */
 		SkipAllBones
 	};
 }
@@ -206,19 +213,19 @@ struct FSingleAnimationPlayData
 	UPROPERTY()//EditAnywhere, BlueprintReadWrite, Category=Animation)
 	class UVertexAnimation* VertexAnimToPlay;
 
-	// Default setting for looping for SequenceToPlay. This is not current state of looping.
+	/** Default setting for looping for SequenceToPlay. This is not current state of looping. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
 	uint32 bSavedLooping:1;
 
-	// Default setting for playing for SequenceToPlay. This is not current state of playing.
+	/** Default setting for playing for SequenceToPlay. This is not current state of playing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
 	uint32 bSavedPlaying:1;
 
-	// Default setting for position of SequenceToPlay to play. 
+	/** Default setting for position of SequenceToPlay to play. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Initial Position"))
 	float SavedPosition;
 
-	// Default setting for playrate of SequenceToPlay to play. 
+	/** Default setting for play rate of SequenceToPlay to play. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
 	float SavedPlayRate;
 
@@ -230,10 +237,10 @@ struct FSingleAnimationPlayData
 		SavedPosition = 0.f;
 	}
 
-	/** Called when initialized **/
+	/** Called when initialized. */
 	ENGINE_API void Initialize(class UAnimSingleNodeInstance* Instance);
 
-	/** Populates this play data with the current state of the supplied instance */
+	/** Populates this play data with the current state of the supplied instance. */
 	ENGINE_API void PopulateFrom(UAnimSingleNodeInstance* Instance);
 
 	void ValidatePosition();
@@ -247,18 +254,18 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** World this tick function belongs to **/
+	/** World this tick function belongs to. */
 	class USkeletalMeshComponent*	Target;
 
 	/**
-	* Abstract function actually execute the tick.
-	* @param DeltaTime - frame time to advance, in seconds
-	* @param TickType - kind of tick for this frame
-	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created
+	* Abstract function to execute the tick.
+	* @param DeltaTime - frame time to advance, in seconds.
+	* @param TickType - kind of tick for this frame.
+	* @param CurrentThread - thread we are executing on, useful to pass along as new tasks are created.
 	* @param MyCompletionGraphEvent - completion event for this task. Useful for holding the completetion of this task until certain child tasks are complete.
-	**/
+	*/
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
-	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph **/
+	/** Abstract function to describe this tick. Used to print messages about illegal cycles in the dependency graph. */
 	virtual FString DiagnosticMessage() override;
 };
 
@@ -278,39 +285,34 @@ class ENGINE_API USkeletalMeshComponent : public USkinnedMeshComponent, public I
 	 * Animation 
 	 */
 	
-	/** @Todo anim: Matinee related data start - this needs to be replaced to new system **/
+	/** @Todo anim: Matinee related data start - this needs to be replaced to new system. */
 	
-	/** @Todo anim: Matinee related data end - this needs to be replaced to new system **/
+	/** @Todo anim: Matinee related data end - this needs to be replaced to new system. */
 
 protected:
-	/** Whether to use Animation Blueprint or play Single Animation Asset*/
+	/** Whether to use Animation Blueprint or play Single Animation Asset. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Animation)
 	TEnumAsByte<EAnimationMode::Type>	AnimationMode;
 
 public:
 #if WITH_EDITORONLY_DATA
-	/**
-	 * The blueprint for creating an AnimationScript
-	 */
+	/** The blueprint for creating an AnimationScript. */
 	UPROPERTY()
 	class UAnimBlueprint* AnimationBlueprint_DEPRECATED;
 #endif
 
-	/** 
-	 * The AnimBlueprint class to use
-	 * Use 'SetAnimInstanceClass' to change at runtime. 
-	 */
+	/* The AnimBlueprint class to use. Use 'SetAnimInstanceClass' to change at runtime. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation)
 	class UAnimBlueprintGeneratedClass* AnimBlueprintGeneratedClass;
 
-	/** The active animation graph program instance */
+	/** The active animation graph program instance. */
 	UPROPERTY(transient)
 	class UAnimInstance* AnimScriptInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(ShowOnlyInnerProperties))
 	struct FSingleAnimationPlayData AnimationData;
 
-	/** Temporary array of local-space (ie relative to parent bone) rotation/translation for each bone. */
+	/** Temporary array of local-space (relative to parent bone) rotation/translation for each bone. */
 	TArray<FTransform> LocalAtoms;
 	
 	// Update Rate
@@ -322,6 +324,9 @@ public:
 	/** Cached SpaceBases for Update Rate optimization. */
 	UPROPERTY(Transient)
 	TArray<FTransform> CachedSpaceBases;
+
+	/** Cached Curve result for Update Rate optimization */
+	FBlendedCurve CachedCurve;
 
 	/** Used to scale speed of all animations on this skeletal mesh. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
@@ -611,6 +616,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void ResetClothTeleportMode();
 
+	/** 
+	 * If this component has a valid MasterPoseComponent then this function makes cloth items on the slave component
+	 * take the transforms of the cloth items on the master component instead of simulating separately.
+	 * @Note This will FORCE any cloth actor on the master component to simulate in local space. Also
+	 * The meshes used in the components must be identical for the cloth to bind correctly
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
+	void BindClothToMasterPoseComponent();
+
+	/** 
+	 * If this component has a valid MasterPoseComponent and has previously had its cloth bound to the
+	 * MCP, this function will unbind the cloth and resume simulation.
+	 * @param bRestoreSimulationSpace if true and the master pose cloth was originally simulating in world
+	 * space, we will restore this setting. This will cause the master component to reset which may be
+	 * undesirable.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh", meta=(UnsafeDuringActorConstruction="true"))
+	void UnbindClothFromMasterPoseComponent(bool bRestoreSimulationSpace = true);
+
 	/** We detach the Component once we are done playing it.
 	 *
 	 * @param	ParticleSystemComponent that finished
@@ -697,6 +721,11 @@ public:
 	/** precomputed actual cloth morph target data */
 	TArray<FClothMorphTargetData> ClothMorphTargets;
 
+	/** Whether or not we're taking cloth sim information from our master component */
+	bool bBindClothToMasterComponent;
+	/** The previous state of the master component simulation coord space, so we can restore on unbind */
+	bool bPrevMasterSimulateLocalSpace;
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
 	uint32 ClothingCollisionRevision; 
@@ -725,10 +754,10 @@ public:
 	void TickAnimation(float DeltaTime);
 
 	/** Tick Clothing Animation , basically this is called inside TickComponent */
-	void TickClothing(float DeltaTime);
+	void TickClothing(float DeltaTime, FTickFunction& ThisTickFunction);
 
 	/** Store cloth simulation data into OutClothSimData */
-	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData);
+	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
 	void ApplyWindForCloth(FClothingActor& ClothingActor);
 	void RemoveAllClothingActors();
 	void ReleaseAllClothingResources();
@@ -779,8 +808,6 @@ public:
 
 	/** Register / Unregister delegates called when the skeletal mesh property is changed */
 	FDelegateHandle RegisterOnSkeletalMeshPropertyChanged(const FOnSkeletalMeshPropertyChanged& Delegate);
-	DELEGATE_DEPRECATED("This overload of UnregisterOnSkeletalMeshPropertyChanged is deprecated, instead pass the result of RegisterOnSkeletalMeshPropertyChanged.")
-	void UnregisterOnSkeletalMeshPropertyChanged(const FOnSkeletalMeshPropertyChanged& Delegate);
 	void UnregisterOnSkeletalMeshPropertyChanged(FDelegateHandle Handle);
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -813,7 +840,7 @@ public:
 	virtual void UpdateBounds() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
-	virtual void OnUpdateTransform(bool bSkipPhysicsMove) override;
+	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
 	// End USceneComponent interface.
 
@@ -829,7 +856,7 @@ protected:
 	 *	@param	ObjectQueryParams	List of object types it's looking for. When this enters, we do object query with component shape
 	 *  @return TRUE if OutOverlaps contains any blocking results
 	 */
-	virtual bool ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const override;
+	virtual bool ComponentOverlapMultiImpl(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* InWorld, const FVector& Pos, const FQuat& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const override;
 	
 	virtual bool ComponentOverlapComponentImpl(class UPrimitiveComponent* PrimComp, const FVector Pos, const FQuat& Quat, const FCollisionQueryParams& Params) override;
 
@@ -858,6 +885,7 @@ public:
 	virtual void SetAllMassScale(float InMassScale = 1.f) override;
 	virtual float GetMass() const override;
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
@@ -882,9 +910,11 @@ public:
 	virtual void SetSkeletalMesh(class USkeletalMesh* NewMesh) override;
 	virtual FVector GetSkinnedVertexPosition(int32 VertexIndex) const override;
 
+	void SetSkeletalMeshWithoutResettingAnimation(class USkeletalMesh* NewMesh);
+
 	virtual bool IsPlayingRootMotion() override;
 	virtual bool IsPlayingRootMotionFromEverything() override;
-
+	virtual void FinalizeBoneTransform() override;
 	// End USkinnedMeshComponent interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
@@ -902,7 +932,7 @@ public:
 	* @param	OutVertexAnims			Active vertex animations
 	* @param	OutRootBoneTranslation	Calculated root bone translation
 	*/
-	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+	void PerformAnimationEvaluation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutSpaceBases, TArray<FTransform>& OutLocalAtoms, TArray<FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedCurve& OutCurve) const;
 	void PostAnimEvaluation( FAnimationEvaluationContext& EvaluationContext );
 
 	/**
@@ -910,10 +940,14 @@ public:
 	 *
 	 * @param	RequiredBones	List of bones to be blend
 	 */
-	void BlendPhysicsBones( TArray<FBoneIndexType>& RequiredBones );
+	void BlendPhysicsBones( TArray<FBoneIndexType>& Bones )
+	{
+		PerformBlendPhysicsBones(Bones, AnimEvaluationContext.LocalAtoms);
+	}
+
 
 	/** Take the results of the physics and blend them with the animation state (based on the PhysicsWeight parameter), and update the SpaceBases array. */
-	void BlendInPhysics();	
+	void BlendInPhysics(FTickFunction& ThisTickFunction);	
 
 	/** 
 	 * Intialize PhysicsAssetInstance for the physicsAsset 
@@ -980,13 +1014,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
 	void AccumulateAllBodiesBelowPhysicsBlendWeight(const FName& InBoneName, float AddPhysicsBlendWeight, bool bSkipCustomPhysicsType = false );
 
-	/** Enable or Disable AngularPositionDrive */
+	/** Enable or Disable AngularPositionDrive. If motor is in SLERP mode it will be turned on if either EnableSwingDrive OR EnableTwistDrive are enabled. In Twist and Swing mode the twist and the swing can be controlled individually.*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularPositionDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, bool bSkipCustomPhysicsType = false);
 
-	/** Enable or Disable AngularVelocityDrive based on a list of bone names */
+	/** Enable or Disable AngularVelocityDrive. If motor is in SLERP mode it will be turned on if either EnableSwingDrive OR EnableTwistDrive are enabled. In Twist and Swing mode the twist and the swing can be controlled individually.*/
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularVelocityDrive(bool bEnableSwingDrive, bool bEnableTwistDrive, bool bSkipCustomPhysicsType = false);
 
-	/** Set Angular Drive motors params for all constraint instance */
+	/** Set Angular Drive motors params for all constraint instances */
+	UFUNCTION(BlueprintCallable, Category = "Components|SkeletalMesh")
 	void SetAllMotorsAngularDriveParams(float InSpring, float InDamping, float InForceLimit, bool bSkipCustomPhysicsType = false);
 
 	/** Enable or Disable AngularPositionDrive based on a list of bone names */
@@ -1039,7 +1076,13 @@ public:
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
 	 */
-	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate = false);
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, ETeleportType Teleport, bool bNeedsSkinning);
+
+	DEPRECATED(4.9, "bForceUpdate is no longer used. Please use Teleport")
+	void UpdateKinematicBonesToAnim(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate)
+	{
+		UpdateKinematicBonesToAnim(InSpaceBases, TeleportFlagToEnum(bTeleport || bForceUpdate), bNeedsSkinning);
+	}
 	
 	/**
 	 * Look up all bodies for broken constraints.
@@ -1069,7 +1112,7 @@ public:
 	FVector GetClosestCollidingRigidBodyLocation(const FVector& TestLocation) const;
 
 	/** Calls needed cloth updates */
-	void PreClothTick(float DeltaTime);
+	void PreClothTick(float DeltaTime, FTickFunction& ThisTickFunction);
 	
 	/** Set physics transforms for all bodies */
 	void ApplyDeltaToAllPhysicsTransforms(const FVector& DeltaLocation, const FQuat& DeltaRotation);
@@ -1166,7 +1209,7 @@ protected:
 	
 private:
 	/** Evaluate Anim System **/
-	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation) const;
+	void EvaluateAnimation(const USkeletalMesh* InSkeletalMesh, UAnimInstance* InAnimInstance, TArray<FTransform>& OutLocalAtoms, TArray<struct FActiveVertexAnim>& OutVertexAnims, FVector& OutRootBoneTranslation, FBlendedCurve& OutCurve) const;
 
 	/**
 	* Take the SourceAtoms array (translation vector, rotation quaternion and scale vector) and update the array of component-space bone transformation matrices (DestSpaceBases).
@@ -1189,9 +1232,12 @@ private:
 	// Reference to our current parallel animation evaluation task (if there is one)
 	FGraphEventRef				ParallelAnimationEvaluationTask;
 
+	// Reference to our current blend physics task (if there is one)
+	FGraphEventRef				ParallelBlendPhysicsCompletionTask;
+
 public:
 	// Parallel evaluation wrappers
-	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
+	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation, AnimEvaluationContext.Curve); }
 	void CompleteParallelAnimationEvaluation(bool bDoPostAnimEvaluation)
 	{
 		ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
@@ -1208,7 +1254,14 @@ public:
 		AnimEvaluationContext.Clear();
 	}
 
-	bool IsRunningParallelEvaluation(bool bBlockOnTask, bool bPerformPostAnimEvaluation);
+	// Returns whether we are currently trying to run a parallel animation evaluation task
+	bool IsRunningParallelEvaluation() const { return IsValidRef(ParallelAnimationEvaluationTask); }
+
+	// Management function for if we want to do an evaluation but may already be running one
+	// bBlockOnTask - if true and we are currently performing parallel eval we wait for it to finish
+	// bPerformPostAnimEvaluation - if true and we are currently performing parallel eval we call PostAnimEvaluation too
+	// return true if parallel task was running.
+	bool HandleExistingParallelEvaluationTask(bool bBlockOnTask, bool bPerformPostAnimEvaluation);
 
 	friend class FSkeletalMeshComponentDetails;
 
@@ -1218,6 +1271,19 @@ private:
 
 	// Handles registering/unregistering the pre cloth tick as it is needed
 	void UpdatePreClothTickRegisteredState();
+	friend class FParallelBlendPhysicsTask;
+	
+	//wrapper for parallel blend physics
+	void ParallelBlendPhysics() { PerformBlendPhysicsBones(RequiredBones, AnimEvaluationContext.LocalAtoms); }
+
+	void PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms);
+
+	friend class FParallelBlendPhysicsCompletionTask;
+	void CompleteParallelBlendPhysics();
+	void PostBlendPhysics();
+
+	friend class FTickClothingTask;
+	void PerformTickClothing(float DeltaTime);
 
 	// these are deprecated variables from removing SingleAnimSkeletalComponent
 	// remove if this version goes away : VER_UE4_REMOVE_SINGLENODEINSTANCE

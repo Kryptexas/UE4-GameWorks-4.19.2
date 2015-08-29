@@ -40,10 +40,7 @@ class FNetcodeUnitTest : public INetcodeUnitTest
 {
 private:
 	static FWorldDelegates::FWorldInitializationEvent::FDelegate OnWorldCreatedDelegate;
-
-#ifdef DELEGATE_DEPRECATED
 	static FDelegateHandle OnWorldCreatedDelegateHandle;
-#endif
 
 public:
 	/**
@@ -58,11 +55,7 @@ public:
 			OnWorldCreatedDelegate = FWorldDelegates::FWorldInitializationEvent::FDelegate::CreateStatic(
 										&FNetcodeUnitTest::OnWorldCreated);
 
-#ifdef DELEGATE_DEPRECATED
 			OnWorldCreatedDelegateHandle = FWorldDelegates::OnPreWorldInitialization.Add(OnWorldCreatedDelegate);
-#else
-			FWorldDelegates::OnPreWorldInitialization.Add(OnWorldCreatedDelegate);
-#endif
 
 			bSetDelegate = true;
 		}
@@ -104,19 +97,13 @@ public:
 		}
 
 		// Now remove it, so it's only called once
-#ifdef DELEGATE_DEPRECATED
 		FWorldDelegates::OnPreWorldInitialization.Remove(OnWorldCreatedDelegateHandle);
-#else
-		FWorldDelegates::OnPreWorldInitialization.Remove(OnWorldCreatedDelegate);
-#endif
 	}
 };
 
 FWorldDelegates::FWorldInitializationEvent::FDelegate FNetcodeUnitTest::OnWorldCreatedDelegate = NULL;
 
-#ifdef DELEGATE_DEPRECATED
 FDelegateHandle FNetcodeUnitTest::OnWorldCreatedDelegateHandle;
-#endif
 
 
 // Essential for getting the .dll to compile, and for the package to be loadable

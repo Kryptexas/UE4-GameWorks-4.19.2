@@ -1,6 +1,6 @@
 Availability: Public
 Title:Redirectors
-Crumbs:%ROOT%, Engine, Engine/Basics
+Crumbs:%ROOT%, Engine
 Description:Objects that are placed in packages to redirect references to moved assets to their current locations.
 
 [TOC (start:2 end:3)]

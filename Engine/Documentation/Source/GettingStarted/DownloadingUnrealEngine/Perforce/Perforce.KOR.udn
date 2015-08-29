@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2456446
+﻿INTSourceChangelist:2612538
 Availability: Licensee
 Title:언리얼 엔진에 퍼포스 사용하기
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:언리얼 엔진에 퍼포스 소스 콘트롤 사용 방법 안내서입니다.
 
 [TOC(start:2)]
-
-
-
-## 개요
 
 언리얼 엔진은 라이선시가 엔진을 내려받기 위해 연결하는 퍼포스를 통해 제공됩니다. 언리얼 엔진은 정기적으로 업데이트되기 때문에, 프로젝트 작업을 하는 라이선시의 경우 개발 동안 한 번 이상 새 엔진 버전으로 업데이트해야 할 수가 있습니다. 엔진 빌드를 가급적 쉽게 동기화나 통합시키기 위해서는 처음서부터 퍼포스를 제대로 셋업해 주는 것이 중요합니다.
 

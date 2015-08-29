@@ -377,6 +377,12 @@ AMatineeActor::AMatineeActor(const FObjectInitializer& ObjectInitializer)
 	ReplicationForceIsPlaying = 0;
 }
 
+void AMatineeActor::PostLoad()
+{
+	SetReplicates(!bClientSideOnly);
+	Super::PostLoad();
+}
+
 FName AMatineeActor::GetFunctionNameForEvent(FName EventName,bool bUseCustomEventName)
 {
 	FName EventFuncName;
@@ -542,6 +548,17 @@ void AMatineeActor::OnObjectsReplaced(const TMap<UObject*,UObject*>& Replacement
 	ReplaceMapKeys(ReplacementMap, SavedActorVisibilities);
 }
 #endif //WITH_EDITOR
+
+void AMatineeActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(TimerHandle_CheckPriorityRefresh);
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
 
 void AMatineeActor::SetPosition(float NewPosition,bool bJump)
 {
@@ -1009,6 +1026,11 @@ bool AMatineeActor::IsMatineeCompatibleWithPlayer( APlayerController* InPC ) con
 		}
 	}
 
+	if (bReplicates == false && InPC->IsLocalController() == false)
+	{
+		bBindPlayerToMatinee = false;
+	}
+
 	return bBindPlayerToMatinee;
 }
 
@@ -1166,7 +1188,10 @@ void AMatineeActor::EnableCinematicMode(bool bEnable)
 		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController *PC = *Iterator;
-			PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);
+			if (bReplicates || PC->IsLocalController())
+			{
+				PC->SetCinematicMode(bEnable, bHidePlayer, bHideHud, bDisableMovementInput, bDisableLookAtInput);
+			}
 		}
 	}
 }
@@ -1761,19 +1786,6 @@ void AMatineeActor::CheckPriorityRefresh()
 			return;
 		}
 	}
-
-	// check if it is controlling a player Pawn, or a platform a player Pawn is standing on
-	
-	/*foreach WorldSettings.AllControllers(class'Controller', C)
-	{
-		if ( C.PlayerState && C.Pawn != None &&
-			( InterpAction.LatentActors.Find(C.Pawn) != INDEX_NONE ||
-				(C.Pawn.Base != None && InterpAction.LatentActors.Find(C.Pawn.Base) != INDEX_NONE) ) )
-		{
-			ForceNetUpdate();
-			return;
-		}
-	}*/
 }
 
 
@@ -2043,6 +2055,7 @@ void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool
 		{
 			break;
 		}
+
 		UInterpTrack* Track = InterpTracks[i];
 		UInterpTrackInst* TrInst = GrInst->TrackInst[i];
 
@@ -6053,7 +6066,7 @@ void UInterpTrackColorProp::UpdateTrack(float NewPosition, UInterpTrackInst* TrI
 	FLinearColor DefaultLinearColor = DefaultColor;
 	FVector DefaultColorAsVector(DefaultLinearColor.R, DefaultLinearColor.G, DefaultLinearColor.B);
 	FVector NewVectorValue = VectorTrack.Eval( NewPosition, DefaultColorAsVector );
-	FColor NewColorValue = FLinearColor(NewVectorValue.X, NewVectorValue.Y, NewVectorValue.Z);
+	FColor NewColorValue = FLinearColor(NewVectorValue.X, NewVectorValue.Y, NewVectorValue.Z).ToFColor(true);
 	*PropInst->ColorProp = NewColorValue;
 
 	// If we have a custom callback for this property, call that
@@ -7917,7 +7930,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 					SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 					SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 					SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-					SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
+					SoundInst->PlayAudioComp->Play((bJump ? NewPosition - SoundTrackKey.Time : 0.f));
 				}
 				else
 				{
@@ -7947,7 +7960,7 @@ void UInterpTrackSound::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst,
 						SoundInst->PlayAudioComp->SetVolumeMultiplier(VolumePitchValue.X);
 						SoundInst->PlayAudioComp->SetPitchMultiplier(VolumePitchValue.Y);
 						SoundInst->PlayAudioComp->SubtitlePriority = bSuppressSubtitles ? 0.f : SUBTITLE_PRIORITY_MATINEE;
-						SoundInst->PlayAudioComp->Play(NewPosition - SoundTrackKey.Time);
+						SoundInst->PlayAudioComp->Play((bJump ? NewPosition - SoundTrackKey.Time : 0.f));
 					}
 				}
 			}
@@ -8013,6 +8026,20 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 		SoundInst->PlayAudioComp->Stop();
 	}
 
+	// If the new position for the track is before the last interp position, then the playback must have looped,
+	// so force playback to restart from the new position
+	const bool bJustLooped = NewPosition < MatineeActor->InterpPosition && MatineeActor->bIsPlaying;
+	if (bJustLooped)
+	{
+		if (SoundInst->PlayAudioComp)
+		{
+			SoundInst->PlayAudioComp->Stop();
+		}
+		bPlaying = false;
+		const float Epsilon = 0.1f;
+		SoundInst->LastUpdatePosition = NewPosition - Epsilon;
+	}
+
 	// Dont play sounds unless we are preview playback (ie not scrubbing).
 	bool bJump = !( MatineeActor->bIsPlaying );
 	UpdateTrack(NewPosition, TrInst, bJump);
@@ -8039,7 +8066,7 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 			Component->bIsUISound = true;
 			Component->Play(NewPosition - SoundTrackKey.Time);
 
-			const float ScrubDuration = 0.05f;
+			const float ScrubDuration = 0.1f;
 			Component->FadeOut(ScrubDuration, 1.0f);
 		}
 	}

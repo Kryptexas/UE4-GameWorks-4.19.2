@@ -1896,15 +1896,15 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 }
 
 
-void FWindowsApplication::AddMessageHandler(IWindowsMessageHandler& MessageHandler)
+void FWindowsApplication::AddMessageHandler(IWindowsMessageHandler& InMessageHandler)
 {
-	WindowsApplication->MessageHandlers.AddUnique(&MessageHandler);
+	WindowsApplication->MessageHandlers.AddUnique(&InMessageHandler);
 }
 
 
-void FWindowsApplication::RemoveMessageHandler(IWindowsMessageHandler& MessageHandler)
+void FWindowsApplication::RemoveMessageHandler(IWindowsMessageHandler& InMessageHandler)
 {
-	WindowsApplication->MessageHandlers.RemoveSwap(&MessageHandler);
+	WindowsApplication->MessageHandlers.RemoveSwap(&InMessageHandler);
 }
 
 

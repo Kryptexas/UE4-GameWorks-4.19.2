@@ -1,0 +1,28 @@
+﻿INTSourceChangelist:0
+Title: Samsung Gear VR Development
+Description:Instructions on how to get the Samsung Gear VR Headset to work with UE4.
+Availability:Public
+Navigation:platform
+Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+prereq: Engine\Blueprints\GettingStarted
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Gear VR Development
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/GearVR/Prerequisites "%Platforms/GearVR/Prerequisites:description%")
+		* [](Platforms/GearVR/QuickStart "%Platforms/GearVR/QuickStart:description%")
+		* [](Platforms/GearVR/GlobalMenu "%Platforms/GearVR/GlobalMenu:description%")
+		* [](Platforms/GearVR/BestPractices "%Platforms/GearVR/BestPractices:description%")
+		* [](Platforms/GearVR/Debugging "%Platforms/GearVR/BestPractices:description%")
+	[/PARAM]
+[/OBJECT]

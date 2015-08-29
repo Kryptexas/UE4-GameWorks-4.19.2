@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2486695
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:5. Play in Editor（PIE）
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/Components
 Description:エディタ再生によるコードのテスト
+バージョン:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -12,7 +13,7 @@ Description:エディタ再生によるコードのテスト
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[プログラミングチュートリアルのホームページ][Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\Components\)
 	[/PARAM]
 	[PARAM:next]
 		[次の手順](Programming\Tutorials\Components\6 "%Programming\Tutorials\Components\6:title%")
@@ -26,19 +27,19 @@ Description:エディタ再生によるコードのテスト
 
 	[![](CompileFromEditor.png)](CompileFromEditor.png)
 
-1. ワールドに **CollidingPawn** のインスタンスをドロップします。**コンテンツブラウザ** の "C++ Classes/(Our Project Name)/CollidingPawn" の配下にクラスがあります。
+1. ワールドに **CollidingPawn** のインスタンスをドロップします。"C++ Classes/HowTo_Components/CollidingPawn" 配下の **コンテンツブラウザ** にクラスがあります。
 
 	[![](ClassInContentBrowser.png)](ClassInContentBrowser.png)
 
 	[![](LevelEditorBeforePlay.png)](LevelEditorBeforePlay.png)
 
-1. **Play（再生）** を押すと、スフィアはWASDキーで移動、マウス操作で回転、そして例にあるテーブルやチェア、またはユーザーが配置するその他の物理オブジェクトなど、ワールドオブジェクトと平行に「衝突してスライド」します。スペースバーでスフィアに火を付ける（または火を消す）ことも出来ます！
+1. **Play（再生）** を押すと、スフィアは WASD キーで移動、マウス操作で回転、そして例にあるテーブルやチェア、またはユーザーが配置するその他の物理オブジェクトなど、ワールドオブジェクトと平行に「衝突してスライド」します。スペースバーでスフィアに火を付ける（または火を消す）ことも出来ます！
 
 	[![](CollidingAndOnFire.png)](CollidingAndOnFire.png)
 
 ----
 
-**アンリアルエンジン4** は幅広い用途向けの **コンポーネント** を提供しています。これまでは一般的なコンポーネントをいくつか紹介しただけですが、その他にもたくさんのコンポーネントがあります。ビルトイン **コンポーネント** を検索したり、独自のコンポーネントを記述してみてください！柔軟性に優れたパワフルな機能を提供するだけでなく、プロジェクトコードの管理と再利用に役立ちます。
+**アンリアルエンジン4** は幅広い用途向けの **コンポーネント** を提供しています。これまでは一般的なコンポーネントをいくつか紹介しただけですが、その他にもたくさんのコンポーネントがあります。ビルトインコンポーネントを探索したり、独自のコンポーネントを記述してみてください！柔軟性に優れたパワフルな機能を提供するだけでなく、プロジェクトコードの管理と再利用に役立ちます。
 
 [OBJECT:Section]
     [PARAMLITERAL:id]
@@ -251,7 +252,7 @@ Description:エディタ再生によるコードのテスト
 					FHitResult Hit;
 					SafeMoveUpdatedComponent(DesiredMovementThisFrame, UpdatedComponent->GetComponentRotation(), true, Hit);
 
-					// If we bumped into something, try to slide along it（何かとぶつかった時に、ぶつかった対象物に沿ってスライド）
+					// If we bumped into something, try to slide along it（何かとぶつかった場合は、ぶつかった対象物に沿ってスライド）
 					if (Hit.IsValidBlockingHit())
 					{
 						SlideAlongSurface(DesiredMovementThisFrame, 1.f - Hit.Time, Hit.Normal, Hit);

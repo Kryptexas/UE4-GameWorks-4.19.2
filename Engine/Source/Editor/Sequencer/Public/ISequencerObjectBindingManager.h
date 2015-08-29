@@ -32,6 +32,8 @@ public:
 	 */
 	virtual void SpawnOrDestroyObjectsForInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance, bool bDestroyAll ) = 0;
 	
+	virtual void RemoveMovieSceneInstance( TSharedRef<FMovieSceneInstance> MovieSceneInstance ) = 0;
+
 	virtual void DestroyAllSpawnedObjects() = 0;
 	
 	virtual bool CanPossessObject( UObject& Object ) const = 0;
@@ -61,5 +63,8 @@ public:
 	 * @param DisplayName	the display name for the object binding.
 	 * @returns true if DisplayName has been set to a valid display name, otherwise false.
 	 */
-	virtual bool TryGetObjectBindingDisplayName( const FGuid& ObjectGuid, FText& DisplayName ) const = 0;
+	virtual bool TryGetObjectBindingDisplayName( const TSharedRef<FMovieSceneInstance>& MovieSceneInstance, const FGuid& ObjectGuid, FText& DisplayName ) const = 0;
+
+	/** Gets the logical parent object for the supplied object which is not necessarily it's outer.  If the object has no logical parent returns nullptr. */
+	virtual UObject* GetParentObject(UObject* Object) const = 0;
 };

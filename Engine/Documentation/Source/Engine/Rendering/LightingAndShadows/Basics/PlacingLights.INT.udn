@@ -66,7 +66,7 @@ Description:The basics of placing lights into levels and setting them up.
 
 [TOC(start:2)]
 
-## Overview
+
 
 In Unreal Engine 4, there are a number of ways to add lights to a scene and there are a few key properties that have the greatest impact on lighting in the world.
 

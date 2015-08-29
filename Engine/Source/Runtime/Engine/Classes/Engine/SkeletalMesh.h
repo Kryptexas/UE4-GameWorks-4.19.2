@@ -11,6 +11,7 @@
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
 #include "Interfaces/Interface_AssetUserData.h"
+#include "BoneIndices.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -152,6 +153,9 @@ struct FBoneReference
 
 	/** return true if valid. Otherwise return false **/
 	ENGINE_API bool IsValid(const FBoneContainer& RequiredBones) const;
+
+	FMeshPoseBoneIndex GetMeshPoseIndex() const { return FMeshPoseBoneIndex(BoneIndex); }
+	FCompactPoseBoneIndex GetCompactPoseIndex(const FBoneContainer& RequiredBones) const { return RequiredBones.MakeCompactPoseIndex(GetMeshPoseIndex()); }
 };
 
 /**
@@ -485,6 +489,9 @@ struct FClothingAssetData
 
 	// serialization
 	friend FArchive& operator<<(FArchive& Ar, FClothingAssetData& A);
+
+	// get resource size
+	SIZE_T GetResourceSize() const;
 };
 
 // Material interface for USkeletalMesh - contains a material and a shadow casting flag
@@ -600,7 +607,7 @@ public:
 #if WITH_EDITORONLY_DATA
 
 	/** Importing data and options used for this mesh */
-	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
+	UPROPERTY(VisibleAnywhere, Instanced, Category = ImportSettings)
 	class UAssetImportData* AssetImportData;
 
 	/** Path to the resource used to construct this skeletal mesh */
@@ -645,7 +652,7 @@ public:
 	TMap<FName, UMorphTarget*> MorphTargetIndexMap;
 
 	/** Reference skeleton precomputed bases. */
-	TArray<FMatrix> RefBasesInvMatrix;    // @todo: wasteful ?!
+	TArray<FMatrix> RefBasesInvMatrix;    
 
 #if WITH_EDITORONLY_DATA
 	/** The section currently selected in the Editor. */
@@ -733,7 +740,8 @@ public:
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual void PreSave() override;
 	virtual void Serialize(FArchive& Ar) override;
-	virtual void PostLoad() override;	
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual FString GetDesc() override;
 	virtual FString GetDetailedInfoInternal() const override;
@@ -843,7 +851,18 @@ public:
 	ENGINE_API void  LoadClothCollisionVolumes(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset);
 	ENGINE_API bool IsMappedClothingLOD(int32 LODIndex, int32 AssetIndex);
 	ENGINE_API int32 GetClothAssetIndex(int32 LODIndex, int32 SectionIndex);
-#endif// #if WITH_APEX_CLOTHING
+#endif
+
+	/** 
+	 * Checks whether the provided section is using APEX cloth. if bCheckCorrespondingSections is true
+	 * disabled sections will defer to correspond sections to see if they use cloth (non-cloth sections
+	 * are disabled and another section added when cloth is enabled, using this flag allows for a check
+	 * on the original section to succeed)
+	 * @param InSectionIndex Index to check
+	 * @param bCheckCorrespondingSections Whether to check corresponding sections for disabled sections
+	 */
+	UFUNCTION(BlueprintCallable, Category="Cloth")
+	ENGINE_API bool IsSectionUsingCloth(int32 InSectionIndex, bool bCheckCorrespondingSections = true) const;
 
 	ENGINE_API void CreateBodySetup();
 	ENGINE_API UBodySetup* GetBodySetup();

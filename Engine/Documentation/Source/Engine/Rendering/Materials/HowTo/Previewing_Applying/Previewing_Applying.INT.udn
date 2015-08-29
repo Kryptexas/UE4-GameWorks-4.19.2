@@ -10,13 +10,13 @@ Related: Engine/Rendering/Materials/MaterialProperties
 
 [TOC(start:2 end:3)]
 
-## Overview 
+
 
 Previewing and applying your Materials is something that you will have to do quite often to make sure that you are getting the exact results you want. 
 Unreal Engine 4 (UE4) makes both previewing and applying materials a very straight forward process.
 In the following How - To, we will cover all you need to know about how to preview and apply your Materials in UE4.
 
-## What is Previewing and Applying Materials
+## Previewing and Applying Materials
 
 Previewing and Applying your Materials is of critical importance to the Material creation process because this is how you will be able to see and apply the results of what was created in the Material Graph.
 When you are Previewing a Material, you are seeing what the changes would look like.
@@ -51,7 +51,17 @@ While inside of the Material Editor, if you use your mouse cursor to hover over 
 While you are creating your materials in the Material Editor, the **Viewport** window will update with your changes in real time if you have real time enabled (Real time is enabled by default). 
 To see the changes happen, all you have to do is adjust any parameter that is currently hooked up to any of the Main Material Nodes like in the following example.
 
-![](Previewing_Applying_Changing_Color_Realtime.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TDn_9Dg1s-Q
+[/PARAMLITERAL]
+[/OBJECT]
 
 [region:note]
  When making any changes to your Material Network, it could take some time for the changes to be rendered correctly. The more complex your material becomes, the longer it could take for the preview window to update. If you find that you really need a quicker update, you should look into making your Material into a [Material Instance](Engine/Rendering/Materials/MaterialInstances). 
@@ -69,37 +79,77 @@ To enable this functionality, you need to make sure that the Material meets the 
 
 1. First make sure that the Material that you want to preview is applied to something in the level. 
 
-	![](MMN_Applying_Material.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	SvCjqU1XDzY
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1. Inside of the Material, make sure that you are using **Scalar** or **Vector Parameters** as inputs for the properties you want to change. 
 	Previewing like this will not work with **Constant** Material Expression nodes, you have to use or convert the Material Expression nodes you want to tweak into **Parameter** nodes.
 	It is very important that the Material Expression inputs that you convert to preview have unique names or this will not work.
 
-	![](MMN_Converting_Nodes.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	mnlMbWkxz9w
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 1.   To see the changes happen in real time in the level viewport, adjust the value of the Scalar or Vector parameters inside the Material. 
 	The adjustments that you make should then be displayed, in real time, in the level viewport.
  
 	[OBJECT:EmbeddedVideo]
-		[PARAMLITERAL:width]
-		640
-		[/PARAMLITERAL]
-		[PARAMLITERAL:height]
-		360
-		[/PARAMLITERAL]
-		[PARAMLITERAL:videoid]
-		gKSnoGXuaKQ
-		[/PARAMLITERAL]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	gKSnoGXuaKQ
+	[/PARAMLITERAL]
 	[/OBJECT]
 
 ## How to Apply your Materials 
 
 There are two main ways that you can apply Materials to objects inside of UE4.
-* **Drag and Drop** - You can drag any Material from the **Content Browser** and then drop it on any object in the level to change its material like in he following example.
-![](Previewing_Applying_Drag_&_Drop.gif)(convert:false)
+* **Drag and Drop** - You can drag any Material from the **Content Browser** and then drop it on any object in the level to change its material like in the following example:
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	57tC0KaB2BU
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 * **Apply via Object's Details Panel** - You can also apply materials via the object's **Details** panel by using the **Use selected asset from Content Browser** button like in the following example.
-![](Previewing_Applying_Assing_From_CB.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	fSLRV947n7A
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 
 ## Conclusion
@@ -109,3 +159,7 @@ The method that you choose to Preview and Apply your Materials is whatever metho
 Remember that if you are previewing something, make sure to press the **Apply** and **Save** buttons when completed or you run the risk of losing / not seeing your work. 
 
 ![](Engine\Rendering\Materials\HowTo\Refraction\R_Apply_&_Save.png)
+
+
+
+

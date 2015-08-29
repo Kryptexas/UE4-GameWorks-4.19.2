@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreUObject.h"
-
+#include "Curves/CurveFloat.h"
 #include "SoundAttenuation.generated.h"
 
 UENUM()
@@ -14,6 +14,7 @@ enum ESoundDistanceModel
 	ATTENUATION_Inverse,
 	ATTENUATION_LogReverse,
 	ATTENUATION_NaturalSound,
+	ATTENUATION_Custom,
 	ATTENUATION_MAX,
 };
 
@@ -69,6 +70,9 @@ struct ENGINE_API FAttenuationSettings
 	/* The type of volume versus distance algorithm to use for the attenuation model. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation )
 	TEnumAsByte<enum ESoundDistanceModel> DistanceAlgorithm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attenuation)
+	FRuntimeFloatCurve CustomAttenuationCurve;
 
 	UPROPERTY()
 	TEnumAsByte<enum ESoundDistanceCalc> DistanceType_DEPRECATED;
@@ -156,6 +160,7 @@ struct ENGINE_API FAttenuationSettings
 
 private:
 
+	float AttenuationEval(const float Distance, const float Falloff) const;
 	float AttenuationEvalBox(const FTransform& SoundLocation, const FVector ListenerLocation) const;
 	float AttenuationEvalCapsule(const FTransform& SoundLocation, const FVector ListenerLocation) const;
 	float AttenuationEvalCone(const FTransform& SoundLocation, const FVector ListenerLocation) const;

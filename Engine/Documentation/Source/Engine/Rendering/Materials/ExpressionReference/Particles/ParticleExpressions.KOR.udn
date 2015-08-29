@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2281678
+﻿INTSourceChangelist:2590541
 Availability:Public
 Title:Particle 표현식
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
@@ -39,7 +39,7 @@ ParticleColor (파티클 컬러)는 캐스케이드에서 정의된 파티클별
 [EXCERPT:ParticleDirection]
 ## ParticleDirection
 
-ParticleDirection (파티클 방향)은 주어진 파티클의 현재 진행 방향을 나타내는 3벡터 (RGB) 데이터를 파티클 단위별로 출력해 주는 표현식입니다.
+ParticleDirection (파티클 방향)은 주어진 파티클의 현재 진행 방향을 나타내는 Vector3 (RGB) 데이터를 파티클 단위별로 출력해 주는 표현식입니다.
 
 
 ![ParticleDirectionExample.png](ParticleDirectionExample.png)(w:900)
@@ -77,7 +77,7 @@ ParticleMotionBlurFade (파티클 모션 블러 페이드)는 모션 블러 결�
 [EXCERPT:ParticlePositionWS]
 ## ParticlePositionWS
 
-ParticlePositionWS (파티클 위치 월드 스페이스)는 각 개별 파티클의 월드 스페이스 위치를 나타내는 3벡터 (RGB) 데이터를 출력합니다.
+ParticlePositionWS (파티클 위치 월드 스페이스)는 각 개별 파티클의 월드 스페이스 위치를 나타내는 Vector3 (RGB) 데이터를 출력합니다.
 
 
 ![ParticlePositionWS.png](ParticlePositionWSExample.png)(w:900)

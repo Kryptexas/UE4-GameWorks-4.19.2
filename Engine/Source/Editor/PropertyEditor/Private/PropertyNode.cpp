@@ -380,7 +380,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 			//make sure we got the addresses correctly
 			if (!bSuccess)
 			{
-				UE_LOG( LogPropertyNode, Log, TEXT("Object is invalid %s"), *Property->GetName() );
+				UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
 				return ObjectInvalid;
 			}
 
@@ -392,7 +392,7 @@ FPropertyNode::DataValidationResult FPropertyNode::EnsureDataIsValid()
 				//make sure the data still exists
 				if (Addr==NULL)
 				{
-					UE_LOG( LogPropertyNode, Log, TEXT("Object is invalid %s"), *Property->GetName() );
+					UE_LOG( LogPropertyNode, Verbose, TEXT("Object is invalid %s"), *Property->GetName() );
 					return ObjectInvalid;
 				}
 
@@ -1648,7 +1648,7 @@ void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
 		{
 			// Call PostEditchange on all the objects
 			// Assume reset to default, can change topology
-			FPropertyChangedEvent ChangeEvent( TheProperty );
+			FPropertyChangedEvent ChangeEvent( TheProperty, EPropertyChangeType::ValueSet );
 			NotifyPostChange( ChangeEvent, InNotifyHook );
 		}
 
@@ -2159,6 +2159,16 @@ FPropertyChangedEvent& FPropertyNode::FixPropertiesInEvent(FPropertyChangedEvent
 	}
 
 	return Event;
+}
+
+void FPropertyNode::SetInstanceMetaData(const FName& Key, const FString& Value)
+{
+	InstanceMetaData.Add(Key, Value);
+}
+
+const FString* FPropertyNode::GetInstanceMetaData(const FName& Key) const
+{
+	return InstanceMetaData.Find(Key);
 }
 
 /**

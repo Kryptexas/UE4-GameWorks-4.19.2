@@ -9,7 +9,7 @@ public class Engine : ModuleRules
 	{
 		SharedPCHHeaderFile = "Runtime/Engine/Public/Engine.h";
 
-		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer" });
+		PublicIncludePathModuleNames.AddRange(new string[] { "Renderer", "PacketHandler" });
 
 		PrivateIncludePaths.AddRange(
 			new string[] {
@@ -51,6 +51,7 @@ public class Engine : ModuleRules
 				"RHI",
 				"ShaderCore",
 				"AssetRegistry", // Here until FAssetData is moved to engine
+                "CookingStats",
 				"EngineMessages",
 				"EngineSettings",
 				"SynthBenchmark",
@@ -69,7 +70,8 @@ public class Engine : ModuleRules
                 "UMG",
 				"Projects",
 				"Niagara",
-                "Internationalization"
+                "Internationalization",
+                "PacketHandler"
 			}
         );
 
@@ -78,15 +80,21 @@ public class Engine : ModuleRules
         CircularlyReferencedDependentModules.Add("UMG");
 		CircularlyReferencedDependentModules.Add("Niagara");
 
+		// The AnimGraphRuntime module is not needed by Engine proper, but it is loaded in LaunchEngineLoop.cpp,
+		// and needs to be listed in an always-included module in order to be compiled into standalone games
+		DynamicallyLoadedModuleNames.Add("AnimGraphRuntime");
+
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
 			{
-				"MovieSceneCore",
-				"MovieSceneCoreTypes",
+				"MovieScene",
+				"MovieSceneTracks",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
 			}
 		);
+
+        PrivateIncludePathModuleNames.Add("LightPropagationVolumeRuntime");
 
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
@@ -143,7 +151,7 @@ public class Engine : ModuleRules
 						"WindowsNoEditorTargetPlatform",
 						"WindowsServerTargetPlatform",
 						"WindowsClientTargetPlatform",
-						"DesktopTargetPlatform",
+						"AllDesktopTargetPlatform",
 					}
 				);
 			}
@@ -155,7 +163,7 @@ public class Engine : ModuleRules
 					    "MacNoEditorTargetPlatform",
 						"MacServerTargetPlatform",
 						"MacClientTargetPlatform",
-						"DesktopTargetPlatform",
+						"AllDesktopTargetPlatform",
 					}
 				);
 			}
@@ -166,7 +174,7 @@ public class Engine : ModuleRules
 						"LinuxTargetPlatform",
 						"LinuxNoEditorTargetPlatform",
 						"LinuxServerTargetPlatform",
-						"DesktopTargetPlatform",
+						"AllDesktopTargetPlatform",
 					}
 				);
 			}
@@ -307,7 +315,7 @@ public class Engine : ModuleRules
 		else
 		{
 			// Because we test WITH_RECAST in public Engine header files, we need to make sure that modules
-			// that import us also have this definition set appropriately.  Recast is a private dependency
+			// that import this also have this definition set appropriately.  Recast is a private dependency
 			// module, so it's definitions won't propagate to modules that import Engine.
 			Definitions.Add("WITH_RECAST=0");
 		}

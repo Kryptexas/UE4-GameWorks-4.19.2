@@ -128,10 +128,13 @@ void FKismet2CompilerModule::CompileStructure(UUserDefinedStruct* Struct, FCompi
 	FUserDefinedStructureCompilerUtils::CompileStruct(Struct, Results, true);
 }
 
+extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 // Compiles a blueprint.
 void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TSharedPtr<FBlueprintCompileReinstancer> ParentReinstancer, TArray<UObject*>* ObjLoaded)
 {
 	SCOPE_SECONDS_COUNTER(GBlueprintCompileTime);
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileTime);
 
 	Results.SetSourceName(Blueprint->GetName());
@@ -140,10 +143,12 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
-		Compiler->PreCompile(Blueprint);
+		Compiler->PreCompile(Blueprint, CompileOptions);
 	}
 
-	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
+	if (CompileOptions.CompileType != EKismetCompileType::Cpp
+		&& CompileOptions.CompileType != EKismetCompileType::BytecodeOnly
+		&& CompileOptions.bRegenerateSkelton )
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
 		auto SkeletonReinstancer = FBlueprintCompileReinstancer::Create(Blueprint->SkeletonGeneratedClass);
@@ -205,8 +210,9 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 			StubResults.bSilentMode = true;
 			FKismetCompilerOptions StubCompileOptions(CompileOptions);
 			StubCompileOptions.CompileType = EKismetCompileType::StubAfterFailure;
-
-			CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+			{
+				CompileBlueprintInner(Blueprint, StubCompileOptions, StubResults, StubReinstancer, ObjLoaded);
+			}
 
 			StubReinstancer->UpdateBytecodeReferences();
 			if( !Blueprint->bIsRegeneratingOnLoad )
@@ -218,7 +224,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
-		Compiler->PostCompile(Blueprint);
+		Compiler->PostCompile(Blueprint, CompileOptions);
 	}
 
 	UPackage* Package = Blueprint->GetOutermost();
@@ -271,6 +277,20 @@ void FKismet2CompilerModule::RemoveBlueprintGeneratedClasses(class UBlueprint* B
 			Blueprint->SkeletonGeneratedClass = NULL;
 		}
 	}
+}
+
+void FKismet2CompilerModule::GetBlueprintTypesForClass(UClass* ParentClass, UClass*& OutBlueprintClass, UClass*& OutBlueprintGeneratedClass) const
+{
+	for ( IBlueprintCompiler* Compiler : Compilers )
+	{
+		if ( Compiler->GetBlueprintTypesForClass(ParentClass, OutBlueprintClass, OutBlueprintGeneratedClass) )
+		{
+			return;
+		}
+	}
+
+	OutBlueprintClass = UBlueprint::StaticClass();
+	OutBlueprintGeneratedClass = UBlueprintGeneratedClass::StaticClass();
 }
 
 #undef LOCTEXT_NAMESPACE

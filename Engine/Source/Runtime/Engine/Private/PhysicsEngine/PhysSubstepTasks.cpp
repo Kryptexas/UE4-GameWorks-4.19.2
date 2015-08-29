@@ -37,8 +37,8 @@ void FPhysSubstepTask::SwapBuffers()
 
 void FPhysSubstepTask::RemoveBodyInstance_AssumesLocked(FBodyInstance* BodyInstance)
 {
-	
 	PhysTargetBuffers[External].Remove(BodyInstance);
+	PhysTargetBuffers[!External].Remove(BodyInstance);
 }
 
 void FPhysSubstepTask::SetKinematicTarget_AssumesLocked(FBodyInstance* Body, const FTransform& TM)
@@ -168,6 +168,14 @@ void FPhysSubstepTask::ApplyCustomPhysics(const FPhysTarget& PhysTarget, FBodyIn
 #endif
 }
 
+#if WITH_PHYSX
+bool IsKinematicHelper(const PxRigidBody* PRigidBody)
+{
+	const bool bIsKinematic = PRigidBody->getRigidDynamicFlags() & PxRigidDynamicFlag::eKINEMATIC;
+	return bIsKinematic;
+}
+#endif
+
 /** Applies forces - Assumes caller has obtained writer lock */
 void FPhysSubstepTask::ApplyForces_AssumesLocked(const FPhysTarget& PhysTarget, FBodyInstance* BodyInstance)
 {
@@ -255,15 +263,17 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 {
 #if WITH_PHYSX
 #if WITH_APEX
+	SCOPED_APEX_SCENE_WRITE_LOCK(PAScene);
 	PxScene * PScene = PAScene->getPhysXScene();
 #else
 	PxScene * PScene = PAScene;
-#endif
-
-	PhysTargetMap& Targets = PhysTargetBuffers[!External];
-
-	/** Note: We lock the entire scene before iterating. The assumption is that removing an FBodyInstance from the map will also be wrapped by this lock */
 	SCOPED_SCENE_WRITE_LOCK(PScene);
+#endif
+	
+	/** Note: We lock the entire scene before iterating. The assumption is that removing an FBodyInstance from the map will also be wrapped by this lock */
+	
+	
+	PhysTargetMap& Targets = PhysTargetBuffers[!External];
 
 	for (PhysTargetMap::TIterator Itr = Targets.CreateIterator(); Itr; ++Itr)
 	{
@@ -279,11 +289,16 @@ void FPhysSubstepTask::SubstepInterpolation(float InAlpha, float DeltaTime)
 		//We should only be iterating over actors that belong to this scene
 		check(PRigidBody->getScene() == PScene);
 
-		ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
-		ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
-		ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
-		InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+		if (!IsKinematicHelper(PRigidBody))
+		{
+			ApplyCustomPhysics(PhysTarget, BodyInstance, DeltaTime);
+			ApplyForces_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyTorques_AssumesLocked(PhysTarget, BodyInstance);
+			ApplyRadialForces_AssumesLocked(PhysTarget, BodyInstance);
+		}else
+		{
+			InterpolateKinematicActor_AssumesLocked(PhysTarget, BodyInstance, InAlpha);
+		}
 	}
 
 	/** Final substep */

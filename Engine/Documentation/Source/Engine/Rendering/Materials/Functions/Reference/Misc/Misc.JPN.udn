@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2125630
+﻿INTSourceChangelist:2527382
 Availability:Public
 title:その他の関数
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -64,20 +64,20 @@ SplitComponents 関数は入力された色または画像のコンポーネン�
 
 ![Split Components](SplitComponents_Demo.png)
 
-### FlipBook
+### Flipbook
 
 この関数は、スプライトフレームのグリッドなど Texture2D を受け取り、再生する順序でアニメーションを出力します。
 
 | アイテム | 説明 |
 | -------- | -------- |
 | [REGION:tablesection]入力値[/REGION] ||
-| **Animation Phase (0-1) (Scalar)** | 静的な入力を受け取った場合、フレームは 0 ないし 1 と番号付けがされたかのように FlipBook の最寄りのフレームを渡します。入力が無かった場合、自動的に時間を使用します。|
-| **Number of Rows (Scalar)** | FlipBook テクスチャの列の数を受け取ります。|
-| **Number of Columns (Scalar)** | FlipBook テクスチャのカラムの数を受け取ります。|
+| **Animation Phase (0-1) (Scalar)** | 静的な入力を受け取った場合、フレームは 0 ないし 1 と番号付けがされたかのようにフリップブックの最寄りのフレームを渡します。入力が無かった場合、自動的に時間を使用します。|
+| **Number of Rows (Scalar)** | フリップブック テクスチャの列の数を受け取ります。|
+| **Number of Columns (Scalar)** | フリップブック テクスチャのカラムの数を受け取ります。|
 | **Texture (Texture2D)** | スプライトシートを含んだ Texture2D またはアニメート化されたテクスチャのフレームのグリッドを受け取ります。|
-| **UVs (Vector2)** | タイリング処理を助けるUV座標の一式を受け取ります。|
+| **UVs (Vector2)** | タイリング処理を助ける UV 座標の一式を受け取ります。|
 |[REGION:tablesection]出力値[/REGION] ||
-| **Result** | FlipBookの結果として画像を出力します。|
+| **Result** | フリップブックの結果として画像を出力します。|
 | **UVs** | テクスチャシートの特定フレームと一致する UV 座標を出力します。|
 
 

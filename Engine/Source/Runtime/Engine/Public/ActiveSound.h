@@ -148,20 +148,20 @@ public:
 
 	float SubtitlePriority;
 
-	/** frequency with which to check for occlusion from its closest listener */
+	/** Frequency with which to check for occlusion from its closest listener */
 	float OcclusionCheckInterval;
 
-	/** last time we checked for occlusion */
+	/** Last time we checked for occlusion */
 	float LastOcclusionCheckTime;
 
 	FTransform Transform;
 
-	/** location last time playback was updated */
+	/** Location last time playback was updated */
 	FVector LastLocation;
 
 	FAttenuationSettings AttenuationSettings;
 
-	/** cache what volume settings we had last time so we don't have to search again if we didn't move */
+	/** Cache what volume settings we had last time so we don't have to search again if we didn't move */
 	FInteriorSettings LastInteriorSettings;
 
 	class AAudioVolume* LastAudioVolume;
@@ -180,8 +180,12 @@ public:
 
 	TArray<FAudioComponentParam> InstanceParameters;
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FName DebugOriginalSoundName;
+#endif
+
 	// Updates the wave instances to be played.
-	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &WaveInstances, const float DeltaTime );
+	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &OutWaveInstances, const float DeltaTime );
 
 	void Stop(FAudioDevice* AudioDevice);
 

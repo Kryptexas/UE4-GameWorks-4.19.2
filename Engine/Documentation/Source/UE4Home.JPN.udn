@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2414058
+﻿INTSourceChangelist:2613760
 Availability:Public
-Title:アンリアル エンジン 4 ドキュメント
+Title: アンリアル エンジン 4 のドキュメント
 Crumbs:
-Description:UE4 トップレベル リンク ドキュメント
+Description: UE4 トップレベル リンク ドキュメント
 Navigation:home
 
 [PUBLISH:Rocket]
@@ -14,12 +14,12 @@ Navigation:home
 		[RELATIVE:Search]
 		[/PARAM]
 		[PARAMLITERAL:placeholder]
-		検索したいトピックを入力
+		検索したい言葉を入力してください
 		[/PARAMLITERAL]
 		[PARAM:message]
 		[/PARAM]
 		[PARAMLITERAL:label]
-			クイックサーチの条件:
+			おすすめ検索：
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			クイック スタート
@@ -28,13 +28,22 @@ Navigation:home
 			方法
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
+			C++
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			ブループリント
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			iOS
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
+			Android
+		[/PARAMLITERAL]
+		[PARAMLITERAL:terms]
 			アクタ
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			コンポーネント
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			ブループリント
 		[/PARAMLITERAL]
 		[PARAMLITERAL:terms]
 			マテリアル
@@ -48,29 +57,23 @@ Navigation:home
 		[PARAMLITERAL:terms]
 			UMG UI
 		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			C++
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			iOS
-		[/PARAMLITERAL]
-		[PARAMLITERAL:terms]
-			Android
-		[/PARAMLITERAL]
 	[/OBJECT]
 [/REGION]
 
-## トピック別に参照
+## おすすめトピック
 
 [/PUBLISH:Rocket]
 
 [REGION:frontpage]
 	[REGION:features third]
 	%GettingStarted:role%
+	%Engine/UI:role%
 	%Engine:role%
 	%Programming:topicrole%
 	%Engine/Blueprints:role%
-	%Platforms:role%
+	%Gameplay:role%
 	%Resources:role%
+	%Platforms:role%
+	%Support/Builds:role%
 	[/REGION]
 [/REGION]

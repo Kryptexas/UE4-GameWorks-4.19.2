@@ -111,19 +111,6 @@ const FString FFriendItem::GetClientName() const
 	return Result;
 }
 
-const TSharedPtr<FUniqueNetId> FFriendItem::GetSessionId() const
-{
-	if (OnlineFriend.IsValid())
-	{
-		const FOnlineUserPresence& OnlinePresence = OnlineFriend->GetPresence();
-		if (OnlinePresence.SessionId.IsValid())
-		{
-			return OnlinePresence.SessionId;
-		}
-	}
-	return nullptr;
-}
-
 const bool FFriendItem::IsOnline() const
 {
 	if(OnlineFriend.IsValid())
@@ -148,20 +135,37 @@ bool FFriendItem::IsGameJoinable() const
 	{
 		const FOnlineUserPresence& FriendPresence = OnlineFriend->GetPresence();
 		const bool bIsOnline = FriendPresence.Status.State != EOnlinePresenceState::Offline;
-		bool bIsJoinable = FriendPresence.bIsJoinable && !FFriendsAndChatManager::Get()->IsFriendInSameSession(AsShared());
-
-		return bIsOnline && bIsJoinable;
+		if (bIsOnline)
+		{
+			const bool bIsGameJoinable = FriendPresence.bIsJoinable && !FriendsAndChatManager.Pin()->IsFriendInSameSession(AsShared());
+			if (bIsGameJoinable)
+			{
+				return true;
+			}
+		}
 	}
 	return false;
+}
+
+bool FFriendItem::IsInParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid();
+}
+
+bool FFriendItem::CanJoinParty() const
+{
+	TSharedPtr<IOnlinePartyJoinInfo> PartyInfo = GetPartyJoinInfo();
+	return PartyInfo.IsValid() && PartyInfo->GetIsAcceptingMembers() && !FriendsAndChatManager.Pin()->IsFriendInSameParty(AsShared());
 }
 
 bool FFriendItem::CanInvite() const
 {
 	FString FriendsClientID = GetClientId();
-	return FriendsClientID == FFriendsAndChatManager::Get()->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
+	return FriendsClientID == FriendsAndChatManager.Pin()->GetUserClientId() || FFriendItem::LauncherClientIds.Contains(FriendsClientID);
 }
 
-TSharedPtr<FUniqueNetId> FFriendItem::GetGameSessionId() const
+TSharedPtr<const FUniqueNetId> FFriendItem::GetGameSessionId() const
 {
 	if (OnlineFriend.IsValid())
 	{
@@ -174,7 +178,13 @@ TSharedPtr<FUniqueNetId> FFriendItem::GetGameSessionId() const
 	return nullptr;
 }
 
-const TSharedRef< FUniqueNetId > FFriendItem::GetUniqueID() const
+TSharedPtr<IOnlinePartyJoinInfo> FFriendItem::GetPartyJoinInfo() const
+{
+	// obtain party info from presence
+	return FriendsAndChatManager.Pin()->GetPartyJoinInfo(AsShared());
+}
+
+const TSharedRef<const FUniqueNetId> FFriendItem::GetUniqueID() const
 {
 	return UniqueID.ToSharedRef();
 }

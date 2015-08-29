@@ -234,7 +234,7 @@ namespace UnrealBuildTool
             if( NumScriptedActions > 0 )
             {
                 // Create the process
-                ProcessStartInfo PSI = new ProcessStartInfo("dbsbuild", "-p UE4 -s " + BuildConfiguration.BaseIntermediatePath + "/sndbs.bat");
+                ProcessStartInfo PSI = new ProcessStartInfo("dbsbuild", "-q -p UE4 -s " + BuildConfiguration.BaseIntermediatePath + "/sndbs.bat");
                 PSI.RedirectStandardOutput = true;
                 PSI.RedirectStandardError = true;
                 PSI.UseShellExecute = false;
@@ -290,14 +290,14 @@ namespace UnrealBuildTool
             {
                 string SCERoot = Environment.GetEnvironmentVariable("SCE_ROOT_DIR");
 
-		bool bSNDBSExists = false;
-		if( SCERoot != null )
-		{
-			string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
+				bool bSNDBSExists = false;
+				if( SCERoot != null )
+				{
+					string SNDBSExecutable = Path.Combine(SCERoot, "Common/SN-DBS/bin/dbsbuild.exe");
 
-			// Check that SN-DBS is available
-			bSNDBSExists = File.Exists(SNDBSExecutable);
-		}
+					// Check that SN-DBS is available
+					bSNDBSExists = File.Exists(SNDBSExecutable);
+				}
 
                 if( bSNDBSExists == false )
                 {

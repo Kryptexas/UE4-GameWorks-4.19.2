@@ -144,6 +144,7 @@ public:
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FText GetToolkitName() const override;
+	virtual FText GetToolkitToolTipText() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual bool IsBlueprintEditor() const override;
@@ -265,6 +266,8 @@ public:
 	virtual bool IsEditable(UEdGraph* InGraph) const;
 	/** Determines if the graph's title bar should be the only interactable widget .*/
 	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
+	/** Determines if the graph is ReadOnly, this differs from editable in that it is never expected to be edited and is in a read-only state */
+	bool IsGraphReadOnly(UEdGraph* InGraph) const;
 
 	/** Used to determine the visibility of the graph's instruction text. */
 	float GetInstructionTextOpacity(UEdGraph* InGraph) const;
@@ -456,19 +459,17 @@ public:
 
 	virtual void ClearSelectionStateFor(FName SelectionOwner);
 
-	/** Find all instances of the selected custom event. */
-	void OnFindInstancesCustomEvent();
-
 	/** Handles spawning a graph node in the current graph using the passed in chord */
 	FReply OnSpawnGraphNodeByShortcut(FInputChord InChord, const FVector2D& InPosition, UEdGraph* InGraph);
 
 	/** 
 	 * Perform the actual promote to variable action on the given pin in the given blueprint.
 	 *
-	 * @param	InBlueprint	The blueprint in which to create the variable.
-	 * @param	InTargetPin The pin on which to base the variable.
+	 * @param	InBlueprint				The blueprint in which to create the variable.
+	 * @param	InTargetPin				The pin on which to base the variable.
+	 * @param	bInToMemberVariable		TRUE if attempting to create a member variable, FALSE if the variable should be local
 	 */
-	void DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin );		
+	void DoPromoteToVariable( UBlueprint* InBlueprint, UEdGraphPin* InTargetPin, bool bInToMemberVariable );		
 
 	/** Called when node is spawned by keymap */
 	void OnNodeSpawnedByKeymap();
@@ -641,8 +642,8 @@ protected:
 	UEdGraphPin* GetCurrentlySelectedPin() const;
 
 	// UI Action functionality
-	void OnPromoteToVariable();
-	bool CanPromoteToVariable() const;
+	void OnPromoteToVariable(bool bInToMemberVariable);
+	bool CanPromoteToVariable(bool bInToMemberVariable) const;
 
 	void OnSplitStructPin();
 	bool CanSplitStructPin() const;
@@ -869,7 +870,7 @@ protected:
 	void RenameGraph(class UEdGraphNode* GraphNode, const FString& NewName);
 
 	/** Called when a node's title is being committed for a rename so it can be verified */
-	bool OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged);
+	bool OnNodeVerifyTitleCommit(const FText& NewText, UEdGraphNode* NodeBeingChanged, FText& OutErrorMessage);
 
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();
@@ -917,11 +918,11 @@ private:
 	/** Helper function to navigate the current tab */
 	void NavigateTab(FDocumentTracker::EOpenDocumentCause InCause);
 
-	/** Find all references of the selected variable. */
-	void OnFindVariableReferences();
+	/** Find all references of the selected node. */
+	void OnFindReferences();
 
-	/** Checks if we can currently find all references of the variable selection. */
-	bool CanFindVariableReferences();
+	/** Checks if we can currently find all references of the node selection. */
+	bool CanFindReferences();
 
 	/** Called when the user generates a warning tooltip because a connection was invalid */
 	void OnDisallowedPinConnection(const class UEdGraphPin* PinA, const class UEdGraphPin* PinB);
@@ -953,6 +954,9 @@ private:
 
 	/** Util to try and get doc link for the currently selected node */
 	FString GetDocLinkForSelectedNode();
+
+	/** Fixes SubObject references of the passed object so they match up to sub-object UProperty references */
+	void FixSubObjectReferencesPostUndoRedo(UObject* InObject);
 
 public://@TODO
 	TSharedPtr<FDocumentTracker> DocumentManager;
@@ -1020,7 +1024,7 @@ protected:
 	TSharedPtr<class INameValidatorInterface> NameEntryValidator;
 
 	/** Reference to owner of the pin type change popup */
-	TWeakPtr<class SWindow> PinTypeChangePopupWindow;
+	TWeakPtr<class IMenu> PinTypeChangeMenu;
 
 	/** The toolbar builder class */
 	TSharedPtr<class FBlueprintEditorToolbar> Toolbar;

@@ -301,6 +301,9 @@ public:
 	 */
 	static bool IsWhitespace( const TCHAR Char );
 
+	/** Checks to see if the given character is considered a letter */
+	static bool IsLetter( const TCHAR Char );
+
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
 
 	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
@@ -320,6 +323,8 @@ public:
 
 	bool IsTransient() const { return (Flags & ETextFlag::Transient) != 0; }
 	bool IsCultureInvariant() const { return (Flags & ETextFlag::CultureInvariant) != 0; }
+
+	bool ShouldGatherForLocalization() const;
 
 private:
 
@@ -359,8 +364,6 @@ private:
 	static FText FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
 	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
-
-	bool ShouldGatherForLocalization() const;
 
 private:
 	template<typename T1, typename T2>

@@ -4,13 +4,10 @@ Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/Parti
 Description:Spawn modules will impact the number/rate of emitter particles.
 
 [TOC(start:2 end:3)]
-
-## Spawn Modules
-
 Spawn modules will impact the number/rate of emitter particles.
 
 
-### Spawn Per Unit
+## Spawn Per Unit
 
 Allows for spawning particles based on the distance the emitter has traveled. Useful for things like sprite based smoke trails where the trail needs to stay cohesive whether traveling quickly or slowly and spawning a relative number of particles to always fill in gaps. It contains the following member(s): 
 
@@ -32,5 +29,5 @@ Allows for spawning particles based on the distance the emitter has traveled. Us
 
 Using this module when spawning from other emitters may seem to not behave as expected when trying to spawn particles from a single lead particle.
 
-SpawnPerUnit actually uses the movement delta of the particle system itself and as such, does not understand what work to do when it is attached to subemitters inside the particle system. Even though its parents are moving through space, the actual whole system is still stationary, so the SpawnPerUnit module does nothing.
+SpawnPerUnit actually uses the movement delta of the particle system itself and as such, does not understand what work to do when it is attached to submitters inside the particle system. Even though its parents are moving through space, the actual whole system is still stationary, so the SpawnPerUnit module does nothing.
 

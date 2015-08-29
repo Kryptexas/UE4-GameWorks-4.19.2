@@ -15,6 +15,7 @@
 #include "KismetEditorUtilities.h"
 #endif //WITH_EDITOR
 
+DEFINE_STAT(STAT_PersistentUberGraphFrameMemory);
 
 UBlueprintGeneratedClass::UBlueprintGeneratedClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -186,8 +187,12 @@ struct FConditionalRecompileClassHepler
 	}
 };
 
+extern UNREALED_API FSecondsCounterData BlueprintCompileAndLoadTimerData;
+
 void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLoaded)
 {
+	FSecondsCounterScope Timer(BlueprintCompileAndLoadTimerData);
+
 	UBlueprint* GeneratingBP = Cast<UBlueprint>(ClassGeneratedBy);
 	if (GeneratingBP && (GeneratingBP->SkeletonGeneratedClass != this))
 	{
@@ -292,7 +297,15 @@ UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const F
 
 			if (SCSNode)
 			{
-				Archetype = SCSNode->ComponentTemplate;
+				// Ensure that the stored template is of the same type as the serialized object. Since
+				// we match these by name, this handles the case where the Blueprint class was updated
+				// after having previously serialized an instanced into another package (e.g. map). In
+				// that case, the Blueprint class might contain an SCS node with the same name as the
+				// previously-serialized object, but it might also have been switched to a different type.
+				if (SCSNode->ComponentTemplate && SCSNode->ComponentTemplate->IsA(ArchetypeClass))
+				{
+					Archetype = SCSNode->ComponentTemplate;
+				}
 			}
 			else if (UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
 			{
@@ -531,7 +544,7 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
-void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty) const
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty, bool bSkipSuperClass) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -546,7 +559,9 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 			const bool bUberGraphFunctionIsReady = UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
 			if (bUberGraphFunctionIsReady)
 			{
+				INC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunction->GetStructureSize());
 				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
+
 				FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
 				for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
 				{
@@ -562,12 +577,15 @@ void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool
 		}
 	}
 
-	auto ParentClass = GetSuperClass();
-	checkSlow(ParentClass);
-	return ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
+	if (!bSkipSuperClass)
+	{
+		auto ParentClass = GetSuperClass();
+		checkSlow(ParentClass);
+		ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
+	}
 }
 
-void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) const
+void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj, bool bSkipSuperClass) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
@@ -583,6 +601,7 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 				Property->DestroyValue_InContainer(FrameMemory);
 			}
 			FMemory::Free(FrameMemory);
+			DEC_MEMORY_STAT_BY(STAT_PersistentUberGraphFrameMemory, UberGraphFunction->GetStructureSize());
 		}
 		else
 		{
@@ -590,9 +609,12 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 		}
 	}
 
-	auto ParentClass = GetSuperClass();
-	checkSlow(ParentClass);
-	return ParentClass->DestroyPersistentUberGraphFrame(Obj);
+	if (!bSkipSuperClass)
+	{
+		auto ParentClass = GetSuperClass();
+		checkSlow(ParentClass);
+		ParentClass->DestroyPersistentUberGraphFrame(Obj);
+	}
 }
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
@@ -662,6 +684,22 @@ void UBlueprintGeneratedClass::Bind()
 	}
 }
 
+class FPersistentFrameCollectorArchive : public FSimpleObjectReferenceCollectorArchive
+{
+public:
+	FPersistentFrameCollectorArchive(const UObject* InSerializingObject, FReferenceCollector& InCollector)
+		: FSimpleObjectReferenceCollectorArchive(InSerializingObject, InCollector)
+	{}
+
+protected:
+	virtual FArchive& operator<<(UObject*& Object) override
+	{
+		const bool bWeakRef = Object ? !Object->HasAnyFlags(RF_StrongRefOnFrame) : false;
+		Collector.SetShouldHandleAsWeakRef(bWeakRef); 
+		return FSimpleObjectReferenceCollectorArchive::operator<<(Object);
+	}
+};
+
 void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InThis, FReferenceCollector& Collector)
 {
 	checkSlow(InThis);
@@ -676,8 +714,11 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 				checkSlow(PointerToUberGraphFrame)
 				if (PointerToUberGraphFrame->RawPointer)
 				{
-					FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(InThis, Collector);
+					FPersistentFrameCollectorArchive ObjectReferenceCollector(InThis, Collector);
 					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer);
+
+					// Reset the ShouldHandleAsWeakRef state, before the collector is used by a different archive.
+					Collector.SetShouldHandleAsWeakRef(false);
 				}
 			}
 		}

@@ -9,7 +9,7 @@ Related: Engine/Rendering/LightingAndShadows/LitTranslucency
 
 [TOC(start:2 end:3)]
 
-## Overview
+
 
 In this "How To," we intend to show you how you can setup and use **Translucent Shadow Color** to create a material that can cast a colored shadow. 
 There are many applications where this could be useful to inject some color into your scene, but a common use would be for something like a stained glass window.
@@ -19,11 +19,11 @@ There are many applications where this could be useful to inject some color into
  ![](translucent_T.JPG)(w:450)
 
 
-## What is Translucent Shadow Color
+## Translucent Shadow Color
 
-Translucent Shadow Color is the term used to describe how shadows will pick up colors of objects that they pass through also know as **Transmission**. 
+Translucent Shadow Color is the term used to describe how shadows will pick up colors of objects that they pass through also known as **Transmission**. 
 The amount of light that passes through the material is determined is directly determined by its opacity value between 0 and 1 and how much light is being cast onto the material. 
-For example, if the opacity was set to 0, the light transmission for a colored shadow from the material would be none. If The opacity value were set to 1, then it would be fully opaque. 
+For example, if the opacity was set to 0, the light transmission for a colored shadow from the material would be none. If the opacity value were set to 1, then it would be fully opaque. 
 
 
 ## Material Setup
@@ -122,6 +122,10 @@ Also, you will want to make sure that you are selecting the best blending mode (
 There are a number of applications for colored shadows and each blend mode can be used to work within your needs for your projects. 
 
  
+
+
+
+
 
 
 

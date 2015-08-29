@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace UnrealBuildTool
 {
@@ -13,7 +14,7 @@ namespace UnrealBuildTool
 	/// Information about a target, passed along when creating a module descriptor
 	/// </summary>
 	[Serializable]
-	public class TargetInfo
+	public class TargetInfo : ISerializable
 	{
 		/// Target platform
 		public readonly UnrealTargetPlatform Platform;
@@ -29,6 +30,38 @@ namespace UnrealBuildTool
 
 		/// Whether the target is monolithic (if known)
 		public readonly bool? bIsMonolithic;
+
+		public TargetInfo(SerializationInfo Info, StreamingContext Context)
+		{
+			Platform      = (UnrealTargetPlatform)Info.GetInt32("pl");
+			Architecture  = Info.GetString("ar");
+			Configuration = (UnrealTargetConfiguration)Info.GetInt32("co");
+			if (Info.GetBoolean("t?"))
+			{
+				Type = (TargetRules.TargetType)Info.GetInt32("tt");
+			}
+			if (Info.GetBoolean("m?"))
+			{
+				bIsMonolithic = Info.GetBoolean("mo");
+			}
+		}
+
+		public void GetObjectData(SerializationInfo Info, StreamingContext Context)
+		{
+			Info.AddValue("pl", (int)Platform);
+			Info.AddValue("ar", Architecture);
+			Info.AddValue("co", (int)Configuration);
+			Info.AddValue("t?", Type.HasValue);
+			if (Type.HasValue)
+			{
+				Info.AddValue("tt", (int)Type.Value);
+			}
+			Info.AddValue("m?", bIsMonolithic.HasValue);
+			if (bIsMonolithic.HasValue)
+			{
+				Info.AddValue("mo", bIsMonolithic);
+			}
+		}
 
 		/// <summary>
 		/// Constructs a TargetInfo
@@ -164,6 +197,9 @@ namespace UnrealBuildTool
 		/** Use run time type information */
 		public bool bUseRTTI = false;
 
+		/** Use AVX instructions */
+		public bool bUseAVX = false;
+
 		/** Enable buffer security checks.  This should usually be enabled as it prevents severe security risks. */
 		public bool bEnableBufferSecurityChecks = true;
 
@@ -178,6 +214,9 @@ namespace UnrealBuildTool
 
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
+
+		/**  Module uses a #import so must be built locally when compiling with SN-DBS */
+		public bool bBuildLocallyWithSNDBS = false;
 
 		/// List of modules with header files that our module's public headers needs access to, but we don't need to "import" or link against.
 		public List<string> PublicIncludePathModuleNames = new List<string>();
@@ -470,6 +509,12 @@ namespace UnrealBuildTool
 		/// Specifies the configuration whose binaries do not require a "-Platform-Configuration" suffix.
 		/// </summary>
 		public UnrealTargetConfiguration UndecoratedConfiguration = UnrealTargetConfiguration.Development;
+
+		/// <summary>
+		/// Build all the plugins that we can find, even if they're not enabled. This is particularly useful for content-only projects, 
+		/// where you're building the UE4Editor target but running it with a game that enables a plugin.
+		/// </summary>
+		public bool bBuildAllPlugins = false;
 
 		/// <summary>
 		/// A list of additional plugins which need to be included in this target. This allows referencing non-optional plugin modules
@@ -879,6 +924,7 @@ namespace UnrealBuildTool
         public class GUBPProjectOptions
         {
             public bool bIsPromotable = false;
+            public bool bBuildAnyway = false;
             public bool bSeparateGamePromotion = false;
             public bool bTestWithShared = false;
             public bool bIsMassive = false;
@@ -1275,25 +1321,324 @@ namespace UnrealBuildTool
 			return SourceFiles;
 		}
 
-		/// Assembly that contains object types for module rules definitions, loaded (or compiled) on demand */
-		private static Assembly RulesAssembly = null;
+		class RulesAssembly
+		{
+			public Assembly Rules;
 
-		/// Maps module names to their actual xxx.Module.cs file on disk
-		private static Dictionary<string, string> ModuleNameToModuleFileMap = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
+			/// Maps module names to their actual xxx.Module.cs file on disk
+			public Dictionary<string, string> ModuleNameToModuleFileMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
 
-		/// Maps target names to their actual xxx.Target.cs file on disk
-		private static Dictionary<string, string> TargetNameToTargetFileMap = new Dictionary<string, string>( StringComparer.InvariantCultureIgnoreCase );
+			/// Maps target names to their actual xxx.Target.cs file on disk
+			public Dictionary<string, string> TargetNameToTargetFileMap = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+
+			public RulesAssembly(Assembly InRules)
+			{
+				Rules = InRules;
+			}
+
+			/// <summary>
+			/// 
+			/// </summary>
+			/// <param name="InModuleName"></param>
+			/// <returns></returns>
+			public string GetModuleFilename(string InModuleName)
+			{
+				// Make sure the module file is known to us
+				if (!ModuleNameToModuleFileMap.ContainsKey(InModuleName))
+				{
+					return "";
+				}
+
+				// Return the module file name to the caller
+				return ModuleNameToModuleFileMap[InModuleName];
+			}
+
+			public string GetTargetFilename(string InTargetName)
+			{
+				// Make sure the target file is known to us
+				if (!TargetNameToTargetFileMap.ContainsKey(InTargetName))
+				{
+					return "";
+				}
+
+				// Return the target file name to the caller
+				return TargetNameToTargetFileMap[InTargetName];
+			}
+
+			/// <summary>
+			/// Creates an instance of a module rules descriptor object for the specified module name
+			/// </summary>
+			/// <param name="ModuleName">Name of the module</param>
+			/// <param name="Target">Information about the target associated with this module</param>
+			/// <param name="ModuleFileName">The original source file name for the Module.cs file for this module</param>
+			/// <returns>Compiled module rule info</returns>
+			public ModuleRules CreateModuleRules(string ModuleName, TargetInfo Target, out string ModuleFileName)
+			{
+				var AssemblyFileName = Path.GetFileNameWithoutExtension(Rules.Location);
+
+				// Currently, we expect the user's rules object type name to be the same as the module name
+				var ModuleTypeName = ModuleName;
+
+				// Make sure the module file is known to us
+				if (!ModuleNameToModuleFileMap.ContainsKey(ModuleName))
+				{
+					throw new MissingModuleException(ModuleName);
+				}
+
+				// Return the module file name to the caller
+				ModuleFileName = ModuleNameToModuleFileMap[ModuleName];
+
+				UnrealTargetPlatform LocalPlatform = Target.Platform;
+				UnrealTargetConfiguration LocalConfiguration = Target.Configuration;
+				TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type.Value, Target.bIsMonolithic.Value);
+
+				// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  
+				var RulesObjectType = Rules.GetType(ModuleName);
+
+				if (RulesObjectType == null)
+				{
+					// Temporary hack to avoid System namespace collisions
+					// @todo projectfiles: Make rules assemblies require namespaces.
+					RulesObjectType = Rules.GetType("UnrealBuildTool.Rules." + ModuleName);
+				}
+
+				if (RulesObjectType == null)
+				{
+					throw new BuildException("Expecting to find a type to be declared in a module rules named '{0}' in {1}.  This type must derive from the 'ModuleRules' type defined by Unreal Build Tool.", ModuleTypeName, Rules.FullName);
+				}
+
+				// Create an instance of the module's rules object
+				ModuleRules RulesObject;
+				try
+				{
+					RulesObject = (ModuleRules)Activator.CreateInstance(RulesObjectType, LocalTarget);
+				}
+				catch (Exception Ex)
+				{
+					throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, AssemblyFileName, Ex.ToString());
+				}
+
+				// Have to do absolute here as this could be a project that is under the root
+				var FullUProjectPath = string.IsNullOrWhiteSpace(UnrealBuildTool.GetUProjectPath())
+					? ""
+					: Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
+				var bProjectModule = string.IsNullOrWhiteSpace(FullUProjectPath)
+					? false
+					: Utils.IsFileUnderDirectory(ModuleFileName, FullUProjectPath);
+
+				if (bProjectModule)
+				{
+					RulesObject.ReadAdditionalDependencies(UnrealBuildTool.GetUProjectFile(), ModuleName);
+				}
+
+				// Validate rules object
+				{
+					if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus)
+					{
+						if (RulesObject.PrivateAssemblyReferences.Count > 0)
+						{
+							throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", AssemblyFileName);
+						}
+
+						var InvalidDependencies = RulesObject.DynamicallyLoadedModuleNames.Intersect(RulesObject.PublicDependencyModuleNames.Concat(RulesObject.PrivateDependencyModuleNames)).ToList();
+						if (InvalidDependencies.Count != 0)
+						{
+							throw new BuildException("Module rules for '{0}' should not be dependent on modules which are also dynamically loaded: {1}", ModuleName, String.Join(", ", InvalidDependencies));
+						}
+
+						// Choose code optimization options based on module type (game/engine) if
+						// default optimization method is selected.
+						bool bIsEngineModule = Utils.IsFileUnderDirectory(ModuleFileName, ProjectFileGenerator.EngineRelativePath);
+						if (RulesObject.OptimizeCode == ModuleRules.CodeOptimization.Default)
+						{
+							// Engine/Source and Engine/Plugins are considered 'Engine' code...
+							if (bIsEngineModule)
+							{
+								// Engine module - always optimize (except Debug).
+								RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
+							}
+							else
+							{
+								// Game module - do not optimize in Debug and DebugGame builds.
+								RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
+							}
+						}
+
+						// Disable shared PCHs for game modules by default
+						if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
+						{
+							// Note that bIsEngineModule includes Engine/Plugins, so Engine/Plugins will use shared PCHs.
+							var IsProgramTarget = Target.Type != null && Target.Type == TargetRules.TargetType.Program;
+							if (bIsEngineModule || IsProgramTarget)
+							{
+								// Engine module or plugin module -- allow shared PCHs
+								RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
+							}
+							else
+							{
+								// Game module.  Do not enable shared PCHs by default, because games usually have a large precompiled header of their own and compile times would suffer.
+								RulesObject.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
+							}
+						}
+					}
+				}
+
+				return RulesObject;
+			}
+
+			protected bool GetTargetTypeAndRulesInstance(string InTargetName, TargetInfo InTarget, out System.Type OutRulesObjectType, out TargetRules OutRulesObject)
+			{
+				// The build module must define a type named '<TargetName>Target' that derives from our 'TargetRules' type.  
+				OutRulesObjectType = Rules.GetType(InTargetName);
+				if (OutRulesObjectType == null)
+				{
+					throw new BuildException(
+						"Expecting to find a type to be declared in a target rules named '{0}'.  This type must derive from the 'TargetRules' type defined by Unreal Build Tool.",
+						InTargetName);
+				}
+
+				// Create an instance of the module's rules object
+				try
+				{
+					OutRulesObject = (TargetRules)Activator.CreateInstance(OutRulesObjectType, InTarget);
+				}
+				catch (Exception Ex)
+				{
+					var AssemblyFileName = Path.GetFileNameWithoutExtension(Rules.Location);
+					throw new BuildException(Ex,
+						"Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}",
+						InTargetName, AssemblyFileName, Ex.ToString());
+				}
+
+				OutRulesObject.TargetName = InTargetName;
+
+				return true;
+			}
+
+			/// <summary>
+			/// Creates a target rules object for the specified target name.
+			/// </summary>
+			/// <param name="TargetName">Name of the target</param>
+			/// <param name="Target">Information about the target associated with this target</param>
+			/// <param name="TargetFileName">The original source file name of the Target.cs file for this target</param>
+			/// <returns>The build target rules for the specified target</returns>
+			public TargetRules CreateTargetRules(string TargetName, TargetInfo Target, bool bInEditorRecompile, out string TargetFileName)
+			{
+				// Make sure the target file is known to us
+				bool bFoundTargetName = TargetNameToTargetFileMap.ContainsKey(TargetName);
+				if (bFoundTargetName == false)
+				{
+					if (UnrealBuildTool.RunningRocket())
+					{
+						//@todo Rocket: Remove this when full game support is implemented
+						// If we are Rocket, they will currently only have an editor target.
+						// See if that exists
+						bFoundTargetName = TargetNameToTargetFileMap.ContainsKey(TargetName + "Editor");
+						if (bFoundTargetName)
+						{
+							TargetName += "Editor";
+						}
+					}
+				}
+
+				if (bFoundTargetName == false)
+				{
+					//				throw new BuildException("Couldn't find target rules file for target '{0}' in rules assembly '{1}'.", TargetName, RulesAssembly.FullName);
+					string ExceptionMessage = "Couldn't find target rules file for target '";
+					ExceptionMessage += TargetName;
+					ExceptionMessage += "' in rules assembly '";
+					ExceptionMessage += Rules.FullName;
+					ExceptionMessage += "'." + Environment.NewLine;
+
+					ExceptionMessage += "Location: " + Rules.Location + Environment.NewLine;
+
+					ExceptionMessage += "Target rules found:" + Environment.NewLine;
+					foreach (KeyValuePair<string, string> entry in TargetNameToTargetFileMap)
+					{
+						ExceptionMessage += "\t" + entry.Key + " - " + entry.Value + Environment.NewLine;
+					}
+
+					throw new BuildException(ExceptionMessage);
+				}
+
+				// Return the target file name to the caller
+				TargetFileName = TargetNameToTargetFileMap[TargetName];
+
+				// Currently, we expect the user's rules object type name to be the same as the module name + 'Target'
+				string TargetTypeName = TargetName + "Target";
+
+				// The build module must define a type named '<TargetName>Target' that derives from our 'TargetRules' type.  
+				System.Type RulesObjectType;
+				TargetRules RulesObject;
+				GetTargetTypeAndRulesInstance(TargetTypeName, Target, out RulesObjectType, out RulesObject);
+				if (bInEditorRecompile)
+				{
+					// Make sure this is an editor module.
+					if (RulesObject != null)
+					{
+						if (RulesObject.Type != TargetRules.TargetType.Editor)
+						{
+							// Not the editor... determine the editor project
+							string TargetSourceFolder = TargetFileName;
+							Int32 SourceFolderIndex = -1;
+							if (Utils.IsRunningOnMono)
+							{
+								TargetSourceFolder = TargetSourceFolder.Replace("\\", "/");
+								SourceFolderIndex = TargetSourceFolder.LastIndexOf("/Source/", StringComparison.InvariantCultureIgnoreCase);
+							}
+							else
+							{
+								TargetSourceFolder = TargetSourceFolder.Replace("/", "\\");
+								SourceFolderIndex = TargetSourceFolder.LastIndexOf("\\Source\\", StringComparison.InvariantCultureIgnoreCase);
+							}
+							if (SourceFolderIndex != -1)
+							{
+								TargetSourceFolder = TargetSourceFolder.Substring(0, SourceFolderIndex + 8);
+								foreach (KeyValuePair<string, string> CheckEntry in TargetNameToTargetFileMap)
+								{
+									if (CheckEntry.Value.StartsWith(TargetSourceFolder, StringComparison.InvariantCultureIgnoreCase))
+									{
+										if (CheckEntry.Key.Equals(TargetName, StringComparison.InvariantCultureIgnoreCase) == false)
+										{
+											// We have found a target in the same source folder that is not the original target found.
+											// See if it is the editor project
+											string CheckTargetTypeName = CheckEntry.Key + "Target";
+											System.Type CheckRulesObjectType;
+											TargetRules CheckRulesObject;
+											GetTargetTypeAndRulesInstance(CheckTargetTypeName, Target, out CheckRulesObjectType, out CheckRulesObject);
+											if (CheckRulesObject != null)
+											{
+												if (CheckRulesObject.Type == TargetRules.TargetType.Editor)
+												{
+													// Found it
+													// NOTE: This prevents multiple Editor targets from co-existing...
+													RulesObject = CheckRulesObject;
+													break;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+
+				return RulesObject;
+			}
+
+		}
 
 		private class LoadedAssemblyData
 		{
-			public LoadedAssemblyData(Assembly InAssembly, List<string> InGameFolders)
+			public LoadedAssemblyData(RulesAssembly InAssembly, List<string> InGameFolders)
 			{
 				ExistingAssembly    = InAssembly;
 				ExistingGameFolders = InGameFolders;
 			}
 
-			public Assembly     ExistingAssembly     { get; private set; }
-			public List<string> ExistingGameFolders  { get; private set; }
+			public RulesAssembly     ExistingAssembly     { get; private set; }
+			public List<string>		ExistingGameFolders  { get; private set; }
 		}
 
 		/// Map of assembly names we've already compiled and loaded to their Assembly and list of game folders.  This is used to prevent
@@ -1314,10 +1659,8 @@ namespace UnrealBuildTool
 			LoadedAssemblyData LoadedAssembly;
 			if (LoadedAssemblyMap.TryGetValue(AssemblyName, out LoadedAssembly))
 			{
-				Assembly     ExistingAssembly    = LoadedAssembly.ExistingAssembly;
-				List<string> ExistingGameFolders = LoadedAssembly.ExistingGameFolders;
-
-				RulesAssembly = ExistingAssembly;
+				RulesAssembly	ExistingAssembly    = LoadedAssembly.ExistingAssembly;
+				List<string>	ExistingGameFolders = LoadedAssembly.ExistingGameFolders;
 
 				// Make sure the game folder list wasn't changed since we last compiled this assembly
 				if( ExistingGameFolders != AllGameFolders )	// Quick-check pointers first to avoid iterating
@@ -1356,8 +1699,6 @@ namespace UnrealBuildTool
 				return;
 			}
 
-			RulesAssembly = null;
-
 			var AdditionalSearchPaths = new List<string>();
 
 			if (UnrealBuildTool.HasUProjectFile())
@@ -1392,16 +1733,16 @@ namespace UnrealBuildTool
 
 			string OutputAssemblyPath = Path.GetFullPath(Path.Combine(BaseIntermediatePath, "BuildRules", AssemblyName + ".dll"));
 
-			RulesAssembly = DynamicCompilation.CompileAndLoadAssembly( OutputAssemblyPath, AssemblySourceFiles );
+			RulesAssembly Rules = new RulesAssembly(DynamicCompilation.CompileAndLoadAssembly( OutputAssemblyPath, AssemblySourceFiles ));
 
 			// Setup the module map
 			foreach( var CurModuleFileName in ModuleFileNames )
 			{
 				var CleanFileName = Utils.CleanDirectorySeparators( CurModuleFileName );
 				var ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-				if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
+				if( !Rules.ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
 				{
-					ModuleNameToModuleFileMap.Add( ModuleName, CurModuleFileName );
+					Rules.ModuleNameToModuleFileMap.Add( ModuleName, CurModuleFileName );
 				}
 			}
 
@@ -1410,15 +1751,15 @@ namespace UnrealBuildTool
 			{
 				var CleanFileName = Utils.CleanDirectorySeparators( CurTargetFileName );
 				var TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
-				if( !TargetNameToTargetFileMap.ContainsKey( TargetName ) )
+				if( !Rules.TargetNameToTargetFileMap.ContainsKey( TargetName ) )
 				{
-					TargetNameToTargetFileMap.Add( TargetName, CurTargetFileName );
+					Rules.TargetNameToTargetFileMap.Add( TargetName, CurTargetFileName );
 				}
 			}
 
 			// Remember that we loaded this assembly
-			var RulesAssemblyName = Path.GetFileNameWithoutExtension( RulesAssembly.Location );
-			LoadedAssemblyMap[RulesAssemblyName] = new LoadedAssemblyData(RulesAssembly, AllGameFolders);
+			var RulesAssemblyName = Path.GetFileNameWithoutExtension( Rules.Rules.Location );
+			LoadedAssemblyMap[RulesAssemblyName] = new LoadedAssemblyData(Rules, AllGameFolders);
 		}
 
 		/// <summary>
@@ -1428,26 +1769,12 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public static string GetModuleFilename(string InModuleName)
 		{
-			// Make sure the module file is known to us
-			if (!ModuleNameToModuleFileMap.ContainsKey(InModuleName))
-			{
-				return "";
-			}
-
-			// Return the module file name to the caller
-			return ModuleNameToModuleFileMap[InModuleName];
+			return LoadedAssemblyMap[AssemblyName].ExistingAssembly.GetModuleFilename(InModuleName);
 		}
 
 		public static string GetTargetFilename(string InTargetName)
 		{
-			// Make sure the target file is known to us
-			if (!TargetNameToTargetFileMap.ContainsKey(InTargetName))
-			{
-				return "";
-			}
-
-			// Return the target file name to the caller
-			return TargetNameToTargetFileMap[InTargetName];
+			return LoadedAssemblyMap[AssemblyName].ExistingAssembly.GetTargetFilename(InTargetName);
 		}
 
 		/// <summary>
@@ -1514,110 +1841,7 @@ namespace UnrealBuildTool
 		public static ModuleRules CreateModuleRules( string ModuleName, TargetInfo Target, out string ModuleFileName )
 		{
 			ConditionallyCompileAndLoadRulesAssembly();
-			var AssemblyFileName = Path.GetFileNameWithoutExtension( RulesAssembly.Location );
-
-			// Currently, we expect the user's rules object type name to be the same as the module name
-			var ModuleTypeName = ModuleName;
-
-			// Make sure the module file is known to us
-			if( !ModuleNameToModuleFileMap.ContainsKey( ModuleName ) )
-			{
-				throw new MissingModuleException( ModuleName );
-			}
-
-			// Return the module file name to the caller
-			ModuleFileName = ModuleNameToModuleFileMap[ ModuleName ];
-
-			UnrealTargetPlatform LocalPlatform = Target.Platform;
-			UnrealTargetConfiguration LocalConfiguration = Target.Configuration;
-			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type.Value, Target.bIsMonolithic.Value);
-
-			// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  
-			var RulesObjectType = RulesAssembly.GetType( ModuleName );
-
-			if (RulesObjectType == null)
-			{
-				// Temporary hack to avoid System namespace collisions
-				// @todo projectfiles: Make rules assemblies require namespaces.
-				RulesObjectType = RulesAssembly.GetType("UnrealBuildTool.Rules." + ModuleName);
-			}
-
-			if( RulesObjectType == null )
-			{
-				throw new BuildException( "Expecting to find a type to be declared in a module rules named '{0}' in {1}.  This type must derive from the 'ModuleRules' type defined by Unreal Build Tool.", ModuleTypeName, RulesAssembly.FullName );
-			}
-
-			// Create an instance of the module's rules object
-			ModuleRules RulesObject;
-			try
-			{
-				RulesObject = (ModuleRules)Activator.CreateInstance(RulesObjectType, LocalTarget);
-			}
-			catch( Exception Ex )
-			{
-				throw new BuildException( Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, AssemblyFileName, Ex.ToString() );
-			}
-
-			// Have to do absolute here as this could be a project that is under the root
-			var FullUProjectPath = string.IsNullOrWhiteSpace(UnrealBuildTool.GetUProjectPath())
-				? ""
-				: Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
-			var bProjectModule = string.IsNullOrWhiteSpace(FullUProjectPath)
-				? false
-				: Utils.IsFileUnderDirectory(ModuleFileName, FullUProjectPath);
-
-			if (bProjectModule)
-			{
-				RulesObject.ReadAdditionalDependencies(UnrealBuildTool.GetUProjectFile(), ModuleName);
-			}
-
-			// Validate rules object
-			{
-				if( RulesObject.Type == ModuleRules.ModuleType.CPlusPlus )
-				{
-					if (RulesObject.PrivateAssemblyReferences.Count > 0)
-					{
-						throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", AssemblyFileName);
-					}
-
-					// Choose code optimization options based on module type (game/engine) if
-					// default optimization method is selected.
-					bool bIsEngineModule = Utils.IsFileUnderDirectory( ModuleFileName, ProjectFileGenerator.EngineRelativePath );
-					if (RulesObject.OptimizeCode == ModuleRules.CodeOptimization.Default)
-					{
-						// Engine/Source and Engine/Plugins are considered 'Engine' code...
-						if (bIsEngineModule)
-						{
-							// Engine module - always optimize (except Debug).
-							RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
-						}
-						else
-						{
-							// Game module - do not optimize in Debug and DebugGame builds.
-							RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
-						}
-					}
-
-					// Disable shared PCHs for game modules by default
-					if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
-					{
-						// Note that bIsEngineModule includes Engine/Plugins, so Engine/Plugins will use shared PCHs.
-						var IsProgramTarget = Target.Type != null && Target.Type == TargetRules.TargetType.Program;
-						if (bIsEngineModule || IsProgramTarget)
-						{
-							// Engine module or plugin module -- allow shared PCHs
-							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
-						}
-						else
-						{
-							// Game module.  Do not enable shared PCHs by default, because games usually have a large precompiled header of their own and compile times would suffer.
-							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
-						}
-					}
-				}
-			}
-
-			return RulesObject;
+			return LoadedAssemblyMap[AssemblyName].ExistingAssembly.CreateModuleRules(ModuleName, Target, out ModuleFileName);
 		}
 
 		/// <summary>
@@ -1772,35 +1996,6 @@ namespace UnrealBuildTool
 			}
 		}
 
-		protected static bool GetTargetTypeAndRulesInstance(string InTargetName, TargetInfo InTarget, out System.Type OutRulesObjectType, out TargetRules OutRulesObject)
-		{
-			// The build module must define a type named '<TargetName>Target' that derives from our 'TargetRules' type.  
-			OutRulesObjectType = RulesAssembly.GetType(InTargetName);
-			if (OutRulesObjectType == null)
-			{
-				throw new BuildException(
-					"Expecting to find a type to be declared in a target rules named '{0}'.  This type must derive from the 'TargetRules' type defined by Unreal Build Tool.", 
-					InTargetName);
-			}
-
-			// Create an instance of the module's rules object
-			try
-			{
-				OutRulesObject = (TargetRules)Activator.CreateInstance(OutRulesObjectType, InTarget);
-			}
-			catch (Exception Ex)
-			{
-				var AssemblyFileName = Path.GetFileNameWithoutExtension(RulesAssembly.Location);
-				throw new BuildException(Ex,
-					"Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", 
-					InTargetName, AssemblyFileName, Ex.ToString());
-			}
-
-            OutRulesObject.TargetName = InTargetName;
-
-			return true;
-		}
-
 		/// <summary>
 		/// Creates a target rules object for the specified target name.
 		/// </summary>
@@ -1811,108 +2006,7 @@ namespace UnrealBuildTool
 		public static TargetRules CreateTargetRules(string TargetName, TargetInfo Target, bool bInEditorRecompile, out string TargetFileName)
 		{
 			ConditionallyCompileAndLoadRulesAssembly();
-
-			// Make sure the target file is known to us
-			bool bFoundTargetName = TargetNameToTargetFileMap.ContainsKey(TargetName);
-			if (bFoundTargetName == false)
-			{
-				if (UnrealBuildTool.RunningRocket())
-				{
-					//@todo Rocket: Remove this when full game support is implemented
-					// If we are Rocket, they will currently only have an editor target.
-					// See if that exists
-					bFoundTargetName = TargetNameToTargetFileMap.ContainsKey(TargetName + "Editor");
-					if (bFoundTargetName)
-					{
-						TargetName += "Editor";
-					}
-				}
-			}
-
-			if (bFoundTargetName == false)
-			{
-//				throw new BuildException("Couldn't find target rules file for target '{0}' in rules assembly '{1}'.", TargetName, RulesAssembly.FullName);
-				string ExceptionMessage = "Couldn't find target rules file for target '";
-				ExceptionMessage += TargetName;
-				ExceptionMessage += "' in rules assembly '";
-				ExceptionMessage += RulesAssembly.FullName;
-				ExceptionMessage += "'.\n";
-
-				ExceptionMessage += "Location: " + RulesAssembly.Location + "\n";
-
-				ExceptionMessage += "Target rules found:\n";
-				foreach (KeyValuePair<string, string> entry in TargetNameToTargetFileMap)
-				{
-					ExceptionMessage += "\t" + entry.Key + " - " + entry.Value + "\n";
-				}
-
-				throw new BuildException(ExceptionMessage);
-			}
-
-			// Return the target file name to the caller
-			TargetFileName = TargetNameToTargetFileMap[ TargetName ];
-	
-			// Currently, we expect the user's rules object type name to be the same as the module name + 'Target'
-			string TargetTypeName = TargetName + "Target";
-
- 			// The build module must define a type named '<TargetName>Target' that derives from our 'TargetRules' type.  
-			System.Type RulesObjectType;
-			TargetRules RulesObject;
-			GetTargetTypeAndRulesInstance(TargetTypeName, Target, out RulesObjectType, out RulesObject);
-			if (bInEditorRecompile)
-			{
-				// Make sure this is an editor module.
-				if (RulesObject != null)
-				{
-					if (RulesObject.Type != TargetRules.TargetType.Editor)
-					{
-						// Not the editor... determine the editor project
-						string TargetSourceFolder = TargetFileName;
-						Int32 SourceFolderIndex = -1;
-						if (Utils.IsRunningOnMono)
-						{
-							TargetSourceFolder = TargetSourceFolder.Replace("\\", "/");
-							SourceFolderIndex = TargetSourceFolder.LastIndexOf("/Source/", StringComparison.InvariantCultureIgnoreCase);
-						}
-						else
-						{
-							TargetSourceFolder = TargetSourceFolder.Replace("/", "\\");
-							SourceFolderIndex = TargetSourceFolder.LastIndexOf("\\Source\\", StringComparison.InvariantCultureIgnoreCase);
-						}
-						if (SourceFolderIndex != -1)
-						{
-							TargetSourceFolder = TargetSourceFolder.Substring(0, SourceFolderIndex + 8);
-							foreach (KeyValuePair<string, string> CheckEntry in TargetNameToTargetFileMap)
-							{
-								if (CheckEntry.Value.StartsWith(TargetSourceFolder, StringComparison.InvariantCultureIgnoreCase))
-								{
-									if (CheckEntry.Key.Equals(TargetName, StringComparison.InvariantCultureIgnoreCase) == false)
-									{
-										// We have found a target in the same source folder that is not the original target found.
-										// See if it is the editor project
-										string CheckTargetTypeName = CheckEntry.Key + "Target";
-										System.Type CheckRulesObjectType;
-										TargetRules CheckRulesObject;
-										GetTargetTypeAndRulesInstance(CheckTargetTypeName, Target, out CheckRulesObjectType, out CheckRulesObject);
-										if (CheckRulesObject != null)
-										{
-											if (CheckRulesObject.Type == TargetRules.TargetType.Editor)
-											{
-												// Found it
-												// NOTE: This prevents multiple Editor targets from co-existing...
-												RulesObject = CheckRulesObject;
-												break;
-											}
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
-			return RulesObject;
+			return LoadedAssemblyMap[AssemblyName].ExistingAssembly.CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
 		}
 
 		/// <summary>
@@ -1925,6 +2019,8 @@ namespace UnrealBuildTool
 		public static UEBuildTarget CreateTarget(TargetDescriptor Desc)
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
+
+			RulesCompiler.SetAssemblyNameAndGameFolders(Desc.AssemblyName, Desc.GameFolders, Desc.ForeignPlugins);
 
 			string TargetFileName;
 			TargetRules RulesObject = CreateTargetRules(Desc.TargetName, new TargetInfo(Desc.Platform, Desc.Configuration), Desc.bIsEditorRecompile, out TargetFileName);

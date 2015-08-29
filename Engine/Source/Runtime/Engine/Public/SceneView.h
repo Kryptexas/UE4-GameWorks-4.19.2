@@ -154,7 +154,7 @@ struct FViewMatrices
 		PreShadowTranslation = FVector::ZeroVector;
 		PreViewTranslation = FVector::ZeroVector;
 		ViewOrigin = FVector::ZeroVector;
-		TemporalAASample = FVector2D::ZeroVector;
+		TemporalAAProjJitter = FVector2D::ZeroVector;
 	}
 
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
@@ -177,7 +177,9 @@ struct FViewMatrices
 	FVector		ViewOrigin;
 	/** Scale applied by the projection matrix in X and Y. */
 	FVector2D	ProjectionScale;
-	FVector2D	TemporalAASample;
+	/** TemporalAA jitter offset currently stored in the projection matrix */
+	FVector2D	TemporalAAProjJitter;
+
 	/**
 	 * Scale factor to use when computing the size of a sphere in pixels.
 	 * 
@@ -201,6 +203,22 @@ struct FViewMatrices
 		return ProjMatrix.M[3][3] < 1.0f;
 	}
 
+	FMatrix GetProjNoAAMatrix() const
+	{
+		FMatrix ProjNoAAMatrix = ProjMatrix;
+
+		ProjNoAAMatrix.M[2][0] -= TemporalAAProjJitter.X;
+		ProjNoAAMatrix.M[2][1] -= TemporalAAProjJitter.Y;
+
+		return ProjNoAAMatrix;
+	}
+
+	void RemoveTemporalJitter()
+	{
+		ProjMatrix = GetProjNoAAMatrix();
+		TemporalAAProjJitter = FVector2D::ZeroVector;
+	}
+
 	FMatrix GetViewProjMatrix() const
 	{
 		return ViewMatrix * ProjMatrix;
@@ -213,18 +231,81 @@ struct FViewMatrices
 
 	FMatrix GetInvProjMatrix() const
 	{
-		return ProjMatrix.Inverse();
+		return InvertProjMatrix( ProjMatrix );
+	}
+	
+	FMatrix GetInvProjNoAAMatrix() const
+	{
+		return InvertProjMatrix( GetProjNoAAMatrix() );
 	}
 
 	FMatrix GetInvViewMatrix() const
 	{
-		// can be optimized: it's not a perspective matrix so transpose would be enough
-		return ViewMatrix.Inverse();
+		return FTranslationMatrix( -ViewMatrix.GetOrigin() ) * ViewMatrix.RemoveTranslation().GetTransposed();
 	}
 
 	FMatrix GetInvViewProjMatrix() const
 	{
 		return GetInvProjMatrix() * GetInvViewMatrix();
+	}
+
+	// @return in radians (horizontal,vertical)
+	FVector2D GetHalfFieldOfViewPerAxis() const
+	{
+		const FMatrix ClipToView = GetInvProjNoAAMatrix();
+
+		FVector VCenter = FVector(ClipToView.TransformPosition(FVector(0.0, 0.0, 0.0)));
+		FVector VUp = FVector(ClipToView.TransformPosition(FVector(0.0, 1.0, 0.0)));
+		FVector VRight = FVector(ClipToView.TransformPosition(FVector(1.0, 0.0, 0.0)));
+
+		VCenter.Normalize();
+		VUp.Normalize();
+		VRight.Normalize();
+
+		return FVector2D(FMath::Acos(VCenter | VRight), FMath::Acos(VCenter | VUp));
+	}
+
+private:
+	static FMatrix InvertProjMatrix( const FMatrix& M )
+	{
+		if( M.M[1][0] == 0.0f &&
+			M.M[3][0] == 0.0f &&
+			M.M[0][1] == 0.0f &&
+			M.M[3][1] == 0.0f &&
+			M.M[0][2] == 0.0f &&
+			M.M[1][2] == 0.0f &&
+			M.M[0][3] == 0.0f &&
+			M.M[1][3] == 0.0f &&
+			M.M[2][3] == 1.0f &&
+			M.M[3][3] == 0.0f )
+		{
+			// Solve the common case directly with very high precision.
+			/*
+			M = 
+			| a | 0 | 0 | 0 |
+			| 0 | b | 0 | 0 |
+			| s | t | c | 1 |
+			| 0 | 0 | d | 0 |
+			*/
+
+			double a = M.M[0][0];
+			double b = M.M[1][1];
+			double c = M.M[2][2];
+			double d = M.M[3][2];
+			double s = M.M[2][0];
+			double t = M.M[2][1];
+
+			return FMatrix(
+				FPlane( 1.0 / a, 0.0f, 0.0f, 0.0f ),
+				FPlane( 0.0f, 1.0 / b, 0.0f, 0.0f ),
+				FPlane( 0.0f, 0.0f, 0.0f, 1.0 / d ),
+				FPlane( -s/a, -t/b, 1.0f, -c/d )
+			);
+		}
+		else
+		{
+			return M.Inverse();
+		}
 	}
 };
 
@@ -281,10 +362,13 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewForward, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewUp, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewRight, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,FieldOfViewWideAngles)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,PrevFieldOfViewWideAngles)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,InvDeviceZToWorldZTransform)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ScreenPositionScaleBias, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ViewRectMin, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewSizeAndSceneTexelSize)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewSizeAndInvSize)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,BufferSizeAndInvSize)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewOrigin)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,TranslatedViewOrigin)
 	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
@@ -332,13 +416,18 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevProjection)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewRotationProj)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewToClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevClipToView)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevTranslatedWorldToClip)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevTranslatedWorldToView)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewToTranslatedWorld)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PrevViewOrigin)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PrevPreViewTranslation)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevInvViewProj)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevScreenToTranslatedWorld)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ClipToPrevClip)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,IndirectLightingColorScale)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,HdrMosaic, EShaderPrecisionModifier::Half)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,HDR32bppEncodingMode, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,AtmosphericFogSunDirection)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogSunPower, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogPower, EShaderPrecisionModifier::Half)
@@ -361,7 +450,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SceneTextureMinMax)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor,SkyLightColor)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SkyIrradianceEnvironmentMap,[7])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, ES2PreviewMode)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, MobilePreviewMode)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)	
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
 END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
@@ -488,9 +577,6 @@ public:
 	/** True if this scene was created from a game world. */
 	bool bIsGameView;
 
-	/** Whether this view should override the view family's EngineShowFlags.Materials setting and force it on. */
-	bool bForceShowMaterials;
-
 	/** For sanity checking casts that are assumed to be safe. */
 	bool bIsViewInfo;
 
@@ -591,14 +677,16 @@ public:
 	 */
 	FVector Deproject(const FPlane& ScreenPoint) const;
 
-	/** transforms 2D screen coordinates into a 3D world-space origin and direction 
+	/** 
+	 * Transforms 2D screen coordinates into a 3D world-space origin and direction 
 	 * @param ScreenPos - screen coordinates in pixels
 	 * @param out_WorldOrigin (out) - world-space origin vector
 	 * @param out_WorldDirection (out) - world-space direction vector
 	 */
 	void DeprojectFVector2D(const FVector2D& ScreenPos, FVector& out_WorldOrigin, FVector& out_WorldDirection) const;
 
-	/** transforms 2D screen coordinates into a 3D world-space origin and direction 
+	/** 
+	 * Transforms 2D screen coordinates into a 3D world-space origin and direction 
 	 * @param ScreenPos - screen coordinates in pixels
 	 * @param ViewRect - view rectangle
 	 * @param InvViewMatrix - inverse view matrix
@@ -607,6 +695,18 @@ public:
 	 * @param out_WorldDirection (out) - world-space direction vector
 	 */
 	static void DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewMatrix, const FMatrix& InvProjMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection);
+
+	/** Overload to take a single combined view projection matrix. */
+	static void DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRect& ViewRect, const FMatrix& InvViewProjMatrix, FVector& out_WorldOrigin, FVector& out_WorldDirection);
+
+	/** 
+	 * Transforms 3D world-space origin into 2D screen coordinates
+	 * @param WorldPosition - the 3d world point to transform
+	 * @param ViewRect - view rectangle
+	 * @param ViewProjectionMatrix - combined view projection matrix
+	 * @param out_ScreenPos (out) - screen coordinates in pixels
+	 */
+	static bool ProjectWorldToScreen(const FVector& WorldPosition, const FIntRect& ViewRect, const FMatrix& ViewProjectionMatrix, FVector2D& out_ScreenPos);
 
 	inline FVector GetViewRight() const { return ViewMatrices.ViewMatrix.GetColumn(0); }
 	inline FVector GetViewUp() const { return ViewMatrices.ViewMatrix.GetColumn(1); }
@@ -646,7 +746,7 @@ public:
 	void UpdateViewMatrix();
 
 	/** Setup defaults and depending on view position (postprocess volumes) */
-	void StartFinalPostprocessSettings(FVector ViewLocation);
+	void StartFinalPostprocessSettings(FVector InViewLocation);
 
 	/**
 	 * custom layers can be combined with the existing settings
@@ -660,7 +760,7 @@ public:
 	/** Configure post process settings for the buffer visualization system */
 	void ConfigureBufferVisualizationSettings();
 
-	/** Get the feature level for this view **/
+	/** Get the feature level for this view (cached from the scene so this is not different per view) **/
 	ERHIFeatureLevel::Type GetFeatureLevel() const { return FeatureLevel; }
 
 	/** Get the feature level for this view **/
@@ -807,7 +907,10 @@ public:
 	/** if true then results of scene rendering are copied/resolved to the RenderTarget. */
 	bool bResolveScene;
 
-	/** from GetWorld->IsPaused() */
+	/**
+	 * GetWorld->IsPaused() && !Simulate
+	 * Simulate is excluded as the camera can move which invalidates motionblur
+	 */
 	bool bWorldIsPaused;
 
 	/** Gamma correction used when rendering this family. Default is 1.0 */

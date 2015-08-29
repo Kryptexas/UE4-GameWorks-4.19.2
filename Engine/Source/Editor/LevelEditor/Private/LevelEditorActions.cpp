@@ -421,6 +421,7 @@ void FLevelEditorActionCallbacks::AttachToActor(AActor* ParentActorPtr)
 		// Create as context menu
 		FSlateApplication::Get().PushMenu(
 			LevelEditor.ToSharedRef(),
+			FWidgetPath(),
 			SNew(SSocketChooserPopup)
 			.SceneComponent( ComponentWithSockets )
 			.OnSocketChosen_Static( &FLevelEditorActionCallbacks::AttachToSocketSelection, ParentActorPtr ),
@@ -626,6 +627,12 @@ void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 {
 	// Build HLOD
 	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::BuildHierarchicalLOD);
+}
+
+void FLevelEditorActionCallbacks::PreviewHLODClustersOnly_Execute()
+{
+	// Preview HLOD Clusters
+	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::PreviewHierarchicalLOD);
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
@@ -877,7 +884,7 @@ bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 	// We're not able to recompile if a compile is already in progress!
 
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
-	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
+	return !HotReloadSupport.IsCurrentlyCompiling() && !(FApp::GetEngineIsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
 void FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked()
@@ -1603,9 +1610,9 @@ void FLevelEditorActionCallbacks::OnSelectAllLights()
 {
 	GEditor->GetSelectedActors()->BeginBatchSelectOperation();
 	// Select all light actors.
-	for( TActorIterator<ALight> It(GetWorld()); It; ++It )
+	for( ALight* Light : TActorRange<ALight>(GetWorld()) )
 	{
-		GUnrealEd->SelectActor( *It, true, false, false );
+		GUnrealEd->SelectActor( Light, true, false, false );
 	}
 
 	GEditor->GetSelectedActors()->EndBatchSelectOperation();
@@ -1940,7 +1947,7 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 
-		if (DesktopPlatform->OpenLauncher(false, TEXT("-OpenMarket")))
+		if (DesktopPlatform->OpenLauncher(false, TEXT("ue/marketplace"), FString()))
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("TRUE")));
 		}
@@ -1950,7 +1957,7 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 
 			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
-				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
+				if (!DesktopPlatform->OpenLauncher(true, TEXT("ue/marketplace"), FString()))
 				{
 					EventAttributes.Add(FAnalyticsEventAttribute(TEXT("InstallSucceeded"), TEXT("FALSE")));
 					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(TEXT("Sorry, there was a problem installing the Launcher.\nPlease try to install it manually!")));
@@ -2721,128 +2728,6 @@ void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool
 	GEditor->RedrawLevelEditingViewports();
 }
 
-void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
-{
-	// First, find the currently selected actor with a static mesh.
-	// Fail if more than one actor with staticmesh is selected.
-	UStaticMesh* StaticMesh = NULL;
-	FMatrix MeshToWorld;
-
-	// Pointer to the world
-	UWorld* World = NULL;
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
-	{
-		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-		UStaticMeshComponent* FoundStaticMeshComponent = NULL;
-		if( Actor->IsA(AStaticMeshActor::StaticClass()) )
-		{
-			FoundStaticMeshComponent = CastChecked<AStaticMeshActor>(Actor)->GetStaticMeshComponent();
-		}
-
-		UStaticMesh* FoundMesh = FoundStaticMeshComponent ? FoundStaticMeshComponent->StaticMesh : NULL;
-		if( FoundMesh )
-		{
-			// If we find multiple actors with static meshes, warn and do nothing.
-			if( StaticMesh )
-			{
-				FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_SelectOneActor", "Please select just one Actor with a StaticMesh.") );
-				return;
-			}
-			StaticMesh = FoundMesh;
-			MeshToWorld = FoundStaticMeshComponent->ComponentToWorld.ToMatrixWithScale();
-			// Store the pointer to the world
-			World = Actor->GetWorld();
-		}
-	}
-
-	// If no static-mesh-toting actor found, warn and do nothing.
-	if(!StaticMesh)
-	{
-		FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_NoActorWithStaticMesh", "No Actor found with a StaticMesh.") );
-		return;
-	}
-
-	// If we already have a collision model for this staticmesh, ask if we want to replace it.
-	if( StaticMesh->BodySetup )
-	{
-		const bool bDoReplace = EAppReturnType::Yes == FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Prompt_24", "Static Mesh already has a collision model. \nDo you want to replace it with Builder Brush?") );
-		if( !bDoReplace )
-		{
-			return;
-		}
-	}
-	
-	check(World)
-	ABrush* BuildBrush = World->GetDefaultBrush();
-	if(BuildBrush != nullptr)
-	{
-		// Now get the builder brush.
-		UModel* BuilderModel = BuildBrush->Brush;
-
-		// Need the transform between builder brush space and static mesh actor space.
-		const FMatrix BrushL2W = BuildBrush->ActorToWorld().ToMatrixWithScale();
-		const FMatrix MeshW2L = MeshToWorld.InverseFast();
-		const FMatrix SMToBB = BrushL2W * MeshW2L;
-		const FMatrix SMToBB_AT = SMToBB.TransposeAdjoint();
-
-		// Copy the current builder brush into a temp model.
-		// We keep no reference to this, so it will be GC'd at some point.
-		UModel* TempModel = NewObject<UModel>();
-		TempModel->Initialize(nullptr, 1);
-		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
-
-		// Now transform each poly into local space for the selected static mesh.
-		for (int32 i = 0; i < TempModel->Polys->Element.Num(); i++)
-		{
-			FPoly* Poly = &TempModel->Polys->Element[i];
-
-			for (int32 j = 0; j < Poly->Vertices.Num(); j++)
-			{
-				Poly->Vertices[j] = SMToBB.TransformPosition(Poly->Vertices[j]);
-			}
-
-			Poly->Normal = SMToBB_AT.TransformVector(Poly->Normal);
-			Poly->Normal.Normalize(); // SmToBB might have scaling in it.
-		}
-
-		// Build bounding box.
-		TempModel->BuildBound();
-
-		// Build BSP for the brush.
-		FBSPOps::bspBuild(TempModel, FBSPOps::BSP_Good, 15, 70, 1, 0);
-		FBSPOps::bspRefresh(TempModel, 1);
-		FBSPOps::bspBuildBounds(TempModel);
-
-
-		// Now - use this as the Rigid Body collision for this static mesh as well.
-
-		// Make sure rendering is done - so we are not changing data being used by collision drawing.
-		FlushRenderingCommands();
-
-		// If we already have a BodySetup - clear it.
-		if (StaticMesh->BodySetup)
-		{
-			StaticMesh->BodySetup->RemoveSimpleCollision();
-		}
-		// If we don't already have physics props, construct them here.
-		else
-		{
-			StaticMesh->CreateBodySetup();
-		}
-
-		// Convert collision model into a collection of convex hulls.
-		// NB: This removes any convex hulls that were already part of the collision data.
-		StaticMesh->BodySetup->CreateFromModel(TempModel, true);
-	}
-	// refresh collision change back to staticmesh components
-	RefreshCollisionChange(StaticMesh);
-
-	// Finally mark the parent package as 'dirty', so user will be prompted if they want to save it etc.
-	StaticMesh->MarkPackageDirty();
-}
-
 bool FLevelEditorActionCallbacks::ActorSelected_CanExecute()
 {
 	// Had to have something selected
@@ -2864,7 +2749,7 @@ class UWorld* FLevelEditorActionCallbacks::GetWorld()
 PRAGMA_DISABLE_OPTIMIZATION
 void FLevelEditorCommands::RegisterCommands()
 {
-	UI_COMMAND( BrowseDocumentation, "Documentation...", "Opens the main documentation page", EUserInterfaceActionType::Button, FInputChord( EKeys::F1 ) );
+	UI_COMMAND( BrowseDocumentation, "Documentation...", "Opens the main documentation page, and allows you to search across all UE4 support sites.", EUserInterfaceActionType::Button, FInputChord( EKeys::F1 ) );
 	UI_COMMAND( BrowseAPIReference, "API Reference...", "Opens the API reference documentation", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BrowseViewportControls, "Viewport Controls...", "Opens the viewport controls cheat sheet", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( NewLevel, "New Level...", "Create a new level, or choose a level template to start from.", EUserInterfaceActionType::Button, FInputChord( EModifierKey::Control, EKeys::N ) );
@@ -2904,6 +2789,7 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( BuildGeometryOnly_OnlyCurrentLevel, "Build Geometry (Current Level)", "Builds geometry, only for the current level", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildPathsOnly, "Build Paths", "Only builds paths (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( BuildLODsOnly, "Build LODs", "Only builds LODs (all levels.)", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( PreviewHLODClustersOnly, "Preview HLOD clusters", "Preview builds LODs and shows clusters (all levels.)", EUserInterfaceActionType::Button, FInputChord());
 	UI_COMMAND( LightingQuality_Production, "Production", "Sets precomputed lighting quality to highest possible quality (slowest computation time.)", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_High, "High", "Sets precomputed lighting quality to high quality", EUserInterfaceActionType::RadioButton, FInputChord() );
 	UI_COMMAND( LightingQuality_Medium, "Medium", "Sets precomputed lighting quality to medium quality", EUserInterfaceActionType::RadioButton, FInputChord() );
@@ -2972,11 +2858,11 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( HoldToEnableVertexSnapping, "Hold to Enable Vertex Snapping", "When the key binding is pressed and held vertex snapping will be enabled", EUserInterfaceActionType::ToggleButton, FInputChord(EKeys::V) );
 
 	//@ todo Slate better tooltips for pivot options
-	UI_COMMAND( SavePivotToPrePivot, "Save Pivot to Pre-Pivot", "Saves the pivot to the pre-pivot", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( SavePivotToPrePivot, "Set as Pivot Offset", "Sets the current pivot location as the pivot offset for this actor", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( ResetPrePivot, "Reset Pivot Offset", "Resets the pivot offset for this actor", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( ResetPivot, "Reset Pivot", "Resets the pivot", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( ResetPrePivot, "Reset Pre-Pivot", "Resets the pre-pivot", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( MovePivotHere, "Move Here", "Moves the pivot to the clicked location", EUserInterfaceActionType::Button, FInputChord() );
-	UI_COMMAND( MovePivotHereSnapped, "Move Here (Snapped)", "Moves the pivot to the nearest grid point to the clicked location", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( MovePivotHere, "Set Pivot Offset Here", "Sets the pivot offset to the clicked location", EUserInterfaceActionType::Button, FInputChord() );
+	UI_COMMAND( MovePivotHereSnapped, "Set Pivot Offset Here (Snapped)", "Sets the pivot offset to the nearest grid point to the clicked location", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( MovePivotToCenter, "Center on Selection", "Centers the pivot to the middle of the selection", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( ConvertToAdditive, "Additive", "Converts the selected brushes to additive brushes", EUserInterfaceActionType::Button, FInputChord() );
@@ -3061,8 +2947,6 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( CreateNormalConvexVolume, "Normal Convex Blocking Volume From Mesh", "Creates a normal convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() ); 
 	UI_COMMAND( CreateLightConvexVolume, "Light Convex Blocking Volume From Mesh", "Creates a light convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() );
 	UI_COMMAND( CreateRoughConvexVolume, "Rought Convex Blocking Volume From Mesh", "Creates a rough convex blocking volume from the static mesh", EUserInterfaceActionType::Button, FInputChord() );
-
-	UI_COMMAND( SaveBrushAsCollision, "Save Collision from Builder Brush", "Creates a collision primitive on the selected static meshes based on the shape of the builder brush", EUserInterfaceActionType::Button, FInputChord() );
 
 	UI_COMMAND( KeepSimulationChanges, "Keep Simulation Changes", "Saves the changes made to this actor in Simulate mode to the actor's default state.", EUserInterfaceActionType::Button, FInputChord( EKeys::K ) );
 

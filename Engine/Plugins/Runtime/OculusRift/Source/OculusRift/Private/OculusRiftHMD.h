@@ -18,7 +18,7 @@
 
 #if PLATFORM_WINDOWS
 	#define OVR_D3D_VERSION 11
-//	#define OVR_GL
+	#define OVR_GL
 #elif PLATFORM_MAC
 	#define OVR_VISION_ENABLED
     #define OVR_GL
@@ -202,6 +202,7 @@ public:
 	FCustomPresent()
 		: FRHICustomPresent(nullptr)
 		, Hmd(nullptr)
+		, MirrorTexture(nullptr)
 		, bInitialized(false)
 		, bNeedReAllocateTextureSet(true)
 		, bNeedReAllocateMirrorTexture(true)
@@ -211,13 +212,18 @@ public:
 	bool IsInitialized() const { return bInitialized; }
 
 	virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) = 0;
+	virtual void FinishRendering() = 0;
+
+	// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
+	virtual void OnBackBufferResize() override;
 
 	virtual void Reset() = 0;
 	virtual void Shutdown() = 0;
 
-	virtual FTexture2DRHIRef GetMirrorTexture() = 0;
+	// Returns true if Engine should perform its own Present.
+	virtual bool Present(int32& SyncInterval) override;
 
-	virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* ViewportRHI, FGameFrame* InRenderFrame);
+	virtual void UpdateViewport(const FViewport& Viewport, FRHIViewport* InViewportRHI, FGameFrame* InRenderFrame);
 	FGameFrame* GetRenderFrame() const { check(IsInRenderingThread()); return static_cast<FGameFrame*>(RenderContext->RenderFrame.Get()); }
 	FViewExtension* GetRenderContext() const { return static_cast<FViewExtension*>(RenderContext.Get()); }
 	FSettings* GetFrameSetting() const { check(IsInRenderingThread()); return static_cast<FSettings*>(RenderContext->RenderFrame->GetSettings()); }
@@ -229,6 +235,8 @@ public:
 
 	bool AreTexturesMarkedAsInvalid() const { return bNeedReAllocateTextureSet; }
 
+	virtual FTexture2DRHIRef GetMirrorTexture() { return MirrorTextureRHI; }
+
 	// Allocates render target texture
 	// If returns false then a default RT texture will be used.
 	virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples) = 0;
@@ -239,6 +247,11 @@ protected:
 protected: // data
 	ovrHmd				Hmd;
 	TSharedPtr<FViewExtension, ESPMode::ThreadSafe> RenderContext;
+
+	// Mirror texture
+	ovrTexture*			MirrorTexture;
+	FTexture2DRHIRef	MirrorTextureRHI;
+
 	bool				bInitialized : 1;
 	bool				bNeedReAllocateTextureSet : 1;
 	bool				bNeedReAllocateMirrorTexture : 1;
@@ -257,7 +270,7 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 	friend class UOculusFunctionLibrary;
 public:
 	/** IHeadMountedDisplay interface */
-	virtual bool OnStartGameFrame() override;
+	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
 
 	virtual bool IsHMDConnected() override;
 	virtual EHMDDeviceType::Type GetHMDDeviceType() const override;
@@ -296,7 +309,7 @@ public:
     virtual void SetupView(FSceneViewFamily& InViewFamily, FSceneView& InView) override;
 	virtual FRHICustomPresent* GetCustomPresent() override { return pCustomPresent; }
 	virtual uint32 GetNumberOfBufferedFrames() const override { return 1; }
-	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
+	virtual bool AllocateRenderTargetTexture(uint32 Index, uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples = 1) override;
 
 	/** Positional tracking control methods */
 	virtual bool IsHeadTrackingAllowed() const override;
@@ -318,37 +331,14 @@ public:
 
 	virtual void DrawDebug(UCanvas* Canvas) override;
 
-	/* Raw sensor data structure. */
-	struct SensorData
-	{
-		FVector Accelerometer;	// Acceleration reading in m/s^2.
-		FVector Gyro;			// Rotation rate in rad/s.
-		FVector Magnetometer;   // Magnetic field in Gauss.
-		float Temperature;		// Temperature of the sensor in degrees Celsius.
-		float TimeInSeconds;	// Time when the reported IMU reading took place, in seconds.
-	};
-
 	/**
 	* Reports raw sensor data. If HMD doesn't support any of the parameters then it should be set to zero.
 	*
 	* @param OutData	(out) SensorData structure to be filled in.
 	*/
-	virtual void GetRawSensorData(SensorData& OutData);
+	virtual void GetRawSensorData(SensorData& OutData) override;
 
-	/**
-	* User profile structure.
-	*/
-	struct UserProfile
-	{
-		FString Name;
-		FString Gender;
-		float PlayerHeight;				// Height of the player, in meters
-		float EyeHeight;				// Height of the player's eyes, in meters
-		float IPD;						// Interpupillary distance, in meters
-		FVector2D NeckToEyeDistance;	// Neck-to-eye distance, X - horizontal, Y - vertical, in meters
-		TMap<FString, FString> ExtraFields; // extra fields in name / value pairs.
-	};
-	virtual bool GetUserProfile(UserProfile& OutProfile);
+	virtual bool GetUserProfile(UserProfile& OutProfile) override;
 
 	virtual FString GetVersionString() const override;
 
@@ -369,36 +359,24 @@ public:
 	public:
 		D3D11Bridge(ovrHmd Hmd);
 
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific pointers (BackBufferRT, SwapChain).
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int32& SyncInterval) override;
-
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
 		{
 			Reset();
 		}
 
-		virtual FTexture2DRHIRef GetMirrorTexture() override { return MirrorTextureRHI; }
-
 		virtual void SetHmd(ovrHmd InHmd) override;
 
-		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
+		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
 	protected:
 		void Init(ovrHmd InHmd);
 		void Reset_RenderThread();
 	protected: // data
 		TRefCountPtr<class FD3D11Texture2DSet>	ColorTextureSet;
 		TRefCountPtr<class FD3D11Texture2DSet>	DepthTextureSet;
-
-		// Mirror texture
-		ovrTexture*							MirrorTexture;
-		FTexture2DRHIRef					MirrorTextureRHI;
 	};
 
 #endif
@@ -407,26 +385,27 @@ public:
 	class OGLBridge : public FCustomPresent
 	{
 	public:
-		OGLBridge();
-
-		// Implementation of FRHICustomPresent
-		// Resets Viewport-specific resources.
-		virtual void OnBackBufferResize() override;
-		// Returns true if Engine should perform its own Present.
-		virtual bool Present(int& SyncInterval) override;
+		OGLBridge(ovrHmd Hmd);
 
 		// Implementation of FCustomPresent, called by Plugin itself
 		virtual void BeginRendering(FHMDViewExtension& InRenderContext, const FTexture2DRHIRef& RT) override;
-		void FinishRendering();
+		virtual void FinishRendering() override;
 		virtual void Reset() override;
 		virtual void Shutdown() override
 		{
 			Reset();
 		}
 
+		virtual void SetHmd(ovrHmd InHmd) override;
+
+		virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 InFlags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples);
+
+	protected:
+		void Init(ovrHmd InHmd);
+		void Reset_RenderThread();
 	protected: // data
-		ovrGLConfig			Cfg;
-		ovrGLTexture		EyeTexture[2];
+		TRefCountPtr<class FOpenGLTexture2DSet>	ColorTextureSet;
+		TRefCountPtr<class FOpenGLTexture2DSet>	DepthTextureSet;
 	};
 #endif // OVR_GL
 
@@ -461,6 +440,7 @@ private:
 	virtual void UpdateStereoRenderingParams() override;
 	virtual void UpdateHmdRenderInfo() override;
 	virtual void UpdateHmdCaps() override;
+	virtual void ApplySystemOverridesOnStereo(bool force = false) override;
 
 	/**
 	 * Called when state changes from 'stereo' to 'non-stereo'. Suppose to distribute

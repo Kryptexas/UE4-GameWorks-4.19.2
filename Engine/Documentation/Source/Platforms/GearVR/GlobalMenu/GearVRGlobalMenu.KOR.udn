@@ -1,0 +1,55 @@
+﻿INTSourceChangelist:2611017
+Availability:Public
+Title:삼성 기어 VR 글로벌 메뉴
+Crumbs:%ROOT%, Platforms
+Description:글로벌 메뉴 접근을 위한 기어 VR 프로젝트 구성 방법입니다.
+Navigation:platform
+Platform:Gear VR
+Skilllevel: Intermediate
+Version: 4.8
+prereq: Engine\Blueprints\GettingStarted
+
+Gear VR 프로젝트를 Oculus Store 에 통과시키기 위해선 프로젝트가 준수해야 하는 요구사항이 있습니다.
+그 중 하나는 누군가 자신의 프로젝트를 사용중일 때 뒤로가기 버튼을 0.75 초 이상 누르고 있으면 기어 VR 글로벌 메뉴에 접근할 수 있어야 한다는 것입니다.
+이번 퀵스타트에서는 사용자가 여러분의 프로젝트에서 기어 VR 글로벌 메뉴를 활성화시키기 위해 알아야 하는 모든 것을 다루도록 하겠습니다.
+
+참고로 다음 퀵스타트는 기어 VR 용으로 구성된 프로젝트면 다 통합니다. 아직 살펴보시지 않은 경우, [기어 VR 퀵스타트](Platforms\GearVR\QuickStart) 를 통해 기어 VR 관련 프로젝트에 착수하는 방법 정보를 확인하시기 바랍니다.
+[/region]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/build_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		단계
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+	* [](Platforms/GearVR/GlobalMenu/1 "%Platforms/GearVR/GlobalMenu/1:description%")
+	* [](Platforms/GearVR/GlobalMenu/2 "%Platforms/GearVR/GlobalMenu/2:description%")
+	* [](Platforms/GearVR/GlobalMenu/3 "%Platforms/GearVR/GlobalMenu/3:description%")
+	[/PARAM]
+[/OBJECT]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2477119
+﻿INTSourceChangelist:2561242
 Availability:Public
 Title:ブループリントでゲームモードをセットアップする操作手順
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SettingUpAGameMode
@@ -8,7 +8,7 @@ Description:ブループリントでゲームモードをセットアップす�
 
 ## 概要
 
-このページでは、**GameMode ブループリント** の作成、そのデフォルト値の設定、ゲームに **デフォルト ゲームモード** を割り当てる、および **World Settings** と **GameMode Override** オプションを使用してデフォルトのゲームモードをオーバーライドする方法について説明します 
+このページでは、**GameMode ブループリント** の作成、そのデフォルト値の設定、ゲームに **デフォルト ゲームモード** を割り当てる、および **ワールド設定** と **GameMode Override** オプションを使用してデフォルトのゲームモードをオーバーライドする方法について説明します。 
 
 ## Game Mode ブループリントを作成する
 
@@ -22,13 +22,13 @@ _以下の例では、**Blueprint Third Person Template** を使用しますが�
 
 ## Game Mode のデフォルトを編集する
 
-1.	Game Mode のデフォルトを開くには、そのブループリント上で **ダブル クリック** して **Class Defaults** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、**[詳細]** パネルでブループリント デフォルトを開きます。
+1.	Game Mode のデフォルトを開くには、そのブループリント上で **ダブル クリック** して **クラスのデフォルト** ![](Engine\Blueprints\UserGuide\Variables\classDefaults_button.png) ボタンをクリックし、**[詳細]** パネルでブループリント デフォルトを開きます。
 
 1.	**ゲーム モード** には、ゲームのデフォルト設定として使用可能ないくつかのオプションがあります (デフォルトのキャラクター、HUD など)。 
 
 	![](GameMode_5.png)
 
-	ここでは、**MyCharacter** という Character ブループリントを、プレイヤーがゲームで使用する **Default Pawn Class** として割り当てます。 
+	ここでは、 **ThirdPersonCharacter** という Character ブループリントを、プレイヤーがゲームで使用する **Default Pawn Class** として割り当てます。 
 
 	[REGION:note]
 	**Game Mode** ブループリントは、**Character**、**HUD**、**PlayerController**、**Spectator**、および **Game State** のクラスの既存のブループリントをポイントします。これらを個別に作成してから、実際にゲームで使用するために、**Game Mode** ブループリントで使用するように指定する必要があります。 
@@ -57,22 +57,22 @@ _以下の例では、**Blueprint Third Person Template** を使用しますが�
 
 	![](GameMode_9.png)
 
-	ここでは、**MyCharacter** が **Default Pawn Class** クラスとして使用されているのがわかります。 
+	ここでは、 **ThirdPersonCharacter** が **Default Pawn Class** クラスとして使用されているのがわかります。 
 
 	## デフォルトのゲームモードをオーバーライドする
 
 
-**Default Game Mode** を割り当てたら、それをレベル単位で **World Settings** メニューの **GameMode Override** セクションで上書きすることができます。以下の手順では、デフォルトの **Game Mode** をオーバーライドする方法について説明します。 
+**Default Game Mode** を割り当てたら、それをレベル単位で **ワールド設定** メニューの **GameMode Override** セクションで上書きすることができます。以下の手順では、デフォルトの **Game Mode** をオーバーライドする方法について説明します。 
 
-1.	メインエディタ ウィンドウで、メインツールバーにある **World Settings** ボタンをクリックします。 
+1.	メインエディタ ウィンドウで、メインツールバーにある **ワールド設定** ボタンをクリックします。 
 
 	[REGION:raw]
 	![](GameMode_10.png)
 	[/REGION]
 
-1.	**World Settings** オプションが開きます。これは、**Details** タブがある右下のウィンドウに表示されます。 
+1.	**ワールド設定** オプションが開きます。これは、**[詳細]** タブがある右下のウィンドウに表示されます。 
 
-1.	**World Settings** の **Game Mode** で **GameMode Override** ドロップダウン ボックスをクリックして、使用する **GameMode** を変更することができます。 
+1.	**ワールド設定** の **Game Mode** で **GameMode Override** ドロップダウン ボックスをクリックして、使用する **GameMode** を変更することができます。 
 
 	[REGION:raw]
 	![](GameMode_11.png)

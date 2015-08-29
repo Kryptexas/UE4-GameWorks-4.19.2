@@ -408,6 +408,27 @@ void UObject::SkipFunction(FFrame& Stack, RESULT_DECL, UFunction* Function)
 #pragma warning (disable : 4750) // warning C4750: function with _alloca() inlined into a loop
 #endif
 
+void UObject::execCallMathFunction(FFrame& Stack, RESULT_DECL)
+{
+	UFunction* Function = (UFunction*)Stack.ReadObject();
+	checkSlow(Function);
+	checkSlow(Function->FunctionFlags & FUNC_Native);
+	UObject* NewContext = Function->GetOuterUClass()->GetDefaultObject(false);
+	checkSlow(NewContext);
+	{
+		FScopeCycleCounterUObject ContextScope(Stack.Object);
+		FScopeCycleCounterUObject FunctionScope(Function);
+
+		// CurrentNativeFunction is used so far only by FLuaContext::InvokeScriptFunction
+		// TGuardValue<UFunction*> NativeFuncGuard(Stack.CurrentNativeFunction, Function);
+		
+		Native Func = Function->GetNativeFunc();
+		checkSlow(Func);
+		(NewContext->*Func)(Stack, RESULT_PARAM);
+	}
+}
+IMPLEMENT_VM_FUNCTION(EX_CallMath, execCallMathFunction);
+
 void UObject::CallFunction( FFrame& Stack, RESULT_DECL, UFunction* Function )
 {
 	checkSlow(Function);
@@ -618,11 +639,14 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 	// remove later when stable
 	if (GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists))
 	{
-		static int32 num=0;
-		num++;
-		if (num < 5)
+		if (!GIsReinstancing)
 		{
-			ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
+			static int32 num = 0;
+			num++;
+			if (num < 5)
+			{
+				ensureMsgf(!GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists), TEXT("Object '%s' is being used for execution, but its class is out of date and has been replaced with a recompiled class!"), *GetFullName());
+			}
 		}
 		return;
 	}
@@ -635,6 +659,7 @@ void UObject::ProcessInternal( FFrame& Stack, RESULT_DECL )
 
 	if (FunctionCallspace & FunctionCallspace::Local)
 	{
+		// No POD struct can ever be stored in this buffer. 
 		MS_ALIGN(16) uint8 Buffer[MAX_SIMPLE_RETURN_VALUE_SIZE] GCC_ALIGN(16);
 
 #if DO_GUARD
@@ -1012,15 +1037,17 @@ void UObject::ProcessEvent( UFunction* Function, void* Parms )
 		}
 
 		// Call native function or UObject::ProcessInternal.
+		const bool bHasReturnParam = Function->ReturnValueOffset != MAX_uint16;
+		uint8* ReturnValueAdress = bHasReturnParam ? ((uint8*)Parms + Function->ReturnValueOffset) : nullptr;
 		if (Function->FunctionFlags & FUNC_Native)
 		{
 			FScopeCycleCounterUObject ContextScope(this);
 			FScopeCycleCounterUObject FunctionScope(Function);
-			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
+			Function->Invoke(this, NewStack, ReturnValueAdress);
 		}
 		else
 		{
-			Function->Invoke(this, NewStack, (uint8*)Parms + Function->ReturnValueOffset);
+			Function->Invoke(this, NewStack, ReturnValueAdress);
 		}
 
 		if (!bUsePersistentFrame)
@@ -1070,15 +1097,69 @@ IMPLEMENT_VM_FUNCTION( EX_LocalVariable, execLocalVariable );
 
 void UObject::execInstanceVariable(FFrame& Stack, RESULT_DECL)
 {
-	UProperty* VarProperty = Stack.ReadProperty();
-	Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(this);
+	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
+	Stack.MostRecentProperty = VarProperty;
 
-	if (RESULT_PARAM)
+	if (VarProperty == nullptr)
 	{
-		VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		Stack.MostRecentPropertyAddress = nullptr;
 	}
+	else
+	{
+		Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(this);
+
+		if (RESULT_PARAM)
+		{
+			VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+		}
+	}
+
+	
 }
 IMPLEMENT_VM_FUNCTION( EX_InstanceVariable, execInstanceVariable );
+
+void UObject::execDefaultVariable(FFrame& Stack, RESULT_DECL)
+{
+	UProperty* VarProperty = (UProperty*)Stack.ReadObject();
+	Stack.MostRecentProperty = VarProperty;
+	Stack.MostRecentPropertyAddress = nullptr;
+
+	if(VarProperty == nullptr)
+	{
+		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a missing property. If this is a packaged/cooked build, are you attempting to use an editor-only property?"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
+	else
+	{
+		UObject* DefaultObject = nullptr;
+		if(HasAnyFlags(RF_ClassDefaultObject))
+		{
+			DefaultObject = this;
+		}
+		else
+		{
+			// @todo - allow access to archetype properties through object references?
+		}
+
+		if(DefaultObject != nullptr)
+		{
+			Stack.MostRecentPropertyAddress = VarProperty->ContainerPtrToValuePtr<uint8>(DefaultObject);
+			if(RESULT_PARAM)
+			{
+				VarProperty->CopyCompleteValueToScriptVM(RESULT_PARAM, Stack.MostRecentPropertyAddress);
+			}
+		}
+		else
+		{
+			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to access a default property through an invalid or otherwise unsupported context."));
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_DefaultVariable, execDefaultVariable );
 
 void UObject::execLocalOutVariable(FFrame& Stack, RESULT_DECL)
 {
@@ -1118,6 +1199,51 @@ void UObject::execInterfaceContext(FFrame& Stack, RESULT_DECL)
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_InterfaceContext, execInterfaceContext );
+
+void UObject::execClassContext(FFrame& Stack, RESULT_DECL)
+{
+	// Get class expression.
+	UClass* ClassContext = NULL;
+	Stack.Step(this, &ClassContext);
+
+	// Execute expression in class context.
+	if(IsValid(ClassContext))
+	{
+		UObject* DefaultObject = ClassContext->GetDefaultObject();
+		check(DefaultObject != NULL);
+
+		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
+			+ sizeof(ScriptPointerType);		// Property corresponding to the r-value data, in case the l-value needs to be cleared
+		Stack.Step(DefaultObject, RESULT_PARAM);
+	}
+	else
+	{
+		if (Stack.MostRecentProperty != NULL)
+		{
+			const FString Desc = FString::Printf(TEXT("Accessed null class context '%s'"), *Stack.MostRecentProperty->GetName());
+			FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, Desc);
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+		else
+		{
+			static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed null class context"));
+			FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+		}
+
+		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
+		UProperty* RValueProperty = nullptr;
+		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueProperty); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
+		Stack.Code += wSkip;
+		Stack.MostRecentPropertyAddress = NULL;
+		Stack.MostRecentProperty = NULL;
+
+		if (RESULT_PARAM && RValueProperty)
+		{
+			RValueProperty->ClearValue(RESULT_PARAM);
+		}
+	}
+}
+IMPLEMENT_VM_FUNCTION( EX_ClassContext, execClassContext );
 
 void UObject::execEndOfScript( FFrame& Stack, RESULT_DECL )
 {
@@ -1335,29 +1461,104 @@ void UObject::execLetValueOnPersistentFrame(FFrame& Stack, RESULT_DECL)
 	checkf(false, TEXT("execLetValueOnPersistentFrame: UberGraphPersistentFrame is not supported by current build!"));
 #endif
 }
-IMPLEMENT_VM_FUNCTION(Ex_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
+IMPLEMENT_VM_FUNCTION(EX_LetValueOnPersistentFrame, execLetValueOnPersistentFrame);
 
-void UObject::execLet( FFrame& Stack, RESULT_DECL )
+void UObject::execSwitchValue(FFrame& Stack, RESULT_DECL)
+{
+	const int32 NumCases = Stack.ReadWord();
+	const CodeSkipSizeType OffsetToEnd = Stack.ReadCodeSkipCount();
+
+	Stack.MostRecentProperty = nullptr;
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.Step(Stack.Object, nullptr);
+
+	UProperty* IndexProperty = Stack.MostRecentProperty;
+	checkSlow(IndexProperty);
+
+	uint8* IndexAdress = Stack.MostRecentPropertyAddress;
+	if (!ensure(IndexAdress))
+	{
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Unknown index"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+	}
+
+	bool bProperCaseUsed = false;
+	{
+		auto LocalTempIndexMem = (uint8*)FMemory_Alloca(IndexProperty->GetSize());
+		IndexProperty->InitializeValue(LocalTempIndexMem);
+		for (int32 CaseIndex = 0; CaseIndex < NumCases; ++CaseIndex)
+		{
+			Stack.Step(Stack.Object, LocalTempIndexMem); // case index value
+			const CodeSkipSizeType OffsetToNextCase = Stack.ReadCodeSkipCount();
+
+			if (IndexAdress && IndexProperty->Identical(IndexAdress, LocalTempIndexMem))
+			{
+				Stack.Step(Stack.Object, RESULT_PARAM);
+				bProperCaseUsed = true;
+				break;
+			}
+
+			// skip to the next case
+			Stack.Code = &Stack.Node->Script[OffsetToNextCase];
+		}
+		IndexProperty->DestroyValue(LocalTempIndexMem);
+	}
+
+	if (bProperCaseUsed)
+	{
+		Stack.Code = &Stack.Node->Script[OffsetToEnd];
+	}
+	else
+	{
+		FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::NonFatalError, TEXT("Switch - Out of bounds index"));
+		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
+
+		// get default value
+		Stack.Step(Stack.Object, RESULT_PARAM);
+	}
+}
+IMPLEMENT_VM_FUNCTION(EX_SwitchValue, execSwitchValue);
+
+void UObject::execLet(FFrame& Stack, RESULT_DECL)
 {
 	checkSlow(!dynamic_cast<UBoolProperty*>(this));
 
-	// Get variable address.
-	Stack.MostRecentPropertyAddress = NULL;
-	Stack.Step( Stack.Object, NULL ); // Evaluate variable.
+	Stack.MostRecentProperty = nullptr;
+	UProperty* LocallyKnownProperty = Stack.ReadPropertyUnchecked();
 
-	if (Stack.MostRecentPropertyAddress == NULL)
+	// Get variable address.
+	Stack.MostRecentProperty = nullptr;
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.Step(Stack.Object, nullptr); // Evaluate variable.
+
+	uint8* LocalTempResult = nullptr;
+	if (Stack.MostRecentPropertyAddress == nullptr)
 	{
 		static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Attempt to assign variable through None"));
 		FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 
-		//@TODO: ScriptParallel: Contended static usage
-		static uint8 Crud[1024];//@temp
-		Stack.MostRecentPropertyAddress = Crud;
-		FMemory::Memzero( Stack.MostRecentPropertyAddress, sizeof(FString) );
+		if (LocallyKnownProperty)
+		{
+			LocalTempResult = (uint8*)FMemory_Alloca(LocallyKnownProperty->GetSize());
+			LocallyKnownProperty->InitializeValue(LocalTempResult);
+			Stack.MostRecentPropertyAddress = LocalTempResult;
+		}
+		else
+		{
+			//@TODO: ScriptParallel: Contended static usage
+			static uint8 Crud[1024];//@temp
+			Stack.MostRecentPropertyAddress = Crud;
+			FMemory::Memzero(Stack.MostRecentPropertyAddress, sizeof(FString));
+		}
 	}
 
 	// Evaluate expression into variable.
-	Stack.Step( Stack.Object, Stack.MostRecentPropertyAddress );
+	Stack.Step(Stack.Object, Stack.MostRecentPropertyAddress);
+
+	if (LocalTempResult && LocallyKnownProperty)
+	{
+		LocallyKnownProperty->DestroyValue(LocalTempResult);
+	}
 }
 IMPLEMENT_VM_FUNCTION( EX_Let, execLet );
 
@@ -1541,16 +1742,24 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 	UObject* NewContext = NULL;
 	Stack.Step( this, &NewContext );
 
+	uint8* const OriginalCode = Stack.Code;
+	const bool bValidContext = IsValid(NewContext);
 	// Execute or skip the following expression in the object's context.
-	if (IsValid(NewContext))
+	if (bValidContext)
 	{
 		Stack.Code += sizeof(CodeSkipSizeType)	// Code offset for NULL expressions.
-			+ sizeof(ScriptPointerType)			// Property corresponding to the r-value data, in case the l-value needs to be cleared
-			+ sizeof(uint8);					// Property type, in case the r-value is a non-property - in ue4 it seems to be unused
+			+ sizeof(ScriptPointerType);		// Property corresponding to the r-value data, in case the l-value needs to be cleared
 		Stack.Step( NewContext, RESULT_PARAM );
 	}
-	else
+
+	if (!bValidContext || Stack.bArrayContextFailed)
 	{
+		if (Stack.bArrayContextFailed)
+		{
+			Stack.bArrayContextFailed = false;
+			Stack.Code = OriginalCode;
+		}
+
 		if (!bCanFailSilently)
 		{
 			if (NewContext && NewContext->IsPendingKill())
@@ -1571,26 +1780,22 @@ void UObject::ProcessContextOpcode( FFrame& Stack, RESULT_DECL, bool bCanFailSil
 				// Stack.MostRecentProperty will be NULL under the following conditions:
 				//   1. the context expression was a function call which returned an object
 				//   2. the context expression was a literal object reference
+				//   3. the context expression was an instance variable that no longer exists (it was editor-only, etc.)
 				static FBlueprintExceptionInfo ExceptionInfo(EBlueprintExceptionType::AccessViolation, TEXT("Accessed None"));
 				FBlueprintCoreDelegates::ThrowScriptException(this, Stack, ExceptionInfo);
 			}
 		}
 
 		const CodeSkipSizeType wSkip = Stack.ReadCodeSkipCount(); // Code offset for NULL expressions. Code += sizeof(CodeSkipSizeType)
-		UField* RValueField = nullptr;
-		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueField); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
+		UProperty* RValueProperty = nullptr;
+		const VariableSizeType bSize = Stack.ReadVariableSize(&RValueProperty); // Code += sizeof(ScriptPointerType) + sizeof(uint8)
 		Stack.Code += wSkip;
 		Stack.MostRecentPropertyAddress = NULL;
 		Stack.MostRecentProperty = NULL;
 
-		if (RESULT_PARAM)
+		if (RESULT_PARAM && RValueProperty)
 		{
-			auto RValueProperty = Cast<const UProperty>(RValueField);
-			ensure(RValueProperty || !RValueField);
-			if (RValueProperty)
-			{
-				RValueProperty->ClearValue(RESULT_PARAM);
-			}
+			RValueProperty->ClearValue(RESULT_PARAM);
 		}
 	}
 }
@@ -1811,6 +2016,14 @@ void UObject::execObjectConst( FFrame& Stack, RESULT_DECL )
 }
 IMPLEMENT_VM_FUNCTION( EX_ObjectConst, execObjectConst );
 
+void UObject::execAssetConst(FFrame& Stack, RESULT_DECL)
+{
+	FString LongPath;
+	Stack.Step(Stack.Object, &LongPath);
+	*(FAssetPtr*)RESULT_PARAM = FStringAssetReference(LongPath);
+}
+IMPLEMENT_VM_FUNCTION(EX_AssetConst, execAssetConst);
+
 void UObject::execInstanceDelegate( FFrame& Stack, RESULT_DECL )
 {
 	FName FunctionName = Stack.ReadName();
@@ -2003,7 +2216,7 @@ IMPLEMENT_VM_FUNCTION( EX_IntConstByte, execIntConstByte );
 void UObject::execDynamicCast( FFrame& Stack, RESULT_DECL )
 {
 	// Get "to cast to" class for the dynamic actor class
-	UClass* Class = (UClass *)Stack.ReadObject();
+	UClass* ClassPtr = (UClass *)Stack.ReadObject();
 
 	// Compile object expression.
 	UObject* Castee = NULL;
@@ -2011,36 +2224,38 @@ void UObject::execDynamicCast( FFrame& Stack, RESULT_DECL )
 	//*(UObject**)RESULT_PARAM = (Castee && Castee->IsA(Class)) ? Castee : NULL;
 	*(UObject**)RESULT_PARAM = NULL; // default value
 
+	if (ClassPtr)
+	{
+		// if we were passed in a null value
+		if( Castee == NULL )
+		{
+			if(ClassPtr->HasAnyClassFlags(CLASS_Interface) )
+			{
+				((FScriptInterface*)RESULT_PARAM)->SetObject(NULL);
+			}
+			else
+			{
+				*(UObject**)RESULT_PARAM = NULL;
+			}
+			return;
+		}
 
-	// if we were passed in a null value
-	if( Castee == NULL )
-	{
-		if( Class->HasAnyClassFlags(CLASS_Interface) )
+		// check to see if the Castee is an implemented interface by looking up the
+		// class hierarchy and seeing if any class in said hierarchy implements the interface
+		if(ClassPtr->HasAnyClassFlags(CLASS_Interface) )
 		{
-			((FScriptInterface*)RESULT_PARAM)->SetObject(NULL);
+			if ( Castee->GetClass()->ImplementsInterface(ClassPtr) )
+			{
+				// interface property type - convert to FScriptInterface
+				((FScriptInterface*)RESULT_PARAM)->SetObject(Castee);
+				((FScriptInterface*)RESULT_PARAM)->SetInterface(Castee->GetInterfaceAddress(ClassPtr));
+			}
 		}
-		else
+		// check to see if the Castee is a castable class
+		else if( Castee->IsA(ClassPtr) )
 		{
-			*(UObject**)RESULT_PARAM = NULL;
+			*(UObject**)RESULT_PARAM = Castee;
 		}
-		return;
-	}
-
-	// check to see if the Castee is an implemented interface by looking up the
-	// class hierarchy and seeing if any class in said hierarchy implements the interface
-	if( Class->HasAnyClassFlags(CLASS_Interface) )
-	{
-		if ( Castee->GetClass()->ImplementsInterface(Class) )
-		{
-			// interface property type - convert to FScriptInterface
-			((FScriptInterface*)RESULT_PARAM)->SetObject(Castee);
-			((FScriptInterface*)RESULT_PARAM)->SetInterface(Castee->GetInterfaceAddress(Class));
-		}
-	}
-	// check to see if the Castee is a castable class
-	else if( Castee->IsA(Class) )
-	{
-		*(UObject**)RESULT_PARAM = Castee;
 	}
 }
 IMPLEMENT_VM_FUNCTION( EX_DynamicCast, execDynamicCast );

@@ -86,6 +86,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	FString CurrentAIAssets;
 
 	UPROPERTY(Replicated)
+	FString GameplayTasksState;
+
+	UPROPERTY(Replicated)
 	FString NavDataInfo;
 
 	UPROPERTY(Replicated)
@@ -125,8 +128,9 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	
 	/** local EQS debug data, decoded from EQSRepData blob */
 #if  USE_EQS_DEBUGGER || ENABLE_VISUAL_LOG
-	TArray<EQSDebug::FQueryData> EQSLocalData;	
+	TArray<EQSDebug::FQueryData> EQSLocalData;
 #endif
+
 	/** End EQS replication data */
 
 	UPROPERTY(Replicated)
@@ -151,7 +155,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	uint32 bDrawEQSFailedItems : 1;
 
 	UFUNCTION()
-	void OnChangeEQSQuery();
+	virtual void OnCycleDetailsView();
 
 	UFUNCTION()
 	virtual void OnRep_UpdateEQS();
@@ -200,7 +204,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	void SetActorToDebug(AActor* Actor);
 	FORCEINLINE AActor* GetSelectedActor() const
 	{
-		return TargetActor;
+		return TargetActor && TargetActor->IsPendingKill() == false ? TargetActor : nullptr;
 	}
 
 	void SetEQSIndex(int32 Index) { CurrentEQSIndex = Index; }

@@ -128,6 +128,9 @@ void UAIPerceptionComponent::SetMaxStimulusAge(int32 ConfigIndex, float MaxAge)
 		MaxActiveAge.AddUninitialized(ConfigIndex - MaxActiveAge.Num() + 1);
 	}
 	MaxActiveAge[ConfigIndex] = MaxAge;
+
+	// @todo process all data already gathered and see if any _still_active_ stimuli
+	// got it's expiration prolonged, with SetExpirationAge
 }
 
 void UAIPerceptionComponent::OnRegister()
@@ -369,7 +372,8 @@ AActor* UAIPerceptionComponent::GetMutableBodyActor()
 
 void UAIPerceptionComponent::RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus)
 {
-	StimuliToProcess.Add(FStimulusToProcess(Source, Stimulus));
+	FStimulusToProcess& StimulusToProcess = StimuliToProcess[StimuliToProcess.Add(FStimulusToProcess(Source, Stimulus))];
+	StimulusToProcess.Stimulus.SetExpirationAge(MaxActiveAge[int32(Stimulus.Type)]);
 }
 
 void UAIPerceptionComponent::ProcessStimuli()
@@ -379,6 +383,8 @@ void UAIPerceptionComponent::ProcessStimuli()
 		UE_VLOG(GetOwner(), LogAIPerception, Warning, TEXT("UAIPerceptionComponent::ProcessStimuli called without any Stimuli to process"));
 		return;
 	}
+
+	const bool bBroadcastEveryTargetUpdate = OnTargetPerceptionUpdated.IsBound();
 	
 	FStimulusToProcess* SourcedStimulus = StimuliToProcess.GetData();
 	TArray<AActor*> UpdatedActors;
@@ -419,26 +425,35 @@ void UAIPerceptionComponent::ProcessStimuli()
 		check(SourcedStimulus->Stimulus.Type.IsValid());
 
 		FAIStimulus& StimulusStore = PerceptualInfo->LastSensedStimuli[SourcedStimulus->Stimulus.Type];
-
-		// if the new stimulus is "valid" or it's info that "no longer sensed" and it used to be sensed successfully
-		if (SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed())
-		{
-			UpdatedActors.AddUnique(SourcedStimulus->Source);
-		}
+		const bool bActorInfoUpdated = SourcedStimulus->Stimulus.WantsToNotifyOnlyOnPerceptionChange() == false || SourcedStimulus->Stimulus.WasSuccessfullySensed() != StimulusStore.WasSuccessfullySensed();
 
 		if (SourcedStimulus->Stimulus.WasSuccessfullySensed())
 		{
 			RefreshStimulus(StimulusStore, SourcedStimulus->Stimulus);
 		}
-		else if (StimulusStore.IsExpired())
+		else if (StimulusStore.IsExpired() == false)
+		{	
+			if (bActorInfoUpdated)
+			{
+				// @note there some more valid info in SourcedStimulus->Stimulus regarding test that failed
+				// may be useful in future
+				StimulusStore.MarkNoLongerSensed();
+				StimulusStore.SetStimulusAge(0);
+			}
+		}
+		else if (StimulusStore.GetAge() != FAIStimulus::NeverHappenedAge)
 		{
 			HandleExpiredStimulus(StimulusStore);
 		}
-		else
+
+		// if the new stimulus is "valid" or it's info that "no longer sensed" and it used to be sensed successfully
+		if (bActorInfoUpdated)
 		{
-			// @note there some more valid info in SourcedStimulus->Stimulus regarding test that failed
-			// may be useful in future
-			StimulusStore.MarkNoLongerSensed();
+			UpdatedActors.AddUnique(SourcedStimulus->Source);
+			if (bBroadcastEveryTargetUpdate)
+			{
+				OnTargetPerceptionUpdated.Broadcast(SourcedStimulus->Source, StimulusStore);
+			}
 		}
 	}
 
@@ -463,12 +478,14 @@ void UAIPerceptionComponent::RefreshStimulus(FAIStimulus& StimulusStore, const F
 	if (NewStimulus.GetAge() <= StimulusStore.GetAge() || StimulusStore.Strength < NewStimulus.Strength)
 	{
 		StimulusStore = NewStimulus;
+		// update stimulus 
 	}
 }
 
 void UAIPerceptionComponent::HandleExpiredStimulus(FAIStimulus& StimulusStore)
 {
-	ensure(StimulusStore.IsExpired() == true && StimulusStore.WasSuccessfullySensed() == false && StimulusStore.IsActive() == false);
+	ensure(StimulusStore.IsExpired() == true);
+	StimulusStore = FAIStimulus();
 }
 
 bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
@@ -482,9 +499,9 @@ bool UAIPerceptionComponent::AgeStimuli(const float ConstPerceptionAgingRate)
 		for (FAIStimulus& Stimulus : ActorPerceptionInfo.LastSensedStimuli)
 		{
 			// Age the stimulus. If it is active but has just expired, mark it as such
-			if (Stimulus.AgeStimulus(ConstPerceptionAgingRate) == false && 
-				Stimulus.IsActive() && 
-				!Stimulus.IsExpired())
+			if (Stimulus.AgeStimulus(ConstPerceptionAgingRate) == false 
+				&& (Stimulus.IsActive() || Stimulus.WantsToNotifyOnlyOnPerceptionChange())
+				&& Stimulus.IsExpired() == false)
 			{
 				AActor* TargetActor = ActorPerceptionInfo.Target.Get();
 				if (TargetActor)

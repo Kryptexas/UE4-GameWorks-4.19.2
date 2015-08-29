@@ -1,7 +1,8 @@
 Availability: Public
-Title:2. Configure Input To Control The Camera
+Title:2. Configure Input to Control the Camera
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/PlayerCamera
 Description:Configuring input that will be applied to a pawn and camera.
+version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -11,7 +12,7 @@ Description:Configuring input that will be applied to a pawn and camera.
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Programming Tutorials Home](Programming\Tutorials\)
+		[](Programming\Tutorials\PlayerCamera)
 	[/PARAM]
 	[PARAM:next]
 		[Next Step](Programming\Tutorials\PlayerCamera\3 "%Programming\Tutorials\PlayerCamera\3:title%")
@@ -82,7 +83,9 @@ Now that we have defined our input, we need to write some code to react to it. W
 
 				// Called to bind functionality to input
 				virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
-
+			
+			protected:
+				UPROPERTY(EditAnywhere)
 				USpringArmComponent* OurCameraSpringArm;
 				UCameraComponent* OurCamera;
 			};
@@ -104,6 +107,9 @@ Now that we have defined our input, we need to write some code to react to it. W
 				OurCameraSpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraSpringArm"));
 				OurCameraSpringArm->AttachTo(RootComponent);
 				OurCameraSpringArm->SetRelativeLocationAndRotation(FVector(0.0f, 0.0f, 50.0f), FRotator(-60.0f, 0.0f, 0.0f));
+				OurCameraSpringArm->TargetArmLength = 400.f
+				OurCameraSpringArm->bEnableCameraLag = true;
+				OurCameraSprintArm->CameraLagSpeed = 3.0f
 				OurCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("GameCamera"));
 				OurCamera->AttachTo(OurCameraSpringArm, USpringArmComponent::SocketName);
 

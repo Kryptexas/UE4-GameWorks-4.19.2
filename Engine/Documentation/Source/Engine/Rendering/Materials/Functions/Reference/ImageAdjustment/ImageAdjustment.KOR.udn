@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2225867
+﻿INTSourceChangelist:2601148
 Availability: Public
 title:이미지 조절
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials,  Engine/Rendering/Materials/Functions
@@ -6,7 +6,7 @@ Description:Image Adjustment 카테고리 아래 함수에 대한 설명과 예�
 
 [TOC (start:2 end:3)]
 
-## 개요
+
 
 이미지 조절 함수는 텍스처에 기본적인 색보정 작업을 하기 위해 존재합니다. 별도의 텍스처를 메모리에 로드하는 데 따르는 부하를 걱정할 필요 없이 텍스처에 보정이나 다변화 작업을 할 수 있다는 점에서 유용합니다.
 

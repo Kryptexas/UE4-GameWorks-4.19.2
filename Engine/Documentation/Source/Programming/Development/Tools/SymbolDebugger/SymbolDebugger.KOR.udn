@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2374181
+﻿INTSourceChangelist:2612393
 Availability:Public
 Title: 심볼 디버거
 Crumbs: %ROOT%, Engine, Programming, Programming/Development/Tools
 Description: 엔진 크래시에서 생성된 미니덤프 파일을 디버깅하는 데 사용되는 툴입니다.
-Version: 4.5
+Version: 4.9
 
 Symbol Debugger 는 아티스트나 레벨 디자이너 머신의 어플리케이션 크래시나 빌드 머신이 생성한 빌드의 크래시에서 생성된 미니덤프 파일을 원격 디버깅하는 데 필요한 파일 동기화 작업을 도와주는 프로그램입니다.
 

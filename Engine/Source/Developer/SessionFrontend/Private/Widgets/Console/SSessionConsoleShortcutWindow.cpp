@@ -2,7 +2,7 @@
 
 #include "SessionFrontendPrivatePCH.h"
 #include "STextEntryPopup.h"
-
+#include "IMenu.h"
 
 #define LOCTEXT_NAMESPACE "SSessionConsoleShortcutWindow"
 
@@ -77,8 +77,9 @@ void SSessionConsoleShortcutWindow::HandleEditCommandActionExecute( TSharedPtr<F
 		.SelectAllTextWhenFocused(true)
 		.ClearKeyboardFocusOnCommit(false);
 
-	NameEntryPopupWindow = FSlateApplication::Get().PushMenu(
+	NameEntryMenu = FSlateApplication::Get().PushMenu(
 		SharedThis(this),
+		FWidgetPath(),
 		TextEntry,
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -241,9 +242,9 @@ TSharedRef<ITableRow> SSessionConsoleShortcutWindow::HandleShortcutListViewGener
 
 void SSessionConsoleShortcutWindow::HandleShortcutTextEntryCommitted( const FText& CommandText, ETextCommit::Type CommitInfo )
 {
-	if (NameEntryPopupWindow.IsValid())
+	if (NameEntryMenu.IsValid())
 	{
-		NameEntryPopupWindow->RequestDestroyWindow();
+		NameEntryMenu.Pin()->Dismiss();
 
 		int32 IndexOfShortcut = Shortcuts.IndexOfByKey(EditedShortcut);
 		if (EditedShortcut.IsValid() && (IndexOfShortcut != INDEX_NONE))

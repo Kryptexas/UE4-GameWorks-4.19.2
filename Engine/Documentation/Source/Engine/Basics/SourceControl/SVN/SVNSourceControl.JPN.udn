@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2368981
+﻿INTSourceChangelist:2595379
 Availability:Public
 Title:UE4 内のソース コントロールとして SVN を使用する
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
@@ -13,17 +13,17 @@ Related:Programming/Basics/ConfigurationFiles
 [TOC(start:2)]
 
 ## 概要 
-アンリアル エンジン 4 (UE4) では、Subversion または短縮して SVN と呼ばれるバージョン管理ソフトウェアを使用してプロジェクトで共同作業できる統合的な方法があります。 
+UE4 では、Subversion または短縮して SVN と呼ばれるバージョン管理ソフトウェアを使用してプロジェクトで共同作業できる統合的な方法があります。 
 バージョン管理を使用すると、チーム内のユーザーはアセットやコードを互いに共有し、変更のバックアップや履歴を残すこともできます。 
 こうすることで、ファイルに何か問題が生じた場合に前のバージョンに戻ることができます。
 
 
 ## UE4 で Subversion (SVN) を使用する
-Perforce が選択肢にない場合は、Subversion(SVN) を利用することができます。ユーザーがどのようにデータを扱うかという点において SVN はPerforce に類似しています。 
+Perforce が選択肢にない場合は、Subversion (SVN) を利用できます。ユーザーがどのようにデータを扱うかという点において SVN はPerforce に類似しています。 
 以下のガイドでは、UE4 のプロジェクト用に SVN ソース コントロールをセットアップする方法について説明します。 
 
 ### SVN サーバーをセットアップする
-SVN サーバーのセットアップは、Subversion コマンドライン ツールを使用して行うことができます。しかし、ここでは簡単に使用するために Windows で VisualSVN を使用してサーバーをセットアップする方法について説明します。 
+SVN サーバーのセットアップは、Subversion コマンドライン ツールを使用して行うことができます。しかし、ここでは簡単に使用するために Windows で VisualSVN を使用してサーバーをセットアップする方法を説明します。 
 
 [region:note]
 Windows 版 SVN をダウンロードするには [ここ](https://www.visualsvn.com/server/download/) をクリックし、SVN ウェブサイトからプログラムをダウンロードします。 
@@ -31,7 +31,7 @@ Windows 版 SVN をダウンロードするには [ここ](https://www.visualsvn
 
 ### ローカルマシンで SVN サーバーをセットアップする
 
-1. SVN をインストールしたら SVN を開き、 VisualSVN で **リポジトリ** ツリー アイテム上で **右クリック** し、**[Create New Repository]** を選択します。
+1. SVN をインストールしたら SVN を開き、 VisualSVN で **リポジトリ** ツリー アイテム上で **右クリック** し、**[Create New Repository]** （新規リポジトリを作成）を選択します。
 
 	![](SC_SVN_Create_New_Repository.png)
 
@@ -48,7 +48,7 @@ Windows 版 SVN をダウンロードするには [ここ](https://www.visualsvn
 
 
 **Trunk**、**Branches**、および **Tags** のディレクトリを追加すると、他の人々との C++ コードの同時開発の計画がある場合に役立ちます。
-初期セキュリティ設定もこの時点でセットアップすることができます。ここで何を設定するかがはっきりわからない場合は、そのままデフォルトにすると Subversion のユーザー全員が読み出し/書き込みすることができます。
+初期セキュリティ設定もこの時点でセットアップできます。ここで何を設定するかがはっきりわからない場合は、そのままデフォルトにすると Subversion のユーザー全員が読み出し/書き込みすることができます。
 作成すると、ツリービューにリポジトリが表示されます。
 
 
@@ -57,7 +57,7 @@ Windows 版 SVN をダウンロードするには [ここ](https://www.visualsvn
 これを行うには、サーバーに関する上記の手順に従い、サーバーの URL を使用してクライアントから接続します。
 
 ### セキュアなアクセス
-多くのユーザーはリポジトリにアクセスするためにセキュアな接続の使用を望みます。こうした接続には、**https://** で始まる URL があり、セットアアップ時に意識すべき多くのことがあります。
+多くのユーザーはリポジトリにアクセスするためにセキュアな接続の使用を望みます。こうした接続には、**https://** で始まる URL があり、セットアップ時に意識すべき多くのことがあります。
 HTTPS を使用するためにサーバーは **信用できる証明書 (trusted certificate)** を提供する必要があります。これは、クライアント側がセキュアなサーバーに接続していることを認識するためです。内部ユーザーがセキュアに接続できるように、VisualSVN はローカル認証を発行することができます。
 この詳細を見るには、ツリー ビューのルートを **右クリック** して **プロパティ** を選択し、**Certificate** タブに移動します。
 
@@ -139,7 +139,7 @@ Windows 版 TortoiseSVN  をダウンロードするには、 [ここ](http://to
 以下のようなエラーがログにある場合、こうした手順を行う必要があるかもしれません。
 
 	E175002:Unexpected HTTP status 400 'Bad Request' on '/projectname/'
-	E175002:Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/�
+	E175002:Unexpected HTTP status 405 'Method Not Allowed' on '/projectname/'
 	E215004:Authentication failed and interactive prompting is disabled; see the --force-interactive option
 	E215004:No more credentials or we tried too many times.
 
@@ -159,5 +159,10 @@ Windows 版 TortoiseSVN  をダウンロードするには、 [ここ](http://to
 	Password for 'me':
 
 パスワードを入力するとキーチェーンに保存されます。この後、上記の通常の指示に続いてエディタは正しくサーバーに接続されます。
+
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2495733
+﻿INTSourceChangelist:2600504
 Availability:Public
 Title:블루프린트 클래스
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -43,8 +43,6 @@ Description:새 클래스나 액터 유형을 정의한 다음, 인스턴스로 
 [/VAR]
 
 [TOC (start:2)]
-
-## 개요
 
 [EXCERPT:Intro]
 **_Blueprint Class_** (블루프린트 클래스), 종종 그냥 **_Blueprint_** (블루프린트)는 콘텐츠 제작자가 기존의 클래스 위에 다른 함수성을 쉽게 추가할 수 있도록 해 주는 애셋입니다.

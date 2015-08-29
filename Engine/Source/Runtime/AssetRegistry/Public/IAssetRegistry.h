@@ -4,6 +4,7 @@
 
 #include "AssetData.h"
 #include "ARFilter.h"
+#include "AssetRegistryInterface.h"
 
 
 namespace EAssetAvailability
@@ -26,6 +27,7 @@ namespace EAssetAvailabilityProgressReportingType
 	};
 }
 
+class FDependsNode;
 
 class IAssetRegistry
 {
@@ -99,8 +101,9 @@ public:
 	 *
 	 * @param PackageName		the name of the package for which to gather dependencies
 	 * @param OutDependencies	a list of paths to objects that are referenced by the package whose path is PackageName
+	 * @param InDependencyType	which kinds of dependency to include in the output list
 	 */
-	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies) const = 0;
+	virtual bool GetDependencies(FName PackageName, TArray<FName>& OutDependencies, EAssetRegistryDependencyType::Type InDependencyType = EAssetRegistryDependencyType::All) const = 0;
 
 	/**
 	 * Gets a list of paths to objects that reference the supplied package. (On disk references ONLY)
@@ -223,9 +226,9 @@ public:
 	virtual void Serialize(FArchive& Ar) = 0;
 
 	/** Serialize raw registry data to a file, skipping editor only data */
-	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
+	virtual void SaveRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FName>* InMaps = nullptr) = 0;
 
 
 	/** Serialize registry data from a file */
-	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data) = 0;
+	virtual void LoadRegistryData(FArchive& Ar, TMap<FName, FAssetData*>& Data, TArray<FDependsNode*>& OutDependencyData) = 0;
 };

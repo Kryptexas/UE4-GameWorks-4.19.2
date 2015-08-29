@@ -20,9 +20,6 @@ class ENGINE_API UShapeComponent : public UPrimitiveComponent
 	UPROPERTY(transient, duplicatetransient)
 	class UBodySetup* ShapeBodySetup;
 
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Shape)
-	class UMaterialInterface* ShapeMaterial;
-
 	/** Only show this component if the actor is selected */
 	UPROPERTY()
 	uint32 bDrawOnlyIfSelected:1;
@@ -41,11 +38,14 @@ class ENGINE_API UShapeComponent : public UPrimitiveComponent
 
 	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override; 
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	// End UPrimitiveComponent interface.
+
+	// Begin INavRelevantInterface Interface
+	virtual bool IsNavigationRelevant() const override;
+	// End INavRelevantInterface Interface
 
 	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;

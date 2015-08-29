@@ -1,0 +1,37 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Lighting for Mobile Platforms
+Crumbs:%ROOT%, Platforms, Platforms/Mobile
+Description:Setting up lighting for mobile games.
+Platform:Mobile
+
+## Supported Features
+
+The features listed below are supported on mobile platforms:
+
+* Linear HDR lighting.
+* Directional lightmaps (normal is taken into account).
+* Distance field shadows + analytical specular on sun.
+* Image based specular lighting - nearest reflection capture is applied to each object, without parallax correction. So there can be seams between objects.
+* Dynamic objects receive lighting correctly but do not cast shadows.
+
+## Supported Light Types
+
+Mobile platforms only support a subset of the light types available in Unreal Engine. These are:
+
+| Type | Additional Info |
+| ---- | --------------- |
+| Stationary Directional Light | Directional Light with **Mobility = Stationary**. Best quality. |
+| Static Directional Light | Directional Light with **Mobility = Static**. Best performance (no distance field shadows or sun specular). |
+| Static Point Light | Point Light with **Mobility = Static**. |
+| Static Spot Light | Spot Light with **Mobility = Static**. |
+
+
+## Reflections
+
+1. Disable any ambient cubemaps you have in your post process volumes (set intensity to 0).
+2. Place SphereReflectionCaptures in the areas that you want to capture lighting.  You do not need a lot of these, just where there are unique surrounding lighting situations.
+3. Make sure your materials are setup for reflections: interesting normalmap, varying roughness, nothing plugged into specular, and metallic of 1 or 0.
+
+
+Right now, each mesh component gets assigned to the closest reflection capture.  That means there will be seams in reflections between objects, and sometimes a large mesh will use an undesirable reflection capture that happened to be close to the mesh's center. 

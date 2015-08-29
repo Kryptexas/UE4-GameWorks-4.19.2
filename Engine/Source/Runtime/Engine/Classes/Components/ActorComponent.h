@@ -12,11 +12,27 @@ struct FReplicationFlags;
 UENUM()
 enum class EComponentCreationMethod : uint8
 {
-	Native,						// A component that is part of a native class
-	SimpleConstructionScript,	// A component that is created from a template defined in the Components section of the Blueprint
-	UserConstructionScript,		// A dynamically created component, either from the UserConstructionScript or from a Add Component node in a Blueprint event graph
-	Instance,					// A component added to a single Actor instance via the Component section of the Actor's details panel
+	/** A component that is part of a native class. */
+	Native,
+	/** A component that is created from a template defined in the Components section of the Blueprint. */
+	SimpleConstructionScript,	
+	/**A dynamically created component, either from the UserConstructionScript or from a Add Component node in a Blueprint event graph. */
+	UserConstructionScript,
+	/** A component added to a single Actor instance via the Component section of the Actor's details panel. */
+	Instance,
 };
+
+
+/** Whether to teleport physics body or not */
+enum class ETeleportType
+{
+	/** Do not teleport physics body. This means velocity will reflect the movement between initial and final position, and collisions along the way will occur */
+	None,
+	/** Teleport physics body so that velocity remains the same and no collision occurs */
+	TeleportPhysics
+};
+
+FORCEINLINE ETeleportType TeleportFlagToEnum(bool bTeleport) { return bTeleport ? ETeleportType::TeleportPhysics : ETeleportType::None; }
 
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
@@ -41,7 +57,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Main tick function for the Actor */
-	UPROPERTY(EditDefaultsOnly, Category="Tick")
+	UPROPERTY(EditDefaultsOnly, Category="ComponentTick")
 	struct FActorComponentTickFunction PrimaryComponentTick;
 
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting. */
@@ -139,6 +155,9 @@ private:
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
 	uint32 bHasBegunPlay:1;
 
+	/** Indicates the the destruction process has begun for this component to avoid recursion */
+	uint32 bIsBeingDestroyed:1;
+
 #if WITH_EDITOR
 	/** During undo/redo it isn't safe to cache owner */
 	uint32 bCanUseCachedOwner:1;
@@ -172,6 +191,15 @@ public:
 	bool HasBeenCreated() const { return bHasBeenCreated; }
 	bool HasBeenInitialized() const { return bHasBeenInitialized; }
 	bool HasBegunPlay() const { return bHasBegunPlay; }
+
+	/**
+	 * Returns whether the component is in the process of being destroyed.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Components", meta=(DisplayName="Is Component Being Destroyed"))
+	bool IsBeingDestroyed() const
+	{
+		return bIsBeingDestroyed;
+	}
 
 	bool IsCreatedByConstructionScript() const;
 
@@ -248,6 +276,9 @@ public:
 	/** Allows a component to replicate other subobject on the actor  */
 	virtual bool ReplicateSubobjects(class UActorChannel *Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags);
 
+	/** Called on the component right before replication occurs */
+	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker);
+
 	virtual bool GetComponentClassCanReplicate() const;
 
 	/** Returns whether this component is an editor-only object or not */
@@ -295,6 +326,12 @@ protected:
 	 * Called when a component is unregistered. Called after DestroyRenderState_Concurrent and DestroyPhysicsState are called.
 	 */
 	virtual void OnUnregister();
+
+	/** Return true if CreateRenderState() should be called */
+	virtual bool ShouldCreateRenderState() const 
+	{
+		return false;
+	}
 
 	/** Used to create any rendering thread information for this component
 	*
@@ -393,7 +430,6 @@ public:
 	/** 
 	 * Set up a tick function for a component in the standard way. 
 	 * Tick after the actor. Don't tick if the actor is static, or if the actor is a template or if this is a "NeverTick" component.
-	 * Owner is the EnableParent.
 	 * I tick while paused if only if my owner does.
 	 * @param	TickFunction - structure holding the specific tick function
 	 * @return  true if this component met the criteria for actually being ticked.
@@ -468,7 +504,7 @@ public:
 	void DoDeferredRenderUpdates_Concurrent();
 
 	/** Recalculate the value of our component to world transform */
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) {}
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None){}
 
 	/** Mark the render state as dirty - will be sent to the render thread at the end of the frame. */
 	void MarkRenderStateDirty();
@@ -487,6 +523,9 @@ public:
 
 	/** return true if this component requires end of frame updates to happen from the game thread. */
 	virtual bool RequiresGameThreadEndOfFrameUpdates() const;
+
+	/** return true if this component requires end of frame recreates to happen from the game thread. */
+	virtual bool RequiresGameThreadEndOfFrameRecreate() const;
 
 	/** Recreate the render state right away. Generally you always want to call MarkRenderStateDirty instead. 
 	*
@@ -544,9 +583,6 @@ public:
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const;
-
-	/** The type of the component instance data that this component is interested in */
-	virtual FName GetComponentInstanceDataType() const;
 
 	// Begin UObject interface.
 	virtual void BeginDestroy() override;
@@ -607,6 +643,7 @@ public:
 	void ReregisterComponent();
 
 	/** Changes the ticking group for this component */
+	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	void SetTickGroup(ETickingGroup NewTickGroup);
 
 	/** Make this component tick after PrerequisiteActor */

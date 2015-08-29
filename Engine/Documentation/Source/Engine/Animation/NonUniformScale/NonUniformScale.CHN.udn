@@ -1,0 +1,20 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Non-Uniform Scale Animation
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Overview of how non-uniform scale animations can be used.
+
+## Overview
+The animation system in Unreal Engine 4 does support non-uniform scale animations. When importing an animation, if scale exists, it is automatically imported without the need for setting additional options. For memory conservation, the engine does not save scale for all animations and only saves it if the animation has a scale that is not 1. 
+
+For examples, see the videos below. 
+
+[REGION:lightbox]
+[![](AngryChest.png)(w:300 h:200)](AngryChest.wmv) [![](CastSpell.png)(w:300 h:200)](CastSpell.wmv) [![](Trooper.png)(w:300 h:200)](Trooper.wmv)
+[/REGION]
+
+
+**Click to watch playback of each video**
+
+Refer to the [FBX Animation Pipeline](Engine\Content\FBX\Animations) page for more information on importing FBX Animations. 
+

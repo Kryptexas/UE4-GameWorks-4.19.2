@@ -14,7 +14,6 @@
 #include "ComponentReregisterContext.h"
 
 DECLARE_CYCLE_STAT(TEXT("Gen Verts"),STAT_NiagaraGenerateVertices,STATGROUP_Niagara);
-DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGROUP_Niagara);
 
 DEFINE_LOG_CATEGORY(LogNiagara);
 
@@ -203,8 +202,10 @@ void UNiagaraComponent::OnRegister()
 					{
 						Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
 					}
+					InEffect->RenderModuleupdate();
 				}
 			);
+			FlushRenderingCommands();
 		}
 		VectorVM::Init();
 	}
@@ -227,15 +228,27 @@ void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 			NiagaraEffectRenderer* Renderer = Emitter->GetEffectRenderer();
 			if (Renderer)
 			{
-				FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(Emitter->GetData());
+				if (Emitter->IsEnabled())
+				{
+					FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(Emitter->GetData());
 
-				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-					FSendNiagaraDynamicData,
-					NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
-					FNiagaraDynamicDataBase*, DynamicData, DynamicData,
-					{
-					EffectRenderer->SetDynamicData_RenderThread(DynamicData);
-				});
+					ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+						FSendNiagaraDynamicData,
+						NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
+						FNiagaraDynamicDataBase*, DynamicData, DynamicData,
+						{
+						EffectRenderer->SetDynamicData_RenderThread(DynamicData);
+					});
+				}
+				else
+				{
+					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
+						FSendNiagaraDynamicData,
+						NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
+						{
+							EffectRenderer->SetDynamicData_RenderThread(nullptr);
+						});
+				}
 			}
 		}
 	}

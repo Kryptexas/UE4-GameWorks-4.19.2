@@ -72,14 +72,14 @@ but only a single instance can be editing a specific asset at any time.
 General editors are opened through the **Window** menu, while asset editors are opened by choosing to edit a particular 
 type of asset. The **Level Editor** is a special case and is always present while Unreal Editor is open.
 
-Editors can be closed by clicking the ![Close App Button](button_close_app.png) button on the editors's tab or by **right-
+Editors can be closed by clicking the ![Close App Button](button_close_app.png) button on the editor's tab or by **right-
 clicking** and choose **Close**.
 
 ![](Tabs.png)
 
 
 
-Each editor consists of a **Menu Bar** and one or more **Tabs** which comprise the majority of the functionality of the editor.
+Each editor consists of a Menu Bar and one or more Tabs which comprise the majority of the functionality of the editor.
 
 
 ### Editor Tabs
@@ -146,7 +146,11 @@ closing the editor. Tabs also remember their last location and will reopen there
 [/REGION]
 
 [REGION:tip]
-To save the layout manually, you can use the **Save layout** command in the **Window** menu.
+To save the layout manually, you can use the Save layout command in the Window menu.
 [/REGION]
+
+
+
+
 
 

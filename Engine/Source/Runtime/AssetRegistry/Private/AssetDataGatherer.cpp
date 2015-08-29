@@ -83,7 +83,7 @@ uint32 FAssetDataGatherer::Run()
 	}
 
 	TArray<FString> LocalFilesToSearch;
-	TArray<FBackgroundAssetData*> LocalAssetResults;
+	TArray<IGatheredAssetData*> LocalAssetResults;
 	TArray<FPackageDependencyData> LocalDependencyResults;
 
 	while ( StopTaskCounter.GetValue() == 0 )
@@ -153,11 +153,11 @@ uint32 FAssetDataGatherer::Run()
 				if ( bLoadAndSaveCache )
 				{
 					const FName PackageName = FName(*FPackageName::FilenameToLongPackageName(AssetFile));
-					const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
 					FDiskCachedAssetData** DiskCachedAssetDataPtr = DiskCachedAssetDataMap.Find(PackageName);
 					FDiskCachedAssetData* DiskCachedAssetData = NULL;
 					if ( DiskCachedAssetDataPtr && *DiskCachedAssetDataPtr )
 					{
+						const FDateTime& FileTimestamp = IFileManager::Get().GetTimeStamp(*AssetFile);
 						const FDateTime& CachedTimestamp = (*DiskCachedAssetDataPtr)->Timestamp;
 						if ( FileTimestamp == CachedTimestamp )
 						{
@@ -169,7 +169,7 @@ uint32 FAssetDataGatherer::Run()
 					{
 						for ( auto CacheIt = DiskCachedAssetData->AssetDataList.CreateConstIterator(); CacheIt; ++CacheIt )
 						{
-							LocalAssetResults.Add(new FBackgroundAssetData(*CacheIt));
+							LocalAssetResults.Add(new FAssetDataWrapper(*CacheIt));
 						}
 
 						LocalDependencyResults.Add(DiskCachedAssetData->DependencyData);
@@ -267,7 +267,7 @@ void FAssetDataGatherer::EnsureCompletion()
     Thread = NULL;
 }
 
-bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<FBackgroundAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch)
+bool FAssetDataGatherer::GetAndTrimSearchResults(TArray<IGatheredAssetData*>& OutAssetResults, TArray<FString>& OutPathResults, TArray<FPackageDependencyData>& OutDependencyResults, TArray<double>& OutSearchTimes, int32& OutNumFilesToSearch, int32& OutNumPathsToSearch)
 {
 	FScopeLock CritSectionLock(&WorkerThreadCriticalSection);
 
@@ -474,8 +474,23 @@ void FAssetDataGatherer::SerializeCache(FArchive& Ar)
 			// load it
 			Ar << *NewCachedAssetDataPtr;
 
+			if (Ar.IsError())
+			{
+				// There was an error reading the cache. Bail out.
+				break;
+			}
+
 			// hash it
 			DiskCachedAssetDataMap.Add(NewCachedAssetDataPtr->PackageName, NewCachedAssetDataPtr);
+		}
+
+		// If there was an error loading the cache, abandon all data loaded from it so we can build a clean one.
+		if (Ar.IsError())
+		{
+			UE_LOG(LogAssetRegistry, Error, TEXT("There was an error loading the asset registry cache. Generating a new one."));
+			DiskCachedAssetDataMap.Empty();
+			delete DiskCachedAssetDataBuffer;
+			DiskCachedAssetDataBuffer = nullptr;
 		}
 	}
 

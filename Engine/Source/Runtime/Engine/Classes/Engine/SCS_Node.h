@@ -20,9 +20,11 @@ class USCS_Node : public UObject
 	UPROPERTY()
 	FName VariableName;
 
+#if WITH_EDITORONLY_DATA
 	/** If non-None, the assigned category name */
 	UPROPERTY()
-	FName CategoryName;
+	FText CategoryName;
+#endif //WITH_EDITORONLY_DATA
 
 	/** Socket/Bone that Node might attach to */
 	UPROPERTY()
@@ -91,6 +93,9 @@ class USCS_Node : public UObject
 	 * @return The new component instance that was created, or NULL on failure.
 	 */
 	UActorComponent* ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform);
+
+	/** Return the actual component template used in the BPGC. The template can be overridden in a child. */
+	ENGINE_API UActorComponent* GetActualComponentTemplate(UBlueprintGeneratedClass* ActualBPGC);
 
 	/** Returns an array containing this node and all children below it */
 	TArray<USCS_Node*> GetAllNodes();

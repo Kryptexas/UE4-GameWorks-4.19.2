@@ -1,12 +1,10 @@
-﻿INTSourceChangelist:2446080
+﻿INTSourceChangelist:2597114
 Availability:Public
 Title: 블루프린트 에디터 디폴트 탭
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes
 Description:클래스 디폴트 탭에 대한 개요입니다.
 
 [TOC (start:2)]
-
-## 개요
 
 **Class Defaults** (클래스 디폴트) 탭에는 블루프린트의 기본 세팅 및 프로퍼티에 대한 정보와, 블푸프린트에 포함된 변수 관련 정보가 들어있습니다. 이러한 세팅은 입맛대로 변경할 수 있습니다.
 

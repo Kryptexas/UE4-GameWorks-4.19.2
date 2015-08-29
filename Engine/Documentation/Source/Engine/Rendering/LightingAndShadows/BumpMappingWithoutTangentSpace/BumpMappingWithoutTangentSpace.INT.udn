@@ -160,7 +160,7 @@ The **PreparePerturbNormalHQ** function computes the three sample positions need
 function to compute the world-space normal.
 
 [REGION:lightbox]
-	[![UsingPerturbHQ.png](UsingPerturbHQ.png)(w:720)](UsingPerturbHQ.png)
+	[![UsingPerturbHQ.png](UsingPerturbHQ.png)(w:720)](UsingPerturbHQ.png)  
 [/REGION]
 
 | Item | Description |

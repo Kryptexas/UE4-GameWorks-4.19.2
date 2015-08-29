@@ -47,20 +47,46 @@ IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedVolumeIndirectLightingPolicy,
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FCachedPointIndirectLightingPolicy, FCachedPointIndirectLightingPolicy );
 IMPLEMENT_BASEPASS_LIGHTMAPPED_SHADER_TYPE( FSimpleDynamicLightingPolicy, FSimpleDynamicLightingPolicy );
 
-void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bOutSkyLightIsDynamic)
+void FSkyLightReflectionParameters::GetSkyParametersFromScene(
+	const FScene* Scene, 
+	bool bApplySkyLight, 
+	FTexture*& OutSkyLightTextureResource, 
+	FTexture*& OutSkyLightBlendDestinationTextureResource, 
+	float& OutApplySkyLightMask, 
+	float& OutSkyMipCount, 
+	bool& bOutSkyLightIsDynamic, 
+	float& OutBlendFraction)
 {
 	OutSkyLightTextureResource = GBlackTextureCube;
+	OutSkyLightBlendDestinationTextureResource = GBlackTextureCube;
 	OutApplySkyLightMask = 0;
 	bOutSkyLightIsDynamic = false;
+	OutBlendFraction = 0;
 
 	if (Scene
 		&& Scene->SkyLight 
 		&& Scene->SkyLight->ProcessedTexture
 		&& bApplySkyLight)
 	{
-		OutSkyLightTextureResource = Scene->SkyLight->ProcessedTexture;
+		const FSkyLightSceneProxy& SkyLight = *Scene->SkyLight;
+		OutSkyLightTextureResource = SkyLight.ProcessedTexture;
+		OutBlendFraction = SkyLight.BlendFraction;
+
+		if (SkyLight.BlendFraction > 0.0f && SkyLight.BlendDestinationProcessedTexture)
+		{
+			if (SkyLight.BlendFraction < 1.0f)
+			{
+				OutSkyLightBlendDestinationTextureResource = SkyLight.BlendDestinationProcessedTexture;
+			}
+			else
+			{
+				OutSkyLightTextureResource = SkyLight.BlendDestinationProcessedTexture;
+				OutBlendFraction = 0;
+			}
+		}
+		
 		OutApplySkyLightMask = 1;
-		bOutSkyLightIsDynamic = !Scene->SkyLight->bHasStaticLighting && !Scene->SkyLight->bWantsStaticShadowing;
+		bOutSkyLightIsDynamic = !SkyLight.bHasStaticLighting && !SkyLight.bWantsStaticShadowing;
 	}
 
 	OutSkyMipCount = 1;
@@ -74,37 +100,40 @@ void FSkyLightReflectionParameters::GetSkyParametersFromScene(const FScene* Scen
 
 void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* Shader, const FViewInfo* View)
 {
+	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+	auto PixelShader = Shader->GetPixelShader();
+
 	SetTextureParameter(
 		RHICmdList, 
-		Shader->GetPixelShader(), 
+		PixelShader, 
 		TranslucencyLightingVolumeAmbientInner, 
 		TranslucencyLightingVolumeAmbientInnerSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-		GSceneRenderTargets.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+		SceneContext.GetTranslucencyVolumeAmbient(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
 		RHICmdList, 
-		Shader->GetPixelShader(), 
+		PixelShader, 
 		TranslucencyLightingVolumeAmbientOuter, 
 		TranslucencyLightingVolumeAmbientOuterSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-		GSceneRenderTargets.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+		SceneContext.GetTranslucencyVolumeAmbient(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
 		RHICmdList, 
-		Shader->GetPixelShader(), 
+		PixelShader, 
 		TranslucencyLightingVolumeDirectionalInner, 
 		TranslucencyLightingVolumeDirectionalInnerSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
+		SceneContext.GetTranslucencyVolumeDirectional(TVC_Inner)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SetTextureParameter(
 		RHICmdList, 
-		Shader->GetPixelShader(), 
+		PixelShader, 
 		TranslucencyLightingVolumeDirectionalOuter, 
 		TranslucencyLightingVolumeDirectionalOuterSampler, 
 		TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
-		GSceneRenderTargets.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
+		SceneContext.GetTranslucencyVolumeDirectional(TVC_Outer)->GetRenderTargetItem().ShaderResourceTexture);
 
 	SkyLightReflectionParameters.SetParameters(RHICmdList, Shader->GetPixelShader(), (const FScene*)(View->Family->Scene), true);
 
@@ -112,7 +141,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 	{
 		SetTextureParameter(
 			RHICmdList, 
-			Shader->GetPixelShader(), 
+			PixelShader, 
 			HZBTexture, 
 			HZBSampler, 
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
@@ -128,11 +157,24 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 
 		SetTextureParameter(
 			RHICmdList, 
-			Shader->GetPixelShader(), 
+			PixelShader, 
 			PrevSceneColor, 
 			PrevSceneColorSampler, 
 			TStaticSamplerState<SF_Bilinear, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			(*PrevSceneColorRT)->GetRenderTargetItem().ShaderResourceTexture );
+		
+		const FVector2D HZBUvFactor(
+			float(View->ViewRect.Width()) / float(2 * View->HZBMipmap0Size.X),
+			float(View->ViewRect.Height()) / float(2 * View->HZBMipmap0Size.Y)
+			);
+		const FVector4 HZBUvFactorAndInvFactorValue(
+			HZBUvFactor.X,
+			HZBUvFactor.Y,
+			1.0f / HZBUvFactor.X,
+			1.0f / HZBUvFactor.Y
+			);
+			
+		SetShaderValue(RHICmdList, PixelShader, HZBUvFactorAndInvFactor, HZBUvFactorAndInvFactorValue);
 	}
 }
 
@@ -178,6 +220,8 @@ public:
 
 	bool AllowIndirectLightingCache() const 
 	{ 
+		// Note: can't disallow based on presence of PrecomputedLightVolumes in the scene as this is registration time
+		// Unless extra handling is added to recreate static draw lists when new volumes are added
 		return true; 
 	}
 
@@ -264,6 +308,7 @@ public:
 
 	const FViewInfo& View;
 	bool bBackFace;
+	float DitheredLODTransitionValue;
 	bool bPreFog;
 	FHitProxyId HitProxyId;
 
@@ -271,10 +316,12 @@ public:
 	FDrawBasePassDynamicMeshAction(
 		const FViewInfo& InView,
 		const bool bInBackFace,
+		float InDitheredLODTransitionValue,
 		const FHitProxyId InHitProxyId
 		)
 		: View(InView)
 		, bBackFace(bInBackFace)
+		, DitheredLODTransitionValue(InDitheredLODTransitionValue)
 		, HitProxyId(InHitProxyId)
 	{}
 
@@ -283,7 +330,8 @@ public:
 
 	bool AllowIndirectLightingCache() const 
 	{ 
-		return View.Family->EngineShowFlags.IndirectLightingCache; 
+		const FScene* Scene = (const FScene*)View.Family->Scene;
+		return View.Family->EngineShowFlags.IndirectLightingCache && Scene && Scene->PrecomputedLightVolumes.Num() > 0;
 	}
 
 	bool AllowIndirectLightingCacheVolumeTexture() const
@@ -341,6 +389,7 @@ public:
 				Parameters.Mesh,
 				BatchElementIndex,
 				bBackFace,
+				DitheredLODTransitionValue,
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ElementDataType(LightMapElementData),
 				typename TBasePassDrawingPolicy<LightMapPolicyType>::ContextDataType()
 				);
@@ -388,6 +437,7 @@ bool FBasePassOpaqueDrawingPolicyFactory::DrawDynamicMesh(
 			FDrawBasePassDynamicMeshAction(
 				View,
 				bBackFace,
+				Mesh.DitheredLODTransitionAlpha,
 				HitProxyId
 				)
 			);

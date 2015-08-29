@@ -50,7 +50,7 @@ FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FStruc
 	return UAV;
 }
 
-FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FTextureRHIParamRef TextureRHI)
+FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FTextureRHIParamRef TextureRHI, uint32 MipLevel)
 {
 	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 
@@ -100,6 +100,27 @@ FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture
 {
 	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
 	SRV->SourceTexture = (FRHITexture*)Texture2DRHI;
+	return SRV;
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture3DRHIParamRef Texture3DRHI, uint8 MipLevel)
+{
+	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)Texture3DRHI;
+	return SRV;
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTexture2DArrayRHIParamRef Texture2DArrayRHI, uint8 MipLevel)
+{
+	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)Texture2DArrayRHI;
+	return SRV;
+}
+
+FShaderResourceViewRHIRef FMetalDynamicRHI::RHICreateShaderResourceView(FTextureCubeRHIParamRef TextureCubeRHI, uint8 MipLevel)
+{
+	FMetalShaderResourceView* SRV = new FMetalShaderResourceView;
+	SRV->SourceTexture = (FRHITexture*)TextureCubeRHI;
 	return SRV;
 }
 

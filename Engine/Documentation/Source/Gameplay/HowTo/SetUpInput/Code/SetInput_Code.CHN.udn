@@ -1,0 +1,13 @@
+﻿INTSourceChangelist:0
+Availability: Docs
+Title:How to Set Up Inputs in Code
+Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\SetUpInput
+Description:A How To Guide for Setting Up Inputs in Code
+
+[TOC (start:2 end:2)]
+
+## Overview
+
+## Creating New Inputs (Action/Axis Mappings)
+
+## Implementing Action/Axis Mappings 

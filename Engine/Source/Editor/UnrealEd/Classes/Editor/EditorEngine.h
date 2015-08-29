@@ -22,13 +22,13 @@ class USkeleton;
 UENUM()
 enum EMapSetBrushFlags				
 {
-	// Set brush color.
+	/** Set brush color. */
 	MSB_BrushColor	= 1,
-	// Set group.
+	/** Set group. */
 	MSB_Group		= 2,
-	// Set poly flags.
+	/** Set poly flags. */
 	MSB_PolyFlags	= 4,
-	// Set CSG operation.
+	/** Set CSG operation. */
 	MSB_BrushType	= 8,
 };
 
@@ -645,6 +645,14 @@ public:
 	DECLARE_EVENT_OneParam( UEditorEngine, FOnEndTransformObject, UObject& );
 	FOnEndTransformObject& OnEndObjectMovement() { return OnEndObjectTransformEvent; }
 
+	/** Editor-only event triggered before the camera viewed through the viewport is moved by an editor system */
+	DECLARE_EVENT_OneParam( UEditorEngine, FOnBeginTransformCamera, UObject& );
+	FOnBeginTransformCamera& OnBeginCameraMovement() { return OnBeginCameraTransformEvent; }
+
+	/** Editor-only event triggered after the camera viewed through the viewport has been moved by an editor system */
+	DECLARE_EVENT_OneParam( UEditorEngine, FOnEndTransformCamera, UObject& );
+	FOnEndTransformCamera& OnEndCameraMovement() { return OnEndCameraTransformEvent; }
+
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features).  The single bool parameter
 		should be set to true if recording features are needed. */
@@ -664,6 +672,20 @@ public:
 	* @param Object	The actor or component that moved
 	*/
 	void BroadcastEndObjectMovement(UObject& Object) const { OnEndObjectTransformEvent.Broadcast(Object); }
+
+	/**
+	* Called before the camera viewed through the viewport is moved by the editor
+	*
+	* @param Object	The camera that will be moved
+	*/
+	void BroadcastBeginCameraMovement(UObject& Object) const { OnBeginCameraTransformEvent.Broadcast(Object); }
+
+	/**
+	* Called when the camera viewed through the viewport has been moved by the editor
+	*
+	* @param Object	The camera that moved
+	*/
+	void BroadcastEndCameraMovement(UObject& Object) const { OnEndCameraTransformEvent.Broadcast(Object); }
 
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastObjectReimported(UObject* InObject);
@@ -689,6 +711,7 @@ public:
 	virtual UWorld* CreatePIEWorldByDuplication(FWorldContext &WorldContext, UWorld* InWorld, FString &PlayWorldMapName) override;
 	virtual bool GetMapBuildCancelled() const override { return false; }
 	virtual void SetMapBuildCancelled(bool InCancelled) override { /* Intentionally empty. */ }
+	virtual void HandleNetworkFailure(UWorld *World, UNetDriver *NetDriver, ENetworkFailure::Type FailureType, const FString& ErrorString) override;
 protected:
 	virtual void InitializeObjectReferences() override;
 	virtual void ProcessToggleFreezeCommand(UWorld* InWorld) override;
@@ -1262,7 +1285,7 @@ public:
 	 *
 	 * Doesn't do any transaction tracking.
 	 */
-	virtual void polyUpdateMaster( UModel* Model, int32 iSurf, int32 UpdateTexCoords );
+	virtual void polyUpdateMaster( UModel* Model, int32 iSurf, bool bUpdateTexCoords, bool bOnlyRefreshSurfaceMaterials );
 
 	/**
 	 * Populates a list with all polys that are linked to the specified poly.  The
@@ -1320,6 +1343,11 @@ public:
 	 * @param	bDeselectBSPSurfs			If true, also deselect all BSP surfaces.
 	 */
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) {}
+
+	/**
+	 * Deselect all surfaces.
+	 */
+	virtual void DeselectAllSurfaces() {}
 
 	// Bsp Poly selection virtuals from EditorCsg.cpp.
 	virtual void polySelectAll ( UModel* Model );
@@ -2274,6 +2302,11 @@ public:
 	 */
 	bool IsPlayingViaLauncher() const { return bPlayUsingLauncher && !bIsPlayWorldQueued; }
 
+	/** 
+	 * Cancel playing via the Launcher
+	 */
+	void CancelPlayingViaLauncher();
+
 	/** @return true if the editor is able to launch PIE with online platform support */
 	bool SupportsOnlinePIE() const;
 
@@ -2370,6 +2403,9 @@ private:
 	 */
 	virtual void OnLoginPIEComplete(int32 LocalUserNum, bool bWasSuccessful, const FUniqueNetId& UserId, const FString& ErrorString, FPieLoginStruct DataStruct);
 
+	/** Above function but called a frame later, to stop PIE login from happening from a network callback */
+	virtual void OnLoginPIEComplete_Deferred(int32 LocalUserNum, bool bWasSuccessful, FString ErrorString, FPieLoginStruct DataStruct);
+
 public:
 	/**
 	 * Continue the creation of a single PIE world after a login was successful
@@ -2377,8 +2413,9 @@ public:
 	 * @param PieWorldContext world context for this PIE instance
 	 * @param PlayNetMode mode to create this PIE world in (as server, client, etc)
 	 * @param DataStruct data required to continue PIE creation, set at login time
+	 * @return	true if world created successfully
 	 */
-	void CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
+	bool CreatePIEWorldFromLogin(FWorldContext& PieWorldContext, EPlayNetMode PlayNetMode, FPieLoginStruct& DataStruct);
 
 	/*
 	 * Handler for when viewport close request is made. 
@@ -2544,6 +2581,12 @@ private:
 	/** Delegate broadcast when an actor or component has been moved, rotated, or scaled */
 	FOnEndTransformObject OnEndObjectTransformEvent;
 
+	/** Delegate broadcast when the camera viewed through the viewport is about to be moved */
+	FOnBeginTransformCamera OnBeginCameraTransformEvent;
+
+	/** Delegate broadcast when the camera viewed through the viewport has been moved */
+	FOnEndTransformCamera OnEndCameraTransformEvent;
+
 	/** Delegate broadcast by the engine every tick when PIE/SIE is active, to check to see whether we need to
 		be able to capture state for simulating actor (for Sequencer recording features) */
 	FGetActorRecordingState GetActorRecordingStateEvent;
@@ -2629,9 +2672,6 @@ protected:
 	 * Invalidates all editor viewports and hit proxies, used when global changes like Undo/Redo may have invalidated state everywhere
 	 */
 	void InvalidateAllViewportsAndHitProxies();
-
-	/** Invalidate all level editor viewport client hit proxies immediately */
-	void InvalidateAllLevelEditorViewportClientHitProxies();
 
 	/** Destroy any online subsystems generated by PIE */
 	void CleanupPIEOnlineSessions(TArray<FName> OnlineIdentifiers);

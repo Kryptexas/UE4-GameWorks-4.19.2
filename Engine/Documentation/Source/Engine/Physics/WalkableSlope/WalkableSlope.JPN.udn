@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2325564
+﻿INTSourceChangelist:2600604
 Availability:Public
 Title:Walkable Slope （歩行可能なスロープ）
 Crumbs: %ROOT%, Engine, Engine/Physics
@@ -43,22 +43,22 @@ Description:
 [/OBJECT]
 [/VAR]
 
-## 概要
 
-**[Physics Bodies]** にある **[Walkable Slope Override]** では、どのサーフェスを **キャラクター** が歩いて上ることができるかを微調整できます。たとえば、階段の傾斜が大きすぎる、または「芝生は立ち入り禁止」の標識を強制したい場合、こうした設定でそれを行うことができます。
+
+**[Physics Bodies (物理ボディ)]** にある **[Walkable Slope Override (歩行可能なスロープのオーバーライド)]** では、どのサーフェスを **キャラクター** が歩いて上ることができるかを微調整できます。たとえば、階段の傾斜が大きすぎる、または「芝生は立ち入り禁止」の標識を強制したい場合、こうした設定でそれを行うことができます。
 
 ## 使用法
 
-**[Character Movement Component]** には、**[Walkable Floor Angle]** というプロパティがあります。デフォルトで 45 度くらいになっています。そのため、キャラクターがこれよりも高い角度のサーフェスを移動しようとすると、キャラクターはその傾斜を登れないか、足を踏み外して滑り落ちます。
+**[Character Movement コンポーネント]** には、**[Walkable Floor Angle (歩行可能なフロアの角度)]** というプロパティがあります。デフォルトで 45 度くらいになっています。そのため、キャラクターがこれよりも高い角度のサーフェスを移動しようとすると、キャラクターはその傾斜を登れないか、足を踏み外して滑り落ちます。
 
-どのエディタを使用しているかに応じて、またはレベル内でアクタを見ている場合、**[Override Walkable Slope]** という接頭辞が付いているプロパティまたは展開可能なプロパティのグループがあります。ここでは、**[Walkable Slope Behavior]** と **[Walkable Slope Angle]** が設定できます。
+どのエディタを使用しているかに応じて、またはレベル内でアクタを見ている場合、**[Override Walkable Slope (歩行可能なスロープをオーバーライド)]** という接頭辞が付いているプロパティまたは展開可能なプロパティのグループが表示されます。ここでは、**[Walkable Slope Behavior (歩行可能なスロープのビヘイビア)]** と **[Walkable Slope Angle (歩行可能なスロープ角度)]** が設定できます。
 
 [REGION:raw]
 ![](walkableProps.png)(convert:false)
 [/REGION]
 
 
-### Increase Walkable Slope
+### Increase Walkable Slope（歩行可能なスロープの角度を増やす）
 
 この設定は、**[Physics Body]** の歩行可能なスロープを **[Walkable Slope Angle]** プロパティにリストされている値まで増やします。**[Walkable Slope Angle]** が 75 に設定されていて、**[Physics Body]** のサーフェスの角度が 65 であれば、キャラクターの **[Walkable Floor Angle]** とは関係なく、キャラクターはそこを歩いて上ることができます。
 
@@ -71,15 +71,20 @@ _青い角度はデフォルトの **[Character Movement Component Walkable Floo
 * **[Walkable Slope Angle]** の 0.0 の値は、実質上、**[Walkable Slope Behavior]** プロパティの **[No Change]** と同じです。
 * **[Walkable Slope Angle]** の 90.0 の値では、キャラクターは最高 90 度未満までの物理面であればどの角度でも超えることができます。
 
-### Decrease Walkable Slope
+### Decrease Walkable Slope（歩行可能なスロープの角度を減らす）
 
 この設定は、**[Physics Body]** の歩行可能なスロープを **[Walkable Slope Angle]** プロパティにリストされている値に制限します。**[Walkable Slope Angle]** が 25 に設定されていて、**[Physics Body]** のサーフェスの角度が 35 度であれば、キャラクターの **[Walkable Floor Angle]** とは関係なく、キャラクターはそこを歩いて上ることはできません。
 
 ![](Decreased.png)
 
-_青い角度はデフォルトの **[Character Movement Component Walkable Floor Angle]** であり、赤色は、新規の**[Increased Walkable Slope]** 角度を表します。_
+_青い角度はデフォルトの **[Character Movement Component Walkable Floor Angle（Character Movement コンポーネントの歩行可能なフロア角度）]** であり、赤色は、新規の **Decreased Walkable Slope (減らした歩行可能速度)** 角度を表します。_
 
 **[Walkable Slope Behavior]** は、"Decrease Walkable Slope" に設定されていますが、
 
-* **[Walkable Slope Angle]** の 0.0 の値では、キャラクターは物理面を歩いて渡ることはできません。この場合、キャラクターがサーフェス上を滑りますが、方向を変えることができないため、ほぼ平らなサーフェスでは奇妙な動きになります。
+* **[Walkable Slope Angle]** の 0.0 の値では、キャラクターは **Physics Body** サーフェスを歩いて渡ることはできません。この場合、キャラクターがサーフェス上を滑りますが、方向を変えることができないため、ほぼ平らなサーフェスでは奇妙な動きになります。
 * **[Walkable Slope Angle]** の 90.0 の値は、実質上、**[Walkable Slope Behavior]** プロパティの **[No Change]** と同じです。
+
+
+
+
+

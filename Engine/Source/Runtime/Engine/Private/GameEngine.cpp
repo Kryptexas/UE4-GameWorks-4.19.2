@@ -38,6 +38,7 @@
 #include "GameFramework/GameUserSettings.h"
 #include "GameFramework/GameMode.h"
 #include "GameDelegates.h"
+#include "Engine/CoreSettings.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -179,6 +180,17 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 		auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
 		check(CVar);
 		WindowMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+
+		if (PLATFORM_WINDOWS && WindowMode == EWindowMode::Fullscreen)
+		{
+			// Handle fullscreen mode differently for D3D11/D3D12
+			static const bool bD3D12 = FParse::Param(FCommandLine::Get(), TEXT("d3d12")) || FParse::Param(FCommandLine::Get(), TEXT("dx12"));
+			if (bD3D12)
+			{
+				// Force D3D12 RHI to use windowed fullscreen mode
+				WindowMode = EWindowMode::WindowedFullscreen;
+			}
+		}
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
@@ -297,7 +309,14 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	// Do not set fullscreen mode here, since it doesn't take 
 	// HMDDevice into account. The window mode will be set properly later
 	// from SwitchGameWindowToUseGameViewport() method (see ResizeWindow call).
-	Window->SetWindowMode(EWindowMode::Windowed);
+	if (WindowMode == EWindowMode::Fullscreen)
+	{
+		Window->SetWindowMode(EWindowMode::WindowedFullscreen);
+	}
+	else
+	{
+		Window->SetWindowMode(WindowMode);
+	}
 
 	Window->ShowWindow();
 
@@ -369,10 +388,6 @@ void UGameEngine::RedrawViewports( bool bShouldPresent /*= true*/ )
 UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	AsyncLoadingTimeLimit = 5.0f;
-	bAsyncLoadingUseFullTimeLimit = true;
-	PriorityAsyncLoadingExtraTime = 20.0f;
-
 	C_WorldBox = FColor(0, 0, 40, 255);
 	C_BrushWire = FColor(192, 0, 0, 255);
 	C_AddWire = FColor(127, 127, 255, 255);
@@ -454,6 +469,7 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 	}
 
 	bCheckForMovieCapture = true;
+	LastTimeLogsFlushed = FPlatformTime::Seconds();
 
 	// Attach the viewport client to a new viewport.
 	if(ViewportClient)
@@ -472,13 +488,13 @@ void UGameEngine::Init(IEngineLoop* InEngineLoop)
 			SwitchGameWindowToUseGameViewport();
 		}
 
-		UGameViewportClient::OnViewportCreated().Broadcast();
-
 		FString Error;
 		if(ViewportClient->SetupInitialLocalPlayer(Error) == NULL)
 		{
 			UE_LOG(LogEngine, Fatal,TEXT("%s"),*Error);
 		}
+
+		UGameViewportClient::OnViewportCreated().Broadcast();
 	}
 
 	GameInstance->StartGameInstance();
@@ -818,7 +834,17 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		HotReload->Tick();
 	}
 
-	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
+	if (IsRunningDedicatedServer())
+	{
+		double CurrentTime = FPlatformTime::Seconds();
+		if (CurrentTime - LastTimeLogsFlushed > static_cast<double>(ServerFlushLogInterval))
+		{
+			GLog->Flush();
+
+			LastTimeLogsFlushed = FPlatformTime::Seconds();
+		}
+	}
+	else if (!IsRunningCommandlet())
 	{
 		// Clean up the game viewports that have been closed.
 		CleanupGameViewport();
@@ -842,7 +868,7 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	// Update subsystems.
 	{
 		// This assumes that UObject::StaticTick only calls ProcessAsyncLoading.
-		StaticTick(DeltaSeconds, bAsyncLoadingUseFullTimeLimit, AsyncLoadingTimeLimit / 1000.f);
+		StaticTick(DeltaSeconds, !!GAsyncLoadingUseFullTimeLimit, GAsyncLoadingTimeLimit / 1000.f);
 	}
 
 	// -----------------------------------------------------

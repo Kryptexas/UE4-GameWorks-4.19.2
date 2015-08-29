@@ -422,7 +422,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseMove( TSharedRef<SWidget> Widge
 					NewViewOutputMax = LocalClampMax.GetValue();
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate);
 				if (Scrollbar.IsValid())
 				{
 					float InOffsetFraction = (NewViewOutputMin - LocalClampMin.GetValue()) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
@@ -562,7 +562,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> Widg
 
 	if (MouseEvent.IsLeftShiftDown())
 	{
-		const float ZoomDelta = 0.1f * MouseEvent.GetWheelDelta();
+		const float ZoomDelta = 0.025f * MouseEvent.GetWheelDelta();
 		TimeSliderArgs.CursorSize.Set(FMath::Clamp(TimeSliderArgs.CursorSize.Get() + ZoomDelta, 0.0f, 1.0f));
 
 		ReturnValue = FReply::Handled();
@@ -597,7 +597,7 @@ FReply FVisualLoggerTimeSliderController::OnMouseWheel( TSharedRef<SWidget> Widg
 					NewViewOutputMax = LocalClampMax.GetValue();
 				}
 
-				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax));
+				TimeSliderArgs.OnViewRangeChanged.ExecuteIfBound(TRange<float>(NewViewOutputMin, NewViewOutputMax), EViewRangeInterpolation::Immediate);
 				if (Scrollbar.IsValid())
 				{
 					float InOffsetFraction = (NewViewOutputMin - LocalClampMin.GetValue()) / (LocalClampMax.GetValue() - LocalClampMin.GetValue());
@@ -664,7 +664,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 			CursorBackground,
 			MyClippingRect,
 			DrawEffects,
-			FColor(FLinearColor::White).WithAlpha(20)
+			FLinearColor::White.CopyWithNewOpacity(0.08f)
 			);
 
 		// Draw a line for the scrub position
@@ -680,7 +680,7 @@ int32 FVisualLoggerTimeSliderController::OnPaintSectionView( const FGeometry& Al
 			LinePoints,
 			MyClippingRect,
 			DrawEffects,
-			FColor(FLinearColor::White).WithAlpha(100),
+			FLinearColor::White.CopyWithNewOpacity(0.39f),
 			false
 			);
 

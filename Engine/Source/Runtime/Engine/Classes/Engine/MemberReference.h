@@ -205,7 +205,7 @@ public:
 	UPackage* GetMemberParentPackage() const
 	{
 		if (UPackage* ParentAsPackage = Cast<UPackage>(MemberParent))
-	{
+		{
 			return ParentAsPackage;
 		}
 		else if (MemberParent != nullptr)
@@ -335,7 +335,7 @@ public:
 			}
 			else
 #endif
-				if(TargetScope != NULL)
+			if(TargetScope != NULL)
 			{
 				// Find in target scope
 				ReturnField = FindField<TFieldType>(TargetScope, MemberName);

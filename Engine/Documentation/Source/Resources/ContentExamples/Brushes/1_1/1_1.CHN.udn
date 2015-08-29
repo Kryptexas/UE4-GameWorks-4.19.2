@@ -1,8 +1,7 @@
-﻿INTSourceChangelist:1901682
-Availability: Docs
-Title:1.1 - 构建器画刷
-Crumbs:%ROOT%, Resources, Resources/ContentExamples,  Resources/ContentExamples/Brushes
-Description:构建器画刷
+﻿Availability: Docs
+Title:1.1 - 编译器画刷
+Crumbs:%ROOT%, Resources,  Resources/ContentExamples/Brushes
+Description:编译器画刷
 
 
 [VAR:Topic]
@@ -32,7 +31,4 @@ Description:构建器画刷
 
 
 
-[INCLUDE:Engine/Actors/Brushes#BuilderBrush]
-
-
-[INCLUDE:Resources/ContentExamples/Brushes#BSPExamples]
+<!--[INCLUDE:Engine/Actors/Brushes#BuilderBrush]-->

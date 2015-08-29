@@ -23,8 +23,6 @@ struct FBlueprintSupport
 	 * aspects of the deferred loading (mostly for testing purposes). 
 	 */
 	static bool UseDeferredDependencyLoading();
-	static bool IsResolvingDeferredDependenciesDisabled();
-	static bool IsDeferredCDOSerializationDisabled();
 	static bool IsDeferredExportCreationDisabled();
 	static bool IsDeferredCDOInitializationDisabled();
 };

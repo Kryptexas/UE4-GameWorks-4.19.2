@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2454950
+﻿INTSourceChangelist:2600515
 Availability:Public
 Title:레벨 블루프린트
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide/Types
@@ -45,8 +45,6 @@ Related: Engine/Blueprints
 [/VAR]
 
 [TOC (start:2 end:3)]
-
-## 개요
 
 [EXCERPT:Intro]
 **Level Blueprint** (레벨 블루프린트)란 레벨 단위 글로벌 이벤트 그래프 역할을 하는 특수한 형태의 _블루프린트_ 입니다.
@@ -142,4 +140,9 @@ _레벨 블루프린트_ 에 특정 액터에 대한 [](Engine/Blueprints\UserGu
 1. **Add Event for [ActorName]** ([액터명]에 대한 이벤트 추가) 아래 나열된 이벤트에서 원하는 이벤트를 선택합니다.
 
 	![](expanded_add_event_for_actor.png)
+
+
+
+
+
 

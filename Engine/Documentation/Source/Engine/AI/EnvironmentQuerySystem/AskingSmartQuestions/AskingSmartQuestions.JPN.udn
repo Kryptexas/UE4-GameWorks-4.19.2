@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2406389
-Availability:Public
+﻿INTSourceChangelist:2572470
+Availability:Docs
 Title:環境について賢く質問する
 Crumbs:%ROOT%, Engine, Gameplay/AI, Engine/AI/EnvironmentQuerySystem
 Description:AI プログラマーであるr Mieszko Zielinski がEnvironment Query System の前身である Environment Tactical Querying について書いた白書です。
@@ -148,8 +148,7 @@ Quesry Template のオプションに宣言されたテストが、条件、ウ�
 | Reachable | Is (not) reachable with navigation | Prefer (not) reachable |
 | Distance to wall | More/less/equal to X | Prefer more/less |
 | Current Item | Is (not) current item | Prefer (not) current item |
-
-_表 X.1 は、様々なテストが条件とウェイトの両方として利用されている例です_
+	_表 X.1 は、様々なテストが条件とウェイトの両方として利用されている例です_
 
 ## x.6 中心部
 
@@ -179,8 +178,8 @@ _表 X.1 は、様々なテストが条件とウェイトの両方として利�
 			sort Query.Items descending with computed weight;
 			return success;
 	return failure;
-	_Listing x.2 The core ETQ query algorithm_
 
+Listing x.2 The core ETQ query algorithm_
 
 ## x.7 実装の詳細
 

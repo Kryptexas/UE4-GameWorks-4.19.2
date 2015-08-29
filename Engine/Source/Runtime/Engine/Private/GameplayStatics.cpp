@@ -19,6 +19,9 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/DecalComponent.h"
 #include "LandscapeProxy.h"
+#include "MessageLog.h"
+
+#define LOCTEXT_NAMESPACE "GameplayStatics"
 
 static const int UE4_SAVEGAME_FILE_TYPE_TAG = 0x53415647;		// "sAvG"
 static const int UE4_SAVEGAME_FILE_VERSION = 1;
@@ -97,6 +100,24 @@ APlayerController* UGameplayStatics::CreatePlayer(UObject* WorldContextObject, i
 	}
 
 	return (LocalPlayer ? LocalPlayer->PlayerController : NULL);
+}
+
+void UGameplayStatics::RemovePlayer(APlayerController* PlayerController, bool bDestroyPawn)
+{
+	if (PlayerController)
+	{
+		if (UWorld* World = PlayerController->GetWorld())
+		{
+			if (ULocalPlayer* LocalPlayer = PlayerController->GetLocalPlayer())
+			{
+				APawn* PlayerPawn = (bDestroyPawn ? PlayerController->GetPawn() : nullptr);
+				if (World->GetGameInstance()->RemoveLocalPlayer(LocalPlayer) && PlayerPawn)
+				{
+					PlayerPawn->Destroy();
+				}
+			}
+		}
+	}
 }
 
 AGameMode* UGameplayStatics::GetGameMode(UObject* WorldContextObject)
@@ -282,6 +303,81 @@ void UGameplayStatics::ApplyDamage(AActor* DamagedActor, float BaseDamage, ACont
 	}
 }
 
+bool UGameplayStatics::CanSpawnObjectOfClass(TSubclassOf<UObject> ObjectClass, bool bAllowAbstract)
+{
+	bool bBlueprintType = true;
+#if WITH_EDITOR
+	{
+		static const FName BlueprintTypeName(TEXT("BlueprintType"));
+		static const FName NotBlueprintTypeName(TEXT("NotBlueprintType"));
+		const UClass* ParentClass = ObjectClass;
+		while (ParentClass)
+		{
+			// Climb up the class hierarchy and look for "BlueprintType" and "NotBlueprintType" to see if this class is allowed.
+			if (ParentClass->GetBoolMetaData(BlueprintTypeName))
+			{
+				bBlueprintType = true;
+				break;
+			}
+			else if (ParentClass->GetBoolMetaData(NotBlueprintTypeName))
+			{
+				bBlueprintType = false;
+				break;
+			}
+			ParentClass = ParentClass->GetSuperClass();
+		}
+	}
+#endif // WITH_EDITOR
+
+	bool bForbiddenSpawn = false;
+#if WITH_EDITOR
+	static const FName DontUseGenericSpawnObjectName(TEXT("DontUseGenericSpawnObject"));
+	const UClass* ParentClass = ObjectClass;
+	while (ParentClass)
+	{
+		if (ParentClass->HasMetaData(DontUseGenericSpawnObjectName))
+		{
+			bForbiddenSpawn = true;
+			break;
+		}
+		ParentClass = ParentClass->GetSuperClass();
+	}
+#endif // WITH_EDITOR
+
+	return (nullptr != *ObjectClass)
+		&& bBlueprintType
+		&& !bForbiddenSpawn
+		&& (bAllowAbstract || !ObjectClass->HasAnyClassFlags(CLASS_Abstract))
+		&& !ObjectClass->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists)
+		&& !ObjectClass->IsChildOf(AActor::StaticClass())
+		&& !ObjectClass->IsChildOf(UActorComponent::StaticClass());
+}
+
+UObject* UGameplayStatics::SpawnObject(TSubclassOf<UObject> ObjectClass, UObject* Outer)
+{
+	if (!CanSpawnObjectOfClass(ObjectClass))
+	{
+#if WITH_EDITOR
+		FMessageLog("PIE").Error(FText::Format(LOCTEXT("SpawnObjectWrongClass", "SpawnObject wrong class: {0}'"), FText::FromString(GetNameSafe(*ObjectClass))));
+#endif // WITH_EDITOR
+		UE_LOG(LogScript, Error, TEXT("UGameplayStatics::SpawnObject wrong class: %s"), *GetPathNameSafe(*ObjectClass));
+		return nullptr;
+	}
+
+	if (!Outer)
+	{
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject null outer"));
+		return nullptr;
+	}
+
+	if (ObjectClass->ClassWithin && !Outer->IsA(ObjectClass->ClassWithin))
+	{
+		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnObject outer %s is not %s"), *GetPathNameSafe(Outer), *GetPathNameSafe(ObjectClass->ClassWithin));
+		return nullptr;
+	}
+
+	return NewObject<UObject>(Outer, ObjectClass, NAME_None, RF_StrongRefOnFrame);
+}
 
 AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextObject, UBlueprint const* Blueprint, const FTransform& SpawnTransform, bool bNoCollisionFail)
 {
@@ -290,7 +386,8 @@ AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextO
 	{
 		if( Blueprint->GeneratedClass->IsChildOf(AActor::StaticClass()) )
 		{
-			NewActor = BeginSpawningActorFromClass(WorldContextObject, *Blueprint->GeneratedClass, SpawnTransform, bNoCollisionFail);
+			ESpawnActorCollisionHandlingMethod const CollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding : ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			NewActor = BeginDeferredActorSpawnFromClass(WorldContextObject, *Blueprint->GeneratedClass, SpawnTransform, CollisionHandlingOverride);
 		}
 		else
 		{
@@ -300,11 +397,15 @@ AActor* UGameplayStatics::BeginSpawningActorFromBlueprint(UObject* WorldContextO
 	return NewActor;
 }
 
+// deprecated
 AActor* UGameplayStatics::BeginSpawningActorFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, bool bNoCollisionFail, AActor* Owner)
 {
-	const FVector SpawnLoc(SpawnTransform.GetTranslation());
-	const FRotator SpawnRot(SpawnTransform.GetRotation());
+	ESpawnActorCollisionHandlingMethod const CollisionHandlingOverride = bNoCollisionFail ? ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding : ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	return BeginDeferredActorSpawnFromClass(WorldContextObject, ActorClass, SpawnTransform, CollisionHandlingOverride, Owner);
+}
 
+AActor* UGameplayStatics::BeginDeferredActorSpawnFromClass(UObject* WorldContextObject, TSubclassOf<AActor> ActorClass, const FTransform& SpawnTransform, ESpawnActorCollisionHandlingMethod CollisionHandlingMethod, AActor* Owner)
+{
 	AActor* NewActor = NULL;
 
 	UClass* Class = *ActorClass;
@@ -326,7 +427,7 @@ AActor* UGameplayStatics::BeginSpawningActorFromClass(UObject* WorldContextObjec
 		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		if (World)
 		{
-			NewActor = World->SpawnActorDeferred<AActor>(Class, SpawnLoc, SpawnRot, Owner, AutoInstigator, bNoCollisionFail);
+			NewActor = World->SpawnActorDeferred<AActor>(Class, SpawnTransform, Owner, AutoInstigator, CollisionHandlingMethod);
 		}
 		else
 		{
@@ -439,6 +540,20 @@ void UGameplayStatics::OpenLevel(UObject* WorldContextObject, FName LevelName, b
 	}
 
 	GEngine->SetClientTravel( World, *Cmd, TravelType );
+}
+
+FString UGameplayStatics::GetCurrentLevelName(UObject* WorldContextObject, bool bRemovePrefixString)
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	{
+		FString LevelName = World->GetMapName();
+		if (bRemovePrefixString)
+		{
+			LevelName.RemoveFromStart(World->StreamingLevelsPrefix);
+		}
+		return LevelName;
+	}
+	return FString();
 }
 
 FVector UGameplayStatics::GetActorArrayAverageLocation(const TArray<AActor*>& Actors)
@@ -581,7 +696,7 @@ UParticleSystemComponent* UGameplayStatics::SpawnEmitterAttached(UParticleSystem
 		{
 			UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::SpawnEmitterAttached: NULL AttachComponent specified!"));
 		}
-		else
+		else if (AttachToComponent->GetWorld() != NULL && AttachToComponent->GetWorld()->GetNetMode() != NM_DedicatedServer)
 		{
 			PSC = CreateParticleSystem(EmitterTemplate, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), bAutoDestroy);
 
@@ -677,7 +792,36 @@ void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase
 	}
 }
 
-void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+UAudioComponent* UGameplayStatics::SpawnSound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
+{
+	if (!Sound || !GEngine || !GEngine->UseSound())
+	{
+		return nullptr;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
+	{
+		return nullptr;
+	}
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false);
+	if (AudioComponent)
+	{
+		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
+
+		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
+		AudioComponent->SetPitchMultiplier(PitchMultiplier);
+		AudioComponent->bAllowSpatialization	= false;
+		AudioComponent->bIsUISound				= true;
+		AudioComponent->bAutoDestroy			= true;
+		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->Play(StartTime);
+	}
+	return AudioComponent;
+}
+
+void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
@@ -707,6 +851,7 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 
 			NewActiveSound.bLocationDefined = true;
 			NewActiveSound.Transform.SetTranslation(Location);
+			NewActiveSound.Transform.SetRotation(FQuat(Rotation));
 
 			NewActiveSound.bIsUISound = !bIsInGameWorld;
 			NewActiveSound.bHandleSubtitles = true;
@@ -731,66 +876,39 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 	}
 }
 
-void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+UAudioComponent* UGameplayStatics::SpawnSoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if (!Dialogue || !GEngine || !GEngine->UseSound())
+	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
-		return;
+		return nullptr;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
 	{
-		return;
-	}
-	
-	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if (!Sound)
-	{
-		return;
+		return nullptr;
 	}
 
-	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, ThisWorld, ThisWorld->GetWorldSettings(), false, false, &Location, AttenuationSettings);
+
+	if (AudioComponent)
 	{
-		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
-		{
-			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
-			
-			FActiveSound NewActiveSound;
-			NewActiveSound.World = ThisWorld;
-			NewActiveSound.Sound = Sound;
-
-			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
-			NewActiveSound.PitchMultiplier = PitchMultiplier;
-
-			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
-
-			NewActiveSound.bLocationDefined = true;
-			NewActiveSound.Transform.SetTranslation(Location);
-
-			NewActiveSound.bIsUISound = !bIsInGameWorld;
-			NewActiveSound.bHandleSubtitles = true;
-			NewActiveSound.SubtitlePriority = 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-
-			const FAttenuationSettings* AttenuationSettingsToApply = (AttenuationSettings ? &AttenuationSettings->Attenuation : Sound->GetAttenuationSettingsToApply());
-
-			NewActiveSound.bHasAttenuationSettings = (bIsInGameWorld && AttenuationSettingsToApply);
-			if (NewActiveSound.bHasAttenuationSettings)
-			{
-				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
-			}
-
-			AudioDevice->AddNewActiveSound(NewActiveSound);
-		}
-		else
-		{
-			// Don't play a sound for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
-		}
+		AudioComponent->SetWorldLocationAndRotation(Location, Rotation);
+		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
+		AudioComponent->SetPitchMultiplier(PitchMultiplier);
+		AudioComponent->bAllowSpatialization	= bIsInGameWorld;
+		AudioComponent->bIsUISound				= !bIsInGameWorld;
+		AudioComponent->bAutoDestroy			= true;
+		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
+		AudioComponent->Play(StartTime);
 	}
+
+	return AudioComponent;
 }
 
-class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+class UAudioComponent* UGameplayStatics::SpawnSoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
 	if (!Sound)
 	{
@@ -818,11 +936,11 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		AudioComponent->AttachTo(AttachToComponent, AttachPointName);
 		if (LocationType == EAttachLocation::KeepWorldPosition)
 		{
-			AudioComponent->SetWorldLocation(Location);
+			AudioComponent->SetWorldLocationAndRotation(Location, Rotation);
 		}
 		else
 		{
-			AudioComponent->SetRelativeLocation(Location);
+			AudioComponent->SetRelativeLocationAndRotation(Location, Rotation);
 		}
 		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
 		AudioComponent->SetPitchMultiplier(PitchMultiplier);
@@ -836,56 +954,47 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 	return AudioComponent;
 }
 
-class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWave* Dialogue, const FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+void UGameplayStatics::PlayDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, float VolumeMultiplier, float PitchMultiplier, float StartTime)
 {
-	if (!Dialogue)
+	if (Dialogue)
 	{
-		return nullptr;
+		PlaySound2D(WorldContextObject, Dialogue->GetWaveFromContext(Context), VolumeMultiplier, PitchMultiplier, StartTime);
 	}
+}
 
-	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if (!Sound)
+UAudioComponent* UGameplayStatics::SpawnDialogue2D(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, float VolumeMultiplier, float PitchMultiplier, float StartTime)
+{
+	if (Dialogue)
 	{
-		return nullptr;
+		return SpawnSound2D(WorldContextObject, Dialogue->GetWaveFromContext(Context), VolumeMultiplier, PitchMultiplier, StartTime);
 	}
+	return nullptr;
+}
 
-	if (!AttachToComponent)
+void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified!"));
-		return nullptr;
+		PlaySoundAtLocation(WorldContextObject, Dialogue->GetWaveFromContext(Context), Location, Rotation, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
+}
 
-	// Location used to check whether to create a component if out of range
-	FVector TestLocation = Location;
-	if (LocationType != EAttachLocation::KeepWorldPosition)
+UAudioComponent* UGameplayStatics::SpawnDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, FRotator Rotation, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
+		return SpawnSoundAtLocation(WorldContextObject, Dialogue->GetWaveFromContext(Context), Location, Rotation, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
+	return nullptr;
+}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings);
-	if (AudioComponent)
+class UAudioComponent* UGameplayStatics::SpawnDialogueAttached(class UDialogueWave* Dialogue, const FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, FRotator Rotation, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
+{
+	if (Dialogue)
 	{
-		const bool bIsGameWorld = AudioComponent->GetWorld()->IsGameWorld();
-
-		AudioComponent->AttachTo(AttachToComponent, AttachPointName);
-		if (LocationType == EAttachLocation::KeepWorldPosition)
-		{
-			AudioComponent->SetWorldLocation(Location);
-		}
-		else
-		{
-			AudioComponent->SetRelativeLocation(Location);
-		}
-		AudioComponent->SetVolumeMultiplier(VolumeMultiplier);
-		AudioComponent->SetPitchMultiplier(PitchMultiplier);
-		AudioComponent->bAllowSpatialization	= bIsGameWorld;
-		AudioComponent->bIsUISound				= !bIsGameWorld;
-		AudioComponent->bAutoDestroy			= true;
-		AudioComponent->SubtitlePriority		= 10000.f; // Fixme: pass in? Do we want that exposed to blueprints though?
-		AudioComponent->Play(StartTime);
+		return SpawnSoundAttached(Dialogue->GetWaveFromContext(Context), AttachToComponent, AttachPointName, Location, Rotation, LocationType, bStopWhenAttachedToDestroyed, VolumeMultiplier, PitchMultiplier, StartTime, AttenuationSettings);
 	}
-
-	return AudioComponent;
+	return nullptr;
 }
 
 void UGameplayStatics::SetBaseSoundMix(UObject* WorldContextObject, USoundMix* InSoundMix)
@@ -1509,3 +1618,128 @@ int32 UGameplayStatics::GrassOverlappingSphereCount(UObject* WorldContextObject,
 }
 
 
+bool UGameplayStatics::DeprojectScreenToWorld(APlayerController const* Player, const FVector2D& ScreenPosition, FVector& WorldPosition, FVector& WorldDirection)
+{
+	ULocalPlayer* const LP = Player ? Player->GetLocalPlayer() : nullptr;
+	if (LP && LP->ViewportClient)
+	{
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+		{
+			FMatrix const InvViewProjMatrix = ProjectionData.ComputeViewProjectionMatrix().InverseFast();
+			FSceneView::DeprojectScreenToWorld(ScreenPosition, ProjectionData.GetConstrainedViewRect(), InvViewProjMatrix, /*out*/ WorldPosition, /*out*/ WorldDirection);
+			return true;
+		}
+	}
+
+	// something went wrong, zero things and return false
+	WorldPosition = FVector::ZeroVector;
+	WorldDirection = FVector::ZeroVector;
+	return false;
+}
+
+bool UGameplayStatics::ProjectWorldToScreen(APlayerController const* Player, const FVector& WorldPosition, FVector2D& ScreenPosition)
+{
+	ULocalPlayer* const LP = Player ? Player->GetLocalPlayer() : nullptr;
+	if (LP && LP->ViewportClient)
+	{
+		// get the projection data
+		FSceneViewProjectionData ProjectionData;
+		if (LP->GetProjectionData(LP->ViewportClient->Viewport, eSSP_FULL, /*out*/ ProjectionData))
+		{
+			FMatrix const ViewProjectionMatrix = ProjectionData.ComputeViewProjectionMatrix();
+			return FSceneView::ProjectWorldToScreen(WorldPosition, ProjectionData.GetConstrainedViewRect(), ViewProjectionMatrix, ScreenPosition);
+		}
+	}
+
+	ScreenPosition = FVector2D::ZeroVector;
+	return false;
+}
+
+bool UGameplayStatics::GrabOption( FString& Options, FString& Result )
+{
+	FString QuestionMark(TEXT("?"));
+
+	if( Options.Left(1).Equals(QuestionMark, ESearchCase::CaseSensitive) )
+	{
+		// Get result.
+		Result = Options.Mid(1, MAX_int32);
+		if (Result.Contains(QuestionMark, ESearchCase::CaseSensitive))
+		{
+			Result = Result.Left(Result.Find(QuestionMark, ESearchCase::CaseSensitive));
+		}
+
+		// Update options.
+		Options = Options.Mid(1, MAX_int32);
+		if (Options.Contains(QuestionMark, ESearchCase::CaseSensitive))
+		{
+			Options = Options.Mid(Options.Find(QuestionMark, ESearchCase::CaseSensitive), MAX_int32);
+		}
+		else
+		{
+			Options = FString();
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void UGameplayStatics::GetKeyValue( const FString& Pair, FString& Key, FString& Value )
+{
+	const int32 EqualSignIndex = Pair.Find(TEXT("="), ESearchCase::CaseSensitive);
+	if( EqualSignIndex != INDEX_NONE )
+	{
+		Key = Pair.Left(EqualSignIndex);
+		Value = Pair.Mid(EqualSignIndex + 1, MAX_int32);
+	}
+	else
+	{
+		Key = Pair;
+		Value = TEXT("");
+	}
+}
+
+FString UGameplayStatics::ParseOption( FString Options, const FString& Key )
+{
+	FString ReturnValue;
+	FString Pair, PairKey, PairValue;
+	while( GrabOption( Options, Pair ) )
+	{
+		GetKeyValue( Pair, PairKey, PairValue );
+		if (Key == PairKey)
+		{
+			ReturnValue = MoveTemp(PairValue);
+			break;
+		}
+	}
+	return ReturnValue;
+}
+
+bool UGameplayStatics::HasOption( FString Options, const FString& Key )
+{
+	FString Pair, PairKey, PairValue;
+	while( GrabOption( Options, Pair ) )
+	{
+		GetKeyValue( Pair, PairKey, PairValue );
+		if (Key == PairKey)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+int32 UGameplayStatics::GetIntOption( const FString& Options, const FString& Key, int32 DefaultValue)
+{
+	const FString InOpt = ParseOption( Options, Key );
+	if ( !InOpt.IsEmpty() )
+	{
+		return FCString::Atoi(*InOpt);
+	}
+	return DefaultValue;
+}
+
+#undef LOCTEXT_NAMESPACE

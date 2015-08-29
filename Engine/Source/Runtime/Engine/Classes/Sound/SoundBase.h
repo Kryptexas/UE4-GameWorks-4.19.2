@@ -84,7 +84,7 @@ public:
 	 * @param Location				Location to check against
 	 * @param AttenuationSettings	Optional Attenuation override if not using settings from the sound
 	 */
-	bool IsAudibleSimple( class FAudioDevice* AudioDevice, const FVector Location, USoundAttenuation* AttenuationSettings = NULL );
+	bool IsAudibleSimple( class FAudioDevice* AudioDevice, const FVector Location, USoundAttenuation* InAttenuationSettings = NULL );
 
 	/** 
 	 * Returns the farthest distance at which the sound could be heard

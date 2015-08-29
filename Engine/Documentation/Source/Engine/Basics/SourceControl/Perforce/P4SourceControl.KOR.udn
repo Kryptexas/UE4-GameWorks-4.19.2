@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2375238
+﻿INTSourceChangelist:2595364
 Availability: Public
 Title: UE4 에서 Perforce 소스 콘트롤 사용하기
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
@@ -169,6 +169,11 @@ Perforce 에 파일을 추가하는 방법은 몇 단계로 아주 간단합니�
 다수의 클라우드 제공사를 포함한 일부 서버 사용시, 에디터에서 디포에 접근하기 위해서는 Host 와 Password 를 입력해야 할 수도 있습니다. Perforce 로그인 대화창 하단의 고급 칸을 열어보면 입력 가능합니다:
 ![](SC_P4_UE4_Setup_Advanced.png)
 [/region]
+
+
+
+
+
 
 
 

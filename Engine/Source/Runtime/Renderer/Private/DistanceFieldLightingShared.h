@@ -13,11 +13,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogDistanceField, Warning, All);
 /** Tile sized used for most AO compute shaders. */
 const int32 GDistanceFieldAOTileSizeX = 16;
 const int32 GDistanceFieldAOTileSizeY = 16;
-/** Base downsample factor that all distance field AO operations are done at. */
-const int32 GAODownsampleFactor = 2;
 /** Must match usf */
 static const int32 GMaxNumObjectsPerTile = 512;
-extern uint32 UpdateObjectsGroupSize;
 
 extern int32 GDistanceFieldGI;
 
@@ -33,7 +30,7 @@ inline bool SupportsDistanceFieldGI(ERHIFeatureLevel::Type FeatureLevel, EShader
 		&& DoesPlatformSupportDistanceFieldGI(ShaderPlatform);
 }
 
-extern FIntPoint GetBufferSizeForAO();
+extern bool IsDistanceFieldGIAllowed(const FViewInfo& View);
 
 class FDistanceFieldObjectBuffers
 {
@@ -258,8 +255,6 @@ public:
 	{
 		if (MaxObjects > 0)
 		{
-			const uint32 BufferFlags = BUF_ShaderResource;
-
 			ObjectIndirectArguments.Initialize(sizeof(uint32), 5, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			ObjectIndirectDispatch.Initialize(sizeof(uint32), 3, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			Bounds.Initialize(sizeof(FVector4), MaxObjects, PF_A32B32G32R32F);

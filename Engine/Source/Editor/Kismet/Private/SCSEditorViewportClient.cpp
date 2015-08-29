@@ -633,6 +633,16 @@ FMatrix FSCSEditorViewportClient::GetWidgetCoordSystem() const
 	return Matrix;
 }
 
+int32 FSCSEditorViewportClient::GetCameraSpeedSetting() const
+{
+	return GetDefault<UEditorPerProjectUserSettings>()->SCSViewportCameraSpeed;
+}
+
+void FSCSEditorViewportClient::SetCameraSpeedSetting(int32 SpeedSetting)
+{
+	GetMutableDefault<UEditorPerProjectUserSettings>()->SCSViewportCameraSpeed = SpeedSetting;
+}
+
 void FSCSEditorViewportClient::InvalidatePreview(bool bResetCamera)
 {
 	// Ensure that the editor is valid before continuing
@@ -772,7 +782,6 @@ void FSCSEditorViewportClient::ToggleShowFloor()
 	
 	EditorFloorComp->SetVisibility(bShowFloor);
 	EditorFloorComp->SetCollisionEnabled(bShowFloor? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
-	GetWorld()->SendAllEndOfFrameUpdates();
 
 	Settings->bSCSEditorShowFloor = bShowFloor;
 	Settings->PostEditChange();

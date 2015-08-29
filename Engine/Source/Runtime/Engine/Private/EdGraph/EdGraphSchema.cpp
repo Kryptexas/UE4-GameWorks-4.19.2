@@ -30,7 +30,7 @@ void FGraphActionListBuilderBase::AddActionList( const TArray<TSharedPtr<FEdGrap
 
 void FGraphActionListBuilderBase::Append( FGraphActionListBuilderBase& Other )
 {
-	Entries.Append( Other.Entries );
+	Entries.Append( MoveTemp(Other.Entries) );
 }
 
 int32 FGraphActionListBuilderBase::GetNumActions() const
@@ -55,34 +55,54 @@ FGraphActionListBuilderBase::ActionGroup::ActionGroup( TSharedPtr<FEdGraphSchema
 	: RootCategory(CategoryPrefix)
 {
 	Actions.Add( InAction );
+	InitCategoryChain();
+	InitScoringData();
 }
 
 FGraphActionListBuilderBase::ActionGroup::ActionGroup( const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, FString const& CategoryPrefix/* = TEXT("") */ )
 	: RootCategory(CategoryPrefix)
 {
 	Actions = InActions;
+	InitCategoryChain();
+	InitScoringData();
+}
+
+FGraphActionListBuilderBase::ActionGroup::ActionGroup(FGraphActionListBuilderBase::ActionGroup && Other)
+{
+	Move(Other);
+}
+
+FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::ActionGroup::operator=(FGraphActionListBuilderBase::ActionGroup && Other)
+{
+	if (&Other != this)
+	{
+		Move(Other);
+	}
+	return *this;
+}
+
+FGraphActionListBuilderBase::ActionGroup::ActionGroup(const FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	Copy(Other);
+}
+
+FGraphActionListBuilderBase::ActionGroup& FGraphActionListBuilderBase::ActionGroup::operator=(const FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	if (&Other != this)
+	{
+		Copy(Other);
+	}
+	return *this;
+}
+
+FGraphActionListBuilderBase::ActionGroup::~ActionGroup()
+{
 }
 
 void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>& HierarchyOut) const
 {
 #if WITH_EDITOR
-	static FString const CategoryDelim("|");
-	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(HierarchyOut, *CategoryDelim, true);
-
-	if (Actions.Num() > 0)
-	{
-		TArray<FString> SubCategoryChain;
-
-		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category);
-		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
-
-		HierarchyOut.Append(SubCategoryChain);
-	}
-
-	for (FString& Category : HierarchyOut)
-	{
-		Category.Trim();
-	}
+	HierarchyOut = CategoryChain;
 #endif
 }
 
@@ -94,6 +114,83 @@ void FGraphActionListBuilderBase::ActionGroup::PerformAction( class UEdGraph* Pa
 		if ( CurrentAction.IsValid() )
 		{
 			CurrentAction->PerformAction( ParentGraph, FromPins, Location );
+		}
+	}
+}
+
+void FGraphActionListBuilderBase::ActionGroup::Move(FGraphActionListBuilderBase::ActionGroup& Other)
+{
+	Actions = MoveTemp(Other.Actions);
+	RootCategory = MoveTemp(Other.RootCategory);
+	CategoryChain = MoveTemp(Other.CategoryChain);
+	SearchKeywordsArray = MoveTemp(Other.SearchKeywordsArray);
+	MenuDescriptionArray = MoveTemp(Other.MenuDescriptionArray);
+	SearchTitleArray = MoveTemp(Other.SearchTitleArray);
+	SearchCategoryArray = MoveTemp(Other.SearchCategoryArray);
+	SearchText = MoveTemp(Other.SearchText);
+}
+
+void FGraphActionListBuilderBase::ActionGroup::Copy(const ActionGroup& Other)
+{
+	Actions = Other.Actions;
+	RootCategory = Other.RootCategory;
+	CategoryChain = Other.CategoryChain;
+	SearchKeywordsArray = Other.SearchKeywordsArray;
+	MenuDescriptionArray = Other.MenuDescriptionArray;
+	SearchTitleArray = Other.SearchTitleArray;
+	SearchCategoryArray = Other.SearchCategoryArray;
+	SearchText = Other.SearchText;
+}
+
+void FGraphActionListBuilderBase::ActionGroup::InitCategoryChain()
+{
+#if WITH_EDITOR
+	static FString const CategoryDelim("|");
+	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(CategoryChain, *CategoryDelim, true);
+
+	if (Actions.Num() > 0)
+	{
+		TArray<FString> SubCategoryChain;
+
+		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category.ToString());
+		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
+
+		CategoryChain.Append(SubCategoryChain);
+	}
+
+	for (FString& Category : CategoryChain)
+	{
+		Category.Trim();
+	}
+#endif
+}
+
+void FGraphActionListBuilderBase::ActionGroup::InitScoringData()
+{
+	if (Actions.Num() > 0)
+	{
+		FEdGraphSchemaAction& FirstAction = *Actions[0];
+
+		// We keep these individual arrays so that they can be weighted differently by the scoring algorithm in SGraphActionMenu::GetActionFilteredWeight
+		FirstAction.GetSearchKeywords().ParseIntoArray(SearchKeywordsArray, TEXT(" "), true);
+		FirstAction.MenuDescription.ToString().ToLower().ParseIntoArray(MenuDescriptionArray, TEXT(" "), true);
+		FirstAction.GetSearchTitle().ParseIntoArray(SearchTitleArray, TEXT(" "), true);
+		FirstAction.GetSearchCategory().ParseIntoArray(SearchCategoryArray, TEXT(" "), true);
+
+		// Glob search text together, we use the SearchText string for basic filtering:
+		for (const auto& Entry : SearchTitleArray)
+		{
+			SearchText += Entry;
+		}
+		SearchText.Append(LINE_TERMINATOR);
+		for (const auto& Entry : SearchKeywordsArray)
+		{
+			SearchText += Entry;
+		}
+		SearchText.Append(LINE_TERMINATOR);
+		for (const auto& Entry : SearchCategoryArray)
+		{
+			SearchText += Entry;
 		}
 	}
 }
@@ -440,7 +537,7 @@ void UEdGraphSchema::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* Tar
 FPinConnectionResponse UEdGraphSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UEdGraphPin& MoveToPin, bool bIsIntermediateMove) const
 {
 #if WITH_EDITOR
-	ensureMsg(bIsIntermediateMove || !MoveToPin.GetOwningNode()->GetGraph()->HasAnyFlags(RF_Transient),
+	ensureMsgf(bIsIntermediateMove || !MoveToPin.GetOwningNode()->GetGraph()->HasAnyFlags(RF_Transient),
 		TEXT("When moving to an Intermediate pin, use FKismetCompilerContext::MovePinLinksToIntermediate() instead of UEdGraphSchema::MovePinLinks()"));
 #endif // #if WITH_EDITOR
 
@@ -473,7 +570,7 @@ FPinConnectionResponse UEdGraphSchema::MovePinLinks(UEdGraphPin& MoveFromPin, UE
 FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UEdGraphPin& CopyToPin, bool bIsIntermediateCopy) const
 {
 #if WITH_EDITOR
-	ensureMsg(bIsIntermediateCopy || !CopyToPin.GetOwningNode()->GetGraph()->HasAnyFlags(RF_Transient),
+	ensureMsgf(bIsIntermediateCopy || !CopyToPin.GetOwningNode()->GetGraph()->HasAnyFlags(RF_Transient),
 		TEXT("When copying to an Intermediate pin, use FKismetCompilerContext::CopyPinLinksToIntermediate() instead of UEdGraphSchema::CopyPinLinks()"));
 #endif // #if WITH_EDITOR
 
@@ -498,6 +595,7 @@ FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UE
 	return FinalResponse;
 }
 
+#if WITH_EDITORONLY_DATA
 FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	FText ResultPinName;
@@ -518,6 +616,7 @@ FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 	}
 	return ResultPinName;
 }
+#endif // WITH_EDITORONLY_DATA
 
 void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const
 {

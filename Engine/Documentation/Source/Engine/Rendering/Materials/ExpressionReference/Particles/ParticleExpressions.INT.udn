@@ -38,7 +38,7 @@ In this example, you can see where the ParticleColor expression is providing col
 [EXCERPT:ParticleDirection]
 ## ParticleDirection
 
-The ParticleDirection expression outputs 3vector (RGB) data on a per-particle basis, representing the direction a given particle is currently traveling. 
+The ParticleDirection expression outputs Vector3 (RGB) data on a per-particle basis, representing the direction a given particle is currently traveling. 
 
 
 ![ParticleDirectionExample.png](ParticleDirectionExample.png)(w:900)
@@ -76,7 +76,7 @@ The ParticleMotionBlurFade expression outputs a value representing the amount of
 [EXCERPT:ParticlePositionWS]
 ## ParticlePositionWS
 
-The ParticlePositionWS expression outputs 3vector (RGB) data representing each individual particle's position in world space.
+The ParticlePositionWS expression outputs Vector3 (RGB) data representing each individual particle's position in world space.
 
 
 ![ParticlePositionWS.png](ParticlePositionWSExample.png)(w:900)

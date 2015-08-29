@@ -163,4 +163,4 @@ Currently, the following operators are unsupported.
 * Unary prefix: 
 		+, -, ++, --, ~, !, etc.
 * Postfix: 
-		++, --, [], etc
+		++, --, [], etc.

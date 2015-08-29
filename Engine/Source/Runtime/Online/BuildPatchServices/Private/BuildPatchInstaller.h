@@ -126,6 +126,7 @@ public:
 	virtual bool IsComplete() override;
 	virtual bool IsCanceled() override;
 	virtual bool IsPaused() override;
+	virtual bool IsResumable() override;
 	virtual bool HasError() override;
 	//@todo this is deprecated and shouldn't be used anymore [6/4/2014 justin.sargent]
 	virtual FText GetPercentageText() override;
@@ -134,7 +135,7 @@ public:
 	virtual double GetDownloadSpeed() const override;
 	virtual int64 GetInitialDownloadSize() const override;
 	virtual int64 GetTotalDownloaded() const override;
-	virtual FText GetStatusText() override;
+	virtual FText GetStatusText(bool ShortError = false) override;
 	virtual float GetUpdateProgress() override;
 	virtual FBuildInstallStats GetBuildStatistics() override;
 	virtual FText GetErrorText() override;
@@ -154,6 +155,14 @@ public:
 	void WaitForThread() const;
 
 private:
+
+	/**
+	 * Checks the installation directory for any already existing files of the correct size, with may account for manual
+	 * installation. Should be used for new installation detecting existing files.
+	 * NB: Not useful for patches, where we'd expect existing files anyway.
+	 * @return    Returns true if there were potentially already installed files
+	 */
+	bool CheckForExternallyInstalledFiles();
 
 	/**
 	 * Runs the installation process

@@ -8,8 +8,18 @@
 UENUM()
 enum EMaterialPositionTransformSource
 {
-	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local"),
-	TRANSFORMPOSSOURCE_World UMETA(DisplayName="World"),
+	/** Local Space */
+	TRANSFORMPOSSOURCE_Local UMETA(DisplayName="Local Space"),
+	
+	/** Absolute World Space */
+	TRANSFORMPOSSOURCE_World UMETA(DisplayName="Absolute World Space"),
+	
+	/** Camera Relative World Space */
+	TRANSFORMPOSSOURCE_TranslatedWorld  UMETA(DisplayName="Camera Relative World Space"),
+
+	/** View Space */
+	TRANSFORMPOSSOURCE_View  UMETA(DisplayName="View Space"),
+	
 	TRANSFORMPOSSOURCE_MAX,
 };
 

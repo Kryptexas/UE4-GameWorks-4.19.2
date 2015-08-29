@@ -5,7 +5,7 @@
 #include "ModuleManager.h"
 #include "IHeadMountedDisplayModule.h"
 
-#define GEARVR_SUPPORTED_PLATFORMS PLATFORM_ANDROID
+#define GEARVR_SUPPORTED_PLATFORMS (PLATFORM_ANDROID && PLATFORM_ANDROID_ARM)
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 

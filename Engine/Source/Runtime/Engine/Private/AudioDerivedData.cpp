@@ -638,7 +638,6 @@ public:
 	explicit FAudioStatusMessageContext( const FText& InMessage )
 	 : FScopedSlowTask(1, InMessage, GIsEditor && !IsRunningCommandlet())
 	{
-		DEFINE_LOG_CATEGORY_STATIC(LogAudioDerivedData, Log, All);
 		UE_LOG(LogAudioDerivedData, Display, TEXT("%s"), *InMessage.ToString());
 	}
 };
@@ -943,32 +942,34 @@ void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsCooking() && Ar.IsPersistent())
 	{
-		if (!Ar.CookingTarget()->IsServerOnly())
+		check(!Ar.CookingTarget()->IsServerOnly());
+
+		FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
+		FString DerivedDataKey;
+		GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+
+		FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
+
+		if (PlatformDataToSave == NULL)
 		{
-			FName PlatformFormat = Ar.CookingTarget()->GetWaveFormat(this);
-			FString DerivedDataKey;
-			GetStreamedAudioDerivedDataKey(*this, PlatformFormat, DerivedDataKey);
+			PlatformDataToSave = new FStreamedAudioPlatformData();
+			PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::InlineChunks | EStreamedAudioCacheFlags::Async);
 
-			FStreamedAudioPlatformData *PlatformDataToSave = CookedPlatformData.FindRef(DerivedDataKey);
-
-			if (PlatformDataToSave == NULL)
-			{
-				PlatformDataToSave = new FStreamedAudioPlatformData();
-				PlatformDataToSave->Cache(*this, PlatformFormat, EStreamedAudioCacheFlags::InlineChunks | EStreamedAudioCacheFlags::Async);
-
-				CookedPlatformData.Add(DerivedDataKey, PlatformDataToSave);
-			}
-
-			PlatformDataToSave->FinishCache();
-			PlatformDataToSave->Serialize(Ar, this);
+			CookedPlatformData.Add(DerivedDataKey, PlatformDataToSave);
 		}
+
+		PlatformDataToSave->FinishCache();
+		PlatformDataToSave->Serialize(Ar, this);
 	}
 	else
 #endif // #if WITH_EDITORONLY_DATA
 	{
+		check(!FPlatformProperties::IsServerOnly());
+
 		CleanupCachedRunningPlatformData();
 		check(RunningPlatformData == NULL);
 
+		// Don't serialize streaming data on servers, even if this platform supports streaming in theory
 		RunningPlatformData = new FStreamedAudioPlatformData();
 		RunningPlatformData->Serialize(Ar, this);
 	}
@@ -1065,6 +1066,12 @@ bool USoundWave::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* Target
 			// we havne't called begincache
 			return false;
 		}
+
+		if (PlatformData->AsyncTask && PlatformData->AsyncTask->IsWorkDone())
+		{
+			PlatformData->FinishCache();
+		}
+
 		return PlatformData->IsFinishedCache();
 	}
 	return true; 

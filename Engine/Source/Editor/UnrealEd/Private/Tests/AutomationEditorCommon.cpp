@@ -68,36 +68,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
 
 namespace AutomationEditorCommonUtils
 {
-	/**
-	* Converts a package path to an asset path
-	*
-	* @param PackagePath - The package path to convert
-	*/
-	FString ConvertPackagePathToAssetPath(const FString& PackagePath)
-	{
-		const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
-		FString EngineFileName = Filename;
-		FString GameFileName = Filename;
-		if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !EngineFileName.Contains(TEXT("../")))
-		{
-			const FString ShortName = FPaths::GetBaseFilename(EngineFileName);
-			const FString PathName = FPaths::GetPath(EngineFileName);
-			const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			return AssetName;
-		}
-		else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
-		{
-			const FString ShortName = FPaths::GetBaseFilename(GameFileName);
-			const FString PathName = FPaths::GetPath(GameFileName);
-			const FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
-			return AssetName;
-		}
-		else
-		{
-			UE_LOG(LogAutomationEditorCommon, Error, TEXT("PackagePath (%s) is invalid for the current project"), *PackagePath);
-			return TEXT("");
-		}
-	}
 
 	/**
 	* Imports an object using a given factory
@@ -502,6 +472,24 @@ namespace AutomationEditorCommonUtils
 			}
 		}
 	}
+
+	bool SetOrthoViewportView(const FVector& ViewLocation, const FRotator& ViewRotation)
+	{
+		for (int32 i = 0; i < GEditor->LevelViewportClients.Num(); i++)
+		{
+			FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[i];
+			if (!ViewportClient->IsOrtho())
+			{
+				ViewportClient->SetViewLocation(ViewLocation);
+				ViewportClient->SetViewRotation(ViewRotation);
+				return true;
+			}
+		}
+
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("An ortho viewport was not found.  May affect the test results."));
+		return false;
+	}
+
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -674,7 +662,7 @@ bool FAddStaticMeshCommand::Update()
 
 	UE_LOG(LogEditorAutomationTests, Log, TEXT("Static Mesh cube has been added to 0, 0, 0."))
 
-		return true;
+	return true;
 }
 
 /**
@@ -685,7 +673,7 @@ bool FBuildLightingCommand::Update()
 	//If we are running with -NullRHI then we have to skip this step.
 	if (GUsingNullRHI)
 	{
-		UE_LOG(LogEditorAutomationTests, Warning, TEXT("SKIPPED Build Lighting Step.  You're currently running with -NullRHI."));
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("SKIPPED Build Lighting Step.  You're currently running with -NullRHI."));
 		return true;
 	}
 
@@ -782,6 +770,57 @@ bool FWaitToFinishBuildDeployCommand::Update()
 		return true;
 	}
 	return false;
+}
+
+//////////////////////////////////////////////////////////////////////
+//Asset Path Commands
+
+/**
+* Converts a package path to an asset path
+*
+* @param PackagePath - The package path to convert
+*/
+FString FEditorAutomationTestUtilities::ConvertPackagePathToAssetPath(const FString& PackagePath)
+{
+	const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
+	FString EngineFileName = Filename;
+	FString GameFileName = Filename;
+	if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !EngineFileName.Contains(TEXT("../")))
+	{
+		const FString ShortName = FPaths::GetBaseFilename(EngineFileName);
+		const FString PathName = FPaths::GetPath(EngineFileName);
+		const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+		return AssetName;
+	}
+	else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
+	{
+		const FString ShortName = FPaths::GetBaseFilename(GameFileName);
+		const FString PathName = FPaths::GetPath(GameFileName);
+		const FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s"), *PathName, *ShortName, *ShortName);
+		return AssetName;
+	}
+	else
+	{
+		UE_LOG(LogAutomationEditorCommon, Error, TEXT("PackagePath (%s) is invalid for the current project"), *PackagePath);
+		return TEXT("");
+	}
+}
+
+/**
+* Gets the asset data from a package path
+*
+* @param PackagePath - The package path used to look up the asset data
+*/
+FAssetData FEditorAutomationTestUtilities::GetAssetDataFromPackagePath(const FString& PackagePath)
+{
+	FString AssetPath = FEditorAutomationTestUtilities::ConvertPackagePathToAssetPath(PackagePath);
+	if (AssetPath.Len() > 0)
+	{
+		IAssetRegistry& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get();
+		return AssetRegistry.GetAssetByObjectPath(*AssetPath);
+	}
+
+	return FAssetData();
 }
 
 //////////////////////////////////////////////////////////////////////

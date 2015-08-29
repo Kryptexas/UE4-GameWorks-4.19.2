@@ -186,7 +186,7 @@ void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext&
 		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
 		View.ViewRect.Width(), View.ViewRect.Height(),
 		View.ViewRect.Size(),
-		GSceneRenderTargets.GetBufferSizeXY(),
+		FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY(),
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
@@ -196,7 +196,7 @@ void FRCPassPostProcessSceneColorFringe::Process(FRenderingCompositePassContext&
 
 FPooledRenderTargetDesc FRCPassPostProcessSceneColorFringe::ComputeOutputDesc(EPassOutputId InPassOutputId) const
 {
-	FPooledRenderTargetDesc Ret = PassInputs[0].GetOutput()->RenderTargetDesc;
+	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.Reset();
 	Ret.DebugName = TEXT("PostProcessAA");

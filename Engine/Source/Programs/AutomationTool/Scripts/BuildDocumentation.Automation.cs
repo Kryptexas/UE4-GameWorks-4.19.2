@@ -10,8 +10,8 @@ using UnrealBuildTool;
 
 class ToolsForDocumentationNode : GUBP.CompileNode
 {
-    public ToolsForDocumentationNode(UnrealTargetPlatform InHostPlatform)
-        : base(InHostPlatform, false)
+    public ToolsForDocumentationNode(GUBP.GUBPBranchConfig InBranchConfig, UnrealTargetPlatform InHostPlatform)
+        : base(InBranchConfig, InHostPlatform, false)
     {
 		AgentSharingGroup = "Documentation" + StaticGetHostPlatformSuffix(InHostPlatform);
     }
@@ -26,9 +26,9 @@ class ToolsForDocumentationNode : GUBP.CompileNode
         return StaticGetFullName(HostPlatform);
     }
 
-	public override int CISFrequencyQuantumShift(GUBP bp)
+	public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
 	{
-		return base.CISFrequencyQuantumShift(bp) + 3;
+		return base.CISFrequencyQuantumShift(BranchConfig) + 3;
 	}
 
 	public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
@@ -36,7 +36,7 @@ class ToolsForDocumentationNode : GUBP.CompileNode
         var Agenda = new UE4Build.BuildAgenda();
 		Agenda.DotNetSolutions.Add("Engine/Source/Programs/UnrealDocTool/APIDocTool/APIDocTool.sln");
 		Agenda.DotNetSolutions.Add("Engine/Source/Programs/UnrealDocTool/UnrealDocTool/UnrealDocTool.sln");
-        return Agenda;
+		return Agenda;
     }
 }
 	
@@ -48,9 +48,9 @@ class DocumentationNode : GUBP.GUBPNode
 		AddDependency(ToolsForDocumentationNode.StaticGetFullName(InHostPlatform));
 	}
 
-	public override int CISFrequencyQuantumShift(GUBP bp)
+	public override int CISFrequencyQuantumShift(GUBP.GUBPBranchConfig BranchConfig)
 	{
-		return base.CISFrequencyQuantumShift(bp) + 3;
+		return base.CISFrequencyQuantumShift(BranchConfig) + 3;
 	}
 
 	protected void ExecuteApiDocTool(string Arguments, string LogName)
@@ -136,13 +136,13 @@ class BlueprintDocumentationNode : DocumentationNode
 
 public class DocumentationNodeAdder : GUBP.GUBPNodeAdder
 {
-	public override void AddNodes(GUBP bp, UnrealTargetPlatform InHostPlatform)
+	public override void AddNodes(GUBP bp, GUBP.GUBPBranchConfig BranchConfig, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InActivePlatforms)
 	{
-		if(InHostPlatform == UnrealTargetPlatform.Win64 && !bp.BranchOptions.bNoDocumentation)
+/*		if(InHostPlatform == UnrealTargetPlatform.Win64 && !BranchConfig.BranchOptions.bNoDocumentation)
 		{
-			bp.AddNode(new ToolsForDocumentationNode(InHostPlatform));
-			bp.AddNode(new CodeDocumentationNode(InHostPlatform));
-			bp.AddNode(new BlueprintDocumentationNode(InHostPlatform));
-		}
+			BranchConfig.AddNode(new ToolsForDocumentationNode(BranchConfig, InHostPlatform));
+			BranchConfig.AddNode(new CodeDocumentationNode(InHostPlatform));
+			BranchConfig.AddNode(new BlueprintDocumentationNode(InHostPlatform));
+		}*/
 	}
 }

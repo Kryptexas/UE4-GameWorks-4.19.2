@@ -12,6 +12,7 @@
 #include "MapErrors.h"
 #include "Particles/ParticleEventManager.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
@@ -45,6 +46,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
 	WorldToMeters = 100.f;
 
+	DefaultPhysicsVolumeClass = ADefaultPhysicsVolume::StaticClass();
 	GameNetworkManagerClass = AGameNetworkManager::StaticClass();
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
@@ -114,6 +116,12 @@ float AWorldSettings::GetGravityZ() const
 	}
 
 	return WorldGravityZ;
+}
+
+float AWorldSettings::FixupDeltaSeconds(float DeltaSeconds, float RealDeltaSeconds)
+{
+	// Clamp time between 2000 fps and 2.5 fps.
+	return FMath::Clamp(DeltaSeconds, 0.0005f, 0.4f);	
 }
 
 void AWorldSettings::NotifyBeginPlay()
@@ -202,6 +210,19 @@ void AWorldSettings::RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDat
 		}
 	}
 }
+
+void AWorldSettings::PostLoad()
+{
+	Super::PostLoad();
+
+#if WITH_EDITOR
+	for (FHierarchicalSimplification Entry : HierarchicalLODSetup)
+	{
+		Entry.ProxySetting.PostLoadDeprecated();	
+	}
+#endif// WITH_EDITOR
+}
+
 
 #if WITH_EDITOR
 

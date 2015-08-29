@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2491020
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:グラフを折りたたむ
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -24,7 +24,6 @@ Related:Engine/Blueprints/UserGuide/Macros
 1.	**左クリック** してノード上をドラッグして折り畳むすべてのノードを選択します。 
 
 	![](Collapse2.png)(w:740)
-
 	**Control + 左クリック** して選択したものに追加したり、選択したものを減らすこともできます。 
 
 1.	折り畳みたいノードがあれば、選択したノードを **右クリック** して、**Collapse Nodes** を選択します。 
@@ -49,7 +48,7 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 	折り畳み時にデフォルトで **Execute** が追加されます。ここでは 2 つの Execute Out Pins を追加しました。**OutOfEnergy** と **CanJump** の 2 つです。 
 
-	グラフを修正して、プレイヤーが持っている全体的なエネルギーから差し引く前に、プレイヤーのエネルギーがなくなっているかをチェックするようにもしました。
+	グラフを修正して、プレイヤーが持っている全体的なエネルギーから差し引く前に、プレイヤーのエネルギーがなくなっているかをチェックするようにもしました。 
 
 	![](Collapse8.png)(w:740)
 
@@ -120,12 +119,17 @@ Related:Engine/Blueprints/UserGuide/Macros
 	ノードを折り畳む他の方法と同様に、必要に応じて **Input** ピンまたは **Output** ピンを追加することができます。 
 
 	以下は、追加ピンを備えたマクロを実装したイベント グラフです。 
-		
+
 	![](CollapseMacro5.png)
 
 1.	マクロを **右クリック** し、**Expand Node** を選択してそのノード ネットワークを展開することができます。 
 
 マクロに関する詳細は、[](Engine/Blueprints/UserGuide/Macros) のドキュメントをご覧ください。 
+
+
+
+
+
 
 
 

@@ -32,16 +32,6 @@ public:
 	virtual void ShutdownModule() override;
 
 	/**
-	 * Called before the module has been unloaded
-	 */
-	virtual void PreUnloadCallback() override;
-
-	/**
-	 * Called after the module has been reloaded
-	 */
-	virtual void PostLoadCallback() override;
-
-	/**
 	 * Override this to set whether your module is allowed to be unloaded on the fly
 	 *
 	 * @return Whether the module supports shutdown separate from the rest of the engine.

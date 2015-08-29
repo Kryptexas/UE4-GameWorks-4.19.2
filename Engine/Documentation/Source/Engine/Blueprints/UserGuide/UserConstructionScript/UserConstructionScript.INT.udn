@@ -49,8 +49,6 @@ Description:Executed when instances of a Blueprint are created to perform initia
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 [EXCERPT:Intro]
 
 [INCLUDE:Shared/Glossary/C/#Glossary_Construction_Script]

@@ -5,7 +5,7 @@ Description:Functions for making adjustments to existing image textures, such as
 
 [TOC (start:2 end:3)]
 
-## Overview
+
 
 The Image Adjustment functions exist as a way to perform basic color correction operations on textures. They are useful in that they allow corrective actions or variations on a texture without having to worry about the overhead of loading a separate version into memory.
 

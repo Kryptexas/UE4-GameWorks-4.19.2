@@ -1,7 +1,7 @@
-INTSourceChangelist:2085814
+﻿INTSourceChangelist:2560162
 Availability: Public
 Title:리디렉터 (Redirector)
-Crumbs:%ROOT%, Engine, Engine/Basics
+Crumbs:%ROOT%, Engine
 Description:패키지에 놓아 이동된 애셋을 가리키던 레퍼런스를 현재 위치로 고쳐주는 오브젝트 입니다.
 
 [TOC (start:2 end:3)]

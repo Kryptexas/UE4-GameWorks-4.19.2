@@ -82,7 +82,7 @@ public:
 		}
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy, const FMeshBatch& Mesh, const FMeshBatchElement& BatchElement, float DitheredLODTransitionValue);
 
 private:
 	
@@ -211,27 +211,35 @@ public:
 	{
 		SkyLightCubemap.Bind(ParameterMap, TEXT("SkyLightCubemap"));
 		SkyLightCubemapSampler.Bind(ParameterMap, TEXT("SkyLightCubemapSampler"));
+		SkyLightBlendDestinationCubemap.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemap"));
+		SkyLightBlendDestinationCubemapSampler.Bind(ParameterMap, TEXT("SkyLightBlendDestinationCubemapSampler"));
 		SkyLightParameters.Bind(ParameterMap, TEXT("SkyLightParameters"));
 	}
 
 	template<typename TParamRef>
 	void SetParameters(FRHICommandList& RHICmdList, const TParamRef& ShaderRHI, const FScene* Scene, bool bApplySkyLight)
 	{
-		FTexture* SkyLightTextureResource = GBlackTextureCube;
-		float ApplySkyLightMask = 0;
-		float SkyMipCount = 1;
-		bool bSkyLightIsDynamic = false;
+		if (SkyLightCubemap.IsBound() || SkyLightBlendDestinationCubemap.IsBound() || SkyLightParameters.IsBound())
+		{
+			FTexture* SkyLightTextureResource = GBlackTextureCube;
+			FTexture* SkyLightBlendDestinationTextureResource = GBlackTextureCube;
+			float ApplySkyLightMask = 0;
+			float SkyMipCount = 1;
+			float BlendFraction = 0;
+			bool bSkyLightIsDynamic = false;
 
-		GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic);
+			GetSkyParametersFromScene(Scene, bApplySkyLight, SkyLightTextureResource, SkyLightBlendDestinationTextureResource, ApplySkyLightMask, SkyMipCount, bSkyLightIsDynamic, BlendFraction);
 
-		SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
-		const FVector SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f);
-		SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
+			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightCubemap, SkyLightCubemapSampler, SkyLightTextureResource);
+			SetTextureParameter(RHICmdList, ShaderRHI, SkyLightBlendDestinationCubemap, SkyLightBlendDestinationCubemapSampler, SkyLightBlendDestinationTextureResource);
+			const FVector4 SkyParametersValue(SkyMipCount - 1.0f, ApplySkyLightMask, bSkyLightIsDynamic ? 1.0f : 0.0f, BlendFraction);
+			SetShaderValue(RHICmdList, ShaderRHI, SkyLightParameters, SkyParametersValue);
+		}
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FSkyLightReflectionParameters& P)
 	{
-		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters;
+		Ar << P.SkyLightCubemap << P.SkyLightCubemapSampler << P.SkyLightParameters << P.SkyLightBlendDestinationCubemap << P.SkyLightBlendDestinationCubemapSampler;
 		return Ar;
 	}
 
@@ -239,9 +247,19 @@ private:
 
 	FShaderResourceParameter SkyLightCubemap;
 	FShaderResourceParameter SkyLightCubemapSampler;
+	FShaderResourceParameter SkyLightBlendDestinationCubemap;
+	FShaderResourceParameter SkyLightBlendDestinationCubemapSampler;
 	FShaderParameter SkyLightParameters;
 
-	void GetSkyParametersFromScene(const FScene* Scene, bool bApplySkyLight, FTexture*& OutSkyLightTextureResource, float& OutApplySkyLightMask, float& OutSkyMipCount, bool& bSkyLightIsDynamic);
+	void GetSkyParametersFromScene(
+		const FScene* Scene, 
+		bool bApplySkyLight, 
+		FTexture*& OutSkyLightTextureResource, 
+		FTexture*& OutSkyLightBlendDestinationTextureResource, 
+		float& OutApplySkyLightMask, 
+		float& OutSkyMipCount, 
+		bool& bSkyLightIsDynamic, 
+		float& OutBlendFraction);
 };
 
 /** Parameters needed for lighting translucency, shared by multiple shaders. */
@@ -265,6 +283,7 @@ public:
 		SkyLightReflectionParameters.Bind(ParameterMap);
 		HZBTexture.Bind(ParameterMap, TEXT("HZBTexture"));
 		HZBSampler.Bind(ParameterMap, TEXT("HZBSampler"));
+		HZBUvFactorAndInvFactor.Bind(ParameterMap, TEXT("HZBUvFactorAndInvFactor"));
 		PrevSceneColor.Bind(ParameterMap, TEXT("PrevSceneColor"));
 		PrevSceneColorSampler.Bind(ParameterMap, TEXT("PrevSceneColorSampler"));
 	}
@@ -290,6 +309,7 @@ public:
 		Ar << P.SkyLightReflectionParameters;
 		Ar << P.HZBTexture;
 		Ar << P.HZBSampler;
+		Ar << P.HZBUvFactorAndInvFactor;
 		Ar << P.PrevSceneColor;
 		Ar << P.PrevSceneColorSampler;
 		return Ar;
@@ -311,6 +331,7 @@ private:
 	FSkyLightReflectionParameters SkyLightReflectionParameters;
 	FShaderResourceParameter HZBTexture;
 	FShaderResourceParameter HZBSampler;
+	FShaderParameter HZBUvFactorAndInvFactor;
 	FShaderResourceParameter PrevSceneColor;
 	FShaderResourceParameter PrevSceneColorSampler;
 };
@@ -379,14 +400,19 @@ public:
 				{
 					check(GetUniformBufferParameter<FForwardLightData>().IsInitialized());
 
-					if(GetUniformBufferParameter<FForwardLightData>().IsBound())
+					static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.ForwardLighting"));
+					bool bForwardLighting = CVar->GetValueOnRenderThread() != 0;
+
+					if(bForwardLighting)
 					{
 						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(),View->ForwardLightData);
+						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, GLightGridVertexBuffer.VertexBufferSRV);
 					}
-
-					if(LightGrid.IsBound())
+					else
 					{
-						RHICmdList.SetShaderResourceViewParameter(ShaderRHI, LightGrid.GetBaseIndex(), GLightGridVertexBuffer.VertexBufferSRV);
+						// feature is disabled
+						SetUniformBufferParameter(RHICmdList, ShaderRHI,GetUniformBufferParameter<FForwardLightData>(), 0);
+						SetSRVParameter(RHICmdList, ShaderRHI, LightGrid, 0);
 					}
 				}
 			}
@@ -395,7 +421,7 @@ public:
 		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode);
+	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement, EBlendMode BlendMode, float DitheredLODTransitionValue);
 
 	virtual bool Serialize(FArchive& Ar) override
 	{
@@ -649,6 +675,7 @@ public:
 		const FMeshBatch& Mesh,
 		int32 BatchElementIndex,
 		bool bBackFace,
+		float DitheredLODTransitionValue,
 		const ElementDataType& ElementData,
 		const ContextDataType PolicyContext
 		) const
@@ -667,12 +694,12 @@ public:
 			ElementData.LightMapElementData);
 
 		const FMeshBatchElement& BatchElement = Mesh.Elements[BatchElementIndex];
-		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement);
+		VertexShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy, Mesh,BatchElement,DitheredLODTransitionValue);
 		
 		if(HullShader && DomainShader)
 		{
-			HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
-			DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement);
+			HullShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
+			DomainShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,DitheredLODTransitionValue);
 		}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -694,10 +721,10 @@ public:
 		else
 #endif
 		{
-			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode);
+			PixelShader->SetMesh(RHICmdList, VertexFactory,View,PrimitiveSceneProxy,BatchElement,BlendMode,DitheredLODTransitionValue);
 		}
 
-		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
+		FMeshDrawingPolicy::SetMeshRenderState(RHICmdList, View,PrimitiveSceneProxy,Mesh,BatchElementIndex,bBackFace, DitheredLODTransitionValue,FMeshDrawingPolicy::ElementDataType(),PolicyContext);
 	}
 
 	friend int32 CompareDrawingPolicy(const TBasePassDrawingPolicy& A,const TBasePassDrawingPolicy& B)

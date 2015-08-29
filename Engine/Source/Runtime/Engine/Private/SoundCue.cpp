@@ -5,7 +5,9 @@
 #include "Sound/SoundNodeMixer.h"
 #include "Sound/SoundNodeWavePlayer.h"
 #include "Sound/SoundNodeAttenuation.h"
+#include "Sound/SoundNodeQualityLevel.h"
 #include "Sound/SoundWave.h"
+#include "GameFramework/GameUserSettings.h"
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "UnrealEd.h"
@@ -56,12 +58,14 @@ void USoundCue::AddReferencedObjects(UObject* InThis, FReferenceCollector& Colle
 
 	Super::AddReferencedObjects(InThis, Collector);
 }
+#endif // WITH_EDITOR
 
 void USoundCue::PostLoad()
 {
 	Super::PostLoad();
 
-		// Game doesn't care if there are NULL graph nodes
+	// Game doesn't care if there are NULL graph nodes
+#if WITH_EDITOR
 	if (GIsEditor)
 	{
 		// Deal with SoundNode types being removed - iterate in reverse as nodes may be removed
@@ -74,8 +78,49 @@ void USoundCue::PostLoad()
 				FBlueprintEditorUtils::RemoveNode(NULL, Node, true);
 			}
 		}
+
+		// Always load all sound waves in the editor
+		for (USoundNode* SoundNode : AllNodes)
+		{
+			if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
+			{
+				AssetReferencerNode->LoadAsset();
+			}
+		}
+	}
+	else
+#endif
+	{
+		TArray<USoundNode*> NodesToEvaluate;
+		NodesToEvaluate.Push(FirstNode);
+
+		while (NodesToEvaluate.Num() > 0)
+		{
+			if (USoundNode* SoundNode = NodesToEvaluate.Pop(false))
+			{
+				if (USoundNodeAssetReferencer* AssetReferencerNode = Cast<USoundNodeAssetReferencer>(SoundNode))
+				{
+					AssetReferencerNode->LoadAsset();
+				}
+				else if (USoundNodeQualityLevel* QualityLevelNode = Cast<USoundNodeQualityLevel>(SoundNode))
+				{
+					// Only pick the node connected for current quality, currently don't support changing audio quality on the fly
+					static const int32 CachedQualityLevel = GEngine->GetGameUserSettings()->GetAudioQualityLevel();
+					if (CachedQualityLevel < QualityLevelNode->ChildNodes.Num())
+					{
+						NodesToEvaluate.Add(QualityLevelNode->ChildNodes[CachedQualityLevel]);
+					}
+				}
+				else
+				{
+					NodesToEvaluate.Append(SoundNode->ChildNodes);
+				}
+			}
+		}
 	}
 }
+
+#if WITH_EDITOR
 
 void USoundCue::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -205,7 +250,7 @@ SIZE_T USoundCue::GetResourceSize(EResourceSizeMode::Type Mode)
 
 		for( int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex )
 		{
-			USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave;
+			USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
 			if (SoundWave)
 			{
 				ResourceSize += SoundWave->GetResourceSize(Mode);
@@ -224,7 +269,7 @@ int32 USoundCue::GetResourceSizeForFormat(FName Format)
 	int32 ResourceSize = 0;
 	for (int32 WaveIndex = 0; WaveIndex < WavePlayers.Num(); ++WaveIndex)
 	{
-		USoundWave* SoundWave = WavePlayers[WaveIndex]->SoundWave;
+		USoundWave* SoundWave = WavePlayers[WaveIndex]->GetSoundWave();
 		if (SoundWave)
 		{
 			ResourceSize += SoundWave->GetResourceSizeForFormat(Format);

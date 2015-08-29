@@ -101,6 +101,7 @@ public:
 
 	static void SyncToObjectsInNode( const TWeakPtr< FPropertyNode >& WeakPropertyNode );
 
+	static const FString MultipleValuesDisplayName;
 private:
 	FPropertyEditor( const TSharedRef< class FPropertyNode >& InPropertyNode, const TSharedRef<class IPropertyUtilities >& InPropertyUtilities );
 

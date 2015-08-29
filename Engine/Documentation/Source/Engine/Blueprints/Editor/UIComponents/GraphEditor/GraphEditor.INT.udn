@@ -6,8 +6,6 @@ Description:Editable, visual representation of a network of nodes within a Bluep
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 
 [EXCERPT:Intro]
 The **Graph Editor** panel is the heart of the Blueprint system. It is here that you will create the networks of nodes and wires that will define your scripted behavior. Nodes can quickly be selected by clicking on them and repositioned via dragging.

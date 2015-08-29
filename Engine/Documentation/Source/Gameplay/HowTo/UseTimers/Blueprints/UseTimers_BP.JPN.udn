@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2428873
+﻿INTSourceChangelist:2561549
 Availability:Public
 Title:ブループリントでタイマーを使う
 Crumbs: %ROOT%, Gameplay, Gameplay\HowTo\UseTimers
@@ -16,7 +16,7 @@ Description:ブループリントでタイマーを使用するための操作�
 
 _例えば **Blueprint Third Person Template** を使って、徐々にプレイヤーにダメージを与えていきます。_
 
-1.	プロジェクトで **MyCharacter** ブループリントを開きます。 
+1.	プロジェクトで **ThirdPersonCharacter** ブループリントを開きます。 
 
 1.	グラフ内を **右クリック** して、 **PlayerInFire** と **PlayerNotInFire** と呼ばれるの 2 つの **Custom Event** を追加します。
 
@@ -66,15 +66,15 @@ _例えば **Blueprint Third Person Template** を使って、徐々にプレイ
 
 	![](GHT6B_7.png)
 
-	プレイヤーがこのトリガーに出入りする時に、 **MyCharacter** ブループリントにイベントを呼び出します。 
+	プレイヤーがこのトリガーに出入りする時に、 **ThirdPersonCharacter** ブループリントにイベントを呼び出します。 
 
 1.	**[Graph]** タブに戻って **[Trigger]** を **右クリック** し、 **OnComponentBegin**  Overlap Event と **OnComponentEnd** Overlap Event を追加します。 
 
 	![](GHT6B_8.png)
 
-1.	それぞれの **Other Actor** ピンを引き出して **Cast To MyCharacter** ノードを追加します。 
+1.	それぞれの **Other Actor** ピンを引き出して **Cast To ThirdPersonCharacter** ノードを追加します。 
 
-1.	**As My Character C** ピンを引き出して、 (Begin ノードの場合) **PlayerInFire** Event と **PlayerIsNotInFire** Event (End ノードの場合) を追加します。 
+1.	**As Third Person Character C** ピンを引き出して、 (Begin ノードの場合) **PlayerInFire** Event と **PlayerIsNotInFire** Event (End ノードの場合) を追加します。 
 
 	![](GHT6B_8b.png)
 

@@ -48,7 +48,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphNodeContextActions(FGraphContextMenuBu
 
 	if (SubNodeFlags == ESubNode::Decorator)
 	{
-		const FString& Category = UBehaviorTreeGraphNode_CompositeDecorator::StaticClass()->GetMetaData(TEXT("Category"));
+		const FText& Category = UBehaviorTreeGraphNode_CompositeDecorator::StaticClass()->GetMetaDataText(TEXT("Category"), TEXT("UObjectCategory"), UBehaviorTreeGraphNode_CompositeDecorator::StaticClass()->GetFullGroupName(false));
 		UEdGraph* Graph = (UEdGraph*)ContextMenuBuilder.CurrentGraph;
 		UBehaviorTreeGraphNode_CompositeDecorator* OpNode = NewObject<UBehaviorTreeGraphNode_CompositeDecorator>(Graph);
 		TSharedPtr<FAISchemaAction_NewSubNode> AddOpAction = UAIGraphSchema::AddNewSubNodeAction(ContextMenuBuilder, Category, FText::FromString(OpNode->GetNodeTypeDescription()), "");
@@ -147,7 +147,7 @@ void UEdGraphSchema_BehaviorTree::GetGraphContextActions(FGraphContextMenuBuilde
 	if (bNoParent)
 	{
 		TSharedPtr<FBehaviorTreeSchemaAction_AutoArrange> Action = TSharedPtr<FBehaviorTreeSchemaAction_AutoArrange>(
-			new FBehaviorTreeSchemaAction_AutoArrange(FString(), LOCTEXT("AutoArrange", "Auto Arrange"), FString(), 0)
+			new FBehaviorTreeSchemaAction_AutoArrange(FText::GetEmpty(), LOCTEXT("AutoArrange", "Auto Arrange"), FString(), 0)
 			);
 
 		ContextMenuBuilder.AddAction(Action);

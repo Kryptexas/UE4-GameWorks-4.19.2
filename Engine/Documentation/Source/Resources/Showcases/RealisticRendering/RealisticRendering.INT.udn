@@ -60,7 +60,6 @@ Related: Engine/Rendering/Materials/LayeredMaterials
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 This example shows off the realistic rendering possibilities of Unreal Engine 4. The goal was to create a small scene that had the look and feel of an architectural rendering, as those produced by CG rendering engines such as VRay and Mental Ray. However, the primary stipulation in this case was that all assets be game-ready, meaning that no high-poly modeling could be used. Everything in the scene had to be created such that one could make an actual and practical game using these methods. 
 
@@ -181,11 +180,11 @@ This Material has been highly parameterized, which means it is intended to be in
 
 This demo makes extensive use of reflections to show off certain objects. Reflections are handled in various ways in Unreal Engine 4. 
 
-* **Screen Space Reflections** - Screen Space reflections are an engine feature in UE4 and are visible by default. These are visible primarily at near-edge-on angles. They work in cooperation with the Reflection Environment and Reflection Captures to create a whole sense of scene refelction.
+* **Screen Space Reflections** - Screen Space reflections are an engine feature in UE4 and are visible by default. These are visible primarily at near-edge-on angles. They work in cooperation with the Reflection Environment and Reflection Captures to create a whole sense of scene reflection.
 
 * **Reflection Environment and Reflection Captures** - Unreal Engine 4 makes use of reflection captures to create realistic reflections. These are created by way of strategically placed Actors in the level which create spherical or cube-shaped captures of the environment, which in turn are projected onto any reflective objects within their radius. In this image, you can see the Reflection Capture Actors placed to give accurate reflections to several of the objects.
 
-	![](RefelctionCaptures.png)(w:600)
+	![](ReflectionCaptures.png)(w:600)
 
 
 ## Carpet Object
@@ -211,7 +210,7 @@ The model for the rug object is one of the central aspects of creating the effec
 
 ### Material
 
-The Material for the carpet makes use of Bump Offset multiplied and added into 4 separate stages. These four stages, multiplied by the four stacked pieces of geometry to give a total of 16 "layers" to the effect. The Bump Offset actually runs in a negative direction, giving the fibers a sense of receding down into the surface. This Material is highly parameterized and customizable.
+The Material for the carpet makes use of Bump Offset multiplied and added into 4 separate stages. These four stages, multiplied by the four stacked pieces of geometry, give a total of 16 "layers" to the effect. The Bump Offset actually runs in a negative direction, giving the fibers a sense of receding down into the surface. This Material is highly parameterized and customizable.
 
 ![](CarpetMaterial.png)
 

@@ -14,20 +14,20 @@ class FCanvas;
 
 
 /**
- * Enumerats types of fully loaded packages.
+ * Enumerates types of fully loaded packages.
  */
 UENUM()
 enum EFullyLoadPackageType
 {
-	/** Load the packages when the map in Tag is loaded */
+	/** Load the packages when the map in Tag is loaded. */
 	FULLYLOAD_Map,
-	/** Load the packages before the game class in Tag is loaded. The Game name MUST be specified in the URL (game=Package.GameName). Useful for loading packages needed to load the game type (a DLC game type, for instance) */
+	/** Load the packages before the game class in Tag is loaded. The Game name MUST be specified in the URL (game=Package.GameName). Useful for loading packages needed to load the game type (a DLC game type, for instance). */
 	FULLYLOAD_Game_PreLoadClass,
-	/** Load the packages after the game class in Tag is loaded. Will work no matter how game is specified in UWorld::SetGameMode. Useful for modifying shipping gametypes by loading more packages (mutators, for instance) */
+	/** Load the packages after the game class in Tag is loaded. Will work no matter how game is specified in UWorld::SetGameMode. Useful for modifying shipping gametypes by loading more packages (mutators, for instance). */
 	FULLYLOAD_Game_PostLoadClass,
-	/** Fully load the package as long as the DLC is loaded */
+	/** Fully load the package as long as the DLC is loaded. */
 	FULLYLOAD_Always,
-	/** Load the package for a mutator that is active */
+	/** Load the package for a mutator that is active. */
 	FULLYLOAD_Mutator,
 	FULLYLOAD_MAX,
 };
@@ -59,7 +59,7 @@ enum EConsoleType
 };
 
 
-/** Struct to help hold information about packages needing to be fully-loaded for DLC, etc */
+/** Struct to help hold information about packages needing to be fully-loaded for DLC, etc. */
 USTRUCT()
 struct FFullyLoadedPackagesInfo
 {
@@ -1132,34 +1132,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Subtitles)
 	uint32 bSubtitlesForcedOff:1;
 
-	/** Time in seconds (game time) we should wait between purging object references to objects that are pending kill */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	float TimeBetweenPurgingPendingKillObjects;
-
-	/** Whether to allow background level streaming. */
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming)
-	uint32 bUseBackgroundLevelStreaming:1;
-
-	/** Maximum amount of time to spend doing asynchronous loading (ms per frame) */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	float AsyncLoadingTimeLimit;
-
-	/** Whether to use the entire time limit even if blocked on I/O */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	uint32 bAsyncLoadingUseFullTimeLimit:1;
-	
-	/** Additional time to spend asynchronous loading during a "high priority" load */
-	UPROPERTY(EditAnywhere, config, Category = LevelStreaming, AdvancedDisplay)
-	float PriorityAsyncLoadingExtraTime;
-
-	/** Maximum allowed time to spend for actor registration steps during level streaming (ms per frame)*/
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	float LevelStreamingActorsUpdateTimeLimit;
-	
-	/** Batching granularity used to register actor components during level streaming */
-	UPROPERTY(EditAnywhere, config, Category=LevelStreaming, AdvancedDisplay)
-	int32 LevelStreamingComponentsRegistrationGranularity;
-
 	/** Script maximum loop iteration count used as a threshold to warn users about script execution runaway */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	int32 MaximumLoopIterationCount;
@@ -1176,17 +1148,20 @@ public:
 	UPROPERTY(config)
 	uint32 bEnableEditorPSysRealtimeLOD:1;
 
+	/** Hook for external systems to transiently and forcibly disable framerate smoothing without stomping the original setting. */
+	uint32 bForceDisableFrameRateSmoothing : 1;
+
+	/** Whether to enable framerate smoothing. */
+	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(EditCondition="!bUseFixedFrameRate"))
+	uint32 bSmoothFrameRate:1;
+
 	/** Whether to use a fixed framerate. */
 	UPROPERTY(config, EditAnywhere, Category = Framerate)
 	uint32 bUseFixedFrameRate : 1;
-	
-	/** The fixed framerate to use. */
-	UPROPERTY(config, EditAnywhere, Category = Framerate, meta=(EditCondition="bUseFixedFrameRate"))
-	float FixedFrameRate;
 
-	/** Whether to enable framerate smoothing.																		*/
-	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(EditCondition="!bUseFixedFrameRate"))
-	uint32 bSmoothFrameRate:1;
+	/** The fixed framerate to use. */
+	UPROPERTY(config, EditAnywhere, Category = Framerate, meta = (EditCondition = "bUseFixedFrameRate"))
+	float FixedFrameRate;
 
 	/** Range of framerates in which smoothing will kick in */
 	UPROPERTY(config, EditAnywhere, Category=Framerate, meta=(UIMin=0, UIMax=200, EditCondition="!bUseFixedFrameRate"))
@@ -1524,7 +1499,10 @@ public:
 
 	/** Reference to the HMD device that is attached, if any */
 	TSharedPtr< class IHeadMountedDisplay, ESPMode::ThreadSafe > HMDDevice;
-	
+
+	/** Reference to the Motion Control devices that are attached, if any */
+	TArray < class IMotionController*> MotionControllerDevices;
+
 	/** Triggered when a world is added. */	
 	DECLARE_EVENT_OneParam( UEngine, FWorldAddedEvent , UWorld* );
 	
@@ -1748,11 +1726,17 @@ public:
 	/** Get tick rate limiter. */
 	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const;
 
+	/** Get max fps. */
+	virtual int32 GetMaxFPS() const;
+
+	/** Set max fps. Overrides console variable. */
+	virtual void SetMaxFPS(const int32 MaxFPS);
+
 	/** Updates the running average delta time */
 	virtual void UpdateRunningAverageDeltaTime(float DeltaTime, bool bAllowFrameRateSmoothing = true);
 
 	/** Whether we're allowed to do frame rate smoothing */
-	bool IsAllowedFramerateSmoothing(bool bAllowFrameRateSmoothing) const;
+	virtual bool IsAllowedFramerateSmoothing() const;
 
 	/**
 	 * Pauses / un-pauses the game-play when focus of the game's window gets lost / gained.
@@ -1967,8 +1951,10 @@ public:
 
 	/**
 	 * Starts the FPS chart data capture.
+	 *
+	 * @param	Label		Label for this run
 	 */
-	virtual void StartFPSChart();
+	virtual void StartFPSChart( const FString& Label );
 
 	/**
 	 * Stops the FPS chart data capture.
@@ -2212,6 +2198,13 @@ protected:
 	 *	@return true if there is an initialized device, false otherwise
 	 */
 	virtual bool InitializeHMDDevice();
+
+	/**
+	 *	Detects and initializes any motion controller devices
+	 *
+	 *	@return true if there are any initialized motion controllers, false otherwise
+	 */
+	virtual bool InitializeMotionControllers();
 
 	/**
 	 *	Record EngineAnalytics information for attached HMD devices
@@ -2532,7 +2525,9 @@ public:
 	/** @return true if editor analytics are enabled */
 	virtual bool AreEditorAnalyticsEnabled() const { return false; }
 	virtual void CreateStartupAnalyticsAttributes( TArray<struct FAnalyticsEventAttribute>& StartSessionAttributes ) const {}
-
+	
+	/** @return true if the engine is autosaving a package */
+	virtual bool IsAutosaving() const { return false; }
 protected:
 
 	TIndirectArray<FWorldContext>	WorldList;

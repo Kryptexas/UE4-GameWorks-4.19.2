@@ -10,32 +10,72 @@ UMovieScene2DTransformSection::UMovieScene2DTransformSection( const FObjectIniti
 
 }
 
-void UMovieScene2DTransformSection::MoveSection( float DeltaTime )
+void UMovieScene2DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::MoveSection( DeltaTime );
+	Super::MoveSection( DeltaTime, KeyHandles );
 
-	Rotation.ShiftCurve( DeltaTime );
+	Rotation.ShiftCurve( DeltaTime, KeyHandles );
 
 	// Move all the curves in this section
 	for( int32 Axis = 0; Axis < 2; ++Axis )
 	{
-		Translation[Axis].ShiftCurve( DeltaTime );
-		Scale[Axis].ShiftCurve( DeltaTime );
-		Shear[Axis].ShiftCurve( DeltaTime );
+		Translation[Axis].ShiftCurve( DeltaTime, KeyHandles );
+		Scale[Axis].ShiftCurve( DeltaTime, KeyHandles );
+		Shear[Axis].ShiftCurve( DeltaTime, KeyHandles );
 	}
 }
 
-void UMovieScene2DTransformSection::DilateSection( float DilationFactor, float Origin )
+void UMovieScene2DTransformSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
-	Super::DilateSection(DilationFactor, Origin);
+	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 
-	Rotation.ScaleCurve( Origin, DilationFactor );
+	Rotation.ScaleCurve( Origin, DilationFactor, KeyHandles);
 
 	for( int32 Axis = 0; Axis < 2; ++Axis )
 	{
-		Translation[Axis].ScaleCurve( Origin, DilationFactor );
-		Scale[Axis].ScaleCurve( Origin, DilationFactor );
-		Shear[Axis].ScaleCurve( Origin, DilationFactor  );
+		Translation[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
+		Scale[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
+		Shear[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
+	}
+}
+
+void UMovieScene2DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
+{
+	for (auto It(Rotation.GetKeyHandleIterator()); It; ++It)
+	{
+		float Time = Rotation.GetKeyTime(It.Key());
+		if (IsTimeWithinSection(Time))
+		{
+			KeyHandles.Add(It.Key());
+		}
+	}
+
+	for (int32 Axis = 0; Axis < 2; ++Axis)
+	{
+		for (auto It(Translation[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Translation[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
+		for (auto It(Scale[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Scale[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
+		for (auto It(Shear[Axis].GetKeyHandleIterator()); It; ++It)
+		{
+			float Time = Shear[Axis].GetKeyTime(It.Key());
+			if (IsTimeWithinSection(Time))
+			{
+				KeyHandles.Add(It.Key());
+			}
+		}
 	}
 }
 

@@ -16,6 +16,12 @@ struct ILanguageSpec
 	virtual bool SupportsMatrixConversions() const = 0;
 	virtual void SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, exec_list* ir) = 0;
 
+	// If true, a sampler can be used with multiple textures
+	virtual bool AllowsSharingSamplers() const = 0;
+
+	// Some platforms don't allow implicit math/conversion between float & half types
+	virtual bool CanConvertBetweenHalfAndFloat() const { return true; }
+
 	// Experimental!
 	virtual bool UseSamplerInnerType() const { return false; }
 };

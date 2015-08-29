@@ -472,10 +472,6 @@ private:
 #include "CollisionDebugDrawing.h"
 #include "CollisionConversions.h"
 
-
-#define VERIFY_GEOMSWEEPSINGLE 0
-#define VERIFY_GEOMSWEEPMULTI 0
-
 float DebugLineLifetime = 2.f;
 
 /**
@@ -500,14 +496,14 @@ struct FScopedMultiSceneReadLock
 
 	inline void LockRead(PxScene* Scene, int32 SceneIndex)
 	{
-		check(SceneLocks[SceneIndex] == nullptr); // no nested locks allowed.
+		checkSlow(SceneLocks[SceneIndex] == nullptr); // no nested locks allowed.
 		SCENE_LOCK_READ(Scene);
 		SceneLocks[SceneIndex] = Scene;
 	}
 
 	inline void UnlockRead(PxScene* Scene, int32 SceneIndex)
 	{
-		check(SceneLocks[SceneIndex] == Scene || SceneLocks[SceneIndex] == nullptr);
+		checkSlow(SceneLocks[SceneIndex] == Scene || SceneLocks[SceneIndex] == nullptr);
 		SCENE_UNLOCK_READ(Scene);
 		SceneLocks[SceneIndex] = nullptr;
 	}
@@ -686,13 +682,13 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallbackSweep::postFilter(const PxFilter
 	PxSweepHit& SweepHit = (PxSweepHit&)hit;
 	const bool bIsOverlap = SweepHit.hadInitialOverlap();
 
-	if (DiscardInitialOverlaps && bIsOverlap)
+	if (bIsOverlap && DiscardInitialOverlaps)
 	{
 		return PxSceneQueryHitType::eNONE;
 	}
 	else
 	{
-		if (PrefilterReturnValue == PxSceneQueryHitType::eBLOCK && bIsOverlap)
+		if (bIsOverlap && PrefilterReturnValue == PxSceneQueryHitType::eBLOCK)
 		{
 			// We want to keep initial blocking overlaps and continue the sweep until a non-overlapping blocking hit.
 			// We will later report this hit as a blocking hit when we compute the hit type (using FPxQueryFilterCallback::CalcQueryHitType).
@@ -1220,15 +1216,22 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 		}
 	}
 
-	TArray<FHitResult> Hits;
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
+		TArray<FHitResult> Hits;
 		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, Hits, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Test, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+#if ENABLE_COLLISION_ANALYZER
+	if (GCollisionAnalyzerIsRecording)
+	{
+		TArray<FHitResult> Hits;
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Test, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, Hits);
+	}
+#endif // ENABLE_COLLISION_ANALYZER
+
 #endif // WITH_PHYSX
 
 	//@TODO: BOX2D: Implement GeomSweepTest
@@ -1283,26 +1286,6 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 
 		PxSweepHit PHit;
 		bHaveBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PHit, PQueryFilterData, &PQueryCallbackSweep);
-
-#if VERIFY_GEOMSWEEPSINGLE
-		// If we hit but did not start overlapping...
-		if(bHaveBlockingHit && !PHit.hadInitialOverlap())
-		{
-			const float HitTime = PHit.distance/DeltaMag;
-			FVector HitLocation = Start + (Delta/DeltaMag) * HitTime;
-			PxTransform PEndTM(U2PVector(HitLocation), PGeomRot);
-
-			PxSweepHit PTestHit;
-			bool bTestBlockingHit = SyncScene->sweepSingle(PGeom, PEndTM, -PDir, DeltaMag, POutputFlags, PTestHit, PQueryFilterData, &PQueryCallbackSweep);
-			if(bTestBlockingHit)
-			{
-				UE_LOG(LogCollision, Warning, TEXT("GeomSweepSingle : Cannot sweep back from end location."));
-
-				PxSweepHit PReproHit;
-				bool bReproBlockingHit = SyncScene->sweepSingle(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PReproHit, PQueryFilterData, &PQueryCallbackSweep);
-			}
-		}
-#endif
 
 		if (!bHaveBlockingHit)
 		{
@@ -1377,6 +1360,8 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	STARTQUERYTIMER();
 	bool bBlockingHit = false;
 
+	const int32 InitialHitCount = OutHits.Num();
+
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
@@ -1422,47 +1407,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 			MinBlockDistance = PHits[NumHits - 1].distance;
 			bBlockingHit = true;
 		}
-
-#if VERIFY_GEOMSWEEPMULTI
-		// If we hit something, test we can sweep back...
-		{
-			if (OutHits.Num() == 0)
-			{
-				FVector HitLocation = End;
-				float TestLength = DeltaMag;
-				if (bBlockingHitSync)
-				{
-					TestLength = PHits[NumHits - 1].distance;
-					FHitResult TestHit;
-					ConvertQueryImpactHit(World, PHits[NumHits - 1], TestHit, DeltaMag, PFilter, Start, End, &PGeom, PStartTM, false, Params.bReturnPhysicalMaterial);
-					HitLocation = TestHit.Location;
-				}
-
-				UE_LOG(LogCollision, Warning, TEXT("%d Start: %s End: %s"), bBlockingHitSync, *Start.ToString(), *HitLocation.ToString());
-
-				PxTransform PEndTM(U2PVector(HitLocation), PGeomRot);
-
-				PxSweepHit PTestHits[HIT_BUFFER_MAX_SYNC_QUERIES];
-				bool bTestBlockingHit;
-				PxI32 NumTestHits = SyncScene->sweepMultiple(PGeom, PEndTM, -PDir, TestLength, POutputFlags, PTestHits, HIT_BUFFER_MAX_SYNC_QUERIES, bTestBlockingHit, PQueryFilterData, &PQueryCallbackSweep);
-
-				if (bTestBlockingHit)
-				{
-					UE_LOG(LogCollision, Warning, TEXT("GeomSweepMulti : Cannot sweep back from end location."));
-
-					PxSweepHit PReproHits[HIT_BUFFER_MAX_SYNC_QUERIES];
-					bool bReproBlockingHit;
-					PxI32 NumReproHits = SyncScene->sweepMultiple(PGeom, PStartTM, PDir, DeltaMag, POutputFlags, PReproHits, HIT_BUFFER_MAX_SYNC_QUERIES, bReproBlockingHit, PQueryFilterData, &PQueryCallbackSweep);
-				}
-			}
-			else
-			{
-				UE_LOG(LogCollision, Warning, TEXT("STUCK Start: %s End: %s"), *Start.ToString(), *End.ToString());
-			}
-		}
-#endif
-
-		if (NumHits == 0)
+		else if (NumHits == 0)
 		{
 			// Not using anything from this scene, so unlock it.
 			SceneLocks.UnlockRead(SyncScene, PST_Sync);
@@ -1513,11 +1458,20 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 	{
-		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, OutHits, DebugLineLifetime);
+		TArray<FHitResult> OnlyMyHits(OutHits);
+		OnlyMyHits.RemoveAt(0, InitialHitCount, false); // Remove whatever was there initially.
+		DrawGeomSweeps(World, Start, End, PGeom, PGeomRot, OnlyMyHits, DebugLineLifetime);
 	}
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
-	CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Multi, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, OutHits);
+#if ENABLE_COLLISION_ANALYZER
+	if (GCollisionAnalyzerIsRecording)
+	{
+		TArray<FHitResult> OnlyMyHits(OutHits);
+		OnlyMyHits.RemoveAt(0, InitialHitCount, false); // Remove whatever was there initially.
+		CAPTUREGEOMSWEEP(World, Start, End, PGeomRot, ECAQueryType::Multi, PGeom, TraceChannel, Params, ResponseParams, ObjectParams, OnlyMyHits);
+	}
+#endif // ENABLE_COLLISION_ANALYZER
 
 	return bBlockingHit;
 }

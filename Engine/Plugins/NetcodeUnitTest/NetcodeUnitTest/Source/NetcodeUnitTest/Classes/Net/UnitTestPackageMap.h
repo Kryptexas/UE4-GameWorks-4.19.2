@@ -17,6 +17,7 @@ class UUnitTestPackageMap : public UPackageMapClient
 						TSharedPtr<FNetGUIDCache> InNetGUIDCache)
 		: UPackageMapClient(ObjectInitializer, InConnection, InNetGUIDCache)
 		, bWithinSerializeNewActor(false)
+		, bPendingArchetypeSpawn(false)
 	{
 	}
 #endif
@@ -29,5 +30,8 @@ class UUnitTestPackageMap : public UPackageMapClient
 public:
 	/** Whether or not we are currently within execution of SerializeNewActor */
 	bool bWithinSerializeNewActor;
+
+	/** Whether or not SerializeNewActor is about to spawn an actor, from an archetype */
+	bool bPendingArchetypeSpawn;
 };
 

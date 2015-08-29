@@ -8,6 +8,7 @@
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintBoundEventNodeSpawner.h"
 #include "BlueprintBoundNodeSpawner.h"
+#include "BlueprintGraphModule.h"	// for GetExtendedActionMenuFilters
 #include "EdGraphSchema_K2.h"		// for FBlueprintMetadata
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForGraph()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()/IsVariableCategoryHiddenFromClass()
@@ -22,6 +23,7 @@
 #include "K2Node_ExecutionSequence.h"
 #include "K2Node_DynamicCast.h"
 #include "K2Node_BaseAsyncTask.h"
+#include "EditorCategoryUtils.h"
 
 /*******************************************************************************
  * Static BlueprintActionFilter Helpers
@@ -29,6 +31,8 @@
 
 namespace BlueprintActionFilterImpl
 {
+	static FString const ConfigSection("BlueprintEditor.Menu");
+
 	/**
 	 * Blueprints have several classes associated with them (the skeleton, for
 	 * UI reflection, and the full generated class). This retrieves the 
@@ -61,6 +65,20 @@ namespace BlueprintActionFilterImpl
 	 * @return Null if the class doesn't implement the function, otherwise the super class that adds it (could be the class passed in).
 	 */
 	static UClass const* FindInheritedInterfaceClass(UClass const* SubClass, TSubclassOf<UInterface> Interface);
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	static const TArray<FString>& GetHiddenFieldPaths();
+
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	static const TArray< TSubclassOf<UEdGraphNode> >& GetHiddenNodeTypes();
 	
 	/**
 	 * Utility method to check and see if the specified node-spawner would 
@@ -204,6 +222,15 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the action is associated with a hidden field.
 	 */
 	static bool IsFieldCategoryHidden(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
+
+	/**
+	 * 
+	 * 
+	 * @param  Filter    
+	 * @param  BlueprintAction    
+	 * @return 
+	 */
+	static bool IsActionHiddenByConfig(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction);
 
 	/**
 	 * Rejection test that checks to see if the node-spawner would produce a 
@@ -423,6 +450,51 @@ static UClass const* BlueprintActionFilterImpl::FindInheritedInterfaceClass(UCla
 		ClassToCheck = ClassToCheck->GetSuperClass();
 	}
 	return ImplementsInterface;
+}
+
+//------------------------------------------------------------------------------
+static const TArray<FString>& BlueprintActionFilterImpl::GetHiddenFieldPaths()
+{
+	static TArray<FString> HiddenFields;
+
+	static bool bInited = false;
+	if (!bInited)
+	{
+		FString const HiddenFieldsId("BlueprintHiddenFields");
+		GConfig->GetArray(*ConfigSection, *HiddenFieldsId, HiddenFields, GEditorIni);
+
+		bInited = true;
+	}
+
+	return HiddenFields;
+}
+
+//------------------------------------------------------------------------------
+static const TArray< TSubclassOf<UEdGraphNode> >& BlueprintActionFilterImpl::GetHiddenNodeTypes()
+{
+	static TArray< TSubclassOf<UEdGraphNode> > HiddenNodeTypes;
+
+	static bool bInited = false;
+	if (!bInited)
+	{
+		TArray<FString> HiddenClassNames;
+
+		FString const HiddenFieldsId("BlueprintHiddenNodes");
+		GConfig->GetArray(*ConfigSection, *HiddenFieldsId, HiddenClassNames, GEditorIni);
+
+		HiddenNodeTypes.Reserve(HiddenClassNames.Num());
+		for (FString const& ClassName : HiddenClassNames)
+		{
+			if (UClass* FoundClass = FindObject<UClass>(ANY_PACKAGE, *ClassName))
+			{
+				HiddenNodeTypes.Add(FoundClass);
+			}
+		}
+
+		bInited = true;
+	}
+
+	return HiddenNodeTypes;
 }
 
 //------------------------------------------------------------------------------
@@ -771,46 +843,53 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 {
 	bool bIsFilteredOut = false;
 
-	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsFieldHiddenDelegate, UClass*);
-	FIsFieldHiddenDelegate IsFieldHiddenDelegate;
-
-	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
+	const UFunction* NodeFunction = BlueprintAction.GetAssociatedFunction();
+	if ((NodeFunction != nullptr) && NodeFunction->HasAnyFunctionFlags(FUNC_Static))
 	{
-		auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* InFunction)->bool
-		{
-			// Only hide functions that are not static
-			return !InFunction->HasAnyFunctionFlags(FUNC_Static) && FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, Class->GetAuthoritativeClass());
-		};
-		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsFunctionHiddenLambda, Function);
+		bIsFilteredOut = false;
 	}
-	else if (UProperty const* Property = BlueprintAction.GetAssociatedProperty())
+	else
 	{
-		auto IsPropertyHiddenLambda = [](UClass* Class, UProperty const* InProperty)->bool
-		{
-			return FObjectEditorUtils::IsVariableCategoryHiddenFromClass(InProperty, Class->GetAuthoritativeClass());
-		};
-		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsPropertyHiddenLambda, Property);
-	}
-
-	if (IsFieldHiddenDelegate.IsBound())
-	{
-		bIsFilteredOut = Filter.TargetClasses.Num() > 0;
+		bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
 
 		for (UClass* TargetClass : Filter.TargetClasses)
 		{
-			if (!IsFieldHiddenDelegate.Execute(TargetClass))
+			// Use the UiSpec to get the category
+			FBlueprintActionUiSpec UiSpec = BlueprintAction.NodeSpawner->GetUiSpec(Filter.Context, BlueprintAction.GetBindings());
+			if (!FEditorCategoryUtils::IsCategoryHiddenFromClass(TargetClass->GetAuthoritativeClass(), UiSpec.Category.ToString()))
 			{
 				bIsFilteredOut = false;
 				break;
 			}
 		}
+	}
 
-		// handled now in each IsBindingCompatible() check
-// 		for (auto BindingIt = BlueprintAction.GetBindings().CreateConstIterator(); BindingIt && !bIsFilteredOut; ++BindingIt)
-// 		{
-// 			UClass* BindingClass = FBlueprintNodeSpawnerUtils::GetBindingClass(BindingIt->Get());
-// 			bIsFilteredOut = IsFieldHiddenDelegate.Execute(BindingClass);
-// 		}
+	return bIsFilteredOut;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintActionFilterImpl::IsActionHiddenByConfig(FBlueprintActionFilter const& Filter, FBlueprintActionInfo& BlueprintAction)
+{
+	bool bIsFilteredOut = false;
+
+	if (const UField* ActionField = BlueprintAction.GetAssociatedMemberField())
+	{
+		const TArray<FString>& HiddenFields = GetHiddenFieldPaths();
+
+		FString const FieldPath = ActionField->GetPathName();
+		if (HiddenFields.Contains(FieldPath))
+		{
+			bIsFilteredOut = true;
+		}
+	}
+
+	if (!bIsFilteredOut)
+	{
+		const TArray< TSubclassOf<UEdGraphNode> >& HiddenNodes = GetHiddenNodeTypes();
+		if (HiddenNodes.Contains(BlueprintAction.GetNodeClass()))
+		{
+			bIsFilteredOut = true;
+		}
 	}
 
 	return bIsFilteredOut;
@@ -936,7 +1015,7 @@ static bool BlueprintActionFilterImpl::IsOutOfScopeLocalVariable(FBlueprintActio
 			UEdGraph const* VarOuter = Cast<UEdGraph const>(VarSpawner->GetVarOuter());
 			for (UEdGraph* Graph : Filter.Context.Graphs)
 			{
-				if (Graph != VarOuter)
+				if (FBlueprintEditorUtils::GetTopLevelGraph(Graph) != VarOuter)
 				{
 					bIsFilteredOut = true;
 					break;
@@ -1306,7 +1385,7 @@ static bool BlueprintActionFilterImpl::IsMissmatchedPropertyType(FBlueprintActio
 				}
 				else
 				{
-					ensureMsg(false, TEXT("Unhandled property/node pair, we've probably made some bad assuptions."));
+					ensureMsgf(false, TEXT("Unhandled property/node pair, we've probably made some bad assuptions."));
 				}
 			}
 		}
@@ -1703,6 +1782,7 @@ FBlueprintActionFilter::FBlueprintActionFilter(uint32 Flags/*= 0x00*/)
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleLatentNode));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsIncompatibleImpureNode));
 	
+	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsActionHiddenByConfig));
 	AddRejectionTest(FRejectionTestDelegate::CreateStatic(IsFieldCategoryHidden));
 	if (Flags & BPFILTER_RejectGlobalFields)
 	{
@@ -1794,7 +1874,7 @@ bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAct
 	// for debugging purposes:
 // 	FBlueprintActionUiSpec UiSpec = BlueprintAction.NodeSpawner->GetUiSpec(Context, BlueprintAction.GetBindings());
 // 	bool bDebugBreak = false;
-// 	if (UiSpec.MenuName.ToString().Contains("Set Array Elem"))
+// 	if (UiSpec.MenuName.ToString().Contains("Print String"))
 // 	{
 // 		bDebugBreak = true;
 // 	}
@@ -1811,6 +1891,20 @@ bool FBlueprintActionFilter::IsFilteredByThis(FBlueprintActionInfo& BlueprintAct
 		{
 			bIsFiltered = true;
 			break;
+		}
+	}
+
+	if (!bIsFiltered)
+	{
+		FBlueprintGraphModule& BluprintGraphModule = FModuleManager::LoadModuleChecked<FBlueprintGraphModule>("BlueprintGraph");
+
+		for (auto& ExtraRejectionTest : BluprintGraphModule.GetExtendedActionMenuFilters())
+		{
+			if (ExtraRejectionTest.Execute(FilterRef, BlueprintAction))
+			{
+				bIsFiltered = true;
+				break;
+			}
 		}
 	}
 

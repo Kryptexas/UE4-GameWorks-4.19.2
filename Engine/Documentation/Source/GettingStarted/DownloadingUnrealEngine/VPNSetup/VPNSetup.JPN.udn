@@ -1,14 +1,10 @@
-﻿INTSourceChangelist:2456411
+﻿INTSourceChangelist:2612600
 Availability:Licensee
 Title: VPN 接続の設定
 Crumbs:%ROOT%, Engine, Programming, Programming/Basics
 Description:Perforce サーバーにアクセスし、エンジンを入手するために Epic のVPN (バーチャルプライベートネットワーク) に接続するためのガイド
 
 [TOC(start:2)]
-
-
-
-## 概要
 
 このドキュメントでは、Epic Games への安全な VPN (バーチャルプライベートネットワーク) 接続を設定することによって、Perforce デポに接続する手順が解説されています。VPN 接続をセットアップすると、以下を行うことができます。[Perforce 接続の設定](GettingStarted/DownloadingUnrealEngine/Perforce/Setup)
 

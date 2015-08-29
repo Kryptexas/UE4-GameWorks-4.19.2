@@ -148,8 +148,15 @@ void FMaterialInstanceParameterDetails::CreateSingleGroupWidget(FEditorParameter
 		UDEditorTextureParameterValue* TextureParam = Cast<UDEditorTextureParameterValue>(Parameter);
 		UDEditorVectorParameterValue* VectorParam = Cast<UDEditorVectorParameterValue>(Parameter);
 
-		if (ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
+		if( ScalarParam || SwitchParam || TextureParam || VectorParam || FontParam)
 		{
+			if (ScalarParam && ScalarParam->SliderMax > ScalarParam->SliderMin)
+			{
+				TSharedPtr<IPropertyHandle> ParameterValueProperty = ParameterProperty->GetChildHandle("ParameterValue");
+				ParameterValueProperty->SetInstanceMetaData("UIMin",FString::Printf(TEXT("%f"), ScalarParam->SliderMin));
+				ParameterValueProperty->SetInstanceMetaData("UIMax",FString::Printf(TEXT("%f"), ScalarParam->SliderMax));
+			}
+
 			CreateParameterValueWidget(Parameter, ParameterProperty, DetailGroup );
 		}
 		else if (CompMaskParam)
@@ -455,12 +462,14 @@ void FMaterialInstanceParameterDetails::CreateBasePropertyOverrideWidgets(IDetai
 	TAttribute<bool> IsOverrideBlendModeEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideBlendModeEnabled));
 	TAttribute<bool> IsOverrideShadingModelEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideShadingModelEnabled));
 	TAttribute<bool> IsOverrideTwoSidedEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideTwoSidedEnabled));
+	TAttribute<bool> IsOverrideDitheredLODTransitionEnabled = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FMaterialInstanceParameterDetails::OverrideDitheredLODTransitionEnabled));
 
 	TSharedRef<IPropertyHandle> BasePropertyOverridePropery = DetailLayout.GetProperty("BasePropertyOverrides");
 	TSharedPtr<IPropertyHandle> OpacityClipMaskValueProperty = BasePropertyOverridePropery->GetChildHandle("OpacityMaskClipValue");
 	TSharedPtr<IPropertyHandle> BlendModeProperty = BasePropertyOverridePropery->GetChildHandle("BlendMode");
 	TSharedPtr<IPropertyHandle> ShadingModelProperty = BasePropertyOverridePropery->GetChildHandle("ShadingModel");
 	TSharedPtr<IPropertyHandle> TwoSidedProperty = BasePropertyOverridePropery->GetChildHandle("TwoSided");
+	TSharedPtr<IPropertyHandle> DitheredLODTransitionProperty = BasePropertyOverridePropery->GetChildHandle("DitheredLODTransition");
 
 	IDetailPropertyRow& OpacityClipMaskValuePropertyRow = BasePropertyOverrideGroup.AddPropertyRow(OpacityClipMaskValueProperty.ToSharedRef());
 	OpacityClipMaskValuePropertyRow
@@ -485,6 +494,12 @@ void FMaterialInstanceParameterDetails::CreateBasePropertyOverrideWidgets(IDetai
 		.DisplayName(TwoSidedProperty->GetPropertyDisplayName())
 		.ToolTip(TwoSidedProperty->GetToolTipText())
 		.EditCondition(IsOverrideTwoSidedEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideTwoSidedChanged));
+
+	IDetailPropertyRow& DitheredLODTransitionPropertyRow = BasePropertyOverrideGroup.AddPropertyRow(DitheredLODTransitionProperty.ToSharedRef());
+	DitheredLODTransitionPropertyRow
+		.DisplayName(DitheredLODTransitionProperty->GetPropertyDisplayName())
+		.ToolTip(DitheredLODTransitionProperty->GetToolTipText())
+		.EditCondition(IsOverrideDitheredLODTransitionEnabled, FOnBooleanValueChanged::CreateSP(this, &FMaterialInstanceParameterDetails::OnOverrideDitheredLODTransitionChanged));
 }
 
 bool FMaterialInstanceParameterDetails::OverrideOpacityClipMaskValueEnabled() const
@@ -505,6 +520,11 @@ bool FMaterialInstanceParameterDetails::OverrideShadingModelEnabled() const
 bool FMaterialInstanceParameterDetails::OverrideTwoSidedEnabled() const
 {
 	return MaterialEditorInstance->BasePropertyOverrides.bOverride_TwoSided;
+}
+
+bool FMaterialInstanceParameterDetails::OverrideDitheredLODTransitionEnabled() const
+{
+	return MaterialEditorInstance->BasePropertyOverrides.bOverride_DitheredLODTransition;
 }
 
 void FMaterialInstanceParameterDetails::OnOverrideOpacityClipMaskValueChanged(bool NewValue)
@@ -531,6 +551,13 @@ void FMaterialInstanceParameterDetails::OnOverrideShadingModelChanged(bool NewVa
 void FMaterialInstanceParameterDetails::OnOverrideTwoSidedChanged(bool NewValue)
 {
 	MaterialEditorInstance->BasePropertyOverrides.bOverride_TwoSided = NewValue;
+	MaterialEditorInstance->PostEditChange();
+	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
+}
+
+void FMaterialInstanceParameterDetails::OnOverrideDitheredLODTransitionChanged(bool NewValue)
+{
+	MaterialEditorInstance->BasePropertyOverrides.bOverride_DitheredLODTransition = NewValue;
 	MaterialEditorInstance->PostEditChange();
 	FEditorSupportDelegates::RedrawAllViewports.Broadcast();
 }

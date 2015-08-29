@@ -29,6 +29,8 @@ namespace EBuildOptions
 		BuildAllOnlySelectedPaths,
 		/** Build Hierarchical LOD system - need WorldSetting setup*/
 		BuildHierarchicalLOD, 
+		/** Preview Hierarchical LOD system clusters - need WorldSetting setup*/
+		PreviewHierarchicalLOD,
 	};
 }
 
@@ -61,6 +63,9 @@ public:
 
 		/** Behavior to take when a saveable map fails to save correctly */
 		EAutomatedBuildBehavior FailedToSaveBehavior;
+
+		/** Use SCC to checkout/checkin files */
+		bool bUseSCC;
 
 		/** If true, built map files not already in the source control depot will be added */
 		bool bAutoAddNewFiles;

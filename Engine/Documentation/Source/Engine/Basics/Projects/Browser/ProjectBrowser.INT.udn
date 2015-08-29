@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title:Project Browser
 Crumbs: %ROOT%, Engine, Engine/Basics/Projects
 Description:Illustrates using the Project Browser to create new projects, open existing projects or downloaded sample projects.
@@ -122,3 +122,8 @@ This tab also opens when you select **File > New Project** from within Unreal Ed
 [region:note]
 Please note that the Starter Content is not optimized for mobile devices and could cause performance issues if used with mobile devices. 
 [/region]
+
+
+
+
+

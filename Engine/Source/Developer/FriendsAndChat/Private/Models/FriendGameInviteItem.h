@@ -15,7 +15,7 @@ public:
 
 	virtual bool IsGameRequest() const override;
 	virtual bool IsGameJoinable() const override;
-	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
+	virtual TSharedPtr<const FUniqueNetId> GetGameSessionId() const override;
 	virtual const FString GetClientId() const override;
 	// FFriendGameInviteItem
 
@@ -23,20 +23,17 @@ public:
 		const TSharedRef<FOnlineUser>& InOnlineUser,
 		const TSharedRef<FOnlineSessionSearchResult>& InSessionResult,
 		const FString& InClientId,
-		const TSharedRef<FOnlineFriend>& InOnlineFriend)
-		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay)
+		const TSharedRef<FOnlineFriend>& InOnlineFriend,
+		const TSharedRef<class FFriendsAndChatManager> InFriendsAndChatManager)
+		: FFriendItem(InOnlineFriend, InOnlineUser, EFriendsDisplayLists::GameInviteDisplay, InFriendsAndChatManager)
 		, SessionResult(InSessionResult)
 		, ClientId(InClientId)
-	{ }
-
-protected:
-
-	/** Hidden default constructor. */
-	FFriendGameInviteItem()
+		, FriendsAndChatManager(InFriendsAndChatManager)
 	{ }
 
 private:
 
 	TSharedPtr<FOnlineSessionSearchResult> SessionResult;
 	FString ClientId;
+	TWeakPtr<class FFriendsAndChatManager> FriendsAndChatManager;
 };

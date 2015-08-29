@@ -216,6 +216,7 @@ private:
 	void OnApplicationWillResignActive();
 	void OnWindowsReordered(bool bIsAppInBackground);
 
+	void ConditionallyUpdateModifierKeys(const FDeferredMacEvent& Event);
 	void HandleModifierChange(NSUInteger NewModifierFlags, NSUInteger FlagsShift, NSUInteger UE4Shift, EMacModifierKeys TranslatedCode);
 
 	FCocoaWindow* FindEventWindow(NSEvent* CocoaEvent) const;
@@ -275,6 +276,8 @@ private:
 
 	/** The current set of Cocoa modifier flags, used to detect when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
 	NSUInteger CurrentModifierFlags;
+
+	bool bEmulatingRightClick;
 
 	TArray<FCocoaWindow*> WindowsToClose;
 

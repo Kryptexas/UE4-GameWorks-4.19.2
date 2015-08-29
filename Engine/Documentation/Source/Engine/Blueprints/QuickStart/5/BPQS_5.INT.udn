@@ -1,7 +1,7 @@
 Availability: Public
 Title:5. Test the Overlapping Actor
 Crumbs:%ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/QuickStart
-Description:With some Actors in the Level, it's now time to add some variation.
+Description:Make sure it is your Character overlapping the launchpad, so you only launch the Character.
 
 [VAR:Steps]
 [OBJECT:Navigation]

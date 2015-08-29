@@ -26,17 +26,13 @@ USCS_Node::USCS_Node(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
+UActorComponent* USCS_Node::GetActualComponentTemplate(UBlueprintGeneratedClass* ActualBPGC)
 {
-	check(Actor != nullptr);
-	check((ParentComponent != nullptr && !ParentComponent->IsPendingKill()) || (RootTransform != nullptr)); // must specify either a parent component or a world transform
-
 	UActorComponent* OverridenComponentTemplate = nullptr;
 	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
 	if (EnableInheritableComponents)
 	{
 		const FComponentKey ComponentKey(this);
-		auto ActualBPGC = Cast<UBlueprintGeneratedClass>(Actor->GetClass());
 		while (!OverridenComponentTemplate && ActualBPGC)
 		{
 			auto InheritableComponentHandler = ActualBPGC->GetInheritableComponentHandler();
@@ -47,7 +43,16 @@ UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* P
 			ActualBPGC = Cast<UBlueprintGeneratedClass>(ActualBPGC->GetSuperClass());
 		}
 	}
-	UActorComponent* ActualComponentTemplate = OverridenComponentTemplate ? OverridenComponentTemplate : ComponentTemplate;
+	return OverridenComponentTemplate ? OverridenComponentTemplate : ComponentTemplate;
+}
+
+UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
+{
+	check(Actor != nullptr);
+	check((ParentComponent != nullptr && !ParentComponent->IsPendingKill()) || (RootTransform != nullptr)); // must specify either a parent component or a world transform
+
+	auto ActualBPGC = Cast<UBlueprintGeneratedClass>(Actor->GetClass());
+	UActorComponent* ActualComponentTemplate = GetActualComponentTemplate(ActualBPGC);
 
 	// Create a new component instance based on the template
 	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ActualComponentTemplate, VariableName.ToString());
@@ -234,6 +239,12 @@ FName USCS_Node::GetVariableName() const
 
 void USCS_Node::NameWasModified()
 {
+	if(ComponentTemplate != nullptr)
+	{
+		// Ensure that the template name stays in sync with the variable name; otherwise, new SCS nodes for the same component type will recycle the subobject rather than create a new instance.
+		ComponentTemplate->Rename(*(VariableName.ToString() + TEXT("_GEN_VARIABLE")), nullptr, REN_DontCreateRedirectors);
+	}
+
 	OnNameChangedExternal.ExecuteIfBound(VariableName);
 }
 

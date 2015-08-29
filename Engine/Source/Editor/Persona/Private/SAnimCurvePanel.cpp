@@ -179,6 +179,9 @@ public:
 
 	// Bound to attribute for curve name, uses curve interface to request from skeleton
 	FText GetCurveName(USkeleton::AnimCurveUID Uid) const;
+
+	float GetLength() const { return PanelPtr.Pin()->GetLength(); }
+	TOptional<float> GetOptionalLength() const { return GetLength(); }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -222,9 +225,8 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 			.ViewMinInput(InArgs._ViewInputMin)
 			.ViewMaxInput(InArgs._ViewInputMax)
 			.DataMinInput(0.f)
-			.DataMaxInput(Sequence->SequenceLength)
-			// @fixme fix this to delegate
-			.TimelineLength(Sequence->SequenceLength)
+			.DataMaxInput(this, &SCurveEdTrack::GetOptionalLength)
+			.TimelineLength(this, &SCurveEdTrack::GetLength)
 			.NumberOfKeys(NumberOfKeys)
 			.DesiredSize(this, &SCurveEdTrack::GetDesiredSize)
 			.OnSetInputViewRange(InArgs._OnSetInputViewRange)
@@ -412,6 +414,7 @@ FReply SCurveEdTrack::OnContextMenu()
 	{
 		FFloatCurve* Curve = (FFloatCurve*)(CurveInterface->CurveData);
 		FSlateApplication::Get().PushMenu(SharedThis(this),
+										  FWidgetPath(),
 										  PanelShared->CreateCurveContextMenu(Curve),
 										  FSlateApplication::Get().GetCursorPos(),
 										  FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup));
@@ -591,6 +594,7 @@ FReply SAnimCurvePanel::AddButtonClicked()
 	// Show dialog to enter new track name
 	FSlateApplication::Get().PushMenu(
 		SharedThis( this ),
+		FWidgetPath(),
 		MenuBuilder.MakeWidget(),
 		FSlateApplication::Get().GetCursorPos(),
 		FPopupTransitionEffect( FPopupTransitionEffect::TypeInPopup)
@@ -694,6 +698,7 @@ FReply SAnimCurvePanel::OnContextMenu()
 		);
 
 		FSlateApplication::Get().PushMenu(	SharedThis(this),
+			FWidgetPath(),
 			MenuBuilder.MakeWidget(),
 			FSlateApplication::Get().GetCursorPos(),
 			FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup) );
@@ -1007,20 +1012,33 @@ void SAnimCurvePanel::FillMetadataEntryMenu(FMenuBuilder& Builder)
 	Mapping->FillUidArray(CurveUids);
 
 	Builder.BeginSection(NAME_None, LOCTEXT("MetadataMenu_ListHeading", "Available Names"));
-	for(USkeleton::AnimCurveUID Id : CurveUids)
 	{
-		if(!Sequence->RawCurveData.GetCurveData(Id))
+		TArray<FSmartNameSortItem> SmartNameList;
+
+		for (USkeleton::AnimCurveUID Id : CurveUids)
 		{
-			FName CurveName;
-			if(Mapping->GetName(Id, CurveName))
+			if (!Sequence->RawCurveData.GetCurveData(Id))
+			{
+				FName CurveName;
+				if (Mapping->GetName(Id, CurveName))
+				{
+					SmartNameList.Add(FSmartNameSortItem(CurveName, Id));
+				}
+			}
+		}
+
+		{
+			SmartNameList.Sort(FSmartNameSortItemSortOp());
+
+			for (FSmartNameSortItem SmartNameItem : SmartNameList)
 			{
 				const FText Description = LOCTEXT("NewMetadataSubMenu_ToolTip", "Add an existing metadata curve");
-				const FText Label = FText::FromName(CurveName);
+				const FText Label = FText::FromName(SmartNameItem.SmartName);
 
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimCurvePanel::AddMetadataEntry,
-					Id);
+					SmartNameItem.ID);
 
 				Builder.AddMenuEntry(Label, Description, FSlateIcon(), UIAction);
 			}
@@ -1048,20 +1066,33 @@ void SAnimCurvePanel::FillVariableCurveMenu(FMenuBuilder& Builder)
 	Mapping->FillUidArray(CurveUids);
 
 	Builder.BeginSection(NAME_None, LOCTEXT("VariableMenu_ListHeading", "Available Names"));
-	for(USkeleton::AnimCurveUID Id : CurveUids)
 	{
-		if(!Sequence->RawCurveData.GetCurveData(Id))
+		TArray<FSmartNameSortItem> SmartNameList;
+
+		for (USkeleton::AnimCurveUID Id : CurveUids)
 		{
-			FName CurveName;
-			if(Mapping->GetName(Id, CurveName))
+			if (!Sequence->RawCurveData.GetCurveData(Id))
+			{
+				FName CurveName;
+				if (Mapping->GetName(Id, CurveName))
+				{
+					SmartNameList.Add(FSmartNameSortItem(CurveName, Id));
+				}
+			}
+		}
+
+		{
+			SmartNameList.Sort(FSmartNameSortItemSortOp());
+
+			for (FSmartNameSortItem SmartNameItem : SmartNameList)
 			{
 				const FText Description = LOCTEXT("NewVariableSubMenu_ToolTip", "Add an existing variable curve");
-				const FText Label = FText::FromName(CurveName);
+				const FText Label = FText::FromName(SmartNameItem.SmartName);
 
 				FUIAction UIAction;
 				UIAction.ExecuteAction.BindRaw(
 					this, &SAnimCurvePanel::AddVariableCurve,
-					Id);
+					SmartNameItem.ID);
 
 				Builder.AddMenuEntry(Label, Description, FSlateIcon(), UIAction);
 			}
@@ -1101,6 +1132,7 @@ void SAnimCurvePanel::CreateNewMetadataEntryClicked()
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	SlateApp.PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		TextEntry,
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup
@@ -1136,6 +1168,7 @@ void SAnimCurvePanel::CreateNewCurveClicked()
 	FSlateApplication& SlateApp = FSlateApplication::Get();
 	SlateApp.PushMenu(
 		AsShared(),
+		FWidgetPath(),
 		TextEntry,
 		SlateApp.GetCursorPos(),
 		FPopupTransitionEffect::TypeInPopup

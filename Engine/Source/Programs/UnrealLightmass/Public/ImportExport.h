@@ -84,6 +84,7 @@ namespace Lightmass
 			SkyOcclusion[0] = 0;
 			SkyOcclusion[1] = 0;
 			SkyOcclusion[2] = 0;
+			AOMaterialMask = 0;
 		}
 
 		/** 
@@ -94,6 +95,8 @@ namespace Lightmass
 		float Coefficients[LM_NUM_STORED_LIGHTMAP_COEF][3];
 
 		float SkyOcclusion[3];
+
+		float AOMaterialMask;
 
 		/** True if this sample maps to a valid point on a triangle.  This is only meaningful for texture lightmaps. */
 		bool bIsMapped;
@@ -121,6 +124,7 @@ namespace Lightmass
 		uint8 Coverage;
 		uint8 Coefficients[LM_NUM_STORED_LIGHTMAP_COEF][4];
 		uint8 SkyOcclusion[4];
+		uint8 AOMaterialMask;
 	};
 
 	struct FLightMapDataBase

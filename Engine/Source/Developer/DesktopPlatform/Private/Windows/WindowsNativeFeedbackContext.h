@@ -21,7 +21,7 @@ public:
 	VARARG_BODY( bool, YesNof, const TCHAR*, VARARG_NONE );
 
 	virtual bool ReceivedUserCancel() override;
-	virtual void StartSlowTask( const FText& Task, bool bShowCancelButton=false ) override;
+	virtual void StartSlowTask( const FText& Task, bool bShouldShowCancelButton=false ) override;
 	virtual void FinalizeSlowTask( ) override;
 	virtual void ProgressReported( const float TotalProgressInterp, FText DisplayMessage ) override;
 

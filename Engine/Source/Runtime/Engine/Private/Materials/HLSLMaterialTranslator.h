@@ -181,6 +181,8 @@ protected:
 	uint32 bUsesParticleSubUVs : 1;
 	/** Boolean indicating using LightmapUvs */
 	uint32 bUsesLightmapUVs : 1;
+	/** Whether the material uses AO Material Mask */
+	uint32 bUsesAOMaterialMask : 1;
 	/** true if needs SpeedTree code */
 	uint32 bUsesSpeedTree : 1;
 	/** Boolean indicating the material uses worldspace position without shader offsets applied */
@@ -235,10 +237,12 @@ public:
 	,	bUsesSphericalParticleOpacity(false)
 	,   bUsesParticleSubUVs(false)
 	,	bUsesLightmapUVs(false)
+	,	bUsesAOMaterialMask(false)
 	,	bUsesSpeedTree(false)
 	,	bNeedsWorldPositionExcludingShaderOffsets(false)
 	,	bNeedsParticleSize(false)
 	,	bNeedsSceneTexturePostProcessInputs(false)
+	,	bUsesAtmosphericFog(false)
 	,	bUsesVertexColor(false)
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
@@ -261,10 +265,6 @@ public:
 
 			Material->CompileErrors.Empty();
 			Material->ErrorExpressions.Empty();
-
-			MaterialCompilationOutput.bRequiresSceneColorCopy = false;
-			check(!MaterialCompilationOutput.bNeedsSceneTextures);
-			MaterialCompilationOutput.bUsesEyeAdaptation = false;
 
 			bCompileForComputeShader = Material->IsLightFunction();
 
@@ -297,8 +297,9 @@ public:
 			Chunk[MP_TessellationMultiplier]		= Material->CompilePropertyAndSetMaterialProperty(MP_TessellationMultiplier,this);
 
 			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
+			const EMaterialDomain Domain = (const EMaterialDomain)Material->GetMaterialDomain();
 
-			if (Material->GetMaterialDomain() == MD_Surface
+			if (Domain == MD_Surface
 				&& IsSubsurfaceShadingModel(MaterialShadingModel))
 			{
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
@@ -353,7 +354,9 @@ public:
 				}
 			}
 
-			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1);
+			bUsesPixelDepthOffset = IsMaterialPropertyUsed(MP_PixelDepthOffset, Chunk[MP_PixelDepthOffset], FLinearColor(0, 0, 0, 0), 1)
+				|| (Domain == MD_DeferredDecal && Material->GetDecalBlendMode() == DBM_Volumetric_DistanceFunction);
+
 			const bool bUsesWorldPositionOffset = IsMaterialPropertyUsed(MP_WorldPositionOffset, Chunk[MP_WorldPositionOffset], FLinearColor(0, 0, 0, 0), 3);
 			MaterialCompilationOutput.bModifiesMeshPosition = bUsesPixelDepthOffset || bUsesWorldPositionOffset;
 			
@@ -362,7 +365,7 @@ public:
 				Errorf(TEXT("Dynamically lit translucency is not supported for BLEND_Modulate materials."));
 			}
 
-			if (Material->GetMaterialDomain() == MD_Surface)
+			if (Domain == MD_Surface)
 			{
 				if (Material->GetBlendMode() == BLEND_Modulate && Material->IsSeparateTranslucencyEnabled())
 				{
@@ -371,14 +374,14 @@ public:
 			}
 
 			// Don't allow opaque and masked materials to scene depth as the results are undefined
-			if (bUsesSceneDepth && Material->GetMaterialDomain() != MD_PostProcess && !IsTranslucentBlendMode(Material->GetBlendMode()))
+			if (bUsesSceneDepth && Domain != MD_PostProcess && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			{
 				Errorf(TEXT("Only transparent or postprocess materials can read from scene depth."));
 			}
 
 			if (MaterialCompilationOutput.bRequiresSceneColorCopy)
 			{
-				if (Material->GetMaterialDomain() != MD_Surface)
+				if (Domain != MD_Surface)
 				{
 					Errorf(TEXT("Only 'surface' material domain can use the scene color node."));
 				}
@@ -398,14 +401,14 @@ public:
 				Errorf(TEXT("Light function materials must use unlit."));
 			}
 
-			if (Material->GetMaterialDomain() == MD_PostProcess && MaterialShadingModel != MSM_Unlit)
+			if (Domain == MD_PostProcess && MaterialShadingModel != MSM_Unlit)
 			{
 				Errorf(TEXT("Post process materials must use unlit."));
 			}
 
 			if (MaterialCompilationOutput.bNeedsSceneTextures)
 			{
-				if (Material->GetMaterialDomain() != MD_PostProcess)
+				if (Domain != MD_PostProcess)
 				{
 					if (Material->GetBlendMode() == BLEND_Opaque || Material->GetBlendMode() == BLEND_Masked)
 					{
@@ -595,6 +598,11 @@ public:
 		if (bUsesLightmapUVs)
 		{
 			OutEnvironment.SetDefine(TEXT("LIGHTMAP_UV_ACCESS"),TEXT("1"));
+		}
+
+		if (bUsesAOMaterialMask)
+		{
+			OutEnvironment.SetDefine(TEXT("USES_AO_MATERIAL_MASK"),TEXT("1"));
 		}
 
 		if (bUsesSpeedTree)
@@ -1633,6 +1641,50 @@ protected:
 	{
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,Z,W),MCT_Float4),MCT_Float4,TEXT("MaterialFloat4(%0.8f,%0.8f,%0.8f,%0.8f)"),X,Y,Z,W);
 	}
+	
+	virtual int32 ViewProperty(EMaterialExposedViewProperty Property, bool InvProperty) override
+	{
+		check(Property < MEVP_MAX);
+
+		// Compile time struct storing all EMaterialExposedViewProperty's enumerations' HLSL compilation specific meta information
+		struct EMaterialExposedViewPropertyMeta
+		{
+			EMaterialExposedViewProperty EnumValue;
+			EMaterialValueType Type;
+			const TCHAR * PropertyCode;
+			const TCHAR * InvPropertyCode;
+		};
+
+		static const EMaterialExposedViewPropertyMeta ViewPropertyMetaArray[] = {
+			{MEVP_BufferSize, MCT_Float2, TEXT("View.BufferSizeAndInvSize.xy"), TEXT("View.BufferSizeAndInvSize.zw")},
+			{MEVP_FieldOfView, MCT_Float2, TEXT("View.<PREV>FieldOfViewWideAngles"), nullptr},
+			{MEVP_TanHalfFieldOfView, MCT_Float2, TEXT("Get<PREV>TanHalfFieldOfView()"), TEXT("Get<PREV>CotanHalfFieldOfView()")},
+			{MEVP_ViewSize, MCT_Float2, TEXT("View.ViewSizeAndInvSize.xy"), TEXT("View.ViewSizeAndInvSize.zw")},
+			{MEVP_WorldSpaceCameraPosition, MCT_Float3, TEXT("View.<PREV>ViewOrigin"), nullptr},
+		};
+		static_assert((sizeof(ViewPropertyMetaArray) / sizeof(ViewPropertyMetaArray[0])) == MEVP_MAX, "incoherency between EMaterialExposedViewProperty and ViewPropertyMetaArray");
+
+		auto& PropertyMeta = ViewPropertyMetaArray[Property];
+		check(Property == PropertyMeta.EnumValue);
+
+		FString Code = PropertyMeta.PropertyCode;
+
+		if (InvProperty && PropertyMeta.InvPropertyCode)
+		{
+			Code = PropertyMeta.InvPropertyCode;
+		}
+
+		// Resolved templated code
+		Code.ReplaceInline(TEXT("<PREV>"), bCompilingPreviousFrame ? TEXT("Prev") : TEXT(""));
+		
+		if (InvProperty && !PropertyMeta.InvPropertyCode)
+		{
+			// fall back to compute the property's inverse from PropertyCode
+			return Div(Constant(1.f), AddInlinedCodeChunk(PropertyMeta.Type, *Code));
+		}
+
+		return AddCodeChunk(PropertyMeta.Type, *Code);
+	}
 
 	virtual int32 GameTime(bool bPeriodic, float Period) override
 	{
@@ -1871,11 +1923,6 @@ protected:
 		return AddInlinedCodeChunk(MCT_Float3,TEXT("Parameters.CameraVector"));
 	}
 
-	virtual int32 CameraWorldPosition() override
-	{
-		return AddInlinedCodeChunk(MCT_Float3,TEXT("View.ViewOrigin.xyz"));
-	}
-
 	virtual int32 LightVector() override
 	{
 		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
@@ -1899,16 +1946,6 @@ protected:
 		}
 
 		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(Parameters.ScreenPosition).xy"));		
-	}
-
-	virtual int32 ViewSize() override
-	{
-		return AddCodeChunk(MCT_Float2,TEXT("View.ViewSizeAndSceneTexelSize.xy"));
-	}
-
-	virtual int32 SceneTexelSize() override
-	{
-		return AddCodeChunk(MCT_Float2,TEXT("View.ViewSizeAndSceneTexelSize.zw"));
 	}
 
 	virtual int32 ParticleMacroUV() override 
@@ -2059,58 +2096,62 @@ protected:
 
 	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
+		FString FunctionNamePattern;
+
+		// If this material has no expressions for world position offset or world displacement, the non-offset world position will
+		// be exactly the same as the offset one, so there is no point bringing in the extra code.
+		// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
+		// been calculated yet
+		switch (WorldPositionIncludedOffsets)
+		{
+		case WPT_Default:
+			{
+				FunctionNamePattern = TEXT("Get<PREV>WorldPosition");
+				break;
+			}
+
+		case WPT_ExcludeAllShaderOffsets:
+			{
+				bNeedsWorldPositionExcludingShaderOffsets = true;
+				FunctionNamePattern = TEXT("Get<PREV>WorldPosition<NO_MATERIAL_OFFSETS>");
+				break;
+			}
+
+		case WPT_CameraRelative:
+			{
+				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition");
+				break;
+			}
+
+		case WPT_CameraRelativeNoOffsets:
+			{
+				bNeedsWorldPositionExcludingShaderOffsets = true;
+				FunctionNamePattern = TEXT("Get<PREV>TranslatedWorldPosition<NO_MATERIAL_OFFSETS>");
+				break;
+			}
+
+		default:
+			{
+				Errorf(TEXT("Encountered unknown world position type '%d'"), WorldPositionIncludedOffsets);
+				return INDEX_NONE;
+			}
+		}
+
+		// If compiling for the previous frame in the vertex shader
+		FunctionNamePattern.ReplaceInline(TEXT("<PREV>"), bCompilingPreviousFrame && ShaderFrequency == SF_Vertex ? TEXT("Prev") : TEXT(""));
+		
 		if (ShaderFrequency == SF_Pixel)
 		{
-			// If this material has no expressions for world position offset or world displacement, the non-offset world position will
-			// be exactly the same as the offset one, so there is no point bringing in the extra code.
-			// Also, we can't access the full offset world position in anything other than the pixel shader, because it won't have
-			// been calculated yet
-			bool bNonOffsetWorldPositionAvailable = Material->MaterialMayModifyMeshPosition();
-
-			switch (WorldPositionIncludedOffsets)
-			{
-			case WPT_Default:
-				{
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition"));
-				}
-
-			case WPT_ExcludeAllShaderOffsets:
-				{
-					bNeedsWorldPositionExcludingShaderOffsets = true;
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_NoOffsets"));
-				}
-
-			case WPT_CameraRelative:
-				{
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_CamRelative"));
-				}
-
-			case WPT_CameraRelativeNoOffsets:
-				{
-					bNeedsWorldPositionExcludingShaderOffsets = true;
-					return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition_NoOffsets_CamRelative"));
-				}
-
-			default:
-				{
-					Errorf(TEXT("Encountered unknown world position type '%d'"), WorldPositionIncludedOffsets);
-					return INDEX_NONE;
-				}
-			}
+			// No material offset only available in the vertex shader.
+			// TODO: should also be available in the tesselation shader
+			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT("_NoMaterialOffsets"));
 		}
 		else
 		{
-			if (bCompilingPreviousFrame && ShaderFrequency == SF_Vertex)
-			{
-				// Only if not in a pixel shader...
-				return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.PrevWorldPosition"));
-			}
-			else
-			{
-				// If not in a pixel shader, only the normal WorldPosition is available
-				return AddInlinedCodeChunk(MCT_Float3, TEXT("Parameters.WorldPosition"));
-			}
+			FunctionNamePattern.ReplaceInline(TEXT("<NO_MATERIAL_OFFSETS>"), TEXT(""));
 		}
+
+		return AddInlinedCodeChunk(MCT_Float3, TEXT("%s(Parameters)"), *FunctionNamePattern);
 	}
 
 	virtual int32 ObjectWorldPosition() override
@@ -2243,7 +2284,8 @@ protected:
 		int32 TextureIndex,
 		int32 CoordinateIndex,
 		EMaterialSamplerType SamplerType,
-		int32 MipValueIndex=INDEX_NONE,
+		int32 MipValue0Index=INDEX_NONE,
+		int32 MipValue1Index=INDEX_NONE,
 		ETextureMipValueMode MipValueMode=TMVM_None,
 		ESamplerSourceMode SamplerSource=SSM_FromTextureAsset
 		) override
@@ -2273,10 +2315,13 @@ protected:
 			return INDEX_NONE;
 		}
 
-		FString MipValueCode =
-			(MipValueIndex != INDEX_NONE && MipValueMode != TMVM_None)
-			? CoerceParameter(MipValueIndex, MCT_Float1)
-			: TEXT("0.0f");
+		FString MipValue0Code = TEXT("0.0f");
+		FString MipValue1Code = TEXT("0.0f");
+
+		if (MipValue0Index != INDEX_NONE && (MipValueMode == TMVM_MipBias || MipValueMode == TMVM_MipLevel))
+		{
+			MipValue0Code = CoerceParameter(MipValue0Index, MCT_Float1);
+		}
 
 		// if we are not in the PS we need a mip level
 		if(ShaderFrequency != SF_Pixel)
@@ -2305,6 +2350,8 @@ protected:
 			(TextureType == MCT_TextureCube)
 			? TEXT("TextureCubeSample")
 			: TEXT("Texture2DSample");
+		
+		EMaterialValueType UVsType = (TextureType == MCT_TextureCube) ? MCT_Float3 : MCT_Float2;
 	
 		if(MipValueMode == TMVM_None)
 		{
@@ -2325,6 +2372,26 @@ protected:
 		else if(MipValueMode == TMVM_MipBias)
 		{
 			SampleCode += TEXT("Bias(%s,%sSampler,%s,%s)");
+		}
+		else if(MipValueMode == TMVM_Derivative)
+		{
+			if (MipValue0Index == INDEX_NONE)
+			{
+				return Errorf(TEXT("Missing DDX(UVs) parameter"));
+			}
+			else if (MipValue1Index == INDEX_NONE)
+			{
+				return Errorf(TEXT("Missing DDY(UVs) parameter"));
+			}
+
+			SampleCode += TEXT("Grad(%s,%sSampler,%s,%s,%s)");
+
+			MipValue0Code = CoerceParameter(MipValue0Index, UVsType);
+			MipValue1Code = CoerceParameter(MipValue1Index, UVsType);
+		}
+		else
+		{
+			check(0);
 		}
 
 		switch( SamplerType )
@@ -2372,10 +2439,7 @@ protected:
 			? CoerceParameter(TextureIndex, MCT_TextureCube)
 			: CoerceParameter(TextureIndex, MCT_Texture2D);
 
-		FString UVs =
-			(TextureType == MCT_TextureCube)
-			? CoerceParameter(CoordinateIndex, MCT_Float3)
-			: CoerceParameter(CoordinateIndex, MCT_Float2);
+		FString UVs = CoerceParameter(CoordinateIndex, UVsType);
 
 		return AddCodeChunk(
 			MCT_Float4,
@@ -2383,7 +2447,8 @@ protected:
 			*TextureName,
 			*TextureName,
 			*UVs,
-			*MipValueCode
+			*MipValue0Code,
+			*MipValue1Code
 			);
 	}
 
@@ -2569,6 +2634,18 @@ protected:
 	{
 		MaterialCompilationOutput.bNeedsSceneTextures = true;
 
+		if(SceneTextureId == PPI_SceneColor && Material->GetMaterialDomain() != MD_Surface)
+		{
+			if(Material->GetMaterialDomain() == MD_PostProcess)
+			{
+				Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface. PostProcessMaterials should use the SceneTexture PostProcessInput0."));
+			}
+			else
+			{
+				Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface."));
+			}
+		}
+
 		if(bTextureLookup)
 		{
 			bNeedsSceneTexturePostProcessInputs = bNeedsSceneTexturePostProcessInputs
@@ -2604,6 +2681,11 @@ protected:
 		if (ShaderFrequency != SF_Pixel)
 		{
 			return NonPixelShaderExpressionError();
+		}
+
+		if(Material->GetMaterialDomain() != MD_Surface)
+		{
+			Errorf(TEXT("SceneColor lookups are only available when MaterialDomain = Surface."));
 		}
 
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -2903,6 +2985,21 @@ protected:
 		// use ClampedPow so artist are prevented to cause NAN creeping into the math
 		return AddCodeChunk(GetParameterType(Base),TEXT("ClampedPow(%s,%s)"),*GetParameterCode(Base),*CoerceParameter(Exponent,MCT_Float));
 	}
+	
+	virtual int32 Logarithm2(int32 X) override
+	{
+		if(X == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+		
+		if(GetParameterUniformExpression(X))
+		{
+			return AddUniformExpression(new FMaterialUniformExpressionLogarithm2(GetParameterUniformExpression(X)),GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
+		}
+
+		return AddCodeChunk(GetParameterType(X),TEXT("log2(%s)"),*GetParameterCode(X));
+	}
 
 	virtual int32 SquareRoot(int32 X) override
 	{
@@ -3099,224 +3196,199 @@ protected:
 		}
 	}
 
-	/**
-	* Generate shader code for transforming a vector
-	*/
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
+	int32 TransformBase(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A, int AWComponent)
 	{
-		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain && ShaderFrequency != SF_Vertex)
+		if (A == INDEX_NONE)
 		{
-			return NonPixelShaderExpressionError();
+			// unable to compile
+			return INDEX_NONE;
 		}
-
-		const EMaterialVectorCoordTransformSource SourceCoordinateSpace = (EMaterialVectorCoordTransformSource)SourceCoordType;
-		const EMaterialVectorCoordTransform DestinationCoordinateSpace = (EMaterialVectorCoordTransform)DestCoordType;
-
-		// Construct float3(0,0,x) out of the input if it is a scalar
-		// This way artists can plug in a scalar and it will be treated as height, or a vector displacement
-		if(A != INDEX_NONE && (GetType(A) & MCT_Float1) && SourceCoordinateSpace == TRANSFORMSOURCE_Tangent)
-		{
-			A = AppendVector(Constant2(0, 0), A);
-		}
-
-		int32 Domain = Material->GetMaterialDomain();
-		if( (Domain != MD_Surface && Domain != MD_DeferredDecal) && 
-			(SourceCoordinateSpace == TRANSFORMSOURCE_Tangent || SourceCoordinateSpace == TRANSFORMSOURCE_Local || DestCoordType == TRANSFORM_Tangent || DestCoordType == TRANSFORM_Local))
-		{
-			return Errorf(TEXT("Local and tangent transforms are only supported in the Surface and Deferred Decal material domains!"));
-		}
-
-		if (ShaderFrequency != SF_Vertex)
-		{
-			bUsesTransformVector = true;
-		}
-
-		int32 Result = INDEX_NONE;
-		if(A != INDEX_NONE)
-		{
-			int32 NumInputComponents = GetNumComponents(GetParameterType(A));
-			// only allow float3/float4 transforms
-			if( NumInputComponents < 3 )
+		
+		{ // validation
+			if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Domain && ShaderFrequency != SF_Vertex)
 			{
-				Result = Errorf(TEXT("input must be a vector (%s: %s) or a scalar (if source is Tangent)"),*GetParameterCode(A),DescribeType(GetParameterType(A)));
+				return NonPixelShaderExpressionError();
 			}
-			else if ((SourceCoordinateSpace == TRANSFORMSOURCE_World && DestinationCoordinateSpace == TRANSFORM_World)
-				|| (SourceCoordinateSpace == TRANSFORMSOURCE_Local && DestinationCoordinateSpace == TRANSFORM_Local)
-				|| (SourceCoordinateSpace == TRANSFORMSOURCE_Tangent && DestinationCoordinateSpace == TRANSFORM_Tangent)
-				|| (SourceCoordinateSpace == TRANSFORMSOURCE_View && DestinationCoordinateSpace == TRANSFORM_View))
+
+			if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex)
 			{
-				// Pass through
-				Result = A;
+				if ((SourceCoordBasis == MCB_Local || DestCoordBasis == MCB_Local))
+				{
+					return Errorf(TEXT("Local space in only supported for vertex, compute or pixel shader"));
+				}
 			}
-			else 
+
+			if (AWComponent != 0 && (SourceCoordBasis == MCB_Tangent || DestCoordBasis == MCB_Tangent))
 			{
-				// code string to transform the input vector
-				FString CodeStr;
-				if (SourceCoordinateSpace == TRANSFORMSOURCE_Tangent)
-				{
-					switch( DestinationCoordinateSpace )
-					{
-					case TRANSFORM_Local:
-						// transform from tangent to local space
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("Local space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformTangentVectorToLocal(Parameters,%s)"));
-						break;
-					case TRANSFORM_World:
-						// transform from tangent to world space
-						if(ShaderFrequency == SF_Domain)
-						{
-							// domain shader uses a prescale value to preserve scaling factor on WorldTransform	when sampling a displacement map
-							CodeStr = FString(TEXT("TransformTangentVectorToWorld_PreScaled(Parameters,%s)"));
-						}
-						else
-						{
-							CodeStr = FString(TEXT("TransformTangentVectorToWorld(Parameters.TangentToWorld,%s)"));
-						}
-						break;
-					case TRANSFORM_View:
-						// transform from tangent to view space
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("View space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformTangentVectorToView(Parameters,%s)"));
-						break;
-					default:
-						UE_LOG(LogMaterial, Fatal, TEXT("Invalid DestCoordType. See EMaterialVectorCoordTransform") );
-					}
-				}
-				else if (SourceCoordinateSpace == TRANSFORMSOURCE_Local)
-				{
-					if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-					{
-						return Errorf(TEXT("Local space in only supported for vertex or pixel shader!"));
-					}
-
-					switch( DestinationCoordinateSpace )
-					{
-					case TRANSFORM_Tangent:
-						CodeStr = FString(TEXT("TransformLocalVectorToTangent(Parameters,%s)"));
-						break;
-					case TRANSFORM_World:
-						CodeStr = FString(TEXT("TransformLocalVectorToWorld(Parameters,%s)"));
-						break;
-					case TRANSFORM_View:
-						CodeStr = FString(TEXT("TransformLocalVectorToView(%s)"));
-						break;
-					default:
-						UE_LOG(LogMaterial, Fatal, TEXT("Invalid DestCoordType. See EMaterialVectorCoordTransform") );
-					}
-				}
-				else if (SourceCoordinateSpace == TRANSFORMSOURCE_World)
-				{
-					switch( DestinationCoordinateSpace )
-					{
-					case TRANSFORM_Tangent:
-						CodeStr = FString(TEXT("TransformWorldVectorToTangent(Parameters.TangentToWorld,%s)"));
-						break;
-					case TRANSFORM_Local:
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("Local space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformWorldVectorToLocal(%s)"));
-						break;
-					case TRANSFORM_View:
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("View space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformWorldVectorToView(%s)"));
-						break;
-					default:
-						UE_LOG(LogMaterial, Fatal, TEXT("Invalid DestCoordType. See EMaterialVectorCoordTransform") );
-					}
-				}
-				else if (SourceCoordinateSpace == TRANSFORMSOURCE_View)
-				{
-					switch( DestinationCoordinateSpace )
-					{
-					case TRANSFORM_Tangent:
-						CodeStr = FString(TEXT("TransformWorldVectorToTangent(Parameters.TangentToWorld,TransformViewVectorToWorld(%s))"));
-						break;
-					case TRANSFORM_Local:
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("Local space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformViewVectorToLocal(%s)"));
-						break;
-					case TRANSFORM_World:
-						if( ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute && ShaderFrequency != SF_Vertex )
-						{
-							return Errorf(TEXT("View space in only supported for vertex or pixel shader!"));
-						}
-						CodeStr = FString(TEXT("TransformViewVectorToWorld(%s)"));
-						break;
-					default:
-						UE_LOG(LogMaterial, Fatal, TEXT("Invalid DestCoordType. See EMaterialVectorCoordTransform") );
-					}
-				}
-				else
-				{
-					UE_LOG(LogMaterial, Fatal, TEXT("Invalid SourceCoordType. See EMaterialVectorCoordTransformSource") );
-				}
-
-				// we are only transforming vectors (not points) so only return a float3
-				Result = AddCodeChunk(
-					MCT_Float3,
-					*CodeStr,
-					*CoerceParameter(A,MCT_Float3)
-					);
+				return Errorf(TEXT("Tangent basis not available for position transformations"));
+			}
+		
+			// Construct float3(0,0,x) out of the input if it is a scalar
+			// This way artists can plug in a scalar and it will be treated as height, or a vector displacement
+			if (GetType(A) == MCT_Float1 && SourceCoordBasis == MCB_Tangent)
+			{
+				A = AppendVector(Constant2(0, 0), A);
+			}
+			else if (GetNumComponents(GetParameterType(A)) < 3)
+			{
+				return Errorf(TEXT("input must be a vector (%s: %s) or a scalar (if source is Tangent)"), *GetParameterCode(A), DescribeType(GetParameterType(A)));
 			}
 		}
-		return Result; 
+		
+		if (SourceCoordBasis == DestCoordBasis)
+		{
+			// no transformation needed
+			return A;
+		}
+		
+		FString CodeStr;
+		EMaterialCommonBasis IntermediaryBasis = MCB_World;
+
+		switch (SourceCoordBasis)
+		{
+			case MCB_Tangent:
+			{
+				check(AWComponent == 0);
+				if (DestCoordBasis == MCB_World)
+				{
+					if (ShaderFrequency == SF_Domain)
+					{
+						// domain shader uses a prescale value to preserve scaling factor on WorldTransform	when sampling a displacement map
+						CodeStr = FString(TEXT("TransformTangent<TO>World_PreScaled(Parameters, <A>.xyz)"));
+					}
+					else
+					{
+						CodeStr = TEXT("mul(<A>, <MATRIX>(Parameters.TangentToWorld))");
+					}
+				}
+				// else use MCB_World as intermediary basis
+				break;
+			}
+			case MCB_Local:
+			{
+				if (DestCoordBasis == MCB_World)
+				{
+					 // TODO: need <PREV>
+					CodeStr = TEXT("TransformLocal<TO>World(Parameters, <A>.xyz)");
+				}
+				// else use MCB_World as intermediary basis
+				break;
+			}
+			case MCB_TranslatedWorld:
+			{
+				if (DestCoordBasis == MCB_World)
+				{
+					if (AWComponent)
+					{
+						CodeStr = TEXT("(<A>.xyz - View.<PREV>PreViewTranslation.xyz)");
+					}
+					else
+					{
+						CodeStr = TEXT("<A>");
+					}
+				}
+				else if (DestCoordBasis == MCB_View)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>TranslatedWorldToView))");
+				}
+				// else use MCB_World as intermediary basis
+				break;
+			}
+			case MCB_World:
+			{
+				if (DestCoordBasis == MCB_Tangent)
+				{
+					CodeStr = TEXT("mul(<MATRIX>(Parameters.TangentToWorld), <A>)");
+				}
+				else if (DestCoordBasis == MCB_Local)
+				{
+					//TODO: need Primitive.PrevWorldToLocal
+					//TODO: inconsistent with TransformLocal<TO>World with instancing
+					CodeStr = TEXT("mul(<A>, <MATRIX>(Primitive.WorldToLocal))");
+				}
+				else if (DestCoordBasis == MCB_TranslatedWorld)
+				{
+					if (AWComponent)
+					{
+						CodeStr = TEXT("(<A>.xyz + View.<PREV>PreViewTranslation.xyz)");
+					}
+					else
+					{
+						CodeStr = TEXT("<A>");
+					}
+				}
+				// else use MCB_TranslatedWorld as intermediary basis
+				IntermediaryBasis = MCB_TranslatedWorld;
+				break;
+			}
+			case MCB_View:
+			{
+				if (DestCoordBasis == MCB_TranslatedWorld)
+				{
+					CodeStr = TEXT("mul(<A>, <MATRIX>(View.<PREV>ViewToTranslatedWorld))");
+				}
+				// else use MCB_TranslatedWorld as intermediary basis
+				IntermediaryBasis = MCB_TranslatedWorld;
+				break;
+			}
+			default:
+				check(0);
+				break;
+		}
+
+		if (CodeStr.IsEmpty())
+		{
+			// check intermediary basis so we don't have infinite recursion
+			check(IntermediaryBasis != SourceCoordBasis);
+			check(IntermediaryBasis != DestCoordBasis);
+
+			// use intermediary basis
+			const int32 IntermediaryA = TransformBase(SourceCoordBasis, IntermediaryBasis, A, AWComponent);
+
+			return TransformBase(IntermediaryBasis, DestCoordBasis, IntermediaryA, AWComponent);
+		}
+		
+		if (AWComponent != 0)
+		{
+			A = AppendVector(A, Constant(1));
+			CodeStr.ReplaceInline(TEXT("<TO>"),TEXT("PositionTo"));
+			CodeStr.ReplaceInline(TEXT("<MATRIX>"),TEXT(""));
+			CodeStr += ".xyz";
+		}
+		else
+		{
+			CodeStr.ReplaceInline(TEXT("<TO>"),TEXT("VectorTo"));
+			CodeStr.ReplaceInline(TEXT("<MATRIX>"),TEXT("(MaterialFloat3x3)"));
+		}
+		
+		if (bCompilingPreviousFrame)
+		{
+			CodeStr.ReplaceInline(TEXT("<PREV>"),TEXT("Prev"));
+		}
+		else
+		{
+			CodeStr.ReplaceInline(TEXT("<PREV>"),TEXT(""));
+		}
+		
+		CodeStr.ReplaceInline(TEXT("<A>"), *GetParameterCode(A));
+
+		return AddCodeChunk(
+			MCT_Float3,
+			*CodeStr
+			);
+	}
+	
+	virtual int32 TransformVector(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
+	{
+		return TransformBase(SourceCoordBasis, DestCoordBasis, A, 0);
 	}
 
-	/**
-	* Generate shader code for transforming a position
-	*
-	* @param	CoordType - type of transform to apply. see EMaterialExpressionTransformPosition 
-	* @param	A - index for input vector parameter's code
-	*/
-	virtual int32 TransformPosition(uint8 SourceCoordType, uint8 DestCoordType, int32 A) override
+	virtual int32 TransformPosition(EMaterialCommonBasis SourceCoordBasis, EMaterialCommonBasis DestCoordBasis, int32 A) override
 	{
-		const EMaterialPositionTransformSource SourceCoordinateSpace = (EMaterialPositionTransformSource)SourceCoordType;
-		const EMaterialPositionTransformSource DestinationCoordinateSpace = (EMaterialPositionTransformSource)DestCoordType;
-
-		int32 Result = INDEX_NONE;
-
-		if (SourceCoordinateSpace == DestinationCoordinateSpace)
-		{
-			Result = A;
-		}
-		else if (A != INDEX_NONE)
-		{
-			// code string to transform the input vector
-			FString CodeStr;
-
-			if (SourceCoordinateSpace == TRANSFORMPOSSOURCE_Local)
-			{
-				CodeStr = FString(TEXT("TransformLocalPositionToWorld(Parameters,%s)"));
-			}
-			else if (SourceCoordinateSpace == TRANSFORMPOSSOURCE_World)
-			{
-				CodeStr = FString(TEXT("TransformWorldPositionToLocal(%s)"));
-			}
-				
-			Result = AddCodeChunk(
-				MCT_Float3,
-				*CodeStr,
-				*CoerceParameter(A,MCT_Float3)
-				);
-		}
-		return Result; 
+		return TransformBase(SourceCoordBasis, DestCoordBasis, A, 1);
 	}
 
-	virtual int32 DynamicParameter() override
+	virtual int32 DynamicParameter(FLinearColor& DefaultValue) override
 	{
 		if (ShaderFrequency != SF_Vertex && ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
 		{
@@ -3325,9 +3397,11 @@ protected:
 
 		bNeedsParticleDynamicParameter = true;
 
+		int32 Default = Constant4(DefaultValue.R, DefaultValue.G, DefaultValue.B, DefaultValue.A);
 		return AddInlinedCodeChunk(
 			MCT_Float4,
-			TEXT("Parameters.Particle.DynamicParameter")
+			TEXT("GetDynamicParameter(Parameters.Particle, %s)"),
+			*GetParameterCode(Default)
 			);
 	}
 
@@ -3349,6 +3423,29 @@ protected:
 		FString CodeChunk = FString::Printf(TEXT("GetLightmapUVs(Parameters)"));
 		ResultIdx = AddCodeChunk(
 			MCT_Float2,
+			*CodeChunk
+			);
+		return ResultIdx;
+	}
+
+	virtual int32 PrecomputedAOMask() override
+	{
+		if (ShaderFrequency != SF_Pixel && ShaderFrequency != SF_Compute)
+		{
+			return NonPixelShaderExpressionError();
+		}
+
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		bUsesAOMaterialMask = true;
+
+		int32 ResultIdx = INDEX_NONE;
+		FString CodeChunk = FString::Printf(TEXT("Parameters.AOMaterialMask"));
+		ResultIdx = AddCodeChunk(
+			MCT_Float,
 			*CodeChunk
 			);
 		return ResultIdx;
@@ -3569,6 +3666,40 @@ protected:
 		return AddCodeChunk( MCT_Float3, TEXT("MaterialExpressionBlackBody(%s)"), *GetParameterCode(Temp) );
 	}
 
+	virtual int32 DistanceToNearestSurface(int32 PositionArg) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if (PositionArg == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
+
+		return AddCodeChunk(MCT_Float, TEXT("GetDistanceToNearestSurfaceGlobal(%s)"), *GetParameterCode(PositionArg));
+	}
+
+	virtual int32 DistanceFieldGradient(int32 PositionArg) override
+	{
+		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM5) == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		if (PositionArg == INDEX_NONE)
+		{
+			return INDEX_NONE;
+		}
+
+		MaterialCompilationOutput.bUsesGlobalDistanceField = true;
+
+		return AddCodeChunk(MCT_Float3, TEXT("GetDistanceFieldGradientGlobal(%s)"), *GetParameterCode(PositionArg));
+	}
+
 	virtual int32 AtmosphericFogColor( int32 WorldPosition ) override
 	{
 		if (ErrorUnlessFeatureLevelSupported(ERHIFeatureLevel::SM4) == INDEX_NONE)
@@ -3646,14 +3777,14 @@ protected:
 			case MCT_Texture2D:
 				InputParamDecl += TEXT("Texture2D ");
 				InputParamDecl += Custom->Inputs[i].InputName;
-				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += TEXT(", SamplerState ");
 				InputParamDecl += Custom->Inputs[i].InputName;
 				InputParamDecl += TEXT("Sampler ");
 				break;
 			case MCT_TextureCube:
 				InputParamDecl += TEXT("TextureCube ");
 				InputParamDecl += Custom->Inputs[i].InputName;
-				InputParamDecl += TEXT(", sampler ");
+				InputParamDecl += TEXT(", SamplerState ");
 				InputParamDecl += Custom->Inputs[i].InputName;
 				InputParamDecl += TEXT("Sampler ");
 				break;

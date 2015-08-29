@@ -136,12 +136,16 @@ FString FCulture::FICUCultureImplementation::GetCanonicalName(const FString& Nam
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	uloc_canonicalize(TCHAR_TO_ANSI( *Name ), CanonicalName, MaximumNameLength, &ICUStatus);
-	return CanonicalName;
+	FString CanonicalNameString = CanonicalName;
+	CanonicalNameString.ReplaceInline(TEXT("_"), TEXT("-"));
+	return CanonicalNameString;
 }
 
 FString FCulture::FICUCultureImplementation::GetName() const
 {
-	return ICULocale.getName();
+	FString Result = ICULocale.getName();
+	Result.ReplaceInline(TEXT("_"), TEXT("-"));
+	return Result;
 }
 
 FString FCulture::FICUCultureImplementation::GetNativeName() const

@@ -4,6 +4,8 @@
 	Definitions.usf: Defines undefined defines to 0 as Cg can't handle them.
 =============================================================================*/
 
+#pragma once
+
 #ifndef MATERIAL_TWOSIDED
 #define	MATERIAL_TWOSIDED								0
 #endif
@@ -100,6 +102,14 @@
 #define METAL_MRT_PROFILE								0
 #endif
 
+#ifndef METAL_SM5_PROFILE
+#define METAL_SM5_PROFILE								0
+#endif
+
+#ifndef VULKAN_PROFILE
+#define	VULKAN_PROFILE									0
+#endif
+
 #ifndef IOS
 #define IOS												0
 #endif
@@ -150,6 +160,14 @@
 #define NUM_VF_PACKED_INTERPOLANTS						0
 #endif
 
+#ifndef INVARIANT
+#define INVARIANT										
+#endif
+
+#ifndef ENABLE_RE_Z
+#define ENABLE_RE_Z
+#endif
+
 #ifndef USE_CLEARCOAT
 #define USE_CLEARCOAT									0
 #endif
@@ -163,10 +181,6 @@
 #define BRANCH											[branch]
 /** Performs branching by using the cnd instructions. */
 #define FLATTEN											[flatten]
-/** Executes the conditional part of an if statement when the condition is true for all threads on which the current shader is running. */
-#define IFALL											[ifAll]
-/** Executes the conditional part of an if statement when the condition is true for any thread on which the current shader is running. */
-#define IFANY											[ifAny]
 /** Allows a compute shader loop termination condition to be based off of a UAV read. The loop must not contain synchronization intrinsics. */
 #define ALLOW_UAV_CONDITION								[allow_uav_condition]
 #else
@@ -181,12 +195,6 @@
 #endif
 #ifndef FLATTEN
 #define FLATTEN
-#endif
-#ifndef IFALL
-#define IFALL
-#endif
-#ifndef IFANY
-#define IFANY
 #endif
 #endif
 

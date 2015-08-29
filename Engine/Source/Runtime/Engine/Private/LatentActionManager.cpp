@@ -31,7 +31,7 @@ void FLatentActionManager::RemoveActionsForObject(TWeakObjectPtr<UObject> InObje
 	auto ObjectActionList = GetActionListForObject(InObject);
 	if (ObjectActionList)
 	{
-		auto ActionToRemoveListPtr = ActionsToRemoveMap.FindOrAdd(InObject);
+		auto& ActionToRemoveListPtr = ActionsToRemoveMap.FindOrAdd(InObject);
 		if (!ActionToRemoveListPtr.IsValid())
 		{
 			ActionToRemoveListPtr = MakeShareable(new TArray<FUuidAndAction>());
@@ -48,7 +48,7 @@ void FLatentActionManager::ProcessLatentActions(UObject* InObject, float DeltaTi
 {
 	for (FActionsForObject::TIterator It(ActionsToRemoveMap); It; ++It)
 	{
-		auto ActionList = GetActionListForObject(InObject);
+		auto ActionList = GetActionListForObject(It.Key());
 		auto ActionToRemoveListPtr = It.Value();
 		if (ActionToRemoveListPtr.IsValid() && ActionList)
 		{

@@ -31,6 +31,7 @@
 #include "AutoReimport/AutoReimportManager.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "AutoReimport/AssetSourceFilenameCache.h"
 #include "UObject/UObjectThreadContext.h"
 #include "Components/BillboardComponent.h"
 #include "Components/ArrowComponent.h"
@@ -125,32 +126,29 @@ void UUnrealEdEngine::Init(IEngineLoop* InEngineLoop)
 		PropertyModule.RegisterCustomClassLayout("ProjectPackagingSettings", FOnGetDetailCustomizationInstance::CreateStatic(&FProjectPackagingSettingsCustomization::MakeInstance));
 	}
 
-	UEditorExperimentalSettings const* ExperimentalSettings =  GetDefault<UEditorExperimentalSettings>();
-	ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
-	BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
-
-	bool bEnableCookOnTheSide = false;
-	GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
-
-	if ( bEnableCookOnTheSide )
+	if (!IsRunningCommandlet())
 	{
-		CookServer = NewObject<UCookOnTheFlyServer>();
-		CookServer->Initialize( ECookMode::CookOnTheFlyFromTheEditor, BaseCookingFlags );
-		CookServer->StartNetworkFileServer( false );
+		UEditorExperimentalSettings const* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
+		ECookInitializationFlags BaseCookingFlags = ECookInitializationFlags::AutoTick | ECookInitializationFlags::AsyncSave | ECookInitializationFlags::Compressed;
+		BaseCookingFlags |= ExperimentalSettings->bIterativeCookingForLaunchOn ? ECookInitializationFlags::Iterative : ECookInitializationFlags::None;
 
-		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
-		FCoreUObjectDelegates::OnObjectSaved.AddUObject( CookServer, &UCookOnTheFlyServer::OnObjectSaved );
-	}
-	else if ( !ExperimentalSettings->bDisableCookInEditor)
-	{
-		CookServer = NewObject<UCookOnTheFlyServer>();
-		CookServer->Initialize( ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags );
+		bool bEnableCookOnTheSide = false;
+		GConfig->GetBool(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("bEnableCookOnTheSide"), bEnableCookOnTheSide, GEngineIni);
 
-		FCoreUObjectDelegates::OnObjectPropertyChanged.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectPropertyChanged);
-		FCoreUObjectDelegates::OnObjectModified.AddUObject(CookServer, &UCookOnTheFlyServer::OnObjectModified);
-		FCoreUObjectDelegates::OnObjectSaved.AddUObject( CookServer, &UCookOnTheFlyServer::OnObjectSaved );
+		if (bEnableCookOnTheSide)
+		{
+			CookServer = NewObject<UCookOnTheFlyServer>();
+			CookServer->Initialize(ECookMode::CookOnTheFlyFromTheEditor, BaseCookingFlags);
+			CookServer->StartNetworkFileServer(false);
+		}
+		else if (!ExperimentalSettings->bDisableCookInEditor)
+		{
+			CookServer = NewObject<UCookOnTheFlyServer>();
+			CookServer->Initialize(ECookMode::CookByTheBookFromTheEditor, BaseCookingFlags);
+		}
 	}
+
+	bPivotMovedIndependently = false;
 }
 
 bool CanCookForPlatformInThisProcess( const FString& PlatformName )
@@ -309,6 +307,8 @@ void UUnrealEdEngine::MakeSortedSpriteInfo(TArray<FSpriteCategoryInfo>& OutSorte
 
 void UUnrealEdEngine::PreExit()
 {
+	FAssetSourceFilenameCache::Get().Shutdown();
+
 	// Notify edit modes we're mode at exit
 	FEditorModeRegistry::Get().Shutdown();
 
@@ -536,21 +536,22 @@ void UUnrealEdEngine::OnSourceControlStateUpdated(const FSourceControlOperationR
 			}
 			else
 			{
-				if (SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther())
+				// Note when cooking in the editor we ignore package notifications.  The cooker is saving packages in a temp location which generates bogus checkout messages otherwise.
+				if ((SourceControlState->CanCheckout() || !SourceControlState->IsCurrent() || SourceControlState->IsCheckedOutOther()) && (!CookServer || !CookServer->IsCookingInEditor() ) )
 				{
 					// To get here, either "prompt for checkout on asset modification" is set, or "automatically checkout on asset modification"
 					// is set, but it failed.
 
-			// Allow packages that are not checked out to pass through.
-			// Allow packages that are not current or checked out by others pass through.  
-			// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
-			// to let the user know they wont be able to checkout the package they are modifying.
+					// Allow packages that are not checked out to pass through.
+					// Allow packages that are not current or checked out by others pass through.  
+					// The user wont be able to checkout these packages but the checkout dialog will show up with a special icon 
+					// to let the user know they wont be able to checkout the package they are modifying.
 
 					PackageToNotifyState.Add(Package, SourceControlState->CanCheckout() ? NS_PendingPrompt : NS_PendingWarning);
-			// We need to prompt since a new package was added
-			bNeedToPromptForCheckout = true;
-		}
-	}
+					// We need to prompt since a new package was added
+					bNeedToPromptForCheckout = true;
+				}
+			}
 		}
 	}
 }
@@ -657,6 +658,16 @@ void UUnrealEdEngine::OnOpenMatinee()
 {
 	// Register a delegate to pickup when Matinee is closed.
 	OnMatineeEditorClosedDelegateHandle = GLevelEditorModeTools().OnEditorModeChanged().AddUObject( this, &UUnrealEdEngine::OnMatineeEditorClosed );
+}
+
+bool UUnrealEdEngine::IsAutosaving() const
+{
+	if (PackageAutoSaver)
+	{
+		return PackageAutoSaver->IsAutoSaving();
+	}
+	
+	return false;
 }
 
 

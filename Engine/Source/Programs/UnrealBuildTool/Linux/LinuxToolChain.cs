@@ -353,7 +353,7 @@ namespace UnrealBuildTool
 
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow";
+				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow");
 			}
 
             //Result += " -DOPERATOR_NEW_INLINE=FORCENOINLINE";
@@ -375,8 +375,8 @@ namespace UnrealBuildTool
                 //Result += " -fsanitize=address";            // detect address based errors (support properly and link to libasan)
             }
 
-            // debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Development/Shipping performance)
-            if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Debug)
+            // debug info (bCreateDebugInfo is normally set for all configurations, and we don't want it to affect Shipping performance)
+            if (CompileEnvironment.Config.bCreateDebugInfo && CompileEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping)
             {
                 Result += " -g3";
             }
@@ -405,6 +405,11 @@ namespace UnrealBuildTool
                 // Use local-dynamic TLS model. This generates less efficient runtime code for __thread variables, but avoids problems of running into
                 // glibc/ld.so limit (DTV_SURPLUS) for number of dlopen()'ed DSOs with static TLS (see e.g. https://www.cygwin.com/ml/libc-help/2013-11/msg00033.html)
                 Result += " -ftls-model=local-dynamic";
+            }
+
+            if (CompileEnvironment.Config.bEnableExceptions)
+            {
+                Result += " -fexceptions";
             }
 
             //Result += " -v";                            // for better error diagnosis
@@ -1141,7 +1146,7 @@ namespace UnrealBuildTool
 
 			ProcessStartInfo StartInfo = new ProcessStartInfo();
 			StartInfo.FileName = GetStripPath(UEBuildPlatform.GetBuildPlatform(UnrealTargetPlatform.Linux).GetActiveArchitecture());
-			StartInfo.Arguments = TargetFileName;
+			StartInfo.Arguments = "--strip-debug \"" + TargetFileName + "\"";
 			StartInfo.UseShellExecute = false;
 			StartInfo.CreateNoWindow = true;
 			Utils.RunLocalProcessAndLogOutput(StartInfo);

@@ -7,8 +7,6 @@
 #ifndef _INC_SCENEFILTERRENDERING
 #define _INC_SCENEFILTERRENDERING
 
-#define MAX_FILTER_SAMPLES	32
-
 #include "SceneRenderTargets.h"
 
 /**
@@ -122,7 +120,7 @@ public:
 			OverlayColor
 			);
 
-		FIntPoint BufferSize = GSceneRenderTargets.GetBufferSizeXY();
+		FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 		float BufferSizeX = (float)BufferSize.X;
 		float BufferSizeY = (float)BufferSize.Y;
 		float InvBufferSizeX = 1.0f / BufferSizeX;

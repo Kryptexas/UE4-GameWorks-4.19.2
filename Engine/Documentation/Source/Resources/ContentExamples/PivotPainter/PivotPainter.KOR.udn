@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2346120
+﻿INTSourceChangelist:2622517
 Availability: Public
 Title:피벗 페인터 콘텐츠 예제
 Crumbs:%ROOT%, Resources, Resources/ContentExamples
@@ -46,7 +46,7 @@ Related: Engine/Rendering/Materials/Functions/Creating
 [TOC(start:2 end:2)]
 
 
-## 개요
+
 [Pivot Painter](Engine\Content\Tools\PivotPainter) (피벗 페인터) 툴은 모델의 버텍스 데이터 안에 모델 피벗과 로테이션 정보를 저장하는 MAXScript 입니다. 그 정보를 언리얼 엔진 4 의 셰이더 시스템에서 참조하여 상호작용형 이펙트를 만들 수 있습니다.
 
 콘텐츠 예제 프로젝트 안의 **PivotPainter** 맵에는 **피벗 페인터 머티리얼 함수** 를 사용하여 이러한 효과를 이뤄내는 모델을 제작하고, 그 모델을 바람이나 플레이어 상호작용과 같은 여러가지 외부 요인을 통해 조작하는 방법을 선보이는 예제가 여럿 제공됩니다.

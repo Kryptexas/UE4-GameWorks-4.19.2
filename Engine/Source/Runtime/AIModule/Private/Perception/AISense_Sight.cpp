@@ -81,6 +81,9 @@ UAISense_Sight::UAISense_Sight(const FObjectInitializer& ObjectInitializer)
 {
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
+		UAISenseConfig_Sight* SightConfigCDO = GetMutableDefault<UAISenseConfig_Sight>();
+		SightConfigCDO->Implementation = UAISense_Sight::StaticClass();
+
 		OnNewListenerDelegate.BindUObject(this, &UAISense_Sight::OnNewListenerImpl);
 		OnListenerUpdateDelegate.BindUObject(this, &UAISense_Sight::OnListenerUpdateImpl);
 		OnListenerRemovedDelegate.BindUObject(this, &UAISense_Sight::OnListenerRemovedImpl);

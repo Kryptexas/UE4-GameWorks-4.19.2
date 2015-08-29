@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2490749
+﻿INTSourceChangelist:2601316
 Availability:Public
 Title:액터 배치하기
 Crumbs: %ROOT%, Engine, Engine/Actors
@@ -69,8 +69,6 @@ Related: GettingStarted\HowTo
 가장 근본적인 수준에서 **Actor**, 액터란 레벨에 배치할 수 있는 오브젝트를 말하며, 여기서는 레벨에 그러한 액터를 배치할 수 있는 여러가지 방법을 보여드리겠습니다.
 
 [TOC(start:2)]
-
-## 개요
 
 [EXCERPT:Place01]
 새 프로젝트를 만들면, 프로젝트를 열 때 로드되는 레벨은 보통 빈 평판입니다. 원하는 대로 환경을 만들어 월드를 채우려면, 레벨에 **액터** 를 배치해야 합니다. 그 방법은 두 가지인데, 둘 다 **콘텐츠 브라우저** 를 사용하여 생성하려는 액터의 인스턴스를 새로 만들게 됩니다. 그런 다음 레벨에서 각 인스턴스를 옮기거나 프로퍼티를 변경하게 됩니다.
@@ -169,3 +167,8 @@ Related: GettingStarted\HowTo
 
 
 %playlistnav%
+
+
+
+
+

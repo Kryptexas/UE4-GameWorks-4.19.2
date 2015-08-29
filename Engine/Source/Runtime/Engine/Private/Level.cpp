@@ -163,39 +163,69 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 
 FLevelSimplificationDetails::FLevelSimplificationDetails()
  : bCreatePackagePerAsset(true)
- , DetailsPercentage(70.f)
- , bGenerateMeshNormalMap(true)
- , bGenerateMeshMetallicMap(false)
- , bGenerateMeshRoughnessMap(false)
- , bGenerateMeshSpecularMap(false)
+ , DetailsPercentage(70.0f)
  , bOverrideLandscapeExportLOD(false)
  , LandscapeExportLOD(7)
- , bGenerateLandscapeNormalMap(true)
- , bGenerateLandscapeMetallicMap(false)
- , bGenerateLandscapeRoughnessMap(false)
- , bGenerateLandscapeSpecularMap(false)
  , bBakeFoliageToLandscape(false)
  , bBakeGrassToLandscape(false)
+ , bGenerateMeshNormalMap_DEPRECATED(true)
+ , bGenerateMeshMetallicMap_DEPRECATED(false)
+ , bGenerateMeshRoughnessMap_DEPRECATED(false)
+ , bGenerateMeshSpecularMap_DEPRECATED(false)
+ , bGenerateLandscapeNormalMap_DEPRECATED(true)
+ , bGenerateLandscapeMetallicMap_DEPRECATED(false)
+ , bGenerateLandscapeRoughnessMap_DEPRECATED(false)
+ , bGenerateLandscapeSpecularMap_DEPRECATED(false)
 {
 }
 
 bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails& Other) const
 {
-	return
-		bCreatePackagePerAsset == Other.bCreatePackagePerAsset &&
-		DetailsPercentage == Other.DetailsPercentage &&
-		bGenerateMeshNormalMap == Other.bGenerateMeshNormalMap &&
-		bGenerateMeshMetallicMap == Other.bGenerateMeshMetallicMap &&
-		bGenerateMeshRoughnessMap == Other.bGenerateMeshRoughnessMap &&
-		bGenerateMeshSpecularMap == Other.bGenerateMeshSpecularMap &&
-		bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD &&
-		LandscapeExportLOD == Other.LandscapeExportLOD &&
-		bGenerateLandscapeNormalMap == Other.bGenerateLandscapeNormalMap &&
-		bGenerateLandscapeMetallicMap == Other.bGenerateLandscapeMetallicMap &&
-		bGenerateLandscapeRoughnessMap == Other.bGenerateLandscapeRoughnessMap &&
-		bGenerateLandscapeSpecularMap == Other.bGenerateLandscapeSpecularMap &&
-		bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape &&
-		bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
+	return bCreatePackagePerAsset == Other.bCreatePackagePerAsset
+		&& DetailsPercentage == Other.DetailsPercentage
+		&& StaticMeshMaterial == Other.StaticMeshMaterial
+		&& bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD
+		&& LandscapeExportLOD == Other.LandscapeExportLOD
+		&& LandscapeMaterial == Other.LandscapeMaterial
+		&& bBakeFoliageToLandscape == Other.bBakeFoliageToLandscape
+		&& bBakeGrassToLandscape == Other.bBakeGrassToLandscape;
+}
+
+void FLevelSimplificationDetails::PostLoadDeprecated()
+{
+	FLevelSimplificationDetails DefaultObject;
+	if (bGenerateMeshNormalMap_DEPRECATED != DefaultObject.bGenerateMeshNormalMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bNormalMap = bGenerateMeshNormalMap_DEPRECATED;
+	}
+	if (bGenerateMeshMetallicMap_DEPRECATED != DefaultObject.bGenerateMeshMetallicMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bMetallicMap = bGenerateMeshMetallicMap_DEPRECATED;
+	}
+	if (bGenerateMeshRoughnessMap_DEPRECATED != DefaultObject.bGenerateMeshRoughnessMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bRoughnessMap = bGenerateMeshRoughnessMap_DEPRECATED;
+	}
+	if (bGenerateMeshSpecularMap_DEPRECATED != DefaultObject.bGenerateMeshSpecularMap_DEPRECATED)
+	{
+		StaticMeshMaterial.bSpecularMap = bGenerateMeshSpecularMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeNormalMap_DEPRECATED != DefaultObject.bGenerateLandscapeNormalMap_DEPRECATED)
+	{
+		LandscapeMaterial.bNormalMap = bGenerateLandscapeNormalMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeMetallicMap_DEPRECATED != DefaultObject.bGenerateLandscapeMetallicMap_DEPRECATED)
+	{
+		LandscapeMaterial.bMetallicMap = bGenerateLandscapeMetallicMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeRoughnessMap_DEPRECATED != DefaultObject.bGenerateLandscapeRoughnessMap_DEPRECATED)
+	{
+		LandscapeMaterial.bRoughnessMap = bGenerateLandscapeRoughnessMap_DEPRECATED;
+	}
+	if (bGenerateLandscapeSpecularMap_DEPRECATED != DefaultObject.bGenerateLandscapeSpecularMap_DEPRECATED)
+	{
+		LandscapeMaterial.bSpecularMap = bGenerateLandscapeSpecularMap_DEPRECATED;
+	}
 }
 
 TMap<FName, TWeakObjectPtr<UWorld> > ULevel::StreamedLevelsOwningWorld;
@@ -547,6 +577,13 @@ void ULevel::PostLoad()
 			LevelScriptBlueprint->Rename(*OuterWorld->GetName(), LevelScriptBlueprint->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors | REN_ForceNoResetLoaders | REN_NonTransactional | REN_SkipGeneratedClasses);
 		}
 	}
+
+	// Fixup deprecated stuff in levels simplification settings
+	for (int32 Index = 0; Index < ARRAY_COUNT(LevelSimplification); ++Index)
+	{
+		LevelSimplification[Index].PostLoadDeprecated();
+	}
+
 #endif
 }
 
@@ -785,46 +822,43 @@ void ULevel::CreateModelComponents()
 
 		if(Node.NumVertices > 0)
 		{
-			for(int32 BackFace = 0;BackFace < ((Surf.PolyFlags & PF_TwoSided) ? 2 : 1);BackFace++)
+			// Calculate the bounding box of this node.
+			FBox NodeBounds(0);
+			for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
 			{
-				// Calculate the bounding box of this node.
-				FBox NodeBounds(0);
-				for(int32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
-				{
-					NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
-				}
+				NodeBounds += Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex];
+			}
 
-				// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
+			// Create a sort key for this node using the grid cell containing the center of the node's bounding box.
 #define MODEL_GRID_SIZE_XY	2048.0f
 #define MODEL_GRID_SIZE_Z	4096.0f
-				FModelComponentKey Key;
-				check( OwningWorld );
-				if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
-				{
-					Key.X				= 0;
-					Key.Y				= 0;
-					Key.Z				= 0;
-				}
-				else
-				{
-					Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
-					Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
-					Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
-				}
-
-				Key.MaskedPolyFlags = 0;
-
-				// Find an existing node list for the grid cell.
-				TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
-				if(!ComponentNodes)
-				{
-					// This is the first node we found in this grid cell, create a new node list for the grid cell.
-					ComponentNodes = &ModelComponentMap.Add(Key,TArray<uint16>());
-				}
-
-				// Add the node to the grid cell's node list.
-				ComponentNodes->AddUnique(NodeIndex);
+			FModelComponentKey Key;
+			check( OwningWorld );
+			if (OwningWorld->GetWorldSettings()->bMinimizeBSPSections)
+			{
+				Key.X				= 0;
+				Key.Y				= 0;
+				Key.Z				= 0;
 			}
+			else
+			{
+				Key.X				= FMath::FloorToInt(NodeBounds.GetCenter().X / MODEL_GRID_SIZE_XY);
+				Key.Y				= FMath::FloorToInt(NodeBounds.GetCenter().Y / MODEL_GRID_SIZE_XY);
+				Key.Z				= FMath::FloorToInt(NodeBounds.GetCenter().Z / MODEL_GRID_SIZE_Z);
+			}
+
+			Key.MaskedPolyFlags = 0;
+
+			// Find an existing node list for the grid cell.
+			TArray<uint16>* ComponentNodes = ModelComponentMap.Find(Key);
+			if(!ComponentNodes)
+			{
+				// This is the first node we found in this grid cell, create a new node list for the grid cell.
+				ComponentNodes = &ModelComponentMap.Add(Key,TArray<uint16>());
+			}
+
+			// Add the node to the grid cell's node list.
+			ComponentNodes->AddUnique(NodeIndex);
 		}
 		else
 		{
@@ -836,7 +870,7 @@ void ULevel::CreateModelComponents()
 	// Create a UModelComponent for each grid cell's node list.
 	for(TMap< FModelComponentKey, TArray<uint16> >::TConstIterator It(ModelComponentMap);It;++It)
 	{
-		const FModelComponentKey&	Key		= It.Key();
+		const FModelComponentKey&		Key		= It.Key();
 		const TArray<uint16>&			Nodes	= It.Value();	
 
 		for(int32 NodeIndex = 0;NodeIndex < Nodes.Num();NodeIndex++)
@@ -1153,12 +1187,15 @@ void ULevel::CommitModelSurfaces()
 {
 	if(Model->InvalidSurfaces)
 	{
-		// Unregister model components
-		for(int32 ComponentIndex = 0;ComponentIndex < ModelComponents.Num();ComponentIndex++)
+		if (!Model->bOnlyRebuildMaterialIndexBuffers)
 		{
-			if(ModelComponents[ComponentIndex] && ModelComponents[ComponentIndex]->IsRegistered())
+			// Unregister model components
+			for (int32 ComponentIndex = 0; ComponentIndex < ModelComponents.Num(); ComponentIndex++)
 			{
-				ModelComponents[ComponentIndex]->UnregisterComponent();
+				if (ModelComponents[ComponentIndex] && ModelComponents[ComponentIndex]->IsRegistered())
+				{
+					ModelComponents[ComponentIndex]->UnregisterComponent();
+				}
 			}
 		}
 
@@ -1194,7 +1231,14 @@ void ULevel::CommitModelSurfaces()
 			{
 				if(ModelComponents[ComponentIndex])
 				{
-					ModelComponents[ComponentIndex]->RegisterComponentWithWorld(OwningWorld);
+					if (Model->bOnlyRebuildMaterialIndexBuffers)
+					{
+						ModelComponents[ComponentIndex]->MarkRenderStateDirty();
+					}
+					else
+					{
+						ModelComponents[ComponentIndex]->RegisterComponentWithWorld(OwningWorld);
+					}
 				}
 			}
 		}
@@ -1206,6 +1250,8 @@ void ULevel::CommitModelSurfaces()
 		{
 			BeginInitResource(IndexBufferIt.Value());
 		}
+
+		Model->bOnlyRebuildMaterialIndexBuffers = false;
 	}
 }
 
@@ -1714,7 +1760,7 @@ void ULevel::AddMovieSceneBindings( class UMovieSceneBindings* MovieSceneBinding
 	{
 		Modify();
 
-		// @todo sequencer UObjects: Dangerous cast here to work around MovieSceneCore not being a dependency module of engine
+		// @todo sequencer UObjects: Dangerous cast here to work around MovieScene not being a dependency module of engine
 		UObject* ObjectToAdd = (UObject*)MovieSceneBindings;
 		MovieSceneBindingsArray.AddUnique( ObjectToAdd );
 	}

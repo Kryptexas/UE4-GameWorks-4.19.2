@@ -498,7 +498,68 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_BODYINSTANCE_BINARY_SERIALIZATION,
 	// Added fastcall data serialization directly in UFunction
 	VER_UE4_SERIALIZE_BLUEPRINT_EVENTGRAPH_FASTCALLS_IN_UFUNCTION,
-
+	// Changes to USplineComponent and FInterpCurve
+	VER_UE4_INTERPCURVE_SUPPORTS_LOOPING,
+	// Material Instances overriding base material LOD transitions
+	VER_UE4_MATERIAL_INSTANCE_BASE_PROPERTY_OVERRIDES_DITHERED_LOD_TRANSITION,
+	// Serialize ES2 textures separately rather than overwriting the properties used on other platforms
+	VER_UE4_SERIALIZE_LANDSCAPE_ES2_TEXTURES,
+	// Constraint motor velocity is broken into per-component
+	VER_UE4_CONSTRAINT_INSTANCE_MOTOR_FLAGS,
+	// Serialize bIsConst in FEdGraphPinType
+	VER_UE4_SERIALIZE_PINTYPE_CONST,
+	// Change UMaterialFunction::LibraryCategories to LibraryCategoriesText (old assets were saved before auto-conversion of UArrayProperty was possible)
+	VER_UE4_LIBRARY_CATEGORIES_AS_FTEXT,
+	// Check for duplicate exports while saving packages.
+	VER_UE4_SKIP_DUPLICATE_EXPORTS_ON_SAVE_PACKAGE,
+	// Pre-gathering of gatherable, localizable text in packages to optimize text gathering operation times
+	VER_UE4_SERIALIZE_TEXT_IN_PACKAGES,
+	// Added pivot to widget components, need to load old versions as a 0,0 pivot, new default is 0.5,0.5
+	VER_UE4_ADD_BLEND_MODE_TO_WIDGET_COMPONENT,
+	// Added lightmass primitive setting
+	VER_UE4_NEW_LIGHTMASS_PRIMITIVE_SETTING,
+	// Deprecate NoZSpring property on spring nodes to be replaced with TranslateZ property
+	VER_UE4_REPLACE_SPRING_NOZ_PROPERTY,
+	// Keep enums tight and serialize their values as pairs of FName and value. Don't insert dummy values.
+	VER_UE4_TIGHTLY_PACKED_ENUMS,
+	// Changed Asset import data to serialize file meta data as JSON
+	VER_UE4_ASSET_IMPORT_DATA_AS_JSON,
+	// Legacy gamma support for textures.
+	VER_UE4_TEXTURE_LEGACY_GAMMA,
+	// Added WithSerializer for basic native structures like FVector, FColor etc to improve serialization performance
+	VER_UE4_ADDED_NATIVE_SERIALIZATION_FOR_IMMUTABLE_STRUCTURES,
+	// Deprecated attributes that override the style on UMG widgets
+	VER_UE4_DEPRECATE_UMG_STYLE_OVERRIDES,
+	// Shadowmap penumbra size stored
+	VER_UE4_STATIC_SHADOWMAP_PENUMBRA_SIZE,
+	// Fix BC on Niagara effects from the data object and dev UI changes.
+	VER_UE4_NIAGARA_DATA_OBJECT_DEV_UI_FIX,
+	// Fixed the default orientation of widget component so it faces down +x
+	VER_UE4_FIXED_DEFAULT_ORIENTATION_OF_WIDGET_COMPONENT,
+	// Removed bUsedWithUI flag from UMaterial and replaced it with a new material domain for UI
+	VER_UE4_REMOVED_MATERIAL_USED_WITH_UI_FLAG,
+	// Added braking friction separate from turning friction.
+	VER_UE4_CHARACTER_MOVEMENT_ADD_BRAKING_FRICTION,
+	// Removed TTransArrays from UModel
+	VER_UE4_BSP_UNDO_FIX,
+	// Added default value to dynamic parameter.
+	VER_UE4_DYNAMIC_PARAMETER_DEFAULT_VALUE,
+	// Added ExtendedBounds to StaticMesh
+	VER_UE4_STATIC_MESH_EXTENDED_BOUNDS,
+	// Added non-linear blending to anim transitions, deprecating old types
+	VER_UE4_ADDED_NON_LINEAR_TRANSITION_BLENDS,
+	// AO Material Mask texture
+	VER_UE4_AO_MATERIAL_MASK,
+	// Replaced navigation agents selection with single structure
+	VER_UE4_NAVIGATION_AGENT_SELECTOR,
+	// Mesh particle collisions consider particle size.
+	VER_UE4_MESH_PARTICLE_COLLISIONS_CONSIDER_PARTICLE_SIZE,
+	// Adjacency buffer building no longer automatically handled based on triangle count, user-controlled
+	VER_UE4_BUILD_MESH_ADJ_BUFFER_FLAG_EXPOSED,
+	// Change the default max angular velocity
+	VER_UE4_MAX_ANGULAR_VELOCITY_DEFAULT,
+	// Build Adjacency index buffer for clothing tessellation
+	VER_UE4_APEX_CLOTH_TESSELLATION,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

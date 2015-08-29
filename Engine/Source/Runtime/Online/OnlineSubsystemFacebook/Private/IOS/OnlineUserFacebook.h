@@ -17,7 +17,7 @@ public:
 
 	// FOnlineUser
 
-	virtual TSharedRef<FUniqueNetId> GetUserId() const override;
+	virtual TSharedRef<const FUniqueNetId> GetUserId() const override;
 	virtual FString GetRealName() const override;
 	virtual FString GetDisplayName() const override;
 	virtual bool GetUserAttribute(const FString& AttrName, FString& OutAttrValue) const override;
@@ -59,7 +59,7 @@ public:
 	}
 
 	/** User Id represented as a FUniqueNetId */
-	TSharedRef<FUniqueNetId> UserId;
+	TSharedRef<const FUniqueNetId> UserId;
 	/** Any addition account data associated with the friend */
 	TMap<FString, FString> AccountData;
 };
@@ -75,7 +75,7 @@ public:
 	
 	// IOnlineUser
 
-	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<class FUniqueNetId> >& UserIds) override;
+	virtual bool QueryUserInfo(int32 LocalUserNum, const TArray<TSharedRef<const FUniqueNetId> >& UserIds) override;
 	virtual bool GetAllUserInfo(int32 LocalUserNum, TArray< TSharedRef<class FOnlineUser> >& OutUsers) override;
 	virtual TSharedPtr<FOnlineUser> GetUserInfo(int32 LocalUserNum, const class FUniqueNetId& UserId) override;	
 	virtual bool QueryUserIdMapping(const FUniqueNetId& UserId, const FString& DisplayNameOrEmail, const FOnQueryUserMappingComplete& Delegate = FOnQueryUserMappingComplete()) override;

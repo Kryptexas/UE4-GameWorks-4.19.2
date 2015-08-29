@@ -103,6 +103,18 @@ struct CORE_API FGenericPlatformMemory
 	/** Set to true if we encounters out of memory. */
 	static bool bIsOOM;
 
+	/** Set to size of allocation that triggered out of memory, zero otherwise. */
+	static uint64 OOMAllocationSize;
+
+	/** Set to alignment of allocation that triggered out of memory, zero otherwise. */
+	static uint32 OOMAllocationAlignment;
+
+	/** Preallocated buffer to delete on out of memory. Used by OOM handling and crash reporting. */
+	static void* BackupOOMMemoryPool;
+
+	/** Size of BackupOOMMemoryPool in bytes. */
+	static uint32 BackupOOMMemoryPoolSize;
+
 	/**
 	 * Various memory regions that can be used with memory stats. The exact meaning of
 	 * the enums are relatively platform-dependent, although the general ones (Physical, GPU)

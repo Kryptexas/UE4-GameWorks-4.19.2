@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2124615
+﻿INTSourceChangelist:2620439
 Availability: Docs
 Title:모프 타겟 예제
 Crumbs:%ROOT%, Resources
@@ -47,7 +47,17 @@ Description:UE4 에 포함된 모프 타겟에 대한 개요입니다.
 
 
 
-![](StillLifeTimeLapse2.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+LYeoRx5SmH4
+[/PARAMLITERAL]
+[/OBJECT]
 
 [TOC(start:2 end:2)]
 
@@ -61,7 +71,17 @@ Description:UE4 에 포함된 모프 타겟에 대한 개요입니다.
 이 레벨에서는 레벨 블루프린트를 사용해서 과일 스켈레탈 메시 하나하나와 그에 해당하는 머티리얼 인스턴스 애니메이션을 동시에 재생하는 마티네 시퀀스를 실행시킵니다. 그 플로우 차트는 이렇습니다:
 
 
-![](AppleRotFlow.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+kdMVBXDmPtM
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 

@@ -13,6 +13,8 @@
    Garbage collection.
 -----------------------------------------------------------------------------*/
 
+DECLARE_STATS_GROUP( TEXT( "Garbage Collection" ), STATGROUP_GC, STATCAT_Advanced );
+
 DEFINE_LOG_CATEGORY_STATIC(LogGarbage, Warning, All);
 
 #define PERF_DETAILED_PER_CLASS_GC_STATS				(LOOKING_FOR_PERF_ISSUES)
@@ -135,6 +137,11 @@ public:
 
 		GCCounter.Increment();
 	}
+	/** Checks if any async thread has a lock */
+	bool IsAsyncLocked()
+	{
+		return AsyncCounter.GetValue() != 0;
+	}
 	/** Lock for GC. Will not block and return false if any other thread has already locked. */
 	bool TryGCLock()
 	{		
@@ -168,6 +175,11 @@ FGCScopeGuard::~FGCScopeGuard()
 bool IsGarbageCollecting()
 {
 	return FGCScopeLock::GetGarbageCollectingFlag();
+}
+
+bool IsGarbageCollectionLocked()
+{
+	return GGarbageCollectionGuardCritical.IsAsyncLocked();
 }
 
 /**
@@ -283,63 +295,68 @@ void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags )
  * @param ReferencingObject UObject which owns the reference (can be NULL)
  * @param bAllowReferenceElimination	Whether to allow NULL'ing the reference if RF_PendingKill is set
  */
-static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, bool bAllowReferenceElimination)
+static FORCEINLINE void HandleObjectReference(TArray<UObject*>& ObjectsToSerialize, const UObject * const ReferencingObject, UObject*& Object, const bool bAllowReferenceElimination, const bool bStrongReference = true)
 {
 	// Disregard NULL objects and perform very fast check to see whether object is part of permanent
 	// object pool and should therefore be disregarded. The check doesn't touch the object and is
 	// cache friendly as it's just a pointer compare against to globals.
-	if( Object )
-	{
-		if( !GUObjectAllocator.ResidesInPermanentPool(Object) )
-		{
-			UObject* ObjectToAdd = Object->HasAnyFlags( RF_Unreachable ) ? Object : NULL;
-			// Remove references to pending kill objects if we're allowed to do so.
-			if( Object->HasAnyFlags( RF_PendingKill ) && bAllowReferenceElimination )
-			{
-				// Null out reference.
-				Object = NULL;
-			}
-			// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
-			else if( Object->HasAnyFlags( RF_Unreachable ) )
-			{				
-				if( GIsRunningParallelReachability )
-				{
-					// Mark it as reachable.
-					if (Object->ThisThreadAtomicallyClearedRFUnreachable())
-					{
-						// Add it to the list of objects to serialize.
-						ObjectsToSerialize.Add( Object );
-					}
-				}
-				else if ( ObjectToAdd )
-				{
-#if ENABLE_GC_DEBUG_OUTPUT
-					// this message is to help track down culprits behind "Object in PIE world still referenced" errors
-					if ( GIsEditor && !GIsPlayInEditorWorld && ReferencingObject != NULL && !ReferencingObject->RootPackageHasAnyFlags(PKG_PlayInEditor) && Object->RootPackageHasAnyFlags(PKG_PlayInEditor) )
-					{
-						UE_LOG(LogGarbage, Warning, TEXT("GC detected illegal reference to PIE object from content [possibly via [todo]]:"));
-						UE_LOG(LogGarbage, Warning, TEXT("      PIE object: %s"), *Object->GetFullName());
-						UE_LOG(LogGarbage, Warning, TEXT("  NON-PIE object: %s"), *ReferencingObject->GetFullName());
-					}
-#endif
+	const bool IsInPermanentPool = GUObjectAllocator.ResidesInPermanentPool(Object);
 
-					// Mark it as reachable.
-					Object->ClearFlags( RF_Unreachable );
-					// Add it to the list of objects to serialize.
-					ObjectsToSerialize.Add( Object );
-				}
-			}
 #if PERF_DETAILED_PER_CLASS_GC_STATS
-			GCurrentObjectRegularObjectRefs++;
+	if(IsInPermanentPool)
+	{
+		GCurrentObjectDisregardedObjectRefs++;
+	}
+#endif
+	if(Object == nullptr || IsInPermanentPool)
+	{
+		return;
+	}
+
+	// Remove references to pending kill objects if we're allowed to do so.
+	if( Object->HasAnyFlags( RF_PendingKill ) && bAllowReferenceElimination )
+	{
+		// Null out reference.
+		Object = NULL;
+	}
+	// Add encountered object reference to list of to be serialized objects if it hasn't already been added.
+	else if( Object->HasAnyFlags( RF_Unreachable ) )
+	{				
+		if( GIsRunningParallelReachability )
+		{
+			// Mark it as reachable.
+			if (Object->ThisThreadAtomicallyClearedRFUnreachable())
+			{
+				// Add it to the list of objects to serialize.
+				ObjectsToSerialize.Add( Object );
+			}
 		}
 		else
 		{
-			GCurrentObjectDisregardedObjectRefs++;
-		}
-#else
-		}
+#if ENABLE_GC_DEBUG_OUTPUT
+			// this message is to help track down culprits behind "Object in PIE world still referenced" errors
+			if ( GIsEditor && !GIsPlayInEditorWorld && ReferencingObject != NULL && !ReferencingObject->RootPackageHasAnyFlags(PKG_PlayInEditor) && Object->RootPackageHasAnyFlags(PKG_PlayInEditor) )
+			{
+				UE_LOG(LogGarbage, Warning, TEXT("GC detected illegal reference to PIE object from content [possibly via [todo]]:"));
+				UE_LOG(LogGarbage, Warning, TEXT("      PIE object: %s"), *Object->GetFullName());
+				UE_LOG(LogGarbage, Warning, TEXT("  NON-PIE object: %s"), *ReferencingObject->GetFullName());
+			}
 #endif
+
+			// Mark it as reachable.
+			Object->ClearFlags( RF_Unreachable );
+			// Add it to the list of objects to serialize.
+			ObjectsToSerialize.Add( Object );
+		}
 	}
+
+	if (Object && bStrongReference)
+	{
+		Object->ClearFlags(RF_NoStrongReference);
+	}
+#if PERF_DETAILED_PER_CLASS_GC_STATS
+	GCurrentObjectRegularObjectRefs++;
+#endif
 }
 
 static FORCEINLINE void HandleTokenStreamObjectReference(TArray<UObject*>& ObjectsToSerialize, UObject* ReferencingObject, UObject*& Object, const int32 TokenIndex, bool bAllowReferenceElimination)
@@ -373,12 +390,14 @@ class FGCCollector : public FReferenceCollector
 {
 	TArray<UObject*>& ObjectArray;
 	bool bAllowEliminatingReferences;
+	bool bShouldHandleAsWeakRef;
 
 public:
 
 	FGCCollector(TArray<UObject*>& InObjectArray)
 		: ObjectArray(InObjectArray)
 		, bAllowEliminatingReferences(true)
+		, bShouldHandleAsWeakRef(false)
 	{
 	}
 
@@ -393,7 +412,7 @@ public:
 				ReferencingProperty ? *ReferencingProperty->GetFullName() : TEXT("NULL"));
 		}
 #endif
-		::HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences);
+		::HandleObjectReference(ObjectArray, const_cast<UObject*>(ReferencingObject), Object, bAllowEliminatingReferences, !bShouldHandleAsWeakRef);
 	}
 	virtual bool IsIgnoringArchetypeRef() const override
 	{
@@ -406,6 +425,11 @@ public:
 	virtual void AllowEliminatingReferences( bool bAllow ) override
 	{
 		bAllowEliminatingReferences = bAllow;
+	}
+
+	virtual void SetShouldHandleAsWeakRef(bool bWeakRef) override
+	{
+		bShouldHandleAsWeakRef = bWeakRef;
 	}
 };
 
@@ -546,6 +570,8 @@ public:
 	 */
 	void PerformReachabilityAnalysis( EObjectFlags KeepFlags, bool bForceSingleThreaded = false )
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FArchiveRealtimeGC::PerformReachabilityAnalysis" ), STAT_FArchiveRealtimeGC_PerformReachabilityAnalysis, STATGROUP_GC );
+
 		UObject* CurrentObject = NULL;
 
 		/** Growing array of objects that require serialization */
@@ -592,7 +618,7 @@ public:
 				}
 				else
 				{
-					Object->SetFlags( RF_Unreachable );
+					Object->SetFlags(RF_Unreachable | RF_NoStrongReference);
 				}
 			}
 
@@ -648,6 +674,8 @@ public:
 
 	void ProcessObjectArray(TArray<UObject*>& InObjectsToSerializeArray, FGraphEventRef& MyCompletionGraphEvent)
 	{		
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "FArchiveRealtimeGC::ProcessObjectArray" ), STAT_FArchiveRealtimeGC_ProcessObjectArray, STATGROUP_GC );
+
 		UObject* CurrentObject = NULL;
 
 		const int32 MinDesiredObjectsPerSubTask = 128; // sometimes there will be less, a lot less
@@ -682,11 +710,14 @@ public:
 #endif
 				CurrentObject = ObjectsToSerialize[CurrentIndex++];
 
-				if (CurrentIndex != ObjectsToSerialize.Num())
-				{
-					UObject* NextObject = ObjectsToSerialize.GetData()[CurrentIndex]; // special syntax avoiding out of bounds checking
-					FPlatformMisc::PrefetchBlock(NextObject, NextObject->GetClass()->GetPropertiesSize());
-				}
+				// GetData() used to avoiding bounds checking (min and max)
+				// FMath::Min used to avoid out of bounds (without branching) on last iteration. Though anything can be passed into PrefetchBlock, 
+				// reading ObjectsToSerialize out of bounds is not safe since ObjectsToSerialize[Num()] may be an unallocated/unsafe address.
+				const UObject * const NextObject = ObjectsToSerialize.GetData()[FMath::Min<int32>(CurrentIndex, ObjectsToSerialize.Num() - 1)];
+
+				// Prefetch the next object assuming that the property size of the next object is the same as the current one.
+				// This allows us to avoid a branch here.
+				FPlatformMisc::PrefetchBlock(NextObject, CurrentObject->GetClass()->GetPropertiesSize());
 
 				//@todo rtgc: we need to handle object references in struct defaults
 
@@ -762,10 +793,9 @@ public:
 						// We're dealing with an array of object references.
 						TArray<UObject*>& ObjectArray = *((TArray<UObject*>*)(StackEntryData + REFERENCE_INFO.Offset));
 						TokenReturnCount = REFERENCE_INFO.ReturnCount;
-						for( int32 ObjectIndex=0; ObjectIndex<ObjectArray.Num(); ObjectIndex++ )
+						for( int32 ObjectIndex = 0, ObjectNum = ObjectArray.Num(); ObjectIndex < ObjectNum; ++ObjectIndex )
 						{
-							UObject*& Object = ObjectArray[ObjectIndex];
-							HandleTokenStreamObjectReference(NewObjectsToSerialize, CurrentObject, Object, ReferenceTokenStreamIndex, true);
+							HandleTokenStreamObjectReference(NewObjectsToSerialize, CurrentObject, ObjectArray[ObjectIndex], ReferenceTokenStreamIndex, true);
 						}
 					}
 					else if( REFERENCE_INFO.Type == GCRT_ArrayStruct )
@@ -836,6 +866,10 @@ public:
 						TokenReturnCount = REFERENCE_INFO.ReturnCount;
 						FSimpleObjectReferenceCollectorArchive CollectorArchive(CurrentObject, ReferenceCollector);
 						MapProperty->SerializeItem(CollectorArchive, Map, nullptr);
+					}
+					else if (REFERENCE_INFO.Type == GCRT_EndOfPointer)
+					{
+						TokenReturnCount = REFERENCE_INFO.ReturnCount;
 					}
 					else if( REFERENCE_INFO.Type == GCRT_EndOfStream )
 					{
@@ -914,6 +948,8 @@ public:
  */
 void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "IncrementalPurgeGarbage" ), STAT_IncrementalPurgeGarbage, STATGROUP_GC );
+
 	if (GExitPurge)
 	{
 		GObjPurgeIsRequired = true;
@@ -1170,10 +1206,34 @@ typedef void (*EditorPostReachabilityAnalysisCallbackType)();
 COREUOBJECT_API EditorPostReachabilityAnalysisCallbackType EditorPostReachabilityAnalysisCallback = NULL;
 
 // Allow parralel GC to be overriden to single threaded via console command.
-static const auto CVarAllowParallelGC = 
-IConsoleManager::Get().RegisterConsoleVariable(TEXT("AllowParallelGC"), (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0, TEXT("Used to control parallel GC."))->AsVariableInt();
+static int32 GAllowParallelGC = (!PLATFORM_MAC || !WITH_EDITORONLY_DATA) ? 1 : 0;
+static FAutoConsoleVariableRef CVarAllowParallelGC(
+	TEXT("gc.AllowParallelGC"),
+	GAllowParallelGC,
+	TEXT("sed to control parallel GC."),
+	ECVF_Default
+	);
 
-COREUOBJECT_API void DeleteLoaders();
+// This counts how many times GC was skipped
+static int32 GNumAttemptsSinceLastGC = 0;
+
+// Number of times GC can be skipped.
+static int32 GNumRetriesBeforeForcingGC = 0;
+static FAutoConsoleVariableRef CVarNumRetriesBeforeForcingGC(
+	TEXT("gc.NumRetriesBeforeForcingGC"),
+	GNumRetriesBeforeForcingGC,
+	TEXT("Maximum number of times GC can be skipped if worker threads are currently modifying UObject state."),
+	ECVF_Default
+	);
+
+// Force flush streaming on GC console variable
+static int32 GFlushStreamingOnGC = 0;
+static FAutoConsoleVariableRef CVarFlushStreamingOnGC(
+	TEXT("gc.FlushStreamingOnGC"),
+	GFlushStreamingOnGC,
+	TEXT("If enabled, streaming will be flushed each time garbage collection is triggered."),
+	ECVF_Default
+	);
 
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
@@ -1183,29 +1243,20 @@ COREUOBJECT_API void DeleteLoaders();
  */
 void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
+	DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal" ), STAT_CollectGarbageInternal, STATGROUP_GC );
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - Begin" ) );
+
 	// We can't collect garbage while there's a load in progress. E.g. one potential issue is Import.XObject
 	check(!IsLoading());
 
-	// Helper class to register FlushAsyncLoadingCallback on first GC run.
-	struct FAddFlushAsyncLoadingCallback
-	{
-		FAddFlushAsyncLoadingCallback()
-		{
-			bool bFlushStreaming = false;
-			GConfig->GetBool(TEXT("Core.System"), TEXT("FlushStreamingOnGC"), bFlushStreaming, GEngineIni);
-			if (bFlushStreaming)
-			{
-				FCoreUObjectDelegates::PreGarbageCollect.AddStatic(FlushAsyncLoadingCallback);
-			}
-		}
-		/** Wrapper function to handle default parameter when used as function pointer */
-		static void FlushAsyncLoadingCallback()
+	// Reset GC skip counter
+	GNumAttemptsSinceLastGC = 0;
+
+	// Flush streaming before GC if requested
+	if (GFlushStreamingOnGC)
 		{
 			FlushAsyncLoading();
 		}
-	};
-	// Add FlushAsyncLoadingCallback the first time CollectGarbage is called if requested by ini settings
-	static FAddFlushAsyncLoadingCallback MaybeAddFlushAsyncLoadingCallback;
 
 	// Route callbacks so we can ensure that we are e.g. not in the middle of loading something by flushing
 	// the async loading, etc...
@@ -1229,6 +1280,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Only verify assumptions if option is enabled. This avoids false positives in the Editor or commandlets.
 	if( GetUObjectArray().DisregardForGCEnabled() && GShouldVerifyGCAssumptions )
 	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal.VerifyGCAssumptions" ), STAT_CollectGarbageInternal_VerifyGCAssumptions, STATGROUP_GC );
+
 		// Verify that objects marked to be disregarded for GC are not referencing objects that are not part of the root set.
 		for( FObjectIterator It; It; ++It )
 		{
@@ -1271,7 +1324,7 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	// Temporarily forcing single-threaded GC in the editor until Modify() can be safely removed from HandleObjectReference.
 	const bool bForceSingleThreadedGC = !FApp::ShouldUseThreadingForPerformance() || !FPlatformProcess::SupportsMultithreading() ||
 #if PLATFORM_SUPPORTS_MULTITHREADED_GC
-		( FPlatformMisc::NumberOfCores() < 2 || CVarAllowParallelGC->GetValueOnGameThread() == 0 || PERF_DETAILED_PER_CLASS_GC_STATS );
+		( FPlatformMisc::NumberOfCores() < 2 || GAllowParallelGC == 0 || PERF_DETAILED_PER_CLASS_GC_STATS );
 #else	//PLATFORM_SUPPORTS_MULTITHREADED_GC
 		true;
 #endif	//PLATFORM_SUPPORTS_MULTITHREADED_GC
@@ -1291,6 +1344,9 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 	}
 #endif // WITH_EDITOR
 
+	{
+		DECLARE_SCOPE_CYCLE_COUNTER( TEXT( "CollectGarbageInternal.UnhashUnreachable" ), STAT_CollectGarbageInternal_UnhashUnreachable, STATGROUP_GC );
+
 	// Unhash all unreachable objects.
 	const double StartTime = FPlatformTime::Seconds();
 	for ( FRawObjectIterator It(true); It; ++It )
@@ -1303,8 +1359,14 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 			// Begin the object's asynchronous destruction.
 			Object->ConditionalBeginDestroy();
 		}
+			else if (Object->HasAnyFlags(RF_NoStrongReference))
+			{
+				Object->ClearFlags(RF_NoStrongReference);
+				Object->SetFlags(RF_PendingKill);
+			}
 	}
 	UE_LOG(LogGarbage, Log, TEXT("%f ms for unhashing unreachable objects"), (FPlatformTime::Seconds() - StartTime) * 1000 );
+	}
 
 	// Set flag to indicate that we are relying on a purge to be performed.
 	GObjPurgeIsRequired = true;
@@ -1322,6 +1384,8 @@ void CollectGarbageInternal(EObjectFlags KeepFlags, bool bPerformFullPurge)
 
 	// Route callbacks to verify GC assumptions
 	FCoreUObjectDelegates::PostGarbageCollect.Broadcast();
+
+	STAT_ADD_CUSTOMMESSAGE_NAME( STAT_NamedMarker, TEXT( "GarbageCollection - End" ) );
 }
 
 void CollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge)
@@ -1340,6 +1404,15 @@ bool TryCollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge)
 {
 	// No other thread may be performing UOBject operations while we're running
 	bool bCanRunGC = GGarbageCollectionGuardCritical.TryGCLock();
+	if (!bCanRunGC)
+	{
+		if (GNumRetriesBeforeForcingGC > 0 && GNumAttemptsSinceLastGC > GNumRetriesBeforeForcingGC)
+		{
+			// Force GC and block main thread
+			bCanRunGC = true;
+			UE_LOG(LogGarbage, Warning, TEXT("TryCollectGarbage: forcing GC after %d skipped attempts."), GNumAttemptsSinceLastGC)
+		}
+	}
 	if (bCanRunGC)
 	{
 		// Perform actual garbage collection
@@ -1348,6 +1421,11 @@ bool TryCollectGarbage(EObjectFlags KeepFlags, bool bPerformFullPurge)
 		// Other threads are free to use UObjects
 		GGarbageCollectionGuardCritical.GCUnlock();
 	}
+	else
+	{
+		GNumAttemptsSinceLastGC++;
+	}
+
 	return bCanRunGC;
 }
 
@@ -1666,7 +1744,7 @@ void UMapProperty::EmitReferenceInfo(UClass& OwnerClass, int32 BaseOffset)
 {
 	if (ContainsObjectReference())
 	{
-		OwnerClass.ReferenceTokenStream.EmitReferenceInfo(FGCReferenceInfo(GCRT_AddTMapReferencedObjects, BaseOffset + GetOffset_ForGC()));
+		OwnerClass.EmitObjectReference(BaseOffset + GetOffset_ForGC(), GetFName(), GCRT_AddTMapReferencedObjects);
 		OwnerClass.ReferenceTokenStream.EmitPointer((const void*)this);
 	}
 }
@@ -1855,7 +1933,7 @@ void FGCReferenceTokenStream::ReplaceOrAddAddReferencedObjectsCall(void (*AddRef
 	for (int32 TokenStreamIndex = 0; TokenStreamIndex < Tokens.Num(); ++TokenStreamIndex)
 	{
 		uint32 TokenIndex = (uint32)TokenStreamIndex;
-		const uint32 TokenType = AccessReferenceInfo(TokenIndex).Type;
+		const EGCReferenceType TokenType = (EGCReferenceType)AccessReferenceInfo(TokenIndex).Type;
 		// Read token type and skip additional data if present.
 		switch (TokenType)
 		{
@@ -1889,14 +1967,21 @@ void FGCReferenceTokenStream::ReplaceOrAddAddReferencedObjectsCall(void (*AddRef
 				StorePointer(&Tokens[++TokenIndex], (const void*)AddReferencedObjectsPtr);
 				return;
 			}
+		case GCRT_AddTMapReferencedObjects:
+			{
+				// Skip pointer
+				TokenIndex += GNumTokensPerPointer;
+			}
+			break;
 		case GCRT_None:
 		case GCRT_Object:
 		case GCRT_PersistentObject:
 		case GCRT_ArrayObject:
-		case GCRT_EndOfStream:
+		case GCRT_EndOfPointer:
+		case GCRT_EndOfStream:		
 			break;
 		default:
-			UE_LOG(LogGarbage, Fatal, TEXT("Unknown token type (%u) when trying to add ARO token."), TokenType);
+			UE_LOG(LogGarbage, Fatal, TEXT("Unknown token type (%u) when trying to add ARO token."), (uint32)TokenType);
 			break;
 		};
 		TokenStreamIndex = (int32)TokenIndex;
@@ -1931,7 +2016,7 @@ uint32 FGCReferenceTokenStream::EmitSkipIndexPlaceholder()
  */
 void FGCReferenceTokenStream::UpdateSkipIndexPlaceholder( uint32 SkipIndexIndex, uint32 SkipIndex )
 {
-	check( SkipIndex > 0 && SkipIndex <= (uint32)Tokens.Num() );			
+	check( SkipIndex > 0 && SkipIndex <= (uint32)Tokens.Num() );
 	const FGCReferenceInfo& ReferenceInfo = Tokens[SkipIndex-1];
 	check( ReferenceInfo.Type != GCRT_None );
 	check( Tokens[SkipIndexIndex] == E_GCSkipIndexPlaceholder );
@@ -1959,6 +2044,9 @@ void FGCReferenceTokenStream::EmitPointer( void const* Ptr )
 	const int32 StoreIndex = Tokens.Num();
 	Tokens.AddUninitialized(GNumTokensPerPointer);
 	StorePointer(&Tokens[StoreIndex], Ptr);
+	// Now inser the end of pointer marker, this will mostly be used for storing ReturnCount value
+	// if the pointer was stored at the end of struct array stream.
+	EmitReferenceInfo(FGCReferenceInfo(GCRT_EndOfPointer, 0));
 }
 
 /**
@@ -1979,7 +2067,7 @@ void FGCReferenceTokenStream::EmitStride( uint32 Stride )
 uint32 FGCReferenceTokenStream::EmitReturn()
 {
 	FGCReferenceInfo ReferenceInfo = Tokens.Last();
-	check( ReferenceInfo.Type != GCRT_None );
+	check(ReferenceInfo.Type != GCRT_None);
 	ReferenceInfo.ReturnCount++;
 	Tokens.Last() = ReferenceInfo;
 	return Tokens.Num();

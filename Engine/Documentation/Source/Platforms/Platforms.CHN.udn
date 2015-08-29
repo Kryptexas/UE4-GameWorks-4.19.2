@@ -1,0 +1,140 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:Platform Development
+Crumbs:%ROOT%
+Description:Information over developing for platforms other than PC.
+Navigation:platform
+
+[VAR:Params]
+[PARAM:image]
+	![%Platforms:title%](%ROOT%/placeholder_topic.png)
+[/PARAM]
+[PARAM:icon]
+	![](%ROOT%/platform_icon.png)(convert:false)
+[/PARAM]
+[PARAM:title]
+	%Platforms:title%
+[/PARAM]
+[PARAM:description]
+	%Platforms:description%
+[/PARAM]
+[PARAM:path]
+	[RELATIVE:Platforms]
+[/PARAM]
+[/VAR]
+
+[VAR:Topic]
+[OBJECT:Topic]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:TopicCompact]
+[OBJECT:TopicCompact]
+%params%
+[/OBJECT]
+[/VAR]
+
+[VAR:Role]
+[OBJECT:Role]
+%params%
+[PARAMLITERAL:id]
+platforms
+[/PARAMLITERAL]
+[/OBJECT]
+[/VAR]
+
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/Mobile)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/iOS)
+			* [](Platforms/iOS/QuickStart "%Platforms/iOS/QuickStart:description%")
+			[PUBLISH:Licensee]
+			* [](Platforms/iOS/GettingStarted "%Platforms/iOS/GettingStarted:description%")
+			[/PUBLISH]
+			* [](Platforms/iOS/DeviceCompatibility "%Platforms/iOS/DeviceCompatibility:description%")
+			* [](Platforms/iOS/PackagedGameSize "%Platforms/iOS/PackagedGameSize:description%")
+		* [](Platforms/Android)
+			* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+			* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
+			* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		* [](Platforms/Mobile/Materials "%Platforms/Mobile/Materials:description%")
+		* [](Platforms/Mobile/Textures "%Platforms/Mobile/Textures:description%")
+		* [](Platforms/Mobile/Lighting "%Platforms/Mobile/Lighting:description%")
+		* [](Platforms/Mobile/Content "%Platforms/Mobile/Content:description%")
+		* [](Platforms/Mobile/PostProcessEffects "%Platforms/Mobile/PostProcessEffects:description%")
+		* [](Platforms/Mobile/Performance "%Platforms/Mobile/Performance:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/vr_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/VR "%Platforms/VR:description%")
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/VR/ContentSetup "%Platforms/VR/ContentSetup:description%")
+		* [](Platforms/Oculus "%Platforms/Oculus:description%")
+			* [](Platforms/Oculus/BestPractices "%Platforms/Oculus/BestPractices:description%")
+			* [](Platforms/Oculus/QuickStart "%Platforms/Oculus/QuickStart:description%")
+		* [](Platforms/GearVR "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/QuickStart "%Platforms/GearVR:Description%")
+			* [](Platforms/GearVR/BestPractices "%Platforms/GearVR:Description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/Linux)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/Linux/GettingStarted "%Platforms/Linux/GettingStarted:description%")
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/platform_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		[](Platforms/HTML5)
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Platforms/HTML5/GettingStarted "%Platforms/HTML5/GettingStarted:description%")
+	
+	[/PARAM]
+[/OBJECT]
+
+[OBJECT:TopicButtonList]
+	[PARAM:icon]
+		![](%ROOT%/deploy_icon.png)(convert:false)
+	[/PARAM]
+	[PARAM:title]
+		Platform Tools
+	[/PARAM]
+	[PARAM:description]
+	[/PARAM]
+	[PARAM:links]
+		* [](Engine/Deployment/UnrealFrontend "%Engine/Deployment/UnrealFrontend:description%")
+		* [](Platforms/DeviceProfiles "%Platforms/DeviceProfiles:description%")
+	[/PARAM]
+[/OBJECT]

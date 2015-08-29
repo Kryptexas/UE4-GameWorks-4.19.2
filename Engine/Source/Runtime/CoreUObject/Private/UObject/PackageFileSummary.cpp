@@ -133,9 +133,13 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		{
 			Ar.SetFilterEditorOnly(true);
 		}
-		Ar << Sum.NameCount     << Sum.NameOffset;
-		Ar << Sum.ExportCount   << Sum.ExportOffset;
-		Ar << Sum.ImportCount   << Sum.ImportOffset;
+		Ar << Sum.NameCount					<< Sum.NameOffset;
+		if (Sum.FileVersionUE4 >= VER_UE4_SERIALIZE_TEXT_IN_PACKAGES)
+		{
+			Ar << Sum.GatherableTextDataCount	<< Sum.GatherableTextDataOffset;
+		}
+		Ar << Sum.ExportCount				<< Sum.ExportOffset;
+		Ar << Sum.ImportCount				<< Sum.ImportOffset;
 		Ar << Sum.DependsOffset;
 
 		if (Ar.IsLoading() && (Sum.FileVersionUE4 < VER_UE4_OLDEST_LOADABLE_PACKAGE || Sum.FileVersionUE4 > GPackageFileUE4Version))
@@ -164,7 +168,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if( Sum.GetFileVersionUE4() >= VER_UE4_ENGINE_VERSION_OBJECT )
 		{
-			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.IsPromotedBuild()))
+			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.HasChangelist()))
 			{
 				FEngineVersion EmptyEngineVersion;
 				Ar << EmptyEngineVersion;
@@ -187,7 +191,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 		if (Sum.GetFileVersionUE4() >= VER_UE4_PACKAGE_SUMMARY_HAS_COMPATIBLE_ENGINE_VERSION )
 		{
-			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.IsPromotedBuild()))
+			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.HasChangelist()))
 			{
 				FEngineVersion EmptyEngineVersion;
 				Ar << EmptyEngineVersion;

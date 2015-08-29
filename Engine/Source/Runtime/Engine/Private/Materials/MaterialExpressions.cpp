@@ -55,9 +55,11 @@
 #include "Materials/MaterialExpressionGIReplace.h"
 #include "Materials/MaterialExpressionIf.h"
 #include "Materials/MaterialExpressionLightmapUVs.h"
+#include "Materials/MaterialExpressionPrecomputedAOMask.h"
 #include "Materials/MaterialExpressionLightmassReplace.h"
 #include "Materials/MaterialExpressionLightVector.h"
 #include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionLogarithm2.h"
 #include "Materials/MaterialExpressionMakeMaterialAttributes.h"
 #include "Materials/MaterialExpressionMaterialFunctionCall.h"
 #include "Materials/MaterialExpressionMax.h"
@@ -125,8 +127,11 @@
 #include "Materials/MaterialExpressionTwoSidedSign.h"
 #include "Materials/MaterialExpressionVertexColor.h"
 #include "Materials/MaterialExpressionVertexNormalWS.h"
+#include "Materials/MaterialExpressionViewProperty.h"
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionDistanceToNearestSurface.h"
+#include "Materials/MaterialExpressionDistanceFieldGradient.h"
 #include "Materials/MaterialFunction.h"
 #include "Materials/MaterialParameterCollection.h"
 
@@ -1111,9 +1116,9 @@ UMaterialExpressionTextureSample::UMaterialExpressionTextureSample(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Texture;
+		FText NAME_Texture;
 		FConstructorStatics()
-			: NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
+			: NAME_Texture(LOCTEXT( "Texture", "Texture" ))
 		{
 		}
 	};
@@ -1206,7 +1211,12 @@ FExpressionInput* UMaterialExpressionTextureSample::GetInput(int32 InputIndex)
 		IF_INPUT_RETURN(TextureObject);
 	}
 
-	if(MipValueMode != TMVM_None)
+	if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX);
+		IF_INPUT_RETURN(CoordinatesDY);
+	}
+	else if(MipValueMode != TMVM_None)
 	{
 		IF_INPUT_RETURN(MipValue);
 	}
@@ -1235,6 +1245,11 @@ FString UMaterialExpressionTextureSample::GetInputName(int32 InputIndex) const
 	{
 		IF_INPUT_RETURN(MipValue, TEXT("MipBias"));
 	}
+	else if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX, TEXT("DDX(UVs)"));
+		IF_INPUT_RETURN(CoordinatesDY, TEXT("DDY(UVs)"));
+	}
 
 	return TEXT("");
 }
@@ -1262,7 +1277,7 @@ static bool VerifySamplerType(
 		EMaterialSamplerType CorrectSamplerType = UMaterialExpressionTextureBase::GetSamplerTypeForTexture( Texture );
 		if ( SamplerType != CorrectSamplerType )
 		{
-			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EMaterialSamplerType") );
+			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
 			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
@@ -1277,7 +1292,7 @@ static bool VerifySamplerType(
 		}
 		if((SamplerType == SAMPLERTYPE_Normal || SamplerType == SAMPLERTYPE_Masks) && Texture->SRGB)
 		{
-			UEnum* SamplerTypeEnum = FindObject<UEnum>( NULL, TEXT("/Script/Engine.EMaterialSamplerType") );
+			UEnum* SamplerTypeEnum = UMaterialInterface::GetSamplerTypeEnum();
 			check( SamplerTypeEnum );
 
 			FString SamplerTypeDisplayName = SamplerTypeEnum->GetEnumText(SamplerType).ToString();
@@ -1336,7 +1351,8 @@ int32 UMaterialExpressionTextureSample::Compile(class FMaterialCompiler* Compile
 				TextureCodeIndex,
 				Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 				(EMaterialSamplerType)EffectiveSamplerType,
-				MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
+				CompileMipValue0(Compiler),
+				CompileMipValue1(Compiler),
 				MipValueMode,
 				SamplerSource
 				);
@@ -1398,12 +1414,58 @@ uint32 UMaterialExpressionTextureSample::GetInputType(int32 InputIndex)
 	{
 		IF_INPUT_RETURN(MipValue, MCT_Float);
 	}
+	else if(MipValueMode == TMVM_Derivative)
+	{
+		IF_INPUT_RETURN(CoordinatesDX, MCT_Float);
+		IF_INPUT_RETURN(CoordinatesDY, MCT_Float);
+	}
 
 	return MCT_Unknown;
 }
 #undef IF_INPUT_RETURN
+
+void UMaterialExpressionTextureSample::GetConnectorToolTip(int32 InputIndex, int32 OutputIndex, TArray<FString>& OutToolTip)
+{
+	if (InputIndex == 1 && !GetOuter()->IsA(UMaterialFunction::StaticClass()))
+	{
+		// If input pin 1 is omitted, increment the index so the correct tooltip is looked up
+		InputIndex++;
+	}
+
+	Super::GetConnectorToolTip(InputIndex, OutputIndex, OutToolTip);
+}
 #endif
 
+int32 UMaterialExpressionTextureSample::CompileMipValue0(class FMaterialCompiler* Compiler)
+{
+	if (MipValueMode == TMVM_Derivative)
+	{
+		if (CoordinatesDX.Expression)
+		{
+			return CoordinatesDX.Compile(Compiler);
+		}
+	}
+	else if (MipValue.Expression)
+	{
+		return MipValue.Compile(Compiler);
+	}
+	else
+	{
+		return Compiler->Constant(ConstMipValue);
+	}
+
+	return INDEX_NONE;
+}
+
+int32 UMaterialExpressionTextureSample::CompileMipValue1(class FMaterialCompiler* Compiler)
+{
+	if (MipValueMode == TMVM_Derivative && CoordinatesDY.Expression)
+	{
+		return CoordinatesDY.Compile(Compiler);
+	}
+
+	return INDEX_NONE;
+}
 
 
 UMaterialExpressionAdd::UMaterialExpressionAdd(const FObjectInitializer& ObjectInitializer)
@@ -1412,9 +1474,9 @@ UMaterialExpressionAdd::UMaterialExpressionAdd(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -1436,9 +1498,9 @@ UMaterialExpressionTextureSampleParameter::UMaterialExpressionTextureSampleParam
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Obsolete;
+		FText NAME_Obsolete;
 		FConstructorStatics()
-			: NAME_Obsolete(LOCTEXT( "Obsolete", "Obsolete" ).ToString())
+			: NAME_Obsolete(LOCTEXT( "Obsolete", "Obsolete" ))
 		{
 		}
 	};
@@ -1474,11 +1536,15 @@ int32 UMaterialExpressionTextureSampleParameter::Compile(class FMaterialCompiler
 		return UMaterialExpressionTextureSample::Compile(Compiler, OutputIndex, MultiplexIndex);
 	}
 
+	int32 MipValue0Index = CompileMipValue0(Compiler);
+	int32 MipValue1Index = CompileMipValue1(Compiler);
+
 	return Compiler->TextureSample(
 					Compiler->TextureParameter(ParameterName, Texture, SamplerSource),
 					Coordinates.Expression ? Coordinates.Compile(Compiler) : Compiler->TextureCoordinate(ConstCoordinate, false, false),
 					(EMaterialSamplerType)SamplerType,
-					MipValue.Expression ? MipValue.Compile(Compiler) : Compiler->Constant(ConstMipValue),
+					MipValue0Index,
+					MipValue1Index,
 					MipValueMode,
 					SamplerSource
 					);
@@ -1538,12 +1604,12 @@ UMaterialExpressionTextureObjectParameter::UMaterialExpressionTextureObjectParam
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UTexture2D> DefaultTexture2D;
-		FString NAME_Texture;
-		FString NAME_Parameters;
+		FText NAME_Texture;
+		FText NAME_Parameters;
 		FConstructorStatics()
 			: DefaultTexture2D(TEXT("/Engine/EngineResources/DefaultTexture"))
-			, NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			, NAME_Texture(LOCTEXT( "Texture", "Texture" ))
+			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -1607,12 +1673,12 @@ UMaterialExpressionTextureObject::UMaterialExpressionTextureObject(const FObject
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UTexture2D> Object0;
-		FString NAME_Texture;
-		FString NAME_Functions;
+		FText NAME_Texture;
+		FText NAME_Functions;
 		FConstructorStatics()
 			: Object0(TEXT("/Engine/EngineResources/DefaultTexture"))
-			, NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			, NAME_Texture(LOCTEXT( "Texture", "Texture" ))
+			, NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -1694,12 +1760,12 @@ UMaterialExpressionTextureSampleParameter2D::UMaterialExpressionTextureSamplePar
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UTexture2D> DefaultTexture;
-		FString NAME_Texture;
-		FString NAME_Parameters;
+		FText NAME_Texture;
+		FText NAME_Parameters;
 		FConstructorStatics()
 			: DefaultTexture(TEXT("/Engine/EngineResources/DefaultTexture"))
-			, NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			, NAME_Texture(LOCTEXT( "Texture", "Texture" ))
+			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -1783,12 +1849,12 @@ UMaterialExpressionTextureSampleParameterCube::UMaterialExpressionTextureSampleP
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UTextureCube> DefaultTextureCube;
-		FString NAME_Texture;
-		FString NAME_Parameters;
+		FText NAME_Texture;
+		FText NAME_Parameters;
 		FConstructorStatics()
 			: DefaultTextureCube(TEXT("/Engine/EngineResources/DefaultTextureCube"))
-			, NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			, NAME_Texture(LOCTEXT( "Texture", "Texture" ))
+			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -1859,9 +1925,9 @@ UMaterialExpressionTextureSampleParameterSubUV::UMaterialExpressionTextureSample
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
+		FText NAME_Particles;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
 		{
 		}
 	};
@@ -1943,9 +2009,9 @@ UMaterialExpressionMultiply::UMaterialExpressionMultiply(const FObjectInitialize
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -1988,9 +2054,9 @@ UMaterialExpressionDivide::UMaterialExpressionDivide(const FObjectInitializer& O
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -2034,9 +2100,9 @@ UMaterialExpressionSubtract::UMaterialExpressionSubtract(const FObjectInitialize
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -2082,11 +2148,11 @@ UMaterialExpressionLinearInterpolate::UMaterialExpressionLinearInterpolate(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_Utility;
+		FText NAME_Math;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -2133,9 +2199,9 @@ UMaterialExpressionConstant::UMaterialExpressionConstant(const FObjectInitialize
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -2174,11 +2240,11 @@ UMaterialExpressionConstant2Vector::UMaterialExpressionConstant2Vector(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
-		FString NAME_Vectors;
+		FText NAME_Constants;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
-			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -2217,11 +2283,11 @@ UMaterialExpressionConstant3Vector::UMaterialExpressionConstant3Vector(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
-		FString NAME_Vectors;
+		FText NAME_Constants;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
-			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -2260,11 +2326,11 @@ UMaterialExpressionConstant4Vector::UMaterialExpressionConstant4Vector(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
-		FString NAME_Vectors;
+		FText NAME_Constants;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
-			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -2304,9 +2370,9 @@ UMaterialExpressionClamp::UMaterialExpressionClamp(const FObjectInitializer& Obj
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -2389,9 +2455,9 @@ UMaterialExpressionMin::UMaterialExpressionMin(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -2437,9 +2503,9 @@ UMaterialExpressionMax::UMaterialExpressionMax(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -2485,9 +2551,9 @@ UMaterialExpressionTextureCoordinate::UMaterialExpressionTextureCoordinate(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -2529,11 +2595,11 @@ UMaterialExpressionDotProduct::UMaterialExpressionDotProduct(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_VectorOps;
+		FText NAME_Math;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -2575,11 +2641,11 @@ UMaterialExpressionCrossProduct::UMaterialExpressionCrossProduct(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_VectorOps;
+		FText NAME_Math;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -2621,11 +2687,11 @@ UMaterialExpressionComponentMask::UMaterialExpressionComponentMask(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_VectorOps;
+		FText NAME_Math;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -2672,9 +2738,9 @@ UMaterialExpressionStaticComponentMaskParameter::UMaterialExpressionStaticCompon
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Parameters;
+		FText NAME_Parameters;
 		FConstructorStatics()
-			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -2733,9 +2799,9 @@ UMaterialExpressionTime::UMaterialExpressionTime(const FObjectInitializer& Objec
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -2778,9 +2844,9 @@ UMaterialExpressionCameraVectorWS::UMaterialExpressionCameraVectorWS(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -2809,11 +2875,11 @@ UMaterialExpressionCameraPositionWS::UMaterialExpressionCameraPositionWS(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -2827,7 +2893,7 @@ UMaterialExpressionCameraPositionWS::UMaterialExpressionCameraPositionWS(const F
 
 int32 UMaterialExpressionCameraPositionWS::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->CameraWorldPosition();
+	return Compiler->ViewProperty(MEVP_WorldSpaceCameraPosition);
 }
 
 void UMaterialExpressionCameraPositionWS::GetCaption(TArray<FString>& OutCaptions) const
@@ -2845,9 +2911,9 @@ UMaterialExpressionReflectionVectorWS::UMaterialExpressionReflectionVectorWS(con
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -2885,9 +2951,9 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const FObjectInitializer& O
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -2940,9 +3006,9 @@ UMaterialExpressionRotator::UMaterialExpressionRotator(const FObjectInitializer&
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -3011,9 +3077,9 @@ UMaterialExpressionSine::UMaterialExpressionSine(const FObjectInitializer& Objec
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3045,9 +3111,9 @@ UMaterialExpressionCosine::UMaterialExpressionCosine(const FObjectInitializer& O
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3080,9 +3146,9 @@ UMaterialExpressionBumpOffset::UMaterialExpressionBumpOffset(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -3106,7 +3172,7 @@ int32 UMaterialExpressionBumpOffset::Compile(class FMaterialCompiler* Compiler, 
 
 	return Compiler->Add(
 			Compiler->Mul(
-				Compiler->ComponentMask(Compiler->TransformVector(TRANSFORMSOURCE_World, TRANSFORM_Tangent, Compiler->CameraVector()),1,1,0,0),
+				Compiler->ComponentMask(Compiler->TransformVector(MCB_World, MCB_Tangent, Compiler->CameraVector()),1,1,0,0),
 				Compiler->Add(
 					Compiler->Mul(
 						HeightRatioInput.Expression ? Compiler->ForceCast(HeightRatioInput.Compile(Compiler),MCT_Float1) : Compiler->Constant(HeightRatio),
@@ -3130,11 +3196,11 @@ UMaterialExpressionAppendVector::UMaterialExpressionAppendVector(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_VectorOps;
+		FText NAME_Math;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -3179,9 +3245,9 @@ UMaterialExpressionMakeMaterialAttributes::UMaterialExpressionMakeMaterialAttrib
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_MaterialAttributes;
+		FText NAME_MaterialAttributes;
 		FConstructorStatics()
-			: NAME_MaterialAttributes(LOCTEXT( "MaterialAttributes", "Material Attributes" ).ToString())
+			: NAME_MaterialAttributes(LOCTEXT( "MaterialAttributes", "Material Attributes" ))
 		{
 		}
 	};
@@ -3195,43 +3261,44 @@ int32 UMaterialExpressionMakeMaterialAttributes::Compile(class FMaterialCompiler
 {
 	int32 Ret = INDEX_NONE;
 	UMaterialExpression* Expression = NULL;
-	switch( MultiplexIndex )
+
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of the inputs for this expression. \
+		The order of properties here should match the material results pins, the make material attriubtes node inputs and the mapping of IO indices to properties in GetMaterialPropertyFromInputOutputIndex().\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
+
+	EMaterialProperty Property = GetMaterialPropertyFromInputOutputIndex(MultiplexIndex);
+	switch (Property)
 	{
-		case 0: Ret = BaseColor.Compile(Compiler); Expression = BaseColor.Expression; break; 
-		case 1: Ret = Metallic.Compile(Compiler); Expression = Metallic.Expression; break; 
-		case 2: Ret = Specular.Compile(Compiler); Expression = Specular.Expression; break; 
-		case 3: Ret = Roughness.Compile(Compiler); Expression = Roughness.Expression; break; 
-		case 4: Ret = EmissiveColor.Compile(Compiler); Expression = EmissiveColor.Expression; break; 
-		case 5: Ret = Opacity.Compile(Compiler); Expression = Opacity.Expression; break; 
-		case 6: Ret = OpacityMask.Compile(Compiler); Expression = OpacityMask.Expression; break; 
-		case 7: Ret = Normal.Compile(Compiler); Expression = Normal.Expression; break; 
-		case 8: Ret = WorldPositionOffset.Compile(Compiler); Expression = WorldPositionOffset.Expression; break; 
-		case 9: Ret = WorldDisplacement.Compile(Compiler); Expression = WorldDisplacement.Expression; break; 
-		case 10: Ret = TessellationMultiplier.Compile(Compiler); Expression = TessellationMultiplier.Expression; break; 
-		case 11: Ret = SubsurfaceColor.Compile(Compiler); Expression = SubsurfaceColor.Expression; break;
-		case 12: Ret = ClearCoat.Compile(Compiler); Expression = ClearCoat.Expression; break;
-		case 13: Ret = ClearCoatRoughness.Compile(Compiler); Expression = ClearCoatRoughness.Expression; break;
-		case 14: Ret = AmbientOcclusion.Compile(Compiler); Expression = AmbientOcclusion.Expression; break;
-		case 15: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break; 
+	case MP_BaseColor: Ret = BaseColor.Compile(Compiler); Expression = BaseColor.Expression; break;
+	case MP_Metallic: Ret = Metallic.Compile(Compiler); Expression = Metallic.Expression; break;
+	case MP_Specular: Ret = Specular.Compile(Compiler); Expression = Specular.Expression; break;
+	case MP_Roughness: Ret = Roughness.Compile(Compiler); Expression = Roughness.Expression; break;
+	case MP_EmissiveColor: Ret = EmissiveColor.Compile(Compiler); Expression = EmissiveColor.Expression; break;
+	case MP_Opacity: Ret = Opacity.Compile(Compiler); Expression = Opacity.Expression; break;
+	case MP_OpacityMask: Ret = OpacityMask.Compile(Compiler); Expression = OpacityMask.Expression; break;
+	case MP_Normal: Ret = Normal.Compile(Compiler); Expression = Normal.Expression; break;
+	case MP_WorldPositionOffset: Ret = WorldPositionOffset.Compile(Compiler); Expression = WorldPositionOffset.Expression; break;
+	case MP_WorldDisplacement: Ret = WorldDisplacement.Compile(Compiler); Expression = WorldDisplacement.Expression; break;
+	case MP_TessellationMultiplier: Ret = TessellationMultiplier.Compile(Compiler); Expression = TessellationMultiplier.Expression; break;
+	case MP_SubsurfaceColor: Ret = SubsurfaceColor.Compile(Compiler); Expression = SubsurfaceColor.Expression; break;
+	case MP_ClearCoat: Ret = ClearCoat.Compile(Compiler); Expression = ClearCoat.Expression; break;
+	case MP_ClearCoatRoughness: Ret = ClearCoatRoughness.Compile(Compiler); Expression = ClearCoatRoughness.Expression; break;
+	case MP_AmbientOcclusion: Ret = AmbientOcclusion.Compile(Compiler); Expression = AmbientOcclusion.Expression; break;
+	case MP_Refraction: Ret = Refraction.Compile(Compiler); Expression = Refraction.Expression; break;
+	case MP_PixelDepthOffset: Ret = PixelDepthOffset.Compile(Compiler); Expression = PixelDepthOffset.Expression; break;
 	};
 
-	const int32 CustomUVStart = 16;
-
-	if (MultiplexIndex >= CustomUVStart && MultiplexIndex <= CustomUVStart + MP_CustomizedUVs7 - MP_CustomizedUVs0)
+	if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
 	{
-		Ret = CustomizedUVs[MultiplexIndex - CustomUVStart].Compile(Compiler); Expression = CustomizedUVs[MultiplexIndex - CustomUVStart].Expression; 
-	}
-
-	if (MultiplexIndex == CustomUVStart + 2)
-	{
-		Ret = PixelDepthOffset.Compile(Compiler);
-		Expression = PixelDepthOffset.Expression;
+		Ret = CustomizedUVs[Property - MP_CustomizedUVs0].Compile(Compiler); Expression = CustomizedUVs[Property - MP_CustomizedUVs0].Expression;
 	}
 
 	//If we've connected an expression but its still returned INDEX_NONE, flag the error.
-	if( Expression && INDEX_NONE == Ret )
+	if (Expression && INDEX_NONE == Ret)
 	{
-		Compiler->Errorf(TEXT("Error on property %s"), *GetNameOfMaterialProperty(GetMaterialPropertyFromInputOutputIndex(MultiplexIndex)));
+		Compiler->Errorf(TEXT("Error on property %s"), *GetNameOfMaterialProperty(Property));
 	}
 
 	return Ret;
@@ -3250,9 +3317,9 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_MaterialAttributes;
+		FText NAME_MaterialAttributes;
 		FConstructorStatics()
-			: NAME_MaterialAttributes(LOCTEXT( "MaterialAttributes", "Material Attributes" ).ToString())
+			: NAME_MaterialAttributes(LOCTEXT( "MaterialAttributes", "Material Attributes" ))
 		{
 		}
 	};
@@ -3261,6 +3328,12 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	bShowOutputNameOnPin = true;
 
 	MenuCategories.Add(ConstructorStatics.NAME_MaterialAttributes);
+	
+	static_assert(MP_MAX == 28, 
+		"New material properties should be added to the end of the outputs for this expression. \
+		The order of properties here should match the material results pins, the make material attriubtes node inputs and the mapping of IO indices to properties in GetMaterialPropertyFromInputOutputIndex().\
+		Insertions into the middle of the properties or a change in the order of properties will also require that existing data is fixed up in DoMaterialAttriubtesReorder().\
+		");
 
 	Outputs.Reset();
 	Outputs.Add(FExpressionOutput(TEXT("BaseColor"), 1, 1, 1, 1, 0));
@@ -3341,9 +3414,9 @@ UMaterialExpressionFloor::UMaterialExpressionFloor(const FObjectInitializer& Obj
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3373,9 +3446,9 @@ UMaterialExpressionCeil::UMaterialExpressionCeil(const FObjectInitializer& Objec
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3411,9 +3484,9 @@ UMaterialExpressionFmod::UMaterialExpressionFmod(const FObjectInitializer& Objec
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3448,9 +3521,9 @@ UMaterialExpressionFrac::UMaterialExpressionFrac(const FObjectInitializer& Objec
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -3481,11 +3554,11 @@ UMaterialExpressionDesaturation::UMaterialExpressionDesaturation(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Color;
-		FString NAME_Utility;
+		FText NAME_Color;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Color(LOCTEXT( "Color", "Color" ).ToString())
-			, NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Color(LOCTEXT( "Color", "Color" ))
+			, NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -3521,9 +3594,9 @@ UMaterialExpressionParameter::UMaterialExpressionParameter(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Parameters;
+		FText NAME_Parameters;
 		FConstructorStatics()
-			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -3805,9 +3878,9 @@ UMaterialExpressionStaticBool::UMaterialExpressionStaticBool(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Functions;
+		FText NAME_Functions;
 		FConstructorStatics()
-			: NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			: NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -3844,9 +3917,9 @@ UMaterialExpressionStaticSwitch::UMaterialExpressionStaticSwitch(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Functions;
+		FText NAME_Functions;
 		FConstructorStatics()
-			: NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			: NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -3941,9 +4014,9 @@ UMaterialExpressionQualitySwitch::UMaterialExpressionQualitySwitch(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -4044,9 +4117,9 @@ UMaterialExpressionFeatureLevelSwitch::UMaterialExpressionFeatureLevelSwitch(con
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -4156,11 +4229,11 @@ UMaterialExpressionNormalize::UMaterialExpressionNormalize(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
-		FString NAME_VectorOps;
+		FText NAME_Math;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
-			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+			, NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -4187,9 +4260,9 @@ UMaterialExpressionVertexColor::UMaterialExpressionVertexColor(const FObjectInit
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -4221,11 +4294,11 @@ UMaterialExpressionParticleColor::UMaterialExpressionParticleColor(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -4260,13 +4333,13 @@ UMaterialExpressionParticlePositionWS::UMaterialExpressionParticlePositionWS(con
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Coordinates;
-		FString NAME_Vectors;
+		FText NAME_Particles;
+		FText NAME_Coordinates;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
-			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
+			, NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -4294,11 +4367,11 @@ UMaterialExpressionParticleRadius::UMaterialExpressionParticleRadius(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -4326,11 +4399,11 @@ UMaterialExpressionDynamicParameter::UMaterialExpressionDynamicParameter(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Parameters;
+		FText NAME_Particles;
+		FText NAME_Parameters;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -4353,13 +4426,15 @@ UMaterialExpressionDynamicParameter::UMaterialExpressionDynamicParameter(const F
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 0, 0, 1, 0));
 	Outputs.Add(FExpressionOutput(TEXT(""), 1, 0, 0, 0, 1));
 
+	DefaultValue = FLinearColor::White;
+
 	bShaderInputData = true;
 }
 
 
 int32 UMaterialExpressionDynamicParameter::Compile( FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex )
 {
-	return Compiler->DynamicParameter();
+	return Compiler->DynamicParameter(DefaultValue);
 }
 
 
@@ -4419,20 +4494,31 @@ void UMaterialExpressionDynamicParameter::PostEditChangeProperty(FPropertyChange
 
 #endif // WITH_EDITOR
 
-void UMaterialExpressionDynamicParameter::UpdateDynamicParameterNames()
+void UMaterialExpressionDynamicParameter::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetLinkerUE4Version() < VER_UE4_DYNAMIC_PARAMETER_DEFAULT_VALUE)
+	{
+		DefaultValue = FLinearColor::Black;//Old data should default to 0.0f;
+	}
+}
+
+
+void UMaterialExpressionDynamicParameter::UpdateDynamicParameterProperties()
 {
 	check(Material);
 	for (int32 ExpIndex = 0; ExpIndex < Material->Expressions.Num(); ExpIndex++)
 	{
 		const UMaterialExpressionDynamicParameter* DynParam = Cast<UMaterialExpressionDynamicParameter>(Material->Expressions[ExpIndex]);
-		if (CopyDynamicParameterNames(DynParam))
+		if (CopyDynamicParameterProperties(DynParam))
 		{
 			break;
 		}
 	}
 }
 
-bool UMaterialExpressionDynamicParameter::CopyDynamicParameterNames(const UMaterialExpressionDynamicParameter* FromParam)
+bool UMaterialExpressionDynamicParameter::CopyDynamicParameterProperties(const UMaterialExpressionDynamicParameter* FromParam)
 {
 	if (FromParam && (FromParam != this))
 	{
@@ -4440,6 +4526,7 @@ bool UMaterialExpressionDynamicParameter::CopyDynamicParameterNames(const UMater
 		{
 			ParamNames[NameIndex] = FromParam->ParamNames[NameIndex];
 		}
+		DefaultValue = FromParam->DefaultValue;
 		return true;
 	}
 	return false;
@@ -4454,9 +4541,9 @@ UMaterialExpressionParticleSubUV::UMaterialExpressionParticleSubUV(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
+		FText NAME_Particles;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
 		{
 		}
 	};
@@ -4504,9 +4591,9 @@ UMaterialExpressionParticleMacroUV::UMaterialExpressionParticleMacroUV(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
+		FText NAME_Particles;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
 		{
 		}
 	};
@@ -4535,9 +4622,9 @@ UMaterialExpressionLightVector::UMaterialExpressionLightVector(const FObjectInit
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -4565,9 +4652,9 @@ UMaterialExpressionScreenPosition::UMaterialExpressionScreenPosition(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -4587,15 +4674,58 @@ void UMaterialExpressionScreenPosition::GetCaption(TArray<FString>& OutCaptions)
 	OutCaptions.Add(TEXT("ScreenPosition"));
 }
 
+UMaterialExpressionViewProperty::UMaterialExpressionViewProperty(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	Property = MEVP_FieldOfView;
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+	bShaderInputData = true;
+	bShowOutputNameOnPin = true;
+	
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("Property")));
+	Outputs.Add(FExpressionOutput(TEXT("InvProperty")));
+}
+
+int32 UMaterialExpressionViewProperty::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	return Compiler->ViewProperty(Property, OutputIndex == 1);
+}
+
+void UMaterialExpressionViewProperty::GetCaption(TArray<FString>& OutCaptions) const
+{
+#if WITH_EDITOR
+	const UEnum* ViewPropertyEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialExposedViewProperty"));
+	check(ViewPropertyEnum);
+
+	const FString PropertyDisplayName = ViewPropertyEnum->GetDisplayNameText(Property).ToString();
+#else
+	const FString PropertyDisplayName = TEXT("");
+#endif
+
+	OutCaptions.Add(FString(TEXT("View.")) + PropertyDisplayName);
+}
+
 UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -4607,7 +4737,7 @@ UMaterialExpressionViewSize::UMaterialExpressionViewSize(const FObjectInitialize
 
 int32 UMaterialExpressionViewSize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->ViewSize();
+	return Compiler->ViewProperty(MEVP_ViewSize);
 }
 
 void UMaterialExpressionViewSize::GetCaption(TArray<FString>& OutCaptions) const
@@ -4621,9 +4751,9 @@ UMaterialExpressionSceneTexelSize::UMaterialExpressionSceneTexelSize(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -4635,7 +4765,7 @@ UMaterialExpressionSceneTexelSize::UMaterialExpressionSceneTexelSize(const FObje
 
 int32 UMaterialExpressionSceneTexelSize::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return Compiler->SceneTexelSize();
+	return Compiler->ViewProperty(MEVP_BufferSize, /* InvProperty = */ true);
 }
 
 void UMaterialExpressionSceneTexelSize::GetCaption(TArray<FString>& OutCaptions) const
@@ -4649,9 +4779,9 @@ UMaterialExpressionSquareRoot::UMaterialExpressionSquareRoot(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -4683,9 +4813,9 @@ UMaterialExpressionPixelDepth::UMaterialExpressionPixelDepth(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Depth;
+		FText NAME_Depth;
 		FConstructorStatics()
-			: NAME_Depth(LOCTEXT( "Depth", "Depth" ).ToString())
+			: NAME_Depth(LOCTEXT( "Depth", "Depth" ))
 		{
 		}
 	};
@@ -4720,9 +4850,9 @@ UMaterialExpressionSceneDepth::UMaterialExpressionSceneDepth(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Depth;
+		FText NAME_Depth;
 		FConstructorStatics()
-			: NAME_Depth(LOCTEXT( "Depth", "Depth" ).ToString())
+			: NAME_Depth(LOCTEXT( "Depth", "Depth" ))
 		{
 		}
 	};
@@ -4804,9 +4934,9 @@ UMaterialExpressionSceneTexture::UMaterialExpressionSceneTexture(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Texture;
+		FText NAME_Texture;
 		FConstructorStatics()
-			: NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
+			: NAME_Texture(LOCTEXT( "Texture", "Texture" ))
 		{
 		}
 	};
@@ -4889,9 +5019,9 @@ UMaterialExpressionSceneColor::UMaterialExpressionSceneColor(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Texture;
+		FText NAME_Texture;
 		FConstructorStatics()
-			: NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
+			: NAME_Texture(LOCTEXT( "Texture", "Texture" ))
 		{
 		}
 	};
@@ -4957,9 +5087,9 @@ UMaterialExpressionPower::UMaterialExpressionPower(const FObjectInitializer& Obj
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -4996,6 +5126,38 @@ void UMaterialExpressionPower::GetCaption(TArray<FString>& OutCaptions) const
 	OutCaptions.Add(ret);
 }
 
+UMaterialExpressionLogarithm2::UMaterialExpressionLogarithm2(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Math;
+		FConstructorStatics()
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Math);
+}
+
+int32 UMaterialExpressionLogarithm2::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	if(!X.Expression)
+	{
+		return Compiler->Errorf(TEXT("Missing Log2 X input"));
+	}
+
+	return Compiler->Logarithm2(X.Compile(Compiler));
+}
+
+void UMaterialExpressionLogarithm2::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("Log2"));
+}
+
 FString UMaterialExpressionSceneColor::GetInputName(int32 InputIndex) const
 {
 	if(InputIndex == 0)
@@ -5014,9 +5176,9 @@ UMaterialExpressionIf::UMaterialExpressionIf(const FObjectInitializer& ObjectIni
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -5091,9 +5253,9 @@ UMaterialExpressionOneMinus::UMaterialExpressionOneMinus(const FObjectInitialize
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -5122,9 +5284,9 @@ UMaterialExpressionAbs::UMaterialExpressionAbs(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Math;
+		FText NAME_Math;
 		FConstructorStatics()
-			: NAME_Math(LOCTEXT( "Math", "Math" ).ToString())
+			: NAME_Math(LOCTEXT( "Math", "Math" ))
 		{
 		}
 	};
@@ -5164,6 +5326,27 @@ void UMaterialExpressionAbs::GetCaption(TArray<FString>& OutCaptions) const
 // UMaterialExpressionTransform
 ///////////////////////////////////////////////////////////////////////////////
 
+static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialVectorCoordTransformSource X)
+{
+	static const EMaterialCommonBasis ConversionTable[TRANSFORMSOURCE_MAX] = {
+		MCB_Tangent,
+		MCB_Local,
+		MCB_World,
+		MCB_View,
+	};
+	return ConversionTable[X];
+}
+
+static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialVectorCoordTransform X)
+{
+	static const EMaterialCommonBasis ConversionTable[TRANSFORM_MAX] = {
+		MCB_Tangent,
+		MCB_Local,
+		MCB_World,
+		MCB_View,
+	};
+	return ConversionTable[X];
+}
 
 int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
@@ -5176,52 +5359,33 @@ int32 UMaterialExpressionTransform::Compile(class FMaterialCompiler* Compiler, i
 	else
 	{
 		int32 VecInputIdx = Input.Compile(Compiler);
-		Result = Compiler->TransformVector(TransformSourceType, TransformType, VecInputIdx);
+		const auto TransformSourceBasis = GetMaterialCommonBasis(TransformSourceType);
+		const auto TransformDestBasis = GetMaterialCommonBasis(TransformType);
+		Result = Compiler->TransformVector(TransformSourceBasis, TransformDestBasis, VecInputIdx);
 	}
 
 	return Result;
 }
 
-const TCHAR* GetTransformSourceEnumText(EMaterialVectorCoordTransformSource Source)
-{
-	switch (Source)
-	{
-		case TRANSFORMSOURCE_World: return TEXT("World");
-		case TRANSFORMSOURCE_Local: return TEXT("Local");
-		case TRANSFORMSOURCE_View: return TEXT("View");
-		case TRANSFORMSOURCE_Tangent: return TEXT("Tangent");
-	}
-	return TEXT("");
-}
-
-const TCHAR* GetTransformTypeEnumText(EMaterialVectorCoordTransform Type)
-{
-	switch (Type)
-	{
-		case TRANSFORM_World: return TEXT("World");
-		case TRANSFORM_Local: return TEXT("Local");
-		case TRANSFORM_View: return TEXT("View");
-		case TRANSFORM_Tangent: return TEXT("Tangent");
-	}
-	return TEXT("");
-}
-
-
 void UMaterialExpressionTransform::GetCaption(TArray<FString>& OutCaptions) const
 {
-	OutCaptions.Add(TEXT("Vector Transform"));
-
-	FString TransformDesc = TEXT("(");
-	TransformDesc += GetTransformSourceEnumText(TransformSourceType);
+#if WITH_EDITOR
+	const UEnum* MVCTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransformSource"));
+	const UEnum* MVCTEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialVectorCoordTransform"));
+	check(MVCTSEnum);
+	check(MVCTEnum);
+	
+	FString TransformDesc;
+	TransformDesc += MVCTSEnum->GetDisplayNameText(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += GetTransformTypeEnumText(TransformType);
-	TransformDesc += TEXT(")");
+	TransformDesc += MVCTEnum->GetDisplayNameText(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
-}
+#else
+	OutCaptions.Add(TEXT(""));
+#endif
 
-///////////////////////////////////////////////////////////////////////////////
-// UMaterialExpressionTransform
-///////////////////////////////////////////////////////////////////////////////
+	OutCaptions.Add(TEXT("TransformVector"));
+}
 
 UMaterialExpressionTransform::UMaterialExpressionTransform(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -5229,9 +5393,9 @@ UMaterialExpressionTransform::UMaterialExpressionTransform(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_VectorOps;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -5239,6 +5403,7 @@ UMaterialExpressionTransform::UMaterialExpressionTransform(const FObjectInitiali
 
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
 	TransformSourceType = TRANSFORMSOURCE_Tangent;
+	TransformType = TRANSFORM_World;
 }
 
 
@@ -5251,9 +5416,9 @@ UMaterialExpressionTransformPosition::UMaterialExpressionTransformPosition(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_VectorOps;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -5261,13 +5426,24 @@ UMaterialExpressionTransformPosition::UMaterialExpressionTransformPosition(const
 
 	MenuCategories.Add(ConstructorStatics.NAME_VectorOps);
 	TransformSourceType = TRANSFORMPOSSOURCE_Local;
+	TransformType = TRANSFORMPOSSOURCE_Local;
 }
 
-	
+static EMaterialCommonBasis GetMaterialCommonBasis(EMaterialPositionTransformSource X)
+{
+	static const EMaterialCommonBasis ConversionTable[TRANSFORMPOSSOURCE_MAX] = {
+		MCB_Local,
+		MCB_World,
+		MCB_TranslatedWorld,
+		MCB_View,
+	};
+	return ConversionTable[X];
+}
+
 int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	int32 Result=INDEX_NONE;
-
+	
 	if( !Input.Expression )
 	{
 		Result = Compiler->Errorf(TEXT("Missing Transform Position input vector"));
@@ -5275,34 +5451,30 @@ int32 UMaterialExpressionTransformPosition::Compile(class FMaterialCompiler* Com
 	else
 	{
 		int32 VecInputIdx = Input.Compile(Compiler);
-		Result = Compiler->TransformPosition( TransformSourceType, TransformType, VecInputIdx );
+		const auto TransformSourceBasis = GetMaterialCommonBasis(TransformSourceType);
+		const auto TransformDestBasis = GetMaterialCommonBasis(TransformType);
+		Result = Compiler->TransformPosition(TransformSourceBasis, TransformDestBasis, VecInputIdx);
 	}
 
 	return Result;
 }
 
-const TCHAR* GetTransformPositionTypeEnumText(EMaterialPositionTransformSource Transform)
-{
-	switch (Transform)
-	{
-		case TRANSFORMPOSSOURCE_Local: return TEXT("Local");
-		case TRANSFORMPOSSOURCE_World: return TEXT("World");
-	}
-	return TEXT("");
-}
-
-
 void UMaterialExpressionTransformPosition::GetCaption(TArray<FString>& OutCaptions) const
 {
-	OutCaptions.Add(TEXT("Position Transform"));
-
+#if WITH_EDITOR
+	const UEnum* MPTSEnum = FindObject<UEnum>(NULL, TEXT("Engine.EMaterialPositionTransformSource"));
+	check(MPTSEnum);
+	
 	FString TransformDesc;
-	TransformDesc += TEXT("(");
-	TransformDesc += GetTransformPositionTypeEnumText(TransformSourceType);
+	TransformDesc += MPTSEnum->GetDisplayNameText(TransformSourceType).ToString();
 	TransformDesc += TEXT(" to ");
-	TransformDesc += GetTransformPositionTypeEnumText(TransformType);
-	TransformDesc += TEXT(")");
+	TransformDesc += MPTSEnum->GetDisplayNameText(TransformType).ToString();
 	OutCaptions.Add(TransformDesc);
+#else
+	OutCaptions.Add(TEXT(""));
+#endif
+	
+	OutCaptions.Add(TEXT("TransformPosition"));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5315,9 +5487,9 @@ UMaterialExpressionComment::UMaterialExpressionComment(const FObjectInitializer&
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -5390,9 +5562,9 @@ UMaterialExpressionFresnel::UMaterialExpressionFresnel(const FObjectInitializer&
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -5430,11 +5602,11 @@ UMaterialExpressionFontSample::UMaterialExpressionFontSample(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Font;
-		FString NAME_Texture;
+		FText NAME_Font;
+		FText NAME_Texture;
 		FConstructorStatics()
-			: NAME_Font(LOCTEXT( "Font", "Font" ).ToString())
-			, NAME_Texture(LOCTEXT( "Texture", "Texture" ).ToString())
+			: NAME_Font(LOCTEXT( "Font", "Font" ))
+			, NAME_Texture(LOCTEXT( "Texture", "Texture" ))
 		{
 		}
 	};
@@ -5558,11 +5730,11 @@ UMaterialExpressionFontSampleParameter::UMaterialExpressionFontSampleParameter(c
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Font;
-		FString NAME_Parameters;
+		FText NAME_Font;
+		FText NAME_Parameters;
 		FConstructorStatics()
-			: NAME_Font(LOCTEXT( "Font", "Font" ).ToString())
-			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			: NAME_Font(LOCTEXT( "Font", "Font" ))
+			, NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -5684,9 +5856,9 @@ UMaterialExpressionWorldPosition::UMaterialExpressionWorldPosition(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -5699,6 +5871,7 @@ UMaterialExpressionWorldPosition::UMaterialExpressionWorldPosition(const FObject
 
 int32 UMaterialExpressionWorldPosition::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
+	// TODO: should use a separate check box for Including/Excluding Material Shader Offsets
 	return Compiler->WorldPosition(WorldPositionShaderOffset);
 }
 
@@ -5708,25 +5881,25 @@ void UMaterialExpressionWorldPosition::GetCaption(TArray<FString>& OutCaptions) 
 	{
 	case WPT_Default:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonText", "Absolute World Position (Including Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_ExcludeAllShaderOffsets:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonExcludingOffsetsText", "Absolute World Position (Excluding Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "WorldPositonExcludingOffsetsText", "Absolute World Position (Excluding Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_CameraRelative:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonText", "Camera Relative World Position (Including Material Offsets)").ToString());
 			break;
 		}
 
 	case WPT_CameraRelativeNoOffsets:
 		{
-			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonExcludingOffsetsText", "Camera Relative World Position (Excluding Offsets)").ToString());
+			OutCaptions.Add(NSLOCTEXT("MaterialExpressions", "CamRelativeWorldPositonExcludingOffsetsText", "Camera Relative World Position (Excluding Material Offsets)").ToString());
 			break;
 		}
 
@@ -5746,11 +5919,11 @@ UMaterialExpressionObjectPositionWS::UMaterialExpressionObjectPositionWS(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -5785,9 +5958,9 @@ UMaterialExpressionObjectRadius::UMaterialExpressionObjectRadius(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -5822,9 +5995,9 @@ UMaterialExpressionObjectBounds::UMaterialExpressionObjectBounds(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
 		{
 		}
 	};
@@ -5859,9 +6032,9 @@ UMaterialExpressionDistanceCullFade::UMaterialExpressionDistanceCullFade(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -5892,11 +6065,11 @@ UMaterialExpressionActorPositionWS::UMaterialExpressionActorPositionWS(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -5928,9 +6101,9 @@ UMaterialExpressionDeriveNormalZ::UMaterialExpressionDeriveNormalZ(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_VectorOps;
+		FText NAME_VectorOps;
 		FConstructorStatics()
-			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ).ToString())
+			: NAME_VectorOps(LOCTEXT( "VectorOps", "VectorOps" ))
 		{
 		}
 	};
@@ -5971,9 +6144,9 @@ UMaterialExpressionConstantBiasScale::UMaterialExpressionConstantBiasScale(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -6011,9 +6184,9 @@ UMaterialExpressionCustom::UMaterialExpressionCustom(const FObjectInitializer& O
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Custom;
+		FText NAME_Custom;
 		FConstructorStatics()
-			: NAME_Custom(LOCTEXT( "Custom", "Custom" ).ToString())
+			: NAME_Custom(LOCTEXT( "Custom", "Custom" ))
 		{
 		}
 	};
@@ -6147,7 +6320,7 @@ uint32 UMaterialExpressionCustom::GetOutputType(int32 OutputIndex)
 UMaterialFunction::UMaterialFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	LibraryCategories.Add(TEXT("Misc"));
+	LibraryCategoriesText.Add(LOCTEXT("Misc", "Misc"));
 
 #if WITH_EDITORONLY_DATA
 	PreviewMaterial = NULL;
@@ -6239,6 +6412,14 @@ void UMaterialFunction::Serialize(FArchive& Ar)
 	if (Ar.UE4Ver() < VER_UE4_ADD_LINEAR_COLOR_SAMPLER)
 	{
 		GMaterialFunctionsThatNeedSamplerFixup.Set(this);
+	}
+
+	if (Ar.UE4Ver() < VER_UE4_LIBRARY_CATEGORIES_AS_FTEXT)
+	{
+		for (FString& Category : LibraryCategories_DEPRECATED)
+		{
+			LibraryCategoriesText.Add(FText::FromString(Category));
+		}
 	}
 #endif // #if WITH_EDITOR
 }
@@ -6668,9 +6849,9 @@ UMaterialExpressionMaterialFunctionCall::UMaterialExpressionMaterialFunctionCall
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Functions;
+		FText NAME_Functions;
 		FConstructorStatics()
-			: NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			: NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -6999,7 +7180,7 @@ bool UMaterialExpressionMaterialFunctionCall::SetMaterialFunction(
 }
 
 
-void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource()
+void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource(bool bRecreateAndLinkNode)
 {
 	TArray<FFunctionExpressionInput> OriginalInputs = FunctionInputs;
 	TArray<FFunctionExpressionOutput> OriginalOutputs = FunctionOutputs;
@@ -7062,7 +7243,7 @@ void UMaterialExpressionMaterialFunctionCall::UpdateFromFunctionResource()
 	}
 
 #if WITH_EDITOR
-	if (GraphNode)
+	if (GraphNode && bRecreateAndLinkNode)
 	{
 		// Check whether number of input/outputs or transient pointers have changed
 		bool bUpdatedFromFunction = false;
@@ -7203,9 +7384,9 @@ UMaterialExpressionFunctionInput::UMaterialExpressionFunctionInput(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Functions;
+		FText NAME_Functions;
 		FConstructorStatics()
-			: NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			: NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -7497,9 +7678,9 @@ UMaterialExpressionFunctionOutput::UMaterialExpressionFunctionOutput(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Functions;
+		FText NAME_Functions;
 		FConstructorStatics()
-			: NAME_Functions(LOCTEXT( "Functions", "Functions" ).ToString())
+			: NAME_Functions(LOCTEXT( "Functions", "Functions" ))
 		{
 		}
 	};
@@ -7662,9 +7843,9 @@ UMaterialExpressionCollectionParameter::UMaterialExpressionCollectionParameter(c
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Parameters;
+		FText NAME_Parameters;
 		FConstructorStatics()
-			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ).ToString())
+			: NAME_Parameters(LOCTEXT( "Parameters", "Parameters" ))
 		{
 		}
 	};
@@ -7788,9 +7969,9 @@ UMaterialExpressionLightmapUVs::UMaterialExpressionLightmapUVs(const FObjectInit
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Coordinates;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -7820,6 +8001,47 @@ void UMaterialExpressionLightmapUVs::GetCaption(TArray<FString>& OutCaptions) co
 
 
 //
+//	UMaterialExpressionAOMaterialMask
+//
+UMaterialExpressionPrecomputedAOMask::UMaterialExpressionPrecomputedAOMask(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Constants;
+		FConstructorStatics()
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	bShowOutputNameOnPin = true;
+	bHidePreviewWindow = true;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Constants);
+
+	Outputs.Reset();
+	Outputs.Add(FExpressionOutput(TEXT("")));
+
+	bShaderInputData = true;
+}
+
+int32 UMaterialExpressionPrecomputedAOMask::Compile( FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex )
+{
+	return Compiler->PrecomputedAOMask();
+}
+
+	
+void UMaterialExpressionPrecomputedAOMask::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("PrecomputedAOMask"));
+}
+
+
+
+//
 //	UMaterialExpressionLightmassReplace
 //
 UMaterialExpressionLightmassReplace::UMaterialExpressionLightmassReplace(const FObjectInitializer& ObjectInitializer)
@@ -7828,9 +8050,9 @@ UMaterialExpressionLightmassReplace::UMaterialExpressionLightmassReplace(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -7872,9 +8094,9 @@ UMaterialExpressionGIReplace::UMaterialExpressionGIReplace(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -7912,11 +8134,11 @@ UMaterialExpressionObjectOrientation::UMaterialExpressionObjectOrientation(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -7948,9 +8170,9 @@ UMaterialExpressionRotateAboutAxis::UMaterialExpressionRotateAboutAxis(const FOb
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8031,9 +8253,9 @@ UMaterialExpressionSphereMask::UMaterialExpressionSphereMask(const FObjectInitia
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8113,9 +8335,9 @@ UMaterialExpressionNoise::UMaterialExpressionNoise(const FObjectInitializer& Obj
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8175,9 +8397,9 @@ UMaterialExpressionBlackBody::UMaterialExpressionBlackBody(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8210,6 +8432,89 @@ void UMaterialExpressionBlackBody::GetCaption(TArray<FString>& OutCaptions) cons
 
 
 ///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionDistanceToNearestSurface
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionDistanceToNearestSurface::UMaterialExpressionDistanceToNearestSurface(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+int32 UMaterialExpressionDistanceToNearestSurface::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	int32 PositionArg = INDEX_NONE;
+
+	if (Position.Expression)
+	{
+		PositionArg = Position.Compile(Compiler);
+	}
+	else 
+	{
+		PositionArg = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->DistanceToNearestSurface(PositionArg);
+}
+
+void UMaterialExpressionDistanceToNearestSurface::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("DistanceToNearestSurface"));
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// UMaterialExpressionDistanceFieldGradient
+///////////////////////////////////////////////////////////////////////////////
+UMaterialExpressionDistanceFieldGradient::UMaterialExpressionDistanceFieldGradient(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	// Structure to hold one-time initialization
+	struct FConstructorStatics
+	{
+		FText NAME_Utility;
+		FConstructorStatics()
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
+		{
+		}
+	};
+	static FConstructorStatics ConstructorStatics;
+
+	MenuCategories.Add(ConstructorStatics.NAME_Utility);
+}
+
+int32 UMaterialExpressionDistanceFieldGradient::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
+{
+	int32 PositionArg = INDEX_NONE;
+
+	if (Position.Expression)
+	{
+		PositionArg = Position.Compile(Compiler);
+	}
+	else 
+	{
+		PositionArg = Compiler->WorldPosition(WPT_Default);
+	}
+
+	return Compiler->DistanceFieldGradient(PositionArg);
+}
+
+void UMaterialExpressionDistanceFieldGradient::GetCaption(TArray<FString>& OutCaptions) const
+{
+	OutCaptions.Add(TEXT("DistanceFieldGradient"));
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // UMaterialExpressionDistance
 ///////////////////////////////////////////////////////////////////////////////
 UMaterialExpressionDistance::UMaterialExpressionDistance(const FObjectInitializer& ObjectInitializer)
@@ -8218,9 +8523,9 @@ UMaterialExpressionDistance::UMaterialExpressionDistance(const FObjectInitialize
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8259,9 +8564,9 @@ UMaterialExpressionTwoSidedSign::UMaterialExpressionTwoSidedSign(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8287,11 +8592,11 @@ UMaterialExpressionVertexNormalWS::UMaterialExpressionVertexNormalWS(const FObje
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -8318,11 +8623,11 @@ UMaterialExpressionPixelNormalWS::UMaterialExpressionPixelNormalWS(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
-		FString NAME_Coordinates;
+		FText NAME_Vectors;
+		FText NAME_Coordinates;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ).ToString())
-			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ).ToString())
+			: NAME_Vectors(LOCTEXT( "Vectors", "Vectors" ))
+			, NAME_Coordinates(LOCTEXT( "Coordinates", "Coordinates" ))
 		{
 		}
 	};
@@ -8352,9 +8657,9 @@ UMaterialExpressionPerInstanceRandom::UMaterialExpressionPerInstanceRandom(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8383,9 +8688,9 @@ UMaterialExpressionPerInstanceFadeAmount::UMaterialExpressionPerInstanceFadeAmou
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Constants;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8416,11 +8721,11 @@ UMaterialExpressionAntialiasedTextureMask::UMaterialExpressionAntialiasedTexture
 	struct FConstructorStatics
 	{
 		ConstructorHelpers::FObjectFinder<UTexture2D> DefaultTexture;
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FName NAME_None;
 		FConstructorStatics()
 			: DefaultTexture(TEXT("/Engine/EngineResources/DefaultTexture"))
-			, NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			, NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 			, NAME_None(TEXT("None"))
 		{
 		}
@@ -8517,9 +8822,9 @@ UMaterialExpressionDecalMipmapLevel::UMaterialExpressionDecalMipmapLevel(const F
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Vectors;
+		FText NAME_Vectors;
 		FConstructorStatics()
-			: NAME_Vectors(LOCTEXT("Utils", "Utils").ToString())
+			: NAME_Vectors(LOCTEXT("Utils", "Utils"))
 		{
 		}
 	};
@@ -8566,11 +8871,11 @@ UMaterialExpressionDepthFade::UMaterialExpressionDepthFade(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Depth;
-		FString NAME_Utility;
+		FText NAME_Depth;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Depth(LOCTEXT( "Depth", "Depth" ).ToString())
-			, NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Depth(LOCTEXT( "Depth", "Depth" ))
+			, NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8602,9 +8907,9 @@ UMaterialExpressionSphericalParticleOpacity::UMaterialExpressionSphericalParticl
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
+		FText NAME_Particles;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
 		{
 		}
 	};
@@ -8630,9 +8935,9 @@ UMaterialExpressionDepthOfFieldFunction::UMaterialExpressionDepthOfFieldFunction
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8681,9 +8986,9 @@ UMaterialExpressionDDX::UMaterialExpressionDDX(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8726,9 +9031,9 @@ UMaterialExpressionDDY::UMaterialExpressionDDY(const FObjectInitializer& ObjectI
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};
@@ -8771,11 +9076,11 @@ UMaterialExpressionParticleRelativeTime::UMaterialExpressionParticleRelativeTime
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8805,11 +9110,11 @@ UMaterialExpressionParticleMotionBlurFade::UMaterialExpressionParticleMotionBlur
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8839,11 +9144,11 @@ UMaterialExpressionParticleDirection::UMaterialExpressionParticleDirection(const
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8873,11 +9178,11 @@ UMaterialExpressionParticleSpeed::UMaterialExpressionParticleSpeed(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8907,11 +9212,11 @@ UMaterialExpressionParticleSize::UMaterialExpressionParticleSize(const FObjectIn
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Particles;
-		FString NAME_Constants;
+		FText NAME_Particles;
+		FText NAME_Constants;
 		FConstructorStatics()
-			: NAME_Particles(LOCTEXT( "Particles", "Particles" ).ToString())
-			, NAME_Constants(LOCTEXT( "Constants", "Constants" ).ToString())
+			: NAME_Particles(LOCTEXT( "Particles", "Particles" ))
+			, NAME_Constants(LOCTEXT( "Constants", "Constants" ))
 		{
 		}
 	};
@@ -8941,9 +9246,9 @@ UMaterialExpressionAtmosphericFogColor::UMaterialExpressionAtmosphericFogColor(c
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Atmosphere;
+		FText NAME_Atmosphere;
 		FConstructorStatics()
-			: NAME_Atmosphere(LOCTEXT( "Atmosphere", "Atmosphere" ).ToString())
+			: NAME_Atmosphere(LOCTEXT( "Atmosphere", "Atmosphere" ))
 		{
 		}
 	};
@@ -8979,9 +9284,9 @@ UMaterialExpressionSpeedTree::UMaterialExpressionSpeedTree(const FObjectInitiali
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_SpeedTree;
+		FText NAME_SpeedTree;
 		FConstructorStatics()
-			: NAME_SpeedTree(LOCTEXT( "SpeedTree", "SpeedTree" ).ToString())
+			: NAME_SpeedTree(LOCTEXT( "SpeedTree", "SpeedTree" ))
 		{
 		}
 	};
@@ -9073,9 +9378,9 @@ UMaterialExpressionEyeAdaptation::UMaterialExpressionEyeAdaptation(const FObject
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
 	{
-		FString NAME_Utility;
+		FText NAME_Utility;
 		FConstructorStatics()
-			: NAME_Utility(LOCTEXT( "Utility", "Utility" ).ToString())
+			: NAME_Utility(LOCTEXT( "Utility", "Utility" ))
 		{
 		}
 	};

@@ -707,6 +707,13 @@ void UNetDriver::InternalProcessRemoteFunction
 		Connection = ((UChildConnection*)Connection)->Parent;
 	}
 
+	// Prevent RPC calls to closed connections
+	if (Connection->State == USOCK_Closed)
+	{
+		DEBUG_REMOTEFUNCTION(TEXT("Attempting to call RPC on a closed connection. Not calling %s::%s"), *Actor->GetName(), *Function->GetName());
+		return;
+	}
+
 	// If we have a subobject, thats who we are actually calling this on. If no subobject, we are calling on the actor.
 	UObject* TargetObj = SubObject ? SubObject : Actor;
 
@@ -772,7 +779,7 @@ void UNetDriver::InternalProcessRemoteFunction
 		{
 			FString Error(FString::Printf(TEXT("Attempt to replicate function '%s' on Actor '%s' while it is in the middle of variable replication!"), *Function->GetName(), *Actor->GetName()));
 			UE_LOG(LogScript, Error, TEXT("%s"), *Error);
-			ensureMsg(false, *Error);
+			ensureMsgf(false, *Error);
 			return;
 		}
 
@@ -800,8 +807,6 @@ void UNetDriver::InternalProcessRemoteFunction
 		Ch->BeginContentBlock(TargetObj, Bunch);
 	}
 	
-	const int NumStartingHeaderBits = Bunch.GetNumBits();
-
 	//UE_LOG(LogScript, Log, TEXT("   Call %s"),Function->GetFullName());
 	if ( Connection->InternalAck )
 	{
@@ -814,7 +819,7 @@ void UNetDriver::InternalProcessRemoteFunction
 		Bunch.WriteIntWrapped(FieldCache->FieldNetIndex, ClassCache->GetMaxIndex()+1);
 	}
 
-	const int HeaderBits = Bunch.GetNumBits() - NumStartingHeaderBits;
+	const int HeaderBits = Bunch.GetNumBits();
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	Bunch.DebugString = FString::Printf(TEXT("%.2f RPC: %s - %s"), Connection->Driver->Time, *Actor->GetName(), *Function->GetName());
@@ -1932,19 +1937,19 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 
 		SET_DWORD_STAT( STAT_NumNetActors, World->NetworkActors.Num() );
 
-		for ( int i = World->NetworkActors.Num() - 1; i >= 0 ; i-- )		// Traverse list backwards so we can easily remove items
+		for ( TSet<AActor*>::TIterator ActorIt = World->NetworkActors.CreateIterator(); ActorIt; ++ActorIt)
 		{
-			AActor* Actor = World->NetworkActors[i];
+			AActor* Actor = *ActorIt;
 
 			if (Actor->IsPendingKill() )
 			{
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				continue;
 			}
 
 			if (Actor->GetRemoteRole()==ROLE_None)
 			{
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				continue;
 			}
 
@@ -1968,7 +1973,7 @@ int32 UNetDriver::ServerReplicateActors(float DeltaSeconds)
 				// We'll want to track initially dormant actors some other way to track them with stats
 				SCOPE_CYCLE_COUNTER(STAT_NetInitialDormantCheckTime);		
 				NumInitiallyDormant++;
-				World->NetworkActors.RemoveAtSwap( i );
+				ActorIt.RemoveCurrent();
 				//UE_LOG(LogNetTraffic, Log, TEXT("Skipping Actor %s - its initially dormant!"), *Actor->GetName() );
 				continue;
 			}

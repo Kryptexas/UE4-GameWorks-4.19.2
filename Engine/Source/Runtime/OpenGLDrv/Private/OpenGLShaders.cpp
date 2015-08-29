@@ -47,7 +47,7 @@ static bool VerifyLinkedProgram(GLuint Program)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLShaderLinkVerifyTime);
 
-#if UE_BUILD_DEBUG
+#if UE_BUILD_DEBUG || DEBUG_GL_SHADERS
 	GLint LinkStatus = 0;
 	glGetProgramiv(Program, GL_LINK_STATUS, &LinkStatus);
 	if (LinkStatus != GL_TRUE)
@@ -552,9 +552,12 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 			{
 #if PLATFORM_DESKTOP
 				AppendCString(GlslCode, "#extension GL_ARB_separate_shader_objects : enable\n");
-#endif
 				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
 				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Interp Modifiers struct { PreType PostType; }\n");
+#else
+				AppendCString(GlslCode, "#define INTERFACE_LOCATION(Pos) layout(location=Pos) \n");
+				AppendCString(GlslCode, "#define INTERFACE_BLOCK(Pos, Interp, Modifiers, Semantic, PreType, PostType) layout(location=Pos) Modifiers Semantic { PreType PostType; }\n");
+#endif
 			}
 			else
 			{
@@ -583,6 +586,23 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 
 		if (IsES2Platform(GMaxRHIShaderPlatform))
 		{
+			if (GSupportsRenderTargetFormat_PF_FloatRGBA)
+			{
+				AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 0.0\n");
+			}
+			else
+			{
+				if (!FOpenGL::SupportsShaderFramebufferFetch())
+				{
+					// mosaic
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 1.0\n");
+				}
+				else
+				{
+					AppendCString(GlslCode, "#define HDR_32BPP_ENCODE_MODE 2.0\n");
+				}
+			}
+
 			// This #define fixes compiler errors on Android (which doesn't seem to support textureCubeLodEXT)
 			if (FOpenGL::UseES30ShadingLanguage())
 			{
@@ -719,7 +739,7 @@ ShaderType* CompileOpenGLShader(const TArray<uint8>& Code)
 				
 				glLinkProgram(SeparateResource);
 				bool const bLinkedOK = VerifyLinkedProgram(SeparateResource);
-				if (!VerifyLinkedProgram(SeparateResource))
+				if (!bLinkedOK)
 				{
 					check(VerifyCompiledShader(Resource, GlslCodeString));
 				}
@@ -2669,7 +2689,7 @@ void FOpenGLShaderParameterCache::CommitPackedGlobals(const FOpenGLLinkedProgram
 	}
 }
 
-void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgram* LinkedProgram, int32 Stage, FUniformBufferRHIRef* RHIUniformBuffers, const TArray<FOpenGLUniformBufferCopyInfo>& UniformBuffersCopyInfo)
+void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgram* LinkedProgram, int32 Stage, FUniformBufferRHIRef* RHIUniformBuffers, const TArray<CrossCompiler::FUniformBufferCopyInfo>& UniformBuffersCopyInfo)
 {
 	SCOPE_CYCLE_COUNTER(STAT_OpenGLConstantBufferUpdateTime);
 	VERIFY_GL_SCOPE();
@@ -2689,7 +2709,7 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 			const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();
 			for (int32 InfoIndex = LastInfoIndex; InfoIndex < UniformBuffersCopyInfo.Num(); ++InfoIndex)
 			{
-				const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
+				const CrossCompiler::FUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 				if (Info.SourceUBIndex == BufferIndex)
 				{
 					check((Info.DestOffsetInFloats + Info.SizeInFloats) * sizeof(float) <= (uint32)GlobalUniformArraySize);
@@ -2722,7 +2742,7 @@ void FOpenGLShaderParameterCache::CommitPackedUniformBuffers(FOpenGLLinkedProgra
 				// Go through the list of copy commands and perform the appropriate copy into the scratch buffer
 				for (int32 InfoIndex = LastCopyInfoIndex; InfoIndex < UniformBuffersCopyInfo.Num(); ++InfoIndex)
 				{
-					const FOpenGLUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
+					const CrossCompiler::FUniformBufferCopyInfo& Info = UniformBuffersCopyInfo[InfoIndex];
 					if (Info.SourceUBIndex == BufferIndex)
 					{
 						const uint32* RESTRICT SourceData = UniformBuffer->EmulatedBufferData->Data.GetData();

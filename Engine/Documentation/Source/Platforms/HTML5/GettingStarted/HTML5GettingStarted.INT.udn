@@ -1,4 +1,4 @@
-﻿Availability:Public
+Availability:Public
 Title: Getting Started: Developing HTML5 Projects
 Crumbs:%ROOT%, Platforms, Platforms/HTML5
 Description:Setting up for development for the HTML5 platform.
@@ -149,3 +149,5 @@ A 64-bit browser is currently required to run HTML5 builds.
 * [Download Chromium builds](http://chromium.woolyss.com/#windows-64-bit)
 
 [/VAR]
+
+

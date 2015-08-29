@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "DDCStatsHelper.h"
+
+
 /** 
  * A backend wrapper that implements a cache hierarchy of backends. 
 **/
@@ -62,6 +65,11 @@ public:
 	 */
 	virtual bool CachedDataProbablyExists(const TCHAR* CacheKey) override
 	{
+		static FName NAME_CachedDataProbablyExists(TEXT("CachedDataProbablyExists"));
+		FDDCScopeStatHelper Stat(CacheKey, NAME_CachedDataProbablyExists);
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey))
@@ -80,6 +88,14 @@ public:
 	 */
 	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
 	{
+		const static FName NAME_GetCachedData = FName(TEXT("GetCachedData"));
+		const static FName NAME_HierarchicalDDC = FName(TEXT("HierarchicalDDC"));
+		const static FName NAME_DataSize = FName(TEXT("DataSize")); 
+		static FName NAME_Retrieved(TEXT("Retrieved"));
+
+		FDDCScopeStatHelper Stat(CacheKey, NAME_GetCachedData);
+		Stat.AddTag(NAME_HierarchicalDDC, FString());
+
 		for (int32 CacheIndex = 0; CacheIndex < InnerBackends.Num(); CacheIndex++)
 		{
 			if (InnerBackends[CacheIndex]->CachedDataProbablyExists(CacheKey) && InnerBackends[CacheIndex]->GetCachedData(CacheKey, OutData))
@@ -119,9 +135,12 @@ public:
 						}
 					}
 				}
+				Stat.AddTag(NAME_DataSize, FString::Printf(TEXT("%d bytes"), OutData.Num()));
+				Stat.AddTag(NAME_Retrieved, TEXT("true"));
 				return true;
 			}
 		}
+		Stat.AddTag(NAME_Retrieved, TEXT("false"));
 		return false;
 	}
 	/**

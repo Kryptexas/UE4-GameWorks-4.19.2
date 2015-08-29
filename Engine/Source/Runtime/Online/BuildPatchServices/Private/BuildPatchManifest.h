@@ -40,12 +40,13 @@ namespace EBuildPatchAppManifestVersion
 		StoresPrerequisitesInfo,
 		// Manifest stores chunk download sizes
 		StoresChunkFileSizes,
-		// Manifest is now stored using UObject serialization and compressed
+		// Manifest can optionally be stored using UObject serialization and compressed
 		StoredAsCompressedUClass,
-		// Added support for file data to be split into max individual part size, files now go to FilesV3
-		FileSplittingSupport,
-		// Added support for file data compression, (files still FilesV3)
-		FileCompressionSupport,
+		// These two features were removed and never used
+		UNUSED_0,
+		UNUSED_1,
+		// Manifest stores chunk data SHA1 hash to use in place of data compare, for faster generation
+		StoresChunkDataShaHashes,
 
 
 		// Always after the latest version, signifies the latest version plus 1 to allow initialization simplicity
@@ -60,8 +61,14 @@ namespace EBuildPatchAppManifestVersion
 	/** @return The last known manifest feature of this code base. Handy for manifest constructor */
 	Type GetLatestVersion();
 
-	/** @return The latest version of a manifest support by JSON serialization */
+	/** @return The latest version of a manifest supported by JSON serialization method */
 	Type GetLatestJsonVersion();
+
+	/** @return The latest version of a manifest supported by file data (nochunks) */
+	Type GetLatestFileDataVersion();
+
+	/** @return The latest version of a manifest supported by chunk data */
+	Type GetLatestChunkDataVersion();
 
 	/**
 	 * Get the chunk subdirectory for used for a specific manifest version, e.g. Chunks, ChunksV2 etc
@@ -88,8 +95,11 @@ namespace EManifestFileHeader
 	enum Type
 	{
 		// Storage flags, can be raw or a combination of others.
-		STORED_RAW = 0x0, // Zero means raw data
-		STORED_COMPRESSED = 0x1, // Flag for compressed
+
+		/** Zero means raw data. */
+		STORED_RAW = 0x0,
+		/** Flag for compressed. */
+		STORED_COMPRESSED = 0x1,
 	};
 }
 
@@ -124,6 +134,9 @@ struct FChunkInfoData
 
 	UPROPERTY()
 	uint64 Hash;
+
+	UPROPERTY()
+	FSHAHashData ShaHash;
 
 	UPROPERTY()
 	int64 FileSize;
@@ -318,17 +331,23 @@ struct FFileChunkPart
 	{}
 };
 
+// Required to allow private access to manifest builder for now..
+namespace BuildPatchServices
+{
+	class FManifestBuilderImpl;
+}
+
 /**
  * Declare the FBuildPatchAppManifest object class. This holds the UObject data, and the implemented build manifest functionality
  */
 class FBuildPatchAppManifest
-	: public IBuildManifest
+	: public IBuildManifest, FGCObject
 {
 	// Allow access to build processor classes
 	friend class FBuildDataGenerator;
-	friend class FBuildDataChunkProcessor;
 	friend class FBuildDataFileProcessor;
 	friend class FBuildPatchInstaller;
+	friend class BuildPatchServices::FManifestBuilderImpl;
 public:
 
 	/**
@@ -362,6 +381,7 @@ public:
 	virtual const FString& GetPrereqArgs() const override;
 	virtual int64 GetDownloadSize() const override;
 	virtual int64 GetBuildSize() const override;
+	virtual TArray<FString> GetBuildFileList() const override;
 	virtual void GetRemovableFiles(IBuildManifestRef OldManifest, TArray< FString >& RemovableFiles) const override;
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const override;
 	virtual bool NeedsResaving() const override;
@@ -498,6 +518,14 @@ public:
 	bool GetChunkHash(const FGuid& ChunkGuid, uint64& OutHash) const;
 
 	/**
+	 * Gets the SHA1 hash for a given chunk
+	 * @param ChunkGuid		IN		The guid of the chunk to get hash for
+	 * @param OutHash		OUT		Receives the hash value if found
+	 * @return	true if we had the hash for this chunk
+	 */
+	bool GetChunkShaHash(const FGuid& ChunkGuid, FSHAHashData& OutHash) const;
+
+	/**
 	 * Gets the file hash for given file data
 	 * @param FileGuid		IN		The guid of the file data to get hash for
 	 * @param OutHash		OUT		Receives the hash value if found
@@ -561,8 +589,15 @@ public:
 	 */
 	void EnumerateChunkPartInventory(const TArray< FGuid >& ChunksRequired, TMap< FGuid, TArray< FFileChunkPart > >& ChunkPartsAvailable) const;
 
+	/** @return True if any files in this manifest have file attributes to be set */
+	bool HasFileAttributes() const;
+
 	/** @return True if this manifest is for the same build, i.e. same ID, Name, and Version */
 	bool IsSameAs(FBuildPatchAppManifestRef InstallManifest) const;
+public:
+
+	// FGCObject API
+	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
 
 private:
 

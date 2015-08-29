@@ -228,9 +228,13 @@ uint16 FRecastQueryFilter::GetExcludeFlags() const
 bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 {
 	const INavLinkCustomInterface* CustomLink = NavSys ? NavSys->GetCustomLink(UserId) : NULL;
-	return (CustomLink != NULL) && CustomLink->IsLinkPathfindingAllowed(SearchOwner);
+	return (CustomLink != NULL) && CustomLink->IsLinkPathfindingAllowed(CachedOwnerOb);
 }
 
+void FRecastSpeciaLinkFilter::initialize()
+{
+	CachedOwnerOb = SearchOwner.Get();
+}
 
 //----------------------------------------------------------------------//
 // FPImplRecastNavMesh
@@ -870,6 +874,14 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		// nodes in A* node pool. This can mean resulting path is way off.
 		Path.SetSearchReachedLimit(dtStatusDetail(FindPathStatus, DT_OUT_OF_NODES));
 	}
+
+#if ENABLE_VISUAL_LOG
+	if (dtStatusDetail(FindPathStatus, DT_INVALID_CYCLE_PATH))
+	{
+		UE_VLOG(NavMeshOwner, LogNavigation, Error, TEXT("FPImplRecastNavMesh::FindPath resulted in a cyclic path!"));
+		Path.DescribeSelfToVisLog(FVisualLogger::Get().GetLastEntryForObject(NavMeshOwner));
+	}
+#endif // ENABLE_VISUAL_LOG
 
 	Path.MarkReady();
 

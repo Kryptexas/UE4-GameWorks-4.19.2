@@ -5,12 +5,10 @@ Description:Modules that are included along with an emitter and required for its
 
 [TOC(start:2 end:3)]
 
-## Overview
-
 The following classes and modules always exist when a new emitter is created. They will always be present and cannot be deleted.
 
 
-### Required Module
+## Required Module
 
 Every particle emitter contains this module which contains all the properties that are required by a particle emitter. This includes the following:
 
@@ -40,7 +38,7 @@ Every particle emitter contains this module which contains all the properties th
 | **Delay First Loop Only** | When _true_, and emitter with an EmitterDelay of greater than 0 and EmitterLoops greater than 1 will only perform the delay on the first loop. |
 | [REGION:tablesection]Sub UV[/REGION] ||
 | [REGION:note]The Sub UV data indicates that the emitter should utilize sub-images of the texture applied. This is useful for implementing simple animations on particles.[/REGION] ||
-| **Interpolation Method** | An enumeration indicating the method that should be utilized to interpolate between sub-images. This can be on of the following: [INCLUDE:#InterpMethod] |
+| **Interpolation Method** | An enumeration indicating the method that should be utilized to interpolate between sub-images. This can be one of the following: [INCLUDE:#InterpMethod] |
 | **Sub Images_Horizontal** | The number of sub-images in the texture on the horizontal (x) axis of the texture. |
 | **Sub Images_Vertical** | The number of sub-images in the texture on the vertical (y) axis of the texture. |
 | **Scale UV** | Indicates that the UV values should be scaled to properly `fit' the sub-image size. This is only used for mesh emitters. |
@@ -60,7 +58,7 @@ Every particle emitter contains this module which contains all the properties th
 
 
 
-### Spawn Module
+## Spawn Module
 
 Every particle emitter contains this module which contains all the properties that determine how particles are spawned. This includes the following:
 

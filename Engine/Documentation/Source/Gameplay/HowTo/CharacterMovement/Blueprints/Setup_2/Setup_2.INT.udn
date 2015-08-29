@@ -47,13 +47,13 @@ In this section, we will finish setting up the Character by implementing the scr
 
 1.	**Right-click** in the graph and add the **InputAction Jog** Event. 
 
-1.	In the **MyBlueprint** window, click the **Show inherited variables** checkbox and drag the **CharacterMovement** into the graph. 
+1.	In the **MyBlueprint** window, click the **Show inherited variables** checkbox and **Control** + drag the **CharacterMovement** into the graph. 
 
 	![](Character_JogA.png)
 
 1.	Hold **Alt** and drag in the **Jog Pressed** variable, then hold **Control** and drag in the **Crouch Pressed** variable. 
 
-1.	Set the node network up as shown below. 
+1.	Set up the node network making sure to check "Jog Pressed" in the appropriate **Set** node as shown below:
 
 	![](Character_JogB.png)(w:720)
 
@@ -65,7 +65,7 @@ In this section, we will finish setting up the Character by implementing the scr
 
 1.	Hold **Alt** and drag in the **Crouch Pressed** variable, then hold **Control** and drag in the **Jog Pressed** and **Prone Pressed** variables. 
 
-1.	Set the node network up as shown below. 
+1.	Set up the node network making sure to check "Crouch Pressed" in the appropriate **Set** node as shown below: 
 
 	[REGION:lightbox]
 	[![](Character_Crouch.png)(w:720)](Character_Crouch.png)
@@ -83,7 +83,7 @@ In this section, we will finish setting up the Character by implementing the scr
 
 1.	Hold **Control** and drag in the **Crouch Pressed** variable. 
 
-1.	Set the node network up as shown below. 
+1.	Set up the node network making sure to check "Prone Pressed" in the appropriate **Set** node as shown below: 
 
 	[REGION:lightbox]
 	[![](Character_Prone.png)(w:720)](Character_Prone.png)
@@ -99,7 +99,7 @@ In this section, we will finish setting up the Character by implementing the scr
 
 1.	Hold **Alt** and drag in the **Jump Pressed** variable, then **Control** drag in the **DisableMovement** and **CrouchPressed** variables. 
 
-1.	Set the node network up as shown below. 
+1.	Set up the node network making sure to check "Jump Pressed" in the appropriate **Set** nodes as shown below: 
 
 	[REGION:lightbox]
 	[![](Character_Jump.png)(w:720)](Character_Jump.png)
@@ -107,7 +107,7 @@ In this section, we will finish setting up the Character by implementing the scr
 
 	_Click image for full view._
 
-	For the Jump script, we are first checking if we are either Prone or Crouched. If neither are _true_, we are then using the **CharacterMovement** component to determine our current velocity and if its greater than 0, which would mean that we are moving. 
+	For the Jump script, we are first checking if we are either Prone or Crouched. If neither are _true_, we are then using the **CharacterMovement** component to determine our current velocity and if it is greater than 0, which would mean that we are moving. 
 	
 	We then set how high the character can jump based on whether or not they are moving by setting the **JumpZVelocity** to **365** (for a moving character) or **340** while we are stationary. In either case, we set **Jump Pressed** to _True_ and set **Jump Pressed** to _False_ when Jump is released. 
 

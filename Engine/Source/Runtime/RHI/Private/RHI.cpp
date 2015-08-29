@@ -37,7 +37,7 @@ static void DumpRHIMemory(FOutputDevice& OutputDevice)
 	TArray<FStatMessage> Stats;
 	GetPermanentStats(Stats);
 
-	FName NAME_STATGROUP_RHI("STATGROUP_RHI");
+	FName NAME_STATGROUP_RHI(FStatGroup_STATGROUP_RHI::GetGroupName());
 	OutputDevice.Logf(TEXT("RHI resource memory (not tracked by our allocator)"));
 	int64 TotalMemory = 0;
 	for (int32 Index = 0; Index < Stats.Num(); Index++)
@@ -59,6 +59,18 @@ static FAutoConsoleCommandWithOutputDevice GDumpRHIMemoryCmd(
 	FConsoleCommandWithOutputDeviceDelegate::CreateStatic(DumpRHIMemory)
 	);
 #endif
+
+//DO NOT USE THE STATIC FLINEARCOLORS TO INITIALIZE THIS STUFF.  
+//Static init order is undefined and you will likely end up with bad values on some platforms.
+const FClearValueBinding FClearValueBinding::None(EClearBinding::ENoneBound);
+const FClearValueBinding FClearValueBinding::Black(FLinearColor(0.0f, 0.0f, 0.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::White(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f));
+const FClearValueBinding FClearValueBinding::Transparent(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f));
+const FClearValueBinding FClearValueBinding::DepthOne(1.0f, 0);
+const FClearValueBinding FClearValueBinding::DepthZero(0.0f, 0);
+const FClearValueBinding FClearValueBinding::DepthNear((float)ERHIZBuffer::NearPlane, 0);
+const FClearValueBinding FClearValueBinding::DepthFar((float)ERHIZBuffer::FarPlane, 0);
+
 
 TLockFreePointerList<FRHIResource> FRHIResource::PendingDeletes;
 FRHIResource* FRHIResource::CurrentlyDeleting = nullptr;
@@ -171,6 +183,7 @@ bool GSupportsRenderDepthTargetableShaderResources = true;
 bool GSupportsRenderTargetFormat_PF_G8 = true;
 bool GSupportsRenderTargetFormat_PF_FloatRGBA = true;
 bool GSupportsShaderFramebufferFetch = false;
+bool GSupportsShaderDepthStencilFetch = false;
 bool GHardwareHiddenSurfaceRemoval = false;
 bool GRHISupportsAsyncTextureCreation = false;
 bool GSupportsQuads = false;
@@ -195,6 +208,8 @@ bool GRHISupportsFirstInstance = false;
 bool GRHIRequiresEarlyBackBufferRenderTarget = true;
 bool GRHISupportsRHIThread = false;
 bool GRHISupportsParallelRHIExecute = false;
+bool GSupportsHDR32bppEncodeModeIntrinsic = false;
+
 
 /** Whether we are profiling GPU hitches. */
 bool GTriggerGPUHitchProfile = false;
@@ -286,6 +301,8 @@ static FName NAME_OPENGL_ES2_IOS(TEXT("GLSL_ES2_IOS"));
 static FName NAME_SF_METAL(TEXT("SF_METAL"));
 static FName NAME_SF_METAL_MRT(TEXT("SF_METAL_MRT"));
 static FName NAME_GLSL_310_ES_EXT(TEXT("GLSL_310_ES_EXT"));
+static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
+static FName NAME_PC_VULKAN_ES2(TEXT("PC_VULKAN_ES2"));
 
 FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 {
@@ -326,8 +343,12 @@ FName LegacyShaderPlatformToShaderFormat(EShaderPlatform Platform)
 		return NAME_SF_METAL;
 	case SP_METAL_MRT:
 		return NAME_SF_METAL_MRT;
+	case SP_METAL_SM5:
+		return NAME_SF_METAL_SM5;
 	case SP_OPENGL_ES31_EXT:
 		return NAME_GLSL_310_ES_EXT;
+	case SP_VULKAN_ES2:
+		return NAME_PC_VULKAN_ES2;
 
 	default:
 		check(0);
@@ -355,6 +376,8 @@ EShaderPlatform ShaderFormatToLegacyShaderPlatform(FName ShaderFormat)
 	if (ShaderFormat == NAME_SF_METAL)			return SP_METAL;
 	if (ShaderFormat == NAME_SF_METAL_MRT)		return SP_METAL_MRT;
 	if (ShaderFormat == NAME_GLSL_310_ES_EXT)	return SP_OPENGL_ES31_EXT;
+	if (ShaderFormat == NAME_SF_METAL_SM5)		return SP_METAL_SM5;
+	if (ShaderFormat == NAME_PC_VULKAN_ES2)		return SP_VULKAN_ES2;
 	return SP_NumPlatforms;
 }
 

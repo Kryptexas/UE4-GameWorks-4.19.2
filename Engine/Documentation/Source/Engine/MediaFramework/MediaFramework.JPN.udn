@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2394183
+﻿INTSourceChangelist:2518046
 Availability:Public
 Title:Media Framework
 Crumbs:%ROOT%, Engine
@@ -112,7 +112,7 @@ Media Framework を実装すると、3 種類のアセットを **コンテン�
 
 	![](MediaPlayerAsset.png)(w:720)
 
-1. MediaPlayer アセットの **[詳細]** パネルで、 **[Browse]** ボタンをクリックします。 
+1. MediaPlayer アセットの **[Details]** パネルで、 **[Browse]** ボタンをクリックします。 
 
 	![](AddMediaButton.png)
 
@@ -124,7 +124,7 @@ Media Framework を実装すると、3 種類のアセットを **コンテン�
 
 	![](MediaPlay.png)
 
-1. **[詳細]** パネルに警告のアイコンがあることに気が付くと思います。 
+1. **[Details]** パネルに警告のアイコンがあることに気が付くと思います。 
 
 	![](WarningIcon.png)
 
@@ -133,8 +133,8 @@ Media Framework を実装すると、3 種類のアセットを **コンテン�
 	![](NoWarning.png)
 
 	プロジェクトの「Content/Movies/」フォルダにメディアを置くと、警告のアイコンは表示されなくなります。 
-	**ドラッグ＆ドロップによるインポート**
 
+**ドラッグ＆ドロップによるインポート**
 
 メディアをインポートする一番簡単な方法は、ドラッグ＆ドロップです。 
 
@@ -150,7 +150,7 @@ MediaPlayer アセットは、オーディオ、ビデオ、キャプション �
 
 ![](OutputStreams.png)
 
-**[詳細]** パネルで、メディアソースのプロパティを確認することができます。 
+**[Details]** パネルで、メディアソースのプロパティを確認することができます。 
 
 ![](MediaPlayerDetails.png)
 
@@ -175,7 +175,7 @@ MediaTexture を **右クリック** して、エンジンの他のマテリア�
 ![](CreateMaterial.png)
 
 [REGION:note]
-ビデオが Media Asset Editor で再生されているのにテクスチャに表示されない場合は、間違ったビデオ ドライブが選択されている可能性が高いです。MediaTexture を **ダブルクリック** してテクスチャ エディタを開き、MediaPlayer の **[詳細]** パネルでトラックを選択して、これを変更します。 
+ビデオが Media Asset Editor で再生されているのにテクスチャに表示されない場合は、間違ったビデオ ドライブが選択されている可能性が高いです。MediaTexture を **ダブルクリック** してテクスチャ エディタを開き、MediaPlayer の **[Details]** パネルでトラックを選択して、これを変更します。 
 
 それでも問題が解決しない場合、MediaPlayer アセットの **Auto Play** オプションでビデオがテクスチャ内にストリームしているか確認してください。これで問題が解決したら、 **Auto Play** をそのまま使うか、または **ブループリント** でアセットを再生するスクリプトを設定します (後述の [Media Framework でブループリントを使用する](#MediaFrameworkでブループリントを使用する) セクションをご覧ください)。 
 [/REGION]
@@ -198,9 +198,9 @@ MediaSoundWaves はまだ開発の初期段階です。ドキュメントが追�
 
 ###テクスチャ
 
-これは、TV で MediaTexture を再生している例です。 
+これは、TV で MediaTexture を再生している例です (クリックすると再生します)。 
 
-![](TextureGIF.gif)(convert:false)
+[![](video1_image.png)](video1.mp4)
 
 _この例では、 Learn Tab に存在する **Realistic Rendering** プロジェクトから **SM_TV** アセットを **移行** しました。_
 
@@ -208,7 +208,7 @@ _この例では、 Learn Tab に存在する **Realistic Rendering** プロジ�
 
 1. **MediaPlayer** アセットを開いて、 **Auto Play** に設定します。 
 
-1. **「Game/ArchVis/Materials」** フォルダに存在する **M_TV** マテリアルを開きます。 
+1. 「**Game/ArchVis/Materials** 」フォルダに存在する **M_TV** マテリアルを開きます。 
 
 1. MediaTexture を **M_TV** マテリアルにドラッグして、 **ScreenColor** ノードの横に配置します。 
 
@@ -236,9 +236,9 @@ _この例では、 Learn Tab に存在する **Realistic Rendering** プロジ�
 
 ![](Blueprint1.png)
 
-プレイヤーがトリガーに入ると TV に適用された MediaTexture を再生し、トリガーから出ると MediaTexture をポーズします。 
+プレイヤーがトリガーに入ると TV に適用された MediaTexture を再生し、トリガーから出ると MediaTexture をポーズします (クリックすると再生します)。 
 
-![](BlueprintGIF.gif)(convert:false)
+[![](video2_image.png)](video2.mp4)
 
 **Level ブループリント** 内に、次のスクリプトを作成しました。 
 
@@ -259,9 +259,9 @@ _クリックして全画面表示にします。_
 
 メディアプレイヤーを UI の一部、あるいはインゲーム ムービープレイヤーにしたい場合、 **Widget ブループリント** を作成し、 (MediaPlayer から順番に作成された) MediaTexture から作成されたマテリアルを割り当てると UMG を使ってそのような処理ができます。 
 
-プレイヤーがインゲームで M キーを押すと、再生中のビデオの再生、ポーズ、巻き戻しコントロールと一緒にムービー プレイヤーが画面上に表示される設定を作成したのが、以下です。 
+プレイヤーがインゲームで M キーを押すと、再生中のビデオの再生、ポーズ、巻き戻しコントロールと一緒にムービー プレイヤーが画面上に表示される設定を作成したのが、以下です (クリックすると再生します)。 
 
-![](UMGGIF.gif)(convert:false)
+[![](video3_image.png)](video3.mp4)
 
 まず最初に [Widget ブループリント](Engine\UMG\UserGuide\WidgetBlueprints) を作成しました。 
 
@@ -277,7 +277,7 @@ MediaPlayer 変数を追加して、使用したい MediaPlayer アセットも�
 
 ![](WidgetBlueprint2.png)(w:840)
 
-そのマテリアルをブラシに割り当てるために、1 つだけ小さな変更をして **Emmissive** に設定する必要があります。 
+そのマテリアルをブラシに割り当てるために、1 つだけ小さな変更をして **Emissive** に設定する必要があります。 
 
 ![](Material.png)
 
@@ -290,7 +290,7 @@ MediaPlayer 変数を追加して、使用したい MediaPlayer アセットも�
 _クリックして全画面表示にします。_
 
 [REGION:note]
-**コンテンツ事例** 、 **UMG** 、 **Media** マップで他の例もご覧いただけます。 
+**コンテンツ サンプル** 、 **UMG** 、 **Media** マップで他の例もご覧いただけます。 
 [/REGION]
 
 

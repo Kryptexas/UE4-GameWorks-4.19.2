@@ -969,10 +969,17 @@ void UCheatManager::DumpOnlineSessionState()
 	}
 }
 
+void UCheatManager::DumpPartyState()
+{
+	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(GetWorld());
+	if (PartyInt.IsValid())
+	{
+		PartyInt->DumpPartyState();
+	}
+}
+
 void UCheatManager::DumpVoiceMutingState()
 {
-	TSharedPtr<FUniqueNetId> NetId;
-	
 	UE_LOG(LogCheatManager, Display, TEXT(""));
 	UE_LOG(LogCheatManager, Display, TEXT("-------------------------------------------------------------"));
 	UE_LOG(LogCheatManager, Display, TEXT(""));

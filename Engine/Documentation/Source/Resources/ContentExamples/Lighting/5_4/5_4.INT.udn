@@ -37,7 +37,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\5_4:title%](Resources\ContentExamples\Lighting\Lighting_5_4.png)
 [/REGION]
 
-This example shows the effect of Min Roughness on a light's reflection. Min Roughness is available in the Light category of the **Details** panel, though you will have to expand the category (click the small white triangle) to see it.
+This example shows the effect of **Min Roughness** on a light's reflection. Min Roughness is available in the Light category of the **Details** panel, though you will have to expand the category (click the small white triangle) to see it.
 
 ![](MinRoughness.png)
 

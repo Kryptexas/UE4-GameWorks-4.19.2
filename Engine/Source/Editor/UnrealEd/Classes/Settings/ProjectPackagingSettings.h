@@ -30,13 +30,13 @@ enum class EProjectPackagingInternationalizationPresets
 	/** English only. */
 	English,
 
-	/** English, French, Italian, German, Spanish */
+	/** English, French, Italian, German, Spanish. */
 	EFIGS,
 
-	/** English, French, Italian, German, Spanish, Chinese, Japanese, Korean */
+	/** English, French, Italian, German, Spanish, Chinese, Japanese, Korean. */
 	EFIGSCJK,
 
-	/** Chinese, Japanese, Korean */
+	/** Chinese, Japanese, Korean. */
 	CJK,
 
 	/** All known cultures. */

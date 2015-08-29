@@ -87,8 +87,8 @@ struct TStructOpsTypeTraits< FKeyHandleMap > : public TStructOpsTypeTraitsBase
 };
 
 
+// @todo Some heavy refactoring can be done here. Much more stuff can go in this base class.
 /** A curve base class which enables key handles to index lookups */
-// @todo Some heavy refactoring can be done here. Much more stuff can go in this base class
 USTRUCT()
 struct ENGINE_API FIndexedCurve
 {
@@ -99,28 +99,28 @@ public:
 	/** Get number of keys in curve. */
 	virtual int32 GetNumKeys() const PURE_VIRTUAL(FIndexedCurve::GetNumKeys,return 0;);
 
-	/** Const iterator for the handles */
+	/** Const iterator for the handles. */
 	TMap<FKeyHandle, int32>::TConstIterator GetKeyHandleIterator() const;
 	
-	/** Gets the index of a handle, checks if the key handle is valid first */
+	/** Gets the index of a handle, checks if the key handle is valid first. */
 	int32 GetIndexSafe(FKeyHandle KeyHandle) const;
 
-	/** Checks to see if the key handle is valid for this curve */
+	/** Checks to see if the key handle is valid for this curve. */
 	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const;
 
 protected:
-	/** Internal tool to get a handle from an index */
+	/** Internal tool to get a handle from an index. */
 	FKeyHandle GetKeyHandle(int32 KeyIndex) const;
 	
-	/** Gets the index of a handle */
+	/** Gets the index of a handle. */
 	int32 GetIndex(FKeyHandle KeyHandle) const;
 
-	/** Makes sure our handles are all valid and correct */
+	/** Makes sure our handles are all valid and correct. */
 	void EnsureIndexHasAHandle(int32 KeyIndex) const;
 	void EnsureAllIndicesHaveHandles() const;
 
 protected:
-	/** Map of which key handles go to which indices */
+	/** Map of which key handles go to which indices. */
 	UPROPERTY(transient)
 	mutable FKeyHandleMap KeyHandlesToIndices;
 };
@@ -128,7 +128,7 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // Rich curve data
 
-/** Method of interpolation between this key and the next */
+/** Method of interpolation between this key and the next. */
 UENUM()
 enum ERichCurveInterpMode
 {
@@ -137,7 +137,7 @@ enum ERichCurveInterpMode
 	RCIM_Cubic
 };
 
-/** If using RCIM_Cubic, this enum describes how the tangents should be controlled in editor */
+/** If using RCIM_Cubic, this enum describes how the tangents should be controlled in editor. */
 UENUM()
 enum ERichCurveTangentMode
 {
@@ -146,7 +146,7 @@ enum ERichCurveTangentMode
 	RCTM_Break
 };
 
-/** Enum to indicate whether if a tangent is 'weighted' (ie can be stretched) */
+/** Enum to indicate whether if a tangent is 'weighted' (ie can be stretched). */
 UENUM()
 enum ERichCurveTangentWeightMode
 {
@@ -154,6 +154,17 @@ enum ERichCurveTangentWeightMode
 	RCTWM_WeightedArrive,
 	RCTWM_WeightedLeave,
 	RCTWM_WeightedBoth
+};
+
+/** Enum to indicate extrapolation option. */
+UENUM()
+enum ERichCurveExtrapolation
+{
+	RCCE_Cycle,
+	RCCE_CycleWithOffset,
+	RCCE_Oscillate,
+	RCCE_Linear,
+	RCCE_Constant
 };
 
 /** One key in a rich, editable float curve */
@@ -271,6 +282,13 @@ struct ENGINE_API FRichCurve : public FIndexedCurve
 	GENERATED_USTRUCT_BODY()
 
 public:
+	FRichCurve() 
+	: FIndexedCurve()
+	, PreInfinityExtrap(RCCE_Constant)
+	, PostInfinityExtrap(RCCE_Constant)
+	{
+	}
+
 	virtual ~FRichCurve()
 	{
 	}
@@ -288,6 +306,10 @@ public:
 	/** Quick accessors for the first and last keys */
 	FRichCurveKey GetFirstKey() const;
 	FRichCurveKey GetLastKey() const;
+
+	/** Get the next or previous key given the key handle */
+	FKeyHandle GetNextKey(FKeyHandle KeyHandle) const;
+	FKeyHandle GetPreviousKey(FKeyHandle KeyHandle) const;
 
 	/** Get number of key in curve. */
 	virtual int32 GetNumKeys() const override;
@@ -326,9 +348,11 @@ public:
 
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
+	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);
 	
 	/** Scales all keys about an origin, preserving order */
 	void ScaleCurve(float ScaleOrigin, float ScaleFactor);
+	void ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles);
 
 	/** Set the interp mode of the specified key */
 	void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode NewInterpMode);
@@ -354,6 +378,9 @@ public:
 	/** Clear all keys. */
 	void Reset();
 
+	/** Remap InTime based on pre and post infinity extrapolation values */
+	void RemapTimeValue(float& InTime, float& CycleValueOffset) const;
+
 	/** Evaluate this rich curve at the specified time */
 	float Eval(float InTime, float DefaultValue = 0.0f) const;
 
@@ -361,10 +388,19 @@ public:
 	void AutoSetTangents(float Tension = 0.f);
 
 	/** Resize curve length to the [MinTimeRange, MaxTimeRange] */
-	void ResizeTimeRange(float NewMinTimeRange, float NewMaxTimeRange);
+	void ReadjustTimeRange(float NewMinTimeRange, float NewMaxTimeRange, bool bInsert/* whether insert or remove*/, float OldStartTime, float OldEndTime);
 
 	/** Determine if two RichCurves are the same */
 	bool operator == (const FRichCurve& Curve) const;
+
+	/** Pre-infinity extrapolation state */
+	UPROPERTY()
+	TEnumAsByte<ERichCurveExtrapolation> PreInfinityExtrap;
+
+	/** Post-infinity extrapolation state */
+	UPROPERTY()
+	TEnumAsByte<ERichCurveExtrapolation> PostInfinityExtrap;
+
 private:
 	/** Sorted array of keys */
 	UPROPERTY()
@@ -464,10 +500,6 @@ class ENGINE_API UCurveBase : public UObject, public FCurveOwnerInterface
 {
 	GENERATED_UCLASS_BODY()
 
-	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
-	UPROPERTY()
-	FString ImportPath;
-
 	/** Get the time range across all curves */
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
 	void GetTimeRange(float& MinTime, float& MaxTime) const;
@@ -514,6 +546,16 @@ public:
 #if WITH_EDITORONLY_DATA
 	/** Override to ensure we write out the asset import data */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+
+	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
+	class UAssetImportData* AssetImportData;
+
+	/** The filename imported to create this object. Relative to this object's package, BaseDir() or absolute */
+	UPROPERTY()
+	FString ImportPath_DEPRECATED;
+
 #endif
 	// End UObject interface
 };
@@ -553,7 +595,7 @@ public:
 	virtual bool IsKeyHandleValid(FKeyHandle KeyHandle) const override;
 
 	/** Evaluates the value of an array of keys at a time */
-	int32 Evaluate(float Time) const;
+	int32 Evaluate(float Time, int32 DefaultValue = 0) const;
 
 	/** Const iterator for the keys, so the indices and handles stay valid */
 	TArray<FIntegralKey>::TConstIterator GetKeyIterator() const;
@@ -579,13 +621,17 @@ public:
 	
 	/** Shifts all keys forwards or backwards in time by an even amount, preserving order */
 	void ShiftCurve(float DeltaTime);
+	void ShiftCurve(float DeltaTime, TSet<FKeyHandle>& KeyHandles);
 	
 	/** Scales all keys about an origin, preserving order */
 	void ScaleCurve(float ScaleOrigin, float ScaleFactor);
+	void ScaleCurve(float ScaleOrigin, float ScaleFactor, TSet<FKeyHandle>& KeyHandles);
 
 	/** Functions for getting keys based on handles */
 	FIntegralKey& GetKey(FKeyHandle KeyHandle);
 	FIntegralKey GetKey(FKeyHandle KeyHandle) const;
+
+	FKeyHandle FindKey(float KeyTime) const;
 
 private:
 	/** The keys, ordered by time */

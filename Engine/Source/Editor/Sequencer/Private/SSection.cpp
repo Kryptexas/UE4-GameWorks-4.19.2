@@ -19,6 +19,11 @@ void SSection::Construct( const FArguments& InArgs, TSharedRef<FTrackNode> Secti
 	SectionIndex = InSectionIndex;
 	ParentSectionArea = SectionNode;
 	SectionInterface = SectionNode->GetSections()[InSectionIndex];
+
+	ChildSlot
+	[
+		SectionInterface->GenerateSectionWidget()
+	];
 }
 
 void SSection::GetKeyAreas( const TSharedPtr<FTrackNode>& SectionAreaNode, TArray<FKeyAreaElement>& OutKeyAreas ) const
@@ -91,7 +96,9 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 
 			FVector2D LocalSpaceMousePosition = KeyAreaGeometry.AbsoluteToLocal( MousePosition );
 
-			FTimeToPixel TimeToPixelConverter( KeyAreaGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
+			FTimeToPixel TimeToPixelConverter = Section.IsInfinite() ? 			
+				FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+				FTimeToPixel( KeyAreaGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
 
 			// Check each key until we find one under the mouse (if any)
 			TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
@@ -179,7 +186,7 @@ void SSection::CreateDragOperation( const FGeometry& MyGeometry, const FPointerE
 
 	if( bKeysUnderMouse )
 	{
-		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection()->GetSelectedKeys(), PressedKey ) );
+		DragOperation = MakeShareable( new FMoveKeys( GetSequencer(), GetSequencer().GetSelection().GetSelectedKeys(), PressedKey ) );
 	}
 	else
 	{
@@ -208,19 +215,17 @@ int32 SSection::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeomet
 {
 	int32 StartLayer = SCompoundWidget::OnPaint( Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled );
 
-	DrawSectionBorders( AllottedGeometry, MyClippingRect, OutDrawElements, StartLayer );
-
 	FGeometry SectionGeometry = AllottedGeometry.MakeChild( FVector2D( SequencerSectionConstants::SectionGripSize, 0 ), AllottedGeometry.GetDrawSize() - FVector2D( SequencerSectionConstants::SectionGripSize*2, 0.0f ) );
 
+	FSlateRect SectionClipRect = SectionGeometry.GetClippingRect().IntersectionWith( MyClippingRect );
 
 	// Ask the interface to draw the section
-	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, MyClippingRect, OutDrawElements, LayerId, bParentEnabled );
-
-	// @todo Sequencer - Temp indicators of the area of a section which can be dragged.
+	int32 PostSectionLayer = SectionInterface->OnPaintSection( SectionGeometry, SectionClipRect, OutDrawElements, LayerId, bParentEnabled );
+	
+	DrawSectionBorders(AllottedGeometry, MyClippingRect, OutDrawElements, PostSectionLayer );
 
 	PaintKeys( SectionGeometry, MyClippingRect, OutDrawElements, PostSectionLayer, InWidgetStyle );
 
-	
 	// Section name with drop shadow
 	FText SectionTitle = SectionInterface->GetSectionTitle();
 	if (!SectionTitle.IsEmpty())
@@ -289,7 +294,9 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 		FGeometry KeyAreaGeometry = GetKeyAreaGeometry( Element, AllottedGeometry );
 
-		FTimeToPixel TimeToPixelConverter( KeyAreaGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
+		FTimeToPixel TimeToPixelConverter = SectionObject.IsInfinite() ? 			
+			FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+			FTimeToPixel( KeyAreaGeometry, TRange<float>( SectionObject.GetStartTime(), SectionObject.GetEndTime() ) );
 
 		// Draw a box for the key area 
 		// @todo Sequencer - Allow the IKeyArea to do this
@@ -321,8 +328,8 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 				FSelectedKey TestKey( SectionObject, KeyArea, KeyHandle );
 
-				bool bSelected = Sequencer.GetSelection()->IsSelected( TestKey );
-				bool bActive = Sequencer.GetSelection()->GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
+				bool bSelected = Sequencer.GetSelection().IsSelected( TestKey );
+				bool bActive = Sequencer.GetSelection().GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
 
 				if( TestKey == PressedKey )
 				{
@@ -365,9 +372,9 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 {
 	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
 
-	FSequencerSelection* Selection = ParentSectionArea->GetSequencer().GetSelection();
-	const bool bSelected = Selection->IsSelected(SectionObject);
-	const bool bActive = Selection->GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
+	FSequencerSelection& Selection = ParentSectionArea->GetSequencer().GetSelection();
+	const bool bSelected = Selection.IsSelected(SectionObject);
+	const bool bActive = Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection;
 
 	static const FName SelectionColorName("SelectionColor");
 	static const FName SelectionInactiveColorName("SelectionColorInactive");
@@ -407,13 +414,13 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 	// draw selection box
 	if(bSelected)
 	{
-		static const FName PlainBorder("PlainBorder");
+		static const FName SelectionBorder("Sequencer.Section.SelectionBorder");
 
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
-			LayerId,
+			LayerId+1,
 			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush(PlainBorder),
+			FEditorStyle::GetBrush(SelectionBorder),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			bActive ? SelectionColor : SelectionInactiveColor
@@ -445,24 +452,7 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 	}
 	else
 	{
-		bool bIsAShotSection = SceneSection->IsA<UMovieSceneShotSection>();
-
-		if (bIsAShotSection)
-		{
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "RenameShot", "Rename"),
-				NSLOCTEXT("Sequencer", "RenameShotToolTip", "Renames this shot."),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::RenameShot, SceneSection))
-				);
-
-			MenuBuilder.AddMenuEntry(
-				NSLOCTEXT("Sequencer", "FilterToShots", "Filter To Shots"),
-				NSLOCTEXT("Sequencer", "FilterToShotsToolTip", "Filters to the selected shot sections"),
-				FSlateIcon(),
-				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::FilterToSelectedShotSections, true))
-				);
-		}
+		SectionInterface->BuildSectionContextMenu(MenuBuilder);
 
 		// @todo Sequencer this should delete all selected sections
 		// delete/selection needs to be rethought in general
@@ -555,8 +545,11 @@ FReply SSection::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEve
 			TSharedPtr<SWidget> MenuContent = OnSummonContextMenu( MyGeometry, MouseEvent );
 			if (MenuContent.IsValid())
 			{
+				FWidgetPath WidgetPath = MouseEvent.GetEventPath() != nullptr ? *MouseEvent.GetEventPath() : FWidgetPath();
+
 				FSlateApplication::Get().PushMenu(
 					AsShared(),
+					WidgetPath,
 					MenuContent.ToSharedRef(),
 					MouseEvent.GetScreenSpacePosition(),
 					FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu )
@@ -616,7 +609,7 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 					if( PressedKey.IsValid() )
 					{
 						// Clear selected sections when beginning to drag keys
-						GetSequencer().GetSelection()->EmptySelectedSections();
+						GetSequencer().GetSelection().EmptySelectedSections();
 
 						bool bSelectDueToDrag = true;
 						HandleKeySelection( PressedKey, MouseEvent, bSelectDueToDrag );
@@ -627,7 +620,7 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 					else
 					{
 						// Clear selected keys when beginning to drag a section
-						GetSequencer().GetSelection()->EmptySelectedKeys();
+						GetSequencer().GetSelection().EmptySelectedKeys();
 
 						HandleSectionSelection( MouseEvent );
 
@@ -645,7 +638,9 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 			else if( DragOperation.IsValid() )
 			{
 				// Already in a drag, tell all operations to perform their drag implementations
-				FTimeToPixel TimeToPixelConverter( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
+				FTimeToPixel TimeToPixelConverter = SectionInterface->GetSectionObject()->IsInfinite() ? 			
+					FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+					FTimeToPixel( MyGeometry, TRange<float>( SectionInterface->GetSectionObject()->GetStartTime(), SectionInterface->GetSectionObject()->GetEndTime() ) );
 
 				DragOperation->OnDrag( MouseEvent, LocalMousePos, TimeToPixelConverter, ParentSectionArea );
 			}
@@ -677,6 +672,8 @@ FReply SSection::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& 
 
 void SSection::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
+	SCompoundWidget::OnMouseLeave( MouseEvent );
+
 	if( !HasMouseCapture() )
 	{
 		ResetHoveredState();
@@ -721,13 +718,16 @@ void SSection::HandleKeySelection( const FSelectedKey& Key, const FPointerEvent&
 	{
 		// Clear previous key selection if:
 		// we are selecting due to drag and the key being dragged is not selected or control is not down
-		bool bShouldClearSelectionDueToDrag =  bSelectDueToDrag ? !GetSequencer().GetSelection()->IsSelected( Key ) : true;
+		bool bShouldClearSelectionDueToDrag =  bSelectDueToDrag ? !GetSequencer().GetSelection().IsSelected( Key ) : true;
 		
-		if( !MouseEvent.IsControlDown() && bShouldClearSelectionDueToDrag )
+		// Keep key selection if right clicking to bring up a menu and the current key is selected
+		bool bKeepKeySelection = MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && GetSequencer().GetSelection().IsSelected( Key );
+
+		if( (!MouseEvent.IsControlDown() && bShouldClearSelectionDueToDrag) && !bKeepKeySelection )
 		{
-			GetSequencer().GetSelection()->EmptySelectedKeys();
+			GetSequencer().GetSelection().EmptySelectedKeys();
 		}
-		GetSequencer().GetSelection()->AddToSelection( Key );
+		GetSequencer().GetSelection().AddToSelection( Key );
 	}
 }
 
@@ -735,11 +735,11 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent )
 {
 	if( !MouseEvent.IsControlDown() )
 	{
-		GetSequencer().GetSelection()->EmptySelectedSections();
+		GetSequencer().GetSelection().EmptySelectedSections();
 	}
 
 	// handle selecting sections 
 	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
-	GetSequencer().GetSelection()->AddToSelection(Section);
+	GetSequencer().GetSelection().AddToSelection(Section);
 }
 

@@ -130,7 +130,11 @@ void FAvfMediaPlayer::Close()
         MediaPlayer = nil;
     }
     
-	Tracks.Reset();
+	AudioTracks.Reset();
+	CaptionTracks.Reset();
+	VideoTracks.Reset();
+
+	TracksChangedEvent.Broadcast();
     
     Duration = CurrentTime = FTimespan::Zero();
     
@@ -153,6 +157,18 @@ void FAvfMediaPlayer::Close()
 }
 
 
+const TArray<IMediaAudioTrackRef>& FAvfMediaPlayer::GetAudioTracks() const
+{
+	return AudioTracks;
+}
+
+
+const TArray<IMediaCaptionTrackRef>& FAvfMediaPlayer::GetCaptionTracks() const
+{
+	return CaptionTracks;
+}
+
+
 const IMediaInfo& FAvfMediaPlayer::GetMediaInfo() const
 {
 	return *this;
@@ -171,9 +187,9 @@ FTimespan FAvfMediaPlayer::GetTime() const
 }
 
 
-const TArray<IMediaTrackRef>& FAvfMediaPlayer::GetTracks() const
+const TArray<IMediaVideoTrackRef>& FAvfMediaPlayer::GetVideoTracks() const
 {
-	return Tracks;
+	return VideoTracks;
 }
 
 
@@ -191,29 +207,58 @@ bool FAvfMediaPlayer::IsPaused() const
 
 bool FAvfMediaPlayer::IsPlaying() const
 {
-	return (MediaPlayer != nil) && !FMath::IsNearlyZero([MediaPlayer rate]) && (Tracks.Num() > 0) && (CurrentTime <= Duration);
+	if ((AudioTracks.Num() > 0) && (CaptionTracks.Num() > 0) && (VideoTracks.Num() > 0))
+	{
+		return false;
+	}
+
+	return (MediaPlayer != nil) && !FMath::IsNearlyZero([MediaPlayer rate]) && (CurrentTime <= Duration);
 }
 
 
 bool FAvfMediaPlayer::IsReady() const
 {
     // To be ready, we need the AVPlayer setup
-    bool bIsReady = (MediaPlayer != nil) && ([MediaPlayer status] == AVPlayerStatusReadyToPlay);
+	if ((MediaPlayer == nil) || ([MediaPlayer status] != AVPlayerStatusReadyToPlay))
+	{
+		return false;
+	}
 
 	// A player item setup and ready to stream,
-    bIsReady &= ((MediaHelper != nil) && ([MediaHelper bIsPlayerItemReady]));
+	if ((MediaHelper == nil) || (![MediaHelper bIsPlayerItemReady]))
+	{
+		return false;
+	}
     
     // and all tracks to be setup and ready
-    for( const IMediaTrackRef& Track : Tracks )
+    for( const IMediaAudioTrackRef& AudioTrack : AudioTracks )
     {
-        FAvfMediaVideoTrack* AVFTrack = (FAvfMediaVideoTrack*)&Track.Get();
-        if( AVFTrack != nil )
-        {
-            bIsReady &= AVFTrack->IsReady();
+        FAvfMediaTrack& AVFTrack = (FAvfMediaTrack&)AudioTrack.Get();
+		if (!AVFTrack.IsReady())
+		{
+			return false;
         }
     }
-    
-    return bIsReady;
+
+	for( const IMediaCaptionTrackRef& CaptionTrack : CaptionTracks )
+    {
+        FAvfMediaTrack& AVFTrack = (FAvfMediaTrack&)CaptionTrack.Get();
+		if (!AVFTrack.IsReady())
+		{
+			return false;
+        }
+    }
+
+	for( const IMediaVideoTrackRef& VideoTrack : VideoTracks )
+    {
+        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+		if (!AVFTrack.IsReady())
+		{
+			return false;
+        }
+    }
+
+	return true;
 }
 
 
@@ -260,12 +305,12 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                     NSError* Error = nil;
                     if( [[PlayerItem asset] statusOfValueForKey:@"tracks" error:&Error] == AVKeyValueStatusLoaded )
                     {
-                        NSArray* VideoTracks = [[PlayerItem asset] tracksWithMediaType:AVMediaTypeVideo];
-                        if( VideoTracks.count > 0 )
+                        NSArray* AssetVideoTracks = [[PlayerItem asset] tracksWithMediaType:AVMediaTypeVideo];
+                        if( AssetVideoTracks.count > 0 )
                         {
-                            AVAssetTrack* VideoTrack = [VideoTracks objectAtIndex: 0];
-                            Tracks.Add( MakeShareable( new FAvfMediaVideoTrack(VideoTrack) ) );
-     
+                            AVAssetTrack* VideoTrack = [AssetVideoTracks objectAtIndex: 0];
+                            VideoTracks.Add( MakeShareable( new FAvfMediaVideoTrack(VideoTrack) ) );
+
 #if PLATFORM_MAC
                             GameThreadCall(^{
 #elif PLATFORM_IOS
@@ -273,8 +318,9 @@ bool FAvfMediaPlayer::Open( const FString& Url )
                             [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void){
 #endif
                                 // Displatch on the gamethread that we have opened the video.
+								TracksChangedEvent.Broadcast();
                                 OpenedEvent.Broadcast( CachedUrl );
-                         
+
 #if PLATFORM_IOS
                                 return true;
                             }];
@@ -318,7 +364,7 @@ bool FAvfMediaPlayer::Open( const FString& Url )
 }
 
 
-bool FAvfMediaPlayer::Open( const TSharedRef<TArray<uint8>>& Buffer, const FString& OriginalUrl )
+bool FAvfMediaPlayer::Open( const TSharedRef<FArchive, ESPMode::ThreadSafe>& Archive, const FString& OriginalUrl )
 {
     return false;
 }
@@ -335,13 +381,10 @@ bool FAvfMediaPlayer::Seek( const FTimespan& Time )
 	[MediaPlayer seekToTime:CurrentTimeInSeconds];
 	[[MediaPlayer currentItem] seekToTime:CurrentTimeInSeconds];
 
-    for( IMediaTrackRef& Track : Tracks )
+    for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
     {
-        FAvfMediaVideoTrack* AVFTrack = (FAvfMediaVideoTrack*)&Track.Get();
-        if( AVFTrack != nil )
-        {
-            AVFTrack->SeekToTime(CurrentTimeInSeconds);
-        }
+        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+        AVFTrack.SeekToTime(CurrentTimeInSeconds);
     }
 
     return false;
@@ -367,25 +410,22 @@ bool FAvfMediaPlayer::SetRate( float Rate )
 
 bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
-    if( ShouldAdvanceFrames() )
+    if (!ShouldAdvanceFrames())
     {
-		AVPlayerItem* item = [MediaPlayer currentItem];
-	    if (item != nil)
-	    {
-	        CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([item currentTime]) );
-	    }
-        
-        for (IMediaTrackRef& Track : Tracks)
-        {
-            FAvfMediaVideoTrack* AVFTrack = (FAvfMediaVideoTrack*)&Track.Get();
-        
-            if (AVFTrack != nil)
-            {
-                AVFTrack->ReadFrameAtTime([[MediaPlayer currentItem] currentTime]);
-            }
-        }
-    }
+		return true;
+	}
 
+	AVPlayerItem* item = [MediaPlayer currentItem];
+	if (item != nil)
+	{
+	    CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([item currentTime]) );
+	}
+        
+    for (IMediaVideoTrackRef& VideoTrack : VideoTracks)
+    {
+        FAvfMediaVideoTrack& AVFTrack = (FAvfMediaVideoTrack&)VideoTrack.Get();
+        AVFTrack.ReadFrameAtTime([[MediaPlayer currentItem] currentTime]);
+    }
     
     return true;
 }

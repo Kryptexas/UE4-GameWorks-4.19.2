@@ -158,3 +158,29 @@ public class BuildCommonTools : BuildCommand
 		return Agenda;
 	}
 }
+
+public class ZipProjectUp : BuildCommand
+{
+    public override void ExecuteBuild()
+    {
+        // Get Directories
+        string ProjectDirectory = ParseParamValue("project", "");
+        string InstallDirectory = ParseParamValue("install", "");
+        ProjectDirectory = Path.GetDirectoryName(ProjectDirectory);
+
+        Log("Started zipping project up");
+        Log("Project directory: {0}", ProjectDirectory);
+        Log("Install directory: {0}", InstallDirectory);
+        Log("Packaging up the project...");
+
+        // Setup filters
+        FileFilter Filter = new FileFilter();
+        Filter.Include("/Config/...");
+        Filter.Include("/Content/...");
+        Filter.Include("*.uproject");
+
+        ZipFiles(InstallDirectory, ProjectDirectory, Filter);
+
+        Log(System.Diagnostics.TraceEventType.Warning, "Completed zipping project up");
+    }
+}

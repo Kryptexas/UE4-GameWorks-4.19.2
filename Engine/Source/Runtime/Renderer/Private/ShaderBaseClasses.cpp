@@ -73,6 +73,8 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 	// only used it Material has expression that requires PerlinNoise3DTexture
 	PerlinNoise3DTexture.Bind(Initializer.ParameterMap,TEXT("PerlinNoise3DTexture"));
 	PerlinNoise3DTextureSampler.Bind(Initializer.ParameterMap,TEXT("PerlinNoise3DTextureSampler"));
+
+	GlobalDistanceFieldParameters.Bind(Initializer.ParameterMap);
 }
 
 FUniformBufferRHIParamRef FMaterialShader::GetParameterCollectionBuffer(const FGuid& Id, const FSceneInterface* SceneInterface) const
@@ -262,7 +264,7 @@ void FMaterialShader::SetParameters(
 				LightAttenuation,
 				LightAttenuationSampler,
 				TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(),
-				GSceneRenderTargets.GetLightAttenuationTexture());
+				FSceneRenderTargets::Get(RHICmdList).GetLightAttenuationTexture());
 		}
 	}
 
@@ -300,6 +302,8 @@ void FMaterialShader::SetParameters(
 			Texture
 			);
 	}
+
+	GlobalDistanceFieldParameters.Set(RHICmdList, ShaderRHI, static_cast<const FViewInfo&>(View).GlobalDistanceFieldInfo.ParameterData);
 }
 
 // Doxygen struggles to parse these explicit specializations. Just ignore them for now.
@@ -333,19 +337,8 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << DeferredParameters;
 	Ar << LightAttenuation;
 	Ar << LightAttenuationSampler;
-	if (Ar.UE4Ver() >= VER_UE4_SMALLER_DEBUG_MATERIALSHADER_UNIFORM_EXPRESSIONS)
-	{
-		Ar << DebugUniformExpressionSet;
-		Ar << DebugDescription;
-	}
-	else if (Ar.IsLoading())
-	{
-		FUniformExpressionSet TempExpressionSet;
-		TempExpressionSet.Serialize(Ar);
-		DebugUniformExpressionSet.InitFromExpressionSet(TempExpressionSet);
-
-		Ar << DebugDescription;
-	}
+	Ar << DebugUniformExpressionSet;
+	Ar << DebugDescription;
 	Ar << AtmosphericFogTextureParameters;
 	Ar << EyeAdaptation;
 	Ar << PerlinNoiseGradientTexture;
@@ -357,6 +350,7 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerFrameVectorExpressions;
 	Ar << PerFramePrevScalarExpressions;
 	Ar << PerFramePrevVectorExpressions;
+	Ar << GlobalDistanceFieldParameters;
 
 	return bShaderHasOutdatedParameters;
 }
@@ -394,6 +388,7 @@ void FMeshMaterialShader::SetMesh(
 	const FSceneView& View,
 	const FPrimitiveSceneProxy* Proxy,
 	const FMeshBatchElement& BatchElement,
+	float DitheredLODTransitionValue,
 	uint32 DataFlags )
 {
 	// Set the mesh for the vertex factory
@@ -414,6 +409,10 @@ void FMeshMaterialShader::SetMesh(
 	{
 		SetUniformBufferParameter(RHICmdList, ShaderRHI,LODParameter,GetPrimitiveFadeUniformBufferParameter(View, Proxy));
 	}
+	if (NonInstancedDitherLODFactorParameter.IsBound())
+	{
+		SetShaderValue(RHICmdList, ShaderRHI, NonInstancedDitherLODFactorParameter, DitheredLODTransitionValue);
+	}
 }
 
 #define IMPLEMENT_MESH_MATERIAL_SHADER_SetMesh( ShaderRHIParamRef ) \
@@ -424,6 +423,7 @@ void FMeshMaterialShader::SetMesh(
 		const FSceneView& View,					\
 		const FPrimitiveSceneProxy* Proxy,		\
 		const FMeshBatchElement& BatchElement,	\
+		float DitheredLODTransitionValue,		\
 		uint32 DataFlags						\
 	);
 
@@ -438,6 +438,7 @@ bool FMeshMaterialShader::Serialize(FArchive& Ar)
 {
 	bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
 	bShaderHasOutdatedParameters |= Ar << VertexFactoryParameters;
+	Ar << NonInstancedDitherLODFactorParameter;
 	return bShaderHasOutdatedParameters;
 }
 

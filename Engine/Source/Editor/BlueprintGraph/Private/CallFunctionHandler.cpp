@@ -155,9 +155,9 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 		int32 LatentTargetParamIndex = INDEX_NONE;
 
 		// Grab the special case structs that use their own literal path
-		UScriptStruct* VectorStruct = GetBaseStructure(TEXT("Vector"));
-		UScriptStruct* RotatorStruct = GetBaseStructure(TEXT("Rotator"));
-		UScriptStruct* TransformStruct = GetBaseStructure(TEXT("Transform"));
+		UScriptStruct* VectorStruct = TBaseStructure<FVector>::Get();
+		UScriptStruct* RotatorStruct = TBaseStructure<FRotator>::Get();
+		UScriptStruct* TransformStruct = TBaseStructure<FTransform>::Get();
 
 		// Check each property
 		bool bMatchedAllParams = true;
@@ -417,37 +417,6 @@ void FKCHandler_CallFunction::CreateFunctionCallStatement(FKismetFunctionContext
 						check(LatentTargetParamIndex != INDEX_NONE);
 						Statement.UbergraphCallIndex = LatentTargetParamIndex;
 						Context.GotoFixupRequestMap.Add(&Statement, ThenExecPin);
-					}
-				}
-
-				// Check to see if we need to fix up any terms for array property coersion
-				if( UK2Node_CallArrayFunction* ArrayNode = Cast<UK2Node_CallArrayFunction>(Node) )
-				{
-					TArray< FArrayPropertyPinCombo > ArrayPinInfo;
-					ArrayNode->GetArrayPins(ArrayPinInfo);
-
-					for(auto Iter = ArrayPinInfo.CreateConstIterator(); Iter; ++Iter)
-					{
-						UEdGraphPin* ArrayPropPin = Iter->ArrayPropPin;
-						UEdGraphPin* ArrayTargetPin = Iter->ArrayPin;
-						if( ArrayPropPin && ArrayTargetPin )
-						{
-							// Find the array property literal term, used for specifying the type of TargetArray
-							for( int32 i = 0; i < Context.Literals.Num(); i++ )
-							{
-								FBPTerminal& Term = Context.Literals[i];
-								if( Term.Source == ArrayPropPin )
-								{
-									// Now, map the array property literal term to the TargetArray term.  The AssociatedVarProperty will later be filled in as the array prop's object literal in the backend
-									UEdGraphPin* Net = FEdGraphUtilities::GetNetFromPin(ArrayTargetPin);
-									FBPTerminal** TargetTerm = Context.NetMap.Find(Net);
-									if( TargetTerm )
-									{
-										Statement.ArrayCoersionTermMap.Add(&Term, *TargetTerm);
-									}
-								}
-							}
-						}
 					}
 				}
 

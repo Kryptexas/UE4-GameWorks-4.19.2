@@ -82,13 +82,13 @@ struct FPakInfo
 };
 
 /**
- * Struct storing offsets and sizes of a compressed block
+ * Struct storing offsets and sizes of a compressed block.
  */
 struct FPakCompressedBlock
 {
-	/** Offset of the start of a compression block. Offset is absolute */
+	/** Offset of the start of a compression block. Offset is absolute. */
 	int64 CompressedStart;
-	/** Offset of the end of a compression block. This may not align completely with the start of the next block. Offset is absolute */
+	/** Offset of the end of a compression block. This may not align completely with the start of the next block. Offset is absolute. */
 	int64 CompressedEnd;
 
 	bool operator == (const FPakCompressedBlock& B) const
@@ -124,13 +124,13 @@ struct FPakEntry
 	int32 CompressionMethod;
 	/** File SHA1 value. */
 	uint8 Hash[20];
-	/** Array of compression blocks that describe how to decompress this pak entry */
+	/** Array of compression blocks that describe how to decompress this pak entry. */
 	TArray<FPakCompressedBlock> CompressionBlocks;
-	/** Size of a compressed block in the file */
+	/** Size of a compressed block in the file. */
 	uint32 CompressionBlockSize;
-	/** True is file is encrypted */
+	/** True is file is encrypted. */
 	uint8 bEncrypted;
-	/** Flag is set to true when FileHeader has been checked against PakHeader. It is not serialized */
+	/** Flag is set to true when FileHeader has been checked against PakHeader. It is not serialized. */
 	mutable bool  Verified;
 
 	/**
@@ -270,7 +270,7 @@ class PAKFILE_API FPakFile : FNoncopyable
 	FDateTime Timestamp;	
 	/** True if this is a signed pak file. */
 	bool bSigned;
-	/** True if this pak file is valid and usable */
+	/** True if this pak file is valid and usable. */
 	bool bIsValid;
 
 	FArchive* CreatePakReader(const TCHAR* Filename);
@@ -292,14 +292,14 @@ public:
 	 *
 	 * @param LowerLevel Lower level platform file.
 	 * @param Filename Filename.
-	 * @param bIsSigned true if the pak is signed
+	 * @param bIsSigned = true if the pak is signed.
 	 */
 	FPakFile(IPlatformFile* LowerLevel, const TCHAR* Filename, bool bIsSigned);
 
 	/**
-	 * Creates a pak file using the supplied archive
+	 * Creates a pak file using the supplied archive.
 	 *
-	 * @param Archive	Pointer to the archive which contains the pak file data
+	 * @param Archive	Pointer to the archive which contains the pak file data.
 	 */
 	FPakFile(FArchive* Archive);
 
@@ -336,7 +336,7 @@ public:
 	}
 
 	/**
-	 * Gets shared pak file archive for given thrad
+	 * Gets shared pak file archive for given thread.
 	 *
 	 * @return Pointer to pak file archive used to read data from pak.
 	 */
@@ -403,7 +403,7 @@ public:
 
 		// Check the specified path is under the mount point of this pak file.
 		// The reverse case (MountPoint StartsWith Directory) is needed to properly handle
-		// pak files that are a subdirectory of the actual directory
+		// pak files that are a subdirectory of the actual directory.
 		if ((Directory.StartsWith(MountPoint)) || (MountPoint.StartsWith(Directory)))
 		{
 			TArray<FString> DirectoriesInPak; // List of all unique directories at path

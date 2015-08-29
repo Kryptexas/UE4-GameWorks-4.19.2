@@ -5,9 +5,11 @@
 #include "BlueprintGraphDefinitions.h"
 #include "GraphEditorSettings.h"
 #include "NiagaraComponent.h"
+#include "GraphEditorActions.h"
 
 #include "INiagaraEditor.h"
 #include "INiagaraCompiler.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "NiagaraSchema"
 
@@ -31,6 +33,9 @@ UEdGraphNode* FNiagaraSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 	// If there is a template, we actually use it
 	if (NodeTemplate != NULL)
 	{
+		const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "NiagaraEditorNewNode", "Niagara Editor: New Node"));
+		ParentGraph->Modify();
+
 		NodeTemplate->SetFlags(RF_Transactional);
 
 		// set outer to be the graph so it doesn't go away
@@ -63,6 +68,8 @@ UEdGraphNode* FNiagaraSchemaAction_NewNode::PerformAction(class UEdGraph* Parent
 		NodeTemplate->SnapToGrid(SNAP_GRID);
 
 		ResultNode = NodeTemplate;
+
+		ParentGraph->NotifyGraphChanged();
 	}
 
 	return ResultNode;
@@ -110,7 +117,7 @@ UEdGraphSchema_Niagara::UEdGraphSchema_Niagara(const FObjectInitializer& ObjectI
 	PC_Curve = TEXT("curve");
 }
 
-TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FString& Category, const FText& MenuDesc, const FString& Tooltip)
+TSharedPtr<FNiagaraSchemaAction_NewNode> AddNewNodeAction(FGraphContextMenuBuilder& ContextMenuBuilder, const FText& Category, const FText& MenuDesc, const FString& Tooltip)
 {
 	TSharedPtr<FNiagaraSchemaAction_NewNode> NewAction = TSharedPtr<FNiagaraSchemaAction_NewNode>(new FNiagaraSchemaAction_NewNode(Category, MenuDesc, Tooltip, 0));
 	ContextMenuBuilder.AddAction( NewAction );
@@ -133,7 +140,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 			Args.Add(TEXT("Attribute"), FText::FromName(Attr.Name));
 			const FText MenuDesc = FText::Format(LOCTEXT("GetAttribute", "Get {Attribute}"), Args);
 
-			TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("Attributes Menu Title", "Attributes").ToString(), MenuDesc, TEXT(""));
+			TSharedPtr<FNiagaraSchemaAction_NewNode> GetAttrAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Attributes Menu Title", "Attributes"), MenuDesc, TEXT(""));
 
 			UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 			InputNode->Input = Attr;
@@ -144,7 +151,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 #define NiagaraOp(OPNAME) \
 		if(const FNiagaraOpInfo* OpInfo = FNiagaraOpInfo::GetOpInfo(FNiagaraOpInfo::OPNAME))\
 		{\
-		TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("Operations Menu Title", "Operations").ToString(), OpInfo->FriendlyName, TEXT("")); \
+		TSharedPtr<FNiagaraSchemaAction_NewNode> AddOpAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("Operations Menu Title", "Operations"), OpInfo->FriendlyName, TEXT("")); \
 			UNiagaraNodeOp* OpNode = NewObject<UNiagaraNodeOp>(ContextMenuBuilder.OwnerOfTemporaries); \
 			OpNode->OpName = OpInfo->Name; \
 			AddOpAction->NodeTemplate = OpNode; \
@@ -162,7 +169,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		Args.Add(TEXT("Constant"), FText::FromName(SysConst.Name));
 		const FText MenuDesc = FText::Format(LOCTEXT("GetSystemConstant", "Get {Constant}"), Args);
 
-		TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("System Constants Menu Title", "System Constants").ToString(), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, LOCTEXT("System Constants Menu Title", "System Constants"), MenuDesc, TEXT(""));
 
 		UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 		InputNode->Input = SysConst;
@@ -176,7 +183,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 		const FText MenuDesc = LOCTEXT("GetInput", "Input");
 
 		//TSharedPtr<FNiagaraSchemaAction_NewNode> GetConstAction = AddNewNodeAction(ContextMenuBuilder, *LOCTEXT("System Constants Menu Title", "System Constants").ToString(), MenuDesc, TEXT(""));
-		TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> InputAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
 
 		UNiagaraNodeInput* InputNode = NewObject<UNiagaraNodeInput>(ContextMenuBuilder.OwnerOfTemporaries);
 		InputNode->Input.Name = NAME_None;
@@ -188,7 +195,7 @@ void UEdGraphSchema_Niagara::GetGraphContextActions(FGraphContextMenuBuilder& Co
 	{
 		const FText MenuDesc = LOCTEXT("NiagaraFunctionCall", "Function Call");
 
-		TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, TEXT(""), MenuDesc, TEXT(""));
+		TSharedPtr<FNiagaraSchemaAction_NewNode> FunctionCallAction = AddNewNodeAction(ContextMenuBuilder, FText::GetEmpty(), MenuDesc, TEXT(""));
 
 		UNiagaraNodeFunctionCall* FunctionCallNode = NewObject<UNiagaraNodeFunctionCall>(ContextMenuBuilder.OwnerOfTemporaries);
 		FunctionCallAction->NodeTemplate = FunctionCallNode;
@@ -236,6 +243,20 @@ const FPinConnectionResponse UEdGraphSchema_Niagara::CanCreateConnection(const U
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, TEXT(""));
 	}
+}
+
+void UEdGraphSchema_Niagara::BreakSinglePinLink(UEdGraphPin* SourcePin, UEdGraphPin* TargetPin) 
+{
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "NiagaraEditorBreakConnection", "Niagara Editor: Break Connection"));
+
+	Super::BreakSinglePinLink(SourcePin, TargetPin);
+}
+
+bool UEdGraphSchema_Niagara::TryCreateConnection(UEdGraphPin* A, UEdGraphPin* B) const
+{
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "NiagaraEditorCreateConnection", "Niagara Editor: Create Connection"));
+
+	return Super::TryCreateConnection(A, B);
 }
 
 FLinearColor UEdGraphSchema_Niagara::GetPinTypeColor(const FEdGraphPinType& PinType) const
@@ -340,6 +361,83 @@ void UEdGraphSchema_Niagara::GetPinDefaultValue(UEdGraphPin* Pin, FMatrix& OutDe
 bool UEdGraphSchema_Niagara::IsSystemConstant(const FNiagaraVariableInfo& Variable)const
 {
 	return UNiagaraComponent::GetSystemConstants().Find(Variable) != INDEX_NONE;
+}
+
+void UEdGraphSchema_Niagara::GetBreakLinkToSubMenuActions(class FMenuBuilder& MenuBuilder, UEdGraphPin* InGraphPin)
+{
+	// Make sure we have a unique name for every entry in the list
+	TMap< FString, uint32 > LinkTitleCount;
+
+	// Add all the links we could break from
+	for (TArray<class UEdGraphPin*>::TConstIterator Links(InGraphPin->LinkedTo); Links; ++Links)
+	{
+		UEdGraphPin* Pin = *Links;
+		FString TitleString = Pin->GetOwningNode()->GetNodeTitle(ENodeTitleType::ListView).ToString();
+		FText Title = FText::FromString(TitleString);
+		if (Pin->PinName != TEXT(""))
+		{
+			TitleString = FString::Printf(TEXT("%s (%s)"), *TitleString, *Pin->PinName);
+
+			// Add name of connection if possible
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("NodeTitle"), Title);
+			Args.Add(TEXT("PinName"), Pin->GetDisplayName());
+			Title = FText::Format(LOCTEXT("BreakDescPin", "{NodeTitle} ({PinName})"), Args);
+		}
+
+		uint32 &Count = LinkTitleCount.FindOrAdd(TitleString);
+
+		FText Description;
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("NodeTitle"), Title);
+		Args.Add(TEXT("NumberOfNodes"), Count);
+
+		if (Count == 0)
+		{
+			Description = FText::Format(LOCTEXT("BreakDesc", "Break link to {NodeTitle}"), Args);
+		}
+		else
+		{
+			Description = FText::Format(LOCTEXT("BreakDescMulti", "Break link to {NodeTitle} ({NumberOfNodes})"), Args);
+		}
+		++Count;
+		MenuBuilder.AddMenuEntry(Description, Description, FSlateIcon(), FUIAction(
+			FExecuteAction::CreateUObject((UEdGraphSchema_Niagara*const)this, &UEdGraphSchema::BreakSinglePinLink, const_cast<UEdGraphPin*>(InGraphPin), *Links)));
+	}
+}
+
+void UEdGraphSchema_Niagara::GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const
+{
+	if (InGraphPin)
+	{
+		MenuBuilder->BeginSection("EdGraphSchema_NiagaraPinActions", LOCTEXT("PinActionsMenuHeader", "Pin Actions"));
+		{
+			// Only display the 'Break Link' option if there is a link to break!
+			if (InGraphPin->LinkedTo.Num() > 0)
+			{
+				MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().BreakPinLinks);
+
+				// add sub menu for break link to
+				if (InGraphPin->LinkedTo.Num() > 1)
+				{
+					MenuBuilder->AddSubMenu(
+						LOCTEXT("BreakLinkTo", "Break Link To..."),
+						LOCTEXT("BreakSpecificLinks", "Break a specific link..."),
+						FNewMenuDelegate::CreateUObject((UEdGraphSchema_Niagara*const)this, &UEdGraphSchema_Niagara::GetBreakLinkToSubMenuActions, const_cast<UEdGraphPin*>(InGraphPin)));
+				}
+				else
+				{
+					((UEdGraphSchema_Niagara*const)this)->GetBreakLinkToSubMenuActions(*MenuBuilder, const_cast<UEdGraphPin*>(InGraphPin));
+				}				
+			}
+		}
+		MenuBuilder->EndSection();
+	}
+	else if (InGraphNode)
+	{
+	}
+
+	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
 }
 
 #undef LOCTEXT_NAMESPACE

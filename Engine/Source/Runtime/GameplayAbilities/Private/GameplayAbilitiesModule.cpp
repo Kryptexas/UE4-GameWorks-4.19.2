@@ -29,6 +29,11 @@ class FGameplayAbilitiesModule : public IGameplayAbilitiesModule
 		return AbilitySystemGlobals;
 	}
 
+	virtual bool IsAbilitySystemGlobalsAvailable() override
+	{
+		return AbilitySystemGlobals != nullptr;
+	}
+
 	UAbilitySystemGlobals *AbilitySystemGlobals;
 
 	void GetActiveAbilitiesDebugDataForActor(AActor* Actor, FString& AbilityString, bool& bIsUsingAbilities);

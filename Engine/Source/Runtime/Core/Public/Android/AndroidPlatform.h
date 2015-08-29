@@ -26,7 +26,6 @@ typedef FAndroidTypes FPlatformTypes;
 
 // Base defines, must define these for the platform, there are no defaults
 #define PLATFORM_DESKTOP				0
-#define PLATFORM_64BITS					0
 #define PLATFORM_CAN_SUPPORT_EDITORONLY_DATA	0
 
 // Base defines, defaults are commented out
@@ -38,7 +37,6 @@ typedef FAndroidTypes FPlatformTypes;
 #define PLATFORM_USE_PTHREADS						1
 #define PLATFORM_MAX_FILEPATH_LENGTH				MAX_PATH
 #define PLATFORM_SUPPORTS_TEXTURE_STREAMING			0
-#define PLATFORM_USES_DYNAMIC_RHI					1
 #define PLATFORM_REQUIRES_FILESERVER				1
 #define PLATFORM_TCHAR_IS_4_BYTES					1
 #define PLATFORM_HAS_NO_EPROCLIM					1

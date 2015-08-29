@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:2346368
+﻿INTSourceChangelist:2618665
 Availability:Public
 Title:5.1 - Source Radius
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Lighting
-Description:ライティングの事例概要、例 5.1：Source Radius (静的ライト)
+Description:ライティングのサンプル レベル、5.1：Source Radius (静的ライト)
 Related:Engine/Rendering/LightingAndShadows/Basics
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Point
 Related:Engine/Rendering/LightingAndShadows/LightTypes/Spot
@@ -39,10 +39,10 @@ Related:Engine/Rendering/LightingAndShadows/LightMobility
 ![%Resources\ContentExamples\Lighting\5_1:title%](Resources\ContentExamples\Lighting\Lighting_5_1.png)
 [/REGION]
 
-この例は静的ライトに Source Radius プロパティを変化させた場合の影響を示します。静的オブジェクトの両側には色が異なる 2 つの静的ライトがあります。色は変化をより簡単に表示するために使用しています。
+この例は **静的ライト** に **Source Radius** プロパティを変化させた場合の影響を示します。静的オブジェクトの両側には色が異なる 2 つの静的ライトがあります。色は変化をより簡単に表示するために使用しています。
 
 
-Source Radius は光源のサイズをシミュレーションします。お気づきになった方もいるかもしれませんが、小さな LED ライトなど小さな光源は、特に表面間近にキャストした際にはっきりとしたシャドウを生成します。一方でより大きな光源はソフトで不鮮明なシャドウ (境界がくっきりしていないシャドウ) を生成します。[事例 2.1](Resources/ContentExamples/Lighting/2_1) で説明しましたが、静的ライトは独自の情報をライトマップへベイクします。つまりシャドウの品質を高く保つには、特にソフトなシャドウの場合は Lightmap Resolution プロパティがカギとなります。
+Source Radius は光源のサイズをシミュレーションします。お気づきになった方もいるかもしれませんが、小さな LED ライトなど小さな光源は、特に表面間近にキャストした際にはっきりとしたシャドウを生成します。一方でより大きな光源はソフトで不鮮明なシャドウ (境界がくっきりしていないシャドウ) を生成します。**[サンプル 2.1](Resources/ContentExamples/Lighting/2_1)** で説明しましたが、静的ライトは独自の情報をライトマップへベイクします。つまりシャドウの品質を高く保つには、特にソフトなシャドウの場合は **Lightmap Resolution** プロパティがカギとなります。
 
 
 

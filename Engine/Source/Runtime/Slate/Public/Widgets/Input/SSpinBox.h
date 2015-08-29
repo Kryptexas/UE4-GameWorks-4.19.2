@@ -57,7 +57,7 @@ public:
 		/** Font used to display text in the slider */
 		SLATE_ATTRIBUTE( FSlateFontInfo, Font )
 		/** Padding to add around this widget and its internal widgets */
-		SLATE_ARGUMENT( FMargin, ContentPadding )
+		SLATE_ATTRIBUTE( FMargin, ContentPadding )
 		/** Called when the value is changed by slider or typing */
 		SLATE_EVENT( FOnValueChanged, OnValueChanged )
 		/** Called when the value is committed (by pressing enter) */

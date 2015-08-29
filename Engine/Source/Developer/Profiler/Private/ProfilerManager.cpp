@@ -27,7 +27,6 @@ DEFINE_STAT(STAT_PM_MemoryUsage);
 -----------------------------------------------------------------------------*/
 
 TSharedPtr<FProfilerManager> FProfilerManager::Instance = nullptr;
-FThreadSafeCounter FProfilerManager::ProcessingLock;
 
 struct FEventGraphSampleLess
 {
@@ -267,6 +266,8 @@ void FProfilerManager::ProfilerSession_OnCaptureFileProcessed( const FGuid Profi
 	const FProfilerSessionRef* ProfilerSession = FindSessionInstance( ProfilerInstanceID );
 	if( ProfilerSession && ProfilerWindow.IsValid())
 	{
+		TrackDefaultStats();
+
 		RequestFilterAndPresetsUpdateEvent.Broadcast();
 
 		GetProfilerWindow()->UpdateEventGraph( ProfilerInstanceID, (*ProfilerSession)->GetEventGraphDataAverage(), (*ProfilerSession)->GetEventGraphDataMaximum(), true );

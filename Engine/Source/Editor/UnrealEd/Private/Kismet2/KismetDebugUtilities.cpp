@@ -126,6 +126,8 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 					->AddToken(FTextToken::Create(FText::FromString(MsgInBlueprintStr)))
 					->AddToken(FUObjectToken::Create(BlueprintObj, FText::FromString(BlueprintObj->GetName()))->OnMessageTokenActivated(FOnMessageTokenActivated::CreateStatic(&Local::OnMessageLogLinkActivated)));
 			}
+			bForceToCurrentObject = true;
+			bShouldBreakExecution = GetDefault<UEditorExperimentalSettings>()->bBreakOnExceptions;
 			break;
 		case EBlueprintExceptionType::InfiniteLoop:
 			bForceToCurrentObject = true;
@@ -304,6 +306,7 @@ void FKismetDebugUtilities::OnScriptException(const UObject* ActiveObject, const
 
 							FSlateApplication::Get().PushMenu(
 								FSlateApplication::Get().GetActiveTopLevelWindow().ToSharedRef(),
+								FWidgetPath(),
 								DisplayWidget,
 								FSlateApplication::Get().GetCursorPos(),
 								FPopupTransitionEffect(FPopupTransitionEffect::TypeInPopup)
@@ -462,7 +465,7 @@ void FKismetDebugUtilities::AttemptToBreakExecution(UBlueprint* BlueprintObj, co
 	{
 		bShouldInStackDebug = false;
 		//@TODO: Determine exactly what behavior we want for breakpoints hit when not in PIE/SIE
-		//ensureMsg(false, TEXT("Breakpoints placed in a function instead of the event graph are not supported yet"));
+		//ensureMsgf(false, TEXT("Breakpoints placed in a function instead of the event graph are not supported yet"));
 	}
 
 	// Now enter within-the-frame debugging mode
@@ -863,7 +866,7 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			static bool bErrorOnce = true;
 			if (bErrorOnce)
 			{
-				ensureMsg(false, TEXT("Error: Invalid (but non-null) property associated with pin; cannot get variable value"));
+				ensureMsgf(false, TEXT("Error: Invalid (but non-null) property associated with pin; cannot get variable value"));
 				bErrorOnce = false;
 			}
 			return EWTR_NoProperty;

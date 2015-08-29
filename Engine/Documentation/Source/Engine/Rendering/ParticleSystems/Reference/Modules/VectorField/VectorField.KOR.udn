@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2093626
+﻿INTSourceChangelist:2620238
 Availability: Public
 Title:Vector Field 모듈
 Crumbs: %ROOT%, Engine, Engine/Rendering/ParticleSystems, Engine/Rendering/ParticleSystems/Reference
@@ -6,11 +6,9 @@ Description:GPU 파티클에 3D 모션 그리드 데이터를 제공해 주는 V
 
 [TOC(start:2 end:3)]
 
-## Vector Field 모듈
-
 [INCLUDE:Engine/Rendering/ParticleSystems/VectorFields#VectorFields]
 
-### Global Vector Field
+## Global Vector Fields
 
 ![GlobalVF.png](GlobalVF.png)(w:720)
 
@@ -26,7 +24,7 @@ Description:GPU 파티클에 3D 모션 그리드 데이터를 제공해 주는 V
 | **Global Vector Field Scale** | 글로벌 벡터 필드 스케일 - 글로벌 벡터 필드가 파티클의 운동에 영향을 끼치는 정도를 조절하는 실수 스케일 값입니다. 값이 1 보다 작으면 그 효과가 둔화, 크면 과장됩니다. | 
 
 
-### Local Vector Field
+## Local Vector Field
 
 ![LocalVF.png](LocalVF.png)
 
@@ -42,7 +40,7 @@ Local Vector Field (로컬 벡터 필드) 모듈을 통해 벡터 필드를 파�
 | **Intensity** | 세기 - 로컬 벡터 필드의 전체적인 세기에 영향을 미칩니다. 벡터 필드 포스의 배수로 생각해 보시면 됩니다. 값이 0 이면 벡터 필드의 효과가 사실상 무효화, 1 보다 크면 과장됩니다. |
 | **Tightness** | 밀접도 - 벡터 필드가 파티클 운동을 제어하는 방식을 조절합니다. 값이 0 이면 벡터 필드가 포스와 같은 식으로 작동하여 파티클의 속도에 더하기식으로 영향을 끼치며, 1 이면 파티클 속도는 벡터 필드 그리드에 정의된 속도로 완전 대체됩니다. 그 사이값은 두 극단 사이의 전체적인 결과를 혼합합니다. |
 
-### VF Init Rotation
+## VF Init Rotation
 
 ![VFInitRot.png](VFInitRot.png)
 
@@ -59,9 +57,19 @@ Vector Field Initial Rotation (벡터 필드 초기 로테이션) 모듈을 통�
 | **Min Initial Rotation** | 최소 초기 로테이션 - X, Y, Z 축 상의 최소 초기 로테이션 값입니다. 이 값은 [0..1] 범위로 계산됩니다. 0.25 = 90 도, 0.5 = 180 도 식입니다. |
 | **Max Initial Rotation** | 최대 초기 로테이션 - X, Y, Z 축 상의 최대 초기 로테이션 값입니다. 이 값은 [0..1] 범위로 계산됩니다. 0.25 = 90 도, 0.5 = 180 도 식입니다. |
 
-### VF Rotation Rate
+## VF Rotation Rate
 
-![VFInitRotRate.gif](VFInitRotRate.gif)(convert:false)
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+UmZ9q-3KP8o
+[/PARAMLITERAL]
+[/OBJECT]
 
 Vector Field Rotation Rate (벡터 필드 회전율)은 로컬 벡터 필드에 일정한 회전율을 주고자 할 때 쓰는 모듈입니다. 이 모듈이 지정된 벡터 필드에는 회전율 분포값이 적용됩니다. 매우 재미난 효과를 낼 수 있습니다.
 
@@ -76,7 +84,7 @@ Vector Field Rotation Rate (벡터 필드 회전율)은 로컬 벡터 필드에 
 | **Rotation Rate** | 회전율 - X, Y, Z 축 상의 회전율을 설정합니다. 이 값은 초당 회전수로 계산됩니다. 즉 값이 0.1 이면 한 바퀴 도는 데 10 초가 걸린다는 뜻입니다. |
 
 
-### Vector Field Scale
+## Vector Field Scale
 
 Vector Field Scale (벡터 필드 스케일)은 벡터 필드의 영향력 규모를 조절할 수 있는 모듈입니다. 파티클 생성 순간에만 계산됩니다.
 
@@ -92,7 +100,7 @@ Vector Field Scale (벡터 필드 스케일)은 벡터 필드의 영향력 규�
 
 
 
-### VF Scale/Life
+## VF Scale/Life
 
 Vector Field Scale Over Life (수명에 걸친 벡터 필드 스케일)은 이미터의 수명에 걸쳐 로컬 벡터 필드의 규모를 조절할 수 있는 모듈입니다. 파티클의 수명 전반에 걸쳐 계산됩니다.
 

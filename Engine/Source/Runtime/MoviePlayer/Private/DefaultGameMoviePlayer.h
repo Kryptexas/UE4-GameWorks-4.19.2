@@ -33,7 +33,11 @@ public:
 	virtual TStatId GetStatId() const override;
 	virtual bool IsTickable() const override;
 	
+	
 private:
+
+	/** Ticks the underlying MovieStreamer.  Must be done exactly once before each DrawWindows call. */
+	void TickStreamer(float DeltaTime);
 
 	/** True if we have both a registered movie streamer and movies to stream */
 	bool MovieStreamingIsPrepared() const;

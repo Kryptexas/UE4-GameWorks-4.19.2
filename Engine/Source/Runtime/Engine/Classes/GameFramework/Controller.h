@@ -106,7 +106,7 @@ protected:
 	virtual void AddPawnTickDependency(APawn* NewPawn);
 
 	/** Remove dependency that makes us tick before the given Pawn.	 */
-	virtual void RemovePawnTickDependency(APawn* OldPawn);
+	virtual void RemovePawnTickDependency(APawn* InOldPawn);
 
 public:
 

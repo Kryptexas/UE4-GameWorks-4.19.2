@@ -182,9 +182,9 @@ public:
 	 * Copy from a unique object identifier
 	 * @param ObjectID Object identifier to create a weak pointer to
 	 */
-	FORCEINLINE void operator=(const FUniqueObjectGuid &ObjectID)
+	FORCEINLINE void operator=(const FUniqueObjectGuid &InObjectID)
 	{
-		TPersistentObjectPtr<FUniqueObjectGuid>::operator=(ObjectID);
+		TPersistentObjectPtr<FUniqueObjectGuid>::operator=(InObjectID);
 	}
 };
 
@@ -292,9 +292,9 @@ public:
 	 * because the object corresponding to this ID may not even be loaded!
 	 * @param ObjectID Object identifier to create a lazy pointer to
 	 */
-	FORCEINLINE void operator=(const FUniqueObjectGuid& ObjectID)
+	FORCEINLINE void operator=(const FUniqueObjectGuid& InObjectID)
 	{
-		FLazyObjectPtr::operator=(ObjectID);
+		FLazyObjectPtr::operator=(InObjectID);
 	}
 
 	/**

@@ -2,6 +2,11 @@ Availability: Public
 Title:Mouse Interface
 Crumbs:%ROOT%, Resources
 Description:An overview and breakdown of the Mouse Interaction.
+Related: Engine/Blueprints
+Related: Engine/Blueprints\Editor
+Related: Engine/Blueprints\Editor\Modes\Components
+Related: Engine/Blueprints\Editor\Modes\Defaults
+Related: Engine/Blueprints\Editor\Modes\GraphPanel
 
 
 [VAR:Topic]
@@ -52,8 +57,6 @@ Description:An overview and breakdown of the Mouse Interaction.
 
 [TOC(start:2 end:2)]
 
-
-## Overview
 
 
 The Mouse Interface example demonstrates how to utilize mouse or touch inputs in your games. The level, which is pretty simple in terms of play and execution, consists of an array of spheres with a cube that tracks back and forth behind them.
@@ -123,12 +126,4 @@ Interaction can be broken down as follows:
 [/REGION]
 
 
-
-## Related Topics
-
-* [](Engine/Blueprints)
-* [](Engine/Blueprints\Editor)
-* [](Engine/Blueprints\Editor\Modes\Components)
-* [](Engine/Blueprints\Editor\Modes\Defaults)
-* [](Engine/Blueprints\Editor\Modes\GraphPanel)
 

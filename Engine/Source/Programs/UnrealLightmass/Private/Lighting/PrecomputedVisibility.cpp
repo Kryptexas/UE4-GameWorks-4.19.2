@@ -219,6 +219,9 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 			// Only process meshes whose bounding box intersects a PVS volume
 			if (Scene.DoesBoxIntersectVisibilityVolume(CurrentMesh->BoundingBox))
 			{
+				// Whether mesh wants to be fully opaque for visibility step
+				const bool bOpaqueMesh = CurrentMesh->IsAlwaysOpaqueForVisibility();
+				
 				// Rasterize all triangles in the mesh
 				for (int32 TriangleIndex = 0; TriangleIndex < CurrentMesh->NumTriangles; TriangleIndex++)
 				{
@@ -227,7 +230,7 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 					CurrentMesh->GetTriangle(TriangleIndex, Vertices[0], Vertices[1], Vertices[2], ElementIndex);
 
 					// Only place cells on opaque surfaces if requested, which can save some memory for foliage maps
-					if (!PrecomputedVisibilitySettings.bPlaceCellsOnOpaqueOnly 
+					if (!PrecomputedVisibilitySettings.bPlaceCellsOnOpaqueOnly || bOpaqueMesh
 						|| (!CurrentMesh->IsMasked(ElementIndex) && !CurrentMesh->IsTranslucent(ElementIndex)))
 					{
 						FVector2D XYPositions[3];

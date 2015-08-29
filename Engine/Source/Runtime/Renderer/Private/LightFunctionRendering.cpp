@@ -240,7 +240,7 @@ bool FDeferredShadingSceneRenderer::RenderLightFunctionForMaterial(FRHICommandLi
 
 	if (MaterialProxy && MaterialProxy->GetMaterial(Scene->GetFeatureLevel())->IsLightFunction())
 	{
-		GSceneRenderTargets.BeginRenderingLightAttenuation(RHICmdList);
+		FSceneRenderTargets::Get(RHICmdList).BeginRenderingLightAttenuation(RHICmdList);
 
 		bRenderedLightFunction = true;
 

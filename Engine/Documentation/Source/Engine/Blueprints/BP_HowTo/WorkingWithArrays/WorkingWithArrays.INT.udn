@@ -7,8 +7,6 @@ Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
 
 [TOC(start:2)]
 
-## Overview
-
 If you are not familiar with programming terms, the best way to think of an **Array** is that it is a collection of variables of the same type, contained within a single entity. For example, if you were to create a **Float** Array, that Array would only be able to hold Float variables in it. Once you have an Array created, you can access individual variables within the Array and modify them or modify all the items in the Array at once (which greatly improves repetitive tasks by doing it all at once versus individually). 
 
 On this page, you will learn how to create Array variables inside a Blueprint as well as using the **Make Array** node to build an Array. Once you understand how to create an Array, you can check out the **Example Array Usage** section for some sample use cases for working with Arrays. 
@@ -163,12 +161,6 @@ _For this example, we are using the **Blueprint 3rd Person Template** project wi
 
 	![](HT24.png)
 
-	Be sure to select the **Get Actor Transform** under Utilities and not under the **Selected Actors** section. 
-
-	![](HT25b.png)
-
-	We have two **Get Actor Transform** options above, due to the fact that we still have Actors selected in the level. The node in the red box will get the transform for all the selected Actors in the level, which is not what we want here. You can hop back into the **World Outliner** and deselect your Actors, or select the singular usage outlined in the yellow box above. 
-
 1.	Connect the **Return Value** from the **Get Actor Transform** to the **Spawn Transform** pin on the **Spawn Actor** node. 
 
 1.	Click the **Compile** and **Save** buttons, your graph should look similar to below. 
@@ -177,9 +169,24 @@ _For this example, we are using the **Blueprint 3rd Person Template** project wi
 
 1.	Close the Blueprint, then click the **Play** button to play in the Editor. 
 
-	![](ExampleGIF.gif)(convert:false)
+	[OBJECT:EmbeddedVideo]
+	[PARAMLITERAL:width]
+	640
+	[/PARAMLITERAL]
+	[PARAMLITERAL:height]
+	360
+	[/PARAMLITERAL]
+	[PARAMLITERAL:videoid]
+	r-zHq9feZr8
+	[/PARAMLITERAL]
+	[/OBJECT]
 
 	When you play in the Editor, each time that you press the **F** key a random Blueprint (from the ones you added to the Array) will be selected and spawned at a random location from the Array of Target Points. Instead of the **F** Key Event to spawn the items, and instead of effects that are spawned, you could use this same logic to set up a random spawn location for Health or Ammo pickups or even loot the player can obtain. 
+
+
+
+
+
 
 
 

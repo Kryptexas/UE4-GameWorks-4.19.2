@@ -8,8 +8,6 @@
 #include "ISourceControlLabel.h"
 #include "ISourceControlRevision.h"
 
-#include "../../../../Launch/Resources/Version.h"
-
 #ifndef MINIDUMPDIAGNOSTICS
 	#define MINIDUMPDIAGNOSTICS	0
 #endif
@@ -55,7 +53,7 @@ bool ICrashDebugHelper::Init()
 		// Default to BRANCH_NAME
 		else
 		{
-			DepotName = FString::Printf( TEXT( "%s" ), TEXT( BRANCH_NAME ) );
+			DepotName = FString::Printf( TEXT( "%s" ), *FApp::GetBranchName() );
 		}
 
 		CrashInfo.DepotName = DepotName.Replace( TEXT( "+" ), TEXT( "/" ) );
@@ -73,7 +71,7 @@ bool ICrashDebugHelper::Init()
 		// Default to BUILT_FROM_CHANGELIST.
 		else
 		{
-			BuiltFromCL = int32( BUILT_FROM_CHANGELIST );
+			BuiltFromCL = GEngineVersion.GetChangelist();
 		}
 
 		CrashInfo.BuiltFromCL = BuiltFromCL;
@@ -193,6 +191,8 @@ bool ICrashDebugHelper::SyncModules()
 			// Find all symbols.
 			TArray<FString> NetworkSymbols;
 			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.pdb" ), true, false, false );
+			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.dll" ), true, false, false );
+			IFileManager::Get().FindFilesRecursive( NetworkSymbols, *CrashInfo.SymbolsPath, TEXT( "*.exe" ), true, false, false );
 
 			// From=Full pathname
 			// To=Relative pathname
@@ -470,7 +470,7 @@ bool ICrashDebugHelper::AddAnnotatedSourceToReport()
 		FString DepotPath = CrashInfo.DepotName / CrashInfo.SourceFile;
 
 		TArray<FAnnotationLine> Lines;
-		SourceControlHelpers::AnnotateFile( ISourceControlModule::Get().GetProvider(), CrashInfo.LabelName, DepotPath, Lines );
+		SourceControlHelpers::AnnotateFile( ISourceControlModule::Get().GetProvider(), CrashInfo.BuiltFromCL, DepotPath, Lines );
 
 		uint32 MinLine = FMath::Clamp( CrashInfo.SourceLineNumber - 15, (uint32)1, (uint32)Lines.Num() );
 		uint32 MaxLine = FMath::Clamp( CrashInfo.SourceLineNumber + 15, (uint32)1, (uint32)Lines.Num() );
@@ -480,11 +480,11 @@ bool ICrashDebugHelper::AddAnnotatedSourceToReport()
 		{			
 			if( Line == CrashInfo.SourceLineNumber )
 			{
-				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "*****%20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
+				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "%5u ***** %20s: %s" ), Line, *Lines[Line].UserName, *Lines[Line].Line ) );
 			}
 			else
 			{
-				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "     %20s: %s" ), *Lines[Line].UserName, *Lines[Line].Line ) );
+				CrashInfo.SourceContext.Add( FString::Printf( TEXT( "%5u       %20s: %s" ), Line, *Lines[Line].UserName, *Lines[Line].Line ) );
 			}
 		}
 		return true;
@@ -698,7 +698,8 @@ void ICrashDebugHelper::FindSymbolsAndBinariesStorage()
 	
 	const FString StrENGINE_VERSION = CrashInfo.EngineVersion;
 	const FString StrPLATFORM_NAME = TEXT( "" ); // Not implemented yet
-	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "++depot+%s-CL-%i" ), *CrashInfo.DepotName.Replace( P4_DEPOT_PREFIX, TEXT("") ), CrashInfo.BuiltFromCL );
+	const FString StrOLD_ENGINE_VERSION = FString::Printf( TEXT( "++depot+%s-CL-%i" ), *CrashInfo.DepotName.Replace( P4_DEPOT_PREFIX, TEXT("") ), CrashInfo.BuiltFromCL )
+		.Replace( TEXT("/"), TEXT("+") );
 
 	const FString TestExecutablesPath = ExecutablePathPattern
 		.Replace( TEXT( "%ENGINE_VERSION%" ), *StrENGINE_VERSION )

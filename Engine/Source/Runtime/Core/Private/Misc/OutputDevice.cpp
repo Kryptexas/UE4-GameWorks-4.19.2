@@ -3,7 +3,6 @@
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
 #include "VarargsHelper.h"
-#include "MallocCrash.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogOutputDevice, Log, All);
@@ -186,7 +185,7 @@ void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Walk the script stack, if any
-	if( GScriptStack.Num() > 0 )
+	if( IsInGameThread() && GScriptStack.Num() > 0 )
 	{
 		FString ScriptStack = TEXT( "\n\nScript Stack:\n" );
 		while( GScriptStack.Num() )
@@ -356,7 +355,7 @@ void VARARGS FDebug::AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, in
 }
 
 #if DO_CHECK || DO_GUARD_SLOW
-bool VARARGS FDebug::EnsureNotFalse_OptionallyLogFormattedEnsureMessageReturningFalse( bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ... )
+bool VARARGS FDebug::OptionallyLogFormattedEnsureMessageReturningFalse( bool bLog, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ... )
 {
 	if (bLog)
 	{

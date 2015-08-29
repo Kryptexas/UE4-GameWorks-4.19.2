@@ -37,6 +37,9 @@ LandscapeEdit.cpp: Landscape editing
 #include "EngineGlobals.h"
 #include "ShowFlags.h"
 #include "ConvexVolume.h"
+#include "SlateBasics.h"  // For AddNotification
+#include "SNotificationList.h"
+#include "NotificationManager.h"
 #endif
 #include "ComponentReregisterContext.h"
 
@@ -171,7 +174,28 @@ UMaterialInstanceConstant* ULandscapeComponent::GetCombinationMaterial(bool bMob
 	UMaterialInterface* const LandscapeMaterial = GetLandscapeMaterial();
 	UMaterialInterface* const HoleMaterial = bComponentHasHoles ? GetLandscapeHoleMaterial() : nullptr;
 	UMaterialInterface* const MaterialToUse = bComponentHasHoles && HoleMaterial ? HoleMaterial : LandscapeMaterial;
-	const bool bOverrideBlendMode = bComponentHasHoles && !HoleMaterial && LandscapeMaterial->GetBlendMode() == BLEND_Opaque;
+	bool bOverrideBlendMode = bComponentHasHoles && !HoleMaterial && LandscapeMaterial->GetBlendMode() == BLEND_Opaque;
+
+	if (bOverrideBlendMode)
+	{
+		UMaterial* Material = LandscapeMaterial->GetMaterial();
+		if (Material && Material->bUsedAsSpecialEngineMaterial)
+		{
+			bOverrideBlendMode = false;
+#if WITH_EDITOR
+			static TWeakPtr<SNotificationItem> ExistingNotification;
+			if (!ExistingNotification.IsValid())
+			{
+				// let the user know why they are not seeing holes
+				FNotificationInfo Info(LOCTEXT("AssignLandscapeMaterial", "You must assign a regular, non-engine material to your landscape in order to see holes created with the visibility tool."));
+				Info.ExpireDuration = 5.0f;
+				Info.bUseSuccessFailIcons = true;
+				ExistingNotification = TWeakPtr<SNotificationItem>(FSlateNotificationManager::Get().AddNotification(Info));
+			}
+#endif
+			return nullptr;
+		}
+	}
 
 	if (ensure(MaterialToUse != nullptr))
 	{
@@ -2952,19 +2976,21 @@ void ULandscapeLayerInfoObject::PostEditChangeProperty(FPropertyChangedEvent& Pr
 		}
 		else if (PropertyName == NAME_PhysMaterial)
 		{
-			// Only care current world object
-			for (TActorIterator<ALandscapeProxy> It(GWorld); It; ++It)
+			for (TObjectIterator<ALandscapeProxy> It; It; ++It)
 			{
 				ALandscapeProxy* Proxy = *It;
-				ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
-				if (Info)
+				if (Proxy->GetWorld() && !Proxy->GetWorld()->IsPlayInEditor())
 				{
-					for (int32 i = 0; i < Info->Layers.Num(); ++i)
+					ULandscapeInfo* Info = Proxy->GetLandscapeInfo(false);
+					if (Info)
 					{
-						if (Info->Layers[i].LayerInfoObj == this)
+						for (int32 i = 0; i < Info->Layers.Num(); ++i)
 						{
-							Proxy->ChangedPhysMaterial();
-							break;
+							if (Info->Layers[i].LayerInfoObj == this)
+							{
+								Proxy->ChangedPhysMaterial();
+								break;
+							}
 						}
 					}
 				}
@@ -3175,7 +3201,8 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 				// Clear the parents out of combination material instances
 				for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
 				{
-					It.Value()->SetParentEditorOnly(NULL);
+					It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
+					It.Value()->SetParentEditorOnly(nullptr);
 					MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
 				}
 
@@ -3204,7 +3231,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	{
 		ChangedPhysMaterial();
 	}
-	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel"))))
+	else if (GIsEditor && (PropertyName == FName(TEXT("CollisionMipLevel")) || PropertyName == FName(TEXT("CollisionThickness"))))
 	{
 		RecreateCollisionComponents();
 	}
@@ -3325,7 +3352,8 @@ void ALandscape::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEv
 		// Clear the parents out of combination material instances
 		for (TMap<FString, UMaterialInstanceConstant*>::TIterator It(MaterialInstanceConstantMap); It; ++It)
 		{
-			It.Value()->SetParentEditorOnly(NULL);
+			It.Value()->BasePropertyOverrides.bOverride_BlendMode = false;
+			It.Value()->SetParentEditorOnly(nullptr);
 			MaterialUpdateContext.AddMaterial(It.Value()->GetMaterial());
 		}
 
@@ -4408,31 +4436,9 @@ struct FMobileLayerAllocation
 	}
 };
 
-void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
+void ULandscapeComponent::GeneratePlatformPixelData()
 {
 	check(!IsTemplate())
-
-	if (!bIsCooking)
-	{
-		// Calculate hash of source data and skip generation if the data we have in memory is unchanged
-		FBufferArchive ComponentStateAr;
-		SerializeStateHashes(ComponentStateAr);
-
-		uint32 Hash[5];
-		FSHA1::HashBuffer(ComponentStateAr.GetData(), ComponentStateAr.Num(), (uint8*)Hash);
-		FGuid NewSourceHash = FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
-	
-		// Skip generation if the source hash matches
-		if (MobilePixelDataSourceHash.IsValid() && 
-			MobilePixelDataSourceHash == NewSourceHash &&
-			MobileMaterialInterface != nullptr &&
-			MobileWeightNormalmapTexture != nullptr)
-		{
-			return;
-		}
-			
-		MobilePixelDataSourceHash = NewSourceHash;
-	}
 
 	TArray<FMobileLayerAllocation> MobileLayerAllocations;
 	MobileLayerAllocations.Reserve(WeightmapLayerAllocations.Num());
@@ -4511,7 +4517,6 @@ void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 
 	MobileWeightNormalmapTexture = NewWeightNormalmapTexture;
 
-
 	FLinearColor Masks[5];
 	Masks[0] = FLinearColor(1, 0, 0, 0);
 	Masks[1] = FLinearColor(0, 1, 0, 0);
@@ -4519,8 +4524,10 @@ void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 	Masks[3] = FLinearColor(0, 0, 0, 1);
 	Masks[4] = FLinearColor(0, 0, 0, 0); // mask out layers 4+ altogether
 
-	if (!bIsCooking)
+	if (!GIsEditor)
 	{
+		// This path is used by game mode running with uncooked data, eg Mobile Preview.
+		// Game mode cannot create MICs, so we use a MaterialInstanceDynamic here.
 		UMaterialInstanceDynamic* NewMobileMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, GetOutermost());
 
 		MobileBlendableLayerMask = 0;
@@ -4540,8 +4547,11 @@ void ULandscapeComponent::GeneratePlatformPixelData(bool bIsCooking)
 		}
 		MobileMaterialInterface = NewMobileMaterialInstance;
 	}
-	else // for cooking
+	else
 	{
+		// When cooking, we need to make a persistent MIC. In the editor we also do so in
+		// case we start a Cook in Editor operation, which will reuse the MIC we create now.
+
 		UMaterialInstanceConstant* CombinationMaterialInstance = GetCombinationMaterial(true);
 		UMaterialInstanceConstant* NewMobileMaterialInstance = NewObject<ULandscapeMaterialInstanceConstant>(GetOutermost());
 
@@ -4594,13 +4604,16 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 	NewPlatformData.AddZeroed(NewPlatformDataSize);
 
 	// Get the required mip data
+	TArray<TArray<uint8>> HeightmapMipRawData;
 	TArray<FColor*> HeightmapMipData;
 	for (int32 MipIdx = 0; MipIdx < FMath::Min(LANDSCAPE_MAX_ES_LOD, HeightmapTexture->Source.GetNumMips()); MipIdx++)
 	{
 		int32 MipSubsectionSizeVerts = (SubsectionSizeVerts) >> MipIdx;
 		if (MipSubsectionSizeVerts > 1)
 		{
-			HeightmapMipData.Add((FColor*)HeightmapTexture->Source.LockMip(MipIdx));
+			new(HeightmapMipRawData) TArray<uint8>();
+			HeightmapTexture->Source.GetMipData(HeightmapMipRawData.Last(), MipIdx);
+			HeightmapMipData.Add((FColor*)HeightmapMipRawData.Last().GetData());
 		}
 	}
 
@@ -4723,11 +4736,6 @@ void ULandscapeComponent::GeneratePlatformVertexData()
 		}
 
 		DstVert++;
-	}
-
-	for (int32 MipIdx = 0; MipIdx < HeightmapTexture->Source.GetNumMips(); MipIdx++)
-	{
-		HeightmapTexture->Source.UnlockMip(MipIdx);
 	}
 
 	// Copy to PlatformData as Compressed

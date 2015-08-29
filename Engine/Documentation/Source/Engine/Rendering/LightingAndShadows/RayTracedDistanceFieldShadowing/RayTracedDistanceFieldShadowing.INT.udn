@@ -48,7 +48,7 @@ Description:Dynamic area shadows
 
 [TOC(start:2 end:2)]
 
-## Overview
+
 
 Ray Traced Distance Field shadows leverage the properties of a distance field representation of the scene to compute efficient area shadowing from dynamic meshes.  This uses the same data as [Distance Field Ambient Occlusion](Engine/Rendering/LightingAndShadows/DistanceFieldAmbientOcclusion), and therefore has many of the same limitations.
 
@@ -79,7 +79,7 @@ Ray Traced soft shadows from a point light with a Source Radius of 100.
 
 ## Directional lights
 
-'Light Source Angle' is used to determine how large shadow penumbras are on a directional light.  Ray Traced shadows have very few self-intersection problems and therefore avoid the leaking and over-biasing problems in the distance that traditional shadowmapping is plagued by.
+'Light Source Angle' is used to determine how large shadow penumbras are on a directional light.  Ray Traced shadows have very few self-intersection problems and therefore avoid the leaking and over-biasing problems in the distance that traditional shadow mapping is plagued by.
 
 [REGION:fullwidth]
 	![](DirectionalLightAreaShadows.jpg)

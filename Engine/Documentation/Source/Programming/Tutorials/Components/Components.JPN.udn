@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2486695
+﻿INTSourceChangelist:2620109
 Availability:Public
 Title:コンポーネントとコリジョン
 Crumbs:%ROOT%, GettingStarted, Programming/Tutorials
 Description:パーティクルエフェクトなどを使用してコンポーネントでポーンに物理的なインタラクションを有効にする方法を学ぶ
+バージョン:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

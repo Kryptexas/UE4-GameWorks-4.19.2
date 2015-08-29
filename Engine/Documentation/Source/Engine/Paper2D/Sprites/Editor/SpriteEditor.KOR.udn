@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2515627
+﻿INTSourceChangelist:2590930
 Availability:Public
 Title:스프라이트 에디터 참고서
 Crumbs: %ROOT%, Engine, Engine/Paper2D
@@ -109,3 +109,8 @@ _아래 링크를 통해 추가 문서를 확인할 수 있습니다._
 * 스프라이트 소스 구역 편집 관련: [](Engine\Paper2D\Sprites\RenderGeometry)
 * 스프라이트 콜리전 편집 관련: [](Engine\Paper2D\Sprites\Collision)
 * 스프라이트 렌더 지오메트리 편집 관련: [](Engine\Paper2D\Sprites\RenderGeometry)
+
+
+
+
+

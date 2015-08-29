@@ -25,5 +25,6 @@ class ONLINESUBSYSTEMUTILS_API UIpConnection : public UNetConnection
 	FString LowLevelDescribe() override;
 	virtual int32 GetAddrAsInt(void) override;
 	virtual int32 GetAddrPort(void) override;
+	virtual FString RemoteAddressToString() override;
 	// End NetConnection Interface
 };

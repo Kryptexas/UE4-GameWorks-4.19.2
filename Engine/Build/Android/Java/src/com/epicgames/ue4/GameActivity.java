@@ -110,6 +110,9 @@ public class GameActivity extends NativeActivity
 	private static int PackageDataInsideApkValue = -1;
 	private static int HasOBBFiles = -1;
 	
+	// depthbuffer preference from manifest
+	int DepthBufferPreference = 0;
+	
 	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
 	private AssetManager			AssetManagerReference;
 	
@@ -294,7 +297,6 @@ public class GameActivity extends NativeActivity
 		AssetManagerReference = this.getAssets();
 
 		// Read metadata from AndroidManifest.xml
-		int DepthBufferPreference = 0;
 		String ProjectName = getPackageName();
 		ProjectName = ProjectName.substring(ProjectName.lastIndexOf('.') + 1);
 		try {
@@ -372,6 +374,8 @@ public class GameActivity extends NativeActivity
 				PackagedForGearVR = true;
 				String VRMode = bundle.getString("com.samsung.android.vr.application.mode");
 				Log.debug("Found GearVR mode = " + VRMode);
+
+				com.oculus.svclib.OVREntitlementChecker.doAutomatedCheck(this);
 			}
 			else
 			{
@@ -552,12 +556,51 @@ public class GameActivity extends NativeActivity
 	public void onResume()
 	{
 		super.onResume();
+
+		// invalidate window cache
+		nativeSetWindowInfo(getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT, DepthBufferPreference);
 		
 		// only do this on KitKat and above
-		if (android.os.Build.VERSION.SDK_INT >= 19 && ShouldHideUI)
+		if (ShouldHideUI)
 		{ 
+		
 			View decorView = getWindow().getDecorView(); 
-			decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); 
+			if(android.os.Build.VERSION.SDK_INT >= 19) {
+				decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+											| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+											| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+											| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+											| View.SYSTEM_UI_FLAG_FULLSCREEN
+											| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); 
+			} /*else {
+				decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+											| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+											| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+											| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+											| View.SYSTEM_UI_FLAG_FULLSCREEN);
+
+			}*/
+			
+			decorView.setOnSystemUiVisibilityChangeListener(new View.OnSystemUiVisibilityChangeListener() {
+				@Override public void onSystemUiVisibilityChange(int visibility) {
+							View decorView = getWindow().getDecorView(); 
+							if(android.os.Build.VERSION.SDK_INT >= 19) {
+								decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+															| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+															| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+															| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+															| View.SYSTEM_UI_FLAG_FULLSCREEN
+															| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY); 
+							} /*else {
+								decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+															| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+															| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+															| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+															| View.SYSTEM_UI_FLAG_FULLSCREEN);
+
+							}*/
+						}
+			});
 		}
 		
 		if(HasAllFiles)
@@ -1035,38 +1078,48 @@ public class GameActivity extends NativeActivity
 	{
 		if( requestCode == DOWNLOAD_ACTIVITY_ID)
 		{
-			int errorCode = data.getIntExtra(DOWNLOAD_RETURN_NAME, DOWNLOAD_NO_RETURN_CODE);
-			
-			String logMsg = "DownloadActivity Returned with ";
-			switch(errorCode)
+			int errorCode = 0;
+			if(resultCode == RESULT_OK)
 			{
-			case DOWNLOAD_FILES_PRESENT:
-				logMsg += "Download Files Present";
-				break;
-			case DOWNLOAD_COMPLETED_OK:
-				logMsg += "Download Completed OK";
-				break;
-			case DOWNLOAD_NO_RETURN_CODE:
-				logMsg += "Download No Return Code";
-				break;
-			case DOWNLOAD_USER_QUIT:
-				logMsg += "Download User Quit";
-				break;
-			case DOWNLOAD_FAILED:
-				logMsg += "Download Failed";
-				break;
-			case DOWNLOAD_INVALID:
-				logMsg += "Download Invalid";
-				break;
-			case DOWNLOAD_NO_PLAY_KEY:
-				logMsg +="Download No Play Key";
-				break;
-			default:
-				logMsg += "Unknown message!";
-				break;
+								
+				errorCode = data.getIntExtra(DOWNLOAD_RETURN_NAME, DOWNLOAD_NO_RETURN_CODE);
+				
+				String logMsg = "DownloadActivity Returned with ";
+				switch(errorCode)
+				{
+				case DOWNLOAD_FILES_PRESENT:
+					logMsg += "Download Files Present";
+					break;
+				case DOWNLOAD_COMPLETED_OK:
+					logMsg += "Download Completed OK";
+					break;
+				case DOWNLOAD_NO_RETURN_CODE:
+					logMsg += "Download No Return Code";
+					break;
+				case DOWNLOAD_USER_QUIT:
+					logMsg += "Download User Quit";
+					break;
+				case DOWNLOAD_FAILED:
+					logMsg += "Download Failed";
+					break;
+				case DOWNLOAD_INVALID:
+					logMsg += "Download Invalid";
+					break;
+				case DOWNLOAD_NO_PLAY_KEY:
+					logMsg +="Download No Play Key";
+					break;
+				default:
+					logMsg += "Unknown message!";
+					break;
+				}
+				
+				Log.debug(logMsg);
 			}
-			
-			Log.debug(logMsg);
+			else
+			{
+				Log.debug("Download activity cancelled by user.");
+				errorCode = DOWNLOAD_USER_QUIT;
+			}
 			
 			HasAllFiles = (errorCode == DOWNLOAD_FILES_PRESENT || errorCode == DOWNLOAD_COMPLETED_OK);
 			
@@ -1147,6 +1200,14 @@ public class GameActivity extends NativeActivity
 	static
 	{
 		System.loadLibrary("gnustl_shared");
+		try
+		{
+			System.loadLibrary("vrapi");
+		}
+		catch (java.lang.UnsatisfiedLinkError e)
+		{
+			Log.debug("GearVR library not loaded. Ignore this if GearVR plugin intentionally disabled.");
+		}
 		System.loadLibrary("UE4");
 	}
 }

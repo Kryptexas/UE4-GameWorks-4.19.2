@@ -32,9 +32,9 @@ public class Renderer : ModuleRules
 				"ShaderCore",
 				"UtilityShaders",
 			}
-			);
+            );
 
-        PrivateIncludePathModuleNames.AddRange(new string[] { "HeadMountedDisplay" });
+        PrivateIncludePathModuleNames.AddRange(new string[] { "HeadMountedDisplay", "LightPropagationVolumeRuntime" });
         DynamicallyLoadedModuleNames.AddRange(new string[] { "HeadMountedDisplay" });
 	}
 }

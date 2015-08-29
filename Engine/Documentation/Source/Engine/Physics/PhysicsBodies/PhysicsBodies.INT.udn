@@ -115,3 +115,8 @@ All Physics Bodies have a shared pool of properties. Below are the properties fr
 | **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
 | **Check Async Scene On Move** | %doxygen:UPrimitiveComponent::bCheckAsyncSceneOnMove% |
 | **Can Ever Affect Navigation** | %doxygen:UPrimitiveComponent::bCanEverAffectNavigation% |
+
+
+
+
+

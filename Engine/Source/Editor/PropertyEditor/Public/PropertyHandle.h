@@ -101,6 +101,16 @@ public:
 	 */
 	virtual UClass* GetClassMetaData(const FName& Key) const = 0;
 
+	/** Set metadata value for 'Key' to 'Value' on this property instance (as opposed to the class) */
+	virtual void SetInstanceMetaData(const FName& Key, const FString& Value) = 0;
+
+	/**
+	 * Get metadata value for 'Key' for this property instance (as opposed to the class)
+	 * 
+	 * @return Pointer to metadata value; nullptr if Key not found
+	 */
+	virtual const FString* GetInstanceMetaData(const FName& Key) const = 0;
+
 	/**
 	 * Gets the property tool tip text.
 	 */
@@ -167,10 +177,16 @@ public:
 	 * @param OutValue	The value that will be set if successful
 	 * @return The result of attempting to get the value
 	 */
-	virtual FPropertyAccess::Result GetValue( int32& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( float& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( bool& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int8& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int16& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int32& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( int64& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( uint8& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint16& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint32& OutValue ) const = 0;
+	virtual FPropertyAccess::Result GetValue( uint64& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FString& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FName& OutValue ) const = 0;
 	virtual FPropertyAccess::Result GetValue( FVector& OutValue ) const = 0;
@@ -188,10 +204,16 @@ public:
 	 * @param InValue	The value to set
 	 * @return The result of attempting to set the value
 	 */
-	virtual FPropertyAccess::Result SetValue( const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const float& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const bool& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int8& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int16& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int32& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const int64& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const uint8& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint16& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint32& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
+	virtual FPropertyAccess::Result SetValue( const uint64& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FString& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FName& InValue, EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
 	virtual FPropertyAccess::Result SetValue( const FVector& InValue,  EPropertyValueSetFlags::Type Flags = EPropertyValueSetFlags::DefaultFlags ) = 0;
@@ -213,6 +235,12 @@ public:
 	 * This does not need to be called when SetValue functions are used since it will be called automatically
 	 */
 	virtual void NotifyPostChange() = 0;
+
+	/**
+	 * Called to manually notify root objects that this property has finished changing
+	 * This does not need to be called when SetValue functions are used since it will be called automatically
+	 */
+	virtual void NotifyFinishedChangingProperties() = 0;
 
 	/**
 	 * Sets the object value from the current editor selection

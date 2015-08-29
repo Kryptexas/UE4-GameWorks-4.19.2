@@ -16,6 +16,7 @@ class UK2Node_SetFieldsInStruct : public UK2Node_MakeStruct
 	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph);
 	// End  UEdGraphNode interface
 
 	// Begin K2Node interface

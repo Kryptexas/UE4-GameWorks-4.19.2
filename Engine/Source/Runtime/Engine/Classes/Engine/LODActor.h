@@ -10,7 +10,7 @@
  * @see https://docs.unrealengine.com/latest/INT/Engine/Actors/LODActor/
  * @see UStaticMesh
  */
-UCLASS(notplaceable)
+UCLASS(notplaceable, hidecategories=(Object, Collision, Display, Input, Blueprint, Transform))
 class ENGINE_API ALODActor : public AActor
 {
 	GENERATED_UCLASS_BODY()
@@ -27,7 +27,7 @@ public:
 	/** what distance do you want this to show up instead of SubActors */
 	UPROPERTY(Category=LODActor, EditAnywhere, meta=(ClampMin = "0", UIMin = "0"))
 	float LODDrawDistance;
-
+	
 	/** what distance do you want this to show up instead of SubActors */
 	UPROPERTY(Category=LODActor, VisibleAnywhere)
 	int32 LODLevel;
@@ -43,6 +43,12 @@ public:
 	// End AActor Interface
 #endif // WITH_EDITOR	
 
+	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
+	void SetStaticMesh(class UStaticMesh* InStaticMesh);
+	
+	/** Returns whether or not this is a preview actor instance, meaning it has no StaticMesh */
+	const bool IsPreviewActorInstance() { return bIsPreviewActor;  }
+	
 protected:
 	// Begin UObject interface.
 	virtual FString GetDetailedInfoInternal() const override;
@@ -56,11 +62,23 @@ protected:
 #endif // WITH_EDITOR	
 	virtual void PostRegisterAllComponents() override;
 	// End UObject interface.
+		
+protected:
+#if WITH_EDITORONLY_DATA
+	/** Visualization component for rendering the LODActors bounds (cluster bounds)*/
+	UPROPERTY()
+	class UDrawSphereComponent* DrawSphereComponent;
+#endif // WITH_EDITORONLY_DATA
+
+	/** Whether or not this is a preview actor, will not fire StaticMesh map errors if so*/
+	bool bIsPreviewActor;
 
 public:
 	/** Returns StaticMeshComponent subobject **/
 	class UStaticMeshComponent* GetStaticMeshComponent() const { return StaticMeshComponent; }
-};
 
-
-
+#if WITH_EDITORONLY_DATA
+	/** Returns StaticMeshComponent subobject **/
+	class UDrawSphereComponent* GetDrawSphereComponent() const { return DrawSphereComponent; }
+#endif // WITH_EDITORONLY_DATA
+}; 

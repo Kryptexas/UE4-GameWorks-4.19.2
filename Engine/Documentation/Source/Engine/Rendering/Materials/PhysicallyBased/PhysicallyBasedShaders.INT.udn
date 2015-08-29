@@ -21,7 +21,7 @@ that are involved with our physically based approach. For a complete rundown of 
 Physically based shading means we approximate what light actually does as opposed to approximating what we
 intuitively think it should do. The end result is more accurate and typically more natural looking. Physically
 based Materials will work equally well in all lighting environments. In addition, the Material values can be
-less complex and interdependent, resulting in a more intuitive interface. These benifits are applicable even for non-photorealistic
+less complex and interdependent, resulting in a more intuitive interface. These benefits are applicable even for non-photorealistic
 rendering as evident in the latest films from Pixar [[4]](#Smits) and Disney [[3]](#Burley).
 
 For these reasons and more, Unreal Engine 4 has adopted a new physically based Material and shading model. For an in depth,
@@ -40,7 +40,7 @@ In terms of the "physically based" aspect of our Materials system, there are rea
 
 
 [REGION:note]
-**All** of these inputs are designed to take in values between 0 and 1. In the case of _Base Color_, this means a color with RGB values that fall between 0 and 1.
+All of these inputs are designed to take in values between 0 and 1. In the case of _Base Color_, this means a color with RGB values that fall between 0 and 1.
 [/REGION]
 
 Physically based values can be measured from real world Materials. Some examples will be given below.
@@ -109,7 +109,7 @@ Roughness 0 to 1. Nonmetal top, metal bottom.
 #### Mapping Roughness
 
 [EXCERPT:RoughnessMap]
-Roughness is a property that will frequently be mapped on your objects, in order to add the most physical variation to the surface.
+Roughness is a property that will frequently be mapped on your objects in order to add the most physical variation to the surface.
 [/EXCERPT:RoughnessMap]
 
 [REGION:fullwidth]
@@ -128,7 +128,7 @@ If you have been making Materials in previous iterations of the Unreal Engine an
 [EXCERPT:Metallic]
 The **Metallic** input literally controls how "metal-like" your surface will be. Nonmetals have Metallic values of 0,
 metals have Metallic values of 1. For pure surfaces, such as pure metal, pure stone,
-pure plastic, etc. this value will be 0 **or** 1, not anything in between. When creating hybrid surfaces like corroded, dusty, or rusty metals,
+pure plastic, etc. this value will be 0 or 1, not anything in between. When creating hybrid surfaces like corroded, dusty, or rusty metals,
 you may find that you need some value _between_ 0 and 1. 
 [/EXCERPT:Metallic]
 
@@ -165,7 +165,7 @@ Small scale geometry, especially details only present in the high poly and baked
 which is typically an AO map with very short trace distance. This is multiplied by the final BaseColor before output and multiplied with 0.5 (Specular default) as the Specular output.
 To be clear this is BaseColor = Cavity*OldBaseColor, Specular = Cavity*0.5.
 
-For advanced use, this can be used to control the index of refraction (IOR). We have not found this to be necesary for 99% of Materials. Below are Specular values based off of measured IOR.
+For advanced use, this can be used to control the index of refraction (IOR). We have not found this to be necessary for 99% of Materials. Below are Specular values based off of measured IOR.
 
 **Measured Specular Values:**
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2298956
+﻿INTSourceChangelist:2620013
 Availability: Public
 Title: 안드로이드 게임 개발
 Crumbs:%ROOT%, Platforms
@@ -17,8 +17,9 @@ Navigation:platform
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-	* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
-	* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
-	* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		* [](Platforms/Android/GettingStarted "%Platforms/Android/GettingStarted:description%")
+		* [](Platforms/Android/Reference "%Platforms/Android/Reference:description%")
+		* [](Platforms/Android/DeviceCompatibility "%Platforms/Android/DeviceCompatibility:description%")
+		* [](Platforms/Android/ReducingAPKSize "%Platforms/Android/ReducingAPKSize:description%")
 	[/PARAM]
 [/OBJECT]

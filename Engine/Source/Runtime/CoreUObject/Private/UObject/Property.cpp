@@ -20,6 +20,7 @@ struct TStructOpsTypeTraits<FVector> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector);
@@ -31,19 +32,10 @@ struct TStructOpsTypeTraits<FIntPoint> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(IntPoint);
-
-template<>
-struct TStructOpsTypeTraits<FIntRect> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithZeroConstructor = true,
-	};
-};
-IMPLEMENT_STRUCT(IntRect);
 
 template<>
 struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
@@ -53,6 +45,7 @@ struct TStructOpsTypeTraits<FVector2D> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector2D);
@@ -64,6 +57,7 @@ struct TStructOpsTypeTraits<FVector4> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Vector4);
@@ -76,6 +70,7 @@ struct TStructOpsTypeTraits<FPlane> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Plane);
@@ -88,6 +83,7 @@ struct TStructOpsTypeTraits<FRotator> : public TStructOpsTypeTraitsBase
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
 		WithNetSerializer = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Rotator);
@@ -99,6 +95,7 @@ struct TStructOpsTypeTraits<FBox> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Box);
@@ -110,20 +107,10 @@ struct TStructOpsTypeTraits<FMatrix> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Matrix);
-
-template<>
-struct TStructOpsTypeTraits<FSphere> : public TStructOpsTypeTraitsBase
-{
-	enum 
-	{
-		WithNoInitConstructor = true,
-		WithZeroConstructor = true,
-	};
-};
-IMPLEMENT_STRUCT(Sphere);
 
 template<>
 struct TStructOpsTypeTraits<FBoxSphereBounds> : public TStructOpsTypeTraitsBase
@@ -149,6 +136,7 @@ struct TStructOpsTypeTraits<FLinearColor> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(LinearColor);
@@ -160,6 +148,7 @@ struct TStructOpsTypeTraits<FColor> : public TStructOpsTypeTraitsBase
 	{
 		WithNoInitConstructor = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Color);
@@ -183,6 +172,8 @@ struct TStructOpsTypeTraits<FTwoVectors> : public TStructOpsTypeTraitsBase
 	enum 
 	{
 		WithZeroConstructor = true,
+		WithSerializer = true,
+		WithNoDestructor = true,
 	};
 };
 IMPLEMENT_STRUCT(TwoVectors);
@@ -195,6 +186,7 @@ struct TStructOpsTypeTraits<FGuid> : public TStructOpsTypeTraitsBase
 		WithExportTextItem = true,
 		WithImportTextItem = true,
 		WithZeroConstructor = true,
+		WithSerializer = true,
 	};
 };
 IMPLEMENT_STRUCT(Guid);
@@ -470,7 +462,8 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 	const uint32 ExportCPPFlags = AdditionalExportCPPFlags | (bIsParameter ? CPPF_ArgumentOrReturnValue : 0);
 	FString TypeText = GetCPPType(&ExtendedTypeText, ExportCPPFlags);
 
-	if (!dynamic_cast<const UBoolProperty*>(this)) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
+	const bool bCanHaveConst = 0 == (AdditionalExportCPPFlags & CPPF_NoConst);
+	if (!dynamic_cast<const UBoolProperty*>(this) && bCanHaveConst) // can't have const bitfields because then we cannot determine their offset and mask from the compiler
 	{
 		const UObjectProperty* ObjectProp = dynamic_cast<const UObjectProperty*>(this);
 
@@ -511,6 +504,7 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		}
 	}
 
+	const bool bCanHaveRef = 0 == (AdditionalExportCPPFlags & CPPF_NoConst);
 	if(auto BoolProperty = dynamic_cast<const UBoolProperty*>(this) )
 	{
 		// if this is a member variable, export it as a bitfield
@@ -525,7 +519,9 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		else if( bIsParameter && HasAnyPropertyFlags(CPF_OutParm) )
 		{
 			// export as a reference
-			Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText, TEXT("&"), *NameCpp, ArrayStr);
+			Out.Logf(TEXT("%s%s%s %s%s"), *TypeText, *ExtendedTypeText
+				, bCanHaveRef ? TEXT("&") : TEXT("")
+				, *NameCpp, ArrayStr);
 		}
 
 		else
@@ -550,16 +546,16 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 				{
 					// export as a reference (const ref if it isn't an out parameter)
 					Out.Logf(TEXT("%s%s%s%s %s"),
-						!HasAnyPropertyFlags(CPF_OutParm|CPF_ConstParm) ? TEXT("const ") : TEXT(""),
+						(bCanHaveConst && !HasAnyPropertyFlags(CPF_OutParm | CPF_ConstParm)) ? TEXT("const ") : TEXT(""),
 						*TypeText, *ExtendedTypeText,
-						TEXT("&"),
+						bCanHaveRef ? TEXT("&") : TEXT(""),
 						*NameCpp);
 				}
 				else
 				{
 					// export as a pointer if this is an optional out parm, reference if it's just an out parm, standard otherwise...
 					TCHAR ModifierString[2]={0,0};
-					if (HasAnyPropertyFlags(CPF_OutParm | CPF_ReferenceParm) || bIsInterfaceProp)
+					if (bCanHaveRef && (HasAnyPropertyFlags(CPF_OutParm | CPF_ReferenceParm) || bIsInterfaceProp))
 					{
 						ModifierString[0] = TEXT('&');
 					}
@@ -1271,11 +1267,11 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UNumericProperty, UProperty,
 }
 );
 
-UProperty* UStruct::FindPropertyByName(FName Name) const
+UProperty* UStruct::FindPropertyByName(FName InName) const
 {
 	for (UProperty* Property = PropertyLink; Property != NULL; Property = Property->PropertyLinkNext)
 	{
-		if (Property->GetFName() == Name)
+		if (Property->GetFName() == InName)
 		{
 			return Property;
 		}

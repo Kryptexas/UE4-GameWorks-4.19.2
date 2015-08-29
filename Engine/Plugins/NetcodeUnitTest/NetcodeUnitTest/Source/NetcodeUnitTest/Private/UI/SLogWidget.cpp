@@ -571,17 +571,17 @@ TSharedRef<FTabManager::FLayout> SLogWidget::InitializeTabLayout(const FArgument
 {
 	// Initialize the LogTabs array (which includes labels/tooltips, for each log type)
 	LogTabs.Add(MakeShareable(new
-		FLogTabInfo(TEXT("Summary"),	TEXT("Filter for the most notable log entries."), ELogType::StatusImportant)));
+		FLogTabInfo(TEXT("Summary"),	TEXT("Filter for the most notable log entries."), ELogType::StatusImportant, 10)));
 
 	if (Args._bStatusWidget)
 	{
 		LogTabs.Add(MakeShareable(new
 			FLogTabInfo(TEXT("Advanced Summary"),	TEXT("Filter for the most notable log entries, with extra/advanced information."),
-						ELogType::StatusImportant | ELogType::StatusVerbose | ELogType::StatusAdvanced)));
+						ELogType::StatusImportant | ELogType::StatusVerbose | ELogType::StatusAdvanced, 20)));
 	}
 
 	LogTabs.Add(MakeShareable(new
-		FLogTabInfo(TEXT("All"),		TEXT("No filters - all log output it shown."), ELogType::All)));
+		FLogTabInfo(TEXT("All"),		TEXT("No filters - all log output it shown."), ELogType::All, 30)));
 
 	if (!Args._bStatusWidget)
 	{
@@ -605,11 +605,11 @@ TSharedRef<FTabManager::FLayout> SLogWidget::InitializeTabLayout(const FArgument
 		bool bOpenDebugTab = ((Args._ExpectedFilters & ELogType::StatusDebug) == ELogType::StatusDebug);
 
 		LogTabs.Add(MakeShareable(new
-			FLogTabInfo(TEXT("Debug"),		TEXT("Filter for debug log entries."), ELogType::StatusDebug, bOpenDebugTab)));
-
-		LogTabs.Add(MakeShareable(new
-			FLogTabInfo(TEXT("Console"), TEXT("Filter for local console command results."), ELogType::OriginConsole, false)));
+			FLogTabInfo(TEXT("Debug"),		TEXT("Filter for debug log entries."), ELogType::StatusDebug, 5, bOpenDebugTab)));
 	}
+
+	LogTabs.Add(MakeShareable(new
+		FLogTabInfo(TEXT("Console"), TEXT("Filter for local console command results."), ELogType::OriginConsole, 5, false)));
 
 
 	// Initialize the tab manager, stack and layout
@@ -1005,12 +1005,18 @@ TSharedPtr<FLogTabInfo> SLogWidget::GetActiveTabInfo() const
 }
 
 
-void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor/*=FSlateColor::UseForeground()*/)
+void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor/*=FSlateColor::UseForeground()*/,
+							bool bTakeTabFocus/*=false*/)
 {
 	TSharedRef<FLogLine> CurLogEntry = MakeShareable(new FLogLine(LogType, LogLine, LogColor));
 
 	// Add the line to the master list
 	LogLines.Add(CurLogEntry);
+
+	TSharedPtr<FLogTabInfo> ActiveTab = GetActiveTabInfo();
+
+	bool bLineInTabFocus = ActiveTab.IsValid() && !!(ActiveTab->Filter & LogType);
+	TSharedPtr<FLogTabInfo> FocusTab = NULL;
 
 	// Then add it to each log tab, if it passes that tabs filter
 	for (auto CurTabInfo : LogTabs)
@@ -1020,8 +1026,6 @@ void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateCo
 			// If the tab is not presently open, open it now
 			if (!CurTabInfo->bTabOpen && LogTabManager.IsValid())
 			{
-				TSharedPtr<FLogTabInfo> ActiveTab = GetActiveTabInfo();
-
 				LogTabManager->InvokeTab(CurTabInfo->TabIdName);
 
 				// The new tab has stolen focus, now restore the old tabs focus
@@ -1029,6 +1033,16 @@ void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateCo
 
 				CurTabInfo->bTabOpen = true;
 			}
+
+			// If the line is requesting focus, but is not currently in focus, select a tab for focusing
+			if (bTakeTabFocus && !bLineInTabFocus)
+			{
+				if (CurTabInfo != ActiveTab && (!FocusTab.IsValid() || CurTabInfo->Priority < FocusTab->Priority))
+				{
+					FocusTab = CurTabInfo;
+				}
+			}
+
 
 			CurTabInfo->TabLogLines.Add(CurLogEntry);
 
@@ -1042,6 +1056,12 @@ void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateCo
 
 			CurLogListView->RequestListRefresh();
 		}
+	}
+
+	// If a focus change is required, perform it
+	if (FocusTab.IsValid() && LogTabManager.IsValid())
+	{
+		LogTabManager->InvokeTab(FocusTab->TabIdName);
 	}
 }
 

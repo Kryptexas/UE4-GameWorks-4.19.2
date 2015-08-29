@@ -53,7 +53,7 @@ Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 [/REGION]
 
 
-**Screen Space Reflection** is an effect which is enabled by default that alters the appearance of objects on the surface of **Materials**. There are only a handful of options that can be tweaked for this effect: Intensity, Quality, and Max Roughness. See the Screen Space Reflection page link located below for more information on these options.  
+**Screen Space Reflection** is an effect which is enabled by default that alters the appearance of objects on the surface of Materials. There are only a handful of options that can be tweaked for this effect: Intensity, Quality, and Max Roughness. See the Screen Space Reflection page link located below for more information on these options.  
 
 
 

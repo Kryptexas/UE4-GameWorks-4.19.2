@@ -20,6 +20,7 @@
 #include "Engine/LevelStreaming.h"
 #include "GameFramework/WorldSettings.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "HierarchicalLOD.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 
@@ -36,6 +37,7 @@ FEditorBuildUtils::FEditorAutomatedBuildSettings::FEditorAutomatedBuildSettings(
 	UnableToCheckoutFilesBehavior( ABB_PromptOnError ),
 	NewMapBehavior( ABB_PromptOnError ),
 	FailedToSaveBehavior( ABB_PromptOnError ),
+	bUseSCC( true ),
 	bAutoAddNewFiles( true ),
 	bShutdownEditorOnCompletion( false )
 {}
@@ -134,7 +136,7 @@ bool FEditorBuildUtils::EditorAutomatedBuildAndSubmit( const FEditorAutomatedBui
 	}
 
 	// Finally, if everything has gone smoothly, submit the requested packages to source control
-	if ( bBuildSuccessful )
+	if ( bBuildSuccessful && BuildSettings.bUseSCC )
 	{
 		SubmitPackagesForAutomatedBuild( PackagesToSubmit, BuildSettings );
 	}
@@ -215,6 +217,7 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 		BuildType = SBuildProgressWidget::BUILDTYPE_Paths;
 		break;
 	case EBuildOptions::BuildHierarchicalLOD:
+	case EBuildOptions::PreviewHierarchicalLOD:
 		BuildType = SBuildProgressWidget::BUILDTYPE_LODs;
 		break;
 	default:
@@ -316,6 +319,23 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 			break;
 		}
 
+	case  EBuildOptions::PreviewHierarchicalLOD:
+		{
+			bDoBuild = GEditor->WarnAboutHiddenLevels(InWorld, false);
+			if (bDoBuild)
+			{
+				GEditor->ResetTransaction(NSLOCTEXT("UnrealEd", "RebuildLOD", "Rebuilding HierarchicalLOD"));
+
+				// We can't set the busy cursor for all windows, because lighting
+				// needs a cursor for the lighting options dialog.
+				const FScopedBusyCursor BusyCursor;
+
+				TriggerHierarchicalLODBuilder(InWorld, Id);
+			}
+
+			break;
+		}
+
 	case EBuildOptions::BuildAll:
 	case EBuildOptions::BuildAllSubmit:
 		{
@@ -386,14 +406,7 @@ bool FEditorBuildUtils::EditorBuild( UWorld* InWorld, EBuildOptions::Type Id, co
 	if (GUseThreadedRendering)
 	{
 		StartRenderingThread();
-	}
-
-	if ( bDoBuild && InWorld->Scene )
-	{
-		// Invalidating lighting marked various components as needing a re-register
-		// Propagate the re-registers before rendering the scene to get the latest state
-		InWorld->SendAllEndOfFrameUpdates();
-	}
+	}	
 
 	if ( bDoBuild )
 	{
@@ -513,17 +526,10 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 
 	// Source control is required for the automated build, so ensure that SCC support is compiled in and
 	// that the server is enabled and available for use
-	if ( !ISourceControlModule::Get().IsEnabled() || !SourceControlProvider.IsAvailable() )
+	if ( BuildSettings.bUseSCC && !(ISourceControlModule::Get().IsEnabled() && SourceControlProvider.IsAvailable() ) )
 	{
 		bBuildSuccessful = false;
 		LogErrorMessage( NSLOCTEXT("UnrealEd", "AutomatedBuild_Error_SCCError", "Cannot connect to source control; automated build aborted."), OutErrorMessages );
-	}
-
-	// Empty changelists aren't allowed; abort the build if one wasn't provided
-	if ( bBuildSuccessful && BuildSettings.ChangeDescription.Len() == 0 )
-	{
-		bBuildSuccessful = false;
-		LogErrorMessage( NSLOCTEXT("UnrealEd", "AutomatedBuild_Error_NoCLDesc", "A changelist description must be provided; automated build aborted."), OutErrorMessages );
 	}
 
 	TArray<UPackage*> PreviouslySavedWorldPackages;
@@ -574,7 +580,7 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 	// Load the asset tools module
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	if ( bBuildSuccessful )
+	if ( bBuildSuccessful && BuildSettings.bUseSCC )
 	{
 		// Update the source control status of any relevant world packages in order to determine which need to be
 		// checked out, added to the depot, etc.
@@ -601,6 +607,9 @@ bool FEditorBuildUtils::PrepForAutomatedBuild( const FEditorAutomatedBuildSettin
 						OutPkgsToSubmit.Remove( CurPackage );
 					}
 				}
+			}
+			else if(SourceControlState->IsCheckedOut())
+			{
 			}
 			else if(SourceControlState->CanCheckout())
 			{
@@ -767,7 +776,14 @@ void FEditorBuildUtils::SubmitPackagesForAutomatedBuild( const TSet<UPackage*>& 
 
 	// Now check in all the changes, including the files we added above
 	TSharedRef<FCheckIn, ESPMode::ThreadSafe> CheckInOperation = StaticCastSharedRef<FCheckIn>(ISourceControlOperation::Create<FCheckIn>());
-	CheckInOperation->SetDescription(NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]"));
+	if (BuildSettings.ChangeDescription.IsEmpty())
+	{
+		CheckInOperation->SetDescription(NSLOCTEXT("UnrealEd", "AutomatedBuild_AutomaticSubmission", "[Automatic Submission]"));
+	}
+	else
+	{
+		CheckInOperation->SetDescription(FText::FromString(BuildSettings.ChangeDescription));
+	}
 	SourceControlProvider.Execute( CheckInOperation, LevelsToSubmit, EConcurrency::Synchronous );
 }
 
@@ -801,7 +817,15 @@ void FEditorBuildUtils::TriggerNavigationBuilder(UWorld* InWorld, EBuildOptions:
 
 void FEditorBuildUtils::TriggerHierarchicalLODBuilder(UWorld* InWorld, EBuildOptions::Type Id)
 {
-	// Invoke HLOD generator
-	InWorld->HierarchicalLODBuilder.Build();
+	// Invoke HLOD generator, with either preview or full build
+	if (Id == EBuildOptions::PreviewHierarchicalLOD)
+	{
+		InWorld->HierarchicalLODBuilder->PreviewBuild();
+	}
+	else
+	{
+		InWorld->HierarchicalLODBuilder->Build();
+	}
 }
+
 #undef LOCTEXT_NAMESPACE

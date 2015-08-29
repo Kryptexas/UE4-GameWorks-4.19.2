@@ -78,8 +78,8 @@ void APlayerCameraManager::SetViewTarget(class AActor* NewTarget, struct FViewTa
 		return;
 	}
 
-	// if different then new one, then assign it
-	if( NewTarget != ViewTarget.Target )
+	// if viewtarget different then new one or we're transitioning from the same target with locked outgoing, then assign it
+	if((NewTarget != ViewTarget.Target) || (PendingViewTarget.Target && BlendParams.bLockOutgoing))
 	{
 		// if a transition time is specified, then set pending view target accordingly
 		if( TransitionParams.BlendTime > 0 )
@@ -541,7 +541,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 				Rotator = PCOwner->GetControlRotation();
 			}
 
-			FVector Pos = Loc + FRotationMatrix(Rotator).TransformVector(FreeCamOffset) - Rotator.Vector() * FreeCamDistance;
+			FVector Pos = Loc + ViewTargetOffset + FRotationMatrix(Rotator).TransformVector(FreeCamOffset) - Rotator.Vector() * FreeCamDistance;
 			FCollisionQueryParams BoxParams(NAME_FreeCam, false, this);
 			BoxParams.AddIgnoredActor(OutVT.Target);
 			FHitResult Result;
@@ -733,13 +733,17 @@ void APlayerCameraManager::PostInitializeComponents()
 	{
 		for (auto ModifierClass : DefaultModifiers)
 		{
-			UCameraModifier* const NewMod = AddNewCameraModifier(ModifierClass);
-		
-			// cache ref to camera shake if this is it
-			UCameraModifier_CameraShake* const ShakeMod = Cast<UCameraModifier_CameraShake>(NewMod);
-			if (ShakeMod)
+			// empty entries are not valid here, do work only for actual classes
+			if (ModifierClass)
 			{
-				CachedCameraShakeMod = ShakeMod;
+				UCameraModifier* const NewMod = AddNewCameraModifier(ModifierClass);
+
+				// cache ref to camera shake if this is it
+				UCameraModifier_CameraShake* const ShakeMod = Cast<UCameraModifier_CameraShake>(NewMod);
+				if (ShakeMod)
+				{
+					CachedCameraShakeMod = ShakeMod;
+				}
 			}
 		}
 	}
@@ -757,20 +761,23 @@ void APlayerCameraManager::PostInitializeComponents()
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Owner = this;
 	SpawnInfo.Instigator = Instigator;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save these temp actors into a map
 	AnimCameraActor = GetWorld()->SpawnActor<ACameraActor>(SpawnInfo);
 }
 
-void APlayerCameraManager::Destroyed()
+void APlayerCameraManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	// clean up the temp camera actor
 	if (AnimCameraActor)
 	{
-		AnimCameraActor->Destroy();
+		if (EndPlayReason == EEndPlayReason::Destroyed)
+		{
+			AnimCameraActor->Destroy();
+		}
 		AnimCameraActor = NULL;
 	}
-	Super::Destroyed();
+	Super::EndPlay(EndPlayReason);
 }
 
 void APlayerCameraManager::InitializeFor(APlayerController* PC)
@@ -1142,7 +1149,7 @@ AEmitterCameraLensEffectBase* APlayerCameraManager::AddCameraLensEffect(TSubclas
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.Owner = PCOwner->GetViewTarget();
 			SpawnInfo.Instigator = Instigator;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.ObjectFlags |= RF_Transient;	// We never want to save these into a map
 			LensEffect = GetWorld()->SpawnActor<AEmitterCameraLensEffectBase>(LensEffectEmitterClass, SpawnInfo);
 			if (LensEffect != NULL)
@@ -1389,7 +1396,7 @@ void FTViewTarget::CheckViewTarget(APlayerController* OwningController)
 					}
 					else
 					{
-						PlayerState = NULL;
+						Target = PlayerState; // this will cause it to update to the next Pawn possessed by the player being viewed
 					}
 				}
 				else

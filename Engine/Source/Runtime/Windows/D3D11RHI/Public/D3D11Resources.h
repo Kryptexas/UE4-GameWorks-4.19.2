@@ -315,7 +315,8 @@ public:
 		EPixelFormat InFormat,
 		bool bInCubemap,
 		uint32 InFlags,
-		bool bInPooled
+		bool bInPooled,
+		const FClearValueBinding& InClearValue
 #if PLATFORM_SUPPORTS_VIRTUAL_TEXTURES
 		, void* InRawTextureMemory = nullptr
 #endif
@@ -327,7 +328,8 @@ public:
 		InNumMips,
 		InNumSamples,
 		InFormat,
-		InFlags
+		InFlags,
+		InClearValue
 		)
 	, FD3D11TextureBase(
 		InD3DRHI,
@@ -419,9 +421,10 @@ public:
 		uint32 InSizeZ,
 		uint32 InNumMips,
 		EPixelFormat InFormat,
-		uint32 InFlags
+		uint32 InFlags,
+		const FClearValueBinding& InClearValue
 		)
-	: FRHITexture3D(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags)
+	: FRHITexture3D(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags,InClearValue)
 	, FD3D11TextureBase(
 		InD3DRHI,
 		InResource,
@@ -457,8 +460,8 @@ public:
 class FD3D11BaseTexture2D : public FRHITexture2D
 {
 public:
-	FD3D11BaseTexture2D(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture2D(InSizeX,InSizeY,InNumMips,InNumSamples,InFormat,InFlags)
+	FD3D11BaseTexture2D(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture2D(InSizeX,InSizeY,InNumMips,InNumSamples,InFormat,InFlags, InClearValue)
 	{}
 	uint32 GetSizeZ() const { return 0; }
 };
@@ -466,16 +469,16 @@ public:
 class FD3D11BaseTexture2DArray : public FRHITexture2DArray
 {
 public:
-	FD3D11BaseTexture2DArray(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITexture2DArray(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags)
+	FD3D11BaseTexture2DArray(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITexture2DArray(InSizeX,InSizeY,InSizeZ,InNumMips,InFormat,InFlags,InClearValue)
 	{ check(InNumSamples == 1); }
 };
 
 class FD3D11BaseTextureCube : public FRHITextureCube
 {
 public:
-	FD3D11BaseTextureCube(uint32 InSizeX,uint32 InSizeY,uint32 InSizeZ,uint32 InNumMips,uint32 InNumSamples,EPixelFormat InFormat,uint32 InFlags)
-	: FRHITextureCube(InSizeX,InNumMips,InFormat,InFlags)
+	FD3D11BaseTextureCube(uint32 InSizeX, uint32 InSizeY, uint32 InSizeZ, uint32 InNumMips, uint32 InNumSamples, EPixelFormat InFormat, uint32 InFlags, const FClearValueBinding& InClearValue)
+	: FRHITextureCube(InSizeX,InNumMips,InFormat,InFlags,InClearValue)
 	{ check(InNumSamples == 1); }
 	uint32 GetSizeX() const { return GetSize(); }
 	uint32 GetSizeY() const { return GetSize(); } //-V524

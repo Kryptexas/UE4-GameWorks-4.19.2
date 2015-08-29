@@ -4,6 +4,7 @@
 #include "SGameplayTagGraphPin.h"
 #include "GameplayTagsModule.h"
 #include "GameplayTags.h"
+#include "SScaleBox.h"
 
 #define LOCTEXT_NAMESPACE "GameplayTagGraphPin"
 
@@ -88,12 +89,20 @@ TSharedRef<SWidget> SGameplayTagGraphPin::GetListContent()
 		.AutoHeight()
 		.MaxHeight( 400 )
 		[
-			SNew( SGameplayTagWidget, EditableContainers )
-			.OnTagChanged( this, &SGameplayTagGraphPin::RefreshTagList )
-			.TagContainerName( TEXT("SGameplayTagGraphPin") )
-			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-			.MultiSelect(false)
-			.Filter(FilterString)
+			SNew(SScaleBox)
+			.HAlign(EHorizontalAlignment::HAlign_Left)
+			.VAlign(EVerticalAlignment::VAlign_Top)
+			.StretchDirection(EStretchDirection::DownOnly)
+			.Stretch(EStretch::ScaleToFit)
+			.Content()
+			[
+				SNew( SGameplayTagWidget, EditableContainers )
+				.OnTagChanged( this, &SGameplayTagGraphPin::RefreshTagList )
+				.TagContainerName( TEXT("SGameplayTagGraphPin") )
+				.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
+				.MultiSelect(false)
+				.Filter(FilterString)
+			]
 		];
 }
 

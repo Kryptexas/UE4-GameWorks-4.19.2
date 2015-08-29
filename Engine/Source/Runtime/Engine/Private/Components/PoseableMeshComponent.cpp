@@ -5,7 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "AnimTree.h"
+#include "Animation/AnimStats.h"
 #include "Animation/AnimInstance.h"
 #include "Components/PoseableMeshComponent.h"
 
@@ -35,7 +35,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 		}
 
 		FillSpaceBases();
-		FlipEditableSpaceBases();
+		FinalizeBoneTransform();
 
 		return true;
 	}
@@ -63,14 +63,14 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 	// We need the mesh space bone transforms now for renderer to get delta from ref pose:
 	FillSpaceBases();
-	FlipEditableSpaceBases();
+	FinalizeBoneTransform();
 
 	MarkRenderDynamicDataDirty();
 }
 
 void UPoseableMeshComponent::FillSpaceBases()
 {
-	SCOPE_CYCLE_COUNTER(STAT_SkelComposeTime);
+	ANIM_MT_SCOPE_CYCLE_COUNTER(FillSpaceBases, IsRunningParallelEvaluation());
 
 	if( !SkeletalMesh )
 	{

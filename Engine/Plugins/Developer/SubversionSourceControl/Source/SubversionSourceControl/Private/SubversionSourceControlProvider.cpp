@@ -121,16 +121,6 @@ TArray<FSourceControlStateRef> FSubversionSourceControlProvider::GetCachedStateB
 	return Result;
 }
 
-void FSubversionSourceControlProvider::RegisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.Add( SourceControlStateChanged );
-}
-
-void FSubversionSourceControlProvider::UnregisterSourceControlStateChanged( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
-{
-	OnSourceControlStateChanged.DEPRECATED_Remove( SourceControlStateChanged );
-}
-
 FDelegateHandle FSubversionSourceControlProvider::RegisterSourceControlStateChanged_Handle( const FSourceControlStateChanged::FDelegate& SourceControlStateChanged )
 {
 	return OnSourceControlStateChanged.Add( SourceControlStateChanged );
@@ -533,6 +523,13 @@ ECommandResult::Type FSubversionSourceControlProvider::ExecuteSynchronousCommand
 
 	// Delete the command now
 	check(!InCommand.bAutoDelete);
+
+	// ensure commands that are not auto deleted do not end up in the command queue
+	if ( CommandQueue.Contains( &InCommand ) ) 
+	{
+		CommandQueue.Remove( &InCommand );
+	}
+
 	delete &InCommand;
 
 	return Result;

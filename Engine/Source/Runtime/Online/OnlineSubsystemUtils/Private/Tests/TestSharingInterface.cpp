@@ -40,7 +40,7 @@ void FTestSharingInterface::Test(UWorld* InWorld, bool bWithImage)
 	TestStatusUpdate.PostPrivacy = EOnlineStatusUpdatePrivacy::OnlyMe;
 	if( bWithImage )
 	{
-		TestStatusUpdate.Image = new FImage( 256, 256, ERawImageFormat::BGRA8, false );
+		TestStatusUpdate.Image = new FImage( 256, 256, ERawImageFormat::BGRA8, EGammaSpace::Linear );
 	}
 
 	// Kick off the first part of the test,

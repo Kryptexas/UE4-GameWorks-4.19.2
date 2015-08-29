@@ -1,0 +1,42 @@
+﻿INTSourceChangelist:0
+Availability:Public
+Title:3. Create Your Project
+Crumbs:%ROOT%, Platforms, Platforms/Android, Platforms/Android/GettingStarted
+Description:Start a template project
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Step](Platforms/Android/GettingStarted/2 "%Platforms/Android/GettingStarted/2:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[Quick Start Home](Platforms/Android/GettingStarted)
+	[/PARAM]
+	[PARAM:next]
+		[Next Step](Platforms/Android/GettingStarted/4 "%Platforms/Android/GettingStarted/4:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+
+
+
+%Steps%
+
+
+1.	Create a new project. Here we are testing a Blueprint-based project. If you start with a C++ project and then compile it, the following steps will be the same.  
+
+![](new_android_project.png)
+
+
+[REGION:tip]
+Note that we are not including the starter content in this project.
+[/REGION]
+
+
+
+
+
+%Steps%

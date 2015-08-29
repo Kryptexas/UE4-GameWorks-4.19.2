@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2466292
+﻿INTSourceChangelist:2573803
 Availability:Public
-Title:2.C++コードでカメラビューをコントロールする
+Title:2.C++コードで行うカメラビューのコントロール
 Crumbs:%ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/AutoCamera
 Description:カメラビューを変更するクラスのコーディング
 
@@ -22,11 +22,11 @@ Description:カメラビューを変更するクラスのコーディング
 
 %Steps%
 
-1. カメラビューをコントロールするC++クラスの作成準備が整いました。このチュートリアルでは、 **アクタ** を CameraDirector を呼び出す新規クラスに拡張します。
+1. カメラビューをコントロールする C++ クラスの作成準備が整いました。このチュートリアルでは、 **アクタ** を CameraDirector を呼び出す新規クラスに拡張します。
 
 	[![](NameActorClass.png)](NameActorClass.png)
 
-1. "CameraDirector.h" ファイル内の **ACameraDirector** クラス定義の下部に次のコードを追加します：
+1. 「 `CameraDirector.h` 」ファイル内の **ACameraDirector** クラス定義の下部に次のコードを追加します：
 
 		UPROPERTY(EditAnywhere)
 		AActor* CameraOne;
@@ -38,13 +38,13 @@ Description:カメラビューを変更するクラスのコーディング
 
 	[REGION:note] **UPROPERTY** マクロは **アンリアルエンジン** に変数を表示します。これによりこれらの変数に設定された値は、今後のセッションでゲームをロンチ、レベルまたはプロジェクトをリロードした時にリセットされません。**アンリアルエディタ** に CameraOne と CameraTwo の設定を有効にする **EditAnywhere** キーワードも追加されました。[/REGION]
 
-1. "CameraDirector.cpp" ファイル上部の "#include" のすぐ下に以下のコード行を追加します：
+1. 「 `CameraDirector.cpp` 」ファイル上部の "#include" のすぐ下に以下のコード行を追加します：
 
 		#include "Kismet/GameplayStatics.h"
 
 	「GameplayStatics」ヘッダファイルで、いくつかの汎用関数にアクセスすることができます。そのうちの1つはこのチュートリアルに必要な関数です。終了後、以下のコードを **ACameraDirector::Tick** の下部に追加します：
 
-		const float TimeBetweenCameraChanges = 3.0f;
+		const float TimeBetweenCameraChanges = 2.0f;
 		const float SmoothBlendTime = 0.75f;
 		TimeToNextCameraChange -= DeltaTime;
 		if (TimeToNextCameraChange <= 0.0f)

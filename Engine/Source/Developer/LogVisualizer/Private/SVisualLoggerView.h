@@ -2,7 +2,7 @@
 
 #pragma once
 
-class SVisualLoggerView : public SCompoundWidget
+class SVisualLoggerView : public SVisualLoggerBaseWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SVisualLoggerView) 

@@ -350,8 +350,6 @@ void UAnimMontage::PostLoad()
 		}
 	}
 
-	int32 Ver = GetLinker()->UE4Ver();
-
 	for(auto& Composite : CompositeSections)
 	{
 		if(Composite.StartTime_DEPRECATED != 0.0f)
@@ -361,6 +359,7 @@ void UAnimMontage::PostLoad()
 		}
 		else
 		{
+			Composite.RefreshSegmentOnLoad();
 			Composite.LinkMontage(this, Composite.GetTime());
 		}
 	}
@@ -679,6 +678,23 @@ bool UAnimMontage::IsValidAdditive() const
 	return false;
 }
 
+bool UAnimMontage::IsValidAdditiveSlot(const FName& SlotNodeName) const
+{
+	// if first one is additive, this is additive
+	if ( SlotAnimTracks.Num() > 0 )
+	{
+		for (int32 I=0; I<SlotAnimTracks.Num(); ++I)
+		{
+			if (SlotAnimTracks[I].SlotName == SlotNodeName)
+			{
+				return SlotAnimTracks[I].AnimTrack.IsAdditive();
+			}
+		}
+	}
+
+	return false;
+}
+
 EAnimEventTriggerOffsets::Type UAnimMontage::CalculateOffsetFromSections(float Time) const
 {
 	for(auto Iter = CompositeSections.CreateConstIterator(); Iter; ++Iter)
@@ -742,8 +758,10 @@ FTransform UAnimMontage::ExtractRootMotionFromTrackRange(float StartTrackPositio
 
 	}
 
-	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s"),
-		*RootMotion.RootMotionTransform.GetTranslation().ToCompactString(), *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() );
+	UE_LOG(LogRootMotion, Log,  TEXT("\tUAnimMontage::ExtractRootMotionForTrackRange RootMotionTransform: Translation: %s, Rotation: %s")
+		, *RootMotion.RootMotionTransform.GetTranslation().ToCompactString()
+		, *RootMotion.RootMotionTransform.GetRotation().Rotator().ToCompactString() 
+		);
 
 	return RootMotion.RootMotionTransform;
 }
@@ -804,38 +822,6 @@ bool UAnimMontage::HasValidSlotSetup() const
 	}
 
 	return true;
-}
-
-void UAnimMontage::EvaluateCurveData(class UAnimInstance* Instance, float CurrentTime, float BlendWeight ) const
-{
-	Super::EvaluateCurveData(Instance, CurrentTime, BlendWeight);
-
-	// I also need to evaluate curve of the animation
-	// for now we only get the first slot
-	// in the future, we'll need to do based on highest weight?
-	// first get all the montage instance weight this slot node has
-	if ( SlotAnimTracks.Num() > 0 )
-	{
-		const FAnimTrack& Track = SlotAnimTracks[0].AnimTrack;
-		for (int32 I=0; I<Track.AnimSegments.Num(); ++I)
-		{
-			const FAnimSegment& AnimSegment = Track.AnimSegments[I];
-
-			float PositionInAnim = 0.f;
-			float Weight = 0.f;
-			UAnimSequenceBase* AnimRef = AnimSegment.GetAnimationData(CurrentTime, PositionInAnim, Weight);
-			// make this to be 1 function
-			if ( AnimRef && Weight > ZERO_ANIMWEIGHT_THRESH )
-			{
-				// todo anim: hack - until we fix animcomposite
-				UAnimSequence * Sequence = Cast<UAnimSequence>(AnimRef);
-				if ( Sequence )
-				{
-					Sequence->EvaluateCurveData(Instance, PositionInAnim, BlendWeight*Weight);
-				}
-			}
-		}	
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -1384,6 +1370,12 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 							{
 								OutRootMotionParams->Accumulate(RootMotion);
 							}
+
+							UE_LOG(LogRootMotion, Log, TEXT("\tFAnimMontageInstance::Advance ExtractedRootMotion: %s, AccumulatedRootMotion: %s, bBlendRootMotion: %d")
+								, *RootMotion.GetTranslation().ToCompactString()
+								, *OutRootMotionParams->RootMotionTransform.GetTranslation().ToCompactString()
+								, bBlendRootMotion
+								);
 						}
 					}
 
@@ -1453,12 +1445,6 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 		// nothing else to do
 		Terminate();
 		return;
-	}
-
-	// Update curves based on final position.
-	if( (Weight > ZERO_ANIMWEIGHT_THRESH) && IsValid() )
-	{
-		Montage->EvaluateCurveData(AnimInstance.Get(), Position, Weight);
 	}
 
 	if (!bInterrupted)
@@ -1619,6 +1605,83 @@ float UAnimMontage::CalculateSequenceLength()
 	return CalculatedSequenceLength;
 }
 
+const TArray<class UAnimMetaData*> UAnimMontage::GetSectionMetaData(FName SectionName, bool bIncludeSequence/*=true*/, FName SlotName /*= NAME_None*/)
+{
+	TArray<class UAnimMetaData*> MetadataList;
+	bool bShouldIIncludeSequence = bIncludeSequence;
+	
+	for (int32 SectionIndex=0; SectionIndex<CompositeSections.Num(); ++SectionIndex)
+	{
+		const auto& CurSection = CompositeSections[SectionIndex];
+		if (SectionName == NAME_None || CurSection.SectionName == SectionName)
+		{
+			// add to the list
+			MetadataList.Append(CurSection.GetMetaData());
+
+			if (bShouldIIncludeSequence)
+			{
+				if (SectionName == NAME_None)
+				{
+					for(auto& SlotIter : SlotAnimTracks)
+					{
+						if(SlotName == NAME_None || SlotIter.SlotName ==  SlotName)
+						{
+							// now add the animations within this section
+							for(auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
+							{
+								if(SegmentIter.AnimReference)
+								{
+									// only add unique here
+									TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
+
+									for (auto& RefData : RefMetadata)
+									{
+										MetadataList.AddUnique(RefData);
+									}
+								}
+							}
+						}
+					}
+
+					// if section name == None, we only grab slots once
+					// otherwise, it will grab multiple times
+					bShouldIIncludeSequence = false;
+				}
+				else
+				{
+					float SectionStartTime = 0.f, SectionEndTime = 0.f;
+					GetSectionStartAndEndTime(SectionIndex, SectionStartTime, SectionEndTime);
+					for(auto& SlotIter : SlotAnimTracks)
+					{
+						if(SlotName == NAME_None || SlotIter.SlotName ==  SlotName)
+						{
+							// now add the animations within this section
+							for(auto& SegmentIter : SlotIter.AnimTrack.AnimSegments)
+							{
+								if (SegmentIter.IsIncluded(SectionStartTime, SectionEndTime))
+								{
+									if(SegmentIter.AnimReference)
+									{
+										// only add unique here
+										TArray<UAnimMetaData*> RefMetadata = SegmentIter.AnimReference->GetMetaData();
+
+										for(auto& RefData : RefMetadata)
+										{
+											MetadataList.AddUnique(RefData);
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return MetadataList;
+}
+
 #if WITH_EDITOR
 bool UAnimMontage::GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences)
 {
@@ -1639,7 +1702,7 @@ void UAnimMontage::ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSeq
 	}
 }
 
-ENGINE_API void UAnimMontage::UpdateLinkableElements()
+void UAnimMontage::UpdateLinkableElements()
 {
 	// Update all linkable elements
 	for(FCompositeSection& Section : CompositeSections)

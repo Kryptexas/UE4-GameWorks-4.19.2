@@ -11,6 +11,15 @@ class FMulticastDelegateBase
 {
 public:
 
+	~FMulticastDelegateBase()
+	{
+		// On destruction clear our invocation list, but don't bother compacting
+		for (IDelegateInstance*& DelegateInstanceRef : InvocationList)
+		{
+			delete DelegateInstanceRef;
+		}
+	}
+
 	/** Removes all functions from this delegate's invocation list. */
 	void Clear( )
 	{

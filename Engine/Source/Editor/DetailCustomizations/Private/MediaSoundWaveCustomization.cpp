@@ -2,7 +2,7 @@
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "IMediaPlayer.h"
-#include "IMediaTrack.h"
+#include "IMediaStream.h"
 #include "MediaPlayer.h"
 #include "MediaSoundWaveCustomization.h"
 

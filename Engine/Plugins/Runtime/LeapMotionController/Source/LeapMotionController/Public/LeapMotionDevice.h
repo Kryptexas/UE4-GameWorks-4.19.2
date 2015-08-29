@@ -126,6 +126,16 @@ public:
 	 */
 	bool SetHmdPolicy(bool UseHmdPolicy);
 
+	/**
+	 * Enables or disables the Leap Motion Controller policy that transmits image data.
+	 * Note that calling this function does not change the transforms of any 
+	 * LeapMotionControllerComponent instances that may exist.
+	 *
+	 * @param UseHmdPolicy		True to enable for image pass-through, false to disable.
+	 * @returns					True if the device is connected.
+	 */
+	bool SetImagePolicy(bool UseImagePolicy);
+
 	/** 
 	 * Gets the cached reference frame. Call SetReferenceFrameOncePerTick() before
 	 * the first access to this variable during a tick.

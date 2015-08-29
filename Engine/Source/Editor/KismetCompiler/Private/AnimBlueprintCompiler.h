@@ -221,6 +221,9 @@ private:
 	//
 	void ProcessAnimationNodesGivenRoot(TArray<UAnimGraphNode_Base*>& AnimNodeList, const TArray<UAnimGraphNode_Base*>& RootSet);
 
+	// Automatically fill in parameters for the specified Getter node
+	void AutoWireAnimGetter(class UK2Node_AnimGetter* Getter, UAnimStateTransitionNode* InTransitionNode);
+
 	// This function does the following steps:
 	//   Clones the nodes in the specified source graph
 	//   Merges them into the ConsolidatedEventGraph

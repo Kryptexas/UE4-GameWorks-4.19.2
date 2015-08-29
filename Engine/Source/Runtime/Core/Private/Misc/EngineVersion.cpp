@@ -39,7 +39,7 @@ bool FEngineVersionBase::IsEmpty() const
 	return Major == 0 && Minor == 0 && Patch == 0;
 }
 
-bool FEngineVersionBase::IsPromotedBuild() const
+bool FEngineVersionBase::HasChangelist() const
 {
 	return GetChangelist() != 0;
 }
@@ -71,7 +71,7 @@ EVersionComparison FEngineVersionBase::GetNewest(const FEngineVersionBase &First
 	}
 
 	// Compare changelists (only if they're both from the same vendor, and they're both valid)
-	if (First.IsLicenseeVersion() == Second.IsLicenseeVersion() && First.IsPromotedBuild() && Second.IsPromotedBuild() && First.GetChangelist() != Second.GetChangelist())
+	if (First.IsLicenseeVersion() == Second.IsLicenseeVersion() && First.HasChangelist() && Second.HasChangelist() && First.GetChangelist() != Second.GetChangelist())
 	{
 		Component = EVersionComponent::Changelist;
 		return (First.GetChangelist() > Second.GetChangelist()) ? EVersionComparison::First : EVersionComparison::Second;
@@ -79,6 +79,11 @@ EVersionComparison FEngineVersionBase::GetNewest(const FEngineVersionBase &First
 
 	// Otherwise they're the same
 	return EVersionComparison::Neither;
+}
+
+uint32 FEngineVersionBase::EncodeLicenseeChangelist(uint32 Changelist)
+{
+	return Changelist | 0x80000000;
 }
 
 
@@ -109,7 +114,7 @@ void FEngineVersion::Empty()
 bool FEngineVersion::IsCompatibleWith(const FEngineVersionBase &Other) const
 {
 	// If this or the other is not a promoted build, always assume compatibility. 
-	if(!IsPromotedBuild() || !Other.IsPromotedBuild())
+	if(!HasChangelist() || !Other.HasChangelist())
 	{
 		return true;
 	}
