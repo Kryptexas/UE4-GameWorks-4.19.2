@@ -76,7 +76,7 @@ void FLogVisualizer::Shutdown()
 	StaticInstance.Reset();
 }
 
-inline void FLogVisualizer::Reset()
+void FLogVisualizer::Reset()
 {
 	TimeSliderController->SetTimesliderArgs(FVisualLoggerTimeSliderArgs());
 }
