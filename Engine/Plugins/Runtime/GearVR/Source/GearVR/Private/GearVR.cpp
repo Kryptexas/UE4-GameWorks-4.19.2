@@ -632,7 +632,7 @@ void FGearVR::SetupViewFamily(FSceneViewFamily& InViewFamily)
 {
 	InViewFamily.EngineShowFlags.MotionBlur = 0;
 	InViewFamily.EngineShowFlags.HMDDistortion = false;
-	InViewFamily.EngineShowFlags.ScreenPercentage = false;
+	InViewFamily.EngineShowFlags.SetScreenPercentage(false);
 	InViewFamily.EngineShowFlags.StereoRendering = IsStereoEnabled();
 }
 
