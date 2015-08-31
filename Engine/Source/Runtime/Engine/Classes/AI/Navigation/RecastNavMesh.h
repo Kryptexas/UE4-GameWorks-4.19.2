@@ -784,7 +784,7 @@ public:
 	void InvalidateAffectedPaths(const TArray<uint32>& ChangedTiles);
 
 	/** Event from generator that navmesh build has finished */
-	void OnNavMeshGenerationFinished();
+	virtual void OnNavMeshGenerationFinished();
 
 	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
