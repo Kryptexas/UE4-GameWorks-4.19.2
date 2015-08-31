@@ -215,6 +215,27 @@ void UMaterialInstanceDynamic::K2_CopyMaterialInstanceParameters(UMaterialInterf
 	CopyMaterialInstanceParameters(Source);
 }
 
+void UMaterialInstanceDynamic::CopyInterpParameters(UMaterialInstance* Source)
+{
+	// we might expose as blueprint function so we have the input a pointer instead of a reference
+	if(Source)
+	{
+		// copy the array and update the renderer data structures
+
+		for (auto& it : Source->ScalarParameterValues)
+		{
+			SetScalarParameterValue(it.ParameterName, it.ParameterValue);
+		}
+
+		for (auto& it : Source->VectorParameterValues)
+		{
+			SetVectorParameterValue(it.ParameterName, it.ParameterValue);
+		}
+
+		// the other parameters don't interpolate but if we expose this to blueprints we could copy them for consistency
+	}
+}
+
 void UMaterialInstanceDynamic::CopyParameterOverrides(UMaterialInstance* MaterialInstance)
 {
 	ClearParameterValues();

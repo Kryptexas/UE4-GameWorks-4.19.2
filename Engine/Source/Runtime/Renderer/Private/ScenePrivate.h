@@ -779,45 +779,57 @@ public:
 	}
 
 	// Note: OnStartPostProcessing() needs to be called each frame for each view
-	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InParentMaterial) override
+	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InSource) override
 	{		
 		check(IsInGameThread());
-		check(InParentMaterial);
+		check(InSource);
 
-		auto ParentAsMaterialInstance = Cast<UMaterialInstanceDynamic>(InParentMaterial);
+		// 0 or MID (MaterialInstanceDynamic) pointer
+		auto InputAsMID = Cast<UMaterialInstanceDynamic>(InSource);
 
 		// fixup MID parents as this is not allowed, take the next MIC or Material.
-		UMaterialInterface* ParentMaterial = ParentAsMaterialInstance ? ParentAsMaterialInstance->Parent : InParentMaterial;
+		UMaterialInterface* ParentOfTheNewMID = InputAsMID ? InputAsMID->Parent : InSource;
 
 		// this is not allowed and would cause an error later in the code
-		check(!ParentMaterial->IsA(UMaterialInstanceDynamic::StaticClass()));
+		check(!ParentOfTheNewMID->IsA(UMaterialInstanceDynamic::StaticClass()));
+
+		UMaterialInstanceDynamic* NewMID = 0;
 
 		if(MIDUsedCount < (uint32)MIDPool.Num())
 		{
-			UMaterialInstanceDynamic* MID = MIDPool[MIDUsedCount];
+			NewMID = MIDPool[MIDUsedCount];
 
-			if(MID->Parent != ParentMaterial)
+			if(NewMID->Parent != ParentOfTheNewMID)
 			{
 				// create a new one
 				// garbage collector will remove the old one
 				// this should not happen too often
-				MID = UMaterialInstanceDynamic::Create(ParentMaterial, 0);
-				MIDPool[MIDUsedCount] = MID;
+				NewMID = UMaterialInstanceDynamic::Create(ParentOfTheNewMID, 0);
+				MIDPool[MIDUsedCount] = NewMID;
 			}
+
+			// reusing an existing object means we need to clear out the Vector and Scalar parameters
+			NewMID->ClearParameterValues();
 		}
 		else
 		{
-			UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(ParentMaterial, 0);
-			check(MID);
+			NewMID = UMaterialInstanceDynamic::Create(ParentOfTheNewMID, 0);
+			check(NewMID);
 
-			MIDPool.Add(MID);
+			MIDPool.Add(NewMID);
 		}
 
-		UMaterialInstanceDynamic* Ret = MIDPool[MIDUsedCount++];
+		if(InputAsMID)
+		{
+			auto ParentAsMI = Cast<UMaterialInstance>(InputAsMID->Parent);
+			check(ParentAsMI);
 
-		check(Ret->GetRenderProxy(false));
+			// parent is an MID so we need to copy the MID Vector and Scalar parameters over
+			NewMID->CopyInterpParameters(ParentAsMI);
+		}
 
-		return Ret;
+		check(NewMID->GetRenderProxy(false));
+		return NewMID;
 	}
 
 	virtual FTemporalLODState& GetTemporalLODState() override

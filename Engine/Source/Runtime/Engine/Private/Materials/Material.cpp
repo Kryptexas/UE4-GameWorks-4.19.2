@@ -1145,8 +1145,6 @@ void UMaterialInterface::OverrideBlendableSettings(class FSceneView& View, float
 
 		if(MID)
 		{
-			MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)this);
-
 			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);
 
 			// a material already exists, blend with existing ones

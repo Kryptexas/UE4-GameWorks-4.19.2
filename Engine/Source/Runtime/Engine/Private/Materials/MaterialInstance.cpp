@@ -2329,12 +2329,10 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 		{
 			UMaterial* Base = Material->GetBaseMaterial();
 
-			UMaterialInstanceDynamic* MID = View.State->GetReusableMID((UMaterialInterface*)this);
+			UMaterialInstanceDynamic* MID = View.State->GetReusableMID(Base);
 
 			if(MID)
 			{
-				MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)Base);
-
 				FPostProcessMaterialNode NewNode(MID, Base->BlendableLocation, Base->BlendablePriority);
 
 				// it's the first material, no blending needed
@@ -2364,7 +2362,6 @@ void UMaterialInstance::OverrideBlendableSettings(class FSceneView& View, float 
 
 		if(MID)
 		{
-			MID->K2_CopyMaterialInstanceParameters((UMaterialInterface*)this);
 			SetTonemapperPostprocessMaterialSettings(View, *MID);
 
 			FPostProcessMaterialNode NewNode(MID, Material->BlendableLocation, Material->BlendablePriority);

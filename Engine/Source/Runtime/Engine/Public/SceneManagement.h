@@ -141,9 +141,9 @@ public:
 	/**
 	 * Allows MIDs being created and released during view rendering without the overhead of creating and releasing objects
 	 * As MID are not allowed to be parent of MID this gets fixed up by parenting it to the next Material or MIC
-	 * @param ParentMaterial can be Material, MIC or MID, must not be 0
+	 * @param InSource can be Material, MIC or MID, must not be 0
 	 */
-	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) = 0;
+	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* InSource) = 0;
 	/** Returns the temporal LOD struct from the viewstate */
 	virtual FTemporalLODState& GetTemporalLODState() = 0;
 	virtual const FTemporalLODState& GetTemporalLODState() const = 0;

@@ -47,11 +47,21 @@ class UMaterialInstanceDynamic : public UMaterialInstance
 	void K2_InterpolateMaterialInstanceParams(UMaterialInstance* SourceA, UMaterialInstance* SourceB, float Alpha);
 
 	/**
-	 * Copies over parameters given a material interface.
+	 * Copies over parameters given a material interface (deep, following the hierarchy)
+	 * Very slow implementation, avoid using at runtime. Hopefully we can replace ity later with somthing like CopyInterpParameters()
 	 * The output is the object itself (this).
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
 	void K2_CopyMaterialInstanceParameters(UMaterialInterface* Source);
+
+	/**
+	 * Copies over parameters given a material instance (shallow, not deep following the hierarchy)
+	 * much faster than K2_CopyMaterialInstanceParameters(), 
+	 * The output is the object itself (this).
+	 * @param Source ignores the call if 0
+	 */
+	UFUNCTION(meta=(DisplayName = "CopyMaterialInstanceParameters"), Category="Rendering|Material")
+	ENGINE_API void CopyInterpParameters(UMaterialInstance* Source);
 
 	/**
 	 * Create a material instance dynamic parented to the specified material.
