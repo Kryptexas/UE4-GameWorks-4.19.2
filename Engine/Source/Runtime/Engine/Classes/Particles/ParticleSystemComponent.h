@@ -300,6 +300,7 @@ public:
 	 * True if we should automatically attach to AutoAttachParent when activated, and detach from our parent when completed.
 	 * This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
 	 * When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
+	 * This also disables attachment on dedicated servers, where we don't actually activate even if bAutoActivate is true.
 	 * @see AutoAttachParent, AutoAttachSocketName, AutoAttachLocationType
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Attachment)

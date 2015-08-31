@@ -3643,6 +3643,10 @@ void UParticleSystemComponent::TickComponent(float DeltaTime, enum ELevelTick Ti
 			// We need to destroy the component if the user is expecting us to do it automatically otherwise this component will live forever because HasCompleted() will never get checked
 			DestroyComponent();
 		}
+		else
+		{
+			SetComponentTickEnabled(false);
+		}
 		return;
 	}
 
