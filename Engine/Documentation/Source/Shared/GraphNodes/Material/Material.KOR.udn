@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2588108
+﻿INTSourceChangelist:2665992
 Availability:NoPublish
 Title:
 Crumbs:
@@ -320,6 +320,14 @@ CustomTexture 는 Custom 표현식 안에 있는 HLSL 코드 내 텍스처를 �
 Engine/Rendering/Materials/ExpressionReference/Custom#customtexture
 [/VAR]
 [/EXCERPT:UMaterialExpressionCustomTexture]
+
+[EXCERPT:UMaterialExpressionDecalDerivative]
+DecalDerivative 는 커스텀 UV 가 없다는 가정하에 데칼 텍스처 좌표의 파생형을 명시적으로 계산하여 데칼이 투영되는 에지의 2x2 픽셀 밉맵 부작용을 피하는데 쓰이며, 비등방성 필터링도 계속 지원됩니다.
+
+[VAR:ToolTipFullLink]
+Engine/Actors/DecalActor/DecalUserGuide
+[/VAR]
+[/EXCERPT:UMaterialExpressionDecalDerivative]
 
 [EXCERPT:UMaterialExpressionDecalMipmapLevel]
 DecalMipmapLevel 는 커스텀 UV 가 없다 가정하고 데칼 텍스처의 밉맵 레벨을 명시적으로 계산하는데 사용됩니다. 이는 데칼이 투사되는 에지의 2x2 픽셀 밉맵 부작용을 피하기 위해 사용됩니다.
@@ -785,6 +793,14 @@ TextureSample 표현식은 텍스처에서 색 값을 출력합니다. 이 텍�
 Engine/Rendering/Materials/ExpressionReference/Textures#texturesample
 [/VAR]
 [/EXCERPT:UMaterialExpressionTextureSample]
+
+[EXCERPT:UMaterialExpressionTextureProperty]
+TextureProperty 표현식은 텍스처의 크기나 텍셀 크기같은 텍스처 프로퍼티를 노출시킵니다.
+
+[VAR:ToolTipFullLink]
+Engine/Rendering/Materials/ExpressionReference/Textures#textureproperty
+[/VAR]
+[/EXCERPT:UMaterialExpressionTextureProperty]
 
 [EXCERPT:UMaterialExpressionBlackBody]
 Black Body (흑체)는 머티리얼 안에서 black body radiation (흑체복사) 효과를 흉내내는 표현식입니다. 사용자가 (켈빈 단위로) 온도를 입력하면 그 색과 강도 결과를 베이스 컬러와 이미시브 값을 구동하는 데 사용하여 물리적으로 정확한 결과를 얻을 수 있습니다.

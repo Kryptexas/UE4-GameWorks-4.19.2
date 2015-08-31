@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2629189
+﻿INTSourceChangelist:2653049
 Availability: Public
 Title:1.1 - 기본 데칼
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Decals
@@ -12,6 +12,22 @@ Related: Engine/Rendering/Materials/MaterialInputs
 Related: Engine/Rendering/Materials/LayeredMaterials
 Related: Engine/Rendering/Materials/MaterialInstances
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[데칼 홈](Resources/ContentExamples/Decals)
+	[/PARAM]
+	[PARAM:next]
+		[Next Example](Resources/ContentExamples/Decals/1_2 "%Resources/ContentExamples/Decals/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

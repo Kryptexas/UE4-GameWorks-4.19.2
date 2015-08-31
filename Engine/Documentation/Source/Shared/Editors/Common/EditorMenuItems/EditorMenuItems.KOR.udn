@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2573163
+﻿INTSourceChangelist:2662542
 Availability: Docs
 Title:공통 툴 메뉴 UI 항목
 Description:여러 레벨 에디터 툴에 공통인 메뉴 항목에 대한 설명 저장소입니다.
@@ -41,6 +41,10 @@ Crumbs:
 * **레퍼런스 보기** - 선택된 애셋의 레퍼런스가 표시되는 레퍼런스 뷰어를 실행합니다.
 [/EXCERPT:MenuAssetViewReference]
 
+[EXCERPT:MenuAssetSizeMap]
+* **사이즈 맵** - 이 애셋과 거기서 레퍼런싱하는 모든 것의 대략적 크기를 보여주는 대화식 맵을 표시합니다.
+[/EXCERPT:MenuAssetSizeMap]
+
 [EXCERPT:MenuAssetReimport]
 * **_파일명_ 리임포트** - 디스크의 원본 위치에서 현재 애셋을 다시 임포트합니다.
 [/EXCERPT:MenuAssetReimport]
@@ -65,6 +69,17 @@ Crumbs:
 * **디테일** - **디테일** 패널 표시를 토글합니다.
 [/EXCERPT:MenuWindowDetails]
 
+[EXCERPT:MenuWindowDestructibleSettings]
+* **디스트럭터블 세팅** - **디스트럭터블 세팅** 패널 표시를 토글합니다.
+[/EXCERPT:MenuWindowDestructibleSettings]
+
+[EXCERPT:MenuWindowFractureSettings]
+* **프랙처 세팅** - **프랙처 세팅** 패널 표시를 토글합니다.
+[/EXCERPT:MenuWindowFractureSettings]
+
+[EXCERPT:MenuWindowChunkParameters]
+* **청크 파라미터** - **청크 파라미터** 패널 표시를 토글합니다.
+[/EXCERPT:MenuWindowChunkParameters]
 
 [EXCERPT:MenuWindow]
 * **콘텐츠 브라우저** - 콘텐츠 브라우저를 별도의 창에 띄웁니다.

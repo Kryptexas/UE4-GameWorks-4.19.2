@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2591123
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.7 - 씬 캡처 2D
 Crumbs: %ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Reflections
@@ -9,6 +9,24 @@ Related: Engine/Rendering/LightingAndShadows/LightTypes/SkyLight\
 Related: Engine/Rendering/Materials/PhysicallyBased
 Related: Resources/Showcases/RealisticRendering
 Related: Engine/Rendering/PostProcessEffects
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/Reflections/1_6 "%Resources/ContentExamples/Reflections/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[리플렉션 홈](Resources/ContentExamples/Reflections)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
+
 [VAR:Topic]
 [OBJECT:Topic]
 	[PARAM:image]

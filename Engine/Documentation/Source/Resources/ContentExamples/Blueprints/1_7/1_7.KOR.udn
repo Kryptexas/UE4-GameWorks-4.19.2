@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2626249
+﻿INTSourceChangelist:2652825
 Availability: Public
 Title:1.7 - 흐름 제어
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/Blueprints
@@ -12,6 +12,22 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 Related: Engine/Blueprints/UserGuide/UserConstructionScript
 Related: Gameplay/HowTo/SetUpInput/Blueprints
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[Previous Example](Resources/ContentExamples/Blueprints/1_6 "%Resources/ContentExamples/Blueprints/1_6:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 
 [VAR:TopicCompact]

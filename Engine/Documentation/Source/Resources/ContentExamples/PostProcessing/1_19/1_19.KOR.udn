@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.19 - 언바운드
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
@@ -6,6 +6,23 @@ Description:Post Processing 예제 레벨에 대한 개요로, 예제 1.19: Unbo
 Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
+
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+		[예전 예제](Resources/ContentExamples/PostProcessing/1_18 "%Resources/ContentExamples/PostProcessing/1_18:title%")
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[포스트 프로세싱 홈](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

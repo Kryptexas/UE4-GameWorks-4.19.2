@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2350233
+﻿INTSourceChangelist:2653552
 Availability: Public
 Title:1.1 - 기본 세팅
 Crumbs:%ROOT%, Resources, Resources/ContentExamples, Resources/ContentExamples/PostProcessing
@@ -7,6 +7,22 @@ Related: Engine/Rendering/Overview
 Related: Engine/Rendering/PostProcessEffects
 Related: Engine/Rendering/PostProcessEffects/PostProcessMaterials
 
+[VAR:Steps]
+[OBJECT:Navigation]
+	[PARAM:previous]
+	[/PARAM]
+	[PARAM:current]
+	[/PARAM]
+	[PARAM:home]
+		[포스트 프로세싱 홈](Resources/ContentExamples/PostProcessing)
+	[/PARAM]
+	[PARAM:next]
+		[다음 예제](Resources/ContentExamples/PostProcessing/1_2 "%Resources/ContentExamples/PostProcessing/1_2:title%")
+	[/PARAM]
+[/OBJECT]
+[/VAR]
+
+%Steps%
 
 [VAR:Topic]
 [OBJECT:Topic]

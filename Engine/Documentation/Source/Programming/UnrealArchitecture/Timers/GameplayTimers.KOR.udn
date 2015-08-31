@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2623320
+﻿INTSourceChangelist:2656789
 Availability:Public
 Title: 게임플레이 타이머
 Crumbs:%ROOT%, Programming, Programming/UnrealArchitecture/Reference, Programming/UnrealArchitecture/Reference/Functions
@@ -105,7 +105,7 @@ Version: 4.9
 * 동원할 수 있는 논-다이내믹 델리게이트 유형을 받는 것입니다. 문법적으로는 약간 지저분하지만 훨씬 유연합니다. 예:
 
 		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateUObject(this, &AMyClass::MyFunc), 5.0f, TRUE );
-		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateRaw_ThreeVars(&MyStaticFunc, MyPassThruArg, MyOtherArg, YesOneMoreArg), 5.0f, TRUE );
+		GetWorldTimerManager().SetTimer( FTimerDelegate::CreateRaw(&MyStaticFunc, MyPassThruArg, MyOtherArg, YesOneMoreArg), 5.0f, TRUE );
                 
 		FTimerDelegate MyDel;
 		Del.BindRaw(this, &AMyClass::MyFunc2);
