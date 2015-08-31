@@ -1906,8 +1906,14 @@ public:
 	UObject* ClassDefaultObject;
 
 private:
-	/** Map of all functions by name contained in this state */
+	/** Map of all functions by name contained in this class */
 	TMap<FName, UFunction*> FuncMap;
+
+	/** A cache of all functions by name that exist in a parent context */
+	mutable TMap<FName, UFunction*> ParentFuncMap;
+
+	/** A cache of all functions by name that exist in an interface context */
+	mutable TMap<FName, UFunction*> InterfaceFuncMap;
 
 public:
 	/**

@@ -3641,6 +3641,8 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	ScriptObjectReferences.Empty();
 
 	FuncMap.Empty();
+	ParentFuncMap.Empty();
+	InterfaceFuncMap.Empty();
 	PropertyLink = NULL;
 }
 
@@ -3963,22 +3965,48 @@ void UClass::AddNativeFunction(const ANSICHAR* InName,Native InPointer)
 
 UFunction* UClass::FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper) const
 {
-	if (!IncludeSuper)
-		return FuncMap.FindRef(InName);
-
-	for (const UClass* SearchClass = this; SearchClass; SearchClass = SearchClass->GetSuperClass())
+	UFunction* Result = FuncMap.FindRef(InName);
+	if (Result == nullptr && IncludeSuper == EIncludeSuperFlag::IncludeSuper)
 	{
-		if (UFunction* Result = SearchClass->FuncMap.FindRef(InName))
-			return Result;
-
-		for (auto& Inter : SearchClass->Interfaces)
+		if (Interfaces.Num())
 		{
-			if (UFunction* Result = Inter.Class->FindFunctionByName(InName))
-				return Result;
+			if (UFunction** InterfaceResult = InterfaceFuncMap.Find(InName))
+			{
+				Result = *InterfaceResult;
+			}
+			else
+			{
+				for (const FImplementedInterface& Inter : Interfaces)
+				{
+					Result = Inter.Class->FindFunctionByName(InName);
+					if (Result)
+					{
+						break;
+					}
+				}
+
+				InterfaceFuncMap.Add(InName, Result);
+			}
+		}
+
+		if (Result == nullptr)
+		{
+			if (UClass* SuperClass = GetSuperClass())
+			{
+				if (UFunction** ParentResult = ParentFuncMap.Find(InName))
+				{
+					Result = *ParentResult;
+				}
+				else
+				{
+					Result = SuperClass->FindFunctionByName(InName);
+					ParentFuncMap.Add(InName, Result);
+				}
+			}
 		}
 	}
 
-	return NULL;
+	return Result;
 }
 
 const FString UClass::GetConfigName() const
