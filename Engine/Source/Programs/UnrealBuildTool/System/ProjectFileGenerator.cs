@@ -1729,7 +1729,16 @@ namespace UnrealBuildTool
 				if (WantProjectFileForTarget)
 				{
 					string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
-					RulesAssembly RulesAssembly = RulesCompiler.CreateRulesAssembly(CheckProjectFile, null);
+
+					RulesAssembly RulesAssembly;
+					if(String.IsNullOrEmpty(CheckProjectFile))
+					{
+						RulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
+					}
+					else
+					{
+						RulesAssembly = RulesCompiler.CreateProjectRulesAssembly(CheckProjectFile);
+					}
 
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...

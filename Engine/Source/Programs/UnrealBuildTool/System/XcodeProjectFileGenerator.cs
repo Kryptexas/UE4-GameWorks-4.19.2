@@ -1087,7 +1087,7 @@ namespace UnrealBuildTool
 				ProjectTarget TargetProject = new global::UnrealBuildTool.ProjectTarget();
 				var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
 				TargetProject.TargetFilePath = "";
-				RulesAssembly EngineRulesAssembly = RulesCompiler.CreateRulesAssembly(null, null);
+				RulesAssembly EngineRulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
 				TargetProject.TargetRules = EngineRulesAssembly.CreateTargetRules("UE4Game", Target, false, out TargetProject.TargetFilePath);
 				TargetProjects.Add(TargetProject);
 			}

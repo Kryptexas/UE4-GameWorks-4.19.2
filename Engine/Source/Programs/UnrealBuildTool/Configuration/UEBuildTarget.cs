@@ -544,7 +544,22 @@ namespace UnrealBuildTool
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
 
-			RulesAssembly RulesAssembly = RulesCompiler.CreateRulesAssembly(UnrealBuildTool.GetUProjectFile(), Desc.ForeignPlugins);
+			RulesAssembly RulesAssembly;
+			if(UnrealBuildTool.HasUProjectFile())
+			{
+				RulesAssembly = RulesCompiler.CreateProjectRulesAssembly(UnrealBuildTool.GetUProjectFile());
+			}
+			else
+			{
+				RulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
+			}
+			if(Desc.ForeignPlugins != null)
+			{
+				foreach(string ForeignPlugin in Desc.ForeignPlugins)
+				{
+					RulesAssembly = RulesCompiler.CreatePluginRulesAssembly(ForeignPlugin, RulesAssembly);
+				}
+			}
 
 			string TargetFileName;
 			TargetRules RulesObject = RulesAssembly.CreateTargetRules(Desc.TargetName, new TargetInfo(Desc.Platform, Desc.Configuration), Desc.bIsEditorRecompile, out TargetFileName);

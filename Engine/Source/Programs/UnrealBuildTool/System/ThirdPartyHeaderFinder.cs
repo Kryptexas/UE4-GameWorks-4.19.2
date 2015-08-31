@@ -91,7 +91,7 @@ namespace UnrealBuildTool
 			ThirdPartyHeaders = new List<Header>();
 
 			// Create a rules assembly for the engine
-			RulesAssembly EngineRulesAssembly = RulesCompiler.CreateRulesAssembly(null, null);
+			RulesAssembly EngineRulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
 
 			// Find all modules referenced by the current target
 			List<string> ModuleFileNames = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders:null, ForeignPlugins:null, AdditionalSearchPaths:null );
