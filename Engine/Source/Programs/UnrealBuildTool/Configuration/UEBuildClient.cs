@@ -17,8 +17,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildClient(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-            : base(InDesc, InRulesObject, "UE4Client", InTargetCsFilename)
+		public UEBuildClient(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, string InTargetCsFilename)
+            : base(InDesc, InRulesObject, InRulesAssembly, "UE4Client", InTargetCsFilename)
         {
             if (ShouldCompileMonolithic())
             {

@@ -29,13 +29,13 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static void GetTargetUWPPaths(string InTargetName, TargetRules InTargetRules,
+		public static void GetTargetUWPPaths(RulesAssembly InTargetRulesAssembly, string InTargetName, TargetRules InTargetRules,
 			out string OutEngineSourceRelativeBinaryPath, out string OutRelativeTargetPath)
 		{
 			OutEngineSourceRelativeBinaryPath = "";
 			OutRelativeTargetPath = "";
 
-			string TargetFilename = RulesCompiler.GetTargetFilename(InTargetName);
+			string TargetFilename = InTargetRulesAssembly.GetTargetFileName(InTargetName);
 
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName;
 

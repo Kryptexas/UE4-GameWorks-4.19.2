@@ -17,8 +17,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-			: base(InDesc, InRulesObject, "UE4", InTargetCsFilename)
+		public UEBuildGame(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, InRulesAssembly, "UE4", InTargetCsFilename)
 		{
 			if (ShouldCompileMonolithic())
 			{

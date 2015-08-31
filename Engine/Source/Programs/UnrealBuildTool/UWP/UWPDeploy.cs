@@ -220,12 +220,12 @@ namespace UnrealBuildTool
 			Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 			System.DateTime PrepDeployStartTime = DateTime.UtcNow;
 
-			string TargetFilename = RulesCompiler.GetTargetFilename(InAppName);
+			string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName);
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
 			string RelativeTargetDirectory;
 			string EngineSourceRelativeBinaryPath;
-			UWPProjectGenerator.GetTargetUWPPaths(InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
+			UWPProjectGenerator.GetTargetUWPPaths(InTarget.RulesAssembly, InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
 
 			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false, "");
 

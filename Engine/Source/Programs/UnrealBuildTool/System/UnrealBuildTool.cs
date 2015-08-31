@@ -891,9 +891,7 @@ namespace UnrealBuildTool
             // project file to be passed in. Otherwise we scan for projects in directories named in UE4Games.uprojectdirs.
             if (HasUProjectFile())
             {
-                string SourceFolder = Path.Combine(Path.GetDirectoryName(GetUProjectFile()), "Source");
-				string IntermediateSourceFolder = Path.Combine(Path.GetDirectoryName(GetUProjectFile()), "Intermediate", "Source");
-                UProjectInfo.AddProject(GetUProjectFile(), Directory.Exists(SourceFolder) || Directory.Exists(IntermediateSourceFolder));
+                UProjectInfo.AddProject(GetUProjectFile());
             }
             else
             {

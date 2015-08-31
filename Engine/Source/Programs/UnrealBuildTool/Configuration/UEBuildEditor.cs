@@ -16,8 +16,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-			: base(InDesc, InRulesObject, "UE4Editor", InTargetCsFilename)
+		public UEBuildEditor(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, InRulesAssembly, "UE4Editor", InTargetCsFilename)
 		{
 		}
 

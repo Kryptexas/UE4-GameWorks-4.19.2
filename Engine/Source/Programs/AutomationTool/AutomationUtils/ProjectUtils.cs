@@ -418,7 +418,6 @@ namespace AutomationTool
 			{
 				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
 			}
-			RulesCompiler.SetAssemblyNameAndGameFolders(TargetsDllFilename, GameFolders);
 
 			// the UBT code assumes a certain CWD, but artists don't have this CWD.
 			var SourceDir = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
@@ -428,7 +427,7 @@ namespace AutomationTool
 				CommandUtils.PushDir(SourceDir);
 				DirPushed = true;
 			}
-			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, ExtraSearchPaths);
+			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchPaths);
 			if (DirPushed)
 			{
 				CommandUtils.PopDir();

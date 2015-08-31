@@ -262,7 +262,7 @@ namespace UnrealBuildTool
 			}
 
 			// Find all the automation modules .csproj files to add
-			var ModuleFiles = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.AutomationModule, BuildFolders);
+			var ModuleFiles = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.AutomationModule, BuildFolders, ForeignPlugins:null, AdditionalSearchPaths:null);
 			foreach (var ProjectFile in ModuleFiles)
 			{
 				FileInfo Info = new FileInfo(Path.Combine(ProjectFile));
@@ -276,6 +276,15 @@ namespace UnrealBuildTool
 					Folder.ChildProjects.Add( Project );
 				}
 			}
+		}
+
+		/// <summary>
+		/// Finds the game projects that we're generating project files for
+		/// </summary>
+		/// <returns>List of project files</returns>
+		public List<UProjectInfo> FindGameProjects()
+		{
+			return UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
 		}
 
 		/// <summary>
@@ -376,9 +385,8 @@ namespace UnrealBuildTool
 			RootFolder = AllocateMasterProjectFolder( this, "<Root>" );
 
 			// Build the list of games to generate projects for
-			var AllGameProjects = UProjectInfo.FilterGameProjects(true, bGeneratingGameProjectFiles ? GameProjectName : null);
+			List<UProjectInfo> AllGameProjects = FindGameProjects();
 
-			List<string> AssemblyGameFolders = new List<string>();
 			var AssemblyName = "ProjectFileGenerator";
 			if (bGeneratingRocketProjectFiles)
 			{
@@ -388,15 +396,10 @@ namespace UnrealBuildTool
 			{
 				AssemblyName = GameProjectName + "ProjectFileGenerator";
 			}
-			foreach (UProjectInfo Project in AllGameProjects)
-			{
-				AssemblyGameFolders.Add(Project.Folder);
-			}
-			RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
 
 			// Find all of the module files.  This will filter out any modules or targets that don't belong to platforms
 			// we're generating project files for.
-			var AllModuleFiles = DiscoverModules();
+			var AllModuleFiles = DiscoverModules(AllGameProjects);
 
 			ProjectFile EngineProject = null;
 			Dictionary<string, ProjectFile> GameProjects = null;
@@ -926,12 +929,12 @@ namespace UnrealBuildTool
 		/// Finds all module files (filtering by platform)
 		/// </summary>
 		/// <returns>Filtered list of module files</returns>
-		protected List<string> DiscoverModules()
+		protected List<string> DiscoverModules(List<UProjectInfo> AllGameProjects)
 		{
 			var AllModuleFiles = new List<string>();
 
 			// Locate all modules (*.Build.cs files)
-			var FoundModuleFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, AdditionalSearchPaths:null );
+			var FoundModuleFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders: AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins:null, AdditionalSearchPaths:null );
 			foreach( var BuildFileName in FoundModuleFiles )
 			{
 				var CleanBuildFileName = Utils.CleanDirectorySeparators( BuildFileName );
@@ -983,7 +986,7 @@ namespace UnrealBuildTool
 		/// Finds all target files (filtering by platform)
 		/// </summary>
 		/// <returns>Filtered list of target files</returns>
-		protected List<string> DiscoverTargets()
+		protected List<string> DiscoverTargets(List<UProjectInfo> AllGameProjects)
 		{
 			var AllTargetFiles = new List<string>();
 
@@ -991,7 +994,7 @@ namespace UnrealBuildTool
 			var UnsupportedPlatformNameStrings = Utils.MakeListOfUnsupportedPlatforms( SupportedPlatforms );
 
 			// Locate all targets (*.Target.cs files)
-			var FoundTargetFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Target, AdditionalSearchPaths:null );
+			var FoundTargetFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Target, AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins:null, AdditionalSearchPaths:null );
 			foreach( var CurTargetFile in FoundTargetFiles )
 			{
 				var CleanTargetFileName = Utils.CleanDirectorySeparators( CurTargetFile );
@@ -1699,8 +1702,7 @@ namespace UnrealBuildTool
 
 			// Find all of the target files.  This will filter out any modules or targets that don't
 			// belong to platforms we're generating project files for.
-			var AllTargetFiles = DiscoverTargets();
-
+			var AllTargetFiles = DiscoverTargets(AllGames);
 			foreach( var TargetFilePath in AllTargetFiles )
 			{
 				var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFilePath);		// Remove both ".cs" and ".Target"
@@ -1726,20 +1728,13 @@ namespace UnrealBuildTool
 
 				if (WantProjectFileForTarget)
 				{
-					var AssemblyName = bGeneratingRocketProjectFiles ? "RocketUE4" : "UE4";
-					List<string> AssemblyGameFolders = new List<string>();
 					string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
-					if (string.IsNullOrEmpty(CheckProjectFile) == false)
-					{
-						AssemblyGameFolders.Add(Path.GetDirectoryName(Path.GetFullPath(CheckProjectFile)));
-						AssemblyName = Path.GetFileNameWithoutExtension(CheckProjectFile);
-					}
-					RulesCompiler.SetAssemblyNameAndGameFolders(AssemblyName, AssemblyGameFolders);
+					RulesAssembly RulesAssembly = RulesCompiler.CreateRulesAssembly(CheckProjectFile, null);
 
 					// Create target rules for all of the platforms and configuration combinations that we want to enable support for.
 					// Just use the current platform as we only need to recover the target type and both should be supported for all targets...
 					string UnusedTargetFilePath;
-					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
+					var TargetRulesObject = RulesAssembly.CreateTargetRules(TargetName, new TargetInfo(BuildHostPlatform.Current.Platform, UnrealTargetConfiguration.Development), false, out UnusedTargetFilePath);
 
 					// Exclude client and server targets under binary Rocket; it's impossible to build without precompiled engine binaries
 					if (!UnrealBuildTool.RunningRocket() || (TargetRulesObject.Type != TargetRules.TargetType.Client && TargetRulesObject.Type != TargetRules.TargetType.Server))

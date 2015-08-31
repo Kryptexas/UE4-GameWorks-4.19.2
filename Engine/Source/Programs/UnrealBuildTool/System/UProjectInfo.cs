@@ -99,22 +99,49 @@ namespace UnrealBuildTool
 			return bOutFoundTargetFiles;
 		}
 
+		static readonly string RootDirectory = Path.Combine( Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
+		static readonly string EngineSourceDirectory = Path.GetFullPath( Path.Combine(RootDirectory, "Engine", "Source") );
+
 		/// <summary>
 		/// Add a single project to the project info dictionary
 		/// </summary>
-		public static void AddProject(string ProjectFile, bool bIsCodeProject)
+		public static void AddProject(string ProjectFile)
 		{
-			UProjectInfo NewProjectInfo = new UProjectInfo(ProjectFile, bIsCodeProject);
-			if (!ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
+			string RelativePath = Utils.MakePathRelativeTo(ProjectFile, EngineSourceDirectory);
+			if(!ProjectInfoDictionary.ContainsKey(RelativePath))
 			{
-				ProjectInfoDictionary.Add(ProjectFile, NewProjectInfo);
-				ShortProjectNameDictionary.Add(NewProjectInfo.GameName, ProjectFile);
-			}
-			else
-			{
-				var FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
-				Log.TraceWarning("There are multiple projects with name {0}\n\t* {1}\n\t* {2}\nThis is not currently supported and only the first one will be maintained by UBT. Please rename.",
-					NewProjectInfo.GameName, Path.GetFullPath(FirstProject.FilePath), Path.GetFullPath(NewProjectInfo.FilePath));
+				string ProjectDirectory = Path.GetDirectoryName(ProjectFile);
+
+				// Check if it's a code project
+				string SourceFolder = Path.Combine(ProjectDirectory, "Source");
+				string IntermediateSourceFolder = Path.Combine(ProjectDirectory, "Intermediate", "Source");
+				bool bIsCodeProject = Directory.Exists(SourceFolder) || Directory.Exists(IntermediateSourceFolder);
+
+				// Create the project, and check the name is unique
+				UProjectInfo NewProjectInfo = new UProjectInfo(RelativePath, bIsCodeProject);
+				if(ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
+				{
+					var FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
+					throw new BuildException("There are multiple projects with name {0}\n\t* {1}\n\t* {2}\nThis is not currently supported.", NewProjectInfo.GameName, Path.GetFullPath(FirstProject.FilePath), Path.GetFullPath(NewProjectInfo.FilePath));
+				}
+
+				// Add it to the name -> project lookups
+				ProjectInfoDictionary.Add(RelativePath, NewProjectInfo);
+				ShortProjectNameDictionary.Add(NewProjectInfo.GameName, RelativePath);
+
+				// Find all Target.cs files if it's a code project
+				if(bIsCodeProject)
+				{
+					bool bFoundTargetFiles = false;
+					if (Directory.Exists(SourceFolder) && !FindTargetFiles(SourceFolder, ref bFoundTargetFiles))
+					{
+						Log.TraceVerbose("No target files found under " + SourceFolder);
+					}
+					if (Directory.Exists(IntermediateSourceFolder) && !FindTargetFiles(IntermediateSourceFolder, ref bFoundTargetFiles))
+					{
+						Log.TraceVerbose("No target files found under " + IntermediateSourceFolder);
+					}
+				}
 			}
 		}
 
@@ -128,7 +155,7 @@ namespace UnrealBuildTool
 			List<string> DirectoriesToSearch = new List<string>();
 
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
-			string RootDirectory = Path.Combine( Path.GetDirectoryName(Assembly.GetEntryAssembly().GetOriginalLocation()), "..", "..", "..");
+			string RootDirectory = Path.Combine( Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
 			string EngineSourceDirectory = Path.GetFullPath( Path.Combine(RootDirectory, "Engine", "Source") );
 
 			foreach (var File in Directory.EnumerateFiles(RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))
@@ -161,9 +188,6 @@ namespace UnrealBuildTool
 
 			Log.TraceVerbose("\tFound {0} directories to search", DirectoriesToSearch.Count);
 
-			// Initialize the target finding time to 0
-			TimeSpan TotalTargetTime = DateTime.Now - DateTime.Now;
-
 			foreach (string DirToSearch in DirectoriesToSearch)
 			{
 				Log.TraceVerbose("\t\tSearching {0}", DirToSearch);
@@ -175,31 +199,8 @@ namespace UnrealBuildTool
 						string[] SubDirFiles = Directory.GetFiles(SubDir, "*.uproject", SearchOption.TopDirectoryOnly);
 						foreach (string UProjFile in SubDirFiles)
 						{
-							string RelativePath = Utils.MakePathRelativeTo(UProjFile, EngineSourceDirectory);
-							Log.TraceVerbose("\t\t\t\t{0}", RelativePath);
-							if( !ProjectInfoDictionary.ContainsKey(RelativePath) )
-							{
-								DateTime TargetStartTime = DateTime.Now;
-
-								string SourceFolder = Path.Combine(Path.GetDirectoryName(UProjFile), "Source");
-								bool bIsCodeProject = Directory.Exists(SourceFolder);
-
-								AddProject(RelativePath, bIsCodeProject);
-
-								if(bIsCodeProject)
-								{
-									// Find all Target.cs files
-									bool bFoundTargetFiles = false;
-									if (!FindTargetFiles(SourceFolder, ref bFoundTargetFiles))
-									{
-										Log.TraceVerbose("No target files found under " + SourceFolder);
-									}
-								}
-
-								DateTime TargetStopTime = DateTime.Now;
-
-								TotalTargetTime += TargetStopTime - TargetStartTime;
-							}
+							Log.TraceVerbose("\t\t\t\t{0}", UProjFile);
+							AddProject(UProjFile);
 						}
 					}
 				}
@@ -214,8 +215,7 @@ namespace UnrealBuildTool
 			if( BuildConfiguration.bPrintPerformanceInfo )
 			{
 				TimeSpan TotalProjectInfoTime = StopTime - StartTime;
-				Log.TraceInformation("FillProjectInfo took {0} milliseconds (AddTargetInfo {1} ms)",
-						TotalProjectInfoTime.Milliseconds, TotalTargetTime.Milliseconds);
+				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.Milliseconds);
 			}
 
 			if (UnrealBuildTool.CommandLineContains("-dumpprojectinfo"))

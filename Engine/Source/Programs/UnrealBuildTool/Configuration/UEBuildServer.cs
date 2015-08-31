@@ -16,8 +16,8 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public UEBuildServer(TargetDescriptor InDesc, TargetRules InRulesObject, string InTargetCsFilename)
-			: base(InDesc, InRulesObject, "UE4Server", InTargetCsFilename)
+		public UEBuildServer(TargetDescriptor InDesc, TargetRules InRulesObject, RulesAssembly InRulesAssembly, string InTargetCsFilename)
+			: base(InDesc, InRulesObject, InRulesAssembly, "UE4Server", InTargetCsFilename)
 		{
 		}
 

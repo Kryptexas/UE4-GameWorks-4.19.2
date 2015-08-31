@@ -1139,7 +1139,7 @@ namespace UnrealBuildTool
 					StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
 
 					string Arguments = "";
-					string PathToApp = RulesCompiler.GetTargetFilename(AppName);
+					string PathToApp = Target.RulesAssembly.GetTargetFileName(AppName);
 
 					// right now, no programs have a Source subdirectory, so assume the PathToApp is directly in the root
 					if (Path.GetDirectoryName(PathToApp).Contains(@"\Engine\Source\Programs"))

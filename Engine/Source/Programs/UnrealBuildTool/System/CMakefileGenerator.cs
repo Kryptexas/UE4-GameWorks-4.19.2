@@ -162,7 +162,7 @@ namespace UnrealBuildTool
 			}
 
 			// Create SourceFiles, HeaderFiles, and ConfigFiles sections.
-			var AllModuleFiles = DiscoverModules();
+			var AllModuleFiles = DiscoverModules(FindGameProjects());
 			foreach (string CurModuleFile in AllModuleFiles)
 			{
 				var FoundFiles = SourceFileSearch.FindModuleSourceFiles(CurModuleFile, ExcludeNoRedistFiles: bExcludeNoRedistFiles);

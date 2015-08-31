@@ -186,8 +186,6 @@ namespace UnrealBuildTool
 		public bool bUsePrecompiled;
 		public List<string> ForeignPlugins;
 		public string ForceReceiptFileName;
-		public string AssemblyName;
-		public List<string> GameFolders;
 	}
 
 
@@ -486,8 +484,6 @@ namespace UnrealBuildTool
 					TargetName = PossibleTargetName;
 
 					// If a project file was not specified see if we can find one
-					List<string> GameFolders = new List<string>();
-					string AssemblyName = "UE4";
 					string CheckProjectFile = UProjectInfo.GetProjectForTarget(TargetName);
 					if (string.IsNullOrEmpty(CheckProjectFile) == false)
 					{
@@ -512,8 +508,6 @@ namespace UnrealBuildTool
 							// Parse off the path
 							TargetName = Path.GetFileNameWithoutExtension( TargetName );
 						}
-						GameFolders.Add(UnrealBuildTool.GetUProjectPath());
-						AssemblyName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile());
 					}
 
 					Targets.Add( new TargetDescriptor()
@@ -528,9 +522,7 @@ namespace UnrealBuildTool
 							bPrecompile = bPrecompile,
 							bUsePrecompiled = bUsePrecompiled,
 							ForeignPlugins = ForeignPlugins,
-							ForceReceiptFileName = ForceReceiptFileName,
-							AssemblyName = AssemblyName,
-							GameFolders = GameFolders
+							ForceReceiptFileName = ForceReceiptFileName
 						} );
 					break;
 				}
@@ -542,24 +534,67 @@ namespace UnrealBuildTool
 			return Targets;
 		}
 
+		/// <summary>
+		/// Creates a target object for the specified target name.
+		/// </summary>
+		/// <param name="Desc">Information about the target</param>
+		/// <param name="RulesAssembly">The assembly containing the target rules</param>
+		/// <returns>The build target object for the specified build rules source file</returns>
 		public static UEBuildTarget CreateTarget( TargetDescriptor Desc )
 		{
-			UEBuildTarget BuildTarget = null;
+			var CreateTargetStartTime = DateTime.UtcNow;
 
-			// Try getting it from the RulesCompiler
-			UEBuildTarget Target = RulesCompiler.CreateTarget(Desc);
-			if (Target == null)
+			RulesAssembly RulesAssembly = RulesCompiler.CreateRulesAssembly(UnrealBuildTool.GetUProjectFile(), Desc.ForeignPlugins);
+
+			string TargetFileName;
+			TargetRules RulesObject = RulesAssembly.CreateTargetRules(Desc.TargetName, new TargetInfo(Desc.Platform, Desc.Configuration), Desc.bIsEditorRecompile, out TargetFileName);
+			if (Desc.bIsEditorRecompile)
+			{
+				// Now that we found the actual Editor target, make sure we're no longer using the old TargetName (which is the Game target)
+				var TargetSuffixIndex = RulesObject.TargetName.LastIndexOf("Target");
+				Desc.TargetName = (TargetSuffixIndex > 0) ? RulesObject.TargetName.Substring(0, TargetSuffixIndex) : RulesObject.TargetName;
+			}
+			if ((ProjectFileGenerator.bGenerateProjectFiles == false) && (RulesObject.SupportsPlatform(Desc.Platform) == false))
 			{
 				if (UEBuildConfiguration.bCleanProject)
 				{
 					return null;
 				}
-				throw new BuildException( "Couldn't find target name {0}.", Desc.TargetName );
+				throw new BuildException("{0} does not support the {1} platform.", Desc.TargetName, Desc.Platform.ToString());
 			}
-			else
+
+			// Generate a build target from this rules module
+			UEBuildTarget BuildTarget = null;
+			switch (RulesObject.Type)
 			{
-				BuildTarget = Target;
+				case TargetRules.TargetType.Game:
+					BuildTarget = new UEBuildGame(Desc, RulesObject, RulesAssembly, TargetFileName);
+					break;
+				case TargetRules.TargetType.Editor:
+					BuildTarget = new UEBuildEditor(Desc, RulesObject, RulesAssembly, TargetFileName);
+					break;
+                case TargetRules.TargetType.Client:
+                    BuildTarget = new UEBuildClient(Desc, RulesObject, RulesAssembly, TargetFileName);
+                    break;
+				case TargetRules.TargetType.Server:
+					BuildTarget = new UEBuildServer(Desc, RulesObject, RulesAssembly, TargetFileName);
+					break;
+				case TargetRules.TargetType.Program:
+					BuildTarget = new UEBuildTarget(Desc, RulesObject, RulesAssembly, null, TargetFileName);
+					break;
 			}
+
+			if( BuildConfiguration.bPrintPerformanceInfo )
+			{ 
+				var CreateTargetTime = (DateTime.UtcNow - CreateTargetStartTime).TotalSeconds;
+				Log.TraceInformation( "CreateTarget for " + Desc.TargetName + " took " + CreateTargetTime + "s" );
+			}
+
+			if (BuildTarget == null)
+			{
+				throw new BuildException("Failed to create build target for '{0}'.", Desc.TargetName);
+			}
+
 			return BuildTarget;
 		}
 
@@ -680,6 +715,10 @@ namespace UnrealBuildTool
 		/** The target rules */
 		[NonSerialized]
 		public TargetRules Rules = null;
+
+		/** The rules assembly to use when searching for modules */
+		[NonSerialized]
+		public RulesAssembly RulesAssembly;
 
 		/** Type of target */
 		public TargetRules.TargetType TargetType;
@@ -928,13 +967,14 @@ namespace UnrealBuildTool
 		/// <param name="InRules">The target rules, as created by RulesCompiler.</param>
 		/// <param name="InPossibleAppName">The AppName for shared binaries of this target type, if used (null if there is none).</param>
 		/// <param name="InTargetCsFilename">The name of the target </param>
-		public UEBuildTarget(TargetDescriptor InDesc, TargetRules InRules, string InPossibleAppName, string InTargetCsFilename)
+		public UEBuildTarget(TargetDescriptor InDesc, TargetRules InRules, RulesAssembly InRulesAssembly, string InPossibleAppName, string InTargetCsFilename)
 		{
 			AppName = InDesc.TargetName;
 			TargetName = InDesc.TargetName;
 			Platform = InDesc.Platform;
 			Configuration = InDesc.Configuration;
 			Rules = InRules;
+			RulesAssembly = InRulesAssembly;
 			TargetType = Rules.Type;
 			bEditorRecompile = InDesc.bIsEditorRecompile;
 			bPrecompile = InDesc.bPrecompile;
@@ -1156,7 +1196,7 @@ namespace UnrealBuildTool
 			{
 				Log.TraceVerbose("Cleaning target {0} - AppName {1}", TargetName, AppName);
 
-				var TargetFilename = RulesCompiler.GetTargetFilename(TargetName);
+				var TargetFilename = RulesAssembly.GetTargetFileName(TargetName);
 				Log.TraceVerbose("\tTargetFilename {0}", TargetFilename);
 
 				// Collect all files to delete.
@@ -1501,7 +1541,7 @@ namespace UnrealBuildTool
 			{
 				// Create the module rules
 				string ModuleRulesFileName;
-				ModuleRules Rules = RulesCompiler.CreateModuleRules(ModuleName, TargetInfo, out ModuleRulesFileName);
+				ModuleRules Rules = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo, out ModuleRulesFileName);
 
 				// Add the rules file itself
 				FileNames.Add(ModuleRulesFileName);
@@ -2275,7 +2315,7 @@ namespace UnrealBuildTool
 				foreach (var TargetModuleName in BinaryCPP.ModuleNames)
 				{
 					string UnusedFilename;
-					ModuleRules CheckRules = RulesCompiler.CreateModuleRules(TargetModuleName, TargetInfo, out UnusedFilename);
+					ModuleRules CheckRules = RulesAssembly.CreateModuleRules(TargetModuleName, TargetInfo, out UnusedFilename);
 					if (CheckRules.Type != ModuleRules.ModuleType.External)
 					{
 						PrivateDependencyModuleNames.Add(TargetModuleName);
@@ -2545,7 +2585,7 @@ namespace UnrealBuildTool
 					if (Module.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 					{
 						// Add the corresponding binary for it
-						string ModuleFileName = RulesCompiler.GetModuleFilename(Module.Name);
+						string ModuleFileName = RulesAssembly.GetModuleFileName(Module.Name);
 						bool bHasSource = (!String.IsNullOrEmpty(ModuleFileName) && Directory.EnumerateFiles(Path.GetDirectoryName(ModuleFileName), "*.cpp", SearchOption.AllDirectories).Any());
 						AddBinaryForModule(Module.Name, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
 
@@ -2617,7 +2657,7 @@ namespace UnrealBuildTool
 					}
 					foreach(UEBuildModuleCPP TargetModule in TargetModules)
 					{
-						if(TargetModule is UEBuildModuleCPP && !RulesCompiler.IsGameModule(TargetModule.Name))
+						if(TargetModule is UEBuildModuleCPP && !RulesAssembly.IsGameModule(TargetModule.Name))
 						{
 							PrecompiledModuleNames.Add(TargetModule.Name);
 						}
@@ -2653,7 +2693,7 @@ namespace UnrealBuildTool
 					if(PrecompiledModule is UEBuildModuleCPP && !BoundModuleNames.Contains(PrecompiledModule.Name))
 					{
 						UEBuildBinaryType BinaryType = bCompileMonolithic? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
-						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, BinaryType, bAllowCompilation: !bUsePrecompiled || RulesCompiler.IsGameModule(PrecompiledModule.Name), bIsCrossTarget: false);
+						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, BinaryType, bAllowCompilation: !bUsePrecompiled || RulesAssembly.IsGameModule(PrecompiledModule.Name), bIsCrossTarget: false);
 						PrecompiledBinaries.Add(Binary);
 						BoundModuleNames.Add(PrecompiledModule.Name);
 					}
@@ -2696,7 +2736,7 @@ namespace UnrealBuildTool
 			{
 				BaseOutputDirectory = Path.GetFullPath(Plugin.Directory);
 			}
-			else if(RulesCompiler.IsGameModule(ModuleName) || !bUseSharedBuildEnvironment)
+			else if(RulesAssembly.IsGameModule(ModuleName) || !bUseSharedBuildEnvironment)
 			{
 				BaseOutputDirectory = Path.GetFullPath(ProjectDirectory);
 			}
@@ -2707,7 +2747,7 @@ namespace UnrealBuildTool
 
 			// Get the configuration that this module will be built in. Engine modules compiled in DebugGame will use Development.
 			UnrealTargetConfiguration ModuleConfiguration = Configuration;
-			if(Configuration == UnrealTargetConfiguration.DebugGame && !RulesCompiler.IsGameModule(ModuleName))
+			if(Configuration == UnrealTargetConfiguration.DebugGame && !RulesAssembly.IsGameModule(ModuleName))
 			{
 				ModuleConfiguration = UnrealTargetConfiguration.Development;
 			}
@@ -2718,7 +2758,7 @@ namespace UnrealBuildTool
 
 			// Append a subdirectory if the module rules specifies one
 			ModuleRules ModuleRules;
-			if(RulesCompiler.TryCreateModuleRules(ModuleName, TargetInfo, out ModuleRules) && !String.IsNullOrEmpty(ModuleRules.BinariesSubFolder))
+			if(RulesAssembly.TryCreateModuleRules(ModuleName, TargetInfo, out ModuleRules) && !String.IsNullOrEmpty(ModuleRules.BinariesSubFolder))
 			{
 				OutputDirectory = Path.Combine(OutputDirectory, ModuleRules.BinariesSubFolder);
 				IntermediateDirectory = Path.Combine(IntermediateDirectory, ModuleRules.BinariesSubFolder);
@@ -3275,7 +3315,7 @@ namespace UnrealBuildTool
 				// @todo projectfiles: Cross-platform modules can appear here during project generation, but they may have already
 				//   been filtered out by the project generator.  This causes the projects to not be added to directories properly.
 				string ModuleFileName;
-				var RulesObject = RulesCompiler.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);
+				var RulesObject = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);
 				var ModuleDirectory = Path.GetDirectoryName(ModuleFileName);
 
 				// Get the plugin for this module
@@ -3346,7 +3386,7 @@ namespace UnrealBuildTool
 					{
 						GeneratedCodeDirectory = Plugin.Directory;
 					}
-					else if(bUseSharedBuildEnvironment && Utils.IsFileUnderDirectory(RulesCompiler.GetModuleFilename(ModuleName), BuildConfiguration.RelativeEnginePath))
+					else if(bUseSharedBuildEnvironment && Utils.IsFileUnderDirectory(RulesAssembly.GetModuleFileName(ModuleName), BuildConfiguration.RelativeEnginePath))
 					{
 						GeneratedCodeDirectory = BuildConfiguration.RelativeEnginePath;
 					}
