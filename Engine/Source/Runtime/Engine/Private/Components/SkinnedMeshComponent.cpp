@@ -1013,7 +1013,6 @@ void USkinnedMeshComponent::SetPhysicsAsset(class UPhysicsAsset* InPhysicsAsset,
 	PhysicsAssetOverride = InPhysicsAsset;
 }
 
-
 void USkinnedMeshComponent::SetMasterPoseComponent(class USkinnedMeshComponent* NewMasterBoneComponent)
 {
 	MasterPoseComponent = NewMasterBoneComponent;
@@ -1804,6 +1803,25 @@ void USkinnedMeshComponent::UnHideBoneByName( FName BoneName )
 	if ( BoneIndex != INDEX_NONE )
 	{
 		UnHideBone(BoneIndex);
+	}
+}
+
+void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLODModel)
+{
+	int32 MaxLODIndex = 0;
+	if(MeshObject)
+	{
+		MaxLODIndex = MeshObject->GetSkeletalMeshResource().LODModels.Num() - 1;
+	}
+
+	MinLodModel = FMath::Clamp(InNewMinLODModel, 0, MaxLODIndex);
+
+	// if current LOD is lower than min LOD, 
+	// update LOD status
+	// Otherwise, we're fine to stay this way
+	if (PredictedLODLevel < MinLodModel)
+	{
+		UpdateLODStatus();
 	}
 }
 
