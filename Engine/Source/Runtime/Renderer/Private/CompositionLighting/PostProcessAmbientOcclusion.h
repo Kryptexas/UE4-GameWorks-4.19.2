@@ -51,7 +51,7 @@ public:
 private:
 	
 	template <uint32 bAOSetupAsInput, uint32 bDoUpsample, uint32 SampleSetQuality>
-		void SetShaderTempl(const FRenderingCompositePassContext& Context);
+		FShader* SetShaderTempl(const FRenderingCompositePassContext& Context);
 
 	bool bAOSetupAsInput;
 };
