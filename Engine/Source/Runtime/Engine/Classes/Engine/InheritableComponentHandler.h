@@ -8,6 +8,7 @@ class  USCS_Node;
 class  UActorComponent;
 struct FUCSComponentId;
 class  UBlueprint;
+class  UBlueprintGeneratedClass;
 
 USTRUCT()
 struct ENGINE_API FComponentKey

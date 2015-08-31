@@ -53,6 +53,11 @@ struct FGeneratedCodeData
 				}
 			}
 
+			if (InBlueprint.GeneratedClass)
+			{
+				ReferenceFinder.FindReferences(InBlueprint.GeneratedClass->GetDefaultObject(false));
+			}
+
 			for (UClass* Class = InBlueprint.GeneratedClass->GetSuperClass(); Class && !Class->HasAnyClassFlags(CLASS_Native); Class = Class->GetSuperClass())
 			{
 				ReferencedObjects.Add(Class);

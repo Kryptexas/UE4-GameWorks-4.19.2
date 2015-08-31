@@ -408,6 +408,11 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 				}
 			}
 
+			if (auto BPGC = Cast<UClass>(SourceStruct))
+			{
+				BodyReferenceFinder.FindReferences(BPGC->GetDefaultObject(false));
+			}
+
 			if (auto SuperStruct = SourceStruct->GetSuperStruct())
 			{
 				IncludeInHeader.AddUnique(SuperStruct);
