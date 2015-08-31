@@ -6224,7 +6224,17 @@ void FBlueprintEditor::OnNodeDoubleClicked(class UEdGraphNode* Node)
 		{
 			if (AActor* Actor = K2Node->GetReferencedLevelActor())
 			{
-				JumpToHyperlink(Actor);
+				// Check if the world is active in the editor. It's possible to open level BPs without formally opening
+				// the levels through Find-in-Blueprints
+				const TIndirectArray<FWorldContext>& WorldContextList = GEditor->GetWorldContexts();
+				for (const FWorldContext& WorldContext : WorldContextList)
+				{
+					if (WorldContext.World() == Actor->GetWorld())
+					{
+						JumpToHyperlink(Actor);
+						break;
+					}
+				}
 				bJumpToLevelActor = true;
 			}
 		}
