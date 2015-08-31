@@ -261,6 +261,17 @@ public:
 		return MemberScope;
 	}
 
+	/** Compares with another MemberReference to see if they are identical */
+	bool IsSameReference(FMemberReference& InReference)
+	{
+		return 
+			bSelfContext == InReference.bSelfContext &&
+			MemberParent == InReference.MemberParent &&
+			MemberName == InReference.MemberName &&
+			MemberGuid == InReference.MemberGuid &&
+			MemberScope == InReference.MemberScope;
+	}
+
 	/** Returns whether or not the variable has been deprecated */
 	bool IsDeprecated() const
 	{

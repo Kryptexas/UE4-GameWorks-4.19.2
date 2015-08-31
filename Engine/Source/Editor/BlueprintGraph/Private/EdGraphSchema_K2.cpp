@@ -1615,7 +1615,17 @@ void UEdGraphSchema_K2::OnCreateNonExistentLocalVariable( UK2Node_Variable* Vari
 			FGuid LocalVarGuid = FBlueprintEditorUtils::FindLocalVariableGuidByName(OwnerBlueprint, Variable->GetGraph(), VarName);
 			if (LocalVarGuid.IsValid())
 			{
-				Variable->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+				// Loop through every variable in the graph, check if the variable references are the same, and update them
+				FMemberReference OldReference = Variable->VariableReference;
+				TArray<UK2Node_Variable*> VariableNodeList;
+				Variable->GetGraph()->GetNodesOfClass(VariableNodeList);
+				for( UK2Node_Variable* VariableNode : VariableNodeList)
+				{
+					if (VariableNode->VariableReference.IsSameReference(OldReference))
+					{
+						VariableNode->VariableReference.SetLocalMember(VarName, Variable->GetGraph()->GetName(), LocalVarGuid);
+					}
+				}
 			}
 		}
 	}	
