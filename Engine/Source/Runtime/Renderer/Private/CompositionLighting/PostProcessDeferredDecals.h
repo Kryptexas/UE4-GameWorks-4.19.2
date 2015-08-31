@@ -24,7 +24,7 @@ public:
 
 private:
 	// see EDecalRenderStage
-	EDecalRenderStage DecalRenderStage;
+	EDecalRenderStage CurrentStage;
 };
 
 bool IsDBufferEnabled();
