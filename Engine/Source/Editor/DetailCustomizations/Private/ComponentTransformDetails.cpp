@@ -1099,7 +1099,7 @@ void FComponentTransformDetails::OnSetLocation( float NewValue, ETextCommit::Typ
 
 	CacheTransform();
 
-	GUnrealEd->UpdatePivotLocationForSelection();
+	GUnrealEd->UpdatePivotLocationForSelection(true);
 	GUnrealEd->SetPivotMovedIndependently(false);
 	GUnrealEd->RedrawLevelEditingViewports();
 }
