@@ -48,7 +48,7 @@ Notes
 1. Select the **Material Attributes** node and change the following in its **Details** panel:
 * Blend Mode: Translucent
 * (Optional) Two Sided: Checked 
-* Translucency Lighting Model: TLM_Surface
+* Translucency Lighting Model: Surface Translucency Volume
 1. Plug the **Alpha** channel of the Texture Sample into **Opacity** slot to mask parts of material.
 
 #### Custom Opacity

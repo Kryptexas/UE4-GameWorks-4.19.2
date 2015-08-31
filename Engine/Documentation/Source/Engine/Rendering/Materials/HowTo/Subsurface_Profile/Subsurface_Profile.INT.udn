@@ -10,7 +10,7 @@ Related: Resources/ContentExamples/MaterialNodes/1_7
 [TOC(start:2)]
 
 
-The ability to rendering realistic looking human skin is a must for any modern Video Game engine. To fulfill this need, Unreal Engine 4 (UE4) now offers a shading method specifically for skin or wax like surfaces called **Subsurface Profile**. 
+The ability to render realistic looking human skin is a must for any modern Video Game engine. To fulfill this need, Unreal Engine 4 (UE4) now offers a shading method specifically for skin or wax like surfaces called **Subsurface Profile**. 
 While the Subsurface Profile shading model has similar properties to the **Subsurface** shading model, its key difference is in how it renders. 
 SubsurfaceProfile uses a rendering approach that is based in Screen Space because this helps to better display the subtle subsurface effects seen in human skin where backscattering is a secondary effect only seen in few cases like ears for example.
 The following document will cover what a Subsurface Profile is and how you can use them in your work. 
@@ -23,7 +23,7 @@ Once created, make sure that you name the Material. For this example, the Materi
 When completed, your **Content Browser** should look like this. 
 	![](SSP_Create_New_Material.png)
 
-1. Next, open up the Material by **Double-Clicking** on it in the **Content Browser** with the **Right Mouse Button**.
+1. Next, open up the Material by **Double-Clicking** on it in the **Content Browser** with the **Left Mouse Button**.
 	[REGION:lightbox]
 	![](SSP_Open_New_Material.png)
 	[/REGION]

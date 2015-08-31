@@ -26,7 +26,7 @@ Getting it right is challenging but once the tools are mastered, they can be app
 Before we get to making the Material, first we should gather some reference. 
 This is because it is usually best to start with multiple photo references that have multiple lighting situations so you can verify how the material looks under different lighting conditions. 
 If at all possible, having scanned and calibrated source data would be ideal as this will help to make sure that you are getting the best possible results. 
-When viewing your content inside the editor, make sure to disable the [Editor Eye Adaptation](Engine/Rendering/PostProcessEffects/AutomaticExposure) for a more controlled environment.
+When viewing your content inside the editor, make sure to disable the **Editor Eye Adaptation** for a more controlled environment: _Edit Menu > Project Settings > Rendering > Default Post Processing Settings > Auto Exposure_
 
 [region:tip]
  A calibrated environment can be helpful in making sure that you get the colors correct but it is not required.
@@ -67,7 +67,7 @@ While this Material does look complex, we will be breaking down what each sectio
 
 ![](HS_Base_Color.png)
 
-One of the first things that need to be understood is that from a very far distance, the Subsurface Scattering effect is harder to perceive. 
+One of the first things that needs to be understood is that from a very far distance, the Subsurface Scattering effect is harder to perceive. 
 This means that it is best to have the Base Color of your texture looking right when viewed in the distance. 
 You could also use a grayscale texture to darken the base color and the specular (caused by occlusion) to give an overall better look to the skin. 
 You can also add some Vector and Scalar controls to adjust the color and power of the skin to help you further tweak to get the look you are after.
