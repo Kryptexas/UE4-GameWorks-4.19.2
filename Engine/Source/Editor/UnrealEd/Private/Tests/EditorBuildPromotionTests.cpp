@@ -162,53 +162,53 @@ namespace EditorBuildPromotionTestUtils
 		double Duration;
 	};
 
-	/**
-	* Exports the current editor keybindings
-	*
-	* @param TargetFilename - The name of the file to export to
-	*/
-	static void ExportKeybindings(const FString& TargetFilename)
-	{
-		FInputBindingManager::Get().SaveInputBindings();
-		GConfig->Flush(false, GEditorKeyBindingsIni);
-		IFileManager::Get().Copy(*TargetFilename, *GEditorKeyBindingsIni);
-	}
+	///**
+	//* Exports the current editor keybindings
+	//*
+	//* @param TargetFilename - The name of the file to export to
+	//*/
+	//static void ExportKeybindings(const FString& TargetFilename)
+	//{
+	//	FInputBindingManager::Get().SaveInputBindings();
+	//	GConfig->Flush(false, GEditorKeyBindingsIni);
+	//	IFileManager::Get().Copy(*TargetFilename, *GEditorKeyBindingsIni);
+	//}
 
-	/**
-	* Imports new editor keybindings  (Unused)
-	*
-	* @param TargetFilename - The name of the file to import from
-	*/
-	static void ImportKeybindings(const FString& TargetFilename)
-	{
-		GConfig->Flush(true, GEditorKeyBindingsIni);
-		IFileManager::Get().Copy(*GEditorKeyBindingsIni, *TargetFilename);
-		GConfig->LoadFile(GEditorKeyBindingsIni);
-	}
+	///**
+	//* Imports new editor keybindings  (Unused)
+	//*
+	//* @param TargetFilename - The name of the file to import from
+	//*/
+	//static void ImportKeybindings(const FString& TargetFilename)
+	//{
+	//	GConfig->Flush(true, GEditorKeyBindingsIni);
+	//	IFileManager::Get().Copy(*GEditorKeyBindingsIni, *TargetFilename);
+	//	GConfig->LoadFile(GEditorKeyBindingsIni);
+	//}
 
-	/**
-	* Exports the current editor settings
-	*
-	* @param TargetFilename - The name of the file to export to
-	*/
-	static void ExportEditorSettings(const FString& TargetFilename)
-	{
-		FInputBindingManager::Get().SaveInputBindings();
-		GConfig->Flush(false, GEditorPerProjectIni);
-		IFileManager::Get().Copy(*TargetFilename, *GEditorPerProjectIni);
-	}
+	///**
+	//* Exports the current editor settings
+	//*
+	//* @param TargetFilename - The name of the file to export to
+	//*/
+	//static void ExportEditorSettings(const FString& TargetFilename)
+	//{
+	//	FInputBindingManager::Get().SaveInputBindings();
+	//	GConfig->Flush(false, GEditorPerProjectIni);
+	//	IFileManager::Get().Copy(*TargetFilename, *GEditorPerProjectIni);
+	//}
 
-	/**
-	* Imports new editor settings (unused)
-	*
-	* @param TargetFilename - The name of the file to export to
-	*/
-	static void ImportEditorSettings(const FString& TargetFilename)
-	{
-		GConfig->Flush(true, GEditorPerProjectIni);
-		IFileManager::Get().Copy(*GEditorPerProjectIni, *TargetFilename);
-		GConfig->LoadFile(GEditorPerProjectIni);
-	}
+	///**
+	//* Imports new editor settings (unused)
+	//*
+	//* @param TargetFilename - The name of the file to export to
+	//*/
+	//static void ImportEditorSettings(const FString& TargetFilename)
+	//{
+	//	GConfig->Flush(true, GEditorPerProjectIni);
+	//	IFileManager::Get().Copy(*GEditorPerProjectIni, *TargetFilename);
+	//	GConfig->LoadFile(GEditorPerProjectIni);
+	//}
 
 	/**
 	* Sends the MaterialEditor->Apply UI command
@@ -737,53 +737,6 @@ namespace EditorBuildPromotionTestUtils
 	}
 
 	/**
-	* Creates a new keybinding chord and sets it for the supplied command and context
-	*
-	* @param CommandContext - The context of the command
-	* @param Command - The command name to get
-	* @param Key - The keybinding chord key
-	* @param ModifierKey - The keybinding chord modifier key
-	*/
-	static FInputChord SetKeybinding(const FString& CommandContext, const FString& Command, const FKey Key, const EModifierKey::Type ModifierKey)
-	{
-		FInputChord NewChord(Key, ModifierKey);
-		if (!FEditorPromotionTestUtilities::SetEditorKeybinding(CommandContext, Command, NewChord))
-		{
-			// Trigger a failure when used in an automated test
-			UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("Could not find keybinding for %s using context %s"), *Command, *CommandContext);
-		}
-		return NewChord;
-	}
-
-	/**
-	* Retrieves the current keybinding for a command and compares it against the expected binding.
-	* Triggers an automation test failure if keybind cannot be retrieved or does not match expected binding.
-	*
-	* @param CommandContext - The context of the command
-	* @param Command - The command name to get
-	* @param ExpectedChord - The chord value to compare against
-	*/
-	static void CompareKeybindings(const FString& CommandContext, const FString& Command, FInputChord ExpectedChord)
-	{
-		FInputChord CurrentChord = FEditorPromotionTestUtilities::GetEditorKeybinding(CommandContext, Command);
-		if (!CurrentChord.IsValidChord())
-		{
-			UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("Could not find keybinding for %s using context %s"), *Command, *CommandContext);
-		}
-		else
-		{
-			if (CurrentChord == ExpectedChord)
-			{
-				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("%s keybinding correct."), *Command);
-			}
-			else
-			{
-				UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("%s keybinding incorrect."), *Command);
-			}
-		}
-	}
-
-	/**
 	* Gets an object property value by name
 	*
 	* @param TargetObject - The object to modify
@@ -811,64 +764,6 @@ namespace EditorBuildPromotionTestUtils
 		TSharedPtr<class ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
 
 		GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false);
-	}
-
-	/**
-	* Ends a PIE session
-	*/
-	static void EndPIE()
-	{
-		GUnrealEd->RequestEndPlayMap();
-	}
-
-	/**
-	* Takes an automation screenshot
-	*
-	* @param ScreenshotName - The sub name to use for the screenshot
-	*/
-	static void TakeScreenshot(const FString& ScreenshotName, bool bUseTopWindow = false)
-	{
-		//Update the screenshot name, then take a screenshot.
-		if (FAutomationTestFramework::GetInstance().IsScreenshotAllowed())
-		{
-			TSharedPtr<SWindow> Window;
-
-			if (bUseTopWindow)
-			{
-				Window = FSlateApplication::Get().GetActiveTopLevelWindow();
-			}
-			else
-			{
-				//Find the main editor window
-				TArray<TSharedRef<SWindow> > AllWindows;
-				FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
-				if (AllWindows.Num() == 0)
-				{
-					UE_LOG(LogEditorAutomationTests, Error, TEXT("ERROR: Could not find the main editor window."));
-					return;
-				}
-
-				Window = AllWindows[0];
-			}
-
-			if (Window.IsValid())
-			{
-				FString ScreenshotFileName;
-				const FString TestName = FString::Printf(TEXT("EditorBuildPromotion/%s"), *ScreenshotName);
-				AutomationCommon::GetScreenshotPath(TestName, ScreenshotFileName, false);
-
-				TSharedRef<SWidget> WindowRef = Window.ToSharedRef();
-
-				TArray<FColor> OutImageData;
-				FIntVector OutImageSize;
-				FSlateApplication::Get().TakeScreenshot(WindowRef, OutImageData, OutImageSize);
-				FAutomationTestFramework::GetInstance().OnScreenshotCaptured().ExecuteIfBound(OutImageSize.X, OutImageSize.Y, OutImageData, ScreenshotFileName);
-			}
-			else
-			{
-				UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("Failed to find editor window for screenshot (%s)"), *ScreenshotName);
-			}
-		}
 	}
 
 	/**
@@ -1290,15 +1185,15 @@ namespace BuildPromotionTestHelper
 			FString PropertyName = Assets[AssetIndex].PropertyName;
 			FString NewPropertyValue = Assets[AssetIndex].PropertyValue;
 
-			FString OldPropertyValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
+			FString OldPropertyValue = FEditorPromotionTestUtilities::GetPropertyByName(CurrentAsset, PropertyName);
 			FEditorPromotionTestUtilities::SetPropertyByName(CurrentAsset, PropertyName, NewPropertyValue);
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Modified asset.  %s = %s"), *PropertyName, *NewPropertyValue);
 
 			//Get the property again and use that to compare the redo action.  Parsing the new value may change the formatting a bit. ie) 100 becomes 100.0000
-			FString ParsedNewValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
+			FString ParsedNewValue = FEditorPromotionTestUtilities::GetPropertyByName(CurrentAsset, PropertyName);
 
 			GEditor->UndoTransaction();
-			FString CurrentValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
+			FString CurrentValue = FEditorPromotionTestUtilities::GetPropertyByName(CurrentAsset, PropertyName);
 			if (CurrentValue == OldPropertyValue)
 			{
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Undo %s change successful"), *PropertyName);
@@ -1309,7 +1204,7 @@ namespace BuildPromotionTestHelper
 			}
 
 			GEditor->RedoTransaction();
-			CurrentValue = EditorBuildPromotionTestUtils::GetPropertyByName(CurrentAsset, PropertyName);
+			CurrentValue = FEditorPromotionTestUtilities::GetPropertyByName(CurrentAsset, PropertyName);
 			if (CurrentValue == ParsedNewValue)
 			{
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Redo %s change successful"), *PropertyName);
@@ -2664,7 +2559,7 @@ namespace BuildPromotionTestHelper
 				IAssetEditorInstance* AssetEditor = FAssetEditorManager::Get().FindEditorForAsset(BlueprintObject, true);
 				IBlueprintEditor* BlueprintEditor = (IBlueprintEditor*)AssetEditor;
 
-				EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("BlueprintComponentVariables"), true);
+				FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintComponentVariables"), true);
 
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Switched to components mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
@@ -2820,7 +2715,7 @@ namespace BuildPromotionTestHelper
 				IAssetEditorInstance* AssetEditor = FAssetEditorManager::Get().FindEditorForAsset(BlueprintObject, true);
 				FBlueprintEditor* BlueprintEditor = (FBlueprintEditor*)AssetEditor;
 
-				EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("BlueprintMeshVariable"), true);
+				FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintMeshVariable"), true);
 
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Switched to components mode"));
 				BlueprintEditor->SetCurrentMode(FBlueprintEditorApplicationModes::BlueprintComponentsMode);
@@ -2838,7 +2733,7 @@ namespace BuildPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("BlueprintComponent"), true);
+				FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintComponent"), true);
 			}
 			return true;
 		}
@@ -3199,7 +3094,7 @@ namespace BuildPromotionTestHelper
 		{
 			if (BlueprintObject)
 			{
-				EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("BlueprintPIE_Start"));
+				FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintPIE_Start"));
 			}
 			return true;
 		}
@@ -3250,9 +3145,9 @@ namespace BuildPromotionTestHelper
 			{
 				if (GEditor->PlayWorld != NULL)
 				{
-					EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("BlueprintPIE_End"));
+					FEditorPromotionTestUtilities::TakeScreenshot(TEXT("BlueprintPIE_End"));
 				}
-				EditorBuildPromotionTestUtils::EndPIE();
+				FEditorPromotionTestUtilities::EndPIE();
 			}
 			return true;
 		}
@@ -3333,7 +3228,7 @@ namespace BuildPromotionTestHelper
 			{
 				UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Clearing the breakpoint"));
 				FKismetDebugUtilities::ClearBreakpoints(BlueprintObject);
-				EditorBuildPromotionTestUtils::EndPIE();
+				FEditorPromotionTestUtilities::EndPIE();
 				CurrentWorld = PlacedBlueprint->GetWorld();
 			}
 			return true;
@@ -3518,9 +3413,9 @@ namespace BuildPromotionTestHelper
 				if (GEditor->PlayWorld != NULL)
 				{
 					//Take a screenshot and end the PIE session
-					EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("LevelBlueprint"), false);
+					FEditorPromotionTestUtilities::TakeScreenshot(TEXT("LevelBlueprint"), false);
 				}
-				EditorBuildPromotionTestUtils::EndPIE();
+				FEditorPromotionTestUtilities::EndPIE();
 			}
 			return true;
 		}
@@ -3574,7 +3469,7 @@ namespace BuildPromotionTestHelper
 			ULevel* Level = World->GetCurrentLevel();
 
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Taking a screenshot"));
-			EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("VisibilityOff"));
+			FEditorPromotionTestUtilities::TakeScreenshot(TEXT("VisibilityOff"));
 
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Turning level visibility on"));
 			bool bShouldBeVisible = true;
@@ -3593,7 +3488,7 @@ namespace BuildPromotionTestHelper
 			ULevel* Level = World->GetCurrentLevel();
 
 			UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Taking a screenshot"));
-			EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("VisibilityOn"));
+			FEditorPromotionTestUtilities::TakeScreenshot(TEXT("VisibilityOn"));
 
 			FEditorFileUtils::SaveLevel(Level, TEXT("/Game/Maps/EditorBuildPromotionTest"));
 			GUnrealEd->Exec(World, TEXT("MAP REBUILD ALLVISIBLE"));
@@ -3668,25 +3563,6 @@ bool FBuildPromotionInitialCleanupTest::RunTest(const FString& Parameters)
 }
 
 /**
-* Latent command to check if PIE is running
-*/
-DEFINE_LATENT_AUTOMATION_COMMAND(FSettingsCheckForPIECommand);
-bool FSettingsCheckForPIECommand::Update()
-{
-	if (GEditor->PlayWorld != NULL)
-	{
-		//Success
-		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("PlayInEditor keyboard shortcut success"));
-		EditorBuildPromotionTestUtils::EndPIE();
-	}
-	else
-	{
-		UE_LOG(LogEditorBuildPromotionTests, Error, TEXT("PlayInEditor keyboard shortcut failed"));
-	}
-	return true;
-}
-
-/**
 * Latent command to run the main build promotion test
 */
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLogTestResultCommand, FAutomationTestExecutionInfo*, InExecutionInfo);
@@ -3700,86 +3576,6 @@ bool FLogTestResultCommand::Update()
 	{
 		UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Test successful!"));
 	}
-	return true;
-}
-
-/**
-* Automation test that handles setting keybindings and editor preferences
-*/
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBuildPromotionSettingsTest, "System.Promotion.Editor Promotion Pass.Step 1 Main Editor Test.Settings", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter);
-
-bool FBuildPromotionSettingsTest::RunTest(const FString& Parameters)
-{
-
-//Previous Editor Settings
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Exporting Current keybindings and editor settings"));
-
-	//Export the original keybindings
-	const FString TargetOriginalKeybindFile = FString::Printf(TEXT("%s/BuildPromotion/OriginalKeybindings-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
-	EditorBuildPromotionTestUtils::ExportKeybindings(TargetOriginalKeybindFile);
-
-	//Export the original preferences
-	const FString TargetOriginalPreferenceFile = FString::Printf(TEXT("%s/BuildPromotion/OriginalPreferences-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
-	EditorBuildPromotionTestUtils::ExportEditorSettings(TargetOriginalPreferenceFile);
-
-//New Editor Settings
-	//Bind H to CreateEmptyLayer keybinding
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding create empty layer shortcut"));
-	FInputChord NewCreateChord = EditorBuildPromotionTestUtils::SetKeybinding(TEXT("LayersView"), TEXT("CreateEmptyLayer"), EKeys::H, EModifierKey::None);
-	
-	//Bind J to RequestRenameLayer
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding request rename layer shortcut"));
-	FInputChord NewRenameChord = EditorBuildPromotionTestUtils::SetKeybinding(TEXT("LayersView"), TEXT("RequestRenameLayer"), EKeys::J, EModifierKey::None);
-	
-	// Bind CTRL+L to PIE
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Binding play shortcut (PIE)"));
-	FInputChord NewPIEChord = EditorBuildPromotionTestUtils::SetKeybinding(TEXT("PlayWorld"), TEXT("RepeatLastPlay"), EKeys::L, EModifierKey::Control);
-	
-	//Export the keybindings
-	const FString TargetKeybindFile = FString::Printf(TEXT("%s/BuildPromotion/Keybindings-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Exporting keybind"));
-	EditorBuildPromotionTestUtils::ExportKeybindings(TargetKeybindFile);
-
-
-	UEditorStyleSettings* EditorStyleSettings = GetMutableDefault<UEditorStyleSettings>();
-	FString OldStyleSetting = EditorBuildPromotionTestUtils::GetPropertyByName(EditorStyleSettings, TEXT("bUseSmallToolBarIcons"));
-	FEditorPromotionTestUtilities::SetPropertyByName(EditorStyleSettings, TEXT("bUseSmallToolBarIcons"), TEXT("true"));
-
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Set UseSmallToolBarIcons"));
-
-	//Export the preferences
-	const FString TargetPreferenceFile = FString::Printf(TEXT("%s/BuildPromotion/Preferences-%d.ini"), *FPaths::AutomationDir(), FEngineVersion::Current().GetChangelist());
-	EditorBuildPromotionTestUtils::ExportEditorSettings(TargetPreferenceFile);
-
-	//Take a screenshot of the small icons
-	EditorBuildPromotionTestUtils::TakeScreenshot(TEXT("Small Toolbar Icons"));
-
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Exported keybindings and preferences to %s/BuildPromotion"), *FPaths::AutomationDir());
-
-	//Change the setting back
-	FEditorPromotionTestUtilities::SetPropertyByName(EditorStyleSettings, TEXT("bUseSmallToolBarIcons"), OldStyleSetting);
-
-	// Verify keybindings were assigned correctly
-	EditorBuildPromotionTestUtils::CompareKeybindings(TEXT("LayersView"), TEXT("CreateEmptyLayer"), NewCreateChord);
-	EditorBuildPromotionTestUtils::CompareKeybindings(TEXT("LayersView"), TEXT("RequestRenameLayer"), NewRenameChord);
-	EditorBuildPromotionTestUtils::CompareKeybindings(TEXT("PlayWorld"), TEXT("RepeatLastPlay"), NewPIEChord);
-
-	//Focus the main editor
-	TArray< TSharedRef<SWindow> > AllWindows;
-	FSlateApplication::Get().GetAllVisibleWindowsOrdered(AllWindows);
-	FSlateApplication::Get().ProcessWindowActivatedEvent(FWindowActivateEvent(FWindowActivateEvent::EA_Activate, AllWindows[0]));
-
-	//Send the PIE event
-	FKeyEvent PIEKeyEvent(EKeys::L, FModifierKeysState(false, false, true, false, false, false, false, false, false), false, 0/*UserIndex*/, 0x4C, 0x4C);
-	FSlateApplication::Get().ProcessKeyDownEvent(PIEKeyEvent);
-	FSlateApplication::Get().ProcessKeyUpEvent(PIEKeyEvent);
-
-	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Sent PIE keyboard shortcut"));
-
-	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(3.f));
-	ADD_LATENT_AUTOMATION_COMMAND(FSettingsCheckForPIECommand());
-	ADD_LATENT_AUTOMATION_COMMAND(FLogTestResultCommand(&ExecutionInfo));
-
 	return true;
 }
 
@@ -3811,7 +3607,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND(FEndPIECommand);
 bool FEndPIECommand::Update()
 {
 	UE_LOG(LogEditorBuildPromotionTests, Display, TEXT("Ending PIE"));
-	EditorBuildPromotionTestUtils::EndPIE();
+	FEditorPromotionTestUtilities::EndPIE();
 	return true;
 }
 

@@ -72,6 +72,13 @@ public:
 	*/
 	UNREALED_API static void SendCommandToCurrentEditor(const FInputChord& InChord, const FName& WidgetTypeToFocus);
 
+	/**
+	* Gets an object property value by name
+	*
+	* @param TargetObject - The object to modify
+	* @param InVariableName - The name of the property
+	*/
+	UNREALED_API static FString GetPropertyByName(UObject* TargetObject, const FString& InVariableName);
 
 	/**
 	* Sets an object property value by name
@@ -80,4 +87,16 @@ public:
 	* @param InVariableName - The name of the property
 	*/
 	UNREALED_API static void SetPropertyByName(UObject* TargetObject, const FString& InVariableName, const FString& NewValueString);
+
+	/**
+	* Ends a PIE session
+	*/
+	UNREALED_API static void EndPIE();
+
+	/**
+	* Takes an automation screenshot
+	*
+	* @param ScreenshotName - The sub name to use for the screenshot
+	*/
+	UNREALED_API static void TakeScreenshot(const FString& ScreenshotName, bool bUseTopWindow = false);
 };
