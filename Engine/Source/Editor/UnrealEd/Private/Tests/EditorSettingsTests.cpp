@@ -44,7 +44,7 @@ namespace EditorSettingsTestUtils
 	* @param IniSettings - Settings to import to
 	* @param TargetFilename - The name of the file to import
 	*/
-	static bool ImportSettings(FString& IniSettings, const FString& SourceFilename)
+	static void ImportSettings(FString& IniSettings, const FString& SourceFilename)
 	{
 		GConfig->Flush(true, IniSettings);
 		if (ECopyResult::COPY_OK == IFileManager::Get().Copy(*IniSettings, *SourceFilename))
