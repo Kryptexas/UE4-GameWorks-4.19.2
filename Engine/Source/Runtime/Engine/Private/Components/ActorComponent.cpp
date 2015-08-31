@@ -636,8 +636,6 @@ void UActorComponent::BeginPlay()
 {
 	check(bRegistered);
 	check(!bHasBegunPlay);
-	checkSlow(bWantsBeginPlay);
-	checkSlow(bTickFunctionsRegistered); // If this fails, someone called BeginPlay() without first calling RegisterAllComponentTickFunctions().
 
 	ReceiveBeginPlay();
 
@@ -757,14 +755,9 @@ void UActorComponent::RegisterAllComponentTickFunctions(bool bRegister)
 	// Components don't have tick functions until they are registered with the world
 	if (bRegistered)
 	{
-		// Prevent repeated redundant attempts
-		if (bTickFunctionsRegistered != bRegister)
-		{
-			RegisterComponentTickFunctions(bRegister);
-			bTickFunctionsRegistered = bRegister;
-			checkf(GTestRegisterComponentTickFunctions == this, TEXT("Failed to route component RegisterTickFunctions (%s)"), *GetFullName());
-			GTestRegisterComponentTickFunctions = NULL;
-		}
+		RegisterComponentTickFunctions(bRegister);
+		checkf(GTestRegisterComponentTickFunctions == this, TEXT("Failed to route component RegisterTickFunctions (%s)"), *GetFullName());
+		GTestRegisterComponentTickFunctions = NULL;
 	}
 }
 
@@ -829,12 +822,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	World = InWorld;
 
 	ExecuteRegisterEvents();
-
-	// If not in a game world register ticks now, otherwise defer until BeginPlay
-	if (!InWorld->IsGameWorld())
-	{
-		RegisterAllComponentTickFunctions(true);
-	}
+	RegisterAllComponentTickFunctions(true);
 
 	if (MyOwner == nullptr || MyOwner->IsActorInitialized())
 	{
@@ -844,10 +832,9 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		}
 	}
 
-	if (MyOwner && MyOwner->HasActorBegunPlay() && !bHasBegunPlay)
+	if (MyOwner && MyOwner->HasActorBegunPlay())
 	{
-		RegisterAllComponentTickFunctions(true);
-		if (bWantsBeginPlay)
+		if (!bHasBegunPlay && bWantsBeginPlay)
 		{
 			BeginPlay();
 		}
