@@ -93,7 +93,7 @@ void UK2Node_BaseAsyncTask::AllocateDefaultPins()
 	}
 
 	bool bAllPinsGood = true;
-	UFunction* Function = ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName);
+	UFunction* Function = ProxyFactoryClass ? ProxyFactoryClass->FindFunctionByName(ProxyFactoryFunctionName) : nullptr;
 	if (Function)
 	{
 		TSet<FString> PinsToHide;
