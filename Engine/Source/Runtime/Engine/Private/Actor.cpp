@@ -247,7 +247,6 @@ void AActor::ResetOwnedComponents()
 void AActor::PostInitProperties()
 {
 	Super::PostInitProperties();
-	RegisterAllActorTickFunctions(true,false); // component will be handled when they are registered
 	RemoteRole = (bReplicates ? ROLE_SimulatedProxy : ROLE_None);
 
 	// Map natively-constructed component instances to any serialized properties that might reference them.
@@ -641,11 +640,16 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister, bool bDoComponents)
 {
 	if(!IsTemplate())
 	{
-		FActorThreadContext& ThreadContext = FActorThreadContext::Get();
-		check(ThreadContext.TestRegisterTickFunctions == nullptr);
-		RegisterActorTickFunctions(bRegister);
-		checkf(ThreadContext.TestRegisterTickFunctions == this, TEXT("Failed to route Actor RegisterTickFunctions (%s)"), *GetFullName());
-		ThreadContext.TestRegisterTickFunctions = nullptr;
+		// Prevent repeated redundant attempts
+		if (bTickFunctionsRegistered != bRegister)
+		{
+			FActorThreadContext& ThreadContext = FActorThreadContext::Get();
+			check(ThreadContext.TestRegisterTickFunctions == nullptr);
+			RegisterActorTickFunctions(bRegister);
+			bTickFunctionsRegistered = bRegister;
+			checkf(ThreadContext.TestRegisterTickFunctions == this, TEXT("Failed to route Actor RegisterTickFunctions (%s)"), *GetFullName());
+			ThreadContext.TestRegisterTickFunctions = nullptr;
+		}
 
 		if (bDoComponents)
 		{
@@ -2783,6 +2787,7 @@ void AActor::BeginPlay()
 {
 	ensure(!bActorHasBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
+	RegisterAllActorTickFunctions(true, false); // Components are done below.
 
 	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
@@ -2792,7 +2797,11 @@ void AActor::BeginPlay()
 		// bHasBegunPlay will be true for the component if the component was renamed and moved to a new outer during initialization
 		if (Component->IsRegistered() && !Component->HasBegunPlay())
 		{
-			Component->BeginPlay();
+			Component->RegisterAllComponentTickFunctions(true);
+			if (Component->bWantsBeginPlay)
+			{
+				Component->BeginPlay();
+			}
 		}
 		else
 		{
@@ -3622,6 +3631,16 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 		// 0 - means register all components
 		NumComponentsToRegister = MAX_int32;
 	}
+
+	UWorld* const World = GetWorld();
+	check(World);
+
+	// If we are not a game world, then register tick functions now. If we are a game world we wait until right before BeginPlay(),
+	// so as to not actually tick until BeginPlay() executes (which could otherwise happen in network games).
+	if (bAllowTickBeforeBeginPlay || !World->IsGameWorld())
+	{
+		RegisterAllActorTickFunctions(true, false); // components will be handled when they are registered
+	}
 	
 	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
 	if( RootComponent != NULL && !RootComponent->IsRegistered() )
@@ -3636,8 +3655,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 		//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
 		RootComponent->Modify(false);
 
-		check(GetWorld());
-		RootComponent->RegisterComponentWithWorld(GetWorld());
+		RootComponent->RegisterComponentWithWorld(World);
 	}
 
 	int32 NumTotalRegisteredComponents = 0;
@@ -3676,8 +3694,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
 			Component->Modify(false);
 
-			check(GetWorld());
-			Component->RegisterComponentWithWorld(GetWorld());
+			Component->RegisterComponentWithWorld(World);
 			NumRegisteredComponentsThisRun++;
 		}
 

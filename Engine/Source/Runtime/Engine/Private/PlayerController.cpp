@@ -67,6 +67,7 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	bIsUsingStreamingVolumes = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
+	bAllowTickBeforeBeginPlay = true;
 	bShouldPerformFullTickWhenPaused = false;
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;

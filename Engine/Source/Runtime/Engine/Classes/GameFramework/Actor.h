@@ -177,9 +177,20 @@ public:
 	/** True if this actor is currently running user construction script (used to defer component registration) */
 	uint32 bRunningUserConstructionScript:1;
 
+	/**
+	 * Whether we allow this Actor to tick before it receives the BeginPlay event.
+	 * Normally we don't tick actors until after BeginPlay; this setting allows this behavior to be overridden.
+	 * This Actor must be able to tick for this setting to be relevant.
+	 */
+	UPROPERTY(EditDefaultsOnly, Category="Tick")
+	uint32 bAllowTickBeforeBeginPlay:1;
+
 private:
 	/** Whether FinishSpawning has been called for this Actor.  If it has not, the Actor is in a mal-formed state */
 	uint32 bHasFinishedSpawning:1;
+
+	/** Whether we've tried to register tick functions. Reset when they are unregistered. */
+	uint32 bTickFunctionsRegistered : 1;
 
 	/**
 	 * Enables any collision on this actor.

@@ -32,6 +32,7 @@ AInfo::AInfo(const FObjectInitializer& ObjectInitializer)
 #endif // WITH_EDITORONLY_DATA
 
 	PrimaryActorTick.bCanEverTick = false;
+	bAllowTickBeforeBeginPlay = true;
 	bReplicates = false;
 	NetUpdateFrequency = 10.0f;
 	bHidden = true;
