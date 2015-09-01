@@ -192,7 +192,7 @@ public:
 			HzbStepMipLevelFactorValue
 			);
 		
-		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbStepMipLevelFactorValue );
+		SetShaderValue(Context.RHICmdList, ShaderRHI, HzbUvAndStepMipLevelFactor, HzbUvAndStepMipLevelFactorValue );
 	}
 	
 	// FShader interface.
