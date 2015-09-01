@@ -17,7 +17,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/MaterialProperties/1_7 "%Resources/ContentExamples/MaterialProperties/1_7:title%")
+		[예전 예제](Resources/ContentExamples/MaterialProperties/1_7 "%Resources/ContentExamples/MaterialProperties/1_7:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -25,7 +25,7 @@ Related: Engine/Rendering/Materials/MaterialProperties
 		[콘텐츠 예제 홈](Resources/ContentExamples)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/MaterialProperties/1_9 "%Resources/ContentExamples/MaterialProperties/1_9:title%")
+		[다음 예제](Resources/ContentExamples/MaterialProperties/1_9 "%Resources/ContentExamples/MaterialProperties/1_9:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

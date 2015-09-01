@@ -14,7 +14,7 @@ Related: Engine/Actors/DecalActor
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/MaterialNodes/1_13 "%Resources/ContentExamples/MaterialNodes/1_13:title%")
+		[예전 예제](Resources/ContentExamples/MaterialNodes/1_13 "%Resources/ContentExamples/MaterialNodes/1_13:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]

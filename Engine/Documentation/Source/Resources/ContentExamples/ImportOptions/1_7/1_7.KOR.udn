@@ -16,7 +16,7 @@ Related: Engine/Content/FBX/Materials
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/ImportOptions/1_6 "%Resources/ContentExamples/ImportOptions/1_6:title%")
+		[예전 예제](Resources/ContentExamples/ImportOptions/1_6 "%Resources/ContentExamples/ImportOptions/1_6:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]

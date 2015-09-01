@@ -7,7 +7,7 @@ Description:Material Nodes 예제 레벨에 대한 개요로, 예제 1.8: Opacit
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/MaterialNodes/1_7 "%Resources/ContentExamples/MaterialNodes/1_7:title%")
+		[예전 예제](Resources/ContentExamples/MaterialNodes/1_7 "%Resources/ContentExamples/MaterialNodes/1_7:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -15,7 +15,7 @@ Description:Material Nodes 예제 레벨에 대한 개요로, 예제 1.8: Opacit
 		[머티리얼 노드 홈](Resources/ContentExamples/MaterialNodes)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/MaterialNodes/1_9 "%Resources/ContentExamples/MaterialNodes/1_9:title%")
+		[다음 예제](Resources/ContentExamples/MaterialNodes/1_9 "%Resources/ContentExamples/MaterialNodes/1_9:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

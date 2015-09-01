@@ -13,7 +13,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/EffectsGallery/1_D "%Resources/ContentExamples/EffectsGallery/1_D:title%")
+		[예전 예제](Resources/ContentExamples/EffectsGallery/1_D "%Resources/ContentExamples/EffectsGallery/1_D:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -21,7 +21,7 @@ Related: Engine/Rendering/ParticleSystems/Reference/Modules/VectorField
 		[이펙트 갤러리 홈](Resources/ContentExamples/EffectsGallery)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/EffectsGallery/1_F "%Resources/ContentExamples/EffectsGallery/1_F:title%")
+		[다음 예제](Resources/ContentExamples/EffectsGallery/1_F "%Resources/ContentExamples/EffectsGallery/1_F:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

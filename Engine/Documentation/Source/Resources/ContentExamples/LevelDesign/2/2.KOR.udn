@@ -11,7 +11,7 @@ Related: Engine/UI/LevelEditor/Modes
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/LevelDesign/1 "%Resources/ContentExamples/LevelDesign/1:title%")
+		[예전 예제](Resources/ContentExamples/LevelDesign/1 "%Resources/ContentExamples/LevelDesign/1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -19,7 +19,7 @@ Related: Engine/UI/LevelEditor/Modes
 		[레벨 디자인 홈](Resources/ContentExamples/LevelDesign)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/LevelDesign/3 "%Resources/ContentExamples/LevelDesign/3:title%")
+		[다음 예제](Resources/ContentExamples/LevelDesign/3 "%Resources/ContentExamples/LevelDesign/3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

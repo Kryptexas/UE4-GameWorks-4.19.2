@@ -15,7 +15,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/Blueprints/1_5 "%Resources/ContentExamples/Blueprints/1_5:title%")
+		[예전 예제](Resources/ContentExamples/Blueprints/1_5 "%Resources/ContentExamples/Blueprints/1_5:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -23,7 +23,7 @@ Related: Gameplay/HowTo/SetUpInput/Blueprints
 		[블루프린트 콘텐츠 예제 홈](Resources/ContentExamples/Blueprints)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/Blueprints/1_7 "%Resources/ContentExamples/Blueprints/1_7:title%")
+		[다음 예제](Resources/ContentExamples/Blueprints/1_7 "%Resources/ContentExamples/Blueprints/1_7:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

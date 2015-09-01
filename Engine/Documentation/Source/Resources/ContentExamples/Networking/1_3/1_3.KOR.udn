@@ -12,7 +12,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/Networking/1_2 "%Resources/ContentExamples/Networking/1_2:title%")
+		[예전 예제](Resources/ContentExamples/Networking/1_2 "%Resources/ContentExamples/Networking/1_2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -20,7 +20,7 @@ Related: Engine/UI/LevelEditor/InEditorTesting/NetworkedPlayInEditor
 		[네트워킹 홈](Resources/ContentExamples/Networking)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/Networking/1_4 "%Resources/ContentExamples/Networking/1_4:title%")
+		[다음 예제](Resources/ContentExamples/Networking/1_4 "%Resources/ContentExamples/Networking/1_4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

@@ -16,7 +16,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/Lighting/6_1 "%Resources/ContentExamples/Lighting/6_1:title%")
+		[예전 예제](Resources/ContentExamples/Lighting/6_1 "%Resources/ContentExamples/Lighting/6_1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]

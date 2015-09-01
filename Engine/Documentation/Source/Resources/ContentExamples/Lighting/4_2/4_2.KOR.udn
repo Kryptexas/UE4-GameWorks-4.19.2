@@ -16,7 +16,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/Lighting/4_1 "%Resources/ContentExamples/Lighting/4_1:title%")
+		[예전 예제](Resources/ContentExamples/Lighting/4_1 "%Resources/ContentExamples/Lighting/4_1:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -24,7 +24,7 @@ Related: Engine/Rendering/LightingAndShadows/LightMobility
 		[라이팅 홈](Resources/ContentExamples/Lighting)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/Lighting/4_3 "%Resources/ContentExamples/Lighting/4_3:title%")
+		[다음 예제](Resources/ContentExamples/Lighting/4_3 "%Resources/ContentExamples/Lighting/4_3:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]

@@ -10,7 +10,7 @@ Related: Engine/Rendering/ParticleSystems
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Example](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
+		[예전 예제](Resources/ContentExamples/LevelDesign/2 "%Resources/ContentExamples/LevelDesign/2:title%")
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
@@ -18,7 +18,7 @@ Related: Engine/Rendering/ParticleSystems
 		[레벨 디자인 홈](Resources/ContentExamples/LevelDesign)
 	[/PARAM]
 	[PARAM:next]
-		[Next Example](Resources/ContentExamples/LevelDesign/4 "%Resources/ContentExamples/LevelDesign/4:title%")
+		[다음 예제](Resources/ContentExamples/LevelDesign/4 "%Resources/ContentExamples/LevelDesign/4:title%")
 	[/PARAM]
 [/OBJECT]
 [/VAR]
