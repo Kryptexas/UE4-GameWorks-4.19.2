@@ -967,7 +967,10 @@ namespace Rocket
 			AddRuleForRuntimeDependencies(Filter, Node.BuildProducts, Type);
 		}
 
-		static void AddRuleForRuntimeDependencies(FileFilter Filter, List<string> BuildProducts, FileFilterType Type)
+		/**
+		 * Searches for receipts in a list of build products so that any Runtime Dependencies can be added from them
+		 */
+		public static void AddRuleForRuntimeDependencies(FileFilter Filter, List<string> BuildProducts, FileFilterType Type)
 		{
 			HashSet<string> RuntimeDependencyPaths = new HashSet<string>();
 			string EnginePath = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine");
@@ -1290,6 +1293,7 @@ namespace Rocket
 				// Filter out the files we need to build DDC. Removing confidential folders can affect DDC keys, so we want to be sure that we're making DDC with a build that can use it.
 				FileFilter Filter = new FileFilter(FileFilterType.Exclude);
 				Filter.AddRuleForFiles(AllDependencyBuildProducts, CommandUtils.CmdEnv.LocalRoot, FileFilterType.Include);
+				FilterRocketNode.AddRuleForRuntimeDependencies(Filter, AllDependencyBuildProducts, FileFilterType.Include);
 				Filter.ReadRulesFromFile(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "InstalledEngineFilters.ini"), "CopyEditor", HostPlatform.ToString());
 				Filter.Exclude("/Engine/Build/...");
 				Filter.Exclude("/Engine/Extras/...");
