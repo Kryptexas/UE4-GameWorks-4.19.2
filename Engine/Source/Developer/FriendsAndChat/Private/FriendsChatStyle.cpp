@@ -54,7 +54,7 @@ FFriendsChatStyle& FFriendsChatStyle::SetGlobalChatColor(const FLinearColor& InF
 
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerChatColor(const FLinearColor& InFontColor)
 {
-	WhisplerChatColor = InFontColor;
+	WhisperChatColor = InFontColor;
 	return *this;
 }
 
@@ -70,6 +70,29 @@ FFriendsChatStyle& FFriendsChatStyle::SetPartyChatColor(const FLinearColor& InFo
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	WhisperHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	GlobalHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetGameHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	GameHyperlinkChatColor = InFontColor;
+	return *this;
+}
+
+FFriendsChatStyle& FFriendsChatStyle::SetPartyHyperlinkChatColor(const FLinearColor& InFontColor)
+{
+	PartyHyperlinkChatColor = InFontColor;
+	return *this;
+}
 
 FFriendsChatStyle& FFriendsChatStyle::SetChatGlobalBrush(const FSlateBrush& Brush)
 {
@@ -176,7 +199,7 @@ FLinearColor FFriendsChatStyle::GetChannelTextColor(EChatMessageType::Type Chann
 	case EChatMessageType::Party:
 		return PartyChatColor;
 	case EChatMessageType::Whisper:
-		return WhisplerChatColor;
+		return WhisperChatColor;
 	default:
 		return GameChatColor;
 	}

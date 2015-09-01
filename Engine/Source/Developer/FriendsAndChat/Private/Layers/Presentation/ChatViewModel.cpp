@@ -65,13 +65,17 @@ public:
 		{
 			for (int32 MessageIndex = LastSeenMessageCount; MessageIndex < GetMessageCount(); ++MessageIndex)
 			{
-				// Show Missed Messages if the active channel does now show our default message type.
-				if ((GetDefaultChannelType() & ReadChannelFlags) == 0)
+				// Don't count messages we sent ourselves
+				if (!FilteredMessages[MessageIndex]->IsFromSelf())
 				{
-					// Show missed messages if we are the default channel for this message type or if we are the current active window
-					if (FilteredMessages[MessageIndex]->GetMessageType() == GetDefaultChannelType() || IsActive())
+					// Show Missed Messages if the active channel does now show our default message type.
+					if ((GetDefaultChannelType() & ReadChannelFlags) == 0)
 					{
-						NewChannelMessageCount++;
+						// Show missed messages if we are the default channel for this message type or if we are the current active window
+						if (FilteredMessages[MessageIndex]->GetMessageType() == GetDefaultChannelType() || IsActive())
+						{
+							NewChannelMessageCount++;
+						}
 					}
 				}
 			}
@@ -81,6 +85,11 @@ public:
 
 	virtual void SetReadChannelFlags(uint8 ChannelFlags) override
 	{
+		if ((ChannelFlags & GetDefaultChannelType()) ||
+			(ReadChannelFlags & GetDefaultChannelType() && ChannelFlags == 0))
+		{
+			LastSeenMessageCount = GetMessageCount();
+		}
 		ReadChannelFlags = ChannelFlags;
 	}
 
@@ -386,7 +395,7 @@ public:
 
 	virtual bool IsOverrideDisplaySet() override
 	{
-		return bOverrideDisplayVisibility;
+		return OverrideDisplayVisibility;
 	}
 
 	// End FChatViewModel interface
@@ -629,6 +638,11 @@ public:
 		return ChatDisplayService->GetEntryBarVisibility();
 	}
 
+	virtual bool IsFadeBackgroundEnabled() const override
+	{
+		return ChatDisplayService->IsFadeBackgroundEnabled();
+	}
+
 	virtual EVisibility GetBackgroundVisibility() const override
 	{
 		return ChatDisplayService->GetBackgroundVisibility();
@@ -679,7 +693,7 @@ public:
 	virtual void SetIsActive(bool InIsActive)
 	{
 		bIsActive = InIsActive;
-		bOverrideDisplayVisibility = true;
+		OverrideDisplayVisibility = true;
 
 		// If active, ensure we have a valid chat channel
 		if(bIsActive)
@@ -725,7 +739,7 @@ public:
 			}
 		}
 
-		if(!ChatDisplayService->ShouldAutoRelease())
+		if(!ChatDisplayService->ShouldAutoRelease() && !ChatDisplayService->IsChatMinimized())
 		{
 			SetFocus();
 		}
@@ -835,6 +849,16 @@ public:
 		MarkupService->AddCustomSlashMarkupCommand(InCustomSlashCommands);
 	}
 
+	virtual EChatMessageType::Type GetMarkupChannel() const override
+	{
+		const EChatMessageType::Type MarkupChannel = MarkupService->GetMarkupChannel();
+		if(MarkupChannel != EChatMessageType::Invalid)
+		{
+			return MarkupChannel;
+		}
+		return DefaultChannel;
+	}
+
 	DECLARE_DERIVED_EVENT(FChatViewModelImpl, FChatViewModel::FChatListSetFocus, FChatListSetFocus);
 	virtual FChatListSetFocus& OnChatListSetFocus() override
 	{
@@ -910,7 +934,7 @@ protected:
 		, bInParty(false)
 		, bHasActionPending(false)
 		, bAllowJoinGame(false)
-		, bOverrideDisplayVisibility(false)
+		, OverrideDisplayVisibility(false)
 		, bAllowFade(true)
 		, bUseOverrideColor(false)
 		, bAllowGlobalChat(true)
@@ -966,7 +990,7 @@ private:
 	bool bInParty;
 	bool bHasActionPending;
 	bool bAllowJoinGame;
-	bool bOverrideDisplayVisibility;
+	bool OverrideDisplayVisibility;
 
 	TArray<TSharedRef<FChatItemViewModel> > FilteredMessages;
 	TArray<TSharedPtr<FSelectedFriend> > RecentPlayerList;

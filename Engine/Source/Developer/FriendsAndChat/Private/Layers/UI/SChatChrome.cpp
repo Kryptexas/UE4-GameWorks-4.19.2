@@ -19,49 +19,67 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<FChatChromeViewModel>& InChromeViewModel) override
 	{
 		FriendStyle = *InArgs._FriendStyle;
-		MenuMethod = InArgs._Method;
 		ChromeViewModel = InChromeViewModel;
 
 		ChromeViewModel->OnActiveTabChanged().AddSP(this, &SChatChromeImpl::HandleActiveTabChanged);
 		ChromeViewModel->OnVisibleTabsChanged().AddSP(this, &SChatChromeImpl::HandleVisibleTabsChanged);
+
+		TSharedRef<SWidget> HeaderWidget = SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			[
+				SAssignNew(TabContainer, SHorizontalBox)
+			]
+			+SHorizontalBox::Slot()
+			.Expose(SettingBox)
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			+SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SButton)
+				.Visibility(this, &SChatChromeImpl::GetMinizedButtonVisibility)
+				.ButtonStyle(&FriendStyle.FriendsChatStyle.FriendsMinimizeButtonStyle)
+				.OnClicked(this, &SChatChromeImpl::ToggleHeader)
+			];
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SBorder)
 			.Padding(0)
 			.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
-			.Visibility(this, &SChatChromeImpl::GetChatWindowVisibility)
-			.Padding(0)
+			.Visibility(EVisibility::SelfHitTestInvisible)
 			[
 				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.Visibility(EVisibility::SelfHitTestInvisible)
+				+SVerticalBox::Slot()
 				[
-					SNew(SHorizontalBox)
-					.Visibility(this, &SChatChromeImpl::GetHeaderVisibility)
-					+SHorizontalBox::Slot()
+					SNew(SVerticalBox)
+					.Visibility(this, &SChatChromeImpl::GetMinizedWindowVisibility)
+					+SVerticalBox::Slot()
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					.VAlign(VAlign_Bottom)
 					[
-						SAssignNew(TabContainer, SHorizontalBox)
-					]
-					+SHorizontalBox::Slot()
-					.Expose(SettingBox)
-					.AutoWidth()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SButton)
-						.ButtonStyle(&FriendStyle.FriendsChatStyle.FriendsMinimizeButtonStyle)
-						.Visibility(this, &SChatChromeImpl::GetMinimizeVisibility)
-						.OnClicked(this, &SChatChromeImpl::ToggleHeader)
+						HeaderWidget
 					]
 				]
-				+ SVerticalBox::Slot()
+				+SVerticalBox::Slot()
 				[
-					SAssignNew(ChatWindowContainer, SWidgetSwitcher)
+					SNew(SVerticalBox)
+					.Visibility(this, &SChatChromeImpl::GetChatWindowVisibility)
+					+SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						HeaderWidget
+					]
+					+ SVerticalBox::Slot()
+					.VAlign(VAlign_Fill)
+					[
+						SAssignNew(ChatWindowContainer, SWidgetSwitcher)
+					]
 				]
 			]
 		]);
@@ -110,7 +128,7 @@ private:
 		TSharedPtr<IChatTabViewModel> Tab = TabPtr.Pin();
 		if (Tab.IsValid())
 		{
-			ChromeViewModel->ActivateTab(Tab.ToSharedRef());
+			ChromeViewModel->ActivateTab(Tab.ToSharedRef(), true);
 		}
 		return FReply::Handled();
 	}
@@ -322,7 +340,17 @@ private:
 
 	EVisibility GetChatWindowVisibility() const
 	{
-		return ChromeViewModel->IsActive() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+		return ChromeViewModel->GetChatWindowVisibility();
+	}
+
+	EVisibility GetMinizedWindowVisibility() const
+	{
+		return ChromeViewModel->GetChatMinimizedVisibility();
+	}
+
+	EVisibility GetMinizedButtonVisibility() const
+	{
+		return ChromeViewModel->GetMinimizedButtonVisibility();
 	}
 
 	EVisibility GetHeaderVisibility() const
@@ -352,10 +380,6 @@ private:
 	TMap<TSharedPtr<IChatTabViewModel>, TSharedPtr<SChatWindow>> ChatWindows;
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
-
-	// Holds the menu method - Full screen requires use owning window or crashes.
-	EPopupMethod MenuMethod;
-
 };
 
 TSharedRef<SChatChrome> SChatChrome::New()

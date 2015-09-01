@@ -139,19 +139,19 @@ TSharedRef< FSlateStyleSet > FFriendsAndChatModuleStyle::Create(FFriendsAndChatS
 	// Name Style
 	const FTextBlockStyle GlobalChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalChatColor);
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GlobalHyperlinkChatColor);
 
 	const FTextBlockStyle GameChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameChatColor);
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.GameHyperlinkChatColor);
 
 	const FTextBlockStyle PartyChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyChatColor);
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.PartyHyperlinkChatColor);
 
 	const FTextBlockStyle WhisperChatFont = FTextBlockStyle(DefaultText)
 		.SetFont(FriendStyle.FriendsChatStyle.TextStyle.Font)
-		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisplerChatColor);
+		.SetColorAndOpacity(FriendStyle.FriendsChatStyle.WhisperHyperlinkChatColor);
 
 	const FButtonStyle UserNameButton = FButtonStyle()
 		.SetNormal(FSlateNoResource())

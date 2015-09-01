@@ -68,7 +68,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FFriendsChatStyle& SetDefaultChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
-	FLinearColor WhisplerChatColor;
+	FLinearColor WhisperChatColor;
 	FFriendsChatStyle& SetWhisplerChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category = Appearance)
@@ -82,6 +82,22 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FLinearColor PartyChatColor;
 	FFriendsChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor WhisperHyperlinkChatColor;
+	FFriendsChatStyle& SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor GlobalHyperlinkChatColor;
+	FFriendsChatStyle& SetGlobalHyperlinkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FLinearColor GameHyperlinkChatColor;
+	FFriendsChatStyle& SetGameHyperlinkChatColor(const FLinearColor& InFontColor);
+
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor PartyHyperlinkChatColor;
+	FFriendsChatStyle& SetPartyHyperlinkChatColor(const FLinearColor& InFontColor);
 
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ChatGlobalBrush;

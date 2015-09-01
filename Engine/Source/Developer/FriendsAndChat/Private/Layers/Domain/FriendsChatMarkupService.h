@@ -65,6 +65,11 @@ public:
 	 virtual void SetSelectedFriend(TSharedPtr<class FFriendViewModel> FriendViewModel) = 0;
 
 	/**
+	 * Navigate to channel
+	 */
+	virtual void NavigateToChannel(EChatMessageType::Type ChatChannel) = 0;
+
+	/**
 	 * Process keyboard input for tip actions
 	 */
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) = 0;
@@ -79,6 +84,11 @@ public:
 	 * return the selected active tip.
 	 */
 	virtual TSharedPtr<IChatTip> GetActiveTip() = 0;
+
+	/**
+	 * the selected markup channel.
+	 */
+	virtual EChatMessageType::Type GetMarkupChannel() const = 0;
 
 	/**
 	 * Event broadcast when a user enters some text.

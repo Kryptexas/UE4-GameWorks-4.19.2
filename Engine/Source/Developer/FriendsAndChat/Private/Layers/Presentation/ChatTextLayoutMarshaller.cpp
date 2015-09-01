@@ -47,7 +47,11 @@ public:
 
 	bool FormatMessage(const TSharedPtr<FChatItemViewModel>& NewMessage, bool GroupText)
 	{
-		const FTextBlockStyle& MessageTextStyle = DecoratorStyleSet->FriendsChatStyle.TextStyle;
+		const FTextBlockStyle& DefaultTextStyle = DecoratorStyleSet->FriendsChatStyle.TextStyle;
+
+		FTextBlockStyle HighlightedTextStyle = DefaultTextStyle;
+		HighlightedTextStyle.ColorAndOpacity = GetChatColor(NewMessage->GetMessageType());
+
 		TSharedRef<FTextLayout> TextLayoutRef = TextLayout->AsShared();
 
 		FTextRange ModelRange;
@@ -58,10 +62,13 @@ public:
 		{
 			// Add time stamp
 			{
+				FTextBlockStyle TimeStampStyle = DecoratorStyleSet->FriendsChatStyle.TimeStampTextStyle;
+				TimeStampStyle.ColorAndOpacity = GetChatColor(NewMessage->GetMessageType());
+
 				TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-				int16 Baseline = FontMeasure->GetBaseline(DecoratorStyleSet->FriendsChatStyle.TimeStampTextStyle.Font);
+				int16 Baseline = FontMeasure->GetBaseline(TimeStampStyle.Font);
  				
-				FTimeStampRun::FTimeStampRunInfo WidgetRunInfo = FTimeStampRun::FTimeStampRunInfo(NewMessage->GetMessageTime(), Baseline, DecoratorStyleSet->FriendsChatStyle.TimeStampTextStyle);
+				FTimeStampRun::FTimeStampRunInfo WidgetRunInfo = FTimeStampRun::FTimeStampRunInfo(NewMessage->GetMessageTime(), Baseline, TimeStampStyle);
 
 				TSharedPtr< ISlateRun > Run = FTimeStampRun::Create(TextLayoutRef, FRunInfo(), ModelString, WidgetRunInfo);
 				*ModelString += (" ");
@@ -107,7 +114,7 @@ public:
 					*ModelString += FromText.ToString();
 				}
 				ModelRange.EndIndex = ModelString->Len();
-				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
+				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, HighlightedTextStyle, ModelRange));
 			}
 
 			if(NewMessage->GetMessageType() == EChatMessageType::Game)
@@ -149,7 +156,7 @@ public:
 				ModelRange.BeginIndex = ModelString->Len();
 				*ModelString += (" " + NewMessage->GetSenderName().ToString() + ": ");
 				ModelRange.EndIndex = ModelString->Len();
-				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
+				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, HighlightedTextStyle, ModelRange));
 			}
 		}
 
@@ -162,7 +169,7 @@ public:
 			ModelRange.BeginIndex = ModelString->Len();
 			*ModelString += MessageLines[0];
 			ModelRange.EndIndex = ModelString->Len();
-			Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, MessageTextStyle, ModelRange));
+			Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, HighlightedTextStyle, ModelRange));
 			TextLayout->AddLine(ModelString, Runs);
 		}
 
@@ -173,7 +180,7 @@ public:
 			FTextRange LineRange;
 			LineRange.BeginIndex = 0;
 			LineRange.EndIndex = LineString->Len();
-			LineRun.Add(FSlateTextRun::Create(FRunInfo(), LineString, MessageTextStyle, LineRange));
+			LineRun.Add(FSlateTextRun::Create(FRunInfo(), LineString, HighlightedTextStyle, LineRange));
 			TextLayout->AddLine(LineString, LineRun);
 		}
 
@@ -239,6 +246,22 @@ protected:
 		}
 
 		return RoomName;
+	}
+
+	const FLinearColor GetChatColor(EChatMessageType::Type MessageType)
+	{
+		switch (MessageType)
+		{
+		case EChatMessageType::Global: 
+			return DecoratorStyleSet->FriendsChatStyle.GlobalChatColor; 
+		case EChatMessageType::Whisper: 
+			return DecoratorStyleSet->FriendsChatStyle.WhisperChatColor; 
+		case EChatMessageType::Party:
+			return DecoratorStyleSet->FriendsChatStyle.PartyChatColor; 
+		case EChatMessageType::Game: 
+			return DecoratorStyleSet->FriendsChatStyle.GameChatColor; 
+		}
+		return DecoratorStyleSet->FriendsChatStyle.DefaultChatColor;
 	}
 
 	FString GetSenderName(TSharedPtr<FChatItemViewModel> ChatItem)

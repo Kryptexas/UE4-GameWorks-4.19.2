@@ -183,6 +183,45 @@ private:
 	TSharedRef<ICustomSlashCommand> CustomSlashCommand;
 };
 
+class FNavigateToWhisperChatTip : public IChatTip
+{
+public:
+	virtual FText GetTipText() override
+	{
+		return LOCTEXT("NavigateToWhisperTip", "Navigate to the Whisper tab");
+	}
+
+	virtual bool IsValidForType(EChatMessageType::Type ChatChannel) override
+	{
+		return true;
+	}
+
+	virtual bool IsEnabled() override
+	{
+		return true;
+	}
+
+	virtual FReply ExecuteTip() override
+	{
+		MarkupService->NavigateToChannel(EChatMessageType::Whisper);
+		return FReply::Handled();
+	}
+
+	virtual void ExecuteCommand() override
+	{
+		// Do Nothing
+	}
+
+	FNavigateToWhisperChatTip(const TSharedRef<FFriendsChatMarkupService>& InMarkupService)
+	: MarkupService(InMarkupService)
+	{}
+
+	virtual ~FNavigateToWhisperChatTip(){}
+
+private:
+	TSharedRef<FFriendsChatMarkupService> MarkupService;
+};
+
 class FInvalidChatTip : public IChatTip
 {
 public:
@@ -417,6 +456,14 @@ public:
 		ProcessedInput->MatchedFriends.Empty();
 	}
 
+
+	virtual void NavigateToChannel(EChatMessageType::Type ChatChannel) override
+	{
+		NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
+		SetValidatedText(TEXT(""));
+		ProcessedInput->Clear();
+	}
+
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) override
 	{
 		FReply Reply = FReply::Unhandled();
@@ -424,16 +471,7 @@ public:
 		{
 			if(SelectedChatTip.IsValid() && ProcessedInput.IsValid() && ProcessedInput->NeedsTip == true )
 			{
-				// Slight hack to intercept whisper navigation command
-				if(ProcessedInput->ChatChannel == EChatMessageType::Whisper && KeyEvent.GetKey() == EKeys::Enter && InputText.ToUpper() == TEXT("/W"))
-				{
-					SetValidatedText(TEXT(""));
-					NavigationService->ChangeViewChannel(EChatMessageType::Whisper);
-				}
-				else
-				{
-					SelectedChatTip->ExecuteTip();
-				}
+				SelectedChatTip->ExecuteTip();
 				Reply = FReply::Handled();
 			}
 		}
@@ -463,6 +501,16 @@ public:
 	{
 		return SelectedChatTip;
 	}
+
+	virtual EChatMessageType::Type GetMarkupChannel() const override
+	{
+		if(ProcessedInput.IsValid())
+		{
+			return ProcessedInput->ChatChannel;
+		}
+		return EChatMessageType::Invalid;
+	}
+
 
 	DECLARE_DERIVED_EVENT(FFriendsChatMarkupServiceImpl, FFriendsChatMarkupService::FChatInputUpdated, FChatInputUpdated);
 	virtual FChatInputUpdated& OnInputUpdated() override
@@ -502,6 +550,7 @@ private:
 		ChatTipArray.Empty();
 		if(ProcessedInput->ChatChannel == EChatMessageType::Whisper)
 		{
+			ChatTipArray.Add(NavigateToWhisperTip.ToSharedRef());
 			if(ProcessedInput->ValidFriends.Num())
 			{
 				for(const auto& Friend : ProcessedInput->ValidFriends)
@@ -804,6 +853,8 @@ private:
 			CommmonChatTips.Add(MakeShareable(new FChatTip(SharedThis(this), EChatMessageType::Game)));
 		}
 
+		NavigateToWhisperTip = MakeShareable(new FNavigateToWhisperChatTip(SharedThis(this)));
+
 		ProcessedInput = MakeShareable(new FProcessedInput());
 	}
 
@@ -830,6 +881,7 @@ private:
 	TSharedPtr<IFriendList> FriendsList;
 	TArray< TSharedPtr<FFriendViewModel > > FriendViewModels;
 	TArray<TSharedRef<IChatTip> > CommmonChatTips;
+	TSharedPtr<IChatTip> NavigateToWhisperTip;
 	TArray<TSharedRef<FCustomActionChatTip> > CustomChatTips;
 	FChatInputUpdated ChatInputUpdatedEvent;
 	FChatTipSelected ChatTipSelectedEvent;

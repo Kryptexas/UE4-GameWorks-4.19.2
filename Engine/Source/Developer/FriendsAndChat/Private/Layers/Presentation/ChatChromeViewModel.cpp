@@ -24,30 +24,40 @@ public:
 		if (!ActiveTab.IsValid())
 		{
 			ActiveTab = Tab;
-			ActiveTab->GetChatViewModel()->SetIsActive(true);			
+			ActiveTab->GetChatViewModel()->SetIsActive(true);
+			ActiveTab->GetChatViewModel()->SetReadChannelFlags(0);
+		}
+		else
+		{
+			Tab->GetChatViewModel()->SetReadChannelFlags(ActiveTab->GetChatViewModel()->GetChannelFlags());
 		}
 		Tab->GetChatViewModel()->SetChatSettingsService(ChatSettingsService);
 	}
 
-	virtual void ActivateTab(const TSharedRef<IChatTabViewModel>& InTab) override
+	virtual void ActivateTab(const TSharedRef<IChatTabViewModel>& Tab, bool GiveFocus = false) override
 	{
 		if(ActiveTab.IsValid())
 		{
 			ActiveTab->GetChatViewModel()->SetIsActive(false);
 		}
-		ActiveTab = InTab;
+		ActiveTab = Tab;
 		ActiveTab->GetChatViewModel()->SetIsActive(true);
 
 		// Tell Other tabs what messages we read
 		ActiveTab->GetChatViewModel()->SetReadChannelFlags(0);
-		for (TSharedRef<IChatTabViewModel> Tab : Tabs)
+		for (TSharedRef<IChatTabViewModel> TabIter : Tabs)
 		{
-			if (Tab != ActiveTab)
+			if (TabIter != ActiveTab)
 			{
-				Tab->GetChatViewModel()->SetReadChannelFlags(ActiveTab->GetChatViewModel()->GetChannelFlags());
+				TabIter->GetChatViewModel()->SetReadChannelFlags(ActiveTab->GetChatViewModel()->GetChannelFlags());
 			}
 		}
 		
+		if(GiveFocus && ChatDisplayService->IsChatMinimized())
+		{
+			ToggleChatMinimized();
+		}
+
 		OnActiveTabChanged().Broadcast();
 	}
 
@@ -98,6 +108,21 @@ public:
 		return ChatDisplayService->GetChatHeaderVisibiliy();
 	}
 
+	virtual EVisibility GetChatWindowVisibility() const override
+	{
+		return ChatDisplayService->GetChatWindowVisibiliy();
+	}
+
+	virtual EVisibility GetChatMinimizedVisibility() const override
+	{
+		return ChatDisplayService->GetChatMinimizedVisibility();
+	}
+
+	virtual EVisibility GetMinimizedButtonVisibility() const override
+	{
+		return ChatDisplayService->IsChatMinimizeEnabled() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	virtual bool DisplayChatSettings() const override
 	{
 		return !NavigationService->IsInGame();
@@ -107,11 +132,21 @@ public:
 	{
 		ChatDisplayService->ToggleChatMinimized();
 
-		if (IsChatMinimized())
+		if (IsChatMinimized()) // minimized
 		{
+			ActiveTab->GetChatViewModel()->SetIsActive(false);
 			for (TSharedRef<IChatTabViewModel> Tab : Tabs)
 			{
+				Tab->GetChatViewModel()->SetReadChannelFlags(0);
 				Tab->GetChatViewModel()->SetMessageShown(false, 0);
+			}
+		}
+		else // maximized
+		{
+			if(ActiveTab.IsValid())
+			{
+				ActivateTab(ActiveTab.ToSharedRef());
+				ActiveTab->GetChatViewModel()->SetFocus();
 			}
 		}
 	}
@@ -128,6 +163,12 @@ public:
 
 	virtual TSharedRef<FChatChromeViewModel> Clone(TSharedRef<IChatDisplayService> InChatDisplayService, TSharedRef<IChatSettingsService> InChatSettingsService, TArray<TSharedRef<ICustomSlashCommand> >* CustomSlashCommands) override
 	{
+
+		if(ChatDisplayService->IsChatMinimized())
+		{
+			InChatDisplayService->ToggleChatMinimized();
+		}
+
 		TSharedRef< FChatChromeViewModelImpl > ViewModel(new FChatChromeViewModelImpl(NavigationService, GamePartyService, InChatDisplayService, InChatSettingsService));
 		ViewModel->Initialize();
 		for (const auto& Tab: Tabs)

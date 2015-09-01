@@ -29,6 +29,8 @@ public:
 		ViewModel->OnChatListUpdated().AddSP(this, &SChatWindowImpl::RefreshChatList);
 		ViewModel->OnSettingsUpdated().AddSP(this, &SChatWindowImpl::SettingsChanged);
 		ViewModel->OnMessageCommitted().AddSP(this, &SChatWindowImpl::HandleChatMessageCommitted);
+		ViewModel->OnChatListSetFocus().AddSP(this, &SChatWindowImpl::HandleChatListGotFocus);
+		bUserHasScrolled = false;
 
 		FFriendsAndChatModuleStyle::Initialize(FriendStyle);
 
@@ -212,10 +214,13 @@ public:
 
 		if(ViewModel.IsValid())
 		{
-			bool bViewModelWantsVisible = ViewModel->GetChatListVisibility() != EVisibility::Hidden && ViewModel->GetChatListVisibility() != EVisibility::Collapsed;
-			if (bViewModelWantsVisible || IsHovered() || ChatTextBox->HasKeyboardFocus() || ChatTextBox->HasFocusedDescendants())
+			if (!IsFadeBackgroundEnabled() || IsHovered() || ChatTextBox->HasKeyboardFocus() || ChatTextBox->HasFocusedDescendants())
 			{
-				if (FadeCurve.GetLerp() == 0.0f)
+				if (FadeAnimation.IsInReverse())
+				{
+					FadeAnimation.Reverse();
+				}
+				else if (FadeCurve.GetLerp() == 0.0f)
 				{
 					FadeAnimation.Play(this->AsShared());
 				}
@@ -235,9 +240,9 @@ public:
 		}
 		if (bUserHasScrolled && ExternalScrollbar.IsValid() && !ExternalScrollbar->IsScrolling())
 		{
-			bUserHasScrolled = false;
 			if (ExternalScrollbar->DistanceFromBottom() == 0)
 			{
+				bUserHasScrolled = false;
 				ViewModel->SetMessageShown(true);
 			}
 		}
@@ -274,6 +279,7 @@ private:
 		if (RichText.IsValid() && ChatScrollBox.IsValid())
 		{
 			ChatScrollBox->ScrollToEnd();
+			bUserHasScrolled = false;
 		}
 	}
 
@@ -299,6 +305,14 @@ private:
 			];
 
 			ChatTextBox->RebuildTextEntry();
+		}
+	}
+
+	void HandleChatListGotFocus()
+	{
+		if(ExternalScrollbar.IsValid() && ExternalScrollbar->DistanceFromBottom() == 0)
+		{
+			ViewModel->SetMessageShown(true);
 		}
 	}
 
@@ -336,13 +350,23 @@ private:
 
 		if (RichText.IsValid() && ChatScrollBox.IsValid())
 		{
-			if(ExternalScrollbar.IsValid() && ExternalScrollbar->DistanceFromBottom() == 0)
+			if(!bUserHasScrolled || ExternalScrollbar->DistanceFromBottom() == 0)
 			{
 				ChatScrollBox->ScrollToEnd();
-				ViewModel->SetMessageShown(true);
+				bUserHasScrolled = false;
+				if(!ViewModel->IsChatMinimized())
+				{
+					ViewModel->SetMessageShown(true);
+				}
+				else
+				{
+					// Minimized so not seeing message
+					ViewModel->SetMessageShown(false);
+				}
 			}
 			else
 			{
+				// Scrolled up so not seeing message
 				ViewModel->SetMessageShown(false);
 			}
 		}
@@ -390,6 +414,11 @@ private:
 	EVisibility GetChatEntryVisibility() const
 	{
 		return ViewModel->GetTextEntryVisibility();
+	}
+
+	bool IsFadeBackgroundEnabled() const
+	{
+		return ViewModel->IsFadeBackgroundEnabled();
 	}
 
 	EVisibility GetChatBackgroundVisibility() const

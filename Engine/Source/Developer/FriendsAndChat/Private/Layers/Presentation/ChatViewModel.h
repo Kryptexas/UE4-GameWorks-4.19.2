@@ -84,6 +84,7 @@ public:
 	virtual void EnumerateChatChannelOptionsList(TArray<EChatMessageType::Type>& OUTChannelType) = 0;
 	virtual FReply HandleChatKeyEntry(const FKeyEvent& KeyEvent) = 0;
 	virtual void AddCustomSlashCommands(TArray<TSharedRef<class ICustomSlashCommand> >& CustomSlashCommands) = 0;
+	virtual EChatMessageType::Type GetMarkupChannel() const = 0;
 
 	// Display options
 	virtual void SetCaptureFocus(bool bCaptureFocus) = 0;
@@ -91,6 +92,7 @@ public:
 	virtual bool ShouldCaptureFocus() const = 0;
 	virtual float GetTimeTransparency() const = 0;
 	virtual EVisibility GetTextEntryVisibility() const = 0;
+	virtual bool IsFadeBackgroundEnabled() const = 0;
 	virtual EVisibility GetBackgroundVisibility() const = 0;
 	virtual EVisibility GetTipVisibility() const = 0;
 	virtual EVisibility GetChatListVisibility() const = 0;

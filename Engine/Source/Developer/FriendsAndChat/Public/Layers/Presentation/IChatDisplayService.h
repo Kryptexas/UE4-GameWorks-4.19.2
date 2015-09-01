@@ -37,9 +37,29 @@ public:
 	virtual EVisibility GetChatHeaderVisibiliy() const = 0;
 
 	/*
+	 * Get the chat window visibility
+	 */
+	virtual EVisibility GetChatWindowVisibiliy() const = 0;
+
+	/*
+	 * Get the minimized chat window visibility
+	 */
+	virtual EVisibility GetChatMinimizedVisibility() const = 0;
+
+	/*
 	 * Get Visibility of the chat list
 	 */
 	virtual EVisibility GetChatListVisibility() const = 0;
+
+	/*
+	 * Sets if background fading is enabled
+	 */
+	virtual void SetFadeBackgroundEnabled(bool bEnabled) = 0;
+
+	/*
+	 * Returns True if background fading is enabled at all
+	 */
+	virtual bool IsFadeBackgroundEnabled() const = 0;
 
 	/*
 	 * Get Visibility of the chat list background

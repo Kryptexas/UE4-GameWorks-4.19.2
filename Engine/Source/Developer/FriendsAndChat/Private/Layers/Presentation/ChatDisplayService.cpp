@@ -13,13 +13,8 @@ public:
 	{
 		SetChatListVisibility(true);
 		SetChatEntryVisibility(true);
+		ChatMinimized = false;
 		OnChatListSetFocus().Broadcast();
-		// Reset minimize state when focused after fadeout
-		if(CachedMinimize.IsSet())
-		{
-			ChatMinimized = CachedMinimize.GetValue();
-			CachedMinimize.Reset();
-		}
 	}
 
 	virtual void ChatEntered() override
@@ -69,6 +64,16 @@ public:
 		return IsChatMinimized() ? EVisibility::Collapsed : ChatEntryVisibility;
 	}
 
+	virtual EVisibility GetChatWindowVisibiliy() const override
+	{
+		return IsChatMinimized() ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
+	virtual EVisibility GetChatMinimizedVisibility() const override
+	{
+		return IsChatMinimized() ? EVisibility::SelfHitTestInvisible : EVisibility::Collapsed;
+	}
+
 	virtual EVisibility GetChatListVisibility() const override
 	{
 		if(ChatListVisibilityOverride.IsSet())
@@ -76,6 +81,16 @@ public:
 			return ChatListVisibilityOverride.GetValue();
 		}
 		return ChatListVisibility;
+	}
+
+	virtual void SetFadeBackgroundEnabled(bool bEnabled) override
+	{
+		FadeBackgroundEnabled = bEnabled;
+	}
+
+	virtual bool IsFadeBackgroundEnabled() const override
+	{
+		return FadeBackgroundEnabled;
 	}
 
 	virtual EVisibility GetBackgroundVisibility() const override
@@ -349,6 +364,7 @@ private:
 		, ChatAutoMinimizeEnabled(InChatAutoMinimizeEnabled)
 		, ChatMinimized(false)
 		, AutoReleaseFocus(false)
+		, FadeBackgroundEnabled(true)
 	{
 	}
 
@@ -369,6 +385,7 @@ private:
 	bool ChatMinimized;
 	TOptional<bool> CachedMinimize;
 	bool AutoReleaseFocus;
+	bool FadeBackgroundEnabled;
 
 	TOptional<EVisibility> TabVisibilityOverride;
 	TOptional<EVisibility> EntryVisibilityOverride;

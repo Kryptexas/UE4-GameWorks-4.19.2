@@ -62,6 +62,7 @@ public:
 		if (!ChatTextBox.IsValid())
 		{
 			SAssignNew(ChatTextBox, SMultiLineEditableTextBox)
+				.ForegroundColor(this, &SChatEntryWidgetImpl::GetChatEntryColor)
 				.Style(&FriendStyle.FriendsChatStyle.ChatEntryTextStyle)
 				.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmall)
 				.ClearKeyboardFocusOnCommit(false)
@@ -116,6 +117,18 @@ private:
 		if (CommitInfo == ETextCommit::OnEnter)
 		{
 			SendChatMessage();
+		}
+	}
+
+	FSlateColor GetChatEntryColor() const
+	{
+		switch (ViewModel->GetMarkupChannel())
+		{
+			case EChatMessageType::Whisper : return FriendStyle.FriendsChatStyle.WhisperChatColor;
+			case EChatMessageType::Global : return FriendStyle.FriendsChatStyle.GlobalChatColor;
+			case EChatMessageType::Party : return FriendStyle.FriendsChatStyle.PartyChatColor;
+			default:
+				return FriendStyle.FriendsChatStyle.DefaultChatColor;
 		}
 	}
 
