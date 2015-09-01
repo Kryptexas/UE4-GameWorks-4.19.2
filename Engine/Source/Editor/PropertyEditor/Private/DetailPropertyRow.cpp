@@ -466,7 +466,7 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 		[
 			SNew( SResetToDefaultPropertyEditor, PropertyEditor.ToSharedRef() )
 			.IsEnabled( IsEnabledAttrib )
-			.CustomResetToDefault(CustomResetToDefault.Get(FResetToDefaultOverride()))
+			.CustomResetToDefault(CustomResetToDefault)
 		];
 	}
 
