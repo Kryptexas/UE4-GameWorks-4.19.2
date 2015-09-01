@@ -156,9 +156,12 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	FColor WireframeColorOverride;
 
 #if WITH_EDITORONLY_DATA
-	/** The section currently selected in the Editor. */
+	/** The section currently selected in the Editor. Used for highlighting */
 	UPROPERTY(transient)
 	int32 SelectedEditorSection;
+	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered. Used for isolating in Static Mesh Tool **/
+	UPROPERTY(transient)
+	int32 SectionIndexPreview;
 #endif
 
 	/** If true, bForceNavigationObstacle flag will take priority over navigation data stored in StaticMesh */
@@ -408,6 +411,13 @@ public:
 	 * Removes instance vertex colors from all LODs
 	 */
 	void RemoveInstanceVertexColors();
+
+	/**
+	*	Sets the value of the SectionIndexPreview flag and reattaches the component as necessary.
+	*	@param	InSectionIndexPreview		New value of SectionIndexPreview.
+	*/
+	void SetSectionPreview(int32 InSectionIndexPreview);
+
 
 private:
 	/** Initializes the resources used by the static mesh component. */

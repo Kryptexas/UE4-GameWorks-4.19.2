@@ -869,6 +869,11 @@ protected:
 
 	const FDistanceFieldVolumeData* DistanceFieldData;
 
+#if WITH_EDITORONLY_DATA
+	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
+	int32 SectionIndexPreview;
+#endif
+
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
 	 */

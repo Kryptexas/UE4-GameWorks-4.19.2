@@ -242,8 +242,10 @@ private:
 	void OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex);
 	ECheckBoxState DoesSectionCollide(int32 SectionIndex) const;
 	void OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex);
-	ECheckBoxState IsSectionSelected(int32 SectionIndex) const;
-	void OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex);
+	ECheckBoxState IsSectionHighlighted(int32 SectionIndex) const;
+	void OnSectionHighlightedChanged(ECheckBoxState NewState, int32 SectionIndex);
+	ECheckBoxState IsSectionIsolatedEnabled(int32 SectionIndex) const;
+	void OnSectionIsolatedChanged(ECheckBoxState NewState, int32 SectionIndex);
 	void CallPostEditChange(UProperty* PropertyChanged=nullptr);
 	
 	IStaticMeshEditor& StaticMeshEditor;

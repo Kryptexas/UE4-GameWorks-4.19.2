@@ -52,16 +52,19 @@ static FAutoConsoleCommand GToggleForceDefaultMaterialCmd(
 
 /** Initialization constructor. */
 FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
-	FPrimitiveSceneProxy(InComponent, InComponent->StaticMesh->GetFName()),
-	Owner(InComponent->GetOwner()),
-	StaticMesh(InComponent->StaticMesh),
-	BodySetup(InComponent->GetBodySetup()),
-	RenderData(InComponent->StaticMesh->RenderData),
-	ForcedLodModel(InComponent->ForcedLodModel),
-	bCastShadow(InComponent->CastShadow),
-	CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault),
-	MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel())),
-	CollisionResponse(InComponent->GetCollisionResponseToChannels())
+	FPrimitiveSceneProxy(InComponent, InComponent->StaticMesh->GetFName())
+	, Owner(InComponent->GetOwner())
+	, StaticMesh(InComponent->StaticMesh)
+	, BodySetup(InComponent->GetBodySetup())
+	, RenderData(InComponent->StaticMesh->RenderData)
+	, ForcedLodModel(InComponent->ForcedLodModel)
+	, bCastShadow(InComponent->CastShadow)
+	, CollisionTraceFlag(ECollisionTraceFlag::CTF_UseDefault)
+	, MaterialRelevance(InComponent->GetMaterialRelevance(GetScene().GetFeatureLevel()))
+	, CollisionResponse(InComponent->GetCollisionResponseToChannels())
+#if WITH_EDITORONLY_DATA
+	, SectionIndexPreview(InComponent->SectionIndexPreview)
+#endif
 {
 	check(RenderData);
 
@@ -223,6 +226,14 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 	UMaterialInterface* Material = ProxyLODInfo.Sections[SectionIndex].Material;
 	OutMeshBatch.MaterialRenderProxy = Material->GetRenderProxy(bUseSelectedMaterial,bUseHoveredMaterial);
 	OutMeshBatch.VertexFactory = &LOD.VertexFactory;
+
+#if WITH_EDITORONLY_DATA
+	// If section is hidden, then skip the draw.
+	if ((SectionIndexPreview >= 0) && (SectionIndexPreview != SectionIndex))
+	{
+		return false;
+	}
+#endif
 
 	// Has the mesh component overridden the vertex color stream for this mesh LOD?
 	if( ProxyLODInfo.OverrideColorVertexBuffer != NULL )

@@ -798,6 +798,11 @@ void FStaticMeshEditorViewportClient::DrawCanvas( FViewport& InViewport, FSceneV
 			FText::Format(NSLOCTEXT("UnrealEd", "NumPrimitives_F", "Num Collision Primitives:  {0}"), FText::AsNumber(StaticMesh->BodySetup->AggGeom.GetElementCount()))));
 	}
 
+	if (StaticMeshComponent && StaticMeshComponent->SectionIndexPreview != INDEX_NONE)
+	{
+		TextItems.Add(SStaticMeshEditorViewport::FOverlayTextItem(NSLOCTEXT("UnrealEd", "MeshSectionsHiddenWarning",  "Mesh Sections Hidden")));
+	}
+
 	StaticMeshEditorViewport->PopulateOverlayText(TextItems);
 
 	if(bDrawUVs)
