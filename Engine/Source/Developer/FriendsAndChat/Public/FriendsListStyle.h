@@ -139,6 +139,16 @@ struct FRIENDSANDCHAT_API FFriendsListStyle
 	FSlateBrush FortniteImageBrush;
 	FFriendsListStyle& SetFortniteImageBrush(const FSlateBrush& BrushStyle);
 
+	/** Fortnite Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FortniteDevImageBrush;
+	FFriendsListStyle& SetFortniteDevImageBrush(const FSlateBrush& BrushStyle);
+
+	/** Fortnite Image brush style */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FSlateBrush FortniteTestImageBrush;
+	FFriendsListStyle& SetFortniteTestImageBrush(const FSlateBrush& BrushStyle);
+
 	/** Launcher Image brush style */
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush LauncherImageBrush;

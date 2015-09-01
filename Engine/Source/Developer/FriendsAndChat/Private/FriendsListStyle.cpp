@@ -146,6 +146,18 @@ FFriendsListStyle& FFriendsListStyle::SetFortniteImageBrush(const FSlateBrush& B
 	return *this;
 }
 
+FFriendsListStyle& FFriendsListStyle::SetFortniteDevImageBrush(const FSlateBrush& BrushStyle)
+{
+	FortniteDevImageBrush = BrushStyle;
+	return *this;
+}
+
+FFriendsListStyle& FFriendsListStyle::SetFortniteTestImageBrush(const FSlateBrush& BrushStyle)
+{
+	FortniteTestImageBrush = BrushStyle;
+	return *this;
+}
+
 /** Launcher Image brush style */
 FFriendsListStyle& FFriendsListStyle::SetLauncherImageBrush(const FSlateBrush& BrushStyle)
 {
