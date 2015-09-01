@@ -2021,6 +2021,12 @@ public:
 		FuncMap.Remove(Function->GetFName());
 	}
 
+	void ClearFunctionMapsCaches()
+	{
+		ParentFuncMap.Empty();
+		InterfaceFuncMap.Empty();
+	}
+
 	UFunction* FindFunctionByName(FName InName, EIncludeSuperFlag::Type IncludeSuper = EIncludeSuperFlag::IncludeSuper) const;
 
 	// UObject interface.

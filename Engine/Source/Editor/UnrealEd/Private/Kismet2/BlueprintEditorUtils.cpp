@@ -1419,6 +1419,9 @@ static void RemoveStaleFunctions(UBlueprintGeneratedClass* Class, UBlueprint* Bl
 		}
 	}
 
+	// Clear function map caches which will be rebuilt the next time functions are searched by name
+	Class->ClearFunctionMapsCaches();
+
 	Blueprint->GeneratedClass->Children = nullptr;
 	Blueprint->GeneratedClass->Bind();
 	Blueprint->GeneratedClass->StaticLink(true);
