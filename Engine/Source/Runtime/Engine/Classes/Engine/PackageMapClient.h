@@ -156,6 +156,8 @@ public:
 
 	TArray< FNetworkGUID > & GetMustBeMappedGuidsInLastBunch() { return MustBeMappedGuidsInLastBunch; }
 
+	class UNetConnection* GetConnection() { return Connection; }
+
 protected:
 
 	bool	ExportNetGUID( FNetworkGUID NetGUID, const UObject* Object, FString PathName, UObject* ObjOuter );
