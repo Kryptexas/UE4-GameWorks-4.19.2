@@ -13,7 +13,7 @@ class UMovieSceneSection;
 class UMovieSceneTrack;
 
 
-MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogSequencerRuntime, Log, All);
+MOVIESCENE_API DECLARE_LOG_CATEGORY_EXTERN(LogMovieScene, Log, All);
 
 
 /** @todo: remove this type when support for intrinsics on TMap values is added? */

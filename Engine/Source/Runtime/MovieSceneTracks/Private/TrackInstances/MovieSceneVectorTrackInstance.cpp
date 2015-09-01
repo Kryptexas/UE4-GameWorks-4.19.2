@@ -4,6 +4,7 @@
 #include "MovieSceneVectorTrackInstance.h"
 #include "MovieSceneVectorTrack.h"
 
+
 FMovieSceneVectorTrackInstance::FMovieSceneVectorTrackInstance( UMovieSceneVectorTrack& InVectorTrack )
 {
 	VectorTrack = &InVectorTrack;
@@ -120,7 +121,7 @@ void FMovieSceneVectorTrackInstance::Update( float Position, float LastPosition,
 				break;
 			}
 			default:
-				UE_LOG(LogSequencerRuntime, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
+				UE_LOG(LogMovieScene, Warning, TEXT("Invalid number of channels(%d) for vector track"), NumChannelsUsed );
 				break;
 		}
 		
