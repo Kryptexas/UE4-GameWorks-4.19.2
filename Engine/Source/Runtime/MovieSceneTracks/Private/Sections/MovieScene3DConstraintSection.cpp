@@ -3,10 +3,11 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieScene3DConstraintSection.h"
 
+
 UMovieScene3DConstraintSection::UMovieScene3DConstraintSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 void UMovieScene3DConstraintSection::SetConstraintId(const FGuid& InConstraintId)
 {
@@ -14,6 +15,7 @@ void UMovieScene3DConstraintSection::SetConstraintId(const FGuid& InConstraintId
 
 	ConstraintId = InConstraintId;
 }
+
 
 FGuid UMovieScene3DConstraintSection::GetConstraintId() const
 {

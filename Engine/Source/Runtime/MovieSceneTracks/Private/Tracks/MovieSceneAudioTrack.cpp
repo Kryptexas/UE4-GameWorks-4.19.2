@@ -9,12 +9,14 @@
 #include "Runtime/Engine/Public/AudioDecompress.h"
 #include "MovieSceneAudioTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneAudioTrack"
+
 
 UMovieSceneAudioTrack::UMovieSceneAudioTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 FName UMovieSceneAudioTrack::GetTrackName() const
 {
@@ -27,34 +29,42 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneAudioTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneAudioTrackInstance( *this ) ); 
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieSceneAudioTrack::GetAllSections() const
 {
 	return AudioSections;
 }
 
+
 void UMovieSceneAudioTrack::RemoveAllAnimationData()
 {
+	// do nothing
 }
+
 
 bool UMovieSceneAudioTrack::HasSection( UMovieSceneSection* Section ) const
 {
 	return AudioSections.Find( Section ) != INDEX_NONE;
 }
 
+
 void UMovieSceneAudioTrack::AddSection( UMovieSceneSection* Section )
 {
 	AudioSections.Add( Section );
 }
+
 
 void UMovieSceneAudioTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	AudioSections.Remove( Section );
 }
 
+
 bool UMovieSceneAudioTrack::IsEmpty() const
 {
 	return AudioSections.Num() == 0;
 }
+
 
 TRange<float> UMovieSceneAudioTrack::GetSectionBoundaries() const
 {
@@ -65,6 +75,7 @@ TRange<float> UMovieSceneAudioTrack::GetSectionBoundaries() const
 	}
 	return TRange<float>::Hull(Bounds);
 }
+
 
 void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 {
@@ -89,11 +100,11 @@ void UMovieSceneAudioTrack::AddNewSound(USoundBase* Sound, float Time)
 	AudioSections.Add(NewSection);
 }
 
+
 bool UMovieSceneAudioTrack::IsAMasterTrack() const
 {
 	return Cast<UMovieScene>(GetOuter())->IsAMasterTrack(this);
 }
-
 
 
 #undef LOCTEXT_NAMESPACE

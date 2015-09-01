@@ -6,11 +6,13 @@
 #include "IMovieScenePlayer.h"
 #include "MovieScene3DTransformTrackInstance.h"
 
+
 bool FTransformKey::ShouldKeyTranslation( EAxis::Type Axis) const
 {
 	// If the previous transform is not valid we have nothing to compare against so assume we always key. Otherwise check for differences
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Translation, PreviousTransform.Translation );
 }
+
 
 bool FTransformKey::ShouldKeyRotation( EAxis::Type Axis ) const
 {
@@ -18,11 +20,13 @@ bool FTransformKey::ShouldKeyRotation( EAxis::Type Axis ) const
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Rotation.Euler(), PreviousTransform.Rotation.Euler() );
 }
 
+
 bool FTransformKey::ShouldKeyScale( EAxis::Type Axis ) const
 {
 	// If the previous transform is not valid we have nothing to compare against so assume we always key. Otherwise check for differences
 	return !PreviousTransform.IsValid() || GetVectorComponentIfDifferent( Axis, NewTransform.Scale, PreviousTransform.Scale );
 }
+
 
 bool FTransformKey::ShouldKeyAny() const
 {
@@ -30,6 +34,7 @@ bool FTransformKey::ShouldKeyAny() const
 		ShouldKeyRotation(EAxis::X) || ShouldKeyRotation(EAxis::Y) || ShouldKeyRotation(EAxis::Z) ||
 		ShouldKeyScale(EAxis::X) || ShouldKeyScale(EAxis::Y) || ShouldKeyScale(EAxis::Z);
 }
+
 
 bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVector& Current, const FVector& Previous ) const
 {
@@ -57,20 +62,23 @@ bool FTransformKey::GetVectorComponentIfDifferent( EAxis::Type Axis, const FVect
 	return bShouldAddKey;
 }
 
+
 UMovieScene3DTransformTrack::UMovieScene3DTransformTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 UMovieSceneSection* UMovieScene3DTransformTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieScene3DTransformSection::StaticClass(), NAME_None, RF_Transactional);
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieScene3DTransformTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieScene3DTransformTrackInstance( *this ) );
 }
+
 
 bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, const FTransformKey& InKey, const bool bUnwindRotation, F3DTransformTrackKey::Type KeyType )
 {
@@ -117,8 +125,9 @@ bool UMovieScene3DTransformTrack::Eval( float Position, float LastPosition, FVec
 		TransformSection->EvalScale( Position, OutScale );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
 }
+
 
 bool UMovieScene3DTransformTrack::CanKeyTrack(const FTransformKey& InKey ) const
 {

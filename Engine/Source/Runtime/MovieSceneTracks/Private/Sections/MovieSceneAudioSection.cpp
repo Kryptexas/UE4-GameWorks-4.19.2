@@ -4,14 +4,16 @@
 #include "MovieSceneAudioSection.h"
 #include "SoundDefinitions.h"
 
+
 UMovieSceneAudioSection::UMovieSceneAudioSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
 
-	Sound = NULL;
+	Sound = nullptr;
 	AudioStartTime = 0.f;
 	AudioDilationFactor = 1.f;
 }
+
 
 TRange<float> UMovieSceneAudioSection::GetAudioRange() const
 {
@@ -20,10 +22,12 @@ TRange<float> UMovieSceneAudioSection::GetAudioRange() const
 		FMath::Min(AudioStartTime + Sound->GetDuration() * AudioDilationFactor, GetEndTime()));
 }
 
+
 TRange<float> UMovieSceneAudioSection::GetAudioTrueRange() const
 {
 	return !Sound ? TRange<float>::Empty() : TRange<float>(AudioStartTime, AudioStartTime + Sound->GetDuration() * AudioDilationFactor);
 }
+
 
 void UMovieSceneAudioSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -31,6 +35,7 @@ void UMovieSceneAudioSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& Ke
 
 	AudioStartTime += DeltaTime;
 }
+
 
 void UMovieSceneAudioSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
@@ -40,9 +45,12 @@ void UMovieSceneAudioSection::DilateSection( float DilationFactor, float Origin,
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 }
 
+
 void UMovieSceneAudioSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
+	// do nothing
 }
+
 
 void UMovieSceneAudioSection::GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const
 {
@@ -51,11 +59,14 @@ void UMovieSceneAudioSection::GetSnapTimes(TArray<float>& OutSnapTimes, bool bGe
 	{
 		OutSnapTimes.Add(AudioStartTime);
 	}
+
 	float AudioEndTime = GetAudioTrueRange().GetUpperBoundValue();
+
 	if (AudioEndTime < GetEndTime())
 	{
 		OutSnapTimes.Add(AudioEndTime);
 	}
+
 	// @todo Sequencer handle snapping for time dilation
 	// @todo Don't add redundant times (can't use AddUnique due to floating point equality issues)
 }

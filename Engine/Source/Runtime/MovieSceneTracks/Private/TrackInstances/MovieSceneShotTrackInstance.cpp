@@ -9,8 +9,8 @@
 
 FMovieSceneShotTrackInstance::FMovieSceneShotTrackInstance( UMovieSceneShotTrack& InShotTrack )
 	: FSubMovieSceneTrackInstance( InShotTrack )
-{
-}
+{ }
+
 
 void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player )
 {
@@ -36,6 +36,7 @@ void FMovieSceneShotTrackInstance::RefreshInstance( const TArray<UObject*>& Runt
 
 	FSubMovieSceneTrackInstance::RefreshInstance( RuntimeObjects, Player );
 }
+
 
 void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -63,6 +64,7 @@ void FMovieSceneShotTrackInstance::Update( float Position, float LastPosition, c
 		}
 	}
 }
+
 
 void FMovieSceneShotTrackInstance::ClearInstance( IMovieScenePlayer& Player )
 {

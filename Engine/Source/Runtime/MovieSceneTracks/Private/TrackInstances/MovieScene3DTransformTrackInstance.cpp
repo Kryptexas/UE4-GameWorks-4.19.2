@@ -11,17 +11,19 @@ FMovieScene3DTransformTrackInstance::FMovieScene3DTransformTrackInstance( UMovie
 	TransformTrack = &InTransformTrack;
 }
 
+
 void FMovieScene3DTransformTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
 {
 	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
 	{
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
-		if (SceneComponent != NULL)
+		if (SceneComponent != nullptr)
 		{
 			InitTransformMap.Add(RuntimeObjects[ObjIndex], SceneComponent->GetRelativeTransform());
 		}
 	}
 }
+
 
 void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
 {
@@ -33,16 +35,17 @@ void FMovieScene3DTransformTrackInstance::RestoreState(const TArray<UObject*>& R
 		}
 
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
-		if (SceneComponent != NULL)
+		if (SceneComponent != nullptr)
 		{
 			FTransform *Transform = InitTransformMap.Find(RuntimeObjects[ObjIndex]);
-			if (Transform != NULL)
+			if (Transform != nullptr)
 			{
 				SceneComponent->SetRelativeTransform(*Transform);
 			}
 		}
 	}
 }
+
 
 void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -56,7 +59,7 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 		{
 			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 
-			if (SceneComponent != NULL)
+			if (SceneComponent != nullptr)
 			{
 				SceneComponent->SetRelativeLocationAndRotation(Translation, Rotation);
 
@@ -65,4 +68,3 @@ void FMovieScene3DTransformTrackInstance::Update( float Position, float LastPosi
 		}
 	}
 }
-

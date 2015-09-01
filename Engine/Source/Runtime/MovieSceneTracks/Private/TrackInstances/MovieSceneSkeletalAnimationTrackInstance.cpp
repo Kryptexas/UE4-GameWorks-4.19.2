@@ -7,15 +7,18 @@
 #include "IMovieScenePlayer.h"
 #include "Matinee/MatineeAnimInterface.h"
 
+
 FMovieSceneSkeletalAnimationTrackInstance::FMovieSceneSkeletalAnimationTrackInstance( UMovieSceneSkeletalAnimationTrack& InAnimationTrack )
 {
 	AnimationTrack = &InAnimationTrack;
 }
 
+
 FMovieSceneSkeletalAnimationTrackInstance::~FMovieSceneSkeletalAnimationTrackInstance()
 {
 	// @todo Sequencer Need to find some way to call PreviewFinishAnimControl (needs the runtime objects)
 }
+
 
 void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -34,7 +37,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
 				float AnimPosition = FMath::Fmod(Position - AnimSection->GetAnimationStartTime(), AnimSection->GetAnimationDuration()) / AnimSection->GetAnimationDilationFactor();
 
-				AnimInterface->PreviewBeginAnimControl(NULL);
+				AnimInterface->PreviewBeginAnimControl(nullptr);
 				AnimInterface->PreviewSetAnimPosition(SlotName, ChannelIndex, AnimSequence, AnimPosition, true, false, 0.f);
 			}
 		}

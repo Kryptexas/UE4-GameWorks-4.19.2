@@ -9,10 +9,12 @@
 #include "MovieSceneAudioTrack.h"
 #include "MovieSceneAudioSection.h"
 
+
 FMovieSceneAudioTrackInstance::FMovieSceneAudioTrackInstance( UMovieSceneAudioTrack& InAudioTrack )
 {
 	AudioTrack = &InAudioTrack;
 }
+
 
 void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -132,24 +134,32 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 	}
 }
 
+
 void FMovieSceneAudioTrackInstance::PlaySound(UMovieSceneAudioSection* AudioSection, TWeakObjectPtr<UAudioComponent> Component, float Time)
 {
-	if (Component.IsValid())
+	if (!Component.IsValid())
 	{
-		float PitchMultiplier = 1.f / AudioSection->GetAudioDilationFactor();
-		Component->bAllowSpatialization = !AudioTrack->IsAMasterTrack();
-		Component->Stop();
-		Component->SetSound(AudioSection->GetSound());
-		Component->SetVolumeMultiplier(1.f);
-		Component->SetPitchMultiplier(PitchMultiplier);
-		Component->bIsUISound = true;
-		Component->Play(Time - AudioSection->GetAudioStartTime());
+		return;
 	}
+
+	float PitchMultiplier = 1.f / AudioSection->GetAudioDilationFactor();
+	
+	Component->bAllowSpatialization = !AudioTrack->IsAMasterTrack();
+	Component->Stop();
+	Component->SetSound(AudioSection->GetSound());
+	Component->SetVolumeMultiplier(1.f);
+	Component->SetPitchMultiplier(PitchMultiplier);
+	Component->bIsUISound = true;
+	Component->Play(Time - AudioSection->GetAudioStartTime());
 }
+
 
 void FMovieSceneAudioTrackInstance::StopSound(int32 RowIndex)
 {
-	if (RowIndex >= PlaybackAudioComponents.Num()) {return;}
+	if (RowIndex >= PlaybackAudioComponents.Num())
+	{
+		return;
+	}
 
 	TMap<AActor*, TWeakObjectPtr<UAudioComponent>>& AudioComponents = PlaybackAudioComponents[RowIndex];
 	for (TMap<AActor*, TWeakObjectPtr<UAudioComponent>>::TIterator It(AudioComponents); It; ++It)
@@ -160,6 +170,7 @@ void FMovieSceneAudioTrackInstance::StopSound(int32 RowIndex)
 		}
 	}
 }
+
 
 void FMovieSceneAudioTrackInstance::StopAllSounds()
 {
@@ -176,6 +187,7 @@ void FMovieSceneAudioTrackInstance::StopAllSounds()
 	}
 }
 
+
 TWeakObjectPtr<UAudioComponent> FMovieSceneAudioTrackInstance::GetAudioComponent(AActor* Actor, int32 RowIndex)
 {
 	if (RowIndex + 1 > PlaybackAudioComponents.Num())
@@ -191,17 +203,20 @@ TWeakObjectPtr<UAudioComponent> FMovieSceneAudioTrackInstance::GetAudioComponent
 	{
 		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		
-		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, Actor, false, false);
+		UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(TempPlaybackAudioCue, nullptr, Actor, false, false);
 
 		PlaybackAudioComponents[RowIndex].Add(Actor);
 		PlaybackAudioComponents[RowIndex][Actor] = TWeakObjectPtr<UAudioComponent>(AudioComponent);
 	}
+
 	return *PlaybackAudioComponents[RowIndex].Find(Actor);
 }
+
 
 TArray<AActor*> FMovieSceneAudioTrackInstance::GetRuntimeActors(const TArray<UObject*>& RuntimeObjects) const
 {
 	TArray<AActor*> Actors;
+
 	for (int32 ObjectIndex = 0; ObjectIndex < RuntimeObjects.Num(); ++ObjectIndex)
 	{
 		if (RuntimeObjects[ObjectIndex]->IsA<AActor>())
@@ -209,10 +224,12 @@ TArray<AActor*> FMovieSceneAudioTrackInstance::GetRuntimeActors(const TArray<UOb
 			Actors.Add(Cast<AActor>(RuntimeObjects[ObjectIndex]));
 		}
 	}
+
 	if (AudioTrack->IsAMasterTrack())
 	{
 		check(Actors.Num() == 0);
-		Actors.Add(NULL);
+		Actors.Add(nullptr);
 	}
+
 	return Actors;
 }

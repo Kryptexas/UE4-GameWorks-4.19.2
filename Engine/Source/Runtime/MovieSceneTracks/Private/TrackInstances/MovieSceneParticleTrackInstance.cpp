@@ -6,9 +6,12 @@
 #include "MovieSceneParticleTrack.h"
 #include "MovieSceneParticleSection.h"
 #include "Particles/Emitter.h"
+
+
 FMovieSceneParticleTrackInstance::~FMovieSceneParticleTrackInstance()
 {
 }
+
 
 void FMovieSceneParticleTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {

@@ -8,22 +8,25 @@
 #include "IMovieScenePlayer.h"
 #include "Components/SplineComponent.h"
 
+
 FMovieScene3DConstraintTrackInstance::FMovieScene3DConstraintTrackInstance( UMovieScene3DConstraintTrack& InConstraintTrack )
 {
 	ConstraintTrack = &InConstraintTrack;
 }
+
 
 void FMovieScene3DConstraintTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
 {
 	for (int32 ObjIndex = 0; ObjIndex < RuntimeObjects.Num(); ++ObjIndex)
 	{
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
-		if (SceneComponent != NULL)
+		if (SceneComponent != nullptr)
 		{
 			InitTransformMap.Add(RuntimeObjects[ObjIndex], SceneComponent->GetRelativeTransform());
 		}
 	}
 }
+
 
 void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
 {
@@ -35,10 +38,10 @@ void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& 
 		}
 
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
-		if (SceneComponent != NULL)
+		if (SceneComponent != nullptr)
 		{
 			FTransform *Transform = InitTransformMap.Find(RuntimeObjects[ObjIndex]);
-			if (Transform != NULL)
+			if (Transform != nullptr)
 			{
 				SceneComponent->SetRelativeTransform(*Transform);
 			}
@@ -46,9 +49,10 @@ void FMovieScene3DConstraintTrackInstance::RestoreState(const TArray<UObject*>& 
 	}
 }
 
+
 void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
-	UMovieScene3DConstraintSection* FirstConstraintSection = NULL;
+	UMovieScene3DConstraintSection* FirstConstraintSection = nullptr;
 
 	const TArray<UMovieSceneSection*>& ConstraintSections = ConstraintTrack->GetAllSections();
 
@@ -57,7 +61,7 @@ void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPos
 		UMovieScene3DConstraintSection* ConstraintSection = CastChecked<UMovieScene3DConstraintSection>(ConstraintSections[ConstraintIndex]);
 
 		if (ConstraintSection->IsTimeWithinSection(Position) &&
-			(FirstConstraintSection == NULL || FirstConstraintSection->GetRowIndex() > ConstraintSection->GetRowIndex()))
+			(FirstConstraintSection == nullptr || FirstConstraintSection->GetRowIndex() > ConstraintSection->GetRowIndex()))
 		{
 			TArray<UObject*> ConstraintObjects;
 			FGuid ConstraintId = ConstraintSection->GetConstraintId();
@@ -78,4 +82,3 @@ void FMovieScene3DConstraintTrackInstance::Update( float Position, float LastPos
 		}
 	}
 }
-

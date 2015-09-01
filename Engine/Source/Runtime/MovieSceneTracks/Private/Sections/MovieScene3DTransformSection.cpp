@@ -4,11 +4,11 @@
 #include "MovieScene3DTransformSection.h"
 #include "MovieScene3DTransformTrack.h"
 
+
 UMovieScene3DTransformSection::UMovieScene3DTransformSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
+{ }
 
-}
 
 void UMovieScene3DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -23,6 +23,7 @@ void UMovieScene3DTransformSection::MoveSection( float DeltaTime, TSet<FKeyHandl
 	}
 }
 
+
 void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
@@ -34,6 +35,7 @@ void UMovieScene3DTransformSection::DilateSection( float DilationFactor, float O
 		Scale[Axis].ScaleCurve( Origin, DilationFactor, KeyHandles );
 	}
 }
+
 
 void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -47,6 +49,7 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 				KeyHandles.Add(It.Key());
 			}
 		}
+
 		for (auto It(Rotation[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Rotation[Axis].GetKeyTime(It.Key());
@@ -55,6 +58,7 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 				KeyHandles.Add(It.Key());
 			}
 		}
+
 		for (auto It(Scale[Axis].GetKeyHandleIterator()); It; ++It)
 		{
 			float Time = Scale[Axis].GetKeyTime(It.Key());
@@ -66,12 +70,14 @@ void UMovieScene3DTransformSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) 
 	}
 }	
 
+
 void UMovieScene3DTransformSection::EvalTranslation( float Time, FVector& OutTranslation ) const
 {
 	OutTranslation.X = Translation[0].Eval( Time );
 	OutTranslation.Y = Translation[1].Eval( Time );
 	OutTranslation.Z = Translation[2].Eval( Time );
 }
+
 
 void UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotation ) const
 {
@@ -80,12 +86,14 @@ void UMovieScene3DTransformSection::EvalRotation( float Time, FRotator& OutRotat
 	OutRotation.Yaw = Rotation[2].Eval( Time );
 }
 
+
 void UMovieScene3DTransformSection::EvalScale( float Time, FVector& OutScale ) const
 {
 	OutScale.X = Scale[0].Eval( Time );
 	OutScale.Y = Scale[1].Eval( Time );
 	OutScale.Z = Scale[2].Eval( Time );
 }
+
 
 /**
  * Chooses an appropriate curve from an axis and a set of curves
@@ -110,20 +118,24 @@ static FRichCurve* ChooseCurve( EAxis::Type Axis, FRichCurve* Curves )
 	}
 }
 
+
 FRichCurve& UMovieScene3DTransformSection::GetTranslationCurve( EAxis::Type Axis ) 
 {
 	return *ChooseCurve( Axis, Translation );
 }
+
 
 FRichCurve& UMovieScene3DTransformSection::GetRotationCurve( EAxis::Type Axis )
 {
 	return *ChooseCurve( Axis, Rotation );
 }
 
+
 FRichCurve& UMovieScene3DTransformSection::GetScaleCurve( EAxis::Type Axis )
 {
 	return *ChooseCurve( Axis, Scale );
 }
+
 
 void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& TransformKey )
 {
@@ -150,6 +162,7 @@ void UMovieScene3DTransformSection::AddTranslationKeys( const FTransformKey& Tra
 	}
 }
 
+
 void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& TransformKey, const bool bUnwindRotation )
 {
 	const float Time = TransformKey.GetKeyTime();
@@ -175,6 +188,7 @@ void UMovieScene3DTransformSection::AddRotationKeys( const FTransformKey& Transf
 	}
 }
 
+
 void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& TransformKey )
 {
 	const float Time = TransformKey.GetKeyTime();
@@ -199,6 +213,7 @@ void UMovieScene3DTransformSection::AddScaleKeys( const FTransformKey& Transform
 		AddKeyToCurve( Scale[2], Time, TransformKey.GetScaleValue().Z, TransformKey.KeyParams );
 	}
 }
+
 
 bool UMovieScene3DTransformSection::NewKeyIsNewData(const FTransformKey& TransformKey) const
 {

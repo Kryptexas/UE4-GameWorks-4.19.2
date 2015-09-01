@@ -7,8 +7,8 @@
 
 UMovieSceneColorSection::UMovieSceneColorSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 void UMovieSceneColorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -21,6 +21,7 @@ void UMovieSceneColorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& Ke
 	AlphaCurve.ShiftCurve(DeltaTime, KeyHandles);
 }
 
+
 void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
@@ -30,6 +31,7 @@ void UMovieSceneColorSection::DilateSection( float DilationFactor, float Origin,
 	BlueCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 	AlphaCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
+
 
 void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -41,6 +43,7 @@ void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 			KeyHandles.Add(It.Key());
 		}
 	}
+
 	for (auto It(GreenCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = GreenCurve.GetKeyTime(It.Key());
@@ -49,6 +52,7 @@ void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 			KeyHandles.Add(It.Key());
 		}
 	}
+
 	for (auto It(BlueCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = BlueCurve.GetKeyTime(It.Key());
@@ -57,6 +61,7 @@ void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 			KeyHandles.Add(It.Key());
 		}
 	}
+
 	for (auto It(AlphaCurve.GetKeyHandleIterator()); It; ++It)
 	{
 		float Time = AlphaCurve.GetKeyTime(It.Key());
@@ -65,6 +70,7 @@ void UMovieSceneColorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
+
 FLinearColor UMovieSceneColorSection::Eval( float Position, const FLinearColor& DefaultColor ) const
 {
 	return FLinearColor(RedCurve.Eval(Position, DefaultColor.R),
@@ -72,6 +78,7 @@ FLinearColor UMovieSceneColorSection::Eval( float Position, const FLinearColor& 
 						BlueCurve.Eval(Position, DefaultColor.B),
 						AlphaCurve.Eval(Position, DefaultColor.A));
 }
+
 
 void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key, FKeyParams KeyParams )
 {
@@ -114,6 +121,7 @@ void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key, FKeyPara
 	}
 }
 
+
 bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value, FKeyParams KeyParams) const
 {
 	bool bHasEmptyKeys = 
@@ -139,5 +147,6 @@ bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value, FK
 			return true;
 		}
 	}
+
 	return false;
 }

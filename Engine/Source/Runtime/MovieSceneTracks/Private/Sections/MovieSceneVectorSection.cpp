@@ -4,11 +4,11 @@
 #include "MovieSceneVectorSection.h"
 #include "MovieSceneVectorTrack.h"
 
+
 UMovieSceneVectorSection::UMovieSceneVectorSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
+{ }
 
-}
 
 FVector4 UMovieSceneVectorSection::Eval( float Position, const FVector4& DefaultVector ) const
 {
@@ -18,6 +18,7 @@ FVector4 UMovieSceneVectorSection::Eval( float Position, const FVector4& Default
 		Curves[2].Eval( Position, DefaultVector.Z ),
 		Curves[3].Eval( Position, DefaultVector.W ) );
 }
+
 
 void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVector4& Value, FKeyParams KeyParams )
 {
@@ -54,6 +55,7 @@ void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVecto
 	}
 }
 
+
 bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value, FKeyParams KeyParams) const
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
@@ -66,6 +68,7 @@ bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value
 		if (Curves[i].GetNumKeys() == 0 || !FMath::IsNearlyEqual(OriginalData, Value[i]))
 		{
 			bNewData = true;
+
 			break;
 		}
 	}
@@ -82,8 +85,10 @@ bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value
 			}
 		}
 	}
+
 	return bNewData;
 }
+
 
 void UMovieSceneVectorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -97,6 +102,7 @@ void UMovieSceneVectorSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& K
 	}
 }
 
+
 void UMovieSceneVectorSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
@@ -107,6 +113,7 @@ void UMovieSceneVectorSection::DilateSection( float DilationFactor, float Origin
 		Curves[i].ScaleCurve(Origin, DilationFactor, KeyHandles);
 	}
 }
+
 
 void UMovieSceneVectorSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {

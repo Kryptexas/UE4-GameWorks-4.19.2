@@ -6,12 +6,14 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneSkeletalAnimationTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneSkeletalAnimationTrack"
+
 
 UMovieSceneSkeletalAnimationTrack::UMovieSceneSkeletalAnimationTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 FName UMovieSceneSkeletalAnimationTrack::GetTrackName() const
 {
@@ -24,29 +26,36 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneSkeletalAnimationTrack::CreateIn
 	return MakeShareable( new FMovieSceneSkeletalAnimationTrackInstance( *this ) ); 
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieSceneSkeletalAnimationTrack::GetAllSections() const
 {
 	return AnimationSections;
 }
 
+
 void UMovieSceneSkeletalAnimationTrack::RemoveAllAnimationData()
 {
+	// do nothing
 }
+
 
 bool UMovieSceneSkeletalAnimationTrack::HasSection( UMovieSceneSection* Section ) const
 {
 	return AnimationSections.Find( Section ) != INDEX_NONE;
 }
 
+
 void UMovieSceneSkeletalAnimationTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	AnimationSections.Remove( Section );
 }
 
+
 bool UMovieSceneSkeletalAnimationTrack::IsEmpty() const
 {
 	return AnimationSections.Num() == 0;
 }
+
 
 TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 {
@@ -57,6 +66,7 @@ TRange<float> UMovieSceneSkeletalAnimationTrack::GetSectionBoundaries() const
 	}
 	return TRange<float>::Hull(Bounds);
 }
+
 
 void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequence* AnimSequence)
 {
@@ -69,6 +79,7 @@ void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequ
 	AnimationSections.Add(NewSection);
 }
 
+
 UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(float Time)
 {
 	for (int32 i = 0; i < AnimationSections.Num(); ++i)
@@ -80,7 +91,7 @@ UMovieSceneSection* UMovieSceneSkeletalAnimationTrack::GetAnimSectionAtTime(floa
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 

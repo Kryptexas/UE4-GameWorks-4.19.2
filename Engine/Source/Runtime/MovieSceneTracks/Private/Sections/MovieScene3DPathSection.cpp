@@ -5,6 +5,7 @@
 #include "MovieScene3DPathTrack.h"
 #include "Components/SplineComponent.h"
 
+
 UMovieScene3DPathSection::UMovieScene3DPathSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 	, FrontAxisEnum(MovieScene3DPathSection_Axis::Y)
@@ -12,8 +13,8 @@ UMovieScene3DPathSection::UMovieScene3DPathSection( const FObjectInitializer& Ob
 	, bFollow (true)
 	, bReverse (false)
 	, bForceUpright (false)
-{
-}
+{ }
+
 
 void UMovieScene3DPathSection::Eval( USceneComponent* SceneComponent, float Position, USplineComponent* SplineComponent, FVector& OutTranslation, FRotator& OutRotation ) const
 {
@@ -110,6 +111,7 @@ void UMovieScene3DPathSection::Eval( USceneComponent* SceneComponent, float Posi
 	}
 }
 
+
 void UMovieScene3DPathSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::MoveSection( DeltaPosition, KeyHandles );
@@ -118,12 +120,14 @@ void UMovieScene3DPathSection::MoveSection( float DeltaPosition, TSet<FKeyHandle
 	TimingCurve.ShiftCurve(DeltaPosition, KeyHandles);
 }
 
+
 void UMovieScene3DPathSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {	
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 	
 	TimingCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
+
 
 void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -137,6 +141,7 @@ void UMovieScene3DPathSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
+
 void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const FGuid& InPathId )
 {
 	Modify();
@@ -145,4 +150,3 @@ void UMovieScene3DPathSection::AddPath( float Time, float SequenceEndTime, const
 	TimingCurve.UpdateOrAddKey(Time, 0);
 	TimingCurve.UpdateOrAddKey(SequenceEndTime, 1);
 }
-

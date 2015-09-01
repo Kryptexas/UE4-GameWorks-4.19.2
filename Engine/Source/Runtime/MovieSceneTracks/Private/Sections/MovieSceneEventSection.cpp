@@ -20,6 +20,7 @@ void UMovieSceneEventSection::DilateSection(float DilationFactor, float Origin, 
 
 void UMovieSceneEventSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
+	 // @todo gmp: implement event tracks
 }
 
 

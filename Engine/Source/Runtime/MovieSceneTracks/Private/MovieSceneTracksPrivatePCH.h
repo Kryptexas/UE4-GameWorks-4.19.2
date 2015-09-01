@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#ifndef _MOVIE_SCENE_CORE_TYPES_PRIVATE_
-#define _MOVIE_SCENE_CORE_TYPES_PRIVATE_
+#pragma once
+
 
 /* Private dependencies
  *****************************************************************************/
@@ -22,6 +22,3 @@
  *****************************************************************************/
 
 #include "MovieSceneTracksClasses.h"
-
-
-#endif

@@ -106,6 +106,7 @@ void FSubMovieSceneTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjec
 	}
 }
 
+
 void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
 {
 	const TArray<UMovieSceneSection*>& AllSections = SubMovieSceneTrack->GetAllSections();
@@ -121,6 +122,7 @@ void FSubMovieSceneTrackInstance::RestoreState(const TArray<UObject*>& RuntimeOb
 		}
 	}
 }
+
 
 void FSubMovieSceneTrackInstance::ClearInstance( IMovieScenePlayer& Player )
 {

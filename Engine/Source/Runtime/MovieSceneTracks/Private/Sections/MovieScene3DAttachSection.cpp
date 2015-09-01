@@ -4,6 +4,7 @@
 #include "MovieScene3DAttachSection.h"
 #include "MovieScene3DAttachTrack.h"
 
+
 UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
@@ -14,6 +15,7 @@ UMovieScene3DAttachSection::UMovieScene3DAttachSection( const FObjectInitializer
 	bConstrainRy = true;
 	bConstrainRz = true;
 }
+
 
 void UMovieScene3DAttachSection::Eval( USceneComponent* SceneComponent, float Position, AActor* Actor, FVector& OutTranslation, FRotator& OutRotation ) const
 {
@@ -52,6 +54,7 @@ void UMovieScene3DAttachSection::Eval( USceneComponent* SceneComponent, float Po
 		OutRotation.Yaw = SceneComponent->GetRelativeTransform().GetRotation().Rotator().Yaw;
 	}
 }
+
 
 void UMovieScene3DAttachSection::AddAttach( float Time, float SequenceEndTime, const FGuid& InAttachId )
 {

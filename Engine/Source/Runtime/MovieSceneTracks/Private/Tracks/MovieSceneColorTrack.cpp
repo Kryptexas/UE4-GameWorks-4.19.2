@@ -6,15 +6,17 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneColorTrackInstance.h"
 
+
 UMovieSceneColorTrack::UMovieSceneColorTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 UMovieSceneSection* UMovieSceneColorTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneColorSection::StaticClass(), NAME_None, RF_Transactional);
 }
+
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneColorTrack::CreateInstance()
 {
@@ -28,12 +30,13 @@ bool UMovieSceneColorTrack::AddKeyToSection( float Time, const FColorKey& Key, F
 	if (!NearestSection || KeyParams.bAddKeyEvenIfUnchanged || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
 	{
 		Modify();
-		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
 
+		UMovieSceneColorSection* NewSection = CastChecked<UMovieSceneColorSection>( FindOrAddSection( Time ) );
 		NewSection->AddKey( Time, Key, KeyParams );
 
 		return true;
 	}
+
 	return false;
 }
 
@@ -45,9 +48,8 @@ bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearCol
 	if( Section )
 	{
 		Position = FMath::Clamp(Position, Section->GetStartTime(), Section->GetEndTime());
-
 		OutColor = CastChecked<UMovieSceneColorSection>( Section )->Eval( Position, OutColor );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
 }

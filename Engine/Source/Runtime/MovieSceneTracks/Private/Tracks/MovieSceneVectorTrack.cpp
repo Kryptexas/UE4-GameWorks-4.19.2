@@ -6,6 +6,7 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneVectorTrackInstance.h"
 
+
 FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName )
 {
 	Value.X = InValue.X;
@@ -15,6 +16,7 @@ FVectorKey::FVectorKey( const FVector2D& InValue, FName InCurveName )
 	ChannelsUsed = 2;
 	CurveName = InCurveName;
 }
+
 
 FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName )
 {
@@ -26,6 +28,7 @@ FVectorKey::FVectorKey( const FVector& InValue, FName InCurveName )
 	CurveName = InCurveName;
 }
 
+
 FVectorKey::FVectorKey( const FVector4& InValue, FName InCurveName )
 {
 	Value = InValue;
@@ -33,21 +36,25 @@ FVectorKey::FVectorKey( const FVector4& InValue, FName InCurveName )
 	CurveName = InCurveName;
 }
 
+
 UMovieSceneVectorTrack::UMovieSceneVectorTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
 	NumChannelsUsed = 0;
 }
 
+
 UMovieSceneSection* UMovieSceneVectorTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneVectorSection::StaticClass());
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneVectorTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneVectorTrackInstance( *this ) );
 }
+
 
 bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value, int32 InChannelsUsed, FName CurveName, FKeyParams KeyParams )
 {
@@ -67,13 +74,16 @@ bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVector4& Value,
 
 		return true;
 	}
+
 	return false;
 }
+
 
 bool UMovieSceneVectorTrack::AddKeyToSection( float Time, const FVectorKey& Key, FKeyParams KeyParams )
 {
 	return AddKeyToSection(Time, Key.Value, Key.ChannelsUsed, Key.CurveName, KeyParams );
 }
+
 
 bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4& InOutVector ) const
 {
@@ -86,6 +96,5 @@ bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4&
 		InOutVector = CastChecked<UMovieSceneVectorSection>( Section )->Eval( Position, InOutVector );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
 }
-

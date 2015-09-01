@@ -9,13 +9,14 @@
 
 UMovieSceneFloatTrack::UMovieSceneFloatTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 UMovieSceneSection* UMovieSceneFloatTrack::CreateNewSection()
 {
 	return NewObject<UMovieSceneSection>(this, UMovieSceneFloatSection::StaticClass(), NAME_None, RF_Transactional);
 }
+
 
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneFloatTrack::CreateInstance()
 {
@@ -39,6 +40,7 @@ bool UMovieSceneFloatTrack::AddKeyToSection( float Time, float Value, FKeyParams
 	return false;
 }
 
+
 bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& OutFloat ) const
 {
 	const UMovieSceneSection* Section = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Position );
@@ -50,5 +52,5 @@ bool UMovieSceneFloatTrack::Eval( float Position, float LastPosition, float& Out
 		OutFloat = CastChecked<UMovieSceneFloatSection>( Section )->Eval( Position );
 	}
 
-	return Section != NULL;
+	return Section != nullptr;
 }

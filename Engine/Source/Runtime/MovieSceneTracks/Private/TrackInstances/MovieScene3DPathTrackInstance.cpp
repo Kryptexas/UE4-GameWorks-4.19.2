@@ -8,10 +8,11 @@
 #include "IMovieScenePlayer.h"
 #include "Components/SplineComponent.h"
 
+
 FMovieScene3DPathTrackInstance::FMovieScene3DPathTrackInstance( UMovieScene3DPathTrack& InPathTrack )
 	: FMovieScene3DConstraintTrackInstance( InPathTrack )
-{
-}
+{ }
+
 
 void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TArray<UObject*>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection ) 
 {
@@ -29,7 +30,7 @@ void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TAr
 		{
 			USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 
-			if (SceneComponent != NULL)
+			if (SceneComponent != nullptr)
 			{
 				PathSection->Eval(SceneComponent, Position, SplineComponents[0], Translation, Rotation);
 
@@ -39,4 +40,3 @@ void FMovieScene3DPathTrackInstance::UpdateConstraint( float Position, const TAr
 		}
 	}
 }
-

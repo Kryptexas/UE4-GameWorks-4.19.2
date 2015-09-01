@@ -3,9 +3,9 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneParticleSection.h"
 
+
 UMovieSceneParticleSection::UMovieSceneParticleSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
 	KeyType = EParticleKey::Toggle;
 }
-

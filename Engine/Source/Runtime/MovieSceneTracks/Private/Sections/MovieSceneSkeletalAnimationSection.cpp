@@ -3,13 +3,15 @@
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSkeletalAnimationSection.h"
 
+
 UMovieSceneSkeletalAnimationSection::UMovieSceneSkeletalAnimationSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
 {
-	AnimSequence = NULL;
+	AnimSequence = nullptr;
 	AnimationStartTime = 0.f;
 	AnimationDilationFactor = 1.f;
 }
+
 
 void UMovieSceneSkeletalAnimationSection::MoveSection( float DeltaTime, TSet<FKeyHandle>& KeyHandles )
 {
@@ -17,6 +19,7 @@ void UMovieSceneSkeletalAnimationSection::MoveSection( float DeltaTime, TSet<FKe
 
 	AnimationStartTime += DeltaTime;
 }
+
 
 void UMovieSceneSkeletalAnimationSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
@@ -26,13 +29,17 @@ void UMovieSceneSkeletalAnimationSection::DilateSection( float DilationFactor, f
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 }
 
+
 void UMovieSceneSkeletalAnimationSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
+	// do nothing
 }
+
 
 void UMovieSceneSkeletalAnimationSection::GetSnapTimes(TArray<float>& OutSnapTimes, bool bGetSectionBorders) const
 {
 	Super::GetSnapTimes(OutSnapTimes, bGetSectionBorders);
+
 	float CurrentTime = GetAnimationStartTime();
 	while (CurrentTime <= GetEndTime())
 	{
@@ -40,6 +47,7 @@ void UMovieSceneSkeletalAnimationSection::GetSnapTimes(TArray<float>& OutSnapTim
 		{
 			OutSnapTimes.Add(CurrentTime);
 		}
+
 		CurrentTime += GetAnimationDuration();
 	}
 }

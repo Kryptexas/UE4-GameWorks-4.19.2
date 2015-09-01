@@ -7,10 +7,11 @@
 #include "MovieScene3DAttachSection.h"
 #include "IMovieScenePlayer.h"
 
+
 FMovieScene3DAttachTrackInstance::FMovieScene3DAttachTrackInstance( UMovieScene3DAttachTrack& InAttachTrack )
 	: FMovieScene3DConstraintTrackInstance( InAttachTrack )
-{
-}
+{ }
+
 
 void FMovieScene3DAttachTrackInstance::UpdateConstraint( float Position, const TArray<UObject*>& RuntimeObjects, AActor* Actor, UMovieScene3DConstraintSection* ConstraintSection ) 
 {
@@ -23,7 +24,7 @@ void FMovieScene3DAttachTrackInstance::UpdateConstraint( float Position, const T
 	{
 		USceneComponent* SceneComponent = MovieSceneHelpers::SceneComponentFromRuntimeObject(RuntimeObjects[ObjIndex]);
 
-		if (SceneComponent != NULL)
+		if (SceneComponent != nullptr)
 		{
 			AttachSection->Eval(SceneComponent, Position, Actor, Translation, Rotation);
 
@@ -32,4 +33,3 @@ void FMovieScene3DAttachTrackInstance::UpdateConstraint( float Position, const T
 		}
 	}
 }
-

@@ -6,12 +6,13 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneShotTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneShotTrack"
+
 
 UMovieSceneShotTrack::UMovieSceneShotTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
 
 
 FName UMovieSceneShotTrack::GetTrackName() const
@@ -21,15 +22,18 @@ FName UMovieSceneShotTrack::GetTrackName() const
 	return UniqueName;
 }
 
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneShotTrack::CreateInstance()
 {
 	return MakeShareable( new FMovieSceneShotTrackInstance( *this ) ); 
 }
 
+
 void UMovieSceneShotTrack::AddSection( UMovieSceneSection* Section )
 {
 	Super::AddSection( Section );
 }
+
 
 void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 {
@@ -42,6 +46,7 @@ void UMovieSceneShotTrack::RemoveSection( UMovieSceneSection* Section )
 	// @todo Sequencer: The movie scene owned by the section is now abandoned.  Should we offer to delete it?  
 
 }
+
 
 void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieSceneSequence& ShotMovieSceneSequence, float StartTime, const FText& ShotName, int32 ShotNumber )
 {
@@ -67,12 +72,14 @@ void UMovieSceneShotTrack::AddNewShot(FGuid CameraHandle, UMovieSceneSequence& S
 	FixupSurroundingShots( *NewSection, false );
 }
 
+
 #if WITH_EDITOR
 void UMovieSceneShotTrack::OnSectionMoved( UMovieSceneSection& Section )
 {
 	FixupSurroundingShots( Section, false );
 }
 #endif
+
 
 void UMovieSceneShotTrack::SortShots()
 {
@@ -82,6 +89,7 @@ void UMovieSceneShotTrack::SortShots()
 		return A.GetStartTime() < B.GetStartTime();
 	});
 }
+
 
 void UMovieSceneShotTrack::FixupSurroundingShots( UMovieSceneSection& Section, bool bDelete )
 {
@@ -109,6 +117,7 @@ void UMovieSceneShotTrack::FixupSurroundingShots( UMovieSceneSection& Section, b
 
 	SortShots();
 }
+
 
 float UMovieSceneShotTrack::FindEndTimeForShot( float StartTime )
 {
@@ -141,5 +150,6 @@ float UMovieSceneShotTrack::FindEndTimeForShot( float StartTime )
 
 	return EndTime;
 }
+
 
 #undef LOCTEXT_NAMESPACE

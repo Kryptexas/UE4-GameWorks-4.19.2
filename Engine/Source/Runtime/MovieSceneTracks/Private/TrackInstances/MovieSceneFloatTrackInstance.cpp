@@ -33,7 +33,7 @@ void FMovieSceneFloatTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 		}
 
 		float *FloatValue = InitFloatMap.Find(Object);
-		if (FloatValue != NULL)
+		if (FloatValue != nullptr)
 		{
 			PropertyBindings->CallFunction<float>(Object, FloatValue);
 		}

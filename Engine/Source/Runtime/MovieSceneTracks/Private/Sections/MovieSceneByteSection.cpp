@@ -6,13 +6,14 @@
 
 UMovieSceneByteSection::UMovieSceneByteSection( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 uint8 UMovieSceneByteSection::Eval( float Position ) const
 {
 	return !!ByteCurve.Evaluate(Position);
 }
+
 
 void UMovieSceneByteSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>& KeyHandles )
 {
@@ -21,12 +22,14 @@ void UMovieSceneByteSection::MoveSection( float DeltaPosition, TSet<FKeyHandle>&
 	ByteCurve.ShiftCurve(DeltaPosition, KeyHandles);
 }
 
+
 void UMovieSceneByteSection::DilateSection( float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles )
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
 	
 	ByteCurve.ScaleCurve(Origin, DilationFactor, KeyHandles);
 }
+
 
 void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 {
@@ -38,9 +41,11 @@ void UMovieSceneByteSection::GetKeyHandles(TSet<FKeyHandle>& KeyHandles) const
 	}
 }
 
+
 void UMovieSceneByteSection::AddKey( float Time, uint8 Value, FKeyParams KeyParams )
 {
 	Modify();
+
 	if (ByteCurve.GetNumKeys() == 0 && !KeyParams.bAddKeyEvenIfUnchanged)
 	{
 		ByteCurve.SetDefaultValue(Value);
@@ -50,6 +55,7 @@ void UMovieSceneByteSection::AddKey( float Time, uint8 Value, FKeyParams KeyPara
 		ByteCurve.UpdateOrAddKey(Time, Value ? 1 : 0);
 	}
 }
+
 
 bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value, FKeyParams KeyParams) const
 {
@@ -63,5 +69,6 @@ bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value, FKeyParams
 			return true;
 		}
 	}
+
 	return false;
 }

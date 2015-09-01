@@ -6,12 +6,14 @@
 #include "IMovieScenePlayer.h"
 #include "MovieSceneParticleTrackInstance.h"
 
+
 #define LOCTEXT_NAMESPACE "MovieSceneParticleTrack"
+
 
 UMovieSceneParticleTrack::UMovieSceneParticleTrack( const FObjectInitializer& ObjectInitializer )
 	: Super( ObjectInitializer )
-{
-}
+{ }
+
 
 FName UMovieSceneParticleTrack::GetTrackName() const
 {
@@ -24,34 +26,42 @@ TSharedPtr<IMovieSceneTrackInstance> UMovieSceneParticleTrack::CreateInstance()
 	return MakeShareable( new FMovieSceneParticleTrackInstance( *this ) ); 
 }
 
+
 const TArray<UMovieSceneSection*>& UMovieSceneParticleTrack::GetAllSections() const
 {
 	return ParticleSections;
 }
 
+
 void UMovieSceneParticleTrack::RemoveAllAnimationData()
 {
+	// do nothing
 }
+
 
 bool UMovieSceneParticleTrack::HasSection( UMovieSceneSection* Section ) const
 {
 	return ParticleSections.Find( Section ) != INDEX_NONE;
 }
 
+
 void UMovieSceneParticleTrack::AddSection( UMovieSceneSection* Section )
 {
 	ParticleSections.Add( Section );
 }
+
 
 void UMovieSceneParticleTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	ParticleSections.Remove( Section );
 }
 
+
 bool UMovieSceneParticleTrack::IsEmpty() const
 {
 	return ParticleSections.Num() == 0;
 }
+
 
 TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 {
@@ -62,6 +72,7 @@ TRange<float> UMovieSceneParticleTrack::GetSectionBoundaries() const
 	}
 	return TRange<float>::Hull(Bounds);
 }
+
 
 void UMovieSceneParticleTrack::AddNewParticleSystem(float KeyTime, bool bTrigger)
 {
@@ -75,5 +86,6 @@ void UMovieSceneParticleTrack::AddNewParticleSystem(float KeyTime, bool bTrigger
 
 	ParticleSections.Add(NewSection);
 }
+
 
 #undef LOCTEXT_NAMESPACE

@@ -14,6 +14,7 @@ FMovieSceneColorTrackInstance::FMovieSceneColorTrackInstance( UMovieSceneColorTr
 	PropertyBindings = MakeShareable( new FTrackInstancePropertyBindings( ColorTrack->GetPropertyName(), ColorTrack->GetPropertyPath() ) );
 }
 
+
 void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObjects)
 {
 	for( UObject* Object : RuntimeObjects )
@@ -43,6 +44,7 @@ void FMovieSceneColorTrackInstance::SaveState(const TArray<UObject*>& RuntimeObj
 	}
 }
 
+
 void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& RuntimeObjects)
 {
 	for( UObject* Object : RuntimeObjects )
@@ -55,7 +57,7 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 		if( ColorType == EColorType::Slate )
 		{
 			FSlateColor* ColorValue = InitSlateColorMap.Find(Object);
-			if (ColorValue != NULL)
+			if (ColorValue != nullptr)
 			{
 				PropertyBindings->CallFunction<FSlateColor>(Object, ColorValue);
 			}
@@ -64,7 +66,7 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 		{
 			//todo
 			FLinearColor* ColorValue = InitLinearColorMap.Find(Object);
-			if (ColorValue != NULL)
+			if (ColorValue != nullptr)
 			{
 				PropertyBindings->CallFunction<FLinearColor>(Object, ColorValue);
 			}
@@ -77,6 +79,7 @@ void FMovieSceneColorTrackInstance::RestoreState(const TArray<UObject*>& Runtime
 
 	PropertyBindings->UpdateBindings( RuntimeObjects );
 }
+
 
 void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
@@ -110,35 +113,37 @@ void FMovieSceneColorTrackInstance::Update( float Position, float LastPosition, 
 	}
 }
 
+
 void FMovieSceneColorTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
-	if( RuntimeObjects.Num() > 0 )
+	if( RuntimeObjects.Num() == 0 )
 	{
-		PropertyBindings->UpdateBindings( RuntimeObjects );
-
-		// Cache off what type of color this is. Just examine the first object since the property should be the same
-		UProperty* ColorProp = PropertyBindings->GetProperty( RuntimeObjects[0] );
-
-		const UStructProperty* StructProp = Cast<const UStructProperty>(ColorProp);
-		if (StructProp && StructProp->Struct)
-		{
-			FName StructName = StructProp->Struct->GetFName();
-
-			static const FName SlateColor("SlateColor");
-
-			if( StructName == NAME_Color )
-			{
-				ColorType = EColorType::RegularColor;
-			}
-			else if( StructName == SlateColor )
-			{
-				ColorType = EColorType::Slate;
-			}
-			else
-			{
-				ColorType = EColorType::Linear;
-			}
-		}
+		return;
 	}
 
+	PropertyBindings->UpdateBindings( RuntimeObjects );
+
+	// Cache off what type of color this is. Just examine the first object since the property should be the same
+	UProperty* ColorProp = PropertyBindings->GetProperty( RuntimeObjects[0] );
+
+	const UStructProperty* StructProp = Cast<const UStructProperty>(ColorProp);
+	if (StructProp && StructProp->Struct)
+	{
+		FName StructName = StructProp->Struct->GetFName();
+
+		static const FName SlateColor("SlateColor");
+
+		if( StructName == NAME_Color )
+		{
+			ColorType = EColorType::RegularColor;
+		}
+		else if( StructName == SlateColor )
+		{
+			ColorType = EColorType::Slate;
+		}
+		else
+		{
+			ColorType = EColorType::Linear;
+		}
+	}
 }
