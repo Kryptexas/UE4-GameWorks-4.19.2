@@ -1806,7 +1806,7 @@ void USkinnedMeshComponent::UnHideBoneByName( FName BoneName )
 	}
 }
 
-void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLODModel)
+void USkinnedMeshComponent::SetForcedLOD(int32 InNewForcedLOD)
 {
 	int32 MaxLODIndex = 0;
 	if(MeshObject)
@@ -1814,15 +1814,18 @@ void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLODModel)
 		MaxLODIndex = MeshObject->GetSkeletalMeshResource().LODModels.Num() - 1;
 	}
 
-	MinLodModel = FMath::Clamp(InNewMinLODModel, 0, MaxLODIndex);
+	ForcedLodModel = FMath::Clamp(InNewForcedLOD, 0, MaxLODIndex);
+}
 
-	// if current LOD is lower than min LOD, 
-	// update LOD status
-	// Otherwise, we're fine to stay this way
-	if (PredictedLODLevel < MinLodModel)
+void USkinnedMeshComponent::SetMinLOD(int32 InNewMinLOD)
+{
+	int32 MaxLODIndex = 0;
+	if(MeshObject)
 	{
-		UpdateLODStatus();
+		MaxLODIndex = MeshObject->GetSkeletalMeshResource().LODModels.Num() - 1;
 	}
+
+	MinLodModel = FMath::Clamp(InNewMinLOD, 0, MaxLODIndex);
 }
 
 bool USkinnedMeshComponent::UpdateLODStatus()
