@@ -2947,16 +2947,7 @@ bool UWorld::SetGameMode(const FURL& InURL)
 
 		if ( !GameClass )
 		{
-			if( GIsAutomationTesting )
-			{
-				// fall back to raw GameMode if Automation Testing, as the shared engine maps were not designed to use what could be any developer default GameMode
-				GameClass = AGameMode::StaticClass();
-			}
-			else
-			{
-				// fall back to overall default game type
-				GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
-			}
+			GameClass = StaticLoadClass(AGameMode::StaticClass(), NULL, *UGameMapsSettings::GetGlobalDefaultGameMode(), NULL, LOAD_None, NULL);
 		}
 
 		if ( !GameClass ) 
@@ -5231,6 +5222,11 @@ bool UWorld::IsPlayInMobilePreview() const
 bool UWorld::IsGameWorld() const
 {
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
+}
+
+bool UWorld::IsPreviewWorld() const
+{
+	return WorldType == EWorldType::Preview;
 }
 
 bool UWorld::UsesGameHiddenFlags() const

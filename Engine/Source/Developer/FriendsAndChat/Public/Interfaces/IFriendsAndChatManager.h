@@ -46,7 +46,7 @@ public:
 	 * Create the display servies used to customize chat widgets
 	 * @return The display service.
 	 */
-	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) = 0;
+	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool ChatMinimizeEnabled = true, bool ChatAutoMinimizeEnabled = false, bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) = 0;
 
 	/**
 	 * Create the a chrome widget

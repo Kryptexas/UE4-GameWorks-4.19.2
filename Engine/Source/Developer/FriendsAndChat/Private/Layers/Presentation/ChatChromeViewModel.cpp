@@ -24,9 +24,9 @@ public:
 		if (!ActiveTab.IsValid())
 		{
 			ActiveTab = Tab;
-			ActiveTab->GetChatViewModel()->SetIsActive(true);
-			ActiveTab->GetChatViewModel()->SetChatSettingsService(ChatSettingsService);
+			ActiveTab->GetChatViewModel()->SetIsActive(true);			
 		}
+		Tab->GetChatViewModel()->SetChatSettingsService(ChatSettingsService);
 	}
 
 	virtual void ActivateTab(const TSharedRef<IChatTabViewModel>& InTab) override
@@ -114,6 +114,11 @@ public:
 				Tab->GetChatViewModel()->SetMessageShown(false, 0);
 			}
 		}
+	}
+
+	virtual bool IsMinimizeEnabled() const override
+	{
+		return ChatDisplayService->IsChatMinimizeEnabled();
 	}
 
 	virtual bool IsChatMinimized() const override

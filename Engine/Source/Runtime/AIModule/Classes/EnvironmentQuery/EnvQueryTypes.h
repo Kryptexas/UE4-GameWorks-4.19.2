@@ -910,8 +910,10 @@ public:
 
 		/** Filter and score an item - used by tests working on float values
 		 *  (can be called multiple times for single item when processing contexts with multiple entries)
+		 *  NOTE: The Score is the raw score, before clamping, normalizing, and multiplying by weight.  The FilterMin
+		 *  and FilterMax values are ONLY used for filtering (if any).
 		 */
-		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, float Score, float Min, float Max)
+		void SetScore(EEnvTestPurpose::Type TestPurpose, EEnvTestFilterType::Type FilterType, float Score, float FilterMin, float FilterMax)
 		{
 			if (bForced)
 			{
@@ -925,18 +927,18 @@ public:
 				switch (FilterType)
 				{
 					case EEnvTestFilterType::Maximum:
-						bPassedTest = (Score <= Max);
-						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is above maximum value set to %f"), Score, Max);
+						bPassedTest = (Score <= FilterMax);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is above maximum value set to %f"), Score, FilterMax);
 						break;
 
 					case EEnvTestFilterType::Minimum:
-						bPassedTest = (Score >= Min);
-						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is below minimum value set to %f"), Score, Min);
+						bPassedTest = (Score >= FilterMin);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is below minimum value set to %f"), Score, FilterMin);
 						break;
 
 					case EEnvTestFilterType::Range:
-						bPassedTest = (Score >= Min) && (Score <= Max);
-						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is out of range set to (%f, %f)"), Score, Min, Max);
+						bPassedTest = (Score >= FilterMin) && (Score <= FilterMax);
+						UE_EQS_DBGMSG(!bPassedTest, TEXT("Value %f is out of range set to (%f, %f)"), Score, FilterMin, FilterMax);
 						break;
 
 					case EEnvTestFilterType::Match:

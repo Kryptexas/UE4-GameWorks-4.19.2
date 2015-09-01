@@ -65,7 +65,7 @@ public:
 	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void AddRecentPlayerNamespace(const FString& Namespace) override;
 	virtual void ClearApplicationViewModels() override;
-	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) override;
+	virtual TSharedRef< IChatDisplayService > GenerateChatDisplayService(bool ChatMinimizeEnabled = true, bool ChatAutoMinimizeEnabled = false, bool FadeChatList = false, bool FadeChatEntry = false, float ListFadeTime = -1.f, float EntryFadeTime = -1.f) override;
 	virtual TSharedRef< IChatSettingsService > GenerateChatSettingsService() override;
 	virtual TSharedPtr< SWidget > GenerateChromeWidget(const struct FFriendsAndChatStyle* InStyle,
 														TSharedRef<IChatDisplayService> ChatViewModel, 

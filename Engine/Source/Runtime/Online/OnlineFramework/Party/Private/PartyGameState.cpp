@@ -399,17 +399,17 @@ void UPartyGameState::ComparePartyData(const FPartyState& OldPartyData, const FP
 	{
 		if (OldPartyData.PartyType != NewPartyData.PartyType)
 		{
-			OnClientPartyTypeChanged().Broadcast(NewPartyData.PartyType);
+			OnPartyTypeChanged().Broadcast(NewPartyData.PartyType);
 		}
 
 		if (OldPartyData.bLeaderFriendsOnly != NewPartyData.bLeaderFriendsOnly)
 		{
-			OnClientLeaderFriendsOnlyChanged().Broadcast(NewPartyData.bLeaderFriendsOnly);
+			OnLeaderFriendsOnlyChanged().Broadcast(NewPartyData.bLeaderFriendsOnly);
 		}
 
 		if (OldPartyData.bLeaderInvitesOnly != NewPartyData.bLeaderInvitesOnly)
 		{
-			OnClientLeaderInvitesOnlyChanged().Broadcast(NewPartyData.bLeaderInvitesOnly);
+			OnLeaderInvitesOnlyChanged().Broadcast(NewPartyData.bLeaderInvitesOnly);
 		}
 	}
 }
@@ -624,6 +624,21 @@ void UPartyGameState::SetPartyType(EPartyType InPartyType, bool bLeaderFriendsOn
 			CurrentConfig.bCanNonLeaderPublishToPresence = !bIsPrivate && !bLeaderFriendsOnly;
 			CurrentConfig.bCanNonLeaderInviteToParty = !bLeaderInvitesOnly;
 			UpdatePartyConfig(bIsPrivate);
+
+			if (PartyStateRef->PartyType != InPartyType)
+			{
+				OnPartyTypeChanged().Broadcast(InPartyType);
+			}
+
+			if (PartyStateRef->bLeaderFriendsOnly != bLeaderFriendsOnly)
+			{
+				OnLeaderFriendsOnlyChanged().Broadcast(bLeaderFriendsOnly);
+			}
+
+			if (PartyStateRef->bLeaderInvitesOnly != bLeaderInvitesOnly)
+			{
+				OnLeaderInvitesOnlyChanged().Broadcast(bLeaderInvitesOnly);
+			}
 
 			PartyStateRef->PartyType = InPartyType;
 			PartyStateRef->bLeaderFriendsOnly = bLeaderFriendsOnly;

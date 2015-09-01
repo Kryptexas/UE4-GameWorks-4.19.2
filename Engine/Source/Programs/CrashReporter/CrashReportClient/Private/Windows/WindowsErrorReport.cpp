@@ -105,6 +105,29 @@ FText FWindowsErrorReport::DiagnoseReport() const
 	return FCrashReportUtil::FormatReportDescription( Exception.ExceptionString, Assertion, Exception.CallStackString );
 }
 
+static bool TryGetDirectoryCreationTime(const FString& InDirectoryName, FDateTime& OutCreationTime)
+{
+	FString DirectoryName(InDirectoryName);
+	FPaths::MakePlatformFilename(DirectoryName);
+
+	WIN32_FILE_ATTRIBUTE_DATA Info;
+	if (!GetFileAttributesExW(*DirectoryName, GetFileExInfoStandard, &Info))
+	{
+		OutCreationTime = FDateTime();
+		return false;
+	}
+
+	SYSTEMTIME SysTime;
+	if (!FileTimeToSystemTime(&Info.ftCreationTime, &SysTime))
+	{
+		OutCreationTime = FDateTime();
+		return false;
+	}
+
+	OutCreationTime = FDateTime(SysTime.wYear, SysTime.wMonth, SysTime.wDay, SysTime.wHour, SysTime.wMinute, SysTime.wSecond);
+	return true;
+}
+
 FString FWindowsErrorReport::FindMostRecentErrorReport()
 {
 	auto& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
@@ -115,11 +138,11 @@ FString FWindowsErrorReport::FindMostRecentErrorReport()
 	{
 		if (bIsDirectory)
 		{
-			const FFileStatData StatData = PlatformFile.GetStatData( FilenameOrDirectory );
-			if (StatData.CreationTime > DirectoryCreationTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
+			FDateTime CreationTime;
+			if(TryGetDirectoryCreationTime(FilenameOrDirectory, CreationTime) && CreationTime > DirectoryCreationTime && FCString::Strstr( FilenameOrDirectory, TEXT("UE4-") ) )
 			{
 				ReportDirectory = FilenameOrDirectory;
-				DirectoryCreationTime = StatData.CreationTime;
+				DirectoryCreationTime = CreationTime;
 			}
 		}
 		return true;

@@ -18,6 +18,10 @@
 extern UNREALED_API UEditorEngine* GEditor;
 #endif // WITH_EDITOR
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+bool UEnvQueryManager::bAllowEQSTimeSlicing = true;
+#endif
+
 DEFINE_LOG_CATEGORY(LogEQS);
 
 DEFINE_STAT(STAT_AI_EQS_Tick);
@@ -265,7 +269,19 @@ void UEnvQueryManager::Tick(float DeltaTime)
 
 				TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueriesCopy[Index];
 
-				QueryInstance->ExecuteOneStep(TimeLeft);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if (!bAllowEQSTimeSlicing)
+				{
+					// Passing in -1 causes QueryInstance to set its Deadline to -1, which in turn causes it to 
+					// never fail based on time input.  (In fact, it's odd that we use FLT_MAX in RunInstantQuery(),
+					// since that could simply use -1. as well.)  Note: "-1." to explicitly specify that it's a double.
+					QueryInstance->ExecuteOneStep(-1.);
+				}
+				else
+#endif
+				{
+					QueryInstance->ExecuteOneStep(TimeLeft);
+				}
 
 				if (QueryInstance->IsFinished())
 				{
@@ -287,7 +303,12 @@ void UEnvQueryManager::Tick(float DeltaTime)
 					QueryInstance->SetHasLoggedTimeLimitWarning();
 				}
 
-				TimeLeft -= (FPlatformTime::Seconds() - StartTime);
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+				if (bAllowEQSTimeSlicing)
+#endif
+				{
+					TimeLeft -= (FPlatformTime::Seconds() - StartTime);
+				}
 			}
 		}
 	}
@@ -307,7 +328,7 @@ void UEnvQueryManager::Tick(float DeltaTime)
 #endif // USE_EQS_DEBUGGER
 
 				QueryInstance->FinishDelegate.ExecuteIfBound(QueryInstance);
-				RunningQueries.RemoveAtSwap(Index, 1, /*bAllowShrinking=*/false);
+				RunningQueries.RemoveAt(Index, 1, /*bAllowShrinking=*/false);
 
 				--FinishedQueriesCount;
 			}
@@ -667,6 +688,21 @@ UEnvQueryInstanceBlueprintWrapper* UEnvQueryManager::RunEQSQuery(UObject* WorldC
 	}
 	
 	return QueryInstanceWrapper;
+}
+
+//----------------------------------------------------------------------//
+// Exec functions (i.e. console commands)
+//----------------------------------------------------------------------//
+void UEnvQueryManager::SetAllowTimeSlicing(bool bAllowTimeSlicing)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	bAllowEQSTimeSlicing = bAllowTimeSlicing;
+
+	UE_LOG(LogEQS, Log, TEXT("Set allow time slicing to %s."),
+			bAllowEQSTimeSlicing ? TEXT("true") : TEXT("false"));
+#else
+	UE_LOG(LogEQS, Log, TEXT("Time slicing cannot be disabled in Test or Shipping builds.  SetAllowTimeSlicing does nothing."));
+#endif
 }
 
 //----------------------------------------------------------------------//

@@ -173,6 +173,8 @@ public:
 	bool GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const;
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
+	/** Sets area ID for the specified polygon. */
+	void SetPolyAreaID(NavNodeRef PolyID, uint8 AreaID);
 	/** Finds all polys connected with specified one */
 	bool GetPolyNeighbors(NavNodeRef PolyID, TArray<FNavigationPortalEdge>& Neighbors) const;
 	/** Finds closest point constrained to given poly */

@@ -169,6 +169,8 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	UFUNCTION(BlueprintCallable, Category = "AI|EQS", meta = (WorldContext = "WorldContext", AdvancedDisplay = "WrapperClass"))
 	static UEnvQueryInstanceBlueprintWrapper* RunEQSQuery(UObject* WorldContext, UEnvQuery* QueryTemplate, UObject* Querier, TEnumAsByte<EEnvQueryRunMode::Type> RunMode, TSubclassOf<UEnvQueryInstanceBlueprintWrapper> WrapperClass);
 
+	static void SetAllowTimeSlicing(bool bAllowTimeSlicing);
+
 #if USE_EQS_DEBUGGER
 	static void NotifyAssetUpdate(UEnvQuery* Query);
 
@@ -207,4 +209,8 @@ private:
 
 	/** create and bind delegates in instance */
 	void CreateOptionInstance(UEnvQueryOption* OptionTemplate, const TArray<UEnvQueryTest*>& SortedTests, FEnvQueryInstance& Instance);
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	static bool bAllowEQSTimeSlicing;
+#endif
 };

@@ -62,12 +62,22 @@ public:
 	virtual bool IsActive() const = 0;
 
 	/*
+	 * Returns True if chat minimizing is enabled at all
+	 */
+	virtual bool IsChatMinimizeEnabled() = 0;
+
+	/*
+	 * Returns True if chat auto minimize is enabled.
+	 */
+	virtual bool IsChatAutoMinimizeEnabled() = 0;
+
+	/*
 	 * Toggle chat minimized
 	 */
 	virtual void ToggleChatMinimized() = 0;
 
 	/*
-	 * Return if chat window is minimized
+	 * Returns True if chat window is minimized currently
 	 */
 	virtual bool IsChatMinimized() const = 0;
 

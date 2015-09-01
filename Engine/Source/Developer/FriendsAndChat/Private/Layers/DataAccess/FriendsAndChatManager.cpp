@@ -342,9 +342,9 @@ TSharedPtr<IGameAndPartyService> FFriendsAndChatManager::GetGameAndPartyService(
 	return GameAndPartyService;
 }
 
-TSharedRef< IChatDisplayService > FFriendsAndChatManager::GenerateChatDisplayService(bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
+TSharedRef< IChatDisplayService > FFriendsAndChatManager::GenerateChatDisplayService(bool ChatMinimizeEnabled, bool ChatAutoMinimizeEnabled, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
 {
-	return FChatDisplayServiceFactory::Create(MessageService.ToSharedRef(), FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime);
+	return FChatDisplayServiceFactory::Create(MessageService.ToSharedRef(), ChatMinimizeEnabled, ChatAutoMinimizeEnabled, FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime);
 }
 
 TSharedRef< IChatSettingsService > FFriendsAndChatManager::GenerateChatSettingsService()

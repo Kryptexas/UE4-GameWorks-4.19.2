@@ -166,6 +166,7 @@ public:
 				[
 					SNew(STextBlock)
 					.Font(FriendStyle.FriendsNormalFontStyle.FriendsFontSmallBold)
+					.ColorAndOpacity(this, &SChatWindowImpl::GetOutgoingChannelTextColor)
 					.Text(ViewModelPtr, &FChatViewModel::GetOutgoingChannelText)
 				]
 				+SHorizontalBox::Slot()
@@ -211,7 +212,8 @@ public:
 
 		if(ViewModel.IsValid())
 		{
-			if (IsHovered() || ChatTextBox->HasKeyboardFocus())
+			bool bViewModelWantsVisible = ViewModel->GetChatListVisibility() != EVisibility::Hidden && ViewModel->GetChatListVisibility() != EVisibility::Collapsed;
+			if (bViewModelWantsVisible || IsHovered() || ChatTextBox->HasKeyboardFocus() || ChatTextBox->HasFocusedDescendants())
 			{
 				if (FadeCurve.GetLerp() == 0.0f)
 				{
@@ -412,6 +414,14 @@ private:
 
 	EVisibility GetChatListVisibility() const
 	{
+		if (ViewModel->IsChatMinimized())
+		{
+			return EVisibility::Hidden;
+		}
+		if (FadeCurve.GetLerp() != 0.0f)
+		{
+			return EVisibility::Visible;
+		}
 		return ViewModel->GetChatListVisibility();
 	}
 
@@ -424,6 +434,12 @@ private:
 	{
 		ViewModel->ToggleChatMinimized();
 		return FReply::Handled();
+	}
+
+	FSlateColor GetOutgoingChannelTextColor() const 
+	{
+		EChatMessageType::Type Channel = ViewModel->GetOutgoingChatChannel();
+		return FriendStyle.FriendsChatStyle.GetChannelTextColor(Channel);
 	}
 
 	EVisibility GetChatMaximizeVisibility() const

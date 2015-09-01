@@ -68,7 +68,7 @@ struct GAMEPLAYTAGS_API FGameplayTag
 		return ::GetTypeHash(Tag.TagName);
 	}
 
-	/** Displays container as a string for blueprint graph usage */
+	/** Displays gameplay tag as a string for blueprint graph usage */
 	FString ToString() const
 	{
 		return TagName.ToString();

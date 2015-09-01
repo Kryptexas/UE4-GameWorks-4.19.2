@@ -1128,7 +1128,12 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		
 		Verts.Reset();
-		NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+		const bool bPolyResult = NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+		if (!bPolyResult || Verts.Num() == 0)
+		{
+			// probably invalidated polygon, etc. (time sensitive and rare to reproduce issue)
+			continue;
+		}
 
 		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
 		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::Cyan;

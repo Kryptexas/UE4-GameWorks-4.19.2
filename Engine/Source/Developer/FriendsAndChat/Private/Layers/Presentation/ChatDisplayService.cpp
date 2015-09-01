@@ -66,7 +66,7 @@ public:
 			return TabVisibilityOverride.GetValue();
 		}
 
-		return ChatMinimized ? EVisibility::Collapsed : ChatEntryVisibility;
+		return IsChatMinimized() ? EVisibility::Collapsed : ChatEntryVisibility;
 	}
 
 	virtual EVisibility GetChatListVisibility() const override
@@ -106,8 +106,23 @@ public:
 		return IsChatActive;
 	}
 
+	virtual bool IsChatMinimizeEnabled() override
+	{
+		return ChatMinimizeEnabled;
+	}
+
+	virtual bool IsChatAutoMinimizeEnabled() override
+	{
+		return ChatAutoMinimizeEnabled;
+	}
+
 	virtual void ToggleChatMinimized() override
 	{
+		if (!IsChatMinimizeEnabled())
+		{
+			return;
+		}
+
 		ChatMinimized = !ChatMinimized;
 		if(ChatMinimized)
 		{
@@ -228,7 +243,7 @@ private:
 		{
 			ChatEntryVisibility = EVisibility::Visible;
 			EntryFadeDelay = EntryFadeInterval;
-			if(ChatMinimized)
+			if (IsChatMinimized())
 			{
 				ChatFadeDelay = ChatFadeInterval;
 			}
@@ -244,7 +259,7 @@ private:
 	{
 		if(Visible)
 		{
-			ChatListVisibility = ChatMinimized ? EVisibility::HitTestInvisible : EVisibility::Visible;
+			ChatListVisibility = IsChatMinimized() ? EVisibility::HitTestInvisible : EVisibility::Visible;
 			ChatFadeDelay = ChatFadeInterval;
 		}
 		else
@@ -274,8 +289,11 @@ private:
 					if(ChatFadeDelay <= 0)
 					{
 						SetChatListVisibility(false);
-						CachedMinimize = ChatMinimized;
-						ChatMinimized = true;
+						if (IsChatMinimizeEnabled() && IsChatAutoMinimizeEnabled())
+						{
+							CachedMinimize = ChatMinimized;
+							ChatMinimized = true;
+						}
 					}
 				}
 			}
@@ -288,7 +306,7 @@ private:
 				}
 			}
 		}
-		else if(ChatMinimized)
+		else if (IsChatMinimized())
 		{
 			if(ChatFadeDelay > 0)
 			{
@@ -318,7 +336,7 @@ private:
 		}
 	}
 
-	FChatDisplayServiceImpl(const TSharedRef<IChatCommunicationService>& InChatService, bool InFadeChatList, bool InFadeChatEntry, float InListFadeTime, float InEntryFadeTime)
+	FChatDisplayServiceImpl(const TSharedRef<IChatCommunicationService>& InChatService, bool InChatMinimizeEnabled, bool InChatAutoMinimizeEnabled, bool InFadeChatList, bool InFadeChatEntry, float InListFadeTime, float InEntryFadeTime)
 		: ChatService(InChatService)
 		, FadeChatList(InFadeChatList)
 		, FadeChatEntry(InFadeChatEntry)
@@ -327,6 +345,8 @@ private:
 		, ChatEntryVisibility(EVisibility::Visible)
 		, ChatListVisibility(EVisibility::Visible)
 		, IsChatActive(true)
+		, ChatMinimizeEnabled(InChatMinimizeEnabled)
+		, ChatAutoMinimizeEnabled(InChatAutoMinimizeEnabled)
 		, ChatMinimized(false)
 		, AutoReleaseFocus(false)
 	{
@@ -344,6 +364,8 @@ private:
 	EVisibility ChatEntryVisibility;
 	EVisibility ChatListVisibility;
 	bool IsChatActive;
+	bool ChatMinimizeEnabled;
+	bool ChatAutoMinimizeEnabled;
 	bool ChatMinimized;
 	TOptional<bool> CachedMinimize;
 	bool AutoReleaseFocus;
@@ -370,9 +392,9 @@ private:
 	friend FChatDisplayServiceFactory;
 };
 
-TSharedRef< FChatDisplayService > FChatDisplayServiceFactory::Create(const TSharedRef<IChatCommunicationService>& ChatService, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
+TSharedRef< FChatDisplayService > FChatDisplayServiceFactory::Create(const TSharedRef<IChatCommunicationService>& ChatService, bool ChatMinimizeEnabled, bool ChatAutoMinimizeEnabled, bool FadeChatList, bool FadeChatEntry, float ListFadeTime, float EntryFadeTime)
 {
-	TSharedRef< FChatDisplayServiceImpl > DisplayService = MakeShareable(new FChatDisplayServiceImpl(ChatService, FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime));
+	TSharedRef< FChatDisplayServiceImpl > DisplayService = MakeShareable(new FChatDisplayServiceImpl(ChatService, ChatMinimizeEnabled, ChatAutoMinimizeEnabled, FadeChatList, FadeChatEntry, ListFadeTime, EntryFadeTime));
 	DisplayService->Initialize();
 	return DisplayService;
 }

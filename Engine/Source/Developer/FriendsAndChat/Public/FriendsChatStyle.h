@@ -147,5 +147,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FButtonStyle FriendsMaximizeButtonStyle;
 	FFriendsChatStyle& SetMaximizeButtonStyle(const FButtonStyle& ButtonStyle);
 
+	FLinearColor GetChannelTextColor(EChatMessageType::Type Channel) const;
+
 };
 

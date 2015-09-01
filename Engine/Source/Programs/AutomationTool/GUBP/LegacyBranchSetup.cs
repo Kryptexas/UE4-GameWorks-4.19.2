@@ -1171,6 +1171,9 @@ partial class GUBP
 		foreach (BranchInfo.BranchUProject GameProj in Branch.AllProjects)
 		{
 			List<string> NodeNames = new List<string>();
+			{
+				NodeNames.Add(GameAggregatePromotableNode.StaticGetFullName(GameProj));
+			}
 			foreach(GUBP.GUBPNode Node in BranchConfig.GUBPNodes.Values)
 			{
 				if (Node.GameNameIfAnyForTempStorage() == GameProj.GameName)

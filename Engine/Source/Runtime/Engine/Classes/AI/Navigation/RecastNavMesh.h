@@ -876,6 +876,12 @@ public:
 	/** Retrieves area ID for the specified polygon. */
 	uint32 GetPolyAreaID(NavNodeRef PolyID) const;
 
+	/** Sets area ID for the specified polygon. */
+	void SetPolyAreaID(NavNodeRef PolyID, uint8 AreaID);
+
+	/** Sets area ID for the specified polygons */
+	void SetPolyArrayAreaID(const TArray<FNavPoly>& Polys, uint8 AreaID);
+
 	/** Retrieves poly and area flags for specified polygon */
 	bool GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const;
 	bool GetPolyFlags(NavNodeRef PolyID, FNavMeshNodeFlags& Flags) const;
@@ -913,6 +919,9 @@ public:
 
 	/** Get all polys from tile */
 	bool GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) const;
+
+	/** Get all polys that overlap the specified box */
+	bool GetPolysInBox(const FBox& Box, TArray<FNavPoly>& Polys, TSharedPtr<const FNavigationQueryFilter> Filter = nullptr, const UObject* Owner = nullptr) const;
 
 	/** Projects point on navmesh, returning all hits along vertical line defined by min-max Z params */
 	bool ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,

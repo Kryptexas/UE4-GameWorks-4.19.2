@@ -1689,6 +1689,14 @@ uint32 FPImplRecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	return AreaID;
 }
 
+void FPImplRecastNavMesh::SetPolyAreaID(NavNodeRef PolyID, uint8 AreaID)
+{
+	if (DetourNavMesh)
+	{
+		DetourNavMesh->setPolyArea((dtPolyRef)PolyID, AreaID);
+	}
+}
+
 bool FPImplRecastNavMesh::GetPolyData(NavNodeRef PolyID, uint16& Flags, uint8& AreaType) const
 {
 	if (DetourNavMesh)

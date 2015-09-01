@@ -511,6 +511,14 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UGameplayTasksCompo
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	void RemoveActiveEffectsWithTags(FGameplayTagContainer Tags);
 
+	/** Removes all active effects with captured source tags that contain any of the tags in Tags */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithSourceTags(FGameplayTagContainer Tags);
+
+	/** Removes all active effects that apply any of the tags in Tags */
+	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
+	void RemoveActiveEffectsWithAppliedTags(FGameplayTagContainer Tags);
+
 	/** Removes all active effects that match given query. StacksToRemove=-1 will remove all stacks. */
 	DEPRECATED(4.9, "FActiveGameplayEffectQuery is deprecated, use version that takes FGameplayEffectQuery")
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove=-1);

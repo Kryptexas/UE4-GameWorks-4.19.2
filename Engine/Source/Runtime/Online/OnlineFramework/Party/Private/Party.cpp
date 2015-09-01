@@ -828,48 +828,51 @@ void UParty::OnLeavePersistentPartyComplete(const FUniqueNetId& LocalUserId, con
 
 void UParty::RestorePersistentPartyState()
 {
-	if (!bLeavingPersistentParty)
+	if (!GIsRequestingExit)
 	{
-		UWorld* World = GetWorld();
-		IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
-		if (PartyInt.IsValid())
+		if (!bLeavingPersistentParty)
 		{
-			UGameInstance* GameInstance = GetGameInstance();
-			check(GameInstance);
-
-			TSharedPtr<const FUniqueNetId> LocalUserId = GameInstance->GetPrimaryPlayerUniqueId();
-			check(LocalUserId.IsValid() && LocalUserId->IsValid());
-
-			UPartyGameState* PersistentParty = GetPersistentParty();
-
-			// Check for existing party and create a new one if necessary
-			bool bFoundExistingPersistentParty = PersistentParty ? true : false;
-			if (bFoundExistingPersistentParty)
+			UWorld* World = GetWorld();
+			IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
+			if (PartyInt.IsValid())
 			{
-				// In a party already, make sure the UI is aware of its state
-				if (PersistentParty->ResetForFrontend())
+				UGameInstance* GameInstance = GetGameInstance();
+				check(GameInstance);
+
+				TSharedPtr<const FUniqueNetId> LocalUserId = GameInstance->GetPrimaryPlayerUniqueId();
+				check(LocalUserId.IsValid() && LocalUserId->IsValid());
+
+				UPartyGameState* PersistentParty = GetPersistentParty();
+
+				// Check for existing party and create a new one if necessary
+				bool bFoundExistingPersistentParty = PersistentParty ? true : false;
+				if (bFoundExistingPersistentParty)
 				{
-					OnPartyResetForFrontend().Broadcast(PersistentParty);
+					// In a party already, make sure the UI is aware of its state
+					if (PersistentParty->ResetForFrontend())
+					{
+						OnPartyResetForFrontend().Broadcast(PersistentParty);
+					}
+					else
+					{
+						// There was an issue resetting the party, so leave 
+						LeaveAndRestorePersistentParty();
+					}
 				}
 				else
 				{
-					// There was an issue resetting the party, so leave 
-					LeaveAndRestorePersistentParty();
+					PersistentPartyId = nullptr;
+
+					// Create a new party
+					FOnCreatePartyComplete CompletionDelegate;
+					CreatePersistentParty(*LocalUserId, CompletionDelegate);
 				}
 			}
-			else
-			{
-				PersistentPartyId = nullptr;
-
-				// Create a new party
-				FOnCreatePartyComplete CompletionDelegate;
-				CreatePersistentParty(*LocalUserId, CompletionDelegate);
-			}
 		}
-	}
-	else
-	{
-		UE_LOG(LogParty, Verbose, TEXT("Can't RestorePersistentPartyState while leaving party, ignoring"));
+		else
+		{
+			UE_LOG(LogParty, Verbose, TEXT("Can't RestorePersistentPartyState while leaving party, ignoring"));
+		}
 	}
 }
 

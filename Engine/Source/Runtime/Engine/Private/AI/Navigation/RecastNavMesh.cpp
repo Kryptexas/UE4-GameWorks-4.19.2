@@ -1034,6 +1034,67 @@ void ARecastNavMesh::BatchProjectPoints(TArray<FNavigationProjectionWork>& Workl
 	}
 }
 
+bool ARecastNavMesh::GetPolysInBox(const FBox& Box, TArray<FNavPoly>& Polys, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* Owner) const
+{
+	// sanity check
+	if (RecastNavMeshImpl->GetRecastMesh() == NULL)
+	{
+		return false;
+	}
+
+	bool bSuccess = false;
+
+	const FNavigationQueryFilter& FilterToUse = GetRightFilterRef(Filter);
+	FRecastSpeciaLinkFilter LinkFilter(UNavigationSystem::GetCurrent(GetWorld()), Owner);
+	INITIALIZE_NAVQUERY_WLINKFILTER(NavQuery, FilterToUse.GetMaxSearchNodes(), LinkFilter);
+
+	const dtQueryFilter* QueryFilter = ((const FRecastQueryFilter*)(FilterToUse.GetImplementation()))->GetAsDetourQueryFilter();
+	ensure(QueryFilter);
+	if (QueryFilter)
+	{
+		const FVector ModifiedExtent = GetModifiedQueryExtent(Box.GetExtent());
+
+		const FVector RcPoint = Unreal2RecastPoint( Box.GetCenter() );
+		const FVector RcExtent = Unreal2RecastPoint( ModifiedExtent ).GetAbs();
+
+		const int32 MaxHitPolys = 256;
+		dtPolyRef HitPolys[MaxHitPolys];
+		int32 NumHitPolys = 0;
+
+		dtStatus status = NavQuery.queryPolygons(&RcPoint.X, &RcExtent.X, QueryFilter, HitPolys, &NumHitPolys, MaxHitPolys);
+		if (dtStatusSucceed(status))
+		{
+			// only ground type polys
+			int32 BaseIdx = Polys.Num();
+			Polys.AddZeroed(NumHitPolys);
+
+			for (int32 i = 0; i < NumHitPolys; i++)
+			{
+				dtPoly const* Poly;
+				dtMeshTile const* Tile;
+				dtStatus Status = RecastNavMeshImpl->GetRecastMesh()->getTileAndPolyByRef(HitPolys[i], &Tile, &Poly);
+				if (dtStatusSucceed(Status))
+				{
+					FVector PolyCenter(0);
+					for (int k = 0; k < Poly->vertCount; ++k)
+					{
+						PolyCenter += Recast2UnrealPoint(&Tile->verts[Poly->verts[k]*3]);
+					}
+					PolyCenter /= Poly->vertCount;
+
+					FNavPoly& OutPoly = Polys[BaseIdx + i];
+					OutPoly.Ref = HitPolys[i];
+					OutPoly.Center = PolyCenter;
+				}
+			}
+
+			bSuccess = true;
+		}
+	}
+
+	return bSuccess;
+}
+
 bool ARecastNavMesh::ProjectPointMulti(const FVector& Point, TArray<FNavLocation>& OutLocations, const FVector& Extent,
 	float MinZ, float MaxZ, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
 {
@@ -1228,6 +1289,23 @@ uint32 ARecastNavMesh::GetPolyAreaID(NavNodeRef PolyID) const
 	}
 
 	return AreaID;
+}
+
+void ARecastNavMesh::SetPolyAreaID(NavNodeRef PolyID, uint8 AreaID)
+{
+	if (RecastNavMeshImpl)
+	{
+		RecastNavMeshImpl->SetPolyAreaID(PolyID, AreaID);
+	}
+}
+
+void ARecastNavMesh::SetPolyArrayAreaID(const TArray<FNavPoly>& Polys, uint8 AreaID)
+{
+	dtNavMesh* NavMesh = RecastNavMeshImpl->GetRecastMesh();
+	for(const auto& Poly : Polys)
+	{
+		NavMesh->setPolyArea(Poly.Ref, AreaID);
+	}
 }
 
 bool ARecastNavMesh::GetPolyFlags(NavNodeRef PolyID, uint16& PolyFlags, uint16& AreaFlags) const

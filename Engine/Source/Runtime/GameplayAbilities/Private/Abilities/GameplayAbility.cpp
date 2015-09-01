@@ -450,7 +450,7 @@ bool UGameplayAbility::IsBlockingOtherAbilities() const
 
 void UGameplayAbility::SetShouldBlockOtherAbilities(bool bShouldBlockAbilities)
 {
-	if (GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced && bShouldBlockAbilities != bIsBlockingOtherAbilities)
+	if (bIsActive && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced && bShouldBlockAbilities != bIsBlockingOtherAbilities)
 	{
 		bIsBlockingOtherAbilities = bShouldBlockAbilities;
 

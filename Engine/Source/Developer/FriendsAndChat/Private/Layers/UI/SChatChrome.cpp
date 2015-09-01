@@ -148,10 +148,11 @@ private:
 		{
 			if (Tab == ChromeViewModel->GetActiveTab())
 			{
-				return FriendStyle.FriendsNormalFontStyle.InvertedFontColor;
+				EChatMessageType::Type Channel = Tab->GetTabID();
+				return FriendStyle.FriendsChatStyle.GetChannelTextColor(Channel);
 			}
 		}
-		return FriendStyle.FriendsNormalFontStyle.DefaultFontColor;
+		return FriendStyle.FriendsNormalFontStyle.InvertedFontColor;
 	}
 
 	EVisibility GetTabVisibility(TWeakPtr<IChatTabViewModel> TabPtr) const
@@ -337,7 +338,7 @@ private:
 
 	EVisibility GetMinimizeVisibility() const
 	{
-		return ChromeViewModel->IsChatMinimized() ? EVisibility::Collapsed : EVisibility::Visible;
+		return (!ChromeViewModel->IsMinimizeEnabled() || ChromeViewModel->IsChatMinimized()) ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
 	// Holds the menu anchor

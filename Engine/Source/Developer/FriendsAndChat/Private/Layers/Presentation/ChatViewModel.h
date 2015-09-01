@@ -95,6 +95,7 @@ public:
 	virtual EVisibility GetTipVisibility() const = 0;
 	virtual EVisibility GetChatListVisibility() const = 0;
 	virtual EVisibility GetChatMaximizeVisibility() const = 0;
+	virtual bool IsChatMinimized() const = 0;
 	virtual void ToggleChatMinimized() = 0;
 	virtual void ValidateChatInput(const FText Message, const FText PlainText) = 0;
 	virtual FText GetValidatedInput() = 0;

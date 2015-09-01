@@ -3127,6 +3127,9 @@ public:
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
+	/** Returns true if this world is a preview game world (blueprint editor) */
+	bool IsPreviewWorld() const;
+
 	/** Returns true if this world should look at game hidden flags instead of editor hidden flags for the purposes of rendering */
 	bool UsesGameHiddenFlags() const;
 

@@ -646,7 +646,12 @@ public:
 
 	virtual EVisibility GetChatMaximizeVisibility() const override
 	{
-		return ChatDisplayService->IsChatMinimized() ? EVisibility::Visible : EVisibility::Collapsed;
+		return ChatDisplayService->IsChatMinimizeEnabled() && ChatDisplayService->IsChatMinimized() ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	virtual bool IsChatMinimized() const override
+	{
+		return ChatDisplayService->IsChatMinimized();
 	}
 
 	virtual void ToggleChatMinimized() override
