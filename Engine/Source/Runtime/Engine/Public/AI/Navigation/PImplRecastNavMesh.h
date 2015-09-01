@@ -177,6 +177,8 @@ public:
 	void SetPolyAreaID(NavNodeRef PolyID, uint8 AreaID);
 	/** Finds all polys connected with specified one */
 	bool GetPolyNeighbors(NavNodeRef PolyID, TArray<FNavigationPortalEdge>& Neighbors) const;
+	/** Finds all polys connected with specified one, results expressed as array of NavNodeRefs */
+	bool GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>& Neighbors) const;
 	/** Finds closest point constrained to given poly */
 	bool GetClosestPointOnPoly(NavNodeRef PolyID, const FVector& TestPt, FVector& PointOnPoly) const;
 	/** Decode poly ID into tile index and poly index */

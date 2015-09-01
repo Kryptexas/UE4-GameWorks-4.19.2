@@ -1757,6 +1757,36 @@ bool FPImplRecastNavMesh::GetPolyNeighbors(NavNodeRef PolyID, TArray<FNavigation
 	return false;
 }
 
+bool FPImplRecastNavMesh::GetPolyNeighbors(NavNodeRef PolyID, TArray<NavNodeRef>& Neighbors) const
+{
+	if (DetourNavMesh)
+	{
+		const dtPolyRef PolyRef = static_cast<dtPolyRef>(PolyID);
+		dtPoly const* Poly = 0;
+		dtMeshTile const* Tile = 0;
+
+		const dtStatus Status = DetourNavMesh->getTileAndPolyByRef(PolyRef, &Tile, &Poly);
+
+		if (dtStatusSucceed(Status))
+		{
+			uint32 LinkIdx = Poly->firstLink;
+			Neighbors.Reserve(DT_VERTS_PER_POLYGON);
+
+			while (LinkIdx != DT_NULL_LINK)
+			{
+				const dtLink& Link = DetourNavMesh->getLink(Tile, LinkIdx);
+				LinkIdx = Link.next;
+
+				Neighbors.Add(Link.ref);
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool FPImplRecastNavMesh::GetPolyTileIndex(NavNodeRef PolyID, uint32& PolyIndex, uint32& TileIndex) const
 {
 	if (DetourNavMesh && PolyID)
