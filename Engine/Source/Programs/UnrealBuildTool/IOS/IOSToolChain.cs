@@ -600,7 +600,7 @@ namespace UnrealBuildTool
 					{
 						// add it to the prerequisites to make sure it's built first (this should be the case of non-system libraries)
 						FileItem LibFile = FileItem.GetItemByPath(Path.GetFullPath(AdditionalLibrary));
-						FileItem RemoteLibFile = LocalToRemoteFileItem(LibFile, false);
+						FileItem RemoteLibFile = LocalToRemoteFileItem(LibFile, true);
 						LinkAction.PrerequisiteItems.Add(RemoteLibFile);
 
 						// and add to the commandline
