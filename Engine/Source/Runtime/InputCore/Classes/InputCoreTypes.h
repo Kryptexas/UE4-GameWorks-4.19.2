@@ -307,6 +307,7 @@ struct INPUTCORE_API EKeys
 	static const FKey E_AccentGrave;
 	static const FKey E_AccentAigu;
 	static const FKey C_Cedille;
+	static const FKey Section;
 
 	// Platform Keys
 	// These keys platform specific versions of keys that go by different names.
