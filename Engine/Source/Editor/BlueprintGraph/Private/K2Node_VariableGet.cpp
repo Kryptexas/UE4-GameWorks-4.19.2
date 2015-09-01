@@ -448,24 +448,27 @@ void UK2Node_VariableGet::ExpandNode(class FKismetCompilerContext& CompilerConte
 void UK2Node_VariableGet::Serialize(FArchive& Ar)
 {
 	// The following code is to attempt to log info related to UE-19729
-	if (Ar.IsSaving() && !Ar.IsTransacting())
+	if (Ar.IsSaving() && Ar.IsPersistent())
 	{
-		if (UEdGraph* Graph = Cast<UEdGraph>(GetOuter()))
+		uint32 PortFlagsToSkip = PPF_Duplicate | PPF_DuplicateForPIE;
+		if (!(Ar.GetPortFlags() & PortFlagsToSkip))
 		{
-			if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
+			if (UEdGraph* Graph = Cast<UEdGraph>(GetOuter()))
 			{
-				if (!Blueprint->bBeingCompiled)
+				if (UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(Graph))
 				{
-					FString VariableName = GetVarNameString();
-					FString BlueprintPath = Blueprint->GetPathName();
-					FString SetupStyle = bIsPureGet? TEXT("pure") : TEXT("validated");
-					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Serialization for Get node for variable '%s' in Blueprint '%s' which is setup as %s"), *VariableName, *BlueprintPath, *SetupStyle);
+					if (!Blueprint->bBeingCompiled)
+					{
+						FString VariableName = GetVarNameString();
+						FString BlueprintPath = Blueprint->GetPathName();
+						FString SetupStyle = bIsPureGet? TEXT("pure") : TEXT("validated");
+						UE_LOG(LogBlueprintUserMessages, Log, TEXT("Serialization for Get node for variable '%s' in Blueprint '%s' which is setup as %s"), *VariableName, *BlueprintPath, *SetupStyle);
 
-					// The following line may spur the crash noted in UE-19729 and will confirm that the crash happens before the FiB gather.
-					GetNodeTitle(ENodeTitleType::ListView);
+						// The following line may spur the crash noted in UE-19729 and will confirm that the crash happens before the FiB gather.
+						GetNodeTitle(ENodeTitleType::ListView);
+					}
 				}
 			}
-			
 		}
 	}
 	Super::Serialize(Ar);
