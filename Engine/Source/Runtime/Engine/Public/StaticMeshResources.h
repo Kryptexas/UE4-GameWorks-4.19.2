@@ -867,15 +867,7 @@ protected:
 
 	TIndirectArray<FLODInfo> LODs;
 
-	const FDistanceFieldVolumeData* DistanceFieldData;
-
-	/** Collision Response of this component**/
-	FCollisionResponseContainer CollisionResponse;
-
-#if WITH_EDITORONLY_DATA
-	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
-	int32 SectionIndexPreview;
-#endif
+	const FDistanceFieldVolumeData* DistanceFieldData;	
 
 	/**
 	 * The forcedLOD set in the static mesh editor, copied from the mesh component
@@ -892,6 +884,14 @@ protected:
 
 	/** The view relevance for all the static mesh's materials. */
 	FMaterialRelevance MaterialRelevance;
+
+	/** Collision Response of this component**/
+	FCollisionResponseContainer CollisionResponse;
+
+#if WITH_EDITORONLY_DATA
+	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
+	int32 SectionIndexPreview;
+#endif
 
 	/**
 	 * Returns the display factor for the given LOD level
