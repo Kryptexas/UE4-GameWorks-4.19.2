@@ -869,6 +869,9 @@ protected:
 
 	const FDistanceFieldVolumeData* DistanceFieldData;
 
+	/** Collision Response of this component**/
+	FCollisionResponseContainer CollisionResponse;
+
 #if WITH_EDITORONLY_DATA
 	/** Index of the section to preview. If set to INDEX_NONE, all section will be rendered */
 	int32 SectionIndexPreview;
@@ -889,9 +892,6 @@ protected:
 
 	/** The view relevance for all the static mesh's materials. */
 	FMaterialRelevance MaterialRelevance;
-
-	/** Collision Response of this component**/
-	FCollisionResponseContainer CollisionResponse;
 
 	/**
 	 * Returns the display factor for the given LOD level
