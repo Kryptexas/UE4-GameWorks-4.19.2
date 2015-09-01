@@ -822,10 +822,11 @@ public:
 		if(InputAsMID)
 		{
 			auto ParentAsMI = Cast<UMaterialInstance>(InputAsMID->Parent);
-			check(ParentAsMI);
-
-			// parent is an MID so we need to copy the MID Vector and Scalar parameters over
-			NewMID->CopyInterpParameters(ParentAsMI);
+			if(ParentAsMI)
+			{
+				// parent is an MID so we need to copy the MID Vector and Scalar parameters over
+				NewMID->CopyInterpParameters(ParentAsMI);
+			}
 		}
 
 		check(NewMID->GetRenderProxy(false));
