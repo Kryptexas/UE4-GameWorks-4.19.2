@@ -132,7 +132,23 @@ public:
 	virtual void OnAfterCreated(CefRefPtr<CefBrowser> Browser) override;
 	virtual bool DoClose(CefRefPtr<CefBrowser> Browser) override;
 	virtual void OnBeforeClose(CefRefPtr<CefBrowser> Browser) override;
-	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser, 
+
+	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		const CefString& Target_Url,
+		const CefString& Target_Frame_Name,
+		CefLifeSpanHandler::WindowOpenDisposition /* Target_Disposition */,
+		bool /* User_Gesture */,
+		const CefPopupFeatures& PopupFeatures,
+		CefWindowInfo& WindowInfo,
+		CefRefPtr<CefClient>& Client,
+		CefBrowserSettings& Settings,
+		bool* no_javascript_access) override 
+	{
+		return OnBeforePopup(Browser, Frame, Target_Url, Target_Frame_Name, PopupFeatures, WindowInfo, Client, Settings, no_javascript_access);
+	}
+
+	virtual bool OnBeforePopup(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame, 
 		const CefString& Target_Url, 
 		const CefString& Target_Frame_Name,
@@ -140,7 +156,7 @@ public:
 		CefWindowInfo& WindowInfo,
 		CefRefPtr<CefClient>& Client, 
 		CefBrowserSettings& Settings,
-		bool* no_javascript_access)  override;
+		bool* no_javascript_access) ;
 
 public:
 
@@ -182,9 +198,19 @@ public:
 
 	// CefRequestHandler Interface
 
+	virtual ReturnValue OnBeforeResourceLoad(
+		CefRefPtr<CefBrowser> Browser,
+		CefRefPtr<CefFrame> Frame,
+		CefRefPtr<CefRequest> Request,
+		CefRefPtr<CefRequestCallback> /* Callback */) override
+	{
+		return OnBeforeResourceLoad(Browser, Frame, Request) ? RV_CANCEL : RV_CONTINUE;
+	}
+
 	virtual bool OnBeforeResourceLoad(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
-		CefRefPtr<CefRequest> Request) override;
+		CefRefPtr<CefRequest> Request);
+
 	virtual void OnRenderProcessTerminated(CefRefPtr<CefBrowser> Browser, TerminationStatus Status) override;
 	virtual bool OnBeforeBrowse(CefRefPtr<CefBrowser> Browser,
 		CefRefPtr<CefFrame> Frame,
