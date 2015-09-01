@@ -7,6 +7,7 @@
 #include "AssetViewTypes.h"
 #include "AssetViewWidgets.h"
 #include "SThumbnailEditModeTools.h"
+#include "AssetSourceFilenameCache.h"
 #include "CollectionManagerModule.h"
 #include "CollectionViewUtils.h"
 #include "DragAndDrop/AssetDragDropOp.h"
@@ -644,6 +645,16 @@ TSharedRef<SWidget> SAssetViewItem::CreateToolTipWidget() const
 			for (const auto& ToolTipTagItem : CachedToolTipTags)
 			{
 				AddToToolTipInfoBox(InfoBox, ToolTipTagItem.Key, ToolTipTagItem.Value, ToolTipTagItem.bImportant);
+			}
+
+			// Add asset source files
+			TOptional<FAssetImportInfo> ImportInfo = FAssetSourceFilenameCache::ExtractAssetImportInfo(AssetData.TagsAndValues);
+			if (ImportInfo.IsSet())
+			{
+				for (const auto& File : ImportInfo->SourceFiles)
+				{
+					AddToToolTipInfoBox( InfoBox, LOCTEXT("TileViewTooltipSourceFile", "Source File"), FText::FromString(File.RelativeFilename), false );
+				}
 			}
 
 			TSharedRef<SVerticalBox> OverallTooltipVBox = SNew(SVerticalBox);
