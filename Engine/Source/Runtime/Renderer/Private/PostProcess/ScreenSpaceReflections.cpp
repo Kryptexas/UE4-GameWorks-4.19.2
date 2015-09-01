@@ -321,7 +321,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	
 	if (SSRStencilPrePass)
 	{ // ScreenSpaceReflectionsStencil draw event
-		SCOPED_DRAW_EVENT(RHICmdList, ScreenSpaceReflectionsStencil);
+		SCOPED_DRAW_EVENTF(Context.RHICmdList, ScreenSpaceReflectionsStencil, TEXT("ScreenSpaceReflectionsStencil %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 		TShaderMapRef< FPostProcessVS > VertexShader(Context.GetShaderMap());
 		TShaderMapRef< FPostProcessScreenSpaceReflectionsStencilPS > PixelShader(Context.GetShaderMap());
@@ -364,7 +364,7 @@ void FRCPassPostProcessScreenSpaceReflections::Process(FRenderingCompositePassCo
 	} // ScreenSpaceReflectionsStencil draw event
 
 	{ // ScreenSpaceReflections draw event
-		SCOPED_DRAW_EVENT(Context.RHICmdList, ScreenSpaceReflections);
+		SCOPED_DRAW_EVENTF(Context.RHICmdList, ScreenSpaceReflections, TEXT("ScreenSpaceReflections %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 		if (SSRStencilPrePass)
 		{

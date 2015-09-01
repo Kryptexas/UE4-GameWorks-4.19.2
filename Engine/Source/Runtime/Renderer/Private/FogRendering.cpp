@@ -298,8 +298,6 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 {
 	if (Scene->ExponentialFogs.Num() > 0)
 	{
-		SCOPED_DRAW_EVENT(RHICmdList, Fog);
-
 		static const FVector2D Vertices[4] =
 		{
 			FVector2D(-1,-1),
@@ -318,6 +316,8 @@ bool FDeferredShadingSceneRenderer::RenderFog(FRHICommandListImmediate& RHICmdLi
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{
 			const FViewInfo& View = Views[ViewIndex];
+
+			SCOPED_DRAW_EVENTF(RHICmdList, Fog, TEXT("Fog %dx%d"), View.ViewRect.Width(), View.ViewRect.Height());
 
 			if (View.IsPerspectiveProjection() == false)
 			{

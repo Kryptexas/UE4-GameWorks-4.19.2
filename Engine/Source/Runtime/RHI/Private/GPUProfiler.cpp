@@ -92,15 +92,25 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 
 		if (bMatchesFilter)
 		{
+			FString Extra;
+			
+			if(Node->TimingResult >= 0.1f && Node->NumVertices * Node->NumDraws > 100)
+			{
+				Extra = FString::Printf(TEXT(" %.0f prims/ms %.0f verts/ms"),
+					Node->NumPrimitives / Node->TimingResult,
+					Node->NumVertices / Node->TimingResult);
+			}
+
 			// Print information about this node, padded to its depth in the tree
-			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms   %s %u draws %u prims %u verts"), 
+			UE_LOG(LogRHI, Warning, TEXT("%s%4.1f%%%5.2fms   %s %u draws %u prims %u verts%s"), 
 				*FString(TEXT("")).LeftPad(EffectiveDepth * 3), 
 				Percent,
 				Node->TimingResult,
 				*Node->Name,
 				Node->NumDraws,
 				Node->NumPrimitives,
-				Node->NumVertices
+				Node->NumVertices,
+				*Extra
 				);
 		}
 

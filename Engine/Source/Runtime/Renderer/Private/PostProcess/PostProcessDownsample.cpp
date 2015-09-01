@@ -154,8 +154,6 @@ void FRCPassPostProcessDownsample::SetShader(const FRenderingCompositePassContex
 
 void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Context)
 {
-	SCOPED_DRAW_EVENT(Context.RHICmdList, Downsample);
-
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
 
 	if(!InputDesc)
@@ -172,6 +170,12 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 
 	// e.g. 4 means the input texture is 4x smaller than the buffer size
 	uint32 ScaleFactor = FSceneRenderTargets::Get(Context.RHICmdList).GetBufferSizeXY().X / SrcSize.X;
+
+	FIntRect SrcRect = View.ViewRect / ScaleFactor;
+	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
+	SrcRect = DestRect * 2;
+
+	SCOPED_DRAW_EVENTF(Context.RHICmdList, Downsample, TEXT("Downsample %dx%d"), DestRect.Width(), DestRect.Height());
 
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
 
@@ -220,10 +224,6 @@ void FRCPassPostProcessDownsample::Process(FRenderingCompositePassContext& Conte
 	}
 
 	TShaderMapRef<FPostProcessDownsampleVS> VertexShader(Context.GetShaderMap());
-
-	FIntRect SrcRect = View.ViewRect / ScaleFactor;
-	FIntRect DestRect = FIntRect::DivideAndRoundUp(SrcRect, 2);
-	SrcRect = DestRect * 2;
 
 	if (!bHasCleared)
 	{

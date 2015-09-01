@@ -869,12 +869,10 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 
 		// ReflectionEnv is assumed to be on when going into this method
 		{
-			// Render the reflection environment with tiled deferred culling
-			SCOPED_DRAW_EVENT(RHICmdList, ReflectionEnvironmentGather);
-
 			SetRenderTarget(RHICmdList, NULL, NULL);
 
 			FReflectionEnvironmentTiledDeferredCS* ComputeShader = NULL;
+			// Render the reflection environment with tiled deferred culling
 			TArray<FReflectionCaptureSortData> SortData;
 			int32 NumBoxCaptures = 0;
 			int32 NumSphereCaptures = 0;
@@ -883,6 +881,11 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 			bool bHasBoxCaptures = (NumBoxCaptures > 0);
 			bool bHasSphereCaptures = (NumSphereCaptures > 0);
 			bool bNeedsClearCoat = (View.ShadingModelMaskInView & (1 << MSM_ClearCoat)) != 0;
+
+			SCOPED_DRAW_EVENTF(RHICmdList, ReflectionEnvironment, TEXT("ReflectionEnvironment ComputeShader %dx%d Tile:%dx%d Box:%d Sphere:%d ClearCoat:%d"), 
+				View.ViewRect.Width(), View.ViewRect.Height(), AdjustedReflectionTileSizeX, GReflectionEnvironmentTileSizeY,
+				NumBoxCaptures, NumSphereCaptures, bNeedsClearCoat);
+
 			ComputeShader = SelectReflectionEnvironmentTiledDeferredCS(View.ShaderMap, bUseLightmaps, bNeedsClearCoat, bHasBoxCaptures, bHasSphereCaptures);
 
 			RHICmdList.SetComputeShader(ComputeShader->GetComputeShader());
@@ -1009,7 +1012,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 		{
 			bRequiresApply = true;
 
-			SCOPED_DRAW_EVENT(RHICmdList, StandardDeferredReflectionEnvironment);
+			SCOPED_DRAW_EVENTF(RHICmdList, ReflectionEnvironment, TEXT("ReflectionEnvironment PixelShader"));
 
 			{
 				// Clear to no reflection contribution, alpha of 1 indicates full background contribution
