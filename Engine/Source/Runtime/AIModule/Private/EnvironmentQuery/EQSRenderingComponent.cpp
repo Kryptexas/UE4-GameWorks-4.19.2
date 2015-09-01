@@ -292,7 +292,7 @@ bool FEQSSceneProxy::SafeIsActorSelected() const
 	return false;
 }
 
-FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FEQSSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) && IsShown(View) 

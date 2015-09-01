@@ -89,7 +89,7 @@ void FNiagaraSceneProxy::OnTransformChanged()
 	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 }
 
-FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Relevance;
 	Relevance.bDynamicRelevance = true;

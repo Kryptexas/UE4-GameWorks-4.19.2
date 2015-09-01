@@ -70,7 +70,7 @@ public:
 
 	virtual const TArray<FNiagaraVariableInfo>& GetRequiredAttributes() = 0;
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, FNiagaraSceneProxy *SceneProxy)
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View, const FNiagaraSceneProxy *SceneProxy)
 	{
 		FPrimitiveViewRelevance Result;
 		bool bHasDynamicData = HasDynamicData();

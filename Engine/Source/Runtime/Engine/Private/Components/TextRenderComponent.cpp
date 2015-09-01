@@ -365,7 +365,7 @@ public:
 	// Begin FPrimitiveSceneProxy interface
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override;
 	virtual bool CanBeOccluded() const override;
 	virtual uint32 GetMemoryFootprint() const override;
 	uint32 GetAllocatedSize() const;
@@ -532,7 +532,7 @@ bool FTextRenderSceneProxy::CanBeOccluded() const
 	return !MaterialRelevance.bDisableDepthTest;
 }
 
-FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FTextRenderSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.TextRender;

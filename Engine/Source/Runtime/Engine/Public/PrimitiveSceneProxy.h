@@ -211,7 +211,7 @@ public:
 	 * @param View - The view to determine relevance for.
 	 * @return The relevance of the primitive's elements to the view.
 	 */
-	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
+	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const;
 
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
 	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}

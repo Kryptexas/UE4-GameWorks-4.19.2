@@ -129,7 +129,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)  override
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
 			const bool bVisibleForSelection = !bDrawOnlyIfSelected || IsSelected();
 			const bool bVisibleForShowFlags = true; // @TODO

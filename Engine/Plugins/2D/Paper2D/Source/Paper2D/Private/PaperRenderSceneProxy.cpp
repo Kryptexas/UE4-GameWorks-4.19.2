@@ -566,7 +566,7 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, class UMateria
 	}
 }
 
-FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FPaperRenderSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	const FEngineShowFlags& EngineShowFlags = View->Family->EngineShowFlags;
 

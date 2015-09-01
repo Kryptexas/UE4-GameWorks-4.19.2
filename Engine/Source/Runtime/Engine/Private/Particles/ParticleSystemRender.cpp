@@ -6553,7 +6553,7 @@ void FParticleSystemSceneProxy::GetObjectPositionAndScale(const FSceneView& View
 /**
 * @return Relevance for rendering the particle system primitive component in the given View
 */
-FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FParticleSystemSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Particles;

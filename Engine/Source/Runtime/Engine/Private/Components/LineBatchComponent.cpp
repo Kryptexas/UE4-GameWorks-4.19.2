@@ -80,7 +80,7 @@ public:
 	*	@param		Scene view to use to determine our relevence.
 	*  @return		View relevance struct
 	*/
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		return ViewRelevance;
 	}

@@ -16,7 +16,7 @@ public:
         EyeToRender = Component->EyeToRender;
     }
 
-    virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+    virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
     {
         FPrimitiveViewRelevance viewRelevance = FStaticMeshSceneProxy::GetViewRelevance(View);
         bool bVisible = true;

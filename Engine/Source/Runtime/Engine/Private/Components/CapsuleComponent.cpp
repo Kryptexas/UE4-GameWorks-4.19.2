@@ -55,7 +55,7 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 			}
 		}
 
-		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 		{
 			const bool bVisible = !bDrawOnlyIfSelected || IsSelected();
 			FPrimitiveViewRelevance Result;

@@ -793,7 +793,7 @@ bool FLandscapeComponentSceneProxy::CanBeOccluded() const
 	return !MaterialRelevance.bDisableDepthTest;
 }
 
-FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FLandscapeComponentSceneProxy::GetViewRelevance(const FSceneView* View) const
 {
 	FPrimitiveViewRelevance Result;
 	Result.bDrawRelevance = IsShown(View) && View->Family->EngineShowFlags.Landscape;

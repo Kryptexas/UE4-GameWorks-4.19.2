@@ -230,7 +230,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		bool bVisible = View->Family->EngineShowFlags.BillboardSprites;
 		FPrimitiveViewRelevance Result;

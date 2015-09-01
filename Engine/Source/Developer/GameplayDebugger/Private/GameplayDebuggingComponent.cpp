@@ -82,7 +82,7 @@ public:
 		}
 	}
 
-	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		for (int32 Index = 0; Index < ChildProxies.Num(); ++Index)
@@ -1389,7 +1389,7 @@ public:
 	}
 
 
-	FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
+	FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) const override
 	{
 		FPrimitiveViewRelevance Result;
 		Result.bDrawRelevance = View->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex);// IsShown(View);

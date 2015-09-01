@@ -918,7 +918,7 @@ bool FStaticMeshSceneProxy::CanBeOccluded() const
 	return !MaterialRelevance.bDisableDepthTest && !ShouldRenderCustomDepth();
 }
 
-FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView* View)
+FPrimitiveViewRelevance FStaticMeshSceneProxy::GetViewRelevance(const FSceneView* View) const
 {   
 	checkSlow(IsInParallelRenderingThread());
 
