@@ -698,11 +698,7 @@ namespace AutomationTool
 			{
 				if (!bCreatedMutex)
 				{
-                    throw new AutomationException("Another instance of {0} is already running.", EntryAssemblyLocation);
-				}
-				else
-				{
-					Log.TraceVerbose("No other instance of {0} is running.", EntryAssemblyLocation);
+                    throw new AutomationException("A conflicting instance of AutomationTool is already running. Curent location: {0}. A process manager may be used to determine the conflicting process and what tool may have launched it", EntryAssemblyLocation);
 				}
 
 				ExitCode Result = Main(Param);
