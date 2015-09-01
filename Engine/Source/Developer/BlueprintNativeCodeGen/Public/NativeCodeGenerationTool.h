@@ -9,7 +9,6 @@
 
 struct FNativeCodeGenerationTool
 {
-	static void Open(UBlueprint& Object, TSharedRef< class FBlueprintEditor> Editor);
-
-	static bool CanGenerate(const UBlueprint& Object);
+	BLUEPRINTNATIVECODEGEN_API static void Open(UBlueprint& Object, TSharedRef< class FBlueprintEditor> Editor);
+	BLUEPRINTNATIVECODEGEN_API static bool CanGenerate(const UBlueprint& Object);
 };

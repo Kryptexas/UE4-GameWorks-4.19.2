@@ -1,13 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "BlueprintEditorPrivatePCH.h"
+#include "BlueprintNativeCodeGenPCH.h"
 #include "NativeCodeGenerationTool.h"
 #include "Dialogs.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"
 #include "SourceCodeNavigation.h"
-#include "DesktopPlatformModule.h"
+#include "DesktopPlatformModule.h" // for InvalidateMakefiles()
 //#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"

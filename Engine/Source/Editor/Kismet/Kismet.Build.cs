@@ -47,6 +47,7 @@ public class Kismet : ModuleRules
                 "DerivedDataCache",
 				"DesktopPlatform",
 				"HotReload",
+                "BlueprintNativeCodeGen"
 			}
 			);
 
