@@ -33,7 +33,7 @@ void FAnimGroupInstance::TestTickRecordForLeadership(EAnimGroupRole::Type Member
 	}
 }
 
-void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers)
+void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers, int32 PreviousGroupLeader)
 {
 	GroupLeaderIndex = FMath::Max(GroupLeaderIndex, 0);
 
@@ -72,7 +72,7 @@ void FAnimGroupInstance::Finalize(const TArray<FName>& PreviousValidMarkers)
 			}
 		}
 		ValidMarkers.Sort();
-		if (ValidMarkers != PreviousValidMarkers)
+		if (ValidMarkers != PreviousValidMarkers || PreviousGroupLeader != GroupLeaderIndex)
 		{
 			for (int32 Idx = 0; Idx < ActivePlayers.Num(); ++Idx)
 			{

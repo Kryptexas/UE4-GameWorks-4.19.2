@@ -337,7 +337,7 @@ public:
 	ENGINE_API void TestTickRecordForLeadership(EAnimGroupRole::Type MembershipType);
 
 	// Called after all tick records have been added but before assets are actually ticked
-	ENGINE_API void Finalize(const TArray<FName>& PreviousValidMarkers);
+	ENGINE_API void Finalize(const TArray<FName>& PreviousValidMarkers, int32 PreviousGroupLeader);
 };
 
 /** Utility struct to accumulate root motion. */

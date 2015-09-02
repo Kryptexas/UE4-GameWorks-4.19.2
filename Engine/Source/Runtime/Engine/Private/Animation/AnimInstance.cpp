@@ -425,8 +425,10 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 			if (SyncGroup.ActivePlayers.Num() > 0)
 			{
 				static TArray<FName> TempNames;
-				const TArray<FName>& PreviousValidMarkers = PreviousSyncGroups.IsValidIndex(GroupIndex) ? PreviousSyncGroups[GroupIndex].ValidMarkers : TempNames;
-				SyncGroup.Finalize(PreviousValidMarkers);
+				const bool bSyncGroupValidLastFrame = PreviousSyncGroups.IsValidIndex(GroupIndex);
+				const TArray<FName>& PreviousValidMarkers = bSyncGroupValidLastFrame ? PreviousSyncGroups[GroupIndex].ValidMarkers : TempNames;
+				const int32 PreviousGroupLeader = bSyncGroupValidLastFrame ? PreviousSyncGroups[GroupIndex].GroupLeaderIndex : -1;
+				SyncGroup.Finalize(PreviousValidMarkers, PreviousGroupLeader);
     
 				// Tick the group leader
 				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, SyncGroup.ValidMarkers);
