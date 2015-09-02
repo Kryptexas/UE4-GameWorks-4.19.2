@@ -4,6 +4,7 @@
 	SceneComponent.cpp
 =============================================================================*/
 
+
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "MessageLog.h"
@@ -1357,8 +1358,7 @@ bool USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		AttachParent->OnChildAttached(this);
 
-		// calculate transform with new attachment condition
-		UpdateComponentToWorld();
+		UpdateComponentToWorld(false, ETeleportType::TeleportPhysics);
 
 		if (UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this))
 		{
