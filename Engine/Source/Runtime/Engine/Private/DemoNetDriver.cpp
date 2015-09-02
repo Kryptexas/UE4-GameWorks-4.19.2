@@ -306,7 +306,8 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 
 		ResetDemoState();
 
-		ReplayStreamer = FNetworkReplayStreaming::Get().GetFactory().CreateReplayStreamer();
+		const TCHAR* const StreamerOverride = URL.GetOption(TEXT("ReplayStreamerOverride="), nullptr);
+		ReplayStreamer = FNetworkReplayStreaming::Get().GetFactory(StreamerOverride).CreateReplayStreamer();
 
 		return true;
 	}

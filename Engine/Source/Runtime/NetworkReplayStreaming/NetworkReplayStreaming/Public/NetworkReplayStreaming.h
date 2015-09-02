@@ -231,5 +231,5 @@ public:
 		return FModuleManager::LoadModuleChecked< FNetworkReplayStreaming >( "NetworkReplayStreaming" );
 	}
 
-	virtual INetworkReplayStreamingFactory& GetFactory();
+	virtual INetworkReplayStreamingFactory& GetFactory(const TCHAR* FactoryNameOverride = nullptr);
 };
