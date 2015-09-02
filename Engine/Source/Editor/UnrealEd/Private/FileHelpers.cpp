@@ -2063,6 +2063,9 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// potentially contain volumes.
 	GUnrealEd->UpdateVolumeActorVisibility(NULL);
 
+	// If there are any old mirrored brushes in the map with inverted polys, fix them here
+	GUnrealEd->FixAnyInvertedBrushes(World);
+
 	// Fire delegate when a new map is opened, with name of map
 	FEditorDelegates::OnMapOpened.Broadcast(InFilename, LoadAsTemplate);
 }

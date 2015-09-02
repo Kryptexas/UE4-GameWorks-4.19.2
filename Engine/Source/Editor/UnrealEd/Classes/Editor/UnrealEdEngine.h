@@ -686,6 +686,11 @@ public:
 	void UpdateVolumeActorVisibility( UClass* InVolumeActorClass = NULL , FLevelEditorViewportClient* InViewport = NULL);
 
 	/**
+	 * Identify any brushes whose sense is inverted and repair them
+	 */
+	void FixAnyInvertedBrushes(UWorld* World);
+
+	/**
 	 * Get the index of the provided sprite category
 	 *
 	 * @param	InSpriteCategory	Sprite category to get the index of

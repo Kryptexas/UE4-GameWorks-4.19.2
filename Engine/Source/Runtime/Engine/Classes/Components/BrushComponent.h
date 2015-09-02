@@ -49,6 +49,9 @@ public:
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	// End UPrimitiveComponent interface.
 
+	/** Return true if the brush appears to have inverted polys */
+	ENGINE_API bool HasInvertedPolys() const;
+
 	/** If the transform mirroring no longer reflects the body setup, request its recalculation */
 	ENGINE_API void RequestUpdateBrushCollision();
 #endif
