@@ -40,6 +40,7 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 	GENERATED_UCLASS_BODY()
 
 	// Begin AActor Interface
+	virtual bool UseShortConnectTimeout() const override;
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	virtual const AActor* GetNetOwner() const override;
 	virtual UNetConnection* GetNetConnection() const override;

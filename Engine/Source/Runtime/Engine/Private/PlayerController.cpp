@@ -1239,6 +1239,11 @@ void APlayerController::OnActorChannelOpen(FInBunch& InBunch, UNetConnection* Co
 	}
 }
 
+bool APlayerController::UseShortConnectTimeout() const
+{
+	return bShortConnectTimeOut;
+}
+
 void APlayerController::OnSerializeNewActor(FOutBunch& OutBunch)
 {
 	// serialize PlayerIndex as part of the initial bunch for PlayerControllers so they can be matched to the correct client-side viewport

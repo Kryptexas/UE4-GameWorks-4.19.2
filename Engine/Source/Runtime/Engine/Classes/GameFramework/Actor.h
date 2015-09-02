@@ -1693,6 +1693,13 @@ public:
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) {};
 
 	/**
+	 * Used by the net connection to determine if a net owning actor should switch to using the shortened timeout value
+	 * 
+	 * @return true to switch from InitialConnectTimeout to ConnectionTimeout values on the net driver
+	 */
+	virtual bool UseShortConnectTimeout() const { return false; }
+
+	/**
 	 * SerializeNewActor has just been called on the actor before network replication (server side)
 	 * @param OutBunch Bunch containing serialized contents of actor prior to replication
 	 */

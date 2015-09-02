@@ -1397,7 +1397,7 @@ void UNetConnection::Tick()
 
 	// Handle timeouts.
 	float Timeout = Driver->InitialConnectTimeout;
-	if ( (State!=USOCK_Pending) && (bPendingDestroy || (PlayerController && PlayerController->bShortConnectTimeOut) ) )
+	if ((State != USOCK_Pending) && (bPendingDestroy || (OwningActor && OwningActor->UseShortConnectTimeout())))
 	{
 		Timeout = bPendingDestroy ? 2.f : Driver->ConnectionTimeout;
 	}

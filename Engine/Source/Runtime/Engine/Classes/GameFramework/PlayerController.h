@@ -1217,6 +1217,7 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Destroyed() override;
 	virtual void OnActorChannelOpen(class FInBunch& InBunch, class UNetConnection* Connection) override;
+	virtual bool UseShortConnectTimeout() const override;
 	virtual void OnSerializeNewActor(class FOutBunch& OutBunch) override;
 	virtual void OnNetCleanup(class UNetConnection* Connection) override;
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
