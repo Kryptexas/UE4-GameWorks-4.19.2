@@ -711,6 +711,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	// Write the header
 	(*FileAr) << DemoHeader;
+	FileAr->Flush();
 
 	// Spawn the demo recording spectator.
 	SpawnDemoRecSpectator( Connection );

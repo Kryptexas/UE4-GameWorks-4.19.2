@@ -10,12 +10,15 @@ namespace UnrealBuildTool.Rules
 
             PrivateIncludePathModuleNames.Add("OnlineSubsystem");
 
+			PublicIncludePathModuleNames.Add("Engine");
+
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
 					"Core",
 					"NetworkReplayStreaming",
-                    "Json"
+                    "Json",
+					"Engine"
 				}
 			);
 		}
