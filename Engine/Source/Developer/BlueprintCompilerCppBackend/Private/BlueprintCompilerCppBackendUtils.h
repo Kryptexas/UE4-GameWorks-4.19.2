@@ -52,13 +52,14 @@ public:
 		NativeObjectNamesInConstructor.Add(Object, NativeName);
 	}
 
-	FString AddNewObject_InConstructor(UObject* Object)
+	FString AddNewObject_InConstructor(UObject* Object, bool bAddToObjectsCreatedPerClass)
 	{
 		ensure(bInsideConstructor);
 		const FString UniqueName = GenerateUniqueLocalName();
 		NativeObjectNamesInConstructor.Add(Object, UniqueName);
-		if (bCreatingObjectsPerClass)
+		if (bAddToObjectsCreatedPerClass)
 		{
+			ensure(bCreatingObjectsPerClass);
 			check(!ObjectsCreatedPerClass.Contains(Object));
 			ObjectsCreatedPerClass.Add(Object);
 		}
@@ -104,7 +105,7 @@ public:
 
 	/** All objects (that can be referenced from other package) that will have a different path in cooked build 
 	(due to the native code generation), should be handled by this function */
-	FString FindGloballyMappedObject(UObject* Object)
+	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false)
 	{
 		// TODO: check if not excluded
 
@@ -144,7 +145,25 @@ public:
 			return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *UDE->GetName());
 		}
 
+		int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
+		if (Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
+		{
+			return FString::Printf(TEXT("CastChecked<%s%s>(%s%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d])")
+				, Object->GetClass()->GetPrefixCPP()
+				, *Object->GetClass()->GetName()
+				, ActualClass->GetPrefixCPP()
+				, *ActualClass->GetName()
+				, ObjectsCreatedPerClassIdx);
+		}
+
 		// TODO: handle subobjects
+
+		if (bLoadIfNotFound && ensure(Object))
+		{
+			UClass* FoundClass = Object->GetClass();
+			const FString ClassString = FString(FoundClass->GetPrefixCPP()) + FoundClass->GetName();
+			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
+		}
 
 		return FString{};
 	}
@@ -259,19 +278,30 @@ struct FEmitDefaultValueHelper
 	// OuterPath ends context/outer name (or empty, if the scope is "this")
 	static void OuterGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& OuterPath, const uint8* DataContainer, const uint8* OptionalDefaultDataContainer, EPropertyAccessOperator AccessOperator, bool bAllowProtected = false);
 
-private:
+
 	// PathToMember ends with variable name
 	static void InnerGenerate(FEmitterLocalContext& Context, const UProperty* Property, const FString& PathToMember, const uint8* ValuePtr, const uint8* DefaultValuePtr, bool bWithoutFirstConstructionLine = false);
 
+	// Creates the subobject (of class) returns it's native local name, 
+	// returns empty string if cannot handle
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object);
+
+private:
 	// Returns native term, 
 	// returns empty string if cannot handle
 	static FString HandleSpecialTypes(FEmitterLocalContext& Context, const UProperty* Property, const uint8* ValuePtr);
 
 	static FString HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, const USCS_Node* ParentNode = nullptr);
-	
-	// Creates the subobject (of class) returns it's native local name, 
-	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object);
 
 	static FString HandleInstancedSubobject(FEmitterLocalContext& Context, UObject* Object, bool bSkipEditorOnlyCheck = false);
+};
+
+struct FBackendHelperUMG
+{
+	static FString WidgetFunctionsInHeader(UClass* SourceClass);
+
+	// these function should use the same context as Constructor
+	static void CreateClassSubobjects(FEmitterLocalContext& Context);
+	static void EmitWidgetInitializationFunctions(FEmitterLocalContext& Context);
+
 };

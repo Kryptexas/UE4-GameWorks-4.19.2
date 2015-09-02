@@ -385,6 +385,8 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 			}
 		}
 
+		FBackendHelperUMG::CreateClassSubobjects(Context);
+
 		Context.bCreatingObjectsPerClass = false;
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
@@ -502,6 +504,9 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
 	Context.bInsideConstructor = false;
+
+	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
+
 	return Context.GetResult();
 }
 
@@ -513,7 +518,8 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		return FString();
 	}
 
-	const FString LocalNativeName = Context.AddNewObject_InConstructor(Object);
+	const bool AddAsSubobjectOfClass = Object->GetOuter() == Context.GetCurrentlyGeneratedClass();
+	const FString LocalNativeName = Context.AddNewObject_InConstructor(Object, AddAsSubobjectOfClass);
 	UClass* ObjectClass = Object->GetClass();
 	Context.AddHighPriorityLine(FString::Printf(
 		TEXT("auto %s = NewObject<%s%s>(%s, TEXT(\"%s\"));")
@@ -521,9 +527,10 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 		, ObjectClass->GetPrefixCPP()
 		, *ObjectClass->GetName()
 		, *OuterStr, *Object->GetName()));
-	if (Object->GetOuter() == Context.GetCurrentlyGeneratedClass())
+	if (AddAsSubobjectOfClass)
 	{
-		Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *LocalNativeName));
+		ensure(Context.bCreatingObjectsPerClass);
+		Context.AddHighPriorityLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *LocalNativeName));
 	}
 
 	for (auto Property : TFieldRange<const UProperty>(ObjectClass))
@@ -549,7 +556,7 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	}
 	else
 	{
-		LocalNativeName = Context.AddNewObject_InConstructor(Object);
+		LocalNativeName = Context.AddNewObject_InConstructor(Object, false);
 	}
 
 	UClass* ObjectClass = Object->GetClass();

@@ -29,6 +29,13 @@ namespace UnrealBuildTool.Rules
                     "BlueprintGraph",
 				}
 				);
+            PrivateDependencyModuleNames.AddRange(
+                new string[]
+				{
+					"UMG",
+                    "SlateCore",
+				}
+                );
 		}
 	}
 }

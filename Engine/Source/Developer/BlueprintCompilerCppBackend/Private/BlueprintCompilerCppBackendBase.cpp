@@ -138,6 +138,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		}
 	}
 
+	Emit(Header, *FBackendHelperUMG::WidgetFunctionsInHeader(SourceClass));
+
 	Emit(Header, TEXT("};\n\n"));
 
 	Emit(Body, *FEmitHelper::EmitLifetimeReplicatedPropsImpl(SourceClass, CppClassName, TEXT("")));
