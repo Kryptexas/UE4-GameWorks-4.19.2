@@ -1332,6 +1332,7 @@ public:
 	virtual void ProcessEvent( UFunction* Function, void* Parameters ) override;
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) override;
 	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) override;
+	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	virtual void BeginDestroy() override;
@@ -2515,8 +2516,10 @@ private:
 	/** List of replicated components. */
 	TArray<UActorComponent*> ReplicatedComponents;
 
+#if WITH_EDITOR
 	/** Maps natively-constructed components to properties that reference them. */
-	TMultiMap<UActorComponent*, UObjectProperty*> NativeConstructedComponentToPropertyMap;
+	TMultiMap<FName, UObjectProperty*> NativeConstructedComponentToPropertyMap;
+#endif
 
 public:
 
