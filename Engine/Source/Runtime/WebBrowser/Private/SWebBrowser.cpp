@@ -55,6 +55,7 @@ void SWebBrowser::Construct(const FArguments& InArgs, const TSharedPtr<IWebBrows
 	OnCloseWindow = InArgs._OnCloseWindow;
 	AddressBarUrl = FText::FromString(InArgs._InitialURL);
 	PopupMenuMethod = InArgs._PopupMenuMethod;
+	bShowInitialThrobber = InArgs._ShowInitialThrobber;
 
 	BrowserWindow = InWebBrowserWindow;
 	if(!BrowserWindow.IsValid())
@@ -362,7 +363,7 @@ void SWebBrowser::OnUrlTextCommitted( const FText& NewText, ETextCommit::Type Co
 
 EVisibility SWebBrowser::GetViewportVisibility() const
 {
-	if (BrowserWindow.IsValid() && BrowserWindow->IsInitialized())
+	if (!bShowInitialThrobber || (BrowserWindow.IsValid() &&  BrowserWindow->IsInitialized()))
 	{
 		return EVisibility::Visible;
 	}
@@ -371,7 +372,7 @@ EVisibility SWebBrowser::GetViewportVisibility() const
 
 EVisibility SWebBrowser::GetLoadingThrobberVisibility() const
 {
-	if (!BrowserWindow.IsValid() || !BrowserWindow->IsInitialized())
+	if (bShowInitialThrobber && (!BrowserWindow.IsValid() || !BrowserWindow->IsInitialized()))
 	{
 		return EVisibility::Visible;
 	}

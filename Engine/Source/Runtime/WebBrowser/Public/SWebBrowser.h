@@ -31,6 +31,7 @@ public:
 		, _ShowErrorMessage(true)
 		, _SupportsTransparency(false)
 		, _SupportsThumbMouseButtonNavigation(false)
+		, _ShowInitialThrobber(true)
 		, _BackgroundColor(255,255,255,255)
 		, _PopupMenuMethod(TOptional<EPopupMethod>())
 		, _ViewportSize(FVector2D::ZeroVector)
@@ -59,6 +60,9 @@ public:
 
 		/** Whether to allow forward and back navigation via the mouse thumb buttons. */
 		SLATE_ARGUMENT(bool, SupportsThumbMouseButtonNavigation)
+
+		/** Whether to show a throbber overlay during browser initialization. */
+		SLATE_ARGUMENT(bool, ShowInitialThrobber)
 
 		/** Opaque background color used before a document is loaded and when no document color is specified. */
 		SLATE_ARGUMENT(FColor, BackgroundColor)
@@ -345,4 +349,6 @@ private:
 	/** A delegate that is invoked when when the browser needs to dismiss all dialogs */
 	FSimpleDelegate OnDismissAllDialogs;
 
+	/** The initial throbber setting */
+	bool bShowInitialThrobber;
 };
