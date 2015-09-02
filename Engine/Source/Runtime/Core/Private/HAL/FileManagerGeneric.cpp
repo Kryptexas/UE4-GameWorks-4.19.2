@@ -587,12 +587,12 @@ void FFileManagerGeneric::FindFilesRecursiveInternal( TArray<FString>& FileNames
 }
 
 FArchiveFileReaderGeneric::FArchiveFileReaderGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InSize )
-	:	Filename		( InFilename )
-	,   Size           ( InSize )
-	,   Pos            ( 0 )
-	,   BufferBase     ( 0 )
-	,   BufferCount    ( 0 )
-	,		Handle( InHandle )
+	: Filename( InFilename )
+	, Size( InSize )
+	, Pos( 0 )
+	, BufferBase( 0 )
+	, BufferCount( 0 )
+	, Handle( InHandle )
 {
 	ArIsLoading = ArIsPersistent = true;
 }
@@ -718,10 +718,11 @@ void FArchiveFileReaderGeneric::Serialize( void* V, int64 Length )
 }
 
 FArchiveFileWriterGeneric::FArchiveFileWriterGeneric( IFileHandle* InHandle, const TCHAR* InFilename, int64 InPos )
-	:	Filename	( InFilename )
-	,   Pos			( InPos )
-	,   BufferCount	( 0 )
-	,	Handle		( InHandle )
+	: Filename( InFilename )
+	, Pos( InPos )
+	, BufferCount( 0 )
+	, Handle( InHandle )
+	, bLoggingError( false )
 {
 	ArIsSaving = ArIsPersistent = true;
 }
@@ -825,8 +826,14 @@ void FArchiveFileWriterGeneric::Flush()
 
 void FArchiveFileWriterGeneric::LogWriteError(const TCHAR* Message)
 {
-	TCHAR ErrorBuffer[1024];
-	UE_LOG(LogFileManager, Error, TEXT("%s: %s (%s)"), Message, *Filename, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
+	// Prevent re-entry if logging causes another log error leading to a stack overflow
+	if (!bLoggingError)
+	{
+		bLoggingError = true;
+		TCHAR ErrorBuffer[1024];
+		UE_LOG(LogFileManager, Error, TEXT("%s: %s (%s)"), Message, *Filename, FPlatformMisc::GetSystemErrorMessage(ErrorBuffer, 1024, 0));
+		bLoggingError = false;
+	}
 }
 //---
 

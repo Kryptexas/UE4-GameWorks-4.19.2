@@ -228,13 +228,13 @@ protected:
 	virtual void ReadLowLevel(uint8* Dest, int64 CountToRead, int64& OutBytesRead);
 
 	/** Filename for debugging purposes. */
-	FString			Filename;
-	int64            Size;
-	int64            Pos;
-	int64            BufferBase;
-	int64            BufferCount;
-	TAutoPtr<IFileHandle>	Handle;
-	uint8            Buffer[1024];	
+	FString Filename;
+	int64 Size;
+	int64 Pos;
+	int64 BufferBase;
+	int64 BufferCount;
+	TAutoPtr<IFileHandle> Handle;
+	uint8 Buffer[1024];
 };
 
 
@@ -292,9 +292,10 @@ protected:
 	void LogWriteError(const TCHAR* Message);
 
 	/** Filename for debugging purposes */
-	FString			Filename;
-	int64            Pos;
-	int64            BufferCount;
-	TAutoPtr<IFileHandle>		 Handle;
-	uint8            Buffer[4096];
+	FString Filename;
+	int64 Pos;
+	int64 BufferCount;
+	TAutoPtr<IFileHandle> Handle;
+	uint8 Buffer[4096];
+	bool bLoggingError;
 };
