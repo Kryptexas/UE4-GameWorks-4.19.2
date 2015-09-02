@@ -198,7 +198,9 @@ void UEditorLoadingSavingSettings::CheckSourceControlCompatability()
 		Info.bFireAndForget = false;
 
 		Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateLambda([](ECheckBoxState State){
-			GetMutableDefault<UEditorLoadingSavingSettings>()->bEnableSourceControlCompatabilityCheck = (State != ECheckBoxState::Checked);
+			auto* Settings = GetMutableDefault<UEditorLoadingSavingSettings>();
+			Settings->bEnableSourceControlCompatabilityCheck = (State != ECheckBoxState::Checked);
+			Settings->SaveConfig();
 		});
 		Info.CheckBoxText = LOCTEXT("AutoReimport_DontShowAgain", "Don't show again");
 
