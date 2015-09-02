@@ -222,7 +222,7 @@ bool UPartyGameState::ResetForFrontend()
 						TSharedPtr<FOnlinePartyMember> CheckPartyMember = PartyInt->GetPartyMember(*OwningUserId, *PartyInfo->PartyId, *MemberId);
 						if (!CheckPartyMember.IsValid())
 						{
-							UE_LOG(LogParty, Log, TEXT("[%s] Player %s left during fixup"), *PartyInfo->PartyId->ToString(), *MemberId.ToString());
+							UE_LOG(LogParty, Verbose, TEXT("[%s] Player %s left during fixup"), *PartyInfo->PartyId->ToString(), *MemberId.ToString());
 							HandlePartyMemberLeft(*MemberId, EMemberExitedReason::Left);
 						}
 					}
@@ -243,7 +243,7 @@ bool UPartyGameState::ResetForFrontend()
 						TSharedPtr<FOnlinePartyData> PartyMemberData = PartyInt->GetPartyMemberData(*OwningUserId, *PartyInfo->PartyId, *MemberId);
 						if (PartyMemberData.IsValid())
 						{
-							UE_LOG(LogParty, Log, TEXT("[%s] Player %s data received during fixup"), *PartyInfo->PartyId->ToString(), *UniqueId.ToString());
+							UE_LOG(LogParty, Verbose, TEXT("[%s] Player %s data received during fixup"), *PartyInfo->PartyId->ToString(), *UniqueId.ToString());
 							HandlePartyMemberDataReceived(*MemberId, PartyMemberData.ToSharedRef());
 						}
 					}
@@ -320,7 +320,7 @@ UPartyMemberState* UPartyGameState::CreateNewPartyMember(const FUniqueNetId& InM
 
 void UPartyGameState::HandlePartyConfigChanged(const TSharedRef<FPartyConfiguration>& InPartyConfig)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyConfigChanged"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"));
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyConfigChanged"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"));
 	if (PartyInfo.IsValid())
 	{
 		CurrentConfig = *PartyInfo->Config;
@@ -330,7 +330,7 @@ void UPartyGameState::HandlePartyConfigChanged(const TSharedRef<FPartyConfigurat
 
 void UPartyGameState::HandlePartyMemberJoined(const FUniqueNetId& InMemberId)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyMemberJoined %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyMemberJoined %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
 
  	TSharedRef<const FUniqueNetId> IdRef = InMemberId.AsShared();
  	FUniqueNetIdRepl MemberId(IdRef);
@@ -352,7 +352,7 @@ void UPartyGameState::HandlePartyMemberJoined(const FUniqueNetId& InMemberId)
 
 void UPartyGameState::HandlePartyMemberLeft(const FUniqueNetId& InMemberId, EMemberExitedReason Reason)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyMemberLeft %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyMemberLeft %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
 
 	if (InMemberId.IsValid())
 	{
@@ -374,7 +374,7 @@ void UPartyGameState::HandlePartyMemberLeft(const FUniqueNetId& InMemberId, EMem
 
 void UPartyGameState::HandlePartyMemberPromoted(const FUniqueNetId& InMemberId)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyMemberPromoted %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyMemberPromoted %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
 
 	if (InMemberId.IsValid())
 	{
@@ -416,7 +416,7 @@ void UPartyGameState::ComparePartyData(const FPartyState& OldPartyData, const FP
 
 void UPartyGameState::HandlePartyDataReceived(const TSharedRef<FOnlinePartyData>& InPartyData)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyDataReceived"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"));
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyDataReceived"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"));
 
 	UWorld* World = GetWorld();
 	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
@@ -439,7 +439,7 @@ void UPartyGameState::HandlePartyDataReceived(const TSharedRef<FOnlinePartyData>
 
 void UPartyGameState::HandlePartyMemberDataReceived(const FUniqueNetId& InMemberId, const TSharedRef<FOnlinePartyData>& InPartyMemberData)
 {
-	UE_LOG(LogParty, Verbose, TEXT("[%s] HandlePartyMemberDataReceived %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
+	UE_LOG(LogParty, VeryVerbose, TEXT("[%s] HandlePartyMemberDataReceived %s"), PartyInfo.IsValid() ? *PartyInfo->PartyId->ToString() : TEXT("INVALID"), *InMemberId.ToString());
 
 	UWorld* World = GetWorld();
 	IOnlinePartyPtr PartyInt = Online::GetPartyInterface(World);
