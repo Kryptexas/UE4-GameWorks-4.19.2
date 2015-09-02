@@ -423,9 +423,9 @@ private:
 	enum class EInitToEmptyString : uint8 { Value };
 	explicit FText( EInitToEmptyString );
 
-	explicit FText( FString InSourceString );
+	FText( FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory );
 
-	explicit FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
+	FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
 
 	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );
 
@@ -439,12 +439,12 @@ private:
 	/**
 	 * Generate an FText for a string formatted numerically.
 	 */
-	static FText CreateNumericalText(FString InSourceString);
+	static FText CreateNumericalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory);
 
 	/**
 	 * Generate an FText for a string formatted from a date/time.
 	 */
-	static FText CreateChronologicalText(FString InSourceString);
+	static FText CreateChronologicalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory);
 
 	/** Returns the source string of the FText */
 	TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;

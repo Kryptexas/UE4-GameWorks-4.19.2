@@ -322,11 +322,15 @@ FText& FText::operator=(FText&& Source)
 }
 #endif
 
-FText::FText( FString InSourceString )
+FText::FText( FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory )
 	: DisplayString( new FString( MoveTemp(InSourceString) ))
+	, History( MoveTemp(InHistory) )
 	, Flags(0)
 {
-	History = MakeShareable(new FTextHistory_Base(DisplayString));
+	if (!History.IsValid())
+	{
+		History = MakeShareable(new FTextHistory_Base(DisplayString));
+	}
 }
 
 FText::FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags )
@@ -373,7 +377,7 @@ FText FText::TrimPreceding( const FText& InText )
 		TrimmedString = TrimmedString.Right( TrimmedString.Len() - StartPos );
 	}
 
-	FText NewText = FText( MoveTemp( TrimmedString ) );
+	FText NewText = FText( MoveTemp( TrimmedString ), nullptr );
 
 	if (!GIsEditor)
 	{
@@ -408,7 +412,7 @@ FText FText::TrimTrailing( const FText& InText )
 		TrimmedString = TrimmedString.Left( EndPos + 1 );
 	}
 
-	FText NewText = FText( MoveTemp ( TrimmedString ) );
+	FText NewText = FText( MoveTemp ( TrimmedString ), nullptr );
 
 	if (!GIsEditor)
 	{
@@ -455,7 +459,7 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 		TrimmedString = TrimmedString.Mid( StartPos, Len );
 	}
 
-	FText NewText = FText( MoveTemp( TrimmedString ) );
+	FText NewText = FText( MoveTemp( TrimmedString ), nullptr );
 
 	if (!GIsEditor)
 	{
@@ -836,8 +840,7 @@ public:
 			}
 		}
 
-		FText Result = FText(MoveTemp(ResultString));
-		Result.History = InHistory;
+		FText Result = FText(MoveTemp(ResultString), InHistory);
 		if (!GIsEditor)
 		{
 			Result.Flags = Result.Flags | ETextFlag::Transient;
@@ -1147,9 +1150,9 @@ FText FText::ChangeKey( FString Namespace, FString Key, const FText& Text )
 }
 #endif
 
-FText FText::CreateNumericalText(FString InSourceString)
+FText FText::CreateNumericalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory)
 {
-	FText NewText = FText( MoveTemp( InSourceString ) );
+	FText NewText = FText( MoveTemp( InSourceString ), MoveTemp( InHistory ) );
 	if (!GIsEditor)
 	{
 		NewText.Flags |= ETextFlag::Transient;
@@ -1157,9 +1160,9 @@ FText FText::CreateNumericalText(FString InSourceString)
 	return NewText;
 }
 
-FText FText::CreateChronologicalText(FString InSourceString)
+FText FText::CreateChronologicalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory)
 {
-	FText NewText = FText( MoveTemp( InSourceString ) );
+	FText NewText = FText( MoveTemp( InSourceString ), MoveTemp( InHistory ) );
 	if (!GIsEditor)
 	{
 		NewText.Flags |= ETextFlag::Transient;
@@ -1169,7 +1172,7 @@ FText FText::CreateChronologicalText(FString InSourceString)
 
 FText FText::FromName( const FName& Val) 
 {
-	FText NewText = FText( Val.ToString() );
+	FText NewText = FText( Val.ToString(), nullptr );
 
 	if (!GIsEditor)
 	{
@@ -1181,7 +1184,7 @@ FText FText::FromName( const FName& Val)
 
 FText FText::FromString( FString String )
 {
-	FText NewText = FText( MoveTemp(String) );
+	FText NewText = FText( MoveTemp(String), nullptr );
 
 	if (!GIsEditor)
 	{
@@ -1193,7 +1196,7 @@ FText FText::FromString( FString String )
 
 FText FText::AsCultureInvariant( FString String )
 {
-	FText NewText = FText( String );
+	FText NewText = FText( String, nullptr );
 	NewText.Flags |= ETextFlag::CultureInvariant;
 
 	return NewText;

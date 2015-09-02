@@ -44,10 +44,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
-	ResultText.History = MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture));
-
-	return ResultText;
+	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture)));
 }
 
 FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
@@ -67,10 +64,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
-	ResultText.History = MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture));
-
-	return ResultText;
+	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture)));
 }
 
 FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture)
@@ -114,10 +108,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	FText ResultText = FText::CreateChronologicalText(MoveTemp(NativeString));
-	ResultText.History = MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture));
-
-	return ResultText;
+	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture)));
 }
 
 FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture)
