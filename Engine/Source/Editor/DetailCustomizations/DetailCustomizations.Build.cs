@@ -45,6 +45,7 @@ public class DetailCustomizations : ModuleRules
                 "AIModule", 
                 "MeshUtilities",
 				"ConfigEditor",
+                "Persona",
 			}
 		);
 

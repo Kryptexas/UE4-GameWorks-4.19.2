@@ -245,7 +245,7 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 				if (InterpolateWeightOfSampleData(DeltaTime, OldSampleDataList, NewSampleDataList, SampleDataList))
 				{
 					// now I need to normalize
-					NormalizeSampleDataWeight(SampleDataList);
+					FBlendSampleData::NormalizeDataWeight(SampleDataList);
 				}
 				else
 				{

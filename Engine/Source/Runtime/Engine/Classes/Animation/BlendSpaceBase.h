@@ -8,6 +8,7 @@
 #pragma once
 
 #include "AnimSequence.h"
+#include "AnimationRuntime.h"
 #include "BlendSpaceBase.generated.h"
 
 /** Interpolation data types. */
@@ -197,7 +198,7 @@ namespace ENotifyTriggerMode
  * Allows multiple animations to be blended between based on input parameters
  */
 UCLASS(config=Engine, hidecategories=Object, MinimalAPI, BlueprintType)
-class UBlendSpaceBase : public UAnimationAsset
+class UBlendSpaceBase : public UAnimationAsset, public IInterpolationIndexProvider
 {
 	GENERATED_UCLASS_BODY()
 
@@ -371,7 +372,7 @@ public:
 	 * Get PerBoneInterpolationIndex for the input BoneIndex
 	 * If nothing found, return INDEX_NONE
 	 */
-	int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const;
+	virtual int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const override;
 
 	/** return true if all sample data is additive **/
 	virtual bool IsValidAdditive() const {check(false); return false;}

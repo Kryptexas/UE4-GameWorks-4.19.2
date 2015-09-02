@@ -24,6 +24,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=BlendType)
 	UCurveFloat* CustomBlendCurve;
 
+	UPROPERTY(EditAnywhere, Category=BlendType)
+	UBlendProfile* BlendProfile;
+
 	UPROPERTY()
 	TArray<struct FAlphaBlend> Blends;
 
@@ -36,6 +39,9 @@ protected:
 
 	UPROPERTY()
 	int32 LastActiveChildIndex;
+
+	UPROPERTY()
+	TArray<FBlendSampleData> PerBoneSampleData;
 
 	//Store which poses we need to evaluate
 	TArray<int32> PosesToEvaluate;

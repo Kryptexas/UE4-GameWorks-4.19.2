@@ -3298,6 +3298,11 @@ FText FPersona::GetPreviewAssetTooltip() const
 	}
 }
 
+void FPersona::SetSelectedBlendProfile(UBlendProfile* InBlendProfile)
+{
+	OnBlendProfileSelected.Broadcast(InBlendProfile);
+}
+
 static class FMeshHierarchyCmd : private FSelfRegisteringExec
 {
 public:

@@ -13,6 +13,10 @@
 //////////////////////////////////////////////////////////////////////////
 // FPersona
 
+class UBlendProfile;
+class USkeletalMesh;
+class SAnimationEditorViewportTabBody;
+
 /**
  * Persona asset editor (extends Blueprint editor)
  */
@@ -170,6 +174,9 @@ public:
 	/** Called when an asset is imported into the editor */
 	void OnPostImport(UFactory* InFactory, UObject* InObject);
 
+	/** Called when the blend profile tab selects a profile */
+	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
+
 public:
 	// IToolkit interface
 	virtual FName GetToolkitContextFName() const override;
@@ -313,13 +320,15 @@ private:
 	// called when animation asset has been changed
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnAnimChangedMulticaster, UAnimationAsset* )
 	// Called when the preview mesh has been changed
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnPreviewMeshChangedMulticaster, class USkeletalMesh*)
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnPreviewMeshChangedMulticaster, USkeletalMesh* )
 	// Called when a socket is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectSocket, const struct FSelectedSocketInfo& )
 	// Called when a bone is selected
 	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBone, const FName& )
+	// Called when a blend profile is selected in the blend profile tab
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnSelectBlendProfile, UBlendProfile*)
 	// Called when the preview viewport is created
-	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCreateViewport, TWeakPtr<class SAnimationEditorViewportTabBody>)
+	DECLARE_MULTICAST_DELEGATE_OneParam( FOnCreateViewport, TWeakPtr<SAnimationEditorViewportTabBody> )
 public:
 
 	// Called when Persona refreshes
@@ -410,6 +419,18 @@ public:
 	void UnregisterOnSocketSelected(SWidget* Widget)
 	{
 		OnSocketSelected.RemoveAll( Widget );
+	}
+
+	typedef FOnSelectBlendProfile::FDelegate FOnBlendProfileSelected;
+
+	void RegisterOnBlendProfileSelected(const FOnBlendProfileSelected& Delegate)
+	{
+		OnBlendProfileSelected.Add(Delegate);
+	}
+
+	void UnregisterOnBlendProfileSelected(SWidget* Widget)
+	{
+		OnBlendProfileSelected.RemoveAll(Widget);
 	}
 
 	// Called when selection is cleared
@@ -573,6 +594,9 @@ protected:
 
 	/** Delegate for when a bone is selected by clicking its hit point */
 	FOnSelectBone OnBoneSelected;
+
+	/** Delegate for when a blend profile is selected in the blend profile tab */
+	FOnSelectBlendProfile OnBlendProfileSelected;
 
 	/** Delegate for clearing the current skeleton bone/socket selection */
 	FSimpleMulticastDelegate OnAllDeselected;

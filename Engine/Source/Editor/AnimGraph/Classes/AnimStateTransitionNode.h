@@ -40,6 +40,10 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY(EditAnywhere, Category=Transition)
 	UCurveFloat* CustomBlendCurve;
 
+	// The blend profile to use to evaluate this transition per-bone
+	UPROPERTY(EditAnywhere, Category=Transition)
+	UBlendProfile* BlendProfile;
+
 	// Try setting the rule automatically based on the player node remaining time and the CrossfadeDuration, ignoring the internal time
 	UPROPERTY(EditAnywhere, Category=Transition)
 	bool bAutomaticRuleBasedOnSequencePlayerInState;

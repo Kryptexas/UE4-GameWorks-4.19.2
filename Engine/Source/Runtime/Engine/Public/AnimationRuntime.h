@@ -16,9 +16,18 @@ struct FA2Pose;
 struct FPerBoneBlendWeight;
 class UBlendSpaceBase;
 typedef TArray<FTransform> FTransformArrayA2;
+
+/** Interface used to provide interpolation indices for per bone blends
+  *
+  */
+class ENGINE_API IInterpolationIndexProvider
+{
+public:
+	virtual int32 GetPerBoneInterpolationIndex(int32 BoneIndex, const FBoneContainer& RequiredBones) const = 0;
+};
+
 /** In AnimationRunTime Library, we extract animation data based on Skeleton hierarchy, not ref pose hierarchy. 
 	Ref pose will need to be re-mapped later **/
-
 class ENGINE_API FAnimationRuntime
 {
 public:
@@ -90,7 +99,7 @@ public:
 	static void BlendPosesTogetherPerBone(
 		const TArray<FCompactPose>& SourcePoses,
 		const TArray<FBlendedCurve>& SourceCurves,
-		const UBlendSpaceBase* BlendSpace,
+		const IInterpolationIndexProvider* IndexProvider,
 		const TArray<FBlendSampleData>& BlendSampleDataCache,
 		/*out*/ FCompactPose& ResultPose, 
 		/*out*/ FBlendedCurve& ResultCurve);

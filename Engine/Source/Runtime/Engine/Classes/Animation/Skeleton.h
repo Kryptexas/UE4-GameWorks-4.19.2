@@ -12,6 +12,7 @@
 
 class UAnimSequence;
 class USkeletalMesh;
+class UBlendProfile;
 
 /** This is a mapping table between bone in a particular skeletal mesh and bone of this skeleton set. */
 USTRUCT()
@@ -276,6 +277,21 @@ public:
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
+
+	//////////////////////////////////////////////////////////////////////////
+	// Blend Profiles
+
+	/** List of blend profiles available in this skeleton */
+	UPROPERTY(Instanced)
+	TArray<UBlendProfile*> BlendProfiles;
+
+	/** Get the specified blend profile by name */
+	ENGINE_API UBlendProfile* GetBlendProfile(const FName& InProfileName);
+
+	/** Create a new blend profile with the specified name */
+	ENGINE_API UBlendProfile* CreateNewBlendProfile(const FName& InProfileName);
+
+	//////////////////////////////////////////////////////////////////////////
 
 	/************************************************************************/
 	/* Slot Groups */

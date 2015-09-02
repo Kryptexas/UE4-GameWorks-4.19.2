@@ -7,6 +7,7 @@
 #include "Animation/AnimNode_SequencePlayer.h"
 #include "AnimationRuntime.h"
 #include "Animation/AnimStats.h"
+#include "Animation/BlendProfile.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FAnimationActiveTransitionEntry
@@ -23,6 +24,7 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry()
 	, EndNotify(INDEX_NONE)
 	, InterruptNotify(INDEX_NONE)
 	, LogicType(ETransitionLogicType::TLT_StandardBlend)
+	, BlendProfile(nullptr)
 {
 }
 
@@ -37,6 +39,7 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextState
 	, EndNotify(ReferenceTransitionInfo.EndNotify)
 	, InterruptNotify(ReferenceTransitionInfo.InterruptNotify)
 	, LogicType(ReferenceTransitionInfo.LogicType)
+	, BlendProfile(ReferenceTransitionInfo.BlendProfile)
 {
 	const float Scaler = 1.0f - ExistingWeightOfNextState;
 	CrossfadeDuration = ReferenceTransitionInfo.CrossfadeDuration * CalculateInverseAlpha(BlendOption, Scaler);
@@ -83,6 +86,14 @@ void FAnimationActiveTransitionEntry::InitializeCustomGraphLinks(const FAnimatio
 			PoseEvaluators.Add(PoseEvaluator);
 		}
 	}
+
+	// Initialize blend data if necessary
+	if(BlendProfile)
+	{
+		StateBlendData.AddZeroed(2);
+		StateBlendData[0].PerBoneBlendData.AddZeroed(BlendProfile->GetNumBlendEntries());
+		StateBlendData[1].PerBoneBlendData.AddZeroed(BlendProfile->GetNumBlendEntries());
+	}
 }
 
 void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Context, int32 CurrentStateIndex, bool& bOutFinished)
@@ -100,6 +111,33 @@ void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Cont
 		{
 			bActive = false;
 			bOutFinished = true;
+		}
+
+		// Update state blend data (only when we're using per-bone)
+		if(BlendProfile)
+		{
+			for(int32 Idx = 0 ; Idx < 2 ; ++Idx)
+			{
+				bool bForwards = Idx == 0;
+				FBlendSampleData& CurrentData = StateBlendData[Idx];
+
+				CurrentData.TotalWeight = (bForwards) ? Alpha : 1.0f - Alpha;
+
+				for(int32 PerBoneIndex = 0 ; PerBoneIndex < CurrentData.PerBoneBlendData.Num() ; ++PerBoneIndex)
+				{
+					float& BoneBlend = CurrentData.PerBoneBlendData[PerBoneIndex];
+					float WeightScale = BlendProfile->GetEntryBlendScale(PerBoneIndex);
+
+					if(!bForwards)
+					{
+						WeightScale = 1.0f / WeightScale;
+					}
+
+					BoneBlend = CurrentData.TotalWeight * WeightScale;
+				}
+			}
+
+			FBlendSampleData::NormalizeDataWeight(StateBlendData);
 		}
 	}
 }
@@ -638,6 +676,22 @@ void FAnimNode_StateMachine::EvaluateTransitionStandardBlend(FPoseContext& Outpu
 	// Blend it in
 	const ScalarRegister VPreviousWeight(1.0f - Transition.Alpha);
 	const ScalarRegister VWeight(Transition.Alpha);
+
+	// If we have a blend profile we need to blend per bone
+	if(Transition.BlendProfile)
+	{
+		for(FCompactPoseBoneIndex BoneIndex : Output.Pose.ForEachBoneIndex())
+		{
+			int32 PerBoneIndex = Transition.BlendProfile->GetPerBoneInterpolationIndex(BoneIndex.GetInt(), Output.AnimInstance->RequiredBones);
+
+			// Use defined per-bone scale if the bone has a scale specified in the blend profile
+			ScalarRegister FirstWeight = PerBoneIndex != INDEX_NONE ? ScalarRegister(Transition.StateBlendData[1].PerBoneBlendData[PerBoneIndex]) : ScalarRegister(VPreviousWeight);
+			ScalarRegister SecondWeight = PerBoneIndex != INDEX_NONE ? ScalarRegister(Transition.StateBlendData[0].PerBoneBlendData[PerBoneIndex]) : ScalarRegister(VWeight);
+			Output.Pose[BoneIndex] = PreviouseStateResult.Pose[BoneIndex] * FirstWeight;
+			Output.Pose[BoneIndex].AccumulateWithShortestRotation(NextStateResult.Pose[BoneIndex], SecondWeight);
+		}
+	}
+	else
 		for(FCompactPoseBoneIndex BoneIndex : Output.Pose.ForEachBoneIndex())
 		{
 			Output.Pose[BoneIndex] = PreviouseStateResult.Pose[BoneIndex] * VPreviousWeight;

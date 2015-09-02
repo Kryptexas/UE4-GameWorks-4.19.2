@@ -21,6 +21,8 @@
 #include "Persona.h"
 #include "BoneSelectionWidget.h"
 #include "SExpandableArea.h"
+#include "Animation/BlendProfile.h"
+#include "SBlendProfilePicker.h"
 
 #define LOCTEXT_NAMESPACE "KismetNodeWithOptionalPinsDetails"
 
@@ -65,7 +67,7 @@ void FAnimGraphNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 		return;
 	}
 
-	USkeleton* TargetSkeleton = AnimGraphNode->GetAnimBlueprint()->TargetSkeleton;
+	TargetSkeleton = AnimGraphNode->GetAnimBlueprint()->TargetSkeleton;
 	TargetSkeletonName = FString::Printf(TEXT("%s'%s'"), *TargetSkeleton->GetClass()->GetName(), *TargetSkeleton->GetPathName());
 
 	// Get the node property
@@ -213,6 +215,21 @@ TSharedRef<SWidget> FAnimGraphNodeDetails::CreatePropertyWidget(UProperty* Targe
 				.AllowClear(bAllowClear)
 				.OnShouldFilterAsset(FOnShouldFilterAsset::CreateSP(this, &FAnimGraphNodeDetails::OnShouldFilterAnimAsset));
 		}
+		else if(ObjectProperty->PropertyClass->IsChildOf(UBlendProfile::StaticClass()) && TargetSkeleton)
+		{
+			TSharedPtr<IPropertyHandle> PropertyPtr(TargetPropertyHandle);
+
+			UObject* PropertyValue = nullptr;
+			TargetPropertyHandle->GetValue(PropertyValue);
+
+			UBlendProfile* CurrentProfile = Cast<UBlendProfile>(PropertyValue);
+
+			return SNew(SBlendProfilePicker)
+				.TargetSkeleton(this->TargetSkeleton)
+				.AllowNew(false)
+				.OnBlendProfileSelected(this, &FAnimGraphNodeDetails::OnBlendProfileChanged, PropertyPtr)
+				.InitialProfile(CurrentProfile);
+		}
 	}
 
 	return SNullWidget::NullWidget;
@@ -259,6 +276,14 @@ void FAnimGraphNodeDetails::AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObjec
 				DetailBuilder.HideProperty(NodeProperty->GetFName(), AnimNode->GetClass());
 			}
 		}
+	}
+}
+
+void FAnimGraphNodeDetails::OnBlendProfileChanged(UBlendProfile* NewProfile, TSharedPtr<IPropertyHandle> PropertyHandle)
+{
+	if(PropertyHandle.IsValid())
+	{
+		PropertyHandle->SetValue((const UObject*&)NewProfile);
 	}
 }
 

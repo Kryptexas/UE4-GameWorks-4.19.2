@@ -57,6 +57,8 @@ namespace ESocketFilter
 }
 
 struct FDisplayedTreeRowInfo;
+class SBlendProfilePicker;
+
 typedef STreeView< TSharedPtr<FDisplayedTreeRowInfo> > SMeshSkeletonTreeRowType;
 typedef TSharedPtr< FDisplayedTreeRowInfo > FDisplayedTreeRowInfoPtr;
 
@@ -82,7 +84,7 @@ public:
 	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) = 0;
 
 	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn() = 0;
+	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) = 0;
 
 	/** Get the name of the item that this row represents */
 	virtual FName GetRowItemName() const PURE_VIRTUAL(FDisplayedTreeRowInfo::GetRowItemName, return FName(););
@@ -143,7 +145,7 @@ public:
 	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
 
 	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn() override;
+	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
 
 	/** Handle dragging a bone */
 	FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
@@ -153,6 +155,9 @@ public:
 
 	/** Set Translation Retargeting Mode for this bone. */
 	void SetBoneTranslationRetargetingMode(EBoneTranslationRetargetingMode::Type NewRetargetingMode);
+
+	/** Set current Blend Scale for this bone */
+	void SetBoneBlendProfileScale(float NewScale, bool bRecurse);
 
 	virtual ~FDisplayedMeshBoneInfo() {}
 
@@ -183,6 +188,12 @@ private:
 
 	/** Get Title for Bone Translation Retargeting Mode menu. */
 	FText GetTranslationRetargetingModeMenuTitle() const;
+
+	/** Callback from a slider widget when the user drops the slider */
+	void OnBlendSliderEnd(float NewValue);
+
+	/** Callback from a slider widget if the text entry is used */
+	void OnBlendSliderCommitted(float NewValue, ETextCommit::Type CommitType);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -222,7 +233,7 @@ public:
 	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
 
 	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn() override;
+	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
 
 	ESocketParentType::Type GetParentType() const { return ParentType; }
 
@@ -319,7 +330,7 @@ public:
 	virtual void GenerateWidgetForNameColumn( TSharedPtr< SHorizontalBox > Box, FText& FilterText, FIsSelected InIsSelected ) override;
 
 	/** Builds the slate widget for the data column */
-	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn() override;
+	virtual TSharedRef< SWidget > GenerateWidgetForDataColumn(const FName& DataColumnName) override;
 
 	/** Return the name of the asset */
 	virtual FName GetRowItemName() const override {return FName( *Asset->GetName() ) ;}
@@ -424,6 +435,15 @@ public:
 	void RemoveFromLOD(int32 LODIndex);
 	/** Add the selected bones to LOD of LODIndex when using simplygon **/
 	void AddToLOD(int32 LODIndex);
+
+	/** Sets a scale on the current blend profile */
+	void SetBlendProfileBoneScale(int32 InBoneIndex, float InNewScale, bool bRecurse);
+
+	/** Gets a scale from the currently selected blend profile */
+	float GetBlendProfileBoneScale(int32 InBoneIndex);
+
+	/** Gets the currently selected blend profile */
+	UBlendProfile* GetSelectedBlendProfile();
 
 private:
 	/** Binds the commands in FSkeletonTreeCommands to functions in this class */
@@ -561,6 +581,15 @@ private:
 	/** Deletes a set of attached objects from a FPreviewAssetAttachContainer and notifies Persona*/
 	void DeleteAttachedObjects( FPreviewAssetAttachContainer& AttachedAssets );
 
+	/** Called when the user selects a blend profile to edit from the blend profile panel*/
+	void OnBlendProfileSelectedExternal(UBlendProfile* NewProfile);
+
+	/** Called when the user selects a blend profile to edit */
+	void OnBlendProfileSelected(UBlendProfile* NewProfile);
+
+	/** Sets the blend scale for the selected bones and all of their children */
+	void RecursiveSetBlendProfileScales(float InScaleToSet);
+
 private:
 	/** Pointer back to the kismet 2 tool that owns us */
 	TWeakPtr<FPersona> PersonaPtr;
@@ -569,6 +598,12 @@ private:
 	TSharedPtr<SSearchBox>	NameFilterBox;
 
 	USkeleton* TargetSkeleton;
+
+	/** Currently selected blend profile */
+	UBlendProfile* SelectedBlendProfile;
+
+	/** The blend profile picker displaying the selected profile */
+	TSharedPtr<SBlendProfilePicker> BlendProfilePicker;
 
 	/** Widget user to hold the skeleton tree */
 	TSharedPtr<SOverlay> TreeHolder;

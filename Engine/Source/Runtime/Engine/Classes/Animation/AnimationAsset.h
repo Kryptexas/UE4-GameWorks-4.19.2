@@ -85,6 +85,8 @@ struct FBlendSampleData
 	{
 		return FMath::Clamp<float>(TotalWeight, 0.f, 1.f);
 	}
+
+	static void ENGINE_API NormalizeDataWeight(TArray<FBlendSampleData>& SampleDataList);
 };
 
 USTRUCT()
