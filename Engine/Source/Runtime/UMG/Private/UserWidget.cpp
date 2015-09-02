@@ -49,6 +49,10 @@ bool UUserWidget::Initialize()
 		{
 			BGClass->InitializeWidget(this);
 		}
+		else
+		{
+			CustomNativeInitilize();
+		}
 
 		if ( WidgetTree == nullptr )
 		{
@@ -686,6 +690,20 @@ FVector2D UUserWidget::GetFullScreenAlignment() const
 	return ViewportAlignment;
 }
 
+void UUserWidget::RemoveObsoleteBindings(const TArray<FName>& NamedSlots)
+{
+	for (int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++)
+	{
+		const FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
+
+		if (!NamedSlots.Contains(Binding.Name))
+		{
+			NamedSlotBindings.RemoveAt(BindingIndex);
+			BindingIndex--;
+		}
+	}
+}
+
 void UUserWidget::PreSave()
 {
 	Super::PreSave();
@@ -693,16 +711,7 @@ void UUserWidget::PreSave()
 	// Remove bindings that are no longer contained in the class.
 	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
 	{
-		for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++ )
-		{
-			const FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
-
-			if ( !BGClass->NamedSlots.Contains(Binding.Name) )
-			{
-				NamedSlotBindings.RemoveAt(BindingIndex);
-				BindingIndex--;
-			}
-		}
+		RemoveObsoleteBindings(BGClass->NamedSlots);
 	}
 }
 

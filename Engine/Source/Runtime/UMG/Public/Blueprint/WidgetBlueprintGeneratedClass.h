@@ -97,4 +97,13 @@ public:
 	 * binding and wiring necessary to have the user's widget perform as desired.
 	 */
 	void InitializeWidget(UUserWidget* UserWidget) const;
+
+	static void InitializeWidgetStatic(UUserWidget* UserWidget
+		, const UClass* InClass
+		, bool InCanEverTick
+		, bool InCanEverPaint
+		, UWidgetTree* InWidgetTree
+		, const TArray< UWidgetAnimation* >& InAnimations
+		, const TArray< FDelegateRuntimeBinding >& InBindings
+		, UWidgetTree* InDesignerWidgetTree);
 };

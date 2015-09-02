@@ -107,7 +107,9 @@ public:
 
 	void PreCompile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions) override
 	{
-		if ( ReRegister == nullptr && CanCompile(Blueprint) && CompileOptions.CompileType == EKismetCompileType::Full )
+		if ( ReRegister == nullptr 
+			&& CanCompile(Blueprint) 
+			&& (CompileOptions.CompileType == EKismetCompileType::Full || CompileOptions.CompileType == EKismetCompileType::Cpp))
 		{
 			ReRegister = new TComponentReregisterContext<UWidgetComponent>();
 		}

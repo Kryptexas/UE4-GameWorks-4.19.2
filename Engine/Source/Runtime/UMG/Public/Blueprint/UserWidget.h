@@ -155,6 +155,7 @@ public:
 	// End of UObject interface
 
 	virtual bool Initialize();
+	virtual void CustomNativeInitilize() {}
 
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
@@ -919,6 +920,8 @@ protected:
 	 * Ticks the active sequences and latent actions that have been scheduled for this Widget.
 	 */
 	void TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime);
+
+	void RemoveObsoleteBindings(const TArray<FName>& NamedSlots);
 
 private:
 	FAnchors ViewportAnchors;
