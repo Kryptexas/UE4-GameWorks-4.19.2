@@ -190,6 +190,9 @@ struct FMarkerSyncAnimPosition
 	1   we are at NextMarker
 	0.5 we are half way between the two */
 	float PositionBetweenMarkers;
+
+	/** Is this a valid Marker Sync Position */
+	bool IsValid() const { return !(PreviousMarkerName == NAME_None && NextMarkerName == NAME_None); }
 };
 
 struct FPassedMarker
@@ -452,7 +455,7 @@ struct FRootMotionMovementParams
 struct FAnimAssetTickContext
 {
 public:
-	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode, const TArray<FName>& ValidMarkerNames)
+	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode, bool bInOnlyOneAnimationInGroup, const TArray<FName>& ValidMarkerNames)
 		: RootMotionMode(InRootMotionMode)
 		, MarkerTickContext(ValidMarkerNames)
 		, DeltaTime(InDeltaTime)
@@ -460,16 +463,18 @@ public:
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(ValidMarkerNames.Num() > 0)
 		, bIsLeader(true)
+		, bOnlyOneAnimationInGroup(bInOnlyOneAnimationInGroup)
 	{
 	}
 
-	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode)
+	FAnimAssetTickContext(float InDeltaTime, ERootMotionMode::Type InRootMotionMode, bool bInOnlyOneAnimationInGroup)
 		: RootMotionMode(InRootMotionMode)
 		, DeltaTime(InDeltaTime)
 		, LeaderDelta(0.f)
 		, AnimLengthRatio(0.0f)
 		, bIsMarkerPositionValid(false)
 		, bIsLeader(true)
+		, bOnlyOneAnimationInGroup(bInOnlyOneAnimationInGroup)
 	{
 	}
 	
@@ -527,6 +532,11 @@ public:
 		return IsLeader();
 	}
 
+	bool IsSingleAnimationContext() const
+	{
+		return bOnlyOneAnimationInGroup;
+	}
+
 	//Root Motion accumulated from this tick context
 	FRootMotionMovementParams RootMotionMovementParams;
 
@@ -546,6 +556,8 @@ private:
 	bool bIsMarkerPositionValid;
 
 	bool bIsLeader;
+
+	bool bOnlyOneAnimationInGroup;
 };
 
 USTRUCT()

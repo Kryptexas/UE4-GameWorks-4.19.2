@@ -262,7 +262,7 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 				SampleDataList.Append(NewSampleDataList);
 			}
 
-			bool bCanDoMarkerSync = Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition();
+			bool bCanDoMarkerSync = bAllSequencesHaveMatchingMarkers && (Context.IsSingleAnimationContext() || (Instance.bCanUseMarkerSync && Context.CanUseMarkerPosition()));
 
 			if (bCanDoMarkerSync && Instance.MarkerTickRecord.IsValid())
 			{
@@ -305,8 +305,13 @@ void UBlendSpaceBase::TickAssetPlayerInstance(FAnimTickRecord& Instance, class U
 					{
 						SampleDataItem.Time = NormalizedCurrentTime * Sample.Animation->SequenceLength;
 					}
+					if (!SampleDataItem.MarkerTickRecord.IsValid() && Context.MarkerTickContext.GetMarkerSyncStartPosition().IsValid())
+					{
+						Sample.Animation->GetMarkerIndicesForPosition(Context.MarkerTickContext.GetMarkerSyncStartPosition(), true, SampleDataItem.MarkerTickRecord.PreviousMarker, SampleDataItem.MarkerTickRecord.NextMarker, SampleDataItem.Time);
+					}
 					if (Context.GetDeltaTime() != 0.f)
 					{
+						Context.SetLeaderDelta(Context.GetDeltaTime());
 						Sample.Animation->TickByMarkerAsLeader(SampleDataItem.MarkerTickRecord, Context.MarkerTickContext, SampleDataItem.Time, SampleDataItem.PreviousTime, Context.GetDeltaTime(), true);
 						TickFollowerSamples(SampleDataList, HighestWeightIndex, Context);
 					}

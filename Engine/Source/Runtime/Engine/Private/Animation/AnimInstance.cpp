@@ -109,7 +109,7 @@ void UAnimInstance::SequenceAdvanceImmediate(UAnimSequenceBase* Sequence, bool b
 	FAnimTickRecord TickRecord;
 	MakeSequenceTickRecord(TickRecord, Sequence, bLooping, PlayRate, /*FinalBlendWeight=*/ 1.0f, CurrentTime);
 
-	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
+	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, true);
 	TickRecord.SourceAsset->TickAssetPlayerInstance(TickRecord, this, TickContext);
 }
 
@@ -118,7 +118,7 @@ void UAnimInstance::BlendSpaceAdvanceImmediate(class UBlendSpaceBase* BlendSpace
 	FAnimTickRecord TickRecord;
 	MakeBlendSpaceTickRecord(TickRecord, BlendSpace, BlendInput, BlendSampleDataCache, BlendFilter, bLooping, PlayRate, /*FinalBlendWeight=*/ 1.0f, CurrentTime);
 	
-	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode);
+	FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, true);
 	TickRecord.SourceAsset->TickAssetPlayerInstance(TickRecord, this, TickContext);
 }
 
@@ -430,8 +430,9 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 				const int32 PreviousGroupLeader = bSyncGroupValidLastFrame ? PreviousSyncGroups[GroupIndex].GroupLeaderIndex : -1;
 				SyncGroup.Finalize(PreviousValidMarkers, PreviousGroupLeader);
     
+				const bool bOnlyOneAnimationInGroup = SyncGroup.ActivePlayers.Num() == 1;
 				// Tick the group leader
-				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, SyncGroup.ValidMarkers);
+				FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, SyncGroup.ValidMarkers);
 				FAnimTickRecord& GroupLeader = SyncGroup.ActivePlayers[SyncGroup.GroupLeaderIndex];
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
@@ -475,12 +476,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		for (int32 TickIndex = 0; TickIndex < UngroupedActivePlayers.Num(); ++TickIndex)
 		{
 			FAnimTickRecord& AssetPlayerToTick = UngroupedActivePlayers[TickIndex];
-			AssetPlayerToTick.bCanUseMarkerSync = true;
 			static TArray<FName> TempNames;
 			const TArray<FName>* UniqueNames = AssetPlayerToTick.SourceAsset->GetUniqueMarkerNames();
 			const TArray<FName>& ValidMarkers = UniqueNames ? *UniqueNames : TempNames;
 
-			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, ValidMarkers);
+			const bool bOnlyOneAnimationInGroup = true;
+			FAnimAssetTickContext TickContext(DeltaSeconds, RootMotionMode, bOnlyOneAnimationInGroup, ValidMarkers);
 		    {
 			    QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation_TickAssetPlayerInstance);
 			    FScopeCycleCounterUObject Scope(AssetPlayerToTick.SourceAsset);
