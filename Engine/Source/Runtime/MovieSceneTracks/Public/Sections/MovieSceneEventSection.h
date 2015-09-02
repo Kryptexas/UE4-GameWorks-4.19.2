@@ -11,7 +11,7 @@
 USTRUCT()
 struct FMovieSceneEventSectionKey
 {
-	GENERATED_BODY()
+	GENERATED_USTRUCT_BODY()
 
 	/** The name of the event to be triggered. */
 	UPROPERTY(EditAnywhere, Category=EventTrackKey)
@@ -20,6 +20,23 @@ struct FMovieSceneEventSectionKey
 	/** The time at which the event should be triggered. */
 	UPROPERTY()
 	float Time;
+
+	/** Default constructor. */
+	FMovieSceneEventSectionKey()
+		: Time(0.0f)
+	{ }
+
+	/** Creates and initializes a new instance. */
+	FMovieSceneEventSectionKey(const FName& InEventName, float InTime)
+		: EventName(InEventName)
+		, Time(InTime)
+	{ }
+
+	/** Operator less, used to sort the heap based on time until execution. */
+	bool operator<(const FMovieSceneEventSectionKey& Other) const
+	{
+		return Time < Other.Time;
+	}
 };
 
 
@@ -31,6 +48,17 @@ class UMovieSceneEventSection
 	: public UMovieSceneSection
 {
 	GENERATED_BODY()
+
+public:
+
+	/**
+	 * Add a key with the specified event.
+	 *
+	 * @param Time The location in time where the key should be added.
+	 * @param EventName The name of the event to fire at the specified time.
+	 * @param KeyParams The keying parameters.
+	 */
+	void AddKey(float Time, const FName& EventName, FKeyParams KeyParams);
 
 public:
 

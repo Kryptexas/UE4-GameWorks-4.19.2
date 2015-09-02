@@ -11,10 +11,27 @@
 
 bool UMovieSceneEventTrack::AddKeyToSection(float Time, FName EventName, FKeyParams KeyParams)
 {
-	// @todo sequencer: gmp: add key to event section
-	// should be inserted into sorted array
-	// can sections overlap?
-	return false;
+	UMovieSceneSection* TargetSection = MovieSceneHelpers::FindNearestSectionAtTime(Sections, Time);
+
+	if (TargetSection == nullptr)
+	{
+		TargetSection = CreateNewSection();
+		TargetSection->SetStartTime(Time);
+		TargetSection->SetEndTime(Time);
+
+		Sections.Add(TargetSection);
+	}
+
+	UMovieSceneEventSection* EventSection = Cast<UMovieSceneEventSection>(TargetSection);
+
+	if (EventSection == nullptr)
+	{
+		return false;
+	}
+
+	EventSection->AddKey(Time, EventName, KeyParams);
+
+	return true;
 }
 
 

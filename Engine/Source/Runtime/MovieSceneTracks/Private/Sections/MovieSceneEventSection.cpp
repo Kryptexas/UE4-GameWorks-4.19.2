@@ -7,6 +7,15 @@
 /* UMovieSceneSection overrides
  *****************************************************************************/
 
+void UMovieSceneEventSection::AddKey(float Time, const FName& EventName, FKeyParams KeyParams)
+{
+	Keys.HeapPush(FMovieSceneEventSectionKey(EventName, Time));
+}
+
+
+/* UMovieSceneSection overrides
+ *****************************************************************************/
+
 void UMovieSceneEventSection::DilateSection(float DilationFactor, float Origin, TSet<FKeyHandle>& KeyHandles)
 {
 	Super::DilateSection(DilationFactor, Origin, KeyHandles);
