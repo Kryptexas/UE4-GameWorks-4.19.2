@@ -173,6 +173,11 @@ void FFriendsAndChatManager::InsertNetworkChatMessage(const FString& InMessage)
 	MessageService->InsertNetworkMessage(InMessage);
 }
 
+void FFriendsAndChatManager::InsertNetworkAdminMessage(const FString& InMessage)
+{
+	MessageService->InsertAdminMessage(InMessage);
+}
+
 void FFriendsAndChatManager::JoinGlobalChatRoom()
 {
 	FString RoomName;
@@ -363,15 +368,15 @@ TSharedPtr< SWidget > FFriendsAndChatManager::GenerateChromeWidget(const struct 
 
 		TSharedRef<FChatViewModel> GlobalChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		GlobalChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Global);
-		GlobalChatViewModel->SetDefaultChannelFlags(EChatMessageType::Global | EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
+		GlobalChatViewModel->SetDefaultChannelFlags(EChatMessageType::Global | EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game | EChatMessageType::Admin);
 
 		TSharedRef<FChatViewModel> PartyChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		PartyChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Party);
-		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game);
+		PartyChatViewModel->SetDefaultChannelFlags(EChatMessageType::Party | EChatMessageType::Whisper | EChatMessageType::Game| EChatMessageType::Admin);
 
 		TSharedRef<FChatViewModel> WhisperChatViewModel = FChatViewModelFactory::Create(FriendViewModelFactory.ToSharedRef(), MessageService.ToSharedRef(), NavigationService.ToSharedRef(), MarkupServiceFactory->Create(), ChatDisplayService, FriendsService.ToSharedRef(), GameAndPartyService.ToSharedRef(), EChatViewModelType::Base);
 		WhisperChatViewModel->SetDefaultOutgoingChannel(EChatMessageType::Whisper);
-		WhisperChatViewModel->SetDefaultChannelFlags(EChatMessageType::Whisper);
+		WhisperChatViewModel->SetDefaultChannelFlags(EChatMessageType::Whisper| EChatMessageType::Admin);
 
 		if(CustomSlashCommands!= nullptr)
 		{

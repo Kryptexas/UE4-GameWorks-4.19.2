@@ -75,7 +75,14 @@ public:
 				Runs.Add(Run.ToSharedRef());
 			}
 
-			if(ChannelHyperlinkDecorator.IsValid() && IsMultiChat)
+			if(NewMessage->GetMessageType() == EChatMessageType::Admin)
+			{
+				ModelRange.BeginIndex = ModelString->Len();
+				*ModelString += ": ";
+				ModelRange.EndIndex = ModelString->Len();
+				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, HighlightedTextStyle, ModelRange));
+			}
+			else if(ChannelHyperlinkDecorator.IsValid() && IsMultiChat)
 			{
 				FString MessageText = " " + GetRoomName(NewMessage);
 				int32 NameLen = MessageText.Len();
@@ -117,7 +124,7 @@ public:
 				Runs.Add(FSlateTextRun::Create(FRunInfo(), ModelString, HighlightedTextStyle, ModelRange));
 			}
 
-			if(NewMessage->GetMessageType() == EChatMessageType::Game)
+			if(NewMessage->GetMessageType() == EChatMessageType::Game || NewMessage->GetMessageType() == EChatMessageType::Admin)
 			{
 				// Don't add any channel information for In-Game
 			}
@@ -259,7 +266,9 @@ protected:
 		case EChatMessageType::Party:
 			return DecoratorStyleSet->FriendsChatStyle.PartyChatColor; 
 		case EChatMessageType::Game: 
-			return DecoratorStyleSet->FriendsChatStyle.GameChatColor; 
+			return DecoratorStyleSet->FriendsChatStyle.GameChatColor;
+		case EChatMessageType::Admin: 
+			return DecoratorStyleSet->FriendsChatStyle.AdminChatColor; 
 		}
 		return DecoratorStyleSet->FriendsChatStyle.DefaultChatColor;
 	}

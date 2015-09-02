@@ -15,7 +15,8 @@ namespace EChatMessageType
 		Global = 1 << 2,	// Global Chat Item
 		Party = 1 << 3,		// Party Chat Item
 		Game = 1 << 4,		// Game Chat Item
-		Invalid = 1 << 5,		// Invalid or max
+		Admin = 1 << 5,		// Admin messages
+		Invalid = 1 << 6,		// Invalid or max
 	};
 
 	/** @return the FTextified version of the enum passed in */
@@ -24,6 +25,7 @@ namespace EChatMessageType
 		static FText WhisperText = NSLOCTEXT("FriendsList", "Whisper", "Whisper");
 		static FText GlobalText = NSLOCTEXT("FriendsList", "Global", "Global");
 		static FText PartyText = NSLOCTEXT("FriendsList", "Party", "Party");
+		static FText AdminText = NSLOCTEXT("FriendsList", "Admin", "Admin");
 
 		switch (Type)
 		{
@@ -31,6 +33,7 @@ namespace EChatMessageType
 		case Global: return GlobalText;
 		case Party: return PartyText;
 		case Game: return PartyText;
+		case Admin: return AdminText;
 
 		default: return FText::GetEmpty();
 		}

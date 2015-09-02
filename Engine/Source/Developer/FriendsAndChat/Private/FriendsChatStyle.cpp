@@ -70,6 +70,12 @@ FFriendsChatStyle& FFriendsChatStyle::SetPartyChatColor(const FLinearColor& InFo
 	return *this;
 }
 
+FFriendsChatStyle& FFriendsChatStyle::SetAdminChatColor(const FLinearColor& InFontColor)
+{
+	AdminChatColor = InFontColor;
+	return *this;
+}
+
 FFriendsChatStyle& FFriendsChatStyle::SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor)
 {
 	WhisperHyperlinkChatColor = InFontColor;

@@ -21,6 +21,7 @@ static const int32 GlobalMaxStore = 100;
 static const int32 WhisperMaxStore = 100;
 static const int32 GameMaxStore = 100;
 static const int32 PartyMaxStore = 100;
+static const int32 AdminMaxStore = 100;
 
 class FMessageServiceImpl
 	: public FMessageService
@@ -147,6 +148,20 @@ public:
 		GameMessagesCount++;
 		AddMessage(ChatItem.ToSharedRef());
 	}
+
+	virtual void InsertAdminMessage(const FString& MsgBody) override
+	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		ChatItem->FromName = FText::FromString("Admin");
+		ChatItem->Message = FText::FromString(MsgBody);
+		ChatItem->MessageType = EChatMessageType::Admin;
+		ChatItem->MessageTime = FDateTime::Now();
+		ChatItem->ExpireTime = FDateTime::Now() + FTimespan::FromSeconds(GameMessageLifetime);
+		ChatItem->bIsFromSelf = false;
+		AdminMessagesCount++;
+		AddMessage(ChatItem.ToSharedRef());
+	}
+	
 
 	virtual void JoinPublicRoom(const FString& RoomName) override
 	{
@@ -397,6 +412,8 @@ private:
 			bool bGameTimeFound = false;
 			bool bPartyTimeFound = false;
 			bool bWhisperFound = false;
+			bool bAdminFound = false;
+
 			FDateTime CurrentTime = FDateTime::Now();
 			for(int32 Index = 0; Index < ReceivedMessages.Num(); Index++)
 			{
@@ -462,9 +479,22 @@ private:
 							}
 						}
 						break;
+						case EChatMessageType::Admin :
+						{
+							if(AdminMessagesCount > AdminMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bAdminFound = true;
+							}
+						}
+						break;
 					}
 				}
-				if (ReceivedMessages.Num() < MessageStore || (bPartyTimeFound && bGameTimeFound && bGlobalTimeFound && bWhisperFound))
+				if (ReceivedMessages.Num() < MessageStore || (bPartyTimeFound && bGameTimeFound && bGlobalTimeFound && bWhisperFound && bAdminFound))
 				{
 					break;
 				}
@@ -481,6 +511,7 @@ private:
 			case EChatMessageType::Game: GameMessagesCount--; break;
 			case EChatMessageType::Party: PartyMessagesCount--; break;
 			case EChatMessageType::Whisper : WhisperMessagesCount--; break;
+			case EChatMessageType::Admin : AdminMessagesCount--; break;
 		}
 		ReceivedMessages.Remove(Message);
 	}
@@ -539,6 +570,7 @@ private:
 	int32 WhisperMessagesCount;
 	int32 GameMessagesCount;
 	int32 PartyMessagesCount;
+	int32 AdminMessagesCount;
 	
 	bool bEnableEnterExitMessages;
 	int32 LocalControllerIndex;

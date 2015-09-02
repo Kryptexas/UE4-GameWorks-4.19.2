@@ -83,6 +83,10 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FLinearColor PartyChatColor;
 	FFriendsChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
 
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FLinearColor AdminChatColor;
+	FFriendsChatStyle& SetAdminChatColor(const FLinearColor& InFontColor);
+
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor WhisperHyperlinkChatColor;
 	FFriendsChatStyle& SetWhisplerHyperlinkChatColor(const FLinearColor& InFontColor);

@@ -42,7 +42,7 @@ public:
 
 	virtual FText GetMessageNotificationsText() const override
 	{
-		int32 Messages = ChatViewModel->GetUnreadChannelMessageCount();
+		int32 Messages = ChatViewModel.IsValid() ? ChatViewModel->GetUnreadChannelMessageCount() : 0;
 		if (Messages < 10)
 		{
 			return FText::AsNumber(Messages);

@@ -132,6 +132,12 @@ public:
 	virtual void InsertNetworkChatMessage(const FString& InMessage) = 0;
 
 	/**
+	 * Insert an admin message.
+	 * @param InMessage The message.
+	 */
+	virtual void InsertNetworkAdminMessage(const FString& InMessage) = 0;
+
+	/**
 	 * Join a global chat room
 	 * @param RoomName The name of the room
 	 */

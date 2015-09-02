@@ -82,6 +82,7 @@ public:
 	virtual TSharedPtr<class IChatCommunicationService> GetCommunicationService() override;
 	virtual TSharedPtr<class IGameAndPartyService> GetGameAndPartyService() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
+	virtual void InsertNetworkAdminMessage(const FString& InMessage) override;
 	virtual void JoinGlobalChatRoom() override;
 	virtual void OnGlobalChatRoomJoined(const FString& ChatRoomID) override;
 

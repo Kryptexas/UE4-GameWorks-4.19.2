@@ -65,8 +65,12 @@ public:
 		{
 			for (int32 MessageIndex = LastSeenMessageCount; MessageIndex < GetMessageCount(); ++MessageIndex)
 			{
+				if(FilteredMessages[MessageIndex]->GetMessageType() == EChatMessageType::Admin /*&& GetDefaultChannelType() == EChatMessageType::Global*/)
+				{
+					NewChannelMessageCount++;
+				}
 				// Don't count messages we sent ourselves
-				if (!FilteredMessages[MessageIndex]->IsFromSelf())
+				else if (!FilteredMessages[MessageIndex]->IsFromSelf())
 				{
 					// Show Missed Messages if the active channel does now show our default message type.
 					if ((GetDefaultChannelType() & ReadChannelFlags) == 0)
@@ -85,6 +89,12 @@ public:
 
 	virtual void SetReadChannelFlags(uint8 ChannelFlags) override
 	{
+		// All channel read admin messages
+		if (ChannelFlags != 0)
+		{
+			ChannelFlags |= EChatMessageType::Admin;
+		}
+
 		if ((ChannelFlags & GetDefaultChannelType()) ||
 			(ReadChannelFlags & GetDefaultChannelType() && ChannelFlags == 0))
 		{

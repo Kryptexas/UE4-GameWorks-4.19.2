@@ -300,7 +300,7 @@ private:
 	EVisibility GetMessageNotificationVisibility(TWeakPtr<IChatTabViewModel> TabPtr) const
 	{
 		TSharedPtr<IChatTabViewModel> Tab = TabPtr.Pin();
-		if (Tab.IsValid())
+		if (Tab.IsValid() && Tab->GetChatViewModel().IsValid())
 		{
 			if (Tab->GetChatViewModel()->GetUnreadChannelMessageCount() > 0)
 			{
