@@ -187,6 +187,6 @@ class USoundAttenuation : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Settings)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Settings)
 	FAttenuationSettings Attenuation;
 };
