@@ -392,6 +392,8 @@ void FToolBarBuilder::AddToolBarButton(const FUIAction& InAction, FName InExtens
 	NewToolBarButtonBlock->SetForceSmallIcons(bForceSmallIcons);
 	NewToolBarButtonBlock->SetTutorialHighlightName(GenerateTutorialIdentfierName(TutorialHighlightName, InTutorialHighlightName, nullptr, MultiBox->GetBlocks().Num()));
 
+	MultiBox->AddMultiBlock( NewToolBarButtonBlock );
+
 	ApplyHook(InExtensionHook, EExtensionHook::After);
 }
 
