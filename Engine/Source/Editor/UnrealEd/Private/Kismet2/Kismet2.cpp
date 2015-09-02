@@ -724,6 +724,18 @@ void FKismetEditorUtilities::CompileBlueprint(UBlueprint* BlueprintObj, bool bIs
 	FCompilerResultsLog LocalResults;
 	FCompilerResultsLog& Results = (pResults != NULL) ? *pResults : LocalResults;
 
+	// Monitoring UE-20486, the OldClass->ClassGeneratedBy is NULL or otherwise not a UBlueprint.
+	if (OldClass)
+	{
+		if (OldClass->ClassGeneratedBy == nullptr)
+		{
+			checkf(OldClass->ClassGeneratedBy == BlueprintObj, TEXT("Generated Class '%s' during compilation has a NULL ClassGeneratedBy for Blueprint '%s'"), *OldClass->GetPathName(), *BlueprintObj->GetPathName());
+		}
+		else
+		{
+			checkf(OldClass->ClassGeneratedBy == BlueprintObj, TEXT("Generated Class '%s' has an invalid ClassGeneratedBy '%s' while the expected is Blueprint '%s'"), *OldClass->GetPathName(), *OldClass->ClassGeneratedBy->GetPathName(), *BlueprintObj->GetPathName());
+		}
+	}
 	auto ReinstanceHelper = FBlueprintCompileReinstancer::Create(OldClass);
 
 	// Suppress errors/warnings in the log if we're recompiling on load on a build machine
