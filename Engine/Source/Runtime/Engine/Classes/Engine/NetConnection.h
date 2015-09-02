@@ -225,6 +225,8 @@ public:
 	// Internal.
 	UPROPERTY()
 	double			LastReceiveTime;		// Last time a packet was received, for timeout checking.
+	double			LastReceiveRealtime;	// Last time a packet was received, using real time seconds (FPlatformTime::Seconds)
+	double			LastGoodPacketRealtime;	// Last real time a packet was considered valid
 	double			LastSendTime;			// Last time a packet was sent, for keepalives.
 	double			LastTickTime;			// Last time of polling.
 	int32			QueuedBytes;			// Bytes assumed to be queued up.

@@ -2148,6 +2148,8 @@ void UDemoNetConnection::HandleClientPlayer( APlayerController* PC, UNetConnecti
 		PC->Role			= ROLE_AutonomousProxy;
 		PC->NetConnection	= NetConnection;
 		LastReceiveTime		= Driver->Time;
+		LastReceiveRealtime = FPlatformTime::Seconds();
+		LastGoodPacketRealtime = FPlatformTime::Seconds();
 		State				= USOCK_Open;
 		PlayerController	= PC;
 		OwningActor			= PC;
