@@ -105,18 +105,10 @@ TSharedRef<SWidget> SGameplayTagContainerGraphPin::GetListContent()
 		.AutoHeight()
 		.MaxHeight( 400 )
 		[
-			SNew(SScaleBox)
-			.HAlign(EHorizontalAlignment::HAlign_Left)
-			.VAlign(EVerticalAlignment::VAlign_Top)
-			.StretchDirection(EStretchDirection::DownOnly)
-			.Stretch(EStretch::ScaleToFit)
-			.Content()
-			[
-				SNew( SGameplayTagWidget, EditableContainers )
-				.OnTagChanged(this, &SGameplayTagContainerGraphPin::RefreshTagList)
-				.TagContainerName( TEXT("SGameplayTagContainerGraphPin") )
-				.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
-			]
+			SNew( SGameplayTagWidget, EditableContainers )
+			.OnTagChanged(this, &SGameplayTagContainerGraphPin::RefreshTagList)
+			.TagContainerName( TEXT("SGameplayTagContainerGraphPin") )
+			.Visibility( this, &SGraphPin::GetDefaultValueVisibility )
 		];
 }
 
