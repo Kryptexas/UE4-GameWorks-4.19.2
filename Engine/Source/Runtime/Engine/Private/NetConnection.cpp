@@ -1704,6 +1704,7 @@ void UNetConnection::ResetGameWorldState()
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
+	ClientWorldPackageName = NAME_None;
 	KeepProcessingActorChannelBunchesMap.Empty();
 	DormantReplicatorMap.Empty();
 
