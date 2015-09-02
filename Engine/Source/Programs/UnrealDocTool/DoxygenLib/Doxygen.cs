@@ -76,7 +76,7 @@ namespace DoxygenLib
 					// Back up five levels.
 					FilterPath = FilterPath.Remove(FilterPath.LastIndexOf('/'));
 				}
-				FilterPath += "/Source/Programs/UnrealDocTool/DoxygenInputFilter/bin/Release/DoxygenInputFilter.exe";
+				FilterPath = "\"" + FilterPath + "/Source/Programs/UnrealDocTool/DoxygenInputFilter/perl.exe " + FilterPath + "/Source/Programs/UnrealDocTool/DoxygenInputFilter/DoxygenInputFilter.pl\" ";
 				FormatSetting(Output, "INPUT_FILTER", FilterPath);
 
 				// List of predefined macros

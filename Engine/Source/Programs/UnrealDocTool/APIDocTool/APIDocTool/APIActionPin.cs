@@ -37,7 +37,7 @@ namespace APIDocTool
 			}
 			else
 			{
-				Debug.Assert((string)PinProperties["PinCategory"] == "exec");
+				//Debug.Assert((string)PinProperties["PinCategory"] == "exec");
 				
 				Name = ((string)PinProperties["Direction"] == "input" ? "In" : "Out");
 			}
