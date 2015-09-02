@@ -2813,7 +2813,7 @@ void AActor::BeginPlay()
 		if (Component->IsRegistered() && !Component->HasBegunPlay())
 		{
 			Component->RegisterAllComponentTickFunctions(true);
-			if (Component->bWantsBeginPlay)
+			//if (Component->bWantsBeginPlay) // TODO: this should be enforced, but we need to address an upgrade path first to not quietly break code. Not checking this flag is the old behavior.
 			{
 				Component->BeginPlay();
 			}

@@ -636,7 +636,6 @@ void UActorComponent::BeginPlay()
 {
 	check(bRegistered);
 	check(!bHasBegunPlay);
-	checkSlow(bWantsBeginPlay);
 	checkSlow(bTickFunctionsRegistered); // If this fails, someone called BeginPlay() without first calling RegisterAllComponentTickFunctions().
 
 	ReceiveBeginPlay();
