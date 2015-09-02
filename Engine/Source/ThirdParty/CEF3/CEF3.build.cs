@@ -110,6 +110,12 @@ public class CEF3 : ModuleRules
 				{
 					AdditionalBundleResources.Add(new UEBuildBundleResource(FolderName, bInShouldLog:false));
 				}
+
+				// Add contents of framework directory as runtime dependencies
+				foreach (string FilePath in Directory.EnumerateFiles(FrameworkPath, "*", SearchOption.AllDirectories))
+				{
+					RuntimeDependencies.Add(new RuntimeDependency(FilePath));
+				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
