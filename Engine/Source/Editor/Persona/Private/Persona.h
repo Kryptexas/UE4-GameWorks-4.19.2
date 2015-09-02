@@ -669,6 +669,8 @@ private:
 	void ExtendMenu();
 	/** update skeleton ref pose based on current preview mesh */
 	void UpdateSkeletonRefPose();
+	/** set preview mesh internal use only. The mesh should be verified by now.  */
+	void SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh);
 
 	/** Returns the editor objects that are applicable for our current mode (e.g mesh, animation etc) */
 	TArray<UObject*> GetEditorObjectsForMode(FName Mode) const;

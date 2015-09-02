@@ -153,7 +153,7 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)
 			{
 				UAnimSequence* AnimSeq = *Iter;
-				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
+				if (AnimSeq)
 				{
 					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 				}

@@ -462,11 +462,6 @@ void UAnimSequence::PostLoad()
 	// setup the Codec interfaces
 	AnimationFormat_SetInterfaceLinks(*this);
 
-#if WITH_EDITOR
-	// save track data for the case
-	VerifyTrackMap();
-#endif
-
 	if( IsRunningGame() )
 	{
 		// this probably will not show newly created animations in PIE but will show them in the game once they have been saved off
@@ -536,7 +531,7 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 {
 	USkeleton* UseSkeleton = (MySkeleton)? MySkeleton: GetSkeleton();
 
-	if(AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
+	if( AnimationTrackNames.Num() != TrackToSkeletonMapTable.Num() && UseSkeleton!=NULL)
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track names."), *GetName());
 
@@ -551,42 +546,52 @@ void UAnimSequence::VerifyTrackMap(USkeleton* MySkeleton)
 	}
 	else if (UseSkeleton != NULL)
 	{
-		int32 NumTracks = AnimationTrackNames.Num();
-		int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
-
-		bool bNeedsFixing = false;
-		// verify all tracks are still valid
-		for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
+		// first check if any of them needs to be removed
 		{
-			int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
-			// invalid index found
-			if (NumSkeletonBone <= SkeletonBoneIndex)
-			{
-				// if one is invalid, fix up for all.
-				// you don't know what index got messed up
-				bNeedsFixing = true;
-				break;
-			}
-		}
+			int32 NumTracks = AnimationTrackNames.Num();
+			int32 NumSkeletonBone = UseSkeleton->GetReferenceSkeleton().GetNum();
 
-		if(bNeedsFixing)
-		{
-			UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track index."), *GetName());
-
-			const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
-			for(int32 I=NumTracks-1; I>=0; --I)
+			// the first fix is to make sure 
+			bool bNeedsFixing = false;
+			// verify all tracks are still valid
+			for(int32 TrackIndex=0; TrackIndex<NumTracks; TrackIndex++)
 			{
-				int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
-				if (BoneTreeIndex == INDEX_NONE)
+				int32 SkeletonBoneIndex = TrackToSkeletonMapTable[TrackIndex].BoneTreeIndex;
+				// invalid index found
+				if(NumSkeletonBone <= SkeletonBoneIndex)
 				{
-					RemoveTrack(I);
-				}
-				else
-				{
-					TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
+					// if one is invalid, fix up for all.
+					// you don't know what index got messed up
+					bNeedsFixing = true;
+					break;
 				}
 			}
+
+			if(bNeedsFixing)
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("RESAVE ANIMATION NEEDED(%s): Fixing track index."), *GetName());
+
+				const TArray<FBoneNode>& BoneTree = UseSkeleton->GetBoneTree();
+				for(int32 I=NumTracks-1; I>=0; --I)
+				{
+					int32 BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
+					if(BoneTreeIndex == INDEX_NONE)
+					{
+						RemoveTrack(I);
+					}
+					else
+					{
+						TrackToSkeletonMapTable[I].BoneTreeIndex = BoneTreeIndex;
+					}
+				}
+			}
 		}
+		
+		for(int32 I=0; I<AnimationTrackNames.Num(); ++I)
+		{
+			FTrackToSkeletonMap& TrackMap = TrackToSkeletonMapTable[I];
+			TrackMap.BoneTreeIndex = UseSkeleton->GetReferenceSkeleton().FindBoneIndex(AnimationTrackNames[I]);
+		}		
 	}
 }
 

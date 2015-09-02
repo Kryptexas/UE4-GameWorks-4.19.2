@@ -142,10 +142,6 @@ struct ENGINE_API FTrackToSkeletonMap
 {
 	GENERATED_USTRUCT_BODY()
 
-	// 0 is the current Skeleton (the one above), and N is the Nth parent.
-	UPROPERTY()
-	int32 SkeletonIndex_DEPRECATED;
-
 	// Index of Skeleton.BoneTree this Track belongs to.
 	UPROPERTY()
 	int32 BoneTreeIndex;

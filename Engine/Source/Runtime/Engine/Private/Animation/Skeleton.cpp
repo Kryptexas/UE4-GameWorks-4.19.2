@@ -263,13 +263,21 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 	// first ensure the parent exists for each bone
 	for (int32 MeshBoneIndex=0; MeshBoneIndex<NumBones; MeshBoneIndex++)
 	{
+		FName MeshBoneName = MeshRefSkel.GetBoneName(MeshBoneIndex);
 		// See if Mesh bone exists in Skeleton.
-		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex( MeshRefSkel.GetBoneName(MeshBoneIndex) );
+		int32 SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex( MeshBoneName );
 
 		// if found, increase num of bone matches count
 		if( SkeletonBoneIndex != INDEX_NONE )
 		{
 			++NumOfBoneMatches;
+
+			// follow the parent chain to verify the chain is same
+			if(!DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh))
+			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
+				return false;
+			}
 		}
 		else
 		{
@@ -282,7 +290,8 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 				if ( ParentMeshBoneIndex != INDEX_NONE )
 				{
 					// @TODO: make sure RefSkeleton's root ParentIndex < 0 if not, I'll need to fix this by checking TreeBoneIdx
-					SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(MeshRefSkel.GetBoneName(ParentMeshBoneIndex));
+					FName ParentBoneName = MeshRefSkel.GetBoneName(ParentMeshBoneIndex);
+					SkeletonBoneIndex = SkeletonRefSkel.FindBoneIndex(ParentBoneName);
 				}
 
 				// root is reached
@@ -299,12 +308,14 @@ bool USkeleton::IsCompatibleMesh(const USkeletalMesh* InSkelMesh) const
 			// still no match, return false, no parent to look for
 			if( SkeletonBoneIndex == INDEX_NONE )
 			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Missing joint on skeleton.  Make sure to assign to the skeleeton."), *MeshBoneName.ToString());
 				return false;
 			}
 
 			// second follow the parent chain to verify the chain is same
 			if( !DoesParentChainMatch(SkeletonBoneIndex, InSkelMesh) )
 			{
+				UE_LOG(LogAnimation, Warning, TEXT("%s : Hierarchy does not match."), *MeshBoneName.ToString());
 				return false;
 			}
 		}

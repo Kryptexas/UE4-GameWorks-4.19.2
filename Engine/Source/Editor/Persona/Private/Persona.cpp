@@ -1860,92 +1860,106 @@ void FPersona::OnActiveTabChanged( TSharedPtr<SDockTab> PreviouslyActive, TShare
 	}
 }
 
+void FPersona::SetPreviewMeshInternal(USkeletalMesh* NewPreviewMesh)
+{
+	ValidatePreviewAttachedAssets(NewPreviewMesh);
+	if(NewPreviewMesh != PreviewComponent->SkeletalMesh)
+	{
+		if(PreviewComponent->SkeletalMesh != NULL)
+		{
+			RemoveEditingObject(PreviewComponent->SkeletalMesh);
+		}
+
+		if(NewPreviewMesh != NULL)
+		{
+			AddEditingObject(NewPreviewMesh);
+		}
+
+		// setting skeletalmesh unregister/re-register, 
+		// so I have to save the animation settings and resetting after setting mesh
+		UAnimationAsset* AnimAssetToPlay = NULL;
+		float PlayPosition = 0.f;
+		bool bPlaying = false;
+		bool bNeedsToCopyAnimationData = PreviewComponent->AnimScriptInstance && PreviewComponent->AnimScriptInstance == PreviewComponent->PreviewInstance;
+		if(bNeedsToCopyAnimationData)
+		{
+			AnimAssetToPlay = PreviewComponent->PreviewInstance->CurrentAsset;
+			PlayPosition = PreviewComponent->PreviewInstance->CurrentTime;
+			bPlaying = PreviewComponent->PreviewInstance->bPlaying;
+		}
+
+		PreviewComponent->SetSkeletalMesh(NewPreviewMesh);
+
+		if(bNeedsToCopyAnimationData)
+		{
+			SetPreviewAnimationAsset(AnimAssetToPlay);
+			PreviewComponent->PreviewInstance->SetPosition(PlayPosition);
+			PreviewComponent->PreviewInstance->bPlaying = bPlaying;
+		}
+	}
+	else
+	{
+		PreviewComponent->InitAnim(true);
+	}
+
+	if(NewPreviewMesh != NULL)
+	{
+		PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
+		for(auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)
+		{
+			PreviewScene.AddComponent((*Iter), FTransform::Identity);
+		}
+
+		// Set up the mesh for transactions
+		NewPreviewMesh->SetFlags(RF_Transactional);
+
+		AddPreviewAttachedObjects();
+
+		if(Viewport.IsValid())
+		{
+			Viewport.Pin()->SetPreviewComponent(PreviewComponent);
+		}
+	}
+
+	for(auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)
+	{
+		(*Iter)->SetMasterPoseComponent(PreviewComponent);
+		(*Iter)->UpdateMasterBoneMap();
+	}
+
+	OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
+}
+
 // Sets the current preview mesh
 void FPersona::SetPreviewMesh(USkeletalMesh* NewPreviewMesh)
 {
 	if(!TargetSkeleton->IsCompatibleMesh(NewPreviewMesh))
 	{
-		// Send a notification that the skeletal mesh cannot work with the skeleton
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("PreviewMeshName"), FText::FromString( NewPreviewMesh->GetName() ) );
-		Args.Add( TEXT("TargetSkeletonName"), FText::FromString( TargetSkeleton->GetName() ) );
-		FNotificationInfo Info( FText::Format( LOCTEXT("SkeletalMeshIncompatible", "Skeletal Mesh \"{PreviewMeshName}\" incompatible with Skeleton \"{TargetSkeletonName}\"" ), Args ) );
-		Info.ExpireDuration = 3.0f;
-		Info.bUseLargeFont = false;
-		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
-		if ( Notification.IsValid() )
+		// message box, ask if they'd like to regenerate skeleton
+		if (FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("RenerateSkeleton", "The preview mesh hierarchy doesn't match with Skeleton anymore. Would you like to regenerate skeleton?")) == EAppReturnType::Yes)
 		{
-			Notification->SetCompletionState( SNotificationItem::CS_Fail );
+			TargetSkeleton->RecreateBoneTree( NewPreviewMesh );
+			SetPreviewMeshInternal(NewPreviewMesh);
+		}
+		else
+		{
+			// Send a notification that the skeletal mesh cannot work with the skeleton
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("PreviewMeshName"), FText::FromString(NewPreviewMesh->GetName()));
+			Args.Add(TEXT("TargetSkeletonName"), FText::FromString(TargetSkeleton->GetName()));
+			FNotificationInfo Info(FText::Format(LOCTEXT("SkeletalMeshIncompatible", "Skeletal Mesh \"{PreviewMeshName}\" incompatible with Skeleton \"{TargetSkeletonName}\""), Args));
+			Info.ExpireDuration = 3.0f;
+			Info.bUseLargeFont = false;
+			TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+			if(Notification.IsValid())
+			{
+				Notification->SetCompletionState(SNotificationItem::CS_Fail);
+			}
 		}
 	}
 	else
 	{
-		ValidatePreviewAttachedAssets(NewPreviewMesh);
-		if (NewPreviewMesh != PreviewComponent->SkeletalMesh)
-		{
-			if ( PreviewComponent->SkeletalMesh != NULL )
-			{
-				RemoveEditingObject(PreviewComponent->SkeletalMesh);
-			}
-
-			if ( NewPreviewMesh != NULL )
-			{
-				AddEditingObject(NewPreviewMesh);
-			}
-
-			// setting skeletalmesh unregister/re-register, 
-			// so I have to save the animation settings and resetting after setting mesh
-			UAnimationAsset* AnimAssetToPlay = NULL;
-			float PlayPosition = 0.f;
-			bool bPlaying = false;
-			bool bNeedsToCopyAnimationData = PreviewComponent->AnimScriptInstance && PreviewComponent->AnimScriptInstance == PreviewComponent->PreviewInstance;
-			if(bNeedsToCopyAnimationData)
-			{
-				AnimAssetToPlay = PreviewComponent->PreviewInstance->CurrentAsset;
-				PlayPosition = PreviewComponent->PreviewInstance->CurrentTime;
-				bPlaying = PreviewComponent->PreviewInstance->bPlaying;
-			}
-
-			PreviewComponent->SetSkeletalMesh(NewPreviewMesh);
-
-			if(bNeedsToCopyAnimationData)
-			{
-				SetPreviewAnimationAsset(AnimAssetToPlay);
-				PreviewComponent->PreviewInstance->SetPosition(PlayPosition);
-				PreviewComponent->PreviewInstance->bPlaying = bPlaying;
-			}
-		}
-		else
-		{
-			PreviewComponent->InitAnim(true);
-		}
-
-		if (NewPreviewMesh != NULL)
-		{
-			PreviewScene.AddComponent(PreviewComponent, FTransform::Identity);
-			for (auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)
-			{
-				PreviewScene.AddComponent((*Iter), FTransform::Identity);
-			}
-
-			// Set up the mesh for transactions
-			NewPreviewMesh->SetFlags(RF_Transactional);
-
-			AddPreviewAttachedObjects();
-
-			if(Viewport.IsValid())
-			{
-				Viewport.Pin()->SetPreviewComponent(PreviewComponent);
-			}
-		}
-
-		for(auto Iter = AdditionalMeshes.CreateIterator(); Iter; ++Iter)
-		{
-			(*Iter)->SetMasterPoseComponent(PreviewComponent);
-			(*Iter)->UpdateMasterBoneMap();
-		}
-
-		OnPreviewMeshChanged.Broadcast(NewPreviewMesh);
+		SetPreviewMeshInternal(NewPreviewMesh);
 	}
 }
 
