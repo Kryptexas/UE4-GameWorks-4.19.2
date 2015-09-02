@@ -14,11 +14,11 @@ public class Twitch : ModuleRules
 		if( Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32 )
 		{
 			string TwitchBaseDir = Path.Combine( UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..", "Plugins", "Runtime", "TwitchLiveStreaming", "Source", "ThirdParty", "NotForLicensees", "Twitch" );   // Check the NotForLicensees folder first
-			string TwitchDLLDir = "$(EngineDir)/Plugins/Runtime/TwitchLiveStreaming/Binaries/ThirdParty/NotForLicensees/Twitch";
+			string TwitchDLLDir = "$(PluginDir)/Binaries/ThirdParty/NotForLicensees/Twitch";
 			if ( !Directory.Exists( TwitchBaseDir ) )
 			{
 				TwitchBaseDir = Path.Combine(UEBuildConfiguration.UEThirdPartySourceDirectory, "..", "..", "Plugins", "Runtime", "TwitchLiveStreaming", "Source", "ThirdParty", "Twitch");       // Use the normal location
-				TwitchDLLDir = "$(EngineDir)/Plugins/Runtime/TwitchLiveStreaming/Binaries/ThirdParty/Twitch/Twitch";
+				TwitchDLLDir = "$(PluginDir)/Binaries/ThirdParty/Twitch/Twitch";
 			}
 
 			if( Target.Platform == UnrealTargetPlatform.Win64 )

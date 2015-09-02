@@ -89,6 +89,19 @@ namespace UnrealBuildTool
 		{
 			return (StagePath == null)? Path : String.Format("{0} -> {1}", Path, StagePath);
 		}
+
+		public void ExpandPathVariables(string ModuleDir)
+		{
+			// expand the $(PluginDir) variable
+			string PluginDir = ModuleDir.Substring(0, ModuleDir.LastIndexOf(System.IO.Path.DirectorySeparatorChar + "Source" + System.IO.Path.DirectorySeparatorChar));
+			Dictionary<string, string> Variables = new Dictionary<string, string>();
+			Variables["PluginDir"] = System.IO.Path.GetFullPath(PluginDir).TrimEnd(System.IO.Path.DirectorySeparatorChar);
+			Path = Utils.ExpandVariables(Path, Variables);
+			if (StagePath != null)
+			{
+				StagePath = Utils.ExpandVariables(StagePath, Variables);
+			}
+		}
 	}
 
 	/// <summary>
@@ -283,7 +296,7 @@ namespace UnrealBuildTool
 		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
 		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
 		/// <returns>New string with the base directory replaced, or the original string</returns>
-		static string InsertStandardPathVariablesToString(string InputPath, string EnginePrefix, string ProjectPrefix)
+		static public string InsertStandardPathVariablesToString(string InputPath, string EnginePrefix, string ProjectPrefix)
 		{
 			string Result = InputPath;
 			if(!InputPath.StartsWith("$("))

@@ -1336,6 +1336,12 @@ namespace UnrealBuildTool
 						}
 					}
 				}
+
+				// update the run-time dependencies path to remove $(PluginDir) and replace with $(ProjectDir) or $(EngineDir) equivalent
+				foreach (var Dependency in RulesObject.RuntimeDependencies)
+				{
+					Dependency.ExpandPathVariables(RulesObject.ModuleDirectory);
+				}
 			}
 
 			return RulesObject;
