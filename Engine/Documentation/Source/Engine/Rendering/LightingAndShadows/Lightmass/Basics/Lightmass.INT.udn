@@ -2,6 +2,8 @@ Availability: Public
 Title:Lightmass Basics
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:High level introduction to Lightmass.
+SkillLevel: Beginner
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
