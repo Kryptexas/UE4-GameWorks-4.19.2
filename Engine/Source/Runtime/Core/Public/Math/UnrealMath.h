@@ -404,6 +404,46 @@ inline FVector FMath::VRand()
 	return Result * (1.0f / Sqrt(L));
 }
 
+FORCEINLINE float FMath::RoundFromZero(float F)
+{
+	return (F < 0.0f) ? FloorToFloat(F) : CeilToFloat(F);
+}
+
+FORCEINLINE double FMath::RoundFromZero(double F)
+{
+	return (F < 0.0) ? FloorToDouble(F) : CeilToDouble(F);
+}
+
+FORCEINLINE float FMath::RoundToZero(float F)
+{
+	return (F < 0.0f) ? CeilToFloat(F) : FloorToFloat(F);
+}
+
+FORCEINLINE double FMath::RoundToZero(double F)
+{
+	return (F < 0.0) ? CeilToDouble(F) : FloorToDouble(F);
+}
+
+FORCEINLINE float FMath::RoundToNegativeInfinity(float F)
+{
+	return FloorToFloat(F);
+}
+
+FORCEINLINE double FMath::RoundToNegativeInfinity(double F)
+{
+	return FloorToDouble(F);
+}
+
+FORCEINLINE float FMath::RoundToPositiveInfinity(float F)
+{
+	return CeilToFloat(F);
+}
+
+FORCEINLINE double FMath::RoundToPositiveInfinity(double F)
+{
+	return CeilToDouble(F);
+}
+
 inline FString FMath::FormatIntToHumanReadable(int32 Val)
 {
 	FString Src = *FString::Printf( TEXT("%i"), Val );

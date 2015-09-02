@@ -2613,6 +2613,99 @@ void FVector::GenerateClusterCenters(TArray<FVector>& Clusters, const TArray<FVe
 	}
 }
 
+namespace MathRoundingUtil
+{
+
+float TruncateToHalfIfClose(float F)
+{
+	float ValueToFudgeIntegralPart = 0.0f;
+	float ValueToFudgeFractionalPart = FMath::Modf(F, &ValueToFudgeIntegralPart);
+	if (F < 0.0f)
+	{
+		return ValueToFudgeIntegralPart + ((FMath::IsNearlyEqual(ValueToFudgeFractionalPart, -0.5f)) ? -0.5f : ValueToFudgeFractionalPart);
+	}
+	else
+	{
+		return ValueToFudgeIntegralPart + ((FMath::IsNearlyEqual(ValueToFudgeFractionalPart, 0.5f)) ? 0.5f : ValueToFudgeFractionalPart);
+	}
+}
+
+double TruncateToHalfIfClose(double F)
+{
+	double ValueToFudgeIntegralPart = 0.0;
+	double ValueToFudgeFractionalPart = FMath::Modf(F, &ValueToFudgeIntegralPart);
+	if (F < 0.0)
+	{
+		return ValueToFudgeIntegralPart + ((FMath::IsNearlyEqual(ValueToFudgeFractionalPart, -0.5)) ? -0.5 : ValueToFudgeFractionalPart);
+	}
+	else
+	{
+		return ValueToFudgeIntegralPart + ((FMath::IsNearlyEqual(ValueToFudgeFractionalPart, 0.5)) ? 0.5 : ValueToFudgeFractionalPart);
+	}
+}
+
+} // namespace GenericPlatformMathInternal
+
+float FMath::RoundHalfToEven(float F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+
+	const bool bIsNegative = F < 0.0f;
+	const bool bValueIsEven = static_cast<uint32>(FloorToFloat(((bIsNegative) ? -F : F))) % 2 == 0;
+	if (bValueIsEven)
+	{
+		// Round towards value (eg, value is -2.5 or 2.5, and should become -2 or 2)
+		return (bIsNegative) ? FloorToFloat(F + 0.5f) : CeilToFloat(F - 0.5f);
+	}
+	else
+	{
+		// Round away from value (eg, value is -3.5 or 3.5, and should become -4 or 4)
+		return (bIsNegative) ? CeilToFloat(F - 0.5f) : FloorToFloat(F + 0.5f);
+	}
+}
+
+double FMath::RoundHalfToEven(double F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+
+	const bool bIsNegative = F < 0.0;
+	const bool bValueIsEven = static_cast<uint64>(FMath::FloorToDouble(((bIsNegative) ? -F : F))) % 2 == 0;
+	if (bValueIsEven)
+	{
+		// Round towards value (eg, value is -2.5 or 2.5, and should become -2 or 2)
+		return (bIsNegative) ? FloorToDouble(F + 0.5) : CeilToDouble(F - 0.5);
+	}
+	else
+	{
+		// Round away from value (eg, value is -3.5 or 3.5, and should become -4 or 4)
+		return (bIsNegative) ? CeilToDouble(F - 0.5) : FloorToDouble(F + 0.5);
+	}
+}
+
+float FMath::RoundHalfFromZero(float F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+	return (F < 0.0f) ? CeilToFloat(F - 0.5f) : FloorToFloat(F + 0.5f);
+}
+
+double FMath::RoundHalfFromZero(double F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+	return (F < 0.0) ? CeilToDouble(F - 0.5) : FloorToDouble(F + 0.5);
+}
+
+float FMath::RoundHalfToZero(float F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+	return (F < 0.0f) ? FloorToFloat(F + 0.5f) : CeilToFloat(F - 0.5f);
+}
+
+double FMath::RoundHalfToZero(double F)
+{
+	F = MathRoundingUtil::TruncateToHalfIfClose(F);
+	return (F < 0.0) ? FloorToDouble(F + 0.5) : CeilToDouble(F - 0.5);
+}
+
 bool FMath::MemoryTest( void* BaseAddress, uint32 NumBytes )
 {
 	volatile uint32* Ptr;

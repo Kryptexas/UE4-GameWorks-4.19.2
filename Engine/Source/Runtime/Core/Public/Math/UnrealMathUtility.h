@@ -1095,6 +1095,62 @@ struct FMath : public FPlatformMath
 	 */
 	static CORE_API bool PointsAreCoplanar(const TArray<FVector>& Points, const float Tolerance = 0.1f);
 
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is closest to an even value: 1.5 becomes 2, 0.5 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfToEven(float F);
+	static CORE_API double RoundHalfToEven(double F);
+
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is further from zero: -0.5 becomes -1.0, 0.5 becomes 1.0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfFromZero(float F);
+	static CORE_API double RoundHalfFromZero(double F);
+
+	/**
+	* Converts a floating point number to the nearest integer, equidistant ties go to the value which is closer to zero: -0.5 becomes 0, 0.5 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static CORE_API float RoundHalfToZero(float F);
+	static CORE_API double RoundHalfToZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is further from zero, "larger" in absolute value: 0.1 becomes 1, -0.1 becomes -1
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundFromZero(float F);
+	static double RoundFromZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is closer to zero, "smaller" in absolute value: 0.1 becomes 0, -0.1 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToZero(float F);
+	static double RoundToZero(double F);
+
+	/**
+	* Converts a floating point number to an integer which is more negative: 0.1 becomes 0, -0.1 becomes -1
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToNegativeInfinity(float F);
+	static double RoundToNegativeInfinity(double F);
+
+	/**
+	* Converts a floating point number to an integer which is more positive: 0.1 becomes 1, -0.1 becomes 0
+	* @param F		Floating point value to convert
+	* @return		The rounded integer
+	*/
+	static float RoundToPositiveInfinity(float F);
+	static double RoundToPositiveInfinity(double F);
+
 	// Formatting functions
 
 	/**
