@@ -373,7 +373,7 @@ public:
 	/**
 	 * Set MinLodModel of the mesh component
 	 *
-	 * @param	InNewMinLOD	Set new MinLodModel that make sure the LOD does not go below of this value. This will affect in the next tick update. 
+	 * @param	InNewMinLOD	Set new MinLodModel that make sure the LOD does not go below of this value. Range from [0, Max Number of LOD - 1]. This will affect in the next tick update. 
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetMinLOD(int32 InNewMinLOD);
@@ -381,7 +381,7 @@ public:
 	/**
 	 * Set MinLodModel of the mesh component
 	 *
-	 * @param	InNewForcedLOD	Set new ForcedLODModel that forces to set the incoming LOD. This will affect in the next tick update. 
+	 * @param	InNewForcedLOD	Set new ForcedLODModel that forces to set the incoming LOD. Range from [1, Max Number of LOD]. This will affect in the next tick update. 
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkinnedMesh")
 	void SetForcedLOD(int32 InNewForcedLOD);

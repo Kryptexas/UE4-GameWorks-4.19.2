@@ -1811,7 +1811,7 @@ void USkinnedMeshComponent::SetForcedLOD(int32 InNewForcedLOD)
 	int32 MaxLODIndex = 0;
 	if(MeshObject)
 	{
-		MaxLODIndex = MeshObject->GetSkeletalMeshResource().LODModels.Num() - 1;
+		MaxLODIndex = MeshObject->GetSkeletalMeshResource().LODModels.Num();
 	}
 
 	ForcedLodModel = FMath::Clamp(InNewForcedLOD, 0, MaxLODIndex);
