@@ -4413,7 +4413,7 @@ void UEdGraphSchema_K2::GetGraphDisplayInformation(const UEdGraph& Graph, /*out*
 
 	UFunction* Function = NULL;
 	UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(&Graph);
-	if (Blueprint)
+	if (Blueprint && Blueprint->SkeletonGeneratedClass)
 	{
 		Function = Blueprint->SkeletonGeneratedClass->FindFunctionByName(Graph.GetFName());
 	}
