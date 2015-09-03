@@ -373,7 +373,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediatePath);
+				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.PlatformIntermediateFolder);
 			}
 			return FileReference.Combine(PlatformIntermediatePath, Target.GetTargetName(), "DependencyCache.bin");
 		}
