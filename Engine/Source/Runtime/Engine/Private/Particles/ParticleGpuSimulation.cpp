@@ -761,12 +761,12 @@ FArchive& operator<<(FArchive& Ar, FParticlePerFrameSimulationShaderParameters& 
  * simulation.
  */
 BEGIN_UNIFORM_BUFFER_STRUCT( FVectorFieldUniformParameters,)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( int32, Count )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FMatrix, WorldToVolume, [MAX_VECTOR_FIELDS] )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FMatrix, VolumeToWorld, [MAX_VECTOR_FIELDS] )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER( int32, Count )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FVector, TilingAxes, [MAX_VECTOR_FIELDS] )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FVector4, IntensityAndTightness, [MAX_VECTOR_FIELDS] )
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FVector, VolumeSize, [MAX_VECTOR_FIELDS] )
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FVector2D, IntensityAndTightness, [MAX_VECTOR_FIELDS] )
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY( FVector, TilingAxes, [MAX_VECTOR_FIELDS] )
 END_UNIFORM_BUFFER_STRUCT( FVectorFieldUniformParameters )
 
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FVectorFieldUniformParameters,TEXT("VectorFields"));
@@ -4156,7 +4156,7 @@ static void SetParametersForVectorField(FVectorFieldUniformParameters& OutParame
 	OutParameters.WorldToVolume[Index] = VectorFieldInstance->WorldToVolume;
 	OutParameters.VolumeToWorld[Index] = VectorFieldInstance->VolumeToWorldNoScale;
 	OutParameters.VolumeSize[Index] = FVector(Resource->SizeX, Resource->SizeY, Resource->SizeZ);
-	OutParameters.IntensityAndTightness[Index] = FVector2D(Intensity, Tightness );
+	OutParameters.IntensityAndTightness[Index] = FVector4(Intensity, Tightness, 0, 0 );
 	OutParameters.TilingAxes[Index].X = VectorFieldInstance->bTileX ? 1.0f : 0.0f;
 	OutParameters.TilingAxes[Index].Y = VectorFieldInstance->bTileY ? 1.0f : 0.0f;
 	OutParameters.TilingAxes[Index].Z = VectorFieldInstance->bTileZ ? 1.0f : 0.0f;
@@ -4238,7 +4238,7 @@ void FFXSystem::SimulateGPUParticles(
 			VectorFieldParameters.WorldToVolume[Index] = FMatrix::Identity;
 			VectorFieldParameters.VolumeToWorld[Index] = FMatrix::Identity;
 			VectorFieldParameters.VolumeSize[Index] = FVector(1.0f);
-			VectorFieldParameters.IntensityAndTightness[Index] = FVector2D::ZeroVector;
+			VectorFieldParameters.IntensityAndTightness[Index] = FVector4(0.0f);
 		}
 		VectorFieldParameters.Count = 0;
 		EmptyVectorFieldUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
@@ -4312,7 +4312,7 @@ void FFXSystem::SimulateGPUParticles(
 						VectorFieldParameters.WorldToVolume[Index] = FMatrix::Identity;
 						VectorFieldParameters.VolumeToWorld[Index] = FMatrix::Identity;
 						VectorFieldParameters.VolumeSize[Index] = FVector(1.0f);
-						VectorFieldParameters.IntensityAndTightness[Index] = FVector2D::ZeroVector;
+						VectorFieldParameters.IntensityAndTightness[Index] = FVector4(0.0f);
 					}
 					SimulationCommand->VectorFieldsUniformBuffer = FVectorFieldUniformBufferRef::CreateUniformBufferImmediate(VectorFieldParameters, UniformBuffer_SingleFrame);
 				}
