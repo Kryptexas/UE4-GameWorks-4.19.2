@@ -9,12 +9,14 @@
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
 #include "MovieSceneTrackEditor.h"
+
 #include "BoolPropertyTrackEditor.h"
 #include "BytePropertyTrackEditor.h"
 #include "ColorPropertyTrackEditor.h"
 #include "FloatPropertyTrackEditor.h"
 #include "VectorPropertyTrackEditor.h"
 #include "VisibilityPropertyTrackEditor.h"
+
 #include "TransformTrackEditor.h"
 #include "ShotTrackEditor.h"
 #include "SubMovieSceneTrackEditor.h"
@@ -22,6 +24,7 @@
 #include "SkeletalAnimationTrackEditor.h"
 #include "ParticleTrackEditor.h"
 #include "AttachTrackEditor.h"
+#include "EventTrackEditor.h"
 #include "PathTrackEditor.h"
 
 
@@ -51,6 +54,7 @@ public:
 		AnimationTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSkeletalAnimationTrackEditor::CreateTrackEditor ) );
 		AttachTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DAttachTrackEditor::CreateTrackEditor ) );
 		AudioTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FAudioTrackEditor::CreateTrackEditor ) );
+		EventTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FEventTrackEditor::CreateTrackEditor ) );
 		ParticleTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FParticleTrackEditor::CreateTrackEditor ) );
 		PathTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DPathTrackEditor::CreateTrackEditor ) );
 		ShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FShotTrackEditor::CreateTrackEditor ) );
@@ -79,6 +83,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( AnimationTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( AttachTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( AudioTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( EventTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ParticleTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( PathTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( ShotTrackCreateEditorHandle );
@@ -99,6 +104,7 @@ private:
 	FDelegateHandle AnimationTrackCreateEditorHandle;
 	FDelegateHandle AttachTrackCreateEditorHandle;
 	FDelegateHandle AudioTrackCreateEditorHandle;
+	FDelegateHandle EventTrackCreateEditorHandle;
 	FDelegateHandle ParticleTrackCreateEditorHandle;
 	FDelegateHandle PathTrackCreateEditorHandle;
 	FDelegateHandle ShotTrackCreateEditorHandle;
