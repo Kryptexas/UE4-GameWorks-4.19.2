@@ -30,8 +30,8 @@ private:
 	FShader* SetShaderSetupTempl(const FRenderingCompositePassContext& Context);
 };
 
-// ePId_Input0: defines the resolution we compute AO and provides the normal
-// ePId_Input1: setup in same resolution as ePId_Input1 for depth expect when running in full resolution, then it's half
+// ePId_Input0: defines the resolution we compute AO and provides the normal (only needed if bInAOSetupAsInput)
+// ePId_Input1: setup in same resolution as ePId_Input1 for depth expect when running in full resolution, then it's half (only needed if bInAOSetupAsInput)
 // ePId_Input2: optional AO result one lower resolution
 // ePId_Input3: optional HZB
 // derives from TRenderingCompositePassBase<InputCount, OutputCount> 
@@ -157,3 +157,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters,)
 END_UNIFORM_BUFFER_STRUCT(FCameraMotionParameters)
 
 TUniformBufferRef<FCameraMotionParameters> CreateCameraMotionParametersUniformBuffer(const FSceneView& View);
+
+// for render thread
+// @return usually in 0..100 range but could be outside, combines the view with the cvar setting
+float GetAmbientOcclusionMaxQualityRT(const FSceneView& View);

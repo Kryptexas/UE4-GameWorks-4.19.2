@@ -1658,13 +1658,6 @@ static TAutoConsoleVariable<int32> CVarSceneColorFringeQuality(
 
 // ---------------------------------------
 
-static TAutoConsoleVariable<int32> CVarAmbientOcclusionLevels(
-	TEXT("r.AmbientOcclusionLevels"),
-	3,
-	TEXT("Defines how many mip levels are using during the ambient occlusion calculation. This is useful when tweaking the algorithm.\n")
-	TEXT(" 0:none, 1:one, 2:two, 3:three(default), 4:four(larger at little cost but can flicker)"),
-	ECVF_Scalability | ECVF_RenderThreadSafe);
-
 static TAutoConsoleVariable<float> CVarAmbientOcclusionRadiusScale(
 	TEXT("r.AmbientOcclusionRadiusScale"),
 	1.0f,

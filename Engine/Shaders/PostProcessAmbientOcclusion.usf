@@ -10,8 +10,8 @@
 
 // set by C++:
 //
-// 0:low / 1: medium / 2:high
-// SAMPLESET_QUALITY
+// 0:low / 1: medium / 2:high / 4:very high
+// SHADER_QUALITY
 //
 // 0:no / 1:yes
 // USE_AO_SETUP_AS_INPUT
@@ -19,11 +19,11 @@
 // 0:no / 1:yes
 // USE_UPSAMPLE
 
-// 0:normal method using depth computed in setup passes (might need a clear outside the viewport, test with stereo/splitscreen) / 1:faster but slightly lower quality
-#define USE_HZB	1
-
 // 0: classic with weighted sample, 1: don't normalize and adjust the formula to be simpler and faster - can look better and is cheaper (Alchemy like?)
 #define OPTIMIZATION_O1 1
+
+// 0:lower quality, 1: higher quality with double sample count
+//#define SSAO_SAMPLE_PAIRS 0
 
 // 1:lowest quality, 2:medium , 3:high, more doesn't give too much (maybe HZB mip computations should be adjusted)
 //#define SAMPLE_STEPS 3
@@ -37,18 +37,26 @@
 // AO_SAMPLE_QUALITY = 2 : efficient high frequency 4x4 pattern without jitter for TemporalAA
 // AO_SAMPLE_QUALITY = 3 : efficient high frequency 4x4 pattern with jitter for TemporalAA
 
-#if SAMPLESET_QUALITY == 0
+#if SHADER_QUALITY == 0
 	// low
 	#define USE_SAMPLESET 1
 	#define SAMPLE_STEPS 1
-#elif SAMPLESET_QUALITY == 1
+	#define SSAO_SAMPLE_PAIRS 0
+#elif SHADER_QUALITY == 1
 	// medium
 	#define USE_SAMPLESET 1
-	#define SAMPLE_STEPS 3
-#else // SAMPLESET_QUALITY == 2
+	#define SAMPLE_STEPS 1
+	#define SSAO_SAMPLE_PAIRS 1
+#elif SHADER_QUALITY == 2
 	// high
+	#define USE_SAMPLESET 1
+	#define SAMPLE_STEPS 3
+	#define SSAO_SAMPLE_PAIRS 1
+#else // SHADER_QUALITY == 3
+	// very high
 	#define USE_SAMPLESET 3
 	#define SAMPLE_STEPS 3
+	#define SSAO_SAMPLE_PAIRS 1
 #endif
 
 // 0:4 samples, 1:9 samples (only really noticable with dither usage ??)
@@ -335,7 +343,7 @@ float acosApproxNormAngle(float x)
 }
 
 // @return float2(InvNormAngle, Weight)
-float2 Wedge(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, float3 ViewSpacePosition, float3 ScaledViewSpaceNormal, float InvHaloSize, float MipLevel)
+float2 WedgeWithNormal(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, float3 ViewSpacePosition, float3 ScaledViewSpaceNormal, float InvHaloSize, float MipLevel)
 {
 	float AORadiusInShader = ScreenSpaceAOandSSRShaderParams[1].z;		// 40 is default, /400 is constant
 	float ScaleRadiusInWorldSpace = ScreenSpaceAOandSSRShaderParams[2].z;
@@ -344,15 +352,9 @@ float2 Wedge(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, f
 
 	float2 ScreenSpacePos = ReconstructSSPosFromCS(SamplePosition2 * FovFix);
 
-#if USE_HZB
 	float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
 	float Abs = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
-#else
-	float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
-
-	float Abs = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).a * Constant_Float16F_Scale;
-#endif
 
 	float3 SamplePosition = ReconstructCSPos(Abs, ScreenSpacePos) * InvFovFix;
 		
@@ -375,7 +377,7 @@ float2 Wedge(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, f
 
 
 // @return float2(InvNormAngle, Weight)
-float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, float3 ViewSpacePosition, float3 ScaledViewSpaceNormal, float InvHaloSize, float MipLevel)
+float2 WedgeNoNormal(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, float3 ViewSpacePosition, float3 ScaledViewSpaceNormal, float InvHaloSize, float MipLevel)
 {
 	float3 DeltaLeft;
 	float AbsLeft;
@@ -389,15 +391,9 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 
 		float2 ScreenSpacePos = ReconstructSSPosFromCS(SamplePosition2 * FovFix);
 
-	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
 		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
-	#else
-		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
-
-		AbsLeft = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).a * Constant_Float16F_Scale;
-	#endif
 
 		SamplePositionLeft = ReconstructCSPos(AbsLeft, ScreenSpacePos) * InvFovFix;
 		
@@ -422,15 +418,9 @@ float2 Wedge2(float Scale, float2 LocalRandom, float3 FovFix, float3 InvFovFix, 
 
 		float2 ScreenSpacePos = ReconstructSSPosFromCS(SamplePosition2 * FovFix);
 
-	#if USE_HZB
 		float2 UV = ScreenSpacePos * float2(0.5f, -0.5f) + 0.5f;
 
-		AbsLeft = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
-	#else
-		float2 UV = ScreenPosToUV(ScreenSpacePos, PostprocessInput0Size);
-
-		AbsRight = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, UV).a * Constant_Float16F_Scale;
-	#endif
+		AbsRight = ConvertFromDeviceZ(Texture2DSampleLevel( PostprocessInput3, PostprocessInput3Sampler, HzbUvAndStepMipLevelFactor.xy * UV, MipLevel).r);
 
 		SamplePositionRight = ReconstructCSPos(AbsRight, ScreenSpacePos) * InvFovFix;
 		
@@ -529,14 +519,24 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 	{
 #else // AO_SAMPLE_QUALITY == 3
 	// extract one of 16 base vectors (rotation and scale) from a texture that repeats 4x4, changing over time if TemporalAA is enabled
+
 	// todo: can be moved into the vertex shader
-	float2 TemporalOffset = (View.TemporalAAParams.r % 8) * float2(2.48f, 6.72f) / 64.0f;
+	float2 TemporalOffset = (View.TemporalAAParams.r % 8) * float2(2.48f, 7.52f) / 64.0f;
 
 	float4 RandomNorm = Texture2DSample(RandomNormalTexture, RandomNormalTextureSampler, TemporalOffset + UV * ViewportUVToRandomUV);
 	float4 RandomBase = (RandomNorm * 2 - 1) * float4(ActualAORadiusXY, ActualAORadiusXY);
 
 	{
 #endif // AO_SAMPLE_QUALITY == 
+
+#if !SSAO_SAMPLE_PAIRS
+		// alternate -1/1 each pixel
+		float mirror = (frac(UV.x * ViewportUVToRandomUV.x * 32.0f) < 0.5f) ? -1 : 1;
+
+		// noise experiment: 0:dither..0.5:randomness
+//		float RandomnessConst = 0.0f;
+//		mirror *= lerp(1.0f, 2 * PseudoRandom(UV * ViewportUVToRandomUV * 32.0f), RandomnessConst);
+#endif
 
 		// .x means for very anisotropic viewports we scale by x
 		float InvHaloSize = 1.0f / (ActualAORadiusXY.x * 2);
@@ -568,7 +568,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 					// constant at run time (higher is better for texture cache / performance, lower is better quality
 					float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
-					float2 StepSample = Wedge2(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
+					float2 StepSample = WedgeNoNormal(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 
 					// combine horizon samples
 					LocalAccumulator = lerp(LocalAccumulator, float2(max(LocalAccumulator.x, StepSample.x), 1), StepSample.y);
@@ -579,7 +579,9 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 			}
 			else // SSAO_NORMAL_AFFECTED == 1
 			{
+#if SSAO_SAMPLE_PAIRS
 				UNROLL for(int mirror = -1; mirror <= 1; mirror +=2)
+#endif
 				{
 					float2 LocalAccumulator = float2(0, 0);
 
@@ -590,7 +592,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 						// constant at run time (higher is better for texture cache / performance, lower is better quality
 						float MipLevel = log2(1.0f + HzbUvAndStepMipLevelFactor.z * step);
 
-						float2 StepSample = Wedge(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
+						float2 StepSample = WedgeWithNormal(Scale, LocalRandom, FovFix, InvFovFix, ViewSpacePosition, ScaledViewSpaceNormal, InvHaloSize, MipLevel);
 
 						// combine horizon samples
 						LocalAccumulator = lerp(LocalAccumulator, float2(max(LocalAccumulator.x, StepSample.x), 1), StepSample.y);
