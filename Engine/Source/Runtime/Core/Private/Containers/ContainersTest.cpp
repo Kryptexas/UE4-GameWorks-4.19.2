@@ -272,15 +272,6 @@ namespace
 	}
 }
 
-static bool doodle = false;
-void checkDoodle(bool b)
-{
-	if (doodle)
-	{
-		check(b);
-	}
-}
-
 bool FContainersTest::RunTest( const FString& Parameters )
 {
 	typedef TMap<int32, FContainerTestValueType> TestMapType;
