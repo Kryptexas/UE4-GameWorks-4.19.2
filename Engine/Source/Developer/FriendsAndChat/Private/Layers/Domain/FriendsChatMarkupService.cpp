@@ -21,12 +21,14 @@ struct FProcessedInput
 		: ChatChannel(EChatMessageType::Invalid)
 		, NeedsTip(false)
 		, FoundMatch(false)
+		, HasFriendToken(false)
 	{}
 
 	EChatMessageType::Type ChatChannel;
 	FString Message;
 	bool NeedsTip; // The input will only be executed when we no longer require a tip
 	bool FoundMatch;
+	bool HasFriendToken; // If we have tried to narrow the search by entering a user name
 	TArray<TSharedPtr<FFriendViewModel> > ValidFriends;
 	TArray<TSharedPtr<FFriendViewModel> > MatchedFriends;
 	TArray<TSharedPtr<IChatTip> > ValidCustomTips;
@@ -39,6 +41,7 @@ struct FProcessedInput
 		NeedsTip = false;
 		FoundMatch = false;
 		ChatChannel = EChatMessageType::Invalid;
+		HasFriendToken = false;
 	}
 };
 
@@ -550,7 +553,11 @@ private:
 		ChatTipArray.Empty();
 		if(ProcessedInput->ChatChannel == EChatMessageType::Whisper)
 		{
-			ChatTipArray.Add(NavigateToWhisperTip.ToSharedRef());
+			if(!ProcessedInput->HasFriendToken)
+			{
+				ChatTipArray.Add(NavigateToWhisperTip.ToSharedRef());
+			}
+
 			if(ProcessedInput->ValidFriends.Num())
 			{
 				for(const auto& Friend : ProcessedInput->ValidFriends)
@@ -705,6 +712,8 @@ private:
 				{
 					if(!Remainder.IsEmpty())
 					{
+						// Mark that we have a friend token so we don't display the navigation tip
+						ProcessedInput->HasFriendToken = true;
 						FString PotentialName = Remainder.Left(25).Replace(TEXT(" "), TEXT(""));
 
 						for(const auto& Friend : GetFriendViewModels())
@@ -722,6 +731,7 @@ private:
 					}
 					else
 					{
+						ProcessedInput->HasFriendToken = false;
 						for(const auto& Friend : GetFriendViewModels())
 						{
 							ProcessedInput->ValidFriends.Add(Friend);

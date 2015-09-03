@@ -8,7 +8,7 @@ public:
 
 	virtual ~IFriendsNavigationService() {}
 
-	virtual void SetOutgoingChatFriend(TSharedRef<class IFriendItem> FriendItem) = 0;
+	virtual void SetOutgoingChatFriend(TSharedRef<class IFriendItem> FriendItem, bool SetChannel = true) = 0;
 
 	virtual void SetOutgoingChatFriend(const FUniqueNetId& InUserID) = 0;
 

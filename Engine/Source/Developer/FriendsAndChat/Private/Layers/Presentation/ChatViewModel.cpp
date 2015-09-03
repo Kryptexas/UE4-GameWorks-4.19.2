@@ -65,7 +65,7 @@ public:
 		{
 			for (int32 MessageIndex = LastSeenMessageCount; MessageIndex < GetMessageCount(); ++MessageIndex)
 			{
-				if(FilteredMessages[MessageIndex]->GetMessageType() == EChatMessageType::Admin /*&& GetDefaultChannelType() == EChatMessageType::Global*/)
+				if(FilteredMessages[MessageIndex]->GetMessageType() == EChatMessageType::Admin)
 				{
 					NewChannelMessageCount++;
 				}
@@ -448,7 +448,7 @@ protected:
 		bool Changed = false;
 
 		// Set outgoing whisper recipient if not set
-		if (GetChatChannelType() == EChatMessageType::Whisper && Message->MessageType == EChatMessageType::Whisper && !SelectedFriend.IsValid())
+		if (GetDefaultChannelType() == EChatMessageType::Whisper && Message->MessageType == EChatMessageType::Whisper && !SelectedFriend.IsValid())
 		{
 			if (Message->bIsFromSelf)
 			{
@@ -537,8 +537,11 @@ private:
 
 	void HandleChatFriendSelected(TSharedRef<IFriendItem> ChatFriend)
 	{
-		SetWhisperFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID(), true);
-		OnChatListUpdated().Broadcast();
+		if(GetOutgoingChatChannel() == EChatMessageType::Whisper)
+		{
+			SetWhisperFriend(FText::FromString(ChatFriend->GetName()), ChatFriend->GetUniqueID(), true);
+			OnChatListUpdated().Broadcast();
+		}
 	}
 
 	void HandleViewChangedEvent(EChatMessageType::Type NewChannel)

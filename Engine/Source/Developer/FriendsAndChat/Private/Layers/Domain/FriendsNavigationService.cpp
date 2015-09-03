@@ -19,11 +19,14 @@ public:
 		OnChatChannelChanged().Broadcast(ChannelSelected);
 	}
 
-	virtual void SetOutgoingChatFriend(TSharedRef<IFriendItem> FriendItem) override
+	virtual void SetOutgoingChatFriend(TSharedRef<IFriendItem> FriendItem, bool SetChannel) override
 	{
 		if(FriendItem->GetInviteStatus() == EInviteStatus::Accepted)
 		{
-			ChangeViewChannel(EChatMessageType::Whisper);
+			if(SetChannel)
+			{
+				ChangeViewChannel(EChatMessageType::Whisper);
+			}
 			OnChatFriendSelected().Broadcast(FriendItem);
 		}
 	}
@@ -33,7 +36,7 @@ public:
 		TSharedPtr< IFriendItem > FoundFriend = FriendsService->FindUser(InUserID);
 		if(FoundFriend.IsValid())
 		{
-			SetOutgoingChatFriend(FoundFriend.ToSharedRef());
+			SetOutgoingChatFriend(FoundFriend.ToSharedRef(), true);
 		}
 	}
 
