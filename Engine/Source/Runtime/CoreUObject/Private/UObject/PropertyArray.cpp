@@ -216,11 +216,7 @@ const TCHAR* UArrayProperty::ImportText_Internal( const TCHAR* Buffer, void* Dat
 
 	int32 Index = 0;
 
-	const bool bEmptyArray = *Buffer == TCHAR(')');
-	if (!bEmptyArray)
-	{
-		ArrayHelper.ExpandForIndex(0);
-	}
+	ArrayHelper.ExpandForIndex(0);
 	while ((Buffer != NULL) && (*Buffer != TCHAR(')')))
 	{
 		SkipWhitespace(Buffer);

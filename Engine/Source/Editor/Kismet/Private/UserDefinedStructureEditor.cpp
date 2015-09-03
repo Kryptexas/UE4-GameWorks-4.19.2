@@ -15,6 +15,95 @@
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 
+///////////////////////////////////////////////////////////////////////////////////////
+// FDefaultValueDetails
+
+class FDefaultValueDetails : public IDetailCustomization
+{
+public:
+	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
+	static TSharedRef<IDetailCustomization> MakeInstance(TSharedPtr<FStructOnScope> InStructData)
+	{
+		return MakeShareable(new FDefaultValueDetails(InStructData));
+	}
+
+	FDefaultValueDetails(TSharedPtr<FStructOnScope> InStructData)
+		: StructData(InStructData)
+	{}
+
+	~FDefaultValueDetails()
+	{
+	}
+
+	/** IDetailCustomization interface */
+	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) override;
+
+	/** Callback when finished changing properties to export the default value from the property to where strings are stored */
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
+
+private:
+	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
+	TSharedPtr<class FUserDefinedStructureLayout> Layout;
+	TSharedPtr<FStructOnScope> StructData;
+	IDetailLayoutBuilder* DetailLayoutPtr;
+};
+
+void FDefaultValueDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) 
+{
+	DetailLayoutPtr = &DetailLayout;
+	const TArray<TWeakObjectPtr<UObject>> Objects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	check(Objects.Num() > 0);
+
+	if (Objects.Num() == 1)
+	{
+		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
+
+		IDetailsView& DetailsView = (IDetailsView&)(DetailLayout.GetDetailsView());
+		DetailsView.OnFinishedChangingProperties().AddSP(this, &FDefaultValueDetails::OnFinishedChangingProperties);
+
+		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("DefaultValues", LOCTEXT("DefaultValues", "Default Values"));
+
+		for (TFieldIterator<UProperty> PropertyIter(UserDefinedStruct.Get()); PropertyIter; ++PropertyIter)
+		{
+			StructureCategory.AddExternalProperty(StructData, (*PropertyIter)->GetFName());
+		}
+	}
+}
+
+void FDefaultValueDetails::OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
+{
+	check(PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetOwnerStruct());
+
+	const bool bPropertyIsActual = PropertyChangedEvent.MemberProperty->GetOwnerStruct() == UserDefinedStruct.Get();
+	const UProperty* DirectProperty = bPropertyIsActual ? PropertyChangedEvent.MemberProperty : nullptr;
+	while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
+	{
+		DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
+	}
+	ensure(nullptr != DirectProperty);
+
+	if (DirectProperty)
+	{
+		FString DefaultValueString;
+		bool bDefaultValueSet = false;
+		{
+			if (StructData.IsValid() && StructData->IsValid())
+			{
+				bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
+			}
+		}
+
+		const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
+		if (bDefaultValueSet && VarGuid.IsValid())
+		{
+			FStructureEditorUtils::ChangeVariableDefaultValue(UserDefinedStruct.Get(), VarGuid, DefaultValueString);
+		}
+	}
+}
+
+/////////////////////////////////
+// FStructureDefaultValueView
+
 class FStructureDefaultValueView : public FStructureEditorUtils::INotifyOnStructChanged, public TSharedFromThis<FStructureDefaultValueView>
 {
 public:
@@ -25,8 +114,8 @@ public:
 
 	void Initialize()
 	{
-		StructData = MakeShareable(new FStructOnScope(GetUserDefinedStruct()));
-		FStructureEditorUtils::Fill_MakeStructureDefaultValue(GetUserDefinedStruct(), StructData->GetStructMemory());
+		StructData = MakeShareable(new FStructOnScope(UserDefinedStruct.Get()));
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs ViewArgs;
@@ -34,49 +123,14 @@ public:
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
 
-		FStructureDetailsViewArgs StructureViewArgs;
-		StructureViewArgs.bShowObjects = false;
-		StructureViewArgs.bShowAssets = true;
-		StructureViewArgs.bShowClasses = true;
-		StructureViewArgs.bShowInterfaces = false;
-
-		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructureViewArgs, StructData, LOCTEXT("DefaultValues", "Default Values"));
-		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FStructureDefaultValueView::OnFinishedChangingProperties);
+		DetailsView = PropertyModule.CreateDetailView(ViewArgs);
+		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FDefaultValueDetails::MakeInstance, StructData);
+		DetailsView->RegisterInstancedCustomPropertyLayout(UUserDefinedStruct::StaticClass(), LayoutStructDetails);
+		DetailsView->SetObject(UserDefinedStruct.Get());
 	}
 
 	virtual ~FStructureDefaultValueView()
 	{
-	}
-
-	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
-	{
-		check(PropertyChangedEvent.MemberProperty && PropertyChangedEvent.MemberProperty->GetOwnerStruct());
-
-		const bool bPropertyIsActual = PropertyChangedEvent.MemberProperty->GetOwnerStruct() == GetUserDefinedStruct();
-		const UProperty* DirectProperty = bPropertyIsActual ? PropertyChangedEvent.MemberProperty : nullptr;
-		while (DirectProperty && !Cast<const UUserDefinedStruct>(DirectProperty->GetOuter()))
-		{
-			DirectProperty = Cast<const UProperty>(DirectProperty->GetOuter());
-		}
-		ensure(nullptr != DirectProperty);
-
-		if (DirectProperty)
-		{
-			FString DefaultValueString;
-			bool bDefaultValueSet = false;
-			{
-				if (StructData.IsValid() && StructData->IsValid())
-				{
-					bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, StructData->GetStructMemory(), DefaultValueString);
-				}
-			}
-
-			const FGuid VarGuid = FStructureEditorUtils::GetGuidForProperty(DirectProperty);
-			if (bDefaultValueSet && VarGuid.IsValid())
-			{
-				FStructureEditorUtils::ChangeVariableDefaultValue(GetUserDefinedStruct(), VarGuid, DefaultValueString);
-			}
-		}
 	}
 
 	UUserDefinedStruct* GetUserDefinedStruct()
@@ -86,41 +140,31 @@ public:
 
 	TSharedPtr<class SWidget> GetWidget()
 	{
-		return StructureDetailsView.IsValid() ? StructureDetailsView->GetWidget() : NULL;
+		return DetailsView;
 	}
 
 	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		if (Struct && (GetUserDefinedStruct() == Struct))
-		{
-			if (StructureDetailsView.IsValid())
-			{
-				StructureDetailsView->SetStructureData(NULL);
-			}
-			if (StructData.IsValid())
-			{
-				StructData->Destroy();
-				StructData.Reset();
-			}
-		}
+		StructData->Destroy();
+		DetailsView->SetObject(nullptr);
+		DetailsView->OnFinishedChangingProperties().Clear();
 	}
 
 	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
-		if (Struct && (GetUserDefinedStruct() == Struct))
-		{
-			StructData = MakeShareable(new FStructOnScope(Struct));
-			FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData->GetStructMemory());
-
-			if (StructureDetailsView.IsValid())
-			{
-				StructureDetailsView->SetStructureData(StructData);
-			}
-		}
+		StructData->Initialize(UserDefinedStruct.Get());
+		FStructureEditorUtils::Fill_MakeStructureDefaultValue(UserDefinedStruct.Get(), StructData->GetStructMemory());
+		DetailsView->SetObject(UserDefinedStruct.Get());
 	}
 private:
+
+	/** Struct on scope data that is being viewed in the details panel */
 	TSharedPtr<FStructOnScope> StructData;
-	TSharedPtr<class IStructureDetailsView> StructureDetailsView;
+
+	/** Details view being used for viewing the struct */
+	TSharedPtr<class IDetailsView> DetailsView;
+
+	/** User defined struct that is being represented */
 	const TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
 };
 

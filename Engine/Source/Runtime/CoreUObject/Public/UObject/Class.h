@@ -1161,6 +1161,13 @@ public:
 		Destroy();
 	}
 
+	/** Re-initializes the scope with a specified UStruct */
+	void Initialize(TWeakObjectPtr<const UStruct> InScriptStruct)
+	{
+		ScriptStruct = InScriptStruct;
+		Initialize();
+	}
+
 private:
 	FStructOnScope(const FStructOnScope&);
 	FStructOnScope& operator=(const FStructOnScope&);

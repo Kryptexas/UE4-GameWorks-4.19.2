@@ -302,6 +302,25 @@ const FString UEdGraphPin::GetLinkInfoString( const FString& InFunctionName, con
 #endif
 }
 
+void UEdGraphPin::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && Ar.IsPersistent())
+	{
+		// Pins of type FGameplayTag were storing "()" for empty arrays and then importing that into ArrayProperty and expecting an empty array.
+		// That it was working was a bug and has been fixed, so let's fixup pins. A pin that wants an array size of 1 will always fill the parenthesis
+		// so there is no worry about breaking those cases.
+		if (PinType.PinSubCategoryObject.IsValid() && PinType.PinSubCategoryObject->GetPathName() == TEXT("/Script/GameplayTags.GameplayTag"))
+		{
+			if (DefaultValue == TEXT("()"))
+			{
+				DefaultValue.Empty();
+			}
+		}
+	}
+}
+
 FString FGraphDisplayInfo::GetNotesAsString() const
 {
 	FString Result;

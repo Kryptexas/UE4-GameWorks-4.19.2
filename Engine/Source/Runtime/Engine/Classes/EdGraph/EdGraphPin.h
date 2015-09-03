@@ -257,6 +257,7 @@ class UEdGraphPin : public UObject
 public:
 	// UObject interface
 	virtual bool IsSafeForRootSet() const override { return false; }
+	virtual void Serialize(FArchive& Ar) override;
 	// End UObject interface
 
 	/** Create a link. Note, this does not check that schema allows it, and will not break any existing connections */

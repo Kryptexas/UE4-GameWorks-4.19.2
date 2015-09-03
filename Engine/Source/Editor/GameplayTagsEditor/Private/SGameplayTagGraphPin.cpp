@@ -141,18 +141,19 @@ void SGameplayTagGraphPin::RefreshTagList()
 	}
 
 	// Set Pin Data
-	FString TagString = TEXT("(");
+	FString TagString;
 	if (!TagName.IsEmpty())
 	{
+		TagString = TEXT("(");
 		TagString += TEXT("TagName=\"");
 		TagString += TagName;
 		TagString += TEXT("\"");
+		TagString += TEXT(")");
 	}
-	TagString += TEXT(")");
 	FString CurrentDefaultValue = GraphPinObj->GetDefaultAsString();
 	if (CurrentDefaultValue.IsEmpty())
 	{
-		CurrentDefaultValue = FString(TEXT("()"));
+		CurrentDefaultValue = FString(TEXT(""));
 	}
 	if (!CurrentDefaultValue.Equals(TagString))
 	{
