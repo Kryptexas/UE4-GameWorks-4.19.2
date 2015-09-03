@@ -2,6 +2,8 @@ Availability: Public
 Title:Static Mesh Collision Reference
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/Collision
 Description:Content guide to creating and setting up collision geometry.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,7 +27,6 @@ Description:Content guide to creating and setting up collision geometry.
 
 [TOC(start:2 end:2)]
 
-## Overview
 
 As graphical detail has increased, it is important to ensure that collision within the game remains simple. This is because of two reasons; it is much faster to calculate collision 
 against a few polygons and it is a much smoother experience for the player as then the player does not get snagged on a small piece geometry. 
