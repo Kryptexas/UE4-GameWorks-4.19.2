@@ -104,7 +104,6 @@ void UAnimationAsset::PostLoad()
 
 	ValidateSkeleton();
 
-
 	check( Skeleton==NULL || SkeletonGuid.IsValid() );
 }
 
@@ -153,7 +152,7 @@ bool UAnimationAsset::ReplaceSkeleton(USkeleton* NewSkeleton, bool bConvertSpace
 			for (auto Iter = AnimSeqsToReplace.CreateIterator(); Iter; ++Iter)
 			{
 				UAnimSequence* AnimSeq = *Iter;
-				if (AnimSeq)
+				if (AnimSeq && AnimSeq->Skeleton != NewSkeleton)
 				{
 					AnimSeq->RemapTracksToNewSkeleton(NewSkeleton, bConvertSpaces);
 				}
