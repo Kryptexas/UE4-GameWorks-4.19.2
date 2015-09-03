@@ -930,6 +930,14 @@ namespace UnrealBuildTool
                     bUseMutex = false;
                 }
             }
+			bool bWaitMutex = false;
+            {
+                int WaitMutexArgumentIndex;
+                if (Utils.ParseCommandLineFlag(Arguments, "-WaitMutex", out WaitMutexArgumentIndex))
+                {
+                    bWaitMutex = true;
+                }
+            }
 
             bool bAutoSDKOnly = false;
             {
@@ -974,7 +982,17 @@ namespace UnrealBuildTool
                     SingleInstanceMutex = new Mutex(true, MutexName, out bCreatedMutex);
                     if (!bCreatedMutex)
                     {
-                        if (bAutoSDKOnly || bValidatePlatforms)
+						if(bWaitMutex)
+						{
+							try
+							{
+								SingleInstanceMutex.WaitOne();
+							}
+							catch(AbandonedMutexException)
+							{
+							}
+						}
+                        else if (bAutoSDKOnly || bValidatePlatforms)
                         {
                             throw new BuildException("A conflicting instance of UnrealBuildTool is already running. Either -autosdkonly or -validateplatform was passed, which allows only a single instance to be run globally. Therefore, the conflicting instance may be in another location or the current location: {0}. A process manager may be used to determine the conflicting process and what tool may have launched it.", Assembly.GetEntryAssembly().GetOriginalLocation());
                         }
