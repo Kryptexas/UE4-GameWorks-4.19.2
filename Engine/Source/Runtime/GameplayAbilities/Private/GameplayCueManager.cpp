@@ -253,7 +253,7 @@ void UGameplayCueManager::LoadObjectLibrary_Internal()
 	// ---------------------------------------------------------
 
 	const bool bSyncFullyLoad = IsRunningCommandlet();
-	const bool bAsyncLoadAtStartup = !bSyncFullyLoad;
+	const bool bAsyncLoadAtStartup = !bSyncFullyLoad && ShouldAsyncLoadAtStartup();
 	if (bSyncFullyLoad)
 	{
 #if STATS

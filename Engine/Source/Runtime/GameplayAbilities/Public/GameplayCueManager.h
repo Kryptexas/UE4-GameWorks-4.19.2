@@ -245,6 +245,8 @@ protected:
 
 	void LoadObjectLibrary_Internal();
 
+	virtual bool ShouldAsyncLoadAtStartup() const { return true; }
+
 	void BuildCuesToAddToGlobalSet(const TArray<FAssetData>& AssetDataList, FName TagPropertyName, bool bAsyncLoadAfterAdd, TArray<struct FGameplayCueReferencePair>& OutCuesToAdd);
 
 	TArray<FString>	LoadedPaths;
