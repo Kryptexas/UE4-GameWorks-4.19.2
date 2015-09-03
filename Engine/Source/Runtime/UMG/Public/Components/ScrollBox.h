@@ -96,6 +96,8 @@ public:
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
+	virtual void OnDescendantSelected( UWidget* DescendantWidget ) override;
+	virtual void OnDescendantDeselected( UWidget* DescendantWidget ) override;
 	// End UWidget interface
 #endif
 
@@ -117,4 +119,8 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	// End of UWidget interface
+
+#if WITH_EDITOR
+	FDelegateHandle TickHandle;
+#endif //WITH_EDITOR
 };
