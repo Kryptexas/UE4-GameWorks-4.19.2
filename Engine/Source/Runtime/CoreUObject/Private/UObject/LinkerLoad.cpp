@@ -3913,6 +3913,12 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 	return bIsImportNative;
 }
 
+// Temporary placeholder: constructs native blieprint class given its name
+void ConstructNativeBlueprintClass(FName ClassName)
+{
+	// @todo: this needs to find a generated function by class name.
+}
+
 // Return the loaded object corresponding to an import index; any errors are fatal.
 UObject* FLinkerLoad::CreateImport( int32 Index )
 {
@@ -3948,11 +3954,19 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 					// Import is a toplevel package.
 					if( Import.OuterIndex.IsNull() )
 					{
-						FindObject = CreatePackage( NULL, *Import.ObjectName.ToString() );
+						FindObject = CreatePackage(NULL, *Import.ObjectName.ToString());
 					}
 					// Import is regular import/ export.
 					else
 					{
+						if (FPlatformProperties::RequiresCookedData())
+						{
+							// At this point we know the class package and class of the import exist, this can potentially be a native blueprint
+							// (class is just a UClass and the package is /Script/CoreUObject)
+							// @todo: maybe we can further filter out classes by checking FindClass somehow (e.g. once it's a specialized UCookedBlueprintClass or something)
+							ConstructNativeBlueprintClass(Import.ObjectName);
+						}
+						
 						// Find the imports' outer.
 						UObject* FindOuter = NULL;
 						// Import.
