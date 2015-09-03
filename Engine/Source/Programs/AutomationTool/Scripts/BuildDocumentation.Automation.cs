@@ -114,6 +114,7 @@ class BlueprintDocumentationNode : DocumentationNode
 		: base(InHostPlatform)
 	{
 		AddDependency(GUBP.RootEditorNode.StaticGetFullName(InHostPlatform));
+		AddDependency(GUBP.ToolsNode.StaticGetFullName(InHostPlatform));
 	}
 
 	public override void DoBuild(GUBP bp)
