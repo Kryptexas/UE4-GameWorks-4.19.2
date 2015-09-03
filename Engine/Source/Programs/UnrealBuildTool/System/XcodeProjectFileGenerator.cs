@@ -885,7 +885,7 @@ namespace UnrealBuildTool
 		{
 			var XcodeProject = new XcodeProjectFile(ProjectPath);
 			DirectoryReference ProjectDirectory = ProjectPath.Directory;
-			XcodeProject.AddFilesToProject(SourceFileSearch.FindFiles(new List<DirectoryReference>() { ProjectDirectory }, ExcludeNoRedistFiles: bExcludeNoRedistFiles, SubdirectoryNamesToExclude:new List<string>() { "obj" }, SearchSubdirectories:true, IncludePrivateSourceCode:true), null);
+			XcodeProject.AddFilesToProject(SourceFileSearch.FindFiles(new List<DirectoryReference>() { ProjectDirectory }, SubdirectoryNamesToExclude:new List<string>() { "obj" }, SearchSubdirectories:true), null);
 			XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
 		}
 

@@ -265,7 +265,7 @@ namespace UnrealBuildTool
 			var AllModuleFiles = DiscoverModules(FindGameProjects());
 			foreach (FileReference CurModuleFile in AllModuleFiles)
 			{
-				var FoundFiles = SourceFileSearch.FindModuleSourceFiles(CurModuleFile, ExcludeNoRedistFiles: bExcludeNoRedistFiles);
+				var FoundFiles = SourceFileSearch.FindModuleSourceFiles(CurModuleFile);
 				foreach (FileReference CurSourceFile in FoundFiles)
 				{
 					string SourceFileRelativeToRoot = CurSourceFile.MakeRelativeTo(UnrealBuildTool.EngineDirectory);

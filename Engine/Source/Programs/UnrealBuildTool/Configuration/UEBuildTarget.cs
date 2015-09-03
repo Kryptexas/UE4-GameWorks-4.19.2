@@ -3441,9 +3441,7 @@ namespace UnrealBuildTool
 						else
 						{
 							// Don't have a project file for this module with the source file names cached already, so find the source files ourselves
-							SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(
-								ModuleRulesFile: ModuleFileName,
-								ExcludeNoRedistFiles: false);
+							SourceFilePaths = SourceFileSearch.FindModuleSourceFiles(ModuleRulesFile: ModuleFileName);
 						}
 						FoundSourceFiles = GetCPlusPlusFilesToBuild(SourceFilePaths, ModuleDirectory, Platform);
 					}

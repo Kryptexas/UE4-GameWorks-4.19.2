@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 
 
 		/// Finds mouse source files
-		public static List<FileReference> FindModuleSourceFiles( FileReference ModuleRulesFile, bool ExcludeNoRedistFiles, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
+		public static List<FileReference> FindModuleSourceFiles( FileReference ModuleRulesFile, bool SearchSubdirectories = true )
 		{
 			// The module's "base directory" is simply the directory where its xxx.Build.cs file is stored.  We'll always
 			// harvest source files for this module in this base directory directory and all of its sub-directories.
@@ -24,7 +24,7 @@ namespace UnrealBuildTool
 			// Find all of the source files (and other files) and add them to the project
 			var DirectoriesToSearch = new List<DirectoryReference>();
 			DirectoriesToSearch.Add( ModuleBaseDirectory );
-			var FoundFiles = SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles: ExcludeNoRedistFiles, SubdirectoryNamesToExclude:null, SearchSubdirectories:SearchSubdirectories, IncludePrivateSourceCode:IncludePrivateSourceCode );
+			var FoundFiles = SourceFileSearch.FindFiles( DirectoriesToSearch, SubdirectoryNamesToExclude:null, SearchSubdirectories:SearchSubdirectories );
 
 			return FoundFiles;
 		}
@@ -34,11 +34,10 @@ namespace UnrealBuildTool
 		/// Fills in a project file with source files discovered in the specified list of paths
 		/// </summary>
 		/// <param name="SourceFilePaths">List of paths to look for source files</param>
-		/// <param name="ExcludeNoRedistFiles">True if files under NoRedist subdirectories should be excluded</param>
 		/// <param name="SubdirectoryNamesToExclude">Directory base names to ignore when searching subdirectories.  Can be null.</param>
 		/// <param name="SearchSubdirectories">True to include subdirectories, otherwise we only search the list of base directories</param>
 		/// <param name="IncludePrivateSourceCode">True if source files in the 'Private' directory should be included</param>
-		public static List<FileReference> FindFiles( List<DirectoryReference> DirectoriesToSearch, bool ExcludeNoRedistFiles, List<string> SubdirectoryNamesToExclude = null, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
+		public static List<FileReference> FindFiles( List<DirectoryReference> DirectoriesToSearch, List<string> SubdirectoryNamesToExclude = null, bool SearchSubdirectories = true )
 		{
 			// Certain file types should never be added to project files
 			var ExcludedFileTypes = new string[] 
@@ -78,36 +77,6 @@ namespace UnrealBuildTool
 						var RelativeSourceFilePath = new FileReference(CurSourceFilePath).MakeRelativeTo(SearchDirectory);
 
 						bool IncludeThisFile = true;
-
-						if( IncludeThisFile )
-						{
-							if( !IncludePrivateSourceCode )
-							{
-								// We consider to be Private source every file under the module's Source directory that is not either:
-								//		- Under Public sub-folder
-								//		- Ends in a C# build script file extension
-								bool IsBuildScript = RelativeSourceFilePath.EndsWith( ".Build.cs", StringComparison.InvariantCultureIgnoreCase ) || RelativeSourceFilePath.EndsWith( ".Target.cs", StringComparison.InvariantCultureIgnoreCase );
-								if( !IsBuildScript &&
-									!RelativeSourceFilePath.StartsWith( "Public" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) &&
-									!( RelativeSourceFilePath.IndexOf( Path.DirectorySeparatorChar + "Public" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) != -1 ) )
-								{
-									IncludeThisFile = false;
-								}
-							}
-						}
-
-						if( IncludeThisFile )
-						{
-							// Skip NoRedist files if necessary
-							if( ExcludeNoRedistFiles )
-							{
-								if( RelativeSourceFilePath.StartsWith( "NoRedist" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) ||
-									RelativeSourceFilePath.IndexOf( Path.DirectorySeparatorChar + "NoRedist" + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) != -1 )
-								{
-									IncludeThisFile = false;
-								}
-							}
-						}
 
 						// Mask out blacklisted folders
 						if( IncludeThisFile && SubdirectoryNamesToExclude != null )

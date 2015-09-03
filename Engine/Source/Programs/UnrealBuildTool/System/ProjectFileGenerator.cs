@@ -207,9 +207,6 @@ namespace UnrealBuildTool
 		/// Global static new line string used by ProjectFileGenerator to generate project files.
 		public static readonly string NewLine = Environment.NewLine;
 
-		/// If true, any module or source file under a NoRedist folder will not be included in the generated projects
-		protected bool bExcludeNoRedistFiles = false;
-
 		/// If true, we'll parse subdirectories of third-party projects to locate source and header files to include in the
 		/// generated projects.  This can make the generated projects quite a bit bigger, but makes it easier to open files
 		/// directly from the IDE.
@@ -328,11 +325,6 @@ namespace UnrealBuildTool
 			else if( bGeneratingRocketProjectFiles )
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for project...");
-
-				// NOTE: Realistically, the distro that the Rocket user is generating projects FROM won't have NoRedist files in it.  But when 
-				//       testing from a developer branch, this is useful to get authentic projects. This only really matters when 
-				//       bIncludeEngineModulesInRocketProjects=true (defaults to false.)				
-				bExcludeNoRedistFiles = true;
 
 				MasterProjectPath = UnrealBuildTool.GetUProjectPath();
 				IntermediateProjectFilesPath = DirectoryReference.Combine( MasterProjectPath, "Intermediate", "ProjectFiles" );
@@ -861,7 +853,7 @@ namespace UnrealBuildTool
 						var GameProjectFile = GameFolderAndProjectFile.Value;
 						var DirectoriesToSearch = new List<DirectoryReference>();
 						DirectoriesToSearch.Add( GameConfigDirectory );
-						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles:bExcludeNoRedistFiles ), GameProjectDirectory );
+						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), GameProjectDirectory );
 					}
 				}
 			}
@@ -876,7 +868,7 @@ namespace UnrealBuildTool
 			{
 				var DirectoriesToSearch = new List<DirectoryReference>();
 				DirectoriesToSearch.Add( EngineLocalizationDirectory );
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles:bExcludeNoRedistFiles), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
 			}
 		}
 
@@ -889,7 +881,7 @@ namespace UnrealBuildTool
             {
 				var DirectoriesToSearch = new List<DirectoryReference>();
 				DirectoriesToSearch.Add( EngineTemplateDirectory );
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles:bExcludeNoRedistFiles), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
 			}
         }
 
@@ -903,7 +895,7 @@ namespace UnrealBuildTool
 				var DirectoriesToSearch = new List<DirectoryReference>();
 				DirectoriesToSearch.Add( EngineConfigDirectory );
 
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles:bExcludeNoRedistFiles), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
 			}
 		}
 
@@ -916,7 +908,7 @@ namespace UnrealBuildTool
 				var DirectoriesToSearch = new List<DirectoryReference>();
 				DirectoriesToSearch.Add(UHTConfigDirectory);
 
-				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch, ExcludeNoRedistFiles: bExcludeNoRedistFiles), UnrealBuildTool.EngineDirectory);
+				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch), UnrealBuildTool.EngineDirectory);
 			}
 		}
 
@@ -932,18 +924,7 @@ namespace UnrealBuildTool
 			List<FileReference> FoundModuleFiles = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders: AllGameProjects.Select(x => x.Folder).ToList(), ForeignPlugins:null, AdditionalSearchPaths:null );
 			foreach( var BuildFileName in FoundModuleFiles )
 			{
-				bool IncludeThisModule = true;
-
-				// Skip NoRedist files if necessary
-				if( bExcludeNoRedistFiles )
-				{
-					IncludeThisModule = !IsNoRedistModule(BuildFileName);
-				}
-
-				if( IncludeThisModule )
-				{
-					AllModuleFiles.Add( BuildFileName );
-				}
+				AllModuleFiles.Add( BuildFileName );
 			}
 			return AllModuleFiles;
 		}
@@ -1032,12 +1013,6 @@ namespace UnrealBuildTool
 						IncludeThisTarget = false;
 						break;
 					}
-				}
-
-				// Skip NoRedist files if necessary
-				if( bExcludeNoRedistFiles )
-				{
-					IncludeThisTarget = !IsNoRedistModule(CurTargetFile);
 				}
 
 				if( IncludeThisTarget )
@@ -1385,7 +1360,7 @@ namespace UnrealBuildTool
 					{
 						var DirectoriesToSearch = new List<DirectoryReference>();
 						DirectoriesToSearch.Add( ProgramConfigDirectory );
-						ProgramProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles:bExcludeNoRedistFiles), ProgramDirectory );
+						ProgramProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), ProgramDirectory );
 					}
 				}
 			}
@@ -1559,19 +1534,11 @@ namespace UnrealBuildTool
 				bool IsEngineModule = CurModuleFile.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
 				bool IsThirdPartyModule = CurModuleFile.IsUnderDirectory(EngineSourceThirdPartyDirectory);
 
-				bool IncludePrivateSourceCode = true;
 				if( bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles )
 				{
 					if( IsEngineModule )
 					{
-						if( IncludeEngineSource )
-						{
-				            // Always include all engine source files unless we were asked to only find public header files via command-line option.  In older releases
-				            // of Unreal Engine, we only included public header files in binary distributions, but this is no longer the case.  You might get
-				            // faster solution load times if you use '-OnlyPublic' though.
-				            IncludePrivateSourceCode &= !UnrealBuildTool.CommandLineContains( "-OnlyPublic" );
-						}
-						else
+						if( !IncludeEngineSource )
 						{
 							// We were asked to exclude engine modules from the generated projects
 							WantProjectFileForModule = false;
@@ -1629,7 +1596,7 @@ namespace UnrealBuildTool
 
 
 					// Find all of the source files (and other files) and add them to the project
-					var FoundFiles = SourceFileSearch.FindModuleSourceFiles( CurModuleFile, ExcludeNoRedistFiles: bExcludeNoRedistFiles, SearchSubdirectories:SearchSubdirectories, IncludePrivateSourceCode:IncludePrivateSourceCode );
+					var FoundFiles = SourceFileSearch.FindModuleSourceFiles( CurModuleFile, SearchSubdirectories:SearchSubdirectories );
 					ProjectFile.AddFilesToProject( FoundFiles, BaseFolder );
 
 					// Check if there's a plugin directory here
@@ -1648,7 +1615,7 @@ namespace UnrealBuildTool
 								DirectoryReference PluginResourcesFolder = DirectoryReference.Combine(PluginFileName.Directory, "Resources");
 								if(PluginResourcesFolder.Exists())
 								{
-									ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch: new List<DirectoryReference>{ PluginResourcesFolder }, ExcludeNoRedistFiles: bExcludeNoRedistFiles ), BaseFolder );
+									ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch: new List<DirectoryReference>{ PluginResourcesFolder } ), BaseFolder );
 								}
 							}
 						}
@@ -1877,7 +1844,6 @@ namespace UnrealBuildTool
 			}
 			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles(
 				DirectoriesToSearch: DirectoriesToSearch,
-				ExcludeNoRedistFiles: bExcludeNoRedistFiles,
 				SubdirectoryNamesToExclude: SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
 		}
 
@@ -1894,7 +1860,6 @@ namespace UnrealBuildTool
 
 			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles(
 				DirectoriesToSearch: DirectoriesToSearch,
-				ExcludeNoRedistFiles: bExcludeNoRedistFiles,
 				SubdirectoryNamesToExclude: SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
 		}
 
@@ -1928,7 +1893,6 @@ namespace UnrealBuildTool
 
 				var DocumentationFiles = SourceFileSearch.FindFiles(
 					DirectoriesToSearch: DirectoriesToSearch,
-					ExcludeNoRedistFiles: bExcludeNoRedistFiles,
 					SubdirectoryNamesToExclude: SubdirectoryNamesToExclude );
 
 				// Filter out non-English documentation files if we were configured to do so
