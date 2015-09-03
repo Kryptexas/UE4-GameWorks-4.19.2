@@ -2,6 +2,7 @@ Availability: Public
 Title:Physics Asset Tool Reference
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
 Description:Tool to set up physics bodies and joints to use for physical simulation and collision for SkeletalMeshes.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
