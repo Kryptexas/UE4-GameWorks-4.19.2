@@ -15,8 +15,9 @@ static TAutoConsoleVariable<float> CVarAmbientOcclusionMaxQuality(
 	TEXT("r.AmbientOcclusionMaxQuality"),
 	100.0f,
 	TEXT("Defines the max clamping value from the post process volume's quality level for ScreenSpace Ambient Occlusion\n")
-	TEXT(" 100: don't override quality level from the post process volume (default)\n")
-	TEXT(" <100: clamp down quality level from the post process volume to the maximum set by this cvar"),
+	TEXT("     100: don't override quality level from the post process volume (default)\n")
+	TEXT("   0..99: clamp down quality level from the post process volume to the maximum set by this cvar\n")
+	TEXT(" -100..0: Enforces a different quality (the absolute value) even if the postprocessvolume asks for a lower quality."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarAmbientOcclusionStepMipLevelFactor(
@@ -125,6 +126,7 @@ FArchive& operator<<(FArchive& Ar, FScreenSpaceAOandSSRShaderParameters& This)
  * Encapsulates the post processing ambient occlusion pixel shader.
  * @param bAOSetupAsInput true:use AO setup instead of full resolution depth and normal
  * @param bDoUpsample true:we have lower resolution pass data we need to upsample, false otherwise
+ * @param ShaderQuality 0..4, 0:low 4:high
  */
 template<uint32 bTAOSetupAsInput, uint32 bDoUpsample, uint32 ShaderQuality>
 class FPostProcessAmbientOcclusionPS : public FGlobalShader
@@ -225,6 +227,7 @@ public:
 	VARIATION0(1)
 	VARIATION0(2)
 	VARIATION0(3)
+	VARIATION0(4)
 	
 #undef VARIATION0
 #undef VARIATION1
@@ -424,9 +427,18 @@ FShader* FRCPassPostProcessAmbientOcclusion::SetShaderTempl(const FRenderingComp
 	return *VertexShader;
 }
 
-float GetAmbientOcclusionMaxQualityRT(const FSceneView& View)
+float GetAmbientOcclusionQualityRT(const FSceneView& View)
 {
-	return FMath::Min(CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread(), View.FinalPostProcessSettings.AmbientOcclusionQuality);
+	float CVarValue = CVarAmbientOcclusionMaxQuality.GetValueOnRenderThread();
+
+	if(CVarValue < 0)
+	{
+		return FMath::Clamp(-CVarValue, 0.0f, 100.0f);
+	}
+	else
+	{
+		return FMath::Min(CVarValue, View.FinalPostProcessSettings.AmbientOcclusionQuality);
+	}
 }
 
 void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext& Context)
@@ -466,11 +478,12 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	float QualityPercent = GetAmbientOcclusionMaxQualityRT(Context.View);
+	float QualityPercent = GetAmbientOcclusionQualityRT(Context.View);
 	
-	// 0:low / 1:med: / 2:high / 4:very high
+	// 0..4, 0:low 4:high
 	const int32 ShaderQuality = 
-		(QualityPercent > 60.0f) +
+		(QualityPercent > 75.0f) +
+		(QualityPercent > 55.0f) +
 		(QualityPercent > 25.0f) +
 		(QualityPercent > 5.0f);
 
@@ -501,6 +514,7 @@ void FRCPassPostProcessAmbientOcclusion::Process(FRenderingCompositePassContext&
 		SET_SHADER_CASE(1);
 		SET_SHADER_CASE(2);
 		SET_SHADER_CASE(3);
+		SET_SHADER_CASE(4);
 		default:
 			break;
 	};

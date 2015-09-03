@@ -138,7 +138,7 @@ static uint32 ComputeAmbientOcclusionPassCount(FPostprocessContext& Context)
 	if(bEnabled)
 	{
 		// usually in the range 0..100
-		float QualityPercent = GetAmbientOcclusionMaxQualityRT(Context.View);
+		float QualityPercent = GetAmbientOcclusionQualityRT(Context.View);
 
 		// don't expose 0 as the lowest quality should still render
 		Ret = 1 +

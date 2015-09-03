@@ -160,4 +160,4 @@ TUniformBufferRef<FCameraMotionParameters> CreateCameraMotionParametersUniformBu
 
 // for render thread
 // @return usually in 0..100 range but could be outside, combines the view with the cvar setting
-float GetAmbientOcclusionMaxQualityRT(const FSceneView& View);
+float GetAmbientOcclusionQualityRT(const FSceneView& View);
