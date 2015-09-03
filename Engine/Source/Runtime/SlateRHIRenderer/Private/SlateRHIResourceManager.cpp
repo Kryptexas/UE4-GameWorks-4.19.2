@@ -613,29 +613,10 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 				}
 			}
 
-			if ( TextureResource.IsValid() )
+			if ( TextureResource.IsValid() && TextureResource->TextureObject && TextureResource->TextureObject->Resource )
 			{
-				UTexture* Texture2DObject = TextureResource->TextureObject;
-				if ( Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource )
-				{
-					// Set the texture rendering resource that should be used.  The UTexture resource could change at any time so we must do this each frame
-					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
-						FSlateUTextureResource*, InUTextureResource, TextureResource.Get(),
-						{
-							FTexture* RenderTexture = InUTextureResource->TextureObject->Resource;
-
-							// Let the streaming manager know we are using this texture now
-							RenderTexture->LastRenderTime = FApp::GetCurrentTime();
-
-							// Refresh FTexture
-							InUTextureResource->UpdateRenderResource(RenderTexture);
-
-						});
-
-
-					AccessedUTextures.Add(Texture2DObject);
-				}
-
+				TextureResource->UpdateRenderResource(TextureObject->Resource);
+				AccessedUTextures.Add(TextureResource->TextureObject);
 				return TextureResource->Proxy;
 			}
 		}

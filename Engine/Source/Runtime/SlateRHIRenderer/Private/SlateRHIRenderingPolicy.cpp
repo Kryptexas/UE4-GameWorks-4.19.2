@@ -599,7 +599,6 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		}
 
 		const FSlateShaderResource* ShaderResource = RenderBatch.Texture;
-
 		const ESlateBatchDrawFlag::Type DrawFlags = RenderBatch.DrawFlags;
 		const ESlateDrawEffect::Type DrawEffects = RenderBatch.DrawEffects;
 		const ESlateShader::Type ShaderType = RenderBatch.ShaderType;
@@ -618,7 +617,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				RHICmdList.SetScissorRect(false, 0, 0, 0, 0);
 			}
 
-			if( !ShaderResource || ShaderResource->GetType() != ESlateShaderResource::Material ) 
+			ESlateShaderResource::Type ResourceType = ShaderResource ? ShaderResource->GetType() : ESlateShaderResource::Invalid;
+			if( ResourceType != ESlateShaderResource::Material ) 
 			{
 				FSlateElementPS* PixelShader = GetTexturePixelShader(ShaderType, DrawEffects);
 
@@ -656,17 +656,21 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None, true>::GetRHI());
 				}
 
-			
 
-				FTexture2DRHIRef TextureRHI;
-				if(ShaderResource)
+				FSamplerStateRHIRef SamplerState = BilinearClamp;
+				FTextureRHIRef TextureRHI = GWhiteTexture->TextureRHI;
+				if( ShaderResource )
 				{
-					TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
-				}
-
-				if( ShaderResource && IsValidRef( TextureRHI ) )
-				{
-					FSamplerStateRHIRef SamplerState; 
+					if (ResourceType == ESlateShaderResource::TextureObject)
+					{
+						FSlateUTextureResource* TextureObjectResource = (FSlateUTextureResource*)ShaderResource;
+		
+						TextureRHI = TextureObjectResource->AccessRHIResource();
+					}
+					else
+					{	
+						TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
+					}
 
 					if( DrawFlags == (ESlateBatchDrawFlag::TileU | ESlateBatchDrawFlag::TileV) )
 					{
@@ -684,13 +688,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					{
 						SamplerState = BilinearClamp;
 					}
-					PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
-				}
-				else
-				{
-					PixelShader->SetTexture(RHICmdList, GWhiteTexture->TextureRHI, BilinearClamp);
 				}
 
+				PixelShader->SetTexture(RHICmdList, TextureRHI, SamplerState);
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
 				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 

@@ -18,7 +18,10 @@ namespace ESlateShaderResource
 		TextureObject,
 
 		/** Material resource. */
-		Material
+		Material,
+
+		/** No Resource. */
+		Invalid,
 	};
 }
 
