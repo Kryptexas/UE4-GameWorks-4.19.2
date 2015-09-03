@@ -40,7 +40,9 @@ int32 FSubsurfaceProfileTexture::AddProfile(const FSubsurfaceProfileStruct Setti
 		{
 			if (SubsurfaceProfileEntries[i].Profile == 0)
 			{
-				RetAllocationId = i; break;
+				RetAllocationId = i;
+				SubsurfaceProfileEntries[RetAllocationId].Profile = InProfile;
+				break;
 			}
 		}
 
