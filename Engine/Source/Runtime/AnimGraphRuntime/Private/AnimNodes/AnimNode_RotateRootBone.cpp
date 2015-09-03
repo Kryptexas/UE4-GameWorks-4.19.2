@@ -8,6 +8,8 @@
 
 void FAnimNode_RotateRootBone::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	BasePose.Initialize(Context);
 }
 

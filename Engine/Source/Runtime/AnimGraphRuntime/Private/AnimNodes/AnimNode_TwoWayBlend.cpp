@@ -8,6 +8,8 @@
 
 void FAnimationNode_TwoWayBlend::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	A.Initialize(Context);
 	B.Initialize(Context);
 }

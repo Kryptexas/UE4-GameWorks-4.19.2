@@ -9,6 +9,8 @@
 
 void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	Source.Initialize(Context);
 
 	SourceWeight = 0.f;

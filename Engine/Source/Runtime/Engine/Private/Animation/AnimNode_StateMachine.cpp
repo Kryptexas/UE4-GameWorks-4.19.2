@@ -197,6 +197,8 @@ FBakedAnimationStateMachine* FAnimNode_StateMachine::GetMachineDescription()
 
 void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	UAnimBlueprintGeneratedClass* AnimBlueprintClass = Context.GetAnimBlueprintClass();
 	PRIVATE_MachineDescription = AnimBlueprintClass->BakedStateMachines.IsValidIndex(StateMachineIndexInClass) ? &(AnimBlueprintClass->BakedStateMachines[StateMachineIndexInClass]) : NULL;
 
@@ -213,12 +215,34 @@ void FAnimNode_StateMachine::Initialize(const FAnimationInitializeContext& Conte
 			StatePoseLinks.Reserve(Machine->States.Num());
 			for (int32 StateIndex = 0; StateIndex < Machine->States.Num(); ++StateIndex)
 			{
+				const FBakedAnimationState& State = Machine->States[StateIndex];
 				FPoseLink* StatePoseLink = new (StatePoseLinks) FPoseLink();
 
 				// because conduits don't contain bound graphs, this link is no longer guaranteed to be valid
-				if (Machine->States[StateIndex].StateRootNodeIndex != INDEX_NONE)
+				if (State.StateRootNodeIndex != INDEX_NONE)
 				{
-					StatePoseLink->LinkID = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - Machine->States[StateIndex].StateRootNodeIndex; //@TODO: Crazysauce
+					StatePoseLink->LinkID = AnimBlueprintClass->AnimNodeProperties.Num() - 1 - State.StateRootNodeIndex; //@TODO: Crazysauce
+				}
+
+				// also initialize transitions
+				if(State.EntryRuleNodeIndex != INDEX_NONE)
+				{
+					if (FAnimNode_TransitionResult* TransitionNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(Context.AnimInstance, AnimBlueprintClass, State.EntryRuleNodeIndex))
+					{
+						TransitionNode->Initialize(Context);
+					}
+				}
+
+				for(int32 TransitionIndex = 0; TransitionIndex < State.Transitions.Num(); ++TransitionIndex)
+				{
+					const FBakedStateExitTransition& TransitionRule = State.Transitions[TransitionIndex];
+					if (TransitionRule.CanTakeDelegateIndex != INDEX_NONE)
+					{
+						if (FAnimNode_TransitionResult* TransitionNode = GetNodeFromPropertyIndex<FAnimNode_TransitionResult>(Context.AnimInstance, AnimBlueprintClass, TransitionRule.CanTakeDelegateIndex))
+						{
+							TransitionNode->Initialize(Context);
+						}
+					}
 				}
 			}
 

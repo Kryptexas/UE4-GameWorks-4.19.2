@@ -50,8 +50,12 @@ protected:
 
 		UEdGraphPin* SinglePin;
 
+		// If this is valid we are a simple property copy, avoiding BP thunk
+		FName SimpleCopyPropertyName;
+
 		FAnimNodeSinglePropertyHandler()
 			: SinglePin(NULL)
+			, SimpleCopyPropertyName(NAME_None)
 		{
 		}
 	};
@@ -114,16 +118,83 @@ protected:
 		{
 		}
 
+		bool OnlyUsesCopyRecords() const
+		{
+			for(TMap<FName, FAnimNodeSinglePropertyHandler>::TConstIterator It(ServicedProperties); It; ++It)
+			{
+				const FAnimNodeSinglePropertyHandler& AnimNodeSinglePropertyHandler = It.Value();
+				if(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName == NAME_None)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		bool IsValid() const
 		{
 			return (NodeVariableProperty != NULL) && (EvaluationHandlerProperty != NULL);
 		}
 
-		void PatchFunctionNameInto(UObject* TargetObject) const
+		void PatchFunctionNameAndCopyRecordsInto(UObject* TargetObject) const
 		{
-			EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(
-				NodeVariableProperty->ContainerPtrToValuePtr<void>(TargetObject)
-			)->BoundFunction = HandlerFunctionName;
+			FExposedValueHandler* HandlerPtr = EvaluationHandlerProperty->ContainerPtrToValuePtr<FExposedValueHandler>(NodeVariableProperty->ContainerPtrToValuePtr<void>(TargetObject));
+			HandlerPtr->CopyRecords.Empty();
+
+			bool bOnlyUsesCopyRecords = true;
+			for(TMap<FName, FAnimNodeSinglePropertyHandler>::TConstIterator PropertyIt(ServicedProperties); PropertyIt; ++PropertyIt)
+			{
+				const FAnimNodeSinglePropertyHandler& AnimNodeSinglePropertyHandler = PropertyIt.Value();
+				if(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName != NAME_None)
+				{
+					// Local variable get, no need to thunk to BP to grab this value
+
+					UProperty* SimpleCopyPropertySource = TargetObject->GetClass()->FindPropertyByName(AnimNodeSinglePropertyHandler.SimpleCopyPropertyName);
+					check(SimpleCopyPropertySource);
+
+					if(AnimNodeSinglePropertyHandler.ArrayPins.Num() > 0)
+					{
+						UArrayProperty* SimpleCopyPropertyDest = CastChecked<UArrayProperty>(NodeVariableProperty->Struct->FindPropertyByName(PropertyIt.Key()));
+						check(SimpleCopyPropertySource->GetSize() == SimpleCopyPropertyDest->Inner->GetSize());
+
+						for(TMap<int32, UEdGraphPin*>::TConstIterator ArrayIt(AnimNodeSinglePropertyHandler.ArrayPins); ArrayIt; ++ArrayIt)
+						{
+							FExposedValueCopyRecord CopyRecord;
+							CopyRecord.DestProperty = SimpleCopyPropertyDest;
+							CopyRecord.DestArrayIndex = ArrayIt.Key();
+							CopyRecord.SourceProperty = SimpleCopyPropertySource;
+							CopyRecord.SourceArrayIndex = 0;
+							CopyRecord.Size = SimpleCopyPropertyDest->Inner->GetSize();
+							HandlerPtr->CopyRecords.Add(CopyRecord);	
+						}
+					}
+					else
+					{
+						UProperty* SimpleCopyPropertyDest = NodeVariableProperty->Struct->FindPropertyByName(PropertyIt.Key());
+						check(SimpleCopyPropertySource->GetSize() == SimpleCopyPropertyDest->GetSize());
+
+						// Local variable get, no need to thunk to BP to grab this value
+						FExposedValueCopyRecord CopyRecord;
+						CopyRecord.DestProperty = SimpleCopyPropertyDest;
+						CopyRecord.DestArrayIndex = 0;
+						CopyRecord.SourceProperty = SimpleCopyPropertySource;
+						CopyRecord.SourceArrayIndex = 0;
+						CopyRecord.Size = SimpleCopyPropertyDest->GetSize();
+						HandlerPtr->CopyRecords.Add(CopyRecord);
+					}
+				}
+				else
+				{
+					bOnlyUsesCopyRecords = false;
+				}
+			}
+
+			if(!bOnlyUsesCopyRecords)
+			{
+				// not all of our pins use copy records so we will need to call our exposed value handler
+				HandlerPtr->BoundFunction = HandlerFunctionName;
+			}
 		}
 
 		void RegisterPin(UEdGraphPin* SourcePin, UProperty* AssociatedProperty, int32 AssociatedPropertyArrayIndex)
@@ -138,6 +209,15 @@ protected:
 			{
 				check(Handler.SinglePin == NULL);
 				Handler.SinglePin = SourcePin;
+			}
+
+			if(GetDefault<UEngine>()->bOptimizeAnimBlueprintMemberVariableAccess)
+			{
+				UK2Node_VariableGet* VariableGetNode = Cast<UK2Node_VariableGet>(SourcePin->LinkedTo[0]->GetOwningNode());
+				if(VariableGetNode && VariableGetNode->IsNodePure() && VariableGetNode->VariableReference.IsSelfContext())
+				{
+					Handler.SimpleCopyPropertyName = VariableGetNode->VariableReference.GetMemberName();
+				}
 			}
 		}
 	};

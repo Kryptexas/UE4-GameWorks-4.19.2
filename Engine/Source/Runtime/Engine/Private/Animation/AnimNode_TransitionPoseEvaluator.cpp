@@ -16,6 +16,8 @@ FAnimNode_TransitionPoseEvaluator::FAnimNode_TransitionPoseEvaluator()
 
 void FAnimNode_TransitionPoseEvaluator::Initialize(const FAnimationInitializeContext& Context)
 {	
+	FAnimNode_Base::Initialize(Context);
+
 	if (EvaluatorMode == EEvaluatorMode::EM_Freeze)
 	{
 		// EM_Freeze must evaluate 1 frame to get the initial pose. This cached frame will not call update, only evaluate

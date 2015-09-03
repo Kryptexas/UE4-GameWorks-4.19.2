@@ -4,6 +4,14 @@
 #include "Animation/AnimNodeBase.h"
 
 /////////////////////////////////////////////////////
+// FAnimNode_Base
+
+void FAnimNode_Base::Initialize(const FAnimationInitializeContext& Context)
+{
+	EvaluateGraphExposedInputs.Initialize(this, Context.AnimInstance);
+}
+
+/////////////////////////////////////////////////////
 // FPoseLinkBase
 
 void FPoseLinkBase::AttemptRelink(const FAnimationBaseContext& Context)

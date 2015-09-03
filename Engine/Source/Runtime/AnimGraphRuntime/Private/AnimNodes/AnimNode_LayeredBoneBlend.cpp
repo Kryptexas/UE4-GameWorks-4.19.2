@@ -10,6 +10,8 @@
 
 void FAnimNode_LayeredBoneBlend::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	const int NumPoses = BlendPoses.Num();
 	checkSlow(BlendWeights.Num() == NumPoses);
 

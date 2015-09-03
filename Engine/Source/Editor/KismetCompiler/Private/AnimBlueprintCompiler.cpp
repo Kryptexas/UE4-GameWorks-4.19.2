@@ -121,6 +121,12 @@ UK2Node_CallFunction* FAnimBlueprintCompiler::SpawnCallAnimInstanceFunction(UEdG
 
 void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* VisualAnimNode, FEvaluationHandlerRecord& Record)
 {
+	if(Record.OnlyUsesCopyRecords())
+	{
+		// simple property copies don't require wiring up to a custom event
+		return;
+	}
+
 	// Shouldn't create a handler if there is nothing to work with
 	check(Record.ServicedProperties.Num() > 0);
 	check(Record.NodeVariableProperty != NULL);
@@ -161,6 +167,11 @@ void FAnimBlueprintCompiler::CreateEvaluationHandler(UAnimGraphNode_Base* Visual
 		// Does it get serviced by this handler?
 		if (FAnimNodeSinglePropertyHandler* SourceInfo = Record.ServicedProperties.Find(PropertyName))
 		{
+			if (SourceInfo->SimpleCopyPropertyName != NAME_None)
+			{
+				continue;
+			}
+
 			if (TargetPin->PinType.bIsArray)
 			{
 				// Grab the array that we need to set members for
@@ -1129,7 +1140,7 @@ void FAnimBlueprintCompiler::CopyTermDefaultsToDefaultObject(UObject* DefaultObj
 	for (auto EvalLinkIt = ValidEvaluationHandlerList.CreateIterator(); EvalLinkIt; ++EvalLinkIt)
 	{
 		FEvaluationHandlerRecord& Record = *EvalLinkIt;
-		Record.PatchFunctionNameInto(DefaultObject);
+		Record.PatchFunctionNameAndCopyRecordsInto(DefaultObject);
 	}
 
 	// And patch in constant values that don't need to be re-evaluated every frame

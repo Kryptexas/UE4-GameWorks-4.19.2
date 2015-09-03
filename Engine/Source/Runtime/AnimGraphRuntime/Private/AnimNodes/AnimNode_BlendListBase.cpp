@@ -11,6 +11,8 @@
 
 void FAnimNode_BlendListBase::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	const int NumPoses = BlendPose.Num();
 	checkSlow(BlendTime.Num() == NumPoses);
 

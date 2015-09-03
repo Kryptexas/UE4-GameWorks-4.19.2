@@ -8,6 +8,8 @@
 
 void FAnimNode_ApplyAdditive::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	Base.Initialize(Context);
 	Additive.Initialize(Context);
 }

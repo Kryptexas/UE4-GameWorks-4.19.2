@@ -12,6 +12,8 @@ FAnimNode_Root::FAnimNode_Root()
 
 void FAnimNode_Root::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	Result.Initialize(Context);
 }
 

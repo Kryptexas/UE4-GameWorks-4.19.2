@@ -10,6 +10,8 @@
 
 void FAnimNode_SkeletalControlBase::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	ComponentPose.Initialize(Context);
 }
 

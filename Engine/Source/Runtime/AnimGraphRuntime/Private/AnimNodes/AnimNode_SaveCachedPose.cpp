@@ -16,6 +16,8 @@ FAnimNode_SaveCachedPose::FAnimNode_SaveCachedPose()
 
 void FAnimNode_SaveCachedPose::Initialize(const FAnimationInitializeContext& Context)
 {
+	FAnimNode_Base::Initialize(Context);
+
 	if (LastInitializedContextCounter != Context.AnimInstance->GetGraphTraversalCounter())
 	{
 		LastInitializedContextCounter = Context.AnimInstance->GetGraphTraversalCounter();

@@ -422,6 +422,7 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	EndStreamingPauseDelegate = NULL;
 
 	bCanBlueprintsTickByDefault = true;
+	bOptimizeAnimBlueprintMemberVariableAccess = true;
 
 	bUseFixedFrameRate = false;
 	FixedFrameRate = 30.f;
