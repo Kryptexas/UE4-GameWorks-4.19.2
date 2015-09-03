@@ -178,7 +178,7 @@ partial class GUBP
         {
             foreach (var ToRemove in AllDependencyBuildProducts)
             {
-                BuildProducts.Remove(ToRemove);
+                BuildProducts.RemoveAll(FileName => FileName.Equals(ToRemove, StringComparison.InvariantCultureIgnoreCase));
             }
         }
 
