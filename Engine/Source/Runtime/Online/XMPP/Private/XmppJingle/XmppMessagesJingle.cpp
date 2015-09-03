@@ -166,9 +166,9 @@ protected:
 FXmppMessagesJingle::FXmppMessagesJingle(class FXmppConnectionJingle& InConnection)
 	: MessageRcvTask(NULL)
 	, MessageSendTask(NULL)
-	, Connection(InConnection)
 	, NumMessagesReceived(0)
 	, NumMessagesSent(0)
+	, Connection(InConnection)
 {
 }
 

@@ -373,10 +373,10 @@ private:
 FXmppConnectionJingle::FXmppConnectionJingle()
 	: LastLoginState(ELoginProgress::NotStarted)
 	, LoginState(ELoginProgress::NotStarted)
-	, PresenceJingle(NULL)
-	, PumpThread(NULL)
 	, StatUpdateFreq(1.0)
 	, LastStatUpdateTime(0.0)
+	, PresenceJingle(NULL)
+	, PumpThread(NULL)
 {
 	PresenceJingle = MakeShareable(new FXmppPresenceJingle(*this));
 	MessagesJingle = MakeShareable(new FXmppMessagesJingle(*this));

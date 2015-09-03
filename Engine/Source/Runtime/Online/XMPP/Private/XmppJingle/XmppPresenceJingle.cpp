@@ -286,10 +286,10 @@ private:
 FXmppPresenceJingle::FXmppPresenceJingle(class FXmppConnectionJingle& InConnection)
 	: PresenceSendTask(NULL)
 	, PresenceRcvTask(NULL)
-	, Connection(InConnection) 
 	, NumPresenceIn(0)
     , NumPresenceOut(0)
 	, NumQueryRequests(0)
+	, Connection(InConnection) 
 {
 
 }

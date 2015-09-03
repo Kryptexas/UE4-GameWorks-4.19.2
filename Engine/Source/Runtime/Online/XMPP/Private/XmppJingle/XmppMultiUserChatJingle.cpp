@@ -188,8 +188,8 @@ private:
 
 FXmppMultiUserChatJingle::FXmppMultiUserChatJingle(class FXmppConnectionJingle& InConnection)
 	: Connection(InConnection)
-	, NumMucResponses(0)
 	, NumOpRequests(0)
+	, NumMucResponses(0)
 {
 }
 
