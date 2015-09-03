@@ -33,8 +33,6 @@
 #include "OSSScheduler.h"
 #include "FriendsService.h"
 #include "GameAndPartyService.h"
-#include "OnlineSubsystemMcp.h"
-#include "GameServiceMcp.h"
 
 #define LOCTEXT_NAMESPACE "FriendsAndChatManager"
 
