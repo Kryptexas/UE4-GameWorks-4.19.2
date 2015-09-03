@@ -264,8 +264,6 @@ public:
 
 	/** Returns whether a graph is editable or not */
 	virtual bool IsEditable(UEdGraph* InGraph) const;
-	/** Determines if the graph's title bar should be the only interactable widget .*/
-	bool IsGraphPanelEnabled(UEdGraph* InGraph) const;
 	/** Determines if the graph is ReadOnly, this differs from editable in that it is never expected to be edited and is in a read-only state */
 	bool IsGraphReadOnly(UEdGraph* InGraph) const;
 

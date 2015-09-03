@@ -352,6 +352,9 @@ public:
 	 */
 	static UEdGraph* GetTopLevelGraph(const UEdGraph* InGraph);
 
+	/** Determines if the graph is ReadOnly, this differs from editable in that it is never expected to be edited and is in a read-only state */
+	static bool IsGraphReadOnly(UEdGraph* InGraph);
+
 	/** Look to see if an event already exists to override a particular function */
 	static class UK2Node_Event* FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName);
 

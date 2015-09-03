@@ -1235,7 +1235,6 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 		InEvents.OnCreateActionMenu = SGraphEditor::FOnCreateActionMenu::CreateSP(this, &FBlueprintEditor::OnCreateGraphActionMenu);
 	}
 
-
 	TSharedRef<SGraphEditor> Editor = SNew(SGraphEditor)
 		.AdditionalCommands(GraphEditorCommands)
 		.IsEditable(this, &FBlueprintEditor::IsEditable, InGraph)
@@ -8074,28 +8073,18 @@ UEdGraph* FBlueprintEditor::GetFocusedGraph() const
 
 bool FBlueprintEditor::IsEditable(UEdGraph* InGraph) const
 {
-	return InEditingMode() && !IsGraphReadOnly(InGraph);
+	return InEditingMode() && !FBlueprintEditorUtils::IsGraphReadOnly(InGraph);
 }
 
 bool FBlueprintEditor::IsGraphReadOnly(UEdGraph* InGraph) const
 {
-	return !(InGraph && InGraph->bEditable && IsGraphPanelEnabled(InGraph));
-}
-
-bool FBlueprintEditor::IsGraphPanelEnabled(UEdGraph* InGraph) const
-{
-	const UBlueprint* BlueprintForGraph = FBlueprintEditorUtils::FindBlueprintForGraph(InGraph);
-	bool const bIsInterface = ((BlueprintForGraph != NULL) && (BlueprintForGraph->BlueprintType == BPTYPE_Interface));
-	bool const bIsDelegate  = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
-	bool const bIsMathExpression = FBlueprintEditorUtils::IsMathExpressionGraph(InGraph);
-
-	return !bIsInterface && !bIsDelegate && !bIsMathExpression;
+	return FBlueprintEditorUtils::IsGraphReadOnly(InGraph);
 }
 
 float FBlueprintEditor::GetInstructionTextOpacity(UEdGraph* InGraph) const
 {
 	UBlueprintEditorSettings const* Settings = GetDefault<UBlueprintEditorSettings>();
-	if ((InGraph == nullptr) || !IsEditable(InGraph) || !IsGraphPanelEnabled(InGraph) || !Settings->bShowGraphInstructionText)
+	if ((InGraph == nullptr) || !IsEditable(InGraph) || FBlueprintEditorUtils::IsGraphReadOnly(InGraph) || !Settings->bShowGraphInstructionText)
 	{
 		return 0.0f;
 	}

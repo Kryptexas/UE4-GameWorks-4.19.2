@@ -2736,6 +2736,26 @@ UEdGraph* FBlueprintEditorUtils::GetTopLevelGraph(const UEdGraph* InGraph)
 	return GraphToTest;
 }
 
+bool FBlueprintEditorUtils::IsGraphReadOnly(UEdGraph* InGraph)
+{
+	bool bGraphReadOnly = true;
+	if (InGraph)
+	{
+		bGraphReadOnly = !InGraph->bEditable;
+
+		if (!bGraphReadOnly)
+		{
+			const UBlueprint* BlueprintForGraph = FBlueprintEditorUtils::FindBlueprintForGraph(InGraph);
+			bool const bIsInterface = ((BlueprintForGraph != NULL) && (BlueprintForGraph->BlueprintType == BPTYPE_Interface));
+			bool const bIsDelegate  = FBlueprintEditorUtils::IsDelegateSignatureGraph(InGraph);
+			bool const bIsMathExpression = FBlueprintEditorUtils::IsMathExpressionGraph(InGraph);
+
+			bGraphReadOnly = bIsInterface || bIsDelegate || bIsMathExpression;
+		}
+	}
+	return bGraphReadOnly;
+}
+
 UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* Blueprint, const UClass* SignatureClass, FName SignatureName)
 {
 	TArray<UK2Node_Event*> AllEvents;
