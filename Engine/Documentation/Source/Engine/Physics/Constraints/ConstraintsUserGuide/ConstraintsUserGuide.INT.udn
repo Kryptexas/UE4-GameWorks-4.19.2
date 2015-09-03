@@ -2,6 +2,8 @@ Availability: Public
 Title:PhysX Constraint User Guide
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:Physical joints used to connect two rigid body simulated objects together.
+SkillLevel: Beginner
+Version:  4.9
 
 [REGION:fullwidth raw]
 ![](Engine/Physics\physics_banner.png)
