@@ -57,6 +57,9 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, bSnapGizmo(false)
 	, bSmoothGizmoBrush(true)
 
+	, MirrorPoint(FVector::ZeroVector)
+	, MirrorOp(ELandscapeMirrorOperation::MinusXToPlusX)
+
 	, ResizeLandscape_QuadsPerSection(0)
 	, ResizeLandscape_SectionsPerComponent(0)
 	, ResizeLandscape_ComponentCount(0, 0)
@@ -245,6 +248,10 @@ void ULandscapeEditorObject::Load()
 	//PasteMode = (ELandscapeToolPasteMode::Type)InPasteMode;
 	SetPasteMode((ELandscapeToolPasteMode::Type)InPasteMode);
 
+	int32 InMirrorOp = (int32)ELandscapeMirrorOperation::MinusXToPlusX;
+	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("MirrorOp"), InMirrorOp, GEditorPerProjectIni);
+	MirrorOp = (ELandscapeMirrorOperation)InMirrorOp;
+
 	int32 InConvertMode = ResizeLandscape_ConvertMode;
 	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("ConvertMode"), InConvertMode, GEditorPerProjectIni);
 	ResizeLandscape_ConvertMode = (ELandscapeConvertMode::Type)InConvertMode;
@@ -334,6 +341,9 @@ void ULandscapeEditorObject::Save()
 
 	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bSmoothGizmoBrush"), bSmoothGizmoBrush, GEditorPerProjectIni);
 	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("PasteMode"), (int32)PasteMode, GEditorPerProjectIni);
+
+	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("MirrorOp"), (int32)MirrorOp, GEditorPerProjectIni);
+
 	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("ConvertMode"), (int32)ResizeLandscape_ConvertMode, GEditorPerProjectIni);
 	//GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bUseSelectedRegion"), bUseSelectedRegion, GEditorPerProjectIni);
 	//GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bUseNegativeMask"), bUseNegativeMask, GEditorPerProjectIni);
