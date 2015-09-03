@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -56,7 +57,7 @@ namespace UnrealBuildTool
 		/// <param name="InTargetPlatform">Name of the target that may be built.</param>
 		/// <param name="InDependencies">Name of the target that may be built.</param>
 		/// <param name="bHasPlist">Name of the target that may be built.</param>
-		public XcodeProjectTarget(string InDisplayName, string InTargetName, XcodeTargetType InType, string InTargetFilePath, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, bool bInIsMacOnly = false, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
+		public XcodeProjectTarget(string InDisplayName, string InTargetName, XcodeTargetType InType, FileReference InTargetFilePath, string InProductName = "", UnrealTargetPlatform InTargetPlatform = UnrealTargetPlatform.Mac, bool bInIsMacOnly = false, List<XcodeTargetDependency> InDependencies = null, bool bHasPlist = false, List<XcodeFrameworkRef> InFrameworks = null)
 		{
 			DisplayName = InDisplayName;
 			TargetName = InTargetName;
@@ -92,7 +93,7 @@ namespace UnrealBuildTool
 		public UnrealTargetPlatform TargetPlatform;	//Mac, IOS
 		public bool bIsMacOnly;
 		public string ProductName;
-		public string TargetFilePath;
+		public FileReference TargetFilePath;
 
 		public string Guid;
 		public string BuildConfigGuild;
@@ -217,7 +218,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
+		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesDirectory)
 		{
 			//@todo Mac. Implement this function...
 		}
@@ -227,7 +228,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">Path to the project file</param>
 		/// <returns>The newly allocated project file object</returns>
-		protected override ProjectFile AllocateProjectFile(string InitFilePath)
+		protected override ProjectFile AllocateProjectFile(FileReference InitFilePath)
 		{
 			return new XcodeProjectFile(InitFilePath);
 		}
@@ -350,11 +351,11 @@ namespace UnrealBuildTool
 			if (Target.Type == XcodeTargetType.Legacy)
 			{
 				string UProjectPath = "";
-				if (UnrealBuildTool.HasUProjectFile() && !string.IsNullOrEmpty(Target.TargetFilePath) && Utils.IsFileUnderDirectory(Target.TargetFilePath, UnrealBuildTool.GetUProjectPath()))
+				if (UnrealBuildTool.HasUProjectFile() && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath()))
 				{
-					if (MasterProjectRelativePath == UnrealBuildTool.GetUProjectPath())
+					if (MasterProjectPath == UnrealBuildTool.GetUProjectPath())
 					{
-						UProjectPath = " " + "\\\"$(PROJECT_DIR)/" + Path.GetFileName(UnrealBuildTool.GetUProjectFile()) + "\\\"";
+						UProjectPath = " " + "\\\"$(PROJECT_DIR)/" + Path.GetFileName(UnrealBuildTool.GetUProjectFile().FullName) + "\\\"";
 					}
 					else
 					{
@@ -722,7 +723,7 @@ namespace UnrealBuildTool
 		/// <param name="PreprocessorDefinitions">Optional string with preprocessor definitions section</param>
 		private void AppendBuildConfigs(ref StringBuilder Contents, XcodeProjectTarget Target, string HeaderSearchPaths = "", string PreprocessorDefinitions = "")
 		{
-			List<string> GameFolders = UEBuildTarget.DiscoverAllGameFolders();
+			List<DirectoryReference> GameFolders = UEBuildTarget.DiscoverAllGameFolders();
 
 			bool IsAGame = false;
 			string GamePath = null;
@@ -732,17 +733,17 @@ namespace UnrealBuildTool
 			string EngineRelative = "";
 
 			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
-			foreach (string GameFolder in GameFolders)
+			foreach (string GameFolder in GameFolders.Select(x => x.FullName))
 			{
 				if (File.Exists(Path.Combine(GameFolder, Target.TargetName+".uproject")))
 				{
 					IsAGame = true;
-					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
+					GamePath = Toolchain.ConvertPath(GameFolder);
 					break;
 				}
 				else if (!string.IsNullOrEmpty(GameNameFromClientName) && GameFolder.EndsWith(GameNameFromClientName))
 				{
-					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
+					GamePath = Toolchain.ConvertPath(GameFolder);
 					break;
 				}
 			}
@@ -880,12 +881,11 @@ namespace UnrealBuildTool
 		}
 
 		private void AddPreGeneratedProject(ref string PBXBuildFileSection, ref string PBXFileReferenceSection, ref string PBXSourcesBuildPhaseSection,
-			ref Dictionary<string, XcodeFileGroup> Groups, string ProjectPath)
+			ref Dictionary<string, XcodeFileGroup> Groups, FileReference ProjectPath)
 		{
-			var ProjectFileName = Utils.MakePathRelativeTo(ProjectPath, MasterProjectRelativePath);
-			var XcodeProject = new XcodeProjectFile(ProjectFileName);
-			string ProjectDirectory = Path.GetDirectoryName(ProjectPath);
-			XcodeProject.AddFilesToProject(SourceFileSearch.FindFiles(new List<string>() { ProjectDirectory }, ExcludeNoRedistFiles: bExcludeNoRedistFiles, SubdirectoryNamesToExclude:new List<string>() { "obj" }, SearchSubdirectories:true, IncludePrivateSourceCode:true), null);
+			var XcodeProject = new XcodeProjectFile(ProjectPath);
+			DirectoryReference ProjectDirectory = ProjectPath.Directory;
+			XcodeProject.AddFilesToProject(SourceFileSearch.FindFiles(new List<DirectoryReference>() { ProjectDirectory }, ExcludeNoRedistFiles: bExcludeNoRedistFiles, SubdirectoryNamesToExclude:new List<string>() { "obj" }, SearchSubdirectories:true, IncludePrivateSourceCode:true), null);
 			XcodeProject.GenerateSectionsContents(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups);
 		}
 
@@ -906,7 +906,7 @@ namespace UnrealBuildTool
 				{
 					if (TargetFile.TargetFilePath != null)
 					{
-						string TargetFileName = Path.GetFileNameWithoutExtension(TargetFile.TargetFilePath);
+						string TargetFileName = TargetFile.TargetFilePath.GetFileNameWithoutExtension();
 						string TargetFileMinusTarget = TargetFileName.Substring(0, TargetFileName.LastIndexOf(".Target"));
 						foreach (XcodeProjectTarget Target in ProjectTargets)
 						{
@@ -944,7 +944,7 @@ namespace UnrealBuildTool
 					foreach (var CurSourceFile in XcodeProject.SourceFiles)
 					{
 						XcodeSourceFile SourceFile = CurSourceFile as XcodeSourceFile;
-						string GroupPath = Path.GetFullPath(Path.GetDirectoryName(SourceFile.FilePath));
+						DirectoryReference GroupPath = SourceFile.Reference.Directory;
 						XcodeFileGroup Group = XcodeProject.FindGroupByFullPath(ref Groups, GroupPath);
 						if (Group != null)
 						{
@@ -959,12 +959,12 @@ namespace UnrealBuildTool
 
 				foreach (var CurPath in XcodeProject.IntelliSenseIncludeSearchPaths)
 				{
-					AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
+					AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath.FullName));
 				}
 
 				foreach (var CurPath in XcodeProject.IntelliSenseSystemIncludeSearchPaths)
 				{
-					AddIncludeDirectory(ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath));
+					AddIncludeDirectory(ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName(XcodeProject.ProjectFilePath.FullName));
 				}
 
 				foreach (var CurDefinition in XcodeProject.IntelliSensePreprocessorDefinitions)
@@ -988,7 +988,7 @@ namespace UnrealBuildTool
 			if (!bGeneratingRocketProjectFiles)
 			{
 				// Add UnrealBuildTool to the master project
-				string ProjectPath = System.IO.Path.Combine(System.IO.Path.Combine(EngineRelativePath, "Source"), "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
+				FileReference ProjectPath = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Programs", "UnrealBuildTool", "UnrealBuildTool.csproj");
 				AddPreGeneratedProject(ref PBXBuildFileSection, ref PBXFileReferenceSection, ref PBXSourcesBuildPhaseSection, ref Groups, ProjectPath);
 			}
 		}
@@ -1052,7 +1052,7 @@ namespace UnrealBuildTool
 		/// Adds the include directory to the list, after converting it to relative to UE4 root
 		private void AddIncludeDirectory(ref List<string> IncludeDirectories, string IncludeDir, string ProjectDir)
 		{
-			string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+			string FullProjectPath = ProjectFileGenerator.MasterProjectPath.FullName;
 			string FullPath = "";
 			if (IncludeDir.StartsWith("/") && !IncludeDir.StartsWith(FullProjectPath))
 			{
@@ -1086,22 +1086,23 @@ namespace UnrealBuildTool
 				// add UE4Game as most likely this is a content-only project
 				ProjectTarget TargetProject = new global::UnrealBuildTool.ProjectTarget();
 				var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
-				TargetProject.TargetFilePath = "";
+				TargetProject.TargetFilePath = null;
 				RulesAssembly EngineRulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
-				TargetProject.TargetRules = EngineRulesAssembly.CreateTargetRules("UE4Game", Target, false, out TargetProject.TargetFilePath);
+				FileReference TargetFilePath;
+				TargetProject.TargetRules = EngineRulesAssembly.CreateTargetRules("UE4Game", Target, false, out TargetFilePath);
+				TargetProject.TargetFilePath = TargetFilePath;
 				TargetProjects.Add(TargetProject);
 			}
 			foreach (var TargetProject in TargetProjects)
 			{
-					string TargetPath = TargetProject.TargetFilePath;
-					string TargetName = Utils.GetFilenameWithoutAnyExtensions (Path.GetFileName (TargetPath));
+					FileReference TargetPath = TargetProject.TargetFilePath;
+					string TargetName = TargetPath.GetFileNameWithoutAnyExtensions();
 					bool WantProjectFileForTarget = true;
 					bool IsEngineTarget = false;
 					if (bGeneratingGameProjectFiles || bGeneratingRocketProjectFiles)
 					{
 						// Check to see if this is an Engine target.  That is, the target is located under the "Engine" folder
-						string TargetFileRelativeToEngineDirectory = Utils.MakePathRelativeTo(TargetPath, Path.Combine(EngineRelativePath), AlwaysTreatSourceAsDirectory: false);
-						if (!TargetFileRelativeToEngineDirectory.StartsWith("..") && !Path.IsPathRooted(TargetFileRelativeToEngineDirectory))
+						if (TargetPath.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 						{
 							// This is an engine target
 							IsEngineTarget = true;
@@ -1128,7 +1129,7 @@ namespace UnrealBuildTool
 
 					if (WantProjectFileForTarget)
 					{
-						string TargetFilePath = TargetProject.TargetFilePath;
+						FileReference TargetFilePath = TargetProject.TargetFilePath;
 						var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
 						var TargetRulesObject = TargetProject.TargetRules; // RulesCompiler.CreateTargetRules(TargetName, Target, false, out TargetFilePath);
 						List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
@@ -1223,16 +1224,16 @@ namespace UnrealBuildTool
 			{
 				TargetBinariesFolder = Path.GetDirectoryName(Directory.GetCurrentDirectory());
 
-                if (!ExeBaseName.EndsWith("Editor") && !string.IsNullOrWhiteSpace(Target.TargetFilePath) && !Utils.IsFileUnderDirectory(Target.TargetFilePath, TargetBinariesFolder))
+                if (!ExeBaseName.EndsWith("Editor") && Target.TargetFilePath != null && !Target.TargetFilePath.IsUnderDirectory(new DirectoryReference(TargetBinariesFolder)))
                 {
 					string DepotRoot = TargetBinariesFolder.TrimEnd(Path.DirectorySeparatorChar);
 					DepotRoot = DepotRoot.Substring(0, DepotRoot.LastIndexOf(Path.DirectorySeparatorChar));
 					DepotRoot = DepotRoot.TrimEnd(Path.DirectorySeparatorChar);
 
-                    if (Utils.IsFileUnderDirectory(Target.TargetFilePath, DepotRoot))
+                    if (Target.TargetFilePath.IsUnderDirectory(new DirectoryReference(DepotRoot)))
                     {
-                        string PreviousPath = Target.TargetFilePath;
-                        string CurrentPath = Target.TargetFilePath;
+                        string PreviousPath = Target.TargetFilePath.FullName;
+                        string CurrentPath = Target.TargetFilePath.FullName;
                         while (!string.IsNullOrWhiteSpace(CurrentPath) && CurrentPath != DepotRoot)
                         {
                             PreviousPath = CurrentPath;
@@ -1246,7 +1247,7 @@ namespace UnrealBuildTool
                     }
                 }
 
-				if (ExeBaseName == Target.TargetName && !Target.TargetFilePath.StartsWith(TargetBinariesFolder) && !ExeBaseName.EndsWith("Editor") && ExeExtension == ".app")
+				if (ExeBaseName == Target.TargetName && (Target.TargetFilePath == null || !Target.TargetFilePath.FullName.StartsWith(TargetBinariesFolder)) && !ExeBaseName.EndsWith("Editor") && ExeExtension == ".app")
 				{
 					TargetBinariesFolder = TargetBinariesFolder.Replace("/Engine", "/") + ExeBaseName + "/Binaries/";
 				}
@@ -1424,7 +1425,7 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				if (UnrealBuildTool.HasUProjectFile() && !string.IsNullOrEmpty(Target.TargetFilePath) && Utils.IsFileUnderDirectory(Target.TargetFilePath, UnrealBuildTool.GetUProjectPath()))
+				if (UnrealBuildTool.HasUProjectFile() && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath()))
 				{
 					if (Target.TargetName.EndsWith("Editor"))
 					{
@@ -1455,8 +1456,8 @@ namespace UnrealBuildTool
 		private void WriteProject(StringBuilder XcodeProjectFileContent, List<XcodeProjectTarget> ProjectTargets)
 		{
 			// @todo: Windows and Mac should store the project in the same folder
-			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? (!string.IsNullOrEmpty(UnrealBuildTool.GetUProjectPath()) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
-			var XcodeProjectPath = MasterProjectRelativePath + PathBranch + "/" + MasterProjectName + ".xcodeproj";
+			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((UnrealBuildTool.GetUProjectPath() != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
+			var XcodeProjectPath = MasterProjectPath.FullName + PathBranch + "/" + MasterProjectName + ".xcodeproj";
 			if (bGeneratingGameProjectFiles && GameProjectName == "UE4Game")
 			{
 				XcodeProjectPath = UnrealBuildTool.GetUProjectPath() + "/" + MasterProjectName + ".xcodeproj";
@@ -1491,8 +1492,8 @@ namespace UnrealBuildTool
 
 		private void WriteWorkspace()
 		{
-			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? (!string.IsNullOrEmpty(UnrealBuildTool.GetUProjectPath()) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
-			var XcodeProjectPath = MasterProjectRelativePath + PathBranch + "/" + MasterProjectName + ".xcodeproj";
+			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((UnrealBuildTool.GetUProjectPath() != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
+			var XcodeProjectPath = MasterProjectPath + PathBranch + "/" + MasterProjectName + ".xcodeproj";
 			if (bGeneratingGameProjectFiles && GameProjectName == "UE4Game")
 			{
 				XcodeProjectPath = UnrealBuildTool.GetUProjectPath() + "/" + MasterProjectName + ".xcodeproj";
@@ -1533,13 +1534,13 @@ namespace UnrealBuildTool
 			// attempt to determine targets for the project
 			List<XcodeProjectTarget> ProjectTargets = new List<XcodeProjectTarget> ();
 			// add mandatory ones
-			XcodeProjectTarget UE4ProjectTarget = new XcodeProjectTarget ("UE4", "UE4", XcodeTargetType.Project, "");
-			XcodeProjectTarget UE4XcodeHelperTarget = new XcodeProjectTarget ("UE4XcodeHelper", "UE4XcodeHelper", XcodeTargetType.XcodeHelper, "", "libUE4XcodeHelper.a");
+			XcodeProjectTarget UE4ProjectTarget = new XcodeProjectTarget ("UE4", "UE4", XcodeTargetType.Project, null);
+			XcodeProjectTarget UE4XcodeHelperTarget = new XcodeProjectTarget ("UE4XcodeHelper", "UE4XcodeHelper", XcodeTargetType.XcodeHelper, null, "libUE4XcodeHelper.a");
 			ProjectTargets.AddRange(new XcodeProjectTarget[] { UE4ProjectTarget, UE4XcodeHelperTarget });
 
 			if (ProjectFilePlatform.HasFlag(XcodeProjectFilePlatform.iOS))
 			{
-				XcodeProjectTarget UE4CmdLineRunTarget = new XcodeProjectTarget("UE4CmdLineRun", "UE4CmdLineRun", XcodeTargetType.XCTest, "", "UE4CmdLineRun.xctest", UnrealTargetPlatform.IOS);
+				XcodeProjectTarget UE4CmdLineRunTarget = new XcodeProjectTarget("UE4CmdLineRun", "UE4CmdLineRun", XcodeTargetType.XCTest, null, "UE4CmdLineRun.xctest", UnrealTargetPlatform.IOS);
 				ProjectTargets.Add(UE4CmdLineRunTarget);
 				// This GUID will be referenced by each app's test action.
 				UE4CmdLineGuid = UE4CmdLineRunTarget.Guid;

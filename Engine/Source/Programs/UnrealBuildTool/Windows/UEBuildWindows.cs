@@ -400,7 +400,7 @@ namespace UnrealBuildTool
             return false;
         }
 
-		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectPath)
 		{
 			if (Platform == UnrealTargetPlatform.Win32)
 			{

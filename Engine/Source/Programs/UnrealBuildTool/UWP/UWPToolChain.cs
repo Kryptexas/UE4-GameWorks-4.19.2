@@ -568,8 +568,8 @@ namespace UnrealBuildTool
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
 					// Generate a CPP File that just includes the precompiled header.
-					string PCHCPPFilename = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename) + ".cpp";
-					string PCHCPPPath = Path.Combine(CompileEnvironment.Config.OutputDirectory, PCHCPPFilename);
+					string PCHCPPFilename = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName() + ".cpp";
+					FileReference PCHCPPPath = FileReference.Combine(CompileEnvironment.Config.OutputDirectory, PCHCPPFilename);
 					FileItem PCHCPPFile = FileItem.CreateIntermediateTextFile(
 						PCHCPPPath,
 						string.Format("#include \"{0}\"\r\n", CompileEnvironment.Config.PrecompiledHeaderIncludeFilename)
@@ -582,10 +582,10 @@ namespace UnrealBuildTool
 
 					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
 					// Add the precompiled header file to the produced items list.
-					FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
-						Path.Combine(
+					FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
+						FileReference.Combine(
 							CompileEnvironment.Config.OutputDirectory,
-						Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
+							Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
 							)
 						);
 					CompileAction.ProducedItems.Add(PrecompiledHeaderFile);
@@ -603,7 +603,7 @@ namespace UnrealBuildTool
 					{
 						// NOTE: The symbol name we use here is arbitrary, and all that matters is that it is
 						// unique per PCH module used in our library
-						string FakeUniquePCHSymbolName = Path.GetFileNameWithoutExtension(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
+						string FakeUniquePCHSymbolName = CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileNameWithoutExtension();
 						FileArguments.AppendFormat(" /Yl{0}", FakeUniquePCHSymbolName);
 					}
 
@@ -643,8 +643,8 @@ namespace UnrealBuildTool
 				{
 					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.UWP].GetBinaryExtension(UEBuildBinaryType.Object);
 					// Add the object file to the produced item list.
-					FileItem ObjectFile = FileItem.GetItemByPath(
-						Path.Combine(
+					FileItem ObjectFile = FileItem.GetItemByFileReference(
+						FileReference.Combine(
 							CompileEnvironment.Config.OutputDirectory,
 							Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 							)
@@ -668,12 +668,12 @@ namespace UnrealBuildTool
 					// All files using the same PCH are required to share the same PDB that was used when compiling the PCH
 					if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Include)
 					{
-						PDBFileName = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
+						PDBFileName = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName();
 					}
 					// Files creating a PCH use a PDB per file.
 					else if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 					{
-						PDBFileName = "PCH." + ModuleName + "." + Path.GetFileName(CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
+						PDBFileName = "PCH." + ModuleName + "." + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.GetFileName();
 						bActionProducesPDB = true;
 					}
 					// Ungrouped C++ files use a PDB per file.
@@ -689,8 +689,8 @@ namespace UnrealBuildTool
 					}
 
 					// Specify the PDB file that the compiler should write to.
-					FileItem PDBFile = FileItem.GetItemByPath(
-							Path.Combine(
+					FileItem PDBFile = FileItem.GetItemByFileReference(
+							FileReference.Combine(
 								CompileEnvironment.Config.OutputDirectory,
 								PDBFileName + ".pdb"
 								)
@@ -718,7 +718,7 @@ namespace UnrealBuildTool
 					AppendCLArguments_CPP(CompileEnvironment, FileArguments);
 				}
 
-				CompileAction.WorkingDirectory = Path.GetFullPath(".");
+				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 				CompileAction.CommandPath      = EnvVars.CompilerPath;
 				CompileAction.CommandArguments = Arguments.ToString() + FileArguments.ToString() + CompileEnvironment.Config.AdditionalArguments;
 
@@ -763,7 +763,7 @@ namespace UnrealBuildTool
 			{
 				Action CompileAction = new Action(ActionType.Compile);
 				CompileAction.CommandDescription = "Resource";
-				CompileAction.WorkingDirectory = Path.GetFullPath(".");
+				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 				CompileAction.CommandPath = EnvVars.ResourceCompilerPath;
 				CompileAction.StatusDescription = Path.GetFileName(RCFile.AbsolutePath);
 
@@ -796,8 +796,8 @@ namespace UnrealBuildTool
 				}
 
 				// Add the RES file to the produced item list.
-				FileItem CompiledResourceFile = FileItem.GetItemByPath(
-					Path.Combine(
+				FileItem CompiledResourceFile = FileItem.GetItemByFileReference(
+					FileReference.Combine(
 						Environment.Config.OutputDirectory,
 						Path.GetFileName(RCFile.AbsolutePath) + ".res"
 						)
@@ -822,7 +822,7 @@ namespace UnrealBuildTool
 
 			if (LinkEnvironment.Config.bIsBuildingDotNetAssembly)
 			{
-				return FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
+				return FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
 			}
 
 			bool bIsBuildingLibrary = LinkEnvironment.Config.bIsBuildingLibrary || bBuildImportLibraryOnly;
@@ -848,7 +848,7 @@ namespace UnrealBuildTool
 				Arguments.Append(" /DEF");
 
 				// Ensure that the import library references the correct filename for the linked binary.
-				Arguments.AppendFormat(" /NAME:\"{0}\"", Path.GetFileName(LinkEnvironment.Config.OutputFilePath));
+				Arguments.AppendFormat(" /NAME:\"{0}\"", LinkEnvironment.Config.OutputFilePath.GetFileName());
 			}
 
 
@@ -883,8 +883,8 @@ namespace UnrealBuildTool
 			// file is not needed for our builds, but there is no way to prevent MSVC from generating it when
 			// linking targets that have exports.  We don't want this to clobber our LIB file and invalidate the
 			// existing timstamp, so instead we simply emit it with a different name
-			string ImportLibraryFilePath = Path.Combine( LinkEnvironment.Config.IntermediateDirectory, 
-														 Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePath) + ".lib" );
+			FileReference ImportLibraryFilePath = FileReference.Combine( LinkEnvironment.Config.IntermediateDirectory, 
+														 LinkEnvironment.Config.OutputFilePath.GetFileNameWithoutExtension() + ".lib" );
 
 			if (LinkEnvironment.Config.bIsCrossReferenced && !bBuildImportLibraryOnly)
 			{
@@ -894,11 +894,11 @@ namespace UnrealBuildTool
 			FileItem OutputFile;
 			if (bBuildImportLibraryOnly)
 			{
-				OutputFile = FileItem.GetItemByPath(ImportLibraryFilePath);
+				OutputFile = FileItem.GetItemByFileReference(ImportLibraryFilePath);
 			}
 			else
 			{
-				OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
+				OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
 				OutputFile.bNeedsHotReloadNumbersDLLCleanUp = LinkEnvironment.Config.bIsBuildingDLL;
 			}
 
@@ -942,7 +942,7 @@ namespace UnrealBuildTool
 			}
 
 			// Create a response file for the linker
-			string ResponseFileName = GetResponseFileName( LinkEnvironment, OutputFile );
+			FileReference ResponseFileName = GetResponseFileName( LinkEnvironment, OutputFile );
 
 			// Never create response files when we are only generating IntelliSense data
 			if( !ProjectFileGenerator.bGenerateProjectFiles )
@@ -957,8 +957,8 @@ namespace UnrealBuildTool
 			if (bBuildImportLibraryOnly || (LinkEnvironment.Config.bHasExports && !bIsBuildingLibrary))
 			{
 				// An export file is written to the output directory implicitly; add it to the produced items list.
-				string ExportFilePath = Path.ChangeExtension(ImportLibraryFilePath, ".exp");
-				FileItem ExportFile = FileItem.GetItemByPath(ExportFilePath);
+				FileReference ExportFilePath = ImportLibraryFilePath.ChangeExtension(".exp");
+				FileItem ExportFile = FileItem.GetItemByFileReference(ExportFilePath);
 				ProducedItems.Add(ExportFile);
 			}
 
@@ -969,7 +969,7 @@ namespace UnrealBuildTool
 					(LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping))
 				{
 					// Write the import library to the output directory for nFringe support.
-					FileItem ImportLibraryFile = FileItem.GetItemByPath(ImportLibraryFilePath);
+					FileItem ImportLibraryFile = FileItem.GetItemByFileReference(ImportLibraryFilePath);
 					Arguments.AppendFormat(" /IMPLIB:\"{0}\"", ImportLibraryFilePath);
 					ProducedItems.Add(ImportLibraryFile);
 				}
@@ -977,8 +977,8 @@ namespace UnrealBuildTool
 				if (LinkEnvironment.Config.bCreateDebugInfo)
 				{
 					// Write the PDB file to the output directory.			
-					string PDBFilePath = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
-					FileItem PDBFile = FileItem.GetItemByPath(PDBFilePath);
+					FileReference PDBFilePath = FileReference.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".pdb");
+					FileItem PDBFile = FileItem.GetItemByFileReference(PDBFilePath);
 					Arguments.AppendFormat(" /PDB:\"{0}\"", PDBFilePath);
 					ProducedItems.Add(PDBFile);
 
@@ -987,7 +987,7 @@ namespace UnrealBuildTool
 					if (true)
 					{
 						string MAPFilePath = Path.Combine(LinkEnvironment.Config.OutputDirectory, Path.GetFileNameWithoutExtension(OutputFile.AbsolutePath) + ".map");
-						FileItem MAPFile = FileItem.GetItemByPath(MAPFilePath);
+						FileItem MAPFile = FileItem.GetItemByFileReference(MAPFilePath);
 						LinkAction.CommandArguments += string.Format(" /MAP:\"{0}\"", MAPFilePath);
 						LinkAction.ProducedItems.Add(MAPFile);
 					}
@@ -1001,7 +1001,7 @@ namespace UnrealBuildTool
 			// Create an action that invokes the linker.
 			Action LinkAction = new Action(ActionType.Link);
 			LinkAction.CommandDescription = "Link";
-			LinkAction.WorkingDirectory   = Path.GetFullPath(".");
+			LinkAction.WorkingDirectory   = UnrealBuildTool.EngineSourceDirectory.FullName;
 			LinkAction.CommandPath        = bIsBuildingLibrary ? EnvVars.LibraryLinkerPath : EnvVars.LinkerPath;
 			LinkAction.CommandArguments   = Arguments.ToString();
 			LinkAction.ProducedItems    .AddRange(ProducedItems);

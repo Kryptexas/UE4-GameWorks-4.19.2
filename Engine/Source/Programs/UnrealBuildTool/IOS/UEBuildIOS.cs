@@ -269,7 +269,7 @@ namespace UnrealBuildTool
 		 *
 		 * return true if the project uses the default build config
 		 */
-		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
 			string[] BoolKeys = new string[] {
 				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
@@ -282,14 +282,14 @@ namespace UnrealBuildTool
 			};
 
 			// look up iOS specific settings
-			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
+			if (!DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
 				    BoolKeys, null, StringKeys))
 			{
 				return false;
 			}
 
 			// check the base settings
-			return base.HasDefaultBuildConfig(Platform, ProjectPath);
+			return base.HasDefaultBuildConfig(Platform, ProjectDirectoryName);
 		}
 
 		/**

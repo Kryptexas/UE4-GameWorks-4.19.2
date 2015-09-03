@@ -35,7 +35,7 @@ namespace UnrealBuildTool
 	public class ProjectTarget
 	{
 		/// The target rules file path on disk, if we have one
-		public string TargetFilePath;
+		public FileReference TargetFilePath;
 
 		/// Optional target rules for this target.  If the target came from a *.Target.cs file on disk, then it will have one of these.
 		/// For targets that are synthetic (like UnrealBuildTool or other manually added project files) we won't have a rules object for those.
@@ -55,7 +55,7 @@ namespace UnrealBuildTool
 
 		public override string ToString()
 		{
-			return Path.GetFileNameWithoutExtension(TargetFilePath);
+			return TargetFilePath.GetFileNameWithoutExtension();
 		}
 	}
 
@@ -89,10 +89,10 @@ namespace UnrealBuildTool
 			/// </summary>
 			/// <param name="InitFilePath">Path to the source file on disk</param>
 			/// <param name="InitRelativeBaseFolder">The directory on this the path within the project will be relative to</param>
-			public SourceFile( string InitFilePath, string InitRelativeBaseFolder )
+			public SourceFile( FileReference InReference, DirectoryReference InBaseFolder )
 			{
-				FilePath = InitFilePath;
-				RelativeBaseFolder = InitRelativeBaseFolder;
+				Reference = InReference;
+				BaseFolder = InBaseFolder;
 			}
 
 			public SourceFile()
@@ -102,16 +102,16 @@ namespace UnrealBuildTool
 			/// <summary>
 			/// File path to file on disk
 			/// </summary>
-			public string FilePath
+			public FileReference Reference
 			{
 				get;
 				private set;
 			}
 
 			/// <summary>
-			/// Optional directory that overrides where files in this project are relative to when displayed in the IDE.  If null, will default to the project's RelativeBaseFolder.
+			/// Optional directory that overrides where files in this project are relative to when displayed in the IDE.  If null, will default to the project's BaseFolder.
 			/// </summary>
-			public string RelativeBaseFolder
+			public DirectoryReference BaseFolder
 			{
 				get;
 				private set;
@@ -123,25 +123,15 @@ namespace UnrealBuildTool
 		/// Constructs a new project file object
 		/// </summary>
 		/// <param name="InitFilePath">The path to the project file, relative to the master project file</param>
-		protected ProjectFile( string InitRelativeFilePath )
+		protected ProjectFile( FileReference InProjectFilePath )
 		{
-			RelativeProjectFilePath = InitRelativeFilePath;
+			ProjectFilePath = InProjectFilePath;
 			ShouldBuildByDefaultForSolutionTargets = true;
 		}
 
 
-		/// Full path to the project file on disk
-		public string ProjectFilePath
-		{
-			get
-			{
-				return Path.Combine( ProjectFileGenerator.MasterProjectRelativePath, RelativeProjectFilePath );
-			}
-		}
-
-
-		/// Project file path, relative to the master project
-		public string RelativeProjectFilePath
+		/// Project file path
+		public FileReference ProjectFilePath
 		{
 			get;
 			private set;
@@ -198,11 +188,11 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="FilesToAdd">Files to add</param>
 		/// <param name="RelativeBaseFolder">The directory the path within the project will be relative to</param>
-		public void AddFilesToProject( List<string> FilesToAdd, string RelativeBaseFolder )
+		public void AddFilesToProject( List<FileReference> FilesToAdd, DirectoryReference BaseFolder )
 		{
 			foreach( var CurFile in FilesToAdd )
 			{
-				AddFileToProject( CurFile, RelativeBaseFolder );
+				AddFileToProject( CurFile, BaseFolder );
 			}
 		}
 
@@ -222,29 +212,21 @@ namespace UnrealBuildTool
 		/// Adds a file to this project, ignoring dupes
 		/// </summary>
 		/// <param name="FilePath">Path to the file on disk</param>
-		/// <param name="RelativeBaseFolder">The directory the path within the project will be relative to</param>
-		public void AddFileToProject( string FilePath, string RelativeBaseFolder )
+		/// <param name="BaseFolder">The directory the path within the project will be relative to</param>
+		public void AddFileToProject( FileReference FilePath, DirectoryReference BaseFolder )
 		{
 			// Don't add duplicates
 			SourceFile ExistingFile = null;
             if (SourceFileMap.TryGetValue(FilePath, out ExistingFile))
             {
-                if( ExistingFile.RelativeBaseFolder != RelativeBaseFolder )
+                if( ExistingFile.BaseFolder != BaseFolder )
                 {
-                    if( ( ExistingFile.RelativeBaseFolder != null ) != ( RelativeBaseFolder != null ) ||
-                        !ExistingFile.RelativeBaseFolder.Equals( RelativeBaseFolder, StringComparison.InvariantCultureIgnoreCase ) )
-                    {
-                        throw new BuildException( "Trying to add file '" + FilePath + "' to project '" + ProjectFilePath + "' when the file already exists, but with a different relative base folder '" + RelativeBaseFolder + "' is different than the current file's '" + ExistingFile.RelativeBaseFolder + "'!" );
-                    }
-                    else
-                    {
-                        throw new BuildException( "Trying to add file '" + FilePath + "' to project '" + ProjectFilePath + "' when the file already exists, but the specified project relative base folder is different than the current file's!" );
-                    }
+                    throw new BuildException( "Trying to add file '" + FilePath + "' to project '" + ProjectFilePath + "' when the file already exists, but with a different relative base folder '" + BaseFolder + "' is different than the current file's '" + ExistingFile.BaseFolder + "'!" );
                 }
 			}
 			else
 			{
-				SourceFile File = AllocSourceFile( FilePath, RelativeBaseFolder );
+				SourceFile File = AllocSourceFile( FilePath, BaseFolder );
 				if( File != null )
 				{
 					SourceFileMap[FilePath] = File;
@@ -412,7 +394,7 @@ namespace UnrealBuildTool
 		/// <param name="InitFilePath">Path to the source file on disk</param>
 		/// <param name="InitProjectSubFolder">Optional sub-folder to put the file in.  If empty, this will be determined automatically from the file's path relative to the project file</param>
 		/// <returns>The newly allocated source file object</returns>
-		public virtual SourceFile AllocSourceFile( string InitFilePath, string InitProjectSubFolder = null )
+		public virtual SourceFile AllocSourceFile( FileReference InitFilePath, DirectoryReference InitProjectSubFolder = null )
 		{
 			return new SourceFile( InitFilePath, InitProjectSubFolder );
 		}
@@ -425,27 +407,24 @@ namespace UnrealBuildTool
 			{
 				return InputPath;
 			}
-
-			// Otherwise make sure it's absolute
-			string FullInputPath = Utils.CleanDirectorySeparators(Path.GetFullPath(InputPath));
-
-			// Try to make it relative to the solution directory.
-			string FullSolutionPath = Utils.CleanDirectorySeparators(Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath));
-			if (FullSolutionPath.Last() != Path.DirectorySeparatorChar)
+			else
 			{
-				FullSolutionPath += Path.DirectorySeparatorChar;
+				return NormalizeProjectPath(new FileReference(InputPath));
 			}
-			if (FullInputPath.StartsWith(FullSolutionPath))
+		}
+
+		/** Takes the given path and tries to rebase it relative to the project. */
+		public string NormalizeProjectPath(FileReference InputPath)
+		{
+			// Try to make it relative to the solution directory.
+			if(InputPath.IsUnderDirectory(ProjectFileGenerator.MasterProjectPath))
 			{
-				FullInputPath = Utils.MakePathRelativeTo(Utils.CleanDirectorySeparators(FullInputPath), Path.GetDirectoryName(Path.GetFullPath(ProjectFilePath)));
+				return InputPath.MakeRelativeTo(ProjectFileGenerator.IntermediateProjectFilesPath);
 			}
 			else
 			{
-				FullInputPath = Utils.CleanDirectorySeparators(FullInputPath);
+				return InputPath.FullName;
 			}
-
-			// Otherwise return the input
-			return FullInputPath;
 		}
 
 		/** Takes the given path, normalizes it, and quotes it if necessary. */
@@ -462,11 +441,11 @@ namespace UnrealBuildTool
 		/** Visualizer for the debugger */
 		public override string ToString()
 		{
-			return RelativeProjectFilePath;
+			return ProjectFilePath.ToString();
 		}
 
 		/// Map of file paths to files in the project.
-        private readonly Dictionary<string, SourceFile> SourceFileMap = new Dictionary<string, SourceFile>(StringComparer.InvariantCultureIgnoreCase);
+        private readonly Dictionary<FileReference, SourceFile> SourceFileMap = new Dictionary<FileReference, SourceFile>();
 
 		/// Files in this project
 		public readonly List<SourceFile> SourceFiles = new List<SourceFile>();

@@ -64,6 +64,17 @@ namespace UnrealBuildTool
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
 		public ConfigCacheIni(string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
+			Init(UnrealTargetPlatform.Unknown, BaseIniName, (ProjectDirectory == null)? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null)? null : new DirectoryReference(EngineDirectory));
+		}
+
+		/// <summary>
+		/// Constructor. Parses ini hierarchy for the specified project.  No Platform settings.
+		/// </summary>
+		/// <param name="ProjectDirectory">Project path</param>
+		/// <param name="Platform">Target platform</param>
+		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		public ConfigCacheIni(string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
+		{
 			Init(UnrealTargetPlatform.Unknown, BaseIniName, ProjectDirectory, EngineDirectory);
 		}
 
@@ -75,20 +86,31 @@ namespace UnrealBuildTool
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
 		public ConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
+			Init(Platform, BaseIniName, (ProjectDirectory == null)? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null)? null : new DirectoryReference(EngineDirectory));
+		}
+
+		/// <summary>
+		/// Constructor. Parses ini hierarchy for the specified platform and project.
+		/// </summary>
+		/// <param name="ProjectDirectory">Project path</param>
+		/// <param name="Platform">Target platform</param>
+		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
+		public ConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory = null)
+		{
 			Init(Platform, BaseIniName, ProjectDirectory, EngineDirectory);
 		}
 
-		private void Init(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory)
+		private void Init(UnrealTargetPlatform Platform, string BaseIniName, DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory)
 		{
 			Sections = new Dictionary<string, IniSection>(StringComparer.InvariantCultureIgnoreCase);
-			if (String.IsNullOrEmpty(EngineDirectory))
+			if (EngineDirectory == null)
 			{
-				EngineDirectory = BuildConfiguration.RelativeEnginePath;
+				EngineDirectory = UnrealBuildTool.EngineDirectory;
 			}
 
 			foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName))
 			{
-				if (File.Exists(IniFileName))
+				if (IniFileName.Exists())
 				{
 					ParseIniFile(IniFileName);
 				}
@@ -376,12 +398,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Loads and parses ini file.
 		/// </summary>
-		public void ParseIniFile(string Filename)
+		public void ParseIniFile(FileReference Filename)
 		{
 			String[] IniLines = null;
 			try
 			{
-				IniLines = File.ReadAllLines(Filename);
+				IniLines = File.ReadAllLines(Filename.FullName);
 			}
 			catch (Exception ex)
 			{
@@ -453,7 +475,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Splits a line into key and value
 		/// </summary>
-		private static void ParseKeyValuePair(string TrimmedLine, string Filename, int LineIndex, out string Key, out string Value)
+		private static void ParseKeyValuePair(string TrimmedLine, FileReference Filename, int LineIndex, out string Key, out string Value)
 		{			
 			var AssignIndex = TrimmedLine.IndexOf('=');
 			if (AssignIndex < 0)
@@ -528,7 +550,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Finds an existing section or adds a new one
 		/// </summary>
-		private IniSection FindOrAddSection(string TrimmedLine, string Filename, int LineIndex)
+		private IniSection FindOrAddSection(string TrimmedLine, FileReference Filename, int LineIndex)
 		{
 			var SectionEndIndex = TrimmedLine.IndexOf(']');
 			if (SectionEndIndex != (TrimmedLine.Length - 1))
@@ -552,70 +574,70 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of INI filenames for the given project
 		/// </summary>
-		private static IEnumerable<string> EnumerateCrossPlatformIniFileNames(string ProjectDirectory, string EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
+		private static IEnumerable<FileReference> EnumerateCrossPlatformIniFileNames(DirectoryReference ProjectDirectory, DirectoryReference EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
 		{
 			// Engine/Config/Base.ini (included in every ini type, required)
-			yield return Path.Combine(EngineDirectory, "Config", "Base.ini");
+			yield return FileReference.Combine(EngineDirectory, "Config", "Base.ini");
 
 			// Engine/Config/Base* ini
-			yield return Path.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
+			yield return FileReference.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
 
 			// Engine/Config/NotForLicensees/Base* ini
-			yield return Path.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
+			yield return FileReference.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
 
 			// NOTE: 4.7: See comment in GetSourceIniHierarchyFilenames()
 			// Engine/Config/NoRedist/Base* ini
 			// yield return Path.Combine(EngineDirectory, "Config", "NoRedist", "Base" + BaseIniName + ".ini");
 
-			if(!String.IsNullOrEmpty(ProjectDirectory))
+			if(ProjectDirectory != null)
 			{
 				// Game/Config/Default* ini
-				yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+				yield return FileReference.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
 			
 				// Game/Config/NotForLicensees/Default* ini
-				yield return Path.Combine(ProjectDirectory, "Config", "NotForLicensees", "Default" + BaseIniName + ".ini");
+				yield return FileReference.Combine(ProjectDirectory, "Config", "NotForLicensees", "Default" + BaseIniName + ".ini");
 
 				// Game/Config/NoRedist/Default* ini
-				yield return Path.Combine(ProjectDirectory, "Config", "NoRedist", "Default" + BaseIniName + ".ini");
+				yield return FileReference.Combine(ProjectDirectory, "Config", "NoRedist", "Default" + BaseIniName + ".ini");
 			}
 			
 			string PlatformName = GetIniPlatformName(Platform);			
 			if (Platform != UnrealTargetPlatform.Unknown)
 			{
 				// Engine/Config/Platform/Platform* ini
-				yield return Path.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+				yield return FileReference.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
-				if(!String.IsNullOrEmpty(ProjectDirectory))
+				if(ProjectDirectory != null)
 				{
 					// Game/Config/Platform/Platform* ini
-					yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+					yield return FileReference.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 				}
 			}
 
-			string UserSettingsFolder = Utils.GetUserSettingDirectory(); // Match FPlatformProcess::UserSettingsDir()
-			string PersonalFolder = null; // Match FPlatformProcess::UserDir()
+			DirectoryReference UserSettingsFolder = Utils.GetUserSettingDirectory(); // Match FPlatformProcess::UserSettingsDir()
+			DirectoryReference PersonalFolder = null; // Match FPlatformProcess::UserDir()
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
-				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+				PersonalFolder = new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents"));
 			}
 			else if (Environment.OSVersion.Platform == PlatformID.Unix)
 			{
-				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+				PersonalFolder = new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents"));
 			}
 			else
 			{
-				PersonalFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+				PersonalFolder = new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.Personal));
 			}
 
 			// <AppData>/UE4/EngineConfig/User* ini
-			yield return Path.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
 			// <Documents>/UE4/EngineConfig/User* ini
-			yield return Path.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
 			
 			// Game/Config/User* ini
-            if (!String.IsNullOrEmpty(ProjectDirectory))
+            if (ProjectDirectory != null)
             {
-				yield return Path.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
+				yield return FileReference.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
 			}
 		}
 

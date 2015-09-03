@@ -39,7 +39,7 @@ namespace UnrealBuildTool.IOS
 
 			string RemoteWorkingDir = "";
 
-			bool bIsStaticLibrary = InTarget.OutputPath.EndsWith(".a");
+			bool bIsStaticLibrary = InTarget.OutputPath.HasExtension(".a");
 
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
@@ -95,7 +95,7 @@ namespace UnrealBuildTool.IOS
 
 					try
 					{
-						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
+						string BinaryDir = InTarget.OutputPath.Directory + "\\";
 						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\Mac\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
 							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");

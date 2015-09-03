@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.CodeDom.Compiler;
 using Microsoft.CSharp;
 using System.Reflection;
@@ -19,7 +20,7 @@ namespace UnrealBuildTool
 		/*
 		 * Checks to see if the assembly needs compilation
 		 */
-		private static bool RequiresCompilation( List<string> SourceFileNames, string AssemblySourceListFilePath, string OutputAssemblyPath )
+		private static bool RequiresCompilation( List<FileReference> SourceFileNames, FileReference AssemblySourceListFilePath, FileReference OutputAssemblyPath )
 		{
 			if ( UnrealBuildTool.RunningRocket() && ProjectFileGenerator.bGenerateProjectFiles )
 			{
@@ -28,7 +29,7 @@ namespace UnrealBuildTool
 			}
 
 			// Check to see if we already have a compiled assembly file on disk
-			FileInfo OutputAssemblyInfo = new FileInfo( OutputAssemblyPath );
+			FileInfo OutputAssemblyInfo = new FileInfo( OutputAssemblyPath.FullName );
 			if( OutputAssemblyInfo.Exists )
 			{
 				// Check the time stamp of the UnrealBuildTool.exe file.  If Unreal Build Tool was compiled more
@@ -46,7 +47,7 @@ namespace UnrealBuildTool
 				{
 					// Make sure we have a manifest of source files used to compile the output assembly.  If it doesn't exist
 					// for some reason (not an expected case) then we'll need to recompile.
-					var AssemblySourceListFile = new FileInfo( AssemblySourceListFilePath );
+					var AssemblySourceListFile = new FileInfo( AssemblySourceListFilePath.FullName );
 					if( !AssemblySourceListFile.Exists )
 					{
 						return true;
@@ -55,7 +56,7 @@ namespace UnrealBuildTool
 					{
 						// Make sure the source files we're compiling are the same as the source files that were compiled
 						// for the assembly that we want to load
-						var ExistingAssemblySourceFileNames = new List<string>();
+						var ExistingAssemblySourceFileNames = new List<FileReference>();
 						{
 							using( var Reader = AssemblySourceListFile.OpenRead() )
 							{
@@ -63,10 +64,12 @@ namespace UnrealBuildTool
 								{
 									for( var ExistingSourceFileName = TextReader.ReadLine(); ExistingSourceFileName != null; ExistingSourceFileName = TextReader.ReadLine() )
 									{
-										ExistingAssemblySourceFileNames.Add( ExistingSourceFileName );
+										FileReference FullExistingSourceFileName = new FileReference(ExistingSourceFileName);
+
+										ExistingAssemblySourceFileNames.Add( FullExistingSourceFileName );
 
 										// Was the existing assembly compiled with a source file that we aren't interested in?  If so, then it needs to be recompiled.
-										if( !SourceFileNames.Contains( ExistingSourceFileName ) )
+										if( !SourceFileNames.Contains( FullExistingSourceFileName ) )
 										{
 											return true;
 										}
@@ -84,7 +87,7 @@ namespace UnrealBuildTool
 								return true;
 							}
 
-							var SourceFileInfo = new FileInfo( Path.GetFullPath( SourceFileName ) );
+							var SourceFileInfo = new FileInfo( SourceFileName.FullName );
 
 							// Check to see if the source file exists
 							if( !SourceFileInfo.Exists )
@@ -122,7 +125,7 @@ namespace UnrealBuildTool
 		/*
 		 * Compiles an assembly from source files
 		 */
-		private static Assembly CompileAssembly(string OutputAssemblyPath, List<string> SourceFileNames, List<string> ReferencedAssembies, List<string> PreprocessorDefines = null, bool TreatWarningsAsErrors = false)
+		private static Assembly CompileAssembly(FileReference OutputAssemblyPath, List<FileReference> SourceFileNames, List<string> ReferencedAssembies, List<string> PreprocessorDefines = null, bool TreatWarningsAsErrors = false)
 		{
 			var TemporaryFiles = new TempFileCollection();
 
@@ -133,7 +136,7 @@ namespace UnrealBuildTool
 				CompileParams.GenerateInMemory = false;
 
 				// This is the full path to the assembly file we're generating
-				CompileParams.OutputAssembly = OutputAssemblyPath;
+				CompileParams.OutputAssembly = OutputAssemblyPath.FullName;
 
 				// We always want to generate a class library, not an executable
 				CompileParams.GenerateExecutable = false;
@@ -191,7 +194,7 @@ namespace UnrealBuildTool
 			}
 
 			// Create the output directory if it doesn't exist already
-			DirectoryInfo DirInfo = new DirectoryInfo( Path.GetDirectoryName( OutputAssemblyPath ) );
+			DirectoryInfo DirInfo = new DirectoryInfo( OutputAssemblyPath.Directory.FullName );
 			if( !DirInfo.Exists )
 			{
 				try
@@ -211,7 +214,7 @@ namespace UnrealBuildTool
 				// Enable .NET 4.0 as we want modern language features like 'var'
 				var ProviderOptions = new Dictionary<string, string>() { { "CompilerVersion", "v4.0" } };
 				var Compiler = new CSharpCodeProvider( ProviderOptions );
-				CompileResults = Compiler.CompileAssemblyFromFile( CompileParams, SourceFileNames.ToArray() );
+				CompileResults = Compiler.CompileAssemblyFromFile( CompileParams, SourceFileNames.Select(x => x.FullName).ToArray() );
 			}
 			catch( Exception Ex )
 			{
@@ -250,13 +253,10 @@ namespace UnrealBuildTool
 		/// <param name="SourceFileNames">List of source file name</param>
 		/// <param name="OutputAssemblyPath">Full path to the assembly to be created</param>
 		/// <returns>The assembly that was loaded</returns>
-		public static Assembly CompileAndLoadAssembly(string OutputAssemblyPath, List<string> SourceFileNames, List<string> ReferencedAssembies = null, List<string> PreprocessorDefines = null, bool DoNotCompile = false, bool TreatWarningsAsErrors = false)
+		public static Assembly CompileAndLoadAssembly(FileReference OutputAssemblyPath, List<FileReference> SourceFileNames, List<string> ReferencedAssembies = null, List<string> PreprocessorDefines = null, bool DoNotCompile = false, bool TreatWarningsAsErrors = false)
 		{
-			// Load assembly requires absolute paths
-			OutputAssemblyPath = Path.GetFullPath( OutputAssemblyPath );
-
 			// Check to see if the resulting assembly is compiled and up to date
-			var AssemblySourcesListFilePath = Path.Combine( Path.GetDirectoryName( OutputAssemblyPath ), Path.GetFileNameWithoutExtension( OutputAssemblyPath ) + "SourceFiles.txt" );
+			FileReference AssemblySourcesListFilePath = FileReference.Combine(OutputAssemblyPath.Directory, Path.GetFileNameWithoutExtension( OutputAssemblyPath.FullName ) + "SourceFiles.txt" );
 			bool bNeedsCompilation = false;
 			if (!DoNotCompile)
 			{
@@ -270,7 +270,7 @@ namespace UnrealBuildTool
 				try
 				{
 					// Load the previously-compiled assembly from disk
-					CompiledAssembly = Assembly.LoadFile( OutputAssemblyPath );
+					CompiledAssembly = Assembly.LoadFile( OutputAssemblyPath.FullName );
 				}
 				catch( FileLoadException Ex )
 				{
@@ -296,7 +296,7 @@ namespace UnrealBuildTool
 				// Save out a list of all the source files we compiled.  This is so that we can tell if whole files were added or removed
 				// since the previous time we compiled the assembly.  In that case, we'll always want to recompile it!
 				{
-					FileInfo AssemblySourcesListFile = new FileInfo( AssemblySourcesListFilePath );
+					FileInfo AssemblySourcesListFile = new FileInfo( AssemblySourcesListFilePath.FullName );
 					using( var Writer = AssemblySourcesListFile.CreateText() )
 					{
 						SourceFileNames.ForEach( x => Writer.WriteLine( x ) );

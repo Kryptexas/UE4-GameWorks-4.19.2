@@ -377,14 +377,14 @@ public partial class Project : CommandUtils
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(SC.RawProjectPath);
 			LogLog("Searching for plugins with CurrentWorkingDir: " + Directory.GetCurrentDirectory());
 			LogLog("Searching for plugins in: " + SC.RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(CombinePaths(SC.LocalRoot, "Engine"), SC.RawProjectPath);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(CombinePaths(SC.LocalRoot, "Engine")), new FileReference(SC.RawProjectPath));
 			foreach (PluginInfo Plugin in AvailablePlugins)
 			{
-				LogLog("Considering Plugin for Stage: " + Plugin.FileName);
+				LogLog("Considering Plugin for Stage: " + Plugin.File.FullName);
 				if (UProjectInfo.IsPluginEnabledForProject(Plugin, Project, SC.StageTargetPlatform.PlatformType))
 				{
-					LogLog("EnabledPlugin: " + Plugin.FileName);
-					SC.StageFiles(StagedFileType.UFS, Plugin.Directory, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
+					LogLog("EnabledPlugin: " + Plugin.File.FullName);
+					SC.StageFiles(StagedFileType.UFS, Plugin.Directory.FullName, "*.uplugin", false, null, null, true, !Params.UsePak(SC.StageTargetPlatform), null, true, false);
 				}
 			}
 
@@ -1577,7 +1577,7 @@ public partial class Project : CommandUtils
 						}
 
 						// Convert the paths to absolute
-						Receipt.ExpandPathVariables(EngineDir, Path.GetDirectoryName(Params.RawProjectPath));
+						Receipt.ExpandPathVariables(new DirectoryReference(EngineDir), new DirectoryReference(Path.GetDirectoryName(Params.RawProjectPath)));
 						TargetsToStage.Add(new StageTarget{ Receipt = Receipt, RequireFilesExist = bRequireStagedFilesToExist });
 					}
 				}

@@ -92,28 +92,28 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Generates a full path to action history file for the specified target.
 		/// </summary>
-		public static string GeneratePathForTarget(UEBuildTarget Target)
+		public static FileReference GeneratePathForTarget(UEBuildTarget Target)
 		{
-			string Folder = null;
+			DirectoryReference Folder = null;
 			if (Target.ShouldCompileMonolithic() || Target.TargetType == TargetRules.TargetType.Program)
 			{
 				// Monolithic configs and programs have their Action History stored in their respective project folders
 				// or under engine intermediate folder + program name folder
-				string RootDirectory = UnrealBuildTool.GetUProjectPath();
-				if (String.IsNullOrEmpty(RootDirectory))
+				DirectoryReference RootDirectory = UnrealBuildTool.GetUProjectPath();
+				if (RootDirectory == null)
 				{
-					RootDirectory = Path.GetFullPath(BuildConfiguration.RelativeEnginePath);
+					RootDirectory = UnrealBuildTool.EngineDirectory;
 				}
-				Folder = Path.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName());
+				Folder = DirectoryReference.Combine(RootDirectory, BuildConfiguration.PlatformIntermediateFolder, Target.GetTargetName());
 			}
 			else
 			{
 				// Shared action history (unless this is a rocket target)
 				Folder = (UnrealBuildTool.RunningRocket() && UnrealBuildTool.HasUProjectFile()) ?
-					Path.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) :
-					BuildConfiguration.BaseIntermediatePath;
+					DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) :
+					DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder);
 			}
-			return Path.Combine(Folder, "ActionHistory.bin").Replace("\\", "/");
+			return FileReference.Combine(Folder, "ActionHistory.bin");
 		}
 	}
 }

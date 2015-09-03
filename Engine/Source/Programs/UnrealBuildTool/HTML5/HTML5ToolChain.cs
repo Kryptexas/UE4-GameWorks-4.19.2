@@ -339,10 +339,10 @@ namespace UnrealBuildTool
                 string FileArguments = string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 				var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.HTML5].GetBinaryExtension(UEBuildBinaryType.Object);
             	// Add the object file to the produced item list.
-				FileItem ObjectFile = FileItem.GetItemByPath(
-					Path.Combine(
+				FileItem ObjectFile = FileItem.GetItemByFileReference(
+					FileReference.Combine(
 						CompileEnvironment.Config.OutputDirectory,
-					Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
+						Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
 						)
 					);
 				CompileAction.ProducedItems.Add(ObjectFile);
@@ -358,7 +358,7 @@ namespace UnrealBuildTool
 					FileArguments += GetCLArguments_CPP(CompileEnvironment);
 				}
 
-				CompileAction.WorkingDirectory = Path.GetFullPath(".");
+				CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 				CompileAction.CommandPath = HTML5SDKInfo.Python();
 
 				CompileAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler() + " " + Arguments + FileArguments + CompileEnvironment.Config.AdditionalArguments;
@@ -468,7 +468,7 @@ namespace UnrealBuildTool
 			List<string> ReponseLines = new List<string>(); 
 
 			LinkAction.bCanExecuteRemotely = false;
-			LinkAction.WorkingDirectory = Path.GetFullPath(".");
+			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 			LinkAction.CommandPath = HTML5SDKInfo.Python();
 			LinkAction.CommandArguments = HTML5SDKInfo.EmscriptenCompiler();
 			ReponseLines.Add(GetLinkArguments(LinkEnvironment));
@@ -511,17 +511,17 @@ namespace UnrealBuildTool
 			// make the file we will create
 
 
-			OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
+			OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
 			LinkAction.ProducedItems.Add(OutputFile);
 			ReponseLines.Add(string.Format(" -o \"{0}\"", OutputFile.AbsolutePath));
 
-		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.Replace(".js", ".bc").Replace(".html", ".bc"));
+		    FileItem OutputBC = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath.FullName.Replace(".js", ".bc").Replace(".html", ".bc"));
 		    LinkAction.ProducedItems.Add(OutputBC);
 			ReponseLines.Add( " --emit-symbol-map " + string.Format(" --save-bc \"{0}\"", OutputBC.AbsolutePath));
 
      		LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 
-			string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+			FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
 
 
 			LinkAction.CommandArguments += string.Format(" @\"{0}\""  , ResponseFile.Create(ResponseFileName, ReponseLines));
@@ -531,7 +531,7 @@ namespace UnrealBuildTool
 			return OutputFile;
 		}
 
-		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
+		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
 		{
 			throw new BuildException("HTML5 cannot compile C# files");
 		}

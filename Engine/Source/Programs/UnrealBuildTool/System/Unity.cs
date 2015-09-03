@@ -164,8 +164,8 @@ namespace UnrealBuildTool
 				    foreach( var CPPFile in SortedCPPFiles )
 				    {
 					    // Don't include writable source files into unity blobs
-						if( !Utils.IsFileUnderDirectory( CPPFile.AbsolutePath, Target.EngineIntermediateDirectory ) &&
-							!Utils.IsFileUnderDirectory( CPPFile.AbsolutePath, Target.ProjectIntermediateDirectory ) )
+						if( !CPPFile.Reference.IsUnderDirectory(Target.EngineIntermediateDirectory ) &&
+							!CPPFile.Reference.IsUnderDirectory(Target.ProjectIntermediateDirectory ) )
 						{
 							++CandidateWorkingSetSourceFileCount;
 
@@ -241,7 +241,7 @@ namespace UnrealBuildTool
 			string PCHHeaderNameInCode = CPPFiles.Count > 0 ? CPPFiles[0].PCHHeaderNameInCode : "";
 			if( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename != null )
 			{
-				PCHHeaderNameInCode = ToolChain.ConvertPath( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename );
+				PCHHeaderNameInCode = ToolChain.ConvertPath( CompileEnvironment.Config.PrecompiledHeaderIncludeFilename.FullName );
 
 				// Generated unity .cpp files always include the PCH using an absolute path, so we need to update
 				// our compile environment's PCH header name to use this instead of the text it pulled from the original
@@ -289,16 +289,16 @@ namespace UnrealBuildTool
                 }
 
 				// Determine unity file path name
-				string UnityCPPFilePath;
+				string UnityCPPFileName;
 				if (AllUnityFiles.Count > 1)
 				{
-					UnityCPPFilePath = string.Format("Module.{0}.{1}_of_{2}.cpp", BaseName, CurrentUnityFileCount, AllUnityFiles.Count);
+					UnityCPPFileName = string.Format("Module.{0}.{1}_of_{2}.cpp", BaseName, CurrentUnityFileCount, AllUnityFiles.Count);
 				}
 				else
 				{
-					UnityCPPFilePath = string.Format("Module.{0}.cpp", BaseName);
+					UnityCPPFileName = string.Format("Module.{0}.cpp", BaseName);
 				}
-				UnityCPPFilePath = Path.Combine(CompileEnvironment.Config.OutputDirectory, UnityCPPFilePath);
+				FileReference UnityCPPFilePath = FileReference.Combine(CompileEnvironment.Config.OutputDirectory, UnityCPPFileName);
 
 				// Write the unity file to the intermediate folder.
 				FileItem UnityCPPFile = FileItem.CreateIntermediateTextFile(UnityCPPFilePath, OutputUnityCPPWriter.ToString());

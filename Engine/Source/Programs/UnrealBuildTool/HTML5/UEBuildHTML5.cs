@@ -52,10 +52,10 @@ namespace UnrealBuildTool
 		}
 
 		// F5 should always try to run the Win32 version
-		public override string ModifyNMakeOutput(string ExeName)
+		public override FileReference ModifyNMakeOutput(FileReference ExeName)
 		{
 			// nmake Run should always run the win32 version
-			return Path.ChangeExtension(ExeName+"-win32", ".exe");
+			return (ExeName + "-win32").ChangeExtension(".exe");
 		}
 
 		/**

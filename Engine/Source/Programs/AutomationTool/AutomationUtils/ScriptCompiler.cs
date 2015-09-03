@@ -116,46 +116,38 @@ namespace AutomationTool
 			var OldCWD = Environment.CurrentDirectory;
 			var UnrealBuildToolCWD = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Source");
 
-			// Convert script folders to be relative to UnrealBuildTool's expected CWD
-			var RemappedAdditionalScriptFolders = new List<string>();
-			foreach (var CurFolder in AdditionalScriptsFolders)
-			{
-				RemappedAdditionalScriptFolders.Add(UnrealBuildTool.Utils.MakePathRelativeTo(CurFolder, UnrealBuildToolCWD));
-			}
-
 			Environment.CurrentDirectory = UnrealBuildToolCWD;
 
 			// Configure the rules compiler
 			// Get all game folders and convert them to build subfolders.
-			List<string> AllGameFolders;
+			List<DirectoryReference> AllGameFolders;
 			if(ScriptsForProjectFileName == null)
 			{
 				AllGameFolders = UnrealBuildTool.UEBuildTarget.DiscoverAllGameFolders();
 			}
 			else
 			{
-				AllGameFolders = new List<string>{ Path.GetDirectoryName(ScriptsForProjectFileName) };
+				AllGameFolders = new List<DirectoryReference>{ new DirectoryReference(Path.GetDirectoryName(ScriptsForProjectFileName)) };
 			}
-			var BuildFolders = new List<string>(AllGameFolders.Count);
+			var BuildFolders = new List<DirectoryReference>(AllGameFolders.Count);
 			foreach (var Folder in AllGameFolders)
 			{
-				var GameBuildFolder = CommandUtils.CombinePaths(Folder, "Build");
-				if (Directory.Exists(GameBuildFolder))
+				var GameBuildFolder = DirectoryReference.Combine(Folder, "Build");
+				if (GameBuildFolder.Exists())
 				{
 					BuildFolders.Add(GameBuildFolder);
 				}
 			}
-			RemappedAdditionalScriptFolders.AddRange(BuildFolders);
 
 			Log.TraceVerbose("Discovering game folders.");
 
-			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, GameFolders: AllGameFolders, ForeignPlugins: null, AdditionalSearchPaths: RemappedAdditionalScriptFolders);
+			var DiscoveredModules = UnrealBuildTool.RulesCompiler.FindAllRulesSourceFiles(UnrealBuildTool.RulesCompiler.RulesFileType.AutomationModule, GameFolders: AllGameFolders, ForeignPlugins: null, AdditionalSearchPaths: AdditionalScriptsFolders.Select(x => new DirectoryReference(x)).ToList());
 			var ModulesToCompile = new List<string>(DiscoveredModules.Count);
 			foreach (var ModuleFilename in DiscoveredModules)
 			{
-				if (HostPlatform.Current.IsScriptModuleSupported(CommandUtils.GetFilenameWithoutAnyExtensions(ModuleFilename)))
+				if (HostPlatform.Current.IsScriptModuleSupported(ModuleFilename.GetFileNameWithoutAnyExtensions()))
 				{
-					ModulesToCompile.Add(ModuleFilename);
+					ModulesToCompile.Add(ModuleFilename.FullName);
 				}
 				else
 				{
@@ -169,7 +161,6 @@ namespace AutomationTool
 				string Modules = string.Join(";", ModulesToCompile.ToArray());
 				var UATProj = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Programs\AutomationTool\Scripts\UAT.proj");
 				var CmdLine = String.Format("\"{0}\" /p:Modules=\"{1}\" /p:Configuration={2} /verbosity:minimal /nologo", UATProj, Modules, BuildConfig);
-                Log.TraceVerbose("Building Automation projects in parallel...");
                 // supress the run command because it can be long and intimidating, making the logs around this code harder to read.
                 var Result = CommandUtils.Run(CommandUtils.CmdEnv.MsBuildExe, CmdLine, Options: CommandUtils.ERunOptions.Default | CommandUtils.ERunOptions.NoLoggingOfRunCommand | CommandUtils.ERunOptions.LoggingOfRunDuration);
 				if (Result.ExitCode != 0)

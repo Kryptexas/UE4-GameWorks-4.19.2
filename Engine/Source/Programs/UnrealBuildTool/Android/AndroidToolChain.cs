@@ -788,7 +788,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		static void GenerateEmptyLinkFunctionsForRemovedModules(List<FileItem> SourceFiles, string ModuleName, string OutputDirectory)
+		static void GenerateEmptyLinkFunctionsForRemovedModules(List<FileItem> SourceFiles, string ModuleName, DirectoryReference OutputDirectory)
 		{
 			// Only add to UELinkerFixups module
 			if (!ModuleName.Equals("Launch"))
@@ -797,10 +797,10 @@ namespace UnrealBuildTool
 			}
 
 			string LinkerExceptionsName = "../UELinkerExceptions";
-			string LinkerExceptionsCPPFilename = Path.Combine(OutputDirectory, LinkerExceptionsName + ".cpp");
+			FileReference LinkerExceptionsCPPFilename = FileReference.Combine(OutputDirectory, LinkerExceptionsName + ".cpp");
 
 			// Create the cpp filename
-			if (!File.Exists(LinkerExceptionsCPPFilename))
+			if (!LinkerExceptionsCPPFilename.Exists())
 			{
 				// Create a dummy file in case it doesn't exist yet so that the module does not complain it's not there
 				ResponseFile.Create(LinkerExceptionsCPPFilename, new List<string>());
@@ -827,9 +827,9 @@ namespace UnrealBuildTool
 
 			// Determine if the file changed. Write it if it either doesn't exist or the contents are different.
 			bool bShouldWriteFile = true;
-			if (File.Exists(LinkerExceptionsCPPFilename))
+			if (LinkerExceptionsCPPFilename.Exists())
 			{
-				string[] ExistingExceptionText = File.ReadAllLines(LinkerExceptionsCPPFilename);
+				string[] ExistingExceptionText = File.ReadAllLines(LinkerExceptionsCPPFilename.FullName);
 				string JoinedNewContents = string.Join("", Result.ToArray());
 				string JoinedOldContents = string.Join("", ExistingExceptionText);
 				bShouldWriteFile = (JoinedNewContents != JoinedOldContents);
@@ -841,7 +841,7 @@ namespace UnrealBuildTool
 				ResponseFile.Create(LinkerExceptionsCPPFilename, Result);
 			}
 
-			SourceFiles.Add(FileItem.GetItemByPath(LinkerExceptionsCPPFilename));
+			SourceFiles.Add(FileItem.GetItemByFileReference(LinkerExceptionsCPPFilename));
 		}
 
 		// cache the location of NDK tools
@@ -1017,8 +1017,8 @@ namespace UnrealBuildTool
 						if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 						{
 							// Add the precompiled header file to the produced item list.
-							FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
-								Path.Combine(
+							FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
+								FileReference.Combine(
 									CompileEnvironment.Config.OutputDirectory,
 									Path.GetFileName(InlineArchName(SourceFile.AbsolutePath, Arch, GPUArchitecture) + PCHExtension)
 									)
@@ -1042,10 +1042,10 @@ namespace UnrealBuildTool
 							var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Android].GetBinaryExtension(UEBuildBinaryType.Object);
 
 							// Add the object file to the produced item list.
-							FileItem ObjectFile = FileItem.GetItemByPath(
-								InlineArchName( Path.Combine(
+							FileItem ObjectFile = FileItem.GetItemByFileReference(
+								FileReference.Combine(
 									CompileEnvironment.Config.OutputDirectory,
-									Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension), Arch, GPUArchitecture
+									InlineArchName(Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension, Arch, GPUArchitecture)
 									)
 								);
 							CompileAction.ProducedItems.Add(ObjectFile);
@@ -1073,10 +1073,10 @@ namespace UnrealBuildTool
 						}
 
 						// Create the response file
-						string ResponseFileName = CompileAction.ProducedItems[0].AbsolutePath + ".response";
-						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }));
+						FileReference ResponseFileName = CompileAction.ProducedItems[0].Reference + ".response";
+						string ResponseArgument = string.Format("@\"{0}\"", ResponseFile.Create(ResponseFileName, new List<string> { AllArguments }).FullName);
 
-						CompileAction.WorkingDirectory = Path.GetFullPath(".");
+						CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 						CompileAction.CommandPath = ClangPath;
 						CompileAction.CommandArguments = ResponseArgument;
 						CompileAction.StatusDescription = string.Format("{0} [{1}-{2}]", Path.GetFileName(SourceFile.AbsolutePath), Arch.Replace("-", ""), GPUArchitecture.Replace("-", ""));
@@ -1134,14 +1134,14 @@ namespace UnrealBuildTool
 
 					// Android will have an array of outputs
 					if (LinkEnvironment.Config.OutputFilePaths.Count < OutputPathIndex ||
-						!Path.GetFileNameWithoutExtension(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]).EndsWith(Arch + GPUArchitecture))
+						!LinkEnvironment.Config.OutputFilePaths[OutputPathIndex].GetFileNameWithoutExtension().EndsWith(Arch + GPUArchitecture))
 					{
 						throw new BuildException("The OutputFilePaths array didn't match the Arches array in AndroidToolChain.LinkAllFiles");
 					}
 
 					// Create an action that invokes the linker.
 					Action LinkAction = new Action(ActionType.Link);
-					LinkAction.WorkingDirectory = Path.GetFullPath(".");
+					LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 
 					if (LinkEnvironment.Config.bIsBuildingLibrary)
 					{
@@ -1161,14 +1161,14 @@ namespace UnrealBuildTool
 
 					string LinkerPath = LinkAction.WorkingDirectory;
 
-					LinkAction.WorkingDirectory = LinkEnvironment.Config.IntermediateDirectory;
+					LinkAction.WorkingDirectory = LinkEnvironment.Config.IntermediateDirectory.FullName;
 
 					// Get link arguments.
 					LinkAction.CommandArguments = LinkEnvironment.Config.bIsBuildingLibrary ? GetArArguments(LinkEnvironment) : GetLinkArguments(LinkEnvironment, Arch);
 
 					// Add the output file as a production of the link action.
 					FileItem OutputFile;
-					OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]);
+					OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePaths[OutputPathIndex]);
 					Outputs.Add(OutputFile);
 					LinkAction.ProducedItems.Add(OutputFile);
 					LinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(OutputFile.AbsolutePath));
@@ -1194,7 +1194,7 @@ namespace UnrealBuildTool
 						{
 							string AbsolutePath = InputFile.AbsolutePath.Replace("\\", "/");
 
-							AbsolutePath = AbsolutePath.Replace(LinkEnvironment.Config.IntermediateDirectory.Replace("\\", "/"), "");
+							AbsolutePath = AbsolutePath.Replace(LinkEnvironment.Config.IntermediateDirectory.FullName.Replace("\\", "/"), "");
 							AbsolutePath = AbsolutePath.TrimStart(new char[] { '/' });
 
 							InputFileNames.Add(string.Format("\"{0}\"", AbsolutePath));
@@ -1202,7 +1202,7 @@ namespace UnrealBuildTool
 						}
 					}
 
-					string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+					FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
 					LinkAction.CommandArguments += string.Format(" @\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
 					// libs don't link in other libs
@@ -1262,15 +1262,15 @@ namespace UnrealBuildTool
 			// the binary will have all of the .so's in the output files, we need to trim down to the shared apk (which is what needs to go into the manifest)
 			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
-				foreach (string BinaryPath in Binary.Config.OutputFilePaths)
+				foreach (FileReference BinaryPath in Binary.Config.OutputFilePaths)
 				{
-					string ApkFile = Path.ChangeExtension(BinaryPath, ".apk");
+					FileReference ApkFile = BinaryPath.ChangeExtension(".apk");
 					Receipt.AddBuildProduct(ApkFile, BuildProductType.Executable);
 				}
 			}
 		}
 
-		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
+		public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
 		{
             throw new BuildException("Android cannot compile C# files");
 		}

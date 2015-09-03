@@ -669,8 +669,8 @@ namespace UnrealBuildTool
                 {
 					var PrecompiledFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Linux].GetBinaryExtension(UEBuildBinaryType.PrecompiledHeader);
                     // Add the precompiled header file to the produced item list.
-                    FileItem PrecompiledHeaderFile = FileItem.GetItemByPath(
-                        Path.Combine(
+                    FileItem PrecompiledHeaderFile = FileItem.GetItemByFileReference(
+                        FileReference.Combine(
                             CompileEnvironment.Config.OutputDirectory,
                             Path.GetFileName(SourceFile.AbsolutePath) + PrecompiledFileExtension
                             )
@@ -692,8 +692,8 @@ namespace UnrealBuildTool
 
 					var ObjectFileExtension = UEBuildPlatform.BuildPlatformDictionary[UnrealTargetPlatform.Linux].GetBinaryExtension(UEBuildBinaryType.Object);
                     // Add the object file to the produced item list.
-                    FileItem ObjectFile = FileItem.GetItemByPath(
-                        Path.Combine(
+                    FileItem ObjectFile = FileItem.GetItemByFileReference(
+                        FileReference.Combine(
                             CompileEnvironment.Config.OutputDirectory,
                             Path.GetFileName(SourceFile.AbsolutePath) + ObjectFileExtension
                             )
@@ -707,7 +707,7 @@ namespace UnrealBuildTool
                 // Add the source file path to the command-line.
                 FileArguments += string.Format(" \"{0}\"", SourceFile.AbsolutePath);
 
-                CompileAction.WorkingDirectory = Path.GetFullPath(".");
+                CompileAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
                 if (!UsingClang())
                 {
                     CompileAction.CommandPath = GCCPath;
@@ -737,7 +737,7 @@ namespace UnrealBuildTool
         {
             // Create an archive action
             Action ArchiveAction = new Action(ActionType.Link);
-            ArchiveAction.WorkingDirectory = Path.GetFullPath(".");
+            ArchiveAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
             bool bUsingSh = BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win64 && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Win32;
             if (bUsingSh)
             {
@@ -754,7 +754,7 @@ namespace UnrealBuildTool
             ArchiveAction.bProducesImportLibrary = true;
 
             // Add the output file as a production of the link action.
-            FileItem OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
+            FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
             ArchiveAction.ProducedItems.Add(OutputFile);
             ArchiveAction.CommandDescription = "Archive";
             ArchiveAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
@@ -806,10 +806,10 @@ namespace UnrealBuildTool
             string ExecuteSwitch = bUseCmdExe ? " /C" : ""; // avoid -c so scripts don't need +x
             string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
 
-            FileItem FixDepsScript = FileItem.GetItemByFullPath(Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName));
+            FileItem FixDepsScript = FileItem.GetItemByFileReference(FileReference.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName));
 
 			Action PostLinkAction = new Action(ActionType.Link);
-			PostLinkAction.WorkingDirectory = Path.GetFullPath(".");
+			PostLinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
             PostLinkAction.CommandPath = ShellBinary;
 			PostLinkAction.StatusDescription = string.Format("{0}", Path.GetFileName(Executable.AbsolutePath));
 			PostLinkAction.CommandDescription = "FixDeps";
@@ -818,7 +818,7 @@ namespace UnrealBuildTool
             
             PostLinkAction.CommandArguments += bUseCmdExe ? " \"" : " -c '";
 
-			FileItem OutputFile = FileItem.GetItemByPath(Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, Path.GetFileNameWithoutExtension(Executable.AbsolutePath) + ".link"));
+			FileItem OutputFile = FileItem.GetItemByFileReference(FileReference.Combine(LinkEnvironment.Config.LocalShadowDirectory, Path.GetFileNameWithoutExtension(Executable.AbsolutePath) + ".link"));
 
 			// Make sure we don't run this script until the all executables and shared libraries
 			// have been built.
@@ -855,7 +855,7 @@ namespace UnrealBuildTool
 
             // Create an action that invokes the linker.
             Action LinkAction = new Action(ActionType.Link);
-            LinkAction.WorkingDirectory = Path.GetFullPath(".");
+            LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
             if (String.IsNullOrEmpty(ClangPath))
             {
                 LinkAction.CommandPath = GCCPath;
@@ -873,7 +873,7 @@ namespace UnrealBuildTool
             LinkAction.bProducesImportLibrary = LinkEnvironment.Config.bIsBuildingDLL;
 
             // Add the output file as a production of the link action.
-            FileItem OutputFile = FileItem.GetItemByPath(LinkEnvironment.Config.OutputFilePath);
+            FileItem OutputFile = FileItem.GetItemByFileReference(LinkEnvironment.Config.OutputFilePath);
             LinkAction.ProducedItems.Add(OutputFile);
             LinkAction.CommandDescription = "Link";
             LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
@@ -889,7 +889,7 @@ namespace UnrealBuildTool
                 LinkAction.PrerequisiteItems.Add(InputFile);
             }
 
-            string ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
+            FileReference ResponseFileName = GetResponseFileName(LinkEnvironment, OutputFile);
             LinkAction.CommandArguments += string.Format(" -Wl,@\"{0}\"", ResponseFile.Create(ResponseFileName, InputFileNames));
 
             if (LinkEnvironment.Config.bIsBuildingDLL)
@@ -997,17 +997,17 @@ namespace UnrealBuildTool
             LinkAction.CommandArguments = LinkAction.CommandArguments.Replace("\\", "/");
 
             // prepare a linker script
-            string LinkerScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, "remove-sym.ldscript");
-            if (!Directory.Exists(LinkEnvironment.Config.LocalShadowDirectory))
+            FileReference LinkerScriptPath = FileReference.Combine(LinkEnvironment.Config.LocalShadowDirectory, "remove-sym.ldscript");
+            if (!LinkEnvironment.Config.LocalShadowDirectory.Exists())
             {
-                Directory.CreateDirectory(LinkEnvironment.Config.LocalShadowDirectory);
+                LinkEnvironment.Config.LocalShadowDirectory.CreateDirectory();
             }
-            if (File.Exists(LinkerScriptPath))
+            if (LinkerScriptPath.Exists())
             {
-                File.Delete(LinkerScriptPath);
+                LinkerScriptPath.Delete();
             }
 
-            using (StreamWriter Writer = File.CreateText(LinkerScriptPath))
+            using (StreamWriter Writer = File.CreateText(LinkerScriptPath.FullName))
             {
                 Writer.WriteLine("UE4 {");
                 Writer.WriteLine("  global: *;");
@@ -1030,7 +1030,7 @@ namespace UnrealBuildTool
                 bool bUseCmdExe = BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win64 || BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Win32;
                 string ScriptName = bUseCmdExe ? "FixDependencies.bat" : "FixDependencies.sh";
 
-				string FixDepsScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory, ScriptName);
+				string FixDepsScriptPath = Path.Combine(LinkEnvironment.Config.LocalShadowDirectory.FullName, ScriptName);
 				if (!bHasWipedFixDepsScript)
 				{
 					bHasWipedFixDepsScript = true;
@@ -1091,7 +1091,7 @@ namespace UnrealBuildTool
             return OutputFile;
         }
 
-        public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, string ProjectFileName, string DestinationFile)
+        public override void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile)
         {
             throw new BuildException("Linux cannot compile C# files");
         }
@@ -1100,12 +1100,12 @@ namespace UnrealBuildTool
         {
             foreach (UEBuildBinary Binary in Binaries)
             {
-                BundleDependencies.Add(FileItem.GetItemByPath(Binary.ToString()));
+                BundleDependencies.Add(FileItem.GetItemByFileReference(Binary.Config.OutputFilePath));
             }
         }
 
         /** Converts the passed in path from UBT host to compiler native format. */
-        public override String ConvertPath(String OriginalPath)
+        public override string ConvertPath(string OriginalPath)
         {
             if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux)
             {

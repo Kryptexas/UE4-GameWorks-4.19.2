@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 
 	public class MakefileProjectFile : ProjectFile
 	{
-		public MakefileProjectFile( string InitFilePath )
+		public MakefileProjectFile( FileReference InitFilePath )
 			: base(InitFilePath)
 		{
 		}
@@ -71,7 +71,7 @@ namespace UnrealBuildTool
 
             if (!String.IsNullOrEmpty(GameProjectName))
             {
-                GameProjectFile = UnrealBuildTool.GetUProjectFile();
+                GameProjectFile = UnrealBuildTool.GetUProjectFile().FullName;
                 MakeGameProjectFile = "GAMEPROJECTFILE =" + GameProjectFile + "\n";
                 ProjectBuildCommand = "PROJECTBUILD = mono $(UNREALROOTPATH)/Engine/Binaries/DotNET/UnrealBuildTool.exe\n";
             }
@@ -98,7 +98,7 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					string TargetFileName = Path.GetFileNameWithoutExtension(TargetFile.TargetFilePath);
+					string TargetFileName = TargetFile.TargetFilePath.GetFileNameWithoutExtension();
 					string Basename = TargetFileName.Substring(0, TargetFileName.LastIndexOf(".Target"));
 
 					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
@@ -133,7 +133,7 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					string TargetFileName = Path.GetFileNameWithoutExtension(TargetFile.TargetFilePath);
+					string TargetFileName = TargetFile.TargetFilePath.GetFileNameWithoutExtension();
 					string Basename = TargetFileName.Substring(0, TargetFileName.LastIndexOf(".Target"));
 
 					if (Basename == GameProjectName || Basename == (GameProjectName + "Editor")) 
@@ -185,8 +185,8 @@ namespace UnrealBuildTool
             }
 
             MakefileContent.Append("\n.PHONY: $(TARGETS)\n");
-            var FullFileName = Path.Combine(MasterProjectRelativePath, FileName);
-            return WriteFileIfChanged(FullFileName, MakefileContent.ToString());
+            FileReference FullFileName = FileReference.Combine(MasterProjectPath, FileName);
+            return WriteFileIfChanged(FullFileName.FullName, MakefileContent.ToString());
         }
 
         /// ProjectFileGenerator interface
@@ -208,13 +208,13 @@ namespace UnrealBuildTool
         /// </summary>
         /// <param name="InitFilePath">Path to the project file</param>
         /// <returns>The newly allocated project file object</returns>
-        protected override ProjectFile AllocateProjectFile( string InitFilePath )
+        protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
         {
             return new MakefileProjectFile( InitFilePath );
         }
 
         /// ProjectFileGenerator interface
-        public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
+        public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesDirectory)
         {
         }
     }

@@ -205,14 +205,14 @@ namespace AutomationTool
 
 			// Read the project descriptor, and find all the plugins available to this project
 			ProjectDescriptor Project = ProjectDescriptor.FromFile(RawProjectPath);
-			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(BuildConfiguration.RelativeEnginePath, RawProjectPath);
+			List<PluginInfo> AvailablePlugins = Plugins.ReadAvailablePlugins(new DirectoryReference(BuildConfiguration.RelativeEnginePath), new FileReference(RawProjectPath));
 
 			// check the target platforms for any differences in build settings or additional plugins
 			bool RetVal = false;
 			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 			{
 				IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
-				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, Path.GetDirectoryName(RawProjectPath)))
+				if (!GlobalCommandLine.Rocket && BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, new DirectoryReference(Path.GetDirectoryName(RawProjectPath))))
 				{
 					RetVal = true;
 					break;
@@ -399,24 +399,24 @@ namespace AutomationTool
 		private static void DetectTargetsForProject(ProjectProperties Properties, List<string> ExtraSearchPaths = null)
 		{
 			Properties.Targets = new Dictionary<TargetRules.TargetType, SingleTargetProperties>();
-			string TargetsDllFilename;
+			FileReference TargetsDllFilename;
 			string FullProjectPath = null;
 
-			var GameFolders = new List<string>();
-			var RulesFolder = GetRulesAssemblyFolder();
+			var GameFolders = new List<DirectoryReference>();
+			var RulesFolder = new DirectoryReference(GetRulesAssemblyFolder());
 			if (!String.IsNullOrEmpty(Properties.RawProjectPath))
 			{
 				CommandUtils.LogVerbose("Looking for targets for project {0}", Properties.RawProjectPath);
 
-				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
+				TargetsDllFilename = FileReference.Combine(RulesFolder, String.Format("UATRules{0}.dll", Properties.RawProjectPath.GetHashCode()));
 
 				FullProjectPath = CommandUtils.GetDirectoryName(Properties.RawProjectPath);
-				GameFolders.Add(FullProjectPath);
+				GameFolders.Add(new DirectoryReference(FullProjectPath));
 				CommandUtils.LogVerbose("Searching for target rule files in {0}", FullProjectPath);
 			}
 			else
 			{
-				TargetsDllFilename = CommandUtils.CombinePaths(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
+				TargetsDllFilename = FileReference.Combine(RulesFolder, String.Format("UATRules{0}.dll", "_BaseEngine_"));
 			}
 
 			// the UBT code assumes a certain CWD, but artists don't have this CWD.
@@ -427,7 +427,8 @@ namespace AutomationTool
 				CommandUtils.PushDir(SourceDir);
 				DirPushed = true;
 			}
-			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchPaths);
+			var ExtraSearchDirectories = (ExtraSearchPaths == null)? null : ExtraSearchPaths.Select(x => new DirectoryReference(x)).ToList();
+			var TargetScripts = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Target, GameFolders: GameFolders, ForeignPlugins: null, AdditionalSearchPaths: ExtraSearchDirectories);
 			if (DirPushed)
 			{
 				CommandUtils.PopDir();
@@ -436,13 +437,12 @@ namespace AutomationTool
 			if (!CommandUtils.IsNullOrEmpty(TargetScripts))
 			{
 				// We only care about project target script so filter out any scripts not in the project folder, or take them all if we are just doing engine stuff
-				var ProjectTargetScripts = new List<string>();
-				foreach (var Filename in TargetScripts)
+				var ProjectTargetScripts = new List<FileReference>();
+				foreach (var TargetScript in TargetScripts)
 				{
-					var FullScriptPath = CommandUtils.CombinePaths(Path.GetFullPath(Filename));
-					if (FullProjectPath == null || FullScriptPath.StartsWith(FullProjectPath, StringComparison.InvariantCultureIgnoreCase))
+					if (FullProjectPath == null || TargetScript.IsUnderDirectory(new DirectoryReference(FullProjectPath)))
 					{
-						ProjectTargetScripts.Add(FullScriptPath);
+						ProjectTargetScripts.Add(TargetScript);
 					}
 				}
 				TargetScripts = ProjectTargetScripts;
@@ -463,9 +463,9 @@ namespace AutomationTool
 					Log.TraceVerbose("Targets DLL {0} is up to date.", TargetsDllFilename);
 					DoNotCompile = true;
 				}
-				if (!DoNotCompile && CommandUtils.FileExists_NoExceptions(TargetsDllFilename))
+				if (!DoNotCompile && CommandUtils.FileExists_NoExceptions(TargetsDllFilename.FullName))
 				{
-					if (!CommandUtils.DeleteFile_NoExceptions(TargetsDllFilename, true))
+					if (!CommandUtils.DeleteFile_NoExceptions(TargetsDllFilename.FullName, true))
 					{
 						DoNotCompile = true;
 						CommandUtils.LogVerbose("Could not delete {0} assuming it is up to date and reusable for a recursive UAT call.", TargetsDllFilename);
@@ -483,7 +483,7 @@ namespace AutomationTool
 		/// <param name="TargetsDllFilename"></param>
 		/// <param name="DoNotCompile"></param>
 		/// <param name="TargetScripts"></param>
-		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, string TargetsDllFilename, bool DoNotCompile, List<string> TargetScripts)
+		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, FileReference TargetsDllFilename, bool DoNotCompile, List<FileReference> TargetScripts)
 		{
 			CommandUtils.LogVerbose("Compiling targets DLL: {0}", TargetsDllFilename);
 
@@ -535,15 +535,15 @@ namespace AutomationTool
 		/// <param name="TargetsDllFilename"></param>
 		/// <param name="TargetScripts"></param>
 		/// <returns>True if the generated assembly is out of date.</returns>
-		private static bool CheckIfScriptAssemblyIsOutOfDate(string TargetsDllFilename, List<string> TargetScripts)
+		private static bool CheckIfScriptAssemblyIsOutOfDate(FileReference TargetsDllFilename, List<FileReference> TargetScripts)
 		{
 			var bOutOfDate = false;
-			var AssemblyInfo = new FileInfo(TargetsDllFilename);
+			var AssemblyInfo = new FileInfo(TargetsDllFilename.FullName);
 			if (AssemblyInfo.Exists)
 			{
 				foreach (var ScriptFilename in TargetScripts)
 				{
-					var ScriptInfo = new FileInfo(ScriptFilename);
+					var ScriptInfo = new FileInfo(ScriptFilename.FullName);
 					if (ScriptInfo.Exists && ScriptInfo.LastWriteTimeUtc > AssemblyInfo.LastWriteTimeUtc)
 					{
 						bOutOfDate = true;
@@ -610,7 +610,7 @@ namespace AutomationTool
                 GameName = InfoEntry.GameName;
 
                 //not sure what the heck this path is relative to
-                FilePath = Path.GetFullPath(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Binaries", InfoEntry.FilePath));
+                FilePath = InfoEntry.FilePath.FullName;
 
                 if (!CommandUtils.FileExists_NoExceptions(FilePath))
                 {

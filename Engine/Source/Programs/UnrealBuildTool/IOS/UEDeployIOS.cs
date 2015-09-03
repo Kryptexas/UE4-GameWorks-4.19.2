@@ -681,8 +681,8 @@ namespace UnrealBuildTool.IOS
 		public override bool PrepTargetForDeployment(UEBuildTarget InTarget)
 		{
 			string GameName = InTarget.TargetName;
-			string BuildPath = (GameName == "UE4Game" ? "../../Engine" : InTarget.ProjectDirectory) + "/Binaries/IOS";
-			string ProjectDirectory = InTarget.ProjectDirectory;
+			string BuildPath = (GameName == "UE4Game" ? "../../Engine" : InTarget.ProjectDirectory.FullName) + "/Binaries/IOS";
+			string ProjectDirectory = InTarget.ProjectDirectory.FullName;
 			bool bIsUE4Game = GameName.Contains("UE4Game");
 
 			string DecoratedGameName;
@@ -710,7 +710,7 @@ namespace UnrealBuildTool.IOS
 
 					try
 					{
-						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath) + "\\";
+						string BinaryDir = Path.GetDirectoryName(InTarget.OutputPath.FullName) + "\\";
 						if (BinaryDir.EndsWith(InTarget.AppName + "\\Binaries\\IOS\\") && InTarget.TargetType != TargetRules.TargetType.Game)
 						{
 							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
@@ -724,7 +724,7 @@ namespace UnrealBuildTool.IOS
 							AppFullName += "-" + InTarget.Configuration.ToString();
 						}
 
-						foreach (string BinaryPath in Toolchain.BuiltBinaries)
+						foreach (string BinaryPath in Toolchain.BuiltBinaries.Select(x => x.FullName))
 						{
 							if (!BinaryPath.Contains("Dummy"))
 							{
@@ -739,7 +739,7 @@ namespace UnrealBuildTool.IOS
 					}
 				}
 
-				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile()), "../../Engine", "");
+				GeneratePList(ProjectDirectory, bIsUE4Game, GameName, Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile().FullName), "../../Engine", "");
 			}
 			return true;
 		}

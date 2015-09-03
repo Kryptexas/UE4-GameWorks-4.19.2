@@ -891,19 +891,19 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns the User Settings Directory path. This matches FPlatformProcess::UserSettingsDir()
 		/// </summary>
-		public static string GetUserSettingDirectory()
+		public static DirectoryReference GetUserSettingDirectory()
 		{
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
-				return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic");
+				return new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic"));
 			}
 			else if (Environment.OSVersion.Platform == PlatformID.Unix)
 			{
-				return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic");
+				return new DirectoryReference(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic"));
 			}
 			else
 			{
-				return Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				return new DirectoryReference(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
 			}
 		}
 

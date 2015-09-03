@@ -25,7 +25,7 @@ class BuildPlugin : BuildCommand
 		}
 
 		// Read the plugin
-		PluginDescriptor Plugin = PluginDescriptor.FromFile(PluginFileName);
+		PluginDescriptor Plugin = PluginDescriptor.FromFile(new FileReference(PluginFileName));
 
 		// Clean the intermediate build directory
 		string IntermediateBuildDirectory = Path.Combine(Path.GetDirectoryName(PluginFileName), "Intermediate", "Build");
@@ -142,7 +142,7 @@ class BuildPlugin : BuildCommand
 
 		// Get the output plugin filename
 		string TargetPluginFileName = CommandUtils.MakeRerootedFilePath(Path.GetFullPath(PluginFileName), Path.GetDirectoryName(Path.GetFullPath(PluginFileName)), PackageDirectory);
-		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(TargetPluginFileName);
+		PluginDescriptor NewDescriptor = PluginDescriptor.FromFile(new FileReference(TargetPluginFileName));
 		NewDescriptor.bEnabledByDefault = true;
 		NewDescriptor.bInstalled = true;
 		NewDescriptor.Save(TargetPluginFileName);

@@ -58,7 +58,7 @@ namespace UnrealBuildTool
         {
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
             {
-                var configCacheIni = new ConfigCacheIni("Engine", null);
+                var configCacheIni = new ConfigCacheIni("Engine", (DirectoryReference)null);
                 var AndroidEnv = new Dictionary<string, string>();
 
                 Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
@@ -165,10 +165,8 @@ namespace UnrealBuildTool
 			{
 				bool bRegisterBuildPlatform = true;
 
-				string EngineSourcePath = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Source");
-				string AndroidTargetPlatformFile = Path.Combine(EngineSourcePath, "Developer", "Android", "AndroidTargetPlatform", "AndroidTargetPlatform.Build.cs");
-
-				if (File.Exists(AndroidTargetPlatformFile) == false)
+				FileReference AndroidTargetPlatformFile = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Developer", "Android", "AndroidTargetPlatform", "AndroidTargetPlatform.Build.cs");
+				if (AndroidTargetPlatformFile.Exists() == false)
 				{
 					bRegisterBuildPlatform = false;
 				}
@@ -250,7 +248,7 @@ namespace UnrealBuildTool
 			BuildConfiguration.bUseSharedPCHs = false;
 		}
 			
-		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectPath)
 		{
 			string[] BoolKeys = new string[] {
 				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
@@ -456,18 +454,18 @@ namespace UnrealBuildTool
 			};
 		}
 
-		public override List<string> FinalizeBinaryPaths(string BinaryName)
+		public override List<FileReference> FinalizeBinaryPaths(FileReference BinaryName)
 		{
 			var Architectures = AndroidToolChain.GetAllArchitectures();
 			var GPUArchitectures = AndroidToolChain.GetAllGPUArchitectures();
 
 			// make multiple output binaries
-			List<string> AllBinaries = new List<string>();
+			List<FileReference> AllBinaries = new List<FileReference>();
 			foreach (string Architecture in Architectures)
 			{
 				foreach (string GPUArchitecture in GPUArchitectures)
 				{
-					AllBinaries.Add(AndroidToolChain.InlineArchName(BinaryName, Architecture, GPUArchitecture));
+					AllBinaries.Add(new FileReference(AndroidToolChain.InlineArchName(BinaryName.FullName, Architecture, GPUArchitecture)));
 				}
 			}
 

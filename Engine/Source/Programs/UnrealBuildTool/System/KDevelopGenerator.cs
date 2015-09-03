@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 
 	public class KDevelopProjectFile : ProjectFile
 	{
-		public KDevelopProjectFile( string InitFilePath )
+		public KDevelopProjectFile( FileReference InitFilePath )
 			: base(InitFilePath)
 		{
 		}
@@ -186,7 +186,7 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFile.TargetFilePath);
+					var TargetName = TargetFile.TargetFilePath.GetFileNameWithoutAnyExtensions();
 
 					// Remove both ".cs" and ".
 					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration))) 
@@ -278,7 +278,7 @@ namespace UnrealBuildTool
 
 				foreach (var CurPath in KDevelopProject.IntelliSenseIncludeSearchPaths) 
 				{
-					string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+					string FullProjectPath = ProjectFileGenerator.MasterProjectPath.FullName;
 					string FullPath = "";
 
 					// need to test to see if this in the project souce tree
@@ -290,7 +290,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						FullPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(KDevelopProject.ProjectFilePath), CurPath));
+						FullPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(KDevelopProject.ProjectFilePath.FullName), CurPath));
 						FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
 						FullPath = FullPath.TrimEnd('/');
 						FullPath = Path.Combine(UnrealEngineRootPath, FullPath);
@@ -307,7 +307,7 @@ namespace UnrealBuildTool
 
 				foreach (var CurPath in KDevelopProject.IntelliSenseSystemIncludeSearchPaths) 
 				{
-					string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+					string FullProjectPath = ProjectFileGenerator.MasterProjectPath.FullName;
 					string FullPath = "";
 
 					if (CurPath.StartsWith("/") && !CurPath.StartsWith(FullProjectPath))
@@ -317,7 +317,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-						FullPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(KDevelopProject.ProjectFilePath), CurPath));
+						FullPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(KDevelopProject.ProjectFilePath.FullName), CurPath));
 						FullPath = Utils.MakePathRelativeTo(FullPath, FullProjectPath);
 						FullPath = FullPath.TrimEnd('/');
 						FullPath = Path.Combine(UnrealEngineRootPath, FullPath);
@@ -431,14 +431,14 @@ namespace UnrealBuildTool
 			WriteExcludeSection (ref KDevelopFileContent);
 
 			// Write the master kdev file.
-			var FullMasterProjectPath = Path.Combine (MasterProjectRelativePath,".kdev4/");
+			var FullMasterProjectPath = Path.Combine (MasterProjectPath.FullName,".kdev4/");
 
 			if(!Directory.Exists(FullMasterProjectPath))
 			{
 				Directory.CreateDirectory (FullMasterProjectPath);
 			}
 
-			var FullKDevelopMasterFileName = Path.Combine(MasterProjectRelativePath, FileName);
+			var FullKDevelopMasterFileName = Path.Combine(MasterProjectPath.FullName, FileName);
 			var FullKDevelopFileName = Path.Combine (FullMasterProjectPath, FileName);
 
 			var FullDefinesFileName = Path.Combine (FullMasterProjectPath, DefinesFileName);
@@ -470,13 +470,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">Path to the project file</param>
 		/// <returns>The newly allocated project file object</returns>
-		protected override ProjectFile AllocateProjectFile( string InitFilePath )
+		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
 		{
 			return new KDevelopProjectFile( InitFilePath );
 		}
 
 		/// ProjectFileGenerator interface
-		public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
+		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesDirectory)
 		{
 		}
 	}

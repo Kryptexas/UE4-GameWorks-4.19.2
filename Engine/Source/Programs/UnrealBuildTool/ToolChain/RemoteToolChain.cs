@@ -160,7 +160,7 @@ namespace UnrealBuildTool
 						throw new BuildException("Configuration setting was using ${PROJECT_ROOT}, but there was no project specified");
 					}
 
-					string Temp = Result.Replace("${PROJECT_ROOT}", Path.GetFullPath(UnrealBuildTool.GetUProjectPath()));
+					string Temp = Result.Replace("${PROJECT_ROOT}", Path.GetFullPath(UnrealBuildTool.GetUProjectPath().FullName));
 					
 					// get the best version
 					Result = LookForSpecialFile(Temp);
@@ -387,16 +387,18 @@ namespace UnrealBuildTool
 					if (!bFoundOverrideSSHPrivateKey)
 					{
 						// all the places to look for a key
-						string[] Locations = new string[] {
-							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
-							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"),
-							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build", "NotForLicensees"),
-							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build", "NoRedist"),
-							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build"),
-							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"),
-							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"),
-							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"),
-						};
+						List<string> Locations = new List<string>();
+						Locations.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"));
+						Locations.Add(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"));
+						if(UnrealBuildTool.HasUProjectFile())
+						{
+							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build", "NotForLicensees"));
+							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build", "NoRedist"));
+							Locations.Add(Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, "Build"));
+						}
+						Locations.Add(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"));
+						Locations.Add(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"));
+						Locations.Add(Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"));
 
 						// look for a key file
 						foreach (string Location in Locations)
@@ -472,7 +474,7 @@ namespace UnrealBuildTool
 		}
 
         /** Converts the passed in path from UBT host to compiler native format. */
-        public override String ConvertPath(String OriginalPath)
+        public override string ConvertPath(string OriginalPath)
         {
             if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
             {
@@ -507,7 +509,7 @@ namespace UnrealBuildTool
 			}
 			else
 			{
-				return ".";
+				return UnrealBuildTool.EngineSourceDirectory.FullName;;
 			}
 		}
 

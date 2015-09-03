@@ -177,17 +177,17 @@ namespace UnrealBuildTool
 	public class CPPEnvironmentConfiguration : NativeBuildEnvironmentConfiguration
 	{
 		/** The directory to put the output object/debug files in. */
-		public string OutputDirectory = null;
+		public DirectoryReference OutputDirectory = null;
 
 		/** The directory to shadow source files in for syncing to remote compile servers */
-		public string LocalShadowDirectory = null;
+		public DirectoryReference LocalShadowDirectory = null;
 
 		/** PCH header file name as it appears in an #include statement in source code (might include partial, or no relative path.)
 		    This is needed by some compilers to use PCH features. */
 		public string PCHHeaderNameInCode;
 
 		/** The name of the header file which is precompiled. */
-		public string PrecompiledHeaderIncludeFilename = null;
+		public FileReference PrecompiledHeaderIncludeFilename = null;
 
 		/** Whether the compilation should create, use, or do nothing with the precompiled header. */
 		public PrecompiledHeaderAction PrecompiledHeaderAction = PrecompiledHeaderAction.None;

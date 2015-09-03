@@ -24,10 +24,10 @@ namespace UnrealBuildTool
 		public readonly string Name;
 
 		// Path to the plugin
-		public readonly string FileName;
+		public readonly FileReference File;
 
 		// Path to the plugin's root directory
-		public readonly string Directory;
+		public readonly DirectoryReference Directory;
 
 		// The plugin descriptor
 		public PluginDescriptor Descriptor;
@@ -38,14 +38,14 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructs a PluginInfo object
 		/// </summary>
-		/// <param name="InFileName"></param>
+		/// <param name="InFile"></param>
 		/// <param name="InLoadedFrom">Where this pl</param>
-		public PluginInfo(string InFileName, PluginLoadedFrom InLoadedFrom)
+		public PluginInfo(FileReference InFile, PluginLoadedFrom InLoadedFrom)
 		{
-			Name = Path.GetFileNameWithoutExtension(InFileName);
-			FileName = Path.GetFullPath(InFileName);
-			Directory = Path.GetDirectoryName(FileName);
-			Descriptor = PluginDescriptor.FromFile(FileName);
+			Name = Path.GetFileNameWithoutExtension(InFile.FullName);
+			File = InFile;
+			Directory = File.Directory;
+			Descriptor = PluginDescriptor.FromFile(File);
 			LoadedFrom = InLoadedFrom;
 		}
 	}
@@ -58,23 +58,23 @@ namespace UnrealBuildTool
 		/// <param name="EngineDir">Path to the engine directory</param>
 		/// <param name="ProjectFileName">Path to the project file (or null)</param>
 		/// <returns>Sequence of PluginInfo objects, one for each discovered plugin</returns>
-		public static List<PluginInfo> ReadAvailablePlugins(string EngineDir, string ProjectFileName)
+		public static List<PluginInfo> ReadAvailablePlugins(DirectoryReference EngineDirectoryName, FileReference ProjectFileName)
 		{
 			List<PluginInfo> Plugins = new List<PluginInfo>();
 
 			// Read all the engine plugins
-			string EnginePluginsDir = Path.Combine(EngineDir, "Plugins");
-			foreach(string PluginFileName in EnumeratePlugins(EnginePluginsDir))
+			DirectoryReference EnginePluginsDirectoryName = DirectoryReference.Combine(EngineDirectoryName, "Plugins");
+			foreach(FileReference PluginFileName in EnumeratePlugins(EnginePluginsDirectoryName))
 			{
 				PluginInfo Plugin = new PluginInfo(PluginFileName, PluginLoadedFrom.Engine);
 				Plugins.Add(Plugin);
 			}
 
 			// Read all the project plugins
-			if(!String.IsNullOrEmpty(ProjectFileName))
+			if(ProjectFileName != null)
 			{
-				string ProjectPluginsDir = Path.Combine(Path.GetDirectoryName(ProjectFileName), "Plugins");
-				foreach(string PluginFileName in EnumeratePlugins(ProjectPluginsDir))
+				DirectoryReference ProjectPluginsDir = DirectoryReference.Combine(ProjectFileName.Directory, "Plugins");
+				foreach(FileReference PluginFileName in EnumeratePlugins(ProjectPluginsDir))
 				{
 					PluginInfo Plugin = new PluginInfo(PluginFileName, PluginLoadedFrom.GameProject);
 					Plugins.Add(Plugin);
@@ -88,13 +88,12 @@ namespace UnrealBuildTool
 		/// Find paths to all the plugins under a given parent directory (recursively)
 		/// </summary>
 		/// <param name="ParentDirectory">Parent directory to look in. Plugins will be found in any *subfolders* of this directory.</param>
-		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
-		public static IEnumerable<string> EnumeratePlugins(string ParentDirectory)
+		public static IEnumerable<FileReference> EnumeratePlugins(DirectoryReference ParentDirectory)
 		{
-			List<string> FileNames = new List<string>();
-			if(Directory.Exists(ParentDirectory))
+			List<FileReference> FileNames = new List<FileReference>();
+			if(ParentDirectory.Exists())
 			{
-				EnumeratePluginsInternal(new DirectoryInfo(ParentDirectory), FileNames);
+				EnumeratePluginsInternal(new DirectoryInfo(ParentDirectory.FullName), FileNames);
 			}
 			return FileNames;
 		}
@@ -104,14 +103,14 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ParentDirectory">Parent directory to look in. Plugins will be found in any *subfolders* of this directory.</param>
 		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
-		static void EnumeratePluginsInternal(DirectoryInfo ParentDirectory, List<string> FileNames)
+		static void EnumeratePluginsInternal(DirectoryInfo ParentDirectory, List<FileReference> FileNames)
 		{
 			foreach(DirectoryInfo ChildDirectory in ParentDirectory.EnumerateDirectories())
 			{
 				int InitialFileNamesCount = FileNames.Count;
 				foreach(FileInfo PluginFileInfo in ChildDirectory.EnumerateFiles("*.uplugin", SearchOption.TopDirectoryOnly))
 				{
-					FileNames.Add(PluginFileInfo.FullName);
+					FileNames.Add(new FileReference(PluginFileInfo.FullName));
 				}
 				if(FileNames.Count == InitialFileNamesCount)
 				{

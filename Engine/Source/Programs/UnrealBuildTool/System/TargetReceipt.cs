@@ -197,6 +197,17 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Adds a build product to the receipt. Does not check whether it already exists.
+		/// </summary>
+		/// <param name="Path">Path to the build product.</param>
+		/// <param name="Type">Type of build product.</param>
+		/// <returns>The BuildProduct object that was created</returns>
+		public BuildProduct AddBuildProduct(FileReference Path, BuildProductType Type)
+		{
+			return AddBuildProduct(Path.FullName, Type);
+		}
+
+		/// <summary>
 		/// Constructs a runtime dependency object and adds it to the receipt.
 		/// </summary>
 		/// <param name="Path">Source path for the dependency</param>
@@ -233,7 +244,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="EngineDir">Value for the $(EngineDir) variable</param>
 		/// <param name="ProjectDir">Value for the $(ProjectDir) variable</param>
-		public void ExpandPathVariables(string EngineDir, string ProjectDir)
+		public void ExpandPathVariables(DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
 			ExpandPathVariables(EngineDir, ProjectDir, new Dictionary<string, string>());
 		}
@@ -243,12 +254,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="EngineDir">Value for the $(EngineDir) variable</param>
 		/// <param name="ProjectDir">Value for the $(ProjectDir) variable</param>
-		public void ExpandPathVariables(string EngineDir, string ProjectDir, IDictionary<string, string> OtherVariables)
+		public void ExpandPathVariables(DirectoryReference EngineDir, DirectoryReference ProjectDir, IDictionary<string, string> OtherVariables)
 		{
 			// Build a dictionary containing the standard variable expansions
 			Dictionary<string, string> Variables = new Dictionary<string, string>(OtherVariables);
-			Variables["EngineDir"] = Path.GetFullPath(EngineDir).TrimEnd(Path.DirectorySeparatorChar);
-			Variables["ProjectDir"] = Path.GetFullPath(ProjectDir).TrimEnd(Path.DirectorySeparatorChar);
+			Variables["EngineDir"] = EngineDir.FullName;
+			Variables["ProjectDir"] = ProjectDir.FullName;
 
 			// Replace all the variables in the paths
 			foreach(BuildProduct BuildProduct in BuildProducts)
@@ -270,10 +281,10 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
 		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
-		public void InsertStandardPathVariables(string EngineDir, string ProjectDir)
+		public void InsertStandardPathVariables(DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
-			string EnginePrefix = Path.GetFullPath(EngineDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-			string ProjectPrefix = Path.GetFullPath(ProjectDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+			string EnginePrefix = EngineDir.FullName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+			string ProjectPrefix = ProjectDir.FullName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
 			foreach(BuildProduct BuildProduct in BuildProducts)
 			{

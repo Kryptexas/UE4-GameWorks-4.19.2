@@ -258,14 +258,14 @@ namespace UnrealBuildTool
 			// For all targets, build a set of all actions that are outdated.
 			var OutdatedActionDictionary = new Dictionary<Action, bool>();
 			var HistoryList = new List<ActionHistory>();
-			var OpenHistoryFiles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+			var OpenHistoryFiles = new HashSet<FileReference>();
 			TargetToOutdatedPrerequisitesMap = new Dictionary<UEBuildTarget,List<FileItem>>();
 			foreach (var BuildTarget in Targets)	// @todo ubtmake: Optimization: Ideally we don't even need to know about targets for ubtmake -- everything would come from the files
 			{
 				var HistoryFilename = ActionHistory.GeneratePathForTarget(BuildTarget);
 				if (!OpenHistoryFiles.Contains(HistoryFilename))		// @todo ubtmake: Optimization: We should be able to move the command-line outdatedness and build product deletion over to the 'gather' phase, as the command-lines won't change between assembler runs
 				{
-					var History = new ActionHistory(HistoryFilename);
+					var History = new ActionHistory(HistoryFilename.FullName);
 					HistoryList.Add(History);
 					OpenHistoryFiles.Add(HistoryFilename);
 					GatherAllOutdatedActions(BuildTarget, History, ref OutdatedActionDictionary, TargetToOutdatedPrerequisitesMap);
@@ -1336,11 +1336,11 @@ namespace UnrealBuildTool
 					// Resolve the included file name to an actual file.
 					var DirectlyIncludedFiles =
 						DirectlyIncludedFilenames
-						.Where(DirectlyIncludedFilename => !string.IsNullOrEmpty(DirectlyIncludedFilename.IncludeResolvedName))
-						.Select(DirectlyIncludedFilename => DirectlyIncludedFilename.IncludeResolvedName)
+						.Where(DirectlyIncludedFilename => (DirectlyIncludedFilename.IncludeResolvedNameIfSuccessful != null))
+						.Select(DirectlyIncludedFilename => DirectlyIncludedFilename.IncludeResolvedNameIfSuccessful)
 						// Skip same include over and over (.inl files)
 						.Distinct()
-						.Select(FileItem.GetItemByFullPath)
+						.Select(FileItem.GetItemByFileReference)
 						.ToList();
 
 					OverriddenPrerequisites[ FileItem ] = DirectlyIncludedFiles;

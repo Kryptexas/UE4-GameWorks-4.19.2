@@ -8,7 +8,7 @@ namespace UnrealBuildTool
 {
 	public class JsonParseException : Exception
 	{
-		public JsonParseException(string Format, params string[] Args) : base(String.Format(Format, Args))
+		public JsonParseException(string Format, params object[] Args) : base(String.Format(Format, Args))
 		{
 		}
 	}

@@ -220,14 +220,14 @@ namespace UnrealBuildTool
 			Log.TraceInformation("Prepping {0} for deployment to {1}", InAppName, InTarget.Platform.ToString());
 			System.DateTime PrepDeployStartTime = DateTime.UtcNow;
 
-			string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName);
+			string TargetFilename = InTarget.RulesAssembly.GetTargetFileName(InAppName).FullName;
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName + "/";
 
 			string RelativeTargetDirectory;
 			string EngineSourceRelativeBinaryPath;
 			UWPProjectGenerator.GetTargetUWPPaths(InTarget.RulesAssembly, InAppName, InTarget.Rules, out EngineSourceRelativeBinaryPath, out RelativeTargetDirectory);
 
-			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory, InTarget.OutputPath, BuildConfiguration.RelativeEnginePath, false, "");
+			PrepForUATPackageOrDeploy(InAppName, InTarget.ProjectDirectory.FullName, InTarget.OutputPath.FullName, BuildConfiguration.RelativeEnginePath, false, "");
 
 			// TODO - richiem - restore this if we find that it's needed.
 			//Log.TraceInformation("...copying the CELL dll...");

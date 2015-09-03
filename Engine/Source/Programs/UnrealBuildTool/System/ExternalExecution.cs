@@ -129,9 +129,9 @@ namespace UnrealBuildTool
 		{
 			public string       Name;
 			public string		ModuleType;
-			public string       BaseDirectory;
-			public string       IncludeBase;     // The include path which all UHT-generated includes should be relative to
-			public string       OutputDirectory;
+			public string		BaseDirectory;
+			public string		IncludeBase;     // The include path which all UHT-generated includes should be relative to
+			public string		OutputDirectory;
 			public List<string> ClassesHeaders;
 			public List<string> PublicHeaders;
 			public List<string> PrivateHeaders;
@@ -165,7 +165,7 @@ namespace UnrealBuildTool
 				PrivateHeaders           = Info.PrivateUObjectHeaders      .Select((Header) => Header.AbsolutePath).ToList(),
 				PCH                      = Info.PCH,
 				GeneratedCPPFilenameBase = Info.GeneratedCPPFilenameBase,
-				SaveExportedHeaders      = !UnrealBuildTool.IsEngineInstalled() || !Utils.IsFileUnderDirectory(Info.ModuleDirectory, BuildConfiguration.RelativeEnginePath),
+				SaveExportedHeaders      = !UnrealBuildTool.IsEngineInstalled() || !new DirectoryReference(Info.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory),
 				UHTGeneratedCodeVersion = Info.GeneratedCodeVersion,
 			}).ToList();
 		}
@@ -187,10 +187,10 @@ namespace UnrealBuildTool
 		/// Generates a UHTModuleInfo for a particular named module under a directory.
 		/// </summary>
 		/// <returns>
-		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<string> HeaderFilenames, UEBuildTarget Target, string ModuleName, string ModuleDirectory, UEBuildModuleType ModuleType)
+		public static UHTModuleInfo CreateUHTModuleInfo(IEnumerable<string> HeaderFilenames, UEBuildTarget Target, string ModuleName, DirectoryReference ModuleDirectory, UEBuildModuleType ModuleType)
 		{
-			var ClassesFolder = Path.Combine(ModuleDirectory, "Classes");
-			var PublicFolder  = Path.Combine(ModuleDirectory, "Public");
+			var ClassesFolder = DirectoryReference.Combine(ModuleDirectory, "Classes");
+			var PublicFolder  = DirectoryReference.Combine(ModuleDirectory, "Public");
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(Target.Platform);
 
 			var AllClassesHeaders     = new List<FileItem>();
@@ -205,11 +205,11 @@ namespace UnrealBuildTool
 
 				if (CPPEnvironment.DoesFileContainUObjects(UObjectHeaderFileItem.AbsolutePath))
 				{
-					if (UObjectHeaderFileItem.AbsolutePath.StartsWith(ClassesFolder))
+					if (new FileReference(UObjectHeaderFileItem.AbsolutePath).IsUnderDirectory(ClassesFolder))
 					{
 						AllClassesHeaders.Add(UObjectHeaderFileItem);
 					}
-					else if (UObjectHeaderFileItem.AbsolutePath.StartsWith(PublicFolder))
+					else if (new FileReference(UObjectHeaderFileItem.AbsolutePath).IsUnderDirectory(PublicFolder))
 					{
 						PublicUObjectHeaders.Add(UObjectHeaderFileItem);
 					}
@@ -223,7 +223,7 @@ namespace UnrealBuildTool
 			var Result = new UHTModuleInfo
 			{
 				ModuleName                  = ModuleName,
-				ModuleDirectory             = ModuleDirectory,
+				ModuleDirectory             = ModuleDirectory.FullName,
 				ModuleType                  = ModuleType.ToString(),
 				PublicUObjectClassesHeaders = AllClassesHeaders,
 				PublicUObjectHeaders        = PublicUObjectHeaders,
@@ -274,7 +274,7 @@ namespace UnrealBuildTool
 					Timestamp = DateTime.MaxValue;
 					return false;
 				}
-				Receipt.ExpandPathVariables(BuildConfiguration.RelativeEnginePath, BuildConfiguration.RelativeEnginePath);
+				Receipt.ExpandPathVariables(UnrealBuildTool.EngineDirectory, UnrealBuildTool.EngineDirectory);
 
 				// Check all the binaries exist, and that all the DLLs are built against the right version
 				if(!CheckBinariesExist(Receipt) || !CheckDynamicLibaryVersionsMatch(Receipt))
@@ -427,7 +427,7 @@ namespace UnrealBuildTool
 			foreach( var Module in UObjectModules )
 			{
 				// If the engine is installed, skip skip checking timestamps for modules that are under the engine directory
-				if (UnrealBuildTool.IsEngineInstalled() && Utils.IsFileUnderDirectory( Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath))
+				if (UnrealBuildTool.IsEngineInstalled() && new DirectoryReference(Module.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 				{
 					continue;
 				}
@@ -537,7 +537,7 @@ namespace UnrealBuildTool
 					if (GeneratedCodeDirectoryInfo.Exists)
 					{
 						// Don't write anything to the engine directory if we're running an installed build
-						if(UnrealBuildTool.IsEngineInstalled() && Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath))
+						if(UnrealBuildTool.IsEngineInstalled() && new DirectoryReference(Module.ModuleDirectory).IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 						{
 							continue;
 						}
@@ -546,7 +546,7 @@ namespace UnrealBuildTool
 						// However, the headers might not be touched at all since that would cause the compiler to recompile everything
 						// We can't alter the directory timestamp directly, because this may throw exceptions when the directory is
 						// open in visual studio or windows explorer, so instead we create a blank file that will change the timestamp for us
-						string TimestampFile = GeneratedCodeDirectoryInfo.FullName + Path.DirectorySeparatorChar + @"Timestamp";
+						FileReference TimestampFile = FileReference.Combine(new DirectoryReference(GeneratedCodeDirectoryInfo.FullName), "Timestamp");
 
 						if( !GeneratedCodeDirectoryInfo.Exists )
 						{
@@ -606,7 +606,7 @@ namespace UnrealBuildTool
 		 * Builds and runs the header tool and touches the header directories.
 		 * Performs any early outs if headers need no changes, given the UObject modules, tool path, game name, and configuration
 		 */
-		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, string ModuleInfoFileName, ref ECompilationResult UHTResult )
+		public static bool ExecuteHeaderToolIfNecessary( UEBuildTarget Target, CPPEnvironment GlobalCompileEnvironment, List<UHTModuleInfo> UObjectModules, FileReference ModuleInfoFileName, ref ECompilationResult UHTResult )
 		{
 			if(ProgressWriter.bWriteMarkup)
 			{
@@ -710,8 +710,8 @@ namespace UnrealBuildTool
 					}
 
 					// Disable extensions when serializing to remove the $type fields
-					Directory.CreateDirectory(Path.GetDirectoryName(ModuleInfoFileName));
-					System.IO.File.WriteAllText(ModuleInfoFileName, fastJSON.JSON.Instance.ToJSON(Manifest, new fastJSON.JSONParameters{ UseExtensions = false }));
+					Directory.CreateDirectory(ModuleInfoFileName.Directory.FullName);
+					System.IO.File.WriteAllText(ModuleInfoFileName.FullName, fastJSON.JSON.Instance.ToJSON(Manifest, new fastJSON.JSONParameters{ UseExtensions = false }));
 
 					string CmdLine = (UnrealBuildTool.HasUProjectFile()) ? "\"" + UnrealBuildTool.GetUProjectFile() + "\"" : Target.GetTargetName();
 					CmdLine += " \"" + ModuleInfoFileName + "\" -LogCmds=\"loginit warning, logexit warning, logdatabase error\"";

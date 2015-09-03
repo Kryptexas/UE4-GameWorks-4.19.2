@@ -989,7 +989,7 @@ namespace Rocket
 					}
 
 					// Convert the paths to absolute
-					Receipt.ExpandPathVariables(EnginePath, EnginePath);
+					Receipt.ExpandPathVariables(new DirectoryReference(EnginePath), new DirectoryReference(EnginePath));
 
 					foreach (var RuntimeDependency in Receipt.RuntimeDependencies)
 					{

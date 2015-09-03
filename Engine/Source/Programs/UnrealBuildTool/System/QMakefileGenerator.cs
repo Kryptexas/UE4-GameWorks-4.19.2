@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 
 	public class QMakefileProjectFile : ProjectFile
 	{
-		public QMakefileProjectFile( string InitFilePath )
+		public QMakefileProjectFile( FileReference InitFilePath )
 			: base(InitFilePath)
 		{
 		}
@@ -74,7 +74,7 @@ namespace UnrealBuildTool
 		/// Adds the include directory to the list, after converting it to relative to UE4 root
 		private void AddIncludeDirectory(ref List<string> IncludeDirectories, string IncludeDir, string ProjectDir)
 		{
-			string FullProjectPath = Path.GetFullPath(ProjectFileGenerator.MasterProjectRelativePath);
+			string FullProjectPath = ProjectFileGenerator.MasterProjectPath.FullName;
 			string FullPath = "";
 			if (IncludeDir.StartsWith("/") && !IncludeDir.StartsWith(FullProjectPath))
 			{
@@ -133,11 +133,11 @@ namespace UnrealBuildTool
 				}
 
 				foreach (var CurPath in QMakeProject.IntelliSenseIncludeSearchPaths) {
-					AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(QMakeProject.ProjectFilePath));
+					AddIncludeDirectory(ref IncludeDirectories, CurPath, Path.GetDirectoryName(QMakeProject.ProjectFilePath.FullName));
 					// System.Console.WriteLine ("Not empty now? CurPath == ", CurPath);
 				}
 				foreach (var CurPath in QMakeProject.IntelliSenseSystemIncludeSearchPaths) {
-					AddIncludeDirectory (ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName (QMakeProject.ProjectFilePath));
+					AddIncludeDirectory (ref SystemIncludeDirectories, CurPath, Path.GetDirectoryName (QMakeProject.ProjectFilePath.FullName));
 				}
 
 			}
@@ -206,8 +206,8 @@ namespace UnrealBuildTool
 
 			if (!String.IsNullOrEmpty (GameProjectName))
 			{
-				GameProjectPath = UnrealBuildTool.GetUProjectPath ();
-				GameProjectFile = UnrealBuildTool.GetUProjectFile ();
+				GameProjectPath = UnrealBuildTool.GetUProjectPath ().FullName;
+				GameProjectFile = UnrealBuildTool.GetUProjectFile ().FullName;
 				QMakeGameProjectFile = "gameProjectFile=" + GameProjectFile + "\n";
 				BuildCommand = "build=mono $$unrealRootPath/Engine/Binaries/DotNET/UnrealBuildTool.exe\n\n";
 			}
@@ -263,12 +263,12 @@ namespace UnrealBuildTool
 
 			// Create SourceFiles, HeaderFiles, and ConfigFiles sections.
 			var AllModuleFiles = DiscoverModules(FindGameProjects());
-			foreach (string CurModuleFile in AllModuleFiles)
+			foreach (FileReference CurModuleFile in AllModuleFiles)
 			{
 				var FoundFiles = SourceFileSearch.FindModuleSourceFiles(CurModuleFile, ExcludeNoRedistFiles: bExcludeNoRedistFiles);
-				foreach (string CurSourceFile in FoundFiles)
+				foreach (FileReference CurSourceFile in FoundFiles)
 				{
-					string SourceFileRelativeToRoot = Utils.MakePathRelativeTo(CurSourceFile, Path.Combine(EngineRelativePath));
+					string SourceFileRelativeToRoot = CurSourceFile.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 					// Exclude some directories that we don't compile (note that we still want Windows/Mac etc for code navigation)
 					if (!SourceFileRelativeToRoot.Contains ("Source/ThirdParty/")) 
 					{
@@ -286,7 +286,7 @@ namespace UnrealBuildTool
 								} 
 								else if (!String.IsNullOrEmpty (GameProjectName)) 
 								{
-									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile, GameProjectPath) + "\" \\\n");
+									QMakeSourceFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								} 
 								else 
 								{
@@ -310,7 +310,7 @@ namespace UnrealBuildTool
 								} 
 								else if (!String.IsNullOrEmpty (GameProjectName)) 
 								{
-									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile, GameProjectPath) + "\" \\\n");
+									QMakeHeaderFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								} 
 								else 
 								{
@@ -335,7 +335,7 @@ namespace UnrealBuildTool
 								} 
 								else if (!String.IsNullOrEmpty (GameProjectName)) 
 								{
-									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile, GameProjectPath) + "\" \\\n");
+									QMakeConfigFilesList += ("\t\"$$" + GameProjectName + "RootPath/" + Utils.MakePathRelativeTo (CurSourceFile.FullName, GameProjectPath) + "\" \\\n");
 								} 
 								else 
 								{
@@ -369,7 +369,7 @@ namespace UnrealBuildTool
 						continue;
 					}
 
-					var TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetFile.TargetFilePath);		// Remove both ".cs" and ".
+					var TargetName = TargetFile.TargetFilePath.GetFileNameWithoutAnyExtensions();		// Remove both ".cs" and ".
 
 					foreach (UnrealTargetConfiguration CurConfiguration in Enum.GetValues(typeof(UnrealTargetConfiguration)))
 					{
@@ -401,13 +401,13 @@ namespace UnrealBuildTool
 
 			QMakeFileContent.Append (QMakeTargetList.TrimEnd('\\'));
 
-			var FullFileName = Path.Combine(MasterProjectRelativePath, FileName);
+			var FullFileName = Path.Combine(MasterProjectPath.FullName, FileName);
 
-			var FullQMakeDefinesFileName = Path.Combine (MasterProjectRelativePath, QMakeDefinesFileName);
-			var FullQMakeIncludesFileName = Path.Combine(MasterProjectRelativePath, QMakeIncludesFileName);
-			var FullQMakeSourcePriFileName = Path.Combine(MasterProjectRelativePath, QMakeSourcePriFileName);
-			var FullQMakeHeaderPriFileName = Path.Combine(MasterProjectRelativePath, QMakeHeaderPriFileName);
-			var FullQMakeConfigPriFileName = Path.Combine(MasterProjectRelativePath, QMakeConfigPriFileName);
+			var FullQMakeDefinesFileName = Path.Combine (MasterProjectPath.FullName, QMakeDefinesFileName);
+			var FullQMakeIncludesFileName = Path.Combine(MasterProjectPath.FullName, QMakeIncludesFileName);
+			var FullQMakeSourcePriFileName = Path.Combine(MasterProjectPath.FullName, QMakeSourcePriFileName);
+			var FullQMakeHeaderPriFileName = Path.Combine(MasterProjectPath.FullName, QMakeHeaderPriFileName);
+			var FullQMakeConfigPriFileName = Path.Combine(MasterProjectPath.FullName, QMakeConfigPriFileName);
 
 			WriteFileIfChanged (FullQMakeDefinesFileName, QMakeDefinesPriFileContent.ToString ());
 			WriteFileIfChanged (FullQMakeIncludesFileName, QMakeIncludesPriFileContent.ToString());
@@ -438,13 +438,13 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">Path to the project file</param>
 		/// <returns>The newly allocated project file object</returns>
-		protected override ProjectFile AllocateProjectFile( string InitFilePath )
+		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
 		{
 			return new QMakefileProjectFile( InitFilePath );
 		}
 
 		/// ProjectFileGenerator interface
-		public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
+		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesDirectory)
 		{
 		}
 	}

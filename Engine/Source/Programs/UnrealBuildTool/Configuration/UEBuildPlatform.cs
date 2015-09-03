@@ -181,7 +181,7 @@ namespace UnrealBuildTool
 		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		 * this will emit multiple paths. By default, it simply makes an array from the input
 		 */
-		List<string> FinalizeBinaryPaths(string BinaryName);
+		List<FileReference> FinalizeBinaryPaths(FileReference BinaryName);
 
 		/**
 		 * Setup the configuration environment for building
@@ -275,7 +275,7 @@ namespace UnrealBuildTool
 		 *
 		 * return true if the project uses the default build config
 		 */
-		bool HasDefaultBuildConfig(UnrealTargetPlatform InPlatform, string InProjectPath);
+		bool HasDefaultBuildConfig(UnrealTargetPlatform InPlatform, DirectoryReference InProjectPath);
 	}
 
 	public abstract partial class UEBuildPlatform : IUEBuildPlatform
@@ -664,7 +664,7 @@ namespace UnrealBuildTool
 		/**
 		 * Allow the platform to override the NMake output name
 		 */
-		public virtual string ModifyNMakeOutput(string ExeName)
+		public virtual FileReference ModifyNMakeOutput(FileReference ExeName)
 		{
 			// by default, use original
 			return ExeName;
@@ -687,9 +687,9 @@ namespace UnrealBuildTool
 		 * For platforms that need to output multiple files per binary (ie Android "fat" binaries)
 		 * this will emit multiple paths. By default, it simply makes an array from the input
 		 */
-		public virtual List<string> FinalizeBinaryPaths(string BinaryName)
+		public virtual List<FileReference> FinalizeBinaryPaths(FileReference BinaryName)
 		{
-			List<string> TempList = new List<string>() { BinaryName };
+			List<FileReference> TempList = new List<FileReference>() { BinaryName };
 			return TempList;
 		}
 
@@ -946,10 +946,10 @@ namespace UnrealBuildTool
 		{
 		}
 
-		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, string ProjectPath, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
+		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
 		{
-			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectPath);
-			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", null);
+			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectDirectoryName);
+			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", (DirectoryReference)null);
 
 			// look at all bool values
 			if (BoolKeys != null) foreach (string Key in BoolKeys)
@@ -999,7 +999,7 @@ namespace UnrealBuildTool
 		 *
 		 * return true if the project uses the default build config
 		 */
-		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
+		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName)
 		{
 			string[] BoolKeys = new string[] {
 				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", 
@@ -1008,7 +1008,7 @@ namespace UnrealBuildTool
 				"bCompileForSize", "bCompileCEF3"
 			};
 
-			return DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/BuildSettings.BuildSettings",
+			return DoProjectSettingsMatchDefault(Platform, ProjectDirectoryName, "/Script/BuildSettings.BuildSettings",
 				BoolKeys, null, null);
 		}
 	}

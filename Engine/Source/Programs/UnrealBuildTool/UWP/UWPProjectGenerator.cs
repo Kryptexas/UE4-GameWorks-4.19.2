@@ -35,7 +35,7 @@ namespace UnrealBuildTool
 			OutEngineSourceRelativeBinaryPath = "";
 			OutRelativeTargetPath = "";
 
-			string TargetFilename = InTargetRulesAssembly.GetTargetFileName(InTargetName);
+			string TargetFilename = InTargetRulesAssembly.GetTargetFileName(InTargetName).FullName;
 
 			string ProjectSourceFolder = new FileInfo(TargetFilename).DirectoryName;
 
@@ -398,7 +398,7 @@ namespace UnrealBuildTool
 		}
 
 
-		public override void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, string RootDirectory, string TargetFilePath)
+		public override void GenerateGameProperties(UnrealTargetConfiguration Configuration, StringBuilder VCProjectFileContent, TargetRules.TargetType TargetType, DirectoryReference RootDirectory, FileReference TargetFilePath)
 		{
 			// @todo UWP: This used to be "WINUAP=1".  Need to verify that 'UWP' is the correct define that we want here.
 			VCProjectFileContent.Append("		<NMakePreprocessorDefinitions>$(NMakePreprocessorDefinitions);PLATFORM_UWP=1;UWP=1;</NMakePreprocessorDefinitions>" + ProjectFileGenerator.NewLine);

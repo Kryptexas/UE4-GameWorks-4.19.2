@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 {
 	/**
 	 * Represents a file on disk that is used as an input or output of a build action.
-	 * FileItems are created by calling FileItem.GetItemByPath, which creates a single FileItem for each unique file path.
+	 * FileItems are created by calling FileItem.GetItemByFileReference, which creates a single FileItem for each unique file path.
 	 */
 	[Serializable]
 	public class FileItem : ISerializable
@@ -24,8 +24,8 @@ namespace UnrealBuildTool
 		/** The action that produces the file. */
 		public Action ProducingAction = null;
 
-		/** The absolute path of the file. */
-		public readonly string AbsolutePath;
+		/** The file reference */
+		public FileReference Reference;
 
 		/** True if any DLLs produced by this  */
 		public bool bNeedsHotReloadNumbersDLLCleanUp = false;
@@ -33,6 +33,11 @@ namespace UnrealBuildTool
 		/** Whether or not this is a remote file, in which case we can't access it directly */
 		public bool bIsRemoteFile = false;
 
+		/** Accessor for the absolute path to the file */
+		public string AbsolutePath
+		{
+			get { return Reference.FullName; }
+		}
 
 		/** For C++ file items, this stores cached information about the include paths needed in order to include header files from these C++ files.  This is part of UBT's dependency caching optimizations. */
 		public CPPIncludeInfo CachedCPPIncludeInfo
@@ -98,7 +103,7 @@ namespace UnrealBuildTool
 		public string PCHHeaderNameInCode;
 
 		/** The PCH file that this file will use */
-		public string PrecompiledHeaderIncludeFilename;
+		public FileReference PrecompiledHeaderIncludeFilename;
 
 
 		///
@@ -169,7 +174,7 @@ namespace UnrealBuildTool
 		public static long MissingFileItemCount = 0;
 
 		/** A case-insensitive dictionary that's used to map each unique file name to a single FileItem object. */
-		static Dictionary<string, FileItem> UniqueSourceFileMap = new Dictionary<string, FileItem>();
+		static Dictionary<FileReference, FileItem> UniqueSourceFileMap = new Dictionary<FileReference, FileItem>();
 
 		/** A list of remote file items that have been created but haven't needed the remote info yet, so we can gang up many into one request */
 		static List<FileItem> DelayedRemoteLookupFiles = new List<FileItem>();
@@ -212,21 +217,20 @@ namespace UnrealBuildTool
 		/** @return The FileItem that represents the given file path. */
 		public static FileItem GetItemByPath(string FilePath)
 		{
-			var FullPath = Path.GetFullPath( FilePath );
-			return GetItemByFullPath( FullPath );
+			return GetItemByFileReference( new FileReference(FilePath) );
 		}
 
 		/** @return The FileItem that represents the given a full file path. */
-		public static FileItem GetItemByFullPath( string FullPath )
+		public static FileItem GetItemByFileReference(FileReference Reference)
 		{
 			FileItem Result = null;
-			if( UniqueSourceFileMap.TryGetValue( FullPath.ToLowerInvariant(), out Result ) )
+			if( UniqueSourceFileMap.TryGetValue( Reference, out Result ) )
 			{
 				return Result;
 			}
 			else
 			{
-				return new FileItem( FullPath );
+				return new FileItem( Reference );
 			}
 		}
 
@@ -238,22 +242,29 @@ namespace UnrealBuildTool
 				throw new BuildException("GetRemoteItemByPath must be passed an absolute path, not a relative path '{0}'", AbsoluteRemotePath);
 			}
 
-			string InvariantPath = AbsoluteRemotePath.ToLowerInvariant();
+			FileReference RemoteFileReference = FileReference.MakeRemote(AbsoluteRemotePath);
+
 			FileItem Result = null;
-			if (UniqueSourceFileMap.TryGetValue(InvariantPath, out Result))
+			if (UniqueSourceFileMap.TryGetValue(RemoteFileReference, out Result))
 			{
 				return Result;
 			}
 			else
 			{
-				return new FileItem(AbsoluteRemotePath, true, Platform);
+				return new FileItem(RemoteFileReference, true, Platform);
 			}
 		}
 
 		/** If the given file path identifies a file that already exists, returns the FileItem that represents it. */
-		public static FileItem GetExistingItemByPath(string Path)
+		public static FileItem GetExistingItemByPath(string FileName)
 		{
-			FileItem Result = GetItemByPath(Path);
+			return GetExistingItemByFileReference(new FileReference(FileName));
+		}
+
+		/** If the given file path identifies a file that already exists, returns the FileItem that represents it. */
+		public static FileItem GetExistingItemByFileReference(FileReference FileRef)
+		{
+			FileItem Result = GetItemByFileReference(FileRef);
 			if (Result.bExists)
 			{
 				return Result;
@@ -280,18 +291,18 @@ namespace UnrealBuildTool
 		 * Creates a text file with the given contents.  If the contents of the text file aren't changed, it won't write the new contents to
 		 * the file to avoid causing an action to be considered outdated.
 		 */
-		public static FileItem CreateIntermediateTextFile(string AbsolutePath, string Contents)
+		public static FileItem CreateIntermediateTextFile(FileReference AbsolutePath, string Contents)
 		{
 			// Create the directory if it doesn't exist.
-			Directory.CreateDirectory(Path.GetDirectoryName(AbsolutePath));
+			Directory.CreateDirectory(Path.GetDirectoryName(AbsolutePath.FullName));
 
 			// Only write the file if its contents have changed.
-			if (!File.Exists(AbsolutePath) || !String.Equals(Utils.ReadAllText(AbsolutePath), Contents, StringComparison.InvariantCultureIgnoreCase))
+			if (!AbsolutePath.Exists() || !String.Equals(Utils.ReadAllText(AbsolutePath.FullName), Contents, StringComparison.InvariantCultureIgnoreCase))
 			{
-				File.WriteAllText(AbsolutePath, Contents, GetEncodingForString(Contents));
+				File.WriteAllText(AbsolutePath.FullName, Contents, GetEncodingForString(Contents));
 			}
 
-			return GetItemByPath(AbsolutePath);
+			return GetItemByFileReference(AbsolutePath);
 		}
 
 		/** Deletes the file. */
@@ -341,9 +352,9 @@ namespace UnrealBuildTool
 		}
 
 		/** Initialization constructor. */
-		protected FileItem(string FileAbsolutePath)
+		protected FileItem(FileReference InFile)
 		{
-			AbsolutePath = FileAbsolutePath;
+			Reference = InFile;
 
 			ResetFileInfo();
 
@@ -354,7 +365,7 @@ namespace UnrealBuildTool
 				// Log.TraceInformation( "Missing: " + FileAbsolutePath );
 			}
 
-			UniqueSourceFileMap[ AbsolutePath.ToLowerInvariant() ] = this;
+			UniqueSourceFileMap[ Reference ] = this;
 		}
 
 
@@ -362,7 +373,7 @@ namespace UnrealBuildTool
 		protected FileItem( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
 		{
 			ProducingAction = (Action)SerializationInfo.GetValue( "pa", typeof( Action ) );
-			AbsolutePath = SerializationInfo.GetString( "ap" );
+			Reference = (FileReference)SerializationInfo.GetValue( "fi", typeof(FileReference) );
 			bIsRemoteFile = SerializationInfo.GetBoolean( "rf" );
 			bNeedsHotReloadNumbersDLLCleanUp = SerializationInfo.GetBoolean( "hr" );
 			CachedCPPIncludeInfo = (CPPIncludeInfo)SerializationInfo.GetValue( "ci", typeof( CPPIncludeInfo ) );
@@ -387,7 +398,7 @@ namespace UnrealBuildTool
 				}
 				else
 				{ 
-					UniqueSourceFileMap[ AbsolutePath.ToLowerInvariant() ] = this;
+					UniqueSourceFileMap[ Reference ] = this;
 				}
 			}
 		}
@@ -397,7 +408,7 @@ namespace UnrealBuildTool
 		public void GetObjectData( SerializationInfo SerializationInfo, StreamingContext StreamingContext )
 		{
 			SerializationInfo.AddValue( "pa", ProducingAction );
-			SerializationInfo.AddValue( "ap", AbsolutePath );
+			SerializationInfo.AddValue( "fi", Reference );
 			SerializationInfo.AddValue( "rf", bIsRemoteFile );
 			SerializationInfo.AddValue( "hr", bNeedsHotReloadNumbersDLLCleanUp );
 			SerializationInfo.AddValue( "ci", CachedCPPIncludeInfo );
@@ -443,10 +454,10 @@ namespace UnrealBuildTool
 		}
 
 		/** Initialization constructor for optionally remote files. */
-		protected FileItem(string InAbsolutePath, bool InIsRemoteFile, UnrealTargetPlatform Platform)
+		protected FileItem(FileReference InReference, bool InIsRemoteFile, UnrealTargetPlatform Platform)
 		{
 			bIsRemoteFile = InIsRemoteFile;
-			AbsolutePath = InAbsolutePath;
+			Reference = InReference;
 
 			// @todo iosmerge: This doesn't handle remote directories (may be needed for compiling Mac from Windows)
 			if (bIsRemoteFile)

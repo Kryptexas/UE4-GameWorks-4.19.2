@@ -437,7 +437,7 @@ public class HTML5Platform : Platform
 		// Check HTML5LaunchHelper source for command line args
 
 		var LowerBrowserPath = BrowserPath.ToLower();
-		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory(), "UE4_HTML5", "user");
+		var ProfileDirectory = Path.Combine(Utils.GetUserSettingDirectory().FullName, "UE4_HTML5", "user");
 
 		string BrowserCommandline = url; 
 

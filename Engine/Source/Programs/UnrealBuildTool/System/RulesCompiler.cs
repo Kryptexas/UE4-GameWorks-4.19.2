@@ -394,10 +394,10 @@ namespace UnrealBuildTool
 		 * @param ProjectFile A path to the .uproject file.
 		 * @param ModuleName Name of the module.
 		 */
-		public void ReadAdditionalDependencies(string ProjectFile, string ModuleName)
+		public void ReadAdditionalDependencies(FileReference ProjectFile, string ModuleName)
 		{
 			// Create a case-insensitive dictionary of the contents
-			Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(File.ReadAllText(ProjectFile));
+			Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(File.ReadAllText(ProjectFile.FullName));
 			Descriptor = new Dictionary<string,object>(Descriptor, StringComparer.InvariantCultureIgnoreCase);
 
 			// Get the list of plugins
@@ -1085,12 +1085,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Maps module names to their actual xxx.Module.cs file on disk
 		/// </summary>
-		private Dictionary<string, string> ModuleNameToFileName = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+		private Dictionary<string, FileReference> ModuleNameToFileName = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Maps target names to their actual xxx.Target.cs file on disk
 		/// </summary>
-		private Dictionary<string, string> TargetNameToFileName = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
+		private Dictionary<string, FileReference> TargetNameToFileName = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 
 		/// <summary>
 		/// Constructor. Compiles a rules assembly from the given source files.
@@ -1098,12 +1098,12 @@ namespace UnrealBuildTool
 		/// <param name="ModuleFileNames">List of module files to compile</param>
 		/// <param name="TargetFileNames">List of target files to compile</param>
 		/// <param name="AssemblyFileName">The output path for the compiled assembly</param>
-		public RulesAssembly(List<string> ModuleFileNames, List<string> TargetFileNames, string AssemblyFileName, RulesAssembly InParent)
+		public RulesAssembly(List<FileReference> ModuleFileNames, List<FileReference> TargetFileNames, FileReference AssemblyFileName, RulesAssembly InParent)
 		{
 			Parent = InParent;
 
 			// Find all the source files
-			List<string> AssemblySourceFiles = new List<string>();
+			List<FileReference> AssemblySourceFiles = new List<FileReference>();
 			AssemblySourceFiles.AddRange( ModuleFileNames );
 			AssemblySourceFiles.AddRange( TargetFileNames );
 
@@ -1114,10 +1114,9 @@ namespace UnrealBuildTool
 			}
 
 			// Setup the module map
-			foreach( var CurModuleFileName in ModuleFileNames )
+			foreach( FileReference CurModuleFileName in ModuleFileNames )
 			{
-				var CleanFileName = Utils.CleanDirectorySeparators( CurModuleFileName );
-				var ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
+				string ModuleName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CurModuleFileName.FullName ) );	// Strip both extensions
 				if( !ModuleNameToFileName.ContainsKey( ModuleName ) )
 				{
 					ModuleNameToFileName.Add( ModuleName, CurModuleFileName );
@@ -1125,10 +1124,9 @@ namespace UnrealBuildTool
 			}
 
 			// Setup the target map
-			foreach( var CurTargetFileName in TargetFileNames )
+			foreach( FileReference CurTargetFileName in TargetFileNames )
 			{
-				var CleanFileName = Utils.CleanDirectorySeparators( CurTargetFileName );
-				var TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CleanFileName ) );	// Strip both extensions
+				string TargetName = Path.GetFileNameWithoutExtension( Path.GetFileNameWithoutExtension( CurTargetFileName.FullName ) );	// Strip both extensions
 				if( !TargetNameToFileName.ContainsKey( TargetName ) )
 				{
 					TargetNameToFileName.Add( TargetName, CurTargetFileName );
@@ -1142,7 +1140,7 @@ namespace UnrealBuildTool
 		/// <param name="ExistingType"></param>
 		/// <param name="FileName"></param>
 		/// <returns>True if the type was found, false otherwise</returns>
-		public bool TryGetFileNameFromType(Type ExistingType, out string FileName)
+		public bool TryGetFileNameFromType(Type ExistingType, out FileReference FileName)
 		{
 			if(ExistingType.Assembly == CompiledAssembly)
 			{
@@ -1173,16 +1171,16 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ModuleName">The name of the module</param>
 		/// <returns>The filename containing rules for this module, or an empty string if not found</returns>
-		public string GetModuleFileName(string ModuleName)
+		public FileReference GetModuleFileName(string ModuleName)
 		{
-			string FileName;
+			FileReference FileName;
 			if(ModuleNameToFileName.TryGetValue(ModuleName, out FileName))
 			{
 				return FileName;
 			}
 			else
 			{
-				return (Parent == null)? "" : Parent.GetModuleFileName(ModuleName);
+				return (Parent == null)? null : Parent.GetModuleFileName(ModuleName);
 			}
 		}
 
@@ -1191,16 +1189,16 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TargetName">The name of the target</param>
 		/// <returns>The filename containing rules for this target, or an empty string if not found</returns>
-		public string GetTargetFileName(string TargetName)
+		public FileReference GetTargetFileName(string TargetName)
 		{
-			string FileName;
+			FileReference FileName;
 			if(TargetNameToFileName.TryGetValue(TargetName, out FileName))
 			{
 				return FileName;
 			}
 			else
 			{
-				return (Parent == null)? "" : Parent.GetTargetFileName(TargetName);
+				return (Parent == null)? null : Parent.GetTargetFileName(TargetName);
 			}
 		}
 
@@ -1210,9 +1208,9 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">Name of the module</param>
 		/// <param name="Target">Information about the target associated with this module</param>
 		/// <returns>Compiled module rule info</returns>
-		public ModuleRules CreateModuleRules( string ModuleName, TargetInfo Target )
+		public ModuleRules CreateModuleRules(string ModuleName, TargetInfo Target)
 		{
-			string ModuleFileName;
+			FileReference ModuleFileName;
 			return CreateModuleRules(ModuleName, Target, out ModuleFileName);
 		}
 
@@ -1223,7 +1221,7 @@ namespace UnrealBuildTool
 		/// <param name="Target">Information about the target associated with this module</param>
 		/// <param name="ModuleFileName">The original source file name for the Module.cs file for this module</param>
 		/// <returns>Compiled module rule info</returns>
-		public ModuleRules CreateModuleRules(string ModuleName, TargetInfo Target, out string ModuleFileName)
+		public ModuleRules CreateModuleRules(string ModuleName, TargetInfo Target, out FileReference ModuleFileName)
 		{
 			// Currently, we expect the user's rules object type name to be the same as the module name
 			var ModuleTypeName = ModuleName;
@@ -1273,13 +1271,7 @@ namespace UnrealBuildTool
 			}
 
 			// Have to do absolute here as this could be a project that is under the root
-			var FullUProjectPath = string.IsNullOrWhiteSpace(UnrealBuildTool.GetUProjectPath())
-				? ""
-				: Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
-			var bProjectModule = string.IsNullOrWhiteSpace(FullUProjectPath)
-				? false
-				: Utils.IsFileUnderDirectory(ModuleFileName, FullUProjectPath);
-
+			bool bProjectModule = UnrealBuildTool.HasUProjectFile() && ModuleFileName.IsUnderDirectory(UnrealBuildTool.GetUProjectPath());
 			if (bProjectModule)
 			{
 				RulesObject.ReadAdditionalDependencies(UnrealBuildTool.GetUProjectFile(), ModuleName);
@@ -1302,8 +1294,8 @@ namespace UnrealBuildTool
 
 					// Choose code optimization options based on module type (game/engine) if
 					// default optimization method is selected.
-					bool bIsEngineModule = Utils.IsFileUnderDirectory(ModuleFileName, ProjectFileGenerator.EngineRelativePath);
-					bool IsGamePluginModule = bProjectModule ? Utils.IsFileUnderDirectory(ModuleFileName, Path.Combine(UnrealBuildTool.GetUProjectPath(), "Plugins")) : false;
+					bool bIsEngineModule = ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
+					bool IsGamePluginModule = bProjectModule ? ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), "Plugins")) : false;
 					if (RulesObject.OptimizeCode == ModuleRules.CodeOptimization.Default)
 					{
 						// Engine/Source and Engine/Plugins are considered 'Engine' code...
@@ -1354,9 +1346,9 @@ namespace UnrealBuildTool
 		/// <param name="Target">Information about the target associated with this module</param>
 		/// <param name="Rules">Output </param>
 		/// <returns>Compiled module rule info</returns>
-		public bool TryCreateModuleRules( string ModuleName, TargetInfo Target, out ModuleRules Rules )
+		public bool TryCreateModuleRules(string ModuleName, TargetInfo Target, out ModuleRules Rules)
 		{
-			if(GetModuleFileName( ModuleName ) == "")
+			if(GetModuleFileName( ModuleName ) == null)
 			{
 				Rules = null;
 				return false;
@@ -1373,8 +1365,8 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool IsGameModule(string InModuleName)
 		{
-			string ModuleFileName = GetModuleFileName(InModuleName);
-			return ModuleFileName.Length > 0 && !Utils.IsFileUnderDirectory(ModuleFileName, BuildConfiguration.RelativeEnginePath);
+			FileReference ModuleFileName = GetModuleFileName(InModuleName);
+			return (ModuleFileName != null && !ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory));
 		}
 
 		protected bool GetTargetTypeAndRulesInstance(string InTargetName, TargetInfo InTarget, out System.Type OutRulesObjectType, out TargetRules OutRulesObject)
@@ -1411,9 +1403,21 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="TargetName">Name of the target</param>
 		/// <param name="Target">Information about the target associated with this target</param>
+		/// <returns>The build target rules for the specified target</returns>
+		public TargetRules CreateTargetRules(string TargetName, TargetInfo Target, bool bInEditorRecompile)
+		{
+			FileReference TargetFileName;
+			return CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
+		}
+
+		/// <summary>
+		/// Creates a target rules object for the specified target name.
+		/// </summary>
+		/// <param name="TargetName">Name of the target</param>
+		/// <param name="Target">Information about the target associated with this target</param>
 		/// <param name="TargetFileName">The original source file name of the Target.cs file for this target</param>
 		/// <returns>The build target rules for the specified target</returns>
-		public TargetRules CreateTargetRules(string TargetName, TargetInfo Target, bool bInEditorRecompile, out string TargetFileName)
+		public TargetRules CreateTargetRules(string TargetName, TargetInfo Target, bool bInEditorRecompile, out FileReference TargetFileName)
 		{
 			// Make sure the target file is known to us
 			bool bFoundTargetName = TargetNameToFileName.ContainsKey(TargetName);
@@ -1446,7 +1450,7 @@ namespace UnrealBuildTool
 					ExceptionMessage += "Location: " + CompiledAssembly.Location + Environment.NewLine;
 
 					ExceptionMessage += "Target rules found:" + Environment.NewLine;
-					foreach (KeyValuePair<string, string> entry in TargetNameToFileName)
+					foreach (KeyValuePair<string, FileReference> entry in TargetNameToFileName)
 					{
 						ExceptionMessage += "\t" + entry.Key + " - " + entry.Value + Environment.NewLine;
 					}
@@ -1477,24 +1481,24 @@ namespace UnrealBuildTool
 					if (RulesObject.Type != TargetRules.TargetType.Editor)
 					{
 						// Not the editor... determine the editor project
-						string TargetSourceFolder = TargetFileName;
+						string TargetSourceFolderString = TargetFileName.FullName;
 						Int32 SourceFolderIndex = -1;
 						if (Utils.IsRunningOnMono)
 						{
-							TargetSourceFolder = TargetSourceFolder.Replace("\\", "/");
-							SourceFolderIndex = TargetSourceFolder.LastIndexOf("/Source/", StringComparison.InvariantCultureIgnoreCase);
+							TargetSourceFolderString = TargetSourceFolderString.Replace("\\", "/");
+							SourceFolderIndex = TargetSourceFolderString.LastIndexOf("/Source/", StringComparison.InvariantCultureIgnoreCase);
 						}
 						else
 						{
-							TargetSourceFolder = TargetSourceFolder.Replace("/", "\\");
-							SourceFolderIndex = TargetSourceFolder.LastIndexOf("\\Source\\", StringComparison.InvariantCultureIgnoreCase);
+							TargetSourceFolderString = TargetSourceFolderString.Replace("/", "\\");
+							SourceFolderIndex = TargetSourceFolderString.LastIndexOf("\\Source\\", StringComparison.InvariantCultureIgnoreCase);
 						}
 						if (SourceFolderIndex != -1)
 						{
-							TargetSourceFolder = TargetSourceFolder.Substring(0, SourceFolderIndex + 8);
-							foreach (KeyValuePair<string, string> CheckEntry in TargetNameToFileName)
+							DirectoryReference TargetSourceFolder = new DirectoryReference(TargetSourceFolderString.Substring(0, SourceFolderIndex + 8));
+							foreach (KeyValuePair<string, FileReference> CheckEntry in TargetNameToFileName)
 							{
-								if (CheckEntry.Value.StartsWith(TargetSourceFolder, StringComparison.InvariantCultureIgnoreCase))
+								if (CheckEntry.Value.IsUnderDirectory(TargetSourceFolder))
 								{
 									if (CheckEntry.Key.Equals(TargetName, StringComparison.InvariantCultureIgnoreCase) == false)
 									{
@@ -1565,7 +1569,7 @@ namespace UnrealBuildTool
 		class RulesFileCache
 		{
 			/// List of rules file paths for each of the known types in RulesFileType
-			public List<string>[] RulesFilePaths = new List<string>[ typeof( RulesFileType ).GetEnumValues().Length ];
+			public List<FileReference>[] RulesFilePaths = new List<FileReference>[ typeof( RulesFileType ).GetEnumValues().Length ];
 		}
 
 
@@ -1597,11 +1601,11 @@ namespace UnrealBuildTool
 							{
 								if (RulesFileCache.RulesFilePaths[(int)CurRulesType] == null)
 								{
-									RulesFileCache.RulesFilePaths[(int)CurRulesType] = new List<string>();
+									RulesFileCache.RulesFilePaths[(int)CurRulesType] = new List<FileReference>();
 								}
 
 								// Convert file info to the full file path for this file and update our cache
-								RulesFileCache.RulesFilePaths[(int)CurRulesType].Add(RuleFile.FullName);
+								RulesFileCache.RulesFilePaths[(int)CurRulesType].Add(new FileReference(RuleFile.FullName));
 
 								// NOTE: Multiple rules files in the same folder are supported.  We'll continue iterating along.
 								if( CurRulesType == RulesFileType.Module )
@@ -1637,25 +1641,25 @@ namespace UnrealBuildTool
 
 		/// Map of root folders to a cached list of all UBT-related source files in that folder or any of its sub-folders.
 		/// We cache these file names so we can avoid searching for them later on.
-		static Dictionary<string, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<string, RulesFileCache>();
+		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
 
-		public static List<string> FindAllRulesSourceFiles( RulesFileType RulesFileType, List<string> GameFolders, List<string> ForeignPlugins, List<string> AdditionalSearchPaths, bool bIncludeEngine = true )
+		public static List<FileReference> FindAllRulesSourceFiles( RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true )
 		{
-			List<string> Folders = new List<string>();
+			List<DirectoryReference> Folders = new List<DirectoryReference>();
 
 			// Add all engine source (including third party source)
 			if(bIncludeEngine)
 			{
-				Folders.Add( Path.Combine( ProjectFileGenerator.EngineRelativePath, "Source" ) );
+				Folders.Add(UnrealBuildTool.EngineSourceDirectory);
 			}
 
 			// @todo plugin: Disallow modules from including plugin modules as dependency modules? (except when the module is part of that plugin)
 
 			// Get all the root folders for plugins
-			List<string> RootFolders = new List<string>();
+			List<DirectoryReference> RootFolders = new List<DirectoryReference>();
 			if(bIncludeEngine)
 			{
-				RootFolders.Add(ProjectFileGenerator.EngineRelativePath);
+				RootFolders.Add(UnrealBuildTool.EngineDirectory);
 			}
 			if(GameFolders != null)
 			{
@@ -1663,34 +1667,32 @@ namespace UnrealBuildTool
 			}
 
 			// Find all the plugin source directories
-			foreach(string RootFolder in RootFolders)
+			foreach(DirectoryReference RootFolder in RootFolders)
 			{
-				string PluginsFolder = Path.Combine(RootFolder, "Plugins");
-				foreach(string PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
+				DirectoryReference PluginsFolder = DirectoryReference.Combine(RootFolder, "Plugins");
+				foreach(FileReference PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
 				{
-					string PluginDirectory = Path.GetDirectoryName(PluginFile);
-					Folders.Add(Path.Combine(PluginDirectory, "Source"));
+					Folders.Add(DirectoryReference.Combine(PluginFile.Directory, "Source"));
 				}
 			}
 
 			// Add all the extra plugin folders
 			if( ForeignPlugins != null )
 			{
-				foreach(string ForeignPlugin in ForeignPlugins)
+				foreach(FileReference ForeignPlugin in ForeignPlugins)
 				{
-					string PluginDirectory = Path.GetDirectoryName(Path.GetFullPath(ForeignPlugin));
-					Folders.Add(Path.Combine(PluginDirectory, "Source"));
+					Folders.Add(DirectoryReference.Combine(ForeignPlugin.Directory, "Source"));
 				}
 			}
 
 			// Add in the game folders to search
 			if( GameFolders != null )
 			{
-				foreach( var GameFolder in GameFolders )
+				foreach( DirectoryReference GameFolder in GameFolders )
 				{
-					var GameSourceFolder = Path.GetFullPath(Path.Combine( GameFolder, "Source" ));
-					Folders.Add( GameSourceFolder );
-					var GameIntermediateSourceFolder = Path.GetFullPath(Path.Combine(GameFolder, "Intermediate", "Source"));
+					DirectoryReference GameSourceFolder = DirectoryReference.Combine(GameFolder, "Source");
+					Folders.Add(GameSourceFolder);
+					DirectoryReference GameIntermediateSourceFolder = DirectoryReference.Combine(GameFolder, "Intermediate", "Source");
 					Folders.Add(GameIntermediateSourceFolder);
 				}
 			}
@@ -1700,9 +1702,9 @@ namespace UnrealBuildTool
 			{
 				foreach( var AdditionalSearchPath in AdditionalSearchPaths )
 				{
-					if (!string.IsNullOrEmpty(AdditionalSearchPath))
+					if ( AdditionalSearchPath != null )
 					{
-						if (Directory.Exists(AdditionalSearchPath))
+						if (AdditionalSearchPath.Exists())
 						{
 							Folders.Add(AdditionalSearchPath);
 						}
@@ -1714,17 +1716,16 @@ namespace UnrealBuildTool
 				}
 			}
 
-			var SourceFiles = new List<string>();
-
 			// Iterate over all the folders to check
-			foreach( string Folder in Folders )
+			List<FileReference> SourceFiles = new List<FileReference>();
+			foreach( DirectoryReference Folder in Folders )
 			{
 				// Check to see if we've already cached source files for this folder
 				RulesFileCache FolderRulesFileCache;
 				if (!RootFolderToRulesFileCache.TryGetValue(Folder, out FolderRulesFileCache))
 				{
 					FolderRulesFileCache = new RulesFileCache();
-					FindAllRulesFilesRecursively(new DirectoryInfo(Folder), FolderRulesFileCache);
+					FindAllRulesFilesRecursively(new DirectoryInfo(Folder.FullName), FolderRulesFileCache);
 					RootFolderToRulesFileCache[Folder] = FolderRulesFileCache;
 
 					if (BuildConfiguration.bPrintDebugInfo)
@@ -1743,7 +1744,7 @@ namespace UnrealBuildTool
 				var RulesFilePathsForType = FolderRulesFileCache.RulesFilePaths[(int)RulesFileType];
 				if (RulesFilePathsForType != null)
 				{
-					foreach (string RulesFilePath in RulesFilePathsForType)
+					foreach (FileReference RulesFilePath in RulesFilePathsForType)
 					{
 						if (!SourceFiles.Contains(RulesFilePath))
 						{
@@ -1752,7 +1753,6 @@ namespace UnrealBuildTool
 					}
 				}
 			}
-
 			return SourceFiles;
 		}
 
@@ -1763,7 +1763,7 @@ namespace UnrealBuildTool
 
 		/// Map of assembly names we've already compiled and loaded to their Assembly and list of game folders.  This is used to prevent
 		/// trying to recompile the same assembly when ping-ponging between different types of targets
-		private static Dictionary<string, RulesAssembly> LoadedAssemblyMap = new Dictionary<string, RulesAssembly>(StringComparer.InvariantCultureIgnoreCase);
+		private static Dictionary<FileReference, RulesAssembly> LoadedAssemblyMap = new Dictionary<FileReference, RulesAssembly>();
 
 		/// <summary>
 		/// Creates the engine rules assembly
@@ -1775,11 +1775,11 @@ namespace UnrealBuildTool
 			if(EngineRulesAssembly == null)
 			{
 				// Find all the rules files
-				List<string> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, null, null, null, true);
-				List<string> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, null, null, null, true);
+				List<FileReference> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, null, null, null, true);
+				List<FileReference> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, null, null, null, true);
 
 				// Create a path to the assembly that we'll either load or compile
-				string AssemblyFileName = Path.Combine(BuildConfiguration.BaseIntermediatePath, "BuildRules", "UE4Rules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder, "BuildRules", "UE4Rules.dll");
 				EngineRulesAssembly = new RulesAssembly(ModuleFileNames, TargetFileNames, AssemblyFileName, null);
 			}
 			return EngineRulesAssembly;
@@ -1790,39 +1790,37 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ProjectFileName">The project file to create rules for. Null for the engine.</param>
 		/// <param name="ForeignPlugins">List of foreign plugin folders to include in the assembly. May be null.</param>
-		public static RulesAssembly CreateProjectRulesAssembly(string ProjectFileName)
+		public static RulesAssembly CreateProjectRulesAssembly(FileReference ProjectFileName)
 		{
-			// Normalize the project filename, so we can look it up in the cache
-			string FullProjectFileName = Path.GetFullPath(ProjectFileName);
-
 			// Check if there's an existing assembly for this project
 			RulesAssembly ProjectRulesAssembly;
-			if(!LoadedAssemblyMap.TryGetValue(FullProjectFileName, out ProjectRulesAssembly))
+			if(!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
 			{
+				DirectoryReference ProjectDirectoryName = ProjectFileName.Directory;
+
 				// Create the engine rules assembly
 				RulesAssembly Parent = CreateEngineRulesAssembly();
 
 				// Get the folders to search through
-				List<string> GameFolders = new List<string>();
-				string ProjectDirectoryName = Path.GetDirectoryName(FullProjectFileName);
+				List<DirectoryReference> GameFolders = new List<DirectoryReference>();
 				GameFolders.Add(ProjectDirectoryName);
 
 				// Add the games project's intermediate source folder
-				List<string> AdditionalSearchPaths = new List<string>();
-				var ProjectIntermediateSourceDirectory = Path.Combine(ProjectDirectoryName, "Intermediate", "Source");
-				if (Directory.Exists(ProjectIntermediateSourceDirectory))
+				List<DirectoryReference> AdditionalSearchPaths = new List<DirectoryReference>();
+				DirectoryReference ProjectIntermediateSourceDirectory = DirectoryReference.Combine(ProjectDirectoryName, "Intermediate", "Source");
+				if (ProjectIntermediateSourceDirectory.Exists())
 				{
 					AdditionalSearchPaths.Add(ProjectIntermediateSourceDirectory);
 				}
 
 				// Find all the rules source files
-				List<string> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, GameFolders, null, AdditionalSearchPaths, false);
-				List<string> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, GameFolders, null, AdditionalSearchPaths, false);
+				List<FileReference> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, GameFolders, null, AdditionalSearchPaths, false);
+				List<FileReference> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, GameFolders, null, AdditionalSearchPaths, false);
 
 				// Compile the assembly
-				string AssemblyFileName = Path.Combine(ProjectDirectoryName, BuildConfiguration.BaseIntermediateFolder, "BuildRules", Path.GetFileNameWithoutExtension(ProjectFileName) + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(ProjectDirectoryName, BuildConfiguration.BaseIntermediateFolder, "BuildRules", ProjectFileName.GetFileNameWithoutExtension() + "ModuleRules.dll");
 				ProjectRulesAssembly = new RulesAssembly(ModuleFileNames, TargetFileNames, AssemblyFileName, Parent);
-				LoadedAssemblyMap.Add(FullProjectFileName, ProjectRulesAssembly);
+				LoadedAssemblyMap.Add(ProjectFileName, ProjectRulesAssembly);
 			}
 			return ProjectRulesAssembly;
 		}
@@ -1832,23 +1830,20 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="ProjectFileName">The project file to create rules for. Null for the engine.</param>
 		/// <param name="ForeignPlugins">List of foreign plugin folders to include in the assembly. May be null.</param>
-		public static RulesAssembly CreatePluginRulesAssembly(string PluginFileName, RulesAssembly Parent)
+		public static RulesAssembly CreatePluginRulesAssembly(FileReference PluginFileName, RulesAssembly Parent)
 		{
-			// Normalize the project filename, so we can look it up in the cache
-			string FullPluginFileName = Path.GetFullPath(PluginFileName);
-
 			// Check if there's an existing assembly for this project
 			RulesAssembly PluginRulesAssembly;
-			if(!LoadedAssemblyMap.TryGetValue(FullPluginFileName, out PluginRulesAssembly))
+			if(!LoadedAssemblyMap.TryGetValue(PluginFileName, out PluginRulesAssembly))
 			{
 				// Find all the rules source files
-				List<string> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, null, new List<string>{ PluginFileName }, null, false);
-				List<string> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, null, new List<string>{ PluginFileName }, null, false);
+				List<FileReference> ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, null, new List<FileReference>{ PluginFileName }, null, false);
+				List<FileReference> TargetFileNames = FindAllRulesSourceFiles(RulesFileType.Target, null, new List<FileReference>{ PluginFileName }, null, false);
 
 				// Compile the assembly
-				string AssemblyFileName = Path.Combine(Path.GetDirectoryName(PluginFileName), BuildConfiguration.BaseIntermediateFolder, "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName) + "ModuleRules.dll");
+				FileReference AssemblyFileName = FileReference.Combine(PluginFileName.Directory, BuildConfiguration.BaseIntermediateFolder, "BuildRules", Path.GetFileNameWithoutExtension(PluginFileName.FullName) + "ModuleRules.dll");
 				PluginRulesAssembly = new RulesAssembly(ModuleFileNames, TargetFileNames, AssemblyFileName, Parent);
-				LoadedAssemblyMap.Add(FullPluginFileName, PluginRulesAssembly);
+				LoadedAssemblyMap.Add(PluginFileName, PluginRulesAssembly);
 			}
 			return PluginRulesAssembly;
 		}
@@ -1860,16 +1855,16 @@ namespace UnrealBuildTool
 		/// <returns>The filename that declared the given type, or null</returns>
 		public static string GetFileNameFromType(Type ExistingType)
 		{
-			string FileName;
+			FileReference FileName;
 			if(EngineRulesAssembly != null && EngineRulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
 			{
-				return FileName;
+				return FileName.FullName;
 			}
 			foreach(RulesAssembly RulesAssembly in LoadedAssemblyMap.Values)
 			{
 				if(RulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
 				{
-					return FileName;
+					return FileName.FullName;
 				}
 			}
 			return null;

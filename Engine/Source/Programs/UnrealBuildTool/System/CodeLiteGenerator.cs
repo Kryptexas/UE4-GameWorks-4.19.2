@@ -41,14 +41,14 @@ namespace UnrealBuildTool
 			var CodeCompletionFile = MasterProjectName + CodeCompletionFileName;
 			var CodeCompletionPreProcessorFile = MasterProjectName + CodeCompletionPreProcessorFileName;
 
-			var FullCodeLiteMasterFile = Path.Combine(MasterProjectRelativePath, SolutionFileName);
-			var FullCodeLiteCodeCompletionFile = Path.Combine(MasterProjectRelativePath, CodeCompletionFile);
-			var FullCodeLiteCodeCompletionPreProcessorFile = Path.Combine(MasterProjectRelativePath, CodeCompletionPreProcessorFile);
+			var FullCodeLiteMasterFile = Path.Combine(MasterProjectPath.FullName, SolutionFileName);
+			var FullCodeLiteCodeCompletionFile = Path.Combine(MasterProjectPath.FullName, CodeCompletionFile);
+			var FullCodeLiteCodeCompletionPreProcessorFile = Path.Combine(MasterProjectPath.FullName, CodeCompletionPreProcessorFile);
 
 			//
 			// HACK 
 			// TODO This is for now a hack. According to the original submitter, Eranif (a CodeLite developer) will support code completion folders in *.workspace files.
-			// We create a seperate file with all the folder name in it to copy manually into the code completion
+			// We create a separate file with all the folder name in it to copy manually into the code completion
 			// filed of CodeLite workspace. (Workspace Settings/Code Completion -> copy the content of the file threre.)
 			List<string> IncludeDirectories = new List<string>();
 			List<string> PreProcessor = new List<string>();
@@ -63,15 +63,15 @@ namespace UnrealBuildTool
 
 				foreach (var CurrentPath in Project.IntelliSenseIncludeSearchPaths) 
 				{
-					// Convert relative path into abosulte.
-					string IntelliSenseIncludeSearchPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Project.ProjectFilePath)), CurrentPath));
-					IncludeDirectories.Add(IntelliSenseIncludeSearchPath);
+					// Convert relative path into absolute.
+					DirectoryReference IntelliSenseIncludeSearchPath = DirectoryReference.Combine(Project.ProjectFilePath.Directory, CurrentPath);
+					IncludeDirectories.Add(IntelliSenseIncludeSearchPath.FullName);
 				}
 				foreach (var CurrentPath in Project.IntelliSenseSystemIncludeSearchPaths) 
 				{
-					// Convert relative path into abosulte.
-					string IntelliSenseSystemIncludeSearchPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Project.ProjectFilePath)), CurrentPath));
-					IncludeDirectories.Add (IntelliSenseSystemIncludeSearchPath);
+					// Convert relative path into absolute.
+					DirectoryReference IntelliSenseSystemIncludeSearchPath = DirectoryReference.Combine(Project.ProjectFilePath.Directory, CurrentPath);
+					IncludeDirectories.Add (IntelliSenseSystemIncludeSearchPath.FullName);
 				}
 
 				foreach( var CurDef in Project.IntelliSensePreprocessorDefinitions )
@@ -125,7 +125,7 @@ namespace UnrealBuildTool
 			//
 			foreach( var CurProject in AllProjectFiles )
 			{
-				var ProjectExtension = Path.GetExtension (CurProject.ProjectFilePath);
+				var ProjectExtension = CurProject.ProjectFilePath.GetExtension();
 
 				//
 				// TODO For now ignore C# project files.
@@ -141,7 +141,7 @@ namespace UnrealBuildTool
 				foreach (ProjectTarget CurrentTarget in CurProject.ProjectTargets) 
 				{
 					string[] tmp = CurrentTarget.ToString ().Split ('.');
-					string ProjectTargetFileName = Path.GetDirectoryName (CurProject.RelativeProjectFilePath) + "/" + tmp [0] + ProjectExtension;
+					string ProjectTargetFileName = CurProject.ProjectFilePath.Directory.MakeRelativeTo(MasterProjectPath) + "/" + tmp [0] + ProjectExtension;
 					String ProjectName = tmp [0];
 
 
@@ -173,7 +173,7 @@ namespace UnrealBuildTool
 
 					foreach( var CurProject in AllProjectFiles )
 					{
-						var ProjectExtension = Path.GetExtension (CurProject.ProjectFilePath);
+						var ProjectExtension = CurProject.ProjectFilePath.GetExtension();
 
 						//
 						// TODO For now ignore C# project files.
@@ -206,7 +206,7 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		protected override ProjectFile AllocateProjectFile( string InitFilePath )
+		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
 		{
 			return new CodeLiteProject( InitFilePath );
 		}
@@ -216,40 +216,40 @@ namespace UnrealBuildTool
 			return new CodeLiteFolder( InitOwnerProjectFileGenerator, InitFolderName );
 		}
 
-		public override void CleanProjectFiles(string InMasterProjectRelativePath, string InMasterProjectName, string InIntermediateProjectFilesPath)
+		public override void CleanProjectFiles(DirectoryReference InMasterProjectDirectory, string InMasterProjectName, DirectoryReference InIntermediateProjectFilesDirectory)
 		{
 			// TODO Delete all files here. Not finished yet.
 			var SolutionFileName = InMasterProjectName + SolutionExtension;
 			var CodeCompletionFile = InMasterProjectName + CodeCompletionFileName;
 			var CodeCompletionPreProcessorFile = InMasterProjectName + CodeCompletionPreProcessorFileName;
 
-			var FullCodeLiteMasterFile = Path.Combine(InMasterProjectRelativePath, SolutionFileName);
-			var FullCodeLiteCodeCompletionFile = Path.Combine(InMasterProjectRelativePath, CodeCompletionFile);
-			var FullCodeLiteCodeCompletionPreProcessorFile = Path.Combine(InMasterProjectRelativePath, CodeCompletionPreProcessorFile);
+			FileReference FullCodeLiteMasterFile = FileReference.Combine(InMasterProjectDirectory, SolutionFileName);
+			FileReference FullCodeLiteCodeCompletionFile = FileReference.Combine(InMasterProjectDirectory, CodeCompletionFile);
+			FileReference FullCodeLiteCodeCompletionPreProcessorFile = FileReference.Combine(InMasterProjectDirectory, CodeCompletionPreProcessorFile);
 
-			if (File.Exists(FullCodeLiteMasterFile))
+			if (FullCodeLiteMasterFile.Exists())
 			{
-				File.Delete(FullCodeLiteMasterFile);
+				FullCodeLiteMasterFile.Delete();
 			}
-			if (File.Exists(FullCodeLiteCodeCompletionFile))
+			if (FullCodeLiteCodeCompletionFile.Exists())
 			{
-				File.Delete(FullCodeLiteCodeCompletionFile);
+				FullCodeLiteCodeCompletionFile.Delete();
 			}
-			if (File.Exists(FullCodeLiteCodeCompletionPreProcessorFile))
+			if (FullCodeLiteCodeCompletionPreProcessorFile.Exists())
 			{
-				File.Delete(FullCodeLiteCodeCompletionPreProcessorFile);
+				FullCodeLiteCodeCompletionPreProcessorFile.Delete();
 			}
 
 			// Delete the project files folder
-			if (Directory.Exists(InIntermediateProjectFilesPath))
+			if (InIntermediateProjectFilesDirectory.Exists())
 			{
 				try
 				{
-					Directory.Delete(InIntermediateProjectFilesPath, true);
+					Directory.Delete(InIntermediateProjectFilesDirectory.FullName, true);
 				}
 				catch (Exception Ex)
 				{
-					Log.TraceInformation("Error while trying to clean project files path {0}. Ignored.", InIntermediateProjectFilesPath);
+					Log.TraceInformation("Error while trying to clean project files path {0}. Ignored.", InIntermediateProjectFilesDirectory);
 					Log.TraceInformation("\t" + Ex.Message);
 				}
 			}

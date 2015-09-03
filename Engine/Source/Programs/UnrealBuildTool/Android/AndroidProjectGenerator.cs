@@ -198,7 +198,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	string				The custom path lines for the project file; Empty string if it doesn't require one
 		 */
-		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, string TargetRulesPath, string ProjectFilePath, string NMakeOutputPath)
+		public override string GetVisualStudioPathsEntries(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath, FileReference NMakeOutputPath)
 		{
 			if (!IsNsightInstalled())
 			{
@@ -212,18 +212,18 @@ namespace UnrealBuildTool
 			//       environment variable
 
 			//@todo android: clean up debug path generation
-			string GameName = Path.GetFileNameWithoutExtension(TargetRulesPath);
+			string GameName = TargetRulesPath.GetFileNameWithoutExtension();
 			GameName = Path.GetFileNameWithoutExtension(GameName);
 
 
 			// intermediate path for Engine or Game's intermediate
 			string IntermediateDirectoryPath;
-			IntermediateDirectoryPath = Path.GetDirectoryName(NMakeOutputPath) + "/../../Intermediate/Android/APK";
+			IntermediateDirectoryPath = Path.GetDirectoryName(NMakeOutputPath.FullName) + "/../../Intermediate/Android/APK";
 
 			// string for <OverrideAPKPath>
 			string APKPath = Path.Combine(
-				Path.GetDirectoryName(NMakeOutputPath),
-				Path.GetFileNameWithoutExtension(NMakeOutputPath) + "-armv7-es2.apk");
+				Path.GetDirectoryName(NMakeOutputPath.FullName),
+				Path.GetFileNameWithoutExtension(NMakeOutputPath.FullName) + "-armv7-es2.apk");
 
 			// string for <BuildXmlPath> and <AndroidManifestPath>
 			string BuildXmlPath = IntermediateDirectoryPath;

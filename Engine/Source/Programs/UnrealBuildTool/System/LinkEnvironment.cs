@@ -13,19 +13,19 @@ namespace UnrealBuildTool
 	public class LinkEnvironmentConfiguration : NativeBuildEnvironmentConfiguration
 	{
 		/** The directory to put the non-executable files in (PDBs, import library, etc) */
-		public string OutputDirectory;
+		public DirectoryReference OutputDirectory;
 
 		/** Intermediate file directory */
-		public string IntermediateDirectory;
+		public DirectoryReference IntermediateDirectory;
 
 		/** The directory to shadow source files in for syncing to remote compile servers */
-		public string LocalShadowDirectory = null;
+		public DirectoryReference LocalShadowDirectory = null;
 
 		/** The file path for the executable file that is output by the linker. */
-		public List<string> OutputFilePaths = new List<string>();
+		public List<FileReference> OutputFilePaths = new List<FileReference>();
 
 		/** Returns the OutputFilePath is there is only one entry in OutputFilePaths */
-		public string OutputFilePath
+		public FileReference OutputFilePath
 		{
 			get
 			{

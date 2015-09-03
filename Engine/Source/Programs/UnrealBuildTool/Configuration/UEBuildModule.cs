@@ -78,8 +78,9 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, string ModuleFileRelativeToEngineDirectory)
+		public static UEBuildModuleType GetEngineModuleTypeBasedOnLocation(string ModuleName, UEBuildModuleType ModuleType, FileReference ModuleFileName)
 		{
+			string ModuleFileRelativeToEngineDirectory = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 			if (ModuleFileRelativeToEngineDirectory.IndexOf(UEBuildModule.RuntimeFolder, StringComparison.InvariantCultureIgnoreCase) >= 0)
 			{
 				ModuleType = UEBuildModuleType.Runtime;
@@ -138,7 +139,7 @@ namespace UnrealBuildTool
 		private void SetupModuleDistributionLevel()
 		{
 			List<string> PathsToCheck = new List<string>();
-			PathsToCheck.Add(ModuleDirectory);
+			PathsToCheck.Add(ModuleDirectory.FullName);
 			PathsToCheck.AddRange(PublicIncludePaths);
 			PathsToCheck.AddRange(PrivateIncludePaths);
 			// Not sure if these two are necessary as paths will usually be in basic includes too
@@ -176,7 +177,7 @@ namespace UnrealBuildTool
 		public UEBuildModuleDistribution DistributionLevel;
 
 		/** Path to the module directory */
-		public readonly string ModuleDirectory;
+		public readonly DirectoryReference ModuleDirectory;
 
 		/** Is this module allowed to be redistributed. */
 		private readonly bool? IsRedistributableOverride;
@@ -243,7 +244,7 @@ namespace UnrealBuildTool
 			UEBuildTarget InTarget,
 			string InName,
 			UEBuildModuleType InType,
-			string InModuleDirectory,
+			DirectoryReference InModuleDirectory,
 			ModuleRules InRules,
 			string InBuildCsFilename
 			)
@@ -311,14 +312,14 @@ namespace UnrealBuildTool
 					// of something else, which cause a fall-through to the code below and set up an empty _API define.
 					if(bIncludePathsOnly)
 					{
-						Log.TraceVerbose( "{0}: Include paths only for {1} (no binary)", Path.GetFileNameWithoutExtension( SourceBinary.Config.OutputFilePaths[0] ), Name );
+						Log.TraceVerbose( "{0}: Include paths only for {1} (no binary)", SourceBinary.Config.OutputFilePaths[0].GetFileNameWithoutExtension(), Name );
 						Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 					}
 				}
 				else
 				{
-					string BinaryPath = Binary.Config.OutputFilePaths[0];
-					string SourceBinaryPath = SourceBinary.Config.OutputFilePaths[0];
+					FileReference BinaryPath = Binary.Config.OutputFilePaths[0];
+					FileReference SourceBinaryPath = SourceBinary.Config.OutputFilePaths[0];
 
 					if (ProjectFileGenerator.bGenerateProjectFiles || (Binary.Config.Type == UEBuildBinaryType.StaticLibrary))
 					{
@@ -330,12 +331,12 @@ namespace UnrealBuildTool
 					{
 						if( Binary.Config.bAllowExports )
 						{
-							Log.TraceVerbose( "{0}: Exporting {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
+							Log.TraceVerbose( "{0}: Exporting {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension() );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=DLLEXPORT" );
 						}
 						else
 						{
-							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
+							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension() );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 					}
@@ -346,17 +347,17 @@ namespace UnrealBuildTool
 						//		this, we need to suppress warnings at compile time.
 						if( bIncludePathsOnly )
 						{
-							Log.TraceVerbose( "{0}: Include paths only for {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
+							Log.TraceVerbose( "{0}: Include paths only for {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension() );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 						else if (Binary.Config.bAllowExports)
 						{
-							Log.TraceVerbose( "{0}: Importing {1} from {2}", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ) );
+							Log.TraceVerbose( "{0}: Importing {1} from {2}", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension() );
 							Definitions.Add( Name.ToUpperInvariant() + "_API=DLLIMPORT" );
 						}
 						else
 						{
-							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", Path.GetFileNameWithoutExtension( SourceBinaryPath ), Name, Path.GetFileNameWithoutExtension( BinaryPath ));
+							Log.TraceVerbose( "{0}: Not importing/exporting {1} (binary: {2})", SourceBinaryPath.GetFileNameWithoutExtension(), Name, BinaryPath.GetFileNameWithoutExtension());
 							Definitions.Add( Name.ToUpperInvariant() + "_API=" );
 						}
 					}
@@ -379,7 +380,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the module's directory to the include path, so we can root #includes to it
-				IncludePaths.Add(Utils.CleanDirectorySeparators(Utils.MakePathRelativeTo(ModuleDirectory, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source")), '/'));
+				IncludePaths.Add(Utils.CleanDirectorySeparators(ModuleDirectory.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory), '/'));
 
 				// Add the additional frameworks so that the compiler can know about their #include paths
 				AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
@@ -655,7 +656,7 @@ namespace UnrealBuildTool
 			UEBuildTarget InTarget,
 			UEBuildModuleType InType,
 			string InName,
-			string InModuleDirectory,
+			DirectoryReference InModuleDirectory,
 			ModuleRules InRules,
 			string InBuildCsFilename
 			)
@@ -776,7 +777,7 @@ namespace UnrealBuildTool
 		public readonly SourceFilesClass SourceFilesFound = new SourceFilesClass();
 
 		/** The directory for this module's generated code */
-		public readonly string GeneratedCodeDirectory;
+		public readonly DirectoryReference GeneratedCodeDirectory;
 
 		/** The preprocessor definitions used to compile this module's private implementation. */
 		HashSet<string> Definitions;
@@ -839,8 +840,8 @@ namespace UnrealBuildTool
 			UEBuildTarget InTarget,
 			string InName,
 			UEBuildModuleType InType,
-			string InModuleDirectory,
-			string InGeneratedCodeDirectory,
+			DirectoryReference InModuleDirectory,
+			DirectoryReference InGeneratedCodeDirectory,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
 			ModuleRules InRules,
@@ -917,14 +918,14 @@ namespace UnrealBuildTool
 				// Add default PCLaunch.rc file if this module has no own resource file specified
 				if (SourceFilesToBuild.RCFiles.Count <= 0)
 				{
-					string DefRC = Utils.CleanDirectorySeparators( Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Runtime/Launch/Resources/Windows/PCLaunch.rc")) );
-					FileItem Item = FileItem.GetItemByFullPath(DefRC);
+					FileReference DefRC = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Launch", "Resources", "Windows", "PCLaunch.rc");
+					FileItem Item = FileItem.GetItemByFileReference(DefRC);
 					SourceFilesToBuild.RCFiles.Add(Item);
 				}
 
 				// Always compile in the API version resource separately. This is required for the module manager to detect compatible API versions.
-				string ModuleVersionRC = Utils.CleanDirectorySeparators( Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "Runtime/Core/Resources/Windows/ModuleVersionResource.rc.inl")) );
-				FileItem ModuleVersionItem = FileItem.GetItemByFullPath(ModuleVersionRC);
+				FileReference ModuleVersionRC = FileReference.Combine(UnrealBuildTool.EngineSourceDirectory, "Runtime", "Core", "Resources", "Windows", "ModuleVersionResource.rc.inl");
+				FileItem ModuleVersionItem = FileItem.GetItemByFileReference(ModuleVersionRC);
 				if( !SourceFilesToBuild.RCFiles.Contains(ModuleVersionItem) )
 				{
 					SourceFilesToBuild.RCFiles.Add(ModuleVersionItem);
@@ -945,8 +946,8 @@ namespace UnrealBuildTool
 
 
 			// Check to see if this is an Engine module (including program or plugin modules).  That is, the module is located under the "Engine" folder
-			var IsPluginModule = Utils.IsFileUnderDirectory( this.ModuleDirectory, Path.Combine(Target.ProjectDirectory, "Plugins" ) );
-			var IsGameModule = !IsPluginModule && !Utils.IsFileUnderDirectory(this.ModuleDirectory, Path.Combine(ProjectFileGenerator.EngineRelativePath));
+			var IsPluginModule = ModuleDirectory.IsUnderDirectory( DirectoryReference.Combine(Target.ProjectDirectory, "Plugins") );
+			var IsGameModule = !IsPluginModule && !ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
 
 			// Should we force a precompiled header to be generated for this module?  Usually, we only bother with a
 			// precompiled header if there are at least several source files in the module (after combining them for unity
@@ -1038,17 +1039,17 @@ namespace UnrealBuildTool
 
 				if( bUseSharedPCHFiles )
 				{
-					string SharingPCHHeaderFilePath = null;
+					FileReference SharingPCHHeaderFilePath = null;
 					bool bIsASharedPCHModule = bUseSharedPCHFiles && GlobalCompileEnvironment.SharedPCHHeaderFiles.Any( PCH => PCH.Module == this );
 					if( bIsASharedPCHModule )
 					{
-						SharingPCHHeaderFilePath = Path.GetFullPath( Path.Combine( ProjectFileGenerator.RootRelativePath, "Engine", "Source", Rules.SharedPCHHeaderFile ) );
+						SharingPCHHeaderFilePath = FileReference.Combine( UnrealBuildTool.EngineSourceDirectory, Rules.SharedPCHHeaderFile );
 					}
 
 					// We can't use a shared PCH file when compiling a module
 					// with exports, because the shared PCH can only have imports in it to work correctly.
 					bool bAllowSharedPCH = (Rules.PCHUsage == ModuleRules.PCHUsageMode.NoSharedPCHs)? false : true;
-					bool bCanModuleUseOwnSharedPCH = bAllowSharedPCH && bIsASharedPCHModule && !Binary.Config.bAllowExports && ProcessedDependencies.UniquePCHHeaderFile.AbsolutePath.Equals( SharingPCHHeaderFilePath, StringComparison.InvariantCultureIgnoreCase );
+					bool bCanModuleUseOwnSharedPCH = bAllowSharedPCH && bIsASharedPCHModule && !Binary.Config.bAllowExports && ProcessedDependencies.UniquePCHHeaderFile.Reference == SharingPCHHeaderFilePath;
 					if( bAllowSharedPCH && ( !bIsASharedPCHModule || bCanModuleUseOwnSharedPCH ) )
 					{
 						// Figure out which shared PCH tier we're in
@@ -1134,7 +1135,7 @@ namespace UnrealBuildTool
 						foreach (var CPPFile in SourceFilesToBuild.CPPFiles)
 						{
 							CPPFile.PCHHeaderNameInCode              = PCHToUse.AbsolutePath;
-							CPPFile.PrecompiledHeaderIncludeFilename = PCHToUse.AbsolutePath;
+							CPPFile.PrecompiledHeaderIncludeFilename = PCHToUse.Reference;
 						}
 					}
 
@@ -1177,7 +1178,7 @@ namespace UnrealBuildTool
 
 					var ModulePCHCompileEnvironment = ModuleCompileEnvironment.DeepCopy();
 					ModulePCHCompileEnvironment.Config.PrecompiledHeaderAction          = PrecompiledHeaderAction.Include;
-					ModulePCHCompileEnvironment.Config.PrecompiledHeaderIncludeFilename = ModulePCHEnvironment.PrecompiledHeaderIncludeFilename.AbsolutePath;
+					ModulePCHCompileEnvironment.Config.PrecompiledHeaderIncludeFilename = ModulePCHEnvironment.PrecompiledHeaderIncludeFilename.Reference;
 					ModulePCHCompileEnvironment.Config.PCHHeaderNameInCode              = ModulePCHEnvironment.PCHHeaderNameInCode;
 
 					if( SharedPCHHeaderFile != null )
@@ -1232,7 +1233,7 @@ namespace UnrealBuildTool
 									CPPFilesToBuild[0].PCHHeaderNameInCode,
 									ModulePCHEnvironment.PrecompiledHeaderIncludeFilename,
 									SharedPCHCompileEnvironment,
-									Path.Combine( CompileEnvironment.Config.OutputDirectory, "SharedPCHs" ),
+									DirectoryReference.Combine( CompileEnvironment.Config.OutputDirectory, "SharedPCHs" ),
 									"Shared", 
 									false );
 							}
@@ -1435,7 +1436,7 @@ namespace UnrealBuildTool
 				if( bFoundAProblemWithPCHs )
 				{
 					// Map from pch header string to the source files that use that PCH
-					var UsageMapPCH = new Dictionary<string, List<FileItem>>( StringComparer.InvariantCultureIgnoreCase );
+					var UsageMapPCH = new Dictionary<FileReference, List<FileItem>>();
 					foreach( var CPPFile in SourceFilesToBuild.CPPFiles )
 					{
 						// Create a new entry if not in the pch usage map
@@ -1460,7 +1461,7 @@ namespace UnrealBuildTool
 					if( UsageMapPCH.Count > 1 )
 					{
 						// Keep track of the PCH file that is most used within this module
-						string MostFilesAreIncludingPCH = string.Empty;
+						FileReference MostFilesAreIncludingPCH = null;
 						int MostFilesIncluded = 0;
 						foreach( var CurPCH in UsageMapPCH.Where( PCH => PCH.Value.Count > MostFilesIncluded ) )
 						{
@@ -1520,14 +1521,14 @@ namespace UnrealBuildTool
 
 			// Resolve the PCH header to an absolute path.
 			// Check NullOrEmpty here because if the file could not be resolved we need to throw an exception
-			if (!string.IsNullOrEmpty(FirstInclude.IncludeResolvedName) &&
+			if (FirstInclude.IncludeResolvedNameIfSuccessful != null &&
 				// ignore any preexisting resolve cache if we are not configured to use it.
 				BuildConfiguration.bUseIncludeDependencyResolveCache &&
 				// if we are testing the resolve cache, we force UBT to resolve every time to look for conflicts
 				!BuildConfiguration.bTestIncludeDependencyResolveCache)
 			{
-				CPPFile.PrecompiledHeaderIncludeFilename = FirstInclude.IncludeResolvedName;
-				return FileItem.GetItemByFullPath(CPPFile.PrecompiledHeaderIncludeFilename);
+				CPPFile.PrecompiledHeaderIncludeFilename = FirstInclude.IncludeResolvedNameIfSuccessful;
+				return FileItem.GetItemByFileReference(CPPFile.PrecompiledHeaderIncludeFilename);
 			}
 
 			// search the include paths to resolve the file.
@@ -1537,8 +1538,8 @@ namespace UnrealBuildTool
 				throw new BuildException("The first include statement in source file '{0}' is trying to include the file '{1}' as the precompiled header, but that file could not be located in any of the module's include search paths.", CPPFile.AbsolutePath, CPPFile.PCHHeaderNameInCode);
 			}
 
-			CPPEnvironment.IncludeDependencyCache[Target].CacheResolvedIncludeFullPath(CPPFile, 0, PrecompiledHeaderIncludeFile.AbsolutePath);
-			CPPFile.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFile.AbsolutePath;
+			CPPEnvironment.IncludeDependencyCache[Target].CacheResolvedIncludeFullPath(CPPFile, 0, PrecompiledHeaderIncludeFile.Reference);
+			CPPFile.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFile.Reference;
 
 			return PrecompiledHeaderIncludeFile;
 		}
@@ -1564,12 +1565,12 @@ namespace UnrealBuildTool
 			Result.Config.bEnableExceptions                      = Rules.bEnableExceptions;
 			Result.Config.bEnableShadowVariableWarning           = Rules.bEnableShadowVariableWarnings;
 			Result.Config.bUseStaticCRT							 = (Target.Rules != null && Target.Rules.bUseStaticCRT);
-			Result.Config.OutputDirectory                        = Path.Combine(Binary.Config.IntermediateDirectory, Name);
+			Result.Config.OutputDirectory                        = DirectoryReference.Combine(Binary.Config.IntermediateDirectory, Name);
 
 			// Switch the optimization flag if we're building a game module. Also pass the definition for building in DebugGame along (see ModuleManager.h for notes).
 			if (Target.Configuration == UnrealTargetConfiguration.DebugGame)
 			{
-				if(!Utils.IsFileUnderDirectory(ModuleDirectory, BuildConfiguration.RelativeEnginePath))
+				if(!ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 				{
 					Result.Config.Target.Configuration = CPPTargetConfiguration.Debug;
 					Result.Config.Definitions.Add("UE_BUILD_DEVELOPMENT_WITH_DEBUGGAME=1");
@@ -1621,7 +1622,7 @@ namespace UnrealBuildTool
 		{
 			if (UHTModuleInfoCache == null)
 			{
-				IEnumerable<string> HeaderFilenames = Directory.GetFiles( ModuleDirectory, "*.h", SearchOption.AllDirectories );
+				IEnumerable<string> HeaderFilenames = Directory.GetFiles( ModuleDirectory.FullName, "*.h", SearchOption.AllDirectories );
 				UHTModuleInfo       Info            = ExternalExecution.CreateUHTModuleInfo(HeaderFilenames, Target, Name, ModuleDirectory, Type);
 				UHTModuleInfoCache = new UHTModuleInfoCacheType(Info.PublicUObjectHeaders.Concat(Info.PublicUObjectClassesHeaders).Concat(Info.PrivateUObjectHeaders).Select(x => x.AbsolutePath).ToList(), Info);
 			}
@@ -1759,8 +1760,8 @@ namespace UnrealBuildTool
 			UEBuildTarget InTarget,
 			string InName,
 			UEBuildModuleType InType,
-			string InModuleDirectory,
-			string InGeneratedCodeDirectory,
+			DirectoryReference InModuleDirectory,
+			DirectoryReference InGeneratedCodeDirectory,
 			IntelliSenseGatherer InIntelliSenseGatherer,
 			IEnumerable<FileItem> InSourceFiles,
 			ModuleRules InRules,
@@ -1890,7 +1891,7 @@ namespace UnrealBuildTool
 		/// <param name="ModuleName">Name of the module this PCH is being generated for</param>
 		/// <param name="bAllowDLLExports">True if we should allow DLLEXPORT definitions for this PCH</param>
 		/// <returns>the compilation output result of the created pch.</returns>
-		public static CPPOutput GeneratePCHCreationAction(UEBuildTarget Target, string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, string OutputDirectory, string ModuleName, bool bAllowDLLExports )
+		public static CPPOutput GeneratePCHCreationAction(UEBuildTarget Target, string PCHHeaderNameInCode, FileItem PrecompiledHeaderIncludeFilename, CPPEnvironment ProjectCPPEnvironment, DirectoryReference OutputDirectory, string ModuleName, bool bAllowDLLExports )
 		{
 			// Find the header file to be precompiled. Don't skip external headers
 			if (PrecompiledHeaderIncludeFilename.bExists)
@@ -1900,7 +1901,7 @@ namespace UnrealBuildTool
 				string PCHGuardDefine = Path.GetFileNameWithoutExtension(PrecompiledHeaderIncludeFilename.AbsolutePath).ToUpper();
 				string LocalPCHHeaderNameInCode = ToolChain.ConvertPath(PrecompiledHeaderIncludeFilename.AbsolutePath);
 				string TmpPCHHeaderContents = String.Format("#ifndef __AUTO_{0}_H__\n#define __AUTO_{0}_H__\n//Last Write: {2}\n#include \"{1}\"\n#endif//__AUTO_{0}_H__", PCHGuardDefine, LocalPCHHeaderNameInCode, PrecompiledHeaderIncludeFilename.LastWriteTime);
-				string DummyPath = Path.Combine(
+				FileReference DummyPath = FileReference.Combine(
 					ProjectCPPEnvironment.Config.OutputDirectory,
 					Path.GetFileName(PrecompiledHeaderIncludeFilename.AbsolutePath));
 				FileItem DummyPCH = FileItem.CreateIntermediateTextFile(DummyPath, TmpPCHHeaderContents);
@@ -1908,7 +1909,7 @@ namespace UnrealBuildTool
 				// Create a new C++ environment that is used to create the PCH.
 				var ProjectPCHEnvironment = ProjectCPPEnvironment.DeepCopy();
 				ProjectPCHEnvironment.Config.PrecompiledHeaderAction = PrecompiledHeaderAction.Create;
-				ProjectPCHEnvironment.Config.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFilename.AbsolutePath;
+				ProjectPCHEnvironment.Config.PrecompiledHeaderIncludeFilename = PrecompiledHeaderIncludeFilename.Reference;
 				ProjectPCHEnvironment.Config.PCHHeaderNameInCode = PCHHeaderNameInCode;
 				ProjectPCHEnvironment.Config.OutputDirectory = OutputDirectory;
 

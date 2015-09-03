@@ -39,12 +39,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The output file path. This must be set before a binary can be built using it.
 		/// </summary>
-		public List<string> OutputFilePaths = new List<string>();
+		public List<FileReference> OutputFilePaths = new List<FileReference>();
 
 		/// <summary>
 		/// Returns the OutputFilePath if there is only one entry in OutputFilePaths
 		/// </summary>
-		public string OutputFilePath
+		public FileReference OutputFilePath
 		{
 			get
 			{
@@ -59,12 +59,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Original output filepath. This is the original binary name before hot-reload suffix has been appended to it.
 		/// </summary>
-		public List<string> OriginalOutputFilePaths;
+		public List<FileReference> OriginalOutputFilePaths;
 
 		/// <summary>
 		/// Returns the OriginalOutputFilePath if there is only one entry in OriginalOutputFilePaths
 		/// </summary>
-		public string OriginalOutputFilePath
+		public FileReference OriginalOutputFilePath
 		{
 			get
 			{
@@ -79,7 +79,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The intermediate directory for this binary. Modules should create separate intermediate directories below this. Must be set before a binary can be built using it.
 		/// </summary>
-		public string IntermediateDirectory;
+		public DirectoryReference IntermediateDirectory;
 
 		/// <summary>
 		/// If true, build exports lib
@@ -120,7 +120,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// The projectfile path
 		/// </summary>
-		public string ProjectFilePath = "";
+		public FileReference ProjectFilePath;
 		
 		/// <summary>
 		/// List of modules to link together into this executable
@@ -139,15 +139,15 @@ namespace UnrealBuildTool
 		/// <param name="InModuleNames"></param>
 		public UEBuildBinaryConfiguration(
 				UEBuildBinaryType InType,
-				IEnumerable<string> InOutputFilePaths = null,
-				string InIntermediateDirectory = null,
+				IEnumerable<FileReference> InOutputFilePaths = null,
+				DirectoryReference InIntermediateDirectory = null,
 				bool bInAllowExports = false,
 				bool bInCreateImportLibrarySeparately = false,
 				bool bInIncludeDependentLibrariesInLibrary = false,
 				bool bInAllowCompilation = true,
 				bool bInHasModuleRules = true,
                 bool bInIsCrossTarget = false,
-				string InProjectFilePath = "",
+				FileReference InProjectFilePath = null,
 				IEnumerable<string> InModuleNames = null
 			)
 		{
@@ -310,7 +310,7 @@ namespace UnrealBuildTool
 
 			// Add the primary build products
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Config.Type);
-			foreach (string OutputFilePath in Config.OutputFilePaths)
+			foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 			{
 				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt, ToolChain);
 			}
@@ -318,7 +318,7 @@ namespace UnrealBuildTool
 			// Add the console app, if there is one
 			if (Config.Type == UEBuildBinaryType.Executable && Config.bBuildAdditionalConsoleApp)
 			{
-				foreach (string OutputFilePath in Config.OutputFilePaths)
+				foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 				{
 					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt, ToolChain);
 				}
@@ -335,13 +335,13 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(string OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt, IUEToolChain ToolChain)
+		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt, IUEToolChain ToolChain)
 		{
 			Receipt.AddBuildProduct(OutputFile, OutputType);
 
 			if(!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType))
 			{
-				Receipt.AddBuildProduct(Path.ChangeExtension(OutputFile, DebugExtension), BuildProductType.SymbolFile);
+				Receipt.AddBuildProduct(OutputFile.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
 			}
 		}
 
@@ -350,9 +350,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="BinaryPath">Full path to the binary exe.</param>
 		/// <returns></returns>
-		public static string GetAdditionalConsoleAppPath(string BinaryPath)
+		public static FileReference GetAdditionalConsoleAppPath(FileReference BinaryPath)
 		{
-			return Path.Combine(Path.GetDirectoryName(BinaryPath), Path.GetFileNameWithoutExtension(BinaryPath) + "-Cmd" + Path.GetExtension(BinaryPath));
+			return FileReference.Combine(BinaryPath.Directory, BinaryPath.GetFileNameWithoutExtension() + "-Cmd" + BinaryPath.GetExtension());
 		}
 
 		/**
@@ -387,7 +387,7 @@ namespace UnrealBuildTool
 			{
 				foreach (var OutputFilePath in Config.OutputFilePaths)
 				{
-					var OutputDistributionLevel = UEBuildModule.GetModuleDistributionLevelBasedOnLocation(OutputFilePath);
+					var OutputDistributionLevel = UEBuildModule.GetModuleDistributionLevelBasedOnLocation(OutputFilePath.FullName);
 
 					// Throw exception if output path is not appropriate
 					if (OutputDistributionLevel < DistributionLevel)
@@ -572,9 +572,9 @@ namespace UnrealBuildTool
 		/// <param name="DependentLinkEnvironment">The link environment of the dependency</param>
 		public override void SetupDependentLinkEnvironment(LinkEnvironment DependentLinkEnvironment)
 		{
-			foreach (string OutputFilePath in Config.OutputFilePaths)
+			foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 			{
-				string LibraryFileName;
+				FileReference LibraryFileName;
 				if (Config.Type == UEBuildBinaryType.StaticLibrary
 					|| DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac
 					|| DependentLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
@@ -583,16 +583,16 @@ namespace UnrealBuildTool
 				}
 				else
 				{
-					LibraryFileName = Path.Combine(Config.IntermediateDirectory, Path.GetFileNameWithoutExtension(OutputFilePath) + ".lib");
+					LibraryFileName = FileReference.Combine(Config.IntermediateDirectory, OutputFilePath.GetFileNameWithoutExtension() + ".lib");
 				}
-				DependentLinkEnvironment.Config.AdditionalLibraries.Add(LibraryFileName);
+				DependentLinkEnvironment.Config.AdditionalLibraries.Add(LibraryFileName.FullName);
 			}
 			
 			// If we're linking against static library containing the launch module on windows, we need to add the compiled resource separately. We can't link it through the static library.
 			if(Config.Type == UEBuildBinaryType.StaticLibrary && ModuleNames.Contains("Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
 			{
-				string ResourceFilePath = Path.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
-				DependentLinkEnvironment.InputFiles.Add(FileItem.GetItemByPath(ResourceFilePath));
+				FileReference ResourceFileRef = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
+				DependentLinkEnvironment.InputFiles.Add(FileItem.GetItemByFileReference(ResourceFileRef));
 			}
 		}
 
@@ -622,7 +622,7 @@ namespace UnrealBuildTool
 			foreach (var ModuleName in ModuleNames)
 			{
 				UEBuildModule Module = Target.GetModuleByName(ModuleName);
-				if (!Utils.IsFileUnderDirectory(Module.ModuleDirectory, BuildConfiguration.RelativeEnginePath))
+				if (!Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 				{
 					GameModules.Add(Module);
 				}
@@ -650,8 +650,8 @@ namespace UnrealBuildTool
 			// Add the compiled resource file if we're building a static library containing the launch module on Windows
 			if(Config.Type == UEBuildBinaryType.StaticLibrary && ModuleNames.Contains("Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
 			{
-				string ResourceFilePath = Path.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
-				Receipt.AddBuildProduct(ResourceFilePath, BuildProductType.StaticLibrary);
+				FileReference ResourceFilePath = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
+				Receipt.AddBuildProduct(ResourceFilePath.FullName, BuildProductType.StaticLibrary);
 			}
 			
 			// Add runtime dependencies for all the modules in this binary, and build up a list of all the referenced modules
@@ -685,7 +685,7 @@ namespace UnrealBuildTool
 		/// <returns>Returns the OutputFilePath for this binary</returns>
 		public override string ToString()
 		{
-			return Config.OutputFilePath;
+			return Config.OutputFilePath.FullName;
 		}
 
 		private LinkEnvironment SetupBinaryLinkEnvironment(LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
@@ -705,8 +705,8 @@ namespace UnrealBuildTool
 			// @todo: This should be in some Windows code somewhere...
 			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
 			var OriginalFilename = (Config.OriginalOutputFilePaths != null) ?
-				Path.GetFileName(Config.OriginalOutputFilePaths[0]) :
-				Path.GetFileName(Config.OutputFilePaths[0]);
+				Config.OriginalOutputFilePaths[0].GetFileName() :
+				Config.OutputFilePaths[0].GetFileName();
 			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
 
 			foreach (var ModuleName in ModuleNames)
@@ -766,7 +766,7 @@ namespace UnrealBuildTool
 			BinaryLinkEnvironment.Config.IntermediateDirectory = Config.IntermediateDirectory;
 
 			// Put the non-executable output files (PDB, import library, etc) in the same directory as the production
-			BinaryLinkEnvironment.Config.OutputDirectory = Path.GetDirectoryName(Config.OutputFilePaths[0]);
+			BinaryLinkEnvironment.Config.OutputDirectory = Config.OutputFilePaths[0].Directory;
 
 			// Setup link output type
 			BinaryLinkEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
@@ -849,12 +849,12 @@ namespace UnrealBuildTool
 			var ModuleName = ModuleNames.First(Name => Name.CompareTo(BuildConfiguration.UCAModuleToAnalyze) == 0);
 			var ModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(ModuleName);
 			var ModulePrivatePCH = ModuleCPP.ProcessedDependencies.UniquePCHHeaderFile;
-			var IntermediatePath = Path.Combine(Target.ProjectIntermediateDirectory, ModuleName);
+			var IntermediatePath = Path.Combine(Target.ProjectIntermediateDirectory.FullName, ModuleName);
 			var OutputFileName = Target.OutputPath;
-			var OutputFile = FileItem.GetItemByPath(OutputFileName);
+			var OutputFile = FileItem.GetItemByFileReference(OutputFileName);
 
 			Action LinkAction = new Action(ActionType.Compile);
-			LinkAction.WorkingDirectory = Path.GetFullPath(".");
+			LinkAction.WorkingDirectory = UnrealBuildTool.EngineSourceDirectory.FullName;
 			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
 			LinkAction.ProducedItems.Add(OutputFile);
 			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);
@@ -909,7 +909,7 @@ namespace UnrealBuildTool
 			UEToolChain.GetPlatformToolChain(CPPTargetPlatform.Win64).CompileCSharpProject(
 				ProjectCSharpEnviroment, Config.ProjectFilePath, Config.OutputFilePath);
 
-			return new FileItem[] { FileItem.GetItemByPath(Config.OutputFilePath) };
+			return new FileItem[] { FileItem.GetItemByFileReference(Config.OutputFilePath) };
 		}
 	};
 }

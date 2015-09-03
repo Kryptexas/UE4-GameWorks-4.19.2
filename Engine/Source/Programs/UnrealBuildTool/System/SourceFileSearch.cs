@@ -15,14 +15,14 @@ namespace UnrealBuildTool
 
 
 		/// Finds mouse source files
-		public static List<string> FindModuleSourceFiles( string ModuleRulesFile, bool ExcludeNoRedistFiles, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
+		public static List<FileReference> FindModuleSourceFiles( FileReference ModuleRulesFile, bool ExcludeNoRedistFiles, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
 		{
 			// The module's "base directory" is simply the directory where its xxx.Build.cs file is stored.  We'll always
 			// harvest source files for this module in this base directory directory and all of its sub-directories.
-			var ModuleBaseDirectory = Path.GetDirectoryName( ModuleRulesFile );
+			var ModuleBaseDirectory = ModuleRulesFile.Directory;
 
 			// Find all of the source files (and other files) and add them to the project
-			var DirectoriesToSearch = new List<string>();
+			var DirectoriesToSearch = new List<DirectoryReference>();
 			DirectoriesToSearch.Add( ModuleBaseDirectory );
 			var FoundFiles = SourceFileSearch.FindFiles( DirectoriesToSearch, ExcludeNoRedistFiles: ExcludeNoRedistFiles, SubdirectoryNamesToExclude:null, SearchSubdirectories:SearchSubdirectories, IncludePrivateSourceCode:IncludePrivateSourceCode );
 
@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 		/// <param name="SubdirectoryNamesToExclude">Directory base names to ignore when searching subdirectories.  Can be null.</param>
 		/// <param name="SearchSubdirectories">True to include subdirectories, otherwise we only search the list of base directories</param>
 		/// <param name="IncludePrivateSourceCode">True if source files in the 'Private' directory should be included</param>
-		public static List<string> FindFiles( List<string> DirectoriesToSearch, bool ExcludeNoRedistFiles, List<string> SubdirectoryNamesToExclude = null, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
+		public static List<FileReference> FindFiles( List<DirectoryReference> DirectoriesToSearch, bool ExcludeNoRedistFiles, List<string> SubdirectoryNamesToExclude = null, bool SearchSubdirectories = true, bool IncludePrivateSourceCode = true )
 		{
 			// Certain file types should never be added to project files
 			var ExcludedFileTypes = new string[] 
@@ -61,7 +61,7 @@ namespace UnrealBuildTool
 							"DO_NOT_DELETE.txt",	// Placeholder .txt file in P4
 						};
 
-			var FoundFiles = new List<string>();
+			HashSet<FileReference> FoundFiles = new HashSet<FileReference>();
 			foreach( var SearchDirectory in DirectoriesToSearch )
 			{
 				var FoundFileUnderIntermediateDirectory = string.Empty;
@@ -75,7 +75,7 @@ namespace UnrealBuildTool
 					foreach(var CurSourceFilePath in FileList)
 					{
 						// Get the part of the path that is relative to the module folder
-						var RelativeSourceFilePath = CurSourceFilePath.Substring( SearchDirectory.Length + 1 );
+						var RelativeSourceFilePath = new FileReference(CurSourceFilePath).MakeRelativeTo(SearchDirectory);
 
 						bool IncludeThisFile = true;
 
@@ -167,9 +167,9 @@ namespace UnrealBuildTool
 						if( IncludeThisFile )
 						{
 							// Don't add duplicates
-							if( !FoundFiles.Contains( CurSourceFilePath ) )
+							if( !FoundFiles.Contains( new FileReference(CurSourceFilePath) ) )
 							{
-								FoundFiles.Add( CurSourceFilePath );
+								FoundFiles.Add( new FileReference(CurSourceFilePath) );
 							}
 						}
 					}
@@ -178,11 +178,11 @@ namespace UnrealBuildTool
 				// call the delegate to do the work, based on platform (see note above)
 				if(!Utils.IsRunningOnMono)
 				{
-					DoSearch(Directory.EnumerateFiles( Utils.CleanDirectorySeparators( SearchDirectory ), "*.*", SearchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly ));
+					DoSearch(Directory.EnumerateFiles(SearchDirectory.FullName, "*.*", SearchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly ));
 				}
 				else
 				{
-					DoSearch(Directory.GetFiles(Utils.CleanDirectorySeparators(SearchDirectory), "*.*", SearchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).AsEnumerable());
+					DoSearch(Directory.GetFiles(SearchDirectory.FullName, "*.*", SearchSubdirectories ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).AsEnumerable());
 				}
 
 				if( !string.IsNullOrEmpty( FoundFileUnderIntermediateDirectory ) )
@@ -191,7 +191,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			return FoundFiles;
+			return FoundFiles.ToList();
 		}
 
 	}
