@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:Create a Function which displays text when a key is pressed. 
 Related: Engine/Blueprints/UserGuide/Functions
 Related: Engine/Blueprints/UserGuide/Functions/FunctionCalls
+version:4.8
+skilllevel:Intermediate
 
 [INCLUDE:Engine/Blueprints/UserGuide/Functions#intro]
 

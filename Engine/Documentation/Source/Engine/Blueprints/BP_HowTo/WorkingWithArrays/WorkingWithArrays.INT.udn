@@ -4,6 +4,8 @@ Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:Showcases different methods in which you can use Arrays for a collection of variables. 
 Related: Engine/Blueprints/UserGuide/Arrays
 Related: Engine/Blueprints/UserGuide/Arrays/ArrayNodes
+version:4.8
+skilllevel:Intermediate
 
 [TOC(start:2)]
 

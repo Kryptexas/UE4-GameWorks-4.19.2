@@ -4,6 +4,10 @@ Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:Using Actor Reference to move different Actors around in a level.
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
 version: 4.9
+skilllevel:Intermediate
+type:howto
+parent:Engine/Blueprints/BP_HowTo
+order:1
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 

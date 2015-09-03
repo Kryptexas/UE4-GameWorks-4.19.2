@@ -5,6 +5,8 @@ Description:A demonstration of passing information directly from one Blueprint t
 Related: Engine/Blueprints/UserGuide/BlueprintComms
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
+version:4.8
+skilllevel:Advanced
 
 This page covers using [Direct Blueprint Communication](Engine/Blueprints/UserGuide/BlueprintComms) to communicate between two Blueprints and pass information between them. 
 
