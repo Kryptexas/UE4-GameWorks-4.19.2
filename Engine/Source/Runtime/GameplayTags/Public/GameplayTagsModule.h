@@ -46,7 +46,7 @@ public:
 	 * 
 	 * @return Gameplay tag associated with the specified name. Will be marked invalid if tag not found
 	 */
-	static FGameplayTag RequestGameplayTag(FName InTagName, bool ErrorIfNotFound=true)
+	FORCEINLINE_DEBUGGABLE static FGameplayTag RequestGameplayTag(FName InTagName, bool ErrorIfNotFound=true)
 	{
 		IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
 		return GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(InTagName, ErrorIfNotFound);
@@ -54,7 +54,7 @@ public:
 
 
 	// Gets the UGameplayTagsManager manager
-	static UGameplayTagsManager& GetGameplayTagsManager()
+	FORCEINLINE_DEBUGGABLE static UGameplayTagsManager& GetGameplayTagsManager()
 	{
 		if (GGameplayTagsManager == nullptr)
 		{

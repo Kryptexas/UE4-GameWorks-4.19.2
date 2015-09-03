@@ -5,6 +5,13 @@
 const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
 const FGameplayTagQuery FGameplayTagQuery::EmptyQuery;
 
+DEFINE_STAT(STAT_FGameplayTagContainer_HasTag);
+DEFINE_STAT(STAT_FGameplayTagContainer_DoesTagContainerMatch);
+DEFINE_STAT(STAT_UGameplayTagsManager_GameplayTagsMatch);
+
+
+
+
 /** Helper class to parse/eval query token streams. */
 class FQueryEvaluator
 {
@@ -396,26 +403,6 @@ bool FQueryEvaluator::EvalExpr(FGameplayTagContainer const& Tags, bool bSkip)
 }
 
 
-
-FGameplayTagContainer::FGameplayTagContainer()
-{}
-
-FGameplayTagContainer::FGameplayTagContainer(FGameplayTagContainer const& Other)
-{
-	*this = Other;
-}
-
-FGameplayTagContainer::FGameplayTagContainer(const FGameplayTag& Tag)
-{
-	AddTag(Tag);
-}
-
-FGameplayTagContainer::FGameplayTagContainer(FGameplayTagContainer&& Other)
-	: GameplayTags(MoveTemp(Other.GameplayTags))
-{
-	
-}
-
 FGameplayTagContainer& FGameplayTagContainer::operator=(FGameplayTagContainer const& Other)
 {
 	// Guard against self-assignment
@@ -453,8 +440,39 @@ bool FGameplayTagContainer::operator!=(FGameplayTagContainer const& Other) const
 	return Filter(Other, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit).Num() != this->Num();
 }
 
-bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
+bool FGameplayTagContainer::ComplexHasTag(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
 {
+	check(TagMatchType != EGameplayTagMatchType::Explicit || TagToCheckMatchType != EGameplayTagMatchType::Explicit);
+	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
+
+	if (TagMatchType != EGameplayTagMatchType::Explicit)
+	{
+		for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
+		{
+			const FGameplayTagContainer* Parents = TagManager.GetAllParentsContainer(*It);
+			if (Parents && Parents->HasTag(TagToCheck, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit))
+			{
+				return true;
+			}
+		}
+	}
+	else
+	{
+		const FGameplayTagContainer* Parents = TagManager.GetAllParentsContainer(TagToCheck);
+		if (Parents && DoesTagContainerMatch(*Parents, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::Any))
+		{
+			return true;
+		}
+
+	}
+	return false;
+}
+
+#if CHECK_TAG_OPTIMIZATIONS
+bool FGameplayTagContainer::HasTagOriginal(FGameplayTag const& TagToCheck, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> TagToCheckMatchType) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_FGameplayTagContainer_HasTag);
+
 	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 	for (TArray<FGameplayTag>::TConstIterator It(this->GameplayTags); It; ++It)
 	{
@@ -465,6 +483,7 @@ bool FGameplayTagContainer::HasTag(FGameplayTag const& TagToCheck, TEnumAsByte<E
 	}
 	return false;
 }
+#endif
 
 bool FGameplayTagContainer::RemoveTagByExplicitName(const FName& TagName)
 {
@@ -514,7 +533,7 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 	return ResultContainer;
 }
 
-bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const
+bool FGameplayTagContainer::DoesTagContainerMatchComplex(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const
 {
 	UGameplayTagsManager& TagManager = IGameplayTagsModule::GetGameplayTagsManager();
 
@@ -547,27 +566,6 @@ bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& O
 	// if we've reached this far then either we are looking for any match and didn't find one (return false) or we're looking for all matches and didn't miss one (return true).
 	check(ContainerMatchType == EGameplayContainerMatchType::All || ContainerMatchType == EGameplayContainerMatchType::Any);
 	return ContainerMatchType == EGameplayContainerMatchType::All;
-}
-
-
-bool FGameplayTagContainer::MatchesAll(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
-{
-	if (Other.Num() == 0)
-	{
-		return bCountEmptyAsMatch;
-	}
-
-	return DoesTagContainerMatch(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::All);
-}
-
-bool FGameplayTagContainer::MatchesAny(FGameplayTagContainer const& Other, bool bCountEmptyAsMatch) const
-{
-	if (Other.Num() == 0)
-	{
-		return bCountEmptyAsMatch;
-	}
-
-	return DoesTagContainerMatch(Other, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit, EGameplayContainerMatchType::Any);
 }
 
 bool FGameplayTagContainer::MatchesQuery(const FGameplayTagQuery& Query) const
@@ -757,20 +755,17 @@ FText FGameplayTagContainer::ToMatchingText(EGameplayContainerMatchType MatchTyp
 	return FText::Format(MatchingDescription[DescriptionIndex], Arguments);
 }
 
-FGameplayTag::FGameplayTag()
-	: TagName(NAME_None)
+bool FGameplayTag::ComplexMatches(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().ComplexGameplayTagsMatch(*this, MatchTypeOne, Other, MatchTypeTwo);
 }
 
-bool FGameplayTag::Matches(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
+#if CHECK_TAG_OPTIMIZATIONS
+bool FGameplayTag::MatchesOriginal(TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& Other, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
 {
-	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatch(*this, MatchTypeOne, Other, MatchTypeTwo);
+	return IGameplayTagsModule::Get().GetGameplayTagsManager().GameplayTagsMatchOriginal(*this, MatchTypeOne, Other, MatchTypeTwo);
 }
-
-bool FGameplayTag::IsValid() const
-{
-	return (TagName != NAME_None);
-}
+#endif
 
 FGameplayTag::FGameplayTag(FName Name)
 	: TagName(Name)

@@ -106,6 +106,8 @@ private:
 
 	/** Owner gameplay tag node, if any */
 	TWeakPtr<FGameplayTagNode> ParentNode;
+
+	FGameplayTagContainer Parents;
 	
 	/** Net Index of this node */
 	FGameplayTagNetIndex NetIndex;
@@ -248,7 +250,47 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 * 
 	 * @return true if there is a match
 	 */
-	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+	FORCEINLINE_DEBUGGABLE bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const
+	{
+		SCOPE_CYCLE_COUNTER(STAT_UGameplayTagsManager_GameplayTagsMatch);
+		bool bResult;
+		if (MatchTypeOne == EGameplayTagMatchType::Explicit && MatchTypeTwo == EGameplayTagMatchType::Explicit)
+		{
+			bResult = GameplayTagOne == GameplayTagTwo;
+		}
+		else
+		{
+			bResult = ComplexGameplayTagsMatch(GameplayTagOne, MatchTypeOne, GameplayTagTwo, MatchTypeTwo);
+		}
+#if CHECK_TAG_OPTIMIZATIONS
+		check(bResult == GameplayTagsMatchOriginal(GameplayTagOne, MatchTypeOne, GameplayTagTwo, MatchTypeTwo));
+#endif
+		return bResult;
+	}
+
+	/**
+	 * Same as above except MatchTypeOne == EGameplayTagMatchType::Explicit && MatchTypeTwo == EGameplayTagMatchType::Explicit is not tested or handled
+	 */
+	bool ComplexGameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+#if CHECK_TAG_OPTIMIZATIONS
+	bool GameplayTagsMatchOriginal(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
+#endif
+
+	/**
+	 * Helper function for GameplayTagsMatch to get a container with all parents.
+	 * @param GameplayTag		tag to get parents of
+	 * @return					pointer to container of parents, if any
+	 */
+	FORCEINLINE_DEBUGGABLE const FGameplayTagContainer* GetAllParentsContainer(const FGameplayTag& GameplayTag)
+	{
+		const TSharedPtr<FGameplayTagNode>* TagNode = GameplayTagNodeMap.Find(GameplayTag);
+		if (TagNode)
+		{
+			return &((*TagNode)->Parents);
+		}
+		return nullptr;
+	}
+
 
 	/** Event for when assets are added to the registry */
 	DECLARE_EVENT(UGameplayTagsManager, FGameplayTagTreeChanged);
