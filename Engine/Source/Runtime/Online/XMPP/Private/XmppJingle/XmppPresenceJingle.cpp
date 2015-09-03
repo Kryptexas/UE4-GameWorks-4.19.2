@@ -287,6 +287,9 @@ FXmppPresenceJingle::FXmppPresenceJingle(class FXmppConnectionJingle& InConnecti
 	: PresenceSendTask(NULL)
 	, PresenceRcvTask(NULL)
 	, Connection(InConnection) 
+	, NumPresenceIn(0)
+    , NumPresenceOut(0)
+	, NumQueryRequests(0)
 {
 
 }
@@ -410,6 +413,7 @@ bool FXmppPresenceJingle::UpdatePresence(const FXmppUserPresence& InPresence)
 		DebugPrintPresence(CachedPresence);
 
 		bResult = PresenceUpdateRequests.Enqueue(new buzz::PresenceStatus(CachedStatus));
+		NumPresenceOut++;
 	}
 
 	return bResult;
@@ -431,6 +435,7 @@ bool FXmppPresenceJingle::QueryPresence(const FString& UserId)
 		UE_LOG(LogXmpp, Verbose, TEXT("Querying presence for user [%s]"), *UserId);
 
 		bResult = PresenceQueryRequests.Enqueue(FXmppUserJid(UserId));
+		NumQueryRequests++;
 	}
 #endif
 
@@ -471,8 +476,9 @@ bool FXmppPresenceJingle::Tick(float DeltaTime)
 		FString UserId;
 		if (RosterUpdates.Dequeue(UserId))
 		{
-			FScopeLock Lock(&RosterLock);
+			NumPresenceIn++;
 
+			FScopeLock Lock(&RosterLock);
 			const FXmppUserPresenceJingle* FoundEntry = RosterPresence.Find(UserId);
 			if (FoundEntry != NULL)
 			{

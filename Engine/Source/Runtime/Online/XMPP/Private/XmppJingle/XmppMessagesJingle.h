@@ -54,6 +54,11 @@ private:
 	/** list of outgoing messages */
 	TQueue<class FXmppMessageJingle*> SendMessageQueue;
 
+	/** Number of messages received in a given interval */
+	int32 NumMessagesReceived;
+	/** Number of messages sent in a given interval */
+	int32 NumMessagesSent;
+
 	class FXmppConnectionJingle& Connection;
 	friend class FXmppConnectionJingle; 
 };

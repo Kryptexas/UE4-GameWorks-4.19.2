@@ -88,6 +88,13 @@ private:
 	/** list of pending outgoing presence query requests */
 	TQueue<FXmppUserJid> PresenceQueryRequests;
 
+	/** Number of presence/roster updates in a given interval */
+    int32 NumPresenceIn;
+	/** Number of outgoing presence updates in a given interval */
+	int32 NumPresenceOut;
+	/** Number of presence queries made in a given interval */
+	int32 NumQueryRequests;
+
 	class FXmppConnectionJingle& Connection;
 	friend class FXmppConnectionJingle; 
 };

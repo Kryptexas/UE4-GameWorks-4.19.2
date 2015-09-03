@@ -188,6 +188,8 @@ private:
 
 FXmppMultiUserChatJingle::FXmppMultiUserChatJingle(class FXmppConnectionJingle& InConnection)
 	: Connection(InConnection)
+	, NumMucResponses(0)
+	, NumOpRequests(0)
 {
 }
 
@@ -1206,6 +1208,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		if (ResultOpQueue.Dequeue(ResultOp) &&
 			ResultOp != NULL)
 		{
+			NumOpRequests++;
 			ProcessResultOp(ResultOp, *this);
 			delete ResultOp;
 		}
@@ -1216,6 +1219,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppConfigQueryResponseJingle* ConfigQueryTaskResponse = NULL;
 		if (ReceivedConfigQueryResponseQueue.Dequeue(ConfigQueryTaskResponse))
 		{
+			NumMucResponses++;
 			// We currently ignore this feature list response because we only work with 1 xmpp server so far & hardcode to those features
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config query response %d for room %s"), ConfigQueryTaskResponse->bSuccess, *ConfigQueryTaskResponse->RoomId);
 			delete ConfigQueryTaskResponse;
@@ -1227,6 +1231,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppConfigResponseJingle* ConfigTaskResponse = NULL;
 		if (ReceivedConfigResponseQueue.Dequeue(ConfigTaskResponse))
 		{
+			NumMucResponses++;
 			UE_LOG(LogXmpp, Verbose, TEXT("Received config response %d for room %s"), ConfigTaskResponse->bSuccess, *ConfigTaskResponse->RoomId);
 			if (ConfigTaskResponse->RoomConfigurationType == EConfigureRoomType::UseCreateCallback)
 			{
@@ -1245,6 +1250,7 @@ bool FXmppMultiUserChatJingle::Tick(float DeltaTime)
 		FXmppRoomInfoRefreshResponseJingle* RefreshTaskResponse = NULL;
 		if (ReceivedRoomInfoRefreshResponseQueue.Dequeue(RefreshTaskResponse))
 		{
+			NumMucResponses++;
 			UE_LOG(LogXmpp, Verbose, TEXT("Received refresh room info response %d for room %s"), RefreshTaskResponse->bSuccess, *RefreshTaskResponse->RoomInfo.Id);
 			OnRoomInfoRefreshed().Broadcast(Connection.AsShared(), RefreshTaskResponse->bSuccess, RefreshTaskResponse->RoomInfo.Id, RefreshTaskResponse->ErrorStr);
 			delete RefreshTaskResponse;

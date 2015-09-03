@@ -8,6 +8,29 @@
 #include "XmppChatJingle.h"
 #include "XmppMultiUserChatJingle.h"
 
+#include "Stats.h"
+
+DECLARE_STATS_GROUP(TEXT("Xmpp"), STATGROUP_Xmpp, STATCAT_Advanced);
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresQry"), STAT_XmppPresenceQueries, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresIn"), STAT_XmppPresenceIn, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("PresOut"), STAT_XmppPresenceOut, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MsgIn"), STAT_XmppMessagesReceived, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MsgOut"), STAT_XmppMessagesSent, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("ChatIn"), STAT_XmppChatReceived, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("ChatOut"), STAT_XmppChatSent, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MucResponses"), STAT_XmppMucResponses, STATGROUP_Xmpp, );
+DECLARE_DWORD_ACCUMULATOR_STAT_EXTERN(TEXT("MucOps"), STAT_XmppMucOpRequests, STATGROUP_Xmpp, );
+
+DEFINE_STAT(STAT_XmppPresenceQueries);
+DEFINE_STAT(STAT_XmppPresenceIn);
+DEFINE_STAT(STAT_XmppPresenceOut);
+DEFINE_STAT(STAT_XmppMessagesReceived);
+DEFINE_STAT(STAT_XmppMessagesSent);
+DEFINE_STAT(STAT_XmppChatReceived);
+DEFINE_STAT(STAT_XmppChatSent);
+DEFINE_STAT(STAT_XmppMucResponses);
+DEFINE_STAT(STAT_XmppMucOpRequests);
+
 #if WITH_XMPP_JINGLE
 
 /**
@@ -352,6 +375,8 @@ FXmppConnectionJingle::FXmppConnectionJingle()
 	, LoginState(ELoginProgress::NotStarted)
 	, PresenceJingle(NULL)
 	, PumpThread(NULL)
+	, StatUpdateFreq(1.0)
+	, LastStatUpdateTime(0.0)
 {
 	PresenceJingle = MakeShareable(new FXmppPresenceJingle(*this));
 	MessagesJingle = MakeShareable(new FXmppMessagesJingle(*this));
@@ -416,48 +441,116 @@ TSharedPtr<class IXmppChat> FXmppConnectionJingle::PrivateChat()
 
 bool FXmppConnectionJingle::Tick(float DeltaTime)
 {
-	FScopeLock Lock(&LoginStateLock);
-
-	if (LastLoginState != LoginState)
 	{
-		if (LoginState == ELoginProgress::LoggedIn)
-		{
-			UE_LOG(LogXmpp, Log, TEXT("Logged IN JID=%s"), *GetUserJid().GetFullPath());
-			if (LastLoginState == ELoginProgress::ProcessingLogin)
-			{
-				OnLoginComplete().Broadcast(GetUserJid(), true, FString());
+		FScopeLock Lock(&LoginStateLock);
 
- 				// send/obtain initial presence
-				if (Presence().IsValid())
+		if (LastLoginState != LoginState)
+		{
+			if (LoginState == ELoginProgress::LoggedIn)
+			{
+				UE_LOG(LogXmpp, Log, TEXT("Logged IN JID=%s"), *GetUserJid().GetFullPath());
+				if (LastLoginState == ELoginProgress::ProcessingLogin)
 				{
-					FXmppUserPresence InitialPresence = Presence()->GetPresence();
-					InitialPresence.bIsAvailable = true;
-					InitialPresence.Status = EXmppPresenceStatus::Offline;
-					Presence()->UpdatePresence(InitialPresence);
+					OnLoginComplete().Broadcast(GetUserJid(), true, FString());
+
+					// send/obtain initial presence
+					if (Presence().IsValid())
+					{
+						FXmppUserPresence InitialPresence = Presence()->GetPresence();
+						InitialPresence.bIsAvailable = true;
+						InitialPresence.Status = EXmppPresenceStatus::Offline;
+						Presence()->UpdatePresence(InitialPresence);
+					}
+				}
+				OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedIn);
+			}
+			else if (LoginState == ELoginProgress::LoggedOut)
+			{
+				UE_LOG(LogXmpp, Log, TEXT("Logged OUT JID=%s"), *GetUserJid().GetFullPath());
+				if (LastLoginState == ELoginProgress::ProcessingLogin)
+				{
+					OnLoginComplete().Broadcast(GetUserJid(), false, FString());
+				}
+				else if (LastLoginState == ELoginProgress::ProcessingLogout)
+				{
+					OnLogoutComplete().Broadcast(GetUserJid(), true, FString());
+				}
+				if (LastLoginState == ELoginProgress::LoggedIn ||
+					LastLoginState == ELoginProgress::ProcessingLogout)
+				{
+					OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedOut);
 				}
 			}
-			OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedIn);
+			LastLoginState = LoginState;
 		}
-		else if (LoginState == ELoginProgress::LoggedOut)
-		{
-			UE_LOG(LogXmpp, Log, TEXT("Logged OUT JID=%s"), *GetUserJid().GetFullPath());
-			if (LastLoginState == ELoginProgress::ProcessingLogin)
-			{
-				OnLoginComplete().Broadcast(GetUserJid(), false, FString());
-			}
-			else if (LastLoginState == ELoginProgress::ProcessingLogout)
-			{
-				OnLogoutComplete().Broadcast(GetUserJid(), true, FString());
-			}
-			if (LastLoginState == ELoginProgress::LoggedIn ||
-				LastLoginState == ELoginProgress::ProcessingLogout)
-			{
-				OnLoginChanged().Broadcast(GetUserJid(), EXmppLoginStatus::LoggedOut);
-			}
-		}
-		LastLoginState = LoginState;
 	}
+
+	UpdateStatCounters();	
 	return true;
+}
+
+void FXmppConnectionJingle::UpdateStatCounters()
+{
+#if STATS
+	double CurTime = FPlatformTime::Seconds();
+	if (CurTime - LastStatUpdateTime >= StatUpdateFreq)
+	{
+		double RealTime = (CurTime - LastStatUpdateTime) / StatUpdateFreq;
+
+		if (PresenceJingle.IsValid())
+		{
+			int32 NumQueryRequests = FMath::RoundToInt(PresenceJingle->NumQueryRequests / RealTime);
+			int32 NumPresenceIn = FMath::RoundToInt(PresenceJingle->NumPresenceIn / RealTime);
+			int32 NumPresenceOut = FMath::RoundToInt(PresenceJingle->NumPresenceOut / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppPresenceQueries, NumQueryRequests);
+			SET_DWORD_STAT(STAT_XmppPresenceIn, NumPresenceIn);
+			SET_DWORD_STAT(STAT_XmppPresenceOut, NumPresenceOut);
+
+			PresenceJingle->NumQueryRequests = 0;
+			PresenceJingle->NumPresenceIn = 0;
+			PresenceJingle->NumPresenceOut = 0;
+		}
+
+		if (MessagesJingle.IsValid())
+		{
+			int32 NumMessagesReceived = FMath::RoundToInt(MessagesJingle->NumMessagesReceived / RealTime);
+			int32 NumMessagesSent = FMath::RoundToInt(MessagesJingle->NumMessagesSent / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppMessagesReceived, NumMessagesReceived);
+			SET_DWORD_STAT(STAT_XmppMessagesSent, NumMessagesSent);
+
+			MessagesJingle->NumMessagesReceived = 0;
+			MessagesJingle->NumMessagesSent = 0;
+		}
+
+		if (ChatJingle.IsValid())
+		{
+			int32 NumReceivedChat = FMath::RoundToInt(ChatJingle->NumReceivedChat / RealTime);
+			int32 NumSentChat = FMath::RoundToInt(ChatJingle->NumSentChat / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppChatReceived, NumReceivedChat);
+			SET_DWORD_STAT(STAT_XmppChatSent, NumSentChat);
+
+			ChatJingle->NumReceivedChat = 0;
+			ChatJingle->NumSentChat = 0;
+		}
+
+		if (MultiUserChatJingle.IsValid())
+		{
+			int32 NumMucResponses = FMath::RoundToInt(MultiUserChatJingle->NumMucResponses / RealTime);
+			int32 NumOpRequests = FMath::RoundToInt(MultiUserChatJingle->NumOpRequests / RealTime);
+
+			SET_DWORD_STAT(STAT_XmppMucResponses, NumMucResponses);
+			SET_DWORD_STAT(STAT_XmppMucOpRequests, NumOpRequests);
+
+			MultiUserChatJingle->NumMucResponses = 0;
+			MultiUserChatJingle->NumOpRequests = 0;
+		}
+
+		LastStatUpdateTime = CurTime;
+	}
+#endif // STATS
 }
 
 void FXmppConnectionJingle::Startup()

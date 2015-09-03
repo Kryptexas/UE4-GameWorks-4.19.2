@@ -167,6 +167,8 @@ FXmppMessagesJingle::FXmppMessagesJingle(class FXmppConnectionJingle& InConnecti
 	: MessageRcvTask(NULL)
 	, MessageSendTask(NULL)
 	, Connection(InConnection)
+	, NumMessagesReceived(0)
+	, NumMessagesSent(0)
 {
 }
 
@@ -256,6 +258,7 @@ bool FXmppMessagesJingle::SendMessage(FString RecipientId, const FXmppMessage& M
 		FXmppMessageJingle* NewMessage = new FXmppMessageJingle();
 		ConvertFromMessage(*NewMessage, FullMessage);
 		bStarted = SendMessageQueue.Enqueue(NewMessage);
+		NumMessagesSent++;
 	}
 	return bStarted;
 }
@@ -267,6 +270,7 @@ bool FXmppMessagesJingle::Tick(float DeltaTime)
 		FXmppMessage* NewMessage = NULL;
 		if (ReceivedMessageQueue.Dequeue(NewMessage))
 		{
+			NumMessagesReceived++;
 			OnReceiveMessage().Broadcast(Connection.AsShared(), NewMessage->FromJid, MakeShareable(NewMessage));
 		}
 	}
@@ -310,7 +314,7 @@ void FXmppMessagesJingle::HandlePumpTick(buzz::XmppPump* XmppPump)
 		FXmppMessageJingle* Message = NULL;
 		if (SendMessageQueue.Dequeue(Message))
 		{
-			// kick off hte send task
+			// kick off the send task
 			if (MessageSendTask != NULL)
 			{
 				MessageSendTask->Send(Message->ToJid, *Message);

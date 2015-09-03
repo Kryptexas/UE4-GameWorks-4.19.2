@@ -208,6 +208,11 @@ private:
 	FOnXmppRoomMemberChanged OnXmppRoomMemberChangedDelegate;
 	FOnXmppRoomChatReceived OnXmppRoomChatReceivedDelegate;
 
+	// Number of Muc room op requests generated */
+	int32 NumOpRequests;
+	/** Number of Muc room op responses generated */
+	int32 NumMucResponses;
+
 	friend class FXmppChatRoomOpResult;
 	friend class FXmppChatRoomCreateOpResult;
 	friend class FXmppChatRoomConfigOpResult;
