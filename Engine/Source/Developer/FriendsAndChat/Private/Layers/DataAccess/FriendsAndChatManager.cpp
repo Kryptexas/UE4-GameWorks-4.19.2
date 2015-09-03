@@ -178,19 +178,8 @@ void FFriendsAndChatManager::InsertNetworkAdminMessage(const FString& InMessage)
 	MessageService->InsertAdminMessage(InMessage);
 }
 
-void FFriendsAndChatManager::JoinGlobalChatRoom()
+void FFriendsAndChatManager::JoinGlobalChatRoom(const FString& RoomName)
 {
-	FString RoomName;
-	FOnlineSubsystemMcp* OnlineSub = (FOnlineSubsystemMcp*)IOnlineSubsystem::Get(TEXT("MCP"));
-	if (OnlineSub != nullptr)
-	{
-		FGameServiceMcpPtr McpGameService = OnlineSub->GetMcpGameService();
-		if (McpGameService.IsValid())
-		{
-			RoomName = McpGameService->GetGlobalChatChannel();
-		}
-	}
-
 	if (!RoomName.IsEmpty() && MessageService->IsInGlobalChat() == false)
 	{
 		ChatRoomstoJoin.AddUnique(RoomName);

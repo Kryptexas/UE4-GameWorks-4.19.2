@@ -141,7 +141,7 @@ public:
 	 * Join a global chat room
 	 * @param RoomName The name of the room
 	 */
-	virtual void JoinGlobalChatRoom() = 0;
+	virtual void JoinGlobalChatRoom(const FString& RoomName) = 0;
 
 	/**
 	 * Delegate when the global chat room has been joined
