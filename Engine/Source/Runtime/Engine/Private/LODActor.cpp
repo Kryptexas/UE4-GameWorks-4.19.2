@@ -14,6 +14,33 @@
 
 #define LOCTEXT_NAMESPACE "LODActor"
 
+static void ToggleHLODEnabled(UWorld* InWorld)
+{
+	FlushRenderingCommands();
+	
+	ULevel* CurrentLevel = InWorld->GetCurrentLevel();	
+	
+	bool bHLODEnabled = ( IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->GetInt() == 1 );
+	IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->Set((int32)!bHLODEnabled);
+
+	for (AActor* Actor : CurrentLevel->Actors)
+	{
+		ALODActor* LODActor = Cast<ALODActor>(Actor);
+		if (LODActor)
+		{
+			LODActor->SetHidden(bHLODEnabled);
+			LODActor->SetIsTemporarilyHiddenInEditor(bHLODEnabled);
+			LODActor->MarkComponentsRenderStateDirty();			
+		}
+	}
+}
+
+static FAutoConsoleCommandWithWorld GToggleHLODEnabledCmd(
+	TEXT("ToggleHLODEnabled"),
+	TEXT("Toggles whether or not the HLOD system is enabled."),
+	FConsoleCommandWithWorldDelegate::CreateStatic(ToggleHLODEnabled)
+	);
+
 ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, LODDrawDistance(5000)	
@@ -56,12 +83,12 @@ void ALODActor::PostRegisterAllComponents()
 		(StaticMeshComponent->SceneProxy)->SetHierarchicalLOD_GameThread(LODLevel);
 	}
 
-	UpdateSubActorLODParents();
+	// Clean up sub actor if assets were delete manually
+	CleanSubActorArray();
 
+	UpdateSubActorLODParents();	
 #endif
 }
-
-
 
 #if WITH_EDITOR
 
@@ -230,7 +257,7 @@ void ALODActor::RemoveSubActor(AActor* InActor)
 	StaticMeshComponent->MarkRenderStateDirty();
 
 	// In case the user removes an actor while the HLOD system is force viewing one LOD level
-	InActor->SetIsTemporarilyHiddenInEditor(false);
+	InActor->SetIsTemporarilyHiddenInEditor(false);	
 }
 
 void ALODActor::SetIsDirty(const bool bNewState)
@@ -337,7 +364,6 @@ const uint32 ALODActor::GetNumTriangles()
 	return NumTrianglesInSubActors;
 }
 
-
 void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 {
 	if (StaticMeshComponent)
@@ -352,6 +378,19 @@ void ALODActor::UpdateSubActorLODParents()
 	for (auto& Actor : SubActors)
 	{
 		Actor->SetLODParent(StaticMeshComponent, LODDrawDistance);
+	}
+}
+
+void ALODActor::CleanSubActorArray()
+{
+	for (int32 SubActorIndex = 0; SubActorIndex < SubActors.Num(); ++SubActorIndex)
+	{
+		auto& Actor = SubActors[SubActorIndex];
+		if (Actor == nullptr)
+		{
+			SubActors.RemoveAt(SubActorIndex);
+			SubActorIndex--;
+		}
 	}
 }
 

@@ -147,9 +147,15 @@ namespace HLODOutliner
 		/**
 		* Handles changes in slider value, maps/snaps it to the corresponding HLOD level
 		*
-		* @param NewValue -
+		* @param NewValue - New value of the slider (0.0 - 1.0)
 		*/
 		void HandleForcedLevelSliderValueChanged(float NewValue);
+
+		/** Delegate for starting the forced HLOD level capture from the slider */
+		void HandleForcedLevelSliderCaptureBegin();
+		
+		/** Delegate for ending the forced HLOD level capture from the slider */
+		void HandleForcedLevelSliderCaptureEnd();
 
 		/**
 		* Returns the float sliding value corresponding to the currently forced HLOD level
@@ -200,6 +206,13 @@ namespace HLODOutliner
 		* @param Item - (LODActor)TreeItem containing the ALODActor ptr
 		*/
 		void BuildLODActor(TSharedRef<ITreeItem> Item);	
+
+		/**
+		* Rebuilds the HLOD mesh for the given ALODActor (cluster)
+		*
+		* @param Item - (LODActor)TreeItem containing the ALODActor ptr
+		*/
+		void RebuildLODActor(TSharedRef<ITreeItem> Item);
 
 		/**
 		* Select the LODActor in the Editor Viewport
@@ -479,6 +492,11 @@ namespace HLODOutliner
 
 		/** Currently forced LOD level*/
 		int32 ForcedLODLevel;
+
+		/** Updating slider value for the Forced LOD level */
+		float ForcedLODSliderValue;
+		bool bForcedSliderValueUpdating;
+
 		/** Array with flags for each LOD level (whether or not all their Clusters/LODActors have their meshes built) */
 		TArray<bool> LODLevelBuildFlags;
 		/** Array of LODActors/Cluster per LOD level*/

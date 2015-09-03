@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+// Copyirght 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HierarchicalLODOutlinerPrivatePCH.h"
 #include "HLODOutliner.h"
@@ -27,7 +27,6 @@
 
 #include "HierarchicalLODUtils.h"
 
-
 #define LOCTEXT_NAMESPACE "HLODOutliner"
 
 namespace HLODOutliner
@@ -37,6 +36,8 @@ namespace HLODOutliner
 		bNeedsRefresh = true;
 		CurrentWorld = nullptr;
 		ForcedLODLevel = -1;
+		ForcedLODSliderValue = 0.0f;
+		bForcedSliderValueUpdating = false;
 	}
 
 	SHLODOutliner::~SHLODOutliner()
@@ -95,16 +96,16 @@ namespace HLODOutliner
 			[
 				SNew(SSplitter)
 				.Orientation(Orient_Vertical)
-
+				.Style(FEditorStyle::Get(), "ContentBrowser.Splitter")
 				+ SSplitter::Slot()
 				.Value(0.5)
 				[
-					CreateTreeviewWidget()
+					CreateTreeviewWidget()										
 				]
 				+ SSplitter::Slot()
 				.Value(0.5)
 				[
-					SettingsView.ToSharedRef()
+					SettingsView.ToSharedRef()										
 				]		
 			];
 
@@ -168,7 +169,7 @@ namespace HLODOutliner
 			.OnSelectionChanged(this, &SHLODOutliner::OnOutlinerSelectionChanged)
 			.OnMouseButtonDoubleClick(this, &SHLODOutliner::OnOutlinerDoubleClick)
 			.OnContextMenuOpening(this, &SHLODOutliner::OnOpenContextMenu)
-			.OnExpansionChanged(this, &SHLODOutliner::OnItemExpansionChanged)
+			.OnExpansionChanged(this, &SHLODOutliner::OnItemExpansionChanged)			
 			.HeaderRow
 			(
 				SNew(SHeaderRow)
@@ -201,14 +202,17 @@ namespace HLODOutliner
 					.Text(this, &SHLODOutliner::HandleForceLevelText)
 				]
 				+ SHorizontalBox::Slot()
-					.FillWidth(0.5f)
-					[
-						SNew(SSlider)
-						.IsEnabled(this, &SHLODOutliner::HandleForcedLevelSliderIsEnabled)
-						.OnValueChanged(this, &SHLODOutliner::HandleForcedLevelSliderValueChanged)
-						.Orientation(Orient_Horizontal)
-						.Value(this, &SHLODOutliner::HandleForcedLevelSliderValue)
-					]
+				.Padding(FMargin(5.0f, 0.0f))
+				.FillWidth(0.5f)
+				[
+					SNew(SSlider)
+					.IsEnabled(this, &SHLODOutliner::HandleForcedLevelSliderIsEnabled)
+					.OnValueChanged(this, &SHLODOutliner::HandleForcedLevelSliderValueChanged)
+					.OnMouseCaptureBegin(this, &SHLODOutliner::HandleForcedLevelSliderCaptureBegin)
+					.OnMouseCaptureEnd(this, &SHLODOutliner::HandleForcedLevelSliderCaptureEnd)
+					.Orientation(Orient_Horizontal)
+					.Value(this, &SHLODOutliner::HandleForcedLevelSliderValue)
+				]
 			];
 	}
 
@@ -237,13 +241,12 @@ namespace HLODOutliner
 			/** Delegate to show all properties */
 			static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
 			{
-				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting"))
+				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "Material"))
 				{
 					return true;
 				}
 				return false;
 			}
-
 		};
 
 		SettingsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateStatic(&Local::IsPropertyVisible, true));
@@ -297,6 +300,18 @@ namespace HLODOutliner
 			TreeView->RequestTreeRefresh();
 		}
 
+		// Update the forced LOD level, as the slider for it is being dragged
+		if (bForcedSliderValueUpdating)
+		{
+			// Snap values
+			int32 SnappedValue = FMath::RoundToInt(FMath::Min(ForcedLODSliderValue, 1.0f) * (float)LODLevelDrawDistances.Num());
+			if (SnappedValue - 1 != ForcedLODLevel)
+			{
+				RestoreForcedLODLevel(ForcedLODLevel);
+				ForcedLODLevel = -1;
+				SetForcedLODLevel(SnappedValue - 1);
+			}
+		}
 	}
 
 	void SHLODOutliner::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -494,6 +509,8 @@ namespace HLODOutliner
 			RestoreForcedLODLevel(ForcedLODLevel);
 			SetForcedLODLevel(LevelItem->LODLevelIndex);			
 		}
+
+		ForcedLODSliderValue = ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
 	}
 
 	bool SHLODOutliner::HandleForcedLevelSliderIsEnabled() const
@@ -509,19 +526,23 @@ namespace HLODOutliner
 
 	void SHLODOutliner::HandleForcedLevelSliderValueChanged(float NewValue)
 	{
-		// Snap values
-		int32 SnappedValue = FMath::Min( NewValue, 1.0f ) * LODLevelDrawDistances.Num();
-		if (SnappedValue - 1 != ForcedLODLevel)
-		{
-			RestoreForcedLODLevel(ForcedLODLevel);
-			ForcedLODLevel = -1;
-			SetForcedLODLevel(SnappedValue - 1);
-		}			
+		ForcedLODSliderValue = NewValue;					
+	}
+
+	void SHLODOutliner::HandleForcedLevelSliderCaptureBegin()
+	{
+		bForcedSliderValueUpdating = true;
+	}
+
+	void SHLODOutliner::HandleForcedLevelSliderCaptureEnd()
+	{	
+		bForcedSliderValueUpdating = false;		
+		ForcedLODSliderValue = ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
 	}
 
 	float SHLODOutliner::HandleForcedLevelSliderValue() const
 	{
-		return ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
+		return ForcedLODSliderValue;
 	}
 
 	FText SHLODOutliner::HandleForceLevelText() const
@@ -619,6 +640,25 @@ namespace HLODOutliner
 				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
 				FullRefresh();
 			}			
+		}
+	}
+
+	void SHLODOutliner::RebuildLODActor(TSharedRef<ITreeItem> Item)
+	{
+		if (CurrentWorld)
+		{
+			FLODActorItem* ActorItem = (FLODActorItem*)(&Item.Get());
+
+			auto Parent = ActorItem->GetParent();
+
+			ITreeItem::TreeItemType Type = Parent->GetTreeItemType();
+			if (Type == ITreeItem::HierarchicalLODLevel)
+			{
+				FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
+				ActorItem->LODActor->SetIsDirty(true);
+				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+				FullRefresh();
+			}
 		}
 	}
 
@@ -857,7 +897,32 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnOutlinerDoubleClick(FTreeItemPtr TreeItem)
 	{
+		ITreeItem::TreeItemType Type = TreeItem->GetTreeItemType();
+		const bool bActiveViewportOnly = false;
 		
+		switch (Type)
+		{
+			case ITreeItem::HierarchicalLODLevel:
+			{
+				break;
+			}
+
+			case ITreeItem::HierarchicalLODActor:
+			{
+				FLODActorItem* ActorItem = (FLODActorItem*)(TreeItem.Get());
+				SelectActorInViewport(ActorItem->LODActor.Get(), 0);
+				GEditor->MoveViewportCamerasToActor(*ActorItem->LODActor.Get(), bActiveViewportOnly);
+				break;
+			}
+
+			case ITreeItem::StaticMeshActor:
+			{
+				FStaticMeshActorItem* StaticMeshActorItem = (FStaticMeshActorItem*)(TreeItem.Get());
+				SelectActorInViewport(StaticMeshActorItem->StaticMeshActor.Get(), 0);
+				GEditor->MoveViewportCamerasToActor(*StaticMeshActorItem->StaticMeshActor.Get(), bActiveViewportOnly);
+				break;
+			}
+		}	
 	}
 
 	TSharedPtr<SWidget> SHLODOutliner::OnOpenContextMenu()
@@ -874,7 +939,7 @@ namespace HLODOutliner
 		FMenuBuilder MenuBuilder(bCloseAfterSelection, TSharedPtr<FUICommandList>(), Extender);
 
 		const auto NumSelectedItems = TreeView->GetNumItemsSelected();
-		if (NumSelectedItems == 1)
+		if (NumSelectedItems == 1 && TreeView->GetSelectedItems()[0]->GetTreeItemType() != ITreeItem::HierarchicalLODLevel)
 		{
 			TreeView->GetSelectedItems()[0]->GenerateContextMenu(MenuBuilder, *this);
 
@@ -1211,41 +1276,46 @@ namespace HLODOutliner
 					TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
 				}
 
-				for (AActor* Actor : CurrentWorld->GetCurrentLevel()->Actors)
+				for (ULevel* Level : CurrentWorld->GetLevels())
 				{
-					if (Actor && Actor->IsA<ALODActor>())
+					for (AActor* Actor : Level->Actors)
 					{
-						ALODActor* LODActor = CastChecked<ALODActor>(Actor);
-
-						if (LODActor)
+						if (Actor && Actor->IsA<ALODActor>())
 						{
-							FTreeItemRef Item = MakeShareable(new FLODActorItem(LODActor));
-							AllNodes.Add(Item->AsShared());
+							ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 
-							PendingActions.Emplace(FOutlinerAction::AddItem, Item, LevelNodes[LODActor->LODLevel - 1]);
-
-							for (AActor* ChildActor : LODActor->SubActors)
+							if (LODActor)
 							{
-								if (ChildActor->IsA<ALODActor>())
-								{
-									FTreeItemRef ChildItem = MakeShareable(new FLODActorItem(CastChecked<ALODActor>(ChildActor)));
-									AllNodes.Add(ChildItem->AsShared());
-									Item->AddChild(ChildItem);
-								}
-								else
-								{
-									FTreeItemRef ChildItem = MakeShareable(new FStaticMeshActorItem(ChildActor));
-									AllNodes.Add(ChildItem->AsShared());
+								FTreeItemRef Item = MakeShareable(new FLODActorItem(LODActor));
+								AllNodes.Add(Item->AsShared());
 
-									PendingActions.Emplace(FOutlinerAction::AddItem, ChildItem, Item);
+								PendingActions.Emplace(FOutlinerAction::AddItem, Item, LevelNodes[LODActor->LODLevel - 1]);
+
+								for (AActor* ChildActor : LODActor->SubActors)
+								{
+									if (ChildActor->IsA<ALODActor>())
+									{
+										FTreeItemRef ChildItem = MakeShareable(new FLODActorItem(CastChecked<ALODActor>(ChildActor)));
+										AllNodes.Add(ChildItem->AsShared());
+										Item->AddChild(ChildItem);
+									}
+									else
+									{
+										FTreeItemRef ChildItem = MakeShareable(new FStaticMeshActorItem(ChildActor));
+										AllNodes.Add(ChildItem->AsShared());
+
+										PendingActions.Emplace(FOutlinerAction::AddItem, ChildItem, Item);
+									}
 								}
+
+								LODLevelBuildFlags[LODActor->LODLevel - 1] &= !LODActor->IsDirty();
+								LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
 							}
-
-							LODLevelBuildFlags[LODActor->LODLevel - 1] &= !LODActor->IsDirty();
-							LODLevelActors[LODActor->LODLevel - 1].Add(LODActor);
 						}
 					}
 				}
+
+				
 
 				for (uint32 LODLevelIndex = 0; LODLevelIndex < LODLevels; ++LODLevelIndex)
 				{

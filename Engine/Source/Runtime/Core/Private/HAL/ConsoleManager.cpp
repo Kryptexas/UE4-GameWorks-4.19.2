@@ -2111,3 +2111,9 @@ static TAutoConsoleVariable<int32> CVarCheckSRVTransitions(
 	0,
 	TEXT("Tests that render targets are properly transitioned to SRV when SRVs are set."),
 	ECVF_RenderThreadSafe);  
+
+static TAutoConsoleVariable<int32> CVarHLODSystemEnabled(
+	TEXT("r.HLODEnabled"), 
+	1,
+	TEXT("Toggles whether or not the Hierarchical LOD system is enabled."),
+	ECVF_Scalability | ECVF_RenderThreadSafe);

@@ -17,7 +17,7 @@ GENERATED_UCLASS_BODY()
 
 private_subobject:
 	// disable display of this component
-	UPROPERTY(/*Category=LODActor, VisibleAnywhere*/)
+	UPROPERTY(Category=LODActor, VisibleAnywhere)
 	class UStaticMeshComponent* StaticMeshComponent;
 
 public:
@@ -92,6 +92,9 @@ public:
 	
 	/** Updates the LODParents for the SubActors (and the drawing distance)*/
 	void UpdateSubActorLODParents();
+
+	/** Cleans the SubActor array (removes all NULL entries) */
+	void CleanSubActorArray();
 #endif // WITH_EDITOR
 	
 	// Begin UObject interface.

@@ -1395,7 +1395,7 @@ public:
 	void UpdateNodeSceneInfo(FPrimitiveComponentId NodeId, FPrimitiveSceneInfo* SceneInfo);
 	void PopulateHiddenFlags(FViewInfo& View, FSceneBitArray& HiddenFlags);
 
-	bool IsActive() { return SceneNodes.Num() > 0; }
+	bool IsActive() { return (SceneNodes.Num() > 0) && (IConsoleManager::Get().FindConsoleVariable(TEXT("r.HLODEnabled"))->GetInt() == 1); }
 
 private:
 	/** Scene this Tree belong to */
