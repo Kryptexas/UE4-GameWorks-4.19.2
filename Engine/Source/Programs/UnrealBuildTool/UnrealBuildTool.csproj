@@ -124,7 +124,7 @@
     <Compile Include="Mac\UEBuildMac.cs" />
     <Compile Include="Mac\MacProjectGenerator.cs" />
     <Compile Include="Mac\UEDeployMac.cs" />
-    <Compile Include="System\FileSystemNames.cs" />
+    <Compile Include="System\FileSystemReference.cs" />
     <Compile Include="System\TargetReceipt.cs" />
     <Compile Include="System\VersionManifest.cs" />
     <Compile Include="ToolChain\AppleToolChain.cs" />
