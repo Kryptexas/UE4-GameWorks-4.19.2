@@ -62,7 +62,7 @@ namespace UnrealBuildTool
 	/// <summary>
 	/// Class that stores info about aliased file.
 	/// </summary>
-	public class AliasedFile
+	public struct AliasedFile
 	{
 		public AliasedFile(string FileSystemPath, string ProjectPath)
 		{
@@ -71,10 +71,10 @@ namespace UnrealBuildTool
 		}
 
 		// File system path.
-		public string FileSystemPath { get; private set; }
+		public readonly string FileSystemPath;
 
 		// Project path.
-		public string ProjectPath { get; private set; }
+		public readonly string ProjectPath;
 	}
 
 	public abstract class ProjectFile : IntelliSenseGatherer

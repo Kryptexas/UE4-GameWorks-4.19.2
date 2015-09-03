@@ -546,12 +546,25 @@ namespace UnrealBuildTool
 					// By default, files will appear relative to the project file in the solution.  This is kind of the normal Visual
 					// Studio way to do things, but because our generated project files are emitted to intermediate folders, if we always
 					// did this it would yield really ugly paths int he solution explorer
-					string FilterRelativeSourceDirectory = Path.GetDirectoryName(ProjectRelativeSourceFile);
-
-					// Use the specified relative base folder
-					if (CurFile.BaseFolder != null)
+					string FilterRelativeSourceDirectory;
+					if(CurFile.BaseFolder == null)
 					{
-						FilterRelativeSourceDirectory = Path.GetDirectoryName(CurFile.Reference.MakeRelativeTo(CurFile.BaseFolder));
+						FilterRelativeSourceDirectory = ProjectRelativeSourceFile;
+					}
+					else
+					{
+						FilterRelativeSourceDirectory = CurFile.Reference.MakeRelativeTo(CurFile.BaseFolder);
+					}
+
+					// Manually remove the filename for the filter. We run through this code path a lot, so just do it manually.
+					int LastSeparatorIdx = FilterRelativeSourceDirectory.LastIndexOf(Path.DirectorySeparatorChar);
+					if(LastSeparatorIdx == -1)
+					{
+						FilterRelativeSourceDirectory = "";
+					}
+					else
+					{
+						FilterRelativeSourceDirectory = FilterRelativeSourceDirectory.Substring(0, LastSeparatorIdx);
 					}
 
 					LocalAliasedFiles.Add(new AliasedFile(ProjectRelativeSourceFile, FilterRelativeSourceDirectory));
