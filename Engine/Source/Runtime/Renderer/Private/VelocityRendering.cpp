@@ -315,11 +315,6 @@ bool FVelocityDrawingPolicy::HasVelocity(const FViewInfo& View, const FPrimitive
 		return true;
 	}
 
-	if (PrimitiveSceneInfo->bVelocityIsSupressed)
-	{
-		return false;
-	}
-
 	// check if the primitive has moved
 	{
 		FMatrix PreviousLocalToWorld;
@@ -353,12 +348,6 @@ bool FVelocityDrawingPolicy::HasVelocityOnBasePass(const FViewInfo& View,const F
 	checkSlow(IsInParallelRenderingThread());
 	// No velocity if motionblur is off, or if it's a non-moving object (treat as background in that case)
 	if (View.bCameraCut)
-	{
-		return false;
-	}
-
-	//@todo-rco: Where is this set?
-	if (PrimitiveSceneInfo->bVelocityIsSupressed)
 	{
 		return false;
 	}

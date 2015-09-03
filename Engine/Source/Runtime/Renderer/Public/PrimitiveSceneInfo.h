@@ -210,9 +210,6 @@ public:
 	/** Whether the primitive is newly registered or moved and CachedReflectionCaptureProxy needs to be updated on the next render. */
 	uint32 bNeedsCachedReflectionCaptureUpdate : 1;
 
-	/** This primitive has the Motion Blur explicitly disabled */
-	uint32 bVelocityIsSupressed : 1;
-
 	/** The hit proxies used by the primitive. */
 	TArray<TRefCountPtr<HHitProxy> > HitProxies;
 

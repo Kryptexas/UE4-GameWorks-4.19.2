@@ -90,7 +90,6 @@ FPrimitiveSceneInfo::FPrimitiveSceneInfo(UPrimitiveComponent* InComponent,FScene
 	IndirectLightingCacheAllocation(NULL),
 	CachedReflectionCaptureProxy(NULL),
 	bNeedsCachedReflectionCaptureUpdate(true),
-	bVelocityIsSupressed(false),
 	DefaultDynamicHitProxy(NULL),
 	LightList(NULL),
 	LastRenderTime(-FLT_MAX),
