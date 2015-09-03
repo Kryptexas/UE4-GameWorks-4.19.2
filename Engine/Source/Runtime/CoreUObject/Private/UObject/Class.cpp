@@ -3641,8 +3641,7 @@ void UClass::PurgeClass(bool bRecompilingOnLoad)
 	ScriptObjectReferences.Empty();
 
 	FuncMap.Empty();
-	ParentFuncMap.Empty();
-	InterfaceFuncMap.Empty();
+	ClearFunctionMapsCaches();
 	PropertyLink = NULL;
 }
 
