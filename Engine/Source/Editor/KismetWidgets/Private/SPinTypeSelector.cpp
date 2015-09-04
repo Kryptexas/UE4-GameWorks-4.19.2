@@ -12,6 +12,25 @@
 
 static const FString BigTooltipDocLink = TEXT("Shared/Editor/Blueprint/VariableTypes");
 
+/** Manages items in the Object Reference Type list, the sub-menu of the PinTypeSelector */
+struct FObjectReferenceType
+{
+	/** Item that is being referenced */
+	FPinTypeTreeItem PinTypeItem;
+
+	/** Widget to display for this item */
+	TSharedPtr< SWidget > WidgetToDisplay;
+
+	/** Category that should be used when this item is selected */
+	FString PinCategory;
+
+	FObjectReferenceType(FPinTypeTreeItem InPinTypeItem, TSharedRef< SWidget > InWidget, FString InPinCategory)
+		: PinTypeItem(InPinTypeItem)
+		, WidgetToDisplay(InWidget)
+		, PinCategory(InPinCategory)
+	{}
+};
+
 class SPinTypeRow : public SComboRow<FPinTypeTreeItem>
 {
 public:
@@ -43,16 +62,22 @@ public:
 	}
 	// End of SWidget interface
 
-	/** Returns TRUE if there is a Sub-Menu to open */
+	/** Returns TRUE if there is a Sub-Menu available to open */
 	bool HasSubMenu() const
 	{
 		return SubMenuHandler.Pin()->HasSubMenu();
 	}
 
-	/** Forces the sub-menu open, clobbering any other open ones in the process */
-	void RequestSubMenuToggle()
+	/** Returns TRUE if there is a Sub-Menu open */
+	bool IsSubMenuOpen() const
 	{
-		SubMenuHandler.Pin()->RequestSubMenuToggle(true, true);
+		return SubMenuHandler.Pin()->IsSubMenuOpen();
+	}
+
+	/** Forces the sub-menu open, clobbering any other open ones in the process */
+	void RequestSubMenuToggle(bool bInImmediate = false)
+	{
+		SubMenuHandler.Pin()->RequestSubMenuToggle(true, true, bInImmediate);
 	}
 
 private:
@@ -81,7 +106,7 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 
 	bIsRightMousePressed = false;
 
-	// Depending on if this is a compact selector or not, we generate a different compoound widget
+	// Depending on if this is a compact selector or not, we generate a different compound widget
 	TSharedPtr<SWidget> Widget;
 
 	if (InArgs._bCompactSelector)
@@ -278,37 +303,81 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 	return ReturnWidget;
 }
 
-void SPinTypeSelector::AddObjectReferenceMenuEntry(FMenuBuilder& InOutMenuBuilder, FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush, FText InSimpleTooltip) const
+TSharedRef<SWidget> SPinTypeSelector::CreateObjectReferenceWidget(FPinTypeTreeItem InItem, FEdGraphPinType& InPinType, const FSlateBrush* InIconBrush, FText InSimpleTooltip) const
 {
-	InOutMenuBuilder.AddMenuEntry(
-		FUIAction(
-		FExecuteAction::CreateSP(this, &SPinTypeSelector::OnSelectPinType, InItem, InPinType.PinCategory)
-		),
-		// Contents
-		SNew(SHorizontalBox)
-			.ToolTip(IDocumentation::Get()->CreateToolTip(InSimpleTooltip, NULL, *BigTooltipDocLink, InPinType.PinCategory))
+	return SNew(SHorizontalBox)
+		.ToolTip(IDocumentation::Get()->CreateToolTip(InSimpleTooltip, NULL, *BigTooltipDocLink, InPinType.PinCategory))
 		+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(1.f)
+		.AutoWidth()
+		.Padding(1.f)
 		[
 			SNew(SImage)
-				.Image(InIconBrush)
-				.ColorAndOpacity(Schema->GetPinTypeColor(InPinType))
+			.Image(InIconBrush)
+			.ColorAndOpacity(Schema->GetPinTypeColor(InPinType))
 		]
 		+SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(1.f)
+		.AutoWidth()
+		.Padding(1.f)
 		[
 			SNew(STextBlock)
-				.Text(UEdGraphSchema_K2::GetCategoryText(InPinType.PinCategory))
-				.Font(FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
-		]
-		);
+			.Text(UEdGraphSchema_K2::GetCategoryText(InPinType.PinCategory))
+			.Font(FEditorStyle::GetFontStyle(TEXT("Kismet.TypePicker.NormalFont")) )
+		];
 }
 
-TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem InItem) const
+class SObjectReferenceWidget : public SCompoundWidget
 {
-	FMenuBuilder MenuBuilder( false, MakeShareable(new FUICommandList) );
+public:
+	SLATE_BEGIN_ARGS( SObjectReferenceWidget )
+	{}
+		SLATE_DEFAULT_SLOT( FArguments, Content )
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs, TWeakPtr< SMenuOwner > InMenuOwner)
+	{
+		MenuOwner = InMenuOwner;
+
+		this->ChildSlot
+		[
+			InArgs._Content.Widget
+		];
+	}
+
+	// SWidget interface
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& KeyEvent) override
+	{
+		if (MenuOwner.IsValid() && (KeyEvent.GetKey() == EKeys::Left || KeyEvent.GetKey() == EKeys::Escape))
+		{
+			MenuOwner.Pin()->CloseSummonedMenus();
+			return FReply::Handled();
+		}
+		return FReply::Unhandled();
+	}
+	// End of SWidget interface
+
+private:
+	TWeakPtr< SMenuOwner > MenuOwner;
+};
+
+TSharedRef<ITableRow> SPinTypeSelector::GenerateObjectReferenceTreeRow(FObjectReferenceListItem InItem, const TSharedRef<STableViewBase>& OwnerTree)
+{
+	return SNew(SComboRow<FObjectReferenceListItem>, OwnerTree)
+		[
+			InItem->WidgetToDisplay.ToSharedRef()
+		];
+}
+
+void SPinTypeSelector::OnObjectReferenceSelectionChanged(FObjectReferenceListItem InItem, ESelectInfo::Type SelectInfo)
+{
+	if (SelectInfo != ESelectInfo::OnNavigation)
+	{
+		OnSelectPinType(InItem->PinTypeItem, InItem->PinCategory);
+	}
+}
+
+TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem InItem)
+{
+	AllowedObjectReferenceTypes.Reset();
 
 	// Do not force the pin type here, that causes a load of the Blueprint (if unloaded)
 	FEdGraphPinType PinType = InItem->GetPinType(false);
@@ -328,28 +397,60 @@ TSharedRef< SWidget > SPinTypeSelector::GetAllowedObjectTypes(FPinTypeTreeItem I
 	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ObjectReference))
 	{
 		PinType.PinCategory = UEdGraphSchema_K2::PC_Object;
-		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush, FText::Format(LOCTEXT("ObjectTooltip", "Reference an instanced object of type \'{TypeName}\'"), Args));
+		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("ObjectTooltip", "Reference an instanced object of type \'{TypeName}\'"), Args));
+		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
+		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
 	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ClassReference))
 	{
 		PinType.PinCategory = UEdGraphSchema_K2::PC_Class;
-		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush, FText::Format(LOCTEXT("ClassTooltip", "Reference a class of type \'{TypeName}\'"), Args));
+		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("ClassTooltip", "Reference a class of type \'{TypeName}\'"), Args));
+		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
+		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
 	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::AssetID))
 	{
 		PinType.PinCategory = UEdGraphSchema_K2::PC_Asset;
-		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush, FText::Format(LOCTEXT("AssetTooltip", "Path to an instanced object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the object reference."), Args));
+		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("AssetTooltip", "Path to an instanced object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the object reference."), Args));
+		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
+		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
 	if (PossibleObjectReferenceTypes & static_cast<uint8>(EObjectReferenceType::ClassAssetID))
 	{
 		PinType.PinCategory = UEdGraphSchema_K2::PC_AssetClass;
-		AddObjectReferenceMenuEntry(MenuBuilder, InItem, PinType, IconBrush, FText::Format(LOCTEXT("ClassTooltip", "Path to a class object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the class."), Args));
+		TSharedRef<SWidget> Widget = CreateObjectReferenceWidget(InItem, PinType, IconBrush, FText::Format(LOCTEXT("ClassTooltip", "Path to a class object of type \'{Typename}\' which may be in an unloaded state. Can be utilized to asynchronously load the class."), Args));
+		FObjectReferenceListItem ObjectReferenceType = MakeShareable(new FObjectReferenceType(InItem, Widget, PinType.PinCategory));
+		AllowedObjectReferenceTypes.Add(ObjectReferenceType);
 	}
 
-	return MenuBuilder.MakeWidget();
+	TSharedPtr<SListView<FObjectReferenceListItem>> ListView;
+	SAssignNew(ListView, SListView<FObjectReferenceListItem>)
+		.ListItemsSource(&AllowedObjectReferenceTypes)
+		.SelectionMode(ESelectionMode::Single)
+		.OnGenerateRow(this, &SPinTypeSelector::GenerateObjectReferenceTreeRow)
+		.OnSelectionChanged(this, &SPinTypeSelector::OnObjectReferenceSelectionChanged);
+
+	WeakListView = ListView;
+	if (AllowedObjectReferenceTypes.Num())
+	{
+		ListView->SetSelection(AllowedObjectReferenceTypes[0], ESelectInfo::OnNavigation);
+	}
+
+	return 
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+		[
+			SNew(SObjectReferenceWidget, PinTypeSelectorMenuOwner)
+			[
+				SNew(SListViewSelectorDropdownMenu<FObjectReferenceListItem>, nullptr, ListView)
+				[
+					ListView.ToSharedRef()
+				]
+			]
+		];
 }
 
 void SPinTypeSelector::OnSelectPinType(FPinTypeTreeItem InItem, FString InPinCategory)
@@ -382,6 +483,12 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 	// When the user is navigating, do not act upon the selection change
 	if(SelectInfo == ESelectInfo::OnNavigation)
 	{
+		// Unless mouse clicking on an item with a sub-menu, all attempts to auto-select should open the sub-menu
+		TSharedPtr<SPinTypeRow> PinRow = StaticCastSharedPtr<SPinTypeRow>(TypeTreeView->WidgetFromItem(Selection));
+		if (PinRow.IsValid() && PinTypeSelectorMenuOwner.IsValid())
+		{
+			PinTypeSelectorMenuOwner.Pin()->CloseSummonedMenus();
+		}
 		return;
 	}
 
@@ -392,9 +499,10 @@ void SPinTypeSelector::OnTypeSelectionChanged(FPinTypeTreeItem Selection, ESelec
 		{
 			// Unless mouse clicking on an item with a sub-menu, all attempts to auto-select should open the sub-menu
 			TSharedPtr<SPinTypeRow> PinRow = StaticCastSharedPtr<SPinTypeRow>(TypeTreeView->WidgetFromItem(Selection));
-			if (SelectInfo != ESelectInfo::OnMouseClick && PinRow.IsValid() && PinRow->HasSubMenu())
+			if (SelectInfo != ESelectInfo::OnMouseClick && PinRow.IsValid() && PinRow->HasSubMenu() && !PinRow->IsSubMenuOpen())
 			{
-				PinRow->RequestSubMenuToggle();
+				PinRow->RequestSubMenuToggle(true);
+				FSlateApplication::Get().SetKeyboardFocus(WeakListView.Pin(), EFocusCause::SetDirectly);
 			}
 			else
 			{
@@ -460,7 +568,7 @@ TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
 			.OnTextChanged( this, &SPinTypeSelector::OnFilterTextChanged )
 			.OnTextCommitted( this, &SPinTypeSelector::OnFilterTextCommitted );
 
-		MenuContent = SNew(SMenuOwner)
+		MenuContent = SAssignNew(PinTypeSelectorMenuOwner, SMenuOwner)
 			[
 				SNew(SListViewSelectorDropdownMenu<FPinTypeTreeItem>, FilterTextBox, TypeTreeView)
 				[
