@@ -325,6 +325,8 @@ public:
 	void AttemptRelink(const FAnimationBaseContext& Context);
 };
 
+#define ENABLE_ANIMNODE_POSE_DEBUG 0
+
 /** A local-space pose link to another node */
 USTRUCT()
 struct ENGINE_API FPoseLink : public FPoseLinkBase
@@ -334,6 +336,12 @@ struct ENGINE_API FPoseLink : public FPoseLinkBase
 public:
 	// Interface
 	void Evaluate(FPoseContext& Output);
+
+#if ENABLE_ANIMNODE_POSE_DEBUG
+private:
+	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
+	FCompactPose CurrentPose;
+#endif //#if ENABLE_ANIMNODE_POSE_DEBUG
 };
 
 /** A component-space pose link to another node */
