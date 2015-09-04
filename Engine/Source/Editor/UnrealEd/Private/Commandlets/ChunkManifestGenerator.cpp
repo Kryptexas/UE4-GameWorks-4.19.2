@@ -556,8 +556,8 @@ bool FChunkManifestGenerator::SaveAssetRegistry(const FString& SandboxPath, cons
 			if (ContainsMap(AssetData.PackageName))
 			{
 				MapList.Add(AssetData.PackageName);
+			}
 		}
-	}
 	}
 
 	AssetRegistry.SaveRegistryData(SerializedAssetRegistry, GeneratedAssetRegistryData, &MapList);
@@ -675,12 +675,12 @@ FString FChunkManifestGenerator::CreateCookerFileOrderString(const TMap<FName, F
 
 	TArray<FName> FileOrder;
 	TArray<FName> EncounteredNames;
-	for (auto Asset : TopLevelMapNodes)
+	for (auto Asset : TopLevelNodes)
 	{
 		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InMaps);
 	}
 
-	for (auto Asset : TopLevelNodes)
+	for (auto Asset : TopLevelMapNodes)
 	{
 		AddAssetToFileOrderRecursive(Asset, FileOrder, EncounteredNames, InAssetData, InMaps);
 	}
