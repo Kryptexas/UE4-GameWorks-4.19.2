@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#include "ActorAnimationEditorPrivatePCH.h"
+#include "ActorAnimationPrivatePCH.h"
 #include "ActorAnimationPlayer.h"
 #include "MovieScene.h"
 #include "MovieSceneSequence.h"
@@ -21,11 +21,11 @@ UActorAnimationPlayer::UActorAnimationPlayer(const FObjectInitializer& ObjectIni
 /* UActorAnimationPlayer interface
  *****************************************************************************/
 
-void UActorAnimationPlayer::PlayActorAnimation(UObject* WorldContextObject, UActorAnimation* ActorAnimation)
+UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation)
 {
 	if (ActorAnimation == nullptr)
 	{
-		return;
+		return nullptr;
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
@@ -39,6 +39,8 @@ void UActorAnimationPlayer::PlayActorAnimation(UObject* WorldContextObject, UAct
 
 	NewPlayer->Initialize(ActorAnimation, World);
 	World->PersistentLevel->AddActiveRuntimeMovieScenePlayer(NewPlayer);
+
+	return NewPlayer;
 }
 
 

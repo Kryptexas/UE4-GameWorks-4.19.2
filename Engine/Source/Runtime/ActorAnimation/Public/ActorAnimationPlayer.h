@@ -4,8 +4,7 @@
 
 #include "IMovieScenePlayer.h"
 #include "ActorAnimation.h"
-#include "IMovieScenePlayer.h"
-#include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
+#include "MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "ActorAnimationPlayer.generated.h"
 
 
@@ -15,13 +14,13 @@ class UMovieSceneBindings;
 
 
 /**
- * RuntimeMovieScenePlayer is used to actually "play" a MovieScene asset at runtime.
+ * UActorAnimationPlayer is used to actually "play" an actor animation asset at runtime.
  *
  * This class keeps track of playback state and provides functions for manipulating
- * a MovieScene while its playing.
+ * an actor animation while its playing.
  */
-UCLASS(MinimalAPI)
-class UActorAnimationPlayer
+UCLASS(BlueprintType)
+class ACTORANIMATION_API UActorAnimationPlayer
 	: public UObject
 	, public IMovieScenePlayer
 	, public IRuntimeMovieScenePlayerInterface
@@ -31,12 +30,13 @@ class UActorAnimationPlayer
 public:
 
 	/**
-	 * Play an actor animation.
+	 * Create a new actor animation player.
 	 *
+	 * @param WorldContextObject Context object from which to retrieve a UWorld.
 	 * @param ActorAnimation The actor animation to play.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
-	static void PlayActorAnimation(UObject* WorldContextObject, UActorAnimation* ActorAnimation);
+	static UActorAnimationPlayer* CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation);
 
 	/** Start playback from the current time cursor position. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
