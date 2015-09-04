@@ -72,6 +72,33 @@ inline FName GetOnlineIdentifier(const FWorldContext& WorldContext)
 
 void UEditorEngine::EndPlayMap()
 {
+	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
+	{
+		TArray<ULevel*> Levels = EditorWorld->GetLevels();
+
+		for (ULevel* Level : Levels)
+		{
+			TArray<UBlueprint*> LevelBlueprints = Level->GetLevelBlueprints();
+
+			if (LevelBlueprints.Num() > 0)
+			{
+				UBlueprint* LevelScriptBlueprint = LevelBlueprints[0];
+				if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass && LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s' with ClassGeneratedBy '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName(), *LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy->GetPathName());
+				}
+				else if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName());
+				}
+				else if (LevelScriptBlueprint)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName());
+				}
+			}
+		}
+	}
+
 	if (GEngine->HMDDevice.IsValid())
 	{
 		GEngine->HMDDevice->OnEndPlay();
@@ -235,6 +262,33 @@ void UEditorEngine::EndPlayMap()
 	}
 
 	FGameDelegates::Get().GetEndPlayMapDelegate().Broadcast();
+
+	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
+	{
+		TArray<ULevel*> Levels = EditorWorld->GetLevels();
+
+		for (ULevel* Level : Levels)
+		{
+			TArray<UBlueprint*> LevelBlueprints = Level->GetLevelBlueprints();
+
+			if (LevelBlueprints.Num() > 0)
+			{
+				UBlueprint* LevelScriptBlueprint = LevelBlueprints[0];
+				if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass && LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s' with ClassGeneratedBy '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName(), *LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy->GetPathName());
+				}
+				else if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName());
+				}
+				else if (LevelScriptBlueprint)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late EndPlayMap Detection: Level '%s' has LevelScriptBlueprint '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName());
+				}
+			}
+		}
+	}
 
 	EditorWorld->bAllowAudioPlayback = true;
 	EditorWorld = NULL;
@@ -2139,6 +2193,33 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();
 
+	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
+	{
+		TArray<ULevel*> Levels = InWorld->GetLevels();
+
+		for (ULevel* Level : Levels)
+		{
+			TArray<UBlueprint*> LevelBlueprints = Level->GetLevelBlueprints();
+
+			if (LevelBlueprints.Num() > 0)
+			{
+				UBlueprint* LevelScriptBlueprint = LevelBlueprints[0];
+				if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass && LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s' with ClassGeneratedBy '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName(), *LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy->GetPathName());
+				}
+				else if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName());
+				}
+				else if (LevelScriptBlueprint)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Early PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName());
+				}
+			}
+		}
+	}
+
 	// Broadcast BeginPIE after checks that might block PIE above (PreBeginPIE is broadcast above before the checks)
 	FEditorDelegates::BeginPIE.Broadcast(bInSimulateInEditor);
 
@@ -2314,6 +2395,33 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	PlayInSettings->MultipleInstanceLastHeight = PlayInSettings->NewWindowHeight;
 	PlayInSettings->MultipleInstanceLastWidth = PlayInSettings->NewWindowWidth;
 	PlayInSettings->SetPlayNetMode(OrigPlayNetMode);
+
+	// Monitoring when PIE corrupts references between the World and the PIE generated World for UE-20486
+	{
+		TArray<ULevel*> Levels = EditorWorld->GetLevels();
+
+		for (ULevel* Level : Levels)
+		{
+			TArray<UBlueprint*> LevelBlueprints = Level->GetLevelBlueprints();
+
+			if (LevelBlueprints.Num() > 0)
+			{
+				UBlueprint* LevelScriptBlueprint = LevelBlueprints[0];
+				if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass && LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s' with ClassGeneratedBy '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName(), *LevelScriptBlueprint->GeneratedClass->ClassGeneratedBy->GetPathName());
+				}
+				else if (LevelScriptBlueprint && LevelScriptBlueprint->GeneratedClass)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s' with GeneratedClass '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName(), *LevelScriptBlueprint->GeneratedClass->GetPathName());
+				}
+				else if (LevelScriptBlueprint)
+				{
+					UE_LOG(LogBlueprintUserMessages, Log, TEXT("Late PlayInEditor Detection: Level '%s' has LevelScriptBlueprint '%s'"), *Level->GetPathName(), *LevelScriptBlueprint->GetPathName());
+				}
+			}
+		}
+	}
 }
 
 void UEditorEngine::SpawnIntraProcessPIEWorlds(bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
