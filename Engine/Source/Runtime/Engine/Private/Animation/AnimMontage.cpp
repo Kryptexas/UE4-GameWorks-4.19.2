@@ -1285,6 +1285,8 @@ bool FAnimMontageInstance::SimulateAdvance(float DeltaTime, float& InOutPosition
 
 void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementParams * OutRootMotionParams, bool bBlendRootMotion)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance);
+
 	if( IsValid() )
 	{
 #if WITH_EDITOR
@@ -1311,6 +1313,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 			while( bPlaying && (FMath::Abs(DesiredDeltaMove) > KINDA_SMALL_NUMBER) && ((OriginalMoveDelta * DesiredDeltaMove) > 0.f) )
 			{
+				SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_Advance_Iteration);
+
 				// Get position relative to current montage section.
 				float PosInSection;
 				int32 CurrentSectionIndex = Montage->GetAnimCompositeSectionIndexFromPos(Position, PosInSection);
@@ -1449,6 +1453,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 	if (!bInterrupted)
 	{
+		SCOPE_CYCLE_COUNTER(STAT_AnimMontageInstance_TickBranchPoints);
+
 		// Tick all active state branching points
 		for (int32 Index = 0; Index < ActiveStateBranchingPoints.Num(); Index++)
 		{

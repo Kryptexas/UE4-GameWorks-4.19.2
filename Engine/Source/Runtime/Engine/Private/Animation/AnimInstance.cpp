@@ -43,6 +43,11 @@ DEFINE_STAT(STAT_TickUpdateRate);
 DEFINE_STAT(STAT_BlueprintUpdateAnimation);
 DEFINE_STAT(STAT_BlueprintPostEvaluateAnimation);
 DEFINE_STAT(STAT_NativeUpdateAnimation);
+DEFINE_STAT(STAT_Montage_Advance);
+DEFINE_STAT(STAT_Montage_UpdateWeight);
+DEFINE_STAT(STAT_AnimMontageInstance_Advance);
+DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
+DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Init Time"), STAT_AnimInitTime, STATGROUP_Anim, );
 DEFINE_STAT(STAT_AnimInitTime);
@@ -1758,7 +1763,7 @@ FName UAnimInstance::GetCurrentStateName(int32 MachineIndex)
 
 void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_Montage_UpdateWeight);
+	SCOPE_CYCLE_COUNTER(STAT_Montage_UpdateWeight);
 
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
@@ -1773,7 +1778,7 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_Montage_Advance);
+	SCOPE_CYCLE_COUNTER(STAT_Montage_Advance);
 
 	// We're about to tick montages, queue their events to they're triggered after batched anim notifies.
 	bQueueMontageEvents = true;
