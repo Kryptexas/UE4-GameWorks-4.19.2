@@ -11,7 +11,7 @@ skilllevel:Intermediate
 
 The steps below will guide you through creating a Function which will print text to the screen when a button is pressed. 
 
-1.  Inside the **Content Browser**, click the **New** Button then select **Blueprint**. 
+1.  Inside the **Content Browser**, click the **New** Button then select **Blueprint Class**. 
 
 	![](NewBlueprint.png)
 
