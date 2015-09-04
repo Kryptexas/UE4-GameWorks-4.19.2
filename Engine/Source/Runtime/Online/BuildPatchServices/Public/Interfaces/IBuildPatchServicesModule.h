@@ -20,7 +20,6 @@ namespace ECompactifyMode
 	enum Type
 	{
 		Preview,
-		NoPatchDelete,
 		Full
 	};
 }

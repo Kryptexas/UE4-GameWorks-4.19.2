@@ -57,7 +57,6 @@
 	Optional arguments:
 	-stdout				Adds stdout logging to the app.
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
-	-nopatchdelete		When specified, will only set the modified date of referenced files to the current time, but will NOT delete any patch data.
 	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
 	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
 	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
@@ -179,7 +178,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 
 	EBuildPatchToolMode::Type ToolMode = EBuildPatchToolMode::Unknown;
 	bool bPreview = false;
-	bool bNoPatchDelete = false;
 	bool bPatchWithReuseAgeThreshold = true;
 	bool bIncludeSizes = false;
 
@@ -220,7 +218,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			ToolMode = EBuildPatchToolMode::PatchGeneration;
 		}
 		bPreview = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("preview"))) != INDEX_NONE;
-		bNoPatchDelete = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("nopatchdelete"))) != INDEX_NONE;
 		bIncludeSizes = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("includesizes"))) != INDEX_NONE;
 		BuildRootIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("BuildRoot")));
 		CloudDirIdx = Switches.IndexOfByPredicate(FCommandLineMatcher(TEXT("CloudDir")));
@@ -415,12 +412,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		return 1;
 	}
 
-	if (ToolMode == EBuildPatchToolMode::Compactify && bPreview && bNoPatchDelete)
-	{
-		GLog->Log(ELogVerbosity::Error, TEXT("Only one of -preview and -nopatchdelete can be specified"));
-		return 5;
-	}
-
 	if (!IgnoreListFile.IsEmpty() && !FPaths::FileExists(IgnoreListFile))
 	{
 		GLog->Logf(ELogVerbosity::Error, TEXT("Provided file ignore list was not found %s"), *IgnoreListFile);
@@ -478,10 +469,6 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		if (bPreview)
 		{
 			CompactifyMode = ECompactifyMode::Preview;
-		}
-		else if (bNoPatchDelete)
-		{
-			CompactifyMode = ECompactifyMode::NoPatchDelete;
 		}
 
 		// Run the compactify routine

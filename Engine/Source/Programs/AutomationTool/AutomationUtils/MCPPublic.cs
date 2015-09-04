@@ -393,10 +393,6 @@ namespace EpicGames.MCP.Automation
 			/// </summary>
 			public bool bPreviewCompactify;
 			/// <summary>
-			/// Corresponds to the -nopatchdelete parameter
-			/// </summary>
-			public bool bNoPatchDeleteCompactify;
-			/// <summary>
 			/// The full list of manifest files in the compactify directory that we wish to keep; all others will be deleted.
 			/// </summary>
 			public string[] ManifestsToKeep;
