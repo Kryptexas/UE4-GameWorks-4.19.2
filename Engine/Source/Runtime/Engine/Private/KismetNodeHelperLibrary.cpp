@@ -160,10 +160,14 @@ FString UKismetNodeHelperLibrary::GetEnumeratorUserFriendlyName(const UEnum* Enu
 
 uint8 UKismetNodeHelperLibrary::GetValidIndex(const UEnum* Enum, uint8 EnumeratorIndex)
 {
-	const int32 EnumNum = Enum ? Enum->NumEnums() : 0;
-	if (ensure(EnumNum > 0))
+	if (NULL != Enum)
 	{
-		return (EnumeratorIndex < EnumNum) ? EnumeratorIndex : (EnumNum - 1);
+		uint8 EnumValue = Enum->GetValueByIndex(EnumeratorIndex);
+		if (Enum->IsValidEnumValue(EnumValue))
+		{
+			return EnumValue;
+		}
+		return Enum->GetMaxEnumValue();
 	}
 	return 0;
 }
