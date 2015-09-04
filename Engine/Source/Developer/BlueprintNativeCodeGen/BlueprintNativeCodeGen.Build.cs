@@ -23,7 +23,10 @@ public class BlueprintNativeCodeGen : ModuleRules
                 "InputCore",
                 "SlateCore",
                 "Slate",
-                "EditorStyle"
+                "EditorStyle",
+                "KismetCompiler",
+                "Json",
+                "JsonUtilities",
 			}
 		);
 

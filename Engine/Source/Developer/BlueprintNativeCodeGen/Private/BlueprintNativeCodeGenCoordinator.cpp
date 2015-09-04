@@ -44,7 +44,7 @@ namespace BlueprintNativeCodeGenCoordinatorImpl
 	static IAssetRegistry& GetAssetRegistry();
 
 	/**  */
-	static void GatherAssetsToConvert(TArray<FAssetData>& ConversionQueueOut);
+	static void GatherAssetsToConvert(const FNativeCodeGenCommandlineParams& CommandlineParams, TArray<FAssetData>& ConversionQueueOut);
 
 	/** */
 	static void GatherParentAssets(const FAssetData& TargetAsset, TArray<FAssetData>& AssetsOut);
@@ -110,7 +110,7 @@ void FScopedAssetCollector::GatherAssets(const FARFilter& SharedFilter, TArray<F
 		if (SharedFilter.PackageNames.Num() > 0)
 		{
 			ClassFilter.PackageNames = SharedFilter.PackageNames;
-			ClassFilter.PackageNames.Empty();
+			ClassFilter.PackagePaths.Empty();
 			AssetRegistry.GetAssets(ClassFilter, AssetsOut);
 		}
 	}
@@ -199,30 +199,36 @@ static IAssetRegistry& BlueprintNativeCodeGenCoordinatorImpl::GetAssetRegistry()
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintNativeCodeGenCoordinatorImpl::GatherAssetsToConvert(TArray<FAssetData>& ConversionQueueOut)
+static void BlueprintNativeCodeGenCoordinatorImpl::GatherAssetsToConvert(const FNativeCodeGenCommandlineParams& CommandlineParams, TArray<FAssetData>& ConversionQueueOut)
 {
 	IAssetRegistry& AssetRegistry = GetAssetRegistry();
 	// have to make sure that the asset registry is fully populated
 	AssetRegistry.SearchAllAssets(/*bSynchronousSearch =*/true);
 
 	FARFilter AssetFilter;
-	AssetFilter.bRecursivePaths = true;
+	AssetFilter.bRecursivePaths = true;	
+
+	auto SetFilterPackages = [&AssetFilter](const TArray<FString>& PackageList)
+	{
+		IFileManager& FileManager = IFileManager::Get();
+
+		for (const FString& PackagePath : PackageList)
+		{
+			const FString RelativePath = FPackageName::LongPackageNameToFilename(PackagePath);
+			if (FileManager.DirectoryExists(*RelativePath))
+			{
+				AssetFilter.PackagePaths.AddUnique(*PackagePath);
+			}
+			else
+			{
+				AssetFilter.PackageNames.AddUnique(*PackagePath);
+			}
+		}
+	};
 
 	const UBlueprintNativeCodeGenConfig* ConfigSettings = GetDefault<UBlueprintNativeCodeGenConfig>();
-	IFileManager& FileManager = IFileManager::Get();
-
-	for (const FString& PackagePath : ConfigSettings->PackagesToAlwaysConvert)
-	{
-		const FString RelativePath = FPackageName::LongPackageNameToFilename(PackagePath);
-		if (FileManager.DirectoryExists(*RelativePath))
-		{
-			AssetFilter.PackagePaths.Add(*PackagePath);
-		}
-		else
-		{
-			AssetFilter.PackageNames.Add(*PackagePath);
-		}
-	}
+	SetFilterPackages(ConfigSettings->PackagesToAlwaysConvert);
+	SetFilterPackages(CommandlineParams.WhiteListedAssetPaths);
 
 	// will be utilized if UBlueprint is an entry in TargetAssetTypes (auto registers
 	FSpecializedAssetCollector<UBlueprint> BlueprintAssetCollector;
@@ -316,6 +322,54 @@ static void BlueprintNativeCodeGenCoordinatorImpl::GatherInterfaceAssets(const F
 
 //------------------------------------------------------------------------------
 FBlueprintNativeCodeGenCoordinator::FBlueprintNativeCodeGenCoordinator(const FNativeCodeGenCommandlineParams& CommandlineParams)
+	: Manifest(CommandlineParams)
 {
-	BlueprintNativeCodeGenCoordinatorImpl::GatherAssetsToConvert(ConversionQueue);
+	BlueprintNativeCodeGenCoordinatorImpl::GatherAssetsToConvert(CommandlineParams, ConversionQueue);
 }
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const FString AssetPath)
+{
+	return ensure(false); // @TODO
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const UBlueprint* Blueprint)
+{
+	UPackage* AssetPackage = Blueprint->GetOutermost();
+	return IsTargetedForConversion(AssetPackage->GetPathName());
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const UClass* Class)
+{
+	if (Class->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+	{
+		UPackage* AssetPackage = Class->GetOutermost();
+		return IsTargetedForConversion(AssetPackage->GetPathName());
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const UEnum* Enum)
+{
+	if (const UUserDefinedEnum* EnumAsset = Cast<UUserDefinedEnum>(Enum))
+	{
+		UPackage* AssetPackage = EnumAsset->GetOutermost();
+		return IsTargetedForConversion(AssetPackage->GetPathName());
+	}
+	return false;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const UStruct* Struct)
+{
+	if (const UUserDefinedStruct* StructAsset = Cast<UUserDefinedStruct>(Struct))
+	{
+		UPackage* AssetPackage = StructAsset->GetOutermost();
+		return IsTargetedForConversion(AssetPackage->GetPathName());
+	}
+	return false;
+}
+

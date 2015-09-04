@@ -4,6 +4,7 @@
 #include "GenerateBlueprintCodeModuleCommandlet.h"
 #include "NativeCodeGenCommandlineParams.h"
 #include "BlueprintNativeCodeGenCoordinator.h"
+#include "BlueprintNativeCodeGenUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintCodeGen, Log, All);
 
@@ -41,6 +42,7 @@ int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
 	}
 
 	FBlueprintNativeCodeGenCoordinator Coordinator(CommandlineParams);
+	FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
 	
 	return 0;
 }

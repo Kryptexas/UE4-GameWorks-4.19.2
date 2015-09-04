@@ -25,6 +25,12 @@ struct FBlueprintNativeCodeGenCoordinator
 public:
 	FBlueprintNativeCodeGenCoordinator(const FNativeCodeGenCommandlineParams& CommandlineParams);
 
+	bool IsTargetedForConversion(const FString AssetPath);
+	bool IsTargetedForConversion(const UBlueprint* Blueprint);
+	bool IsTargetedForConversion(const UClass* Class);
+	bool IsTargetedForConversion(const UEnum* Enum);
+	bool IsTargetedForConversion(const UStruct* Struct);
+
 public:
 	TArray<FAssetData> ConversionQueue;
 	FBlueprintNativeCodeGenManifest Manifest;

@@ -957,62 +957,6 @@ void FKismetEditorUtilities::RecompileBlueprintBytecode(UBlueprint* BlueprintObj
 	}
 }
 
-/** Recompiles the bytecode of a blueprint only.  Should only be run for recompiling dependencies during compile on load */
-void FKismetEditorUtilities::GenerateCppCode(UObject* Obj, TSharedPtr<FString> OutHeaderSource, TSharedPtr<FString> OutCppSource)
-{
-	auto UDEnum = Cast<UUserDefinedEnum>(Obj);
-	auto UDStruct = Cast<UUserDefinedStruct>(Obj);
-	auto BPGC = Cast<UClass>(Obj);
-	auto InBlueprintObj = BPGC ? Cast<UBlueprint>(BPGC->ClassGeneratedBy) : nullptr;
-
-	if (InBlueprintObj)
-	{
-		check(InBlueprintObj->GetOutermost() != GetTransientPackage());
-		checkf(InBlueprintObj->GeneratedClass, TEXT("Invalid generated class for %s"), *InBlueprintObj->GetName());
-		check(OutHeaderSource.IsValid());
-		check(OutCppSource.IsValid());
-
-		auto BlueprintObj = InBlueprintObj;
-		{
-			auto Reinstancer = FBlueprintCompileReinstancer::Create(BlueprintObj->GeneratedClass);
-
-			IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
-
-			TGuardValue<bool> GuardTemplateNameFlag(GCompilingBlueprint, true);
-			FCompilerResultsLog Results;
-
-			FKismetCompilerOptions CompileOptions;
-			CompileOptions.CompileType = EKismetCompileType::Cpp;
-			CompileOptions.OutCppSourceCode = OutCppSource;
-			CompileOptions.OutHeaderSourceCode = OutHeaderSource;
-			Compiler.CompileBlueprint(BlueprintObj, CompileOptions, Results);
-
-			if (EBlueprintType::BPTYPE_Interface == BlueprintObj->BlueprintType && OutCppSource.IsValid())
-			{
-				OutCppSource->Empty(); // ugly temp hack
-			}
-		}
-		CompileBlueprint(BlueprintObj);
-	}
-	else if ((UDEnum || UDStruct) && OutHeaderSource.IsValid())
-	{
-		IKismetCompilerInterface& Compiler = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>(KISMET_COMPILER_MODULENAME);
-		if (UDEnum)
-		{
-			*OutHeaderSource = Compiler.GenerateCppCodeForEnum(UDEnum);
-		}
-		else if (UDStruct)
-		{
-			*OutHeaderSource = Compiler.GenerateCppCodeForStruct(UDStruct);
-		}
-	}
-	else
-	{
-		ensure(false);
-	}
-}
-
-
 namespace ConformComponentsUtils
 {
 	static void ConformRemovedNativeComponents(UObject* BpCdo);
