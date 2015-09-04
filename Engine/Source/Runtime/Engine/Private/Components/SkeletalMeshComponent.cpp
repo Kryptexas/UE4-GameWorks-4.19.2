@@ -1084,9 +1084,9 @@ int32 GetCurveNumber(USkeleton* Skeleton)
 	return 0;
 }
 
+#if WITH_APEX_CLOTHING
 void USkeletalMeshComponent::SubmitClothSimulationContext()
 {
-#if WITH_APEX_CLOTHING
 	InternalClothSimulationContext.ClothTeleportCosineThresholdInRad = EditableClothSimulationContext.ClothTeleportCosineThresholdInRad;
 	InternalClothSimulationContext.ClothTeleportDistThresholdSquared = EditableClothSimulationContext.ClothTeleportDistThresholdSquared;
 
@@ -1095,8 +1095,8 @@ void USkeletalMeshComponent::SubmitClothSimulationContext()
 	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;	//reset editable teleport mode to default because user has to set it directly
 
 	//we intentionally ignore PrevRootBone which is only needed internally, but is still in the Context struct for the sake of const
-#endif
 }
+#endif
 
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
