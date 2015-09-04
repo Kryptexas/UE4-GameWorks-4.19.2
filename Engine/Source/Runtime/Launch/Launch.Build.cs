@@ -205,5 +205,14 @@ public class Launch : ModuleRules
 		{
 			bFasterWithoutUnity = true;
 		}
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"LinuxCommonStartup"
+				}
+			);
+		}
 	}
 }

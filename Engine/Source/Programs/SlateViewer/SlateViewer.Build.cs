@@ -54,5 +54,14 @@ public class SlateViewer : ModuleRules
                 }
             );
 		}
+
+		if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"LinuxCommonStartup"
+				}
+			);
+		}
 	}
 }

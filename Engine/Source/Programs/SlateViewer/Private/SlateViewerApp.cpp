@@ -20,7 +20,7 @@ namespace WorkspaceMenu
 }
 
 
-void RunSlateViewer( const TCHAR* CommandLine )
+int RunSlateViewer( const TCHAR* CommandLine )
 {
 	// start up the main loop
 	GEngineLoop.PreInit(CommandLine);
@@ -76,6 +76,8 @@ void RunSlateViewer( const TCHAR* CommandLine )
 	}
 	FModuleManager::Get().UnloadModulesAtShutdown();
 	FSlateApplication::Shutdown();
+
+	return 0;
 }
 
 namespace

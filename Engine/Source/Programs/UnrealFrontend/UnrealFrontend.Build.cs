@@ -59,6 +59,14 @@ public class UnrealFrontend : ModuleRules
 		{
 			PrivateDependencyModuleNames.Add("VisualStudioSourceCodeAccess");
 		}
+		else if (Target.Platform == UnrealTargetPlatform.Linux)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"LinuxCommonStartup"
+				}
+			);
+		}
 
 		// @todo: allow for better plug-in support in standalone Slate apps
 		PrivateDependencyModuleNames.AddRange(
