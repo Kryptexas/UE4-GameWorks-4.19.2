@@ -133,7 +133,7 @@ struct FGeneratedCodeData
 		{
 			TSharedPtr<FString> HeaderSource(new FString());
 			TSharedPtr<FString> CppSource(new FString());
-			//BFBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource);
+			FBlueprintNativeCodeGenUtils::GenerateCppCode(Obj, HeaderSource, CppSource);
 			SlowTask.EnterProgressFrame();
 
 			const FString FullHeaderFilename = FPaths::Combine(*HeaderDirPath, *(Obj->GetName() + TEXT(".h")));
