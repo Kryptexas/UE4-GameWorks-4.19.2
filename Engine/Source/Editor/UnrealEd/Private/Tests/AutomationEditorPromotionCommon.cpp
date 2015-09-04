@@ -3,6 +3,7 @@
 #include "UnrealEd.h"
 #include "AutomationEditorPromotionCommon.h"
 #include "AssetRegistryModule.h"
+#include "LevelEditor.h"
 #include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "EditorPromotionTestCommon"
@@ -203,6 +204,17 @@ void FEditorPromotionTestUtilities::SetPropertyByName(UObject* TargetObject, con
 		FPropertyChangedEvent PropertyChangedEvent(FoundProperty, EPropertyChangeType::ValueSet);
 		TargetObject->PostEditChangeProperty(PropertyChangedEvent);
 	}
+}
+
+/**
+* Starts a PIE session
+*/
+void FEditorPromotionTestUtilities::StartPIE(bool bSimulateInEditor)
+{
+	FLevelEditorModule& LevelEditorModule = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+	TSharedPtr<class ILevelViewport> ActiveLevelViewport = LevelEditorModule.GetFirstActiveViewport();
+
+	GUnrealEd->RequestPlaySession(false, ActiveLevelViewport, bSimulateInEditor, NULL, NULL, -1, false);
 }
 
 /**

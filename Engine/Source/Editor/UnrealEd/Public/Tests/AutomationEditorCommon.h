@@ -58,7 +58,7 @@ namespace AutomationEditorCommonUtils
 	*
 	* @param InObject - Object to null references to
 	*/
-	void NullReferencesToObject(UObject* InObject);
+	UNREALED_API void NullReferencesToObject(UObject* InObject);
 
 	/**
 	* gets a factory class based off an asset file extension

@@ -89,6 +89,11 @@ public:
 	UNREALED_API static void SetPropertyByName(UObject* TargetObject, const FString& InVariableName, const FString& NewValueString);
 
 	/**
+	* Starts a PIE session
+	*/
+	UNREALED_API static void StartPIE(bool bSimulateInEditor);
+
+	/**
 	* Ends a PIE session
 	*/
 	UNREALED_API static void EndPIE();
