@@ -5,6 +5,7 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "ParticleDefinitions.h"
 #include "BlueprintUtilities.h"
 #include "SkeletalRenderCPUSkin.h"
@@ -20,6 +21,7 @@
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "AI/NavigationSystemHelpers.h"
+#include "PhysicsPublic.h"
 #if WITH_EDITOR
 #include "ShowFlags.h"
 #include "Collision.h"
@@ -27,6 +29,7 @@
 #endif
 #include "PhysicsEngine/PhysicsSettings.h"
 #include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/ClothManager.h"
 
 #if WITH_APEX_CLOTHING
 #include "PhysicsEngine/PhysXSupport.h"
@@ -128,19 +131,22 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 
 #if WITH_APEX_CLOTHING
 	ClothMaxDistanceScale = 1.0f;
-	ClothTeleportMode = FClothingActor::Continuous;
-	PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
 	bResetAfterTeleport = true;
 	TeleportDistanceThreshold = 300.0f;
 	TeleportRotationThreshold = 0.0f;// angles in degree, disabled by default
-	// pre-compute cloth teleport thresholds for performance
-	ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
-	ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
-	bNeedTeleportAndResetOnceMore = false;
 	ClothBlendWeight = 1.0f;
 	bPreparedClothMorphTargets = false;
+
+	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;
+	InternalClothSimulationContext.ClothTeleportMode = FClothingActor::Continuous;
+	InternalClothSimulationContext.PrevRootBoneMatrix = GetBoneMatrix(0); // save the root bone transform
+
+	// pre-compute cloth teleport thresholds for performance
+	EditableClothSimulationContext.ClothTeleportCosineThresholdInRad = FMath::Cos(FMath::DegreesToRadians(TeleportRotationThreshold));
+	EditableClothSimulationContext.ClothTeleportDistThresholdSquared = TeleportDistanceThreshold * TeleportDistanceThreshold;
 	bBindClothToMasterComponent = false;
 	bPrevMasterSimulateLocalSpace = false;
+
 #if WITH_CLOTH_COLLISION_DETECTION
 	ClothingCollisionRevision = 0;
 #endif// #if WITH_CLOTH_COLLISION_DETECTION
@@ -166,8 +172,33 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 	UpdatePreClothTickRegisteredState();
 }
 
+static TAutoConsoleVariable<int32> CVarAsyncCloth(
+	TEXT("p.ParallelCloth"),
+	0,
+	TEXT("Whether cloth prep and simulation is done in off the game thread."));
+
+
 void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
 {
+	if(CVarAsyncCloth.GetValueOnGameThread())
+	{
+		UPhysicsSettings::Get()->bParallelCloth = true;
+	}else 
+	{
+		UPhysicsSettings::Get()->bParallelCloth = false;
+	}
+
+#if WITH_APEX_CLOTHING
+	if(bRegister && UPhysicsSettings::Get()->bParallelCloth)	//If we're using parallel cloth we break the cloth prep code out of the game thread. To do this we must register with the ClothManager which will do the work async
+	{
+		if(FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
+		{
+			FClothManager* ClothManager = PhysScene->GetClothManager();
+			ClothManager->RegisterForClothThisFrame(this);
+		}
+	}
+#endif
+
 	if (bRegister != PreClothTickFunction.IsTickFunctionRegistered())
 	{
 		if (bRegister)
@@ -230,6 +261,10 @@ void USkeletalMeshComponent::OnRegister()
 	{
 		SetComponentTickEnabled(false);
 	}
+
+#if WITH_APEX_CLOTHING
+	RecreateClothingActors();
+#endif
 }
 
 void USkeletalMeshComponent::OnUnregister()
@@ -1049,6 +1084,19 @@ int32 GetCurveNumber(USkeleton* Skeleton)
 	return 0;
 }
 
+void USkeletalMeshComponent::SubmitClothSimulationContext()
+{
+	
+	InternalClothSimulationContext.ClothTeleportCosineThresholdInRad = EditableClothSimulationContext.ClothTeleportCosineThresholdInRad;
+	InternalClothSimulationContext.ClothTeleportDistThresholdSquared = EditableClothSimulationContext.ClothTeleportDistThresholdSquared;
+
+	//If the editable teleport mode is non default it means the user has actively written to it since the previous flip. This means we should use it. Otherwise use the internal because the cloth code set it as needed
+	InternalClothSimulationContext.ClothTeleportMode = EditableClothSimulationContext.ClothTeleportMode == FClothingActor::Default ? InternalClothSimulationContext.ClothTeleportMode : EditableClothSimulationContext.ClothTeleportMode;
+	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;	//reset editable teleport mode to default because user has to set it directly
+
+	//we intentionally ignore PrevRootBone which is only needed internally, but is still in the Context struct for the sake of const
+}
+
 void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AnimGameThreadTime);
@@ -1353,7 +1401,7 @@ void USkeletalMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkelMesh)
 	InitAnim(false);
 
 #if WITH_APEX_CLOTHING
-	ValidateClothingActors();
+	RecreateClothingActors();
 #endif
 }
 
@@ -1843,44 +1891,6 @@ class UAnimSingleNodeInstance* USkeletalMeshComponent::GetSingleNodeInstance() c
 	return Cast<class UAnimSingleNodeInstance>(AnimScriptInstance);
 }
 
-void FSingleAnimationPlayData::Initialize(UAnimSingleNodeInstance* Instance)
-{
-	Instance->SetAnimationAsset(AnimToPlay);
-	Instance->SetPosition(SavedPosition, false);
-	Instance->SetPlayRate(SavedPlayRate);
-	Instance->SetPlaying(bSavedPlaying);
-	Instance->SetLooping(bSavedLooping);
-}
-
-void FSingleAnimationPlayData::PopulateFrom(UAnimSingleNodeInstance* Instance)
-{
-	AnimToPlay = Instance->CurrentAsset;
-	SavedPosition = Instance->CurrentTime;
-	SavedPlayRate = Instance->PlayRate;
-	bSavedPlaying = Instance->bPlaying;
-	bSavedLooping = Instance->bLooping;
-}
-
-void FSingleAnimationPlayData::ValidatePosition()
-{
-	float Min=0,Max=0;
-
-	if (AnimToPlay)
-	{
-		UAnimSequenceBase* SequenceBase = Cast<UAnimSequenceBase>(AnimToPlay);
-		if (SequenceBase)
-		{
-			Max = SequenceBase->SequenceLength;
-		}
-	}
-	else if (VertexAnimToPlay)
-	{
-		Max = VertexAnimToPlay->GetAnimLength();
-	}
-
-	SavedPosition = FMath::Clamp<float>(SavedPosition, Min, Max);
-}
-
 FTransform USkeletalMeshComponent::ConvertLocalRootMotionToWorld(const FTransform& InTransform)
 {
 	// Make sure component to world is up to date
@@ -2242,9 +2252,6 @@ void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 			return;
 		}
 
-		ValidateClothingActors();
-		MasterComp->ValidateClothingActors();
-
 		int32 NumClothingActors = ClothingActors.Num();
 		
 		for(int32 ActorIdx = 0 ; ActorIdx < NumClothingActors ; ++ActorIdx)
@@ -2255,6 +2262,7 @@ void USkeletalMeshComponent::BindClothToMasterPoseComponent()
 			NxClothingActor* MasterApexActor = MasterActor.ApexClothingActor;
 			if(ApexActor && MasterApexActor)
 			{
+				//TODO: wait on parallel animation if needed
 				// Disable our actors
 				ApexActor->setFrozen(true);
 
@@ -2298,6 +2306,7 @@ void USkeletalMeshComponent::UnbindClothFromMasterPoseComponent(bool bRestoreSim
 
 			if(ApexActor)
 			{
+				//TODO: wait on parallel animation if needed
 				ApexActor->setFrozen(false);
 
 				bool bMasterPoseSpaceChanged = (MasterComp->bLocalSpaceSimulation && !bPrevMasterSimulateLocalSpace);

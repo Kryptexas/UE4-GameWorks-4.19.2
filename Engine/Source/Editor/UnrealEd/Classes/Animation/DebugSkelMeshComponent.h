@@ -270,7 +270,7 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	int32 FindCurrentSectionDisplayMode();
 
 	/** to avoid clothing reset while modifying properties in Persona */
-	virtual void CheckClothTeleport(float DeltaTime) override;
+	virtual void CheckClothTeleport(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const override;
 
 #endif //#if WITH_APEX_CLOTHING
 

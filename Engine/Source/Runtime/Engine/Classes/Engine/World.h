@@ -374,7 +374,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 * Tick function that starts the cloth tick
 **/
 USTRUCT()
-struct FStartClothSimulationFunction : public FTickFunction
+struct FStartClothAndAsyncSimulationFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -870,7 +870,7 @@ public:
 	FEndPhysicsTickFunction EndPhysicsTickFunction;
 
 	/** Tick function for starting cloth simulation																				*/
-	FStartClothSimulationFunction StartClothTickFunction;
+	FStartClothAndAsyncSimulationFunction StartClothTickFunction;
 	/** Tick function for ending cloth simulation																				*/
 	FEndClothSimulationFunction EndClothTickFunction;
 
@@ -2112,6 +2112,14 @@ public:
 	/** Returns a reference to the game viewport displaying this world if one exists. */
 	UGameViewportClient* GetGameViewport() const;
 
+private:
+	/** Begin cloth and async simulation */
+	void StartClothAndAsyncSim();
+
+	friend FStartClothAndAsyncSimulationFunction;
+
+public:
+
 	DEPRECATED(4.3, "GetBrush is deprecated use GetDefaultBrush instead.")
 	ABrush* GetBrush() const;
 	/** 
@@ -2980,9 +2988,6 @@ public:
 
 	/** Waits for the physics scene to be done processing */
 	void FinishPhysicsSim();
-
-	/** Begin cloth simulation */
-	void StartClothSim();
 
 	/** Spawns GameMode for the level. */
 	bool SetGameMode(const FURL& InURL);

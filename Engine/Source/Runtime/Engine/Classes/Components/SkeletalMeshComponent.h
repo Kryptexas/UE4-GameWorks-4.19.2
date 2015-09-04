@@ -8,11 +8,81 @@
 #include "SkeletalMeshTypes.h"
 #include "Animation/AnimationAsset.h"
 #include "AnimCurveTypes.h"
+#include "ClothSimData.h"
+#include "SingleAnimationPlayData.h"
 #include "SkeletalMeshComponent.generated.h"
+
+
 
 class UAnimInstance;
 struct FEngineShowFlags;
 struct FConvexVolume;
+
+
+
+
+namespace physx
+{ 
+	namespace apex 
+	{
+		class NxClothingAsset;
+		class NxClothingActor;
+		class NxClothingCollision;
+	}
+}
+
+class FPhysScene;
+
+/** a class to manage an APEX clothing actor */
+class FClothingActor
+{
+public:
+	enum TeleportMode
+	{
+		/** Simulation continues smoothly. This is the most commonly used mode */
+		Continuous,
+		/**
+		 * Transforms the current simulation state from the old global pose to the new global pose.
+		 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
+		 */
+		Teleport,
+
+		/**
+		 * Forces the cloth to the animated position in the next frame.
+		 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
+		 */
+		TeleportAndReset,
+
+		/** The client hasn't specified an override. This is needed for double buffering to determine intent of game code (Do not actually pass into APEX) */
+		Default,
+	};
+
+	void Clear(bool bReleaseResource = false);
+
+	/** 
+	 * to check whether this actor is valid or not 
+	 * because clothing asset can be changed by editing 
+	 */
+	physx::apex::NxClothingAsset*	ParentClothingAsset;
+	/** APEX clothing actor is created from APEX clothing asset for cloth simulation */
+	physx::apex::NxClothingActor*		ApexClothingActor;
+};
+
+//The data that cloth needs for simulation prep in parallel. These properties are accessible via double buffer
+struct FClothSimulationContext
+{
+	/** used for pre-computation using TeleportRotationThreshold property */
+	float ClothTeleportCosineThresholdInRad;
+	/** used for pre-computation using tTeleportDistanceThreshold property */
+	float ClothTeleportDistThresholdSquared;
+private:
+	/** whether we need to teleport cloth. There are functions which allow you to modify this accordingly. Do not access directly as double buffer strategy relies on internal logic being consistent */
+	FClothingActor::TeleportMode ClothTeleportMode;
+	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
+	FMatrix	PrevRootBoneMatrix;
+
+	friend class USkeletalMeshComponent;
+};
 
 struct FAnimationEvaluationContext
 {
@@ -72,61 +142,6 @@ struct FAnimationEvaluationContext
 		SkeletalMesh = NULL;
 	}
 
-};
-
-//#if WITH_APEX
-namespace physx
-{ 
-	namespace apex 
-	{
-		class NxClothingAsset;
-		class NxClothingActor;
-		class NxClothingCollision;
-	}
-}
-//#endif // WITH_APEX
-
-class FPhysScene;
-
-/** a class to manage an APEX clothing actor */
-class FClothingActor
-{
-public:
-	enum TeleportMode
-	{
-		/** Simulation continues smoothly. This is the most commonly used mode */
-		Continuous,
-		/**
-		 * Transforms the current simulation state from the old global pose to the new global pose.
-		 * This will transform positions and velocities and thus keep the simulation state, just translate it to a new pose.
-		 */
-		Teleport,
-
-		/**
-		 * Forces the cloth to the animated position in the next frame.
-		 * This can be used to reset it from a bad state or by a teleport where the old state is not important anymore.
-		 */
-		TeleportAndReset,
-	};
-
-	void Clear(bool bReleaseResource = false);
-
-	/** 
-	 * to check whether this actor is valid or not 
-	 * because clothing asset can be changed by editing 
-	 */
-	physx::apex::NxClothingAsset*	ParentClothingAsset;
-	/** APEX clothing actor is created from APEX clothing asset for cloth simulation */
-	physx::apex::NxClothingActor*		ApexClothingActor;
-	FPhysScene * PhysScene;
-	uint32 SceneType;
-};
-
-/** data for updating cloth section from the results of clothing simulation */
-struct FClothSimulData
-{
-	TArray<FVector4> ClothSimulPositions;
-	TArray<FVector4> ClothSimulNormals;
 };
 
 /**  for storing precomputed cloth morph target data */
@@ -214,55 +229,6 @@ namespace EAnimationMode
 		AnimationSingleNode UMETA(DisplayName="Use Animation Asset")
 	};
 }
-
-USTRUCT()
-struct FSingleAnimationPlayData
-{
-	GENERATED_USTRUCT_BODY()
-
-	// @todo in the future, we should make this one UObject
-	// and have detail customization to display different things
-	// The default sequence to play on this skeletal mesh
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation)
-	class UAnimationAsset* AnimToPlay;
-
-	// @fixme : until we properly support it I'm commenting out editable property part
-	// The default sequence to play on this skeletal mesh
-	UPROPERTY()//EditAnywhere, BlueprintReadWrite, Category=Animation)
-	class UVertexAnimation* VertexAnimToPlay;
-
-	/** Default setting for looping for SequenceToPlay. This is not current state of looping. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Looping"))
-	uint32 bSavedLooping:1;
-
-	/** Default setting for playing for SequenceToPlay. This is not current state of playing. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Playing"))
-	uint32 bSavedPlaying:1;
-
-	/** Default setting for position of SequenceToPlay to play. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Animation, meta=(DisplayName="Initial Position"))
-	float SavedPosition;
-
-	/** Default setting for play rate of SequenceToPlay to play. */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation, meta=(DisplayName="PlayRate"))
-	float SavedPlayRate;
-
-	FSingleAnimationPlayData()
-	{
-		SavedPlayRate = 1.0f;
-		bSavedLooping = true;
-		bSavedPlaying = true;
-		SavedPosition = 0.f;
-	}
-
-	/** Called when initialized. */
-	ENGINE_API void Initialize(class UAnimSingleNodeInstance* Instance);
-
-	/** Populates this play data with the current state of the supplied instance. */
-	ENGINE_API void PopulateFrom(UAnimSingleNodeInstance* Instance);
-
-	void ValidatePosition();
-};
 
 /**
 * Tick function that prepares for cloth tick
@@ -714,47 +680,52 @@ public:
 	FSkeletalMeshComponentPreClothTickFunction PreClothTickFunction;
 
 #if WITH_APEX_CLOTHING
-	/** 
-	* clothing actors will be created from clothing assets for cloth simulation 
-	* 1 actor should correspond to 1 asset
-	*/
-	TArray<FClothingActor> ClothingActors;
 
-	float ClothMaxDistanceScale;
+	/* The public facing editable cloth simulation context. Game code should only modify this from the game thread!*/
+	FClothSimulationContext EditableClothSimulationContext;
 
-	FClothingActor::TeleportMode ClothTeleportMode;
-	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
-	FMatrix	PrevRootBoneMatrix;
-	/** used for pre-computation using TeleportRotationThreshold property */
-	float ClothTeleportCosineThresholdInRad;
-	/** used for pre-computation using tTeleportDistanceThreshold property */
-	float ClothTeleportDistThresholdSquared;
-	/** 
-	 * clothing reset is needed once more to avoid clothing pop up 
-	 * use until Apex clothing bug is resolved 
-	 */
-	bool bNeedTeleportAndResetOnceMore;
-	/** used for checking whether cloth morph target data were pre-computed or not */
-	bool bPreparedClothMorphTargets;
-	/** precomputed actual cloth morph target data */
-	TArray<FClothMorphTargetData> ClothMorphTargets;
+	bool IsClothBoundToMasterComponent() const { return bBindClothToMasterComponent; }
+
+private:
+
+   /** Double buffer for the current cloth simulation context */
+	FClothSimulationContext InternalClothSimulationContext;
 
 	/** Whether or not we're taking cloth sim information from our master component */
 	bool bBindClothToMasterComponent;
 	/** The previous state of the master component simulation coord space, so we can restore on unbind */
 	bool bPrevMasterSimulateLocalSpace;
 
-#if WITH_CLOTH_COLLISION_DETECTION
+	/** Copies the data from the external cloth simulation context. We copy instead of flipping because the API has to return the full struct to make backwards compat easy*/
+	void SubmitClothSimulationContext();
+
+   /** 
+	* clothing actors will be created from clothing assets for cloth simulation 
+	* 1 actor should correspond to 1 asset
+	*/
+	TArray<FClothingActor> ClothingActors;
+
+public:
+
+	const TArray<FClothingActor>& GetClothingActors(){ return ClothingActors; }
+
+	float ClothMaxDistanceScale;
+	/** used for checking whether cloth morph target data were pre-computed or not */
+	bool bPreparedClothMorphTargets;
+
+	/** precomputed actual cloth morph target data */
+	TArray<FClothMorphTargetData> ClothMorphTargets;
+
+	#if WITH_CLOTH_COLLISION_DETECTION
 	/** increase every tick to update clothing collision  */
-	uint32 ClothingCollisionRevision; 
+	uint32 ClothingCollisionRevision;
 
 	TArray<physx::apex::NxClothingCollision*>	ParentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	EnvironmentCollisions;
 	TArray<physx::apex::NxClothingCollision*>	ChildrenCollisions;
 
 	TMap<TWeakObjectPtr<UPrimitiveComponent>, FApexClothCollisionInfo> ClothOverlappedComponentsMap;
-#endif // WITH_CLOTH_COLLISION_DETECTION
-
+	#endif // WITH_CLOTH_COLLISION_DETECTION
 #endif // WITH_APEX_CLOTHING
 
 	/** 
@@ -776,9 +747,10 @@ public:
 
 	/** Store cloth simulation data into OutClothSimData */
 	void GetUpdateClothSimulationData(TArray<FClothSimulData>& OutClothSimData, USkeletalMeshComponent* OverrideLocalRootComponent = nullptr);
-	void ApplyWindForCloth(FClothingActor& ClothingActor);
+	void ApplyWindForCloth(const FClothingActor& ClothingActor) const;
 	void RemoveAllClothingActors();
 	void ReleaseAllClothingResources();
+	bool IsExecutingParallelCloth() const;
 
 	bool IsValidClothingActor(int32 ActorIndex) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
@@ -1163,13 +1135,13 @@ public:
 	*/
 	bool CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta = NULL);
 	/** should call this method if occurred any changes in clothing assets */
-	void ValidateClothingActors();
+	void RecreateClothingActors();
 	/** add bounding box for cloth */
 	void AddClothingBounds(FBoxSphereBounds& InOutBounds) const;
 	/** changes clothing LODs, if clothing LOD is disabled or LODIndex is greater than apex clothing LODs, simulation will be disabled */
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
-	virtual void CheckClothTeleport(float DeltaTime);
+	virtual void CheckClothTeleport(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
 
 	/** 
 	* methods for cloth morph targets 
@@ -1316,11 +1288,15 @@ private:
 
 	void PerformBlendPhysicsBones(const TArray<FBoneIndexType>& InRequiredBones, TArray<FTransform>& InLocalAtoms);
 
+	void ParallelTickClothing(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
+	void ParallelUpdateClothState(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
+
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
 	void PostBlendPhysics();
 
 	friend class FTickClothingTask;
+	friend class FClothManager;
 	void PerformTickClothing(float DeltaTime);
 
 	// these are deprecated variables from removing SingleAnimSkeletalComponent

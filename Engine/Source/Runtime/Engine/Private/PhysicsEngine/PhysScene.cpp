@@ -3,6 +3,8 @@
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
+#include "PhysicsEngine/ClothManager.h"
+#include "Components/SkeletalMeshComponent.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
@@ -98,6 +100,8 @@ FPhysScene::FPhysScene()
 #endif
 	PhysxUserData = FPhysxUserData(this);
 
+	ClothManager = nullptr;
+
 	
 	int64 NumPhysxDispatcher = 0;
 	FParse::Value(FCommandLine::Get(), TEXT("physxDispatcher="), NumPhysxDispatcher);
@@ -180,7 +184,21 @@ FPhysScene::FPhysScene()
 #endif
 }
 
+void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
+{
+	if(OwningWorld != nullptr)
+	{
+		delete ClothManager;
+		ClothManager = nullptr;
+	}
 
+	OwningWorld = InOwningWorld;
+
+	if (OwningWorld)
+	{
+		ClothManager = new FClothManager(OwningWorld, this);
+	}
+}
 
 /** Exposes destruction of physics-engine scene outside Engine. */
 FPhysScene::~FPhysScene()
@@ -588,7 +606,8 @@ void GatherApexStats(const UWorld* World, NxApexScene* ApexScene)
 	for (TObjectIterator<USkeletalMeshComponent> Itr; Itr; ++Itr)
 	{
 		if (Itr->GetWorld() != World) { continue; }
-		for (const FClothingActor& ClothingActor : Itr->ClothingActors)
+		const TArray<FClothingActor>& ClothingActors = Itr->GetClothingActors();
+		for (const FClothingActor& ClothingActor : ClothingActors)
 		{
 			if (ClothingActor.ApexClothingActor && ClothingActor.ApexClothingActor->getActivePhysicalLod() == 1)
 			{
@@ -1115,7 +1134,7 @@ TAutoConsoleVariable<int32> CVarEnableClothPhysics(TEXT("p.ClothPhysics"), 1, TE
 void FPhysScene::StartCloth()
 {
 	FGraphEventArray FinishPrerequisites;
-	if(CVarEnableClothPhysics.GetValueOnGameThread())
+	if(CVarEnableClothPhysics.GetValueOnAnyThread())
 	{
 		TickPhysScene(PST_Cloth, PhysicsSubsceneCompletion[PST_Cloth]);
 		{
@@ -1135,7 +1154,12 @@ void FPhysScene::StartCloth()
 			}
 		}
 	}
-	
+}
+
+
+void FPhysScene::StartAsync()
+{
+	FGraphEventArray FinishPrerequisites;
 
 	//If the async scene is lagged we start it here to make sure any cloth in the async scene is using the results of the previous simulation.
 	if (FrameLagAsync() && bAsyncSceneEnabled)
@@ -1544,6 +1568,12 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 		GPhysXSceneMap.Remove(PhysXSceneIndex[SceneType]);
 	}
 #endif
+
+	if (SceneType == PST_Cloth)
+	{
+		delete ClothManager;
+		ClothManager = nullptr;
+	}
 }
 
 #if WITH_PHYSX

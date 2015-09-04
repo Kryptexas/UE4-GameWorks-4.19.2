@@ -1181,10 +1181,6 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			SCOPE_CYCLE_COUNTER(STAT_TG_EndPhysics);
 			RunTickGroup(TG_EndPhysics);
 		}
-		if ( PhysicsScene != NULL )
-		{
-			GPhysCommandHandler->Flush();
-		}
 		{
 			SCOPE_CYCLE_COUNTER(STAT_TG_PreCloth);
 			RunTickGroup(TG_PreCloth);
@@ -1297,6 +1293,12 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 			SCOPE_CYCLE_COUNTER(STAT_TG_EndCloth);
 			RunTickGroup(TG_EndCloth);
 		}
+		
+		if ( PhysicsScene != NULL )
+		{
+			GPhysCommandHandler->Flush();
+		}
+		
 		FTickTaskManagerInterface::Get().EndFrame(); 
 
 		// All tick is done, execute async trace

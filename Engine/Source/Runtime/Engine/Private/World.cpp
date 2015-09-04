@@ -40,6 +40,7 @@
 #include "GameFramework/GameMode.h"
 #include "GameFramework/GameState.h"
 #include "GameFramework/PlayerState.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
 
 #include "Materials/MaterialParameterCollectionInstance.h"
 
@@ -3449,7 +3450,7 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	// Clear world pointer in old FPhysScene (if there is one)
 	if(PhysicsScene != NULL)
 	{
-		PhysicsScene->OwningWorld = NULL;
+		PhysicsScene->SetOwningWorld(nullptr);
 		delete PhysicsScene;
 	}
 
@@ -3459,7 +3460,7 @@ void UWorld::SetPhysicsScene(FPhysScene* InScene)
 	// Set pointer in scene to know which world its coming from
 	if(PhysicsScene != NULL)
 	{
-		PhysicsScene->OwningWorld = this;
+		PhysicsScene->SetOwningWorld(this);
 	}
 }
 

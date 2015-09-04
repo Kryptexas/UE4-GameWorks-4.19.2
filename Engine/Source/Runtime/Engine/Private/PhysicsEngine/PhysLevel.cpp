@@ -210,7 +210,7 @@ void UWorld::FinishPhysicsSim()
 	PhysScene->EndFrame(LineBatcher);
 }
 
-void UWorld::StartClothSim()
+void UWorld::StartClothAndAsyncSim()
 {
 	FPhysScene* PhysScene = GetPhysicsScene();
 	if (PhysScene == NULL)
@@ -218,7 +218,12 @@ void UWorld::StartClothSim()
 		return;
 	}
 
-	PhysScene->StartCloth();
+	if(!UPhysicsSettings::Get()->bParallelCloth)	//if we're doing parallel cloth, the cloth sim will be ticked from cloth manager
+	{
+		PhysScene->StartCloth();
+	}
+
+	PhysScene->StartAsync();
 }
 
 // the physics tick functions
@@ -281,15 +286,15 @@ FString FEndPhysicsTickFunction::DiagnosticMessage()
 	return TEXT("FEndPhysicsTickFunction");
 }
 
-void FStartClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FStartClothAndAsyncSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(FStartClothSimulationFunction_ExecuteTick);
 
 	check(Target);
-	Target->StartClothSim();
+	Target->StartClothAndAsyncSim();
 }
 
-FString FStartClothSimulationFunction::DiagnosticMessage()
+FString FStartClothAndAsyncSimulationFunction::DiagnosticMessage()
 {
 	return TEXT("FStartClothSimulationFunction");
 }

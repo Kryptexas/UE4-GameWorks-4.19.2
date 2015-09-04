@@ -8,7 +8,8 @@
 
 #include "SkeletalRender.h"
 #include "SkeletalRenderPublic.h"
-#include "GPUSkinVertexFactory.h" 
+#include "GPUSkinVertexFactory.h"
+#include "ClothSimData.h"
 
 // 1 for a single buffer, this creates and releases textures every frame (the driver has to keep the reference and need to defer the release, low memory as it only occupies rendered buffers (up to 3 copies), best Xbox360 method?)
 // 2 for double buffering (works well for PC, caused Xbox360 to stall)
