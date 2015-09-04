@@ -439,9 +439,9 @@ void FCSPose<PoseType>::CalculateComponentSpaceTransform(BoneIndexType BoneIndex
 	FTransform& ParentBone = Pose[ParentIndex];
 	check(!Pose[BoneIndex].ContainsNaN());
 	check(!Pose[ParentIndex].ContainsNaN());
-	FTransform Suspect = Pose[BoneIndex] * Pose[ParentIndex];
-	check(!Suspect.ContainsNaN());
-	Pose[BoneIndex] = Pose[BoneIndex] * Pose[ParentIndex];
+	FTransform ComponentTransform = Pose[BoneIndex] * Pose[ParentIndex];
+	check(!ComponentTransform.ContainsNaN());
+	Pose[BoneIndex] = ComponentTransform;
 	Pose[BoneIndex].NormalizeRotation();
 	check(!Pose[BoneIndex].ContainsNaN());
 	ComponentSpaceFlags[BoneIndex] = 1;
