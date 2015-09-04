@@ -707,4 +707,77 @@ namespace UnrealBuildTool
 			return new FileReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
 		}
 	}
+
+	static class FileReferenceExtensionMethods
+	{
+		/// <summary>
+		/// Manually serialize a file reference to a binary stream.
+		/// </summary>
+		/// <param name="Writer">Binary writer to write to</param>
+		public static void Write(this BinaryWriter Writer, FileReference File)
+		{
+			Writer.Write((File == null)? String.Empty : File.FullName);
+		}
+
+		/// <summary>
+		/// Serializes a file reference, using a lookup table to avoid serializing the same name more than once.
+		/// </summary>
+		/// <param name="Writer">The writer to save this reference to</param>
+		/// <param name="File">A file reference to output; may be null</param>
+		/// <param name="FileToUniqueId">A lookup table that caches previous files that have been output, and maps them to unique id's.</param>
+		public static void Write(this BinaryWriter Writer, FileReference File, Dictionary<FileReference, int> FileToUniqueId)
+		{
+			int UniqueId;
+			if(File == null)
+			{
+				Writer.Write(-1);
+			}
+			else if(FileToUniqueId.TryGetValue(File, out UniqueId))
+			{
+				Writer.Write(UniqueId);
+			}
+			else
+			{
+				Writer.Write(FileToUniqueId.Count);
+				Writer.Write(File);
+				FileToUniqueId.Add(File, FileToUniqueId.Count);
+			}
+		}
+
+		/// <summary>
+		/// Manually deserialize a file reference from a binary stream.
+		/// </summary>
+		/// <param name="Reader">Binary reader to read from</param>
+		/// <returns>New FileReference object</returns>
+		public static FileReference ReadFileReference(this BinaryReader Reader)
+		{
+			string FullName = Reader.ReadString();
+			return (FullName.Length == 0)? null : FileReference.MakeFromNormalizedFullPath(FullName);
+		}
+
+		/// <summary>
+		/// Deserializes a file reference, using a lookup table to avoid writing the same name more than once.
+		/// </summary>
+		/// <param name="Reader">The source to read from</param>
+		/// <param name="UniqueFiles">List of previously read file references. The index into this array is used in place of subsequent ocurrences of the file.</param>
+		/// <returns>The file reference that was read</returns>
+		public static FileReference ReadFileReference(this BinaryReader Reader, List<FileReference> UniqueFiles)
+		{
+			int UniqueId = Reader.ReadInt32();
+			if(UniqueId == -1)
+			{
+				return null;
+			}
+			else if(UniqueId < UniqueFiles.Count)
+			{
+				return UniqueFiles[UniqueId];
+			}
+			else
+			{
+				FileReference Result = Reader.ReadFileReference();
+				UniqueFiles.Add(Result);
+				return Result;
+			}
+		}
+	}
 }
