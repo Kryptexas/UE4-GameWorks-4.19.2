@@ -4672,13 +4672,23 @@ bool IsExportClass(FClass* Class)
 
 FUHTStringBuilder& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice()
 {
+	static struct FMaxLinesPerCpp
+	{
+		int32 Value;
+		FMaxLinesPerCpp()
+		{
 #if ( PLATFORM_WINDOWS && defined(__clang__) )	// @todo clang: Clang r231657 often crashes with huge Engine.generated.cpp files, so we split using a smaller threshold
-	const int32 MaxLinesPerCpp = 15000;
+			Value = 15000;
 #else
-	const int32 MaxLinesPerCpp = 30000;
+			// We do this only for non-clang builds for now
+			Value = 30000;
+			check(GConfig);
+			GConfig->GetInt(TEXT("UnrealHeaderTool"), TEXT("MaxLinesPerCpp"), Value, GEngineIni);
 #endif
+		}
+	} MaxLinesPerCpp;
 
-	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1]->GetLineCount() > MaxLinesPerCpp))
+	if ((GeneratedFunctionBodyTextSplit.Num() == 0) || (GeneratedFunctionBodyTextSplit[GeneratedFunctionBodyTextSplit.Num() - 1]->GetLineCount() > MaxLinesPerCpp.Value))
 	{
 		GeneratedFunctionBodyTextSplit.Add( TUniqueObj<FUHTStringBuilderLineCounter>() );
 	}
