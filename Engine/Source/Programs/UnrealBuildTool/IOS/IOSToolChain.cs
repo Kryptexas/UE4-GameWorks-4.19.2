@@ -1165,7 +1165,10 @@ namespace UnrealBuildTool
 								throw new BuildException("The target was not in a /Source subdirectory");
 							}
 						}
-						PathToApp += "\\" + AppName + ".uproject";
+						if (AppName != "UE4Game")
+						{
+							PathToApp += "\\" + AppName + ".uproject";
+						}
 					}
 
 					if (bUseDangerouslyFastMode)
