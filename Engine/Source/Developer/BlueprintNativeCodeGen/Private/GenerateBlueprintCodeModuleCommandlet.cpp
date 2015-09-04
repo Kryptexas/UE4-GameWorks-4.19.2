@@ -42,7 +42,7 @@ int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
 	}
 
 	FBlueprintNativeCodeGenCoordinator Coordinator(CommandlineParams);
-	FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
+	//FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
 	
 	return 0;
 }
