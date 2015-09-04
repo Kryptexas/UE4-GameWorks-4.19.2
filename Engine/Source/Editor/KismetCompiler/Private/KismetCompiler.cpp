@@ -2487,7 +2487,7 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 		{
 			if (OldEventGraph)
 			{
-				OldEventGraph->Rename(NULL, GetTransientPackage());
+				OldEventGraph->Rename(NULL, GetTransientPackage(), REN_ForceNoResetLoaders);
 			}
 		}
 	}
