@@ -230,7 +230,7 @@ private:
 	}
 	
 private:
-	TLockFreePointerList<FCocoaRunLoopTask> Tasks;
+	TLockFreePointerListLIFO<FCocoaRunLoopTask> Tasks;
 	TArray<FCocoaRunLoopTask*> OutstandingTasks;
 	CFRunLoopRef TargetRunLoop;
 	CFMutableDictionaryRef SourceDictionary;
