@@ -30,13 +30,8 @@ void FBlueprintCompilerCppBackendBase::EmitStructProperties(FStringOutputDevice&
 	}
 }
 
-void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
+void FBlueprintCompilerCppBackendBase::DeclareDelegates(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions)
 {
-	auto CleanCppClassName = SourceClass->GetName();
-	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
-	
-	EmitFileBeginning(CleanCppClassName, SourceClass);
-
 	// MC DELEGATE DECLARATION
 	{
 		auto DelegateDeclarations = FEmitHelper::EmitMulticastDelegateDeclarations(SourceClass);
@@ -74,6 +69,14 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 			Emit(Header, TEXT(";\n"));
 		}
 	}
+}
+
+void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
+{
+	auto CleanCppClassName = SourceClass->GetName();
+	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
+	
+	EmitFileBeginning(CleanCppClassName, SourceClass);
 
 	// Class declaration
 	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
@@ -109,6 +112,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	// Begin scope
 	Emit(Header,TEXT("\n{\npublic:\n\tGENERATED_BODY()\n"));
 
+	DeclareDelegates(SourceClass, Functions);
+
 	EmitStructProperties(Header, SourceClass);
 
 	// Create the state map
@@ -137,6 +142,9 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 			ConstructFunction(Functions[i], bGenerateStubsOnly);
 		}
 	}
+
+	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesConvertedClasses(TArray<FName>& OutNames);\n"));
+	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesAssets(TArray<FName>& OutNames);\n"));
 
 	Emit(Header, *FBackendHelperUMG::WidgetFunctionsInHeader(SourceClass));
 
@@ -406,6 +414,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 						if (ObjectProperty)
 						{
 							DeclareInHeader.AddUnique(ObjectProperty->PropertyClass);
+							BodyReferenceFinder.FindReferences(Obj);
 						}
 						else
 						{

@@ -331,7 +331,7 @@ TArray<FString> FEmitHelper::EmitMulticastDelegateDeclarations(UClass* SourceCla
 		FString ParamNumberStr, Parameters;
 		ParseDelegateDetails(Signature, Parameters, ParamNumberStr);
 
-		Results.Add(*FString::Printf(TEXT("DECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"),
+		Results.Add(*FString::Printf(TEXT("\tDECLARE_DYNAMIC_MULTICAST_DELEGATE%s(%s%s)"),
 			*ParamNumberStr, *It->GetCPPType(NULL, EPropertyExportCPPFlags::CPPF_CustomTypeName), *Parameters));
 	}
 

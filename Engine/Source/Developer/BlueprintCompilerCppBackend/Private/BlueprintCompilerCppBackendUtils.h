@@ -103,6 +103,14 @@ public:
 		return ActualClass;
 	}
 
+	bool WillClassBeConverted(UClass* InClass) const
+	{
+		// TODO:
+
+		auto BPGC = Cast<UBlueprintGeneratedClass>(InClass);
+		return (nullptr != BPGC) && !InClass->HasAnyFlags(RF_ClassDefaultObject);
+	}
+
 	/** All objects (that can be referenced from other package) that will have a different path in cooked build 
 	(due to the native code generation), should be handled by this function */
 	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false)
@@ -116,19 +124,13 @@ public:
 
 		if (auto ObjClass = Cast<UClass>(Object))
 		{
-			if (ObjClass->HasAnyClassFlags(CLASS_Native))
+			if (ObjClass->HasAnyClassFlags(CLASS_Native) || WillClassBeConverted(ObjClass))
 			{
 				return FString::Printf(TEXT("%s%s::StaticClass()"), ObjClass->GetPrefixCPP(), *ObjClass->GetName());
 			}
 		}
 
 		// TODO Handle native structires, and special cases..
-
-		if (auto BPGC = ExactCast<UBlueprintGeneratedClass>(Object))
-		{
-			// TODO: check if supported 
-			return FString::Printf(TEXT("%s%s::StaticClass()"), BPGC->GetPrefixCPP(), *BPGC->GetName());
-		}
 
 		if (auto UDS = Cast<UScriptStruct>(Object))
 		{

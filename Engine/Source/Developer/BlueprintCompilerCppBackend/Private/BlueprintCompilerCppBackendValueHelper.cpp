@@ -323,6 +323,150 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	return VariableName;
 }
 
+struct FGatherDependencies : public FReferenceCollector
+{
+	TSet<UObject*> SerializedObjects;
+	TSet<UObject*> Assets;
+	TSet<UStruct*> ConvertedClasses;
+
+	FEmitterLocalContext& Context;
+	UClass* OriginalClass;
+
+	void FindReferences(UObject* Object)
+	{
+		{
+			FSimpleObjectReferenceCollectorArchive CollectorArchive(Object, *this);
+			CollectorArchive.SetSerializedProperty(nullptr);
+			CollectorArchive.SetFilterEditorOnly(true);
+			Object->SerializeScriptProperties(CollectorArchive);
+		}
+		Object->CallAddReferencedObjects(*this);
+	}
+
+	virtual bool IsIgnoringArchetypeRef() const override { return false; }
+	virtual bool IsIgnoringTransient() const override { return true; }
+
+	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
+	{
+		if (InObject)
+		{
+			if (InObject->IsA<UBlueprint>() || (InObject == OriginalClass))
+			{
+				return;
+			}
+
+			// converted class
+			//TODO: What About Delegates?
+			auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(InObject);
+			const bool SaveAsConvertedClass = ObjAsBPGC && Context.WillClassBeConverted(ObjAsBPGC);
+			auto ObjAsUDS = Cast<UUserDefinedStruct>(InObject);// all UDS must be converted
+			const bool SaveAsConvertedStruct = ObjAsUDS && !ObjAsUDS->HasAnyFlags(RF_ClassDefaultObject);
+			if (SaveAsConvertedClass || SaveAsConvertedStruct)
+			{
+				ConvertedClasses.Add(CastChecked<UStruct>(InObject));
+			}
+			// asset
+			else if (InObject->IsAsset() 
+				&& !InObject->IsIn(OriginalClass) 
+				&& (InObject != OriginalClass)
+				&& !InObject->IsA<UUserDefinedEnum>()) // all UDE must be converted
+			{
+				Assets.Add(InObject);
+				return;
+			}
+
+			bool AlreadyAdded = false;
+			SerializedObjects.Add(InObject, &AlreadyAdded);
+			if (!AlreadyAdded)
+			{
+				FindReferences(InObject);
+			}
+		}
+	}
+
+	FGatherDependencies(UClass* InClass, FEmitterLocalContext& InContext) 
+		: OriginalClass(InClass)
+		, Context(InContext)
+	{
+		check(OriginalClass);
+		FindReferences(OriginalClass);
+	}
+
+	void AddDependenciesInConstructor()
+	{
+		Context.AddLine(TEXT("// List of all referenced converted classes"));
+		for (auto LocStruct : ConvertedClasses)
+		{
+			const bool bIsClass = nullptr != Cast<UClass>(LocStruct);
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::%s());")
+				, LocStruct->GetPrefixCPP()
+				, *LocStruct->GetName()
+				, (bIsClass ? TEXT("StaticClass") : TEXT("StaticStruct"))));
+		}
+		Context.AddLine(TEXT("// List of all referenced assets"));
+		for (auto LocAsset : Assets)
+		{
+			const FString AssetStr = Context.FindGloballyMappedObject(LocAsset, true);
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *AssetStr));
+		}
+	}
+
+	void AddStaticFunctionsForDependencies()
+	{
+		const FString CppClassName = FString::Printf(TEXT("%s%s"), OriginalClass->GetPrefixCPP(), *OriginalClass->GetName());
+		// __StaticDependenciesConvertedClasses
+		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesConvertedClasses(TArray<FName>& OutNames)"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+
+		for (auto LocClass : ConvertedClasses)
+		{
+			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
+		}
+
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+
+		// __StaticDependenciesAssets
+		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FName>& OutPackagePaths)"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+
+		for (UObject* LocAsset : Assets)
+		{
+			const FString PakagePath = LocAsset->GetOutermost()->GetPathName();
+			Context.AddLine(FString::Printf(TEXT("OutPackagePaths.Add(TEXT(\"%s\"));"), *PakagePath));
+		}
+
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+
+		// Register Helper Struct
+		const FString RegisterHelperName = FString::Printf(TEXT("FRegisterHelper__%s"), *CppClassName);
+		Context.AddLine(FString::Printf(TEXT("struct %s"), *RegisterHelperName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+
+		Context.AddLine(FString::Printf(TEXT("%s()"), *RegisterHelperName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(FString::Printf(
+			TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesConvertedClasses, &%s::__StaticDependenciesAssets);")
+			, *OriginalClass->GetName()
+			, *CppClassName
+			, *CppClassName));
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+
+		Context.AddLine(FString::Printf(TEXT("static %s Instance;"), *RegisterHelperName));
+
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("};"));
+
+		Context.AddLine(FString::Printf(TEXT("%s %s::Instance;"), *RegisterHelperName, *RegisterHelperName));
+	}
+};
+
 FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 {
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
@@ -334,6 +478,9 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	Context.AddLine(TEXT("{"));
 	Context.IncreaseIndent();
 	Context.bInsideConstructor = true;
+
+	FGatherDependencies GatherDependencies(InBPGC, Context);
+
 	// When CDO is created create all subobjects owned by the class
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 	{
@@ -388,6 +535,9 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 		FBackendHelperUMG::CreateClassSubobjects(Context);
 
 		Context.bCreatingObjectsPerClass = false;
+
+		GatherDependencies.AddDependenciesInConstructor();
+
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 
@@ -504,6 +654,8 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
 	Context.bInsideConstructor = false;
+
+	GatherDependencies.AddStaticFunctionsForDependencies();
 
 	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 

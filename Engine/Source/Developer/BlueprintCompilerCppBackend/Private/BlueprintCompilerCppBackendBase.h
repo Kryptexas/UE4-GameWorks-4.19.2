@@ -88,4 +88,6 @@ protected:
 	}
 
 	void EmitReplaceConvertedMetaData(UObject* Obj);
+
+	void DeclareDelegates(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions);
 };

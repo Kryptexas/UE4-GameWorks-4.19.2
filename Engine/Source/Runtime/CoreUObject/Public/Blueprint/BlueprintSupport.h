@@ -154,3 +154,44 @@ private:
 	/** Tracks sub-classes that have had their CDO deferred as a result of the super not being fully serialized */
 	TMultiMap<UClass*, UClass*> SuperClassMap;
 };
+
+
+/**
+ *	Stores info about dependencies of native classes converted from BPs
+ */
+struct COREUOBJECT_API FConvertedBlueprintsDependencies
+{
+	typedef void(*GetDependenciesNamesFunc)(TArray<FName>&);
+
+private:
+
+	struct FGetters
+	{
+		GetDependenciesNamesFunc GetConvertedClasses;
+		GetDependenciesNamesFunc GetAssets;
+
+		FGetters()
+			: GetConvertedClasses(nullptr)
+			, GetAssets(nullptr)
+		{}
+	};
+
+	TMap<FName, FGetters> ClassNameToGetter;
+
+public:
+
+	static FConvertedBlueprintsDependencies& Get();
+
+	bool AnyClassRegistered() const
+	{
+		return ClassNameToGetter.Num() > 0;
+	}
+
+	void RegisterClass(FName ClassName, GetDependenciesNamesFunc GetConvertedClasses, GetDependenciesNamesFunc GetAssets);
+
+	/** Get all converted classes (and structures) names necessary for the class with the given class name. */
+	void GetConvertedClasses(FName ClassName, TArray<FName>& OutConvertedClassNames) const;
+
+	/** Get all assets paths necessary for the class with the given class name and all converted classes that dependencies. */
+	void GetAssets(FName ClassName, TArray<FName>& OutPackagePaths) const;
+};

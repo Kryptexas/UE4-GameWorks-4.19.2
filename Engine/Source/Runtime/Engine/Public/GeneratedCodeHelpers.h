@@ -4,6 +4,7 @@
 
 // Common includes
 #include "UObject/Stack.h"
+#include "Blueprint/BlueprintSupport.h"
 #include "Engine/BlueprintGeneratedClass.h"
 
 // Common libraries
