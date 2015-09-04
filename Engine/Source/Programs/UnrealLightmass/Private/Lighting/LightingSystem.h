@@ -2589,10 +2589,12 @@ private:
 	volatile int32 MappingTasksInProgressThatWillNeedHelp;
 
 	/** List of tasks to cache indirect lighting, used by all mapping threads. */
-	TLockFreePointerList<FCacheIndirectTaskDescription> CacheIndirectLightingTasks;
+	// consider changing this from FIFO to Unordered, which may be faster
+	TLockFreePointerListLIFO<FCacheIndirectTaskDescription> CacheIndirectLightingTasks;
 
 	/** List of tasks to interpolate indirect lighting, used by all mapping threads. */
-	TLockFreePointerList<FInterpolateIndirectTaskDescription> InterpolateIndirectLightingTasks;
+	// consider changing this from FIFO to Unordered, which may be faster
+	TLockFreePointerListLIFO<FInterpolateIndirectTaskDescription> InterpolateIndirectLightingTasks;
 
 	TArray<FVolumeSamplesTaskDescription> VolumeSampleTasks;
 

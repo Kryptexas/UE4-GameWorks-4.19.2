@@ -79,7 +79,7 @@ private:
 	mutable FThreadSafeCounter NumRefs;
 	mutable int32 MarkedForDelete;
 	bool bDoNotDeferDelete;
-	static TLockFreePointerList<FRHIResource> PendingDeletes;
+	static TLockFreePointerListUnordered<FRHIResource> PendingDeletes;
 	static FRHIResource* CurrentlyDeleting;
 };
 

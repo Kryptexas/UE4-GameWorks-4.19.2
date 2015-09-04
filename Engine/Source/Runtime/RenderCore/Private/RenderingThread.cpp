@@ -916,7 +916,7 @@ FRHICommandListImmediate& GetImmediateCommandList_ForRenderCommand()
 }
 
 /** The set of deferred cleanup objects which are pending cleanup. */
-static TLockFreePointerList<FDeferredCleanupInterface>	PendingCleanupObjectsList;
+static TLockFreePointerListUnordered<FDeferredCleanupInterface>	PendingCleanupObjectsList;
 
 FPendingCleanupObjects::FPendingCleanupObjects()
 {

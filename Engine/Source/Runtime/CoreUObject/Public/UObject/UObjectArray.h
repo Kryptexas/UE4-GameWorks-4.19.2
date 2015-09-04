@@ -401,7 +401,7 @@ private:
 	/** Synchronization object for all live objects.											*/
 	FCriticalSection ObjObjectsCritical;
 	/** Available object indices.											*/
-	TLockFreePointerList<int32> ObjAvailableList;
+	TLockFreePointerListUnordered<int32> ObjAvailableList;
 #if WITH_EDITOR
 	/** Available object index count.										*/
 	FThreadSafeCounter ObjAvailableCount;

@@ -1104,6 +1104,7 @@ struct FABTest
 {
 	FRandomStream Stream;
 	bool bABTestActive;
+	bool bFrameLog;
 	FString ABTestCmds[2];
 	int32 ABTestNumSamples;
 	int32 RemainingCoolDown;
@@ -1131,10 +1132,14 @@ struct FABTest
 	uint32 Totals[2];
 	uint32 Counts[2];
 
+	double TotalTime;
+	uint32 TotalFrames;
+	uint32 Spikes;
 
 	FABTest()
 		: Stream(9567)
 		, bABTestActive(false)
+		, bFrameLog(false)
 		, ABTestNumSamples(0)
 		, RemainingCoolDown(0)
 		, CurrentTest(0)
@@ -1149,6 +1154,31 @@ struct FABTest
 	{
 	}
 
+	void StartFrameLog()
+	{
+		TotalTime = 0.0;
+		TotalFrames = 0;
+		Spikes = 0;
+		bFrameLog = true;
+		UE_LOG(LogConsoleResponse, Display, TEXT("Starting frame log."));
+	}
+
+	void FrameLogTick(double Delta)
+	{
+		if (Delta > .034)
+		{
+			Spikes++;
+		}
+		else
+		{
+			TotalFrames++;
+			TotalTime += Delta;
+		}
+		if (TotalFrames > 0 && TotalFrames % 1000 == 0)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%8d frames   %6.3fms/f    %8d spikes rejected "), TotalFrames, float(1000.0 * TotalTime / TotalFrames), Spikes);
+		}
+	}
 	void Tick()
 	{
 		static double LastTime = 0;
@@ -1270,6 +1300,10 @@ struct FABTest
 				SwitchTest(1 - CurrentTest);
 			}
 		}
+		else if (bFrameLog)
+		{
+			FrameLogTick(FPlatformTime::Seconds() - LastTime);
+		}
 		LastTime = FPlatformTime::Seconds();
 	}
 
@@ -1281,6 +1315,12 @@ struct FABTest
 	static void ABTestCmdFunc(const TArray<FString>& Args)
 	{
 		FString ABTestCmds[2];
+		if (Args.Num() == 1 && Args[0].Compare(FString(TEXT("framelog")), ESearchCase::IgnoreCase) == 0)
+		{
+			Get().Stop();
+			Get().StartFrameLog();
+			return;
+		}
 		if (Args.Num() == 1 && Args[0].Compare(FString(TEXT("stop")), ESearchCase::IgnoreCase) == 0)
 		{
 			Get().Stop();
@@ -1330,9 +1370,17 @@ struct FABTest
 
 	void Stop()
 	{
-		UE_LOG(LogConsoleResponse, Display, TEXT("Running 'A' console command and stopping test."));
-		SwitchTest(0);
-		bABTestActive = false;
+		if (bABTestActive)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Running 'A' console command and stopping test."));
+			SwitchTest(0);
+			bABTestActive = false;
+		}
+		else if (bFrameLog)
+		{
+			UE_LOG(LogConsoleResponse, Display, TEXT("Stopping frame log."));
+			bFrameLog = false;
+		}
 	}
 	
 	void Start(FString* InABTestCmds)

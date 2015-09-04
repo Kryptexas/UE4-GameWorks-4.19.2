@@ -2515,10 +2515,10 @@ public:
 	}
 };
 
-static struct FNewParticleAlloc
+struct FNewParticleAlloc
 {
 	TLockFreeFixedSizeAllocator<sizeof(TArray<FNewParticle>), FThreadSafeCounter> FreeTArrayFNewParticleArrays;
-	TLockFreePointerList<TArray<FNewParticle>>	FreeTArrayFNewParticle;
+	TLockFreePointerListUnordered<TArray<FNewParticle>>	FreeTArrayFNewParticle;
 	~FNewParticleAlloc()
 	{
 		while (true)
@@ -2533,7 +2533,13 @@ static struct FNewParticleAlloc
 		}
 	}
 
-} GNewParticleAlloc;
+};
+
+static FNewParticleAlloc& GNewParticleAlloc()
+{
+	static FNewParticleAlloc Singleton;
+	return Singleton;
+}
 
 static const int MaxNumParticlesToRecycle  = 512; // these can be quite large
 
@@ -2543,13 +2549,13 @@ static void FreeNewParticleArray(TArray<FNewParticle>& NewParticles)
 	NewParticles.Reset();
 	const int MaxNumToRecycledArrays  = 100; 
 	int32 CurrentSize = NewParticles.GetSlack();
-	if (CurrentSize > 0 && CurrentSize <= MaxNumParticlesToRecycle && GNewParticleAlloc.FreeTArrayFNewParticleArrays.GetNumUsed().GetValue() < MaxNumToRecycledArrays)
+	if (CurrentSize > 0 && CurrentSize <= MaxNumParticlesToRecycle && GNewParticleAlloc().FreeTArrayFNewParticleArrays.GetNumUsed().GetValue() < MaxNumToRecycledArrays)
 	{
-		TArray<FNewParticle>* Recycle = new (GNewParticleAlloc.FreeTArrayFNewParticleArrays.Allocate()) TArray<FNewParticle>;
+		TArray<FNewParticle>* Recycle = new (GNewParticleAlloc().FreeTArrayFNewParticleArrays.Allocate()) TArray<FNewParticle>;
 		Exchange(*Recycle, NewParticles);
 		check(Recycle->Num() == 0 && Recycle->GetSlack());
 		check(NewParticles.Num() == 0 && NewParticles.GetSlack() == 0);
-		GNewParticleAlloc.FreeTArrayFNewParticle.Push(Recycle);
+		GNewParticleAlloc().FreeTArrayFNewParticle.Push(Recycle);
 	}
 }
 
@@ -2557,12 +2563,12 @@ static void GetNewParticleArray(TArray<FNewParticle>& NewParticles, int32 NumPar
 {
 	if (NumParticlesNeeded <= MaxNumParticlesToRecycle)
 	{
-		TArray<FNewParticle>* Recycle = GNewParticleAlloc.FreeTArrayFNewParticle.Pop();
+		TArray<FNewParticle>* Recycle = GNewParticleAlloc().FreeTArrayFNewParticle.Pop();
 		if (Recycle)
 		{
 			Exchange(*Recycle, NewParticles);
 			Recycle->~TArray<FNewParticle>(); // this probably doesn't do anything, but type safety and all
-			GNewParticleAlloc.FreeTArrayFNewParticleArrays.Free(Recycle);
+			GNewParticleAlloc().FreeTArrayFNewParticleArrays.Free(Recycle);
 			check(NewParticles.Num() == 0 && NewParticles.GetSlack());
 		}
 	}

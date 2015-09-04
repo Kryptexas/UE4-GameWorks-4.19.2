@@ -268,7 +268,7 @@ public:
 private:
 
 	/** Holds the collection of recycled arrays. */
-	TLockFreePointerList< TArray<UObject*> > Pool;
+	TLockFreePointerListUnordered< TArray<UObject*> > Pool;
 
 #if UE_BUILD_DEBUG
 	/** Number of arrays currently acquired from the pool by GC */

@@ -9,7 +9,7 @@ void FinishSceneStat(uint32 Scene);
 #include "pxtask/PxTask.h"
 class PhysXCompletionTask : public PxLightCpuTask
 {
-	FGraphEventRef& EventToFire;
+	FGraphEventRef EventToFire;
 	uint32 Scene;
 public:
 	PhysXCompletionTask(FGraphEventRef& InEventToFire, uint32 InScene, PxTaskManager* TaskManager)
@@ -25,7 +25,11 @@ public:
 	{
 		PxLightCpuTask::release();
 		FinishSceneStat(Scene);
-		EventToFire->DispatchSubsequents();
+		if (EventToFire.GetReference())
+		{
+			TArray<FBaseGraphTask*> NewTasks;
+			EventToFire->DispatchSubsequents(NewTasks);
+		}
 		delete this;
 	}
 	virtual const char *getName() const

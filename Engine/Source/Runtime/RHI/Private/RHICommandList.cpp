@@ -548,7 +548,9 @@ struct FRHICommandRHIThreadFence : public FRHICommand<FRHICommandRHIThreadFence>
 	}
 	void Execute(FRHICommandListBase& CmdList)
 	{
-		Fence->DispatchSubsequents();
+		check(IsInRHIThread());
+		static TArray<FBaseGraphTask*> NewTasks;
+		Fence->DispatchSubsequents(NewTasks, ENamedThreads::RHIThread);
 		Fence = nullptr;
 	}
 };
@@ -720,6 +722,8 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Num Async Chains Links"), STAT_ChainLinkCount, 
 DECLARE_CYCLE_STAT(TEXT("Wait for Async CmdList"), STAT_ChainWait, STATGROUP_RHICMDLIST);
 DECLARE_CYCLE_STAT(TEXT("Async Chain Execute"), STAT_ChainExecute, STATGROUP_RHICMDLIST);
 
+FGraphEvent* GEventToWaitFor = nullptr;
+
 struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitForAndSubmitSubList>
 {
 	FGraphEventRef EventToWaitFor;
@@ -732,6 +736,12 @@ struct FRHICommandWaitForAndSubmitSubList : public FRHICommand<FRHICommandWaitFo
 	void Execute(FRHICommandListBase& CmdList)
 	{
 		INC_DWORD_STAT_BY(STAT_ChainLinkCount, 1);
+		if (EventToWaitFor.GetReference() && !EventToWaitFor->IsComplete() && !(!GRHIThread || !IsInRHIThread()))
+		{
+			GEventToWaitFor = EventToWaitFor.GetReference();
+			FPlatformMisc::DebugBreak();
+			check(EventToWaitFor->IsComplete());
+		}
 		if (EventToWaitFor.GetReference() && !EventToWaitFor->IsComplete())
 		{
 			check(!GRHIThread || !IsInRHIThread()); // things should not be dispatched if they can't complete without further waits
