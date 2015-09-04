@@ -385,8 +385,8 @@ struct FGatherDependencies : public FReferenceCollector
 	}
 
 	FGatherDependencies(UClass* InClass, FEmitterLocalContext& InContext) 
-		: OriginalClass(InClass)
-		, Context(InContext)
+		: Context(InContext)
+		, OriginalClass(InClass)
 	{
 		check(OriginalClass);
 		FindReferences(OriginalClass);
