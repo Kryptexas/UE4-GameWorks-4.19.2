@@ -851,9 +851,7 @@ namespace UnrealBuildTool
 					if( GameConfigDirectory.Exists( ) )
 					{
 						var GameProjectFile = GameFolderAndProjectFile.Value;
-						var DirectoriesToSearch = new List<DirectoryReference>();
-						DirectoriesToSearch.Add( GameConfigDirectory );
-						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), GameProjectDirectory );
+						GameProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( GameConfigDirectory ), GameProjectDirectory );
 					}
 				}
 			}
@@ -866,9 +864,7 @@ namespace UnrealBuildTool
 			var EngineLocalizationDirectory = DirectoryReference.Combine( UnrealBuildTool.EngineDirectory, "Content", "Localization" );
 			if( EngineLocalizationDirectory.Exists( ) )
 			{
-				var DirectoriesToSearch = new List<DirectoryReference>();
-				DirectoriesToSearch.Add( EngineLocalizationDirectory );
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( EngineLocalizationDirectory ), UnrealBuildTool.EngineDirectory );
 			}
 		}
 
@@ -879,9 +875,7 @@ namespace UnrealBuildTool
             var EngineTemplateDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Content", "Editor", "Templates");
             if (EngineTemplateDirectory.Exists())
             {
-				var DirectoriesToSearch = new List<DirectoryReference>();
-				DirectoriesToSearch.Add( EngineTemplateDirectory );
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( EngineTemplateDirectory ), UnrealBuildTool.EngineDirectory );
 			}
         }
 
@@ -892,10 +886,7 @@ namespace UnrealBuildTool
             var EngineConfigDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Config" );
 			if( EngineConfigDirectory.Exists( ) )
 			{
-				var DirectoriesToSearch = new List<DirectoryReference>();
-				DirectoriesToSearch.Add( EngineConfigDirectory );
-
-				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), UnrealBuildTool.EngineDirectory );
+				EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( EngineConfigDirectory ), UnrealBuildTool.EngineDirectory );
 			}
 		}
 
@@ -905,10 +896,7 @@ namespace UnrealBuildTool
 			var UHTConfigDirectory = DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, "Programs", "UnrealHeaderTool", "Config");
 			if (UHTConfigDirectory.Exists())
 			{
-				var DirectoriesToSearch = new List<DirectoryReference>();
-				DirectoriesToSearch.Add(UHTConfigDirectory);
-
-				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch), UnrealBuildTool.EngineDirectory);
+				EngineProject.AddFilesToProject(SourceFileSearch.FindFiles(UHTConfigDirectory), UnrealBuildTool.EngineDirectory);
 			}
 		}
 
@@ -1358,9 +1346,7 @@ namespace UnrealBuildTool
 					var ProgramConfigDirectory = DirectoryReference.Combine( ProgramDirectory, "Config" );
 					if( ProgramConfigDirectory.Exists( ) )
 					{
-						var DirectoriesToSearch = new List<DirectoryReference>();
-						DirectoriesToSearch.Add( ProgramConfigDirectory );
-						ProgramProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( DirectoriesToSearch ), ProgramDirectory );
+						ProgramProjectFile.AddFilesToProject( SourceFileSearch.FindFiles( ProgramConfigDirectory ), ProgramDirectory );
 					}
 				}
 			}
@@ -1615,7 +1601,7 @@ namespace UnrealBuildTool
 								DirectoryReference PluginResourcesFolder = DirectoryReference.Combine(PluginFileName.Directory, "Resources");
 								if(PluginResourcesFolder.Exists())
 								{
-									ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(DirectoriesToSearch: new List<DirectoryReference>{ PluginResourcesFolder } ), BaseFolder );
+									ProjectFile.AddFilesToProject(SourceFileSearch.FindFiles(PluginResourcesFolder), BaseFolder );
 								}
 							}
 						}
@@ -1832,8 +1818,6 @@ namespace UnrealBuildTool
 			// Setup a project file entry for this module's project.  Remember, some projects may host multiple modules!
 			var ShadersDirectory = DirectoryReference.Combine( UnrealBuildTool.EngineDirectory, "Shaders" );
 
-			var DirectoriesToSearch = new List<DirectoryReference>();
-			DirectoriesToSearch.Add( ShadersDirectory );
 			var SubdirectoryNamesToExclude = new List<string>();
 			{
                 // Don't include binary shaders in the project file.
@@ -1842,9 +1826,8 @@ namespace UnrealBuildTool
 				SubdirectoryNamesToExclude.Add( "PDBDump" );
 				SubdirectoryNamesToExclude.Add( "WorkingDirectory" );
 			}
-			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles(
-				DirectoriesToSearch: DirectoriesToSearch,
-				SubdirectoryNamesToExclude: SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
+
+			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( ShadersDirectory, SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
 		}
 
 
@@ -1853,14 +1836,10 @@ namespace UnrealBuildTool
 		{
 			var BuildDirectory = DirectoryReference.Combine( UnrealBuildTool.EngineDirectory, "Build" );
 
-			var DirectoriesToSearch = new List<DirectoryReference>();
-			DirectoriesToSearch.Add( BuildDirectory );
 			var SubdirectoryNamesToExclude = new List<string>();
 			SubdirectoryNamesToExclude.Add("Receipts");
 
-			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles(
-				DirectoriesToSearch: DirectoriesToSearch,
-				SubdirectoryNamesToExclude: SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
+			EngineProject.AddFilesToProject( SourceFileSearch.FindFiles( BuildDirectory, SubdirectoryNamesToExclude ), UnrealBuildTool.EngineDirectory );
 		}
 
 
@@ -1875,9 +1854,6 @@ namespace UnrealBuildTool
 			{
 				Log.TraceVerbose( "Adding documentation files..." );
 
-				var DirectoriesToSearch = new List<DirectoryReference>();
-				DirectoriesToSearch.Add( DocumentationSourceDirectory );
-
 				var SubdirectoryNamesToExclude = new List<string>();
 				{
 					// We never want any of the images or attachment files included in our generated project
@@ -1891,9 +1867,7 @@ namespace UnrealBuildTool
 					SubdirectoryNamesToExclude.Add( "Javascript" );
 				}
 
-				var DocumentationFiles = SourceFileSearch.FindFiles(
-					DirectoriesToSearch: DirectoriesToSearch,
-					SubdirectoryNamesToExclude: SubdirectoryNamesToExclude );
+				var DocumentationFiles = SourceFileSearch.FindFiles( DocumentationSourceDirectory, SubdirectoryNamesToExclude );
 
 				// Filter out non-English documentation files if we were configured to do so
 				if( !bAllDocumentationLanguages )

@@ -33,6 +33,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Constructs a reference from the given FileSystemInfo.
+		/// </summary>
+		public FileSystemReference(FileSystemInfo InInfo)
+		{
+			FullName = InInfo.FullName;
+			CanonicalName = FullName.ToLowerInvariant();
+		}
+
+		/// <summary>
 		/// Direct constructor for a path
 		/// </summary>
 		protected FileSystemReference(string InFullName, string InCanonicalName)
@@ -248,6 +257,15 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
+		/// Construct a DirectoryReference from a DirectoryInfo object.
+		/// </summary>
+		/// <param name="InInfo">Path to this file</param>
+		public DirectoryReference(DirectoryInfo InInfo)
+			: base(InInfo)
+		{
+		}
+
+		/// <summary>
 		/// Constructor for creating a directory object directly from two strings.
 		/// </summary>
 		/// <param name="InFullName"></param>
@@ -315,6 +333,78 @@ namespace UnrealBuildTool
 		public bool Exists()
 		{
 			return Directory.Exists(FullName);
+		}
+
+		/// <summary>
+		/// Enumerate files from a given directory
+		/// </summary>
+		/// <returns>Sequence of file references</returns>
+		public IEnumerable<FileReference> EnumerateFileReferences()
+		{
+			foreach(string FileName in Directory.EnumerateFiles(FullName))
+			{
+				yield return FileReference.MakeFromNormalizedFullPath(FileName);
+			}
+		}
+
+		/// <summary>
+		/// Enumerate files from a given directory
+		/// </summary>
+		/// <returns>Sequence of file references</returns>
+		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern)
+		{
+			foreach(string FileName in Directory.EnumerateFiles(FullName, Pattern))
+			{
+				yield return FileReference.MakeFromNormalizedFullPath(FileName);
+			}
+		}
+
+		/// <summary>
+		/// Enumerate files from a given directory
+		/// </summary>
+		/// <returns>Sequence of file references</returns>
+		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern, SearchOption Option)
+		{
+			foreach(string FileName in Directory.EnumerateFiles(FullName, Pattern, Option))
+			{
+				yield return FileReference.MakeFromNormalizedFullPath(FileName);
+			}
+		}
+
+		/// <summary>
+		/// Enumerate subdirectories in a given directory
+		/// </summary>
+		/// <returns>Sequence of directory references</returns>
+		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences()
+		{
+			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName))
+			{
+				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
+			}
+		}
+
+		/// <summary>
+		/// Enumerate subdirectories in a given directory
+		/// </summary>
+		/// <returns>Sequence of directory references</returns>
+		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern)
+		{
+			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern))
+			{
+				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
+			}
+		}
+
+		/// <summary>
+		/// Enumerate subdirectories in a given directory
+		/// </summary>
+		/// <returns>Sequence of directory references</returns>
+		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern, SearchOption Option)
+		{
+			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern, Option))
+			{
+				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
+			}
 		}
 
 		/// <summary>
@@ -396,6 +486,16 @@ namespace UnrealBuildTool
 		{
 			return new DirectoryReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
 		}
+
+		/// <summary>
+		/// Helper function to create a directory reference from a raw platform path. The path provided *MUST* be exactly the same as that returned by Path.GetFullPath(). 
+		/// </summary>
+		/// <param name="AbsolutePath">The absolute path in the file system</param>
+		/// <returns>New file reference</returns>
+		public static DirectoryReference MakeFromNormalizedFullPath(string AbsolutePath)
+		{
+			return new DirectoryReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
+		}
 	}
 
 	/// <summary>
@@ -410,6 +510,15 @@ namespace UnrealBuildTool
 		/// <param name="InPath">Path to this file</param>
 		public FileReference(string InPath)
 			: base(InPath)
+		{
+		}
+
+		/// <summary>
+		/// Construct a FileReference from a FileInfo object.
+		/// </summary>
+		/// <param name="InInfo">Path to this file</param>
+		public FileReference(FileInfo InInfo)
+			: base(InInfo)
 		{
 		}
 
@@ -578,51 +687,22 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <returns>Sequence of file references</returns>
-		public static IEnumerable<FileReference> Enumerate(DirectoryReference BaseDirectory)
-		{
-			foreach(string FileName in System.IO.Directory.EnumerateFiles(BaseDirectory.FullName))
-			{
-				yield return new FileReference(FileName, FileName.ToLowerInvariant());
-			}
-		}
-
-		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <param name="Pattern">Pattern to match</param>
-		/// <returns>Sequence of file references</returns>
-		public static IEnumerable<FileReference> Enumerate(DirectoryReference BaseDirectory, string Pattern)
-		{
-			foreach(string FileName in System.IO.Directory.EnumerateFiles(BaseDirectory.FullName, Pattern))
-			{
-				yield return new FileReference(FileName, FileName.ToLowerInvariant());
-			}
-		}
-
-		/// <summary>
-		/// Enumerate files from a given directory
-		/// </summary>
-		/// <param name="Pattern">Pattern to match</param>
-		/// <param name="Search">Options for the search</param>
-		/// <returns>Sequence of file references</returns>
-		public static IEnumerable<FileReference> Enumerate(DirectoryReference BaseDirectory, string Pattern, SearchOption Option)
-		{
-			foreach(string FileName in System.IO.Directory.EnumerateFiles(BaseDirectory.FullName, Pattern, Option))
-			{
-				yield return new FileReference(FileName, FileName.ToLowerInvariant());
-			}
-		}
-
-		/// <summary>
 		/// Helper function to create a remote file reference. Unlike normal FileReference objects, these aren't converted to a full path in the local filesystem, but are
 		/// left as they are passed in.
 		/// </summary>
 		/// <param name="AbsolutePath">The absolute path in the remote file system</param>
 		/// <returns>New file reference</returns>
 		public static FileReference MakeRemote(string AbsolutePath)
+		{
+			return new FileReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
+		}
+
+		/// <summary>
+		/// Helper function to create a file reference from a raw platform path. The path provided *MUST* be exactly the same as that returned by Path.GetFullPath(). 
+		/// </summary>
+		/// <param name="AbsolutePath">The absolute path in the file system</param>
+		/// <returns>New file reference</returns>
+		public static FileReference MakeFromNormalizedFullPath(string AbsolutePath)
 		{
 			return new FileReference(AbsolutePath, AbsolutePath.ToLowerInvariant());
 		}

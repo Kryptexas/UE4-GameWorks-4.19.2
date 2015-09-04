@@ -12,7 +12,7 @@ namespace UnrealBuildTool
 		{
 			if( BaseDirectory.Exists() )
 			{
-				Files = new HashSet<FileReference>(FileReference.Enumerate(BaseDirectory));
+				Files = new HashSet<FileReference>(BaseDirectory.EnumerateFileReferences());
 			}
 			else
 			{

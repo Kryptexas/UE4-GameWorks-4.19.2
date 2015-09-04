@@ -2590,7 +2590,7 @@ namespace UnrealBuildTool
 							// Makefile was created. 
 							//if( Directory.GetLastWriteTimeUtc( FlatModule.ModuleSourceFolder ) > UBTMakefileInfo.LastWriteTimeUtc )
 							{
-								foreach( var SourceFilePath in FileReference.Enumerate( FlatModule.ModuleSourceFolder, "*.cpp", SearchOption.AllDirectories ) )
+								foreach( var SourceFilePath in FlatModule.ModuleSourceFolder.EnumerateFileReferences( "*.cpp", SearchOption.AllDirectories ) )
 								{
 									// Was the file written to since the Makefile was created?  We're not able to do a fully exhaustive
 									// check for working sets when in assembler mode, so we might get it wrong occasionally.  This is
