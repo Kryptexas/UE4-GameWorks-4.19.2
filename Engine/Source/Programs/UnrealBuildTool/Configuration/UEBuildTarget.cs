@@ -2239,12 +2239,13 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if (ShouldCheckOutputDistributionLevel())
+			if (ShouldCheckOutputDistributionLevel() && !ProjectFileGenerator.bGenerateProjectFiles)
 			{
 				// Check the distribution level of all binaries based on the dependencies they have
+				Dictionary<UEBuildModule, UEBuildModuleDistribution> ModuleDistributionCache = new Dictionary<UEBuildModule, UEBuildModuleDistribution>();
 				foreach (var Binary in AppBinaries)
 				{
-					Binary.CheckOutputDistributionLevelAgainstDependencies();
+					Binary.CheckOutputDistributionLevelAgainstDependencies(ModuleDistributionCache);
 				}
 			}
 		}

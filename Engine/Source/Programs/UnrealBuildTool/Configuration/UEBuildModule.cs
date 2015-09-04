@@ -136,7 +136,7 @@ namespace UnrealBuildTool
 		/**
 		 * Determines the distribution level of a module based on its directory and includes.
 		 */
-		private void SetupModuleDistributionLevel()
+		public UEBuildModuleDistribution DetermineDistributionLevel()
 		{
 			List<string> PathsToCheck = new List<string>();
 			PathsToCheck.Add(ModuleDirectory.FullName);
@@ -146,13 +146,15 @@ namespace UnrealBuildTool
 			PathsToCheck.AddRange(PublicSystemIncludePaths);
 			PathsToCheck.AddRange(PublicLibraryPaths);
 
-			DistributionLevel = UEBuildModuleDistribution.Public;
+			UEBuildModuleDistribution DistributionLevel = UEBuildModuleDistribution.Public;
 
 			// Keep checking as long as we haven't reached the maximum level
 			for (int PathIndex = 0; PathIndex < PathsToCheck.Count && DistributionLevel != UEBuildModuleDistribution.NoRedist; ++PathIndex)
 			{
 				DistributionLevel = Utils.Max(DistributionLevel, UEBuildModule.GetModuleDistributionLevelBasedOnLocation(PathsToCheck[PathIndex]));
 			}
+
+			return DistributionLevel;
 		}
 
 		/** Converts an optional string list parameter to a well-defined hash set. */
@@ -172,9 +174,6 @@ namespace UnrealBuildTool
 
 		/** The rules for this module */
 		public ModuleRules Rules;
-
-		/** The distribution level of the module being built. Used to check where build products are placed. */
-		public UEBuildModuleDistribution DistributionLevel;
 
 		/** Path to the module directory */
 		public readonly DirectoryReference ModuleDirectory;
@@ -271,8 +270,6 @@ namespace UnrealBuildTool
 
 			Debug.Assert(InBuildCsFilename == null || InBuildCsFilename.EndsWith(".Build.cs", StringComparison.InvariantCultureIgnoreCase));
 			BuildCsFilenameField = InBuildCsFilename;
-
-			SetupModuleDistributionLevel();
 
 			Target.RegisterModule(this);
 		}

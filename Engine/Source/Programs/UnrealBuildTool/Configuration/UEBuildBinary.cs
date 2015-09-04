@@ -359,7 +359,7 @@ namespace UnrealBuildTool
 		 * Checks whether the binary output paths are appropriate for the distribution
 		 * level of its direct module dependencies
 		 */
-		public void CheckOutputDistributionLevelAgainstDependencies()
+		public void CheckOutputDistributionLevelAgainstDependencies(Dictionary<UEBuildModule, UEBuildModuleDistribution> ModuleDistributionCache)
 		{
 			// Find maximum distribution level of its direct dependencies
 			var DistributionLevel = UEBuildModuleDistribution.Public;
@@ -367,18 +367,24 @@ namespace UnrealBuildTool
 			List<string>[] DependantModuleNames = new List<string>[Enum.GetNames(typeof(UEBuildModuleDistribution)).Length];
 			foreach (var Module in DependantModules)
 			{
-				if (Module.DistributionLevel != UEBuildModuleDistribution.Public)
+				UEBuildModuleDistribution ModuleDistributionLevel;
+				if(!ModuleDistributionCache.TryGetValue(Module, out ModuleDistributionLevel))
+				{
+					ModuleDistributionLevel = Module.DetermineDistributionLevel();
+					ModuleDistributionCache.Add(Module, ModuleDistributionLevel);
+				}
+				if (ModuleDistributionLevel != UEBuildModuleDistribution.Public)
 				{
 					// Make a list of non-public dependant modules so that exception
 					// message can be more helpful
-					int DistributionIndex = (int)Module.DistributionLevel;
+					int DistributionIndex = (int)ModuleDistributionLevel;
 					if (DependantModuleNames[DistributionIndex] == null)
 					{
 						DependantModuleNames[DistributionIndex] = new List<string>();
 					}
 					DependantModuleNames[DistributionIndex].Add(Module.Name);
 
-					DistributionLevel = Utils.Max(DistributionLevel, Module.DistributionLevel);
+					DistributionLevel = Utils.Max(DistributionLevel, ModuleDistributionLevel);
 				}
 			}
 
