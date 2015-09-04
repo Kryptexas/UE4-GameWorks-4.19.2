@@ -34,7 +34,7 @@ namespace AutomationTool
 			Definition.OrderDependencyNames = String.Join(";", Node.FullNamesOfPseudodependencies);
 			Definition.IsTest = Node.IsTest();
 			Definition.DisplayGroupName = Node.GetDisplayGroupName();
-			Definition.GameNameIfAnyForTempStorage = Node.GameNameIfAnyForTempStorage();
+            Definition.GameNameIfAnyForFullGameAggregateNode = Node.GameNameIfAnyForFullGameAggregateNode();
 			Definition.RootIfAnyForTempStorage = Node.RootIfAnyForTempStorage();
 		}
 
@@ -56,9 +56,9 @@ namespace AutomationTool
 			Node = Template.Node;
 		}
 
-		public override void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
+		public override void RetrieveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
 		{
-			base.RetrieveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo);
+			base.RetrieveBuildProducts(StorageRootIfAny, TempStorageNodeInfo);
 
 			Node.BuildProducts = BuildProducts;
 		}

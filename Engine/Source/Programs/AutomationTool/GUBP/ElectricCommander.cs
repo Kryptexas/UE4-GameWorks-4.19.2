@@ -211,7 +211,7 @@ namespace AutomationTool
 			}
 		}
 
-        public void SaveStatus(TempStorageNodeInfo TempStorageNodeInfo, bool bSaveSharedTempStorage, string GameNameIfAny, string JobStepIDForFailure = null)
+        public void SaveStatus(TempStorageNodeInfo TempStorageNodeInfo, bool bSaveSharedTempStorage, string JobStepIDForFailure = null)
 		{
 			string Contents = "Just a status record: " + TempStorageNodeInfo.NodeStorageName;
 			if (!String.IsNullOrEmpty(JobStepIDForFailure) && CommandUtils.IsBuildMachine)
@@ -229,7 +229,7 @@ namespace AutomationTool
 			string RecordOfSuccess = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Saved", "Logs", TempStorageNodeInfo.NodeStorageName +".log");
 			CommandUtils.CreateDirectory(Path.GetDirectoryName(RecordOfSuccess));
 			CommandUtils.WriteAllText(RecordOfSuccess, Contents);
-            TempStorage.StoreToTempStorage(TempStorageNodeInfo, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, GameNameIfAny, CommandUtils.CmdEnv.LocalRoot);		
+            TempStorage.StoreToTempStorage(TempStorageNodeInfo, new List<string> { RecordOfSuccess }, !bSaveSharedTempStorage, CommandUtils.CmdEnv.LocalRoot);		
 		}
 
 		public void UpdateEmailProperties(BuildNode NodeToDo, int LastSucceededCL, string FailedString, string FailCauserEMails, string EMailNote, bool SendSuccessForGreenAfterRed)

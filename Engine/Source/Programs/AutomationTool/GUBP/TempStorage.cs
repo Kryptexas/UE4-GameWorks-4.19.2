@@ -494,6 +494,9 @@ namespace AutomationTool
 
         /// <summary>
         /// Cleans all temp storage data from the given directory that is older than a certain threshold (defined directly in the code).
+        /// This will clean up builds that are NOT part of the the job for this branch. This is intentional because once a branch is shut down,
+        /// there would be nothing left to clean it. This will only clean the supplied folder, but it is assumed this folder is an actual
+        /// Temp Storage folder with .TempManifest files in it.
         /// </summary>
         /// <param name="TopDirectory">Fully qualified path of the folder that is the root of a bunch of temp storage folders. Should be a string returned by <see cref="ResolveSharedTempStorageDirectory"/> </param>
         private static void CleanSharedTempStorage(string TopDirectory)
@@ -524,7 +527,6 @@ namespace AutomationTool
             {
                 const double MaximumDaysToKeepTempStorage = 3;
                 var Now = DateTime.UtcNow;
-                // This will search legacy folders as well, but those should go away within a few days.
                 foreach (var OldManifestInfo in
                     // First subdirectory is the branch name
                     from BranchDir in Directory.EnumerateDirectories(TopDirectory)
@@ -566,27 +568,24 @@ namespace AutomationTool
         }
 
         /// <summary>
-        /// Cleans the shared temp storage folders for all the games listed. This code will ensure that any duplicate games
+        /// Cleans the shared temp storage folder for the given root name. This code will ensure that any duplicate games
         /// or games that resolve to use the same temp folder are not cleaned twice.
         /// </summary>
-        /// <param name="GameNames">List of game names to clean temp folders for.</param>
-        public static void CleanSharedTempStorageDirectory(IEnumerable<string> GameNames)
+        /// <param name="RootNameForTempStorage">List of game names to clean temp folders for.</param>
+        public static void CleanSharedTempStorageDirectory(string RootNameForTempStorage)
         {
             if (!CommandUtils.IsBuildMachine || Utils.IsRunningOnMono)  // saw a hang on this, anyway it isn't necessary to clean with macs, they are slow anyway
             {
                 return;
             }
-            // Generate a unique set of folder names to clean so we don't clean folders twice.
-            foreach (var TempStorageFolder in new HashSet<string>(GameNames.Select(ResolveSharedTempStorageDirectory)))
+            var TempStorageFolder = ResolveSharedTempStorageDirectory(RootNameForTempStorage);
+            try
             {
-                try
-                {
-                    CleanSharedTempStorage(TempStorageFolder);
-                }
-                catch (Exception Ex)
-                {
-                    CommandUtils.LogWarning("Unable to Clean Temp Directory {0}. Exception: {1}", TempStorageFolder, Ex);
-                }
+                CleanSharedTempStorage(TempStorageFolder);
+            }
+            catch (Exception Ex)
+            {
+                CommandUtils.LogWarning("Unable to Clean Temp Directory {0}. Exception: {1}", TempStorageFolder, Ex);
             }
         }
 
@@ -634,51 +633,36 @@ namespace AutomationTool
         /// If the shared build folder does not already exist, will try to use UE4's folder instead.
         /// This is because the root build folders are independently owned by each game team and managed by IT, so cannot be created on the fly.
         /// </summary>
-        /// <param name="GameName">GameName to look for the build folder for. If empty or the GameName folder cannot be found, uses the UE4 folder (GameName = UE4)</param>
+        /// The root name beneath <see cref="CommandUtils.RootBuildStorageDirectory"/> where all temp storage will placed for this job.
         /// <returns>The full path of the shared build directory name, or throws an exception if none is found and the UE4 folder is not found either.</returns>
-        public static string ResolveSharedBuildDirectory(string GameName)
+        public static string ResolveSharedBuildDirectory(string RootNameForTempStorage)
         {
-            if (GameName == null) throw new ArgumentNullException("GameName");
+            if (RootNameForTempStorage == null) throw new ArgumentNullException("RootNameForTempStorage");
 
-            if (SharedBuildDirectoryResolveCache.ContainsKey(GameName))
+            if (SharedBuildDirectoryResolveCache.ContainsKey(RootNameForTempStorage))
             {
-                return SharedBuildDirectoryResolveCache[GameName];
+                return SharedBuildDirectoryResolveCache[RootNameForTempStorage];
             }
             string Root = CommandUtils.RootBuildStorageDirectory();
-            string Result = CommandUtils.CombinePaths(Root, GameName);
-            if (GameName == "" || string.Equals(GameName, "ShooterGame", StringComparison.InvariantCultureIgnoreCase) || !InternalUtils.Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
+            string Result = CommandUtils.CombinePaths(Root, RootNameForTempStorage);
+            if (!InternalUtils.Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
             {
-                string GameStr = "Game";
-                bool HadGame = false;
-                if (GameName.EndsWith(GameStr, StringComparison.InvariantCultureIgnoreCase))
-                {
-                    string ShortFolder = GameName.Substring(0, GameName.Length - GameStr.Length);
-                    Result = CommandUtils.CombinePaths(Root, ShortFolder);
-                    HadGame = true;
-                }
-                if (!HadGame || !InternalUtils.Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
-                {
-                    Result = CommandUtils.CombinePaths(Root, "UE4");
-                    if (!InternalUtils.Robust_DirectoryExistsAndIsWritable_NoExceptions(Result))
-                    {
-                        throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
-                    }
-                }
+                throw new AutomationException("Could not find an appropriate shared temp folder {0}", Result);
             }
-            SharedBuildDirectoryResolveCache.Add(GameName, Result);
+            SharedBuildDirectoryResolveCache.Add(RootNameForTempStorage, Result);
             return Result;
         }
 
         /// <summary>
-        /// Returns the full path of the temp storage directory for the given game name (ie, P:\Builds\GameName\TmpStore).
+        /// Returns the full path of the temp storage directory for the given game name (ie, P:\Builds\RootNameForTempStorage\TmpStore).
         /// If the game's build folder does not exist, will use the temp storage folder in the UE4 build folder (ie, P:\Builds\UE4\TmpStore).
         /// If the directory does not exist, we will try to create it.
         /// </summary>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
+        /// <param name="RootNameForTempStorage">The root name beneath <see cref="CommandUtils.RootBuildStorageDirectory"/> where all temp storage will placed for this job.</param>
         /// <returns>Essentially adds the TmpStore/ subdirectory to the SharedBuildDirectory for the game.</returns>
-        public static string ResolveSharedTempStorageDirectory(string GameName)
+        public static string ResolveSharedTempStorageDirectory(string RootNameForTempStorage)
         {
-            string Result = CommandUtils.CombinePaths(ResolveSharedBuildDirectory(GameName), TempStorageSubdirectoryName);
+            string Result = CommandUtils.CombinePaths(ResolveSharedBuildDirectory(RootNameForTempStorage), TempStorageSubdirectoryName);
 
             if (!InternalUtils.Robust_DirectoryExists_NoExceptions(Result, "Could not find {0}"))
             {
@@ -686,20 +670,19 @@ namespace AutomationTool
             }
             if (!InternalUtils.Robust_DirectoryExists_NoExceptions(Result, "Could not find {0}"))
             {
-                throw new AutomationException("Could not create an appropriate shared temp folder {0} for game {1}", Result, GameName);
+                throw new AutomationException("Could not create an appropriate shared temp folder {0} for {1}", Result, RootNameForTempStorage);
             }
             return Result;
         }
 
         /// <summary>
-        /// Returns the full path to the temp storage directory for the given temp storage node and game (ie, P:\Builds\GameName\TmpStore\NodeInfoDirectory)
+        /// Returns the full path to the temp storage directory for the given temp storage node and game (ie, P:\Builds\RootNameForTempStorage\TmpStore\NodeInfoDirectory)
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <returns>The full path to the temp storage directory for the given storage block name for the given game.</returns>
-        private static string SharedTempStorageDirectory(TempStorageNodeInfo TempStorageNodeInfo, string GameName)
+        private static string SharedTempStorageDirectory(TempStorageNodeInfo TempStorageNodeInfo)
         {
-            return CommandUtils.CombinePaths(ResolveSharedTempStorageDirectory(GameName), TempStorageNodeInfo.GetRelativeDirectory());
+            return CommandUtils.CombinePaths(ResolveSharedTempStorageDirectory(TempStorageNodeInfo.JobInfo.RootNameForTempStorage), TempStorageNodeInfo.GetRelativeDirectory());
         }
 
         /// <summary>
@@ -729,14 +712,13 @@ namespace AutomationTool
         }
 
         /// <summary>
-        /// Gets the name of the temp storage manifest file for the given temp storage node and game (ie, P:\Builds\GameName\TmpStore\NodeInfoDirectory\NodeInfoFilename.TempManifest)
+        /// Gets the name of the temp storage manifest file for the given temp storage node and game (ie, P:\Builds\RootNameForTempStorage\TmpStore\NodeInfoDirectory\NodeInfoFilename.TempManifest)
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <returns>The name of the temp storage manifest file for the given storage block name for the given game.</returns>
-        private static string SharedTempStorageManifestFilename(TempStorageNodeInfo TempStorageNodeInfo, string GameName)
+        private static string SharedTempStorageManifestFilename(TempStorageNodeInfo TempStorageNodeInfo)
         {
-            return CommandUtils.CombinePaths(SharedTempStorageDirectory(TempStorageNodeInfo, GameName), TempStorageNodeInfo.GetManifestFilename());
+            return CommandUtils.CombinePaths(SharedTempStorageDirectory(TempStorageNodeInfo), TempStorageNodeInfo.GetManifestFilename());
         }
 
         /// <summary>
@@ -753,10 +735,9 @@ namespace AutomationTool
         /// Deletes all shared temp storage (file and manifest) for the given temp storage node and game.
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
-        private static void DeleteSharedTempStorage(TempStorageNodeInfo TempStorageNodeInfo, string GameName)
+        private static void DeleteSharedTempStorage(TempStorageNodeInfo TempStorageNodeInfo)
         {
-            CommandUtils.DeleteDirectory(true, SharedTempStorageDirectory(TempStorageNodeInfo, GameName));
+            CommandUtils.DeleteDirectory(true, SharedTempStorageDirectory(TempStorageNodeInfo));
         }
 
         /// <summary>
@@ -786,12 +767,11 @@ namespace AutomationTool
         /// Checks if a shared temp storage manifest exists for the given temp storage node and game.
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <param name="bQuiet">True to suppress logging during the operation.</param>
         /// <returns>true if the shared temp storage manifest file exists</returns>
-        private static bool SharedTempStorageManifestExists(TempStorageNodeInfo TempStorageNodeInfo, string GameName, bool bQuiet)
+        private static bool SharedTempStorageManifestExists(TempStorageNodeInfo TempStorageNodeInfo, bool bQuiet)
         {
-            var SharedManifest = SharedTempStorageManifestFilename(TempStorageNodeInfo, GameName);
+            var SharedManifest = SharedTempStorageManifestFilename(TempStorageNodeInfo);
             if (CommandUtils.FileExists_NoExceptions(bQuiet, SharedManifest))
             {
                 return true;
@@ -803,13 +783,12 @@ namespace AutomationTool
         /// Checks if a temp storage manifest exists, either locally or in the shared folder (depending on the value of bLocalOnly) for the given temp storage node and game.
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <param name="bLocalOnly">If true, only ensures that the local temp storage manifest exists. Otherwise, checks if the manifest exists in either local or shared storage.</param>
         /// <param name="bQuiet">True to suppress logging during the operation.</param>
         /// <returns>true if the shared temp storage manifest file exists</returns>
-        public static bool TempStorageExists(TempStorageNodeInfo TempStorageNodeInfo, string GameName, bool bLocalOnly, bool bQuiet)
+        public static bool TempStorageExists(TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly, bool bQuiet)
         {
-            return LocalTempStorageManifestExists(TempStorageNodeInfo, bQuiet) || (!bLocalOnly && SharedTempStorageManifestExists(TempStorageNodeInfo, GameName, bQuiet));
+            return LocalTempStorageManifestExists(TempStorageNodeInfo, bQuiet) || (!bLocalOnly && SharedTempStorageManifestExists(TempStorageNodeInfo, bQuiet));
         }
 
         /// <summary>
@@ -1016,10 +995,9 @@ namespace AutomationTool
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
         /// <param name="Files">Fully qualified names of files to reference in the manifest file.</param>
         /// <param name="bLocalOnly">If true, only ensures that the local temp storage manifest exists. Otherwise, checks if the manifest exists in either local or shared storage.</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <param name="RootDir">Folder that all the given files are rooted from. If null or empty, CmdEnv.LocalRoot is used.</param>
         /// <returns>The created manifest instance (which has already been saved to disk).</returns>
-        public static void StoreToTempStorage(TempStorageNodeInfo TempStorageNodeInfo, List<string> Files, bool bLocalOnly, string GameName, string RootDir)
+        public static void StoreToTempStorage(TempStorageNodeInfo TempStorageNodeInfo, List<string> Files, bool bLocalOnly, string RootDir)
         {
             using (var TelemetryStopwatch = new TelemetryStopwatch("StoreToTempStorage"))
             {
@@ -1038,7 +1016,7 @@ namespace AutomationTool
                 }
                 else
                 {
-                    var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo, GameName);
+                    var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo);
                     CommandUtils.Log("Storing to {0}", SharedStorageNodeDir);
                     // this folder should not already exist, else we have concurrency or job duplication problems.
                     if (CommandUtils.DirectoryExists_NoExceptions(SharedStorageNodeDir))
@@ -1048,7 +1026,7 @@ namespace AutomationTool
                     CommandUtils.CreateDirectory(true, SharedStorageNodeDir);
 
                     var LocalManifestFilename = LocalTempStorageManifestFilename(TempStorageNodeInfo);
-                    var SharedManifestFilename = SharedTempStorageManifestFilename(TempStorageNodeInfo, GameName);
+                    var SharedManifestFilename = SharedTempStorageManifestFilename(TempStorageNodeInfo);
                     var StagingDir = Path.GetDirectoryName(LocalManifestFilename);
                     var ZipBasename = Path.GetFileNameWithoutExtension(LocalManifestFilename);
                     // initiate the parallel zip operation.
@@ -1067,11 +1045,9 @@ namespace AutomationTool
         /// If the temp manifest for this block is found locally, the copy is skipped, as we assume this is the same machine that created the temp storage and the files are still there.
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="WasLocal">upon return, this parameter is set to true if the temp manifest was found locally and the copy was avoided.</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <param name="RootDir">Folder that all the retrieved files should be rooted from. If null or empty, CmdEnv.LocalRoot is used.</param>
         /// <returns>List of fully qualified paths to all the files that were retrieved. This is returned even if we skip the copy (set WasLocal = true) .</returns>
-        public static List<string> RetrieveFromTempStorage(TempStorageNodeInfo TempStorageNodeInfo, out bool WasLocal, string GameName, string RootDir)
+        public static List<string> RetrieveFromTempStorage(TempStorageNodeInfo TempStorageNodeInfo, string RootDir)
         {
             using (var TelemetryStopwatch = new TelemetryStopwatch("RetrieveFromTempStorage"))
             {
@@ -1096,21 +1072,19 @@ namespace AutomationTool
                     {
                         throw new AutomationException("Local files in manifest {0} were tampered with.", LocalManifest);
                     }
-                    WasLocal = true;
                     TelemetryStopwatch.Finish(string.Format("RetrieveFromTempStorage.{0}.{1}.{2}.Local.{3}.{4}.{5}", Files.Count, Local.GetTotalSize(), 0L, 0L, 0L, TempStorageNodeInfo.NodeStorageName));
                     return Files;
                 }
-                WasLocal = false;
 
                 // We couldn't find the node storage locally, so get it from the shared location.
-                var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo, GameName);
+                var SharedStorageNodeDir = SharedTempStorageDirectory(TempStorageNodeInfo);
 
                 CommandUtils.Log("Attempting to retrieve from {0}", SharedStorageNodeDir);
                 if (!CommandUtils.DirectoryExists_NoExceptions(SharedStorageNodeDir))
                 {
                     throw new AutomationException("Storage Block Does Not Exists! {0}", SharedStorageNodeDir);
                 }
-                var SharedManifest = SharedTempStorageManifestFilename(TempStorageNodeInfo, GameName);
+                var SharedManifest = SharedTempStorageManifestFilename(TempStorageNodeInfo);
                 InternalUtils.Robust_FileExists(SharedManifest, "Storage Block Manifest Does Not Exists! {0}");
 
                 var Shared = TempStorageManifest.Load(SharedManifest);
@@ -1161,12 +1135,11 @@ namespace AutomationTool
         /// @todo: Someday Make FindNodeHistory query the build database directly to get a true history of the node.
         /// </summary>
         /// <param name="TempStorageNodeInfo">Node info descibing the block of temp storage (essentially used to identify a subdirectory insides the game's temp storage folder).</param>
-        /// <param name="GameName">game name to determine the temp storage folder for. Empty is equivalent to "UE4".</param>
         /// <returns></returns>
-        public static List<int> FindMatchingSharedTempStorageNodeCLs(TempStorageNodeInfo TempStorageNodeInfo, string GameName)
+        public static List<int> FindMatchingSharedTempStorageNodeCLs(TempStorageNodeInfo TempStorageNodeInfo)
         {
             // Find the shared temp storage folder for this game and branch
-            var SharedTempStorageDirectoryForGameAndBranch = CommandUtils.CombinePaths(ResolveSharedTempStorageDirectory(GameName), TempStorageNodeInfo.JobInfo.BranchNameForTempStorage);
+            var SharedTempStorageDirectoryForGameAndBranch = CommandUtils.CombinePaths(ResolveSharedTempStorageDirectory(TempStorageNodeInfo.JobInfo.RootNameForTempStorage), TempStorageNodeInfo.JobInfo.BranchNameForTempStorage);
             int dummy;
             return (
                 // Look for all folders underneath this, it should be a CL, or CL-PreflightInfo
@@ -1188,12 +1161,12 @@ namespace AutomationTool
         static internal void TestTempStorage(CommandEnvironment CmdEnv)
         {
             // We are not a real GUBP job, so fake the values.
-            var TestTempStorageInfo = new TempStorageNodeInfo(new JobInfo("Test", 0, 0, 0), "Test");
+            var TestTempStorageInfo = new TempStorageNodeInfo(new JobInfo("", "Test", "UE4", 0, 0, 0), "Test");
 
             // Delete any local and shared temp storage that may exist.
             DeleteLocalTempStorage();
-            DeleteSharedTempStorage(TestTempStorageInfo, "UE4");
-            if (TempStorageExists(TestTempStorageInfo, "UE4", false, false))
+            DeleteSharedTempStorage(TestTempStorageInfo);
+            if (TempStorageExists(TestTempStorageInfo, false, false))
             {
                 throw new AutomationException("storage should not exist");
             }
@@ -1224,14 +1197,14 @@ namespace AutomationTool
             try
             {
                 // Store the test file to temp storage.
-                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, "UE4", CmdEnv.LocalRoot);
+                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, CmdEnv.LocalRoot);
                 // The manifest should exist locally.
                 if (!LocalTempStorageManifestExists(TestTempStorageInfo))
                 {
                     throw new AutomationException("local storage should exist");
                 }
                 // The manifest should exist on the shared drive.
-                if (!SharedTempStorageManifestExists(TestTempStorageInfo, "UE4", false))
+                if (!SharedTempStorageManifestExists(TestTempStorageInfo, false))
                 {
                     throw new AutomationException("shared storage should exist");
                 }
@@ -1243,14 +1216,13 @@ namespace AutomationTool
                     throw new AutomationException("local storage should not exist");
                 }
                 // But the shared storage should still exist.
-                if (!TempStorageExists(TestTempStorageInfo, "UE4", false, false))
+                if (!TempStorageExists(TestTempStorageInfo, false, false))
                 {
                     throw new AutomationException("some storage should exist");
                 }
 
                 // Now we should be able to retrieve the test files from shared storage, and it should overwrite our read-only files.
-                bool WasLocal;
-                RetrieveFromTempStorage(TestTempStorageInfo, out WasLocal, "UE4", CmdEnv.LocalRoot);
+                RetrieveFromTempStorage(TestTempStorageInfo, CmdEnv.LocalRoot);
                 // Now delete the local manifest so we can try again with no files present (the usual case for restoring from temp storage).
                 DeleteLocalTempStorage();
 
@@ -1261,14 +1233,14 @@ namespace AutomationTool
                 }
 
                 // Now we should be able to retrieve the test files from shared storage.
-                RetrieveFromTempStorage(TestTempStorageInfo, out WasLocal, "UE4", CmdEnv.LocalRoot);
+                RetrieveFromTempStorage(TestTempStorageInfo, CmdEnv.LocalRoot);
                 // the local manifest should be there, since we just retrieved from shared storage.
                 if (!LocalTempStorageManifestExists(TestTempStorageInfo))
                 {
                     throw new AutomationException("local storage should exist");
                 }
                 // The shared manifest should also still be there.
-                if (!SharedTempStorageManifestExists(TestTempStorageInfo, "UE4", false))
+                if (!SharedTempStorageManifestExists(TestTempStorageInfo, false))
                 {
                     throw new AutomationException("shared storage should exist");
                 }
@@ -1281,15 +1253,15 @@ namespace AutomationTool
                     }
                 }
                 // Now delete the shared temp storage
-                DeleteSharedTempStorage(TestTempStorageInfo, "UE4");
+                DeleteSharedTempStorage(TestTempStorageInfo);
                 // Shared temp storage manifest should no longer exist.
-                if (SharedTempStorageManifestExists(TestTempStorageInfo, "UE4", false))
+                if (SharedTempStorageManifestExists(TestTempStorageInfo, false))
                 {
                     throw new AutomationException("shared storage should not exist");
                 }
                 // Retrieving temp storage should now just retrieve from local
-                RetrieveFromTempStorage(TestTempStorageInfo, out WasLocal, "UE4", CmdEnv.LocalRoot);
-                if (!WasLocal || !LocalTempStorageManifestExists(TestTempStorageInfo))
+                RetrieveFromTempStorage(TestTempStorageInfo, CmdEnv.LocalRoot);
+                if (!LocalTempStorageManifestExists(TestTempStorageInfo))
                 {
                     throw new AutomationException("local storage should exist");
                 }
@@ -1303,7 +1275,7 @@ namespace AutomationTool
                     MissingFile.Add(CommandUtils.CombinePaths(CmdEnv.LocalRoot, "Engine", "SomeFileThatDoesntExist.txt"));
                     try
                     {
-                        StoreToTempStorage(TestTempStorageInfo, MissingFile, false, "UE4", CmdEnv.LocalRoot);
+                        StoreToTempStorage(TestTempStorageInfo, MissingFile, false, CmdEnv.LocalRoot);
                     }
                     catch (AutomationException)
                     {
@@ -1316,9 +1288,9 @@ namespace AutomationTool
                 }
 
                 // clear the shared temp storage again.
-                DeleteSharedTempStorage(TestTempStorageInfo, "UE4");
+                DeleteSharedTempStorage(TestTempStorageInfo);
                 // store the test files to shared temp storage again.
-                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, "UE4", CmdEnv.LocalRoot);
+                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, CmdEnv.LocalRoot);
                 // force a load from shared by deleting the local manifest
                 DeleteLocalTempStorage();
                 // delete our test files locally.
@@ -1330,14 +1302,14 @@ namespace AutomationTool
                 // now test that retrieving from shared temp storage properly balks that a file is missing.
                 {
                     // tamper with the shared files.
-                    var RandomSharedZipFile = Directory.EnumerateFiles(SharedTempStorageDirectory(TestTempStorageInfo, "UE4"), "*.zip").First();
+                    var RandomSharedZipFile = Directory.EnumerateFiles(SharedTempStorageDirectory(TestTempStorageInfo), "*.zip").First();
                     // delete the shared file.
                     CommandUtils.DeleteFile(RandomSharedZipFile);
 
                     bool bFailedProperly = false;
                     try
                     {
-                        RetrieveFromTempStorage(TestTempStorageInfo, out WasLocal, "UE4", CmdEnv.LocalRoot);
+                        RetrieveFromTempStorage(TestTempStorageInfo, CmdEnv.LocalRoot);
                     }
                     catch (AutomationException)
                     {
@@ -1355,9 +1327,9 @@ namespace AutomationTool
                 }
 
                 // clear the shared temp storage again.
-                DeleteSharedTempStorage(TestTempStorageInfo, "UE4");
+                DeleteSharedTempStorage(TestTempStorageInfo);
                 // Copy the files to temp storage.
-                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, "UE4", CmdEnv.LocalRoot);
+                StoreToTempStorage(TestTempStorageInfo, TestFiles.Select(TestFile => TestFile.FileName).ToList(), false, CmdEnv.LocalRoot);
                 // Delete a local file.
                 CommandUtils.DeleteFile(TestFiles[0].FileName);
                 // retrieving from temp storage should use WasLocal, but should balk because a local file was deleted.
@@ -1365,7 +1337,7 @@ namespace AutomationTool
                     bool bFailedProperly = false;
                     try
                     {
-                        RetrieveFromTempStorage(TestTempStorageInfo, out WasLocal, "UE4", CmdEnv.LocalRoot);
+                        RetrieveFromTempStorage(TestTempStorageInfo, CmdEnv.LocalRoot);
                     }
                     catch (AutomationException)
                     {
@@ -1380,7 +1352,7 @@ namespace AutomationTool
             finally
             {
                 // Do a final cleanup.
-                DeleteSharedTempStorage(TestTempStorageInfo, "UE4");
+                DeleteSharedTempStorage(TestTempStorageInfo);
                 DeleteLocalTempStorage();
                 foreach (var TestFile in TestFiles)
                 {

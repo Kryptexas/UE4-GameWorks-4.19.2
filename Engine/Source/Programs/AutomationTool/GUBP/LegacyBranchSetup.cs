@@ -14,7 +14,7 @@ partial class GUBP
 	public class GUBPBranchConfig
 	{
 		public List<UnrealTargetPlatform> HostPlatforms;
-		public string BranchName;
+        public string BranchName { get { return JobInfo.BranchName; } }
 		public BranchInfo Branch;
 		public GUBPBranchHacker.BranchOptions BranchOptions;
 		public bool bForceIncrementalCompile;
@@ -23,10 +23,9 @@ partial class GUBP
 		public Dictionary<string, GUBPNode> GUBPNodes = new Dictionary<string, GUBPNode>();
 		public Dictionary<string, GUBPAggregateNode> GUBPAggregates = new Dictionary<string, GUBPAggregateNode>();
 
-        public GUBPBranchConfig(IEnumerable<UnrealTargetPlatform> InHostPlatforms, string InBranchName, BranchInfo InBranch, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, JobInfo JobInfo)
+        public GUBPBranchConfig(IEnumerable<UnrealTargetPlatform> InHostPlatforms, BranchInfo InBranch, GUBPBranchHacker.BranchOptions InBranchOptions, bool bInForceIncrementalCompile, JobInfo JobInfo)
 		{
 			HostPlatforms = new List<UnrealTargetPlatform>(InHostPlatforms);
-			BranchName = InBranchName;
 			Branch = InBranch;
 			BranchOptions = InBranchOptions;
 			bForceIncrementalCompile = bInForceIncrementalCompile;
@@ -160,6 +159,17 @@ partial class GUBP
 			public bool bNoEditorDependenciesForTools = false;
 			public Dictionary<string, sbyte> FrequencyBarriers = new Dictionary<string,sbyte>();
 			public int QuantumOverride = 0;
+            /// <summary>
+            /// Allows a branch to override the build share it uses for temp storage for all nodes. This will override the default value for <see cref="JobInfo.RootNameForTempStorage"/>.
+            /// </summary>
+            public string RootNameForTempStorage;
+            /// <summary>
+            /// Stores a mapping from a GameName (determined by the <see cref="BranchInfo.BranchUProject.GameName"/>) to a share name underneath <see cref="CommandUtils.RootBuildStorageDirectory"/>.
+            /// This is where formal builds and such will be stored for each game. Instead of tying formal build outputs to the same location as temp storage,
+            /// this allows a project to have it's own share for formal build products, but use, say, the UE4 default storage location for temp storage.
+            /// If the mapping does not exist for a game, it uses the UE4 folder.
+            /// </summary>
+            public readonly Dictionary<string, string> GameNameToBuildShareMapping = new Dictionary<string,string>();
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
         {
@@ -345,20 +355,8 @@ partial class GUBP
         return AltHostPlatform;
     }
 
-    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, out List<BuildNodeTemplate> AllNodeDefinitions, out List<AggregateNodeTemplate> AllAggregateDefinitions, ref int TimeQuantum)
+    void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeTemplate> AllNodeDefinitions, out List<AggregateNodeTemplate> AllAggregateDefinitions, ref int TimeQuantum)
 	{
-		string BranchName;
-		if (P4Enabled)
-		{
-			BranchName = P4Env.BuildRootP4;
-		}
-		else
-		{ 
-			BranchName = ParseParamValue("BranchName", "");
-		}
-
-		GUBPBranchHacker.BranchOptions BranchOptions = GetBranchOptions(BranchName);
-
 		if (BranchOptions.QuantumOverride != 0)
 		{
 			TimeQuantum = BranchOptions.QuantumOverride;
@@ -453,7 +451,7 @@ partial class GUBP
             }
         }
 
-		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(HostPlatforms, BranchName, Branch, BranchOptions, bForceIncrementalCompile, JobInfo);
+		GUBPBranchConfig BranchConfig = new GUBPBranchConfig(HostPlatforms, Branch, BranchOptions, bForceIncrementalCompile, JobInfo);
 
         BranchConfig.AddNode(new VersionFilesNode());
 
@@ -1173,7 +1171,7 @@ partial class GUBP
 			List<string> NodeNames = new List<string>();
 			foreach(GUBP.GUBPNode Node in BranchConfig.GUBPNodes.Values)
 			{
-				if (Node.GameNameIfAnyForTempStorage() == GameProj.GameName)
+				if (Node.GameNameIfAnyForFullGameAggregateNode() == GameProj.GameName)
 				{
 					NodeNames.Add(Node.GetFullName());
 				}
@@ -1201,7 +1199,7 @@ partial class GUBP
 		FindFrequenciesForNodes(BranchConfig, LegacyToNewNodes, FrequencyOverrides);
 
 		// Get the email list for each node
-		FindEmailsForNodes(BranchName, AllNodeDefinitions);
+		FindEmailsForNodes(BranchConfig.BranchName, AllNodeDefinitions);
 	}
 
 	private static Dictionary<string, int> ApplyFrequencyBarriers(Dictionary<string, GUBPNode> GUBPNodes, Dictionary<string, GUBPAggregateNode> GUBPAggregates, Dictionary<string, sbyte> FrequencyBarriers)

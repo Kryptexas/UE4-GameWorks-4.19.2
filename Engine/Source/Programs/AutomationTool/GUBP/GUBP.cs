@@ -95,6 +95,10 @@ public partial class GUBP : BuildCommand
 
         bool bSaveSharedTempStorage = P4Enabled && (IsBuildMachine || GlobalCommandLine.UseLocalBuildStorage);
 
+        // Get the branch hacker options.
+        string BranchName = P4Enabled ? P4Env.BuildRootP4 : ParseParamValue("BranchName", "");
+        GUBPBranchHacker.BranchOptions BranchOptions = GetBranchOptions(BranchName);
+
         // encapsulate the logic and temp vars to determine the job info.
         // Ensures the temp vars don't escape the scope to be used later.
         Func<JobInfo> GetJobInfo = () =>
@@ -114,7 +118,9 @@ public partial class GUBP : BuildCommand
                 PreflightUID = ParseParamInt("PreflightUID", 0);
             }
             return new JobInfo(
+                BranchName,
                 P4Enabled ? P4Env.BuildRootEscaped : "NoP4",
+                BranchOptions.RootNameForTempStorage ?? "UE4",
                 P4Enabled ? ParseParamInt("CL", P4Env.Changelist) : 0,
                 PreflightShelveCL, 
                 PreflightUID);
@@ -147,7 +153,8 @@ public partial class GUBP : BuildCommand
 
 		int TimeQuantum = 20;
 		BuildGraphTemplate GraphTemplate = new BuildGraphTemplate();
-		AddNodesForBranch(HostPlatforms, JobInfo, out GraphTemplate.BuildNodeTemplates, out GraphTemplate.AggregateNodeTemplates, ref TimeQuantum);
+
+        AddNodesForBranch(HostPlatforms, JobInfo, BranchOptions, out GraphTemplate.BuildNodeTemplates, out GraphTemplate.AggregateNodeTemplates, ref TimeQuantum);
 
 		BuildGraph Graph = new BuildGraph(GraphTemplate);
 		FindCompletionState(Graph.BuildNodes, JobInfo, LocalOnly);
@@ -287,29 +294,23 @@ public partial class GUBP : BuildCommand
             // Construct the full temp storage node info
             var TempStorageNodeInfo = new TempStorageNodeInfo(JobInfo, NodeToDo.Name);
 
-			string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
-
 			if (LocalOnly)
 			{
                 NodeToDo.IsComplete = TempStorage.LocalTempStorageManifestExists(TempStorageNodeInfo, bQuiet: true);
 			}
 			else
 			{
-                NodeToDo.IsComplete = TempStorage.TempStorageExists(TempStorageNodeInfo, GameNameIfAny, bLocalOnly: false, bQuiet: true);
-				if(GameNameIfAny != "" && !NodeToDo.IsComplete)
-				{
-                    NodeToDo.IsComplete = TempStorage.TempStorageExists(TempStorageNodeInfo, "UE4", bLocalOnly: false, bQuiet: true);
-				}
+                NodeToDo.IsComplete = TempStorage.TempStorageExists(TempStorageNodeInfo, bLocalOnly: false, bQuiet: true);
 			}
 
             LogVerbose("** {0}", NodeToDo.Name);
 			if (!NodeToDo.IsComplete)
 			{
-                LogVerbose("***** GUBP Trigger Node was already triggered {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
+                LogVerbose("***** GUBP Trigger Node was already triggered {0} -> {1} : {2}", NodeToDo.Name, JobInfo.RootNameForTempStorage, TempStorageNodeInfo.GetRelativeDirectory());
 			}
 			else
 			{
-                LogVerbose("***** GUBP Trigger Node was NOT yet triggered {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
+                LogVerbose("***** GUBP Trigger Node was NOT yet triggered {0} -> {1} : {2}", NodeToDo.Name, JobInfo.RootNameForTempStorage, TempStorageNodeInfo.GetRelativeDirectory());
 			}
 		}
     }
@@ -761,13 +762,11 @@ public partial class GUBP : BuildCommand
         // Don't get node history on nodes that don't have a valid CL.
         if (!(NodeToDo is TriggerNode) && JobInfo.Changelist > 0)
         {
-            string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
-
             History = new NodeHistory
             {
-                AllStarted = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + StartedTempStorageSuffix), GameNameIfAny),
-                AllSucceeded = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + SucceededTempStorageSuffix), GameNameIfAny),
-                AllFailed = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + FailedTempStorageSuffix), GameNameIfAny)
+                AllStarted = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + StartedTempStorageSuffix)),
+                AllSucceeded = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + SucceededTempStorageSuffix)),
+                AllFailed = TempStorage.FindMatchingSharedTempStorageNodeCLs(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + FailedTempStorageSuffix))
             };
 
             if (History.AllFailed.Count > 0)
@@ -908,7 +907,6 @@ public partial class GUBP : BuildCommand
     {
         int Result = P4Env.Changelist;
 
-        string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
         var TempStorageNodeInfo = new TempStorageNodeInfo(JobInfo, NodeToDo.Name + FailedTempStorageSuffix);
 
         List<int> BackwardsFails = new List<int>(History.AllFailed);
@@ -933,8 +931,7 @@ public partial class GUBP : BuildCommand
             List<string> Files = null;
             try
             {
-                bool WasLocal;
-                Files = TempStorage.RetrieveFromTempStorage(ThisTempStorageNodeInfo, out WasLocal, GameNameIfAny, CmdEnv.LocalRoot); // this will fail on our CL if we didn't fail or we are just setting up the branch
+                Files = TempStorage.RetrieveFromTempStorage(ThisTempStorageNodeInfo, CmdEnv.LocalRoot); // this will fail on our CL if we didn't fail or we are just setting up the branch
             }
             catch (Exception)
             {
@@ -1276,7 +1273,6 @@ public partial class GUBP : BuildCommand
 
             var TempStorageNodeInfo = new TempStorageNodeInfo(JobInfo, NodeToDo.Name);
             
-			string GameNameIfAny = NodeToDo.GameNameIfAnyForTempStorage;
 			string StorageRootIfAny = NodeToDo.RootIfAnyForTempStorage;
 
 			if (bFake)
@@ -1291,8 +1287,8 @@ public partial class GUBP : BuildCommand
             if (NodeToDo.IsComplete)
             {
 				// Just fetch the build products from temp storage
-				Log("***** Retrieving GUBP Node {0} -> {1} : {2}", NodeToDo.Name, GameNameIfAny, TempStorageNodeInfo.GetRelativeDirectory());
-				NodeToDo.RetrieveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo);
+				Log("***** Retrieving GUBP Node {0} -> {1} : {2}", NodeToDo.Name, JobInfo.RootNameForTempStorage, TempStorageNodeInfo.GetRelativeDirectory());
+				NodeToDo.RetrieveBuildProducts(StorageRootIfAny, TempStorageNodeInfo);
             }
             else
             {
@@ -1303,7 +1299,7 @@ public partial class GUBP : BuildCommand
                 // Record that the node has started. We save our status to a new temp storage location specifically named with a suffix so we can find it later.
                 if (SaveSuccessRecords) 
                 {
-                    EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + StartedTempStorageSuffix), bSaveSharedTempStorage, GameNameIfAny);
+                    EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + StartedTempStorageSuffix), bSaveSharedTempStorage);
                 }
 
 				// Execute the node
@@ -1314,7 +1310,7 @@ public partial class GUBP : BuildCommand
 				// Archive the build products if the node succeeded
 				if(bResult)
 				{
-					NodeToDo.ArchiveBuildProducts(GameNameIfAny, StorageRootIfAny, TempStorageNodeInfo, !bSaveSharedTempStorage);
+					NodeToDo.ArchiveBuildProducts(StorageRootIfAny, TempStorageNodeInfo, !bSaveSharedTempStorage);
 				}
 
 				// Record that the node has finished
@@ -1327,7 +1323,7 @@ public partial class GUBP : BuildCommand
 					}
 					using(TelemetryStopwatch SaveNodeStatusStopwatch = new TelemetryStopwatch("SaveNodeStatus"))
 					{
-                        EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + (bResult? SucceededTempStorageSuffix : FailedTempStorageSuffix)), bSaveSharedTempStorage, GameNameIfAny, ParseParamValue("MyJobStepId"));
+                        EC.SaveStatus(new TempStorageNodeInfo(JobInfo, NodeToDo.Name + (bResult? SucceededTempStorageSuffix : FailedTempStorageSuffix)), bSaveSharedTempStorage, ParseParamValue("MyJobStepId"));
 					}
 					using(TelemetryStopwatch UpdateECPropsStopwatch = new TelemetryStopwatch("UpdateECProps"))
 					{

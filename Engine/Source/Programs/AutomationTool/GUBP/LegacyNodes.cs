@@ -28,7 +28,12 @@ partial class GUBP
 		{
 			return GetFullName();
 		}
-        public virtual string GameNameIfAnyForTempStorage()
+        /// <summary>
+        /// This function is legacy and deprecated for new usage. It purely exists to maintain an
+        /// older hack to determine which <see cref="FullGameAggregateNode"/>s to add.
+        /// </summary>
+        /// <returns></returns>
+        public virtual string GameNameIfAnyForFullGameAggregateNode()
         {
             return "";
         }
@@ -926,10 +931,10 @@ partial class GUBP
 			}
 			return Template;
 		}
-		public override string GameNameIfAnyForTempStorage()
+		public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProjects[0].Options(HostPlatform).GroupName ?? GameProjects[0].GameName;
-            }                    
+        }                    
         public override UE4Build.BuildAgenda GetAgenda(GUBP bp)
         {
             var Agenda = new UE4Build.BuildAgenda();
@@ -1172,7 +1177,7 @@ partial class GUBP
         {
             return StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp, Precompiled);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -1410,7 +1415,7 @@ partial class GUBP
 
 		public abstract string GetFullName();
 
-		public virtual string GameNameIfAnyForTempStorage()
+        public virtual string GameNameIfAnyForFullGameAggregateNode()
 		{
 			return "";
 		}
@@ -1654,7 +1659,7 @@ partial class GUBP
         {
             return StaticGetFullName(HostPlatform, GameProj, CookPlatform);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -1769,7 +1774,7 @@ partial class GUBP
         {
             return StaticGetFullName(HostPlatform, GameProj, TargetPlatform);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -1944,7 +1949,7 @@ partial class GUBP
         {
             return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatforms, ClientConfigs, ServerTargetPlatforms, ServerConfigs, ClientNotGame);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -1980,7 +1985,13 @@ partial class GUBP
 		}
 		public static string GetArchiveDirectory(GUBP.GUBPBranchConfig BranchConfig, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InHostPlatform, List<UnrealTargetPlatform> InClientTargetPlatforms = null, List<UnrealTargetConfiguration> InClientConfigs = null, List<UnrealTargetPlatform> InServerTargetPlatforms = null, List<UnrealTargetConfiguration> InServerConfigs = null, bool InClientNotGame = false)
         {
-            string BaseDir = TempStorage.ResolveSharedBuildDirectory(InGameProj.GameName);
+            // Find the build share where formal builds will be placed for this game.
+            string BuildShareName;
+            if (!BranchConfig.BranchOptions.GameNameToBuildShareMapping.TryGetValue(InGameProj.GameName, out BuildShareName))
+            {
+                BuildShareName = "UE4";
+            }
+            string BaseDir = CommandUtils.CombinePaths(CommandUtils.RootBuildStorageDirectory(), BuildShareName);
             string NodeName = StaticGetFullName(InGameProj, InHostPlatform, InClientTargetPlatforms, InClientConfigs, InServerTargetPlatforms, InServerConfigs, InClientNotGame);
             string Inner = P4Env.BuildRootEscaped + "-CL-" + P4Env.ChangelistString + BranchConfig.JobInfo.GetPreflightSuffix();
             string ArchiveDirectory = CombinePaths(BaseDir, NodeName, Inner);
@@ -2212,7 +2223,7 @@ partial class GUBP
         {
             return StaticGetFullName(GameProj, HostPlatform, ClientTargetPlatform, ClientConfig);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -2586,7 +2597,7 @@ partial class GUBP
         {
             return StaticGetFullName(HostPlatform, GameProj, TestName);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -2666,7 +2677,7 @@ partial class GUBP
         {
             return StaticGetFullName(HostPlatform, GameProj, AggregateName);
         }
-        public override string GameNameIfAnyForTempStorage()
+        public override string GameNameIfAnyForFullGameAggregateNode()
         {
             return GameProj.GameName;
         }
@@ -2674,12 +2685,12 @@ partial class GUBP
 
     public class CleanSharedTempStorageNode : GUBPNode
     {
-		HashSet<string> GameNames;
+        string RootNameForTempStorage;
 
         public CleanSharedTempStorageNode(GUBP bp, GUBPBranchConfig BranchConfig)
         {
             var ToolsNode = BranchConfig.FindNode(ToolsForCompileNode.StaticGetFullName(UnrealTargetPlatform.Win64));
-			GameNames = new HashSet<string>(BranchConfig.GUBPNodes.Values.Select(x => x.GameNameIfAnyForTempStorage()));
+            RootNameForTempStorage = BranchConfig.JobInfo.RootNameForTempStorage;
             AgentSharingGroup = ToolsNode.AgentSharingGroup;
         }
         public override float Priority()
@@ -2699,7 +2710,7 @@ partial class GUBP
         {
             {
                 var StartTime = DateTime.UtcNow;
-                TempStorage.CleanSharedTempStorageDirectory(GameNames);
+                TempStorage.CleanSharedTempStorageDirectory(RootNameForTempStorage);
                 var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
                 Log("Took {0}s to clear temp storage of old files.", BuildDuration / 1000);
             }

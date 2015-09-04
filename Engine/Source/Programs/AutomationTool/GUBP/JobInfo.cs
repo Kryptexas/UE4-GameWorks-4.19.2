@@ -18,6 +18,16 @@ namespace AutomationTool
     public class JobInfo
     {
         /// <summary>
+        /// BranchName for this job. P4Env.BuildRootP4 if P4Enabled. Otherwise, uses the -BranchName= parameter. Can be empty string.
+        /// </summary>
+        public string BranchName { get; private set; }
+
+        /// <summary>
+        /// The root name beneath <see cref="CommandUtils.RootBuildStorageDirectory"/> where all temp storage will placed for this job.
+        /// </summary>
+        public string RootNameForTempStorage { get; private set; }
+
+        /// <summary>
         /// Used as the prefix for temp storage for the job.
         /// 
         /// If P4 is enabled, this is P4Env.BuildRootEscaped, ie the branch name safe to create a file or folder from. If P4 is not enabled, it is NoP4, 
@@ -70,19 +80,23 @@ namespace AutomationTool
         /// <returns>A new JobInfo instance with all the same attributes as the current instance, but a different CL.</returns>
         public JobInfo CreateWithNewChangelist(int NewCL)
         {
-            return new JobInfo(BranchNameForTempStorage, NewCL, PreflightShelveChangelist, PreflightUID);
+            return new JobInfo(BranchName, RootNameForTempStorage, BranchNameForTempStorage, NewCL, PreflightShelveChangelist, PreflightUID);
         }
 
         /// <summary>
         /// Public ctor. This is an immutable class, so all attributes must be set a construction time.
         /// </summary>
+        /// <param name="BranchName">See similarly named attribute.</param>
+        /// <param name="RootNameForTempStorage">See similarly named attribute.</param>
         /// <param name="BranchNameForTempStorage">See similarly named attribute.</param>
         /// <param name="Changelist">See similarly named attribute.</param>
         /// <param name="PreflightShelveChangelist">See similarly named attribute.</param>
         /// <param name="PreflightUID">See similarly named attribute.</param>
-        public JobInfo(string BranchNameForTempStorage, int Changelist, int PreflightShelveChangelist, int PreflightUID)
+        public JobInfo(string BranchName, string BranchNameForTempStorage, string RootNameForTempStorage, int Changelist, int PreflightShelveChangelist, int PreflightUID)
         {
+            this.BranchName = BranchName;
             this.BranchNameForTempStorage = BranchNameForTempStorage;
+            this.RootNameForTempStorage = RootNameForTempStorage;
             this.Changelist = Changelist;
             this.PreflightShelveChangelist = PreflightShelveChangelist;
             this.PreflightUID = PreflightUID;

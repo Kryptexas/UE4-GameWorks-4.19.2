@@ -27,7 +27,7 @@ namespace AutomationTool
 		public bool IsSticky;
 		public bool IsTest;
 		public string DisplayGroupName;
-		public string GameNameIfAnyForTempStorage;
+        public string GameNameIfAnyForFullGameAggregateNode;
 		public string RootIfAnyForTempStorage;
 
 		public abstract BuildNode Instantiate();
@@ -56,7 +56,7 @@ namespace AutomationTool
 		public bool IsSticky;
 		public bool IsTest;
 		public string DisplayGroupName;
-		public string GameNameIfAnyForTempStorage;
+        public string GameNameIfAnyForFullGameAggregateNode;
 		public string RootIfAnyForTempStorage;
 
 		public List<string> BuildProducts;
@@ -78,34 +78,25 @@ namespace AutomationTool
 			IsSticky = Template.IsSticky;
 			IsTest = Template.IsTest;
 			DisplayGroupName = Template.DisplayGroupName;
-			GameNameIfAnyForTempStorage = Template.GameNameIfAnyForTempStorage;
+            GameNameIfAnyForFullGameAggregateNode = Template.GameNameIfAnyForFullGameAggregateNode;
 			RootIfAnyForTempStorage = Template.RootIfAnyForTempStorage;
 		}
 
-		public virtual void ArchiveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
+		public virtual void ArchiveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo, bool bLocalOnly)
 		{
-			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, GameNameIfAny, StorageRootIfAny);
+			TempStorage.StoreToTempStorage(TempStorageNodeInfo, BuildProducts, bLocalOnly, StorageRootIfAny);
 		}
 
-		public virtual void RetrieveBuildProducts(string GameNameIfAny, string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
+		public virtual void RetrieveBuildProducts(string StorageRootIfAny, TempStorageNodeInfo TempStorageNodeInfo)
 		{
 			CommandUtils.Log("***** Retrieving GUBP Node {0} from {1}", Name, TempStorageNodeInfo.GetRelativeDirectory());
 			try
 			{
-				bool WasLocal;
-				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, GameNameIfAny, StorageRootIfAny);
+				BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, StorageRootIfAny);
 			}
 			catch (Exception Ex)
 			{
-				if (GameNameIfAny != "")
-				{
-					bool WasLocal;
-					BuildProducts = TempStorage.RetrieveFromTempStorage(TempStorageNodeInfo, out WasLocal, "", StorageRootIfAny);
-				}
-				else
-				{
-					throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
-				}
+				throw new AutomationException(Ex, "Build Products cannot be found for node {0}", Name);
 			}
 		}
 
