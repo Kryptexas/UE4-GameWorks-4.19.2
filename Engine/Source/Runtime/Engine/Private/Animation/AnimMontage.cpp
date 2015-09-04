@@ -12,6 +12,10 @@
 #include "Animation/AnimNotifies/AnimNotify.h"
 #include "Animation/AnimSequenceBase.h"
 
+DEFINE_STAT(STAT_AnimMontageInstance_Advance);
+DEFINE_STAT(STAT_AnimMontageInstance_TickBranchPoints);
+DEFINE_STAT(STAT_AnimMontageInstance_Advance_Iteration);
+
 ///////////////////////////////////////////////////////////////////////////
 //
 UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
