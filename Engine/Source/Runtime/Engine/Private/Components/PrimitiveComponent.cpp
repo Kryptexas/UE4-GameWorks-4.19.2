@@ -2154,7 +2154,7 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 							// Not handled yet. We could do it by checking every body explicitly and track each body index in the overlap test, but this seems like a rare need.
 							return nullptr;
 						}
-						else if (ComponentOverlapComponent(OtherPrimitive, EndLocation, EndRotationQuat, UnusedQueryParams))
+						else if (OtherPrimitive->ComponentOverlapComponent(this, EndLocation, EndRotationQuat, UnusedQueryParams))
 						{
 							OverlapsAtEndLocation.Add(OtherOverlap);
 						}
