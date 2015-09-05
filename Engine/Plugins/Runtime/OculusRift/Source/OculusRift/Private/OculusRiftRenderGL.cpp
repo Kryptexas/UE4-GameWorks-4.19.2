@@ -126,7 +126,7 @@ void FOpenGLTexture2DSet::ReleaseResources(ovrHmd Hmd)
 		check(Textures.Num() == TextureSet->TextureCount);
 		check(Textures[0].Texture == GLTex0.OGL.TexId && Textures[1].Texture == GLTex1.OGL.TexId);
 
-		ovrHmd_DestroySwapTextureSet(Hmd, TextureSet);
+		ovr_DestroySwapTextureSet(Hmd, TextureSet);
 		TextureSet = nullptr;
 	}
 	Textures.Empty(0);
@@ -281,10 +281,10 @@ bool FOculusRiftHMD::OGLBridge::AllocateRenderTargetTexture(uint32 SizeX, uint32
 		}
 
 		ovrSwapTextureSet* textureSet;
-		ovrHmd_CreateSwapTextureSetGL(Hmd, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, &textureSet);
-		if (!textureSet)
+		ovrResult res = ovr_CreateSwapTextureSetGL(Hmd, GLFormat.InternalFormat[bSRGB], SizeX, SizeY, &textureSet);
+		if (!textureSet || res != ovrSuccess)
 		{
-			UE_LOG(LogHMD, Error, TEXT("Can't create swap texture set (size %d x %d)"), SizeX, SizeY);
+			UE_LOG(LogHMD, Error, TEXT("Can't create swap texture set (size %d x %d), error = %d"), SizeX, SizeY, res);
 			return false;
 		}
 		bNeedReAllocateTextureSet = false;
@@ -325,7 +325,7 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 		!FrameSettings->Flags.bMirrorToWindow ))
 	{
 		check(MirrorTexture);
-		ovrHmd_DestroyMirrorTexture(Hmd, MirrorTexture);
+		ovr_DestroyMirrorTexture(Hmd, MirrorTexture);
 		MirrorTexture = nullptr;
 		MirrorTextureRHI = nullptr;
 		bNeedReAllocateMirrorTexture = false;
@@ -335,10 +335,10 @@ void FOculusRiftHMD::OGLBridge::BeginRendering(FHMDViewExtension& InRenderContex
 	if (FrameSettings->Flags.bMirrorToWindow && FrameSettings->MirrorWindowMode == FSettings::eMirrorWindow_Distorted && !MirrorTextureRHI &&
 		ActualMirrorWindowSize.X != 0 && ActualMirrorWindowSize.Y != 0)
 	{
-		ovrHmd_CreateMirrorTextureGL(Hmd, GL_RGBA, ActualMirrorWindowSize.X, ActualMirrorWindowSize.Y, &MirrorTexture);
-		if (!MirrorTexture)
+		ovrResult res = ovr_CreateMirrorTextureGL(Hmd, GL_RGBA, ActualMirrorWindowSize.X, ActualMirrorWindowSize.Y, &MirrorTexture);
+		if (!MirrorTexture || res != ovrSuccess)
 		{
-			UE_LOG(LogHMD, Error, TEXT("Can't create a mirror texture"));
+			UE_LOG(LogHMD, Error, TEXT("Can't create a mirror texture, error = %d"), res);
 			return;
 		}
 		UE_LOG(LogHMD, Log, TEXT("Allocated a new mirror texture (size %d x %d)"), ActualMirrorWindowSize.X, ActualMirrorWindowSize.Y);
@@ -390,7 +390,17 @@ void FOculusRiftHMD::OGLBridge::FinishRendering()
 			
 			glCheckFramebufferStatus(GL_FRAMEBUFFER);
 			
-			ovrHmd_SubmitFrame(RenderContext->Hmd, RenderContext->RenderFrame->FrameNumber, &viewScaleDesc, LayerList, 1);
+			ovrResult res = ovr_SubmitFrame(RenderContext->Hmd, RenderContext->RenderFrame->FrameNumber, &viewScaleDesc, LayerList, 1);
+			if (res != ovrSuccess)
+			{
+				UE_LOG(LogHMD, Warning, TEXT("Error at SubmitFrame, err = %d"), int(res));
+
+				if (res == ovrError_DisplayLost)
+				{
+					bNeedReAllocateMirrorTexture = bNeedReAllocateTextureSet = true;
+					FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 1);
+				}
+			}
 
 			glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
@@ -409,7 +419,7 @@ void FOculusRiftHMD::OGLBridge::Reset_RenderThread()
 {
 	if (MirrorTexture)
 	{
-		ovrHmd_DestroyMirrorTexture(Hmd, MirrorTexture);
+		ovr_DestroyMirrorTexture(Hmd, MirrorTexture);
 		MirrorTextureRHI = nullptr;
 		MirrorTexture = nullptr;
 	}

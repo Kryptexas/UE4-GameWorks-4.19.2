@@ -327,7 +327,6 @@ public:
 	virtual bool DoesSupportPositionalTracking() const override;
 	virtual bool HasValidTrackingPosition() override;
 	virtual void GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const override;
-	virtual void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
 
 	virtual bool IsInLowPersistenceMode() const override;
 	virtual void EnableLowPersistenceMode(bool Enable = true) override;
@@ -356,8 +355,11 @@ public:
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
 
-	virtual void SetPositionScale3D(FVector PosScale3D) override;
-	virtual FVector GetPositionScale3D() const override;
+	virtual void SetPositionScale3D(FVector PosScale3D);
+	virtual FVector GetPositionScale3D() const;
+
+	// Returns true, if HMD is currently active
+	virtual bool IsHMDActive() { return IsHMDConnected(); }
 
 	/**
 	* A helper function that calculates the estimated neck position using the specified orientation and position

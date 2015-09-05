@@ -6,7 +6,7 @@
 #include "IHeadMountedDisplayModule.h"
 
 // Oculus support is not available on windows xp
-#define OCULUS_RIFT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) || PLATFORM_MAC
+#define OCULUS_RIFT_SUPPORTED_PLATFORMS (PLATFORM_WINDOWS && WINVER > 0x0502) // || PLATFORM_MAC
 
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
@@ -37,5 +37,22 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "OculusRift" );
 	}
+
+	/**
+	 * Takes an orientation and position in Oculus Rift coordinate space and converts it to 
+	 * Unreal's coordinate system, also applying world scale and base position/orientation offsets
+	 */
+	virtual bool PoseToOrientationAndPosition( const struct ovrPosef_& Pose, FQuat& OutOrientation, FVector& OutPosition ) const = 0;
+
+	/**
+	 * Returns current ovrHmd handle
+	 */
+	virtual struct ovrHmdStruct* GetHmd() = 0;
+
+	/**
+	 * Returns current ovrTrackingState
+	 */
+	virtual bool GetCurrentTrackingState(struct ovrTrackingState_* TrackingState) = 0;
+
 };
 

@@ -6,6 +6,7 @@
 FHMDSettings::FHMDSettings() :
 	SavedScrPerc(100.f)
 	, ScreenPercentage(100.f)
+	, IdealScreenPercentage(100.f)
 	, InterpupillaryDistance(0.064f)
 	, WorldToMetersScale(100.f)
 	, UserDistanceToScreenModifier(0.f)
@@ -213,7 +214,7 @@ bool FHeadMountedDisplay::OnStartGameFrame(FWorldContext& WorldContext)
 	Frame.Reset();
 	Flags.bFrameStarted = true;
 
-	if (Flags.bNeedDisableStereo || (Settings->Flags.bStereoEnabled && !IsHMDConnected()))
+	if (Flags.bNeedDisableStereo || (Settings->Flags.bStereoEnabled && !IsHMDActive()))
 	{
 		Flags.bNeedDisableStereo = false;
 		DoEnableStereo(false, Flags.bEnableStereoToHmd);
@@ -340,10 +341,6 @@ bool FHeadMountedDisplay::HasValidTrackingPosition()
 }
 
 void FHeadMountedDisplay::GetPositionalTrackingCameraProperties(FVector& OutOrigin, FQuat& OutOrientation, float& OutHFOV, float& OutVFOV, float& OutCameraDistance, float& OutNearPlane, float& OutFarPlane) const
-{
-}
-
-void FHeadMountedDisplay::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
 {
 }
 

@@ -32,77 +32,74 @@ int err; \
 namespace GearVR
 {
 
-	class FOpenGLTexture2DSet : public FOpenGLTexture2D
+class FOpenGLTexture2DSet : public FOpenGLTexture2D
+{
+public:
+	FOpenGLTexture2DSet(
+	class FOpenGLDynamicRHI* InGLRHI,
+		GLuint InResource,
+		GLenum InTarget,
+		GLenum InAttachment,
+		uint32 InSizeX,
+		uint32 InSizeY,
+		uint32 InSizeZ,
+		uint32 InNumMips,
+		uint32 InNumSamples,
+		uint32 InArraySize,
+		EPixelFormat InFormat,
+		bool bInCubemap,
+		bool bInAllocatedStorage,
+		uint32 InFlags,
+		uint8* InTextureRange
+		)
+		: FOpenGLTexture2D(
+		InGLRHI,
+		InResource,
+		InTarget,
+		InAttachment,
+		InSizeX,
+		InSizeY,
+		InSizeZ,
+		InNumMips,
+		InNumSamples,
+		InArraySize,
+		InFormat,
+		bInCubemap,
+		bInAllocatedStorage,
+		InFlags,
+		InTextureRange,
+		FClearValueBinding::Black
+		)
 	{
-		static const unsigned int TextureCount = 3;
-	public:
-		FOpenGLTexture2DSet(
-		class FOpenGLDynamicRHI* InGLRHI,
-			GLuint InResource,
-			GLenum InTarget,
-			GLenum InAttachment,
-			uint32 InSizeX,
-			uint32 InSizeY,
-			uint32 InSizeZ,
-			uint32 InNumMips,
-			uint32 InNumSamples,
-			uint32 InArraySize,
-			EPixelFormat InFormat,
-			bool bInCubemap,
-			bool bInAllocatedStorage,
-			uint32 InFlags,
-			uint8* InTextureRange
-			)
-			: FOpenGLTexture2D(
-			InGLRHI,
-			InResource,
-			InTarget,
-			InAttachment,
-			InSizeX,
-			InSizeY,
-			InSizeZ,
-			InNumMips,
-			InNumSamples,
-			InArraySize,
-			InFormat,
-			bInCubemap,
-			bInAllocatedStorage,
-			InFlags,
-			InTextureRange,
-			FClearValueBinding::Black
-			)
-		{
-			FMemory::Memzero(Textures);
-			CurrentIndex = 0;
-		}
-		~FOpenGLTexture2DSet()
-		{
-			glDeleteTextures(TextureCount, Textures);
-			Resource = 0;
-		}
+		ColorTextureSet = nullptr;
+		CurrentIndex = TextureCount = 0;
+	}
+	~FOpenGLTexture2DSet()
+	{
+		vrapi_DestroyTextureSwapChain(ColorTextureSet);
+		Resource = 0;
+	}
 
-		void SwitchToNextElement();
-		void SetTexture(unsigned index, GLuint InTexture);
+	void SwitchToNextElement();
 
-		static FOpenGLTexture2DSet* CreateTexture2DSet(
-			FOpenGLDynamicRHI* InGLRHI,
-			uint32 SizeX, uint32 SizeY,
-			uint32 InNumSamples,
-			EPixelFormat InFormat,
-			uint32 InFlags);
-	protected:
-		void InitWithCurrentElement();
+	static FOpenGLTexture2DSet* CreateTexture2DSet(
+		FOpenGLDynamicRHI* InGLRHI,
+		uint32 SizeX, uint32 SizeY,
+		uint32 InNumSamples,
+		EPixelFormat InFormat,
+		uint32 InFlags);
 
-		GLuint Textures[TextureCount];
-		uint32 CurrentIndex;
-	};
+	ovrTextureSwapChain*	GetColorTextureSet() const { return ColorTextureSet; }
+	uint32					GetCurrentIndex() const { return CurrentIndex;  }
+protected:
+	void InitWithCurrentElement();
+
+	uint32					CurrentIndex;
+	uint32					TextureCount;
+	ovrTextureSwapChain*	ColorTextureSet;
+};
 
 } // namespace GearVR
-
-void FOpenGLTexture2DSet::SetTexture(unsigned index, GLuint InTexture)
-{
-	Textures[index] = InTexture;
-}
 
 void FOpenGLTexture2DSet::SwitchToNextElement()
 {
@@ -112,7 +109,7 @@ void FOpenGLTexture2DSet::SwitchToNextElement()
 
 void FOpenGLTexture2DSet::InitWithCurrentElement()
 {
-	Resource = Textures[CurrentIndex];
+	Resource = vrapi_GetTextureSwapChainHandle(ColorTextureSet, CurrentIndex);
 }
 
 FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
@@ -131,33 +128,18 @@ FOpenGLTexture2DSet* FOpenGLTexture2DSet::CreateTexture2DSet(
 
 	FOpenGLTexture2DSet* NewTextureSet = new FOpenGLTexture2DSet(
 		InGLRHI, 0, Target, Attachment, SizeX, SizeY, 0, NumMips, InNumSamples, 1, InFormat, false, bAllocatedStorage, InFlags, TextureRange);
-	//	OpenGLTextureAllocated(NewTextureSet, InFlags);
 
-	UE_LOG(LogHMD, Log, TEXT("Allocated textureSet 0x%p (%d x %d)"), NewTextureSet, SizeX, SizeY);
+	UE_LOG(LogHMD, Log, TEXT("Allocated textureSet %p (%d x %d), fr = %d"), NewTextureSet, SizeX, SizeY, GFrameNumber);
 
-	const uint NumBytes = SizeX * SizeY * 4;
-	uint8* InitBuffer = (uint8*)FMemory::Malloc(NumBytes);
-	check(InitBuffer);
-	FMemory::Memzero(InitBuffer, NumBytes);
-
-	//CurrentSwapChainIndex = 0;
-	glGenTextures(3, NewTextureSet->Textures);
-
-	for (int i = 0; i < 3; i++)
+	NewTextureSet->ColorTextureSet = vrapi_CreateTextureSwapChain(VRAPI_TEXTURE_TYPE_2D, VRAPI_TEXTURE_FORMAT_8888,	SizeX, SizeY, 1, true);
+	if (!NewTextureSet->ColorTextureSet)
 	{
-		glBindTexture(GL_TEXTURE_2D, NewTextureSet->Textures[i]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SizeX, SizeY, 0, GL_RGBA, GL_UNSIGNED_BYTE, InitBuffer);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		UE_LOG(LogHMD, Log, TEXT("Allocated tex %d (%d x %d), texId = %d"), i, SizeX, SizeY, NewTextureSet->Textures[i]);
-		GL_CHECK_ERROR;
+		// hmmm... can't allocate a texture set for some reasons.
+		UE_LOG(LogHMD, Log, TEXT("Can't allocate texture swap chain."));
+		delete NewTextureSet;
+		return nullptr;
 	}
-
-	FMemory::Free(InitBuffer);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
+	NewTextureSet->TextureCount = vrapi_GetTextureSwapChainLength(NewTextureSet->ColorTextureSet);
 
 	NewTextureSet->InitWithCurrentElement();
 	return NewTextureSet;
@@ -220,7 +202,7 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 	const FSettings* FrameSettings = CurrentFrame->GetSettings();
 
 	const unsigned eyeIdx = (View.StereoPass == eSSP_LEFT_EYE) ? 0 : 1;
-	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[eyeIdx].HeadPose = NewTracking.HeadPose;
+	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eyeIdx].HeadPose = NewTracking.HeadPose;
 
 	ovrPosef CurEyeRenderPose;
 
@@ -236,10 +218,11 @@ void FViewExtension::PreRenderView_RenderThread(FRHICommandListImmediate& RHICmd
 	{
 		CurEyeRenderPose = CurrentFrame->EyeRenderPose[eyeIdx];
 		// use previous EyeRenderPose for proper timewarp when !bUpdateOnRt
-		pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[eyeIdx].HeadPose = CurrentFrame->HeadPose;
+		pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eyeIdx].HeadPose = CurrentFrame->HeadPose;
 	}
-	const auto RTTexId = *(GLuint*)View.Family->RenderTarget->GetRenderTargetTexture()->GetNativeResource();
-	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[eyeIdx].TexId = RTTexId;
+	//const auto RTTexId = *(GLuint*)View.Family->RenderTarget->GetRenderTargetTexture()->GetNativeResource();
+	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eyeIdx].ColorTextureSwapChain = pPresentBridge->TextureSet->GetColorTextureSet();
+	pPresentBridge->FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[eyeIdx].TextureSwapChainIndex = pPresentBridge->TextureSet->GetCurrentIndex();
 
 	if (ShowFlags.Rendering && CurrentFrame->Settings->Flags.bUpdateOnRT)
 	{
@@ -425,13 +408,10 @@ void FGearVR::ShutdownRendering()
 }
 
 //////////////////////////////////////////////////////////////////////////
-FGearVRCustomPresent::FGearVRCustomPresent(jobject InActivityObject, int InMinimumVsyncs, int InCpuLevel, int InGpuLevel, pid_t	InGameThreadId) :
+FGearVRCustomPresent::FGearVRCustomPresent(jobject InActivityObject, int InMinimumVsyncs) :
 	FRHICustomPresent(nullptr),
 	bInitialized(false),
 	MinimumVsyncs(InMinimumVsyncs),
-	CpuLevel(InCpuLevel),
-	GpuLevel(InGpuLevel),
-	GameThreadId(InGameThreadId),
 	OvrMobile(nullptr),
 	ActivityObject(InActivityObject)
 {
@@ -499,26 +479,30 @@ void FGearVRCustomPresent::BeginRendering(FHMDViewExtension& InRenderContext, co
 	const uint32 RTSizeX = RT->GetSizeX();
 	const uint32 RTSizeY = RT->GetSizeY();
 	
-//?	check(RT == TextureSet->GetTexture2D());
-	//RTTexId = *(GLuint*)RT->GetNativeResource();
-
 	FGameFrame* CurrentFrame = GetRenderFrame();
 	check(CurrentFrame);
 
 	FrameParms.FrameIndex = CurrentFrame->FrameNumber;
-	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[0].TexCoordsFromTanAngles = CurrentFrame->TanAngleMatrix;
-	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[1].TexCoordsFromTanAngles = CurrentFrame->TanAngleMatrix;
+	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_LEFT].TexCoordsFromTanAngles = CurrentFrame->TanAngleMatrix;
+	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_RIGHT].TexCoordsFromTanAngles = CurrentFrame->TanAngleMatrix;
 
+	check(VRAPI_FRAME_LAYER_EYE_LEFT == 0);
+	check(VRAPI_FRAME_LAYER_EYE_RIGHT == 1);
 	// split screen stereo
 	for ( int i = 0 ; i < 2 ; i++ )
 	{
 		for ( int j = 0 ; j < 3 ; j++ )
 		{
-			FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[i].TexCoordsFromTanAngles.M[0][j] *= ((float)RTSizeY / (float)RTSizeX);
+			FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[i].TexCoordsFromTanAngles.M[0][j] *= ((float)RTSizeY / (float)RTSizeX);
 		}
 	}
-	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Images[1].TexCoordsFromTanAngles.M[0][2] -= 1.0 - ((float)RTSizeY / (float)RTSizeX);
+	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_RIGHT].TexCoordsFromTanAngles.M[0][2] -= 1.0 - ((float)RTSizeY / (float)RTSizeX);
 	FrameParms.WarpProgram = VRAPI_FRAME_PROGRAM_MIDDLE_CLAMP;
+
+	const ovrRectf LeftEyeRect  = { 0.0f, 0.0f, 0.5f, 1.0f };
+	const ovrRectf RightEyeRect = { 0.5f, 0.0f, 0.5f, 1.0f };
+	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_LEFT].TextureRect = LeftEyeRect;
+	FrameParms.Layers[VRAPI_FRAME_LAYER_TYPE_WORLD].Textures[VRAPI_FRAME_LAYER_EYE_RIGHT].TextureRect= RightEyeRect;
 }
 
 void FGearVRCustomPresent::FinishRendering()
@@ -533,6 +517,11 @@ void FGearVRCustomPresent::FinishRendering()
 		{
 			check(RenderThreadId == gettid());
 			
+			FrameParms.PerformanceParms = DefaultPerfParms;
+			FrameParms.PerformanceParms.CpuLevel = RenderContext->GetFrameSetting()->CpuLevel;
+			FrameParms.PerformanceParms.GpuLevel = RenderContext->GetFrameSetting()->GpuLevel;
+			FrameParms.PerformanceParms.MainThreadTid = RenderContext->GetRenderFrame()->GameThreadId;
+			FrameParms.PerformanceParms.RenderThreadTid = gettid();
 			vrapi_SubmitFrame(OvrMobile, &FrameParms);
 
 			TextureSet->SwitchToNextElement();
@@ -563,6 +552,8 @@ void FGearVRCustomPresent::FinishRendering()
 void FGearVRCustomPresent::Init()
 {
 	bInitialized = true;
+
+	DefaultPerfParms = vrapi_DefaultPerformanceParms();
 
 	JavaRT.Vm = nullptr;
 	JavaRT.Env = nullptr;
@@ -628,16 +619,14 @@ void FGearVRCustomPresent::DoEnterVRMode()
 
 		FrameParms = vrapi_DefaultFrameParms(&JavaRT, VRAPI_FRAME_INIT_DEFAULT, 0);
 		FrameParms.MinimumVsyncs = MinimumVsyncs;
+		FrameParms.ExtraLatencyMode = EXTRA_LATENCY_MODE_ALWAYS;
 
 		RenderThreadId = gettid();
 		ovrModeParms parms = vrapi_DefaultModeParms(&JavaRT);
-		parms.CpuLevel = CpuLevel;
-		parms.GpuLevel = GpuLevel;
-		parms.MainThreadTid = GameThreadId;
-		parms.RenderThreadTid = gettid();
-		parms.ResetWindowFullscreen = false;	// No need to reset the FLAG_FULLSCREEN window flag when using a View
+		parms.ResetWindowFullscreen = false; // Reset may cause weird issues
+		parms.AllowPowerSave = false;		 // If power saving is on then perf may suffer
 
-		UE_LOG(LogHMD, Log, TEXT("        eglGetCurrentSurface( EGL_DRAW ) = %p"), eglGetCurrentSurface(EGL_DRAW));
+		UE_LOG(LogHMD, Log, TEXT("        eglGetCurrentSurface( EGL_DRAW ) = %p, fr = %d"), eglGetCurrentSurface(EGL_DRAW), GFrameNumber);
 
 		OvrMobile = vrapi_EnterVrMode(&parms);
 
