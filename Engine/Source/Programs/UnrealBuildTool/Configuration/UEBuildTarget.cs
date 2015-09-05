@@ -3401,8 +3401,7 @@ namespace UnrealBuildTool
 				if (RulesObject.Type != ModuleRules.ModuleType.External && ModuleName != "Core")
 				{
 					// Add the default include paths to the module rules, if they exist.
-					string ModuleFileRelativeToEngineDirectory = ModuleFileName.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
-					AddDefaultIncludePathsToModuleRules(ModuleName, ModuleFileName.FullName, ModuleFileRelativeToEngineDirectory, IsGameModule, RulesObject);
+					AddDefaultIncludePathsToModuleRules(ModuleFileName, IsGameModule, RulesObject);
 
 					// Add the path to the generated headers 
 					if(GeneratedCodeDirectory != null)
@@ -3524,144 +3523,72 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Add the standard default include paths to the given modulerules object
 		/// </summary>
-		/// <param name="InModuleName">The name of the module</param>
-		/// <param name="InModuleFilename">The filename to the module rules file (Build.cs)</param>
-		/// <param name="InModuleFileRelativeToEngineDirectory">The module file relative to the engine directory</param>
+		/// <param name="ModuleFile">The filename to the module rules file (Build.cs)</param>
 		/// <param name="IsGameModule">true if it is a game module, false if not</param>
 		/// <param name="RulesObject">The module rules object itself</param>
-		public static void AddDefaultIncludePathsToModuleRules(string InModuleName, string InModuleFilename, string InModuleFileRelativeToEngineDirectory, bool IsGameModule, ModuleRules RulesObject)
+		public void AddDefaultIncludePathsToModuleRules(FileReference ModuleFile, bool IsGameModule, ModuleRules RulesObject)
 		{
-			// Grab the absolute path of the Engine/Source folder for use later
-			string AbsEngineSourceDirectory = Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source");
-			AbsEngineSourceDirectory = Path.GetFullPath(AbsEngineSourceDirectory);
-			AbsEngineSourceDirectory = AbsEngineSourceDirectory.Replace("\\", "/");
-
-			// Find the module path relative to the Engine/Source folder
-			string ModuleDirectoryRelativeToEngineSourceDirectory = Utils.MakePathRelativeTo(InModuleFilename, Path.Combine(ProjectFileGenerator.RootRelativePath, "Engine/Source"));
-			ModuleDirectoryRelativeToEngineSourceDirectory = ModuleDirectoryRelativeToEngineSourceDirectory.Replace("\\", "/");
-			// Remove the build.cs file from the directory if present
-			if (ModuleDirectoryRelativeToEngineSourceDirectory.EndsWith("Build.cs", StringComparison.InvariantCultureIgnoreCase))
+			// Get the base source directory for this module. This may be the project source directory, engine source directory, or plugin source directory.
+			if(!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
 			{
-				Int32 LastSlashIdx = ModuleDirectoryRelativeToEngineSourceDirectory.LastIndexOf("/");
-				if (LastSlashIdx != -1)
+				// Check if it belongs to a plugin. We check against the directory here, which may give different results than checking the plugin modules list.
+				PluginInfo Plugin = ValidPlugins.FirstOrDefault(ValidPlugin => ModuleFile.IsUnderDirectory(ValidPlugin.Directory));
+
+				// Add the module source directory 
+				DirectoryReference BaseSourceDirectory;
+				if(Plugin != null)
 				{
-					ModuleDirectoryRelativeToEngineSourceDirectory = ModuleDirectoryRelativeToEngineSourceDirectory.Substring(0, LastSlashIdx + 1);
-				}
-			}
-			else
-			{
-				throw new BuildException("Invalid module filename '{0}'.", InModuleFilename);
-			}
-
-			// Determine the 'Game/Source' folder
-			//@todo.Rocket: This currently requires following our standard format for folder layout.
-			//				Also, it assumes the module itself is not named Source...
-			string GameSourceIncludePath = (IsGameModule == true) ? ModuleDirectoryRelativeToEngineSourceDirectory : "";
-			if (string.IsNullOrEmpty(GameSourceIncludePath) == false)
-			{
-				Int32 SourceIdx = GameSourceIncludePath.IndexOf("/Source/");
-				if (SourceIdx != -1)
-				{
-					GameSourceIncludePath = GameSourceIncludePath.Substring(0, SourceIdx + 8);
-					RulesObject.PublicIncludePaths.Add(GameSourceIncludePath);
-				}
-			}
-
-			// Setup the directories for Classes, Public, and Intermediate			
-			string ClassesDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Classes/");	// @todo uht: Deprecate eventually.  Or force it to be manually specified...
-			string PublicDirectory = Path.Combine(ModuleDirectoryRelativeToEngineSourceDirectory, "Public/");
-
-			if(!Utils.IsFileUnderDirectory(InModuleFilename, UnrealBuildTool.EngineSourceDirectory.FullName))
-			{
-				// This will be either the format 
-				//		../<Game>/Source/<Module>
-				// or
-				//		c:/PATH/<Game>/Source/<Module>
-                string SourceDirName = "Source";
-                Int32 SourceSlashIdx = ModuleDirectoryRelativeToEngineSourceDirectory.IndexOf(SourceDirName);
-				string SourceDirectoryPath = null;
-				if(SourceSlashIdx != -1)
-				{
-					try
-					{
-                        SourceDirectoryPath = Path.GetFullPath(ModuleDirectoryRelativeToEngineSourceDirectory.Substring(0, SourceSlashIdx + SourceDirName.Length));
-					}
-					catch(Exception Exc)
-					{
-						throw new BuildException(Exc, "Failed to resolve module source directory for private include paths for module {0}.", InModuleName);
-					}
+					BaseSourceDirectory = DirectoryReference.Combine(Plugin.Directory, "Source");
 				}
 				else
 				{
-					//@todo. throw a build exception here?
+					BaseSourceDirectory = DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), "Source");
 				}
 
-				// Resolve private include paths against the module source root so they are simpler and don't have to be engine root relative.
-				if(SourceDirectoryPath != null)
+				// If it's a game module (plugin or otherwise), add the root source directory to the include paths.
+				if(IsGameModule)
 				{
-					List<string> ResolvedPrivatePaths = new List<string>();
-					foreach(var PrivatePath in RulesObject.PrivateIncludePaths)
+					RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(BaseSourceDirectory));
+				}
+
+				// Resolve private include paths against the project source root
+				for(int Idx = 0; Idx < RulesObject.PrivateIncludePaths.Count; Idx++)
+				{
+					string PrivateIncludePath = RulesObject.PrivateIncludePaths[Idx];
+					if(!Path.IsPathRooted(PrivateIncludePath))
 					{
-						try
-						{
-							if(!Path.IsPathRooted(PrivatePath))
-							{
-								ResolvedPrivatePaths.Add(Path.Combine(SourceDirectoryPath, PrivatePath));
-							}
-							else
-							{
-								ResolvedPrivatePaths.Add(PrivatePath);
-							}
-						}
-						catch(Exception Exc)
-						{
-							throw new BuildException(Exc, "Failed to resolve private include path {0}.", PrivatePath);
-						}
+						PrivateIncludePath = DirectoryReference.Combine(BaseSourceDirectory, PrivateIncludePath).FullName;
 					}
-					RulesObject.PrivateIncludePaths = ResolvedPrivatePaths;
+					RulesObject.PrivateIncludePaths[Idx] = PrivateIncludePath;
 				}
 			}
 
-			string IncludePath_Classes = "";
-			string IncludePath_Public = "";
-
-			bool bModulePathIsRooted = Path.IsPathRooted(ModuleDirectoryRelativeToEngineSourceDirectory);
-
-			string ClassesFolderName = (bModulePathIsRooted == false) ? Path.Combine(AbsEngineSourceDirectory, ClassesDirectory) : ClassesDirectory;
-			if (Directory.Exists(ClassesFolderName) == true)
+			// Add the 'classes' directory, if it exists
+			DirectoryReference ClassesDirectory = DirectoryReference.Combine(ModuleFile.Directory, "Classes");
+			if(ClassesDirectory.Exists())
 			{
-				IncludePath_Classes = ClassesDirectory;
+				RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(ClassesDirectory));
 			}
 
-			string PublicFolderName = (bModulePathIsRooted == false) ? Path.Combine(AbsEngineSourceDirectory, PublicDirectory) : PublicDirectory;
-			if (Directory.Exists(PublicFolderName) == true)
+			// Add all the public directories
+			DirectoryReference PublicDirectory = DirectoryReference.Combine(ModuleFile.Directory, "Public");
+			if(PublicDirectory.Exists())
 			{
-				IncludePath_Public = PublicDirectory;
-			}
-
-			// Add them if they are required...
-			if (IncludePath_Classes.Length > 0)
-			{
-				RulesObject.PublicIncludePaths.Add(IncludePath_Classes);
-			}
-			if (IncludePath_Public.Length > 0)
-			{
-				RulesObject.PublicIncludePaths.Add(IncludePath_Public);
+				RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(PublicDirectory));
 
 				// Add subdirectories of Public if present
-				DirectoryInfo PublicInfo = new DirectoryInfo(IncludePath_Public);
-				DirectoryInfo[] PublicSubDirs = PublicInfo.GetDirectories("*", SearchOption.AllDirectories);
-				if (PublicSubDirs.Length > 0)
+				DirectoryInfo PublicInfo = new DirectoryInfo(PublicDirectory.FullName);
+				foreach (DirectoryInfo SubDir in PublicInfo.GetDirectories("*", SearchOption.AllDirectories))
 				{
-					foreach (DirectoryInfo SubDir in PublicSubDirs)
-					{
-						string PartialDir = SubDir.FullName.Replace(PublicInfo.FullName, "");
-						string NewDir = IncludePath_Public + PartialDir;
-						NewDir = Utils.CleanDirectorySeparators(NewDir, '/');
-						RulesObject.PublicIncludePaths.Add(NewDir);
-					}
+					RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(new DirectoryReference(SubDir)));
 				}
 			}
+		}
+
+		/** Normalize an include path to be relative to the engine source directory */
+		public static string NormalizeIncludePath(DirectoryReference Directory)
+		{
+			return Utils.CleanDirectorySeparators(Directory.MakeRelativeTo(UnrealBuildTool.EngineSourceDirectory), '/');
 		}
 
 		/** Finds a module given its name.  Throws an exception if the module couldn't be found. */
