@@ -8,43 +8,108 @@ namespace UnrealBuildTool
 {
 	class DirectoryCache
 	{
-		public DirectoryCache( DirectoryReference BaseDirectory )
+		public readonly DirectoryReference Directory;
+		public readonly bool Exists;
+		HashSet<FileReference> Files;
+		HashSet<DirectoryReference> Directories;
+
+		public DirectoryCache(DirectoryReference InDirectory)
 		{
-			if( BaseDirectory.Exists() )
-			{
-				Files = new HashSet<FileReference>(BaseDirectory.EnumerateFileReferences());
-			}
-			else
+			Directory = InDirectory;
+			Exists = Directory.Exists();
+
+			if(!Exists)
 			{
 				Files = new HashSet<FileReference>();
+				Directories = new HashSet<DirectoryReference>();
 			}
 		}
 
-		public bool HasFile( FileReference File )
+		private void CacheFiles()
 		{
-			return Files.Contains(File);
+			if(Files == null)
+			{
+				Files = new HashSet<FileReference>(Directory.EnumerateFileReferences());
+			}
 		}
 
-		HashSet<FileReference> Files;
-	}
+		public bool HasFile(FileReference CheckFile)
+		{
+			CacheFiles();
+			return Files.Contains(CheckFile);
+		}
 
+		public IEnumerable<FileReference> EnumerateFiles()
+		{
+			CacheFiles();
+			return Files;
+		}
+
+		private void CacheDirectories()
+		{
+			if(Directories == null)
+			{
+				Directories = new HashSet<DirectoryReference>(Directory.EnumerateDirectoryReferences());
+			}
+		}
+
+		public IEnumerable<DirectoryReference> EnumerateDirectories()
+		{
+			CacheDirectories();
+			return Directories;
+		}
+	}
 
 	public static class DirectoryLookupCache
 	{
-		static public bool FileExists( FileReference FileFullPath )
+		static DirectoryCache FindOrCreateDirectoryCache(DirectoryReference Directory)
 		{
-			DirectoryReference FileDirectory = FileFullPath.Directory;
-
 			DirectoryCache FoundDirectoryCache;
-			if( !Directories.TryGetValue( FileDirectory, out FoundDirectoryCache ) )
+			if (!Directories.TryGetValue(Directory, out FoundDirectoryCache))
 			{
-				// First time we've seen this directory.  Gather information about files.
-				FoundDirectoryCache = new DirectoryCache( FileDirectory );
-				Directories.Add( FileDirectory, FoundDirectoryCache );
+				FoundDirectoryCache = new DirectoryCache(Directory);
+				Directories.Add(Directory, FoundDirectoryCache);
 			}
+			return FoundDirectoryCache;
+		}
 
-			// Try to find the file in this directory
-			return FoundDirectoryCache.HasFile( FileFullPath );
+
+		static public bool FileExists(FileReference File)
+		{
+			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(File.Directory);
+			return FoundDirectoryCache.HasFile(File);
+		}
+
+		static public bool DirectoryExists(DirectoryReference Directory)
+		{
+			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(Directory);
+			return FoundDirectoryCache.Exists;
+		}
+
+		static public IEnumerable<FileReference> EnumerateFiles(DirectoryReference Directory)
+		{
+			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(Directory);
+			return FoundDirectoryCache.EnumerateFiles();
+		}
+
+		static public IEnumerable<DirectoryReference> EnumerateDirectories(DirectoryReference Directory)
+		{
+			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(Directory);
+			return FoundDirectoryCache.EnumerateDirectories();
+		}
+
+		static public IEnumerable<DirectoryReference> EnumerateDirectoriesRecursively(DirectoryReference Directory)
+		{
+			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(Directory);
+			foreach(DirectoryReference SubDirectory in FoundDirectoryCache.EnumerateDirectories())
+			{
+				yield return SubDirectory;
+
+				foreach(DirectoryReference ChildSubDirectory in EnumerateDirectoriesRecursively(SubDirectory))
+				{
+					yield return ChildSubDirectory;
+				}
+			}
 		}
 
 		static Dictionary<DirectoryReference, DirectoryCache> Directories = new Dictionary<DirectoryReference, DirectoryCache>();

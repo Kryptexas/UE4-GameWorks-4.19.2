@@ -3565,22 +3565,20 @@ namespace UnrealBuildTool
 
 			// Add the 'classes' directory, if it exists
 			DirectoryReference ClassesDirectory = DirectoryReference.Combine(ModuleFile.Directory, "Classes");
-			if(ClassesDirectory.Exists())
+			if(DirectoryLookupCache.DirectoryExists(ClassesDirectory))
 			{
 				RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(ClassesDirectory));
 			}
 
 			// Add all the public directories
 			DirectoryReference PublicDirectory = DirectoryReference.Combine(ModuleFile.Directory, "Public");
-			if(PublicDirectory.Exists())
+			if(DirectoryLookupCache.DirectoryExists(PublicDirectory))
 			{
 				RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(PublicDirectory));
 
-				// Add subdirectories of Public if present
-				DirectoryInfo PublicInfo = new DirectoryInfo(PublicDirectory.FullName);
-				foreach (DirectoryInfo SubDir in PublicInfo.GetDirectories("*", SearchOption.AllDirectories))
+				foreach(DirectoryReference PublicSubDirectory in DirectoryLookupCache.EnumerateDirectoriesRecursively(PublicDirectory))
 				{
-					RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(new DirectoryReference(SubDir)));
+					RulesObject.PublicIncludePaths.Add(NormalizeIncludePath(PublicSubDirectory));
 				}
 			}
 		}
