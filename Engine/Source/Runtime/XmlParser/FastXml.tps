@@ -2,7 +2,7 @@
 <TpsData xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>FastXml by John W. Ratcliff</Name>
   <Location>//depot/UE4/Engine/Source/Runtime/XmlParser</Location>
-  <Date>2015-05-01T15:17:27.1200533-04:00</Date>
+  <Date>2015-09-04T18:49:02.2157242-04:00</Date>
   <Function>Loads XML files more quickly than other XML loading libraries (but with minimal features and low tolerance for malformed files</Function>
   <Justification>To load XML data into the engine as fast as possible</Justification>
   <Platforms>
@@ -28,7 +28,7 @@
   </RedistributeTo>
   <Redistribute>false</Redistribute>
   <IsSourceAvailable>true</IsSourceAvailable>
-  <NoticeType>Copyright Notice</NoticeType>
+  <NoticeType>Full EULA Text</NoticeType>
   <Notification>Copyright (c) 2010 by John W. Ratcliff mailto:jratcliffscarab@gmail.com
 
 Skype ID: jratcliff63367
