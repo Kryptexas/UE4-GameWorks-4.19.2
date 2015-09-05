@@ -285,14 +285,12 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Creates a receipt for this binary.
+		/// Gets all build products produced by this binary
 		/// </summary>
-		/// <param name="ToolChain">Toolchain for the target platform</param>
-		/// <param name="BuildPlatform">Platform that we're building for</param>
-		public virtual TargetReceipt MakeReceipt(IUEToolChain ToolChain)
+		/// <param name="ToolChain">The platform toolchain</param>
+		/// <param name="BuildProducts">Mapping of produced build product to type</param>
+		public virtual void GetBuildProducts(IUEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
-			TargetReceipt Receipt = new TargetReceipt();
-
 			// Get the type of build products we're creating
 			BuildProductType Type = BuildProductType.RequiredResource;
 			switch(Config.Type)
@@ -312,7 +310,7 @@ namespace UnrealBuildTool
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Target.Platform).GetDebugInfoExtension(Config.Type);
 			foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 			{
-				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, Receipt, ToolChain);
+				AddBuildProductAndDebugFile(OutputFilePath, Type, DebugExtension, BuildProducts, ToolChain);
 			}
 
 			// Add the console app, if there is one
@@ -320,13 +318,12 @@ namespace UnrealBuildTool
 			{
 				foreach (FileReference OutputFilePath in Config.OutputFilePaths)
 				{
-					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, Receipt, ToolChain);
+					AddBuildProductAndDebugFile(GetAdditionalConsoleAppPath(OutputFilePath), Type, DebugExtension, BuildProducts, ToolChain);
 				}
 			}
 
 			// Add any extra files from the toolchain
-			ToolChain.AddFilesToReceipt(Receipt, this);
-			return Receipt;
+			ToolChain.ModifyBuildProducts(this, BuildProducts);
 		}
 
 		/// <summary>
@@ -335,13 +332,13 @@ namespace UnrealBuildTool
 		/// <param name="OutputFile">Build product to add</param>
 		/// <param name="DebugExtension">Extension for the matching debug file (may be null).</param>
 		/// <param name="Receipt">Receipt to add to</param>
-		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, TargetReceipt Receipt, IUEToolChain ToolChain)
+		static void AddBuildProductAndDebugFile(FileReference OutputFile, BuildProductType OutputType, string DebugExtension, Dictionary<FileReference, BuildProductType> BuildProducts, IUEToolChain ToolChain)
 		{
-			Receipt.AddBuildProduct(OutputFile, OutputType);
+			BuildProducts.Add(OutputFile, OutputType);
 
 			if(!String.IsNullOrEmpty(DebugExtension) && ToolChain.ShouldAddDebugFileToReceipt(OutputFile, OutputType))
 			{
-				Receipt.AddBuildProduct(OutputFile.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
+				BuildProducts.Add(OutputFile.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
 			}
 		}
 
@@ -637,50 +634,20 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Overrides base class to add module runtime dependencies to the build receipt.
+		/// Gets all build products produced by this binary
 		/// </summary>
 		/// <param name="ToolChain">The platform toolchain</param>
-		public override TargetReceipt MakeReceipt(IUEToolChain ToolChain)
+		/// <param name="BuildProducts">Mapping of produced build product to type</param>
+		public override void GetBuildProducts(IUEToolChain ToolChain, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
-			TargetReceipt Receipt = base.MakeReceipt(ToolChain);
-
-			// Set the IsPrecompiled flag on all the build products if we're not actually building this binary
-			if(!Config.bAllowCompilation)
-			{
-				foreach(BuildProduct BuildProduct in Receipt.BuildProducts)
-				{
-					BuildProduct.IsPrecompiled = true;
-				}
-			}
+			base.GetBuildProducts(ToolChain, BuildProducts);
 
 			// Add the compiled resource file if we're building a static library containing the launch module on Windows
 			if(Config.Type == UEBuildBinaryType.StaticLibrary && ModuleNames.Contains("Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				FileReference ResourceFilePath = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
-				Receipt.AddBuildProduct(ResourceFilePath.FullName, BuildProductType.StaticLibrary);
+				BuildProducts.Add(ResourceFilePath, BuildProductType.StaticLibrary);
 			}
-			
-			// Add runtime dependencies for all the modules in this binary, and build up a list of all the referenced modules
-			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
-			foreach (string ModuleName in ModuleNames)
-			{
-				UEBuildModule Module = Target.GetModuleByName(ModuleName);
-				foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
-				{
-					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
-				}
-				Module.GetAllDependencyModules(ReferencedModules, true, false, true);
-			}
-
-			// Add runtime dependencies for all the referenced external modules. These may be introduce dependencies for the binary without actually being listed for inclusion in it.
-			foreach(UEBuildExternalModule ExternalModule in ReferencedModules.Values.OrderBy(x => x.Index).Select(x => x.Module).OfType<UEBuildExternalModule>())
-			{
-				foreach(RuntimeDependency RuntimeDependency in ExternalModule.RuntimeDependencies)
-				{
-					Receipt.RuntimeDependencies.Add(new RuntimeDependency(RuntimeDependency));
-				}
-			}
-			return Receipt;
 		}
 
 		// Object interface.

@@ -1715,18 +1715,36 @@ namespace UnrealBuildTool
 			// that already contains a manifest, we'll reuse the build id that's already in there (see below).
 			string BuildId = (OnlyModules.Count == 0)? Guid.NewGuid().ToString() : "";
 
-			// Create the receipt, and merge all the receipts from the individual binaries
+			// Find all the build products and modules from this binary
 			Receipt = new TargetReceipt(TargetName, Platform, Configuration, BuildId, Version);
 			foreach(UEBuildBinary Binary in AppBinaries)
 			{
-				TargetReceipt BinaryReceipt = Binary.MakeReceipt(ToolChain);
-				if(Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
+				// Get all the build products for this binary
+				Dictionary<FileReference, BuildProductType> BuildProducts = new Dictionary<FileReference,BuildProductType>();
+				Binary.GetBuildProducts(ToolChain, BuildProducts);
+
+				// Add them to the receipt
+				foreach(KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProducts)
 				{
-					BinaryReceipt.RuntimeDependencies.Clear();
+					string NormalizedPath = TargetReceipt.InsertPathVariables(BuildProductPair.Key, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+					BuildProduct BuildProduct = Receipt.AddBuildProduct(NormalizedPath, BuildProductPair.Value);
+					BuildProduct.IsPrecompiled = !Binary.Config.bAllowCompilation;
 				}
-				Receipt.Merge(BinaryReceipt);
 			}
-			Receipt.InsertStandardPathVariables(UnrealBuildTool.EngineDirectory, ProjectDirectory);
+
+			// Find all the modules which are part of this target
+			foreach(UEBuildModule Module in Modules.Values)
+			{
+				if(Module.bIncludedInTarget && Module.Binary != null && Module.Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+				{
+					foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
+					{
+						string SourcePath = TargetReceipt.InsertPathVariables(RuntimeDependency.Path, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+						string TargetPath = TargetReceipt.InsertPathVariables(RuntimeDependency.StagePath, UnrealBuildTool.EngineDirectory, ProjectDirectory);
+						Receipt.AddRuntimeDependency(SourcePath, TargetPath);
+					}
+				}
+			}
 
 			// Prepare all the version manifests
 			Dictionary<FileReference, VersionManifest> FileNameToVersionManifest = new Dictionary<FileReference, VersionManifest>();

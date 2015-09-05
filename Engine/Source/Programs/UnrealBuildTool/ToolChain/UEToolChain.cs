@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 
 		void SetUpGlobalEnvironment();
 
-		void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary);
+		void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts);
 
 		bool ShouldAddDebugFileToReceipt(FileReference OutputFile, BuildProductType OutputType);
 
@@ -171,7 +171,7 @@ namespace UnrealBuildTool
 		{
 		}
 
-		public virtual void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
+		public virtual void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 		}
 

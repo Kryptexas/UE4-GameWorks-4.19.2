@@ -94,12 +94,12 @@ namespace UnrealBuildTool
 			SetupXcodePaths(true);
 		}
 
-		public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
+		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			if (BuildConfiguration.bCreateStubIPA && Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
 				FileReference StubFile = FileReference.Combine(Binary.Config.OutputFilePath.Directory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".stub");
-				Receipt.AddBuildProduct(StubFile, BuildProductType.Executable);
+				BuildProducts.Add(StubFile, BuildProductType.Executable);
 			}
 		}
 

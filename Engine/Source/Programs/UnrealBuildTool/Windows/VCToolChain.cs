@@ -1777,11 +1777,11 @@ namespace UnrealBuildTool
 			return IncludePaths;
 		}
 
-		public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
+		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			if (Binary.Config.Type == UEBuildBinaryType.DynamicLinkLibrary)
 			{
-				Receipt.AddBuildProduct(FileReference.Combine(Binary.Config.IntermediateDirectory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".lib"), BuildProductType.ImportLibrary);
+				BuildProducts.Add(FileReference.Combine(Binary.Config.IntermediateDirectory, Binary.Config.OutputFilePath.GetFileNameWithoutExtension() + ".lib"), BuildProductType.ImportLibrary);
 			}
 		}
 

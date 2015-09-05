@@ -536,13 +536,13 @@ namespace UnrealBuildTool
 			throw new BuildException("HTML5 cannot compile C# files");
 		}
 
-        public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
+		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
         {
             // we need to include the generated .mem and .symbols file.  
 			if(Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
-	            Receipt.AddBuildProduct(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
-				Receipt.AddBuildProduct(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
+	            BuildProducts.Add(Binary.Config.OutputFilePath + ".mem", BuildProductType.RequiredResource);
+				BuildProducts.Add(Binary.Config.OutputFilePath + ".symbols", BuildProductType.RequiredResource);
 			}
         }
 

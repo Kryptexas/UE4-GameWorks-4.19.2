@@ -197,17 +197,6 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Adds a build product to the receipt. Does not check whether it already exists.
-		/// </summary>
-		/// <param name="Path">Path to the build product.</param>
-		/// <param name="Type">Type of build product.</param>
-		/// <returns>The BuildProduct object that was created</returns>
-		public BuildProduct AddBuildProduct(FileReference Path, BuildProductType Type)
-		{
-			return AddBuildProduct(Path.FullName, Type);
-		}
-
-		/// <summary>
 		/// Constructs a runtime dependency object and adds it to the receipt.
 		/// </summary>
 		/// <param name="Path">Source path for the dependency</param>
@@ -277,52 +266,43 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// Inserts standard $(EngineDir) and $(ProjectDir) variables into any path strings, so it can be used on different machines.
-		/// </summary>
-		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
-		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
-		public void InsertStandardPathVariables(DirectoryReference EngineDir, DirectoryReference ProjectDir)
-		{
-			string EnginePrefix = EngineDir.FullName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-			string ProjectPrefix = ProjectDir.FullName.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-
-			foreach(BuildProduct BuildProduct in BuildProducts)
-			{
-				BuildProduct.Path = InsertStandardPathVariablesToString(BuildProduct.Path, EnginePrefix, ProjectPrefix);
-			}
-			foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
-			{
-				RuntimeDependency.Path = InsertStandardPathVariablesToString(RuntimeDependency.Path, EnginePrefix, ProjectPrefix);
-				if(RuntimeDependency.StagePath != null)
-				{
-					RuntimeDependency.StagePath = InsertStandardPathVariablesToString(RuntimeDependency.StagePath, EnginePrefix, ProjectPrefix);
-				}
-			}
-		}
-
-		/// <summary>
 		/// Inserts $(EngineDir) and $(ProjectDir) variables into a path string, so it can be used on different machines.
 		/// </summary>
 		/// <param name="InputPath">Input path</param>
 		/// <param name="EngineDir">The engine directory. Relative paths are ok.</param>
 		/// <param name="ProjectDir">The project directory. Relative paths are ok.</param>
 		/// <returns>New string with the base directory replaced, or the original string</returns>
-		static public string InsertStandardPathVariablesToString(string InputPath, string EnginePrefix, string ProjectPrefix)
+		public static string InsertPathVariables(string InputPath, DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
 			string Result = InputPath;
-			if(!InputPath.StartsWith("$("))
+			if(InputPath != null && !InputPath.StartsWith("$("))
 			{
-				string FullInputPath = Path.GetFullPath(InputPath);
-				if(FullInputPath.StartsWith(EnginePrefix))
-				{
-					Result = "$(EngineDir)" + FullInputPath.Substring(EnginePrefix.Length - 1);
-				}
-				else if(FullInputPath.StartsWith(ProjectPrefix))
-				{
-					Result = "$(ProjectDir)" + FullInputPath.Substring(ProjectPrefix.Length - 1);
-				}
+				Result = InsertPathVariables(new FileReference(InputPath), EngineDir, ProjectDir);
 			}
 			return Result;
+		}
+
+		/// <summary>
+		/// Inserts variables to make a file relative to $(EngineDir) or $(ProjectDir)
+		/// </summary>
+		/// <param name="File">The file to insert variables into.</param>
+		/// <param name="EngineDir">Value of the $(EngineDir) variable.</param>
+		/// <param name="ProjectDir">Value of the $(ProjectDir) variable.</param>
+		/// <returns>Converted path for the file.</returns>
+		public static string InsertPathVariables(FileReference File, DirectoryReference EngineDir, DirectoryReference ProjectDir)
+		{
+			if(File.IsUnderDirectory(EngineDir))
+			{
+				return "$(EngineDir)" + Path.DirectorySeparatorChar + File.MakeRelativeTo(EngineDir);
+			}
+			else if(File.IsUnderDirectory(ProjectDir))
+			{
+				return "$(ProjectDir)" + Path.DirectorySeparatorChar + File.MakeRelativeTo(ProjectDir);
+			}
+			else
+			{
+				return File.FullName;
+			}
 		}
 
 		/// <summary>

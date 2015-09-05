@@ -7,6 +7,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Security.AccessControl;
 using System.Text;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -1295,26 +1296,28 @@ namespace UnrealBuildTool
 
 		static private DirectoryReference BundleContentsDirectory;
 
-        public override void AddFilesToReceipt(TargetReceipt Receipt, UEBuildBinary Binary)
+        public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// The cross-platform code adds .dSYMs for static libraries, which is just wrong, so
 			// eliminate them here for now.
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
 			if(DebugExtension == ".dSYM")
 			{
-				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
+				KeyValuePair<FileReference, BuildProductType>[] BuildProductsArray = BuildProducts.ToArray();
+
+				foreach(KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
 				{
-					if(Path.GetExtension(Receipt.BuildProducts[i].Path) == DebugExtension)
+					if(BuildProductPair.Key.HasExtension(DebugExtension))
 					{
-						Receipt.BuildProducts.RemoveAt(i--);
+						BuildProducts.Remove(BuildProductPair.Key);
 					}
 				}
 
-				for (int i = 0; i < Receipt.BuildProducts.Count; i++)
+				foreach(KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
 				{
-					if(Receipt.BuildProducts[i].Type == BuildProductType.Executable || Receipt.BuildProducts[i].Type == BuildProductType.DynamicLibrary)
+					if(BuildProductPair.Value == BuildProductType.Executable || BuildProductPair.Value == BuildProductType.DynamicLibrary)
 					{
-						Receipt.AddBuildProduct(new FileReference(Path.ChangeExtension(Receipt.BuildProducts[i].Path, DebugExtension)), BuildProductType.SymbolFile);
+						BuildProducts.Add(BuildProductPair.Key.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
 					}
 				}
 			}
@@ -1349,7 +1352,7 @@ namespace UnrealBuildTool
 						if (Path.GetExtension(AdditionalLibrary) == ".dylib" && BundleContentsDirectory != null)
 						{
 							FileReference Entry = FileReference.Combine(BundleContentsDirectory, "MacOS", LibName);
-							Receipt.AddBuildProduct(Entry, BuildProductType.DynamicLibrary);
+							BuildProducts.Add(Entry, BuildProductType.DynamicLibrary);
 						}
 					}
 				}
@@ -1360,12 +1363,12 @@ namespace UnrealBuildTool
 					{
 						foreach (string ResourceFile in Directory.GetFiles(Resource.ResourcePath, "*", SearchOption.AllDirectories))
 						{
-							Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)), BuildProductType.RequiredResource);
+							BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)), BuildProductType.RequiredResource);
 						}
 					}
 					else
 					{
-						Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)), BuildProductType.RequiredResource);
+						BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)), BuildProductType.RequiredResource);
 					}
 				}
 			}
@@ -1373,17 +1376,17 @@ namespace UnrealBuildTool
 			if (Binary.Config.Type == UEBuildBinaryType.Executable)
 			{
 				// And we also need all the resources
-				Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, "Info.plist"), BuildProductType.RequiredResource);
-				Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, "PkgInfo"), BuildProductType.RequiredResource);
+				BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Info.plist"), BuildProductType.RequiredResource);
+				BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "PkgInfo"), BuildProductType.RequiredResource);
 
 				if (Binary.Target.TargetType == TargetRules.TargetType.Editor)
 				{
-					Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, "Resources/UE4Editor.icns"), BuildProductType.RequiredResource);
-					Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, "Resources/UProject.icns"), BuildProductType.RequiredResource);
+					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/UE4Editor.icns"), BuildProductType.RequiredResource);
+					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/UProject.icns"), BuildProductType.RequiredResource);
 				}
 				else
 				{
-					Receipt.AddBuildProduct(FileReference.Combine(BundleContentsDirectory, "Resources/" + Binary.Target.TargetName + ".icns"), BuildProductType.RequiredResource);
+					BuildProducts.Add(FileReference.Combine(BundleContentsDirectory, "Resources/" + Binary.Target.TargetName + ".icns"), BuildProductType.RequiredResource);
 				}
 			}
 		}
