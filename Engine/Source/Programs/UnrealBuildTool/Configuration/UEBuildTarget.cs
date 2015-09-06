@@ -1918,7 +1918,10 @@ namespace UnrealBuildTool
 			}
 
 			// Create a receipt for the target
-			PrepareReceipts(TargetToolChain);
+			if(!ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				PrepareReceipts(TargetToolChain);
+			}
 
 			// If we're only generating the manifest, return now
 			if (UEBuildConfiguration.bGenerateManifest || UEBuildConfiguration.bCleanProject)
