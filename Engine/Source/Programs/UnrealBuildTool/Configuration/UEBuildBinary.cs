@@ -280,7 +280,7 @@ namespace UnrealBuildTool
 		/// Adds a module to the binary.
 		/// </summary>
 		/// <param name="ModuleName">The module to add</param>
-		public virtual void AddModule( string ModuleName )
+		public virtual void AddModule( UEBuildModule Module )
 		{
 		}
 
@@ -409,7 +409,7 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class UEBuildBinaryCPP : UEBuildBinary
 	{
-		public readonly List<string> ModuleNames;
+		public readonly List<UEBuildModule> Modules = new List<UEBuildModule>();
 		private bool bCreateImportLibrarySeparately;
 		private bool bIncludeDependentLibrariesInLibrary;
 
@@ -420,7 +420,6 @@ namespace UnrealBuildTool
 		public UEBuildBinaryCPP( UEBuildTarget InTarget, UEBuildBinaryConfiguration InConfig )
 			: base( InTarget, InConfig )
 		{
-			ModuleNames = new List<string>(InConfig.ModuleNames);
 			bCreateImportLibrarySeparately = InConfig.bCreateImportLibrarySeparately;
 			bIncludeDependentLibrariesInLibrary = InConfig.bIncludeDependentLibrariesInLibrary;
 		}
@@ -429,11 +428,11 @@ namespace UnrealBuildTool
 		/// Adds a module to the binary.
 		/// </summary>
 		/// <param name="ModuleName">The module to add</param>
-		public override void AddModule(string ModuleName)
+		public override void AddModule(UEBuildModule Module)
 		{
-			if( !ModuleNames.Contains( ModuleName ) )
+			if(!Modules.Contains(Module))
 			{
-				ModuleNames.Add( ModuleName );
+				Modules.Add(Module);
 			}
 		}
 
@@ -446,12 +445,10 @@ namespace UnrealBuildTool
 		/// <param name="Target">The target info</param>
 		public override void BindModules()
 		{
-			foreach(var ModuleName in ModuleNames)
+			foreach(var Module in Modules)
 			{
-				UEBuildModule Module = null;
 				if (Config.bHasModuleRules)
 				{
-					Module = Target.FindOrCreateModuleByName(ModuleName);
 					if(Module.Binary == null)
 					{
 						Module.Binary = this;
@@ -459,7 +456,7 @@ namespace UnrealBuildTool
 					}
 					else if(Module.Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 					{
-						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", ModuleName, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
+						throw new BuildException("Module \"{0}\" linked into both {1} and {2}, which creates ambiguous linkage for dependents.", Module.Name, Module.Binary.Config.OutputFilePath, Config.OutputFilePath);
 					}
 				}
 			}
@@ -474,16 +471,15 @@ namespace UnrealBuildTool
 		public override List<UEBuildModule> GetAllDependencyModules(bool bIncludeDynamicallyLoaded, bool bForceCircular)
 		{
 			var ReferencedModules = new CaselessDictionary<UEBuildModule.ModuleIndexPair>();
-			foreach( var ModuleName in ModuleNames )
+			foreach( var Module in Modules )
 			{
-				if( !ReferencedModules.ContainsKey( ModuleName ) )
+				if( !ReferencedModules.ContainsKey( Module.Name ) )
 				{
-					var Module = Target.GetModuleByName( ModuleName );
-					ReferencedModules[ ModuleName ] = null;
+					ReferencedModules[ Module.Name ] = null;
 
 					Module.GetAllDependencyModules(ReferencedModules, bIncludeDynamicallyLoaded, bForceCircular, bOnlyDirectDependencies: false);
 
-					ReferencedModules[ ModuleName ] = new UEBuildModule.ModuleIndexPair{ Module = Module, Index = ReferencedModules.Count };
+					ReferencedModules[ Module.Name ] = new UEBuildModule.ModuleIndexPair{ Module = Module, Index = ReferencedModules.Count };
 				}
 			}
 
@@ -500,9 +496,8 @@ namespace UnrealBuildTool
 			if (Config.bHasModuleRules)
 			{
 				// Modules may be added to this binary during this process, so don't foreach over ModuleNames
-				for(int Idx = 0; Idx < ModuleNames.Count; Idx++)
+				foreach(UEBuildModule Module in Modules)
 				{
-					UEBuildModule Module = Target.FindOrCreateModuleByName(ModuleNames[Idx]);
 					Module.RecursivelyCreateModules();
 					Module.RecursivelyProcessUnboundModules();
 				}
@@ -556,7 +551,7 @@ namespace UnrealBuildTool
 		public override IEnumerable<FileItem> Build(IUEToolChain TargetToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
 			// UnrealCodeAnalyzer produces output files only for a specific module.
-			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(ModuleNames.Contains(BuildConfiguration.UCAModuleToAnalyze)))
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(Modules.Any(x => x.Name == BuildConfiguration.UCAModuleToAnalyze)))
 			{
 				return new List<FileItem>();
 			}
@@ -592,7 +587,7 @@ namespace UnrealBuildTool
 			}
 			
 			// If we're linking against static library containing the launch module on windows, we need to add the compiled resource separately. We can't link it through the static library.
-			if(Config.Type == UEBuildBinaryType.StaticLibrary && ModuleNames.Contains("Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
+			if(Config.Type == UEBuildBinaryType.StaticLibrary && Modules.Any(x => x.Name == "Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				FileReference ResourceFileRef = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
 				DependentLinkEnvironment.InputFiles.Add(FileItem.GetItemByFileReference(ResourceFileRef));
@@ -606,11 +601,11 @@ namespace UnrealBuildTool
 		/// <returns>The OnlyModule if found, null if not</returns>
 		public override OnlyModule FindOnlyModule(List<OnlyModule> OnlyModules)
 		{
-			foreach (var ModuleName in ModuleNames)
+			foreach (var Module in Modules)
 			{
 				foreach (var OnlyModule in OnlyModules)
 				{
-					if (OnlyModule.OnlyModuleName.ToLower() == ModuleName.ToLower())
+					if (OnlyModule.OnlyModuleName.ToLower() == Module.Name.ToLower())
 					{
 						return OnlyModule;
 					}
@@ -622,9 +617,8 @@ namespace UnrealBuildTool
 		public override List<UEBuildModule> FindGameModules()
 		{
 			var GameModules = new List<UEBuildModule>();
-			foreach (var ModuleName in ModuleNames)
+			foreach (var Module in Modules)
 			{
-				UEBuildModule Module = Target.GetModuleByName(ModuleName);
 				if (!Module.ModuleDirectory.IsUnderDirectory(UnrealBuildTool.EngineDirectory))
 				{
 					GameModules.Add(Module);
@@ -643,7 +637,7 @@ namespace UnrealBuildTool
 			base.GetBuildProducts(ToolChain, BuildProducts);
 
 			// Add the compiled resource file if we're building a static library containing the launch module on Windows
-			if(Config.Type == UEBuildBinaryType.StaticLibrary && ModuleNames.Contains("Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
+			if(Config.Type == UEBuildBinaryType.StaticLibrary && Modules.Any(x => x.Name == "Launch") && (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64))
 			{
 				FileReference ResourceFilePath = FileReference.Combine(Config.IntermediateDirectory, "Launch", "PCLaunch.rc.res");
 				BuildProducts.Add(ResourceFilePath, BuildProductType.StaticLibrary);
@@ -682,15 +676,13 @@ namespace UnrealBuildTool
 				Config.OutputFilePaths[0].GetFileName();
 			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
 
-			foreach (var ModuleName in ModuleNames)
+			foreach (var Module in Modules)
 			{
-				var Module = Target.GetModuleByName(ModuleName);
-
 				List<FileItem> LinkInputFiles; 
 				if(Module.Binary == null || Module.Binary == this)
 				{
 					// Compile each module.
-					Log.TraceVerbose("Compile module: " + ModuleName);
+					Log.TraceVerbose("Compile module: " + Module.Name);
 					LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment);
 
 					// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
@@ -819,7 +811,7 @@ namespace UnrealBuildTool
 		private List<FileItem> CreateOutputFilesForUCA(LinkEnvironment BinaryLinkEnvironment)
 		{
 			var OutputFiles = new List<FileItem>();
-			var ModuleName = ModuleNames.First(Name => Name.CompareTo(BuildConfiguration.UCAModuleToAnalyze) == 0);
+			var ModuleName = Modules.Select(Module => Module.Name).First(Name => Name.CompareTo(BuildConfiguration.UCAModuleToAnalyze) == 0);
 			var ModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(ModuleName);
 			var ModulePrivatePCH = ModuleCPP.ProcessedDependencies.UniquePCHHeaderFile;
 			var IntermediatePath = Path.Combine(Target.ProjectIntermediateDirectory.FullName, ModuleName);

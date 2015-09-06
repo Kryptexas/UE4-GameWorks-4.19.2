@@ -1280,7 +1280,7 @@ namespace UnrealBuildTool
 					{
 						// Collect all modules used by this binary.
 						Log.TraceVerbose("\tProcessing AppBinary " + AppBin.Config.OutputFilePaths[0]);
-						foreach (string ModuleName in AppBinCPP.ModuleNames)
+						foreach (string ModuleName in AppBinCPP.Modules.Select(x => x.Name))
 						{					
 							if (ModuleList.Contains(ModuleName) == false)
 							{
@@ -1864,7 +1864,7 @@ namespace UnrealBuildTool
 				{
 					if (CurModule.Binary == null || CurModule.Binary == ExecutableBinary || CurModule.Binary.Config.Type == UEBuildBinaryType.StaticLibrary)
 					{
-						ExecutableBinary.AddModule(CurModule.Name);
+						ExecutableBinary.AddModule(CurModule);
 					}
 				}
 
@@ -2098,6 +2098,16 @@ namespace UnrealBuildTool
 
 			// Setup the target's plugins
 			SetupPlugins();
+
+			// Create all the modules for each binary
+			foreach(UEBuildBinary Binary in AppBinaries)
+			{
+				foreach(string ModuleName in Binary.Config.ModuleNames)
+				{
+					UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
+					Binary.AddModule(Module);
+				}
+			}
 
 			// Add the enabled plugins to the build
 			foreach (PluginInfo BuildPlugin in BuildPlugins)
@@ -2336,12 +2346,12 @@ namespace UnrealBuildTool
 			UEBuildBinaryCPP BinaryCPP = ExecutableBinary as UEBuildBinaryCPP;
 			if (BinaryCPP != null)
 			{
-				foreach (var TargetModuleName in BinaryCPP.ModuleNames)
+				foreach (var TargetModule in BinaryCPP.Modules)
 				{
-					ModuleRules CheckRules = RulesAssembly.CreateModuleRules(TargetModuleName, TargetInfo);
+					ModuleRules CheckRules = TargetModule.Rules;
 					if (CheckRules.Type != ModuleRules.ModuleType.External)
 					{
-						PrivateDependencyModuleNames.Add(TargetModuleName);
+						PrivateDependencyModuleNames.Add(TargetModule.Name);
 					}
 				}
 			}
@@ -2468,7 +2478,7 @@ namespace UnrealBuildTool
 			Module.CachePCHUsageForModuleSourceFiles(Module.CreateModuleCompileEnvironment(GlobalCompileEnvironment));
 
 			// Add module to binary
-			Binary.AddModule(Module.Name);
+			Binary.AddModule(Module);
 		}
 
 		/// <summary>
@@ -2516,9 +2526,9 @@ namespace UnrealBuildTool
 				var CPPBinary = Binary as UEBuildBinaryCPP;
 				if( CPPBinary != null )
 				{
-					foreach( var ModuleName in CPPBinary.ModuleNames )
+					foreach( var Module in CPPBinary.Modules )
 					{
-						var CPPModule = GetModuleByName( ModuleName ) as UEBuildModuleCPP;
+						var CPPModule = Module as UEBuildModuleCPP;
 						if( CPPModule != null )
 						{
 							if( !String.IsNullOrEmpty( CPPModule.Rules.SharedPCHHeaderFile ) && CPPModule.Binary.Config.bAllowCompilation )
@@ -2607,15 +2617,17 @@ namespace UnrealBuildTool
 				{
 					if (Module.IsCompiledInConfiguration(Platform, TargetType, UEBuildConfiguration.bBuildDeveloperTools, UEBuildConfiguration.bBuildEditor))
 					{
+						UEBuildModule ModuleInstance = FindOrCreateModuleByName(Module.Name);
+
 						// Add the corresponding binary for it
 						FileReference ModuleFileName = RulesAssembly.GetModuleFileName(Module.Name);
 						bool bHasSource = (ModuleFileName != null && Directory.EnumerateFiles(ModuleFileName.Directory.FullName, "*.cpp", SearchOption.AllDirectories).Any());
-						AddBinaryForModule(Module.Name, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
+						AddBinaryForModule(ModuleInstance, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
 
 						// Add it to the binary if we're compiling monolithic (and it's enabled)
 						if(ShouldCompileMonolithic() && EnabledPlugins.Contains(Plugin))
 						{
-							AppBinaries[0].AddModule(Module.Name);
+							AppBinaries[0].AddModule(ModuleInstance);
 						}
 					}
 				}
@@ -2629,8 +2641,9 @@ namespace UnrealBuildTool
 			// Add extra modules that will either link into the main binary (monolithic), or be linked into separate DLL files (modular)
 			foreach (var ModuleName in ExtraModuleNames)
 			{
-				UEBuildBinaryCPP Binary = FindOrAddBinaryForModule(ModuleName, false);
-				Binary.AddModule(ModuleName);
+				UEBuildModule Module = FindOrCreateModuleByName(ModuleName);
+				UEBuildBinaryCPP Binary = FindOrAddBinaryForModule(Module, false);
+				Binary.AddModule(Module);
 			}
 		}
 
@@ -2716,7 +2729,7 @@ namespace UnrealBuildTool
 					if(PrecompiledModule is UEBuildModuleCPP && !BoundModuleNames.Contains(PrecompiledModule.Name))
 					{
 						UEBuildBinaryType BinaryType = bCompileMonolithic? UEBuildBinaryType.StaticLibrary : UEBuildBinaryType.DynamicLinkLibrary;
-						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule.Name, BinaryType, bAllowCompilation: !bUsePrecompiled || RulesAssembly.IsGameModule(PrecompiledModule.Name), bIsCrossTarget: false);
+						UEBuildBinary Binary = AddBinaryForModule(PrecompiledModule, BinaryType, bAllowCompilation: !bUsePrecompiled || RulesAssembly.IsGameModule(PrecompiledModule.Name), bIsCrossTarget: false);
 						PrecompiledBinaries.Add(Binary);
 						BoundModuleNames.Add(PrecompiledModule.Name);
 					}
@@ -2724,7 +2737,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		public UEBuildBinaryCPP FindOrAddBinaryForModule(string ModuleName, bool bIsCrossTarget)
+		public UEBuildBinaryCPP FindOrAddBinaryForModule(UEBuildModule Module, bool bIsCrossTarget)
 		{
 			UEBuildBinaryCPP Binary;
 			if (ShouldCompileMonolithic())
@@ -2735,7 +2748,7 @@ namespace UnrealBuildTool
 			else
 			{
 				// Otherwise create a new module for it
-				Binary = AddBinaryForModule(ModuleName, UEBuildBinaryType.DynamicLinkLibrary, bAllowCompilation: true, bIsCrossTarget: bIsCrossTarget);
+				Binary = AddBinaryForModule(Module, UEBuildBinaryType.DynamicLinkLibrary, bAllowCompilation: true, bIsCrossTarget: bIsCrossTarget);
 			}
 			return Binary;
 		}
@@ -2748,10 +2761,10 @@ namespace UnrealBuildTool
 		/// <param name="bAllowCompilation">Whether this binary can be compiled. The function will check whether plugin binaries can be compiled.</param>
 		/// <param name="bIsCrossTarget">True if module is for supporting a different target-platform</param>
 		/// <returns>The new binary</returns>
-		private UEBuildBinaryCPP AddBinaryForModule(string ModuleName, UEBuildBinaryType BinaryType, bool bAllowCompilation, bool bIsCrossTarget)
+		private UEBuildBinaryCPP AddBinaryForModule(UEBuildModule Module, UEBuildBinaryType BinaryType, bool bAllowCompilation, bool bIsCrossTarget)
 		{
 			// Get the plugin info for this module
-			PluginInfo Plugin = FindPluginForModule(ModuleName);
+			PluginInfo Plugin = FindPluginForModule(Module.Name);
 
 			// Get the root output directory and base name (target name/app name) for this binary
 			DirectoryReference BaseOutputDirectory;
@@ -2759,7 +2772,7 @@ namespace UnrealBuildTool
 			{
 				BaseOutputDirectory = Plugin.Directory;
 			}
-			else if(RulesAssembly.IsGameModule(ModuleName) || !bUseSharedBuildEnvironment)
+			else if(RulesAssembly.IsGameModule(Module.Name) || !bUseSharedBuildEnvironment)
 			{
 				BaseOutputDirectory = ProjectDirectory;
 			}
@@ -2770,7 +2783,7 @@ namespace UnrealBuildTool
 
 			// Get the configuration that this module will be built in. Engine modules compiled in DebugGame will use Development.
 			UnrealTargetConfiguration ModuleConfiguration = Configuration;
-			if(Configuration == UnrealTargetConfiguration.DebugGame && !RulesAssembly.IsGameModule(ModuleName))
+			if(Configuration == UnrealTargetConfiguration.DebugGame && !RulesAssembly.IsGameModule(Module.Name))
 			{
 				ModuleConfiguration = UnrealTargetConfiguration.Development;
 			}
@@ -2780,15 +2793,14 @@ namespace UnrealBuildTool
  			DirectoryReference IntermediateDirectory = DirectoryReference.Combine(BaseOutputDirectory, BuildConfiguration.PlatformIntermediateFolder, AppName, ModuleConfiguration.ToString());
 
 			// Append a subdirectory if the module rules specifies one
-			ModuleRules ModuleRules;
-			if(RulesAssembly.TryCreateModuleRules(ModuleName, TargetInfo, out ModuleRules) && !String.IsNullOrEmpty(ModuleRules.BinariesSubFolder))
+			if(Module.Rules != null && !String.IsNullOrEmpty(Module.Rules.BinariesSubFolder))
 			{
-				OutputDirectory = DirectoryReference.Combine(OutputDirectory, ModuleRules.BinariesSubFolder);
-				IntermediateDirectory = DirectoryReference.Combine(IntermediateDirectory, ModuleRules.BinariesSubFolder);
+				OutputDirectory = DirectoryReference.Combine(OutputDirectory, Module.Rules.BinariesSubFolder);
+				IntermediateDirectory = DirectoryReference.Combine(IntermediateDirectory, Module.Rules.BinariesSubFolder);
 			}
 
 			// Get the output filenames
-			FileReference BaseBinaryPath = FileReference.Combine(OutputDirectory, MakeBinaryFileName(AppName + "-" + ModuleName, Platform, ModuleConfiguration, Rules.UndecoratedConfiguration, BinaryType));
+			FileReference BaseBinaryPath = FileReference.Combine(OutputDirectory, MakeBinaryFileName(AppName + "-" + Module.Name, Platform, ModuleConfiguration, Rules.UndecoratedConfiguration, BinaryType));
 			List<FileReference> OutputFilePaths = UEBuildPlatform.GetBuildPlatform(Platform).FinalizeBinaryPaths(BaseBinaryPath);
 
 			// Prepare the configuration object
@@ -2796,15 +2808,16 @@ namespace UnrealBuildTool
 				InType: BinaryType,
 				InOutputFilePaths: OutputFilePaths,
 				InIntermediateDirectory: IntermediateDirectory,
-				bInHasModuleRules: ModuleRules != null,
+				bInHasModuleRules: Module.Rules != null,
 				bInAllowExports: BinaryType == UEBuildBinaryType.DynamicLinkLibrary,
 				bInAllowCompilation: bAllowCompilation,
 				bInIsCrossTarget: bIsCrossTarget,
-				InModuleNames: new string[]{ ModuleName }
+				InModuleNames: new string[]{ Module.Name }
 			);
 
 			// Create the new binary
 			UEBuildBinaryCPP Binary = new UEBuildBinaryCPP(this, Config);
+			Binary.AddModule(Module);
 			AppBinaries.Add(Binary);
 			return Binary;
 		}

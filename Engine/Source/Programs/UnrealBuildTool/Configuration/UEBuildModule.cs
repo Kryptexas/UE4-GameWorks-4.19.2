@@ -1717,7 +1717,7 @@ namespace UnrealBuildTool
 						bool bIsCrossTarget = Rules.PlatformSpecificDynamicallyLoadedModuleNames.Contains(DependencyModule.Name) && !Rules.DynamicallyLoadedModuleNames.Contains(DependencyModule.Name);
 
 						// Get the binary that this module should be bound to
-						UEBuildBinary BinaryToBindTo = Target.FindOrAddBinaryForModule(DependencyModule.Name, bIsCrossTarget);
+						UEBuildBinary BinaryToBindTo = Target.FindOrAddBinaryForModule(DependencyModule, bIsCrossTarget);
 
 						// Bind this module
 						DependencyModule.Binary = BinaryToBindTo;
