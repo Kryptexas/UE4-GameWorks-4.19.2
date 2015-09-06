@@ -811,7 +811,7 @@ void UGeomModifier_Extrude::Apply(int32 InLength, int32 InSegments)
 			{
 				FORCEINLINE bool operator()( const FPoly& A, const FPoly& B ) const
 				{
-					return (B.Normal - A.Normal).Size() < 0;
+					return (B.Normal - A.Normal).SizeSquared() < 0.f;
 				}
 			};
 			Polygons.Sort( FCompareFPolyNormal() );

@@ -166,7 +166,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 		{
 			FVector CurrentDisp = BoneLocation - TargetPos;
 			// Too far away - project back onto sphere around target.
-			if (CurrentDisp.Size() > MaxDisplacement)
+			if (CurrentDisp.SizeSquared() > FMath::Square(MaxDisplacement))
 			{
 				FVector DispDir = CurrentDisp.GetSafeNormal();
 				BoneLocation = TargetPos + (MaxDisplacement * DispDir);

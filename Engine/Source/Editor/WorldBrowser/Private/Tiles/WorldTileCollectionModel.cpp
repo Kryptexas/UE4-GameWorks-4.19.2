@@ -909,7 +909,7 @@ void FWorldTileCollectionModel::UpdateStreamingPreview(FVector2D InLocation, boo
 	{
 		FVector NewPreviewLocation = FVector(InLocation, 0);
 		
-		if ((PreviewLocation-NewPreviewLocation).Size() > KINDA_SMALL_NUMBER)
+		if ((PreviewLocation-NewPreviewLocation).SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
 		{
 			PreviewLocation = NewPreviewLocation;
 			PreviewVisibleTiles.Empty();

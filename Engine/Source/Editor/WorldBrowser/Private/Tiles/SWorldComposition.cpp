@@ -456,7 +456,7 @@ public:
 							{
 								const FVector2D AnchorNodeOldPos = NodeBeingDragged->GetPosition();
 								const FVector2D DeltaPos = AnchorNodeNewPos - AnchorNodeOldPos;
-								if (DeltaPos.Size() > KINDA_SMALL_NUMBER)
+								if (DeltaPos.SizeSquared() > FMath::Square(KINDA_SMALL_NUMBER))
 								{
 									MoveSelectedNodes(NodeBeingDragged, AnchorNodeNewPos);
 								}

@@ -573,10 +573,10 @@ void FStaticLightingSystem::SetupPrecomputedVisibility()
 				MeshBounds += VisibilityMeshes[VisibilityMeshIndex].Meshes[OriginalMeshIndex]->BoundingBox;
 			}
 
-			const float MeshBoundingRadius = MeshBounds.GetExtent().Size();
+			const float MeshBoundingRadiusSqr = MeshBounds.GetExtent().SizeSquared();
 
 			// Only put the mesh in a group if its radius is small enough to keep the group effective
-			bool bPutInGroup = MeshBoundingRadius < GridCellBoundingRadius * MeshGroupingCellRadiusThreshold;
+			bool bPutInGroup = MeshBoundingRadiusSqr < FMath::Square(GridCellBoundingRadius * MeshGroupingCellRadiusThreshold);
 
 			if (bPutInGroup)
 			{

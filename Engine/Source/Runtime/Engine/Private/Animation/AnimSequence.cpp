@@ -1116,7 +1116,7 @@ void UAnimSequence::GetBonePose(FCompactPose& OutPose, FBlendedCurve& OutCurve, 
 
 			// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 			float const SourceTranslationLength = AuthoredOnRefSkeleton[SkeletonBoneIndex].GetTranslation().Size();
-			if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
+			if (SourceTranslationLength > KINDA_SMALL_NUMBER)
 			{
 				float const TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
 				OutPose[BoneIndex].ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
@@ -1247,7 +1247,7 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 		// @todo - precache that in FBoneContainer when we have SkeletonIndex->TrackIndex mapping. So we can just apply scale right away.
 		const TArray<FTransform>& SkeletonRefPoseArray = GetSkeleton()->GetRefLocalPoses(RetargetSource);
 		const float SourceTranslationLength = SkeletonRefPoseArray[SkeletonBoneIndex].GetTranslation().Size();
-		if (FMath::Abs(SourceTranslationLength) > KINDA_SMALL_NUMBER)
+		if (SourceTranslationLength > KINDA_SMALL_NUMBER)
 		{
 			const float TargetTranslationLength = RequiredBones.GetRefPoseTransform(BoneIndex).GetTranslation().Size();
 			BoneTransform.ScaleTranslation(TargetTranslationLength / SourceTranslationLength);
@@ -1594,7 +1594,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		bool bFramesIdentical = true;
 		for(int32 j=1; j<RawTrack.PosKeys.Num() && bFramesIdentical; j++)
 		{
-			if( (FirstPos - RawTrack.PosKeys[j]).Size() > MaxPosDiff )
+			if( (FirstPos - RawTrack.PosKeys[j]).SizeSquared() > FMath::Square(MaxPosDiff) )
 			{
 				bFramesIdentical = false;
 			}
@@ -1642,7 +1642,7 @@ bool UAnimSequence::CompressRawAnimSequenceTrack(FRawAnimSequenceTrack& RawTrack
 		bool bFramesIdentical = true;
 		for(int32 j=1; j<RawTrack.ScaleKeys.Num() && bFramesIdentical; j++)
 		{
-			if( (FirstScale - RawTrack.ScaleKeys[j]).Size() > MaxScaleDiff )
+			if( (FirstScale - RawTrack.ScaleKeys[j]).SizeSquared() > FMath::Square(MaxScaleDiff) )
 			{
 				bFramesIdentical = false;
 			}

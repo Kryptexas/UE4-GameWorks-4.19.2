@@ -671,7 +671,7 @@ void FCascadeEmitterCanvasClient::CapturedMouseMove(FViewport* Viewport, int32 X
 
 		int32 MoveThresh = CascadePtr.Pin()->GetEditorOptions() ? CascadePtr.Pin()->GetEditorOptions()->Cascade_MouseMoveThreshold : 4;
 		MoveThresh = FMath::Max<int32>(4,MoveThresh);
-		if (TotalMouseMove.Size() > MoveThresh)
+		if (TotalMouseMove.SizeSquared() > FMath::Square(MoveThresh))
 		{
 			if ((SelectedModuleIndex == INDEX_REQUIREDMODULE) ||
 				(SelectedModuleIndex == INDEX_SPAWNMODULE))

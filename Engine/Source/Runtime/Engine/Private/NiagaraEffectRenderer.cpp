@@ -576,7 +576,7 @@ FNiagaraDynamicDataBase *NiagaraEffectRendererRibbon::GenerateVertexData(const F
 
 		const FVector ParticlePos = PosPtr[Index1];
 		FVector ParticleDir = PosPtr[Index2] - ParticlePos;
-		if (ParticleDir.Size() <= SMALL_NUMBER)
+		if (ParticleDir.SizeSquared() <= FMath::Square(SMALL_NUMBER))
 		{
 			ParticleDir = PrevDir*0.1f;
 		}

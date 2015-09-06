@@ -299,7 +299,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 {
 	FMeshBuildDataProvider kDOPDataProvider(*kDopTree);
 	const FVector DistanceFieldVoxelSize(VolumeBounds.GetSize() / FVector(VolumeDimensions.X, VolumeDimensions.Y, VolumeDimensions.Z));
-	const float VoxelDiameter = DistanceFieldVoxelSize.Size();
+	const float VoxelDiameterSqr = DistanceFieldVoxelSize.SizeSquared();
 
 	for (int32 YIndex = 0; YIndex < VolumeDimensions.Y; YIndex++)
 	{
@@ -359,7 +359,7 @@ void FMeshDistanceFieldAsyncTask::DoWork()
 
 			// If we are very close to a surface and nearly all of our rays hit backfaces, treat as inside
 			// This is important for one sided planes
-			if (UnsignedDistance < VoxelDiameter && HitBack > .95f * Hit)
+			if (FMath::Square(UnsignedDistance) < VoxelDiameterSqr && HitBack > .95f * Hit)
 			{
 				MinDistance = -UnsignedDistance;
 			}

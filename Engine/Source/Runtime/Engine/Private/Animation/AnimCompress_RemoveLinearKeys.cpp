@@ -749,8 +749,8 @@ void UAnimCompress_RemoveLinearKeys::ProcessAnimationTracks(
 									Adjustment= EnforceShortestArc(FQuat::Identity, Adjustment);
 
 									const FVector Test = Adjustment.RotateVector(CurrentHeading);
-									const float Delta = (Test - DesiredHeading).Size();
-									if (Delta < 0.001f)
+									const float DeltaSqr = (Test - DesiredHeading).SizeSquared();
+									if (DeltaSqr < FMath::Square(0.001f))
 									{
 										FQuat NewKey = Adjustment * Key;
 										NewKey.Normalize();

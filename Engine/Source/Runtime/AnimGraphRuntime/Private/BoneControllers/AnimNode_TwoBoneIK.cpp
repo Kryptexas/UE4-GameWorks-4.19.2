@@ -120,11 +120,11 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 	FVector	JointTargetPos = JointTargetTransform.GetTranslation();
 	FVector JointTargetDelta = JointTargetPos - RootPos;
-	float JointTargetLength = JointTargetDelta.Size();
+	const float JointTargetLengthSqr = JointTargetDelta.SizeSquared();
 
 	// Same check as above, to cover case when JointTarget position is the same as RootPos.
 	FVector JointPlaneNormal, JointBendDir;
-	if (JointTargetLength < (float)KINDA_SMALL_NUMBER)
+	if (JointTargetLengthSqr < FMath::Square((float)KINDA_SMALL_NUMBER))
 	{
 		JointBendDir = FVector(0,1,0);
 		JointPlaneNormal = FVector(0,0,1);
@@ -135,7 +135,7 @@ void FAnimNode_TwoBoneIK::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCom
 
 		// If we are trying to point the limb in the same direction that we are supposed to displace the joint in, 
 		// we have to just pick 2 random vector perp to DesiredDir and each other.
-		if (JointPlaneNormal.Size() < (float)KINDA_SMALL_NUMBER)
+		if (JointPlaneNormal.SizeSquared() < FMath::Square((float)KINDA_SMALL_NUMBER))
 		{
 			DesiredDir.FindBestAxisVectors(JointPlaneNormal, JointBendDir);
 		}

@@ -3528,7 +3528,7 @@ void UParticleModuleAttractorLine::Update(FParticleEmitterInstance* Owner, int32
 	FVector Line = EndPoint1 - EndPoint0;
 
 	// if both end points are the same, we end up with NaNs in the results of the update
-	if (Line.Size() == 0.0f)
+	if (Line.SizeSquared() == 0.0f)
 	{
 		Line = FVector(SMALL_NUMBER, SMALL_NUMBER, SMALL_NUMBER);
 	}

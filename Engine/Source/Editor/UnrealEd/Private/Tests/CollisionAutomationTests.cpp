@@ -98,9 +98,8 @@ namespace CollisionAutomationTests
 
 	void CheckVector( FVector ResultVector, FVector ExpectedVector, FString TestName, FString ParameterName, int32 TestIndex, float Tolerance = KINDA_SMALL_NUMBER )
 	{
-		FVector Delta = ExpectedVector - ResultVector;
-		float Diff = Delta.Size();
-		if (Diff > Tolerance)
+		const FVector Delta = ExpectedVector - ResultVector;
+		if (Delta.SizeSquared() > FMath::Square(Tolerance))
 		{
 			//UE_LOG(CollisionAutomationTestLog, Log, TEXT("%d:HitResult=(%s)"), iTest+1, *OutHits[iHits].ToString());
 			TestBase->AddError(FString::Printf(TEXT("Test %d:%s %s mismatch. Should be %s but is actually %s."), TestIndex, *TestName, *ParameterName, *ExpectedVector.ToString(), *ResultVector.ToString()));

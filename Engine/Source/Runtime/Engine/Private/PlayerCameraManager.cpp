@@ -1241,7 +1241,7 @@ float APlayerCameraManager::CalcRadialShakeScale(APlayerCameraManager* Camera, F
 	else
 	{
 		// ignore OuterRadius and do a cliff falloff at InnerRadius
-		return ((Epicenter - POVLoc).Size() < InnerRadius) ? 1.f : 0.f;
+		return ((Epicenter - POVLoc).SizeSquared() < FMath::Square(InnerRadius)) ? 1.f : 0.f;
 	}
 }
 

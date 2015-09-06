@@ -2738,11 +2738,11 @@ void UNetDriver::DrawNetDriverDebug()
 		return;
 	}
 
-	const float CullDist = CVarNetDormancyDrawCullDistance.GetValueOnGameThread();
+	const float CullDistSqr = FMath::Square(CVarNetDormancyDrawCullDistance.GetValueOnGameThread());
 
 	for (FActorIterator It(GetWorld()); It; ++It)
 	{
-		if ((It->GetActorLocation() - LocalPlayer->LastViewLocation).Size() > CullDist)
+		if ((It->GetActorLocation() - LocalPlayer->LastViewLocation).SizeSquared() > CullDistSqr)
 		{
 			continue;
 		}

@@ -1494,7 +1494,7 @@ void SCurveEditor::TryStartDrag(const FGeometry& InMyGeometry, const FPointerEve
 
 	FVector2D MousePosition = InMyGeometry.AbsoluteToLocal(InMouseEvent.GetScreenSpacePosition());
 	FVector2D DragVector = MousePosition - MouseDownLocation;
-	if (DragVector.Size() >= DragThreshold)
+	if (DragVector.SizeSquared() >= FMath::Square(DragThreshold))
 	{
 		if (bShiftDown)
 		{

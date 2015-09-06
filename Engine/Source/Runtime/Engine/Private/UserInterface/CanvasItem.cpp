@@ -830,7 +830,7 @@ void FCanvasTextItem::Draw( class FCanvas* InCanvas )
 	}
 
 	bool bHasShadow = FontRenderInfo.bEnableShadow;
-	if( bHasShadow && ShadowOffset.Size() == 0.0f )
+	if( bHasShadow && ShadowOffset.SizeSquared() == 0.0f )
 	{
 		// EnableShadow will set a default ShadowOffset value
 		EnableShadow( FLinearColor::Black );

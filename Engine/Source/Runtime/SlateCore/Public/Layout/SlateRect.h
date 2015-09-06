@@ -64,7 +64,7 @@ public:
 	 */
 	bool IsEmpty() const
 	{
-		return GetSize().Size() == 0.0f;
+		return GetSize().SizeSquared() == 0.0f;
 	}
 
 	/**

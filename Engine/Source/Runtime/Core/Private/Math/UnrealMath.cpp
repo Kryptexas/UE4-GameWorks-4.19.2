@@ -1721,7 +1721,7 @@ static bool ComputeProjectedSphereShaft(
 uint32 FMath::ComputeProjectedSphereScissorRect(FIntRect& InOutScissorRect, FVector SphereOrigin, float Radius, FVector ViewOrigin, const FMatrix& ViewMatrix, const FMatrix& ProjMatrix)
 {
 	// Calculate a scissor rectangle for the light's radius.
-	if((SphereOrigin - ViewOrigin).Size() > Radius)
+	if((SphereOrigin - ViewOrigin).SizeSquared() > FMath::Square(Radius))
 	{
 		FVector LightVector = ViewMatrix.TransformPosition(SphereOrigin);
 
@@ -2575,13 +2575,13 @@ void FVector::GenerateClusterCenters(TArray<FVector>& Clusters, const TArray<FVe
 
 			// Iterate over all clusters to find closes one
 			int32 NearestClusterIndex = INDEX_NONE;
-			float NearestClusterDist = BIG_NUMBER;
+			float NearestClusterDistSqr = BIG_NUMBER;
 			for(int32 j=0; j<Clusters.Num() ; j++)
 			{
-				const float Dist = (Pos - Clusters[j]).Size();
-				if(Dist < NearestClusterDist)
+				const float DistSqr = (Pos - Clusters[j]).SizeSquared();
+				if(DistSqr < NearestClusterDistSqr)
 				{
-					NearestClusterDist = Dist;
+					NearestClusterDistSqr = DistSqr;
 					NearestClusterIndex = j;
 				}
 			}

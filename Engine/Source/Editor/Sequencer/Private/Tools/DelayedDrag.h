@@ -27,7 +27,7 @@ public:
 	{
 		if (!bHasInitiatedDrag && MouseEvent.IsMouseButtonDown(EffectiveKey))
 		{
-			DistanceDragged += FMath::Abs( MouseEvent.GetCursorDelta().Size() );
+			DistanceDragged += MouseEvent.GetCursorDelta().Size();
 			if (!bHasInitiatedDrag && DistanceDragged > FSlateApplication::Get().GetDragTriggerDistance())
 			{
 				ForceDragStart();
