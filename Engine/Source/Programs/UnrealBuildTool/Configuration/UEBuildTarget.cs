@@ -1735,7 +1735,7 @@ namespace UnrealBuildTool
 			// Find all the modules which are part of this target
 			foreach(UEBuildModule Module in Modules.Values)
 			{
-				if(Module.bIncludedInTarget && Module.Binary != null && Module.Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+				if(Module.bIncludedInTarget && !PrecompiledBinaries.Contains(Module.Binary))
 				{
 					foreach(RuntimeDependency RuntimeDependency in Module.RuntimeDependencies)
 					{
