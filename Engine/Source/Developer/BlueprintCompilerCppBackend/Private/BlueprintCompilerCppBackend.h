@@ -9,7 +9,7 @@ struct FEmitterLocalContext;
 class FBlueprintCompilerCppBackend : public FBlueprintCompilerCppBackendBase
 {
 protected:
-	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, bool bUseSwitchState) override;
+	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bUseSwitchState) override;
 
 protected:
 	void EmitCallStatment(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement);

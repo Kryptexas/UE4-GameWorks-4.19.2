@@ -1,5 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma  once
+
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
+
 struct FEmitterLocalContext
 {
 private:
@@ -14,15 +17,17 @@ private:
 	TMap<UObject*, FString> NativeObjectNamesInConstructor;
 	TArray<UObject*> ObjectsCreatedPerClass;
 
+	const FGatherConvertedClassDependencies& Dependencies;
 
 public:
 
 	bool bCreatingObjectsPerClass;
 	bool bInsideConstructor;
 
-	FEmitterLocalContext()
+	FEmitterLocalContext(UClass* InClass, const FGatherConvertedClassDependencies& InDependencies)
 		: LocalNameIndexMax(0)
-		, ActualClass(nullptr)
+		, ActualClass(InClass)
+		, Dependencies(InDependencies)
 		, bCreatingObjectsPerClass(false)
 		, bInsideConstructor(false)
 	{}
@@ -85,11 +90,6 @@ public:
 		return FString::Printf(TEXT("%s->FindPropertyByName(FName(TEXT(\"%s\")))"), *OwnerPath, *Property->GetNameCPP());
 	}
 
-	void SetCurrentlyGeneratedClass(UClass* InClass)
-	{
-		ActualClass = InClass;
-	}
-
 	FString GenerateUniqueLocalName()
 	{
 		const FString UniqueNameBase = TEXT("__Local__");
@@ -101,14 +101,6 @@ public:
 	UClass* GetCurrentlyGeneratedClass() const
 	{
 		return ActualClass;
-	}
-
-	bool WillClassBeConverted(UClass* InClass) const
-	{
-		// TODO:
-
-		auto BPGC = Cast<UBlueprintGeneratedClass>(InClass);
-		return (nullptr != BPGC) && !InClass->HasAnyFlags(RF_ClassDefaultObject);
 	}
 
 	/** All objects (that can be referenced from other package) that will have a different path in cooked build 
@@ -124,7 +116,8 @@ public:
 
 		if (auto ObjClass = Cast<UClass>(Object))
 		{
-			if (ObjClass->HasAnyClassFlags(CLASS_Native) || WillClassBeConverted(ObjClass))
+			auto BPGC = Cast<UBlueprintGeneratedClass>(ObjClass);
+			if (ObjClass->HasAnyClassFlags(CLASS_Native) || (BPGC && Dependencies.WillClassBeConverted(BPGC)))
 			{
 				return FString::Printf(TEXT("%s%s::StaticClass()"), ObjClass->GetPrefixCPP(), *ObjClass->GetName());
 			}
@@ -148,7 +141,7 @@ public:
 		}
 
 		int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
-		if (Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
+		if (ActualClass && Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
 		{
 			return FString::Printf(TEXT("CastChecked<%s%s>(%s%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d])")
 				, Object->GetClass()->GetPrefixCPP()
@@ -266,9 +259,9 @@ struct FEmitHelper
 
 struct FEmitDefaultValueHelper
 {
-	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct);
+	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct, const FGatherConvertedClassDependencies& Dependencies);
 
-	static FString GenerateConstructor(UClass* BPGC);
+	static FString GenerateConstructor(UClass* BPGC, const FGatherConvertedClassDependencies& Dependencies);
 
 	enum class EPropertyAccessOperator
 	{

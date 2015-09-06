@@ -8,7 +8,9 @@
 #include "Engine/UserDefinedStruct.h"
 #include "SourceCodeNavigation.h"
 #include "DesktopPlatformModule.h" // for InvalidateMakefiles()
+#include "BlueprintNativeCodeGenUtils.h"
 //#include "Editor/KismetCompiler/Public/BlueprintCompilerCppBackendInterface.h"
+#include "Developer/BlueprintCompilerCppBackend/Public/BlueprintCompilerCppBackendGatherDependencies.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -33,57 +35,29 @@ struct FGeneratedCodeData
 	FString ErrorString;
 	FString ClassName;
 	TWeakObjectPtr<UBlueprint> Blueprint;
-	TSet<UObject*> DependentObjects;
+	TSet<UField*> DependentObjects;
 
 	void GatherUserDefinedDependencies(UBlueprint& InBlueprint)
 	{
-		TArray<UObject*> ReferencedObjects;
+		FGatherConvertedClassDependencies ClassDependencies(InBlueprint.GeneratedClass);
+		for (auto Iter : ClassDependencies.ConvertedClasses)
 		{
-			FReferenceFinder ReferenceFinder(ReferencedObjects, NULL, false, false, false, false);
-
-			{
-				TArray<UObject*> ObjectsToCheck;
-				GetObjectsWithOuter(InBlueprint.GeneratedClass, ObjectsToCheck, true);
-				for (auto Obj : ObjectsToCheck)
-				{
-					if (IsValid(Obj))
-					{
-						ReferenceFinder.FindReferences(Obj);
-					}
+			DependentObjects.Add(Iter);
 				}
-			}
-
-			if (InBlueprint.GeneratedClass)
+		for (auto Iter : ClassDependencies.ConvertedStructs)
 			{
-				ReferenceFinder.FindReferences(InBlueprint.GeneratedClass->GetDefaultObject(false));
+			DependentObjects.Add(Iter);
 			}
-
-			for (UClass* Class = InBlueprint.GeneratedClass->GetSuperClass(); Class && !Class->HasAnyClassFlags(CLASS_Native); Class = Class->GetSuperClass())
+		for (auto Iter : ClassDependencies.ConvertedEnum)
 			{
-				ReferencedObjects.Add(Class);
-			}
-
-			for (auto& ImplementedInterface : InBlueprint.GeneratedClass->Interfaces)
-			{
-				if (ImplementedInterface.Class && !ImplementedInterface.Class->HasAnyClassFlags(CLASS_Native))
-				{
-					ReferencedObjects.Add(ImplementedInterface.Class);
-				}
-			}
+			DependentObjects.Add(Iter);
 		}
 
 		TypeDependencies.Empty();
-		for (auto Obj : ReferencedObjects)
-		{
-			if (IsValid(Obj) && !Obj->IsIn(InBlueprint.GeneratedClass) && (Obj != InBlueprint.GeneratedClass))
-			{
-				if (Obj->IsA<UBlueprintGeneratedClass>() || Obj->IsA<UUserDefinedEnum>() || Obj->IsA<UUserDefinedStruct>())
+		for (auto Obj : DependentObjects)
 				{
 					TypeDependencies += Obj->GetPathName();
 					TypeDependencies += TEXT("\n");
-					DependentObjects.Add(Obj);
-				}
-			}
 		}
 		DependentObjects.Add(InBlueprint.GeneratedClass);
 

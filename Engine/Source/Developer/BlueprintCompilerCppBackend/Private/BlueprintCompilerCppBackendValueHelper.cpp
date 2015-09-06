@@ -78,7 +78,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 	}
 }
 
-FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* Struct)
+FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* Struct, const FGatherConvertedClassDependencies& Dependencies)
 {
 	check(Struct);
 	const FString StructName = FString(TEXT("F")) + Struct->GetName();
@@ -87,7 +87,7 @@ FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruc
 	FStructOnScope StructData(Struct);
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(Struct, StructData.GetStructMemory());
 
-	FEmitterLocalContext Context;
+	FEmitterLocalContext Context(nullptr, Dependencies);
 	Context.IncreaseIndent();
 	Context.IncreaseIndent();
 	for (auto Property : TFieldRange<const UProperty>(Struct))
@@ -323,103 +323,57 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	return VariableName;
 }
 
-struct FGatherDependencies : public FReferenceCollector
+struct FDependenciesHelper
 {
-	TSet<UObject*> SerializedObjects;
-	TSet<UObject*> Assets;
-	TSet<UStruct*> ConvertedClasses;
-
-	FEmitterLocalContext& Context;
-	UClass* OriginalClass;
-
-	void FindReferences(UObject* Object)
+	static void AddDependenciesInConstructor(FEmitterLocalContext& Context, const FGatherConvertedClassDependencies& GatherDependencies)
 	{
+		if (GatherDependencies.ConvertedClasses.Num())
 		{
-			FSimpleObjectReferenceCollectorArchive CollectorArchive(Object, *this);
-			CollectorArchive.SetSerializedProperty(nullptr);
-			CollectorArchive.SetFilterEditorOnly(true);
-			Object->SerializeScriptProperties(CollectorArchive);
+			Context.AddLine(TEXT("// List of all referenced converted classes"));
 		}
-		Object->CallAddReferencedObjects(*this);
-	}
-
-	virtual bool IsIgnoringArchetypeRef() const override { return false; }
-	virtual bool IsIgnoringTransient() const override { return true; }
-
-	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override
-	{
-		if (InObject)
+		for (auto LocStruct : GatherDependencies.ConvertedClasses)
 		{
-			if (InObject->IsA<UBlueprint>() || (InObject == OriginalClass))
-			{
-				return;
-			}
-
-			// converted class
-			//TODO: What About Delegates?
-			auto ObjAsBPGC = Cast<UBlueprintGeneratedClass>(InObject);
-			const bool SaveAsConvertedClass = ObjAsBPGC && Context.WillClassBeConverted(ObjAsBPGC);
-			auto ObjAsUDS = Cast<UUserDefinedStruct>(InObject);// all UDS must be converted
-			const bool SaveAsConvertedStruct = ObjAsUDS && !ObjAsUDS->HasAnyFlags(RF_ClassDefaultObject);
-			if (SaveAsConvertedClass || SaveAsConvertedStruct)
-			{
-				ConvertedClasses.Add(CastChecked<UStruct>(InObject));
-			}
-			// asset
-			else if (InObject->IsAsset() 
-				&& !InObject->IsIn(OriginalClass) 
-				&& (InObject != OriginalClass)
-				&& !InObject->IsA<UUserDefinedEnum>()) // all UDE must be converted
-			{
-				Assets.Add(InObject);
-				return;
-			}
-
-			bool AlreadyAdded = false;
-			SerializedObjects.Add(InObject, &AlreadyAdded);
-			if (!AlreadyAdded)
-			{
-				FindReferences(InObject);
-			}
-		}
-	}
-
-	FGatherDependencies(UClass* InClass, FEmitterLocalContext& InContext) 
-		: Context(InContext)
-		, OriginalClass(InClass)
-	{
-		check(OriginalClass);
-		FindReferences(OriginalClass);
-	}
-
-	void AddDependenciesInConstructor()
-	{
-		Context.AddLine(TEXT("// List of all referenced converted classes"));
-		for (auto LocStruct : ConvertedClasses)
-		{
-			const bool bIsClass = nullptr != Cast<UClass>(LocStruct);
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::%s());")
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::StaticClass());")
 				, LocStruct->GetPrefixCPP()
-				, *LocStruct->GetName()
-				, (bIsClass ? TEXT("StaticClass") : TEXT("StaticStruct"))));
+				, *LocStruct->GetName()));
 		}
-		Context.AddLine(TEXT("// List of all referenced assets"));
-		for (auto LocAsset : Assets)
+
+		if (GatherDependencies.ConvertedStructs.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced converted structures"));
+		}
+		for (auto LocStruct : GatherDependencies.ConvertedStructs)
+		{
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::StaticStruct());")
+				, LocStruct->GetPrefixCPP()
+				, *LocStruct->GetName()));
+		}
+
+		if (GatherDependencies.Assets.Num())
+		{
+			Context.AddLine(TEXT("// List of all referenced assets"));
+		}
+		for (auto LocAsset : GatherDependencies.Assets)
 		{
 			const FString AssetStr = Context.FindGloballyMappedObject(LocAsset, true);
 			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *AssetStr));
 		}
 	}
 
-	void AddStaticFunctionsForDependencies()
+	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, const FGatherConvertedClassDependencies& GatherDependencies)
 	{
+		auto OriginalClass = Context.GetCurrentlyGeneratedClass();
 		const FString CppClassName = FString::Printf(TEXT("%s%s"), OriginalClass->GetPrefixCPP(), *OriginalClass->GetName());
 		// __StaticDependenciesConvertedClasses
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesConvertedClasses(TArray<FName>& OutNames)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
-		for (auto LocClass : ConvertedClasses)
+		for (auto LocClass : GatherDependencies.ConvertedClasses)
+		{
+			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
+		}
+		for (auto LocClass : GatherDependencies.ConvertedStructs)
 		{
 			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
 		}
@@ -432,7 +386,7 @@ struct FGatherDependencies : public FReferenceCollector
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
-		for (UObject* LocAsset : Assets)
+		for (UObject* LocAsset : GatherDependencies.Assets)
 		{
 			const FString PakagePath = LocAsset->GetOutermost()->GetPathName();
 			Context.AddLine(FString::Printf(TEXT("OutPackagePaths.Add(TEXT(\"%s\"));"), *PakagePath));
@@ -467,19 +421,16 @@ struct FGatherDependencies : public FReferenceCollector
 	}
 };
 
-FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
+FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGatherConvertedClassDependencies& Dependencies)
 {
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
 	const FString CppClassName = FString(BPGC->GetPrefixCPP()) + BPGC->GetName();
 
-	FEmitterLocalContext Context;
-	Context.SetCurrentlyGeneratedClass(BPGC);
+	FEmitterLocalContext Context(BPGC, Dependencies);
 	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)"), *CppClassName, *CppClassName));
 	Context.AddLine(TEXT("{"));
 	Context.IncreaseIndent();
 	Context.bInsideConstructor = true;
-
-	FGatherDependencies GatherDependencies(InBPGC, Context);
 
 	// When CDO is created create all subobjects owned by the class
 	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
@@ -536,7 +487,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 
 		Context.bCreatingObjectsPerClass = false;
 
-		GatherDependencies.AddDependenciesInConstructor();
+		FDependenciesHelper::AddDependenciesInConstructor(Context, Dependencies);
 
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
@@ -655,7 +606,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC)
 	Context.AddLine(TEXT("}"));
 	Context.bInsideConstructor = false;
 
-	GatherDependencies.AddStaticFunctionsForDependencies();
+	FDependenciesHelper::AddStaticFunctionsForDependencies(Context, Dependencies);
 
 	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 

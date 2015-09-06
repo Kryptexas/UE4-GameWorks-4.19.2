@@ -76,7 +76,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	auto CleanCppClassName = SourceClass->GetName();
 	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
 	
-	EmitFileBeginning(CleanCppClassName, SourceClass);
+	FGatherConvertedClassDependencies Dependencies(SourceClass);
+	EmitFileBeginning(CleanCppClassName, &Dependencies);
 
 	// Class declaration
 	const bool bIsInterface = SourceClass->IsChildOf<UInterface>();
@@ -132,14 +133,14 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	if (!bIsInterface)
 	{
 		Emit(Header, *FString::Printf(TEXT("\t%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());\n\n"), *CppClassName));
-		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(SourceClass));
+		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(SourceClass, Dependencies));
 	}
 
 	for (int32 i = 0; i < Functions.Num(); ++i)
 	{
 		if (Functions[i].IsValid())
 		{
-			ConstructFunction(Functions[i], bGenerateStubsOnly);
+			ConstructFunction(Functions[i], Dependencies, bGenerateStubsOnly);
 		}
 	}
 
@@ -170,7 +171,7 @@ void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FKismetFunctionCont
 	}
 }
 
-void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext& FunctionContext, bool bGenerateStubOnly)
+void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bGenerateStubOnly)
 {
 	if (FunctionContext.IsDelegateSignature())
 	{
@@ -325,7 +326,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 			}
 		}
 
-		const FString FunctionImplementation = InnerFunctionImplementation(FunctionContext, bUseSwitchState);
+		const FString FunctionImplementation = InnerFunctionImplementation(FunctionContext, Dependencies, bUseSwitchState);
 		Emit(Body, *FunctionImplementation);
 	}
 
@@ -374,7 +375,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 {
 	check(SourceStruct);
 
-	EmitFileBeginning(SourceStruct->GetName(), SourceStruct);
+	FGatherConvertedClassDependencies Dependencies(SourceStruct);
+	EmitFileBeginning(SourceStruct->GetName(), &Dependencies);
 
 	const FString NewName = FString(TEXT("F")) + SourceStruct->GetName();
 	Emit(Header, TEXT("USTRUCT(BlueprintType"));
@@ -383,157 +385,86 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 
 	Emit(Header, *FString::Printf(TEXT("struct %s\n{\npublic:\n\tGENERATED_BODY()\n"), *NewName));
 	EmitStructProperties(Header, SourceStruct);
-	Emit(Header, *FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct));
+	Emit(Header, *FEmitDefaultValueHelper::GenerateGetDefaultValue(SourceStruct, Dependencies));
 	Emit(Header, TEXT("};\n"));
 }
 
-void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanName, UStruct* SourceStruct)
+void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanName, FGatherConvertedClassDependencies* Dependencies)
 {
 	Emit(Header, TEXT("#pragma once\n\n"));
-	if (SourceStruct)
-	{ 
-		// find objects referenced by functions/script
-		TArray<UObject*> IncludeInHeader;
-		TArray<const UStruct*> DeclareInHeader;
-		TArray<UObject*> IncludeInBody;
+
+	auto EmitIncludeHeader = [&](FStringOutputDevice& Dst, const TCHAR* Message, bool bAddDotH)
+	{
+		Emit(Dst, *FString::Printf(TEXT("#include \"%s%s\"\n"), Message, bAddDotH ? TEXT(".h") : TEXT("")));
+	};
+	EmitIncludeHeader(Body, FApp::GetGameName(), true);
+	EmitIncludeHeader(Body, *CleanName, true);
+	EmitIncludeHeader(Body, TEXT("GeneratedCodeHelpers"), true);
+
+	if (Dependencies)
+	{
+		TSet<FString> AlreadyIncluded;
+		AlreadyIncluded.Add(CleanName);
+		auto EmitInner = [&](FStringOutputDevice& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations)
+	{
+		auto EngineSourceDir = FPaths::EngineSourceDir();
+		auto GameSourceDir = FPaths::GameSourceDir();
+
+		for (UField* Field : Src)
 		{
-			FReferenceFinder HeaderReferenceFinder(IncludeInHeader, NULL, false, false, true, false);
-			FReferenceFinder BodyReferenceFinder(IncludeInBody, NULL, false, false, true, false);
+			check(Field);
+			const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
+
+			// Wanted no-native type, thet will be converted
+			if (bWantedType)
 			{
-				TArray<UObject*> ObjectsToCheck;
-				GetObjectsWithOuter(SourceStruct, ObjectsToCheck, true);
-				for (auto Obj : ObjectsToCheck)
+				const FString Name = Field->GetName();
+				bool bAlreadyIncluded = false;
+				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
+				if (!bAlreadyIncluded)
 				{
-					auto Property = Cast<UProperty>(Obj);
-					auto OwnerProperty = IsValid(Property) ? Property->GetOwnerProperty() : nullptr;
-					const bool bIsParam = OwnerProperty && (0 != (OwnerProperty->PropertyFlags & CPF_Parm));
-					const bool bIsMemberVariable = OwnerProperty && (OwnerProperty->GetOuter() == SourceStruct);
-					if (bIsParam || bIsMemberVariable)
-					{
-						const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(OwnerProperty);
-						if (ObjectProperty)
-						{
-							DeclareInHeader.AddUnique(ObjectProperty->PropertyClass);
-							BodyReferenceFinder.FindReferences(Obj);
-						}
-						else
-						{
-							HeaderReferenceFinder.FindReferences(Obj);
-						}
-					}
-					else
-					{
-						BodyReferenceFinder.FindReferences(Obj);
-					}
+					EmitIncludeHeader(Dst, *Name, true);
 				}
 			}
-
-			if (auto BPGC = Cast<UClass>(SourceStruct))
+			// headers for native items
+			else
 			{
-				BodyReferenceFinder.FindReferences(BPGC->GetDefaultObject(false));
-			}
-
-			if (auto SuperStruct = SourceStruct->GetSuperStruct())
-			{
-				IncludeInHeader.AddUnique(SuperStruct);
-			}
-
-			if (auto SourceClass = Cast<UClass>(SourceStruct))
-			{
-				for (auto& ImplementedInterface : SourceClass->Interfaces)
+				FString PackPath;
+				if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
 				{
-					IncludeInHeader.AddUnique(ImplementedInterface.Class);
+					if (!PackPath.RemoveFromStart(EngineSourceDir))
+					{
+						if (!PackPath.RemoveFromStart(GameSourceDir))
+						{
+							PackPath = FPaths::GetCleanFilename(PackPath);
+						}
+					}
+					bool bAlreadyIncluded = false;
+					AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
+					if (!bAlreadyIncluded)
+					{
+						EmitIncludeHeader(Dst, *PackPath, false);
+					}
 				}
 			}
 		}
 
-		auto EmitIncludeHeader = [&](FStringOutputDevice& Dst, const TCHAR* Message, bool bAddDotH)
+		Emit(Dst, TEXT("\n"));
+
+		for (auto Type : Declarations)
 		{
-			Emit(Dst, *FString::Printf(TEXT("#include \"%s%s\"\n"), Message, bAddDotH ? TEXT(".h") : TEXT("")));
-		};
-		EmitIncludeHeader(Body, FApp::GetGameName(), true);
-		EmitIncludeHeader(Body, *CleanName, true);
-		EmitIncludeHeader(Body, TEXT("GeneratedCodeHelpers"), true);
-
-		TSet<FString> AlreadyIncluded;
-		AlreadyIncluded.Add(SourceStruct->GetName());
-		auto EmitInner = [&](FStringOutputDevice& Dst, const TArray<UObject*>& Src, const TArray<const UStruct*>& Declarations )
-		{
-			auto EngineSourceDir = FPaths::EngineSourceDir();
-			auto GameSourceDir = FPaths::GameSourceDir();
-			auto CurrentPackage = SourceStruct->GetTypedOuter<UPackage>();
-
-			for (UObject* Obj : Src)
+			if (auto ForwardDeclaredType = Cast<UClass>(Type))
 			{
-				bool bWantedType = Obj && (Obj->IsA<UBlueprintGeneratedClass>() || Obj->IsA<UUserDefinedEnum>() || Obj->IsA<UUserDefinedStruct>());
-				if (!bWantedType)
-				{
-					for (UObject* OuterObj = (Obj ? Obj->GetOuter() : nullptr); nullptr != OuterObj; OuterObj = OuterObj->GetOuter())
-					{
-						if (OuterObj->IsA<UBlueprintGeneratedClass>() || OuterObj->IsA<UUserDefinedStruct>())
-						{
-							Obj = OuterObj;
-							bWantedType = true;
-							break;
-						}
-					}
-				}
-
-				auto BPGC = (Obj && !bWantedType) ? Cast<UBlueprintGeneratedClass>(Obj->GetClass()) : nullptr;
-				if (BPGC)
-				{
-					bWantedType = true;
-					Obj = BPGC;
-				}
-
-				// Wanted no-native type, thet will be converted
-				if (bWantedType && Obj)
-				{
-					const FString Name = Obj->GetName();
-					bool bAlreadyIncluded = false;
-					AlreadyIncluded.Add(Name, &bAlreadyIncluded);
-					if (!bAlreadyIncluded)
-					{
-						EmitIncludeHeader(Dst, *Name, true);
-					}
-				}
-				// headers for native items
-				else if (auto Field = Cast<UField>(Obj))
-				{
-					FString PackPath;
-					if ((Field->GetTypedOuter<UPackage>() != CurrentPackage)
-						&& FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
-					{
-						if (!PackPath.RemoveFromStart(EngineSourceDir))
-						{
-							if (!PackPath.RemoveFromStart(GameSourceDir))
-							{
-								PackPath = FPaths::GetCleanFilename(PackPath);
-							}
-						}
-						bool bAlreadyIncluded = false;
-						AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
-						if (!bAlreadyIncluded)
-						{
-							EmitIncludeHeader(Dst, *PackPath, false);
-						}
-					}
-
-				}
+				Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *(FString(ForwardDeclaredType->GetPrefixCPP()) + ForwardDeclaredType->GetName())));
 			}
+		}
 
-			Emit(Dst, TEXT("\n"));
+		Emit(Dst, TEXT("\n"));
+	};
 
-			for (const UStruct* Type : Declarations)
-			{
-				Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *(FString(Type->GetPrefixCPP()) + Type->GetName())));
-			}
-
-			Emit(Dst, TEXT("\n"));
-		};
-
-		EmitInner(Header, IncludeInHeader, DeclareInHeader);
-		EmitInner(Body, IncludeInBody, TArray<const UStruct*>() );
+		EmitInner(Header, Dependencies->IncludeInHeader, Dependencies->DeclareInHeader);
+		EmitInner(Body, Dependencies->IncludeInBody, TSet<UField*>());
 	}
+
 	Emit(Header, *FString::Printf(TEXT("#include \"%s.generated.h\"\n\n"), *CleanName));
 }

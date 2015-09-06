@@ -576,9 +576,9 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocal
 	return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, StructValues, nullptr);
 }
 
-FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, bool bUseSwitchState)
+FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bUseSwitchState)
 {
-	FEmitterLocalContext EmitterContext;
+	FEmitterLocalContext EmitterContext(FunctionContext.NewClass, Dependencies);
 	EmitterContext.IncreaseIndent();
 	if (bUseSwitchState)
 	{
@@ -598,7 +598,6 @@ FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctio
 		EmitterContext.AddLine(TEXT("{"));
 		EmitterContext.IncreaseIndent();
 	}
-	EmitterContext.SetCurrentlyGeneratedClass(FunctionContext.NewClass);
 
 	// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
 	for (int32 NodeIndex = 0; NodeIndex < FunctionContext.LinearExecutionList.Num(); ++NodeIndex)

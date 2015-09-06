@@ -27,6 +27,7 @@ public class BlueprintNativeCodeGen : ModuleRules
                 "KismetCompiler",
                 "Json",
                 "JsonUtilities",
+                "BlueprintCompilerCppBackend",
 			}
 		);
 
