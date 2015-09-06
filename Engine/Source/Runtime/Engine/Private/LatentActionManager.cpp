@@ -231,3 +231,21 @@ void FLatentActionManager::GetActiveUUIDs(UObject* InObject, TSet<int32>& UUIDLi
 }
 
 #endif
+
+FLatentActionManager::~FLatentActionManager()
+{
+	for (auto& ObjectActionListIterator : ObjectToActionListMap)
+	{
+		TSharedPtr<FActionList>& ActionList = ObjectActionListIterator.Value;
+		if (ActionList.IsValid())
+		{
+			for (auto& ActionIterator : *ActionList.Get())
+			{
+				FPendingLatentAction* Action = ActionIterator.Value;
+				ActionIterator.Value = nullptr;
+				delete Action;
+			}
+			ActionList->Reset();
+		}
+	}
+}

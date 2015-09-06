@@ -146,6 +146,8 @@ public:
 	FString GetDescription(UObject* InObject, int32 UUID) const;
 #endif
 
+	~FLatentActionManager();
+
 protected:
 	/** 
 	 * Finds the action instance for the supplied object will return NULL if one does not exist.
