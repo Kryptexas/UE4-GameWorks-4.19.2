@@ -7,12 +7,16 @@
 
 void FHierarchicalLODOutlinerModule::StartupModule()
 {
-	GUnrealEd->OnHLODLevelsArrayChanged().AddRaw(this, &FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent);
+	check(GUnrealEd);
+	ArrayChangedDelegate = GUnrealEd->OnHLODLevelsArrayChanged().AddRaw(this, &FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent);
 }
 
 void FHierarchicalLODOutlinerModule::ShutdownModule()
 {
-	GUnrealEd->OnHLODLevelsArrayChanged().RemoveAll(this);
+	if (GUnrealEd)
+	{
+		GUnrealEd->OnHLODLevelsArrayChanged().Remove(ArrayChangedDelegate);
+	}	
 }
 
 void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()

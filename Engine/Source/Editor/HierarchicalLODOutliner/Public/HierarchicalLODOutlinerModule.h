@@ -23,4 +23,7 @@ public:
 
 	/** Creates the HLOD Outliner widget */
 	virtual TSharedRef<SWidget> CreateHLODOutlinerWidget();
+
+private:
+	FDelegateHandle ArrayChangedDelegate;
 };
