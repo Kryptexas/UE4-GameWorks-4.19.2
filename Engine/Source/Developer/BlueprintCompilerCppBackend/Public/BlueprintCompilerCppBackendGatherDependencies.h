@@ -32,6 +32,11 @@ public:
 
 	virtual void HandleObjectReference(UObject*& InObject, const UObject* InReferencingObject, const UProperty* InReferencingProperty) override;
 
+	UStruct* GetOriginalStruct() const
+	{
+		return OriginalStruct;
+	}
+
 public:
 	bool WillClassBeConverted(const UBlueprintGeneratedClass* InClass) const;
 

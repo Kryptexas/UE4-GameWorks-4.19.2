@@ -95,7 +95,7 @@ FString FEmitHelper::HandleMetaData(const UField* Field, bool AddCategory, TArra
 #endif
 #define HANDLE_CPF_TAG(TagName, CheckedFlags) if (HasAllFlags(Flags, (CheckedFlags))) { Tags.Emplace(TagName); }
 
-TArray<FString> FEmitHelper::ProperyFlagsToTags(uint64 Flags)
+TArray<FString> FEmitHelper::ProperyFlagsToTags(uint64 Flags, bool bIsClassProperty)
 {
 	TArray<FString> Tags;
 
@@ -153,7 +153,11 @@ TArray<FString> FEmitHelper::ProperyFlagsToTags(uint64 Flags)
 	HANDLE_CPF_TAG(TEXT("Export"), CPF_ExportObject)
 	HANDLE_CPF_TAG(TEXT("NoClear"), CPF_NoClear)
 	HANDLE_CPF_TAG(TEXT("EditFixedSize"), CPF_EditFixedSize)
-	HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
+	if (!bIsClassProperty)
+	{
+		HANDLE_CPF_TAG(TEXT("NotReplicated"), CPF_RepSkip)
+	}
+
 	HANDLE_CPF_TAG(TEXT("Interp"), CPF_Edit | CPF_BlueprintVisible | CPF_Interp)
 	HANDLE_CPF_TAG(TEXT("NonTransactional"), CPF_NonTransactional)
 	HANDLE_CPF_TAG(TEXT("BlueprintAssignable"), CPF_BlueprintAssignable)

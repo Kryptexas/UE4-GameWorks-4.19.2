@@ -224,7 +224,7 @@ struct FEmitHelper
 
 	static FString HandleMetaData(const UField* Field, bool AddCategory = true, TArray<FString>* AdditinalMetaData = nullptr);
 
-	static TArray<FString> ProperyFlagsToTags(uint64 Flags);
+	static TArray<FString> ProperyFlagsToTags(uint64 Flags, bool bIsClassProperty);
 
 	static TArray<FString> FunctionFlagsToTags(uint64 Flags);
 
@@ -294,6 +294,8 @@ private:
 struct FBackendHelperUMG
 {
 	static FString WidgetFunctionsInHeader(UClass* SourceClass);
+
+	static FString AdditionalHeaderIncludeForWidget(UClass* SourceClass);
 
 	// these function should use the same context as Constructor
 	static void CreateClassSubobjects(FEmitterLocalContext& Context);

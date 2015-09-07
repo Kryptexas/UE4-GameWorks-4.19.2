@@ -31,6 +31,8 @@ enum EPropertyExportCPPFlags
 	CPPF_NoConst					=	0x00000010,
 	/** No reference '&' sign */
 	CPPF_NoRef						=	0x00000020,
+	/** No static array [%d] */
+	CPPF_NoStaticArray				=	0x00000040,
 	/** Blueprint compiler generated C++ code */
 	CPPF_BlueprintCppBackend		=	0x00000080,
 };

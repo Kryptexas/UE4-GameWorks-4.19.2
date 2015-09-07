@@ -53,7 +53,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 
 				FStringOutputDevice TypeDeclaration;
 				const uint32 CppTemplateTypeFlags = EPropertyExportCPPFlags::CPPF_CustomTypeName
-					| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef
+					| EPropertyExportCPPFlags::CPPF_NoConst | EPropertyExportCPPFlags::CPPF_NoRef | EPropertyExportCPPFlags::CPPF_NoStaticArray
 					| EPropertyExportCPPFlags::CPPF_BlueprintCppBackend;
 				Property->ExportCppDeclaration(TypeDeclaration, EExportedDeclaration::Parameter, nullptr, CppTemplateTypeFlags, true);
 

@@ -15,6 +15,15 @@ FString FBackendHelperUMG::WidgetFunctionsInHeader(UClass* SourceClass)
 	return FString();
 }
 
+FString FBackendHelperUMG::AdditionalHeaderIncludeForWidget(UClass* SourceClass)
+{
+	if (Cast<UWidgetBlueprintGeneratedClass>(SourceClass))
+	{
+		return FString(TEXT("\n#include \"Runtime/UMG/Public/UMG.h\"\n"));
+	}
+	return FString();
+}
+
 void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context)
 {
 	if (auto WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
@@ -27,7 +36,7 @@ void FBackendHelperUMG::CreateClassSubobjects(FEmitterLocalContext& Context)
 		for (auto Anim : WidgetClass->Animations)
 		{
 			ensure(Anim->GetOuter() == Context.GetCurrentlyGeneratedClass());
-			FEmitDefaultValueHelper::HandleClassSubobject(Context, WidgetClass->WidgetTree);
+			FEmitDefaultValueHelper::HandleClassSubobject(Context, Anim);
 		}
 	}
 }
@@ -96,3 +105,4 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 		Context.AddLine(TEXT("}"));
 	}
 }
+

@@ -14,7 +14,7 @@ void FBlueprintCompilerCppBackendBase::EmitStructProperties(FStringOutputDevice&
 
 		Emit(Header, TEXT("\n\tUPROPERTY("));
 		{
-			TArray<FString> Tags = FEmitHelper::ProperyFlagsToTags(Property->PropertyFlags);
+			TArray<FString> Tags = FEmitHelper::ProperyFlagsToTags(Property->PropertyFlags, nullptr != Cast<UClass>(SourceClass));
 			Tags.Emplace(FEmitHelper::HandleRepNotifyFunc(Property));
 			Tags.Emplace(FEmitHelper::HandleMetaData(Property, false));
 			Tags.Remove(FString());
@@ -403,64 +403,66 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 
 	if (Dependencies)
 	{
+		Emit(Body, *FBackendHelperUMG::AdditionalHeaderIncludeForWidget(Cast<UClass>(Dependencies->GetOriginalStruct())));
+
 		TSet<FString> AlreadyIncluded;
 		AlreadyIncluded.Add(CleanName);
 		auto EmitInner = [&](FStringOutputDevice& Dst, const TSet<UField*>& Src, const TSet<UField*>& Declarations)
-	{
-		auto EngineSourceDir = FPaths::EngineSourceDir();
-		auto GameSourceDir = FPaths::GameSourceDir();
-
-		for (UField* Field : Src)
 		{
-			check(Field);
-			const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
+			auto EngineSourceDir = FPaths::EngineSourceDir();
+			auto GameSourceDir = FPaths::GameSourceDir();
 
-			// Wanted no-native type, thet will be converted
-			if (bWantedType)
+			for (UField* Field : Src)
 			{
-				const FString Name = Field->GetName();
-				bool bAlreadyIncluded = false;
-				AlreadyIncluded.Add(Name, &bAlreadyIncluded);
-				if (!bAlreadyIncluded)
+				check(Field);
+				const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
+
+				// Wanted no-native type, thet will be converted
+				if (bWantedType)
 				{
-					EmitIncludeHeader(Dst, *Name, true);
-				}
-			}
-			// headers for native items
-			else
-			{
-				FString PackPath;
-				if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
-				{
-					if (!PackPath.RemoveFromStart(EngineSourceDir))
-					{
-						if (!PackPath.RemoveFromStart(GameSourceDir))
-						{
-							PackPath = FPaths::GetCleanFilename(PackPath);
-						}
-					}
+					const FString Name = Field->GetName();
 					bool bAlreadyIncluded = false;
-					AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
+					AlreadyIncluded.Add(Name, &bAlreadyIncluded);
 					if (!bAlreadyIncluded)
 					{
-						EmitIncludeHeader(Dst, *PackPath, false);
+						EmitIncludeHeader(Dst, *Name, true);
+					}
+				}
+				// headers for native items
+				else
+				{
+					FString PackPath;
+					if (FSourceCodeNavigation::FindClassHeaderPath(Field, PackPath))
+					{
+						if (!PackPath.RemoveFromStart(EngineSourceDir))
+						{
+							if (!PackPath.RemoveFromStart(GameSourceDir))
+							{
+								PackPath = FPaths::GetCleanFilename(PackPath);
+							}
+						}
+						bool bAlreadyIncluded = false;
+						AlreadyIncluded.Add(PackPath, &bAlreadyIncluded);
+						if (!bAlreadyIncluded)
+						{
+							EmitIncludeHeader(Dst, *PackPath, false);
+						}
 					}
 				}
 			}
-		}
 
-		Emit(Dst, TEXT("\n"));
+			Emit(Dst, TEXT("\n"));
 
-		for (auto Type : Declarations)
-		{
-			if (auto ForwardDeclaredType = Cast<UClass>(Type))
+			for (auto Type : Declarations)
 			{
-				Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *(FString(ForwardDeclaredType->GetPrefixCPP()) + ForwardDeclaredType->GetName())));
+				if (auto ForwardDeclaredType = Cast<UClass>(Type))
+				{
+					Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *(FString(ForwardDeclaredType->GetPrefixCPP()) + ForwardDeclaredType->GetName())));
+				}
 			}
-		}
 
-		Emit(Dst, TEXT("\n"));
-	};
+			Emit(Dst, TEXT("\n"));
+		};
 
 		EmitInner(Header, Dependencies->IncludeInHeader, Dependencies->DeclareInHeader);
 		EmitInner(Body, Dependencies->IncludeInBody, TSet<UField*>());

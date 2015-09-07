@@ -492,7 +492,8 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 	}
 
 	TCHAR ArrayStr[MAX_SPRINTF]=TEXT("");
-	if( ArrayDim != 1 )
+	const bool bExportStaticArray = 0 == (CPPF_NoStaticArray & AdditionalExportCPPFlags);
+	if ((ArrayDim != 1) && bExportStaticArray)
 	{
 		if (ArrayDimOverride)
 		{
