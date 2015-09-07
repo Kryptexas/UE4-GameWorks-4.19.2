@@ -318,7 +318,7 @@ public:
 			return ETextDirection::LeftToRight;
 		}
 
-		ICUUtilities::ConvertString(InString, ICUString);
+		StringConverter.ConvertString(InString, ICUString);
 
 		return Internal::ComputeTextDirection(ICUBiDi, ICUString);
 	}
@@ -337,14 +337,19 @@ public:
 			return ETextDirection::LeftToRight;
 		}
 
-		ICUUtilities::ConvertString(InString, ICUString);
+		StringConverter.ConvertString(InString, ICUString);
 
 		return Internal::ComputeTextDirection(ICUBiDi, ICUString, OutTextDirectionInfo);
 	}
 
 private:
+	/** Non-copyable */
+	FICUTextBiDi(const FICUTextBiDi&);
+	FICUTextBiDi& operator=(const FICUTextBiDi&);
+
 	UBiDi* ICUBiDi;
 	icu::UnicodeString ICUString;
+	ICUUtilities::FStringConverter StringConverter;
 };
 
 } // namespace Internal
