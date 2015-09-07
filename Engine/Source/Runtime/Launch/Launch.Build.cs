@@ -64,6 +64,7 @@ public class Launch : ModuleRules
 			else if (Target.Platform == UnrealTargetPlatform.Linux)
 			{
 				DynamicallyLoadedModuleNames.Add("ALAudio");
+				PrivateDependencyModuleNames.Add("Json");
 			}
 
 			PrivateIncludePathModuleNames.AddRange(
