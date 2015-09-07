@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2664710
+﻿INTSourceChangelist:2672917
 Availability:Docs
 Title:2 - キャラクターを実装する
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
@@ -8,7 +8,8 @@ Related:Programming/Tutorials/FirstPersonShooter
 スキルレベル:初心者向け
 バージョン：4.9
 
-<!--TODO:Insert Cover Image-->
+![](FreeMovingCamera.png)
+_このセクションの最後まで終了すると、この画面のようになります。_
 
 ## 目標
 
@@ -20,7 +21,7 @@ Related:Programming/Tutorials/FirstPersonShooter
 
 * キャラクターの新規作成
 * 軸マッピングの設定
-* キャラクターの Movement Function の実装
+* キャラクターの Movement 関数の実装
 * マウスによるカメラ制御の実装
 * キャラクターのジャンプの実装
 * キャラクターにメッシュを追加
