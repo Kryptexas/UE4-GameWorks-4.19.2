@@ -2,11 +2,12 @@
 
 
 #pragma once
+#include "Components/SceneComponent.h"
 #include "WindDirectionalSourceComponent.generated.h"
 
 /** Component that provides a directional wind source. Only affects SpeedTree assets. */
 UCLASS(collapsecategories, hidecategories=(Object, Mobility), editinlinenew)
-class UWindDirectionalSourceComponent : public USceneComponent
+class ENGINE_API UWindDirectionalSourceComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
