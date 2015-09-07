@@ -1,7 +1,8 @@
-﻿INTSourceChangelist:2654938
+﻿INTSourceChangelist:2669299
 Availability:Public
 Title:アニメーション ブレンディング
 Crumbs: %ROOT%, Engine, Engine/Animation
+description:単一のスケルタルメッシュで 2 つのアニメーション間を滑らかに遷移させます。
 バージョン：4.9
 
 
@@ -13,7 +14,7 @@ Crumbs: %ROOT%, Engine, Engine/Animation
 ![](Engine/Animation/Blendspaces/BlendSpaceDirection.png)
 [/REGION]
 
-アニメーションのブレンドでは、ブレンドスペースを使用する場合が多いです。
+アニメーションのブレンドでは、一般的にブレンドスペースを使用します。
 
 [INCLUDE:Engine/Animation/Blendspaces#intro]
 
