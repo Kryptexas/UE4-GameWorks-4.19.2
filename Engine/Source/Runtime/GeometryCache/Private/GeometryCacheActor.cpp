@@ -12,7 +12,7 @@ AGeometryCacheActor::AGeometryCacheActor(const FObjectInitializer& ObjectInitial
 	RootComponent = GeometryCacheComponent;
 }
 
-class UGeometryCacheComponent* AGeometryCacheActor::GetGeometryCacheComponent() const
+GEOMETRYCACHE_API UGeometryCacheComponent* AGeometryCacheActor::GetGeometryCacheComponent() const
 {
 	return GeometryCacheComponent;
 }

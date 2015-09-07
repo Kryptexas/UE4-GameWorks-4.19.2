@@ -255,11 +255,14 @@ public:
 		) = 0;
 
 	/**
-	* CalculateRawMeshTangents
+	* ExtractMeshDataForGeometryCache
 	*
-	* @param OutRawMesh - InOut raw Mesh for calculating tangents
+	* @param RawMesh - raw Mesh for calculating tangents
+	* @param BuildSettings - Buildsettings for calculating tangents
+	* @param OutVertices - Vertex buffer data for geometry cache
+	* @param OutPerSectionIndices - Index buffer data for geometry cache
 	* @return void
 	*/
-	virtual void CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshBuildSettings& BuildSettings) = 0;
+	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices) = 0;
 
 };

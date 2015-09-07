@@ -136,7 +136,7 @@ public class UnrealEd : ModuleRules
                 "MaterialUtilities",
                 "LocalizationService",
 				"AddContentDialog",
-				"GameProjectGeneration",
+				"GameProjectGeneration"                
 			}
 		);
 
@@ -206,6 +206,7 @@ public class UnrealEd : ModuleRules
 				"SizeMap",
                 "PortalProxies",
                 "PortalServices",
+                "GeometryCacheEd"
 			}
 		);
 

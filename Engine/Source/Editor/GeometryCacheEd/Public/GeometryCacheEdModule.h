@@ -6,10 +6,10 @@
 /**
  * The public interface to this module
  */
-class FGeometryCacheModule : public IModuleInterface
+class FGeometryCacheEdModule : public IModuleInterface
 {
 public:
-	FGeometryCacheModule() {}
+	FGeometryCacheEdModule() {}
 
 	virtual void StartupModule();
 	virtual void ShutdownModule();
@@ -20,9 +20,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline FGeometryCacheModule& Get()
+	static inline FGeometryCacheEdModule& Get()
 	{
-		return FModuleManager::LoadModuleChecked< FGeometryCacheModule >("GeometryCache");
+		return FModuleManager::LoadModuleChecked< FGeometryCacheEdModule >("GeometryCacheEd");
 	}
 
 	/**
@@ -32,8 +32,10 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "GeometryCache" );
+		return FModuleManager::Get().IsModuleLoaded( "GeometryCacheEd" );
 	}
 private:
+	class FAssetTypeActions_GeometryCache* AssetAction;
+	class FGeometryCacheAssetBroker* AssetBroker;
 };
 

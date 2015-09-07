@@ -48,7 +48,9 @@ struct FGeometryCacheMeshData
 	TArray<FGeometryCacheMeshBatchInfo> BatchesInfo;
 	/** Bounding box for this sample in the track */
 	FBox BoundingBox;
-	
+	/** Indices for this sample, used for drawing the mesh */
+	TArray<uint32> Indices;
+		
 	/** Serialization for FVertexAnimationSample. */
 	friend FArchive& operator<<(FArchive& Ar, FGeometryCacheMeshData& Mesh)
 	{
@@ -78,6 +80,8 @@ struct FGeometryCacheMeshData
 		Ar << Mesh.BoundingBox;
 		Ar << Mesh.BatchesInfo;
 
+		Ar << Mesh.Indices;	
+
 		return Ar;
 	}
 
@@ -90,6 +94,8 @@ struct FGeometryCacheMeshData
 		Size += sizeof(Vertices);
 		Size += sizeof(BatchesInfo);
 		Size += sizeof(BoundingBox);
+		Size += Indices.Num() * sizeof(uint32);
+		Size += sizeof(Indices);
 
 		return Size;
 	}

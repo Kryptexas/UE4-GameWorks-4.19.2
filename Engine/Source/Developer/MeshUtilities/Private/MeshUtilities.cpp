@@ -124,7 +124,7 @@ private:
 	 * @param Chunks				Skinned mesh chunks from which to build the renderable model.
 	 * @param PointToOriginalMap	Maps a vertex's RawPointIdx to its index at import time.
 	 */
-	void BuildSkeletalModelFromChunks(FStaticLODModel& LODModel,const FReferenceSkeleton& RefSkeleton,TArray<FSkinnedMeshChunk*>& Chunks,const TArray<int32>& PointToOriginalMap);
+	void BuildSkeletalModelFromChunks(FStaticLODModel& LODModel, const FReferenceSkeleton& RefSkeleton, TArray<FSkinnedMeshChunk*>& Chunks, const TArray<int32>& PointToOriginalMap);
 
 	// IModuleInterface interface.
 	virtual void StartupModule() override;
@@ -170,7 +170,7 @@ private:
 		TArray<int32>& OutGlobalMaterialIndices
 		) const;
 
-	virtual void CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshBuildSettings& BuildSettings);
+	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices );
 
 	// Need to call some members from this class, (which is internal to this module)
 	friend class FStaticMeshUtilityBuilder;
@@ -5406,35 +5406,35 @@ bool FMeshUtilities::ConstructRawMesh(
 	return true;
 }
 
-void FMeshUtilities::CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshBuildSettings& BuildSettings)
+void FMeshUtilities::ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices)
 {
-	int32 NumWedges = OutRawMesh.WedgeIndices.Num();
+	int32 NumWedges = RawMesh.WedgeIndices.Num();
 
 	// Figure out if we should recompute normals and tangents. By default generated LODs should not recompute normals
-	bool bRecomputeNormals = (BuildSettings.bRecomputeNormals) || OutRawMesh.WedgeTangentZ.Num() == 0;
-	bool bRecomputeTangents = (BuildSettings.bRecomputeTangents) || OutRawMesh.WedgeTangentX.Num() == 0 || OutRawMesh.WedgeTangentY.Num() == 0;
+	bool bRecomputeNormals = (BuildSettings.bRecomputeNormals) || RawMesh.WedgeTangentZ.Num() == 0;
+	bool bRecomputeTangents = (BuildSettings.bRecomputeTangents) || RawMesh.WedgeTangentX.Num() == 0 || RawMesh.WedgeTangentY.Num() == 0;
 
 	// Dump normals and tangents if we are recomputing them.
 	if (bRecomputeTangents)
 	{
-		OutRawMesh.WedgeTangentX.Empty(NumWedges);
-		OutRawMesh.WedgeTangentX.AddZeroed(NumWedges);
-		OutRawMesh.WedgeTangentY.Empty(NumWedges);
-		OutRawMesh.WedgeTangentY.AddZeroed(NumWedges);
+		RawMesh.WedgeTangentX.Empty(NumWedges);
+		RawMesh.WedgeTangentX.AddZeroed(NumWedges);
+		RawMesh.WedgeTangentY.Empty(NumWedges);
+		RawMesh.WedgeTangentY.AddZeroed(NumWedges);
 	}
 
 	if (bRecomputeNormals)
 	{
-		OutRawMesh.WedgeTangentZ.Empty(NumWedges);
-		OutRawMesh.WedgeTangentZ.AddZeroed(NumWedges);
+		RawMesh.WedgeTangentZ.Empty(NumWedges);
+		RawMesh.WedgeTangentZ.AddZeroed(NumWedges);
 	}
 
 	// Compute any missing tangents.
+	TMultiMap<int32, int32> OverlappingCorners;
 	if (bRecomputeNormals || bRecomputeTangents)
 	{
-		float ComparisonThreshold = GetComparisonThreshold(BuildSettings);
-		TMultiMap<int32, int32> OverlappingCorners;
-		FindOverlappingCorners(OverlappingCorners, OutRawMesh, ComparisonThreshold);
+		float ComparisonThreshold = GetComparisonThreshold(BuildSettings);		
+		FindOverlappingCorners(OverlappingCorners, RawMesh, ComparisonThreshold);
 
 		// Static meshes always blend normals of overlapping corners.
 		uint32 TangentOptions = ETangentOptions::BlendOverlappingNormals;
@@ -5445,18 +5445,39 @@ void FMeshUtilities::CalculateRawMeshTangents(FRawMesh& OutRawMesh, const FMeshB
 		}
 		if (BuildSettings.bUseMikkTSpace)
 		{
-			ComputeTangents_MikkTSpace(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents_MikkTSpace(RawMesh, OverlappingCorners, TangentOptions);
 		}
 		else
 		{
-			ComputeTangents(OutRawMesh, OverlappingCorners, TangentOptions);
+			ComputeTangents(RawMesh, OverlappingCorners, TangentOptions);
 		}
 	}
 
 	// At this point the mesh will have valid tangents.
-	check(OutRawMesh.WedgeTangentX.Num() == NumWedges);
-	check(OutRawMesh.WedgeTangentY.Num() == NumWedges);
-	check(OutRawMesh.WedgeTangentZ.Num() == NumWedges);
+	check(RawMesh.WedgeTangentX.Num() == NumWedges);
+	check(RawMesh.WedgeTangentY.Num() == NumWedges);
+	check(RawMesh.WedgeTangentZ.Num() == NumWedges);
+		
+	TArray<int32> OutWedgeMap;
+
+	int32 MaxMaterialIndex = 1;
+	for (int32 FaceIndex = 0; FaceIndex < RawMesh.FaceMaterialIndices.Num(); FaceIndex++)
+	{
+		MaxMaterialIndex = FMath::Max<int32>(RawMesh.FaceMaterialIndices[FaceIndex], MaxMaterialIndex);
+	}
+
+	for (int32 i = 0; i <= MaxMaterialIndex; ++i)
+	{
+		OutPerSectionIndices.Push( TArray<uint32>() );
+	}
+
+	BuildStaticMeshVertexAndIndexBuffers(OutVertices, OutPerSectionIndices, OutWedgeMap, RawMesh, OverlappingCorners, KINDA_SMALL_NUMBER, BuildSettings.BuildScale3D);
+
+	if (RawMesh.WedgeIndices.Num() < 100000 * 3)
+	{
+		CacheOptimizeVertexAndIndexBuffer(OutVertices, OutPerSectionIndices, OutWedgeMap);
+		check(OutWedgeMap.Num() == RawMesh.WedgeIndices.Num());
+	}
 }
 
 /*------------------------------------------------------------------------------
@@ -5925,6 +5946,7 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		{
 			UStaticMeshComponent* MeshComponent = ComponentsToMerge[MeshId];
 						
+
 			// We duplicate lower LOD in case this mesh has no LOD we want
 			int32 ExportLODIndex = FMath::Min(LODIndex, MeshComponent->StaticMesh->SourceModels.Num() - 1);
 
@@ -6301,7 +6323,6 @@ void FMeshUtilities::MergeStaticMeshComponents(const TArray<UStaticMeshComponent
 		OutMergedActorLocation = MergedMesh.Pivot;
 	}
 }
-	
 
 /*------------------------------------------------------------------------------
 	Mesh reduction.
