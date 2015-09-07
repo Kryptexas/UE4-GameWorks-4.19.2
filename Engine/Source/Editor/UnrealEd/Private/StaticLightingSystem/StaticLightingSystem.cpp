@@ -21,6 +21,7 @@ FSwarmDebugOptions GSwarmDebugOptions;
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "RendererInterface.h"
+#include "EditorBuildUtils.h"
 
 DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 
@@ -2180,6 +2181,19 @@ bool UEditorEngine::WarnIfLightingBuildIsCurrentlyRunning()
 		{
 			Notification->SetCompletionState(SNotificationItem::CS_Fail);
 		}
+	}
+	else if (FEditorBuildUtils::IsBuildCurrentlyRunning())
+	{
+		// Another, non-lighting editor build is running.
+		FNotificationInfo Info( LOCTEXT("EditorBuildUnderwayWarning", "A build process is currently underway! Please cancel it to proceed!") );
+		Info.ExpireDuration = 5.0f;
+		TSharedPtr<SNotificationItem> Notification = FSlateNotificationManager::Get().AddNotification(Info);
+		if (Notification.IsValid())
+		{
+			Notification->SetCompletionState(SNotificationItem::CS_Fail);
+		}
+
+		bFailure = true;
 	}
 	return bFailure;
 }

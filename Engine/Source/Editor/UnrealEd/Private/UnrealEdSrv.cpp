@@ -505,12 +505,12 @@ bool UUnrealEdEngine::HandleDumpSelectionCommand( const TCHAR* Str, FOutputDevic
 
 bool UUnrealEdEngine::HandleBuildLightingCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildLighting);	
+	return FEditorBuildUtils::EditorBuild(InWorld, FBuildOptions::BuildLighting);	
 }
 
 bool UUnrealEdEngine::HandleBuildPathsCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )
 {
-	return FEditorBuildUtils::EditorBuild(InWorld, EBuildOptions::BuildAIPaths);
+	return FEditorBuildUtils::EditorBuild(InWorld, FBuildOptions::BuildAIPaths);
 }
 
 bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld )

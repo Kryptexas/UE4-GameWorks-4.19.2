@@ -526,7 +526,7 @@ void FLevelEditorActionCallbacks::Build_Execute()
 	ConfigureLightingBuildOptions( FLightingBuildOptions() );
 
 	// Build everything!
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildAll );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAll );
 }
 
 
@@ -544,7 +544,7 @@ void FLevelEditorActionCallbacks::BuildLightingOnly_Execute()
 
 	// Build lighting!
 	const bool bAllowLightingDialog = false;
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildLighting, bAllowLightingDialog );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildLighting, bAllowLightingDialog );
 }
 
 bool FLevelEditorActionCallbacks::BuildLighting_CanExecute()
@@ -568,7 +568,7 @@ void FLevelEditorActionCallbacks::BuildLightingOnly_VisibilityOnly_Execute()
 
 	// Build lighting!
 	const bool bAllowLightingDialog = false;
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildLighting, bAllowLightingDialog );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildLighting, bAllowLightingDialog );
 
 	// Reset build options
 	ConfigureLightingBuildOptions( FLightingBuildOptions() );
@@ -610,27 +610,27 @@ void FLevelEditorActionCallbacks::LightingBuildOptions_ShowLightingStats_Toggled
 void FLevelEditorActionCallbacks::BuildGeometryOnly_Execute()
 {
 	// Build geometry!
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildVisibleGeometry );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildVisibleGeometry );
 }
 
 
 void FLevelEditorActionCallbacks::BuildGeometryOnly_OnlyCurrentLevel_Execute()
 {
 	// Build geometry (current level)!
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildGeometry );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildGeometry );
 }
 
 
 void FLevelEditorActionCallbacks::BuildPathsOnly_Execute()
 {
 	// Build paths!
-	FEditorBuildUtils::EditorBuild( GetWorld(), EBuildOptions::BuildAIPaths );
+	FEditorBuildUtils::EditorBuild( GetWorld(), FBuildOptions::BuildAIPaths );
 }
 
 void FLevelEditorActionCallbacks::BuildLODsOnly_Execute()
 {
 	// Build HLOD
-	FEditorBuildUtils::EditorBuild(GetWorld(), EBuildOptions::BuildHierarchicalLOD);
+	FEditorBuildUtils::EditorBuild(GetWorld(), FBuildOptions::BuildHierarchicalLOD);
 }
 
 bool FLevelEditorActionCallbacks::IsLightingQualityChecked( ELightingBuildQuality TestQuality )
