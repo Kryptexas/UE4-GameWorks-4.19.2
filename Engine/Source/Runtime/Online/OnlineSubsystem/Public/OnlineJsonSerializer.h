@@ -84,26 +84,7 @@
 		}
 
 #define ONLINE_JSON_SERIALIZE_OBJECT_SERIALIZABLE(JsonName, JsonSerializableObject) \
-		/* Process the JsonName field differently because it is an object */ \
-		if (Serializer.IsLoading()) \
-		{ \
-			/* Read in the value from the JsonName field */ \
-			if (Serializer.GetObject()->HasTypedField<EJson::Object>(JsonName)) \
-			{ \
-				TSharedPtr<FJsonObject> JsonObj = Serializer.GetObject()->GetObjectField(JsonName); \
-				if (JsonObj.IsValid()) \
-				{ \
-					JsonSerializableObject.FromJson(JsonObj); \
-				} \
-			} \
-		} \
-		else \
-		{ \
-			/* Write the value to the JsonName field */ \
-			Serializer.StartObject(JsonName); \
-			JsonSerializableObject.Serialize(Serializer); \
-			Serializer.EndObject(); \
-		}
+		Serializer.SerializeObject(TEXT(JsonName), JsonSerializableObject);
 
 /** Array of string data */
 typedef TArray<FString> FJsonSerializableArray;
@@ -112,6 +93,8 @@ typedef TArray<FString> FJsonSerializableArray;
 typedef FOnlineKeyValuePairs<FString, FString> FJsonSerializableKeyValueMap;
 typedef FOnlineKeyValuePairs<FString, int32> FJsonSerializableKeyValueMapInt;
 typedef FOnlineKeyValuePairs<FString, FVariantData> FJsonSerializeableKeyValueMapVariant;
+
+struct FOnlineJsonSerializable;
 
 /**
  * Base interface used to serialize to/from JSON. Hides the fact there are separate read/write classes
@@ -134,6 +117,7 @@ struct FOnlineJsonSerializerBase
 	virtual void Serialize(const TCHAR* Name, float& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, double& Value) = 0;
 	virtual void Serialize(const TCHAR* Name, FDateTime& Value) = 0;
+	virtual void SerializeObject(const TCHAR* Name, FOnlineJsonSerializable& Value) = 0;
 	virtual void SerializeArray(FJsonSerializableArray& Array) = 0;
 	virtual void SerializeArray(const TCHAR* Name, FJsonSerializableArray& Value) = 0;
 	virtual void SerializeMap(const TCHAR* Name, FJsonSerializableKeyValueMap& Map) = 0;
@@ -290,6 +274,13 @@ public:
 			JsonWriter->WriteValue(Name, Value.ToIso8601());
 		}
 	}
+	/**
+	 * Writes the field name and corresponding object value to the JSON data
+	 *
+	 * @param Name the field name to write out
+	 * @param Object the object to write out
+	 */
+	virtual void SerializeObject(const TCHAR* Name, FOnlineJsonSerializable& Object) override;
 	/**
 	 * Serializes an array of values
 	 *
@@ -518,6 +509,13 @@ public:
 		}
 	}
 	/**
+	 * Writes the field name and the corresponding object value to the JSON data
+	 *
+	 * @param Name the field name to write out
+	 * @Object Value the object to write out
+	 */
+	virtual void SerializeObject(const TCHAR* Name, FOnlineJsonSerializable& Object) override;
+	/**
 	 * Serializes an array of values
 	 *
 	 * @param Name the name of the property to serialize
@@ -666,3 +664,23 @@ struct FOnlineJsonSerializable
 	virtual void Serialize(FOnlineJsonSerializerBase& Serializer) = 0;
 };
 
+inline void FOnlineJsonSerializerReader::SerializeObject(const TCHAR* Name, FOnlineJsonSerializable& Value)
+{
+	/* Read in the value from the Name field */
+	if (GetObject()->HasTypedField<EJson::Object>(Name))
+	{
+		TSharedPtr<FJsonObject> JsonObj = GetObject()->GetObjectField(Name);
+		if (JsonObj.IsValid())
+		{
+			Value.FromJson(JsonObj);
+		}
+	}
+}
+
+template <class CharType, class PrintPolicy>
+inline void FOnlineJsonSerializerWriter<CharType, PrintPolicy>::SerializeObject(const TCHAR* Name, FOnlineJsonSerializable& Object)
+{
+	/* Write the value to the Name field */
+	JsonWriter->WriteIdentifierPrefix(Name);
+	Object.Serialize(*this);
+}
