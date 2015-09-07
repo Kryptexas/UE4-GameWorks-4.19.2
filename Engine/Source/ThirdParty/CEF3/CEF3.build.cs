@@ -92,9 +92,6 @@ public class CEF3 : ModuleRules
                     string DependencyName = FileName.Substring(UEBuildConfiguration.UEThirdPartyBinariesDirectory.Length).Replace('\\', '/');
                     RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/ThirdParty/" + DependencyName));
                 }
-
-                // UnrealCefSubprocess should also be added @Tdodo is this the right place to mention this? Seems like a reversal of dependencies to me
-                RuntimeDependencies.Add(new RuntimeDependency("$(EngineDir)/Binaries/" + Target.Platform.ToString() + "/UnrealCEFSubProcess.exe"));
             }
 			// TODO: Ensure these are filled out correctly when adding other platforms
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
