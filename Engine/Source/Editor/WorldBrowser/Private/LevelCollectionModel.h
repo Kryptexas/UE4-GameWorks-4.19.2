@@ -380,7 +380,7 @@ protected:
 	void LockSelectedLevels_Executed();
 
 	/** Unlocks selected levels */
-	void UnockSelectedLevels_Executed();
+	void UnlockSelectedLevels_Executed();
 
 	/** Locks all levels */
 	void LockAllLevels_Executed();

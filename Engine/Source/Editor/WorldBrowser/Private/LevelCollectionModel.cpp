@@ -143,7 +143,7 @@ void FLevelCollectionModel::BindCommands()
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
 	ActionList.MapAction( Commands.World_UnockSelectedLevels,
-		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnockSelectedLevels_Executed  ),
+		FExecuteAction::CreateSP( this, &FLevelCollectionModel::UnlockSelectedLevels_Executed  ),
 		FCanExecuteAction::CreateSP( this, &FLevelCollectionModel::AreAnySelectedLevelsEditable ) );
 	
 	ActionList.MapAction( Commands.World_LockAllLevels,
@@ -442,27 +442,35 @@ void FLevelCollectionModel::ShowLevels(const FLevelModelList& InLevelList)
 
 void FLevelCollectionModel::UnlockLevels(const FLevelModelList& InLevelList)
 {
-	if (IsReadOnly())
+	if (!IsReadOnly())
 	{
-		return;
-	}
-	
-	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
-	{
-		(*It)->SetLocked(false);
+		const FText UndoTransactionText = (InLevelList.Num() == 1) ?
+			LOCTEXT("UnlockLevel", "Unlock Level") :
+			LOCTEXT("UnlockMultipleLevels", "Unlock Multiple Levels");
+
+		const FScopedTransaction Transaction(UndoTransactionText);
+
+		for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+		{
+			(*It)->SetLocked(false);
+		}
 	}
 }
 	
 void FLevelCollectionModel::LockLevels(const FLevelModelList& InLevelList)
 {
-	if (IsReadOnly())
+	if (!IsReadOnly())
 	{
-		return;
-	}
-	
-	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
-	{
-		(*It)->SetLocked(true);
+		const FText UndoTransactionText = (InLevelList.Num() == 1) ?
+			LOCTEXT("LockLevel", "Lock Level") :
+			LOCTEXT("LockMultipleLevels", "Lock Multiple Levels");
+
+		const FScopedTransaction Transaction(UndoTransactionText);
+
+		for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+		{
+			(*It)->SetLocked(true);
+		}
 	}
 }
 
@@ -1454,19 +1462,27 @@ void FLevelCollectionModel::LockSelectedLevels_Executed()
 	LockLevels(GetSelectedLevels());
 }
 
-void FLevelCollectionModel::UnockSelectedLevels_Executed()
+void FLevelCollectionModel::UnlockSelectedLevels_Executed()
 {
 	UnlockLevels(GetSelectedLevels());
 }
 
 void FLevelCollectionModel::LockAllLevels_Executed()
 {
-	LockLevels(GetFilteredLevels());
+	if (!IsReadOnly())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("LockAllLevels", "Lock All Levels"));
+		LockLevels(GetFilteredLevels());
+	}
 }
 
 void FLevelCollectionModel::UnockAllLevels_Executed()
 {
-	UnlockLevels(GetFilteredLevels());
+	if (!IsReadOnly())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("UnlockAllLevels", "Unlock All Levels"));
+		UnlockLevels(GetFilteredLevels());
+	}
 }
 
 void FLevelCollectionModel::ToggleReadOnlyLevels_Executed()
