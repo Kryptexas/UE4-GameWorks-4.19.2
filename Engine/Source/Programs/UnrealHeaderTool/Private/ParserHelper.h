@@ -72,6 +72,7 @@ public:
 	EPropertyType       Type;
 	EArrayType::Type    ArrayType;
 	uint64              PropertyFlags;
+	uint64              ImpliedPropertyFlags;
 	ERefQualifier::Type RefQualifier; // This is needed because of legacy stuff - FString mangles the flags for reasons that have become lost in time but we need this info for testing for invalid replicated function signatures.
 
 	TSharedPtr<FPropertyBase> MapKeyProp;
@@ -109,44 +110,47 @@ public:
 	/** @name Constructors */
 	//@{
 	explicit FPropertyBase(EPropertyType InType)
-	: Type               (InType)
-	, ArrayType          (EArrayType::None)
-	, PropertyFlags      (0)
-	, RefQualifier       (ERefQualifier::None)
-	, PropertyExportFlags(PROPEXPORT_Public)
-	, StringSize         (0)
-	, MetaClass          (NULL)
-	, DelegateName       (NAME_None)
-	, RepNotifyName      (NAME_None)
-	, PointerType        (EPointerType::None)
+	: Type                (InType)
+	, ArrayType           (EArrayType::None)
+	, PropertyFlags       (0)
+	, ImpliedPropertyFlags(0)
+	, RefQualifier        (ERefQualifier::None)
+	, PropertyExportFlags (PROPEXPORT_Public)
+	, StringSize          (0)
+	, MetaClass           (NULL)
+	, DelegateName        (NAME_None)
+	, RepNotifyName       (NAME_None)
+	, PointerType         (EPointerType::None)
 	{
 	}
 
 	explicit FPropertyBase(UEnum* InEnum, EPropertyType InType)
-	: Type               (InType)
-	, ArrayType          (EArrayType::None)
-	, PropertyFlags      (0)
-	, RefQualifier       (ERefQualifier::None)
-	, PropertyExportFlags(PROPEXPORT_Public)
-	, Enum               (InEnum)
-	, MetaClass          (NULL)
-	, DelegateName       (NAME_None)
-	, RepNotifyName      (NAME_None)
-	, PointerType        (EPointerType::None)
+	: Type                (InType)
+	, ArrayType           (EArrayType::None)
+	, PropertyFlags       (0)
+	, ImpliedPropertyFlags(0)
+	, RefQualifier        (ERefQualifier::None)
+	, PropertyExportFlags (PROPEXPORT_Public)
+	, Enum                (InEnum)
+	, MetaClass           (NULL)
+	, DelegateName        (NAME_None)
+	, RepNotifyName       (NAME_None)
+	, PointerType         (EPointerType::None)
 	{
 	}
 
 	explicit FPropertyBase(UClass* InClass, UClass* InMetaClass=NULL, bool bAllowWeak = false, bool bIsWeak = false, bool bWeakIsAuto = false, bool bIsLazy = false, bool bIsAsset = false)
-	: Type               (CPT_ObjectReference)
-	, ArrayType          (EArrayType::None)
-	, PropertyFlags      (0)
-	, RefQualifier       (ERefQualifier::None)
-	, PropertyExportFlags(PROPEXPORT_Public)
-	, PropertyClass      (InClass)
-	, MetaClass          (InMetaClass)
-	, DelegateName       (NAME_None)
-	, RepNotifyName      (NAME_None)
-	, PointerType        (EPointerType::None)
+	: Type                (CPT_ObjectReference)
+	, ArrayType           (EArrayType::None)
+	, PropertyFlags       (0)
+	, ImpliedPropertyFlags(0)
+	, RefQualifier        (ERefQualifier::None)
+	, PropertyExportFlags (PROPEXPORT_Public)
+	, PropertyClass       (InClass)
+	, MetaClass           (InMetaClass)
+	, DelegateName        (NAME_None)
+	, RepNotifyName       (NAME_None)
+	, PointerType         (EPointerType::None)
 	{
 		// if this is an interface class, we use the UInterfaceProperty class instead of UObjectProperty
 		if ( InClass->HasAnyClassFlags(CLASS_Interface) )
@@ -194,16 +198,17 @@ public:
 	}
 
 	explicit FPropertyBase(UScriptStruct* InStruct)
-	: Type               (CPT_Struct)
-	, ArrayType          (EArrayType::None)
-	, PropertyFlags      (0)
-	, RefQualifier       (ERefQualifier::None)
-	, PropertyExportFlags(PROPEXPORT_Public)
-	, Struct             (InStruct)
-	, MetaClass          (NULL)
-	, DelegateName       (NAME_None)
-	, RepNotifyName      (NAME_None)
-	, PointerType        (EPointerType::None)
+	: Type                (CPT_Struct)
+	, ArrayType           (EArrayType::None)
+	, PropertyFlags       (0)
+	, ImpliedPropertyFlags(0)
+	, RefQualifier        (ERefQualifier::None)
+	, PropertyExportFlags (PROPEXPORT_Public)
+	, Struct              (InStruct)
+	, MetaClass           (NULL)
+	, DelegateName        (NAME_None)
+	, RepNotifyName       (NAME_None)
+	, PointerType         (EPointerType::None)
 	{
 	}
 
@@ -365,10 +370,11 @@ public:
 		{
 			UE_LOG(LogCompile, Fatal, TEXT("Unknown property type '%s'"), *Property->GetFullName() );
 		}
-		ArrayType     = ArrType;
-		PropertyFlags = Property->PropertyFlags | PropagateFlags;
-		RefQualifier  = ERefQualifier::None;
-		PointerType   = EPointerType::None;
+		ArrayType            = ArrType;
+		PropertyFlags        = Property->PropertyFlags | PropagateFlags;
+		ImpliedPropertyFlags = 0;
+		RefQualifier         = ERefQualifier::None;
+		PointerType          = EPointerType::None;
 	}
 	//@}
 
@@ -574,8 +580,8 @@ public:
 	FString Describe()
 	{
 		return FString::Printf(
-			TEXT("Type:%s  Flags:%lli  Enum:%s  PropertyClass:%s  Struct:%s  Function:%s  MetaClass:%s"),
-			GetPropertyTypeText(Type), PropertyFlags,
+			TEXT("Type:%s  Flags:%lli  ImpliedFlags:%lli  Enum:%s  PropertyClass:%s  Struct:%s  Function:%s  MetaClass:%s"),
+			GetPropertyTypeText(Type), PropertyFlags, ImpliedPropertyFlags,
 			Enum!=NULL?*Enum->GetName():TEXT(""),
 			PropertyClass!=NULL?*PropertyClass->GetName():TEXT("NULL"),
 			Struct!=NULL?*Struct->GetName():TEXT("NULL"),
@@ -833,11 +839,12 @@ public:
 	FString Describe()
 	{
 		return FString::Printf(
-			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli"),
+			TEXT("Property:%s  Type:%s  TokenName:%s  ConstValue:%s  Struct:%s  Flags:%lli  Implied:%lli"),
 			TokenProperty!=NULL?*TokenProperty->GetName():TEXT("NULL"),
 			GetPropertyTypeText(Type), *TokenName.ToString(), *GetConstantValue(),
 			Struct!=NULL?*Struct->GetName():TEXT("NULL"),
-			PropertyFlags
+			PropertyFlags,
+			ImpliedPropertyFlags
 			);
 	}
 };

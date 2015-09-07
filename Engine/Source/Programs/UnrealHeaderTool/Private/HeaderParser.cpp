@@ -2622,11 +2622,19 @@ FIndexRange*                    ParsedVarIndexRange
 	FName RepCallbackName = FName(NAME_None);
 
 	// Get flags.
-	uint64 Flags = 0;
+	uint64 Flags        = 0;
+	uint64 ImpliedFlags = 0;
+
 	// force members to be 'blueprint read only' if in a const class
-	if (VariableCategory == EVariableCategory::Member && (Cast<UClass>(OwnerStruct) != nullptr) && (((UClass*)OwnerStruct)->ClassFlags & CLASS_Const))
+	if (VariableCategory == EVariableCategory::Member)
 	{
-		Flags |= CPF_BlueprintReadOnly;
+		if (UClass* OwnerClass = Cast<UClass>(OwnerStruct))
+		{
+			if (OwnerClass->ClassFlags & CLASS_Const)
+			{
+				ImpliedFlags |= CPF_BlueprintReadOnly;
+			}
+		}
 	}
 	uint32 ExportFlags = PROPEXPORT_Public;
 
@@ -2677,284 +2685,285 @@ FIndexRange*                    ParsedVarIndexRange
 		{
 			switch (SpecID)
 			{
-			case EVariableSpecifier::EditAnywhere:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::EditAnywhere:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::EditInstanceOnly:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::EditInstanceOnly:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit | CPF_DisableEditOnTemplate;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit | CPF_DisableEditOnTemplate;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::EditDefaultsOnly:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::EditDefaultsOnly:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit | CPF_DisableEditOnInstance;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit | CPF_DisableEditOnInstance;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::VisibleAnywhere:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::VisibleAnywhere:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit | CPF_EditConst;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit | CPF_EditConst;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::VisibleInstanceOnly:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::VisibleInstanceOnly:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnTemplate;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::VisibleDefaultsOnly:
-			{
-				if (bSeenEditSpecifier)
+				case EVariableSpecifier::VisibleDefaultsOnly:
 				{
-					FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					if (bSeenEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one edit/visibility specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+					Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance;
+					bSeenEditSpecifier = true;
 				}
-				Flags |= CPF_Edit | CPF_EditConst | CPF_DisableEditOnInstance;
-				bSeenEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::BlueprintReadWrite:
-			{
-				if (bSeenBlueprintEditSpecifier)
+				case EVariableSpecifier::BlueprintReadWrite:
 				{
-					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
-				}
+					if (bSeenBlueprintEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+					}
 
-				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-				if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+					{
+						FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+					}
+					Flags |= CPF_BlueprintVisible;
+					bSeenBlueprintEditSpecifier = true;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintReadOnly:
 				{
-					FError::Throwf(TEXT("BlueprintReadWrite should not be used on private members"));
+					if (bSeenBlueprintEditSpecifier)
+					{
+						FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+					}
+
+					const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
+					const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
+					if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+					{
+						FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+					}
+					Flags        |= CPF_BlueprintVisible | CPF_BlueprintReadOnly;
+					ImpliedFlags &= ~CPF_BlueprintReadOnly;
+					bSeenBlueprintEditSpecifier = true;
 				}
-				Flags |= CPF_BlueprintVisible;
-				bSeenBlueprintEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::BlueprintReadOnly:
-			{
-				if (bSeenBlueprintEditSpecifier)
+				case EVariableSpecifier::Config:
 				{
-					FError::Throwf(TEXT("Found more than one Blueprint read/write specifier (%s), only one is allowed"), *Specifier.Key);
+					Flags |= CPF_Config;
 				}
+				break;
 
-				const FString* PrivateAccessMD = MetaDataFromNewStyle.Find(TEXT("AllowPrivateAccess"));  // FBlueprintMetadata::MD_AllowPrivateAccess
-				const bool bAllowPrivateAccess = PrivateAccessMD ? (*PrivateAccessMD == TEXT("true")) : false;
-				if (CurrentAccessSpecifier == ACCESS_Private && !bAllowPrivateAccess)
+				case EVariableSpecifier::GlobalConfig:
 				{
-					FError::Throwf(TEXT("BlueprintReadOnly should not be used on private members"));
+					Flags |= CPF_GlobalConfig | CPF_Config;
 				}
-				Flags |= CPF_BlueprintVisible | CPF_BlueprintReadOnly;
-				bSeenBlueprintEditSpecifier = true;
-			}
 				break;
 
-			case EVariableSpecifier::Config:
-			{
-				Flags |= CPF_Config;
-			}
-				break;
-
-			case EVariableSpecifier::GlobalConfig:
-			{
-				Flags |= CPF_GlobalConfig | CPF_Config;
-			}
-				break;
-
-			case EVariableSpecifier::Localized:
-			{
-				FError::Throwf(TEXT("The Localized specifier is deprecated"));
-			}
-				break;
-
-			case EVariableSpecifier::Transient:
-			{
-				Flags |= CPF_Transient;
-			}
-				break;
-
-			case EVariableSpecifier::DuplicateTransient:
-			{
-				Flags |= CPF_DuplicateTransient;
-			}
-				break;
-
-			case EVariableSpecifier::TextExportTransient:
-			{
-				Flags |= CPF_TextExportTransient;
-			}
-				break;
-
-			case EVariableSpecifier::NonPIETransient:
-			{
-				UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
-				Flags |= CPF_NonPIEDuplicateTransient;
-			}
-				break;
-
-			case EVariableSpecifier::NonPIEDuplicateTransient:
-			{
-				Flags |= CPF_NonPIEDuplicateTransient;
-			}
-				break;
-
-			case EVariableSpecifier::Export:
-			{
-				Flags |= CPF_ExportObject;
-			}
-				break;
-
-			case EVariableSpecifier::EditInline:
-			{
-				FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
-			}
-				break;
-
-			case EVariableSpecifier::NoClear:
-			{
-				Flags |= CPF_NoClear;
-			}
-				break;
-
-			case EVariableSpecifier::EditFixedSize:
-			{
-				Flags |= CPF_EditFixedSize;
-			}
-				break;
-
-			case EVariableSpecifier::Replicated:
-			case EVariableSpecifier::ReplicatedUsing:
-			{
-				if (OwnerStruct->IsA<UScriptStruct>())
+				case EVariableSpecifier::Localized:
 				{
-					FError::Throwf(TEXT("Struct members cannot be replicated"));
+					FError::Throwf(TEXT("The Localized specifier is deprecated"));
 				}
+				break;
 
-				Flags |= CPF_Net;
-
-				// See if we've specified a rep notification function
-				if (SpecID == EVariableSpecifier::ReplicatedUsing)
+				case EVariableSpecifier::Transient:
 				{
-					RepCallbackName = FName(*RequireExactlyOneSpecifierValue(Specifier));
-					Flags |= CPF_RepNotify;
+					Flags |= CPF_Transient;
 				}
-			}
 				break;
 
-			case EVariableSpecifier::NotReplicated:
-			{
-				if (!OwnerStruct->IsA<UScriptStruct>())
+				case EVariableSpecifier::DuplicateTransient:
 				{
-					FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
+					Flags |= CPF_DuplicateTransient;
 				}
-
-				Flags |= CPF_RepSkip;
-			}
 				break;
 
-			case EVariableSpecifier::RepRetry:
-			{
-				FError::Throwf(TEXT("'RepRetry' is deprecated."));
-			}
+				case EVariableSpecifier::TextExportTransient:
+				{
+					Flags |= CPF_TextExportTransient;
+				}
 				break;
 
-			case EVariableSpecifier::Interp:
-			{
-				Flags |= CPF_Edit;
-				Flags |= CPF_BlueprintVisible;
-				Flags |= CPF_Interp;
-			}
+				case EVariableSpecifier::NonPIETransient:
+				{
+					UE_LOG(LogCompile, Warning, TEXT("NonPIETransient is deprecated - NonPIEDuplicateTransient should be used instead"));
+					Flags |= CPF_NonPIEDuplicateTransient;
+				}
 				break;
 
-			case EVariableSpecifier::NonTransactional:
-			{
-				Flags |= CPF_NonTransactional;
-			}
+				case EVariableSpecifier::NonPIEDuplicateTransient:
+				{
+					Flags |= CPF_NonPIEDuplicateTransient;
+				}
 				break;
 
-			case EVariableSpecifier::Instanced:
-			{
-				Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
-				AddEditInlineMetaData(MetaDataFromNewStyle);
-			}
+				case EVariableSpecifier::Export:
+				{
+					Flags |= CPF_ExportObject;
+				}
 				break;
 
-			case EVariableSpecifier::BlueprintAssignable:
-			{
-				Flags |= CPF_BlueprintAssignable;
-			}
+				case EVariableSpecifier::EditInline:
+				{
+					FError::Throwf(TEXT("EditInline is deprecated. Remove it, or use Instanced instead."));
+				}
 				break;
 
-			case EVariableSpecifier::BlueprintCallable:
-			{
-				Flags |= CPF_BlueprintCallable;
-			}
+				case EVariableSpecifier::NoClear:
+				{
+					Flags |= CPF_NoClear;
+				}
 				break;
 
-			case EVariableSpecifier::BlueprintAuthorityOnly:
-			{
-				Flags |= CPF_BlueprintAuthorityOnly;
-			}
+				case EVariableSpecifier::EditFixedSize:
+				{
+					Flags |= CPF_EditFixedSize;
+				}
 				break;
 
-			case EVariableSpecifier::AssetRegistrySearchable:
-			{
-				Flags |= CPF_AssetRegistrySearchable;
-			}
+				case EVariableSpecifier::Replicated:
+				case EVariableSpecifier::ReplicatedUsing:
+				{
+					if (OwnerStruct->IsA<UScriptStruct>())
+					{
+						FError::Throwf(TEXT("Struct members cannot be replicated"));
+					}
+
+					Flags |= CPF_Net;
+
+					// See if we've specified a rep notification function
+					if (SpecID == EVariableSpecifier::ReplicatedUsing)
+					{
+						RepCallbackName = FName(*RequireExactlyOneSpecifierValue(Specifier));
+						Flags |= CPF_RepNotify;
+					}
+				}
 				break;
 
-			case EVariableSpecifier::SimpleDisplay:
-			{
-				Flags |= CPF_SimpleDisplay;
-			}
+				case EVariableSpecifier::NotReplicated:
+				{
+					if (!OwnerStruct->IsA<UScriptStruct>())
+					{
+						FError::Throwf(TEXT("Only Struct members can be marked NotReplicated"));
+					}
+
+					Flags |= CPF_RepSkip;
+				}
 				break;
 
-			case EVariableSpecifier::AdvancedDisplay:
-			{
-				Flags |= CPF_AdvancedDisplay;
-			}
+				case EVariableSpecifier::RepRetry:
+				{
+					FError::Throwf(TEXT("'RepRetry' is deprecated."));
+				}
 				break;
 
-			case EVariableSpecifier::SaveGame:
-			{
-				Flags |= CPF_SaveGame;
-			}
+				case EVariableSpecifier::Interp:
+				{
+					Flags |= CPF_Edit;
+					Flags |= CPF_BlueprintVisible;
+					Flags |= CPF_Interp;
+				}
 				break;
 
-			default:
-			{
-				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
-			}
+				case EVariableSpecifier::NonTransactional:
+				{
+					Flags |= CPF_NonTransactional;
+				}
+				break;
+
+				case EVariableSpecifier::Instanced:
+				{
+					Flags |= CPF_PersistentInstance | CPF_ExportObject | CPF_InstancedReference;
+					AddEditInlineMetaData(MetaDataFromNewStyle);
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintAssignable:
+				{
+					Flags |= CPF_BlueprintAssignable;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintCallable:
+				{
+					Flags |= CPF_BlueprintCallable;
+				}
+				break;
+
+				case EVariableSpecifier::BlueprintAuthorityOnly:
+				{
+					Flags |= CPF_BlueprintAuthorityOnly;
+				}
+				break;
+
+				case EVariableSpecifier::AssetRegistrySearchable:
+				{
+					Flags |= CPF_AssetRegistrySearchable;
+				}
+				break;
+
+				case EVariableSpecifier::SimpleDisplay:
+				{
+					Flags |= CPF_SimpleDisplay;
+				}
+				break;
+
+				case EVariableSpecifier::AdvancedDisplay:
+				{
+					Flags |= CPF_AdvancedDisplay;
+				}
+				break;
+
+				case EVariableSpecifier::SaveGame:
+				{
+					Flags |= CPF_SaveGame;
+				}
+				break;
+
+				default:
+				{
+					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+				}
 				break;
 			}
 		}
@@ -2962,36 +2971,36 @@ FIndexRange*                    ParsedVarIndexRange
 		{
 			switch (SpecID)
 			{
-			case EVariableSpecifier::Const:
-			{
-				Flags |= CPF_ConstParm;
-			}
-				break;
-
-			case EVariableSpecifier::Ref:
-			{
-				Flags |= CPF_OutParm | CPF_ReferenceParm;
-			}
-				break;
-
-			case EVariableSpecifier::NotReplicated:
-			{
-				if (VariableCategory == EVariableCategory::ReplicatedParameter)
+				case EVariableSpecifier::Const:
 				{
-					VariableCategory = EVariableCategory::RegularParameter;
-					Flags |= CPF_RepSkip;
+					Flags |= CPF_ConstParm;
 				}
-				else
-				{
-					FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
-				}
-			}
 				break;
 
-			default:
-			{
-				FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
-			}
+				case EVariableSpecifier::Ref:
+				{
+					Flags |= CPF_OutParm | CPF_ReferenceParm;
+				}
+				break;
+
+				case EVariableSpecifier::NotReplicated:
+				{
+					if (VariableCategory == EVariableCategory::ReplicatedParameter)
+					{
+						VariableCategory = EVariableCategory::RegularParameter;
+						Flags |= CPF_RepSkip;
+					}
+					else
+					{
+						FError::Throwf(TEXT("Only parameters in service request functions can be marked NotReplicated"));
+					}
+				}
+				break;
+
+				default:
+				{
+					FError::Throwf(TEXT("Unknown variable specifier '%s'"), *Specifier.Key);
+				}
 				break;
 			}
 		}
@@ -3723,7 +3732,8 @@ FIndexRange*                    ParsedVarIndexRange
 	VarProperty.PropertyExportFlags = ExportFlags;
 
 	// Set FPropertyBase info.
-	VarProperty.PropertyFlags |= Flags;
+	VarProperty.PropertyFlags        |= Flags | ImpliedFlags;
+	VarProperty.ImpliedPropertyFlags |= ImpliedFlags;
 
 	// Set the RepNotify name, if the variable needs it
 	if( VarProperty.PropertyFlags & CPF_RepNotify )
@@ -3891,7 +3901,7 @@ UProperty* FHeaderParser::GetVarNameAndDim
 			}
 
 			// Warn if a deprecated property is visible
-			if (VarProperty.PropertyFlags & (CPF_Edit | CPF_EditConst | CPF_BlueprintVisible | CPF_BlueprintReadOnly))
+			if (VarProperty.PropertyFlags & (CPF_Edit | CPF_EditConst | CPF_BlueprintVisible | CPF_BlueprintReadOnly) && !(VarProperty.ImpliedPropertyFlags & CPF_BlueprintReadOnly))
 			{
 				UE_LOG(LogCompile, Warning, TEXT("%s: Deprecated property '%s' should not be marked as visible or editable"), HintText, *VarName);
 			}
