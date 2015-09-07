@@ -2,6 +2,8 @@
 
 #include "FriendsAndChatPrivatePCH.h"
 
+#include "FriendsAndChatStyle.h"
+
 /**
  * Implements the FriendsAndChat module.
  */
@@ -36,6 +38,11 @@ public:
 		NewManager->Initialize(InGame);
 		ManagerMap.Add(MCPInstanceName, NewManager);
 		return NewManager;
+	}
+
+	virtual void ShutdownStyle() override
+	{
+		FFriendsAndChatModuleStyle::Shutdown();
 	}
 
 public:

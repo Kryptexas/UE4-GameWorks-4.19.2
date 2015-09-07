@@ -109,9 +109,12 @@ void FFriendsAndChatModuleStyle::Initialize(FFriendsAndChatStyle FriendStyle)
 
 void FFriendsAndChatModuleStyle::Shutdown()
 {
-	FSlateStyleRegistry::UnRegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
-	ensure( FriendsAndChatModuleStyleInstance.IsUnique() );
-	FriendsAndChatModuleStyleInstance.Reset();
+	if ( FriendsAndChatModuleStyleInstance.IsValid() )
+	{
+		FSlateStyleRegistry::UnRegisterSlateStyle( *FriendsAndChatModuleStyleInstance );
+		ensure( FriendsAndChatModuleStyleInstance.IsUnique() );
+		FriendsAndChatModuleStyleInstance.Reset();
+	}
 }
 
 FName FFriendsAndChatModuleStyle::GetStyleSetName()

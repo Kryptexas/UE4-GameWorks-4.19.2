@@ -39,7 +39,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	 */
 	static const FFriendsChatStyle& GetDefault();
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FSlateBrush GlobalChatHeaderBrush;
 	FFriendsChatStyle& SetGlobalChatHeaderBrush(const FSlateBrush& Value);
 
@@ -83,7 +83,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FLinearColor PartyChatColor;
 	FFriendsChatStyle& SetPartyChatColor(const FLinearColor& InFontColor);
 
-	UPROPERTY(EditAnywhere, Category = Appearance)
+	UPROPERTY(EditAnywhere, Category=Appearance)
 	FLinearColor AdminChatColor;
 	FFriendsChatStyle& SetAdminChatColor(const FLinearColor& InFontColor);
 
@@ -163,7 +163,7 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	FButtonStyle FriendsMinimizeButtonStyle;
 	FFriendsChatStyle& SetMinimizeButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Appearance)
 	FButtonStyle FriendsMaximizeButtonStyle;
 	FFriendsChatStyle& SetMaximizeButtonStyle(const FButtonStyle& ButtonStyle);
 

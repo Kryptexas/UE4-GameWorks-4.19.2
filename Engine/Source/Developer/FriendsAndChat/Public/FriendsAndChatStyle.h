@@ -74,31 +74,31 @@ struct FRIENDSANDCHAT_API FFriendsAndChatStyle
 	FFriendsAndChatStyle& SetWindowStyle(const FWindowStyle& InStyle);
 
 	/** SFriendActions Action Button style */
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FButtonStyle ActionButtonStyle;
 	FFriendsAndChatStyle& SetActionButtonStyle(const FButtonStyle& ButtonStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsFontStyle FriendsNormalFontStyle;
 	FFriendsAndChatStyle& SetNormalFriendsFontStyle(const FFriendsFontStyle& FontStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsListStyle FriendsListStyle;
 	FFriendsAndChatStyle& SetFriendsListStyle(const FFriendsListStyle& InFriendsListStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsComboStyle FriendsComboStyle;
 	FFriendsAndChatStyle& SetFriendsComboStyle(const FFriendsComboStyle& InFriendsListStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsChatStyle FriendsChatStyle;
 	FFriendsAndChatStyle& SetFriendsChatStyle(const FFriendsChatStyle& InFriendsChatStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsChatChromeStyle FriendsChatChromeStyle;
 	FFriendsAndChatStyle& SetFriendsChatChromeStyle(const FFriendsChatChromeStyle& InFriendsChatChromeStyle);
 
-	UPROPERTY()
+	UPROPERTY( EditAnywhere, Category = Appearance )
 	FFriendsMarkupStyle FriendsMarkupStyle;
 	FFriendsAndChatStyle& SetFriendsMarkupStyle(const FFriendsMarkupStyle& InFriendsMarkupStyle);
 };

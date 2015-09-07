@@ -25,6 +25,8 @@ public:
 
 	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName OSSInstanceName = TEXT(""), bool InGame = false) = 0;
 
+	virtual void ShutdownStyle() = 0;
+
 public:
 
 	/** Virtual destructor. */
