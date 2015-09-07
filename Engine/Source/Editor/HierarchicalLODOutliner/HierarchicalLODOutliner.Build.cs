@@ -6,7 +6,7 @@ public class HierarchicalLODOutliner : ModuleRules
 {
     public HierarchicalLODOutliner(TargetInfo Target)
 	{
-		PublicDependencyModuleNames.AddRange
+        PublicDependencyModuleNames.AddRange
         (
             new string[] {
 				"Core",
@@ -21,26 +21,29 @@ public class HierarchicalLODOutliner : ModuleRules
                 "PropertyEditor"
 			}
         );
-
-
+        
         PrivateDependencyModuleNames.AddRange(
              new string[] {
 					"Engine",
                     "UnrealEd"
 				}
          );
-        
-        PrivateDependencyModuleNames.AddRange(
-            new string[] {
-				"SlateCore",
-			}
-        );
 
-        PrivateIncludePathModuleNames.AddRange(
-        new string[] {
-				"Messaging",
-				"SessionServices",
-			}
-    );
+        if (UEBuildConfiguration.bBuildEditor == true)
+        {
+            PrivateDependencyModuleNames.AddRange(
+                new string[] {
+                    "UnrealEd",
+    				"SlateCore",
+    				"Slate",
+                }
+            );
+
+            CircularlyReferencedDependentModules.AddRange(
+                new string[] {
+                    "UnrealEd"
+                }
+            );
+        }
 	}
 }

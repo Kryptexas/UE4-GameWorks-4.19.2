@@ -43,6 +43,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 
  	FHierarchicalSimplification LODBaseSetup;
 	HierarchicalLODSetup.Add(LODBaseSetup);
+	NumHLODLevels = HierarchicalLODSetup.Num();
 #endif
 
 	KillZ = -HALF_WORLD_MAX1;
@@ -312,6 +313,7 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 		if (PropertyThatChanged->GetName() == TEXT("HierarchicalLODSetup"))
 		{
 			GEditor->BroadcastHLODLevelsArrayChanged();
+			NumHLODLevels = HierarchicalLODSetup.Num();			
 		}
 	}
 

@@ -420,6 +420,9 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	/** Hierarchical LOD Setup */
 	UPROPERTY(EditAnywhere, Category=LODSystem, meta=(editcondition = "bEnableHierarchicalLODSystem"))
 	TArray<struct FHierarchicalSimplification>	HierarchicalLODSetup;
+
+	UPROPERTY()
+	int32 NumHLODLevels;
 #endif
 	/************************************/
 	/** DEFAULT SETTINGS **/

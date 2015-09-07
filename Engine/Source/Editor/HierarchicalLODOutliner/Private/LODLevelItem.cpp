@@ -40,7 +40,7 @@ HLODOutliner::FTreeItemID HLODOutliner::FLODLevelItem::GetID()
 
 void HLODOutliner::FLODLevelItem::PopulateDragDropPayload(FDragDropPayload& Payload) const
 {
-
+	// Nothing to populate
 }
 
 HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelItem::ValidateDrop(FDragDropPayload& DraggedObjects) const
@@ -51,8 +51,11 @@ HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelItem::ValidateDrop(FDra
 
 void HLODOutliner::FLODLevelItem::OnDrop(FDragDropPayload& DraggedObjects, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget)
 {
-	FLODLevelDropTarget Target(LODLevelIndex);
-	return Target.OnDrop(DraggedObjects, ValidationInfo, DroppedOnWidget);
+	FLODLevelDropTarget Target(LODLevelIndex);		
+	Target.OnDrop(DraggedObjects, ValidationInfo, DroppedOnWidget);
+
+	// Expand this HLOD level item
+	bIsExpanded = true;
 }
 
 HLODOutliner::FDragValidationInfo HLODOutliner::FLODLevelDropTarget::ValidateDrop(FDragDropPayload& DraggedObjects) const
@@ -100,8 +103,8 @@ void HLODOutliner::FLODLevelDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 {
 	if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleNewCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleNewCluster)
 	{
-		CreateNewCluster(DraggedObjects);
-	}
+		CreateNewCluster(DraggedObjects);		
+	}	
 }
 
 void HLODOutliner::FLODLevelDropTarget::CreateNewCluster(FDragDropPayload &DraggedObjects)

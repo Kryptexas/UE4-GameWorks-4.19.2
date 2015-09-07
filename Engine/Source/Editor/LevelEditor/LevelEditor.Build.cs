@@ -17,7 +17,7 @@ public class LevelEditor : ModuleRules
 				"SlateReflector",
                 "IntroTutorials",
                 "AppFramework",
-                "PortalServices",
+                "PortalServices"
 			}
 		);
 
@@ -25,8 +25,7 @@ public class LevelEditor : ModuleRules
 			new string[] {
 				"Settings",
 				"UserFeedback",
-				"IntroTutorials",
-                "HierarchicalLODOutliner"
+				"IntroTutorials"
 			}
 		);
 
@@ -62,7 +61,8 @@ public class LevelEditor : ModuleRules
                 "Kismet",
 				"KismetWidgets",
 				"Sequencer",
-                "Foliage"
+                "Foliage",
+                "HierarchicalLODOutliner"
 			}
 		);
 
@@ -86,8 +86,7 @@ public class LevelEditor : ModuleRules
 				"UserFeedback",
 				"ReferenceViewer",
 				"SizeMap",
-                "IntroTutorials",
-                "HierarchicalLODOutliner"
+                "IntroTutorials"
 			}
 		);
 	}

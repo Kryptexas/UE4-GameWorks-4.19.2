@@ -255,13 +255,13 @@ namespace HLODOutliner
 
 	void SHLODOutliner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 	{
-		// Get a collection of items and folders which were formerly collapsed
-		const FParentsExpansionState ExpansionStateInfo = GetParentsExpansionState();
-
 		if (bNeedsRefresh)
 		{
 			Populate();
 		}
+
+		// Get a collection of items and folders which were formerly collapsed
+		const FParentsExpansionState ExpansionStateInfo = GetParentsExpansionState();
 
 		bool bChangeMade = false;
 
@@ -292,13 +292,13 @@ namespace HLODOutliner
 		}
 		PendingActions.RemoveAt(0, End);
 
-		// Restore expansion states
-		SetParentsExpansionState(ExpansionStateInfo);
-
 		if (bChangeMade)
 		{
+			// Restore expansion states
+			SetParentsExpansionState(ExpansionStateInfo);
+
 			TreeView->RequestTreeRefresh();
-		}
+		}			
 
 		// Update the forced LOD level, as the slider for it is being dragged
 		if (bForcedSliderValueUpdating)
@@ -467,6 +467,7 @@ namespace HLODOutliner
 		GEngine->OnHLODActorMoved().RemoveAll(this);
 		GEngine->OnHLODActorAdded().RemoveAll(this);
 		GEngine->OnHLODActorMarkedDirty().RemoveAll(this);
+		GEngine->OnHLODLevelsArrayChanged().RemoveAll(this);
 	}
 
 	void SHLODOutliner::ForceViewLODActor(TSharedRef<ITreeItem> Item)
@@ -1196,28 +1197,6 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
-			auto WorldSettings = CurrentWorld->GetWorldSettings();			
-			if (WorldSettings->HierarchicalLODSetup.Num() > 1 && WorldSettings->HierarchicalLODSetup.Num() > LODLevelDrawDistances.Num())
-			{
-				// HLOD level was added, use previous level settings to "guess" new settings
-				auto& NewLevelSetup = WorldSettings->HierarchicalLODSetup.Last();
-				auto& OldLastLevelSetup = WorldSettings->HierarchicalLODSetup[WorldSettings->HierarchicalLODSetup.Num() - 2];
-
-				NewLevelSetup.bSimplifyMesh = OldLastLevelSetup.bSimplifyMesh;
-				NewLevelSetup.MergeSetting = OldLastLevelSetup.MergeSetting;
-				NewLevelSetup.ProxySetting = OldLastLevelSetup.ProxySetting;
-
-				NewLevelSetup.DesiredBoundRadius = OldLastLevelSetup.DesiredBoundRadius * 2.5f;
-				NewLevelSetup.DesiredFillingPercentage = FMath::Max( OldLastLevelSetup.DesiredFillingPercentage * 0.75f, 1.0f );
-				NewLevelSetup.DrawDistance = OldLastLevelSetup.DrawDistance * 2.5f;
-				NewLevelSetup.MinNumberOfActorsToBuild = OldLastLevelSetup.MinNumberOfActorsToBuild;			
-			}
-			else if (WorldSettings->HierarchicalLODSetup.Num() < LODLevelDrawDistances.Num())
-			{
-				// HLOD Level was removed, now remove all LODActors for this level
-				RemoveLODLevelActors(LODLevelDrawDistances.Num() - 1);
-			}
-
 			FullRefresh();
 		}
 	}
@@ -1274,6 +1253,9 @@ namespace HLODOutliner
 					LODLevelDrawDistances.Add(WorldSettings->HierarchicalLODSetup[LODLevelIndex].DrawDistance);
 
 					TreeItemsMap.Add(LevelItem->GetID(), LevelItem);
+
+					// Expand level items by default
+					LevelItem->bIsExpanded = true;
 				}
 
 				for (ULevel* Level : CurrentWorld->GetLevels())

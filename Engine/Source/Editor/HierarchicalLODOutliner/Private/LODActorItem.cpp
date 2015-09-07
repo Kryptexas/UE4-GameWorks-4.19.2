@@ -125,6 +125,9 @@ void HLODOutliner::FLODActorItem::OnDrop(FDragDropPayload& DraggedObjects, const
 {
 	FLODActorDropTarget Target(LODActor.Get());
 	Target.OnDrop(DraggedObjects, ValidationInfo, DroppedOnWidget);
+
+	// Expand this HLOD actor item
+	bIsExpanded = true;	
 }
 
 HLODOutliner::FDragValidationInfo HLODOutliner::FLODActorDropTarget::ValidateDrop(FDragDropPayload& DraggedObjects) const
@@ -248,7 +251,7 @@ void HLODOutliner::FLODActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 	{
 		return;
 	}
-	
+
 	auto& DraggedStaticMeshActors = DraggedObjects.StaticMeshActors.GetValue();
 	auto& DraggedLODActors = DraggedObjects.LODActors.GetValue();
 	if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleMoveToCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleMoveToCluster)

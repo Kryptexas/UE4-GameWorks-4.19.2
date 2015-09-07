@@ -111,6 +111,7 @@ namespace HLODOutliner
 		/** The tooltip text to display on the operation */
 		FText ValidationText;
 
+
 		/** Construct this validation information out of a tooltip type and some text */
 		FDragValidationInfo(const FHLODOutlinerDragDropOp::ToolTipTextType InTooltipType, const FText InValidationText)
 			: TooltipType(InTooltipType)

@@ -19,6 +19,8 @@ public:
 	*/
 	virtual void ShutdownModule();
 
+	void OnHLODLevelsArrayChangedEvent();
+
 	/** Creates the HLOD Outliner widget */
 	virtual TSharedRef<SWidget> CreateHLODOutlinerWidget();
 };
