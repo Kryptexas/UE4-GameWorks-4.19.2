@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2678479
+Availability:Public
 Title:物理アセットのプロパティのリファレンス
 Crumbs: %ROOT%, Engine, Engine/Physics, Engine/Physics/PhAT
-Description:物理アセットツールでアクセスが可能な物体、物理コンストレイント、物理アセットのプロパティとその説明の一覧
+Description:物理アセットツールで利用可能な物理ボディ、物理コンストレイント、物理アセットのプロパティとその説明の一覧です。
+バージョン：4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -46,7 +48,7 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 
 
 
-## Physics Asset Tool プロパティ
+## 物理アセット ツールのプロパティ
 
 | プロパティ | 説明 |
 | --- | --- |
@@ -57,8 +59,8 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 |[REGION:tablesection]Simulation[/REGION]||
 |**Floor Gap** | %doxygen:UPhATSimOptions::FloorGap% |
 |**Grav Scale** | %doxygen:UPhATSimOptions::GravScale% |
-|**Max FPS** | |
-|**Time Dilation** |  |
+|**Max FPS** | 物理アセット ツール (PhAT) でのシミュレーションの最大 FPS。ゲームと同じ FPS をターゲットにするのに便利です。値 -1 は無効になっていることを表します。  |
+|**Time Dilation** | スケーリングによって時間を遅らせます。  |
 |[REGION:tablesection]Mouse Spring[/REGION]||
 |**Handle Linear Damping** | %doxygen:UPhATSimOptions::HandleLinearDamping% |
 |**Handle Linear Stiffness** | %doxygen:UPhATSimOptions::HandleLinearStiffness% |
@@ -87,18 +89,17 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 | **Angular Damping** | %doxygen:FBodyInstance::AngularDamping% |
 | **Enable Gravity** | %doxygen:FBodyInstance::bEnableGravity% |
 | **Physics Type** | %doxygen:UBodySetup::PhysicsType% |
-| **Double Sided Geometry** |  |
+| **Double Sided Geometry** | true の場合、物理トライアングル メッシュはシーン クエリの際に両面を使用します。両面のトレースを必要とする平面や片面で構成されるメッシュに有用です。 
 | **Simple Collision Physical Material** | %doxygen:UBodySetup::PhysMaterial% |
 | **Start Awake** | %doxygen:FBodyInstance::bStartAwake% |
 | **Center of Mass Offset** | %doxygen:FBodyInstance::COMNudge% |
 | **Mass Scale** | %doxygen:FBodyInstance::MassScale% |
-| **Max Angular Velocity** |  |
+| **Max Angular Velocity** | インスタンスの最大角速度です。 |
 | **Use Async Scene** | %doxygen:FBodyInstance::bUseAsyncScene% |
-| **Override Max Depenetration Velocity** |  |
-| **Max Depenetration Velocity** |  |
-| **Override Walkable Slope on Instance** |  |
+| **Max Depenetration Velocity** | オブジェクトを貫通しないようにするために使用する最高速度。 |
+| **Override Walkable Slope on Instance** | 物理ボディの歩行可能なスロープ (Walkable Slope) 設定をオーバーライドします。歩行可能と判断されるスロープ角度のカスタム化を可能にします。  |
 | **Walkable Slope Override** | %doxygen:UBodySetup::WalkableSlopeOverride% |
-| **Walkable Slope Behavior** | %doxygen:FWalkableSlopeOverride::WalkableSlopeBehavior% |
+| **Walkable Slope Behavior** | このサーフェスの挙動 (歩行可能なスロープに作用するかどうか)。既存の歩行可能な角度上で Walkable Slope Angle がどのように機能するのか、増加するのか減少するのかを決定します。 |
 | **Walkable Slope Angle** | %doxygen:FWalkableSlopeOverride::WalkableSlopeAngle% |
 | **Sleep Family** | %doxygen:FBodyInstance::SleepFamily% |
 | **Position Solver Iteration Count** | %doxygen:FBodyInstance::PositionSolverIterationCount% |
@@ -109,15 +110,15 @@ Description:物理アセットツールでアクセスが可能な物体、物�
 | **Collision Response** | %doxygen:UBodySetup::CollisionReponse% |
 | **Use CCD** | %doxygen:FBodyInstance::bUseCCD% |
 
-## Physics Constraint プロパティ
+## 物理コンストレイントのプロパティ
 
 | プロパティ | 説明 |
 | --- | --- |
-|[REGION:tablesection]Constraint[/REGION]||
+|[REGION:tablesection]コンストレイント[/REGION]||
 | **Joint Name** | %doxygen:FConstraintInstance::JointName% |
 | **Constraint Bone 1** | %doxygen:FConstraintInstance::ConstraintBone1% |
 | **Constraint Bone 2** | %doxygen:FConstraintInstance::ConstraintBone2% |
-| **Disable Collision** | %doxygen:FConstraintInstance::bDisableCollision% |
+| **Disable Collision** | 物理ボディが影響を及ぼす 2 つの物理ボディ間のコリジョンを無効にします。これは、物理ボディを可能な限りスケルタルメッシュに近づけることが望ましいが、少しだけオーバーラップするのが望ましいジョイントで互いに衝突しないようにする場合に頻繁に物理アセット ツールで使用されます。
 |[REGION:tablesection]Linear Limits[/REGION]||
 | **Linear XMotion** | %doxygen:FConstraintInstance::LinearXMotion% |
 | **Linear YMotion** | %doxygen:FConstraintInstance::LinearYMotion% |
