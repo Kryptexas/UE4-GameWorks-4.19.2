@@ -3,7 +3,7 @@
 #include "GeometryCacheModulePrivatePCH.h"
 #include "GeometryCacheTrackTransformAnimation.h"
 #include "GeometryCacheTrackFlipbookAnimation.h"
-#include "EditorFrameWork/AssetImportData.h"
+#include "EditorFramework/AssetImportData.h"
 
 UGeometryCache::UGeometryCache(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/) : UObject(ObjectInitializer)
 {

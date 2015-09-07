@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Thumbnailhelpers.h"
+#include "ThumbnailHelpers.h"
 
 class UGeometryCache;
 class AGeometryCacheActor;

@@ -3,9 +3,9 @@
 #include "GeometryCacheEdModulePublicPCH.h"
 #include "GeometryCacheThumbnailRenderer.h"
 #include "GeometryCacheThumbnailScene.h"
-#include "Thumbnailhelpers.h"
+#include "ThumbnailHelpers.h"
 #include "EngineModule.h"
-#include "Sceneview.h"
+#include "SceneView.h"
 #include "RendererInterface.h"
 #include "GeometryCache.h"
 
