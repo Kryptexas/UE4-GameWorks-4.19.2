@@ -205,6 +205,11 @@ struct FUserDefinedStructureCompilerInner
 			VarDesc.CurrentDefaultValue = VarDesc.DefaultValue;
 
 			VarDesc.bInvalidMember = false;
+
+			if (NewProperty->HasAnyPropertyFlags(CPF_InstancedReference | CPF_ContainsInstancedReference))
+			{
+				Struct->StructFlags = EStructFlags(Struct->StructFlags | STRUCT_HasInstancedReference);
+			}
 		}
 	}
 

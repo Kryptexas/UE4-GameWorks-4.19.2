@@ -807,6 +807,15 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				UStructProperty* NewPropertyStruct = NewObject<UStructProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				NewPropertyStruct->Struct = SubType;
 				NewProperty = NewPropertyStruct;
+
+				if (SubType->StructFlags & STRUCT_HasInstancedReference)
+				{
+					NewProperty->SetPropertyFlags(CPF_ContainsInstancedReference);
+					if (NewArrayProperty)
+					{
+						NewArrayProperty->SetPropertyFlags(CPF_ContainsInstancedReference);
+					}
+				}
 			}
 			else
 			{
