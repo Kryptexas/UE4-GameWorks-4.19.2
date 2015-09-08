@@ -12,9 +12,7 @@ void FAnimNode_Slot::Initialize(const FAnimationInitializeContext& Context)
 	FAnimNode_Base::Initialize(Context);
 
 	Source.Initialize(Context);
-
-	SourceWeight = 0.f;
-	SlotNodeWeight = 0.f;
+	WeightData.Reset();
 
 	// If this node has not already been registered with the AnimInstance, do it.
 	if ((LastSlotNodeInitializationCounter == INDEX_NONE) || (LastSlotNodeInitializationCounter != Context.AnimInstance->GetSlotNodeInitializationCounter()))
@@ -32,36 +30,34 @@ void FAnimNode_Slot::CacheBones(const FAnimationCacheBonesContext& Context)
 void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
 {
 	// Update weights.
-	Context.AnimInstance->GetSlotWeight(SlotName, SlotNodeWeight, SourceWeight);
+	Context.AnimInstance->GetSlotWeight(SlotName, WeightData.SlotNodeWeight, WeightData.SourceWeight, WeightData.TotalNodeWeight);
 
 	// Update cache in AnimInstance.
-	Context.AnimInstance->UpdateSlotNodeWeight(SlotName, SlotNodeWeight);
+	Context.AnimInstance->UpdateSlotNodeWeight(SlotName, WeightData.SlotNodeWeight);
 	Context.AnimInstance->UpdateSlotRootMotionWeight(SlotName, Context.GetFinalBlendWeight());
 
-
-	if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
+	if (WeightData.SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 	{
-		Source.Update(Context.FractionalWeight(SourceWeight));
+		Source.Update(Context.FractionalWeight(WeightData.SourceWeight));
 	}
 }
 
 void FAnimNode_Slot::Evaluate(FPoseContext & Output)
 {
 	// If not playing a montage, just pass through
-	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
+	if (WeightData.SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		Source.Evaluate(Output);
 	}
 	else
 	{
 		FPoseContext SourceContext(Output);
-// @TODO: FIXME temporary fix to fix crash 
-//		if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
+		if (WeightData.SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 		{
 			Source.Evaluate(SourceContext);
 		}
 
-		Output.AnimInstance->SlotEvaluatePose(SlotName, SourceContext.Pose, SourceContext.Curve, Output.Pose, Output.Curve, SlotNodeWeight);
+		Output.AnimInstance->SlotEvaluatePose(SlotName, SourceContext.Pose, SourceContext.Curve, WeightData.SourceWeight, Output.Pose, Output.Curve, WeightData.SlotNodeWeight, WeightData.TotalNodeWeight);
 
 		checkSlow(!Output.ContainsNaN());
 		checkSlow(Output.IsNormalized());
@@ -71,11 +67,11 @@ void FAnimNode_Slot::Evaluate(FPoseContext & Output)
 void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 {
 	FString DebugLine = DebugData.GetNodeName(this);
-	DebugLine += FString::Printf(TEXT("(Slot Name: '%s' Weight:%.1f%%)"), *SlotName.ToString(), SlotNodeWeight*100.f);
+	DebugLine += FString::Printf(TEXT("(Slot Name: '%s' Weight:%.1f%%)"), *SlotName.ToString(), WeightData.SlotNodeWeight*100.f);
 	
-	bool const bIsPoseSource = (SourceWeight <= ZERO_ANIMWEIGHT_THRESH);
+	bool const bIsPoseSource = (WeightData.SourceWeight <= ZERO_ANIMWEIGHT_THRESH);
 	DebugData.AddDebugItem(DebugLine, bIsPoseSource);
-	Source.GatherDebugData(DebugData.BranchFlow(SourceWeight));
+	Source.GatherDebugData(DebugData.BranchFlow(WeightData.SourceWeight));
 
 	for (FAnimMontageInstance* MontageInstance : DebugData.AnimInstance->MontageInstances)
 	{
@@ -99,8 +95,6 @@ void FAnimNode_Slot::GatherDebugData(FNodeDebugData& DebugData)
 
 FAnimNode_Slot::FAnimNode_Slot()
 	: SlotName(FAnimSlotGroup::DefaultSlotName)
-	, SourceWeight(0.f)
-	, SlotNodeWeight(0.f)
 	, LastSlotNodeInitializationCounter(INDEX_NONE)
 {
 }

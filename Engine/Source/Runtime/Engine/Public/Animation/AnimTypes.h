@@ -284,3 +284,32 @@ namespace ECurveBlendOption
 		BlendByWeight
 	};
 }
+
+/**
+ * Slot node weight information - this is transient data that is used by slot node
+ */
+struct FSlotNodeWeightInfo
+{
+	/** Weight of Source Branch. This is the weight of the input pose coming from children.
+	This is different than (1.f - SourceWeight) since the Slot can play additive animations, which are overlayed on top of the source pose. */
+	float SourceWeight;
+
+	/** Weight of Slot Node. Determined by Montages weight playing on this slot */
+	float SlotNodeWeight;
+
+	/** Total Weight of Slot Node. Determined by Montages weight playing on this slot, it can be more than 1 */
+	float TotalNodeWeight;
+
+	FSlotNodeWeightInfo()
+		: SourceWeight(0.f)
+		, SlotNodeWeight(0.f)
+		, TotalNodeWeight(0.f)
+	{}
+
+	void Reset()
+	{
+		SourceWeight = 0.f;
+		SlotNodeWeight = 0.f;
+		TotalNodeWeight = 0.f;
+	}
+};

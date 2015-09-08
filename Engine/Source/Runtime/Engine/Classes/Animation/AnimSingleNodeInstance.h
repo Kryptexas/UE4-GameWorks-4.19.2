@@ -112,6 +112,9 @@ public:
 #if WITH_EDITORONLY_DATA
 	float PreviewPoseCurrentTime;
 #endif
+private:
+	/** Slot node weight transient data */
+	FSlotNodeWeightInfo WeightInfo;
 };
 
 

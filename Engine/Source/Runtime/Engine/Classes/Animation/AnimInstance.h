@@ -370,9 +370,17 @@ public:
 	// Populate a tick record with previous frames data
 	void InitTickRecordFromLastFrame(int32 GroupIndex, FAnimTickRecord& NewTickRecord) const;
 
-	// slotnode interfaces
-	void GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const;
-	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight);
+	/**
+	 * Get Slot Node Weight : this returns new Slot Node Weight, Source Weight, Original TotalNodeWeight
+	 *							this 3 values can't be derived from each other
+	 *
+	 * @param SlotNodeName : the name of the slot node you're querying
+	 * @param out_SlotNodeWeight : The node weight for this slot node in the range of [0, 1]
+	 * @param out_SourceWeight : The Source weight for this node. 
+	 * @param out_TotalNodeWeight : Total weight of this node
+	 */
+	void GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const;
+	void SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight);
 
 	// slot node run-time functions
 	void ReinitializeSlotNodes();

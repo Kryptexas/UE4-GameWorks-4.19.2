@@ -183,6 +183,7 @@ void UAnimSingleNodeInstance::RestartMontage(UAnimMontage * Montage, FName FromS
 {
 	if( Montage == CurrentAsset )
 	{
+		WeightInfo.Reset();
 		Montage_Play(Montage, PlayRate);
 		if( FromSection != NAME_None )
 		{
@@ -277,7 +278,10 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
 			// Full weight , if you don't have slot track, you won't be able to see animation playing
 			if ( Montage->SlotAnimTracks.Num() > 0 )
 			{
-				UpdateSlotNodeWeight(Montage->SlotAnimTracks[0].SlotName, 1.f);		
+				// in the future, maybe we can support which slot
+				const FName CurrentSlotNodeName = Montage->SlotAnimTracks[0].SlotName;
+				GetSlotWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight, WeightInfo.SourceWeight, WeightInfo.TotalNodeWeight);
+				UpdateSlotNodeWeight(CurrentSlotNodeName, WeightInfo.SlotNodeWeight);		
 			}
 			// get the montage position
 			// @todo anim: temporarily just choose first slot and show the location
@@ -406,7 +410,7 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 					SourcePose.ResetToRefPose();			
 				}
 
-				SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, SourcePose, SourceCurve, Output.Pose, Output.Curve, 1.f);
+				SlotEvaluatePose(Montage->SlotAnimTracks[0].SlotName, SourcePose, SourceCurve, WeightInfo.SourceWeight, Output.Pose, Output.Curve, WeightInfo.SlotNodeWeight, WeightInfo.TotalNodeWeight);
 			}
 		}
 	}

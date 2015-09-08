@@ -401,6 +401,10 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		}
 	}
 
+	// update weight before all nodes update comes in
+	// when native update animation for single node, it needs to know latest weight of montage
+	Montage_UpdateWeight(DeltaSeconds);
+
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
 		NativeUpdateAnimation(DeltaSeconds);
@@ -409,9 +413,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
 		BlueprintUpdateAnimation(DeltaSeconds);
 	}
-
-	// update weight before all nodes update comes in
-	Montage_UpdateWeight(DeltaSeconds);
 
 	// Update the anim graph
 	if (RootNode != NULL)
@@ -917,7 +918,7 @@ void UAnimInstance::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo&
 
 			Canvas->SetLinearDrawColor((MontageInstance->IsActive()) ? ActiveColor : TextWhite);
 
-			FString MontageEntry = FString::Printf(TEXT("%i) %s CurrSec: %s NextSec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->Weight, MontageInstance->DesiredWeight);
+			FString MontageEntry = FString::Printf(TEXT("%i) %s CurrSec: %s NextSec: %s W:%.3f DW:%.3f"), MontageIndex, *MontageInstance->Montage->GetName(), *MontageInstance->GetCurrentSection().ToString(), *MontageInstance->GetNextSection().ToString(), MontageInstance->GetWeight(), MontageInstance->GetDesiredWeight());
 			YL = Canvas->DrawText(RenderFont, MontageEntry, Indent, YPos, 1.f, 1.f, RenderInfo);
 			YPos += YL;
 		}
@@ -1370,9 +1371,12 @@ void UAnimInstance::AnimNotify_Sound(UAnimNotify* AnimNotify)
 //to debug montage weight
 #define DEBUGMONTAGEWEIGHT 0
 
-void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight) const
+void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNodeWeight, float& out_SourceWeight, float& out_TotalNodeWeight) const
 {
-	float NodeTotalWeight = 0.f;
+	// node total weight 
+	float NewSlotNodeWeight = 0.f;
+	// this is required to track, because it will be 1-SourceWeight
+	// if additive, it can be applied more
 	float NonAdditiveTotalWeight = 0.f;
 
 #if DEBUGMONTAGEWEIGHT
@@ -1384,11 +1388,11 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 		FAnimMontageInstance const* const MontageInstance = MontageInstances[Index];
 		if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
 		{
-			NodeTotalWeight += MontageInstance->Weight;
+			NewSlotNodeWeight += MontageInstance->GetWeight();
 
 			if( !MontageInstance->Montage->IsValidAdditiveSlot(SlotNodeName) )
 			{
-				NonAdditiveTotalWeight += MontageInstance->Weight;
+				NonAdditiveTotalWeight += MontageInstance->GetWeight();
 			}
 
 #if DEBUGMONTAGEWEIGHT			
@@ -1397,24 +1401,23 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 		}
 	}
 
+	// save the total node weight, it can be more than 1
+	// we need this so that when we eval, we normalized by this weight
+	// calculating there can cause inconsistency if some data changes
+	out_TotalNodeWeight = NewSlotNodeWeight;
+
 	// this can happen when it's blending in OR when newer animation comes in with shorter blendtime
 	// say #1 animation was blending out time with current blendtime 1.0 #2 animation was blending in with 1.0 (old) but got blend out with new blendtime 0.2f
 	// #3 animation was blending in with the new blendtime 0.2f, you'll have sum of #1, 2, 3 exceeds 1.f
-	if (NodeTotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
+	if (NewSlotNodeWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
 	{
-		// Re-normalize instance weights.
-		for (int32 Index = 0; Index < MontageInstances.Num(); Index++)
-		{
-			FAnimMontageInstance* MontageInstance = MontageInstances[Index];
-			if (MontageInstance && MontageInstance->IsValid() && MontageInstance->Montage->IsValidSlot(SlotNodeName))
-			{
-				MontageInstance->Weight /= NodeTotalWeight;
-			}
-		} 
-
-		// Re-normalize totals
-		NonAdditiveTotalWeight /= NodeTotalWeight;
-		NodeTotalWeight = 1.f;
+		// you don't want to change weight of montage instance since it can play multiple slots
+		// if you change one, it will apply to all slots in that montage
+		// instead we should renormalize when we eval
+		// this should happen in the eval phase
+		NonAdditiveTotalWeight /= NewSlotNodeWeight;
+		// since we normalized, we reset
+		NewSlotNodeWeight = 1.f;
 	}
 #if DEBUGMONTAGEWEIGHT
 	else if (TotalDesiredWeight == 1.f && TotalSum < 1.f - ZERO_ANIMWEIGHT_THRESH)
@@ -1426,16 +1429,21 @@ void UAnimInstance::GetSlotWeight(FName const & SlotNodeName, float& out_SlotNod
 	}
 #endif
 
-	out_SlotNodeWeight = NodeTotalWeight;
+	out_SlotNodeWeight = NewSlotNodeWeight;
 	out_SourceWeight = 1.f - NonAdditiveTotalWeight;
 }
 
-void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float SlotNodeWeight)
+#define DEBUG_MONTAGEINSTANCE_WEIGHT 1
+#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
+#define DEBUG_MONTAGEINSTANCE_WEIGHT 0
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+
+void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight)
 {
 	//Accessing MontageInstances from this function is not safe (as this can be called during Parallel Anim Evaluation!
 	//Any montage data you need to add should be part of MontageEvaluationData
-
-	if (SlotNodeWeight <= ZERO_ANIMWEIGHT_THRESH)
+	// nothing to blend, just get it out
+	if (InBlendWeight <= ZERO_ANIMWEIGHT_THRESH)
 	{
 		BlendedPose = SourcePose;
 		BlendedCurve = SourceCurve;
@@ -1447,8 +1455,9 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 	TArray<FSlotEvaluationPose> NonAdditivePoses;
 
 	// first pass we go through collect weights and valid montages. 
+#if DEBUG_MONTAGEINSTANCE_WEIGHT
 	float TotalWeight = 0.f;
-	float NonAdditiveWeight = 0.f;
+#endif // DEBUG_MONTAGEINSTANCE_WEIGHT
 	for (const FMontageEvaluationState& EvalState : MontageEvaluationData)
 	{
 		if (EvalState.Montage->IsValidSlot(SlotNodeName))
@@ -1476,43 +1485,41 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 			EvalState.Montage->EvaluateCurveData(MontageCurve, EvalState.MontagePosition);
 			NewPose.Curve.Combine(MontageCurve);
 
+#if DEBUG_MONTAGEINSTANCE_WEIGHT
 			TotalWeight += EvalState.MontageWeight;
+#endif // DEBUG_MONTAGEINSTANCE_WEIGHT
 			if (AdditiveAnimType == AAT_None)
 			{
-				NonAdditiveWeight += EvalState.MontageWeight;
 				NonAdditivePoses.Add(NewPose);
 			}
 			else
 			{
 				AdditivePoses.Add(NewPose);
 			}
-		
 		}
 	}
 
-	// nothing else to do here, there is no weight
-	if (TotalWeight <= ZERO_ANIMWEIGHT_THRESH)
-	{
-		BlendedPose = SourcePose;
-		BlendedCurve = SourceCurve;
-		return;
-	}
-	// Make sure weights don't exceed 1.f, otherwise re-normalize.
-	else if (TotalWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
+	// allocate for blending
+	// If source has any weight, add it to the blend array.
+	float const SourceWeight = FMath::Clamp<float>(InSourceWeight, 0.f, 1.f);
+
+#if DEBUG_MONTAGEINSTANCE_WEIGHT
+	ensure (FMath::IsNearlyEqual(InTotalNodeWeight, TotalWeight, KINDA_SMALL_NUMBER));
+#endif // DEBUG_MONTAGEINSTANCE_WEIGHT
+	ensure (InTotalNodeWeight > ZERO_ANIMWEIGHT_THRESH);
+
+	if (InTotalNodeWeight > (1.f + ZERO_ANIMWEIGHT_THRESH))
 	{
 		// Re-normalize additive poses
 		for (int32 Index = 0; Index < AdditivePoses.Num(); Index++)
 		{
-			AdditivePoses[Index].Weight /= TotalWeight;
+			AdditivePoses[Index].Weight /= InTotalNodeWeight;
 		}
 		// Re-normalize non-additive poses
 		for (int32 Index = 0; Index < NonAdditivePoses.Num(); Index++)
 		{
-			NonAdditivePoses[Index].Weight /= TotalWeight;
+			NonAdditivePoses[Index].Weight /= InTotalNodeWeight;
 		}
-		// Re-normalize totals.
-		NonAdditiveWeight /= TotalWeight;
-		TotalWeight = 1.f;
 	}
 
 	// Make sure we have at least one montage here.
@@ -1529,9 +1536,6 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 		// Otherwise we need to blend non additive poses together
 		else
 		{
-			// allocate for blending
-			// If source has any weight, add it to the blend array.
-			float const SourceWeight = FMath::Clamp<float>(1.f - NonAdditiveWeight, 0.f, 1.f);
 			int32 const NumPoses = NonAdditivePoses.Num() + ((SourceWeight > ZERO_ANIMWEIGHT_THRESH) ? 1 : 0);
 
 			TArray<const FCompactPose*> BlendingPoses;
@@ -1820,8 +1824,8 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 				FAnimMontageInstance* AnimMontageInstance = MontageInstances(I);
 				// print blending time and weight and montage name
 				UE_LOG(LogAnimation, Warning, TEXT("%d. Montage (%s), DesiredWeight(%0.2f), CurrentWeight(%0.2f), BlendingTime(%0.2f)"), 
-					I+1, *AnimMontageInstance->Montage->GetName(), AnimMontageInstance->DesiredWeight, AnimMontageInstance->Weight,  
-					AnimMontageInstance->BlendTime );
+					I+1, *AnimMontageInstance->Montage->GetName(), AnimMontageInstance->GetDesiredWeight(), AnimMontageInstance->GetWeight(),  
+					AnimMontageInstance->GetBlendTime() );
 			}
 #endif
 		}
@@ -2489,7 +2493,7 @@ float UAnimInstance::Montage_GetBlendTime(UAnimMontage* Montage)
 		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
 		if (MontageInstance)
 		{
-			return MontageInstance->BlendTime;
+			return MontageInstance->GetBlendTime();
 		}
 	}
 	else
@@ -2500,7 +2504,7 @@ float UAnimInstance::Montage_GetBlendTime(UAnimMontage* Montage)
 			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
-				return MontageInstance->BlendTime;
+				return MontageInstance->GetBlendTime();
 			}
 		}
 	}
@@ -2541,7 +2545,7 @@ int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage const* const Montage,
 		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
 		if (MontageInstance)
 		{
-			return (CurrentSectionID < MontageInstance->NextSections.Num()) ? MontageInstance->NextSections[CurrentSectionID] : INDEX_NONE;
+			return MontageInstance->GetNextSectionID(CurrentSectionID);
 		}
 	}
 	else
@@ -2552,7 +2556,7 @@ int32 UAnimInstance::Montage_GetNextSectionID(UAnimMontage const* const Montage,
 			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
-				return (CurrentSectionID < MontageInstance->NextSections.Num()) ? MontageInstance->NextSections[CurrentSectionID] : INDEX_NONE;
+				return MontageInstance->GetNextSectionID(CurrentSectionID);
 			}
 		}
 	}
@@ -2778,9 +2782,11 @@ void UAnimInstance::UpdateMontageEvaluationData()
 	MontageEvaluationData.Reset(MontageInstances.Num());
 	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{
-		if (MontageInstance->Montage && MontageInstance->Weight > ZERO_ANIMWEIGHT_THRESH)
+		if (MontageInstance->Montage && MontageInstance->GetWeight() > ZERO_ANIMWEIGHT_THRESH)
 		{
-			MontageEvaluationData.Add(FMontageEvaluationState(MontageInstance->Montage, MontageInstance->Weight, MontageInstance->GetPosition()));
+			UE_LOG(LogAnimation, Verbose, TEXT("UpdateMontageEvaluationData : AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+						*MontageInstance->Montage->GetName(), MontageInstance->GetDesiredWeight(), MontageInstance->GetWeight());
+			MontageEvaluationData.Add(FMontageEvaluationState(MontageInstance->Montage, MontageInstance->GetWeight(), MontageInstance->GetPosition()));
 		}
 	}
 }

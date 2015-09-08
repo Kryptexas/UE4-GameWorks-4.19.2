@@ -973,10 +973,7 @@ int32 UAnimPreviewInstance::MontagePreview_FindLastSection(int32 StartSectionIdx
 				{
 					AlreadyVisited[CurrentSectionIdx] = true;
 					ResultIdx = CurrentSectionIdx;
-					if (CurMontageInstance->NextSections.IsValidIndex(CurrentSectionIdx))
-					{
-						CurrentSectionIdx = CurMontageInstance->NextSections[CurrentSectionIdx];
-					}
+					CurrentSectionIdx = CurMontageInstance->GetNextSectionID(CurrentSectionIdx);
 				}
 			}
 		}

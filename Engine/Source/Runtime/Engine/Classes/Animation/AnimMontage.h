@@ -166,20 +166,18 @@ struct FAnimMontageInstance
 	UPROPERTY()
 	class UAnimMontage* Montage;
 
-public: 
-	UPROPERTY()
-	float DesiredWeight;
+	// delegates
+	FOnMontageEnded OnMontageEnded;
+	FOnMontageBlendingOutStarted OnMontageBlendingOutStarted;
 
 	UPROPERTY()
-	float Weight;
-
-	UPROPERTY(transient)
-	float BlendTime;
+	bool bPlaying;
 
 	// Blend Time multiplier to allow extending and narrowing blendtimes
 	UPROPERTY(transient)
 	float DefaultBlendTimeMultiplier;
 
+private:
 	// list of next sections per section - index of array is section id
 	UPROPERTY()
 	TArray<int32> NextSections;
@@ -188,15 +186,29 @@ public:
 	UPROPERTY()
 	TArray<int32> PrevSections;
 
-	UPROPERTY()
-	bool bPlaying;
-
-	// delegates
-	FOnMontageEnded OnMontageEnded;
-	FOnMontageBlendingOutStarted OnMontageBlendingOutStarted;
-
 	// reference to AnimInstance
 	TWeakObjectPtr<UAnimInstance> AnimInstance;
+
+	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
+		call NotifyEnd on the event after a deletion in the editor. After this the event
+		is removed correctly. */
+	UPROPERTY(Transient)
+	TArray<FAnimNotifyEvent> ActiveStateBranchingPoints;
+
+	UPROPERTY()
+	float Position;
+
+	UPROPERTY()
+	float PlayRate;
+
+	UPROPERTY()
+	float DesiredWeight;
+
+	UPROPERTY()
+	float Weight;
+
+	UPROPERTY(transient)
+	float BlendTime;
 
 	// need to save if it's interrupted or not
 	// this information is crucial for gameplay
@@ -208,20 +220,6 @@ public:
 	// transient NotifyWeight   - Weight for spawned notifies, modified slightly to make sure
 	//                          - we spawn all notifies
 	float NotifyWeight;
-
-	/** Currently Active AnimNotifyState, stored as a copy of the event as we need to
-		call NotifyEnd on the event after a deletion in the editor. After this the event
-		is removed correctly. */
-	UPROPERTY(Transient)
-	TArray<FAnimNotifyEvent> ActiveStateBranchingPoints;
-
-private:
-	UPROPERTY()
-	float Position;
-
-	UPROPERTY()
-	float PlayRate;
-
 public:
 	/** Montage to Montage Synchronization.
 	 *
@@ -242,6 +240,10 @@ public:
 	/** PostUpdate - Sync if updated after Leader. */
 	void MontageSync_PostUpdate();
 
+	/** Get Weight */
+	float GetWeight() const { return Weight; }
+	float GetDesiredWeight() const { return DesiredWeight; }
+	float GetBlendTime() const { return BlendTime; }
 private:
 	/** Followers this Montage will synchronize */
 	TArray<struct FAnimMontageInstance*> MontageSyncFollowers;
@@ -341,7 +343,7 @@ public:
 
 	FName GetCurrentSection() const;
 	FName GetNextSection() const;
-	int32 GetNextSectionID(int32 const & CurrentSectionID) const;
+	ENGINE_API int32 GetNextSectionID(int32 const & CurrentSectionID) const;
 	FName GetSectionNameFromID(int32 const & SectionID) const;
 
 	// reference has to be managed manually
@@ -360,6 +362,11 @@ private:
 	/** Trigger associated events when Montage ticking reaches given FBranchingPointMarker */
 	void BranchingPointEventHandler(const FBranchingPointMarker* BranchingPointMarker);
 	void RefreshNextPrevSections();
+
+public:
+	/** static functions that are used by matinee functionality */
+	static void SetMatineeAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping);
+	static void PreviewMatineeSetAnimPositionInner(FName SlotName, USkeletalMeshComponent* SkeletalMeshComponent, UAnimSequence* InAnimSequence, TWeakObjectPtr<UAnimMontage>& CurrentlyPlayingMontage, float InPosition, bool bLooping, bool bFireNotifies, float DeltaTime);
 };
 
 UCLASS(config=Engine, hidecategories=(UObject, Length), MinimalAPI, BlueprintType)
