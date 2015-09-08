@@ -170,7 +170,7 @@ public:
 	/** cooked file requests which includes platform which file is requested for */
 	struct FFilePlatformRequest
 	{
-	private:
+	protected:
 		FName Filename;
 		TArray<FName> Platformnames;
 	public:
@@ -182,29 +182,15 @@ public:
 
 
 		FFilePlatformRequest( const FName& InFileName, const FName& InPlatformName ) : Filename( InFileName )
-		{
-			Platformnames.Add( InPlatformName );
-		}
-
+		{ Platformnames.Add( InPlatformName ); }
 
 		FFilePlatformRequest( const FName& InFilename, const TArray<FName>& InPlatformname ) : Filename( InFilename )
-		{
-			Platformnames = InPlatformname;
-		}
+		{ Platformnames = InPlatformname; }
 
-		FFilePlatformRequest( const FName& InFilename, TArray<FName>&& InPlatformname ) : Filename( InFilename ), Platformnames(MoveTemp(InPlatformname))
-		{
-		}
-
-		FFilePlatformRequest( const FFilePlatformRequest& InFilePlatformRequest ) : Filename( InFilePlatformRequest.Filename ), Platformnames( InFilePlatformRequest.Platformnames )
-		{
-		}
+		FFilePlatformRequest( const FName& InFilename, TArray<FName>&& InPlatformname ) : Filename( InFilename ), Platformnames(MoveTemp(InPlatformname)) { }
+		FFilePlatformRequest( const FFilePlatformRequest& InFilePlatformRequest ) : Filename( InFilePlatformRequest.Filename ), Platformnames( InFilePlatformRequest.Platformnames ) { }
+		FFilePlatformRequest( FFilePlatformRequest&& InFilePlatformRequest ) : Filename( MoveTemp(InFilePlatformRequest.Filename) ), Platformnames( MoveTemp(InFilePlatformRequest.Platformnames) ) { }
 		
-		FFilePlatformRequest( FFilePlatformRequest&& InFilePlatformRequest ) : Filename( MoveTemp(InFilePlatformRequest.Filename) ), Platformnames( MoveTemp(InFilePlatformRequest.Platformnames) )
-		{
-		}
-		
-
 		void SetFilename( const FString &InFilename ) 
 		{
 			Filename = FName(*InFilename);
@@ -282,12 +268,26 @@ public:
 
 private:
 
+	struct FFilePlatformCookedPackage : public FFilePlatformRequest
+	{
+	private:
+		bool bSucceededSavePackage;
+	public:
+		FFilePlatformCookedPackage(const FFilePlatformRequest& InFilePlatformRequest, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilePlatformRequest.GetFilename(), InFilePlatformRequest.GetPlatformnames()), bSucceededSavePackage(bInSuccededSavePackage) { }
+		FFilePlatformCookedPackage(const FName& InFilename, const TArray<FName>& InPlatformname, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilename, InPlatformname), bSucceededSavePackage(bInSuccededSavePackage) { }
+		FFilePlatformCookedPackage(const FName& InFilename, TArray<FName>&& InPlatformname, bool bInSuccededSavePackage) : FFilePlatformRequest(InFilename, MoveTemp(InPlatformname)), bSucceededSavePackage(bInSuccededSavePackage) { }
+		FFilePlatformCookedPackage(const FFilePlatformCookedPackage& InFilePlatformRequest) : FFilePlatformRequest(InFilePlatformRequest.Filename, InFilePlatformRequest.Platformnames), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { }
+		FFilePlatformCookedPackage(FFilePlatformCookedPackage&& InFilePlatformRequest) : FFilePlatformRequest(MoveTemp(InFilePlatformRequest.Filename), MoveTemp(InFilePlatformRequest.Platformnames)), bSucceededSavePackage(InFilePlatformRequest.bSucceededSavePackage) { }
+
+		inline const bool HasSucceededSavePackage() const { return bSucceededSavePackage; }
+	};
+
 	/** Helper list of all files which have been cooked */
 	struct FThreadSafeFilenameSet
 	{
 	private:
 		mutable FCriticalSection	SynchronizationObject;
-		TMap<FName, FFilePlatformRequest> FilesProcessed;
+		TMap<FName, FFilePlatformCookedPackage> FilesProcessed;
 	public:
 
 		void Lock()
@@ -299,7 +299,7 @@ private:
 			SynchronizationObject.Unlock();
 		}
 
-		void Add(const FFilePlatformRequest& Request)
+		void Add(const FFilePlatformCookedPackage& Request)
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			check(Request.IsValid());
@@ -318,11 +318,11 @@ private:
 			else
 				FilesProcessed.Add(Request.GetFilename(), Request);
 		}
-		bool Exists(const FFilePlatformRequest& Request) const
+		bool Exists(const FFilePlatformRequest & Request) const
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 
-			const FFilePlatformRequest* OurRequest = FilesProcessed.Find( Request.GetFilename() );
+			const FFilePlatformCookedPackage* OurRequest = FilesProcessed.Find(Request.GetFilename());
 			
 			if (!OurRequest)
 			{
@@ -378,14 +378,13 @@ private:
 		bool GetCookedPlatforms( const FName& Filename, TArray<FName>& PlatformList ) const
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
-			const FFilePlatformRequest* Request = FilesProcessed.Find(Filename);
+			const FFilePlatformCookedPackage* Request = FilesProcessed.Find(Filename);
 			if ( Request )
 			{
 				PlatformList = Request->GetPlatformnames();
 				return true;
 			}
 			return false;
-			
 		}
 		int RemoveFile( const FName& Filename )
 		{
@@ -396,7 +395,7 @@ private:
 		bool RemoveFileForPlatform( const FName& Filename, const FName& PlatformName )
 		{
 			FScopeLock ScopeLock( &SynchronizationObject );
-			FFilePlatformRequest* ProcessedFile = FilesProcessed.Find(Filename);
+			FFilePlatformCookedPackage* ProcessedFile = FilesProcessed.Find(Filename);
 			if( ProcessedFile )
 			{
 				ProcessedFile->RemovePlatform(PlatformName);
@@ -405,13 +404,16 @@ private:
 			return false;
 		}
 
-		void GetCookedFilesForPlatform(const FName& PlatformName, TArray<FName>& CookedFiles)
+		void GetCookedFilesForPlatform(const FName& PlatformName, TArray<FName>& CookedFiles, bool bGetFailedCookedPackages = true, bool bGetSuccessfulCookedPackages = true)
 		{
 			FScopeLock ScopeLock(&SynchronizationObject);
 			for (const auto& CookedFile : FilesProcessed)
 			{
 				if (CookedFile.Value.HasPlatform(PlatformName))
 				{
+					bool bHasSucceededSavePackage = CookedFile.Value.HasSucceededSavePackage();
+					if ((bHasSucceededSavePackage && bGetSuccessfulCookedPackages) ||
+						((bHasSucceededSavePackage == false) && bGetFailedCookedPackages) )
 					CookedFiles.Add(CookedFile.Value.GetFilename());
 				}
 			}

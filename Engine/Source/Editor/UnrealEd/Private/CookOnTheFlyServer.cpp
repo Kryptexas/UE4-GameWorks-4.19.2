@@ -1841,7 +1841,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 #if DEBUG_COOKONTHEFLY
 			UE_LOG(LogCook, Display, TEXT("Not cooking package %s"), *ToBuild.GetFilename().ToString());
 #endif
-			CookedPackages.Add( FFilePlatformRequest( ToBuild.GetFilename(), TargetPlatformNames ) );
+			// did not cook this package 
+#if DO_CHECK
+			// make sure this package doesn't exist
+			const FString SandboxFilename = ConvertToFullSandboxPath(ToBuild.GetFilename().ToString(), false);
+			check(IFileManager::Get().FileExists(*SandboxFilename) == false);
+#endif
+			CookedPackages.Add( FFilePlatformCookedPackage( ToBuild.GetFilename(), TargetPlatformNames, false) );
 			continue;
 		}
 
@@ -2166,13 +2172,16 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 				ESavePackageResult SavePackageResult = ESavePackageResult::Error;
 				END_PACKAGE_STAT(SavePackageCacheForCookedPlatformData);
+				bool bSucceededSavePackage = false;
 				{
 					SCOPE_PACKAGE_STAT(SaveCookedPackage);
 
 					SCOPE_TIMER(SaveCookedPackage);
-					SavePackageResult = SaveCookedPackage(Package, SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0), bWasUpToDate, AllTargetPlatformNames);
+					uint32 SaveFlags = SAVE_KeepGUID | (bShouldSaveAsync ? SAVE_Async : SAVE_None) | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0);
+					SavePackageResult = SaveCookedPackage(Package, SaveFlags, bWasUpToDate, AllTargetPlatformNames);
 					if (SavePackageResult == ESavePackageResult::Success)
 					{
+						bSucceededSavePackage = true;
 						// Update flags used to determine garbage collection.
 						if (Package->ContainsMap())
 						{
@@ -2214,7 +2223,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 				if (StandardFilename != NAME_None)
 				{
 					// mark the package as cooked
-					FFilePlatformRequest FileRequest(StandardFilename, AllTargetPlatformNames);
+					FFilePlatformCookedPackage FileRequest(StandardFilename, AllTargetPlatformNames, bSucceededSavePackage);
 					if (SavePackageResult != ESavePackageResult::ReferencedOnlyByEditorOnlyData)
 					{
 						CookedPackages.Add(FileRequest);
@@ -2246,7 +2255,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		// our original package request will fail however
 		if ( !CookedPackages.Exists(ToBuild) )
 		{
-			CookedPackages.Add( ToBuild );
+			CookedPackages.Add( FFilePlatformCookedPackage(ToBuild, false) );
 		}
 
 		// TODO: Daniel: this is reference code needs to be reimplemented on the callee side.
@@ -3165,7 +3174,9 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk( const TArray<ITargetPl
 
 				if (Diff >= 0.0)
 				{
-					CookedPackages.Add(FFilePlatformRequest( FName(*StandardCookedFilename), PlatformFName) );
+					TArray<FName> PlatformNames;
+					PlatformNames.Add(PlatformFName);
+					CookedPackages.Add(FFilePlatformCookedPackage( FName(*StandardCookedFilename), MoveTemp(PlatformNames), true) );
 					UE_LOG(LogCook, Display, TEXT("Package %s for %s up to date, avoiding cook"), *StandardCookedFilename, *PlatformFName.ToString());
 				}
 			}
@@ -3884,17 +3895,27 @@ void UCookOnTheFlyServer::CookByTheBookFinished()
 			Manifest.Value->SaveManifests(SandboxFile.GetOwnedPointer());
 
 			const FName& PlatformName = Manifest.Key;
-			const TArray<FName>& PackageFilenames = CookByTheBookOptions->BasedOnReleaseCookedPackages.FindRef(PlatformName);
-			TArray<FName> LongPackageNames;
-			LongPackageNames.Empty(PackageFilenames.Num());
-			for (const auto& PackageFilename : PackageFilenames)
+			TArray<FName> IgnorePackageFilenames;
+
+			// ignore any packages which failed to cook
+			CookedPackages.GetCookedFilesForPlatform(PlatformName, IgnorePackageFilenames, true, false);
+			// ignore any packages which were in a previous release of cooked content
+			IgnorePackageFilenames.Append( CookByTheBookOptions->BasedOnReleaseCookedPackages.FindRef(PlatformName) );
+
+
+			TArray<FName> IgnorePackageNames;
+			IgnorePackageNames.Empty(IgnorePackageFilenames.Num());
+			for (const auto& PackageFilename : IgnorePackageFilenames)
 			{
 				FString LongPackageName;
 				verify(FPackageName::TryConvertFilenameToLongPackageName(PackageFilename.ToString(), LongPackageName));
-				LongPackageNames.Add(FName(*LongPackageName));
+				IgnorePackageNames.Add(FName(*LongPackageName));
 			}
 
-			Manifest.Value->SaveAssetRegistry(SandboxRegistryFilename, &LongPackageNames);
+			
+
+
+			Manifest.Value->SaveAssetRegistry(SandboxRegistryFilename, &IgnorePackageNames);
 
 			Manifest.Value->SaveCookedPackageAssetRegistry(SandboxCookedAssetRegistryFilename, true);
 
@@ -4292,7 +4313,7 @@ void UCookOnTheFlyServer::StartCookByTheBook( const FCookByTheBookStartupOptions
 				PlatformNames.Add(PlatformName);
 				for (const auto& PackageFilename : PackageList)
 				{
-					CookedPackages.Add( MoveTemp( FFilePlatformRequest( PackageFilename, PlatformNames ) ) );
+					CookedPackages.Add( MoveTemp( FFilePlatformCookedPackage( PackageFilename, PlatformNames, true ) ) );
 				}
 			}
 			CookByTheBookOptions->BasedOnReleaseCookedPackages.Add(PlatformName, MoveTemp(PackageList));
@@ -4632,7 +4653,7 @@ void UCookOnTheFlyServer::StartChildCookers(int32 NumCookersToSpawn, const TArra
 			FPaths::MakeStandardFilename(PackageName);
 			FName StandardPackageName = FName(*PackageName);*/
 			
-			CookedPackages.Add(FFilePlatformRequest(StandardPackageName, TargetPlatformNames));
+			CookedPackages.Add(FFilePlatformCookedPackage(StandardPackageName, TargetPlatformNames, true));
 		}
 		DistributeStandardFilenames.RemoveAt(0, NumFilesForCooker);
 
