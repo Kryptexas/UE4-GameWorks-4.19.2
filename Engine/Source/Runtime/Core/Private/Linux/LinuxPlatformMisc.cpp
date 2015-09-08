@@ -882,3 +882,88 @@ bool FLinuxPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64&
 	}
 	return (Err == 0);
 }
+
+
+TArray<uint8> FLinuxPlatformMisc::GetMacAddress()
+{
+	char path[64] = "/sys/class/net/eth0";
+	int eth_idx = strlen(path) - 1;
+	char mac_string[64];
+	uint MAC[6] = {0,0,0,0,0,0};
+	TArray<uint8> Result;
+
+	strcat(path, "/address");
+
+	// check to see if eth0-eth9 exist. Use the MAC from the first one we get a hit on
+	for (int i=0; i<=9; i++)
+	{
+		path[eth_idx] = '0' + i;
+
+		int EtherInterface = open(path, O_RDONLY);
+		if (EtherInterface != -1)
+		{
+			ssize_t ReadBytes = read(EtherInterface, mac_string, 64 - 1);
+			close(EtherInterface);
+
+			if (ReadBytes < 0)
+			{
+				continue;
+			}
+
+			mac_string[ReadBytes] = 0;
+
+			if (ReadBytes > 0)
+			{
+				printf("--- MAC Address: %s\n", mac_string);
+				int rc = sscanf(mac_string,"%x:%x:%x:%x:%x:%x", &MAC[0],&MAC[1],&MAC[2],&MAC[3],&MAC[4],&MAC[5]);
+
+				if (rc == 6)
+				{
+					for (int j=0; j<6; j++)
+					{
+						Result.Add(MAC[j]);
+					}
+
+					break;
+				}
+			}
+		}
+	}
+
+	return Result;
+}
+
+
+static int64 LastBatteryCheck = 0;
+static bool bIsOnBattery = false;
+
+bool FLinuxPlatformMisc::IsRunningOnBattery()
+{
+	char scratch[8];
+	FDateTime Time = FDateTime::Now();
+	int64 Seconds = Time.ToUnixTimestamp();
+
+	// don't poll the OS for battery state on every tick. Just do it once every 10 seconds.
+	if (LastBatteryCheck != 0 && (Seconds - LastBatteryCheck) < 10)
+	{
+		return bIsOnBattery;
+	}
+
+	LastBatteryCheck = Seconds;
+	bIsOnBattery = false;
+
+	int State = open("/sys/class/power_supply/ADP0/online", O_RDONLY);
+	if (State != -1)
+	{
+		// found ACAD device. check its state.
+		ssize_t ReadBytes = read(State, scratch, 1);
+		close(State);
+
+		if (ReadBytes > 0)
+		{
+			bIsOnBattery = (scratch[0] == '0');
+		}
+	}
+
+	return bIsOnBattery;
+}

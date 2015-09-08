@@ -137,7 +137,7 @@ private:
 	void RefreshCrumbs();
 	void OnPathMenuItemClicked( FString ClickedPath );
 	void OnItemSelected(TSharedPtr<FFileEntry> Item, ESelectInfo::Type SelectInfo);
-
+	void ParseTextField(TArray<FString> &FilenameArray, FString Files);
 	void Tick(const FGeometry &AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
 	TSharedRef<ITableRow> OnGenerateWidgetForList(TSharedPtr<FFileEntry> Item, const TSharedRef<STableViewBase> &OwnerTable);
@@ -154,6 +154,9 @@ private:
 	FReply OnNewDirectoryClick();
 	bool OnNewDirectoryTextChanged(const FText &InText, FText &ErrorMsg);
 	FReply OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::EResult ButtonID);
+
+	FReply OnGoForwardClick();
+	FReply OnGoBackClick();
 
 	/** Collects the output files. */
 	void SetOutputFiles();
@@ -209,6 +212,9 @@ private:
 	FDelegateHandle OnDialogDirectoryChangedDelegateHandle;
 	FString RegisteredPath;
 	FString NewDirectoryName;
+
+	TArray<FString> History;
+	int32 HistoryIndex;
 };
 
 
@@ -238,7 +244,84 @@ public:
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override
 	{
 		FSlateFontInfo ItemFont = StyleSet->GetFontStyle("SlateFileDialogs.Dialog");
-		struct EVisibility FolderIconVisibility = DialogItem->bIsDirectory ? EVisibility::Visible : EVisibility::Hidden;
+		struct EVisibility FolderIconVisibility = EVisibility::Visible;
+		const FSlateBrush *Icon;
+			
+		if (DialogItem->bIsDirectory)
+		{
+			Icon = StyleSet->GetBrush("SlateFileDialogs.Folder16");
+		}
+		else
+		{
+			FString Extension = FPaths::GetExtension(DialogItem->Label, false);
+
+			if (Extension.Equals(TEXT("uasset"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.UAsset16");
+			}
+			else if (Extension.Equals(TEXT("uproject"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.UProject16");
+			}
+
+			else if (Extension.Equals(TEXT("fbx"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Model3D");
+			}
+
+			else if (Extension.Equals(TEXT("cpp"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("h"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("txt"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+			else if (Extension.Equals(TEXT("log"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.TextFile");
+			}
+
+			else if (Extension.Equals(TEXT("wav"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("mp3"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("ogg"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Audio");
+			}
+			else if (Extension.Equals(TEXT("mp4"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Video");
+			}
+
+			else if (Extension.Equals(TEXT("png"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+			else if (Extension.Equals(TEXT("jpg"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+			else if (Extension.Equals(TEXT("bmp"), ESearchCase::IgnoreCase))
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.Image");
+			}
+
+			else
+			{
+				Icon = StyleSet->GetBrush("SlateFileDialogs.PlaceHolder");
+				FolderIconVisibility = EVisibility::Hidden;
+			}
+		}
 
 		if (ColumnName == TEXT("Pathname"))
 		{
@@ -251,7 +334,7 @@ public:
 					.Padding(FMargin(5.0f, 2.0f))
 					[
 						SNew(SImage)
-						.Image(StyleSet->GetBrush("SlateFileDialogs.Folder16"))
+						.Image(Icon)
 						.Visibility(FolderIconVisibility)
 					]
 

@@ -365,7 +365,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 	FilterIndex = 0;
 
 	ESelectionMode::Type SelectMode = bMultiSelectEnabled ? ESelectionMode::Multi : ESelectionMode::Single;
-	struct EVisibility SaveFilenameVisibility = bSaveFile ? EVisibility::Visible : EVisibility::Collapsed;
+	struct EVisibility SaveFilenameVisibility = bDirectoriesOnly ? EVisibility::Collapsed : EVisibility::Visible;
 
 	this->ChildSlot
 		[
@@ -414,6 +414,40 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 				.Padding(FMargin(0.0f, 0.0f, 0.0f, 10.0f))
 				[
 					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0.0f, 0.0f, 10.0f, 0.0f))
+					.AutoWidth()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(this, &SSlateFileOpenDlg::OnGoBackClick)
+						.ContentPadding(FMargin(0.0f))
+						[
+							SNew(SImage)
+							.Image(StyleSet->GetBrush("SlateFileDialogs.BrowseBack24"))
+						]
+					]
+
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0.0f, 0.0f, 40.0f, 0.0f))
+					.AutoWidth()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(this, &SSlateFileOpenDlg::OnGoForwardClick)
+						.ContentPadding(FMargin(0.0f))
+						[
+							SNew(SImage)
+							.Image(StyleSet->GetBrush("SlateFileDialogs.BrowseForward24"))
+						]
+					]
 
 					+ SHorizontalBox::Slot()
 					.Padding(FMargin(0.0f))
@@ -650,7 +684,7 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Fill)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("SaveFilenameLabel", "Save Filename:"))
+							.Text(LOCTEXT("FilenameLabel", "Filename:"))
 							.Font(StyleSet->GetFontStyle("SlateFileDialogs.Dialog"))
 							.Justification(ETextJustify::Left)
 						]
@@ -782,6 +816,9 @@ void SSlateFileOpenDlg::Construct(const FArguments& InArgs)
 		CurrentPath = CurrentPath + TEXT("/");
 	}
 
+	HistoryIndex = 0;
+	History.Add(CurrentPath);
+
 #if ENABLE_DIRECTORY_WATCHER	
 	if (!FModuleManager::Get().IsModuleLoaded("DirectoryWatcher"))
 	{
@@ -892,6 +929,14 @@ void SSlateFileOpenDlg::OnPathClicked(const FString& NewPath)
 	bRebuildDirPath = true;
 	bNeedsBuilding = true;
 
+	if ((History.Num()-HistoryIndex-1) > 0)
+	{
+		History.RemoveAt(HistoryIndex+1, History.Num()-HistoryIndex-1, true);
+	}
+
+	History.Add(CurrentPath);
+	HistoryIndex++;
+
 	RefreshCrumbs();
 }
 
@@ -901,6 +946,14 @@ void SSlateFileOpenDlg::OnPathMenuItemClicked( FString ClickedPath )
 	CurrentPath = ClickedPath;
 	bRebuildDirPath = true;
 	bNeedsBuilding = true;
+
+	if ((History.Num()-HistoryIndex-1) > 0)
+	{
+		History.RemoveAt(HistoryIndex+1, History.Num()-HistoryIndex-1, true);
+	}
+
+	History.Add(CurrentPath);
+	HistoryIndex++;
 	
 	RefreshCrumbs();
 }
@@ -1002,6 +1055,14 @@ FReply SSlateFileOpenDlg::OnQuickLinkClick(FSlateFileDlgWindow::EResult ButtonID
 	{
 		CurrentPath = FPaths::EngineDir();
 	}
+	
+	if ((History.Num()-HistoryIndex-1) > 0)
+	{
+		History.RemoveAt(HistoryIndex+1, History.Num()-HistoryIndex-1, true);
+	}
+
+	History.Add(CurrentPath);
+	HistoryIndex++;
 
 	bNeedsBuilding = true;
 	bRebuildDirPath = true;
@@ -1013,42 +1074,35 @@ void SSlateFileOpenDlg::SetOutputFiles()
 {
 	if (OutNames != nullptr)
 	{
+		TArray<FString> NamesArray;
+		ParseTextField(NamesArray, SaveFilename);
+
 		OutNames->Empty();
 
-		if (bSaveFile)
+		if (bDirectoriesOnly)
 		{
-			FString Path = CurrentPath + SaveFilename;
-			OutNames->Add(Path);
-		}
-		else
-		{
-			TArray<TSharedPtr<FFileEntry>> SelectedItems = ListView->GetSelectedItems();
-
-			if (bDirectoriesOnly)
+			if (NamesArray.Num() > 0)
 			{
-				if (SelectedItems.Num() > 0)
-				{
-					FString Path = CurrentPath + SelectedItems[0]->Label;
-					OutNames->Add(Path);
-				}
-				else
-				{
-					// select the current directory
-					OutNames->Add(CurrentPath);
-				}
+				FString Path = CurrentPath + NamesArray[0];
+				OutNames->Add(Path);
 			}
 			else
 			{
-				for (int32 i = 0; i < SelectedItems.Num(); i++)
-				{
-					FString Path = CurrentPath + SelectedItems[i]->Label;
-					OutNames->Add(Path);
-				}
+				// select the current directory
+				OutNames->Add(CurrentPath);
+			}
+		}
+		else
+		{
+			for (int32 i=0; i < NamesArray.Num(); i++)
+			{
+				FString Path = CurrentPath + NamesArray[i];
+				OutNames->Add(Path);
+			}
 
-				if (OutFilterIndex != nullptr)
-				{
-					*(OutFilterIndex) = FilterIndex;
-				}
+			if (OutFilterIndex != nullptr)
+			{
+				*(OutFilterIndex) = FilterIndex;
 			}
 		}
 	}
@@ -1063,8 +1117,10 @@ FReply SSlateFileOpenDlg::OnAcceptCancelClick(FSlateFileDlgWindow::EResult Butto
 	}
 	else
 	{
-		FString Path = "";
-		OutNames->Add(Path);
+		if (OutNames != nullptr)
+		{
+			OutNames->Empty();
+		}
 	}
 
 	UserResponse = ButtonID;
@@ -1212,9 +1268,19 @@ void SSlateFileOpenDlg::OnItemDoubleClicked(TSharedPtr<FFileEntry> Item)
 {
 	if (Item->bIsDirectory)
 	{
+		SetDefaultFile(FString(""));
+
 		CurrentPath = CurrentPath + Item->Label + TEXT("/");
 		bNeedsBuilding = true;
 		bRebuildDirPath = true;
+
+		if ((History.Num()-HistoryIndex-1) > 0)
+		{
+			History.RemoveAt(HistoryIndex+1, History.Num()-HistoryIndex-1, true);
+		}
+
+		History.Add(CurrentPath);
+		HistoryIndex++;
 	}
 	else
 	{
@@ -1239,10 +1305,91 @@ void SSlateFileOpenDlg::OnFilterChanged(TSharedPtr<FString> NewValue, ESelectInf
 	bNeedsBuilding = true;
 }
 
+void SSlateFileOpenDlg::ParseTextField(TArray<FString> &FilenameArray, FString Files)
+{
+	FString FileList = Files;
+	FileList.Trim();
+	FileList.TrimTrailing();
+
+	FilenameArray.Empty();
+
+	if  (FileList.Len() > 0 && FileList[0] == TCHAR('"'))
+	{
+		FString TempName;
+		SaveFilename.Empty();
+
+		for (int32 i = 0; i < FileList.Len(); )
+		{
+			// find opening quote (")
+			for (; i < FileList.Len() && FileList[i] != TCHAR('"'); i++);
+			
+			if (i >= FileList.Len())
+			{
+				break;
+			}
+			
+			// copy name until closing quote is found.
+			TempName.Empty();
+			for (i++; i < FileList.Len() && FileList[i] != TCHAR('"'); i++)
+			{
+				TempName.AppendChar(FileList[i]);
+			}
+
+			if (i >= FileList.Len())
+			{
+				break;
+			}
+			
+			// check to see if file exists or if we're trying to save a file. if so, add it to list.
+			if (FPaths::FileExists(CurrentPath + TempName) || bSaveFile)
+			{
+				FilenameArray.Add(TempName);
+			}
+
+			// if multiselect is off, don't bother parsing out any additional file names.
+			if (!bMultiSelectEnabled)
+			{
+				break;
+			}
+
+			i++;
+		}
+	}
+	else
+	{
+		FilenameArray.Add(Files);
+	}
+}
 
 void SSlateFileOpenDlg::SetDefaultFile(FString DefaultFile)
 {
-	SaveFilename = DefaultFile;
+	FString FileList = DefaultFile;
+	FileList.Trim();
+	FileList.TrimTrailing();
+
+	if  (FileList.Len() > 0 && FileList[0] == TCHAR('"'))
+	{
+		TArray<FString> NamesArray;
+		ParseTextField(NamesArray, FileList);
+
+		SaveFilename.Empty();
+
+		for (int32 i = 0; i < NamesArray.Num(); i++)
+		{	
+			SaveFilename = SaveFilename + TEXT("\"") + NamesArray[i] + TEXT("\" ");
+
+			// if multiselect is off, don't bother adding any additional file names.
+			if (!bMultiSelectEnabled)
+			{
+				break;
+			}
+		}
+	}
+	else
+	{
+		SaveFilename = FileList;
+	}
+
 	SaveFilenameEditBox->SetText(SaveFilename);
 }
 
@@ -1253,11 +1400,10 @@ void SSlateFileOpenDlg::OnFileNameCommitted(const FText& InText, ETextCommit::Ty
 	if (InCommitType != ETextCommit::OnCleared)
 	{
 		FString Extension;
-
 		SaveFilename = InText.ToString();
 
 		// get current filter extension
-		if (GetFilterExtension(Extension))
+		if (!bDirectoriesOnly && GetFilterExtension(Extension))
 		{
 			// append extension to filename if user left it off
 			if (!SaveFilename.EndsWith(Extension, ESearchCase::CaseSensitive) && Extension.Compare(".*") != 0)
@@ -1266,12 +1412,9 @@ void SSlateFileOpenDlg::OnFileNameCommitted(const FText& InText, ETextCommit::Ty
 			}
 		}
 
-		// remove any whitespace from start and/or end of filename
-		SaveFilename.Trim();
-		SaveFilename.TrimTrailing();
+		ListView->ClearSelection();
 
-		// update edit box content
-		SaveFilenameEditBox->SetText(SaveFilename);
+		SetDefaultFile(SaveFilename);
 	}
 }
 
@@ -1280,22 +1423,32 @@ void SSlateFileOpenDlg::OnItemSelected(TSharedPtr<FFileEntry> Item, ESelectInfo:
 {
 	if (Item.IsValid())
 	{
+		FString FileList;
+
 		if (!bDirectoriesOnly)
 		{
 			TArray<TSharedPtr<FFileEntry>> SelectedItems = ListView->GetSelectedItems();
-
+			
 			for (int32 i = 0; i < SelectedItems.Num(); i++)
 			{
 				if (SelectedItems[i]->bIsDirectory)
 				{
 					ListView->SetItemSelection(SelectedItems[i], false, ESelectInfo::Direct);
 				}
+				else
+				{
+					FileList = FileList + TEXT("\"") + SelectedItems[i]->Label + TEXT("\" ");
+				}
 			}
 		}
-
-		if (bSaveFile && !Item->bIsDirectory)
+		else
 		{
-			SetDefaultFile(Item->Label);
+			FileList = Item->Label;
+		}
+	
+		if (bDirectoriesOnly == Item->bIsDirectory)
+		{
+			SetDefaultFile(FileList);
 		}
 	}
 }
@@ -1438,6 +1591,40 @@ FReply SSlateFileOpenDlg::OnNewDirectoryAcceptCancelClick(FSlateFileDlgWindow::E
 	DirErrorMsg->SetVisibility(EVisibility::Collapsed);
 
 	NewDirectoryEditBox->SetText(FString(""));
+
+	return FReply::Handled();
+}
+
+
+FReply SSlateFileOpenDlg::OnGoForwardClick()
+{
+	if ((HistoryIndex+1) < History.Num())
+	{
+		SetDefaultFile(FString(""));
+
+		HistoryIndex++;
+		CurrentPath = History[HistoryIndex];
+		bNeedsBuilding = true;
+		bRebuildDirPath = true;
+		bDirectoryHasChanged = false;
+	}
+
+	return FReply::Handled();
+}
+
+
+FReply SSlateFileOpenDlg::OnGoBackClick()
+{
+	if (HistoryIndex > 0)
+	{
+		SetDefaultFile(FString(""));
+
+		HistoryIndex--;
+		CurrentPath = History[HistoryIndex];
+		bNeedsBuilding = true;
+		bRebuildDirPath = true;
+		bDirectoryHasChanged = false;	
+	}
 
 	return FReply::Handled();
 }

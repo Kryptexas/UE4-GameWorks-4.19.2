@@ -242,6 +242,7 @@ extern CORE_API uint32 GFrameNumberRenderThread;
 // We cannot count on this variable to be accurate in a shipped game, so make sure no code tries to use it
 /** Whether we are the first instance of the game running. */
 extern CORE_API bool GIsFirstInstance;
+extern CORE_API int32 GFileLockDescriptor;
 #endif
 
 /** Threshold for a frame to be considered a hitch (in seconds. */

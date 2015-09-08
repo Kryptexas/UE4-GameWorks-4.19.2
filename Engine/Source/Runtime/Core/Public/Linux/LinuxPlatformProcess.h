@@ -280,6 +280,8 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static bool ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr );
 	static void ExploreFolder( const TCHAR* FilePath );
 	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
+	static bool IsFirstInstance();
+	static void ReleaseProcessLockFile();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

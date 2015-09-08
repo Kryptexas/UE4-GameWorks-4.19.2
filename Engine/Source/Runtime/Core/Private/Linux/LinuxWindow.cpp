@@ -208,6 +208,52 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	//	The SDL window doesn't need to be reshaped.
 	//	the size of the window you input is the sizeof the client.
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
+
+	// Try to find an icon for the window
+	const FText GameName = FText::FromString(FApp::GetGameName());
+	FString Iconpath;
+	static SDL_Surface *IconImage = nullptr;
+
+	if (!GameName.IsEmpty())
+	{
+		if (GIsEditor)
+		{
+			Iconpath = FPaths::GameContentDir() / TEXT("Splash/EdIcon.bmp");
+		}
+		else
+		{
+			Iconpath = FPaths::GameContentDir() / TEXT("Splash/Icon.bmp");
+		}
+
+		if (IFileManager::Get().FileSize(*Iconpath) != -1)
+		{
+			IconImage = SDL_LoadBMP(TCHAR_TO_UTF8(*Iconpath));
+		}
+	}
+
+	if (IconImage == nullptr)
+	{
+		// no game specified or there's no custom icons for the game. use default icons.
+		if (GIsEditor)
+		{
+			Iconpath = FPaths::EngineContentDir() / TEXT("Splash/EdIconDefault.bmp");
+		}
+		else
+		{
+			Iconpath = FPaths::EngineContentDir() / TEXT("Splash/IconDefault.bmp");
+		}
+
+		if (IFileManager::Get().FileSize(*Iconpath) != -1)
+		{
+			IconImage = SDL_LoadBMP(TCHAR_TO_UTF8(*Iconpath));
+		}
+	}
+
+	if (IconImage != nullptr)
+	{
+		SDL_SetWindowIcon(HWnd, IconImage);
+	}
+
 	SDL_SetWindowHitTest( HWnd, FLinuxWindow::HitTest, this );
 
 	/* 

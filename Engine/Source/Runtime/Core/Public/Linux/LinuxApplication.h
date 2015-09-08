@@ -113,6 +113,7 @@ public:
 	 */
 	void GetWindowPositionInEventLoop(SDL_HWindow NativeWindow, int *x, int *y);
 
+	virtual bool IsMouseAttached() const override;
 private:
 
 	FLinuxApplication();

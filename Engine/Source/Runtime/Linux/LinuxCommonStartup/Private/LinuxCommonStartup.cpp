@@ -186,6 +186,58 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 		GSavedCommandLine += Temp; 	// note: technically it depends on locale
 	}
 
+#if !(UE_BUILD_SHIPPING && WITH_EDITOR)
+	// check to see if we're first instance and try to set file lock.
+	if ( !FParse::Param( *GSavedCommandLine,TEXT("neverfirst")) )
+	{
+		char LockFileName[128];
+		strcpy(LockFileName,"/tmp/");
+
+		int i;
+		char *ptr = argv[0];
+		for (i = strlen(argv[0])-1; i >= 0 && ptr[i] != '/'; i--);
+
+		strncat(LockFileName, &ptr[i+1], 127);
+		strncat(LockFileName, ".lock", 127);
+		GFileLockDescriptor = open(LockFileName, O_RDWR | O_CREAT, 0666);
+
+		if (GFileLockDescriptor != -1)
+		{
+			// attempt to set lock
+			struct flock lock;
+
+			lock.l_type = F_WRLCK;
+			lock.l_start = 0;
+			lock.l_whence = SEEK_SET;
+			lock.l_len = 0;
+
+			if (fcntl(GFileLockDescriptor, F_SETLK, &lock) >= 0)
+			{
+				// lock file created and successfully locked by this process.
+				printf("** we are the first instance\n");
+				GIsFirstInstance = true;
+			}
+			else
+			{
+				// we were unable to lock file. so some other process beat us to lock file.
+				printf("** we are *NOT* the first instance\n");
+				GIsFirstInstance = false;
+			}
+		}
+		else
+		{
+			// Should not get here. It means that we were unable to create or open the lock file.
+			// not much we can do other than provide a default return and spit out an error msg.
+			fprintf(stderr, "*** LaunchLinux - unable to create process lock file '%s'. (%s)\n", LockFileName, strerror(errno));
+			GIsFirstInstance = true;
+		}
+	}
+	else
+	{
+		GIsFirstInstance = false;
+	}
+#endif
+
 	if (!UE_BUILD_SHIPPING)
 	{
 		GAlwaysReportCrash = true;	// set by default and reverse the behavior
@@ -221,6 +273,13 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 			GIsGuarded = 0;
 		}
 	}
+
+#if !(UE_BUILD_SHIPPING && WITH_EDITOR)
+	if (GFileLockDescriptor >= 0)
+	{
+		close(GFileLockDescriptor);
+	}
+#endif
 
 	if (ErrorLevel)
 	{

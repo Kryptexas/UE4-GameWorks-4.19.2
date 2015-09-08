@@ -553,6 +553,12 @@ struct CORE_API FGenericPlatformProcess
 	 * @return true if successful, false otherwise.
 	 */
 	static bool Daemonize();
+
+	/** Check to see if we're the first instance */
+	static bool IsFirstInstance();
+
+	/** Release process lock file (if any) */
+	static void ReleaseProcessLockFile() { }
 };
 
 

@@ -1683,3 +1683,25 @@ void FLinuxApplication::GetWindowPositionInEventLoop(SDL_HWindow NativeWindow, i
 		*y = 0;
 	}
 }
+
+bool FLinuxApplication::IsMouseAttached() const
+{
+	printf("--- check mouse ---\n");
+	int rc;
+	char Mouse[64] = "/sys/class/input/mouse0";
+	int MouseIdx = strlen(Mouse) - 1;
+	strcat(Mouse, "/device/name");
+
+	for (int i=0; i<9; i++)
+	{
+		Mouse[MouseIdx] = '0' + i;
+		if (access(Mouse, F_OK) == 0)
+		{
+			printf("--- check mouse found %d---\n", i);
+			return true;
+		}
+	}
+
+	printf("--- check mouse none found ---\n");
+	return false;
+}
