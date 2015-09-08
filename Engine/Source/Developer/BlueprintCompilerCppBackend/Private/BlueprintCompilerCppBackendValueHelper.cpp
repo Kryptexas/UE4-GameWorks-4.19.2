@@ -364,23 +364,6 @@ struct FDependenciesHelper
 	{
 		auto OriginalClass = Context.GetCurrentlyGeneratedClass();
 		const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
-		// __StaticDependenciesConvertedClasses
-		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesConvertedClasses(TArray<FName>& OutNames)"), *CppClassName));
-		Context.AddLine(TEXT("{"));
-		Context.IncreaseIndent();
-
-		//TODO: the names must be valid.
-		for (auto LocClass : GatherDependencies.ConvertedClasses)
-		{
-			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
-		}
-		for (auto LocStruct : GatherDependencies.ConvertedStructs)
-		{
-			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocStruct->GetName()));
-		}
-
-		Context.DecreaseIndent();
-		Context.AddLine(TEXT("}"));
 
 		// __StaticDependenciesAssets
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesAssets(TArray<FName>& OutPackagePaths)"), *CppClassName));
@@ -406,7 +389,7 @@ struct FDependenciesHelper
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 		Context.AddLine(FString::Printf(
-			TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesConvertedClasses, &%s::__StaticDependenciesAssets);")
+			TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
 			, *OriginalClass->GetName()
 			, *CppClassName
 			, *CppClassName));

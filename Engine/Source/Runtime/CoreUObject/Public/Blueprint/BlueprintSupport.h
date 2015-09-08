@@ -165,18 +165,7 @@ struct COREUOBJECT_API FConvertedBlueprintsDependencies
 
 private:
 
-	struct FGetters
-	{
-		GetDependenciesNamesFunc GetConvertedClasses;
-		GetDependenciesNamesFunc GetAssets;
-
-		FGetters()
-			: GetConvertedClasses(nullptr)
-			, GetAssets(nullptr)
-		{}
-	};
-
-	TMap<FName, FGetters> ClassNameToGetter;
+	TMap<FName, GetDependenciesNamesFunc> ClassNameToGetter;
 
 public:
 
@@ -187,10 +176,7 @@ public:
 		return ClassNameToGetter.Num() > 0;
 	}
 
-	void RegisterClass(FName ClassName, GetDependenciesNamesFunc GetConvertedClasses, GetDependenciesNamesFunc GetAssets);
-
-	/** Get all converted classes (and structures) names necessary for the class with the given class name. */
-	void GetConvertedClasses(FName ClassName, TArray<FName>& OutConvertedClassNames) const;
+	void RegisterClass(FName ClassName, GetDependenciesNamesFunc GetAssets);
 
 	/** Get all assets paths necessary for the class with the given class name and all converted classes that dependencies. */
 	void GetAssets(FName ClassName, TArray<FName>& OutPackagePaths) const;

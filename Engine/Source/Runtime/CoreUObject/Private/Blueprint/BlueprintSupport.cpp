@@ -1730,32 +1730,18 @@ FConvertedBlueprintsDependencies& FConvertedBlueprintsDependencies::Get()
 	return ConvertedBlueprintsDependencies;
 }
 
-void FConvertedBlueprintsDependencies::RegisterClass(FName ClassName, GetDependenciesNamesFunc GetConvertedClasses, GetDependenciesNamesFunc GetAssets)
+void FConvertedBlueprintsDependencies::RegisterClass(FName ClassName, GetDependenciesNamesFunc GetAssets)
 {
 	check(!ClassNameToGetter.Contains(ClassName));
-
-	FGetters Getters;
-	Getters.GetAssets = GetAssets;
-	Getters.GetConvertedClasses = GetConvertedClasses;
-	ClassNameToGetter.Add(ClassName, Getters);
-}
-
-void FConvertedBlueprintsDependencies::GetConvertedClasses(FName ClassName, TArray<FName>& OutConvertedClassNames) const
-{
-	auto GettersPtr = ClassNameToGetter.Find(ClassName);
-	auto Func = (GettersPtr) ? GettersPtr->GetConvertedClasses : nullptr;
-	ensure(Func || !GettersPtr);
-	if (Func)
-	{
-		Func(OutConvertedClassNames);
-	}
+	ensure(GetAssets);
+	ClassNameToGetter.Add(ClassName, GetAssets);
 }
 
 void FConvertedBlueprintsDependencies::GetAssets(FName ClassName, TArray<FName>& OutPackagePaths) const
 {
-	auto GettersPtr = ClassNameToGetter.Find(ClassName);
-	auto Func = (GettersPtr) ? GettersPtr->GetAssets : nullptr;
-	ensure(Func || !GettersPtr);
+	auto FuncPtr = ClassNameToGetter.Find(ClassName);
+	auto Func = (FuncPtr) ? (*FuncPtr) : nullptr;
+	ensure(Func || !FuncPtr);
 	if (Func)
 	{
 		Func(OutPackagePaths);

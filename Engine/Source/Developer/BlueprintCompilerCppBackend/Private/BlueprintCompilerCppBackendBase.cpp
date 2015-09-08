@@ -144,8 +144,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		}
 	}
 
-	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesConvertedClasses(TArray<FName>& OutNames);\n"));
-	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesAssets(TArray<FName>& OutNames);\n"));
+	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesAssets(TArray<FName>& OutPackagePaths);\n"));
 
 	Emit(Header, *FBackendHelperUMG::WidgetFunctionsInHeader(SourceClass));
 
