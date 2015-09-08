@@ -2,6 +2,8 @@ Availability: Public
 Title:3. Adding a Point Light
 Crumbs:%ROOT%, GettingStarted, Engine\Rendering\LightingAndShadows\QuickStart
 Description:In this step we will light up the small bathroom with a Point Light. 
+SkillLevel: Beginner
+Version: 4.9
 
 
 [VAR:Steps]
