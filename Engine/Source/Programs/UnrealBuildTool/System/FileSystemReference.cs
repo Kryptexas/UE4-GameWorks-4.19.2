@@ -28,7 +28,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		public FileSystemReference(string InPath)
 		{
-			FullName = Path.GetFullPath(InPath);
+			FullName = Path.GetFullPath(InPath).TrimEnd(Path.DirectorySeparatorChar);
 			CanonicalName = FullName.ToLowerInvariant();
 		}
 
