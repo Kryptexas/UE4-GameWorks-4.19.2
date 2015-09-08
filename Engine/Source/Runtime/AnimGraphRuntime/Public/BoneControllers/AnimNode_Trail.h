@@ -46,9 +46,9 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	UPROPERTY()
 	float	TrailRelaxation_DEPRECATED;
 
-	/** How quickly we 'relax' the bones to their animated positions. Time 0 will map to start joint and time 1 will map to the last chain bone. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
-	FRuntimeFloatCurve TrailRelaxationCurve;
+	/** How quickly we 'relax' the bones to their animated positions. Time 0 will map to top root joint, time 1 will map to the bottom joint. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail, meta=(CustomizeProperty))
+	FRuntimeFloatCurve TrailRelaxationSpeed;
 
 	/** If bLimitStretch is true, this indicates how long a bone can stretch beyond its length in the ref-pose. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)

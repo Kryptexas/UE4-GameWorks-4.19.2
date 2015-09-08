@@ -36,8 +36,10 @@ void FAnimTrailNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilde
 
 	//Trail Relax curve
 	IDetailCategoryBuilder& TrailCategory = DetailBuilder.EditCategory("Trail");
-	TSharedRef<IPropertyHandle> TrailRelaxCurveHandle = DetailBuilder.GetProperty("Node.TrailRelaxationCurve");
+	TSharedRef<IPropertyHandle> TrailRelaxCurveHandle = DetailBuilder.GetProperty("Node.TrailRelaxationSpeed");
 	TSharedPtr<class SCurveEditor> TrailRelaxCurveWidget;
+
+	DetailBuilder.HideProperty(TrailRelaxCurveHandle);
 
 	TrailCategory.AddProperty(TrailRelaxCurveHandle).CustomWidget()
 	.NameContent()
@@ -66,7 +68,7 @@ void FAnimTrailNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilde
 TArray<FRichCurveEditInfoConst> FAnimTrailNodeDetails::FTrailRelaxCurveEditor::GetCurves() const
 {
 	TArray<FRichCurveEditInfoConst> Curves;
-	Curves.Add(&GraphNodeOwner->Node.TrailRelaxationCurve.EditorCurveData);
+	Curves.Add(&GraphNodeOwner->Node.TrailRelaxationSpeed.EditorCurveData);
 
 	return Curves;
 }
@@ -74,7 +76,7 @@ TArray<FRichCurveEditInfoConst> FAnimTrailNodeDetails::FTrailRelaxCurveEditor::G
 TArray<FRichCurveEditInfo> FAnimTrailNodeDetails::FTrailRelaxCurveEditor::GetCurves()
 {
 	TArray<FRichCurveEditInfo> Curves;
-	Curves.Add(&GraphNodeOwner->Node.TrailRelaxationCurve.EditorCurveData);
+	Curves.Add(&GraphNodeOwner->Node.TrailRelaxationSpeed.EditorCurveData);
 
 	return Curves;
 }
@@ -97,7 +99,7 @@ void FAnimTrailNodeDetails::FTrailRelaxCurveEditor::MakeTransactional()
 
 bool FAnimTrailNodeDetails::FTrailRelaxCurveEditor::IsValidCurve(FRichCurveEditInfo CurveInfo)
 {
-	return CurveInfo.CurveToEdit == &GraphNodeOwner->Node.TrailRelaxationCurve.EditorCurveData;
+	return CurveInfo.CurveToEdit == &GraphNodeOwner->Node.TrailRelaxationSpeed.EditorCurveData;
 }
 
 FAnimTrailNodeDetails::FTrailRelaxCurveEditor::FTrailRelaxCurveEditor(UAnimGraphNode_Trail * InGraphNode)

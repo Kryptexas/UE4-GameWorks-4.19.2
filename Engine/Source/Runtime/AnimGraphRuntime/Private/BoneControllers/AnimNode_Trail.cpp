@@ -17,9 +17,9 @@ FAnimNode_Trail::FAnimNode_Trail()
 	, bActorSpaceFakeVel(false)
 	, bHadValidStrength(false)
 {
-	FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurve();
+	FRichCurve* TrailRelaxRichCurve = TrailRelaxationSpeed.GetRichCurve();
 	TrailRelaxRichCurve->AddKey(0.f, 10.f);
-	TrailRelaxRichCurve->AddKey(1.f, 10.f);
+	TrailRelaxRichCurve->AddKey(1.f, 5.f);
 }
 
 void FAnimNode_Trail::Update(const FAnimationUpdateContext& Context)
@@ -143,7 +143,7 @@ void FAnimNode_Trail::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, F
 		FVector ChildTarget = ParentPos + TargetDelta;
 
 		// Find vector from child to target
-		FVector Error = ChildTarget - ChildPos;
+		FVector Error = (ChildTarget - ChildPos);
 
 		// Calculate how much to push the child towards its target
 		float Correction = FMath::Clamp<float>(ThisTimstep * PerJointTrailData[i].TrailRelaxationSpeedPerSecond, 0.f, 1.f);
@@ -237,7 +237,7 @@ void FAnimNode_Trail::PostLoad()
 {
 	if (TrailRelaxation_DEPRECATED != 10.f)
 	{
-		FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurve();
+		FRichCurve* TrailRelaxRichCurve = TrailRelaxationSpeed.GetRichCurve();
 		TrailRelaxRichCurve->Reset();
 		TrailRelaxRichCurve->AddKey(0.f, TrailRelaxation_DEPRECATED);
 		TrailRelaxRichCurve->AddKey(1.f, TrailRelaxation_DEPRECATED);
@@ -261,7 +261,7 @@ void FAnimNode_Trail::Initialize(const FAnimationInitializeContext& Context)
 		TrailBoneLocations.AddZeroed(ChainLength);
 
 		float Interval = (ChainLength > 1)? (1.f/(ChainLength-1)) : 0.f;
-		const FRichCurve* TrailRelaxRichCurve = TrailRelaxationCurve.GetRichCurveConst();
+		const FRichCurve* TrailRelaxRichCurve = TrailRelaxationSpeed.GetRichCurveConst();
 		ensure(TrailRelaxRichCurve);
 		for(int32 Idx=0; Idx<ChainLength; ++Idx)
 		{
