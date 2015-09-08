@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2666897
+﻿INTSourceChangelist:2672917
 Availability:Docs
 Title:2.1- キャラクターを新規作成する
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/2
@@ -53,7 +53,7 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	 `FPSGameMode.cpp` をダブルクリックして、**FPSGameMode** クラスのための実装ファイルを開きます。
+1.	`FPSGameMode.cpp` を **ダブルクリック** して、**FPSGameMode** クラスのための実装ファイルを開きます。
 
 1.	`FPSGameMode.cpp` 上部に `FPSCharacter` ヘッダーをインクルードします。
 
@@ -75,14 +75,14 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 		{
 			DefaultPawnClass = AFPSCharacter::StaticClass();
 		}//AFPSGameMode Constructor
-
 		void AFPSGameMode::StartPlay()
+
 		{
 			Super::StartPlay();
-
 		StartMatch();
 
 		if (GEngine != nullptr)
+
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("We are using FPSGameMode."));
 			}
@@ -96,7 +96,7 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 	![](ExpandedSolutionExplorer.png)
 
-1.	 `FPSCharacter.cpp` をダブルクリックして、**FPSGameMode** クラスのための実装ファイルを開きます。
+1.	`FPSCharacter.cpp` を **ダブルクリック** して、**FPSGameMode** クラスのための実装ファイルを開きます。
 
 1.	以下のコードの行を `BeginPlay()` 関数に追加して、 `FPSCharacter` クラスが使用されていることを検証します。
 
@@ -108,11 +108,11 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 1.	`FPSCharacter.cpp` は以下のようになります。
 
 		// Project Settings の Description ページに著作権情報を入力してください。
-
 		#include "FPSProject.h"
-		#include "FPSCharacter.h"
 
+		#include "FPSCharacter.h"
 		// デフォルト値を設定
+
 		AFPSCharacter::AFPSCharacter()
 		{
 		 	//このポーンがフレーム毎に Tick() を呼び出すように設定します。必要がなければパフォーマンスを向上させるためにオフにすることができます。
@@ -120,21 +120,21 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 		}
 
 		// ゲーム開始時またはスポーン時に呼ばれます
+
 		void AFPSCharacter::BeginPlay()
 		{
 			Super::BeginPlay();
-
 			if (GEngine != nullptr)
+
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::White, TEXT("We are using FPSCharacter."));
 			}
 		}
-
 		// フレームごとに呼ばれます
+
 		void AFPSCharacter::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
-
 		}
 
 		// 機能と入力をバインドするために呼ばれます
@@ -142,14 +142,14 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 		void AFPSCharacter::SetupPlayerInputComponent(class UInputComponent* InputComponent)
 		{
 			Super::SetupPlayerInputComponent(InputComponent);
-
 		}
+
 
 1.	Visual Studio に `FPSCharacter` 実装ファイルを保存します。
 
 1.	**[Solution Explorer (ソリューション エクスプローラ)]** で **[FPSProject]** を探します。
 
-1.	**[FPSProject]** 上で右クリックして、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
+1.	**[FPSProject]** 上で **右クリック** して、**[Build (ビルド)]** を選択してプロジェクトをコンパイルします。
 
 	![](BuildProject.png)
 
@@ -157,7 +157,7 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 
 	![](FPSCharacterContentBrowser.png)
 
-1.	レベルエディタのツールバーで、**[Play (再生)]** ボタンをクリックします。ビューポートの左上隅で "We are using FPSCharacter." というメッセージが"We are using FPSGameMode." の下に表示されます。
+1.	レベル エディタのツールバーで、**[Play (再生)]** ボタンを **クリック** します。ビューポートの左上隅で "We are using FPSCharacter." というメッセージが"We are using FPSGameMode." の下に表示されます。
 
 	![](VerifyingFPSCharacterResult.png)
 
@@ -165,6 +165,6 @@ Description:First Person Shooter プロジェクト用にキャラクターを�
 	新しいキャラクターにはまだ移動の制御がありません。そのため、レベル内を移動できません。移動できない場合は、ポーンとして `FPSCharacter` を正しく使用していることになります！
 	[/REGION]
 
-1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを押します。
+1.	[PIE (Play In Editor)] モードを終了するには、レベル エディタで **[Stop]** ボタンを **クリック** します。
 
 %Steps%
