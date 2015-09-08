@@ -89,19 +89,6 @@ namespace UnrealBuildTool
 		{
 			return (StagePath == null)? Path : String.Format("{0} -> {1}", Path, StagePath);
 		}
-
-		public void ExpandPathVariables(string ModuleDir)
-		{
-			// expand the $(PluginDir) variable
-			string PluginDir = ModuleDir.Substring(0, ModuleDir.LastIndexOf(System.IO.Path.DirectorySeparatorChar + "Source" + System.IO.Path.DirectorySeparatorChar));
-			Dictionary<string, string> Variables = new Dictionary<string, string>();
-			Variables["PluginDir"] = System.IO.Path.GetFullPath(PluginDir).TrimEnd(System.IO.Path.DirectorySeparatorChar);
-			Path = Utils.ExpandVariables(Path, Variables);
-			if (StagePath != null)
-			{
-				StagePath = Utils.ExpandVariables(StagePath, Variables);
-			}
-		}
 	}
 
 	/// <summary>
