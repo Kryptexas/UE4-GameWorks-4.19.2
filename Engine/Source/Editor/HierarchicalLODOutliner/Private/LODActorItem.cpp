@@ -86,7 +86,10 @@ FText HLODOutliner::FLODActorItem::GetNumTrianglesAsText() const
 {
 	if (LODActor.IsValid())
 	{
-		return FText::FromString(FString::FromInt(LODActor->GetNumTriangles()));
+		const uint32 SubActorCount = LODActor->GetNumTrianglesInSubActors();
+		const uint32 MergedCount = LODActor->GetNumTrianglesInMergedMesh();
+		const uint32 PercentageOfOriginal = ((float)MergedCount / (float)SubActorCount) * 100;
+		return FText::FromString(FString::FromInt(SubActorCount) + TEXT(" (Original) - ") + FString::FromInt(MergedCount) + TEXT(" (Merged) - ") + FString::FromInt(PercentageOfOriginal) + "% (of Orginal)" );
 	}
 	else
 	{

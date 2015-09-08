@@ -57,6 +57,42 @@ ALODActor::ALODActor(const FObjectInitializer& ObjectInitializer)
 	bDirty = true;
 
 	NumTrianglesInSubActors = 0;
+	NumTrianglesInMergedMesh = 0;
+
+	if (SubActors.Num() != 0)
+	{
+		for (auto& Actor : SubActors)
+		{
+			// Adding number of triangles
+			if (!Actor->IsA<ALODActor>())
+			{
+				TArray<UStaticMeshComponent*> StaticMeshComponents;
+				Actor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+				for (UStaticMeshComponent* Component : StaticMeshComponents)
+				{
+					if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+					{
+						NumTrianglesInSubActors += Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+					}
+
+					Component->MarkRenderStateDirty();
+				}
+			}
+			else
+			{
+				ALODActor* LODActor = Cast<ALODActor>(Actor);
+				NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
+			}
+		}
+	
+	}
+
+	if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData)
+	{
+		NumTrianglesInMergedMesh = StaticMeshComponent->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+	}
+
+	
 #endif // WITH_EDITORONLY_DATA
 
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent0"));
@@ -222,44 +258,50 @@ void ALODActor::AddSubActor(AActor* InActor)
 	else
 	{
 		ALODActor* LODActor = Cast<ALODActor>(InActor);
-		NumTrianglesInSubActors += LODActor->GetNumTriangles();
+		NumTrianglesInSubActors += LODActor->GetNumTrianglesInSubActors();
 	}
 
 	StaticMeshComponent->MarkRenderStateDirty();
 	
 }
 
-void ALODActor::RemoveSubActor(AActor* InActor)
+const bool ALODActor::RemoveSubActor(AActor* InActor)
 {
-	SubActors.Remove(InActor);
-	InActor->SetLODParent(nullptr, 0);
-	SetIsDirty(true);
-	
-	// Deducting number of triangles
-	if (!InActor->IsA<ALODActor>())
+	if (SubActors.Contains(InActor))
 	{
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
-		InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
-		for (UStaticMeshComponent* Component : StaticMeshComponents)
+		SubActors.Remove(InActor);
+		InActor->SetLODParent(nullptr, 0);
+		SetIsDirty(true);
+
+		// Deducting number of triangles
+		if (!InActor->IsA<ALODActor>())
 		{
-			if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+			TArray<UStaticMeshComponent*> StaticMeshComponents;
+			InActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+			for (UStaticMeshComponent* Component : StaticMeshComponents)
 			{
-				NumTrianglesInSubActors -= Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+				if (Component && Component->StaticMesh && Component->StaticMesh->RenderData)
+				{
+					NumTrianglesInSubActors -= Component->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+				}
+
+				Component->MarkRenderStateDirty();
 			}
-
-			Component->MarkRenderStateDirty();
 		}
-	}
-	else
-	{
-		ALODActor* LODActor = Cast<ALODActor>(InActor);
-		NumTrianglesInSubActors -= LODActor->GetNumTriangles();
+		else
+		{
+			ALODActor* LODActor = Cast<ALODActor>(InActor);
+			NumTrianglesInSubActors -= LODActor->GetNumTrianglesInSubActors();
+		}
+
+		StaticMeshComponent->MarkRenderStateDirty();
+
+		// In case the user removes an actor while the HLOD system is force viewing one LOD level
+		InActor->SetIsTemporarilyHiddenInEditor(false);
+		return true;
 	}
 
-	StaticMeshComponent->MarkRenderStateDirty();
-
-	// In case the user removes an actor while the HLOD system is force viewing one LOD level
-	InActor->SetIsTemporarilyHiddenInEditor(false);	
+	return false;
 }
 
 void ALODActor::SetIsDirty(const bool bNewState)
@@ -361,9 +403,14 @@ void ALODActor::SetHiddenFromEditorView(const bool InState, const int32 ForceLOD
 	StaticMeshComponent->MarkRenderStateDirty();
 }
 
-const uint32 ALODActor::GetNumTriangles()
+const uint32 ALODActor::GetNumTrianglesInSubActors()
 {
 	return NumTrianglesInSubActors;
+}
+
+const uint32 ALODActor::GetNumTrianglesInMergedMesh()
+{
+	return NumTrianglesInMergedMesh;
 }
 
 void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
@@ -372,6 +419,11 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 	{
 		StaticMeshComponent->StaticMesh = InStaticMesh;
 		SetIsDirty(false);
+
+		if (StaticMeshComponent && StaticMeshComponent->StaticMesh && StaticMeshComponent->StaticMesh->RenderData)
+		{
+			NumTrianglesInMergedMesh = StaticMeshComponent->StaticMesh->RenderData->LODResources[0].GetNumTriangles();
+		}
 	}
 }
 

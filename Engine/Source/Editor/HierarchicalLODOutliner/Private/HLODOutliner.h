@@ -122,22 +122,6 @@ namespace HLODOutliner
 		void ForceViewLODActor(TSharedRef<ITreeItem> Item);
 
 		/**
-		* UI callback for the state of Force HLOD View checkbox
-		*
-		* @param Item - Treeview Item representation for Hierarchical LOD level
-		* @return ECheckBoxState
-		*/
-		ECheckBoxState IsHLODLevelChecked(TSharedRef<ITreeItem> Item) const;
-
-		/**
-		* UI callback for changes in Force HLOD view checkbox
-		*
-		* @param NewState - State of the check Box
-		* @param Item - Treeview Item representation for Hierarchical LOD level
-		*/
-		void HandleCheckBoxCheckedStateChanged(ECheckBoxState NewState, TSharedRef<ITreeItem> Item);
-
-		/**
 		* Determines if the HLOD slider is enabled, only if all HLODs are buil
 		*
 		* @return bool

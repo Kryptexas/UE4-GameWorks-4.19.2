@@ -133,25 +133,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 					.Text(this, &SHLODWidgetItem::GetItemDisplayString)
 					.ColorAndOpacity(this, &SHLODWidgetItem::GetTint)
 				];
-		}
-		else if (ColumnName == TEXT("ForceCheckbox") && TreeItem->GetTreeItemType() == ITreeItem::HierarchicalLODLevel)
-		{
-			FLODLevelItem* Item = static_cast<FLODLevelItem*>(TreeItem);
-
-			return SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SBox)
-					.IsEnabled(Outliner, &SHLODOutliner::CanHLODLevelBeForced, Item->LODLevelIndex)
-					[
-						SNew(SCheckBox)
-						.IsChecked(Outliner, &SHLODOutliner::IsHLODLevelChecked, TreeItem->AsShared())
-						.OnCheckStateChanged(Outliner, &SHLODOutliner::HandleCheckBoxCheckedStateChanged, TreeItem->AsShared())
-					]					
-				];			
-		}
+		}		
 		else if (ColumnName == TEXT("TriangleCount") && TreeItem->GetTreeItemType() == ITreeItem::HierarchicalLODActor)
 		{
 			FLODActorItem* Item = static_cast<FLODActorItem*>(TreeItem);

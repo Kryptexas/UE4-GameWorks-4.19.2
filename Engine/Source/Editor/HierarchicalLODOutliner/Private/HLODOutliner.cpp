@@ -175,15 +175,11 @@ namespace HLODOutliner
 				SNew(SHeaderRow)
 				+ SHeaderRow::Column("SceneActorName")
 				.DefaultLabel(LOCTEXT("SceneActorName", "Scene Actor Name"))
-				.FillWidth(0.5f)
-				+ SHeaderRow::Column("ForceCheckbox")
-				.DefaultLabel(LOCTEXT("ForceCheckbox", "Force HLOD"))
-				.DefaultTooltip(LOCTEXT("ForceCheckboxTooltip", "Force Hierarchical LOD level visibility"))
-				.FillWidth(0.25f)
+				.FillWidth(0.5f)				
 				+ SHeaderRow::Column("TriangleCount")
 				.DefaultLabel(LOCTEXT("TriangleCount", "Number of Triangles"))
 				.DefaultTooltip(LOCTEXT("TriangleCountToolTip", "Number of Triangles in a LOD Mesh"))
-				.FillWidth(0.25f)				
+				.FillWidth(0.5f)				
 				);
 	}
 
@@ -255,13 +251,13 @@ namespace HLODOutliner
 
 	void SHLODOutliner::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 	{
+		// Get a collection of items and folders which were formerly collapsed
+		const FParentsExpansionState ExpansionStateInfo = GetParentsExpansionState();
+
 		if (bNeedsRefresh)
 		{
 			Populate();
 		}
-
-		// Get a collection of items and folders which were formerly collapsed
-		const FParentsExpansionState ExpansionStateInfo = GetParentsExpansionState();
 
 		bool bChangeMade = false;
 
@@ -291,13 +287,14 @@ namespace HLODOutliner
 			}
 		}
 		PendingActions.RemoveAt(0, End);
-
+				
 		if (bChangeMade)
 		{
-			// Restore expansion states
+			// Restore the expansion states
 			SetParentsExpansionState(ExpansionStateInfo);
 
-			TreeView->RequestTreeRefresh();
+			// Restore expansion states
+			TreeView->RequestTreeRefresh();		
 		}			
 
 		// Update the forced LOD level, as the slider for it is being dragged
@@ -309,7 +306,7 @@ namespace HLODOutliner
 			{
 				RestoreForcedLODLevel(ForcedLODLevel);
 				ForcedLODLevel = -1;
-				SetForcedLODLevel(SnappedValue - 1);
+				SetForcedLODLevel(SnappedValue - 1);				
 			}
 		}
 	}
@@ -483,35 +480,6 @@ namespace HLODOutliner
 				ActorItem->LODActor->ToggleForceView();				
 			}
 		}
-	}
-
-	ECheckBoxState SHLODOutliner::IsHLODLevelChecked(TSharedRef<ITreeItem> Item) const
-	{
-		check(Item->GetTreeItemType() == ITreeItem::HierarchicalLODLevel);
-
-		FLODLevelItem* LevelItem = static_cast<FLODLevelItem*>(&Item.Get());
-
-		return (LevelItem->LODLevelIndex == ForcedLODLevel) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
-	}
-
-	void SHLODOutliner::HandleCheckBoxCheckedStateChanged(ECheckBoxState NewState, TSharedRef<ITreeItem> Item)
-	{
-		check(Item->GetTreeItemType() == ITreeItem::HierarchicalLODLevel);
-
-		FLODLevelItem* LevelItem = static_cast<FLODLevelItem*>(&Item.Get());
-		if (LevelItem->LODLevelIndex == ForcedLODLevel && NewState == ECheckBoxState::Unchecked)
-		{
-			// Reset all
-			RestoreForcedLODLevel(LevelItem->LODLevelIndex);
-			ForcedLODLevel = -1;
-		}
-		else if ( LevelItem->LODLevelIndex != ForcedLODLevel && NewState == ECheckBoxState::Checked)
-		{
-			RestoreForcedLODLevel(ForcedLODLevel);
-			SetForcedLODLevel(LevelItem->LODLevelIndex);			
-		}
-
-		ForcedLODSliderValue = ((1.0f / (LODLevelDrawDistances.Num())) * (ForcedLODLevel + 1));
 	}
 
 	bool SHLODOutliner::HandleForcedLevelSliderIsEnabled() const
@@ -824,7 +792,6 @@ namespace HLODOutliner
 			.Outliner(this)
 			.World(CurrentWorld);
 
-		//ItemMap.Add(InTreeItem->GetHash(), InTreeItem);
 		return Widget;
 	}
 
@@ -1102,7 +1069,26 @@ namespace HLODOutliner
 	void SHLODOutliner::OnLevelActorsRemoved(AActor* InActor)
 	{
 		if (!InActor->IsA<AHLODSelectionActor>() && !InActor->IsA<AWorldSettings>())
+		{
+			// Remove InActor from LOD actor which contains it
+			bool bRemoved = false;
+			for (auto& ActorArray : LODLevelActors)
+			{
+				if (bRemoved)
+					break;
+
+				for (auto& Actor : ActorArray)
+				{
+					if (Actor->RemoveSubActor(InActor))
+					{
+						bRemoved = true;
+						break;
+					}
+				}
+			}
+
 			FullRefresh();
+		}
 	}
 	
 	void SHLODOutliner::OnActorLabelChanged(AActor* ChangedActor)

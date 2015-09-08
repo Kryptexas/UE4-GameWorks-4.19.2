@@ -58,7 +58,7 @@ public:
 	* Removes InActor from the SubActors array and sets its LODParent to nullptr
 	* @param InActor - Actor to remove
 	*/
-	void RemoveSubActor(AActor* InActor);
+	const bool RemoveSubActor(AActor* InActor);
 
 	/**
 	* Returns whether or not this LODActor is dirty
@@ -88,7 +88,10 @@ public:
 	void SetHiddenFromEditorView(const bool InState, const int32 ForceLODLevel);
 
 	/** Returns the number of triangles this LODActor's SubActors contain */
-	const uint32 GetNumTriangles();
+	const uint32 GetNumTrianglesInSubActors();
+
+	/** Returns the number of triangles this LODActor's SubActors contain */
+	const uint32 GetNumTrianglesInMergedMesh();
 	
 	/** Updates the LODParents for the SubActors (and the drawing distance)*/
 	void UpdateSubActorLODParents();
@@ -120,6 +123,10 @@ public:
 	/** Cached number of triangles contained in the SubActors*/
 	UPROPERTY()
 	uint32 NumTrianglesInSubActors;
+
+	/** Cached number of triangles contained in the SubActors*/
+	UPROPERTY()
+	uint32 NumTrianglesInMergedMesh;
 #endif // WITH_EDITORONLY_DATA
 
 	/** Returns StaticMeshComponent subobject **/
