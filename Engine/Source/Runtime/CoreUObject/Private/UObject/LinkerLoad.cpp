@@ -3913,11 +3913,7 @@ bool FLinkerLoad::IsImportNative(const int32 Index) const
 	return bIsImportNative;
 }
 
-// Temporary placeholder: constructs native blieprint class given its name
-void ConstructNativeBlueprintClass(FName ClassName)
-{
-	// @todo: this needs to find a generated function by class name.
-}
+UObject* ConstructDynamicType(FName TypeName, FName TypeClass);
 
 // Return the loaded object corresponding to an import index; any errors are fatal.
 UObject* FLinkerLoad::CreateImport( int32 Index )
@@ -3964,7 +3960,7 @@ UObject* FLinkerLoad::CreateImport( int32 Index )
 							// At this point we know the class package and class of the import exist, this can potentially be a native blueprint
 							// (class is just a UClass and the package is /Script/CoreUObject)
 							// @todo: maybe we can further filter out classes by checking FindClass somehow (e.g. once it's a specialized UCookedBlueprintClass or something)
-							ConstructNativeBlueprintClass(Import.ObjectName);
+							ConstructDynamicType(Import.ObjectName, Import.ClassName);
 						}
 						
 						// Find the imports' outer.

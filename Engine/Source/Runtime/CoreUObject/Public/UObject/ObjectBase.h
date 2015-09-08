@@ -469,6 +469,7 @@ enum EObjectFlags
 	RF_Async = 0x00800000, ///< Object exists only on a different thread than the game thread.
 	RF_StrongRefOnFrame			= 0x01000000,	///< References to this object from persistent function frame are handled as strong ones.
 	RF_NoStrongReference		= 0x02000000,  ///< The object is not referenced by any strong reference. The flag is used by GC.
+	RF_Dynamic = 0x04000000, // Field Only. Dynamic field - doesn't get constructed during static initialization, can be constructed multiple times
 };
 
 	// Special all and none masks
@@ -1477,11 +1478,30 @@ public: \
 		check(Class->GetClass()); \
 		return Class; \
 	} \
-	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, TEXT(#TClass));
+	static FCompiledInDefer Z_CompiledInDefer_UClass_##TClass(Z_Construct_UClass_##TClass, TEXT(#TClass), false);
 
 #define IMPLEMENT_CORE_INTRINSIC_CLASS(TClass, TSuperClass, InitCode) \
 	IMPLEMENT_INTRINSIC_CLASS(TClass, COREUOBJECT_API, TSuperClass, COREUOBJECT_API, InitCode)
 
+// Register a dynamic class (created at runtime, not startup).
+#define IMPLEMENT_DYNAMIC_CLASS(TClass, TClassCrc) \
+	UClass* TClass::GetPrivateStaticClass(const TCHAR* Package) \
+	{ \
+		UPackage* PrivateStaticClassOuter = CastChecked<UPackage>(StaticFindObjectFast(UPackage::StaticClass(), nullptr, Package)); \
+		UClass* PrivateStaticClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), PrivateStaticClassOuter, (TCHAR*)TEXT(#TClass) + 1)); \
+		if (!PrivateStaticClass) \
+		{ \
+			/* this could be handled with templates, but we want it external to avoid code bloat */ \
+			GetPrivateStaticClassBody<TClass>(\
+			Package, \
+			(TCHAR*)TEXT(#TClass) + 1 + ((StaticClassFlags & CLASS_Deprecated) ? 11 : 0), \
+			PrivateStaticClass, \
+			StaticRegisterNatives##TClass, \
+			true \
+			); \
+		} \
+		return PrivateStaticClass; \
+	}
 
 /*-----------------------------------------------------------------------------
 	ERenameFlags.

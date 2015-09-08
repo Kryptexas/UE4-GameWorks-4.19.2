@@ -1312,7 +1312,11 @@ void FNativeClassHeaderGenerator::ExportGeneratedPackageInitCode(UPackage* InPac
 				ScriptType->IsA<UDelegateFunction>()
 				)
 			{
-				GeneratedFunctionText.Logf(TEXT("            %s;\r\n"), *GetSingletonName(ScriptType));
+				UField* FieldOuter = Cast<UField>(ScriptType->GetOuter());
+				if (!FieldOuter || !FClass::IsDynamic(FieldOuter))
+				{
+					GeneratedFunctionText.Logf(TEXT("            %s;\r\n"), *GetSingletonName(ScriptType));
+				}
 			}
 		}
 	}
@@ -1328,7 +1332,8 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	FUHTStringBuilder& GeneratedFunctionText = GetGeneratedFunctionTextDevice();
 	check(!OutFriendText.Len());
 	// Emit code to build the UObjects that used to be in .u files
-	bool bIsNoExport = Class->HasAnyClassFlags(CLASS_NoExport);
+	const bool bIsNoExport = Class->HasAnyClassFlags(CLASS_NoExport);
+	const bool bIsDynamic = FClass::IsDynamic(Class);
 	FUHTStringBuilder BodyText;
 	FUHTStringBuilder CallSingletons;
 	FString ApiString = GetAPIString();
@@ -1377,7 +1382,15 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 
 		GeneratedClassRegisterFunctionText.Logf(TEXT("    UClass* %s\r\n"), *SingletonName);
 		GeneratedClassRegisterFunctionText.Logf(TEXT("    {\r\n"));
-		GeneratedClassRegisterFunctionText.Logf(TEXT("        static UClass* OuterClass = NULL;\r\n"));
+		if (!bIsDynamic)
+		{
+			GeneratedClassRegisterFunctionText.Logf(TEXT("        static UClass* OuterClass = NULL;\r\n"));
+		}
+		else
+		{
+			GeneratedClassRegisterFunctionText.Logf(TEXT("        UClass* OuterClass = Cast<UClass>(StaticFindObjectFast(UClass::StaticClass(), %s, TEXT(\"%s\")));\r\n"),
+				*GetPackageSingletonName(CastChecked<UPackage>(Class->GetOutermost())), *Class->GetName());
+		}
 		GeneratedClassRegisterFunctionText.Logf(TEXT("        if (!OuterClass)\r\n"));
 		GeneratedClassRegisterFunctionText.Logf(TEXT("        {\r\n"));
 		if (Class->GetSuperClass() && Class->GetSuperClass() != Class)
@@ -1489,8 +1502,10 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 
 	{	
 		const TCHAR* ClassNameCPP = NameLookupCPP.GetNameCPP(Class);
-		GeneratedFunctionText.Logf(TEXT("    static FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, TEXT(\"%s\"));\r\n"), 
-			ClassNameCPP, *SingletonName, ClassNameCPP);
+
+		GeneratedFunctionText.Logf(TEXT("    static FCompiledInDefer Z_CompiledInDefer_UClass_%s(%s, TEXT(\"%s\"), %s);\r\n"),
+			ClassNameCPP, *SingletonName, ClassNameCPP,
+			bIsDynamic ? TEXT("true") : TEXT("false"));
 		
 		// Append base class' CRC at the end of the generated code, this will force update derived classes
 		// when base class changes during hot-reload.
@@ -1505,7 +1520,14 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 		uint32 ClassCrc = GenerateTextCRC(*GeneratedClassRegisterFunctionText);
 		GGeneratedCodeCRCs.Add(Class, ClassCrc);
 		// Emit the IMPLEMENT_CLASS macro to go in the generated cpp file.
-		GeneratedPackageCPP.Logf(TEXT("    IMPLEMENT_CLASS(%s, %u);\r\n"), ClassNameCPP, ClassCrc);
+		if (!bIsDynamic)
+		{
+			GeneratedPackageCPP.Logf(TEXT("    IMPLEMENT_CLASS(%s, %u);\r\n"), ClassNameCPP, ClassCrc);
+		}
+		else
+		{
+			GeneratedPackageCPP.Logf(TEXT("    IMPLEMENT_DYNAMIC_CLASS(%s, %u);\r\n"), ClassNameCPP, ClassCrc);			
+		}
 	}
 }
 
@@ -2719,6 +2741,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FUnrealSourceF
 	for (int32 i = NativeStructs.Num() - 1; i >= 0; --i)
 	{
 		UScriptStruct* Struct = NativeStructs[i];
+		const bool bIsDynamic = FClass::IsDynamic(Struct);
 
 		// Export struct.
 		if (Struct->StructFlags & STRUCT_Native)
@@ -2746,34 +2769,48 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FUnrealSourceF
 			const TCHAR* StructNameCPP = NameLookupCPP.GetNameCPP(Struct);
 			FString SingletonName = StaticConstructionString.Replace(TEXT("()"), TEXT(""), ESearchCase::CaseSensitive); // function address
 			FString GetCRCName = FString::Printf(TEXT("Get_%s_CRC"), *SingletonName);
-
+			
 			GeneratedPackageCPP.Logf(TEXT("class UScriptStruct* %s::StaticStruct()\r\n"), StructNameCPP);
 			GeneratedPackageCPP.Logf(TEXT("{\r\n"));
-			GeneratedPackageCPP.Logf(TEXT("    static class UScriptStruct* Singleton = NULL;\r\n"));
+
+			// UStructs can have UClass or UPackage outer (if declared in non-UClass headers).
+			FString OuterName;
+			if (Struct->GetOuter()->IsA(UStruct::StaticClass()))
+			{
+				OuterName = NameLookupCPP.GetNameCPP(CastChecked<UStruct>(Struct->GetOuter()));
+				OuterName += TEXT("::StaticClass()");
+			}
+			else
+			{
+				OuterName = GetPackageSingletonName(CastChecked<UPackage>(Struct->GetOuter()));
+				GeneratedPackageCPP.Logf(TEXT("    extern %sclass UPackage* %s;\r\n"), *FriendApiString, *OuterName);
+			}
+
+			if (!bIsDynamic)
+			{
+				GeneratedPackageCPP.Logf(TEXT("    static class UScriptStruct* Singleton = NULL;\r\n"));
+			}
+			else
+			{
+				FString PackageSingletonName = GetPackageSingletonName(CastChecked<UPackage>(Struct->GetOuter()));
+				GeneratedPackageCPP.Logf(TEXT("    class UScriptStruct* Singleton = Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), %s, TEXT(\"%s\")));\r\n"),
+					*OuterName, *Struct->GetName());
+			}
 			GeneratedPackageCPP.Logf(TEXT("    if (!Singleton)\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("    {\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("        extern %sclass UScriptStruct* %s;\r\n"), *FriendApiString, *StaticConstructionString);
 			GeneratedPackageCPP.Logf(TEXT("        extern %suint32 %s();\r\n"), *FriendApiString, *GetCRCName);
 
-			// UStructs can have UClass or UPackage outer (if declared in non-UClass headers).
-			if (Struct->GetOuter()->IsA(UStruct::StaticClass()))
-			{
-				GeneratedPackageCPP.Logf(TEXT("        Singleton = GetStaticStruct(%s, %s::StaticClass(), TEXT(\"%s\"), sizeof(%s), %s());\r\n"),
-					*SingletonName, NameLookupCPP.GetNameCPP(CastChecked<UStruct>(Struct->GetOuter())), *Struct->GetName(), StructNameCPP, *GetCRCName);
-			}
-			else
-			{
-				FString PackageSingletonName = GetPackageSingletonName(CastChecked<UPackage>(Struct->GetOuter()));
-				GeneratedPackageCPP.Logf(TEXT("        extern %sclass UPackage* %s;\r\n"), *FriendApiString, *PackageSingletonName);
-				GeneratedPackageCPP.Logf(TEXT("        Singleton = GetStaticStruct(%s, %s, TEXT(\"%s\"), sizeof(%s), %s());\r\n"),
-					*SingletonName, *PackageSingletonName, *Struct->GetName(), StructNameCPP, *GetCRCName);
-			}
+			GeneratedPackageCPP.Logf(TEXT("        Singleton = GetStaticStruct(%s, %s, TEXT(\"%s\"), sizeof(%s), %s());\r\n"),
+				*SingletonName, *OuterName, *Struct->GetName(), StructNameCPP, *GetCRCName);
 
 			GeneratedPackageCPP.Logf(TEXT("    }\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("    return Singleton;\r\n"));
 			GeneratedPackageCPP.Logf(TEXT("}\r\n"));
-			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct, TEXT(\"%s\"));\r\n"),
-				StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName());
+
+			GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferStruct Z_CompiledInDeferStruct_UScriptStruct_%s(%s::StaticStruct, TEXT(\"%s\"), TEXT(\"%s\"), %s);\r\n"),
+				StructNameCPP, StructNameCPP, *Struct->GetOutermost()->GetName(), *Struct->GetName(),
+				bIsDynamic ? TEXT("true") : TEXT("false"));
 
 			// Generate StaticRegisterNatives equivalent for structs without classes.
 			if (!Struct->GetOuter()->IsA(UStruct::StaticClass()))
@@ -2821,7 +2858,15 @@ void FNativeClassHeaderGenerator::ExportGeneratedStructBodyMacros(FUnrealSourceF
 			{
 				GeneratedStructRegisterFunctionText.Logf(TEXT("        UPackage* Outer=%s;\r\n"), *GetPackageSingletonName(CastChecked<UPackage>(ScriptStruct->GetOuter())));
 			}
-			GeneratedStructRegisterFunctionText.Logf(TEXT("        static UScriptStruct* ReturnStruct = NULL;\r\n"));
+			if (!bIsDynamic)
+			{
+				GeneratedStructRegisterFunctionText.Logf(TEXT("        static UScriptStruct* ReturnStruct = NULL;\r\n"));
+			}
+			else
+			{
+				GeneratedStructRegisterFunctionText.Logf(TEXT("        UScriptStruct* ReturnStruct = Cast<UScriptStruct>(StaticFindObjectFast(UScriptStruct::StaticClass(), Outer, TEXT(\"%s\")));\r\n"),
+					*ScriptStruct->GetName());
+			}
 			GeneratedStructRegisterFunctionText.Logf(TEXT("        if (!ReturnStruct)\r\n"));
 			GeneratedStructRegisterFunctionText.Logf(TEXT("        {\r\n"));
 			FString BaseStructString(TEXT("NULL"));
@@ -2899,26 +2944,38 @@ void FNativeClassHeaderGenerator::ExportGeneratedEnumsInitCode(const TArray<UEnu
 			continue;
 		}
 
+		const bool bIsDynamic = FClass::IsDynamic(Enum);
 		const FString FriendApiString = GetAPIString();
 		const FString StaticConstructionString = GetSingletonName(Enum);
 
 		FString SingletonName = StaticConstructionString.Replace(TEXT("()"), TEXT(""), ESearchCase::CaseSensitive); // function address
+		FString PackageSingletonName = GetPackageSingletonName(CastChecked<UPackage>(Enum->GetOuter()));
 
 		GeneratedPackageCPP.Logf(TEXT("static class UEnum* %s_StaticEnum()\r\n"), *Enum->GetName());
 		GeneratedPackageCPP.Logf(TEXT("{\r\n"));
-		GeneratedPackageCPP.Logf(TEXT("    static class UEnum* Singleton = NULL;\r\n"));
+		GeneratedPackageCPP.Logf(TEXT("    extern %sclass UPackage* %s;\r\n"), *FriendApiString, *PackageSingletonName);
+
+		if (!bIsDynamic)
+		{
+			GeneratedPackageCPP.Logf(TEXT("    static class UEnum* Singleton = NULL;\r\n"));
+		}
+		else
+		{
+			GeneratedPackageCPP.Logf(TEXT("    class UEnum* Singleton = Cast<UEnum>(StaticFindObjectFast(UEnum::StaticClass(), %s, TEXT(\"%s\")));\r\n"),
+				*PackageSingletonName, *Enum->GetName());
+		}
 		GeneratedPackageCPP.Logf(TEXT("    if (!Singleton)\r\n"));
 		GeneratedPackageCPP.Logf(TEXT("    {\r\n"));
-		GeneratedPackageCPP.Logf(TEXT("        extern %sclass UEnum* %s;\r\n"), *FriendApiString, *StaticConstructionString);
-
-		FString PackageSingletonName = GetPackageSingletonName(CastChecked<UPackage>(Enum->GetOuter()));
-		GeneratedPackageCPP.Logf(TEXT("        extern %sclass UPackage* %s;\r\n"), *FriendApiString, *PackageSingletonName);
+		GeneratedPackageCPP.Logf(TEXT("        extern %sclass UEnum* %s;\r\n"), *FriendApiString, *StaticConstructionString);		
 		GeneratedPackageCPP.Logf(TEXT("        Singleton = GetStaticEnum(%s, %s, TEXT(\"%s\"));\r\n"), *SingletonName, *PackageSingletonName, *Enum->GetName());
 			
 		GeneratedPackageCPP.Logf(TEXT("    }\r\n"));
 		GeneratedPackageCPP.Logf(TEXT("    return Singleton;\r\n"));
 		GeneratedPackageCPP.Logf(TEXT("}\r\n"));
-		GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum, TEXT(\"%s\"));\r\n"), *Enum->GetName(), *Enum->GetName(), *Enum->GetOutermost()->GetName());
+
+		GeneratedPackageCPP.Logf(TEXT("static FCompiledInDeferEnum Z_CompiledInDeferEnum_UEnum_%s(%s_StaticEnum, TEXT(\"%s\"), TEXT(\"%s\"), %s);\r\n"), 
+			*Enum->GetName(), *Enum->GetName(), *Enum->GetOutermost()->GetName(), *Enum->GetName(),
+			bIsDynamic ? TEXT("true") : TEXT("false"));
 
 		{
 			const FString EnumSingletonName = GetSingletonName(Enum);

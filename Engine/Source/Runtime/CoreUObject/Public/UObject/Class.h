@@ -2406,13 +2406,16 @@ COREUOBJECT_API void InitializePrivateStaticClass(
  * @param PackageName name of the package this class will be inside
  * @param Name of the class
  * @param ReturnClass reference to pointer to result. This must be PrivateStaticClass.
+ * @param RegisterNativeFunc Native function registration funcfion pointer.
+ * @param bIsDynamic true if the class can be constructed dynamically at runtime
  */
 template<class TClass>
-void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)() )
+void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)(), bool bIsDynamic = false )
 { 
 #if WITH_HOT_RELOAD
 	if (GIsHotReload)
 	{
+		check(!bIsDynamic);
 		UPackage* Package = FindPackage(NULL, PackageName);
 		if (!Package)
 		{
@@ -2448,6 +2451,16 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 	}
 #endif
 
+	EObjectFlags Flags = EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native);
+	if (!bIsDynamic)
+	{
+		Flags = EObjectFlags(Flags | RF_RootSet);
+	}
+	else
+	{
+		Flags = EObjectFlags(Flags | RF_Dynamic);
+	}
+
 	ReturnClass = ::new (GUObjectAllocator.AllocateUObject(sizeof(UClass),ALIGNOF(UClass),true)) 
 		UClass
 		(
@@ -2457,7 +2470,7 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		TClass::StaticClassFlags,
 		TClass::StaticClassCastFlags(),
 		TClass::StaticConfigName(),
-		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
+		Flags,
 		(UClass::ClassConstructorType)InternalConstructor<TClass>,
 #if WITH_HOT_RELOAD_CTORS
 		(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,

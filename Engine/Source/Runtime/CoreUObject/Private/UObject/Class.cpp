@@ -52,7 +52,16 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 
 	// Register the class's dependencies, then itself.
 	TClass_PrivateStaticClass->RegisterDependencies();
-	TClass_PrivateStaticClass->Register(PackageName,Name);
+	if (!TClass_PrivateStaticClass->HasAnyFlags(RF_Dynamic))
+	{
+		// Defer
+		TClass_PrivateStaticClass->Register(PackageName, Name);
+	}
+	else
+	{
+		// Register immediately
+		TClass_PrivateStaticClass->DeferredRegister(UClass::StaticClass(), PackageName, Name);
+	}
 }
 
 void FNativeFunctionRegistrar::RegisterFunction(class UClass* Class, const ANSICHAR* InName, Native InPointer)

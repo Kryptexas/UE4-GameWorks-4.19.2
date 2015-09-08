@@ -375,12 +375,25 @@ static TArray<FPendingStructRegistrant>& GetDeferredCompiledInStructRegistration
 	return DeferredCompiledInRegistration;
 }
 
-void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName)
+TMap<FName, UScriptStruct *(*)()> GetDynamicStructMap()
 {
-	// we do reregister StaticStruct in hot reload
-	FPendingStructRegistrant Registrant(InRegister, PackageName);
-	checkSlow(!GetDeferredCompiledInStructRegistration().Contains(Registrant));
-	GetDeferredCompiledInStructRegistration().Add(Registrant);
+	static TMap<FName, UScriptStruct *(*)()> DynamicStructMap;
+	return DynamicStructMap;
+}
+
+void UObjectCompiledInDeferStruct(class UScriptStruct *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic)
+{
+	if (!bDynamic)
+	{
+		// we do reregister StaticStruct in hot reload
+		FPendingStructRegistrant Registrant(InRegister, PackageName);
+		checkSlow(!GetDeferredCompiledInStructRegistration().Contains(Registrant));
+		GetDeferredCompiledInStructRegistration().Add(Registrant);
+	}
+	else
+	{
+		GetDynamicStructMap().Add(FName(Name), InRegister);
+	}
 }
 
 #if WITH_HOT_RELOAD
@@ -485,12 +498,25 @@ static TArray<FPendingEnumRegistrant>& GetDeferredCompiledInEnumRegistration()
 	return DeferredCompiledInRegistration;
 }
 
-void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName)
+TMap<FName, UEnum *(*)()> GetDynamicEnumMap()
 {
-	// we do reregister StaticStruct in hot reload
-	FPendingEnumRegistrant Registrant(InRegister, PackageName);
-	checkSlow(!GetDeferredCompiledInEnumRegistration().Contains(Registrant));
-	GetDeferredCompiledInEnumRegistration().Add(Registrant);
+	static TMap<FName, UEnum *(*)()> DynamicEnumMap;
+	return DynamicEnumMap;
+}
+
+void UObjectCompiledInDeferEnum(class UEnum *(*InRegister)(), const TCHAR* PackageName, const TCHAR* Name, bool bDynamic)
+{
+	if (!bDynamic)
+	{
+		// we do reregister StaticStruct in hot reload
+		FPendingEnumRegistrant Registrant(InRegister, PackageName);
+		checkSlow(!GetDeferredCompiledInEnumRegistration().Contains(Registrant));
+		GetDeferredCompiledInEnumRegistration().Add(Registrant);
+	}
+	else
+	{
+		GetDynamicEnumMap().Add(FName(Name), InRegister);
+	}
 }
 
 class UEnum *GetStaticEnum(class UEnum *(*InRegister)(), UObject* EnumOuter, const TCHAR* EnumName)
@@ -631,15 +657,28 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	GetDeferredClassRegistration().Add(ClassInfo);
 }
 
-void UObjectCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name)
+TMap<FName, UClass *(*)()> GetDynamicClassMap()
 {
-#if WITH_HOT_RELOAD
-	// Either add all classes if not hot-reloading, or those which have changed
-	if (!GIsHotReload || GetDeferRegisterClassMap().FindChecked(Name)->bHasChanged)
-#endif
+	static TMap<FName, UClass *(*)()> DynamicClassMap;
+	return DynamicClassMap;
+}
+
+void UObjectCompiledInDefer(class UClass *(*InRegister)(), const TCHAR* Name, bool bDynamic)
+{
+	if (!bDynamic)
 	{
-		checkSlow(!GetDeferredCompiledInRegistration().Contains(InRegister));
-		GetDeferredCompiledInRegistration().Add(InRegister);
+#if WITH_HOT_RELOAD
+		// Either add all classes if not hot-reloading, or those which have changed
+		if (!GIsHotReload || GetDeferRegisterClassMap().FindChecked(Name)->bHasChanged)
+#endif
+		{
+			checkSlow(!GetDeferredCompiledInRegistration().Contains(InRegister));
+			GetDeferredCompiledInRegistration().Add(InRegister);
+		}
+	}
+	else
+	{
+		GetDynamicClassMap().Add(FName(Name), InRegister);
 	}
 }
 
@@ -982,4 +1021,56 @@ const TCHAR* DebugFullName(UObject* Object)
 	{
 		return TEXT("None");
 	}
+}
+
+UClass* ConstructDynamicClass(FName ClassName)
+{
+	UClass* Result = nullptr;
+	UClass *(**StaticClassFNPtr)() = GetDynamicClassMap().Find(ClassName);
+	if (StaticClassFNPtr)
+	{
+		Result = (*StaticClassFNPtr)();
+	}
+	return Result;
+}
+
+UScriptStruct* ConstructDynamicStruct(FName StructName)
+{
+	UScriptStruct* Result = nullptr;
+	UScriptStruct *(**StaticStructFNPtr)() = GetDynamicStructMap().Find(StructName);
+	if (StaticStructFNPtr)
+	{
+		Result = (*StaticStructFNPtr)();
+	}
+	return Result;
+}
+
+UEnum* ConstructDynamicEnum(FName EnumName)
+{
+	UEnum* Result = nullptr;
+	UEnum *(**StaticEnumFNPtr)() = GetDynamicEnumMap().Find(EnumName);
+	if (StaticEnumFNPtr)
+	{
+		Result = (*StaticEnumFNPtr)();
+	}
+	return Result;
+}
+
+/** Constructs a dynamic class/enum/struct given its name */
+UObject* ConstructDynamicType(FName TypeName, FName TypeClass)
+{
+	UObject* Result = nullptr;
+	if (TypeClass == UClass::StaticClass()->GetFName())
+	{
+		Result = ConstructDynamicClass(TypeName);
+	}
+	else if (TypeClass == UScriptStruct::StaticClass()->GetFName())
+	{
+		Result = ConstructDynamicStruct(TypeName);
+	}
+	else if (TypeClass == UEnum::StaticClass()->GetFName())
+	{
+		Result = ConstructDynamicEnum(TypeName);
+	}
+	return Result;
 }
