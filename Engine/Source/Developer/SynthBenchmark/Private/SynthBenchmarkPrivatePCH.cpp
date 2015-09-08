@@ -200,11 +200,11 @@ void FSynthBenchmark::Run(FSynthBenchmarkResults& InOut, bool bGPUBenchmark, flo
 		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPU Perf Index 4: %.1f"), InOut.GPUStats[4].ComputePerfIndex());
 	}
 	
-	UE_LOG(LogSynthBenchmark, Display, TEXT("  CPUIndex: %.1f"), InOut.CPUStats->ComputePerfIndex());
+	UE_LOG(LogSynthBenchmark, Display, TEXT("  CPUIndex: %.1f"), InOut.ComputeCPUPerfIndex());
 
 	if(bGPUBenchmark)
 	{
-		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPUIndex: %.1f"), InOut.GPUStats->ComputePerfIndex());
+		UE_LOG(LogSynthBenchmark, Display, TEXT("  GPUIndex: %.1f"), InOut.ComputeGPUPerfIndex());
 	}
 
 	UE_LOG(LogSynthBenchmark, Display, TEXT(""));

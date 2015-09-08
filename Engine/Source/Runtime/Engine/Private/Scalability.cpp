@@ -284,7 +284,6 @@ FQualityLevels BenchmarkQualityLevels(uint32 WorkScale)
 
 	float CPUPerfIndex = SynthBenchmark.ComputeCPUPerfIndex();
 	float GPUPerfIndex = SynthBenchmark.ComputeGPUPerfIndex();
-	float MinPerfIndex = FMath::Min(CPUPerfIndex, GPUPerfIndex);
 
 	// decide on the actual quality needed
 
