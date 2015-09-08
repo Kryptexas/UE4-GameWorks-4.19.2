@@ -373,18 +373,6 @@ void AHUD::DrawHUD()
 	ReceiveDrawHUD(Canvas->SizeX, Canvas->SizeY);
 }
 
-void AHUD::DrawText(const FString& Text, FVector2D Position, UFont* TextFont, FVector2D FontScale, FColor TextColor)
-{
-	float XL, YL;
-	Canvas->TextSize(TextFont, Text, XL, YL);
-	const float X = Canvas->ClipX/2.0f - XL/2.0f + Position.X;
-	const float Y = Canvas->ClipY/2.0f - YL/2.0f + Position.Y;
-	FCanvasTextItem TextItem( FVector2D( X, Y ), FText::FromString( Text ), TextFont, FLinearColor( TextColor ) );
-	TextItem.Scale = FontScale;
-	
-	Canvas->DrawItem(TextItem);
-}
-
 UFont* AHUD::GetFontFromSizeIndex(int32 FontSizeIndex) const
 {
 	switch (FontSizeIndex)

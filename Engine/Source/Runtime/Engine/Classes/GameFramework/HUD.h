@@ -464,9 +464,6 @@ public:
 	// Messaging.
 	//=============================================================================
 
-	/** Display current messages */
-	virtual void DrawText(const FString& Text, FVector2D Position, UFont* TextFont, FVector2D FontScale, FColor TextColor);
-	
 	/** @return UFont* from given FontSize index */
 	virtual  UFont* GetFontFromSizeIndex(int32 FontSize) const;
 
