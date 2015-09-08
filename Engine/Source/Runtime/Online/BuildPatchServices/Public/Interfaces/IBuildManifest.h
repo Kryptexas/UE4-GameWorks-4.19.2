@@ -163,6 +163,12 @@ public:
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) = 0;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) = 0;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) = 0;
+
+	/**
+	 * Remove a custom field from the manifest
+	 * @param	FieldName	The name of the custom field
+	 */
+	virtual void RemoveCustomField(const FString& FieldName) = 0;
 	
 	/**
 	 * Duplicated this manifest to create a copy. Should be used if storing a received manifest as an installed

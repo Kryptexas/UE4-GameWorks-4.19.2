@@ -393,6 +393,7 @@ public:
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) override;
+	virtual void RemoveCustomField(const FString& FieldName) override;
 	virtual IBuildManifestRef Duplicate() const override;
 	// END IBuildManifest Interface
 
