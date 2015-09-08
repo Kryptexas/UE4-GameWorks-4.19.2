@@ -55,7 +55,8 @@ void FAnimNode_Slot::Evaluate(FPoseContext & Output)
 	else
 	{
 		FPoseContext SourceContext(Output);
-		if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
+// @TODO: FIXME temporary fix to fix crash 
+//		if (SourceWeight > ZERO_ANIMWEIGHT_THRESH)
 		{
 			Source.Evaluate(SourceContext);
 		}
