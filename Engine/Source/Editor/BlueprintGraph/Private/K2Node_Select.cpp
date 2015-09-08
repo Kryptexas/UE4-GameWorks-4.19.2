@@ -585,6 +585,8 @@ void UK2Node_Select::PostReconstructNode()
 
 	//After ReconstructNode we must be sure, that no additional reconstruction is required
 	bReconstructNode = false;
+
+	Super::PostReconstructNode();
 }
 
 /** Determine if any pins are connected, if so make all the other pins the same type, if not, make sure pins are switched back to wildcards */

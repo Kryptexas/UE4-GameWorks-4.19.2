@@ -106,6 +106,8 @@ void UK2Node_ConvertAsset::RefreshPinTypes()
 void UK2Node_ConvertAsset::PostReconstructNode()
 {
 	RefreshPinTypes();
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_ConvertAsset::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

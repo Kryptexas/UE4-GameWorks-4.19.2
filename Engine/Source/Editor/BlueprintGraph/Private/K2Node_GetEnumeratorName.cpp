@@ -103,8 +103,9 @@ void UK2Node_GetEnumeratorName::UpdatePinType()
 
 void UK2Node_GetEnumeratorName::PostReconstructNode()
 {
-	Super::PostReconstructNode();
 	UpdatePinType();
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_GetEnumeratorName::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

@@ -178,6 +178,8 @@ FString UK2Node_Event::GetDocumentationExcerptName() const
 void UK2Node_Event::PostReconstructNode()
 {
 	UpdateDelegatePin();
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_Event::UpdateDelegatePin(bool bSilent)

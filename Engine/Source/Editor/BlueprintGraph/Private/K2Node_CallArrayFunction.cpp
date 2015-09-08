@@ -49,6 +49,8 @@ void UK2Node_CallArrayFunction::PostReconstructNode()
 			PinConnectionListChanged(Pin);
 		}
 	}
+
+	Super::PostReconstructNode();
 }
 
 void UK2Node_CallArrayFunction::NotifyPinConnectionListChanged(UEdGraphPin* Pin)

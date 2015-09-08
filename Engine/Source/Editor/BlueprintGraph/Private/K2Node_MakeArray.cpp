@@ -313,6 +313,8 @@ void UK2Node_MakeArray::PostReconstructNode()
 			break;
 		}
 	}
+
+	Super::PostReconstructNode();
 }
 
 FText UK2Node_MakeArray::GetTooltipText() const

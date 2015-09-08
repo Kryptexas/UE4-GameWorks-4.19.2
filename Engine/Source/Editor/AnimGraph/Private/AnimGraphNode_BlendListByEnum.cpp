@@ -260,6 +260,36 @@ void UAnimGraphNode_BlendListByEnum::CustomizePinData(UEdGraphPin* Pin, FName So
 	}
 }
 
+void UAnimGraphNode_BlendListByEnum::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		if (BoundEnum != NULL)
+		{
+			PreloadObject(BoundEnum);
+
+			for (auto ExposedIt = VisibleEnumEntries.CreateIterator(); ExposedIt; ++ExposedIt)
+			{
+				FName& EnumElementName = *ExposedIt;
+				const int32 EnumIndex = BoundEnum->FindEnumIndex(EnumElementName);
+
+				if (EnumIndex != INDEX_NONE)
+				{
+					// This handles redirectors, we need to update the VisibleEnumEntries if the name has changed
+					FName NewElementName = BoundEnum->GetEnum(EnumIndex);
+
+					if (NewElementName != EnumElementName)
+					{
+						EnumElementName = NewElementName;
+					}
+				}
+			}
+		}
+	}
+}
+
 void UAnimGraphNode_BlendListByEnum::ValidateAnimNodeDuringCompilation(class USkeleton* ForSkeleton, class FCompilerResultsLog& MessageLog)
 {
 	if (BoundEnum == NULL)

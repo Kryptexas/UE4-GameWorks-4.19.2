@@ -26,6 +26,7 @@ public:
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual void PostPlacedNewNode() override;
+	virtual void Serialize(FArchive& Ar) override;
 	// End of UEdGraphNode interface
 
 	// UK2Node interface
