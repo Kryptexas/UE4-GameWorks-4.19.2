@@ -1028,7 +1028,7 @@ Expose_TNameOf(FName)
 
 inline uint32 GetTypeHash( const FName N )
 {
-	return N.GetComparisonIndex();
+	return N.GetComparisonIndex() + N.GetNumber();
 }
 
 
