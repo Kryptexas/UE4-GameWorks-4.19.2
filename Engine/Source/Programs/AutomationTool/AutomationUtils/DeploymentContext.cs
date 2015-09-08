@@ -151,12 +151,12 @@ public class DeploymentContext //: ProjectParams
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are binaries, etc and can't go into a pak file
 	/// </summary>
-	public Dictionary<string, string> NonUFSStagingFiles = new Dictionary<string, string>();
+	public Dictionary<string, List<string>> NonUFSStagingFiles = new Dictionary<string, List<string>>();
 	/// <summary>
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are debug, and can't go into a pak file
 	/// </summary>
-	public Dictionary<string, string> NonUFSStagingFilesDebug = new Dictionary<string, string>();
+	public Dictionary<string, List<string>> NonUFSStagingFilesDebug = new Dictionary<string, List<string>>();
 	/// <summary>
 	///  After staging, this is a map from source file to relative file in the stage
 	/// These file are content, and can go into a pak file
@@ -383,11 +383,11 @@ public class DeploymentContext //: ProjectParams
 		}
 		else if (FileType == StagedFileType.NonUFS)
 		{
-			AddUniqueStagingFile(NonUFSStagingFiles, InputPath, OutputPath);
+			AddStagingFile(NonUFSStagingFiles, InputPath, OutputPath);
 		}
 		else if (FileType == StagedFileType.DebugNonUFS)
 		{
-			AddUniqueStagingFile(NonUFSStagingFilesDebug, InputPath, OutputPath);
+			AddStagingFile(NonUFSStagingFilesDebug, InputPath, OutputPath);
 		}
 	}
 
@@ -582,11 +582,11 @@ public class DeploymentContext //: ProjectParams
 				}
 				else if (FileType == StagedFileType.NonUFS)
 				{
-					AddUniqueStagingFile(NonUFSStagingFiles, FileToCopy, Dest);
+					AddStagingFile(NonUFSStagingFiles, FileToCopy, Dest);
 				}
 				else if (FileType == StagedFileType.DebugNonUFS)
 				{
-					AddUniqueStagingFile(NonUFSStagingFilesDebug, FileToCopy, Dest);
+					AddStagingFile(NonUFSStagingFilesDebug, FileToCopy, Dest);
 				}
 				FilesAdded++;
 			}
@@ -615,6 +615,22 @@ public class DeploymentContext //: ProjectParams
 		else
 		{
 			FilesToStage.Add(FileToCopy, Dest);
+		}
+	}
+
+	private void AddStagingFile(Dictionary<string, List<string>> FilesToStage, string FileToCopy, string Dest)
+	{
+		List<string> ExistingDest;
+		if (FilesToStage.TryGetValue(FileToCopy, out ExistingDest))
+		{
+			if (!FilesToStage[FileToCopy].Contains(Dest))
+			{
+				FilesToStage[FileToCopy].Add(Dest);
+			}
+		}
+		else
+		{
+			FilesToStage.Add(FileToCopy, new List<string>(){Dest});
 		}
 	}
 

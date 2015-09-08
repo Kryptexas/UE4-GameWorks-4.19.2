@@ -203,8 +203,12 @@ public class MacPlatform : Platform
 						}
 
 						string AppPath = Executable.Path.Substring(0, Executable.Path.LastIndexOf(".app/") + 4);
-						string AppRelativePath = SC.NonUFSStagingFiles[Executable.Path].Substring(0, SC.NonUFSStagingFiles[Executable.Path].LastIndexOf(".app/") + 4);
-						StageBootstrapExecutable(SC, BootstrapExeName, AppPath, AppRelativePath, BootstrapArguments);
+						object Dest = SC.NonUFSStagingFiles[Executable.Path];
+						foreach (var DestPath in SC.NonUFSStagingFiles[Executable.Path])
+						{
+							string AppRelativePath = DestPath.Substring(0, DestPath.LastIndexOf(".app/") + 4);
+							StageBootstrapExecutable(SC, BootstrapExeName, AppPath, AppRelativePath, BootstrapArguments);
+						}
 					}
 				}
 			}

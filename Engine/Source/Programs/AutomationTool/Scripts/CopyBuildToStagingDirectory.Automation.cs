@@ -165,6 +165,21 @@ public partial class Project : CommandUtils
 		}
 		return Result;
 	}
+	
+	public static Dictionary<string, List<string>> ConvertToLower(Dictionary<string, List<string>> Mapping)
+	{
+		var Result = new Dictionary<string, List<string>>();
+		foreach (var Pair in Mapping)
+		{
+			List<string> NewList = new List<string>();
+			foreach(string s in Pair.Value)
+			{
+				NewList.Add(s.ToLowerInvariant());
+			}
+			Result.Add(Pair.Key, NewList);
+		}
+		return Result;
+	}
 
 	public static void MaybeConvertToLowerCase(ProjectParams Params, DeploymentContext SC)
 	{
@@ -557,6 +572,33 @@ public partial class Project : CommandUtils
 		}
 	}
 
+	public static void DumpTargetManifest(Dictionary<string, List<string>> Mapping, string Filename, string StageDir, List<string> CRCFiles)
+	{
+		// const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ"; // probably should work
+		// const string Iso8601DateTimeFormat = "o"; // predefined universal Iso standard format (has too many millisecond spaces for our read code in FDateTime.ParseISO8601
+		const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
+
+		if (Mapping.Count > 0)
+		{
+			var Lines = new List<string>();
+			foreach (var Pair in Mapping)
+			{
+				foreach (var DestFile in Pair.Value)
+				{
+					string TimeStamp = File.GetLastWriteTimeUtc(Pair.Key).ToString(Iso8601DateTimeFormat);
+					if (CRCFiles.Contains(DestFile))
+					{
+						byte[] FileData = File.ReadAllBytes(StageDir + "/" + DestFile);
+						TimeStamp = BitConverter.ToString(System.Security.Cryptography.MD5.Create().ComputeHash(FileData)).Replace("-", string.Empty);
+					}
+					string DestData = DestFile + "\t" + TimeStamp;
+					Lines.Add(DestData);
+				}
+			}
+			WriteAllLines(Filename, Lines.ToArray());
+		}
+	}
+
 	public static void CopyManifestFilesToStageDir(Dictionary<string, string> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
 	{
 		Log("Copying {0} to staging directory: {1}", ManifestName, StageDir);
@@ -588,6 +630,44 @@ public partial class Project : CommandUtils
 		}
 	}
 
+	public static void CopyManifestFilesToStageDir(Dictionary<string, List<string>> Mapping, string StageDir, string ManifestName, List<string> CRCFiles)
+	{
+		Log("Copying {0} to staging directory: {1}", ManifestName, StageDir);
+		string ManifestPath = "";
+		string ManifestFile = "";
+		if (!String.IsNullOrEmpty(ManifestName))
+		{
+			ManifestFile = "Manifest_" + ManifestName + ".txt";
+			ManifestPath = CombinePaths(StageDir, ManifestFile);
+			DeleteFile(ManifestPath);
+		}
+		foreach (var Pair in Mapping)
+		{
+			if (Pair.Value.Count > 1)
+			{
+				Log("More than 1 file being deployed.");
+			}
+			string Src = Pair.Key;
+			foreach (var DestPath in Pair.Value)
+			{
+				string DestFile = CombinePaths(StageDir, DestPath);
+				if (Src != DestFile)  // special case for things created in the staging directory, like the pak file
+				{
+					CopyFileIncremental(Src, DestFile, bFilterSpecialLinesFromIniFiles: true);
+				}
+			}
+		}
+		if (!String.IsNullOrEmpty(ManifestPath) && Mapping.Count > 0)
+		{
+			DumpTargetManifest(Mapping, ManifestPath, StageDir, CRCFiles);
+			if (!FileExists(ManifestPath))
+			{
+				throw new AutomationException("Failed to write manifest {0}", ManifestPath);
+			}
+			CopyFile(ManifestPath, CombinePaths(CmdEnv.LogFolder, ManifestFile));
+		}
+	}
+
 	public static void DumpManifest(Dictionary<string, string> Mapping, string Filename)
 	{
 		if (Mapping.Count > 0)
@@ -599,6 +679,23 @@ public partial class Project : CommandUtils
 				string Dest = Pair.Value;
 
 				Lines.Add("\"" + Src + "\" \"" + Dest + "\"");
+			}
+			WriteAllLines(Filename, Lines.ToArray());
+		}
+	}
+
+	public static void DumpManifest(Dictionary<string, List<string>> Mapping, string Filename)
+	{
+		if (Mapping.Count > 0)
+		{
+			var Lines = new List<string>();
+			foreach (var Pair in Mapping)
+			{
+				string Src = Pair.Key;
+				foreach (var DestPath in Pair.Value)
+				{
+					Lines.Add("\"" + Src + "\" \"" + DestPath + "\"");
+				}
 			}
 			WriteAllLines(Filename, Lines.ToArray());
 		}

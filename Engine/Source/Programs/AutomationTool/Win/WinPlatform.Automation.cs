@@ -75,7 +75,10 @@ public abstract class BaseWinPlatform : Platform
 							BootstrapExeName = SC.ShortProjectName + ".exe";
 						}
 
-						StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, SC.NonUFSStagingFiles[Executable.Path], BootstrapArguments);
+						foreach (string StagePath in SC.NonUFSStagingFiles[Executable.Path])
+						{
+							StageBootstrapExecutable(SC, BootstrapExeName, Executable.Path, StagePath, BootstrapArguments);
+						}
 					}
 				}
 			}
