@@ -6,7 +6,12 @@
 */
 
 #pragma once
+
+#include "GeometryCacheEdModulePublicPCH.h"
+#include "Classes/ThumbnailRendering/ThumbnailRenderer.h"
+#include "Classes/ThumbnailRendering/DefaultSizedThumbnailRenderer.h"
 #include "GeometryCacheThumbnailRenderer.generated.h"
+
 
 class FGeometryCacheThumbnailScene;
 

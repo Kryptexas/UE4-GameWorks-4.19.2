@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "GeometryCacheEdModulePublicPCH.h"
 #include "ThumbnailHelpers.h"
 
 class UGeometryCache;
