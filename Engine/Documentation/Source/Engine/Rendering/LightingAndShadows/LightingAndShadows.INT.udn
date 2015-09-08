@@ -4,6 +4,7 @@ Crumbs: %ROOT%, Engine
 Description:Using Lighting and shadowing geometry, using Glogal Illumination, and setting up reflections.
 Navigation:topic
 Related:Engine/Rendering/ParticleSystems/ParticleLights
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
