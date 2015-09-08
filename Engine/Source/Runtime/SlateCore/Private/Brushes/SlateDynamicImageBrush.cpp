@@ -31,11 +31,7 @@ TSharedPtr<FSlateDynamicImageBrush> FSlateDynamicImageBrush::CreateWithImageData
 
 void FSlateDynamicImageBrush::ReleaseResource()
 {
-	if( FSlateApplicationBase::IsInitialized() )
-	{
-		// Safely remove the brush we were using. 
-		FSlateApplicationBase::Get().GetRenderer()->RemoveDynamicBrushResource( AsShared() );
-	}	
+	ReleaseResourceInternal();	
 }
 
 void FSlateDynamicImageBrush::ReleaseResourceInternal()
