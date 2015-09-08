@@ -719,7 +719,7 @@ void SScrollBox::OnMouseLeave( const FPointerEvent& MouseEvent )
 
 FReply SScrollBox::OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-	if (ScrollBar->IsNeeded())
+	if (ScrollBar->IsNeeded() && ConsumeMouseWheel != EConsumeMouseWheel::Never )
 	{
 		// Make sure scroll velocity is cleared so it doesn't fight with the mouse wheel input
 		InertialScrollManager.ClearScrollVelocity();

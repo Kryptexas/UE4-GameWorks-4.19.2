@@ -18,6 +18,9 @@ enum class EConsumeMouseWheel
 
 	/** Always consume mouse wheel event even if we don't scroll at all. */
 	Always,
+
+	/** Never consume the mouse wheel */
+	Never,
 };
 
 
