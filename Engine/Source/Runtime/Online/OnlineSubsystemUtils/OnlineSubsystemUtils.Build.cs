@@ -20,7 +20,8 @@ public class OnlineSubsystemUtils : ModuleRules
 				"OnlineSubsystem",
 				"Sockets",
 				"Voice",
-                "PacketHandler"
+                "PacketHandler",
+				"Json"
 			}
 		);
 	}
