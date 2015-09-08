@@ -74,7 +74,7 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(UClass* SourceClass, TIn
 void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass, TIndirectArray<FKismetFunctionContext>& Functions, bool bGenerateStubsOnly)
 {
 	auto CleanCppClassName = SourceClass->GetName();
-	CppClassName = FString(SourceClass->GetPrefixCPP()) + CleanCppClassName;
+	CppClassName = FEmitHelper::GetCppName(SourceClass);
 	
 	FGatherConvertedClassDependencies Dependencies(SourceClass);
 	EmitFileBeginning(CleanCppClassName, &Dependencies);
@@ -99,13 +99,13 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		Emit(Header, TEXT(")\n"));
 
 		UClass* SuperClass = SourceClass->GetSuperClass();
-		Emit(Header, *FString::Printf(TEXT("class %s : public %s%s"), *CppClassName, SuperClass->GetPrefixCPP(), *SuperClass->GetName()));
+		Emit(Header, *FString::Printf(TEXT("class %s : public %s"), *CppClassName, *FEmitHelper::GetCppName(SuperClass)));
 
 		for (auto& ImplementedInterface : SourceClass->Interfaces)
 		{
 			if (ImplementedInterface.Class)
 			{
-				Emit(Header, *FString::Printf(TEXT(", public I%s"), *ImplementedInterface.Class->GetName()));
+				Emit(Header, *FString::Printf(TEXT(", public %s"), *FEmitHelper::GetCppName(ImplementedInterface.Class)));
 			}
 		}
 	}
@@ -184,8 +184,7 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 	TArray<UProperty*> LocalVariables;
 
 	{
-		FString FunctionName;
-		Function->GetName(FunctionName);
+		FString FunctionName = FEmitHelper::GetCppName(Function);
 
 		TArray<UProperty*> ArgumentList;
 
@@ -338,13 +337,12 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 void FBlueprintCompilerCppBackendBase::GenerateCodeFromEnum(UUserDefinedEnum* SourceEnum)
 {
 	check(SourceEnum);
-	const FString Name = SourceEnum->GetName();
-	EmitFileBeginning(Name, nullptr);
+	EmitFileBeginning(SourceEnum->GetName(), nullptr);
 
 	Emit(Header, TEXT("UENUM(BlueprintType"));
 	EmitReplaceConvertedMetaData(SourceEnum);
 	Emit(Header, TEXT(")\nenum class "));
-	Emit(Header, *Name);
+	Emit(Header, *FEmitHelper::GetCppName(SourceEnum));
 	Emit(Header, TEXT(" : uint8\n{"));
 
 	for (int32 Index = 0; Index < SourceEnum->NumEnums(); ++Index)
@@ -378,7 +376,7 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromStruct(UUserDefinedStruct
 	FGatherConvertedClassDependencies Dependencies(SourceStruct);
 	EmitFileBeginning(SourceStruct->GetName(), &Dependencies);
 
-	const FString NewName = FString(TEXT("F")) + SourceStruct->GetName();
+	const FString NewName = FEmitHelper::GetCppName(SourceStruct);
 	Emit(Header, TEXT("USTRUCT(BlueprintType"));
 	EmitReplaceConvertedMetaData(SourceStruct);
 	Emit(Header, TEXT(")\n"));
@@ -457,7 +455,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 			{
 				if (auto ForwardDeclaredType = Cast<UClass>(Type))
 				{
-					Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *(FString(ForwardDeclaredType->GetPrefixCPP()) + ForwardDeclaredType->GetName())));
+					Emit(Dst, *FString::Printf(TEXT("class %s;\n"), *FEmitHelper::GetCppName(ForwardDeclaredType)));
 				}
 			}
 

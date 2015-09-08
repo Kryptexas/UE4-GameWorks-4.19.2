@@ -78,92 +78,23 @@ public:
 		return ObjectsCreatedPerClass;
 	}
 
-	// Universal functions
-	FString GenerateGetProperty(const UProperty* Property) const
-	{
-		check(Property);
-		const UStruct* OwnerStruct = Property->GetOwnerStruct();
-		const FString OwnerName = FString(OwnerStruct->GetPrefixCPP()) + OwnerStruct->GetName();
-		const FString OwnerPath = OwnerName + (OwnerStruct->IsA<UClass>() ? TEXT("::StaticClass()") : TEXT("::StaticStruct()"));
-		//return FString::Printf(TEXT("%s->FindPropertyByName(GET_MEMBER_NAME_CHECKED(%s, %s))"), *OwnerPath, *OwnerName, *Property->GetNameCPP());
+	// UNIVERSAL FUNCTIONS
 
-		return FString::Printf(TEXT("%s->FindPropertyByName(FName(TEXT(\"%s\")))"), *OwnerPath, *Property->GetNameCPP());
-	}
+	FString GenerateGetProperty(const UProperty* Property) const;
 
-	FString GenerateUniqueLocalName()
-	{
-		const FString UniqueNameBase = TEXT("__Local__");
-		const FString UniqueName = FString::Printf(TEXT("%s%d"), *UniqueNameBase, LocalNameIndexMax);
-		++LocalNameIndexMax;
-		return UniqueName;
-	}
+	FString GenerateUniqueLocalName();
 
 	UClass* GetCurrentlyGeneratedClass() const
 	{
 		return ActualClass;
 	}
 
-	/** All objects (that can be referenced from other package) that will have a different path in cooked build 
+	/** All objects (that can be referenced from other package) that will have a different path in cooked build
 	(due to the native code generation), should be handled by this function */
-	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false)
-	{
-		// TODO: check if not excluded
-
-		if (ActualClass && (Object == ActualClass))
-		{
-			return TEXT("GetClass()");
-		}
-
-		if (auto ObjClass = Cast<UClass>(Object))
-		{
-			auto BPGC = Cast<UBlueprintGeneratedClass>(ObjClass);
-			if (ObjClass->HasAnyClassFlags(CLASS_Native) || (BPGC && Dependencies.WillClassBeConverted(BPGC)))
-			{
-				return FString::Printf(TEXT("%s%s::StaticClass()"), ObjClass->GetPrefixCPP(), *ObjClass->GetName());
-			}
-		}
-
-		// TODO Handle native structires, and special cases..
-
-		if (auto UDS = Cast<UScriptStruct>(Object))
-		{
-			// Check if  
-			// TODO: check if supported 
-			return FString::Printf(TEXT("%s%s::StaticStruct()"), UDS->GetPrefixCPP(), *UDS->GetName());
-		}
-
-		if (auto UDE = Cast<UEnum>(Object))
-		{
-			// TODO:
-			// TODO: check if supported 
-			//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
-			return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *UDE->GetName());
-		}
-
-		int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
-		if (ActualClass && Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
-		{
-			return FString::Printf(TEXT("CastChecked<%s%s>(%s%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d])")
-				, Object->GetClass()->GetPrefixCPP()
-				, *Object->GetClass()->GetName()
-				, ActualClass->GetPrefixCPP()
-				, *ActualClass->GetName()
-				, ObjectsCreatedPerClassIdx);
-		}
-
-		// TODO: handle subobjects
-
-		if (bLoadIfNotFound && ensure(Object))
-		{
-			UClass* FoundClass = Object->GetClass();
-			const FString ClassString = FString(FoundClass->GetPrefixCPP()) + FoundClass->GetName();
-			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
-		}
-
-		return FString{};
-	}
+	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false);
 
 	// TEXT
+
 	void IncreaseIndent()
 	{
 		Indent += TEXT("\t");
@@ -214,6 +145,8 @@ public:
 
 struct FEmitHelper
 {
+	static FString GetCppName(const UField* Field);
+
 	static void ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator);
 
 	static bool HasAllFlags(uint64 Flags, uint64 FlagsToCheck);

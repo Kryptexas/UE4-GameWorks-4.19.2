@@ -69,7 +69,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 					: ((EPropertyAccessOperator::Pointer == AccessOperator) ? TEXT("->") : TEXT("."));
 				const bool bStaticArray = (Property->ArrayDim > 1);
 				const FString ArrayPost = bStaticArray ? FString::Printf(TEXT("[%d]"), ArrayIndex) : TEXT("");
-				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *Property->GetNameCPP(), *ArrayPost);
+				PathToMember = FString::Printf(TEXT("%s%s%s%s"), *OuterPath, *AccessOperatorStr, *FEmitHelper::GetCppName(Property), *ArrayPost);
 			}
 			const uint8* ValuePtr = Property->ContainerPtrToValuePtr<uint8>(DataContainer, ArrayIndex);
 			const uint8* DefaultValuePtr = OptionalDefaultDataContainer ? Property->ContainerPtrToValuePtr<uint8>(OptionalDefaultDataContainer, ArrayIndex) : nullptr;
@@ -81,7 +81,7 @@ void FEmitDefaultValueHelper::OuterGenerate(FEmitterLocalContext& Context
 FString FEmitDefaultValueHelper::GenerateGetDefaultValue(const UUserDefinedStruct* Struct, const FGatherConvertedClassDependencies& Dependencies)
 {
 	check(Struct);
-	const FString StructName = FString(TEXT("F")) + Struct->GetName();
+	const FString StructName = FEmitHelper::GetCppName(Struct);
 	FString Result = FString::Printf(TEXT("\tstatic %s GetDefaultValue()\n\t{\n\t\t%s DefaultData__;\n"), *StructName, *StructName);
 
 	FStructOnScope StructData(Struct);
@@ -114,7 +114,7 @@ void FEmitDefaultValueHelper::InnerGenerate(FEmitterLocalContext& Context, const
 				check(StructProperty->Struct);
 				if (bGenerateEmptyStructConstructor)
 				{
-					ValueStr = FString::Printf(TEXT("F%s{}"), *StructProperty->Struct->GetName()); //don;t override existing values
+					ValueStr = FString::Printf(TEXT("%s{}"), *FEmitHelper::GetCppName(StructProperty->Struct)); //don;t override existing values
 				}
 				bComplete = false;
 			}
@@ -282,9 +282,11 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 			}
 			else
 			{
-				Context.AddHighPriorityLine(FString::Printf(TEXT("%s%s = CreateDefaultSubobject<%s%s>(TEXT(\"%s\"));")
-					, VariableProperty == nullptr ? TEXT("auto ") : TEXT(""), *VariableName
-					, ComponentClass->GetPrefixCPP(), *ComponentClass->GetName(), *ComponentTemplate->GetName()));
+				Context.AddHighPriorityLine(FString::Printf(TEXT("%s%s = CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
+					, (VariableProperty == nullptr) ? TEXT("auto ") : TEXT("")
+					, *VariableName
+					, *FEmitHelper::GetCppName(ComponentClass)
+					, *ComponentTemplate->GetName()));
 
 				Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;"), *VariableName));
 
@@ -333,9 +335,8 @@ struct FDependenciesHelper
 		}
 		for (auto LocStruct : GatherDependencies.ConvertedClasses)
 		{
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::StaticClass());")
-				, LocStruct->GetPrefixCPP()
-				, *LocStruct->GetName()));
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s::StaticClass());")
+				, *FEmitHelper::GetCppName(LocStruct)));
 		}
 
 		if (GatherDependencies.ConvertedStructs.Num())
@@ -344,9 +345,8 @@ struct FDependenciesHelper
 		}
 		for (auto LocStruct : GatherDependencies.ConvertedStructs)
 		{
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s%s::StaticStruct());")
-				, LocStruct->GetPrefixCPP()
-				, *LocStruct->GetName()));
+			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s::StaticStruct());")
+				, *FEmitHelper::GetCppName(LocStruct)));
 		}
 
 		if (GatherDependencies.Assets.Num())
@@ -363,19 +363,20 @@ struct FDependenciesHelper
 	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, const FGatherConvertedClassDependencies& GatherDependencies)
 	{
 		auto OriginalClass = Context.GetCurrentlyGeneratedClass();
-		const FString CppClassName = FString::Printf(TEXT("%s%s"), OriginalClass->GetPrefixCPP(), *OriginalClass->GetName());
+		const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
 		// __StaticDependenciesConvertedClasses
 		Context.AddLine(FString::Printf(TEXT("void %s::__StaticDependenciesConvertedClasses(TArray<FName>& OutNames)"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
+		//TODO: the names must be valid.
 		for (auto LocClass : GatherDependencies.ConvertedClasses)
 		{
 			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
 		}
-		for (auto LocClass : GatherDependencies.ConvertedStructs)
+		for (auto LocStruct : GatherDependencies.ConvertedStructs)
 		{
-			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocClass->GetName()));
+			Context.AddLine(FString::Printf(TEXT("OutNames.Add(TEXT(\"%s\"));"), *LocStruct->GetName()));
 		}
 
 		Context.DecreaseIndent();
@@ -424,7 +425,7 @@ struct FDependenciesHelper
 FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGatherConvertedClassDependencies& Dependencies)
 {
 	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
-	const FString CppClassName = FString(BPGC->GetPrefixCPP()) + BPGC->GetName();
+	const FString CppClassName = FEmitHelper::GetCppName(BPGC);
 
 	FEmitterLocalContext Context(BPGC, Dependencies);
 	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)"), *CppClassName, *CppClassName));
@@ -502,10 +503,9 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGath
 			FString NativeName;
 			const bool bFound = Context.FindLocalObject_InConstructor(Obj, NativeName);
 			ensure(bFound);
-			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s%s>(%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d]);")
+			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d]);")
 				, *NativeName
-				, Obj->GetClass()->GetPrefixCPP()
-				, *Obj->GetClass()->GetName()
+				, *FEmitHelper::GetCppName(Obj->GetClass())
 				, *CppClassName
 				, SubobjectIndex));
 			SubobjectIndex++;
@@ -627,9 +627,9 @@ FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Cont
 	Context.AddHighPriorityLine(FString::Printf(
 		TEXT("auto %s = NewObject<%s%s>(%s, TEXT(\"%s\"));")
 		, *LocalNativeName
-		, ObjectClass->GetPrefixCPP()
-		, *ObjectClass->GetName()
-		, *OuterStr, *Object->GetName()));
+		, *FEmitHelper::GetCppName(ObjectClass)
+		, *OuterStr
+		, *Object->GetName()));
 	if (AddAsSubobjectOfClass)
 	{
 		ensure(Context.bCreatingObjectsPerClass);
@@ -683,8 +683,8 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
 	if (!bIsEditorOnlySubobject && ensure(CDO) && (CDO == Object->GetOuter()))
 	{
-		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s%s>(GetDefaultSubobjectByName(TEXT(\"%s\")));")
-			, *LocalNativeName, ObjectClass->GetPrefixCPP(), *ObjectClass->GetName(), *Object->GetName()));
+		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(GetDefaultSubobjectByName(TEXT(\"%s\")));")
+			, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
 
 		const UObject* ObjectArchetype = Object->GetArchetype();
 		for (auto Property : TFieldRange<const UProperty>(ObjectClass))
@@ -702,9 +702,11 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 		{
 			return FString();
 		}
-		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = NewObject<%s%s>(%s, TEXT(\"%s\"));")
-			, *LocalNativeName, ObjectClass->GetPrefixCPP(), *ObjectClass->GetName()
-			, *OuterStr, *Object->GetName()));
+		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"));")
+			, *LocalNativeName
+			, *FEmitHelper::GetCppName(ObjectClass)
+			, *OuterStr
+			, *Object->GetName()));
 	}
 
 	return LocalNativeName;

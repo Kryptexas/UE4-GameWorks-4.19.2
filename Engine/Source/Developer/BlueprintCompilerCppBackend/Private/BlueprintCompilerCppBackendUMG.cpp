@@ -45,7 +45,7 @@ void FBackendHelperUMG::EmitWidgetInitializationFunctions(FEmitterLocalContext& 
 {
 	if (auto WidgetClass = Cast<UWidgetBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass()))
 	{
-		const FString CppClassName = FString(WidgetClass->GetPrefixCPP()) + WidgetClass->GetName();
+		const FString CppClassName = FEmitHelper::GetCppName(WidgetClass);
 
 		auto GenerateLocalProperty = [](FEmitterLocalContext& InContext, UProperty* InProperty, const uint8* DataPtr) -> FString
 		{

@@ -431,9 +431,9 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 	{
 		auto ContextInterfaceClass = CastChecked<UClass>(Statement.FunctionContext->Type.PinSubCategoryObject.Get());
 		ensure(ContextInterfaceClass->IsChildOf<UInterface>());
-		Result += FString::Printf(TEXT("I%s::Execute_%s(%s.GetObject(), ")
-			, *ContextInterfaceClass->GetName()
-			, *Statement.FunctionToCall->GetName()
+		Result += FString::Printf(TEXT("%s::Execute_%s(%s.GetObject(), ")
+			, *FEmitHelper::GetCppName(ContextInterfaceClass)
+			, *FEmitHelper::GetCppName(Statement.FunctionToCall)
 			, *TermToText(EmitterContext, Statement.FunctionContext, false));
 	}
 	else
@@ -444,7 +444,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 				|| Statement.FunctionToCall->HasMetaData(TEXT("CustomStructureParam")) 
 				|| Statement.FunctionToCall->HasMetaData(TEXT("ArrayParm"));
 			auto OwnerClass = Statement.FunctionToCall->GetOuterUClass();
-			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s%s::"), OwnerClass->GetPrefixCPP(), *OwnerClass->GetName());
+			Result += bIsCustomThunk ? TEXT("FCustomThunkTemplates::") : FString::Printf(TEXT("%s::"), *FEmitHelper::GetCppName(OwnerClass));
 		}
 		else if (bCallOnDifferentObject) //@TODO: Badness, could be a self reference wired to another instance!
 		{
@@ -455,7 +455,7 @@ FString FBlueprintCompilerCppBackend::EmitCallStatmentInner(FEmitterLocalContext
 		{
 			Result += TEXT("Super::");
 		}
-		Result += Statement.FunctionToCall->GetName();
+		Result += FEmitHelper::GetCppName(Statement.FunctionToCall);
 		if (Statement.bIsParentContext && FEmitHelper::ShouldHandleAsNativeEvent(Statement.FunctionToCall))
 		{
 			ensure(!bCallOnDifferentObject);
@@ -512,9 +512,8 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 					: Cast<UClass>(Term->Context->Type.PinSubCategoryObject.Get());
 				if (MinimalClass)
 				{
-					ResultPath += FString::Printf(TEXT("GetDefaultValueSafe<%s%s>(")
-						, MinimalClass->GetPrefixCPP()
-						, *MinimalClass->GetName());
+					ResultPath += FString::Printf(TEXT("GetDefaultValueSafe<%s>(")
+						, *FEmitHelper::GetCppName(MinimalClass));
 				}
 				else
 				{
@@ -540,7 +539,7 @@ FString FBlueprintCompilerCppBackend::TermToText(FEmitterLocalContext& EmitterCo
 			Conditions = FSafeContextScopedEmmitter::ValidationChain(EmitterContext, Term->Context, *this);
 		}
 
-		ResultPath += Term->AssociatedVarProperty ? Term->AssociatedVarProperty->GetNameCPP() : Term->Name;
+		ResultPath += Term->AssociatedVarProperty ? FEmitHelper::GetCppName(Term->AssociatedVarProperty) : Term->Name;
 		return Conditions.IsEmpty()
 			? ResultPath
 			: FString::Printf(TEXT("((%s) ? (%s) : (%s))"), *Conditions, *ResultPath, *FEmitHelper::DefaultValue(EmitterContext, Term->Type));

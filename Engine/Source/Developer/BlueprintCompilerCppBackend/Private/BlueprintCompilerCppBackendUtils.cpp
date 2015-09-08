@@ -4,6 +4,104 @@
 #include "BlueprintCompilerCppBackendUtils.h"
 #include "EdGraphSchema_K2.h"
 
+FString FEmitterLocalContext::GenerateGetProperty(const UProperty* Property) const
+{
+	check(Property);
+	const UStruct* OwnerStruct = Property->GetOwnerStruct();
+	const FString OwnerName = FEmitHelper::GetCppName(OwnerStruct);
+	const FString OwnerPath = OwnerName + (OwnerStruct->IsA<UClass>() ? TEXT("::StaticClass()") : TEXT("::StaticStruct()"));
+	//return FString::Printf(TEXT("%s->FindPropertyByName(GET_MEMBER_NAME_CHECKED(%s, %s))"), *OwnerPath, *OwnerName, *Property->GetNameCPP());
+
+	return FString::Printf(TEXT("%s->FindPropertyByName(FName(TEXT(\"%s\")))"), *OwnerPath, *FEmitHelper::GetCppName(Property));
+}
+
+FString FEmitterLocalContext::GenerateUniqueLocalName()
+{
+	const FString UniqueNameBase = TEXT("__Local__");
+	const FString UniqueName = FString::Printf(TEXT("%s%d"), *UniqueNameBase, LocalNameIndexMax);
+	++LocalNameIndexMax;
+	return UniqueName;
+}
+
+FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound)
+{
+	// TODO: check if not excluded
+
+	if (ActualClass && (Object == ActualClass))
+	{
+		return TEXT("GetClass()");
+	}
+
+	if (auto ObjClass = Cast<UClass>(Object))
+	{
+		auto BPGC = Cast<UBlueprintGeneratedClass>(ObjClass);
+		if (ObjClass->HasAnyClassFlags(CLASS_Native) || (BPGC && Dependencies.WillClassBeConverted(BPGC)))
+		{
+			return FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ObjClass));
+		}
+	}
+
+	// TODO Handle native structires, and special cases..
+
+	if (auto UDS = Cast<UScriptStruct>(Object))
+	{
+		// Check if  
+		// TODO: check if supported 
+		return FString::Printf(TEXT("%s::StaticStruct()"), *FEmitHelper::GetCppName(UDS));
+	}
+
+	if (auto UDE = Cast<UEnum>(Object))
+	{
+		// TODO:
+		// TODO: check if supported 
+		//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
+		return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *FEmitHelper::GetCppName(UDE));
+	}
+
+	int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
+	if (ActualClass && Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
+	{
+		return FString::Printf(TEXT("CastChecked<%s>(%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d])")
+			, *FEmitHelper::GetCppName(Object->GetClass())
+			, *FEmitHelper::GetCppName(ActualClass)
+			, ObjectsCreatedPerClassIdx);
+	}
+
+	// TODO: handle subobjects
+
+	if (bLoadIfNotFound && ensure(Object))
+	{
+		UClass* FoundClass = Object->GetClass();
+		const FString ClassString = FEmitHelper::GetCppName(FoundClass);
+		return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(Object->GetPathName().ReplaceCharWithEscapedChar()));
+	}
+
+	return FString{};
+}
+
+FString FEmitHelper::GetCppName(const UField* Field)
+{
+	check(Field);
+	auto AsClass = Cast<UClass>(Field);
+	auto AsScriptStruct = Cast<UScriptStruct>(Field);
+	if (AsClass || AsScriptStruct)
+	{
+		auto AsClass = Cast<UClass>(Field);
+		if (AsClass && AsClass->HasAnyClassFlags(CLASS_Interface))
+		{
+			ensure(AsClass->IsChildOf<UInterface>());
+			return FString::Printf(TEXT("I%s"), *AsClass->GetName());
+		}
+		auto AsStruct = CastChecked<UStruct>(Field);
+		return FString::Printf(TEXT("%s%s"), AsStruct->GetPrefixCPP(), *AsStruct->GetName());
+	}
+	else if (auto AsProperty = Cast<UProperty>(Field))
+	{
+		return AsProperty->GetNameCPP();
+	}
+	return Field->GetName();
+}
+
 void FEmitHelper::ArrayToString(const TArray<FString>& Array, FString& OutString, const TCHAR* Separator)
 {
 	if (Array.Num())
@@ -357,7 +455,7 @@ FString FEmitHelper::EmitLifetimeReplicatedPropsImpl(UClass* SourceClass, const 
 				Result += FString::Printf(TEXT("%s\tSuper::GetLifetimeReplicatedProps(OutLifetimeProps);\n"), InCurrentIndent);
 				bFunctionInitilzed = true;
 			}
-			Result += FString::Printf(TEXT("%s\tDOREPLIFETIME( %s, %s);\n"), InCurrentIndent, *CppClassName, *It->GetNameCPP());
+			Result += FString::Printf(TEXT("%s\tDOREPLIFETIME( %s, %s);\n"), InCurrentIndent, *CppClassName, *FEmitHelper::GetCppName(*It));
 		}
 	}
 	if (bFunctionInitilzed)
@@ -394,7 +492,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		auto TypeEnum = Cast<UEnum>(Type.PinSubCategoryObject.Get());
 		if (TypeEnum)
 		{
-			return FString::Printf(TEXT("%s::%s"), *TypeEnum->GetName(), CustomValue.IsEmpty() 
+			return FString::Printf(TEXT("%s::%s"), *FEmitHelper::GetCppName(TypeEnum), CustomValue.IsEmpty()
 				? *TypeEnum->GetEnumName(TypeEnum->NumEnums()-1)
 				: *CustomValue);
 		}
@@ -463,7 +561,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		{
 			//@todo:  This needs to be more robust, since import text isn't really proper for struct construction.
 			const bool bEmptyCustomValue = CustomValue.IsEmpty() || (CustomValue == TEXT("()"));
-			const FString StructName = FString(TEXT("F")) + StructType->GetName();
+			const FString StructName = *FEmitHelper::GetCppName(StructType);
 			if (bEmptyCustomValue)
 			{
 				return StructName + (StructType->IsA<UUserDefinedStruct>() ? TEXT("::GetDefaultValue()") : TEXT("{}"));
@@ -529,7 +627,7 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 				return MappedObject;
 			}
 			UClass* FoundClass = Cast<UClass>(Type.PinSubCategoryObject.Get());
-			FString ClassString = FoundClass ? (FString(FoundClass->GetPrefixCPP()) + FoundClass->GetName()) : TEXT("UObject");
+			FString ClassString = FoundClass ? FEmitHelper::GetCppName(FoundClass) : TEXT("UObject");
 			return FString::Printf(TEXT("LoadObject<%s>(nullptr, TEXT(\"%s\"))"), *ClassString, *(LiteralObject->GetPathName().ReplaceCharWithEscapedChar()));
 		}
 		else
@@ -627,14 +725,14 @@ bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdG
 		auto RTypeEnum = Cast<UEnum>(RType.PinSubCategoryObject.Get());
 		if (!RTypeEnum && LTypeEnum)
 		{
-			FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : LTypeEnum->GetName();
+			const FString EnumCppType = !LTypeEnum->CppType.IsEmpty() ? LTypeEnum->CppType : FEmitHelper::GetCppName(LTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("static_cast<%s>("), *EnumCppType);
 			OutCastEnd = TEXT(")");
 			return true;
 		}
 		if (!LTypeEnum && RTypeEnum)
 		{
-			FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : RTypeEnum->GetName();
+			const FString EnumCppType = !RTypeEnum->CppType.IsEmpty() ? RTypeEnum->CppType : FEmitHelper::GetCppName(RTypeEnum);
 			OutCastBegin = FString::Printf(TEXT("EnumToByte<%s>("), *EnumCppType); 
 			OutCastEnd = TEXT(")");
 			return true;
@@ -648,7 +746,7 @@ bool FEmitHelper::GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdG
 		UClass* RClass = Cast<UClass>(RType.PinSubCategoryObject.Get());
 		if (LClass && RClass && LClass->IsChildOf(RClass) && !RClass->IsChildOf(LClass))
 		{
-			OutCastBegin = FString::Printf(TEXT("CastChecked<%s%s>("), LClass->GetPrefixCPP(), *LClass->GetName());
+			OutCastBegin = FString::Printf(TEXT("CastChecked<%s>("), *FEmitHelper::GetCppName(LClass));
 			OutCastEnd = TEXT(")");
 			return true;
 		}

@@ -43,21 +43,20 @@ struct FGeneratedCodeData
 		for (auto Iter : ClassDependencies.ConvertedClasses)
 		{
 			DependentObjects.Add(Iter);
-				}
+		}
 		for (auto Iter : ClassDependencies.ConvertedStructs)
-			{
+		{
 			DependentObjects.Add(Iter);
-			}
+		}
 		for (auto Iter : ClassDependencies.ConvertedEnum)
-			{
+		{
 			DependentObjects.Add(Iter);
 		}
 
 		TypeDependencies.Empty();
 		for (auto Obj : DependentObjects)
-				{
-					TypeDependencies += Obj->GetPathName();
-					TypeDependencies += TEXT("\n");
+		{
+			TypeDependencies += FString::Printf(TEXT("%s \t%s\n"), *Obj->GetClass()->GetName(), *Obj->GetPathName());
 		}
 		DependentObjects.Add(InBlueprint.GeneratedClass);
 
