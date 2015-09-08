@@ -30,7 +30,7 @@ In the example above, global parameters are used to control the following aspect
 * The sun angle and color is also tracked and used to correctly colorize the water crests and limit the effect to only times when light shines directly through the wave crests (when the player is looking toward the sun). 
 * The coloration of effect across the time of day and overall diffuse lighting color for the water are also being controlled. 
 
-## Creating & Editing Material Parameter Collections
+## Creating and Editing Material Parameter Collections
 
 MaterialParameterCollections are created through the [**Content Browser**](Engine/Content/Browser) via the **New** menu 
 or the **Right-Click** context menu and can be edited and saved like any other assets.
@@ -41,7 +41,7 @@ or the **Right-Click** context menu and can be edited and saved like any other a
 
 	![](MPC_Create_New_Collection.png)
 
-1. The Material Parameter Collection will be added and saved to the **Content Browser** just like any other Actor. 
+1. The Material Parameter Collection will be added and saved to the **Content Browser** just like any other Asset. 
 	
 	![](MPC_Saved_In_CB.png)
 

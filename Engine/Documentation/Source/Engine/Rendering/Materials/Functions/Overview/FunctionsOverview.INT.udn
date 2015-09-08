@@ -61,12 +61,6 @@ Below are the material expression nodes that relate to material functions, along
 
 Since material functions are encapsulated networks of nodes, it is up to the user to make sure that data can flow into and out of them. This is handled by way of *FunctionInput* and *FunctionOutput* nodes. Understanding these nodes is critical for using material functions.
 
-[EXCERPT:FunctionParameters]
-[REGION:warning]
-Material Parameters, such as Scalar and Vector Parameters, cannot exist within Functions. This is to avoid any potential crosstalk that might occur when multiple instances of a Function are used in a single Material. To send data into a Function from a Parameter, you must use a FunctionInput node within the Function, and connect your Parameter in from outside, in the Material itself.
-[/REGION] 
-[/EXCERPT:FunctionParameters]
-
 Within the function itself, FunctionInput and FunctionOutput nodes appear like so:
 
 ![InputOutput_Within.png](InputOutput_Within.png)
@@ -78,7 +72,7 @@ From the outside, however, when the function is used within a material, those no
 
 ### FunctionInput Nodes
 
-As stated, MaterialInput nodes serve as the gateway through which data will enter a material function. A given function may have any number of these input nodes, each corresponding with an input pin that will appear on the function itself.
+As stated, Material Input nodes serve as the gateway through which data will enter a material function. A given function may have any number of these input nodes, each corresponding with an input pin that will appear on the function itself.
 
 ![InputNode.png](InputNode.png)
 
@@ -165,7 +159,7 @@ Most of the time you will want to preview a function output, so those will be pr
 
 ![PreviewingOutput.png](PreviewingOutput.png)
 
-Function input nodes have some options for specifying preview values, since they do not know the actual values they will be used with in a material.  Each input has a built in PreviewValue can be used to show a constant for float input types.  Function inputs also have a 'Preview' connector which allows you to override that built in value with any value that matches the input's type.  In this example, a texture sample has been used to provide the preview for a float 3 input.
+Function input nodes have some options for specifying preview values, since they do not know the actual values that will be used with in a material.  Each input has a built in PreviewValue that can be used to show a constant for float input types.  Function inputs also have a 'Preview' connector which allows you to override that built in value with any value that matches the input's type.  In this example, a texture sample has been used to provide the preview for a float 3 input.
 
 ![PreviewTexture.png](PreviewTexture.png)
 
