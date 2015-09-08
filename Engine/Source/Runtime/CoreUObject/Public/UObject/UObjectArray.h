@@ -160,26 +160,28 @@ public:
 		return Object;
 	}
 
+	FORCEINLINE class UObjectBase* IndexToValidObject(int32 Index, bool bEvenIfPendingKill)
+	{
+		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
+		return Internal_IsValid(Object, bEvenIfPendingKill) ? Object : nullptr;
+	}
+
 	FORCEINLINE bool IsValid(int32 Index, bool bEvenIfPendingKill)
 	{
 		// This method assumes Index points to a valid object.
 		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
-		if(Object == NULL)
-		{
-			return false;
-		}
-		return !Object->HasAnyFlags(RF_Unreachable) && (bEvenIfPendingKill || !Object->IsPendingKill());
+		return Internal_IsValid(Object, bEvenIfPendingKill);
 	}
 
 	FORCEINLINE bool IsStale(int32 Index, bool bEvenIfPendingKill)
 	{
 		// This method assumes Index points to a valid object.
 		UObjectBaseUtility* Object = static_cast<UObjectBaseUtility*>(IndexToObject(Index));
-		if(Object == NULL)
+		if (Object)
 		{
-			return true;
+			return bEvenIfPendingKill ? Object->HasAnyFlags(RF_Unreachable | RF_PendingKill) : Object->HasAnyFlags(RF_Unreachable);
 		}
-		return Object->HasAnyFlags(RF_Unreachable) || (bEvenIfPendingKill && Object->IsPendingKill());
+		return true;
 	}
 
 	/**
@@ -380,6 +382,15 @@ public:
 	};
 
 private:
+
+	FORCEINLINE bool Internal_IsValid(UObjectBaseUtility* Object, bool bEvenIfPendingKill)
+	{
+		if (Object)
+		{
+			return bEvenIfPendingKill ? !Object->HasAnyFlags(RF_Unreachable) : !Object->HasAnyFlags(RF_Unreachable | RF_PendingKill);
+		}
+		return false;
+	}
 
 	typedef TStaticIndirectArrayThreadSafeRead<UObjectBase, 8 * 1024 * 1024 /* Max 8M UObjects */, 16384 /* allocated in 64K/128K chunks */ > TUObjectArray;
 
