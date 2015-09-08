@@ -805,7 +805,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference WireframeMaterialName;
+	FString WireframeMaterialName;
 
 #if WITH_EDITORONLY_DATA
 	/** A translucent material used to render things in geometry mode. */
@@ -831,7 +831,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LevelColorationLitMaterialName;
+	FString LevelColorationLitMaterialName;
 
 	/** Material used for visualizing level membership in unlit view port modes. */
 	UPROPERTY()
@@ -839,7 +839,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LevelColorationUnlitMaterialName;
+	FString LevelColorationUnlitMaterialName;
 
 	/** Material used for visualizing lighting only w/ lightmap texel density. */
 	UPROPERTY()
@@ -847,7 +847,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference LightingTexelDensityName;
+	FString LightingTexelDensityName;
 
 	/** Material used for visualizing level membership in lit view port modes. Uses shading to show axis directions. */
 	UPROPERTY()
@@ -855,7 +855,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ShadedLevelColorationLitMaterialName;
+	FString ShadedLevelColorationLitMaterialName;
 
 	/** Material used for visualizing level membership in unlit view port modes.  Uses shading to show axis directions. */
 	UPROPERTY()
@@ -863,7 +863,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference ShadedLevelColorationUnlitMaterialName;
+	FString ShadedLevelColorationUnlitMaterialName;
 
 	/** Material used to indicate that the associated BSP surface should be removed. */
 	UPROPERTY()
@@ -879,7 +879,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorMaterialName;
+	FString VertexColorMaterialName;
 
 	/** Material for visualizing vertex colors on meshes in the scene (color only, no alpha) */
 	UPROPERTY()
@@ -887,7 +887,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_ColorOnly;
+	FString VertexColorViewModeMaterialName_ColorOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (alpha channel as color) */
 	UPROPERTY()
@@ -895,7 +895,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_AlphaAsColor;
+	FString VertexColorViewModeMaterialName_AlphaAsColor;
 
 	/** Material for visualizing vertex colors on meshes in the scene (red only) */
 	UPROPERTY()
@@ -903,7 +903,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_RedOnly;
+	FString VertexColorViewModeMaterialName_RedOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (green only) */
 	UPROPERTY()
@@ -911,7 +911,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_GreenOnly;
+	FString VertexColorViewModeMaterialName_GreenOnly;
 
 	/** Material for visualizing vertex colors on meshes in the scene (blue only) */
 	UPROPERTY()
@@ -919,7 +919,7 @@ public:
 
 	/** @todo document */
 	UPROPERTY(globalconfig)
-	FStringAssetReference VertexColorViewModeMaterialName_BlueOnly;
+	FString VertexColorViewModeMaterialName_BlueOnly;
 
 #if WITH_EDITORONLY_DATA
 	/** Material used to render bone weights on skeletal meshes */
