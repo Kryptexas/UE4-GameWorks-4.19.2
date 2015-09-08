@@ -74,16 +74,38 @@ namespace UnrealBuildTool
 
 			// Read all the engine plugins
 			DirectoryReference EnginePluginsDirectoryName = DirectoryReference.Combine(EngineDirectoryName, "Plugins");
-			Plugins.AddRange(ReadAvailablePluginsInternal(EnginePluginsDirectoryName, PluginLoadedFrom.Engine));
+			Plugins.AddRange(ReadPluginsFromDirectory(EnginePluginsDirectoryName, PluginLoadedFrom.Engine));
 
 			// Read all the project plugins
 			if(ProjectFileName != null)
 			{
 				DirectoryReference ProjectPluginsDir = DirectoryReference.Combine(ProjectFileName.Directory, "Plugins");
-				Plugins.AddRange(ReadAvailablePluginsInternal(ProjectPluginsDir, PluginLoadedFrom.GameProject));
+				Plugins.AddRange(ReadPluginsFromDirectory(ProjectPluginsDir, PluginLoadedFrom.GameProject));
 			}
 
 			return Plugins;
+		}
+
+		/// <summary>
+		/// Read all the plugin descriptors under the given engine directory
+		/// </summary>
+		/// <param name="EngineDirectory">The parent directory to look in.</param>
+		/// <returns>Sequence of the found PluginInfo object.</returns>
+		public static IReadOnlyList<PluginInfo> ReadEnginePlugins(DirectoryReference EngineDirectory)
+		{
+			DirectoryReference EnginePluginsDirectory = DirectoryReference.Combine(EngineDirectory, "Plugins");
+			return ReadPluginsFromDirectory(EnginePluginsDirectory, PluginLoadedFrom.Engine);
+		}
+
+		/// <summary>
+		/// Read all the plugin descriptors under the given project directory
+		/// </summary>
+		/// <param name="EngineDirectory">The parent directory to look in.</param>
+		/// <returns>Sequence of the found PluginInfo object.</returns>
+		public static IReadOnlyList<PluginInfo> ReadProjectPlugins(DirectoryReference ProjectDirectory)
+		{
+			DirectoryReference ProjectPluginsDirectory = DirectoryReference.Combine(ProjectDirectory, "Plugins");
+			return ReadPluginsFromDirectory(ProjectPluginsDirectory, PluginLoadedFrom.GameProject);
 		}
 
 		/// <summary>
@@ -92,7 +114,7 @@ namespace UnrealBuildTool
 		/// <param name="ParentDirectory">The parent directory to look in.</param>
 		/// <param name="LoadedFrom">The directory type</param>
 		/// <returns>Sequence of the found PluginInfo object.</returns>
-		static IEnumerable<PluginInfo> ReadAvailablePluginsInternal(DirectoryReference ParentDirectory, PluginLoadedFrom LoadedFrom)
+		public static IReadOnlyList<PluginInfo> ReadPluginsFromDirectory(DirectoryReference ParentDirectory, PluginLoadedFrom LoadedFrom)
 		{
 			List<PluginInfo> Plugins;
 			if(!PluginInfoCache.TryGetValue(ParentDirectory, out Plugins))

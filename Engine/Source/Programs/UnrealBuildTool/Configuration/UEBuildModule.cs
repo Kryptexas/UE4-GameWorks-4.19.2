@@ -182,8 +182,7 @@ namespace UnrealBuildTool
 		private readonly bool? IsRedistributableOverride;
 
 		/** The name of the .Build.cs file this module was created from, if any */
-		private readonly string BuildCsFilenameField;
-		public string BuildCsFilename { get { return BuildCsFilenameField; } }
+		public FileReference RulesFile;
 
 		/**
 		 * Tells if this module can be redistributed.
@@ -245,14 +244,16 @@ namespace UnrealBuildTool
 			UEBuildModuleType InType,
 			DirectoryReference InModuleDirectory,
 			ModuleRules InRules,
-			string InBuildCsFilename
+			FileReference InRulesFile
 			)
 		{
 			Target = InTarget;
 			Name = InName;
 			Type = InType;
-			Rules = InRules;
 			ModuleDirectory = InModuleDirectory;
+			Rules = InRules;
+			RulesFile = InRulesFile;
+
 			PublicDefinitions = HashSetFromOptionalEnumerableStringParameter(InRules.Definitions);
 			PublicIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PublicIncludePaths);
 			PublicSystemIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PublicSystemIncludePaths);
@@ -267,9 +268,6 @@ namespace UnrealBuildTool
 			PrivateIncludePaths = HashSetFromOptionalEnumerableStringParameter(InRules.PrivateIncludePaths);
 			RuntimeDependencies = (InRules.RuntimeDependencies == null)? new List<RuntimeDependency>() : new List<RuntimeDependency>(InRules.RuntimeDependencies);
 			IsRedistributableOverride = InRules.IsRedistributableOverride;
-
-			Debug.Assert(InBuildCsFilename == null || InBuildCsFilename.EndsWith(".Build.cs", StringComparison.InvariantCultureIgnoreCase));
-			BuildCsFilenameField = InBuildCsFilename;
 
 			Target.RegisterModule(this);
 		}
@@ -621,11 +619,14 @@ namespace UnrealBuildTool
 			if(Modules == null)
 			{
 				Modules = new List<UEBuildModule>();
-				foreach(string ModuleName in ModuleNames.Distinct(StringComparer.InvariantCultureIgnoreCase))
+				foreach(string ModuleName in ModuleNames)
 				{
 					UEBuildModule Module = Target.FindOrCreateModuleByName(ModuleName);
-					Module.RecursivelyCreateModules();
-					Modules.Add(Module);
+					if(!Modules.Contains(Module))
+					{
+						Module.RecursivelyCreateModules();
+						Modules.Add(Module);
+					}
 				}
 			}
 		}
@@ -655,7 +656,7 @@ namespace UnrealBuildTool
 			string InName,
 			DirectoryReference InModuleDirectory,
 			ModuleRules InRules,
-			string InBuildCsFilename
+			FileReference InRulesFile
 			)
 		: base(
 			InTarget:										InTarget,
@@ -663,7 +664,7 @@ namespace UnrealBuildTool
 			InName:											InName,
 			InModuleDirectory:								InModuleDirectory,
 			InRules:										InRules,
-			InBuildCsFilename:								InBuildCsFilename
+			InRulesFile:									InRulesFile
 			)
 		{
 			bIncludedInTarget = true;
@@ -843,14 +844,14 @@ namespace UnrealBuildTool
 			IEnumerable<FileItem> InSourceFiles,
 			ModuleRules InRules,
 			bool bInBuildSourceFiles,
-			string InBuildCsFilename
+			FileReference InRulesFile
 			)
 			: base(	InTarget,
 					InName, 
 					InType,
 					InModuleDirectory,
 					InRules,
-					InBuildCsFilename
+					InRulesFile
 				)
 		{
 			GeneratedCodeDirectory = InGeneratedCodeDirectory;
@@ -1763,11 +1764,11 @@ namespace UnrealBuildTool
 			IEnumerable<FileItem> InSourceFiles,
 			ModuleRules InRules,
 			bool bInBuildSourceFiles,
-			string InBuildCsFilename
+			FileReference InRulesFile
 			)
 			: base(InTarget,InName,InType,InModuleDirectory,InGeneratedCodeDirectory,InIntelliSenseGatherer,
 			InSourceFiles,InRules,
-			bInBuildSourceFiles, InBuildCsFilename)
+			bInBuildSourceFiles, InRulesFile)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InRules.PrivateAssemblyReferences);
 		}

@@ -2507,7 +2507,7 @@ namespace UnrealBuildTool
 				InSourceFiles: SourceFiles.ToList(),
 				InRules: Rules,
 				bInBuildSourceFiles: true,
-				InBuildCsFilename: null);
+				InRulesFile: null);
 		}
 
 
@@ -2767,7 +2767,11 @@ namespace UnrealBuildTool
 		private UEBuildBinaryCPP AddBinaryForModule(UEBuildModule Module, UEBuildBinaryType BinaryType, bool bAllowCompilation, bool bIsCrossTarget)
 		{
 			// Get the plugin info for this module
-			PluginInfo Plugin = FindPluginForModule(Module.Name);
+			PluginInfo Plugin = null;
+			if(Module.RulesFile != null)
+			{
+				RulesAssembly.TryGetPluginForModule(Module.RulesFile, out Plugin);
+			}
 
 			// Get the root output directory and base name (target name/app name) for this binary
 			DirectoryReference BaseOutputDirectory;
@@ -2823,16 +2827,6 @@ namespace UnrealBuildTool
 			Binary.AddModule(Module);
 			AppBinaries.Add(Binary);
 			return Binary;
-		}
-
-		/// <summary>
-		/// Find the plugin which contains a given module
-		/// </summary>
-		/// <param name="ModuleName">Name of the module</param>
-		/// <returns>Matching plugin, or null if not found</returns>
-		private PluginInfo FindPluginForModule(string ModuleName)
-		{
-			return ValidPlugins.FirstOrDefault(ValidPlugin => ValidPlugin.Descriptor.Modules != null && ValidPlugin.Descriptor.Modules.Any(Module => Module.Name == ModuleName));
 		}
 
 		/**
@@ -2945,7 +2939,7 @@ namespace UnrealBuildTool
 		protected virtual void SetupPlugins()
 		{
 			// Filter the plugins list by the current project
-			ValidPlugins = Plugins.ReadAvailablePlugins(UnrealBuildTool.EngineDirectory, UnrealBuildTool.GetUProjectFile());
+			ValidPlugins = new List<PluginInfo>(RulesAssembly.EnumeratePlugins());
 
 			// Remove any plugins for platforms we don't have
 			List<string> ExcludeFolders = new List<string>();
@@ -3005,13 +2999,7 @@ namespace UnrealBuildTool
 				foreach(FileReference ForeignPlugin in ForeignPlugins)
 				{
 					PluginInfo ForeignPluginInfo = ValidPlugins.FirstOrDefault(x => x.File == ForeignPlugin);
-					if(ForeignPluginInfo == null)
-					{
-						ForeignPluginInfo = new PluginInfo(ForeignPlugin, PluginLoadedFrom.GameProject);
-						ValidPlugins.Add(ForeignPluginInfo);
-						BuildPlugins.Add(ForeignPluginInfo);
-					}
-					else if(!BuildPlugins.Contains(ForeignPluginInfo))
+					if(!BuildPlugins.Contains(ForeignPluginInfo))
 					{
 						BuildPlugins.Add(ForeignPluginInfo);
 					}
@@ -3339,7 +3327,7 @@ namespace UnrealBuildTool
 		{
 			Debug.Assert(Module.Target == this);
 			Modules.Add(Module.Name, Module);
-			FlatModuleCsData.Add(Module.Name, new FlatModuleCsDataType(Module.BuildCsFilename));
+			FlatModuleCsData.Add(Module.Name, new FlatModuleCsDataType((Module.RulesFile == null)? null : Module.RulesFile.FullName));
 		}
 
 		/** Finds a module given its name.  Throws an exception if the module couldn't be found. */
@@ -3357,7 +3345,8 @@ namespace UnrealBuildTool
 				DirectoryReference ModuleDirectory = ModuleFileName.Directory;
 				
 				// Get the plugin for this module
-				PluginInfo Plugin = FindPluginForModule(ModuleName);
+				PluginInfo Plugin;
+				RulesAssembly.TryGetPluginForModule(ModuleFileName, out Plugin);
 
 				// Get the type of module we're creating
 				var ModuleType = UEBuildModuleType.Unknown;
@@ -3435,7 +3424,7 @@ namespace UnrealBuildTool
 				if (RulesObject.Type != ModuleRules.ModuleType.External && ModuleName != "Core")
 				{
 					// Add the default include paths to the module rules, if they exist.
-					AddDefaultIncludePathsToModuleRules(ModuleFileName, IsGameModule, RulesObject);
+					AddDefaultIncludePathsToModuleRules(ModuleFileName, IsGameModule, Plugin, RulesObject);
 
 					// Add the path to the generated headers 
 					if(GeneratedCodeDirectory != null)
@@ -3507,7 +3496,7 @@ namespace UnrealBuildTool
 			IntelliSenseGatherer IntelliSenseGatherer,
 			List<FileItem>       ModuleSourceFiles,
 			bool                 bBuildSourceFiles,
-			FileReference         InBuildCsFile)
+			FileReference         InRulesFile)
 		{
 			switch (RulesObject.Type)
 			{
@@ -3522,7 +3511,7 @@ namespace UnrealBuildTool
 							InSourceFiles: ModuleSourceFiles,
 							InRules: RulesObject,
 							bInBuildSourceFiles: bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile.FullName
+							InRulesFile: InRulesFile
 						);
 
 				case ModuleRules.ModuleType.CPlusPlusCLR:
@@ -3536,7 +3525,7 @@ namespace UnrealBuildTool
 							InSourceFiles: ModuleSourceFiles,
 							InRules: RulesObject,
 							bInBuildSourceFiles : bBuildSourceFiles,
-							InBuildCsFilename: InBuildCsFile.FullName
+							InRulesFile: InRulesFile
 						);
 
 				case ModuleRules.ModuleType.External:
@@ -3546,7 +3535,7 @@ namespace UnrealBuildTool
 							InType: ModuleType,
 							InModuleDirectory: ModuleDirectory,
 							InRules: RulesObject,
-							InBuildCsFilename: InBuildCsFile.FullName
+							InRulesFile: InRulesFile
 						);
 
 				default:
@@ -3560,14 +3549,11 @@ namespace UnrealBuildTool
 		/// <param name="ModuleFile">The filename to the module rules file (Build.cs)</param>
 		/// <param name="IsGameModule">true if it is a game module, false if not</param>
 		/// <param name="RulesObject">The module rules object itself</param>
-		public void AddDefaultIncludePathsToModuleRules(FileReference ModuleFile, bool IsGameModule, ModuleRules RulesObject)
+		public void AddDefaultIncludePathsToModuleRules(FileReference ModuleFile, bool IsGameModule, PluginInfo Plugin, ModuleRules RulesObject)
 		{
 			// Get the base source directory for this module. This may be the project source directory, engine source directory, or plugin source directory.
 			if(!ModuleFile.IsUnderDirectory(UnrealBuildTool.EngineSourceDirectory))
 			{
-				// Check if it belongs to a plugin. We check against the directory here, which may give different results than checking the plugin modules list.
-				PluginInfo Plugin = ValidPlugins.FirstOrDefault(ValidPlugin => ModuleFile.IsUnderDirectory(ValidPlugin.Directory));
-
 				// Add the module source directory 
 				DirectoryReference BaseSourceDirectory;
 				if(Plugin != null)
