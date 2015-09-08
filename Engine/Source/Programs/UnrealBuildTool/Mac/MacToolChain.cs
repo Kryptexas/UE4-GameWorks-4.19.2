@@ -1338,7 +1338,7 @@ namespace UnrealBuildTool
 				var Modules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
 				var BinaryLinkEnvironment = Binary.Target.GlobalLinkEnvironment.DeepCopy();
 				var BinaryDependencies = new List<UEBuildBinary>();
-				var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
+				var LinkEnvironmentVisitedModules = new HashSet<UEBuildModule>();
 				foreach (var Module in Modules)
 				{
 					Module.SetupPrivateLinkEnvironment(Binary, BinaryLinkEnvironment, BinaryDependencies, LinkEnvironmentVisitedModules);

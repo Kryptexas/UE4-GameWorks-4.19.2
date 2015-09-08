@@ -663,7 +663,7 @@ namespace UnrealBuildTool
 		private LinkEnvironment SetupBinaryLinkEnvironment(LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
 		{
 			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
-			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
+			var LinkEnvironmentVisitedModules = new HashSet<UEBuildModule>();
 			var BinaryDependencies = new List<UEBuildBinary>();
 			CompileEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
 			CompileEnvironment.Config.bIsBuildingLibrary = IsBuildingLibrary(Config.Type);
