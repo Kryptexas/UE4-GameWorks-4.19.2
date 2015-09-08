@@ -2,6 +2,7 @@ Availability:Public
 Title:Lit Translucency
 Crumbs: %ROOT%, Engine, Engine/Rendering/LightingAndShadows
 Description:Explanation of how translucent surfaces are lit and cast shadows including self-shadows.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
