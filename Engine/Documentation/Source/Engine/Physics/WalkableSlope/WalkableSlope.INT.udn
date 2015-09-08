@@ -2,6 +2,7 @@ Availability: Public
 Title:Walkable Slope
 Crumbs: %ROOT%, Engine, Engine/Physics
 Description:
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
