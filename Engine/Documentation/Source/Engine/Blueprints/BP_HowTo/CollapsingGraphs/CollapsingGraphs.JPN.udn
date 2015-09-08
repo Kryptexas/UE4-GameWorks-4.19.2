@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2590930
+﻿INTSourceChangelist:2679264
 Availability:Public
 Title:グラフを折りたたむ
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,6 +6,11 @@ Description:ノードを折り畳んで新しいグラフ、関数、または�
 Related:Engine/Blueprints/UserGuide
 Related:Engine/Blueprints/UserGuide/Functions
 Related:Engine/Blueprints/UserGuide/Macros
+version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+type:howto
+order:4
 
 このページでは、**ブループリント** グラフを折り畳んで、単一のノード、**関数** または **マクロ** にするいくつかの方法について説明します。こうすることで、大きなグラフをリンク付けされたグラフに統合して整理します。 
 
@@ -24,9 +29,10 @@ Related:Engine/Blueprints/UserGuide/Macros
 1.	**左クリック** してノード上をドラッグして折り畳むすべてのノードを選択します。 
 
 	![](Collapse2.png)(w:740)
+
 	**Control + 左クリック** して選択したものに追加したり、選択したものを減らすこともできます。 
 
-1.	折り畳みたいノードがあれば、選択したノードを **右クリック** して、**Collapse Nodes** を選択します。 
+1.	折り畳みたいノードがあれば、選択したノードを **右クリック** して、**[Collapse Nodes (ノードを折り畳む)]** を選択します。 
 
 	![](Collapse3.png)
 
@@ -42,13 +48,13 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 	![](Collapse6.png)(w:740)
 
-1.	**Collapsed Graph** 内で**[詳細]** パネルから **Inputs** ノードまたは **Outputs** ノードにピンを追加することができます。 
+1.	**Collapsed Graph** 内で**[Details (詳細)]** パネルから **Inputs** ノードまたは **Outputs** ノードにピンを追加することができます。 
 
 	![](Collapse10.png)
 
-	折り畳み時にデフォルトで **Execute** が追加されます。ここでは 2 つの Execute Out Pins を追加しました。**OutOfEnergy** と **CanJump** の 2 つです。 
+	折り畳み時にデフォルトで **Execute** が追加されます。ここでは 2 つの 実行出力ピンを追加しました。**OutOfEnergy** と **CanJump** の 2 つです。 
 
-	グラフを修正して、プレイヤーが持っている全体的なエネルギーから差し引く前に、プレイヤーのエネルギーがなくなっているかをチェックするようにもしました。 
+	グラフを修正して、プレイヤーが持っている全体的なエネルギーから差し引く前に、プレイヤーがエネルギー切れしているかをチェックするようにもしました。 
 
 	![](Collapse8.png)(w:740)
 
@@ -56,7 +62,7 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 	![](Collapse9.png)(w:540)
 
-1.	折り畳まれたノード上で **右クリック** し、**Expand Node** を選択してノードを展開することができます。 
+1.	折り畳まれたノード上で **右クリック** し、**[Expand Node (ノードを展開する)]** を選択してノードを展開することができます。 
 
 	![](Collapse7.png)
 
@@ -67,7 +73,7 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 以下はノードを関数に折り畳む手順です。 
 
-1.	折り畳むノードを選択した状態で、ノード上で **右クリック** して、**Collapse to Function** を選択します。 
+1.	折り畳むノードを選択した状態で、ノード上で **右クリック** して、**[Collapse to Function (関数に折り畳む)]** を選択します。 
 
 	![](CollapseFunction1.png)(w:700)
 
@@ -85,30 +91,30 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 	![](CollapseFunction4.png)
 
-	折り畳んだグラフと同様に **Inputs** ノードまたは **Outputs** ノードをクリックして **[詳細]** パネルからピンを追加することができます。 
+	折り畳んだグラフと同様に **Inputs** ノードまたは **Outputs** ノードをクリックして **[Details (詳細)]** パネルからピンを追加することができます。 
 
-1.	指定する条件で、名前で関数を呼び出すことができます。 
+1.	指定した条件に基づいて、名前で関数を呼び出すことができます。 
 
 	![](CollapseFunction5.png)
 
 	ここでは F キーを押すと、常に **Remove Energy** 関数が呼び出されます。 
 
-1.	関数上で **右クリック** して **Expand Node** オプションを選択すると関数を展開できます。 
+1.	関数上で **右クリック** して **Expand Node** オプションを選択すると、展開操作をリバートできます。 
 
 関数の使用または呼び出しに関する詳細は、[](Engine/Blueprints/UserGuide/Functions) のドキュメントをご覧ください。 
 
 
 ## マクロに折り畳む
 
-折り畳んだグラフまたは関数に折り畳むだけでなく、ノードを **マクロ** に折り畳むこともできます。マクロの考え方として最適なのは、接続されているいくつかのノードを利用し、必要なことを何もかもオールインワンで行うひとつのノードに統合できるというものです。これは頻繁に行うこと、例えば複雑な数式がある場合に特に役立ちます。 
+折り畳んだグラフまたは関数に折り畳むだけでなく、ノードを **マクロ** に折り畳むこともできます。マクロの考え方として最適なのは、接続されているいくつかのノードを利用し、必要なことを何もかもオールインワンで行うひとつのノードに統合できるというものです。これは頻繁に行うと、複雑な数式がある場合などに非常に役立ちます。 
 
 ノードをマクロに折り畳む手順については以下をご覧ください。 
 
-1.	折り畳むノードを選択した状態で、ノード上で **右クリック** して、**Collapse to Macro** を選択します。 
+1.	折り畳むノードを選択した状態で、ノード上で **右クリック** して、**[Collapse to Macro (マクロに折り畳む)]** を選択します。 
 
 	![](CollapseMacro1.png)(w:700)
 
-1.	新規マクロが作成されます。これは **F2** を押して **MyBlueprint** ウィンドウから名前を変更できます。 
+1.	新規マクロが作成されます。これは **F2** を押して **[MyBlueprint]** ウィンドウから名前を変更できます。 
 
 	![](CollapseMacro2.png)
 
@@ -122,7 +128,7 @@ Related:Engine/Blueprints/UserGuide/Macros
 
 	![](CollapseMacro5.png)
 
-1.	マクロを **右クリック** し、**Expand Node** を選択してそのノード ネットワークを展開することができます。 
+1.	マクロを **右クリック** し、**[Expand Node]** を選択してそのノード ネットワークを展開することができます。 
 
 マクロに関する詳細は、[](Engine/Blueprints/UserGuide/Macros) のドキュメントをご覧ください。 
 
