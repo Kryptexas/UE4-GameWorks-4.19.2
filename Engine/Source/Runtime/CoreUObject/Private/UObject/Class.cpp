@@ -4525,6 +4525,74 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateFunction, UFunction,
 	}
 );
 
+/*-----------------------------------------------------------------------------
+UDynamicClass constructors.
+-----------------------------------------------------------------------------*/
+
+/**
+* Internal constructor.
+*/
+UDynamicClass::UDynamicClass(const FObjectInitializer& ObjectInitializer)
+: UClass(ObjectInitializer)
+{
+	// If you add properties here, please update the other constructors and PurgeClass()
+}
+
+/**
+* Create a new UDynamicClass given its superclass.
+*/
+UDynamicClass::UDynamicClass(const FObjectInitializer& ObjectInitializer, UClass* InBaseClass)
+: UClass(ObjectInitializer, InBaseClass)
+{
+}
+
+/**
+* Called when dynamically linked.
+*/
+UDynamicClass::UDynamicClass(
+	EStaticConstructor,
+	FName			InName,
+	uint32			InSize,
+	uint32			InClassFlags,
+	EClassCastFlags	InClassCastFlags,
+	const TCHAR*    InConfigName,
+	EObjectFlags	InFlags,
+	ClassConstructorType InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+	ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+	ClassAddReferencedObjectsType InClassAddReferencedObjects)
+: UClass(
+  EC_StaticConstructor
+, InName
+, InSize
+, InClassFlags
+, InClassCastFlags
+, InConfigName
+, InFlags
+, InClassConstructor
+#if WITH_HOT_RELOAD_CTORS
+, InClassVTableHelperCtorCaller
+#endif // WITH_HOT_RELOAD_CTORS
+, InClassAddReferencedObjects)
+{
+}
+
+void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+	UClass* This = CastChecked<UDynamicClass>(InThis);
+
+	//Collector.AddReferencedObjects(This->ConvertedSubobjectsFromBPGC, This);
+
+	Super::AddReferencedObjects(This, Collector);
+}
+
+
+IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
+{
+	Class->ClassAddReferencedObjects = &UDynamicClass::AddReferencedObjects;
+}
+);
 
 #if _MSC_VER == 1900
 	#ifdef PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
