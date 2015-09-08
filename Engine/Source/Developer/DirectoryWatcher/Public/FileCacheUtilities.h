@@ -7,6 +7,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogFileCache, Log, All);
 namespace DirectoryWatcher
 {
 
+/** Helper method to determine whether filename matches expected extensions */
+bool MatchExtensionString(const TCHAR* Filename, const TCHAR* Extensions);
+
 /** An immutable string with a cached CRC for efficient comparison with other strings */
 struct FImmutableString
 {
