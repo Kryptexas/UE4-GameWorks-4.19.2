@@ -715,6 +715,7 @@ void FBuildPatchAppManifest::InitLookups()
 	// Setup internals
 	TotalBuildSize = 0;
 	FileManifestLookup.Empty(Data->FileManifestList.Num());
+	TaggedFilesLookup.Empty();
 	FileNameLookup.Empty(Data->bIsFileData ? Data->FileManifestList.Num() : 0);
 	for (auto& File : Data->FileManifestList)
 	{
@@ -725,6 +726,19 @@ void FBuildPatchAppManifest::InitLookups()
 		{
 			// File data chunk parts should have been checked already
 			FileNameLookup.Add(File.FileChunkParts[0].Guid, &File.Filename);
+		}
+		if (File.InstallTags.Num() == 0)
+		{
+			// Untagged files are required
+			TaggedFilesLookup.FindOrAdd(TEXT("")).Add(&File);
+		}
+		else
+		{
+			// Fill out lookup for optional files
+			for (auto& FileTag : File.InstallTags)
+			{
+				TaggedFilesLookup.FindOrAdd(FileTag).Add(&File);
+			}
 		}
 	}
 	TotalDownloadSize = 0;
@@ -1171,6 +1185,9 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 	// Mark as should be re-saved, client that stores manifests should start using binary
 	bNeedsResaving = true;
 
+	// Setup internal lookups
+	InitLookups();
+
 	// Make sure we don't have any half loaded data
 	if( !bSuccess )
 	{
@@ -1282,6 +1299,28 @@ uint32 FBuildPatchAppManifest::GetNumFiles() const
 void FBuildPatchAppManifest::GetFileList(TArray<FString>& Filenames) const
 {
 	FileManifestLookup.GetKeys(Filenames);
+}
+
+void FBuildPatchAppManifest::GetFileTagList(TSet<FString>& Tags) const
+{
+	TArray<FString> TagsArray;
+	TaggedFilesLookup.GetKeys(TagsArray);
+	Tags.Append(MoveTemp(TagsArray));
+}
+
+void FBuildPatchAppManifest::GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const
+{
+	for (auto& Tag : Tags)
+	{
+		auto* Files = TaggedFilesLookup.Find(Tag);
+		if (Files != nullptr)
+		{
+			for (auto& File : *Files)
+			{
+				TaggedFiles.Add(File->Filename);
+			}
+		}
+	}
 }
 
 void FBuildPatchAppManifest::GetDataList(TArray<FGuid>& DataGuids) const
@@ -1640,12 +1679,14 @@ bool FBuildPatchAppManifest::NeedsResaving() const
 	return bNeedsResaving;
 }
 
-void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TArray< FString >& OutDatedFiles)
+void FBuildPatchAppManifest::GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TSet< FString >& OutDatedFiles)
 {
 	if (!OldManifest.IsValid())
 	{
 		// All files are outdated if no OldManifest
-		NewManifest->FileManifestLookup.GetKeys(OutDatedFiles);
+		TArray<FString> Filenames;
+		NewManifest->FileManifestLookup.GetKeys(Filenames);
+		OutDatedFiles.Append(MoveTemp(Filenames));
 	}
 	else
 	{

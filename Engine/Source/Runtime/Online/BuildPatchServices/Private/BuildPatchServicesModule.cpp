@@ -126,7 +126,7 @@ bool FBuildPatchServicesModule::SaveManifestToFile(const FString& Filename, IBui
 	return StaticCastSharedRef< FBuildPatchAppManifest >(Manifest)->SaveToFile(Filename, bUseBinary);
 }
 
-IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate )
+IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate, TSet<FString> InstallTags)
 {
 	// Using a local bool for this check will improve the assert message that gets displayed
 	const bool bIsCalledFromMainThread = IsInGameThread();
@@ -148,11 +148,14 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestP
 	// Make sure the http wrapper is already created
 	FBuildPatchHTTP::Initialize();
 	// Run the install thread
-	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, false ) ) );
-	return BuildPatchInstallers.Top();
+	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, false));
+	Installer->SetRequiredInstallTags(InstallTags);
+	Installer->StartInstallation();
+	BuildPatchInstallers.Add(Installer);
+	return Installer;
 }
 
-IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate)
+IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate, TSet<FString> InstallTags)
 {
 	// Using a local bool for this check will improve the assert message that gets displayed
 	const bool bIsCalledFromMainThread = IsInGameThread();
@@ -168,8 +171,11 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildM
 	// Make sure the http wrapper is already created
 	FBuildPatchHTTP::Initialize();
 	// Run the install thread
-	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, true ) ) );
-	return BuildPatchInstallers.Top();
+	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, true));
+	Installer->SetRequiredInstallTags(InstallTags);
+	Installer->StartInstallation();
+	BuildPatchInstallers.Add(Installer);
+	return Installer;
 }
 
 bool FBuildPatchServicesModule::Tick( float Delta )

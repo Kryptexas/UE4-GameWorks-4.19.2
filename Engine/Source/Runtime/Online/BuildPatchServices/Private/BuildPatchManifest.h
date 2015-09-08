@@ -491,7 +491,20 @@ public:
 	 * Get the list of files described by this manifest
 	 * @param Filenames		OUT		Receives the array of files.
 	 */
-	void GetFileList(TArray< FString >& Filenames) const;
+	void GetFileList(TArray<FString>& Filenames) const;
+
+	/**
+	 * Get the list of install tags in this manifest
+	 * @param Tags			OUT		Receives the tags referenced.
+	 */
+	void GetFileTagList(TSet<FString>& Tags) const;
+
+	/**
+	 * Get the list of files that are tagged with the provided tags
+	 * @param Tags					The tags for the required file groups.
+	 * @param TaggedFiles	OUT		Receives the tagged files.
+	 */
+	void GetTaggedFileList(const TSet<FString>& Tags, TSet<FString>& TaggedFiles) const;
 
 	/**
 	* Get the list of Guids for all files described by this manifest
@@ -573,9 +586,9 @@ public:
 	 * @param OldManifest		IN		The Build Manifest that is currently installed. Shared Ptr - Can be invalid.
 	 * @param NewManifest		IN		The Build Manifest that is being patched to. Shared Ref - Implicitly valid.
 	 * @param InstallDirectory	IN		The Build installation directory, so that it can be checked for missing files.
-	 * @param OutDatedFiles		OUT		The array of files that do not match or are new.
+	 * @param OutDatedFiles		OUT		The files that changed hash, are new, are wrong size, or missing on disk.
 	 */
-	static void GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TArray< FString >& OutDatedFiles);
+	static void GetOutdatedFiles(FBuildPatchAppManifestPtr OldManifest, FBuildPatchAppManifestRef NewManifest, const FString& InstallDirectory, TSet<FString>& OutDatedFiles);
 
 	/**
 	 * Check a single file to see if it will be effected by patching
@@ -624,6 +637,7 @@ private:
 	/** Some lookups to optimize data access */
 	TMap<FGuid, FString*> FileNameLookup;
 	TMap<FString, FFileManifestData*> FileManifestLookup;
+	TMap<FString, TArray<FFileManifestData*>> TaggedFilesLookup;
 	TMap<FGuid, FChunkInfoData*> ChunkInfoLookup;
 	TMap<FString, FCustomFieldData*> CustomFieldLookup;
 

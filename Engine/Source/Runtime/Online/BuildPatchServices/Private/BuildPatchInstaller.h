@@ -94,7 +94,13 @@ private:
 	double TimePausedAt;
 
 	// Holds a list of files that have been placed into the install directory
-	TArray< FString > FilesInstalled;
+	TArray<FString> FilesInstalled;
+
+	// Holds the install tags for describing the files we want to install
+	TSet<FString> InstallTags;
+
+	// Holds the files which are all required
+	TSet<FString> TaggedFiles;
 
 	// Referecne to the module's installation info
 	FBuildPatchInstallationInfo& InstallationInfo;
@@ -142,6 +148,21 @@ public:
 	virtual void CancelInstall() override;
 	virtual bool TogglePauseInstall() override;
 	// End IBuildInstaller interface
+
+	/**
+	 * Set the list of install tags to be installed. Only files which are tagged with one of these will be installed. Untagged files are always installed.
+	 * Special cases:
+	 *      Providing an empty set will result in every file being installed.
+	 *      Providing a set with a single empty string entry, is minimal install, defined by only untagged files.
+	 * @return true if the new set was accepted. false can be returned if the installation is already running, or the set contained a tag not present on the install manifest.
+	 */
+	bool SetRequiredInstallTags(const TSet<FString>& Tags);
+
+	/**
+	 * Begin the installation process
+	 * @return true if the installation started successfully, or is already running
+	 */
+	bool StartInstallation();
 
 	/**
 	 * Executes the on complete delegate. This should only be called when completed, and is separated out
