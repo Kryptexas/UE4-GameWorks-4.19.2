@@ -401,10 +401,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		}
 	}
 
-	// update weight before all nodes update comes in
-	// when native update animation for single node, it needs to know latest weight of montage
-	Montage_UpdateWeight(DeltaSeconds);
-
 	{
 		SCOPE_CYCLE_COUNTER(STAT_NativeUpdateAnimation);
 		NativeUpdateAnimation(DeltaSeconds);
@@ -413,6 +409,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		SCOPE_CYCLE_COUNTER(STAT_BlueprintUpdateAnimation);
 		BlueprintUpdateAnimation(DeltaSeconds);
 	}
+
+	Montage_UpdateWeight(DeltaSeconds);
 
 	// Update the anim graph
 	if (RootNode != NULL)
@@ -1433,7 +1431,8 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 	out_SourceWeight = 1.f - NonAdditiveTotalWeight;
 }
 
-#define DEBUG_MONTAGEINSTANCE_WEIGHT 1
+// for now disable becauase it will not work with single node instance
+#define DEBUG_MONTAGEINSTANCE_WEIGHT 0
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define DEBUG_MONTAGEINSTANCE_WEIGHT 0
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
