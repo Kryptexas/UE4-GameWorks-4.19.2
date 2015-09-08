@@ -3,7 +3,7 @@
 
 #include "GeometryCache.h"
 #include "AssetTypeActions_Base.h"
-#include "SceneThumbnailInfo.h"
+#include "Classes/ThumbnailRendering/SceneThumbnailInfo.h"
 
 /** Type-actions class for GeometryCache assets*/
 class FAssetTypeActions_GeometryCache : public FAssetTypeActions_Base
