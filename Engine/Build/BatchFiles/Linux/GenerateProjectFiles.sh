@@ -21,7 +21,7 @@ echo
 set -x
 xbuild Source/Programs/UnrealBuildTool/UnrealBuildTool.csproj \
   /verbosity:quiet /nologo \
-  /p:TargetFrameworkVersion=v4.0 \
+  /p:TargetFrameworkVersion=v4.5 \
   /p:Configuration="Development"
 
 # pass all parameters to UBT
