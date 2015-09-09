@@ -177,8 +177,8 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 	// Larger values result in a shorter transition distance
 	float TransitionScale = 6;
 	// Setup a 3d lerp factor going to 0 at the edge of the inner volume
-	float3 LerpFactors = saturate((.5f - abs(InnerVolumeUVs - .5f)) * TransitionScale);
-	float FinalLerpFactor = LerpFactors.x * LerpFactors.y * LerpFactors.z;
+	float3 InnerLerpFactors = saturate((.5f - abs(InnerVolumeUVs - .5f)) * TransitionScale);
+	float InnerLerpFactor = InnerLerpFactors.x * InnerLerpFactors.y * InnerLerpFactors.z;
 
 	#if TRANSLUCENCY_LIGHTING_VOLUMETRIC_DIRECTIONAL || TRANSLUCENCY_LIGHTING_SURFACE
 
@@ -192,8 +192,8 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 
 		// Lerp between cascades
 		// Increase the directional coefficients and attenuate the ambient coefficient based on a tweaked value
-		float4 Vector0 = lerp(OuterVector0, InnerVector0, FinalLerpFactor) / DirectionalLightingIntensity;
-		float3 Vector1 = lerp(OuterVector1, InnerVector1, FinalLerpFactor) * DirectionalLightingIntensity;
+		float4 Vector0 = lerp(OuterVector0, InnerVector0, InnerLerpFactor) / DirectionalLightingIntensity;
+		float3 Vector1 = lerp(OuterVector1, InnerVector1, InnerLerpFactor) * DirectionalLightingIntensity;
 
 		// Reconstruct the SH coefficients based on what was encoded
 		FTwoBandSHVectorRGB TranslucentLighting;
@@ -219,8 +219,8 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		float4 OuterLighting = Texture3DSampleLevel(TranslucencyLightingVolumeAmbientOuter, TranslucencyLightingVolumeAmbientOuterSampler, OuterVolumeUVs, 0);
 
 		// Lerp between cascades
-		float4 Vector0 = lerp(OuterLighting, InnerLighting, FinalLerpFactor);
-		
+		float4 Vector0 = lerp(OuterLighting, InnerLighting, InnerLerpFactor);
+
 		// Normal is not taken into account with non directional lighting, and only the ambient term of the SH coefficients are needed
 		FOneBandSHVectorRGB TranslucentLighting;
 		TranslucentLighting.R.V.x = Vector0.r;
@@ -244,6 +244,19 @@ float3 GetTranslucencyLighting(FMaterialPixelParameters MaterialParameters, floa
 		// Only apply self shadowing if the shadow hasn't faded out completely
 		if (DirectionalLightColor.a > 0)
 		{
+			// fade volume contribution to not get tiling content outside
+			{
+				// Setup a 3d lerp factor going to 0 at the edge of the outer volume
+				// maybe we can replace this with a border color but some hardware doesn't support a float border color
+				float3 OuterLerpFactors = saturate((.5f - abs(OuterVolumeUVs - .5f)) * TransitionScale);
+				float OuterLerpFactor = OuterLerpFactors.x * OuterLerpFactors.y * OuterLerpFactors.z;
+
+				// 0..1, 0:fully shadowed, 1:fully unshadowed
+				const float VisibilityOutside = 1;
+
+				VolumeLighting = lerp(float4(DirectionalLightColor.rgb, VisibilityOutside), VolumeLighting, OuterLerpFactor);
+			}
+
 			// Determine the shadow space position
 			// Apply a stable offset to the world position used for shadowing, which blurs out high frequency details in the shadowmap with many layers
 			float4 HomogeneousShadowPosition = mul(float4(MaterialParameters.WorldPosition + MaterialParameters.LightingPositionOffset, 1), WorldToShadowMatrix);
