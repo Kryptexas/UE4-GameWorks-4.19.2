@@ -872,9 +872,12 @@ void FRawDistributionFloat::Initialize()
 		}
 		bNeedsUpdating = true;
 	}
-
 	// only initialize if we need to
 	if (!bNeedsUpdating)
+	{
+		return;
+	}
+	if (!GIsEditor && !IsInGameThread() && !IsInAsyncLoadingThread())
 	{
 		return;
 	}
