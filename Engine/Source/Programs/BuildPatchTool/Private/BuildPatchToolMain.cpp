@@ -35,7 +35,7 @@
 	-PrereqName=""			Specifies in quotes, the display name for the prerequisites installer
 	-PrereqPath=""			Specifies in quotes, the prerequisites installer to launch on successful product install
 	-PrereqArgs=""			Specifies in quotes, the commandline to send to prerequisites installer on launch
-	-DataAgeThreshold=12.5	Specified the maximum age (in days) of existing patch data which can be reused in the generated manifest
+	-DataAgeThreshold=12.5	Specified the maximum age (in days) of existing manifest files whose referenced patch data can be reused in the generated manifest
 
 	NB: -DataAgeThreshold can also be present in the [PatchGeneration] section of BuildPatchTool.ini in the cloud directory
 	NB: If -DataAgeThreshold is not supplied, either on the command-line or in BuildPatchTool.ini, then all existing data is eligible for reuse in the generated manifest
@@ -59,7 +59,7 @@
 	-preview			Log all the actions it will take to update internal structures, but don't actually execute them.
 	-ManifestsList=""			Specifies in quotes, the list of manifest filenames to keep following the operation. If omitted, all manifests are kept.
 	-ManifestsFile=""			Specifies in quotes, the name of the file (relative to CloudDir) which contains a list of manifests to keep, one manifest filename per line
-	-DataAgeThreshold=14.25		The maximum age in days of chunk files that will be retained. All older chunks will be deleted.
+	-DataAgeThreshold=2			The minimum age in days of chunk files that will be deleted. Any unreferenced chunks older than this will be deleted.
 
 	NB: If -ManifestsList is specified, then -ManifestsFile is ignored.
 	NB: -DataAgeThreshold can also be present in the [Compactify] section of BuildPatchTool.ini in the cloud directory

@@ -168,13 +168,12 @@ void FBuildDataFileProcessor::GetFileStats( uint32& OutNewFiles, uint32& OutKnow
 
 /* FBuildSimpleChunkCache::FChunkReader implementation
 *****************************************************************************/
-FBuildGenerationChunkCache::FChunkReader::FChunkReader( const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead, const FDateTime& InDataAgeThreshold )
+FBuildGenerationChunkCache::FChunkReader::FChunkReader(const FString& InChunkFilePath, TSharedRef< FChunkFile > InChunkFile, uint32* InBytesRead)
 	: ChunkFilePath( InChunkFilePath )
 	, ChunkFileReader( NULL )
 	, ChunkFile( InChunkFile )
 	, FileBytesRead( InBytesRead )
 	, MemoryBytesRead( 0 )
-	, DataAgeThreshold( InDataAgeThreshold )
 {
 	ChunkFile->GetDataLock( &ChunkData, &ChunkHeader );
 }
@@ -209,13 +208,6 @@ FArchive* FBuildGenerationChunkCache::FChunkReader::GetArchive()
 		if( ChunkHeader->Guid.IsValid() == false )
 		{
 			*ChunkFileReader << *ChunkHeader;
-		}
-		// Check the file is not too old to reuse
-		if (IFileManager::Get().GetTimeStamp(*ChunkFilePath) < DataAgeThreshold)
-		{
-			// Break the magic to mark as invalid (this chunk is too old to reuse)
-			ChunkHeader->Magic = 0;
-			return ChunkFileReader;
 		}
 		// Check we can seek otherwise bad chunk
 		const int64 ExpectedFileSize = ChunkHeader->DataSize + ChunkHeader->HeaderSize;
@@ -330,9 +322,8 @@ const uint32 FBuildGenerationChunkCache::FChunkReader::BytesLeft()
 
 /* FBuildGenerationChunkCache implementation
 *****************************************************************************/
-FBuildGenerationChunkCache::FBuildGenerationChunkCache(const FDateTime& InDataAgeThreshold)
-	: DataAgeThreshold(InDataAgeThreshold)
-	, StatChunksInDataCache(nullptr)
+FBuildGenerationChunkCache::FBuildGenerationChunkCache()
+	: StatChunksInDataCache(nullptr)
 	, StatNumCacheLoads(nullptr)
 	, StatNumCacheBoots(nullptr)
 {
@@ -389,7 +380,7 @@ TSharedRef< FBuildGenerationChunkCache::FChunkReader > FBuildGenerationChunkCach
 			FStatsCollector::Accumulate(StatNumCacheLoads, 1);
 		}
 	}
-	return MakeShareable( new FChunkReader( ChunkFilePath, ChunkCache[ ChunkFilePath ], BytesReadPerChunk[ ChunkFilePath ], DataAgeThreshold ) );
+	return MakeShareable( new FChunkReader(ChunkFilePath, ChunkCache[ ChunkFilePath ], BytesReadPerChunk[ ChunkFilePath ]) );
 }
 
 void FBuildGenerationChunkCache::Cleanup()
@@ -410,11 +401,11 @@ void FBuildGenerationChunkCache::Cleanup()
 *****************************************************************************/
 TSharedPtr< FBuildGenerationChunkCache > FBuildGenerationChunkCache::SingletonInstance = NULL;
 
-void FBuildGenerationChunkCache::Init(const FDateTime& DataAgeThreshold)
+void FBuildGenerationChunkCache::Init()
 {
 	// We won't allow misuse of these functions
 	check( !SingletonInstance.IsValid() );
-	SingletonInstance = MakeShareable(new FBuildGenerationChunkCache(DataAgeThreshold));
+	SingletonInstance = MakeShareable(new FBuildGenerationChunkCache());
 }
 
 FBuildGenerationChunkCache& FBuildGenerationChunkCache::Get()
@@ -499,7 +490,8 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	FStatsCollectorRef StatsCollector = FStatsCollectorFactory::Create();
 
 	// Enumerate Chunks
-	FCloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(FBuildPatchServicesModule::GetCloudDirectory());
+	const FDateTime Cutoff = Settings.bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(Settings.DataAgeThreshold) : FDateTime::MinValue();
+	FCloudEnumerationRef CloudEnumeration = FCloudEnumerationFactory::Create(FBuildPatchServicesModule::GetCloudDirectory(), Cutoff);
 
 	// Force waiting on cloud enumeration for more accurate stats, this line can be removed when stats are not required.
 	CloudEnumeration->GetChunkInventory();
@@ -514,8 +506,7 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	GLog->Logf(TEXT("Running Chunks Patch Generation for: %u:%s %s"), Settings.AppID, *Settings.AppName, *Settings.BuildVersion);
 
 	// Create our chunk cache
-	const FDateTime Cutoff = Settings.bShouldHonorReuseThreshold ? FDateTime::UtcNow() - FTimespan::FromDays(Settings.DataAgeThreshold) : FDateTime::MinValue();
-	FBuildGenerationChunkCache::Init(Cutoff);
+	FBuildGenerationChunkCache::Init();
 	FBuildGenerationChunkCache::Get().SetStatsCollector(StatsCollector);
 
 	// Create the manifest builder
