@@ -14,12 +14,7 @@
 UActorAnimationFactoryNew::UActorAnimationFactoryNew(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.
-	if (FParse::Param(FCommandLine::Get(), TEXT("Sequencer")))
-	{
-		bCreateNew = true;
-	}
-
+	bCreateNew = true;
 	bEditAfterNew = true;
 	SupportedClass = UActorAnimation::StaticClass();
 }
@@ -39,12 +34,6 @@ UObject* UActorAnimationFactoryNew::FactoryCreateNew(UClass* Class, UObject* InP
 
 bool UActorAnimationFactoryNew::ShouldShowInNewMenu() const
 {
-	// @todo sequencer: Only allow users to create new MovieScenes if that feature is turned on globally.
-	if (!FParse::Param(FCommandLine::Get(), TEXT("Sequencer")))
-	{
-		return false;
-	}
-
 	return true;
 }
 

@@ -750,9 +750,9 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 				WorldBrowserModule.CreateWorldBrowserComposition()
 			];
 	}
-	else if( TabIdentifier == TEXT("Sequencer") && FParse::Param(FCommandLine::Get(), TEXT("sequencer")) )
+	else if( TabIdentifier == TEXT("Sequencer") )
 	{
-		// @todo remove when world-centric mode is added
+		// @todo sequencer: remove when world-centric mode is added
 		SequencerTab = SNew(SDockTab)
 			.Icon( FSlateStyleRegistry::FindSlateStyle("ActorAnimationEditorStyle")->GetBrush("ActorAnimationEditor.Tabs.Sequencer") )
 			.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
