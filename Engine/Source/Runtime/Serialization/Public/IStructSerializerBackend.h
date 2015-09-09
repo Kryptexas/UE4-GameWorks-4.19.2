@@ -16,6 +16,12 @@ struct FStructSerializerState
 	/** Holds a flag indicating whether the property has been processed. */
 	bool HasBeenProcessed;
 
+	/** Holds a pointer to the key property's data. */
+	const void* KeyData;
+
+	/** Holds the key property's meta data (only used for TMap). */
+	UProperty* KeyProperty;
+
 	/** Holds a pointer to the property value's data. */
 	const void* ValueData;
 
@@ -45,6 +51,13 @@ public:
 	virtual void BeginArray(const FStructSerializerState& State) = 0;
 
 	/**
+	 * Signals the beginning of a dictionary.
+	 *
+	 * @param Property The property that holds the dictionary.
+	 */
+	virtual void BeginDictionary(const FStructSerializerState& State) = 0;
+
+	/**
 	 * Signals the beginning of a child structure.
 	 *
 	 * State.ValueProperty points to the property that holds the struct.
@@ -63,6 +76,13 @@ public:
 	 * @see BeginArray, EndStructure
 	 */
 	virtual void EndArray(const FStructSerializerState& State) = 0;
+
+	/**
+	 * Signals the end of a dictionary.
+	 *
+	 * @param Property The property that holds the dictionary.
+	 */
+	virtual void EndDictionary(const FStructSerializerState& State) = 0;
 
 	/**
 	 * Signals the end of an object.
@@ -87,6 +107,8 @@ public:
 	 *
 	 * Depending on the context, properties to be written can be either object properties or array elements.
 	 *
+	 * State.KeyProperty points to the key property that holds the data to write.
+	 * State.KeyData points to the key property's data.
 	 * State.ValueProperty points to the property that holds the value to write.
 	 * State.ValueData points to the actual data to write.
 	 * State.TypeInfo contains the data's type information

@@ -204,6 +204,37 @@ struct FStructSerializerArrayTestStruct
 
 
 /**
+ * Test structure for map properties.
+ */
+USTRUCT()
+struct FStructSerializerMapTestStruct
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+	TMap<int32, FString> IntToString;
+
+	UPROPERTY()
+	TMap<FString, FVector> StringToVector;
+
+	/** Default constructor. */
+	FStructSerializerMapTestStruct()
+	{
+		IntToString.Add(1, TEXT("One"));
+		IntToString.Add(2, TEXT("Two"));
+		IntToString.Add(3, TEXT("Three"));
+
+		StringToVector.Add(TEXT("Vector000"), FVector(0.0f, 0.0f, 0.0f));
+		StringToVector.Add(TEXT("Vector123"), FVector(1.0f, 2.0f, 3.0f));
+		StringToVector.Add(TEXT("Vector666"), FVector(6.0f, 6.0f, 6.0f));
+	}
+
+	/** Creates an uninitialized instance. */
+	FStructSerializerMapTestStruct( ENoInit ) { }
+};
+
+
+/**
  * Test structure for all supported types.
  */
 USTRUCT()
@@ -226,6 +257,9 @@ struct FStructSerializerTestStruct
 	UPROPERTY()
 	FStructSerializerArrayTestStruct Arrays;
 
+	UPROPERTY()
+	FStructSerializerMapTestStruct Maps;
+
 	/** Default constructor. */
 	FStructSerializerTestStruct() { }
 
@@ -236,5 +270,6 @@ struct FStructSerializerTestStruct
 		, Objects(NoInit)
 		, Builtins(NoInit)
 		, Arrays(NoInit)
+		, Maps(NoInit)
 	{ }
 };

@@ -3,17 +3,18 @@
 #include "WebBrowserPrivatePCH.h"
 #include "WebJSStructSerializerBackend.h"
 
+
 #if WITH_CEF3
 
 /* Private methods
  *****************************************************************************/
 
-void FWebJSStructSerializerBackend::AddNull(UProperty* Property)
+void FWebJSStructSerializerBackend::AddNull(const FStructSerializerState& State)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetNull(*Property->GetName());
+			Current.DictionaryValue->SetNull(*State.ValueProperty->GetName());
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetNull(Current.ListValue->GetSize());
@@ -21,12 +22,13 @@ void FWebJSStructSerializerBackend::AddNull(UProperty* Property)
 	}
 }
 
-void FWebJSStructSerializerBackend::Add(UProperty* Property, bool Value)
+
+void FWebJSStructSerializerBackend::Add(const FStructSerializerState& State, bool Value)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetBool(*Property->GetName(), Value);
+			Current.DictionaryValue->SetBool(*State.ValueProperty->GetName(), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetBool(Current.ListValue->GetSize(), Value);
@@ -34,12 +36,13 @@ void FWebJSStructSerializerBackend::Add(UProperty* Property, bool Value)
 	}
 }
 
-void FWebJSStructSerializerBackend::Add(UProperty* Property, int32 Value)
+
+void FWebJSStructSerializerBackend::Add(const FStructSerializerState& State, int32 Value)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetInt(*Property->GetName(), Value);
+			Current.DictionaryValue->SetInt(*State.ValueProperty->GetName(), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetInt(Current.ListValue->GetSize(), Value);
@@ -47,12 +50,13 @@ void FWebJSStructSerializerBackend::Add(UProperty* Property, int32 Value)
 	}
 }
 
-void FWebJSStructSerializerBackend::Add(UProperty* Property, double Value)
+
+void FWebJSStructSerializerBackend::Add(const FStructSerializerState& State, double Value)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetDouble(*Property->GetName(), Value);
+			Current.DictionaryValue->SetDouble(*State.ValueProperty->GetName(), Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetDouble(Current.ListValue->GetSize(), Value);
@@ -60,12 +64,13 @@ void FWebJSStructSerializerBackend::Add(UProperty* Property, double Value)
 	}
 }
 
-void FWebJSStructSerializerBackend::Add(UProperty* Property, FString Value)
+
+void FWebJSStructSerializerBackend::Add(const FStructSerializerState& State, FString Value)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetString(*Property->GetName(), *Value);
+			Current.DictionaryValue->SetString(*State.ValueProperty->GetName(), *Value);
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetString(Current.ListValue->GetSize(), *Value);
@@ -73,18 +78,20 @@ void FWebJSStructSerializerBackend::Add(UProperty* Property, FString Value)
 	}
 }
 
-void FWebJSStructSerializerBackend::Add(UProperty* Property, UObject* Value)
+
+void FWebJSStructSerializerBackend::Add(const FStructSerializerState& State, UObject* Value)
 {
 	StackItem& Current = Stack.Top();
 	switch (Current.Kind) {
 		case StackItem::STYPE_DICTIONARY:
-			Current.DictionaryValue->SetDictionary(*Property->GetName(), Scripting->ConvertObject(Value));
+			Current.DictionaryValue->SetDictionary(*State.ValueProperty->GetName(), Scripting->ConvertObject(Value));
 			break;
 		case StackItem::STYPE_LIST:
 			Current.ListValue->SetDictionary(Current.ListValue->GetSize(), Scripting->ConvertObject(Value));
 		break;
 	}
 }
+
 
 /* IStructSerializerBackend interface
  *****************************************************************************/
@@ -95,9 +102,25 @@ void FWebJSStructSerializerBackend::BeginArray(const FStructSerializerState& Sta
 	Stack.Push(StackItem(State.ValueProperty->GetName(), ListValue));
 }
 
+
+void FWebJSStructSerializerBackend::BeginDictionary(const FStructSerializerState& State)
+{
+	CefRefPtr<CefDictionaryValue> DictionaryValue = CefDictionaryValue::Create();
+	Stack.Push(StackItem(State.ValueProperty->GetName(), DictionaryValue));
+}
+
+
 void FWebJSStructSerializerBackend::BeginStructure(const FStructSerializerState& State)
 {
-	if (State.ValueProperty != nullptr)
+	if (State.KeyProperty != nullptr)
+	{
+		FString KeyString;
+		State.KeyProperty->ExportTextItem(KeyString, State.KeyData, nullptr, nullptr, PPF_None);
+
+		CefRefPtr<CefDictionaryValue> DictionaryValue = CefDictionaryValue::Create();
+		Stack.Push(StackItem(KeyString, DictionaryValue));
+	}
+	else if (State.ValueProperty != nullptr)
 	{
 		CefRefPtr<CefDictionaryValue> DictionaryValue = CefDictionaryValue::Create();
 		Stack.Push(StackItem(State.ValueProperty->GetName(), DictionaryValue));
@@ -108,6 +131,7 @@ void FWebJSStructSerializerBackend::BeginStructure(const FStructSerializerState&
 		Stack.Push(StackItem(FString(), Result));
 	}
 }
+
 
 void FWebJSStructSerializerBackend::EndArray(const FStructSerializerState& /*State*/)
 {
@@ -124,6 +148,12 @@ void FWebJSStructSerializerBackend::EndArray(const FStructSerializerState& /*Sta
 			Current.ListValue->SetList(Current.ListValue->GetSize(), Previous.ListValue);
 		break;
 	}
+}
+
+
+void FWebJSStructSerializerBackend::EndDictionary(const FStructSerializerState& State)
+{
+	EndStructure(State);
 }
 
 
@@ -160,11 +190,10 @@ void FWebJSStructSerializerBackend::WriteComment(const FString& Comment)
 
 void FWebJSStructSerializerBackend::WriteProperty(const FStructSerializerState& State, int32 ArrayIndex)
 {
-
 	// booleans
 	if (State.ValueType == UBoolProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UBoolProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, Cast<UBoolProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// unsigned bytes & enumerations
@@ -174,78 +203,78 @@ void FWebJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 
 		if (ByteProperty->IsEnum())
 		{
-			Add(State.ValueProperty, ByteProperty->Enum->GetEnumName(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
+			Add(State, ByteProperty->Enum->GetEnumName(ByteProperty->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)));
 		}
 		else
 		{
-			Add(State.ValueProperty, (double)Cast<UByteProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+			Add(State, (double)Cast<UByteProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 		}			
 	}
 
 	// floating point numbers
 	else if (State.ValueType == UDoubleProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UDoubleProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, Cast<UDoubleProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UFloatProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UFloatProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, Cast<UFloatProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// signed integers
 	else if (State.ValueType == UIntProperty::StaticClass())
 	{
-		Add(State.ValueProperty, (int32)Cast<UIntProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)Cast<UIntProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt8Property::StaticClass())
 	{
-		Add(State.ValueProperty, (int32)Cast<UInt8Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)Cast<UInt8Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt16Property::StaticClass())
 	{
-		Add(State.ValueProperty, (int32)Cast<UInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)Cast<UInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UInt64Property::StaticClass())
 	{
-		Add(State.ValueProperty, (double)Cast<UInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)Cast<UInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// unsigned integers
 	else if (State.ValueType == UUInt16Property::StaticClass())
 	{
-		Add(State.ValueProperty, (int32)Cast<UUInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (int32)Cast<UUInt16Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UUInt32Property::StaticClass())
 	{
-		Add(State.ValueProperty, (double)Cast<UUInt32Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)Cast<UUInt32Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UUInt64Property::StaticClass())
 	{
-		Add(State.ValueProperty, (double)Cast<UUInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, (double)Cast<UUInt64Property>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 
 	// names & strings
 	else if (State.ValueType == UNameProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UNameProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
+		Add(State, Cast<UNameProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
 	}
 	else if (State.ValueType == UStrProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UStrProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, Cast<UStrProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	else if (State.ValueType == UTextProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
+		Add(State, Cast<UTextProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex).ToString());
 	}
 
 	// classes & objects
 	else if (State.ValueType == UClassProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UClassProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)->GetPathName());
+		Add(State, Cast<UClassProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex)->GetPathName());
 	}
 	else if (State.ValueType == UObjectProperty::StaticClass())
 	{
-		Add(State.ValueProperty, Cast<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
+		Add(State, Cast<UObjectProperty>(State.ValueProperty)->GetPropertyValue_InContainer(State.ValueData, ArrayIndex));
 	}
 	
 	// unsupported property type
@@ -254,5 +283,6 @@ void FWebJSStructSerializerBackend::WriteProperty(const FStructSerializerState& 
 		GLog->Logf(ELogVerbosity::Warning, TEXT("FWebJSStructSerializerBackend: Property %s cannot be serialized, because its type (%s) is not supported"), *State.ValueProperty->GetName(), *State.ValueType->GetName());
 	}
 }
+
 
 #endif

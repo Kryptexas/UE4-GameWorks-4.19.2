@@ -61,6 +61,8 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 		FStructSerializerState NewState;
 		{
 			NewState.HasBeenProcessed = false;
+			NewState.KeyData = nullptr;
+			NewState.KeyProperty = nullptr;
 			NewState.ValueData = Struct;
 			NewState.ValueProperty = nullptr;
 			NewState.ValueType = &TypeInfo;
@@ -79,7 +81,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 		{
 			if (!CurrentState.HasBeenProcessed)
 			{
-				const void* NewData = CurrentState.ValueData;
+				const void* ValueData = CurrentState.ValueData;
 
 				// write object start
 				if (CurrentState.ValueProperty != nullptr)
@@ -88,7 +90,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 
 					if ((Outer == nullptr) || (Outer->GetClass() != UArrayProperty::StaticClass()))
 					{
-						NewData = CurrentState.ValueProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData);
+						ValueData = CurrentState.ValueProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData);
 					}
 				}
 
@@ -130,7 +132,9 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 					FStructSerializerState NewState;
 					{
 						NewState.HasBeenProcessed = false;
-						NewState.ValueData = NewData;
+						NewState.KeyData = nullptr;
+						NewState.KeyProperty = nullptr;
+						NewState.ValueData = ValueData;
 						NewState.ValueProperty = *It;
 						NewState.ValueType = It->GetClass();
 					}
@@ -162,7 +166,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 
 				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(CurrentState.ValueProperty);
 				FScriptArrayHelper ArrayHelper(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData));
-				UProperty* Inner = ArrayProperty->Inner;
+				UProperty* ValueProperty = ArrayProperty->Inner;
 
 				// push elements on stack (in reverse order)
 				for (int Index = ArrayHelper.Num() - 1; Index >= 0; --Index)
@@ -170,9 +174,11 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 					FStructSerializerState NewState;
 					{
 						NewState.HasBeenProcessed = false;
+						NewState.KeyData = nullptr;
+						NewState.KeyProperty = nullptr;
 						NewState.ValueData = ArrayHelper.GetRawPtr(Index);
-						NewState.ValueProperty = Inner;
-						NewState.ValueType = Inner->GetClass();
+						NewState.ValueProperty = ValueProperty;
+						NewState.ValueType = ValueProperty->GetClass();
 					}
 
 					StateStack.Push(NewState);
@@ -181,6 +187,44 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 			else
 			{
 				Backend.EndArray(CurrentState);
+			}
+		}
+
+		// maps
+		else if (CurrentState.ValueType == UMapProperty::StaticClass())
+		{
+			if (!CurrentState.HasBeenProcessed)
+			{
+				Backend.BeginDictionary(CurrentState);
+
+				CurrentState.HasBeenProcessed = true;
+				StateStack.Push(CurrentState);
+
+				UMapProperty* MapProperty = Cast<UMapProperty>(CurrentState.ValueProperty);
+				FScriptMapHelper MapHelper(MapProperty, MapProperty->ContainerPtrToValuePtr<void>(CurrentState.ValueData));
+				UProperty* ValueProperty = MapProperty->ValueProp;
+				
+				// push key-value pairs on stack (in reverse order)
+				for (int Index = MapHelper.Num() - 1; Index >= 0; --Index)
+				{
+					uint8* PairPtr = MapHelper.GetPairPtr(Index);;
+
+					FStructSerializerState NewState;
+					{
+						NewState.HasBeenProcessed = false;
+						NewState.KeyData = PairPtr + MapProperty->MapLayout.KeyOffset;
+						NewState.KeyProperty = MapProperty->KeyProp;
+						NewState.ValueData = PairPtr;// + MapProperty->MapLayout.ValueOffset;
+						NewState.ValueProperty = ValueProperty;
+						NewState.ValueType = ValueProperty->GetClass();
+					}
+
+					StateStack.Push(NewState);
+				}
+			}
+			else
+			{
+				Backend.EndDictionary(CurrentState);
 			}
 		}
 
