@@ -50,6 +50,11 @@ public:
 	virtual bool HasShowableData() const {return true;}
 
 	/**
+	 * @returns True if this track should generate a display node even when it's empty.
+	 */
+	virtual bool IsVisibleWhenEmpty() const { return false; }
+
+	/**
 	 * @return Whether or not this track supports multiple row indices
 	 */
 	virtual bool SupportsMultipleRows() const { return false; }

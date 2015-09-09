@@ -21,6 +21,7 @@ public class ActorAnimationEditor : ModuleRules
                 "EditorStyle",
                 "Engine",
 				"MovieScene",
+				"MovieSceneTracks",
 				"Sequencer",
                 "Slate",
                 "SlateCore",

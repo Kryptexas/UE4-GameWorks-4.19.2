@@ -228,6 +228,14 @@ public:
 	 */
 	virtual void BuildObjectBindingEditButtons(TSharedPtr<SHorizontalBox> EditBox, const FGuid& ObjectBinding, const UClass* ObjectClass) {}
 
+	/**
+	 * Builds an edit widget for the outliner nodes which represent tracks which are edited by this editor.
+	 * @param ObjectBinding The object binding associated with the track being edited by this editor.
+	 * @param Track The track being edited by this editor.
+	 * @returns The the widget to display in the outliner, or an empty shared ptr if not widget is to be displayed.
+	 */
+	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget(const FGuid& ObjectBinding, UMovieSceneTrack* Track) { return TSharedPtr<SWidget>(); }
+
 private:
 	/** The sequencer bound to this handler.  Used to access movie scene and time info during auto-key */
 	TWeakPtr<ISequencer> Sequencer;

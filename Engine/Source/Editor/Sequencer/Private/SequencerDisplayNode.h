@@ -72,9 +72,10 @@ public:
 	 * Adds a new section area for this node.
 	 * 
 	 * @param SectionName		Name of the section area
-	 * @param AssociatedType	The track associated with sections in this node
+	 * @param AssociatedTrack	The track associated with sections in this node
+	 * @param AssociatedEditor	The track editor for the associated track
 	 */
-	TSharedRef<class FTrackNode> AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack );
+	TSharedRef<class FTrackNode> AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, FMovieSceneTrackEditor& AssociatedEditor );
 
 	/**
 	 * Adds a key area to this node
@@ -387,12 +388,13 @@ public:
 	/**
 	 * Constructor
 	 * 
-	 * @param InNodeName	The name identifier of then node
-	 * @param InDisplayName	Display name of the section area
-	 * @param InParentNode	The parent of this node or NULL if this is a root node
-	 * @param InParentTree	The tree this node is in
+	 * @param InNodeName The name identifier of then node
+	 * @param InAssociatedType The track that this node represents.
+	 * @param InAssociatedEditor The track editor for the track that this node represents.
+	 * @param InParentNode The parent of this node or NULL if this is a root node
+	 * @param InParentTree The tree this node is in
 	 */
-	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
+	FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, FMovieSceneTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree );
 
 	/** FSequencerDisplayNodeInterface */
 	virtual ESequencerNode::Type GetType() const override { return ESequencerNode::Track; }
@@ -445,6 +447,8 @@ private:
 	TSharedPtr< FSectionKeyAreaNode > TopLevelKeyNode;
 	/** The type associated with the sections in this node */
 	TWeakObjectPtr<UMovieSceneTrack> AssociatedType;
+	/** The track editor for the track associated with this node. */
+	FMovieSceneTrackEditor& AssociatedEditor;
 };
 
 /**

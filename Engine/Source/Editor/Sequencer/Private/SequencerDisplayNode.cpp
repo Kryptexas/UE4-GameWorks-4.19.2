@@ -10,6 +10,7 @@
 #include "MovieSceneSection.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneTrack.h"
+#include "MovieSceneTrackEditor.h"
 #include "CommonMovieSceneTools.h"
 #include "IKeyArea.h"
 #include "GroupedKeyArea.h"
@@ -248,7 +249,7 @@ TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName C
 	return CategoryNode.ToSharedRef();
 }
 
-TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack )
+TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, FMovieSceneTrackEditor& AssociatedEditor )
 {
 	TSharedPtr<FTrackNode> SectionNode;
 
@@ -265,7 +266,7 @@ TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionN
 	if( !SectionNode.IsValid() )
 	{
 		// No existing node found make a new one
-		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, SharedThis( this ), ParentTree ) );
+		SectionNode = MakeShareable( new FTrackNode( SectionName, AssociatedTrack, AssociatedEditor, SharedThis( this ), ParentTree ) );
 		ChildNodes.Add( SectionNode.ToSharedRef() );
 	}
 
@@ -497,9 +498,10 @@ void FSectionKeyAreaNode::AddKeyArea( TSharedRef< IKeyArea> KeyArea )
 	KeyAreas.Add( KeyArea );
 }
 
-FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, FMovieSceneTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 	: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 	, AssociatedType( &InAssociatedType )
+	, AssociatedEditor( InAssociatedEditor )
 {
 }
 
@@ -516,7 +518,7 @@ FNodePadding FTrackNode::GetNodePadding() const
 FText FTrackNode::GetDisplayName() const
 {
 	// @todo Sequencer - IS there a better way to get the section interface name for the animation outliner?
-	return Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
+	return TopLevelKeyNode.IsValid() && Sections.Num() > 0 ? Sections[0]->GetDisplayName() : FText::FromName(NodeName);
 }
 
 void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
@@ -532,13 +534,23 @@ void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
 
 bool FTrackNode::GetShotFilteredVisibilityToCache() const
 {
+	if (AssociatedType->HasShowableData() == false)
+	{
+		return false;
+	}
+
+	if ( Sections.Num() == 0 )
+	{
+		return AssociatedType->IsVisibleWhenEmpty();
+	}
+
 	// if no child sections are visible, neither is the entire section
 	bool bAnySectionsVisible = false;
 	for (int32 i = 0; i < Sections.Num() && !bAnySectionsVisible; ++i)
 	{
 		bAnySectionsVisible = GetSequencer().IsSectionVisible(Sections[i]->GetSectionObject());
 	}
-	return AssociatedType->HasShowableData() && bAnySectionsVisible;
+	return bAnySectionsVisible;
 }
 
 void FTrackNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const
@@ -563,6 +575,21 @@ TSharedRef<SWidget> FTrackNode::GenerateEditWidgetForOutliner()
 			{
 				return KeyAreas[0]->CreateKeyEditor(&GetSequencer());
 			}
+		}
+	}
+	else
+	{
+		FGuid ObjectBinding;
+		TSharedPtr<FSequencerDisplayNode> ParentNode = GetParent();
+		if ( ParentNode.IsValid() && ParentNode->GetType() == ESequencerNode::Object )
+		{
+			ObjectBinding = StaticCastSharedPtr<FObjectBindingNode>(ParentNode)->GetObjectBinding();
+		}
+
+		TSharedPtr<SWidget> EditWidget = AssociatedEditor.BuildOutlinerEditWidget( ObjectBinding, AssociatedType.Get() );
+		if ( EditWidget.IsValid() )
+		{
+			return EditWidget.ToSharedRef();
 		}
 	}
 	return FSequencerDisplayNode::GenerateEditWidgetForOutliner();

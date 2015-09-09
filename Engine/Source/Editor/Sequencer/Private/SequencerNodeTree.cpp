@@ -38,7 +38,7 @@ void FSequencerNodeTree::Update()
 	{
 		UMovieSceneTrack& TrackRef = *Track;
 
-		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( TrackRef.GetTrackName(), TrackRef, NULL, *this ) );
+		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( TrackRef.GetTrackName(), TrackRef, *FindOrAddTypeEditor(TrackRef), NULL, *this ) );
 		NewRootNodes.Add( SectionNode );
 	
 		MakeSectionInterfaces( TrackRef, SectionNode );
@@ -70,7 +70,7 @@ void FSequencerNodeTree::Update()
 			FName SectionName = TrackRef.GetTrackName();
 			check( SectionName != NAME_None );
 
-			TSharedRef<FTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode( SectionName, TrackRef );
+			TSharedRef<FTrackNode> SectionAreaNode = ObjectBindingNode->AddSectionAreaNode( SectionName, TrackRef, *FindOrAddTypeEditor( TrackRef ) );
 			MakeSectionInterfaces( TrackRef, SectionAreaNode );
 		}
 	}
@@ -103,7 +103,7 @@ void FSequencerNodeTree::Update()
 	UMovieSceneTrack* ShotTrack = MovieScene->GetShotTrack();
 	if( ShotTrack )
 	{
-		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( ShotTrack->GetTrackName(), *ShotTrack, NULL, *this ) );
+		TSharedRef<FTrackNode> SectionNode = MakeShareable( new FTrackNode( ShotTrack->GetTrackName(), *ShotTrack, *FindOrAddTypeEditor( *ShotTrack ), NULL, *this ) );
 
 		// Shot track always comes first
 		RootNodes.Add( SectionNode );

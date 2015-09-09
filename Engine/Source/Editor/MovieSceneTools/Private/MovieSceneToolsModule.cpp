@@ -26,6 +26,7 @@
 #include "AttachTrackEditor.h"
 #include "EventTrackEditor.h"
 #include "PathTrackEditor.h"
+#include "MaterialTrackEditor.h"
 
 
 /**
@@ -60,6 +61,7 @@ public:
 		ShotTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FShotTrackEditor::CreateTrackEditor ) );
 		SubMovieSceneTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FSubMovieSceneTrackEditor::CreateTrackEditor ) );
 		TransformTrackCreateEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &F3DTransformTrackEditor::CreateTrackEditor ) );
+		ComponentMaterialTrackCreatEditorHandle = SequencerModule.RegisterTrackEditor_Handle( FOnCreateTrackEditor::CreateStatic( &FComponentMaterialTrackEditor::CreateTrackEditor ) );
 	}
 
 	virtual void ShutdownModule() override
@@ -89,6 +91,7 @@ public:
 		SequencerModule.UnRegisterTrackEditor_Handle( ShotTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( SubMovieSceneTrackCreateEditorHandle );
 		SequencerModule.UnRegisterTrackEditor_Handle( TransformTrackCreateEditorHandle );
+		SequencerModule.UnRegisterTrackEditor_Handle( ComponentMaterialTrackCreatEditorHandle );
 	}
 
 private:
@@ -110,6 +113,7 @@ private:
 	FDelegateHandle ShotTrackCreateEditorHandle;
 	FDelegateHandle SubMovieSceneTrackCreateEditorHandle;
 	FDelegateHandle TransformTrackCreateEditorHandle;
+	FDelegateHandle ComponentMaterialTrackCreatEditorHandle;
 };
 
 
