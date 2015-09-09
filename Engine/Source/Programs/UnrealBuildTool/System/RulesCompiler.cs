@@ -1103,6 +1103,11 @@ namespace UnrealBuildTool
 		private Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo;
 
 		/// <summary>
+		/// Cache for whether a module has source code
+		/// </summary>
+		private Dictionary<FileReference, bool> ModuleHasSource = new Dictionary<FileReference, bool>();
+
+		/// <summary>
 		/// Constructor. Compiles a rules assembly from the given source files.
 		/// </summary>
 		/// <param name="Plugins">All the plugins included in this assembly</param>
@@ -1583,6 +1588,31 @@ namespace UnrealBuildTool
 			{
 				return (Parent == null)? false : Parent.TryGetPluginForModule(ModuleFile, out Plugin);
 			}
+		}
+
+		/// <summary>
+		/// Determines if a module in this rules assembly has source code.
+		/// </summary>
+		/// <param name="ModuleName">Name of the module to check</param>
+		/// <returns>True if the module has source files, false if the module was not found, or does not have source files.</returns>
+		public bool DoesModuleHaveSource(string ModuleName)
+		{
+			FileReference ModuleFile;
+			if(ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFile))
+			{
+				bool HasSource;
+				if(!ModuleHasSource.TryGetValue(ModuleFile, out HasSource))
+				{
+					foreach(string FileName in Directory.EnumerateFiles(ModuleFile.Directory.FullName, "*.cpp", SearchOption.AllDirectories))
+					{
+						HasSource = true;
+						break;
+					}
+					ModuleHasSource.Add(ModuleFile, HasSource);
+				}
+				return HasSource;
+			}
+			return (Parent == null)? false : Parent.DoesModuleHaveSource(ModuleName);
 		}
 	}
 

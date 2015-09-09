@@ -2623,8 +2623,7 @@ namespace UnrealBuildTool
 						UEBuildModule ModuleInstance = FindOrCreateModuleByName(Module.Name);
 
 						// Add the corresponding binary for it
-						FileReference ModuleFileName = RulesAssembly.GetModuleFileName(Module.Name);
-						bool bHasSource = (ModuleFileName != null && Directory.EnumerateFiles(ModuleFileName.Directory.FullName, "*.cpp", SearchOption.AllDirectories).Any());
+						bool bHasSource = RulesAssembly.DoesModuleHaveSource(Module.Name);
 						AddBinaryForModule(ModuleInstance, BinaryType, bAllowCompilation: bHasSource, bIsCrossTarget: false);
 
 						// Add it to the binary if we're compiling monolithic (and it's enabled)
