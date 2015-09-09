@@ -188,6 +188,12 @@ private:
 	FString GetSingletonName(FClass* Item, bool bRequiresValidObject=true);
 
 	/** 
+	 * Properties in source files generated from blueprint assets have a symbol name that differs from the source asset.
+	 * This function returns the original name of the field (rather than the native, symbol name).
+	 */
+	FString GetOverriddenName(const UField* Item);
+
+	/** 
 	 * Export functions used to find and call C++ or script implementation of a script function in the interface 
 	 */
 	void ExportInterfaceCallFunctions(const TArray<UFunction*>& CallbackFunctions, UClass* Class, FClassMetaData* ClassData, FUHTStringBuilder& HeaderOutput);
