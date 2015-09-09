@@ -23,6 +23,12 @@ Skilllevel:Intermediate
 
 %Steps%
 
+
+Before we can start developing for Android we first need to install Android Works. 
+Android Works will help to ensure that you have all the required programs and code that is needed for you to be able to deploy to Android devices.
+In the following section we will cover how you can get Android Works installed on your development PC.
+
+
 %Globals:OSSelect%
 
 [OBJECT:ToggleButtonContent]
@@ -55,7 +61,6 @@ Skilllevel:Intermediate
 [/OBJECT]
 
 
-
 <!--
 [EXCERPT:WindowsSetup]
 
@@ -63,7 +68,7 @@ Skilllevel:Intermediate
 If you already have Android Works installed, but your environment variables have been lost, you can skip all of this and simply point the editor to the install locations using the **Edit Menu** > **Project Settings** > **Android SDK** properties in the Editor.
 [/REGION]
 
-[region:tip]
+[region:warning]
 It is highly recommended that you install Android Works while the editor and launcher are both closed to ensure that there are not problems with the install.
 [/region]
 
@@ -79,11 +84,10 @@ It is highly recommended that you install Android Works while the editor and lau
 	Please note that the follow applies to both Windows and Mac based PCs that download the UE4 source code from Github.
 	If you are using the binary build downloaded from the launcher then you can skip this part and go right into installing Android Works. 
 
-	1. Once UE4 has been downloaded from Github and extracted, run the **Setup.bat** file to download the required files as well as the Android Works installer.
+	1. Once UE4 has been downloaded from Github and extracted, run the **Setup.bat** file to download the required files as well as the **Android Works** installer.
 
 	1. After  **Setup.bat** has finished running locate and run the Android Works installer following the instructions below.
 
-	1. When Android Works has finished installing, restart your PC so the environment variables are set and then run the **Setup.bat** file one more time to download the required Android Development files.
 	[/region]
 
 1. **Double-click** on the **AndroidWorks-1R1-windows.exe** file to initiate the install process.
@@ -133,7 +137,7 @@ It is highly recommended that you install Android Works while the editor and lau
 	
 	![](AndroidWorks_10.png)
 	[region:note]
-	If you have more programs to install you can press the **No** button but make sure to re-start your development PC before trying to use Android Work tools with UE4.
+	If you downloaded UE4 from Github, when Android Works has finished installing, restart your PC or Mac so the environment variables are set and then run the **Setup.bat** file one more time to download the required Android Development files.
 	[/region]
 [/EXCERPT:WindowsSetup]
 
@@ -143,7 +147,7 @@ It is highly recommended that you install Android Works while the editor and lau
 If you already have Android Works installed, but your environment variables have been lost, you can skip all of this and simply point the editor to the install locations using the **Edit Menu** > **Project Settings** > **Android SDK** properties in the Editor.
 [/REGION]
 
-[region:tip]
+[region:warning]
 It is highly recommended that you install Android Works while the editor and launcher are both closed to ensure that there are not problems with the install.
 [/region]
 Before you can install Android Works to your Mac you will need to make sure that both Java 6 and Java 7 are installed. 
@@ -153,10 +157,10 @@ Use the links provide below to download and install the correct versions of Java
 * **Java 7** can be downloaded from [here](http://www.oracle.com/technetwork/java/javase/downloads/jre7-downloads-1880261.html).
 
 1. To install Android Works navigate to the **Engine** > **Extras** > **Android** folder. 
-| Install Type  | Location  |
-| --- | --- |
-| Binary | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
-| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
+	| Install Type  | Location  |
+	| --- | --- |
+	| Binary | [EngineInstallLocation]\Unreal Engine[EngineVersion]\Engine\Extras\Android |
+	| GitHub | [EngineSyncLocation\UE4\Engine\Extras\Android |
 
 	[region:note]
 	If you downloaded UE4 from **Github** you will need to perform the following steps before you can run the Android Works installer. 
@@ -167,9 +171,7 @@ Use the links provide below to download and install the correct versions of Java
 
 	1. After  **Setup.bat** has finished running locate and run the Android Works installer following the instructions below.
 
-	1. When Android Works has finished installing, restart your Mac so the environment variables are set and then run the **Setup.bat** file one more time to download the required Android Development files.
 	[/region]
-
 
 1. **Double-click** on the **AndroidWorks-1R1-osx.dmg** to load the Android Works installer.
 	
@@ -217,6 +219,9 @@ Use the links provide below to download and install the correct versions of Java
 
 	![](AndroidWorks_Mac_09.png)
 
+	[region:note]
+	If you downloaded UE4 from Github, when Android Works has finished installing, restart your PC or Mac so the environment variables are set and then run the **Setup.bat** file one more time to download the required Android Development files.
+	[/region]
 
 [/EXCERPT:MacOSSetup]
 -->
