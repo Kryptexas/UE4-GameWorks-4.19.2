@@ -89,19 +89,16 @@ bool UMovieScene3DTransformTrack::AddKeyToSection( const FGuid& ObjectHandle, co
 
 		UMovieScene3DTransformSection* NewSection = Cast<UMovieScene3DTransformSection>( FindOrAddSection( InKey.GetKeyTime() ) );
 
-		// key each component of the transform
-		if (KeyType & F3DTransformTrackKey::Key_Translation)
-		{
-			NewSection->AddTranslationKeys( InKey );
-		}
-		if (KeyType & F3DTransformTrackKey::Key_Rotation)
-		{
-			NewSection->AddRotationKeys( InKey, bUnwindRotation );
-		}
-		if (KeyType & F3DTransformTrackKey::Key_Scale)
-		{
-			NewSection->AddScaleKeys( InKey );
-		}
+		FTransformKey Key(InKey);
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Translation);
+		NewSection->AddTranslationKeys( Key );
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Rotation);
+		NewSection->AddRotationKeys( Key, bUnwindRotation );
+
+		Key.KeyParams.bAddKeyEvenIfUnchanged = InKey.KeyParams.bAddKeyEvenIfUnchanged && (KeyType & F3DTransformTrackKey::Key_Scale);
+		NewSection->AddScaleKeys( Key );
 
 		return true;
 	}

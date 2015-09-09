@@ -15,6 +15,14 @@ struct MOVIESCENE_API FKeyParams
 		bAutoKeying = false;
 	}
 
+	FKeyParams(const FKeyParams& InKeyParams)
+	{
+		bCreateHandleIfMissing = InKeyParams.bCreateHandleIfMissing;
+		bCreateTrackIfMissing = InKeyParams.bCreateTrackIfMissing;
+		bAddKeyEvenIfUnchanged = InKeyParams.bAddKeyEvenIfUnchanged;
+		bAutoKeying = InKeyParams.bAutoKeying;
+	}
+
 	/** Create handle if it doesn't exist. */
 	bool bCreateHandleIfMissing;
 	/** Create track if it doesn't exist. */
