@@ -2,7 +2,9 @@
 
 #include "BlueprintNativeCodeGenPCH.h"
 #include "NativeCodeGenerationTool.h"
+#include "Editor.h"
 #include "Dialogs.h"
+#include "EditorStyle.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Engine/UserDefinedStruct.h"

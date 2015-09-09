@@ -12,6 +12,7 @@
 #include "Engine/UserDefinedEnum.h"
 #include "PreviewScene.h"
 #include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
+#include "TickableEditorObject.h"
 
 class USCS_Node;
 
