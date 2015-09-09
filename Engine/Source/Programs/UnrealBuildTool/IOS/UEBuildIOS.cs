@@ -442,15 +442,18 @@ namespace UnrealBuildTool
                 }
 
                 // allow standalone tools to use targetplatform modules, without needing Engine
-                if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-                {
-                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-                }
-
-                if (bBuildShaderFormats)
-                {
-                    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("MetalShaderFormat");
-                }
+				if(ModuleName == "TargetPlatform")
+				{
+                    if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+                    {
+                        Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+                    }
+    
+                    if (bBuildShaderFormats)
+                    {
+                        Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("MetalShaderFormat");
+                    }
+				}
             }
         }
     }

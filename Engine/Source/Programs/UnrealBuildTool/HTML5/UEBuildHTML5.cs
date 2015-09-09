@@ -316,7 +316,7 @@ namespace UnrealBuildTool
 				if ((!UEBuildConfiguration.bBuildRequiresCookedData
                     && ModuleName == "Engine"
                     && UEBuildConfiguration.bBuildDeveloperTools)
-                    || UEBuildConfiguration.bForceBuildTargetPlatforms)
+                    || (UEBuildConfiguration.bForceBuildTargetPlatforms && ModuleName == "TargetPlatform"))
                 {
                     Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
                 }

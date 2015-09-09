@@ -303,7 +303,7 @@ namespace UnrealBuildTool
                 }
 
                 // allow standalone tools to use targetplatform modules, without needing Engine
-                if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+                if (UEBuildConfiguration.bForceBuildTargetPlatforms && ModuleName == "TargetPlatform")
                 {
                     Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
                     Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
@@ -323,19 +323,22 @@ namespace UnrealBuildTool
                 }
 
                 // allow standalone tools to use target platform modules, without needing Engine
-                if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-                {
-                    Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
-                    Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
-                    Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-                }
-
-                if (bBuildShaderFormats)
-                {
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-                    Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-                }
+				if(ModuleName == "TargetPlatform")
+				{
+                    if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+                    {
+                        Rules.DynamicallyLoadedModuleNames.Add("LinuxTargetPlatform");
+                        Rules.DynamicallyLoadedModuleNames.Add("LinuxNoEditorTargetPlatform");
+                        Rules.DynamicallyLoadedModuleNames.Add("LinuxServerTargetPlatform");
+					    Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+                    }
+    
+                    if (bBuildShaderFormats)
+                    {
+					    // Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+                        Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+                    }
+				}
             }
         }
 

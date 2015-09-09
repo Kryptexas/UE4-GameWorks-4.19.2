@@ -107,20 +107,23 @@ namespace UnrealBuildTool
                 }
 
 				// allow standalone tools to use target platform modules, without needing Engine
-				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				if(ModuleName == "TargetPlatform")
 				{
-					Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
-					Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				    if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+				    {
+					    Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
+					    Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
+					    Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
+					    Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
+					    Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+				    }
+    
+                    if (bBuildShaderFormats)
+                    {
+					    // Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+                        Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+                    }
 				}
-
-                if (bBuildShaderFormats)
-                {
-					// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-                    Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-                }
 			}
 		}
 		
