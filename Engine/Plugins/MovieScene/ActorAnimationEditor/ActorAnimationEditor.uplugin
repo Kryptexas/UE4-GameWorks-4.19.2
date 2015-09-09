@@ -10,6 +10,7 @@
 	"Description" : "Content Editor for ActorAnimation Assets.",
 	"Category" : "Editor",
 	"EnabledByDefault" : false,
+	"IsBetaVersion": true,
 
 	"Modules" :
 	[
