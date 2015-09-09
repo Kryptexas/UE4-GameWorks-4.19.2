@@ -153,7 +153,7 @@ public:
 	bool ReadDemoFrame( FArchive* Archive );
 	void TickDemoPlayback( float DeltaSeconds );
 	void FinalizeFastForward( const float StartTime );
-	void SpawnDemoRecSpectator( UNetConnection* Connection );
+	void SpawnDemoRecSpectator( UNetConnection* Connection, const FURL& ListenURL );
 	void ResetDemoState();
 	void JumpToEndOfLiveReplay();
 	void AddEvent(const FString& Group, const FString& Meta, const TArray<uint8>& Data);

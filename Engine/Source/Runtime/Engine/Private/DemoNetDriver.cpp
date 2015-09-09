@@ -680,13 +680,17 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 
 	TArray< FString > UserNames;
 
-	for ( int32 i = 0; i < GetWorld()->GameState->PlayerArray.Num(); i++ )
+	// If a client is recording a replay, GameState may not have replicated yet
+	if ( GetWorld()->GameState != nullptr )
 	{
-		APlayerState* PlayerState = GetWorld()->GameState->PlayerArray[i];
-
-		if ( !PlayerState->bIsABot && !PlayerState->bIsSpectator )
+		for ( int32 i = 0; i < GetWorld()->GameState->PlayerArray.Num(); i++ )
 		{
-			UserNames.Add( PlayerState->UniqueId.ToString() );
+			APlayerState* PlayerState = GetWorld()->GameState->PlayerArray[i];
+
+			if ( !PlayerState->bIsABot && !PlayerState->bIsSpectator )
+			{
+				UserNames.Add( PlayerState->UniqueId.ToString() );
+			}
 		}
 	}
 
@@ -715,7 +719,7 @@ bool UDemoNetDriver::InitListen( FNetworkNotify* InNotify, FURL& ListenURL, bool
 	FileAr->Flush();
 
 	// Spawn the demo recording spectator.
-	SpawnDemoRecSpectator( Connection );
+	SpawnDemoRecSpectator( Connection, ListenURL );
 
 	return true;
 }
@@ -1702,7 +1706,7 @@ void UDemoNetDriver::FinalizeFastForward( const float StartTime )
 	UE_LOG( LogDemo, Log, TEXT( "Fast forward took %.2f seconds." ), FastForwardTotalSeconds );
 }
 
-void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
+void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection, const FURL& ListenURL )
 {
 	check( Connection != NULL );
 
@@ -1710,7 +1714,20 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 	// since the game mode instance isn't replicated to clients of live games.
 	AGameState* GameState = GetWorld() != nullptr ? GetWorld()->GetGameState() : nullptr;
 	TSubclassOf<AGameMode> DefaultGameModeClass = GameState != nullptr ? GameState->GameModeClass : nullptr;
-	AGameMode* DefaultGameMode = CastChecked<AGameMode>(DefaultGameModeClass.GetDefaultObject());
+	
+	// If we don't have a game mode class from the world, try to get it from the URL option.
+	// This may be true on clients who are recording a replay before the game mode class was replicated to them.
+	if (DefaultGameModeClass == nullptr)
+	{
+		const TCHAR* URLGameModeClass = ListenURL.GetOption(TEXT("game="), nullptr);
+		if (URLGameModeClass != nullptr)
+		{
+			UClass* GameModeFromURL = StaticLoadClass(AGameMode::StaticClass(), nullptr, URLGameModeClass);
+			DefaultGameModeClass = GameModeFromURL;
+		}
+	}
+
+	AGameMode* DefaultGameMode = Cast<AGameMode>(DefaultGameModeClass.GetDefaultObject());
 	UClass* C = DefaultGameMode != nullptr ? DefaultGameMode->ReplaySpectatorPlayerControllerClass : nullptr;
 
 	if ( C == NULL )
@@ -1738,6 +1755,9 @@ void UDemoNetDriver::SpawnDemoRecSpectator( UNetConnection* Connection )
 		}
 	}
 
+	// Make sure SpectatorController->GetNetDriver returns this driver. Ensures functions that depend on it,
+	// such as IsLocalController, work as expected.
+	SpectatorController->NetDriverName = NetDriverName;
 	SpectatorController->SetReplicates( true );
 	SpectatorController->SetAutonomousProxy( true );
 

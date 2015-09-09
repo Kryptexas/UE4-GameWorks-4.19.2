@@ -740,7 +740,7 @@ void UGameInstance::OnSessionUserInviteAccepted(const bool bWasSuccess, const in
 	}
 }
 
-void UGameInstance::StartRecordingReplay(const FString& Name, const FString& FriendlyName)
+void UGameInstance::StartRecordingReplay(const FString& Name, const FString& FriendlyName, const TArray<FString>& AdditionalOptions)
 {
 	if ( FParse::Param( FCommandLine::Get(),TEXT( "NOREPLAYS" ) ) )
 	{
@@ -764,6 +764,11 @@ void UGameInstance::StartRecordingReplay(const FString& Name, const FString& Fri
 	// replace the current URL's map with a demo extension
 	DemoURL.Map = DemoName;
 	DemoURL.AddOption( *FString::Printf( TEXT( "DemoFriendlyName=%s" ), *FriendlyName ) );
+
+	for (const FString& Option : AdditionalOptions)
+	{
+		DemoURL.AddOption(*Option);
+	}
 
 	CurrentWorld->DestroyDemoNetDriver();
 
