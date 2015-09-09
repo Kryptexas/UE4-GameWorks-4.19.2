@@ -12,6 +12,21 @@ UUserDefinedEnum::UUserDefinedEnum(const FObjectInitializer& ObjectInitializer)
 
 }
 
+void UUserDefinedEnum::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+#if WITH_EDITOR
+	if (Ar.IsLoading() && Ar.IsPersistent())
+	{
+		for (int32 i = 0; i < Names.Num(); ++i)
+		{
+			Names[i].Value = i;
+		}
+	}
+#endif // WITH_EDITOR
+}
+
 FString UUserDefinedEnum::GenerateFullEnumName(const TCHAR* InEnumName) const
 {
 	check(CppForm == ECppForm::Namespaced);
@@ -54,6 +69,11 @@ void UUserDefinedEnum::PostLoad()
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+
+	for (int32 i = 0; i < Names.Num(); ++i)
+	{
+		Names[i].Value = i;
+	}
 }
 
 void UUserDefinedEnum::PostEditUndo()

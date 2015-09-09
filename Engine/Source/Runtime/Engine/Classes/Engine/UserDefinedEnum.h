@@ -34,6 +34,9 @@ class ENGINE_API UUserDefinedEnum : public UEnum
 	TArray<FText> DisplayNames;
 
 public:
+	// UObject interface.
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface.
 	/**
 	 * Generates full enum name give enum name.
 	 * For UUserDefinedEnum full enumerator name has form: '<enumeration path>::<short, user defined enumerator name>'
