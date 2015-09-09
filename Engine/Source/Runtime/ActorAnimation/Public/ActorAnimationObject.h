@@ -74,5 +74,5 @@ private:
 
 	/** Cached pointer to the Actor component (only if ComponentName is set). */
 	UPROPERTY(transient)
-	mutable UObject* CachedComponent;
+	mutable TWeakObjectPtr<UObject> CachedComponent;
 };

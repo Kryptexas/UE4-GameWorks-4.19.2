@@ -16,9 +16,9 @@ UObject* FActorAnimationObject::GetObject() const
 	}
 
 	// get cached component
-	if ((CachedComponent != nullptr) && (CachedComponent->GetName() == ComponentName))
+	if ((CachedComponent.IsValid()) && (CachedComponent->GetName() == ComponentName))
 	{
-		return CachedComponent;
+		return CachedComponent.Get();
 	}
 
 	CachedComponent = nullptr;
