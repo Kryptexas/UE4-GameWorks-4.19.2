@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "UnrealEd.h"
 #include "SlateBasics.h"
 #include "BlueprintUtilities.h"
 
