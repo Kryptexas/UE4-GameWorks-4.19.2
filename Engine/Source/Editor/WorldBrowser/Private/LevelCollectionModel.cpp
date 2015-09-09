@@ -1487,6 +1487,15 @@ void FLevelCollectionModel::UnockAllLevels_Executed()
 
 void FLevelCollectionModel::ToggleReadOnlyLevels_Executed()
 {
+	//We are about to lock some Levels, deselect all actor and surfaces from the read only levels
+	if (!GEditor->bLockReadOnlyLevels)
+	{
+		DeselectActorsInAllReadOnlyLevel(GetAllLevels());
+		DeselectSurfaceInAllReadOnlyLevel(GetAllLevels());
+		// Tell the editor selection status was changed.
+		GEditor->NoteSelectionChange();
+	}
+
 	GEditor->bLockReadOnlyLevels = !GEditor->bLockReadOnlyLevels;
 }
 
@@ -1641,6 +1650,33 @@ void FLevelCollectionModel::FillSourceControlSubMenu(FMenuBuilder& InMenuBuilder
 		InMenuBuilder.AddMenuEntry( Commands.SCCConnect );
 	}
 }
+
+void FLevelCollectionModel::DeselectActorsInAllReadOnlyLevel(const FLevelModelList& InLevelList)
+{
+	const FScopedTransaction Transaction(LOCTEXT("DeselectActorsInReadOnlyLevel", "Deselect Actors in all read only Level"));
+
+	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+	{
+		if ((*It)->IsFileReadOnly())
+		{
+			(*It)->SelectActors(/*bSelect*/ false, /*bNotify*/ true, /*bSelectEvenIfHidden*/ true);
+		}
+	}
+}
+
+void FLevelCollectionModel::DeselectSurfaceInAllReadOnlyLevel(const FLevelModelList& InLevelList)
+{
+	const FScopedTransaction Transaction(LOCTEXT("DeselectSurfacesInReadOnlyLevel", "Deselect Surfaces in all read only Level"));
+
+	for (auto It = InLevelList.CreateConstIterator(); It; ++It)
+	{
+		if ((*It)->IsFileReadOnly())
+		{
+			(*It)->DeselectAllSurfaces();
+		}
+	}
+}
+
 
 void FLevelCollectionModel::OnLevelsCollectionChanged()
 {
