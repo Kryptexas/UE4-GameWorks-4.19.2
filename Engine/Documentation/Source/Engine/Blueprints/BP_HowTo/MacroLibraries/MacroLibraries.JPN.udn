@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2611556
+﻿INTSourceChangelist:2679100
 Availability:Public
 Title:マクロ ライブラリの使用方法
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,19 +6,21 @@ Description:マクロ ライブラリのマクロを使って、アクタのヘ�
 Related:Engine/Blueprints/UserGuide/Macros
 Related:Engine/Blueprints/UserGuide/Types/MacroLibrary
 Related:Engine/Blueprints
+バージョン:4.8
+SkillLevel:上級
 
 **マクロ ライブラリ** は、他のブループリントへノードとして配置可能なマクロのコレクションや自己完結型のグラフを保持するコンテナです。実行とデータ転送の両方の入出力を備えた一般的に使用するノードのシーケンスを格納できるため、時間節約の手段となります。
 
 ## マクロ ライブラリを作成する
 
-このサンプルでは、Health 変数の追加に使用するマクロと、指定されたアクタのサイズの調整に使用するマクロの 2 つのマクロで構成されるマクロ ライブラリを使います。 
+このサンプルでは、Health 変数の追加に使用するマクロと、指定されたアクタのサイズ調整に使用するマクロの 2 つのマクロで構成されるマクロ ライブラリを使います。 
 
 [REGION:note]
 _ここでは **スターター コンテンツ** を有効にした状態で **Blueprint Third Person Project** を使います。_
 [/REGION]
 
 
-1.	[Create] ボタンをクリックする代わりに **ブループリント** の **[コンテンツ ブラウザ]** 内の空きエリアで **右クリック** して、[Blueprint Macro Library](Engine/Blueprints/UserGuide/Types/MacroLibrary) を選択します。 
+1.	**ブループリント** の **[コンテンツ ブラウザ]** 内をどこか **右クリック** して、[Blueprint Macro Library](Engine/Blueprints/UserGuide/Types/MacroLibrary) を選択します。 
 
 	![](CreateLib1.png)(w:640)
 
