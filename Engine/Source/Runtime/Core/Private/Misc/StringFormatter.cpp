@@ -12,7 +12,7 @@ FStringFormatArg::FStringFormatArg( const int64 Value ) : Type(Int), IntValue(Va
 FStringFormatArg::FStringFormatArg( const uint64 Value ) : Type(UInt), UIntValue(Value) {}
 FStringFormatArg::FStringFormatArg( const float Value ) : Type(Double), DoubleValue(Value) {}
 FStringFormatArg::FStringFormatArg( const double Value ) : Type(Double), DoubleValue(Value) {}
-FStringFormatArg::FStringFormatArg( const FString& Value ) : Type(String), StringValue(&Value) {}
+FStringFormatArg::FStringFormatArg( FString Value ) : Type(String), StringValue(MoveTemp(Value)) {}
 FStringFormatArg::FStringFormatArg( const TCHAR* Value ) : Type(StringLiteral), StringLiteralValue(Value) {}
 FStringFormatArg::FStringFormatArg( const FStringFormatArg& RHS )
 {
@@ -34,7 +34,7 @@ void AppendToString(const FStringFormatArg& Arg, FString& StringToAppendTo)
 		case FStringFormatArg::Int: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.IntValue)); break;
 		case FStringFormatArg::UInt: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.UIntValue)); break;
 		case FStringFormatArg::Double: 			StringToAppendTo.Append(LexicalConversion::ToString(Arg.DoubleValue)); break;
-		case FStringFormatArg::String: 			StringToAppendTo.AppendChars(**Arg.StringValue, Arg.StringValue->Len()); break;
+		case FStringFormatArg::String: 			StringToAppendTo.AppendChars(*Arg.StringValue, Arg.StringValue.Len()); break;
 		case FStringFormatArg::StringLiteral: 	StringToAppendTo += Arg.StringLiteralValue; break;
 	}
 }

@@ -19,11 +19,12 @@ struct CORE_API FStringFormatArg
 		uint64 UIntValue;
 		/** Value as double */
 		double DoubleValue;
-		/** Value as a pointer to an FString */
-		const FString* StringValue;
 		/** Value as a string literal */
 		const TCHAR* StringLiteralValue;
 	};
+
+	/** Value as an FString */
+	FString StringValue;
 
 	FStringFormatArg( const int32 Value );
 	FStringFormatArg( const uint32 Value );
@@ -31,7 +32,7 @@ struct CORE_API FStringFormatArg
 	FStringFormatArg( const uint64 Value );
 	FStringFormatArg( const float Value );
 	FStringFormatArg( const double Value );
-	FStringFormatArg( const FString& Value );
+	FStringFormatArg( FString Value );
 	FStringFormatArg( const TCHAR* Value );
 
 	/** Copyable */

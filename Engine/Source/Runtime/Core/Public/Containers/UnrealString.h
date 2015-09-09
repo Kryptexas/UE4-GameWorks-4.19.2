@@ -10,9 +10,9 @@
 #include "Math/UnrealMathUtility.h"
 #include "Misc/Crc.h"
 #include "Misc/CString.h"
-#include "Misc/StringFormatArg.h"
 #include "Templates/MemoryOps.h"
 
+struct FStringFormatArg;
 
 /** Determines case sensitivity options for string comparisons. */
 namespace ESearchCase
@@ -2052,3 +2052,5 @@ public:
  * @return the index in the given string of the closing parenthesis
  */
 CORE_API int32 FindMatchingClosingParenthesis(const FString& TargetString, const int32 StartSearch = 0);
+
+#include "Misc/StringFormatArg.h"
