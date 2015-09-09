@@ -804,6 +804,11 @@ void FCascadeEmitterCanvasClient::CapturedMouseMove(FViewport* Viewport, int32 X
 
 float FCascadeEmitterCanvasClient::GetViewportVerticalScrollBarRatio() const
 {
+	if (CanvasDimensions.Y == 0.0f)
+	{
+		return 1.0f;
+	}
+
 	float WidgetHeight = 1.0f;
 	if (CascadeViewportPtr.Pin()->GetVerticalScrollBar().IsValid())
 	{
