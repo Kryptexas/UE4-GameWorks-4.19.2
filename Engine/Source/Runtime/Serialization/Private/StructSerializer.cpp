@@ -195,7 +195,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 		{
 			if (!CurrentState.HasBeenProcessed)
 			{
-				Backend.BeginDictionary(CurrentState);
+				Backend.BeginStructure(CurrentState);
 
 				CurrentState.HasBeenProcessed = true;
 				StateStack.Push(CurrentState);
@@ -214,7 +214,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 						NewState.HasBeenProcessed = false;
 						NewState.KeyData = PairPtr + MapProperty->MapLayout.KeyOffset;
 						NewState.KeyProperty = MapProperty->KeyProp;
-						NewState.ValueData = PairPtr;// + MapProperty->MapLayout.ValueOffset;
+						NewState.ValueData = PairPtr;
 						NewState.ValueProperty = ValueProperty;
 						NewState.ValueType = ValueProperty->GetClass();
 					}
@@ -224,7 +224,7 @@ void FStructSerializer::Serialize( const void* Struct, UStruct& TypeInfo, IStruc
 			}
 			else
 			{
-				Backend.EndDictionary(CurrentState);
+				Backend.EndStructure(CurrentState);
 			}
 		}
 

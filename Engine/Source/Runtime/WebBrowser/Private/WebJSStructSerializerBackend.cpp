@@ -103,13 +103,6 @@ void FWebJSStructSerializerBackend::BeginArray(const FStructSerializerState& Sta
 }
 
 
-void FWebJSStructSerializerBackend::BeginDictionary(const FStructSerializerState& State)
-{
-	CefRefPtr<CefDictionaryValue> DictionaryValue = CefDictionaryValue::Create();
-	Stack.Push(StackItem(State.ValueProperty->GetName(), DictionaryValue));
-}
-
-
 void FWebJSStructSerializerBackend::BeginStructure(const FStructSerializerState& State)
 {
 	if (State.KeyProperty != nullptr)
@@ -148,12 +141,6 @@ void FWebJSStructSerializerBackend::EndArray(const FStructSerializerState& /*Sta
 			Current.ListValue->SetList(Current.ListValue->GetSize(), Previous.ListValue);
 		break;
 	}
-}
-
-
-void FWebJSStructSerializerBackend::EndDictionary(const FStructSerializerState& State)
-{
-	EndStructure(State);
 }
 
 

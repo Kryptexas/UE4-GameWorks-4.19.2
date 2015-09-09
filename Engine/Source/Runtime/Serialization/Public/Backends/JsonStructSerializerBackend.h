@@ -38,10 +38,8 @@ public:
 	// IStructSerializerBackend interface
 
 	virtual void BeginArray(const FStructSerializerState& State) override;
-	virtual void BeginDictionary(const FStructSerializerState& State) override;
 	virtual void BeginStructure(const FStructSerializerState& State) override;
 	virtual void EndArray(const FStructSerializerState& State) override;
-	virtual void EndDictionary(const FStructSerializerState& State) override;
 	virtual void EndStructure(const FStructSerializerState& State) override;
 	virtual void WriteComment(const FString& Comment) override;
 	virtual void WriteProperty(const FStructSerializerState& State, int32 ArrayIndex = 0) override;

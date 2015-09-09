@@ -74,27 +74,6 @@ void FJsonStructSerializerBackend::BeginArray(const FStructSerializerState& Stat
 }
 
 
-void FJsonStructSerializerBackend::BeginDictionary(const FStructSerializerState& State)
-{
-	UObject* Outer = State.ValueProperty->GetOuter();
-
-	if ((Outer != nullptr) && (Outer->GetClass() == UArrayProperty::StaticClass()))
-	{
-		JsonWriter->WriteObjectStart();
-	}
-	else if (State.KeyProperty != nullptr)
-	{
-		FString KeyString;
-		State.KeyProperty->ExportTextItem(KeyString, State.KeyData, nullptr, nullptr, PPF_None);
-		JsonWriter->WriteObjectStart(KeyString);
-	}
-	else
-	{
-		JsonWriter->WriteObjectStart(State.ValueProperty->GetName());
-	}
-}
-
-
 void FJsonStructSerializerBackend::BeginStructure(const FStructSerializerState& State)
 {
 	if (State.ValueProperty != nullptr)
@@ -126,12 +105,6 @@ void FJsonStructSerializerBackend::BeginStructure(const FStructSerializerState& 
 void FJsonStructSerializerBackend::EndArray(const FStructSerializerState& /*State*/)
 {
 	JsonWriter->WriteArrayEnd();
-}
-
-
-void FJsonStructSerializerBackend::EndDictionary(const FStructSerializerState& /*State*/)
-{
-	JsonWriter->WriteObjectEnd();
 }
 
 

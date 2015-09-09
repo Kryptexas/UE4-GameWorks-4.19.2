@@ -51,13 +51,6 @@ public:
 	virtual void BeginArray(const FStructSerializerState& State) = 0;
 
 	/**
-	 * Signals the beginning of a dictionary.
-	 *
-	 * @param Property The property that holds the dictionary.
-	 */
-	virtual void BeginDictionary(const FStructSerializerState& State) = 0;
-
-	/**
 	 * Signals the beginning of a child structure.
 	 *
 	 * State.ValueProperty points to the property that holds the struct.
@@ -76,13 +69,6 @@ public:
 	 * @see BeginArray, EndStructure
 	 */
 	virtual void EndArray(const FStructSerializerState& State) = 0;
-
-	/**
-	 * Signals the end of a dictionary.
-	 *
-	 * @param Property The property that holds the dictionary.
-	 */
-	virtual void EndDictionary(const FStructSerializerState& State) = 0;
 
 	/**
 	 * Signals the end of an object.
