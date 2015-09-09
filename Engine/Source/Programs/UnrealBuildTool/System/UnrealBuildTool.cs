@@ -914,6 +914,14 @@ namespace UnrealBuildTool
                     bUseMutex = false;
                 }
             }
+			bool bWaitMutex = false;
+            {
+                int WaitMutexArgumentIndex;
+                if (Utils.ParseCommandLineFlag(Arguments, "-WaitMutex", out WaitMutexArgumentIndex))
+                {
+                    bWaitMutex = true;
+                }
+            }
 
             bool bAutoSDKOnly = false;
             {
@@ -958,7 +966,20 @@ namespace UnrealBuildTool
                     SingleInstanceMutex = new Mutex(true, MutexName, out bCreatedMutex);
                     if (!bCreatedMutex)
                     {
-                        throw new BuildException("Mutex {0} already set, indicating that a conflicting instance of {1} is already running.", MutexName, ExecutingAssembly.GetFilename());
+						if(bWaitMutex)
+						{
+							try
+							{
+								SingleInstanceMutex.WaitOne();
+							}
+							catch(AbandonedMutexException)
+							{
+							}
+						}
+						else
+						{
+							throw new BuildException("Mutex {0} already set, indicating that a conflicting instance of {1} is already running.", MutexName, ExecutingAssembly.GetFilename());
+						}
                     }
                 }
 
