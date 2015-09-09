@@ -309,7 +309,7 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("${unreal_mono_pkg_path_base}", InMonoPathParent);
 				}
 
-				outputContents.AppendLine(LineStr);
+				outputContents.Append(LineStr + '\n');
 			}
 		}
 
