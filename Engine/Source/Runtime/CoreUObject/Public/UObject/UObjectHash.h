@@ -7,6 +7,17 @@
 #ifndef __UOBJECTHASH_H__
 #define __UOBJECTHASH_H__
 
+DECLARE_STATS_GROUP(TEXT("UObject Hash"), STATGROUP_UObjectHash, STATCAT_Advanced);
+
+/**
+ * Controls whether the number of available elements is being tracked in the ObjObjects array.
+ * By default it is only tracked in WITH_EDITOR builds as it adds a small amount of tracking overhead
+ */
+#define UE_GC_TRACK_OBJ_AVAILABLE (WITH_EDITOR)
+
+#if UE_GC_TRACK_OBJ_AVAILABLE
+DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("NumObjects"), STAT_Hash_NumObjects, STATGROUP_UObjectHash, COREUOBJECT_API);
+#endif
 
 /**
  * Private internal version of StaticFindObjectFast that allows using 0 exclusion flags.

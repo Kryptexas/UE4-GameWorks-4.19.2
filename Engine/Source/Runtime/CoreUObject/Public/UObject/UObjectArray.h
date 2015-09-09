@@ -266,7 +266,7 @@ public:
 		return ObjLastNonGCIndex + 1;
 	}
 
-#if WITH_EDITOR
+#if UE_GC_TRACK_OBJ_AVAILABLE
 	/**
 	 * Returns the number of actual object indices that are claimed (the total size of the global object array minus
 	 * the number of available object array elements
@@ -413,7 +413,7 @@ private:
 	FCriticalSection ObjObjectsCritical;
 	/** Available object indices.											*/
 	TLockFreePointerListUnordered<int32> ObjAvailableList;
-#if WITH_EDITOR
+#if UE_GC_TRACK_OBJ_AVAILABLE
 	/** Available object index count.										*/
 	FThreadSafeCounter ObjAvailableCount;
 #endif

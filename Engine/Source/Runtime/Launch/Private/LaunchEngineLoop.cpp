@@ -2604,6 +2604,11 @@ void FEngineLoop::Tick()
 		const FCPUTime CPUTime = FPlatformTime::GetCPUTime();
 		SET_FLOAT_STAT( STAT_CPUTimePct, CPUTime.CPUTimePct );
 		SET_FLOAT_STAT( STAT_CPUTimePctRelative, CPUTime.CPUTimePctRelative );
+
+		// Set the UObject count stat
+#if UE_GC_TRACK_OBJ_AVAILABLE
+		SET_DWORD_STAT(STAT_Hash_NumObjects, GetUObjectArray().GetObjectArrayNumMinusAvailable());
+#endif
 	}
 }
 

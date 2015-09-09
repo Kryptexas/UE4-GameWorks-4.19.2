@@ -54,7 +54,7 @@ void FUObjectArray::AllocateUObjectIndex(UObjectBase* Object, bool bMergingThrea
 		int32* AvailableIndex = ObjAvailableList.Pop();
 		if (AvailableIndex)
 		{
-#if WITH_EDITOR
+#if UE_GC_TRACK_OBJ_AVAILABLE
 			const int32 AvailableCount = ObjAvailableCount.Decrement();
 			checkSlow(AvailableCount >= 0);
 #endif
@@ -112,7 +112,7 @@ void FUObjectArray::FreeUObjectIndex(UObjectBase* Object)
 	if (Index > ObjLastNonGCIndex && !GExitPurge)  
 	{
 		ObjAvailableList.Push((int32*)(uintptr_t)Index);
-#if WITH_EDITOR
+#if UE_GC_TRACK_OBJ_AVAILABLE
 		ObjAvailableCount.Increment();
 #endif
 	}
