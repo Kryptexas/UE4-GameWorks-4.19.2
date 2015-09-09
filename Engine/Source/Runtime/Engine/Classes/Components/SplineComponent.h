@@ -405,6 +405,51 @@ public:
 	UFUNCTION(BlueprintCallable, Category=Spline)
 	FVector GetScaleAtTime(float Time, bool bUseConstantVelocity = false) const;
 
+    /** Given a location, in world space, return the input key closest to that location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	float FindInputKeyClosestToWorldLocation(const FVector& WorldLocation) const;
+
+	/** Given a location, in world space, return the point on the curve that is closest to the location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector FindLocationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world spcae, return a unit direction vector of the spline tangent closest to the location. */
+	UFUNCTION(BlueprintCallable, Category=Spline)
+	FVector FindDirectionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return the tangent vector of the spline closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindTangentClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return a quaternion corresponding to the spline's rotation closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FQuat FindQuaternionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return rotation corresponding to the spline's rotation closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FRotator FindRotationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return a unit direction vector corresponding to the spline's up vector closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindUpVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+    /** Given a location, in world space, return a unit direction vector corresponding to the spline's right vector closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindRightVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+    /** Given a location, in world space, return the spline's roll closest to the location, in degrees. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+    float FindRollClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const;
+
+	/** Given a location, in world space, return the spline's scale closest to the location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FVector FindScaleClosestToWorldLocation(const FVector& WorldLocation) const;
+
+	/** Given a location, in world space, return an FTransform closest to that location. */
+	UFUNCTION(BlueprintCallable, Category = Spline)
+	FTransform FindTransformClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace, bool bUseScale = false) const;
+
+
 	// UObject interface
 	virtual void PostLoad() override;
 	virtual void PostEditImport() override;

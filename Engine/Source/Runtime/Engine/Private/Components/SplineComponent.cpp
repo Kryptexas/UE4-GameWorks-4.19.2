@@ -1007,6 +1007,84 @@ FVector USplineComponent::GetScaleAtTime(float Time, bool bUseConstantVelocity) 
 }
 
 
+float USplineComponent::FindInputKeyClosestToWorldLocation(const FVector& WorldLocation) const
+{
+	const FVector LocalLocation = ComponentToWorld.InverseTransformPosition(WorldLocation);
+	float Dummy;
+	return SplineInfo.InaccurateFindNearest(LocalLocation, Dummy);
+}
+
+
+FVector USplineComponent::FindLocationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetLocationAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindDirectionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetDirectionAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindTangentClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetTangentAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FQuat USplineComponent::FindQuaternionClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetQuaternionAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FRotator USplineComponent::FindRotationClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRotationAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindUpVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetUpVectorAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindRightVectorClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRightVectorAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+float USplineComponent::FindRollClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetRollAtSplineInputKey(Param, CoordinateSpace);
+}
+
+
+FVector USplineComponent::FindScaleClosestToWorldLocation(const FVector& WorldLocation) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetScaleAtSplineInputKey(Param);
+}
+
+
+FTransform USplineComponent::FindTransformClosestToWorldLocation(const FVector& WorldLocation, ESplineCoordinateSpace::Type CoordinateSpace, bool bUseScale) const
+{
+	const float Param = FindInputKeyClosestToWorldLocation(WorldLocation);
+	return GetTransformAtSplineInputKey(Param, CoordinateSpace, bUseScale);
+}
+
+
 /** Used to store spline data during RerunConstructionScripts */
 class FSplineInstanceData : public FSceneComponentInstanceData
 {
