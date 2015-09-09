@@ -347,7 +347,7 @@ public:
 	 * @return	a reference to the pointer to the element
 	 * Thread safe, if it is valid now, it is valid forever. This might return nullptr, but by then, some other thread might have made it non-nullptr.
 	**/
-	ElementType const* const& operator[](int32 Index) const
+	FORCEINLINE ElementType const* const& operator[](int32 Index) const
 	{
 		ElementType const* const* ItemPtr = GetItemPtr(Index);
 		check(ItemPtr);
