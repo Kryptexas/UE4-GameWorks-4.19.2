@@ -1,9 +1,8 @@
 Availability:Public
 Title: Toolbar Options
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes, Engine/Blueprints/Editor/UIComponents/Toolbar
-Description:
+Description: A list of Toolbar buttons and their functions
 
-[TOC (start:2)]
 
 
 [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Intro]
