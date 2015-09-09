@@ -7,6 +7,7 @@
 #include "AssetTypeActions_GeometryCache.h"
 #include "GeometryCacheAssetBroker.h"
 #include "GeometryCacheComponent.h"
+#include "GeometryCacheThumbnailRenderer.h"
 
 IMPLEMENT_MODULE(FGeometryCacheEdModule, GeometryCacheEd)
 
@@ -20,6 +21,8 @@ void FGeometryCacheEdModule::StartupModule()
 
 	AssetBroker = new FGeometryCacheAssetBroker();
 	FComponentAssetBrokerage::RegisterBroker(MakeShareable(AssetBroker), UGeometryCacheComponent::StaticClass(), true, true);
+
+	UThumbnailManager::Get().RegisterCustomRenderer(UGeometryCache::StaticClass(), UGeometryCacheThumbnailRenderer::StaticClass());
 }
 
 void FGeometryCacheEdModule::ShutdownModule()
