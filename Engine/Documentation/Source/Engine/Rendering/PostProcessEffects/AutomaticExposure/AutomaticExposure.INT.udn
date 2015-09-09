@@ -2,6 +2,7 @@ Availability:Public
 Title:Eye Adaptation
 Crumbs: %ROOT%, Engine, Engine/Rendering/PostProcessEffects
 Description:Automatic adjustment of scene exposure to simulate eye adaptation from changes in brightness.
+Version: 4.9
 
 [EXCERPT:EyeAdaptation_Desc]
 **Eye Adaptation**, or automatic exposure, causes the exposure of the scene to automatically adjust to recreate the effect experienced as human eyes adjust when going from a bright environment into a dark environment or vice versa.
