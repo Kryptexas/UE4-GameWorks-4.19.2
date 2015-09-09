@@ -96,7 +96,19 @@ FString FEmitHelper::GetCppName(const UField* Field)
 	}
 	else if (auto AsProperty = Cast<UProperty>(Field))
 	{
+		if (const UStruct* Owner = AsProperty->GetOwnerStruct())
+		{
+			if ((Cast<UBlueprintGeneratedClass>(Owner) ||
+				!Owner->HasAnyFlags(RF_Native)))
+			{
+				return ::UnicodeToCPPIdentifier(AsProperty->GetName(), AsProperty->HasAnyPropertyFlags(CPF_Deprecated), TEXT("bpv__"));
+			}
+		}
 		return AsProperty->GetNameCPP();
+	}
+	if (!Field->HasAnyFlags(RF_Native))
+	{
+		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}
 	return Field->GetName();
 }
@@ -176,6 +188,10 @@ FString FEmitHelper::HandleMetaData(const UField* Field, bool AddCategory, TArra
 	if (AdditinalMetaData)
 	{
 		MetaDataStrings.Append(*AdditinalMetaData);
+	}
+	if (Field)
+	{
+		MetaDataStrings.Emplace(FString::Printf(TEXT("OverrideNativeName=\"%s\""), *Field->GetName()));
 	}
 	MetaDataStrings.Remove(FString());
 	if (MetaDataStrings.Num())

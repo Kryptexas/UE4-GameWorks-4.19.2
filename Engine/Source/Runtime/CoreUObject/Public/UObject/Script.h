@@ -323,3 +323,5 @@ public:
 private:
 	bool bOldGAllowScriptExecutionInEditor;
 };
+
+COREUOBJECT_API FString UnicodeToCPPIdentifier(const FString& InName, bool bDeprecated, const TCHAR* Prefix);

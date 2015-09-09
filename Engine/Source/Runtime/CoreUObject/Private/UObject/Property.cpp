@@ -485,7 +485,18 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		}
 	}
 
-	FString NameCpp = bSkipParameterName ? FString() : GetNameCPP();
+	FString NameCpp;
+	if (!bSkipParameterName)
+	{
+		if (AdditionalExportCPPFlags & CPPF_BlueprintCppBackend)
+		{
+			NameCpp = UnicodeToCPPIdentifier(GetName(), HasAnyPropertyFlags(CPF_Deprecated), TEXT("bpv__"));
+		}
+		else
+		{
+			NameCpp = GetNameCPP();
+		}
+	}
 	if (DeclarationType == EExportedDeclaration::MacroParameter)
 	{
 		NameCpp = FString(TEXT(", ")) + NameCpp;
