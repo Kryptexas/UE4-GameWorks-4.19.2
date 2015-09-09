@@ -3,6 +3,7 @@ Title: Post Process Effects
 Crumbs: %ROOT%, Engine
 Description:Effects applied to the whole rendered scene prior to being rendered.
 Navigation:topic
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
