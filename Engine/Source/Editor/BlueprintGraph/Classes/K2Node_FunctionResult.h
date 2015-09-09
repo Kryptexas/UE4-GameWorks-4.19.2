@@ -29,9 +29,13 @@ class UK2Node_FunctionResult : public UK2Node_FunctionTerminator
 	virtual void PostPasteNode() override;
 	// End UK2Node interface
 
-	// Begin K2Node_FunctionTerminator interface
+	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
+	// End UK2Node_EditablePinBase interface
+
+	// Begin K2Node_FunctionTerminator interface
+	virtual void PromoteFromInterfaceOverride(bool bIsPrimaryTerminator = true);
 	// End K2Node_FunctionTerminator interface
 
 	BLUEPRINTGRAPH_API TArray<UK2Node_FunctionResult*> GetAllResultNodes() const;

@@ -305,3 +305,19 @@ void UK2Node_FunctionResult::ValidateNodeDuringCompilation(class FCompilerResult
 		}
 	}
 }
+
+void UK2Node_FunctionResult::PromoteFromInterfaceOverride(bool bIsPrimaryTerminator/* = true*/)
+{
+	// For non-primary terminators, we want to sync with the primary one and reconstruct.
+	if (bIsPrimaryTerminator)
+	{
+		Super::PromoteFromInterfaceOverride();
+	}
+	else
+	{
+		SignatureClass = nullptr;
+		SyncWithPrimaryResultNode();
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+		Schema->ReconstructNode(*this, true);
+	}
+}

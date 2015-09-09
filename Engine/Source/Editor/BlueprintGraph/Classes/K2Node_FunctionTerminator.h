@@ -36,5 +36,8 @@ class UK2Node_FunctionTerminator : public UK2Node_EditablePinBase
 	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	// End UK2Node_EditablePinBase interface
+
+	/** Promotes the node from being a part of an interface override to a full function that allows for parameter and result pin additions */
+	virtual void PromoteFromInterfaceOverride(bool bIsPrimaryTerminator = true);
 };
 

@@ -5448,6 +5448,33 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 				Schema->MarkFunctionEntryAsEditable(CurrentGraph, true);
 
 				Blueprint->FunctionGraphs.Add(CurrentGraph);
+
+				// Move all non-exec pins from the function entry node to being user defined pins
+				TArray<UK2Node_FunctionEntry*> FunctionEntryNodes;
+				CurrentGraph->GetNodesOfClass(FunctionEntryNodes);
+				if (FunctionEntryNodes.Num() > 0)
+				{
+					UK2Node_FunctionEntry* FunctionEntry = FunctionEntryNodes[0];
+					FunctionEntry->PromoteFromInterfaceOverride();
+				}
+
+				// Move all non-exec pins from the function result node to being user defined pins
+				TArray<UK2Node_FunctionResult*> FunctionResultNodes;
+				CurrentGraph->GetNodesOfClass(FunctionResultNodes);
+				if (FunctionResultNodes.Num() > 0)
+				{
+					UK2Node_FunctionResult* PrimaryFunctionResult = FunctionResultNodes[0];
+					PrimaryFunctionResult->PromoteFromInterfaceOverride();
+
+					// Reconstruct all result nodes so they update their pins accordingly
+					for (UK2Node_FunctionResult* FunctionResult : FunctionResultNodes)
+					{
+						if (PrimaryFunctionResult != FunctionResult)
+						{
+							FunctionResult->PromoteFromInterfaceOverride(false);
+						}
+					}
+				}
 			}
 			else
 			{
