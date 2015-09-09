@@ -60,6 +60,7 @@ public:
 		}
 		RoomJoins.Empty();
 		LoggedInUser.Reset();
+		bJoinedGlobalChat = false;
 		UnInitialize();
 		bJoinedGlobalChat = false;
 	}
@@ -243,6 +244,7 @@ private:
 		GameMessagesCount = 0;
 		PartyMessagesCount = 0;
 		ReceivedMessages.Empty();
+		bJoinedGlobalChat = false;
 
 		IOnlineChatPtr ChatInterface = OSSScheduler->GetChatInterface();
 		if (ChatInterface.IsValid())
