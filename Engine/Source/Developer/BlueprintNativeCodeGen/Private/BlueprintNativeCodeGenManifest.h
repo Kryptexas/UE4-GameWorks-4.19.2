@@ -40,11 +40,13 @@ struct FBlueprintNativeCodeGenManifest
 {
 	GENERATED_USTRUCT_BODY()
 
+	static FString GetDefaultFilename();
+
 public: 
 	FBlueprintNativeCodeGenManifest(const FString TargetPath = TEXT(""));
 	FBlueprintNativeCodeGenManifest(const FNativeCodeGenCommandlineParams& CommandlineParams);
 
-	FORCEINLINE const FString& GetTargetPath() const { return ModulePath; }
+	FString GetTargetPath() const;
 
 	/**  */
 	bool Save() const;
@@ -53,6 +55,12 @@ public:
 	FConvertedAssetRecord& CreateConversionRecord(const FAssetData& AssetInfo);
 
 private:
+	void Clear();
+
+	/**  */
+	FString ManifestPath;
+
+	/** Relative to the project's directory */
 	UPROPERTY()
 	FString ModulePath;
 
@@ -60,7 +68,5 @@ private:
 	TArray<FString> ModuleDependencies;
 
 	UPROPERTY()
-	TArray<FConvertedAssetRecord> ConvertedAssets; 
-	/**  */
-	TMap<FName, int32> RecordLookupTable;
+	TArray<FConvertedAssetRecord> ConvertedAssets;
 };

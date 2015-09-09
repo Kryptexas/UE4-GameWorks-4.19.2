@@ -10,6 +10,7 @@
 #include "Engine/UserDefinedStruct.h"
 #include "Engine/UserDefinedEnum.h"
 #include "Kismet2/KismetEditorUtilities.h"		// for CompileBlueprint()
+#include "OutputDevice.h"						// for GWarn
 
 /*******************************************************************************
  * BlueprintNativeCodeGenUtilsImpl
@@ -21,21 +22,79 @@ namespace BlueprintNativeCodeGenUtilsImpl
 }
 
 /*******************************************************************************
+ * FScopedFeedbackContext
+ ******************************************************************************/
+
+//------------------------------------------------------------------------------
+FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::FScopedFeedbackContext()
+	: OldContext(GWarn)
+	, ErrorCount(0)
+	, WarningCount(0)
+{
+	TreatWarningsAsErrors = GWarn->TreatWarningsAsErrors;
+	GWarn = this;
+}
+
+//------------------------------------------------------------------------------
+FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::~FScopedFeedbackContext()
+{
+	GWarn = OldContext;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::HasErrors()
+{
+	return (ErrorCount > 0) || (TreatWarningsAsErrors && (WarningCount > 0));
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category)
+{
+	switch (Verbosity)
+	{
+	case ELogVerbosity::Warning:
+		{
+			++WarningCount;
+		} 
+		break;
+
+	case ELogVerbosity::Error:
+	case ELogVerbosity::Fatal:
+		{
+			++ErrorCount;
+		} 
+		break;
+
+	default:
+		break;
+	}
+
+	OldContext->Serialize(V, Verbosity, Category);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Flush()
+{
+	WarningCount = ErrorCount = 0;
+	OldContext->Flush();
+}
+
+/*******************************************************************************
  * FBlueprintNativeCodeGenUtils
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
 bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(FBlueprintNativeCodeGenCoordinator& Coordinator)
 {
-	
-	TSharedPtr<FString> HeaderSource(new FString());
-	TSharedPtr<FString> CppSource(new FString());
-
 	FBlueprintNativeCodeGenManifest& Manifest = Coordinator.Manifest;
+
+	TSharedPtr<FString> HeaderSource(new FString());
+	TSharedPtr<FString> CppSource(   new FString());
 
 	bool bSuccess = (Coordinator.ConversionQueue.Num() > 0);
 	for (const FAssetData& Asset : Coordinator.ConversionQueue)
 	{
+		FScopedFeedbackContext ScopedErrorTracker;
 		FConvertedAssetRecord& ConversionRecord = Manifest.CreateConversionRecord(Asset);
 
 		// loads the object if it is not already loaded
@@ -59,6 +118,12 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(FBlueprintNativeCodeGenCoo
 		else
 		{
 			ConversionRecord.GeneratedCppPath.Empty();
+		}
+
+		if (ScopedErrorTracker.HasErrors())
+		{
+			bSuccess = false;
+			break;
 		}
 	}
 	Coordinator.Manifest.Save();

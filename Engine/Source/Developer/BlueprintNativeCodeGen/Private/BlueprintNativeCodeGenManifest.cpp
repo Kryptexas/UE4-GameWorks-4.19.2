@@ -9,6 +9,7 @@
 #include "JsonObjectConverter.h"
 #include "Serialization/JsonWriter.h"
 
+DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenManifest, Log, All);
 
 /*******************************************************************************
  * BlueprintNativeCodeGenManifestImpl
@@ -23,30 +24,21 @@ namespace BlueprintNativeCodeGenManifestImpl
 	static const FString HeaderSubDir    = TEXT("Public");
 	static const FString CppSubDir       = TEXT("Private");
 
-	/** */
-	static FString GetManifestFilePath(const FString& ModulePath);
-
 	/**  */
-	static bool LoadManifest(FBlueprintNativeCodeGenManifest* Manifest);
+	static bool LoadManifest(const FString& FilePath, FBlueprintNativeCodeGenManifest* Manifest);
 
 	/**  */
 	static FString GenerateHeaderSavePath(const FString& ModulePath, const FAssetData& Asset);
 	static FString GenerateCppSavePath(const FString& ModulePath, const FAssetData& Asset);
+
+	static FString GetComparibleDirPath(const FString& DirectoryPath);
 }
 
 //------------------------------------------------------------------------------
-static FString BlueprintNativeCodeGenManifestImpl::GetManifestFilePath(const FString& ModulePath)
+static bool BlueprintNativeCodeGenManifestImpl::LoadManifest(const FString& FilePath, FBlueprintNativeCodeGenManifest* Manifest)
 {
-	return FPaths::Combine(*ModulePath, FApp::GetGameName()) + ManifestFileExt;
-}
-
-//------------------------------------------------------------------------------
-static bool BlueprintNativeCodeGenManifestImpl::LoadManifest(FBlueprintNativeCodeGenManifest* Manifest)
-{
-	const FString ManifestFilePath = BlueprintNativeCodeGenManifestImpl::GetManifestFilePath(Manifest->GetTargetPath());
-
 	FString ManifestStr;
-	if (FFileHelper::LoadFileToString(ManifestStr, *ManifestFilePath))
+	if (FFileHelper::LoadFileToString(ManifestStr, *FilePath))
 	{
 		TSharedRef< TJsonReader<> > JsonReader = TJsonReaderFactory<>::Create(ManifestStr);
 
@@ -73,9 +65,38 @@ static FString BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(const FSt
 	return FPaths::Combine(*FPaths::Combine(*ModulePath, *CppSubDir), *Asset.AssetName.ToString()) + CppFileExt;
 }
 
+//------------------------------------------------------------------------------
+static FString BlueprintNativeCodeGenManifestImpl::GetComparibleDirPath(const FString& DirectoryPath)
+{
+	FString NormalizedPath = DirectoryPath;
+
+	const FString PathDelim = TEXT("/");
+	if (!NormalizedPath.EndsWith(PathDelim))
+	{
+		// to account for the case where the relative path would resolve to X: 
+		// (when we want "X:/")... ConvertRelativePathToFull() leaves the 
+		// trailing slash, and NormalizeDirectoryName() will remove it (if it is
+		// not a drive letter)
+		NormalizedPath += PathDelim;
+	}
+
+	if (FPaths::IsRelative(NormalizedPath))
+	{
+		NormalizedPath = FPaths::ConvertRelativePathToFull(NormalizedPath);
+	}
+	FPaths::NormalizeDirectoryName(NormalizedPath);
+	return NormalizedPath;
+}
+
 /*******************************************************************************
  * FBlueprintNativeCodeGenManifest
  ******************************************************************************/
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenManifest::GetDefaultFilename()
+{
+	return FApp::GetGameName() + BlueprintNativeCodeGenManifestImpl::ManifestFileExt;
+}
 
 FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FString TargetPath)
 	: ModulePath(TargetPath)
@@ -91,14 +112,80 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FString T
 //------------------------------------------------------------------------------
 FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCodeGenCommandlineParams& CommandlineParams)
 {
+	using namespace BlueprintNativeCodeGenManifestImpl;
+	bool const bLoadExistingManifest = !CommandlineParams.bWipeRequested || CommandlineParams.ModuleOutputDir.IsEmpty();
+	
 	ModulePath = CommandlineParams.ModuleOutputDir;
+	if (FPaths::IsRelative(ModulePath))
+	{
+		FPaths::MakePathRelativeTo(ModulePath, *FPaths::GameDir());
+	}
+
+	if (!CommandlineParams.ManifestFilePath.IsEmpty())
+	{
+		ManifestPath = CommandlineParams.ManifestFilePath;
+	}
+	else
+	{
+		if (!ensure(!ModulePath.IsEmpty()))
+		{
+			ModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("BpCodeGen"));
+		}
+		ManifestPath = FPaths::Combine(*ModulePath, *GetDefaultFilename());
+	}
+	
 	// incorporate an existing manifest (in case we're only re-converting a 
 	// handful of assets and adding them into an existing module)
-	if (BlueprintNativeCodeGenManifestImpl::LoadManifest(this))
+	if (bLoadExistingManifest && LoadManifest(ManifestPath, this))
 	{
-		// reset ModulePath afterwards (in case what we've loaded has been moved
-		ModulePath = CommandlineParams.ModuleOutputDir;
+		// if they specified a separate module path, lets make sure we use that
+		// over what was found in the existing manifest
+		if (!CommandlineParams.ModuleOutputDir.IsEmpty())
+		{
+			if (CommandlineParams.bWipeRequested)
+			{
+				ModulePath = CommandlineParams.ModuleOutputDir;
+			}
+			else
+			{
+				const FString ExpectedPath = GetComparibleDirPath(CommandlineParams.ModuleOutputDir);
+				const FString TargetPath   = GetComparibleDirPath(GetTargetPath());
+
+				if ( !FPaths::IsSamePath(ExpectedPath, TargetPath) )
+				{
+					UE_LOG(LogNativeCodeGenManifest, Error, 
+						TEXT("The existing manifest's module path does not match what was specified via the commandline."));
+				}
+			}
+		}
+
+		// if we were only interested in obtaining the module path
+		if (CommandlineParams.bWipeRequested)
+		{
+			Clear();
+		}
 	}
+
+	if (CommandlineParams.bWipeRequested)
+	{
+		const FString TargetPath = GetTargetPath();
+
+		IFileManager& FileManager = IFileManager::Get();
+		FileManager.DeleteDirectory(*FPaths::Combine(*TargetPath, *CppSubDir));
+		FileManager.DeleteDirectory(*FPaths::Combine(*TargetPath, *HeaderSubDir));
+	}
+}
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenManifest::GetTargetPath() const
+{
+	FString TargetPath = ModulePath;
+	if (FPaths::IsRelative(ModulePath))
+	{
+		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir(), ModulePath);
+		TargetPath = FPaths::ConvertRelativePathToFull(TargetPath);
+	}
+	return TargetPath;
 }
 
 //------------------------------------------------------------------------------
@@ -127,11 +214,16 @@ bool FBlueprintNativeCodeGenManifest::Save() const
 		if (FJsonSerializer::Serialize(JsonObject, JsonWriter))
 		{
 			JsonWriter->Close();
-
-			const FString ManifestFilePath = BlueprintNativeCodeGenManifestImpl::GetManifestFilePath(GetTargetPath());
-			return FFileHelper::SaveStringToFile(FileContents, *ManifestFilePath);
+			return FFileHelper::SaveStringToFile(FileContents, *ManifestPath);
 		}
 	}
 	return false;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenManifest::Clear()
+{
+	ConvertedAssets.Empty();
+	ModuleDependencies.Empty();
 }
 

@@ -41,9 +41,13 @@ int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
 		return 0;
 	}
 
+	FBlueprintNativeCodeGenUtils::FScopedFeedbackContext ScopedErrorTracker;
 	FBlueprintNativeCodeGenCoordinator Coordinator(CommandlineParams);
-	FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
-	
-	return 0;
+
+	if (!ScopedErrorTracker.HasErrors())
+	{
+		FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
+	}
+	return ScopedErrorTracker.HasErrors();
 }
 

@@ -3,6 +3,7 @@
 
 #include "BlueprintNativeCodeGenPCH.h"
 #include "NativeCodeGenCommandlineParams.h"
+#include "BlueprintNativeCodeGenManifest.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenCommandline, Log, All);
 
@@ -39,6 +40,20 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
                         its own). If specified as a relative path, it will be  \n\
                         relative to the target project's root directory.       \n\
 \n\
+    -wipe               Will clear out the target directory when specified.    \n\
+                        Normally, without this switch, if the target directory \n\
+                        contains source from a previous run, it builds atop the\n\
+                        existing module and appends to its existing manifest.  \n\
+\n\
+    -manifest=<Path>    Specifies where to save the conversion's manifest file.\n\
+                        If <Path> is not an existing directory or file, then it\n\
+                        is assumed that it is a file path. If a manifest       \n\
+                        already exists here, then we can use this in place of  \n\
+                        the -output command (and the target module directory   \n\
+                        will be determined by the old manifest file). If left  \n\
+                        unset, then it will default to the module's target     \n\
+                        directory.                                             \n\
+\n\
     -help, -h, -?       Display this message and then exit.                    \n\
 \n");
 
@@ -59,9 +74,10 @@ namespace NativeCodeGenCommandlineParamsImpl
 //------------------------------------------------------------------------------
 FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FString>& CommandlineSwitches)
 	: bHelpRequested(false)
+	, bWipeRequested(false)
 {
 	IFileManager& FileManager = IFileManager::Get();
-	ModuleOutputDir = FPaths::Combine(*FPaths::GameIntermediateDir(), *NativeCodeGenCommandlineParamsImpl::DefaultModuleName);
+	const FString DefaultModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), *NativeCodeGenCommandlineParamsImpl::DefaultModuleName);
 
 	for (const FString& Param : CommandlineSwitches)
 	{
@@ -84,9 +100,10 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 		}
 		else if (!Switch.Compare(TEXT("output"), ESearchCase::IgnoreCase))
 		{
+			FPaths::NormalizeDirectoryName(Value);
 			// if it's a relative path, let's have it relative to the game 
 			// directory (not the UE executable)
-			if (FPaths::IsRelative(*Value))
+			if (FPaths::IsRelative(Value))
 			{
 				Value = FPaths::Combine(*FPaths::GameDir(), *Value);
 			}
@@ -97,13 +114,56 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 			}
 			else
 			{
-				UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a usable output directory, defaulting to: '%s'"), *Value, *ModuleOutputDir);
+				UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid output directory, defaulting to: '%s'"), *Value, *DefaultModulePath);
+			}
+		}
+		else if (!Switch.Compare(TEXT("wipe"), ESearchCase::IgnoreCase))
+		{
+			bWipeRequested = true;
+		}
+		else if (!Switch.Compare(TEXT("manifest"), ESearchCase::IgnoreCase))
+		{
+			FPaths::NormalizeDirectoryName(Value);
+
+			if (FileManager.FileExists(*Value))
+			{
+				ManifestFilePath = Value;
+			}
+			else if (FileManager.DirectoryExists(*Value))
+			{
+				ManifestFilePath = FPaths::Combine(*Value, *FBlueprintNativeCodeGenManifest::GetDefaultFilename());
+			}
+			else
+			{
+				UE_LOG(LogNativeCodeGenCommandline, Display, TEXT("Unsure if '%s' is supposed to denote a directory or a filename, assuming it's a file."), *Value);
+
+				FString FilePath = FPaths::GetPath(*Value);
+				if (FileManager.DirectoryExists(*FilePath) || FileManager.MakeDirectory(*FilePath))
+				{
+					ManifestFilePath = Value;
+				}
+				else
+				{
+					if (FPaths::IsRelative(Value))
+					{
+						Value = FPaths::ConvertRelativePathToFull(Value);
+					}
+					UE_LOG( LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid manifest file path, defaulting to: '%s'."), *Value,
+						*FPaths::Combine(*DefaultModulePath, *FBlueprintNativeCodeGenManifest::GetDefaultFilename()) );
+				}
 			}
 		}
 		else
 		{
 			//UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("Unrecognized commandline parameter: %s"), *Switch);
 		}
+	}
+
+	bool const bUtilizeExistingManifest = !ManifestFilePath.IsEmpty() && !bWipeRequested && FileManager.FileExists(*ManifestFilePath);
+	// an existing manifest would specify where to put the module
+	if (ModuleOutputDir.IsEmpty() && !bUtilizeExistingManifest)
+	{
+		ModuleOutputDir = DefaultModulePath;
 	}
 }
 
