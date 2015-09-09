@@ -223,8 +223,8 @@ void FCrashDescription::UpdateIDs()
 		EpicAccountId.Empty();
 	}
 
-	// Add real user name only for internal builds.
-	const bool bSendUserName = FEngineBuildSettings::IsInternalBuild();
+	// Add real user name only if log files were allowed since the user name is in the log file and the user consented to sending this information.
+	const bool bSendUserName = FCrashReportClientConfig::Get().GetSendLogFile();
 	if (bSendUserName)
 	{
 		// Remove periods from user names to match AutoReporter user names
