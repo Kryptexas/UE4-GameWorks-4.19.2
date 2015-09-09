@@ -3932,18 +3932,7 @@ void UParticleSystemComponent::FinalizeTickComponent()
 		}
 		else if (bAutoManageAttachment)
 		{
-			if (AttachParent)
-			{
-				if (bDidAutoAttach)
-				{
-					// Restore relative transform from before attachment. Actual transform will be updated as part of DetachFromParent().
-					RelativeLocation = SavedAutoAttachRelativeLocation;
-					RelativeRotation = SavedAutoAttachRelativeRotation;
-					RelativeScale3D = SavedAutoAttachRelativeScale3D;
-				}
-				DetachFromParent(/*bMaintainWorldPosition=*/ false);
-				bDidAutoAttach = false;
-			}
+			CancelAutoAttachment(/*bDetachFromParent=*/ true);
 		}
 	}
 	bWasCompleted = bIsCompleted;
@@ -4560,6 +4549,26 @@ void UParticleSystemComponent::DeactivateSystem()
 	}
 
 	LastRenderTime = GetWorld()->GetTimeSeconds();
+}
+
+void UParticleSystemComponent::CancelAutoAttachment(bool bDetachFromParent)
+{
+	if (bAutoManageAttachment)
+	{
+		if (bDidAutoAttach)
+		{
+			// Restore relative transform from before attachment. Actual transform will be updated as part of DetachFromParent().
+			RelativeLocation = SavedAutoAttachRelativeLocation;
+			RelativeRotation = SavedAutoAttachRelativeRotation;
+			RelativeScale3D = SavedAutoAttachRelativeScale3D;
+			bDidAutoAttach = false;
+		}
+
+		if (bDetachFromParent)
+		{
+			DetachFromParent(/*bMaintainWorldPosition=*/ false);
+		}
+	}
 }
 
 void UParticleSystemComponent::ComputeCanTickInAnyThread()
