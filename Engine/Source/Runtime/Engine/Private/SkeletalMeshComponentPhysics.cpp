@@ -2089,15 +2089,17 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::
 	check(ClothingActors.Num() == AssetIndex);
 	ClothingActors.AddZeroed();
 
-	FPhysScene* PhysScene = NULL;
-
-	if (GetWorld())
-	{
-		PhysScene = GetWorld()->GetPhysicsScene();
-	}
+	UWorld* World = GetWorld();
+	FPhysScene* PhysScene = World ? World->GetPhysicsScene() : nullptr;
 
 	//this clothing actor would be crated later because this becomes invalid
 	if (!PhysScene)
+	{
+		return false;
+	}
+
+	//TODO: this is a workaround while waiting for fix: apex cloth factory lifetime should depend on cloth asset. For now we make sure to only create asset if the scene ticks which is the only way to get refcounted
+	if(World->bShouldSimulatePhysics == false)
 	{
 		return false;
 	}
