@@ -808,9 +808,9 @@ public partial class Project : CommandUtils
 	}
 
 
-    private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string ReleaseVersion, string PakName)
+    private static string GetReleasePakFilePath(DeploymentContext SC, ProjectParams Params, string PakName)
     {
-        string ReleaseVersionPath = CombinePaths(SC.ProjectRoot, "Releases", ReleaseVersion, SC.StageTargetPlatform.GetCookPlatform(SC.DedicatedServer, false, Params.CookFlavor), PakName);
+        string ReleaseVersionPath = CombinePaths(Params.GetBasedOnReleaseVersionPath(SC), PakName);
         return ReleaseVersionPath;
     }
 
@@ -825,7 +825,7 @@ public partial class Project : CommandUtils
 	private static void CreatePak(ProjectParams Params, DeploymentContext SC, Dictionary<string, string> UnrealPakResponseFile, string PakName)
 	{
         string PostFix = "";
-        if (Params.IsGeneratingPatch)
+		if (Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak())
         {
             PostFix += "_P";
         }
@@ -882,11 +882,11 @@ public partial class Project : CommandUtils
 		}
 
         string PatchSourceContentPath = null;
-        if (Params.HasBasedOnReleaseVersion && Params.IsGeneratingPatch)
+		if (Params.HasBasedOnReleaseVersion && Params.IsGeneratingPatch && SC.StageTargetPlatform.GetPlatformPatchesWithDiffPak())
         {
             // don't include the post fix in this filename because we are looking for the source pak path
             string PakFilename = PakName + "-" + SC.FinalCookPlatform + ".pak";
-            PatchSourceContentPath = GetReleasePakFilePath(SC, Params, Params.BasedOnReleaseVersion, PakFilename);
+            PatchSourceContentPath = GetReleasePakFilePath(SC, Params, PakFilename);
             
 
             /*PatchSourceContentPath = Params.BasedOnReleaseVersion;
@@ -910,7 +910,7 @@ public partial class Project : CommandUtils
         {
             // copy the created pak to the release version directory we might need this later if we want to generate patches
             //string ReleaseVersionPath = CombinePaths( SC.ProjectRoot, "Releases", Params.CreateReleaseVersion, SC.StageTargetPlatform.GetCookPlatform(Params.DedicatedServer, false, Params.CookFlavor), Path.GetFileName(OutputLocation) );
-            string ReleaseVersionPath = GetReleasePakFilePath(SC, Params, Params.CreateReleaseVersion, Path.GetFileName(OutputLocation));
+            string ReleaseVersionPath = GetReleasePakFilePath(SC, Params, Path.GetFileName(OutputLocation));
 
 			InternalUtils.SafeCreateDirectory(Path.GetDirectoryName(ReleaseVersionPath));
 			InternalUtils.SafeCopyFile(OutputLocation, ReleaseVersionPath);
