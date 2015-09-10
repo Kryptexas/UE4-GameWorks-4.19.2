@@ -64,6 +64,35 @@ void SButton::Construct( const FArguments& InArgs )
 	PressedSound = InArgs._PressedSoundOverride.Get(Style->PressedSlateSound);
 }
 
+int32 SButton::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+{
+	bool bEnabled = ShouldBeEnabled(bParentEnabled);
+	bool bShowDisabledEffect = GetShowDisabledEffect();
+
+	const FSlateBrush* BrushResource = !bShowDisabledEffect && !bEnabled ? DisabledImage : GetBorder();
+	
+	ESlateDrawEffect::Type DrawEffects = bShowDisabledEffect && !bEnabled ? ESlateDrawEffect::DisabledEffect : ESlateDrawEffect::None;
+
+	if (BrushResource && BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType)
+	{
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			LayerId,
+			AllottedGeometry.ToPaintGeometry(),
+			BrushResource,
+			MyClippingRect,
+			DrawEffects,
+			BrushResource->GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint() * BorderBackgroundColor.Get().GetColor(InWidgetStyle)
+			);
+	}
+
+	FWidgetStyle CompoundedWidgetStyle = FWidgetStyle(InWidgetStyle)
+		.BlendColorAndOpacityTint(ColorAndOpacity.Get())
+		.SetForegroundColor(ForegroundColor.Get());
+
+	return SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect.IntersectionWith(AllottedGeometry.GetClippingRect()), OutDrawElements, LayerId, CompoundedWidgetStyle, bEnabled);
+}
+
 FMargin SButton::GetCombinedPadding() const
 {
 	return ( IsPressed() )

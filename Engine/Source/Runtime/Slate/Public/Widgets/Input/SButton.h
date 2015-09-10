@@ -127,6 +127,8 @@ public:
 
 	// SWidget overrides
 
+	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+
 	virtual bool SupportsKeyboardFocus() const override;
 
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
