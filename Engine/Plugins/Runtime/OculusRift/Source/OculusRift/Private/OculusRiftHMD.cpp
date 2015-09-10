@@ -33,6 +33,7 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 		check(IsInGameThread());
 		bool bRetVal = false;
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 		IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 		if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 		{
@@ -45,6 +46,7 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 				bRetVal = true;
 			}
 		}
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 		return bRetVal;
 	}
 
@@ -53,12 +55,14 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 		check(IsInGameThread());
 		ovrHmd bRetVal = nullptr;
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 		IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 		if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 		{
 			FOculusRiftHMD* OculusHMD = static_cast<FOculusRiftHMD*>(HMD);
 			bRetVal = OculusHMD->Hmd;
 		}
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 		return bRetVal;
 	}
 
@@ -67,6 +71,7 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 		check(IsInGameThread());
 		bool bRetVal = false;
 
+#if OCULUS_RIFT_SUPPORTED_PLATFORMS
 		IHeadMountedDisplay* HMD = HeadMountedDisplay.Pin().Get();
 		if (TrackingState && HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_OculusRift)
 		{
@@ -78,6 +83,7 @@ class FOculusRiftPlugin : public IOculusRiftPlugin
 				bRetVal = true;
 			}
 		}
+#endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 		return bRetVal;
 	}
 
