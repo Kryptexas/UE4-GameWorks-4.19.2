@@ -219,6 +219,11 @@ void UMediaPlayer::PostEditChangeProperty( FPropertyChangedEvent& PropertyChange
 
 void UMediaPlayer::InitializePlayer()
 {
+	if (IsRunningDedicatedServer())
+	{
+		return;
+	}
+
 	if (URL != CurrentUrl)
 	{
 		// close previous player
