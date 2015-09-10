@@ -4,6 +4,10 @@
 #include "Common.usf"
 #include "GammaCorrectionCommon.usf"
 
+#if USE_MATERIALS
+#include "Material.usf"
+#endif
+
 float4x4 ViewProjection;
 
 float SwitchVerticalAxisMultiplier;
@@ -29,7 +33,19 @@ VertexOut Main(
 	)
 {
 	VertexOut VOut;
-	VOut.Position = mul(float4(InPosition.xy,0,1), ViewProjection);
+
+	float4 WorldPosition = float4(InPosition.xy,0,1);
+#if USE_MATERIALS
+	FMaterialVertexParameters VertexParameters;
+	VertexParameters.WorldPosition = WorldPosition.xyz;
+#if USE_INSTANCING
+	VertexParameters.PerInstanceParams = float4(0,0,0,0);
+#endif
+	VertexParameters.VertexColor = InColor;
+	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+#endif
+
+	VOut.Position = mul(WorldPosition, ViewProjection);
 
 #if ES2_PROFILE && COMPILER_GLSL_ES2
 	// @todo-mobile: Fix this in the projection matrix

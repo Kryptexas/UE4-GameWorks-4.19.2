@@ -46,7 +46,7 @@ struct FMaterialInputInfo
 		}
 		else if( Material->IsUIMaterial() )
 		{
-			return Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask;
+			return Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask || Property == MP_WorldPositionOffset;
 		}
 		else
 		{

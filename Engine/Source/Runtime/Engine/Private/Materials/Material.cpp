@@ -3974,6 +3974,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 	else if ( MaterialDomain == MD_UI )
 	{
 		return InProperty == MP_EmissiveColor
+			|| ( InProperty == MP_WorldPositionOffset )
 			|| ( InProperty == MP_OpacityMask && BlendMode == BLEND_Masked ) 
 			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate );
 	}

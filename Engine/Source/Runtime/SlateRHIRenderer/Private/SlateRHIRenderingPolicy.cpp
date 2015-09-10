@@ -547,7 +547,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 	FSceneView* SceneView = NULL;
 
-	TShaderMapRef<FSlateElementVS> VertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
+	TShaderMapRef<FSlateElementVS> GlobalVertexShader(GetGlobalShaderMap(GMaxRHIFeatureLevel));
 
 	// Disabled stencil test state
 	FDepthStencilStateRHIRef DSOff = TStaticDepthStencilState<false,CF_Always>::GetRHI();
@@ -608,6 +608,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		{
 			check(RenderBatch.NumIndices > 0);
 
+			FMatrix DynamicOffset = FTranslationMatrix::Make(FVector(RenderBatch.DynamicOffset.X, RenderBatch.DynamicOffset.Y, 0));
+
 			if (RenderBatch.ScissorRect.IsSet())
 			{
 				RHICmdList.SetScissorRect(true, RenderBatch.ScissorRect.GetValue().Left, RenderBatch.ScissorRect.GetValue().Top, RenderBatch.ScissorRect.GetValue().Right, RenderBatch.ScissorRect.GetValue().Bottom);
@@ -624,16 +626,15 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 					GSlateVertexDeclaration.VertexDeclarationRHI,
-					VertexShader->GetVertexShader(),
+					GlobalVertexShader->GetVertexShader(),
 					nullptr,
 					nullptr,
 					PixelShader->GetPixelShader(),
 					FGeometryShaderRHIRef()));
 
-				FMatrix DynamicOffset = FTranslationMatrix::Make(FVector(RenderBatch.DynamicOffset.X, RenderBatch.DynamicOffset.Y, 0));
 
-				VertexShader->SetViewProjection(RHICmdList, DynamicOffset * ViewProjectionMatrix);
-				VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
+				GlobalVertexShader->SetViewProjection(RHICmdList, DynamicOffset * ViewProjectionMatrix);
+				GlobalVertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
 #if !DEBUG_OVERDRAW
 				RHICmdList.SetBlendState(
 					(RenderBatch.DrawFlags & ESlateBatchDrawFlag::NoBlending)
@@ -723,7 +724,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 
 				FSlateMaterialShaderPS* PixelShader = GetMaterialPixelShader( Material, ShaderType, DrawEffects );
 
-				if( PixelShader )
+				const bool bUseInstancing = false;
+				FSlateMaterialShaderVS* VertexShader = GetMaterialVertexShader( Material, bUseInstancing );
+
+				if( VertexShader && PixelShader )
 				{
 					RHICmdList.SetLocalBoundShaderState(RHICmdList.BuildLocalBoundShaderState(
 						GSlateVertexDeclaration.VertexDeclarationRHI,
@@ -732,6 +736,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						nullptr,
 						PixelShader->GetPixelShader(),
 						FGeometryShaderRHIRef()));
+
+					VertexShader->SetViewProjection(RHICmdList, DynamicOffset * ViewProjectionMatrix);
+					VertexShader->SetVerticalAxisMultiplier(RHICmdList, bAllowSwitchVerticalAxis && RHINeedsToSwitchVerticalAxis(GShaderPlatformForFeatureLevel[GMaxRHIFeatureLevel]) ? -1.0f : 1.0f );
+					VertexShader->SetMaterialShaderParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material);
 
 					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
 					PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
@@ -744,12 +752,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						FTexture2DRHIRef TextureRHI;
 						TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)MaskResource)->GetTypedResource();
 
-			
 						PixelShader->SetAdditionalTexture(RHICmdList, TextureRHI, BilinearClamp);
 					}
-
-					VertexShader->SetViewProjection( RHICmdList, ViewProjectionMatrix );
-
 
 					uint32 PrimitiveCount = RenderBatch.DrawPrimitiveType == ESlateDrawPrimitive::LineList ? RenderBatch.NumIndices / 2 : RenderBatch.NumIndices / 3;
 
@@ -916,6 +920,23 @@ FSlateMaterialShaderPS* FSlateRHIRenderingPolicy::GetMaterialPixelShader( const 
 	}
 
 	return FoundShader ? (FSlateMaterialShaderPS*)FoundShader->GetShaderChecked() : nullptr;
+}
+
+FSlateMaterialShaderVS* FSlateRHIRenderingPolicy::GetMaterialVertexShader( const FMaterial* Material, bool bUseInstancing )
+{
+	const FMaterialShaderMap* MaterialShaderMap = Material->GetRenderingThreadShaderMap();
+
+	FShader* FoundShader = nullptr;
+	if( bUseInstancing )
+	{
+		FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderVS<true>::StaticType);
+	}
+	else
+	{
+		FoundShader = MaterialShaderMap->GetShader(&TSlateMaterialShaderVS<false>::StaticType);
+	}
+	
+	return FoundShader ? (FSlateMaterialShaderVS*)FoundShader->GetShaderChecked() : nullptr;
 }
 
 EPrimitiveType FSlateRHIRenderingPolicy::GetRHIPrimitiveType(ESlateDrawPrimitive::Type SlateType)
