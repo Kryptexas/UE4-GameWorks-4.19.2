@@ -3,7 +3,7 @@ Availability:Public
 Title:ステートマシーン
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:ステートマシーンは、ステートの変化過程で発生するブレンドを完全制御しながら、スケルタル アニメーションをさまざまなステートへ分割します
-バージョン：4.9
+version: 4.9
 
 <!--
 [VAR:Topic]
