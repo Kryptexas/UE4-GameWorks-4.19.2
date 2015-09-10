@@ -3,11 +3,11 @@ Availability:Public
 Title:ダイレクト ブループリント通信
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:別のブループリントと直接データをやりとりする方法 
-Related:Engine/Blueprints/UserGuide/BlueprintComms
-Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
-Related:Engine/Blueprints/UserGuide
-バージョン:4.9
-SkillLevel:上級
+Related: Engine/Blueprints/UserGuide/BlueprintComms
+Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
+Related: Engine/Blueprints/UserGuide
+version:4.9
+skilllevel:Advanced
 
 このページでは、[ダイレクト ブループリント通信](Engine/Blueprints/UserGuide/BlueprintComms) を使用して 2 つのブループリント間で行う直接通信やデータの受け渡し方法を説明します。 
 
