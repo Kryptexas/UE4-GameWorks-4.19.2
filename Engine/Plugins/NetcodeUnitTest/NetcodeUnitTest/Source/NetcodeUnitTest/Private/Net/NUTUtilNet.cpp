@@ -14,7 +14,7 @@
 #include "UnrealNetwork.h"
 #include "EngineVersion.h"
 #include "DataChannel.h"
-
+#include "OnlineBeaconClient.h"
 
 // Forward declarations
 class FWorldTickHook;

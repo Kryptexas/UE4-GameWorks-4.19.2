@@ -2,8 +2,7 @@
 
 #include "MatineeModule.h"
 #include "Matinee.h"
-#include "MatineeClasses.h"
-
+#include "Classes/InterpTrackHelper.h"
 #include "Matinee/MatineeActor.h"
 #include "Matinee/MatineeActorCameraAnim.h"
 #include "Matinee/InterpTrackInst.h"

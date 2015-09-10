@@ -5,6 +5,7 @@
 //
 
 #pragma once
+#include "IpNetDriver.h"
 #include "SteamNetDriver.generated.h"
 
 UCLASS(transient, config=Engine)

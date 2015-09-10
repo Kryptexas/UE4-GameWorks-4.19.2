@@ -6,7 +6,7 @@
 =============================================================================*/
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
-
+#include "OnlineSessionClient.h"
 #include "Engine/GameInstance.h"
 
 UOnlineSessionClient::UOnlineSessionClient(const FObjectInitializer& ObjectInitializer)

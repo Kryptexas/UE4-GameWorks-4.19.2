@@ -16,7 +16,6 @@
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
-#include "BlueprintGraphClasses.h"
 
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
@@ -30,6 +29,13 @@
 #include "Engine/BlockingVolume.h"
 #include "Engine/StaticMeshActor.h"
 #include "EngineUtils.h"
+
+#include "K2Node_Event.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_Composite.h"
 
 
 /**

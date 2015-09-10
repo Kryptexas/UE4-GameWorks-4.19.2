@@ -18,7 +18,3 @@
 #include "IMovieSceneTracksModule.h"
 
 
-/* Private includes
- *****************************************************************************/
-
-#include "MovieSceneTracksClasses.h"

@@ -21,7 +21,8 @@
 #include "DistCurveEditorModule.h"
 #include "IDistCurveEditor.h"
 
-#include "MatineeClasses.h"
+#include "Classes/MatineeOptions.h"
+#include "Classes/MatineeTransBuffer.h"
 
 #include "CameraController.h"
 #include "MatineeConstants.h"

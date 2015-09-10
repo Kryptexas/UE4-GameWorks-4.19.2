@@ -5,6 +5,7 @@
 //
 
 #pragma once
+#include "IpConnection.h"
 #include "SteamNetConnection.generated.h"
 
 UCLASS(transient, config=Engine)

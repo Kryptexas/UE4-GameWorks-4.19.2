@@ -6,7 +6,6 @@
 #include "OnlineSubsystemSteamModule.h"
 #include "OnlineSubsystemModule.h"
 #include "OnlineSubsystemUtils.h"
-#include "OnlineSubsystemUtilsClasses.h"
 #include "OnlineSubsystem.h"
 #include "OnlineSubsystemUtils.h"
 #include "SocketSubsystem.h"

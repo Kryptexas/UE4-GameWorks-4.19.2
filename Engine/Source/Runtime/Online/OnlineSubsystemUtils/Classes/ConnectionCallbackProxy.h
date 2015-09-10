@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "OnlineBlueprintCallProxyBase.h"
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineIdentityInterface.h"
 #include "ConnectionCallbackProxy.generated.h"
 

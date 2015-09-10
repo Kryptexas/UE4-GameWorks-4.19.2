@@ -13,6 +13,20 @@
 #include "Engine/Polys.h"
 #include "Engine/Selection.h"
 #include "Components/BrushComponent.h"
+#include "Classes/GeomModifier.h"
+#include "Classes/GeomModifier_Edit.h"
+#include "Classes/GeomModifier_Clip.h"
+#include "Classes/GeomModifier_Create.h"
+#include "Classes/GeomModifier_Delete.h"
+#include "Classes/GeomModifier_Extrude.h"
+#include "Classes/GeomModifier_Flip.h"
+#include "Classes/GeomModifier_Lathe.h"
+#include "Classes/GeomModifier_Pen.h"
+#include "Classes/GeomModifier_Split.h"
+#include "Classes/GeomModifier_Triangulate.h"
+#include "Classes/GeomModifier_Optimize.h"
+#include "Classes/GeomModifier_Turn.h"
+#include "Classes/GeomModifier_Weld.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 

@@ -3,6 +3,7 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineBeaconClient.h"
 #include "OnlineBeaconHost.h"
+#include "OnlineBeaconHostObject.h"
 #include "Net/DataChannel.h"
 #include "Net/UnrealNetwork.h"
 

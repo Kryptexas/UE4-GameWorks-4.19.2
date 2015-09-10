@@ -3,6 +3,7 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineBeaconHostObject.h"
 #include "OnlineBeaconHost.h"
+#include "OnlineBeaconClient.h"
 
 AOnlineBeaconHostObject::AOnlineBeaconHostObject(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),

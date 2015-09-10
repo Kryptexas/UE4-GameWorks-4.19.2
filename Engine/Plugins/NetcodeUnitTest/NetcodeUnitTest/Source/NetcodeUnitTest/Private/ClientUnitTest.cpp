@@ -20,6 +20,7 @@
 #include "SLogWindow.h"
 #include "SLogWidget.h"
 
+#include "OnlineBeaconClient.h"
 
 #include "Engine/ActorChannel.h"
 #include "Regex.h"

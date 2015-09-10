@@ -11,7 +11,8 @@
 #include "OnlineSubsystemUtilsModule.h"
 #include "SocketSubsystem.h"
 #include "ModuleManager.h"
-#include "OnlineSubsystemUtilsClasses.h"
+#include "Classes/IpConnection.h"
+#include "Classes/IpNetDriver.h"
 
 class FUniqueNetId;
 

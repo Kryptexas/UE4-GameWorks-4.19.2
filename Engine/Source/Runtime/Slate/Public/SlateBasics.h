@@ -6,7 +6,6 @@
 #include "CoreUObject.h"
 #include "Json.h"
 #include "SlateCore.h"
-#include "SlateClasses.h"
 #include "SlateOptMacros.h"
 
 #include "IPlatformTextField.h"

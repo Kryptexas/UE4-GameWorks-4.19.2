@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "OnlineSubsystemUtilsClasses.h"
-
+#include "IpConnection.h"
 #include "UnitTestNetConnection.generated.h"
 
 

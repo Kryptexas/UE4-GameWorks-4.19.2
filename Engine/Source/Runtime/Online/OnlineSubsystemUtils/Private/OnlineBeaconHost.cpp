@@ -4,6 +4,8 @@
 #include "OnlineBeaconHost.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/DataChannel.h"
+#include "OnlineBeaconClient.h"
+#include "OnlineBeaconHostObject.h"
 
 AOnlineBeaconHost::AOnlineBeaconHost(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

@@ -4,7 +4,6 @@
 
 #include "Engine.h"
 #include "Net/UnrealNetwork.h"
-#include "OnlineSubsystemUtilsClasses.h"
 
 #include "NUTUtil.h"
 #include "Net/NUTUtilNet.h"

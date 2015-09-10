@@ -8,6 +8,8 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
 #include "BehaviorTree/Tasks/BTTask_Wait.h"
+#include "Classes/BehaviorTreeGraphNode_SimpleParallel.h"
+#include "Classes/BehaviorTreeGraphNode_SubtreeTask.h"
 
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
