@@ -1,7 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-#pragma once
-
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MaterialTrackEditor.h"
 #include "MovieSceneMaterialTrack.h"
