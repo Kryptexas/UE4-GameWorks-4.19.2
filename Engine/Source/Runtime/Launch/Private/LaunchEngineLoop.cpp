@@ -1440,7 +1440,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	// Setup GC optimizations
 	if (bIsSeekFreeDedicatedServer || bHasEditorToken)
 	{
-		GetUObjectArray().DisableDisregardForGC();
+		GUObjectArray.DisableDisregardForGC();
 	}
 	
 	SlowTask.EnterProgressFrame(10);
@@ -1527,7 +1527,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	MarkObjectsToDisregardForGC(); 
-	GetUObjectArray().CloseDisregardForGC();
+	GUObjectArray.CloseDisregardForGC();
 
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 
@@ -2607,7 +2607,7 @@ void FEngineLoop::Tick()
 
 		// Set the UObject count stat
 #if UE_GC_TRACK_OBJ_AVAILABLE
-		SET_DWORD_STAT(STAT_Hash_NumObjects, GetUObjectArray().GetObjectArrayNumMinusAvailable());
+		SET_DWORD_STAT(STAT_Hash_NumObjects, GUObjectArray.GetObjectArrayNumMinusAvailable());
 #endif
 	}
 }

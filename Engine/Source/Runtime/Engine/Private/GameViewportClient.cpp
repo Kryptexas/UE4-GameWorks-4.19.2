@@ -2946,7 +2946,7 @@ bool UGameViewportClient::HandleDisplayAllCommand( const TCHAR* Cmd, FOutputDevi
 					// so then we only have to iterate over dynamic things each frame
 					for (TObjectIterator<UObject> It; It; ++It)
 					{
-						if (!GetUObjectArray().IsDisregardForGC(*It))
+						if (!GUObjectArray.IsDisregardForGC(*It))
 						{
 							break;
 						}
@@ -2993,7 +2993,7 @@ bool UGameViewportClient::HandleDisplayAllLocationCommand( const TCHAR* Cmd, FOu
 			// so then we only have to iterate over dynamic things each frame
 			for (TObjectIterator<UObject> It(true); It; ++It)
 			{
-				if (!GetUObjectArray().IsDisregardForGC(*It))
+				if (!GUObjectArray.IsDisregardForGC(*It))
 				{
 					break;
 				}
@@ -3031,7 +3031,7 @@ bool UGameViewportClient::HandleDisplayAllRotationCommand( const TCHAR* Cmd, FOu
 			// so then we only have to iterate over dynamic things each frame
 			for (TObjectIterator<UObject> It(true); It; ++It)
 			{
-				if (!GetUObjectArray().IsDisregardForGC(*It))
+				if (!GUObjectArray.IsDisregardForGC(*It))
 				{
 					break;
 				}

@@ -378,7 +378,7 @@ public:
 			return false;
 		}
 	private:
-		/** the array that we are iterating on, probably always GetUObjectArray() */
+		/** the array that we are iterating on, probably always GUObjectArray */
 		const FUObjectArray& Array;
 		/** index of the current element in the object array */
 		int32 Index;
@@ -436,7 +436,7 @@ private:
 };
 
 /** Global UObject allocator							*/
-COREUOBJECT_API FUObjectArray& GetUObjectArray();
+extern COREUOBJECT_API FUObjectArray GUObjectArray;
 
 /**
 	* Static version of IndexToObject for use with TWeakObjectPtr.
@@ -445,7 +445,7 @@ struct FIndexToObject
 {
 	static FORCEINLINE class UObjectBase* IndexToObject(int32 Index, bool bEvenIfPendingKill)
 	{
-		return GetUObjectArray().IndexToObject(Index, bEvenIfPendingKill);
+		return GUObjectArray.IndexToObject(Index, bEvenIfPendingKill);
 	}
 };
 

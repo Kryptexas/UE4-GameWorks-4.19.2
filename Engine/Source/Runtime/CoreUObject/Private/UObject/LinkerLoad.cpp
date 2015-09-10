@@ -2083,7 +2083,7 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 	if (Import.SourceLinker == NULL || Import.SourceIndex == INDEX_NONE)
 	{
 #if DO_CHECK
-		int32 NumObjectsBefore = GetUObjectArray().GetObjectArrayNum();
+		int32 NumObjectsBefore = GUObjectArray.GetObjectArrayNum();
 #endif
 
 		// temp storage we can ignore
@@ -2120,9 +2120,9 @@ void FLinkerLoad::GatherImportDependencies(int32 ImportIndex, TSet<FDependencyRe
 
 #if DO_CHECK && !NO_LOGGING
 		// only object we should create are one FLinkerLoad for source linker
-		if (GetUObjectArray().GetObjectArrayNum() - NumObjectsBefore > 2)
+		if (GUObjectArray.GetObjectArrayNum() - NumObjectsBefore > 2)
 		{
-			UE_LOG(LogLinker, Warning, TEXT("Created %d objects checking %s"), GetUObjectArray().GetObjectArrayNum() - NumObjectsBefore, *GetImportFullName(ImportIndex));
+			UE_LOG(LogLinker, Warning, TEXT("Created %d objects checking %s"), GUObjectArray.GetObjectArrayNum() - NumObjectsBefore, *GetImportFullName(ImportIndex));
 		}
 #endif
 	}

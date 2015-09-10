@@ -186,7 +186,7 @@ static FSerialNumberManager GSerialNumberManager;
 **/
 void FWeakObjectPtr::Init()
 {
-	GetUObjectArray().AddUObjectDeleteListener(&GSerialNumberManager);
+	GUObjectArray.AddUObjectDeleteListener(&GSerialNumberManager);
 }
 
 /**  
@@ -198,7 +198,7 @@ void FWeakObjectPtr::operator=(const class UObject *Object)
 	if (Object // && UObjectInitialized() we might need this at some point, but it is a speed hit we would prefer to avoid
 		)
 	{
-		ObjectIndex = GetUObjectArray().ObjectToIndex((UObjectBase*)Object);
+		ObjectIndex = GUObjectArray.ObjectToIndex((UObjectBase*)Object);
 		ObjectSerialNumber = GSerialNumberManager.GetAndAllocateSerialNumber(ObjectIndex);
 		checkSlow(SerialNumbersMatch());
 	}
@@ -246,7 +246,7 @@ FORCEINLINE_DEBUGGABLE bool FWeakObjectPtr::Internal_IsValid(bool bEvenIfPending
 	{
 		return true;
 	}
-	return GetUObjectArray().IsValid(ObjectIndex, bEvenIfPendingKill);
+	return GUObjectArray.IsValid(ObjectIndex, bEvenIfPendingKill);
 }
 
 bool FWeakObjectPtr::IsStale(bool bEvenIfPendingKill, bool bThreadsafeTest) const
@@ -268,7 +268,7 @@ bool FWeakObjectPtr::IsStale(bool bEvenIfPendingKill, bool bThreadsafeTest) cons
 	{
 		return false;
 	}
-	return GetUObjectArray().IsStale(ObjectIndex, bEvenIfPendingKill);
+	return GUObjectArray.IsStale(ObjectIndex, bEvenIfPendingKill);
 }
 
 FORCEINLINE_DEBUGGABLE UObject* FWeakObjectPtr::Internal_Get(bool bEvenIfPendingKill) const
@@ -277,7 +277,7 @@ FORCEINLINE_DEBUGGABLE UObject* FWeakObjectPtr::Internal_Get(bool bEvenIfPending
 
 	if (Internal_IsValid(true, true))
 	{
-		Result = (UObject*)(GetUObjectArray().IndexToValidObject(GetObjectIndex(), bEvenIfPendingKill));
+		Result = (UObject*)(GUObjectArray.IndexToValidObject(GetObjectIndex(), bEvenIfPendingKill));
 	}
 	return Result;
 }
@@ -298,7 +298,7 @@ UObject* FWeakObjectPtr::GetEvenIfUnreachable() const
 	UObject* Result = nullptr;
 	if (Internal_IsValid(true, true))
 	{
-		Result = static_cast<UObject*>(GetUObjectArray().IndexToObject(GetObjectIndex(), true));
+		Result = static_cast<UObject*>(GUObjectArray.IndexToObject(GetObjectIndex(), true));
 	}
 	return Result;
 }

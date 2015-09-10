@@ -19,7 +19,7 @@ public:
 	 * @param	bOnlyGCedObjects	if true, skip all of the permanent objects
 	 */
 	FRawObjectIterator(bool bOnlyGCedObjects = false) :
-		FUObjectArray::TIterator( GetUObjectArray(), bOnlyGCedObjects )
+		FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects )
 	{
 	}
 	/**
@@ -59,7 +59,7 @@ public:
 	 * @param	AdditionalExclusionFlags	RF_* flags that should not be included in results
 	 */
 	FObjectIterator( UClass* InClass=UObject::StaticClass(), bool bOnlyGCedObjects = false, EObjectFlags AdditionalExclusionFlags = RF_NoFlags ) :
-		FUObjectArray::TIterator( GetUObjectArray(), bOnlyGCedObjects ),
+		FUObjectArray::TIterator( GUObjectArray, bOnlyGCedObjects ),
 		Class( InClass ),
 		ExclusionFlags(AdditionalExclusionFlags)
 	{

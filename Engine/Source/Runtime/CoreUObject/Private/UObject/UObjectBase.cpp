@@ -91,7 +91,7 @@ UObjectBase::~UObjectBase()
 		// Validate it.
 		check(IsValidLowLevel());
 		LowLevelRename(NAME_None);
-		GetUObjectArray().FreeUObjectIndex(this);
+		GUObjectArray.FreeUObjectIndex(this);
 	}
 }
 
@@ -143,7 +143,7 @@ void UObjectBase::DeferredRegister(UClass *UClassStaticClass,const TCHAR* Packag
 	AddObject(FName(InName));
 
 	// Make sure that objects disregarded for GC are part of root set.
-	check(!GetUObjectArray().IsDisregardForGC(this) || (GetFlags() & RF_RootSet) );
+	check(!GUObjectArray.IsDisregardForGC(this) || (GetFlags() & RF_RootSet) );
 }
 
 /**
@@ -215,7 +215,7 @@ bool UObjectBase::IsValidLowLevel() const
 		UE_LOG(LogUObjectBase, Warning, TEXT("Object is not registered") );
 		return false;
 	}
-	return GetUObjectArray().IsValid(this);
+	return GUObjectArray.IsValid(this);
 }
 
 bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
@@ -260,7 +260,7 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 		return false;
 	}
 	// Lightweight versions of index checks.
-	if (!GetUObjectArray().IsValidIndex(this) || !Name.IsValidIndexFast())
+	if (!GUObjectArray.IsValidIndex(this) || !Name.IsValidIndexFast())
 	{
 		UE_LOG(LogUObjectBase, Error, TEXT("Object array index or name index is invalid."));
 		return false;
@@ -904,7 +904,7 @@ void UObjectBaseInit()
 	UE_LOG(LogInit, Log, TEXT("Presizing for %i objects not considered by GC, pre-allocating %i bytes."), MaxObjectsNotConsideredByGC, SizeOfPermanentObjectPool );
 
 	GUObjectAllocator.AllocatePermanentObjectPool(SizeOfPermanentObjectPool);
-	GetUObjectArray().AllocatePermanentObjectPool(MaxObjectsNotConsideredByGC);
+	GUObjectArray.AllocatePermanentObjectPool(MaxObjectsNotConsideredByGC);
 
 	void InitAsyncThread();
 	InitAsyncThread();
@@ -920,7 +920,7 @@ void UObjectBaseInit()
  */
 void UObjectBaseShutdown()
 {
-	GetUObjectArray().ShutdownUObjectArray();
+	GUObjectArray.ShutdownUObjectArray();
 	Internal::GObjInitialized = false;
 }
 

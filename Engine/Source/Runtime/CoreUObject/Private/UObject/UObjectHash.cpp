@@ -20,6 +20,9 @@ DECLARE_CYCLE_STAT( TEXT( "UnhashObject" ), STAT_Hash_UnhashObject, STATGROUP_UO
 DEFINE_STAT( STAT_Hash_NumObjects );
 #endif
 
+// Global UObject array instance
+FUObjectArray GUObjectArray;
+
 /**
  * This implementation will use more space than the UE3 implementation. The goal was to make UObjects smaller to save L2 cache space. 
  * The hash is rarely used at runtime. A more space-efficient implementation is possible.
@@ -306,13 +309,6 @@ public:
 #endif
 	}
 };
-
-FUObjectArray& GetUObjectArray()
-{
-	static FUObjectArray GlobalUObjectArray;
-	return GlobalUObjectArray;
-}
-
 
 /**
  * Calculates the object's hash just using the object's name index
@@ -622,7 +618,7 @@ void GetObjectsWithOuter(const class UObjectBase* Outer, TArray<UObject *>& Resu
 				Results.Add(Object);
 			}
 		}
-		int32 MaxResults = GetUObjectArray().GetObjectArrayNum();
+		int32 MaxResults = GUObjectArray.GetObjectArrayNum();
 		while (StartNum != Results.Num() && bIncludeNestedObjects)
 		{
 			int32 RangeStart = StartNum;
@@ -788,7 +784,7 @@ void GetObjectsOfClass(UClass* ClassToLookFor, TArray<UObject *>& Results, bool 
 
 	GetObjectsOfClassThreadSafe( FUObjectHashTables::Get(), ClassesToSearch, Results, ExclusionFlags );
 
-	check( Results.Num() <= GetUObjectArray().GetObjectArrayNum() ); // otherwise we have a cycle in the outer chain, which should not be possible
+	check( Results.Num() <= GUObjectArray.GetObjectArrayNum() ); // otherwise we have a cycle in the outer chain, which should not be possible
 }
 
 void ForEachObjectOfClass(UClass* ClassToLookFor, TFunctionRef<void (UObject*)> Operation, bool bIncludeDerivedClasses, EObjectFlags AdditionalExcludeFlags)
@@ -852,7 +848,7 @@ void GetDerivedClasses(UClass* ClassToLookFor, TArray<UClass *>& Results, bool b
 
 void AllocateUObjectIndexForCurrentThread(UObjectBase* Object)
 {
-	GetUObjectArray().AllocateUObjectIndex(Object);
+	GUObjectArray.AllocateUObjectIndex(Object);
 }
 
 void HashObject(UObjectBase* Object)

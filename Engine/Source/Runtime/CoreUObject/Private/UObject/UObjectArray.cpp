@@ -211,5 +211,5 @@ void FUObjectArray::ShutdownUObjectArray()
 
 UObjectBase*** FUObjectArray::GetObjectArrayForDebugVisualizers()
 {
-	return GetUObjectArray().ObjObjects.GetRootBlockForDebuggerVisualizers();
+	return GUObjectArray.ObjObjects.GetRootBlockForDebuggerVisualizers();
 }

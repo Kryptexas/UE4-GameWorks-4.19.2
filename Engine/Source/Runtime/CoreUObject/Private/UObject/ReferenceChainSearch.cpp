@@ -173,7 +173,7 @@ void FReferenceChainSearch::PrintReferencers( FReferenceChain& Referencer )
 			ObjectReachability += TEXT("(asyncloading) ");
 		}
 
-		if (GetUObjectArray().IsDisregardForGC(RefInfo.ReferencedBy))
+		if (GUObjectArray.IsDisregardForGC(RefInfo.ReferencedBy))
 		{
 			ObjectReachability += TEXT("(NeverGCed) ");
 		}
@@ -845,7 +845,7 @@ FString FReferenceChainSearch::FReferenceChainLink::ToString() const
 		ObjectReachability += TEXT("(standalone) ");
 	}
 
-	if (GetUObjectArray().IsDisregardForGC(ReferencedBy))
+	if (GUObjectArray.IsDisregardForGC(ReferencedBy))
 	{
 		ObjectReachability += TEXT("(NeverGCed) ");
 	}
