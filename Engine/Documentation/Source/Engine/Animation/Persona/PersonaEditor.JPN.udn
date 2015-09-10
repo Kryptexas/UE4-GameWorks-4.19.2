@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナ アニメーション エディタ リファレンス
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:アニメーション ブループリント、アニメーション シーケンスやその他のアニメーション アセットのプレビューおよび編集に使用するエディタ
-バージョン：4.9
+version: 4.9
 
 
 [VAR:ModeSize]w:450 convert:false[/VAR]
