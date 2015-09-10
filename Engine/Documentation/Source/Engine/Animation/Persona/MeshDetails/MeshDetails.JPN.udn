@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナのメッシュ詳細パネル
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナ アニメーション エディタのメッシュ詳細パネルのユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
