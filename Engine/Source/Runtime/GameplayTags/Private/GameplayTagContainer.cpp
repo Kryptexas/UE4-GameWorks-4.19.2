@@ -713,7 +713,29 @@ FString FGameplayTagContainer::ToStringSimple() const
 
 bool FGameplayTagContainer::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
-	Ar << GameplayTags;
+	uint8 NumTags;
+	if (Ar.IsSaving())
+	{
+		NumTags = GameplayTags.Num();
+		Ar << NumTags;
+		for (FGameplayTag& Tag : GameplayTags)
+		{
+			Tag.NetSerialize(Ar, Map, bOutSuccess);
+		}
+	}
+	else
+	{
+		Ar << NumTags;
+		GameplayTags.Empty(NumTags);
+		GameplayTags.AddDefaulted(NumTags);
+		for (uint8 idx = 0; idx < NumTags; ++idx)
+		{
+			GameplayTags[idx].NetSerialize(Ar, Map, bOutSuccess);
+		}
+
+	}
+
+	bOutSuccess  = true;
 	return true;
 }
 
