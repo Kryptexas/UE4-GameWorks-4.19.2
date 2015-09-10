@@ -8,7 +8,7 @@
 	"CreatedByURL" : "http://kiteandlightning.la/",
 	"EngineVersion" : 2328018,
 	"Description" : "A plugin to capture a sequence of panoramic images",
-	"Category" : "Movie",
+	"Category" : "Recording",
     "CanContainContent" : "true",
 	
     "Modules" :
