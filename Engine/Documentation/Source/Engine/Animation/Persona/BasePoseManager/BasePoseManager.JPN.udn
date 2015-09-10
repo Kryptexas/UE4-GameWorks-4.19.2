@@ -3,7 +3,7 @@ Availability:Public
 Title:ペルソナのリターゲット ソース マネージャ
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Persona
 Description:ペルソナ アニメーションエディタのリターゲット ソース マネージャーのユーザーガイド
-バージョン：4.9
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
