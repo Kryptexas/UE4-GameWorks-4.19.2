@@ -289,9 +289,18 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 		if (VirtualKeyboardWidget != NULL)
 		{
 			const char* javaChars = jenv->GetStringUTFChars(contents, 0);
-			VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
 
-			//Release the string
+			// call to set the widget text on game thread
+			if (FTaskGraphInterface::IsRunning())
+			{
+				FGraphEventRef SetWidgetText = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
+				{
+					VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
+				}, TStatId(), NULL, ENamedThreads::GameThread);
+				FTaskGraphInterface::Get().WaitUntilTaskCompletes(SetWidgetText);
+			}
+
+			// release string
 			jenv->ReleaseStringUTFChars(contents, javaChars);
 		}
 	}
