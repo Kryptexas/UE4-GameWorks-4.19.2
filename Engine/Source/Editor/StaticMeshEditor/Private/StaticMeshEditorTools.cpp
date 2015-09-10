@@ -370,6 +370,22 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("BuildReversedIndexBuffer", "Build Reversed Index Buffer") )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("BuildReversedIndexBuffer", "Build Reversed Index Buffer"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldBuildReversedIndexBuffer)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnBuildReversedIndexBufferChanged)
+		];
+	}
+
+	{
 		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
 		.NameContent()
 		[
@@ -596,6 +612,11 @@ ECheckBoxState FMeshBuildSettingsLayout::ShouldBuildAdjacencyBuffer() const
 	return BuildSettings.bBuildAdjacencyBuffer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
+ECheckBoxState FMeshBuildSettingsLayout::ShouldBuildReversedIndexBuffer() const
+{
+	return BuildSettings.bBuildReversedIndexBuffer ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
 ECheckBoxState FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
 {
 	return BuildSettings.bUseFullPrecisionUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
@@ -704,6 +725,19 @@ void FMeshBuildSettingsLayout::OnBuildAdjacencyBufferChanged(ECheckBoxState NewS
 			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bBuildAdjacencyBuffer"), bBuildAdjacencyBuffer ? TEXT("True") : TEXT("False"));
 		}
 		BuildSettings.bBuildAdjacencyBuffer = bBuildAdjacencyBuffer;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnBuildReversedIndexBufferChanged(ECheckBoxState NewState)
+{
+	const bool bBuildReversedIndexBuffer = (NewState == ECheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bBuildReversedIndexBuffer != bBuildReversedIndexBuffer)
+	{
+		if (FEngineAnalytics::IsAvailable())
+		{
+			FEngineAnalytics::GetProvider().RecordEvent(TEXT("Editor.Usage.StaticMesh.BuildSettings"), TEXT("bBuildReversedIndexBuffer"), bBuildReversedIndexBuffer ? TEXT("True") : TEXT("False"));
+		}
+		BuildSettings.bBuildReversedIndexBuffer = bBuildReversedIndexBuffer;
 	}
 }
 

@@ -1229,8 +1229,7 @@ public:
 	virtual void SetHitProxy(HHitProxy* HitProxy) = 0;
 	virtual void DrawMesh(
 		const FMeshBatch& Mesh,
-		float ScreenSize,
-		bool bShadowOnly = false
+		float ScreenSize
 		) = 0;
 };
 

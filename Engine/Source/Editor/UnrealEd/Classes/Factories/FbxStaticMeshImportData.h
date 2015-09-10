@@ -45,7 +45,10 @@ class UFbxStaticMeshImportData : public UFbxMeshImportData
 	/** Required for PNT tessellation but can be slow. Recommend disabling for larger meshes. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
 	uint32 bBuildAdjacencyBuffer:1;
-	
+
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Category = ImportSettings, meta = (ImportType = "StaticMesh"))
+	uint32 bBuildReversedIndexBuffer:1;
+
 	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=ImportSettings, meta=(ImportType="StaticMesh"))
 	uint32 bGenerateLightmapUVs:1;
 

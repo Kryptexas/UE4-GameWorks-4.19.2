@@ -539,8 +539,12 @@ struct FStaticMeshLODResources
 
 	/** Index buffer resource for rendering. */
 	FRawStaticIndexBuffer IndexBuffer;
+	/** Reversed index buffer, used to prevent changing culling state between drawcalls. */
+	FRawStaticIndexBuffer ReversedIndexBuffer;
 	/** Index buffer resource for rendering in depth only passes. */
 	FRawStaticIndexBuffer DepthOnlyIndexBuffer;
+	/** Reversed depth only index buffer, used to prevent changing culling state between drawcalls. */
+	FRawStaticIndexBuffer ReversedDepthOnlyIndexBuffer;
 	/** Index buffer resource for rendering wireframe mode. */
 	FRawStaticIndexBuffer WireframeIndexBuffer;
 	/** Index buffer containing adjacency information required by tessellation. */
@@ -559,7 +563,13 @@ struct FStaticMeshLODResources
 	float MaxDeviation;
 
 	/** True if the adjacency index buffer contained data at init. Needed as it will not be available to the CPU afterwards. */
-	bool bHasAdjacencyInfo;
+	uint32 bHasAdjacencyInfo : 1;
+
+	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
+	uint32 bHasReversedIndexBuffer : 1;
+
+	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
+	uint32 bHasReversedDepthOnlyIndexBuffer : 1;
 
 	/** Default constructor. */
 	FStaticMeshLODResources();
@@ -761,7 +771,7 @@ protected:
 	/**
 	 * Sets IndexBuffer, FirstIndex and NumPrimitives of OutMeshElement.
 	 */
-	virtual void SetIndexSource(int32 LODIndex, int32 ElementIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation ) const;
+	virtual void SetIndexSource(int32 LODIndex, int32 ElementIndex, FMeshBatch& OutMeshElement, bool bWireframe, bool bRequiresAdjacencyInformation, bool bUseInversedIndices) const;
 	bool IsCollisionView(const FEngineShowFlags& EngineShowFlags, bool& bDrawSimpleCollision, bool& bDrawComplexCollision) const;
 
 public:

@@ -362,7 +362,7 @@ int32 FUniformMeshConverter::Convert(
 			const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 
 			if (ShouldGenerateSurfelsOnMesh(StaticMesh, FeatureLevel)
-				&& !StaticMesh.bShadowOnly
+				&& StaticMesh.bUseForMaterial
 				// LOD0 only
 				&& StaticMesh.ScreenSize == LargestScreenSize)
 			{
@@ -437,7 +437,7 @@ int32 FUniformMeshConverter::Convert(
 				const FStaticMesh& StaticMesh = PrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 
 				if (ShouldGenerateSurfelsOnMesh(StaticMesh, FeatureLevel) 
-					&& !StaticMesh.bShadowOnly
+					&& StaticMesh.bUseForMaterial
 					&& StaticMesh.ScreenSize == LargestScreenSize)
 				{
 					FConvertToUniformMeshDrawingPolicy DrawingPolicy(

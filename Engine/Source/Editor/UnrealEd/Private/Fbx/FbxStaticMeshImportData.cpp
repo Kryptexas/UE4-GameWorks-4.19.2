@@ -9,6 +9,7 @@ UFbxStaticMeshImportData::UFbxStaticMeshImportData(const FObjectInitializer& Obj
 	StaticMeshLODGroup = NAME_None;
 	bRemoveDegenerates = true;
 	bBuildAdjacencyBuffer = true;
+	bBuildReversedIndexBuffer = true;
 	bGenerateLightmapUVs = true;
 	bOneConvexHullPerUCX = true;
 	bAutoGenerateCollision = true;

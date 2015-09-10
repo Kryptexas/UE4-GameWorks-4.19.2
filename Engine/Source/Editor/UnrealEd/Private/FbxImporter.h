@@ -125,6 +125,7 @@ struct FBXImportOptions
 	FColor VertexOverrideColor;
 	bool bRemoveDegenerates;
 	bool bBuildAdjacencyBuffer;
+	bool bBuildReversedIndexBuffer;
 	bool bGenerateLightmapUVs;
 	bool bOneConvexHullPerUCX;
 	bool bAutoGenerateCollision;

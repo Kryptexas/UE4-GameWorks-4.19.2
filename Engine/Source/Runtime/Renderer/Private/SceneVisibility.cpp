@@ -1533,15 +1533,18 @@ struct FRelevancePacket
 						bNeedsBatchVisibility = true;
 					}
 
-					if(ViewRelevance.bDrawRelevance && !StaticMesh.bShadowOnly && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth))
+					if(ViewRelevance.bDrawRelevance && (StaticMesh.bUseForMaterial || StaticMesh.bUseAsOccluder) && (ViewRelevance.bRenderInMainPass || ViewRelevance.bRenderCustomDepth))
 					{
 						// Mark static mesh as visible for rendering
-						MarkMask |= EMarkMaskBits::StaticMeshVisibilityMapMask;
-						if (PrimitiveSceneInfo->ShouldRenderVelocity(View, false))
+						if (StaticMesh.bUseForMaterial)
 						{
-							MarkMask |= EMarkMaskBits::StaticMeshVelocityMapMask;
+							MarkMask |= EMarkMaskBits::StaticMeshVisibilityMapMask;
+							if (PrimitiveSceneInfo->ShouldRenderVelocity(View, false))
+							{
+								MarkMask |= EMarkMaskBits::StaticMeshVelocityMapMask;
+							}
+							++NumVisibleStaticMeshElements;
 						}
-						++NumVisibleStaticMeshElements;
 
 						// If the static mesh is an occluder, check whether it covers enough of the screen to be used as an occluder.
 						if(	StaticMesh.bUseAsOccluder && bDrawDepthOnly )

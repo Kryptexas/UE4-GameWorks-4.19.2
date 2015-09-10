@@ -36,11 +36,8 @@ public:
 			}
 		}
 	}
-	virtual void DrawMesh(
-		const FMeshBatch& Mesh,
-		float ScreenSize,
-		bool bShadowOnly
-		)
+
+	virtual void DrawMesh(const FMeshBatch& Mesh, float ScreenSize)
 	{
 		if (Mesh.GetNumPrimitives() > 0)
 		{
@@ -53,7 +50,6 @@ public:
 				PrimitiveSceneInfo,
 				Mesh,
 				ScreenSize,
-				bShadowOnly,
 				CurrentHitProxy ? CurrentHitProxy->Id : FHitProxyId()
 				);
 		}

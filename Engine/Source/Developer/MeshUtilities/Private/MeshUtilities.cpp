@@ -3032,9 +3032,22 @@ public:
 					);
 			}
 
-			// Build the depth-only index buffer.
+			// Build the reversed index buffer.
+			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer)
 			{
-				TArray<uint32> DepthOnlyIndices;
+				TArray<uint32> InversedIndices;
+				const int32 IndexCount = CombinedIndices.Num();
+				InversedIndices.AddUninitialized(IndexCount);
+				for (int32 i = 0; i < IndexCount; ++i)
+				{
+					InversedIndices[i] = CombinedIndices[IndexCount - 1 - i];
+				}
+				LODModel.ReversedIndexBuffer.SetIndices(InversedIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
+			}
+
+			// Build the depth-only index buffer.
+			TArray<uint32> DepthOnlyIndices;
+			{
 				BuildDepthOnlyIndexBuffer(
 					DepthOnlyIndices,
 					Vertices,
@@ -3048,6 +3061,19 @@ public:
 				}
 
 				LODModel.DepthOnlyIndexBuffer.SetIndices(DepthOnlyIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
+			}
+
+			// Build the inversed depth only index buffer.
+			if (InOutModels[0].BuildSettings.bBuildReversedIndexBuffer)
+			{
+				TArray<uint32> ReversedDepthOnlyIndices;
+				const int32 IndexCount = DepthOnlyIndices.Num();
+				ReversedDepthOnlyIndices.AddUninitialized(IndexCount);
+				for (int32 i = 0; i < IndexCount; ++i)
+				{
+					ReversedDepthOnlyIndices[i] = DepthOnlyIndices[IndexCount - 1 - i];
+				}
+				LODModel.ReversedDepthOnlyIndexBuffer.SetIndices(ReversedDepthOnlyIndices, bNeeds32BitIndices ? EIndexBufferStride::Force32Bit : EIndexBufferStride::Force16Bit);
 			}
 
 			// Build a list of wireframe edges in the static mesh.

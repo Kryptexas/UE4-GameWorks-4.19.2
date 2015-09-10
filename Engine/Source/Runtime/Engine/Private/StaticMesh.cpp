@@ -292,6 +292,8 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
 
 	bHasAdjacencyInfo = false;
+	bHasReversedIndexBuffer = false;
+	bHasReversedDepthOnlyIndexBuffer = false;
 
     // Defined class flags for possible stripping
 	const uint8 AdjacencyDataStripFlag = 1;
@@ -311,7 +313,9 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		VertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		ColorVertexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		IndexBuffer.Serialize( Ar, bNeedsCPUAccess );
+		ReversedIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 		DepthOnlyIndexBuffer.Serialize(Ar, bNeedsCPUAccess);
+		ReversedDepthOnlyIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 
 		if( !StripFlags.IsEditorDataStripped() )
 		{
@@ -323,6 +327,10 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 			AdjacencyIndexBuffer.Serialize( Ar, bNeedsCPUAccess );
 			bHasAdjacencyInfo = AdjacencyIndexBuffer.GetNumIndices() != 0;
 		}
+
+		// Needs to be done now because on cooked platform, indices are discarded after RHIInit.
+		bHasReversedIndexBuffer = ReversedIndexBuffer.GetNumIndices() != 0;
+		bHasReversedDepthOnlyIndexBuffer = ReversedDepthOnlyIndexBuffer.GetNumIndices() != 0;
 	}
 }
 
@@ -486,6 +494,8 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	: DistanceFieldData(NULL)
 	, MaxDeviation(0.0f)
 	, bHasAdjacencyInfo(false)
+	, bHasReversedIndexBuffer(false)
+	, bHasReversedDepthOnlyIndexBuffer(false)
 {
 }
 
@@ -522,9 +532,19 @@ void FStaticMeshLODResources::InitResources(UStaticMesh* Parent)
 		BeginInitResource(&ColorVertexBuffer);
 	}
 
+	if (ReversedIndexBuffer.GetNumIndices() > 0)
+	{
+		BeginInitResource(&ReversedIndexBuffer);
+	}
+
 	if (DepthOnlyIndexBuffer.GetNumIndices() > 0)
 	{
 		BeginInitResource(&DepthOnlyIndexBuffer);
+	}
+
+	if (ReversedDepthOnlyIndexBuffer.GetNumIndices() > 0)
+	{
+		BeginInitResource(&ReversedDepthOnlyIndexBuffer);
 	}
 
 	if (RHISupportsTessellation(MaxShaderPlatform))
@@ -585,7 +605,9 @@ void FStaticMeshLODResources::ReleaseResources()
 	BeginReleaseResource(&VertexBuffer);
 	BeginReleaseResource(&PositionVertexBuffer);
 	BeginReleaseResource(&ColorVertexBuffer);
+	BeginReleaseResource(&ReversedIndexBuffer);
 	BeginReleaseResource(&DepthOnlyIndexBuffer);
+	BeginReleaseResource(&ReversedDepthOnlyIndexBuffer);
 
 	// Release the vertex factories.
 	BeginReleaseResource(&VertexFactory);
@@ -1026,6 +1048,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	Ar << BuildSettings.bUseMikkTSpace;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bBuildAdjacencyBuffer;
+	Ar << BuildSettings.bBuildReversedIndexBuffer;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
 
@@ -1060,8 +1083,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 // differences, etc.) replace the version GUID below with a new one.
 // In case of merge conflicts with DDC versions, you MUST generate a new GUID
 // and set this new GUID as the version.
-#define STATICMESH_DERIVEDDATA_VER TEXT("46A8778361B442A9523C54440EA1E9D")
-
+#define STATICMESH_DERIVEDDATA_VER TEXT("0651E844A9544BD83BF12B1807773C2")
 static const FString& GetStaticMeshDerivedDataVersion()
 {
 	static FString CachedVersionString;

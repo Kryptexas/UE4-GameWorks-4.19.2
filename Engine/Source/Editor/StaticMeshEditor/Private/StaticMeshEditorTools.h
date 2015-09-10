@@ -134,6 +134,7 @@ private:
 	ECheckBoxState ShouldUseMikkTSpace() const;
 	ECheckBoxState ShouldRemoveDegenerates() const;
 	ECheckBoxState ShouldBuildAdjacencyBuffer() const;
+	ECheckBoxState ShouldBuildReversedIndexBuffer() const;
 	ECheckBoxState ShouldUseFullPrecisionUVs() const;
 	ECheckBoxState ShouldGenerateLightmapUVs() const;
 	ECheckBoxState ShouldGenerateDistanceFieldAsIfTwoSided() const;
@@ -150,6 +151,7 @@ private:
 	void OnUseMikkTSpaceChanged(ECheckBoxState NewState);
 	void OnRemoveDegeneratesChanged(ECheckBoxState NewState);
 	void OnBuildAdjacencyBufferChanged(ECheckBoxState NewState);
+	void OnBuildReversedIndexBufferChanged(ECheckBoxState NewState);
 	void OnUseFullPrecisionUVsChanged(ECheckBoxState NewState);
 	void OnGenerateLightmapUVsChanged(ECheckBoxState NewState);
 	void OnGenerateDistanceFieldAsIfTwoSidedChanged(ECheckBoxState NewState);

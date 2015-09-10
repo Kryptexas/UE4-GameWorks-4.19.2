@@ -2168,6 +2168,10 @@ struct FMeshBuildSettings
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bBuildAdjacencyBuffer;
 
+	/** Required to optimize mesh in mirrored transform. Double index buffer size. */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bBuildReversedIndexBuffer;
+
 	/** If true, UVs will be stored at full floating point precision. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bUseFullPrecisionUVs;
@@ -2215,6 +2219,7 @@ struct FMeshBuildSettings
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bBuildAdjacencyBuffer(true)
+		, bBuildReversedIndexBuffer(true)
 		, bUseFullPrecisionUVs(false)
 		, bGenerateLightmapUVs(true)
 		, MinLightmapResolution(64)
@@ -2235,6 +2240,7 @@ struct FMeshBuildSettings
 			&& bUseMikkTSpace == Other.bUseMikkTSpace
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bBuildAdjacencyBuffer == Other.bBuildAdjacencyBuffer
+			&& bBuildReversedIndexBuffer == Other.bBuildReversedIndexBuffer
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
 			&& MinLightmapResolution == Other.MinLightmapResolution
