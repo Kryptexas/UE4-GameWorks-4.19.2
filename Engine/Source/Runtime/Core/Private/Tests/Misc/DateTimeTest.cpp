@@ -82,6 +82,10 @@ bool FDateTimeTest::RunTest( const FString& Parameters )
 	TestSecond( TEXT("Testing Test Date Time Second"), TestDateTime, 56 );
 	TestMillisecond( TEXT("Testing Test Date Time Millisecond"), TestDateTime, 789 );
 
+	FDateTime ParsedDateTime;
+
+	TestFalse(TEXT("Parsing an empty ISO string must fail"), FDateTime::ParseIso8601(TEXT(""), ParsedDateTime));
+
 	return true;
 }
 
