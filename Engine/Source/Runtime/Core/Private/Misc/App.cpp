@@ -14,6 +14,7 @@ FString FApp::SessionName = FString();
 FString FApp::SessionOwner = FString();
 bool FApp::Standalone = true;
 bool FApp::bIsBenchmarking = false;
+bool FApp::bUseFixedTimeStep = false;
 double FApp::FixedDeltaTime = 1 / 30.0;
 double FApp::CurrentTime = 0.0;
 double FApp::LastTime = 0.0;

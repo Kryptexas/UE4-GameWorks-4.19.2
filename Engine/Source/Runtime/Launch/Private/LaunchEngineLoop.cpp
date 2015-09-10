@@ -980,7 +980,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #else
 	FApp::SetBenchmarking(false);
 #endif // !UE_BUILD_SHIPPING
-
+	
+	FApp::SetUseFixedTimeStep(FParse::Param(FCommandLine::Get(), TEXT("UseFixedTimeStep")));
+	
 	FString CheckToken = Token;
 	bool bFoundValidToken = false;
 	while (!bFoundValidToken && (CheckToken.Len() > 0))
