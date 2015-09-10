@@ -230,7 +230,7 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 				]
 				+SVerticalBox::Slot()
 				.FillHeight(1.0f)
-				.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 				[
 					SNew(SOverlay)
 					+SOverlay::Slot()

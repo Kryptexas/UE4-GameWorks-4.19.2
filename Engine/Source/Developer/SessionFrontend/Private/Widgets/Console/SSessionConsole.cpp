@@ -51,7 +51,7 @@ void SSessionConsole::Construct( const FArguments& InArgs, ISessionManagerRef In
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
-					.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 					[
 						// filter bar
 						SNew(SExpandableArea)

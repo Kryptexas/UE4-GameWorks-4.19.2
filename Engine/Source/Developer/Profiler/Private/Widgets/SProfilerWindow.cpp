@@ -138,6 +138,7 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 				/** Profiler Mini-view. */
 				+ SVerticalBox::Slot()
 				.AutoHeight()
+				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 				[
 					SNew(SBox)
 					.HeightOverride( 48.0f )
@@ -156,16 +157,9 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 					]
 				]
 
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew( SSpacer )
-					.Size( FVector2D( 2.0f, 2.0f ) )
-				]
-
 				+SVerticalBox::Slot()
 				.FillHeight( 1.0f )
-				.Padding(0.0f, 8.0f, 0.0f, 0.0f)
+				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
 				[
 					SNew( SHorizontalBox )
 					.IsEnabled( this, &SProfilerWindow::IsProfilerEnabled )
