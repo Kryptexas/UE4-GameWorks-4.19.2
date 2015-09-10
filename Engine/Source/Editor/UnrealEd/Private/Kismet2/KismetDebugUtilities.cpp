@@ -945,7 +945,8 @@ FKismetDebugUtilities::EWatchTextResult FKismetDebugUtilities::GetWatchText(FStr
 			UFunction* OuterFunction = Cast<UFunction>(Property->GetOuter());
 			if(!PropertyBase && OuterFunction)
 			{
-				if(UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass))
+				UBlueprintGeneratedClass* BPGC = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+				if (BPGC && ActiveObject->IsA(BPGC))
 				{
 					PropertyBase = BPGC->GetPersistentUberGraphFrame(ActiveObject, OuterFunction);
 				}
