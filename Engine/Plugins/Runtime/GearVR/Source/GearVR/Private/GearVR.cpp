@@ -11,7 +11,6 @@
 
 #if GEARVR_SUPPORTED_PLATFORMS
 #include "VrApi_Helpers.h"
-#include "OVRVersion.cpp"
 #endif
 
 #include <android_native_app_glue.h>
@@ -42,6 +41,22 @@ class FGearVRPlugin : public IGearVRPlugin
 	{
 		return FString(TEXT("GearVR"));
 	}
+
+	virtual void StartOVRGlobalMenu() const ;
+
+	virtual void StartOVRQuitMenu() const ;
+
+	virtual void SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel) const ;
+
+	virtual bool IsPowerLevelStateMinimum() const;
+
+	virtual bool IsPowerLevelStateThrottled() const;
+	
+	virtual float GetTemperatureInCelsius() const;
+
+	virtual float GetBatteryLevel() const;
+
+	virtual bool AreHeadPhonesPluggedIn() const;
 };
 
 IMPLEMENT_MODULE( FGearVRPlugin, GearVR )
@@ -136,16 +151,13 @@ TSharedPtr<FHMDSettings, ESPMode::ThreadSafe> FGearVR::CreateNewSettings() const
 
 bool FGearVR::OnStartGameFrame( FWorldContext& WorldContext )
 {
-	if (GFrameNumber > 3)
+	// Temp fix to a bug in ovr_DeviceIsDocked() that can't return
+	// actual state of docking. We are switching to stereo at the start
+	// (missing the first frame to let it render at least once; otherwise
+	// a blurry image may appear on Note4 with Adreno 420).
+	if (GFrameNumber > 2 && !Settings->Flags.bStereoEnforced)
 	{
-		// Temp fix to a bug in ovr_DeviceIsDocked() that can't return
-		// actual state of docking. We are switching to stereo at the start
-		// (missing the first frame to let it render at least once; otherwise
-		// a blurry image may appear).
-		if (!Settings->Flags.bStereoEnforced)
-		{
-			EnableStereo(true);
-		}
+		EnableStereo(true);
 	}
 
 #if 0 // temporarily out of order. Until ovr_DeviceIsDocked returns the actual state.
@@ -352,14 +364,25 @@ bool FGearVR::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			{
 				Plugin->StartOVRGlobalMenu();
 			});
+		return true;
+	}
+	else if (FParse::Command(&Cmd, TEXT("OVRQUITMENU")))
+	{
+		// fire off the global menu from the render thread
+		ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(OVRQuitMenu,
+			FGearVR*, Plugin, this,
+			{
+				Plugin->StartOVRQuitMenu();
+			});
+		return true;
 	}
 	return false;
 }
 
 FString FGearVR::GetVersionString() const
 {
-	static const char* Results = OVR_VERSION_STRING;
-	FString s = FString::Printf(TEXT("%s, VrLib: %s, built %s, %s"), *GEngineVersion.ToString(), UTF8_TO_TCHAR(Results),
+	FString VerStr = ANSI_TO_TCHAR(vrapi_GetVersionString());
+	FString s = FString::Printf(TEXT("%s, VrLib: %s, built %s, %s"), *GEngineVersion.ToString(), *VerStr,
 		UTF8_TO_TCHAR(__DATE__), UTF8_TO_TCHAR(__TIME__));
 	return s;
 }
@@ -579,6 +602,10 @@ void FGearVR::ResetOrientationAndPosition(float yaw)
 	OCFlags.NeedResetOrientationAndPosition = false;
 }
 
+void FGearVR::RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const
+{
+}
+
 FMatrix FGearVR::GetStereoProjectionMatrix(enum EStereoscopicPass StereoPassType, const float FOV) const
 {
 	auto frame = GetFrame();
@@ -721,7 +748,7 @@ void FGearVR::Startup()
 	UpdateStereoRenderingParams();
 
 #if !OVR_DEBUG_DRAW
-	pGearVRBridge = new FGearVRCustomPresent(GNativeAndroidApp->activity->clazz, MinimumVsyncs, CpuLevel, GpuLevel, gettid());
+	pGearVRBridge = new FGearVRCustomPresent(GNativeAndroidApp->activity->clazz, MinimumVsyncs);
 #endif
 
 	LoadFromIni();
@@ -730,8 +757,11 @@ void FGearVR::Startup()
 	if(CVarGearVREnableMSAA.GetValueOnAnyThread())
 	{
 		static IConsoleVariable* CVarMobileOnChipMSAA = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MobileOnChipMSAA"));
-		UE_LOG(LogHMD, Log, TEXT("Enabling r.MobileOnChipMSAA, previous value %d"), CVarMobileOnChipMSAA->GetInt());
-		CVarMobileOnChipMSAA->Set(1);
+		if (CVarMobileOnChipMSAA)
+		{
+			UE_LOG(LogHMD, Log, TEXT("Enabling r.MobileOnChipMSAA, previous value %d"), CVarMobileOnChipMSAA->GetInt());
+			CVarMobileOnChipMSAA->Set(1);
+		}
 	}
 
 	UE_LOG(LogHMD, Log, TEXT("GearVR has started"));
@@ -796,12 +826,12 @@ void FGearVR::UpdateStereoRenderingParams()
 		CurrentSettings->HmdToEyeViewOffset[0].x = -CurrentSettings->InterpupillaryDistance * 0.5f; // -X <=, +X => (OVR coord sys)
 		CurrentSettings->HmdToEyeViewOffset[1].x = CurrentSettings->InterpupillaryDistance * 0.5f;  // -X <=, +X => (OVR coord sys)
 
-		CurrentSettings->RenderTargetSize.X = HmdInfo.SuggestedEyeResolution[0] * 2;
-		CurrentSettings->RenderTargetSize.Y = HmdInfo.SuggestedEyeResolution[1];
+		CurrentSettings->RenderTargetSize.X = HmdInfo.SuggestedEyeResolutionWidth * 2;
+		CurrentSettings->RenderTargetSize.Y = HmdInfo.SuggestedEyeResolutionHeight;
 		//FSceneRenderTargets::QuantizeBufferSize(CurrentSettings->RenderTargetSize.X, CurrentSettings->RenderTargetSize.Y);
 
-		CurrentSettings->HFOVInRadians = FMath::DegreesToRadians(HmdInfo.SuggestedEyeFov[0]);
-		CurrentSettings->VFOVInRadians = FMath::DegreesToRadians(HmdInfo.SuggestedEyeFov[0]);
+		CurrentSettings->HFOVInRadians = FMath::DegreesToRadians(HmdInfo.SuggestedEyeFovDegreesX);
+		CurrentSettings->VFOVInRadians = FMath::DegreesToRadians(HmdInfo.SuggestedEyeFovDegreesY);
 
 		const int32 RTSizeX = CurrentSettings->RenderTargetSize.X;
 		const int32 RTSizeY = CurrentSettings->RenderTargetSize.Y;
@@ -902,9 +932,17 @@ void FGearVR::StartOVRGlobalMenu()
 {
 	check(IsInRenderingThread());
 
+	check(pGearVRBridge);
+	ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_GLOBAL_MENU, NULL);
+}
+
+void FGearVR::StartOVRQuitMenu()
+{
+	check(IsInRenderingThread());
+
 	if (pGearVRBridge)
 	{
-		ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_GLOBAL_MENU, NULL);
+		ovr_StartSystemActivity(&pGearVRBridge->JavaRT, PUI_CONFIRM_QUIT, NULL);
 	}
 }
 
@@ -945,6 +983,41 @@ void FGearVR::DrawDebug(UCanvas* Canvas)
 #endif // #if !UE_BUILD_SHIPPING
 }
 
+float FGearVR::GetBatteryLevel() const
+{
+	return ovr_GetBatteryLevel() / 100.f;
+}
+
+float FGearVR::GetTemperatureInCelsius() const
+{
+	return ovr_GetBatteryTemperature() / 10.0f;
+}
+
+bool FGearVR::AreHeadPhonesPluggedIn() const
+{
+	return ovr_HeadPhonesArePluggedIn();
+}
+
+bool FGearVR::IsPowerLevelStateThrottled() const
+{
+	return ovr_GetPowerLevelStateThrottled();
+}
+
+bool FGearVR::IsPowerLevelStateMinimum() const
+{
+	return ovr_GetPowerLevelStateMinimum();
+}
+
+void FGearVR::SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel)
+{
+	check(IsInGameThread());
+	UE_LOG(LogHMD, Log, TEXT("SetCPUAndGPULevels: Adjusting levels to CPU=%d - GPU=%d"), CPULevel, GPULevel);
+
+	FSettings* CurrentSettings = GetSettings();
+	CurrentSettings->CpuLevel = CPULevel;
+	CurrentSettings->GpuLevel = GPULevel;
+}
+
 //////////////////////////////////////////////////////////////////////////
 FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 	: FHMDViewExtension(InDelegate)
@@ -954,6 +1027,109 @@ FViewExtension::FViewExtension(FHeadMountedDisplay* InDelegate)
 	auto GearVRHMD = static_cast<FGearVR*>(InDelegate);
 	pPresentBridge = GearVRHMD->pGearVRBridge;
 }
+
+//////////////////////////////////////////////////////////////////////////
+void FGearVRPlugin::StartOVRGlobalMenu() const 
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->StartOVRGlobalMenu();
+	}
+}
+
+void FGearVRPlugin::StartOVRQuitMenu() const 
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->StartOVRQuitMenu();
+	}
+}
+
+void FGearVRPlugin::SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel) const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		OculusHMD->SetCPUAndGPULevels(CPULevel, GPULevel);
+	}
+}
+
+bool FGearVRPlugin::IsPowerLevelStateMinimum() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->IsPowerLevelStateMinimum();
+	}
+	return false;
+}
+
+bool FGearVRPlugin::IsPowerLevelStateThrottled() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->IsPowerLevelStateThrottled();
+	}
+	return false;
+}
+
+float FGearVRPlugin::GetTemperatureInCelsius() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->GetTemperatureInCelsius();
+	}
+	return 0.f;
+}
+
+float FGearVRPlugin::GetBatteryLevel() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->GetBatteryLevel();
+	}
+	return 0.f;
+}
+
+bool FGearVRPlugin::AreHeadPhonesPluggedIn() const
+{
+	check(IsInGameThread());
+	IHeadMountedDisplay* HMD = GEngine->HMDDevice.Get();
+	if (HMD && HMD->GetHMDDeviceType() == EHMDDeviceType::DT_GearVR)
+	{
+		FGearVR* OculusHMD = static_cast<FGearVR*>(HMD);
+
+		return OculusHMD->AreHeadPhonesPluggedIn();
+	}
+	return false;
+}
+
 
 #include <HeadMountedDisplayCommon.cpp>
 

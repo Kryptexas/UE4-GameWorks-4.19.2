@@ -4,3 +4,5 @@
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
+#include "IOculusRiftPlugin.h"
+

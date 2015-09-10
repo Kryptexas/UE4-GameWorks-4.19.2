@@ -7,7 +7,7 @@ public class LibOVRMobile : ModuleRules
 	public LibOVRMobile(TargetInfo Target)
 	{
 		// current version of the Mobile Oculus SDK
-		string LibOVRVersion = "_060";
+		string LibOVRVersion = "_061";
 		Type = ModuleType.External;
 
 		string OculusThirdPartyDirectory = UEBuildConfiguration.UEThirdPartySourceDirectory + "Oculus/LibOVRMobile/LibOVRMobile" + LibOVRVersion;
@@ -19,8 +19,8 @@ public class LibOVRMobile : ModuleRules
 			PublicAdditionalLibraries.Add("vrapi");
 
 			PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/VrApi/Include");
-			PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/LibOVR/Include");
-			PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/LibOVR/Src");
+			PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/LibOVRKernel/Include");
+			PublicSystemIncludePaths.Add(OculusThirdPartyDirectory + "/LibOVRKernel/Src");
 		}
 	}
 }

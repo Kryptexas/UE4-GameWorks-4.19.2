@@ -10,7 +10,7 @@
 
 #if PLATFORM_WINDOWS
 	// It is required to undef WINDOWS_PLATFORM_TYPES_GUARD for any further D3D11 private includes
-	#undef WINDOWS_PLATFORM_TYPES_GUARD
+	#include "HideWindowsPlatformTypes.h"
 #endif
 
 #include <OVR_CAPI_Util.cpp>

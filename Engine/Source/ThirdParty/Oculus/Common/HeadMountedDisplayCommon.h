@@ -346,6 +346,9 @@ public:
 	virtual void SetBaseOrientation(const FQuat& BaseOrient) override;
 	virtual FQuat GetBaseOrientation() const override;
 
+	// Returns true, if HMD is currently active
+	virtual bool IsHMDActive() { return IsHMDConnected(); }
+
 	/**
 	* A helper function that calculates the estimated neck position using the specified orientation and position
 	* (for example, reported by GetCurrentOrientationAndPosition()).

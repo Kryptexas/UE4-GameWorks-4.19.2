@@ -7,7 +7,6 @@
   <Justification>We use LibOVR to read sensor data from the Oculus Rifts</Justification>
   <Platforms>
     <Platform>PC</Platform>
-    <Platform>Mac</Platform>
   </Platforms>
   <Products>
     <Product>UDK4</Product>
