@@ -96,7 +96,7 @@ void FEnumEditorUtils::AddNewEnumeratorForUserDefinedEnum(UUserDefinedEnum* Enum
 
 	FString EnumNameString = Enum->GenerateNewEnumeratorName();
 	const FString FullNameStr = Enum->GenerateFullEnumName(*EnumNameString);
-	Names.Add(TPairInitializer<FName, uint8>(FName(*FullNameStr), Enum->GetMaxEnumValue() + 1));
+	Names.Add(TPairInitializer<FName, uint8>(FName(*FullNameStr), Enum->GetMaxEnumValue()));
 
 	const UEnum::ECppForm EnumType = Enum->GetCppForm();
 	Enum->SetEnums(Names, EnumType);
