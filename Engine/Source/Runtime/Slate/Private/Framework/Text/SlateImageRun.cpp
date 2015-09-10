@@ -82,7 +82,10 @@ FSlateImageRun::FSlateImageRun( const FRunInfo& InRunInfo, const TSharedRef< con
 
 FSlateImageRun::~FSlateImageRun()
 {
-	DynamicBrush->ReleaseResource();
+	if (DynamicBrush.IsValid())
+	{
+		DynamicBrush->ReleaseResource();
+	}
 }
 
 const TArray< TSharedRef<SWidget> >& FSlateImageRun::GetChildren() 
