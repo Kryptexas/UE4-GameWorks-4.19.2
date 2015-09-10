@@ -3,7 +3,7 @@ Availability:Public
 Title:Animation Sequence (アニメーション シーケンス) のユーザーガイド
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/Sequences
 Description:AnimBlueprint にアニメーション シーケンスを配置し、サンプリングするためのガイド
-バージョン：4.9
+version: 4.9
 
 [EXCERPT:Intro]
 **AnimationSequence** の再生はコードから実行できますが、通常は SkeletalMeshComponent に適用された  
