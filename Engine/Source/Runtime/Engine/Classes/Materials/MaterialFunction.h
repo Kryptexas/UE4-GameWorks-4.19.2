@@ -29,6 +29,7 @@ class UMaterialFunction : public UObject
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
 	uint32 bExposeToLibrary:1;
 
+#if WITH_EDITORONLY_DATA
 	/** 
 	 * Categories that this function belongs to in the material function library.  
 	 * Ideally categories should be chosen carefully so that there are not too many.
@@ -42,7 +43,7 @@ class UMaterialFunction : public UObject
 	 */
 	UPROPERTY(EditAnywhere, Category=MaterialFunction, AssetRegistrySearchable)
 	TArray<FText> LibraryCategoriesText;
-
+#endif
 	/** Array of material expressions, excluding Comments.  Used by the material editor. */
 	UPROPERTY()
 	TArray<class UMaterialExpression*> FunctionExpressions;

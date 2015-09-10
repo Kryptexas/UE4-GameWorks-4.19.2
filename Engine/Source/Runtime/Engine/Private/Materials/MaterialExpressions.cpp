@@ -6378,8 +6378,9 @@ uint32 UMaterialExpressionCustom::GetOutputType(int32 OutputIndex)
 UMaterialFunction::UMaterialFunction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+#if WITH_EDITORONLY_DATA
 	LibraryCategoriesText.Add(LOCTEXT("Misc", "Misc"));
-
+#endif
 #if WITH_EDITORONLY_DATA
 	PreviewMaterial = NULL;
 	ThumbnailInfo = NULL;
