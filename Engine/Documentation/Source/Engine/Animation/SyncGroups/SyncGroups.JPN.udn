@@ -2,7 +2,7 @@
 Title:Sync Group
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Sync Group は、異なる長さのアニメーションの同期の維持を可能にします。
-バージョン：4.9
+version: 4.9
 
 
 [EXCERPT:Intro]
