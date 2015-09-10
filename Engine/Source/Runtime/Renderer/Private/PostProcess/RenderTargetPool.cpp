@@ -208,7 +208,8 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 
 	// try to find a suitable element in the pool
 	{
-		uint32 PassCount = (Desc.Flags & TexCreate_FastVRAM) ? 2 : 1;
+		//don't spend time doing 2 passes if the platform doesn't support fastvram
+		uint32 PassCount = ((Desc.Flags & TexCreate_FastVRAM) && FPlatformProperties::SupportsFastVRAMMemory()) ? 2 : 1;			
 
 		// first we try exact, if that fails we try without TexCreate_FastVRAM
 		// (easily we can run out of VRam, if this search becomes a performance problem we can optimize or we should use less TexCreate_FastVRAM)
@@ -228,11 +229,11 @@ bool FRenderTargetPool::FindFreeElement(const FPooledRenderTargetDesc& Desc, TRe
 					break;
 				}
 			}
-		}
+		}		
 	}
 
 	if(!Found)
-	{
+	{		
 		UE_LOG(LogRenderTargetPool, Display, TEXT("%d MB, NewRT %s %s"), (AllocationLevelInKB + 1023) / 1024, *Desc.GenerateInfoString(), InDebugName);
 
 		// not found in the pool, create a new element
