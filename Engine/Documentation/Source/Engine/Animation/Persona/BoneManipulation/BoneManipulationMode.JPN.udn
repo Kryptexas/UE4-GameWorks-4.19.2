@@ -7,7 +7,7 @@ Related:Engine/Content/FBX/Animations
 Related:Engine/Content/Types/SkeletalMeshes
 Related:Engine/Animation/PhysicallyDrivenAnimation
 Related:Engine/Content/Tools/MayaRiggingTool
-バージョン：4.9
+version: 4.9
 
 **Bone Manipulation** モードはペルソナのモードの 1 つです。テクニカルアーティストはアニメーションのプレビュー中に、スケルタルメッシュのスキニング問題を確認するために一時的にボーンを平行移動したり回転することができます。
 
