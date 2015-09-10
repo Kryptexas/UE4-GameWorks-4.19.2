@@ -1334,13 +1334,11 @@ namespace UnrealBuildTool
 
 				if( CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create )
 				{
-					Log.TraceVerbose("Creating PCH: " + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename);
-					Log.TraceVerbose("     Command: " + CompileAction.CommandArguments);
+					Log.TraceVerbose("Creating PCH " + CompileEnvironment.Config.PrecompiledHeaderIncludeFilename + ": \"" + CompileAction.CommandPath + "\"" + CompileAction.CommandArguments);
 				}
 				else
 				{
-					Log.TraceVerbose("   Compiling: " + CompileAction.StatusDescription);
-					Log.TraceVerbose("     Command: " + CompileAction.CommandArguments);
+					Log.TraceVerbose("   Compiling " + CompileAction.StatusDescription + ": \"" + CompileAction.CommandPath + "\"" + CompileAction.CommandArguments);
 				}
 
 				if( WindowsPlatform.bCompileWithClang || BuildConfiguration.bRunUnrealCodeAnalyzer)

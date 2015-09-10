@@ -324,6 +324,8 @@ namespace UnrealBuildTool
 			ExecutorName = "";
 			if (ActionsToExecute.Count > 0)
 			{
+				Log.TraceInformation("Executing {0} actions", ActionsToExecute.Count );
+
 				if (BuildConfiguration.bAllowXGE || BuildConfiguration.bXGEExport)
 				{
 					XGE.ExecutionResult XGEResult = XGE.ExecutionResult.TasksSucceeded;
@@ -425,7 +427,7 @@ namespace UnrealBuildTool
 			else
 			{
 				ExecutorName = "NoActionsToExecute";
-				Log.TraceInformation("Target is up to date.");
+				Log.TraceInformation("Target is up to date");
 			}
 
 			return Result;
