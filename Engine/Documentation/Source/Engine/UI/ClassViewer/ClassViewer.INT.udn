@@ -2,6 +2,7 @@ Availability:Public
 Title:Class Viewer
 Crumbs: %ROOT%, Engine, Engine/UI
 Description:Tool for examining UE4 classes.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
