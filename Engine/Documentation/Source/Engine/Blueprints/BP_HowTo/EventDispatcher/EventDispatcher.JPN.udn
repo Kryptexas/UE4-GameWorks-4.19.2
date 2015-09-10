@@ -6,8 +6,8 @@ Description:あるブループリントで呼び出されたイベントが別�
 Related:Engine/Blueprints/UserGuide/EventDispatcher
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
-バージョン:4.9
-SkillLevel:上級
+version:4.9
+skilllevel:Advanced
 
 [イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) が呼び出されると、イベントを実装したブループリントや、イベントディスパッチャーに結びついているイベントが設定されたブループリントも呼び出し時に実行されます。つまり、イベントディスパッチャーが呼び出されると、結びついているイベントも呼び出されて、1 つのソースから複数のイベントを一度に実行することができます。 
 
