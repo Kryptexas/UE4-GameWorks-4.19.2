@@ -27,6 +27,8 @@ namespace BlueprintNativeCodeGenManifestImpl
 	/**  */
 	static bool LoadManifest(const FString& FilePath, FBlueprintNativeCodeGenManifest* Manifest);
 
+	static FString GetBaseFilename(const FAssetData& Asset);
+
 	/**  */
 	static FString GenerateHeaderSavePath(const FString& ModulePath, const FAssetData& Asset);
 	static FString GenerateCppSavePath(const FString& ModulePath, const FAssetData& Asset);
@@ -53,16 +55,28 @@ static bool BlueprintNativeCodeGenManifestImpl::LoadManifest(const FString& File
 }
 
 //------------------------------------------------------------------------------
+static FString BlueprintNativeCodeGenManifestImpl::GetBaseFilename(const FAssetData& Asset)
+{
+	// @TODO: Coordinate this with the CppBackend module (so it matches includes)
+	FString Filename = Asset.AssetName.ToString();
+	if ( Asset.GetClass()->IsChildOf(UBlueprint::StaticClass()) )
+	{
+		static const FString BlueprintClassPostfix(TEXT("_C"));
+		Filename += BlueprintClassPostfix;
+	}
+	return Filename;
+}
+
+//------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(const FString& ModulePath, const FAssetData& Asset)
 {
-	// @TODO: Coordinate this with the CppBackend module
-	return FPaths::Combine(*FPaths::Combine(*ModulePath, *HeaderSubDir), *Asset.AssetName.ToString()) + HeaderFileExt;
+	return FPaths::Combine(*FPaths::Combine(*ModulePath, *HeaderSubDir), *GetBaseFilename(Asset)) + HeaderFileExt;
 }
 
 //------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(const FString& ModulePath, const FAssetData& Asset)
 {
-	return FPaths::Combine(*FPaths::Combine(*ModulePath, *CppSubDir), *Asset.AssetName.ToString()) + CppFileExt;
+	return FPaths::Combine(*FPaths::Combine(*ModulePath, *CppSubDir), *GetBaseFilename(Asset)) + CppFileExt;
 }
 
 //------------------------------------------------------------------------------
@@ -194,8 +208,8 @@ FConvertedAssetRecord& FBlueprintNativeCodeGenManifest::CreateConversionRecord(c
 	FConvertedAssetRecord NewConversionRecord;
 	NewConversionRecord.AssetType = AssetInfo.GetClass();
 	NewConversionRecord.AssetPath = AssetInfo.PackagePath.ToString();
-	NewConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(ModulePath, AssetInfo);
-	NewConversionRecord.GeneratedCppPath = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(ModulePath, AssetInfo);
+	NewConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(GetTargetPath(), AssetInfo);
+	NewConversionRecord.GeneratedCppPath    = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(GetTargetPath(), AssetInfo);
 
 	return ConvertedAssets[ ConvertedAssets.Add(NewConversionRecord) ];
 }
