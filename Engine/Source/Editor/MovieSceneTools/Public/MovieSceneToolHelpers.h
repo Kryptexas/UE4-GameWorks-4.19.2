@@ -28,12 +28,17 @@ public:
 		return OutKeyHandles;
 	}
 
-	virtual float GetKeyTime( FKeyHandle KeyHandle ) const override
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override
 	{
-		return Curve->GetKeyTime( KeyHandle );
+		Curve->SetKeyTime(KeyHandle, NewKeyTime);
 	}
 
-	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override
+	virtual float GetKeyTime(FKeyHandle KeyHandle) const override
+	{
+		return Curve->GetKeyTime(KeyHandle);
+	}
+
+	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override
 	{
 		return Curve->SetKeyTime( KeyHandle, Curve->GetKeyTime( KeyHandle ) + DeltaPosition );
 	}
@@ -44,6 +49,65 @@ public:
 		{
 			Curve->DeleteKey( KeyHandle );
 		}
+	}
+
+	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override
+	{
+		if (Curve->IsKeyHandleValid(KeyHandle))
+		{
+			Curve->SetKeyInterpMode(KeyHandle, InterpMode);
+		}
+	}
+
+	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override
+	{
+		if (Curve->IsKeyHandleValid(KeyHandle))
+		{
+			return Curve->GetKeyInterpMode(KeyHandle);
+		}
+		return RCIM_None;
+	}
+
+	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override
+	{
+		if (Curve->IsKeyHandleValid(KeyHandle))
+		{
+			Curve->SetKeyTangentMode(KeyHandle, TangentMode);
+		}
+	}
+
+	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override
+	{
+		if (Curve->IsKeyHandleValid(KeyHandle))
+		{
+			return Curve->GetKeyTangentMode(KeyHandle);
+		}
+		return RCTM_None;
+	}
+
+	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override
+	{
+		if (bPreInfinity)
+		{
+			Curve->PreInfinityExtrap = ExtrapMode;
+		}
+		else
+		{
+			Curve->PostInfinityExtrap = ExtrapMode;
+		}
+	}
+
+	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override
+	{
+		if (bPreInfinity)
+		{
+			return Curve->PreInfinityExtrap;
+		}
+		else
+		{
+			return Curve->PostInfinityExtrap;
+		}
+		return RCCE_None;
 	}
 
 	virtual void AddKeyUnique(float Time) override;
@@ -88,12 +152,17 @@ public:
 		return OutKeyHandles;
 	}
 
-	virtual float GetKeyTime( FKeyHandle KeyHandle ) const override
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override
 	{
-		return Curve.GetKeyTime( KeyHandle );
+		Curve.SetKeyTime(KeyHandle, NewKeyTime);
 	}
 
-	virtual FKeyHandle MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override
+	virtual float GetKeyTime(FKeyHandle KeyHandle) const override
+	{
+		return Curve.GetKeyTime(KeyHandle);
+	}
+
+	virtual FKeyHandle MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override
 	{
 		return Curve.SetKeyTime( KeyHandle, Curve.GetKeyTime( KeyHandle ) + DeltaPosition );
 	}
@@ -101,6 +170,33 @@ public:
 	virtual void DeleteKey(FKeyHandle KeyHandle) override
 	{
 		Curve.DeleteKey(KeyHandle);
+	}
+
+	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override
+	{
+	}
+
+	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle KeyHandle) const override
+	{
+		return RCIM_None;
+	}
+
+	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override
+	{
+	}
+
+	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const override
+	{
+		return RCTM_None;
+	}
+
+	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override
+	{
+	}
+
+	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override
+	{
+		return RCCE_None;
 	}
 
 	virtual void AddKeyUnique(float Time) override;

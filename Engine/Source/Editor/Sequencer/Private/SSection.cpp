@@ -9,6 +9,7 @@
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 #include "SequencerHotspots.h"
+#include "ScopedTransaction.h"
 
 
 /** When 0, regeneration of dynamic key layouts is enabled, when non-zero, such behaviour is disabled */
@@ -415,42 +416,205 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 
 	if (Key.IsValid() || Sequencer.GetSelection().GetSelectedKeys().Num())
 	{
-		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "DeleteKey", "Delete"),
-			NSLOCTEXT("Sequencer", "DeleteKeyToolTip", "Deletes the selected keys."),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::DeleteSelectedKeys))
+		MenuBuilder.BeginSection("SequencerInterpolation", NSLOCTEXT("Sequencer", "KeyInterpolationMenu", "Key Interpolation"));
+		{
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationAuto", "Auto"),
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationAutoTooltip", "Set key interpolation to auto"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetInterpTangentMode, RCIM_Cubic, RCTM_Auto),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsInterpTangentModeSelected, RCIM_Cubic, RCTM_Auto) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
 			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationUser", "User"),
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationUserTooltip", "Set key interpolation to user"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetInterpTangentMode, RCIM_Cubic, RCTM_User),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsInterpTangentModeSelected, RCIM_Cubic, RCTM_User) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationBreak", "Break"),
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationBreakTooltip", "Set key interpolation to break"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetInterpTangentMode, RCIM_Cubic, RCTM_Break),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsInterpTangentModeSelected, RCIM_Cubic, RCTM_Break) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationLinear", "Linear"),
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationLinearTooltip", "Set key interpolation to linear"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetInterpTangentMode, RCIM_Linear, RCTM_Auto),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsInterpTangentModeSelected, RCIM_Linear, RCTM_Auto) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationConstant", "Constant"),
+				NSLOCTEXT("Sequencer", "SetKeyInterpolationConstantTooltip", "Set key interpolation to constant"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(&Sequencer, &FSequencer::SetInterpTangentMode, RCIM_Constant, RCTM_Auto),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsInterpTangentModeSelected, RCIM_Constant, RCTM_Auto) ),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
+			);
+		}
+		MenuBuilder.EndSection(); // SequencerInterpolation
+
+		MenuBuilder.BeginSection("SequencerKeys", NSLOCTEXT("Sequencer", "KeysMenu", "Keys"));
+		{
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SnapToFrame", "Snap to Frame"),
+				NSLOCTEXT("Sequencer", "SnapToFrameToolTip", "Snap selected keys to frame"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::SnapToFrame))
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "DeleteKey", "Delete"),
+				NSLOCTEXT("Sequencer", "DeleteKeyToolTip", "Deletes the selected keys"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::DeleteSelectedKeys))
+			);
+		}
+		MenuBuilder.EndSection(); // SequencerKeys
 	}
-	else
+	
+	if (SceneSection != nullptr)
 	{
 		SectionInterface->BuildSectionContextMenu(MenuBuilder);
 
-		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "ToggleSectionActive", "Active"),
-			NSLOCTEXT("Sequencer", "ToggleSectionActiveTooltip", "Toggle section active/inactive."),
-			FSlateIcon(),
-			FUIAction(
-				FExecuteAction::CreateSP(&Sequencer, &FSequencer::ToggleSectionActive),
-				FCanExecuteAction::CreateSP(&Sequencer, &FSequencer::CanToggleSectionActive),
-				FIsActionChecked::CreateSP(&Sequencer, &FSequencer::IsToggleSectionActive)),
-			NAME_None,
-			EUserInterfaceActionType::ToggleButton
+		MenuBuilder.BeginSection("SequencerSections", NSLOCTEXT("Sequencer", "SectionsMenu", "Sections"));
+		{
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SelectAllKeys", "Select All Keys"),
+				NSLOCTEXT("Sequencer", "SelectAllKeysTooltip", "Select all keys in section"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SSection::SelectAllKeys))
 			);
 
-		// @todo Sequencer this should delete all selected sections
-		// delete/selection needs to be rethought in general
-		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("Sequencer", "DeleteSection", "Delete"),
-			NSLOCTEXT("Sequencer", "DeleteSectionToolTip", "Deletes this section."),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(&Sequencer, &FSequencer::DeleteSection, SceneSection))
+			MenuBuilder.AddSubMenu(
+				NSLOCTEXT("Sequencer", "SetPreInfinityExtrap", "Pre-Infinity"), 
+				NSLOCTEXT("Sequencer", "SetPreInfinityExtrapTooltip", "Set pre-infinity extrapolation"),
+				FNewMenuDelegate::CreateRaw(this, &SSection::AddExtrapolationMenu, true));
+
+			MenuBuilder.AddSubMenu(
+				NSLOCTEXT("Sequencer", "SetPostInfinityExtrap", "Post-Infinity"), 
+				NSLOCTEXT("Sequencer", "SetPostInfinityExtrapTooltip", "Set post-infinity extrapolation"),
+				FNewMenuDelegate::CreateRaw(this, &SSection::AddExtrapolationMenu, false));
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "ToggleSectionActive", "Active"),
+				NSLOCTEXT("Sequencer", "ToggleSectionActiveTooltip", "Toggle section active/inactive"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SSection::ToggleSectionActive),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP(this, &SSection::IsToggleSectionActive)),
+				NAME_None,
+				EUserInterfaceActionType::ToggleButton
 			);
+
+			// @todo Sequencer this should delete all selected sections
+			// delete/selection needs to be rethought in general
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "DeleteSection", "Delete"),
+				NSLOCTEXT("Sequencer", "DeleteSectionToolTip", "Deletes this section"),
+				FSlateIcon(),
+				FUIAction(FExecuteAction::CreateSP(this, &SSection::DeleteSection))
+			);
+		}
+		MenuBuilder.EndSection(); // SequencerSections
 	}
 	
+	ResetState();
+
 	return MenuBuilder.MakeWidget();
 }
 
+void SSection::AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity)
+{
+	FSequencer& Sequencer = GetSequencer();
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SetExtrapCycle", "Cycle"),
+		NSLOCTEXT("Sequencer", "SetExtrapCycleTooltip", "Set extrapolation cycle"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SetExtrapolationMode, RCCE_Cycle, bPreInfinity),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SSection::IsExtrapolationModeSelected, RCCE_Cycle, bPreInfinity) ),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SetExtrapCycleWithOffset", "Cycle with Offset"),
+		NSLOCTEXT("Sequencer", "SetExtrapCycleWithOffsetTooltip", "Set extrapolation cycle with offset"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SetExtrapolationMode, RCCE_CycleWithOffset, bPreInfinity),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SSection::IsExtrapolationModeSelected, RCCE_CycleWithOffset, bPreInfinity) ),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SetExtrapOscillate", "Oscillate"),
+		NSLOCTEXT("Sequencer", "SetExtrapOscillateTooltip", "Set extrapolation oscillate"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SetExtrapolationMode, RCCE_Oscillate, bPreInfinity),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SSection::IsExtrapolationModeSelected, RCCE_Oscillate, bPreInfinity) ),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SetExtrapLinear", "Linear"),
+		NSLOCTEXT("Sequencer", "SetExtrapLinearTooltip", "Set extrapolation linear"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SetExtrapolationMode, RCCE_Linear, bPreInfinity),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SSection::IsExtrapolationModeSelected, RCCE_Linear, bPreInfinity) ),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+
+	MenuBuilder.AddMenuEntry(
+		NSLOCTEXT("Sequencer", "SetExtrapConstant", "Constant"),
+		NSLOCTEXT("Sequencer", "SetExtrapConstantTooltip", "Set extrapolation constant"),
+		FSlateIcon(),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &SSection::SetExtrapolationMode, RCCE_Constant, bPreInfinity),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP(this, &SSection::IsExtrapolationModeSelected, RCCE_Constant, bPreInfinity) ),
+		NAME_None,
+		EUserInterfaceActionType::RadioButton
+	);
+}
 
 void SSection::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {	
@@ -565,15 +729,15 @@ FReply SSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FP
 {
 	ResetState();
 
-	UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
-	if( GetSequencer().IsSectionVisible( SectionObject ) )
+	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
-
-		if (Reply.IsEventHandled()) {return Reply;}
-
-		if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
+		UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
+		if( GetSequencer().IsSectionVisible( SectionObject ) )
 		{
+			FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
+
+			if (Reply.IsEventHandled()) {return Reply;}
+
 			GetSequencer().ZoomToSelectedSections();
 
 			return FReply::Handled();
@@ -713,3 +877,143 @@ void SSection::HandleSectionSelection( const FPointerEvent& MouseEvent, bool bSe
 	}
 }
 
+void SSection::SelectAllKeys()
+{
+	// @todo Sequencer should operate on selected sections
+	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	{
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+
+		TArray<FKeyHandle> KeyHandles = KeyArea->GetUnsortedKeyHandles();
+		for( int32 KeyIndex = 0; KeyIndex < KeyHandles.Num(); ++KeyIndex )
+		{
+			FKeyHandle KeyHandle = KeyHandles[KeyIndex];
+			FSelectedKey SelectKey(*Section, KeyArea, KeyHandle);
+			GetSequencer().GetSelection().AddToSelection(SelectKey);
+		}
+	}
+}
+
+void SSection::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity)
+{
+	// @todo Sequencer should operate on selected sections
+	UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+
+	FScopedTransaction SetExtrapolationModeTransaction(NSLOCTEXT("Sequencer", "SetExtrapolationMode_Transaction", "Set Extrapolation Mode"));
+	bool bAnythingChanged = false;
+
+	Section->Modify();
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	{
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+		bAnythingChanged = true;
+		KeyArea->SetExtrapolationMode(ExtrapMode, bPreInfinity);
+	}
+
+	if (bAnythingChanged)
+	{
+		GetSequencer().UpdateRuntimeInstances();
+	}
+}
+
+bool SSection::IsExtrapolationModeSelected(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) const
+{
+	// @todo Sequencer should operate on selected sections
+	bool bAllSelected = false;
+
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	{
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+
+		bAllSelected = true;
+		if (KeyArea->GetExtrapolationMode(bPreInfinity) != ExtrapMode)
+		{
+			bAllSelected = false;
+			break;
+		}
+	}
+
+	return bAllSelected;
+}
+
+void SSection::ToggleSectionActive()
+{
+	FScopedTransaction ToggleSectionActiveTransaction( NSLOCTEXT("Sequencer", "ToggleSectionActive_Transaction", "Toggle Section Active") );
+
+	bool bIsActive = !IsToggleSectionActive();
+
+	bool bAnythingChanged = false;
+	if (GetSequencer().GetSelection().GetSelectedSections().Num() != 0)
+	{
+		for (auto Section : GetSequencer().GetSelection().GetSelectedSections())
+		{
+			bAnythingChanged = true;
+			Section->Modify();
+			Section->SetIsActive(bIsActive);
+		}
+	}
+	else
+	{
+		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+		if (Section)
+		{
+			bAnythingChanged = true;
+			Section->Modify();
+			Section->SetIsActive(bIsActive);
+		}
+	}
+
+	if (bAnythingChanged)
+	{
+		GetSequencer().UpdateRuntimeInstances();
+	}
+}
+
+bool SSection::IsToggleSectionActive() const
+{
+	// Active only if all are active
+	if (GetSequencer().GetSelection().GetSelectedSections().Num() != 0)
+	{
+		for (auto Section : GetSequencer().GetSelection().GetSelectedSections())
+		{
+			if (!Section->IsActive())
+			{
+				return false;
+			}
+		}
+	}
+	else
+	{
+		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+		if (Section)
+		{
+			if (!Section->IsActive())
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+void SSection::DeleteSection()
+{
+	if (GetSequencer().GetSelection().GetSelectedSections().Num() != 0)
+	{
+		GetSequencer().DeleteSections(GetSequencer().GetSelection().GetSelectedSections());
+	}
+	else
+	{
+		UMovieSceneSection* Section = SectionInterface->GetSectionObject();
+		if (Section)
+		{
+			TSet<TWeakObjectPtr<UMovieSceneSection> > Sections;
+			Sections.Add(Section);
+
+			GetSequencer().DeleteSections(Sections);
+		}
+	}
+}

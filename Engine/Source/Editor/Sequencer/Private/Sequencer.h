@@ -122,9 +122,9 @@ public:
 	void SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance );
 
 	/** 
-	 * Deletes the passed in section
+	 * Deletes the passed in sections
 	 */
-	void DeleteSection(class UMovieSceneSection* Section);
+	void DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection> > & Sections);
 
 	/**
 	 * Deletes the currently selected in keys
@@ -132,11 +132,19 @@ public:
 	void DeleteSelectedKeys();
 
 	/**
-	* Section active/inactive toggle
-	*/
-	void ToggleSectionActive();
-	bool CanToggleSectionActive() const;
-	bool IsToggleSectionActive() const;
+	 * Set interpolation modes
+	 */
+	void SetInterpTangentMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode);
+
+	/**
+	 * Is interpolation mode selected
+	 */
+	bool IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode) const;
+
+	/**
+	 * Snap the currently selected keys to frame
+	 */
+	void SnapToFrame();
 
 	/**
 	 * @return Movie scene tools used by the sequencer

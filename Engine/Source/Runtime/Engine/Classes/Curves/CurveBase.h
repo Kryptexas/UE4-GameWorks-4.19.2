@@ -134,7 +134,8 @@ enum ERichCurveInterpMode
 {
 	RCIM_Linear,
 	RCIM_Constant,
-	RCIM_Cubic
+	RCIM_Cubic,
+	RCIM_None
 };
 
 /** If using RCIM_Cubic, this enum describes how the tangents should be controlled in editor. */
@@ -143,7 +144,8 @@ enum ERichCurveTangentMode
 {
 	RCTM_Auto,
 	RCTM_User,
-	RCTM_Break
+	RCTM_Break,
+	RCTM_None
 };
 
 /** Enum to indicate whether if a tangent is 'weighted' (ie can be stretched). */
@@ -164,7 +166,8 @@ enum ERichCurveExtrapolation
 	RCCE_CycleWithOffset,
 	RCCE_Oscillate,
 	RCCE_Linear,
-	RCCE_Constant
+	RCCE_Constant,
+	RCCE_None
 };
 
 /** One key in a rich, editable float curve */

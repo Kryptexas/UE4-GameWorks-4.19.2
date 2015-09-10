@@ -71,9 +71,16 @@ public:
 	
 	/* IKeyArea interface */
 	virtual TArray<FKeyHandle>		GetUnsortedKeyHandles() const override;
-	virtual float					GetKeyTime( FKeyHandle KeyHandle ) const override;
-	virtual FKeyHandle				MoveKey( FKeyHandle KeyHandle, float DeltaPosition ) override;
+	virtual void 					SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const override;
+	virtual float					GetKeyTime(FKeyHandle KeyHandle) const override;
+	virtual FKeyHandle				MoveKey(FKeyHandle KeyHandle, float DeltaPosition) override;
 	virtual void					DeleteKey(FKeyHandle KeyHandle) override;
+	virtual void                    SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) override;
+	virtual ERichCurveInterpMode    GetKeyInterpMode(FKeyHandle KeyHandle) const override;
+	virtual void                    SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) override;
+	virtual ERichCurveTangentMode   GetKeyTangentMode(FKeyHandle KeyHandle) const override;
+	virtual void                    SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) override;
+	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const override;
 	virtual void					AddKeyUnique(float Time) override;
 	virtual FRichCurve*				GetRichCurve() override;
 	virtual UMovieSceneSection*		GetOwningSection() override;

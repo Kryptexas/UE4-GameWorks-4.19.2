@@ -83,6 +83,9 @@ private:
 	/** Summons a context menu over the associated section */
 	TSharedPtr<SWidget> OnSummonContextMenu( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
 
+	/** Add extrapolation menu for pre and post infinity */
+	void AddExtrapolationMenu(FMenuBuilder& MenuBuilder, bool bPreInfinity);
+
 	/**
 	 * Selects the section or keys if they are found under the mouse
 	 *
@@ -134,6 +137,32 @@ private:
 	 * Creates geometry for a section without space for the handles
 	 */
 	FGeometry MakeSectionGeometryWithoutHandles( const FGeometry& AllottedGeometry, const TSharedPtr<ISequencerSection>& InSectionInterface ) const;
+
+	/** 
+	 * Select all keys within the section
+	 */
+	void SelectAllKeys();
+
+	/**
+	 * Set extrapolation mode
+	 */
+	void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity);
+
+	/**
+	 * Is extrapolation mode selected
+	 */
+	bool IsExtrapolationModeSelected(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) const;
+
+	/**
+	 * Section active/inactive toggle
+	 */
+	void ToggleSectionActive();
+	bool IsToggleSectionActive() const;
+
+	/*
+	 * Delete section
+	 */ 
+	void DeleteSection();
 
 private:
 	/** Interface to section data */

@@ -27,13 +27,21 @@ public:
 	/** @return The array of unsorted key handles in the key area */
 	virtual TArray<FKeyHandle> GetUnsortedKeyHandles() const = 0;
 
-	/** 
+	/**
+	 * Sets the time of a key given a handle
+	 *
+	 * @param KeyHandle Handle of the key
+	 * @param The new time of the key
+	 */
+	virtual void SetKeyTime(FKeyHandle KeyHandle, float NewKeyTime) const = 0;
+
+	/**
 	 * Gets the time of a key given a handle
 	 *
 	 * @param KeyHandle Handle of the key
 	 * @return The time of the key
 	 */
-	virtual float GetKeyTime( FKeyHandle KeyHandle ) const = 0;
+	virtual float GetKeyTime(FKeyHandle KeyHandle) const = 0;
 
 	/**
 	 * Moves a key
@@ -50,6 +58,54 @@ public:
 	 * @param KeyHandle The key to delete
 	 */
 	virtual void DeleteKey(FKeyHandle KeyHandle) = 0;
+
+	/**
+	 * Set key interpolation
+	 *
+	 * @param KeyHandle The key handle
+	 * @param InterpMode The interpolation mode
+	 */
+	virtual void SetKeyInterpMode(FKeyHandle KeyHandle, ERichCurveInterpMode InterpMode) = 0;
+
+	/**
+	 * Get key interpolation
+	 *
+	 * @param KeyHandle The key handle
+	 * @return InterpMode The interpolation mode
+	 */
+	virtual ERichCurveInterpMode GetKeyInterpMode(FKeyHandle Keyhandle) const = 0;
+
+	/**
+	 * Set key tangent
+	 *
+	 * @param KeyHandle The key handle
+	 * @param TangentMode The tangent mode
+	 */
+	virtual void SetKeyTangentMode(FKeyHandle KeyHandle, ERichCurveTangentMode TangentMode) = 0;
+
+	/**
+	 * Get key tangent
+	 *
+	 * @param KeyHandle The key handle
+	 * @return TangentMode The tangent mode
+	 */
+	virtual ERichCurveTangentMode GetKeyTangentMode(FKeyHandle KeyHandle) const = 0;
+
+	/**
+	 * Set extrapolation
+	 *
+	 * @param ExtrapMode The extrapolation mode
+	 * @param bPreInfinity Set pre-infinity (or post-infinity)
+	 */
+	virtual void SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity) = 0;
+
+	/**
+	 * Get extrapolation
+	 *
+	 * @param bPreInfinity Get pre-infinity (or post-infinity)
+	 * @return ExtrapMode The extrapolation mode
+	 */
+	virtual ERichCurveExtrapolation GetExtrapolationMode(bool bPreInfinity) const = 0;
 
 	/**
 	 * Adds a key at the specified time if there isn't already a key present.  The value of the added key should

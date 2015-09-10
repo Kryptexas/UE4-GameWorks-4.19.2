@@ -392,34 +392,41 @@ void FSequencer::AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequenc
 	}
 }
 
-void FSequencer::DeleteSection(class UMovieSceneSection* Section)
+void FSequencer::DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection> >& Sections)
 {
 	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 	
 	bool bAnythingRemoved = false;
 
-	UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>( Section->GetOuter() );
-
-	// If this check fails then the section is outered to a type that doesnt know about the section
-	//checkSlow( Track->HasSection(Section) );
-	
-	Track->SetFlags( RF_Transactional );
-
 	FScopedTransaction DeleteSectionTransaction( NSLOCTEXT("Sequencer", "DeleteSection_Transaction", "Delete Section") );
-	
-	Track->Modify();
+		
+	for (auto It = Sections.CreateConstIterator(); It; ++It)
+	{
+		UMovieSceneSection* Section = (*It).Get();
+		if (Section != nullptr)
+		{
+			UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>( Section->GetOuter() );
 
-	Track->RemoveSection(Section);
-
-	bAnythingRemoved = true;
+			// If this check fails then the section is outered to a type that doesnt know about the section
+			//checkSlow( Track->HasSection(Section) );
 	
+			Track->SetFlags( RF_Transactional );
+
+			Track->Modify();
+
+			Track->RemoveSection(Section);
+
+			bAnythingRemoved = true;
+
+			Selection.RemoveFromSelection(Section);
+		}
+	}
+
 	if( bAnythingRemoved )
 	{
 		// Full refresh required just in case the last section was removed from any track.
 		NotifyMovieSceneDataChanged();
 	}
-
-	Selection.RemoveFromSelection(Section);
 }
 
 void FSequencer::DeleteSelectedKeys()
@@ -446,38 +453,80 @@ void FSequencer::DeleteSelectedKeys()
 	Selection.EmptySelectedKeys();
 }
 
-void FSequencer::ToggleSectionActive()
+void FSequencer::SetInterpTangentMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
 {
-	FScopedTransaction ToggleSectionActiveTransaction( NSLOCTEXT("Sequencer", "ToggleSectionActive_Transaction", "Toggle Section Active") );
+	FScopedTransaction SetInterpTangentModeTransaction(NSLOCTEXT("Sequencer", "SetInterpTangentMode_Transaction", "Set Interpolation and Tangent Mode"));
+	bool bAnythingChanged = false;
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
 
-	bool bIsActive = !IsToggleSectionActive();
-
-	for (auto Section : Selection.GetSelectedSections())
+	for (const FSelectedKey& Key : SelectedKeysArray)
 	{
-		Section->Modify();
-		Section->SetIsActive(bIsActive);
-	}
-}
-
-bool FSequencer::CanToggleSectionActive() const
-{
-	return Selection.GetSelectedSections().Num() > 0;
-}
-
-bool FSequencer::IsToggleSectionActive() const
-{
-	// Active only if all are active
-	for (auto Section : Selection.GetSelectedSections())
-	{
-		if (!Section->IsActive())
+		if (Key.IsValid())
 		{
-			return false;
+			Key.Section->Modify();
+			Key.KeyArea->SetKeyInterpMode(Key.KeyHandle.GetValue(), InterpMode);
+			Key.KeyArea->SetKeyTangentMode(Key.KeyHandle.GetValue(), TangentMode);
+			bAnythingChanged = true;
 		}
 	}
 
-	return true;
+	if (bAnythingChanged)
+	{
+		UpdateRuntimeInstances();
+	}
 }
 
+bool FSequencer::IsInterpTangentModeSelected(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode) const
+{
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
+
+	bool bAllSelected = false;
+	for (const FSelectedKey& Key : SelectedKeysArray)
+	{
+		if (Key.IsValid())
+		{
+			bAllSelected = true;
+			if (Key.KeyArea->GetKeyInterpMode(Key.KeyHandle.GetValue()) != InterpMode || 
+				Key.KeyArea->GetKeyTangentMode(Key.KeyHandle.GetValue()) != TangentMode)
+			{
+				bAllSelected = false;
+				break;
+			}
+		}
+	}
+	return bAllSelected;
+}
+
+void FSequencer::SnapToFrame()
+{
+	FScopedTransaction SnapToFrameTransaction(NSLOCTEXT("Sequencer", "SnapToFrame_Transaction", "Snap Selected Keys to Frame"));
+	bool bAnythingChanged = false;
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
+
+	for (const FSelectedKey& Key : SelectedKeysArray)
+	{
+		if (Key.IsValid())
+		{
+			Key.Section->Modify();
+			float NewKeyTime = Key.KeyArea->GetKeyTime(Key.KeyHandle.GetValue());
+
+			// Convert to frame
+			float FrameRate = 1.0f / Settings->GetTimeSnapInterval();
+			int32 NewFrame = SequencerHelpers::TimeToFrame(NewKeyTime, FrameRate);
+
+			// Convert back to time
+			NewKeyTime = SequencerHelpers::FrameToTime(NewFrame, FrameRate);
+
+			Key.KeyArea->SetKeyTime(Key.KeyHandle.GetValue(), NewKeyTime);
+			bAnythingChanged = true;
+		}
+	}
+
+	if (bAnythingChanged)
+	{
+		UpdateRuntimeInstances();
+	}
+}
 void FSequencer::SpawnOrDestroyPuppetObjects( TSharedRef<FMovieSceneSequenceInstance> MovieSceneInstance )
 {
 	UMovieSceneSequence* Sequence = MovieSceneInstance->GetSequence();
@@ -1917,10 +1966,8 @@ void FSequencer::DeleteSelectedItems()
 	if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection)
 	{
 		DeleteSelectedKeys();
-		for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
-		{
-			DeleteSection(SelectedSection.Get());
-		}
+
+		DeleteSections(Selection.GetSelectedSections());
 	}
 	else if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::OutlinerNode)
 	{
