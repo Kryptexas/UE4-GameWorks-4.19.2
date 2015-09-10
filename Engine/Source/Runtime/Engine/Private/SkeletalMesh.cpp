@@ -2425,31 +2425,6 @@ bool USkeletalMesh::IsReadyForFinishDestroy()
 	return ReleaseResourcesFence.IsFenceComplete();
 }
 
-#if WITH_APEX_CLOTHING
-// convert a bone name from APEX stype to FBX style
-FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex)
-{
-	return FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"));
-}
-
-
-void BuildApexToUnrealBoneMapping(const USkeletalMesh* SkeletalMesh, FClothingAssetData& ClothingAsset)
-{
-	NxClothingAsset* ApexClothingAsset = ClothingAsset.ApexClothingAsset;
-	uint32 NumUsedBones = ClothingAsset.ApexClothingAsset->getNumUsedBones();
-	
-	check(ClothingAsset.ApexToUnrealBoneMapping.Num() == 0);
-	ClothingAsset.ApexToUnrealBoneMapping.AddUninitialized(NumUsedBones);
-
-	for (uint32 Index = 0; Index < NumUsedBones; Index++)
-	{
-		FName BoneName = GetConvertedBoneName(ApexClothingAsset, Index);
-		int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BoneName);
-		ClothingAsset.ApexToUnrealBoneMapping[Index] = BoneIndex;
-	}
-}
-#endif
-
 void USkeletalMesh::Serialize( FArchive& Ar )
 {
 	DECLARE_SCOPE_CYCLE_COUNTER( TEXT("USkeletalMesh::Serialize"), STAT_SkeletalMesh_Serialize, STATGROUP_LoadTime );
@@ -2542,12 +2517,6 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		for( int32 Idx=0;Idx<ClothingAssets.Num();Idx++ )
 		{
 			Ar << ClothingAssets[Idx];
-#if WITH_APEX_CLOTHING
-			if(Ar.IsLoading())
-			{
-				BuildApexToUnrealBoneMapping(this, ClothingAssets[Idx]);
-			}
-#endif
 		}
 	}
 

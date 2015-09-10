@@ -1992,8 +1992,33 @@ bool USkeletalMeshComponent::ComponentOverlapMultiImpl(TArray<struct FOverlapRes
 
 #if WITH_APEX_CLOTHING
 
+// convert a bone name from APEX stype to FBX style
+static FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex)
+{
+	//QUICK_SCOPE_CYCLE_COUNTER(STAT_GetConvertedBoneName);
+	/*static FString Work;
+	check(IsInGameThread() && !Work.Len());
+	// FIXME, this still needs work, string conversion and hashing
 
+	const char* Bone = ApexClothingAsset->getBoneName(BoneIndex);
+	if (Bone)
+	{
+		int32 SrcLen = FCStringAnsi::Strlen(Bone) + 1;
+		int32 DestLen = FPlatformString::ConvertedLength<TCHAR>(Bone, SrcLen);
+		TArray<TCHAR>& Array = Work.GetCharArray();
+		Array.AddUninitialized(DestLen);
+		FPlatformString::Convert(Array.GetData(), DestLen, Bone, SrcLen);
 
+		Work.ReplaceInline(TEXT(" "), TEXT("-"));
+		FName Result(*Work);
+		Work.Reset();
+		//check(Result == FName(*FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"))));
+		return Result;
+	}
+	return NAME_None;*/
+	//Going back to allocation approach because we now call this from many threads
+	return *FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"));
+}
 
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
 {
@@ -3554,25 +3579,31 @@ void USkeletalMeshComponent::ParallelUpdateClothState(float DeltaTime, FClothSim
 	physx::apex::ClothingTeleportMode::Enum CurTeleportMode = (physx::apex::ClothingTeleportMode::Enum)ClothSimulationContext.ClothTeleportMode;
 
 	TArray<physx::PxMat44> BoneMatrices;
+	check(!BoneMatrices.Num());
 
-	for (int32 Index = 0; Index < ClothingActors.Num(); ++Index)
+	for (int32 ActorIdx = 0; ActorIdx < NumActors; ActorIdx++)
 	{
-		const FClothingActor& ClothingActor = ClothingActors[Index];
-		const FClothingAssetData& ClothingAsset = SkeletalMesh->ClothingAssets[Index];
+		// skip if ClothingActor is NULL or invalid
+		if (!IsValidClothingActor(ActorIdx))
+		{
+			continue;
+		}
 
-		ApplyWindForCloth(ClothingActor);
+		ApplyWindForCloth(ClothingActors[ActorIdx]);
 
-		const NxClothingAsset* ApexClothingAsset = ClothingActor.ParentClothingAsset;
+		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset;
 
-		uint32 NumUsedBones = ApexClothingAsset->getNumUsedBones();
+		uint32 NumUsedBones = ClothingAsset->getNumUsedBones();
 
 		check(!BoneMatrices.Num());
 		BoneMatrices.AddUninitialized(NumUsedBones);
 
 		for (uint32 Index = 0; Index < NumUsedBones; Index++)
 		{
-			int32 BoneIndex = ClothingAsset.ApexToUnrealBoneMapping[Index];
-			
+			FName BoneName = GetConvertedBoneName(ClothingActors[ActorIdx].ParentClothingAsset, Index);
+
+			int32 BoneIndex = GetBoneIndex(BoneName);
+
 			if (MasterPoseComponent.IsValid())
 			{
 				int32 TempBoneIndex = BoneIndex;
@@ -3600,12 +3631,12 @@ void USkeletalMeshComponent::ParallelUpdateClothState(float DeltaTime, FClothSim
 			}
 		}
 
-		NxClothingActor* ApexClothingActor = ClothingActor.ApexClothingActor;
+		NxClothingActor* ClothingActor = ClothingActors[ActorIdx].ApexClothingActor;
 
-		check(ApexClothingActor);
+		check(ClothingActor);
 
 		// if bUseInternalboneOrder is set, "NumUsedBones" works, otherwise have to use "getNumBones" 
-		ApexClothingActor->updateState(
+		ClothingActor->updateState(
 			PxGlobalPose,
 			BoneMatrices.GetData(),
 			sizeof(physx::PxMat44),
