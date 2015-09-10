@@ -72,8 +72,8 @@ namespace StructSerializerTest
 		Test.TestEqual<TArray<FVector>>(TEXT("Arrays.VectorArray must be the same before and after de-/serialization"), TestStruct.Arrays.VectorArray, TestStruct2.Arrays.VectorArray);
 
 		// test maps
-//		Test.TestTrue(TEXT("Maps.IntToString must be the same before and after de-/serialization"), TestStruct.Maps.IntToString.OrderIndependentCompareEqual(TestStruct2.Maps.IntToString));
-//		Test.TestTrue(TEXT("Maps.StringToVector must be the same before and after de-/serialization"), TestStruct.Maps.StringToVector.OrderIndependentCompareEqual(TestStruct2.Maps.StringToVector));
+		Test.TestTrue(TEXT("Maps.IntToStr must be the same before and after de-/serialization"), TestStruct.Maps.IntToStr.OrderIndependentCompareEqual(TestStruct2.Maps.IntToStr));
+		Test.TestTrue(TEXT("Maps.StrToVec must be the same before and after de-/serialization"), TestStruct.Maps.StrToVec.OrderIndependentCompareEqual(TestStruct2.Maps.StrToVec));
 	}
 }
 

@@ -212,21 +212,21 @@ struct FStructSerializerMapTestStruct
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	TMap<int32, FString> IntToString;
+	TMap<int32, FString> IntToStr;
 
 	UPROPERTY()
-	TMap<FString, FVector> StringToVector;
+	TMap<FString, FVector> StrToVec;
 
 	/** Default constructor. */
 	FStructSerializerMapTestStruct()
 	{
-		IntToString.Add(1, TEXT("One"));
-		IntToString.Add(2, TEXT("Two"));
-		IntToString.Add(3, TEXT("Three"));
+		IntToStr.Add(1, TEXT("One"));
+		IntToStr.Add(2, TEXT("Two"));
+		IntToStr.Add(3, TEXT("Three"));
 
-		StringToVector.Add(TEXT("Vector000"), FVector(0.0f, 0.0f, 0.0f));
-		StringToVector.Add(TEXT("Vector123"), FVector(1.0f, 2.0f, 3.0f));
-		StringToVector.Add(TEXT("Vector666"), FVector(6.0f, 6.0f, 6.0f));
+		StrToVec.Add(TEXT("V000"), FVector(0.0f, 0.0f, 0.0f));
+		StrToVec.Add(TEXT("V123"), FVector(1.0f, 2.0f, 3.0f));
+		StrToVec.Add(TEXT("V666"), FVector(6.0f, 6.0f, 6.0f));
 	}
 
 	/** Creates an uninitialized instance. */
