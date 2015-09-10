@@ -2183,7 +2183,10 @@ void SMyBlueprint::OnDeleteGraph(UEdGraph* InGraph, EEdGraphSchemaAction_K2Graph
 		{
 			if (It->GetGraph() != InGraph)
 			{
-				It->HandleAnyChange();
+				if (!It->IsPendingKill() && It->GetGraph() && !It->GetGraph()->IsPendingKill())
+				{
+					It->HandleAnyChange();
+				}
 			}
 		}
 
@@ -2230,7 +2233,10 @@ void SMyBlueprint::OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateA
 
 		for (TObjectIterator<UK2Node_CreateDelegate> It(RF_ClassDefaultObject | RF_PendingKill); It; ++It)
 		{
-			It->HandleAnyChange();
+			if (!It->IsPendingKill() && It->GetGraph() && !It->GetGraph()->IsPendingKill())
+			{
+				It->HandleAnyChange();
+			}
 		}
 	}
 }
