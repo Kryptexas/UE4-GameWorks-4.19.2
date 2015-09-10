@@ -930,7 +930,7 @@ public class AndroidPlatform : Platform
 
 		if (BestToolPath == null)
 		{
-            throw new AutomationException(ExitCode.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory with aapt. Run SDK manager and install build-tools.");
+			throw new AutomationException(ErrorCodes.Error_AndroidBuildToolsPathNotFound, "Failed to find %ANDROID_HOME%/build-tools subdirectory with aapt. Run SDK manager and install build-tools.");
 		}
 
 		CachedAaptPath = BestToolPath;
