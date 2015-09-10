@@ -2,6 +2,7 @@ Availability:Public
 Title: Blueprints Quick Start Guide
 Crumbs: %ROOT%, Engine, Engine/Blueprints
 Description: Creating Your First Blueprint
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
