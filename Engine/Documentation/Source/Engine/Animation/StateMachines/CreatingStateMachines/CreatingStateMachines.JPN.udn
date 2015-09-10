@@ -3,7 +3,7 @@ Availability:Public
 Title:ステートマシーンの作成
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:Vim アニメーション アセットの AnimGraph に使用するステートマシーンの新規作成ガイド
-バージョン：4.9
+version: 4.9
 
 [TOC(start:2)]
 
