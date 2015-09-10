@@ -3,10 +3,10 @@ Availability:Public
 Title:Animation ノードの参照
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:Animation ブループリントに使用できる各種 Animation ノードの説明
-バージョン：4.9
+version: 4.9
 
 [EXCERPT:Intro]
-Animation ブループリント_ は、ブレンディング、直接的な骨格操作など、入力ポーズのオペレーションを実行するために、 
+Animation ブループリントは、ブレンディング、直接的な骨格操作など、入力ポーズのオペレーションを実行するために、 
 グラフ内のさまざまなノードを活用します。エンジンの Animation ノードには、 
 イベント、ブレンド ノード、スケルタル コントローラー、空間、変換のノードなど、 
 特徴的を持つタイプが幾つか存在します。
