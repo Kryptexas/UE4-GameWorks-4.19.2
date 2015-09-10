@@ -946,8 +946,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			// Ignore if reliable packet has already been processed.
 			if ( Bunch.bReliable && Bunch.ChSequence <= InReliable[Bunch.ChIndex] )
 			{
-				check( !InternalAck );		// Should be impossible with 100% reliable connections
 				UE_LOG( LogNetTraffic, Log, TEXT( "UNetConnection::ReceivedPacket: Received outdated bunch (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
+				check( !InternalAck );		// Should be impossible with 100% reliable connections
 				continue;
 			}
 			
@@ -962,12 +962,11 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				const bool ValidUnreliableOpen = Bunch.bOpen && (Bunch.bClose || Bunch.bPartial);
 				if (!ValidUnreliableOpen)
 				{
-					check( !InternalAck );		// Should be impossible with 100% reliable connections
-
 					UE_LOG( LogNetTraffic, Warning, TEXT( "      Received unreliable bunch before open (Channel %d Current Sequence %i)" ), Bunch.ChIndex, InReliable[Bunch.ChIndex] );
 					// Since we won't be processing this packet, don't ack it
 					// We don't want the sender to think this bunch was processed when it really wasn't
 					bSkipAck = true;
+					check( !InternalAck );		// Should be impossible with 100% reliable connections
 					continue;
 				}
 			}
