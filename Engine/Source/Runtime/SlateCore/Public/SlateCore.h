@@ -80,7 +80,7 @@ enum class EActiveTimerReturnType : uint8;
 #include "SlateTextureData.h"
 #include "SlateUpdatableTexture.h"
 #include "TextureAtlas.h"
-#include "TextureManager.h"
+#include "ShaderResourceManager.h"
 
 // Fonts
 #include "SlateFontInfo.h"

@@ -35,11 +35,11 @@ struct FCompareFNewTextureInfoByTextureSize
 /** 
  * Base texture manager class used by a Slate renderer to manage texture resources
  */
-class FSlateShaderResourceManager
+class SLATECORE_API FSlateShaderResourceManager
 {
 public:
 	FSlateShaderResourceManager() {};
-	virtual ~FSlateShaderResourceManager() 
+	virtual ~FSlateShaderResourceManager()
 	{
 		ClearTextureMap();
 	}
@@ -49,6 +49,18 @@ public:
 	 * Returns a texture associated with the passed in name.  Should return nullptr if not found 
 	 */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) = 0;
+
+	/**
+	 * Creates a handle to a Slate resource
+	 * A handle is used as fast path for looking up a rendering resource for a given brush when adding Slate draw elements
+	 * This can be cached and stored safely in code.  It will become invalid when a resource is destroyed
+	 * It is expensive to create a resource so do not do it in time sensitive areas
+	 *
+	 * @param	Brush		The brush to get a rendering resource handle 
+	 * @return	The created resource handle.  
+	 */
+	virtual FSlateResourceHandle GetResourceHandle( const FSlateBrush& InBrush );
+
 
 	virtual FSlateShaderResource* GetFontShaderResource( uint32 FontAtlasIndex, FSlateShaderResource* FontTextureAtlas, const class UObject* FontMaterial ) { return FontTextureAtlas; }
 

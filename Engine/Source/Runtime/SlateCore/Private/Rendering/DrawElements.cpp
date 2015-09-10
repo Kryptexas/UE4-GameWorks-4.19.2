@@ -47,6 +47,27 @@ void FSlateDrawElement::MakeBox(
 	DrawElt.DataPayload.SetBoxPayloadProperties( InBrush, InTint );
 }
 
+void FSlateDrawElement::MakeBox( 
+	FSlateWindowElementList& ElementList,
+	uint32 InLayer, 
+	const FPaintGeometry& PaintGeometry, 
+	const FSlateBrush* InBrush, 
+	const FSlateResourceHandle& InRenderingHandle,
+	const FSlateRect& InClippingRect, 
+	ESlateDrawEffect::Type InDrawEffects, 
+	const FLinearColor& InTint )
+{
+	SCOPE_CYCLE_COUNTER( STAT_SlateDrawElementMakeTime )
+
+	FSlateShaderResourceProxy* RenderingProxy = InRenderingHandle.Data->Proxy;
+
+	PaintGeometry.CommitTransformsIfUsingLegacyConstructor();
+	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
+	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
+	DrawElt.ElementType = (InBrush->DrawAs == ESlateBrushDrawType::Border) ? ET_Border : ET_Box;
+	DrawElt.DataPayload.SetBoxPayloadProperties( InBrush, InTint, RenderingProxy );
+}
+
 void FSlateDrawElement::MakeRotatedBox( 
 	FSlateWindowElementList& ElementList,
 	uint32 InLayer, 

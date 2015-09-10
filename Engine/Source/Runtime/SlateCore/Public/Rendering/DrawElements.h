@@ -99,19 +99,25 @@ public:
 		, CustomDrawer()
 	{ }
 
-	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint )
+	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr )
 	{
 		Tint = InTint;
+
 		BrushResource = InBrush;
-		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
+		if( InResourceProxy )
+		{
+			ResourceProxy = InResourceProxy;
+		}
+		else
+		{
+			ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
+		}
 		Angle = 0.0f;
 	}
 
-	void SetRotatedBoxPayloadProperties( const FSlateBrush* InBrush, float InAngle, const FVector2D& LocalRotationPoint, const FLinearColor& InTint )
+	void SetRotatedBoxPayloadProperties( const FSlateBrush* InBrush, float InAngle, const FVector2D& LocalRotationPoint, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr )
 	{
-		Tint = InTint;
-		BrushResource = InBrush;
-		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
+		SetBoxPayloadProperties( InBrush, InTint, InResourceProxy );
 		RotationPoint = LocalRotationPoint;
 		RotationPoint.DiagnosticCheckNaN();
 		Angle = InAngle;
@@ -253,6 +259,16 @@ public:
 		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
 		const FLinearColor& InTint = FLinearColor::White );
 
+	SLATECORE_API static void MakeBox(
+		FSlateWindowElementList& ElementList,
+		uint32 InLayer, 
+		const FPaintGeometry& PaintGeometry, 
+		const FSlateBrush* InBrush, 
+		const FSlateResourceHandle& InRenderingHandle, 
+		const FSlateRect& InClippingRect, 
+		ESlateDrawEffect::Type InDrawEffects = ESlateDrawEffect::None, 
+		const FLinearColor& InTint = FLinearColor::White );
+	
 	// !!! DEPRECATED !!! Use a render transform om your widget instead.
 	SLATECORE_API static void MakeRotatedBox(
 		FSlateWindowElementList& ElementList,
@@ -265,7 +281,6 @@ public:
 		TOptional<FVector2D> InRotationPoint = TOptional<FVector2D>(),
 		ERotationSpace RotationSpace = RelativeToElement,
 		const FLinearColor& InTint = FLinearColor::White );
-
 	/**
 	 * Creates a text element which displays a string of a rendered in a certain font on the screen
 	 *

@@ -111,6 +111,17 @@ public:
 	virtual bool GenerateDynamicImageResource( FName ResourceName, uint32 Width, uint32 Height, const TArray< uint8 >& Bytes ) { return false; }
 
 	/**
+	 * Creates a handle to a Slate resource
+	 * A handle is used as fast path for looking up a rendering resource for a given brush when adding Slate draw elements
+	 * This can be cached and stored safely in code.  It will become invalid when a resource is destroyed
+	 * It is expensive to create a resource so do not do it in time sensitive areas
+	 *
+	 * @param	Brush		The brush to get a rendering resource handle 
+	 * @return	The created resource handle.  
+	 */
+	virtual FSlateResourceHandle GetResourceHandle( const FSlateBrush& Brush ) = 0;
+
+	/**
 	 * Queues a dynamic brush for removal when it is safe.  The brush is not immediately released but you should consider the brush destroyed and no longer usable
 	 *
 	 * @param BrushToRemove	The brush to queue for removal which is no longer valid to use

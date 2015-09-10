@@ -222,6 +222,11 @@ bool FSlateOpenGLRenderer::GenerateDynamicImageResource(FName ResourceName, uint
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
 }
 
+FSlateResourceHandle FSlateOpenGLRenderer::GetResourceHandle( const FSlateBrush& Brush )
+{
+	return TextureManager->GetResourceHandle( Brush );
+}
+
 void FSlateOpenGLRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
 {
 	DynamicBrushesToRemove.Add( BrushToRemove );

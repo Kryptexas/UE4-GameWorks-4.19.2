@@ -1083,6 +1083,11 @@ bool FSlateRHIRenderer::GenerateDynamicImageResource( FName ResourceName, uint32
 	return TextureResource.IsValid();
 }
 
+FSlateResourceHandle FSlateRHIRenderer::GetResourceHandle( const FSlateBrush& Brush )
+{
+	return ResourceManager->GetResourceHandle( Brush );
+}
+
 void FSlateRHIRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
 {
 	if( BrushToRemove.IsValid() )

@@ -244,6 +244,11 @@ bool FSlateD3DRenderer::GenerateDynamicImageResource(FName ResourceName, uint32 
 	return TextureManager->CreateDynamicTextureResource(ResourceName, Width, Height, Bytes) != NULL;
 }
 
+FSlateResourceHandle FSlateD3DRenderer::GetResourceHandle( const FSlateBrush& Brush )
+{
+	return TextureManager->GetResourceHandle( Brush );
+}
+
 void FSlateD3DRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
 {
 	DynamicBrushesToRemove.Add( BrushToRemove );
