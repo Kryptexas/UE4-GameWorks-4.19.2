@@ -4,6 +4,12 @@
 
 #include "FriendsChatStyle.generated.h"
 
+// Forward declarations
+namespace EChatMessageType
+{
+	enum Type : uint8;
+}
+
 /**
  * Interface for the services manager.
  */
