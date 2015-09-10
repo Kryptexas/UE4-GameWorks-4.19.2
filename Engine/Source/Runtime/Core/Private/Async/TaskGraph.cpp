@@ -984,6 +984,20 @@ public:
 			}
 		}
 	}
+
+	virtual void ProcessTasksUntilIdle(int32 QueueIndex) override
+	{
+		if (!FPlatformProcess::SupportsMultithreading()) 
+		{
+			Queue.QuitWhenIdle.Set(1);
+			ProcessTasks();
+			Queue.QuitWhenIdle.Reset();
+		}
+		else
+		{
+			FTaskThreadBase::ProcessTasksUntilIdle(QueueIndex);
+		}
+	}
 	// Calls meant to be called from any thread.
 
 	/** 
