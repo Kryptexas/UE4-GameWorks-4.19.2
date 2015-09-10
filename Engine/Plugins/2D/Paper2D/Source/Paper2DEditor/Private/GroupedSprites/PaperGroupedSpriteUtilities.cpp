@@ -4,6 +4,8 @@
 #include "AssetData.h"
 #include "PaperGroupedSpriteActor.h"
 #include "PaperGroupedSpriteUtilities.h"
+#include "PaperSpriteActor.h"
+#include "PaperSpriteComponent.h"
 #include "ScopedTransaction.h"
 #include "ILayers.h"
 #include "ComponentReregisterContext.h"
