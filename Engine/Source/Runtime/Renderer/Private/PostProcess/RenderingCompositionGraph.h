@@ -265,6 +265,9 @@ struct FRenderingCompositePass
 	/** */
 	virtual void Release() = 0;
 
+	/** can be called after RecursivelyGatherDependencies to detect if the node is reference by any other node - if not we don't need to run it */
+	bool WasComputeOutputDescCalled() const { return bComputeOutputDescWasCalled; }
+
 protected:
 
 	/** to avoid wasteful recomputation and to support graph/DAG traversal, if ComputeOutputDesc() was called */

@@ -169,21 +169,23 @@ void FRenderingCompositePassContext::Process(FRenderingCompositePass* Root, cons
 
 		bool bNewOrder = CVarCompositionGraphOrder.GetValueOnRenderThread() != 0;
 
+		Graph.RecursivelyGatherDependencies(Root);
+
 		if(bNewOrder)
 		{
+			// process in the order the nodes have been created (for more control), unless the dependencies require it differently
 			for (FRenderingCompositePass* Node : Graph.Nodes)
 			{
-				Graph.RecursivelyGatherDependencies(Node);
-			}
-
-			for (FRenderingCompositePass* Node : Graph.Nodes)
-			{
-				Graph.RecursivelyProcess(Node, *this);
+				// only if this is true the node is actually needed - no need to compute it when it's not needed
+				if(Node->WasComputeOutputDescCalled())
+				{
+					Graph.RecursivelyProcess(Node, *this);
+				}
 			}
 		}
 		else
 		{
-			Graph.RecursivelyGatherDependencies(Root);
+			// process in the order of the dependencies, starting from the root (without processing unreferenced nodes)
 			Graph.RecursivelyProcess(Root, *this);
 		}
 
