@@ -25,7 +25,56 @@ FString FEmitterLocalContext::GenerateUniqueLocalName()
 
 FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound)
 {
-	// TODO: check if not excluded
+	if (ActualClass && Object && Object->IsIn(ActualClass))
+	{
+		if (const FString* NamePtr = (CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) ? ClassSubobjectsMap.Find(Object) : nullptr)
+		{
+			return *NamePtr;
+		}
+
+		if (const FString* NamePtr = (CurrentCodeType == EGeneratedCodeType::CommonConstructor) ? CommonSubobjectsMap.Find(Object) : nullptr)
+		{
+			return *NamePtr;
+		}
+
+		int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
+		if (MiscConvertedSubobjects.Find(Object, ObjectsCreatedPerClassIdx))
+		{
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->MiscConvertedSubobjects[%d])")
+				, *FEmitHelper::GetCppName(Object->GetClass())
+				, *FEmitHelper::GetCppName(ActualClass)
+				, ObjectsCreatedPerClassIdx);
+		}
+		if (DynamicBindingObjects.Find(Object, ObjectsCreatedPerClassIdx))
+		{
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->DynamicBindingObjects[%d])")
+				, *FEmitHelper::GetCppName(Object->GetClass())
+				, *FEmitHelper::GetCppName(ActualClass)
+				, ObjectsCreatedPerClassIdx);
+		}
+		if (ComponentTemplates.Find(Object, ObjectsCreatedPerClassIdx))
+		{
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->ComponentTemplates[%d])")
+				, *FEmitHelper::GetCppName(Object->GetClass())
+				, *FEmitHelper::GetCppName(ActualClass)
+				, ObjectsCreatedPerClassIdx);
+		}
+		if (Timelines.Find(Object, ObjectsCreatedPerClassIdx))
+		{
+			return FString::Printf(TEXT("CastChecked<%s>(CastChecked<UDynamicClass>(%s::StaticClass())->Timelines[%d])")
+				, *FEmitHelper::GetCppName(Object->GetClass())
+				, *FEmitHelper::GetCppName(ActualClass)
+				, ObjectsCreatedPerClassIdx);
+		}
+
+		if ((CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass) || (CurrentCodeType == EGeneratedCodeType::CommonConstructor))
+		{
+			if (Object == ActualClass->GetDefaultObject(false))
+			{
+				return TEXT("this");
+			}
+		}
+	}
 
 	if (ActualClass && (Object == ActualClass))
 	{
@@ -56,15 +105,6 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 		// TODO: check if supported 
 		//return FString::Printf(TEXT("%s_StaticEnum()"), *UDE->GetName());
 		return FString::Printf(TEXT("FindObjectChecked<UEnum>(ANY_PACKAGE, TEXT(\"%s\"))"), *FEmitHelper::GetCppName(UDE));
-	}
-
-	int32 ObjectsCreatedPerClassIdx = INDEX_NONE;
-	if (ActualClass && Object && ObjectsCreatedPerClass.Find(Object, ObjectsCreatedPerClassIdx))
-	{
-		return FString::Printf(TEXT("CastChecked<%s>(%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d])")
-			, *FEmitHelper::GetCppName(Object->GetClass())
-			, *FEmitHelper::GetCppName(ActualClass)
-			, ObjectsCreatedPerClassIdx);
 	}
 
 	// TODO: handle subobjects
@@ -106,7 +146,8 @@ FString FEmitHelper::GetCppName(const UField* Field)
 		}
 		return AsProperty->GetNameCPP();
 	}
-	if (!Field->HasAnyFlags(RF_Native))
+
+	if (!Field->HasAnyFlags(RF_Native) && !Field->IsA<UUserDefinedEnum>())
 	{
 		return ::UnicodeToCPPIdentifier(Field->GetName(), false, TEXT("bpf__"));
 	}

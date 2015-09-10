@@ -343,9 +343,9 @@ UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(cons
 			}
 		}
 	}
-	else
+	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
+		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
 		{
 			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject && (DynamicBindingObject->GetClass() == BindingClass))
@@ -377,9 +377,9 @@ void UBlueprintGeneratedClass::BindDynamicDelegates(const UClass* ThisClass, UOb
 			}
 		}
 	}
-	else
+	else if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
 	{
-		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
+		for (auto MiscObj : DynamicClass->DynamicBindingObjects)
 		{
 			auto DynamicBindingObject = Cast<UDynamicBlueprintBinding>(MiscObj);
 			if (DynamicBindingObject)
@@ -580,13 +580,16 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(const UClass* ThisClass,
 			}
 		}
 
-		for (auto MiscObj : ThisClass->ConvertedSubobjectsFromBPGC)
+		if (auto DynamicClass = Cast<UDynamicClass>(ThisClass))
 		{
-			auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
-			// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
-			if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+			for (auto MiscObj : DynamicClass->Timelines)
 			{
-				CreateTimelineComponent(Actor, TimelineTemplate);
+				auto TimelineTemplate = Cast<const UTimelineTemplate>(MiscObj);
+				// Not fatal if NULL, but shouldn't happen and ignored if not wired up in graph
+				if (TimelineTemplate && TimelineTemplate->bValidatedAsWired)
+				{
+					CreateTimelineComponent(Actor, TimelineTemplate);
+				}
 			}
 		}
 	}

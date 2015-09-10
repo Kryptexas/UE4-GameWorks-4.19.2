@@ -190,24 +190,17 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 				}
 			}
 
-			{
-				FString LocalMappedObject;
-				if (Context.bInsideConstructor && Context.FindLocalObject_InConstructor(Object, LocalMappedObject))
-				{
-					return LocalMappedObject;
-				}
-			}
-
+			const bool bCreatingSubObjectsOfClass = (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
 			{
 				auto BPGC = Context.GetCurrentlyGeneratedClass();
 				auto CDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
-				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && Context.bCreatingObjectsPerClass)
+				if (BPGC && Object && CDO && Object->IsIn(BPGC) && !Object->IsIn(CDO) && bCreatingSubObjectsOfClass)
 				{
-					return HandleClassSubobject(Context, Object);
+					return HandleClassSubobject(Context, Object, FEmitterLocalContext::EClassSubobjectList::MiscConvertedSubobjects);
 				}
 			}
 
-			if (!Context.bCreatingObjectsPerClass && Property->HasAnyPropertyFlags(CPF_InstancedReference))
+			if (!bCreatingSubObjectsOfClass && Property->HasAnyPropertyFlags(CPF_InstancedReference))
 			{
 				const FString CreateAsInstancedSubobject = HandleInstancedSubobject(Context, Object, Object->HasAnyFlags(RF_ArchetypeObject));
 				if (!CreateAsInstancedSubobject.IsEmpty())
@@ -255,19 +248,26 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, const USCS_Node* ParentNode)
 {
 	check(Node);
+	check(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::CommonConstructor);
 
-	FString VariableName;
+	FString NativeVariablePropertyName;
 	UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(Context.GetCurrentlyGeneratedClass());
 	if (UActorComponent* ComponentTemplate = Node->GetActualComponentTemplate(BPGC))
 	{
-		VariableName = Node->VariableName.ToString();
-		Context.AddObjectFromLocalProperty_InConstructor(ComponentTemplate, VariableName);
+		const FString VariableCleanName = Node->VariableName.ToString();
 
-		const UObjectProperty* VariableProperty = FindField<UObjectProperty>(BPGC, *VariableName);
+		const UObjectProperty* VariableProperty = FindField<UObjectProperty>(BPGC, *VariableCleanName);
 		if (VariableProperty)
 		{
+			NativeVariablePropertyName = FEmitHelper::GetCppName(VariableProperty);
 			OutHandledProperties.Add(VariableProperty);
 		}
+		else
+		{
+			NativeVariablePropertyName = VariableCleanName;
+		}
+
+		Context.AddCommonSubObject_InConstructor(ComponentTemplate, NativeVariablePropertyName);
 
 		if (ComponentTemplate->GetOuter() == BPGC)
 		{
@@ -284,31 +284,33 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 			{
 				Context.AddHighPriorityLine(FString::Printf(TEXT("%s%s = CreateDefaultSubobject<%s>(TEXT(\"%s\"));")
 					, (VariableProperty == nullptr) ? TEXT("auto ") : TEXT("")
-					, *VariableName
+					, *NativeVariablePropertyName
 					, *FEmitHelper::GetCppName(ComponentClass)
 					, *ComponentTemplate->GetName()));
 
-				Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;"), *VariableName));
+				Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;"), *NativeVariablePropertyName));
 
 				FString ParentVariableName;
 				if (ParentNode)
 				{
-					ParentVariableName = ParentNode->VariableName.ToString();
+					const FString CleanParentVariableName = ParentNode->VariableName.ToString();
+					const UObjectProperty* ParentVariableProperty = FindField<UObjectProperty>(BPGC, *CleanParentVariableName);
+					ParentVariableName = ParentVariableProperty ? FEmitHelper::GetCppName(ParentVariableProperty) : CleanParentVariableName;
 				}
 				else if (USceneComponent* ParentComponentTemplate = Node->GetParentComponentTemplate(CastChecked<UBlueprint>(BPGC->ClassGeneratedBy)))
 				{
-					Context.FindLocalObject_InConstructor(ParentComponentTemplate, ParentVariableName);
+					ParentVariableName = Context.FindGloballyMappedObject(ParentComponentTemplate);
 				}
 
 				if (!ParentVariableName.IsEmpty())
 				{
-					Context.AddLine(FString::Printf(TEXT("%s->AttachParent = %s;"), *VariableName, *ParentVariableName));
+					Context.AddLine(FString::Printf(TEXT("%s->AttachParent = %s;"), *NativeVariablePropertyName, *ParentVariableName));
 				}
 			}
 
 			for (auto Property : TFieldRange<const UProperty>(ComponentClass))
 			{
-				OuterGenerate(Context, Property, VariableName
+				OuterGenerate(Context, Property, NativeVariablePropertyName
 					, reinterpret_cast<const uint8*>(ComponentTemplate)
 					, reinterpret_cast<const uint8*>(ObjectToCompare)
 					, EPropertyAccessOperator::Pointer);
@@ -322,45 +324,45 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 		HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, Node);
 	}
 
-	return VariableName;
+	return NativeVariablePropertyName;
 }
 
 struct FDependenciesHelper
 {
-	static void AddDependenciesInConstructor(FEmitterLocalContext& Context, const FGatherConvertedClassDependencies& GatherDependencies)
+	static void AddDependenciesInConstructor(FEmitterLocalContext& Context)
 	{
-		if (GatherDependencies.ConvertedClasses.Num())
+		if (Context.Dependencies.ConvertedClasses.Num())
 		{
 			Context.AddLine(TEXT("// List of all referenced converted classes"));
 		}
-		for (auto LocStruct : GatherDependencies.ConvertedClasses)
+		for (auto LocStruct : Context.Dependencies.ConvertedClasses)
 		{
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s::StaticClass());")
+			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Add(%s::StaticClass());")
 				, *FEmitHelper::GetCppName(LocStruct)));
 		}
 
-		if (GatherDependencies.ConvertedStructs.Num())
+		if (Context.Dependencies.ConvertedStructs.Num())
 		{
 			Context.AddLine(TEXT("// List of all referenced converted structures"));
 		}
-		for (auto LocStruct : GatherDependencies.ConvertedStructs)
+		for (auto LocStruct : Context.Dependencies.ConvertedStructs)
 		{
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s::StaticStruct());")
+			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Add(%s::StaticStruct());")
 				, *FEmitHelper::GetCppName(LocStruct)));
 		}
 
-		if (GatherDependencies.Assets.Num())
+		if (Context.Dependencies.Assets.Num())
 		{
 			Context.AddLine(TEXT("// List of all referenced assets"));
 		}
-		for (auto LocAsset : GatherDependencies.Assets)
+		for (auto LocAsset : Context.Dependencies.Assets)
 		{
 			const FString AssetStr = Context.FindGloballyMappedObject(LocAsset, true);
-			Context.AddLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *AssetStr));
+			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->UsedAssets.Add(%s);"), *AssetStr));
 		}
 	}
 
-	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context, const FGatherConvertedClassDependencies& GatherDependencies)
+	static void AddStaticFunctionsForDependencies(FEmitterLocalContext& Context)
 	{
 		auto OriginalClass = Context.GetCurrentlyGeneratedClass();
 		const FString CppClassName = FEmitHelper::GetCppName(OriginalClass);
@@ -370,7 +372,7 @@ struct FDependenciesHelper
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
-		for (UObject* LocAsset : GatherDependencies.Assets)
+		for (UObject* LocAsset : Context.Dependencies.Assets)
 		{
 			const FString PakagePath = LocAsset->GetOutermost()->GetPathName();
 			Context.AddLine(FString::Printf(TEXT("OutPackagePaths.Add(TEXT(\"%s\"));"), *PakagePath));
@@ -405,20 +407,18 @@ struct FDependenciesHelper
 	}
 };
 
-FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGatherConvertedClassDependencies& Dependencies)
+FString FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Context)
 {
-	auto BPGC = CastChecked<UBlueprintGeneratedClass>(InBPGC);
+	auto BPGC = CastChecked<UBlueprintGeneratedClass>(Context.GetActualClass());
 	const FString CppClassName = FEmitHelper::GetCppName(BPGC);
 
-	FEmitterLocalContext Context(BPGC, Dependencies);
 	Context.AddLine(FString::Printf(TEXT("%s::%s(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)"), *CppClassName, *CppClassName));
 	Context.AddLine(TEXT("{"));
 	Context.IncreaseIndent();
-	Context.bInsideConstructor = true;
 
 	// When CDO is created create all subobjects owned by the class
-	TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 	{
+		TArray<UActorComponent*> ActorComponentTempatesOwnedByClass = BPGC->ComponentTemplates;
 		// Gather all CT from SCS and IH, the remaining ones are generated for class..
 		if (auto SCS = BPGC->SimpleConstructionScript)
 		{
@@ -440,14 +440,19 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGath
 		Context.AddLine(FString::Printf(TEXT("if(HasAnyFlags(RF_ClassDefaultObject) && (%s::StaticClass() == GetClass()))"), *CppClassName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
-		Context.AddLine(TEXT("ensure(0 == GetClass()->ConvertedSubobjectsFromBPGC.Num());"));
-		Context.bCreatingObjectsPerClass = true;
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->MiscConvertedSubobjects.Num());"));
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Num());"));
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->UsedAssets.Num());"));
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->DynamicBindingObjects.Num());"));
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->ComponentTemplates.Num());"));
+		Context.AddLine(TEXT("ensure(0 == CastChecked<UDynamicClass>(GetClass())->Timelines.Num());"));
+		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass;
 		Context.FlushLines();
 		for (auto ComponentTemplate : ActorComponentTempatesOwnedByClass)
 		{
 			if (ComponentTemplate)
 			{
-				HandleClassSubobject(Context, ComponentTemplate);
+				HandleClassSubobject(Context, ComponentTemplate, FEmitterLocalContext::EClassSubobjectList::ComponentTemplates);
 			}
 		}
 
@@ -455,7 +460,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGath
 		{
 			if (TimelineTemplate)
 			{
-				HandleClassSubobject(Context, TimelineTemplate);
+				HandleClassSubobject(Context, TimelineTemplate, FEmitterLocalContext::EClassSubobjectList::Timelines);
 			}
 		}
 
@@ -463,176 +468,169 @@ FString FEmitDefaultValueHelper::GenerateConstructor(UClass* InBPGC, const FGath
 		{
 			if (DynamicBindingObject)
 			{
-				HandleClassSubobject(Context, DynamicBindingObject);
+				HandleClassSubobject(Context, DynamicBindingObject, FEmitterLocalContext::EClassSubobjectList::DynamicBindingObjects);
 			}
 		}
 
 		FBackendHelperUMG::CreateClassSubobjects(Context);
-
-		Context.bCreatingObjectsPerClass = false;
-
-		FDependenciesHelper::AddDependenciesInConstructor(Context, Dependencies);
+		FDependenciesHelper::AddDependenciesInConstructor(Context);
 
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
+	}
 
+	{
+		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::CommonConstructor;
 		// Let's have an easy access to generated class subobjects
 		Context.AddLine(TEXT("{")); // no shadow variables
 		Context.IncreaseIndent();
 		Context.FlushLines();
-		int32 SubobjectIndex = 0;
-		for (UObject* Obj : Context.GetObjectsCreatedPerClass_InConstructor())
+
+		UObject* CDO = BPGC->GetDefaultObject(false);
+
+		UObject* ParentCDO = BPGC->GetSuperClass()->GetDefaultObject(false);
+		check(CDO && ParentCDO);
+		Context.AddLine(TEXT(""));
+
+		FString NativeRootComponentFallback;
+		TSet<const UProperty*> HandledProperties;
+
+		// Generate ctor init code for native class default subobjects that are always instanced (e.g. components).
+		// @TODO (pkavan) - We can probably make this faster by generating code to index through the DSO array instead (i.e. in place of HandleInstancedSubobject which will generate a lookup call per DSO).
+		TArray<UObject*> NativeDefaultObjectSubobjects;
+		BPGC->GetDefaultObjectSubobjects(NativeDefaultObjectSubobjects);
+		for (auto DSO : NativeDefaultObjectSubobjects)
 		{
-			FString NativeName;
-			const bool bFound = Context.FindLocalObject_InConstructor(Obj, NativeName);
-			ensure(bFound);
-			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(%s::StaticClass()->ConvertedSubobjectsFromBPGC[%d]);")
-				, *NativeName
-				, *FEmitHelper::GetCppName(Obj->GetClass())
-				, *CppClassName
-				, SubobjectIndex));
-			SubobjectIndex++;
-		}
-	}
-
-	UObject* CDO = BPGC->GetDefaultObject(false);
-	Context.AddObjectFromLocalProperty_InConstructor(CDO, TEXT("this"));
-
-	UObject* ParentCDO = BPGC->GetSuperClass()->GetDefaultObject(false);
-	check(CDO && ParentCDO);
-	Context.AddLine(TEXT(""));
-
-	FString NativeRootComponentFallback;
-	TSet<const UProperty*> HandledProperties;
-
-	// Generate ctor init code for native class default subobjects that are always instanced (e.g. components).
-	// @TODO (pkavan) - We can probably make this faster by generating code to index through the DSO array instead (i.e. in place of HandleInstancedSubobject which will generate a lookup call per DSO).
-	TArray<UObject*> NativeDefaultObjectSubobjects;
-	BPGC->GetDefaultObjectSubobjects(NativeDefaultObjectSubobjects);
-	for (auto DSO : NativeDefaultObjectSubobjects)
-	{
-		if (DSO && DSO->GetClass()->HasAnyClassFlags(CLASS_DefaultToInstanced))
-		{
-			// Determine if this is an editor-only subobject.
-			bool bIsEditorOnlySubobject = false;
-			if (const UActorComponent* ActorComponent = Cast<UActorComponent>(DSO))
+			if (DSO && DSO->GetClass()->HasAnyClassFlags(CLASS_DefaultToInstanced))
 			{
-				bIsEditorOnlySubobject = ActorComponent->IsEditorOnly();
-			}
-
-			// Skip ctor code gen for editor-only subobjects, since they won't be used by the runtime. Any dependencies on editor-only subobjects will be handled later (see HandleInstancedSubobject).
-			if (!bIsEditorOnlySubobject)
-			{
-				const FString VariableName = HandleInstancedSubobject(Context, DSO, false, true);
-
-				// Keep track of which component can be used as a root, in case it's not explicitly set.
-				if (NativeRootComponentFallback.IsEmpty())
+				// Determine if this is an editor-only subobject.
+				bool bIsEditorOnlySubobject = false;
+				if (const UActorComponent* ActorComponent = Cast<UActorComponent>(DSO))
 				{
-					USceneComponent* SceneComponent = Cast<USceneComponent>(DSO);
-					if (SceneComponent && !SceneComponent->AttachParent && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
-					{
-						NativeRootComponentFallback = VariableName;
-					}
+					bIsEditorOnlySubobject = ActorComponent->IsEditorOnly();
 				}
-			}
-		}
-	}
 
-	// Check for a valid RootComponent property value; mark it as handled if already set in the defaults.
-	bool bNeedsRootComponentAssignment = false;
-	static const FName RootComponentPropertyName(TEXT("RootComponent"));
-	const UObjectProperty* RootComponentProperty = FindField<UObjectProperty>(BPGC, RootComponentPropertyName);
-	if (RootComponentProperty)
-	{
-		if (RootComponentProperty->GetObjectPropertyValue_InContainer(CDO))
-		{
-			HandledProperties.Add(RootComponentProperty);
-		}
-		else if (!NativeRootComponentFallback.IsEmpty())
-		{
-			Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeRootComponentFallback));
-			HandledProperties.Add(RootComponentProperty);
-		}
-		else
-		{
-			bNeedsRootComponentAssignment = true;
-		}
-	}
-
-	// Generate ctor init code for the SCS node hierarchy (i.e. non-native components). SCS nodes may have dependencies on native DSOs, but not vice-versa.
-	TArray<const UBlueprintGeneratedClass*> BPGCStack;
-	const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(BPGC, BPGCStack);
-	if (bErrorFree)
-	{
-		// Start at the base of the hierarchy so that dependencies are handled first.
-		for (int32 i = BPGCStack.Num() - 1; i >= 0; --i)
-		{
-			if (BPGCStack[i]->SimpleConstructionScript)
-			{
-				for (auto Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
+				// Skip ctor code gen for editor-only subobjects, since they won't be used by the runtime. Any dependencies on editor-only subobjects will be handled later (see HandleInstancedSubobject).
+				if (!bIsEditorOnlySubobject)
 				{
-					if (Node)
+					const FString VariableName = HandleInstancedSubobject(Context, DSO, false, true);
+
+					// Keep track of which component can be used as a root, in case it's not explicitly set.
+					if (NativeRootComponentFallback.IsEmpty())
 					{
-						const FString VariableName = HandleNonNativeComponent(Context, Node, HandledProperties);
-
-						if (i == 0 && bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !VariableName.IsEmpty())
+						USceneComponent* SceneComponent = Cast<USceneComponent>(DSO);
+						if (SceneComponent && !SceneComponent->AttachParent && SceneComponent->CreationMethod == EComponentCreationMethod::Native)
 						{
-							Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *VariableName));
-
-							bNeedsRootComponentAssignment = false;
-							HandledProperties.Add(RootComponentProperty);
+							NativeRootComponentFallback = VariableName;
 						}
 					}
 				}
 			}
 		}
-	}
 
-	// Generate ctor init code for generated Blueprint class property values that may differ from parent class defaults (or that otherwise belong to the generated Blueprint class).
-	for (auto Property : TFieldRange<const UProperty>(BPGC))
-	{
-		const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
-		const bool bIsAccessible = bNewProperty || !Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate);
-		if (bIsAccessible && !HandledProperties.Contains(Property))
+		// Check for a valid RootComponent property value; mark it as handled if already set in the defaults.
+		bool bNeedsRootComponentAssignment = false;
+		static const FName RootComponentPropertyName(TEXT("RootComponent"));
+		const UObjectProperty* RootComponentProperty = FindField<UObjectProperty>(BPGC, RootComponentPropertyName);
+		if (RootComponentProperty)
 		{
-			OuterGenerate(Context, Property, TEXT(""), reinterpret_cast<const uint8*>(CDO), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), EPropertyAccessOperator::None, true);
+			if (RootComponentProperty->GetObjectPropertyValue_InContainer(CDO))
+			{
+				HandledProperties.Add(RootComponentProperty);
+			}
+			else if (!NativeRootComponentFallback.IsEmpty())
+			{
+				Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeRootComponentFallback));
+				HandledProperties.Add(RootComponentProperty);
+			}
+			else
+			{
+				bNeedsRootComponentAssignment = true;
+			}
 		}
+
+		// Generate ctor init code for the SCS node hierarchy (i.e. non-native components). SCS nodes may have dependencies on native DSOs, but not vice-versa.
+		TArray<const UBlueprintGeneratedClass*> BPGCStack;
+		const bool bErrorFree = UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(BPGC, BPGCStack);
+		if (bErrorFree)
+		{
+			// Start at the base of the hierarchy so that dependencies are handled first.
+			for (int32 i = BPGCStack.Num() - 1; i >= 0; --i)
+			{
+				if (BPGCStack[i]->SimpleConstructionScript)
+				{
+					for (auto Node : BPGCStack[i]->SimpleConstructionScript->GetRootNodes())
+					{
+						if (Node)
+						{
+							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties);
+
+							if (i == 0 && bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
+							{
+								Context.AddLine(FString::Printf(TEXT("RootComponent = %s;"), *NativeVariablePropertyName));
+
+								bNeedsRootComponentAssignment = false;
+								HandledProperties.Add(RootComponentProperty);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Generate ctor init code for generated Blueprint class property values that may differ from parent class defaults (or that otherwise belong to the generated Blueprint class).
+		for (auto Property : TFieldRange<const UProperty>(BPGC))
+		{
+			const bool bNewProperty = Property->GetOwnerStruct() == BPGC;
+			const bool bIsAccessible = bNewProperty || !Property->HasAnyPropertyFlags(CPF_NativeAccessSpecifierPrivate);
+			if (bIsAccessible && !HandledProperties.Contains(Property))
+			{
+				OuterGenerate(Context, Property, TEXT(""), reinterpret_cast<const uint8*>(CDO), bNewProperty ? nullptr : reinterpret_cast<const uint8*>(ParentCDO), EPropertyAccessOperator::None, true);
+			}
+		}
+
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
 	}
-
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
-	Context.DecreaseIndent();
-	Context.AddLine(TEXT("}"));
-	Context.bInsideConstructor = false;
+	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
 
-	FDependenciesHelper::AddStaticFunctionsForDependencies(Context, Dependencies);
+	FDependenciesHelper::AddStaticFunctionsForDependencies(Context);
 
 	FBackendHelperUMG::EmitWidgetInitializationFunctions(Context);
 
-	return Context.GetResult();
+	const FString Result = Context.GetResult();
+	Context.ClearResult();
+	return Result;
 }
 
-FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object)
+FString FEmitDefaultValueHelper::HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsType)
 {
-	FString OuterStr;
-	if (!Context.FindLocalObject_InConstructor(Object->GetOuter(), OuterStr))
+	ensure(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass);
+	const FString OuterStr = Context.FindGloballyMappedObject(Object->GetOuter());
+	if (OuterStr.IsEmpty())
 	{
+		ensure(false);
 		return FString();
 	}
 
 	const bool AddAsSubobjectOfClass = Object->GetOuter() == Context.GetCurrentlyGeneratedClass();
-	const FString LocalNativeName = Context.AddNewObject_InConstructor(Object, AddAsSubobjectOfClass);
+	const FString LocalNativeName = Context.GenerateUniqueLocalName();
+	Context.AddClassSubObject_InConstructor(Object, LocalNativeName);
 	UClass* ObjectClass = Object->GetClass();
 	Context.AddHighPriorityLine(FString::Printf(
-		TEXT("auto %s = NewObject<%s%s>(%s, TEXT(\"%s\"));")
+		TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"));")
 		, *LocalNativeName
 		, *FEmitHelper::GetCppName(ObjectClass)
 		, *OuterStr
 		, *Object->GetName()));
 	if (AddAsSubobjectOfClass)
 	{
-		ensure(Context.bCreatingObjectsPerClass);
-		Context.AddHighPriorityLine(FString::Printf(TEXT("GetClass()->ConvertedSubobjectsFromBPGC.Add(%s);"), *LocalNativeName));
+		Context.RegisterClassSubobject(Object, ListOfSubobjectsType);
+		Context.AddHighPriorityLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->%s.Add(%s);")
+			, Context.ClassSubobjectListName(ListOfSubobjectsType)
+			, *LocalNativeName));
 	}
 
 	for (auto Property : TFieldRange<const UProperty>(ObjectClass))
@@ -651,14 +649,23 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	check(Object);
 
 	// Make sure we don't emit initialization code for the same object more than once.
-	FString LocalNativeName;
-	if (Context.FindLocalObject_InConstructor(Object, LocalNativeName))
+	FString LocalNativeName = Context.FindGloballyMappedObject(Object);
+	if (!LocalNativeName.IsEmpty())
 	{
 		return LocalNativeName;
 	}
 	else
 	{
-		LocalNativeName = Context.AddNewObject_InConstructor(Object, false);
+		LocalNativeName = Context.GenerateUniqueLocalName();
+	}
+
+	if (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::SubobjectsOfClass)
+	{
+		Context.AddClassSubObject_InConstructor(Object, LocalNativeName);
+	}
+	else if (Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::CommonConstructor)
+	{
+		Context.AddCommonSubObject_InConstructor(Object, LocalNativeName);
 	}
 
 	UClass* ObjectClass = Object->GetClass();
@@ -689,8 +696,8 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 		}
 		else
 		{
-			Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(GetDefaultSubobjectByName(TEXT(\"%s\")));")
-				, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
+		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = CastChecked<%s>(GetDefaultSubobjectByName(TEXT(\"%s\")));")
+			, *LocalNativeName, *FEmitHelper::GetCppName(ObjectClass), *Object->GetName()));
 		}
 
 		const UObject* ObjectArchetype = Object->GetArchetype();
@@ -704,9 +711,10 @@ FString FEmitDefaultValueHelper::HandleInstancedSubobject(FEmitterLocalContext& 
 	}
 	else
 	{
-		FString OuterStr;
-		if (!Context.FindLocalObject_InConstructor(Object->GetOuter(), OuterStr))
+		const FString OuterStr = Context.FindGloballyMappedObject(Object);
+		if (OuterStr.IsEmpty())
 		{
+			ensure(false);
 			return FString();
 		}
 		Context.AddHighPriorityLine(FString::Printf(TEXT("auto %s = NewObject<%s>(%s, TEXT(\"%s\"));")

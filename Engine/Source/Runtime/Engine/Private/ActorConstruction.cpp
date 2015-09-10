@@ -619,9 +619,9 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 		{
 			Template = BPGC->FindComponentTemplateByName(TemplateName);
 		}
-		else
+		else if (auto DynamicClass = Cast<UDynamicClass>(TemplateOwnerClass))
 		{
-			UObject** FoundTemplatePtr = TemplateOwnerClass->ConvertedSubobjectsFromBPGC.FindByPredicate([=](UObject* Obj) -> bool
+			UObject** FoundTemplatePtr = DynamicClass->ComponentTemplates.FindByPredicate([=](UObject* Obj) -> bool
 			{
 				return Obj && Obj->IsA<UActorComponent>() && (Obj->GetFName() == TemplateName);
 			});

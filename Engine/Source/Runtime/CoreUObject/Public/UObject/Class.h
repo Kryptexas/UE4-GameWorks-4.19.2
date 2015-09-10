@@ -1947,9 +1947,6 @@ public:
 	/** This class's native functions. */
 	TArray<FNativeFunctionLookup> NativeFunctionLookupTable;
 
-	/** Misc objects owned by the class. Mostly templates from BP-generated native class */
-	TArray<UObject*> ConvertedSubobjectsFromBPGC;
-
 public:
 	// Constructors
 	UClass(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -2402,8 +2399,22 @@ public:
 	// UObject interface.
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 
-	/** Misc objects owned by the class. Mostly templates from BP-generated native class */
-	//TArray<UObject*> ConvertedSubobjectsFromBPGC;
+	// UClass interface
+	virtual void PurgeClass(bool bRecompilingOnLoad) override;
+
+	/** Misc objects owned by the class. */
+	TArray<UObject*> MiscConvertedSubobjects;
+
+	/** Additional converted fields, that are used by the class. */
+	TArray<UField*> ReferencedConvertedFields;
+
+	/** Outer assets used by the class */
+	TArray<UObject*> UsedAssets;
+
+	// Specialized sub-object containers
+	TArray<UObject*> DynamicBindingObjects;
+	TArray<UObject*> ComponentTemplates;
+	TArray<UObject*> Timelines;
 };
 
 /**

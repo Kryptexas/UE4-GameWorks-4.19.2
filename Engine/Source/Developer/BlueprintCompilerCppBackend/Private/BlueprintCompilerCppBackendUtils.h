@@ -5,7 +5,25 @@
 
 struct FEmitterLocalContext
 {
+	enum class EClassSubobjectList
+	{
+		ComponentTemplates,
+		Timelines,
+		DynamicBindingObjects,
+		MiscConvertedSubobjects,
+	};
+
+	enum class EGeneratedCodeType
+	{
+		SubobjectsOfClass,
+		CommonConstructor,
+		Regular,
+	};
+
+	EGeneratedCodeType CurrentCodeType;
+
 private:
+	// TEXT
 	FString Indent;
 	FString Result;
 	int32 LocalNameIndexMax;
@@ -13,69 +31,81 @@ private:
 	TArray<FString> LowPriorityLines;
 	UClass* ActualClass;
 
-	//ConstructorOnly
-	TMap<UObject*, FString> NativeObjectNamesInConstructor;
-	TArray<UObject*> ObjectsCreatedPerClass;
+	//ConstructorOnly Local Names
+	TMap<UObject*, FString> ClassSubobjectsMap;
+	//ConstructorOnly Local Names
+	TMap<UObject*, FString> CommonSubobjectsMap;
 
-	const FGatherConvertedClassDependencies& Dependencies;
+	TArray<UObject*> MiscConvertedSubobjects;
+	TArray<UObject*> DynamicBindingObjects;
+	TArray<UObject*> ComponentTemplates;
+	TArray<UObject*> Timelines;
 
 public:
 
-	bool bCreatingObjectsPerClass;
-	bool bInsideConstructor;
+	const FGatherConvertedClassDependencies& Dependencies;
 
 	FEmitterLocalContext(UClass* InClass, const FGatherConvertedClassDependencies& InDependencies)
-		: LocalNameIndexMax(0)
+		: CurrentCodeType(EGeneratedCodeType::Regular)
+		, LocalNameIndexMax(0)
 		, ActualClass(InClass)
 		, Dependencies(InDependencies)
-		, bCreatingObjectsPerClass(false)
-		, bInsideConstructor(false)
 	{}
 
-	// Functions to use in constructor only
-	bool FindLocalObject_InConstructor(UObject* Object, FString& OutNamePath) const
+	UClass* GetActualClass() const
 	{
-		ensure(bInsideConstructor);
-		if (Object == ActualClass)
-		{
-			OutNamePath = TEXT("GetClass()");
-			return true;
-		}
-
-		if (const FString* NamePtr = NativeObjectNamesInConstructor.Find(Object))
-		{
-			OutNamePath = *NamePtr;
-			return true;
-		}
-
-		return false;
+		return ActualClass;
 	}
 
-	void AddObjectFromLocalProperty_InConstructor(UObject* Object, const FString& NativeName)
-	{
-		ensure(bInsideConstructor);
-		NativeObjectNamesInConstructor.Add(Object, NativeName);
-	}
+	// CONSTRUCTOR FUNCTIONS
 
-	FString AddNewObject_InConstructor(UObject* Object, bool bAddToObjectsCreatedPerClass)
-	{
-		ensure(bInsideConstructor);
-		const FString UniqueName = GenerateUniqueLocalName();
-		NativeObjectNamesInConstructor.Add(Object, UniqueName);
-		if (bAddToObjectsCreatedPerClass)
+	const TCHAR* ClassSubobjectListName(EClassSubobjectList ListType)
 		{
-			ensure(bCreatingObjectsPerClass);
-			check(!ObjectsCreatedPerClass.Contains(Object));
-			ObjectsCreatedPerClass.Add(Object);
+		if (ListType == EClassSubobjectList::ComponentTemplates)
+		{
+			return TEXT("ComponentTemplates");
+		}
+		if (ListType == EClassSubobjectList::Timelines)
+		{
+			return TEXT("Timelines");
+		}
+		if (ListType == EClassSubobjectList::DynamicBindingObjects)
+		{
+			return TEXT("DynamicBindingObjects");
+		}
+		return TEXT("MiscConvertedSubobjects");
 		}
 
-		return UniqueName;
+	void RegisterClassSubobject(UObject* Object, EClassSubobjectList ListType)
+	{
+		if (ListType == EClassSubobjectList::ComponentTemplates)
+		{
+			ComponentTemplates.Add(Object);
+	}
+		else if (ListType == EClassSubobjectList::Timelines)
+	{
+			Timelines.Add(Object);
+	}
+		else if(ListType == EClassSubobjectList::DynamicBindingObjects)
+	{
+			DynamicBindingObjects.Add(Object);
+		}
+		else
+		{
+			MiscConvertedSubobjects.Add(Object);
+		}
+		}
+
+	void AddClassSubObject_InConstructor(UObject* Object, const FString& NativeName)
+	{
+		ensure(CurrentCodeType == EGeneratedCodeType::SubobjectsOfClass);
+		ClassSubobjectsMap.Add(Object, NativeName);
 	}
 
-	const TArray<UObject*>& GetObjectsCreatedPerClass_InConstructor()
+	void AddCommonSubObject_InConstructor(UObject* Object, const FString& NativeName)
 	{
-		ensure(bInsideConstructor);
-		return ObjectsCreatedPerClass;
+		ensure(CurrentCodeType == EGeneratedCodeType::CommonConstructor);
+		ClassSubobjectsMap.Add(Object, NativeName);
 	}
 
 	// UNIVERSAL FUNCTIONS
@@ -93,7 +123,7 @@ public:
 	(due to the native code generation), should be handled by this function */
 	FString FindGloballyMappedObject(UObject* Object, bool bLoadIfNotFound = false);
 
-	// TEXT
+	// TEXT FUNCTIONS
 
 	void IncreaseIndent()
 	{
@@ -194,7 +224,7 @@ struct FEmitDefaultValueHelper
 {
 	static FString GenerateGetDefaultValue(const UUserDefinedStruct* Struct, const FGatherConvertedClassDependencies& Dependencies);
 
-	static FString GenerateConstructor(UClass* BPGC, const FGatherConvertedClassDependencies& Dependencies);
+	static FString GenerateConstructor(FEmitterLocalContext& Context);
 
 	enum class EPropertyAccessOperator
 	{
@@ -212,7 +242,7 @@ struct FEmitDefaultValueHelper
 
 	// Creates the subobject (of class) returns it's native local name, 
 	// returns empty string if cannot handle
-	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object);
+	static FString HandleClassSubobject(FEmitterLocalContext& Context, UObject* Object, FEmitterLocalContext::EClassSubobjectList ListOfSubobjectsTyp);
 
 private:
 	// Returns native term, 

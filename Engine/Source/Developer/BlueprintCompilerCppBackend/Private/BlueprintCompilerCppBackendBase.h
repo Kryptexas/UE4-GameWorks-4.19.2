@@ -4,6 +4,8 @@
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
 
+struct FEmitterLocalContext;
+
 /** The class generates all native code except of function body (notice InnerFunctionImplementation in not implemented) */
 class FBlueprintCompilerCppBackendBase : public IBlueprintCompilerCppBackend
 {
@@ -70,7 +72,7 @@ protected:
 			}
 
 	*/
-	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bUseSwitchState) PURE_VIRTUAL(FBlueprintCompilerCppBackendBase::InnerFunctionImplementation, return FString(););
+	virtual FString InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState) PURE_VIRTUAL(FBlueprintCompilerCppBackendBase::InnerFunctionImplementation, return FString(););
 
 	void EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass);
 
@@ -78,7 +80,7 @@ protected:
 	void DeclareLocalVariables(FKismetFunctionContext& FunctionContext, TArray<UProperty*>& LocalVariables);
 	
 	/** Builds both the header declaration and body implementation of a function */
-	void ConstructFunction(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bGenerateStubOnly);
+	void ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly);
 
 	void EmitFileBeginning(const FString& CleanName, FGatherConvertedClassDependencies* Dependencies);
 

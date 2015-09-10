@@ -2544,8 +2544,6 @@ void UClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collecto
 		This->CallAddReferencedObjects(This->ClassDefaultObject, Collector);
 	}
 
-	Collector.AddReferencedObjects(This->ConvertedSubobjectsFromBPGC, This);
-
 	Super::AddReferencedObjects( This, Collector );
 }
 
@@ -4580,13 +4578,30 @@ UDynamicClass::UDynamicClass(
 
 void UDynamicClass::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	UClass* This = CastChecked<UDynamicClass>(InThis);
+	UDynamicClass* This = CastChecked<UDynamicClass>(InThis);
 
-	//Collector.AddReferencedObjects(This->ConvertedSubobjectsFromBPGC, This);
+	Collector.AddReferencedObjects(This->MiscConvertedSubobjects, This);
+	Collector.AddReferencedObjects(This->ReferencedConvertedFields, This);
+	Collector.AddReferencedObjects(This->UsedAssets, This);
+	Collector.AddReferencedObjects(This->DynamicBindingObjects, This);
+	Collector.AddReferencedObjects(This->ComponentTemplates, This);
+	Collector.AddReferencedObjects(This->Timelines, This);
 
 	Super::AddReferencedObjects(This, Collector);
 }
 
+void UDynamicClass::PurgeClass(bool bRecompilingOnLoad)
+{
+	Super::PurgeClass(bRecompilingOnLoad);
+
+	MiscConvertedSubobjects.Empty();
+	ReferencedConvertedFields.Empty();
+	UsedAssets.Empty();
+
+	DynamicBindingObjects.Empty();
+	ComponentTemplates.Empty();
+	Timelines.Empty();
+}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDynamicClass, UClass,
 {

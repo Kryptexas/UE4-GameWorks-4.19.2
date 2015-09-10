@@ -575,9 +575,8 @@ FString FBlueprintCompilerCppBackend::LatentFunctionInfoTermToText(FEmitterLocal
 	return FEmitHelper::LiteralTerm(EmitterContext, Term->Type, StructValues, nullptr);
 }
 
-FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bUseSwitchState)
+FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bUseSwitchState)
 {
-	FEmitterLocalContext EmitterContext(FunctionContext.NewClass, Dependencies);
 	EmitterContext.IncreaseIndent();
 	if (bUseSwitchState)
 	{
@@ -733,5 +732,8 @@ FString FBlueprintCompilerCppBackend::InnerFunctionImplementation(FKismetFunctio
 	}
 
 
-	return EmitterContext.GetResult();
+	const FString Result = EmitterContext.GetResult();
+	EmitterContext.ClearResult();
+	EmitterContext.DecreaseIndent();
+	return Result;
 }

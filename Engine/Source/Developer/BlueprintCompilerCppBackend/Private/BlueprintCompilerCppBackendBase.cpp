@@ -130,17 +130,19 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		Emit(Header, TEXT("\n"));
 	}
 
+	FEmitterLocalContext EmitterContext(SourceClass, Dependencies);
+
 	if (!bIsInterface)
 	{
 		Emit(Header, *FString::Printf(TEXT("\t%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());\n\n"), *CppClassName));
-		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(SourceClass, Dependencies));
+		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(EmitterContext));
 	}
 
 	for (int32 i = 0; i < Functions.Num(); ++i)
 	{
 		if (Functions[i].IsValid())
 		{
-			ConstructFunction(Functions[i], Dependencies, bGenerateStubsOnly);
+			ConstructFunction(Functions[i], EmitterContext, bGenerateStubsOnly);
 		}
 	}
 
@@ -170,7 +172,7 @@ void FBlueprintCompilerCppBackendBase::DeclareLocalVariables(FKismetFunctionCont
 	}
 }
 
-void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext& FunctionContext, const FGatherConvertedClassDependencies& Dependencies, bool bGenerateStubOnly)
+void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext& FunctionContext, FEmitterLocalContext& EmitterContext, bool bGenerateStubOnly)
 {
 	if (FunctionContext.IsDelegateSignature())
 	{
@@ -324,11 +326,11 @@ void FBlueprintCompilerCppBackendBase::ConstructFunction(FKismetFunctionContext&
 			}
 		}
 
-		const FString FunctionImplementation = InnerFunctionImplementation(FunctionContext, Dependencies, bUseSwitchState);
+		const FString FunctionImplementation = InnerFunctionImplementation(FunctionContext, EmitterContext, bUseSwitchState);
 		Emit(Body, *FunctionImplementation);
 	}
 
-	const FString ReturnValueString = ReturnValue ? (FString(TEXT(" ")) + ReturnValue->GetName()) : TEXT("");
+	const FString ReturnValueString = ReturnValue ? (FString(TEXT(" ")) + FEmitHelper::GetCppName(ReturnValue)) : TEXT("");
 	Emit(Body, *FString::Printf(TEXT("\treturn%s;\n"), *ReturnValueString));
 	Emit(Body, TEXT("}\n\n"));
 }
@@ -400,7 +402,7 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 
 	if (Dependencies)
 	{
-		Emit(Body, *FBackendHelperUMG::AdditionalHeaderIncludeForWidget(Cast<UClass>(Dependencies->GetOriginalStruct())));
+		Emit(Header, *FBackendHelperUMG::AdditionalHeaderIncludeForWidget(Cast<UClass>(Dependencies->GetOriginalStruct())));
 
 		TSet<FString> AlreadyIncluded;
 		AlreadyIncluded.Add(CleanName);
