@@ -33,5 +33,6 @@ void FGeometryCacheEdModule::ShutdownModule()
 		IAssetTools& AssetTools = AssetToolsModule.Get();
 		AssetTools.UnregisterAssetTypeActions(AssetAction->AsShared());
 		FComponentAssetBrokerage::UnregisterBroker(MakeShareable(AssetBroker));
+		UThumbnailManager::Get().UnregisterCustomRenderer(UGeometryCache::StaticClass());
 	}
 }
