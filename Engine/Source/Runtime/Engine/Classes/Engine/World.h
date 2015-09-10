@@ -2794,7 +2794,7 @@ public:
 	 * @param	Class					Class to Spawn
 	 * @param	Location				Location To Spawn
 	 * @param	Rotation				Rotation To Spawn
-	 * @param	SpawmParameters			Spawn Parameters
+	 * @param	SpawnParameters			Spawn Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
@@ -2804,7 +2804,7 @@ public:
 	 * 
 	 * @param	Class					Class to Spawn
 	 * @param	Transform				World Transform to spawn on
-	 * @param	SpawmParameters			Spawm Parameters
+	 * @param	SpawnParameters			Spawn Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
@@ -2815,7 +2815,7 @@ public:
 	 * 
 	 * @param	Class					Class to Spawn
 	 * @param	AbsoluteTransform		World Transform to spawn on - without considering CDO's relative transform, thus Absolute
-	 * @param	SpawmParameters			Spawm Parameters
+	 * @param	SpawnParameters			Spawn Parameters
 	 *
 	 * @return	Actor that just spawned
 	 */
