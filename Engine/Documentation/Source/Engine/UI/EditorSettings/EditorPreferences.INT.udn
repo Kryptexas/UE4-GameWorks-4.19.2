@@ -2,6 +2,7 @@ Availability:Public
 Title:Editor Preferences
 Crumbs:%ROOT%, Engine, Engine/UI
 Description:Settings for configuring general editor behavior for controls, viewports, source control, and much more.
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
