@@ -37,6 +37,7 @@ FAudioDeviceManager::FAudioDeviceManager()
 	, NextResourceID(1)
 	, SoloDeviceHandle(INDEX_NONE)
 	, ActiveAudioDeviceHandle(INDEX_NONE)
+	, bPlayAllDeviceAudio(false)
 	, bVisualize3dDebug(false)
 {
 }
@@ -491,6 +492,16 @@ void FAudioDeviceManager::RemoveSoundMix(USoundMix* SoundMix)
 			AudioDevice->RemoveSoundMix(SoundMix);
 		}
 	}
+}
+
+void FAudioDeviceManager::TogglePlayAllDeviceAudio()
+{
+	bPlayAllDeviceAudio = !bPlayAllDeviceAudio;
+}
+
+bool FAudioDeviceManager::IsPlayAllDeviceAudio() const
+{
+	return bPlayAllDeviceAudio;
 }
 
 bool FAudioDeviceManager::IsVisualizeDebug3dEnabled() const
