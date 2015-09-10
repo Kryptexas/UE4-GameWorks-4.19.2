@@ -54,6 +54,11 @@ void UUserDefinedEnum::PostLoad()
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+
+	for (int32 i = 0; i < Names.Num(); ++i)
+	{
+		Names[i].Value = i;
+	}
 }
 
 void UUserDefinedEnum::PostEditUndo()
