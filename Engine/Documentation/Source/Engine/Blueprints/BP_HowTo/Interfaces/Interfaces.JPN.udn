@@ -6,8 +6,8 @@ Description:複数のブループリントと一度に通信するためにブ�
 Related:Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 Related:Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related:Engine/Blueprints/UserGuide
-バージョン:4.8
-SkillLevel:上級
+version:4.8
+skilllevel:Advanced
 
 この操作手順では、呼び出し時に複数のブループリントでさまざまなスクリプトを実行する [ブループリントインターフェース](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) を設定します。 
 
