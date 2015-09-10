@@ -397,18 +397,22 @@ struct FExposedValueHandler
 	UPROPERTY()
 	FName BoundFunction;
 
-	UPROPERTY(Transient)
-	UFunction* Function;
-
 	// Direct data access to property in anim instance
 	UPROPERTY()
 	TArray<FExposedValueCopyRecord> CopyRecords;
+
+	// funtion pointer if BoundFunction != NAME_None
+	UFunction* Function;
 
 	void Initialize(FAnimNode_Base* AnimNode, UAnimInstance* AnimInstance) 
 	{
 		if (BoundFunction != NAME_None)
 		{
 			Function = AnimInstance->FindFunction(BoundFunction);
+		}
+		else
+		{
+			Function = NULL;
 		}
 
 		// initialize copy records
