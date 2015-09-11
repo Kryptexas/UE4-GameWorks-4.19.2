@@ -1356,7 +1356,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 				EyeAdaptation = AddPostProcessEyeAdaptation(Context, Histogram);
 			}
 
-			if(View.Family->EngineShowFlags.Bloom)
+			if(View.FinalPostProcessSettings.BloomIntensity > 0.0f)
 			{
 				if (CVarUseMobileBloom.GetValueOnRenderThread() == 0)
 				{
