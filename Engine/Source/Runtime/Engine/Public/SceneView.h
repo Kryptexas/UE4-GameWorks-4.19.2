@@ -148,13 +148,16 @@ struct FViewMatrices
 	{
 		ProjMatrix.SetIdentity();
 		ViewMatrix.SetIdentity();
+		TranslatedViewMatrix.SetIdentity();
 		TranslatedViewProjectionMatrix.SetIdentity();
 		InvTranslatedViewProjectionMatrix.SetIdentity();
 		GetDynamicMeshElementsShadowCullFrustum = nullptr;
 		PreShadowTranslation = FVector::ZeroVector;
 		PreViewTranslation = FVector::ZeroVector;
 		ViewOrigin = FVector::ZeroVector;
+		ProjectionScale = FVector2D::ZeroVector;
 		TemporalAAProjJitter = FVector2D::ZeroVector;
+		ScreenScale = 1.f;
 	}
 
 	/** ViewToClip : UE4 projection matrix projects such that clip space Z=1 is the near plane, and Z=0 is the infinite far plane. */
