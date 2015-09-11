@@ -122,6 +122,6 @@ Various color corrections are possible. Here are a few examples:
 * Higher quality contrast (e.g. curves with a steeper linear part in the middle)
 * Selective changes to the darks, midtones, and bright areas of an image (e.g. curves)
 * Selective changes to specific colors (best expressed in some color space where the brightness is in a separate channel e.g. LAB)
-* Adjustments can be even done in a different color space (e.g. LAB keeps brightness and color independent which can be very useful) 
+* Adjustments can even be done in a different color space (e.g. LAB keeps brightness and color independent which can be very useful) 
 
 [/EXCERPT:LookupTexture]
