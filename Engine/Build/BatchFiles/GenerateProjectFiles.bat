@@ -23,13 +23,13 @@ rem ## in order to run.  It's possible the user acquired source but did not down
 if not exist ..\Binaries\DotNET\RPCUtility.exe goto Error_MissingBinaryPrerequisites
 
 
+set MSBUILD_EXE=msbuild.exe
+
 rem ## Check to see if we're already running under a Visual Studio environment shell
 if not "%INCLUDE%" == "" if not "%LIB%" == "" goto ReadyToCompile
 
 
 rem ## Try to get the MSBuild executable directly (see https://msdn.microsoft.com/en-us/library/hh162058(v=vs.120).aspx)
-
-set MSBUILD_EXE=msbuild.exe
 
 if exist "%ProgramFiles%\MSBuild\12.0\bin\MSBuild.exe" (
  	set MSBUILD_EXE="%ProgramFiles%\MSBuild\12.0\bin\MSBuild.exe"
