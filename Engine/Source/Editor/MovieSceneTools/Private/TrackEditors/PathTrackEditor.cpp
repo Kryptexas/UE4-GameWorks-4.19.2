@@ -136,8 +136,6 @@ public:
 
 			MenuBuilder.EndSection();
 		}
-
-		MenuBuilder.AddMenuSeparator();
 	}
 
 private:
