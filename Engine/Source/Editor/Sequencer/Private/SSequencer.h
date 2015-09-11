@@ -6,8 +6,11 @@
 #include "ISequencerEditTool.h"
 #include "SequencerCommonHelpers.h"
 
+
+class IDetailsView;
 class SSequencerTreeView;
 struct FSectionHandle;
+
 
 namespace SequencerLayoutConstants
 {
@@ -22,6 +25,7 @@ namespace SequencerLayoutConstants
 	/** Height of each category node */
 	const float CategoryNodeHeight = 15.0f;
 }
+
 
 /**
  * The kind of breadcrumbs that sequencer uses
@@ -47,10 +51,14 @@ struct FSequencerBreadcrumb
 		: BreadcrumbType(FSequencerBreadcrumb::ShotType) {}
 };
 
+
 /**
  * Main sequencer UI widget
  */
-class SSequencer : public SCompoundWidget, public FGCObject
+class SSequencer
+	: public SCompoundWidget
+	, public FGCObject
+	, public FNotifyHook
 {
 public:
 	DECLARE_DELEGATE_OneParam( FOnToggleBoolOption, bool )
@@ -137,8 +145,26 @@ public:
 	/** Get an array of section handles for the given set of movie scene sections */
 	TArray<FSectionHandle> GetSectionHandles(const TSet<TWeakObjectPtr<UMovieSceneSection>>& DesiredSections) const;
 
+public:
+
+	// FNotifyHook overrides
+
+	void NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged);
+
 private:
 	
+	/** Handles checking whether the details view is enabled. */
+	bool HandleDetailsViewEnabled() const;
+
+	/** Handles determining the visibility of the details view. */
+	EVisibility HandleDetailsViewVisibility() const;
+
+	/** Handles key selection changes. */
+	void HandleKeySelectionChanged();
+
+	/** Handles section selection changes. */
+	void HandleSectionSelectionChanged();
+
 	/** Check whether the specified edit tool is enabled */
 	bool IsEditToolEnabled(FName InIdentifier);
 
@@ -279,6 +305,9 @@ private:
 	void OnCurveEditorVisibilityChanged();
 
 private:
+
+	/** Holds the details view. */
+	TSharedPtr<IDetailsView> DetailsView;
 
 	/** Section area widget */
 	TSharedPtr<class SSequencerTrackArea> TrackArea;

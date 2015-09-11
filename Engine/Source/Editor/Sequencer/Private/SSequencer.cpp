@@ -34,6 +34,10 @@
 #include "VirtualTrackArea.h"
 #include "SequencerHotspots.h"
 
+#include "IDetailsView.h"
+#include "PropertyEditorModule.h"
+
+
 #define LOCTEXT_NAMESPACE "Sequencer"
 
 
@@ -250,6 +254,27 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 	EditTool.Reset(new FSequencerEditTool_Movement(PinnedSequencer, SharedThis(this)));
 
+	// initialize details view
+	FDetailsViewArgs DetailsViewArgs;
+	{
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.bCustomFilterAreaLocation = true;
+		DetailsViewArgs.bCustomNameAreaLocation = true;
+		DetailsViewArgs.bHideSelectionTip = true;
+		DetailsViewArgs.bLockable = false;
+		DetailsViewArgs.bSearchInitialKeyFocus = true;
+		DetailsViewArgs.bUpdatesFromSelection = false;
+		DetailsViewArgs.NotifyHook = this;
+		DetailsViewArgs.bShowOptions = false;
+		DetailsViewArgs.bShowModifiedPropertiesOption = false;
+	}
+
+	DetailsView = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor").CreateDetailView(DetailsViewArgs);
+	{
+		DetailsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SSequencer::HandleDetailsViewEnabled)));
+		DetailsView->SetVisibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &SSequencer::HandleDetailsViewVisibility)));
+	}
+
 	const int32 				Column0	= 0,	Column1	= 1;
 	const int32 Row0	= 0,
 				Row1	= 1,
@@ -285,140 +310,153 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 
 				+ SOverlay::Slot()
 				[
-					SNew( SGridPanel )
-					.FillRow( 1, 1.f )
-					.FillColumn( 0, FillCoefficient_0 )
-					.FillColumn( 1, FillCoefficient_1 )
-
-					+ SGridPanel::Slot( Column0, Row0 )
-					.VAlign( VAlign_Center )
-					[
-						// Search box for searching through the outliner
-						SNew( SSearchBox )
-						.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
-					]
-
-					+ SGridPanel::Slot( Column0, Row1 )
-					.ColumnSpan(2)
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()
+					SNew(SSplitter)
+						.Orientation(Orient_Horizontal)
+						
+					+ SSplitter::Slot()
+						.Value(0.8f)
 						[
-							SNew( SOverlay )
+							SNew( SGridPanel )
+								.FillRow( 1, 1.f )
+								.FillColumn( 0, FillCoefficient_0 )
+								.FillColumn( 1, FillCoefficient_1 )
 
-							+ SOverlay::Slot()
-							[
-								SNew(SHorizontalBox)
+							+ SGridPanel::Slot( Column0, Row0 )
+								.VAlign( VAlign_Center )
+								[
+									// Search box for searching through the outliner
+									SNew( SSearchBox )
+										.OnTextChanged( this, &SSequencer::OnOutlinerSearchChanged )
+								]
+
+							+ SGridPanel::Slot( Column0, Row1 )
+								.ColumnSpan(2)
+								[
+									SNew(SHorizontalBox)
+
+									+ SHorizontalBox::Slot()
+										[
+											SNew( SOverlay )
+
+											+ SOverlay::Slot()
+												[
+													SNew(SHorizontalBox)
 								
-								+ SHorizontalBox::Slot()
-								.FillWidth( FillCoefficient_0 )
-								[
-									SNew(SSequencerTreeViewBox, PinnedSequencer)
-									// Padding to allow space for the scroll bar
-									.Padding(FMargin(0,0,10.f,0))
-									[
-										TreeView.ToSharedRef()
-									]
+													+ SHorizontalBox::Slot()
+														.FillWidth( FillCoefficient_0 )
+														[
+															SNew(SSequencerTreeViewBox, PinnedSequencer)
+																.Padding(FMargin(0, 0, 10.f, 0)) // Padding to allow space for the scroll bar
+																[
+																	TreeView.ToSharedRef()
+																]
+														]
+
+													+ SHorizontalBox::Slot()
+														.FillWidth( FillCoefficient_1 )
+														[
+															TrackArea.ToSharedRef()
+														]
+												]
+
+											+ SOverlay::Slot()
+												.HAlign( HAlign_Right )
+												[
+													ScrollBar
+												]
+										]
+
+									+ SHorizontalBox::Slot()
+										.FillWidth( TAttribute<float>( this, &SSequencer::GetOutlinerSpacerFill ) )
+										[
+											SNew(SSpacer)
+										]
 								]
 
-								+ SHorizontalBox::Slot()
-								.FillWidth( FillCoefficient_1 )
+							+ SGridPanel::Slot( Column0, Row2 )
+								.HAlign( HAlign_Center )
 								[
-									TrackArea.ToSharedRef()
+									MakeTransportControls()
 								]
-							]
 
-							+ SOverlay::Slot()
-							.HAlign( HAlign_Right )
-							[
-								ScrollBar
-							]
+							// Second column
+							+ SGridPanel::Slot( Column1, Row0 )
+								[
+									SNew( SBorder )
+										.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+										.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+										.Padding(0)
+										[
+											TopTimeSlider
+										]
+								]
+
+							// Overlay that draws the tick lines
+							+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(0) )
+								[
+									SNew( SSequencerSectionOverlay, TimeSliderController )
+										.Visibility( EVisibility::HitTestInvisible )
+										.DisplayScrubPosition( false )
+										.DisplayTickLines( true )
+								]
+
+							// Curve editor
+							+ SGridPanel::Slot( Column1, Row1 )
+								[
+									CurveEditor.ToSharedRef()
+								]
+
+							// Overlay that draws the scrub position
+							+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(30) )
+								[
+									SNew( SSequencerSectionOverlay, TimeSliderController )
+										.Visibility( EVisibility::HitTestInvisible )
+										.DisplayScrubPosition( true )
+										.DisplayTickLines( false )
+								]
+
+							+ SGridPanel::Slot( Column1, Row2 )
+								[
+									SNew( SBorder )
+										.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+										.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+										.Padding(0)
+										[
+											SNew(SVerticalBox)
+
+											+ SVerticalBox::Slot()
+												.AutoHeight()
+												[
+													SNew( SOverlay )
+
+													+ SOverlay::Slot()
+														[
+															BottomTimeSlider
+														]
+
+													+ SOverlay::Slot()
+														[
+															BottomTimeRange
+														]
+												]
+
+											+ SVerticalBox::Slot()
+												.AutoHeight()
+												[
+													SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<FSequencerBreadcrumb> )
+													.Visibility( this, &SSequencer::GetBreadcrumbTrailVisibility )
+													.OnCrumbClicked( this, &SSequencer::OnCrumbClicked )
+												]
+										]
+								]
 						]
 
-						+ SHorizontalBox::Slot()
-						.FillWidth( TAttribute<float>( this, &SSequencer::GetOutlinerSpacerFill ) )
+					+ SSplitter::Slot()
+						.SizeRule(SSplitter::SizeToContent)
+						.Value(0.2f)
 						[
-							SNew(SSpacer)
+							DetailsView.ToSharedRef()
 						]
-					]
-
-					+ SGridPanel::Slot( Column0, Row2 )
-					.HAlign( HAlign_Center )
-					[
-						MakeTransportControls()
-					]
-
-					// Second column
-					+ SGridPanel::Slot( Column1, Row0 )
-					[
-						SNew( SBorder )
-						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-						.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
-						.Padding(0)
-						[
-							TopTimeSlider
-						]
-					]
-
-					// Overlay that draws the tick lines
-					+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(0) )
-					[
-						SNew( SSequencerSectionOverlay, TimeSliderController )
-						.Visibility( EVisibility::HitTestInvisible )
-						.DisplayScrubPosition( false )
-						.DisplayTickLines( true )
-					]
-
-					// Curve editor
-					+ SGridPanel::Slot( Column1, Row1 )
-					[
-						CurveEditor.ToSharedRef()
-					]
-
-					// Overlay that draws the scrub position
-					+ SGridPanel::Slot( Column1, Row1, SGridPanel::Layer(30) )
-					[
-						SNew( SSequencerSectionOverlay, TimeSliderController )
-						.Visibility( EVisibility::HitTestInvisible )
-						.DisplayScrubPosition( true )
-						.DisplayTickLines( false )
-					]
-
-					+ SGridPanel::Slot( Column1, Row2 )
-					[
-						SNew( SBorder )
-						.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-						.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
-						.Padding(0)
-						[
-							SNew(SVerticalBox)
-
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SNew( SOverlay )
-
-								+ SOverlay::Slot()
-								[
-									BottomTimeSlider
-								]
-
-								+ SOverlay::Slot()
-								[
-									BottomTimeRange
-								]
-							]
-
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							[
-								SAssignNew( BreadcrumbTrail, SBreadcrumbTrail<FSequencerBreadcrumb> )
-								.Visibility( this, &SSequencer::GetBreadcrumbTrailVisibility )
-								.OnCrumbClicked( this, &SSequencer::OnCrumbClicked )
-							]
-						]
-					]
 				]
 
 				+ SOverlay::Slot()
@@ -444,6 +482,9 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 			]
 		]
 	];
+
+	InSequencer->GetSelection().GetOnKeySelectionChanged().AddSP(this, &SSequencer::HandleKeySelectionChanged);
+	InSequencer->GetSelection().GetOnSectionSelectionChanged().AddSP(this, &SSequencer::HandleSectionSelectionChanged);
 
 	ResetBreadcrumbs();
 }
@@ -482,6 +523,49 @@ void SSequencer::BindCommands(TSharedRef<FUICommandList> SequencerCommandBinding
 		FIsActionChecked::CreateSP( this, &SSequencer::IsEditToolEnabled, FName("Selection") )
 		);
 }
+
+
+void SSequencer::NotifyPostChange(const FPropertyChangedEvent& PropertyChangedEvent, class FEditPropertyChain* PropertyThatChanged)
+{
+}
+
+
+bool SSequencer::HandleDetailsViewEnabled() const
+{
+	return true;
+}
+
+
+EVisibility SSequencer::HandleDetailsViewVisibility() const
+{/*
+	if (Model->GetSelectedMessage().IsValid())
+	{
+		return EVisibility::Visible;
+	}
+
+	return EVisibility::Hidden;*/
+	return EVisibility::Visible;
+}
+
+
+void SSequencer::HandleKeySelectionChanged()
+{
+
+}
+
+
+void SSequencer::HandleSectionSelectionChanged()
+{
+	TArray<TWeakObjectPtr<UObject>> Sections;
+
+	for (auto Section : Sequencer.Pin()->GetSelection().GetSelectedSections())
+	{
+		Sections.Add(Section);
+	}
+
+	DetailsView->SetObjects(Sections, true);
+}
+
 
 bool SSequencer::IsEditToolEnabled(FName InIdentifier)
 {
