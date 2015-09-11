@@ -96,6 +96,32 @@ void UEdGraph::PostInitProperties()
 	}
 }
 
+void UEdGraph::Serialize( FArchive& Ar )
+{
+	Super::Serialize(Ar);
+	// Keep track of RF_Public
+	if( Ar.IsTransacting() )
+	{
+		bool bIsPublic = HasAnyFlags(RF_Public);
+		if( Ar.IsLoading() )
+		{
+			Ar << bIsPublic;
+			if (bIsPublic)
+			{
+				SetFlags( RF_Public );
+			}
+			else
+			{
+				ClearFlags( RF_Public );
+			}
+		}
+		else if( Ar.IsSaving() )
+		{
+			Ar << bIsPublic;
+		}
+	}
+}
+
 void UEdGraph::PostLoad()
 {
 	Super::PostLoad();
