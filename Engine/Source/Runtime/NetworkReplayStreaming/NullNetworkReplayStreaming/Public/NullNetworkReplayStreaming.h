@@ -4,6 +4,7 @@
 
 #include "NetworkReplayStreaming.h"
 #include "Core.h"
+#include "Engine.h"
 #include "ModuleManager.h"
 #include "UniquePtr.h"
 #include "OnlineJsonSerializer.h"
