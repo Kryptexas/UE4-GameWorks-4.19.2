@@ -196,10 +196,7 @@ protected:
 
 		if (Settings.EnableTransport)
 		{
-			if (!MessageBridge.IsValid())
-			{
-				InitializeBridge();
-			}
+			InitializeBridge();
 		}
 		else
 		{
@@ -208,10 +205,7 @@ protected:
 
 		if (Settings.EnableTunnel)
 		{
-			if (!MessageTunnel.IsValid())
-			{
-				InitializeTunnel();
-			}
+			InitializeTunnel();
 		}
 		else
 		{
