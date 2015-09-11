@@ -196,7 +196,7 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchInde
 	const FStaticMeshLODResources& LOD = RenderData->LODResources[LODIndex];
 	const FLODInfo& ProxyLODInfo = LODs[LODIndex];
 
-	const bool bUseReversedIndices = GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedDepthOnlyIndexBuffer;
+	const bool bUseReversedIndices = GUseReversedIndexBuffer && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedDepthOnlyIndices;
 
 	FMeshBatchElement& OutBatchElement = OutMeshBatch.Elements[0];
 	OutMeshBatch.MaterialRenderProxy = UMaterial::GetDefaultMaterial(MD_Surface)->GetRenderProxy(false, false);
@@ -204,7 +204,7 @@ bool FStaticMeshSceneProxy::GetShadowMeshElement(int32 LODIndex, int32 BatchInde
 	OutBatchElement.IndexBuffer = bUseReversedIndices ? &LOD.ReversedDepthOnlyIndexBuffer : &LOD.DepthOnlyIndexBuffer;
 	OutMeshBatch.Type = PT_TriangleList;
 	OutBatchElement.FirstIndex = 0;
-	OutBatchElement.NumPrimitives = LOD.DepthOnlyIndexBuffer.GetNumIndices() / 3;
+	OutBatchElement.NumPrimitives = LOD.DepthOnlyNumTriangles;
 	OutBatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
 	OutBatchElement.MinVertexIndex = 0;
 	OutBatchElement.MaxVertexIndex = LOD.PositionVertexBuffer.GetNumVertices() - 1;
@@ -273,7 +273,7 @@ bool FStaticMeshSceneProxy::GetMeshElement(int32 LODIndex, int32 BatchIndex, int
 
 	const bool bWireframe = false;
 	const bool bRequiresAdjacencyInformation = RequiresAdjacencyInformation( Material, OutMeshBatch.VertexFactory->GetType(), GetScene().GetFeatureLevel() );
-	const bool bUseReversedIndices = GUseReversedIndexBuffer && !bWireframe && !bRequiresAdjacencyInformation && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndexBuffer;
+	const bool bUseReversedIndices = GUseReversedIndexBuffer && !bWireframe && !bRequiresAdjacencyInformation && IsLocalToWorldDeterminantNegative() && LOD.bHasReversedIndices;
 
 	SetIndexSource(LODIndex, SectionIndex, OutMeshBatch, bWireframe, bRequiresAdjacencyInformation, bUseReversedIndices);
 
@@ -528,7 +528,7 @@ void FStaticMeshSceneProxy::DrawStaticElements(FStaticPrimitiveDrawInterface* PD
 				bool bUseUnifiedMeshForShadow = false;
 				bool bUseUnifiedMeshForDepth = false;
 
-				if (GUseShadowIndexBuffer && LODModel.DepthOnlyIndexBuffer.GetNumIndices() > 0)
+				if (GUseShadowIndexBuffer && LODModel.bHasDepthOnlyIndices)
 				{
 					const FLODInfo& ProxyLODInfo = LODs[LODIndex];
 

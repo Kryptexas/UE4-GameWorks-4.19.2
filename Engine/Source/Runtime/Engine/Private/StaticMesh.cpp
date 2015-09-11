@@ -292,8 +292,10 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 	bool bNeedsCPUAccess = !FPlatformProperties::RequiresCookedData();
 
 	bHasAdjacencyInfo = false;
-	bHasReversedIndexBuffer = false;
-	bHasReversedDepthOnlyIndexBuffer = false;
+	bHasDepthOnlyIndices = false;
+	bHasReversedIndices = false;
+	bHasReversedDepthOnlyIndices = false;
+	DepthOnlyNumTriangles = 0;
 
     // Defined class flags for possible stripping
 	const uint8 AdjacencyDataStripFlag = 1;
@@ -329,8 +331,10 @@ void FStaticMeshLODResources::Serialize(FArchive& Ar, UObject* Owner, int32 Inde
 		}
 
 		// Needs to be done now because on cooked platform, indices are discarded after RHIInit.
-		bHasReversedIndexBuffer = ReversedIndexBuffer.GetNumIndices() != 0;
-		bHasReversedDepthOnlyIndexBuffer = ReversedDepthOnlyIndexBuffer.GetNumIndices() != 0;
+		bHasDepthOnlyIndices = DepthOnlyIndexBuffer.GetNumIndices() != 0;
+		bHasReversedIndices = ReversedIndexBuffer.GetNumIndices() != 0;
+		bHasReversedDepthOnlyIndices = ReversedDepthOnlyIndexBuffer.GetNumIndices() != 0;
+		DepthOnlyNumTriangles = DepthOnlyIndexBuffer.GetNumIndices() / 3;
 	}
 }
 
@@ -494,8 +498,10 @@ FStaticMeshLODResources::FStaticMeshLODResources()
 	: DistanceFieldData(NULL)
 	, MaxDeviation(0.0f)
 	, bHasAdjacencyInfo(false)
-	, bHasReversedIndexBuffer(false)
-	, bHasReversedDepthOnlyIndexBuffer(false)
+	, bHasDepthOnlyIndices(false)
+	, bHasReversedIndices(false)
+	, bHasReversedDepthOnlyIndices(false)
+	, DepthOnlyNumTriangles(0)
 {
 }
 

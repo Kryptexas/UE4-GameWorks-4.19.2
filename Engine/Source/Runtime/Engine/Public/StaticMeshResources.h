@@ -565,11 +565,16 @@ struct FStaticMeshLODResources
 	/** True if the adjacency index buffer contained data at init. Needed as it will not be available to the CPU afterwards. */
 	uint32 bHasAdjacencyInfo : 1;
 
-	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasReversedIndexBuffer : 1;
+	/** True if the depth only index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
+	uint32 bHasDepthOnlyIndices : 1;
 
 	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
-	uint32 bHasReversedDepthOnlyIndexBuffer : 1;
+	uint32 bHasReversedIndices : 1;
+
+	/** True if the reversed index buffers contained data at init. Needed as it will not be available to the CPU afterwards. */
+	uint32 bHasReversedDepthOnlyIndices: 1;
+
+	uint32 DepthOnlyNumTriangles;
 
 	/** Default constructor. */
 	FStaticMeshLODResources();
