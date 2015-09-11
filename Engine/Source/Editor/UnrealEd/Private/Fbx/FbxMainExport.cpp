@@ -234,8 +234,8 @@ void FFbxExporter::CreateAnimatableUserProperty(FbxNode* Node, float Value, cons
 	// Add one user property for recording the animation
 	FbxProperty IntensityProp = FbxProperty::Create(Node, FbxFloatDT, Name, Label);
 	IntensityProp.Set(Value);
-	IntensityProp.ModifyFlag(FbxPropertyAttr::eUserDefined, true);
-	IntensityProp.ModifyFlag(FbxPropertyAttr::eAnimatable, true);
+	IntensityProp.ModifyFlag(FbxPropertyFlags::eUserDefined, true);
+	IntensityProp.ModifyFlag(FbxPropertyFlags::eAnimatable, true);
 }
 
 /**
