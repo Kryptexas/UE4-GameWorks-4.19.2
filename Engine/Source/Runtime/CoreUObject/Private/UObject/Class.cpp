@@ -4166,6 +4166,8 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	}
 );
 
+UClass::StaticClassFunctionType GetDynamicClassConstructFn(FName ClassName);
+
 void GetPrivateStaticClassBody(
 	const TCHAR* PackageName,
 	const TCHAR* Name,
@@ -4274,6 +4276,14 @@ void GetPrivateStaticClassBody(
 
 	// Register the class's native functions.
 	RegisterNativeFunc();
+
+	if (bIsDynamic)
+	{
+		// Now call the UHT-generated Z_Construct* function for the dynamic class
+		UClass::StaticClassFunctionType ZConstructDynamicClassFn = GetDynamicClassConstructFn(Name);
+		check(ZConstructDynamicClassFn);
+		ZConstructDynamicClassFn();
+	}
 }
 
 /*-----------------------------------------------------------------------------
