@@ -261,10 +261,14 @@ public class PhysX : ModuleRules
 				"SimulationController{0}",
 			};
 
-			//if you are shipping, and you actually want the shipping libs, you do not need this lib
-            if (! (LibraryMode == PhysXLibraryMode.Shipping && BuildConfiguration.bUseShippingPhysXLibraries))
+			// shipping libs do not need this
+            if (LibraryMode != PhysXLibraryMode.Shipping)
 			{
-				PublicAdditionalLibraries.Add("nvToolsExt");
+				// use for profiling, but crash handler won't work
+//				PublicAdditionalLibraries.Add("nvToolsExt");
+
+				// disables profiling, crash handler will work
+				PublicAdditionalLibraries.Add("nvToolsExtStub");
 			}
 
 			foreach (string Lib in StaticLibrariesAndroid)
