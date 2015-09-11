@@ -331,7 +331,7 @@ public:
 		current position as 0 point. */
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 
-	void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const override;
+	void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const;
 
 	virtual FString GetVersionString() const override;
 
