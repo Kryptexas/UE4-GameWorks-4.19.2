@@ -403,7 +403,7 @@ uint32 FDecalRendering::ComputeRenderTargetCount(EShaderPlatform Platform, ERend
 	switch(RenderTargetMode)
 	{
 		case RTM_SceneColorAndGBuffer:				return 4;
-		case RTM_SceneColorAndGBufferDepthWrite:	return 4;
+		case RTM_SceneColorAndGBufferDepthWrite:	return 5;
 		case RTM_DBuffer:							return 3;
 		case RTM_GBufferNormal:						return 1;
 		case RTM_SceneColor:						return 1;

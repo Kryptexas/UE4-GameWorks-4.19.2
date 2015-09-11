@@ -14,7 +14,7 @@ void Main(
 	float4 PixelPosition : TEXCOORD6,
 	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
 	OPTIONAL_IsFrontFace
-	OPTIONAL_OutDepth,
+	OPTIONAL_OutDepthConservative,
 #endif
 	out float4 OutColor : SV_Target0
 	)

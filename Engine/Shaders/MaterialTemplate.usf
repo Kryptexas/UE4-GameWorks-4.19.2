@@ -1719,8 +1719,10 @@ half3x3 AssembleTangentToWorld( half3 TangentToWorld0, half4 TangentToWorld2 )
 #endif
 
 #if OUTPUT_PIXEL_DEPTH_OFFSET
-	#define OPTIONAL_OutDepth ,out float OutDepth : DEPTH_WRITE_SEMANTIC
+	#define OPTIONAL_OutDepthConservative ,out float OutDepth : DEPTH_WRITE_SEMANTIC
+	#define OPTIONAL_OutDepth ,out float OutDepth : SV_DEPTH
 #else
+	#define OPTIONAL_OutDepthConservative
 	#define OPTIONAL_OutDepth
 #endif
 

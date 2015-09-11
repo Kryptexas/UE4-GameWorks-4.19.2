@@ -89,6 +89,9 @@ float DistanceFunction(float4 ScreenPosition, float3 Pos)
 	return 0;
 }
 
+// could be exposed to the user
+const static float coneSpread = 0.00002f;
+
 // @return t=0..1, -1: no hit
 float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
 {
@@ -103,9 +106,14 @@ float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
 	{
 		float Distance = DistanceFunction(ScreenPosition, StartPos + t * Direction);
 
-		if(Distance <= i * 0.001f)
+		if(Distance <= t * coneSpread)
 		{
 			return t / RayLength;
+		}
+
+		if(t > RayLength)
+		{
+		   break;
 		}
 
 		t += Distance;
@@ -115,9 +123,9 @@ float Raycast(float4 ScreenPosition, float3 StartPos, float3 EndPos)
 }
 
 // like explained here http://iquilezles.org/www/articles/derivative/derivative.htm
-float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos)
+float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos, float t)
 {
-	float eps = 0.1f;
+	float eps = t * coneSpread;
 
 	float2 e = float2(eps, 0);
 
@@ -131,9 +139,7 @@ float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos)
 // decal pixel shader
 #if DECAL_PROJECTION
 
-#if DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC
-// should work, but doesn't 	EARLYDEPTHSTENCIL
-#endif
+// EARLYDEPTHSTENCIL for volumetric decals could work here, but only if we are ouside of the decal
 
 void MainPS(
 	in float4 ScreenPosition : TEXCOORD0			// is ClipPosition
@@ -156,14 +162,25 @@ void MainPS(
 	, out float4 OutTarget3 : SV_Target3
 #endif
 
+#if DECAL_RENDERTARGET_COUNT > 4
+	, out float4 OutTarget4 : SV_Target4
+#endif
+
+	// todo: if we are not inside a volumetric decal we could use OPTIONAL_OutDepthConservative for better performance, this would require a shader permutation
 	OPTIONAL_OutDepth
 
 	)
 {
+#if DECAL_RENDERTARGET_COUNT > 4
+	// default to no shadows, good for volumetric decals
+	OutTarget4 = 1;
+#endif
+
 	bool bVolumetric = DECAL_BLEND_MODE == DECALBLENDMODEID_VOLUMETRIC;
 
 	float3 OSPosition;
 	float3 WSPosition;
+	float HitT;
 
 	if(bVolumetric)
 	{
@@ -191,7 +208,7 @@ void MainPS(
 		float3 OSBoxStartRay = OSStartRay + OSBoxMinMax.x * (OSEndRay - OSStartRay);
 		float3 OSBoxEndRay = OSStartRay + OSBoxMinMax.y * (OSEndRay - OSStartRay);
 
-		float HitT = Raycast(ScreenPosition, OSBoxStartRay, OSBoxEndRay);
+		HitT = Raycast(ScreenPosition, OSBoxStartRay, OSBoxEndRay);
 
 		clip(HitT);
 
@@ -251,7 +268,7 @@ void MainPS(
 		if(bVolumetric)
 		{
 			// not normalized
-			float3 OSNormal = GradientNotNormalized(ScreenPosition, OSPosition);
+			float3 OSNormal = GradientNotNormalized(ScreenPosition, OSPosition, HitT);
 			
 			// not normalized
 			float3 WSNormal = mul(float4(OSNormal, 0), transpose(WorldToDecal)).xyz;

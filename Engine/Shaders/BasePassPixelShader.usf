@@ -637,7 +637,7 @@ void Main(
 	#endif
 #endif
 
-	OPTIONAL_OutDepth
+	OPTIONAL_OutDepthConservative
 
 #if EDITOR_ALPHA2COVERAGE != 0
    ,in uint InCoverage : SV_Coverage
