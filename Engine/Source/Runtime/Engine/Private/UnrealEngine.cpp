@@ -257,11 +257,11 @@ FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
 	: bInitialized(false)
 	, DetailMode(-1)
 	, MaterialQualityLevel(EMaterialQualityLevel::Num)
-	, MaxAnisotropy(-1)
 	, MaxShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
 	, SimpleDynamicLighting(-1)
+	, MaxAnisotropy(-1)
 {
 
 }
