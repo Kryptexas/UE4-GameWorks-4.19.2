@@ -41,14 +41,14 @@ public:
 
 private:
 	/** The animation sequence this section has */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	class UAnimSequence* AnimSequence;
 
 	/** The absolute time that the animation starts playing at */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	float AnimationStartTime;
 	
 	/** The amount which this animation is time dilated by */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	float AnimationDilationFactor;
 };

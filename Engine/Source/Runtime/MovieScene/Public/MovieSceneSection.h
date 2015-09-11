@@ -189,11 +189,11 @@ public:
 
 private:
 	/** The start time of the section */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	float StartTime;
 
 	/** The end time of the section */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	float EndTime;
 
 	/** The row index that this section sits on */
