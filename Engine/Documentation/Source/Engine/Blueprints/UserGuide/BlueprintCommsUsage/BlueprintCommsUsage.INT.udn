@@ -170,7 +170,7 @@ Here are a few examples when you could use **Blueprint Casting**:
 	*	You have several lights in your level and you want them all to turn on or off when an event occurs. 
 [/EXCERPT:Castusage]
 
-Refer to [**Setting Up Blueprint Casts**](Engine\Blueprints\BP_HowTo\Casting) for a walk through of how to set one up. 
+Refer to [Setting Up Blueprint Casts](Engine\Blueprints\BP_HowTo\Casting) for a walk through of how to set one up. 
 
 
 
