@@ -716,6 +716,16 @@ public:
 		return Result;
 	}
 
+	const UProperty* GetOwnerProperty() const
+	{
+		const UProperty* Result = this;
+		for (UProperty* PropBase = dynamic_cast<UProperty*>(GetOuter()); PropBase; PropBase = dynamic_cast<UProperty*>(PropBase->GetOuter()))
+		{
+			Result = PropBase;
+		}
+		return Result;
+	}
+
 	/**
 	 * Returns this property's propertyflags
 	 */
