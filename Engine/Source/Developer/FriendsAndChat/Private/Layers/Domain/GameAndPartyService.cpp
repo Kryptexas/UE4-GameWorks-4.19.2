@@ -476,7 +476,7 @@ private:
 			// notify for further processing of join party request 
 			OnFriendsJoinParty().Broadcast(*FriendItem->GetUniqueID(), PartyInfo.ToSharedRef(), true);
 
-			AdditionalCommandline = OSSScheduler->GetPartyInterface()->MakeTokenFromJoinInfo(*PartyInfo);
+			AdditionalCommandline = TEXT("-party_joininfo_token=") + OSSScheduler->GetPartyInterface()->MakeTokenFromJoinInfo(*PartyInfo);
 		}
 		else if(FriendItem.IsValid() && FriendItem->GetGameSessionId().IsValid())
 		{
