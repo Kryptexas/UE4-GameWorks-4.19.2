@@ -1838,6 +1838,7 @@ public:
 	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
 #endif // WITH_HOT_RELOAD_CTORS
 	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
+	typedef UClass* (*StaticClassFunctionType)();
 
 	ClassConstructorType ClassConstructor;
 #if WITH_HOT_RELOAD_CTORS
@@ -2426,16 +2427,19 @@ void InternalConstructor( const FObjectInitializer& X )
 	T::__DefaultConstructor(X);
 }
 
-#if WITH_HOT_RELOAD_CTORS
+
 /**
  * Helper template to call the vtable ctor caller for a class
  */
 template<class T>
 UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
 {
+#if WITH_HOT_RELOAD_CTORS
 	return T::__VTableCtorCaller(Helper);
-}
+#else
+	return nullptr;
 #endif // WITH_HOT_RELOAD_CTORS
+}
 
 COREUOBJECT_API void InitializePrivateStaticClass(
 	class UClass* TClass_Super_StaticClass,
@@ -2451,110 +2455,33 @@ COREUOBJECT_API void InitializePrivateStaticClass(
  * @param PackageName name of the package this class will be inside
  * @param Name of the class
  * @param ReturnClass reference to pointer to result. This must be PrivateStaticClass.
- * @param RegisterNativeFunc Native function registration funcfion pointer.
+ * @param RegisterNativeFunc Native function registration function pointer.
+ * @param InSize Size of the class
+ * @param InClassFlags Class flags
+ * @param InClassCastFlags Class cast flags
+ * @param InConfigName Class config name
+ * @param InClassConstructor Class constructor function pointer
+ * @param InClassVTableHelperCtorCaller Class constructor function for vtable pointer
+ * @param InClassAddReferencedObjects Class AddReferencedObjects function pointer
+ * @param InSuperClassFn Super class function pointer
+ * @param WithinClass Within class
  * @param bIsDynamic true if the class can be constructed dynamically at runtime
  */
-template<class TClass>
-void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UClass*& ReturnClass, void (*RegisterNativeFunc)(), bool bIsDynamic = false )
-{ 
-#if WITH_HOT_RELOAD
-	if (GIsHotReload)
-	{
-		check(!bIsDynamic);
-		UPackage* Package = FindPackage(NULL, PackageName);
-		if (!Package)
-		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."),PackageName);
-			return;
-		}
-		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
-		if (ReturnClass)
-		{
-			if (ReturnClass->HotReloadPrivateStaticClass(
-				sizeof(TClass),
-				TClass::StaticClassFlags,
-				TClass::StaticClassCastFlags(),
-				TClass::StaticConfigName(),
-				(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD_CTORS
-				(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD_CTORS
-				&TClass::AddReferencedObjects,
-				TClass::Super::StaticClass(),
-				TClass::WithinClass::StaticClass()
-				))
-			{
-				// Register the class's native functions.
-				RegisterNativeFunc();
-			}
-			return;
-		}
-		else
-		{
-			UE_LOG(LogClass, Log, TEXT("Could not find existing class %s in package %s for HotReload, assuming new class"),Name,PackageName);
-		}
-	}
-#endif
-
-	if (!bIsDynamic)
-	{
-		ReturnClass = ::new (GUObjectAllocator.AllocateUObject(sizeof(UClass), ALIGNOF(UClass), true))
-			UClass
-			(
-			EC_StaticConstructor,
-			Name,
-			sizeof(TClass),
-			TClass::StaticClassFlags,
-			TClass::StaticClassCastFlags(),
-			TClass::StaticConfigName(),
-			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
-			(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD_CTORS
-			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD_CTORS
-			&TClass::AddReferencedObjects
-			);
-		check(ReturnClass);
-		InitializePrivateStaticClass(
-			TClass::Super::StaticClass(),
-			ReturnClass,
-			TClass::WithinClass::StaticClass(),
-			PackageName,
-			Name
-			);
-	}
-	else
-	{
-		ReturnClass = ::new (GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), true))
-			UDynamicClass
-			(
-			EC_StaticConstructor,
-			Name,
-			sizeof(TClass),
-			TClass::StaticClassFlags,
-			TClass::StaticClassCastFlags(),
-			TClass::StaticConfigName(),
-			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_Dynamic),
-			(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD_CTORS
-			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD_CTORS
-			&TClass::AddReferencedObjects
-			);
-		check(ReturnClass);
-		InitializePrivateStaticClass(
-			TClass::Super::StaticClass(),
-			ReturnClass,
-			TClass::WithinClass::StaticClass(),
-			PackageName,
-			Name
-			);
-	}
-
-	// Register the class's native functions.
-	RegisterNativeFunc();
-}
-
+COREUOBJECT_API void GetPrivateStaticClassBody(
+	const TCHAR* PackageName,
+	const TCHAR* Name,
+	UClass*& ReturnClass,
+	void(*RegisterNativeFunc)(),
+	uint32 InSize,
+	uint32 InClassFlags,
+	EClassCastFlags InClassCastFlags,
+	const TCHAR* InConfigName,
+	UClass::ClassConstructorType InClassConstructor,
+	UClass::ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+	UClass::ClassAddReferencedObjectsType InClassAddReferencedObjects,
+	UClass::StaticClassFunctionType InSuperClassFn,
+	UClass::StaticClassFunctionType InWithinClassFn,
+	bool bIsDynamic = false);
 
 /*-----------------------------------------------------------------------------
 	FObjectInstancingGraph.

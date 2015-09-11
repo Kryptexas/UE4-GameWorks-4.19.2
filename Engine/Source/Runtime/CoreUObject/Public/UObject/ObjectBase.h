@@ -1448,11 +1448,20 @@ public: \
 		if (!PrivateStaticClass) \
 		{ \
 			/* this could be handled with templates, but we want it external to avoid code bloat */ \
-			GetPrivateStaticClassBody<TClass>( \
+			GetPrivateStaticClassBody( \
 				Package, \
 				(TCHAR*)TEXT(#TClass) + 1 + ((StaticClassFlags & CLASS_Deprecated) ? 11 : 0), \
 				PrivateStaticClass, \
-				StaticRegisterNatives##TClass \
+				StaticRegisterNatives##TClass, \
+				sizeof(TClass), \
+				TClass::StaticClassFlags, \
+				TClass::StaticClassCastFlags(), \
+				TClass::StaticConfigName(), \
+				(UClass::ClassConstructorType)InternalConstructor<TClass>, \
+				(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>, \
+				&TClass::AddReferencedObjects, \
+				&TClass::Super::StaticClass, \
+				&TClass::WithinClass::StaticClass \
 			); \
 		} \
 		return PrivateStaticClass; \
@@ -1492,11 +1501,20 @@ public: \
 		if (!PrivateStaticClass) \
 		{ \
 			/* this could be handled with templates, but we want it external to avoid code bloat */ \
-			GetPrivateStaticClassBody<TClass>(\
+			GetPrivateStaticClassBody( \
 			Package, \
 			(TCHAR*)TEXT(#TClass) + 1 + ((StaticClassFlags & CLASS_Deprecated) ? 11 : 0), \
 			PrivateStaticClass, \
 			StaticRegisterNatives##TClass, \
+			sizeof(TClass), \
+			TClass::StaticClassFlags, \
+			TClass::StaticClassCastFlags(), \
+			TClass::StaticConfigName(), \
+			(UClass::ClassConstructorType)InternalConstructor<TClass>, \
+			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>, \
+			&TClass::AddReferencedObjects, \
+			&TClass::Super::StaticClass, \
+			&TClass::WithinClass::StaticClass, \
 			true \
 			); \
 		} \

@@ -59,7 +59,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 	}
 	else
 	{
-		// Register immediately
+		// Register immediately (don't let the function name mistake you!)
 		TClass_PrivateStaticClass->DeferredRegister(UDynamicClass::StaticClass(), PackageName, Name);
 	}
 }
@@ -4166,6 +4166,115 @@ IMPLEMENT_CORE_INTRINSIC_CLASS(UClass, UStruct,
 	}
 );
 
+void GetPrivateStaticClassBody(
+	const TCHAR* PackageName,
+	const TCHAR* Name,
+	UClass*& ReturnClass,
+	void(*RegisterNativeFunc)(),
+	uint32 InSize,
+	uint32 InClassFlags,
+	EClassCastFlags InClassCastFlags,
+	const TCHAR* InConfigName,
+	UClass::ClassConstructorType InClassConstructor,
+	UClass::ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+	UClass::ClassAddReferencedObjectsType InClassAddReferencedObjects,
+	UClass::StaticClassFunctionType InSuperClassFn,
+	UClass::StaticClassFunctionType InWithinClassFn,
+	bool bIsDynamic /*= false*/
+	)
+{
+#if WITH_HOT_RELOAD
+	if (GIsHotReload)
+	{
+		check(!bIsDynamic);
+		UPackage* Package = FindPackage(NULL, PackageName);
+		if (!Package)
+		{
+			UE_LOG(LogClass, Log, TEXT("Could not find existing package %s for HotReload."), PackageName);
+			return;
+		}
+		ReturnClass = FindObject<UClass>((UObject *)Package, Name);
+		if (ReturnClass)
+		{
+			if (ReturnClass->HotReloadPrivateStaticClass(
+				InSize,
+				InClassFlags,
+				InClassCastFlags,
+				InConfigName,
+				InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+				InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+				InClassAddReferencedObjects,
+				InSuperClassFn(),
+				InWithinClassFn()
+				))
+			{
+				// Register the class's native functions.
+				RegisterNativeFunc();
+			}
+			return;
+		}
+		else
+		{
+			UE_LOG(LogClass, Log, TEXT("Could not find existing class %s in package %s for HotReload, assuming new class"), Name, PackageName);
+		}
+	}
+#endif
+
+	if (!bIsDynamic)
+	{
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UClass), ALIGNOF(UClass), true);
+		ReturnClass = ::new (ReturnClass)
+			UClass
+			(
+			EC_StaticConstructor,
+			Name,
+			InSize,
+			InClassFlags,
+			InClassCastFlags,
+			InConfigName,
+			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
+			InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+			InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+			InClassAddReferencedObjects
+			);
+		check(ReturnClass);
+	}
+	else
+	{
+		ReturnClass = (UClass*)GUObjectAllocator.AllocateUObject(sizeof(UDynamicClass), ALIGNOF(UDynamicClass), true);
+		ReturnClass = ::new (ReturnClass)
+			UDynamicClass
+			(
+			EC_StaticConstructor,
+			Name,
+			InSize,
+			InClassFlags,
+			InClassCastFlags,
+			InConfigName,
+			EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_Dynamic),
+			InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+			InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+			InClassAddReferencedObjects
+			);
+		check(ReturnClass);
+	}
+	InitializePrivateStaticClass(
+		InSuperClassFn(),
+		ReturnClass,
+		InWithinClassFn(),
+		PackageName,
+		Name
+		);
+
+	// Register the class's native functions.
+	RegisterNativeFunc();
+}
 
 /*-----------------------------------------------------------------------------
 	UFunction.
