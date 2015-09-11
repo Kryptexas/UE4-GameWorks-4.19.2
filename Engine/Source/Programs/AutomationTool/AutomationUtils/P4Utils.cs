@@ -2637,6 +2637,25 @@ namespace AutomationTool
 			return Output;
 		}
 
+		/// <summary>
+		/// Gets the contents of a particular file in the depot and writes it to a local file without syncing it
+		/// </summary>
+		/// <param name="DepotPath">Depot path to the file (with revision/range if necessary)</param>
+		/// <param name="OutputFileName">Output file to write to</param>
+		public void PrintToFile(string DepotPath, string FileName, bool AllowSpew = true)
+		{
+			string Output;
+			if(!P4Output(out Output, "print -q -o \"" + FileName + "\" " + DepotPath, AllowSpew: AllowSpew, WithClient: false))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+			if(!Output.Trim().Contains("\n") && Output.Contains("no such file(s)"))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+		}
+
+
 		#region Utilities
 
 		private static object[] OldStyleBinaryFlags = new object[]
