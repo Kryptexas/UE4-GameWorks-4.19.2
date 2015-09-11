@@ -36,21 +36,21 @@ private:
 
 	//@todo need additional actor component/bone to attach to
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainTx:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainTy:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainTz:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainRx:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainRy:1;
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Attach")
 	uint32 bConstrainRz:1;
 };

@@ -201,10 +201,10 @@ private:
 	int32 RowIndex;
 
 	/** Toggle whether this section is active/inactive */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	uint32 bIsActive : 1;
 
 	/** Toggle to set this section to be infinite */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Section")
 	uint32 bIsInfinite : 1;
 };

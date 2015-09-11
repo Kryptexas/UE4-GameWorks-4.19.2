@@ -59,26 +59,26 @@ public:
 	
 private:
 	/** Timing Curve */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	FRichCurve TimingCurve;
 
 	/** Front Axis */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	MovieScene3DPathSection_Axis FrontAxisEnum;
 
 	/** Up Axis */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	MovieScene3DPathSection_Axis UpAxisEnum;
 
 	/** Follow Curve */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	uint32 bFollow:1;
 
 	/** Reverse Timing */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	uint32 bReverse:1;
 
 	/** Force Upright */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Path")
 	uint32 bForceUpright:1;
 };
