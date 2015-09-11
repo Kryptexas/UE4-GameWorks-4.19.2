@@ -387,14 +387,44 @@ struct FDependenciesHelper
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
 
+		{
+			// __StaticDependenciesAssets
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("#if WITH_EDITOR"));
+			Context.IncreaseIndent();
+			Context.AddLine(TEXT("static UField* __StaticCreateClass()"));
+			Context.AddLine(TEXT("{"));
+			Context.IncreaseIndent();
+			Context.AddLine(FString::Printf(TEXT("return CastChecked<UDynamicClass>(%s::StaticClass());"), *CppClassName));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("}"));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("#endif //WITH_EDITOR"));
+			Context.IncreaseIndent();
+		}
+
 		Context.AddLine(FString::Printf(TEXT("%s()"), *RegisterHelperName));
 		Context.AddLine(TEXT("{"));
 		Context.IncreaseIndent();
+
 		Context.AddLine(FString::Printf(
 			TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(TEXT(\"%s\"), &%s::__StaticDependenciesAssets);")
 			, *OriginalClass->GetName()
 			, *CppClassName
 			, *CppClassName));
+
+		{
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("#if WITH_EDITOR"));
+			Context.IncreaseIndent();
+
+			Context.AddLine(TEXT("FConvertedBlueprintsDependencies::Get().RegisterClass(&__StaticCreateClass);"));
+
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("#endif //WITH_EDITOR"));
+			Context.IncreaseIndent();
+		}
+
 		Context.DecreaseIndent();
 		Context.AddLine(TEXT("}"));
 

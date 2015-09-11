@@ -867,6 +867,11 @@ void UObject::Serialize( FArchive& Ar )
 	UObject* LoadOuter = GetOuter();
 	FName LoadName = GetFName();
 
+	if (Ar.IsLoading() && Cast<UDynamicClass>(ObjClass) && ObjClass->GetName().Contains(TEXT("RRRActor_C")))
+	{
+		int k = 0; k++;
+	}
+
 	// Make sure this object's class's data is loaded.
 	if(ObjClass->HasAnyFlags(RF_NeedLoad) )
 	{

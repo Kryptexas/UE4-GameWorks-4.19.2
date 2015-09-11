@@ -1663,7 +1663,8 @@ FReplaceConvertedAssetManager::FReplaceConvertedAssetManager()
 	FModuleManager::Get().OnModulesChanged().AddStatic(&FReplaceConvertedAssetManager::OnModulesChanged);
 
 	// FOR DEVELOPMENT/TEST ONLY:
-	// SetEnabled(true);
+	const FBoolConfigValueHelper LoadNativeConvertedBPClass(TEXT("Kismet"), TEXT("bLoadNativeConvertedBPClassInEditor"), GEngineIni);
+	SetEnabled(LoadNativeConvertedBPClass);
 }
 
 void FReplaceConvertedAssetManager::OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange)
@@ -1696,6 +1697,11 @@ UPackage* FReplaceConvertedAssetManager::FindPackageReplacement(const FString& O
 	return nullptr;
 }
 
+void FReplaceConvertedAssetManager::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(ReplaceMap);
+}
+
 void FReplaceConvertedAssetManager::GatherOriginalPathsOfConvertedAssets()
 {
 	if (!IsEnabled())
@@ -1720,9 +1726,10 @@ void FReplaceConvertedAssetManager::GatherOriginalPathsOfConvertedAssets()
 		}
 	};
 
-	for (UClass* LocalClass : TObjectRange<UClass>())
+	for (auto FuncIter : FConvertedBlueprintsDependencies::Get().CreateClassFunctions)
 	{
-		FillMap(LocalClass);
+		auto DynamicClass = (*FuncIter)();
+		FillMap(DynamicClass);
 	}
 
 	for (UScriptStruct* LocalScriptStruct : TObjectRange<UScriptStruct>())

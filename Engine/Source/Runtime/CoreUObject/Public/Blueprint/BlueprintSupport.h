@@ -69,7 +69,7 @@ private:
 * Native entities (generated from BP items) have "ReplaceConverted" with original object path.
 * This path is used to fix linker.
 */
-struct COREUOBJECT_API FReplaceConvertedAssetManager
+struct COREUOBJECT_API FReplaceConvertedAssetManager : public FGCObject
 {
 private:
 	TMap<FString, UObject*> ReplaceMap;
@@ -96,6 +96,8 @@ public:
 	{
 		return bIsEnabled;
 	}
+
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 	UPackage* FindPackageReplacement(const FString& OriginalPathName) const;
 
@@ -168,6 +170,19 @@ private:
 	TMap<FName, GetDependenciesNamesFunc> ClassNameToGetter;
 
 public:
+
+#if WITH_EDITOR
+
+	typedef UField*(*StaticCreateClassFunc)();
+
+	TArray<StaticCreateClassFunc> CreateClassFunctions;
+
+	void RegisterClass(StaticCreateClassFunc CreateClass)
+	{
+		CreateClassFunctions.Add(CreateClass);
+	}
+
+#endif //WITH_EDITOR
 
 	static FConvertedBlueprintsDependencies& Get();
 
