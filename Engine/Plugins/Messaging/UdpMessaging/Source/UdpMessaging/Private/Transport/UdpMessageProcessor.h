@@ -100,10 +100,10 @@ public:
 	 * @param InNodeId The local node identifier (used to detect the unicast endpoint).
 	 * @param InMulticastEndpoint The multicast group endpoint to transport messages to.
 	 */
-	FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint );
+	FUdpMessageProcessor(FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint);
 
-	/** Destructor. */
-	~FUdpMessageProcessor();
+	/** Virtual destructor. */
+	virtual ~FUdpMessageProcessor();
 
 public:
 
@@ -114,7 +114,7 @@ public:
 	 * @param Sender The sender's network endpoint.
 	 * @return true if the segment was queued up, false otherwise.
 	 */
-	bool EnqueueInboundSegment( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );
+	bool EnqueueInboundSegment(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
 
 	/**
 	 * Queues up an outbound message.
@@ -123,7 +123,7 @@ public:
 	 * @param Recipient The recipient's IPv4 endpoint.
 	 * @return true if the message was queued up, false otherwise.
 	 */
-	bool EnqueueOutboundMessage( const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient );
+	bool EnqueueOutboundMessage(const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient);
 
 public:
 
@@ -171,7 +171,7 @@ protected:
 	 * @param NodeInfo Details for the node to send the acknowledgment to.
 	 * @todo gmp: batch multiple of these into a single message
 	 */
-	void AcknowledgeReceipt( int32 MessageId, const FNodeInfo& NodeInfo );
+	void AcknowledgeReceipt(int32 MessageId, const FNodeInfo& NodeInfo);
 
 	/**
 	 * Calculates the time span that the thread should wait for work.
@@ -194,7 +194,7 @@ protected:
 	 * @param Sender The segment sender.
 	 * @return true if the segment passed the filter, false otherwise.
 	 */
-	bool FilterSegment( const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender );
+	bool FilterSegment(const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender);
 
 	/**
 	 * Processes an Abort segment.
@@ -202,7 +202,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessAbortSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessAbortSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Success segment.
@@ -210,7 +210,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessAcknowledgeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessAcknowledgeSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Bye segment.
@@ -218,7 +218,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessByeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessByeSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Ping segment.
@@ -226,7 +226,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessDataSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessDataSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Hello segment.
@@ -234,7 +234,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessHelloSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessHelloSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Ping segment.
@@ -242,7 +242,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessRetransmitSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessRetransmitSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes a Timeout segment.
@@ -250,7 +250,7 @@ protected:
 	 * @param Segment The segment to process.
 	 * @param NodeInfo Details for the node that sent the segment.
 	 */
-	void ProcessTimeoutSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo );
+	void ProcessTimeoutSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo);
 
 	/**
 	 * Processes an unknown segment type.
@@ -259,14 +259,14 @@ protected:
 	 * @param NodeInfo Details for the node that sent the segment.
 	 * @param SegmentType The segment type.
 	 */
-	void ProcessUnknownSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo, uint8 SegmentType );
+	void ProcessUnknownSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo, uint8 SegmentType);
 
 	/**
 	 * Removes the specified node from the list of known remote endpoints.
 	 *
 	 * @param NodeId The identifier of the node to remove.
 	 */
-	void RemoveKnownNode( const FGuid& NodeId );
+	void RemoveKnownNode(const FGuid& NodeId);
 
 	/** Updates all known remote nodes. */
 	void UpdateKnownNodes();
@@ -276,7 +276,7 @@ protected:
 	 *
 	 * @param NodeInfo Details for the node to update.
 	 */
-	void UpdateSegmenters( FNodeInfo& NodeInfo );
+	void UpdateSegmenters(FNodeInfo& NodeInfo);
 
 	/** Updates all static remote nodes. */
 	void UpdateStaticNodes();

@@ -40,8 +40,8 @@ public:
 	 */
 	FUdpMessageTunnel( const FIPv4Endpoint& InUnicastEndpoint, const FIPv4Endpoint& InMulticastEndpoint );
 
-	/** Destructor. */
-	~FUdpMessageTunnel();
+	/** Virtual destructor. */
+	virtual ~FUdpMessageTunnel();
 
 public:
 

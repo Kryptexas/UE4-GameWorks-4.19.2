@@ -28,8 +28,8 @@ public:
 	 */
 	FUdpMessageTunnelConnection( FSocket* InSocket, const FIPv4Endpoint& InRemoteEndpoint );
 
-	/** Destructor. */
-	~FUdpMessageTunnelConnection();
+	/** Virtual destructor. */
+	virtual ~FUdpMessageTunnelConnection();
 
 public:
 
