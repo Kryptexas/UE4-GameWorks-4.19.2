@@ -10,7 +10,7 @@ Description:Expressions that output a vector value, such as a position or normal
 [EXCERPT:ActorPositionWS]
 ## ActorPositionWS
 
-ActorPositionWS outputs Vector3 (RGB) data representing the location of the object with this material on it in world-space. 
+**ActorPositionWS** outputs Vector3 (RGB) data representing the location of the object with this material on it in world-space. 
 
 ![](ActorPositionColors.png)(w:434) ![](ActorPositionNetwork.png)(w:490)
 
@@ -23,7 +23,7 @@ In this example, you can see that ActorPositionWS is being fed directly into the
 ## CameraPositionWS
 
 
-The CameraWorldPosition expression outputs a three-channel vector value representing the camera's position in world space.
+The **CameraWorldPosition** expression outputs a three-channel vector value representing the camera's position in world space.
 
 The preview sphere changes color as the camera rotates.
 
@@ -33,7 +33,7 @@ The preview sphere changes color as the camera rotates.
 
 ## CameraVectorWS
 
-The CameraVector expression outputs a three-channel vector value representing the direction of the camera with respect to the surface, in other words, the direction from the pixel to the camera.
+The **CameraVector** expression outputs a three-channel vector value representing the direction of the camera with respect to the surface, in other words, the direction from the pixel to the camera.
 
 **Example Usage:** CameraVector is often used to fake environment maps by connecting the CameraVector to a ComponentMask and use the x and y channels of the CameraVector as texture coordinates.
 
@@ -71,7 +71,7 @@ The LightVector expression is a three-channel vector value representing the dire
 
 ## Object Bounds
 
-The Object Bounds expression outputs the size of the object in each axis. If used as color, the X, Y, and Z axes correspond to R, G, and B, respectively. 
+The **Object Bounds** expression outputs the size of the object in each axis. If used as color, the X, Y, and Z axes correspond to R, G, and B, respectively. 
 
 ![](ObjectBoundsScene.png)(w:411) ![](ObjectBoundsNetwork.png)
 
@@ -81,7 +81,7 @@ In the example above, you can see that the colors of the objects correspond to t
 ## ObjectOrientation
 
 
-The ObjectOrientation expression outputs the world-space up vector of the object. In other words, the object's local positive z-axis is pointing in this direction.
+The **ObjectOrientation** expression outputs the world-space up vector of the object. In other words, the object's local positive z-axis is pointing in this direction.
 
 ![ObjectOrientationExample.png](ObjectOrientationExample.png)
 [/EXCERPT:ObjectOrientation]
@@ -91,7 +91,7 @@ The ObjectOrientation expression outputs the world-space up vector of the object
 ## ObjectPositionWS
 
 
-The ObjectPositionWS expression outputs the world-space center position of the object's bounds.  For example, this is useful for creating spherical lighting for foliage.
+The **ObjectPositionWS** expression outputs the world-space center position of the object's bounds.  For example, this is useful for creating spherical lighting for foliage.
 
 
 ![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
@@ -128,7 +128,7 @@ The ReflectionVectorWS expression is similar in spirit to [CameraVectorWS](#Came
 ## VertexNormalWS
 
 
-The VertexNormalWS expression outputs the world-space vertex normal. It can only be used in material inputs that are executed in the vertex shader, like WorldPositionOffset.  This is useful for making a mesh grow or shrink.  Note that offsetting position along the normal will cause the geometry to split apart along UV seams.
+The **VertexNormalWS** expression outputs the world-space vertex normal. It can only be used in material inputs that are executed in the vertex shader, like WorldPositionOffset.  This is useful for making a mesh grow or shrink.  Note that offsetting position along the normal will cause the geometry to split apart along UV seams.
 
 [REGION:fullwidth]
 ![VertexNormalWSExample.png](VertexNormalWSExample.png)
