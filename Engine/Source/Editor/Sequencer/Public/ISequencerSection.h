@@ -118,4 +118,20 @@ public:
 	 * @param MenuBuilder	The menu builder to change
 	 */
 	virtual void BuildSectionContextMenu(FMenuBuilder& MenuBuilder) {}
+
+	/**
+	 * Called when the user requests that a category from this section be deleted. 
+	 *
+	 * @param CategoryNamePath An array of category names which is the path to the category to be deleted.
+	 * @returns Whether or not the category was deleted.
+	 */
+	virtual bool RequestDeleteCategory( const TArray<FName>& CategoryNamePath ) { return false; }
+
+	/**
+	* Called when the user requests that a key area from this section be deleted.
+	*
+	* @param KeyAreaNamePath An array of names representing the path of to the key area to delete, starting with any categories which contain the key area.
+	* @returns Whether or not the key area was deleted.
+	*/
+	virtual bool RequestDeleteKeyArea( const TArray<FName>& KeyAreaNamePath ) { return false; }
 };

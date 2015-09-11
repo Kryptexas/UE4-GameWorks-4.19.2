@@ -1445,6 +1445,29 @@ bool FSequencer::OnHandleAssetDropped(UObject* DroppedAsset, const FGuid& Target
 	return bWasConsumed;
 }
 
+// Takes a display node and traverses it's parents to find the nearest track node if any.  Also collects the names of the nodes which make
+// up the path from the track node to the display node being checked.  The name path includes the name of the node being checked, but not
+// the name of the track node.
+void GetParentTrackNodeAndNamePath(TSharedRef<const FSequencerDisplayNode> DisplayNode, TSharedPtr<FTrackNode>& OutParentTrack, TArray<FName>& OutNamePath )
+{
+	TArray<FName> PathToTrack;
+	PathToTrack.Add( DisplayNode->GetNodeName() );
+	TSharedPtr<FSequencerDisplayNode> CurrentParent = DisplayNode->GetParent();
+	while ( CurrentParent.IsValid() && CurrentParent->GetType() != ESequencerNode::Track )
+	{
+		PathToTrack.Add( CurrentParent->GetNodeName() );
+		CurrentParent = CurrentParent->GetParent();
+	}
+	if ( CurrentParent.IsValid() )
+	{
+		OutParentTrack = StaticCastSharedPtr<FTrackNode>( CurrentParent );
+		for ( int32 i = PathToTrack.Num() - 1; i >= 0; i-- )
+		{
+			OutNamePath.Add( PathToTrack[i] );
+		}
+	}
+}
+
 void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& NodeToBeDeleted )
 {
 	bool bAnySpawnablesRemoved = false;
@@ -1503,8 +1526,33 @@ void FSequencer::OnRequestNodeDeleted( TSharedRef<const FSequencerDisplayNode>& 
 		
 		bAnythingRemoved = true;
 	}
+	else if ( NodeToBeDeleted->GetType() == ESequencerNode::Category )
+	{
+		TSharedPtr<FTrackNode> ParentTrackNode;
+		TArray<FName> PathFromTrack;
+		GetParentTrackNodeAndNamePath(NodeToBeDeleted, ParentTrackNode, PathFromTrack);
+		if ( ParentTrackNode.IsValid() )
+		{
+			for ( TSharedRef<ISequencerSection> Section : ParentTrackNode->GetSections() )
+			{
+				bAnythingRemoved |= Section->RequestDeleteCategory( PathFromTrack );
+			}
+		}
+	}
+	else if ( NodeToBeDeleted->GetType() == ESequencerNode::KeyArea )
+	{
+		TSharedPtr<FTrackNode> ParentTrackNode;
+		TArray<FName> PathFromTrack;
+		GetParentTrackNodeAndNamePath( NodeToBeDeleted, ParentTrackNode, PathFromTrack );
+		if ( ParentTrackNode.IsValid() )
+		{
+			for ( TSharedRef<ISequencerSection> Section : ParentTrackNode->GetSections() )
+			{
+				bAnythingRemoved |= Section->RequestDeleteKeyArea( PathFromTrack );
+			}
+		}
+	}
 
-	
 	if( bAnythingRemoved )
 	{
 		NotifyMovieSceneDataChanged();
@@ -1575,6 +1623,7 @@ void FSequencer::OnPreSaveWorld(uint32 SaveFlags, class UWorld* World)
 void FSequencer::OnPostSaveWorld(uint32 SaveFlags, class UWorld* World, bool bSuccess)
 {
 	// Reset the time after saving so that an update will be triggered to put objects back to their animated state.
+	RootMovieSceneSequenceInstance->RefreshInstance(*this);
 	SetGlobalTime(GetGlobalTime());
 }
 

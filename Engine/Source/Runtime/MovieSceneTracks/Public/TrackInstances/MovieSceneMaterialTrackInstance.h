@@ -47,7 +47,7 @@ private:
 	TMap<FObjectKey, TWeakObjectPtr<UMaterialInterface>> DynamicMaterialToOriginalMaterialMap;
 
 	/** A list of dynamic material instances which need to be updated. */
-	TArray<UMaterialInstanceDynamic*> DynamicMaterialInstances;
+	TArray<TWeakObjectPtr<UMaterialInstanceDynamic>> DynamicMaterialInstances;
 };
 
 /** A material track instance specialized for component materials. */

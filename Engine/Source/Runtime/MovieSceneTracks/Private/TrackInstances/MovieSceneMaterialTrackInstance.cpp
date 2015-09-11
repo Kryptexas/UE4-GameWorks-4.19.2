@@ -53,13 +53,27 @@ void FMovieSceneMaterialTrackInstance::RestoreState(const TArray<UObject*>& Runt
 void FMovieSceneMaterialTrackInstance::Update( float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player ) 
 {
 	TArray<FScalarParameterNameAndValue> ScalarValues;
-	MaterialTrack->Eval(Position, ScalarValues);
+	TArray<FVectorParameterNameAndValue> VectorValues;
+	MaterialTrack->Eval( Position, ScalarValues, VectorValues );
 
-	for ( UMaterialInstanceDynamic* DynamicMaterialInstance : DynamicMaterialInstances )
+	// Iterate from back to front to allow for fast remove of invalid weak pointers.
+	for ( int32 i = DynamicMaterialInstances.Num() - 1; i >= 0; i--)
 	{
-		for ( const FScalarParameterNameAndValue& ScalarValue : ScalarValues )
+		if ( DynamicMaterialInstances[i].IsValid() )
 		{
-			DynamicMaterialInstance->SetScalarParameterValue(ScalarValue.ParameterName, ScalarValue.Value);
+			UMaterialInstanceDynamic* DynamicMaterialInstance = DynamicMaterialInstances[i].Get();
+			for ( const FScalarParameterNameAndValue& ScalarValue : ScalarValues )
+			{
+				DynamicMaterialInstance->SetScalarParameterValue( ScalarValue.ParameterName, ScalarValue.Value );
+			}
+			for ( const FVectorParameterNameAndValue& VectorValue : VectorValues )
+			{
+				DynamicMaterialInstance->SetVectorParameterValue( VectorValue.ParameterName, VectorValue.Value );
+			}
+		}
+		else
+		{
+			DynamicMaterialInstances.RemoveAtSwap(i);
 		}
 	}
 }
@@ -67,7 +81,6 @@ void FMovieSceneMaterialTrackInstance::Update( float Position, float LastPositio
 void FMovieSceneMaterialTrackInstance::RefreshInstance( const TArray<UObject*>& RuntimeObjects, class IMovieScenePlayer& Player )
 {
 	DynamicMaterialInstances.Empty();
-	DynamicMaterialToOriginalMaterialMap.Empty();
 	for ( UObject* Object : RuntimeObjects )
 	{
 		UMaterialInterface* Material = GetMaterialForObject( Object );
@@ -86,6 +99,7 @@ void FMovieSceneMaterialTrackInstance::ClearInstance( IMovieScenePlayer& Player 
 {
 	DynamicMaterialInstances.Empty();
 	DynamicMaterialToOriginalMaterialMap.Empty();
+	RuntimeObjectToOriginalMaterialMap.Empty();
 }
 
 FMovieSceneComponentMaterialTrackInstance::FMovieSceneComponentMaterialTrackInstance( UMovieSceneComponentMaterialTrack& InMaterialTrack )

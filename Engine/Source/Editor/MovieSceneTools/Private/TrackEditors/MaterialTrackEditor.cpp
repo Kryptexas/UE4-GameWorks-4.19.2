@@ -52,6 +52,23 @@ TSharedPtr<SWidget> FMaterialTrackEditor::BuildOutlinerEditWidget( const FGuid& 
 		];
 }
 
+struct FParameterNameAndAction
+{
+	FName ParameterName;
+	FUIAction Action;
+
+	FParameterNameAndAction( FName InParameterName, FUIAction InAction )
+	{
+		ParameterName = InParameterName;
+		Action = InAction;
+	}
+
+	bool operator<(FParameterNameAndAction const& Other) const
+	{
+		return ParameterName < Other.ParameterName;
+	}
+};
+
 TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
 	FMenuBuilder AddParameterMenuBuilder( true, nullptr );
@@ -59,14 +76,35 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 	UMaterial* Material = GetMaterialForTrack( ObjectBinding, MaterialTrack );
 	if ( Material != nullptr )
 	{
+		TArray<FParameterNameAndAction> ParameterNamesAndActions;
+
+		// Collect scalar parameters.
 		TArray<FName> ScalarParameterNames;
 		TArray<FGuid> ScalarParmeterGuids;
 		Material->GetAllScalarParameterNames( ScalarParameterNames, ScalarParmeterGuids );
-
 		for ( const FName& ScalarParameterName : ScalarParameterNames )
 		{
-			FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddParameterSection, ObjectBinding, MaterialTrack, ScalarParameterName ) );
-			AddParameterMenuBuilder.AddMenuEntry( FText::FromName( ScalarParameterName ), FText(), FSlateIcon(), AddParameterMenuAction );
+			FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddScalarParameter, ObjectBinding, MaterialTrack, ScalarParameterName ) );
+			FParameterNameAndAction NameAndAction( ScalarParameterName, AddParameterMenuAction );
+			ParameterNamesAndActions.Add(NameAndAction);
+		}
+
+		// Collect vector parameters.
+		TArray<FName> VectorParameterNames;
+		TArray<FGuid> VectorParmeterGuids;
+		Material->GetAllVectorParameterNames( VectorParameterNames, VectorParmeterGuids );
+		for ( const FName& VectorParameterName : VectorParameterNames )
+		{
+			FUIAction AddParameterMenuAction( FExecuteAction::CreateSP( this, &FMaterialTrackEditor::AddVectorParameter, ObjectBinding, MaterialTrack, VectorParameterName ) );
+			FParameterNameAndAction NameAndAction( VectorParameterName, AddParameterMenuAction );
+			ParameterNamesAndActions.Add( NameAndAction );
+		}
+
+		// Sort and generate menu.
+		ParameterNamesAndActions.Sort();
+		for ( FParameterNameAndAction NameAndAction : ParameterNamesAndActions )
+		{
+			AddParameterMenuBuilder.AddMenuEntry( FText::FromName( NameAndAction.ParameterName ), FText(), FSlateIcon(), NameAndAction.Action );
 		}
 	}
 
@@ -95,7 +133,7 @@ UMaterial* FMaterialTrackEditor::GetMaterialForTrack( FGuid ObjectBinding, UMovi
 	return nullptr;
 }
 
-void FMaterialTrackEditor::AddParameterSection( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
+void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
 {
 	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
 	float KeyTime = GetTimeForKey( MovieSceneSequence );
@@ -103,9 +141,36 @@ void FMaterialTrackEditor::AddParameterSection( FGuid ObjectBinding, UMovieScene
 	UMaterial* Material = GetMaterialForTrack(ObjectBinding, MaterialTrack);
 	if (Material != nullptr)
 	{
+		const FScopedTransaction Transaction( LOCTEXT( "AddScalarParameter", "Add scalar parameter" ) );
 		float ParameterValue;
 		Material->GetScalarParameterValue(ParameterName, ParameterValue);
+		MaterialTrack->Modify();
+		for ( UMovieSceneSection* Section : MaterialTrack->GetAllSections() )
+		{
+			Section->Modify();
+		}
 		MaterialTrack->AddScalarParameterKey(ParameterName, KeyTime, ParameterValue);
+	}
+	NotifyMovieSceneDataChanged();
+}
+
+void FMaterialTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
+{
+	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
+	float KeyTime = GetTimeForKey( MovieSceneSequence );
+
+	UMaterial* Material = GetMaterialForTrack( ObjectBinding, MaterialTrack );
+	if ( Material != nullptr )
+	{
+		const FScopedTransaction Transaction( LOCTEXT( "AddVectorParameter", "Add vector parameter" ) );
+		FLinearColor ParameterValue;
+		Material->GetVectorParameterValue( ParameterName, ParameterValue );
+		MaterialTrack->Modify();
+		for ( UMovieSceneSection* Section : MaterialTrack->GetAllSections() )
+		{
+			Section->Modify();
+		}
+		MaterialTrack->AddVectorParameterKey( ParameterName, KeyTime, ParameterValue );
 	}
 	NotifyMovieSceneDataChanged();
 }

@@ -25,6 +25,25 @@ struct FScalarParameterNameAndValue
 };
 
 /**
+* Structure representing the animated value of a vector parameter.
+*/
+struct FVectorParameterNameAndValue
+{
+	/** Creates a new FVectorParameterAndValue with a parameter name and a value. */
+	FVectorParameterNameAndValue( FName InParameterName, FLinearColor InValue )
+	{
+		ParameterName = InParameterName;
+		Value = InValue;
+	}
+
+	/** The name of the vector parameter. */
+	FName ParameterName;
+
+	/** The animated value of the vector parameter. */
+	FLinearColor Value;
+};
+
+/**
  * Handles manipulation of material parameters in a movie scene.
  */
 UCLASS( MinimalAPI )
@@ -54,11 +73,20 @@ public:
 	void MOVIESCENETRACKS_API AddScalarParameterKey( FName ParameterName, float Position, float Value );
 
 	/**
+	* Adds a Vector parameter key to the track.
+	* @param ParameterName The name of the parameter to add a key for.
+	* @param Time The time to add the new key.
+	* @param The value for the new key.
+	*/
+	void MOVIESCENETRACKS_API AddVectorParameterKey( FName ParameterName, float Position, FLinearColor Value );
+
+	/**
 	 * Gets the animated values for this track.
 	 * @param Position The playback position to use for evaluation.
 	 * @param OutScalarValues An array of FScalarParameterNameAndValue objects representing each animated scalar parameter and it's animated value.
+	 * @param OutVectorValues An array of FVectorParameterNameAndValue objects representing each animated vector parameter and it's animated value.
 	 */
-	void Eval( float Position, TArray<FScalarParameterNameAndValue>& OutScalarValues ) const;
+	void Eval( float Position, TArray<FScalarParameterNameAndValue>& OutScalarValues, TArray<FVectorParameterNameAndValue>& OutVectorValues ) const;
 
 private:
 	/** The sections owned by this track .*/

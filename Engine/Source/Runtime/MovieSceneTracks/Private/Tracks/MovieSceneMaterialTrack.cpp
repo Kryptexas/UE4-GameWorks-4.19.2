@@ -71,7 +71,20 @@ void UMovieSceneMaterialTrack::AddScalarParameterKey( FName ParameterName, float
 	NearestSection->AddScalarParameterKey(ParameterName, Time, Value);
 }
 
-void UMovieSceneMaterialTrack::Eval( float Position, TArray<FScalarParameterNameAndValue>& OutScalarValues ) const
+void UMovieSceneMaterialTrack::AddVectorParameterKey( FName ParameterName, float Time, FLinearColor Value )
+{
+	UMovieSceneMaterialParameterSection* NearestSection = Cast<UMovieSceneMaterialParameterSection>( MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time ) );
+	if ( NearestSection == nullptr )
+	{
+		NearestSection = Cast<UMovieSceneMaterialParameterSection>( CreateNewSection() );
+		NearestSection->SetStartTime( Time );
+		NearestSection->SetEndTime( Time );
+		Sections.Add( NearestSection );
+	}
+	NearestSection->AddVectorParameterKey( ParameterName, Time, Value );
+}
+
+void UMovieSceneMaterialTrack::Eval( float Position, TArray<FScalarParameterNameAndValue>& OutScalarValues, TArray<FVectorParameterNameAndValue>& OutVectorValues ) const
 {
 	for ( UMovieSceneSection* Section : Sections )
 	{
@@ -81,6 +94,14 @@ void UMovieSceneMaterialTrack::Eval( float Position, TArray<FScalarParameterName
 			for ( const FScalarParameterNameAndCurve& ScalarParameterNameAndCurve : *MaterialParameterSection->GetScalarParameterNamesAndCurves() )
 			{
 				OutScalarValues.Add( FScalarParameterNameAndValue( ScalarParameterNameAndCurve.ParameterName, ScalarParameterNameAndCurve.ParameterCurve.Eval( Position ) ) );
+			}
+			for ( const FVectorParameterNameAndCurves& VectorParameterNameAndCurves : *MaterialParameterSection->GetVectorParameterNamesAndCurves() )
+			{
+				OutVectorValues.Add( FVectorParameterNameAndValue( VectorParameterNameAndCurves.ParameterName, FLinearColor(
+					VectorParameterNameAndCurves.RedCurve.Eval( Position ),
+					VectorParameterNameAndCurves.GreenCurve.Eval( Position ),
+					VectorParameterNameAndCurves.BlueCurve.Eval( Position ),
+					VectorParameterNameAndCurves.AlphaCurve.Eval( Position ) ) ) );
 			}
 		}
 	}

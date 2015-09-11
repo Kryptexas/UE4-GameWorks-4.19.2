@@ -29,12 +29,19 @@ private:
 	/** Gets a material for a specific object binding and track */
 	UMaterial* GetMaterialForTrack( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack );
 
-	/** Adds a parameter section and initial key to a material track.
+	/** Adds a scalar parameter and initial key to a material track.
 	 * @param ObjectBinding The object binding which owns the material track.
 	 * @param MaterialTrack The track to Add the section to.
 	 * @param ParameterName The name of the parameter to add an initial key for.
 	 */
-	void AddParameterSection( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName );
+	void AddScalarParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName );
+
+	/** Adds a vector parameter and initial key to a material track.
+	* @param ObjectBinding The object binding which owns the material track.
+	* @param MaterialTrack The track to Add the section to.
+	* @param ParameterName The name of the parameter to add an initial key for.
+	*/
+	void AddVectorParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName );
 };
 
 /**

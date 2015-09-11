@@ -87,7 +87,11 @@ void FSequencerNodeTree::Update()
 			{
 				return false;
 			}
-			return A->GetDisplayName().ToString() < B->GetDisplayName().ToString();
+			if ( A->GetType() == ESequencerNode::Object && B->GetType() == ESequencerNode::Object )
+			{
+				return A->GetDisplayName().ToString() < B->GetDisplayName().ToString();
+			}
+			return 0;
 		}
 	};
 

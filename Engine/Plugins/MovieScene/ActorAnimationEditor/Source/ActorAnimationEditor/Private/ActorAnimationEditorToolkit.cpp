@@ -12,6 +12,7 @@
 #include "MovieSceneBinding.h"
 #include "MovieScene.h"
 #include "MovieSceneMaterialTrack.h"
+#include "ScopedTransaction.h"
 
 
 #define LOCTEXT_NAMESPACE "ActorAnimationEditor"
@@ -194,9 +195,14 @@ void FActorAnimationEditorToolkit::HandleAddComponentMaterialActionExecute( UPri
 			}
 			if ( bHasMaterialTrack == false )
 			{
-				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>(
-					Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene()->AddTrack( UMovieSceneComponentMaterialTrack::StaticClass(), ObjectHandle));
-				MaterialTrack->SetMaterialIndex(MaterialIndex);
+				const FScopedTransaction Transaction( LOCTEXT( "AddComponentMaterialTrack", "Add component material track" ) );
+
+				UMovieScene* FocusedMovieScene = Sequencer->GetFocusedMovieSceneSequence()->GetMovieScene();
+				FocusedMovieScene->Modify();
+				UMovieSceneComponentMaterialTrack* MaterialTrack = Cast<UMovieSceneComponentMaterialTrack>( FocusedMovieScene->AddTrack( UMovieSceneComponentMaterialTrack::StaticClass(), ObjectHandle ) );
+				MaterialTrack->Modify();
+				MaterialTrack->SetMaterialIndex( MaterialIndex );
+				
 				Sequencer->NotifyMovieSceneDataChanged();
 			}
 		}

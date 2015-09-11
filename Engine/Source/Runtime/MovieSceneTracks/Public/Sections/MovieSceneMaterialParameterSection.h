@@ -13,7 +13,10 @@ struct FScalarParameterNameAndCurve
 {
 	GENERATED_USTRUCT_BODY()
 
-	FScalarParameterNameAndCurve() { }
+	FScalarParameterNameAndCurve()
+	{
+		Index = 0;
+	}
 
 	/** Creates a new FScalarParameterNameAndCurve for a specific scalar parameter. */
 	FScalarParameterNameAndCurve( FName InParameterName );
@@ -22,9 +25,52 @@ struct FScalarParameterNameAndCurve
 	UPROPERTY()
 	FName ParameterName;
 
+	UPROPERTY()
+	int32 Index;
+
 	/** The curve which contains the animation data for the scalar parameter. */
 	UPROPERTY()
 	FRichCurve ParameterCurve;
+};
+
+/**
+* Structure representing an animated vector parameter and it's associated animation curve.
+*/
+USTRUCT()
+struct FVectorParameterNameAndCurves
+{
+	GENERATED_USTRUCT_BODY()
+
+	FVectorParameterNameAndCurves() 
+	{
+		Index = 0;
+	}
+
+	/** Creates a new FVectorParameterNameAndCurve for a specific vector parameter. */
+	FVectorParameterNameAndCurves( FName InParameterName );
+
+	/** The name of the vector parameter which is being animated. */
+	UPROPERTY()
+	FName ParameterName;
+
+	UPROPERTY()
+	int32 Index;
+
+	/** The curve which contains the animation data for the red component of the vector parameter. */
+	UPROPERTY()
+	FRichCurve RedCurve;
+
+	/** The curve which contains the animation data for the green component of the vector parameter. */
+	UPROPERTY()
+	FRichCurve GreenCurve;
+
+	/** The curve which contains the animation data for the blue component of the vector parameter. */
+	UPROPERTY()
+	FRichCurve BlueCurve;
+
+	/** The curve which contains the animation data for the alpha component of the vector parameter. */
+	UPROPERTY()
+	FRichCurve AlphaCurve;
 };
 
 /**
@@ -39,18 +85,44 @@ public:
 	/** Adds a a key for a specific scalar parameter at the specified time with the specified value. */
 	void AddScalarParameterKey(FName InParameterName, float InTime, float InValue);
 
+	/** Adds a a key for a specific vector parameter at the specified time with the specified value. */
+	void AddVectorParameterKey( FName InParameterName, float InTime, FLinearColor InValue );
+
+	/** 
+	 * Removes a scalar parameter from this section. 
+	 * 
+	 * @param InParameterName The name of the scalar parameter to remove.
+	 * @returns True if a parameter with that name was found and removed, otherwise false.
+	 */
+	MOVIESCENETRACKS_API bool RemoveScalarParameter( FName InParameterName );
+
+	/**
+	* Removes a vector parameter from this section.
+	*
+	* @param InParameterName The name of the vector parameter to remove.
+	* @returns True if a parameter with that name was found and removed, otherwise false.
+	*/
+	MOVIESCENETRACKS_API bool RemoveVectorParameter( FName InParameterName );
+
 	/** Gets the animated scalar parameters and their associated curves. */
 	MOVIESCENETRACKS_API TArray<FScalarParameterNameAndCurve>* GetScalarParameterNamesAndCurves();
 
+	/** Gets the animated scalar parameters and their associated curves. */
+	MOVIESCENETRACKS_API TArray<FVectorParameterNameAndCurves>* GetVectorParameterNamesAndCurves();
+
 private:
-	/** Gets a curve for a specific scalar parameter name. */
-	FRichCurve* GetScalarParameterCurve( FName InParameterName );
+	void UpdateParameterIndicesFromRemoval(int32 RemovedIndex);
 
 private:
 	/**
 	 * The scalar parameter names and their associated curves.
-	 * NOTE: This isn't stored in a map since we want order added preserved and random access doesn't need to be fast.
 	 */
 	UPROPERTY()
 	TArray<FScalarParameterNameAndCurve> ScalarParameterNamesAndCurves;
+
+	/**
+	* The vector parameter names and their associated curves.
+	*/
+	UPROPERTY()
+	TArray<FVectorParameterNameAndCurves> VectorParameterNamesAndCurves;
 };
