@@ -10,9 +10,17 @@
 class FPhysScene;
 class USkeletalMeshComponent;
 
-struct FClothManagerTickFunction : public FTickFunction
+/** Determines when prepare cloth work will be done in relation the rigid body simulation */
+enum class PrepareClothSchedule
 {
-	class FClothManager* Target;
+	IgnorePhysics = 0,	//Do not wait for rigid body sim
+	WaitOnPhysics,	//Wait for rigid body sim (e.g. ragdolls with cloth)
+	MAX
+};
+
+struct FPrepareClothTickFunction : public FTickFunction
+{
+	class FClothManagerData* Target;
 
 	// FTickFunction interface
 	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
@@ -20,26 +28,41 @@ struct FClothManagerTickFunction : public FTickFunction
 	// End of FTickFunction interface
 };
 
+/** Break the data into class since we have multiple passes for different scheduling purposes */
+class FClothManagerData
+{
+public:
+	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+	FPrepareClothTickFunction TickFunction;
+	FThreadSafeBool IsPreparingCloth;
+
+	/** Go through all SkeletalMeshComponents registered for work this frame and call the solver as needed*/
+	void PrepareCloth(float DeltaTime);
+};
+
 
 class FClothManager
 {
 public:
 
-	FClothManager(UWorld* AssociatedWorld, FPhysScene* InPhysScene);
-
-	/** Go through all SkeletalMeshComponents registered for work this frame and call the solver as needed*/
-	void Tick(float DeltaTime);
+	FClothManager(UWorld* AssociatedWorld);
 
 	/** Register the SkeletalMeshComponent so that it does cloth solving work this frame */
-	void RegisterForClothThisFrame(USkeletalMeshComponent* SkeletalMeshComponent);
+	void RegisterForPrepareCloth(USkeletalMeshComponent* SkeletalMeshComponent, PrepareClothSchedule PrepSchedule);
 
 	/** Whether the cloth manager is currently doing work in an async thread */
-	bool IsPreparingClothAsync() const { return IsPreparingCloth; }
+	bool IsPreparingClothAsync() const
+	{
+		bool bIsPreparingCloth = false;
+		for(const FClothManagerData& PrepareCloth : PrepareClothDataArray)
+		{
+			return bIsPreparingCloth |= PrepareCloth.IsPreparingCloth;
+		}
+
+		return bIsPreparingCloth;
+	}
 	
 private:
-	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
-	FClothManagerTickFunction ClothManagerTickFunction;
-	FPhysScene* PhysScene;
-
-	FThreadSafeBool IsPreparingCloth;
+	
+	FClothManagerData PrepareClothDataArray[(int32)PrepareClothSchedule::MAX];
 };

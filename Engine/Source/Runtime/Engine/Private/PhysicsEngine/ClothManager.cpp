@@ -5,17 +5,21 @@
 #include "PhysicsPublic.h"
 #include "Components/SkeletalMeshComponent.h"
 
-FClothManager::FClothManager(UWorld* AssociatedWorld, FPhysScene* InPhysScene)
- : PhysScene(InPhysScene) 
+FClothManager::FClothManager(UWorld* AssociatedWorld)
  {
-	ClothManagerTickFunction.bCanEverTick = true;
-	ClothManagerTickFunction.Target = this;
-	ClothManagerTickFunction.TickGroup = TG_StartPhysics;
-	ClothManagerTickFunction.bRunOnAnyThread = true;	//this value seems to be ignored
-	ClothManagerTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+	PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].TickFunction.TickGroup = TG_StartPhysics;
+	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].TickFunction.TickGroup = TG_PreCloth;
+
+	for(FClothManagerData& PrepareClothData : PrepareClothDataArray)
+	{
+		PrepareClothData.TickFunction.bCanEverTick = true;
+		PrepareClothData.TickFunction.Target = &PrepareClothData;
+		PrepareClothData.TickFunction.bRunOnAnyThread = true;	//this value seems to be ignored
+		PrepareClothData.TickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+	}
  }
 
-void FClothManager::Tick(float DeltaTime)
+void FClothManagerData::PrepareCloth(float DeltaTime)
 {
 #if WITH_APEX_CLOTHING
 	if(SkeletalMeshComponents.Num())
@@ -30,33 +34,32 @@ void FClothManager::Tick(float DeltaTime)
 		}
 
 		SkeletalMeshComponents.Empty(SkeletalMeshComponents.Num());
-		PhysScene->StartCloth();
 		IsPreparingCloth.AtomicSet(false);
 	}
 #endif
 }
 
-void FClothManager::RegisterForClothThisFrame(USkeletalMeshComponent* SkeletalMeshComponent)
+void FClothManager::RegisterForPrepareCloth(USkeletalMeshComponent* SkeletalMeshComponent, PrepareClothSchedule PrepSchedule)
 {
-	SkeletalMeshComponents.Add(SkeletalMeshComponent);
+	check(PrepSchedule != PrepareClothSchedule::MAX);
+	PrepareClothDataArray[(int32)PrepSchedule].SkeletalMeshComponents.Add(SkeletalMeshComponent);
 }
 
-
-class FClothManagerTickTask
+class FPrepareClothTickTask
 {
-	FClothManager* ClothManager;
+	FClothManagerData* PrepareClothData;
 	float DeltaTime;
 
 public:
-	FClothManagerTickTask(FClothManager* InClothManager, float InDeltaTime)
-		: ClothManager(InClothManager)
+	FPrepareClothTickTask(FClothManagerData* InPrepareClothData, float InDeltaTime)
+		: PrepareClothData(InPrepareClothData)
 		, DeltaTime(InDeltaTime)
 	{
 	}
 
 	FORCEINLINE TStatId GetStatId() const
 	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FClothManagerTickTask, STATGROUP_TaskGraphTasks);
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FPrepareClothTickTask, STATGROUP_TaskGraphTasks);
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
@@ -69,19 +72,19 @@ public:
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		ClothManager->Tick(DeltaTime);
+		PrepareClothData->PrepareCloth(DeltaTime);
 	}
 };
 
 
-void FClothManagerTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FPrepareClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(FClothManagerTickFunction_ExecuteTick);
+	QUICK_SCOPE_CYCLE_COUNTER(FPrepareClothTickFunction_ExecuteTick);
 
-	TGraphTask<FClothManagerTickTask>::CreateTask().ConstructAndDispatchWhenReady(Target, DeltaTime);
+	TGraphTask<FPrepareClothTickTask>::CreateTask().ConstructAndDispatchWhenReady(Target, DeltaTime);
 }
 
-FString FClothManagerTickFunction::DiagnosticMessage()
+FString FPrepareClothTickFunction::DiagnosticMessage()
 {
-	return TEXT("FClothManagerTickFunction");
+	return TEXT("FPrepareClothTickFunction");
 }

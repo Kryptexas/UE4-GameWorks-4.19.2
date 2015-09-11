@@ -196,7 +196,7 @@ void FPhysScene::SetOwningWorld(UWorld* InOwningWorld)
 
 	if (OwningWorld)
 	{
-		ClothManager = new FClothManager(OwningWorld, this);
+		ClothManager = new FClothManager(OwningWorld);
 	}
 }
 

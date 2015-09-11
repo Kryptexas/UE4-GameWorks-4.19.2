@@ -172,33 +172,8 @@ void USkeletalMeshComponent::RegisterComponentTickFunctions(bool bRegister)
 	UpdatePreClothTickRegisteredState();
 }
 
-static TAutoConsoleVariable<int32> CVarAsyncCloth(
-	TEXT("p.ParallelCloth"),
-	0,
-	TEXT("Whether cloth prep and simulation is done in off the game thread."));
-
-
 void USkeletalMeshComponent::RegisterPreClothTick(bool bRegister)
 {
-	if(CVarAsyncCloth.GetValueOnGameThread())
-	{
-		UPhysicsSettings::Get()->bParallelCloth = true;
-	}else 
-	{
-		UPhysicsSettings::Get()->bParallelCloth = false;
-	}
-
-#if WITH_APEX_CLOTHING
-	if(bRegister && UPhysicsSettings::Get()->bParallelCloth)	//If we're using parallel cloth we break the cloth prep code out of the game thread. To do this we must register with the ClothManager which will do the work async
-	{
-		if(FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
-		{
-			FClothManager* ClothManager = PhysScene->GetClothManager();
-			ClothManager->RegisterForClothThisFrame(this);
-		}
-	}
-#endif
-
 	if (bRegister != PreClothTickFunction.IsTickFunctionRegistered())
 	{
 		if (bRegister)
@@ -1241,6 +1216,18 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 }
 
+void USkeletalMeshComponent::PrepareCloth()
+{
+	//TODO: logic about if to go in StartPhysics or PreCloth
+	if (FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
+	{
+		FClothManager* ClothManager = PhysScene->GetClothManager();
+		bool bClothNeedsPhysics = BodyInstance.bSimulatePhysics || IsAnySimulatingPhysics();	//TODO: this errs on the side of simulating later. We may want to optimize this so that it's only needed when cloth bodies are simulating
+		PrepareClothSchedule PrepareSchedule = bClothNeedsPhysics ? PrepareClothSchedule::WaitOnPhysics : PrepareClothSchedule::IgnorePhysics;
+		ClothManager->RegisterForPrepareCloth(this, PrepareSchedule);
+	}
+}
+
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
 	FBlendedCurve EvaluatedCurve = EvaluationContext.Curve;
@@ -1303,6 +1290,8 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 
 	MarkRenderDynamicDataDirty();
+
+	PrepareCloth();
 }
 
 //

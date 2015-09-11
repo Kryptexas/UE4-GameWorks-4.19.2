@@ -1290,6 +1290,7 @@ private:
 
 	void ParallelTickClothing(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
 	void ParallelUpdateClothState(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
+	void PrepareCloth();
 
 	friend class FParallelBlendPhysicsCompletionTask;
 	void CompleteParallelBlendPhysics();
@@ -1297,6 +1298,7 @@ private:
 
 	friend class FTickClothingTask;
 	friend class FClothManager;
+	friend class FClothManagerData;
 	void PerformTickClothing(float DeltaTime);
 
 	// these are deprecated variables from removing SingleAnimSkeletalComponent
