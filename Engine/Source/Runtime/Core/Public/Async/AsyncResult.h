@@ -66,6 +66,8 @@ public:
 
 		Other.Progress.Reset();
 		Other.Task.Reset();
+
+		return *this;
 	}
 
 public:
