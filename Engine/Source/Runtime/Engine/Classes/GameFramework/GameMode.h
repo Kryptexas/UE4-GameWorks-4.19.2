@@ -640,7 +640,7 @@ public:
 	virtual void GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& ActorList);
 
 	/** Allow the game to specify a place for clients to download MapName */
-	DEPRECATED(4.10, "Override GameWelcomePlayer() instead")
+	DEPRECATED(4.11, "Override GameWelcomePlayer() instead")
 	virtual FString GetRedirectURL(const FString& MapName) const;
 
 	/** allows game to send network messages to provide more information to the client joining the game via NMT_GameSpecific
