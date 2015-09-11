@@ -8,6 +8,7 @@
 #include "K2Node_SwitchEnum.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetArrayLibrary.h"
+#include "Kismet2/KismetDebugUtilities.h"
 #include "K2Node_PureAssignmentStatement.h"
 #include "GraphEditorSettings.h"
 #include "BlueprintActionFilter.h"
