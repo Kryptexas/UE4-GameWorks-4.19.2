@@ -132,13 +132,11 @@ FSamplerStateRHIRef FD3D12Device::CreateSamplerState(const FSamplerStateInitiali
     D3D12_SAMPLER_DESC SamplerDesc;
     FMemory::Memzero(&SamplerDesc, sizeof(D3D12_SAMPLER_DESC));
 
-    int32 MaxAnisotropyCVar = GetCachedScalabilityCVars().MaxAnisotropy;
-
     SamplerDesc.AddressU = TranslateAddressMode(Initializer.AddressU);
     SamplerDesc.AddressV = TranslateAddressMode(Initializer.AddressV);
     SamplerDesc.AddressW = TranslateAddressMode(Initializer.AddressW);
     SamplerDesc.MipLODBias = Initializer.MipBias;
-    SamplerDesc.MaxAnisotropy = FMath::Clamp(Initializer.MaxAnisotropy > 0 ? Initializer.MaxAnisotropy : MaxAnisotropyCVar, 1, 16);
+    SamplerDesc.MaxAnisotropy = ComputeAnisotropyRT(Initializer.MaxAnisotropy);
     SamplerDesc.MinLOD = Initializer.MinMipLevel;
     SamplerDesc.MaxLOD = Initializer.MaxMipLevel;
 

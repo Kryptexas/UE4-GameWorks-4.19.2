@@ -202,13 +202,6 @@ static FAutoConsoleVariable CVarSystemResolution(
 	TEXT("     1920x1080wm for windowed mirror")
 	);
 
-static TAutoConsoleVariable<float> CVarDepthOfFieldNearBlurSizeThreshold(
-	TEXT("r.DepthOfFieldNearBlurSizeThreshold"),
-	0.01f,
-	TEXT("Sets the minimum near blur size before the effect is forcably disabled. Currently only affects Gaussian DOF.\n")
-	TEXT(" (default = 0.01f)"),
-	ECVF_RenderThreadSafe);
-
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<float> CVarSetOverrideFPS(
 	TEXT("t.OverrideFPS"),
@@ -268,7 +261,6 @@ FCachedSystemScalabilityCVars::FCachedSystemScalabilityCVars()
 	, MaxShadowResolution(-1)
 	, ViewDistanceScale(-1)
 	, ViewDistanceScaleSquared(-1)
-	, GaussianDOFNearThreshold(-1)
 	, SimpleDynamicLighting(-1)
 {
 
@@ -299,10 +291,6 @@ void ScalabilityCVarsSinkCallback()
 		static const auto ViewDistanceScale = ConsoleMan.FindTConsoleVariableDataFloat(TEXT("r.ViewDistanceScale"));
 		LocalScalabilityCVars.ViewDistanceScale = FMath::Clamp(ViewDistanceScale->GetValueOnGameThread(), 0.0f, 1.0f);
 		LocalScalabilityCVars.ViewDistanceScaleSquared = FMath::Square(LocalScalabilityCVars.ViewDistanceScale);
-	}
-
-	{
-		LocalScalabilityCVars.GaussianDOFNearThreshold = CVarDepthOfFieldNearBlurSizeThreshold.GetValueOnGameThread();
 	}
 
 	{
@@ -419,6 +407,7 @@ void RefreshSamplerStatesCallback()
 		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
 		int32 MaxAnisotropy = CVar->GetValueOnGameThread();
 		// compare against the default so with that number we avoid RefreshSamplerStates() calls on startup
+		// todo: This can be improved since we now have many defaults (see BaseScalability.ini)
 		static int32 LastMaxAnisotropy = 4;
 
 		if(LastMaxAnisotropy != MaxAnisotropy)

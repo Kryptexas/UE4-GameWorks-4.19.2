@@ -29,12 +29,12 @@ static MTLSamplerMinMagFilter TranslateFilterMode(ESamplerFilter Filter)
 	}
 }
 
-static uint32 GetMaxAnisotropy(ESamplerFilter Filter, uint32 MaxAniso)
+static uint32 GetMetalMaxAnisotropy(ESamplerFilter Filter, uint32 MaxAniso)
 {
 	switch (Filter)
 	{
 		case SF_AnisotropicPoint:
-		case SF_AnisotropicLinear:	return MaxAniso > 0 ? MaxAniso : GetCachedScalabilityCVars().MaxAnisotropy;
+		case SF_AnisotropicLinear:	return ComputeAnisotropyRT(MaxAniso);
 		default:					return 1;
 	}
 }
@@ -150,7 +150,7 @@ FMetalSamplerState::FMetalSamplerState(const FSamplerStateInitializerRHI& Initia
 	
 	Desc.minFilter = Desc.magFilter = TranslateFilterMode(Initializer.Filter);
 	Desc.mipFilter = TranslateMipFilterMode(Initializer.Filter);
-	Desc.maxAnisotropy = GetMaxAnisotropy(Initializer.Filter, Initializer.MaxAnisotropy);
+	Desc.maxAnisotropy = GetMetalMaxAnisotropy(Initializer.Filter, Initializer.MaxAnisotropy);
 	Desc.sAddressMode = TranslateWrapMode(Initializer.AddressU);
 	Desc.tAddressMode = TranslateWrapMode(Initializer.AddressV);
 	Desc.rAddressMode = TranslateWrapMode(Initializer.AddressW);

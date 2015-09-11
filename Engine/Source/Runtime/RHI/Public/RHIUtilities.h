@@ -506,3 +506,11 @@ inline void DrawIndexedPrimitiveUP(
 	FMemory::Memcpy( IndexBuffer, IndexData, NumIndices * IndexDataStride );
 	RHICmdList.EndDrawIndexedPrimitiveUP();
 }
+
+inline uint32 ComputeAnisotropyRT(int32 InitializerMaxAnisotropy)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MaxAnisotropy"));
+	int32 CVarValue = CVar->GetValueOnRenderThread();
+
+	return FMath::Clamp(InitializerMaxAnisotropy > 0 ? InitializerMaxAnisotropy : CVarValue, 1, 16);
+}

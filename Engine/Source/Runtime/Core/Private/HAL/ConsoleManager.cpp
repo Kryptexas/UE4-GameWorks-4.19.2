@@ -1877,7 +1877,7 @@ static TAutoConsoleVariable<int32> CVarFinishCurrentFrame(
 static TAutoConsoleVariable<int32> CVarMaxAnistropy(
 	TEXT("r.MaxAnisotropy"),
 	4,
-	TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance."),
+	TEXT("MaxAnisotropy should range from 1 to 16. Higher values mean better texure quality when using anisotropic filtering but at a cost to performance. Default is 4."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarShadowMaxResolution(

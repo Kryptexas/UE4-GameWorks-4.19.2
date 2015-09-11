@@ -193,7 +193,7 @@ FSamplerStateRHIRef FOpenGLDynamicRHI::RHICreateSamplerState(const FSamplerState
 	case SF_AnisotropicLinear:
 		SamplerState->Data.MagFilter	= GL_LINEAR;
 		SamplerState->Data.MinFilter	= bComparisonEnabled ? GL_LINEAR : GL_LINEAR_MIPMAP_LINEAR;
-		SamplerState->Data.MaxAnisotropy = FMath::Clamp(Initializer.MaxAnisotropy > 0 ? Initializer.MaxAnisotropy : GetCachedScalabilityCVars().MaxAnisotropy, 1, GMaxOpenGLTextureFilterAnisotropic);
+		SamplerState->Data.MaxAnisotropy = FMath::Min<uint32>(ComputeAnisotropyRT(Initializer.MaxAnisotropy), GMaxOpenGLTextureFilterAnisotropic);
 		break;
 	case SF_Trilinear:
 		SamplerState->Data.MagFilter	= GL_LINEAR;
