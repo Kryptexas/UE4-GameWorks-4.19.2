@@ -5,6 +5,7 @@
 
 class ISessionInfo;
 class ISessionInstanceInfo;
+struct FSessionLogMessage;
 
 
 /**
