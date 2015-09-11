@@ -291,7 +291,7 @@ void FSessionManager::HandleSessionPongMessage( const FSessionServicePong& Messa
 		return;
 	}
 
-	if (Message.Standalone && !IsValidOwner(Message.SessionOwner))
+	if (!Message.Standalone && !IsValidOwner(Message.SessionOwner))
 	{
 		return;
 	}

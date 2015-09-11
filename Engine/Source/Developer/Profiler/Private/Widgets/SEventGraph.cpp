@@ -756,8 +756,8 @@ void SEventGraph::Construct( const FArguments& InArgs )
 {
 	static TArray<FEventGraphSamplePtr> StaticEventArray;
 
-	SAssignNew( ExternalScrollbar, SScrollBar )
-		.AlwaysShowScrollbar( true );
+	SAssignNew(ExternalScrollbar, SScrollBar)
+		.AlwaysShowScrollbar(true);
 
 	ChildSlot
 	[
@@ -765,18 +765,18 @@ void SEventGraph::Construct( const FArguments& InArgs )
 			.Orientation(Orient_Vertical)
 
 		+ SSplitter::Slot()
-			.Value(0.7f)
+			.Value(0.5f)
 			[
-				SNew( SVerticalBox )
+				SNew(SVerticalBox)
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						SNew( SBorder )
-							.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-							.Padding( 2.0f )
+						SNew(SBorder)
+							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+							.Padding(2.0f)
 							[
-								SNew( SHorizontalBox )
+								SNew(SHorizontalBox)
 
 								+ SHorizontalBox::Slot()
 									.AutoWidth()
@@ -786,76 +786,57 @@ void SEventGraph::Construct( const FArguments& InArgs )
 
 								+ SHorizontalBox::Slot()
 									.AutoWidth()
-									[
-										SNew( SSpacer )
-											.Size( FVector2D( 2.0f, 2.0f ) )
-									]
-
-								+ SHorizontalBox::Slot()
-									.AutoWidth()
+									.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 									[
 										GetWidgetForEventGraphViewModes()
 									]
 
 								+ SHorizontalBox::Slot()
-									.AutoWidth()
-									[
-										SNew( SSpacer )
-											.Size( FVector2D( 2.0f, 2.0f ) )
-									]
-
-								+ SHorizontalBox::Slot()
-									.FillWidth( 1.0f )
+									.FillWidth(1.0f)
+									.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 									[
 										GetWidgetBoxForOptions()
 									]
 							]
 					]
  
-				// Spacer
-				+ SVerticalBox::Slot()
-					.AutoHeight()
-					[
-						SNew( SSpacer )
-							.Size( FVector2D( 2.0f, 2.0f ) )
-					]
-
 				// Function details view ( @see VS2012 profiler )
 				+ SVerticalBox::Slot()
-					.AutoHeight()
+					.FillHeight(1.0f)
+					.Padding(0.0f, 2.0f, 0.0f, 0.0f)
 					[		
 						SAssignNew(FunctionDetailsBox,SBox)
-							.HeightOverride( 224.0f )
+							.HeightOverride(224.0f)
 							[
-								SNew( SBorder )
-									.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
-									.Padding( 2.0f )
+								SNew(SBorder)
+									.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+									.Padding(2.0f)
 									[
-										SNew( SHorizontalBox )
+										SNew(SHorizontalBox)
 
 										// Calling Functions
 										+ SHorizontalBox::Slot()
-											.FillWidth( 1.0f )
-											.Padding( 2.0f )
+											.FillWidth(1.0f)
+											.Padding(2.0f)
 											[
-												GetVerticalBoxForFunctionDetails( VerticalBox_TopCalling, LOCTEXT("FunctionDetails_CallingFunctions","Calling Functions") )
+												GetVerticalBoxForFunctionDetails(VerticalBox_TopCalling, LOCTEXT("FunctionDetails_CallingFunctions","Calling Functions"))
 											]
 
 										// ->
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
-											.HAlign( HAlign_Center )
-											.VAlign( VAlign_Top )
-											.Padding( 2.0f )
+											.HAlign(HAlign_Center)
+											.VAlign(VAlign_Top)
+											.Padding(2.0f)
 											[
-												SNew( SImage )
-													.Image( FEditorStyle::GetBrush("Animation.Forward") )
+												SNew(SImage)
+													.Image(FEditorStyle::GetBrush("Animation.Forward"))
 											]
 
 										// Current Function
 										+ SHorizontalBox::Slot()
-											.FillWidth( 1.0f )
-											.Padding( 2.0f )
+											.FillWidth(1.0f)
+											.Padding(2.0f)
 											[
 												GetVerticalBoxForCurrentFunction()
 											]
@@ -863,18 +844,18 @@ void SEventGraph::Construct( const FArguments& InArgs )
 										// ->
 										+ SHorizontalBox::Slot()
 											.AutoWidth()
-											.HAlign( HAlign_Center )
-											.VAlign( VAlign_Top )
-											.Padding( 2.0f )
+											.HAlign(HAlign_Center)
+											.VAlign(VAlign_Top)
+											.Padding(2.0f)
 											[
-												SNew( SImage )
-													.Image( FEditorStyle::GetBrush("Animation.Forward") )
+												SNew(SImage)
+													.Image(FEditorStyle::GetBrush("Animation.Forward"))
 											]
 
 										// Called Functions
 										+ SHorizontalBox::Slot()
-											.FillWidth( 1.0f )
-											.Padding( 2.0f )
+											.FillWidth(1.0f)
+											.Padding(2.0f)
 											[
 												GetVerticalBoxForFunctionDetails( VerticalBox_TopCalled, LOCTEXT("FunctionDetails_CalledFunctions","Called Functions") )
 											]
@@ -884,31 +865,30 @@ void SEventGraph::Construct( const FArguments& InArgs )
 			]
 
 		+ SSplitter::Slot()
-			.Value(0.3f)
+			.Value(0.5f)
 			[
-				SNew( SBorder )
+				SNew(SBorder)
 					.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 					.Padding(0.0f)
 					[
 						SNew(SHorizontalBox)
 
 						+SHorizontalBox::Slot()
-							.FillWidth( 1.0f )
+							.FillWidth(1.0f)
 							[
-								SNew( SHorizontalBox )
+								SNew(SHorizontalBox)
 
 								+ SHorizontalBox::Slot()
-									//.Padding( 2.0f )
 									[
-										SAssignNew( TreeView_Base, STreeView< FEventGraphSamplePtr > )
-											.ExternalScrollbar( ExternalScrollbar )
-											.SelectionMode( ESelectionMode::Multi )
-											.TreeItemsSource( &StaticEventArray )
-											.OnGetChildren( this, &SEventGraph::EventGraph_OnGetChildren )
-											.OnGenerateRow( this, &SEventGraph::EventGraph_OnGenerateRow )
-											.OnSelectionChanged( this, &SEventGraph::EventGraph_OnSelectionChanged )
-											.OnContextMenuOpening( FOnContextMenuOpening::CreateSP( this, &SEventGraph::EventGraph_GetMenuContent ) )
-											.ItemHeight( 12 )
+										SAssignNew(TreeView_Base, STreeView<FEventGraphSamplePtr>)
+											.ExternalScrollbar(ExternalScrollbar)
+											.SelectionMode(ESelectionMode::Multi)
+											.TreeItemsSource(&StaticEventArray)
+											.OnGetChildren(this, &SEventGraph::EventGraph_OnGetChildren)
+											.OnGenerateRow(this, &SEventGraph::EventGraph_OnGenerateRow)
+											.OnSelectionChanged(this, &SEventGraph::EventGraph_OnSelectionChanged)
+											.OnContextMenuOpening(FOnContextMenuOpening::CreateSP(this, &SEventGraph::EventGraph_GetMenuContent))
+											.ItemHeight(12.0f)
 											.HeaderRow
 											(
 												SAssignNew(TreeViewHeaderRow,SHeaderRow)
@@ -920,8 +900,8 @@ void SEventGraph::Construct( const FArguments& InArgs )
 						+ SHorizontalBox::Slot()
 							.AutoWidth()
 							[
-								SNew( SBox )
-									.WidthOverride( FOptionalSize( 16 ) )
+								SNew(SBox)
+									.WidthOverride(FOptionalSize(16.0f))
 									[
 										ExternalScrollbar.ToSharedRef()
 									]

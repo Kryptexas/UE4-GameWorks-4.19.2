@@ -130,7 +130,7 @@ public:
 	TSharedPtr<SVerticalBox> EventGraphPanel;
 
 	/** Holds the filter and presets widget/slot. */
-	SHorizontalBox::FSlot* FiltersAndPresetsSlot;
+	SSplitter::FSlot* FiltersAndPresetsSlot;
 	TSharedPtr<SFiltersAndPresets> FiltersAndPresets;
 
 	/** Widget for the panel which contains all graphs and event graphs. */
