@@ -21,6 +21,9 @@ public:
 	/** */
 	TArray< TSharedPtr<FGraphActionNode> > Children;
 
+	/** Lookup table for category nodes, used to speed up menu construction */
+	TMap< FString, TSharedPtr<FGraphActionNode> > CategoryNodes;
+
 public:
 	/**
 	 * Static allocator for a new root node (so external users have a starting
