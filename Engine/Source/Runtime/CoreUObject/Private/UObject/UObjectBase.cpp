@@ -657,7 +657,7 @@ void UClassCompiledInDefer(FFieldCompiledInInfo* ClassInfo, const TCHAR* Name, S
 	GetDeferredClassRegistration().Add(ClassInfo);
 }
 
-TMap<FName, UClass *(*)()> GetDynamicClassMap()
+TMap<FName, UClass *(*)()>& GetDynamicClassMap()
 {
 	static TMap<FName, UClass *(*)()> DynamicClassMap;
 	return DynamicClassMap;

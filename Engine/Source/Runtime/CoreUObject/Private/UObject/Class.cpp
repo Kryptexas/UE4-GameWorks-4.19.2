@@ -60,7 +60,7 @@ COREUOBJECT_API void InitializePrivateStaticClass(
 	else
 	{
 		// Register immediately
-		TClass_PrivateStaticClass->DeferredRegister(UClass::StaticClass(), PackageName, Name);
+		TClass_PrivateStaticClass->DeferredRegister(UDynamicClass::StaticClass(), PackageName, Name);
 	}
 }
 
