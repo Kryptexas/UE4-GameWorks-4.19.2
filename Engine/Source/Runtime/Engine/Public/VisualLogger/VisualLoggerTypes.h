@@ -280,7 +280,7 @@ struct IVisualLoggerEditorInterface
 	virtual bool IsRowVisible(FName RowName) const = 0;
 	virtual bool IsItemVisible(FName RowName, int32 ItemIndex) const = 0;
 	virtual UWorld* GetWorld() const = 0;
-	virtual AActor* GetHelperActor() const = 0;
+	virtual AActor* GetHelperActor(UWorld* InWorld = nullptr) const = 0;
 
 	virtual bool MatchCategoryFilters(const FString& String, ELogVerbosity::Type Verbosity = ELogVerbosity::All) = 0;
 };

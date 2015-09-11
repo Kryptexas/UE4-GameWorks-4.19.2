@@ -441,9 +441,9 @@ bool FVisualLoggerEditorInterface::IsItemVisible(FName RowName, int32 ItemIndex)
 	return FVisualLoggerDatabase::Get().GetRowByName(RowName).IsItemVisible(ItemIndex);
 }
 
-AActor* FVisualLoggerEditorInterface::GetHelperActor() const
+AActor* FVisualLoggerEditorInterface::GetHelperActor(UWorld* InWorld) const
 {
-	UWorld* World = GetWorld();
+	UWorld* World = InWorld ? InWorld : GetWorld();
 	if (World == nullptr)
 	{
 		return nullptr;
@@ -454,7 +454,10 @@ AActor* FVisualLoggerEditorInterface::GetHelperActor() const
 		return *It;
 	}
 
-	return nullptr;
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.Name = *FString::Printf(TEXT("VisualLoggerRenderingActor"));
+	return World->SpawnActor<AVisualLoggerRenderingActor>(SpawnInfo);
 }
 
 bool FVisualLoggerEditorInterface::MatchCategoryFilters(const FString& String, ELogVerbosity::Type Verbosity)

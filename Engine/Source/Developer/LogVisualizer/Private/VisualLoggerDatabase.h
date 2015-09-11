@@ -201,7 +201,7 @@ struct FVisualLoggerEditorInterface : public IVisualLoggerEditorInterface
 	bool IsRowVisible(FName RowName) const override;
 	bool IsItemVisible(FName RowName, int32 ItemIndex) const override;
 	UWorld* GetWorld() const override;
-	AActor* GetHelperActor() const override;
+	AActor* GetHelperActor(UWorld* InWorld = nullptr) const override;
 
 	bool MatchCategoryFilters(const FString& String, ELogVerbosity::Type Verbosity = ELogVerbosity::All) override;
 };

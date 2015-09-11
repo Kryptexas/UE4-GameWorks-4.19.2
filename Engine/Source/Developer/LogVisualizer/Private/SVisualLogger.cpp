@@ -65,25 +65,6 @@ namespace
 
 		return World;
 	}
-
-	static AVisualLoggerRenderingActor* GetVisualLoggerHelperActor(UWorld* World)
-	{
-		if (World == nullptr)
-		{
-			return nullptr;
-		}
-
-		for (TActorIterator<AVisualLoggerRenderingActor> It(World); It; ++It)
-		{
-			return *It;
-		}
-
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.Name = *FString::Printf(TEXT("VisualLoggerRenderingActor"));
-		return World->SpawnActor<AVisualLoggerRenderingActor>(SpawnInfo);
-	}
-
 }
 
 SVisualLogger::SVisualLogger() 
@@ -329,7 +310,7 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 
 	DrawOnCanvasDelegateHandle = UDebugDrawService::Register(TEXT("VisLog"), FDebugDrawDelegate::CreateRaw(VisualLoggerCanvasRenderer.Get(), &FVisualLoggerCanvasRenderer::DrawOnCanvas));
 
-	AVisualLoggerRenderingActor* HelperActor = GetVisualLoggerHelperActor(LastUsedWorld.Get());
+	Cast<AVisualLoggerRenderingActor>(FVisualLoggerEditorInterface::Get()->GetHelperActor(LastUsedWorld.Get()));
 }
 
 void SVisualLogger::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
@@ -724,7 +705,7 @@ void SVisualLogger::ResetData()
 		VisualLoggerCanvasRenderer->ResetData();
 	}
 
-	if (AVisualLoggerRenderingActor* HelperActor = GetVisualLoggerHelperActor(LastUsedWorld.Get()))
+	if (AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FVisualLoggerEditorInterface::Get()->GetHelperActor(LastUsedWorld.Get())))
 	{
 		HelperActor->ResetRendering();
 	}
@@ -755,7 +736,7 @@ void SVisualLogger::OnNewWorld(UWorld* NewWorld)
 	}
 	LastUsedWorld = NewWorld;
 
-	AVisualLoggerRenderingActor* HelperActor = GetVisualLoggerHelperActor(LastUsedWorld.Get());
+	AVisualLoggerRenderingActor* HelperActor = Cast<AVisualLoggerRenderingActor>(FVisualLoggerEditorInterface::Get()->GetHelperActor(LastUsedWorld.Get()));
 	check(HelperActor);
 
 	if (LastUsedWorld.IsValid() == false || ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bResetDataWithNewSession)
