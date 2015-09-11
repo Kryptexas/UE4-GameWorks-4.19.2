@@ -2043,6 +2043,33 @@ void UParticleSystem::UpdateColorModuleClampAlpha(UParticleModuleColorBase* Colo
 void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 {
 	OutTags.Add( FAssetRegistryTag("HasGPUEmitter", HasGPUEmitter() ? TEXT("True") : TEXT("False"), FAssetRegistryTag::TT_Alphabetical) );
+
+	const float BoundsSize = FixedRelativeBoundingBox.GetSize().GetMax();
+	OutTags.Add(FAssetRegistryTag("FixedBoundsSize", bUseFixedRelativeBoundingBox ? FString::Printf(TEXT("%.2f"), BoundsSize) : FString(TEXT("None")), FAssetRegistryTag::TT_Numerical));
+
+	OutTags.Add(FAssetRegistryTag("NumEmitters", LexicalConversion::ToString(Emitters.Num()), FAssetRegistryTag::TT_Numerical));
+
+	OutTags.Add(FAssetRegistryTag("NumLODs", LexicalConversion::ToString(LODDistances.Num()), FAssetRegistryTag::TT_Numerical));
+
+	// Done here instead of as an AssetRegistrySearchable string to avoid the long prefix on the enum value string
+	FString LODMethodString = TEXT("Unknown");
+	switch (LODMethod)
+	{
+	case PARTICLESYSTEMLODMETHOD_Automatic:
+		LODMethodString = TEXT("Automatic");
+		break;
+	case PARTICLESYSTEMLODMETHOD_DirectSet:
+		LODMethodString = TEXT("DirectSet");
+		break;
+	case PARTICLESYSTEMLODMETHOD_ActivateAutomatic:
+		LODMethodString = TEXT("Activate Automatic");
+		break;
+	default:
+		check(false); // Missing enum entry
+		break;
+	}
+	OutTags.Add(FAssetRegistryTag("LODMethod", LODMethodString, FAssetRegistryTag::TT_Alphabetical));
+
 	Super::GetAssetRegistryTags(OutTags);
 }
 

@@ -14,8 +14,7 @@ enum EParticleSystemUpdateMode
 	/** RealTime	- update via the delta time passed in				*/
 	EPSUM_RealTime UMETA(DisplayName="Real-Time"),
 	/** FixedTime	- update via a fixed time step						*/
-	EPSUM_FixedTime UMETA(DisplayName="Fixed-Time"),
-	EPSUM_MAX,
+	EPSUM_FixedTime UMETA(DisplayName="Fixed-Time")
 };
 
 /**
@@ -24,10 +23,14 @@ enum EParticleSystemUpdateMode
 UENUM()
 enum ParticleSystemLODMethod
 {
+	// Automatically set the LOD level, checking every LODDistanceCheckTime seconds.
 	PARTICLESYSTEMLODMETHOD_Automatic UMETA(DisplayName="Automatic"),
-	PARTICLESYSTEMLODMETHOD_DirectSet UMETA(DisplayName="Direct Set"),
-	PARTICLESYSTEMLODMETHOD_ActivateAutomatic UMETA(DisplayName="Activate Automatic"),
-	PARTICLESYSTEMLODMETHOD_MAX,
+
+	// LOD level is directly set by the game code.
+	PARTICLESYSTEMLODMETHOD_DirectSet UMETA(DisplayName = "Direct Set"),
+
+	// LOD level is determined at Activation time, then left alone unless directly set by game code.
+	PARTICLESYSTEMLODMETHOD_ActivateAutomatic UMETA(DisplayName = "Activate Automatic")
 };
 
 /** Occlusion method enumeration */
@@ -39,8 +42,7 @@ enum EParticleSystemOcclusionBoundsMethod
 	/** Use the bounds of the particle system component when determining occlusion */
 	EPSOBM_ParticleBounds UMETA(DisplayName="Particle Bounds"),
 	/** Use the custom occlusion bounds when determining occlusion */
-	EPSOBM_CustomBounds UMETA(DisplayName="Custom Bounds"),
-	EPSOBM_MAX,
+	EPSOBM_CustomBounds UMETA(DisplayName="Custom Bounds")
 };
 
 /** Structure containing per-LOD settings that pertain to the entire UParticleSystem. */
@@ -86,7 +88,7 @@ struct FNamedEmitterMaterial
 	}
 
 	UPROPERTY(EditAnywhere, Category = NamedMaterial)
-		FName Name;
+	FName Name;
 
 	UPROPERTY(EditAnywhere, Category = NamedMaterial)
 	class UMaterialInterface* Material;
@@ -159,7 +161,7 @@ class UParticleSystem : public UObject
 	/**
 	 *	How often (in seconds) the system should perform the LOD distance check.
 	 */
-	UPROPERTY(EditAnywhere, Category=LOD)
+	UPROPERTY(EditAnywhere, Category=LOD, AssetRegistrySearchable)
 	float LODDistanceCheckTime;
 
 	/**
