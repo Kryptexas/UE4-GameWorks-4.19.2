@@ -378,7 +378,7 @@ public:
 	 *
 	 * @return true if successful destroying the session, false otherwise
 	 */
-	virtual bool DestroySession(FName SessionName) = 0;
+	virtual bool DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate = FOnDestroySessionCompleteDelegate()) = 0;
 
 	/**
 	 * Delegate fired when a destroying an online session has completed

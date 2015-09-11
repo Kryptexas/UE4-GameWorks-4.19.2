@@ -457,7 +457,7 @@ bool FOnlineSessionIOS::EndSession(FName SessionName)
 }
 
 
-bool FOnlineSessionIOS::DestroySession(FName SessionName)
+bool FOnlineSessionIOS::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
 {
 	bool bSuccessfullyDestroyedSession = false;
 	
@@ -475,6 +475,7 @@ bool FOnlineSessionIOS::DestroySession(FName SessionName)
 		bSuccessfullyDestroyedSession = true;
 	}
 
+	CompletionDelegate.ExecuteIfBound(SessionName, bSuccessfullyDestroyedSession);
 	TriggerOnDestroySessionCompleteDelegates(SessionName, bSuccessfullyDestroyedSession);
 
 	return bSuccessfullyDestroyedSession;

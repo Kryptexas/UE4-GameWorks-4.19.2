@@ -127,7 +127,7 @@ public:
 
 	virtual bool EndSession(FName SessionName) override;
 
-	virtual bool DestroySession(FName SessionName) override;
+	virtual bool DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate = FOnDestroySessionCompleteDelegate()) override;
 
 	virtual bool IsPlayerInSession(FName SessionName, const FUniqueNetId& UniqueId) override;
 

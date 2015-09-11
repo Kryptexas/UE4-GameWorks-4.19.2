@@ -417,7 +417,7 @@ bool FOnlineSessionNull::EndSession(FName SessionName)
 	return Result == ERROR_SUCCESS || Result == ERROR_IO_PENDING;
 }
 
-bool FOnlineSessionNull::DestroySession(FName SessionName)
+bool FOnlineSessionNull::DestroySession(FName SessionName, const FOnDestroySessionCompleteDelegate& CompletionDelegate)
 {
 	uint32 Result = E_FAIL;
 	// Find the session in question
@@ -436,6 +436,7 @@ bool FOnlineSessionNull::DestroySession(FName SessionName)
 
 	if (Result != ERROR_IO_PENDING)
 	{
+		CompletionDelegate.ExecuteIfBound(SessionName, (Result == ERROR_SUCCESS) ? true : false);
 		TriggerOnDestroySessionCompleteDelegates(SessionName, (Result == ERROR_SUCCESS) ? true : false);
 	}
 
