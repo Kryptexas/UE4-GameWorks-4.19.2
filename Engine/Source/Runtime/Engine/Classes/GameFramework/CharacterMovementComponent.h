@@ -707,7 +707,7 @@ public:
 	UPROPERTY()
 	uint32 bWantsToLeaveNavWalking:1;
 
-	/** If set, component will use RVO avoidance */
+	/** If set, component will use RVO avoidance. This only runs on the server. */
 	UPROPERTY(Category="Character Movement: Avoidance", EditAnywhere, BlueprintReadOnly)
 	uint32 bUseRVOAvoidance:1;
 

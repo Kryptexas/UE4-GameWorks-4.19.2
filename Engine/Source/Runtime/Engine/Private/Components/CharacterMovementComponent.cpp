@@ -345,6 +345,11 @@ void UCharacterMovementComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 
 void UCharacterMovementComponent::OnRegister()
 {
+	if (bUseRVOAvoidance && GetNetMode() == NM_Client)
+	{
+		bUseRVOAvoidance = false;
+	}
+
 	Super::OnRegister();
 
 #if WITH_EDITOR
