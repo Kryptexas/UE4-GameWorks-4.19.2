@@ -41,7 +41,7 @@ bool FUdpMessageTransport::StartTransport()
 
 	if (UnicastSocket == nullptr)
 	{
-		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
+		UE_LOG(LogUdpMessaging, Error, TEXT("StartTransport failed to create unicast socket on %s"), *LocalEndpoint.ToText().ToString());
 
 		return false;
 	}
@@ -59,7 +59,7 @@ bool FUdpMessageTransport::StartTransport()
 
 	if (MulticastSocket == nullptr)
 	{
-		GLog->Logf(TEXT("UdpMessageTransport.StartTransport: Failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
+		UE_LOG(LogUdpMessaging, Error, TEXT("StartTransport failed to create multicast socket on %s, joined to %s with TTL %i"), *LocalEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString(), MulticastTtl);
 	}
 
 	// initialize threads

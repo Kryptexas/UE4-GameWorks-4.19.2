@@ -7,6 +7,8 @@
 #include "ModuleManager.h"
 
 
+DEFINE_LOG_CATEGORY(LogUdpMessaging);
+
 #define LOCTEXT_NAMESPACE "FUdpMessagingModule"
 
 
@@ -30,7 +32,7 @@ public:
 		// load dependencies
 		if (!FModuleManager::Get().LoadModule(TEXT("Networking")).IsValid())
 		{
-			GLog->Log(TEXT("Error: The required module 'Networking' failed to load. Plug-in 'UDP Messaging' cannot be used."));
+			UE_LOG(LogUdpMessaging, Error, TEXT("The required module 'Networking' failed to load. Plug-in 'UDP Messaging' cannot be used."));
 
 			return;
 		}
@@ -100,7 +102,7 @@ protected:
 		{
 			if (!Settings->UnicastEndpoint.IsEmpty())
 			{
-				GLog->Logf(TEXT("Warning: Invalid UDP Messaging UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+				UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP Messaging UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
 			}
 
 			UnicastEndpoint = FIPv4Endpoint::Any;
@@ -112,7 +114,7 @@ protected:
 		{
 			if (!Settings->MulticastEndpoint.IsEmpty())
 			{
-				GLog->Logf(TEXT("Warning: Invalid UDP Messaging MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+				UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP Messaging MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
 			}
 
 			MulticastEndpoint = UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT;
@@ -131,7 +133,7 @@ protected:
 			Settings->SaveConfig();
 		}
 
-		GLog->Logf(TEXT("UdpMessaging: Initializing bridge on interface %s to multicast group %s."), *UnicastEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString());
+		UE_LOG(LogUdpMessaging, Log, TEXT("Initializing bridge on interface %s to multicast group %s."), *UnicastEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString());
 
 		MessageBridge = FMessageBridgeBuilder()
 			.UsingTransport(MakeShareable(new FUdpMessageTransport(UnicastEndpoint, MulticastEndpoint, Settings->MulticastTimeToLive)));
@@ -150,7 +152,8 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->TunnelUnicastEndpoint, UnicastEndpoint))
 		{
-			GLog->Logf(TEXT("Warning: Invalid UDP Tunneling UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+			UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP Tunneling UnicastEndpoint '%s' - binding to all local network adapters instead"), *Settings->UnicastEndpoint);
+
 			UnicastEndpoint = FIPv4Endpoint::Any;
 			Settings->UnicastEndpoint = UnicastEndpoint.ToString();
 			ResaveSettings = true;
@@ -158,7 +161,8 @@ protected:
 
 		if (!FIPv4Endpoint::Parse(Settings->TunnelMulticastEndpoint, MulticastEndpoint))
 		{
-			GLog->Logf(TEXT("Warning: Invalid UDP Tunneling MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+			UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP Tunneling MulticastEndpoint '%s' - using default endpoint '%s' instead"), *Settings->MulticastEndpoint, *UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT.ToText().ToString());
+
 			MulticastEndpoint = UDP_MESSAGING_DEFAULT_MULTICAST_ENDPOINT;
 			Settings->MulticastEndpoint = MulticastEndpoint.ToString();
 			ResaveSettings = true;
@@ -169,7 +173,7 @@ protected:
 			Settings->SaveConfig();
 		}
 
-		GLog->Logf(TEXT("UdpMessaging: Initializing tunnel on interface %s to multicast group %s."), *UnicastEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString());
+		UE_LOG(LogUdpMessaging, Log, TEXT("Initializing tunnel on interface %s to multicast group %s."), *UnicastEndpoint.ToText().ToString(), *MulticastEndpoint.ToText().ToString());
 
 		MessageTunnel = MakeShareable(new FUdpMessageTunnel(UnicastEndpoint, MulticastEndpoint));
 
@@ -184,7 +188,7 @@ protected:
 			}
 			else
 			{
-				GLog->Logf(TEXT("Warning: Invalid UDP RemoteTunnelEndpoint '%s' - skipping"), *Settings->RemoteTunnelEndpoints[EndpointIndex]);
+				UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP RemoteTunnelEndpoint '%s' - skipping"), *Settings->RemoteTunnelEndpoints[EndpointIndex]);
 			}
 		}
 	}

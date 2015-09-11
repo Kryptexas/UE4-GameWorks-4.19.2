@@ -26,18 +26,18 @@ FUdpMessageProcessor::FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNo
 
 	const UUdpMessagingSettings& Settings = *GetDefault<UUdpMessagingSettings>();
 
-	for (int32 StaticEndpointIndex = 0; StaticEndpointIndex < Settings.StaticEndpoints.Num(); ++StaticEndpointIndex)
+	for (auto& StaticEndpoint : Settings.StaticEndpoints)
 	{
 		FIPv4Endpoint Endpoint;
 
-		if (FIPv4Endpoint::Parse(Settings.StaticEndpoints[StaticEndpointIndex], Endpoint))
+		if (FIPv4Endpoint::Parse(StaticEndpoint, Endpoint))
 		{
 			FNodeInfo& NodeInfo = StaticNodes.FindOrAdd(Endpoint);
 			NodeInfo.Endpoint = Endpoint;
 		}
 		else
 		{
-			GLog->Logf(TEXT("Warning: Invalid UDP Messaging StaticNode '%s'"), *Settings.StaticEndpoints[StaticEndpointIndex]);
+			UE_LOG(LogUdpMessaging, Warning, TEXT("Invalid UDP Messaging Static Endpoint '%s'"), *StaticEndpoint);
 		}
 	}
 }
@@ -406,7 +406,7 @@ void FUdpMessageProcessor::ProcessTimeoutSegment( FInboundSegment& Segment, FNod
 
 void FUdpMessageProcessor::ProcessUnknownSegment( FInboundSegment& Segment, FNodeInfo& EndpointInfo, uint8 SegmentType )
 {
-	GLog->Logf(TEXT("FUdpMessageProcessor: Received unknown segment type '%i' from %s"), SegmentType, *Segment.Sender.ToText().ToString());
+	UE_LOG(LogUdpMessaging, Verbose, TEXT("Received unknown segment type '%i' from %s"), SegmentType, *Segment.Sender.ToText().ToString());
 }
 
 
