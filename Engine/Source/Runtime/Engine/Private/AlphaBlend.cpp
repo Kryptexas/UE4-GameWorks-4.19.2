@@ -5,20 +5,20 @@
 
 FAlphaBlend::FAlphaBlend(float NewBlendTime) 
 	: BlendOption(EAlphaBlendOption::Linear)
+	, CustomCurve(nullptr)
+	, BlendTime(NewBlendTime)
 	, BeginValue(0.0f)
 	, DesiredValue(1.0f)
-	, BlendTime(NewBlendTime)
-	, CustomCurve(nullptr)
 {
 	Reset();
 }
 
 FAlphaBlend::FAlphaBlend(const FAlphaBlend& Other, float NewBlendTime)
 	: BlendOption(Other.BlendOption)
+	, CustomCurve(Other.CustomCurve)
+	, BlendTime(NewBlendTime)
 	, BeginValue(Other.BeginValue)
 	, DesiredValue(Other.DesiredValue)
-	, BlendTime(NewBlendTime)
-	, CustomCurve(Other.CustomCurve)
 {
 	Reset();
 }
