@@ -3282,45 +3282,48 @@ void UEditorEngine::ToggleBetweenPIEandSIE( bool bNewSession )
 
 				UWorld* World = GameViewport->GetWorld();
 				AGameMode* AuthGameMode = World->GetAuthGameMode();
-				if (AuthGameMode)	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
+				if (AuthGameMode && GameViewport->GetGameInstance())	// If there is no GameMode, we are probably the client and cannot RestartPlayer.
 				{
-					APlayerController* PC = World->GetFirstPlayerController();
-					AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
-					PC->PlayerState->bOnlySpectator = false;
-					AuthGameMode->NumPlayers++;
-
-					bool bNeedsRestart = true;
-					if (PC->GetPawn() == NULL)
+					APlayerController* PC = GameViewport->GetGameInstance()->GetFirstLocalPlayerController();
+					if (PC != nullptr)
 					{
-						// Use the "auto-possess" pawn in the world, if there is one.
-						for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
+						AuthGameMode->RemovePlayerControllerFromPlayerCount(PC);
+						PC->PlayerState->bOnlySpectator = false;
+						AuthGameMode->NumPlayers++;
+
+						bool bNeedsRestart = true;
+						if (PC->GetPawn() == NULL)
 						{
-							APawn* Pawn = *Iterator;
-							if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
+							// Use the "auto-possess" pawn in the world, if there is one.
+							for (FConstPawnIterator Iterator = World->GetPawnIterator(); Iterator; ++Iterator)
 							{
-								if (Pawn->Controller == nullptr)
+								APawn* Pawn = *Iterator;
+								if (Pawn && Pawn->AutoPossessPlayer == EAutoReceiveInput::Player0)
 								{
-									PC->Possess(Pawn);
-									bNeedsRestart = false;
+									if (Pawn->Controller == nullptr)
+									{
+										PC->Possess(Pawn);
+										bNeedsRestart = false;
+									}
+									break;
 								}
-								break;
 							}
 						}
-					}
 
-					if (bNeedsRestart)
-					{
-						AuthGameMode->RestartPlayer(PC);
-
-						if (PC->GetPawn())
+						if (bNeedsRestart)
 						{
-							// If there was no player start, then try to place the pawn where the camera was.						
-							if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
+							AuthGameMode->RestartPlayer(PC);
+
+							if (PC->GetPawn())
 							{
-								const FVector Location = EditorViewportClient.GetViewLocation();
-								const FRotator Rotation = EditorViewportClient.GetViewRotation();
-								PC->SetControlRotation(Rotation);
-								PC->GetPawn()->TeleportTo(Location, Rotation);
+								// If there was no player start, then try to place the pawn where the camera was.						
+								if (PC->StartSpot == nullptr || Cast<AWorldSettings>(PC->StartSpot.Get()))
+								{
+									const FVector Location = EditorViewportClient.GetViewLocation();
+									const FRotator Rotation = EditorViewportClient.GetViewRotation();
+									PC->SetControlRotation(Rotation);
+									PC->GetPawn()->TeleportTo(Location, Rotation);
+								}
 							}
 						}
 					}

@@ -395,12 +395,12 @@ FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPo
 			CurrentReplyState.SetUserFocus(ViewportWidgetRef, EFocusCause::SetDirectly, true);
 			
 			UWorld* World = ViewportClient->GetWorld();
-			if (World && World->IsGameWorld() && World->GetFirstPlayerController())
+			if (World && World->IsGameWorld() && World->GetGameInstance() && World->GetGameInstance()->GetFirstLocalPlayerController())
 			{
 				CurrentReplyState.CaptureMouse(ViewportWidgetRef);
 				CurrentReplyState.LockMouseToWidget(ViewportWidgetRef);
 
-				bool bShouldShowMouseCursor = World->GetFirstPlayerController()->ShouldShowMouseCursor();
+				bool bShouldShowMouseCursor = World->GetGameInstance()->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
 				if (ViewportClient->HideCursorDuringCapture() && bShouldShowMouseCursor)
 				{
 					bCursorHiddenDueToCapture = true;
@@ -825,9 +825,9 @@ FReply FSceneViewport::OnFocusReceived(const FFocusEvent& InFocusEvent)
 			if (IsForegroundWindow())
 			{
 				bool bIsCursorForcedVisible = false;
-				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetFirstPlayerController())
+				if (ViewportClient->GetWorld() && ViewportClient->GetWorld()->GetGameInstance() && ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController())
 				{
-					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetFirstPlayerController()->GetMouseCursor() != EMouseCursor::None;
+					bIsCursorForcedVisible = ViewportClient->GetWorld()->GetGameInstance()->GetFirstLocalPlayerController()->GetMouseCursor() != EMouseCursor::None;
 				}
 
 				const bool bPlayInEditorCapture = !bIsPlayInEditorViewport || InFocusEvent.GetCause() != EFocusCause::SetDirectly || bPlayInEditorGetsMouseControl;

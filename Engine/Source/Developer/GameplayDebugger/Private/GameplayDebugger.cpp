@@ -447,7 +447,7 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 
 	if (FParse::Command(&Cmd, TEXT("RunEQS")) && InWorld)
 	{
-		APlayerController* MyPC = InWorld->GetFirstPlayerController();
+		APlayerController* MyPC = InWorld->GetGameInstance() ? InWorld->GetGameInstance()->GetFirstLocalPlayerController() : nullptr;
 		UAISystem* AISys = UAISystem::GetCurrent(*InWorld);
 
 		UEnvQueryManager* EQS = AISys ? AISys->GetEnvironmentQueryManager() : NULL;
@@ -548,7 +548,7 @@ bool FGameplayDebugger::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& A
 
 		if (!LocalPC && MyWorld->GetNetMode() != NM_DedicatedServer)
 		{
-			LocalPC = MyWorld->GetFirstPlayerController();
+			LocalPC = MyWorld->GetGameInstance() ? MyWorld->GetGameInstance()->GetFirstLocalPlayerController() : nullptr;
 		}
 	}
 

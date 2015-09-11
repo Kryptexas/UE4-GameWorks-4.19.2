@@ -449,24 +449,17 @@ void UConsole::ConsoleCommand(const FString& Command)
 
 	OutputText(FString::Printf(TEXT("\n>>> %s <<<"), *Command));
 
-	UWorld *World = GetOuterUGameViewportClient()->GetWorld();
+	UGameInstance* GameInstance = GetOuterUGameViewportClient()->GetGameInstance();
 	if(ConsoleTargetPlayer != NULL)
 	{
 		// If there is a console target player, execute the command in the player's context.
 		ConsoleTargetPlayer->PlayerController->ConsoleCommand(Command);
 	}
-	else if(World && World->GetPlayerControllerIterator())
+	else if(GameInstance && GameInstance->GetFirstLocalPlayerController())
 	{
-		// If there are any players, execute the command in the first player's context that has a non-null Player.
-		for (auto PCIter = World->GetPlayerControllerIterator(); PCIter; ++PCIter)
-		{
-			APlayerController* PC = *PCIter;
-			if (PC && PC->Player)
-			{
-				PC->ConsoleCommand(Command);
-				break;
-			}
-		}
+		// If there are any players, execute the command in the first local player's context.
+		APlayerController* PC = GameInstance->GetFirstLocalPlayerController();
+		PC->ConsoleCommand(Command);
 	}
 	else
 	{

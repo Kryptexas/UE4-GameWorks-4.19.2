@@ -567,9 +567,9 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 		{
 			bRequired = true;
 		}
-		else if (GetWorld() && GetWorld()->GetFirstPlayerController())
+		else if (GameInstance && GameInstance->GetFirstLocalPlayerController())
 		{
-			bRequired = GetWorld()->GetFirstPlayerController()->ShouldShowMouseCursor();
+			bRequired = GameInstance->GetFirstLocalPlayerController()->ShouldShowMouseCursor();
 		}
 	}
 
@@ -610,9 +610,9 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	}
 	else if ( /*(!bIsPlayingMovie) && */(InViewport->IsFullscreen() || !bIsWithinTitleBar) ) //bIsPlayingMovie has always false value
 	{
-		if (GetWorld() && GetWorld()->GetFirstPlayerController())
+		if (GameInstance && GameInstance->GetFirstLocalPlayerController())
 		{
-			return GetWorld()->GetFirstPlayerController()->GetMouseCursor();
+			return GameInstance->GetFirstLocalPlayerController()->GetMouseCursor();
 		}
 
 		return EMouseCursor::None;
@@ -751,9 +751,9 @@ bool UGameViewportClient::ShouldForceFullscreenViewport() const
 		{
 			bResult = true;
 		}
-		else
+		else if ( GameInstance )
 		{
-			APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+			APlayerController* PlayerController = GameInstance->GetFirstLocalPlayerController();
 			if( ( PlayerController ) && ( PlayerController->bCinematicMode ) )
 			{
 				bResult = true;

@@ -115,9 +115,9 @@ void UAISystem::AIIgnorePlayers()
 void UAISystem::AILoggingVerbose()
 {
 	UWorld* OuterWorld = GetOuterWorld();
-	if (OuterWorld)
+	if (OuterWorld && OuterWorld->GetGameInstance())
 	{
-		APlayerController* PC = OuterWorld->GetFirstPlayerController();
+		APlayerController* PC = OuterWorld->GetGameInstance()->GetFirstLocalPlayerController();
 		if (PC)
 		{
 			PC->ConsoleCommand(TEXT("log lognavigation verbose | log logpathfollowing verbose | log LogCharacter verbose | log LogBehaviorTree verbose | log LogPawnAction verbose|"));
@@ -129,12 +129,12 @@ void UAISystem::RunEQS(const FString& QueryName, UObject* Target)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UWorld* OuterWorld = GetOuterWorld();
-	if (OuterWorld == NULL)
+	if (OuterWorld == NULL || OuterWorld->GetGameInstance() == NULL)
 	{
 		return;
 	}
 
-	APlayerController* MyPC = OuterWorld->GetFirstPlayerController();
+	APlayerController* MyPC = OuterWorld->GetGameInstance()->GetFirstLocalPlayerController();
 	UEnvQueryManager* EQS = GetEnvironmentQueryManager();
 
 	if (Target && MyPC && EQS)

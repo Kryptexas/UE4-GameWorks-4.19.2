@@ -2894,7 +2894,12 @@ void APlayerController::LevelStreamingStatusChanged(ULevelStreaming* LevelObject
 void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, bool bFirst, bool bLast)
 {
 	// Only call on the first local player controller to handle it being called on multiple PCs for splitscreen.
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	if (GetWorld()->GetGameInstance() == nullptr)
+	{
+		return;
+	}
+
+	APlayerController* PlayerController = GetWorld()->GetGameInstance()->GetFirstLocalPlayerController();
 	if( PlayerController != this )
 	{
 		return;

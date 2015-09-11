@@ -3427,7 +3427,11 @@ void UParticleSystemComponent::OrientZAxisTowardCamera()
 	ForceAsyncWorkCompletion(ENSURE_AND_STALL);
 
 	//@TODO: CAMERA: How does this work for stereo and/or split-screen?
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	APlayerController* PlayerController = nullptr;
+	if (GetWorld() && GetWorld()->GetGameInstance())
+	{
+		PlayerController = GetWorld()->GetGameInstance()->GetFirstLocalPlayerController();
+	}
 
 	// Orient the Z axis toward the camera
 	if (PlayerController && PlayerController->PlayerCameraManager)

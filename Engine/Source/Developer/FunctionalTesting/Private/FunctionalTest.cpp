@@ -292,9 +292,9 @@ void AFunctionalTest::GoToObservationPoint()
 	}
 
 	UWorld* World = GetWorld();
-	if (World)
+	if (World && World->GetGameInstance())
 	{
-		APlayerController* PC = World->GetFirstPlayerController();
+		APlayerController* PC = World->GetGameInstance()->GetFirstLocalPlayerController();
 		if (PC && PC->GetPawn())
 		{
 			PC->GetPawn()->TeleportTo(ObservationPoint->GetActorLocation(), ObservationPoint->GetActorRotation(), /*bIsATest=*/false, /*bNoCheck=*/true);

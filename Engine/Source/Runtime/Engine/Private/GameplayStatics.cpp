@@ -159,8 +159,8 @@ void UGameplayStatics::SetGlobalTimeDilation(UObject* WorldContextObject, float 
 
 bool UGameplayStatics::SetGamePaused(UObject* WorldContextObject, bool bPaused)
 {
-	UWorld* const World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	APlayerController* const PC = World ? World->GetFirstPlayerController() : nullptr;
+	UGameInstance* const GameInstance = GetGameInstance( WorldContextObject );
+	APlayerController* const PC = GameInstance ? GameInstance->GetFirstLocalPlayerController() : nullptr;
 	return PC ? PC->SetPause(bPaused) : false;
 }
 
