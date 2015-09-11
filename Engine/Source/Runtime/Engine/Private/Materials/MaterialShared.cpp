@@ -209,8 +209,8 @@ EMaterialValueType GetMaterialPropertyType(EMaterialProperty Property)
 	case MP_WorldDisplacement : return MCT_Float3;
 	case MP_TessellationMultiplier: return MCT_Float;
 	case MP_SubsurfaceColor: return MCT_Float3;
-	case MP_ClearCoat: return MCT_Float;
-	case MP_ClearCoatRoughness: return MCT_Float;
+	case MP_CustomData0: return MCT_Float;
+	case MP_CustomData1: return MCT_Float;
 	case MP_AmbientOcclusion: return MCT_Float;
 	case MP_Refraction: return MCT_Float;
 	case MP_MaterialAttributes: return MCT_MaterialAttributes;
@@ -1252,6 +1252,7 @@ void FMaterial::SetupMaterialEnvironment(
 		case MSM_SubsurfaceProfile: OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE"),	TEXT("1")); break;
 		case MSM_ClearCoat:			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_CLEAR_COAT"),			TEXT("1")); break;
 		case MSM_TwoSidedFoliage:	OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE"),	TEXT("1")); break;
+		case MSM_Hair:				OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_HAIR"),				TEXT("1")); break;
 		default: 
 			UE_LOG(LogMaterial, Warning, TEXT("Unknown material shading model: %u  Setting to MSM_DefaultLit"),(int32)GetShadingModel());
 			OutEnvironment.SetDefine(TEXT("MATERIAL_SHADINGMODEL_DEFAULT_LIT"),TEXT("1"));
@@ -2164,8 +2165,8 @@ const TMap<EMaterialProperty, int32> CreatePropertyToIOIndexMap()
 	Ret.Add(MP_WorldDisplacement, 9);
 	Ret.Add(MP_TessellationMultiplier, 10);
 	Ret.Add(MP_SubsurfaceColor, 11);
-	Ret.Add(MP_ClearCoat, 12);
-	Ret.Add(MP_ClearCoatRoughness, 13);
+	Ret.Add(MP_CustomData0, 12);
+	Ret.Add(MP_CustomData1, 13);
 	Ret.Add(MP_AmbientOcclusion, 14);
 	Ret.Add(MP_Refraction, 15);
 	Ret.Add(MP_CustomizedUVs0, 16);
@@ -2212,8 +2213,8 @@ int32 GetDefaultExpressionForMaterialProperty(FMaterialCompiler* Compiler, EMate
 		case MP_Specular:				return Compiler->Constant(0.5f);
 		case MP_Roughness:				return Compiler->Constant(0.5f);
 		case MP_TessellationMultiplier:	return Compiler->Constant(1.0f);
-		case MP_ClearCoat:				return Compiler->Constant(1.0f);
-		case MP_ClearCoatRoughness:		return Compiler->Constant(0.1f);
+		case MP_CustomData0:			return Compiler->Constant(1.0f);
+		case MP_CustomData1:			return Compiler->Constant(0.1f);
 		case MP_AmbientOcclusion:		return Compiler->Constant(1.0f);
 		case MP_PixelDepthOffset:		return Compiler->Constant(0.0f);
 
@@ -2265,8 +2266,8 @@ FString GetNameOfMaterialProperty(EMaterialProperty Property)
 	case MP_WorldDisplacement:		return TEXT("WorldDisplacement");
 	case MP_TessellationMultiplier: return TEXT("TessellationMultiplier");
 	case MP_SubsurfaceColor:		return TEXT("SubsurfaceColor");
-	case MP_ClearCoat:				return TEXT("ClearCoat");
-	case MP_ClearCoatRoughness:		return TEXT("ClearCoatRoughness");
+	case MP_CustomData0:			return TEXT("ClearCoat");
+	case MP_CustomData1:			return TEXT("ClearCoatRoughness");
 	case MP_AmbientOcclusion:		return TEXT("AmbientOcclusion");
 	case MP_Refraction:				return TEXT("Refraction");
 	case MP_PixelDepthOffset:		return TEXT("PixelDepthOffset");

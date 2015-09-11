@@ -194,19 +194,412 @@ float3 ClearCoatShading( FGBufferData GBuffer, float3 LobeRoughness, float3 Lobe
 #endif //USE_CLEARCOAT
 }
 
+
+float Hair_g( float B, float Theta )
+{
+	return exp( -0.5 * Pow2( Theta ) / (B*B) ) / ( sqrt(2*PI) * B );
+}
+
+float Hair_F( float CosTheta )
+{
+	const float n = 1.55;
+	const float F0 = Pow2( (1 - n) / (1 + n) );
+	return F0 + (1 - F0) * Pow5( 1 - CosTheta );
+}
+
+#define HAIR_REFERENCE	1
+#if HAIR_REFERENCE
+struct FHairTemp
+{
+	float SinThetaL;
+	float SinThetaV;
+	float CosThetaD;
+	float CosThetaT;
+	float CosPhi;
+	float CosHalfPhi;
+	float VoL;
+	float n_prime;
+};
+
+// Modified Bessel function
+float I0( float x )
+{
+	x = abs(x);
+	float a;
+	if( x < 3.75 )
+	{
+		float t = x / 3.75;
+		float t2 = t*t;
+		a =        + 0.0045813;
+		a = a * t2 + 0.0360768;
+		a = a * t2 + 0.2659732;
+		a = a * t2 + 1.2067492;
+		a = a * t2 + 3.0899424;
+		a = a * t2 + 3.5156229;
+		a = a * t2 + 1.0;
+	}
+	else
+	{
+		float t = 3.75 / x;
+		a =       + 0.00392377;
+		a = a * t - 0.01647633;
+		a = a * t + 0.02635537;
+		a = a * t - 0.02057706;
+		a = a * t + 0.00916281;
+		a = a * t - 0.00157565;
+		a = a * t + 0.00225319;
+		a = a * t + 0.01328592;
+		a = a * t + 0.39894228;
+		a *= exp(x) * rsqrt(x);
+	}
+	return a;
+}
+
+float LongitudinalScattering( float B, float SinThetaL, float SinThetaV )
+{
+	float v = B*B;
+	float CosThetaL2 = 1 - SinThetaL * SinThetaL;
+	float CosThetaV2 = 1 - SinThetaV * SinThetaV;
+	float Mp = 0;
+	if( v < 0.1 )
+	{
+		float a = sqrt(CosThetaL2 * CosThetaV2) / v;
+		float b = -SinThetaL * SinThetaV / v;
+		float logI0a = a > 12 ? a + 0.5 * ( -log(2*PI) + log(1/a) + 0.125/a ) : log( I0(a) );
+		Mp = exp( logI0a + b - rcp(v) + 0.6931 + log(0.5 / v) );
+	}
+	else
+	{
+		Mp = rcp( exp(2/v) * v - v ) * exp( ( 1 - SinThetaL * SinThetaV ) / v ) * I0( sqrt(CosThetaL2 * CosThetaV2) / v );
+	}
+	
+	return Mp;
+}
+
+float GaussianDetector( float Bp, float Phi )
+{
+	float Dp = 0;
+	for( int k = -4; k <= 4; k++ )
+	{
+		// TODO use symmetry and detect for both Phi and -Phi
+		Dp += Hair_g( Bp, Phi - (2*PI) * k );
+	}
+	return Dp;
+}
+
+float3 Attenuation( uint p, float h, float3 Color, FHairTemp HairTemp )
+{
+	float3 A;
+	if( p == 0 )
+	{
+		//A = F( cos( 0.5 * acos( HairTemp.VoL ) ) );
+		A = Hair_F( sqrt( 0.5 + 0.5 * HairTemp.VoL ) );
+	}
+	else
+	{
+		// ua is absorption
+		// ua = pe*Sigma_ae + pp*Sigma_ap
+		float3 Sigma_ae = { 0.419, 0.697, 1.37 };
+		float3 Sigma_ap = { 0.187, 0.4, 1.05 };
+		//float3 ua = 0.25 * Sigma_ae + 0.25 * Sigma_ap;
+		float3 ua = -0.25 * log( Color );
+		float3 ua_prime = ua / HairTemp.CosThetaT;
+		//float3 ua_prime = ua / sqrt( 1 - Pow2( HairTemp.CosThetaD ) / 2.4 );
+		
+		float yi = asin(h);
+		float yt = asin(h / HairTemp.n_prime);
+		
+		float f = Hair_F( HairTemp.CosThetaD * sqrt( 1- h*h ) );		// (14)
+		float3 T = exp( -2 * ua_prime * ( 1 + cos(2*yt) ) );
+		A = Pow2(1 - f) * pow( f, p - 1 ) * pow( T, p );		// (13)
+	}
+	return A;
+}
+
+float Omega( uint p, float h, FHairTemp HairTemp )
+{
+	float yi = asin(h);
+	float yt = asin(h / HairTemp.n_prime);
+	return 2*p*yt - 2*yi + p*PI;
+}
+
+float3 AzimuthalScattering( uint p, float Bp, float3 Color, FHairTemp HairTemp, uint2 Random )
+{
+	float Phi = acos( HairTemp.CosPhi );
+	
+	// Np = 0.5 * Integral_-1^1( A(p,h) * Dp( Phi - Omega(p,h) ) * dh )
+
+#if 0
+
+#if 0
+	// Gauss–Legendre quadrature order 5
+	uint Num = 2;
+	float2 w0_x0 = { 0.56888888, 0 };
+	float2 wi_xi[] =
+	{
+		{ 0.47862867, 0.53846931 },
+		{ 0.23692688, 0.90617984 },
+	};
+#elif 0
+	// Gauss–Legendre quadrature order 7
+	const uint Num = 3;
+	float2 w0_x0 = { 0.41795918, 0 };
+	float2 wi_xi[] =
+	{
+		{ 0.38183005, 0.40584515 },
+		{ 0.27970539, 0.74153118 },
+		{ 0.12948496, 0.94910791 },
+	};
+#elif 0
+	// Gauss–Legendre quadrature order 11
+	const uint Num = 5;
+	float2 w0_x0 = { 0.27292508, 0 };
+	float2 wi_xi[] =
+	{
+		{ 0.26280454, 0.26954315 },
+		{ 0.23319376, 0.51909612 },
+		{ 0.18629021, 0.73015200 },
+		{ 0.12558036, 0.88706259 },
+		{ 0.05566856, 0.97822865 },
+	};
+#else
+	// Gauss–Legendre quadrature order 35
+	const uint Num = 17;
+	float2 w0_x0 = { 0.08848679, 0.00000000 };
+	float2 wi_xi[] =
+	{
+		{ 0.08814053, 0.08837134 },
+		{ 0.08710444, 0.17605106 },
+		{ 0.08538665, 0.26235294 },
+		{ 0.08300059, 0.34660155 },
+		{ 0.07996494, 0.42813754 },
+		{ 0.07630345, 0.50632277 },
+		{ 0.07204479, 0.58054534 },
+		{ 0.06722228, 0.65022436 },
+		{ 0.06187367, 0.71481450 },
+		{ 0.05604081, 0.77381025 },
+		{ 0.04976937, 0.82674989 },
+		{ 0.04310842, 0.87321912 },
+		{ 0.03611011, 0.91285426 },
+		{ 0.02882926, 0.94534514 },
+		{ 0.02132297, 0.97043761 },
+		{ 0.01365082, 0.98793576 },
+		{ 0.00588343, 0.99770656 },
+	};
+#endif
+
+	float w = w0_x0.x;
+	float h = w0_x0.y;
+	float3 Np = w * Attenuation( p, h, HairTemp ) * GaussianDetector( Bp, Phi - Omega( p, h, HairTemp ) );
+	
+	for( uint i = 0; i < Num; i++ )
+	{
+		w = wi_xi[i].x;
+		h = wi_xi[i].y;
+		Np += w * Attenuation( p, h, HairTemp ) * GaussianDetector( Bp, Phi - Omega( p, h, HairTemp ) );
+		Np += w * Attenuation( p,-h, HairTemp ) * GaussianDetector( Bp, Phi - Omega( p,-h, HairTemp ) );
+	}
+#else
+	float Offset = float( Random.x & 0xffff ) / (1<<16);
+
+	uint Num = 16;
+	float3 Np = 0;
+	for( uint i = 0; i < Num; i++ )
+	{
+		float h = ( (float)( i + Offset ) / Num ) * 2 - 1;
+		Np += Attenuation( p, h, Color, HairTemp ) * GaussianDetector( Bp, Phi - Omega( p, h, HairTemp ) );
+	}
+	Np *= 2.0 / Num;
+#endif
+
+	return 0.5 * Np;
+}
+
+// [d'Eon et al. 2011, "An Energy-Conserving Hair Reflectance Model"]
+// [d'Eon et al. 2014, "A Fiber Scattering Model with Non-Separable Lobes"]
+float3 HairShadingRef( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Random )
+{
+	float n = 1.55;
+
+	FHairTemp HairTemp;
+	
+	// N is the vector parallel to hair pointing toward root
+	HairTemp.VoL       = dot(V,L);
+	HairTemp.SinThetaL = dot(N,L);
+	HairTemp.SinThetaV = dot(N,V);
+	// SinThetaT = 1/n * SinThetaL
+	HairTemp.CosThetaT = sqrt( 1 - Pow2( (1/n) * HairTemp.SinThetaL ) );
+	HairTemp.CosThetaD = cos( 0.5 * abs( asin( HairTemp.SinThetaV ) - asin( HairTemp.SinThetaL ) ) );
+
+	float3 Lp = L - HairTemp.SinThetaL * N;
+	float3 Vp = V - HairTemp.SinThetaV * N;
+	HairTemp.CosPhi = dot(Lp,Vp) * rsqrt( dot(Lp,Lp) * dot(Vp,Vp) );
+	HairTemp.CosHalfPhi = sqrt( 0.5 + 0.5 * HairTemp.CosPhi );
+
+	HairTemp.n_prime = sqrt( n*n - 1 + Pow2( HairTemp.CosThetaD ) ) / HairTemp.CosThetaD;
+
+	float Alpha[] =
+	{
+		-0.13,
+		0.13 * 0.5,
+		0.13 * 1.5,
+	};
+	float B[] =
+	{
+		Pow2( GBuffer.Roughness ),
+		Pow2( GBuffer.Roughness ) / 2,
+		Pow2( GBuffer.CustomData.z ) * 2,
+	};
+
+	float3 S = 0;
+	UNROLL for( uint p = 0; p < 3; p++ )
+	{
+		float SinThetaV = HairTemp.SinThetaV;
+		float Bp = B[p];
+		if( p == 0 )
+		{
+			Bp *= sqrt(2) * HairTemp.CosHalfPhi;
+			float sa, ca;
+			sincos( Alpha[p], sa, ca );
+			SinThetaV -= 2*sa * ( HairTemp.CosHalfPhi * ca * sqrt( 1 - SinThetaV * SinThetaV ) + sa * SinThetaV );
+		}
+		else
+		{
+			SinThetaV = sin( asin(SinThetaV) - Alpha[p] );
+		}
+		float Mp = LongitudinalScattering( Bp, HairTemp.SinThetaL, SinThetaV );
+		float3 Np = AzimuthalScattering( p, B[p], GBuffer.BaseColor, HairTemp, Random );
+
+		float3 Sp = Mp * Np;
+		S += Sp;
+	}
+	return S;
+}
+#endif
+
+// Approximation to HairShadingRef using concepts from the following papers:
+// [Marschner et al. 2003, "Light Scattering from Human Hair Fibers"]
+// [Pekelis et al. 2015, "A Data-Driven Light Scattering Model for Hair"]
+float3 HairShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Random )
+{
+	const float3 DiffuseN	= OctahedronToUnitVector( GBuffer.CustomData.xy * 2 - 1 );
+	const float Roughness2	= GBuffer.CustomData.z;
+	const float Opacity		= GBuffer.CustomData.w;
+
+#if HAIR_REFERENCE
+	if( DiffuseN.x > 0 )
+	{
+		return HairShadingRef( GBuffer, L, V, N, Random );
+	}
+#endif
+	
+	// N is the vector parallel to hair pointing toward root
+
+	const float VoL       = dot(V,L);
+	const float SinThetaL = dot(N,L);
+	const float SinThetaV = dot(N,V);
+	const float CosThetaD = cos( 0.5 * abs( asin( SinThetaV ) - asin( SinThetaL ) ) );
+
+	const float3 Lp = L - SinThetaL * N;
+	const float3 Vp = V - SinThetaV * N;
+	const float CosPhi = dot(Lp,Vp) * rsqrt( dot(Lp,Lp) * dot(Vp,Vp) );
+	const float CosHalfPhi = sqrt( 0.5 + 0.5 * CosPhi );
+	const float Phi = acos( CosPhi );
+
+	float n = 1.55;
+	//float n_prime = sqrt( n*n - 1 + Pow2( CosThetaD ) ) / CosThetaD;
+	float n_prime = 1.2 / CosThetaD + 0.35 * CosThetaD;
+
+	float Alpha[] =
+	{
+		-0.13,
+		0.13 * 0.5,
+		0.13 * 1.5,
+	};
+	float B[] =
+	{
+		Pow2( GBuffer.Roughness ),
+		Pow2( GBuffer.Roughness ) / 2,
+		Pow2( Roughness2 ) * 2,
+	};
+
+	float3 S = 0;
+
+	// R
+	{
+		const float sa = sin( Alpha[0] );
+		const float ca = cos( Alpha[0] );
+		float Shift = (2*sa*ca) * CosHalfPhi * sqrt( 1 - SinThetaV * SinThetaV ) + (2*sa*sa) * SinThetaV;
+
+		float Mp = Hair_g( B[0] * sqrt(2) * CosHalfPhi, SinThetaL + SinThetaV - Shift );
+		float Np = 0.25 * CosHalfPhi;
+		float Fp = Hair_F( sqrt( 0.5 + 0.5 * VoL ) );
+		S += Mp * Np * Fp * ( GBuffer.Specular * 2 );
+	}
+
+	// TT
+	{
+		float Mp = Hair_g( B[1], SinThetaL + SinThetaV - Alpha[1] );
+
+		float a = 1 / n_prime;
+		float h = CosHalfPhi * rsqrt( 1 + a*a - 2*a * sqrt( 0.5 - 0.5 * CosPhi ) );
+		//float h = CosHalfPhi * ( ( 1 - Pow2( CosHalfPhi ) ) * a + 1 );
+		//float h = 0.4;
+		float yi = asin(h);
+		float yt = asin(h / n_prime);
+		
+		float f = Hair_F( CosThetaD * sqrt( 1 - h*h ) );
+		float Fp = Pow2(1 - f);
+		float3 Tp = pow( GBuffer.BaseColor, 0.5 * ( 1 + cos(2*yt) ) / CosThetaD );
+
+		//float t = asin( 1 / n_prime );
+		//float d = ( sqrt(2) - t ) / ( 1 - t );
+		//float s = -0.5 * PI * (1 - 1 / n_prime) * log( 2*d - 1 - 2 * sqrt( d * (d - 1) ) );
+		float s = 0.3;
+		float Np = exp( (Phi - PI) / s ) / ( s * Pow2( 1 + exp( (Phi - PI) / s ) ) );
+
+		S += Mp * Np * Fp * Tp;
+	}
+
+	// TRT
+	{
+		float Mp = Hair_g( B[2], SinThetaL + SinThetaV - Alpha[2] );
+		
+		//float h = 0.75;
+		float f = Hair_F( CosThetaD * 0.66 );
+		float Fp = Pow2(1 - f) * f;
+		float3 Tp = pow( GBuffer.BaseColor, 1.6 / CosThetaD );
+
+		//float s = 0.3;
+		//float Np = exp( Phi / s ) / ( s * Pow2( 1 + exp( Phi / s ) ) );
+		float Np = (1/PI) * 2.6 * exp( 2 * 2.6 * (CosPhi - 1) );
+
+		S += Mp * Np * Fp * Tp;
+	}
+
+
+	// Hack approximation for multiple scattering.
+	float Wrap = 1 - Opacity;
+	float NoL = saturate( ( dot(DiffuseN, L) + Wrap ) / Square( 1 + Wrap ) );
+	float DiffuseScatter = GBuffer.GBufferAO * NoL * (1 / PI) * GBuffer.Metallic;
+	S += GBuffer.BaseColor * DiffuseScatter;
+
+	return S;
+}
+
 float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
 	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
+	float Opacity = GBuffer.CustomData.a;
 
 	float3 H = normalize(V + L);
 
 	// to get an effect when you see through the material
 	// hard coded pow constant
-	float InScatter = pow(saturate(dot(L, -V)), 12) * lerp(3, .1f, GBuffer.Opacity);
+	float InScatter = pow(saturate(dot(L, -V)), 12) * lerp(3, .1f, Opacity);
 	// wrap around lighting, /(PI*2) to be energy consistent (hack do get some view dependnt and light dependent effect)
-	float OpacityFactor = GBuffer.Opacity;
 	// Opacity of 0 gives no normal dependent lighting, Opacity of 1 gives strong normal contribution
-	float NormalContribution = saturate(dot(N, H) * OpacityFactor + 1 - OpacityFactor);
+	float NormalContribution = saturate(dot(N, H) * Opacity + 1 - Opacity);
 	float BackScatter = GBuffer.GBufferAO * NormalContribution / (PI * 2);
 
 	// lerp to never exceed 1 (energy conserving)
@@ -234,14 +627,14 @@ SamplerState	PreIntegratedBRDFSampler;
 float3 SubsurfaceShadingPreintegratedSkin( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 {
 	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
+	float Opacity = GBuffer.CustomData.a;
 
-	float OpacityFactor = GBuffer.Opacity;
-	float3 PreintegratedBRDF = Texture2DSampleLevel(PreIntegratedBRDF, PreIntegratedBRDFSampler, float2(saturate(dot(N, L) * .5 + .5), 1 - OpacityFactor), 0).rgb;
+	float3 PreintegratedBRDF = Texture2DSampleLevel(PreIntegratedBRDF, PreIntegratedBRDFSampler, float2(saturate(dot(N, L) * .5 + .5), 1 - Opacity), 0).rgb;
 	return PreintegratedBRDF * SubsurfaceColor;
 }
 
 // @param DiffSpecMask .r: diffuse, .g:specular e.g. float2(1,1) for both, float2(1,0) for diffuse only
-float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N, float2 DiffSpecMask )
+float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEnergy, float3 L, float3 V, half3 N, float2 DiffSpecMask, uint2 Random )
 {
 	switch( GBuffer.ShadingModelID )
 	{
@@ -260,7 +653,7 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 	}
 }
 
-float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
+float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N, uint2 Random )
 {
 	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
 
@@ -272,6 +665,8 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 			return SubsurfaceShadingPreintegratedSkin( GBuffer, L, V, N );
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
 			return SubsurfaceShadingTwoSided( SubsurfaceColor, L, V, N );
+		case SHADINGMODELID_HAIR:
+			return HairShading( GBuffer, L, V, N, Random );
 		default:
 			return 0;
 	}

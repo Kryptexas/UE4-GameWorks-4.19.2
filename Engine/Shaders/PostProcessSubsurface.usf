@@ -34,8 +34,7 @@ float GetSubsurfaceStrength(float2 UV)
 	FScreenSpaceData ScreenSpaceData = GetScreenSpaceData(UV);
 
 	float Mask = ScreenSpaceData.GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE;
-
-	return Mask * ScreenSpaceData.GBuffer.Opacity;
+	return Mask * ScreenSpaceData.GBuffer.CustomData.a;
 }
 
 // 0:full res (slower but reference) / 1:faster half res with some quality loss
@@ -141,7 +140,7 @@ float ComputeFullResLerp(FScreenSpaceData ScreenSpaceData, float2 UVSceneColor, 
 	//
 	Ret *= saturate(PixelSizeRadius - PixelSize);
 	// opacity allows to scale the radius - at some point we should fade in the full resolution, we don't have a masking other than that.
-	Ret *= saturate(ScreenSpaceData.GBuffer.Opacity * 10);
+	Ret *= saturate(ScreenSpaceData.GBuffer.CustomData.a * 10);
 	// todo: Subsurface has some non scatter contribution - all that should come from the Full res
 
 	return Ret;

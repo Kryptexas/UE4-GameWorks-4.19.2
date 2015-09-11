@@ -570,7 +570,7 @@ void DistanceFieldShadowingCS(
 			{
 				// Note: this has to match shadowmap logic
 				// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
-				SubsurfaceDensity = -.05f * log(1 - min(GBufferData.Opacity, .999f));
+				SubsurfaceDensity = -.05f * log(1 - min(GBufferData.CustomData.a, .999f));
 				bUseSubsurfaceTransmission = true;
 			}
 

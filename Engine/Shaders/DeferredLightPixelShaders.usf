@@ -42,6 +42,7 @@ FDeferredLightData SetupLightDataForStandardDeferred()
 void DirectionalPixelMain(
 	float2 InUV : TEXCOORD0,
 	float3 ScreenVector : TEXCOORD1,
+	float4 SVPos : SV_POSITION,
 	out float4 OutColor : SV_Target0
 	)
 {
@@ -57,7 +58,12 @@ void DirectionalPixelMain(
 		float3 WorldPosition = ScreenVector * SceneDepth + View.WorldCameraOrigin;
 
 		FDeferredLightData LightData = SetupLightDataForStandardDeferred();
-		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), uint2(0,0));
+		
+		uint2 Random = ScrambleTEA( uint2( SVPos.xy ) );
+		Random.x ^= View.Random;
+		Random.y ^= View.Random;
+
+		OutColor = GetDynamicLighting(WorldPosition, CameraVector, InUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, GetPerPixelLightAttenuation(InUV), Random);
 	}
 }
 

@@ -168,4 +168,6 @@ private:
 
 	FText GetEmissivePinName() const;
 	FText GetBaseColorPinName() const;
+	FText GetMetallicPinName() const;
+	FText GetCustomDataPinName( uint32 Index ) const;
 };

@@ -106,13 +106,14 @@ void Main(
 		BRANCH
 		if (IsSubsurfaceModel(InGBufferData.ShadingModelID))
 		{
+			float Opacity = InGBufferData.CustomData.a;
 			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
-			float Density = -.05f * log(1 - min(InGBufferData.Opacity, .999f));
+			float Density = -.05f * log(1 - min(Opacity, .999f));
 			//@todo - Use a larger kernel filter based on material opacity
 			// This is not being done currently because a varying opacity causes discontinuities in the shadow result
 			// Note: Snapping based on the largest size kernel is done in FProjectedShadowInfo::FProjectedShadowInfo, MaxDownsampleFactor is set to 4
 			// Only factors of MaxDownsampleFactor will be stable
-			float SquareRootFilterScale = lerp(1.999f, 0, InGBufferData.Opacity);
+			float SquareRootFilterScale = lerp(1.999f, 0, Opacity);
 			int SquareRootFilterScaleInt = SquareRootFilterScale + 1;
 
 			#if UNFILTERED_SHADOW_PROJECTION

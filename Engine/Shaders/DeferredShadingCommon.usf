@@ -211,7 +211,8 @@ float Decode71(float Scalar, out uint Mask)
 #define SHADINGMODELID_CLEAR_COAT			4
 #define SHADINGMODELID_SUBSURFACE_PROFILE	5
 #define SHADINGMODELID_TWOSIDED_FOLIAGE		6
-#define SHADINGMODELID_NUM					7
+#define SHADINGMODELID_HAIR					7
+#define SHADINGMODELID_NUM					8
 
 float EncodeShadingModelId(uint ShadingModelId)
 {
@@ -228,7 +229,8 @@ bool IsSubsurfaceModel(int ShadingModel)
 	return ShadingModel == SHADINGMODELID_SUBSURFACE 
 		|| ShadingModel == SHADINGMODELID_PREINTEGRATED_SKIN 
 		|| ShadingModel == SHADINGMODELID_SUBSURFACE_PROFILE
-		|| ShadingModel == SHADINGMODELID_TWOSIDED_FOLIAGE;
+		|| ShadingModel == SHADINGMODELID_TWOSIDED_FOLIAGE
+		|| ShadingModel == SHADINGMODELID_HAIR;
 }
 
 // all values that are output by the forward rendering pass
@@ -247,7 +249,7 @@ struct FGBufferData
 	// 0..1
 	float Specular;
 	// 0..1
-	float3 CustomData;
+	float4 CustomData;
 	// Indirect irradiance luma
 	float IndirectIrradiance;
 	// Static shadow factors for channels assigned by Lightmass
@@ -255,8 +257,6 @@ struct FGBufferData
 	float4 PrecomputedShadowFactors;
 	// 0..1
 	float Roughness;
-	// 0..1
-	float Opacity;
 	// 0..1 ambient occlusion  e.g.SSAO, wet surface mask, skylight mask, ...
 	float GBufferAO;
 	// 0..255 
@@ -349,8 +349,7 @@ void EncodeGBuffer(
 #else
 		OutGBufferC.a = GBuffer.GBufferAO;
 #endif
-		OutGBufferD.r = GBuffer.Opacity;
-		OutGBufferD.gba = GBuffer.CustomData;
+		OutGBufferD = GBuffer.CustomData;
 	}
 
 	OutGBufferB.a = EncodeShadingModelId(GBuffer.ShadingModelID);
@@ -426,10 +425,9 @@ FGBufferData DecodeGBufferData(
 	GBuffer.Metallic = InGBufferB.r;
 	GBuffer.StoredSpecular = InGBufferB.g;
 	GBuffer.Specular = GBuffer.StoredSpecular.g;
-	GBuffer.Opacity = InGBufferD.r;
 	
 	GBuffer.Roughness = InGBufferB.b;
-	GBuffer.CustomData = InGBufferD.gba;
+	GBuffer.CustomData = InGBufferD;
 #if ALLOW_STATIC_LIGHTING
 	GBuffer.GBufferAO = 1;
 	GBuffer.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
@@ -524,7 +522,7 @@ void EncodeDBufferData(FGBufferData GBufferData, float3 MultiOpacity,
 
 float3 ExtractSubsurfaceColor(FGBufferData BufferData)
 {
-	return Square(BufferData.CustomData);
+	return Square(BufferData.CustomData.rgb);
 }
 
 uint ExtractSubsurfaceProfileInt(FGBufferData BufferData)

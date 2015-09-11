@@ -3393,8 +3393,8 @@ FExpressionInput* UMaterial::GetExpressionInputForProperty(EMaterialProperty InP
 		case MP_WorldDisplacement:		return &WorldDisplacement;
 		case MP_TessellationMultiplier:	return &TessellationMultiplier;
 		case MP_SubsurfaceColor:		return &SubsurfaceColor;
-		case MP_ClearCoat:				return &ClearCoat;
-		case MP_ClearCoatRoughness:		return &ClearCoatRoughness;
+		case MP_CustomData0:			return &ClearCoat;
+		case MP_CustomData1:			return &ClearCoatRoughness;
 		case MP_AmbientOcclusion:		return &AmbientOcclusion;
 		case MP_Refraction:				return &Refraction;
 		case MP_MaterialAttributes:		return &MaterialAttributes;
@@ -3708,8 +3708,8 @@ int32 UMaterial::CompilePropertyEx( FMaterialCompiler* Compiler, EMaterialProper
 		case MP_Specular:				return Specular.CompileWithDefault(Compiler, Property);
 		case MP_Roughness:				return Roughness.CompileWithDefault(Compiler, Property);
 		case MP_TessellationMultiplier:	return TessellationMultiplier.CompileWithDefault(Compiler, Property);
-		case MP_ClearCoat:				return ClearCoat.CompileWithDefault(Compiler, Property);
-		case MP_ClearCoatRoughness:		return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
+		case MP_CustomData0:			return ClearCoat.CompileWithDefault(Compiler, Property);
+		case MP_CustomData1:			return ClearCoatRoughness.CompileWithDefault(Compiler, Property);
 		case MP_AmbientOcclusion:		return AmbientOcclusion.CompileWithDefault(Compiler, Property);
 		case MP_Refraction:				return Refraction.CompileWithDefault(Compiler, Property);
 		case MP_EmissiveColor:			return EmissiveColor.CompileWithDefault(Compiler, Property);
@@ -3835,8 +3835,9 @@ EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 	switch (MaterialDomain)
 	{
 		case MD_Surface:
-		case MD_DeferredDecal:
 			return ShadingModel;
+		case MD_DeferredDecal:
+			return MSM_DefaultLit;
 
 		// Post process and light function materials must be rendered with the unlit model.
 		case MD_PostProcess:
@@ -4016,9 +4017,9 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 	case MP_SubsurfaceColor:
 		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage;
 		break;
-	case MP_ClearCoat:
-	case MP_ClearCoatRoughness:
-		Active = ShadingModel == MSM_ClearCoat;
+	case MP_CustomData0:
+	case MP_CustomData1:
+		Active = ShadingModel == MSM_ClearCoat || ShadingModel == MSM_Hair;
 		break;
 	case MP_TessellationMultiplier:
 	case MP_WorldDisplacement:

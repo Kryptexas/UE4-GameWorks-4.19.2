@@ -244,6 +244,11 @@ FLinearColor UMaterialGraphNode::GetNodeTitleColor() const
 		// Previously FColor(255, 155, 0);
 		return Settings->ResultNodeTitleColor;
 	}
+	else if (MaterialExpression->IsA(UMaterialExpressionCustomOutput::StaticClass()))
+	{
+		// Previously FColor(255, 155, 0);
+		return Settings->ResultNodeTitleColor;
+	}
 	else if (UMaterial::IsParameter(MaterialExpression))
 	{
 		if (Material->HasDuplicateParameters(MaterialExpression))

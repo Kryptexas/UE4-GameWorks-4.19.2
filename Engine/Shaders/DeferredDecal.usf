@@ -337,7 +337,6 @@ void MainPS(
 	Data.IndirectIrradiance = 0;
 	Data.PrecomputedShadowFactors = 0;
 	Data.GBufferAO = 1;
-	Data.Opacity = Opacity;
 	Data.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
 	Data.HasDistanceFieldRepresentation = 1;
 	Data.HasHeightfieldRepresentation = 1;

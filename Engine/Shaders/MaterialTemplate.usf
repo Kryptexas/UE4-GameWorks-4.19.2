@@ -1051,6 +1051,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_CLEAR_COAT) return float3(0.1f, 0.4f, 0.4f); 
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE) return float3(0.2f, 0.6f, 0.5f); // Cyan
 	else if (GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE) return float3(0.2f, 0.2f, 0.8f); // Blue
+	else if (GBuffer.ShadingModelID == SHADINGMODELID_HAIR) return float3(0.6f, 0.1f, 0.5f);
 	else return float3(1.0f, 1.0f, 1.0f); // White
 #else
 	switch(GBuffer.ShadingModelID)
@@ -1062,6 +1063,7 @@ float3 GetShadingModelColor(FGBufferData GBuffer)
 		case SHADINGMODELID_CLEAR_COAT: return float3(0.1f, 0.4f, 0.4f); // Brown
 		case SHADINGMODELID_SUBSURFACE_PROFILE: return float3(0.2f, 0.6f, 0.5f); // Cyan
 		case SHADINGMODELID_TWOSIDED_FOLIAGE: return float3(0.2f, 0.2f, 0.8f); // Cyan
+		case SHADINGMODELID_HAIR: return float3(0.6f, 0.1f, 0.5f);
 		default: return float3(1.0f, 1.0f, 1.0f); // White
 	}
 #endif
@@ -1117,7 +1119,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 	else if (SceneTextureIndex == 7)	return ScreenSpaceData.GBuffer.Metallic;
 	else if (SceneTextureIndex == 8)	return float4(ScreenSpaceData.GBuffer.WorldNormal, 0);
 	else if (SceneTextureIndex == 9)	return 1; // todo
-	else if (SceneTextureIndex == 10)	return ScreenSpaceData.GBuffer.Opacity;
+	else if (SceneTextureIndex == 10)	return ScreenSpaceData.GBuffer.CustomData.a;
 	else if (SceneTextureIndex == 11)	return ScreenSpaceData.GBuffer.Roughness;
 	else if (SceneTextureIndex == 12)	return ScreenSpaceData.GBuffer.GBufferAO;
 	else if (SceneTextureIndex == 13)	return ScreenSpaceData.GBuffer.CustomDepth;
@@ -1150,9 +1152,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		// PPI_SpecularColor
 		case 3: return float4(ScreenSpaceData.GBuffer.SpecularColor, 0);
 		// PPI_SubsurfaceColor
-		case 4: 
-			float3 CustomData = IsSubsurfaceModel(ScreenSpaceData.GBuffer.ShadingModelID) ? ExtractSubsurfaceColor(ScreenSpaceData.GBuffer) : ScreenSpaceData.GBuffer.CustomData;
-			return float4(CustomData, 0);
+		case 4: return IsSubsurfaceModel(ScreenSpaceData.GBuffer.ShadingModelID) ? float4( ExtractSubsurfaceColor(ScreenSpaceData.GBuffer), ScreenSpaceData.GBuffer.CustomData.a ) : ScreenSpaceData.GBuffer.CustomData;
 		// PPI_BaseColor
 		case 5: return float4(ScreenSpaceData.GBuffer.BaseColor, 0);
 		// PPI_Specular
@@ -1164,7 +1164,7 @@ float4 SceneTextureLookup(float2 UV, int SceneTextureIndex, bool bFiltered)
 		// PPI_SeparateTranslucency
 		case 9: return float4(1, 1, 1, 1);	// todo
 		// PPI_Opacity
-		case 10: return ScreenSpaceData.GBuffer.Opacity;
+		case 10: return ScreenSpaceData.GBuffer.CustomData.a;
 		// PPI_Roughness
 		case 11: return ScreenSpaceData.GBuffer.Roughness;
 		// PPI_MaterialAO
@@ -1315,7 +1315,7 @@ half GetMaterialRoughness(FMaterialPixelParameters Parameters)
 	}
 	#endif
 	
-	return max(0.04f, Roughness);
+	return Roughness;
 #endif
 }
 
@@ -1443,24 +1443,14 @@ half4 GetMaterialSubsurfaceData(FMaterialPixelParameters Parameters)
 	return OutSubsurface;
 }
 
-half GetMaterialClearCoatRaw(FMaterialPixelParameters Parameters)
+half GetMaterialCustomData0(FMaterialPixelParameters Parameters)
 {
 %s;
 }
 
-half GetMaterialClearCoat(FMaterialPixelParameters Parameters)
-{
-	return saturate(GetMaterialClearCoatRaw(Parameters));
-}
-
-half GetMaterialClearCoatRoughnessRaw(FMaterialPixelParameters Parameters)
+half GetMaterialCustomData1(FMaterialPixelParameters Parameters)
 {
 %s;
-}
-
-half GetMaterialClearCoatRoughness(FMaterialPixelParameters Parameters)
-{
-	return saturate(GetMaterialClearCoatRoughnessRaw(Parameters));
 }
 
 half GetMaterialAmbientOcclusionRaw(FMaterialPixelParameters Parameters)

@@ -32,7 +32,7 @@ void UMaterialGraph::RebuildGraph()
 	{
 		// Initialize the material input list.
 		MaterialInputs.Add( FMaterialInputInfo( GetBaseColorPinName(), MP_BaseColor ) );	
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Metallic", "Metallic"), MP_Metallic ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetMetallicPinName(), MP_Metallic ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Specular", "Specular"), MP_Specular ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Roughness", "Roughness"), MP_Roughness ) );
 		MaterialInputs.Add( FMaterialInputInfo( GetEmissivePinName(), MP_EmissiveColor ) );
@@ -43,8 +43,8 @@ void UMaterialGraph::RebuildGraph()
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("WorldDisplacement", "World Displacement"), MP_WorldDisplacement ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("TessellationMultiplier", "Tessellation Multiplier"), MP_TessellationMultiplier ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("SubsurfaceColor", "Subsurface Color"), MP_SubsurfaceColor ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoat", "Clear Coat"), MP_ClearCoat ) );
-		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness"), MP_ClearCoatRoughness ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetCustomDataPinName(0), MP_CustomData0 ) );
+		MaterialInputs.Add( FMaterialInputInfo( GetCustomDataPinName(1), MP_CustomData1 ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("AmbientOcclusion", "Ambient Occlusion"), MP_AmbientOcclusion ) );
 		MaterialInputs.Add( FMaterialInputInfo( LOCTEXT("Refraction", "Refraction"), MP_Refraction) );
 
@@ -463,6 +463,41 @@ FText UMaterialGraph::GetEmissivePinName() const
 FText UMaterialGraph::GetBaseColorPinName() const
 {
 	return LOCTEXT("BaseColor", "Base Color");
+}
+
+FText UMaterialGraph::GetMetallicPinName() const
+{
+	return Material->GetShadingModel() == MSM_Hair ? LOCTEXT("Diffuse", "Diffuse") : LOCTEXT("Metallic", "Metallic");
+}
+
+FText UMaterialGraph::GetCustomDataPinName( uint32 Index ) const
+{
+	if( Index == 0 )
+	{
+		switch( Material->GetShadingModel() )
+		{
+		case MSM_ClearCoat:
+			return LOCTEXT("ClearCoat", "Clear Coat");
+		case MSM_Hair:
+			return LOCTEXT("HairOpacity", "Hair Opacity");
+		default:
+			return LOCTEXT("CustomData0", "Custom Data 0");
+		}
+	}
+	else if( Index == 1 )
+	{
+		switch( Material->GetShadingModel() )
+		{
+		case MSM_ClearCoat:
+			return LOCTEXT("ClearCoatRoughness", "Clear Coat Roughness");
+		case MSM_Hair:
+			return LOCTEXT("SecondaryRoughness", "Secondary Roughness");
+		default:
+			return LOCTEXT("CustomData1", "Custom Data 1");
+		}
+	}
+
+	return LOCTEXT("CustomData", "Custom Data");	
 }
 
 #undef LOCTEXT_NAMESPACE
