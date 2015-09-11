@@ -583,7 +583,7 @@ protected:
 	void StopAllMontages(float BlendOut);
 
 	/** Stop all active montages belonging to 'InGroupName' */
-	void StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime);
+	void StopAllMontagesByGroupName(FName InGroupName, const FAlphaBlend& BlendOut);
 
 	/** Update weight of montages  **/
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
@@ -1009,5 +1009,9 @@ private:
 
 	/** Native state exit bindings */
 	TArray<FNativeStateBinding> NativeStateExitBindings;
+
+protected:
+	/** Update all animation node */
+	virtual void UpdateAnimationNode(float DeltaSeconds);
 };
 

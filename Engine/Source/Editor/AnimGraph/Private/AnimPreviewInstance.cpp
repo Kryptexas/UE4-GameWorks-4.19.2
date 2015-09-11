@@ -102,7 +102,7 @@ void UAnimPreviewInstance::RemoveBoneModification(const FName& InBoneName, bool 
 	);
 }
 
-void UAnimPreviewInstance::NativeUpdateAnimation(float DeltaTimeX)
+void UAnimPreviewInstance::UpdateAnimationNode(float DeltaTimeX)
 {
 #if WITH_EDITORONLY_DATA
 	if(bForceRetargetBasePose)
@@ -112,7 +112,7 @@ void UAnimPreviewInstance::NativeUpdateAnimation(float DeltaTimeX)
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
-	Super::NativeUpdateAnimation(DeltaTimeX);
+	Super::UpdateAnimationNode(DeltaTimeX);
 }
 
 bool UAnimPreviewInstance::NativeEvaluateAnimation(FPoseContext& Output)
@@ -405,6 +405,9 @@ void UAnimPreviewInstance::RestartMontage(UAnimMontage* Montage, FName FromSecti
 	if (Montage == CurrentAsset)
 	{
 		MontagePreviewType = EMPT_Normal;
+		// since this is preview, we would like not to blend in
+		// just hard stop here
+		Montage_Stop(0.0f, Montage);
 		Montage_Play(Montage, PlayRate);
 		if (FromSection != NAME_None)
 		{
@@ -733,6 +736,9 @@ void UAnimPreviewInstance::MontagePreview_PreviewNormal(int32 FromSectionIdx)
 			PreviewFromSection = MontagePreviewStartSectionIdx;
 		}
 		MontagePreviewType = EMPT_Normal;
+		// since this is preview, we would like not to blend in
+		// just hard stop here
+		Montage_Stop(0.0f, Montage);
 		Montage_Play(Montage, PlayRate);
 		MontagePreview_SetLoopNormal(bLooping, FromSectionIdx);
 		Montage_JumpToSection(Montage->GetSectionName(PreviewFromSection));
@@ -747,6 +753,9 @@ void UAnimPreviewInstance::MontagePreview_PreviewAllSections()
 	if (Montage && Montage->SequenceLength > 0.f)
 	{
 		MontagePreviewType = EMPT_AllSections;
+		// since this is preview, we would like not to blend in
+		// just hard stop here
+		Montage_Stop(0.0f, Montage);
 		Montage_Play(Montage, PlayRate);
 		MontagePreview_SetLoopAllSections(bLooping);
 		MontagePreview_JumpToPreviewStart();

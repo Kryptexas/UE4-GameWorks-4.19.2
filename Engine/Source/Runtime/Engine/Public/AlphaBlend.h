@@ -54,19 +54,19 @@ struct ENGINE_API FAlphaBlend
 	EAlphaBlendOption BlendOption;
 
 	UPROPERTY(EditAnywhere, Category = "Blend")
-	float BeginValue;
+	UCurveFloat* CustomCurve;
 
-	UPROPERTY(EditAnywhere, Category = "Blend")
-	float DesiredValue;
-
+protected:
 	UPROPERTY(EditAnywhere, Category = "Blend")
 	float	BlendTime;
 
-	UPROPERTY(EditAnywhere, Category = "Blend")
-	UCurveFloat* CustomCurve;
+public:
 
 	// Constructor
-	FAlphaBlend();
+	FAlphaBlend(float NewBlendTime = 0.2f);
+
+	// constructor
+	FAlphaBlend(const FAlphaBlend& Other, float NewBlendTime);
 
 	/** Update transition blend time */
 	void SetBlendTime(float InBlendTime);
@@ -74,11 +74,14 @@ struct ENGINE_API FAlphaBlend
 	/** Sets the method used to blend the value */
 	void SetBlendOption(EAlphaBlendOption InBlendOption);
 
-	/** Sets the range of values to map to the interpolation */
+	/** Sets the range of values to map to the interpolation
+	 *
+	 * @param Begin : this is current value
+	 * @param Desired : this is target value 
+	 *
+	 * This can be (0, 1) if you'd like to increase, or it can be (1, 0) if you'd like to get to 0
+	 */
 	void SetValueRange(float Begin, float Desired);
-
-	/** Sets the begin value for the blended value */
-	void SetBeginValue(float InBegin);
 
 	/** Sets the final desired value for the blended value */
 	void SetDesiredValue(float InDesired);
@@ -86,26 +89,23 @@ struct ENGINE_API FAlphaBlend
 	/** Sets the Lerp alpha value directly */
 	void SetAlpha(float InAlpha);
 
-	/** Reset to zero / restart the blend */
-	void Reset();
-
-	/** Returns true if Target is > 0.f, or false otherwise */
-	bool GetToggleStatus();
-
-	/** Enable (1.f) or Disable (0.f) */
-	void Toggle(bool bEnable);
-
-	/** SetTarget, but check that we're actually setting a different target */
-	void ConditionalSetTarget(float InAlphaTarget);
-
-	/** Set Target for interpolation */
-	void SetTarget(float InAlphaTarget);
-
 	/** Update interpolation, has to be called once every frame */
 	void Update(float InDeltaTime);
 
-	/** Converts internal lerped alpha into the output alpha type */
-	float AlphaToBlendOption();
+	/** Gets the current 0..1 alpha value. Changed to AlphaLerp to match with SetAlpha function */
+	float GetAlpha() const { return AlphaLerp; }
+
+	/** Gets the current blended value */
+	float GetBlendedValue() const;
+
+	/** Gets whether or not the blend is complete */
+	bool IsComplete() const;
+
+	/** Gets the current blend time */
+	float GetBlendTime() const { return BlendTime; }
+
+	/** Get the current desired value */
+	float GetDesiredValue() const { return DesiredValue; }
 
 	/** Converts InAlpha from a linear 0...1 value into the output alpha described by InBlendOption 
 	 *  @param InAlpha In linear 0...1 alpha
@@ -113,15 +113,6 @@ struct ENGINE_API FAlphaBlend
 	 *  @param InCustomCurve The curve to use when blend option is set to custom
 	 */
 	static float AlphaToBlendOption(float InAlpha, EAlphaBlendOption InBlendOption, UCurveFloat* InCustomCurve = nullptr);
-
-	/** Gets the current 0..1 alpha value */
-	float GetAlpha();
-
-	/** Gets the current blended value */
-	float GetBlendedValue();
-
-	/** Gets whether or not the blend is complete */
-	bool IsComplete();
 
 protected:
 	/** Internal Lerped value for Alpha */
@@ -132,10 +123,6 @@ protected:
 	UPROPERTY()
 	float	AlphaBlend;
 
-	/** Target to reach */
-	UPROPERTY()
-	float	AlphaTarget;
-
 	/** Time left to reach target */
 	UPROPERTY()
 	float	BlendTimeRemaining;
@@ -143,4 +130,16 @@ protected:
 	/** The current blended value derived from the begin and desired values */
 	UPROPERTY()
 	float BlendedValue;
+
+	UPROPERTY()
+	float BeginValue;
+
+	UPROPERTY()
+	float DesiredValue;
+
+	/** Reset to zero / restart the blend */
+	void Reset();
+
+	/** Converts internal lerped alpha into the output alpha type */
+	float AlphaToBlendOption();
 };

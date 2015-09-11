@@ -216,8 +216,7 @@ void UAnimSingleNodeInstance::NativeInitializeAnimation()
 		}
 	}
 }
-
-void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaTimeX)
+void UAnimSingleNodeInstance::UpdateAnimationNode(float DeltaTimeX)
 {
 	float NewPlayRate = PlayRate;
 	UAnimSequence* PreviewBasePose = NULL;

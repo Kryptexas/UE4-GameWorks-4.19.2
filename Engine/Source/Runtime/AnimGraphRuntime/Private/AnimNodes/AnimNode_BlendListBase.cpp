@@ -115,8 +115,6 @@ void FAnimNode_BlendListBase::Update(const FAnimationUpdateContext& Context)
 				{
 					Blend.SetValueRange(BlendWeights[i], 0.0f);
 				}
-
-				Blend.Reset();
 			}
 		}
 

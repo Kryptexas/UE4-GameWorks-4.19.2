@@ -350,6 +350,18 @@ bool UAnimInstance::UpdateSnapshotAndSkipRemainingUpdate()
 }
 #endif
 
+// update animation node, if you have your own anim instance, you could override this to update extra nodes if you'd like
+void UAnimInstance::UpdateAnimationNode(float DeltaSeconds)
+{
+	// Update the anim graph
+	if(RootNode != NULL)
+	{
+		IncrementGraphTraversalCounter();
+		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
+		RootNode->Update(UpdateContext);
+	}
+}
+
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_UAnimInstance_UpdateAnimation);
@@ -412,13 +424,12 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 
 	Montage_UpdateWeight(DeltaSeconds);
 
-	// Update the anim graph
-	if (RootNode != NULL)
-	{
-		IncrementGraphTraversalCounter();
-		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
-		RootNode->Update(UpdateContext);
-	}
+	// update montage should run in game thread
+	// if we do multi threading, make sure this stays in game thread
+	Montage_Advance(DeltaSeconds);
+
+	// update all nodes
+	UpdateAnimationNode(DeltaSeconds);
 
 	TickSyncGroupWriteIndex();
 
@@ -501,9 +512,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 			}
 		}
 	}
-	// update montage should run in game thread
-	// if we do multi threading, make sure this stays in game thread
-		Montage_Advance(DeltaSeconds);
 
 	// We may have just partially blended root motion, so make it up to 1 by
 	// blending in identity too
@@ -1394,7 +1402,7 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 			}
 
 #if DEBUGMONTAGEWEIGHT			
-			TotalDesiredWeight += MontageInstance->DesiredWeight;
+			TotalDesiredWeight += MontageInstance->Blend.GetDesiredValue();
 #endif			
 		}
 	}
@@ -1432,9 +1440,10 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 }
 
 // for now disable becauase it will not work with single node instance
-#define DEBUG_MONTAGEINSTANCE_WEIGHT 0
 #if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
 #define DEBUG_MONTAGEINSTANCE_WEIGHT 0
+#else
+#define DEBUG_MONTAGEINSTANCE_WEIGHT 1
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& SourcePose, const FBlendedCurve& SourceCurve, float InSourceWeight, FCompactPose& BlendedPose, FBlendedCurve& BlendedCurve, float InBlendWeight, float InTotalNodeWeight)
@@ -1940,8 +1949,8 @@ float UAnimInstance::PlaySlotAnimation(UAnimSequenceBase* Asset, FName SlotNodeN
 
 	// add new section
 	NewMontage->CompositeSections.Add(NewSection);
-	NewMontage->BlendInTime = BlendInTime;
-	NewMontage->BlendOutTime = BlendOutTime;
+	NewMontage->BlendIn.SetBlendTime(BlendInTime);
+	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
 	NewMontage->SlotAnimTracks.Add(NewTrack);
 
 	return Montage_Play(NewMontage, InPlayRate);
@@ -1995,8 +2004,8 @@ UAnimMontage* UAnimInstance::PlaySlotAnimationAsDynamicMontage(UAnimSequenceBase
 
 	// add new section
 	NewMontage->CompositeSections.Add(NewSection);
-	NewMontage->BlendInTime = BlendInTime;
-	NewMontage->BlendOutTime = BlendOutTime;
+	NewMontage->BlendIn.SetBlendTime(BlendInTime);
+	NewMontage->BlendOut.SetBlendTime(BlendOutTime);
 	NewMontage->BlendOutTriggerTime = BlendOutTriggerTime;
 	NewMontage->SlotAnimTracks.Add(NewTrack);
 
@@ -2028,7 +2037,7 @@ void UAnimInstance::StopSlotAnimation(float InBlendOutTime, FName SlotNodeName)
 						if (AnimTrack && AnimTrack->SlotName == SlotNodeName)
 						{
 							// Found it
-							MontageInstance->Stop(InBlendOutTime);
+							MontageInstance->Stop(FAlphaBlend(InBlendOutTime));
 							break;
 						}
 					}
@@ -2077,7 +2086,7 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 		{
 			// Enforce 'a single montage at once per group' rule
 			FName NewMontageGroupName = MontageToPlay->GetGroupName();
-			StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendInTime);
+			StopAllMontagesByGroupName(NewMontageGroupName, MontageToPlay->BlendIn);
 
 			// Enforce 'a single root motion montage at once' rule.
 			if (MontageToPlay->bEnableRootMotionTranslation || MontageToPlay->bEnableRootMotionRotation)
@@ -2085,7 +2094,7 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 				FAnimMontageInstance* ActiveRootMotionMontageInstance = GetRootMotionMontageInstance();
 				if (ActiveRootMotionMontageInstance)
 				{
-					ActiveRootMotionMontageInstance->Stop(MontageToPlay->BlendInTime);
+					ActiveRootMotionMontageInstance->Stop(MontageToPlay->BlendIn);
 				}
 			}
 
@@ -2124,7 +2133,7 @@ void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage* Montage)
 		FAnimMontageInstance* MontageInstance = GetActiveInstanceForMontage(*Montage);
 		if (MontageInstance)
 		{
-			MontageInstance->Stop(InBlendOutTime);
+			MontageInstance->Stop(FAlphaBlend(Montage->BlendOut, InBlendOutTime));
 		}
 	}
 	else
@@ -2135,7 +2144,7 @@ void UAnimInstance::Montage_Stop(float InBlendOutTime, UAnimMontage* Montage)
 			FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
-				MontageInstance->Stop(InBlendOutTime);
+				MontageInstance->Stop(FAlphaBlend(MontageInstance->Montage->BlendOut, InBlendOutTime));
 			}
 		}
 	}
@@ -2599,18 +2608,18 @@ void UAnimInstance::StopAllMontages(float BlendOut)
 {
 	for (int32 Index = MontageInstances.Num() - 1; Index >= 0; Index--)
 	{
-		MontageInstances[Index]->Stop(BlendOut, true);
+		MontageInstances[Index]->Stop(FAlphaBlend(BlendOut), true);
 	}
 }
 
-void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, float BlendOutTime)
+void UAnimInstance::StopAllMontagesByGroupName(FName InGroupName, const FAlphaBlend& BlendOut)
 {
 	for (int32 InstanceIndex = MontageInstances.Num() - 1; InstanceIndex >= 0; InstanceIndex--)
 	{
 		FAnimMontageInstance* MontageInstance = MontageInstances[InstanceIndex];
 		if (MontageInstance && MontageInstance->IsActive() && MontageInstance->Montage && (MontageInstance->Montage->GetGroupName() == InGroupName))
 		{
-			MontageInstances[InstanceIndex]->Stop(BlendOutTime, true);
+			MontageInstances[InstanceIndex]->Stop(BlendOut, true);
 		}
 	}
 }

@@ -201,14 +201,8 @@ private:
 	UPROPERTY()
 	float PlayRate;
 
-	UPROPERTY()
-	float DesiredWeight;
-
-	UPROPERTY()
-	float Weight;
-
 	UPROPERTY(transient)
-	float BlendTime;
+	FAlphaBlend Blend;
 
 	// need to save if it's interrupted or not
 	// this information is crucial for gameplay
@@ -241,9 +235,9 @@ public:
 	void MontageSync_PostUpdate();
 
 	/** Get Weight */
-	float GetWeight() const { return Weight; }
-	float GetDesiredWeight() const { return DesiredWeight; }
-	float GetBlendTime() const { return BlendTime; }
+	float GetWeight() const { return Blend.GetBlendedValue(); }
+	float GetDesiredWeight() const { return Blend.GetDesiredValue(); }
+	float GetBlendTime() const { return Blend.GetBlendTime(); }
 private:
 	/** Followers this Montage will synchronize */
 	TArray<struct FAnimMontageInstance*> MontageSyncFollowers;
@@ -259,6 +253,9 @@ private:
 	/** Synchronize ourselves to our leader */
 	void MontageSync_PerformSyncToLeader();
 
+	/** Initialize Blend Setup from Montage */
+	void InitializeBlend(const FAlphaBlend& InAlphaBlend);
+
 public:
 	FAnimMontageInstance()
 		: Montage(NULL)
@@ -267,9 +264,6 @@ public:
 		, AnimInstance(NULL)
 		, Position(0.f)
 		, PlayRate(1.f)
-		, DesiredWeight(0.f)
-		, Weight(0.f)
-		, BlendTime(0.f)
 		, bInterrupted(false)
 		, PreviousWeight(0.f)
 		, MontageSyncLeader(NULL)
@@ -284,9 +278,6 @@ public:
 		, AnimInstance(InAnimInstance)
 		, Position(0.f)
 		, PlayRate(1.f)
-		, DesiredWeight(0.f)
-		, Weight(0.f)
-		, BlendTime(0.f)
 		, bInterrupted(false)
 		, PreviousWeight(0.f)	
 		, MontageSyncLeader(NULL)
@@ -296,7 +287,7 @@ public:
 
 	// montage instance interfaces
 	void Play(float InPlayRate = 1.f);
-	void Stop(float BlendOutDuration, bool bInterrupt=true);
+	void Stop(const FAlphaBlend& InBlendOut, bool bInterrupt=true);
 	void Pause();
 	void Initialize(class UAnimMontage * InMontage);
 
@@ -306,7 +297,7 @@ public:
 
 	bool IsValid() const { return (Montage!=NULL); }
 	bool IsPlaying() const { return IsValid() && bPlaying; }
-	bool IsStopped() const { return DesiredWeight == 0.f; }
+	bool IsStopped() const { return Blend.GetDesiredValue() == 0.f; }
 
 	/** Returns true if this montage is active (valid and not blending out) */
 	bool IsActive() const { return (IsValid() && !IsStopped()); }
@@ -374,18 +365,24 @@ class UAnimMontage : public UAnimCompositeBase
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Default blend in time. */
-	UPROPERTY(EditAnywhere, Category=Montage)
-	float BlendInTime;
+	/** Blend in option. */
+	UPROPERTY(EditAnywhere, Category=BlendOption)
+	FAlphaBlend BlendIn;
 
-	/** Default blend out time. */
-	UPROPERTY(EditAnywhere, Category=Montage)
-	float BlendOutTime;
+	UPROPERTY()
+	float BlendInTime_DEPRECATED;
+
+	/** Blend out option. This is only used when it blends out itself. If it's interrupted by other montages, it will use new montage's BlendIn option to blend out. */
+	UPROPERTY(EditAnywhere, Category=BlendOption)
+	FAlphaBlend BlendOut;
+
+	UPROPERTY()
+	float BlendOutTime_DEPRECATED;
 
 	/** Time from Sequence End to trigger blend out.
 	 * <0 means using BlendOutTime, so BlendOut finishes as Montage ends.
 	 * >=0 means using 'SequenceEnd - BlendOutTriggerTime' to trigger blend out. */
-	UPROPERTY(EditAnywhere, Category = Montage)
+	UPROPERTY(EditAnywhere, Category = BlendOption)
 	float BlendOutTriggerTime;
 
 	// composite section. 

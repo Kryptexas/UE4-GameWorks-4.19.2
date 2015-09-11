@@ -24,8 +24,8 @@ UAnimMontage::UAnimMontage(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAnimBranchingPointNeedsSort = true;
-	BlendInTime = 0.25f;
-	BlendOutTime = 0.25f;
+	BlendIn.SetBlendTime(0.25f);
+	BlendOut.SetBlendTime(0.25f);
 	BlendOutTriggerTime = -1.f;
 }
 
@@ -462,6 +462,19 @@ void UAnimMontage::PostLoad()
 	{
 		ConvertBranchingPointsToAnimNotifies();
 	}
+
+	// fix up blending time deprecated variable
+	if (BlendInTime_DEPRECATED != -1.f)
+	{
+		BlendIn.SetBlendTime(BlendInTime_DEPRECATED);
+		BlendInTime_DEPRECATED = -1.f;
+	}
+
+	if(BlendOutTime_DEPRECATED != -1.f)
+	{
+		BlendOut.SetBlendTime(BlendOutTime_DEPRECATED);
+		BlendOutTime_DEPRECATED = -1.f;
+	}
 }
 
 void UAnimMontage::ConvertBranchingPointsToAnimNotifies()
@@ -838,14 +851,25 @@ void FAnimMontageInstance::Play(float InPlayRate)
 {
 	bPlaying = true;
 	PlayRate = InPlayRate;
-	if( Montage )
-	{
-		BlendTime = Montage->BlendInTime * DefaultBlendTimeMultiplier;
-	}
-	DesiredWeight = 1.f;
+
+	// if this doesn't exist, nothing works
+	ensure(Montage);
+	
+	// set blend option
+	float CurrentWeight = Blend.GetBlendedValue();
+	InitializeBlend(Montage->BlendIn);	
+	Blend.SetBlendTime(Montage->BlendIn.GetBlendTime() * DefaultBlendTimeMultiplier);
+	Blend.SetValueRange(CurrentWeight, 1.f);
 }
 
-void FAnimMontageInstance::Stop(float BlendOutDuration, bool bInterrupt)
+void FAnimMontageInstance::InitializeBlend(const FAlphaBlend& InAlphaBlend)
+{
+	Blend.SetBlendOption(InAlphaBlend.BlendOption);
+	Blend.CustomCurve = InAlphaBlend.CustomCurve;
+	Blend.SetBlendTime(InAlphaBlend.GetBlendTime());
+}
+
+void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 {
 	// overwrite bInterrupted if it hasn't already interrupted
 	// once interrupted, you don't go back to non-interrupted
@@ -854,15 +878,15 @@ void FAnimMontageInstance::Stop(float BlendOutDuration, bool bInterrupt)
 		bInterrupted = bInterrupt;
 	}
 
-	if (DesiredWeight > 0.f)
+	// if desired weight is > 0.f, turn that off
+	if (Blend.GetDesiredValue() > 0.f)
 	{
-		DesiredWeight = 0.f;
+		Blend.SetDesiredValue(0.f);
 		if (Montage)
 		{
-			// do not use default Montage->BlendOut  Time
-			// depending on situation, the BlendOut time changes
-			// check where this function gets called and see how we calculate BlendTime
-			BlendTime = BlendOutDuration;
+			// do not use default Montage->BlendOut 
+			// depending on situation, the BlendOut time can change 
+			InitializeBlend(InBlendOut);
 
 			if (UAnimInstance* Inst = AnimInstance.Get())
 			{
@@ -877,13 +901,23 @@ void FAnimMontageInstance::Stop(float BlendOutDuration, bool bInterrupt)
 		// it is already stopped, but new montage blendtime is shorter than what 
 		// I'm blending out, that means this needs to readjust blendtime
 		// that way we don't accumulate old longer blendtime for newer montage to play
-		if (BlendOutDuration < BlendTime)
+		if (InBlendOut.GetBlendTime() < Blend.GetBlendTime())
 		{
-			BlendTime = BlendOutDuration;
+			// I don't know if also using inBlendOut is better than
+			// currently set up blend option, but it might be worse to switch between 
+			// blending out, but it is possible options in the future
+			Blend.SetBlendTime(InBlendOut.GetBlendTime());
+			// have to call this again to restart blending with new blend time
+			// we don't change blend options
+			Blend.SetDesiredValue(0.f);
 		}
 	}
 
-	if (BlendTime <= 0.0f)
+	// if blending time < 0.f
+	// set the playing to be false
+	// @todo is this better to be IsComplete? 
+	// or maybe we need this for if somebody sets blend time to be 0.f
+	if (Blend.GetBlendTime() <= 0.0f)
 	{
 		bPlaying = false;
 	}
@@ -900,7 +934,8 @@ void FAnimMontageInstance::Initialize(class UAnimMontage * InMontage)
 	{
 		Montage = InMontage;
 		Position = 0.f;
-		DesiredWeight = 1.f;
+		// initialize Blend
+		Blend.SetValueRange(0.f, 1.0f);
 
 		RefreshNextPrevSections();
 	}
@@ -970,6 +1005,10 @@ void FAnimMontageInstance::Terminate()
 	// Clear any active synchronization
 	MontageSync_StopFollowing();
 	MontageSync_StopLeading();
+
+	// clear Blend curve
+	Blend.CustomCurve = NULL;
+	Blend.BlendOption = EAlphaBlendOption::Linear;
 }
 
 bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)
@@ -1030,7 +1069,7 @@ bool FAnimMontageInstance::SetNextSectionID(int32 const & SectionID, int32 const
 
 void FAnimMontageInstance::OnMontagePositionChanged(FName const & ToSectionName) 
 {
-	if (bPlaying && (DesiredWeight == 0.f))
+	if (bPlaying && (Blend.GetDesiredValue() == 0.f))
 	{
 		UE_LOG(LogAnimation, Warning, TEXT("Changing section on Montage (%s) to '%s' during blend out. This can cause incorrect visuals!"),
 			*GetNameSafe(Montage), *ToSectionName.ToString());
@@ -1188,14 +1227,14 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 {
 	if ( IsValid() )
 	{
-		PreviousWeight = Weight;
+		PreviousWeight = Blend.GetBlendedValue();
 
 		// update weight
-		FAnimationRuntime::TickBlendWeight(DeltaTime, DesiredWeight, Weight, BlendTime);
+		Blend.Update(DeltaTime);
 
 		// Notify weight is max of previous and current as notify could have come
 		// from any point between now and last tick
-		NotifyWeight = FMath::Max(PreviousWeight, Weight);
+		NotifyWeight = FMath::Max(PreviousWeight, Blend.GetBlendedValue());
 	}
 }
 
@@ -1304,10 +1343,10 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 		}
 #endif
 
-		// if no weight, no reason to update, and if not playing, we don't need to advance
-		// this portion is to advance position
-		// If we just reached zero weight, still tick this frame to fire end of animation events.
-		if( bPlaying && (Weight > ZERO_ANIMWEIGHT_THRESH || PreviousWeight > ZERO_ANIMWEIGHT_THRESH) )
+		// with custom curves, we can't just filter by weight
+		// also if you have custom curve with longer 0, you'll likely to pause montage during that blending time
+		// I think that is a bug. It still should move, the weight might come back later. 
+		if( bPlaying )
 		{
 			const float CombinedPlayRate = PlayRate * Montage->RateScale;
 			const bool bPlayingForward = (CombinedPlayRate > 0.f);
@@ -1364,6 +1403,8 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 
 					const bool bHaveMoved = FMath::Abs(ActualDeltaMove) > 0.f;
 
+					const float Weight = Blend.GetBlendedValue();
+
 					if (bHaveMoved)
 					{
 						// Extract Root Motion for this time slice, and accumulate it.
@@ -1396,14 +1437,14 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 						const float DeltaTimeToEnd = DeltaPosToEnd / FMath::Abs(CombinedPlayRate);
 
 						const bool bCustomBlendOutTriggerTime = (Montage->BlendOutTriggerTime >= 0);
-						const float DefaultBlendOutTime = Montage->BlendOutTime * DefaultBlendTimeMultiplier;
+						const float DefaultBlendOutTime = Montage->BlendOut.GetBlendTime() * DefaultBlendTimeMultiplier;
 						const float BlendOutTriggerTime = bCustomBlendOutTriggerTime ? Montage->BlendOutTriggerTime : DefaultBlendOutTime;
 							
 						// ... trigger blend out if within blend out time window.
 						if (DeltaTimeToEnd <= FMath::Max<float>(BlendOutTriggerTime, KINDA_SMALL_NUMBER))
 						{
 							const float BlendOutTime = bCustomBlendOutTriggerTime ? DefaultBlendOutTime : DeltaTimeToEnd;
-							Stop(BlendOutTime, false);
+							Stop(FAlphaBlend(Montage->BlendOut, BlendOutTime), false);
 						}
 					}
 
@@ -1442,7 +1483,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 				else
 				{
 					// stop and leave this loop
-					Stop(Montage->BlendOutTime * DefaultBlendTimeMultiplier, false);
+					Stop(FAlphaBlend(Montage->BlendOut, Montage->BlendOut.GetBlendTime() * DefaultBlendTimeMultiplier), false);
 					break;
 				}
 			}
@@ -1450,7 +1491,7 @@ void FAnimMontageInstance::Advance(float DeltaTime, struct FRootMotionMovementPa
 	}
 
 	// If this Montage has no weight, it should be terminated.
-	if ((Weight <= ZERO_ANIMWEIGHT_THRESH) && (DesiredWeight <= ZERO_ANIMWEIGHT_THRESH))
+	if ((Blend.GetDesiredValue()<= ZERO_ANIMWEIGHT_THRESH) && (Blend.IsComplete()))
 	{
 		// nothing else to do
 		Terminate();
@@ -1638,7 +1679,9 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 					struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 					if(PrevAnimMontageInst)
 					{
-						PrevAnimMontageInst->Weight=0.f;
+						// set weight to be 0
+						PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
+						PrevAnimMontageInst->Blend.SetAlpha(1.f);
 					}
 				}
 
@@ -1651,7 +1694,9 @@ void FAnimMontageInstance::SetMatineeAnimPositionInner(FName SlotName, USkeletal
 			struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 			if(AnimMontageInst)
 			{
-				AnimMontageInst->Weight = 1.f;
+				// need to set weight to be 1
+				AnimMontageInst->Blend.SetDesiredValue(1.f);
+				AnimMontageInst->Blend.SetAlpha(1.f);
 
 				float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
 				AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);
@@ -1693,7 +1738,9 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 				struct FAnimMontageInstance* PrevAnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 				if(PrevAnimMontageInst)
 				{
-					PrevAnimMontageInst->Weight=0.f;
+					// set weight to be 0
+					PrevAnimMontageInst->Blend.SetDesiredValue(0.f);
+					PrevAnimMontageInst->Blend.SetAlpha(1.f);
 				}
 			}
 
@@ -1706,7 +1753,9 @@ void FAnimMontageInstance::PreviewMatineeSetAnimPositionInner(FName SlotName, US
 		struct FAnimMontageInstance* AnimMontageInst = AnimInst->GetActiveInstanceForMontage(*CurrentlyPlayingMontage);
 		if(AnimMontageInst)
 		{
-			AnimMontageInst->Weight = 1.f;
+			// set weight to be 1
+			AnimMontageInst->Blend.SetDesiredValue(1.f);
+			AnimMontageInst->Blend.SetAlpha(1.f);
 
 			float OldMontagePosition = AnimInst->Montage_GetPosition(CurrentlyPlayingMontage.Get());
 			AnimInst->Montage_SetPosition(CurrentlyPlayingMontage.Get(), InPosition);

@@ -2294,9 +2294,9 @@ void UAbilitySystemComponent::CurrentMontageStop(float OverrideBlendOutTime)
 
 	if (bShouldStopMontage)
 	{
-		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOutTime);
+		const float BlendOutTime = (OverrideBlendOutTime >= 0.0f ? OverrideBlendOutTime : MontageToStop->BlendOut.GetBlendTime());
 
-		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime, MontageToStop);
+		AnimInstance->Montage_Stop(MontageToStop->BlendOut.GetBlendTime(), MontageToStop);
 
 		if (IsOwnerActorAuthoritative())
 		{

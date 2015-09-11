@@ -48,7 +48,6 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextState
 	Blend.SetBlendOption(BlendOption);
 	Blend.CustomCurve = ReferenceTransitionInfo.CustomCurve;
 	Blend.SetValueRange(0.0f, 1.0f);
-	Blend.Reset();
 }
 
 float FAnimationActiveTransitionEntry::CalculateInverseAlpha(EAlphaBlendOption BlendMode, float InFraction) const
