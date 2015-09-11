@@ -56,12 +56,15 @@ public:
 		InitializeSpatializationEffect(BufferLength);
 
 		check(HRTFEffects.Num() == 0);
+		check(Params.Num() == 0);
+
 		for (int32 EffectIndex = 0; EffectIndex < (int32)AudioDevice->MaxChannels; ++EffectIndex)
 		{
 			FXAudio2HRTFEffect* NewHRTFEffect = new FXAudio2HRTFEffect(EffectIndex, AudioDevice);
 			NewHRTFEffect->Initialize(nullptr, 0);
 			HRTFEffects.Add(NewHRTFEffect);
-			// IsStopped.Add(true);
+
+			Params.Add(FAudioSpatializationParams());
 		}
 	}
 
@@ -72,7 +75,7 @@ public:
 		{
 			if (Effect)
 			{
-				Effect->Release();
+				delete Effect;
 			}
 		}
 		HRTFEffects.Empty();
@@ -171,13 +174,20 @@ public:
 		return nullptr;
 	}
 
-	void SetSpatializationParameters(uint32 VoiceId, const FVector& EmitterPosition, ESpatializationEffectType AlgorithmType) override
+	void SetSpatializationParameters(uint32 VoiceId, const FAudioSpatializationParams& InParams) override
 	{
-		if ((int32)VoiceId < HRTFEffects.Num())
-		{
-			FAudioHRTFEffectParameters Params(EmitterPosition);
-			HRTFEffects[VoiceId]->SetParameters((const void *)&Params, sizeof(Params));
-		}
+		check((int32)VoiceId < Params.Num());
+
+		FScopeLock ScopeLock(&ParamCriticalSection);
+		Params[VoiceId] = InParams;
+	}
+
+	void GetSpatializationParameters(uint32 VoiceId, FAudioSpatializationParams& OutParams) override
+	{
+		check((int32)VoiceId < Params.Num());
+
+		FScopeLock ScopeLock(&ParamCriticalSection);
+		OutParams = Params[VoiceId];
 	}
 
 private:
@@ -222,6 +232,9 @@ private:
 
 	/** Xaudio2 effects for the oculus plugin */
 	TArray<class FXAudio2HRTFEffect*> HRTFEffects;
+	TArray<FAudioSpatializationParams> Params;
+
+	FCriticalSection ParamCriticalSection;
 };
 
 
