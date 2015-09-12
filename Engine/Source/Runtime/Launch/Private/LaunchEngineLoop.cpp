@@ -1827,8 +1827,11 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
-	// Init HighRes screenshot system.
-	GetHighResScreenshotConfig().Init();
+	// Init HighRes screenshot system, unless running on server
+	if (!IsRunningDedicatedServer())
+	{
+		GetHighResScreenshotConfig().Init();
+	}
 
 #else // WITH_ENGINE
 	EndInitTextLocalization();
