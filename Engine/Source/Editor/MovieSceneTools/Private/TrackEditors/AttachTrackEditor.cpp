@@ -272,7 +272,7 @@ void F3DAttachTrackEditor::AddAttachSubMenu(FMenuBuilder& MenuBuilder, FGuid Obj
 			Args.Add( TEXT("AttachName"), FText::FromString( Actor->GetActorLabel() ) );
 
 			MenuBuilder.AddMenuEntry(
-				FText::Format( NSLOCTEXT("Sequencer", "AddAttach", "Add {AttachName}"), Args ),
+				FText::Format( NSLOCTEXT("Sequencer", "AddAttach", "{AttachName}"), Args ),
 				FText::Format( NSLOCTEXT("Sequencer", "AddAttachTooltip", "Add attach track driven by {AttachName}."), Args ),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &F3DAttachTrackEditor::AddAttach, ObjectBinding, (UObject*)Actor))
