@@ -16,8 +16,10 @@
 #include "SEnumCurveKeyEditor.h"
 #include "SBoolCurveKeyEditor.h"
 
-void FFloatCurveKeyArea::AddKeyUnique(float Time)
+TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
 {
+	TArray<FKeyHandle> AddedKeyHandles;
+
 	FKeyHandle CurrentKeyHandle = Curve->FindKey(Time);
 	if (Curve->IsKeyHandleValid(CurrentKeyHandle) == false)
 	{
@@ -29,8 +31,33 @@ void FFloatCurveKeyArea::AddKeyUnique(float Time)
 		{
 			OwningSection->SetEndTime(Time);
 		}
-		Curve->AddKey(Time, Curve->Eval(Time), false, CurrentKeyHandle);
+
+		float Value = Curve->Eval(Time);
+		if (TimeToCopyFrom != FLT_MAX)
+		{
+			Value = Curve->Eval(TimeToCopyFrom);
+		}
+
+		Curve->AddKey(Time, Value, false, CurrentKeyHandle);
+		AddedKeyHandles.Add(CurrentKeyHandle);
+		
+		// Copy the properties from the key if it exists
+		FKeyHandle KeyHandleToCopy = Curve->FindKey(TimeToCopyFrom);
+		if (Curve->IsKeyHandleValid(KeyHandleToCopy))
+		{
+			FRichCurveKey& CurrentKey = Curve->GetKey(CurrentKeyHandle);
+			FRichCurveKey& KeyToCopy = Curve->GetKey(KeyHandleToCopy);
+			CurrentKey.InterpMode = KeyToCopy.InterpMode;
+			CurrentKey.TangentMode = KeyToCopy.TangentMode;
+			CurrentKey.TangentWeightMode = KeyToCopy.TangentWeightMode;
+			CurrentKey.ArriveTangent = KeyToCopy.ArriveTangent;
+			CurrentKey.LeaveTangent = KeyToCopy.LeaveTangent;
+			CurrentKey.ArriveTangentWeight = KeyToCopy.ArriveTangentWeight;
+			CurrentKey.LeaveTangentWeight = KeyToCopy.LeaveTangentWeight;
+		}
 	}
+
+	return AddedKeyHandles;
 }
 
 TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
@@ -41,8 +68,10 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Curve(Curve);
 };
 
-void FIntegralKeyArea::AddKeyUnique(float Time)
+TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
 {
+	TArray<FKeyHandle> AddedKeyHandles;
+
 	FKeyHandle CurrentKey = Curve.FindKey(Time);
 	if (Curve.IsKeyHandleValid(CurrentKey) == false)
 	{
@@ -54,8 +83,18 @@ void FIntegralKeyArea::AddKeyUnique(float Time)
 		{
 			OwningSection->SetEndTime(Time);
 		}
-		Curve.AddKey(Time, Curve.Evaluate(Time), CurrentKey);
+
+		int32 Value = Curve.Evaluate(Time);
+		if (TimeToCopyFrom != FLT_MAX)
+		{
+			Value = Curve.Evaluate(TimeToCopyFrom);
+		}
+
+		Curve.AddKey(Time, Value, CurrentKey);
+		AddedKeyHandles.Add(CurrentKey);
 	}
+
+	return AddedKeyHandles;
 }
 
 TSharedRef<SWidget> FIntegralKeyArea::CreateKeyEditor(ISequencer* Sequencer)

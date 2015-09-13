@@ -348,12 +348,29 @@ ERichCurveExtrapolation FGroupedKeyArea::GetExtrapolationMode(bool bPreInfinity)
 	return ExtrapMode;
 }
 
-void FGroupedKeyArea::AddKeyUnique(float Time)
+TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
 {
+	TArray<FKeyHandle> AddedKeyHandles;
+
 	for (auto& Area : KeyAreas)
 	{
-		Area->AddKeyUnique(Time);
+		// If TimeToCopyFrom is valid, add a key only if there is a key to copy from
+		if (TimeToCopyFrom != FLT_MAX)
+		{
+			if (FRichCurve* Curve = Area->GetRichCurve())
+			{
+				if (!Curve->IsKeyHandleValid(Curve->FindKey(TimeToCopyFrom)))
+				{
+					continue;
+				}
+			}
+		}
+
+		TArray<FKeyHandle> AddedGroupKeyHandles = Area->AddKeyUnique(Time, TimeToCopyFrom);
+		AddedKeyHandles.Append(AddedGroupKeyHandles);
 	}
+
+	return AddedKeyHandles;
 }
 
 FRichCurve* FGroupedKeyArea::GetRichCurve()

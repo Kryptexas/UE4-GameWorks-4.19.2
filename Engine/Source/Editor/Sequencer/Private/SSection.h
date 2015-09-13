@@ -48,6 +48,16 @@ private:
 	FSelectedKey GetKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry ) const;
 
 	/**
+	 * Creates a key at the mouse position
+	 *
+	 * @param MousePosition		The current screen space position of the mouse
+	 * @param AllottedGeometry	The geometry of the mouse event
+	 * @param InPressedKey      Key if pressed
+	 * @return The newly created key
+	 */
+	FSelectedKey CreateKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry, FSelectedKey InPressedKey );
+
+	/**
 	 * Checks for user interaction (via the mouse) with the left and right edge of a section
 	 *
 	 * @param MousePosition		The current screen space position of the mouse

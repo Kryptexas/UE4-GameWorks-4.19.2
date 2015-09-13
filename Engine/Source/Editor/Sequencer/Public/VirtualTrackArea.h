@@ -40,6 +40,9 @@ public:
 	/** Hit test at the specified physical position for a key */
 	FSelectedKey HitTestKey(FVector2D InPhysicalPosition) const;
 
+	/** Cached track area geometry */
+	FGeometry CachedTrackAreaGeometry() const { return TrackAreaGeometry; }
+
 private:
 
 	/** Reference to the sequencer tree */

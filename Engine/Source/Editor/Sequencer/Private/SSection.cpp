@@ -102,6 +102,85 @@ FSelectedKey SSection::GetKeyUnderMouse( const FVector2D& MousePosition, const F
 	return FSelectedKey();
 }
 
+FSelectedKey SSection::CreateKeyUnderMouse( const FVector2D& MousePosition, const FGeometry& AllottedGeometry, FSelectedKey InPressedKey )
+{
+	UMovieSceneSection& Section = *SectionInterface->GetSectionObject();
+
+	FGeometry SectionGeometry = MakeSectionGeometryWithoutHandles( AllottedGeometry, SectionInterface );
+
+	// Search every key area until we find the one under the mouse
+	for (const FKeyAreaLayoutElement& Element : Layout->GetElements())
+	{
+		TSharedPtr<IKeyArea> KeyArea = Element.GetKeyArea();
+
+		// Compute the current key area geometry
+		FGeometry KeyAreaGeometryPadded = GetKeyAreaGeometry( Element, AllottedGeometry );
+
+		// Is the key area under the mouse
+		if( KeyAreaGeometryPadded.IsUnderLocation( MousePosition ) )
+		{
+			FTimeToPixel TimeToPixelConverter = Section.IsInfinite() ? 			
+				FTimeToPixel( ParentGeometry, GetSequencer().GetViewRange()) : 
+				FTimeToPixel( SectionGeometry, TRange<float>( Section.GetStartTime(), Section.GetEndTime() ) );
+
+			// If a key was pressed on, get the pressed on key's time to duplicate that key
+			float KeyTime;
+			if (InPressedKey.IsValid())
+			{
+				KeyTime = KeyArea->GetKeyTime(InPressedKey.KeyHandle.GetValue());
+			}
+			// Otherwise, use the time where the mouse is pressed
+			else
+			{
+				FVector2D LocalSpaceMousePosition = SectionGeometry.AbsoluteToLocal( MousePosition );
+				KeyTime = TimeToPixelConverter.PixelToTime(LocalSpaceMousePosition.X);
+			}
+
+			FScopedTransaction CreateKeyTransaction(NSLOCTEXT("Sequencer", "CreateKey_Transaction", "Create Key"));
+
+			Section.Modify();
+
+			// If the pressed key exists, offset the new key and look for it in the newly laid out key areas
+			if (InPressedKey.IsValid())
+			{
+				// Offset by 1 pixel worth of time
+				const float TimeFuzz = (GetSequencer().GetViewRange().GetUpperBoundValue() - GetSequencer().GetViewRange().GetLowerBoundValue()) / ParentGeometry.GetLocalSize().X;
+
+				TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, KeyTime);
+
+				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+
+				// Look specifically for the key with the offset key time
+				for (const FKeyAreaLayoutElement& NewElement : Layout->GetElements())
+				{
+					TSharedPtr<IKeyArea> NewKeyArea = NewElement.GetKeyArea();
+
+					for (auto KeyHandle : KeyHandles)
+					{
+						for (auto UnsortedKeyHandle : NewKeyArea->GetUnsortedKeyHandles())
+						{
+							if (FMath::IsNearlyEqual(KeyTime+TimeFuzz, NewKeyArea->GetKeyTime(UnsortedKeyHandle), KINDA_SMALL_NUMBER))
+							{
+								return FSelectedKey(Section, NewKeyArea, UnsortedKeyHandle);
+							}
+						}
+					}
+				}
+			}
+			else
+			{
+				KeyArea->AddKeyUnique(KeyTime);
+
+				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
+						
+				return GetKeyUnderMouse(MousePosition, AllottedGeometry);
+			}
+		}
+	}
+
+	return FSelectedKey();
+}
+
 void SSection::CheckForEdgeInteraction( const FPointerEvent& MouseEvent, const FGeometry& SectionGeometry )
 {
 	bLeftEdgeHovered = false;
@@ -629,11 +708,8 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 {
 	FSequencer& Sequencer = GetSequencer();
 
-	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton || MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
-	{
-		// Check for clicking on a key and mark it as the pressed key for drag detection (if necessary) later
-		PressedKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
-	}
+	// Check for clicking on a key and mark it as the pressed key for drag detection (if necessary) later
+	PressedKey = GetKeyUnderMouse( MouseEvent.GetScreenSpacePosition(), MyGeometry );
 
 	if (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
@@ -641,6 +717,31 @@ FReply SSection::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerE
 		{
 			CheckForEdgeInteraction( MouseEvent, MyGeometry );
 		}
+	}
+	else if (MouseEvent.GetEffectingButton() == EKeys::MiddleMouseButton)
+	{
+		// Generate a key and set it as the PressedKey
+		PressedKey = CreateKeyUnderMouse(MouseEvent.GetScreenSpacePosition(), MyGeometry, PressedKey);
+		HoveredKey = PressedKey;
+
+		Sequencer.GetSelection().EmptySelectedKeys();
+		Sequencer.GetSelection().AddToSelection(PressedKey);
+
+		// Pass the event to the tool to copy the hovered key and move it
+		auto& EditTool = GetSequencer().GetEditTool();
+
+		EditTool.SetHotspot( MakeShareable( new FSectionHotspot(FSectionHandle(ParentSectionArea, SectionIndex))) );
+
+		if ( HoveredKey.IsValid() )
+		{
+			EditTool.SetHotspot( MakeShareable( new FKeyHotspot(HoveredKey, ParentSectionArea) ) );
+			FReply Reply = EditTool.OnMouseButtonDown(*this, MyGeometry, MouseEvent);
+			if (Reply.IsEventHandled())
+			{
+				return Reply;
+			}
+		}
+		return FReply::Unhandled();
 	}
 	else if (MouseEvent.GetEffectingButton() == EKeys::RightMouseButton && (PressedKey.IsValid() || Sequencer.GetSelection().GetSelectedKeys().Num() || Sequencer.GetSelection().GetSelectedSections().Num()))
 	{
