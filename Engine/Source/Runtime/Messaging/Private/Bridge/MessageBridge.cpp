@@ -29,10 +29,11 @@ FMessageBridge::~FMessageBridge()
 		Bus->Unregister(Address);
 
 		TArray<FMessageAddress> RemovedAddresses;
+		AddressBook.RemoveAll(RemovedAddresses);
 
-		for (int32 AddressIndex = 0; AddressIndex < RemovedAddresses.Num(); ++AddressIndex)
+		for (const auto& Address : RemovedAddresses)
 		{
-			Bus->Unregister(RemovedAddresses[AddressIndex]);
+			Bus->Unregister(Address);
 		}
 	}
 }
