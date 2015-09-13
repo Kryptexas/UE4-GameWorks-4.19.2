@@ -1022,7 +1022,7 @@ public partial class GUBP : BuildCommand
 		HashSet<BuildNode> RecursiveNodesToDo = new HashSet<BuildNode>(NodesToDo);
 		foreach(BuildNode NodeToDo in NodesToDo)
 		{
-			RecursiveNodesToDo.UnionWith(NodeToDo.OrderDependencies);
+			RecursiveNodesToDo.UnionWith(NodeToDo.InputDependencies);
 		}
 
 		return RecursiveNodesToDo;
