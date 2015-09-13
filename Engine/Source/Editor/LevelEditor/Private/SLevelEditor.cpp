@@ -752,14 +752,17 @@ TSharedRef<SDockTab> SLevelEditor::SpawnLevelEditorTab( const FSpawnTabArgs& Arg
 	}
 	else if( TabIdentifier == TEXT("Sequencer") )
 	{
-		// @todo sequencer: remove when world-centric mode is added
-		SequencerTab = SNew(SDockTab)
-			.Icon( FSlateStyleRegistry::FindSlateStyle("ActorAnimationEditorStyle")->GetBrush("ActorAnimationEditor.Tabs.Sequencer") )
-			.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
-			[
-				SNullWidget::NullWidget
-			];
-		return SequencerTab.ToSharedRef();
+		if (FSlateStyleRegistry::FindSlateStyle("ActorAnimationEditorStyle"))
+		{
+			// @todo sequencer: remove when world-centric mode is added
+			SequencerTab = SNew(SDockTab)
+				.Icon( FSlateStyleRegistry::FindSlateStyle("ActorAnimationEditorStyle")->GetBrush("ActorAnimationEditor.Tabs.Sequencer") )
+				.Label( NSLOCTEXT("Sequencer", "SequencerMainTitle", "Sequencer") )
+				[
+					SNullWidget::NullWidget
+				];
+			return SequencerTab.ToSharedRef();
+		}
 	}
 	else if( TabIdentifier == LevelEditorStatsViewerTab )
 	{
