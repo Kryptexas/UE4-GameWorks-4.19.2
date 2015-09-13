@@ -12,7 +12,7 @@ struct FMessageRpcCancel
 	GENERATED_USTRUCT_BODY()
 
 	/** Correlation identifier for the RPC call that this message refers to. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid CallId;
 
 	/** Default constructor. */
@@ -32,15 +32,15 @@ struct FMessageRpcProgress
 	GENERATED_USTRUCT_BODY()
 
 	/** Completion percentage (0.0 to 1.0). */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	float Completion;
 
 	/** Correlation identifier for the RPC call that this message refers to. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid CallId;
 
 	/** Status text. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FString StatusText;
 
 	/** Default constructor. */
@@ -62,7 +62,7 @@ struct FMessageRpcUnhandled
 	GENERATED_USTRUCT_BODY()
 
 	/** Correlation identifier for the RPC call that this message refers to. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid CallId;
 
 	/** Default constructor. */

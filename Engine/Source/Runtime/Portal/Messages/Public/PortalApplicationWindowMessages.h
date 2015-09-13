@@ -10,7 +10,7 @@ struct FPortalApplicationWindowNavigateToRequest
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FString Url;
 
 	FPortalApplicationWindowNavigateToRequest() { }
@@ -26,7 +26,7 @@ struct FPortalApplicationWindowNavigateToResponse
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	bool Result;
 
 	FPortalApplicationWindowNavigateToResponse() { }
@@ -34,5 +34,6 @@ struct FPortalApplicationWindowNavigateToResponse
 		: Result(InResult)
 	{ }
 };
+
 
 DECLARE_RPC(FPortalApplicationWindowNavigateTo, bool)

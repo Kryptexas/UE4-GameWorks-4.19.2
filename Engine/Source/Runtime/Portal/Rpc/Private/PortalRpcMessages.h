@@ -11,11 +11,11 @@ struct FPortalRpcLocateServer
 	GENERATED_USTRUCT_BODY()
 
 	/** The product's unique identifier. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FGuid ProductId;
 
 	/** The product's version string. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FString ProductVersion;
 
 	/** Default constructor. */
@@ -35,7 +35,7 @@ struct FPortalRpcServer
 	GENERATED_USTRUCT_BODY()
 
 	/** The RPC server's message address as a string. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Message")
 	FString ServerAddress;
 
 	/** Default constructor. */
