@@ -42,8 +42,8 @@ public:
 
 private:
 
-	/** Handles checking whether the details view is enabled. */
-	bool HandleDetailsViewEnabled() const;
+	/** Handles checking whether the details view is editable. */
+	bool HandleDetailsViewIsPropertyEditable() const;
 
 	/** Handles determining the visibility of the details view. */
 	EVisibility HandleDetailsViewVisibility() const;
@@ -53,8 +53,8 @@ private:
 
 private:
 
-	/** Holds the details view. */
-	TSharedPtr<IStructureDetailsView> DetailsView;
+	/** Holds the structure details view. */
+	TSharedPtr<IStructureDetailsView> StructureDetailsView;
 
 	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
