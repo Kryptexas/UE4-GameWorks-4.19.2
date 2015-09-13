@@ -32,7 +32,18 @@ void FMessageTracer::TraceAddedInterceptor( const IMessageInterceptorRef& Interc
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		// @todo gmp: trace added message interceptors
+		// create interceptor information
+		FMessageTracerInterceptorInfoPtr& InterceptorInfo = Interceptors.FindOrAdd(Interceptor->GetInterceptorId());
+
+		if (!InterceptorInfo.IsValid())
+		{
+			InterceptorInfo = MakeShareable(new FMessageTracerInterceptorInfo());
+		}
+
+		// initialize interceptor information
+		InterceptorInfo->Name = Interceptor->GetDebugName();
+		InterceptorInfo->TimeRegistered = Timestamp;
+		InterceptorInfo->TimeUnregistered = 0;
 	});
 }
 
@@ -170,33 +181,49 @@ void FMessageTracer::TraceInterceptedMessage( const IMessageContextRef& Context,
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		// @todo gmp: trace intercepted messages
+		// look up message & interceptor info
+		FMessageTracerMessageInfoPtr MessageInfo = MessageInfos.FindRef(Context);
+
+		if (!MessageInfo.IsValid())
+		{
+			return;
+		}
+
+		MessageInfo->Intercepted = true;
+
+		FMessageTracerInterceptorInfoPtr InterceptorInfo = Interceptors.FindRef(Interceptor->GetInterceptorId());
+
+		if (!InterceptorInfo.IsValid())
+		{
+			return;
+		}
+
+		// update interceptor information
+		InterceptorInfo->InterceptedMessages.Add(MessageInfo);
 	});		
 }
 
 
 void FMessageTracer::TraceRemovedInterceptor( const IMessageInterceptorRef& Interceptor, const FName& MessageType )
 {
-	if (!Running)
-	{
-		return;
-	}
-
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
-		// @todo gmp: trace removed message interceptors
+		FMessageTracerInterceptorInfoPtr InterceptorInfo = Interceptors.FindRef(Interceptor->GetInterceptorId());
+
+		if (!InterceptorInfo.IsValid())
+		{
+			return;
+		}
+
+		// update interceptor information
+		InterceptorInfo->TimeUnregistered = Timestamp;
 	});
 }
 
 
 void FMessageTracer::TraceRemovedRecipient( const FMessageAddress& Address )
 {
-	if (!Running)
-	{
-		return;
-	}
-
 	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
@@ -282,6 +309,7 @@ void FMessageTracer::TraceSentMessage( const IMessageContextRef& Context )
 		FMessageTracerMessageInfoRef MessageInfo = MakeShareable(new FMessageTracerMessageInfo());
 	
 		MessageInfo->Context = Context;
+		MessageInfo->Intercepted = false;
 		MessageInfo->SenderInfo = EndpointInfo;
 		MessageInfo->TimeRouted = 0.0;
 		MessageInfo->TimeSent = Timestamp;

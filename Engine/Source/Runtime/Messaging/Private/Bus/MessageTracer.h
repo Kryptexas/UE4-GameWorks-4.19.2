@@ -234,6 +234,9 @@ private:
 	/** Holds an event signaling that messaging routing can continue. */
 	FEvent* ContinueEvent;
 
+	/** The collection of known interceptors. */
+	TMap<FGuid, FMessageTracerInterceptorInfoPtr> Interceptors;
+
 	/** Holds the collection of endpoints for known recipient identifiers. */
 	TMap<FGuid, FMessageTracerEndpointInfoPtr> RecipientsToEndpointInfos;
 

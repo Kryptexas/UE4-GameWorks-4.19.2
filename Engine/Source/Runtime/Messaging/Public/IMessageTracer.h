@@ -24,6 +24,12 @@ typedef TSharedPtr<struct FMessageTracerEndpointInfo> FMessageTracerEndpointInfo
 /** Type definition for shared references to instances of FMessageTracerEndpointInfo. */
 typedef TSharedRef<struct FMessageTracerEndpointInfo> FMessageTracerEndpointInfoRef;
 
+/** Type definition for shared pointers to instances of FMessageTracerInterceptorInfo. */
+typedef TSharedPtr<struct FMessageTracerInterceptorInfo> FMessageTracerInterceptorInfoPtr;
+
+/** Type definition for shared references to instances of FMessageTracerInterceptorInfo. */
+typedef TSharedRef<struct FMessageTracerInterceptorInfo> FMessageTracerInterceptorInfoRef;
+
 /** Type definition for shared pointers to instances of FMessageTracerMessageInfo. */
 typedef TSharedPtr<struct FMessageTracerMessageInfo> FMessageTracerMessageInfoPtr;
 
@@ -117,6 +123,25 @@ struct FMessageTracerEndpointInfo
 
 
 /**
+ * Structure for message interceptor debug information.
+ */
+struct FMessageTracerInterceptorInfo
+{
+	/** Holds the interceptor's human readable name. */
+	FName Name;
+
+	/** Holds the list of messages intercepted by this interceptor. */
+	TArray<FMessageTracerMessageInfoPtr> InterceptedMessages;
+
+	/** Holds the time at which this interceptor was registered. */
+	double TimeRegistered;
+
+	/** Holds the time at which this interceptor was unregistered. */
+	double TimeUnregistered;
+};
+
+
+/**
  * Structure for message debug information.
  */
 struct FMessageTracerMessageInfo
@@ -126,6 +151,9 @@ struct FMessageTracerMessageInfo
 
 	/** Holds the message's dispatch states per endpoint. */
 	TMap<FMessageTracerEndpointInfoPtr, FMessageTracerDispatchStatePtr> DispatchStates;
+
+	/** Whether the message was intercepted. */
+	bool Intercepted;
 
 	/** Pointer to the sender's endpoint information. */
 	FMessageTracerEndpointInfoPtr SenderInfo;
