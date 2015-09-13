@@ -18,6 +18,11 @@ class FSessionBrowserTreeItem
 {
 public:
 
+	/** Virtual destructor. */
+	virtual ~FSessionBrowserTreeItem() { }
+
+public:
+
 	/**
 	 * Adds a child process item to this item.
 	 *
@@ -100,6 +105,9 @@ public:
 		, ToolTipText(InToolTipText)
 	{ }
 
+	/** Virtual destructor. */
+	virtual ~FSessionBrowserGroupTreeItem() { }
+
 public:
 
 	/**
@@ -154,6 +162,9 @@ public:
 		: InstanceInfo(InInstanceInfo)
 	{ }
 
+	/** Virtual destructor. */
+	virtual ~FSessionBrowserInstanceTreeItem() { }
+
 public:
 
 	/**
@@ -194,6 +205,9 @@ public:
 	FSessionBrowserSessionTreeItem(const TSharedRef<ISessionInfo>& InSessionInfo)
 		: SessionInfo(InSessionInfo)
 	{ }
+
+	/** Virtual destructor. */
+	virtual ~FSessionBrowserSessionTreeItem() { }
 
 public:
 
