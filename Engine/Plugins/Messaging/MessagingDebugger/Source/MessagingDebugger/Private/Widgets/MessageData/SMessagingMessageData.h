@@ -3,6 +3,9 @@
 #pragma once
 
 
+class IStructureDetailsView;
+
+
 /**
  * Implements the message data panel.
  */
@@ -51,14 +54,11 @@ private:
 private:
 
 	/** Holds the details view. */
-//	TSharedPtr<IDetailsView> DetailsView;
+	TSharedPtr<IStructureDetailsView> DetailsView;
 
 	/** Holds a pointer to the view model. */
 	FMessagingDebuggerModelPtr Model;
 
 	/** Holds the widget's visual style. */
 	TSharedPtr<ISlateStyle> Style;
-
-	/** Holds the details text box. */
-	TSharedPtr<SMultiLineEditableTextBox> TextBox;
 };
