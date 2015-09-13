@@ -119,7 +119,7 @@ private:
 	TWeakObjectPtr<AActor> SplineOwningActor;
 
 	/** Name of property on the actor that references the spline we are editing */
-	FName SplineCompPropName;
+	FPropertyNameAndIndex SplineCompPropName;
 
 	/** Index of keys we have selected */
 	TSet<int32> SelectedKeys;

@@ -77,7 +77,7 @@ private:
 	TWeakObjectPtr<AActor> SplineMeshOwningActor;
 
 	/** Name of property on the actor that references the spline we are editing */
-	FName SplineMeshCompPropName;
+	FPropertyNameAndIndex SplineMeshCompPropName;
 
 	/** Index of the key we selected */
 	int32 SelectedKey;
