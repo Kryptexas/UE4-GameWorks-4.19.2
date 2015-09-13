@@ -61,6 +61,7 @@ protected:
 	void ProfilerManager_OnViewModeChanged( EProfilerViewMode::Type NewViewMode );
 
 private:
+
 	/**
 	 * Ticks this widget.  Override in derived classes, but always call the parent implementation.
 	 *

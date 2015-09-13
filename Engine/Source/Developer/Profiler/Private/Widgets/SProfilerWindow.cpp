@@ -1,9 +1,5 @@
 ﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
-	SProfilerWindow.cpp: Implements the SProfilerWindow class.
-=============================================================================*/
-
 #include "ProfilerPrivatePCH.h"
 #include "SProfilerSettings.h"
 #include "DesktopPlatformModule.h"
@@ -14,7 +10,9 @@
 #endif // WITH_EDITOR
 #include "SNotificationList.h"
 
+
 #define LOCTEXT_NAMESPACE "SProfilerWindow"
+
 
 static FText GetTextForNotification( const EProfilerNotificationTypes::Type NotificatonType, const ELoadingProgressStates::Type ProgressState, const FString& Filename, const float ProgressPercent = 0.0f )
 {
@@ -135,18 +133,18 @@ void SProfilerWindow::Construct( const FArguments& InArgs )
 						[
 							SNew(SBox)
 								.HeightOverride(48.0f)
+								.IsEnabled(this, &SProfilerWindow::IsProfilerEnabled)
 								[
 									SNew(SHorizontalBox)
-										.IsEnabled(this, &SProfilerWindow::IsProfilerEnabled)
 
-										+ SHorizontalBox::Slot()
-											.FillWidth(1.0f)
-											.Padding(0.0f)
-											.HAlign(HAlign_Fill)
-											.VAlign(VAlign_Fill)
-											[
-												SAssignNew(ProfilerMiniView, SProfilerMiniView)
-											]
+									+ SHorizontalBox::Slot()
+										.FillWidth(1.0f)
+										.Padding(0.0f)
+										.HAlign(HAlign_Fill)
+										.VAlign(VAlign_Fill)
+										[
+											SAssignNew(ProfilerMiniView, SProfilerMiniView)
+										]
 								]
 						]
 
@@ -470,6 +468,7 @@ EActiveTimerReturnType SProfilerWindow::UpdateActiveDuration( double InCurrentTi
 	// The profiler window will explicitly unregister this active timer when the mouse leaves
 	return EActiveTimerReturnType::Continue;
 }
+
 
 void SProfilerWindow::OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {

@@ -138,6 +138,9 @@ private:
 	/** Callback for getting the enabled state of a test item. */
 	bool HandleItemCheckBoxIsEnabled( ) const;
 
+	/** Callback for getting the enabled state of the main content overlay. */
+	bool HandleMainContentIsEnabled() const;
+
 	/** Create the UI commands for the toolbar */
 	void CreateCommands();
 

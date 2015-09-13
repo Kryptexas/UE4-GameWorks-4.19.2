@@ -206,194 +206,208 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 	this->ChildSlot
 	[
 		SNew(SOverlay)
+
 		+ SOverlay::Slot()
-		[
-			SNew( SSplitter )
-			.Orientation(Orient_Vertical)
-			+SSplitter::Slot()
-			.Value(0.66f)
 			[
-				//automation test panel
-				SAssignNew( MenuBar, SVerticalBox )
-				//ACTIONS
-				+SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
+				SNew( SSplitter )
+					.IsEnabled(this, &SAutomationWindow::HandleMainContentIsEnabled)
+					.Orientation(Orient_Vertical)
+
+				+ SSplitter::Slot()
+					.Value(0.66f)
 					[
-						SAutomationWindow::MakeAutomationWindowToolBar( AutomationWindowActions.ToSharedRef(), SharedThis(this) )
+						//automation test panel
+						SAssignNew( MenuBar, SVerticalBox )
+
+						//ACTIONS
+						+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								SNew( SHorizontalBox )
+
+								+ SHorizontalBox::Slot()
+									.AutoWidth()
+									.HAlign(HAlign_Left)
+									.VAlign(VAlign_Center)
+									[
+										SAutomationWindow::MakeAutomationWindowToolBar( AutomationWindowActions.ToSharedRef(), SharedThis(this) )
+									]
+							]
+
+						+ SVerticalBox::Slot()
+							.FillHeight(1.0f)
+							.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+							[
+								SNew(SOverlay)
+									+ SOverlay::Slot()
+									[
+										SNew(SBorder)
+											.BorderImage(this, &SAutomationWindow::GetTestBackgroundBorderImage)
+											.Padding(3.0f)
+											[
+												//the actual table full of tests
+												TestTable.ToSharedRef()
+											]
+									]
+
+								+ SOverlay::Slot()
+									.HAlign(HAlign_Center)
+									.VAlign(VAlign_Center)
+									[
+										SNew(SThrobber)	
+											.Visibility(this, &SAutomationWindow::GetTestsUpdatingThrobberVisibility)
+									]
+							]
 					]
-				]
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-				[
-					SNew(SOverlay)
-					+SOverlay::Slot()
+
+				+ SSplitter::Slot()
+					.Value(0.33f)
 					[
-						SNew(SBorder)
-						.BorderImage(this, &SAutomationWindow::GetTestBackgroundBorderImage)
-						.Padding(3.0f)
-						[
-							//the actual table full of tests
-							TestTable.ToSharedRef()
-						]
+						SNew(SOverlay)
+
+						+ SOverlay::Slot()
+							[
+								SNew(SBox)
+									.Visibility(this, &SAutomationWindow::GetTestGraphVisibility)
+									[
+										//Graphical Results Panel
+										SNew( SVerticalBox )
+
+										+ SVerticalBox::Slot()
+											.AutoHeight()
+											[
+												SNew(SHorizontalBox)
+
+												+ SHorizontalBox::Slot()
+													.HAlign(HAlign_Left)
+													[
+														SNew(STextBlock)
+															.Text( LOCTEXT("AutomationTest_GraphicalResults", "Automation Test Graphical Results:"))
+													]
+
+												+ SHorizontalBox::Slot()
+													.HAlign(HAlign_Right)
+													.AutoWidth()
+													[
+														SNew(STextBlock)
+															.Text( LOCTEXT("AutomationTest_Display", "Display:"))
+													]
+
+												+ SHorizontalBox::Slot()
+													.HAlign(HAlign_Right)
+													.AutoWidth()
+													[
+														SNew(SCheckBox)
+															.Style(FCoreStyle::Get(), "RadioButton")
+															.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayName)
+															.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayName)
+															[
+																SNew(STextBlock)
+																	.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayName", "Name"))
+															]
+													]
+
+												+ SHorizontalBox::Slot()
+													.HAlign(HAlign_Right)
+													.AutoWidth()
+													[
+														SNew(SCheckBox)
+															.Style(FCoreStyle::Get(), "RadioButton")
+															.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayTime)
+															.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayTime)
+															[
+																SNew(STextBlock)
+																	.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayTime", "Time"))
+															]
+													]
+											]
+
+										+ SVerticalBox::Slot()
+											.FillHeight(1.0f)
+											[
+												SNew(SBorder)
+												[
+													SNew(SScrollBox)
+
+													+ SScrollBox::Slot()
+														[
+															SAssignNew(GraphicalResultBox, SAutomationGraphicalResultBox, InAutomationController)
+														]
+												]
+											]
+									]
+							]
+
+						+ SOverlay::Slot()
+							[
+								SNew(SBox)
+									.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
+									[
+										//results panel
+										SNew( SVerticalBox )
+										+ SVerticalBox::Slot()
+											.AutoHeight()
+											[
+												SNew( STextBlock )
+													.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
+											]
+
+										+ SVerticalBox::Slot()
+											.FillHeight(1.0f)
+											.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+											[
+												//list of results for the selected test
+												SNew(SBorder)
+													[
+														SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
+															.ItemHeight(18)
+															.ListItemsSource(&LogMessages)
+															.SelectionMode(ESelectionMode::Multi)
+															.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
+															.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
+													]
+											]
+
+										+ SVerticalBox::Slot()
+											.AutoHeight()
+											.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+											[
+												SNew(SBorder)
+													.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+													.Padding(FMargin(8.0f, 6.0f))
+													[
+														// Add the command bar
+														SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
+															.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
+													]
+											]
+									]
+							]
 					]
-					+SOverlay::Slot()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SThrobber)	
-							.Visibility(this, &SAutomationWindow::GetTestsUpdatingThrobberVisibility)
-					]
-				]
 			]
-			+SSplitter::Slot()
-			.Value(0.33f)
+
+		+ SOverlay::Slot()
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			.Padding( 15.0f )
 			[
-				SNew(SOverlay)
-				+SOverlay::Slot()
-				[
-					SNew(SBox)
-					.Visibility(this, &SAutomationWindow::GetTestGraphVisibility)
-					[
-						//Graphical Results Panel
-						SNew( SVerticalBox )
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.HAlign(HAlign_Left)
-							[
-								SNew(STextBlock)
-								.Text( LOCTEXT("AutomationTest_GraphicalResults", "Automation Test Graphical Results:"))
-							]
-
-							+SHorizontalBox::Slot()
-							.HAlign(HAlign_Right)
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-								.Text( LOCTEXT("AutomationTest_Display", "Display:"))
-							]
-
-							+SHorizontalBox::Slot()
-							.HAlign(HAlign_Right)
-							.AutoWidth()
-							[
-								SNew(SCheckBox)
-								.Style(FCoreStyle::Get(), "RadioButton")
-								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayName)
-								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayName)
-								[
-									SNew(STextBlock)
-									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayName", "Name"))
-								]
-							]
-
-							+SHorizontalBox::Slot()
-							.HAlign(HAlign_Right)
-							.AutoWidth()
-							[
-								SNew(SCheckBox)
-								.Style(FCoreStyle::Get(), "RadioButton")
-								.IsChecked(this, &SAutomationWindow::HandleResultDisplayTypeIsChecked, EAutomationGrapicalDisplayType::DisplayTime)
-								.OnCheckStateChanged(this, &SAutomationWindow::HandleResultDisplayTypeStateChanged, EAutomationGrapicalDisplayType::DisplayTime)
-								[
-									SNew(STextBlock)
-									.Text( LOCTEXT("AutomationTest_GraphicalResultsDisplayTime", "Time"))
-								]
-							]
-						]
-
-						+SVerticalBox::Slot()
-						.FillHeight(1.0f)
-						[
-							SNew(SBorder)
-							[
-								SNew(SScrollBox)
-								+ SScrollBox::Slot()
-								[
-									SAssignNew(GraphicalResultBox, SAutomationGraphicalResultBox, InAutomationController)
-								]
-							]
-						]
-					]
-				]
-
-				+SOverlay::Slot()
-				[
-					SNew(SBox)
-					.Visibility(this, &SAutomationWindow::GetTestLogVisibility)
-					[
-						//results panel
-						SNew( SVerticalBox )
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						[
-							SNew( STextBlock )
-							.Text( LOCTEXT("AutomationTest_Results", "Automation Test Results:") )
-						]
-
-						+SVerticalBox::Slot()
-						.FillHeight(1.0f)
-						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-						[
-							//list of results for the selected test
-							SNew(SBorder)
-							[
-								SAssignNew(LogListView, SListView<TSharedPtr<FAutomationOutputMessage> >)
-								.ItemHeight(18)
-								.ListItemsSource(&LogMessages)
-								.SelectionMode(ESelectionMode::Multi)
-								.OnGenerateRow(this, &SAutomationWindow::OnGenerateWidgetForLog)
-								.OnSelectionChanged(this, &SAutomationWindow::HandleLogListSelectionChanged)
-							]
-						]
-
-						+SVerticalBox::Slot()
-						.AutoHeight()
-						.Padding(0.0f, 4.0f, 0.0f, 0.0f)
-						[
-							SNew(SBorder)
-							.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-							.Padding(FMargin(8.0f, 6.0f))
-							[
-								// Add the command bar
-								SAssignNew(CommandBar, SAutomationWindowCommandBar, NotificationList)
-								.OnCopyLogClicked(this, &SAutomationWindow::HandleCommandBarCopyLogClicked)
-							]
-						]
-					]
-				]
+				NotificationList
 			]
-		]
+
 		+ SOverlay::Slot()
-		.HAlign( HAlign_Center )
-		.VAlign( VAlign_Center )
-		.Padding( 15.0f )
-		[
-			NotificationList
-		]
-		+ SOverlay::Slot()
-		.HAlign( HAlign_Center )
-		.VAlign( VAlign_Center )
-		.Padding( 15.0f )
-		[
-			SNew(SBorder)
-				.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
-				.Padding(8.0f)
-				.Visibility(this, &SAutomationWindow::HandleSelectSessionOverlayVisibility)
-				[
-					SNew(STextBlock)
-						.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser"))
-				]
-		]
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			.Padding( 15.0f )
+			[
+				SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("NotificationList.ItemBackground"))
+					.Padding(8.0f)
+					.Visibility(this, &SAutomationWindow::HandleSelectSessionOverlayVisibility)
+					[
+						SNew(STextBlock)
+							.Text(LOCTEXT("SelectSessionOverlayText", "Please select at least one instance from the Session Browser"))
+					]
+			]
 	];
 
 	SessionManager->OnCanSelectSession().AddSP( this, &SAutomationWindow::HandleSessionManagerCanSelectSession );
@@ -1793,7 +1807,7 @@ FText SAutomationWindow::HandleAutomationHighlightText( ) const
 
 EVisibility SAutomationWindow::HandleSelectSessionOverlayVisibility( ) const
 {
-	if (SessionManager->GetSelectedSession().IsValid())
+	if (SessionManager->GetSelectedInstances().Num() > 0)
 	{
 		return EVisibility::Hidden;
 	}
@@ -2001,6 +2015,12 @@ void SAutomationWindow::HandleItemCheckBoxCheckedStateChanged( TSharedPtr< IAuto
 bool SAutomationWindow::HandleItemCheckBoxIsEnabled( ) const
 {
 	return IsAutomationControllerIdle();
+}
+
+
+bool SAutomationWindow::HandleMainContentIsEnabled() const
+{
+	return (SessionManager->GetSelectedInstances().Num() > 0);
 }
 
 
