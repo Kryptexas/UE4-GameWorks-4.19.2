@@ -27,7 +27,7 @@ static const FName ToolbarTabId("Toolbar");
 
 SMessagingDebugger::SMessagingDebugger()
 	: CommandList(MakeShareable(new FUICommandList))
-	, MessageTracer(NULL)
+	, MessageTracer(nullptr)
 	, Model(MakeShareable(new FMessagingDebuggerModel()))
 { }
 
@@ -262,7 +262,7 @@ void SMessagingDebugger::HandleClearHistoryCommandExecute()
 
 bool SMessagingDebugger::HandleContinueDebuggerCommandCanExecute() const
 {
-	return MessageTracer->IsBreaking();
+	return (!MessageTracer->IsRunning() || MessageTracer->IsBreaking());
 }
 
 
@@ -292,7 +292,7 @@ bool SMessagingDebugger::HandleStartDebuggerCommandCanExecute() const
 
 void SMessagingDebugger::HandleStartDebuggerCommandExecute()
 {
-	MessageTracer->Start();
+	MessageTracer->Continue();
 }
 
 

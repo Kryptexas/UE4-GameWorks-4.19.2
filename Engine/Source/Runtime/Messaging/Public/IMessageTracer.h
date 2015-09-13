@@ -173,7 +173,7 @@ public:
 	virtual void Break() = 0;
 
 	/**
-	 * Continues message routing from the current breakpoint.
+	 * Starts the tracer or continues message routing from the current breakpoint.
 	 *
 	 * @see Break, Step
 	 */
@@ -183,7 +183,7 @@ public:
 	 * Checks whether the tracer is currently at a breakpoint.
 	 *
 	 * @return true if at breakpoint, false otherwise.
-	 * @see Break
+	 * @see Break, IsRunning
 	 */
 	virtual bool IsBreaking() const = 0;
 
@@ -191,8 +191,7 @@ public:
 	 * Checks whether the tracer is currently running.
 	 *
 	 * @return true if the tracer is running, false otherwise.
-	 *
-	 * @see Start, Stop
+	 * @see Continue, IsBreaking, Stop
 	 */
 	virtual bool IsRunning() const = 0;
 
@@ -200,23 +199,16 @@ public:
 	virtual void Reset() = 0;
 
 	/**
-	 * Starts the tracer.
-	 *
-	 * @see IsRunning, Stop
-	 */
-	virtual void Start() = 0;
-
-	/**
 	 * Steps the tracer to the next message.
 	 *
-	 * @see Break, Continue
+	 * @see Break, Continue, Stop
 	 */
 	virtual void Step() = 0;
 
 	/**
 	 * Stops the tracer.
 	 *
-	 * @see IsRunning, Start
+	 * @see Continue, IsRunning, Step
 	 */
 	virtual void Stop() = 0;
 
@@ -226,7 +218,7 @@ public:
 	 * @param DeltaTime The time in seconds since the last tick.
 	 * @return true if any events were processed.
 	 */
-	virtual bool Tick( float DeltaTime ) = 0;
+	virtual bool Tick(float DeltaTime) = 0;
 
 public:
 
@@ -236,14 +228,14 @@ public:
 	 * @param OutEndpoints Will contain the list of endpoints.
 	 * @return The number of endpoints returned.
 	 */
-	virtual int32 GetEndpoints( TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints ) const = 0;
+	virtual int32 GetEndpoints(TArray<FMessageTracerEndpointInfoPtr>& OutEndpoints) const = 0;
 
 	/**
 	 * Gets the collection of known messages.
 	 *
 	 * @return The messages.
 	 */
-	virtual int32 GetMessages( TArray<FMessageTracerMessageInfoPtr>& OutMessages ) const = 0;
+	virtual int32 GetMessages(TArray<FMessageTracerMessageInfoPtr>& OutMessages) const = 0;
 
 	/**
 	 * Gets the list of known message types filtered by name.
@@ -252,7 +244,7 @@ public:
 	 * @param OutTypes Will contain the list of message types.
 	 * @return The number of message types returned.
 	 */
-	virtual int32 GetMessageTypes( TArray<FMessageTracerTypeInfoPtr>& OutTypes ) const = 0;
+	virtual int32 GetMessageTypes(TArray<FMessageTracerTypeInfoPtr>& OutTypes) const = 0;
 
 	/**
 	 * Checks whether there are any messages in the history.
