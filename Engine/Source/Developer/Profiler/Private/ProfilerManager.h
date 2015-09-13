@@ -530,7 +530,7 @@ protected:
 	void ProfilerClient_OnProfilerFileTransfer( const FString& Filename, int64 FileProgress, int64 FileSize );
 
 	void SessionManager_OnCanSelectSession( const ISessionInfoPtr& Session, bool& CanSelect );
-	void SessionManager_OnInstanceSelectionChanged();
+	void SessionManager_OnInstanceSelectionChanged( const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected );
 	void SessionManager_OnSelectedSessionChanged( const ISessionInfoPtr& Session );
 
 public:

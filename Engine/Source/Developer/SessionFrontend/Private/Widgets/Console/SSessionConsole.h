@@ -127,7 +127,7 @@ private:
 	EVisibility HandleSelectSessionOverlayVisibility() const;
 
 	/** Callback for changing the engine instance selection. */
-	void HandleSessionManagerInstanceSelectionChanged();
+	void HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& Instance, bool Selected);
 
 	/** Callback for received log entries. */
 	void HandleSessionManagerLogReceived(const ISessionInfoRef& Session, const ISessionInstanceInfoRef& Instance, const FSessionLogMessageRef& Message);

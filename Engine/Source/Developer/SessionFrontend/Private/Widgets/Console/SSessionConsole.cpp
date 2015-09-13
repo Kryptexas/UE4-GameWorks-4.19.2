@@ -145,7 +145,7 @@ void SSessionConsole::Construct(const FArguments& InArgs, ISessionManagerRef InS
 					.Visibility(this, &SSessionConsole::HandleSelectSessionOverlayVisibility)
 					[
 						SNew(STextBlock)
-							.Text(LOCTEXT("SelectSessionOverlayText", "Please select a session from the Session Browser"))
+							.Text(LOCTEXT("SelectSessionOverlayText", "Please select at least one instance from the Session Browser"))
 					]
 			]
 	];
@@ -220,8 +220,7 @@ void SSessionConsole::ReloadLog(bool FullyReload)
 	{
 		AvailableLogs.Reset();
 
-		TArray<ISessionInstanceInfoPtr> SelectedInstances;
-		SessionManager->GetSelectedInstances(SelectedInstances);
+		const auto& SelectedInstances = SessionManager->GetSelectedInstances();
 
 		for (const auto& Instance : SelectedInstances)
 		{
@@ -338,10 +337,7 @@ void SSessionConsole::SendCommand(const FString& CommandString)
 		return;
 	}
 
-	TArray<ISessionInstanceInfoPtr> SelectedInstances;
-	SessionManager->GetSelectedInstances(SelectedInstances);
-
-	for (auto& Instance : SelectedInstances)
+	for (auto& Instance : SessionManager->GetSelectedInstances())
 	{
 		Instance->ExecuteCommand(CommandString);
 	}
@@ -452,7 +448,7 @@ FText SSessionConsole::HandleLogListGetHighlightText() const
 
 bool SSessionConsole::HandleMainContentIsEnabled() const
 {
-	return SessionManager->GetSelectedSession().IsValid();
+	return (SessionManager->GetSelectedInstances().Num() > 0);
 }
 
 
@@ -470,7 +466,7 @@ bool SSessionConsole::HandleSaveActionCanExecute()
 
 EVisibility SSessionConsole::HandleSelectSessionOverlayVisibility() const
 {
-	if (SessionManager->GetSelectedSession().IsValid())
+	if (SessionManager->GetSelectedInstances().Num() > 0)
 	{
 		return EVisibility::Hidden;
 	}
@@ -479,7 +475,7 @@ EVisibility SSessionConsole::HandleSelectSessionOverlayVisibility() const
 }
 
 
-void SSessionConsole::HandleSessionManagerInstanceSelectionChanged()
+void SSessionConsole::HandleSessionManagerInstanceSelectionChanged(const TSharedPtr<ISessionInstanceInfo>& /*Instance*/, bool /*Selected*/)
 {
 	ReloadLog(true);
 }
