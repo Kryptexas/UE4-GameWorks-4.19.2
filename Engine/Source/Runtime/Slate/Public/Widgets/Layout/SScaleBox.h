@@ -122,6 +122,9 @@ public:
 	/** See UserSpecifiedScale argument */
 	void SetUserSpecifiedScale(float InUserSpecifiedScale);
 	
+protected:
+	virtual float GetRelativeLayoutScale(const FSlotBase& Child) const override;
+
 private:
 	/** The allowed direction of stretching of the content */
 	TAttribute<EStretchDirection::Type> StretchDirection;
