@@ -15,7 +15,7 @@ IMPLEMENT_MODULE(FQoSReporterModule, QoSReporter);
 
 FString FQoSReporterModule::Config::GetDefaultAppVersion()
 { 
-	return FString::Printf(TEXT("UE4-CL-%d"), GEngineVersion.GetChangelist()); 
+	return FString::Printf(TEXT("UE4-CL-%d"), FEngineVersion::Current().GetChangelist());
 }
 
 FString FQoSReporterModule::Config::GetDefaultAppEnvironment() 
