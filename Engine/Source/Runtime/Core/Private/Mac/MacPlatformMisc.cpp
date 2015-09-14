@@ -43,6 +43,17 @@ struct FMacApplicationInfo
 	{
 		SCOPED_AUTORELEASE_POOL;
 		
+		// Prevent clang/ld from dead-code-eliminating the nothrow_t variants of global new.
+		// This ensures that all OS calls to operator new go through our allocators and delete cleanly.
+		{
+			std::nothrow_t t;
+			char* d = (char*)(operator new(8, t));
+			delete d;
+			
+			d = (char*)operator new[]( 8, t );
+			delete [] d;
+		}
+		
 		AppName = FApp::GetGameName();
 		FCStringAnsi::Strcpy(AppNameUTF8, PATH_MAX+1, TCHAR_TO_UTF8(*AppName));
 		
