@@ -39,6 +39,7 @@ EnginePrivate.h: Unreal engine private header file.
 #include "Components/MeshComponent.h"
 #include "Components/SkinnedMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/SplineMeshComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/BillboardComponent.h"

@@ -486,7 +486,7 @@ void USplineMeshComponent::UpdateRenderStateAndCollision()
 #if WITH_EDITOR
 	if (!GetWorld()->AreActorsInitialized())
 	{
-		CachedMeshBodySetupGuid.Invalidate();
+		DestroyBodySetup();
 		RecreatePhysicsState();
 	}
 #endif // WITH_EDITOR
@@ -917,6 +917,7 @@ void USplineMeshComponent::DestroyBodySetup()
 #endif
 	}
 }
+
 
 #if WITH_EDITOR
 void USplineMeshComponent::RecreateCollision()
