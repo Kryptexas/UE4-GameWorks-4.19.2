@@ -205,9 +205,7 @@ public:
 
 protected:
 
-	/**
-	 * Resets traced messages.
-	 */
+	/** Resets traced messages. */
 	void ResetMessages();
 
 	/**
@@ -227,9 +225,6 @@ private:
 
 	/** Holds the collection of breakpoints. */
 	TArray<IMessageTracerBreakpointPtr> Breakpoints;
-
-	/** Holds the collection of message senders to break on when they send a message. */
-	TArray<FMessageAddress> BreakOnSenders;
 
 	/** Holds an event signaling that messaging routing can continue. */
 	FEvent* ContinueEvent;

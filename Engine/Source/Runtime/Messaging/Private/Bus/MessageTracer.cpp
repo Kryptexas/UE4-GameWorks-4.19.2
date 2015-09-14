@@ -270,13 +270,13 @@ void FMessageTracer::TraceRoutedMessage(const IMessageContextRef& Context)
 		return;
 	}
 
-	double Timestamp = FPlatformTime::Seconds();
-
 	if (ShouldBreak(Context))
 	{
 		Breaking = true;
 		ContinueEvent->Wait();
 	}
+
+	double Timestamp = FPlatformTime::Seconds();
 
 	Traces.Enqueue([=]() {
 		// update message information

@@ -43,6 +43,23 @@ typedef TSharedPtr<struct FMessageTracerTypeInfo> FMessageTracerTypeInfoPtr;
 typedef TSharedRef<struct FMessageTracerTypeInfo> FMessageTracerTypeInfoRef;
 
 
+/** Enumerates tracer breakpoint states. */
+enum class EMessageTracerBreakpointState
+{
+	/** The breakpoint is disabled. */
+	Disabled,
+
+	/** The breakpoint is enabled. */
+	Enabled,
+
+	/** The breakpoint is enabled for incoming messages. */
+	EnabledIn,
+
+	/** The breakpoint is enabled for outgoing messages. */
+	EnabledOut,
+};
+
+
 /**
  * Enumerates message dispatch types.
  */
@@ -56,6 +73,25 @@ enum class EMessageTracerDispatchTypes
 
 	/** The message is being dispatched using the task graph system. */
 	TaskGraph
+};
+
+
+/**
+ * Structure for tracer breakpoints.
+ */
+struct FMessageTracerBreakpoint
+{
+	/** Recipient address to break on. */
+	FMessageAddress BreakOnRecipient;
+
+	/** Sender address to break on. */
+	FMessageAddress BreakOnSender;
+
+	/** How many times the breakpoint was hit. */
+	int64 HitCount;
+
+	/** The breakpoint's enabled state. */
+	EMessageTracerBreakpointState State;
 };
 
 

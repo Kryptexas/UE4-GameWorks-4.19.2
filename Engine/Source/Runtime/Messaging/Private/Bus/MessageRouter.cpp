@@ -308,6 +308,8 @@ void FMessageRouter::HandleRemoveSubscriber( IReceiveMessagesWeakPtr SubscriberP
 
 void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 {
+	Tracer->TraceRoutedMessage(Context);
+
 	// intercept routing
 	TArray<IMessageInterceptorPtr>& Interceptors = ActiveInterceptors.FindOrAdd(Context->GetMessageType());
 
@@ -331,6 +333,4 @@ void FMessageRouter::HandleRouteMessage( IMessageContextRef Context )
 	{
 		DispatchMessage(Context);
 	}
-
-	Tracer->TraceRoutedMessage(Context);
 }
