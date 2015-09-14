@@ -43,13 +43,13 @@ public:
 
 public:
 
-	// FGCObject interface
+	//~ Begin FGCObject Interface
 
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
 
 public:
 
-	// FTickableEditorObject interface
+	//~ Begin FTickableEditorObject Interface
 
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
@@ -57,7 +57,7 @@ public:
 
 public:
 
-	// ISequencer interface
+	//~ Begin ISequencer Interface
 
 	virtual void Close() override;
 	virtual TSharedRef<SWidget> GetSequencerWidget() const override { return SequencerWidget.ToSharedRef(); }
@@ -435,7 +435,7 @@ protected:
 	void ActivateDetailKeyframeHandler();
 	void DeactivateDetailKeyframeHandler();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient

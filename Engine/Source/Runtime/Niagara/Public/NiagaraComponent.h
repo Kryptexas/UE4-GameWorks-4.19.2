@@ -24,7 +24,7 @@ private:
 
 	TSharedPtr<FNiagaraEffectInstance> EffectInstance;
 
-	// Begin UActorComponent interface.
+	//~ Begin UActorComponent Interface.
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister()  override;
@@ -32,13 +32,13 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual const UObject* AdditionalStatObject() const override;
-	// End UActorComponent interface.
+	//~ End UActorComponent Interface.
 
-	// Begin UPrimitiveComponent Interface
+	//~ Begin UPrimitiveComponent Interface
 	virtual int32 GetNumMaterials() const override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	// End UPrimitiveComponent Interface
+	//~ End UPrimitiveComponent Interface
 
 	void SetAsset(UNiagaraEffect* InAsset);
 	UNiagaraEffect* GetAsset() const { return Asset; }
@@ -46,11 +46,11 @@ public:
 	TSharedPtr<FNiagaraEffectInstance> GetEffectInstance()	const { return EffectInstance; }
 	void SetEffectInstance(TSharedPtr<FNiagaraEffectInstance> InInstance)	{ EffectInstance = InInstance; }
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
 };
@@ -79,7 +79,7 @@ public:
 private:
 	void ReleaseRenderThreadResources();
 
-	// FPrimitiveSceneProxy interface.
+	//~ Begin FPrimitiveSceneProxy Interface.
 	virtual void CreateRenderThreadResources() override;
 
 	virtual void OnActorPositionChanged() override;

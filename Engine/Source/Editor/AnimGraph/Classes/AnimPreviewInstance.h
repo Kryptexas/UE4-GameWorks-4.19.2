@@ -48,21 +48,21 @@ class ANIMGRAPH_API UAnimPreviewInstance : public UAnimSingleNodeInstance
 	UPROPERTY(transient)
 	int32 MontagePreviewStartSectionIdx;
 
-	// Begin UAnimInstance interface
+	//~ Begin UAnimInstance Interface
 	virtual void NativeInitializeAnimation() override;
 	virtual void UpdateAnimationNode(float DeltaTimeX) override;
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
-	// End UAnimInstance interface
+	//~ End UAnimInstance Interface
 
 	/** Set SkeletalControl Alpha**/
 	void SetSkeletalControlAlpha(float SkeletalControlAlpha);
 
 	UAnimSequence* GetAnimSequence();
 
-	// Begin UAnimSingleNodeInstance interface
+	//~ Begin UAnimSingleNodeInstance Interface
 	virtual void RestartMontage(UAnimMontage* Montage, FName FromSection = FName()) override;
 	virtual void SetAnimationAsset(UAnimationAsset* NewAsset, bool bIsLooping = true, float InPlayRate = 1.f) override;
-	// End UAnimSingleNodeInstance interface
+	//~ End UAnimSingleNodeInstance Interface
 
 	/** Montage preview functions */
 	void MontagePreview_JumpToStart();

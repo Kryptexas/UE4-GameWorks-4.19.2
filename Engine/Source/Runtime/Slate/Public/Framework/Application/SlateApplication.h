@@ -1035,7 +1035,7 @@ public:
 
 public:
 
-	// Begin FSlateApplicationBase interface
+	//~ Begin FSlateApplicationBase Interface
 
 	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 
@@ -1085,7 +1085,7 @@ protected:
 
 public:
 
-	// FSlateApplicationBase interface
+	//~ Begin FSlateApplicationBase Interface
 
 	virtual bool HasAnyMouseCaptor() const override;
 	virtual FSlateRect GetPreferredWorkArea() const override;
@@ -1105,7 +1105,7 @@ public:
 
 public:
 
-	// FGenericApplicationMessageHandler interface
+	//~ Begin FGenericApplicationMessageHandler Interface
 
 	virtual bool ShouldProcessUserInputMessages( const TSharedPtr< FGenericWindow >& PlatformWindow ) const override;
 	virtual bool OnKeyChar( const TCHAR Character, const bool IsRepeat ) override;

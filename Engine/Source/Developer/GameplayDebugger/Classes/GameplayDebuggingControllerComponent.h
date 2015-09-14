@@ -112,9 +112,9 @@ class AGaneplayDebuggerProxyHUD : public AHUD
 
 	FFontRenderInfo TextRenderInfo;
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostRender() override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	TWeakObjectPtr<AHUD> RedirectedHUD;
 };

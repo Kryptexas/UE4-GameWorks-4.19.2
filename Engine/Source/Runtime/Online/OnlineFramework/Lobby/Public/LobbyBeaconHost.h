@@ -20,9 +20,9 @@ class LOBBY_API ALobbyBeaconHost : public AOnlineBeaconHostObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AOnlineBeaconHostObject Interface 
+	//~ Begin AOnlineBeaconHostObject Interface 
 	void NotifyClientDisconnected(AOnlineBeaconClient* LeavingClientActor);
-	// End AOnlineBeaconHostObject Interface 
+	//~ End AOnlineBeaconHostObject Interface 
 
 	/**
 	 * Initialize the lobby beacon, creating an object to maintain state

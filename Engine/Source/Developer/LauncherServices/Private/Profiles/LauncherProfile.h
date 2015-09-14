@@ -43,7 +43,7 @@ public:
 		SetDefaults();
 	}
 
-	// Begin ILauncherSimpleProfile interface
+	//~ Begin ILauncherSimpleProfile Interface
 
 	virtual const FString& GetDeviceName() const override
 	{
@@ -208,7 +208,7 @@ public:
 
 public:
 
-	// Begin ILauncherProfile interface
+	//~ Begin ILauncherProfile Interface
 
 	virtual void AddCookedCulture( const FString& CultureName ) override
 	{
@@ -1342,7 +1342,7 @@ public:
 		return EditorExe;
 	}
 
-	// End ILauncherProfile interface
+	//~ End ILauncherProfile Interface
 
 protected:
 

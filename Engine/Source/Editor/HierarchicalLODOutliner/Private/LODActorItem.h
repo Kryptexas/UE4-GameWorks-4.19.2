@@ -42,13 +42,13 @@ namespace HLODOutliner
 
 		FLODActorItem(ALODActor* InLODActor);
 
-		// Begin ITreeItem interface.
+		//~ Begin ITreeItem Interface.
 		virtual bool CanInteract() const override;
 		virtual void GenerateContextMenu(FMenuBuilder& MenuBuilder, SHLODOutliner& Outliner) override;
 		virtual FString GetDisplayString() const override;
 		virtual FSlateColor GetTint() const override;
 		virtual FTreeItemID GetID() override;
-		// End ITreeItem interface.
+		//~ End ITreeItem Interface.
 
 		/** Returns the number of triangles for the represented LODActor in FText form */
 		FText GetNumTrianglesAsText() const;

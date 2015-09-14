@@ -12,9 +12,9 @@ class ONLINESUBSYSTEMUTILS_API ATestBeaconClient : public AOnlineBeaconClient
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AOnlineBeaconClient Interface
+	//~ Begin AOnlineBeaconClient Interface
 	virtual void OnFailure() override;
-	// End AOnlineBeaconClient Interface
+	//~ End AOnlineBeaconClient Interface
 
 	/** Send a ping RPC to the client */
 	UFUNCTION(client, reliable)

@@ -55,7 +55,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 	UPROPERTY(transient)
 	uint32 bReverse:1;
 
-	// Begin UAnimInstance interface
+	//~ Begin UAnimInstance Interface
 	virtual void NativeInitializeAnimation() override;
 	virtual bool NativeEvaluateAnimation(FPoseContext& Output) override;
 	virtual void NativePostEvaluateAnimation() override;
@@ -64,7 +64,7 @@ class ENGINE_API UAnimSingleNodeInstance : public UAnimInstance
 protected:
 	virtual void Montage_Advance(float DeltaTime) override;
 	void InternalBlendSpaceEvaluatePose(class UBlendSpaceBase* BlendSpace, TArray<FBlendSampleData>& BlendSampleDataCache, FPoseContext& OutContext);
-	// End UAnimInstance interface
+	//~ End UAnimInstance Interface
 public:
 
 	UFUNCTION(BlueprintCallable, Category="Animation")

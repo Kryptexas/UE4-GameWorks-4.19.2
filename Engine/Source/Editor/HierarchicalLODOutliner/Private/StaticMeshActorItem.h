@@ -35,12 +35,12 @@ namespace HLODOutliner
 
 		FStaticMeshActorItem(AActor* InStaticMeshActor);
 
-		// Begin ITreeItem interface.
+		//~ Begin ITreeItem Interface.
 		virtual bool CanInteract() const override;
 		virtual void GenerateContextMenu(FMenuBuilder& MenuBuilder, SHLODOutliner& Outliner) override;
 		virtual FString GetDisplayString() const override;
 		virtual FTreeItemID GetID() override;
-		// End ITreeItem interface.
+		//~ End ITreeItem Interface.
 
 		/** Populate the specified drag/drop payload with any relevant information for this type */
 		virtual void PopulateDragDropPayload(FDragDropPayload& Payload) const override;

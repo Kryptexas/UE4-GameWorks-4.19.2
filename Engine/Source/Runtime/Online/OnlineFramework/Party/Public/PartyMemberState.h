@@ -27,9 +27,9 @@ class PARTY_API UPartyMemberState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Unique id of this party member */
 	UPROPERTY(Transient)

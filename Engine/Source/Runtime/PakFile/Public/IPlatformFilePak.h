@@ -716,7 +716,7 @@ public:
 		}
 	}
 
-	// BEGIN IFileHandle Interface
+	//~ Begin IFileHandle Interface
 	virtual int64 Tell() override
 	{
 		return ReadPos;
@@ -774,7 +774,7 @@ public:
 	{
 		return Reader.FileSize();
 	}
-	/// END IFileHandle Interface
+	///~ End IFileHandle Interface
 };
 
 /**
@@ -984,7 +984,7 @@ public:
 		return FindFileInPakFiles(Paks, Filename, OutPakFile);
 	}
 
-	// BEGIN IPlatformFile Interface
+	//~ Begin IPlatformFile Interface
 	virtual bool FileExists(const TCHAR* Filename) override
 	{
 		// Check pak files first.
@@ -1481,7 +1481,7 @@ public:
 			return LowerLevel->ConvertToAbsolutePathForExternalAppForWrite(Filename);
 		}
 	}
-	// END IPlatformFile Interface
+	//~ End IPlatformFile Interface
 
 	// BEGIN Console commands
 #if !UE_BUILD_SHIPPING

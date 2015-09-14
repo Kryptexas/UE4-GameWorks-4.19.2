@@ -8,7 +8,7 @@
 class FDecalComponentVisualizer : public FComponentVisualizer
 {
 public:
-	// Begin FComponentVisualizer interface
+	//~ Begin FComponentVisualizer Interface
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	// End FComponentVisualizer interface
+	//~ End FComponentVisualizer Interface
 };

@@ -444,7 +444,7 @@ public:
 	// Life cycle                                                                
 	//----------------------------------------------------------------------//
 
-	// Begin UObject/AActor Interface
+	//~ Begin UObject/AActor Interface
 	virtual void PostInitProperties() override;
 	virtual void PostInitializeComponents() override;
 	virtual void PostLoad() override;
@@ -453,7 +453,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void Destroyed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	// End UObject Interface
+	//~ End UObject Interface
 		
 	virtual void CleanUp();
 

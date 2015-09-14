@@ -295,7 +295,7 @@ public:
 	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectGPUSkin();
 
-	// Begin FSkeletalMeshObject interface
+	//~ Begin FSkeletalMeshObject Interface
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
@@ -343,7 +343,7 @@ public:
 
 		return ResourceSize;
 	}
-	// End FSkeletalMeshObject interface
+	//~ End FSkeletalMeshObject Interface
 
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 

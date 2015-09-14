@@ -81,16 +81,16 @@ namespace HLODOutliner
 		/** Initializes and creates the settings view */
 		void CreateSettingsView();
 
-		// Begin SCompoundWidget Interface
+		//~ Begin SCompoundWidget Interface
 		virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 		virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 		virtual void OnMouseLeave(const FPointerEvent& MouseEvent) override;
 		virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 		virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 		virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)  override;
-		// End of SCompoundWidget Interface
+		//~ End SCompoundWidget Interface
 
-		// Begin FEditorUndoClient Interface
+		//~ Begin FEditorUndoClient Interface
 		virtual void PostUndo(bool bSuccess) override;
 		virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 		// End of FEditorUndoClient	

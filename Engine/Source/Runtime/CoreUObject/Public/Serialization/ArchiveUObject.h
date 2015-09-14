@@ -95,14 +95,14 @@ public:
 		Obj->Serialize(*this);
 	}
 
-	// FArchive interface
+	//~ Begin FArchive Interface
 	COREUOBJECT_API virtual FArchive& operator<<( class FName& N ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
-	// End of FArchive interface
+	//~ End FArchive Interface
 
 protected:
 	FObjectWriter(TArray<uint8>& InBytes)
@@ -128,14 +128,14 @@ public:
 		Obj->Serialize(*this);
 	}
 
-	// FArchive interface
+	//~ Begin FArchive Interface
 	COREUOBJECT_API virtual FArchive& operator<<( class FName& N ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( class UObject*& Res ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FLazyObjectPtr& LazyObjectPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
-	// End of FArchive interface
+	//~ End FArchive Interface
 
 protected:
 	FObjectReader(TArray<uint8>& InBytes)
@@ -856,7 +856,7 @@ private:
 	const TArray<uint8>&					ObjectData;
 	int32									Offset;
 
-	// FArchive interface.
+	//~ Begin FArchive Interface.
 
 	virtual FArchive& operator<<(FName& N);
 	virtual FArchive& operator<<(UObject*& Object);
@@ -932,7 +932,7 @@ private:
 	 */
 	struct FObjectInstancingGraph*			InstanceGraph;
 
-	// FArchive interface.
+	//~ Begin FArchive Interface.
 
 	virtual FArchive& operator<<(FName& N);
 	virtual FArchive& operator<<(UObject*& Object);
@@ -1576,12 +1576,12 @@ public:
 	*/
 	FArchiveObjectCrc32();
 
-	// Begin FArchive Interface
+	//~ Begin FArchive Interface
 	virtual void Serialize(void* Data, int64 Length);
 	virtual FArchive& operator<<(class FName& Name);
 	virtual FArchive& operator<<(class UObject*& Object);
 	virtual FString GetArchiveName() const { return TEXT("FArchiveObjectCrc32"); }
-	// End FArchive Interface
+	//~ End FArchive Interface
 
 	/**
 	* Serialize the given object, calculate and return its checksum.

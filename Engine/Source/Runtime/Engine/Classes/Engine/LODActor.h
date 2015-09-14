@@ -37,10 +37,10 @@ public:
 	TArray<class UObject*> SubObjects;
 
 #if WITH_EDITOR
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
-	// End AActor Interface
+	//~ End AActor Interface
 #endif // WITH_EDITOR	
 
 	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
@@ -100,7 +100,7 @@ public:
 	void CleanSubActorArray();
 #endif // WITH_EDITOR
 	
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;	
 #if WITH_EDITOR
@@ -111,7 +111,7 @@ public:
 	virtual void EditorApplyMirror(const FVector& MirrorScale, const FVector& PivotLocation) override;
 #endif // WITH_EDITOR	
 	virtual void PostRegisterAllComponents() override;
-	// End UObject interface.		
+	//~ End UObject Interface.		
 protected:
 #if WITH_EDITORONLY_DATA
 	/** Whether or not this LODActor is not build or needs rebuilding */

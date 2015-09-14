@@ -33,20 +33,20 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin USoundNode Interface
+	//~ Begin USoundNode Interface
 	virtual int32 GetMaxChildNodes() const override;
 	virtual float GetDuration() override;
 	virtual void ParseNodes(FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances) override;
 #if WITH_EDITOR
 	virtual FText GetTitle() const override;
 #endif
-	// End USoundNode Interface
+	//~ End USoundNode Interface
 
-	// Begin USoundNodeAssetReferencer Interface
+	//~ Begin USoundNodeAssetReferencer Interface
 	virtual void LoadAsset() override;
-	// End USoundNode Interface
+	//~ End USoundNode Interface
 
 };
 

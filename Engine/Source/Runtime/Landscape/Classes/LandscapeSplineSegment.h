@@ -262,7 +262,7 @@ public:
 
 	virtual void FindNearest(const FVector& InLocation, float& t, FVector& OutLocation, FVector& OutTangent);
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
@@ -275,7 +275,7 @@ public:
 protected:
 	virtual void PostInitProperties() override;
 public:
-	// End UObject Interface
+	//~ End UObject Interface
 
 	friend class FLandscapeToolSplines;
 };

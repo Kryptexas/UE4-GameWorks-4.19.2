@@ -178,7 +178,7 @@ public:
 	void SetSelectedBlendProfile(UBlendProfile* InBlendProfile);
 
 public:
-	// IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitContextFName() const override;
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
@@ -187,7 +187,7 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual void SaveAsset_Execute() override;
-	// End of IToolkit interface
+	//~ End IToolkit Interface
 
 	/** Saves all animation assets related to a skeleton */
 	void SaveAnimationAssets_Execute();
@@ -202,10 +202,10 @@ public:
 	/** Returns a pointer to the Blueprint object we are currently editing, as long as we are editing exactly one */
 	virtual UBlueprint* GetBlueprintObj() const override;
 
-	// FTickableEditorObject interface
+	//~ Begin FTickableEditorObject Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	// End of FTickableEditorObject interface
+	//~ End FTickableEditorObject Interface
 
 	/** Returns the image brush to use for each modes dirty marker */
 	const FSlateBrush* GetDirtyImageForMode(FName Mode) const;
@@ -226,7 +226,7 @@ protected:
 	bool CanPreviewAsset() const;
 	FText GetPreviewAssetTooltip() const;
 
-	// FBlueprintEditor interface
+	//~ Begin FBlueprintEditor Interface
 	//virtual void CreateDefaultToolbar() override;
 	virtual void CreateDefaultCommands() override;
 	virtual void OnSelectBone() override;
@@ -249,18 +249,18 @@ protected:
 	virtual bool IsEditable(UEdGraph* InGraph) const override;
 	virtual FText GetGraphDecorationString(UEdGraph* InGraph) const override;
 	virtual void OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled = false) override;
-	// End of FBlueprintEditor interface
+	//~ End FBlueprintEditor Interface
 
-	// IAssetEditorInstance interface
+	//~ Begin IAssetEditorInstance Interface
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
-	// End of IAssetEditorInstance interface
+	//~ End IAssetEditorInstance Interface
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
-	// Begin FAssetEditorToolkit Interface
+	//~ Begin FAssetEditorToolkit Interface
 	virtual void FindInContentBrowser_Execute() override;
 	// End of FAssetEditorToolkit
 

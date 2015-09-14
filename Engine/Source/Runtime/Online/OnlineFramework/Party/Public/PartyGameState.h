@@ -107,9 +107,9 @@ class PARTY_API UPartyGameState : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 private:
 
@@ -160,10 +160,10 @@ protected:
 
 public:
 
-	// UObject interface begin
+	//~ Begin UObject Interface begin
 	virtual UWorld* GetWorld() const override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// UObject interface end
+	//~ Begin UObject Interface end
 
 	/**
 	 * Notification that the game is about to travel to another map/server

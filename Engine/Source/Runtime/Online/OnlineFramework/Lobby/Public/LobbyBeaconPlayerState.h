@@ -17,10 +17,10 @@ class LOBBY_API ALobbyBeaconPlayerState : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostInitializeComponents() override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	/** @return true if this data structure is valid */
 	bool IsValid() const;

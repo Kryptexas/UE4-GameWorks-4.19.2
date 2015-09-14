@@ -17,19 +17,19 @@ class USoundNodeQualityLevel : public USoundNode
 public:
 
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 #endif
 
-	// Begin USoundNode interface.
+	//~ Begin USoundNode Interface.
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual int32 GetMaxChildNodes() const override;
 	virtual int32 GetMinChildNodes() const override;
 #if WITH_EDITOR
 	virtual FText GetInputPinName(int32 PinIndex) const override;
 #endif
-	// End USoundNode interface.
+	//~ End USoundNode Interface.
 
 #if WITH_EDITOR
 	void ReconcileNode(bool bReconstructNode);

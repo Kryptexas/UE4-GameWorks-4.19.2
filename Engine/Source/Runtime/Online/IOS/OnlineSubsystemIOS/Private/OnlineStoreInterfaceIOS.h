@@ -63,12 +63,12 @@ public:
 	/** Destructor */
 	virtual ~FOnlineStoreInterfaceIOS();
 
-	// Begin IOnlineStore interface
+	//~ Begin IOnlineStore Interface
 	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
 	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
 	virtual bool RestorePurchases(FOnlineInAppPurchaseRestoreReadRef& InReadObject) override;
-	// End IOnlineStore interface
+	//~ End IOnlineStore Interface
 
 	/**
 	 * Process a response from the StoreKit

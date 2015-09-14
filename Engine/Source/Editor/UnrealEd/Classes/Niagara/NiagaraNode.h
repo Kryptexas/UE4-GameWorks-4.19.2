@@ -13,9 +13,9 @@ protected:
 
 public:
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
 	/** Get the Niagara graph that owns this node */
 	const class UNiagaraGraph* GetNiagaraGraph()const;

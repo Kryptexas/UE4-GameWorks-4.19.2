@@ -1,10 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~=============================================================================
 // PlayerInput
 // Object within PlayerController that manages player input.
 // Only spawned on client.
-//=============================================================================
+//~=============================================================================
 
 #pragma once
 #include "Components/InputComponent.h"
@@ -389,10 +389,10 @@ private:
 
 public:
 	
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual UWorld* GetWorld() const override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** Flushes the current key state. */
 	void FlushPressedKeys();

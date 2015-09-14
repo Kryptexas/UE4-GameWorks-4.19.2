@@ -25,15 +25,15 @@ public:
 	UAnimSequence* PreviewBasePose;
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UAnimSequenceBase interface
+	//~ Begin UAnimSequenceBase Interface
 	ENGINE_API virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
 	virtual void GetAnimationPose(FCompactPose& OutPose, FBlendedCurve& OutCurve, const FAnimExtractContext& ExtractionContext) const override;	
-	// End UAnimSequenceBase interface
-	// Begin UAnimSequence interface
+	//~ End UAnimSequenceBase Interface
+	//~ Begin UAnimSequence Interface
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 #endif
-	// End UAnimSequence interface
+	//~ End UAnimSequence Interface
 };
 

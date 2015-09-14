@@ -52,18 +52,18 @@ public:
 
 public:
 
-	// Begin TTargetPlatformBase interface
+	//~ Begin TTargetPlatformBase Interface
 
 	virtual bool IsServerOnly( ) const override
 	{
 		return false;
 	}
 
-	// End TTargetPlatformBase interface
+	//~ End TTargetPlatformBase Interface
 
 public:
 
-	// Begin ITargetPlatform interface
+	//~ Begin ITargetPlatform Interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override
 	{

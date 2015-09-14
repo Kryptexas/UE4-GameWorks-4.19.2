@@ -73,14 +73,14 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionTextureSample)
 	int32 ConstMipValue;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual const TArray<FExpressionInput*> GetInputs() override;
 	virtual FExpressionInput* GetInput(int32 InputIndex) override;
 	virtual FString GetInputName(int32 InputIndex) const override;
@@ -92,7 +92,7 @@ class ENGINE_API UMaterialExpressionTextureSample : public UMaterialExpressionTe
 #if WITH_EDITOR
 	virtual uint32 GetInputType(int32 InputIndex) override;
 #endif
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 
 	void UpdateTextureResource(class UTexture* InTexture);
 	

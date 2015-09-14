@@ -13,11 +13,11 @@ class COREUOBJECT_API FArchiveUObject : public FArchive
 {
 public:
 
-	// Begin FArchive Interface
+	//~ Begin FArchive Interface
 	virtual FArchive& operator<< (class FLazyObjectPtr& Value) override;
 	virtual FArchive& operator<< (class FAssetPtr& Value) override;
 	virtual FArchive& operator<< (struct FStringAssetReference& Value) override;
-	// End FArchive Interface
+	//~ End FArchive Interface
 };
 
 class UProperty;

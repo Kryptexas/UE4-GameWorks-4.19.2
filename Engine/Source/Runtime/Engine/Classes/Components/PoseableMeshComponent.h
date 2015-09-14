@@ -44,10 +44,10 @@ class ENGINE_API UPoseableMeshComponent : public USkinnedMeshComponent
 	UFUNCTION(BlueprintCallable, Category="Components|PoseableMesh")
 	void ResetBoneTransformByName(FName BoneName);
 
-	// Begin USkinnedMeshComponent Interface
+	//~ Begin USkinnedMeshComponent Interface
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	virtual bool AllocateTransformData() override;
-	// End USkinnedMeshComponent Interface
+	//~ End USkinnedMeshComponent Interface
 
 	bool IsRunningParallelEvaluation() const { return false; }
 	/**

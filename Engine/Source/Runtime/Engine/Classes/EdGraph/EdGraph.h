@@ -104,11 +104,11 @@ public:
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
 #if WITH_EDITORONLY_DATA
-	// Begin UObject interface
+	//~ Begin UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
-	// End UObject interface
+	//~ End UObject Interface
 #endif
 
 public:

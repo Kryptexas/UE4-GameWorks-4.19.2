@@ -285,7 +285,7 @@ public:
 	{
 	}
 
-	// montage instance interfaces
+	//~ Begin montage instance Interfaces
 	void Play(float InPlayRate = 1.f);
 	void Stop(const FAlphaBlend& InBlendOut, bool bInterrupt=true);
 	void Pause();
@@ -419,7 +419,7 @@ class UAnimMontage : public UAnimCompositeBase
 	ENGINE_API bool IsValidSlot(FName InSlotName) const;
 
 public:
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 
 	// Gets the sequence length of the montage by calculating it from the lengths of the segments in the montage
@@ -428,20 +428,20 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin AnimSequenceBase Interface
+	//~ Begin AnimSequenceBase Interface
 	virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
 	virtual EAnimEventTriggerOffsets::Type CalculateOffsetForNotify(float NotifyDisplayTime) const override;
 #endif // WITH_EDITOR
-	// End AnimSequenceBase Interface
+	//~ End AnimSequenceBase Interface
 
 #if WITH_EDITOR
-	// Begin UAnimationAsset interface
+	//~ Begin UAnimationAsset Interface
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
-	// End UAnimationAsset interface
+	//~ End UAnimationAsset Interface
 
 	/** Update all linkable elements contained in the montage */
 	ENGINE_API void UpdateLinkableElements();

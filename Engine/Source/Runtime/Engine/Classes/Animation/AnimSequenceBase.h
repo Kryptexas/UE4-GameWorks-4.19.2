@@ -53,9 +53,9 @@ class UAnimSequenceBase : public UAnimationAsset
 	TArray<FAnimNotifyTrack> AnimNotifyTracks;
 #endif // WITH_EDITORONLY_DATA
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End UObject Interface
 
 	/** Returns the total play length of the montage, if played back with a speed of 1.0. */
 	UFUNCTION(BlueprintCallable, Category = "Animation")
@@ -120,7 +120,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	// update cache data (notify tracks, sync markers)
 	ENGINE_API virtual void RefreshCacheData();
 
-	// Begin UAnimationAsset interface
+	//~ Begin UAnimationAsset Interface
 	virtual void TickAssetPlayerInstance(FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
 
 	void TickByMarkerAsFollower(FMarkerTickRecord &Instance, FMarkerTickContext &MarkerContext, float& CurrentTime, float& OutPreviousTime, const float MoveDelta, const bool bLooping) const;
@@ -131,7 +131,7 @@ class UAnimSequenceBase : public UAnimationAsset
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
 	// but for BlendSpace CurrentTime is normalized [0,1], so this is 1
 	virtual float GetMaxCurrentTime() override { return SequenceLength; }
-	// End of UAnimationAsset interface
+	//~ End UAnimationAsset Interface
 
 	/**
 	* Get Bone Transform of the Time given, relative to Parent for all RequiredBones

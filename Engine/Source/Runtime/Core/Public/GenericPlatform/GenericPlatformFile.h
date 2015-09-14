@@ -361,7 +361,7 @@ public:
 class CORE_API IPhysicalPlatformFile : public IPlatformFile
 {
 public:
-	// BEGIN IPlatformFile Interface
+	//~ Begin IPlatformFile Interface
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return true;
@@ -375,5 +375,5 @@ public:
 	{
 		return IPlatformFile::GetPhysicalTypeName();
 	}
-	// END IPlatformFile Interface
+	//~ End IPlatformFile Interface
 };

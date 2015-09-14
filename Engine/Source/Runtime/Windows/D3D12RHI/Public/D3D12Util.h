@@ -245,7 +245,7 @@ public:
 	/** Unlocks the buffer returning the underlying D3D12 buffer to use as a resource. */
 	FD3D12ResourceLocation* Unlock();
 
-	// Begin FRenderResource interface.
+	//~ Begin FRenderResource Interface.
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.

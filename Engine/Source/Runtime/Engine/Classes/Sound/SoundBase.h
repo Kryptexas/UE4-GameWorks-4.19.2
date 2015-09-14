@@ -63,9 +63,9 @@ public:
 	/** Number of times this cue is currently being played. */
 	int32 CurrentPlayCount;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostInitProperties() override;
-	// End UObject interface.
+	//~ End UObject Interface.
 	
 	/** Returns whether the sound base is set up in a playable manner */
 	virtual bool IsPlayable() const;

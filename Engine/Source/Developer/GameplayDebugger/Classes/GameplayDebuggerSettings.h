@@ -37,10 +37,10 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggerSettings : public UObject
 	GENERATED_UCLASS_BODY()
 public:
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 #endif
 
 	DECLARE_EVENT_OneParam(UGameplayDebuggerSettings, FSettingChangedEvent, FName /*PropertyName*/);

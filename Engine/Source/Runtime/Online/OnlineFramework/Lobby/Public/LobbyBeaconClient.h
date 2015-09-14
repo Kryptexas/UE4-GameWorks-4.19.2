@@ -54,9 +54,9 @@ class LOBBY_API ALobbyBeaconClient : public AOnlineBeaconClient
 	UPROPERTY(Replicated)
 	ALobbyBeaconPlayerState* PlayerState;
 	
-	// Begin AOnlineBeaconClient Interface
+	//~ Begin AOnlineBeaconClient Interface
 	virtual void OnConnected() override;
-	// End AOnlineBeaconClient Interface
+	//~ End AOnlineBeaconClient Interface
 
 	/**
 	 * Initiate a connection to the lobby host beacon

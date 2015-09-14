@@ -223,7 +223,7 @@ public:
 	/** Unlocks the buffer returning the underlying D3D11 buffer to use as a resource. */
 	ID3D11Buffer* Unlock();
 
-	// Begin FRenderResource interface.
+	//~ Begin FRenderResource Interface.
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
 	// End FRenderResource interface.

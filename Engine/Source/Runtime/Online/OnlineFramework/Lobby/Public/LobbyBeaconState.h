@@ -167,14 +167,14 @@ class LOBBY_API ALobbyBeaconState : public AInfo
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void PostInitializeComponents() override;
 	virtual bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	/**
 	 * Start the lobby for incoming players

@@ -103,11 +103,11 @@ class FAsyncLoadingThread : public FRunnable
 
 public:
 
-	// Begin FRunnable interface.
+	//~ Begin FRunnable Interface.
 	virtual bool Init();
 	virtual uint32 Run();
 	virtual void Stop();
-	// End FRunnable interface
+	//~ End FRunnable Interface
 
 	/** Returns the async loading thread singleton */
 	static FAsyncLoadingThread& Get();

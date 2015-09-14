@@ -166,11 +166,11 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	/** true if wind effects on clothing is enabled */
 	bool bEnableWind;
 
-	// Begin USceneComponent interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// End USceneComponent interface.
+	//~ End USceneComponent Interface.
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	
 	// engine only draw bounds IF selected
@@ -181,18 +181,18 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	{
 		return bDisplayBound;
 	}
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin SkinnedMeshComponent Interface
+	//~ Begin SkinnedMeshComponent Interface
 	virtual bool ShouldCPUSkin() override;
 	virtual void PostInitMeshObject(class FSkeletalMeshObject* MeshObject) override;
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
-	// End SkinnedMeshComponent Interface
+	//~ End SkinnedMeshComponent Interface
 
-	// Begin SkeletalMeshComponent Interface
+	//~ Begin SkeletalMeshComponent Interface
 	virtual void InitAnim(bool bForceReinit) override;
 	virtual bool IsWindEnabled() const override;
-	// End SkeletalMeshComponent Interface
+	//~ End SkeletalMeshComponent Interface
 	// Preview.
 	// @todo document
 	UNREALED_API bool IsPreviewOn() const;

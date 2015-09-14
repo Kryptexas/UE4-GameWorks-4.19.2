@@ -64,17 +64,17 @@ class UParticleModuleTypeDataAnimTrail : public UParticleModuleTypeDataBase
 	float WidthTessellationStepSize;
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual uint32 RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
 	virtual bool CanTickInAnyThread() override
 	{
 		return false;
 	}
-	// End UParticleModule Interface
+	//~ End UParticleModule Interface
 
-	// Begin UParticleModuleTypeDataBase Interface
+	//~ Begin UParticleModuleTypeDataBase Interface
 	virtual FParticleEmitterInstance* CreateInstance(UParticleEmitter* InEmitterParent, UParticleSystemComponent* InComponent) override;
-	// End UParticleModuleTypeDataBase Interface
+	//~ End UParticleModuleTypeDataBase Interface
 };
 
 

@@ -321,7 +321,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = Materials)
 	TArray<FNamedEmitterMaterial> NamedMaterialSlots;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
@@ -329,7 +329,7 @@ public:
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 
 	// @todo document

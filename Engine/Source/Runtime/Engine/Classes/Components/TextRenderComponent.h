@@ -144,7 +144,7 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 
 	// -----------------------------
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
 	virtual int32 GetNumMaterials() const override;
@@ -152,15 +152,15 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	virtual bool ShouldRecreateProxyOnUpdateTransform() const override;
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* InMaterial) override;
 	virtual FMatrix GetRenderMatrix() const override;
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin USceneComponent interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// End USceneComponent interface.
+	//~ End USceneComponent Interface.
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void PostLoad() override;
-	// End UObject interface.
+	//~ End UObject Interface.
 };
 
 

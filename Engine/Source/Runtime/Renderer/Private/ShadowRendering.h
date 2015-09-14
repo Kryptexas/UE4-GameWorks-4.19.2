@@ -345,7 +345,7 @@ public:
 		return *this; 
 	}
 
-	// FMeshDrawingPolicy interface.
+	//~ Begin FMeshDrawingPolicy Interface.
 	bool Matches(const FShadowDepthDrawingPolicy& Other) const
 	{
 		return FMeshDrawingPolicy::Matches(Other) 
@@ -973,14 +973,14 @@ public:
 
 	void SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FProjectedShadowInfo* ShadowInfo);
 
-	// Begin FShader interface
+	//~ Begin FShader Interface
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;
 		return bShaderHasOutdatedParameters;
 	}
-	//  End FShader interface 
+	//~ Begin  End FShader Interface 
 
 private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;

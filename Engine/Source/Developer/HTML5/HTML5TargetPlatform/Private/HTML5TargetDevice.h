@@ -51,7 +51,7 @@ public:
 
 public:
 
-	// Begin ITargetDevice interface
+	//~ Begin ITargetDevice Interface
 
 	virtual bool Connect( ) override;
 
@@ -107,7 +107,7 @@ public:
 
 	virtual bool GetUserCredentials( FString& OutUserName, FString& OutUserPassword ) override;
 
-	// End ITargetDevice interface
+	//~ End ITargetDevice Interface
 
 private:
 

@@ -2312,7 +2312,7 @@ public:
 	 */
 	virtual bool AllowAudioPlayback();
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
@@ -2325,7 +2325,7 @@ public:
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	// End UObject Interface
+	//~ End UObject Interface
 	
 	/**
 	 * Clears all level components and world components like e.g. line batcher.
@@ -3012,12 +3012,12 @@ public:
 	 */
 	bool DestroySwappedPC(UNetConnection* Connection);
 
-	// Begin FNetworkNotify interface
+	//~ Begin FNetworkNotify Interface
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;
 	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
-	// End FNetworkNotify interface
+	//~ End FNetworkNotify Interface
 
 	/** Welcome a new player joining this server. */
 	void WelcomePlayer(UNetConnection* Connection);

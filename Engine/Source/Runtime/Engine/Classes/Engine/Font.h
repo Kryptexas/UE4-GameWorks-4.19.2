@@ -196,7 +196,7 @@ public:
 	 */
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 
-	// UFont interface
+	//~ Begin UFont Interface
 	ENGINE_API TCHAR RemapChar(TCHAR CharCode) const;
 
 	/**
@@ -245,14 +245,14 @@ public:
 	 */
 	ENGINE_API int32 GetStringHeightSize( const TCHAR *Text ) const;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
 	virtual bool IsLocalizedResource() override;
 #if WITH_EDITORONLY_DATA
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
-	// End UObject interface
+	//~ End UObject Interface
 
 	/**
 	 * Caches the character count and maximum character height for this font (as well as sub-fonts, in the multi-font case)

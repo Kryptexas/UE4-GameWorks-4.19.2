@@ -4,9 +4,9 @@
 #include "TimerManager.h"
 #include "GameState.generated.h"
 
-//=============================================================================
+//~=============================================================================
 // GameState is replicated and is valid on servers and clients.
-//=============================================================================
+//~=============================================================================
 
 UCLASS(config=Game, notplaceable, BlueprintType, Blueprintable)
 class ENGINE_API AGameState : public AInfo
@@ -90,9 +90,9 @@ public:
 	UFUNCTION()
 	virtual void OnRep_ElapsedTime();
 
-	// Begin AActor interface
+	//~ Begin AActor Interface
 	virtual void PostInitializeComponents() override;
-	// End AActor interface
+	//~ End AActor Interface
 
 	/** Helper to return the default object of the GameMode class corresponding to this GameState */
 	AGameMode* GetDefaultGameMode() const;

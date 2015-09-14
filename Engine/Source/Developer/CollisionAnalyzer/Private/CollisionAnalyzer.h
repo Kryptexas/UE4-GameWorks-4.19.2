@@ -26,7 +26,7 @@ struct FCAQuery
 class FCollisionAnalyzer : public ICollisionAnalyzer
 {
 public:
-	// Begin ICollisionAnalyzer interface
+	//~ Begin ICollisionAnalyzer Interface
 	virtual void CaptureQuery(
 		const FVector& Start, 
 		const FVector& End, 
@@ -47,7 +47,7 @@ public:
 
 	virtual void TickAnalyzer(UWorld* InWorld) override;
 	virtual bool IsRecording() override;
-	// End ICollisionAnalyzer interface
+	//~ End ICollisionAnalyzer Interface
 
 	/** Change the current recording state */
 	void SetIsRecording(bool bNewRecording);

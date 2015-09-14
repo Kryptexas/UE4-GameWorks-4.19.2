@@ -262,7 +262,7 @@ class ENGINE_API URendererSettings : public UDeveloperSettings
 
 public:
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 
 	virtual void PostInitProperties() override;
 
@@ -270,7 +270,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	// End UObject interface
+	//~ End UObject Interface
 
 private:
 	

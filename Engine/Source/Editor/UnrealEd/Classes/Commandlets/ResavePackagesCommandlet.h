@@ -133,7 +133,7 @@ protected:
 	// Print out a message only if running in very verbose mode
 	void VerboseMessage(const FString& Message);
 public:		
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 };

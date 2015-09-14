@@ -503,7 +503,7 @@ public:
 
 	// End blueprint functions
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void UnregisterAllComponents() override;
 	virtual void RegisterAllComponents() override;
 	virtual void RerunConstructionScripts() override {}
@@ -516,7 +516,7 @@ public:
 	virtual void PostEditMove(bool bFinished) override;
 	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
 	virtual bool ShouldExport() override;
-	// End AActor Interface
+	//~ End AActor Interface
 #endif	//WITH_EDITOR
 
 	FGuid GetLandscapeGuid() const { return LandscapeGuid; }
@@ -553,7 +553,7 @@ public:
 	int32 UpdateBakedTexturesCountdown;
 #endif
 
-	// Begin FTickableGameObject interface.
+	//~ Begin FTickableGameObject Interface.
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override 
 	{ 
@@ -572,7 +572,7 @@ public:
 		return GetStatID();
 	}
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual void PostLoad() override;
@@ -583,7 +583,7 @@ public:
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditImport() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	LANDSCAPE_API static TArray<FName> GetLayersFromMaterial(UMaterialInterface* Material);
 	LANDSCAPE_API TArray<FName> GetLayersFromMaterial() const;

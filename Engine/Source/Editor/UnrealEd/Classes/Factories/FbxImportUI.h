@@ -107,9 +107,9 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual bool CanEditChange( const UProperty* InProperty ) const override;
-	// End UObject Interface
+	//~ End UObject Interface
 };
 
 

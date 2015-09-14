@@ -30,9 +30,9 @@ class UPlayer : public UObject, public FExec
 	int32 ConfiguredLanSpeed;
 
 public:
-	// Begin FExec interface.
+	//~ Begin FExec Interface.
 	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) override;
-	// End FExec interface.
+	//~ End FExec Interface.
 
 	/**
 	 * Dynamically assign Controller to Player and set viewport.

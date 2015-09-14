@@ -264,28 +264,28 @@ public:
 	/** Used by the subtitle manager to prioritize subtitles wave instances spawned by this component. */
 	float SubtitlePriority;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual FString GetDetailedInfoInternal() const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin USceneComponent Interface
+	//~ Begin USceneComponent Interface
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	// do nothing! on purpose
 	virtual void UpdateNavigationData() override {}
-	// End USceneComponent Interface
+	//~ End USceneComponent Interface
 
-	// Begin ActorComponent interface.
+	//~ Begin ActorComponent Interface.
 #if WITH_EDITORONLY_DATA
 	virtual void OnRegister() override;
 #endif
 	virtual void OnUnregister() override;
 	virtual const UObject* AdditionalStatObject() const override;
-	// End ActorComponent interface.
+	//~ End ActorComponent Interface.
 
 	/** Returns a pointer to the attenuation settings to be used (if any) for this audio component dependent on the SoundAttenuation asset or overrides set. */
 	const FAttenuationSettings* GetAttenuationSettingsToApply() const;

@@ -25,18 +25,18 @@ public:
 	/** FTickerObjectBase */
 	virtual bool Tick(float DeltaTime) override;
 
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar);
-	// End Exec Interface
+	//~ End Exec Interface
 
-	// IPerfCounters interface
+	//~ Begin IPerfCounters Interface
 	const FString& GetInstanceName() const override { return UniqueInstanceId; }
 	virtual double GetNumber(const FString& Name, double DefaultValue = 0.0) override;
 	virtual void SetNumber(const FString& Name, double Value, uint32 Flags) override;
 	virtual void SetString(const FString& Name, const FString& Value, uint32 Flags) override;
 	virtual void SetJson(const FString& Name, const FProduceJsonCounterValue& InCallback, uint32 Flags) override;
 	virtual FPerfCounterExecCommandCallback& OnPerfCounterExecCommand() override { return ExecCmdCallback; }
-	// IPerfCounters interface end
+	//~ Begin IPerfCounters Interface end
 
 private:
 	/** Convert all perf counters into a json type */

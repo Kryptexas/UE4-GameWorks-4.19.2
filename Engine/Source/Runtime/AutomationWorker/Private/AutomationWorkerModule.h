@@ -11,22 +11,22 @@ class FAutomationWorkerModule
 {
 public:
 
-	// Begin IModuleInterface interface
+	//~ Begin IModuleInterface Interface
 
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
 	virtual bool SupportsDynamicReloading() override;
 
-	// End IModuleInterface interface
+	//~ End IModuleInterface Interface
 
 public:
 
-	// Begin IAutomationWorkerModule interface
+	//~ Begin IAutomationWorkerModule Interface
 
 	virtual void Tick() override;
 
-	// End IAutomationWorkerModule interface
+	//~ End IAutomationWorkerModule Interface
 
 protected:
 

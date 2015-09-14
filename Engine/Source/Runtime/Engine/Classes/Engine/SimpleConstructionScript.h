@@ -11,10 +11,10 @@ class USimpleConstructionScript : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	void PreloadChain();
 

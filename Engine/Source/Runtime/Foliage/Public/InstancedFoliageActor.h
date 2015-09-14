@@ -37,13 +37,13 @@ public:
 	TMap<UFoliageType*, TUniqueObj<FFoliageMeshInfo>> FoliageMeshes;
 
 public:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface. 
+	//~ End UObject Interface. 
 
-	// Begin AActor interface.
+	//~ Begin AActor Interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
@@ -57,7 +57,7 @@ public:
 	virtual void Destroyed() override;
 	FOLIAGE_API void CleanupDeletedFoliageType();
 #endif
-	// End AActor interface.
+	//~ End AActor Interface.
 
 
 	// Performs a reverse lookup from a mesh to a local foliage type (i.e. the foliage type owned exclusively by this IFA)

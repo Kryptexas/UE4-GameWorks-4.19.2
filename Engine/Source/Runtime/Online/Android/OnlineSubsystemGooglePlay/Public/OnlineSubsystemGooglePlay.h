@@ -29,7 +29,7 @@ public:
 	FOnlineSubsystemGooglePlay();
 	virtual ~FOnlineSubsystemGooglePlay() {}
 
-	// Begin IOnlineSubsystem Interface
+	//~ Begin IOnlineSubsystem Interface
 	virtual IOnlineSessionPtr GetSessionInterface() const override;
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override;
 	virtual IOnlinePartyPtr GetPartyInterface() const override;
@@ -66,7 +66,7 @@ public:
 	virtual bool Shutdown() override;
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End IOnlineSubsystem Interface
+	//~ End IOnlineSubsystem Interface
 
 	virtual bool Tick(float DeltaTime) override;
 	

@@ -151,7 +151,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MovementComponent)
 	uint32 bAutoRegisterUpdatedComponent:1;
 
-	// Begin ActorComponent interface 
+	//~ Begin ActorComponent Interface 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void PostLoad() override;
@@ -168,7 +168,7 @@ public:
 	static void PhysicsLockedAxisSettingChanged();
 #endif // WITH_EDITOR
 
-	// End ActorComponent interface
+	//~ End ActorComponent Interface
 
 	/** @return gravity that affects this component */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")

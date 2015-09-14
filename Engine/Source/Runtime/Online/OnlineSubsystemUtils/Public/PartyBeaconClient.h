@@ -79,10 +79,10 @@ class ONLINESUBSYSTEMUTILS_API APartyBeaconClient : public AOnlineBeaconClient
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AOnlineBeaconClient Interface
+	//~ Begin AOnlineBeaconClient Interface
 	virtual void OnConnected() override;
 	virtual void OnFailure() override;
-	// End AOnlineBeaconClient Interface
+	//~ End AOnlineBeaconClient Interface
 
 	/**
 	 * Sends a request to the remote host to allow the specified members to reserve space

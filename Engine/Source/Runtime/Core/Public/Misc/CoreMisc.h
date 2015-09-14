@@ -34,9 +34,9 @@ public:
 	/** Initialization constructor. */
 	FStaticSelfRegisteringExec(bool (*InStaticExecFunc)(UWorld* Inworld, const TCHAR* Cmd,FOutputDevice& Ar));
 
-	// Begin Exec Interface
+	//~ Begin Exec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar );
-	// End Exec Interface
+	//~ End Exec Interface
 
 private:
 

@@ -361,7 +361,7 @@ public:
 	// Constructors and destructors.
 	ENGINE_API UNetConnection(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 
 	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 
@@ -376,14 +376,14 @@ public:
 	 */
 	ENGINE_API virtual UWorld* GetWorld() const override;
 
-	// End UObject interface.
+	//~ End UObject Interface.
 
 
-	// Begin FExec interface.
+	//~ Begin FExec Interface.
 
 	ENGINE_API virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
 
-	// End FExec interface.
+	//~ End FExec Interface.
 
 	/** read input */
 	void ReadInput( float DeltaSeconds );

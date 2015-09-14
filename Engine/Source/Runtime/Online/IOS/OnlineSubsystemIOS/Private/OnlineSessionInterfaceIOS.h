@@ -100,7 +100,7 @@ PACKAGE_SCOPE:
 	void Tick(float DeltaTime);
 
 
-	// Begin IOnlineSession interface
+	//~ Begin IOnlineSession Interface
 	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSessionSettings& SessionSettings) override;
 
 	class FNamedOnlineSession* AddNamedSession(FName SessionName, const FOnlineSession& Session) override;
@@ -184,7 +184,7 @@ public:
 	virtual int32 GetNumSessions() override;
 
 	virtual void DumpSessionState() override;
-	// End IOnlineSession interface
+	//~ End IOnlineSession Interface
 };
 
 typedef TSharedPtr<FOnlineSessionIOS, ESPMode::ThreadSafe> FOnlineSessionIOSPtr;

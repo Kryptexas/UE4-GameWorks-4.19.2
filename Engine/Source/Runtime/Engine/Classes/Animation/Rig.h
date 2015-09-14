@@ -151,9 +151,9 @@ private:
 public:
 
 #if WITH_EDITOR
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// node related functions
 	int32 GetNodeNum() const;

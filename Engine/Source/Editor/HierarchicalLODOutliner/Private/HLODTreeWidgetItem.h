@@ -48,12 +48,12 @@ namespace HLODOutliner
 		/** Returns the tint of the node */
 		FSlateColor GetTint() const;
 		
-		// Begin STableRow interface.
+		//~ Begin STableRow Interface.
 		virtual void OnDragEnter(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override;
 		virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) override;
 		virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
 		virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
-		// End STableRow interface.
+		//~ End STableRow Interface.
 
 	private:
 		/** The info about the widget that we are visualizing. */
