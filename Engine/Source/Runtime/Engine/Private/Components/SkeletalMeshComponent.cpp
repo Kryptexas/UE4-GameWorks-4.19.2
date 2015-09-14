@@ -1050,10 +1050,7 @@ int32 GetCurveNumber(USkeleton* Skeleton)
 	// get all curve list
 	if(const FSmartNameMapping* Mapping = Skeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName))
 	{
-		TArray<FSmartNameMapping::UID> UIDList;
-		Mapping->FillUidArray(UIDList);
-
-		return UIDList.Num();
+		return Mapping->GetNumNames();
 	}
 
 	return 0;
@@ -1230,28 +1227,21 @@ void USkeletalMeshComponent::PrepareCloth()
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
-	FBlendedCurve EvaluatedCurve = EvaluationContext.Curve;
 	AnimEvaluationContext.Clear();
 
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 	
-	if(AnimScriptInstance)
+	if (EvaluationContext.bDuplicateToCacheCurve)
 	{
-		// curve update happens first
-		AnimScriptInstance->UpdateCurves(EvaluatedCurve);
+		CachedCurve.InitFrom(EvaluationContext.Curve);
 	}
-	
+
 	if (EvaluationContext.bDuplicateToCacheBones)
 	{
 		CachedSpaceBases.Reset();
 		CachedSpaceBases.Append(GetEditableSpaceBases());
 		CachedLocalAtoms.Reset();
 		CachedLocalAtoms.Append(LocalAtoms);
-	}
-
-	if (EvaluationContext.bDuplicateToCacheCurve)
-	{
-		CachedCurve = EvaluatedCurve;
 	}
 
 	if (EvaluationContext.bDoInterpolation)
@@ -1271,7 +1261,13 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 
 		// interpolate curve
-		EvaluatedCurve.BlendWith(CachedCurve, Alpha);
+		EvaluationContext.Curve.BlendWith(CachedCurve, Alpha);
+	}
+
+	if(AnimScriptInstance)
+	{
+		// curve update happens first
+		AnimScriptInstance->UpdateCurves(EvaluationContext.Curve);
 	}
 
 	bNeedToFlipSpaceBaseBuffers = true;

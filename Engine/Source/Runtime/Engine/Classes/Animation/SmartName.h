@@ -66,7 +66,7 @@ struct ENGINE_API FSmartNameMapping
 	bool Exists(const FName& Name);
 
 	// Get the number of names currently stored in this container
-	int32 GetNumNames();
+	int32 GetNumNames() const;
 
 	// Serialize this to the provided archive; required for TMap serialization
 	void Serialize(FArchive& Ar);

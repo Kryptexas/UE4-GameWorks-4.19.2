@@ -124,7 +124,7 @@ void FSmartNameMapping::Serialize(FArchive& Ar)
 	}
 }
 
-int32 FSmartNameMapping::GetNumNames()
+int32 FSmartNameMapping::GetNumNames() const
 {
 	return UidMap.Num();
 }
