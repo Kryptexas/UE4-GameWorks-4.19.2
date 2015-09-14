@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2597195
+﻿INTSourceChangelist:2683229
 Availability:Public
 Title:詳細パネル
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:ブループリントエディタ内の詳細パネルの概要
-
+version:4.9
 
 
 
@@ -28,8 +28,8 @@ Description:ブループリントエディタ内の詳細パネルの概要
 [/REGION]
 
 1. **検索フィルタ** - 必要なプロパティ名とその下にあるプロパティを入力します。 
-1. **プロパティ マトリックス** - 有効なプロパティをスプレッドシートのように編集するために [Property Matrix] パネルを開きます。
-1. **可視性フィルタ** - 編集済みまたは高度なプロパティの表示 / 非表示の切り替えだけでなく全カテゴリの折りたたみ / 展開も切り替えます。
+1. **プロパティ マトリクス** - 有効なプロパティをスプレッドシートのように編集するために [Property Matrix] パネルを開きます。
+1. **可視性フィルタ** - 編集済みプロパティまたは詳細プロパティの表示 / 非表示に加えて、全カテゴリの折りたたみ / 展開の切り替えもできます。
 1. **展開カテゴリ** - 関連プロパティをグループ化するために使用します。名前の隣の白い小さな三角アイコンで展開または折り畳みを操作します。
 
 [REGION:note]
