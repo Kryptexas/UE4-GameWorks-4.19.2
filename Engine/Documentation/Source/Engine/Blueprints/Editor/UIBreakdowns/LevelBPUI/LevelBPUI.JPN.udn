@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597145
+﻿INTSourceChangelist:2683099
 Availability:Public
-Title:レベル ブループリント UI
+Title:Level ブループリント UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
-Description:レベル ブループリントのエディタ インターフェースの概要
+Description:Level ブループリントのエディタ インターフェースの概要
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -25,7 +26,6 @@ Description:レベル ブループリントのエディタ インターフェー
 [/VAR]
 
 
-[TOC (start:2)]
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/LevelBlueprint#Intro]
 
@@ -39,7 +39,7 @@ Level ブループリントの編集時は、以下のセクションがブル�
 ![](LevelBlueprintUI.png)
 [/REGION]
 
-|デフォルトで表示される UI コンポーネント|  [Window] メニューで利用可能な機能|
+|デフォルトで表示される UI コンポーネント| [Window] メニューで利用可能な機能|
 |-----------------------------|-----------------------------|
 |[INCLUDE:#visible]			  |[INCLUDE:#invisible]			|
 
@@ -55,10 +55,10 @@ Level ブループリントの編集時は、以下のセクションがブル�
 [/EXCERPT:Visible]
 
 [EXCERPT:Invisible]
-* [クラスのデフォルト](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
+* [クラスデフォルト][Class Defaults](Engine/Blueprints/Editor\Modes\Defaults\DefaultsTab)
 * [コンパイラの結果](Engine/Blueprints/Editor\UIComponents\CompilerResults)
 * [デバッグ](Engine/Blueprints/Editor\UIComponents\Debug)
-* [検索結果の表示 (Find Results)](Engine/Blueprints/Editor\UIComponents\FindResults)
+* [検索結果](Engine/Blueprints/Editor\UIComponents\FindResults)
 * [パレット](Engine/Blueprints/Editor\UIComponents\Palette)
 * [ビューポート](Engine/Blueprints/Editor\UIComponents\Viewport)
 [/EXCERPT:Invisible]
