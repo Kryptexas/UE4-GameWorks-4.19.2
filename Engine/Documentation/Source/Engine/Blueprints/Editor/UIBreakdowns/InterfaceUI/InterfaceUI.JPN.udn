@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597139
+﻿INTSourceChangelist:2683039
 Availability:Public
 Title:ブループリントインターフェース UI
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor
 Description:ブループリント クラス エディタ インターフェースの概要
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
