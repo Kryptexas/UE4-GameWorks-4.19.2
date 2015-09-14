@@ -1,6 +1,6 @@
 ﻿INTSourceChangelist:2683262
 Availability:Public
-Title:Find Results パネル
+Title:Find Result （検索結果） パネル
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/UIBreakdowns/LevelBPUI
 Description:ブループリント エディタ内を検索するツールであるパネルを使って、様々なオブジェクトの検索ができます。
 version:4.9
