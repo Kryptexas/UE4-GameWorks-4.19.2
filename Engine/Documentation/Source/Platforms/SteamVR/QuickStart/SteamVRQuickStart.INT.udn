@@ -1,7 +1,7 @@
 Title: SteamVR Quick Start
 Crumbs:%ROOT%, Platforms
 Description: A How To guide for setting up SteamVR to work with UE4
-Availability:Doc
+Availability:public
 Navigation:platform
 Platform:SteamVR
 
