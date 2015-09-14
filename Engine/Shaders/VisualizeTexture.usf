@@ -130,6 +130,7 @@ void VisualizeTexturePS(
 #endif
 
 #else
+		}
 		TexLookup.r = Depth;
 #endif
 	}
