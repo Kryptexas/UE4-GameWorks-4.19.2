@@ -352,7 +352,7 @@ TSharedRef<SDockTab> SMessagingDebugger::HandleTabManagerSpawnTab(const FSpawnTa
 	}
 	else if (TabIdentifier == InterceptorsTabId)
 	{
-		TabWidget = SNew(SMessagingInterceptors, Style.ToSharedRef(), MessageTracer.ToSharedRef());
+		TabWidget = SNew(SMessagingInterceptors, Model, Style.ToSharedRef(), MessageTracer.ToSharedRef());
 	}
 	else if (TabIdentifier == MessageDataTabId)
 	{
