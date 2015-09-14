@@ -40,13 +40,12 @@ public:
 	 * Initialize this asset editor.
 	 *
 	 * @param Mode Asset editing mode for this editor (standalone or world-centric).
-	 * @param InViewParams Parameters for how to view sequencer UI.
 	 * @param InitToolkitHost When Mode is WorldCentric, this is the level editor instance to spawn this editor within.
 	 * @param ActorAnimation The animation to edit.
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 * @param bEditWithinLevelEditor Whether or not sequencer should be edited within the level editor.
 	 */
-	void Initialize(const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor);
+	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor);
 
 public:
 
@@ -74,6 +73,9 @@ private:
 
 	/** Callback for the menu extensibility manager. */
 	TSharedRef<FExtender> HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
+
+	/** Callback for getting the sequencer's "Add" menu content. */
+	TSharedRef<SWidget> HandleSequencerGetAddMenuContent(TSharedRef<ISequencer> Sequencer);
 
 	/** Callback for spawning tabs. */
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab(const FSpawnTabArgs& Args);	

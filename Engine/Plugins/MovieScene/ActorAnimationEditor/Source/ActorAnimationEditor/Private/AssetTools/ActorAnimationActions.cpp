@@ -56,9 +56,8 @@ void FActorAnimationActions::OpenAssetEditor(const TArray<UObject*>& InObjects, 
 
 		if (ActorAnimation != nullptr)
 		{
-			FSequencerViewParams ViewParams(TEXT("ActorAnimationEditorViewParams"));
 			TSharedRef<FActorAnimationEditorToolkit> Toolkit = MakeShareable(new FActorAnimationEditorToolkit(Style));
-			Toolkit->Initialize(Mode, ViewParams, EditWithinLevelEditor, ActorAnimation, true);
+			Toolkit->Initialize(Mode, EditWithinLevelEditor, ActorAnimation, true);
 		}
 	}
 }

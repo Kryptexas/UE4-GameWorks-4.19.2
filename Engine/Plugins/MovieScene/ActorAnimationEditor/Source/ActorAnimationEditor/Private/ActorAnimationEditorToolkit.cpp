@@ -66,7 +66,7 @@ FActorAnimationEditorToolkit::~FActorAnimationEditorToolkit()
 /* FActorAnimationEditorToolkit interface
  *****************************************************************************/
 
-void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor )
+void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor )
 {
 	// create tab layout
 	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_ActorAnimationEditor")
@@ -86,9 +86,14 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimation);
 
 	// initialize sequencer
+	FSequencerViewParams ViewParams(TEXT("ActorAnimationEditorViewParams"));
+	{
+		ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent);
+	}
+
 	FSequencerInitParams SequencerInitParams;
 	{
-		SequencerInitParams.ViewParams = InViewParams;
+		SequencerInitParams.ViewParams = ViewParams;
 		SequencerInitParams.RootSequence = ActorAnimation;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
@@ -226,6 +231,12 @@ TSharedRef<FExtender> FActorAnimationEditorToolkit::HandleMenuExtensibilityGetEx
 		FMenuExtensionDelegate::CreateRaw(this, &FActorAnimationEditorToolkit::HandleTrackMenuExtensionAddTrack, ContextSensitiveObjects));
 
 	return AddTrackMenuExtender;
+}
+
+
+TSharedRef<SWidget> FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent(TSharedRef<ISequencer> Sequencer)
+{
+	return SNullWidget::NullWidget;
 }
 
 
