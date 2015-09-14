@@ -1091,6 +1091,268 @@ bool SGraphPanel::GetBoundsForNode(const UObject* InNode, FVector2D& MinCorner, 
 	return SNodePanel::GetBoundsForNode(InNode, MinCorner, MaxCorner, Padding);
 }
 
+class FConnectionAligner
+{
+public:
+	void DefineConnection(UEdGraphNode* SourceNode, const TSharedPtr<SGraphPin>& SourcePin, UEdGraphNode* DestinationNode, const TSharedPtr<SGraphPin>& DestinationPin)
+	{
+		auto& Dependencies = Connections.FindOrAdd(SourceNode);
+		if (SourcePin->GetPinObj()->Direction == EEdGraphPinDirection::EGPD_Output)
+		{
+			Dependencies.Outputs.FindOrAdd(DestinationNode).Add(FPinPair{ SourcePin, DestinationPin });
+		}
+		else
+		{
+			Dependencies.Inputs.FindOrAdd(DestinationNode).Add(FPinPair{ SourcePin, DestinationPin });
+		}
+	}
+
+	/** Align all the connections */
+	void Process()
+	{
+		struct FRankedNode
+		{
+			UEdGraphNode* Node;
+			uint32 Rank;
+		};
+
+		TArray<FRankedNode> RankedNodes;
+		RankedNodes.Reserve(Connections.Num());
+
+		TMap<UEdGraphNode*, uint32> LongestChainCache;
+		LongestChainCache.Reserve(Connections.Num());
+
+		for (auto& Pair : Connections)
+		{
+			RankedNodes.Add(FRankedNode{ Pair.Key, CalculateNodeRank(Pair.Key, LongestChainCache) });
+		}
+
+		// Sort the nodes based on dependencies - highest is processed first
+		RankedNodes.Sort([](const FRankedNode& A, const FRankedNode& B){
+			return A.Rank > B.Rank;
+		});
+
+		TSet<UEdGraphNode*> VistedNodes;
+		for (FRankedNode& RankedNode : RankedNodes)
+		{
+			StraightenConnectionsForNode(RankedNode.Node, VistedNodes, EEdGraphPinDirection::EGPD_Output);
+			if (VistedNodes.Num() == RankedNodes.Num())
+			{
+				return;
+			}
+
+			StraightenConnectionsForNode(RankedNode.Node, VistedNodes, EEdGraphPinDirection::EGPD_Input);
+			if (VistedNodes.Num() == RankedNodes.Num())
+			{
+				return;
+			}
+		}
+	}
+
+private:
+
+	void StraightenConnectionsForNode(UEdGraphNode* Node, TSet<UEdGraphNode*>& VisitedNodes, EEdGraphPinDirection Direction)
+	{
+		FDependencyInfo* Info = Connections.Find(Node);
+		if (!Info)
+		{
+			return;
+		}
+
+		for (auto& NodeToPins : Info->GetDirection(Direction))
+		{
+			if (NodeToPins.Value.Num() == 0 || VisitedNodes.Contains(NodeToPins.Key))
+			{
+				continue;
+			}
+
+			// Align the averages of all the pins
+			float AlignmentDelta = 0.f;
+			for (const FPinPair& Pins : NodeToPins.Value)
+			{
+				AlignmentDelta += (Node->NodePosY + Pins.SrcPin->GetNodeOffset().Y) - (NodeToPins.Key->NodePosY + Pins.DstPin->GetNodeOffset().Y);
+			}
+
+			NodeToPins.Key->Modify();
+			NodeToPins.Key->NodePosY += AlignmentDelta / NodeToPins.Value.Num();
+
+			VisitedNodes.Add(Node);
+			VisitedNodes.Add(NodeToPins.Key);
+			
+			StraightenConnectionsForNode(NodeToPins.Key, VisitedNodes, Direction);
+		}
+	}
+
+	/** Find the longest chain of single-connection nodes connected to the specified node */
+	uint32 FindLongestUniqueChain(UEdGraphNode* Node, TMap<UEdGraphNode*, uint32>& LongestChainCache, EEdGraphPinDirection Direction)
+	{
+		if (uint32* Length = LongestChainCache.Find(Node))
+		{
+			// Already set, or circular dependency - ignore
+			return *Length;
+		}
+
+		// Prevent reentrancy
+		LongestChainCache.Add(Node, 0);
+
+		uint32 ThisLength = 0;
+		
+		if (FDependencyInfo* Dependencies = Connections.Find(Node))
+		{
+			auto& ConnectedNodes = Dependencies->GetDirection(Direction);
+
+			// We only follow unique (1-1) connections
+			if (ConnectedNodes.Num() == 1)
+			{
+				for (auto& NodeToPins : ConnectedNodes)
+				{
+					ThisLength = FindLongestUniqueChain(NodeToPins.Key, LongestChainCache, Direction) + 1;
+				}
+			}
+		}
+
+		LongestChainCache[Node] = ThisLength;
+		return ThisLength;
+	};
+
+	/** Calculate the depth of dependencies for the specified node */
+	uint32 CalculateNodeRank(UEdGraphNode* Node, TMap<UEdGraphNode*, uint32>& LongestChainCache)
+	{
+		uint32 Rank = 0;
+		if (FDependencyInfo* PinMap = Connections.Find(Node))
+		{
+			for (auto& NodeToPins : PinMap->Outputs)
+			{
+				Rank += FindLongestUniqueChain(NodeToPins.Key, LongestChainCache, EEdGraphPinDirection::EGPD_Output) + 1;
+			}
+			for (auto& NodeToPins : PinMap->Inputs)
+			{
+				Rank += FindLongestUniqueChain(NodeToPins.Key, LongestChainCache, EEdGraphPinDirection::EGPD_Input) + 1;
+			}
+		}
+		return Rank;
+	}
+
+private:
+
+	/** A pair of pins */
+	struct FPinPair
+	{
+		TSharedPtr<SGraphPin> SrcPin, DstPin;
+	};
+
+	/** Map of nodes and pins that are connected to the owning pin */
+	struct FDependencyInfo
+	{
+		TMap<UEdGraphNode*, TArray<FPinPair>> Outputs;
+		TMap<UEdGraphNode*, TArray<FPinPair>> Inputs;
+		uint32 Rank;
+
+		TMap<UEdGraphNode*, TArray<FPinPair>>& GetDirection(EEdGraphPinDirection Direction)
+		{
+			return Direction == EEdGraphPinDirection::EGPD_Output ? Outputs : Inputs;
+		}
+	};
+	typedef TMap<UEdGraphNode*, FDependencyInfo> FConnections;
+
+	FConnections Connections;
+};
+
+void SGraphPanel::StraightenConnections()
+{
+	FConnectionAligner Aligner;
+	for (auto* It : SelectionManager.SelectedNodes)
+	{
+		UEdGraphNode* SourceNode = Cast<UEdGraphNode>(It);
+		if (!SourceNode)
+		{
+			continue;
+		}
+
+		TSharedRef<SNode>* ThisNodePtr = NodeToWidgetLookup.Find(SourceNode);
+		if (!ThisNodePtr)
+		{
+			continue;
+		}
+
+		for (UEdGraphPin* SourcePin : SourceNode->Pins)
+		{
+			for (UEdGraphPin* LinkedTo : SourcePin->LinkedTo)
+			{
+				UEdGraphNode* DestNode = LinkedTo ? LinkedTo->GetOwningNode() : nullptr;
+				if (DestNode && SelectionManager.SelectedNodes.Contains(DestNode))
+				{
+					TSharedRef<SNode>* DestGraphNodePtr = NodeToWidgetLookup.Find(DestNode);
+					if (!DestGraphNodePtr)
+					{
+						continue;
+					}
+
+					TSharedPtr<SGraphPin> PinWidget = StaticCastSharedRef<SGraphNode>(*ThisNodePtr)->FindWidgetForPin(SourcePin);
+					TSharedPtr<SGraphPin> LinkedPinWidget = StaticCastSharedRef<SGraphNode>(*DestGraphNodePtr)->FindWidgetForPin(LinkedTo);
+					
+					if (PinWidget.IsValid() && LinkedPinWidget.IsValid())
+					{
+						Aligner.DefineConnection(SourceNode, PinWidget, DestNode, LinkedPinWidget);
+					}
+				}
+			}
+		}
+	}
+
+	Aligner.Process();
+}
+
+void SGraphPanel::StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign)
+{
+	UEdGraphNode* OwningNode = SourcePin->GetOwningNode();
+
+	TSharedRef<SNode>* OwningNodeWidgetPtr = NodeToWidgetLookup.Find(OwningNode);
+	if (!OwningNodeWidgetPtr)
+	{
+		return;
+	}
+
+	TSharedRef<SGraphNode> SourceGraphNode = StaticCastSharedRef<SGraphNode>(*OwningNodeWidgetPtr);
+
+	FConnectionAligner Aligner;
+
+	auto AddConnectedPin = [&](UEdGraphPin* ConnectedPin){
+		UEdGraphNode* ConnectedNode = ConnectedPin ? ConnectedPin->GetOwningNode() : nullptr;
+		if (!ConnectedNode)
+		{
+			return;
+		}
+
+		TSharedRef<SNode>* DestGraphNodePtr = NodeToWidgetLookup.Find(ConnectedNode);
+		if (!DestGraphNodePtr)
+		{
+			return;
+		}
+
+		TSharedPtr<SGraphPin> PinWidget = SourceGraphNode->FindWidgetForPin(SourcePin);
+		TSharedPtr<SGraphPin> LinkedPinWidget = StaticCastSharedRef<SGraphNode>(*DestGraphNodePtr)->FindWidgetForPin(ConnectedPin);
+			
+		if (PinWidget.IsValid() && LinkedPinWidget.IsValid())
+		{
+			Aligner.DefineConnection(OwningNode, PinWidget, ConnectedNode, LinkedPinWidget);
+		}
+	};
+
+	if (PinToAlign)
+	{
+		// If we're only aligning a specific pin, do that
+		AddConnectedPin(PinToAlign);
+	}
+	// Else add all the connected pins
+	else for (UEdGraphPin* ConnectedPin : SourcePin->LinkedTo)
+	{
+		AddConnectedPin(ConnectedPin);
+	}
+	
+	Aligner.Process();
+}
+
 const TSharedRef<SGraphNode> SGraphPanel::GetChild(int32 ChildIndex)
 {
 	return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);

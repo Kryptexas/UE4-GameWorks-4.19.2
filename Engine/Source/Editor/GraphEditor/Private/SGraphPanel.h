@@ -151,6 +151,12 @@ public:
 	/** Attempt to retrieve the bounds for the specified node */
 	bool GetBoundsForNode(const UObject* InNode, FVector2D& MinCorner, FVector2D& MaxCorner, float Padding = 0.0f) const;
 
+	/** Straighten all connections between the selected nodes */
+	void StraightenConnections();
+	
+	/** Straighten any connections attached to the specified pin, optionally limiting to the specified pin to align */
+	void StraightenConnections(UEdGraphPin* SourcePin, UEdGraphPin* PinToAlign = nullptr);
+
 protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);

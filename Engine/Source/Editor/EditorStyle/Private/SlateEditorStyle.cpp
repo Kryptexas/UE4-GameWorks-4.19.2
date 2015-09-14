@@ -4035,6 +4035,18 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 
 		Set( "GraphEditor.GoToDocumentation", new IMAGE_BRUSH( "Common/icon_Help_Hover_16x", Icon16x16 ) );
 
+		Set( "GraphEditor.AlignNodesTop", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesTop_20px", Icon20x20 ) );
+		Set( "GraphEditor.AlignNodesMiddle", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesMiddle_20px", Icon20x20 ) );
+		Set( "GraphEditor.AlignNodesBottom", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesBottom_20px", Icon20x20 ) );
+		Set( "GraphEditor.AlignNodesLeft", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesLeft_20px", Icon20x20 ) );
+		Set( "GraphEditor.AlignNodesCenter", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesCenter_20px", Icon20x20 ) );
+		Set( "GraphEditor.AlignNodesRight", new IMAGE_BRUSH( "Icons/GraphEditor/icon_AlignNodesRight_20px", Icon20x20 ) );
+
+		Set( "GraphEditor.StraightenConnections", new IMAGE_BRUSH( "Icons/GraphEditor/icon_StraightenConnections_20px", Icon20x20 ) );
+
+		Set( "GraphEditor.DistributeNodesHorizontally", new IMAGE_BRUSH( "Icons/GraphEditor/icon_DistributeNodesHorizontally_20px", Icon20x20 ) );
+		Set( "GraphEditor.DistributeNodesVertically", new IMAGE_BRUSH( "Icons/GraphEditor/icon_DistributeNodesVertically_20px", Icon20x20 ) );
+
 		// Graph editor widgets
 		{
 			// EditableTextBox

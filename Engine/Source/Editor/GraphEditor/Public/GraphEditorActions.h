@@ -69,6 +69,8 @@ public:
 	TSharedPtr< FUICommandInfo > AlignNodesCenter;
 	TSharedPtr< FUICommandInfo > AlignNodesRight;
 
+	TSharedPtr< FUICommandInfo > StraightenConnections;
+
 	TSharedPtr< FUICommandInfo > DistributeNodesHorizontally;
 	TSharedPtr< FUICommandInfo > DistributeNodesVertically;
 	
