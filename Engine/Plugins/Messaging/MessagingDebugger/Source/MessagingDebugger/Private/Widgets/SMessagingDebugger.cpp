@@ -236,6 +236,23 @@ void SMessagingDebugger::FillWindowMenu(FMenuBuilder& MenuBuilder, const TShared
 }
 
 
+/* SWidget overrides
+ *****************************************************************************/
+
+FReply SMessagingDebugger::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	return CommandList->ProcessCommandBindings(InKeyEvent)
+		? FReply::Handled()
+		: FReply::Unhandled();
+}
+
+
+bool SMessagingDebugger::SupportsKeyboardFocus() const
+{
+	return true;
+}
+
+
 /* SMessagingDebugger callbacks
  *****************************************************************************/
 

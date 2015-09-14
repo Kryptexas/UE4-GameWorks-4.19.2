@@ -22,7 +22,7 @@ public:
 
 	virtual void RegisterCommands() override
 	{
-		UI_COMMAND(BreakDebugger, "Break", "Break the debugger at the next message", EUserInterfaceActionType::Button, FInputChord(EKeys::Pause, EModifierKey::Control | EModifierKey::Alt));
+		UI_COMMAND(BreakDebugger, "Break", "Break the debugger at the next message", EUserInterfaceActionType::Button, FInputChord(EKeys::Pause, /*EModifierKey::Control |*/ EModifierKey::Alt));
 		UI_COMMAND(ClearHistory, "Clear History", "Clears the message history list", EUserInterfaceActionType::Button, FInputChord());
 		UI_COMMAND(ContinueDebugger, "Continue", "Continues debugging", EUserInterfaceActionType::Button, FInputChord(EKeys::F5));
 		UI_COMMAND(StartDebugger, "Start", "Start the debugger", EUserInterfaceActionType::Button, FInputChord());

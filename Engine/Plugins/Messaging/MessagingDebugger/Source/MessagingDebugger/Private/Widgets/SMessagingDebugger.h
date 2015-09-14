@@ -42,6 +42,13 @@ protected:
 	*/
 	static void FillWindowMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager);
 
+protected:
+
+	//~ SWidget overrides
+
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual bool SupportsKeyboardFocus() const override;
+
 private:
 
 	/** Callback for checking whether the BreakDebugger command can be executed. */
