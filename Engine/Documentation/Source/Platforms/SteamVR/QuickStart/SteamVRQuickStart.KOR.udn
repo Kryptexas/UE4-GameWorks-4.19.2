@@ -1,22 +1,22 @@
 ﻿INTSourceChangelist:0
-Title: SteamVR Quick Start
+Title: SteamVR 퀵 스타트
 Crumbs:%ROOT%, Platforms
-Description: A How To guide for setting up SteamVR to work with UE4
+Description: UE4 에서 SteamVR 을 사용하도록 하는 구성법 안내서입니다.
 Availability:Doc
 Navigation:platform
 Platform:SteamVR
 
 ![](Platforms\SteamVR\T_Vive_HMD.png)
 
-This "Quick Start" series will walk you through how to setup SteamVR so that it will work with Unreal Engine 4.
-By the end of this "Quick Start" series you will have a new project that will work SteamVR.
+이번 퀵 스타트 시리즈는 언리얼 엔진 4 와 정상 작동하도록 SteamVR 구성을 하는 법을 안내해 드립니다.
+이 퀵 스타트 시리즈를 마칠 때 쯤이면 SteamVR 작업이 가능한 프로젝트가 새로 생겨있을 것입니다.
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]
