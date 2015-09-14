@@ -55,7 +55,7 @@ struct FKShapeElem
 		return (T*)this;
 	}
 
-	const FPhysxUserData* GetUserData() const { return &UserData; }
+	const FPhysxUserData* GetUserData() const { FPhysxUserData::Set<FKShapeElem>((void*)&UserData, const_cast<FKShapeElem*>(this));  return &UserData; }
 
 	ENGINE_API static EAggCollisionShape::Type StaticShapeType;
 
