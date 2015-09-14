@@ -1060,6 +1060,19 @@ void FLinkerLoad::FinalizeBlueprint(UClass* LoadClass)
 		FLinkerLoad* SuperLinker = SuperClass->GetLinker();
 		if ((SuperLinker != nullptr) && SuperLinker->IsBlueprintFinalizationPending())
 		{
+			DEFERRED_DEPENDENCY_CHECK(SuperLinker->DeferredCDOIndex != INDEX_NONE);
+			UObject* SuperCDO = SuperLinker->ExportMap[SuperLinker->DeferredCDOIndex].Object;
+			// we MUST have the super fully serialized before we can finalize  
+			// this (class and CDO); if the SuperCDO is already in the midst of 
+			// serializing somewhere up the stack (and a cyclic dependency has  
+			// landed us here, finalizing one of it's children), then it is 
+			// paramount that we force it through serialization (so we reset the 
+			// RF_NeedLoad guard, and leave it to ResolveDeferredExports, for it
+			// to re-run the serialization)
+			if ( (SuperCDO != nullptr) && !SuperCDO->HasAnyFlags(RF_NeedLoad|RF_LoadCompleted) )
+			{
+				SuperCDO->SetFlags(RF_NeedLoad);
+			}
 			SuperLinker->FinalizeBlueprint(SuperClass);
 		}
 	}
@@ -1496,7 +1509,8 @@ FObjectInitializer* FDeferredObjInitializerTracker::Add(const FObjectInitializer
 		SuperClassMap.AddUnique(SuperClass, LoadClass);
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		UObject* SuperCDO = SuperClass->GetDefaultObject(/*bCreateIfNeeded =*/false);
-		DEFERRED_DEPENDENCY_CHECK( SuperCDO && (SuperCDO->HasAnyFlags(RF_NeedLoad) || SuperCDO->HasAnyFlags(RF_LoadCompleted) || IsCdoDeferred(SuperClass)) );
+		DEFERRED_DEPENDENCY_CHECK( SuperCDO && (SuperCDO->HasAnyFlags(RF_NeedLoad) ||
+			(SuperClass->GetLinker() && SuperClass->GetLinker()->IsBlueprintFinalizationPending()) || IsCdoDeferred(SuperClass)) );
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 		
 		auto& InitializersCache = ThreadInst.DeferredInitializers;
