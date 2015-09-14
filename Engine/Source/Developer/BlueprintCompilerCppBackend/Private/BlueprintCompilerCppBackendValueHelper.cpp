@@ -245,7 +245,7 @@ FString FEmitDefaultValueHelper::HandleSpecialTypes(FEmitterLocalContext& Contex
 	return FString();
 }
 
-FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, const USCS_Node* ParentNode)
+FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& Context, const USCS_Node* Node, TSet<const UProperty*>& OutHandledProperties, TArray<FString>& NativeCreatedComponentProperties, const USCS_Node* ParentNode)
 {
 	check(Node);
 	check(Context.CurrentCodeType == FEmitterLocalContext::EGeneratedCodeType::CommonConstructor);
@@ -286,9 +286,10 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 					, (VariableProperty == nullptr) ? TEXT("auto ") : TEXT("")
 					, *NativeVariablePropertyName
 					, *FEmitHelper::GetCppName(ComponentClass)
-					, *ComponentTemplate->GetName()));
+					, *VariableCleanName));
 
-				Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;"), *NativeVariablePropertyName));
+				Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::Native;"), *NativeVariablePropertyName));
+				NativeCreatedComponentProperties.Add(NativeVariablePropertyName);
 
 				FString ParentVariableName;
 				if (ParentNode)
@@ -321,7 +322,7 @@ FString FEmitDefaultValueHelper::HandleNonNativeComponent(FEmitterLocalContext& 
 	// Recursively handle child nodes.
 	for (auto ChildNode : Node->ChildNodes)
 	{
-		HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, Node);
+		HandleNonNativeComponent(Context, ChildNode, OutHandledProperties, NativeCreatedComponentProperties, Node);
 	}
 
 	return NativeVariablePropertyName;
@@ -509,6 +510,9 @@ FString FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Conte
 		Context.AddLine(TEXT("}"));
 	}
 
+	// Components that must be fixed after serialization
+	TArray<FString> NativeCreatedComponentProperties;
+
 	{
 		Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::CommonConstructor;
 		// Let's have an easy access to generated class subobjects
@@ -593,7 +597,7 @@ FString FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Conte
 					{
 						if (Node)
 						{
-							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties);
+							const FString NativeVariablePropertyName = HandleNonNativeComponent(Context, Node, HandledProperties, NativeCreatedComponentProperties);
 
 							if (i == 0 && bNeedsRootComponentAssignment && Node->ComponentTemplate && Node->ComponentTemplate->IsA<USceneComponent>() && !NativeVariablePropertyName.IsEmpty())
 							{
@@ -625,6 +629,25 @@ FString FEmitDefaultValueHelper::GenerateConstructor(FEmitterLocalContext& Conte
 	Context.DecreaseIndent();
 	Context.AddLine(TEXT("}"));
 	Context.CurrentCodeType = FEmitterLocalContext::EGeneratedCodeType::Regular;
+
+	{
+		Context.AddLine(FString::Printf(TEXT("void %s::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)"), *CppClassName));
+		Context.AddLine(TEXT("{"));
+		Context.IncreaseIndent();
+		Context.AddLine(TEXT("Super::PostLoadSubobjects(OuterInstanceGraph);"));
+		
+		for (auto& ComponentToFix : NativeCreatedComponentProperties)
+		{
+			Context.AddLine(FString::Printf(TEXT("if(ensure(%s))"), *ComponentToFix));
+			Context.AddLine(TEXT("{"));
+			Context.IncreaseIndent();
+			Context.AddLine(FString::Printf(TEXT("%s->CreationMethod = EComponentCreationMethod::Native;"), *ComponentToFix));
+			Context.DecreaseIndent();
+			Context.AddLine(TEXT("}"));
+		}
+		Context.DecreaseIndent();
+		Context.AddLine(TEXT("}"));
+	}
 
 	FDependenciesHelper::AddStaticFunctionsForDependencies(Context);
 

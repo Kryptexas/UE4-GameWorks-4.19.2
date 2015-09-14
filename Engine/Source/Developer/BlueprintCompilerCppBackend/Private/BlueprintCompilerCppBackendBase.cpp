@@ -138,6 +138,8 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(EmitterContext));
 	}
 
+	Emit(Header, TEXT("\n\tvirtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;\n"));
+
 	for (int32 i = 0; i < Functions.Num(); ++i)
 	{
 		if (Functions[i].IsValid())
