@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2635963
+﻿INTSourceChangelist:2669253
 Availability:Public
 Title:ルートモーション
 Crumbs: %ROOT%, Engine, Engine/Animation
@@ -9,10 +9,11 @@ Related: Engine/Animation/PhysicallyDrivenAnimation
 Related: Engine/Content/Tools/MayaRiggingTool
 Related: Engine/Animation/AnimBlueprints
 Related: Engine/Animation/AnimBlueprints/EventGraph
+version:4.9
 
 [TOC(start:2 end:2)]
 
-## 概要
+
 
 一般的なゲームアニメーションにおけるキャラクターのコリジョン カプセル (または他の形状) は、シーンを通じてコントローラーが動作させています。このカプセルからのデータは、その後アニメーションを動かすために使用されます。例えばカプセルが前進している場合、キャラクターが独力で移動している様子を作成するために、システムはキャラクターに対してランニング、または歩行のアニメーションを再生することを把握しています。
 
@@ -28,11 +29,18 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 バージョン 4.6 以降では、ルート モーションはアニメーション毎に処理されるようになり、ペルソナのアニメーションのプロパティでオン、オフの切り替えができるようになりました。ルートモーションを十分に活用するために、キャラクターは Animation ブループリントを必要とします(詳しい情報は、[Animation ブループリントのドキュメント](https://docs.unrealengine.com/latest/INT/Engine/Animation/AnimBlueprints/index.html) をご覧ください)。キャラクターの Animation ブループリントのプロパティで、**Root Motion** のセクションでは、どのタイプのアニメーションにルートモーションを適用するかを設定できます。このドキュメント作成時点ではルートモーションを問題なく適用させるには、AnimMontage をまだ使用する必要があります。 
 [/REGION]
 
-[REGION:lightbox]
-[![](HammerSlamStatic.png)](HammerSlam.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+TKAcNubFOH8
+[/PARAMLITERAL]
+[/OBJECT]
 
-**クリックして再生**
 
 [REGION:tip]
 キャラクターに適用されている **ルートモーション** の例は、セクション 1.9 の [アニメーション コンテンツ サンプル](Resources\ContentExamples\Animation) のページを参照してください。
@@ -72,22 +80,36 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 
 ルートモーションなしのアニメーションは、ご覧のとおりキャラクターをカプセルから引き離すようなアニメーションとなります。見苦しい形でカプセルへ急に戻る様子が分かります。アニメーションの再生が終了すると、キャラクター コントローラーがキャラクターを元の位置へ引き戻すためこのような結果となります。
 
-[REGION:lightbox]
-[![](HammerSlamStatic_NoRootMotion.png)](HammerSlam_NoRootMotion.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+Xu2bVQ4pg8M
+[/PARAMLITERAL]
+[/OBJECT]
 
-**クリックして再生**
 
 ### カプセルからの分離が悪影響となる理由
 
 ここで対処するのは、キャラクターが突然カプセルへ戻る問題のみではありません。キャラクターはコリジョン形状を離れてしまっているため、ワールドのオブジェクトを通過して全体的な継続性がなくなっています。この例は、キャラクターが攻撃に出ると壁を突き抜けてしまい、その後急いでカプセル位置へ戻っています。
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_NoRootMotion_Wall.png)](HammerSlam_NoRootMotion_Wall.gif)
-[/REGION]
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+ov9pyx4MAOo
+[/PARAMLITERAL]
+[/OBJECT]
 
-**クリックして再生**
 
 ### ルートモーション処理による問題の解決法
 
@@ -95,11 +117,17 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion_NoWall.png)](HammerSlam_RootMotion.gif)
-[/REGION]
-
-**クリックして再生**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+PWB_mqjz3iA
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ### ルートモーションと物理
@@ -108,11 +136,17 @@ Related: Engine/Animation/AnimBlueprints/EventGraph
 
 キャラクターが前屈みになるアニメーションは、体がいくらか壁を突き抜けてしまっているため完璧なアニメーションとはいえません。しかしこの問題は壁かキャラクターどちらかのコリジョン ボリュームと連携することで簡単に対処することができます。重要な点は、カプセルがモーションから遅れずに対応していて、キャラクターが壁を突き抜けたり急激にカプセルへ戻ったりしないことです。
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion.png)](HammerAnimation_RootMotion_Wall.gif)
-[/REGION]
-
-**クリックして再生**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+YuD29-Xr7Oc
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## ルートモーションの設定
@@ -147,7 +181,7 @@ UE4 のルートモーションの設定はとても簡単です。しかし、�
 
 ![](UseHammerFunction.png)
 
-次に Character ブループリントで以下の特別なネットワークを設定します。サードパーソン コントロールの処理が既に整いました。ハンマー アニメーションを機能させるために必要なものに焦点を当てていきます。この場合、 **[R]** キーを押すと _UseHammer_ 関数をインターフェイスに呼ぶ入力イベントを設定します。
+次に Character ブループリントで以下の特別なネットワークを設定します。サードパーソン コントロールの処理が既に整いました。ハンマー アニメーションを機能させるために必要なものに焦点を当てていきます。この場合、 **[R]** キーを押すと UseHammer 関数をインターフェイスに呼ぶ入力イベントを設定します。
 
 [REGION:fullwidth]
 ![](PressRUseHammer.png)
@@ -179,32 +213,44 @@ Animation ブループリントで、関数呼び出しのためにイベント�
 
 これを行ったら、AnimMontage を作成する必要があります。
 
-最も簡単な設定方法は、ルートモーションを必要とするアニメーションを **右クリック** して(Mac では **Ctrl + 左クリック**)、[Create AnimMontage] を選択するものです。
+最も簡単な設定方法は、ルートモーションを必要とするアニメーションを **右クリック** して (Mac では **Ctrl + 左クリック**)、[Create AnimMontage] を選択するものです。
 
  ![](CreateAnimMontage.png)
 
-AnimMontage に名前を付けて、ペルソナ (Persona) で開くためにこれを **ダブルクリック** します。エディタ中央下部に「SlotName」欄があります。スロットには意味がある名前を入力します。一緒に再生するアニメーションの主要部分を構成する場合はそのような名前を選択します。一般的なスロット名は、例でも使用する _FullBody_ です。
+AnimMontage に名前を付けて、ペルソナで開くためにこれを **ダブルクリック** します。エディタ中央下部に [SlotName] ドロップダウンがあります。その下にあるメガネ アイコンを選択して、Anim Slot Manager を呼び出します。**[Add Slot]** ボタンを押してスロットに名前を付けます。一緒に再生するアニメーションの主要部分を構成する場合はそのような名前を選択します。一般的なスロット名は、例でも使用する FullBody です。
+
+その後、モンタージュ内のドロップダウン メニューから新しいスロットを選択します。
 
 [REGION:fullwidth]
 ![](SettingUpSlotinMontage.png)
 [/REGION]
 
-次に **Animation ブループリント** へ戻ります。UseHammer 関数イベントのすぐ後に、 **Montage Play** を作成します。これが適切な AnimMontage と関連付けられていることを必ず確認します。
+次に Animation ブループリントへ戻りますUseHammer 関数イベントのすぐ後に、 **Montage Play** を作成します。これが適切な AnimMontage と関連付けられていることを必ず確認します。
 
 ![](PlayMontage.png)
 
-ほぼ、終わりです。最後に、最終アニメーションでスロットが計算中であることを確認します。**Animation ブループリント** 内で、[AnimGraph] タブへ移動します。**Slot** ノードを作成して、AnimMontage 内のスロットに使用した名前と同じ名前を付けます。この例では「 _FullBody_ 」です。ノードは、既存ステートマシーンか別のアニメーションと Final Animation Pose ノードの間に位置させなくてはいけません。
+ほぼ、終わりです。最後に、最終アニメーションでスロットが計算中であることを確認します。Animation ブループリント内で、[AnimGraph] タブへ移動します。**Slot** ノードを作成して、AnimMontage 内のスロットに使用した名前と同じ名前を付けます。この例では「FullBody」です。ノードは、既存ステートマシーンか別のアニメーションと Final Animation Pose ノードの間に位置させなくてはいけません。
 
 ![](InsertSlotNode.png)
+
+[REGION:note]
+New State Machine ノードに警告が表示される場合があります。この警告は、セットアップが完了していないことが原因ですが、このチュートリアルの目的上、重要ではありません。
+[/REGION]
 
 これで完成です！アニメーションは、ルートモーションを利用するように設定した AnimMontage を介して再生されているため、これで全て機能するはずです！
 
 
-[REGION:lightbox]
-[![](HammerSlamStatic_RootMotion_NoWall.png)](HammerSlam_RootMotion.gif)
-[/REGION]
-
-**クリックして再生**
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+PWB_mqjz3iA
+[/PARAMLITERAL]
+[/OBJECT]
 
 
 ## 注意事項と考慮事項
@@ -212,7 +258,7 @@ AnimMontage に名前を付けて、ペルソナ (Persona) で開くためにこ
 
 [INCLUDE:Engine/Animation/AnimMontage#MontageReplication]
 
-ルートモーション中にキャラクターの物理ステートが考慮されています。例えばキャラクターの物理ステートが _Walking_ または _Falling_ の場合、ルートモーションの Z 軸は無視されて、重力が適用されます。キャラクターは落下するか、坂を下るか、もしくは階段を上ります。キャラクターの物理ステートが _Flying_ の場合、ルートモーションが完全に適用されて、重力は無視されます。
+ルートモーション中にキャラクターの物理ステートが考慮されています。例えばキャラクターの物理ステートが Walking または Falling の場合、ルートモーションの Z 軸は無視されて、重力が適用されます。キャラクターは落下するか、坂を下るか、もしくは階段を上ります。キャラクターの物理ステートが Flying の場合、ルートモーションが完全に適用されて、重力は無視されます。
 
 
 
