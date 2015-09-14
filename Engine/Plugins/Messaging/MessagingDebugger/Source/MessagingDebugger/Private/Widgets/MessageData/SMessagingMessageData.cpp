@@ -1,12 +1,15 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
-#include "IDetailsView.h"
-#include "IStructureDetailsView.h"
 #include "Json.h"
 #include "JsonStructSerializerBackend.h"
-#include "PropertyEditorModule.h"
 #include "StructSerializer.h"
+
+#if WITH_EDITOR
+	#include "IDetailsView.h"
+	#include "IStructureDetailsView.h"
+	#include "PropertyEditorModule.h"
+#endif
 
 
 #define LOCTEXT_NAMESPACE "SMessagingMessageData"
@@ -31,6 +34,8 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 {
 	Model = InModel;
 	Style = InStyle;
+
+#if WITH_EDITOR
 
 	// initialize details view
 	FDetailsViewArgs DetailsViewArgs;
@@ -63,6 +68,16 @@ void SMessagingMessageData::Construct( const FArguments& InArgs, const FMessagin
 	[
 		StructureDetailsView->GetWidget().ToSharedRef()
 	];
+
+#else
+
+	ChildSlot
+	[
+		SAssignNew(TextBox, SMultiLineEditableTextBox)
+			.IsReadOnly(true)
+	];
+
+#endif //WITH_EDITOR
 
 	Model->OnSelectedMessageChanged().AddRaw(this, &SMessagingMessageData::HandleModelSelectedMessageChanged);
 }
@@ -113,16 +128,37 @@ void SMessagingMessageData::HandleModelSelectedMessageChanged()
 
 		if (MessageTypeInfo != nullptr)
 		{
+#if WITH_EDITOR
 			StructureDetailsView->SetStructureData(MakeShareable(new FStructOnScope(MessageTypeInfo, (uint8*)SelectedMessage->Context->GetMessage())));
+#else
+			FBufferArchive BufferArchive;
+			FJsonStructSerializerBackend Backend(BufferArchive);
+
+			FStructSerializer::Serialize(SelectedMessage->Context->GetMessage(), *MessageTypeInfo, Backend);
+
+			// add string terminator
+			BufferArchive.Add(0);
+			BufferArchive.Add(0);
+
+			TextBox->SetText(FText::FromString(FString((TCHAR*)BufferArchive.GetData()).Replace(TEXT("\t"), TEXT("    "))));
+#endif //WITH_EDITOR
 		}
 		else
 		{
+#if WITH_EDITOR
 			StructureDetailsView->SetStructureData(nullptr);
+#else
+			TextBox->SetText(FText::Format(LOCTEXT("UnknownMessageTypeFormat", "Unknown message type '{0}'"), FText::FromString(SelectedMessage->Context->GetMessageType().ToString())));
+#endif //WITH_EDITOR
 		}
 	}
 	else
 	{
+#if WITH_EDITOR
 		StructureDetailsView->SetStructureData(nullptr);
+#else
+		TextBox->SetText(FText::GetEmpty());
+#endif //WITH_EDITOR
 	}
 }
 

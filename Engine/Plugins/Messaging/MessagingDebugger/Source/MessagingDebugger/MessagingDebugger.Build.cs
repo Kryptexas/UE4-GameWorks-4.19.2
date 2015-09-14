@@ -12,7 +12,6 @@ public class MessagingDebugger : ModuleRules
 				"Core",
 				"CoreUObject",
                 "InputCore",
-                "PropertyEditor",
 				"Serialization",
 				"Slate",
 				"SlateCore",
@@ -43,5 +42,10 @@ public class MessagingDebugger : ModuleRules
 				"MessagingDebugger/Private/Widgets/Toolbar",
 			}
 		);
+
+        if (UEBuildConfiguration.bBuildEditor)
+        {
+            PrivateDependencyModuleNames.Add("PropertyEditor");
+        }
 	}
 }
