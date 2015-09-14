@@ -214,7 +214,6 @@ void UWorld::StartClothAndAsyncSim()
 {
 	if (FPhysScene* PhysScene = GetPhysicsScene())
 	{
-		PhysScene->StartCloth();
 		PhysScene->StartAsync();
 	}
 }

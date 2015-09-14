@@ -1215,13 +1215,15 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 void USkeletalMeshComponent::PrepareCloth()
 {
-	//TODO: logic about if to go in StartPhysics or PreCloth
-	if (FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
+	if(ClothingActors.Num())
 	{
-		FClothManager* ClothManager = PhysScene->GetClothManager();
-		bool bClothNeedsPhysics = BodyInstance.bSimulatePhysics || IsAnySimulatingPhysics();	//TODO: this errs on the side of simulating later. We may want to optimize this so that it's only needed when cloth bodies are simulating
-		PrepareClothSchedule PrepareSchedule = bClothNeedsPhysics ? PrepareClothSchedule::WaitOnPhysics : PrepareClothSchedule::IgnorePhysics;
-		ClothManager->RegisterForPrepareCloth(this, PrepareSchedule);
+		if (FPhysScene* PhysScene = GetWorld()->GetPhysicsScene())
+		{
+			FClothManager* ClothManager = PhysScene->GetClothManager();
+			bool bClothNeedsPhysics = BodyInstance.bSimulatePhysics || IsAnySimulatingPhysics();	//TODO: this errs on the side of simulating later. We may want to optimize this so that it's only needed when cloth bodies are simulating
+			PrepareClothSchedule PrepareSchedule = bClothNeedsPhysics ? PrepareClothSchedule::WaitOnPhysics : PrepareClothSchedule::IgnorePhysics;
+			ClothManager->RegisterForPrepareCloth(this, PrepareSchedule);
+		}
 	}
 }
 

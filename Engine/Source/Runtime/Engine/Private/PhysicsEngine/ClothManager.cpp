@@ -5,8 +5,16 @@
 #include "PhysicsPublic.h"
 #include "Components/SkeletalMeshComponent.h"
 
-FClothManager::FClothManager(UWorld* AssociatedWorld)
+FClothManager::FClothManager(UWorld* InAssociatedWorld)
+: AssociatedWorld(InAssociatedWorld)
  {
+	//simulate cloth tick
+	StartClothTickFunction.bCanEverTick = true;
+	StartClothTickFunction.Target = this;
+	StartClothTickFunction.TickGroup = TG_StartCloth;
+	StartClothTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+
+	//prepare cloth data ticks
 	PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].TickFunction.TickGroup = TG_StartPhysics;
 	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].TickFunction.TickGroup = TG_PreCloth;
 
@@ -45,6 +53,42 @@ void FClothManager::RegisterForPrepareCloth(USkeletalMeshComponent* SkeletalMesh
 	PrepareClothDataArray[(int32)PrepSchedule].SkeletalMeshComponents.Add(SkeletalMeshComponent);
 }
 
+void FClothManager::StartCloth()
+{
+	FGraphEventArray ThingsToComplete;
+	for (const FClothManagerData& PrepareData : PrepareClothDataArray)
+	{
+		if(PrepareData.PrepareCompletion.IsValid())
+		{
+			ThingsToComplete.Add(PrepareData.PrepareCompletion);
+		}
+	}
+
+	if(ThingsToComplete.Num())
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_WaitPrepareCloth);
+		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
+	}
+	
+	if (FPhysScene* PhysScene = AssociatedWorld->GetPhysicsScene())
+	{
+		PhysScene->StartCloth();
+	}
+}
+
+
+void FStartClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	Target->StartCloth();
+}
+
+FString FStartClothTickFunction::DiagnosticMessage()
+{
+	return TEXT("FStartClothTickFunction");
+}
+
+TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("If turned on, preparing cloth will happen off the game thread."));
+
 class FPrepareClothTickTask
 {
 	FClothManagerData* PrepareClothData;
@@ -63,7 +107,7 @@ public:
 	}
 	static ENamedThreads::Type GetDesiredThread()
 	{
-		return ENamedThreads::AnyThread;
+		return CVarParallelCloth.GetValueOnGameThread() ? ENamedThreads::AnyThread : ENamedThreads::GameThread;
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
@@ -81,7 +125,8 @@ void FPrepareClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick Tic
 {
 	QUICK_SCOPE_CYCLE_COUNTER(FPrepareClothTickFunction_ExecuteTick);
 
-	TGraphTask<FPrepareClothTickTask>::CreateTask().ConstructAndDispatchWhenReady(Target, DeltaTime);
+	check(!Target->PrepareCompletion.IsValid())
+	Target->PrepareCompletion = TGraphTask<FPrepareClothTickTask>::CreateTask().ConstructAndDispatchWhenReady(Target, DeltaTime);
 }
 
 FString FPrepareClothTickFunction::DiagnosticMessage()

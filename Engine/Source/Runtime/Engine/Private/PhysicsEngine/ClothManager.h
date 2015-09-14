@@ -35,9 +35,20 @@ public:
 	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 	FPrepareClothTickFunction TickFunction;
 	FThreadSafeBool IsPreparingCloth;
+	FGraphEventRef PrepareCompletion;
 
 	/** Go through all SkeletalMeshComponents registered for work this frame and call the solver as needed*/
 	void PrepareCloth(float DeltaTime);
+};
+
+struct FStartClothTickFunction : public FTickFunction
+{
+	class FClothManager* Target;
+
+	// FTickFunction interface
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	virtual FString DiagnosticMessage() override;
+	// End of FTickFunction interface
 };
 
 
@@ -63,6 +74,11 @@ public:
 	}
 	
 private:
-	
+	UWorld* AssociatedWorld;
 	FClothManagerData PrepareClothDataArray[(int32)PrepareClothSchedule::MAX];
+	FStartClothTickFunction StartClothTickFunction;
+
+	friend FStartClothTickFunction;
+
+	void StartCloth();
 };
