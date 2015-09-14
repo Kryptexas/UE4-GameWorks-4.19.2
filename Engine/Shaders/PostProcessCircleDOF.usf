@@ -11,7 +11,7 @@
 #include "CircleDOFCommon.usf"
 
 // pixel shader entry point
-void CircleSetupPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+void CircleSetupPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 

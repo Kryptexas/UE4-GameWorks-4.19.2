@@ -22,7 +22,7 @@ float Quantize(float x, float Count)
 	return ceil(x * Count - 1.0f) / (Count - 1.0f);
 }
 
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 

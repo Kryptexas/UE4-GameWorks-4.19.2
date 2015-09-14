@@ -25,7 +25,7 @@ void MainPostprocessCommonVS(
 }
 
 void VisualizeBloomSetupPS(
-	  float4 UVAndScreenPos : TEXCOORD0
+	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -56,7 +56,7 @@ void VisualizeBloomSetupPS(
 }
 
 void VisualizeBloomOverlayPS(
-	  float4 UVAndScreenPos : TEXCOORD0
+	noperspective float4 UVAndScreenPos : TEXCOORD0
 	, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
@@ -150,9 +150,9 @@ float4 BloomThreshold;
 // -----------------------------
 // bloom threshold
 void MainPS(
-	  float4 UVAndScreenPos : TEXCOORD0
-	, float InExposureScale : TEXCOORD1
-	, out float4 OutColor : SV_Target0)
+	noperspective float4 UVAndScreenPos : TEXCOORD0,
+	nointerpolation float InExposureScale : TEXCOORD1,
+	out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 

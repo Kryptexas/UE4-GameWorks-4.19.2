@@ -96,7 +96,7 @@ float3 ComputeQuarterColor(float2 UV, int2 QuarterTileXY)
 }
 
 /** Main pixel shader function */
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 #if GBUFFER_VISUALIZATION_MODE == GBUFFER_VISUALIZATION_MODE_ALL
 	int2 PixelPos = (int2)(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);

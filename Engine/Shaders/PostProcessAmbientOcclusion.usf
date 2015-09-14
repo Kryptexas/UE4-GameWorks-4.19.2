@@ -201,7 +201,7 @@ float ComputeDepthSimilarity(float DepthA, float DepthB, float TweakScale)
 }
 
 // downsample the input of the ambient occlusion pass for better performance, can take input from setup or another downsample pass
-void MainSetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
+void MainSetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor0 : SV_Target0)
 {
 	float2 InUV = UVAndScreenPos.xy;
 
@@ -500,7 +500,7 @@ float3 ReconstructNormal(float2 In)
 }
 
 // the main pixel shader that computes ambient occlusion
-void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 
@@ -718,7 +718,7 @@ void MainPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targe
 
 
 // used if StaticFraction > small number
-void BasePassAOPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void BasePassAOPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 

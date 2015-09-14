@@ -347,7 +347,7 @@ float4 CommonDOFSetup(in float2 CenterUV, out bool bFrontLayer, out float4 Mask 
 }
 
 // downsample to half res, put depth in alpha
-void MainSetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainSetupPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	// unused for this pass
 	bool bFrontLayer;
@@ -361,7 +361,7 @@ void MainSetupPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_
 
 // pixel shader to accumulate the Bokeh shaped elements
 void MainPS(
-	float2 TexCoord : TEXCOORD0,
+	noperspective float2 TexCoord : TEXCOORD0,
 	nointerpolation float4 InColor : TEXCOORD1,
 	out float4 OutColor : SV_Target0
 	)
@@ -378,7 +378,7 @@ void MainPS(
 
 // pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
 void MainRecombinePS(
-	in float4 UVAndScreenPos : TEXCOORD0,
+	noperspective in float4 UVAndScreenPos : TEXCOORD0,
 	out float4 OutColor : SV_Target0
 	)
 {

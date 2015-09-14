@@ -244,7 +244,7 @@ float RandFast( uint2 PixelPos, float Magic = 3571.0 )
 	return Random.x;
 }
 
-void SSRTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void SSRTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -260,7 +260,7 @@ void SSRTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 #endif
 }
 
-void DOFTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void DOFTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -281,7 +281,7 @@ void DOFTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleV
 #endif
 }
 
-void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
+void LightShaftTemporalAAPS( noperspective float4 UVAndScreenPos : TEXCOORD0, float3 InExposureScaleVignette : TEXCOORD1, out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
 	float InExposureScale = InExposureScaleVignette.x;
@@ -297,11 +297,11 @@ void LightShaftTemporalAAPS( float4 UVAndScreenPos : TEXCOORD0, float3 InExposur
 }
 
 void MainTemporalAAPS(
-	in float4 UVAndScreenPos : TEXCOORD0,
-	in float3 InExposureScaleVignette : TEXCOORD1,
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	// Note: these are needed to match up with the vertex shader outputs which is FPostProcessTonemapVS, otherwise a d3d debug error is issued
-	in float4 Unused1 : TEXCOORD2,
-	in float4 Unused2 : TEXCOORD3,
+	in noperspective float4 Unused1 : TEXCOORD2,
+	in noperspective float4 Unused2 : TEXCOORD3,
 	in float4 SvPosition : SV_Position,
 	out float4 OutColor : SV_Target0 )
 {
@@ -329,8 +329,8 @@ void MainTemporalAAPS(
 }
 
 void MainFastTemporalAAPS(
-	in float4 UVAndScreenPos : TEXCOORD0,
-	in float3 InExposureScaleVignette : TEXCOORD1,
+	in noperspective float4 UVAndScreenPos : TEXCOORD0,
+	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
 	in float4 SvPosition : SV_Position,
 	out float4 OutColor : SV_Target0 )
 {

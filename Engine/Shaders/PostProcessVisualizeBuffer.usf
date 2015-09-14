@@ -10,7 +10,7 @@
 #include "PostProcessHistogramCommon.usf"
 
 /** Main pixel shader function */
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 {
 	float Alpha = 1;
 
