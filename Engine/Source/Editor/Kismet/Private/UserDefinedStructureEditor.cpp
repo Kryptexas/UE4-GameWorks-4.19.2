@@ -28,8 +28,8 @@ public:
 	}
 
 	FDefaultValueDetails(TWeakPtr<class FStructureDefaultValueView> InDefaultValueView, TSharedPtr<FStructOnScope> InStructData)
-		: StructData(InStructData)
-		, DefaultValueView(InDefaultValueView)
+		: DefaultValueView(InDefaultValueView)
+		, StructData(InStructData)
 	{}
 
 	~FDefaultValueDetails()
