@@ -2,6 +2,7 @@ Availability:Public
 Title:Vector Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that output a vector value, such as a position or normal.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -27,7 +28,7 @@ The **CameraWorldPosition** expression outputs a three-channel vector value repr
 
 The preview sphere changes color as the camera rotates.
 
-![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:476) ![](CameraPositionWSNetwork.png)(w:450)
+![CameraPositionWSExample.png](CameraPositionWSExample.png)(w:450) ![](CameraPositionWSNetwork.png)(h:333)
 [/EXCERPT:CameraPositionWS]
 
 
@@ -94,7 +95,7 @@ The **ObjectOrientation** expression outputs the world-space up vector of the ob
 The **ObjectPositionWS** expression outputs the world-space center position of the object's bounds.  For example, this is useful for creating spherical lighting for foliage.
 
 
-![](WorldPositionWSScene.png)(w:460) ![](WorldPositionNetwork.png)(w:470)
+![](WorldPositionWSScene.png)(w:450) ![](WorldPositionNetwork.png)(h:349)
 
 [/EXCERPT:ObjectPositionWS]
 
@@ -105,7 +106,7 @@ The **ObjectPositionWS** expression outputs the world-space center position of t
 [EXCERPT:PixelNormalWS]
 ## PixelNormalWS
 
-The PixelNormalWS expression outputs vector data representing the direction that pixels are facing based on the current normal.
+The **PixelNormalWS** expression outputs vector data representing the direction that pixels are facing based on the current normal.
 
 ![PixelNormalWSExample.png](PixelNormalWSExample.png)
 
@@ -116,7 +117,7 @@ In this example, PixelNormalWS is fed into Base Color. Notice how the normal map
 
 ## ReflectionVectorWS
 
-The ReflectionVectorWS expression is similar in spirit to [CameraVectorWS](#CameraVectorWS), but it outputs a three-channel vector value representing the camera direction reflected across the surface normal.
+The **ReflectionVectorWS** expression is similar in spirit to [CameraVectorWS](#CameraVectorWS), but it outputs a three-channel vector value representing the camera direction reflected across the surface normal.
 
 **Example Usage:** ReflectionVector is commonly used in environment maps, where the x/y components of the reflection vector are used as UVs into a cubemap texture.
 

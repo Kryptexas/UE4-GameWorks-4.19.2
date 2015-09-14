@@ -2,6 +2,7 @@ Availability:Public
 Title:Vector Operation Expressions
 Crumbs: %ROOT%, Engine, Engine/Rendering/Materials, Engine/Rendering/Materials/ExpressionReference
 Description:Expressions that perform operations on vector input values.
+Version: 4.9
 
 [EXCERPT:TOC]
 [TOC(start:2)]
@@ -54,7 +55,7 @@ The **ComponentMask** expression allows you to select a specific subset of chann
 
 ## DeriveNormalZ
 
-The DeriveNormalZ expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x * x + y * y));
+The **DeriveNormalZ** expression derives the Z component of a tangent space normal given the X and Y components and outputs the resulting three-channel tangent space normal. Z is calculated as Z = sqrt(1 - (x * x + y * y));
 
 | Item | Description |
 | -------- | ----------- |
@@ -73,7 +74,7 @@ The DeriveNormalZ expression derives the Z component of a tangent space normal g
 
 ## Transform
 
-The Transform expression converts a three-channel vector value from one reference coordinate system to another.
+The **Transform** expression converts a three-channel vector value from one reference coordinate system to another.
 
 By default, all shader calculations in a material are done in tangent space.  The vector constants, camera vector, light vector, etc are all transformed to tangent space before being used in a material. The Transform expression allows these vectors to be transformed from tangent space to world-space, local-space, or view-space coordinate systems. In addition, it allows world-space and local-space vectors to be transformed to any of the other reference coordinate systems.
 
@@ -122,5 +123,5 @@ Here is an example of this spheremap material applied to a blob-like rock mesh:
 This node is deprecated due to major precision problems when used to derive world pos away from the origin!  Use the WorldPosition node instead.
 [/REGION]
 
-The TransformPosition expression can transform any position from screen space to the destination space specified by the expression's TransformType variable.  Currently only transforming into world space is supported.  This expression can be used to get world space coordinates in the material.  To visualize world position, you can plug it straight into emissive:
+The **TransformPosition** expression can transform any position from screen space to the destination space specified by the expression's TransformType variable.  Currently only transforming into world space is supported.  This expression can be used to get world space coordinates in the material.  To visualize world position, you can plug it straight into emissive:
 
