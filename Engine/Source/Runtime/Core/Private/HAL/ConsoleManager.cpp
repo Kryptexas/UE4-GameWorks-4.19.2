@@ -122,7 +122,7 @@ public:
 			FConsoleManager& ConsoleManager = (FConsoleManager&)IConsoleManager::Get();
 			FString CVarName = ConsoleManager.FindConsoleObjectName(this);
 			UE_LOG(LogConsoleManager, Warning,
-				TEXT("Console variable '%s' wasn't set ('%s' has a lower priority than '%s')"),
+				TEXT("A console variable Set() for '%s' failed. The access with 'SetBy%s' failed because 'SetBy%s' did set it before and and has a higher priority (this might be an intentional override)"),
 				CVarName.IsEmpty() ? TEXT("unknown?") : *CVarName,
 				GetSetByTCHAR((EConsoleVariableFlags)NewPri),
 				GetSetByTCHAR((EConsoleVariableFlags)OldPri)
