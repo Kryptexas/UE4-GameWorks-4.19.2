@@ -492,7 +492,7 @@ private:
  * Example:
  *
  * // Something.h
- * TFunction<FString (int32)> GetTransform();
+ * TFunction<FString (int32)> GetTransform(const FString& Prefix);
  *
  * // Something.cpp
  * TFunction<FString (int32)> GetTransform(const FString& Prefix)
