@@ -414,8 +414,10 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	FVisualizeTextureData VisualizeTextureData(RenderTargetItem, Desc);
 
-	bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
-	
+	// distinguish between standard depth and shadow depth to produce more reasonable default value mapping in the pixel shader.
+	const bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
+	const bool bShadowDepth = (Desc.Format == PF_ShadowDepth);
+
 	VisualizeTextureData.RGBMul = RGBMul;
 	VisualizeTextureData.SingleChannelMul = SingleChannelMul;
 	VisualizeTextureData.SingleChannel = SingleChannel;
@@ -423,7 +425,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 	VisualizeTextureData.Tex00 = Tex00;
 	VisualizeTextureData.Tex11 = Tex11;
 	VisualizeTextureData.bSaturateInsteadOfFrac = (Flags & 1) != 0;
-	VisualizeTextureData.InputValueMapping = bDepthTexture ? 1 : 0;
+	VisualizeTextureData.InputValueMapping = bShadowDepth ? 2 : (bDepthTexture ? 1 : 0);
 	VisualizeTextureData.ArrayIndex = ArrayIndex;
 	VisualizeTextureData.CustomMip = CustomMip;
 	VisualizeTextureData.StencilSRV = StencilSRV;
@@ -641,6 +643,18 @@ void FVisualizeTexture::PresentContent(FRHICommandListImmediate& RHICmdList, con
 	{
 		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Red: <0"), GetStatsFont(), FLinearColor(1,0,0));
 		Canvas.DrawShadowedString( X, Y += YStep, TEXT("Blinking Blue: NAN or Inf"), GetStatsFont(), FLinearColor(0,0,1));
+
+		// add explicit legend for SceneDepth and ShadowDepth as the display coloring is an artificial choice. 
+		const bool bDepthTexture = (Desc.TargetableFlags & TexCreate_DepthStencilTargetable) != 0;
+		const bool bShadowDepth = (Desc.Format == PF_ShadowDepth);
+		if (bShadowDepth)
+		{
+			Canvas.DrawShadowedString(X, Y += YStep, TEXT("Color Key: Linear with white near and teal distant"), GetStatsFont(), FLinearColor(54.f / 255.f, 117.f / 255.f, 136.f / 255.f));
+		} 
+		else if (bDepthTexture)  
+		{
+			Canvas.DrawShadowedString(X, Y += YStep, TEXT("Color Key: Nonlinear with white distant"), GetStatsFont(), FLinearColor(0.5, 0, 0));
+		}
 	}
 
 	Canvas.Flush_RenderThread(RHICmdList);
