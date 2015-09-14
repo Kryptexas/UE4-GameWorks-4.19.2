@@ -2,6 +2,7 @@ Availability:Public
 Title:Flow Control
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Nodes that allow for controlling the flow of execution based on conditions.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
