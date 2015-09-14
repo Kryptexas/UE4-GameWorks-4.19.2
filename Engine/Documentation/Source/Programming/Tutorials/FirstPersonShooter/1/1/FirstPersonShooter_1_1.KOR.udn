@@ -13,10 +13,10 @@ Version: 4.9
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/1)
+		[섹션 홈](Programming/Tutorials/FirstPersonShooter/1)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/1/2)
+		[다음 단계](Programming/Tutorials/FirstPersonShooter/1/2)
 	[/PARAM]
 [/OBJECT]
 [/VAR]

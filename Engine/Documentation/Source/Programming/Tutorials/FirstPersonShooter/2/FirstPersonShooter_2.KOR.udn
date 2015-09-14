@@ -1,39 +1,39 @@
 ﻿INTSourceChangelist:0
 Availability: Docs
-Title: 2 - Implementing your Character
+Title: 2 - 캐릭터 임포트
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter
-Description: How to implement your First Person Shooter character.
+Description: 일인칭 캐릭터 구현법을 배워봅니다.
 prereq: Programming/Tutorials/FirstPersonShooter/1
 Related: Programming/Tutorials/FirstPersonShooter
 SkillLevel: Beginner
 Version: 4.9
 
 ![](FreeMovingCamera.png)
-_This is what you'll see at the end of this section._
+_이 섹션을 마칠 때 즈음이면 이런 모습일 것입니다._
 
-## Goals
+## 목적
 
-The purpose of this section is to show you how to implement your First Person Shooter character.
+이 섹션의 목적은 일인칭 슈팅 캐릭터 구현법을 보여드리는 것입니다.
 
-## Objectives
+## 목표
 
-By the end of this section of the tutorial, you'll be able to:
+튜토리얼 이번 섹션을 마칠 때 즈음이면, 다음과 같은 것이 가능할 것입니다:
 
-* Make a New Character
-* Set-up Axis Mapping
-* Implement Character Movement Functions
-* Implement Mouse Camera Control
-* Implement Character Jumping
-* Add a Mesh to your Character
-* Change the Camera View
-* Add a First Person Mesh to your Character
+* 새 캐릭터 제작
+* 축 매핑 구성
+* 캐릭터 동작 함수 구현
+* 마우스 카메라 콘트롤 구현
+* 캐릭터 점프 구현
+* 캐릭터에 메시 추가
+* 카메라 시점 변경
+* 캐릭터에 일인칭 메시 추가
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
 		![](%ROOT%/build_icon.png)(convert:false)
 	[/PARAM]
 	[PARAM:title]
-		Steps
+		단계
 	[/PARAM]
 	[PARAM:description]
 	[/PARAM]

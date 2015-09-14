@@ -1,74 +1,74 @@
 ﻿INTSourceChangelist:0
 Availability: Docs
-Title: 3.3 - Setting up Projectile Collision and Lifetime
+Title: 3.3 - 발사체 콜리전 및 수명 구성
 Crumbs: %ROOT%, Programming, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/3
-Description: Learn how to set-up collision and lifetime for your First Person Shooter projectiles.
+Description: 일인칭 슈팅 발사체에 대한 콜리전 및 수명 구성법을 배워봅니다.
 SkillLevel: Beginner
 Version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/3/2)
+		[예전 단계](Programming/Tutorials/FirstPersonShooter/3/2)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/3)
+		[섹션 홈](Programming/Tutorials/FirstPersonShooter/3)
 	[/PARAM]	
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/3/4)
+		[다음 단계](Programming/Tutorials/FirstPersonShooter/3/4)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
 
 %Steps%
 
-Currently, your projectiles:
+현재 발사체는:
 
-*	Live forever (evidenced by the fact that they never disappear in the Scene Outliner)
-*	Don't collide with other objects in the world
+*	수명이 무한입니다 (그 증거로 씬 아웃라이너에서 전혀 사라지지 않습니다).
+*	월드의 다른 오브젝트와 충돌하지 않습니다.
 
-During this step, we're going to set-up projectile collision and lifetime.
+이번 단계에서는 발사체의 충돌과 수명을 구성해 주겠습니다.
 
-## Limiting the Projectile's Life Span
+## 발사체의 수명 기간 제한
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾아 `FPSProjectile.cpp` 를 엽니다.
 
-1.	Add the following code to the `FPSProjectile` constructor to set the projectile's lifespan:
+1.	`FPSProjectile` 생성자에 다음 코드를 추가하여 발사체의 수명을 설정합니다:
 
-		// Die after 3 seconds (by default)
+		// 3 초 후 죽습니다 (기본).
 		InitialLifeSpan = 3.f;
 
-## Editing the Projectile's Collision Settings
+## 발사체의 충돌 세팅 편집
 
-UE4 comes with several useful collision chanels; however, the engine also provides several customizable channels that game projects can use.
+UE4 에는 여러가지 유용한 콜리전 채널이 있으나, 엔진에서는 게임 프로젝트에 사용할 수 있는 커스터마이징 가능 채널을 여럿 제공하기도 합니다.
 
-1. Open **Project Settings** and select **Collision** to customize a collision channel.
+1. **프로젝트 세팅** 을 열고 **콜리전** 을 선택하면 콜리전 채널 커스터마이징이 가능합니다.
 
 	![](SettingCollisionChannels.png)
 
-1.	Select **New Object Channel...** to create a new collision channel. Name your new collision channel "Projectile" and make sure that the **Default Response** is set to **Block** before clicking **Accept**.
+1.	**새 오브젝트 채널...** 을 선택하여 콜리전 채널을 새로 만듭니다. 새로운 콜리전 채널 이름을 "Projectile" 이라 하고 **Default Response** (기본 반응) 이 **Block** (막음)이라 되어있는지 확인하고 **수락** 을 누릅니다.
 
-1.	Select **New...** under **Preset** and name your new profile "Projectile" as well. Refer to the following image to set your collision presets.
+1.	**프리셋** 아래 **추가...** 를 선택하고 새 프로파일 이름도 "Projectile" 이라 해줍니다. 다음 그림을 참고하여 콜리전 프리셋을 설정하세요.
 
 	![](NewProfile.png)
 
 	[REGION:note]
-	The profile shown above specifies that the projectile will be blocked by `Static Actors`, `Pawns`, `Dynamic Actors`, `Actors` simulating `Physics`, `Vehicles`, and `Destructible Actors`.
+	위에 표시된 프로파일은 발사체가 `스태틱 액터`, `폰`, `다이내믹 액터`, `피직스` 시뮬레이션 `액터`, `비히클`, `디스트럭터블 액터` 에 막힘을 나타냅니다.
 	[/REGION]
 
-## Using the New Collision Channel's Settings
+## 새 콜리전 채널 세팅 사용
 
-1.	Locate the `FPSProjectile` class implementation file in the **Solution Explorer** and open `FPSProjectile.cpp`.
+1.	**Solution Explorer** 에서 `FPSProjectile` 클래스 구현 파일을 찾은 다음 `FPSProjectile.cpp` 를 엽니다.
 
-1.	In the `FPSProjectile` constructor, add the following line after the creation of `CollisionComp`:
+1.	`FPSProjectile` 생성자에서, `CollisionComp` 뒤에 다음 줄을 추가합니다:
 
 		CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");
 
-1.	`FPSProjectile.cpp` should now look like the following:
+1.	`FPSProjectile.cpp` 는 이제 다음과 같을 것입니다:
 
-		// Fill out your copyright notice in the Description page of Project Settings.
+		// 프로젝트 세팅의 설명 페이지에 저작권 문구를 채우세요.
 		
 		#include "FPSProject.h"
 		#include "FPSProjectile.h"
@@ -76,17 +76,17 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 		// Sets default values
 		AFPSProjectile::AFPSProjectile()
 		{
-		 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+		 	// 이 액터가 매 프레임 Tick() 을 호출하도록 설정합니다. 필요치 않은 경우 끄면 퍼포먼스가 향상됩니다.
 			PrimaryActorTick.bCanEverTick = true;
 			
-			// Die after 3 seconds (by default)
+			// 3 초 뒤에 죽습니다 (기본).
 			InitialLifeSpan = 3.f;
 		}
 		
-		// Constructor
+		// 생성자
 		AFPSProjectile::AFPSProjectile(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 		{
-			// Use a sphere as a simple collision representation
+			// 구체를 단순 콜리전 표현으로 사용합니다.
 			CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
 		
 			if (CollisionComp != NULL)
@@ -95,7 +95,7 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 				CollisionComp->InitSphereRadius(15.f);
 				RootComponent = CollisionComp;
 		
-				// Use a ProjectileMovementComponent to govern this projectile's movement
+				// ProjectileMovementComponent 를 사용하여 이 발사체의 운동을 관장합니다.
 				ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
 		
 				if (ProjectileMovement != NULL)
@@ -110,35 +110,35 @@ UE4 comes with several useful collision chanels; however, the engine also provid
 			}
 		}
 		
-		// Called when the game starts or when spawned
+		// 게임 시작시 또는 스폰시 호출됩니다.
 		void AFPSProjectile::BeginPlay()
 		{
 			Super::BeginPlay();
 			
 		}
 		
-		// Called every frame
+		// 매 프레임 호출됩니다.
 		void AFPSProjectile::Tick( float DeltaTime )
 		{
 			Super::Tick( DeltaTime );
 		
 		}
 		
-		// Initiallizes velocity of the projectile in the shoot direction
+		// 발사체의 속도를 발사 방향으로 초기화시킵니다.
 		void AFPSProjectile::InitVelocity(const FVector& ShootDirection)
 		{
 			if (ProjectileMovement != NULL)
 			{
-				// set the projectile's velocity to the desired direction
+				// 발사체의 속도를 원하는 방향으로 설정합니다.
 				ProjectileMovement->Velocity = ShootDirection * ProjectileMovement->InitialSpeed;
 			}
 		}
 
-1.	Save `FPSProjectile.cpp` in Visual Studio.
+1.	Visual Studio 에서 `FPSProjectile.cpp` 를 저장합니다.
 
-1.	Locate **FPSProject** in the **Solution Explorer**.
+1.	**Solution Explorer** 에서 **FPSProject** 를 찾습니다.
 
-1.	**Right-click** on **FPSProject** and select **Build** to compile your project.
+1.	**FPSProject** 에 우클릭하고 **Build** 를 선택하여 프로젝트를 컴파일합니다.
 
 	![](BuildFPSProject.png)
 

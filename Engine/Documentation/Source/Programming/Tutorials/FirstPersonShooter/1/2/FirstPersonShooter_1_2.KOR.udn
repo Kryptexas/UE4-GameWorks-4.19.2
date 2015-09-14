@@ -9,15 +9,15 @@ Version: 4.9
 [VAR:Steps]
 [OBJECT:Navigation]
 	[PARAM:previous]
-		[Previous Step](Programming/Tutorials/FirstPersonShooter/1/1)
+		[예전 단계](Programming/Tutorials/FirstPersonShooter/1/1)
 	[/PARAM]
 	[PARAM:current]
 	[/PARAM]
 	[PARAM:home]
-		[Section Home](Programming/Tutorials/FirstPersonShooter/1)
+		[섹션 홈](Programming/Tutorials/FirstPersonShooter/1)
 	[/PARAM]
 	[PARAM:next]
-		[Next Step](Programming/Tutorials/FirstPersonShooter/1/3)
+		[다음 단계](Programming/Tutorials/FirstPersonShooter/1/3)
 	[/PARAM]
 [/OBJECT]
 [/VAR]
