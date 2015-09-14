@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2615776
+﻿INTSourceChangelist:2683038
 Availability:Public
 Title:Blueprint クラスの UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:Blueprint クラスで作業する際のブループリント エディタの UI エレメントの分類
+version:4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -37,11 +38,12 @@ Description:Blueprint クラスで作業する際のブループリント エデ
 
 <!----------
 [EXCERPT:Visible]
-1. メニュー
+1. [メニュー](Engine/Blueprints/Editor\UIComponents\Menu)
 1. [ツールバー](Engine/Blueprints/Editor/UIComponents/Toolbar/ToolbarOptions)
 1. [コンポーネント](Engine/Blueprints/UserGuide/Components)
 1. [My Blueprint](Engine/Blueprints/Editor/UIComponents/MyBlueprint)
 1. [グラフ エディタ](Engine/Blueprints/Editor/UIComponents/GraphEditor)
+1. [詳細](Engine/Blueprints/Editor/UIComponents/Details)
  
 [/EXCERPT:Visible]
 
