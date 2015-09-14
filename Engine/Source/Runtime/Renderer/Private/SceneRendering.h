@@ -14,6 +14,7 @@
 
 // Forward declarations.
 class FPostprocessContext;
+struct FILCUpdatePrimTaskData;
 
 /** Information about a visible light which is specific to the view it's visible in. */
 class FVisibleLightViewInfo
@@ -826,7 +827,7 @@ protected:
 	void ComputeViewVisibility(FRHICommandListImmediate& RHICmdList);
 
 	/** Performs once per frame setup after to visibility determination. */
-	void PostVisibilityFrameSetup();
+	void PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTaskData);
 
 	void GatherDynamicMeshElements(
 		TArray<FViewInfo>& InViews, 

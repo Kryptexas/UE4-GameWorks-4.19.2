@@ -1141,13 +1141,36 @@ public:
 	FIndirectLightingCacheAllocation* Allocation;
 };
 
+/** Information about the primitives that are attached together. */
+class FAttachmentGroupSceneInfo
+{
+public:
+
+	/** The parent primitive, which is the root of the attachment tree. */
+	FPrimitiveSceneInfo* ParentSceneInfo;
+
+	/** The primitives in the attachment group. */
+	TArray<FPrimitiveSceneInfo*> Primitives;
+
+	FAttachmentGroupSceneInfo() :
+		ParentSceneInfo(nullptr)
+	{}
+};
+
+struct FILCUpdatePrimTaskData
+{
+	FGraphEventRef TaskRef;
+	TMap<FIntVector, FBlockUpdateInfo> OutBlocksToUpdate;
+	TArray<FIndirectLightingCacheAllocation*> OutTransitionsOverTimeToUpdate;
+};
+
 /** 
  * Implements a volume texture atlas for caching indirect lighting on a per-object basis.
  * The indirect lighting is interpolated from Lightmass SH volume lighting samples.
  */
 class FIndirectLightingCache : public FRenderResource
 {
-public:
+public:	
 
 	/** true for the editor case where we want a better preview for object that have no valid lightmaps */
 	FIndirectLightingCache(ERHIFeatureLevel::Type InFeatureLevel);
@@ -1162,10 +1185,16 @@ public:
 	/** Releases the indirect lighting allocation for the given primitive. */
 	void ReleasePrimitive(FPrimitiveComponentId PrimitiveId);
 
-	FIndirectLightingCacheAllocation* FindPrimitiveAllocation(FPrimitiveComponentId PrimitiveId);
+	FIndirectLightingCacheAllocation* FindPrimitiveAllocation(FPrimitiveComponentId PrimitiveId);	
 
-	/** Updates indirect lighting in the cache based on visibility. */
+	/** Updates indirect lighting in the cache based on visibility syncronously. */
 	void UpdateCache(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview);
+
+	/** Starts a task to update the cache primitives.  Results and task ref returned in the FILCUpdatePrimTaskData structure */
+	void StartUpdateCachePrimitivesTask(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, FILCUpdatePrimTaskData& OutTaskData);
+
+	/** Wait on a previously started task and complete any block updates and debug draw */
+	void FinalizeCacheUpdates(FScene* Scene, FSceneRenderer& Renderer, FILCUpdatePrimTaskData& TaskData);
 
 	/** Force all primitive allocations to be re-interpolated. */
 	void SetLightingCacheDirty();
@@ -1176,6 +1205,14 @@ public:
 	FSceneRenderTargetItem& GetTexture2() { return Texture2->GetRenderTargetItem(); }
 
 private:
+	/** Internal helper to determine if indirect lighting is enabled at all */
+	bool IndirectLightingAllowed(FScene* Scene, FSceneRenderer& Renderer) const;
+
+	/** Internal helper to perform the work of updating the cache primitives.  Can be done on any thread as a task */
+	void UpdateCachePrimitivesInternal(FScene* Scene, FSceneRenderer& Renderer, bool bAllowUnbuiltPreview, TMap<FIntVector, FBlockUpdateInfo>& OutBlocksToUpdate, TArray<FIndirectLightingCacheAllocation*>& OutTransitionsOverTimeToUpdate);
+
+	/** Internal helper to perform blockupdates and transition updates on the results of UpdateCachePrimitivesInternal.  Must be on render thread. */
+	void FinalizeUpdateInternal_RenderThread(FScene* Scene, FSceneRenderer& Renderer, TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, const TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
 
 	/** Internal helper which adds an entry to the update lists for this allocation, if needed (due to movement, etc). */
 	void UpdateCacheAllocation(
@@ -1185,19 +1222,19 @@ private:
 		bool bUnbuiltPreview,
 		FIndirectLightingCacheAllocation*& Allocation, 
 		TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate,
-		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
+		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);	
 
 	/** 
 	 * Creates a new allocation if needed, caches the result in PrimitiveSceneInfo->IndirectLightingCacheAllocation, 
 	 * And adds an entry to the update lists when an update is needed. 
 	 */
 	void UpdateCachePrimitive(
-		FScene* Scene, 
+		const TMap<FPrimitiveComponentId, FAttachmentGroupSceneInfo>& AttachmentGroups,
 		FPrimitiveSceneInfo* PrimitiveSceneInfo,
 		bool bAllowUnbuiltPreview, 
 		bool bOpaqueRelevance, 
 		TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate, 
-		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);
+		TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate);	
 
 	/** Updates the contents of the volume texture blocks in BlocksToUpdate. */
 	void UpdateBlocks(FScene* Scene, FViewInfo* DebugDrawingView, TMap<FIntVector, FBlockUpdateInfo>& BlocksToUpdate);
@@ -1206,7 +1243,7 @@ private:
 	void UpdateTransitionsOverTime(const TArray<FIndirectLightingCacheAllocation*>& TransitionsOverTimeToUpdate, float DeltaWorldTime) const;
 
 	/** Creates an allocation to be used outside the indirect lighting cache and a block to be used internally. */
-	FIndirectLightingCacheAllocation* CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample, bool bUnbuiltPreview);
+	FIndirectLightingCacheAllocation* CreateAllocation(int32 BlockSize, const FBoxSphereBounds& Bounds, bool bPointSample, bool bUnbuiltPreview);	
 
 	/** Block accessors. */
 	FIndirectLightingCacheBlock& FindBlock(FIntVector TexelMin);
@@ -1281,6 +1318,8 @@ private:
 
 	/** Tracks primitive allocations by component, so that they persist across re-registers. */
 	TMap<FPrimitiveComponentId, FIndirectLightingCacheAllocation*> PrimitiveAllocations;
+
+	friend class FUpdateCachePrimitivesTask;
 };
 
 /**
@@ -1329,22 +1368,6 @@ namespace EOcclusionFlags
 		/** Indicates the primitive has a valid ID for precomputed visibility. */
 		HasSubprimitiveQueries = 0x10,
 	};
-};
-
-/** Information about the primitives that are attached together. */
-class FAttachmentGroupSceneInfo
-{
-public:
-
-	/** The parent primitive, which is the root of the attachment tree. */
-	FPrimitiveSceneInfo* ParentSceneInfo;
-
-	/** The primitives in the attachment group. */
-	TArray<FPrimitiveSceneInfo*> Primitives;
-
-	FAttachmentGroupSceneInfo() :
-		ParentSceneInfo(nullptr)
-	{}
 };
 
 class FLODSceneTree

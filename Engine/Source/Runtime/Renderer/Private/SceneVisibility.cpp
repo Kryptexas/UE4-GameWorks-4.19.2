@@ -108,6 +108,14 @@ static FAutoConsoleVariableRef CVarOcclusionCullParallelPrimFetch(
 	ECVF_RenderThreadSafe
 	);
 
+static int32 GILCUpdatePrimTaskEnabled = 1;
+static FAutoConsoleVariableRef CVarILCUpdatePrimitivesTask(
+	TEXT("r.Cache.UpdatePrimsTaskEnabled"),
+	GILCUpdatePrimTaskEnabled,
+	TEXT("Enable threading for ILC primitive update.  Will overlap with the rest the end of InitViews."),
+	ECVF_RenderThreadSafe
+	);
+
 /** Distance fade cvars */
 static int32 GDisableLODFade = false;
 static FAutoConsoleVariableRef CVarDisableLODFade( TEXT("r.DisableLODFade"), GDisableLODFade, TEXT("Disable fading for distance culling"), ECVF_RenderThreadSafe );
@@ -2428,7 +2436,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 	INC_DWORD_STAT_BY(STAT_OccludedPrimitives,NumOccludedPrimitives);
 }
 
-void FSceneRenderer::PostVisibilityFrameSetup()
+void FSceneRenderer::PostVisibilityFrameSetup(FILCUpdatePrimTaskData& OutILCTaskData)
 {
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{		
@@ -2462,7 +2470,14 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 
 	if (ViewFamily.EngineShowFlags.HitProxies == 0)
 	{
-		Scene->IndirectLightingCache.UpdateCache(Scene, *this, true);
+		if (GILCUpdatePrimTaskEnabled)
+		{
+			Scene->IndirectLightingCache.StartUpdateCachePrimitivesTask(Scene, *this, true, OutILCTaskData);
+		}
+		else
+		{
+			Scene->IndirectLightingCache.UpdateCache(Scene, *this, true);
+		}		
 	}
 
 	// determine visibility of each light
@@ -2628,10 +2643,10 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 			View.FinalPostProcessSettings.AntiAliasingMethod = AAM_None;
 		}
 	}
-
+	FILCUpdatePrimTaskData ILCTaskData;
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
-	PostVisibilityFrameSetup();
+	PostVisibilityFrameSetup(ILCTaskData);
 
 	FVector AverageViewPosition(0);
 
@@ -2648,7 +2663,7 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	}
 	else
 	{
-	SortBasePassStaticData(AverageViewPosition);
+		SortBasePassStaticData(AverageViewPosition);
 	}
 
 	// this cannot be moved later because of static mesh updates for stuff that is only visible in shadows
@@ -2664,6 +2679,12 @@ void FDeferredShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLi
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);
+	}
+
+	// if we kicked off ILC update via task, wait and finalize.
+	if (ILCTaskData.TaskRef.IsValid())
+	{
+		Scene->IndirectLightingCache.FinalizeCacheUpdates(Scene, *this, ILCTaskData);
 	}
 
 	// initialize per-view uniform buffer.

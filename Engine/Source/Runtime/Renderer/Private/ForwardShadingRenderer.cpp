@@ -35,9 +35,10 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 
 	SCOPE_CYCLE_COUNTER(STAT_InitViewsTime);
 
+	FILCUpdatePrimTaskData ILCTaskData;
 	PreVisibilityFrameSetup(RHICmdList);
 	ComputeViewVisibility(RHICmdList);
-	PostVisibilityFrameSetup();
+	PostVisibilityFrameSetup(ILCTaskData);
 
 	bool bDynamicShadows = ViewFamily.EngineShowFlags.DynamicShadows && GetShadowQuality() > 0;
 
@@ -45,6 +46,12 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 	{
 		// Setup dynamic shadows.
 		InitDynamicShadows(RHICmdList);		
+	}
+
+	// if we kicked off ILC update via task, wait and finalize.
+	if (ILCTaskData.TaskRef.IsValid())
+	{
+		Scene->IndirectLightingCache.FinalizeCacheUpdates(Scene, *this, ILCTaskData);
 	}
 
 	// initialize per-view uniform buffer.  Pass in shadow info as necessary.

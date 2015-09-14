@@ -72,6 +72,10 @@ DEFINE_STAT(STAT_LightInteractionMemory);
 
 DEFINE_STAT(STAT_GatherShadowPrimitivesTime);
 DEFINE_STAT(STAT_UpdateIndirectLightingCache);
+DEFINE_STAT(STAT_UpdateIndirectLightingCachePrims);
+DEFINE_STAT(STAT_UpdateIndirectLightingCacheBlocks);
+DEFINE_STAT(STAT_UpdateIndirectLightingCacheTransitions);
+DEFINE_STAT(STAT_UpdateIndirectLightingCacheFinalize);
 DEFINE_STAT(STAT_SortStaticDrawLists);
 DEFINE_STAT(STAT_InitDynamicShadowsTime);
 DEFINE_STAT(STAT_InitProjectedShadowVisibility);
