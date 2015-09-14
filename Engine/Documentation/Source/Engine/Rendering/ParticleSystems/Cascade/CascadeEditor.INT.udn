@@ -182,7 +182,7 @@ The View menu allows you show and hide various diagnostic and visualization feat
 | **Geometry** | Shows or hides the default test mesh. |
 | **Geometry Properties** | Brings up the geometry properties window, where you can adjust the properties of the default geometry, adjusting placement, swapping out the mesh used, and many other options. |
 | **Bounds** | Toggles visibility for the particle system bounds. These are shown as both a bounding box and bounding sphere. |
-| **Set Fixed Bounds** | This activated fixed boundaries for the particle system and automatically sets the values to the largest setting calculated thus far. |
+| **Set Fixed Bounds** | This activates fixed boundaries for the particle system and automatically sets the values to the largest setting calculated thus far. |
 
 
 ##### View Overlay Submenu

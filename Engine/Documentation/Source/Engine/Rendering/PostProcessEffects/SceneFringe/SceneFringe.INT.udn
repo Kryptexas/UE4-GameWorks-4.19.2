@@ -18,6 +18,7 @@ Version: 4.9
 	[/PARAM]
 [/OBJECT]
 
+**Scene Fringe** settings can be located under **Scene Color** in the **Post Process Settings**.
 
 | Property | Description |
 | -------- | ----------- |

@@ -12,6 +12,8 @@ Version: 4.9
 **Vignette** is an effect that simulates the darkening in real-world camera lenses. High quality lens try to compensate for this effect. The effect is mostly noticeable near the edges of the image.
 [/EXCERPT:Vignette_Desc]
 
+**Vignette** settings can be located under **Scene Color** in the **Post Process Settings**.
+
 | Property | Description |
 | -------- | ----------- |
 | **Vignette Intensity** | Allows for darkening of the screen corners. Does not affect bloom (performance reasons but possible to change). Possible uses: simulate camera imperfections. [INCLUDE:#Intensity] |
