@@ -60,6 +60,7 @@ namespace UnrealBuildTool
 								// sometimes the args comes in as null
 								var match = XGEDurationRegex.Match(args.Data ?? "");
 
+/*
 								// This is considered fragile and risky parsing of undocumented XGE output, so protect this code from taking down UBT
 								try
 								{
@@ -109,6 +110,7 @@ namespace UnrealBuildTool
 										"OutputLine", args.Data,
 										"Exception", ex.ToString());
 								}
+*/
 
 								// XGE outputs the duration info in a format that makes VC think it's an error file/line notation if the full filename is used.
 								// So munge it a bit so we don't confuse VC.

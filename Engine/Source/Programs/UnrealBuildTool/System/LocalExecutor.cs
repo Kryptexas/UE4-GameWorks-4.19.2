@@ -282,6 +282,7 @@ namespace UnrealBuildTool
 			// track how long it took
 			Action.EndTime = DateTimeOffset.Now;
 
+/*
 			// send telemetry
 			{
 				// See if the action produced a PCH file (infer from the extension as we no longer have the compile environments used to generate the actions.
@@ -299,6 +300,7 @@ namespace UnrealBuildTool
 						"Duration", Action.Duration.TotalSeconds.ToString("0.00"));
 				}
 			}
+*/
 
 			if (!Utils.IsRunningOnMono)
 			{

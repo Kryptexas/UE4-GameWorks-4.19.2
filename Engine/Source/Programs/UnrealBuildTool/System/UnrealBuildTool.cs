@@ -1225,7 +1225,7 @@ namespace UnrealBuildTool
                         "ComputerName", Environment.MachineName,
                         "User", Environment.UserName,
                         "Domain", Environment.UserDomainName,
-                        "CommandLine", string.Join(" ", Arguments),
+                        "CommandLine", string.Join("|", Arguments),
                         "UBT Action", bGenerateVCProjectFiles 
                             ? "GenerateVCProjectFiles" 
                             : bGenerateXcodeProjectFiles 
@@ -1247,7 +1247,8 @@ namespace UnrealBuildTool
                             : "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
-                        "EngineVersion", (Version == null)? "0" : Version.Changelist.ToString()
+                        "EngineVersion", (Version == null)? "0" : Version.Changelist.ToString(),
+                        "Branch", (Version == null)? "" : Version.BranchName
                         );
 
 
@@ -1394,17 +1395,17 @@ namespace UnrealBuildTool
                         Log.TraceInformation("Execution time: {0}s", BuildDuration);
                     }
 
-                    Telemetry.SendEvent("PerformanceInfo.2",
-                        "TotalExecutionTimeSec", BuildDuration.ToString("0.00"),
-                        "TotalTimeSpentGettingIncludesSec", CPPEnvironment.TotalTimeSpentGettingIncludes.ToString("0.00"),
-                        "TotalIncludesRequested", CPPEnvironment.TotalIncludesRequested.ToString(),
-                        "DirectIncludeCacheMissesTotalTimeSec", CPPEnvironment.DirectIncludeCacheMissesTotalTime.ToString("0.00"),
-                        "TotalDirectIncludeCacheMisses", CPPEnvironment.TotalDirectIncludeCacheMisses.ToString(),
-                        "TotalFindIncludedFileCalls", CPPEnvironment.TotalFindIncludedFileCalls.ToString(),
-                        "IncludePathSearchAttempts", CPPEnvironment.IncludePathSearchAttempts.ToString(),
-                        "TotalFileItemCount", FileItem.TotalFileItemCount.ToString(),
-                        "MissingFileItemCount", FileItem.MissingFileItemCount.ToString()
-                        );
+                    //Telemetry.SendEvent("PerformanceInfo.2",
+                    //    "TotalExecutionTimeSec", BuildDuration.ToString("0.00"),
+                    //    "TotalTimeSpentGettingIncludesSec", CPPEnvironment.TotalTimeSpentGettingIncludes.ToString("0.00"),
+                    //    "TotalIncludesRequested", CPPEnvironment.TotalIncludesRequested.ToString(),
+                    //    "DirectIncludeCacheMissesTotalTimeSec", CPPEnvironment.DirectIncludeCacheMissesTotalTime.ToString("0.00"),
+                    //    "TotalDirectIncludeCacheMisses", CPPEnvironment.TotalDirectIncludeCacheMisses.ToString(),
+                    //    "TotalFindIncludedFileCalls", CPPEnvironment.TotalFindIncludedFileCalls.ToString(),
+                    //    "IncludePathSearchAttempts", CPPEnvironment.IncludePathSearchAttempts.ToString(),
+                    //    "TotalFileItemCount", FileItem.TotalFileItemCount.ToString(),
+                    //    "MissingFileItemCount", FileItem.MissingFileItemCount.ToString()
+                    //    );
                 }
                 catch (Exception Exception)
                 {
@@ -2103,16 +2104,16 @@ namespace UnrealBuildTool
                     TotalLinkTime,
                     TotalOtherActionsTime
                 );
-                Telemetry.SendEvent("BuildStatsTotal.2",
-                    "ExecutorName", ExecutorName,
-                    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00"),
-                    "TotalBuildProjectThreadTimeSec", TotalBuildProjectTime.ToString("0.00"),
-                    "TotalCompileThreadTimeSec", TotalCompileTime.ToString("0.00"),
-                    "TotalCreateAppBundleThreadTimeSec", TotalCreateAppBundleTime.ToString("0.00"),
-                    "TotalGenerateDebugInfoThreadTimeSec", TotalGenerateDebugInfoTime.ToString("0.00"),
-                    "TotalLinkThreadTimeSec", TotalLinkTime.ToString("0.00"),
-                    "TotalOtherActionsThreadTimeSec", TotalOtherActionsTime.ToString("0.00")
-                    );
+                //Telemetry.SendEvent("BuildStatsTotal.2",
+                //    "ExecutorName", ExecutorName,
+                //    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00"),
+                //    "TotalBuildProjectThreadTimeSec", TotalBuildProjectTime.ToString("0.00"),
+                //    "TotalCompileThreadTimeSec", TotalCompileTime.ToString("0.00"),
+                //    "TotalCreateAppBundleThreadTimeSec", TotalCreateAppBundleTime.ToString("0.00"),
+                //    "TotalGenerateDebugInfoThreadTimeSec", TotalGenerateDebugInfoTime.ToString("0.00"),
+                //    "TotalLinkThreadTimeSec", TotalLinkTime.ToString("0.00"),
+                //    "TotalOtherActionsThreadTimeSec", TotalOtherActionsTime.ToString("0.00")
+                //    );
 
                 Log.TraceInformation("Total build time: {0:0.00} seconds", BuildDuration);
 
@@ -2130,10 +2131,10 @@ namespace UnrealBuildTool
                 {
                     Log.TraceInformation("XGE execution time: {0:0.00} seconds", BuildDuration);
                 }
-                Telemetry.SendEvent("BuildStatsTotal.2",
-                    "ExecutorName", ExecutorName,
-                    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00")
-                    );
+                //Telemetry.SendEvent("BuildStatsTotal.2",
+                //    "ExecutorName", ExecutorName,
+                //    "TotalUBTWallClockTimeSec", BuildDuration.ToString("0.00")
+                //    );
             }
 
             return BuildResult;

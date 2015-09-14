@@ -95,8 +95,7 @@ namespace UnrealBuildTool
 					{
 						Log.TraceInformation("Loading IncludeFileCache took " + TimerDuration.TotalSeconds + "s");
 					}
-					Telemetry.SendEvent("LoadIncludeDependencyCacheStats.2",
-						"TotalDuration", TimerDuration.TotalSeconds.ToString("0.00"));
+					//Telemetry.SendEvent("LoadIncludeDependencyCacheStats.2", "TotalDuration", TimerDuration.TotalSeconds.ToString("0.00"));
 					return Result;
 				}
 			}
