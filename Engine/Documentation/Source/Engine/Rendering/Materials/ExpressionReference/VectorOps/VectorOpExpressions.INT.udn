@@ -10,7 +10,7 @@ Description:Expressions that perform operations on vector input values.
 [EXCERPT:AppendVector]
 ## AppendVector
 
-The AppendVector expression allows you to combine channels together to create a vector with more channels than the original.  For example, you can take two individual [Constants](Engine/Rendering/Materials/ExpressionReference/Constant#Constant) values and append them to make a two-channel [Constant2Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant2Vector) value. This can be useful for reordering the channels within a single texture or for combining multiple grayscale textures into one RGB color texture.
+The **AppendVector** expression allows you to combine channels together to create a vector with more channels than the original.  For example, you can take two individual [Constants](Engine/Rendering/Materials/ExpressionReference/Constant#Constant) values and append them to make a two-channel [Constant2Vector](Engine/Rendering/Materials/ExpressionReference/Constant#Constant2Vector) value. This can be useful for reordering the channels within a single texture or for combining multiple grayscale textures into one RGB color texture.
 
 | Item | Description |
 | -------- | ----------- |
@@ -29,7 +29,7 @@ The AppendVector expression allows you to combine channels together to create a 
 [EXCERPT:ComponentMask]
 ## ComponentMask
 
-The ComponentMask expression allows you to select a specific subset of channels (R, G, B, and/or A) from the input to pass through to the output. Attempting to pass a channel through that does not exist in the input will cause an error, unless the input is a single constant value. In that case, the single value is passed through to each channel. The current channels selected to be passed through are displayed in the title bar of the expression.
+The **ComponentMask** expression allows you to select a specific subset of channels (R, G, B, and/or A) from the input to pass through to the output. Attempting to pass a channel through that does not exist in the input will cause an error, unless the input is a single constant value. In that case, the single value is passed through to each channel. The current channels selected to be passed through are displayed in the title bar of the expression.
 
 | Item | Description |
 | -------- | ----------- |
