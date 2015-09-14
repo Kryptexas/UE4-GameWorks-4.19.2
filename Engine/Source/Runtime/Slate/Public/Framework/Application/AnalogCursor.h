@@ -13,6 +13,13 @@ namespace AnalogCursorMode
 	};
 }
 
+enum class EAnalogStick : uint8
+{
+	Left,
+	Right,
+	Max,
+};
+
 /**
  * A class that simulates a cursor driven by an analog stick.
  */
@@ -40,9 +47,9 @@ public:
 protected:
 
 	/** Getter */
-	FORCEINLINE FVector2D GetAnalogValues() const
+	FORCEINLINE FVector2D GetAnalogValues( EAnalogStick Stick = EAnalogStick::Left ) const
 	{
-		return AnalogValues;
+		return AnalogValues[ static_cast< uint8 >( Stick ) ];
 	}
 
 	/** Handles updating the cursor position and processing a Mouse Move Event */
@@ -63,7 +70,12 @@ protected:
 
 private:
 
+	FORCEINLINE FVector2D& GetAnalogValue( EAnalogStick Stick )
+	{
+		return AnalogValues[ static_cast< uint8 >( Stick ) ];
+	}
+
 	/** Input from the gamepad */
-	FVector2D AnalogValues;
+	FVector2D AnalogValues[ static_cast<uint8>( EAnalogStick::Max ) ];
 };
 
