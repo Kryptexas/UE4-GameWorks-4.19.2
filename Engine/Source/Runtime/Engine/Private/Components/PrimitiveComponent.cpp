@@ -106,6 +106,33 @@ private:
 };
 
 
+FORCEINLINE_DEBUGGABLE static bool CanComponentsGenerateOverlap(const UPrimitiveComponent* MyComponent, /*const*/ UPrimitiveComponent* OtherComp)
+{
+	return OtherComp
+		&& OtherComp->bGenerateOverlapEvents
+		&& MyComponent
+		&& MyComponent->bGenerateOverlapEvents
+		&& MyComponent->GetCollisionResponseToComponent(OtherComp) == ECR_Overlap;
+}
+
+// Predicate to remove components from overlaps array that can no longer overlap
+struct FPredicateFilterCannotOverlap
+{
+	FPredicateFilterCannotOverlap(const UPrimitiveComponent& OwningComponent)
+	: MyComponent(OwningComponent)
+	{
+	}
+
+	bool operator() (const FOverlapInfo& Info) const
+	{
+		return !CanComponentsGenerateOverlap(&MyComponent, Info.OverlapInfo.GetComponent());
+	}
+
+private:
+	const UPrimitiveComponent& MyComponent;
+};
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // PRIMITIVE COMPONENT
 ///////////////////////////////////////////////////////////////////////////////
@@ -1962,7 +1989,7 @@ void UPrimitiveComponent::BeginComponentOverlap(const FOverlapInfo& OtherOverlap
 	if (OtherComp)
 	{
 		bool const bComponentsAlreadyTouching = IsOverlappingComponent(OtherOverlap);
-		if (!bComponentsAlreadyTouching)
+		if (!bComponentsAlreadyTouching && CanComponentsGenerateOverlap(this, OtherComp))
 		{
 			AActor* const OtherActor = OtherComp->GetOwner();
 			AActor* const MyActor = GetOwner();
@@ -2154,7 +2181,7 @@ const TArray<FOverlapInfo>* UPrimitiveComponent::ConvertSweptOverlapsToCurrentOv
 							// Not handled yet. We could do it by checking every body explicitly and track each body index in the overlap test, but this seems like a rare need.
 							return nullptr;
 						}
-						else if (ComponentOverlapComponent(OtherPrimitive, EndLocation, EndRotationQuat, UnusedQueryParams))
+						else if (OtherPrimitive->ComponentOverlapComponent(this, EndLocation, EndRotationQuat, UnusedQueryParams))
 						{
 							OverlapsAtEndLocation.Add(OtherOverlap);
 						}
@@ -2347,6 +2374,12 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 				{
 					UE_LOG(LogPrimitiveComponent, VeryVerbose, TEXT("%s->%s Skipping overlap test!"), *GetNameSafe(GetOwner()), *GetName());
 					NewOverlappingComponents = *OverlapsAtEndLocation;
+
+					// BeginComponentOverlap may have disabled what we thought were valid overlaps at the end.
+					if (NewPendingOverlaps && NewPendingOverlaps->Num() > 0)
+					{
+						NewOverlappingComponents.RemoveAllSwap(FPredicateFilterCannotOverlap(*this), /*bAllowShrinking*/ false);
+					}
 				}
 				else
 				{
@@ -2382,7 +2415,6 @@ void UPrimitiveComponent::UpdateOverlaps(const TArray<FOverlapInfo>* NewPendingO
 				if (bIgnoreChildren)
 				{
 					OldOverlappingComponents = OverlappingComponents.FilterByPredicate(FPredicateOverlapHasDifferentActor(*MyActor));
-					checkSlow(!NewOverlappingComponents.FindByPredicate(FPredicateOverlapHasSameActor(*MyActor)));
 				}
 				else
 				{

@@ -756,7 +756,8 @@ public class GameActivity extends NativeActivity
 
 		// Set label and starting contents
 		virtualKeyboardAlert.setTitle(Label);
-		virtualKeyboardInputBox.setText(Contents);
+		virtualKeyboardInputBox.setText("");
+		virtualKeyboardInputBox.append(Contents);
 
 		// configure for type of input
 		virtualKeyboardInputBox.setInputType(InputType);

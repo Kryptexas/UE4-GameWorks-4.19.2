@@ -1,10 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#if PLATFORM_MAC
-#include "0.5/OculusRiftHMD_05.h"
-#else
-#include "IOculusRiftPlugin.h"
 #include "IHeadMountedDisplay.h"
 #include "HeadMountedDisplayCommon.h"
 
@@ -26,10 +22,9 @@
 
 #if OCULUS_RIFT_SUPPORTED_PLATFORMS
 	#include <OVR_Version.h>
-	#include <OVR_CAPI_0_6_0.h>
+	#include <OVR_CAPI_0_7_0.h>
 	#include <OVR_CAPI_Keys.h>
 	#include <Extras/OVR_Math.h>
-    #include <OVR_CAPI_Util.h>
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
 
 #if PLATFORM_SUPPORTS_PRAGMA_PACK
@@ -106,6 +101,12 @@ class FSettings : public FHMDSettings
 {
 public:
 	const int TexturePaddingPerEye = 12; // padding, in pixels, per eye (total padding will be doubled)
+	enum EQueueAheadStatus
+	{
+		EQA_Default = 0,
+		EQA_Enabled = 1,
+		EQA_Disabled = 2
+	};
 
 	ovrEyeRenderDesc		EyeRenderDesc[2];			// 0 - left, 1 - right, same as Views
 	ovrMatrix4f				EyeProjectionMatrices[2];	// 0 - left, 1 - right, same as Views
@@ -116,7 +117,7 @@ public:
 	FIntPoint				RenderTargetSize;
 	float					PixelDensity;
 
-	bool					bQueueAheadEnabled;
+	EQueueAheadStatus		QueueAheadStatus;
 
 	unsigned				SupportedTrackingCaps;
 	unsigned				SupportedHmdCaps;
@@ -203,6 +204,7 @@ public:
 		: FRHICustomPresent(nullptr)
 		, Hmd(nullptr)
 		, MirrorTexture(nullptr)
+		, NeedToKillHmd(0)
 		, bInitialized(false)
 		, bNeedReAllocateTextureSet(true)
 		, bNeedReAllocateMirrorTexture(true)
@@ -241,6 +243,13 @@ public:
 	// If returns false then a default RT texture will be used.
 	virtual bool AllocateRenderTargetTexture(uint32 SizeX, uint32 SizeY, uint8 Format, uint32 NumMips, uint32 Flags, uint32 TargetableTextureFlags, FTexture2DRHIRef& OutTargetableTexture, FTexture2DRHIRef& OutShaderResourceTexture, uint32 NumSamples) = 0;
 
+	// Can be called on any thread. Returns true, if HMD is marked as invalid and it must be killed.
+	// This function resets the flag.
+	bool NeedsToKillHmd()
+	{
+		return FPlatformAtomics::InterlockedExchange(&NeedToKillHmd, 0) != 0;
+	}
+
 protected:
 	void SetRenderContext(FHMDViewExtension* InRenderContext);
 
@@ -252,6 +261,7 @@ protected: // data
 	ovrTexture*			MirrorTexture;
 	FTexture2DRHIRef	MirrorTextureRHI;
 
+	volatile int32		NeedToKillHmd;
 	bool				bInitialized : 1;
 	bool				bNeedReAllocateTextureSet : 1;
 	bool				bNeedReAllocateMirrorTexture : 1;
@@ -268,6 +278,7 @@ class FOculusRiftHMD : public FHeadMountedDisplay
 {
 	friend class FViewExtension;
 	friend class UOculusFunctionLibrary;
+	friend class FOculusRiftPlugin;
 public:
 	/** IHeadMountedDisplay interface */
 	virtual bool OnStartGameFrame( FWorldContext& WorldContext ) override;
@@ -341,6 +352,8 @@ public:
 	virtual bool GetUserProfile(UserProfile& OutProfile) override;
 
 	virtual FString GetVersionString() const override;
+
+	virtual bool IsHMDActive() override { return Hmd != nullptr; }
 
 protected:
 	virtual TSharedPtr<FHMDGameFrame, ESPMode::ThreadSafe> CreateNewGameFrame() const override;
@@ -466,6 +479,11 @@ private: // data
 	TRefCountPtr<FCustomPresent>pCustomPresent;
 	IRendererModule*			RendererModule;
 	ovrHmd						Hmd;
+	ovrHmdDesc					HmdDesc;
+	ovrGraphicsLuid				Luid;
+
+	TWeakPtr<SWindow>			CachedWindow;
+	TWeakPtr<SWidget>			CachedViewportWidget;
 
 	union
 	{
@@ -498,4 +516,3 @@ private: // data
 };
 
 #endif //OCULUS_RIFT_SUPPORTED_PLATFORMS
-#endif //#if PLATFORM_MAC

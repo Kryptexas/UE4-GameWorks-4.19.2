@@ -54,6 +54,11 @@ void UUserDefinedEnum::PostLoad()
 	Super::PostLoad();
 	FEnumEditorUtils::UpdateAfterPathChanged(this);
 	FEnumEditorUtils::EnsureAllDisplayNamesExist(this);
+
+	for (int32 i = 0; i < Names.Num(); ++i)
+	{
+		Names[i].Value = i;
+	}
 }
 
 void UUserDefinedEnum::PostEditUndo()
@@ -117,7 +122,8 @@ bool UUserDefinedEnum::SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm I
 		const int32 MaxEnumItemIndex = GetValueByName(MaxEnumItem);
 		if ((MaxEnumItemIndex == INDEX_NONE) && (LookupEnumName(MaxEnumItem) == INDEX_NONE))
 		{
-			Names.Add(TPairInitializer<FName, uint8>(MaxEnumItem, GetMaxEnumValue() + 1));
+			int MaxEnumValue = (InNames.Num() == 0)? 0 : GetMaxEnumValue() + 1;
+			Names.Add(TPairInitializer<FName, uint8>(MaxEnumItem, MaxEnumValue));
 			AddNamesToMasterList();
 			return true;
 		}

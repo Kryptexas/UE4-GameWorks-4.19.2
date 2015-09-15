@@ -863,6 +863,13 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 			{
 				if (!Pin->bHidden)
 				{
+					// Tooltips are generally built on-demand. However, when generating Blueprint API documentation, they must all be built up-front.
+					if (UEdGraphSchema_K2::bGeneratingDocumentation)
+					{
+						FString Scratch;
+						Node->GetPinHoverText(*Pin, Scratch);
+					}
+
 					if (!bFirst)
 					{
 						ActionEntry += ",";

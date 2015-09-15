@@ -25,7 +25,17 @@
 #include "PaniniProjection.usf"
 
 #ifndef USE_DITHERED_LOD_TRANSITION
-	#define USE_DITHERED_LOD_TRANSITION 0
+    #if USE_INSTANCING
+	    #ifndef USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
+		    #error "USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED should have been defined"
+	    #endif
+	    #define USE_DITHERED_LOD_TRANSITION USE_DITHERED_LOD_TRANSITION_FOR_INSTANCED
+    #else
+	    #ifndef USE_DITHERED_LOD_TRANSITION_FROM_MATERIAL
+		    #error "USE_DITHERED_LOD_TRANSITION_FROM_MATERIAL should have been defined"
+	    #endif
+	    #define USE_DITHERED_LOD_TRANSITION USE_DITHERED_LOD_TRANSITION_FROM_MATERIAL
+    #endif
 #endif
 
 //Platforms that don't run the editor shouldn't need editor features in the shaders.

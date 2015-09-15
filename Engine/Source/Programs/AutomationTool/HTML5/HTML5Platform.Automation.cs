@@ -309,7 +309,7 @@ public class HTML5Platform : Platform
 					LineStr = LineStr.Replace("${unreal_mono_pkg_path_base}", InMonoPathParent);
 				}
 
-				outputContents.AppendLine(LineStr);
+				outputContents.Append(LineStr + '\n');
 			}
 		}
 
@@ -321,10 +321,12 @@ public class HTML5Platform : Platform
 				Directory.CreateDirectory(Path.GetDirectoryName(InOutputFile));
 				if (File.Exists(InOutputFile))
 				{
+					File.SetAttributes(InOutputFile, File.GetAttributes(InOutputFile) & ~FileAttributes.ReadOnly);
 					File.Delete(InOutputFile);
 				}
 				File.Copy(InTemplateFile, InOutputFile);
-				using (var CmdFile = File.OpenWrite(InOutputFile)) 
+				File.SetAttributes(InOutputFile, File.GetAttributes(InOutputFile) & ~FileAttributes.ReadOnly);
+				using (var CmdFile = File.Open(InOutputFile, FileMode.OpenOrCreate | FileMode.Truncate)) 
 				{
 					Byte[] BytesToWrite = new UTF8Encoding(true).GetBytes(outputContents.ToString());
 					CmdFile.Write(BytesToWrite, 0, BytesToWrite.Length);

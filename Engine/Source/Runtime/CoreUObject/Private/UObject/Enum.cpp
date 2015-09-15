@@ -60,6 +60,21 @@ void UEnum::Serialize( FArchive& Ar )
 		}
 		AddNamesToMasterList();
 	}
+
+	// !!!HACKY!!!
+	// We can't modify headers due to binary compatibility in releases,
+	// so adding UUserDefinedEnum::Serialize in it's parent class.
+	// !!!HACKY!!!
+#if WITH_EDITOR
+	static FName NAME_UserDefinedEnum(TEXT("UserDefinedEnum"));
+	if (Ar.IsLoading() && Ar.IsPersistent() && (GetClass()->GetFName() == NAME_UserDefinedEnum))
+	{
+		for (int32 i = 0; i < Names.Num(); ++i)
+		{
+			Names[i].Value = i;
+		}
+	}
+#endif // WITH_EDITOR
 }
 
 FString UEnum::GetBaseEnumNameOnDuplication() const

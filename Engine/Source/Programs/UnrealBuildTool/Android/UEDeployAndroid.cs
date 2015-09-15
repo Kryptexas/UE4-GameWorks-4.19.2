@@ -1683,7 +1683,7 @@ namespace UnrealBuildTool.Android
             // Note: only support ARMv7 at the moment
             if (bPackageForGearVR && Arch == "armeabi-v7a")
             {
-                string SourceVRLibFile = ThirdPartyDir + "/Oculus/LibOVRMobile/LibOVRMobile_060/VrApi/Libs/Android/armeabi-v7a/libvrapi.so";
+                string SourceVRLibFile = ThirdPartyDir + "/Oculus/LibOVRMobile/LibOVRMobile_061/VrApi/Libs/Android/armeabi-v7a/libvrapi.so";
 				string FinalVRLibFile = UE4BuildPath + "/libs/" + Arch + "/libvrapi.so";
 
 				if (File.Exists(SourceVRLibFile))

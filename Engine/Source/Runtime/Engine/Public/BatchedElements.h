@@ -304,8 +304,15 @@ private:
 	public:
 		FGlobalBoundShaderState& GetBSS(bool bEncoded, ESimpleElementBlendMode BlendMode)
 		{
-			check((uint32)BlendMode < NumBSS);
-			return bEncoded ? EncodedBSS[BlendMode] : UnencodedBSS;
+			if (bEncoded)
+			{
+				check((uint32)BlendMode < NumBSS);
+				return EncodedBSS[BlendMode];
+			}
+			else
+			{
+				return UnencodedBSS;
+			}
 		}
 	};
 

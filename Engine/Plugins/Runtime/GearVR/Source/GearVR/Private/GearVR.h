@@ -15,7 +15,6 @@
 	
 PRAGMA_DISABLE_SHADOW_VARIABLE_WARNINGS
 #include "OVR.h"
-#include "OVRVersion.h"
 #include "VrApi.h"
 #include "VrApi_Android.h"
 PRAGMA_ENABLE_SHADOW_VARIABLE_WARNINGS
@@ -135,7 +134,7 @@ public:
 	ovrTracking				CurSensorState;	    // sensor state read at the beginning of the frame
 
 	ovrPosef				EyeRenderPose[2];	// eye render pose actually used
-	ovrPoseStatef			HeadPose;			// position of head actually used
+	ovrRigidBodyPosef		HeadPose;			// position of head actually used
 	ovrMatrix4f				TanAngleMatrix;
 	
 	pid_t					GameThreadId;
@@ -173,7 +172,7 @@ public:
 public:
 	class FGearVRCustomPresent* pPresentBridge;
 	ovrPosef			NewEyeRenderPose[2];// most recent eye render poses
-	ovrPoseStatef		CurHeadPose;		// current position of head
+	ovrRigidBodyPosef	CurHeadPose;		// current position of head
 	ovrTracking			NewTracking;		// current tracking
 
 	FEngineShowFlags	ShowFlags;			// a copy of showflags
@@ -208,7 +207,7 @@ class FGearVRCustomPresent : public FRHICustomPresent
 	friend class FViewExtension;
 	friend class ::FGearVR;
 public:
-	FGearVRCustomPresent(jobject InActivityObject, int32 InMinimumVsyncs, int InCpuLevel, int InGpuLevel, pid_t	InGameThreadId);
+	FGearVRCustomPresent(jobject InActivityObject, int32 InMinimumVsyncs);
 
 	// Returns true if it is initialized and used.
 	bool IsInitialized() const { return bInitialized; }
@@ -260,12 +259,9 @@ protected: // data
 
 	// should be accessed only on a RenderThread!
 	ovrFrameParms							FrameParms;
-	//ovrPerformanceParms						DefaultPerfParms;
+	ovrPerformanceParms						DefaultPerfParms;
 	TRefCountPtr<class FOpenGLTexture2DSet>	TextureSet;
 	int32									MinimumVsyncs;
-	int										CpuLevel;
-	int										GpuLevel;
-	pid_t									GameThreadId;
 
 	ovrMobile*								OvrMobile;		// to be accessed only on RenderThread (or, when RT is suspended)
 	pid_t									RenderThreadId; // the rendering thread id where EnterVrMode was called.
@@ -335,6 +331,8 @@ public:
 		current position as 0 point. */
 	virtual void ResetOrientationAndPosition(float yaw = 0.f) override;
 
+	void RebaseObjectOrientationAndPosition(FVector& OutPosition, FQuat& OutOrientation) const;
+
 	virtual FString GetVersionString() const override;
 
 	virtual void DrawDebug(UCanvas* Canvas) override;
@@ -347,11 +345,20 @@ public:
 
 	TRefCountPtr<FGearVRCustomPresent> pGearVRBridge;
 
-	void ShutdownRendering();
 	void StartOVRGlobalMenu();
+	void StartOVRQuitMenu();
+
+	void SetCPUAndGPULevels(int32 CPULevel, int32 GPULevel);
+	bool IsPowerLevelStateMinimum() const;
+	bool IsPowerLevelStateThrottled() const;
+	bool AreHeadPhonesPluggedIn() const;
+	float GetTemperatureInCelsius() const;
+	float GetBatteryLevel() const;
 
 private:
 	FGearVR* getThis() { return this; }
+
+	void ShutdownRendering();
 
 	/**
 	 * Starts up the GearVR device

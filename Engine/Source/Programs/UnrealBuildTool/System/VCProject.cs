@@ -1032,6 +1032,10 @@ namespace UnrealBuildTool
 					{
 						BuildArguments += " " + UProjectPath + (UnrealBuildTool.RunningRocket() ? " -rocket" : "");
 					}
+
+					// Always wait for the mutex between UBT invocations, so that building the whole solution doesn't fail.
+					BuildArguments += " -waitmutex";
+
 					string BatchFilesDirectoryName = Path.Combine(ProjectFileGenerator.EngineRelativePath, "Build", "BatchFiles");
 
 					// @todo UWP: For the MS toolchains, if an override was set for project generation, push that into the build strings to override the build toolchain as well

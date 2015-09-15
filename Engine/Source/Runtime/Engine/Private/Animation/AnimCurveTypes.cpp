@@ -571,7 +571,15 @@ void FBlendedCurve::Combine(const FBlendedCurve& CurveToCombine)
 
 	for(int32 CurveId=0; CurveId<CurveToCombine.Elements.Num(); ++CurveId)
 	{
-		Elements[CurveId].Value = FMath::Max(Elements[CurveId].Value, CurveToCombine.Elements[CurveId].Value);
+		// if target value is non zero, we accpet target's value
+		// originally this code was doing max, but that doesn't make sense since the values can be negative
+		// we could try to pick non-zero, but if target value is non-zero, I think we should accept that value 
+		// if source is non zero, it will be overriden
+		if (CurveToCombine.Elements[CurveId].Value != 0.f)
+		{
+			Elements[CurveId].Value = CurveToCombine.Elements[CurveId].Value; 
+		}
+
 		Elements[CurveId].Flags |= CurveToCombine.Elements[CurveId].Flags;
 	}
 
