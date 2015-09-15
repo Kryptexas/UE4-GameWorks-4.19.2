@@ -1010,6 +1010,9 @@ private:
 	/** Native state exit bindings */
 	TArray<FNativeStateBinding> NativeStateExitBindings;
 
+	// update montage
+	void UpdateMontage(float DeltaSeconds);
+
 protected:
 	/** Update all animation node */
 	virtual void UpdateAnimationNode(float DeltaSeconds);
