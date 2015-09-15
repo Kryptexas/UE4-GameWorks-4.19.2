@@ -92,7 +92,7 @@ class UBlueprintGameplayTagLibrary : public UBlueprintFunctionLibrary
 	* @param InTagContainer			The container to append.
 	* @param InOutTagContainer		The container that will be appended too.
 	*/
-	UFUNCTION(BlueprintPure, Category = "GameplayTags|Tag Container")
+	UFUNCTION(BlueprintCallable, Category = "GameplayTags|Tag Container")
 	static bool AppendGameplayTagContainers(const FGameplayTagContainer& InTagContainer, UPARAM(ref) FGameplayTagContainer& InOutTagContainer);
 
 	/**
