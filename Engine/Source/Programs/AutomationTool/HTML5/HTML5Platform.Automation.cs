@@ -148,6 +148,9 @@ public class HTML5Platform : Platform
 		string MonoPath = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "BatchFiles", "Mac", "SetupMono.sh");
 		GenerateMacCommandFromTemplate(MacBashTemplateFile, MacBashOutputFile, MonoPath);
 
+		string htaccessTemplate = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5", "htaccess.template");
+		File.Copy(htaccessTemplate, Path.Combine(PackagePath, ".htaccess"), true);
+
 		string JSDir = Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5");
 		string OutDir = PackagePath;
 
@@ -164,17 +167,17 @@ public class HTML5Platform : Platform
 		// Compress all files. These are independent tasks which can be threaded. 
 		Task[] CompressionTasks = new Task[6];
 		//data file.
-		CompressionTasks[0] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation, FinalDataLocation + ".gz"));		
+		CompressionTasks[0] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation, FinalDataLocation + "gz"));		
 		// data file .js driver.
-		CompressionTasks[1] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".js.gz"));
+		CompressionTasks[1] = Task.Factory.StartNew( () => CompressFile(FinalDataLocation + ".js" , FinalDataLocation + ".jsgz"));
 		// main js.
-		CompressionTasks[2] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe), Path.Combine(PackagePath, GameExe) + ".gz"));
+		CompressionTasks[2] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe), Path.Combine(PackagePath, GameExe) + "gz"));
 		// mem init file.
-		CompressionTasks[3] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".mem.gz"));
+		CompressionTasks[3] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".mem", Path.Combine(PackagePath, GameExe) + ".memgz"));
 		// symbols file.
-		CompressionTasks[4] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbols.gz"));
+		CompressionTasks[4] = Task.Factory.StartNew(() => CompressFile(Path.Combine(PackagePath, GameExe) + ".symbols", Path.Combine(PackagePath, GameExe) + ".symbolsgz"));
 		// Utility 
-		CompressionTasks[5] = Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.js.gz"));
+		CompressionTasks[5] = Task.Factory.StartNew(() => CompressFile(OutDir + "/Utility.js", OutDir + "/Utility.jsgz"));
 
 		File.Copy(CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/DotNET/HTML5LaunchHelper.exe"),CombinePaths(OutDir, "HTML5LaunchHelper.exe"),true);
 		Task.WaitAll(CompressionTasks);
@@ -365,17 +368,23 @@ public class HTML5Platform : Platform
 		string OutputFile = Path.Combine(PackagePath, (Params.ClientConfigsToBuild[0].ToString() != "Development" ? (Params.ShortProjectName + "-HTML5-" + Params.ClientConfigsToBuild[0].ToString()) : Params.ShortProjectName)) + ".html";
 
 		// data file 
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + "gz"));
 		// data file js driver 
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(FinalDataLocation + ".jsgz"));
 		// main js file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + "gz"));
 		// memory init file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".memgz"));
 		// symbols file
-		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbols"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".symbolsgz"));
 		// utilities
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js.gz"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("Utility.jsgz"));
 		// landing page.
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
 
@@ -384,6 +393,7 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(LaunchHelperPath, "HTML5LaunchHelper.exe");
 		SC.ArchiveFiles(Path.Combine(CombinePaths(CmdEnv.LocalRoot, "Engine"), "Build", "HTML5"), "Readme.txt");
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, "RunMacHTML5LaunchHelper.command")));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName(Path.Combine(PackagePath, ".htaccess")));
 
 		if (HTMLPakAutomation.CanCreateMapPaks(Params))
 		{
@@ -570,8 +580,8 @@ public class HTML5Platform : Platform
 	private static IDictionary<string, string> MimeTypeMapping = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) 
 		{
 			{ ".html", "text/html"},
-			{ ".js.gz", "application/x-javascript" },  // upload compressed javascript. 
-			{ ".data.gz", "appication/octet-stream"}
+			{ ".jsgz", "application/x-javascript" },  // upload compressed javascript. 
+			{ ".datagz", "appication/octet-stream"}
 		}; 
 
 	public void UploadToS3Worker(FileInfo Info, string KeyId, string AccessKey, string BucketName, string FolderName )
@@ -603,7 +613,7 @@ public class HTML5Platform : Platform
 			Request.Headers["x-amz-acl"] = "public-read"; // we probably want to make public read by default. 
 
 			// set correct content encoding for compressed javascript. 
-			if ( Info.Extension == ".gz")
+			if ( Info.Extension.EndsWith("gz") )
 			{
 				Request.Headers["Content-Encoding"] = "gzip";
 			}
