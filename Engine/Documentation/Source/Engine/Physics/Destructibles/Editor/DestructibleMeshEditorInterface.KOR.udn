@@ -1,41 +1,41 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2662600
 Availability: Docs
-Title:Destructible Mesh Editor UI
+Title:디스트럭터블 메시 에디터 UI
 Crumbs:%ROOT%, Engine, Engine/Content, Engine/Physics/Destructibles/Editor
-Description:Tool used to preview the look, preview depth levels, and materials of DestructibleMesh assets.
+Description:디스트럭터블 메시 애셋의 머티리얼, 뎁스 레벨, 모양을 미리보는 데 사용되는 툴입니다.
 
 [TOC(start:2)]
 
 
-The **Destructible Mesh Editor** consists of six areas:
+**디스트럭터블 메시 에디터** 는 여섯 부분으로 이루어집니다:
 
 [REGION:fullwidth]
 ![](DM_UI.png)
 [/REGION]
-1. [Menu Bar](#MenuBar)
-1. [Toolbar](#ToolBar)
-1. [Viewport Panel](#ViewportPanel)
-1. [Destructible Settings Panel](#DestructibleSettingsPanel)
-1. [Fracture Settings Panel](#FractureSettingsPanel)
-1. [Chunk Parameters Panel](#ChunkParametersPanel)
+1. [메뉴 바](#메뉴바)
+1. [툴 바](#툴바)
+1. [뷰포트 패널](#뷰포트패널)
+1. [디스트럭터블 세팅 패널](#디스트럭터블세팅패널)
+1. [프랙처 세팅 패널](#프랙처세팅패널)
+1. [청크 파라미터 패널](#청크파라미터패널)
 
 [Include:Shared/Editors/Common/EditorMenuItems/#UITabTips]
 
 <!-- For more information about the Destructible Mesh Editor, see [](Engine/Content\Types\APEX\Editor). -->
 
-## Menu Bar
+## 메뉴 바
 
-### File
+### 파일
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSave]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuFileSaveOptions]
 
-### Edit
+### 편집
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditUndo]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuEditSettings]
 
-### Asset
+### 애셋
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetContentBrowser]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetViewReference]
@@ -43,7 +43,7 @@ The **Destructible Mesh Editor** consists of six areas:
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuAssetReimport]
 
 
-### Window
+### 창
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowToolbar]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowViewport]
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindowDetails]
@@ -53,74 +53,74 @@ The **Destructible Mesh Editor** consists of six areas:
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuWindow]
 
 
-### Help
+### 도움말
 
 [INCLUDE:Shared/Editors/Common/EditorMenuItems/#MenuHelp]
 
 
-## Toolbar
+## 툴바
 
-| Item | Description |
+| 항목 | 설명 |
 | ---- | ----------- |
-| **![Fracture Mesh](DM_FractureMeshIcon.png)** | This will fracture the meshes root chunk(s) based upon the Fracture Settings. |
-| **![Refresh](DM_RefreshIcon.png)** | This will refresh the DestructibleMesh from the StaticMesh it was created from. |
-| **![Import FBX Chunks](DM_FBXChunksIcon.png)** | This will import a FBX as depth level 1 chunks. |
-| **![Preview Depth](DM_PreviewDepthIcon.png)** | This is a drop down selection to preview a specific depth level of destruction. |
-| **![Explode Amount](DM_ExplodeAmtIcon.png)** | This slider will push apart the chunks of the specified Preview Depth. |
+| **![프랙처 메시](DM_FractureMeshIcon.png)** | 프랙처 세팅에 따라 메시의 루트 청크를 부숩니다. |
+| **![새로고침](DM_RefreshIcon.png)** | 원본 스태틱 메시에서 디스트럭터블 메시를 새로고칩니다. |
+| **![FBX 청크 임포트](DM_FBXChunksIcon.png)** | FBX 를 뎁스 레벨 1 청크로 임포트합니다. |
+| **![프리뷰 뎁스](DM_PreviewDepthIcon.png)** | 드롭다운 선택을 통해 특정 파괴 뎁스 레벨을 미리볼 수 있습니다. |
+| **![폭발량](DM_ExplodeAmtIcon.png)** | 이 슬라이더는 지정된 프리뷰 뎁스의 청크를 밀어냅니다. |
 
 
-## Viewport Panel
+## 뷰포트 패널
 
-The **Viewport** panel shows a rendered view of the Destructible Mesh asset. This allows you to examine the Destructible Mesh as it would be rendered in-game. 
-The viewport will also allow you to use different Preview Depths to see your different levels of destruction. This will allow different chunks to be selected which can be used in conjunction with the Chunk Parameters panel settings as well.  
+**뷰포트** 패널에는 디스트럭터블 메시 애셋이 렌더링되어 표시됩니다. 이를 통해 디스트럭터블 메시가 게임내에서 어떻게 렌더링되는지 확인할 수 있습니다.
+뷰포트를 통해 각기 다른 프리뷰 뎁스를 사용하여 각기 다른 파괴 정도를 미리볼 수도 있습니다. 다양한 청크와 청크 파라미터 패널 세팅 조합도 확인할 수 있을 것입니다.
 
 ![Destructible Mesh Editor Preview panel](DM_Preview.png)
 
 
 
-## Destructible Settings Panel
+## 디스트럭터블 세팅 패널
 
-The **Destructible Settings** panel shows specific properties pertaining to the Destructible Mesh Actor, such as the Materials applied to the surface and interior, Damage settings, and flags that can enable specific abilities. 
+**디스트럭터블 세팅** 패널에는 디스트럭터블 메시 액터에만 관련된 프로퍼티가 표시되는데, 표면과 내부에 적용된 머티리얼이라든가, 대미지 세팅이라든가, 특정 능력을 부여해 주는 플래그가 그것입니다.
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+이 패널 사용법 관련 정보는 [**디스트럭터블 프로퍼티 매트릭스**](Engine/Physics/Destructibles/DestructibleProperties) 문서를 참고하시기 바랍니다.
 
 ![Editor Destructible Settings Panel](DM_Settings.png)
 
 
-## Fracture Settings Panel
+## 프랙처 세팅 패널
 
-The **Fracture Settings** panel shows settings to control how the Destructible Mesh Actor is broken into chunks. There are properties that pertain to the number of chunks the fracture should contain, control for the interior material UVs, and the random pattern seed. 
+**프랙처 세팅** 패널에는 디스트럭터블 메시 액터를 청크로 쪼개는 방법을 조절하는 세팅이 표시됩니다. 프랙처에 청크가 몇 개나 들어갈지, 내부 머티리얼 UV 는 어떻게 조절할지, 그리고 랜덤 패턴 시드에 관련된 프로퍼티가 있습니다.
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+이 패널 사용법 관련 기본 정보는 [**디스트럭터블 프로퍼티 매트릭스**](Engine/Physics/Destructibles/DestructibleProperties) 문서를 참고해 주시기 바랍니다.
 
 ![Fracture Settings Panel](DM_FractureSettings.png)
 
 
-## Chunk Parameters Panel
+## 청크 파라미터 패널
 
-The **Chunk Parameters** panel contains settings that directly affect specific chunks that are selected in the preview panel when viewing Preview Depth 1 or higher. The settings here can control whether a chunk can be damaged, fractured, crumbled, or even considered as support.
+**청크 파라미터** 패널에는 프리뷰 패널에서 프리뷰 뎁스 1 이상을 볼 때 선택된 청크에만 직접 영향을 끼치는 세팅이 들어있습니다. 그 세팅은 청크가 대미지를 입을 수 있는지, 프랙처 가능한지, 부서질 수 있는지, 심지어 지지대로 고려할지 등입니다.
 
-For information about the basics of using this panel, see the [**Destructibles Properties Matrix**](Engine/Physics/Destructibles/DestructibleProperties) documentation.
+이 패널 사용법 관련 기본 정보는 [**디스트럭터블 프로퍼티 매트릭스**](Engine/Physics/Destructibles/DestructibleProperties) 문서를 참고하세요.
 
 ![Chunk Parameters Panel](DM_ChunkParameters.png)
 
 
-## Controls
+## 콘트롤
 
 
-### Mouse Controls
+### 마우스 콘트롤
 
-**Viewport Panel**
-
-
-* **LMB + Drag** - If the camera is locked, rotates the mesh around its Z axis and moves towards or away from the origin. Otherwise, rotates the camera around its Z axis and moves the camera along its local X axis.
-* **RMB + Drag** - If the camera is locked, rotates the mesh. Otherwise, rotates the camera.
-* **LMB + RMB + Drag** - If the camera is not locked, moves the camera along its local YZ plane.
+**뷰포트 패널**
 
 
-### Keyboard Controls
+* **좌클릭 + 드래그** - 카메라가 고정된 경우, 메시를 Z 축 중심으로 회전시키고 원점에서 멀리 또는 가까이 이동시킵니다. 그렇지 않은 경우, 카메라를 Z 축으로 회전시키고 Z 축을 따라 이동시킵니다.
+* **우클릭 + 드래그** - 카메라가 고정된 경우, 메시를 회전시킵니다. 그렇지 않은 경우, 카메라를 회전시킵니다.
+* **좌우클릭 + 드래그** - 카메라가 고정되지 않은 경우, 카메라를 로컬 YZ 면을 따라 이동시킵니다.
 
-* **L + Mouse Move** - Rotates the preview light in the **Preview** panel.
+
+### 키보드 콘트롤
+
+* **L + 마우스 이동** - **프리뷰** 패널의 프리뷰 라이트를 회전시킵니다.
 
 
 
