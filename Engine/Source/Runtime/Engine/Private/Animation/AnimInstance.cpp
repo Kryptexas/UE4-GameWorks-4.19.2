@@ -371,6 +371,8 @@ void UAnimInstance::UpdateMontage(float DeltaSeconds)
 	// if we do multi threading, make sure this stays in game thread
 	Montage_Advance(DeltaSeconds);
 
+	// update montage eval data
+	UpdateMontageEvaluationData();
 }
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
@@ -1415,6 +1417,8 @@ void UAnimInstance::GetSlotWeight(FName const& SlotNodeName, float& out_SlotNode
 #if DEBUGMONTAGEWEIGHT			
 			TotalDesiredWeight += MontageInstance->Blend.GetDesiredValue();
 #endif			
+			UE_LOG(LogAnimation, Verbose, TEXT("GetSlotWeight : Owner: %s, AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+						*GetNameSafe(GetOwningActor()), *MontageInstance->Montage->GetName(), MontageInstance->GetDesiredWeight(), MontageInstance->GetWeight());
 		}
 	}
 
@@ -1542,12 +1546,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 	}
 
 	// Make sure we have at least one montage here.
-	if (ensure((AdditivePoses.Num() > 0) || (NonAdditivePoses.Num() > 0)) == false)
-	{
-		// failed to get poses, @wip investigating
-		BlendedPose.ResetToRefPose();
-		return;
-	}
+	check((AdditivePoses.Num() > 0) || (NonAdditivePoses.Num() > 0));
 
 	// Second pass, blend non additive poses together
 	{
@@ -2130,6 +2129,8 @@ float UAnimInstance::Montage_Play(UAnimMontage* MontageToPlay, float InPlayRate/
 
 			OnMontageStarted.Broadcast(MontageToPlay);
 
+			UE_LOG(LogAnimation, Verbose, TEXT("Montage_Play: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+						*NewInstance->Montage->GetName(), NewInstance->GetDesiredWeight(), NewInstance->GetWeight());
 			return NewInstance->Montage->SequenceLength;
 		}
 		else
@@ -2804,8 +2805,12 @@ bool UAnimInstance::HasMarkerBeenHitThisFrame(FName SyncGroup, FName MarkerName)
 void UAnimInstance::UpdateMontageEvaluationData()
 {
 	MontageEvaluationData.Reset(MontageInstances.Num());
+	UE_LOG(LogAnimation, Verbose, TEXT("UpdateMontageEvaluationData Strting: Owner: %s"),	*GetNameSafe(GetOwningActor()));
+
 	for (FAnimMontageInstance* MontageInstance : MontageInstances)
 	{
+		// although montage can advance with 0.f weight, it is fine to filter by weight here
+		// because we don't want to evaluate them if 0 weight
 		if (MontageInstance->Montage && MontageInstance->GetWeight() > ZERO_ANIMWEIGHT_THRESH)
 		{
 			UE_LOG(LogAnimation, Verbose, TEXT("UpdateMontageEvaluationData : AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),

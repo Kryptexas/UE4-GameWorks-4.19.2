@@ -1089,11 +1089,6 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		RecalcRequiredBones(PredictedLODLevel);
 	}
 
-	if (AnimScriptInstance)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_USkeletalMeshComponent_RefreshBoneTransforms_UpdateMontageEvaluationData);
-		AnimScriptInstance->UpdateMontageEvaluationData();
-	}
 	const bool bDoEvaluationRateOptimization = ShouldUseUpdateRateOptimizations() && AnimUpdateRateParams->DoEvaluationRateOptimizations();
 
 	//Handle update rate optimization setup

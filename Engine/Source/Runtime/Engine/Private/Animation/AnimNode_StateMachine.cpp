@@ -45,7 +45,7 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextState
 	CrossfadeDuration = ReferenceTransitionInfo.CrossfadeDuration * CalculateInverseAlpha(BlendOption, Scaler);
 
 	Blend.SetBlendTime(CrossfadeDuration);
-	Blend.SetBlendOption(BlendOption);
+	Blend.BlendOption = BlendOption;
 	Blend.CustomCurve = ReferenceTransitionInfo.CustomCurve;
 	Blend.SetValueRange(0.0f, 1.0f);
 }

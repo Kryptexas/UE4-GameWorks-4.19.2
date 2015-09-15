@@ -864,13 +864,16 @@ void FAnimMontageInstance::Play(float InPlayRate)
 
 void FAnimMontageInstance::InitializeBlend(const FAlphaBlend& InAlphaBlend)
 {
-	Blend.SetBlendOption(InAlphaBlend.BlendOption);
+	Blend.BlendOption = InAlphaBlend.BlendOption;
 	Blend.CustomCurve = InAlphaBlend.CustomCurve;
 	Blend.SetBlendTime(InAlphaBlend.GetBlendTime());
 }
 
 void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 {
+	UE_LOG(LogAnimation, Verbose, TEXT("Montage.Stop Before: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+			*Montage->GetName(), GetDesiredWeight(), GetWeight());
+
 	// overwrite bInterrupted if it hasn't already interrupted
 	// once interrupted, you don't go back to non-interrupted
 	if (!bInterrupted && bInterrupt)
@@ -921,6 +924,9 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 	{
 		bPlaying = false;
 	}
+
+	UE_LOG(LogAnimation, Verbose, TEXT("Montage.Stop After: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f)"),
+			*Montage->GetName(), GetDesiredWeight(), GetWeight());
 }
 
 void FAnimMontageInstance::Pause()
@@ -1009,6 +1015,8 @@ void FAnimMontageInstance::Terminate()
 	// clear Blend curve
 	Blend.CustomCurve = NULL;
 	Blend.BlendOption = EAlphaBlendOption::Linear;
+
+	UE_LOG(LogAnimation, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
 }
 
 bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)
@@ -1235,6 +1243,9 @@ void FAnimMontageInstance::UpdateWeight(float DeltaTime)
 		// Notify weight is max of previous and current as notify could have come
 		// from any point between now and last tick
 		NotifyWeight = FMath::Max(PreviousWeight, Blend.GetBlendedValue());
+
+		UE_LOG(LogAnimation, Verbose, TEXT("UpdateWeight: AnimMontage: %s,  (DesiredWeight:%0.2f, Weight:%0.2f, PreviousWeight: %0.2f)"),
+			*Montage->GetName(), GetDesiredWeight(), GetWeight(), PreviousWeight);
 	}
 }
 
