@@ -1545,8 +1545,7 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FCompactPose& Sou
 	if (ensure((AdditivePoses.Num() > 0) || (NonAdditivePoses.Num() > 0)) == false)
 	{
 		// failed to get poses, @wip investigating
-		BlendedPose = SourcePose;
-		BlendedCurve = SourceCurve;
+		BlendedPose.ResetToRefPose();
 		return;
 	}
 
