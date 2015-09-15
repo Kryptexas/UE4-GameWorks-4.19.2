@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "UniqueObj.h"
 
 class SWindow;
 class FSlateViewportInterface;
@@ -691,7 +692,7 @@ public:
 
 typedef TArray<FSlateElementBatch, TInlineAllocator<1>> FElementBatchArray;
 
-typedef TMap<uint32,FElementBatchArray> FElementBatchMap ;
+typedef TMap<uint32,TUniqueObj<FElementBatchArray>> FElementBatchMap ;
 
 class FSlateBatchData
 {

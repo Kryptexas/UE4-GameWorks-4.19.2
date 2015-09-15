@@ -371,7 +371,7 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 	for ( FElementBatchMap::TIterator It(InLayerToElementBatches); It; ++It )
 	{
 		uint32 Layer = It.Key();
-		FElementBatchArray& ElementBatches = It.Value();
+		FElementBatchArray& ElementBatches = *It.Value();
 
 		if ( ElementBatches.Num() > 0 )
 		{
