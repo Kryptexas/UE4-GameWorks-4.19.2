@@ -28,6 +28,7 @@ Refer to the tables below for more information and click each link to view its c
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
+| [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
 <!-- Convert these to Quick Starts
@@ -37,10 +38,6 @@ Refer to the tables below for more information and click each link to view its c
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
 -->
-
-
-
-
 
 
 
