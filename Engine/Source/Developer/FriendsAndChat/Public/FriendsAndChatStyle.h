@@ -120,8 +120,6 @@ public:
 
 	static FName GetStyleSetName();
 
-	static TSharedPtr<class FFriendsFontStyleService> GetStyleService();
-
 private:
 
 	static TSharedRef< class FSlateStyleSet > Create(FFriendsAndChatStyle FriendStyle);
@@ -129,5 +127,4 @@ private:
 private:
 
 	static TSharedPtr< class FSlateStyleSet > FriendsAndChatModuleStyleInstance;
-	static TSharedPtr< class FFriendsFontStyleService > FriendsFontStyleService;
 };

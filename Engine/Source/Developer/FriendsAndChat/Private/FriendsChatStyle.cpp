@@ -195,18 +195,3 @@ FFriendsChatStyle& FFriendsChatStyle::SetMaximizeButtonStyle(const FButtonStyle&
 	FriendsMaximizeButtonStyle = Button;
 	return *this;
 }
-
-FLinearColor FFriendsChatStyle::GetChannelTextColor(EChatMessageType::Type Channel) const
-{
-	switch (Channel)
-	{
-	case EChatMessageType::Global:
-		return GlobalChatColor;
-	case EChatMessageType::Party:
-		return PartyChatColor;
-	case EChatMessageType::Whisper:
-		return WhisperChatColor;
-	default:
-		return GameChatColor;
-	}
-}

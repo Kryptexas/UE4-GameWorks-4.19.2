@@ -172,8 +172,5 @@ struct FRIENDSANDCHAT_API FFriendsChatStyle
 	UPROPERTY(EditAnywhere, Category = Appearance)
 	FButtonStyle FriendsMaximizeButtonStyle;
 	FFriendsChatStyle& SetMaximizeButtonStyle(const FButtonStyle& ButtonStyle);
-
-	FLinearColor GetChannelTextColor(EChatMessageType::Type Channel) const;
-
 };
 

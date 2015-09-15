@@ -1,6 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
-#include "IFriendsAndChatManager.h"
 
 DECLARE_DELEGATE_RetVal(bool, FFriendsSystemReady )
 
@@ -22,8 +21,6 @@ public:
 	{
 		return FModuleManager::LoadModuleChecked<IFriendsAndChatModule>("FriendsAndChat");
 	}
-
-	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager(FName OSSInstanceName = TEXT(""), bool InGame = false) = 0;
 
 	virtual void ShutdownStyle() = 0;
 
