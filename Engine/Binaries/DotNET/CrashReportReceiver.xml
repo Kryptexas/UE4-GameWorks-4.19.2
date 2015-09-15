@@ -1,0 +1,360 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CrashReportReceiver</name>
+    </assembly>
+    <members>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller">
+            <summary>
+            An installer class for the CrashReportReceiver.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller.#ctor">
+            <summary>
+            Set all the parameters required to install the service.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller.Install(System.Collections.IDictionary)">
+            <summary>
+            Must exist, because installation will fail without it.
+            </summary>
+            <param name="StateSaver">Passed through to the base method.</param>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller.components">
+            <summary>
+            Required designer variable.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller.Dispose(System.Boolean)">
+            <summary> 
+            Clean up any resources being used.
+            </summary>
+            <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverServiceInstaller.InitializeComponent">
+            <summary>
+            Required method for Designer support - do not modify
+            the contents of this method with the code editor.
+            </summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor">
+            <summary>
+            Class to deal with the 'landing zone' folder, where crashes are uploaded
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.MemoFilename">
+            <summary>
+            Filename to use to persist received reports dictionary
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.DaysToRememberReportsFor">
+            <summary>
+            Number of days to remember reports, to prevent the multiple uploads of the same report
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.MoveUploadedReportRetryAttempts">
+            <summary>
+            Number of times to retry moving the report folder to the landing zone once uploaded
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.#ctor(System.String,Tools.CrashReporter.CrashReportCommon.LogWriter)">
+            <summary>
+            Constructor: set up a landing zone directory
+            </summary>
+            <param name="DirectoryToUse">Directory to store the WER sub-directories</param>
+            <param name="Log">Optional file to write messages to</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.ReceiveReport(System.IO.DirectoryInfo,System.String)">
+            <summary>
+            Move a successfully uploaded WER into the landing zone folder
+            </summary>
+            <param name="SourceDirInfo">Temporary directory WER was uploaded to</param>
+            <param name="ReportId">Unique ID of the report, used as the folder name in the landing zone</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.HasReportAlreadyBeenReceived(System.String)">
+            <summary>
+            Check whether a report of a given ID has already been through the landing zone
+            </summary>
+            <param name="ReportId">Report ID to check for</param>
+            <returns>Whether the report of the given ID has been successfully uploaded before</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.MemoizeReceivedReports">
+            <summary>
+            Save out the current list of received reports to disk
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.ReadMemoizedReceivedReports">
+            <summary>
+            Load a list of received reports from disk
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.ForgetOldReports">
+            <summary>
+            Ensure the receive reports memo file doesn't grow indefinitely
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.MemoBeingWritten">
+            <summary>
+            Atomic flag to indicate memo file is being written to
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.Directory">
+            <summary>
+            Landing zone root directory
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.LogFile">
+            <summary>
+            Log file to write to
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.LandingZoneMonitor.ReceivedReports">
+            <summary>
+            Dictionary of reports that have been seen before mapping to the time they were received
+            </summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer">
+            <summary>
+            A class to handle receiving of files from clients, both internally and externally.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.Web">
+            <summary>An instance of the web handler class that listens for incoming crash reports.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.Log">
+            <summary>Current log file to write debug progress info to</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.WriteEvent(System.String)">
+            <summary>
+            Write a status update to the event log.
+            </summary>
+            <param name="Message">A string containing the status update.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.#ctor">
+            <summary>
+            Initialise all the components.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.OnStart(System.String[])">
+            <summary>
+            Start the service, and stop the service if there were any errors found.
+            </summary>
+            <param name="Arguments">An array of arguments passed from the command line (unused).</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.OnStop">
+            <summary>
+            Stop the service.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.DebugRun">
+            <summary>
+            Run the service in debug mode. This spews all logging to the console rather than suppressing it.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.components">
+            <summary> 
+            Required designer variable.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.Dispose(System.Boolean)">
+            <summary>
+            Clean up any resources being used.
+            </summary>
+            <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReporterReceiverServicer.InitializeComponent">
+            <summary> 
+            Required method for Designer support - do not modify 
+            the contents of this method with the code editor.
+            </summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverProgram">
+            <summary>
+            The container for the Crash Report Receiver application.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.CrashReportReceiverProgram.Main">
+            <summary>
+            The main entry point for crash report receiver application.
+            </summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress">
+            <summary>Manager to keep track of what reports the server is currently dealing with </summary>
+            <remarks>
+            Mainly to cope with multiple clients fighting to upload the same report. This shouldn't happen, but the service
+            should be resilient against it even so.
+            </remarks>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.MinutesToRememberReports">
+            <summary>Remember reports for a day</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.TryReceiveFile(System.String,System.String)">
+            <summary>
+            Check for parallel attempts to upload the same file or complete a report
+            </summary>
+            <param name="ReportId">Directory name being used as report id</param>
+            <param name="Filename">Leaf name of file to be uploaded</param>
+            <returns>True if this is the first client to attempt to upload this file</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.TrySetReportComplete(System.String)">
+            <summary>
+            Check for parallel attempts to complete a report
+            </summary>
+            <param name="ReportId">Directory name being used as report id</param>
+            <returns>True if this is the first client to attempt to complete this report</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.TryGetLastAccessTime(System.String,System.DateTime@)">
+            <summary>
+            Get the last access time of a report if we know about it
+            </summary>
+            <param name="ReportId">Report to look for</param>
+            <param name="LastAccessTime">Time to fill in of last attempted file upload to report, if found</param>
+            <returns>Whether report was found</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.EnsureRecord(System.String)">
+            <summary>
+            Create a record of files that have been uploaded for a report, if there's not one already
+            </summary>
+            <param name="ReportId">Directory name being used as report id</param>
+            <returns>The record object with a set of files that have been uploaded so far</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.DoHouseKeeping">
+            <summary>
+            Clear out records that have been around for a while (see MinutesToRememberReports below)
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.UploadRecords">
+            <summary>Dictionary to keep track of existence of files</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.OldestAccessTime">
+            <summary>Oldest report in UploadRecords, to avoid trawling the whole dictionary on each house-keeping pass</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.Mutex">
+            <summary>Mutex to ensure synchronous access to members of this class</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.FReportRecord">
+            <summary>
+            A record of which files have been uploaded for a report and whether the report is complete
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.FReportRecord.bReportComplete">
+            <summary>Flag to indicate report has been completed</summary>	
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.FReportRecord.FilesUploaded">
+            <summary>Lowercase filenames of files uploaded for this report</summary>	
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.FUploadsInProgress.FReportRecord.LastAccessTime">
+            <summary>Most recent time EnsureRecord was called on this record</summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportReceiver.WebHandler">
+            <summary>
+            A class to handle the receiving of crash reports.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.MaxSimultaneousListeners">
+            <summary>The number of simultaneous asynchronous http listeners to start.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.MinimumMinutesBetweenAbandonedReportChecks">
+            <summary>Leave at least this amount of time to leave between checks for abandoned reports</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.AgeMinutesToConsiderReportAbandoned">
+            <summary>Once a report is this old without being completed, it gets deleted</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.bStartedSuccessfully">
+            <summary>A flag to check to ensure the service started properly.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.ServiceHttpListener">
+            <summary>Base http listener to which the async listeners are associated.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.FileReceiptPath">
+            <summary>Intermediate path crash reports are downloaded to until complete.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.LandingZone">
+            <summary>Object to take care of incoming files.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.UploadsInProgress">
+            <summary>Synchronisation object to cope with erratic client behaviour.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.LastAbandonedReportCheckTime">
+            <summary>Time of most recent check for abandoned incomplete reports</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportReceiver.WebHandler.CheckingForAbandonedReports">
+            <summary>Atomic flag to indicate a thread is checking for abandoned reports</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.Dispose">
+            <summary>
+            Implementing Dispose.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.Dispose(System.Boolean)">
+            <summary>
+            Disposes the resources.
+            </summary>
+            <param name="Disposing">true if the Dispose call is from user code, and not system code.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.#ctor">
+            <summary>
+            Initialise the service to listen for reports.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.Release">
+            <summary>
+            Cleanup any used resources.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.GetContentStreamString(System.Net.HttpListenerRequest)">
+            <summary>
+            Read in the web request payload as a string.
+            </summary>
+            <param name="Request">A listener request.</param>
+            <returns>A string of the input stream in the requests encoding.</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.CheckReport(System.Net.HttpListenerRequest)">
+            <summary>
+            Check to see if a report has already been uploaded.
+            </summary>
+            <param name="Request">A request containing either the Report Id as a string or an XML representation of a CheckReportRequest class instance.</param>
+            <returns>Result object, indicating whether the report has already been uploaded.</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.CheckReportDetail(System.Net.HttpListenerRequest)">
+            <summary>
+            Check to see if we wish to reject a report based on the WER meta data.
+            </summary>
+            <param name="Request">A request containing the XML representation of a WERReportMetadata class instance.</param>
+            <returns>true if we do not reject.</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.ReceiveFile(System.Net.HttpListenerRequest)">
+            <summary>
+            Receive a file and write it to a temporary folder.
+            </summary>
+            <param name="Request">A request containing the file details in the headers (DirectoryName/FileName/FileLength).</param>
+            <returns>true if the file is received successfully.</returns>
+            <remarks>There is an arbitrary file size limit of CrashReporterConstants.MaxFileSizeToUpload as a simple exploit prevention method.</remarks>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.UploadComplete(System.Net.HttpListenerRequest)">
+            <summary>
+            Rename to the temporary landing zone directory to the final location.
+            </summary>
+            <param name="Request">A request containing either the Report Id as a string or an XML representation of a CheckReportRequest class instance.</param>
+            <returns>true if everything is renamed correctly.</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.AsyncHandleHttpRequest(System.IAsyncResult)">
+            <summary>
+            The main listener callback to handle client requests.
+            </summary>
+            <param name="ClientRequest">The request from the client.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.GetReportIdFromPostData(System.String)">
+            <summary>
+            Translate post data, which may be XML or a raw string, to a report ID.
+            </summary>
+            <param name="ReportIdPostData">A string that's either the Report Id or an XML representation of a CheckReportRequest class instance.</param>
+            <returns>The report ID string</returns>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportReceiver.WebHandler.CheckForAbandonedReports">
+            <summary>
+            Periodically delete folders of abandoned reports
+            </summary>
+        </member>
+    </members>
+</doc>

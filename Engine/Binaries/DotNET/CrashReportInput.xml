@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>CrashReportInput</name>
+    </assembly>
+    <members>
+        <member name="T:Tools.CrashReporter.CrashReportInput.CrashReportInputProgram">
+            <summary>
+            The container for the CrashReportInput application.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.CrashReportInputProgram.Main(System.String[])">
+            <summary>
+            The main entry point for the application.
+            </summary>
+            <param name="Arguments">Arguments passed from the command line.</param>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportInput.ReportInputDialog">
+            <summary>
+            A very simple class to handle input from a user about a crash.
+            </summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportInput.ReportInputDialog.DefaultMessage">
+            <summary>The default help message.</summary>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportInput.ReportInputDialog.ReportDirInfo">
+            <summary>The directory to report resides in.</summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.ReportInputDialog.#ctor(System.String[])">
+            <summary>
+            The windows form to handle user input.
+            </summary>
+            <param name="Arguments">The command line arguments passed to the application.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.ReportInputDialog.ButtonOKClick(System.Object,System.EventArgs)">
+            <summary>
+            The form close event. Commit the user description to the Windows Error Reporting meta data.
+            </summary>
+            <param name="Event">Unused.</param>
+            <param name="Sender">Unused</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.ReportInputDialog.ButtonShowDetailsClick(System.Object,System.EventArgs)">
+            <summary>
+            The show details click event. Show the diagnostics file in the associated editor.
+            </summary>
+            <param name="Event">Unused.</param>
+            <param name="Sender">Unused.</param>
+        </member>
+        <member name="F:Tools.CrashReporter.CrashReportInput.ReportInputDialog.components">
+            <summary>
+            Required designer variable.
+            </summary>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.ReportInputDialog.Dispose(System.Boolean)">
+            <summary>
+            Clean up any resources being used.
+            </summary>
+            <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        </member>
+        <member name="M:Tools.CrashReporter.CrashReportInput.ReportInputDialog.InitializeComponent">
+            <summary>
+            Required method for Designer support - do not modify
+            the contents of this method with the code editor.
+            </summary>
+        </member>
+        <member name="T:Tools.CrashReporter.CrashReportInput.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Tools.CrashReporter.CrashReportInput.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Tools.CrashReporter.CrashReportInput.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+    </members>
+</doc>
