@@ -99,6 +99,16 @@ struct FWindowsPlatformMath : public FGenericPlatformMath
 
 		return 32;
 	}
+	static FORCEINLINE uint32 CountTrailingZeros(uint32 Value)
+	{
+		if (Value == 0)
+		{
+			return 32;
+		}
+		uint32 BitIndex;	// 0-based, where the LSB is 0 and MSB is 31
+		_BitScanForward( (::DWORD *)&BitIndex, Value );	// Scans from LSB to MSB
+		return BitIndex;
+	}
 	static FORCEINLINE uint32 CeilLogTwo( uint32 Arg )
 	{
 		int32 Bitmask = ((int32)(CountLeadingZeros(Arg) << 26)) >> 31;

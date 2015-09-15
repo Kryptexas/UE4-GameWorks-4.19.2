@@ -134,21 +134,14 @@ private:
 /** Used to reference a bit in an unspecified bit array. */
 class FRelativeBitReference
 {
-	template<typename>
-	friend class TBitArray;
-	template<typename>
-	friend class TConstSetBitIterator;
-	template<typename,typename>
-	friend class TConstDualSetBitIterator;
 public:
+	FORCEINLINE explicit FRelativeBitReference(int32 BitIndex)
+		: DWORDIndex(BitIndex >> NumBitsPerDWORDLogTwo)
+		, Mask(1 << (BitIndex & (NumBitsPerDWORD - 1)))
+	{
+	}
 
-	FORCEINLINE FRelativeBitReference(int32 BitIndex)
-	:	DWORDIndex(BitIndex >> NumBitsPerDWORDLogTwo)
-	,	Mask(1 << (BitIndex & (NumBitsPerDWORD - 1)))
-	{}
-
-protected:
-	int32 DWORDIndex;
+	int32  DWORDIndex;
 	uint32 Mask;
 };
 
@@ -752,7 +745,7 @@ public:
 		}
 	}
 
-	/** Advancement operator. */
+	/** Forwards iteration operator. */
 	FORCEINLINE TConstSetBitIterator& operator++()
 	{
 		// Mark the current bit as visited.
