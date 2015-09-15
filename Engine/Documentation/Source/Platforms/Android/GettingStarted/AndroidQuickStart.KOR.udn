@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2590652
+﻿INTSourceChangelist:2684616
 Availability: Public
 Title: 안드로이드 퀵 스타트
 Crumbs:%ROOT%, Platforms, Platforms/Android
 Description:안드로이드 플랫폼용 개발 셋업하기 입니다.
+Version:4.9
+Skilllevel:Intermediate
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -39,8 +41,18 @@ Description:안드로이드 플랫폼용 개발 셋업하기 입니다.
 [/VAR]
 
 이 안드로이드 퀵 스타트에서는 컴퓨터와 안드로이드 디바이스를 디플로이용으로 셋업, 런칭 및 패키징 기능을 둘 다 사용하여 디바이스에 템플릿 게임을 넣는 데까지 안내해 드립니다.
-이 가이드는 안드로이드 SDK 로 TADP  를 사용하나, 다른 SDK 셋업 방법을 알아보려면 [](Platforms\Android\Reference) 문서를 참고하세요.
 
+## 목적
+
+안드로이드 퀵스타트에서 초점을 맞추고자 하는 부분은, UE4 로 안드로이드 개발을 위한 PC 또는 맥 구성에 있어서의 기본적인 부분을 안내해 드리는 것입니다.
+
+## 목표
+
+* Android SDK 설치 및 구성
+* 개발용 안드로이드 디바이스 구성
+* 안드로이드 모바일 개발을 대상으로 한 프로젝트 생성
+* 안드로이드 디바이스에 레벨 디플로이 방법
+* 게임의 릴리즈용 패키징 방법
 
 [OBJECT:TopicButtonList]
 	[PARAM:icon]
