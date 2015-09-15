@@ -379,7 +379,7 @@ public:
 #define BACKUP_LOG_FILENAME_POSTFIX TEXT("-backup-")
 
 /**
- * File output device.
+ * File output device (Note: Only works if ALLOW_LOG_FILE && !NO_LOGGING is true, otherwise Serialize does nothing).
  */
 class CORE_API FOutputDeviceFile : public FOutputDevice
 {
@@ -519,6 +519,36 @@ public:
 private:
 
 	int32		ErrorPos;
+};
+
+
+/**
+ * Output device wrapping any kind of FArchive.  Note: Works in any build configuration.
+ */
+class CORE_API FOutputDeviceArchiveWrapper : public FOutputDevice
+{
+public:
+	/**
+	 * Constructor, initializing member variables.
+	 *
+	 * @param InArchive	Archive to use, must not be nullptr.  Does not take ownership of the archive, clean up or delete the archive independently!
+	 */
+	FOutputDeviceArchiveWrapper(FArchive* InArchive)
+		: LogAr(InArchive)
+	{
+		check(InArchive);
+	}
+
+	// FOutputDevice interface
+	virtual void Flush() override;
+	virtual void Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
+	// End of FOutputDevice interface
+
+private:
+	FArchive* LogAr;
+
+private:
+	void CastAndSerializeData(const TCHAR* Data);
 };
 
 CORE_API DECLARE_LOG_CATEGORY_EXTERN(LogHAL, Log, All);

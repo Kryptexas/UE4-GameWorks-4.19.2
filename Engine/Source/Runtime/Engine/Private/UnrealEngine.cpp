@@ -4200,6 +4200,7 @@ bool UEngine::HandleMemReportCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
+#if ALLOW_DEBUG_FILES
 	const bool bPerformSlowCommands = FParse::Param( Cmd, TEXT("FULL") );
 	const bool bLogOutputToFile = !FParse::Param( Cmd, TEXT("LOG") );
 
@@ -4212,7 +4213,8 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 	FlushRenderingCommands();
 
 	FOutputDevice* ReportAr = &Ar;
-	FOutputDeviceFile* FileAr = NULL;
+	FArchive* FileAr = nullptr;
+	FOutputDeviceArchiveWrapper* FileArWrapper = nullptr;
 	FString FilenameFull;
 	
 	if (bLogOutputToFile)
@@ -4222,8 +4224,10 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 
 		const FString Filename = CreateProfileFilename( TEXT(".memreport"), true );
 		FilenameFull = PathName + Filename;
-		FileAr = new FOutputDeviceFile(*FilenameFull);
-		ReportAr = FileAr;
+	
+		FileAr = IFileManager::Get().CreateDebugFileWriter(*FilenameFull);
+		FileArWrapper = new FOutputDeviceArchiveWrapper(FileAr);
+		ReportAr = FileArWrapper;
 
 		UE_LOG(LogEngine, Log, TEXT("MemReportDeferred: saving to %s"), *FilenameFull);		
 	}
@@ -4256,14 +4260,13 @@ bool UEngine::HandleMemReportDeferredCommand( const TCHAR* Cmd, FOutputDevice& A
 		}
 	}
 
-	if (FileAr)
+	if (FileArWrapper != nullptr)
 	{
-		FileAr->TearDown();
-		// This no longer seems to work in UE4
-		// SendDataToPCViaUnrealConsole( TEXT("UE_PROFILER!MEMREPORT:"), *(FilenameFull) );
-
+		FileArWrapper->TearDown();
+		delete FileArWrapper;
 		delete FileAr;
 	}
+#endif
 
 	return true;
 }

@@ -1245,3 +1245,31 @@ void FOutputDeviceAnsiError::HandleError()
 
 	FCoreDelegates::OnShutdownAfterError.Broadcast();
 }
+
+/*-----------------------------------------------------------------------------
+	FOutputDeviceArchiveWrapper subclasses.
+-----------------------------------------------------------------------------*/
+
+void FOutputDeviceArchiveWrapper::Flush()
+{
+	LogAr->Flush();
+}
+
+void FOutputDeviceArchiveWrapper::Serialize(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
+{
+	if (Verbosity != ELogVerbosity::SetColor)
+	{
+		CastAndSerializeData(Data);
+
+		if (bAutoEmitLineTerminator)
+		{
+			CastAndSerializeData(LINE_TERMINATOR);
+		}
+	}
+}
+
+void FOutputDeviceArchiveWrapper::CastAndSerializeData(const TCHAR* Data)
+{
+	FTCHARToUTF8 ConvertedData(Data);
+	LogAr->Serialize((ANSICHAR*)(ConvertedData.Get()), ConvertedData.Length());
+}
