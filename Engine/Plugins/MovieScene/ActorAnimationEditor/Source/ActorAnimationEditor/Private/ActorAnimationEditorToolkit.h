@@ -68,6 +68,15 @@ private:
 	/** Callback for executing the add component material track. */
 	void HandleAddComponentMaterialActionExecute(UPrimitiveComponent* Component, int32 MaterialIndex);
 
+	/** Callback for executing the "Add Event Track" menu action. */
+	void HandleAddMenuAddEventTrackExecute();
+
+	/** Callback for executing the "Add Shot Track" menu action. */
+	void HandleAddMenuAddShotTrackExecute();
+
+	/** Callback for executing the "Add Slomo Track" menu action. */
+	void HandleAddMenuAddSlomoTrackExecute();
+
 	/** Callback for map changes. */
 	void HandleMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType);
 
