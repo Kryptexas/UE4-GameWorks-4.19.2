@@ -69,13 +69,15 @@ public class Launch : ModuleRules
 
 			PrivateIncludePathModuleNames.AddRange(
                 new string[] {
-			        "SlateRHIRenderer",
+			        "SlateNullRenderer",
+					"SlateRHIRenderer"
 		        }
             );
 
             DynamicallyLoadedModuleNames.AddRange(
                 new string[] {
-			        "SlateRHIRenderer",
+			        "SlateNullRenderer",
+					"SlateRHIRenderer"
 		        }
             );
         }

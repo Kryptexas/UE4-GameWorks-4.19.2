@@ -56,6 +56,7 @@
 #if !UE_SERVER
 	#include "HeadMountedDisplay.h"
 	#include "ISlateRHIRendererModule.h"
+	#include "ISlateNullRendererModule.h"
 	#include "EngineFontServices.h"
 #endif
 
@@ -1456,7 +1457,9 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 #if !UE_SERVER// && !UE_EDITOR
 	if (!IsRunningDedicatedServer() && !IsRunningCommandlet())
 	{
-		TSharedRef<FSlateRenderer> SlateRenderer = FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
+		TSharedRef<FSlateRenderer> SlateRenderer = GUsingNullRHI ?
+			FModuleManager::Get().LoadModuleChecked<ISlateNullRendererModule>("SlateNullRenderer").CreateSlateNullRenderer() :
+			FModuleManager::Get().GetModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlateRHIRenderer();
 
 		// If Slate is being used, initialize the renderer after RHIInit 
 		FSlateApplication& CurrentSlateApp = FSlateApplication::Get();
@@ -1870,8 +1873,11 @@ void FEngineLoop::LoadPreInitModules()
 #if !UE_SERVER
 	if (!IsRunningDedicatedServer() )
 	{
-		// This needs to be loaded before InitializeShaderTypes is called
-		FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
+		if (!GUsingNullRHI)
+		{
+			// This needs to be loaded before InitializeShaderTypes is called
+			FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer");
+		}
 	}
 #endif
 

@@ -125,14 +125,16 @@ public class Engine : ModuleRules
 		if (Target.Type != TargetRules.TargetType.Server)
 		{
 			PrivateIncludePathModuleNames.AddRange(
-				new string[] { 
-					"SlateRHIRenderer",
+				new string[] {
+					"SlateNullRenderer",
+					"SlateRHIRenderer"
 				}
 			);
 
 			DynamicallyLoadedModuleNames.AddRange(
 				new string[] {
-					"SlateRHIRenderer",
+					"SlateNullRenderer",
+					"SlateRHIRenderer"
 				}
 			);
 		}

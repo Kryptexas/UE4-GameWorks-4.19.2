@@ -644,7 +644,7 @@ void UWidgetComponent::OnRegister()
 
 		if ( Space != EWidgetSpace::Screen )
 		{
-			if ( !Renderer.IsValid() )
+			if ( !Renderer.IsValid() && !GUsingNullRHI )
 			{
 				Renderer = FModuleManager::Get().LoadModuleChecked<ISlateRHIRendererModule>("SlateRHIRenderer").CreateSlate3DRenderer();
 			}
@@ -716,6 +716,11 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 	if ( Space != EWidgetSpace::Screen )
 	{
+		if ( GUsingNullRHI )
+		{
+			return;
+		}
+
 		if ( !SlateWidget.IsValid() )
 		{
 			return;
