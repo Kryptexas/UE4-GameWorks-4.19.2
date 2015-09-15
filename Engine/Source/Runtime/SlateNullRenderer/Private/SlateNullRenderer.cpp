@@ -52,6 +52,11 @@ bool FSlateNullRenderer::GenerateDynamicImageResource( FName ResourceName, uint3
 	return false;
 }
 
+FSlateResourceHandle FSlateNullRenderer::GetResourceHandle( const FSlateBrush& Brush )
+{
+	return FSlateResourceHandle();
+}
+
 void FSlateNullRenderer::RemoveDynamicBrushResource( TSharedPtr<FSlateDynamicImageBrush> BrushToRemove )
 {
 }
