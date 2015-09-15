@@ -78,7 +78,7 @@ struct FAsyncPackage
 	}
 
 	/** Returns package loading priority. */
-	FORCEINLINE uint32 GetPriority() const
+	FORCEINLINE TAsyncLoadPriority GetPriority() const
 	{
 		return Desc.Priority;
 	}

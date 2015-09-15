@@ -291,6 +291,9 @@ namespace EAsyncLoadingResult
 	};
 }
 
+/** The type that represents an async loading priority */
+typedef int32 TAsyncLoadPriority;
+
 /**
  * Delegate called on completion of async package loading
  * @param	PackageName			Package name we were trying to load
@@ -313,7 +316,7 @@ DECLARE_DELEGATE_ThreeParams(FLoadPackageAsyncDelegate, const FName& /*PackageNa
  * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
  */
 DEPRECATED(4.9, "LoadPackageAsync override that takes package type parameter FName InType is deprecated.")
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid, FName InType, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, TAsyncLoadPriority InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -327,7 +330,7 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGui
 * @param	InPackagePriority		Loading priority
 * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
 */
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, uint32 InPackagePriority = 0);
+COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGuid = nullptr, const TCHAR* InPackageToLoadFrom = nullptr, FLoadPackageAsyncDelegate InCompletionDelegate = FLoadPackageAsyncDelegate(), EPackageFlags InPackageFlags = PKG_None, int32 InPIEInstanceID = INDEX_NONE, TAsyncLoadPriority InPackagePriority = 0);
 
 /**
 * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -337,7 +340,7 @@ COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, const FGuid* InGui
 * @param	InPackagePriority		Loading priority
 * @return Unique ID associated with this load request (the same package can be associated with multiple IDs).
 */
-COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, uint32 InPackagePriority = 0, EPackageFlags InPackageFlags = PKG_None);
+COREUOBJECT_API int32 LoadPackageAsync(const FString& InName, FLoadPackageAsyncDelegate InCompletionDelegate, TAsyncLoadPriority InPackagePriority = 0, EPackageFlags InPackageFlags = PKG_None);
 
 /**
 * Cancels all async package loading requests.
