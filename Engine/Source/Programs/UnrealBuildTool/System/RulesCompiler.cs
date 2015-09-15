@@ -1522,7 +1522,7 @@ namespace UnrealBuildTool
 						}
 						if (SourceFolderIndex != -1)
 						{
-							DirectoryReference TargetSourceFolder = new DirectoryReference(TargetSourceFolderString.Substring(0, SourceFolderIndex + 8));
+							DirectoryReference TargetSourceFolder = new DirectoryReference(TargetSourceFolderString.Substring(0, SourceFolderIndex + 7));
 							foreach (KeyValuePair<string, FileReference> CheckEntry in TargetNameToTargetFile)
 							{
 								if (CheckEntry.Value.IsUnderDirectory(TargetSourceFolder))

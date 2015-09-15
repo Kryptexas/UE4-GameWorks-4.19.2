@@ -58,7 +58,10 @@ TSharedRef< FSlateStyleSet > FPLUGIN_NAMEStyle::Create()
 
 void FPLUGIN_NAMEStyle::ReloadTextures()
 {
-	FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
+	if (FSlateApplication::IsInitialized())
+	{
+		FSlateApplication::Get().GetRenderer()->ReloadTextureResources();
+	}
 }
 
 const ISlateStyle& FPLUGIN_NAMEStyle::Get()
