@@ -38,7 +38,7 @@ When **Left-clicking** on the Transition Rule, the **Details** panel will update
 | **Transition Interrupt** | Set the Trigger Weight Threshold and specify a Notify State Class.  |
 | **Transition Crossfade Sharing** | Use an existing Transition Crossfade Blend or promote the existing Transition Crossfade to shared.  |
 | **Duration** | The duration to apply to the cross-fade. |
-| **Mode** | The type of blending applied to the cross-fade. |
+| **Mode** | The type of blending applied to the cross-fade. See [](Engine\Animation\NonLinearBlends) for more information. |
 | **Start Transition Event / Custom Blueprint Event** | Call and execute an Event from within the notified Blueprint at the start of the transition. |
 | **Blueprint Notify** | Blueprint that is notified when the transition starts.  |
 | **End Transition Event / Custom Blueprint Event** | Call and execute an Event from within the notified Blueprint at the end of the transition. |

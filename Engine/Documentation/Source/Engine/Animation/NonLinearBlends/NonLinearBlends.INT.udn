@@ -1,0 +1,51 @@
+Availability:Public
+Title:Non-Linear Blends
+Crumbs: %ROOT%, Engine, Engine/Animation
+Description:Overview of the different blend functions between animation poses and transitions.  
+version: 4.9
+Related: Engine\Animation\StateMachines\TransitionRules
+Related: Engine\Animation\StateMachines
+Related: Engine/UI/CurveEditor
+Related: Engine/Basics/Distributions
+Related: Engine/Animation/AnimMontage
+
+Unreal Engine 4 supports many different blending functions that you can use when blending between animation poses and transitions. 
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+-WeUEpZd8jY
+[/PARAMLITERAL]
+[/OBJECT]
+
+_An example of a Custom curve used to Blend between different poses._
+
+You can select from many different blending functions: Linear, Cubic, Hermite Cubic, Sinusoidal, Quadratic, Circular, Exponential and Custom. For most types, you can separately control whether you want easing on either the _in_ or the _out_ of the curve.
+
+The **Custom** option requires a **Curve Float** asset. After creating one, you can assign it in the **Details** panel for the relevant nodes:
+
+![](image_44.png)
+
+![](image_45.png)
+
+This will allow you to specify just about any blend you want to perform. The length of the curve will be normalized and scaled down to meet the specified blend time and any values that are outside of the range 0-1 are clamped back to fit. If a Custom curve is not specified the system will fall back to a Linear blend as depicted below.
+
+[OBJECT:EmbeddedVideo]
+[PARAMLITERAL:width]
+640
+[/PARAMLITERAL]
+[PARAMLITERAL:height]
+360
+[/PARAMLITERAL]
+[PARAMLITERAL:videoid]
+GHxhplIScUY
+[/PARAMLITERAL]
+[/OBJECT]
+
+
+
