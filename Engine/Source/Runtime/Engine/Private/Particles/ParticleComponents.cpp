@@ -1791,6 +1791,23 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		}
 	}
 
+	// Ensure the bounds have a positive size
+	if (FixedRelativeBoundingBox.IsValid)
+	{
+		if (FixedRelativeBoundingBox.Min.X > FixedRelativeBoundingBox.Max.X)
+		{
+			Swap(FixedRelativeBoundingBox.Min.X, FixedRelativeBoundingBox.Max.X);
+		}
+		if (FixedRelativeBoundingBox.Min.Y > FixedRelativeBoundingBox.Max.Y)
+		{
+			Swap(FixedRelativeBoundingBox.Min.Y, FixedRelativeBoundingBox.Max.Y);
+		}
+		if (FixedRelativeBoundingBox.Min.Z > FixedRelativeBoundingBox.Max.Z)
+		{
+			Swap(FixedRelativeBoundingBox.Min.Z, FixedRelativeBoundingBox.Max.Z);
+		}
+	}
+
 	//cap the WarmupTickRate to realistic values
 	if (WarmupTickRate <= 0)
 	{
