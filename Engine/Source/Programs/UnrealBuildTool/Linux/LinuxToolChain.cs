@@ -215,11 +215,7 @@ namespace UnrealBuildTool
 		{
 			string Result = "";
 
-			if (Architecture.StartsWith("x86_64"))
-			{
-				Result += " -mmmx -msse -msse2";
-			}
-			else if (Architecture.StartsWith("arm"))
+			if (Architecture.StartsWith("arm"))
 			{
 				Result += " -fsigned-char";
 
