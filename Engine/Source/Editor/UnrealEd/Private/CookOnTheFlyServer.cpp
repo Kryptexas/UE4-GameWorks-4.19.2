@@ -2772,7 +2772,7 @@ void UCookOnTheFlyServer::Initialize( ECookMode::Type DesiredCookMode, ECookInit
 	GConfig->GetInt( TEXT("CookSettings"), TEXT("MaxMemoryAllowance"), MaxMemoryAllowanceInMB, GEditorIni );
 	MaxMemoryAllowance = MaxMemoryAllowanceInMB * 1024LL * 1024LL;
 	
-	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb, MaxMemoryAllowanceInMB"));
+	UE_LOG(LogCook, Display, TEXT("Max memory allowance for cook %dmb"), MaxMemoryAllowanceInMB);
 
 	if ( IsCookByTheBookMode() )
 	{
