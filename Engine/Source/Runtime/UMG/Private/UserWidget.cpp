@@ -442,7 +442,7 @@ void UUserWidget::SetContentForSlot(FName SlotName, UWidget* Content)
 	}
 
 	// Dynamically insert the new widget into the hierarchy if it exists.
-	if (WidgetTree)
+	if ( WidgetTree )
 	{
 		UNamedSlot* NamedSlot = Cast<UNamedSlot>(WidgetTree->FindWidget(SlotName));
 		if (NamedSlot)
@@ -757,6 +757,7 @@ void UUserWidget::NativeConstruct()
 
 void UUserWidget::NativeDestruct()
 {
+	StopListeningForAllInputActions();
 	Destruct();
 }
 
@@ -814,12 +815,113 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 	}
 }
 
-void UUserWidget::NativePaint( FPaintContext& InContext ) const 
+void UUserWidget::ListenForInputAction( FName ActionName, FOnInputAction Callback )
 {
-	if ( bCanEverPaint )
+	if ( !InputComponent )
 	{
-		OnPaint(InContext);
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			InputComponent = NewObject< UInputComponent >( this, NAME_None, RF_Transient );
+			InputComponent->bBlockInput = bStopAction;
+			InputComponent->Priority = Priority;
+			Controller->PushInputComponent( InputComponent );
+		}
+		else
+		{
+			FMessageLog( "PIE" ).Error( LOCTEXT( "GameNull", "Unable to listen to input actions without a player controller." ) );
+		}
 	}
+
+	if ( InputComponent )
+	{
+		FInputActionBinding NewBinding( ActionName, IE_Pressed );
+		NewBinding.ActionDelegate.GetDelegateForManualSet().BindUObject( this, &ThisClass::OnInputAction, Callback );
+
+		InputComponent->AddActionBinding( NewBinding );
+	}
+}
+
+void UUserWidget::StopListeningForInputAction( FName ActionName )
+{
+	if ( InputComponent )
+	{
+		for ( int32 ExistingIndex = InputComponent->GetNumActionBindings() - 1; ExistingIndex >= 0; --ExistingIndex )
+		{
+			const FInputActionBinding& ExistingBind = InputComponent->GetActionBinding( ExistingIndex );
+			if ( ExistingBind.ActionName == ActionName )
+			{
+				InputComponent->RemoveActionBinding( ExistingIndex );
+			}
+		}
+	}
+}
+
+void UUserWidget::StopListeningForAllInputActions()
+{
+	if ( InputComponent )
+	{
+		if ( APlayerController* Controller = GetOwningPlayer() )
+		{
+			Controller->PopInputComponent( InputComponent );
+		}
+		else
+		{
+			FMessageLog( "PIE" ).Error( LOCTEXT( "GameNull", "Unable to listen to input actions without a player controller." ) );
+		}
+
+		InputComponent->ClearActionBindings();
+		InputComponent = nullptr;
+	}
+}
+
+bool UUserWidget::IsListeningForInputAction( FName ActionName ) const
+{
+	bool bResult = false;
+	if ( InputComponent )
+	{
+		for ( int32 ExistingIndex = InputComponent->GetNumActionBindings() - 1; ExistingIndex >= 0; --ExistingIndex )
+		{
+			const FInputActionBinding& ExistingBind = InputComponent->GetActionBinding( ExistingIndex );
+			if ( ExistingBind.ActionName == ActionName )
+			{
+				bResult = true;
+				break;
+			}
+		}
+	}
+
+	return bResult;
+}
+
+void UUserWidget::SetInputActionPriority( int32 NewPriority )
+{
+	if ( InputComponent )
+	{
+		Priority = NewPriority;
+		InputComponent->Priority = Priority;
+	}
+}
+
+void UUserWidget::SetInputActionBlocking( bool bShouldBlock )
+{
+	if ( InputComponent )
+	{
+		bStopAction = bShouldBlock;
+		InputComponent->bBlockInput = bStopAction;
+	}
+}
+
+void UUserWidget::OnInputAction( FOnInputAction Callback )
+{
+	if ( GetIsEnabled() )
+	{
+		Callback.ExecuteIfBound();
+	}
+}
+
+void UUserWidget::NativePaint( FPaintContext& InContext ) const
+{
+	OnPaint( InContext );
 }
 
 bool UUserWidget::NativeIsInteractable() const

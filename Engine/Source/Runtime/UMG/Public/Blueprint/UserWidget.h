@@ -134,6 +134,8 @@ enum class EDesignPreviewSizeMode : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnConstructEvent);
 
+DECLARE_DYNAMIC_DELEGATE( FOnInputAction );
+
 /**
  * The user widget is extensible by users through the WidgetBlueprint.
  */
@@ -821,6 +823,12 @@ public:
 	UPROPERTY()
 	TArray<FNamedSlotBinding> NamedSlotBindings;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Input")
+	bool bStopAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Input" )
+	int32 Priority;
+
 #if WITH_EDITORONLY_DATA
 
 	/** Stores the design time desired size of the user widget */
@@ -922,6 +930,29 @@ protected:
 	void TickActionsAndAnimation(const FGeometry& MyGeometry, float InDeltaTime);
 
 	void RemoveObsoleteBindings(const TArray<FName>& NamedSlots);
+	
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	void ListenForInputAction( FName ActionName, FOnInputAction Callback );
+
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	void StopListeningForInputAction( FName ActionName );
+
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	void StopListeningForAllInputActions();
+
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	bool IsListeningForInputAction( FName ActionName ) const;
+
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	void SetInputActionPriority( int32 NewPriority );
+
+	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
+	void SetInputActionBlocking( bool bShouldBlock );
+
+	void OnInputAction( FOnInputAction Callback );
+
+	UPROPERTY( transient )
+	class UInputComponent* InputComponent;
 
 private:
 	FAnchors ViewportAnchors;
