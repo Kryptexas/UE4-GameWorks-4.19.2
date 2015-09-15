@@ -944,6 +944,8 @@ void FSequencer::UpdateRuntimeInstances()
 	// Refresh the current root instance
 	RootMovieSceneSequenceInstance->RefreshInstance( *this );
 	RootMovieSceneSequenceInstance->Update(ScrubPosition, ScrubPosition, *this);
+
+	GEditor->RedrawLevelEditingViewports();
 }
 
 void FSequencer::DestroySpawnablesForAllSequences()
