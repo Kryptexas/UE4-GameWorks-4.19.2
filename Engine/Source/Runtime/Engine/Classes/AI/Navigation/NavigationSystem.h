@@ -91,10 +91,9 @@ namespace ENavigationBuildLock
 {
 	enum Type
 	{
-		LoadingAreas = 1 << 1,			// navigation areas are being loaded
-		NoUpdateInEditor = 1 << 2,		// editor doesn't allow automatic updates
-		InitialLock = 1 << 3,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
-		Custom = 1 << 4,
+		NoUpdateInEditor = 1 << 1,		// editor doesn't allow automatic updates
+		InitialLock = 1 << 2,			// initial lock, release manually after levels are ready for rebuild (e.g. streaming)
+		Custom = 1 << 3,
 	};
 }
 
@@ -565,9 +564,6 @@ protected:
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
 
-	/** registers NavArea classes awaiting registration in PendingNavAreaRegistration */
-	void ProcessNavAreaPendingRegistration();
-
 	/** registers CustomLinks awaiting registration in PendingCustomLinkRegistration */
 	void ProcessCustomLinkPendingRegistration();
 
@@ -688,7 +684,7 @@ public:
 	/** check if building is permanently locked to avoid showing navmesh building notify (due to queued dirty areas) */
 	FORCEINLINE bool IsNavigationBuildingPermanentlyLocked() const
 	{
-		return (NavBuildingLockFlags & ~(ENavigationBuildLock::LoadingAreas | ENavigationBuildLock::InitialLock)) != 0; 
+		return (NavBuildingLockFlags & ~ENavigationBuildLock::InitialLock) != 0; 
 	}
 
 	// @todo document
@@ -816,7 +812,6 @@ protected:
 
 	// async queries
 	FCriticalSection NavDataRegistrationSection;
-	static FCriticalSection NavAreaRegistrationSection;
 	static FCriticalSection CustomLinkRegistrationSection;
 	
 #if WITH_EDITOR
@@ -851,8 +846,7 @@ protected:
 	static bool bUpdateNavOctreeOnComponentChange;
 
 	static TMap<INavLinkCustomInterface*, FWeakObjectPtr> PendingCustomLinkRegistration;
-	static TArray<UClass*> PendingNavAreaRegistration;
-	static TArray<const UClass*> NavAreaClasses;
+	TSet<const UClass*> NavAreaClasses;
 	static TSubclassOf<UNavArea> DefaultWalkableArea;
 	static TSubclassOf<UNavArea> DefaultObstacleArea;
 
@@ -880,6 +874,9 @@ protected:
 
 	/** tries to register navigation area */
 	void RegisterNavAreaClass(UClass* NavAreaClass);
+
+	/** tries to unregister navigation area */
+	void UnregisterNavAreaClass(UClass* NavAreaClass);
 
 	void OnNavigationAreaEvent(UClass* AreaClass, ENavAreaEvent::Type Event);
 	

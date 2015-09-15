@@ -645,11 +645,11 @@ void ANavigationData::OnNavAreaChanged()
 	// empty in base class
 }
 
-void ANavigationData::ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex)
+void ANavigationData::ProcessNavAreas(const TSet<const UClass*>& AreaClasses, int32 AgentIndex)
 {
-	for (int32 i = 0; i < AreaClasses.Num(); i++)
+	for (const UClass* AreaClass : AreaClasses)
 	{
-		OnNavAreaAdded(AreaClasses[i], AgentIndex);
+		OnNavAreaAdded(AreaClass, AgentIndex);
 	}
 
 	OnNavAreaChanged();

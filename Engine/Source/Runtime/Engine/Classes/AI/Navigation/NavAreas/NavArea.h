@@ -72,7 +72,6 @@ public:
 	};
 #endif
 
-	virtual void PostInitProperties() override;
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;

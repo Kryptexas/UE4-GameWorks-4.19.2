@@ -13,20 +13,6 @@ UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
 	AreaFlags = 1;  
 }
 
-void UNavArea::PostInitProperties()
-{
-	Super::PostInitProperties();
-	
-	if (HasAnyFlags(RF_ClassDefaultObject)
-#if WITH_HOT_RELOAD
-		&& !GIsHotReload
-#endif // WITH_HOT_RELOAD
-		)
-	{
-		UNavigationSystem::RequestAreaRegistering(GetClass());
-	}
-}
-
 void UNavArea::FinishDestroy()
 {
 	if (HasAnyFlags(RF_ClassDefaultObject)
@@ -44,6 +30,15 @@ void UNavArea::FinishDestroy()
 void UNavArea::PostLoad()
 {
 	Super::PostLoad();
+
+	if (HasAnyFlags(RF_ClassDefaultObject)
+#if WITH_HOT_RELOAD
+		&& !GIsHotReload
+#endif // WITH_HOT_RELOAD
+		)
+	{
+		UNavigationSystem::RequestAreaRegistering(GetClass());
+	}
 
 	if (!SupportedAgents.IsInitialized())
 	{

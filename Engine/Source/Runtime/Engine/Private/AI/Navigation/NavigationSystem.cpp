@@ -250,9 +250,6 @@ void FNavigationLockContext::UnlockUpdates()
 //----------------------------------------------------------------------//
 bool UNavigationSystem::bNavigationAutoUpdateEnabled = true;
 TMap<INavLinkCustomInterface*, FWeakObjectPtr> UNavigationSystem::PendingCustomLinkRegistration;
-TArray<const UClass*> UNavigationSystem::NavAreaClasses;
-TArray<UClass*> UNavigationSystem::PendingNavAreaRegistration;
-FCriticalSection UNavigationSystem::NavAreaRegistrationSection;
 FCriticalSection UNavigationSystem::CustomLinkRegistrationSection;
 TSubclassOf<UNavArea> UNavigationSystem::DefaultWalkableArea = NULL;
 TSubclassOf<UNavArea> UNavigationSystem::DefaultObstacleArea = NULL;
@@ -417,6 +414,15 @@ void UNavigationSystem::PostInitProperties()
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
+		// Populate our NavAreaClasses list with all known nav area classes.
+		// If more are loaded after this they will be registered as they come
+		TArray<UClass*> CurrentNavAreaClasses;
+		GetDerivedClasses(UNavArea::StaticClass(), CurrentNavAreaClasses);
+		for (UClass* NavAreaClass : CurrentNavAreaClasses)
+		{
+			RegisterNavAreaClass(NavAreaClass);
+		}
+
 		// make sure there's at least one supported navigation agent size
 		if (SupportedAgents.Num() == 0)
 		{
@@ -450,10 +456,6 @@ void UNavigationSystem::PostInitProperties()
 		}
 
 		uint8 UseLockFlags = InitialNavBuildingLockFlags;
-		if (PendingNavAreaRegistration.Num())
-		{
-			UseLockFlags |= ENavigationBuildLock::LoadingAreas;
-		}
 
 		AddNavigationBuildLock(UseLockFlags);
 
@@ -772,13 +774,6 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 
 	const bool bIsGame = (GetWorld() && GetWorld()->IsGameWorld());
 	
-	// Register any pending nav areas
-	if (PendingNavAreaRegistration.Num())
-	{
-		SCOPE_CYCLE_COUNTER(STAT_Navigation_TickNavAreaRegister);
-		ProcessNavAreaPendingRegistration();
-	}
-	
 	if (PendingCustomLinkRegistration.Num())
 	{
 		ProcessCustomLinkPendingRegistration();
@@ -864,27 +859,18 @@ void UNavigationSystem::Tick(float DeltaSeconds)
 
 void UNavigationSystem::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {
-	// don't reference NavAreaClasses in editor (unless PIE is active)
-	// to allow deleting assets
-	if (!GIsEditor || GIsPlayInEditorWorld)
-	{
-		for (int32 NavAreaIndex = 0; NavAreaIndex < NavAreaClasses.Num(); NavAreaIndex++)
-		{
-			Collector.AddReferencedObject(NavAreaClasses[NavAreaIndex], InThis);
-		}
-	}
-
-	{
-		FScopeLock AccessLock(&NavAreaRegistrationSection);
-		for (int32 PendingAreaIndex = 0; PendingAreaIndex < PendingNavAreaRegistration.Num(); PendingAreaIndex++)
-		{
-			Collector.AddReferencedObject(PendingNavAreaRegistration[PendingAreaIndex], InThis);
-		}
-	}
-	
 	UNavigationSystem* This = CastChecked<UNavigationSystem>(InThis);
 	UCrowdManager* CrowdManager = This->GetCrowdManager();
 	Collector.AddReferencedObject(CrowdManager, InThis);
+
+	// don't reference NavAreaClasses in editor (unless PIE is active)
+	if (This->OperationMode != FNavigationSystemRunMode::EditorMode)
+	{
+		for (const UClass* NavAreaClass : This->NavAreaClasses)
+		{
+			Collector.AddReferencedObject(NavAreaClass, InThis);
+		}
+	}
 }
 
 #if WITH_EDITOR
@@ -1751,35 +1737,6 @@ void UNavigationSystem::ProcessRegistrationCandidates()
 	NavDataRegistrationQueue.Reset();
 }
 
-void UNavigationSystem::ProcessNavAreaPendingRegistration()
-{
-	FScopeLock AccessLock(&NavAreaRegistrationSection);
-
-	TArray<UClass*> TempPending = PendingNavAreaRegistration;
-
-	// Clear out old array, will fill in if still pending
-	PendingNavAreaRegistration.Empty();
-
-	for (int32 PendingAreaIndex = 0; PendingAreaIndex < TempPending.Num(); PendingAreaIndex++)
-	{
-		RegisterNavAreaClass(TempPending[PendingAreaIndex]);
-	}
-
-	// if nothing was added, remove lock
-	if (PendingNavAreaRegistration.Num() == 0)
-	{
-		const bool bSkipRebuildInEditor = true;
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-			if (NavSys)
-			{
-				NavSys->RemoveNavigationBuildLock(ENavigationBuildLock::LoadingAreas, bSkipRebuildInEditor);
-			}
-		}
-	}
-}
-
 void UNavigationSystem::ProcessCustomLinkPendingRegistration()
 {
 	FScopeLock AccessLock(&CustomLinkRegistrationSection);
@@ -1962,121 +1919,79 @@ void UNavigationSystem::RequestCustomLinkUnregistering(INavLinkCustomInterface& 
 
 void UNavigationSystem::RequestAreaUnregistering(UClass* NavAreaClass)
 {
-	if (NavAreaClasses.Contains(NavAreaClass))
+	for (TObjectIterator<UNavigationSystem> NavSysIt; NavSysIt; ++NavSysIt)
 	{
-		FScopeLock AccessLock(&NavAreaRegistrationSection);
+		NavSysIt->UnregisterNavAreaClass(NavAreaClass);
+	}
+}
 
-		// remove from known areas
-		NavAreaClasses.RemoveSingleSwap(NavAreaClass);
-		PendingNavAreaRegistration.RemoveSingleSwap(NavAreaClass);
-
+void UNavigationSystem::UnregisterNavAreaClass(UClass* NavAreaClass)
+{
+	// remove from known areas
+	if (NavAreaClasses.Remove(NavAreaClass) > 0)
+	{
 		// notify navigation data
 		// notify existing nav data
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-			if (NavSys)
-			{
-				NavSys->OnNavigationAreaEvent(NavAreaClass, ENavAreaEvent::Unregistered);
-
-				if (PendingNavAreaRegistration.Num() == 0)
-				{
-					NavSys->RemoveNavigationBuildLock(ENavigationBuildLock::LoadingAreas);
-				}
-			}
-		}
+		OnNavigationAreaEvent(NavAreaClass, ENavAreaEvent::Unregistered);
 	}
 }
 
 void UNavigationSystem::RequestAreaRegistering(UClass* NavAreaClass)
 {
-	// can't be null
-	if (NavAreaClass == NULL)
+	for (TObjectIterator<UNavigationSystem> NavSysIt; NavSysIt; ++NavSysIt)
 	{
-		return;
-	}
-
-	// can't be abstract
-	if (NavAreaClass->HasAnyClassFlags(CLASS_Abstract))
-	{
-		return;
-	}
-
-	// special handling of blueprint based areas
-	if (NavAreaClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
-	{
-		// can't be skeleton of blueprint class
-		if (NavAreaClass->GetName().Contains(TEXT("SKEL_")))
-		{
-			return;
-		}
-
-		// can't be class from Developers folder (won't be saved properly anyway)
-		const UPackage* Package = NavAreaClass->GetOutermost();
-		if (Package && Package->GetName().Contains(TEXT("/Developers/")) )
-		{
-			return;
-		}
-	}
-
-	bool bNeedsLock = false;
-	
-	{
-		FScopeLock AccessLock(&NavAreaRegistrationSection);
-		bNeedsLock = (PendingNavAreaRegistration.Num() == 0);
-		PendingNavAreaRegistration.Add(NavAreaClass);
-	}
-
-	if (bNeedsLock)
-	{
-		for (TObjectIterator<UWorld> It; It; ++It)
-		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-			if (NavSys)
-			{
-				NavSys->AddNavigationBuildLock(ENavigationBuildLock::LoadingAreas);
-			}
-		}
+		NavSysIt->RegisterNavAreaClass(NavAreaClass);
 	}
 }
 
 void UNavigationSystem::RegisterNavAreaClass(UClass* AreaClass)
 {
-	bool bStillLoading = false;
-
-#if WITH_EDITORONLY_DATA
-	bStillLoading = AreaClass->ClassGeneratedBy && AreaClass->ClassGeneratedBy->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad);
-#endif //WITH_EDITORONLY_DATA
-
-	UNavArea* AreaClassCDO = AreaClass->GetDefaultObject<UNavArea>();
-	if (AreaClassCDO == nullptr || AreaClassCDO->HasAnyFlags(RF_NeedLoad | RF_NeedPostLoad))
+	// can't be null
+	if (AreaClass == NULL)
 	{
-		bStillLoading = true;
-	}
-
-	if (bStillLoading)
-	{
-		// Class isn't done loading, try again later
-		FScopeLock AccessLock(&NavAreaRegistrationSection);
-		PendingNavAreaRegistration.Add(AreaClass);
 		return;
 	}
+
+	// can't be abstract
+	if (AreaClass->HasAnyClassFlags(CLASS_Abstract))
+	{
+		return;
+	}
+
+	// special handling of blueprint based areas
+	if (AreaClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+	{
+		// can't be skeleton of blueprint class
+		if (AreaClass->GetName().Contains(TEXT("SKEL_")))
+		{
+			return;
+		}
+
+		// can't be class from Developers folder (won't be saved properly anyway)
+		const UPackage* Package = AreaClass->GetOutermost();
+		if (Package && Package->GetName().Contains(TEXT("/Developers/")))
+		{
+			return;
+		}
+	}
+
+	if (NavAreaClasses.Contains(AreaClass))
+	{
+		// Already added
+		return;
+	}
+
+	UNavArea* AreaClassCDO = AreaClass->GetDefaultObject<UNavArea>();
+	check(AreaClassCDO);
 
 	// initialize flags
 	AreaClassCDO->InitializeArea();
 
 	// add to know areas
-	NavAreaClasses.AddUnique(AreaClass);
+	NavAreaClasses.Add(AreaClass);
 
 	// notify existing nav data
-	for (TObjectIterator<UWorld> It; It; ++It)
-	{
-		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(*It);
-		if (NavSys)
-		{
-			NavSys->OnNavigationAreaEvent(AreaClass, ENavAreaEvent::Registered);
-		}
-	}
+	OnNavigationAreaEvent(AreaClass, ENavAreaEvent::Registered);
 
 #if WITH_EDITOR
 	// update area properties

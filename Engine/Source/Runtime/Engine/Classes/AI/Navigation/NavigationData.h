@@ -742,7 +742,7 @@ public:
 	void OnNavAreaEvent(const UClass* NavAreaClass, ENavAreaEvent::Type Event);
 
 	/** add all existing areas */
-	void ProcessNavAreas(const TArray<const UClass*>& AreaClasses, int32 AgentIndex);
+	void ProcessNavAreas(const TSet<const UClass*>& AreaClasses, int32 AgentIndex);
 
 	/** get class associated with AreaID */
 	const UClass* GetAreaClass(int32 AreaID) const;
