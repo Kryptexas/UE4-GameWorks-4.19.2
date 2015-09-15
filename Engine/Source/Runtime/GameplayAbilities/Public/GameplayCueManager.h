@@ -235,6 +235,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	static UWorld* PreviewWorld;
 #endif
+	
+	virtual bool ShouldAsyncLoadObjectLibrariesAtStart() const { return true; }
 
 protected:
 

@@ -217,6 +217,13 @@ void UAbilitySystemGlobals::InitGameplayCueParameters(FGameplayCueParameters& Cu
 
 // --------------------------------------------------------------------
 
+void UAbilitySystemGlobals::StartAsyncLoadingObjectLibraries()
+{
+	GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+}
+
+// --------------------------------------------------------------------
+
 /** Initialize FAttributeSetInitter. This is virtual so projects can override what class they use */
 void UAbilitySystemGlobals::AllocAttributeSetInitter()
 {
@@ -263,10 +270,10 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 			// Fallback to CDO
 			GlobalGameplayCueManager = UGameplayCueManager::StaticClass()->GetDefaultObject<UGameplayCueManager>();
 		}
-
-		if (GameplayCueNotifyPaths.Num() > 0)
+		
+		if (GlobalGameplayCueManager->ShouldAsyncLoadObjectLibrariesAtStart() && GameplayCueNotifyPaths.Num() > 0)
 		{
-			GlobalGameplayCueManager->LoadObjectLibraryFromPaths(GameplayCueNotifyPaths);
+			StartAsyncLoadingObjectLibraries();
 		}
 	}
 

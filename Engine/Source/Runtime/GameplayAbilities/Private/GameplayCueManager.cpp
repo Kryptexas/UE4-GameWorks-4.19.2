@@ -314,7 +314,7 @@ void UGameplayCueManager::BuildCuesToAddToGlobalSet(const TArray<FAssetData>& As
 
 				if (bAsyncLoadAfterAdd)
 				{
-					StreamableManager.SimpleAsyncLoad(StringRef);
+					StreamableManager.SimpleAsyncLoad(StringRef, FStreamableManager::DefaultAsyncLoadPriority - 1);
 				}
 			}
 			else
