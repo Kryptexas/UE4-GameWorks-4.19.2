@@ -256,7 +256,7 @@ FReply SAnimationOutlinerTreeNode::OnAddKeyClicked()
 		{
 			OwningSection->SetFlags(RF_Transactional);
 			OwningSection->Modify();
-			KeyArea->AddKeyUnique(CurrentTime);
+			KeyArea->AddKeyUnique(CurrentTime, Sequencer.GetKeyInterpolation());
 		}
 	}
 

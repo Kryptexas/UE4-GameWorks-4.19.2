@@ -146,7 +146,7 @@ FSelectedKey SSection::CreateKeyUnderMouse( const FVector2D& MousePosition, cons
 				// Offset by 1 pixel worth of time
 				const float TimeFuzz = (GetSequencer().GetViewRange().GetUpperBoundValue() - GetSequencer().GetViewRange().GetLowerBoundValue()) / ParentGeometry.GetLocalSize().X;
 
-				TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, KeyTime);
+				TArray<FKeyHandle> KeyHandles = KeyArea->AddKeyUnique(KeyTime+TimeFuzz, GetSequencer().GetKeyInterpolation(), KeyTime);
 
 				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
 
@@ -169,7 +169,7 @@ FSelectedKey SSection::CreateKeyUnderMouse( const FVector2D& MousePosition, cons
 			}
 			else
 			{
-				KeyArea->AddKeyUnique(KeyTime);
+				KeyArea->AddKeyUnique(KeyTime, GetSequencer().GetKeyInterpolation());
 
 				Layout = FKeyAreaLayout(*ParentSectionArea, SectionIndex);
 						

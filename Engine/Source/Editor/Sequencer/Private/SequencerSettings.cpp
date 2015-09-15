@@ -8,6 +8,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bAutoKeyEnabled = false;
 	bKeyAllEnabled = false;
 	bKeyInterpPropertiesOnly = false;
+	KeyInterpolation = MSKI_Auto;
 	bShowFrameNumbers = true;
 	bShowRangeSlider = false;
 	bLockInOutToStartEndRange = false;
@@ -65,6 +66,20 @@ void USequencerSettings::SetKeyInterpPropertiesOnly(bool InbKeyInterpPropertiesO
 	if ( bKeyInterpPropertiesOnly != InbKeyInterpPropertiesOnly )
 	{
 		bKeyInterpPropertiesOnly = InbKeyInterpPropertiesOnly;
+		SaveConfig();
+	}
+}
+
+EMovieSceneKeyInterpolation USequencerSettings::GetKeyInterpolation() const
+{
+	return KeyInterpolation;
+}
+
+void USequencerSettings::SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation)
+{
+	if ( KeyInterpolation != InKeyInterpolation)
+	{
+		KeyInterpolation = InKeyInterpolation;
 		SaveConfig();
 	}
 }

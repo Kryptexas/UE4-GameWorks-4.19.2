@@ -27,6 +27,7 @@ void FSequencerDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle
 	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
 	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
 	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = true;
+	KeyPropertyParams.KeyParams.KeyInterpolation = Sequencer.Pin()->GetKeyInterpolation();
 
 	Sequencer.Pin()->KeyProperty(KeyPropertyParams);
 }

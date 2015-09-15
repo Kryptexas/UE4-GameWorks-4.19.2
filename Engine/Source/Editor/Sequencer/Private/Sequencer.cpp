@@ -649,6 +649,16 @@ void FSequencer::SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly)
 	Settings->SetKeyInterpPropertiesOnly(bKeyInterpPropertiesOnly);
 }
 
+EMovieSceneKeyInterpolation FSequencer::GetKeyInterpolation() const
+{
+	return Settings->GetKeyInterpolation();
+}
+
+void FSequencer::SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation)
+{
+	Settings->SetKeyInterpolation(InKeyInterpolation);
+}
+
 bool FSequencer::IsRecordingLive() const 
 {
 	return PlaybackState == EMovieScenePlayerStatus::Recording && GIsPlayInEditorWorld;

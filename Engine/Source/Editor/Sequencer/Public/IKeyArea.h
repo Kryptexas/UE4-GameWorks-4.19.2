@@ -111,10 +111,11 @@ public:
 	 * Adds a key at the specified time if there isn't already a key present.  The value of the added key should
 	 * be the value which would be returned if the animation containing this key area was evaluated at the specified time.
 	 *
+	 * @param InKeyInterpolation KeyInterpolation
 	 * @param TimeToCopyFrom Optional time to copy key parameters from
 	 * @param return      The new keys that were added
 	 */
-	virtual TArray<FKeyHandle> AddKeyUnique(float Time, float TimeToCopyFrom = FLT_MAX) = 0;
+	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) = 0;
 
 	/** Gets the rich curve associated with this key area.  This can be null but it must be valid in order to be
 	  * edited by the curve editor. */

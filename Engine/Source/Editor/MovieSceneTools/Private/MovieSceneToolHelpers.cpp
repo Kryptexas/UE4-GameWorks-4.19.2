@@ -16,7 +16,7 @@
 #include "SEnumCurveKeyEditor.h"
 #include "SBoolCurveKeyEditor.h"
 
-TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
+TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
 	TArray<FKeyHandle> AddedKeyHandles;
 
@@ -40,6 +40,35 @@ TArray<FKeyHandle> FFloatCurveKeyArea::AddKeyUnique(float Time, float TimeToCopy
 
 		Curve->AddKey(Time, Value, false, CurrentKeyHandle);
 		AddedKeyHandles.Add(CurrentKeyHandle);
+		
+		// Set the default key interpolation
+		switch (InKeyInterpolation)
+		{
+			case MSKI_Auto:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
+				break;
+			case MSKI_User:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_User);
+				break;
+			case MSKI_Break:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Break);
+				break;
+			case MSKI_Linear:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Linear);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
+				break;
+			case MSKI_Constant:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Constant);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
+				break;
+			default:
+				Curve->SetKeyInterpMode(CurrentKeyHandle, RCIM_Cubic);
+				Curve->SetKeyTangentMode(CurrentKeyHandle, RCTM_Auto);
+				break;
+		}
 		
 		// Copy the properties from the key if it exists
 		FKeyHandle KeyHandleToCopy = Curve->FindKey(TimeToCopyFrom);
@@ -68,7 +97,7 @@ TSharedRef<SWidget> FFloatCurveKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Curve(Curve);
 };
 
-TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
+TArray<FKeyHandle> FIntegralKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
 	TArray<FKeyHandle> AddedKeyHandles;
 

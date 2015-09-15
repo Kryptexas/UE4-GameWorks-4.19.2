@@ -900,6 +900,7 @@ void FObjectBindingNode::AddTrackForProperty(TArray<UProperty*> PropertyPath)
 	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
 	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = false;
 	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = false;
+	KeyPropertyParams.KeyParams.KeyInterpolation = Sequencer.GetKeyInterpolation();
 
 	Sequencer.KeyProperty(KeyPropertyParams);
 }

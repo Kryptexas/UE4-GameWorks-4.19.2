@@ -30,6 +30,7 @@ void FUMGDetailKeyframeHandler::OnKeyPropertyClicked(const IPropertyHandle& Keye
 	KeyPropertyParams.KeyParams.bCreateHandleIfMissing = true;
 	KeyPropertyParams.KeyParams.bCreateTrackIfMissing = true;
 	KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged = true;
+	KeyPropertyParams.KeyParams.KeyInterpolation = BlueprintEditor.Pin()->GetSequencer()->GetKeyInterpolation();
 
 	BlueprintEditor.Pin()->GetSequencer()->KeyProperty(KeyPropertyParams);
 }

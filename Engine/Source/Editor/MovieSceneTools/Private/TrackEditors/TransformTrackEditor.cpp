@@ -269,6 +269,7 @@ void F3DTransformTrackEditor::OnTransformChanged( UObject& InObject )
 			FKeyParams KeyParams;
 			KeyParams.bAutoKeying = Sequencer->GetAutoKeyEnabled();
 			KeyParams.bAddKeyEvenIfUnchanged = false;
+			KeyParams.KeyInterpolation = Sequencer->GetKeyInterpolation();
 
 			if (CanKeyProperty(FCanKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::CanKeyPropertyInternal, ObjectHandle, TransformPair, KeyParams)))
 			{
@@ -319,6 +320,7 @@ void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* A
 
 			FKeyParams KeyParams;
 			KeyParams.bAddKeyEvenIfUnchanged = bAddKeyEvenIfUnchanged;
+			KeyParams.KeyInterpolation = GetSequencer()->GetKeyInterpolation();
 
 			AnimatablePropertyChanged(UMovieScene3DTransformTrack::StaticClass(),
 				FOnKeyProperty::CreateRaw(this, &F3DTransformTrackEditor::OnTransformChangedInternals, Object, ObjectHandle, TransformPair, KeyParams, KeyType));

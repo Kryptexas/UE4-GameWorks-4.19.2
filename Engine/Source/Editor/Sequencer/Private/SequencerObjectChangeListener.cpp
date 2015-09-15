@@ -61,6 +61,7 @@ void FSequencerObjectChangeListener::BroadcastPropertyChanged( FKeyPropertyParam
 	Params.KeyParams.bCreateTrackIfMissing = KeyPropertyParams.KeyParams.bCreateTrackIfMissing;
 	Params.KeyParams.bAddKeyEvenIfUnchanged = KeyPropertyParams.KeyParams.bAddKeyEvenIfUnchanged;
 	Params.KeyParams.bAutoKeying = Sequencer.Pin()->GetAutoKeyEnabled();
+	Params.KeyParams.KeyInterpolation = Sequencer.Pin()->GetKeyInterpolation();
 	Params.ObjectsThatChanged = KeyableObjects;
 	Params.StructPropertyNameToKey = NAME_None;
 

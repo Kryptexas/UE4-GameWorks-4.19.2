@@ -59,6 +59,11 @@ public:
 	/** Sets whether or not to key interp properties only. */
 	void SetKeyInterpPropertiesOnly(bool InbKeyInterpPropertiesOnly); 
 
+	/** Gets default key interpolation. */
+	EMovieSceneKeyInterpolation GetKeyInterpolation() const;
+	/** Sets default key interpolation */
+	void SetKeyInterpolation(EMovieSceneKeyInterpolation InKeyInterpolation);
+
 	/** Gets whether or not to show frame numbers. */
 	bool GetShowFrameNumbers() const;
 	/** Sets whether or not to show frame numbers. */
@@ -159,6 +164,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bKeyInterpPropertiesOnly;
+
+	UPROPERTY( config )
+	TEnumAsByte<EMovieSceneKeyInterpolation> KeyInterpolation;
 
 	UPROPERTY( config )
 	bool bShowFrameNumbers;

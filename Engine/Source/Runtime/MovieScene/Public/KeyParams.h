@@ -2,6 +2,25 @@
 
 #pragma once
 
+UENUM()
+enum EMovieSceneKeyInterpolation
+{
+	/** Auto. */
+	MSKI_Auto UMETA(DisplayName="Auto"),
+
+	/** User. */
+	MSKI_User UMETA(DisplayName="User"),
+
+	/** Break. */
+	MSKI_Break UMETA(DisplayName="Break"),
+
+	/** Linear. */
+	MSKI_Linear UMETA(DisplayName="Linear"),
+
+	/** Constant. */
+	MSKI_Constant UMETA(DisplayName="Constant"),
+};
+
 /**
  * Parameters for determining keying behavior
  */
@@ -13,6 +32,7 @@ struct MOVIESCENE_API FKeyParams
 		bCreateTrackIfMissing = false;
 		bAddKeyEvenIfUnchanged = false;
 		bAutoKeying = false;
+		KeyInterpolation = MSKI_Auto;
 	}
 
 	FKeyParams(const FKeyParams& InKeyParams)
@@ -21,6 +41,7 @@ struct MOVIESCENE_API FKeyParams
 		bCreateTrackIfMissing = InKeyParams.bCreateTrackIfMissing;
 		bAddKeyEvenIfUnchanged = InKeyParams.bAddKeyEvenIfUnchanged;
 		bAutoKeying = InKeyParams.bAutoKeying;
+		KeyInterpolation = InKeyParams.KeyInterpolation;
 	}
 
 	/** Create handle if it doesn't exist. */
@@ -31,4 +52,6 @@ struct MOVIESCENE_API FKeyParams
 	bool bAddKeyEvenIfUnchanged;
 	/** Auto keying on.*/
 	bool bAutoKeying;
+	/** Key interpolation. */
+	EMovieSceneKeyInterpolation KeyInterpolation;
 };

@@ -74,7 +74,41 @@ void UMovieSceneSection::AddKeyToCurve( FRichCurve& InCurve, float Time, float V
 		}
 		else
 		{
-			InCurve.UpdateOrAddKey(Time, Value, bUnwindRotation);
+			FKeyHandle ExistingKeyHandle = InCurve.FindKey(Time);
+			
+			FKeyHandle NewKeyHandle = InCurve.UpdateOrAddKey(Time, Value, bUnwindRotation);
+
+			if (!InCurve.IsKeyHandleValid(ExistingKeyHandle) && InCurve.IsKeyHandleValid(NewKeyHandle))
+			{
+				// Set the default key interpolation only if a new key was created
+				switch (KeyParams.KeyInterpolation)
+				{
+					case MSKI_Auto:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
+						break;
+					case MSKI_User:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_User);
+						break;
+					case MSKI_Break:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Break);
+						break;
+					case MSKI_Linear:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Linear);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
+						break;
+					case MSKI_Constant:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Constant);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
+						break;
+					default:
+						InCurve.SetKeyInterpMode(NewKeyHandle, RCIM_Cubic);
+						InCurve.SetKeyTangentMode(NewKeyHandle, RCTM_Auto);
+						break;
+				}
+			}
 		}
 	}
 }

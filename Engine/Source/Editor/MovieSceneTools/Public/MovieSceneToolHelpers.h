@@ -110,7 +110,7 @@ public:
 		return RCCE_None;
 	}
 
-	virtual TArray<FKeyHandle> AddKeyUnique(float Time, float TimeToCopyFrom = FLT_MAX) override;
+	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
 
 	virtual FRichCurve* GetRichCurve() override { return Curve; }
 
@@ -199,7 +199,7 @@ public:
 		return RCCE_None;
 	}
 
-	virtual TArray<FKeyHandle> AddKeyUnique(float Time, float TimeToCopyFrom = FLT_MAX) override;
+	virtual TArray<FKeyHandle> AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom = FLT_MAX) override;
 
 	virtual FRichCurve* GetRichCurve() override { return nullptr; };
 

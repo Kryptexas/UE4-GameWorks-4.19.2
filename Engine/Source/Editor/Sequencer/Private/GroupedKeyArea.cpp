@@ -348,7 +348,7 @@ ERichCurveExtrapolation FGroupedKeyArea::GetExtrapolationMode(bool bPreInfinity)
 	return ExtrapMode;
 }
 
-TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, float TimeToCopyFrom)
+TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, EMovieSceneKeyInterpolation InKeyInterpolation, float TimeToCopyFrom)
 {
 	TArray<FKeyHandle> AddedKeyHandles;
 
@@ -366,7 +366,7 @@ TArray<FKeyHandle> FGroupedKeyArea::AddKeyUnique(float Time, float TimeToCopyFro
 			}
 		}
 
-		TArray<FKeyHandle> AddedGroupKeyHandles = Area->AddKeyUnique(Time, TimeToCopyFrom);
+		TArray<FKeyHandle> AddedGroupKeyHandles = Area->AddKeyUnique(Time, InKeyInterpolation, TimeToCopyFrom);
 		AddedKeyHandles.Append(AddedGroupKeyHandles);
 	}
 

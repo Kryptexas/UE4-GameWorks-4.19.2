@@ -79,11 +79,17 @@ public:
 	/** Sets whether key all is enabled in this sequencer. */
 	virtual void SetKeyAllEnabled(bool bKeyAllEnabled) = 0;
 
-	/** @return Returns whether or not to key only  interp properties in this sequencer */
+	/** @return Returns whether or not to key only interp properties in this sequencer */
 	virtual bool GetKeyInterpPropertiesOnly() const = 0;
 
 	/** Sets whether or not to key only interp properties in this sequencer. */
 	virtual void SetKeyInterpPropertiesOnly(bool bKeyInterpPropertiesOnly) = 0;
+
+	/** @return Returns default key interpolation */
+	virtual EMovieSceneKeyInterpolation GetKeyInterpolation() const = 0;
+
+	/** Set default key interpolation */
+	virtual void SetKeyInterpolation(EMovieSceneKeyInterpolation) = 0;
 
 	/** @return Returns whether sequencer is currently recording live data from simulated actors */
 	virtual bool IsRecordingLive() const = 0;
