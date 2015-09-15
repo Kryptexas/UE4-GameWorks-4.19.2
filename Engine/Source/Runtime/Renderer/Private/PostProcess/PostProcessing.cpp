@@ -116,6 +116,14 @@ static TAutoConsoleVariable<int32> CVarUpscaleQuality(
 	TEXT(" 3: Directional blur with unsharp mask upsample. (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
+static TAutoConsoleVariable<int32> CDownsampleQuality(
+	TEXT("r.Downsample.Quality"),
+	3,
+	TEXT("Defines the quality in which the Downsample passes. we might add more quality levels later.\n")
+	TEXT(" 0: low quality\n")
+	TEXT(">0: high quality (default: 3)\n"),
+	ECVF_Scalability | ECVF_RenderThreadSafe);
+
 static TAutoConsoleVariable<float> CVarMotionBlurSoftEdgeSize(
 	TEXT("r.MotionBlurSoftEdgeSize"),
 	1.0f,
@@ -1318,8 +1326,10 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 			// down sample Scene color from full to half res
 			FRenderingCompositeOutputRef SceneColorHalfRes;
 			{
+				int32 DownsampleQuality = FMath::Clamp(CDownsampleQuality.GetValueOnRenderThread(), 0, 1);
+
 				// doesn't have to be as high quality as the Scene color
-				FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_FloatRGB, 1, TEXT("SceneColorHalfRes")));
+				FRenderingCompositePass* HalfResPass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessDownsample(PF_FloatRGB, DownsampleQuality, TEXT("SceneColorHalfRes")));
 				HalfResPass->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 
 				SceneColorHalfRes = FRenderingCompositeOutputRef(HalfResPass);
