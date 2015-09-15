@@ -695,12 +695,6 @@ FPropertyAccess::Result FPropertyValueImpl::SetValueAsString( const FString& InV
 					break;
 				}
 			}
-
-			// Ensure the name is enclosed with quotes.
-			if( Value.Len() )
-			{
-				Value = FString::Printf( TEXT("\"%s\""), *Value.TrimQuotes() );
-			}
 		}
 
 		// If more than one object is selected, an empty field indicates their values for this property differ.
