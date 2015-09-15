@@ -374,7 +374,7 @@ struct FEndPhysicsTickFunction : public FTickFunction
 * Tick function that starts the cloth tick
 **/
 USTRUCT()
-struct FStartClothAndAsyncSimulationFunction : public FTickFunction
+struct FStartAsyncSimulationFunction : public FTickFunction
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -870,9 +870,7 @@ public:
 	FEndPhysicsTickFunction EndPhysicsTickFunction;
 
 	/** Tick function for starting cloth simulation																				*/
-	FStartClothAndAsyncSimulationFunction StartClothTickFunction;
-	/** Tick function for ending cloth simulation																				*/
-	FEndClothSimulationFunction EndClothTickFunction;
+	FStartAsyncSimulationFunction StartAsyncTickFunction;
 
 	/** 
 	 * Indicates that during world ticking we are doing the final component update of dirty components 
@@ -2113,10 +2111,10 @@ public:
 	UGameViewportClient* GetGameViewport() const;
 
 private:
-	/** Begin cloth and async simulation */
-	void StartClothAndAsyncSim();
+	/** Begin async simulation */
+	void StartAsyncSim();
 
-	friend FStartClothAndAsyncSimulationFunction;
+	friend FStartAsyncSimulationFunction;
 
 public:
 

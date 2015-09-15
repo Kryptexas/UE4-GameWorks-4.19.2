@@ -108,18 +108,14 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 	EndPhysicsTickFunction.bCanEverTick = true;
 	EndPhysicsTickFunction.Target = this;
 	
-	StartClothTickFunction.bCanEverTick = true;
-	StartClothTickFunction.Target = this;
-	
-	EndClothTickFunction.bCanEverTick = true;
-	EndClothTickFunction.Target = this;
+	StartAsyncTickFunction.bCanEverTick = true;
+	StartAsyncTickFunction.Target = this;
 	
 	
 	// see if we need to update tick registration
 	bool bNeedToUpdateTickRegistration = (bShouldSimulatePhysics != StartPhysicsTickFunction.IsTickFunctionRegistered())
 		|| (bShouldSimulatePhysics != EndPhysicsTickFunction.IsTickFunctionRegistered())
-		|| (bShouldSimulatePhysics != StartClothTickFunction.IsTickFunctionRegistered())
-		|| (bShouldSimulatePhysics != EndClothTickFunction.IsTickFunctionRegistered());
+		|| (bShouldSimulatePhysics != StartAsyncTickFunction.IsTickFunctionRegistered());
 
 	if (bNeedToUpdateTickRegistration && PersistentLevel)
 	{
@@ -145,27 +141,15 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 			EndPhysicsTickFunction.UnRegisterTickFunction();
 		}
 
-		//cloth
-		if (bShouldSimulatePhysics && !StartClothTickFunction.IsTickFunctionRegistered())
+		//async scene
+		if (bShouldSimulatePhysics && !StartAsyncTickFunction.IsTickFunctionRegistered())
 		{
-			StartClothTickFunction.TickGroup = TG_StartCloth;
-			StartClothTickFunction.RegisterTickFunction(PersistentLevel);
+			StartAsyncTickFunction.TickGroup = TG_StartCloth;
+			StartAsyncTickFunction.RegisterTickFunction(PersistentLevel);
 		}
-		else if (!bShouldSimulatePhysics && StartClothTickFunction.IsTickFunctionRegistered())
+		else if (!bShouldSimulatePhysics && StartAsyncTickFunction.IsTickFunctionRegistered())
 		{
-			StartClothTickFunction.UnRegisterTickFunction();
-		}
-
-		if (bShouldSimulatePhysics && !EndClothTickFunction.IsTickFunctionRegistered())
-		{
-			EndClothTickFunction.TickGroup = TG_EndCloth;
-			EndClothTickFunction.RegisterTickFunction(PersistentLevel);
-			EndClothTickFunction.AddPrerequisite(this, StartClothTickFunction);
-		}
-		else if (!bShouldSimulatePhysics && EndClothTickFunction.IsTickFunctionRegistered())
-		{
-			EndClothTickFunction.RemovePrerequisite(this, StartClothTickFunction);
-			EndClothTickFunction.UnRegisterTickFunction();
+			StartAsyncTickFunction.UnRegisterTickFunction();
 		}
 	}
 
@@ -173,6 +157,11 @@ void UWorld::SetupPhysicsTickFunctions(float DeltaSeconds)
 	if (PhysicsScene == NULL)
 	{
 		return;
+	}
+
+	if (FClothManager* ClothManager = PhysicsScene->GetClothManager())
+	{
+		ClothManager->SetupClothTickFunction(bShouldSimulatePhysics);
 	}
 
 #if WITH_PHYSX
@@ -210,7 +199,7 @@ void UWorld::FinishPhysicsSim()
 	PhysScene->EndFrame(LineBatcher);
 }
 
-void UWorld::StartClothAndAsyncSim()
+void UWorld::StartAsyncSim()
 {
 	if (FPhysScene* PhysScene = GetPhysicsScene())
 	{
@@ -278,17 +267,17 @@ FString FEndPhysicsTickFunction::DiagnosticMessage()
 	return TEXT("FEndPhysicsTickFunction");
 }
 
-void FStartClothAndAsyncSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+void FStartAsyncSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(FStartClothSimulationFunction_ExecuteTick);
+	QUICK_SCOPE_CYCLE_COUNTER(FStartAsyncSimulationFunction_ExecuteTick);
 
 	check(Target);
-	Target->StartClothAndAsyncSim();
+	Target->StartAsyncSim();
 }
 
-FString FStartClothAndAsyncSimulationFunction::DiagnosticMessage()
+FString FStartAsyncSimulationFunction::DiagnosticMessage()
 {
-	return TEXT("FStartClothSimulationFunction");
+	return TEXT("FStartAsyncSimulationFunction");
 }
 
 void FEndClothSimulationFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)

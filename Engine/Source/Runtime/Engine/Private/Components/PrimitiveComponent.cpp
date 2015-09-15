@@ -313,10 +313,10 @@ void UPrimitiveComponent::RegisterComponentTickFunctions(bool bRegister)
 				PostPhysicsComponentTick.AddPrerequisite(this,PrimaryComponentTick); 
 			}
 
-			// Set a prereq for the post physics tick to happen after physics and cloth is finished
-			if(World != NULL)
+			// Set a prereq for the post physics tick to happen after physics is finished
+			if (World != NULL)
 			{
-				PostPhysicsComponentTick.AddPrerequisite(World, World->EndClothTickFunction);
+				PostPhysicsComponentTick.AddPrerequisite(World, World->EndPhysicsTickFunction);
 			}
 		}
 	}

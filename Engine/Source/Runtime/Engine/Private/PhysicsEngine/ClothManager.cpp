@@ -7,34 +7,18 @@
 
 FClothManager::FClothManager(UWorld* InAssociatedWorld)
 : AssociatedWorld(InAssociatedWorld)
- {
-	//simulate cloth tick
-	StartClothTickFunction.bCanEverTick = true;
-	StartClothTickFunction.Target = this;
-	StartClothTickFunction.TickGroup = TG_StartCloth;
-	StartClothTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
-
-	//prepare cloth data ticks
-	PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].TickFunction.TickGroup = TG_StartPhysics;
-	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].TickFunction.TickGroup = TG_PreCloth;
-
-	for(FClothManagerData& PrepareClothData : PrepareClothDataArray)
-	{
-		PrepareClothData.TickFunction.bCanEverTick = true;
-		PrepareClothData.TickFunction.Target = &PrepareClothData;
-		PrepareClothData.TickFunction.bRunOnAnyThread = true;	//this value seems to be ignored
-		PrepareClothData.TickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
-	}
- }
+{
+}
 
 void FClothManagerData::PrepareCloth(float DeltaTime)
 {
 #if WITH_APEX_CLOTHING
-	if(SkeletalMeshComponents.Num())
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_PrepareCloth);
+	if (SkeletalMeshComponents.Num())
 	{
 		IsPreparingCloth.AtomicSet(true);
 		for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
-		{	
+		{
 			SkeletalMeshComponent->SubmitClothSimulationContext();	//make sure user params are passed internally
 
 			FClothSimulationContext& ClothSimulationContext = SkeletalMeshComponent->InternalClothSimulationContext;
@@ -52,23 +36,10 @@ void FClothManager::RegisterForPrepareCloth(USkeletalMeshComponent* SkeletalMesh
 	PrepareClothDataArray[(int32)PrepSchedule].SkeletalMeshComponents.Add(SkeletalMeshComponent);
 }
 
-void FClothManager::StartCloth()
+void FClothManager::StartCloth(float DeltaTime)
 {
-	//Make sure prepare tasks are done
-	FGraphEventArray ThingsToComplete;
-	for (const FClothManagerData& PrepareData : PrepareClothDataArray)
-	{
-		if (PrepareData.PrepareCompletion.IsValid())
-		{
-			ThingsToComplete.Add(PrepareData.PrepareCompletion);
-		}
-	}
-
-	if (ThingsToComplete.Num())
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_WaitPrepareCloth);
-		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
-	}
+	//First we must prepare any cloth that waits on physics sim
+	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].PrepareCloth(DeltaTime);
 
 	//Reset skeletal mesh components
 	bool bNeedSimulateCloth = false;
@@ -91,10 +62,72 @@ void FClothManager::StartCloth()
 	}
 }
 
+static TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("Whether to prepare and start cloth sim off the game thread"));
+
+void FClothManager::SetupClothTickFunction(bool bTickClothSim)
+{
+	check(IsInGameThread());
+	check(!IsPreparingClothAsync());
+
+	bool bTickOnAny = !!CVarParallelCloth.GetValueOnGameThread();
+	StartIgnorePhysicsClothTickFunction.bRunOnAnyThread = bTickOnAny;
+	StartClothTickFunction.bRunOnAnyThread = bTickOnAny;
+
+	/** Need to register tick function and we are not currently registered */
+	if (bTickClothSim && !StartClothTickFunction.IsTickFunctionRegistered())
+	{
+		//prepare cloth data ticks
+		StartIgnorePhysicsClothTickFunction.TickGroup = TG_StartPhysics;
+		StartIgnorePhysicsClothTickFunction.Target = this;
+		StartIgnorePhysicsClothTickFunction.bCanEverTick = true;
+		StartIgnorePhysicsClothTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+
+		//simulate cloth tick
+		StartClothTickFunction.TickGroup = TG_StartCloth;
+		StartClothTickFunction.Target = this;
+		StartClothTickFunction.bCanEverTick = true;
+		StartClothTickFunction.AddPrerequisite(AssociatedWorld, StartIgnorePhysicsClothTickFunction);
+		StartClothTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+
+		//wait for cloth sim to finish
+		EndClothTickFunction.TickGroup = TG_EndCloth;
+		EndClothTickFunction.Target = this;
+		EndClothTickFunction.bCanEverTick = true;
+		EndClothTickFunction.bRunOnAnyThread = false;	//this HAS to run on game thread because we need to block if cloth sim is not done
+		EndClothTickFunction.AddPrerequisite(AssociatedWorld, StartClothTickFunction);
+		EndClothTickFunction.RegisterTickFunction(AssociatedWorld->PersistentLevel);
+	}
+	else if (!bTickClothSim && StartClothTickFunction.IsTickFunctionRegistered())	//Need to unregister tick function and we current are registered
+	{
+		StartIgnorePhysicsClothTickFunction.UnRegisterTickFunction();
+		StartClothTickFunction.UnRegisterTickFunction();
+		EndClothTickFunction.UnRegisterTickFunction();
+	}
+}
+
+
+void FClothManager::EndCloth()
+{
+	QUICK_SCOPE_CYCLE_COUNTER(FClothManager_ExecuteTick);
+	if (FPhysScene* PhysScene = AssociatedWorld->GetPhysicsScene())
+	{
+		PhysScene->WaitClothScene();
+	}
+}
+
+void FStartIgnorePhysicsClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
+{
+	Target->PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].PrepareCloth(DeltaTime);
+}
+
+FString FStartIgnorePhysicsClothTickFunction::DiagnosticMessage()
+{
+	return TEXT("FStartIgnorePhysicsClothTickFunction");
+}
 
 void FStartClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	Target->StartCloth();
+	Target->StartCloth(DeltaTime);
 }
 
 FString FStartClothTickFunction::DiagnosticMessage()
@@ -102,49 +135,13 @@ FString FStartClothTickFunction::DiagnosticMessage()
 	return TEXT("FStartClothTickFunction");
 }
 
-TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("If turned on, preparing cloth will happen off the game thread."));
 
-class FPrepareClothTickTask
+void FEndClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	FClothManagerData* PrepareClothData;
-	float DeltaTime;
-
-public:
-	FPrepareClothTickTask(FClothManagerData* InPrepareClothData, float InDeltaTime)
-		: PrepareClothData(InPrepareClothData)
-		, DeltaTime(InDeltaTime)
-	{
-	}
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FPrepareClothTickTask, STATGROUP_TaskGraphTasks);
-	}
-	static ENamedThreads::Type GetDesiredThread()
-	{
-		return CVarParallelCloth.GetValueOnGameThread() ? ENamedThreads::AnyThread : ENamedThreads::GameThread;
-	}
-	static ESubsequentsMode::Type GetSubsequentsMode()
-	{
-		return ESubsequentsMode::TrackSubsequents;
-	}
-
-	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-	{
-		PrepareClothData->PrepareCloth(DeltaTime);
-	}
-};
-
-
-void FPrepareClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
-{
-	QUICK_SCOPE_CYCLE_COUNTER(FPrepareClothTickFunction_ExecuteTick);
-
-	check(!Target->PrepareCompletion.IsValid())
-	Target->PrepareCompletion = TGraphTask<FPrepareClothTickTask>::CreateTask().ConstructAndDispatchWhenReady(Target, DeltaTime);
+	Target->EndCloth();
 }
 
-FString FPrepareClothTickFunction::DiagnosticMessage()
+FString FEndClothTickFunction::DiagnosticMessage()
 {
-	return TEXT("FPrepareClothTickFunction");
+	return TEXT("FEndClothTickFunction");
 }

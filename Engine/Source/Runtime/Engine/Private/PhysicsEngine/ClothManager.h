@@ -18,22 +18,11 @@ enum class PrepareClothSchedule
 	MAX
 };
 
-struct FPrepareClothTickFunction : public FTickFunction
-{
-	class FClothManagerData* Target;
-
-	// FTickFunction interface
-	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
-	virtual FString DiagnosticMessage() override;
-	// End of FTickFunction interface
-};
-
 /** Break the data into class since we have multiple passes for different scheduling purposes */
 class FClothManagerData
 {
 public:
 	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
-	FPrepareClothTickFunction TickFunction;
 	FThreadSafeBool IsPreparingCloth;
 	FGraphEventRef PrepareCompletion;
 
@@ -41,7 +30,27 @@ public:
 	void PrepareCloth(float DeltaTime);
 };
 
+struct FStartIgnorePhysicsClothTickFunction : public FTickFunction
+{
+	class FClothManager* Target;
+
+	// FTickFunction interface
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	virtual FString DiagnosticMessage() override;
+	// End of FTickFunction interface
+};
+
 struct FStartClothTickFunction : public FTickFunction
+{
+	class FClothManager* Target;
+
+	// FTickFunction interface
+	virtual void ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override;
+	virtual FString DiagnosticMessage() override;
+	// End of FTickFunction interface
+};
+
+struct FEndClothTickFunction : public FTickFunction
 {
 	class FClothManager* Target;
 
@@ -72,13 +81,21 @@ public:
 
 		return bIsPreparingCloth;
 	}
-	
+
+	/** Whether or not to tick the cloth sim. Note this function should not be called during parallel evaluation*/
+	void SetupClothTickFunction(bool bTickClothSim);
+
 private:
 	UWorld* AssociatedWorld;
 	FClothManagerData PrepareClothDataArray[(int32)PrepareClothSchedule::MAX];
+	FStartIgnorePhysicsClothTickFunction StartIgnorePhysicsClothTickFunction;
 	FStartClothTickFunction StartClothTickFunction;
+	FEndClothTickFunction EndClothTickFunction;
 
+	friend FStartIgnorePhysicsClothTickFunction;
 	friend FStartClothTickFunction;
+	friend FEndClothTickFunction;
 
-	void StartCloth();
+	void StartCloth(float DeltaTime);
+	void EndCloth();
 };
