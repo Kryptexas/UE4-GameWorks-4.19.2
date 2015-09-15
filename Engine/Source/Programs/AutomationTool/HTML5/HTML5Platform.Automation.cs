@@ -523,7 +523,7 @@ public class HTML5Platform : Platform
 #region AMAZON S3 
 	public void UploadToS3(DeploymentContext SC)
 	{
-		ConfigCacheIni Ini = new ConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", Path.GetDirectoryName(SC.RawProjectPath));
+		ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(SC.StageTargetPlatform.PlatformType, "Engine", new DirectoryReference(Path.GetDirectoryName(SC.RawProjectPath)));
 		bool Upload = false;
 
 		string KeyId = "";

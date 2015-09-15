@@ -757,7 +757,7 @@ namespace UnrealBuildTool
 		{
 			if (!bInitializedProject)
 			{
-				ConfigCacheIni Ini = new ConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
 				bool bValue = UEBuildConfiguration.bCompileAPEX;
 				if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
 				{
@@ -946,10 +946,12 @@ namespace UnrealBuildTool
 		{
 		}
 
+		static Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineIniCache = new Dictionary<UnrealTargetPlatform, ConfigCacheIni>();
+
 		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
 		{
-			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectDirectoryName);
-			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", (DirectoryReference)null);
+			ConfigCacheIni ProjIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", ProjectDirectoryName);
+			ConfigCacheIni DefaultIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", (DirectoryReference)null);
 
 			// look at all bool values
 			if (BoolKeys != null) foreach (string Key in BoolKeys)

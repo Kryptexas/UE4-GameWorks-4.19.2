@@ -1727,7 +1727,7 @@ namespace AutomationTool
 			// the full solution for per-platform packaging settings.
 			if (!Manifests)
 			{				
-				ConfigCacheIni GameIni = new ConfigCacheIni("Game", Path.GetDirectoryName(RawProjectPath));
+				ConfigCacheIni GameIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Game", new DirectoryReference(Path.GetDirectoryName(RawProjectPath)));
 				String IniPath = "/Script/UnrealEd.ProjectPackagingSettings";
 				bool bSetting = false;
 				if (!GameIni.GetBool(IniPath, "bGenerateChunks", out bSetting))

@@ -167,7 +167,7 @@ namespace UnrealBuildTool
 
 				// update the configuration based on the project file
 				// look in ini settings for what platforms to compile for
-				ConfigCacheIni Ini = new ConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(InPlatform, "Engine", UnrealBuildTool.GetUProjectPath());
 				string MinVersion = "IOS_6";
 				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out MinVersion))
 				{

@@ -430,7 +430,7 @@ namespace UnrealBuildTool
 			// ...check if it was supported from a config.
 			if (!SupportWindowsXPIfAvailable)
 			{
-				ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
+				ConfigCacheIni Ini = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
 				string MinimumOS;
 				if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
 				{

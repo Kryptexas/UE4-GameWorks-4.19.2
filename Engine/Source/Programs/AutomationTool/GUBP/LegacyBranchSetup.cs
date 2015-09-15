@@ -357,6 +357,8 @@ partial class GUBP
 
     void AddNodesForBranch(List<UnrealTargetPlatform> InitialHostPlatforms, JobInfo JobInfo, GUBPBranchHacker.BranchOptions BranchOptions, out List<BuildNodeTemplate> AllNodeDefinitions, out List<AggregateNodeTemplate> AllAggregateDefinitions, ref int TimeQuantum)
 	{
+		DateTime StartTime = DateTime.UtcNow;
+
 		if (BranchOptions.QuantumOverride != 0)
 		{
 			TimeQuantum = BranchOptions.QuantumOverride;
@@ -1200,6 +1202,9 @@ partial class GUBP
 
 		// Get the email list for each node
 		FindEmailsForNodes(BranchConfig.BranchName, AllNodeDefinitions);
+
+		TimeSpan Span = DateTime.UtcNow - StartTime;
+		Log("Time Spent: " + Span.TotalSeconds);
 	}
 
 	private static Dictionary<string, int> ApplyFrequencyBarriers(Dictionary<string, GUBPNode> GUBPNodes, Dictionary<string, GUBPAggregateNode> GUBPAggregates, Dictionary<string, sbyte> FrequencyBarriers)

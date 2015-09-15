@@ -325,7 +325,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = new ConfigCacheIni(TargetPlatformType, "Engine", Path.GetDirectoryName(RawProjectPath), EngineDirectory);
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Engine", new DirectoryReference(Path.GetDirectoryName(RawProjectPath)), new DirectoryReference(EngineDirectory));
 						Properties.EngineConfigs.Add(TargetPlatformType, Config);
 					}
 				}
@@ -334,7 +334,7 @@ namespace AutomationTool
 				{
 					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
 					{
-						var Config = new ConfigCacheIni(TargetPlatformType, "Game", Path.GetDirectoryName(RawProjectPath));
+						var Config = ConfigCacheIni.CreateConfigCacheIni(TargetPlatformType, "Game", new DirectoryReference(Path.GetDirectoryName(RawProjectPath)));
 						Properties.GameConfigs.Add(TargetPlatformType, Config);
 					}
 				}

@@ -66,7 +66,7 @@ namespace UnrealBuildTool.Android
             ConfigCacheIni config = null;
             if(!ConfigCache.TryGetValue(baseIniName, out config))
             {
-                config = new ConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
+                config = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Android, "Engine", UnrealBuildTool.GetUProjectPath());
                 ConfigCache.Add(baseIniName, config);
             }
 

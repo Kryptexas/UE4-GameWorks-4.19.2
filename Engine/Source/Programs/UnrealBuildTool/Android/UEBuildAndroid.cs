@@ -58,7 +58,7 @@ namespace UnrealBuildTool
         {
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
             {
-                var configCacheIni = new ConfigCacheIni("Engine", (DirectoryReference)null);
+                var configCacheIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (DirectoryReference)null);
                 var AndroidEnv = new Dictionary<string, string>();
 
                 Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
