@@ -455,9 +455,14 @@ void FSequencer::DeleteSelectedKeys()
 
 void FSequencer::SetInterpTangentMode(ERichCurveInterpMode InterpMode, ERichCurveTangentMode TangentMode)
 {
+	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
+	if (SelectedKeysArray.Num() == 0)
+	{
+		return;
+	}
+
 	FScopedTransaction SetInterpTangentModeTransaction(NSLOCTEXT("Sequencer", "SetInterpTangentMode_Transaction", "Set Interpolation and Tangent Mode"));
 	bool bAnythingChanged = false;
-	TArray<FSelectedKey> SelectedKeysArray = Selection.GetSelectedKeys().Array();
 
 	for (const FSelectedKey& Key : SelectedKeysArray)
 	{
@@ -2262,6 +2267,26 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.SetKey,
 		FExecuteAction::CreateSP( this, &FSequencer::SetKey ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetInterpolationCubicAuto,
+		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Cubic, ERichCurveTangentMode::RCTM_Auto ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetInterpolationCubicUser,
+		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Cubic, ERichCurveTangentMode::RCTM_User ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetInterpolationCubicBreak,
+		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Cubic, ERichCurveTangentMode::RCTM_Break ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetInterpolationLinear,
+		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Linear, ERichCurveTangentMode::RCTM_Auto ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SetInterpolationConstant,
+		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Constant, ERichCurveTangentMode::RCTM_Auto ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleAutoKeyEnabled,

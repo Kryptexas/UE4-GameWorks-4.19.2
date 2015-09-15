@@ -57,6 +57,21 @@ public:
 	/** Sets a key at the current time for the selected actor */
 	TSharedPtr< FUICommandInfo > SetKey;
 
+	/** Sets the interp tangent mode for the selected keys to auto */
+	TSharedPtr< FUICommandInfo > SetInterpolationCubicAuto;
+
+	/** Sets the interp tangent mode for the selected keys to user */
+	TSharedPtr< FUICommandInfo > SetInterpolationCubicUser;
+
+	/** Sets the interp tangent mode for the selected keys to break */
+	TSharedPtr< FUICommandInfo > SetInterpolationCubicBreak;
+
+	/** Sets the interp tangent mode for the selected keys to linear */
+	TSharedPtr< FUICommandInfo > SetInterpolationLinear;
+
+	/** Sets the interp tangent mode for the selected keys to constant */
+	TSharedPtr< FUICommandInfo > SetInterpolationConstant;
+
 	/** Turns auto keying on and off. */
 	TSharedPtr< FUICommandInfo > ToggleAutoKeyEnabled;
 
