@@ -141,6 +141,14 @@
 				</dd>
 			<dt>&nbsp;</dt>
 				<dd>
+					<%if (Model.Crash.HasCrashContextFile() ) 
+					{ %>
+						<a id="A1" style="text-decoration:none;" href='<%=Model.Crash.GetCrashContextUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;CrashContext</a>
+						<%
+					} %>
+				</dd>
+			<dt>&nbsp;</dt>
+				<dd>
 					<%if (Model.Crash.HasDiagnosticsFile() ) 
 					{ %>
 						<a id="A1" style="text-decoration:none;" href='<%=Model.Crash.GetDiagnosticsUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;Diags</a>

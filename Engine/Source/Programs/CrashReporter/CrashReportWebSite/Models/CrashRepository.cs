@@ -179,7 +179,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						select CrashDetail
 					);
 
-					return Crashes.FirstOrDefault();
+					Crash Result = Crashes.FirstOrDefault();
+					Result.ReadCrashContextIfAvailable();
+					return Result;
 				}
 				catch( Exception Ex )
 				{

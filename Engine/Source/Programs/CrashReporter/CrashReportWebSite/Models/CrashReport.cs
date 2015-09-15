@@ -9,6 +9,8 @@ using System.Diagnostics;
 using Tools.DotNETCommon;
 using System.Web;
 
+using Tools.CrashReporter.CrashReportCommon;
+
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
 	/// <summary> Function call. </summary>
@@ -507,6 +509,29 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public partial class Crash
 	{
+		/// <summary>Hard coded site path.</summary>
+		const string SitePath = @"\\devweb-02\Sites";
+
+		/// <summary>Crash context for this crash.</summary>
+		FGenericCrashContext CrashContext = null;
+
+		/// <summary>If available, will read CrashContext.runtime-xml.</summary>
+		public void ReadCrashContextIfAvailable()
+		{
+			try
+			{
+				bool bHasCrashContext = HasCrashContextFile();
+				if (bHasCrashContext)
+				{
+					CrashContext = FGenericCrashContext.FromFile( SitePath + GetCrashContextUrl() );
+				}
+			}
+			catch (Exception Ex)
+			{
+				Debug.WriteLine( "Exception in ReadCrashContextIfAvailable: " + Ex.ToString() );
+			}
+		}
+
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
 		{
@@ -541,7 +566,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public string GetMiniDumpUrl()
 		{
-			return Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
+			bool bUseFullMinidumpPath = CrashContext != null && CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.Length > 0;
+			var WebPath = Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
+			var Path = bUseFullMinidumpPath ? CrashContext.PrimaryCrashProperties.GetFullCrashDumpLocation() : WebPath;
+			return Path;
 		}
 
 		/// <summary>
@@ -550,6 +578,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public string GetDiagnosticsUrl()
 		{
 			return Properties.Settings.Default.CrashReporterFiles + Id + "_Diagnostics.txt";
+		}
+
+		/// <summary>
+		/// Return the Url of the crash context file.
+		/// </summary>
+		public string GetCrashContextUrl()
+		{
+			return Properties.Settings.Default.CrashReporterFiles + Id + "_CrashContext.runtime-xml";
 		}
 
 		/// <summary>
@@ -756,9 +792,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 
-		/// <summary>Hard coded site path.</summary>
-		const string SitePath = @"\\devweb-02\Sites";
-
 		/// <summary>Return true, if there is a diagnostics file associated with the crash</summary>
 		public bool HasDiagnosticsFile()
 		{
@@ -766,10 +799,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			return System.IO.File.Exists( Path );
 		}
 
+
+		/// <summary>Return true, if there is a crash context file associated with the crash</summary>
+		public bool HasCrashContextFile()
+		{
+			var Path = SitePath + GetCrashContextUrl();
+			return System.IO.File.Exists( Path );
+		}
+
 		/// <summary>Return true, if there is a minidump file associated with the crash</summary>
 		public bool HasMiniDumpFile()
 		{
-			var Path = SitePath + GetMiniDumpUrl();
+			bool bUseFullMinidumpPath = CrashContext != null && CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.Length > 0;
+			var Path = bUseFullMinidumpPath ? CrashContext.PrimaryCrashProperties.GetFullCrashDumpLocation() : SitePath + GetMiniDumpUrl();
 			return System.IO.File.Exists( Path );
 		}
 
