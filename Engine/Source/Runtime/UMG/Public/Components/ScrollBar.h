@@ -61,21 +61,21 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
+	//~ End of UWidget Interface
 
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	// End of UVisual interface
+	//~ End of UVisual Interface
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End of UObject Interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	// End UWidget interface
+	//~ End UWidget Interface
 #endif
 
 protected:
@@ -85,5 +85,5 @@ protected:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	// End of UWidget interface
+	//~ End of UWidget Interface
 };

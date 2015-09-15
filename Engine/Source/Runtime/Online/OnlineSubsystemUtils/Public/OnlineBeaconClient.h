@@ -39,20 +39,20 @@ class ONLINESUBSYSTEMUTILS_API AOnlineBeaconClient : public AOnlineBeacon
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void OnNetCleanup(UNetConnection* Connection) override;
 	virtual const AActor* GetNetOwner() const override;
 	virtual UNetConnection* GetNetConnection() const override;
-	// End AActor Interface
+	//~ End AActor Interface
 
-	// Begin FNetworkNotify Interface
+	//~ Begin FNetworkNotify Interface
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, FInBunch& Bunch) override;
-	// End FNetworkNotify Interface
+	//~ End FNetworkNotify Interface
 
-	// Begin OnlineBeacon Interface
+	//~ Begin OnlineBeacon Interface
 	virtual void OnFailure() override;
 	virtual void DestroyBeacon() override;
-	// End OnlineBeacon Interface
+	//~ End OnlineBeacon Interface
 
 	/**
 	 * Initialize the client beacon with connection endpoint

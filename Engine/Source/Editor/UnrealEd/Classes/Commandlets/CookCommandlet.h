@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	CookCommandlet.cpp: Commandlet for cooking content
 =============================================================================*/
 
@@ -101,11 +101,11 @@ class UCookCommandlet
 
 public:
 
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 
 	virtual int32 Main(const FString& CmdLineParams) override;
 	
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 
 private:
 

@@ -1,8 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-//=============================================================================
+//~============================================================================
 // ConeBuilder: Builds a 3D cone brush, compatible with cylinder of same size.
-//=============================================================================
+//~============================================================================
 
 #pragma once
 #include "ConeBuilder.generated.h"
@@ -48,9 +48,9 @@ public:
 	uint32 Hollow:1;
 
 
-	// Begin UBrushBuilder Interface
+	//~ Begin UBrushBuilder Interface
 	virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) override;
-	// End UBrushBuilder Interface
+	//~ End UBrushBuilder Interface
 
 	// @todo document
 	virtual void BuildCone( int32 Direction, bool InAlignToSide, int32 InSides, float InZ, float Radius, FName Item );

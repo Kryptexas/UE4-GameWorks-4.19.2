@@ -58,11 +58,11 @@ class ENGINE_API UControlChannel
 
 	virtual void Init( UNetConnection* InConnection, int32 InChIndex, bool InOpenedLocally ) override;
 
-	// Begin UChannel interface.
+	//~ Begin UChannel Interface.
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge) override;
 
 	virtual void Tick() override;
-	// End UChannel interface.
+	//~ End UChannel Interface.
 
 
 	/** Handle an incoming bunch. */

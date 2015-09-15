@@ -9,10 +9,10 @@
 class FDebugDisplayInfo;
 class FUniqueNetId;
 
-//=============================================================================
+//~============================================================================
 //  GameMode defines the rules and mechanics of the game.  It is only 
 //  instanced on the server and will never exist on the client.
-//=============================================================================
+//~============================================================================
 
 /** Possible state of the current match, where a match is all the gameplay that happens on a single map */
 namespace MatchState
@@ -280,12 +280,12 @@ public:
 	UFUNCTION(exec)
 	virtual void SetBandwidthLimit(float AsyncIOBandwidthLimit);
 
-	// Begin AActor interface
+	//~ Begin AActor Interface
 	virtual void PreInitializeComponents() override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void Reset() override;
 	virtual void Tick(float DeltaSeconds) override;
-	// End AActor interface
+	//~ End AActor Interface
 
 	/** 
 	 * Overridable function to determine whether an Actor should have Reset called when the game has Reset called on it.
@@ -370,7 +370,7 @@ public:
 	 */
 	void ForceClearUnpauseDelegates( AActor* PauseActor );
 
-	//=========================================================================
+	//~========================================================================
 	// URL Parsing
 	/** Grab the next option from a string. */
 	DEPRECATED(4.9, "Use UGameplayStatics::GrabOption instead")
@@ -391,7 +391,7 @@ public:
 	/** Search array of options for ParseString and return the index or CurrentValue if not found*/
 	DEPRECATED(4.9, "Use UGameplayStatics::GetIntOption instead")
 	static int32 GetIntOption( const FString& Options, const FString& ParseString, int32 CurrentValue);
-	//=========================================================================
+	//~========================================================================
 
 	/** 
 	 * @return the full path to the optimal GameMode class to use for the specified map and options

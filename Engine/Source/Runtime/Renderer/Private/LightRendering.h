@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	LightRendering.h: Light rendering declarations.
 =============================================================================*/
 
@@ -199,14 +199,14 @@ public:
 		StencilingGeometryParameters.Set(RHICmdList, this, StencilingSpherePosAndScale);
 	}
 
-	// Begin FShader Interface
+	//~ Begin FShader Interface
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
 		Ar << StencilingGeometryParameters;
 		return bShaderHasOutdatedParameters;
 	}
-	// End FShader Interface
+	//~ End FShader Interface
 private:
 	FStencilingGeometryShaderParameters StencilingGeometryParameters;
 };

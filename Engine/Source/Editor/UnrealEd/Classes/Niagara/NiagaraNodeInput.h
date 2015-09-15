@@ -37,16 +37,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = Constant, meta = (editcondition = "bCanBeExposed"))
 	uint32 bExposeWhenConstant:1;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	// End UObject interface
+	//~ End UObject Interface
 
-	// Begin EdGraphNode interface
+	//~ Begin EdGraphNode Interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
-	// End EdGraphNode interface
+	//~ End EdGraphNode Interface
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
 	

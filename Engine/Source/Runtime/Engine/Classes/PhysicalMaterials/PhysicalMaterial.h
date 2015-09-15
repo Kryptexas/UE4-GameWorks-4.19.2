@@ -111,14 +111,14 @@ public:
 	FPhysxUserData PhysxUserData;
 #endif
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void RebuildPhysicalMaterials();
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
 	virtual void FinishDestroy() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 #if WITH_PHYSX
 	physx::PxMaterial* GetPhysXMaterial();

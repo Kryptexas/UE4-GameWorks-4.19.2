@@ -8,31 +8,31 @@ public:
 	SLATE_BEGIN_ARGS(SGraphNodeComment){}
 	SLATE_END_ARGS()
 
-	// Begin SWidget Interface
+	//~ Begin SWidget Interface
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
-	// End SWidget Interface
+	//~ End SWidget Interface
 
-	// Begin SNodePanel::SNode interface
+	//~ Begin SNodePanel::SNode Interface
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
 	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const override;
 	virtual bool ShouldAllowCulling() const override { return false; }
 	virtual int32 GetSortDepth() const override;
 	virtual void EndUserInteraction() const override;
 	virtual FString GetNodeComment() const override;
-	// End SNodePanel::SNode interface
+	//~ End SNodePanel::SNode Interface
 
-	// Begin SPanel Interface
+	//~ Begin SPanel Interface
 	virtual FVector2D ComputeDesiredSize(float) const override;
-	// End SPanel interface
+	//~ End SPanel Interface
 
-	// Begin SGraphNode Interface
+	//~ Begin SGraphNode Interface
 	virtual bool IsNameReadOnly() const override;
 	virtual FSlateColor GetCommentColor() const override { return GetCommentBodyColor(); }
-	// End SGraphNode Interface
+	//~ End SGraphNode Interface
 
 	void Construct( const FArguments& InArgs, UEdGraphNode* InNode );
 

@@ -30,7 +30,7 @@ PACKAGE_SCOPE:
 
 public:
 
-	// Begin IOnlineIdentity interface
+	//~ Begin IOnlineIdentity Interface
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
 	virtual bool Logout(int32 LocalUserNum) override;
 	virtual bool AutoLogin(int32 LocalUserNum) override;
@@ -46,7 +46,7 @@ public:
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
-	// End IOnlineIdentity interface
+	//~ End IOnlineIdentity Interface
 
 
 public:

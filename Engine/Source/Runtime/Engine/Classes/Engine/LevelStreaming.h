@@ -161,7 +161,7 @@ class ULevelStreaming : public UObject
 	UPROPERTY()
 	TArray<FString> Keywords;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual void Serialize( FArchive& Ar ) override;
 #if WITH_EDITOR
@@ -170,7 +170,7 @@ class ULevelStreaming : public UObject
 	/** Remove duplicates in EditorStreamingVolumes list*/
 	void RemoveStreamingVolumeDuplicates();
 #endif
-	// End UObject Interface
+	//~ End UObject Interface
 
 	bool HasLoadedLevel() const
 	{
@@ -263,7 +263,7 @@ class ULevelStreaming : public UObject
 	UFUNCTION(BlueprintPure, meta = (BlueprintInternalUseOnly = "true"))
 	ALevelScriptActor* GetLevelScriptActor();
 
-	//==============================================================================================
+	//~=============================================================================================
 	// Delegates
 	
 	/** Called when level is streamed in  */

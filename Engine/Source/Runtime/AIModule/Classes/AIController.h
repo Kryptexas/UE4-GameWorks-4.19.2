@@ -65,7 +65,7 @@ struct FFocusKnowledge
 	TArray<FFocusItem> Priorities;
 };
 
-//=============================================================================
+//~============================================================================
 /**
  * AIController is the base class of controllers for AI-controlled Pawns.
  * 
@@ -300,13 +300,13 @@ public:
 	 */
 	bool SuggestTossVelocity(FVector& OutTossVelocity, FVector Start, FVector End, float TossSpeed, bool bPreferHighArc, float CollisionRadius=0, bool bOnlyTraceUp=false);
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual void Tick(float DeltaTime) override;
 	virtual void PostInitializeComponents() override;
 	virtual void PostRegisterAllComponents() override;
-	// End AActor Interface
+	//~ End AActor Interface
 
-	// Begin AController Interface
+	//~ Begin AController Interface
 	virtual void Possess(APawn* InPawn) override;
 	virtual void UnPossess() override;
 	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
@@ -325,7 +325,7 @@ public:
 	 * @return true if controller's pawn can see Other actor.
 	 */
 	virtual bool LineOfSightTo(const AActor* Other, FVector ViewPoint = FVector(ForceInit), bool bAlternateChecks = false) const override;
-	// End AController Interface
+	//~ End AController Interface
 
 	/** Notifies AIController of changes in given actors' perception */
 	virtual void ActorsPerceptionUpdated(const TArray<AActor*>& UpdatedActors);

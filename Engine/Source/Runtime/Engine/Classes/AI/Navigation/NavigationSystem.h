@@ -82,9 +82,9 @@ namespace FNavigationSystem
 
 struct FNavigationSystemExec: public FSelfRegisteringExec
 {
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End FExec Interface
+	//~ End FExec Interface
 };
 
 namespace ENavigationBuildLock
@@ -364,13 +364,13 @@ public:
 		CleanupUnsafe,
 	};
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 	virtual void Tick(float DeltaSeconds);	
 

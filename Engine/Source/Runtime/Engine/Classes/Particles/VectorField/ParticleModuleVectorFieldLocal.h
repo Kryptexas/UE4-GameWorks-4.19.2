@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*==============================================================================
+/*~=============================================================================
 	ParticleModuleVectorFieldLocal: Emitter-local vector field.
 ==============================================================================*/
 
@@ -50,9 +50,9 @@ class UParticleModuleVectorFieldLocal : public UParticleModuleVectorFieldBase
 	UPROPERTY(EditAnywhere, Category=VectorField)
 	uint32 bTileZ:1;
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 };
 
 

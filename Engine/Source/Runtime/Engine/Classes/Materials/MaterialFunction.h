@@ -62,14 +62,14 @@ private:
 
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/** Recursively update all function call expressions in this function, or in nested functions. */
 	void UpdateFromFunctionResource();

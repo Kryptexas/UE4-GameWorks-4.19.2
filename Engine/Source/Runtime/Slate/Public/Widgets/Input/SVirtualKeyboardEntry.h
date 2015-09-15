@@ -87,7 +87,7 @@ public:
 	bool GetIsReadOnly() const;
 
 public:
-	// BEGIN IVirtualKeyboardEntry Interface
+	//~ Begin IVirtualKeyboardEntry Interface
 	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
 
 	virtual const FText& GetText() const override
@@ -109,7 +109,7 @@ public:
 	{
 		return false;
 	}
-	// END IVirtualKeyboardEntry Interface
+	//~ End IVirtualKeyboardEntry Interface
 
 protected:
 
@@ -120,7 +120,7 @@ protected:
 	virtual bool SupportsKeyboardFocus() const override;
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
-	// End of SWidget interface
+	//~ End of SWidget Interface
 
 private:
 

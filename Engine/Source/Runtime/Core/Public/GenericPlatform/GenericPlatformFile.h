@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-/*=============================================================================================
+/*~============================================================================================
 	GenericPlatformFile.h: Generic platform file interfaces
 ==============================================================================================*/
 
@@ -278,7 +278,7 @@ public:
 class CORE_API IPhysicalPlatformFile : public IPlatformFile
 {
 public:
-	// BEGIN IPlatformFile Interface
+	//~ Begin IPlatformFile Interface
 	virtual bool ShouldBeUsed(IPlatformFile* Inner, const TCHAR* CmdLine) const override
 	{
 		return true;
@@ -292,5 +292,5 @@ public:
 	{
 		return IPlatformFile::GetPhysicalTypeName();
 	}
-	// END IPlatformFile Interface
+	//~ End IPlatformFile Interface
 };

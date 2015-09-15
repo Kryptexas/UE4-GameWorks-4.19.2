@@ -447,7 +447,7 @@ public:
 	// Life cycle                                                                
 	//----------------------------------------------------------------------//
 
-	// Begin UObject/AActor Interface
+	//~ Begin UObject/AActor Interface
 	virtual void PostInitProperties() override;
 	virtual void PostInitializeComponents() override;
 	virtual void PostLoad() override;
@@ -455,7 +455,7 @@ public:
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	virtual void Destroyed() override;
-	// End UObject Interface
+	//~ End UObject Interface
 		
 	virtual void CleanUp();
 

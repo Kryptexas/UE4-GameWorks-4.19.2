@@ -21,14 +21,14 @@ public:
 	/** Destructor */
 	virtual ~FNiagaraEditor();
 
-	// Begin IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	// End IToolkit interface
+	//~ End IToolkit Interface
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient

@@ -526,7 +526,7 @@ public:
 
 	~ULevel();
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
@@ -541,7 +541,7 @@ public:
 	virtual void PreSave() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/**
 	 * Adds a newly-created RuntimeMovieScenePlayer to this level.  The level assumes ownership of this object.
@@ -747,11 +747,11 @@ public:
 	/** Push any pending auto receive input actor's input components on to the player controller's input stack */
 	void PushPendingAutoReceiveInput(APlayerController* PC);
 	
-	// Begin IInterface_AssetUserData Interface
+	//~ Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	// End IInterface_AssetUserData Interface
+	//~ End IInterface_AssetUserData Interface
 
 #if WITH_EDITOR
 	/** meant to be called only from editor, calculating and storing static geometry to be used with off-line and/or on-line navigation building */

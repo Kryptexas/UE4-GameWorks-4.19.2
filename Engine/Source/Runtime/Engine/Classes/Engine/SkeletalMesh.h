@@ -729,7 +729,7 @@ public:
 	 */
 	ENGINE_API uint32 GetVertexBufferFlags() const;
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 #if WITH_EDITOR
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -747,7 +747,7 @@ public:
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/** Setup-only routines - not concerned with the instance. */
 
@@ -873,21 +873,21 @@ public:
 #endif
 	
 
-	// Begin Interface_CollisionDataProvider Interface
+	//~ Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override
 	{
 		return true;
 	}
-	// End Interface_CollisionDataProvider Interface
+	//~ End Interface_CollisionDataProvider Interface
 
-	// Begin IInterface_AssetUserData Interface
+	//~ Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
-	// End IInterface_AssetUserData Interface
+	//~ End IInterface_AssetUserData Interface
 
 private:
 

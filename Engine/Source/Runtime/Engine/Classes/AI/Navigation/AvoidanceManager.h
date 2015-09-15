@@ -150,9 +150,9 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	void HandleToggleAvoidance( const TCHAR* Cmd, FOutputDevice& Ar );
 #endif
 	
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar) override;
-	// End FExec Interface
+	//~ End FExec Interface
 
 private:
 

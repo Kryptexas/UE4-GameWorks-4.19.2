@@ -428,7 +428,7 @@ private:
 
 private:
 
-	// BEGIN ITextEditorWidget interface
+	//~ Begin ITextEditorWidget Interface
 	virtual void StartChangingText() override;
 	virtual void FinishChangingText() override;
 	virtual void BackspaceChar() override;
@@ -463,10 +463,10 @@ private:
 	virtual TSharedRef< SWidget > GetWidget() override;
 	virtual void SummonContextMenu(const FVector2D& InLocation, TSharedPtr<SWindow> ParentWindow, const FWidgetPath& EventPath) override;
 	virtual void LoadText() override;
-	// END ITextEditorWidget interface
+	//~ End ITextEditorWidget Interface
 
 public:
-	// BEGIN IVirtualKeyboardEntry interface
+	//~ Begin IVirtualKeyboardEntry Interface
 	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
 
 	virtual const FText& GetText() const override
@@ -488,10 +488,10 @@ public:
 	{
 		return true;
 	}
-	// END IVirtualKeyboardEntry interface
+	//~ End IVirtualKeyboardEntry Interface
 
 protected:
-	// BEGIN SWidget interface
+	//~ Begin SWidget Interface
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override;
 	virtual void CacheDesiredSize(float) override;
@@ -510,7 +510,7 @@ protected:
 	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonDoubleClick(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
-	// END SWidget interface
+	//~ End SWidget Interface
 
 private:
 	

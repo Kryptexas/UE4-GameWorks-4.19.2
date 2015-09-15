@@ -27,19 +27,19 @@ class UBrushComponent : public UPrimitiveComponent
 	UPROPERTY()
 	FVector PrePivot_DEPRECATED;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface
+	//~ End UObject Interface
 
-	// Begin USceneComponent interface
+	//~ Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool ShouldCollideWhenPlacing() const override { return true; }
-	// End USceneComponent interface
+	//~ End USceneComponent Interface
 
 public:
 
-	// Begin UPrimitiveComponent interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override { return BrushBodySetup; };
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
@@ -48,7 +48,7 @@ public:
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
-	// End UPrimitiveComponent interface.
+	//~ End UPrimitiveComponent Interface.
 
 	/** Create the AggGeom collection-of-convex-primitives from the Brush UModel data. */
 	ENGINE_API void BuildSimpleBrushCollision();

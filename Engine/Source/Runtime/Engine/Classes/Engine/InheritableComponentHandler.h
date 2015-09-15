@@ -114,9 +114,9 @@ public:
 
 public:
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 	void PreloadAllTempates();
 	void PreloadAll();

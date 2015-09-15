@@ -559,7 +559,7 @@ public:
 	/** Renames only the generated classes. Should only be used internally or when testing for rename. */
 	virtual bool RenameGeneratedClasses(const TCHAR* NewName = nullptr, UObject* NewOuter = nullptr, ERenameFlags Flags = REN_None);
 
-	// Begin UObject interface (WITH_EDITOR)
+	//~ Begin UObject Interface (WITH_EDITOR)
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual bool Rename(const TCHAR* NewName = nullptr, UObject* NewOuter = nullptr, ERenameFlags Flags = REN_None) override;
 	virtual UClass* RegenerateClass(UClass* ClassToRegenerate, UObject* PreviousCDO, TArray<UObject*>& ObjLoaded) override;
@@ -567,7 +567,7 @@ public:
 	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph ) override;
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	// End of UObject interface
+	//~ End of UObject Interface
 
 	/** Consigns the GeneratedClass and the SkeletonGeneratedClass to oblivion, and nulls their references */
 	void RemoveGeneratedClasses();
@@ -590,14 +590,14 @@ public:
 
 #endif	//#if WITH_EDITOR
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual FString GetDesc(void) override;
 	virtual void TagSubobjects(EObjectFlags NewFlags) override;
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
 	virtual bool NeedsLoadForEditorGame() const override;
-	// End of UObject interface
+	//~ End of UObject Interface
 
 	/** Get the Blueprint object that generated the supplied class */
 	static UBlueprint* GetBlueprintFromClass(const UClass* InClass);

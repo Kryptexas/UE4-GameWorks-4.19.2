@@ -59,12 +59,12 @@ public:
 	virtual bool SetEnums(TArray<TPair<FName, uint8>>& InNames, ECppForm InCppForm) override;
 
 #if WITH_EDITOR
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void PostLoad() override;
 	virtual void PostEditUndo() override;
-	// End of UObject interface
+	//~ End of UObject Interface
 
 	FString GenerateNewEnumeratorName();
 #endif	// WITH_EDITOR

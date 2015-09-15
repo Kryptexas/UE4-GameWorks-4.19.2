@@ -45,34 +45,34 @@ class GEOMETRYCACHE_API UGeometryCacheComponent : public UMeshComponent
 	/** Required for access to (protected) TrackSections */
 	friend FGeometryCacheSceneProxy;
 		
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy() override;
 #if WITH_EDITOR
 	virtual void PreEditUndo() override;
 	virtual void PostEditUndo() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UActorComponent Interface.
+	//~ Begin UActorComponent Interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	// End UActorComponent Interface.
+	//~ End UActorComponent Interface.
 
-	// Begin USceneComponent Interface.
+	//~ Begin USceneComponent Interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	/** Update LocalBounds member from the local box of each section */
 	void UpdateLocalBounds();
-	// Begin USceneComponent Interface.	
+	//~ Begin USceneComponent Interface.	
 
-	// Begin UPrimitiveComponent Interface.
+	//~ Begin UPrimitiveComponent Interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	// End UPrimitiveComponent Interface.
+	//~ End UPrimitiveComponent Interface.
 
-	// Begin UMeshComponent Interface.
+	//~ Begin UMeshComponent Interface.
 	virtual int32 GetNumMaterials() const override;
-	// End UMeshComponent Interface.
+	//~ End UMeshComponent Interface.
 
 	/**
 	* CreateTrackSection, Create/replace a track section.

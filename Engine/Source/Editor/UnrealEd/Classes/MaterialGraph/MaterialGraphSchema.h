@@ -30,7 +30,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewNode : public FEdGraphSchemaAc
 
 	// FEdGraphSchemaAction interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
+	//~ End of FEdGraphSchemaAction Interface
 
 	/**
 	 * Sets the type of a Function input based on an EMaterialValueType value.
@@ -65,7 +65,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewFunctionCall : public FEdGraph
 
 	// FEdGraphSchemaAction interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
+	//~ End of FEdGraphSchemaAction Interface
 };
 
 /** Action to add a comment node to the graph */
@@ -88,7 +88,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_NewComment : public FEdGraphSchem
 
 	// FEdGraphSchemaAction interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
+	//~ End of FEdGraphSchemaAction Interface
 };
 
 /** Action to paste clipboard contents into the graph */
@@ -111,7 +111,7 @@ struct UNREALED_API FMaterialGraphSchemaAction_Paste : public FEdGraphSchemaActi
 
 	// FEdGraphSchemaAction interface
 	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
+	//~ End of FEdGraphSchemaAction Interface
 };
 
 UCLASS(MinimalAPI)
@@ -190,7 +190,7 @@ class UMaterialGraphSchema : public UEdGraphSchema
 	/** Gets the type of this pin (must be part of a UMaterialGraphNode_Base) */
 	UNREALED_API static uint32 GetMaterialValueType(const UEdGraphPin* MaterialPin);
 
-	// Begin UEdGraphSchema interface
+	//~ Begin UEdGraphSchema Interface
 	virtual void GetGraphContextActions(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual void GetContextMenuActions(const UEdGraph* CurrentGraph, const UEdGraphNode* InGraphNode, const UEdGraphPin* InGraphPin, class FMenuBuilder* MenuBuilder, bool bIsDebugging) const override;
 	virtual const FPinConnectionResponse CanCreateConnection(const UEdGraphPin* A, const UEdGraphPin* B) const override;
@@ -206,7 +206,7 @@ class UMaterialGraphSchema : public UEdGraphSchema
 	virtual bool IsCacheVisualizationOutOfDate(int32 InVisualizationCacheID) const override;
 	virtual int32 GetCurrentVisualizationCacheID() const override;
 	virtual void ForceVisualizationCacheClear() const override;
-	// End UEdGraphSchema interface
+	//~ End UEdGraphSchema Interface
 
 private:
 	/** Adds actions for all Material Functions */

@@ -57,14 +57,14 @@ public:
 
 	FString PIEMapName;
 
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out = *GLog) override;
-	// End FExec Interface
+	//~ End FExec Interface
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual class UWorld* GetWorld() const override;
 	virtual void FinishDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** virtual function to allow custom GameInstances an opportunity to set up what it needs */
 	virtual void Init();

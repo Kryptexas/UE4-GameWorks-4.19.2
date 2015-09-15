@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	AsyncLoadingThread.h: Unreal async loading code.
 =============================================================================*/
 #pragma once
@@ -103,11 +103,11 @@ class FAsyncLoadingThread : public FRunnable
 
 public:
 
-	// Begin FRunnable interface.
+	//~ Begin FRunnable Interface.
 	virtual bool Init();
 	virtual uint32 Run();
 	virtual void Stop();
-	// End FRunnable interface
+	//~ End FRunnable Interface
 
 	/** Returns the async loading thread singleton */
 	static FAsyncLoadingThread& Get();

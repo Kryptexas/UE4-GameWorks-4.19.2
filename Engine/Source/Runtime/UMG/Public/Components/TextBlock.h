@@ -144,22 +144,22 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	// End of UWidget interface
+	//~ End of UWidget Interface
 
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	// End of UVisual interface
+	//~ End of UVisual Interface
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End of UObject interface
+	//~ End of UObject Interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
 	virtual void OnCreationFromPalette() override;
-	// End UWidget interface
+	//~ End UWidget Interface
 
 	virtual FString GetLabelMetadata() const override;
 
@@ -170,7 +170,7 @@ protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void OnBindingChanged(const FName& Property) override;
-	// End of UWidget interface
+	//~ End of UWidget Interface
 
 protected:
 

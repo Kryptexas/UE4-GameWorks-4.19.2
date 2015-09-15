@@ -379,7 +379,7 @@ protected:
 	/** Generates command bindings for UI commands */
 	void BindSequencerCommands();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient

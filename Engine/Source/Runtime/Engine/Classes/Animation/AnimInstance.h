@@ -775,10 +775,10 @@ public:
 	struct FAnimNode_Base* RootNode;
 
 public:
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject Interface
+	//~ End UObject Interface
 
 	// Updates the montage data used for evaluation based on the current playing montages
 	void UpdateMontageEvaluationData();

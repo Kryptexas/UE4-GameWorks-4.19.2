@@ -137,7 +137,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 
 	class FSkyLightSceneProxy* CreateSceneProxy() const;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
@@ -148,7 +148,7 @@ class ENGINE_API USkyLightComponent : public ULightComponentBase
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	void ApplyComponentInstanceData(class FPrecomputedSkyLightInstanceData* ComponentInstanceData);
@@ -242,10 +242,10 @@ protected:
 	static TArray<USkyLightComponent*> SkyCapturesToUpdate;
 	static TArray<USkyLightComponent*> SkyCapturesToUpdateBlendDestinations;
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 
 	void UpdateLimitedRenderingStateFast();
 

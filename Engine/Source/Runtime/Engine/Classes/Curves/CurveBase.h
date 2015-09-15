@@ -529,7 +529,7 @@ public:
 	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override { return false; };
 	// End FCurveOwnerInterface
 
-	// Begin UCurveBase interface
+	//~ Begin UCurveBase Interface
 
 	/** 
 	 *	Create curve from CSV style comma-separated string. 
@@ -540,9 +540,9 @@ public:
 	/** Reset all curve data */
 	void ResetCurve();
 
-	// End UCurveBase interface
+	//~ End UCurveBase Interface
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 #if WITH_EDITORONLY_DATA
 	/** Override to ensure we write out the asset import data */
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
@@ -557,7 +557,7 @@ public:
 	FString ImportPath_DEPRECATED;
 
 #endif
-	// End UObject interface
+	//~ End UObject Interface
 };
 
 //////////////////////////////////////////////////////////////////////////

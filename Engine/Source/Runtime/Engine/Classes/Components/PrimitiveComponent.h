@@ -1062,13 +1062,13 @@ public:
 	virtual const bool ShouldGenerateAutoLOD() const;
 #endif
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;
 	virtual bool IsEditorOnly() const override;
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;
@@ -1334,7 +1334,7 @@ protected:
 	/** Give the static mesh component recreate render state context access to Create/DestroyRenderState_Concurrent(). */
 	friend class FStaticMeshComponentRecreateRenderStateContext;
 
-	// Begin USceneComponent Interface
+	//~ Begin USceneComponent Interface
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 
 	/** Event called when AttachParent changes, to allow the scene to update its attachment state. */
@@ -1358,7 +1358,7 @@ public:
 	// End USceneComponentInterface
 
 
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 protected:
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
@@ -1383,7 +1383,7 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif // WITH_EDITOR	
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
 protected:
 	/** Internal function that updates physics objects to match the component collision settings. */
@@ -1396,7 +1396,7 @@ protected:
 	void EnsurePhysicsStateCreated();
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
@@ -1428,7 +1428,7 @@ public:
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	//Begin USceneComponent Interface
 
@@ -1812,10 +1812,10 @@ public:
 		SetCanEverAffectNavigation(false);
 	}
 
-	// Begin INavRelevantInterface Interface
+	//~ Begin INavRelevantInterface Interface
 	virtual FBox GetNavigationBounds() const override;
 	virtual bool IsNavigationRelevant() const override;
-	// End INavRelevantInterface Interface
+	//~ End INavRelevantInterface Interface
 
 	FORCEINLINE EHasCustomNavigableGeometry::Type HasCustomNavigableGeometry() const { return bHasCustomNavigableGeometry; }
 

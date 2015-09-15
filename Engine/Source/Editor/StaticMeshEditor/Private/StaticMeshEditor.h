@@ -37,7 +37,7 @@ public:
 
 	// FGCObject interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	// End of FGCObject interface
+	//~ End of FGCObject Interface
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
@@ -231,11 +231,11 @@ private:
 	/** Opens the convex decomposition tab. */
 	void OnConvexDecomposition();
 
-	// Begin FAssetEditorToolkit interface.
+	//~ Begin FAssetEditorToolkit Interface.
 	virtual bool OnRequestClose() override;
-	// End FAssetEditorToolkit interface.
+	//~ End FAssetEditorToolkit Interface.
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	virtual void PostUndo( bool bSuccess ) override;
 	virtual void PostRedo( bool bSuccess ) override;
 	// End of FEditorUndoClient

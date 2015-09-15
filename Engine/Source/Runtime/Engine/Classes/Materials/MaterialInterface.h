@@ -208,7 +208,7 @@ public:
 	/** Set which feature levels _all_ materials should compile to. GMaxRHIFeatureLevel is always compiled. */
 	ENGINE_API static void SetGlobalRequiredFeatureLevel(ERHIFeatureLevel::Type FeatureLevel, bool bShouldCompile);
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	ENGINE_API virtual void BeginDestroy() override;
 	ENGINE_API virtual bool IsReadyForFinishDestroy() override;
 	ENGINE_API virtual void PostLoad() override;
@@ -216,7 +216,7 @@ public:
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	// Begin interface IBlendableInterface
 	ENGINE_API virtual void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;

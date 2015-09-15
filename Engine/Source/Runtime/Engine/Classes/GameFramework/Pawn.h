@@ -192,7 +192,7 @@ public:
 	/** used to prevent re-entry of OutsideWorldBounds event. */
 	uint32 bProcessingOutsideWorldBounds:1;
 
-	// Begin AActor Interface.
+	//~ Begin AActor Interface.
 	virtual FVector GetVelocity() const override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Reset() override;
@@ -221,7 +221,7 @@ public:
 
 	/** Overridden to defer to the RootComponent's CanCharacterStepUpOn setting if it is explicitly Yes or No. If set to Owner, will return Super::CanBeBaseForCharacter(). */
 	virtual bool CanBeBaseForCharacter(APawn* APawn) const override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
 	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
@@ -231,13 +231,13 @@ public:
 	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
 	virtual void UpdateNavigationRelevance() {}
 
-	// Begin INavAgentInterface Interface
+	//~ Begin INavAgentInterface Interface
 	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	/** Basically retrieved pawn's location on navmesh */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
-	// End INavAgentInterface Interface
+	//~ End INavAgentInterface Interface
 
 	/** updates MovementComponent's parameters used by navigation system */
 	void UpdateNavAgent();

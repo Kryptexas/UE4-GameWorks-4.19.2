@@ -689,7 +689,7 @@ public:
 	/** Dtor */
 	virtual ~ARecastNavMesh();
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
@@ -697,7 +697,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
 #if WITH_EDITOR
 	/** RecastNavMesh instances are dynamically spawned and should not be coppied */
@@ -706,7 +706,7 @@ public:
 	
 	virtual void CleanUp() override;
 
-	// Begin ANavigationData Interface
+	//~ Begin ANavigationData Interface
 	virtual FNavLocation GetRandomPoint(TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	virtual bool GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
 	virtual bool GetRandomPointInNavigableRadius(const FVector& Origin, float Radius, FNavLocation& OutResult, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const override;
@@ -729,7 +729,7 @@ public:
 
 	virtual void OnStreamingLevelAdded(ULevel* InLevel, UWorld* InWorld) override;
 	virtual void OnStreamingLevelRemoved(ULevel* InLevel, UWorld* InWorld) override;
-	// End ANavigationData Interface
+	//~ End ANavigationData Interface
 
 protected:
 	/** Serialization helper. */

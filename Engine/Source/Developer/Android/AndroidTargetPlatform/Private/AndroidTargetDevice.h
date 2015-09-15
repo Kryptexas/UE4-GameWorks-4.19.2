@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	AndroidTargetDevice.h: Declares the AndroidTargetDevice class.
 =============================================================================*/
 
@@ -99,7 +99,7 @@ public:
 
 public:
 
-	// Begin ITargetDevice interface
+	//~ Begin ITargetDevice Interface
 	virtual bool Connect() override
 	{
 		return true;
@@ -162,7 +162,7 @@ public:
 	virtual bool TerminateProcess(const int32 ProcessId) override;
 	virtual void SetUserCredentials(const FString& UserName, const FString& UserPassword) override;
 	virtual bool GetUserCredentials(FString& OutUserName, FString& OutUserPassword) override;
-	// End ITargetDevice interface
+	//~ End ITargetDevice Interface
 
 protected:
 

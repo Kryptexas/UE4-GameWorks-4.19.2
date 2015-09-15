@@ -17,9 +17,9 @@ public:
 	void PerformSecondPassLayout(const TMap< UObject*, TSharedRef<SNode> >& NodeToWidgetLookup) const override;
 
 protected :
-	// Begin SGraphNode interface
+	//~ Begin SGraphNode Interface
 	virtual TSharedPtr<SToolTip> GetComplexTooltip() override;
-	// End SGraphNode interface
+	//~ End SGraphNode Interface
 
 	/** Set up node in 'standard' mode */
 	void UpdateStandardNode();

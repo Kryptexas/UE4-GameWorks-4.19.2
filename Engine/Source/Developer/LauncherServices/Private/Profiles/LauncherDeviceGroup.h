@@ -30,7 +30,7 @@ public:
 
 public:
 
-	// Begin ILauncherDeviceGroup interface
+	//~ Begin ILauncherDeviceGroup Interface
 
 	virtual void AddDevice(const FString& DeviceID) override
 	{
@@ -81,7 +81,7 @@ public:
 		Name = NewName;
 	}
 
-	// End ILauncherDeviceGroup interface
+	//~ End ILauncherDeviceGroup Interface
 
 private:
 

@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	UnrealClient.h: Interface definition for platform specific client code.
 =============================================================================*/
 
@@ -945,7 +945,7 @@ public:
 
 	virtual ~FDummyViewport();
 
-	// Begin FViewport interface
+	//~ Begin FViewport Interface
 	virtual void BeginRenderFrame(FRHICommandListImmediate& RHICmdList) override
 	{
 		check( IsInRenderingThread() );
@@ -973,9 +973,9 @@ public:
 	virtual void DeferInvalidateHitProxy() override { }
 	virtual FViewportFrame* GetViewportFrame() override { return 0; }
 	virtual FCanvas* GetDebugCanvas() override { return DebugCanvas; }
-	// End FViewport interface
+	//~ End FViewport Interface
 
-	// Begin FRenderResource interface
+	//~ Begin FRenderResource Interface
 	virtual void InitDynamicRHI() override
 	{
 		FTexture2DRHIRef ShaderResourceTextureRHI;
@@ -990,7 +990,7 @@ public:
 	virtual void InitResource() override{ FViewport::InitResource(); }
 	virtual void ReleaseResource() override { FViewport::ReleaseResource(); }
 	virtual FString GetFriendlyName() const override { return FString(TEXT("FDummyViewport"));}
-	// End FRenderResource interface
+	//~ End FRenderResource Interface
 private:
 	FCanvas* DebugCanvas;
 };

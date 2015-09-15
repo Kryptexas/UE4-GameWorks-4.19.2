@@ -255,14 +255,14 @@ public:
 	UPROPERTY(EditAnywhere, Category=SampleInterpolation)
 	TArray<FPerBoneInterpolation> PerBoneBlend;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	// End UObject interface
+	//~ End UObject Interface
 
-	// Begin UAnimationAsset interface
+	//~ Begin UAnimationAsset Interface
 	virtual void TickAssetPlayerInstance(const FAnimTickRecord& Instance, class UAnimInstance* InstanceOwner, FAnimAssetTickContext& Context) const override;
 	// this is used in editor only when used for transition getter
 	// this doesn't mean max time. In Sequence, this is SequenceLength,
@@ -272,7 +272,7 @@ public:
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 #endif
-	// End of UAnimationAsset interface
+	//~ End of UAnimationAsset Interface
 
 	/**
 	 * BlendSpace Get Animation Pose function

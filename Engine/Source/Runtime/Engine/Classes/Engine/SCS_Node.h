@@ -72,9 +72,9 @@ class USCS_Node : public UObject
 
 #if WITH_EDITOR
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 	/** The scene component constructed for component editing in the SCS editor */
 	class USceneComponent* EditorComponentInstance;

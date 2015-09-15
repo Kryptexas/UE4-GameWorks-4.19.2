@@ -39,7 +39,7 @@ public:
 	virtual FReply OnMouseMove(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent) override;
 	virtual void SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel) override;
 	virtual void AddPin(const TSharedRef<SGraphPin>& PinToAdd) override;
-	// End of SGraphNode interface
+	//~ End of SGraphNode Interface
 
 	/** handle mouse down on the node */
 	FReply OnMouseDown(const FGeometry& SenderGeometry, const FPointerEvent& MouseEvent);
@@ -76,10 +76,10 @@ public:
 
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 protected:
-	// Begin SGraphPin interface
+	//~ Begin SGraphPin Interface
 	virtual FSlateColor GetPinColor() const override;
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	// End SGraphPin interface
+	//~ End SGraphPin Interface
 
 	const FSlateBrush* GetPinBorder() const;
 };

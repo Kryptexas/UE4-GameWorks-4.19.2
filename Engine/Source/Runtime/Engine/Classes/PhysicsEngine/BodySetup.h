@@ -133,7 +133,7 @@ class UBodySetup : public UObject
 	bool bHasCookedCollisionData;
 
 public:
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
@@ -143,7 +143,7 @@ public:
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	//
 	// UBodySetup interface.

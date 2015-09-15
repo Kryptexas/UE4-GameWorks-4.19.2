@@ -26,12 +26,12 @@ public:
 	/** Destructor */
 	virtual ~FNiagaraEffectEditor();
 
-	// Begin IToolkit interface
+	//~ Begin IToolkit Interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	// End IToolkit interface
+	//~ End IToolkit Interface
 
 	// Delegates for the individual widgets
 	FReply OnEmitterSelected(TSharedPtr<FNiagaraSimulation> SelectedItem, ESelectInfo::Type SelType);

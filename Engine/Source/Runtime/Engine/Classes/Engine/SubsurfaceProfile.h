@@ -60,10 +60,10 @@ class USubsurfaceProfile : public UObject
 	UPROPERTY(Category = USubsurfaceProfile, EditAnywhere, meta = (ShowOnlyInnerProperties))
 	struct FSubsurfaceProfileStruct Settings;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void BeginDestroy();
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);
-	// End UObject interface
+	//~ End UObject Interface
 };
 
 // render thread

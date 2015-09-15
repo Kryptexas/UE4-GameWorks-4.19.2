@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*=============================================================================
+/*~============================================================================
 	AndroidTargetPlatform.h: Declares the FAndroidTargetPlatform class.
 =============================================================================*/
 
@@ -84,7 +84,7 @@ public:
 
 public:
 
-	// Begin ITargetPlatform interface
+	//~ Begin ITargetPlatform Interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -173,7 +173,7 @@ public:
 		return DeviceLostEvent;
 	}
 
-	// End ITargetPlatform interface
+	//~ End ITargetPlatform Interface
 
 protected:
 

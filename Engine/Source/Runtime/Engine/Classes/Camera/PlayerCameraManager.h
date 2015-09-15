@@ -141,7 +141,7 @@ public:
 };
 
 
-//=============================================================================
+//~============================================================================
 /**
  * A PlayerCameraManager is responsible for managing the camera for a particular
  * player. It defines the final view properties used by other systems (e.g. the renderer),
@@ -434,13 +434,13 @@ public:
 	/** @return the ViewTarget if it is an APawn, or nullptr otherwise */
 	class APawn* GetViewTargetPawn() const;
 
-	// Begin AActor Interface
+	//~ Begin AActor Interface
 	virtual bool ShouldTickIfViewportsOnly() const override;
 	virtual void PostInitializeComponents() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
-	// End AActor Interface
+	//~ End AActor Interface
 
 	/** Static.  Plays an in-world camera shake that affects all nearby players, with radial distance-based attenuation.
 	 * @param InWorld - World context.

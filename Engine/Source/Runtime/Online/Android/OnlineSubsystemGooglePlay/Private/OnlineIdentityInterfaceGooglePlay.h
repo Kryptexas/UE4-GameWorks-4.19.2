@@ -47,7 +47,7 @@ PACKAGE_SCOPE:
 
 public:
 
-	// Begin IOnlineIdentity interface
+	//~ Begin IOnlineIdentity Interface
 	virtual TSharedPtr<FUserOnlineAccount> GetUserAccount(const FUniqueNetId& UserId) const override;
 	virtual TArray<TSharedPtr<FUserOnlineAccount> > GetAllUserAccounts() const override;
 	virtual bool Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials) override;
@@ -63,13 +63,13 @@ public:
 	virtual FString GetAuthToken(int32 LocalUserNum) const override;
 	virtual void GetUserPrivilege(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, const FOnGetUserPrivilegeCompleteDelegate& Delegate) override;
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& NetId) override;
-	// End IOnlineIdentity interface
+	//~ End IOnlineIdentity Interface
 
 public:
 
-	// Begin IOnlineIdentity interface
+	//~ Begin IOnlineIdentity Interface
 	void Tick(float DeltaTime);
-	// End IOnlineIdentity interface
+	//~ End IOnlineIdentity Interface
 	
 	//platform specific
 	void OnLogin(const bool InLoggedIn,  const FString& InPlayerId, const FString& InPlayerAlias);

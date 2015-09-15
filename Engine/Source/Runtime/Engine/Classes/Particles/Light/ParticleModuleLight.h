@@ -52,12 +52,12 @@ class UParticleModuleLight : public UParticleModuleLightBase
 	/** Initializes the default values for this property */
 	void InitializeDefaults();
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
-	// End UObject Interface
+	//~ End UObject Interface
 
 
 	//Begin UParticleModule Interface

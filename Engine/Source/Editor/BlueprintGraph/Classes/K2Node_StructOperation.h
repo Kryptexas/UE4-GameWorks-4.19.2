@@ -14,16 +14,16 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UPROPERTY()
 	UScriptStruct* StructType;
 
-	// Begin UEdGraphNode interface
+	//~ Begin UEdGraphNode Interface
 	virtual FString GetPinMetaData(FString InPinName, FName InKey) override;
-	// End UEdGraphNode interface
+	//~ End UEdGraphNode Interface
 
 	// UK2Node interface
 	//virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override {}
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput = NULL) const override;
-	// End of UK2Node interface
+	//~ End of UK2Node Interface
 
 protected:
 	// Updater for subclasses that allow hiding pins

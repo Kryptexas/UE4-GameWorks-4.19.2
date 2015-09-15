@@ -27,19 +27,19 @@ private:
 
 public:
 
-	// Begin UObject interface. 
+	//~ Begin UObject Interface. 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface. 
+	//~ End UObject Interface. 
 
-	// Begin USoundWave interface.
+	//~ Begin USoundWave Interface.
 	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) override;
 	virtual FByteBulkData* GetCompressedData(FName Format) override;
 	virtual void InitAudioResource( FByteBulkData& CompressedData ) override;
 	virtual bool InitAudioResource(FName Format) override;
 	virtual int32 GetResourceSizeForFormat(FName Format) override;
-	// End USoundWave interface.
+	//~ End USoundWave Interface.
 
 
 	/** Add data to the FIFO that feeds the audio device. */

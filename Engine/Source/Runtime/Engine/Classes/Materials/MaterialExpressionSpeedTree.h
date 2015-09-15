@@ -54,15 +54,15 @@ class UMaterialExpressionSpeedTree : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionSpeedTree, AdvancedDisplay, meta=(DisplayName = "Accurate Wind Velocities", ToolTip="Support accurate velocities from wind. This will incur extra cost per vertex."))
 	bool bAccurateWindVelocities;
 
-	// Begin UObject Interface
+	//~ Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual bool CanEditChange(const UProperty* InProperty) const override;
 #endif // WITH_EDITOR
-	// End UObject Interface
+	//~ End UObject Interface
 
-	// Begin UMaterialExpression Interface
+	//~ Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	// End UMaterialExpression Interface
+	//~ End UMaterialExpression Interface
 };

@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-/*=============================================================================================
+/*~============================================================================================
 	WinRTPlatformMemory.h: WinRT platform memory functions
 ==============================================================================================*/
 
@@ -19,10 +19,10 @@ struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 **/
 struct CORE_API FWinRTPlatformMemory : public FGenericPlatformMemory
 {
-	// Begin FGenericPlatformMemory interface
+	//~ Begin FGenericPlatformMemory Interface
 	static void Init();
 	static const FPlatformMemoryConstants& GetConstants();
-	// End FGenericPlatformMemory interface
+	//~ End FGenericPlatformMemory Interface
 };
 
 typedef FWinRTPlatformMemory FPlatformMemory;

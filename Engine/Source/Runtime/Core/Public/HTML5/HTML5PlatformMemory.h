@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-/*=============================================================================================
+/*~============================================================================================
 	HTML5PlatformMemory.h: HTML5 platform memory functions
 ==============================================================================================*/
 
@@ -18,14 +18,14 @@ struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
 **/
 struct CORE_API FHTML5PlatformMemory : public FGenericPlatformMemory
 {
-	// Begin FGenericPlatformMemory interface
+	//~ Begin FGenericPlatformMemory Interface
 	static void Init();
 	static const FPlatformMemoryConstants& GetConstants();
 	static FPlatformMemoryStats GetStats();
 	static FMalloc* BaseAllocator();
 	static void* BinnedAllocFromOS( SIZE_T Size );
 	static void BinnedFreeToOS( void* Ptr );
-	// End FGenericPlatformMemory interface
+	//~ End FGenericPlatformMemory Interface
 };
 
 typedef FHTML5PlatformMemory FPlatformMemory;

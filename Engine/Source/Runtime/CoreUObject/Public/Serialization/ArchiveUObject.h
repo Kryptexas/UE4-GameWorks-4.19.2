@@ -102,7 +102,7 @@ public:
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
-	// End of FArchive interface
+	//~ End of FArchive Interface
 
 protected:
 	FObjectWriter(TArray<uint8>& InBytes)
@@ -135,7 +135,7 @@ public:
 	COREUOBJECT_API virtual FArchive& operator<<( FAssetPtr& AssetPtr ) override;
 	COREUOBJECT_API virtual FArchive& operator<<(FStringAssetReference& AssetPtr) override;
 	COREUOBJECT_API virtual FString GetArchiveName() const override;
-	// End of FArchive interface
+	//~ End of FArchive Interface
 
 protected:
 	FObjectReader(TArray<uint8>& InBytes)
@@ -1576,12 +1576,12 @@ public:
 	*/
 	FArchiveObjectCrc32();
 
-	// Begin FArchive Interface
+	//~ Begin FArchive Interface
 	virtual void Serialize(void* Data, int64 Length);
 	virtual FArchive& operator<<(class FName& Name);
 	virtual FArchive& operator<<(class UObject*& Object);
 	virtual FString GetArchiveName() const { return TEXT("FArchiveObjectCrc32"); }
-	// End FArchive Interface
+	//~ End FArchive Interface
 
 	/**
 	* Serialize the given object, calculate and return its checksum.

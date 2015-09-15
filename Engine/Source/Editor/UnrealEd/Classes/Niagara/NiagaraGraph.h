@@ -9,9 +9,9 @@ class UNiagaraGraph : public UEdGraph
 {
 	GENERATED_UCLASS_BODY()
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)override;
-	// End UObjet interface
+	//~ End UObjet Interface
 	
 	/** Get the source that owns this graph */
 	class UNiagaraScriptSource* GetSource() const;

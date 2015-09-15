@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*==============================================================================
+/*~=============================================================================
 	ParticleModuleVectorFieldRotationRate: Rotation rate for vector fields.
 ==============================================================================*/
 
@@ -18,8 +18,8 @@ class UParticleModuleVectorFieldRotationRate : public UParticleModuleVectorField
 	FVector RotationRate;
 
 
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
-	// Begin UParticleModule Interface
+	//~ Begin UParticleModule Interface
 };
 

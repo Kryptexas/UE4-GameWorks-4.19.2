@@ -104,9 +104,9 @@ public:
 	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
 #if WITH_EDITORONLY_DATA
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostInitProperties() override;
-	// End UObject interface
+	//~ End UObject Interface
 #endif
 
 public:

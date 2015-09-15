@@ -20,7 +20,7 @@ public:
 	*/
 	UGeometryCache(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual FString GetDesc() override;
@@ -33,7 +33,7 @@ public:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 #endif // WITH_EDITOR
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
 	/**
 	* AddTrack

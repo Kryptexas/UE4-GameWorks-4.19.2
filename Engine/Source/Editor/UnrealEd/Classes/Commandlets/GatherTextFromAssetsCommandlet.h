@@ -36,9 +36,9 @@ class UGatherTextFromAssetsCommandlet : public UGatherTextCommandletBase
 	void ProcessPackages( const TArray< UPackage* >& PackagesToProcess );
 
 public:
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 
 private:
 	struct FConflictTracker

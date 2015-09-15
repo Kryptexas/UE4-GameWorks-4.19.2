@@ -132,7 +132,7 @@ public:
 
 public:
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;	
 #if WITH_EDITOR
 	virtual void PostLinkerChange() override;
@@ -144,9 +144,9 @@ public:
 	virtual void PreSave() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual FString GetDesc() override;
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin UTexture interface.
+	//~ Begin UTexture Interface.
 	virtual float GetSurfaceWidth() const override { return GetSizeX(); }
 	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
 	virtual FTextureResource* CreateResource() override;
@@ -157,7 +157,7 @@ public:
 #if WITH_EDITOR
 	virtual TMap<FString,FTexturePlatformData*>* GetCookedPlatformData() override { return &CookedPlatformData; }
 #endif
-	// End UTexture interface.
+	//~ End UTexture Interface.
 
 	/** Trivial accessors. */
 	FORCEINLINE int32 GetSizeX() const

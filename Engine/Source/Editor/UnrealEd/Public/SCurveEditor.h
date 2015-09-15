@@ -517,7 +517,7 @@ private:
 	/** Perform redo*/
 	void	RedoAction();
 
-	// Begin FEditorUndoClient Interface
+	//~ Begin FEditorUndoClient Interface
 	UNREALED_API virtual void PostUndo(bool bSuccess) override;
 	UNREALED_API virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient

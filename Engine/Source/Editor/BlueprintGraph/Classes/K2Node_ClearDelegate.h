@@ -12,9 +12,9 @@ class UK2Node_ClearDelegate : public UK2Node_BaseMCDelegate
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	// End of UEdGraphNode interface
+	//~ End of UEdGraphNode Interface
 
-	// Begin of UK2Node interface
+	//~ Begin of UK2Node Interface
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	// End of UK2Node interface
+	//~ End of UK2Node Interface
 };

@@ -14,9 +14,9 @@ class UInternationalizationExportCommandlet : public UGatherTextCommandletBase
     GENERATED_UCLASS_BODY()
 
 public:
-	// Begin UCommandlet Interface
+	//~ Begin UCommandlet Interface
 	virtual int32 Main(const FString& Params) override;
-	// End UCommandlet Interface
+	//~ End UCommandlet Interface
 private:
 	bool DoExport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename);
 	bool DoImport(const FString& SourcePath, const FString& DestinationPath, const FString& Filename);

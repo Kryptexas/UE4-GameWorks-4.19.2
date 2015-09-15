@@ -319,14 +319,14 @@ public:
 	ENGINE_API UNetDriver(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual void Serialize( FArchive& Ar ) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin FExec interface
+	//~ Begin FExec Interface
 
 	/**
 	 * Handle exec commands
@@ -341,7 +341,7 @@ public:
 
 	ENGINE_API ENetMode	GetNetMode() const;
 
-	// End FExec interface.
+	//~ End FExec Interface.
 
 	/** 
 	 * Returns true if this net driver is valid for the current configuration.

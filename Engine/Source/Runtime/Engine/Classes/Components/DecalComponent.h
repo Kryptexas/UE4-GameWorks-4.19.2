@@ -94,16 +94,16 @@ public:
 		}
 	}
 	
-	// Begin UActorComponent Interface
+	//~ Begin UActorComponent Interface
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual const UObject* AdditionalStatObject() const override;
-	// End UActorComponent Interface
+	//~ End UActorComponent Interface
 
-	// Begin USceneComponent Interface
+	//~ Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	// End USceneComponent Interface
+	//~ End USceneComponent Interface
 
 };
 

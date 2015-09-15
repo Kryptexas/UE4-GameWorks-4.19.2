@@ -690,13 +690,13 @@ public:
 	/**	Broadcasts that an object has been reimported. THIS SHOULD NOT BE PUBLIC */
 	void BroadcastObjectReimported(UObject* InObject);
 
-	// Begin UObject interface.
+	//~ Begin UObject Interface.
 	virtual void FinishDestroy() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// End UObject interface.
+	//~ End UObject Interface.
 
-	// Begin UEngine interface.
+	//~ Begin UEngine Interface.
 public:
 	virtual void Init(IEngineLoop* InEngineLoop) override;
 	virtual float GetMaxTickRate(float DeltaTime, bool bAllowFrameRateSmoothing = true) const override;
@@ -726,11 +726,11 @@ private:
 	virtual void CreateStartupAnalyticsAttributes(TArray<FAnalyticsEventAttribute>& StartSessionAttributes) const override;
 	virtual void VerifyLoadMapWorldCleanup() override;
 public:
-	// End UEngine interface.
+	//~ End UEngine Interface.
 	
-	// Begin FExec Interface
+	//~ Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
-	// End FExec Interface
+	//~ End FExec Interface
 
 	bool	CommandIsDeprecated( const TCHAR* CommandStr, FOutputDevice& Ar );
 	

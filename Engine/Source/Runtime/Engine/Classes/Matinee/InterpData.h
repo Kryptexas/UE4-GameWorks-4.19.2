@@ -66,10 +66,10 @@ class UInterpData : public UObject
 	TArray<FName> AllEventNames;
 
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad(void) override;
 	virtual void PostInitProperties() override;
-	// End UObject interface
+	//~ End UObject Interface
 
 	/** Search through all InterpGroups in this InterpData to find a group whose GroupName matches the given name. Returns INDEX_NONE if group not found. */
 	int32 FindGroupByName( FName GroupName );

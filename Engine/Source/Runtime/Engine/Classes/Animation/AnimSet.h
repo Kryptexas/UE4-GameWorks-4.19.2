@@ -109,10 +109,10 @@ public:
 	// @UE4: Do change private - they will go away
 	TMap<FName,int32> SkelMesh2LinkupCache;
 
-	// Begin UObject interface
+	//~ Begin UObject Interface
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	// End UObject interface
+	//~ End UObject Interface
 	
 	// UAnimSet interface
 	/**
