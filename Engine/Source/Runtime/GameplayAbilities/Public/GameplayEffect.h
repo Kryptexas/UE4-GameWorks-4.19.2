@@ -1482,7 +1482,7 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 
 	UAbilitySystemComponent* Owner;
 
-	FOnActiveGameplayEffectRemoved	OnActiveGameplayEffectRemovedDelegate;
+	FOnGivenActiveGameplayEffectRemoved	OnActiveGameplayEffectRemovedDelegate;
 
 	struct DebugExecutedGameplayEffectData
 	{

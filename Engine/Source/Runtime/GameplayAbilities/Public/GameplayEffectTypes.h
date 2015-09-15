@@ -22,6 +22,7 @@ class UGameplayAbility;
 
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
+struct FActiveGameplayEffect;
 
 GAMEPLAYABILITIES_API FString EGameplayModOpToString(int32 Type);
 
@@ -802,6 +803,8 @@ DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayMo
 DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGivenActiveGameplayEffectRemoved, const FActiveGameplayEffect&);
 
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnActiveGameplayEffectStackChange, FActiveGameplayEffectHandle, int32, int32);
 

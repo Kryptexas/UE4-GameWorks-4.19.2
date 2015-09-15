@@ -2508,7 +2508,7 @@ void FActiveGameplayEffectsContainer::InternalOnActiveGameplayEffectRemoved(cons
 	}
 
 	Effect.OnRemovedDelegate.Broadcast();
-	OnActiveGameplayEffectRemovedDelegate.Broadcast();
+	OnActiveGameplayEffectRemovedDelegate.Broadcast(Effect);
 }
 
 void FActiveGameplayEffectsContainer::RemoveActiveGameplayEffectGrantedTagsAndModifiers(const FActiveGameplayEffect& Effect, bool bInvokeGameplayCueEvents)
