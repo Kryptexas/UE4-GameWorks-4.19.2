@@ -297,6 +297,14 @@ public:
 	uint32 bHasBeenActivated:1;
 
 	/**
+	 * If true, this Particle System will be available for recycling after it has completed. Auto-destroyed systems cannot be recycled.
+	 * Some systems (currently particle trail effects) can recycle components to avoid respawning them to play new effects.
+	 * This is only an optimization and does not change particle system behavior, aside from not triggering normal component initialization events more than once.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category=Particles)
+	uint32 bAllowRecycling:1;
+
+	/**
 	 * True if we should automatically attach to AutoAttachParent when activated, and detach from our parent when completed.
 	 * This overrides any current attachment that may be present at the time of activation (deferring initial attachment until activation, if AutoAttachParent is null).
 	 * When enabled, detachment occurs regardless of whether AutoAttachParent is assigned, and the relative transform from the time of activation is restored.
@@ -729,13 +737,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Effects|Components|ParticleSystem")
 	int32 GetNumActiveParticles() const;
 
+
+	/** Array of trail emitters. */
+	typedef TArray< struct FParticleAnimTrailEmitterInstance*, TInlineAllocator<8> > TrailEmitterArray;
+
 	/**
 	* Fills the passed array with all trail emitters associated with a particular object.
 	* @param OutTrailEmitters	The array to fill with pointers to the trail emitters.
 	* @param InOwner			The object that triggered this trail. Can be NULL if no assosiation was set by the owner. Not to be confused with the result of GetOwner().
 	* @param bSetOwner			If true, all trail emitters will be set as owned by InOwner.
 	*/
-	virtual void GetOwnedTrailEmitters(TArray< struct FParticleAnimTrailEmitterInstance* >& OutTrailEmitters, const void* InOwner, bool bSetOwner = false);
+	virtual void GetOwnedTrailEmitters(TrailEmitterArray& OutTrailEmitters, const void* InOwner, bool bSetOwner = false);
 	
 	/**
 	* Begins all trail emitters in this component.

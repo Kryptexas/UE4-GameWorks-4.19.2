@@ -39,6 +39,9 @@ class UAnimNotifyState_Trail : public UAnimNotifyState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail)
 	FName WidthScaleCurve;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Trail)
+	uint32 bRecycleSpawnedSystems:1;
+
 #if WITH_EDITORONLY_DATA
 	/** If true, render the trail geometry (this should typically be on) */
 	UPROPERTY(transient, EditAnywhere, Category = Rendering)
