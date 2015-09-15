@@ -137,6 +137,10 @@ Data-Only Blueprint are edited in a compact property editor, but can also be "co
 variables, or components using the full **Blueprint Editor**.
 [/EXCERPT:DataBlueprint]
 
+[REGION:note]
+Class Defaults can be accessed at runtime for data-only Blueprints through the **GetClassDefaults** Blueprint node. Please see the [Get Class Defaults](Engine\Blueprints\Editor\Modes\Defaults\DefaultsTab) for more information. 
+[/REGION]
+
 
 
 
