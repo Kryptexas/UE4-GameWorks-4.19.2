@@ -427,17 +427,17 @@ public:
 	/** Gets the skeletal mesh resource used for rendering the component. */
 	FSkeletalMeshResource* GetSkeletalMeshResource() const;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject interface
 
 protected:
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
@@ -449,25 +449,25 @@ protected:
 	}
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual UObject const* AdditionalStatObject() const override;
-	//~ End UActorComponent Interface
+	// End UActorComponent interface
 
 public:
-	//~ Begin USceneComponent Interface
+	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 	virtual bool DoesSocketExist(FName InSocketName) const override;
 	virtual bool HasAnySockets() const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
-	//~ End USceneComponent Interface
+	// End USceneComponent interface
 
-	//~ Begin UPrimitiveComponent Interface
+	// Begin UPrimitiveComponent interface
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
-	//~ End UPrimitiveComponent Interface
+	// End UPrimitiveComponent interface
 
 	/**
 	 *	Sets the value of the bForceWireframe flag and reattaches the component as necessary.

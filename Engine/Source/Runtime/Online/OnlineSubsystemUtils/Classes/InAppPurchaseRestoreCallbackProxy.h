@@ -25,9 +25,9 @@ class UInAppPurchaseRestoreCallbackProxy : public UObject
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private:
 

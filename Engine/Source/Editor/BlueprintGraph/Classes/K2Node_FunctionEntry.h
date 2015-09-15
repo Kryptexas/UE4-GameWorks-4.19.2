@@ -29,34 +29,34 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	UPROPERTY()
 	bool bEnforceConstCorrectness;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual bool IsDeprecated() const override;
 	virtual FString GetDeprecationMessage() const override;
 	virtual FText GetTooltipText() const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual bool DrawNodeAsEntry() const override { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
-	//~ Begin UK2Node_EditablePinBase Interface
+	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanUseRefParams() const override { return true; }
-	//~ End UK2Node_EditablePinBase Interface
+	// End UK2Node_EditablePinBase interface
 
-	//~ Begin K2Node_FunctionTerminator Interface
+	// Begin K2Node_FunctionTerminator interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override;
 	virtual UEdGraphPin* CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo) override;
-	//~ End K2Node_FunctionTerminator Interface
+	// End K2Node_FunctionTerminator interface
 
 	// Removes an output pin from the node
 	BLUEPRINTGRAPH_API void RemoveOutputPin(UEdGraphPin* PinToRemove);

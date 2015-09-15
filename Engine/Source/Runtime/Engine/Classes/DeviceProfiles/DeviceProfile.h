@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	DeviceProfile.h: Declares the UDeviceProfile class.
 =============================================================================*/
 
@@ -68,13 +68,13 @@ private:
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostInitProperties() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override;
-	//~ End UObject Interface
+	// End UObject interface
 #endif
 };

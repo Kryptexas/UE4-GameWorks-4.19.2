@@ -12,7 +12,7 @@ class SLATE_API FBaseTextLayoutMarshaller : public ITextLayoutMarshaller
 {
 public:
 
-	//~ Begin ITextLayoutMarshaller Interface
+	// BEGIN ITextLayoutMarshaller interface
 	virtual bool RequiresLiveUpdate() const override
 	{
 		return false;
@@ -32,7 +32,7 @@ public:
 	{
 		return bIsDirty;
 	}
-	//~ End ITextLayoutMarshaller Interface
+	// END ITextLayoutMarshaller interface
 
 protected:
 

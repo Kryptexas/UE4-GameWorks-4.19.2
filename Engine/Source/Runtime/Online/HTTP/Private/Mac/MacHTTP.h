@@ -21,7 +21,7 @@ public:
 	friend class FMacHttpResponse;
 
 
-	//~ Begin IHttpBase Interface
+	// Begin IHttpBase interface
 	virtual FString GetURL() override;
 	virtual FString GetURLParameter(const FString& ParameterName) override;
 	virtual FString GetHeader(const FString& HeaderName) override;
@@ -29,9 +29,9 @@ public:
 	virtual FString GetContentType() override;
 	virtual int32 GetContentLength() override;
 	virtual const TArray<uint8>& GetContent() override;
-	//~ End IHttpBase Interface
+	// End IHttpBase interface
 
-	//~ Begin IHttpRequest Interface
+	// Begin IHttpRequest interface
 	virtual FString GetVerb() override;
 	virtual void SetVerb(const FString& Verb) override;
 	virtual void SetURL(const FString& URL) override;
@@ -46,7 +46,7 @@ public:
 	virtual const FHttpResponsePtr GetResponse() const override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetElapsedTime() override;
-	//~ End IHttpRequest Interface
+	// End IHttpRequest interface
 
 
 	/**
@@ -159,7 +159,7 @@ public:
 	friend class FMacHttpRequest;
 
 
-	//~ Begin IHttpBase Interface
+	// Begin IHttpBase interface
 	virtual FString GetURL() override;
 	virtual FString GetURLParameter(const FString& ParameterName) override;
 	virtual FString GetHeader(const FString& HeaderName) override;
@@ -167,12 +167,12 @@ public:
 	virtual FString GetContentType() override;
 	virtual int32 GetContentLength() override;
 	virtual const TArray<uint8>& GetContent() override;
-	//~ End IHttpBase Interface
+	// End IHttpBase interface
 
-	//~ Begin IHttpResponse Interface
+	// Begin IHttpResponse interface
 	virtual int32 GetResponseCode() override;
 	virtual FString GetContentAsString() override;
-	//~ End IHttpResponse Interface
+	// End IHttpResponse interface
 
 	NSHTTPURLResponse* GetResponseObj();
 

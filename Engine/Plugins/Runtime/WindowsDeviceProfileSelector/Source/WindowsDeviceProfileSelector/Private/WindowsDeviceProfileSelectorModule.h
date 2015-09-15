@@ -11,15 +11,15 @@ class FWindowsDeviceProfileSelectorModule
 {
 public:
 
-	//~ Begin IDeviceProfileSelectorModule Interface
+	// Begin IDeviceProfileSelectorModule interface
 	virtual const FString GetRuntimeDeviceProfileName() override;
-	//~ End IDeviceProfileSelectorModule Interface
+	// End IDeviceProfileSelectorModule interface
 
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 
 	
 	/**

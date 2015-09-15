@@ -135,13 +135,13 @@ public:
 	// Rebuilds cached data about the animation (such as total number of frames that the keyframes span, etc...)
 	void InvalidateCachedData();
 
-	//~ Begin UObject Interface
+	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface
+	// End of UObject interface
 
 	// Returns true if the flipbook asset contains the specified sprite asset in any frames
 	bool ContainsSprite(UPaperSprite* SpriteAsset) const;

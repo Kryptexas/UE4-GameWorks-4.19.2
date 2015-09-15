@@ -54,18 +54,18 @@ private:
 	struct FPostProcessSettings PostProcessSettings_DEPRECATED;
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface
+	// End UObject interface
 	
-	//~ Begin AActor Interface
+	// Begin AActor interface
 	virtual void BeginPlay() override;
-	//~ End AActor Interface
+	// End AActor interface
 
 	/** Returns CameraComponent subobject **/
 	class UCameraComponent* GetCameraComponent() const;

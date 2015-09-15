@@ -75,9 +75,9 @@ class USoundNodeModulatorContinuous : public USoundNode
 	FModulatorContinuousParams VolumeModulationParams;
 
 public:
-	//~ Begin USoundNode Interface.
+	// Begin USoundNode interface.
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
-	//~ End USoundNode Interface.
+	// End USoundNode interface.
 };
 
 

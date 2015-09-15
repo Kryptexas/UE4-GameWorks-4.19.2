@@ -18,13 +18,13 @@ public:
 	
 	ENGINE_API FString GetInternalSoundCueName();
 
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
 	virtual void PostRegisterAllComponents() override;
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	// BEGIN DEPRECATED (use component functions now in level script)
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(DeprecatedFunction))

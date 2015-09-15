@@ -297,7 +297,7 @@ public:
 	/** Compute current light brightness based on whether there is a valid IES profile texture attached, and whether IES brightness is enabled */
 	float ComputeLightBrightness() const;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
@@ -307,7 +307,7 @@ public:
 #endif // WITH_EDITOR
 	virtual void BeginDestroy() override;
 	virtual bool IsReadyForFinishDestroy() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	 void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
@@ -328,12 +328,12 @@ public:
 	}
 
 protected:
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent Interface
 
 public:
 	virtual void InvalidateLightingCacheDetailed(bool bInvalidateBuildEnqueuedLighting, bool bTranslationOnly) override;

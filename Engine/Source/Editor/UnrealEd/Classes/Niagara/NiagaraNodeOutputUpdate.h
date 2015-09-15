@@ -10,12 +10,12 @@ class UDEPRECATED_NiagaraNodeOutputUpdate : public UNiagaraNode
 
 public:
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
 	void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs)override;
 };

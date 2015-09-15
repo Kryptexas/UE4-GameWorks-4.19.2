@@ -29,11 +29,11 @@ public:
 	/** Whether we need to reconstruct the node after the pins have changed */
 	bool bReconstructNode;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetKeywords() const override;
@@ -48,9 +48,9 @@ public:
 	virtual FString GetDocumentationExcerptName() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual bool DrawNodeAsExit() const override { return false; }
 	virtual bool DrawNodeAsEntry() const override { return false; }
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
@@ -64,11 +64,11 @@ public:
 	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	virtual FText GetCompactNodeTitle() const override;
 	virtual bool ShouldDrawCompact() const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
-	//~ Begin UK2Node_EditablePinBase Interface
+	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override { return false; }
-	//~ End UK2Node_EditablePinBase Interface
+	// End UK2Node_EditablePinBase interface
 
 	void SetMacroGraph(UEdGraph* Graph) { MacroGraphReference.SetGraph(Graph); }
 	UEdGraph* GetMacroGraph() const { return MacroGraphReference.GetGraph(); }

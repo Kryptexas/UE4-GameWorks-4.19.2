@@ -14,12 +14,12 @@ class SCRIPTPLUGIN_API UScriptContextComponent : public UActorComponent
 
 public:
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void OnRegister() override;
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void BeginDestroy() override;
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 
 	/**
 	* Calls a script-defined function (no arguments)

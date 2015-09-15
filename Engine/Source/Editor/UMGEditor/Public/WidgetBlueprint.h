@@ -175,10 +175,10 @@ class UMGEDITOR_API UWidgetBlueprint : public UBlueprint
 
 public:
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual bool NeedsLoadForClient() const override;
 	virtual bool NeedsLoadForServer() const override;
-	//~ End UObject Interface
+	// End UObject interface
 
 public:
 
@@ -223,7 +223,7 @@ public:
 
 	/** UWidget blueprints are never data only, should always compile on load (data only blueprints cannot declare new variables) */
 	virtual bool AlwaysCompileOnLoad() const override { return true; }
-	//~ End of UBlueprint Interface
+	// End of UBlueprint interface
 
 	virtual void GatherDependencies(TSet<TWeakObjectPtr<UBlueprint>>& InDependencies) const override;
 

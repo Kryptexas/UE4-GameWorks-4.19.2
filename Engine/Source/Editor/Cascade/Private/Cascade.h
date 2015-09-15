@@ -193,7 +193,7 @@ public:
 	static bool ConvertAllModulesToSeeded(UParticleSystem* ParticleSystem);
 
 private:
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient

@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~=============================================================================
+/*==============================================================================
 	MaterialExpressionParticleSpeed: Exposes the speed of a particle to
 		the material editor.
 ==============================================================================*/
@@ -15,10 +15,10 @@ class UMaterialExpressionParticleSpeed : public UMaterialExpression
 	GENERATED_UCLASS_BODY()
 
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 

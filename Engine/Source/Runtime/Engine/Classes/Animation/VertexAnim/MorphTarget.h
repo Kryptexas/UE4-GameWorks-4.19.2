@@ -74,10 +74,10 @@ public:
 	/** morph mesh vertex data for each LOD */
 	TArray<FMorphTargetLODModel>	MorphLODModels;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 
 	/** Post process after importing **/
 	ENGINE_API void PostProcess( USkeletalMesh * NewMesh, const FMorphMeshRawSource& BaseSource, const FMorphMeshRawSource& TargetSource, int32 LODIndex, bool bCompareNormal );
@@ -85,10 +85,10 @@ public:
 	/** Remap vertex indices with base mesh. */
 	void RemapVertexIndices( USkeletalMesh* InBaseMesh, const TArray< TArray<uint32> > & BasedWedgePointIndices );
 
-	//~ Begin UVertexAnimBase Interface
+	// Begin UVertexAnimBase interface
 	virtual FVertexAnimDelta* GetDeltasAtTime(float Time, int32 LODIndex, FVertexAnimEvalStateBase* State, int32& OutNumDeltas) override;
 	virtual bool HasDataForLOD(int32 LODIndex) override;
-	//~ End UVertexAnimBase Interface
+	// End UVertexAnimBase interface
 
 private:
 	/**

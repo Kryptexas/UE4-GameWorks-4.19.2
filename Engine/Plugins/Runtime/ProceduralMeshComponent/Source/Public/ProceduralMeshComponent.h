@@ -165,29 +165,29 @@ class PROCEDURALMESHCOMPONENT_API UProceduralMeshComponent : public UMeshCompone
 	UFUNCTION(BlueprintCallable, Category = "Components|ProceduralMesh")
 	bool IsMeshSectionVisible(int32 SectionIndex) const;
 
-	//~ Begin Interface_CollisionDataProvider Interface
+	// Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override{ return false; }
-	//~ End Interface_CollisionDataProvider Interface
+	// End Interface_CollisionDataProvider Interface
 
 	/** Collision data */
 	UPROPERTY(transient, duplicatetransient)
 	class UBodySetup* ProcMeshBodySetup;
 
 private:
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin UMeshComponent Interface.
+	// Begin UMeshComponent interface.
 	virtual int32 GetNumMaterials() const override;
-	//~ End UMeshComponent Interface.
+	// End UMeshComponent interface.
 
 
 

@@ -243,7 +243,7 @@ public:
 	virtual ENGINE_API void OverrideBlendableSettings(class FSceneView& View, float Weight) const override;
 	// End interface IBlendableInterface
 
-	//~ Begin UMaterialInterface Interface.
+	// Begin UMaterialInterface interface.
 	virtual ENGINE_API UMaterial* GetMaterial() override;
 	virtual ENGINE_API const UMaterial* GetMaterial() const override;
 	virtual ENGINE_API const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
@@ -298,9 +298,9 @@ public:
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const override;
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx(class FMaterialCompiler* Compiler, EMaterialProperty Property) override;
-	//~ End UMaterialInterface Interface.
+	// End UMaterialInterface interface.
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual ENGINE_API void PostInitProperties() override;	
 #if WITH_EDITOR
@@ -326,7 +326,7 @@ public:
 
 #endif // WITH_EDITOR
 
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/**
 	 * Recompiles static permutations if necessary.

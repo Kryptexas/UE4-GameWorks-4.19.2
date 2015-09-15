@@ -313,7 +313,7 @@ public:
 	};
 #endif
 
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, AActor* Viewer, AActor* ViewTarget, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void PreNetReceive() override;
@@ -325,14 +325,14 @@ public:
 #if WITH_EDITOR
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent ) override; 
 	virtual bool CanEditChange( const UProperty* Property ) const override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject Interface
 
 	/** Increment track forwards by given timestep and iterate over each track updating any properties. */
 	ENGINE_API void StepInterp(float DeltaTime, bool bPreview=false);

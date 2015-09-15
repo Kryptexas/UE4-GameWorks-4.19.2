@@ -30,12 +30,12 @@ public:
 	virtual bool IsValidAdditive() const override;
 
 protected:
-	//~ Begin UBlendSpaceBase Interface
+	// Begin UBlendSpaceBase interface
 	virtual void SnapToBorder(FBlendSample& Sample) const override;
 	virtual EBlendSpaceAxis GetAxisToScale() const override;
 	virtual bool IsSameSamplePoint(const FVector& SamplePointA, const FVector& SamplePointB) const override;
 	virtual void GetRawSamplesFromBlendInput(const FVector &BlendInput, TArray<FGridBlendSample> & OutBlendSamples) const override;
-	//~ End UBlendSpaceBase Interface
+	// End UBlendSpaceBase interface
 
 private:
 

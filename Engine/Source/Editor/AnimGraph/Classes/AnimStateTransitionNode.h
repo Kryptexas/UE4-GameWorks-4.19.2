@@ -90,12 +90,12 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	UPROPERTY()
 	int32 SharedCrossfadeIdx;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
@@ -107,13 +107,13 @@ class UAnimStateTransitionNode : public UAnimStateNodeBase
 	virtual void PostPlacedNewNode() override;
 	virtual void DestroyNode() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UAnimStateNodeBase Interface
+	// Begin UAnimStateNodeBase interface
 	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
 	virtual UEdGraphPin* GetInputPin() const override { return Pins[0]; }
 	virtual UEdGraphPin* GetOutputPin() const override { return Pins[1]; }
-	//~ End UAnimStateNodeBase Interface
+	// End UAnimStateNodeBase interface
 
 	// @return the name of this state
 	ANIMGRAPH_API FString GetStateName() const override;

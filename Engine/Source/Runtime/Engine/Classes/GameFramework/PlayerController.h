@@ -129,7 +129,7 @@ protected:
 };
 
 
-//~============================================================================
+//=============================================================================
 /**
  * PlayerControllers are used by human players to control Pawns.
  *
@@ -1200,11 +1200,11 @@ public:
 	 */
 	virtual FString ConsoleCommand(const FString& Command, bool bWriteToLog = true);
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject Interface
 
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
@@ -1227,9 +1227,9 @@ public:
 	virtual void PostInitializeComponents() override;
 	virtual void EnableInput(class APlayerController* PlayerController) override;
 	virtual void DisableInput(class APlayerController* PlayerController) override;
-	//~ End AActor Interface
+	// End AActor interface
 
-	//~ Begin AController Interface
+	// Begin AController interface
 	virtual void GameHasEnded(class AActor* EndGameFocus = NULL, bool bIsWinner = false) override;
 	virtual bool IsLocalPlayerController() const override;
 	virtual bool IsLocalController() const override;
@@ -1241,7 +1241,7 @@ public:
 	virtual void EndInactiveState() override;
 	virtual void FailedToSpawnPawn() override;
 	virtual void SetPawn(APawn* InPawn) override;
-	//~ End AController Interface
+	// End AController interface
 
 	/** called on the server when the client sends a message indicating it was unable to initialize an Actor channel,
 	 * most commonly because the desired Actor's archetype couldn't be serialized

@@ -123,9 +123,9 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** delegate for move completion notify */
 	FMoveCompletedSignature OnMoveFinished;
 
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	//~ End UActorComponent Interface
+	// End UActorComponent Interface
 
 	/** initialize component to use */
 	virtual void Initialize();

@@ -35,7 +35,7 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	FGuid Id;
 
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 #if WITH_EDITOR
@@ -43,9 +43,9 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual FString GetInputName(int32 InputIndex) const override
@@ -57,7 +57,7 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	virtual uint32 GetInputType(int32 InputIndex) override;
 #endif
 	virtual bool IsResultMaterialAttributes(int32 OutputIndex) override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 
 
 	/** Generate the Id for this input. */

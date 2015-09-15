@@ -43,7 +43,7 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
@@ -64,5 +64,5 @@ protected:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 };

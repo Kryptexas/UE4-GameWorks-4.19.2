@@ -46,23 +46,23 @@ public:
 	class FVectorFieldInstance* VectorFieldInstance;
 
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void SendRenderTransform_Concurrent() override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface.
+	// End UObject interface.
 };
 
 

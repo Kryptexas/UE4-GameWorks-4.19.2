@@ -10,13 +10,13 @@ class UK2Node_EnumEquality : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
  	virtual void PostReconstructNode() override;
 	virtual bool IsNodeSafeToIgnore() const override { return true; }
 	virtual bool IsNodePure() const override { return true; }
@@ -29,7 +29,7 @@ class UK2Node_EnumEquality : public UK2Node
 	virtual FText GetMenuCategory() const override;
 	virtual int32 GetNodeRefreshPriority() const override { return EBaseNodeRefreshPriority::Low_UsesDependentWildcard; }
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	/** Get the return value pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReturnValuePin() const;

@@ -14,14 +14,14 @@ public:
 	UPROPERTY()
 	FName	AttrName;
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
-	//~ Begin UNiagaraNode Interface
+	// Begin UNiagaraNode interface
 	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Output) override;
-	//~ End UNiagaraNode Interface
+	// End UNiagaraNode interface
 };
 

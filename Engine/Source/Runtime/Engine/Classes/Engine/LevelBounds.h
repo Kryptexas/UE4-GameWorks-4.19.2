@@ -32,14 +32,14 @@ class ALevelBounds
 	UPROPERTY(EditAnywhere, Category=LevelBounds)
 	bool bAutoUpdateBounds;
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject Interface
 	
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	/** @return Bounding box which includes all relevant actors bounding boxes belonging to specified level */
 	ENGINE_API static FBox CalculateLevelBounds(ULevel* InLevel);

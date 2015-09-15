@@ -12,18 +12,18 @@
 class FConfigEditorModule : public IConfigEditorModule
 {
 public:
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 
 
 public:
-	//~ Begin IConfigEditorModule Interface
+	// Begin IConfigEditorModule interface
 	virtual void CreateHierarchyEditor(UProperty* EditProperty) override;
 	virtual void AddExternalPropertyValueWidgetAndConfigPairing(const FString& ConfigFile, const TSharedPtr<SWidget> ValueWidget) override;
 	virtual TSharedRef<SWidget> GetValueWidgetForConfigProperty(const FString& ConfigFile) override;
-	//~ End IConfigEditorModule Interface	
+	// End IConfigEditorModule interface	
 	
 
 private:

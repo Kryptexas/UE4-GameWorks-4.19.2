@@ -290,7 +290,7 @@ public:
 
 	virtual ~ULandscapeComponent();
 
-	//~ Begin UObject Interface.	
+	// Begin UObject interface.	
 	virtual void PostInitProperties() override;	
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
@@ -303,13 +303,13 @@ public:
 	virtual void PostEditUndo() override;
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject interface
 
 	/** Fix up component layers, weightmaps
 	 */
 	LANDSCAPE_API void FixupWeightmaps();
 	
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual bool GetLightMapResolution( int32& Width, int32& Height ) const override;
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	virtual void GetStaticLightingInfo(FStaticLightingPrimitiveInfo& OutPrimitiveInfo,const TArray<ULightComponent*>& InRelevantLights,const FLightingBuildOptions& Options) override;
@@ -326,17 +326,17 @@ public:
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ End USceneComponent Interface.
+	// End USceneComponent interface.
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 
 #if WITH_EDITOR

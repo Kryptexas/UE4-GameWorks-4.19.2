@@ -151,11 +151,11 @@ public:
 	FChunkCacheWorker(FArchive* InReader);
 	virtual ~FChunkCacheWorker();
 
-	//~ Begin FRunnable Interface.
+	// Begin FRunnable interface.
 	virtual bool Init();
 	virtual uint32 Run();
 	virtual void Stop();
-	//~ End FRunnable Interface
+	// End FRunnable interface
 
 	/** 
 	 * Requests a chunk to be loaded and verified
@@ -256,7 +256,7 @@ public:
 	FSignedArchiveReader(FArchive* InPakReader, FChunkCacheWorker* InSignatureChecker);
 	virtual ~FSignedArchiveReader();
 
-	//~ Begin FArchive Interface
+	// Begin FArchive interface
 	virtual void Serialize(void* Data, int64 Length) override;
 	virtual int64 Tell() override
 	{
@@ -270,5 +270,5 @@ public:
 	{
 		PakOffset = InPos;
 	}
-	//~ End FArchive Interface
+	// End FArchive interface
 };

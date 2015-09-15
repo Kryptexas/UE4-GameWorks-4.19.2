@@ -25,18 +25,18 @@ class UK2Node_InputAxisEvent : public UK2Node_Event
 	UPROPERTY(EditAnywhere, Category="Input")
 	uint32 bOverrideParentBinding:1;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual UClass* GetDynamicBindingClass() const override;
@@ -44,7 +44,7 @@ class UK2Node_InputAxisEvent : public UK2Node_Event
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual FBlueprintNodeSignature GetSignature() const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	void Initialize(const FName AxisName);
 

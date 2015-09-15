@@ -175,7 +175,7 @@ class ENGINE_API UMaterialExpression : public UObject
 	UPROPERTY()
 	TArray<FExpressionOutput> Outputs;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
@@ -187,7 +187,7 @@ class ENGINE_API UMaterialExpression : public UObject
 
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
 	virtual void Serialize( FArchive& Ar ) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/**
 	 * Create the new shader code chunk needed for the Abs expression

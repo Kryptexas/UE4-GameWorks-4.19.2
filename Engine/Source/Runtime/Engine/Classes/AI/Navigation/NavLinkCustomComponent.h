@@ -38,22 +38,22 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	virtual void OnLinkMoveFinished(UPathFollowingComponent* PathComp) override;
 	// END INavLinkCustomInterface
 
-	//~ Begin UNavRelevantComponent Interface
+	// BEGIN UNavRelevantComponent Interface
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 	virtual void CalcAndCacheBounds() const override;
-	//~ End UNavRelevantComponent Interface
+	// END UNavRelevantComponent Interface
 
-	//~ Begin UActorComponent Interface
+	// BEGIN UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
-	//~ End UActorComponent Interface
+	// END UActorComponent Interface
 
-	//~ Begin UObject Interface
+	// BEGIN UObject Interface
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditImport() override;
 #endif
-	//~ End UObject Interface
+	// END UObject Interface
 
 	/** set basic link data: end points and direction */
 	void SetLinkData(const FVector& RelativeStart, const FVector& RelativeEnd, ENavLinkDirection::Type Direction);

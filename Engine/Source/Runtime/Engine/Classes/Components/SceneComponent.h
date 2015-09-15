@@ -660,7 +660,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume, meta=(DisplayName="Physics Volume Changed"))
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
-	//~ Begin ActorComponent Interface
+	// Begin ActorComponent interface
 	virtual void OnRegister() override;
 	/** Return true if CreateRenderState() should be called */
 	virtual bool ShouldCreateRenderState() const override
@@ -672,12 +672,12 @@ public:
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End ActorComponent Interface
+	// End ActorComponent interface
 
 	// Call UpdateComponentToWorld if bWorldToComponentUpdated is false.
 	void ConditionalUpdateComponentToWorld();
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void BeginDestroy() override;
@@ -688,7 +688,7 @@ public:
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
 
-	//~ End UObject Interface
+	// End UObject Interface
 protected:
 	/**
 	 * Internal helper, for use from MoveComponent().  Special codepath since the normal setters call MoveComponent.

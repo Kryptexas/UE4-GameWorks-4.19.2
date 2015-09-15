@@ -766,7 +766,7 @@ private:
 #endif // WITH_EDITORONLY_DATA
 public:
 
-	//~ Begin UMaterialInterface Interface.
+	// Begin UMaterialInterface interface.
 	ENGINE_API virtual UMaterial* GetMaterial() override;
 	ENGINE_API virtual const UMaterial* GetMaterial() const override;
 	ENGINE_API virtual const UMaterial* GetMaterial_Concurrent(TMicRecursionGuard& RecursionGuard) const override;
@@ -813,9 +813,9 @@ public:
 	/** Allows material properties to be compiled with the option of being overridden by the material attributes input. */
 	ENGINE_API virtual int32 CompilePropertyEx( class FMaterialCompiler* Compiler, EMaterialProperty Property ) override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
-	//~ End UMaterialInterface Interface.
+	// End UMaterialInterface interface.
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	ENGINE_API virtual void PreSave() override;
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void Serialize(FArchive& Ar) override;
@@ -837,7 +837,7 @@ public:
 	ENGINE_API virtual void FinishDestroy() override;
 	ENGINE_API virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	ENGINE_API static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface
+	// End UObject Interface
 
 #if WITH_EDITOR
 	/** Cancels any currently outstanding compilation jobs for this material. Useful in the material editor when some edits superceds existing, in flight compilation jobs.*/

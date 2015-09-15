@@ -13,13 +13,13 @@ class UAnimGraphNode_TwoWayBlend : public UAnimGraphNode_Base
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimationNode_TwoWayBlend BlendNode;
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
-	//~ End of UAnimGraphNode_Base Interface
+	// End of UAnimGraphNode_Base interface
 };

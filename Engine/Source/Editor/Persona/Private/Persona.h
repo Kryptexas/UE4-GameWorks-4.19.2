@@ -180,7 +180,7 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual void SaveAsset_Execute() override;
-	//~ End of IToolkit Interface
+	// End of IToolkit interface
 
 	/** Saves all animation assets related to a skeleton */
 	void SaveAnimationAssets_Execute();
@@ -198,7 +198,7 @@ public:
 	// FTickableEditorObject interface
 	virtual void Tick(float DeltaTime) override;
 	virtual TStatId GetStatId() const override;
-	//~ End of FTickableEditorObject Interface
+	// End of FTickableEditorObject interface
 
 	/** Returns the image brush to use for each modes dirty marker */
 	const FSlateBrush* GetDirtyImageForMode(FName Mode) const;
@@ -242,18 +242,18 @@ protected:
 	virtual bool IsEditable(UEdGraph* InGraph) const override;
 	virtual FText GetGraphDecorationString(UEdGraph* InGraph) const override;
 	virtual void OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled = false) override;
-	//~ End of FBlueprintEditor Interface
+	// End of FBlueprintEditor interface
 
 	// IAssetEditorInstance interface
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
-	//~ End of IAssetEditorInstance Interface
+	// End of IAssetEditorInstance interface
 
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient
 
-	//~ Begin FAssetEditorToolkit Interface
+	// Begin FAssetEditorToolkit Interface
 	virtual void FindInContentBrowser_Execute() override;
 	// End of FAssetEditorToolkit
 

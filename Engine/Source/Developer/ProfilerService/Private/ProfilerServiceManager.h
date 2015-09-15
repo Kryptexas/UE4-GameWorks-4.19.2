@@ -42,10 +42,10 @@ public:
 
 public:
 
-	//~ Begin IProfilerServiceManager Interface
+	// Begin IProfilerServiceManager interface
 	virtual void StartCapture() override;
 	virtual void StopCapture() override;
-	//~ End IProfilerServiceManager Interface
+	// End IProfilerServiceManager interface
 
 	/**
 	 * Creates a profiler service manager for shared use

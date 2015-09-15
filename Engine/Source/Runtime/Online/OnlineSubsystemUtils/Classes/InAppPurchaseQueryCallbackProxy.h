@@ -24,9 +24,9 @@ class UInAppPurchaseQueryCallbackProxy : public UObject
 	static UInAppPurchaseQueryCallbackProxy* CreateProxyObjectForInAppPurchaseQuery(class APlayerController* PlayerController, const TArray<FString>& ProductIdentifiers);
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private:
 	/** Called by the InAppPurchase system when the read is finished */

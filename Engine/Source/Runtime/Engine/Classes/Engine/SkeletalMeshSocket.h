@@ -90,9 +90,9 @@ class USkeletalMeshSocket : public UObject
 	DECLARE_EVENT_TwoParams(USkeletalMeshSocket, FSocketChangedEvent, const class USkeletalMeshSocket*, const class UProperty*);
 	FSocketChangedEvent& OnPropertyChanged() { return ChangedEvent; }
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private: 
 	/** Broadcasts a notification whenever the socket property has changed. */

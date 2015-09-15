@@ -88,15 +88,15 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End of UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -120,7 +120,7 @@ protected:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 protected:
 	/** Cached pointer to the underlying slate button owned by this UWidget */

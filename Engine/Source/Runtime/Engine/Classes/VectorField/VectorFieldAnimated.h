@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~=============================================================================
+/*==============================================================================
 	VectorFieldAnimated: An animated 3D grid of vectors.
 ==============================================================================*/
 
@@ -77,15 +77,15 @@ class UVectorFieldAnimated : public UVectorField
 	float NoiseMax;
 
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UVectorField Interface
+	// Begin UVectorField Interface
 	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) override;
-	//~ End UVectorField Interface
+	// End UVectorField Interface
 
 };
 

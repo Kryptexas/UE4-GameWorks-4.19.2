@@ -1021,7 +1021,7 @@ public:
 
 public:
 
-	//~ Begin FSlateApplicationBase Interface
+	// Begin FSlateApplicationBase interface
 
 	virtual TSharedRef<SWindow> AddWindow( TSharedRef<SWindow> InSlateWindow, const bool bShowImmediately = true ) override;
 

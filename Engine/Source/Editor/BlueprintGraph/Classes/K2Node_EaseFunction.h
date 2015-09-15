@@ -30,7 +30,7 @@ class UK2Node_EaseFunction : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
@@ -38,16 +38,16 @@ class UK2Node_EaseFunction : public UK2Node
 	virtual void PinTypeChanged(UEdGraphPin* Pin) override;
 	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
-	//~ Begin UK2Node Interface.
+	// Begin UK2Node interface.
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual void PostReconstructNode() override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
-	//~ End UK2Node Interface.
+	// End UK2Node interface.
 
 private:
 	/** Reset the A, B and Result pins to its initial wildcard state */

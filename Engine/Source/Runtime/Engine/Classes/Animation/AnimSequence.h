@@ -526,7 +526,7 @@ class ENGINE_API UAnimSequence : public UAnimSequenceBase
 #endif // WITH_EDITORONLY_DATA
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInitProperties() override;
 	virtual void PostLoad() override;
@@ -538,21 +538,21 @@ public:
 	virtual void BeginDestroy() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
-	//~ Begin UAnimationAsset Interface
+	// Begin UAnimationAsset interface
 	virtual bool IsValidAdditive() const override;
 #if WITH_EDITOR
 	virtual bool GetAllAnimationSequencesReferred(TArray<UAnimSequence*>& AnimationSequences) override;
 	virtual void ReplaceReferredAnimations(const TMap<UAnimSequence*, UAnimSequence*>& ReplacementMap) override;
 	virtual int32 GetNumberOfFrames() const override { return NumFrames; }
 #endif
-	//~ End of UAnimationAsset Interface
+	// End of UAnimationAsset interface
 
-	//~ Begin UAnimSequenceBase Interface
+	// Begin UAnimSequenceBase interface
 	virtual void OnAssetPlayerTickedInternal(FAnimAssetTickContext &Context, const float PreviousTime, const float MoveDelta, const FAnimTickRecord &Instance, class UAnimInstance* InstanceOwner) const override;
 	virtual bool HasRootMotion() const override { return bEnableRootMotion; }
-	//~ End UAnimSequenceBase Interface
+	// End UAnimSequenceBase interface
 
 	// Extract Root Motion transform from the animation
 	FTransform ExtractRootMotion(float StartTime, float DeltaTime, bool bAllowLooping) const;

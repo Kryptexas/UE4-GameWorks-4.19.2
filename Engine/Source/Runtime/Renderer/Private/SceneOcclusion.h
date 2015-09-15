@@ -2,7 +2,7 @@
 
 #pragma once
 
-/*~============================================================================
+/*=============================================================================
 	SceneOcclusion.h
 =============================================================================*/
 
@@ -45,7 +45,7 @@ public:
 		StencilingGeometryParameters.Set(RHICmdList, this, FVector4(0,0,0,1));
 	}
 
-	//~ Begin FShader Interface
+	// Begin FShader interface
 	virtual bool Serialize(FArchive& Ar) override
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);

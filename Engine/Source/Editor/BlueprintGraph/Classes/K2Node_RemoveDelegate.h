@@ -12,9 +12,9 @@ public:
 	// UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End of UEdGraphNode Interface
+	// End of UEdGraphNode interface
 
-	//~ Begin of UK2Node Interface
+	// Begin of UK2Node interface
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	//~ End of UK2Node Interface
+	// End of UK2Node interface
 };

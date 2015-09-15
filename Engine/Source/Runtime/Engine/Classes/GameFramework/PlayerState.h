@@ -130,12 +130,12 @@ public:
 	UFUNCTION()
 	virtual void OnRep_UniqueId();
 
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void PostInitializeComponents() override; 
 	virtual void Destroyed() override;
 	virtual void Reset() override;
 	virtual FString GetHumanReadableName() const override;
-	//~ End AActor Interface
+	// End AActor Interface
 
 
 	/** Called by Controller when its PlayerState is initially replicated. */

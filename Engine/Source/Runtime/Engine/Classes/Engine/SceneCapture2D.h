@@ -26,9 +26,9 @@ private_subobject:
 
 public:
 
-	//~ Begin AActor Interface
+	// Begin AActor interface
 	ENGINE_API virtual void PostActorCreated() override;
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	/** Used to synchronize the DrawFrustumComponent with the SceneCaptureComponent2D settings. */
 	void UpdateDrawFrustum();

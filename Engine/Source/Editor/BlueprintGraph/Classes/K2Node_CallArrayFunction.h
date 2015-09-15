@@ -21,15 +21,15 @@ class UK2Node_CallArrayFunction : public UK2Node_CallFunction
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual void PostReconstructNode() override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual void NotifyPinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual bool DoesInputWildcardPinAcceptArray(const UEdGraphPin* Pin) const override { return false; }
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	/** Retrieves the target pin for the function */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetTargetArrayPin() const;

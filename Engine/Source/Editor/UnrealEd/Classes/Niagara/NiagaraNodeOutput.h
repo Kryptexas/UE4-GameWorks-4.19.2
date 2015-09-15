@@ -14,16 +14,16 @@ public:
 	UPROPERTY(EditAnywhere, Category = Output)
 	TArray<FNiagaraVariableInfo> Outputs;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
 	virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& OutputExpressions)override;
 };

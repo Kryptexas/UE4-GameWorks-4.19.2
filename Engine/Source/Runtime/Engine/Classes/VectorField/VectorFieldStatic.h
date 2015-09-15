@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	VectorField: A 3D grid of vectors.
 =============================================================================*/
 
@@ -41,7 +41,7 @@ public:
 	class UAssetImportData* AssetImportData;
 #endif // WITH_EDITORONLY_DATA
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
 #if WITH_EDITOR
@@ -52,11 +52,11 @@ public:
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual void PostInitProperties() override;
 #endif
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UVectorField Interface
+	// Begin UVectorField Interface
 	virtual void InitInstance(class FVectorFieldInstance* Instance, bool bPreviewInstance) override;
-	//~ End UVectorField Interface
+	// End UVectorField Interface
 
 	/**
 	 * Initialize resources.

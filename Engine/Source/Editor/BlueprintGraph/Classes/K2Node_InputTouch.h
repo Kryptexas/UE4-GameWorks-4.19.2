@@ -22,16 +22,16 @@ class UK2Node_InputTouch : public UK2Node
 	UPROPERTY(EditAnywhere, Category="Input")
 	uint32 bOverrideParentBinding:1;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UK2Node Interface.
+	// Begin UK2Node interface.
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 	virtual void ExpandNode(FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -40,7 +40,7 @@ class UK2Node_InputTouch : public UK2Node
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 	BLUEPRINTGRAPH_API static UEnum* GetTouchIndexEnum();
 

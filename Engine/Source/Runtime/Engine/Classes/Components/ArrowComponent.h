@@ -56,17 +56,17 @@ class ENGINE_API UArrowComponent : public UPrimitiveComponent
 	UFUNCTION(BlueprintCallable, DisplayName="SetArrowColor", Category="Components|Arrow")
 	virtual void SetArrowColor_New(FLinearColor NewColor);
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 
 #if WITH_EDITORONLY_DATA
 	/** Set the scale that we use when rendering in-editor */

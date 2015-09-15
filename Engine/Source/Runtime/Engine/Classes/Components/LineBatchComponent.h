@@ -155,16 +155,16 @@ class ULineBatchComponent : public UPrimitiveComponent
 	/** Draw a mesh */
 	void DrawMesh(TArray<FVector> const& Verts, TArray<int32> const& Indices, FColor const& Color, uint8 DepthPriority, float LifeTime);
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 	
 	
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	/** Clear all batched lines, points and meshes */
 	ENGINE_API void Flush();

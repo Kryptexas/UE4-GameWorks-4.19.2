@@ -519,7 +519,7 @@ public:
 	UPROPERTY(transient)
 	uint64 HiddenEditorViews;
 
-	//~=============================================================================================
+	//==============================================================================================
 	// Delegates
 	
 	/** Called when the actor is damaged in any way. */
@@ -627,7 +627,7 @@ public:
 	AController* GetInstigatorController() const;
 
 
-	//~============================================================================
+	//=============================================================================
 	// General functions.
 
 	/**
@@ -1043,7 +1043,7 @@ public:
 	 */
 	void DetachSceneComponentsFromParent(class USceneComponent* InParentComponent, bool bMaintainWorldPosition = true);
 
-	//~=============================================================================
+	//==============================================================================
 	// Tags
 
 	/** See if this actor contains the supplied tag */
@@ -1051,7 +1051,7 @@ public:
 	bool ActorHasTag(FName Tag) const;
 
 
-	//~=============================================================================
+	//==============================================================================
 	// Misc Blueprint support
 
 	/** 
@@ -1092,7 +1092,7 @@ public:
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage="Use PrimitiveComponent.CreateAndSetMaterialInstanceDynamic instead.", BlueprintProtected = "true"), Category="Rendering|Material")
 	class UMaterialInstanceDynamic* MakeMIDForMaterial(class UMaterialInterface* Parent);
 
-	//~============================================================================
+	//=============================================================================
 	// AI functions.
 	
 	/**
@@ -1109,7 +1109,7 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI", meta=(BlueprintProtected = "true"))
 	void MakeNoise(float Loudness=1.f, APawn* NoiseInstigator=NULL, FVector NoiseLocation=FVector::ZeroVector, float MaxRange = 0.f, FName Tag = NAME_None);
 
-	//~============================================================================
+	//=============================================================================
 	// Blueprint
 	
 	/** Event when play begins for this actor. */
@@ -1301,7 +1301,7 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Game")
 	FActorEndPlaySignature OnEndPlay;
 	
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual bool CheckDefaultSubobjectsInternal() override;
 	virtual void PostInitProperties() override;
 	virtual bool Modify( bool bAlwaysMarkDirty=true ) override;
@@ -1368,7 +1368,7 @@ public:
 	/** @return true if the component is allowed to re-register its components when modified.  False for CDOs or PIE instances. */
 	bool ReregisterComponentsWhenModified() const;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject Interface
 
 #if WITH_EDITOR
 	virtual void PostEditMove(bool bFinished);
@@ -2198,7 +2198,7 @@ public:
 	 */
 	virtual void TornOff();
 
-	//~============================================================================
+	//=============================================================================
 	// Collision functions.
  
 	/** 
@@ -2210,7 +2210,7 @@ public:
 	 */
 	virtual ECollisionResponse GetComponentsCollisionResponseToChannel(ECollisionChannel Channel) const;
 
-	//~============================================================================
+	//=============================================================================
 	// Physics
 
 	/** Stop all simulation from all components in this actor */
@@ -2496,7 +2496,7 @@ public:
 	const TArray<UActorComponent*>& GetInstanceComponents() const;
 
 public:
-	//~============================================================================
+	//=============================================================================
 	// Navigation related functions
 	// 
 
@@ -2505,7 +2505,7 @@ public:
 	 */
 	virtual bool IsComponentRelevantForNavigation(UActorComponent* Component) const { return true; }
 
-	//~============================================================================
+	//=============================================================================
 	// Debugging functions
 public:
 	/**

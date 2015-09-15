@@ -37,10 +37,10 @@ public:
 	TArray<class UObject*> SubObjects;
 
 #if WITH_EDITOR
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
-	//~ End AActor Interface
+	// End AActor Interface
 #endif // WITH_EDITOR	
 
 	/** Sets StaticMesh and IsPreviewActor to true if InStaticMesh equals nullptr */
@@ -50,7 +50,7 @@ public:
 	const bool IsPreviewActorInstance() { return bIsPreviewActor;  }
 	
 protected:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual FString GetDetailedInfoInternal() const override;
 	virtual FBox GetComponentsBoundingBox(bool bNonColliding = false) const override;	
 #if WITH_EDITOR
@@ -61,7 +61,7 @@ protected:
 	virtual void EditorApplyMirror(const FVector& MirrorScale, const FVector& PivotLocation) override;
 #endif // WITH_EDITOR	
 	virtual void PostRegisterAllComponents() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 		
 protected:
 #if WITH_EDITORONLY_DATA

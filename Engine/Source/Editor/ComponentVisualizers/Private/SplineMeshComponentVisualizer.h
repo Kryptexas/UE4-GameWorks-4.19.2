@@ -50,7 +50,7 @@ public:
 	FSplineMeshComponentVisualizer();
 	virtual ~FSplineMeshComponentVisualizer();
 
-	//~ Begin FComponentVisualizer Interface
+	// Begin FComponentVisualizer interface
 	virtual void OnRegister() override;
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
 	virtual bool VisProxyHandleClick(FLevelEditorViewportClient* InViewportClient, HComponentVisProxy* VisProxy, const FViewportClick& Click) override;
@@ -60,7 +60,7 @@ public:
 	virtual bool HandleInputDelta(FEditorViewportClient* ViewportClient, FViewport* Viewport, FVector& DeltaTranslate, FRotator& DeltaRotate, FVector& DeltaScale) override;
 	virtual bool HandleInputKey(FEditorViewportClient* ViewportClient, FViewport* Viewport, FKey Key, EInputEvent Event) override;
 	virtual TSharedPtr<SWidget> GenerateContextMenu() const override;
-	//~ End FComponentVisualizer Interface
+	// End FComponentVisualizer interface
 
 	/** Get the spline component we are currently editing */
 	USplineMeshComponent* GetEditedSplineMeshComponent() const;

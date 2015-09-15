@@ -35,21 +35,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Sphere")
 	float GetUnscaledSphereRadius() const;
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool IsZeroExtent() const override;
 	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
 	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin USceneComponent Interface
+	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const override;
-	//~ End USceneComponent Interface
+	// End USceneComponent interface
 
-	//~ Begin UShapeComponent Interface
+	// Begin UShapeComponent interface
 	virtual void UpdateBodySetup() override;
-	//~ End UShapeComponent Interface
+	// End UShapeComponent interface
 
 	// Get the scale used by this shape. This is a uniform scale that is the minimum of any non-uniform scaling.
 	// @return the scale used by this shape.

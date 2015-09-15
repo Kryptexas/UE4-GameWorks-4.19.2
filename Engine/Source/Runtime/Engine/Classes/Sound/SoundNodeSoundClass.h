@@ -17,7 +17,7 @@ class USoundNodeSoundClass : public USoundNode
 	USoundClass* SoundClassOverride;
 
 public:
-	//~ Begin USoundNode Interface. 
+	// Begin USoundNode interface. 
 	virtual void ParseNodes( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
-	//~ End USoundNode Interface. 
+	// End USoundNode interface. 
 };

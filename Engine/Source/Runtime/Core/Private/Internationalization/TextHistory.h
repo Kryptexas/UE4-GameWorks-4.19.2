@@ -62,13 +62,13 @@ public:
 	FTextHistory_Base(TSharedPtr< FString, ESPMode::ThreadSafe > InSourceString);
 
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void SerializeForDisplayString(FArchive& Ar, FTextDisplayStringRef& InOutDisplayString) override;
 	virtual bool IsOutOfDate() override { return false; }
 	virtual TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The source string for an FText */
@@ -82,11 +82,11 @@ public:
 	FTextHistory_NamedFormat() {};
 	FTextHistory_NamedFormat(const FText& InSourceText, const FFormatNamedArguments& InArguments);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The pattern used to format the text */
@@ -102,11 +102,11 @@ public:
 	FTextHistory_OrderedFormat() {};
 	FTextHistory_OrderedFormat(const FText& InSourceText, const FFormatOrderedArguments& InArguments);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The pattern used to format the text */
@@ -122,11 +122,11 @@ public:
 	FTextHistory_ArgumentDataFormat() {};
 	FTextHistory_ArgumentDataFormat(const FText& InSourceText, const TArray< struct FFormatArgumentData >& InArguments);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void GetSourceTextsFromFormatHistory(FText, TArray<FText>& OutSourceTexts) const override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The pattern used to format the text */
@@ -144,9 +144,9 @@ public:
 
 	~FTextHistory_FormatNumber();
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 protected:
 	/** The source value to format from */
 	FFormatArgumentValue SourceValue;
@@ -163,10 +163,10 @@ public:
 	FTextHistory_AsNumber() {};
 	FTextHistory_AsNumber(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 };
 
 /**  Handles history for formatting using AsPercent */
@@ -176,10 +176,10 @@ public:
 	FTextHistory_AsPercent() {};
 	FTextHistory_AsPercent(const FFormatArgumentValue& InSourceValue, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 };
 
 /**  Handles history for formatting using AsCurrency */
@@ -189,10 +189,10 @@ public:
 	FTextHistory_AsCurrency() {};
 	FTextHistory_AsCurrency(const FFormatArgumentValue& InSourceValue, const FString& CurrencyCode, const FNumberFormattingOptions* const InFormatOptions, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The currency used to format the number. */
@@ -206,10 +206,10 @@ public:
 	FTextHistory_AsDate() {};
 	FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The source date structure to format */
@@ -229,10 +229,10 @@ public:
 	FTextHistory_AsTime() {};
 	FTextHistory_AsTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interface
+	// End FTextHistory interface
 
 private:
 	/** The source time structure to format */
@@ -252,10 +252,10 @@ public:
 	FTextHistory_AsDateTime() {};
 	FTextHistory_AsDateTime(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const EDateTimeStyle::Type InTimeStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture);
 
-	//~ Begin FTextHistory Interface
+	// Begin FTextHistory interface
 	virtual FText ToText(bool bInAsSource) const override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End FTextHistory Interfaces
+	// End FTextHistory interfaces
 
 private:
 	/** The source date and time structure to format */

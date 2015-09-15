@@ -36,10 +36,10 @@ public:
 	void SetMobility(EComponentMobility::Type InMobility);
 
 #if WITH_EDITOR
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
-	//~ End AActor Interface
+	// End AActor Interface
 #endif // WITH_EDITOR	
 
 	// INavRelevantInterface begin
@@ -47,13 +47,13 @@ public:
 	// INavRelevantInterface end
 
 protected:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual FString GetDetailedInfoInternal() const override;
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR	
-	//~ End UObject Interface.
+	// End UObject interface.
 
 public:
 	/** Returns StaticMeshComponent subobject **/

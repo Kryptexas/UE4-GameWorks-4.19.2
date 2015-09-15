@@ -117,20 +117,20 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End of UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
@@ -150,7 +150,7 @@ protected:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	FReply HandleMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& MouseEvent);
 	FReply HandleMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& MouseEvent);

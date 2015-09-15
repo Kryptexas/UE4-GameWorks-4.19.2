@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	BuildPatchServicesModule.h: Declares the FBuildPatchServicesModule class.
 =============================================================================*/
 
@@ -66,12 +66,12 @@ class FBuildPatchServicesModule
 {
 public:
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 
-	//~ Begin IBuildPatchServicesModule Interface
+	// Begin IBuildPatchServicesModule interface
 	virtual IBuildManifestPtr LoadManifestFromFile( const FString& Filename ) override;
 	virtual IBuildManifestPtr MakeManifestFromData( const TArray<uint8>& ManifestData ) override;
 	virtual bool SaveManifestToFile( const FString& Filename, IBuildManifestRef Manifest, bool bUseBinary = true ) override;
@@ -90,7 +90,7 @@ public:
 	virtual bool EnumerateManifestData(FString ManifestFilePath, FString OutputFile, const bool bIncludeSizes) override;
 #endif
 	virtual IBuildManifestPtr MakeManifestFromJSON( const FString& ManifestJSON ) override;
-	//~ End IBuildPatchServicesModule Interface
+	// End IBuildPatchServicesModule interface
 
 	/**
 	 * Gets the directory used for staging intermediate files.

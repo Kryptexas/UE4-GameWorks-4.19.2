@@ -51,11 +51,11 @@ protected:
 	bool RemapRestrictedLinkReference(FName OldVariableName, FName NewVariableName, const UClass* MatchInVariableClass, const UClass* RemapIfLinkedToClass, bool bLogWarning);
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void ReconstructNode() override;
 	virtual FString GetDocumentationLink() const override;
@@ -65,16 +65,16 @@ public:
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual void PostPasteNode() override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin K2Node Interface
+	// Begin K2Node interface
 	virtual bool HasExternalDependencies(TArray<class UStruct*>* OptionalOutput) const override;
 	virtual bool DrawNodeAsVariable() const override { return true; }
 	virtual ERedirectType DoPinsMatchForReconstruction(const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex)  const override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual FText GetToolTipHeading() const override;
 	virtual void GetNodeAttributes(TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes) const override;
-	//~ End K2Node Interface
+	// End K2Node interface
 
 	/** Set up this variable node from the supplied UProperty */
 	void SetFromProperty(const UProperty* Property, bool bSelfContext);

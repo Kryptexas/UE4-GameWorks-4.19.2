@@ -113,10 +113,10 @@ public:
 	DECLARE_EVENT_OneParam(UEditorPerProjectUserSettings, FUserSettingChangedEvent, FName /*PropertyName*/);
 	FUserSettingChangedEvent& OnUserSettingChanged() { return UserSettingChangedEvent; }
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 	virtual void PostInitProperties() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 private:
 

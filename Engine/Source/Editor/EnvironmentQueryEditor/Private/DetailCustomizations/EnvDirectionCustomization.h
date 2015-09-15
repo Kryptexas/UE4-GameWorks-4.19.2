@@ -9,10 +9,10 @@ class FEnvDirectionCustomization : public IPropertyTypeCustomization
 {
 public:
 
-	//~ Begin IPropertyTypeCustomization Interface
+	// Begin IPropertyTypeCustomization interface
 	virtual void CustomizeHeader( TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
 	virtual void CustomizeChildren( TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils ) override;
-	//~ End IPropertyTypeCustomization Interface
+	// End IPropertyTypeCustomization interface
 
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance( );
 

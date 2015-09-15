@@ -11,10 +11,10 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InPin);
 
 protected:
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
 	virtual const FSlateBrush* GetPinIcon() const override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 
 	void CachePinBrushes(bool bForceCache = false) const;
 

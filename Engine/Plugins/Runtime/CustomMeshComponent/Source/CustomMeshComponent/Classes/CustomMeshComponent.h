@@ -39,17 +39,17 @@ class CUSTOMMESHCOMPONENT_API UCustomMeshComponent : public UMeshComponent
 
 private:
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin UMeshComponent Interface.
+	// Begin UMeshComponent interface.
 	virtual int32 GetNumMaterials() const override;
-	//~ End UMeshComponent Interface.
+	// End UMeshComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 
 	/** */
 	TArray<FCustomMeshTriangle> CustomMeshTris;

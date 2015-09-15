@@ -44,9 +44,9 @@ public:
 	uint32 Tessellated:1;
 
 
-	//~ Begin UBrushBuilder Interface
+	// Begin UBrushBuilder Interface
 	virtual bool Build( UWorld* InWorld, ABrush* InBrush = NULL ) override;
-	//~ End UBrushBuilder Interface
+	// End UBrushBuilder Interface
 
 	// @todo document
 	virtual void BuildCube( int32 Direction, float dx, float dy, float dz, bool _tessellated );

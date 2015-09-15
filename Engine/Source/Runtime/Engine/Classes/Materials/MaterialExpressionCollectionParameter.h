@@ -25,18 +25,18 @@ class UMaterialExpressionCollectionParameter : public UMaterialExpression
 	UPROPERTY()
 	FGuid ParameterId;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual bool MatchesSearchQuery( const TCHAR* SearchQuery ) override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 

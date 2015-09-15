@@ -144,7 +144,7 @@ public:
 	/** Destructor to free all remaining resources */
 	UNREALED_API ~FAssetThumbnailPool();
 
-	//~ Begin FTickableObject Interface
+	// Begin FTickableObject interface
 	UNREALED_API virtual TStatId GetStatId() const override;
 
 	/** Checks if any new thumbnails are queued */
@@ -153,7 +153,7 @@ public:
 	/** Ticks the pool, rendering new thumbnails as needed */
 	UNREALED_API virtual void Tick( float DeltaTime ) override;
 
-	//~ End FTickableObject Interface
+	// End FTickableObject interface
 
 	/**
 	 * Releases all rendering resources held by the pool

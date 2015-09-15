@@ -75,11 +75,11 @@ class ENGINE_API UDestructibleComponent : public USkinnedMeshComponent
 #endif // WITH_PHYSX 
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	// Take damage
 	UFUNCTION(BlueprintCallable, Category="Components|Destructible")
@@ -105,20 +105,20 @@ public:
 	physx::apex::NxDestructibleActor* ApexDestructibleActor;
 #endif	//WITH_APEX
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
-	//~ End USceneComponent Interface.
+	// End USceneComponent interface.
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
 	virtual class UBodySetup* GetBodySetup() override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FBodyInstance* GetBodyInstance(FName BoneName = NAME_None, bool bGetWelded = true) const override;
 	virtual bool CanEditSimulatePhysics() override;
 	virtual bool IsAnySimulatingPhysics() const override;
@@ -139,17 +139,17 @@ public:
 	virtual void SetSimulatePhysics(bool bSimulate) override;
 
 	virtual void SetMaterial(int32 ElementIndex, UMaterialInterface* Material) override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin SkinnedMeshComponent Interface.
+	// Begin SkinnedMeshComponent interface.
 	virtual bool ShouldUpdateTransform(bool bLODHasChanged) const override;
 	virtual void RefreshBoneTransforms(FActorComponentTickFunction* TickFunction = NULL) override;
 	virtual void SetSkeletalMesh(USkeletalMesh* InSkelMesh) override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
-	//~ End SkinnedMeshComponent Interface.
+	// End SkinnedMeshComponent interface.
 
 
-	//~ Begin DestructibleComponent Interface.
+	// Begin DestructibleComponent interface.
 #if WITH_APEX
 	struct FFakeBodyInstanceState
 	{
@@ -204,7 +204,7 @@ public:
 	void OnVisibilityEvent(const physx::apex::NxApexChunkStateEventData & InDamageEvent);
 #endif // WITH_APEX
 
-	//~ End DestructibleComponent Interface.
+	// End DestructibleComponent interface.
 
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 

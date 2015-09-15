@@ -141,12 +141,12 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 		QF_NoCollision = 128,			// This quad has no collision.
 	};
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void CreatePhysicsState() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform &BoundTransform) const override;
 
@@ -154,9 +154,9 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual ECollisionResponse GetCollisionResponseToChannel(ECollisionChannel Channel) const override;
 	virtual ECollisionChannel GetCollisionObjectType() const override;
 	virtual const FCollisionResponseContainer& GetCollisionResponseToChannels() const override;
-	//~ End USceneComponent Interface.
+	// End USceneComponent interface.
 
-	//~ Begin UPrimitiveComponent Interface
+	// Begin UPrimitiveComponent interface
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
@@ -164,14 +164,14 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 #endif
 	//End UPrimitiveComponent interface
 
-	//~ Begin INavRelevantInterface Interface
+	// Begin INavRelevantInterface interface
 	virtual bool SupportsGatheringGeometrySlices() const override { return true; }
 	virtual void GatherGeometrySlice(FNavigableGeometryExport& GeomExport, const FBox& SliceBox) const override;
 	virtual ENavDataGatheringMode GetGeometryGatheringMode() const override;
 	virtual void PrepareGeometryExportSync() override;
-	//~ End INavRelevantInterface Interface
+	// End INavRelevantInterface interface
 
-	//~ Begin UObject Interface.
+	// Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
@@ -181,7 +181,7 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 	virtual void PostEditImport() override;
 	virtual void PostEditUndo() override;
-	//~ End UObject Interface.
+	// End UObject Interface.
 
 	// @todo document
 	class ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;

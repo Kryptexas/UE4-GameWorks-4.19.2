@@ -25,12 +25,12 @@ class UDialogueVoice : public UObject
 	FGuid LocalizationGUID;
 
 public:
-	//~ Begin UObject Interface. 
+	// Begin UObject interface. 
 	virtual bool IsReadyForFinishDestroy() override;
 	virtual FName GetExporterName() override;
 	virtual FString GetDesc() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	//~ End UObject Interface. 
+	// End UObject interface. 
 };

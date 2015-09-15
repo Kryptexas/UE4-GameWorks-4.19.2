@@ -68,19 +68,19 @@ class USoundNodeEnveloper : public USoundNode
 
 
 public:	
-	//~ Begin UObject Interface. 
+	// Begin UObject interface. 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface. 
+	// End UObject interface. 
 
 
-	//~ Begin USoundNode Interface. 
+	// Begin USoundNode interface. 
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetDuration( void ) override;
-	//~ End USoundNode Interface. 
+	// End USoundNode interface. 
 
 };
 

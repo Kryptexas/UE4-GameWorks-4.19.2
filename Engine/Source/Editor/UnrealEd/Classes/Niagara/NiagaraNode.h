@@ -10,9 +10,9 @@ class UNREALED_API UNiagaraNode : public UEdGraphNode
 
 public:
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AutowireNewNode(UEdGraphPin* FromPin)override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
 	/** Get the Niagara graph that owns this node */
 	const class UNiagaraGraph* GetNiagaraGraph()const;

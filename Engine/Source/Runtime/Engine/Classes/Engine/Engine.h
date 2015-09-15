@@ -1606,11 +1606,11 @@ public:
 		NetworkFailureEvent.Broadcast(World, NetDriver, FailureType, ErrorString);
 	}
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void FinishDestroy() override;
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Initialize the game engine. */
 	virtual void Init(IEngineLoop* InEngineLoop);
@@ -1622,9 +1622,9 @@ public:
 	/** Called at startup, in the middle of FEngineLoop::Init.	 */
 	void ParseCommandline();
 
-	//~ Begin FExec Interface
+	// Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Out=*GLog ) override;
-	//~ End FExec Interface
+	// End FExec Interface
 
 	/** 
 	 * Exec command handlers

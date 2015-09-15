@@ -59,14 +59,14 @@ class ENGINE_API USoundNode : public UObject
 #endif
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
 	virtual void Serialize(FArchive& Ar) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #endif //WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject Interface
 
 	//
 	// USoundNode interface. 

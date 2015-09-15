@@ -32,10 +32,10 @@ class UMaterialExpressionWorldPosition : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category=UMaterialExpressionWorldPosition, meta=(DisplayName = "Shader Offsets"))
 	TEnumAsByte<EWorldPositionIncludedOffsets> WorldPositionShaderOffset;
 	
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 

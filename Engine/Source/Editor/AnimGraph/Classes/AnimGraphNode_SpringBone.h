@@ -14,20 +14,20 @@ class UAnimGraphNode_SpringBone : public UAnimGraphNode_SkeletalControlBase
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_SpringBone Node;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad();
-	//~ End UObject Interface
+	// End UObject interface
 
 public:
 	// UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
-	//~ End of UEdGraphNode Interface
+	// End of UEdGraphNode interface
 
 protected:
 	// UAnimGraphNode_SkeletalControlBase interface
 	virtual FText GetControllerDescription() const override;
-	//~ End of UAnimGraphNode_SkeletalControlBase Interface
+	// End of UAnimGraphNode_SkeletalControlBase interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

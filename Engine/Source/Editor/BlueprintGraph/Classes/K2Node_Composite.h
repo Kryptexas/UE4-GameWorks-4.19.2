@@ -13,7 +13,7 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual void DestroyNode() override;
 	BLUEPRINTGRAPH_API virtual void PostPasteNode() override;
@@ -25,13 +25,13 @@ class UK2Node_Composite : public UK2Node_Tunnel
 	BLUEPRINTGRAPH_API virtual void PostPlacedNewNode() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual bool DrawNodeAsExit() const override { return false; }
 	virtual bool DrawNodeAsEntry() const override { return false; }
 	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
-	//~ End UK2Node Interface
+	// End UK2Node interface
 
 	// Get the entry/exit nodes inside this collapsed graph
 	BLUEPRINTGRAPH_API UK2Node_Tunnel* GetEntryNode() const;

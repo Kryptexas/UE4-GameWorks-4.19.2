@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	ScreenShotChangeListNode.h: Declares the FScreenShotChangeListNode class.
 =============================================================================*/
 
@@ -23,7 +23,7 @@ public:
 
 public:
 
-	//~ Begin IScreenShotData Interface
+	// Begin IScreenShotData interface
 
 	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override 
 	{
@@ -77,7 +77,7 @@ public:
 	}
 
 
-	//~ End IScreenShotData Interface
+	// End IScreenShotData interface
 
 private:
 	// If > 1 we will only show every Nth screenshot.

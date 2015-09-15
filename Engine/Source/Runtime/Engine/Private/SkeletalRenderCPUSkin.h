@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	SkeletalRenderCPUSkin.h: CPU skinned mesh object and resource definitions
 =============================================================================*/
 
@@ -138,7 +138,7 @@ public:
 	FSkeletalMeshObjectCPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectCPUSkin();
 
-	//~ Begin FSkeletalMeshObject Interface
+	// Begin FSkeletalMeshObject interface
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
@@ -190,7 +190,7 @@ public:
 	}
 
 	virtual void DrawVertexElements(FPrimitiveDrawInterface* PDI, const FTransform& ToWorldSpace, bool bDrawNormals, bool bDrawTangents, bool bDrawBinormals) const override;
-	//~ End FSkeletalMeshObject Interface
+	// End FSkeletalMeshObject interface
 
 private:
 	/** vertex data for rendering a single LOD */

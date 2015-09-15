@@ -11,16 +11,16 @@ class UMGEDITOR_API UK2Node_CreateWidget : public UK2Node_ConstructObjectFromCla
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual FText GetMenuCategory() const override;
 	virtual FName GetCornerIcon() const override;
-	//~ End UK2Node Interface.
+	// End UK2Node interface.
 
 	/** Get the owning player pin */
 	UEdGraphPin* GetOwningPlayerPin() const;

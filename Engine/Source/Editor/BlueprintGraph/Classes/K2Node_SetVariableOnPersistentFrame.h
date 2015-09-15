@@ -14,13 +14,13 @@ class UK2Node_SetVariableOnPersistentFrame : public UK2Node
 	GENERATED_BODY()
 
 public:
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin K2Node Interface
+	// Begin K2Node interface
 	virtual bool IsNodePure() const override { return false; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
-	//~ End K2Node Interface
+	// End K2Node interface
 };
 

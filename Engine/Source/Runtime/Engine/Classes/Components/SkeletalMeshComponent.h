@@ -799,7 +799,7 @@ public:
 	void RecalcRequiredBones(int32 LODIndex);
 
 public:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	DECLARE_MULTICAST_DELEGATE(FOnSkeletalMeshPropertyChangedMulticaster)
@@ -819,9 +819,9 @@ public:
 	virtual void UpdateCollisionProfile() override;
 #endif // WITH_EDITOR
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
 	virtual void CreateRenderState_Concurrent() override;
@@ -834,17 +834,17 @@ public:
 	//Handle registering our pre cloth tick function
 	void RegisterPreClothTick(bool bRegister);
 
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin USceneComponent Interface.
+	// Begin USceneComponent interface.
 	virtual void UpdateBounds() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool IsAnySimulatingPhysics() const override;
 	virtual void OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Teleport = ETeleportType::None) override;
 	virtual void UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps=NULL, bool bDoNotifies=true, const TArray<FOverlapInfo>* OverlapsAtEndLocation=NULL) override;
-	//~ End USceneComponent Interface.
+	// End USceneComponent interface.
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 protected:
 	/**
 	 *  Test the collision of the supplied component at the supplied location/rotation, and determine the set of components that it overlaps
@@ -892,10 +892,10 @@ public:
 #endif
 protected:
 	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI) override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
 public:
-	//~ Begin USkinnedMeshComponent Interface
+	// Begin USkinnedMeshComponent interface
 	virtual bool UpdateLODStatus() override;
 	virtual void RefreshBoneTransforms( FActorComponentTickFunction* TickFunction = NULL ) override;
 	virtual void TickPose(float DeltaTime, bool bNeedsValidRootMotion) override;
@@ -915,7 +915,7 @@ public:
 	virtual bool IsPlayingRootMotion() override;
 	virtual bool IsPlayingRootMotionFromEverything() override;
 	virtual void FinalizeBoneTransform() override;
-	//~ End USkinnedMeshComponent Interface
+	// End USkinnedMeshComponent interface
 	/** 
 	 *	Iterate over each joint in the physics for this mesh, setting its AngularPositionTarget based on the animation information.
 	 */

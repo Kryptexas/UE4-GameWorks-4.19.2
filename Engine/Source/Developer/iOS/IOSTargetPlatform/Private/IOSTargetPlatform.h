@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	IOSTargetPlatform.h: Declares the FIOSTargetPlatform class.
 =============================================================================*/
 
@@ -32,18 +32,18 @@ public:
 
 public:
 
-	//~ Begin TTargetPlatformBase Interface
+	// Begin TTargetPlatformBase interface
 
 	virtual bool IsServerOnly( ) const override
 	{
 		return false;
 	}
 
-	//~ End TTargetPlatformBase Interface
+	// End TTargetPlatformBase interface
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override;
 
@@ -126,7 +126,7 @@ public:
 		return DeviceLostEvent;
 	}
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 protected:
 

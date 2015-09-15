@@ -227,11 +227,11 @@ public:
 	void StartPrecompute();	
 
 protected:
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	 void AddFogIfNeeded();
 
@@ -246,7 +246,7 @@ public:
 	mutable FByteBulkData IrradianceData;
 	mutable FByteBulkData InscatterData;
 	
-	//~ Begin UObject Interface. 
+	// Begin UObject interface. 
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
 
@@ -256,14 +256,14 @@ public:
 #endif // WITH_EDITOR
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 	ENGINE_API void InitResource();
 	ENGINE_API void ReleaseResource();
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	void ApplyComponentInstanceData(class FAtmospherePrecomputeInstanceData* ComponentInstanceData);
 	const FAtmospherePrecomputeParameters& GetPrecomputeParameters() const { return PrecomputeParams;  }

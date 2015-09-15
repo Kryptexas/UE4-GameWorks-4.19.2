@@ -217,7 +217,7 @@ public:
 
 private:
 
-	//~ Begin SWidget Interface
+	// Begin SWidget Interface
 	virtual bool SupportsKeyboardFocus() const override
 	{
 		return StaticCastSharedPtr<SWidget>(EditableText)->SupportsKeyboardFocus();
@@ -258,7 +258,7 @@ private:
 
 		return FReply::Unhandled();
 	}
-	//~ End SWidget Interface
+	// End SWidget Interface
 
 	/**
 	 * @return the Label that should be displayed                   

@@ -49,9 +49,9 @@ private:
 
 	TWeakPtr<FPersona> WeakPersona;
 protected:
-	//~ Begin SAnimEditorBase Interface
+	// Begin SAnimEditorBase interface
 	virtual TSharedRef<class SAnimationScrubPanel> ConstructAnimScrubPanel() override;
-	//~ End SAnimEditorBase Interface
+	// End SAnimEditorBase interface
 
 public:
 	void Construct(const FArguments& InArgs);
@@ -141,7 +141,7 @@ public:
 	void			PreAnimUpdate();
 	void			PostAnimUpdate();
 
-	//~ Begin SAnimEditorBase Interface
+	// Begin SAnimEditorBase interface
 	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
-	//~ End SAnimEditorBase Interface
+	// End SAnimEditorBase interface
 };

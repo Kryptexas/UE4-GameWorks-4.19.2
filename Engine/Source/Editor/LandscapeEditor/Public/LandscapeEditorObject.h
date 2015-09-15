@@ -529,9 +529,9 @@ class ULandscapeEditorObject : public UObject
 	TEnumAsByte<ELandscapeLayerPaintingRestriction::Type> PaintingRestriction;
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface
+	// End UObject Interface
 #endif // WITH_EDITOR
 
 	void Load();

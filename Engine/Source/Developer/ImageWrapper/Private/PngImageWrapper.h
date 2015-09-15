@@ -31,7 +31,7 @@ public:
 
 public:
 
-	//~ Begin FImageWrapper Interface
+	// Begin FImageWrapper Interface
 
 	virtual void Compress( int32 Quality ) override;
 
@@ -41,7 +41,7 @@ public:
 
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
 	
-	//~ End FImageWrapper Interface
+	// End FImageWrapper Interface
 
 public:
 

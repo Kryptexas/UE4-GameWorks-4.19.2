@@ -83,7 +83,7 @@ class UInterpTrackVisibility : public UInterpTrack
 	uint32 bFireEventsWhenJumpingForwards:1;
 
 
-	//~ Begin UInterpTrack Interface.
+	// Begin UInterpTrack interface.
 	virtual int32 GetNumKeyframes() const override;
 	virtual void GetTimeRange(float& StartTime, float& EndTime) const override;
 	virtual float GetTrackEndTime() const override;
@@ -103,7 +103,7 @@ class UInterpTrackVisibility : public UInterpTrack
 #endif // WITH_EDITORONLY_DATA
 	virtual bool AllowStaticActors() override { return true; }
 	virtual void DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params ) override;
-	//~ End UInterpTrack Interface.
+	// End UInterpTrack interface.
 
 	/** Shows or hides the actor */
 	void HideActor( AActor* Actor, bool bHidden );

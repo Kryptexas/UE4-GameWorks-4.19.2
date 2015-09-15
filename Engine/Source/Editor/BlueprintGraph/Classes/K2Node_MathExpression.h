@@ -31,7 +31,7 @@ public:
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 	// UEdGraphNode interface
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
@@ -41,18 +41,18 @@ public:
 	virtual void ReconstructNode() override;
 	virtual void FindDiffs(class UEdGraphNode* OtherNode, struct FDiffResults& Results )  override;
 	virtual bool ShouldMergeChildGraphs() const override { return ShouldExpandInsteadCompile(); }
-	//~ End of UEdGraphNode Interface
+	// End of UEdGraphNode interface
 
 	// UK2Node interface
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual bool IsNodePure() const { return !ShouldExpandInsteadCompile(); }
-	//~ End of UK2Node Interface
+	// End of UK2Node interface
 
-	//~ Begin UK2Node_EditablePinBase Interface
+	// Begin UK2Node_EditablePinBase interface
 	virtual bool CanCreateUserDefinedPin(const FEdGraphPinType& InPinType, EEdGraphPinDirection InDesiredDirection, FText& OutErrorMessage) override { return false; }
-	//~ End UK2Node_EditablePinBase Interface
+	// End UK2Node_EditablePinBase interface
 
 private:
 	/* Returns true, when the node can/should not be optimized.*/

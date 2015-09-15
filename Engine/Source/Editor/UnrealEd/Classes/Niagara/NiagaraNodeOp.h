@@ -14,16 +14,16 @@ public:
 	UPROPERTY()
 	FName OpName;
 
-	//~ Begin EdGraphNode Interface
+	// Begin EdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
-	//~ End EdGraphNode Interface
+	// End EdGraphNode interface
 
-	//~ Begin UNiagaraNode Interface
+	// Begin UNiagaraNode interface
 	UNREALED_API virtual void Compile(class INiagaraCompiler* Compiler, TArray<FNiagaraNodeResult>& Outputs) override;
-	//~ End UNiagaraNode Interface
+	// End UNiagaraNode interface
 };
 
 
@@ -40,11 +40,11 @@ public:
 
 	// SGraphNode interface
 	virtual void CreatePinWidgets() override;
-	//~ End of SGraphNode Interface
+	// End of SGraphNode interface
 
 	// SNodePanel::SNode interface
 	virtual void MoveTo(const FVector2D& NewPosition, FNodeSet& NodeFilter) override;
-	//~ End of SNodePanel::SNode Interface
+	// End of SNodePanel::SNode interface
 
 	UNiagaraNode* GetNiagaraGraphNode() const { return NiagaraNode; }
 
@@ -54,7 +54,7 @@ protected:
 	virtual void CreateBelowPinControls(TSharedPtr<SVerticalBox> MainBox) override;
 	virtual void SetDefaultTitleAreaWidget(TSharedRef<SOverlay> DefaultTitleAreaWidget) override;
 	virtual TSharedRef<SWidget> CreateNodeContentArea() override;
-	//~ End of SGraphNode Interface
+	// End of SGraphNode interface
 
 	/** Creates a preview viewport if necessary */
 	//TSharedRef<SWidget> CreatePreviewWidget();

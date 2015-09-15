@@ -128,7 +128,7 @@ private:
 
 	class FNiagaraEffectInstance* EffectInstance;
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 protected:
 	virtual void OnRegister() override;
 	virtual void OnUnregister()  override;
@@ -136,13 +136,13 @@ protected:
 public:
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual const UObject* AdditionalStatObject() const override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin UPrimitiveComponent Interface
+	// Begin UPrimitiveComponent Interface
 	virtual int32 GetNumMaterials() const override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
-	//~ End UPrimitiveComponent Interface
+	// End UPrimitiveComponent Interface
 
 	void SetAsset(UNiagaraEffect* InAsset);
 	UNiagaraEffect* GetAsset() const { return Asset; }
@@ -150,11 +150,11 @@ public:
 	FNiagaraEffectInstance* GetEffectInstance()	const { return EffectInstance; }
 	void SetEffectInstance(FNiagaraEffectInstance* InInstance)	{ EffectInstance = InInstance; }
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	static const TArray<FNiagaraVariableInfo>& GetSystemConstants();
 };

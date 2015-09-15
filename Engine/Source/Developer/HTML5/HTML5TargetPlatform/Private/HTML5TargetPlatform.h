@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	HTML5TargetPlatform.h: Declares the FHTML5TargetPlatform class.
 =============================================================================*/
 
@@ -25,7 +25,7 @@ public:
 
 	void RefreshHTML5Setup();
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -92,7 +92,7 @@ public:
 		return DeviceLostEvent;
 	}
 
-	//~ End ITargetPlatform Interface
+	// End ITargetPlatform interface
 
 private:
 

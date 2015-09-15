@@ -11,14 +11,14 @@ class GEOMETRYCACHE_API UGeometryCacheTrack_TransformAnimation : public UGeometr
 {
 	GENERATED_UCLASS_BODY()
 		
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 	
-	//~ Begin UGeometryCacheTrack Interface.
+	// Begin UGeometryCacheTrack interface.
 	virtual const bool UpdateMeshData(const float Time, const bool bLooping, int32& InOutMeshSampleIndex, FGeometryCacheMeshData*& OutMeshData) override;
-	//~ End UGeometryCacheTrack Interface.
+	// End UGeometryCacheTrack interface.
 
 	/**
 	* Sets/updates the MeshData for this track

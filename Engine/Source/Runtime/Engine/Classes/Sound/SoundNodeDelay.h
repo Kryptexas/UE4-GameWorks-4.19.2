@@ -21,10 +21,10 @@ class USoundNodeDelay : public USoundNode
 	float DelayMax;
 
 public:
-	//~ Begin USoundNode Interface. 
+	// Begin USoundNode interface. 
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual float GetDuration( void ) override;
-	//~ End USoundNode Interface. 
+	// End USoundNode interface. 
 };
 
 

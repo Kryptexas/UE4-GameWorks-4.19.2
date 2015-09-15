@@ -444,11 +444,11 @@ public:
 	UFUNCTION()
 	void OnRep_Timeline();
 
-	//~ Begin ActorComponent Interface.
+	// Begin ActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
-	//~ End ActorComponent Interface.
+	// End ActorComponent interface.
 
 	/** Get the signature function for Timeline event functions */
 	ENGINE_API static UFunction* GetTimelineEventSignature();

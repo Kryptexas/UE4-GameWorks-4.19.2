@@ -14,16 +14,16 @@ class UAnimGraphNode_Slot : public UAnimGraphNode_Base
 	UPROPERTY(EditAnywhere, Category=Settings)
 	FAnimNode_Slot Node;
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 	// UAnimGraphNode_Base interface
 	virtual FString GetNodeCategory() const override;
 	virtual void BakeDataDuringCompilation(class FCompilerResultsLog& MessageLog) override;
-	//~ End of UAnimGraphNode_Base Interface
+	// End of UAnimGraphNode_Base interface
 
 private:
 	/** Constructing FText strings can be costly, so we cache the node's title */

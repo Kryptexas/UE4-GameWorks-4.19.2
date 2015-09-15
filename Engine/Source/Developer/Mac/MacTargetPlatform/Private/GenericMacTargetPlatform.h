@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	GenericMacTargetPlatform.h: Declares the TGenericMacTargetPlatform class template.
 =============================================================================*/
 
@@ -40,7 +40,7 @@ public:
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override {}
 
@@ -196,7 +196,7 @@ return TSuper::SupportsFeature(Feature);
 		return DeviceLostEvent;
 	}
 
-	//~ End ITargetPlatform Interface
+	// End ITargetPlatform interface
 
 private:
 

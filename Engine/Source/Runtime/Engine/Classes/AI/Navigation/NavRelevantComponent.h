@@ -10,17 +10,17 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent Interface
 	virtual void OnRegister() override;
 	virtual void OnUnregister() override;
-	//~ End UActorComponent Interface
+	// End UActorComponent Interface
 
-	//~ Begin INavRelevantInterface Interface
+	// Begin INavRelevantInterface Interface
 	virtual FBox GetNavigationBounds() const override;
 	virtual bool IsNavigationRelevant() const override;
 	virtual void UpdateNavigationBounds() override;
 	virtual UObject* GetNavigationParent() const override;
-	//~ End INavRelevantInterface Interface
+	// End INavRelevantInterface Interface
 
 	DEPRECATED(4.8, "This function is deprecated. Use CalcAndCacheBounds instead")
 	virtual void CalcBounds();

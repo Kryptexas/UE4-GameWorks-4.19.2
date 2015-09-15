@@ -139,9 +139,9 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
 	//End UObject Interface
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	void ApplyComponentInstanceData(class FSplineMeshInstanceData* ComponentInstanceData);
 
@@ -166,12 +166,12 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	virtual class FStaticMeshStaticLightingMesh* AllocateStaticLightingMesh(int32 LODIndex, const TArray<ULightComponent*>& InRelevantLights) override;
 	//End UStaticMeshComponent Interface
 
-	//~ Begin Interface_CollisionDataProvider Interface
+	// Begin Interface_CollisionDataProvider Interface
 	virtual bool GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData) override;
 	virtual bool ContainsPhysicsTriMeshData(bool InUseAllTriData) const override;
 	virtual bool WantsNegXTriMesh() override { return false; }
 	virtual void GetMeshId(FString& OutMeshId) override;
-	//~ End Interface_CollisionDataProvider Interface
+	// End Interface_CollisionDataProvider Interface
 
 	/** Called when spline params are changed, to notify render thread and possibly collision */
 	void MarkSplineParamsDirty();

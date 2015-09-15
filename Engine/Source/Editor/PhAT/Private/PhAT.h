@@ -92,7 +92,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override;
-	//~ End of FTickableEditorObject Interface
+	// End of FTickableEditorObject interface
 
 	void OnFocusSelection();
 
@@ -104,7 +104,7 @@ private:
 		PHFM_Bodies
 	};
 
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override;
 	virtual void PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient

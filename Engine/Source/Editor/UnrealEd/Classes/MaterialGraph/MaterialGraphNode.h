@@ -47,9 +47,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditImport() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual bool CanPasteHere(const UEdGraph* TargetGraph) const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
@@ -63,14 +63,14 @@ public:
 	virtual void OnCommentBubbleToggled( bool bInCommentBubbleVisible ) override;
 	virtual void GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const override;
 	virtual FString GetDocumentationExcerptName() const override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 	// UMaterialGraphNode_Base interface
 	virtual void CreateInputPins() override;
 	virtual void CreateOutputPins() override;
 	virtual UNREALED_API int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
-	//~ End of UMaterialGraphNode_Base Interface
+	// End of UMaterialGraphNode_Base interface
 
 private:
 	/** Make sure the MaterialExpression is owned by the Material */

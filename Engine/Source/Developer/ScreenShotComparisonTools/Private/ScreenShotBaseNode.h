@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	ScreenShotData.h: Declares the FScreenShotBaseNode class.
 =============================================================================*/
 
@@ -28,7 +28,7 @@ public:
 
 public:
 
-	//~ Begin IScreenShotData Interface
+	// Begin IScreenShotData interface
 
 	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override;
 	virtual const FString& GetAssetName() const override;
@@ -39,7 +39,7 @@ public:
 	virtual bool SetFilter( TSharedPtr< ScreenShotFilterCollection > ScreenFilter ) override;
 	virtual void SetDisplayEveryNthScreenshot( int32 NewNthValue ) override;
 
-	//~ End IScreenShotData Interface
+	// End IScreenShotData interface
 
 protected:
 

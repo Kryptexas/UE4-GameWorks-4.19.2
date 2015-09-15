@@ -36,30 +36,30 @@ class ENGINE_API UShapeComponent : public UPrimitiveComponent
 	UPROPERTY(EditAnywhere, Category = Navigation)
 	TSubclassOf<class UNavArea> AreaClass;
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual class UBodySetup* GetBodySetup() override;
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin INavRelevantInterface Interface
+	// Begin INavRelevantInterface Interface
 	virtual bool IsNavigationRelevant() const override;
-	//~ End INavRelevantInterface Interface
+	// End INavRelevantInterface Interface
 
-	//~ Begin USceneComponent Interface
+	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual bool ShouldCollideWhenPlacing() const override
 	{
 		return bShouldCollideWhenPlacing || IsCollisionEnabled();
 	}
-	//~ End USceneComponent Interface
+	// End USceneComponent interface
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Update the body setup parameters based on shape information*/
 	virtual void UpdateBodySetup();

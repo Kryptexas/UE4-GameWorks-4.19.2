@@ -47,12 +47,12 @@ public:
 
 public:
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void FinishDestroy() override;
 
-	//~ End UObject Interface.
+	// End UObject interface.
 
 protected:
 	
@@ -88,7 +88,7 @@ protected:
 
 public:
 
-	//~ Begin UTransactor Interface.
+	// Begin UTransactor interface.
 
 	virtual int32 Begin( const TCHAR* SessionContext, const FText& Description ) override;
 	virtual int32 End() override;
@@ -116,7 +116,7 @@ public:
 		return ActiveCount > 0;
 	}
 
-	//~ End UTransactor Interface.
+	// End UTransactor interface.
 
 public:
 

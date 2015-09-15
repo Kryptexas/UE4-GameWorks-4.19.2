@@ -16,9 +16,9 @@ public:
 	SLATE_USER_ARGS(SConfigEditor) {}
 	SLATE_END_ARGS()
 
-	//~ Begin SCompoundWidget|SWidget Interface
+	// Begin SCompoundWidget|SWidget interface
 	virtual void Construct(const FArguments& InArgs, TWeakObjectPtr<UProperty> InEditProperty);
-	//~ End SCompoundWidget|SWidget Interface
+	// End SCompoundWidget|SWidget interface
 
 private:
 	/**

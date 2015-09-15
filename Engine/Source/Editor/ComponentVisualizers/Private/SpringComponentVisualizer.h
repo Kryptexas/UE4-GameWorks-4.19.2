@@ -7,7 +7,7 @@
 class FSpringComponentVisualizer : public FComponentVisualizer
 {
 public:
-	//~ Begin FComponentVisualizer Interface
+	// Begin FComponentVisualizer interface
 	virtual void DrawVisualization(const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI) override;
-	//~ End FComponentVisualizer Interface
+	// End FComponentVisualizer interface
 };

@@ -90,11 +90,11 @@ struct FFractureMaterial
 		, InteriorElementIndex(-1)
 	{ }
 
-	//~ Begin FFractureMaterial Interface
+	// Begin FFractureMaterial interface
 #if WITH_APEX
 	void	FillNxFractureMaterialDesc(physx::apex::NxFractureMaterialDesc& PFractureMaterialDesc);
 #endif // WITH_APEX
-	//~ End FFractureMaterial Interface
+	// End FFractureMaterial interface
 };
 
 
@@ -199,13 +199,13 @@ class UDestructibleFractureSettings
 	TArray<physx::apex::NxDestructibleGeometryDesc>	GeometryDescs;
 #endif // WITH_APEX
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
-	//~ End  UObject Interface
+	// End  UObject interface
 
-	//~ Begin UDestructibleFractureSettings Interface
+	// Begin UDestructibleFractureSettings interface
 #if WITH_APEX && WITH_EDITOR
 	/**
 	 * Creates an NxDestructibleAssetCookingDesc suitable for the authoring mesh, which can be passed to CreateApexDestructibleAsset().
@@ -260,5 +260,5 @@ class UDestructibleFractureSettings
 	 */
 	ENGINE_API	physx::apex::NxDestructibleAsset*	CreateApexDestructibleAsset(const physx::apex::NxDestructibleAssetCookingDesc& DestructibleAssetCookingDesc);
 #endif // WITH_APEX
-	//~ End UDestructibleFractureSettings Interface
+	// End UDestructibleFractureSettings interface
 };

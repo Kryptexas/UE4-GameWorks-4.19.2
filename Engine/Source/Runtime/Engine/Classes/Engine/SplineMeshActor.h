@@ -23,16 +23,16 @@ public:
 	void SetMobility(EComponentMobility::Type InMobility);
 
 #if WITH_EDITOR
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
-	//~ End AActor Interface
+	// End AActor Interface
 #endif // WITH_EDITOR	
 
 protected:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual FString GetDetailedInfoInternal() const override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 public:
 	/** Returns SplineMeshComponent subobject **/

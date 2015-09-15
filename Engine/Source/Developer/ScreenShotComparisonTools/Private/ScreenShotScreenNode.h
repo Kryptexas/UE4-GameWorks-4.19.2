@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	ScreenShotScreenNode.h: Declares the FScreenShotScreenNode class.
 =============================================================================*/
 
@@ -22,7 +22,7 @@ public:
 
 public:
 
-	//~ Begin IScreenShotData Interface
+	// Begin IScreenShotData interface
 
 	virtual void AddScreenShotData( const FScreenShotDataItem& InScreenDataItem ) override 
 	{
@@ -57,9 +57,9 @@ public:
 		return FilteredChildren.Num() > 0;
 	}
 
-	//~ End IScreenShotData Interface
+	// End IScreenShotData interface
 
-	//~ Begin SScreenShotNodeBase Interface
+	// Begin SScreenShotNodeBase interface
 
 	virtual TSharedRef<IScreenShotData> CreateNode( const FString& ChildName ) override 
 	{
@@ -68,6 +68,6 @@ public:
 		return ScreenShotNode.ToSharedRef();
 	};
 
-	//~ End SScreenShotNodeBase Interface
+	// End SScreenShotNodeBase interface
 };
 

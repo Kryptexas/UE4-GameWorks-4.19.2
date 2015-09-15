@@ -725,7 +725,7 @@ private:
 	bool bNeedsFinalize;
 public:
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
@@ -742,7 +742,7 @@ protected:
 	virtual void OnUnregister()  override;
 	virtual void SendRenderDynamicData_Concurrent() override;
 public:
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	enum EForceAsyncWorkCompletion
 	{
@@ -780,7 +780,7 @@ private:
 
 public:
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
 	virtual void BeginDestroy() override;
 	virtual void FinishDestroy() override;
@@ -791,7 +791,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual FString GetDetailedInfoInternal() const override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	//Begin UPrimitiveComponent Interface
 	virtual int32 GetNumMaterials() const override; 
@@ -802,7 +802,7 @@ public:
 	virtual void GetUsedMaterials( TArray<UMaterialInterface*>& OutMaterials ) const override;
 	//End UPrimitiveComponent Interface
 
-	//~ Begin USceneComonent Interface
+	// Begin USceneComonent Interface
 protected:
 	virtual bool ShouldActivate() const override;
 
@@ -810,7 +810,7 @@ public:
 	virtual void Activate(bool bReset=false) override;
 	virtual void Deactivate() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
-	//~ End USceneComponent Interface
+	// End USceneComponent Interface
 
 	/** Activate the system */
 	void ActivateSystem(bool bFlagAsJustAttached = false);

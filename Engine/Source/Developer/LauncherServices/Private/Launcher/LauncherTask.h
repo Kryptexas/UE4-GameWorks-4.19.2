@@ -132,7 +132,7 @@ public:
 
 public:
 
-	//~ Begin FRunnable Interface
+	// Begin FRunnable interface
 
 	virtual bool Init( ) override
 	{
@@ -183,11 +183,11 @@ public:
 
 	virtual void Exit( ) override { }
 
-	//~ End FRunnable Interface
+	// End FRunnable interface
 
 public:
 
-	//~ Begin ILauncherTask Interface
+	// Begin ILauncherTask interface
 
 	virtual void Cancel( ) override
 	{
@@ -250,7 +250,7 @@ public:
 		return TaskCompleted;
 	}
 
-	//~ End ILauncherTask Interface
+	// End ILauncherTask interface
 
 protected:
 

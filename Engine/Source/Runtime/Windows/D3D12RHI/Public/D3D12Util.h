@@ -1,6 +1,6 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	D3D12Util.h: D3D RHI utility definitions.
 	=============================================================================*/
 
@@ -245,10 +245,10 @@ public:
 	/** Unlocks the buffer returning the underlying D3D12 buffer to use as a resource. */
 	FD3D12ResourceLocation* Unlock();
 
-	//~ Begin FRenderResource Interface.
+	// Begin FRenderResource interface.
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
-	//~ End FRenderResource Interface.
+	// End FRenderResource interface.
 
 private:
 	TRefCountPtr<FD3D12ResourceLocation> ResourceLocation;
@@ -408,10 +408,10 @@ void LogResourceBarriers(uint32 NumBarriers, D3D12_RESOURCE_BARRIER *pBarriers, 
 #define D3D12_RESOURCE_STATE_TBD (D3D12_RESOURCE_STATES)-1
 #define D3D12_RESOURCE_STATE_CORRUPT (D3D12_RESOURCE_STATES)-2
 
-//~=================================================================================================================================
+//==================================================================================================================================
 // CResourceState
 // Tracking of per-resource or per-subresource state
-//~=================================================================================================================================
+//==================================================================================================================================
 class CResourceState
 {
 public:
@@ -438,10 +438,10 @@ private:
 	TArray<D3D12_RESOURCE_STATES> m_SubresourceState;
 };
 
-//~=================================================================================================================================
+//==================================================================================================================================
 // FD3D12ShaderBytecode
 // Encapsulates D3D12 shader bytecode and creates a hash for the shader bytecode
-//~=================================================================================================================================
+//==================================================================================================================================
 struct ShaderBytecodeHash
 {
 	// 160 bit strong SHA1 hash

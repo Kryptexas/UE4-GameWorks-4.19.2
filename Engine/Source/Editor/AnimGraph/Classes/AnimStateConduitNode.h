@@ -14,7 +14,7 @@ public:
 	UPROPERTY()
 	class UEdGraph* BoundGraph;
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual void AutowireNewNode(UEdGraphPin* FromPin) override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -24,14 +24,14 @@ public:
 	virtual void PostPlacedNewNode() override;
 	virtual void DestroyNode() override;
 	virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 
-	//~ Begin UAnimStateNodeBase Interface
+	// Begin UAnimStateNodeBase interface
 	virtual UEdGraphPin* GetInputPin() const override;
 	virtual UEdGraphPin* GetOutputPin() const override;
 	virtual FString GetStateName() const override;
 	virtual void GetTransitionList(TArray<class UAnimStateTransitionNode*>& OutTransitions, bool bWantSortedList = true) override;
 	virtual FString GetDesiredNewNodeName() const override;
 	virtual UEdGraph* GetBoundGraph() const override { return BoundGraph; }
-	//~ End of UAnimStateNodeBase Interface
+	// End of UAnimStateNodeBase interface
 };

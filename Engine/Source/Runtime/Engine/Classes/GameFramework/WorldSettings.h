@@ -479,21 +479,21 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	TArray<UAssetUserData*> AssetUserData;
 
 public:
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface.
+	// End UObject interface.
 
 
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
 	virtual void PreInitializeComponents() override;
 	virtual void PostInitializeComponents() override;
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	/**
 	 * Returns the Z component of the current world gravity and initializes it to the default
@@ -523,11 +523,11 @@ public:
 	 */	
 	virtual void NotifyMatchStarted();
 
-	//~ Begin IInterface_AssetUserData Interface
+	// Begin IInterface_AssetUserData Interface
 	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
-	//~ End IInterface_AssetUserData Interface
+	// End IInterface_AssetUserData Interface
 
 
 private:

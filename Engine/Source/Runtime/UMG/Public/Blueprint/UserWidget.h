@@ -152,17 +152,17 @@ public:
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 	virtual bool Initialize();
 
 	//UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End of UVisual Interface
+	// End of UVisual interface
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	// UNamedSlotInterface Begin
 	virtual void GetSlotNames(TArray<FName>& SlotNames) const override;
@@ -756,9 +756,9 @@ public:
 	/** @returns The uobject widget corresponding to a given name */
 	UWidget* GetWidgetFromName(const FName& Name) const;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PreSave() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 	/** Are we currently playing any animations? */
 	bool IsPlayingAnimation() const { return ActiveSequencePlayers.Num() > 0; }
@@ -767,7 +767,7 @@ public:
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	//~ End UWidget Interface
+	// End UWidget interface
 
 	void SetDesignerFlags(EWidgetDesignFlags::Type NewFlags);
 #endif

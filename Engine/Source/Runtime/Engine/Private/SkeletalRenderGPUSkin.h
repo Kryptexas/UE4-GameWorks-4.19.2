@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	SkeletalRenderGPUSkin.h: GPU skinned mesh object and resource definitions
 =============================================================================*/
 
@@ -275,7 +275,7 @@ public:
 	FSkeletalMeshObjectGPUSkin(USkinnedMeshComponent* InMeshComponent, FSkeletalMeshResource* InSkeletalMeshResource, ERHIFeatureLevel::Type InFeatureLevel);
 	virtual ~FSkeletalMeshObjectGPUSkin();
 
-	//~ Begin FSkeletalMeshObject Interface
+	// Begin FSkeletalMeshObject interface
 	virtual void InitResources() override;
 	virtual void ReleaseResources() override;
 	virtual void Update(int32 LODIndex,USkinnedMeshComponent* InMeshComponent,const TArray<FActiveVertexAnim>& ActiveVertexAnims) override;
@@ -323,7 +323,7 @@ public:
 
 		return ResourceSize;
 	}
-	//~ End FSkeletalMeshObject Interface
+	// End FSkeletalMeshObject interface
 
 	/** 
 	 * Vertex buffers that can be used for GPU skinning factories 

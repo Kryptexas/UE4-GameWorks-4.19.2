@@ -177,9 +177,9 @@ class ENGINE_API UInterpToMovementComponent : public UMovementComponent
 	virtual void AddControlPointPosition(FVector Pos);
 	
 #if WITH_EDITOR
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 #endif // WITH_EDITOR
 
 protected:

@@ -13,10 +13,10 @@ class UGeometryCacheTrack : public UObject
 
 	virtual ~UGeometryCacheTrack();
 	
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ End UObject Interface
+	// End UObject interface
 			
 	/**
 	* UpdateMatrixData

@@ -182,7 +182,7 @@ public:
 
 protected:
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual FString GetDesc( void ) override;
 	virtual void BeginDestroy() override;
@@ -191,7 +191,7 @@ protected:
 	virtual void PreEditChange(UProperty* PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface.
+	// End UObject interface.
 
 public:
 	/** 

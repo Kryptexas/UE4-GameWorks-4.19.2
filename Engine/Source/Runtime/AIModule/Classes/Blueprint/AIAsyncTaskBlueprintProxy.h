@@ -28,9 +28,9 @@ public:
 
 	void OnNoPath();
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 	TWeakObjectPtr<AAIController> AIController;
 	FAIRequestID MoveRequestId;

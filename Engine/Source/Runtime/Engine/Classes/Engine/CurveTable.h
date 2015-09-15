@@ -27,7 +27,7 @@ class UCurveTable
 	/** Map of name of row to row data structure. */
 	TMap<FName, FRichCurve*>	RowMap;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
 
@@ -45,9 +45,9 @@ class UCurveTable
 	
 #endif	// WITH_EDITORONLY_DATA
 
-	//~ End  UObject Interface
+	// End  UObject interface
 
-	//~ Begin UCurveTable Interface
+	// Begin UCurveTable interface
 
 	/** Function to find the row of a table given its name. */
 	FRichCurve* FindCurve(FName RowName, const FString& ContextString, bool WarnIfNotFound=true) const

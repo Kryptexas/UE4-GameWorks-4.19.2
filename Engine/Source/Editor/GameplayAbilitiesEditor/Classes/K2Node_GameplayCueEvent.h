@@ -11,15 +11,15 @@ class UK2Node_GameplayCueEvent : public UK2Node_Event
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
-	//~ Begin UEdGraphNode Interface
+	// Begin UEdGraphNode interface
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool IsCompatibleWithGraph(const UEdGraph* TargetGraph) const override;
-	//~ End UEdGraphNode Interface
+	// End UEdGraphNode interface
 	
-	//~ Begin UK2Node Interface
+	// Begin UK2Node interface
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
-	//~ End UK2Node Interface
+	// End UK2Node interface
 };

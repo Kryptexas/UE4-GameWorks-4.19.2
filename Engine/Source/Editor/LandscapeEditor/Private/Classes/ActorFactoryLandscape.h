@@ -9,11 +9,11 @@ class UActorFactoryLandscape : public UActorFactory
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UActorFactory Interface
+	// Begin UActorFactory Interface
 	//virtual bool CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg ) override;
 	virtual AActor* SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name ) override;
 	//virtual void PostSpawnActor( UObject* Asset, AActor* NewActor) override;
 	//virtual void PostCreateBlueprint( UObject* Asset, AActor* CDO ) override;
 	//virtual UObject* GetAssetFromActorInstance(AActor* ActorInstance) override;
-	//~ End UActorFactory Interface
+	// End UActorFactory Interface
 };

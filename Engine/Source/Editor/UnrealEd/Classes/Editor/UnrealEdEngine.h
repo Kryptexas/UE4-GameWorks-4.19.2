@@ -168,18 +168,18 @@ public:
 	/** Manages currently active visualizer and routes interactions to it */
 	FComponentVisualizerManager	ComponentVisManager;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	~UUnrealEdEngine();
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin FNotify Interface.
+	// Begin FNotify interface.
 	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged ) override;
-	//~ End FNotify Interface.
+	// End FNotify interface.
 
-	//~ Begin UEditorEngine Interface
+	// Begin UEditorEngine Interface
 	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden = false, bool bForceRefresh = false) override;
 	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const override;
 	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) override;
@@ -203,18 +203,18 @@ public:
 	virtual void CloseEditor() override;
 	virtual void OnOpenMatinee() override;
 	virtual bool IsAutosaving() const override;
-	//~ End UEditorEngine Interface 
+	// End UEditorEngine Interface 
 	
-	//~ Begin FExec Interface
+	// Begin FExec Interface
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar=*GLog ) override;
-	//~ End FExec Interface
+	// End FExec Interface
 
 
-	//~ Begin UEngine Interface.
+	// Begin UEngine Interface.
 	virtual void Init(IEngineLoop* InEngineLoop) override;
 	virtual void PreExit() override;
 	virtual void Tick(float DeltaSeconds, bool bIdleMode) override;
-	//~ End UEngine Interface.
+	// End UEngine Interface.
 
 	/** Builds a list of sprite categories for use in menus */
 	static void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo);

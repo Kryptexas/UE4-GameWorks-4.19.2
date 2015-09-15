@@ -18,7 +18,7 @@ public:
 	FOnlineSubsystemIOS();
 	virtual ~FOnlineSubsystemIOS() {};
 
-	//~ Begin IOnlineSubsystem Interface
+	// Begin IOnlineSubsystem Interface
 	virtual IOnlineSessionPtr GetSessionInterface() const override;
 	virtual IOnlineFriendsPtr GetFriendsInterface() const override;
 	virtual IOnlinePartyPtr GetPartyInterface() const override;
@@ -46,7 +46,7 @@ public:
 	virtual FString GetAppId() const override;
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) override;
 	virtual bool Tick(float DeltaTime) override;
-	//~ End IOnlineSubsystem Interface
+	// End IOnlineSubsystem Interface
 
 PACKAGE_SCOPE:
 

@@ -26,11 +26,11 @@ public:
 	class FWindSourceSceneProxy* SceneProxy;
 
 protected:
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void CreateRenderState_Concurrent() override;
 	virtual void SendRenderTransform_Concurrent() override;
 	virtual void DestroyRenderState_Concurrent() override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 public:
 	/**

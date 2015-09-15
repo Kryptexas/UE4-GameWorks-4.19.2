@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	AllDesktopTargetPlatform.h: Declares the FDesktopTargetPlatform class.
 =============================================================================*/
 
@@ -52,18 +52,18 @@ public:
 
 public:
 
-	//~ Begin TTargetPlatformBase Interface
+	// Begin TTargetPlatformBase interface
 
 	virtual bool IsServerOnly( ) const override
 	{
 		return false;
 	}
 
-	//~ End TTargetPlatformBase Interface
+	// End TTargetPlatformBase interface
 
 public:
 
-	//~ Begin ITargetPlatform Interface
+	// Begin ITargetPlatform interface
 
 	virtual void EnableDeviceCheck(bool OnOff) override
 	{

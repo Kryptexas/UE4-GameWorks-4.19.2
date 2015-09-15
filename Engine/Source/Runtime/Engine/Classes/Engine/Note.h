@@ -32,9 +32,9 @@ public:
 #endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITOR
-	//~ Begin AActor Interface
+	// Begin AActor Interface
 	virtual void CheckForErrors() override;
-	//~ End AActor Interface
+	// End AActor Interface
 #endif
 
 #if WITH_EDITORONLY_DATA

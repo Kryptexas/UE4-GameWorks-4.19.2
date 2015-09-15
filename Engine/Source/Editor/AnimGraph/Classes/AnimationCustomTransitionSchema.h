@@ -9,8 +9,8 @@ class UAnimationCustomTransitionSchema : public UAnimationGraphSchema
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UEdGraphSchema Interface.
+	// Begin UEdGraphSchema interface.
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
 	void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const override;
-	//~ End UEdGraphSchema Interface.
+	// End UEdGraphSchema interface.
 };

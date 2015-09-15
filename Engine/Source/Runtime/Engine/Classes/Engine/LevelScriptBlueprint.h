@@ -34,11 +34,11 @@ class ULevelScriptBlueprint : public UBlueprint
 		return Cast<ULevel>(GetOuter());
 	}
 
-	//~ Begin UBlueprint Interface
+	// Begin UBlueprint interface
 	ENGINE_API virtual UObject* GetObjectBeingDebugged() override;
 	ENGINE_API virtual void SetObjectBeingDebugged(UObject* NewObject) override;
 	ENGINE_API virtual FString GetFriendlyName() const override;
-	//~ End UBlueprint Interface
+	// End UBlueprint interface
 
 	/** Generate a name for a level script blueprint from the current level */
 	static FString CreateLevelScriptNameFromLevel (const class ULevel* Level );

@@ -66,14 +66,14 @@ class UMaterialParameterCollection : public UObject
 	UPROPERTY(EditAnywhere, Category=Material)
 	TArray<FCollectionVectorParameter> VectorParameters;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 #if WITH_EDITOR
 	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditChangeChainProperty(struct FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Finds a parameter name given an Id, returns NAME_None if the parameter was not found. */
 	FName GetParameterName(const FGuid& Id) const;

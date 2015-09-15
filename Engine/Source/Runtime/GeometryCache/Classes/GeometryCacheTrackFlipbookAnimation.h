@@ -13,16 +13,16 @@ class GEOMETRYCACHE_API UGeometryCacheTrack_FlipbookAnimation : public UGeometry
 
 	virtual ~UGeometryCacheTrack_FlipbookAnimation();
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UGeometryCacheTrack Interface.
+	// Begin UGeometryCacheTrack interface.
 	virtual const bool UpdateMeshData(const float Time, const bool bLooping, int32& InOutMeshSampleIndex, FGeometryCacheMeshData*& OutMeshData) override;
 	virtual const float GetMaxSampleTime() const override;
-	//~ End UGeometryCacheTrack Interface.
+	// End UGeometryCacheTrack interface.
 
 	/**
 	* Add a GeometryCacheMeshData sample to the Track

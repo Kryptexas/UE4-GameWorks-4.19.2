@@ -108,9 +108,9 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 
-	//~ Begin UParticleModule Interface
+	// Begin UParticleModule Interface
 	virtual void	Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase) override;
 	virtual void	Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime) override;
 	virtual uint32	RequiredBytes(FParticleEmitterInstance* Owner = NULL) override;
@@ -125,7 +125,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	virtual void GetParticleSysParamsUtilized(TArray<FString>& ParticleSysParamList) override;
 	virtual void GetParticleParametersUtilized(TArray<FString>& ParticleParameterList) override;
 	virtual void RefreshModule(UInterpCurveEdSetup* EdSetup, UParticleEmitter* InEmitter, int32 InLODLevel) override;
-	//~ End UParticleModule Interface
+	// End UParticleModule Interface
 
 	/**
 	 *	Extended version of spawn, allows for using a random stream for distribution value retrieval

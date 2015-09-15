@@ -135,10 +135,10 @@ public:
 	virtual void Init(struct FWorldContext& WorldContext, UGameInstance* OwningGameInstance, bool bCreateNewAudioDevice = true);
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
 	// FViewportClient interface.
 	virtual void RedrawRequested(FViewport* InViewport) override {}
@@ -162,15 +162,15 @@ public:
 	virtual void MouseEnter(FViewport* Viewport, int32 x, int32 y) override;
 	virtual void MouseLeave(FViewport* Viewport) override;
 	virtual void SetIsSimulateInEditorViewport(bool bInIsSimulateInEditorViewport) override;
-	//~ End of FViewportClient Interface.
+	// End of FViewportClient interface.
 
 	/** make any adjustments to the views after they've been completely set up */
 	virtual void FinalizeViews(class FSceneViewFamily* ViewFamily, const TMap<ULocalPlayer*, FSceneView*>& PlayerViewMap)
 	{}
 
-	//~ Begin FExec Interface.
+	// Begin FExec interface.
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar) override;
-	//~ End of FExec Interface.
+	// End of FExec interface.
 
 	/**
 	 * Exec command handlers

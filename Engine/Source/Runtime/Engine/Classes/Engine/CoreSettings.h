@@ -85,13 +85,13 @@ protected:
 		ToolTip = "Batching granularity used to register actor components during level streaming."))
 	int32 LevelStreamingComponentsRegistrationGranularity;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface
+	// End UObject interface
 };
 
 /** Whether to allow background level streaming. */
@@ -151,11 +151,11 @@ protected:
 		ToolTip = "Size Of Permanent Object Pool (bytes). Works only in cooked builds."))
 	int32 SizeOfPermanentObjectPool;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostInitProperties() override;
 
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface
+	// End UObject interface
 };

@@ -59,28 +59,28 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")
 	void SetCapsuleHalfHeight(float HalfHeight, bool bUpdateOverlaps=true);
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void Serialize(FArchive& Ar) override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject interface
 
-	//~ Begin USceneComponent Interface
+	// Begin USceneComponent interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	virtual void CalcBoundingCylinder(float& CylinderRadius, float& CylinderHalfHeight) const override;
-	//~ End USceneComponent Interface
+	// End USceneComponent interface
 
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual bool IsZeroExtent() const override;
 	virtual struct FCollisionShape GetCollisionShape(float Inflation = 0.0f) const override;
 	virtual bool AreSymmetricRotations(const FQuat& A, const FQuat& B, const FVector& Scale3D) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
-	//~ Begin UShapeComponent Interface
+	// Begin UShapeComponent interface
 	virtual void UpdateBodySetup() override;
-	//~ End UShapeComponent Interface
+	// End UShapeComponent interface
 
 	// @return the capsule radius scaled by the component scale.
 	UFUNCTION(BlueprintCallable, Category="Components|Capsule")

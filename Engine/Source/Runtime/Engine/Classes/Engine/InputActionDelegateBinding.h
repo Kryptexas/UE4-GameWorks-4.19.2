@@ -35,7 +35,7 @@ class ENGINE_API UInputActionDelegateBinding : public UInputDelegateBinding
 	UPROPERTY()
 	TArray<FBlueprintInputActionDelegateBinding> InputActionDelegateBindings;
 
-	//~ Begin UInputDelegateBinding Interface
+	// Begin UInputDelegateBinding interface
 	virtual void BindToInputComponent(UInputComponent* InputComponent) const override;
-	//~ End UInputDelegateBinding Interface
+	// End UInputDelegateBinding interface
 };

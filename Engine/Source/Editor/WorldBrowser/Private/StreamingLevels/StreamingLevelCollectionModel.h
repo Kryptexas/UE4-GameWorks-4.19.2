@@ -57,7 +57,7 @@ private:
 	 */
 	FStreamingLevelCollectionModel(UEditorEngine* InEditor);
 	
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void PostUndo(bool bSuccess) override { UpdateAllLevels(); }
 	virtual void PostRedo(bool bSuccess) override { PostUndo(bSuccess); }
 	// End of FEditorUndoClient

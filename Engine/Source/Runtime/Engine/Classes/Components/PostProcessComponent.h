@@ -40,7 +40,7 @@ class UPostProcessComponent : public USceneComponent, public IInterface_PostProc
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PostProcessVolume)
 	uint32 bUnbound: 1;
  
-	//~ Begin IInterface_PostProcessVolume Interface
+	// Begin IInterface_PostProcessVolume Interface
 	ENGINE_API virtual bool EncompassesPoint(FVector Point, float SphereRadius/*=0.f*/, float* OutDistanceToPoint) override;
 	ENGINE_API virtual FPostProcessVolumeProperties GetProperties() const override
 	{
@@ -53,7 +53,7 @@ class UPostProcessComponent : public USceneComponent, public IInterface_PostProc
 		Ret.Settings = &Settings;
 		return Ret;
 	}
-	//~ End IInterface_PostProcessVolume Interface
+	// End IInterface_PostProcessVolume Interface
 
 	/** Adds an Blendable (implements IBlendableInterface) to the array of Blendables (if it doesn't exist) and update the weight */
 	UFUNCTION(BlueprintCallable, Category="Rendering")
@@ -66,7 +66,7 @@ protected:
 
 	// UObject interface
 	virtual void Serialize(FArchive& Ar) override;
-	//~ End of UObject Interface
+	// End of UObject interface
 };
 
 

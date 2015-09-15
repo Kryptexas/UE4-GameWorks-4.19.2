@@ -84,7 +84,7 @@ public:
 	void			PreAnimUpdate();
 	void			PostAnimUpdate();
 
-	//~ Begin SAnimEditorBase Interface
+	// Begin SAnimEditorBase interface
 	virtual TSharedRef<SWidget> CreateDocumentAnchor() override;
-	//~ End SAnimEditorBase Interface
+	// End SAnimEditorBase interface
 };

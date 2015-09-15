@@ -14,13 +14,13 @@ public:
 	FTexturePlatformData *PlatformData;
 	TMap<FString, FTexturePlatformData*> CookedPlatformData;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual FString GetDesc() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Trivial accessors. */
 	FORCEINLINE int32 GetSizeX() const
@@ -56,7 +56,7 @@ public:
 		return PF_Unknown;
 	}
 
-	//~ Begin UTexture Interface
+	// Begin UTexture interface
 	virtual float GetSurfaceWidth() const override { return GetSizeX(); }
 	virtual float GetSurfaceHeight() const override { return GetSizeY(); }
 	virtual FTextureResource* CreateResource() override;
@@ -64,7 +64,7 @@ public:
 	virtual EMaterialValueType GetMaterialType() override { return MCT_TextureCube; }
 	virtual FTexturePlatformData** GetRunningPlatformData() override { return &PlatformData; }
 	virtual TMap<FString, FTexturePlatformData*> *GetCookedPlatformData() override { return &CookedPlatformData; }
-	//~ End UTexture Interface
+	// End UTexture interface
 	
 	/**
 	 * Calculates the size of this texture in bytes if it had MipCount miplevels streamed in.

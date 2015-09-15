@@ -27,12 +27,12 @@ private_subobject:
 
 public:
 
-	//~ Begin AActor Interface
+	// Begin AActor interface
 	virtual void PostActorCreated() override;
 #if WITH_EDITOR
 	ENGINE_API virtual void PostEditMove(bool bFinished) override;
 #endif
-	//~ End AActor Interface.
+	// End AActor interface.
 
 	/** Used to synchronize the DrawFrustumComponent with the SceneCaptureComponentCube settings. */
 	void UpdateDrawFrustum();

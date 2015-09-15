@@ -11,9 +11,9 @@ public:
 	void Construct(const FArguments& InArgs, UEdGraphPin* InGraphPinObj);
 
 protected:
-	//~ Begin SGraphPin Interface
+	// Begin SGraphPin interface
 	virtual TSharedRef<SWidget>	GetDefaultValueWidget() override;
-	//~ End SGraphPin Interface
+	// End SGraphPin interface
 
 	/** Delegate to be called when the use current selected item in asset browser button is clicked */
 	virtual FOnClicked GetOnUseButtonDelegate();

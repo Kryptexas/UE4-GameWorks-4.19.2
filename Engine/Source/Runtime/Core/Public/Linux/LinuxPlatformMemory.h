@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
-/*~============================================================================================
+/*=============================================================================================
 	LinuxPlatformMemory.h: Linux platform memory functions
 ==============================================================================================*/
 
@@ -44,7 +44,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 		bool			bCreatedThisRegion;
 	};
 
-	//~ Begin FGenericPlatformMemory Interface
+	// Begin FGenericPlatformMemory interface
 	static void Init();
 	static class FMalloc* BaseAllocator();
 	static FPlatformMemoryStats GetStats();
@@ -53,7 +53,7 @@ struct CORE_API FLinuxPlatformMemory : public FGenericPlatformMemory
 	static void BinnedFreeToOS( void* Ptr );
 	static FSharedMemoryRegion * MapNamedSharedMemoryRegion(const FString& InName, bool bCreate, uint32 AccessMode, SIZE_T Size);
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
-	//~ End FGenericPlatformMemory Interface
+	// End FGenericPlatformMemory interface
 };
 
 typedef FLinuxPlatformMemory FPlatformMemory;

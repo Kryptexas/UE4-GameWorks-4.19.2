@@ -68,7 +68,7 @@ PACKAGE_SCOPE:
 
 public:
 
-	//~ Begin IOnlineAchievements Interface
+	// Begin IOnlineAchievements interface
 	virtual void WriteAchievements(const FUniqueNetId& PlayerId, FOnlineAchievementsWriteRef& WriteObject, const FOnAchievementsWrittenDelegate& Delegate = FOnAchievementsWrittenDelegate()) override;
 	virtual void QueryAchievements(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) override;
 	virtual void QueryAchievementDescriptions(const FUniqueNetId& PlayerId, const FOnQueryAchievementsCompleteDelegate& Delegate = FOnQueryAchievementsCompleteDelegate()) override ;
@@ -78,7 +78,7 @@ public:
 #if !UE_BUILD_SHIPPING
 	virtual bool ResetAchievements( const FUniqueNetId& PlayerId ) override;
 #endif // !UE_BUILD_SHIPPING
-	//~ End IOnlineAchievements Interface
+	// End IOnlineAchievements interface
 
 	/**
 	 * Constructor

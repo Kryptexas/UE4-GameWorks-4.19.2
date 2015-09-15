@@ -103,12 +103,12 @@ public:
 
 	void	InitNetDriver();
 
-	//~ Begin FNetworkNotify Interface.
+	// Begin FNetworkNotify interface.
 	virtual EAcceptConnection::Type NotifyAcceptingConnection() override;
 	virtual void NotifyAcceptedConnection( class UNetConnection* Connection ) override;
 	virtual bool NotifyAcceptingChannel( class UChannel* Channel ) override;
 	virtual void NotifyControlMessage(UNetConnection* Connection, uint8 MessageType, class FInBunch& Bunch) override;
-	//~ End FNetworkNotify Interface.
+	// End FNetworkNotify interface.
 
 	/**  Update the pending level's status. */
 	virtual void Tick( float DeltaTime );
@@ -119,7 +119,7 @@ public:
 	/** Send JOIN to other end */
 	virtual void SendJoin();
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize( FArchive& Ar ) override;
 
 	virtual void FinishDestroy() override
@@ -130,7 +130,7 @@ public:
 	}
 	
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	//~ End UObject Interface.
+	// End UObject interface.
 	
 
 	/** Create the peer net driver and a socket to listen for new client peer connections. */

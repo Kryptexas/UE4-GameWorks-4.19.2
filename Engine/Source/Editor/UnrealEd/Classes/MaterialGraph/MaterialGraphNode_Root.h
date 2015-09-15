@@ -13,19 +13,19 @@ class UMaterialGraphNode_Root : public UMaterialGraphNode_Base
 	UPROPERTY()
 	class UMaterial* Material;
 
-	//~ Begin UEdGraphNode Interface.
+	// Begin UEdGraphNode interface.
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetTooltipText() const override;
 	virtual bool CanUserDeleteNode() const override { return false; }
 	virtual bool CanDuplicateNode() const override { return false; }
 	virtual void PostPlacedNewNode() override;
-	//~ End UEdGraphNode Interface.
+	// End UEdGraphNode interface.
 
 	// UMaterialGraphNode_Base interface
 	virtual void CreateInputPins() override;
 	virtual bool IsRootNode() const override {return true;}
 	virtual int32 GetInputIndex(const UEdGraphPin* InputPin) const override;
 	virtual uint32 GetInputType(const UEdGraphPin* InputPin) const override;
-	//~ End of UMaterialGraphNode_Base Interface
+	// End of UMaterialGraphNode_Base interface
 };

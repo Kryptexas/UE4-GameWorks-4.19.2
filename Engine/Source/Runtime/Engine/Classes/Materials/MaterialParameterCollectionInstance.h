@@ -16,10 +16,10 @@ class UMaterialParameterCollectionInstance : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	ENGINE_API virtual void PostInitProperties() override;
 	ENGINE_API virtual void FinishDestroy() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Initializes the instance with the collection it is based off of and the world it is owned by. */
 	void SetCollection(UMaterialParameterCollection* InCollection, UWorld* InWorld);

@@ -82,11 +82,11 @@ class ENGINE_API UNavCollision : public UObject
 	/** Cooked data for each format */
 	FFormatContainer CookedFormatData;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	FGuid GetGuid() const;
 

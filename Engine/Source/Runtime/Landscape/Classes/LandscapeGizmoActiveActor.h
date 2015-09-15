@@ -105,10 +105,10 @@ public:
 	TMap<FIntPoint, FGizmoSelectData> SelectedData;
 
 #if WITH_EDITOR
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditMove(bool bFinished) override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	virtual FVector SnapToLandscapeGrid(const FVector& GizmoLocation) const;
 	virtual FRotator SnapToLandscapeGrid(const FRotator& GizmoRotation) const;

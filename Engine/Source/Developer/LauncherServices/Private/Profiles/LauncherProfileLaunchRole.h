@@ -26,7 +26,7 @@ public:
 
 public:
 
-	//~ Begin ILauncherProfileLaunchRole Interface
+	// Begin ILauncherProfileLaunchRole interface
 
 	virtual const FString& GetAssignedDevice( ) const override
 	{
@@ -105,7 +105,7 @@ public:
 		VsyncEnabled = Enabled;
 	}
 
-	//~ End ILauncherProfileLaunchRole Interface
+	// End ILauncherProfileLaunchRole interface
 
 private:
 

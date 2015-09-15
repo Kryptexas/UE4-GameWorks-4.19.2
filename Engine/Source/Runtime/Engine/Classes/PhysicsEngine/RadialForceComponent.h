@@ -64,16 +64,16 @@ protected:
 	FCollisionObjectQueryParams CollisionObjectQueryParams;
 
 protected:
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
-	//~ End UObject Interface.
+	// End UObject interface.
 
 	/** Update CollisionObjectQueryParams from ObjectTypesToAffect */
 	void UpdateCollisionObjectQueryParams();

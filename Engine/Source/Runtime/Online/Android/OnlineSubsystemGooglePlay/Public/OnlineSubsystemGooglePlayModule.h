@@ -18,7 +18,7 @@ private:
 
 	virtual ~FOnlineSubsystemGooglePlayModule(){}
 
-	//~ Begin IModuleInterface Interface
+	// Begin IModuleInterface interface
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
@@ -31,7 +31,7 @@ private:
 	{
 		return false;
 	}
-	//~ End IModuleInterface Interface
+	// End IModuleInterface interface
 };
 
 typedef TSharedPtr<FOnlineSubsystemGooglePlayModule> FOnlineSubsystemGooglePlayModulePtr;

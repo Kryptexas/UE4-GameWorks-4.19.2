@@ -100,9 +100,9 @@ public:
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	virtual const FSlateBrush* GetEditorIcon() override;
@@ -121,7 +121,7 @@ protected:
 
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 protected:
 	/** The true objects bound to the Slate combobox. */

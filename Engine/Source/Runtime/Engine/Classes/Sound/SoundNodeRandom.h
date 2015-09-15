@@ -55,11 +55,11 @@ class USoundNodeRandom : public USoundNode
 #endif //WITH_EDITORONLY_DATA
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 	virtual void PostLoad() override;
-	//~ End UObject Interface
+	// End UObject Interface
 
-	//~ Begin USoundNode Interface.
+	// Begin USoundNode interface.
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	virtual int32 GetMaxChildNodes() const override 
 	{ 
@@ -73,7 +73,7 @@ public:
 	virtual void OnBeginPIE(const bool bIsSimulating) override;
 #endif //WITH_EDITOR
 	virtual void CreateStartingConnectors( void ) override;
-	//~ End USoundNode Interface.
+	// End USoundNode interface.
 
 	// @todo document
 	void FixWeightsArray( void );

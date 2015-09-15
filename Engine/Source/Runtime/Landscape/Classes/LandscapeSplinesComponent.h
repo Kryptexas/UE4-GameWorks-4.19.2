@@ -150,7 +150,7 @@ public:
 	void AutoFixMeshComponentErrors(UWorld* OtherWorld);
 #endif
 
-	//~ Begin UObject Interface
+	// Begin UObject Interface
 
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
@@ -158,21 +158,21 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	//~ End UObject Interface
+	// End UObject Interface
 
-	//~ Begin UActorComponent Interface
+	// Begin UActorComponent interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
 	virtual void OnRegister() override;
-	//~ End UActorComponent Interface
+	// End UActorComponent interface
 	
-	//~ Begin UPrimitiveComponent Interface.
+	// Begin UPrimitiveComponent interface.
 #if WITH_EDITOR
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 #endif
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 
 	// many friends
 	friend class FLandscapeToolSplines;

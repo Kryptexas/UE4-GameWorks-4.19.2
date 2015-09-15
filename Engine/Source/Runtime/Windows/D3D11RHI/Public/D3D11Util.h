@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~============================================================================
+/*=============================================================================
 	D3D11Util.h: D3D RHI utility definitions.
 =============================================================================*/
 
@@ -223,10 +223,10 @@ public:
 	/** Unlocks the buffer returning the underlying D3D11 buffer to use as a resource. */
 	ID3D11Buffer* Unlock();
 
-	//~ Begin FRenderResource Interface.
+	// Begin FRenderResource interface.
 	virtual void InitRHI() override;
 	virtual void ReleaseRHI() override;
-	//~ End FRenderResource Interface.
+	// End FRenderResource interface.
 
 private:
 	/** The maximum number of sub-buffers supported. */

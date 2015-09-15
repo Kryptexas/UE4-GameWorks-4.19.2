@@ -13,9 +13,9 @@ class ENGINE_API ATriggerCapsule : public ATriggerBase
 
 
 #if WITH_EDITOR
-	//~ Begin AActor Interface.
+	// Begin AActor interface.
 	virtual void EditorApplyScale(const FVector& DeltaScale, const FVector* PivotLocation, bool bAltDown, bool bShiftDown, bool bCtrlDown) override;
-	//~ End AActor Interface.
+	// End AActor interface.
 #endif
 };
 

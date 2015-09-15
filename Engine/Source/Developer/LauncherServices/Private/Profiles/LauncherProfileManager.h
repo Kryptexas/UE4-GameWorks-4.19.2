@@ -23,7 +23,7 @@ public:
 	 */
 	void Load();
 
-	//~ Begin ILauncherProfileManager Interface
+	// Begin ILauncherProfileManager interface
 
 	virtual void AddDeviceGroup( const ILauncherDeviceGroupRef& DeviceGroup ) override;
 
@@ -95,7 +95,7 @@ public:
 
 	virtual void SetProjectPath(const FString& InProjectPath) override;
 
-	//~ End ILauncherProfileManager Interface
+	// End ILauncherProfileManager interface
 
 protected:
 

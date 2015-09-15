@@ -24,9 +24,9 @@ class ULeaderboardFlushCallbackProxy : public UObject
 	static ULeaderboardFlushCallbackProxy* CreateProxyObjectForFlush(class APlayerController* PlayerController, FName SessionName);
 
 public:
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void BeginDestroy() override;
-	//~ End UObject Interface
+	// End UObject interface
 
 private:
 	/** Called by the leaderboard system when the flush is finished */

@@ -16,16 +16,16 @@ public:
 
 	void InitEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UEnvQuery* Script );
 
-	//~ Begin IToolkit Interface
+	// Begin IToolkit interface
 	virtual FName GetToolkitFName() const override;
 	virtual FText GetBaseToolkitName() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
-	//~ End IToolkit Interface
+	// End IToolkit interface
 
-	//~ Begin IEnvironmentQueryEditor Interface
+	// Begin IEnvironmentQueryEditor interface
 	virtual uint32 GetSelectedNodesCount() const override { return SelectedNodesCount; }
-	//~ End IEnvironmentQueryEditor Interface
+	// End IEnvironmentQueryEditor interface
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
 

@@ -167,11 +167,11 @@ public:
 	UPROPERTY()
 	class UPhysicsSerializer* PhysicsSerializer;
 
-	//~ Begin UActorComponent Interface 
+	// Begin UActorComponent interface 
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End UActorComponent Interface 
+	// End UActorComponent interface 
 
-	//~ Begin UPrimitiveComponent Interface
+	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual void CreatePhysicsState() override;
 	virtual void DestroyPhysicsState() override;
@@ -185,11 +185,11 @@ public:
 	virtual void GetLightAndShadowMapMemoryUsage( int32& LightMapMemoryUsage, int32& ShadowMapMemoryUsage ) const override;
 	
 	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
-	//~ End UPrimitiveComponent Interface
+	// End UPrimitiveComponent Interface
 	
-	//~ Begin UNavRelevantInterface Interface.
+	// Begin UNavRelevantInterface interface.
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	//~ End UPrimitiveComponent Interface.
+	// End UPrimitiveComponent interface.
 	
 	//Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;

@@ -75,27 +75,27 @@ public:
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	// UVisual interface
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
-	//~ End of UVisual Interface
+	// End of UVisual interface
 
-	//~ Begin UObject Interface
+	// Begin UObject interface
 	virtual void PostLoad() override;
-	//~ End of UObject Interface
+	// End of UObject interface
 
 #if WITH_EDITOR
 	// UWidget interface
 	virtual const FSlateBrush* GetEditorIcon() override;
 	virtual const FText GetPaletteCategory() override;
-	//~ End UWidget Interface
+	// End UWidget interface
 #endif
 
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
-	//~ End of UWidget Interface
+	// End of UWidget interface
 
 	/** Translates the bound brush data and assigns it to the cached brush used by this widget. */
 	const FSlateBrush* ConvertImage(TAttribute<FSlateBrush> InImageAsset) const;

@@ -13,11 +13,11 @@ class UInterpTrackFloatParticleParam : public UInterpTrackFloatBase
 	FName ParamName;
 
 
-	//~ Begin UInterpTrack Interface.
+	// Begin UInterpTrack interface.
 	virtual int32 AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode) override;
 	virtual void PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst) override;
 	virtual void UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump) override;
-	//~ End UInterpTrack Interface.
+	// End UInterpTrack interface.
 };
 
 

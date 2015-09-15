@@ -19,8 +19,8 @@ class USoundModWave : public USoundWaveProcedural
 
 	xmp_context xmpContext;
 
-	//~ Begin USoundWave Interface.
+	// Begin USoundWave interface.
 	virtual int32 GeneratePCMData(uint8* PCMData, const int32 SamplesNeeded) override;
-	//~ End USoundWave Interface.
+	// End USoundWave interface.
 
 };

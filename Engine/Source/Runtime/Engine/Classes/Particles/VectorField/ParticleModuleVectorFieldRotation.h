@@ -1,6 +1,6 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*~=============================================================================
+/*==============================================================================
 	ParticleModuleVectorFieldRotation: Random initial rotation for local
 		vector fields.
 ==============================================================================*/
@@ -23,8 +23,8 @@ class UParticleModuleVectorFieldRotation : public UParticleModuleVectorFieldBase
 	FVector MaxInitialRotation;
 
 
-	//~ Begin UParticleModule Interface
+	// Begin UParticleModule Interface
 	virtual void CompileModule(struct FParticleEmitterBuildInfo& EmitterInfo) override;
-	//~ Begin UParticleModule Interface
+	// Begin UParticleModule Interface
 };
 

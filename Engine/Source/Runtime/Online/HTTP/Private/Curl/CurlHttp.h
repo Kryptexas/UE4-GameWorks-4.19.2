@@ -106,7 +106,7 @@ public:
 	// implementation friends
 	friend class FCurlHttpResponse;
 
-	//~ Begin IHttpBase Interface
+	// Begin IHttpBase interface
 	virtual FString GetURL() override;
 	virtual FString GetURLParameter(const FString& ParameterName) override;
 	virtual FString GetHeader(const FString& HeaderName) override;
@@ -114,9 +114,9 @@ public:
 	virtual FString GetContentType() override;
 	virtual int32 GetContentLength() override;
 	virtual const TArray<uint8>& GetContent() override;
-	//~ End IHttpBase Interface
+	// End IHttpBase interface
 
-	//~ Begin IHttpRequest Interface
+	// Begin IHttpRequest interface
 	virtual FString GetVerb() override;
 	virtual void SetVerb(const FString& InVerb) override;
 	virtual void SetURL(const FString& InURL) override;
@@ -131,7 +131,7 @@ public:
 	virtual const FHttpResponsePtr GetResponse() const override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual float GetElapsedTime() override;
-	//~ End IHttpRequest Interface
+	// End IHttpRequest interface
 
 	/**
 	 * Returns libcurl's easy handle - needed for HTTP manager.
@@ -336,7 +336,7 @@ public:
 	friend class FCurlHttpRequest;
 
 
-	//~ Begin IHttpBase Interface
+	// Begin IHttpBase interface
 	virtual FString GetURL() override;
 	virtual FString GetURLParameter(const FString& ParameterName) override;
 	virtual FString GetHeader(const FString& HeaderName) override;
@@ -344,12 +344,12 @@ public:
 	virtual FString GetContentType() override;
 	virtual int32 GetContentLength() override;
 	virtual const TArray<uint8>& GetContent() override;
-	//~ End IHttpBase Interface
+	// End IHttpBase interface
 
-	//~ Begin IHttpResponse Interface
+	// Begin IHttpResponse interface
 	virtual int32 GetResponseCode() override;
 	virtual FString GetContentAsString() override;
-	//~ End IHttpResponse Interface
+	// End IHttpResponse interface
 
 	/**
 	 * Check whether a response is ready or not.

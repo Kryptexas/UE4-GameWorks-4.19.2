@@ -115,7 +115,7 @@ class KISMET_API FBlueprintEditor : public IBlueprintEditor, public FGCObject, p
 public:
 	// IToolkit interface
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
-	//~ End of IToolkit Interface
+	// End of IToolkit interface
 
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnModeSet, FName);
 	FOnModeSet& OnModeSet() { return OnModeSetData; }
@@ -148,11 +148,11 @@ public:
 	virtual FString GetWorldCentricTabPrefix() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual bool IsBlueprintEditor() const override;
-	//~ End of IToolkit Interface
+	// End of IToolkit interface
 
 	// FGCObject interface
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
-	//~ End of FGCObject Interface
+	// End of FGCObject interface
 
 	// IBlueprintEditor interface
 	virtual void RefreshEditors(ERefreshBlueprintEditorReason::Type Reason = ERefreshBlueprintEditorReason::UnknownReason) override;
@@ -163,13 +163,13 @@ public:
 	virtual int32 GetNumberOfSelectedNodes() const override;
 	virtual void AnalyticsTrackNodeEvent( UBlueprint* Blueprint, UEdGraphNode *GraphNode, bool bNodeDelete = false ) const override;
 	void AnalyticsTrackCompileEvent( UBlueprint* Blueprint, int32 NumErrors, int32 NumWarnings ) const;
-	//~ End of IBlueprintEditor Interface
+	// End of IBlueprintEditor interface
 
 	// FTickableEditorObject interface
 	virtual void Tick(float DeltaTime) override;
 	virtual bool IsTickable() const override { return true; }
 	virtual TStatId GetStatId() const override;
-	//~ End of FTickableEditorObject Interface
+	// End of FTickableEditorObject interface
 
 public:
 	FBlueprintEditor();
@@ -857,7 +857,7 @@ protected:
 	// FNotifyHook interface
 	virtual void NotifyPreChange( UProperty* PropertyAboutToChange ) override;
 	virtual void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, UProperty* PropertyThatChanged) override;
-	//~ End of FNotifyHook Interface
+	// End of FNotifyHook interface
 
 	/** Callback when properties have finished being handled */
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent);
@@ -875,7 +875,7 @@ protected:
 	/**Load macro & function blueprint libraries from asset registry*/
 	void LoadLibrariesFromAssetRegistry();
 
-	//~ Begin FEditorUndoClient Interface
+	// Begin FEditorUndoClient Interface
 	virtual void	PostUndo(bool bSuccess) override;
 	virtual void	PostRedo(bool bSuccess) override;
 	// End of FEditorUndoClient

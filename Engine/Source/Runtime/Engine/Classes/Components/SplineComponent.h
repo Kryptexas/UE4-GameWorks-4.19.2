@@ -107,9 +107,9 @@ public:
 	float ScaleVisualizationWidth;
 #endif
 
-	//~ Begin UActorComponent Interface.
+	// Begin UActorComponent interface.
 	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
-	//~ End UActorComponent Interface.
+	// End UActorComponent interface.
 
 	void ApplyComponentInstanceData(class FSplineInstanceData* ComponentInstanceData, const bool bPostUCS);
 
@@ -404,7 +404,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent) override;
 #endif
-	//~ End of UObject Interface
+	// End of UObject interface
 
 private:
 	/** Returns the length of the specified spline segment up to the parametric value given */

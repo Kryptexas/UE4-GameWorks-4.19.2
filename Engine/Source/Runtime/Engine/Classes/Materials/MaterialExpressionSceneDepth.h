@@ -32,15 +32,15 @@ class UMaterialExpressionSceneDepth : public UMaterialExpression
 	UPROPERTY(EditAnywhere, Category = MaterialExpressionSceneDepth)
 	FVector2D ConstInput;
 
-	//~ Begin UObject Interface.
+	// Begin UObject interface.
 	virtual void PostLoad() override;
-	//~ End UObject Interface.
+	// End UObject interface.
 
-	//~ Begin UMaterialExpression Interface
+	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;
 	virtual FString GetInputName(int32 InputIndex) const override;
-	//~ End UMaterialExpression Interface
+	// End UMaterialExpression Interface
 };
 
 
