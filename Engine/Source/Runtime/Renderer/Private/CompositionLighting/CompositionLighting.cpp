@@ -425,12 +425,14 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
 					RecombinePass->SetInput(ePId_Input1, PassY);
 					RecombinePass->SetInput(ePId_Input2, PassSetup);
+					Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
 				}
 				else
 				{
 					// needed for Scalability
 					FRenderingCompositePass* RecombinePass = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceRecombine(bHalfRes, bSingleViewportMode));
 					RecombinePass->SetInput(ePId_Input0, Context.FinalOutput);
+					Context.FinalOutput = FRenderingCompositeOutputRef(RecombinePass);
 				}
 			}
 		}
