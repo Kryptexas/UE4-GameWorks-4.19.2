@@ -79,6 +79,7 @@ void FClothManager::StartCloth()
 			bNeedSimulateCloth = true;
 			PrepareData.SkeletalMeshComponents.Reset();
 		}
+		PrepareData.PrepareCompletion.SafeRelease();
 	}
 
 	if (bNeedSimulateCloth)
@@ -125,7 +126,7 @@ public:
 	}
 	static ESubsequentsMode::Type GetSubsequentsMode()
 	{
-		return ESubsequentsMode::FireAndForget;
+		return ESubsequentsMode::TrackSubsequents;
 	}
 
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
