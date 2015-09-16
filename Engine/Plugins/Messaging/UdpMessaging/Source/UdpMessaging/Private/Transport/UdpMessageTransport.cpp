@@ -123,22 +123,22 @@ bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, 
 	}
 
 	FUdpSerializedMessageRef SerializedMessage = MakeShareable(new FUdpSerializedMessage());
-	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
 
-	// publish the message
 	if (Recipients.Num() == 0)
 	{
-		return MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
+		// publish the message
+		MessageProcessor->EnqueueOutboundMessage(SerializedMessage, FGuid());
 	}
-
-	// send the message
-	for (int32 Index = 0; Index < Recipients.Num(); ++Index)
+	else
 	{
-		if (!MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipients[Index]))
+		// send the message
+		for (const auto& Recipient : Recipients)
 		{
-			return false;
+			MessageProcessor->EnqueueOutboundMessage(SerializedMessage, Recipient);
 		}
 	}
+
+	TGraphTask<FUdpSerializeMessageTask>::CreateTask().ConstructAndDispatchWhenReady(Context, SerializedMessage);
 
 	return true;
 }

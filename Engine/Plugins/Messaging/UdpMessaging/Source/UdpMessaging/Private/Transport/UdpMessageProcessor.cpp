@@ -78,11 +78,6 @@ bool FUdpMessageProcessor::EnqueueOutboundMessage( const FUdpSerializedMessageRe
 
 	SerializedMessage->OnStateChanged().BindRaw(this, &FUdpMessageProcessor::HandleSerializedMessageStateChanged);
 
-	if (SerializedMessage->GetState() != EUdpSerializedMessageState::Incomplete)
-	{
-		WorkEvent->Trigger();
-	}
-
 	return true;
 }
 
@@ -128,7 +123,6 @@ uint32 FUdpMessageProcessor::Run()
 void FUdpMessageProcessor::Stop()
 {
 	Stopping = true;
-
 	WorkEvent->Trigger();
 }
 
