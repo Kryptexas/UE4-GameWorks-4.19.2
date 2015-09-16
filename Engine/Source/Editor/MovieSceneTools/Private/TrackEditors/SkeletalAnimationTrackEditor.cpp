@@ -100,7 +100,7 @@ int32 FSkeletalAnimationSection::OnPaintSection( const FGeometry& AllottedGeomet
 
 	// Add lines where the animation starts and ends/loops
 	float CurrentTime = AnimSection->GetAnimationStartTime();
-	while (CurrentTime < AnimSection->GetEndTime())
+	while (CurrentTime < AnimSection->GetEndTime() && !FMath::IsNearlyZero(AnimSection->GetAnimationDuration()))
 	{
 		if (CurrentTime > AnimSection->GetStartTime())
 		{

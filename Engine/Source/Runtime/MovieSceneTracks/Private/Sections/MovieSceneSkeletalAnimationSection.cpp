@@ -41,7 +41,7 @@ void UMovieSceneSkeletalAnimationSection::GetSnapTimes(TArray<float>& OutSnapTim
 	Super::GetSnapTimes(OutSnapTimes, bGetSectionBorders);
 
 	float CurrentTime = GetAnimationStartTime();
-	while (CurrentTime <= GetEndTime())
+	while (CurrentTime <= GetEndTime() && !FMath::IsNearlyZero(GetAnimationDuration()))
 	{
 		if (CurrentTime >= GetStartTime())
 		{

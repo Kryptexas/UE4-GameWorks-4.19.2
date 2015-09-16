@@ -35,7 +35,7 @@ void FMovieSceneSkeletalAnimationTrackInstance::Update( float Position, float La
 				int32 ChannelIndex = 0;
 				FName SlotName = FName("AnimationSlot");
 				UAnimSequence* AnimSequence = AnimSection->GetAnimSequence();
-				float AnimPosition = FMath::Fmod(Position - AnimSection->GetAnimationStartTime(), AnimSection->GetAnimationDuration()) / AnimSection->GetAnimationDilationFactor();
+				float AnimPosition = FMath::Fmod(Position - AnimSection->GetAnimationStartTime(), AnimSection->GetAnimationDuration()) * AnimSection->GetAnimationDilationFactor();
 
 				AnimInterface->PreviewBeginAnimControl(nullptr);
 				AnimInterface->PreviewSetAnimPosition(SlotName, ChannelIndex, AnimSequence, AnimPosition, true, false, 0.f);

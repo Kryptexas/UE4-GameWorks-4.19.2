@@ -26,7 +26,7 @@ public:
 	float GetAnimationStartTime() const {return AnimationStartTime;}
 	
 	/** Gets the animation duration, modified by dilation */
-	float GetAnimationDuration() const {return AnimSequence->SequenceLength * AnimationDilationFactor;}
+	float GetAnimationDuration() const {return FMath::IsNearlyZero(AnimationDilationFactor) ? 0.f : AnimSequence->SequenceLength / AnimationDilationFactor;}
 
 	/**
 	 * @return The dilation multiplier of the animation
