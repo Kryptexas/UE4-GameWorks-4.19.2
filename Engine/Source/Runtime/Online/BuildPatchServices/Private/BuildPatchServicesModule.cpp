@@ -6,7 +6,8 @@
 
 #include "BuildPatchServicesPrivatePCH.h"
 
-IMPLEMENT_MODULE( FBuildPatchServicesModule, BuildPatchServices );
+DEFINE_LOG_CATEGORY(LogBuildPatchServices);
+IMPLEMENT_MODULE(FBuildPatchServicesModule, BuildPatchServices);
 
 /* FBuildPatchInstallationInfo implementation
 *****************************************************************************/
@@ -125,7 +126,7 @@ bool FBuildPatchServicesModule::SaveManifestToFile(const FString& Filename, IBui
 	return StaticCastSharedRef< FBuildPatchAppManifest >(Manifest)->SaveToFile(Filename, bUseBinary);
 }
 
-IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate )
+IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate, TSet<FString> InstallTags)
 {
 	// Using a local bool for this check will improve the assert message that gets displayed
 	const bool bIsCalledFromMainThread = IsInGameThread();
@@ -147,11 +148,14 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestP
 	// Make sure the http wrapper is already created
 	FBuildPatchHTTP::Initialize();
 	// Run the install thread
-	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, false ) ) );
-	return BuildPatchInstallers.Top();
+	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, false));
+	Installer->SetRequiredInstallTags(InstallTags);
+	Installer->StartInstallation();
+	BuildPatchInstallers.Add(Installer);
+	return Installer;
 }
 
-IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate)
+IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildManifestPtr CurrentManifest, IBuildManifestPtr InstallManifest, const FString& InstallDirectory, FBuildPatchBoolManifestDelegate OnCompleteDelegate, TSet<FString> InstallTags)
 {
 	// Using a local bool for this check will improve the assert message that gets displayed
 	const bool bIsCalledFromMainThread = IsInGameThread();
@@ -167,8 +171,11 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstallStageOnly(IBuildM
 	// Make sure the http wrapper is already created
 	FBuildPatchHTTP::Initialize();
 	// Run the install thread
-	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, true ) ) );
-	return BuildPatchInstallers.Top();
+	FBuildPatchInstallerRef Installer = MakeShareable(new FBuildPatchInstaller(OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo, true));
+	Installer->SetRequiredInstallTags(InstallTags);
+	Installer->StartInstallation();
+	BuildPatchInstallers.Add(Installer);
+	return Installer;
 }
 
 bool FBuildPatchServicesModule::Tick( float Delta )
@@ -179,24 +186,17 @@ bool FBuildPatchServicesModule::Tick( float Delta )
 	check( bIsCalledFromMainThread );
 
 	// Call complete delegate on each finished installer
-	for(auto InstallerIt = BuildPatchInstallers.CreateIterator(); InstallerIt; ++InstallerIt)
+	for (auto& Installer : BuildPatchInstallers)
 	{
-		if( (*InstallerIt).IsValid() && (*InstallerIt)->IsComplete() )
+		if (Installer.IsValid() && Installer->IsComplete())
 		{
-			(*InstallerIt)->ExecuteCompleteDelegate();
-			(*InstallerIt).Reset();
+			Installer->ExecuteCompleteDelegate();
+			Installer.Reset();
 		}
 	}
 
 	// Remove completed (invalids) from the list
-	for(int32 BuildPatchInstallersIdx = 0; BuildPatchInstallersIdx < BuildPatchInstallers.Num(); ++BuildPatchInstallersIdx )
-	{
-		const FBuildPatchInstallerPtr* Installer = &BuildPatchInstallers[ BuildPatchInstallersIdx ];
-		if( !Installer->IsValid() )
-		{
-			BuildPatchInstallers.RemoveAt( BuildPatchInstallersIdx-- );
-		}
-	}
+	BuildPatchInstallers.RemoveAll([](const FBuildPatchInstallerPtr& Installer){ return Installer.IsValid() == false; });
 
 	// More ticks
 	return true;
@@ -216,8 +216,7 @@ bool FBuildPatchServicesModule::GenerateFilesManifestFromDirectory( const FBuild
 bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const ECompactifyMode::Type Mode)
 {
 	const bool bPreview = Mode == ECompactifyMode::Preview;
-	const bool bNoPatchDelete = Mode == ECompactifyMode::NoPatchDelete;
-	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview, bNoPatchDelete);
+	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview);
 }
 
 bool FBuildPatchServicesModule::EnumerateManifestData(FString ManifestFilePath, FString OutputFile, const bool bIncludeSizes)
@@ -269,25 +268,43 @@ void FBuildPatchServicesModule::RegisterAppInstallation(IBuildManifestRef AppMan
 	InstallationInfo.RegisterAppInstallation(AppManifest, AppInstallDirectory);
 }
 
+void FBuildPatchServicesModule::CancelAllInstallers(bool WaitForThreads)
+{
+	// Using a local bool for this check will improve the assert message that gets displayed
+	const bool bIsCalledFromMainThread = IsInGameThread();
+	check(bIsCalledFromMainThread);
+
+	// Loop each installer, cancel it, and optionally wait to make completion delegate call
+	for (auto& Installer : BuildPatchInstallers)
+	{
+		if (Installer.IsValid())
+		{
+			Installer->CancelInstall();
+			if (WaitForThreads)
+			{
+				Installer->WaitForThread();
+				Installer->ExecuteCompleteDelegate();
+				Installer.Reset();
+			}
+		}
+	}
+
+	// Remove completed (invalids) from the list
+	BuildPatchInstallers.RemoveAll([](const FBuildPatchInstallerPtr& Installer){ return Installer.IsValid() == false; });
+}
+
 void FBuildPatchServicesModule::PreExit()
 {
 	// Set shutdown error so any running threads know to exit.
 	FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::ApplicationClosing);
 
+	// Cleanup installers
+	CancelAllInstallers(true);
+	BuildPatchInstallers.Empty();
+
 	// Release our ptr to analytics
 	FBuildPatchAnalytics::SetAnalyticsProvider(NULL);
 	FBuildPatchAnalytics::SetHttpTracker(nullptr);
-
-	// Cleanup installers
-	for (auto& BuildPatchInstaller : BuildPatchInstallers)
-	{
-		// Make sure it is not paused, this function only un-pauses when in error state
-		BuildPatchInstaller->TogglePauseInstall();
-		// We still have to manually wait for the thread as another system could hold a shared ptr
-		// thus we would not be calling the destructor here
-		BuildPatchInstaller->WaitForThread();
-	}
-	BuildPatchInstallers.Empty();
 }
 
 const FString& FBuildPatchServicesModule::GetStagingDirectory()
