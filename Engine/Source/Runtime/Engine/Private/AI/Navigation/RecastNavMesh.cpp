@@ -458,11 +458,7 @@ void ARecastNavMesh::PostInitProperties()
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
-		FRecastQueryFilter* DetourFilter = static_cast<FRecastQueryFilter*>(DefaultQueryFilter->GetImplementation());
-		DetourFilter->SetIsVirtual(bUseVirtualFilters);
-		DetourFilter->setHeuristicScale(HeuristicScale);
-		DefaultQueryFilter->SetMaxSearchNodes(DefaultMaxSearchNodes);		
+		RecreateDefaultFilter();
 	}
 
 	// voxel cache requires the same rasterization setup for all navmeshes, as it's stored in octree
@@ -512,6 +508,33 @@ void ARecastNavMesh::PostInitProperties()
 	}
 
 	UpdatePolyRefBitsPreview();
+}
+
+void ARecastNavMesh::RecreateDefaultFilter()
+{
+	DefaultQueryFilter->SetFilterType<FRecastQueryFilter>();
+	DefaultQueryFilter->SetMaxSearchNodes(DefaultMaxSearchNodes);
+
+	FRecastQueryFilter* DetourFilter = static_cast<FRecastQueryFilter*>(DefaultQueryFilter->GetImplementation());
+	DetourFilter->SetIsVirtual(bUseVirtualFilters);
+	DetourFilter->setHeuristicScale(HeuristicScale);
+
+	for (int32 Idx = 0; Idx < SupportedAreas.Num(); Idx++)
+	{
+		const FSupportedAreaData& AreaData = SupportedAreas[Idx];
+		
+		UNavArea* DefArea = nullptr;
+		if (AreaData.AreaClass)
+		{
+			DefArea = ((UClass*)AreaData.AreaClass)->GetDefaultObject<UNavArea>();
+		}
+
+		if (DefArea)
+		{
+			DetourFilter->SetAreaCost(AreaData.AreaID, DefArea->DefaultCost);
+			DetourFilter->SetFixedAreaEnteringCost(AreaData.AreaID, DefArea->GetFixedAreaEnteringCost());
+		}
+	}
 }
 
 FVector ARecastNavMesh::GetModifiedQueryExtent(const FVector& QueryExtent) const
@@ -1472,6 +1495,16 @@ URecastNavMeshDataChunk* ARecastNavMesh::GetNavigationDataChunk(ULevel* InLevel)
 	}
 		
 	return RcNavDataChunk;
+}
+
+void ARecastNavMesh::EnsureBuildCompletion()
+{
+	Super::EnsureBuildCompletion();
+
+	// Doing this as a safety net solution due to UE-20646, which was basically a result of random 
+	// over-releasing of default filter's shared pointer (it seemed). We might have time to get 
+	// back to this time some time in next 3 years :D
+	RecreateDefaultFilter();
 }
 
 void ARecastNavMesh::OnNavMeshGenerationFinished()

@@ -786,6 +786,8 @@ public:
 	/** Event from generator that navmesh build has finished */
 	virtual void OnNavMeshGenerationFinished();
 
+	virtual void EnsureBuildCompletion() override;
+
 	virtual void SetConfig(const FNavDataConfig& Src) override;
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) override;
@@ -829,6 +831,8 @@ public:
 
 	/** Area sort function */
 	virtual void SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>& Areas) const;
+
+	void RecreateDefaultFilter();
 
 	int32 GetMaxSimultaneousTileGenerationJobsCount() const { return MaxSimultaneousTileGenerationJobsCount; }
 	void SetMaxSimultaneousTileGenerationJobsCount(int32 NewJobsCountLimit);
