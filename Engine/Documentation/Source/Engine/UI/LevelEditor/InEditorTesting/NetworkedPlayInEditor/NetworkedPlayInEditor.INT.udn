@@ -2,6 +2,7 @@ Availability:Public
 Title:Networked Play In Editor
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor, Engine/UI/LevelEditor/InEditorTesting
 Description:Testing gameplay with clients and servers
+Version: 4.9
 
 
 _Play In Editor_ supports multiple worlds, so that you can test networked play. The editor spawns multiple worlds within the already loaded instance of UE4, which results in fast iteration time and 
