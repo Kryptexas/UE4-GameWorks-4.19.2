@@ -167,7 +167,7 @@ void UWidgetBlueprintLibrary::DrawText(UPARAM(ref) FPaintContext& Context, const
 	FSlateDrawElement::MakeText(
 		Context.OutDrawElements,
 		Context.MaxLayer,
-		Context.AllottedGeometry.ToPaintGeometry(),
+		Context.AllottedGeometry.ToOffsetPaintGeometry(Position),
 		InString,
 		FontInfo,
 		Context.MyClippingRect,
@@ -187,7 +187,7 @@ void UWidgetBlueprintLibrary::DrawTextFormatted(UPARAM(ref) FPaintContext& Conte
 		FSlateDrawElement::MakeText(
 			Context.OutDrawElements,
 			Context.MaxLayer,
-			Context.AllottedGeometry.ToPaintGeometry(),
+			Context.AllottedGeometry.ToOffsetPaintGeometry(Position),
 			Text,
 			FontInfo,
 			Context.MyClippingRect,
