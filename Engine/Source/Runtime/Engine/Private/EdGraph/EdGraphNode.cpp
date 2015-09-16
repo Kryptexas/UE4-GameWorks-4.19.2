@@ -257,6 +257,21 @@ void UEdGraphNode::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	Super::AddReferencedObjects(This, Collector);
 }
 
+void UEdGraphNode::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		// If this was an older version, ensure that we update the enabled state for already-disabled nodes.
+		// Note: We need to do this here and not in PostLoad() as it must be assigned prior to compile-on-load.
+		if(!bIsNodeEnabled_DEPRECATED && !bUserSetEnabledState && EnabledState == ENodeEnabledState::Enabled)
+		{
+			EnabledState = ENodeEnabledState::Disabled;
+		}
+	}
+}
+
 void UEdGraphNode::PostLoad()
 {
 	Super::PostLoad();
@@ -280,12 +295,6 @@ void UEdGraphNode::PostLoad()
 	if(GetLinkerUE4Version() < VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES)
 	{
 		bCommentBubbleVisible = !NodeComment.IsEmpty();
-	}
-
-	// If this was an older version, ensure that we update the enabled state to match
-	if(!bIsNodeEnabled_DEPRECATED)
-	{
-		EnabledState = ENodeEnabledState::Disabled;
 	}
 }
 
