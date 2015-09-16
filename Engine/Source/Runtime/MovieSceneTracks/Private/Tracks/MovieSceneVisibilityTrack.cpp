@@ -39,3 +39,9 @@ bool UMovieSceneVisibilityTrack::AddKeyToSection( float Time, bool Value, FKeyPa
 	}
 	return false;
 }
+
+bool UMovieSceneVisibilityTrack::CanKeyTrack(float Time, bool Value, FKeyParams KeyParams) const
+{
+	// The property that's being changed is bHiddenInGame. But we want to store the inverse of that as visibility, so invert the incoming value.
+	return Super::CanKeyTrack(Time, !Value, KeyParams);
+}

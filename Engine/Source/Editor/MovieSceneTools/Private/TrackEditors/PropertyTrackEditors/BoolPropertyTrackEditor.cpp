@@ -18,9 +18,14 @@ TSharedRef<ISequencerSection> FBoolPropertyTrackEditor::MakeSectionInterface( UM
 bool FBoolPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, bool& OutKey )
 {
 	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(PropertyChangedParams.PropertyPath.Last());
-	if (BoolProperty)
+	if (BoolProperty && PropertyChangedParams.ObjectsThatChanged.Num() != 0)
 	{
-		OutKey = BoolProperty->GetPropertyValue(BoolProperty->ContainerPtrToValuePtr<void>(PropertyChangedParams.ObjectsThatChanged.Last()));
+		void* CurrentObject = PropertyChangedParams.ObjectsThatChanged[0];
+		for (int32 i = 0; i < PropertyChangedParams.PropertyPath.Num(); ++i)
+		{
+			CurrentObject = PropertyChangedParams.PropertyPath[i]->ContainerPtrToValuePtr<void>(CurrentObject, 0);
+		}
+		OutKey = BoolProperty->GetPropertyValue(CurrentObject);
 	
 		if (InTrack)
 		{

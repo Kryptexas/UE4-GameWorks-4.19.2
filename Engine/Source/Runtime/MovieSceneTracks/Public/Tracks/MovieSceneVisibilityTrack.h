@@ -30,4 +30,14 @@ public:
 	 * @return True if the key was successfully added.
 	 */
 	virtual bool AddKeyToSection( float Time, bool Value, FKeyParams KeyParams );
+
+	/*
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, bool Value, FKeyParams KeyParams) const;
 };
