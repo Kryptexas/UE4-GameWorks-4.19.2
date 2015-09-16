@@ -79,7 +79,7 @@ protected:
 		const FString& SessionOwner = SessionInfo->GetSessionOwner();
 
 		// return name of a launched session
-		if (!SessionInfo->IsStandalone() || !SessionName.IsEmpty())
+		if (!SessionName.IsEmpty())
 		{
 			if (SessionInfo->GetSessionOwner() != FPlatformProcess::UserName(true))
 			{
