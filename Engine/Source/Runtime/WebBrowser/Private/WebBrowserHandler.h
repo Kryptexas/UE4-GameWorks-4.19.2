@@ -180,7 +180,7 @@ public:
 public:
 
 	// CefRenderHandler Interface
-
+	virtual bool GetRootScreenRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect) override;
 	virtual bool GetViewRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect) override;
 	virtual void OnPaint(CefRefPtr<CefBrowser> Browser,
 		PaintElementType Type,

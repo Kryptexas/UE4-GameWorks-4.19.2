@@ -5,7 +5,7 @@
 #include "WebBrowserWindow.h"
 #include "WebBrowserSingleton.h"
 #include "WebBrowserPopupFeatures.h"
-
+#include "SlateApplication.h"
 
 #define LOCTEXT_NAMESPACE "WebBrowserHandler"
 
@@ -208,6 +208,15 @@ void FWebBrowserHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> Browser, boo
 	}
 }
 
+bool FWebBrowserHandler::GetRootScreenRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect)
+{
+	FDisplayMetrics DisplayMetrics;
+	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
+	Rect.width = DisplayMetrics.PrimaryDisplayWidth;
+	Rect.height = DisplayMetrics.PrimaryDisplayHeight;
+	return true;
+}
+
 bool FWebBrowserHandler::GetViewRect(CefRefPtr<CefBrowser> Browser, CefRect& Rect)
 {
 	TSharedPtr<FWebBrowserWindow> BrowserWindow = BrowserWindowPtr.Pin();
@@ -218,10 +227,7 @@ bool FWebBrowserHandler::GetViewRect(CefRefPtr<CefBrowser> Browser, CefRect& Rec
 	}
 	else
 	{
-		// Seems that if we return false from here or without a size > 0, popup menus will not show up.
-		Rect.width = 800;
-		Rect.height = 600;
-		return true;
+		return false;
 	}
 }
 

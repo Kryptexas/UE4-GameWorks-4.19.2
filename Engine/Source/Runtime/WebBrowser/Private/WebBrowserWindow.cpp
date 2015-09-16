@@ -778,20 +778,16 @@ void FWebBrowserWindow::SetToolTip(const CefString& CefToolTip)
 
 bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 {
-	Rect.x = 0;
-	Rect.y = 0;
 	if (ViewportSize == FIntPoint::ZeroValue)
 	{
-		// We need to return a dummy size until we know the final size of the viewport. Otherwise, popup menus may not work.
-		Rect.width = 1024;
-		Rect.height = 1024;
+		return false;
 	}
 	else
 	{
 		Rect.width = ViewportSize.X;
 		Rect.height = ViewportSize.Y;
+		return true;
 	}
-	return true;
 }
 
 void FWebBrowserWindow::NotifyDocumentError()
