@@ -4,6 +4,7 @@
 #include "PhysicsPublic.h"
 #include "ParticleDefinitions.h"
 #include "PrecomputedLightVolume.h"
+#include "PhysicsEngine/ClothManager.h"
 
 #if WITH_PHYSX
 	#include "PhysXSupport.h"
