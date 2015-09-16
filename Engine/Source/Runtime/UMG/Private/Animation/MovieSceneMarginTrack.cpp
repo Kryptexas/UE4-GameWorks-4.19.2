@@ -55,3 +55,13 @@ bool UMovieSceneMarginTrack::Eval( float Position, float LastPosition, FMargin& 
 
 	return Section != NULL;
 }
+
+bool UMovieSceneMarginTrack::CanKeyTrack(float Time, const FMarginKey& MarginKey, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneMarginSection>(NearestSection)->NewKeyIsNewData(Time, MarginKey.Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}

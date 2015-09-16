@@ -33,7 +33,7 @@ public:
 
 protected:
 	/** FPropertyTrackEditor Interface */
-	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey ) override;
+	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey ) override;
 };
 
 

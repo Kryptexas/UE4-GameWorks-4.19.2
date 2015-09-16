@@ -53,3 +53,14 @@ bool UMovieSceneColorTrack::Eval( float Position, float LastPosition, FLinearCol
 
 	return Section != nullptr;
 }
+
+bool UMovieSceneColorTrack::CanKeyTrack(float Time, const FColorKey& Key, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneColorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}
+

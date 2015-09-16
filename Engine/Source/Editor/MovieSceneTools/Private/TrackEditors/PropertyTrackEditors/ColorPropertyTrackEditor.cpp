@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
+#include "MovieSceneColorTrack.h"
 #include "ColorPropertyTrackEditor.h"
 #include "ColorPropertySection.h"
 
@@ -14,7 +15,7 @@ TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface( U
 	return MakeShareable(new FColorPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get(), Track ));
 }
 
-bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FColorKey& OutKey )
+bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged(  const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FColorKey& OutKey )
 {
 	bool bIsFColor = false, bIsFLinearColor = false, bIsSlateColor = false;
 	const UStructProperty* StructProp = Cast<const UStructProperty>(PropertyChangedParams.PropertyPath.Last());
@@ -53,5 +54,15 @@ bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FProper
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
 	OutKey.bIsSlateColor = bIsSlateColor;
 
-	return true;
+	if (InTrack)
+	{
+		const UMovieSceneColorTrack* ColorTrack = CastChecked<const UMovieSceneColorTrack>( InTrack );
+		if (ColorTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return ColorTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
+
+	return false;
 }

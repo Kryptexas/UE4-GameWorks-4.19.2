@@ -66,15 +66,9 @@ void UMovieSceneBoolSection::AddKey( float Time, bool Value, FKeyParams KeyParam
 
 bool UMovieSceneBoolSection::NewKeyIsNewData(float Time, bool Value, FKeyParams KeyParams) const
 {
-	if (BoolCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	if ( BoolCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
 	{
-		bool bKeyExists = BoolCurve.IsKeyHandleValid(BoolCurve.FindKey(Time));
-
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		if (!(!bKeyExists && !KeyParams.bAutoKeying && BoolCurve.GetNumKeys() > 0))
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;

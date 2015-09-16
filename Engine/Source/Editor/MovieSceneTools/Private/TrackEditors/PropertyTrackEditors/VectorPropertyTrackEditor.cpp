@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
+#include "MovieSceneVectorTrack.h"
 #include "VectorPropertyTrackEditor.h"
 #include "VectorPropertySection.h"
 
@@ -14,7 +15,7 @@ TSharedRef<ISequencerSection> FVectorPropertyTrackEditor::MakeSectionInterface( 
 	return MakeShareable(new FVectorPropertySection( SectionObject, Track->GetTrackName() ));
 }
 
-bool FVectorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FVectorKey& OutKey )
+bool FVectorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FVectorKey& OutKey )
 {
 	bool bIsVector2D = false, bIsVector = false, bIsVector4 = false;
 	const UStructProperty* StructProp = Cast<const UStructProperty>( PropertyChangedParams.PropertyPath.Last() );
@@ -44,5 +45,16 @@ bool FVectorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPrope
 	{
 		OutKey = FVectorKey( *PropertyChangedParams.GetPropertyValue<FVector4>(), PropertyChangedParams.StructPropertyNameToKey );
 	}
-	return true;
+
+	if (InTrack)
+	{
+		const UMovieSceneVectorTrack* VectorTrack = CastChecked<const UMovieSceneVectorTrack>( InTrack );
+		if (VectorTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return VectorTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
+
+	return false;
 }

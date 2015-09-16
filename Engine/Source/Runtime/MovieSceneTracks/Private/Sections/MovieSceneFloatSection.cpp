@@ -62,15 +62,9 @@ void UMovieSceneFloatSection::AddKey( float Time, float Value, FKeyParams KeyPar
 
 bool UMovieSceneFloatSection::NewKeyIsNewData(float Time, float Value, FKeyParams KeyParams) const
 {
-	if (FloatCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	if ( FloatCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
 	{
-		bool bKeyExists = FloatCurve.IsKeyHandleValid(FloatCurve.FindKey(Time));
-
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		if (!(!bKeyExists && !KeyParams.bAutoKeying && FloatCurve.GetNumKeys() > 0))
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;

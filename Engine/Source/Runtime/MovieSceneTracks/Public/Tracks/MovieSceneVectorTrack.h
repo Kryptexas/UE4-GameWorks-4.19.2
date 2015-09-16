@@ -53,6 +53,16 @@ public:
 	 */
 	virtual bool Eval( float Position, float LastPostion, FVector4& InOutVector ) const;
 
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, const FVectorKey& Key, FKeyParams KeyParams ) const;
+
 	/** @return Get the number of channels used by the vector */
 	int32 GetNumChannelsUsed() const { return NumChannelsUsed; }
 

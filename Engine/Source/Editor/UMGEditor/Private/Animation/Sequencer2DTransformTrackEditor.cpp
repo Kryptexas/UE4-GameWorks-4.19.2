@@ -3,6 +3,7 @@
 #include "UMGEditorPrivatePCH.h"
 #include "Sequencer2DTransformTrackEditor.h"
 #include "MovieScene2DTransformSection.h"
+#include "MovieScene2DTransformTrack.h"
 #include "PropertySection.h"
 #include "ISectionLayoutBuilder.h"
 #include "MovieSceneToolHelpers.h"
@@ -55,9 +56,20 @@ TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMo
 	return NewSection;
 }
 
-bool F2DTransformTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey )
+bool F2DTransformTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey )
 {
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
 	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FWidgetTransform>();
-	return true;
+
+	if (InTrack)
+	{
+		const UMovieScene2DTransformTrack* TransformTrack = CastChecked<const UMovieScene2DTransformTrack>( InTrack );
+		if (TransformTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return TransformTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
+
+	return false;
 }

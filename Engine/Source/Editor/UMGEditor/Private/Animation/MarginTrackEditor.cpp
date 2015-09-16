@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
+#include "MovieSceneMarginTrack.h"
 #include "MarginTrackEditor.h"
 #include "MovieSceneMarginSection.h"
 #include "PropertySection.h"
@@ -40,9 +41,20 @@ TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSc
 	return NewSection;
 }
 
-bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
+bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
 {
 	OutKey.CurveName = PropertyChangedParams.StructPropertyNameToKey;
 	OutKey.Value = *PropertyChangedParams.GetPropertyValue<FMargin>();
-	return true;
+
+	if (InTrack)
+	{
+		const UMovieSceneMarginTrack* MarginTrack = CastChecked<const UMovieSceneMarginTrack>( InTrack );
+		if (MarginTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return MarginTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
+
+	return false;
 }

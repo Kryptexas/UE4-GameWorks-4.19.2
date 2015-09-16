@@ -59,15 +59,9 @@ void UMovieSceneByteSection::AddKey( float Time, uint8 Value, FKeyParams KeyPara
 
 bool UMovieSceneByteSection::NewKeyIsNewData(float Time, uint8 Value, FKeyParams KeyParams) const
 {
-	if (ByteCurve.GetNumKeys() == 0 || Eval(Time) != Value)
+	if ( ByteCurve.GetNumKeys() == 0 || (KeyParams.bAutoKeying && Eval(Time) != Value) )
 	{
-		bool bKeyExists = ByteCurve.IsKeyHandleValid(ByteCurve.FindKey(Time));
-
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		if (!(!bKeyExists && !KeyParams.bAutoKeying && ByteCurve.GetNumKeys() > 0))
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;

@@ -91,31 +91,26 @@ void UMovieSceneColorSection::AddKey( float Time, const FColorKey& Key, FKeyPara
 
 	FName CurveName = Key.CurveName;
 
-	bool bRedKeyExists = RedCurve.IsKeyHandleValid(RedCurve.FindKey(Time));
-	bool bGreenKeyExists = GreenCurve.IsKeyHandleValid(GreenCurve.FindKey(Time));
-	bool bBlueKeyExists = BlueCurve.IsKeyHandleValid(BlueCurve.FindKey(Time));
-	bool bAlphaKeyExists = AlphaCurve.IsKeyHandleValid(AlphaCurve.FindKey(Time));
-
 	if ( (CurveName == NAME_None || CurveName == RedName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bRedKeyExists && !KeyParams.bAutoKeying && RedCurve.GetNumKeys() > 0) ) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(RedCurve.Eval(Time), Key.Value.R) || RedCurve.GetNumKeys() == 0) )
 	{
 		AddKeyToCurve(RedCurve, Time, Key.Value.R, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == GreenName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bGreenKeyExists && !KeyParams.bAutoKeying && GreenCurve.GetNumKeys() > 0) ) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(GreenCurve.Eval(Time), Key.Value.G) || GreenCurve.GetNumKeys() == 0) )
 	{
 		AddKeyToCurve(GreenCurve, Time, Key.Value.G, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == BlueName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bBlueKeyExists && !KeyParams.bAutoKeying && BlueCurve.GetNumKeys() > 0) ) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(BlueCurve.Eval(Time), Key.Value.B) || BlueCurve.GetNumKeys() == 0) )
 	{
 		AddKeyToCurve(BlueCurve, Time, Key.Value.B, KeyParams);
 	}
 
 	if ( (CurveName == NAME_None || CurveName == AlphaName) &&
-			(KeyParams.bAddKeyEvenIfUnchanged || !(!bAlphaKeyExists && !KeyParams.bAutoKeying && AlphaCurve.GetNumKeys() > 0) ) )
+			(KeyParams.bAddKeyEvenIfUnchanged || !FMath::IsNearlyEqual(AlphaCurve.Eval(Time), Key.Value.A) || AlphaCurve.GetNumKeys() == 0) )
 	{
 		AddKeyToCurve(AlphaCurve, Time, Key.Value.A, KeyParams);
 	}
@@ -128,24 +123,11 @@ bool UMovieSceneColorSection::NewKeyIsNewData(float Time, FLinearColor Value, FK
 		RedCurve.GetNumKeys() == 0 ||
 		GreenCurve.GetNumKeys() == 0 ||
 		BlueCurve.GetNumKeys() == 0 ||
-		AlphaCurve.GetNumKeys() == 0 ||
-		!Eval(Time,Value).Equals(Value);
+		AlphaCurve.GetNumKeys() == 0;
 
-	if (bHasEmptyKeys)
+	if ( bHasEmptyKeys || (KeyParams.bAutoKeying && !Eval(Time, Value).Equals(Value) ) )
 	{
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		bool bRedKeyExists = RedCurve.IsKeyHandleValid(RedCurve.FindKey(Time));
-		bool bGreenKeyExists = GreenCurve.IsKeyHandleValid(GreenCurve.FindKey(Time));
-		bool bBlueKeyExists = BlueCurve.IsKeyHandleValid(BlueCurve.FindKey(Time));
-		bool bAlphaKeyExists = AlphaCurve.IsKeyHandleValid(AlphaCurve.FindKey(Time));
-
-		if ( !(!bRedKeyExists && !KeyParams.bAutoKeying && RedCurve.GetNumKeys() > 0) ||
-			 !(!bGreenKeyExists && !KeyParams.bAutoKeying && GreenCurve.GetNumKeys() > 0) ||
-			 !(!bBlueKeyExists && !KeyParams.bAutoKeying && BlueCurve.GetNumKeys() > 0) ||
-			 !(!bAlphaKeyExists && !KeyParams.bAutoKeying && AlphaCurve.GetNumKeys() > 0) )
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;

@@ -55,6 +55,15 @@ bool UMovieSceneByteTrack::Eval( float Position, float LastPostion, uint8& OutBy
 	return Section != nullptr;
 }
 
+bool UMovieSceneByteTrack::CanKeyTrack(float Time, uint8 Value, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneByteSection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}
 
 void UMovieSceneByteTrack::SetEnum(UEnum* InEnum)
 {

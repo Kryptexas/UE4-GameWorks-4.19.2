@@ -98,3 +98,14 @@ bool UMovieSceneVectorTrack::Eval( float Position, float LastPosition, FVector4&
 
 	return Section != nullptr;
 }
+
+bool UMovieSceneVectorTrack::CanKeyTrack(float Time, const FVectorKey& Key, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneVectorSection>(NearestSection)->NewKeyIsNewData(Time, Key.Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}
+

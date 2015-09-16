@@ -46,6 +46,17 @@ public:
 	 * @return true if anything was evaluated. Note: if false is returned OutColor remains unchanged
 	 */
 	virtual bool Eval( float Position, float LastPostion, FLinearColor& OutColor ) const;
+
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, const FColorKey& Key, FKeyParams KeyParams ) const;
+
 private:
 	UPROPERTY()
 	bool bIsSlateColor_DEPRECATED;

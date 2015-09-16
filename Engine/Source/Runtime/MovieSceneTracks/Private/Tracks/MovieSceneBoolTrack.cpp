@@ -51,3 +51,13 @@ bool UMovieSceneBoolTrack::Eval( float Position, float LastPostion, bool& OutBoo
 
 	return Section != NULL;
 }
+
+bool UMovieSceneBoolTrack::CanKeyTrack(float Time, bool Value, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieSceneBoolSection>(NearestSection)->NewKeyIsNewData(Time, Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}

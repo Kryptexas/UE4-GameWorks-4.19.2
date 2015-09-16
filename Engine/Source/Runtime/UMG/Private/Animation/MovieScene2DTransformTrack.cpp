@@ -54,3 +54,13 @@ bool UMovieScene2DTransformTrack::AddKeyToSection(float Time, const F2DTransform
 	}
 	return false;
 }
+
+bool UMovieScene2DTransformTrack::CanKeyTrack(float Time, const F2DTransformKey& TransformKey, FKeyParams KeyParams) const
+{
+	const UMovieSceneSection* NearestSection = MovieSceneHelpers::FindNearestSectionAtTime( Sections, Time );
+	if (!NearestSection || CastChecked<UMovieScene2DTransformSection>(NearestSection)->NewKeyIsNewData(Time, TransformKey.Value, KeyParams))
+	{
+		return true;
+	}
+	return false;
+}

@@ -45,11 +45,7 @@ void UMovieSceneVectorSection::AddKey( float Time, FName CurveName, const FVecto
 			}
 			else
 			{
-				bool bKeyExists = Curves[i].IsKeyHandleValid(Curves[i].FindKey(Time));
-				if ( KeyParams.bAddKeyEvenIfUnchanged || !(!bKeyExists && !KeyParams.bAutoKeying && Curves[i].GetNumKeys() > 0) )
-				{
-					Curves[i].UpdateOrAddKey(Time, Value[i]);
-				}
+				Curves[i].UpdateOrAddKey(Time, Value[i]);
 			}
 		}
 	}
@@ -60,33 +56,34 @@ bool UMovieSceneVectorSection::NewKeyIsNewData(float Time, const FVector4& Value
 {
 	check(ChannelsUsed >= 2 && ChannelsUsed <= 4);
 
+	bool bHasEmptyKeys = false;
+	for (int32 i = 0; i < ChannelsUsed; ++i)
+	{
+		if (Curves[i].GetNumKeys() == 0)
+		{
+			bHasEmptyKeys = true;
+			break;
+		}
+	}
+
 	bool bNewData = false;
 	for (int32 i = 0; i < ChannelsUsed; ++i)
 	{
 		float OriginalData = Curves[i].Eval(Time);
 		// don't re-add keys if the data already matches
-		if (Curves[i].GetNumKeys() == 0 || !FMath::IsNearlyEqual(OriginalData, Value[i]))
+		if (!FMath::IsNearlyEqual(OriginalData, Value[i]))
 		{
 			bNewData = true;
-
 			break;
 		}
 	}
 
-	if (bNewData)
+	if ( bHasEmptyKeys || (KeyParams.bAutoKeying && bNewData) )
 	{
-		for (int32 i = 0; i < ChannelsUsed; ++i)
-		{
-			// Don't add a keyframe if there are existing keys and auto key is not enabled.
-			bool bKeyExists = Curves[i].IsKeyHandleValid(Curves[i].FindKey(Time));
-			if ( !(!bKeyExists && !KeyParams.bAutoKeying && Curves[i].GetNumKeys() > 0) )
-			{
-				return true;
-			}
-		}
+		return true;
 	}
 
-	return bNewData;
+	return false;
 }
 
 

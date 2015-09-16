@@ -117,12 +117,13 @@ protected:
 	 * Tries to generate a key for the track based on a property change event.  This will be called when a property changes
 	 * which matches a property type name which was supplied on construction.
 	 *
+	 * @param InTrack The track where this key could be added
 	 * @param PropertyChangedParams Parameters associated with the property change.
 	 * @param OutKey If this call is successful this represents the key which was generated.
 	 *
 	 * @return true if generating a key was successful, otherwise false.
 	 */
-	virtual bool TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, KeyType& OutKey ) = 0;
+	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, KeyType& OutKey ) = 0;
 	
 private:
 	/** Adds a callback for property changes for the supplied property type name. */
@@ -173,17 +174,17 @@ private:
 				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
 				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
 
-				bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
+				const bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
 
-				if (bCreateTrackIfMissing || GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(SequencerTrackClass, ObjectHandle, PropertyName))
+				UMovieSceneTrack* Track = GetSequencer()->GetFocusedMovieSceneSequence()->GetMovieScene()->FindTrack(SequencerTrackClass, ObjectHandle, PropertyName);
+
+				KeyType Key;
+				const bool bCanCreateKey = TryGenerateKeyFromPropertyChanged( Track, PropertyChangedParams, Key );
+
+				if (bCreateTrackIfMissing || bCanCreateKey )
 				{
-					// Get the value from the property
-					KeyType Key;
-					if ( TryGenerateKeyFromPropertyChanged( PropertyChangedParams, Key ) )
-					{
-						AnimatablePropertyChanged( TrackType::StaticClass(),
-							FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
-					}
+					AnimatablePropertyChanged( TrackType::StaticClass(),
+						FOnKeyProperty::CreateRaw( this, &FPropertyTrackEditor::OnKeyProperty, PropertyChangedParams, Key ) );
 				}
 			}
 		}
@@ -203,7 +204,7 @@ private:
 				TSubclassOf<UMovieSceneTrack> SequencerTrackClass = TrackType::StaticClass();
 				GetPropertyAndTrackClass(PropertyChangedParams.PropertyPath.Last(), PropertyName, SequencerTrackClass);
 
-				bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
+				const bool bCreateTrackIfMissing = PropertyChangedParams.KeyParams.bCreateTrackIfMissing;
 
 				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, SequencerTrackClass, PropertyName, bCreateTrackIfMissing );
 				if ( Track )

@@ -40,6 +40,16 @@ public:
 	 */
 	virtual bool Eval( float Position, float LastPostion, uint8& OutByte ) const;
 
+	/**
+	 * Get whether the track can be keyed at a particular time.
+	 *
+	 * @param Time				The time relative to the owning movie scene where the section should be
+	 * @param Value				The value of the key
+	 * @param KeyParams         The keying parameters
+	 * @return Whether the track can be keyed
+	 */
+	virtual bool CanKeyTrack( float Time, uint8 Value, FKeyParams KeyParams ) const;
+
 	void SetEnum(UEnum* Enum);
 
 	class UEnum* GetEnum() const;

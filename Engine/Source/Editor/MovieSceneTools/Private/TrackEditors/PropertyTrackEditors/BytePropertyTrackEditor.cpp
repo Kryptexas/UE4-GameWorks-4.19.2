@@ -61,8 +61,19 @@ UMovieSceneTrack* FBytePropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieSc
 	return NewTrack;
 }
 
-bool FBytePropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey )
+bool FBytePropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey )
 {
 	OutKey = *PropertyChangedParams.GetPropertyValue<uint8>();
-	return true;
+
+	if (InTrack)
+	{
+		const UMovieSceneByteTrack* ByteTrack = CastChecked<const UMovieSceneByteTrack>( InTrack );
+		if (ByteTrack)
+		{
+			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+			return ByteTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
+		}
+	}
+
+	return false;
 }
