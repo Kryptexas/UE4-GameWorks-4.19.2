@@ -1,7 +1,9 @@
-﻿Availability:Public
+﻿INTSourceChangelist:2686221
+Availability:Public
 Title:7.応用編
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:最後のステップでは、このプロジェクトの次のレベルへ進めるためのサンプル、および追加ドキュメントへのリンクを紹介します。 
+Version:4.9
 
 
 [VAR:Steps]
@@ -44,15 +46,15 @@ yut5Feu1KxI
 
 このガイドのトピックに関連した情報は以下の通りです。
 
-* **ブループリント** 全般に関する詳細は、[ブループリント ビジュアル スクリプティング システム](Engine\Blueprints) をご覧ください。
+* ブループリント 全般に関する詳細は、[ブループリント ビジュアル スクリプティング システム](Engine\Blueprints) をご覧ください。
 
 * ダイレクト ブループリント通信 に関する詳細は、[**ブループリント通信の使用方法**](Engine/Blueprints/UserGuide/BlueprintCommsUsage) をご覧ください。
 
-* **イベントディスパッチャー** に関する詳細は、[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) を参照してください。
+* イベントディスパッチャー に関する詳細は、[イベントディスパッチャー](Engine/Blueprints/UserGuide/EventDispatcher) を参照してください。
 
-* **キャスト** に関する詳細は、 [キャスト](Engine/Blueprints/UserGuide/CastNodes) をご覧ください。
+* キャスト に関する詳細は、[キャスト](Engine/Blueprints/UserGuide/CastNodes) をご覧ください。
 
-* **Unreal Motion Graphics** (UMG) での HUD エレメントの作成については、[Unreal Motion Graphics](Engine/UMG) をご覧ください。
+* Unreal Motion Graphics (UMG) での HUD エレメントの作成については、[アンリアル モーション グラフィック (UMG)](Engine/UMG) をご覧ください。
 
 
 %Steps%
