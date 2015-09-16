@@ -127,7 +127,7 @@
 				<dd>	
 					<%if( Model.Crash.HasMiniDumpFile() ) 
 					{ %>
-						<a style='text-decoration:none;' href='<%=Model.Crash.GetMiniDumpUrl() %>'><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;MiniDump</a>
+						<a style='text-decoration:none;' href='<%=Model.Crash.GetMiniDumpUrl() %>' title="<%=Model.Crash.GetDumpTitle()%>"><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;<%=Model.Crash.GetDumpName() %></a>
 						<%
 					} %>
 				</dd>

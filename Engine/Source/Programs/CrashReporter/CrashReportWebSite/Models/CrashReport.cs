@@ -566,10 +566,26 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		public string GetMiniDumpUrl()
 		{
-			bool bUseFullMinidumpPath = CrashContext != null && CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.Length > 0;
 			var WebPath = Properties.Settings.Default.CrashReporterFiles + Id + "_MiniDump.dmp";
-			var Path = bUseFullMinidumpPath ? CrashContext.PrimaryCrashProperties.GetFullCrashDumpLocation() : WebPath;
+			var Path = UseFullMinidumpPath() ? CrashContext.PrimaryCrashProperties.FullCrashDumpLocation : WebPath;
 			return Path;
+		}
+
+		/// <summary>
+		/// Tooltip for the dump.
+		/// </summary>
+		public string GetDumpTitle()
+		{
+			var Title = UseFullMinidumpPath() ? "Copy the link and open in the explorer" : "";
+			return Title;
+		}
+
+		/// <summary>
+		/// Return the short name of the dump.
+		/// </summary>
+		public string GetDumpName()
+		{
+			return UseFullMinidumpPath() ? "Fulldump" : "Minidump";
 		}
 
 		/// <summary>
@@ -810,9 +826,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>Return true, if there is a minidump file associated with the crash</summary>
 		public bool HasMiniDumpFile()
 		{
-			bool bUseFullMinidumpPath = CrashContext != null && CrashContext.PrimaryCrashProperties.FullCrashDumpLocation.Length > 0;
-			var Path = bUseFullMinidumpPath ? CrashContext.PrimaryCrashProperties.GetFullCrashDumpLocation() : SitePath + GetMiniDumpUrl();
+			var Path = UseFullMinidumpPath() ? CrashContext.PrimaryCrashProperties.GetFullCrashDumpLocation() : SitePath + GetMiniDumpUrl();
 			return System.IO.File.Exists( Path );
+		}
+
+		bool UseFullMinidumpPath()
+		{
+			bool bUseFullMinidumpPath = CrashContext != null && !string.IsNullOrEmpty( CrashContext.PrimaryCrashProperties.FullCrashDumpLocation );
+			return bUseFullMinidumpPath;
 		}
 
 		/// <summary>Return true, if there is a log file associated with the crash</summary>
