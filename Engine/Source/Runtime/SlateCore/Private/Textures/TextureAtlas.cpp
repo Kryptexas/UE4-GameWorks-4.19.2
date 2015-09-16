@@ -257,7 +257,7 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture(uint32 InWidth
 		const uint32 MinSlotDim = 2;
 
 		// Split the remaining area around this slot into two children.
-		if (RemainingHeight >= MinSlotDim && RemainingWidth >= MinSlotDim)
+		if (RemainingHeight >= MinSlotDim || RemainingWidth >= MinSlotDim)
 		{
 			FAtlasedTextureSlot* LeftSlot = NULL;
 			FAtlasedTextureSlot* RightSlot = NULL;
