@@ -261,10 +261,8 @@ struct FGBufferData
 	float GBufferAO;
 	// 0..255 
 	uint ShadingModelID;
-	// 0..1
-	uint HasDistanceFieldRepresentation; 
-	// 0..1
-	uint HasHeightfieldRepresentation; 
+	// 0..1, 2 bits, use HasDistanceFieldRepresentation(GBuffer) or HasHeightfieldRepresentation(GBuffer) to extract
+	float PerObjectGBufferData;
 	// in world units
 	float CustomDepth;
 	// Custom depth stencil value
@@ -280,6 +278,20 @@ struct FGBufferData
 	// 0..1, only needed by SHADINGMODELID_SUBSURFACE_PROFILE which applies Specular later
 	float3 StoredSpecular;
 };
+
+bool HasDistanceFieldRepresentation(FGBufferData GBufferData)
+{
+	// can be optimized
+	uint PackedAlpha = (uint)(GBufferData.PerObjectGBufferData * 3.999f);
+	return PackedAlpha & 1;
+}
+
+bool HasHeightfieldRepresentation(FGBufferData GBufferData)
+{
+	// can be optimized
+	uint PackedAlpha = (uint)(GBufferData.PerObjectGBufferData * 3.999f);
+	return (PackedAlpha & 2) != 0;
+}
 
 
 // all values that are output by the forward rendering pass
@@ -324,11 +336,7 @@ void EncodeGBuffer(
 	)
 {
 	OutGBufferA.rgb = EncodeNormal( GBuffer.WorldNormal );
-
-	// compress in 2 bits
-	// Note: distance field lighting dependencies (normal, representation bits) packed for minimal texture fetches
-	uint PackedAlpha = GBuffer.HasHeightfieldRepresentation * 2 + (GBuffer.HasDistanceFieldRepresentation);
-	OutGBufferA.a = PackedAlpha * (1.0 / 3.0);
+	OutGBufferA.a = GBuffer.PerObjectGBufferData;
 
 	if (GBuffer.ShadingModelID == SHADINGMODELID_UNLIT)
 	{
@@ -414,9 +422,7 @@ FGBufferData DecodeGBufferData(
 		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
 	}
 
-	uint PackedAlpha = (uint)( InGBufferA.a * 3.999 );
-	GBuffer.HasHeightfieldRepresentation = (PackedAlpha & 2) != 0;
-	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
+	GBuffer.PerObjectGBufferData = InGBufferA.a;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
 	GBuffer.StoredBaseColor = DecodeBaseColor(InGBufferC.rgb);

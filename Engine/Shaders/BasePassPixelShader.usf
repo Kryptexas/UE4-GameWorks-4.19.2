@@ -845,8 +845,7 @@ void Main(
 		GBuffer.IndirectIrradiance = IndirectIrradiance;
 		GBuffer.PrecomputedShadowFactors = PrecomputedShadowFactors;
 		GBuffer.GBufferAO = MaterialAO;
-		GBuffer.HasDistanceFieldRepresentation = Primitive.HasDistanceFieldRepresentation;
-		GBuffer.HasHeightfieldRepresentation = Primitive.HasHeightfieldRepresentation;
+		GBuffer.PerObjectGBufferData = Primitive.PerObjectGBufferData;
 
 		#if MATERIAL_SHADINGMODEL_UNLIT
 			GBuffer.ShadingModelID = SHADINGMODELID_UNLIT;
