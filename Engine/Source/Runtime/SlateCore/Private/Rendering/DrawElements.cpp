@@ -7,6 +7,24 @@ DECLARE_CYCLE_STAT(TEXT("FSlateDrawElement::Make Time"), STAT_SlateDrawElementMa
 
 FSlateShaderResourceManager* FSlateDataPayload::ResourceManager;
 
+void FSlateDataPayload::SetTextPayloadProperties( FSlateWindowElementList& ElementList, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint )
+{
+	Tint = InTint;
+	FontInfo = InFontInfo;
+	SIZE_T Count = InText.Len() + 1;
+	ImmutableText = (TCHAR*)ElementList.Alloc(sizeof(TCHAR) * Count, ALIGNOF(TCHAR));
+	if (Count > 1)
+	{
+		FCString::Strcpy(ImmutableText, Count, InText.GetCharArray().GetData());
+		check(!ImmutableText[Count - 1]);
+	}
+	else
+	{
+		ImmutableText[0] = 0;
+	}
+}
+
+
 void FSlateDrawElement::Init(uint32 InLayer, const FPaintGeometry& PaintGeometry, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects)
 {
 	RenderTransform = PaintGeometry.GetAccumulatedRenderTransform();
@@ -98,7 +116,8 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.DataPayload.SetTextPayloadProperties( FString( EndIndex - StartIndex, *InText + StartIndex ), InFontInfo, InTint );
+	//fixme, no reason to create a temp string here, add an overload for SetTextPayloadProperties instead
+	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, FString( EndIndex - StartIndex, *InText + StartIndex ), InFontInfo, InTint );
 }
 
 
@@ -109,7 +128,7 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.DataPayload.SetTextPayloadProperties( InText, InFontInfo, InTint );
+	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, InText, InFontInfo, InTint );
 }
 
 
@@ -120,7 +139,8 @@ void FSlateDrawElement::MakeText( FSlateWindowElementList& ElementList, uint32 I
 	FSlateDrawElement& DrawElt = ElementList.AddUninitialized();
 	DrawElt.Init(InLayer, PaintGeometry, InClippingRect, InDrawEffects);
 	DrawElt.ElementType = ET_Text;
-	DrawElt.DataPayload.SetTextPayloadProperties( InText.ToString(), InFontInfo, InTint );
+	//fixme, alloc here 
+	DrawElt.DataPayload.SetTextPayloadProperties(  ElementList, InText.ToString(), InFontInfo, InTint );
 }
 
 void FSlateDrawElement::MakeGradient( FSlateWindowElementList& ElementList, uint32 InLayer, const FPaintGeometry& PaintGeometry, TArray<FSlateGradientStop> InGradientStops, EOrientation InGradientType, const FSlateRect& InClippingRect, ESlateDrawEffect::Type InDrawEffects, bool bGammaCorrect )
@@ -655,6 +675,9 @@ void FSlateWindowElementList::PostDraw_ParallelThread()
 	CachedRenderHandlesInUse.Reset();
 }
 
+DECLARE_MEMORY_STAT(TEXT("FSlateWindowElementList MemManager"), STAT_FSlateWindowElementListMemManager, STATGROUP_SlateVerbose);
+DECLARE_DWORD_COUNTER_STAT(TEXT("FSlateWindowElementList MemManager Count"), STAT_FSlateWindowElementListMemManagerCount, STATGROUP_SlateVerbose);
+
 void FSlateWindowElementList::ResetBuffers()
 {
 	// Don't attempt to use this slate window element list if the cache is still being used.
@@ -689,4 +712,9 @@ void FSlateWindowElementList::ResetBuffers()
 
 	DrawStack.Reset();
 	DrawStack.Push(&RootDrawLayer);
+
+	INC_DWORD_STAT(STAT_FSlateWindowElementListMemManagerCount);
+	INC_MEMORY_STAT_BY(STAT_FSlateWindowElementListMemManager, MemManager.GetByteCount());
+
+	MemManager.Flush();
 }

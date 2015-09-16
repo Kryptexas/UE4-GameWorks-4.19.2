@@ -52,13 +52,13 @@ public:
 
 	// Font data
 	FSlateFontInfo FontInfo;
-	FString Text;
+	TCHAR* ImmutableText;
 
-	// Gradient data
+	// Gradient data (fixme, this should be allocated with FSlateWindowElementList::Alloc)
 	TArray<FSlateGradientStop> GradientStops;
 	EOrientation GradientType;
 
-	// Line data
+	// Line data (fixme, this should be allocated with FSlateWindowElementList::Alloc)
 	TArray<FVector2D> Points;
 
 	// Viewport data
@@ -92,6 +92,7 @@ public:
 		, BrushResource(nullptr)
 		, ResourceProxy(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
+		, ImmutableText(nullptr)
 		, ViewportRenderTargetTexture(nullptr)
 		, bViewportTextureAlphaOnly(false)
 		, bRequiresVSync(false)
@@ -124,12 +125,7 @@ public:
 		Angle = InAngle;
 	}
 
-	void SetTextPayloadProperties( const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint )
-	{
-		Tint = InTint;
-		FontInfo = InFontInfo;
-		Text = InText;
-	}
+	void SetTextPayloadProperties( FSlateWindowElementList& DrawBuffer, const FString& InText, const FSlateFontInfo& InFontInfo, const FLinearColor& InTint );
 
 	void SetGradientPayloadProperties( const TArray<FSlateGradientStop>& InGradientStops, EOrientation InGradientType, bool bInGammaCorrect )
 	{
@@ -837,6 +833,7 @@ public:
 	 */
 	explicit FSlateWindowElementList( TSharedPtr<SWindow> InWindow = TSharedPtr<SWindow>() )
 		: TopLevelWindow( InWindow )
+		, MemManager(0)
 	{
 		DrawStack.Push(&RootDrawLayer);
 	}
@@ -980,6 +977,23 @@ public:
 	 */
 	SLATECORE_API void ResetBuffers();
 
+	/**
+	 * Allocate memory that remains valid until ResetBuffers is called.
+	 */
+	FORCEINLINE_DEBUGGABLE void* Alloc(int32 AllocSize, int32 Alignment = MIN_ALIGNMENT)
+	{
+		return MemManager.Alloc(AllocSize, Alignment);
+	}
+
+	/**
+	 * Allocate memory for a type that remains valid until ResetBuffers is called.
+	 */
+	template <typename T>
+	FORCEINLINE_DEBUGGABLE void* Alloc()
+	{
+		return MemManager.Alloc(sizeof(T), ALIGNOF(T));
+	}
+
 	FSlateBatchData& GetBatchData() { return BatchData; }
 
 	FSlateDrawLayer& GetRootDrawLayer() { return RootDrawLayer; }
@@ -1053,4 +1067,7 @@ private:
 	 * this element list is being used for invalidation / caching.
 	 */
 	mutable TWeakPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> CachedRenderDataHandle;
+
+	// Mem stack for temp allocations
+	FMemStackBase MemManager; 
 };

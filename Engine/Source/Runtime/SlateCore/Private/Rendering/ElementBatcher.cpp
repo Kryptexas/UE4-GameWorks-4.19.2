@@ -635,9 +635,9 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	// Used to clip individual characters as we generate them.
 	FSlateRect LocalClipRect = TransformRect(InverseLayoutTransform, InClippingRect);
 
-	const FString& Text = InPayload.Text;
+	int32 Len = InPayload.ImmutableText ? FCString::Strlen(InPayload.ImmutableText) : 0;
 	// Nothing to do if no text
-	if( Text.Len() == 0 )
+	if( Len == 0 )
 	{
 		return;
 	}
@@ -676,12 +676,12 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 	
 	const bool bIsFontMaterial = InPayload.FontInfo.FontMaterial != nullptr;
 
-	uint32 NumChars = Text.Len();
+	uint32 NumChars = Len;
 
 	uint32 NumLines = 1;
 	for( uint32 CharIndex = 0; CharIndex < NumChars; ++CharIndex )
 	{
-		const TCHAR CurrentChar = Text[ CharIndex ];
+		const TCHAR CurrentChar = InPayload.ImmutableText[ CharIndex ];
 
 		const bool IsNewline = (CurrentChar == '\n');
 
