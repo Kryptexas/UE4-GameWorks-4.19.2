@@ -152,7 +152,7 @@ The entire level is represented by instanced distance fields stored in volume te
 [/OBJECT]
 
 
-[**Further reading on using distance fields for lighting.**](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
+Further reading on using distance fields for lighting.](http://iquilezles.org/www/articles/raymarchingdf/raymarchingdf.htm)
 
 ## Settings
 
@@ -192,11 +192,54 @@ The entire level is represented by instanced distance fields stored in volume te
 
 ## Performance
 
+The cost of Distance Field AO is primarily GPU time and video memory. Distance Field AO has been optimized such that it can run on medium spec PC and PS4. It also has a much more reliable cost now, so that it's mostly constant, with a slight dependency on object density.
+
+In cases with a static camera and mostly flat surfaces, the new method is 1.6x faster when compared to previous implementations. In complex scenes with foliage and a fast moving camera, the new method is 5.5x faster. The cost of Distance Field AO on PS4 for a full game scene is 3.7ms.
+
+
+The previous method did adaptive sampling, so flat surfaces did less work, but this also caused a lot of splotchiness in clean environments
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Old Method - Adaptive](DFAO_Scene_OldMethod.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![New Method - Smooth](DFAO_Scene_NewMethod.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+The AO computations are now fast enough to get rid of the adaptive sampling, so occlusion is much smoother.
+[OBJECT:ComparisonSlider]
+	[PARAM:before]
+	![Old Method - Adaptive](DFAO_View_OldMethod.png)(w:700)
+	[/PARAM]
+	[PARAM:after]
+	![New Method - Smooth](DFAO_View_NewMethod.png)(w:700)
+	[/PARAM]
+[/OBJECT]
+
+The catch is that the new method requires a longer history filter, which can contribute to ghosting, especially when shadow casters are moved. Hopefully this can be improved in the future.
+
+<!---
 The cost of Distance Field AO is primarily GPU time and video memory.  In a fairly large Fortnite level, with the camera still, it costs 3.5ms on a Radeon 7870 at 1080p resolution.  The worst case when the camera is rotating rapidly is ~6ms.  For reference, SSAO costs 1ms with this setup.  ~150mb of distance field volume textures were used.
 
 Shading is done adaptively, so flat surfaces and surfaces that are not moving have a lower cost.  Conversely, scenes with many small surfaces like foliage, and many things moving between frames will have a higher GPU cost. 
 
 The primary cost of Distance Field AO is from object density, as each object must be considered separately for occlusion.  A dense forest with many nearby trees will be the worst case for the technique.
+--->
+
+## Technical Details
+
+The main optimization is the use of a global distance field, which follows the camera around. This is created by compositing all the usual per-object distance fields into a few volume textures centered around the camera, called clipmaps. Only newly visible areas or those affected by a scene modification need to be updated, so the composition doesn't cost much.
+
+Visualization of the texel size of the clipmaps - each clipmap is a different color
+
+![](DF_ClipMap.png)(w:700)
+
+The global distance field is lower resolution than the object distance fields, so it can't be used for everything. When computing cone traces for sky occlusion, the object distance fields are sampled near the point being shaded, while the much faster global distance field is sampled further away.
+
+This is a visualization of ray tracing the global distance field vs object distance fields. Surfaces in the global distance field have become blobby and thin objects disappear.
+
+![](DF_GlobalDF.png)(w:700)
 
 ## Troubleshooting and quality
 
