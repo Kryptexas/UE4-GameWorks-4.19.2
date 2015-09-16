@@ -2,6 +2,7 @@ Availability:Public
 Title:In-Editor Testing (Play & Simulate)
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor
 Description: Guide to testing levels and gameplay directly in the editor.
+Version: 4.9
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
