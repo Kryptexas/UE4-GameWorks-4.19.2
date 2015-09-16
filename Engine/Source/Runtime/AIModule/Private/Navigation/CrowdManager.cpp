@@ -882,6 +882,9 @@ void UCrowdManager::CreateCrowdManager()
 
 		UpdateAvoidanceConfig();
 
+		AgentFlags.Reset();
+		AgentFlags.AddZeroed(MaxAgents);
+
 		for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 		{
 			AddAgent(It.Key(), It.Value());
@@ -1262,30 +1265,24 @@ void UCrowdManager::PostProximityUpdate()
 void UCrowdManager::PostMovePointUpdate()
 {
 #if WITH_RECAST
-	TArray<uint8> HasUpdatedPos;
-	HasUpdatedPos.AddZeroed(ActiveAgents.Num());
+	const uint8 UpdateDestinationFlag = 1;
 
 	// special case when following last segment of full path to actor: replace end point with actor's location
-
 	for (auto It : ActiveAgents)
 	{
 		UCrowdFollowingComponent* PathComp = Cast<UCrowdFollowingComponent>(It.Key);
+		const FCrowdAgentData& AgentData = It.Value;
 		FVector UpdatedGoalPos;
 
 		const bool bShouldUpdateGoalPos = PathComp ? PathComp->UpdateCachedGoal(UpdatedGoalPos) : false;
-		if (bShouldUpdateGoalPos)
+		if (bShouldUpdateGoalPos && AgentFlags.IsValidIndex(AgentData.AgentIndex))
 		{
-			const FCrowdAgentData& AgentData = It.Value;
 			const dtCrowdAgent* Agent = DetourCrowd->getAgent(AgentData.AgentIndex);
 			dtCrowdAgent* MutableAgent = (dtCrowdAgent*)Agent;
 			const FVector RcTargetPos = Unreal2RecastPoint(UpdatedGoalPos);
-
-			if (AgentData.AgentIndex >= HasUpdatedPos.Num())
-			{
-				HasUpdatedPos.AddZeroed(AgentData.AgentIndex - HasUpdatedPos.Num() + 1);
-			}
-			HasUpdatedPos[AgentData.AgentIndex] = 1;
+		
 			dtVcopy(MutableAgent->targetPos, &RcTargetPos.X);
+			AgentFlags[AgentData.AgentIndex] |= UpdateDestinationFlag;
 		}
 	}
 
@@ -1299,10 +1296,19 @@ void UCrowdManager::PostMovePointUpdate()
 		{
 			const int32 AgentIndex = DetourCrowd->getAgentIndex(Agent);
 
-			if (HasUpdatedPos.IsValidIndex(AgentIndex) && HasUpdatedPos[AgentIndex])
+			if (AgentFlags.IsValidIndex(AgentIndex) && (AgentFlags[AgentIndex] & UpdateDestinationFlag) != 0)
 			{
 				dtVcopy(Agent->cornerVerts, Agent->targetPos);
 			}
+		}
+	}
+
+	for (auto It : ActiveAgents)
+	{
+		const FCrowdAgentData& AgentData = It.Value;
+		if (AgentFlags.IsValidIndex(AgentData.AgentIndex))
+		{
+			AgentFlags[AgentData.AgentIndex] &= ~UpdateDestinationFlag;
 		}
 	}
 #endif

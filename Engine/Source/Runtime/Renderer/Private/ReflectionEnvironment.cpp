@@ -43,6 +43,7 @@ static TAutoConsoleVariable<int32> CVarReflectionEnvironment(
 	TEXT(" 2: on and overwrite scene (only in non-shipping builds)"),
 	ECVF_RenderThreadSafe | ECVF_Scalability);
 
+
 static TAutoConsoleVariable<int32> CVarDoTiledReflections(
 	TEXT("r.DoTiledReflections"),
 	1,

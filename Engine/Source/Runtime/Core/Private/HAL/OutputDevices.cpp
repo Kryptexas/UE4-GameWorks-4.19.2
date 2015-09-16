@@ -67,6 +67,48 @@ class FLogSuppressionImplementation: public FLogSuppressionInterface, private FS
 	/** For a given category stores the last non-zero verbosity...to support toggling without losing the specific verbosity level **/
 	TMap<FName, uint8> ToggleAssociations;
 
+	/**
+	 * Process a "[cat] only" string command to the logging suppression system
+	 * @param CmdString, string to process
+	 * @return true if CmdString was a "[cat] only" string command, false otherwise
+	 */
+	bool ProcessLogOnly(const FString& CmdString, FOutputDevice& Ar)
+	{
+		TArray<FString> CommandParts;
+		CmdString.ParseIntoArrayWS(CommandParts);
+		if (CommandParts.Num() <= 1)
+		{
+			return false;
+		}
+		
+		static FName NAME_Only(TEXT("only"));
+		if (NAME_Only != FName(*CommandParts[1]))
+		{
+			return false;
+		}
+		
+		FName LogCategory = FName(*CommandParts[0]);
+		static const FString OffString = FString(" off");
+		static const FString OnString = FString(" Verbose");
+		for (auto It : Associations)
+		{
+			FName Name = It.Value;
+			if (Name == LogCategory)
+			{
+				ProcessCmdString(Name.ToString() + OnString);
+				FLogCategoryBase* Verb = It.Key;
+				Ar.Logf(TEXT("%s is now %s"), *CommandParts[0], FOutputDevice::VerbosityToString(Verb ? ELogVerbosity::Type(Verb->Verbosity) : ELogVerbosity::Verbose));
+			}
+			else
+			{
+				ProcessCmdString(Name.ToString() + OffString);
+			}
+		}
+
+		Ar.Logf(TEXT("Disabling other logs finished"));
+		return true;
+	}
+
 	/** 
 	 * Process a string command to the logging suppression system 
 	 * @param CmdString, string to process
@@ -517,6 +559,11 @@ public:
 				Rest = Rest.Trim();
 				if (Rest.Len())
 				{
+					if (ProcessLogOnly(Rest, Ar))
+					{
+						return true;
+					}
+
 					TMap<FName, uint8> OldValues;
 					for (TMap<FLogCategoryBase*, FName>::TIterator It(Associations); It; ++It)
 					{
@@ -549,6 +596,7 @@ public:
 					Ar.Logf( TEXT("Log [cat]           - toggle the display of the category [cat]") );
 					Ar.Logf( TEXT("Log [cat] off       - disable display of the category [cat]") );
 					Ar.Logf( TEXT("Log [cat] on        - resume display of the category [cat]") );
+					Ar.Logf( TEXT("Log [cat] only      - enables [cat] and disables all other categories"));
 					Ar.Logf( TEXT("Log [cat] [level]   - set the verbosity level of the category [cat]") );
 					Ar.Logf( TEXT("Log [cat] break     - toggle the debug break on display of the category [cat]") );
 					Ar.Logf( TEXT("------- Log command line") );

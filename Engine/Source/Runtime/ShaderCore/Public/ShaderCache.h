@@ -424,6 +424,8 @@ public:
 	
 	/** Shader cache initialisation, called only by the RHI. */
 	static void InitShaderCache(EShaderCacheOptions Options, uint32 InMaxResources = FShaderDrawKey::MaxNumResources);
+	/** Loads any existing cache of shader binaries, called by the RHI after full initialisation. */
+	static void LoadBinaryCache();
 	/** Shader cache shutdown, called only by the RHI. */
 	static void ShutdownShaderCache();
 	

@@ -1290,6 +1290,10 @@ void FOpenGLDynamicRHI::Init()
 
 	CheckTextureCubeLodSupport();
 	CheckVaryingLimit();
+	
+#if PLATFORM_DESKTOP
+	FShaderCache::LoadBinaryCache();
+#endif
 }
 
 void FOpenGLDynamicRHI::Shutdown()

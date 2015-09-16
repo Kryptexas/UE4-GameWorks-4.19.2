@@ -530,10 +530,14 @@ FText SWorldHierarchyItem::GetSCCStateTooltip() const
 
 const FSlateBrush* SWorldHierarchyItem::GetSCCStateImage() const
 {
-	FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(LevelModel->GetPackageFileName(), EStateCacheUsage::Use);
-	if(SourceControlState.IsValid())
+	FString PackageName = LevelModel->GetPackageFileName();
+	if (!PackageName.IsEmpty())
 	{
-		return FEditorStyle::GetBrush(SourceControlState->GetSmallIconName());
+		FSourceControlStatePtr SourceControlState = ISourceControlModule::Get().GetProvider().GetState(LevelModel->GetPackageFileName(), EStateCacheUsage::Use);
+		if(SourceControlState.IsValid())
+		{
+			return FEditorStyle::GetBrush(SourceControlState->GetSmallIconName());
+		}
 	}
 
 	return NULL;

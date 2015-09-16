@@ -278,6 +278,9 @@ protected:
 	/** agents registered in crowd manager */
 	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
 
+	/** temporary flags for crowd agents */
+	TArray<uint8> AgentFlags;
+
 #if WITH_RECAST
 	/** crowd manager */
 	dtCrowd* DetourCrowd;

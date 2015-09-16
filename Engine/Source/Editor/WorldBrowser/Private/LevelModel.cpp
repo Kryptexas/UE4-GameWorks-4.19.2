@@ -81,7 +81,15 @@ FString FLevelModel::GetDisplayName() const
 
 FString FLevelModel::GetPackageFileName() const
 {
-	return FPackageName::LongPackageNameToFilename(GetLongPackageName().ToString(), FPackageName::GetMapPackageExtension());
+	const FName LocalPackageName = GetLongPackageName();
+	if (LocalPackageName != NAME_None)
+	{
+		return FPackageName::LongPackageNameToFilename(LocalPackageName.ToString(), FPackageName::GetMapPackageExtension());
+	}
+	else
+	{
+		return FString();
+	}
 }
 
 void FLevelModel::Accept(FLevelModelVisitor& Vistor)

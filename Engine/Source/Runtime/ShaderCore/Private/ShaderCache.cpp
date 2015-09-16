@@ -10,6 +10,11 @@
 #include "RHI.h"
 #include "RenderingThread.h"
 
+DECLARE_STATS_GROUP(TEXT("Shader Cache"),STATGROUP_ShaderCache, STATCAT_Advanced);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num Shaders Cached"),STATGROUP_NumShadersCached,STATGROUP_ShaderCache);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num BSS Cached"),STATGROUP_NumBSSCached,STATGROUP_ShaderCache);
+DECLARE_DWORD_ACCUMULATOR_STAT(TEXT("Num New Draw-States Cached"),STATGROUP_NumDrawsCached,STATGROUP_ShaderCache);
+
 const FGuid FShaderCacheCustomVersion::Key(0xB954F018, 0xC9624DD6, 0xA74E79B1, 0x8EA113C2);
 const FGuid FShaderCacheCustomVersion::GameKey(0x03D4EB48, 0xB50B4CC3, 0xA598DE41, 0x5C6CC993);
 FCustomVersionRegistration GRegisterShaderCacheVersion(FShaderCacheCustomVersion::Key, FShaderCacheCustomVersion::Latest, TEXT("ShaderCacheVersion"));
@@ -59,7 +64,7 @@ FAutoConsoleVariableRef FShaderCache::CVarPredrawBatchTime(
 	);
 
 // A separate cache of used shader binaries for even earlier submission - may be platform or even device specific.
-int32 FShaderCache::bUseShaderBinaryCache = 0;
+int32 FShaderCache::bUseShaderBinaryCache = (PLATFORM_MAC && !WITH_EDITOR) ? 1 : 0;
 FAutoConsoleVariableRef FShaderCache::CVarUseShaderBinaryCache(
 	TEXT("r.UseShaderBinaryCache"),
 	bUseShaderBinaryCache,
@@ -82,7 +87,6 @@ static bool ShaderPlatformCanPrebindBoundShaderState(EShaderPlatform Platform)
 		case SP_METAL:
 		case SP_OPENGL_SM4_MAC:
 		case SP_METAL_MRT:
-		case SP_METAL_SM4:
 		case SP_METAL_SM5:
 		{
 			return true;
@@ -116,51 +120,54 @@ void FShaderCache::InitShaderCache(EShaderCacheOptions Options, uint32 InMaxReso
 		Cache->Options = Options;
 		Cache->MaxResources = InMaxResources;
 		check(InMaxResources <= FShaderDrawKey::MaxNumResources);
+	}
+}
+
+void FShaderCache::LoadBinaryCache()
+{
+	if(Cache && bUseShaderBinaryCache)
+	{
+		FString UserCodeCache = FPaths::GameSavedDir() / GShaderCodeCacheFileName;
+		FString GameCodeCache = FPaths::GameContentDir() / GShaderCodeCacheFileName;
 		
-		if(bUseShaderBinaryCache)
+		// Try to load user cache, making sure that if we fail version test we still try game-content version.
+		bool bLoadedCache = false;
+		if ( IFileManager::Get().FileSize(*UserCodeCache) > 0 )
 		{
-			FString UserCodeCache = FPaths::GameSavedDir() / GShaderCodeCacheFileName;
-			FString GameCodeCache = FPaths::GameContentDir() / GShaderCodeCacheFileName;
+			FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*UserCodeCache);
 			
-			// Try to load user cache, making sure that if we fail version test we still try game-content version.
-			bool bLoadedCache = false;
-			if ( IFileManager::Get().FileSize(*UserCodeCache) > 0 )
+			if ( BinaryShaderAr != nullptr )
 			{
-				FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*UserCodeCache);
+				*BinaryShaderAr << Cache->CodeCache;
 				
-				if ( BinaryShaderAr != nullptr )
+				if ( !BinaryShaderAr->IsError() && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::Key) == FShaderCacheCustomVersion::Latest && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::GameKey) == FShaderCache::GameVersion )
 				{
-					*BinaryShaderAr << Cache->CodeCache;
-					
-					if ( !BinaryShaderAr->IsError() && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::Key) == FShaderCacheCustomVersion::Latest && BinaryShaderAr->CustomVer(FShaderCacheCustomVersion::GameKey) == FShaderCache::GameVersion )
-					{
-						bLoadedCache = true;
-					}
-					
-					delete BinaryShaderAr;
-				}
-			}
-			
-			// Fallback to game-content version.
-			if ( !bLoadedCache && IFileManager::Get().FileSize(*GameCodeCache) > 0 )
-			{
-				FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*GameCodeCache);
-				if ( BinaryShaderAr != nullptr )
-				{
-					*BinaryShaderAr << Cache->CodeCache;
 					bLoadedCache = true;
-					delete BinaryShaderAr;
 				}
+				
+				delete BinaryShaderAr;
 			}
-			
-			if(bLoadedCache)
+		}
+		
+		// Fallback to game-content version.
+		if ( !bLoadedCache && IFileManager::Get().FileSize(*GameCodeCache) > 0 )
+		{
+			FArchive* BinaryShaderAr = IFileManager::Get().CreateFileReader(*GameCodeCache);
+			if ( BinaryShaderAr != nullptr )
 			{
-				for(auto Entry : Cache->CodeCache.Shaders)
+				*BinaryShaderAr << Cache->CodeCache;
+				bLoadedCache = true;
+				delete BinaryShaderAr;
+			}
+		}
+		
+		if(bLoadedCache)
+		{
+			for(auto Entry : Cache->CodeCache.Shaders)
+			{
+				if(Entry.Key.Platform == GMaxRHIShaderPlatform)
 				{
-					if(Entry.Key.Platform == GMaxRHIShaderPlatform)
-					{
-						Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Entry.Value);
-					}
+					Cache->InternalLogShader(Entry.Key.Platform, Entry.Key.Frequency, Entry.Key.SHAHash, Entry.Value);
 				}
 			}
 		}
@@ -295,6 +302,7 @@ FVertexShaderRHIRef FShaderCache::GetVertexShader(EShaderPlatform Platform, FSHA
 		Shader = RHICreateVertexShader(Code);
 		check(IsValidRef(Shader));
 		Shader->SetHash(Hash);
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedVertexShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -316,6 +324,7 @@ FPixelShaderRHIRef FShaderCache::GetPixelShader(EShaderPlatform Platform, FSHAHa
 		Shader = RHICreatePixelShader(Code);
 		check(IsValidRef(Shader));
 		Shader->SetHash(Hash);
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedPixelShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -337,6 +346,7 @@ FGeometryShaderRHIRef FShaderCache::GetGeometryShader(EShaderPlatform Platform, 
 		Shader = RHICreateGeometryShader(Code);
 		check(IsValidRef(Shader));
 		Shader->SetHash(Hash);
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedGeometryShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -358,6 +368,7 @@ FHullShaderRHIRef FShaderCache::GetHullShader(EShaderPlatform Platform, FSHAHash
 		Shader = RHICreateHullShader(Code);
 		check(IsValidRef(Shader));
 		Shader->SetHash(Hash);
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedHullShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -379,6 +390,7 @@ FDomainShaderRHIRef FShaderCache::GetDomainShader(EShaderPlatform Platform, FSHA
 		Shader = RHICreateDomainShader(Code);
 		check(IsValidRef(Shader));
 		Shader->SetHash(Hash);
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedDomainShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -400,6 +412,7 @@ FComputeShaderRHIRef FShaderCache::GetComputeShader(EShaderPlatform Platform, TA
 		PlatformCache.Shaders.Add(Key);
 		Shader = RHICreateComputeShader(Code);
 		check(IsValidRef(Shader));
+		INC_DWORD_STAT(STATGROUP_NumShadersCached);
 		CachedComputeShaders.Add(Key, Shader);
 		PrebindShader(Key);
 	}
@@ -582,6 +595,7 @@ void FShaderCache::InternalLogBoundShaderState(EShaderPlatform Platform, FVertex
 	}
 	if ( bUseShaderPredraw || bUseShaderDrawLog )
 	{
+		INC_DWORD_STAT(STATGROUP_NumBSSCached);
 		ShaderStates.Add(BoundState, Info);
 	}
 }
@@ -886,6 +900,7 @@ void FShaderCache::InternalLogDraw(uint8 IndexType)
 		TSet<int32>& ShaderDrawSet = PlatformCache.StreamingDrawStates.FindOrAdd(StreamingKey).ShaderDrawStates.FindOrAdd(BoundShaderState);
 		if( !ShaderDrawSet.Contains(Id.AsInteger()) )
 		{
+			INC_DWORD_STAT(STATGROUP_NumDrawsCached);
 			ShaderDrawSet.Add(Id.AsInteger());
 		}
 		
@@ -1050,6 +1065,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 				if(IsValidRef(Shader))
 				{
 					Shader->SetHash(Key.SHAHash);
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedVertexShaders.Add(Key, Shader);
 					PrebindShader(Key);
 					PlatformCache.Shaders.Add(Key);
@@ -1063,6 +1079,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 				if(IsValidRef(Shader))
 				{
 					Shader->SetHash(Key.SHAHash);
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedPixelShaders.Add(Key, Shader);
 					PrebindShader(Key);
 					PlatformCache.Shaders.Add(Key);
@@ -1076,6 +1093,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 				if(IsValidRef(Shader))
 				{
 					Shader->SetHash(Key.SHAHash);
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedGeometryShaders.Add(Key, Shader);
 					PrebindShader(Key);
 					PlatformCache.Shaders.Add(Key);
@@ -1089,6 +1107,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 				if(IsValidRef(Shader))
 				{
 					Shader->SetHash(Key.SHAHash);
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedHullShaders.Add(Key, Shader);
 					PrebindShader(Key);
 					PlatformCache.Shaders.Add(Key);
@@ -1102,6 +1121,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 				if(IsValidRef(Shader))
 				{
 					Shader->SetHash(Key.SHAHash);
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedDomainShaders.Add(Key, Shader);
 					PrebindShader(Key);
 					PlatformCache.Shaders.Add(Key);
@@ -1119,6 +1139,7 @@ void FShaderCache::SubmitShader(FShaderCacheKey const& Key, TArray<uint8> const&
 					// @todo WARNING: The RHI is responsible for hashing Compute shaders, unlike other stages because of how OpenGLDrv implements compute.
 					FShaderCacheKey ComputeKey = Key;
 					ComputeKey.SHAHash = Shader->GetHash();
+					INC_DWORD_STAT(STATGROUP_NumShadersCached);
 					CachedComputeShaders.Add(ComputeKey, Shader);
 					PrebindShader(ComputeKey);
 					PlatformCache.Shaders.Add(ComputeKey);
