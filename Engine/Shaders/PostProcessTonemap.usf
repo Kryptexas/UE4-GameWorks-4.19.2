@@ -446,9 +446,9 @@ void MainPS_ES2(
 		// It is faster to do vignette as a texture lookup + mad because this is an ALU bound shader.
 		#if (USE_BLOOM || USE_LIGHT_SHAFTS || USE_VIGNETTE)
 		{
+			half4 CombinedBloomSunVignette = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, FullViewUV.xy);
 			if (GetHDR32bppEncodeMode() != HDR_ENCODE_MOSAIC)
 			{
-				half4 CombinedBloomSunVignette = Texture2DSample(PostprocessInput1, PostprocessInput1Sampler, FullViewUV.xy);
 				#if USE_32BPP_HDR
 					CombinedBloomSunVignette.rgb = Decode32BPPHDR(CombinedBloomSunVignette);
 					LinearColor.rgb = LinearColor.rgb + CombinedBloomSunVignette.rgb;
