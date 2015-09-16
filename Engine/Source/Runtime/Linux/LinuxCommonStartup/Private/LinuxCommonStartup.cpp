@@ -165,7 +165,13 @@ int CommonLinuxMain(int argc, char *argv[], int (*RealMain)(const TCHAR * Comman
 
 	int ErrorLevel = 0;
 
+	if (setenv("LC_NUMERIC", "en_US", 1) != 0)
+	{
+		int ErrNo = errno;
+		fprintf(stderr, "Unable to setenv(LC_NUMERIC): errno=%d (%s)", ErrNo, strerror(ErrNo));
+	}
 	setlocale(LC_CTYPE, "");
+
 	for (int32 Option = 1; Option < argc; Option++)
 	{
 		GSavedCommandLine += TEXT(" ");
