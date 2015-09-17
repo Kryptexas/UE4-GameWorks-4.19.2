@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FRadialForceComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FRadialForceComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

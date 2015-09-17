@@ -57,7 +57,7 @@ struct HSplineTangentHandleProxy : public HSplineVisProxy
 };
 
 /** SplineComponent visualizer/edit functionality */
-class FSplineComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FSplineComponentVisualizer : public FComponentVisualizer
 {
 public:
 	FSplineComponentVisualizer();
@@ -78,7 +78,7 @@ public:
 	/** Get the spline component we are currently editing */
 	USplineComponent* GetEditedSplineComponent() const;
 
-private:
+protected:
 
 	/** Update the key selection state of the visualizer */
 	void ChangeSelectionState(int32 Index, bool bIsCtrlHeld);

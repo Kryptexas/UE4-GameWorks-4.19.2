@@ -44,7 +44,7 @@ struct HSplineMeshTangentHandleProxy : public HSplineMeshVisProxy
 };
 
 /** SplineMeshComponent visualizer/edit functionality */
-class FSplineMeshComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FSplineMeshComponentVisualizer : public FComponentVisualizer
 {
 public:
 	FSplineMeshComponentVisualizer();
@@ -65,7 +65,7 @@ public:
 	/** Get the spline component we are currently editing */
 	USplineMeshComponent* GetEditedSplineMeshComponent() const;
 
-private:
+protected:
 
 	/** Get a spline object for the specified spline mesh component */
 	FInterpCurveVector GetSpline(const USplineMeshComponent* SplineMeshComp) const;

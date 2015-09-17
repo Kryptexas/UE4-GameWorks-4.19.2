@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FPointLightComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FConstraintComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

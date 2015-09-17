@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FSensingComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FPrimitiveComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

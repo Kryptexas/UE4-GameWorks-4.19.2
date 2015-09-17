@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FConstraintComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FSpringArmComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

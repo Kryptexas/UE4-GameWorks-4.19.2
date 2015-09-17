@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FSpringArmComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FAudioComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

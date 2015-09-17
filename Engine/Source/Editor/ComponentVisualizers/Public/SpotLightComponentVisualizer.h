@@ -4,7 +4,7 @@
 
 #include "ComponentVisualizer.h"
 
-class FSpringComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FSpotLightComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface

@@ -3,9 +3,8 @@
 #pragma once
 
 #include "ComponentVisualizer.h"
-#include "Components/DecalComponent.h"
 
-class FDecalComponentVisualizer : public FComponentVisualizer
+class COMPONENTVISUALIZERS_API FSensingComponentVisualizer : public FComponentVisualizer
 {
 public:
 	//~ Begin FComponentVisualizer Interface
