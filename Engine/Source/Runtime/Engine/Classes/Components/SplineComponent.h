@@ -73,7 +73,7 @@ class ENGINE_API USplineComponent : public UPrimitiveComponent
 	bool bStationaryEndpoints;
 
 	/** Whether the spline has been edited from its default by the spline component visualizer */
-	UPROPERTY(VisibleAnywhere, Category = Spline)
+	UPROPERTY(EditAnywhere, Category = Spline, meta=(DisplayName="Override Construction Script"))
 	bool bSplineHasBeenEdited;
 
 private:
