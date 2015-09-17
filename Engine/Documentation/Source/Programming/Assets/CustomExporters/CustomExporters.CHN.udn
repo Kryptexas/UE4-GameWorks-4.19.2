@@ -1,6 +1,12 @@
+INTSourceChangelist:2638780
 Availability:Docs
-Title:编写自定义导出器
-Crumbs: %ROOT%, Engine, Engine/UI, Editor/Programming
+Title:自定义导出器技术指南
+Crumbs: %ROOT%, Engine, Engine/UI, Programming
+Description:为程序员撰写特殊组件类型导出工具的指南。
+
+[REGION:todo]
+	本页面的内容从虚幻引擎3的文档检查并转化而来，有些信息可能已经过期
+[/REGION]
 
 [TOC(start:2)]
 

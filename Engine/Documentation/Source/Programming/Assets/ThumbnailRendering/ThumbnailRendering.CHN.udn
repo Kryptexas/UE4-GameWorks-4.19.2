@@ -1,6 +1,13 @@
+INTSourceChangelist:2638758
 Availability:Docs
-Title:缩略图渲染
-Crumbs: %ROOT%, Engine, Engine/UI, Editor/Programming
+Title:渲染缩略图技术指南
+Crumbs: %ROOT%, Engine, Engine/UI, Programming
+Description:为程序员准备的在内容浏览器中为指定类型组件绘渲染缩略图的技术指南.
+Version: 4.9
+
+[REGION:todo]
+	本页面的内容从虚幻引擎3的文档检查并转化而来，有些信息可能已经过期。
+[/REGION]
 
 [TOC(start:2)]
 
