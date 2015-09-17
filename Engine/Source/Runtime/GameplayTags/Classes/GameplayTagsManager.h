@@ -277,6 +277,16 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 #endif
 
 	/**
+	* Check to see how closely two FGameplayTags match. Higher values indicate more matching terms in the tags.
+	*
+	* @param GameplayTagOne	The first tag to compare
+	* @param GameplayTagTwo	The second tag to compare
+	*
+	* @return the length of the longest matching pair
+	*/
+	int32 GameplayTagsMatchDepth(const FGameplayTag& GameplayTagOne, const FGameplayTag& GameplayTagTwo) const;
+
+	/**
 	 * Helper function for GameplayTagsMatch to get a container with all parents.
 	 * @param GameplayTag		tag to get parents of
 	 * @return					pointer to container of parents, if any
