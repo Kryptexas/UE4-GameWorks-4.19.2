@@ -864,8 +864,8 @@ void FAnimMontageInstance::Play(float InPlayRate)
 
 void FAnimMontageInstance::InitializeBlend(const FAlphaBlend& InAlphaBlend)
 {
-	Blend.BlendOption = InAlphaBlend.BlendOption;
-	Blend.CustomCurve = InAlphaBlend.CustomCurve;
+	Blend.SetBlendOption(InAlphaBlend.GetBlendOption());
+	Blend.SetCustomCurve(InAlphaBlend.GetCustomCurve());
 	Blend.SetBlendTime(InAlphaBlend.GetBlendTime());
 }
 
@@ -884,13 +884,13 @@ void FAnimMontageInstance::Stop(const FAlphaBlend& InBlendOut, bool bInterrupt)
 	// if desired weight is > 0.f, turn that off
 	if (Blend.GetDesiredValue() > 0.f)
 	{
+		// do not use default Montage->BlendOut 
+		// depending on situation, the BlendOut time can change 
+		InitializeBlend(InBlendOut);
 		Blend.SetDesiredValue(0.f);
-		if (Montage)
-		{
-			// do not use default Montage->BlendOut 
-			// depending on situation, the BlendOut time can change 
-			InitializeBlend(InBlendOut);
 
+		if(Montage)
+		{
 			if (UAnimInstance* Inst = AnimInstance.Get())
 			{
 				// Let AnimInstance know we are being stopped.
@@ -1013,8 +1013,8 @@ void FAnimMontageInstance::Terminate()
 	MontageSync_StopLeading();
 
 	// clear Blend curve
-	Blend.CustomCurve = NULL;
-	Blend.BlendOption = EAlphaBlendOption::Linear;
+	Blend.SetCustomCurve(NULL);
+	Blend.SetBlendOption(EAlphaBlendOption::Linear);
 
 	UE_LOG(LogAnimation, Verbose, TEXT("Terminating: AnimMontage: %s"), *GetNameSafe(OldMontage));
 }

@@ -45,8 +45,8 @@ FAnimationActiveTransitionEntry::FAnimationActiveTransitionEntry(int32 NextState
 	CrossfadeDuration = ReferenceTransitionInfo.CrossfadeDuration * CalculateInverseAlpha(BlendOption, Scaler);
 
 	Blend.SetBlendTime(CrossfadeDuration);
-	Blend.BlendOption = BlendOption;
-	Blend.CustomCurve = ReferenceTransitionInfo.CustomCurve;
+	Blend.SetBlendOption(BlendOption);
+	Blend.SetCustomCurve(ReferenceTransitionInfo.CustomCurve);
 	Blend.SetValueRange(0.0f, 1.0f);
 }
 
@@ -113,7 +113,7 @@ void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Cont
 			QueryAlpha = ElapsedTime / CrossfadeDuration;
 		}
 
-		Alpha = FAlphaBlend::AlphaToBlendOption(QueryAlpha, Blend.BlendOption, Blend.CustomCurve);
+		Alpha = FAlphaBlend::AlphaToBlendOption(QueryAlpha, Blend.GetBlendOption(), Blend.GetCustomCurve());
 
 		if(Blend.IsComplete())
 		{

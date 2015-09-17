@@ -40,8 +40,8 @@ void FAnimNode_BlendListBase::Initialize(const FAnimationInitializeContext& Cont
 		FAlphaBlend& Blend = Blends[i];
 
 		Blend.SetBlendTime(0.0f);
-		Blend.BlendOption = BlendType;
-		Blend.CustomCurve = CustomBlendCurve;
+		Blend.SetBlendOption(BlendType);
+		Blend.SetCustomCurve(CustomBlendCurve);
 	}
 	Blends[0].SetAlpha(1.0f);
 
