@@ -570,7 +570,7 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 
 		// Initialize the symbol engine.
 		SymInitialize( GetCurrentProcess(), NULL, true );
-		LoadProcessModules();
+		//LoadProcessModules();
 	
 		GNeedToRefreshSymbols = false;
 		GStackWalkingInitialized = true;
@@ -580,7 +580,7 @@ bool FWindowsPlatformStackWalk::InitStackWalking()
 	{
 		// Refresh and reload symbols
 		SymRefreshModuleList( GetCurrentProcess() );
-		LoadProcessModules();
+		//LoadProcessModules();
 		GNeedToRefreshSymbols = false;
 	}
 #endif
