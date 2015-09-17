@@ -66,12 +66,6 @@ public:
 		BrowserPopupFeatures = InPopupFeatures;
 	}
 
-	/** Sets whether to show messages on loading errors. */
-	void SetShowErrorMessage(bool InShowErrorMessage)
-	{
-		ShowErrorMessage = InShowErrorMessage;
-	}
-
 
 public:
 
@@ -245,9 +239,6 @@ private:
 
 	/** Stores popup window features and settings */
 	TSharedPtr<FWebBrowserPopupFeatures> BrowserPopupFeatures;
-
-	/** Whether to show an error message in case of loading errors. */
-	bool ShowErrorMessage;
 
 	// Include the default reference counting implementation.
 	IMPLEMENT_REFCOUNTING(FWebBrowserHandler);

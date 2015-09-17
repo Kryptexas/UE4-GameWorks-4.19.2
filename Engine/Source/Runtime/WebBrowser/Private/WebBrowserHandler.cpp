@@ -11,7 +11,6 @@
 
 #if WITH_CEF3
 FWebBrowserHandler::FWebBrowserHandler()
-	: ShowErrorMessage(true)
 {
 }
 
@@ -174,23 +173,23 @@ void FWebBrowserHandler::OnLoadError(CefRefPtr<CefBrowser> Browser,
 
 		if (BrowserWindow.IsValid())
 		{
+			// Display a load error message. Note: The user's code will still have a chance to handle this error after this error message is displayed.
+			if (BrowserWindow->IsShowingErrorMessages())
+			{
+				FFormatNamedArguments Args;
+				{
+					Args.Add(TEXT("FailedUrl"), FText::FromString(FailedUrl.ToWString().c_str()));
+					Args.Add(TEXT("ErrorText"), FText::FromString(ErrorText.ToWString().c_str()));
+					Args.Add(TEXT("ErrorCode"), FText::AsNumber(InErrorCode));
+				}
+				FText ErrorMsg = FText::Format(LOCTEXT("WebBrowserLoadError", "Failed to load URL {FailedUrl} with error {ErrorText} ({ErrorCode})."), Args);
+				FString ErrorHTML = TEXT("<html><body bgcolor=\"white\"><h2>") + ErrorMsg.ToString() + TEXT("</h2></body></html>");
+
+				Frame->LoadString(*ErrorHTML, FailedUrl);
+			}
+
 			BrowserWindow->NotifyDocumentError();
 		}
-	}
-
-	// Display a load error message.
-	if (ShowErrorMessage)
-	{
-		FFormatNamedArguments Args;
-		{
-			Args.Add(TEXT("FailedUrl"), FText::FromString(FailedUrl.ToWString().c_str()));
-			Args.Add(TEXT("ErrorText"), FText::FromString(ErrorText.ToWString().c_str()));
-			Args.Add(TEXT("ErrorCode"), FText::AsNumber(InErrorCode));
-		}
-		FText ErrorMsg = FText::Format(LOCTEXT("WebBrowserLoadError", "Failed to load URL {FailedUrl} with error {ErrorText} ({ErrorCode})."), Args);
-		FString ErrorHTML = TEXT("<html><body bgcolor=\"white\"><h2>") + ErrorMsg.ToString() + TEXT("</h2></body></html>");
-
-		Frame->LoadString(*ErrorHTML, FailedUrl);
 	}
 }
 
