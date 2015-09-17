@@ -101,7 +101,7 @@ void UGameInstance::InitializeStandalone()
 }
 
 #if WITH_EDITOR
-bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance)
+bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance, bool bRunAsDedicated)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
 
@@ -114,6 +114,8 @@ bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 		WorldContext = &EditorEngine->CreateNewWorldContext(EWorldType::PIE);
 		WorldContext->PIEInstance = PIEInstance;
 	}
+
+	WorldContext->RunAsDedicated = bRunAsDedicated;
 
 	WorldContext->OwningGameInstance = this;
 	

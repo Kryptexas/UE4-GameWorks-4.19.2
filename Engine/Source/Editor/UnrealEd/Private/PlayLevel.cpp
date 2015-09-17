@@ -2810,7 +2810,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	// We need to temporarily add the GameInstance to the root because the InitPIE call can do garbage collection wiping out the GameInstance
 	GameInstance->AddToRoot();
 
-	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, PIEInstance);
+	bool bSuccess = GameInstance->InitializePIE(bAnyBlueprintErrors, PIEInstance, bRunAsDedicated);
 	if (!bSuccess)
 	{
 		FEditorDelegates::EndPIE.Broadcast(bInSimulateInEditor);
@@ -2826,8 +2826,6 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 	FWorldContext* const PieWorldContext = GameInstance->GetWorldContext();
 	check(PieWorldContext);
 	PlayWorld = PieWorldContext->World();
-
-	PieWorldContext->RunAsDedicated = bRunAsDedicated;
 
 	GWorld = PlayWorld;
 	SetPlayInEditorWorld( PlayWorld );
