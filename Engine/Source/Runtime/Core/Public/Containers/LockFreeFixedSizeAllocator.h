@@ -120,7 +120,7 @@ public:
 	/** Destructor, returns all memory via FMemory::Free **/
 	~TLockFreeFixedSizeAllocator()
 	{
-		check(!NumUsed.GetValue());
+		//check(!NumUsed.GetValue());
 		while (void* Mem = FreeList.Pop())
 		{
 			FMemory::Free(Mem);
