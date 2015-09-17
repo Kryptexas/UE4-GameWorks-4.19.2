@@ -2,6 +2,8 @@ Availability:Public
 Title:Viewport Basics
 Crumbs: %ROOT%, Engine, Engine/UI, Engine/UI/LevelEditor/Viewports
 Description:Basic concepts and features of the Viewports in Unreal Editor.
+Version: 4.9
+SkillLevel: Beginner
 
 [VAR:playlistnav]
 [OBJECT:PlaylistNavigation]
@@ -64,8 +66,6 @@ Description:Basic concepts and features of the Viewports in Unreal Editor.
 [/VAR]
 
 [TOC(start:2 end:3)]
-
-## Overview
 
 [INCLUDE:Engine/UI/LevelEditor/Viewports#intro]
 
