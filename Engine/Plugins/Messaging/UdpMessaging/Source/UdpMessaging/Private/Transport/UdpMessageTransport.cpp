@@ -7,7 +7,7 @@
 /* FUdpMessageTransport structors
  *****************************************************************************/
 
-FUdpMessageTransport::FUdpMessageTransport( const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl )
+FUdpMessageTransport::FUdpMessageTransport(const FIPv4Endpoint& InLocalEndpoint, const FIPv4Endpoint& InMulticastEndpoint, uint8 InMulticastTtl)
 	: LocalEndpoint(InLocalEndpoint)
 	, MessageProcessor(nullptr)
 	, MessageProcessorThread(nullptr)
@@ -110,7 +110,7 @@ void FUdpMessageTransport::StopTransport()
 }
 
 
-bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, const TArray<FGuid>& Recipients )
+bool FUdpMessageTransport::TransportMessage(const IMessageContextRef& Context, const TArray<FGuid>& Recipients)
 {
 	if (MessageProcessor == nullptr)
 	{
@@ -147,7 +147,7 @@ bool FUdpMessageTransport::TransportMessage( const IMessageContextRef& Context, 
 /* FUdpMessageTransport event handlers
  *****************************************************************************/
 
-void FUdpMessageTransport::HandleProcessorMessageReassembled( const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId )
+void FUdpMessageTransport::HandleProcessorMessageReassembled(const FUdpReassembledMessageRef& ReassembledMessage, const IMessageAttachmentPtr& Attachment, const FGuid& NodeId)
 {
 	// @todo gmp: move message deserialization into an async task
 	FUdpDeserializedMessageRef DeserializedMessage = MakeShareable(new FUdpDeserializedMessage(Attachment));
@@ -159,7 +159,7 @@ void FUdpMessageTransport::HandleProcessorMessageReassembled( const FUdpReassemb
 }
 
 
-void FUdpMessageTransport::HandleSocketDataReceived( const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender )
+void FUdpMessageTransport::HandleSocketDataReceived(const FArrayReaderPtr& Data, const FIPv4Endpoint& Sender)
 {
 	if (MessageProcessor != nullptr)
 	{

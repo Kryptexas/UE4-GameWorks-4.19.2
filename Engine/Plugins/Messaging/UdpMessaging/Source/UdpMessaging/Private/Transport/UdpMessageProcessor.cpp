@@ -12,7 +12,7 @@ const int32 FUdpMessageProcessor::DeadHelloIntervals = 5;
 /* FUdpMessageProcessor structors
  *****************************************************************************/
 
-FUdpMessageProcessor::FUdpMessageProcessor( FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint )
+FUdpMessageProcessor::FUdpMessageProcessor(FSocket* InSocket, const FGuid& InNodeId, const FIPv4Endpoint& InMulticastEndpoint)
 	: Beacon(nullptr)
 	, LastSentMessage(-1)
 	, LocalNodeId(InNodeId)
@@ -56,7 +56,7 @@ FUdpMessageProcessor::~FUdpMessageProcessor()
 /* FUdpMessageProcessor interface
  *****************************************************************************/
 
-bool FUdpMessageProcessor::EnqueueInboundSegment( const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender ) 
+bool FUdpMessageProcessor::EnqueueInboundSegment(const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender) 
 {
 	if (!InboundSegments.Enqueue(FInboundSegment(Data, InSender)))
 	{
@@ -69,7 +69,7 @@ bool FUdpMessageProcessor::EnqueueInboundSegment( const FArrayReaderPtr& Data, c
 }
 
 
-bool FUdpMessageProcessor::EnqueueOutboundMessage( const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient )
+bool FUdpMessageProcessor::EnqueueOutboundMessage(const FUdpSerializedMessageRef& SerializedMessage, const FGuid& Recipient)
 {
 	if (!OutboundMessages.Enqueue(FOutboundMessage(SerializedMessage, Recipient)))
 	{
@@ -130,23 +130,26 @@ void FUdpMessageProcessor::Stop()
 /* FUdpMessageProcessor implementation
  *****************************************************************************/
 
-void FUdpMessageProcessor::AcknowledgeReceipt( int32 MessageId, const FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::AcknowledgeReceipt(int32 MessageId, const FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FHeader Header;
-
-	Header.RecipientNodeId = NodeInfo.NodeId;
-	Header.SenderNodeId = LocalNodeId;
-	Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
-	Header.SegmentType = EUdpMessageSegments::Acknowledge;
+	{
+		Header.RecipientNodeId = NodeInfo.NodeId;
+		Header.SenderNodeId = LocalNodeId;
+		Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
+		Header.SegmentType = EUdpMessageSegments::Acknowledge;
+	}
 
 	FUdpMessageSegment::FAcknowledgeChunk AcknowledgeChunk;
-
-	AcknowledgeChunk.MessageId = MessageId;
+	{
+		AcknowledgeChunk.MessageId = MessageId;
+	}
 
 	FArrayWriter Writer;
-
-	Writer << Header;
-	Writer << AcknowledgeChunk;
+	{
+		Writer << Header;
+		Writer << AcknowledgeChunk;
+	}
 
 	int32 Sent;
 
@@ -237,19 +240,24 @@ void FUdpMessageProcessor::ConsumeOutboundMessages()
 		{
 			RecipientNodeInfo.Endpoint = MulticastEndpoint;
 
-			for (TMap<FIPv4Endpoint, FNodeInfo>::TIterator It(StaticNodes); It; ++It)
+			for (auto& StaticNodeInfoPair : StaticNodes)
 			{
-				FNodeInfo& StaticNodeInfo = It.Value();
-				StaticNodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024)));
+				StaticNodeInfoPair.Value.Segmenters.Add(
+					LastSentMessage,
+					MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024))
+				);
 			}
 		}
 
-		RecipientNodeInfo.Segmenters.Add(LastSentMessage, MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024)));
+		RecipientNodeInfo.Segmenters.Add(
+			LastSentMessage,
+			MakeShareable(new FUdpMessageSegmenter(OutboundMessage.SerializedMessage.ToSharedRef(), 1024))
+		);
 	}
 }
 
 
-bool FUdpMessageProcessor::FilterSegment( const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender )
+bool FUdpMessageProcessor::FilterSegment(const FUdpMessageSegment::FHeader& Header, const FArrayReaderPtr& Data, const FIPv4Endpoint& InSender)
 {
 	// filter unsupported protocol versions
 	if (Header.ProtocolVersion != UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION)
@@ -267,43 +275,38 @@ bool FUdpMessageProcessor::FilterSegment( const FUdpMessageSegment::FHeader& Hea
 }
 
 
-void FUdpMessageProcessor::ProcessAbortSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessAbortSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FAbortChunk AbortChunk;
 
 	*Segment.Data << AbortChunk;
-
 	NodeInfo.Segmenters.Remove(AbortChunk.MessageId);
 }
 
 
-void FUdpMessageProcessor::ProcessAcknowledgeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessAcknowledgeSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FAcknowledgeChunk AcknowledgeChunk;
 
 	*Segment.Data << AcknowledgeChunk;
-
 	NodeInfo.Segmenters.Remove(AcknowledgeChunk.MessageId);
 }
 
 
-void FUdpMessageProcessor::ProcessByeSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessByeSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FGuid RemoteNodeId;
 
 	*Segment.Data << RemoteNodeId;
 
-	if (RemoteNodeId.IsValid())
+	if (RemoteNodeId.IsValid() && (RemoteNodeId == NodeInfo.NodeId))
 	{
-		if (NodeInfo.NodeId == RemoteNodeId)
-		{
-			RemoveKnownNode(RemoteNodeId);
-		}
+		RemoveKnownNode(RemoteNodeId);
 	}
 }
 
 
-void FUdpMessageProcessor::ProcessDataSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessDataSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FDataChunk DataChunk;
 
@@ -326,36 +329,38 @@ void FUdpMessageProcessor::ProcessDataSegment( FInboundSegment& Segment, FNodeIn
 	ReassembledMessage->Reassemble(DataChunk.SegmentNumber, DataChunk.SegmentOffset, DataChunk.Data, CurrentTime);
 
 	// Deliver or re-sequence message
-	if (ReassembledMessage->IsComplete())
+	if (!ReassembledMessage->IsComplete())
 	{
-		AcknowledgeReceipt(DataChunk.MessageId, NodeInfo);
+		return;
+	}
 
-		if (ReassembledMessage->GetSequence() == 0)
+	AcknowledgeReceipt(DataChunk.MessageId, NodeInfo);
+
+	if (ReassembledMessage->GetSequence() == 0)
+	{
+		if (NodeInfo.NodeId.IsValid())
+		{
+			MessageReassembledDelegate.ExecuteIfBound(ReassembledMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
+		}
+	}
+	else if (NodeInfo.Resequencer.Resequence(ReassembledMessage))
+	{
+		FUdpReassembledMessagePtr ResequencedMessage;
+
+		while (NodeInfo.Resequencer.Pop(ResequencedMessage))
 		{
 			if (NodeInfo.NodeId.IsValid())
 			{
-				MessageReassembledDelegate.ExecuteIfBound(ReassembledMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
+				MessageReassembledDelegate.ExecuteIfBound(ResequencedMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
 			}
 		}
-		else if (NodeInfo.Resequencer.Resequence(ReassembledMessage))
-		{
-			FUdpReassembledMessagePtr ResequencedMessage;
-
-			while (NodeInfo.Resequencer.Pop(ResequencedMessage))
-			{
-				if (NodeInfo.NodeId.IsValid())
-				{
-					MessageReassembledDelegate.ExecuteIfBound(ResequencedMessage.ToSharedRef(), nullptr, NodeInfo.NodeId);
-				}
-			}
-		}
-
-		NodeInfo.ReassembledMessages.Remove(DataChunk.MessageId);
 	}
+
+	NodeInfo.ReassembledMessages.Remove(DataChunk.MessageId);
 }
 
 
-void FUdpMessageProcessor::ProcessHelloSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessHelloSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FGuid RemoteNodeId;
 
@@ -368,7 +373,7 @@ void FUdpMessageProcessor::ProcessHelloSegment( FInboundSegment& Segment, FNodeI
 }
 
 
-void FUdpMessageProcessor::ProcessRetransmitSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessRetransmitSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FRetransmitChunk RetransmitChunk;
 
@@ -383,7 +388,7 @@ void FUdpMessageProcessor::ProcessRetransmitSegment( FInboundSegment& Segment, F
 }
 
 
-void FUdpMessageProcessor::ProcessTimeoutSegment( FInboundSegment& Segment, FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::ProcessTimeoutSegment(FInboundSegment& Segment, FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FTimeoutChunk TimeoutChunk;
 
@@ -398,13 +403,13 @@ void FUdpMessageProcessor::ProcessTimeoutSegment( FInboundSegment& Segment, FNod
 }
 
 
-void FUdpMessageProcessor::ProcessUnknownSegment( FInboundSegment& Segment, FNodeInfo& EndpointInfo, uint8 SegmentType )
+void FUdpMessageProcessor::ProcessUnknownSegment(FInboundSegment& Segment, FNodeInfo& EndpointInfo, uint8 SegmentType)
 {
 	UE_LOG(LogUdpMessaging, Verbose, TEXT("Received unknown segment type '%i' from %s"), SegmentType, *Segment.Sender.ToText().ToString());
 }
 
 
-void FUdpMessageProcessor::RemoveKnownNode( const FGuid& NodeId )
+void FUdpMessageProcessor::RemoveKnownNode(const FGuid& NodeId)
 {
 	NodeLostDelegate.ExecuteIfBound(NodeId);
 
@@ -419,13 +424,14 @@ void FUdpMessageProcessor::UpdateKnownNodes()
 
 	TArray<FGuid> NodesToRemove;
 
-	for (TMap<FGuid, FNodeInfo>::TIterator It(KnownNodes); It; ++It)
+	for (auto& KnownNodePair : KnownNodes)
 	{
-		FNodeInfo& NodeInfo = It.Value();
+		FGuid& NodeId = KnownNodePair.Key;
+		FNodeInfo& NodeInfo = KnownNodePair.Value;
 
-		if ((It.Key().IsValid()) && ((NodeInfo.LastSegmentReceivedTime + DeadHelloTimespan) <= CurrentTime))
+		if ((NodeId.IsValid()) && ((NodeInfo.LastSegmentReceivedTime + DeadHelloTimespan) <= CurrentTime))
 		{
-			NodesToRemove.Add(It.Key());
+			NodesToRemove.Add(NodeId);
 		}
 		else
 		{
@@ -433,28 +439,29 @@ void FUdpMessageProcessor::UpdateKnownNodes()
 		}
 	}
 
-	for (int32 Index = 0; Index < NodesToRemove.Num(); ++Index)
+	for (const auto& Node : NodesToRemove)
 	{
-		// @todo gmp: put this back in after testing
-		//RemoveKnownEndpoint(EndpointsToRemove(Index));
+		// @todo udpmessaging: gmp: put this back in after testing
+		//RemoveKnownNode(Node);
 	}
 
 	Beacon->SetEndpointCount(KnownNodes.Num() + 1);
 }
 
 
-void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
+void FUdpMessageProcessor::UpdateSegmenters(FNodeInfo& NodeInfo)
 {
 	FUdpMessageSegment::FHeader Header;
-
-	Header.RecipientNodeId = NodeInfo.NodeId;
-	Header.SenderNodeId = LocalNodeId;
-	Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
-	Header.SegmentType = EUdpMessageSegments::Data;
-
-	for (TMap<int32, TSharedPtr<FUdpMessageSegmenter> >::TIterator It2(NodeInfo.Segmenters); It2; ++It2)
 	{
-		TSharedPtr<FUdpMessageSegmenter>& Segmenter = It2.Value();
+		Header.RecipientNodeId = NodeInfo.NodeId;
+		Header.SenderNodeId = LocalNodeId;
+		Header.ProtocolVersion = UDP_MESSAGING_TRANSPORT_PROTOCOL_VERSION;
+		Header.SegmentType = EUdpMessageSegments::Data;
+	}
+
+	for (TMap<int32, TSharedPtr<FUdpMessageSegmenter> >::TIterator It(NodeInfo.Segmenters); It; ++It)
+	{
+		TSharedPtr<FUdpMessageSegmenter>& Segmenter = It.Value();
 
 		Segmenter->Initialize();
 
@@ -464,7 +471,7 @@ void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
 
 			while (Segmenter->GetNextPendingSegment(DataChunk.Data, DataChunk.SegmentNumber))
 			{
-				DataChunk.MessageId = It2.Key();
+				DataChunk.MessageId = It.Key();
 				DataChunk.MessageSize = Segmenter->GetMessageSize();
 				DataChunk.SegmentOffset = 1024 * DataChunk.SegmentNumber;
 				DataChunk.Sequence = 0;
@@ -485,11 +492,11 @@ void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
 				}
 			}
 
-			It2.RemoveCurrent();
+			It.RemoveCurrent();
 		}
 		else if (Segmenter->IsInvalid())
 		{
-			It2.RemoveCurrent();
+			It.RemoveCurrent();
 		}
 	}
 }
@@ -497,9 +504,9 @@ void FUdpMessageProcessor::UpdateSegmenters( FNodeInfo& NodeInfo )
 
 void FUdpMessageProcessor::UpdateStaticNodes()
 {
-	for (TMap<FIPv4Endpoint, FNodeInfo>::TIterator It(StaticNodes); It; ++It)
+	for (auto& StaticNodePair : StaticNodes)
 	{
-		UpdateSegmenters(It.Value());
+		UpdateSegmenters(StaticNodePair.Value);
 	}
 }
 

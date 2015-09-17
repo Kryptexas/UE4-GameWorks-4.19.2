@@ -76,7 +76,7 @@ public:
 	 *
 	 * @param InState The state to set.
 	 */
-	void UpdateState( EUdpSerializedMessageState InState )
+	void UpdateState(EUdpSerializedMessageState InState)
 	{
 		State = InState;
 		StateChangedDelegate.ExecuteIfBound();

@@ -9,35 +9,35 @@
 class FUdpMessageProcessor
 	: public FRunnable
 {
-	// Structure for known remote endpoints.
+	/** Structure for known remote endpoints. */
 	struct FNodeInfo
 	{
-		// Holds the node's IP endpoint.
+		/** Holds the node's IP endpoint. */
 		FIPv4Endpoint Endpoint;
 
-		// Holds the time at which the last Hello was received.
+		/** Holds the time at which the last Hello was received. */
 		FDateTime LastSegmentReceivedTime;
 
-		// Holds the endpoint's node identifier.
+		/** Holds the endpoint's node identifier. */
 		FGuid NodeId;
 
-		// Holds the collection of reassembled messages.
+		/** Holds the collection of reassembled messages. */
 		TMap<int32, FUdpReassembledMessagePtr> ReassembledMessages;
 
-		// Holds the message resequencer.
+		/** Holds the message resequencer. */
 		FUdpMessageResequencer Resequencer;
 
-		// Holds the collection of message segmenters.
+		/** Holds the collection of message segmenters. */
 		TMap<int32, TSharedPtr<FUdpMessageSegmenter> > Segmenters;
 
-		// Default constructor.
+		/** Default constructor. */
 		FNodeInfo()
 			: LastSegmentReceivedTime(FDateTime::MinValue())
 			, NodeId()
 		{ }
 
-		// Resets the endpoint info.
-		void ResetIfRestarted( const FGuid& NewNodeId )
+		/** Resets the endpoint info. */
+		void ResetIfRestarted(const FGuid& NewNodeId)
 		{
 			if (NewNodeId != NodeId)
 			{
@@ -50,21 +50,20 @@ class FUdpMessageProcessor
 	};
 
 
-	// Structure for inbound segments.
+	/** Structure for inbound segments. */
 	struct FInboundSegment
 	{
-		// Holds the segment data.
+		/** Holds the segment data. */
 		FArrayReaderPtr Data;
 
-		// Holds the sender's network endpoint.
+		/** Holds the sender's network endpoint. */
 		FIPv4Endpoint Sender;
 
-
-		// Default constructor.
+		/** Default constructor. */
 		FInboundSegment() { }
 
-		// Creates and initializes a new instance.
-		FInboundSegment( const FArrayReaderPtr& InData, const FIPv4Endpoint& InSender )
+		/** Creates and initializes a new instance. */
+		FInboundSegment(const FArrayReaderPtr& InData, const FIPv4Endpoint& InSender)
 			: Data(InData)
 			, Sender(InSender)
 		{ }
@@ -74,18 +73,17 @@ class FUdpMessageProcessor
 	// Structure for outbound messages.
 	struct FOutboundMessage
 	{
-		// Holds the serialized message.
+		/** Holds the serialized message. */
 		FUdpSerializedMessagePtr SerializedMessage;
 
-		// Holds the recipient.
+		/** Holds the recipient. */
 		FGuid RecipientId;
 
-
-		// Default constructor.
+		/** Default constructor. */
 		FOutboundMessage() { }
 
-		// Creates and initializes a new instance.
-		FOutboundMessage( const FUdpSerializedMessageRef& InSerializedMessage, const FGuid& InRecipientId )
+		/** Creates and initializes a new instance. */
+		FOutboundMessage(const FUdpSerializedMessageRef& InSerializedMessage, const FGuid& InRecipientId)
 			: SerializedMessage(InSerializedMessage)
 			, RecipientId(InRecipientId)
 		{ }
@@ -130,7 +128,7 @@ public:
 	/**
 	 * Returns a delegate that is executed when message data has been received.
 	 *
-	 * @param Delegate The delegate to set.
+	 * @return The delegate.
 	 */
 	DECLARE_DELEGATE_ThreeParams(FOnMessageReassembled, const FUdpReassembledMessageRef& /*ReassembledMessage*/, const IMessageAttachmentPtr& /*Attachment*/, const FGuid& /*NodeId*/)
 	FOnMessageReassembled& OnMessageReassembled()
@@ -138,15 +136,22 @@ public:
 		return MessageReassembledDelegate;
 	}
 
+	/**
+	 * Returns a delegate that is executed when a remote node has been discovered.
+	 *
+	 * @return The delegate.
+	 * @see OnNodeLost
+	 */
 	IMessageTransport::FOnNodeDiscovered& OnNodeDiscovered()
 	{
 		return NodeDiscoveredDelegate;
 	}
 
 	/**
-	 * Returns a delegate that is executed when a channel has closed or timed out.
+	 * Returns a delegate that is executed when a remote node was closed or timed out.
 	 *
-	 * @param Delegate The delegate to set.
+	 * @return The delegate.
+	 * @see OnNodeDiscovered
 	 */
 	IMessageTransport::FOnNodeLost& OnNodeLost()
 	{
@@ -288,10 +293,10 @@ private:
 
 private:
 
-	// Holds the queue of outbound messages. */
+	/** Holds the queue of outbound messages. */
 	TQueue<FInboundSegment, EQueueMode::Mpsc> InboundSegments;
 
-	// Holds the queue of outbound messages. */
+	/** Holds the queue of outbound messages. */
 	TQueue<FOutboundMessage, EQueueMode::Mpsc> OutboundMessages;
 
 private:
