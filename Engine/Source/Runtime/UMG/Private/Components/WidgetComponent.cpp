@@ -550,11 +550,7 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 
 void UWidgetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (EndPlayReason != EEndPlayReason::RemovedFromWorld || EndPlayReason != EEndPlayReason::Destroyed)
-	{
-		ReleaseResources();
-	}
-
+	ReleaseResources();
 	Super::EndPlay(EndPlayReason);
 }
 
