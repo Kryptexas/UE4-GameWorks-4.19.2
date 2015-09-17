@@ -33,11 +33,14 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumerator.
 	 */
-	class FProcEnumerator
+	class CORE_API FProcEnumerator
 	{
 	public:
 		// Constructor
 		FProcEnumerator();
+		FProcEnumerator(const FProcEnumerator&) = delete;
+		FProcEnumerator& operator=(const FProcEnumerator&) = delete;
+
 		// Destructor
 		~FProcEnumerator();
 
@@ -65,7 +68,7 @@ struct CORE_API FMacPlatformProcess : public FGenericPlatformProcess
 	/**
 	 * Process enumeration info structure.
 	 */
-	struct FProcEnumInfo
+	struct CORE_API FProcEnumInfo
 	{
 		friend FProcEnumInfo FMacPlatformProcess::FProcEnumerator::GetCurrent() const;
 

@@ -2067,7 +2067,7 @@ private:
 			PossibleNormalizedPaths.Add(MoveTemp(PossibleProcImagePath));
 		}
 
-		auto ProcessEnumerator = FPlatformProcess::FProcEnumerator();
+		FPlatformProcess::FProcEnumerator ProcessEnumerator;
 
 		while (ProcessEnumerator.MoveNext())
 		{
