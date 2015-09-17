@@ -1,8 +1,8 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2692399
 Availability:Public
-Title:Non-Linear Blends
+Title:비선형 블렌딩
 Crumbs: %ROOT%, Engine, Engine/Animation
-Description:Overview of the different blend functions between animation poses and transitions.  
+Description:애니메이션 포즈와 트랜지션 사이의 다양한 블렌딩 함수에 대한 개요입니다.
 version: 4.9
 Related: Engine\Animation\StateMachines\TransitionRules
 Related: Engine\Animation\StateMachines
@@ -10,7 +10,7 @@ Related: Engine/UI/CurveEditor
 Related: Engine/Basics/Distributions
 Related: Engine/Animation/AnimMontage
 
-Unreal Engine 4 supports many different blending functions that you can use when blending between animation poses and transitions. 
+언리얼 엔진 4 에 제공되는 다양한 블렌딩 함수를 사용해서 애니메이션 포즈와 트랜지션 사이의 블렌딩이 가능합니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]
@@ -24,17 +24,17 @@ Unreal Engine 4 supports many different blending functions that you can use when
 [/PARAMLITERAL]
 [/OBJECT]
 
-_An example of a Custom curve used to Blend between different poses._
+_다양한 포즈 블렌딩에 사용된 커스텀 커브 예제입니다._
 
-You can select from many different blending functions: Linear, Cubic, Hermite Cubic, Sinusoidal, Quadratic, Circular, Exponential and Custom. For most types, you can separately control whether you want easing on either the _in_ or the _out_ of the curve.
+Linear (선형), Cubic (큐브형), Hermite Cubic (헤르밋 큐브형), Sinusodial (사인형), Quadratic (2차함수형), Circular (원형), Exponential (지수함수형), Custom (커스텀) 등 여러가지 다양한 블렌딩 함수 중 선택할 수 있습니다. 대부분의 유형에 대해 커브에 들어올 때나 나갈 때 부드럽게 만드는 이즈 인/아웃 여부를 별도로 조절할 수 있습니다.
 
-The **Custom** option requires a **Curve Float** asset. After creating one, you can assign it in the **Details** panel for the relevant nodes:
+**커스텀** 옵션은 **커브 플로트** 애셋을 필요로 합니다. 하나 만든 후 관련된 노드의 **디테일** 패널에서 할당해 주면 됩니다:
 
 ![](image_44.png)
 
 ![](image_45.png)
 
-This will allow you to specify just about any blend you want to perform. The length of the curve will be normalized and scaled down to meet the specified blend time and any values that are outside of the range 0-1 are clamped back to fit. If a Custom curve is not specified the system will fall back to a Linear blend as depicted below.
+그러면 원하는 어떤 블렌딩이든 지정할 수 있게됩니다. 커브의 길이는 지정된 블렌딩 시간에 맞게끔 정규화 및 스케일 조절되며, 0-1 범위 밖의 값은 클램핑을 통해 맞춰집니다. 커스텀 커브가 지정되지 않으면 시스템은 아래와 같이 선형 블렌딩으로 돌아갑니다.
 
 [OBJECT:EmbeddedVideo]
 [PARAMLITERAL:width]

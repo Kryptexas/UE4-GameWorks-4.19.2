@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2637416
+﻿INTSourceChangelist:2661492
 Availability: Public
 Title:애니메이션 미리보기
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
@@ -9,6 +9,8 @@ Related: Engine/Animation/Sequences
 Related: Engine/Animation/AnimMontage
 Related: Engine/Animation/Blendspaces
 Related: Engine/Animation/AimOffset
+version: 4.9
+skilllevel: Beginner
 
 
 여기서는 언리얼 엔진 4 의 애니메이션 편집 툴인 [페르소나 애니메이션 에디터](Engine/Animation/Persona) 안에서 애니메이션 애셋을 로드하고 미리보는 여러가지 방법에 대해 다루겠습니다. 재생 조작에 사용되는 콘트롤 또는 현재 미리보는 중인 애니메이션에 대해 표시되는 정보 역시도 다루면서, 자세한 정보에 대한 부가 링크도 제공됩니다.
@@ -84,7 +86,7 @@ _클릭하면 원래 크기로 봅니다._
 
 ### 게임 스타일
 
-PC 의 슈팅 게임에 익숙하신 분들은 WASD 콘트롤이 자연스럽게 느껴질 것입니다. 이는 기본적으로 활성화된 콘트롤로, **우클릭** 상태면 언제든 사용 가능합니다. 즉 **우클릭** 으로 카메라를 회전시키면서 이런 식의 조작도 가능하다는 뜻입니다.
+PC 의 슈팅 게임에 익숙하신 분들은 WASD 키가 자연스럽게 느껴질 것입니다. 이는 기본적으로 활성화된 콘트롤로, **우클릭** 상태면 언제든 사용 가능합니다. 즉 마우스로 카메라를 회전시키면서 이런 식의 조작도 가능하다는 뜻입니다.
 
 이 콘트롤은 방향키와 숫자패드에도 적용되어 보조 입력이 가능합니다.
 
