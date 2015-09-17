@@ -3066,7 +3066,7 @@ UMaterialExpressionComment* FMaterialEditor::CreateNewMaterialExpressionComment(
 
 	if (NewComment)
 	{
-		Material->MaterialGraph->AddComment(NewComment);
+		Material->MaterialGraph->AddComment(NewComment, true);
 
 		// Select the new comment.
 		GraphEditor->ClearSelectionSet();

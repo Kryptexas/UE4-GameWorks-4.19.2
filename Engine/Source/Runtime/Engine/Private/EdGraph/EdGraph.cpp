@@ -157,7 +157,7 @@ void UEdGraph::RemoveOnGraphChangedHandler( FDelegateHandle Handle )
 	OnGraphChanged.Remove( Handle );
 }
 
-UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bSelectNewNode/* = true*/ )
+UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool bFromUI, bool bSelectNewNode )
 {
 	UEdGraphNode* NewNode = NewObject<UEdGraphNode>(this, NewNodeClass, NAME_None, RF_Transactional);
 
@@ -166,7 +166,7 @@ UEdGraphNode* UEdGraph::CreateNode( TSubclassOf<UEdGraphNode> NewNodeClass, bool
 		NewNode->SetFlags(RF_Transient);
 	}
 
-	AddNode(NewNode, false, bSelectNewNode );
+	AddNode(NewNode, bFromUI, bSelectNewNode );
 	return NewNode;
 }
 

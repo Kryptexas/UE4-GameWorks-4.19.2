@@ -97,14 +97,21 @@ UMaterialGraphNode* UMaterialGraph::AddExpression(UMaterialExpression* Expressio
 	return NewNode;
 }
 
-UMaterialGraphNode_Comment* UMaterialGraph::AddComment(UMaterialExpressionComment* Comment)
+UMaterialGraphNode_Comment* UMaterialGraph::AddComment(UMaterialExpressionComment* Comment, bool bIsUserInvoked)
 {
 	UMaterialGraphNode_Comment* NewComment = NULL;
 	if (Comment)
 	{
 		Modify();
 		FGraphNodeCreator<UMaterialGraphNode_Comment> NodeCreator(*this);
-		NewComment = NodeCreator.CreateNode(false);
+		if (bIsUserInvoked)
+		{
+			NewComment = NodeCreator.CreateUserInvokedNode(true);
+		}
+		else
+		{
+			NewComment = NodeCreator.CreateNode(false);
+		}
 		NewComment->MaterialExpressionComment = Comment;
 		NewComment->MaterialDirtyDelegate = MaterialDirtyDelegate;
 		Comment->GraphNode = NewComment;

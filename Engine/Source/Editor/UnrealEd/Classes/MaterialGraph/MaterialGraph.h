@@ -138,11 +138,12 @@ public:
 	/**
 	 * Add a Comment to the Graph
 	 *
-	 * @param	Comment	Comment to add
+	 * @param	Comment			Comment to add
+	 * @param	bIsUserInvoked	Whether the comment has just been created by the user via the UI
 	 *
 	 * @return	UMaterialGraphNode_Comment*	Newly created Graph node to represent comment
 	 */
-	class UMaterialGraphNode_Comment*	AddComment(UMaterialExpressionComment* Comment);
+	class UMaterialGraphNode_Comment*	AddComment(UMaterialExpressionComment* Comment, bool bIsUserInvoked = false);
 
 	/** Link all of the Graph nodes using the Material's connections */
 	void LinkGraphNodesFromMaterial();
