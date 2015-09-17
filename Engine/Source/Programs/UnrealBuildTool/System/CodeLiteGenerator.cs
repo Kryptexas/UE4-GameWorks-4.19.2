@@ -24,6 +24,10 @@ namespace UnrealBuildTool
 		public string CodeCompletionFileName = "CodeCompletionFolders.txt";
 		public string CodeCompletionPreProcessorFileName = "CodeLitePreProcessor.txt";
 
+		public CodeLiteGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		//
 		// Returns CodeLite's project filename extension.
 		//
@@ -34,7 +38,6 @@ namespace UnrealBuildTool
 				return ".project";
 			}
 		}
-
 		protected override bool WriteMasterProjectFile( ProjectFile UBTProject )
 		{
 			var SolutionFileName = MasterProjectName + SolutionExtension;
@@ -208,7 +211,7 @@ namespace UnrealBuildTool
 
 		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
 		{
-			return new CodeLiteProject( InitFilePath );
+			return new CodeLiteProject( InitFilePath, OnlyGameProject );
 		}
 
 		public override MasterProjectFolder AllocateMasterProjectFolder( ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName )

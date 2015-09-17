@@ -38,6 +38,11 @@ namespace UnrealBuildTool
 		/// Now this is needed for project target generation.
 		bool bGenerateIntelliSenseData = true;
 
+		/// Default constructor
+		public MakefileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		/// True if we should include IntelliSense data in the generated project files when possible
 		override public bool ShouldGenerateIntelliSenseData()
 		{
@@ -71,7 +76,7 @@ namespace UnrealBuildTool
 
             if (!String.IsNullOrEmpty(GameProjectName))
             {
-                GameProjectFile = UnrealBuildTool.GetUProjectFile().FullName;
+                GameProjectFile = OnlyGameProject.FullName;
                 MakeGameProjectFile = "GAMEPROJECTFILE =" + GameProjectFile + "\n";
                 ProjectBuildCommand = "PROJECTBUILD = mono $(UNREALROOTPATH)/Engine/Binaries/DotNET/UnrealBuildTool.exe\n";
             }

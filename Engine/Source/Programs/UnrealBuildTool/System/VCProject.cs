@@ -268,6 +268,8 @@ namespace UnrealBuildTool
 			
 	public class VCProjectFile : MSBuildProjectFile
 	{
+		FileReference OnlyGameProject;
+
 		// This is the GUID that Visual Studio uses to identify a C++ project file in the solution
 		public override string ProjectTypeGUID
 		{
@@ -278,9 +280,10 @@ namespace UnrealBuildTool
 		/// Constructs a new project file object
 		/// </summary>
 		/// <param name="InitFilePath">The path to the project file on disk</param>
-		public VCProjectFile(FileReference InitFilePath)
-			: base( InitFilePath )
+		public VCProjectFile(FileReference InFilePath, FileReference InOnlyGameProject)
+			: base( InFilePath )
 		{
+			OnlyGameProject = InOnlyGameProject;
 		}
 
 
@@ -960,9 +963,9 @@ namespace UnrealBuildTool
 					DirectoryReference RootDirectory = UnrealBuildTool.EngineDirectory;
 					if ((TargetRules.IsAGame(TargetRulesObject.Type) || TargetRulesObject.Type == TargetRules.TargetType.Server) && bShouldCompileMonolithic && !TargetRulesObject.bOutputToEngineBinaries)
 					{
-						if (UnrealBuildTool.HasUProjectFile() && TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath()))
+						if (OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory))
 						{
-							RootDirectory = UnrealBuildTool.GetUProjectPath();
+							RootDirectory = OnlyGameProject.Directory;
 						}
 						else
 						{

@@ -34,6 +34,11 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class QMakefileGenerator : ProjectFileGenerator
 	{
+		/// Default constructor
+		public QMakefileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
 		override public string ProjectFileExtension
 		{
@@ -206,8 +211,8 @@ namespace UnrealBuildTool
 
 			if (!String.IsNullOrEmpty (GameProjectName))
 			{
-				GameProjectPath = UnrealBuildTool.GetUProjectPath ().FullName;
-				GameProjectFile = UnrealBuildTool.GetUProjectFile ().FullName;
+				GameProjectPath = OnlyGameProject.Directory.FullName;
+				GameProjectFile = OnlyGameProject.FullName;
 				QMakeGameProjectFile = "gameProjectFile=" + GameProjectFile + "\n";
 				BuildCommand = "build=mono $$unrealRootPath/Engine/Binaries/DotNET/UnrealBuildTool.exe\n\n";
 			}

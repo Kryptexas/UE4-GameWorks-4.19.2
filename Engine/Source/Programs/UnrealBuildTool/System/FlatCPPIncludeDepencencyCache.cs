@@ -310,9 +310,9 @@ namespace UnrealBuildTool
 		public static FileReference GetDependencyCachePathForTarget(UEBuildTarget Target)
 		{
 			DirectoryReference PlatformIntermediatePath;
-			if (UnrealBuildTool.HasUProjectFile())
+			if (Target.ProjectFile != null)
 			{
-				PlatformIntermediatePath = DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.PlatformIntermediateFolder);
+				PlatformIntermediatePath = DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.PlatformIntermediateFolder);
 			}
 			else
 			{

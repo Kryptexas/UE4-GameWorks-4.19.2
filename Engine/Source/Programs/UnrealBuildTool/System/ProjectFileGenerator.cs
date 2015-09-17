@@ -219,6 +219,9 @@ namespace UnrealBuildTool
 		/// @todo projectfiles: Nasty global static list.  This is only really used for IntelliSense, and to avoid extra folder searches for projects we've already cached source files for.
 		public static readonly Dictionary<string, ProjectFile> ModuleToProjectFileMap = new Dictionary<string, ProjectFile>( StringComparer.InvariantCultureIgnoreCase );
 
+		/// If generating project files for a single project, the path to its .uproject file.
+		public readonly FileReference OnlyGameProject;
+
 		/// When generating IntelliSense data, we may want to only generate data for a specific project file, even if other targets make use of modules
 		/// in this project file.  This is useful to prevent unusual or hacky global definitions from Programs affecting the Editor/Engine modules.  We
 		/// always want the most common and useful definitions to be set when working with solutions with many modules.
@@ -239,6 +242,15 @@ namespace UnrealBuildTool
 		virtual public bool ShouldGenerateIntelliSenseData()
 		{
 			return bGenerateIntelliSenseData;
+		}
+
+		/// <summary>
+		/// Default constructor.
+		/// </summary>
+		/// <param name="InOnlyGameProject">The project file passed in on the command line</param>
+		public ProjectFileGenerator(FileReference InOnlyGameProject)
+		{
+			OnlyGameProject = InOnlyGameProject;
 		}
 
 		/// <summary>
@@ -300,10 +312,10 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for game...");
 
-				MasterProjectPath = UnrealBuildTool.GetUProjectPath();
+				MasterProjectPath = OnlyGameProject.Directory;
 					
-					// Set the project file name
-				MasterProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile().FullName);
+				// Set the project file name
+				MasterProjectName = Path.GetFileNameWithoutExtension(OnlyGameProject.FullName);
 
 				if (!DirectoryReference.Combine(MasterProjectPath, "Source").Exists())
 				{
@@ -326,11 +338,11 @@ namespace UnrealBuildTool
 			{
 				Log.TraceInformation("Discovering modules, targets and source code for project...");
 
-				MasterProjectPath = UnrealBuildTool.GetUProjectPath();
+				MasterProjectPath = OnlyGameProject.Directory;
 				IntermediateProjectFilesPath = DirectoryReference.Combine( MasterProjectPath, "Intermediate", "ProjectFiles" );
 
 				// Set the project file name
-				MasterProjectName = Path.GetFileNameWithoutExtension(UnrealBuildTool.GetUProjectFile().FullName);
+				MasterProjectName = OnlyGameProject.GetFileNameWithoutExtension();
 
 				if (!DirectoryReference.Combine(MasterProjectPath, "Source").Exists())
 				{
@@ -796,10 +808,10 @@ namespace UnrealBuildTool
 				}
 
 				// Make sure we can get a valid game name out of this project
-				var GameName = UnrealBuildTool.GetUProjectFile().GetFileNameWithoutExtension();
+				var GameName = OnlyGameProject.GetFileNameWithoutExtension();
 				if( String.IsNullOrEmpty( GameName ) )
 				{
-					throw new BuildException("A valid Rocket game project was not found in the specified location (" + UnrealBuildTool.GetUProjectPath() + ")");
+					throw new BuildException("A valid Rocket game project was not found in the specified location (" + OnlyGameProject.Directory.FullName + ")");
 				}
 
 				IncludeEngineSource = true;
@@ -812,10 +824,10 @@ namespace UnrealBuildTool
 			}
 			else if( bGeneratingGameProjectFiles )
 			{
-				GameProjectName = UnrealBuildTool.GetUProjectFile().GetFileNameWithoutExtension();
+				GameProjectName = OnlyGameProject.GetFileNameWithoutExtension();
 				if (String.IsNullOrEmpty(GameProjectName))
 				{
-					throw new BuildException("A valid game project was not found in the specified location (" + UnrealBuildTool.GetUProjectPath() + ")");
+					throw new BuildException("A valid game project was not found in the specified location (" + OnlyGameProject.Directory.FullName + ")");
 				}
 
 				IncludeEngineSource = bAlwaysIncludeEngineModules;
@@ -976,9 +988,9 @@ namespace UnrealBuildTool
 					}
 				}
 
-				if (UnrealBuildTool.HasUProjectFile())
+				if (OnlyGameProject != null)
 				{
-					string ProjectRoot = UnrealBuildTool.GetUProjectPath().FullName;
+					string ProjectRoot = OnlyGameProject.Directory.FullName;
 					if (Search.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
 					{
 						if (ProjectRoot.EndsWith("\\") || ProjectRoot.EndsWith("/"))
@@ -1722,7 +1734,7 @@ namespace UnrealBuildTool
 
 						bool bProjectAlreadyExisted;
 						var ProjectFile = FindOrAddProject(ProjectFilePath, IncludeInGeneratedProjects: true, bAlreadyExisted: out bProjectAlreadyExisted);
-						ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && UnrealBuildTool.HasUProjectFile() && TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath());
+						ProjectFile.IsForeignProject = bGeneratingGameProjectFiles && OnlyGameProject != null && TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory);
 						ProjectFile.IsGeneratedProject = true;
 						ProjectFile.IsStubProject = false;
 

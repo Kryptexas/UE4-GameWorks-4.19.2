@@ -113,21 +113,7 @@ namespace UnrealBuildTool
 		public static FileReference GetResponseFileName( LinkEnvironment LinkEnvironment, FileItem OutputFile )
 		{
 			// Construct a relative path for the intermediate response file
-			FileReference ResponseFileName = FileReference.Combine( LinkEnvironment.Config.IntermediateDirectory, Path.GetFileName( OutputFile.AbsolutePath ) + ".response" );
-			if (UnrealBuildTool.HasUProjectFile())
-			{
-				// If this is the uproject being built, redirect the intermediate
-				if (OutputFile.Reference.IsUnderDirectory( UnrealBuildTool.GetUProjectPath() ))
-				{
-					ResponseFileName = FileReference.Combine(
-						UnrealBuildTool.GetUProjectPath(), 
-						BuildConfiguration.PlatformIntermediateFolder,
-						UnrealBuildTool.GetUProjectFile().GetFileNameWithoutExtension(),
-						LinkEnvironment.Config.Target.Configuration.ToString(),
-						Path.GetFileName(OutputFile.AbsolutePath) + ".response");
-				}
-			}
-			return ResponseFileName;
+			return FileReference.Combine( LinkEnvironment.Config.IntermediateDirectory, OutputFile.Reference.GetFileName() + ".response" );
 		}
 
 		/** Converts the passed in path from UBT host to compiler native format. */

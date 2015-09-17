@@ -40,6 +40,11 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class VCProjectFileGenerator : ProjectFileGenerator
 	{
+		/// Default constructor
+		public VCProjectFileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
 		override public string ProjectFileExtension
 		{
@@ -102,7 +107,7 @@ namespace UnrealBuildTool
 		/// <returns>The newly allocated project file object</returns>
 		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
 		{
-			return new VCProjectFile( InitFilePath );
+			return new VCProjectFile( InitFilePath, OnlyGameProject );
 		}
 
 

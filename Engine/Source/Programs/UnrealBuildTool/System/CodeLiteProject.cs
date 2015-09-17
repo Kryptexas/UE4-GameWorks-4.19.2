@@ -11,8 +11,11 @@ namespace UnrealBuildTool
 {
 	public class CodeLiteProject : ProjectFile
 	{
-		public CodeLiteProject( FileReference InitFilePath ) : base(InitFilePath)
+		FileReference OnlyGameProject;
+
+		public CodeLiteProject( FileReference InitFilePath, FileReference InOnlyGameProject ) : base(InitFilePath)
 		{
+			OnlyGameProject = InOnlyGameProject;
 		}
 		
 		// Check if the XElement is empty.
@@ -46,9 +49,9 @@ namespace UnrealBuildTool
 			//
 
 			string GameWorkingDirectory = "";
-			if (UnrealBuildTool.HasUProjectFile ()) 
+			if (OnlyGameProject != null)
 			{
-				GameWorkingDirectory = Path.Combine (Path.GetDirectoryName (UnrealBuildTool.GetUProjectFile ().FullName), "Binaries", ProjectPlatformName);
+				GameWorkingDirectory = Path.Combine (Path.GetDirectoryName (OnlyGameProject.FullName), "Binaries", ProjectPlatformName);
 			}
 			//
 			// Build the working directory of the UE4Editor executable.
@@ -65,10 +68,9 @@ namespace UnrealBuildTool
 			}
 
 			string GameProjectFile = "";
-			FileReference GameProject = UnrealBuildTool.GetUProjectFile();
-			if (GameProject != null)
+			if (OnlyGameProject != null)
 			{
-				GameProjectFile = GameProject.FullName;
+				GameProjectFile = OnlyGameProject.FullName;
 			}
 
 			//
@@ -467,7 +469,7 @@ namespace UnrealBuildTool
 							string CookGameCommandLine = "mono AutomationTool.exe BuildCookRun ";
 
 							// Projects filename
-							CookGameCommandLine += "-project=\"" + UnrealBuildTool.GetUProjectFile () + "\" ";
+							CookGameCommandLine += "-project=\"" + OnlyGameProject.FullName + "\" ";
 							
 							// Disables Perforce functionality 
 							CookGameCommandLine += "-noP4 ";

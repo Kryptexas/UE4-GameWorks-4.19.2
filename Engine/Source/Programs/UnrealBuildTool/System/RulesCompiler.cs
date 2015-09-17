@@ -387,46 +387,6 @@ namespace UnrealBuildTool
 
 		/** Redistribution override flag for this module. */
 		public bool? IsRedistributableOverride { get; set; }
-
-		/**
-		 * Reads additional dependencies array for project module from project file and fills PrivateDependencyModuleNames. 
-		 *
-		 * @param ProjectFile A path to the .uproject file.
-		 * @param ModuleName Name of the module.
-		 */
-		public void ReadAdditionalDependencies(FileReference ProjectFile, string ModuleName)
-		{
-			// Create a case-insensitive dictionary of the contents
-			Dictionary<string, object> Descriptor = fastJSON.JSON.Instance.ToObject<Dictionary<string, object>>(File.ReadAllText(ProjectFile.FullName));
-			Descriptor = new Dictionary<string,object>(Descriptor, StringComparer.InvariantCultureIgnoreCase);
-
-			// Get the list of plugins
-			object ModulesObject;
-			if (Descriptor.TryGetValue("Modules", out ModulesObject))
-			{
-				foreach(var ModuleObject in (ModulesObject as object[]).Cast<Dictionary<string, object>>())
-				{
-					object NameObject;
-					object AdditionalDependenciesObject;
-
-					if(!ModuleObject.TryGetValue("Name", out NameObject)
-						|| !(NameObject as string).Equals(ModuleName)
-						|| !ModuleObject.TryGetValue("AdditionalDependencies", out AdditionalDependenciesObject))
-					{
-						continue;
-					}
-
-					foreach (var AdditionalDependency in (AdditionalDependenciesObject as object[]).Cast<string>())
-					{
-						if(!PrivateDependencyModuleNames.Contains(AdditionalDependency))
-						{
-							PrivateDependencyModuleNames.Add(AdditionalDependency);
-						}
-					}
-					break;
-				}
-			}
-		}
 	}
 
 	/// <summary>
@@ -1073,11 +1033,6 @@ namespace UnrealBuildTool
 	public class RulesAssembly
 	{
 		/// <summary>
-		/// The parent rules assembly that this assembly inherits. Game assemblies inherit the engine assembly, and the engine assembly inherits nothing.
-		/// </summary>
-		private RulesAssembly Parent;
-
-		/// <summary>
 		/// The compiled assembly
 		/// </summary>
 		private Assembly CompiledAssembly;
@@ -1106,6 +1061,11 @@ namespace UnrealBuildTool
 		/// Cache for whether a module has source code
 		/// </summary>
 		private Dictionary<FileReference, bool> ModuleHasSource = new Dictionary<FileReference, bool>();
+
+		/// <summary>
+		/// The parent rules assembly that this assembly inherits. Game assemblies inherit the engine assembly, and the engine assembly inherits nothing.
+		/// </summary>
+		private RulesAssembly Parent;
 
 		/// <summary>
 		/// Constructor. Compiles a rules assembly from the given source files.
@@ -1289,102 +1249,21 @@ namespace UnrealBuildTool
 				throw new BuildException(Ex, "Unable to instantiate instance of '{0}' object type from compiled assembly '{1}'.  Unreal Build Tool creates an instance of your module's 'Rules' object in order to find out about your module's requirements.  The CLR exception details may provide more information:  {2}", ModuleTypeName, CompiledAssembly.FullName, Ex.ToString());
 			}
 
-			// Have to do absolute here as this could be a project that is under the root
-			bool bProjectModule = UnrealBuildTool.HasUProjectFile() && ModuleFileName.IsUnderDirectory(UnrealBuildTool.GetUProjectPath());
-			if (bProjectModule)
+			// Update the run-time dependencies path to remove $(PluginDir) and replace with a full path. When the receipt is saved it'll be converted to a $(ProjectDir) or $(EngineDir) equivalent.
+			foreach (var Dependency in RulesObject.RuntimeDependencies)
 			{
-				RulesObject.ReadAdditionalDependencies(UnrealBuildTool.GetUProjectFile(), ModuleName);
-			}
-
-			// Validate rules object
-			{
-				if (RulesObject.Type == ModuleRules.ModuleType.CPlusPlus)
+				const string PluginDirVariable = "$(PluginDir)";
+				if(Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
 				{
-					if (RulesObject.PrivateAssemblyReferences.Count > 0)
+					PluginInfo Plugin;
+					if(ModuleFileToPluginInfo.TryGetValue(ModuleFileName, out Plugin))
 					{
-						throw new BuildException("Module rules for '{0}' may not specify PrivateAssemblyReferences unless it is a CPlusPlusCLR module type.", CompiledAssembly.FullName);
-					}
-
-					var InvalidDependencies = RulesObject.DynamicallyLoadedModuleNames.Intersect(RulesObject.PublicDependencyModuleNames.Concat(RulesObject.PrivateDependencyModuleNames)).ToList();
-					if (InvalidDependencies.Count != 0)
-					{
-						throw new BuildException("Module rules for '{0}' should not be dependent on modules which are also dynamically loaded: {1}", ModuleName, String.Join(", ", InvalidDependencies));
-					}
-
-					// Choose code optimization options based on module type (game/engine) if
-					// default optimization method is selected.
-					bool bIsEngineModule = ModuleFileName.IsUnderDirectory(UnrealBuildTool.EngineDirectory);
-					bool IsGamePluginModule = bProjectModule ? ModuleFileName.IsUnderDirectory(DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), "Plugins")) : false;
-					if (RulesObject.OptimizeCode == ModuleRules.CodeOptimization.Default)
-					{
-						// Engine/Source and Engine/Plugins are considered 'Engine' code...
-						if (bIsEngineModule)
-						{
-							// Engine module - always optimize (except Debug).
-							RulesObject.OptimizeCode = ModuleRules.CodeOptimization.Always;
-						}
-						else
-						{
-							// Game module - do not optimize in Debug and DebugGame builds.
-							RulesObject.OptimizeCode = ModuleRules.CodeOptimization.InNonDebugBuilds;
-						}
-					}
-
-					// Disable shared PCHs for game modules by default (but not game plugins, since they won't depend on the game's PCH!)
-					if (RulesObject.PCHUsage == ModuleRules.PCHUsageMode.Default)
-					{
-						// Note that bIsEngineModule includes Engine/Plugins, so Engine/Plugins will use shared PCHs.
-						var IsProgramTarget = Target.Type != null && Target.Type == TargetRules.TargetType.Program;
-						if (bIsEngineModule || IsProgramTarget || IsGamePluginModule)
-						{
-							// Engine module or plugin module -- allow shared PCHs
-							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.UseSharedPCHs;
-						}
-						else
-						{
-							// Game module.  Do not enable shared PCHs by default, because games usually have a large precompiled header of their own and compile times would suffer.
-							RulesObject.PCHUsage = ModuleRules.PCHUsageMode.NoSharedPCHs;
-						}
-					}
-				}
-
-				// Update the run-time dependencies path to remove $(PluginDir) and replace with a full path. When the receipt is saved it'll be converted to a $(ProjectDir) or $(EngineDir) equivalent.
-				foreach (var Dependency in RulesObject.RuntimeDependencies)
-				{
-					const string PluginDirVariable = "$(PluginDir)";
-					if(Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
-					{
-						PluginInfo Plugin;
-						if(ModuleFileToPluginInfo.TryGetValue(ModuleFileName, out Plugin))
-						{
-							Dependency.Path = Plugin.Directory + Dependency.Path.Substring(PluginDirVariable.Length);
-						}
+						Dependency.Path = Plugin.Directory + Dependency.Path.Substring(PluginDirVariable.Length);
 					}
 				}
 			}
 
 			return RulesObject;
-		}
-
-		/// <summary>
-		/// Creates an instance of a module rules descriptor object for the specified module name
-		/// </summary>
-		/// <param name="ModuleName">Name of the module</param>
-		/// <param name="Target">Information about the target associated with this module</param>
-		/// <param name="Rules">Output </param>
-		/// <returns>Compiled module rule info</returns>
-		public bool TryCreateModuleRules(string ModuleName, TargetInfo Target, out ModuleRules Rules)
-		{
-			if(GetModuleFileName( ModuleName ) == null)
-			{
-				Rules = null;
-				return false;
-			}
-			else
-			{
-				Rules = CreateModuleRules( ModuleName, Target );
-				return true;
-			}
 		}
 
 		/// <summary>

@@ -34,6 +34,9 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class KDevelopGenerator : ProjectFileGenerator
 	{
+		public KDevelopGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
 
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
 		override public string ProjectFileExtension
@@ -83,7 +86,7 @@ namespace UnrealBuildTool
 
 			if (TargetName == GameProjectName)
 			{			
-				ProjectCmdArg = " -project=\"" + UnrealBuildTool.GetUProjectFile () + "\"";
+				ProjectCmdArg = " -project=\"" + OnlyGameProject.FullName + "\"";
 				Executable = "mono";
 				BuildCommand = "Engine/Binaries/DotNET/UnrealBuildTool.exe";
 
@@ -94,7 +97,7 @@ namespace UnrealBuildTool
 
 			} 
 			else if (TargetName == (GameProjectName + "Editor")) {
-				ProjectCmdArg = " -editorrecompile -project=\"" + UnrealBuildTool.GetUProjectFile () + "\"";
+				ProjectCmdArg = " -editorrecompile -project=\"" + OnlyGameProject.FullName + "\"";
 				Executable = "mono";
 				BuildCommand = "Engine/Binaries/DotNET/UnrealBuildTool.exe";
 

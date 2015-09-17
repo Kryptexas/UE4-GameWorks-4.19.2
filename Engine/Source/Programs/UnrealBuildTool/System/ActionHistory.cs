@@ -99,8 +99,12 @@ namespace UnrealBuildTool
 			{
 				// Monolithic configs and programs have their Action History stored in their respective project folders
 				// or under engine intermediate folder + program name folder
-				DirectoryReference RootDirectory = UnrealBuildTool.GetUProjectPath();
-				if (RootDirectory == null)
+				DirectoryReference RootDirectory;
+				if(Target.ProjectFile != null)
+				{
+					RootDirectory = Target.ProjectFile.Directory;
+				}
+				else
 				{
 					RootDirectory = UnrealBuildTool.EngineDirectory;
 				}
@@ -109,8 +113,8 @@ namespace UnrealBuildTool
 			else
 			{
 				// Shared action history (unless this is a rocket target)
-				Folder = (UnrealBuildTool.RunningRocket() && UnrealBuildTool.HasUProjectFile()) ?
-					DirectoryReference.Combine(UnrealBuildTool.GetUProjectPath(), BuildConfiguration.BaseIntermediateFolder) :
+				Folder = (UnrealBuildTool.RunningRocket() && Target.ProjectFile != null) ?
+					DirectoryReference.Combine(Target.ProjectFile.Directory, BuildConfiguration.BaseIntermediateFolder) :
 					DirectoryReference.Combine(UnrealBuildTool.EngineDirectory, BuildConfiguration.BaseIntermediateFolder);
 			}
 			return FileReference.Combine(Folder, "ActionHistory.bin");

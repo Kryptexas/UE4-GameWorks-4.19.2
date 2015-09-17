@@ -192,6 +192,10 @@ namespace UnrealBuildTool
 		// always seed the random number the same, so multiple runs of the generator will generate the same project
 		static Random Rand = new Random(0);
 
+		public XcodeProjectFileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		/**
 		 * Make a random Guid string usable by Xcode (24 characters exactly)
 		 */
@@ -351,15 +355,15 @@ namespace UnrealBuildTool
 			if (Target.Type == XcodeTargetType.Legacy)
 			{
 				string UProjectPath = "";
-				if (UnrealBuildTool.HasUProjectFile() && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath()))
+				if (OnlyGameProject != null && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory))
 				{
-					if (MasterProjectPath == UnrealBuildTool.GetUProjectPath())
+					if (MasterProjectPath == OnlyGameProject.Directory)
 					{
-						UProjectPath = " " + "\\\"$(PROJECT_DIR)/" + Path.GetFileName(UnrealBuildTool.GetUProjectFile().FullName) + "\\\"";
+						UProjectPath = " " + "\\\"$(PROJECT_DIR)/" + OnlyGameProject.GetFileName() + "\\\"";
 					}
 					else
 					{
-						UProjectPath = " " + "\\\"" + UnrealBuildTool.GetUProjectFile() + "\\\"";
+						UProjectPath = " " + "\\\"" + OnlyGameProject.FullName + "\\\"";
 					}
 				}
 				// Xcode provides $ACTION argument for determining if we are building or cleaning a project
@@ -1425,16 +1429,16 @@ namespace UnrealBuildTool
 					continue;
 				}
 
-				if (UnrealBuildTool.HasUProjectFile() && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(UnrealBuildTool.GetUProjectPath()))
+				if (OnlyGameProject != null && Target.TargetFilePath != null && Target.TargetFilePath.IsUnderDirectory(OnlyGameProject.Directory))
 				{
 					if (Target.TargetName.EndsWith("Editor"))
 					{
-						WriteSchemeFile(XcodeProjectPath, Target, ".app", "UE4Editor", new List<string>(new string[] { "&quot;" + UnrealBuildTool.GetUProjectFile() + "&quot;" }));
+						WriteSchemeFile(XcodeProjectPath, Target, ".app", "UE4Editor", new List<string>(new string[] { "&quot;" + OnlyGameProject.FullName + "&quot;" }));
 					}
 					else
 					{
-						string ProjectBinariesDir = UnrealBuildTool.GetUProjectPath() + "/Binaries/Mac/";
-						WriteSchemeFile(XcodeProjectPath, Target, ".app", ProjectBinariesDir + Target.TargetName, new List<string>(new string[] { "&quot;" + UnrealBuildTool.GetUProjectFile() + "&quot;" }));
+						string ProjectBinariesDir = OnlyGameProject.Directory.FullName + "/Binaries/Mac/";
+						WriteSchemeFile(XcodeProjectPath, Target, ".app", ProjectBinariesDir + Target.TargetName, new List<string>(new string[] { "&quot;" + OnlyGameProject.FullName + "&quot;" }));
 					}
 				}
 				else if (Target.TargetName.EndsWith("Editor") && Target.TargetName != "UE4Editor")
@@ -1456,11 +1460,11 @@ namespace UnrealBuildTool
 		private void WriteProject(StringBuilder XcodeProjectFileContent, List<XcodeProjectTarget> ProjectTargets)
 		{
 			// @todo: Windows and Mac should store the project in the same folder
-			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((UnrealBuildTool.GetUProjectPath() != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
+			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((OnlyGameProject != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
 			var XcodeProjectPath = MasterProjectPath.FullName + PathBranch + "/" + MasterProjectName + ".xcodeproj";
 			if (bGeneratingGameProjectFiles && GameProjectName == "UE4Game")
 			{
-				XcodeProjectPath = UnrealBuildTool.GetUProjectPath() + "/" + MasterProjectName + ".xcodeproj";
+				XcodeProjectPath = OnlyGameProject.Directory.FullName + "/" + MasterProjectName + ".xcodeproj";
 			}
 			if (!Directory.Exists(XcodeProjectPath))
 			{
@@ -1492,11 +1496,11 @@ namespace UnrealBuildTool
 
 		private void WriteWorkspace()
 		{
-			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((UnrealBuildTool.GetUProjectPath() != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
+			string PathBranch = (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac) ? ((OnlyGameProject != null) ? "/Intermediate/IOS" : "/Engine/Intermediate/IOS") : "";
 			var XcodeProjectPath = MasterProjectPath + PathBranch + "/" + MasterProjectName + ".xcodeproj";
 			if (bGeneratingGameProjectFiles && GameProjectName == "UE4Game")
 			{
-				XcodeProjectPath = UnrealBuildTool.GetUProjectPath() + "/" + MasterProjectName + ".xcodeproj";
+				XcodeProjectPath = OnlyGameProject.Directory.FullName + "/" + MasterProjectName + ".xcodeproj";
 			}
 			if (!Directory.Exists(XcodeProjectPath))
 			{

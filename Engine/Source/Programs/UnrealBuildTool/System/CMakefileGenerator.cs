@@ -36,6 +36,11 @@ namespace UnrealBuildTool
 		/// True if intellisense data should be generated (takes a while longer)
 		bool bGenerateIntelliSenseData = false;
 
+		/// Default constructor
+		public CMakefileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		{
+		}
+
 		/// True if we should include IntelliSense data in the generated project files when possible
 		override public bool ShouldGenerateIntelliSenseData()
 		{
@@ -103,10 +108,10 @@ namespace UnrealBuildTool
 
 			if (!String.IsNullOrEmpty (GameProjectName)) 
 			{
-				CMakeGameRootPath = "set(GAME_ROOT_PATH \"" + UnrealBuildTool.GetUProjectPath() + "\")\n";
+				CMakeGameRootPath = "set(GAME_ROOT_PATH \"" + OnlyGameProject.Directory.FullName + "\")\n";
 
-				GameProjectPath = UnrealBuildTool.GetUProjectPath ().FullName;
-				GameProjectFile = UnrealBuildTool.GetUProjectFile ().FullName;
+				GameProjectPath = OnlyGameProject.Directory.FullName;
+				GameProjectFile = OnlyGameProject.FullName;
 
 				CMakeGameProjectFile = "set(GAME_PROJECT_FILE \"" + GameProjectFile + "\")\n";
 

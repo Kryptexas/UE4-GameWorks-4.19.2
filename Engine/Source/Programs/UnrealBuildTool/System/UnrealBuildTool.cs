@@ -189,20 +189,6 @@ namespace UnrealBuildTool
             return UProjectPath;
         }
 
-        /// <summary>
-        /// The Unreal project source directory.  This should always be valid when compiling game projects.  Engine targets and program targets may not have a UProject set. */
-        /// </summary>
-        /// <returns>Relative path to the project's source directory</returns>
-        static public DirectoryReference GetUProjectSourcePath()
-        {
-            DirectoryReference ProjectPath = GetUProjectPath();
-            if (ProjectPath != null)
-            {
-                ProjectPath = DirectoryReference.Combine(ProjectPath, "Source");
-            }
-            return ProjectPath;
-        }
-
         static public string GetUBTPath()
         {
             string UnrealBuildToolPath = Assembly.GetExecutingAssembly().GetOriginalLocation();
@@ -1279,34 +1265,36 @@ namespace UnrealBuildTool
 
 					if (bGenerateCodeLiteFiles || bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles || bGenerateKDevelopFiles)
                     {
+						FileReference UProjectFile = GetUProjectFile();
+
                         bool bGenerationSuccess = true;
                         if (bGenerateVCProjectFiles)
                         {
-                            bGenerationSuccess &= GenerateProjectFiles(new VCProjectFileGenerator(), Arguments);
+                            bGenerationSuccess &= GenerateProjectFiles(new VCProjectFileGenerator(UProjectFile), Arguments);
                         }
                         if (bGenerateXcodeProjectFiles)
                         {
-                            bGenerationSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(), Arguments);
+                            bGenerationSuccess &= GenerateProjectFiles(new XcodeProjectFileGenerator(UProjectFile), Arguments);
                         }
                         if (bGenerateMakefiles)
                         {
-                            bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
+                            bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(UProjectFile), Arguments);
                         }
 						if (bGenerateCMakefiles)
 						{
-							bGenerationSuccess &= GenerateProjectFiles(new CMakefileGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new CMakefileGenerator(UProjectFile), Arguments);
 						}
 						if (bGenerateQMakefiles)
 						{
-							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(UProjectFile), Arguments);
 						}
 						if (bGenerateKDevelopFiles)
 						{
-							bGenerationSuccess &= GenerateProjectFiles(new KDevelopGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new KDevelopGenerator(UProjectFile), Arguments);
 						}
 						if (bGenerateCodeLiteFiles)
 						{
-							bGenerationSuccess &= GenerateProjectFiles(new CodeLiteGenerator(), Arguments);
+							bGenerationSuccess &= GenerateProjectFiles(new CodeLiteGenerator(UProjectFile), Arguments);
 						}
                         if(!bGenerationSuccess)
                         {
@@ -1365,7 +1353,7 @@ namespace UnrealBuildTool
                                 {
                                     // We need to be able to identify the Target.Type we can derive it from the Arguments.
                                     BuildConfiguration.bFlushBuildDirOnRemoteMac = false;
-									var TargetDescs = UEBuildTarget.ParseTargetCommandLine( Arguments );
+									var TargetDescs = UEBuildTarget.ParseTargetCommandLine( Arguments, GetUProjectFile() );
 			                        UEBuildTarget CheckTarget = UEBuildTarget.CreateTarget( TargetDescs[0] );	// @todo ubtmake: This may not work in assembler only mode.  We don't want to be loading target rules assemblies here either.
                                     CheckTarget.SetupGlobalEnvironment();
                                     if ((CheckTarget.TargetType == TargetRules.TargetType.Game) ||
@@ -1630,7 +1618,7 @@ namespace UnrealBuildTool
 
 					foreach (string[] TargetSetting in TargetSettings)
 					{
-						TargetDescs.AddRange( UEBuildTarget.ParseTargetCommandLine( TargetSetting ) );
+						TargetDescs.AddRange( UEBuildTarget.ParseTargetCommandLine( TargetSetting, GetUProjectFile() ) );
 					}
 
 					if( BuildConfiguration.bPrintPerformanceInfo )
@@ -2191,7 +2179,7 @@ namespace UnrealBuildTool
 				var EditorProcessName = Path.GetFileNameWithoutExtension(EditorProcessFilename);
 				var EditorProcesses = BuildHostPlatform.Current.GetProcessesByName(EditorProcessName);
 				var BinariesPath = Path.GetFullPath(Path.GetDirectoryName(EditorProcessFilename));
-				var PerProjectBinariesPath = UnrealBuildTool.HasUProjectFile()? Path.Combine(UnrealBuildTool.GetUProjectPath().FullName, BinariesPath.Substring(BinariesPath.LastIndexOf("Binaries"))) : "";
+				var PerProjectBinariesPath = (TargetDesc.ProjectFile != null)? Path.Combine(TargetDesc.ProjectFile.Directory.FullName, BinariesPath.Substring(BinariesPath.LastIndexOf("Binaries"))) : "";
 				bIsRunning = EditorProcesses.FirstOrDefault(EditorProc =>
 					{
 						if(!Path.GetFullPath(EditorProc.Filename).StartsWith(BinariesPath, StringComparison.InvariantCultureIgnoreCase))
