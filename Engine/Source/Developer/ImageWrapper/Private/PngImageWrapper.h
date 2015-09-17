@@ -8,7 +8,7 @@
 
 #include "ThirdParty/libPNG/libPNG-1.5.2/png.h"
 #include "ThirdParty/libPNG/libPNG-1.5.2/pnginfo.h"
-
+#include <setjmp.h>
 
 /**
  * PNG implementation of the helper class.
@@ -83,6 +83,9 @@ private:
 
 	// The number of channels.
 	uint8 Channels;
+
+	// setjmp buffer for error recovery
+	jmp_buf SetjmpBuffer;
 };
 
 
