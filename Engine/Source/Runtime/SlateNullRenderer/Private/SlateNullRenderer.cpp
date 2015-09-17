@@ -65,6 +65,16 @@ void FSlateNullRenderer::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
 }
 
+void FSlateNullRenderer::PrepareToTakeScreenshot(const FIntRect& Rect, TArray<FColor>* OutColorData)
+{
+	if (OutColorData)
+	{
+		int32 TotalSize = Rect.Width() * Rect.Height();
+		OutColorData->Empty(TotalSize);
+		OutColorData->AddZeroed(TotalSize);
+	}
+}
+
 FSlateUpdatableTexture* FSlateNullRenderer::CreateUpdatableTexture(uint32 Width, uint32 Height)
 {
 	return nullptr;
