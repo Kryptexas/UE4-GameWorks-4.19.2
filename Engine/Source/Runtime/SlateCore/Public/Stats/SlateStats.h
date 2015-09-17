@@ -9,7 +9,7 @@
 	#define WITH_SLATE_STATS 0
 #endif
 
-#define SLATE_STATS (WITH_SLATE_STATS || WITH_EDITOR)
+#define SLATE_STATS (WITH_SLATE_STATS | WITH_EDITOR)
 
 /** 
  * Predefined detail levels to make choosing level slightly easier.
