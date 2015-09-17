@@ -307,7 +307,8 @@ int32 FSequencerTimeSliderController::OnPaintTimeSlider( bool bMirrorLabels, con
 			float FrameTime = Time * FrameRate;
 			int32 Frame = SequencerHelpers::TimeToFrame(Time, FrameRate);
 					
-			if (FMath::IsNearlyEqual(FrameTime, (float)Frame, KINDA_SMALL_NUMBER))
+			const float FrameTolerance = 0.001f;
+			if (FMath::IsNearlyEqual(FrameTime, (float)Frame, FrameTolerance))
 			{
 				FrameString = FString::Printf( TEXT("%d"), TimeToFrame(Time));
 			}
