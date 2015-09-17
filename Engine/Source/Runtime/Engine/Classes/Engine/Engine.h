@@ -1771,7 +1771,8 @@ public:
 	bool HandleEnableAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );			
 	bool HandleToggleAllScreenMessagesCommand( const TCHAR* Cmd, FOutputDevice& Ar );			
 	bool HandleConfigHashCommand( const TCHAR* Cmd, FOutputDevice& Ar );						
-	bool HandleConfigMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );							
+	bool HandleConfigMemCommand( const TCHAR* Cmd, FOutputDevice& Ar );	
+	bool HandleGetIniCommand(const TCHAR* Cmd, FOutputDevice& Ar);
 #endif // !UE_BUILD_SHIPPING
 
 	/** Update everything. */
