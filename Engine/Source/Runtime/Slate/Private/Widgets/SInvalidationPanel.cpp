@@ -130,7 +130,7 @@ void SInvalidationPanel::Tick( const FGeometry& AllottedGeometry, const double I
 		if ( bNeedsCaching )
 		{
 			SlatePrepass(AllottedGeometry.Scale);
-			CachePrepass(SharedThis(this));
+			CachePrepass(this);
 		}
 	}
 
@@ -212,6 +212,7 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			//FPlatformMisc::BeginNamedEvent(FColor::Red, "Slate::Invalidation");
 
 			SInvalidationPanel* MutableThis = const_cast<SInvalidationPanel*>( this );
+			TSharedRef<SInvalidationPanel> SharedMutableThis = SharedThis(MutableThis);
 
 			// Always set the caching flag to false first, during the paint / tick pass we may change something
 			// to volatile and need to re-cache.
@@ -229,11 +230,11 @@ int32 SInvalidationPanel::OnPaint( const FPaintArgs& Args, const FGeometry& Allo
 			LastUsedCachedNodeIndex = 0;
 
 			RootCacheNode = CreateCacheNode();
-			RootCacheNode->Initialize(Args, SharedThis(MutableThis), AllottedGeometry, MyClippingRect);
+			RootCacheNode->Initialize(Args, SharedMutableThis, AllottedGeometry, MyClippingRect);
 
 			//TODO: When SWidget::Paint is called don't drag self if volatile, and we're doing a cache pass.
 			CachedMaxChildLayer = SCompoundWidget::OnPaint(
-				Args.EnableCaching(SharedThis(MutableThis), RootCacheNode, true, false),
+				Args.EnableCaching(MutableThis, RootCacheNode, true, false),
 				AllottedGeometry,
 				MyClippingRect,
 				*CachedWindowElements.Get(),

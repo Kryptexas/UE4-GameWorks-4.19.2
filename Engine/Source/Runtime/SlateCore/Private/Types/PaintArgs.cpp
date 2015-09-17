@@ -4,7 +4,7 @@
 #include "HittestGrid.h"
 #include "WidgetCaching.h"
 
-FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime )
+FPaintArgs::FPaintArgs(const SWidget& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime)
 : ParentPtr(Parent)
 , Grid(InHittestGrid)
 , LastHittestIndex(INDEX_NONE)
@@ -14,13 +14,14 @@ FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHitte
 , DeltaTime(InDeltaTime)
 , bIsCaching(false)
 , bIsVolatilityPass(false)
+, LayoutCache(nullptr)
 , ParentCacheNode(nullptr)
 {
 }
 
-FPaintArgs FPaintArgs::WithNewParent( const SWidget* Parent ) const
+FPaintArgs FPaintArgs::WithNewParent( const SWidget& Parent ) const
 {
-	FPaintArgs Args = FPaintArgs( const_cast<SWidget*>(Parent)->AsShared(), this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime );
+	FPaintArgs Args = FPaintArgs(Parent, this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime);
 	Args.LastHittestIndex = this->LastHittestIndex;
 	Args.LastRecordedVisibility = this->LastRecordedVisibility;
 	Args.LayoutCache = this->LayoutCache;
@@ -31,7 +32,7 @@ FPaintArgs FPaintArgs::WithNewParent( const SWidget* Parent ) const
 	return Args;
 }
 
-FPaintArgs FPaintArgs::EnableCaching(const TSharedPtr<ILayoutCache>& InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatile) const
+FPaintArgs FPaintArgs::EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatile) const
 {
 	FPaintArgs UpdatedArgs(*this);
 	UpdatedArgs.LayoutCache = InLayoutCache;

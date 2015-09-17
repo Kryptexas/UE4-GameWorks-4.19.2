@@ -29,6 +29,7 @@ SWidget::SWidget()
 	, RenderTransformPivot( FVector2D::ZeroVector )
 	, DesiredSize(FVector2D::ZeroVector)
 	, ToolTip()
+	, LayoutCache(nullptr)
 	, bIsHovered(false)
 	, bCanTick(true)
 	, bCanSupportFocus(true)
@@ -372,6 +373,13 @@ void SWidget::SlatePrepass(float LayoutScaleMultiplier)
 {
 	//SLATE_CYCLE_COUNTER_SCOPE_CUSTOM_DETAILED(SLATE_STATS_DETAIL_LEVEL_MED, GSlatePrepass, GetType());
 
+	// TODO Figure out a better way than to just reset the pointer.  This causes problems when we prepass
+	// volatile widgets, who still need to know about their invalidation panel incase they vanish themselves.
+
+	// Reset the layout cache object each pre-pass to ensure we never access a stale layout cache object 
+	// as this widget could have been moved in and out of a panel that was invalidated between frames.
+	//LayoutCache = nullptr;
+
 	if ( bCanHaveChildren )
 	{
 		// Cache child desired sizes first. This widget's desired size is
@@ -406,7 +414,7 @@ const FVector2D& SWidget::GetDesiredSize() const
 	return DesiredSize;
 }
 
-void SWidget::CachePrepass(TWeakPtr<ILayoutCache> InLayoutCache)
+void SWidget::CachePrepass(ILayoutCache* InLayoutCache)
 {
 	if ( bCanHaveChildren )
 	{
@@ -649,9 +657,6 @@ int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, 
 	// pass later when the layout cache draws.
 	if ( Args.IsCaching() && IsVolatile() )
 	{
-		// Volatile widgets don't have an associated layout cache.
-		LayoutCache.Reset();
-
 		const int32 VolatileLayerId = LayerId + 1;
 		OutDrawElements.QueueVolatilePainting(
 			FSlateWindowElementList::FVolatilePaint(SharedThis(this), Args, AllottedGeometry, MyClippingRect, VolatileLayerId, InWidgetStyle, bParentEnabled));

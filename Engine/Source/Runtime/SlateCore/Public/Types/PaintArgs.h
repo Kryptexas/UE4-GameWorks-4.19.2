@@ -21,9 +21,14 @@ class FCachedWidgetNode;
 class SLATECORE_API FPaintArgs
 {
 public:
-	FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime );
-	FPaintArgs WithNewParent( const SWidget* Parent ) const;
-	FPaintArgs EnableCaching(const TSharedPtr<ILayoutCache>& InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatility) const;
+	FPaintArgs( const SWidget& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime );
+	FORCEINLINE FPaintArgs WithNewParent(const SWidget* Parent) const
+	{
+		checkSlow(Parent);
+		return WithNewParent(*Parent);
+	}
+	FPaintArgs WithNewParent( const SWidget& Parent ) const;
+	FPaintArgs EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatility) const;
 	FPaintArgs RecordHittestGeometry(const SWidget* Widget, const FGeometry& WidgetGeometry, const FSlateRect& InClippingRect) const;
 	FPaintArgs InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 HitTestIndex ) const;
 
@@ -35,11 +40,11 @@ public:
 	float GetDeltaTime() const { return DeltaTime; }
 	bool IsCaching() const { return bIsCaching; }
 	bool IsVolatilityPass() const { return bIsVolatilityPass; }
-	TSharedPtr<ILayoutCache> GetLayoutCache() const { return LayoutCache; }
+	ILayoutCache* GetLayoutCache() const { return LayoutCache; }
 	FCachedWidgetNode* GetParentCacheNode() const { return ParentCacheNode; }
 
 private:
-	const TSharedRef<SWidget>& ParentPtr;
+	const SWidget& ParentPtr;
 	FHittestGrid& Grid;
 	int32 LastHittestIndex;
 	EVisibility LastRecordedVisibility;
@@ -48,6 +53,6 @@ private:
 	float DeltaTime;
 	bool bIsCaching;
 	bool bIsVolatilityPass;
-	TSharedPtr<ILayoutCache> LayoutCache;
+	ILayoutCache* LayoutCache;
 	FCachedWidgetNode* ParentCacheNode;
 };

@@ -92,6 +92,7 @@ enum class EInvalidateWidget
 class ILayoutCache
 {
 public:
+	virtual ~ILayoutCache() { }
 	virtual void InvalidateWidget(class SWidget* InvalidateWidget) = 0;
 	virtual FCachedWidgetNode* CreateCacheNode() const = 0;
 };
@@ -792,10 +793,9 @@ protected:
 	 */
 	FORCEINLINE void Advanced_ForceInvalidateLayout()
 	{
-		TSharedPtr<ILayoutCache> Cache = LayoutCache.Pin();
-		if ( Cache.IsValid() )
+		if ( LayoutCache )
 		{
-			Cache->InvalidateWidget(this);
+			LayoutCache->InvalidateWidget(this);
 		}
 	}
 
@@ -1029,7 +1029,7 @@ protected:
 	 * on invisible children that never get the opportunity to paint and receive the layout cache through the normal
 	 * means.  That way if an invisible widget becomes visible, we still properly invalidate the hierarchy.
 	 */
-	void CachePrepass(TWeakPtr<ILayoutCache> LayoutCache);
+	void CachePrepass(ILayoutCache* LayoutCache);
 
 protected:
 	/**
@@ -1114,7 +1114,7 @@ private:
 	TSharedPtr<IToolTip> ToolTip;
 
 	/** The current layout cache that may need to invalidated by changes to this widget. */
-	mutable TWeakPtr<ILayoutCache> LayoutCache;
+	mutable ILayoutCache* LayoutCache;
 
 protected:
 	/** Is this widget hovered? */
