@@ -48,6 +48,12 @@ public:
 
 	static bool GetEnableWidgetCaching();
 	static void SetEnableWidgetCaching(bool bEnable);
+#else
+	static bool IsInvalidationDebuggingEnabled() { return false; }
+	static void EnableInvalidationDebugging(bool bEnable) { }
+
+	static bool GetEnableWidgetCaching() { return true; }
+	static void SetEnableWidgetCaching(bool bEnable) { }
 #endif
 
 private:
