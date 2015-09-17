@@ -73,5 +73,5 @@ TStatId FUdpSerializeMessageTask::GetStatId() const
 
 ESubsequentsMode::Type FUdpSerializeMessageTask::GetSubsequentsMode() 
 { 
-	return ESubsequentsMode::TrackSubsequents; 
+	return ESubsequentsMode::FireAndForget; 
 }
