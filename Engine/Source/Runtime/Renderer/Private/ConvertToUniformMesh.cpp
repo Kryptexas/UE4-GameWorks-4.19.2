@@ -1,7 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	SurfelTree.cpp
+	ConvertToUniformMesh.cpp
 =============================================================================*/
 
 #include "RendererPrivate.h"
