@@ -5056,6 +5056,7 @@ void FHeaderParser::CompileInterfaceDeclaration(FClasses& AllClasses)
 	ClassData->SetPrologLine(PrologFinishLine);
 
 	// Register the metadata
+	AddModuleRelativePathToMetadata(InterfaceClass, MetaData);
 	AddMetaDataToClassData(InterfaceClass, MetaData);
 
 	// Handle the start of the rest of the interface
