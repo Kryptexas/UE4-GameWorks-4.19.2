@@ -119,6 +119,12 @@ bool FJsonObjectConverter::UStructToJsonObject(const UStruct* StructDefinition, 
 
 bool FJsonObjectConverter::UStructToJsonAttributes(const UStruct* StructDefinition, const void* Struct, TMap< FString, TSharedPtr<FJsonValue> >& OutJsonAttributes, int64 CheckFlags, int64 SkipFlags, const CustomExportCallback* ExportCb)
 {
+	if (SkipFlags == 0)
+	{
+		// If we have no specified skip flags, skip deprecated by default when writing
+		SkipFlags |= CPF_Deprecated;
+	}
+
 	if (StructDefinition == FJsonObjectWrapper::StaticStruct())
 	{
 		// Just copy it into the object

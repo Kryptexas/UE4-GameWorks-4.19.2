@@ -24,13 +24,15 @@ public: // UStruct -> JSON
 	 * 
 	 * @param InStruct The UStruct instance to read from
 	 * @param ExportCb Optional callback for types we don't understand. This is called right before falling back to the generic ToString()
+	 * @param CheckFlags Only convert properties that match at least one of these flags. If 0 check all properties.
+	 * @param SkipFlags Skip properties that match any of these flags
 	 * @return FJsonObject pointer. Invalid if an error occurred.
 	 */
 	template<typename InStructType>
-	static TSharedPtr<FJsonObject> UStructToJsonObject(const InStructType& InStruct, const CustomExportCallback* ExportCb = nullptr)
+	static TSharedPtr<FJsonObject> UStructToJsonObject(const InStructType& InStruct, int64 CheckFlags = 0, int64 SkipFlags = 0, const CustomExportCallback* ExportCb = nullptr)
 	{
 		TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
-		if (UStructToJsonObject(InStructType::StaticStruct(), &InStruct, JsonObject, 0, 0, ExportCb))
+		if (UStructToJsonObject(InStructType::StaticStruct(), &InStruct, JsonObject, CheckFlags, SkipFlags, ExportCb))
 		{
 			return JsonObject;
 		}
