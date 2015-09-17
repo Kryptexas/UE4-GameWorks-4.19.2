@@ -1085,7 +1085,7 @@ UEnum* ConstructDynamicEnum(FName EnumName)
 UObject* ConstructDynamicType(FName TypeName, FName TypeClass)
 {
 	UObject* Result = nullptr;
-	if (TypeClass == UClass::StaticClass()->GetFName())
+	if ((TypeClass == UClass::StaticClass()->GetFName()) || (TypeClass == UDynamicClass::StaticClass()->GetFName()))
 	{
 		Result = ConstructDynamicClass(TypeName);
 	}
