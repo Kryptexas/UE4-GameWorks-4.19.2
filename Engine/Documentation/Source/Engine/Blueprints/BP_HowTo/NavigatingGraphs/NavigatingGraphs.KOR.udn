@@ -1,8 +1,10 @@
-﻿INTSourceChangelist:2457628
+﻿INTSourceChangelist:2679100
 Availability: Public
 Title:그래프 조작하기
 Crumbs:
 Description:여러가지 그래프 요소과 그래프에서 이동시키는 법에 대한 설명입니다.
+version:4.8
+skilllevel:Beginner
 
 [OBJECT:Redirect]
 [PARAM:link]

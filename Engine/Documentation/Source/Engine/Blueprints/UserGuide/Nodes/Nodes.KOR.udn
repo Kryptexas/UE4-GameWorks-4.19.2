@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600439
+﻿INTSourceChangelist:2690936
 Availability:Public
 Title:노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관된 게임플레이 이벤트에 반응하는 동작을 수행하는 노드 그래프입니다.
+version: 4.9
 
 
 **Node** (노드)란 그래프에서 사용할 수 있는 이벤트, 함수 호출, 흐름 제어 동작, 변수 등과 같은 오브젝트로,
@@ -34,15 +35,15 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 
 노드 선택은 **그래프 에디터** 탭에서 노드에 클릭하면 됩니다.
 
-![Blueprint Node Selected](k2_select_node.png)
+![](SelectNode.jpg)(w:820)
 
 **Ctrl** 키를 누른 채 노드에 클릭하는 것으로, 현재 선택에 노드를 추가 또는 제거할 수 있습니다.
 
-![Blueprint Multiple Nodes Selected](k2_select_multiple.png)
+![](VarMessage.jpg)(w:820)
 
 클릭 후 끌어 범위 선택으로 다수의 노드를 한 번에 선택할 수 있습니다. **Ctrl** 키를 누른 채 클릭 후 끌어 범위 선택을 하면 해당 부분 선택이 토글됩니다. **Shift** 키를 누른 채 클릭 후 끌어 범위 선택을 하면 해당 부분이 현재 선택에 추가됩니다.
 
-![Blueprint Marquee Selection](k2_select_marquee.png)(w:820)
+![](DotBoxSpawnEmitter.jpg)(w:820)
 
 모든 노드의 선택을 해제하려면, 그냥 **그래프 에디터** 탭의 빈 공간에 클릭하면 됩니다.
 
@@ -94,11 +95,11 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 
 실행 핀 사이의 와이어는 실행 흐름을 나타냅니다. 실행 와이어는 출력 실행 핀에서 입력 실행 핀으로 흐르는 하양 화살표로 표시됩니다. 화살표의 방향이 실행 흐름을 나타냅니다.
 
-![Blueprint Exec Wire](k2_select_node.png)
+![](SelectNode.jpg)(w:820)
 
 실행 와이어는 실행중일 때 시각적 표식이 나타납니다. 플레이 도중, 한 노드의 실행이 끝나고 다음 노드가 실행될 때, 그 실행 핀 사이의 와이어를 통해 한 노드에서 다른 노드로 실행이 흘러가고 있음이 강조됩니다.
 
-![Blueprint Exec Wire - Attack State](k2_flow_exec.png)
+![](k2_flow_exec.jpg)(w:820)
 
 실행 와이어의 시각적 표식은 시간에 따라 점차 희미해 집니다.
 
@@ -118,17 +119,17 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 
 * 하나의 핀을 클릭하고 같은 유형의 다른 핀에 끌어 놓아 직접 연결합니다.
 
-	![Blueprint Wire Creation - Compatible Pin](k2_connection_direct.png)
+	![](HoverCheck.jpg)(w:820)
 
 	연결은 호환되는 핀 유형끼리만 가능합니다. 호환되지 않는 핀에 끌어놓으면, 연결할 수 없다는 오류창이 뜨게 됩니다.
 
-	![Blueprint Wire Creation - Incompatible Pin](k2_connection_bad.png)
+	![](HoverCheckNo.jpg)(w:820)
 
 * 핀을 클릭하고 그래프의 빈 공간에 끌어놓으면 원래 핀 유형과 호환되는 모든 노드가 나열되는 맥락 메뉴가 뜹니다. 이 목록에서 노드를 선택하면 해당 노드의 인스턴스를 새로 만든 다음, 새 노드의 호환되는 핀에 와이어를 연결합니다.
 
 	![Blueprint Wire Creation - New Node](k2_connection_new.png)
 
-	![Blueprint Wire Creation - New Node Created](k2_connection_new2.png)
+	![](ConnectedNodes.jpg)(w:820)
 
 	두 핀 사이의 와이어를 끊는 방법은 다음 중 하나로 가능합니다:
 
@@ -136,7 +137,7 @@ Description:이벤트와 함수 호출을 사용해서 블루프린트와 연관
 
 * 연결된 핀 중 하나에 우클릭한 다음 Break Link (링크 끊기)를 선택합니다.
 
-	![Blueprint Break Wire](k2_connection_break.png)
+	![](BreakLinkNode.jpg)(w:820)
 
 
 ### 접힌 그래프

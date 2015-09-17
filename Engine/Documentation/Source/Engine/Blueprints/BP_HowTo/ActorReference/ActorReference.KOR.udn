@@ -1,25 +1,32 @@
-﻿INTSourceChangelist:2637334
+﻿INTSourceChangelist:2679100
 Availability: Public
 Title:액터 레퍼런스 Set / Get
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:레벨의 여러가지 액터 이동을 위해 액터 레퍼런스 사용하기 입니다.
 Related: Gameplay/HowTo/ReferenceAssets/Blueprints
+version: 4.9
+skilllevel:Intermediate
+type:howto
+parent:Engine/Blueprints/BP_HowTo
+order:1
 
 [INCLUDE:Gameplay\HowTo\ReferenceAssets#referenceoverview]
 
 액터로의 레퍼런스를 **Get** / **Set** 하는 예제는 아래 단계를 참고하세요.
 
-_이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼인칭 템플릿** 을 사용하고 있습니다._
+[REGION:note]
+이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼인칭 템플릿** 을 사용하고 있습니다._
+[/REGION]
 
 1. **모드** 메뉴에서 **기본** 아래 **박스 트리거** 를 끌어 레벨에 놓습니다.
 
-	![](1AddTriggerBox.jpg)
+	![](1AddTriggerBox.png)
 
 	이 트리거를 건드리면 레벨에 있는 다른 액터가 이동되도록 하겠습니다.
 
 1. **박스 트리거** 의 **디테일** 패널에서 **Convert to Class Blueprint** (클래스 블루프린트로 변환)을 선택합니다.
 
-	![](2ReplaceWithBlueprint.jpg)
+	![](2ReplaceWithBlueprint.png)
 
 	이 액터에서 **블루프린트** 를 만들어 그 안에 액터 레퍼런스를 저장할 변수를 할당해 주도록 하겠습니다.
 
@@ -27,29 +34,29 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 
 1. 블루프린트 에디터에서 **내 블루프린트** 아래, **변수 추가** 버튼을 누릅니다.
 
-	![](3AddVariable.jpg)	
+	![](3AddVariable.png)	
 
 1. 변수를 클릭한 다음 **디테일** 패널에서 **변수 유형** 버튼을 누르고 **오브젝트 레퍼런스** 아래 **Actor** 를 선택합니다.
 
-	![](4VariableType.jpg)
+	![](4VariableType.png)
 
 	여기서 레퍼런스가 **Actor** 유형이며, 레벨에 있는 **오브젝트** 임을 나타냅니다.
 
 1. 변수 이름을 **TargetActor** 라고 지은 뒤 **Editable** (편집가능) 체크박스를 클릭합니다.
 
-	![](5NameVariable.jpg)
+	![](5NameVariable.png)
 
 	변수가 **퍼블릭** 으로 설정되어, 이 블루프린트 이외에도 메인 에디터 창에서 **디테일** 패널을 통해 접근 및 설정 가능함을 나타냅니다. 변수를 블루프린트 안에 들어가지 않고도 변경하고자 할 때 유용합니다.
 
 1. **툴팁** 칸에 변수의 역할이나 용도에 대해 입력해도 좋습니다.
 
-	![](7ToolTip.jpg)
+	![](7ToolTip.png)
 
 	여기서는 "The Actor to Target" 이라 입력했습니다.
 
 1. 블루프린트 에디터 창 좌상단의 **컴파일** 버튼을 클릭합니다.
 
-	![](20Compile.jpg)
+	![](20Compile.png)
 
 	컴파일이 완료되면 초록 체크 표시로 변합니다.
 
@@ -59,19 +66,19 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 
 1. 창의 **디테일** 패널에서, **Default** 아래 **Target Actor** 변수와 툴팁이 보일 것입니다.
 
-	![](8DetailsPanel.jpg)
+	![](8DetailsPanel.png)
 
 1. **콘텐츠 브라우저** 에서 **Content/StarterContent/Shapes** 아래 **Shape_Cubes** 를 레벨에 세 개 추가합니다.
 
-	![](9AddingAnActor.jpg)
+	![](9AddingAnActor.png)
 
 	[REGION:note]
-	별도의 프로젝트를 사용중이시라면, 아무 액터, **스태틱 메시** 나 **블루프린트** 를 레벨에 놓아도 됩니다.
+	별도의 프로젝트를 사용중이시라면, 아무 액터, 스태틱 메시 또는 블루프린트를 레벨에 놓아도 됩니다.
 	[/REGION]
 
 1. 레벨에 무엇을 추가하든, 각 액터의 **디테일** 패널에서 모빌리티를 **무버블** 로 설정합니다.
 
-	![](22Moveable.jpg)
+	![](22Moveable.png)
 
 	그러면 블루프린트 스크립트를 통해 이동시킬 수 있게 됩니다.
 
@@ -79,41 +86,41 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 
 1. **디테일** 패널에서 **Target Actor** 아래 **없음** 박스를 클릭한 다음 **Shape** (또는 추가한 액터 이름)을 선택합니다.
 
-	![](10DropDownSelection.jpg)
+	![](10DropDownSelection.png)
 
 	**없음** 을 클릭하면 현재 레벨에 있는 모든 액터가 표시되나, 방금 추가한 큐브 액터 하나를 대상으로 삼겠습니다.
 
 1. 확대경 아이콘 옆의 스포이드 아이콘을 클릭합니다.
 
-	![](11PickActor.jpg)
+	![](11PickActor.png)
 
 	그러면 뷰포트에서 레벨에 있는 액터를 클릭하는 것으로 타겟 액터로 선택할 수 있습니다.
 
 1. 스포이드 아이콘을 큐브 (또는 추가한 애셋)으로 옮긴 다음 클릭하여 타겟 액터로 만듭니다.
 
-	![](11ActorSelected.jpg)
+	![](11ActorSelected.png)
 
 1. 액터를 선택하면 **디테일** 패널에 **Target Actor** 변수가 선택된 액터로 업데이트됩니다.
 
-	![](13ActorSelected.jpg)
+	![](13ActorSelected.png)
 
 	여기 우리 타겟 액터가 될 액터로의 레퍼런스를 **Set** 했습니다.
 
 1. **Box Trigger** 블루프린트를 연 다음 **내 블루프린트** 창에서 눈 모양 아이콘을 클릭하고 **Show Inherited Variables** (상속된 변수 표시) 옵션을 켭니다. 
 
-	![](showVariables.jpg)
+	![](showVariables.png)
 
 	그러면 트리거 박스를 클래스 블루프린트로 처음 전환했을때 상속된 컴포넌트에 이벤트를 추가할 수 있습니다.
 	
 1. **Trigger Base** 아래 **CollisionComponent** 에 **우클릭** 한 다음 **Event 추가** 후 **OnComponentBeginOverlap 추가** 합니다. 
 
-	![](14AddOverlap.jpg)
+	![](14AddOverlap.png)
 
 	그러면 그래프에 **이벤트** 노드가 생성됩니다.
 
 1. **Ctrl** 키를 누른 채 **TargetActor** 를 그래프에 끌어 놓습니다.
 
-	![](15GetActorReference.jpg)
+	![](15GetActorReference.png)
 
 	그러면 레벨의 액터로 설정해 둔 변수가 무엇이든지 구해오는 **Get** 노드가 생성됩니다.
 
@@ -125,21 +132,21 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 
 1. 노드를 아래와 같이 연결하고, **Add Actor Local Offset** 노드의 **Z** 값을 **500.0** 으로 설정합니다.
 
-	![](17AddZValue.jpg)
+	![](17AddZValue.png)
 
 	그러면 트리거 박스에 겹칠때마다 타겟의 현재 위치를 구한 다음 Z 축을 따라 500 만큼 위로 이동시킵니다.
 
 1.	**컴포넌트** 창에서 **TriggerBox_Blueprint** 를 클릭하여 선택합니다.
 
-	![](selectTriggerBox.jpg)
+	![](selectTriggerBox.png)
 
 	**컴포넌트** 창이 보이지 않으면, **창** 메뉴 옵션에서 켤 수 있습니다.
 
-	![](enableComponentWindow.jpg)
+	![](enableComponentWindow.png)
 
 1.	트리거 박스에 대한 **디테일 패널** 에서 **Rendering** 아래 **Actor Hidden In Game** (게임내 숨겨진 액터) 옵션을 켭니다.
 
-	![](19ActorHiddenInGame.jpg)
+	![](19ActorHiddenInGame.png)
 
 	그러면 플레이어가 어디로 들어가면 될지 확인이 가능하도록 트리거 박스가 게임내에서 보이게 됩니다.
 
@@ -153,7 +160,7 @@ _이 예제에서는 **시작용 콘텐츠가 포함** 된 **블루프린트 삼
 
 1.	**박스 트리거** 의 **디테일** 패널에서, **Target Actor** 옆의 스포이드 아이콘을 클릭합니다.
 
-	![](11PickActor.jpg)
+	![](11PickActor.png)
 
 1.	레벨 뷰포트에서 전에 사용했던 것과 다른 액터를 선택합니다.
 

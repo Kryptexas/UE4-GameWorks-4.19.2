@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597157
+﻿INTSourceChangelist:2683142
 Availability:Public
 Title:매크로 라이브러리 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -24,7 +25,6 @@ Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
 [/OBJECT]
 [/VAR]
 
-[TOC (start:2)]
 
 [INCLUDE:Engine/Blueprints/UserGuide/Types/MacroLibrary#intro]
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2599397
+﻿INTSourceChangelist:2688066
 Availability:Public
 Title:컴포넌트 창
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,6 +7,7 @@ Related: Engine/Blueprints/UserGuide/Graphs
 Related: Engine/Blueprints/UserGuide/Variables
 Related: Engine/Blueprints/UserGuide/Events
 Related: Engine/Blueprints/UserGuide/Functions
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -135,7 +136,7 @@ _블루프린트_ 의 **컴포넌트** 리스트에 컴포넌트를 추가하려
 
 	위에서는 _스태틱 메시 컴포넌트_ 를 추가했으며, **StaticMesh** 아래에다 사용할 애셋을 할당하게 됩니다.
 
-1. **현재 애셋** 드롭다운 박스를 클릭한 다음, 맥락 메뉴에서 사용할 애셋을 선택합니다.
+1. **스태틱 메시** 드롭다운 박스를 클릭한 다음, 맥락 메뉴에서 사용할 애셋을 선택합니다.
 
 	[REGION:raw]
 	![](selectComponentList.png)
@@ -155,7 +156,7 @@ _블루프린트_ 의 **컴포넌트** 리스트에 컴포넌트를 추가하려
 
 	위에서는 _스태틱 메시 컴포넌트_ 를 추가했으며, **StaticMesh** 아래에다 사용할 애셋을 할당합니다.
 
-1.	**현재 애셋** 박스를 클릭하는 대신, **콘텐츠 브라우저** 에 애셋이 선택되어 있으므로, ![](k2_button_use_scs.png) 버튼을 클릭합니다.
+1.	**스태틱 메시** 박스를 클릭하는 대신, **콘텐츠 브라우저** 에 애셋이 선택되어 있으므로, ![](k2_button_use_scs.png) 버튼을 클릭합니다.
 
 	![](copy_asset.png)
 

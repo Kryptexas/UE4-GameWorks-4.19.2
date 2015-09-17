@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597139
+﻿INTSourceChangelist:2683039
 Availability:Public
 Title:블루프린트 인터페이스 UI
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/Editor
 Description:블루프린트 클래스 에디터 인터페이스 개요입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]

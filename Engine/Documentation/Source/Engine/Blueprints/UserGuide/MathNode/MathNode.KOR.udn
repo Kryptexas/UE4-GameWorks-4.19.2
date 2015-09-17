@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2590871
+﻿INTSourceChangelist:2690714
 Availability:Public
 Title:수학 표현식 노드
 Crumbs: %ROOT%, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:수학 표현식 노드는 수식을 직접 입력하면 적합한 서브 그래프를 만들어 해당 표현식을 생성해 줍니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -45,7 +46,6 @@ Description:수학 표현식 노드는 수식을 직접 입력하면 적합한 �
 
 [TOC (start:2 end:2)]
 
-## 개요
 
 Math Expression (수학 표현식) 노드를 만들려면, 그래프에 우클릭하여 뜨는 맥락 메뉴에서 **Add Math Expression...** (수학 표현식 추가)를 선택합니다.
 
@@ -134,9 +134,9 @@ Math Expression (수학 표현식) 노드를 만들려면, 그래프에 우클�
 
 일부 함수에 대해 별명이 있는 것처럼, 벡터와 로테이터에도 별명이 있습니다.
 * Vector 별명
-		(vector, vec, vect, 등)
+		vector, vec, vect
 * Rotator 별명
-		(rotator, rot, 등)
+		rotator, rot
 
 ## 지원 연산자
 

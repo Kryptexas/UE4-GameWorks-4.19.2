@@ -1,10 +1,9 @@
-﻿INTSourceChangelist:2597265
-Availability:Public
+﻿INTSourceChangelist:2684755
+Availability:NoPublish
 Title: 툴바 옵션
 Crumbs:%ROOT%, Engine/Blueprints, Engine/Blueprints/Editor, Engine/Blueprints/Editor/Modes, Engine/Blueprints/Editor/UIComponents/Toolbar
-Description:
-
-[TOC (start:2)]
+Description: 툴바 버튼 목록과 그 기능입니다.
+version: 4.9
 
 
 [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar#Intro]
@@ -35,7 +34,6 @@ Description:
 | ![Eject Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_eject.png)							| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#eject]				|
 | ![Step Button](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_step.png)								| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#step]					|
 | ![Debug Dropdown](Engine/Blueprints/Editor/UIComponents/Toolbar/bp_debug_dropdown.png)				| [INCLUDE:Engine/Blueprints/Editor/UIComponents/Toolbar/Toolbaroptions#debugobject]			| 
-
 <!--
 [EXCERPT:CompileSuccessful]
 컴파일에 성공했습니다. 버튼을 클릭하면 편집중인 블루프린트를 컴파일합니다. 컴파일 프로세스의 결과가 메시지 로그의 블루프린트 로그에 표시됩니다. 이 버튼은 디버깅 도중에는 비활성화됩니다.

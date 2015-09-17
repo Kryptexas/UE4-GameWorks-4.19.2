@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2600461
+﻿INTSourceChangelist:2690804
 Availability:Public
 Title:랜덤 스트림
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
 Description:Random Stream 이란 무엇인가, 블루프린트에서 어떻게 사용되는가에 대한 설명입니다.
+version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
@@ -70,13 +71,13 @@ RandomStream 변수를 활용하기 위해서, RandomStream 을 입력으로 받
 
 | 함수 | 설명 |
 | ---- | ---- |
-| `Random Bool from Stream` | 임의로 0 또는 1 을 출력합니다. |
-| `Random Float from Stream` | (0.0, 1.0) 범위의 `Float` 난수를 출력합니다. |
-| `Random Float in Range from Stream` | (Min, Max) 범위의 `Float` 난수를 출력합니다. |
-| `Random Integer From Stream` | (0, Max - 1) 범위까지 균등 분포되는 `Integer` 난수를 출력합니다. |
-| `Random Integer In Range From Stream` | (Min, Max) 범위의 `Integer` 난수를 출력합니다. |
-| `Random Rotator From Stream` | 임의의 `Rotator` 값을 출력합니다. |
-| `Random Unit Vector From Stream` | 임의 유닛 길이의 `Vector` 값을 출력합니다. |
+| **Random Bool from Stream** | 임의로 0 또는 1 을 출력합니다. |
+| **Random Float from Stream** | (0.0, 1.0) 범위의 Float 난수를 출력합니다. |
+| **Random Float in Range from Stream** | (Min, Max) 범위의 Float 난수를 출력합니다. |
+| **Random Integer From Stream** | (0, Max - 1) 범위까지 균등 분포되는 Integer 난수를 출력합니다. |
+| **Random Integer In Range From Stream** | (Min, Max) 범위의 Integer 난수를 출력합니다. |
+| **Random Rotator From Stream** | 임의의 Rotator 값을 출력합니다. |
+| **Random Unit Vector From Stream** | 임의 유닛 길이의 Vector 값을 출력합니다. |
 
 위의 함수 중 하나를 선택하면 RandomStream 변수에 연결된 그래프에 놓입니다.
 

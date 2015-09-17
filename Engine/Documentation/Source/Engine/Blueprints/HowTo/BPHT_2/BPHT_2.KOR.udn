@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2597690
+﻿INTSourceChangelist:2684983
 Availability: Public
 Title:2. 필수 캐릭터 구성
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/HowTo
 Description:이번 단계에서는 플레이가능 캐릭터가 게임에 맞게 구성되어 있는지 확인하도록 하겠습니다.
+version: 4.9
 
 
 [VAR:Steps]
@@ -59,7 +60,7 @@ Description:이번 단계에서는 플레이가능 캐릭터가 게임에 맞게
 
 	![](AddVariable.png)
 
-1.	새 변수를 선택한 다음, **디테일** 패널에서 그 이름을 **isActive** 로 변경하고 **Boolean** 유형인지 확인합니다.
+1.	새 변수를 선택한 다음, **디테일** 패널에서 그 이름을 **IsActive** 로 변경하고 **Boolean** 유형인지 확인합니다.
 
 	![](NewVariable1.png)
 
@@ -104,7 +105,7 @@ Description:이번 단계에서는 플레이가능 캐릭터가 게임에 맞게
 
 	**Shots** 노드 뒤에 **Set** 를 **Montage Play** 노드로 다시 연결합니다.
 
-1.	**Ctrl** 키를 누른 채 **Shots** 변수를 다시 끌어놓고, (**1** 로 설정된) **Int - Int** 노드에 연결한 뒤, 표시된 것처럼 연결합니다.
+1.	**Ctrl** 키를 누른 채 **Shots** 변수를 다시 끌어놓고, (**1** 로 설정된) **Integer - Integer** 노드에 연결한 뒤, 표시된 것처럼 연결합니다.
 
 	![](ConnectShots.png)
 
@@ -114,11 +115,11 @@ Description:이번 단계에서는 플레이가능 캐릭터가 게임에 맞게
 
 	![](CreateCustomEvent.png)
 
-1.	**Shots** 를 **Alt** 드래그한 다음 **3** 으로 설정하고, 뒤따르는 **Custom Event** 에 연결한 뒤, **DoN** 노드의 **Reset** 에 연결합니다.
+1.	**Shots** 를 **Alt** 드래그한 다음 **3** 으로 설정하고, 뒤따르는 **Custom Event** 에 연결한 뒤, **Do N** 노드의 **Reset** 에 연결합니다.
 
 	![](ResetEventSet.png)
 
-	이 커스텀 이벤트가 호출되면, Shots 를 다시 3 으로 설정하고 DoN 노드를 리셋시켜 다시 실행 가능하도록 합니다.
+	이 커스텀 이벤트가 호출되면, Shots 를 다시 3 으로 설정하고 Do N 노드를 리셋시켜 다시 실행 가능하도록 합니다.
 
 
 

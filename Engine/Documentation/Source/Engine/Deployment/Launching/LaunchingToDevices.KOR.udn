@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2602711
+﻿INTSourceChangelist:2671642
 Availability:Public
 Title:디바이스에서 실행하기
 Crumbs:%ROOT%, Engine, Engine/Deployment
 Description:테스트용으로 iOS 나 안드로이드 디바이스에 프로젝트 원클릭 디플로이하기 입니다.
-
+Version: 4.9
 
 ![](LaunchMenu.png)
 

@@ -1,10 +1,15 @@
-﻿INTSourceChangelist:2611606
+﻿INTSourceChangelist:2679355
 Availability: Public
 Title:블루프린트 디버깅
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:블루프린트를 디버깅하는 방법에 대한 설명입니다.
 Related: Engine/Blueprints/UserGuide/Debugging
 Related: Engine/Blueprints
+version:4.9
+skilllevel:Beginner
+parent:Engine/Blueprints/BP_HowTo
+order:5
+type:howto
 
 
 [TOC(start:2)]

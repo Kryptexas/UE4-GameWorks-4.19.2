@@ -1,5 +1,5 @@
-﻿INTSourceChangelist:2601027
-Availability: docs
+﻿INTSourceChangelist:2664320
+Availability: Public
 Title:블루프린트 기본 사용 안내서
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
 Description:블루프린트 작업을 시작하는 데 필요한 요소에 대한 간략 안내서입니다.
@@ -8,10 +8,11 @@ Related: Engine/Blueprints/GettingStarted
 Related: Engine/Blueprints/UserGuide
 Related: Engine/Blueprints/UserGuide/CheatSheet
 Related: Gameplay
+Version: 4.9
 
 [TOC(start:2 end:2)]
 
-## 개요
+
 이 글은 **블루프린트** 의 가장 기본적인 용례와 흔히 사용되는 동작에 대해 다뤄보면서 빠르게 익숙해지도록 돕기 위한 글입니다.
 
 **블루프린트** 관련 상세 정보는 [](Engine/Blueprints) 문서를 참고하세요.

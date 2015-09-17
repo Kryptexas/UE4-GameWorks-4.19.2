@@ -1,6 +1,6 @@
-﻿INTSourceChangelist:2595351
+﻿INTSourceChangelist:2677435
 Availability: Public
-Title: 언리얼 엔진 4 안에서의 소스 콘트롤
+Title: 언리얼 에디터 안에서의 소스 콘트롤
 Crumbs: %ROOT%, Engine, Engine\Basics\SourceControl
 Description: UE4 안에서 소스 콘트롤 소프트웨어 사용법입니다.
 Related: Engine/UI/SourceControl
@@ -8,11 +8,11 @@ Related: Engine/Content/Browser
 Related: Engine/Basics/Redirectors
 Related: Engine/UI/ProjectSettings
 Related: Programming/Basics/ConfigurationFiles
-
+version: 4.9
 
 [TOC(start:2)]
 
-## 개요
+
 어떤 소스 콘트롤 소프트웨어를 사용하게 되었든지, UE4 안에서 그 소프트웨어를 사용하는 인터페이스는 동일합니다. 여기서는 UE4 안에서 소스 콘트롤을 
 사용하는 데 있어 알아야 할 모든 것에 대해 자세히 알아보겠습니다.
 
@@ -96,13 +96,13 @@ Related: Programming/Basics/ConfigurationFiles
 
 ![](SC_UE4_Delete_Assets.png)
 
-| 번호 | 설명 |
-| -------| ---------- |
-| 1:     | 삭제하려는 애셋입니다.|
-| 2:     | 삭제하려는 애셋을 레퍼런싱하고 있는 애셋이 표시됩니다. |
-| 3:     | 이 애셋이 삭제되면 레퍼런싱할 다른 애셋을 여기에 지정합니다. |
-| 4:     | 애셋을 강제로 삭제할 수 있습니다. 하지만 프로젝트에 매우 안좋은 영향을 끼칠 수 있으니 극심한 주의를 요합니다. 다른 모든 방법이 통하지 않을 경우에만 최후의 수단으로 사용하시기 바랍니다. |
-| 5:     | 삭제 작업을 취소합니다. |
+| 번호 | 이름 | 설명 |
+| ---| ---- | ---------- |
+| 1| **Pending Deleted Assets** | 삭제 대기 애셋 - 삭제하려는 애셋입니다.|
+| 2| **Assets Referencing the Pending Deleted Assets** | 삭제 대기 애셋을 레퍼런싱하는 애셋 - 삭제하려는 애셋을 레퍼런싱하고 있는 애셋이 표시됩니다. |
+| 3| **Replace References** | 레퍼런스 대체 - 이 애셋이 삭제되면 레퍼런싱할 다른 애셋을 여기에 지정합니다. |
+| 4| **Force Delete** | 강제 삭제 - 애셋을 강제로 삭제할 수 있습니다. 하지만 프로젝트에 매우 안좋은 영향을 끼칠 수 있으니 극심한 주의를 요합니다. 다른 모든 방법이 통하지 않을 경우에만 최후의 수단으로 사용하시기 바랍니다. |
+| 5| **Cancel** | 취소 - 삭제 작업을 취소합니다. |
 
 삭제 처리 방법을 선택한 이후, 보통 그 파일은 [**Redirector**](Engine/Basics/Redirectors) (리디렉터)라 불리는 숨긴 **애셋** 으로 대체됩니다. 애셋 삭제로 인해 생성된 리디렉터를 청소하려면,
 **콘텐츠 브라우저** 에서 **폴더** 에 **우클릭** 한 다음 **Fix Up Redirectors in Folders** (폴더의 리디렉터 고치기)를 선택합니다. 그러면 프로젝트에 있는 레퍼런스를 고치고 

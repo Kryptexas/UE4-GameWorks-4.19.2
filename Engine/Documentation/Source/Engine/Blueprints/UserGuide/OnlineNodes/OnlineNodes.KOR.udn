@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2600455
+﻿INTSourceChangelist:2692327
 Availability:Public
 Title:온라인 세션 노드
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide
@@ -7,6 +7,7 @@ Related: Engine/Blueprints
 Related: Programming/Online
 Related: Gameplay/Networking/Actors
 Related: Resources/ContentExamples/Networking
+version: 4.9
 
 
 [VAR:Topic]

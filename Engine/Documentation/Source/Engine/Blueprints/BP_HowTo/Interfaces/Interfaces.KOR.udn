@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2550599
+﻿INTSourceChangelist:2679100
 Availability: Public
 Title:인터페이스 사용법
 Crumbs: %ROOT%, Engine, Engine\Blueprints, Engine\Blueprints\BP_HowTo
@@ -6,6 +6,8 @@ Description:블루프린트 인터페이스를 사용하여 다수의 블루프�
 Related: Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces
 Related: Engine/Blueprints/UserGuide/BlueprintCommsUsage
 Related: Engine/Blueprints/UserGuide
+version:4.8
+skilllevel:Advanced
 
 이번 비법에서는 [Blueprint Interface](Engine/Blueprints/UserGuide/Types/Interface/UsingInterfaces) (블루프린트 인터페이스)를 구성, 호출시 여러 블루프린트의 스크립트 다수를 실행시키는 법을 알아보겠습니다.
 

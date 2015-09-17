@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2599181
+﻿INTSourceChangelist:2686454
 Availability:Public
 Title:블루프린트 프로그래밍 지침
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:블루프린트 친화적인 API 를 제대로 작성하는 팁과 꼼수입니다.
 Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints 
+version: 4.9
 
 [TOC (start:2 end:2)]
 
