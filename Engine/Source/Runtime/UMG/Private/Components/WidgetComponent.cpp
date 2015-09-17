@@ -358,12 +358,14 @@ public:
 					{
 						if ( UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitComponent) )
 						{
+							// Get the "forward" vector based on the current rotation system.
+							const FVector ForwardVector = WidgetComponent->IsUsingLegacyRotation() ? WidgetComponent->GetUpVector() : WidgetComponent->GetForwardVector();
+
 							// Make sure the player is interacting with the front of the widget
-							// For widget components, the "front" faces the Z (or Up vector) direction
-							if ( FVector::DotProduct(WidgetComponent->GetUpVector(), CachedHitResult.ImpactPoint - CachedHitResult.TraceStart) < 0.f )
+							if ( FVector::DotProduct(ForwardVector, CachedHitResult.ImpactPoint - CachedHitResult.TraceStart) < 0.f )
 							{
 								// Make sure the player is close enough to the widget to interact with it
-								if ( FVector::DistSquared(CachedHitResult.TraceStart, CachedHitResult.ImpactPoint) <= FMath::Square(WidgetComponent->GetMaxInteractionDistance()) )
+								if ( FVector::DistSquared(CachedHitResult.TraceStart, WidgetComponent->GetComponentLocation()) <= FMath::Square(WidgetComponent->GetMaxInteractionDistance()) )
 								{
 									return WidgetComponent->GetHitWidgetPath(CachedHitResult.Location, bIgnoreEnabledStatus);
 								}
@@ -760,7 +762,7 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 					// Paint the window
 					MaxLayerId = SlateWidget->Paint(
-						FPaintArgs(SlateWidget.ToSharedRef(), *HitTestGrid, FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime),
+						FPaintArgs(*SlateWidget.Get(), *HitTestGrid, FVector2D::ZeroVector, FApp::GetCurrentTime(), DeltaTime),
 						WindowGeometry, WindowGeometry.GetClippingRect(),
 						WindowElementList,
 						0,
@@ -1158,7 +1160,17 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 void UWidgetComponent::GetLocalHitLocation(FVector WorldHitLocation, FVector2D& OutLocalWidgetHitLocation) const
 {
 	// Find the hit location on the component
-	OutLocalWidgetHitLocation = FVector2D(ComponentToWorld.InverseTransformPosition(WorldHitLocation));
+	FVector ComponentHitLocation = ComponentToWorld.InverseTransformPosition(WorldHitLocation);
+
+	// Convert the 3D position of component space, into the 2D equivalent
+	if ( bUseLegacyRotation )
+	{
+		OutLocalWidgetHitLocation = FVector2D(ComponentHitLocation.X, ComponentHitLocation.Y);
+	}
+	else
+	{
+		OutLocalWidgetHitLocation = FVector2D(ComponentHitLocation.Y, ComponentHitLocation.Z);
+	}
 
 	// Offset the position by the pivot to get the position in widget space.
 	OutLocalWidgetHitLocation.X += DrawSize.X * Pivot.X;
