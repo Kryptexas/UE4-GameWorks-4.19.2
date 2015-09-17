@@ -3977,7 +3977,11 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		return InProperty == MP_EmissiveColor
 			|| ( InProperty == MP_WorldPositionOffset )
 			|| ( InProperty == MP_OpacityMask && BlendMode == BLEND_Masked ) 
-			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate );
+			|| ( InProperty == MP_Opacity && IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate )
+			|| ( InProperty >= MP_CustomizedUVs0 && InProperty <= MP_CustomizedUVs7);
+		{
+			return true;
+		}
 	}
 
 	bool Active = true;

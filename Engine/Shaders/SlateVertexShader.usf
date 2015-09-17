@@ -3,27 +3,13 @@
 
 #include "Common.usf"
 #include "GammaCorrectionCommon.usf"
-
-#if USE_MATERIALS
-#include "Material.usf"
-#endif
+#include "SlateShaderCommon.usf"
 
 float4x4 ViewProjection;
 
 float SwitchVerticalAxisMultiplier;
 
-struct VertexOut
-{
-	float4 Position : SV_POSITION;
-	float4 Color : COLOR0;
-	float4 TextureCoordinates : TEXCOORD0;
-	float4 ClipOriginAndPos : TEXCOORD1;
-	float4 ClipExtents : TEXCOORD2;
-	float2 MaterialTexCoords : TEXCOORD3;
-};
-
-
-VertexOut Main(
+VertexToPixelInterpolants Main(
 	in float4 InTextureCoordinates : ATTRIBUTE0,
 	in float2 InMaterialTextureCoordinates : ATTRIBUTE1,
 	in float2 InPosition : ATTRIBUTE2,
@@ -32,34 +18,64 @@ VertexOut Main(
 	in float4 InColor : ATTRIBUTE5
 	)
 {
-	VertexOut VOut;
+	VertexToPixelInterpolants VOut = (VertexToPixelInterpolants)0;
 
 	float4 WorldPosition = float4(InPosition.xy,0,1);
+
+	InColor.rgb = sRGBToLinear(InColor.rgb);
+	float4 FinalVertexColor = InColor FCOLOR_COMPONENT_SWIZZLE;
+
+	VOut.MaterialTexCoords = InMaterialTextureCoordinates;
+	VOut.ClipOriginAndPos = float4(InClipOrigin, InPosition.xy);
+	VOut.ClipExtents = InClipExtents;
+	VOut.Color = FinalVertexColor;
+	VOut.TextureCoordinates[0] = InTextureCoordinates;
+
 #if USE_MATERIALS
-	FMaterialVertexParameters VertexParameters;
+	FMaterialVertexParameters VertexParameters = (FMaterialVertexParameters)0;
 	VertexParameters.WorldPosition = WorldPosition.xyz;
-#if USE_INSTANCING
-	VertexParameters.PerInstanceParams = float4(0,0,0,0);
-#endif
-	VertexParameters.VertexColor = InColor;
+	
+	// Todo do not use per-instance parameters
+	/*#if USE_INSTANCING
+		VertexParameters.PerInstanceParams = float4(0,0,0,0);
+	#endif // USE_INSTANCING*/
+
+	VertexParameters.VertexColor = FinalVertexColor;
 	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
-#endif
+		
+	#if HAS_MATERIAL_TEXCOORDS
+		#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
+			VertexParameters.TexCoords[0] = InTextureCoordinates.xy;
+		#elif NUM_MATERIAL_TEXCOORDS_VERTEX >= 2
+			VertexParameters.TexCoords[0] = InTextureCoordinates.xy;
+			VertexParameters.TexCoords[1] = InTextureCoordinates.zw;
+		#endif
+
+		float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
+		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+
+		UNROLL
+		for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
+		{
+			FLATTEN
+			if (CoordinateIndex % 2)
+			{
+				VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
+			}
+			else
+			{
+				VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
+			}
+		}
+	#endif // NUM_MATERIAL_TEXCOORDS
+#endif // USE_MATERIALS
 
 	VOut.Position = mul(WorldPosition, ViewProjection);
 
 #if ES2_PROFILE && COMPILER_GLSL_ES2
 	// @todo-mobile: Fix this in the projection matrix
 	VOut.Position.y *= SwitchVerticalAxisMultiplier;
-#endif
-
-	// TextureCoordinates contains both the first and second texture coordinates in xy and zw respectively.
-	VOut.TextureCoordinates = InTextureCoordinates;
-	VOut.MaterialTexCoords = InMaterialTextureCoordinates;
-	VOut.ClipOriginAndPos = float4(InClipOrigin, InPosition.xy);
-	VOut.ClipExtents = InClipExtents;
-
-	InColor.rgb = sRGBToLinear(InColor.rgb);
-	VOut.Color = InColor FCOLOR_COMPONENT_SWIZZLE;
+#endif //ES2_PROFILE && COMPILER_GLSL_ES2
 
 	return VOut;
 }

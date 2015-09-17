@@ -525,8 +525,8 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 	// Should only be called by the rendering thread
 	check(IsInRenderingThread());
 
-	float TimeSeconds = FPlatformTime::Seconds() - GStartTime;
-	float RealTimeSeconds = FPlatformTime::Seconds() - GStartTime;
+	float TimeSeconds = FApp::GetCurrentTime() - GStartTime;
+	float RealTimeSeconds =  FApp::GetCurrentTime() - GStartTime;
 	float DeltaTimeSeconds = FApp::GetDeltaTime();
 
 	static const FEngineShowFlags DefaultShowFlags(ESFIM_Game);
@@ -538,10 +538,10 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 		FSceneViewFamily::ConstructionValues
 		(
 			&BackBuffer,
-			NULL,
+			nullptr,
 			DefaultShowFlags
 		)
-		.SetWorldTimes( TimeSeconds, RealTimeSeconds, DeltaTimeSeconds )
+		.SetWorldTimes( TimeSeconds, DeltaTimeSeconds, RealTimeSeconds )
 		.SetGammaCorrection( DisplayGamma )
 	);
 

@@ -46,7 +46,18 @@ struct FMaterialInputInfo
 		}
 		else if( Material->IsUIMaterial() )
 		{
-			return Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask || Property == MP_WorldPositionOffset;
+			if( Property == MP_EmissiveColor || Property == MP_Opacity || Property == MP_OpacityMask || Property == MP_WorldPositionOffset )
+			{
+				return true;
+			}
+
+			if (Property >= MP_CustomizedUVs0 && Property <= MP_CustomizedUVs7)
+			{
+				return (Property - MP_CustomizedUVs0) < Material->NumCustomizedUVs;
+			}
+
+			return false;
+
 		}
 		else
 		{

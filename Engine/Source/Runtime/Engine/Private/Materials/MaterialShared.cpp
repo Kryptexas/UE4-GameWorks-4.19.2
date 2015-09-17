@@ -900,6 +900,11 @@ bool FMaterialResource::IsDefaultMaterial() const
 	return Material->IsDefaultMaterial();
 }
 
+int32 FMaterialResource::GetNumCustomizedUVs() const
+{
+	return Material->NumCustomizedUVs;
+}
+
 void FMaterialResource::NotifyCompilationFinished()
 {
 	Material->NotifyCompilationFinished(this);

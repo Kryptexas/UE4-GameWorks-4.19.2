@@ -89,7 +89,7 @@ public:
 	{
 		FSlateMaterialShaderVS::ModifyCompilationEnvironment(Platform, Material,OutEnvironment);
 
-		OutEnvironment.SetDefine(TEXT("USE_INSTANCING"), (uint32)(bUseInstancing ? 1 : 0));
+		OutEnvironment.SetDefine(TEXT("USE_SLATE_INSTANCING"), (uint32)(bUseInstancing ? 1 : 0));
 	}
 
 	virtual bool Serialize(FArchive& Ar) override
