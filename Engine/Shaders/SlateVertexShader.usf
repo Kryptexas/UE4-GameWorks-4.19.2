@@ -61,21 +61,21 @@ VertexToPixelInterpolants Main(
 				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
 				VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
 			#endif
+		#else
+			UNROLL
+			for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
+			{
+				FLATTEN
+				if (CoordinateIndex % 2)
+				{
+					VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
+				}
+				else
+				{
+					VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
+				}
+			}
 		#endif
-	#else
-		UNROLL
-		for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
-		{
-			FLATTEN
-			if (CoordinateIndex % 2)
-			{
-				VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
-			}
-			else
-			{
-				VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
-			}
-		}
 	#endif // NUM_MATERIAL_TEXCOORDS
 #endif // USE_MATERIALS
 
