@@ -207,6 +207,7 @@ SMultiLineEditableText::SMultiLineEditableText()
 	, IsReadOnly(false)
 	, UICommandList(new FUICommandList())
 	, bTextChangedByVirtualKeyboard(false)
+	, bTextCommittedByVirtualKeyboard(false)
 	, AmountScrolledWhileRightMouseDown(0.0f)
 	, bIsSoftwareCursor(false)
 {
@@ -425,7 +426,7 @@ void SMultiLineEditableText::SetFont(const TAttribute< FSlateFontInfo >& InNewFo
 	// @todo: Chris.Wood - this doesn't update the font (needs the TextLayout updating?)
 }
 
-void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
+void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText, bool InCommit)
 {
 	// Only set the text if the text attribute doesn't have a getter binding (otherwise it would be blown away).
 	// If it is bound, we'll assume that OnTextCommitted will handle the update.
@@ -440,7 +441,14 @@ void SMultiLineEditableText::SetTextFromVirtualKeyboard(const FText& InNewText)
 		// This method is called from the main thread (i.e. not the game thread) of the device with the virtual keyboard
 		// This causes the app to crash on those devices, so we're using polling here to ensure delegates are
 		// fired on the game thread in Tick.
-		bTextChangedByVirtualKeyboard = true;
+		if (InCommit)
+		{
+			bTextCommittedByVirtualKeyboard = true;
+		}
+		else
+		{
+			bTextChangedByVirtualKeyboard = true;
+		}
 	}
 }
 
@@ -558,8 +566,11 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 		FSlateApplication& SlateApplication = FSlateApplication::Get();
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			// @TODO: Create ITextInputMethodSystem derivations for mobile
-			SlateApplication.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
+			if (!GetIsReadOnly())
+			{
+				// @TODO: Create ITextInputMethodSystem derivations for mobile
+				SlateApplication.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
+			}
 		}
 		else
 		{
@@ -2432,11 +2443,12 @@ void SMultiLineEditableText::LoadText()
 
 void SMultiLineEditableText::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	if (bTextChangedByVirtualKeyboard)
+	if (bTextChangedByVirtualKeyboard || bTextCommittedByVirtualKeyboard)
 	{
 		// Let outsiders know that the text content has been changed
-		OnTextCommitted.ExecuteIfBound(GetEditableText(), ETextCommit::OnUserMovedFocus);
+		OnTextCommitted.ExecuteIfBound(GetEditableText(), bTextCommittedByVirtualKeyboard ? ETextCommit::OnEnter : ETextCommit::OnUserMovedFocus);
 		bTextChangedByVirtualKeyboard = false;
+		bTextCommittedByVirtualKeyboard = false;
 	}
 
 	if(TextInputMethodChangeNotifier.IsValid() && TextInputMethodContext.IsValid() && TextInputMethodContext->CachedGeometry != AllottedGeometry)

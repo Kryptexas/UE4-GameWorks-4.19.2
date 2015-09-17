@@ -59,7 +59,7 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 											FIOSAsyncTask* AsyncTask = [[FIOSAsyncTask alloc] init];
 											AsyncTask.GameThreadCallback = ^ bool(void)
 											{
-												TextWidget->SetTextFromVirtualKeyboard(TextEntry);
+												TextWidget->SetTextFromVirtualKeyboard(TextEntry, false);
 
 												// clear the TextWidget
 												TextWidget = nullptr;
@@ -193,12 +193,12 @@ void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSh
 	FIOSAsyncTask* AsyncTask = [[FIOSAsyncTask alloc] init];
     AsyncTask.GameThreadCallback = ^ bool(void)
     {
-		// index 1 is the OK button
-		if (buttonIndex == 1)
-		{
-			TextWidget->SetTextFromVirtualKeyboard(TextEntry);
-		}
-
+	// index 1 is the OK button
+	if(buttonIndex == 1)
+	{
+			TextWidget->SetTextFromVirtualKeyboard(TextEntry, false);
+	}
+    
         // clear the TextWidget
         TextWidget = nullptr;
         return true;

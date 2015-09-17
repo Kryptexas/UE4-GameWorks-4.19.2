@@ -21,8 +21,9 @@ public:
 	* Sets the text to that entered by the virtual keyboard
 	*
 	* @param  InNewText  The new text
+	* @param InCommit If True the text was committed, False then it was just changed
 	*/
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) = 0;
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, bool InCommit) = 0;
 	
 	/**
 	* Returns the text.

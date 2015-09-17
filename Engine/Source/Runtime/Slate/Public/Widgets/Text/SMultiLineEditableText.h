@@ -467,7 +467,7 @@ private:
 
 public:
 	//~ Begin IVirtualKeyboardEntry Interface
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, bool InCommit) override;
 
 	virtual const FText& GetText() const override
 	{
@@ -760,6 +760,9 @@ private:
 
 	/** Whether the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
+
+	/** Whether the text has been committed by a virtual keyboard */
+	bool bTextCommittedByVirtualKeyboard;
 
 	/** The optional modifier key necessary to create a newline when typing into the editor. */
 	EModifierKey::Type ModiferKeyForNewLine;

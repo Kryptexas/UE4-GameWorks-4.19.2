@@ -187,7 +187,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, Context.Context);
 		UE_LOG(LogEngine, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
-		
+
 		if (GLog)
 		{
 			GLog->SetCurrentThreadAsMasterThread();
@@ -311,10 +311,7 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeVirtualKeyboardResult(
 			{
 				FGraphEventRef SetWidgetText = FFunctionGraphTask::CreateAndDispatchWhenReady([&]()
 				{
-					VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))));
-				}, TStatId(), NULL, ENamedThreads::GameThread);
-				FTaskGraphInterface::Get().WaitUntilTaskCompletes(SetWidgetText);
-			}
+			VirtualKeyboardWidget->SetTextFromVirtualKeyboard(FText::FromString(FString(UTF8_TO_TCHAR(javaChars))),false);
 
 			// release string
 			jenv->ReleaseStringUTFChars(contents, javaChars);
@@ -530,7 +527,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	{
 		FPlatformMisc::SetCrashHandler(EngineCrashHandler);
 	}
-	
+
 	// Cache path to external storage
 	jclass EnvClass = Env->FindClass("android/os/Environment");
 	jmethodID getExternalStorageDir = Env->GetStaticMethodID(EnvClass, "getExternalStorageDirectory", "()Ljava/io/File;");

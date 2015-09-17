@@ -373,7 +373,7 @@ public:
 
 public:
 	//~ Begin IVirtualKeyboardEntry Interface
-	virtual void SetTextFromVirtualKeyboard(const FText& InNewText) override;
+	virtual void SetTextFromVirtualKeyboard(const FText& InNewText, bool InCommit) override;
 
 	virtual const FText& GetText() const override
 	{
