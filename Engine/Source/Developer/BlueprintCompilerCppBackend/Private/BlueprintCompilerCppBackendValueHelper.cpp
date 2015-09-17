@@ -339,7 +339,7 @@ struct FDependenciesHelper
 		for (auto LocStruct : Context.Dependencies.ConvertedClasses)
 		{
 			Context.AddLine(FString::Printf(TEXT("CastChecked<UDynamicClass>(GetClass())->ReferencedConvertedFields.Add(%s::StaticClass());")
-				, *FEmitHelper::GetCppName(LocStruct)));
+				, *FEmitHelper::GetCppName(LocStruct, true)));
 		}
 
 		if (Context.Dependencies.ConvertedStructs.Num())
@@ -396,7 +396,7 @@ struct FDependenciesHelper
 			Context.AddLine(TEXT("static UField* __StaticCreateClass()"));
 			Context.AddLine(TEXT("{"));
 			Context.IncreaseIndent();
-			Context.AddLine(FString::Printf(TEXT("return CastChecked<UDynamicClass>(%s::StaticClass());"), *CppClassName));
+			Context.AddLine(FString::Printf(TEXT("return CastChecked<UDynamicClass>(%s::StaticClass());"), *FEmitHelper::GetCppName(OriginalClass, true)));
 			Context.DecreaseIndent();
 			Context.AddLine(TEXT("}"));
 			Context.DecreaseIndent();

@@ -86,7 +86,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 		auto BPGC = Cast<UBlueprintGeneratedClass>(ObjClass);
 		if (ObjClass->HasAnyClassFlags(CLASS_Native) || (BPGC && Dependencies.WillClassBeConverted(BPGC)))
 		{
-			return FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ObjClass));
+			return FString::Printf(TEXT("%s::StaticClass()"), *FEmitHelper::GetCppName(ObjClass, true));
 		}
 	}
 
@@ -119,7 +119,7 @@ FString FEmitterLocalContext::FindGloballyMappedObject(UObject* Object, bool bLo
 	return FString{};
 }
 
-FString FEmitHelper::GetCppName(const UField* Field)
+FString FEmitHelper::GetCppName(const UField* Field, bool bUInterface)
 {
 	check(Field);
 	auto AsClass = Cast<UClass>(Field);
@@ -129,7 +129,9 @@ FString FEmitHelper::GetCppName(const UField* Field)
 		if (AsClass && AsClass->HasAnyClassFlags(CLASS_Interface))
 		{
 			ensure(AsClass->IsChildOf<UInterface>());
-			return FString::Printf(TEXT("I%s"), *AsClass->GetName());
+			return FString::Printf(TEXT("%s%s")
+				, bUInterface ? TEXT("U") : TEXT("I")
+				, *AsClass->GetName());
 		}
 		auto AsStruct = CastChecked<UStruct>(Field);
 		return FString::Printf(TEXT("%s%s"), AsStruct->GetPrefixCPP(), *AsStruct->GetName());

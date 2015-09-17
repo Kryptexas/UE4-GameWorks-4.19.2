@@ -136,9 +136,10 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 	{
 		Emit(Header, *FString::Printf(TEXT("\t%s(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());\n\n"), *CppClassName));
 		Emit(Body, *FEmitDefaultValueHelper::GenerateConstructor(EmitterContext));
-	}
 
-	Emit(Header, TEXT("\n\tvirtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;\n"));
+		Emit(Header, TEXT("\n\tvirtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph) override;\n"));
+		Emit(Header, TEXT("\n\tstatic void __StaticDependenciesAssets(TArray<FName>& OutPackagePaths);\n"));
+	}
 
 	for (int32 i = 0; i < Functions.Num(); ++i)
 	{
@@ -147,8 +148,6 @@ void FBlueprintCompilerCppBackendBase::GenerateCodeFromClass(UClass* SourceClass
 			ConstructFunction(Functions[i], EmitterContext, bGenerateStubsOnly);
 		}
 	}
-
-	Emit(Header, TEXT("\n\tstatic void __StaticDependenciesAssets(TArray<FName>& OutPackagePaths);\n"));
 
 	Emit(Header, *FBackendHelperUMG::WidgetFunctionsInHeader(SourceClass));
 
