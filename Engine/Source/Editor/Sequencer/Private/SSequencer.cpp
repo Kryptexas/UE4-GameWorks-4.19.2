@@ -766,7 +766,14 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCleanView );
 		}
+
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
+				
+		if (Sequencer.Pin()->IsLevelEditorSequencer())
+		{
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().FindInContentBrowser );
+		}
+
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ExpandNodesAndDescendants );
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().CollapseNodesAndDescendants );
 	}

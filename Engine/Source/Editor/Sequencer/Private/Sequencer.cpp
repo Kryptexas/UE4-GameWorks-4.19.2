@@ -1332,6 +1332,17 @@ void FSequencer::OnToggleAutoScroll()
 	Settings->SetAutoScrollEnabled(bAutoScrollEnabled);
 }
 
+void FSequencer::FindInContentBrowser()
+{
+	if (GetFocusedMovieSceneSequence())
+	{
+		TArray<UObject*> ObjectsToFocus;
+		ObjectsToFocus.Add(GetFocusedMovieSceneSequence());
+
+		GEditor->SyncBrowserToObjects(ObjectsToFocus);
+	}
+}
+
 void FSequencer::VerticalScroll(float ScrollAmountUnits)
 {
 	SequencerWidget->GetTreeView()->ScrollByDelta(ScrollAmountUnits);
@@ -2320,6 +2331,10 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateSP( this, &FSequencer::OnToggleAutoScroll ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateSP( this, &FSequencer::GetAutoScrollEnabled ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.FindInContentBrowser,
+		FExecuteAction::CreateSP( this, &FSequencer::FindInContentBrowser ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleCleanView,
