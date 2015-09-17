@@ -249,14 +249,16 @@ public:
 struct FBufferedLine
 {
 	const FString Data;
-	const ELogVerbosity::Type Verbosity;
 	const FName Category;
+	const double Time;
+	const ELogVerbosity::Type Verbosity;
 
 	/** Initialization constructor. */
-	FBufferedLine( const TCHAR* InData, ELogVerbosity::Type InVerbosity, const class FName& InCategory )
+	FBufferedLine( const TCHAR* InData, const class FName& InCategory, ELogVerbosity::Type InVerbosity, const double InTime = -1 )
 		: Data( InData )
-		, Verbosity( InVerbosity )
 		, Category( InCategory )
+		, Time( InTime )
+		, Verbosity( InVerbosity )
 	{}
 };
 
@@ -356,7 +358,15 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time) override;
+
+	/**
+	 * Serializes the passed in data via all current output devices.
+	 *
+	 * @param	Data	Text to log
+	 * @param	Event	Event name used for suppression purposes
+	 */
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 	/**
 	 * Passes on the flush request to all current output devices.
@@ -408,7 +418,9 @@ public:
 	 */
 	void Flush() override;
 
-	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time ) override;
+
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category) override;
 
 	virtual bool CanBeUsedOnAnyThread() const override
 	{
@@ -432,7 +444,7 @@ private:
 
 	void CastAndSerializeData(const TCHAR* Data);
 
-	void WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category);
+	void WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time);
 };
 
 // Null output device.
@@ -458,6 +470,8 @@ public:
 	 * @param	Data	Text to log
 	 * @param	Event	Event name used for suppression purposes
 	 */
+	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time ) override;
+
 	virtual void Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category ) override;
 
 	virtual bool CanBeUsedOnAnyThread() const override
@@ -474,7 +488,7 @@ class FBufferedOutputDevice : public FOutputDevice
 public:
 	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
-		new(BufferedLines)FBufferedLine( InData, Verbosity, Category );
+		new(BufferedLines)FBufferedLine( InData, Category, Verbosity );
 	}
 
 	/** Pushes buffered lines into the specified output device. */

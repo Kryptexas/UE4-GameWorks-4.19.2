@@ -29,13 +29,6 @@ public:
 	void SetContext( FContextSupplier* InSupplier );
 
 private:
-	struct FBufferedLine
-	{
-		FString Text;
-		ELogVerbosity::Type Verbosity;
-		FName Category;
-	};
-
 	struct FWindowParams
 	{
 		FWindowsNativeFeedbackContext* Context;

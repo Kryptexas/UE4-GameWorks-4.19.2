@@ -45,14 +45,17 @@ const TCHAR* FOutputDevice::VerbosityToString(ELogVerbosity::Type Verbosity)
 	return TEXT("UknownVerbosity");
 }
 
-FString FOutputDevice::FormatLogLine(ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message, ELogTimes::Type LogTime)
+FString FOutputDevice::FormatLogLine( ELogVerbosity::Type Verbosity, const class FName& Category, const TCHAR* Message /*= nullptr*/, ELogTimes::Type LogTime /*= ELogTimes::None*/, const double Time /*= -1.0*/ )
 {
 	FString Format;
 	switch (LogTime)
 	{
 		case ELogTimes::SinceGStartTime:
-			Format = FString::Printf(TEXT("[%07.2f][%3d]"), FPlatformTime::Seconds() - GStartTime, GFrameCounter % 1000);
+		{
+			const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
+			Format = FString::Printf( TEXT( "[%07.2f][%3d]" ), RealTime, GFrameCounter % 1000 );
 			break;
+		}
 
 		case ELogTimes::UTC:
 			Format = FString::Printf(TEXT("[%s][%3d]"), *FDateTime::UtcNow().ToString(TEXT("%Y.%m.%d-%H.%M.%S:%s")), GFrameCounter % 1000);

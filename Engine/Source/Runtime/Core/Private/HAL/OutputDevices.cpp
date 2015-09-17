@@ -790,7 +790,7 @@ void FOutputDeviceRedirector::UnsynchronizedFlushThreadedLogs( bool bUseAllDevic
 			FOutputDevice* OutputDevice = OutputDevices[OutputDeviceIndex];
 			if( OutputDevice->CanBeUsedOnAnyThread() || bUseAllDevices )
 			{
-				OutputDevice->Serialize( *BufferedLine.Data, BufferedLine.Verbosity, BufferedLine.Category );
+				OutputDevice->Serialize( *BufferedLine.Data, BufferedLine.Verbosity, BufferedLine.Category, BufferedLine.Time );
 			}
 		}
 	}
@@ -843,7 +843,7 @@ void FOutputDeviceRedirector::SerializeBacklog( FOutputDevice* OutputDevice )
 	for (int32 LineIndex = 0; LineIndex < BacklogLines.Num(); LineIndex++)
 	{
 		const FBufferedLine& BacklogLine = BacklogLines[ LineIndex ];
-		OutputDevice->Serialize( *BacklogLine.Data, BacklogLine.Verbosity, BacklogLine.Category );
+		OutputDevice->Serialize( *BacklogLine.Data, BacklogLine.Verbosity, BacklogLine.Category, BacklogLine.Time );
 	}
 }
 
@@ -877,18 +877,20 @@ void FOutputDeviceRedirector::SetCurrentThreadAsMasterThread()
 	MasterThreadID = FPlatformTLS::GetCurrentThreadId();
 }
 
-void FOutputDeviceRedirector::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+void FOutputDeviceRedirector::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time )
 {
+	const double RealTime = Time == -1.0f ? FPlatformTime::Seconds() - GStartTime : Time;
+
 	FScopeLock ScopeLock( &SynchronizationObject );
 
 	if ( bEnableBacklog )
 	{
-		new(BacklogLines) FBufferedLine(Data,Verbosity,Category);
+		new(BacklogLines)FBufferedLine( Data, Category, Verbosity, RealTime );
 	}
 
 	if(FPlatformTLS::GetCurrentThreadId() != MasterThreadID || OutputDevices.Num() == 0)
 	{
-		new(BufferedLines) FBufferedLine(Data,Verbosity,Category);
+		new(BufferedLines)FBufferedLine( Data, Category, Verbosity, RealTime );
 	}
 	else
 	{
@@ -898,9 +900,14 @@ void FOutputDeviceRedirector::Serialize( const TCHAR* Data, ELogVerbosity::Type 
 
 		for( int32 OutputDeviceIndex=0; OutputDeviceIndex<OutputDevices.Num(); OutputDeviceIndex++ )
 		{
-			OutputDevices[OutputDeviceIndex]->Serialize( Data, Verbosity, Category );
+			OutputDevices[OutputDeviceIndex]->Serialize( Data, Verbosity, Category, RealTime );
 		}
 	}
+}
+
+void FOutputDeviceRedirector::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+{
+	Serialize( Data, Verbosity, Category, -1.0 );
 }
 
 /**
@@ -1076,11 +1083,11 @@ void FOutputDeviceFile::CastAndSerializeData(const TCHAR* Data)
 	LogAr->Serialize((ANSICHAR*)(ConvertedData.Get()), ConvertedData.Length());
 }
 
-void FOutputDeviceFile::WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category)
+void FOutputDeviceFile::WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time)
 {
 	if (!bSuppressEventTag)
 	{
-		FString Prefix = FOutputDevice::FormatLogLine(Verbosity, Category, NULL, GPrintLogTimes);
+		FString Prefix = FOutputDevice::FormatLogLine(Verbosity, Category, NULL, GPrintLogTimes, Time);
 		CastAndSerializeData(*Prefix);
 	}
 
@@ -1104,7 +1111,7 @@ void FOutputDeviceFile::WriteDataToArchive(const TCHAR* Data, ELogVerbosity::Typ
  * @param	Data	Text to log
  * @param	Event	Event name used for suppression purposes
  */
-void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time )
 {
 #if ALLOW_LOG_FILE && !NO_LOGGING
 	static bool Entry=false;
@@ -1146,7 +1153,7 @@ void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbos
 
 		if( LogAr && Verbosity != ELogVerbosity::SetColor )
 		{
-			WriteDataToArchive(Data, Verbosity, Category);
+			WriteDataToArchive(Data, Verbosity, Category, Time);
 
 			static bool GForceLogFlush = false;
 			static bool GTestedCmdLine = false;
@@ -1165,12 +1172,16 @@ void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbos
 	else
 	{
 		Entry=true;
-		Serialize( Data, Verbosity, Category );
+		Serialize( Data, Verbosity, Category, Time );
 		Entry=false;
 	}
 #endif
 }
 
+void FOutputDeviceFile::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+{
+	Serialize( Data, Verbosity, Category, -1.0 );
+}
 
 
 void FOutputDeviceFile::WriteRaw( const TCHAR* C )
@@ -1184,14 +1195,14 @@ void FOutputDeviceFile::WriteRaw( const TCHAR* C )
  * @param	Data	Text to log
  * @param	Event	Event name used for suppression purposes
  */
-void FOutputDeviceDebug::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+void FOutputDeviceDebug::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category, const double Time )
 {
 	static bool Entry=false;
 	if( !GIsCriticalError || Entry )
 	{
 		if (Verbosity != ELogVerbosity::SetColor)
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s%s"),*FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes),LINE_TERMINATOR);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s%s"),*FOutputDevice::FormatLogLine(Verbosity, Category, Data, GPrintLogTimes, Time),LINE_TERMINATOR);
 		}
 	}
 	else
@@ -1200,6 +1211,11 @@ void FOutputDeviceDebug::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbo
 		Serialize( Data, Verbosity, Category );
 		Entry=false;
 	}
+}
+
+void FOutputDeviceDebug::Serialize( const TCHAR* Data, ELogVerbosity::Type Verbosity, const class FName& Category )
+{
+	Serialize( Data, Verbosity, Category, -1.0 );
 }
 
 /*-----------------------------------------------------------------------------
