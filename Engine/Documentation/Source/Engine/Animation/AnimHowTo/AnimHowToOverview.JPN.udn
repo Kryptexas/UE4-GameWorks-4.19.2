@@ -1,9 +1,9 @@
-﻿INTSourceChangelist:2659808
+﻿INTSourceChangelist:2692223
 Availability:Public
 Title:アニメーションの基本操作方法
 Crumbs: %ROOT%, Engine, Engine\Animation, Engine\Animation\AnimHowTo
 Description:アンリアル エンジン 4 のアニメーション システムの様々な側面の例を段階的操作ガイドで説明します。
-バージョン：4.9
+version:4.9
 
 アニメーションの操作ガイドでは、アンリアル エンジン 4 (UE4) 内のアニメーション ツールである [**ペルソナ**](Engine/Animation) の様々な機能を使用して作業する手順の例を説明します。 
 UE4 でのアニメーションの操作が初めての場合、またはペルソナの機能で作業する方法を学習したい場合のいずれであっても、以下の操作ガイドでは幅広いトピックを扱い、学習の開始点、または知識を拡げる場所を提供します。 
@@ -29,6 +29,7 @@ UE4 でのアニメーションの操作が初めての場合、またはペル�
 | ------- | ------------ |
 | [](Engine\Animation\AnimHowTo\AdditiveAnimations) | %Engine\Animation\AnimHowTo\AdditiveAnimations:description% |
 | [](Engine\Animation\AnimHowTo\LayerEditing) | %Engine\Animation\AnimHowTo\LayerEditing:description% |
+| [](Engine\Animation\AnimHowTo\AnimBPOverride) | %Engine\Animation\AnimHowTo\AnimBPOverride:description% |
 
 
 <!-- Convert these to Quick Starts
@@ -38,10 +39,6 @@ UE4 でのアニメーションの操作が初めての場合、またはペル�
 Split this into two How To's
 | [](Engine\Animation\AnimHowTo\Retargeting) | %Engine\Animation\AnimHowTo\Retargeting:description% |Intermediate|
 -->
-
-
-
-
 
 
 
