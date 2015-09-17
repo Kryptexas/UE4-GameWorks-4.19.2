@@ -2031,6 +2031,8 @@ void FSequencer::DeleteSelectedItems()
 {
 	if (Selection.GetActiveSelection() == FSequencerSelection::EActiveSelection::KeyAndSection)
 	{
+		FScopedTransaction DeleteKeysTransaction( NSLOCTEXT("Sequencer", "DeleteKeysAndSections_Transaction", "Delete Keys and Sections") );
+		
 		DeleteSelectedKeys();
 
 		DeleteSections(Selection.GetSelectedSections());
