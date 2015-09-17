@@ -117,7 +117,7 @@ public:
 	FORCEINLINE explicit FTransform(const FQuat& InRotation) 
 	{
 		// Rotation = InRotation
-		Rotation =  MakeVectorRegister( InRotation.X, InRotation.Y, InRotation.Z, InRotation.W );
+		Rotation =  VectorLoadAligned( &InRotation.X );
 		// Translation = {0,0,0,0)
 		Translation = VectorZero();
 		// Scale3D = {1,1,1,0);
@@ -135,7 +135,7 @@ public:
 	{
 		FQuat InQuatRotation = InRotation.Quaternion();
 		// Rotation = InRotation
-		Rotation =  MakeVectorRegister( InQuatRotation.X, InQuatRotation.Y, InQuatRotation.Z, InQuatRotation.W );
+		Rotation =  VectorLoadAligned( &InQuatRotation.X );
 		// Translation = {0,0,0,0)
 		Translation = VectorZero();
 		// Scale3D = {1,1,1,0);
@@ -154,7 +154,7 @@ public:
 	FORCEINLINE FTransform(const FQuat& InRotation, const FVector& InTranslation, const FVector& InScale3D = FVector(1.f)) 
 	{
 		// Rotation = InRotation
-		Rotation =  MakeVectorRegister( InRotation.X, InRotation.Y, InRotation.Z, InRotation.W );
+		Rotation =  VectorLoadAligned( &InRotation.X );
 		// Translation = InTranslation
 		Translation = MakeVectorRegister(InTranslation.X, InTranslation.Y, InTranslation.Z, 0.0f );
 		// Scale3D = InScale3D
@@ -189,13 +189,20 @@ public:
 	{
 		FQuat InQuatRotation = InRotation.Quaternion();
 		// Rotation = InRotation
-		Rotation =  MakeVectorRegister( InQuatRotation.X, InQuatRotation.Y, InQuatRotation.Z, InQuatRotation.W );
+		Rotation =  VectorLoadAligned( &InQuatRotation.X );
 		// Translation = InTranslation
 		Translation = MakeVectorRegister(InTranslation.X, InTranslation.Y, InTranslation.Z, 0.0f );
 		// Scale3D = InScale3D
 		Scale3D = MakeVectorRegister(InScale3D.X, InScale3D.Y, InScale3D.Z, 0.0f );
 
 		DiagnosticCheckNaN_All();
+	}
+
+	/**
+	 * Constructor with leaving uninitialized memory
+	 */
+	FORCEINLINE explicit FTransform(ENoInit) 
+	{
 	}
 
 	/**
@@ -541,7 +548,6 @@ public:
 	FORCEINLINE FVector		GetSafeScaleReciprocal(const FVector& InScale, float Tolerance=0.0f) const;
 
 
-	// temp function for easy conversion
 	FORCEINLINE FVector GetLocation() const
 	{
 		FVector OutTranslation;

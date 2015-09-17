@@ -103,6 +103,13 @@ public:
 	}
 
 	/**
+	 * Constructor with leaving uninitialized memory
+	 */
+	FORCEINLINE explicit FTransform(ENoInit) 
+	{
+	}
+
+	/**
 	 * Constructor with an initial rotation
 	 *
 	 * @param InRotation The value to use for rotation component

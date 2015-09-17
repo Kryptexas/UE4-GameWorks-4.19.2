@@ -685,7 +685,10 @@ public:
 	{
 		return true;
 	}
-	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None) override final;
+	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false, ETeleportType Teleport = ETeleportType::None) override final
+	{
+		UpdateComponentToWorldWithParent(AttachParent, AttachSocketName, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
+	}
 	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
@@ -918,8 +921,20 @@ protected:
 
 	/** Calculate the new ComponentToWorld transform for this component.
 		Parent is optional and can be used for computing ComponentToWorld based on arbitrary USceneComponent.
-		If Parent is not passed in or is NULL then we use the component's existing AttachParent and AttachSocket */
-	virtual FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const;
+		If Parent is not passed in we use the component's AttachParent*/
+	FORCEINLINE FTransform CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent = NULL, FName SocketName = NAME_None) const
+	{
+		SocketName = Parent ? SocketName : AttachSocketName;
+		Parent = Parent ? Parent : AttachParent;
+		bool bGeneral = !Parent || bAbsoluteLocation || bAbsoluteRotation || bAbsoluteScale;
+		if (!bGeneral)
+		{
+			return NewRelativeTransform * Parent->GetSocketTransform(AttachSocketName);
+		}
+		return CalcNewComponentToWorld_GeneralCase(NewRelativeTransform, Parent, SocketName);
+	}
+
+	FTransform CalcNewComponentToWorld_GeneralCase(const FTransform& NewRelativeTransform, const USceneComponent* Parent, FName SocketName) const;
 
 	
 public:

@@ -1760,28 +1760,9 @@ FVector AActor::GetPlacementExtent() const
 	return Extent;
 }
 
-FTransform AActor::ActorToWorld() const
-{
-	FTransform Result = FTransform::Identity;
-	if( RootComponent != NULL )
-	{
-		Result = RootComponent->ComponentToWorld;
-	}
-	else
-	{
-		UE_LOG(LogActor, Log, TEXT("AActor::ActorToWorld (%s) No RootComponent!"), *GetPathName());
-	}
-
-	return Result;
-}
-
 class UClass* AActor::GetActorClass() const
 {
 	return GetClass();
-}
-FTransform AActor::GetTransform() const
-{
-	return ActorToWorld();
 }
 
 void AActor::Destroyed()

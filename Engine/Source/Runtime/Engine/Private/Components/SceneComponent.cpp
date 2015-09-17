@@ -298,15 +298,12 @@ void USceneComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& Pr
 
 #endif
 
-FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent, FName SocketName) const
+FTransform USceneComponent::CalcNewComponentToWorld_GeneralCase(const FTransform& NewRelativeTransform, const USceneComponent* Parent, FName SocketName) const
 {
-	SocketName = Parent ? SocketName : AttachSocketName;
-	Parent = Parent ? Parent : AttachParent;
 	if (Parent != NULL)
 	{
 		const FTransform ParentToWorld = Parent->GetSocketTransform(SocketName);
 		FTransform NewCompToWorld = NewRelativeTransform * ParentToWorld;
-
 		if(bAbsoluteLocation)
 		{
 			NewCompToWorld.CopyTranslation(NewRelativeTransform);
@@ -336,9 +333,11 @@ void USceneComponent::OnUpdateTransform(bool bSkipPhysicsMove, ETeleportType Tel
 
 void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,FName SocketName, bool bSkipPhysicsMove, const FQuat& RelativeRotationQuat, ETeleportType Teleport)
 {
+	//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent);
 	// If our parent hasn't been updated before, we'll need walk up our parent attach hierarchy
 	if (Parent && !Parent->bWorldToComponentUpdated)
 	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Parent);
 		Parent->UpdateComponentToWorld();
 
 		// Updating the parent may (depending on if we were already attached to parent) result in our being updated, so just return
@@ -350,23 +349,33 @@ void USceneComponent::UpdateComponentToWorldWithParent(USceneComponent* Parent,F
 
 	bWorldToComponentUpdated = true;
 
-	// Calculate the new ComponentToWorld transform
-	const FTransform RelativeTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
-	FTransform NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent, SocketName);
+	FTransform NewTransform(NoInit);
 
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_XForm);
+		// Calculate the new ComponentToWorld transform
+		const FTransform RelativeTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
+		NewTransform = CalcNewComponentToWorld(RelativeTransform, Parent, SocketName);
+	}
+
 	ensure(NewTransform.IsValid());
-#endif
 
 	// If transform has changed..
-	if (!ComponentToWorld.Equals(NewTransform, SMALL_NUMBER))
+	bool bHasChanged;
 	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_HasChanged);
+		bHasChanged = ComponentToWorld.Equals(NewTransform, SMALL_NUMBER);
+	}
+	if (!bHasChanged)
+	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_Changed);
 		// Update transform
 		ComponentToWorld = NewTransform;
 		PropagateTransformUpdate(true, bSkipPhysicsMove, Teleport);
 	}
 	else
 	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_USceneComponent_UpdateComponentToWorldWithParent_NotChanged);
 		PropagateTransformUpdate(false);
 	}
 }
@@ -411,38 +420,44 @@ void USceneComponent::OnRegister()
 #endif
 }
 
-void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove, ETeleportType Teleport)
-{
-	UpdateComponentToWorldWithParent(AttachParent,AttachSocketName, bSkipPhysicsMove, RelativeRotationCache.RotatorToQuat(RelativeRotation), Teleport);
-}
-
-
 void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSkipPhysicsMove, ETeleportType Teleport)
 {
+	//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate);
 	if (IsDeferringMovementUpdates())
 	{
 		// We are deferring these updates until later.
 		return;
 	}
-
+	FPlatformMisc::Prefetch(AttachChildren.GetData());
 	if (bTransformChanged)
 	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_TransformChanged);
+		{
 		// Then update bounds
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_UpdateBounds);
 		UpdateBounds();
+		}
 
+		{
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_OnUpdateTransform);
 		// Always send new transform to physics
 		OnUpdateTransform(bSkipPhysicsMove, Teleport);
+		}
 
 		// Flag render transform as dirty
 		MarkRenderTransformDirty();
 		
+		{
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
 		// Now go and update children
 		//Do not pass skip physics to children. This is only used when physics updates us, but in that case we really do need to update the attached children since they are kinematic
 		UpdateChildTransforms(false, Teleport);
+		}
 
 		// Refresh navigation
 		UpdateNavigationData();
 
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_AttachmentReplication);
 
 		AActor* Owner = GetOwner();
 		if (Owner && Owner->HasAuthority() && Owner->GetRootComponent() == this)
@@ -464,15 +479,25 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 	}
 	else
 	{
+		//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_NOT_TransformChanged);
+		{
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_UpdateBounds);
 		// We update bounds even if transform doesn't change, as shape/mesh etc might have done
 		UpdateBounds();
+		}
 
+		{
+			//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_UpdateChildTransforms);
 		// Now go and update children
 		UpdateChildTransforms();
+		}
 
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_MarkRenderTransformDirty);
 		// Need to flag as dirty so new bounds are sent to render thread
 		MarkRenderTransformDirty();
 	}
+}
 }
 
 
@@ -2269,7 +2294,7 @@ void USceneComponent::PostNetReceive()
 		}
 	}
 }
-
+	
 void USceneComponent::PostRepNotifies()
 {
 	if (bNetUpdateAttachment)

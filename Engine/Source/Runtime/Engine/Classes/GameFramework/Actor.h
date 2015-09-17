@@ -653,10 +653,21 @@ public:
 	 * @return The transform that transforms from actor space to world space.
 	 */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorTransform"), Category="Utilities|Transformation")
-	FTransform GetTransform() const;
+	FTransform GetTransform() const
+	{
+		return ActorToWorld();
+	}
 
 	/** Get the local-to-world transform of the RootComponent. Identical to GetTransform(). */
-	FTransform ActorToWorld() const;
+	FORCEINLINE FTransform ActorToWorld() const
+	{
+		if( RootComponent != NULL )
+		{
+			return RootComponent->ComponentToWorld;
+		}
+		return FTransform::Identity;
+	}
+
 
 	/** Returns the location of the RootComponent of this Actor */
 	UFUNCTION(BlueprintCallable, meta=(DisplayName = "GetActorLocation", Keywords="position"), Category="Utilities|Transformation")
