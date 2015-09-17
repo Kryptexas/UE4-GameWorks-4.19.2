@@ -1,15 +1,16 @@
-﻿INTSourceChangelist:2270955
+﻿INTSourceChangelist:2692399
 Availability:Public
-Title:Transition Rules （遷移ルール）
+Title:遷移ルール
 Crumbs: %ROOT%, Engine, Engine/Animation, Engine/Animation/StateMachines
 Description:ステートマシンの遷移を規定するルールのガイド
+version:4.9
 
 
-**遷移ルール** は **ステートマシン** 内のフローを制御する方法です。 
-**遷移ルール** は、**States** と **Conduits** を接続するワイヤーと共に自動的に作成されます。変数値に対していくつものチェックやテストを遷移ルールで実行可能であり、_True_ または _False_ の値を出力することを目的とします。 
-**Boolean** 出力は遷移を経たアニメーションの移動が可能か否か決定します。 
+**Transition Rules (遷移ルール)** は **ステートマシン** 内のフローを制御する方法です。 
+遷移ルール は、**States** と **Conduits** を接続するワイヤーと共に自動的に作成されます。変数値に対していくつものチェックやテストを実行可能であり、True または False の値を出力することを目的とします。 
+Boolean 出力は遷移でアニメーションが動くことが可能か否か決定します。 
 
-視覚的には、**遷移ルール** は 以下のように **AnimationGraph** 内の小さな丸い方向を持ったアイコンで表示されます。 
+視覚的には、遷移ルールは以下のように **AnimationGraph** 内の小さな丸い方向を持つアイコンで表示されます。 
 
 ![](TransitionRule.png)
 
@@ -25,7 +26,7 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 
 つまり、あるステートから出て、他のステートに移動するようにルールを設定可能であり、そのステートから戻る遷移になるようにルールを適用できます。 
 
-**遷移ルール** を **左クリック** すると、**[詳細]** パネルが更新され、追加のオプションが利用できるようになります。 
+遷移ルールを **左クリック** すると、**[Details (詳細)]** パネルが更新され、追加のオプションが利用できるようになります。 
 
 ![](TransitionDetails.png)
 
@@ -35,18 +36,18 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 | **Bidirectional** | 遷移が双方向であるか否かを決定します。 |
 | **Blend Logic** | 使用する遷移ロジックを指定します。標準ブレンドまたはカスタム ブレンド。カスタムを選択すると、ブレンドグラフにカスタムのブレンド遷移を設定するように入力できます。 |
 | **Transition Rule Sharing** | 他の遷移とルールを共有できるか否か、または他の遷移からのルールを使用するかを設定することができます。  |
-| **Transition Interrupt** | **Trigger Weight Threshold** を設定し、**Notify State Class** を指定します。  |
-| **Transition Crossfade Sharing** | 既存の **Transition Crossfade Blend** を使用する、または既存の **Transition Crossfade** を共有にプロモートします。  |
+| **Transition Interrupt** | Trigger Weight Threshold を設定し、Notify State Class を指定します。  |
+| **Transition Crossfade Sharing** | 既存の Transition Crossfade Blend を使用する、または既存の Transition Crossfade を共有に昇格します。  |
 | **Duration** | クロスフェードに適用する持続時間。 |
-| **Mode** | クロスフェードに適用するブレンドのタイプ。 |
-| **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移開始時に通知された **ブループリント** |
-| **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移終了時に通知された **ブループリント** |
-| **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に通知された **ブループリント** 内から **イベント** を呼び出し実行します。 |
-| **Blueprint Notify** | 遷移中断時に通知された **ブループリント** |
+| **Mode** | クロスフェードに適用するブレンドのタイプ。詳細は [](Engine\Animation\NonLinearBlends) を参照してください。 |
+| **Start Transition Event / Custom Blueprint Event** | 遷移開始時に通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移開始時に通知されたブループリント。 |
+| **End Transition Event / Custom Blueprint Event** | 遷移終了時に通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移終了時に通知されたブループリント。 |
+| **Interrupt Transition Event / Custom Blueprint Event** | 遷移中断時に、通知されたブループリント内からイベントを呼び出し実行します。 |
+| **Blueprint Notify** | 遷移中断時に通知されるブループリント。 |
 
-**Transition Rule** を **ダブルクリック** すると、ウィンドウが開きます。このウィンドウで、遷移が起こるために満たさなければならない変数を定義できます。 
+**Transition Rule (遷移ルール)** を **ダブルクリック** すると、ウィンドウが開きます。このウィンドウで、遷移が起こるために満たさなければならない変数を定義できます。 
 
 [REGION:lightbox]
 [![](EditRule.png)(w:480)](EditRule.png)
@@ -54,8 +55,8 @@ _この例では、**JumpLoop** から **JumpEnd** に遷移するために、�
 
 _クリックしてフルサイズで表示_
 
-**ブループリント** と同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグできます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ でなければならないかを定義できます。 
+ブループリントと同様に、**My Blueprint** ウィンドウで変数を指定し、それをグラフにドラッグできます。変数を様々な条件に接続し、それらを **Result** ノードに接続することで、遷移が起こるために何が _true_ であるべきかを定義できます。 
 
-**ブループリント** の使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
+ブループリントの使用を開始するための情報は、[ブループリント入門](Engine/Blueprints/GettingStarted) のドキュメントをご覧ください。 
 
 
