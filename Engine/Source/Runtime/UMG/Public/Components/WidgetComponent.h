@@ -33,6 +33,9 @@ class UMG_API UWidgetComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** UActorComponent Interface */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+
 	/* UPrimitiveComponent Interface */
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform & LocalToWorld) const override;
@@ -99,7 +102,10 @@ public:
 	/** @return The window containing the user widget content */
 	TSharedPtr<SWidget> GetSlateWidget() const;
 
-	/** Sets the widget to use directly. */
+	/**  
+	 *  Sets the widget to use directly. This function will keep track of the widget till the next time it's called
+	 *	with either a newer widget or a nullptr
+	 */ 
 	UFUNCTION(BlueprintCallable, Category=UserInterface)
 	void SetWidget(UUserWidget* Widget);
 

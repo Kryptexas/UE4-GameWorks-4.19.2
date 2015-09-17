@@ -57,8 +57,11 @@ public:
 
 						if ( bProjected )
 						{
-							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-
+							if (UUserWidget* Widget = WidgetComponent->GetUserWidgetObject())
+							{
+								Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+							}
+							
 							if ( SConstraintCanvas::FSlot* CanvasSlot = ComponentToSlot.FindRef(WidgetComponent) )
 							{
 								FVector2D DrawSize = WidgetComponent->GetDrawSize();
@@ -73,7 +76,10 @@ public:
 						}
 						else
 						{
-							WidgetComponent->GetUserWidgetObject()->SetVisibility(ESlateVisibility::Hidden);
+							if (UUserWidget* Widget = WidgetComponent->GetUserWidgetObject())
+							{
+								Widget->SetVisibility(ESlateVisibility::Hidden);
+							}
 						}
 					}
 				}
@@ -96,28 +102,37 @@ public:
 	{
 		Components.AddUnique(Component);
 
-		SConstraintCanvas::FSlot* CanvasSlot;
+		if (UUserWidget* Widget = Component->GetUserWidgetObject())
+		{
+			SConstraintCanvas::FSlot* CanvasSlot;
 
-		Canvas->AddSlot()
-		.Expose(CanvasSlot)
-		[
-			Component->GetUserWidgetObject()->TakeWidget()
-		];
+			Canvas->AddSlot()
+			.Expose(CanvasSlot)
+			[
+				Widget->TakeWidget()
+			];
 
-		ComponentToSlot.Add(Component, CanvasSlot);
+			ComponentToSlot.Add(Component, CanvasSlot);
+		}
 	}
 
 	void RemoveComponent(UWidgetComponent* Component)
 	{
-		Components.RemoveSwap(Component);
-
-		TSharedPtr<SWidget> CachedWidget = Component->GetUserWidgetObject()->GetCachedWidget();
-		if ( CachedWidget.IsValid() )
+		if (Component)
 		{
-			Canvas->RemoveSlot(CachedWidget.ToSharedRef());
-		}
+			Components.RemoveSwap(Component);
 
-		ComponentToSlot.Remove(Component);
+			if (UUserWidget* Widget = Component->GetUserWidgetObject())
+			{
+				TSharedPtr<SWidget> CachedWidget = Widget->GetCachedWidget();
+				if (CachedWidget.IsValid())
+				{
+					Canvas->RemoveSlot(CachedWidget.ToSharedRef());
+				}
+
+				ComponentToSlot.Remove(Component);
+			}
+		}
 	}
 
 private:
@@ -528,7 +543,21 @@ UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )
 	Pivot = FVector2D(0.5, 0.5);
 
 	bAddedToScreen = false;
+
+	// We want this because we want EndPlay to be called!
+	bWantsBeginPlay = true;
 }
+
+void UWidgetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (EndPlayReason != EEndPlayReason::RemovedFromWorld || EndPlayReason != EEndPlayReason::Destroyed)
+	{
+		ReleaseResources();
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
 
 FPrimitiveSceneProxy* UWidgetComponent::CreateSceneProxy()
 {
@@ -677,7 +706,12 @@ void UWidgetComponent::OnUnregister()
 		}
 	}
 
-	ReleaseResources();
+#if WITH_EDITOR
+	if (!GetWorld()->IsGameWorld())
+	{
+		ReleaseResources();
+	}
+#endif
 
 	Super::OnUnregister();
 }
@@ -967,11 +1001,7 @@ void UWidgetComponent::InitWidget()
 		{
 			Widget = CreateWidget<UUserWidget>(GetWorld(), WidgetClass);
 		}
-		else if ( !WidgetClass && Widget )
-		{
-			Widget = nullptr;
-		}
-
+		
 #if WITH_EDITOR
 		if ( Widget && !GetWorld()->IsGameWorld() )
 		{
