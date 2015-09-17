@@ -82,6 +82,7 @@ private:
 
 public:
 
+	bool IsAudioComponentValid() const { return AudioComponent.IsValid(); }
 	UAudioComponent* GetAudioComponent() const { return AudioComponent.Get(); }
 	UPTRINT GetAudioComponentIndex() const { return AudioComponentIndex; }
 	void SetAudioComponent(UAudioComponent* Component)
