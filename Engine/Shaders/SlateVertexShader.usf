@@ -54,6 +54,15 @@ VertexToPixelInterpolants Main(
 		float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
 		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
 
+		#if ES2_PROFILE
+			#if NUM_SLATE_TEXCOORDS == 1
+				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+			#elif NUM_SLATE_TEXCOORDS >= 2
+				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+				VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
+			#endif
+		#endif
+	#else
 		UNROLL
 		for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
 		{

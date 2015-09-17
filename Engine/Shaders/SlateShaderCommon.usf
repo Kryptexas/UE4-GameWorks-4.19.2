@@ -39,8 +39,14 @@ struct VertexToPixelInterpolants
 
 float2 GetUV(VertexToPixelInterpolants Interpolants, int UVIndex)
 {
+#if ES2_PROFILE
+	// Only support 2 uv coords on ES2 for now.  It doesnt support modulo operations
+	float4 UVVector = Interpolants.TextureCoordinates[UVIndex / 2];
+	return UVIndex == 1 ? UVVector.zw : UVVector.xy;
+#else
 	float4 UVVector = Interpolants.TextureCoordinates[UVIndex / 2];
 	return UVIndex % 2 ? UVVector.zw : UVVector.xy;
+#endif
 }
 
 float4 ApplyColorVisionDeficiencyFilter(float4 Color)
