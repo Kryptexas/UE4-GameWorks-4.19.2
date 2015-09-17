@@ -1,9 +1,10 @@
-﻿INTSourceChangelist:2599181
+﻿INTSourceChangelist:2686454
 Availability:Public
 Title:ブループリントのプログラミングのガイドライン
 Crumbs: %ROOT%, Programming, Engine/Blueprints/TechnicalGuide
 Description:ブループリント フレンドリーな API を最適に記述するためのヒントとコツ
 Related:Engine/Blueprints/TechnicalGuide/ExtendingBlueprints 
+Version:4.9
 
 [TOC (start:2 end:2)]
 
@@ -35,7 +36,7 @@ C++ コードで実装した方がよいもうひとつの理由です。
 
 
 
-## 例
+## サンプル
 
 C++ コードによる処理、またはブループリントによる処理が最善である様々な機能があるため、ゲーム制作過程における C++ プログラマーとブループリント作成者の
 共同作業例を紹介します。 
