@@ -559,6 +559,7 @@ namespace AutomationTool
 			this.StageCommandline = ParseParamValueIfNotSpecified(Command, StageCommandline, "cmdline");
 			this.BundleName = ParseParamValueIfNotSpecified(Command, BundleName, "bundlename");
 			this.RunCommandline = ParseParamValueIfNotSpecified(Command, RunCommandline, "addcmdline");
+			this.RunCommandline = this.RunCommandline.Replace('\'', '\"'); // replace any single quotes with double quotes
 			this.Package = GetParamValueIfNotSpecified(Command, Package, this.Package, "package");
 			this.Deploy = GetParamValueIfNotSpecified(Command, Deploy, this.Deploy, "deploy");
 			this.IterativeDeploy = GetParamValueIfNotSpecified(Command, IterativeDeploy, this.IterativeDeploy, new string[] {"iterativedeploy", "iterate" } );
