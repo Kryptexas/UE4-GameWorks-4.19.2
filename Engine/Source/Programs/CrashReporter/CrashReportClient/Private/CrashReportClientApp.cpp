@@ -73,17 +73,26 @@ FPlatformErrorReport LoadErrorReport()
 	}
 
 	FPlatformErrorReport ErrorReport(ReportDirectoryAbsolutePath);
-	
-	FString XMLWerFilename;
-	ErrorReport.FindFirstReportFileWithExtension( XMLWerFilename, TEXT( ".xml" ) );
 
-	extern FCrashDescription& GetCrashDescription();
-	GetCrashDescription() = FCrashDescription( ReportDirectoryAbsolutePath / XMLWerFilename );	
+	FString Filename;
+	// CrashContext.runtime-xml has the precedence over the WER
+	if (ErrorReport.FindFirstReportFileWithExtension( Filename, *FGenericCrashContext::CrashContextExtension ))
+	{
+		FPrimaryCrashProperties::Set( new FCrashContext( ReportDirectoryAbsolutePath / Filename ) );
+	}
+	else if (ErrorReport.FindFirstReportFileWithExtension( Filename, TEXT( ".xml" ) ))
+	{
+		FPrimaryCrashProperties::Set( new FCrashWERContext( ReportDirectoryAbsolutePath / Filename ) );
+	}
+	else
+	{
+		return FPlatformErrorReport();
+	}
 
 #if CRASH_REPORT_UNATTENDED_ONLY
 	return ErrorReport;
 #else
-	if( !GameNameFromCmd.IsEmpty() && GameNameFromCmd != GetCrashDescription().GameName )
+	if (!GameNameFromCmd.IsEmpty() && GameNameFromCmd != FPrimaryCrashProperties::Get()->GameName)
 	{
 		// Don't display or upload anything if it's not the report we expected
 		ErrorReport = FPlatformErrorReport();
@@ -92,54 +101,6 @@ FPlatformErrorReport LoadErrorReport()
 #endif
 }
 
-FCrashReportClientConfig::FCrashReportClientConfig()
-	: DiagnosticsFilename( TEXT( "Diagnostics.txt" ))
-{
-	const bool bUnattended =
-#if CRASH_REPORT_UNATTENDED_ONLY
-		true;
-#else
-		FApp::IsUnattended();
-#endif // CRASH_REPORT_UNATTENDED_ONLY
-
-	if( !GConfig->GetString( TEXT( "CrashReportClient" ), TEXT( "CrashReportReceiverIP" ), CrashReportReceiverIP, GEngineIni ) )
-	{
-		// Use the default value.
-		CrashReportReceiverIP = TEXT( "http://crashreporter.epicgames.com:57005" );
-	}
-
-	if ( !GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni ) )
-	{
-		// Default to true when unattended when config is missing. This is mostly for dedicated servers that do not have config files for CRC.
-		if (bUnattended)
-		{
-			bAllowToBeContacted = true;
-		}
-	}
-
-	if ( !GConfig->GetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni ) )
-	{
-		// Default to true when unattended when config is missing. This is mostly for dedicated servers that do not have config files for CRC.
-		if (bUnattended)
-		{
-			bSendLogFile = true;
-		}
-	}
-
-	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
-}
-
-void FCrashReportClientConfig::SetAllowToBeContacted( bool bNewValue )
-{
-	bAllowToBeContacted = bNewValue;
-	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bAllowToBeContacted" ), bAllowToBeContacted, GEngineIni );
-}
-
-void FCrashReportClientConfig::SetSendLogFile( bool bNewValue )
-{
-	bSendLogFile = bNewValue;
-	GConfig->SetBool( TEXT( "CrashReportClient" ), TEXT( "bSendLogFile" ), bSendLogFile, GEngineIni );
-}
 
 void RunCrashReportClient(const TCHAR* CommandLine)
 {
@@ -174,7 +135,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	if (bUnattended)
 	{
 		// In the unattended mode we don't send any PII.
-		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ), false );
+		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
 		FCrashReportClientUnattended CrashReportClient( ErrorReport );
 
 		// loop until the app is ready to quit
@@ -236,18 +197,11 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 	}
 
+	FPrimaryCrashProperties::Shutdown();
 	FPlatformErrorReport::ShutDown();
 
 	FEngineLoop::AppPreExit();
 	FTaskGraphInterface::Shutdown();
 
 	FEngineLoop::AppExit();
-}
-
-void CrashReportClientCheck(bool bCondition, const TCHAR* Location)
-{
-	if (!bCondition)
-	{
-		UE_LOG(CrashReportClientLog, Warning, TEXT("CHECK FAILED at %s"), Location);
-	}
 }

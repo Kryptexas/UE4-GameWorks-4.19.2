@@ -3,14 +3,19 @@
 #include "CrashReportClientApp.h"
 #include "CrashReportClientUnattended.h"
 #include "CrashReportUtil.h"
+#include "CrashDescription.h"
 
-FCrashReportClientUnattended::FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport)
+FCrashReportClientUnattended::FCrashReportClientUnattended(FPlatformErrorReport& ErrorReport)
 	: Uploader( FCrashReportClientConfig::Get().GetReceiverAddress() )
 {
+	ErrorReport.TryReadDiagnosticsFile();
+
 	// Process the report synchronously
 	ErrorReport.DiagnoseReport();
-	auto DiagnosticsFilePath = ErrorReport.GetReportDirectory() / FCrashReportClientConfig::Get().GetDiagnosticsFilename();
-	Uploader.LocalDiagnosisComplete( FPaths::FileExists( DiagnosticsFilePath ) ? DiagnosticsFilePath : TEXT( "" ) );
+
+	// Update properties for the crash.
+	ErrorReport.SetPrimaryCrashProperties( *FPrimaryCrashProperties::Get() );
+
 	Uploader.BeginUpload( ErrorReport );
 	StartTicker();
 }

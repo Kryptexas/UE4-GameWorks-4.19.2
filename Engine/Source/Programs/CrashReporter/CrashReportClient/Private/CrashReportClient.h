@@ -86,13 +86,6 @@ public:
 	FText GetDiagnosticText() const;
 
 	/**
-	 * Access to name (which usually includes the build config) of the app that crashed
-	 * @return Name of executable
-	 */
-	FString GetCrashedAppName() const;
-
-
-	/**
 	 * @return the full path of the crash directory.
 	 */
 	FString GetCrashDirectory() const;
@@ -144,7 +137,7 @@ private:
 	void StartTicker();
 
 	/** Enqueued from the diagnose report worker thread to be executed on the game thread. */
-	void FinalizeDiagnoseReportWorker( FText ReportText );
+	void FinalizeDiagnoseReportWorker();
 
 	/**
 	 * @return true if we are still processing a callstack

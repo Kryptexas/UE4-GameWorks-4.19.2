@@ -8,6 +8,8 @@
 #include "PendingReports.h"
 #include "XmlFile.h"
 #include "CrashReportUtil.h"
+#include "GenericPlatformCrashContext.h"
+#include "CrashDescription.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -68,21 +70,6 @@ void FCrashUpload::BeginUpload(const FPlatformErrorReport& PlatformErrorReport)
 const FText& FCrashUpload::GetStatusText() const
 {
 	return UploadStateText;
-}
-
-void FCrashUpload::LocalDiagnosisComplete(const FString& DiagnosticsFile)
-{
-	if (State >= EUploadState::FirstCompletedState)
-	{
-		// Must be a failure/canceled state, or the report was a rejected by the server
-		return;
-	}
-
-	const bool SendDiagnosticsFile = !DiagnosticsFile.IsEmpty();
-	if (SendDiagnosticsFile)
-	{
-		PendingFiles.Push(DiagnosticsFile);
-	}
 }
 
 bool FCrashUpload::IsFinished() const
@@ -174,12 +161,36 @@ void FCrashUpload::CompressAndSendData()
 
 	int32 CurrentFileIndex = 0;
 
+	const FString FullCrashDumpLocation = FPrimaryCrashProperties::Get()->FullCrashDumpLocation.AsString();
+
 	// Loop to keep trying files until a send succeeds or we run out of files
 	while (PendingFiles.Num() != 0)
 	{
 		const FString PathOfFileToUpload = PendingFiles.Pop();
+		const FString Filename = FPaths::GetCleanFilename( PathOfFileToUpload );
+
+		const bool bValidFullDumpForCopy = Filename == FGenericCrashContext::UE4MinidumpName && 
+			FPrimaryCrashProperties::Get()->CrashDumpMode == ECrashDumpMode::FullDump && 
+			FPrimaryCrashProperties::Get()->CrashVersion >= ECrashDescVersions::VER_3_CrashContext &&
+			!FullCrashDumpLocation.IsEmpty();
+		if (bValidFullDumpForCopy)
+		{
+			const FString DestinationPath = FullCrashDumpLocation / FGenericCrashContext::UE4MinidumpName;
+			const bool bCreated = IFileManager::Get().MakeDirectory( *FullCrashDumpLocation, true );
+			if (!bCreated)
+			{
+				UE_LOG( CrashReportClientLog, Error, TEXT( "Couldn't create directory for full crash dump %s" ), *DestinationPath );
+			}
+			else
+			{
+				UE_LOG( CrashReportClientLog, Warning, TEXT( "Copying full crash minidump to %s" ), *DestinationPath );
+				IFileManager::Get().Copy( *DestinationPath, *PathOfFileToUpload );
+			}
+						
+			continue;
+		}
 		
-		if (FPlatformFileManager::Get().GetPlatformFile().FileSize(*PathOfFileToUpload) > MaxFileSizeToUpload)
+		if (IFileManager::Get().FileSize( *PathOfFileToUpload ) > MaxFileSizeToUpload)
 		{
 			UE_LOG(CrashReportClientLog, Warning, TEXT("Skipping large crash report file"));
 			continue;
@@ -194,17 +205,35 @@ void FCrashUpload::CompressAndSendData()
 		const bool bSkipLogFile = !FCrashReportClientConfig::Get().GetSendLogFile() && PathOfFileToUpload.EndsWith( TEXT( ".log" ) );
 		if (bSkipLogFile)
 		{
-			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the log file" ) );
+			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the %s" ), *Filename );
+			continue;
+		}
+
+		// Skip old WERInternalMetadata.
+		const bool bSkipXMLFile = PathOfFileToUpload.EndsWith( TEXT( ".xml" ) );
+		if (bSkipXMLFile)
+		{
+			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the %s" ), *Filename );
+			continue;
+		}
+
+		// Skip old Report.wer file.
+		const bool bSkipWERFile = PathOfFileToUpload.Contains( TEXT( "Report.wer" ) );
+		if (bSkipWERFile)
+		{
+			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the %s" ), *Filename );
+			continue;
+		}
+
+		// Skip old diagnostics.txt file, all data is stored in the CrashContext.runtime-xml
+		const bool bSkipDiagnostics = Filename == FCrashReportClientConfig::Get().GetDiagnosticsFilename();
+		if (bSkipDiagnostics)
+		{
+			UE_LOG( CrashReportClientLog, Warning, TEXT( "Skipping the %s" ), *Filename );
 			continue;
 		}
 
 		UE_LOG(CrashReportClientLog, Log, TEXT("CompressAndSendData compressing %d bytes ('%s')"), PostData.Num(), *PathOfFileToUpload);
-		FString Filename = FPaths::GetCleanFilename(PathOfFileToUpload);
-		if (Filename == "diagnostics.txt")
-		{
-			// Ensure diagnostics file is capitalized for server
-			Filename[0] = 'D';
-		}
 
 		FCompressedCrashFile FileToCompress( CurrentFileIndex, Filename, PostData );
 		CurrentFileIndex++;

@@ -8,6 +8,7 @@
 #include "CrashReportClientStyle.h"
 #include "SlateStyle.h"
 #include "SThrobber.h"
+#include "CrashDescription.h"
 
 #define LOCTEXT_NAMESPACE "CrashReportClient"
 
@@ -33,7 +34,7 @@ void SCrashReportClient::Construct(const FArguments& InArgs, TSharedRef<FCrashRe
 {
 	CrashReportClient = Client;
 
-	auto CrashedAppName = CrashReportClient->GetCrashedAppName();
+	auto CrashedAppName = FPrimaryCrashProperties::Get()->GameName;
 
 	// Set the text displaying the name of the crashed app, if available
 	const FText CrashedAppText = CrashedAppName.IsEmpty() ?
