@@ -1,11 +1,11 @@
-﻿INTSourceChangelist:2627837
+﻿INTSourceChangelist:2657979
 Availability:Public
 Title:頂点アニメーション ツール
 Crumbs: %ROOT%, Engine, Engine/Animation
 Description:3D Max 頂点アニメーション ツールセットのユーザー ガイド
 Related:Engine\Animation\Tools\VertexAnimationTool\VAT_KF_Meshes
 Related:Engine\Animation\Tools\VertexAnimationTool\VAT_TL_Meshes
-Version:4.8
+Version:4.9
 
 [TOC(start:2 end:3)]
 
