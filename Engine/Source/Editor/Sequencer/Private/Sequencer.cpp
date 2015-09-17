@@ -2191,21 +2191,21 @@ void FSequencer::ToggleExpandCollapseNodesAndDescendants()
 
 void FSequencer::SetKey()
 {
-	USelection* CurrentSelection = GEditor->GetSelectedActors();
-	TArray<UObject*> SelectedActors;
-	CurrentSelection->GetSelectedObjects( AActor::StaticClass(), SelectedActors );
-	for (TArray<UObject*>::TIterator It(SelectedActors); It; ++It)
+	TSet<TSharedPtr<IKeyArea> > KeyAreas;
+	for (auto OutlinerNode : Selection.GetSelectedOutlinerNodes())
 	{
-		// @todo Handle case of actors which aren't in sequencer yet
+		SequencerHelpers::GetAllKeyAreas(OutlinerNode, KeyAreas);
+	}
 
-		FGuid ObjectGuid = GetHandleToObject(*It);
-		for ( auto& TrackEditor : TrackEditors )
+	if (KeyAreas.Num() > 0)
+	{
+		FScopedTransaction SetKeyTransaction( NSLOCTEXT("Sequencer", "SetKey_Transaction", "Set Key") );
+	
+		for (auto KeyArea : KeyAreas)
 		{
-			// @todo Handle this shot track business better
-			if (TrackEditor != ShotTrackEditor.Pin())
-			{
-				TrackEditor->AddKey(ObjectGuid);
-			}
+			KeyArea->GetOwningSection()->Modify();
+	
+			KeyArea->AddKeyUnique(GetGlobalTime(), GetKeyInterpolation());
 		}
 	}
 }
