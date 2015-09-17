@@ -36,6 +36,16 @@ TAutoConsoleVariable<int32> EnableWidgetCaching(
 	true,
 	TEXT("Whether to attempt to cache any widgets through invalidation panels."));
 
+bool SInvalidationPanel::GetEnableWidgetCaching()
+{
+	return EnableWidgetCaching.GetValueOnGameThread() == 1;
+}
+
+void SInvalidationPanel::SetEnableWidgetCaching(bool bEnable)
+{
+	EnableWidgetCaching.AsVariable()->Set(bEnable);
+}
+
 #endif
 
 void SInvalidationPanel::Construct( const FArguments& InArgs )

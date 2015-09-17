@@ -45,6 +45,9 @@ public:
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	static bool IsInvalidationDebuggingEnabled();
 	static void EnableInvalidationDebugging(bool bEnable);
+
+	static bool GetEnableWidgetCaching();
+	static void SetEnableWidgetCaching(bool bEnable);
 #endif
 
 private:
