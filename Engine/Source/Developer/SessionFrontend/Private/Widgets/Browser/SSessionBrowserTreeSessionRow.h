@@ -56,7 +56,7 @@ public:
 							.VAlign(VAlign_Center)
 							[
 								SNew(STextBlock)
-									.Text(SanitizeSessionName(Item->GetSessionInfo()))
+									.Text(this, &SSessionBrowserTreeSessionRow::HandleSessionNameText)
 									.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
 							]
 					]
@@ -97,7 +97,7 @@ protected:
 		{
 			const ISessionInstanceInfoPtr& FirstInstance = Instances[0];
 
-			if ((Instances.Num() == 1) && (FirstInstance->GetInstanceId() == FApp::GetInstanceId()))
+			if ((Instances.Num() == 1) && FApp::IsThisInstance(FirstInstance->GetInstanceId()))
 			{
 				return LOCTEXT("ThisApplicationSessionText", "This Application");
 			}
@@ -166,6 +166,12 @@ private:
 		}
 
 		return ToolTipTextBuilder.ToText();
+	}
+
+	/** Callback for getting the name of the session. */
+	FText HandleSessionNameText() const
+	{
+		return SanitizeSessionName(Item->GetSessionInfo());
 	}
 
 private:

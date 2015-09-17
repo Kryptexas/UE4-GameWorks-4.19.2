@@ -290,7 +290,15 @@ void FSessionManager::HandleSessionPongMessage(const FSessionServicePong& Messag
 
 	if (Session.IsValid())
 	{
-		Session->UpdateFromMessage(Message, Context);
+		if (Session->GetSessionOwner() != Message.SessionOwner)
+		{
+			Session->UpdateFromMessage(Message, Context);
+			SessionsUpdatedDelegate.Broadcast();
+		}
+		else
+		{
+			Session->UpdateFromMessage(Message, Context);
+		}
 	}
 	else
 	{

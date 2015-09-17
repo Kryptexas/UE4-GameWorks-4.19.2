@@ -26,20 +26,23 @@ float FApp::UnfocusedVolumeMultiplier = 0.0f;
 /* FApp static interface
  *****************************************************************************/
 
-FString FApp::GetBranchName( )
+FString FApp::GetBranchName()
 {
 	return FString(TEXT(BRANCH_NAME));
 }
+
 
 int32 FApp::GetEngineIsPromotedBuild()
 {
 	return ENGINE_IS_PROMOTED_BUILD;
 }
 
+
 FString FApp::GetEpicProductIdentifier()
 {
 	return FString(TEXT(EPIC_PRODUCT_IDENTIFIER));
 }
+
 
 EBuildConfigurations::Type FApp::GetBuildConfiguration()
 {
@@ -68,13 +71,13 @@ EBuildConfigurations::Type FApp::GetBuildConfiguration()
 }
 
 
-FString FApp::GetBuildDate( )
+FString FApp::GetBuildDate()
 {
 	return FString(ANSI_TO_TCHAR(__DATE__));
 }
 
 
-void FApp::InitializeSession( )
+void FApp::InitializeSession()
 {
 	// parse session details on command line
 	FString InstanceIdString;
@@ -134,14 +137,13 @@ bool FApp::IsEngineInstalled()
 
 
 #if HAVE_RUNTIME_THREADING_SWITCHES
-bool FApp::ShouldUseThreadingForPerformance( )
+bool FApp::ShouldUseThreadingForPerformance()
 {
 	static bool OnlyOneThread = FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD")) || IsRunningDedicatedServer() || !FPlatformProcess::SupportsMultithreading() || FPlatformMisc::NumberOfCores() < 2;
 	return !OnlyOneThread;
 }
-
-
 #endif // HAVE_RUNTIME_THREADING_SWITCHES
+
 
 float FApp::GetUnfocusedVolumeMultiplier()
 {

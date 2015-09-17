@@ -15,31 +15,11 @@ class CORE_API FApp
 public:
 
 	/**
-	 * Checks whether this application can render anything.
-	 *
-	 * @return true if the application can render, false otherwise.
-	 */
-	FORCEINLINE static bool CanEverRender()
-	{
-		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
-	}
-
-	/**
 	 * Gets the name of the version control branch that this application was built from.
 	 *
 	 * @return The branch name.
 	 */
 	static FString GetBranchName();
-
-	/**
-	 * Gets the value of ENGINE_IS_PROMOTED_BUILD.
-	 */
-	static int32 GetEngineIsPromotedBuild();
-
-	/**
-	 * Gets the identifier for the unreal engine
-	 */
-	static FString GetEpicProductIdentifier();
 
 	/**
 	 * Gets the application's build configuration, i.e. Debug or Shipping.
@@ -56,6 +36,16 @@ public:
 	static FString GetBuildDate();
 
 	/**
+	 * Gets the value of ENGINE_IS_PROMOTED_BUILD.
+	 */
+	static int32 GetEngineIsPromotedBuild();
+
+	/**
+	 * Gets the identifier for the unreal engine
+	 */
+	static FString GetEpicProductIdentifier();
+
+	/**
 	 * Gets the name of the currently running game.
 	 *
 	 * @return The game name.
@@ -63,45 +53,6 @@ public:
 	FORCEINLINE static const TCHAR* GetGameName()
 	{
 		return GInternalGameName;
-	}
-
-	/**
-	* Sets the name of the currently running game.
-	*
-	* @param InGameName Name of the curently running game.
-	*/
-	FORCEINLINE static void SetGameName(const TCHAR* InGameName)
-	{
-		// At the moment Strcpy is not safe as we don't check the buffer size on all platforms, so we use strncpy here.
-		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
-		// And make sure the GameName string is null terminated.
-		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
-	}
-
-	/**
-	 * Gets the globally unique identifier of this application instance.
-	 *
-	 * Every running instance of the engine has a globally unique instance identifier
-	 * that can be used to identify it from anywhere on the network.
-	 *
-	 * @return Instance identifier, or an invalid GUID if there is no local instance.
-	 * @see GetSessionId
-	 */
-	FORCEINLINE static FGuid GetInstanceId()
-	{
-		return InstanceId;
-	}
-
-	/**
-	 * Gets the name of this application instance.
-	 *
-	 * By default, the instance name is a combination of the computer name and process ID.
-	 *
-	 * @return Instance name string.
-	 */
-	static FString GetInstanceName()
-	{
-		return FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());
 	}
 
 	/**
@@ -127,6 +78,85 @@ public:
 		}
 
 		return ExecutableName;
+	}
+
+	/**
+	 * Reports if the game name has been set
+	 *
+	 * @return true if the game name has been set
+	 */
+	FORCEINLINE static bool HasGameName()
+	{
+		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
+	}
+
+	/**
+	 * Checks whether this application is a game.
+	 *
+	 * Returns true if a normal or PIE game is active (basically !GIsEdit or || GIsPlayInEditorWorld)
+	 * This must NOT be accessed on threads other than the game thread!
+	 * Use View->Family->EnginShowFlags.Game on the rendering thread.
+	 *
+	 * @return true if the application is a game, false otherwise.
+	 */
+	FORCEINLINE static bool IsGame()
+	{
+#if WITH_EDITOR
+		return !GIsEditor || GIsPlayInEditorWorld || IsRunningGame();
+#else
+		return true;
+#endif
+	}
+
+	/**
+	 * Reports if the game name is empty
+	 *
+	 * @return true if the game name is empty
+	 */
+	FORCEINLINE static bool IsGameNameEmpty()
+	{
+		return (GInternalGameName[0] == 0);
+	}
+
+	/**
+	* Sets the name of the currently running game.
+	*
+	* @param InGameName Name of the curently running game.
+	*/
+	FORCEINLINE static void SetGameName(const TCHAR* InGameName)
+	{
+		// At the moment Strcpy is not safe as we don't check the buffer size on all platforms, so we use strncpy here.
+		FCString::Strncpy(GInternalGameName, InGameName, ARRAY_COUNT(GInternalGameName));
+		// And make sure the GameName string is null terminated.
+		GInternalGameName[ARRAY_COUNT(GInternalGameName) - 1] = 0;
+	}
+
+public:
+
+	/**
+	 * Gets the globally unique identifier of this application instance.
+	 *
+	 * Every running instance of the engine has a globally unique instance identifier
+	 * that can be used to identify it from anywhere on the network.
+	 *
+	 * @return Instance identifier, or an invalid GUID if there is no local instance.
+	 * @see GetSessionId
+	 */
+	FORCEINLINE static FGuid GetInstanceId()
+	{
+		return InstanceId;
+	}
+
+	/**
+	 * Gets the name of this application instance.
+	 *
+	 * By default, the instance name is a combination of the computer name and process ID.
+	 *
+	 * @return Instance name string.
+	 */
+	static FString GetInstanceName()
+	{
+		return FString::Printf(TEXT("%s-%i"), FPlatformProcess::ComputerName(), FPlatformProcess::GetCurrentProcessId());
 	}
 
 	/**
@@ -171,46 +201,66 @@ public:
 	}
 
 	/**
-	* Reports if the game name is empty
-	*
-	* @return true if the game name is empty
-	*/
-	FORCEINLINE static bool IsGameNameEmpty()
-	{
-		return (GInternalGameName[0] == 0);
-	}
-
-	/**
-	 * Reports if the game name has been set
-	 *
-	 * @return true if the game name has been set
-	 */
-	FORCEINLINE static bool HasGameName()
-	{
-		return (IsGameNameEmpty() == false) && (FCString::Stricmp(GInternalGameName, TEXT("None")) != 0);
-	}
-
-	/**
 	 * Initializes the application session.
 	 */
 	static void InitializeSession();
 
 	/**
-	 * Checks whether this application is a game.
+	 * Checks whether this is a standalone application.
 	 *
-	 * Returns true if a normal or PIE game is active (basically !GIsEdit or || GIsPlayInEditorWorld)
-	 * This must NOT be accessed on threads other than the game thread!
-	 * Use View->Family->EnginShowFlags.Game on the rendering thread.
+	 * An application is standalone if it has not been launched as part of a session from UFE.
+	 * If an application was launched from UFE, it is part of a session and not considered standalone.
 	 *
-	 * @return true if the application is a game, false otherwise.
+	 * @return true if this application is standalone, false otherwise.
 	 */
-	FORCEINLINE static bool IsGame()
+	FORCEINLINE static bool IsStandalone()
 	{
-#if WITH_EDITOR
-		return !GIsEditor || GIsPlayInEditorWorld || IsRunningGame();
-#else
-		return true;
-#endif
+		return Standalone;
+	}
+
+	/**
+	 * Check whether the given instance ID identifies this instance.
+	 *
+	 * @param InInstanceId The instance ID to check.
+	 * @return true if the ID identifies this instance, false otherwise.
+	 */
+	FORCEINLINE static bool IsThisInstance(const FGuid& InInstanceId)
+	{
+		return (InInstanceId == InstanceId);
+	};
+
+	/**
+	 * Set a new session name.
+	 *
+	 * @param NewName The new session name.
+	 * @see SetSessionOwner
+	 */
+	FORCEINLINE static void SetSessionName(const FString& NewName)
+	{
+		SessionName = NewName;
+	}
+
+	/**
+	 * Set a new session owner.
+	 *
+	 * @param NewOwner The name of the new owner.
+	 * @see SetSessionName
+	 */
+	FORCEINLINE static void SetSessionOwner(const FString& NewOwner)
+	{
+		SessionOwner = NewOwner;
+	}
+
+public:
+
+	/**
+	 * Checks whether this application can render anything.
+	 *
+	 * @return true if the application can render, false otherwise.
+	 */
+	FORCEINLINE static bool CanEverRender()
+	{
+		return (!IsRunningCommandlet() || IsAllowCommandletRendering()) && !IsRunningDedicatedServer();
 	}
 
 	/**
@@ -240,19 +290,6 @@ public:
 	 * @return true if the engine is installed, false otherwise.
 	 */
 	static bool IsEngineInstalled();
-
-	/**
-	 * Checks whether this is a standalone application.
-	 *
-	 * An application is standalone if it has not been launched as part of a session from UFE.
-	 * If an application was launched from UFE, it is part of a session and not considered standalone.
-	 *
-	 * @return true if this application is standalone, false otherwise.
-	 */
-	FORCEINLINE static bool IsStandalone()
-	{
-		return Standalone;
-	}
 
 	/**
 	 * Checks whether this application runs unattended.
