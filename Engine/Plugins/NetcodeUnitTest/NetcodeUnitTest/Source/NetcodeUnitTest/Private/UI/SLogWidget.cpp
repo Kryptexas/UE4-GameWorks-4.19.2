@@ -29,8 +29,8 @@ IMPLEMENT_GET_PRIVATE_VAR(SEditableTextBox, EditableText, TSharedPtr<SEditableTe
 // Enable access to SButton.Style
 IMPLEMENT_GET_PRIVATE_VAR(SButton, Style, const FButtonStyle*);
 
-// Enable access to SDockTab::GetCurrentStyle, using the CALL_PRIVATE macro
-// IMPLEMENT_GET_PRIVATE_FUNC_CONST(SDockTab, GetCurrentStyle, const FDockTabStyle&, void, const);
+// Enable access to SDockTab::GetCurrentStyle, using the CALL_PROTECTED macro
+IMPLEMENT_GET_PROTECTED_FUNC_CONST(SDockTab, GetCurrentStyle, const FDockTabStyle&, void,, const);
 
 
 // @todo #JohnBRefactorUI: Perhaps move widget searching to a NUTSlate.h file, or such?
@@ -712,21 +712,21 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 							{
 								// Various types of special font formatting
 								FString FontPath;
-								ELogType LogType = Item->LogType;
+								ELogType CurLogType = Item->LogType;
 
-								if (!!(LogType & ELogType::StyleMonospace))
+								if (!!(CurLogType & ELogType::StyleMonospace))
 								{
 									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/DroidSansMono.ttf");
 								}
-								else if (!!(LogType & ELogType::StyleBold) && !!(LogType & ELogType::StyleItalic))
+								else if (!!(CurLogType & ELogType::StyleBold) && !!(CurLogType & ELogType::StyleItalic))
 								{
 									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-BoldCondensedItalic.ttf");
 								}
-								else if (!!(LogType & ELogType::StyleBold))
+								else if (!!(CurLogType & ELogType::StyleBold))
 								{
 									FontPath = FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf");
 								}
-								else if (!!(LogType & ELogType::StyleItalic))
+								else if (!!(CurLogType & ELogType::StyleItalic))
 								{
 									FontPath = FPaths::EngineContentDir() / TEXT("Editor/Slate/Fonts/Roboto-Italic.ttf");
 								}
@@ -741,7 +741,7 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 
 
 								// Pseudo-underline; just adds newline, and then underlines with lots of ----
-								if (!!(LogType & ELogType::StyleUnderline) && RenderText.Len() > 0)
+								if (!!(CurLogType & ELogType::StyleUnderline) && RenderText.Len() > 0)
 								{
 									const TCHAR* TextToUnderline = *RenderText;
 									const TCHAR* UnderlineEnd = TextToUnderline + RenderText.Len()-1;
@@ -968,9 +968,9 @@ TSharedRef<SDockTab> SLogWidget::SpawnLogTab(const FSpawnTabArgs& InSpawnTabArgs
 				{
 					TSharedRef<SButton> CurButton = StaticCastSharedRef<SButton>(InWidget);
 					const FButtonStyle* ButtonStyle = GET_PRIVATE(SButton, CurButton, Style);
-// 					const FDockTabStyle& TabStyle = CALL_PRIVATE(SDockTab, ReturnVal, GetCurrentStyle)();
-// 
-// 					bFound = ButtonStyle == &TabStyle.CloseButtonStyle;
+					const FDockTabStyle& TabStyle = CALL_PROTECTED(SDockTab, ReturnVal, GetCurrentStyle)();
+
+					bFound = ButtonStyle == &TabStyle.CloseButtonStyle;
 				}
 
 				return bFound;
@@ -1005,23 +1005,29 @@ TSharedPtr<FLogTabInfo> SLogWidget::GetActiveTabInfo() const
 }
 
 
-void SLogWidget::AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor/*=FSlateColor::UseForeground()*/,
+void SLogWidget::AddLine(ELogType InLogType, TSharedRef<FString> LogLine, FSlateColor LogColor/*=FSlateColor::UseForeground()*/,
 							bool bTakeTabFocus/*=false*/)
 {
-	TSharedRef<FLogLine> CurLogEntry = MakeShareable(new FLogLine(LogType, LogLine, LogColor));
+	TSharedRef<FLogLine> CurLogEntry = MakeShareable(new FLogLine(InLogType, LogLine, LogColor));
 
 	// Add the line to the master list
 	LogLines.Add(CurLogEntry);
 
 	TSharedPtr<FLogTabInfo> ActiveTab = GetActiveTabInfo();
 
-	bool bLineInTabFocus = ActiveTab.IsValid() && !!(ActiveTab->Filter & LogType);
+	auto MatchesTabFilter =
+		[&](const TSharedPtr<FLogTabInfo>& InTab)
+		{
+			return InTab->Filter == ELogType::All || !!(InTab->Filter & InLogType);
+		};
+
+	bool bLineInTabFocus = ActiveTab.IsValid() && MatchesTabFilter(ActiveTab);
 	TSharedPtr<FLogTabInfo> FocusTab = NULL;
 
 	// Then add it to each log tab, if it passes that tabs filter
 	for (auto CurTabInfo : LogTabs)
 	{
-		if (!!(CurTabInfo->Filter & LogType))
+		if (MatchesTabFilter(CurTabInfo))
 		{
 			// If the tab is not presently open, open it now
 			if (!CurTabInfo->bTabOpen && LogTabManager.IsValid())

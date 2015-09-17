@@ -73,6 +73,8 @@ int32 UUnitTestCommandlet::Main(const FString& Params)
 		GIsRequestingExit = true;
 	}
 
+	UE_LOG(LogUnitTest, Log, TEXT("NetcodeUnitTest built to target mainline CL '%i'."), TARGET_UE4_CL);
+
 	if (!GIsRequestingExit)
 	{
 		GIsRunning = true;

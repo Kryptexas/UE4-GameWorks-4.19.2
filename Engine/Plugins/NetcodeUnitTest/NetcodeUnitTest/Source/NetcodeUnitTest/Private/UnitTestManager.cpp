@@ -148,7 +148,7 @@ bool UUnitTestManager::QueueUnitTest(UClass* UnitTestClass, bool bRequeued/*=fal
 
 
 	bool bValidUnitTestClass = UnitTestClass->IsChildOf(UUnitTest::StaticClass()) && UnitTestClass != UUnitTest::StaticClass() &&
-								UnitTestClass != UClientUnitTest::StaticClass();
+								UnitTestClass != UClientUnitTest::StaticClass() && UnitTestClass != UProcessUnitTest::StaticClass();
 
 	UUnitTest* UnitTestDefault = (bValidUnitTestClass ? Cast<UUnitTest>(UnitTestClass->GetDefaultObject()) : NULL);
 	bool bSupportsAllGames = (bValidUnitTestClass ? UnitTestDefault->GetSupportedGames().Contains("NullUnitEnv") : false);
@@ -533,11 +533,11 @@ void UUnitTestManager::NotifyUnitTestCleanup(UUnitTest* InUnitTest)
 {
 	ActiveUnitTests.Remove(InUnitTest);
 
-	UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(InUnitTest);
+	UProcessUnitTest* CurProcUnitTest = Cast<UProcessUnitTest>(InUnitTest);
 
-	if (CurClientUnitTest != NULL)
+	if (CurProcUnitTest != NULL)
 	{
-		CurClientUnitTest->OnServerSuspendState.Unbind();
+		CurProcUnitTest->OnSuspendStateChange.Unbind();
 	}
 
 
@@ -608,12 +608,13 @@ void UUnitTestManager::NotifyLogWindowClosed(const TSharedRef<SWindow>& ClosedWi
 
 		if (CurUnitTest != NULL)
 		{
-			UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(CurUnitTest);
+			UProcessUnitTest* CurProcUnitTest = Cast<UProcessUnitTest>(CurUnitTest);
 
-			if (CurClientUnitTest != NULL)
+			if (CurProcUnitTest != NULL)
 			{
-				CurClientUnitTest->OnServerSuspendState.Unbind();
+				CurProcUnitTest->OnSuspendStateChange.Unbind();
 			}
+
 
 			if (!CurUnitTest->bCompleted && !CurUnitTest->bAborted)
 			{
@@ -1055,25 +1056,23 @@ void UUnitTestManager::OpenUnitTestLogWindow(UUnitTest* InUnitTest)
 	if (LogWindowManager != NULL)
 	{
 		InUnitTest->LogWindow = LogWindowManager->CreateLogWindow(InUnitTest->GetUnitTestName(), InUnitTest->GetExpectedLogTypes());
+		TSharedPtr<SLogWidget> CurLogWidget = (InUnitTest->LogWindow.IsValid() ? InUnitTest->LogWindow->LogWidget : NULL);
 
-		UClientUnitTest* CurClientUnitTest = Cast<UClientUnitTest>(InUnitTest);
-
-		if (InUnitTest->LogWindow.IsValid() && CurClientUnitTest != NULL)
+		if (CurLogWidget.IsValid())
 		{
-			TSharedPtr<SLogWidget> CurLogWidget = InUnitTest->LogWindow->LogWidget;
+			// Setup the widget console command context list, and then bind the console command delegate
+			InUnitTest->GetCommandContextList(CurLogWidget->ConsoleContextList, CurLogWidget->DefaultConsoleContext);
 
-			if (CurLogWidget.IsValid())
+			CurLogWidget->OnConsoleCommand.BindUObject(InUnitTest, &UUnitTest::NotifyConsoleCommandRequest);
+			CurLogWidget->OnDeveloperClicked.BindUObject(InUnitTest, &UUnitTest::NotifyDeveloperModeRequest);
+
+
+			UProcessUnitTest* CurProcUnitTest = Cast<UProcessUnitTest>(InUnitTest);
+
+			if (CurProcUnitTest != NULL)
 			{
-				CurLogWidget->OnSuspendClicked.BindUObject(CurClientUnitTest, &UClientUnitTest::NotifySuspendRequest);
-				CurClientUnitTest->OnServerSuspendState.BindSP(CurLogWidget.Get(), &SLogWidget::OnSuspendStateChanged);
-
-				CurLogWidget->OnDeveloperClicked.BindUObject(CurClientUnitTest, &UClientUnitTest::NotifyDeveloperModeRequest);
-
-
-				// Setup the widget console command context list, and then bind the console command delegate
-				CurClientUnitTest->GetCommandContextList(CurLogWidget->ConsoleContextList, CurLogWidget->DefaultConsoleContext);
-
-				CurLogWidget->OnConsoleCommand.BindUObject(CurClientUnitTest, &UClientUnitTest::NotifyConsoleCommandRequest);
+				CurLogWidget->OnSuspendClicked.BindUObject(CurProcUnitTest, &UProcessUnitTest::NotifySuspendRequest);
+				CurProcUnitTest->OnSuspendStateChange.BindSP(CurLogWidget.Get(), &SLogWidget::OnSuspendStateChanged);
 			}
 		}
 	}
@@ -1335,8 +1334,8 @@ bool UUnitTestManager::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar
 	{
 		if (UnitTestClassDefaults[i]->GetUnitTestDate() == FDateTime::MinValue())
 		{
-			Ar.Logf(TEXT("ERROR: Unit Test '%s' does not have a date set!!!! A date must be added to every unit test!"),
-					*UnitTestClassDefaults[i]->GetUnitTestName());
+			Ar.Logf(TEXT("ERROR: Unit Test '%s' (%s) does not have a date set!!!! A date must be added to every unit test!"),
+					*UnitTestClassDefaults[i]->GetUnitTestName(), *UnitTestClassDefaults[i]->GetClass()->GetName());
 		}
 	}
 

@@ -184,10 +184,12 @@ public:
 	void ServerExecute(const FString& InDelegate);
 
 
-	/**
-	 * Monitor for initial player on server, in order to assign ownership
-	 */
 	virtual void Tick(float DeltaSeconds) override;
+
+	/**
+	 * Update the owner for the NUTActor, if the current owner is no longer valid
+	 */
+	void UpdateOwner();
 };
 
 

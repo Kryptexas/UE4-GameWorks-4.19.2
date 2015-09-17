@@ -16,7 +16,9 @@ void NUTUtil::GetUnitTestClassDefList(TArray<UUnitTest*>& OutUnitTestClassDefaul
 {
 	for (TObjectIterator<UClass> It; It; ++It)
 	{
-		if (It->IsChildOf(UUnitTest::StaticClass()) && *It != UUnitTest::StaticClass() && *It != UClientUnitTest::StaticClass())
+		// @todo #JohnBRefactor: Move all 'abstract class' checks to a central location, as you do this in multiple locations
+		if (It->IsChildOf(UUnitTest::StaticClass()) && *It != UUnitTest::StaticClass() && *It != UClientUnitTest::StaticClass() &&
+			*It != UProcessUnitTest::StaticClass())
 		{
 			UUnitTest* CurDefault = Cast<UUnitTest>(It->GetDefaultObject());
 

@@ -33,6 +33,7 @@
  * List of mainline UE4 engine changelists, that required a NetcodeUnitTest compatibility adjustment (newest first)
  * Every time you update NetcodeUnitTest code, to toggle based on a changelist, add a define for it with the CL number here
  */
+#define CL_FENGINEVERSION	2655102
 #define CL_INITCONNPARAM	2567692
 #define CL_CONSTUNIQUEID	2540329
 #define CL_CONSTNETCONN		2501704
@@ -55,7 +56,7 @@
  *
  * If in doubt, set to the top CL from list above ('List of mainline UE4 engine changelists'), and work your way down until it compiles.
  */
-#define TARGET_UE4_CL 2619427	// IMPORTANT: If you're hovering over this because compiling failed, you need to adjust this value.
+#define TARGET_UE4_CL 2664876	// IMPORTANT: If you're hovering over this because compiling failed, you need to adjust this value.
 
 
 /**

@@ -44,11 +44,14 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, BaseClientParameters(TEXT(""))
 	, AllowedClientActors()
 	, AllowedClientRPCs()
-	, ActiveProcesses()
 	, ServerHandle(NULL)
 	, ServerAddress(TEXT(""))
 	, BeaconAddress(TEXT(""))
 	, ClientHandle(NULL)
+	, bBlockingServerDelay(false)
+	, bBlockingClientDelay(false)
+	, bBlockingFakeClientDelay(false)
+	, NextBlockingTimeout(0.0)
 	, UnitWorld(NULL)
 	, UnitNotify(NULL)
 	, UnitNetDriver(NULL)
@@ -60,7 +63,6 @@ UClientUnitTest::UClientUnitTest(const FObjectInitializer& ObjectInitializer)
 	, bReceivedPong(false)
 	, ControlBunchSequence(0)
 	, PendingNetActorChans()
-	, OnServerSuspendState()
 {
 }
 
@@ -468,12 +470,26 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 				// Fire off fake client connection
 				if (UnitConn == NULL)
 				{
-					FString LogMsg = FString::Printf(TEXT("Detected successful server startup, launching fake client."));
+					bool bBlockingProcess = IsBlockingProcessPresent(true);
 
-					UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-					UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+					if (bBlockingProcess)
+					{
+						FString LogMsg = TEXT("Detected successful server startup, delaying fake client due to blocking process.");
 
-					ConnectFakeClient();
+						UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+						UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+						bBlockingFakeClientDelay = true;
+					}
+					else
+					{
+						FString LogMsg = TEXT("Detected successful server startup, launching fake client.");
+
+						UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+						UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+						ConnectFakeClient();
+					}
 				}
 
 				ResetTimeout(FString(TEXT("ServerReady: ")) + MatchedLine);
@@ -488,7 +504,7 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 		{
 			if (ServerTimeoutResetLogs->ContainsByPredicate(SearchInLogLine))
 			{
-				ResetTimeout(FString(TEXT("ServerTimeoutReset: ")) + MatchedLine, true);
+				ResetTimeout(FString(TEXT("ServerTimeoutReset: ")) + MatchedLine, true, 60);
 			}
 		}
 	}
@@ -499,7 +515,7 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 		{
 			if (ClientTimeoutResetLogs->ContainsByPredicate(SearchInLogLine))
 			{
-				ResetTimeout(FString(TEXT("ClientTimeoutReset: ")) + MatchedLine, true);
+				ResetTimeout(FString(TEXT("ClientTimeoutReset: ")) + MatchedLine, true, 60);
 			}
 		}
 	}
@@ -508,8 +524,80 @@ void UClientUnitTest::NotifyProcessLog(TWeakPtr<FUnitTestProcess> InProcess, con
 	//				to reset their connection timeout upon server progress, if they fully startup before the server does
 }
 
+void UClientUnitTest::NotifyProcessFinished(TWeakPtr<FUnitTestProcess> InProcess)
+{
+	Super::NotifyProcessFinished(InProcess);
+
+	if (InProcess.IsValid())
+	{
+		bool bServerFinished = false;
+		bool bClientFinished  = false;
+
+		if (ServerHandle.IsValid() && ServerHandle.HasSameObject(InProcess.Pin().Get()))
+		{
+			bServerFinished = true;
+		}
+		else if (ClientHandle.IsValid() && ClientHandle.HasSameObject(InProcess.Pin().Get()))
+		{
+			bClientFinished = true;
+		}
+
+		if (bServerFinished || bClientFinished)
+		{
+			bool bProcessError = false;
+			FString UpdateMsg;
+
+			// If the server just finished, cleanup the fake client
+			if (bServerFinished)
+			{
+				FString LogMsg = TEXT("Server process has finished, cleaning up fake client.");
+
+				UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+				UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+				if (UnitConn != NULL)
+				{
+					UnitConn->Close();
+				}
+
+				// Immediately cleanup the fake client (don't wait for end-of-life cleanup in CleanupUnitTest)
+				CleanupFakeClient();
+
+
+				// If a server exit was unexpected, mark the unit test as broken
+				if (!(UnitTestFlags & EUnitTestFlags::IgnoreServerCrash) && VerificationState == EUnitTestVerification::Unverified)
+				{
+					UpdateMsg = TEXT("Unexpected server exit, marking unit test as needing update.");
+					bProcessError = true;
+				}
+			}
+
+			// If a client exit was unexpected, mark the unit test as broken
+			if (bClientFinished && !(UnitTestFlags & EUnitTestFlags::IgnoreClientCrash) &&
+				VerificationState == EUnitTestVerification::Unverified)
+			{
+				UpdateMsg = TEXT("Unexpected client exit, marking unit test as needing update.");
+				bProcessError = true;
+			}
+
+
+			// If either the client/server finished, process the error
+			if (bProcessError)
+			{
+				UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("%s"), *UpdateMsg);
+				UNIT_STATUS_LOG(ELogType::StatusFailure | ELogType::StatusVerbose | ELogType::StyleBold, TEXT("%s"), *UpdateMsg);
+
+				VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
+			}
+		}
+	}
+}
+
 void UClientUnitTest::NotifySuspendRequest()
 {
+	// @todo #JohnBFeature: Currently on suspends the server, suspend the client as well, and also add more granularity
+	//						(deciding which to suspend)
+
 	TSharedPtr<FUnitTestProcess> CurProcess = (ServerHandle.IsValid() ? ServerHandle.Pin() : NULL);
 
 	if (CurProcess.IsValid())
@@ -585,93 +673,68 @@ void UClientUnitTest::NotifySuspendRequest()
 
 void UClientUnitTest::NotifyProcessSuspendState(TWeakPtr<FUnitTestProcess> InProcess, ESuspendState InSuspendState)
 {
-	InProcess.Pin()->SuspendState = InSuspendState;
+	Super::NotifyProcessSuspendState(InProcess, InSuspendState);
 
 	if (InProcess == ServerHandle)
 	{
-		OnServerSuspendState.ExecuteIfBound(InSuspendState);
+		OnSuspendStateChange.ExecuteIfBound(InSuspendState);
 	}
 
 	// @todo #JohnBLowPri: Want to support client process debugging in future?
 }
 
 
-void UClientUnitTest::NotifyDeveloperModeRequest(bool bInDeveloperMode)
-{
-	bDeveloperMode = bInDeveloperMode;
-}
-
-
 bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FString Command)
 {
-	bool bHandled = false;
+	bool bHandled = Super::NotifyConsoleCommandRequest(CommandContext, Command);
 
-	if (CommandContext == TEXT("Local") || CommandContext == TEXT("Global"))
+	if (!bHandled)
 	{
-		UWorld* TargetWorld = (CommandContext == TEXT("Local") ? UnitWorld : NULL);
-
-		// Don't execute commands that crash
-		TArray<FString> BadCmds;
-		BadCmds.Add(TEXT("exit"));
-
-		if (!BadCmds.Contains(Command))
+		if (CommandContext == TEXT("Local"))
 		{
-			// @todo #JohnB: Should this mark the log origin, as from the unit test?
-			// @todo #JohnB: In general, I'm not sure how I handle the log-origin of UI-triggered events;
-			//				they maybe should be captured/categorized better
 			UNIT_LOG_BEGIN(this, ELogType::OriginConsole);
-			bHandled = GEngine->Exec(TargetWorld, *Command, *GLog);
+			bHandled = GEngine->Exec(UnitWorld, *Command, *GLog);
 			UNIT_LOG_END();
 		}
-		else
+		else if (CommandContext == TEXT("Server"))
 		{
-			UNIT_LOG(ELogType::OriginConsole,
-						TEXT("Can't execute command '%s', it's in the 'bad commands' list (i.e. probably crashes)"), *Command);
+			// @todo #JohnBBug: Perhaps add extra checks here, to be sure we're ready to send console commands?
+			//
+			//				UPDATE: Yes, this is a good idea, because if the client hasn't gotten to the correct login stage
+			//				(NMT_Join or such, need to check when server rejects non-login control commands),
+			//				then it leads to an early disconnect when you try to spam-send a command early.
+			//
+			//				It's easy to test this, just type in a command before join, and hold down enter on the edit box to spam it.
+			if (UnitConn != NULL)
+			{
+				FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+
+				uint8 ControlMsg = NMT_NUTControl;
+				uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
+				FString Cmd = Command;
+
+				*ControlChanBunch << ControlMsg;
+				*ControlChanBunch << ControlCmd;
+				*ControlChanBunch << Cmd;
+
+				NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
+
+
+				UNIT_LOG(ELogType::OriginConsole, TEXT("Sent command '%s' to server."), *Command);
+
+				bHandled = true;
+			}
+			else
+			{
+				UNIT_LOG(ELogType::OriginConsole, TEXT("Failed to send console command '%s', no server connection."), *Command);
+			}
 		}
-	}
-	else if (CommandContext == TEXT("Server"))
-	{
-		// @todo #JohnBBug: Perhaps add extra checks here, to be sure we're ready to send console commands?
-		//
-		//				UPDATE: Yes, this is a good idea, because if the client hasn't gotten to the correct login stage
-		//				(NMT_Join or such, need to check when server rejects non-login control commands),
-		//				then it leads to an early disconnect when you try to spam-send a command early.
-		//
-		//				It's easy to test this, just type in a command before join, and hold down enter on the edit box to spam it.
-		if (UnitConn != NULL)
+		else if (CommandContext == TEXT("Client"))
 		{
-			FOutBunch* ControlChanBunch = NUTNet::CreateChannelBunch(ControlBunchSequence, UnitConn, CHTYPE_Control, 0);
+			// @todo #JohnBFeature
 
-			uint8 ControlMsg = NMT_NUTControl;
-			uint8 ControlCmd = ENUTControlCommand::Command_NoResult;
-			FString Cmd = Command;
-
-			*ControlChanBunch << ControlMsg;
-			*ControlChanBunch << ControlCmd;
-			*ControlChanBunch << Cmd;
-
-			NUTNet::SendControlBunch(UnitConn, *ControlChanBunch);
-
-
-			UNIT_LOG(ELogType::OriginConsole, TEXT("Sent command '%s' to server."), *Command);
-
-			bHandled = true;
+			UNIT_LOG(ELogType::OriginConsole, TEXT("Client console commands not yet implemented"));
 		}
-		else
-		{
-			UNIT_LOG(ELogType::OriginConsole, TEXT("Failed to send console command '%s', no server connection."), *Command);
-		}
-	}
-	else if (CommandContext == TEXT("Client"))
-	{
-		// @todo #JohnBFeature
-
-		UNIT_LOG(ELogType::OriginConsole, TEXT("Client console commands not yet implemented"));
-	}
-	else
-	{
-		UNIT_LOG(ELogType::StatusFailure | ELogType::OriginConsole,
-					TEXT("Unknown console command context '%s' - this is a bug that should be fixed."), *CommandContext);
 	}
 
 	return bHandled;
@@ -679,7 +742,8 @@ bool UClientUnitTest::NotifyConsoleCommandRequest(FString CommandContext, FStrin
 
 void UClientUnitTest::GetCommandContextList(TArray<TSharedPtr<FString>>& OutList, FString& OutDefaultContext)
 {
-	OutList.Add(MakeShareable(new FString(TEXT("Global"))));
+	Super::GetCommandContextList(OutList, OutDefaultContext);
+
 	OutList.Add(MakeShareable(new FString(TEXT("Local"))));
 
 	if (!!(UnitTestFlags & EUnitTestFlags::LaunchServer))
@@ -988,18 +1052,20 @@ void UClientUnitTest::ResetTimeout(FString ResetReason, bool bResetConnTimeout/*
 
 	if (bResetConnTimeout)
 	{
-		ResetConnTimeout();
+		ResetConnTimeout((float)(FMath::Max(MinDuration, UnitTestTimeout)));
 	}
 }
 
-void UClientUnitTest::ResetConnTimeout()
+void UClientUnitTest::ResetConnTimeout(float Duration)
 {
 	if (UnitConn != NULL && UnitConn->State != USOCK_Closed && UnitConn->Driver != NULL)
 	{
 		// @todo #JohnBHack: This is a slightly hacky way of setting the timeout to a large value, which will be overridden by newly
 		//				received packets, making it unsuitable for most situations (except crashes - but that could still be subject
 		//				to a race condition)
-		UnitConn->LastReceiveTime = UnitConn->Driver->Time + (float)(TimeoutExpire - FPlatformTime::Seconds());
+		double NewLastReceiveTime = UnitConn->Driver->Time + Duration;
+
+		UnitConn->LastReceiveTime = FMath::Max(NewLastReceiveTime, UnitConn->LastReceiveTime);
 	}
 }
 
@@ -1017,12 +1083,38 @@ bool UClientUnitTest::ExecuteUnitTest()
 	{
 		if (!!(UnitTestFlags & EUnitTestFlags::LaunchServer))
 		{
-			StartUnitTestServer();
+			bool bBlockingProcess = IsBlockingProcessPresent(true);
+
+			if (bBlockingProcess)
+			{
+				FString LogMsg = TEXT("Delaying server startup due to blocking process");
+
+				UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+				UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+				bBlockingServerDelay = true;
+			}
+			else
+			{
+				StartUnitTestServer();
+			}
 
 			if (!!(UnitTestFlags & EUnitTestFlags::LaunchClient))
 			{
-				// Client handle is set outside of StartUnitTestClient, in case support for multiple clients is added later
-				ClientHandle = StartUnitTestClient(ServerAddress);
+				if (bBlockingProcess)
+				{
+					FString LogMsg = TEXT("Delaying client startup due to blocking process");
+
+					UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
+					UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
+
+					bBlockingClientDelay = true;
+				}
+				else
+				{
+					// Client handle is set outside of StartUnitTestClient, in case support for multiple clients is added later
+					ClientHandle = StartUnitTestClient(ServerAddress);
+				}
 			}
 		}
 
@@ -1055,19 +1147,11 @@ void UClientUnitTest::CleanupUnitTest()
 {
 	CleanupFakeClient();
 
-	for (int32 i=ActiveProcesses.Num()-1; i>=0; i--)
-	{
-		if (ActiveProcesses[i].IsValid())
-		{
-			ShutdownUnitTestProcess(ActiveProcesses[i]);
-		}
-	}
-
 #if !UE_BUILD_SHIPPING
 	RemoveProcessEventCallback(this, &UClientUnitTest::InternalScriptProcessEvent);
 #endif
 
-	UUnitTest::CleanupUnitTest();
+	Super::CleanupUnitTest();
 }
 
 bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
@@ -1149,8 +1233,7 @@ bool UClientUnitTest::ConnectFakeClient(FUniqueNetIdRepl* InNetID/*=NULL*/)
 
 					CurUnitConn->ReplicatedActorSpawnDel.BindUObject(this, &UClientUnitTest::NotifyAllowNetActor);
 
-					// If you don't have to wait for any requirements, execute immediately
-					if (!(UnitTestFlags & (EUnitTestFlags::RequirementsMask)))
+					if (HasAllRequirements())
 					{
 						ResetTimeout(TEXT("ExecuteClientUnitTest (ExecuteUnitTest)"));
 						ExecuteClientUnitTest();
@@ -1270,7 +1353,7 @@ void UClientUnitTest::StartUnitTestServer()
 		// Increment the server port used by 10, for every unit test
 		static int ServerPortOffset = 0;
 		int ServerPort = DefaultPort + 50 + (++ServerPortOffset * 10);
-		int BeaconPort = ServerPort + 5;
+		int ServerBeaconPort = ServerPort + 5;
 
 
 		// Setup the launch URL
@@ -1278,10 +1361,10 @@ void UClientUnitTest::StartUnitTestServer()
 
 		if (!!(UnitTestFlags & EUnitTestFlags::BeaconConnect))
 		{
-			ServerParameters += FString::Printf(TEXT(" -BeaconPort=%i"), BeaconPort);
+			ServerParameters += FString::Printf(TEXT(" -BeaconPort=%i"), ServerBeaconPort);
 		}
 
-		ServerHandle = StartUnitTestProcess(ServerParameters);
+		ServerHandle = StartUE4UnitTestProcess(ServerParameters);
 
 		if (ServerHandle.IsValid())
 		{
@@ -1289,12 +1372,12 @@ void UClientUnitTest::StartUnitTestServer()
 
 			if (!!(UnitTestFlags & EUnitTestFlags::BeaconConnect))
 			{
-				BeaconAddress = FString::Printf(TEXT("127.0.0.1:%i"), BeaconPort);
+				BeaconAddress = FString::Printf(TEXT("127.0.0.1:%i"), ServerBeaconPort);
 			}
 
 			auto CurHandle = ServerHandle.Pin();
 
-			CurHandle->ProcessTag = TEXT("Server");
+			CurHandle->ProcessTag = FString::Printf(TEXT("UE4_Server_%i"), CurHandle->ProcessID);
 			CurHandle->BaseLogType = ELogType::Server;
 			CurHandle->LogPrefix = TEXT("[SERVER]");
 			CurHandle->MainLogColor = COLOR_CYAN;
@@ -1313,7 +1396,10 @@ FString UClientUnitTest::ConstructServerParameters()
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + BaseServerURL + TEXT(" -server ") + BaseServerParameters +
 							TEXT(" -Log=UnitTestServer.log -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared") +
-							TEXT(" -unattended -CrashForUAT -NoShaderWorker");
+							TEXT(" -unattended -CrashForUAT");
+	
+							// Removed this, to support detection of shader compilation, based on shader compiler .exe
+							//TEXT(" -NoShaderWorker");
 
 	return Parameters;
 }
@@ -1329,14 +1415,14 @@ TWeakPtr<FUnitTestProcess> UClientUnitTest::StartUnitTestClient(FString ConnectI
 
 	FString ClientParameters = ConstructClientParameters(ConnectIP);
 
-	ReturnVal = StartUnitTestProcess(ClientParameters, bMinimized);
+	ReturnVal = StartUE4UnitTestProcess(ClientParameters, bMinimized);
 
 	if (ReturnVal.IsValid())
 	{
 		auto CurHandle = ReturnVal.Pin();
 
 		// @todo #JohnBMultiClient: If you add support for multiple clients, make the log prefix numbered, also try to differentiate colours
-		CurHandle->ProcessTag = TEXT("Client");
+		CurHandle->ProcessTag = FString::Printf(TEXT("UE4_Client_%i"), CurHandle->ProcessID);
 		CurHandle->BaseLogType = ELogType::Client;
 		CurHandle->LogPrefix = TEXT("[CLIENT]");
 		CurHandle->MainLogColor = COLOR_GREEN;
@@ -1352,254 +1438,30 @@ FString UClientUnitTest::ConstructClientParameters(FString ConnectIP)
 	// NOTE: Without '-CrashForUAT'/'-unattended' the auto-reporter can pop up
 	FString Parameters = FString(FApp::GetGameName()) + TEXT(" ") + ConnectIP + BaseClientURL + TEXT(" -game ") + BaseClientParameters +
 							TEXT(" -Log=UnitTestClient.log -forcelogflush -stdout -AllowStdOutLogVerbosity -ddc=noshared -nosplash") +
-							TEXT(" -unattended -CrashForUAT -NoShaderWorker -nosound");
+							TEXT(" -unattended -CrashForUAT -nosound");
+
+							// Removed this, to support detection of shader compilation, based on shader compiler .exe
+							//TEXT(" -NoShaderWorker")
 
 	return Parameters;
 }
 
-TWeakPtr<FUnitTestProcess> UClientUnitTest::StartUnitTestProcess(FString InCommandline, bool bMinimized/*=true*/)
+void UClientUnitTest::PrintUnitTestProcessErrors(TSharedPtr<FUnitTestProcess> InHandle)
 {
-	TSharedPtr<FUnitTestProcess> ReturnVal = MakeShareable(new FUnitTestProcess());
-
-	FString GamePath = FPlatformProcess::GenerateApplicationPath(FApp::GetName(), FApp::GetBuildConfiguration());
-
-	verify(FPlatformProcess::CreatePipe(ReturnVal->ReadPipe, ReturnVal->WritePipe));
-
-	UNIT_LOG(ELogType::StatusImportant, TEXT("Starting process with parameters: %s"), *InCommandline);
-
-	ReturnVal->ProcessHandle = FPlatformProcess::CreateProc(*GamePath, *InCommandline, true, bMinimized, false, &ReturnVal->ProcessID,
-															0, NULL, ReturnVal->WritePipe);
-
-	if (ReturnVal->ProcessHandle.IsValid())
+	// If this was the server, and we were not expecting a crash, print out a warning
+	if (!(UnitTestFlags & EUnitTestFlags::ExpectServerCrash) && ServerHandle.IsValid() && InHandle == ServerHandle.Pin())
 	{
-		ReturnVal->ProcessTag = FString::Printf(TEXT("Process_%i"), ReturnVal->ProcessID);
+		FString LogMsg = TEXT("WARNING: Got server crash, but unit test not marked as expecting a server crash.");
 
-		ActiveProcesses.Add(ReturnVal);
-	}
-	else
-	{
-		UNIT_LOG(ELogType::StatusFailure, TEXT("Failed to start process"));
+		STATUS_SET_COLOR(FLinearColor(1.0, 1.0, 0.0));
+
+		UNIT_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
+		UNIT_STATUS_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
+
+		STATUS_RESET_COLOR();
 	}
 
-	return ReturnVal;
-}
-
-void UClientUnitTest::ShutdownUnitTestProcess(TSharedPtr<FUnitTestProcess> InHandle)
-{
-	if (InHandle->ProcessHandle.IsValid())
-	{
-		FString LogMsg = FString::Printf(TEXT("Shutting down process '%s'."), *InHandle->ProcessTag);
-
-		UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-		UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
-
-
-		// @todo #JohnBHighPri: Restore 'true' here, once the issue where killing child processes sometimes kills all processes, is fixed
-		FPlatformProcess::TerminateProc(InHandle->ProcessHandle);//, true);
-
-#if TARGET_UE4_CL < CL_CLOSEPROC
-		InHandle->ProcessHandle.Close();
-#else
-		FPlatformProcess::CloseProc(InHandle->ProcessHandle);
-#endif
-	}
-
-	FPlatformProcess::ClosePipe(InHandle->ReadPipe, InHandle->WritePipe);
-
-
-	// Print out any detected error logs
-	if (InHandle->ErrorLogStage != EErrorLogStage::ELS_NoError && InHandle->ErrorText.Num() > 0)
-	{
-		FString LogMsg = FString::Printf(TEXT("Detected a crash in process '%s':"),
-											*InHandle->ProcessTag);
-
-		UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-		UNIT_STATUS_LOG(ELogType::StatusImportant, TEXT("%s (click 'Advanced Summary' for more detail)"), *LogMsg);
-
-
-		// If this was the server, and we were not expecting a crash, print out a warning
-		if (!(UnitTestFlags & EUnitTestFlags::ExpectServerCrash) && InHandle == ServerHandle.Pin())
-		{
-			LogMsg = TEXT("WARNING: Got server crash, but unit test not marked as expecting a server crash.");
-
-			STATUS_SET_COLOR(FLinearColor(1.0, 1.0, 0.0));
-
-			UNIT_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
-			UNIT_STATUS_LOG(ELogType::StatusWarning, TEXT("%s"), *LogMsg);
-
-			STATUS_RESET_COLOR();
-		}
-
-
-		uint32 CallstackCount = 0;
-
-		for (auto CurErrorLine : InHandle->ErrorText)
-		{
-			ELogType CurLogType = ELogType::None;
-
-			if (CurErrorLine.Stage == EErrorLogStage::ELS_ErrorStart)
-			{
-				CurLogType = ELogType::StatusAdvanced;
-			}
-			else if (CurErrorLine.Stage == EErrorLogStage::ELS_ErrorDesc)
-			{
-				CurLogType = ELogType::StatusImportant | ELogType::StatusAdvanced | ELogType::StyleBold;
-			}
-			else if (CurErrorLine.Stage == EErrorLogStage::ELS_ErrorCallstack)
-			{
-				CurLogType = ELogType::StatusAdvanced;
-
-				// Include the first five callstack lines in the main summary printout
-				if (CallstackCount < 5)
-				{
-					CurLogType |= ELogType::StatusImportant;
-				}
-
-				CallstackCount++;
-			}
-			else if (CurErrorLine.Stage == EErrorLogStage::ELS_ErrorExit)
-			{
-				continue;
-			}
-			else
-			{
-				// Make sure there's a check for all error log stages
-				UNIT_ASSERT(false);
-			}
-
-			// For the current unit-test log window, all entries are marked 'StatusImportant'
-			UNIT_LOG(CurLogType | ELogType::StatusImportant, TEXT("%s"), *CurErrorLine.Line);
-
-			UNIT_STATUS_LOG(CurLogType, TEXT("%s"), *CurErrorLine.Line);
-		}
-	}
-
-
-	ActiveProcesses.Remove(InHandle);
-}
-
-
-void UClientUnitTest::UpdateProcessStats()
-{
-	SIZE_T TotalProcessMemoryUsage = 0;
-
-	for (auto CurHandle : ActiveProcesses)
-	{
-		// Check unit test memory stats, and update if necessary (NOTE: Processes not guaranteed to still be running)
-		if (CurHandle.IsValid() && CurHandle->ProcessID != 0)
-		{
-			SIZE_T ProcessMemUsage = 0;
-
-			if (FPlatformProcess::GetApplicationMemoryUsage(CurHandle->ProcessID, &ProcessMemUsage) && ProcessMemUsage != 0)
-			{
-				TotalProcessMemoryUsage += ProcessMemUsage;
-			}
-		}
-	}
-
-	if (TotalProcessMemoryUsage > 0)
-	{
-		CurrentMemoryUsage = TotalProcessMemoryUsage;
-
-		float RunningTime = (float)(FPlatformTime::Seconds() - StartTime);
-
-		// Update saved memory usage stats, to help with tracking estimated memory usage, on future unit test launches
-		if (CurrentMemoryUsage > PeakMemoryUsage)
-		{
-			if (PeakMemoryUsage == 0)
-			{
-				bFirstTimeStats = true;
-			}
-
-			PeakMemoryUsage = CurrentMemoryUsage;
-
-			// Reset TimeToPeakMem
-			TimeToPeakMem = RunningTime;
-
-			SaveConfig();
-		}
-		// Check if we have hit a new record, for the time it takes to get within 90% of PeakMemoryUsage
-		else if (RunningTime < TimeToPeakMem && (CurrentMemoryUsage * 100) >= (PeakMemoryUsage * 90))
-		{
-			TimeToPeakMem = RunningTime;
-			SaveConfig();
-		}
-	}
-}
-
-void UClientUnitTest::CheckOutputForError(TSharedPtr<FUnitTestProcess> InProcess, const TArray<FString>& InLines)
-{
-	// Array of log messages that can indicate the start of an error
-	static const TArray<FString> ErrorStartLogs = TArrayBuilder<FString>()
-		.Add(FString(TEXT("Windows GetLastError: ")))
-		.Add(FString(TEXT("=== Critical error: ===")));
-
-
-	for (FString CurLine : InLines)
-	{
-		// Using 'ContainsByPredicate' as an iterator
-		const auto CheckForErrorLog =
-			[&CurLine](const FString& ErrorLine)
-			{
-				return CurLine.Contains(ErrorLine);
-			};
-
-		// Search for the beginning of an error log message
-		if (InProcess->ErrorLogStage == EErrorLogStage::ELS_NoError)
-		{
-			if (ErrorStartLogs.ContainsByPredicate(CheckForErrorLog))
-			{
-				InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorStart;
-
-				// Reset the timeout for both the unit test and unit test connection here, as callstack logs are prone to failure
-				//	(do it for at least two minutes as well, as it can take a long time to get a crashlog)
-				ResetTimeout(TEXT("Detected crash."), true, 120);
-			}
-		}
-
-
-		if (InProcess->ErrorLogStage != EErrorLogStage::ELS_NoError)
-		{
-			// Regex pattern for matching callstack logs - matches:
-			//	" (0x000007fefe22cacd) + 0 bytes"
-			//	" {0x000007fefe22cacd} + 0 bytes"
-			const FRegexPattern CallstackPattern(TEXT("\\s[\\(|\\{]0x[0-9,a-f]+[\\)|\\}] \\+ [0-9]+ bytes"));
-
-			// Matches:
-			//	"ntldll.dll"
-			const FRegexPattern AltCallstackPattern(TEXT("^[a-z,A-Z,0-9,\\-,_]+\\.[exe|dll]"));
-
-
-			// Check for the beginning of description logs
-			if (InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorStart &&
-				!ErrorStartLogs.ContainsByPredicate(CheckForErrorLog))
-			{
-				InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorDesc;
-			}
-
-			// Check-for/verify callstack logs
-			if (InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorDesc ||
-				InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorCallstack)
-			{
-				FRegexMatcher CallstackMatcher(CallstackPattern, CurLine);
-				FRegexMatcher AltCallstackMatcher(AltCallstackPattern, CurLine);
-
-				if (CallstackMatcher.FindNext() || AltCallstackMatcher.FindNext())
-				{
-					InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorCallstack;
-				}
-				else if (InProcess->ErrorLogStage == EErrorLogStage::ELS_ErrorCallstack)
-				{
-					InProcess->ErrorLogStage = EErrorLogStage::ELS_ErrorExit;
-				}
-			}
-
-			// The rest of the lines, after callstack parsing, should be ELS_ErrorExit logs - these are not verified though (no need)
-
-
-			InProcess->ErrorText.Add(FErrorLog(InProcess->ErrorLogStage, CurLine));
-		}
-	}
+	Super::PrintUnitTestProcessErrors(InHandle);
 }
 
 
@@ -1674,7 +1536,45 @@ void UClientUnitTest::InternalNotifyNetworkFailure(UWorld* InWorld, UNetDriver* 
 
 void UClientUnitTest::UnitTick(float DeltaTime)
 {
-	Super::UnitTick(DeltaTime);
+	if (bBlockingServerDelay || bBlockingClientDelay || bBlockingFakeClientDelay)
+	{
+		bool bBlockingProcess = IsBlockingProcessPresent();
+
+		if (!bBlockingProcess)
+		{
+			ResetTimeout(TEXT("Blocking Process Reset"), true, 60);
+
+			auto IsWaitingOnTimeout =
+				[&]()
+				{
+					return NextBlockingTimeout > FPlatformTime::Seconds();
+				};
+
+			if (bBlockingServerDelay && !IsWaitingOnTimeout())
+			{
+				StartUnitTestServer();
+
+				bBlockingServerDelay = false;
+				NextBlockingTimeout = FPlatformTime::Seconds() + 10.0;
+			}
+
+			if (bBlockingClientDelay && !IsWaitingOnTimeout())
+			{
+				ClientHandle = StartUnitTestClient(ServerAddress);
+
+				bBlockingClientDelay = false;
+				NextBlockingTimeout = FPlatformTime::Seconds() + 10.0;
+			}
+
+			if (bBlockingFakeClientDelay && !IsWaitingOnTimeout())
+			{
+				ConnectFakeClient();
+
+				bBlockingFakeClientDelay = false;
+				NextBlockingTimeout = FPlatformTime::Seconds() + 10.0;
+			}
+		}
+	}
 
 	if (!!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) && PendingNetActorChans.Num() > 0 && UnitConn != NULL)
 	{
@@ -1693,264 +1593,19 @@ void UClientUnitTest::UnitTick(float DeltaTime)
 	// Prevent net connection timeout in developer mode
 	if (bDeveloperMode)
 	{
-		ResetConnTimeout();
+		ResetConnTimeout(120.f);
 	}
 
-
-	PollProcessOutput();
-
-	// Update/save memory stats
-	UpdateProcessStats();
-}
-
-void UClientUnitTest::PollProcessOutput()
-{
-	for (auto CurHandle : ActiveProcesses)
-	{
-		if (CurHandle.IsValid())
-		{
-			// Process any log/stdout data
-			FString LogDump = TEXT("");
-			bool bProcessedPipeRead = false;
-
-			// Need to iteratively grab pipe data, as it has a buffer (can miss data near process-end, for large logs, e.g. stack dumps)
-			while (true)
-			{
-				FString CurStdOut = FPlatformProcess::ReadPipe(CurHandle->ReadPipe);
-
-				if (CurStdOut.Len() > 0)
-				{
-					LogDump += CurStdOut;
-					bProcessedPipeRead = true;
-				}
-				// Sometimes large reads (typically > 4096 on the write side) clog the pipe buffer,
-				// and even looped reads won't receive it all, so when a large enough amount of data gets read, sleep momentarily
-				// (not ideal, but it works - spent a long time trying to find a better solution)
-				else if (bProcessedPipeRead && LogDump.Len() > 2048)
-				{
-					bProcessedPipeRead = false;
-
-					FPlatformProcess::Sleep(0.01f);
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			if (LogDump.Len() > 0)
-			{
-				// Every log line should start with an endline, so if one is missing, print that into the log as an error
-				bool bPartialRead = !LogDump.StartsWith(FString(LINE_TERMINATOR));
-				const TCHAR* PartialLog = TEXT("--MISSING ENDLINE - PARTIAL PIPE READ--");
-
-				// Now split up the log into multiple lines
-				TArray<FString> LogLines;
-				
-				// @todo #JohnB: Perhaps add support for both platforms line terminator, at some stage
-#if TARGET_UE4_CL < CL_STRINGPARSEARRAY
-				LogDump.ParseIntoArray(&LogLines, LINE_TERMINATOR, true);
-#else
-				LogDump.ParseIntoArray(LogLines, LINE_TERMINATOR, true);
-#endif
-
-
-				// For process logs, replace the timestamp/category with a tag (e.g. [SERVER]), and set a unique colour so it stands out
-				ELogTimes::Type bPreviousPrintLogTimes = GPrintLogTimes;
-				GPrintLogTimes = ELogTimes::None;
-
-				SET_WARN_COLOR(CurHandle->MainLogColor);
-
-				// Clear the engine-event log hook, to prevent duplication of the below log entry
-				UNIT_EVENT_CLEAR;
-
-				if (bPartialRead)
-				{
-					UE_LOG(None, Log, TEXT("%s"), PartialLog);
-				}
-
-				for (int LineIdx=0; LineIdx<LogLines.Num(); LineIdx++)
-				{
-					UE_LOG(None, Log, TEXT("%s%s"), *CurHandle->LogPrefix, *(LogLines[LineIdx]));
-				}
-
-				// Restore the engine-event log hook
-				UNIT_EVENT_RESTORE;
-
-				CLEAR_WARN_COLOR();
-
-				GPrintLogTimes = bPreviousPrintLogTimes;
-
-
-				// Also output to the unit test log window
-				if (LogWindow.IsValid())
-				{
-					TSharedPtr<SLogWidget>& LogWidget = LogWindow->LogWidget;
-
-					if (LogWidget.IsValid())
-					{
-						if (bPartialRead)
-						{
-							LogWidget->AddLine(CurHandle->BaseLogType, MakeShareable(new FString(PartialLog)),
-												CurHandle->SlateLogColor);
-						}
-
-						for (int LineIdx=0; LineIdx<LogLines.Num(); LineIdx++)
-						{
-							FString LogLine = CurHandle->LogPrefix + LogLines[LineIdx];
-
-							LogWidget->AddLine(CurHandle->BaseLogType, MakeShareable(new FString(LogLine)), CurHandle->SlateLogColor);
-						}
-					}
-				}
-
-
-				// Now trigger notification of log lines (only if the unit test is not yet verified though)
-				if (VerificationState == EUnitTestVerification::Unverified)
-				{
-					NotifyProcessLog(CurHandle, LogLines);
-				}
-
-
-				// If the verification state has not changed, pass on the log lines to the error checking code
-				CheckOutputForError(CurHandle, LogLines);
-			}
-		}
-	}
-}
-
-void UClientUnitTest::PostUnitTick(float DeltaTime)
-{
-	Super::PostUnitTick(DeltaTime);
-
-	TArray<TSharedPtr<FUnitTestProcess>> HandlesPendingShutdown;
-	bool bServerFinished = false;
-	bool bClientFinished  = false;
-
-	for (auto CurHandle : ActiveProcesses)
-	{
-		if (CurHandle.IsValid() && !FPlatformProcess::IsProcRunning(CurHandle->ProcessHandle))
-		{
-			FString LogMsg = FString::Printf(TEXT("Process '%s' has finished."), *CurHandle->ProcessTag);
-
-			UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-			UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
-
-			HandlesPendingShutdown.Add(CurHandle);
-
-
-			if (ServerHandle.IsValid() && ServerHandle.HasSameObject(CurHandle.Get()))
-			{
-				bServerFinished = true;
-			}
-			else if (ClientHandle.IsValid() && ClientHandle.HasSameObject(CurHandle.Get()))
-			{
-				bClientFinished = true;
-			}
-		}
-	}
-
-	if (bServerFinished || bClientFinished)
-	{
-		bool bProcessError = false;
-		FString UpdateMsg;
-
-		// If the server just finished, cleanup the fake client
-		if (bServerFinished)
-		{
-			FString LogMsg = FString::Printf(TEXT("Server process has finished, cleaning up fake client."));
-
-			UNIT_LOG(ELogType::StatusImportant, TEXT("%s"), *LogMsg);
-			UNIT_STATUS_LOG(ELogType::StatusVerbose, TEXT("%s"), *LogMsg);
-
-			if (UnitConn != NULL)
-			{
-				UnitConn->Close();
-			}
-
-			// Immediately cleanup the fake client (don't wait for end-of-life cleanup in CleanupUnitTest)
-			CleanupFakeClient();
-
-
-			// If a server exit was unexpected, mark the unit test as broken
-			if (!(UnitTestFlags & EUnitTestFlags::IgnoreServerCrash) && VerificationState == EUnitTestVerification::Unverified)
-			{
-				UpdateMsg = FString::Printf(TEXT("Unexpected server exit, marking unit test as needing update."));
-				bProcessError = true;
-			}
-		}
-
-		// If a client exit was unexpected, mark the unit test as broken
-		if (bClientFinished && !(UnitTestFlags & EUnitTestFlags::IgnoreClientCrash) &&
-			VerificationState == EUnitTestVerification::Unverified)
-		{
-			UpdateMsg = FString::Printf(TEXT("Unexpected client exit, marking unit test as needing update."));
-			bProcessError = true;
-		}
-
-
-		// If either the client/server finished, process the error
-		if (bProcessError)
-		{
-			UNIT_LOG(ELogType::StatusFailure | ELogType::StyleBold, TEXT("%s"), *UpdateMsg);
-			UNIT_STATUS_LOG(ELogType::StatusFailure | ELogType::StatusVerbose | ELogType::StyleBold, TEXT("%s"), *UpdateMsg);
-
-			VerificationState = EUnitTestVerification::VerifiedNeedsUpdate;
-		}
-	}
-
-
-	// Finally, clean up all handles pending shutdown (if they aren't already cleaned up)
-	if (HandlesPendingShutdown.Num() > 0)
-	{
-		for (auto CurHandle : HandlesPendingShutdown)
-		{
-			if (CurHandle.IsValid())
-			{
-				ShutdownUnitTestProcess(CurHandle);
-			}
-		}
-
-		HandlesPendingShutdown.Empty();
-	}
+	Super::UnitTick(DeltaTime);
 }
 
 bool UClientUnitTest::IsTickable() const
 {
 	bool bReturnVal = Super::IsTickable();
 
-	bReturnVal = bReturnVal && (ActiveProcesses.Num() > 0 ||
-					(!!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) && PendingNetActorChans.Num() > 0));
+	bReturnVal = bReturnVal || bDeveloperMode || bBlockingServerDelay || bBlockingClientDelay || bBlockingFakeClientDelay ||
+					(!!(UnitTestFlags & EUnitTestFlags::NotifyNetActors) && PendingNetActorChans.Num() > 0);
 
 	return bReturnVal;
-}
-
-
-void UClientUnitTest::FinishDestroy()
-{
-	Super::FinishDestroy();
-
-	// Force close any processes still running
-	for (int32 i=ActiveProcesses.Num()-1; i>=0; i--)
-	{
-		if (ActiveProcesses[i].IsValid())
-		{
-			ShutdownUnitTestProcess(ActiveProcesses[i]);
-		}
-	}
-}
-
-void UClientUnitTest::ShutdownAfterError()
-{
-	Super::ShutdownAfterError();
-
-	// Force close any processes still running
-	for (int32 i=ActiveProcesses.Num()-1; i>=0; i--)
-	{
-		if (ActiveProcesses[i].IsValid())
-		{
-			ShutdownUnitTestProcess(ActiveProcesses[i]);
-		}
-	}
 }
 

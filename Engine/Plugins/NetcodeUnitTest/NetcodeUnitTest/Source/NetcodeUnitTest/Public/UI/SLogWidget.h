@@ -191,12 +191,12 @@ public:
 	/**
 	 * Adds a log line to the log window
 	 *
-	 * @param LogType			The type of log output this is (for filtering)
+	 * @param InLogType			The type of log output this is (for filtering)
 	 * @param LogLine			The log line
 	 * @param LogColor			The colour to apply to the log line
 	 * @param bTakeTabFocus		If this log line isn't displayed on the currently focused tab, switch focus to a tab that does show it
 	 */
-	void AddLine(ELogType LogType, TSharedRef<FString> LogLine, FSlateColor LogColor=FSlateColor::UseForeground(),
+	void AddLine(ELogType InLogType, TSharedRef<FString> LogLine, FSlateColor LogColor=FSlateColor::UseForeground(),
 					bool bTakeTabFocus=false);
 
 
