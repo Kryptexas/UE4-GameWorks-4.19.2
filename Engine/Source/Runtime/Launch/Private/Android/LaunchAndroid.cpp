@@ -754,9 +754,10 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 			UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONFIG_CHANGED"));
 			
 			bool bPortrait = (AConfiguration_getOrientation(app->config) == ACONFIGURATION_ORIENTATION_PORT);
-			FAndroidWindow::OnWindowOrientationChanged(bPortrait);
-
-			FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+			if (FAndroidWindow::OnWindowOrientationChanged(bPortrait))
+			{
+				FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+			}
 		}
 		break;
 	case APP_CMD_LOW_MEMORY:

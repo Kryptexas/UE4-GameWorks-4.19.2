@@ -39,7 +39,7 @@ public:
 	static void InvalidateCachedScreenRect();
 
 	static void CalculateSurfaceSize(void* InWindow, int32_t& SurfaceWidth, int32_t& SurfaceHeight);
-	static void OnWindowOrientationChanged(bool bIsPortrait);
+	static bool OnWindowOrientationChanged(bool bIsPortrait);
 
 	static int32 GetDepthBufferPreference();
 	
