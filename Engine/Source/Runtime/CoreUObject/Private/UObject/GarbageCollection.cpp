@@ -379,25 +379,6 @@ static void LogClassCountInfo( const TCHAR* LogText, TMap<const FName,uint32>& C
 #endif
 
 /**
- * Serializes the global root set and objects that have any of the passed in KeepFlags to passed in archive.
- *
- * @param Ar			Archive to serialize with
- * @param KeepFlags		Objects with any of those flags will be serialized regardless of whether they are part of the root
- *						set or not.
- */
-void SerializeRootSet( FArchive& Ar, EObjectFlags KeepFlags )
-{
-	for( FObjectIterator It; It; ++It )
-	{
-		UObject* Obj = *It;
-		if(	Obj->HasAnyFlags(KeepFlags|RF_RootSet) )
-		{
-			Ar << Obj;
-		}
-	}
-}
-
-/**
  * Handles object reference, potentially NULL'ing
  *
  * @param Object						Object pointer passed by reference
