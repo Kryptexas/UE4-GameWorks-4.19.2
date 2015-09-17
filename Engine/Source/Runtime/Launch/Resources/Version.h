@@ -3,8 +3,8 @@
 #pragma once
 
 #define ENGINE_MAJOR_VERSION	4
-#define ENGINE_MINOR_VERSION	9
-#define ENGINE_PATCH_VERSION	1
+#define ENGINE_MINOR_VERSION	10
+#define ENGINE_PATCH_VERSION	0
 
 #define ENGINE_VERSION 0
 
@@ -13,7 +13,7 @@
 #define ENGINE_IS_PROMOTED_BUILD (ENGINE_VERSION > 0)
 
 #define BUILT_FROM_CHANGELIST 0
-#define BRANCH_NAME "++depot+UE4-Releases+4.9"
+#define BRANCH_NAME "++depot+UE4-Releases+4.10"
 
 #define EPIC_COMPANY_NAME  "Epic Games, Inc."
 #define EPIC_COPYRIGHT_STRING "Copyright 1998-2015 Epic Games, Inc. All Rights Reserved."
