@@ -718,7 +718,7 @@ void UAbilitySystemComponent::DestroyActiveState()
 
 		// Mark pending kill any remaining instanced abilities
 		// (CancelAbilities() will only MarkPending kill InstancePerExecution abilities).
-		for (const FGameplayAbilitySpec& Spec : GetActivatableAbilities())
+		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 		{
 			TArray<UGameplayAbility*> AbilitiesToCancel = Spec.GetAbilityInstances();
 			for (UGameplayAbility* InstanceAbility : AbilitiesToCancel)
@@ -728,6 +728,9 @@ void UAbilitySystemComponent::DestroyActiveState()
 					InstanceAbility->MarkPendingKill();
 				}
 			}
+
+			Spec.ReplicatedInstances.Empty();
+			Spec.NonReplicatedInstances.Empty();
 		}
 	}
 }
