@@ -436,7 +436,23 @@ public:
 			LockedActor = ActorLockedToCamera.Get();
 		}
 
-		return LockedActor ? LockedActor->FindComponentByClass<UCameraComponent>() : nullptr;
+		UCameraComponent* CameraComponent = nullptr;
+		if (LockedActor)
+		{
+			TArray<UCameraComponent*> CamComps;
+			LockedActor->GetComponents<UCameraComponent>(CamComps);
+
+			for (UCameraComponent* Comp : CamComps)
+			{
+				if (Comp->bIsActive)
+				{
+					CameraComponent = Comp;
+					break;
+				}
+			}
+		}
+
+		return CameraComponent;
 	}
 
 	/** 

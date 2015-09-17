@@ -3743,12 +3743,19 @@ bool SLevelViewport::GetCameraInformationFromActor(AActor* Actor, FMinimalViewIn
 {
 	// @todo camerapip: Could support actors other than cameras too!  (Character views?)
 	//@TODO: CAMERA: Support richer camera interactions in SIE; this may shake out naturally if everything uses camera components though
-	if (UCameraComponent* CameraComponent = Actor->FindComponentByClass<UCameraComponent>())
+	TArray<UCameraComponent*> CamComps;
+	Actor->GetComponents<UCameraComponent>(CamComps);
+	for (UCameraComponent* CamComp : CamComps)
 	{
-		CameraComponent->GetCameraView(0.0f, out_CameraInfo);
-		return true;
+		if (CamComp->bIsActive)
+		{
+			// first active camera, use it and be done
+			CamComp->GetCameraView(0.0f, out_CameraInfo);
+			return true;
+		}
 	}
 
+	// no active cameras
 	return false;
 }
 
