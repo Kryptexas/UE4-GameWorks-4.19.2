@@ -13,7 +13,6 @@ struct FDateTime;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
-//DECLARE_LOG_CATEGORY_EXTERN(LogText, Log, All);
 
 //DECLARE_CYCLE_STAT_EXTERN( TEXT("Format Text"), STAT_TextFormat, STATGROUP_Text, );
 
@@ -25,6 +24,7 @@ namespace ETextFlag
 		CultureInvariant = (1 << 1),
 		ConvertedProperty = (1 << 2),
 		Immutable = (1 << 3),
+		InitializedFromString = (1<<4),  // this ftext was initialized using FromString
 	};
 }
 
