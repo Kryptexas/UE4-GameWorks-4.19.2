@@ -457,10 +457,10 @@ public partial class GUBP : BuildCommand
             }
             LastAgentGroup = NodeToDo.AgentSharingGroup;
 
-			StringBuilder Builder = new StringBuilder("      ");
+			StringBuilder Builder = new StringBuilder("    ");
 			if(LastAgentGroup != "")
 			{
-				Builder.Append("  ");
+				Builder.Append("    ");
 			}
 			Builder.AppendFormat("{0} ({1})", NodeToDo.Name, GetTimeIntervalString(TimeQuantum << NodeToDo.FrequencyShift));
 			if(NodeToDo.IsComplete)
