@@ -13,6 +13,8 @@ class UCanvas;
 class APlayerController;
 class UFont;
 
+DECLARE_MULTICAST_DELEGATE_FiveParams(FOnShowDebugInfo, AHUD* /* HUD */, UCanvas* /* Canvas */, const FDebugDisplayInfo& /* DisplayInfo */, float& /* YL */, float& /* YPos */);
+
 /** 
  * Base class of the heads-up display. This has a canvas and a debug canvas on which primitives can be drawn.
  * It also contains a list of simple hit boxes that can be used for simple item click detection.
@@ -453,6 +455,9 @@ public:
 	 * Can be overridden to display custom debug per-game. 
 	 */
 	virtual void ShowDebugInfo(float& YL, float& YPos);
+
+	// Callback allowing external systems to register to show debug info
+	static FOnShowDebugInfo OnShowDebugInfo;
 
 	/** PostRender is the main draw loop. */
 	virtual void PostRender();

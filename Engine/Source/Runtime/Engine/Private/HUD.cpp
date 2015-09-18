@@ -19,6 +19,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogHUD, Log, All);
 #define LOCTEXT_NAMESPACE "HUD"
 
 bool AHUD::bShowDebugForReticleTarget = false;
+FOnShowDebugInfo AHUD::OnShowDebugInfo;
+
 
 AHUD::AHUD(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -353,6 +355,11 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 		if (ShouldDisplayDebug(NAME_Game))
 		{
 			GetWorld()->GetAuthGameMode()->DisplayDebug(DebugCanvas, DisplayInfo, YL, YPos);
+		}
+
+		if (bShowDebugInfo)
+		{
+			OnShowDebugInfo.Broadcast(this, DebugCanvas, DisplayInfo, YL, YPos);
 		}
 	}
 }
