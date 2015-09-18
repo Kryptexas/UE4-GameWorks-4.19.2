@@ -77,7 +77,7 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 
 	auto ConvertSingleAsset = [&Coordinator, &HeaderSource, &CppSource](FConvertedAssetRecord& ConversionRecord)->bool
 	{
-		FScopedFeedbackContext ScopedErrorTracker;
+		FScopedFeedbackContext NestedErrorTracker;
 
 		UObject* AssetObj = ConversionRecord.AssetPtr.Get();
 		if (AssetObj != nullptr)
@@ -113,7 +113,7 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 		{
 			ConversionRecord.GeneratedCppPath.Empty();
 		}
-		return bSuccess && !ScopedErrorTracker.HasErrors();
+		return bSuccess && !NestedErrorTracker.HasErrors();
 	};
 
 	FBlueprintNativeCodeGenCoordinator::FConversionDelegate ConversionDelegate = FBlueprintNativeCodeGenCoordinator::FConversionDelegate::CreateLambda(ConvertSingleAsset);

@@ -354,10 +354,10 @@ static void BlueprintNativeCodeGenCoordinatorImpl::GatherInnerDependencies(UObje
 	if (UStruct* StructAsset = GetAssetStruct(AssetObj))
 	{
 		IAssetRegistry& AssetRegistry = GetAssetRegistry();
-		auto AddDependencyForConversion = [&AssetsOut, &AssetRegistry](UObject* AssetObj)->bool
+		auto AddDependencyForConversion = [&AssetsOut, &AssetRegistry](UObject* Object)->bool
 		{
-			ensure(AssetObj->IsAsset());
-			FAssetData AssetInfo = AssetRegistry.GetAssetByObjectPath(*AssetObj->GetPathName());
+			ensure(Object->IsAsset());
+			FAssetData AssetInfo = AssetRegistry.GetAssetByObjectPath(*Object->GetPathName());
 
 			const bool bAssetFound = AssetInfo.IsValid();
 			if (bAssetFound)
@@ -376,9 +376,9 @@ static void BlueprintNativeCodeGenCoordinatorImpl::GatherInnerDependencies(UObje
 				AddDependencyForConversion(Blueprint);
 			}
 		}
-		for (UUserDefinedStruct* StructAsset : AssetDependencies.ConvertedStructs)
+		for (UUserDefinedStruct* StructDependency : AssetDependencies.ConvertedStructs)
 		{
-			AddDependencyForConversion(StructAsset);
+			AddDependencyForConversion(StructDependency);
 		}
 		for (UUserDefinedEnum* EnumAsset : AssetDependencies.ConvertedEnum)
 		{
