@@ -152,7 +152,9 @@ void FBlueprintCompilerCppBackend::EmitCastInterfaceToObjStatement(FEmitterLocal
 
 void FBlueprintCompilerCppBackend::EmitDynamicCastStatement(FEmitterLocalContext& EmitterContext, FKismetFunctionContext& FunctionContext, FBlueprintCompiledStatement& Statement)
 {
-	FString TargetClass = TermToText(EmitterContext, Statement.RHS[0]);
+	UClass* ClassPtr = CastChecked<UClass>(Statement.RHS[0]->ObjectLiteral);
+	check(ClassPtr != nullptr);
+	FString TargetClass = FEmitHelper::GetCppName(ClassPtr);
 	FString ObjectValue = TermToText(EmitterContext, Statement.RHS[1]);
 	FString CastedValue = TermToText(EmitterContext, Statement.LHS);
 	EmitterContext.AddLine(FString::Printf(TEXT("%s = Cast<%s>(%s);"),*CastedValue, *TargetClass, *ObjectValue));
