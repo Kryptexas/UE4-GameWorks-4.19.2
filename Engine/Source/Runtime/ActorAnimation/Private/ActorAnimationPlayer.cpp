@@ -7,21 +7,74 @@
 #include "MovieSceneSequenceInstance.h"
 
 
+struct FTickAnimationPlayers : public FTickableGameObject
+{
+	TArray<TWeakObjectPtr<UActorAnimationPlayer>> ActiveInstances;
+	
+	virtual bool IsTickable() const override
+	{
+		return ActiveInstances.Num() != 0;
+	}
+
+	virtual TStatId GetStatId() const override
+	{
+		RETURN_QUICK_DECLARE_CYCLE_STAT(FTickAnimationPlayers, STATGROUP_Tickables);
+	}
+	
+	virtual void Tick(float DeltaSeconds) override
+	{
+		for (int32 Index = 0; Index < ActiveInstances.Num();)
+		{
+			if (auto* Player = ActiveInstances[Index].Get())
+			{
+				Player->Update(DeltaSeconds);
+				++Index;
+			}
+			else
+			{
+				ActiveInstances.RemoveAt(Index, 1, false);
+			}
+		}
+	}
+};
+
+struct FAutoDestroyAnimationTicker
+{
+	FAutoDestroyAnimationTicker()
+	{
+		FCoreDelegates::OnPreExit.AddLambda([&]{
+			Impl.Reset();
+		});
+	}
+	
+	void Add(UActorAnimationPlayer* Player)
+	{
+		if (!Impl.IsValid())
+		{
+			Impl.Reset(new FTickAnimationPlayers);
+		}
+		Impl->ActiveInstances.Add(Player);
+	}
+
+	TUniquePtr<FTickAnimationPlayers> Impl;
+} GAnimationPlayerTicker;
+
 /* UActorAnimationPlayer structors
  *****************************************************************************/
 
 UActorAnimationPlayer::UActorAnimationPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, ActorAnimation(nullptr)
+	, ActorAnimationInstance(nullptr)
 	, bIsPlaying(false)
 	, TimeCursorPosition(0.0f)
+	, CurrentNumLoops(0)
 { }
 
 
 /* UActorAnimationPlayer interface
  *****************************************************************************/
 
-UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation)
+UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, const FActorAnimationPlaybackSettings& Settings)
 {
 	if (ActorAnimation == nullptr)
 	{
@@ -29,16 +82,19 @@ UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-
 	check(World != nullptr);
-	check(World->PersistentLevel != nullptr);
 
-	UActorAnimationPlayer* NewPlayer = NewObject<UActorAnimationPlayer>((UObject*)GetTransientPackage(), NAME_None, RF_Transient);
-
+	UActorAnimationPlayer* NewPlayer = NewObject<UActorAnimationPlayer>(GetTransientPackage(), NAME_None, RF_Transient);
 	check(NewPlayer != nullptr);
 
-	NewPlayer->Initialize(ActorAnimation, World);
-	World->PersistentLevel->AddActiveRuntimeMovieScenePlayer(NewPlayer);
+	// Set up a new instance of the actor animation for the player
+	UActorAnimationInstance* Instance = NewObject<UActorAnimationInstance>(NewPlayer);
+	Instance->Initialize(ActorAnimation, World, false);
+
+	NewPlayer->Initialize(Instance, World, Settings);
+
+	// Automatically tick this player
+	GAnimationPlayerTicker.Add(NewPlayer);
 
 	return NewPlayer;
 }
@@ -55,16 +111,24 @@ void UActorAnimationPlayer::Pause()
 	bIsPlaying = false;
 }
 
+void UActorAnimationPlayer::Stop()
+{
+	bIsPlaying = false;
+	TimeCursorPosition = PlaybackSettings.PlaySpeed < 0.f ? GetLength() : 0.f;
+	CurrentNumLoops = 0;
+
+	// todo: Trigger an event?
+}
 
 void UActorAnimationPlayer::Play()
 {
-	if ((ActorAnimation == nullptr) || !World.IsValid())
+	if ((ActorAnimationInstance == nullptr) || !World.IsValid())
 	{
 		return;
 	}
 
 	// @todo Sequencer playback: Should we recreate the instance every time?
-	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*ActorAnimation));
+	RootMovieSceneInstance = MakeShareable(new FMovieSceneSequenceInstance(*ActorAnimationInstance));
 
 	// @odo Sequencer Should we spawn actors here?
 	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
@@ -73,14 +137,68 @@ void UActorAnimationPlayer::Play()
 	bIsPlaying = true;
 }
 
+float UActorAnimationPlayer::GetPlaybackPosition() const
+{
+	return TimeCursorPosition;
+}
+
+void UActorAnimationPlayer::SetPlaybackPosition(float NewPlaybackPosition)
+{
+	float LastTimePosition = TimeCursorPosition;
+	
+	TimeCursorPosition = NewPlaybackPosition;
+	OnCursorPositionChanged();
+
+	if (RootMovieSceneInstance.IsValid())
+	{
+		RootMovieSceneInstance->Update(TimeCursorPosition, LastTimePosition, *this);
+	}
+}
+
+float UActorAnimationPlayer::GetLength() const
+{
+	if (!ActorAnimationInstance)
+	{
+		return 0;
+	}
+
+	UMovieScene* MovieScene = ActorAnimationInstance->GetMovieScene();
+	return MovieScene ? MovieScene->GetTimeRange().Size<float>() : 0;
+}
+
+void UActorAnimationPlayer::OnCursorPositionChanged()
+{
+	float Length = GetLength();
+
+	// Handle looping or stopping
+	if (TimeCursorPosition > Length || TimeCursorPosition < 0)
+	{
+		if (PlaybackSettings.LoopCount < 0 || CurrentNumLoops < PlaybackSettings.LoopCount)
+		{
+			++CurrentNumLoops;
+			const float Overplay = FMath::Fmod(TimeCursorPosition, Length);
+			TimeCursorPosition = Overplay < 0 ? Length + Overplay : Overplay;
+		}
+		else
+		{
+			// Stop playing
+			Stop();
+		}
+	}
+}
 
 /* UActorAnimationPlayer implementation
  *****************************************************************************/
 
-void UActorAnimationPlayer::Initialize(UActorAnimation* InActorAnimation, UWorld* InWorld)
+void UActorAnimationPlayer::Initialize(UActorAnimationInstance* InActorAnimationInstance, UWorld* InWorld, const FActorAnimationPlaybackSettings& Settings)
 {
-	ActorAnimation = InActorAnimation;
+	ActorAnimationInstance = InActorAnimationInstance;
+
 	World = InWorld;
+	PlaybackSettings = Settings;
+
+	// Ensure everything is set up, ready for playback
+	Stop();
 }
 
 
@@ -212,7 +330,7 @@ void UActorAnimationPlayer::GetRuntimeObjects(TSharedRef<FMovieSceneSequenceInst
 	else
 	{
 		// otherwise, check whether we have one or more possessed actors that are mapped to this handle
-		UObject* FoundObject = ActorAnimation->FindObject(ObjectId);
+		UObject* FoundObject = ActorAnimationInstance->FindObject(ObjectId);
 
 		if (FoundObject != nullptr)
 		{
@@ -245,23 +363,19 @@ void UActorAnimationPlayer::RemoveMovieSceneInstance(UMovieSceneSection& MovieSc
 	DestroyActorsForMovie( InstanceToRemove );
 }
 
-
 TSharedRef<FMovieSceneSequenceInstance> UActorAnimationPlayer::GetRootMovieSceneSequenceInstance() const
 {
 	return RootMovieSceneInstance.ToSharedRef();
 }
 
-
-/* IRuntimeMovieScenePlayerInterface interface
- *****************************************************************************/
-
-void UActorAnimationPlayer::Tick(const float DeltaSeconds)
+void UActorAnimationPlayer::Update(const float DeltaSeconds)
 {
 	float LastTimePosition = TimeCursorPosition;
 
 	if (bIsPlaying)
 	{
-		TimeCursorPosition += DeltaSeconds;
+		TimeCursorPosition += DeltaSeconds * PlaybackSettings.PlaySpeed;
+		OnCursorPositionChanged();
 	}
 
 	if(RootMovieSceneInstance.IsValid())

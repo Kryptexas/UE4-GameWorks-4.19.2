@@ -22,7 +22,6 @@ Level.cpp: Level-related functions
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "Runtime/Engine/Classes/MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "LevelUtils.h"
 #include "TargetPlatform.h"
 #include "ContentStreaming.h"
@@ -1825,53 +1824,6 @@ void ULevel::OnLevelScriptBlueprintChanged(ULevelScriptBlueprint* InBlueprint)
 }	
 
 #endif	//WITH_EDITOR
-
-
-#if WITH_EDITOR
-void ULevel::AddMovieSceneBindings( class UMovieSceneBindings* MovieSceneBindings )
-{
-	// @todo sequencer major: We need to clean up stale bindings objects that no PlayMovieScene node references anymore (LevelScriptBlueprint compile time?)
-	if( ensure( MovieSceneBindings != NULL ) )
-	{
-		Modify();
-
-		// @todo sequencer UObjects: Dangerous cast here to work around MovieScene not being a dependency module of engine
-		UObject* ObjectToAdd = (UObject*)MovieSceneBindings;
-		MovieSceneBindingsArray.AddUnique( ObjectToAdd );
-	}
-}
-
-void ULevel::ClearMovieSceneBindings()
-{
-	Modify();
-
-	MovieSceneBindingsArray.Reset();
-}
-#endif
-
-void ULevel::AddActiveRuntimeMovieScenePlayer( UObject* RuntimeMovieScenePlayer )
-{
-	ActiveRuntimeMovieScenePlayers.Add( RuntimeMovieScenePlayer );
-}
-
-
-void ULevel::TickRuntimeMovieScenePlayers( const float DeltaSeconds )
-{
-	for( int32 CurPlayerIndex = 0; CurPlayerIndex < ActiveRuntimeMovieScenePlayers.Num(); ++CurPlayerIndex )
-	{
-		// Should never have any active RuntimeMovieScenePlayers on an editor world!
-		check( OwningWorld->IsGameWorld() );
-
-		IRuntimeMovieScenePlayerInterface* RuntimeMovieScenePlayer =
-			Cast< IRuntimeMovieScenePlayerInterface >( ActiveRuntimeMovieScenePlayers[ CurPlayerIndex ] );
-		check( RuntimeMovieScenePlayer != NULL );
-
-		// @todo sequencer runtime: Support expiring instances of RuntimeMovieScenePlayers that have finished playing
-		// @todo sequencer runtime: Support destroying spawned actors for a completed moviescene
-		RuntimeMovieScenePlayer->Tick( DeltaSeconds );
-	}
-}
-
 
 bool ULevel::IsPersistentLevel() const
 {

@@ -92,6 +92,7 @@ public class UnrealEd : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] 
 			{ 
+                "ActorAnimation",
 				"AnimGraph",
                 "AppFramework",
 				"BlueprintGraph",
@@ -136,7 +137,7 @@ public class UnrealEd : ModuleRules
                 "MaterialUtilities",
                 "LocalizationService",
 				"AddContentDialog",
-				"GameProjectGeneration"                
+				"GameProjectGeneration",                
 			}
 		);
 

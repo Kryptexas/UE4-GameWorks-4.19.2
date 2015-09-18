@@ -46,6 +46,21 @@ FColor FActorAnimationActions::GetTypeColor() const
 
 void FActorAnimationActions::OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor)
 {
+	UWorld* WorldContext = nullptr;
+	for (const FWorldContext& Context : GEngine->GetWorldContexts())
+	{
+		if (Context.WorldType == EWorldType::Editor)
+		{
+			WorldContext = Context.World();
+			break;
+		}
+	}
+
+	if (!ensure(WorldContext))
+	{
+		return;
+	}
+
 	EToolkitMode::Type Mode = EditWithinLevelEditor.IsValid()
 		? EToolkitMode::WorldCentric
 		: EToolkitMode::Standalone;
@@ -56,8 +71,16 @@ void FActorAnimationActions::OpenAssetEditor(const TArray<UObject*>& InObjects, 
 
 		if (ActorAnimation != nullptr)
 		{
+			// Legacy upgrade
+			ActorAnimation->ConvertPersistentBindingsToDefault(WorldContext);
+
+			// Create an edit instance for this actor animation that can only edit the default bindings in the current world
+			UActorAnimationInstance* Instance = NewObject<UActorAnimationInstance>(GetTransientPackage());
+			bool bCanInstanceBindings = false;
+			Instance->Initialize(ActorAnimation, WorldContext, bCanInstanceBindings);
+
 			TSharedRef<FActorAnimationEditorToolkit> Toolkit = MakeShareable(new FActorAnimationEditorToolkit(Style));
-			Toolkit->Initialize(Mode, EditWithinLevelEditor, ActorAnimation, true);
+			Toolkit->Initialize(Mode, EditWithinLevelEditor, Instance, true);
 		}
 	}
 }

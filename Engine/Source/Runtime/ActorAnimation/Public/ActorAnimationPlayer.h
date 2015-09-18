@@ -4,7 +4,6 @@
 
 #include "IMovieScenePlayer.h"
 #include "ActorAnimation.h"
-#include "MovieScene/RuntimeMovieScenePlayerInterface.h"
 #include "ActorAnimationPlayer.generated.h"
 
 
@@ -12,6 +11,25 @@ class FMovieSceneSequenceInstance;
 class ULevel;
 class UMovieSceneBindings;
 
+
+USTRUCT(BlueprintType)
+struct FActorAnimationPlaybackSettings
+{
+	FActorAnimationPlaybackSettings()
+		: LoopCount(-1)
+		, PlaySpeed(1.f)
+	{}
+
+	GENERATED_BODY()
+
+	/** Number of times to loop playback. -1 for infinite, else the number of times to loop before stopping */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback", meta=(UIMin=-1))
+	int32 LoopCount;
+
+	/** The speed at which to playback the animation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback")
+	float PlaySpeed;
+};
 
 /**
  * UActorAnimationPlayer is used to actually "play" an actor animation asset at runtime.
@@ -23,9 +41,20 @@ UCLASS(BlueprintType)
 class ACTORANIMATION_API UActorAnimationPlayer
 	: public UObject
 	, public IMovieScenePlayer
-	, public IRuntimeMovieScenePlayerInterface
 {
-	GENERATED_UCLASS_BODY()
+public:
+	UActorAnimationPlayer(const FObjectInitializer&);
+
+	GENERATED_BODY()
+
+	/**
+	 * Initialize the player.
+	 *
+	 * @param InActorAnimationInstance The actor animation instance to play.
+	 * @param InWorld The world that the animation is played in.
+	 * @param Settings The desired playback settings
+	 */
+	void Initialize(UActorAnimationInstance* InActorAnimationInstance, UWorld* InWorld, const FActorAnimationPlaybackSettings& Settings);
 
 public:
 
@@ -34,9 +63,10 @@ public:
 	 *
 	 * @param WorldContextObject Context object from which to retrieve a UWorld.
 	 * @param ActorAnimation The actor animation to play.
+	 * @param Settings The desired playback settings
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
-	static UActorAnimationPlayer* CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation);
+	static UActorAnimationPlayer* CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, const FActorAnimationPlaybackSettings& Settings);
 
 	/** Start playback from the current time cursor position. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -45,19 +75,26 @@ public:
 	/** Pause playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Pause();
+	
+	/** Stop playback. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void Stop();
+
+	/** Get the current playback position */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	float GetPlaybackPosition() const;
+
+	/** Set the current playback position */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetPlaybackPosition(float NewPlaybackPosition);
 
 	/** Check whether the sequence is actively playing. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	bool IsPlaying() const;
 
-protected:
-
-	/**
-	 * Initialize the player.
-	 *
-	 * @param InActorAnimation The actor animation to play.
-	 * @param InWorld The world that the animation is played in.
-	 */
-	void Initialize(UActorAnimation* InActorAnimation, UWorld* InWorld);
+	/** Get the length of the sequence */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	float GetLength() const;
 
 protected:
 
@@ -72,17 +109,20 @@ protected:
 	virtual void RemoveMovieSceneInstance(UMovieSceneSection& MovieSceneSection, TSharedRef<FMovieSceneSequenceInstance> InstanceToRemove) override;
 	virtual TSharedRef<FMovieSceneSequenceInstance> GetRootMovieSceneSequenceInstance() const override;
 
-protected:
+public:
 
-	// IRuntimeMovieScenePlayerInterface
+	void Update(const float DeltaSeconds);
 
-	virtual void Tick(const float DeltaSeconds) override;
+private:
+
+	/** Called when the cursor position has changed to implement looping */
+	void OnCursorPositionChanged();
 
 private:
 
 	/** The actor animation to play. */
 	UPROPERTY()
-	UActorAnimation* ActorAnimation;
+	UActorAnimationInstance* ActorAnimationInstance;
 
 	/** Whether we're currently playing. If false, then sequence playback is paused or was never started. */
 	UPROPERTY()
@@ -90,7 +130,14 @@ private:
 
 	/** The current time cursor position within the sequence (in seconds) */
 	UPROPERTY()
-	double TimeCursorPosition;
+	float TimeCursorPosition;
+
+	/** Specific playback settings for the animation. */
+	UPROPERTY()
+	FActorAnimationPlaybackSettings PlaybackSettings;
+
+	/** The number of times we have looped in the current playback */
+	int32 CurrentNumLoops;
 
 private:
 

@@ -11,7 +11,7 @@
 USTRUCT()
 struct FActorAnimationObject
 {
-	GENERATED_USTRUCT_BODY(FActorAnimationObject)
+	GENERATED_BODY()
 
 public:
 

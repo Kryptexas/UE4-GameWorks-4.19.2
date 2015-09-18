@@ -3,7 +3,7 @@
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
-
+#include "ActorAnimation.h"
 
 enum class EMapChangeType : uint8;
 class FTabManager;
@@ -11,7 +11,6 @@ class ILevelViewport;
 class ISequencer;
 class IToolkitHost;
 class SWidget;
-class UActorAnimation;
 class UWorld;
 struct FSequencerViewParams;
 
@@ -21,6 +20,7 @@ struct FSequencerViewParams;
  */
 class FActorAnimationEditorToolkit
 	: public FAssetEditorToolkit
+	, public FGCObject
 { 
 public:
 
@@ -45,7 +45,7 @@ public:
 	 * @param TrackEditorDelegates Delegates to call to create auto-key handlers for this sequencer.
 	 * @param bEditWithinLevelEditor Whether or not sequencer should be edited within the level editor.
 	 */
-	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimation* ActorAnimation, bool bEditWithinLevelEditor);
+	void Initialize(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UActorAnimationInstance* ActorAnimationInstance, bool bEditWithinLevelEditor);
 
 public:
 
@@ -59,6 +59,11 @@ public:
 	virtual void UnregisterTabSpawners(const TSharedRef<FTabManager>& TabManager) override;
 
 	void UpdateViewports(AActor* ActorToViewThrough) const;
+
+	void AddReferencedObjects( FReferenceCollector& Collector ) override
+	{
+		Collector.AddReferencedObject(ActorAnimationInstance);
+	}
 
 private:
 
@@ -104,6 +109,9 @@ private:
 
 	/** Pointer to the style set to use for toolkits. */
 	TSharedRef<ISlateStyle> Style;
+
+	/** Actor animation instance for our edit operation */
+	UActorAnimationInstance* ActorAnimationInstance;
 
 private:
 

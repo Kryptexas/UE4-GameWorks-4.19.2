@@ -6,17 +6,11 @@
 #include "MovieScene.h"
 
 
-/* UActorAnimation structors
- *****************************************************************************/
-
 UActorAnimation::UActorAnimation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, MovieScene(nullptr)
-{ }
-
-
-/* UActorAnimation interface
- *****************************************************************************/
+{
+}
 
 void UActorAnimation::Initialize()
 {
@@ -24,86 +18,162 @@ void UActorAnimation::Initialize()
 	MovieScene = NewObject<UMovieScene>(this, NAME_None, RF_Transactional);
 }
 
+void UActorAnimation::ConvertPersistentBindingsToDefault(UObject* FixupContext)
+{
+	if (PossessedObjects_DEPRECATED.Num() == 0)
+	{
+		return;
+	}
 
-/* UMovieSceneAnimation overrides
- *****************************************************************************/
+	MarkPackageDirty();
+	for (auto& Pair : PossessedObjects_DEPRECATED)
+	{
+		UObject* Object = Pair.Value.GetObject();
+		if (Object)
+		{
+			FGuid ObjectId;
+			FGuid::Parse(Pair.Key, ObjectId);
+			DefaultObjectReferences.CreateBinding(ObjectId, Object, FixupContext);
+		}
+	}
+	PossessedObjects_DEPRECATED.Empty();
+}
 
-bool UActorAnimation::AllowsSpawnableObjects() const
+void UActorAnimationInstance::Initialize(UActorAnimation* InAnimation, UObject* InContext, bool bInCanRemapBindings)
+{
+	ActorAnimation = InAnimation;
+	bCanRemapBindings = bInCanRemapBindings;
+
+	if (!bCanRemapBindings)
+	{
+		RemappedObjectReferences = FActorAnimationObjectReferenceMap();
+	}
+
+	SetContext(InContext);
+}
+
+void UActorAnimationInstance::SetContext(UObject* NewContext)
+{
+	ResolutionContext = NewContext;
+	CachedObjectBindings.Reset();
+}
+
+bool UActorAnimationInstance::AllowsSpawnableObjects() const
 {
 	return true;
 }
 
-
-void UActorAnimation::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
+void UActorAnimationInstance::BindPossessableObject(const FGuid& ObjectId, UObject& PossessedObject)
 {
-	UActorComponent* Component = Cast<UActorComponent>(&PossessedObject);
-
-	if (Component != nullptr)
+	UObject* Context = ResolutionContext.Get();
+	if (!Context)
 	{
-		// @todo sequencer: gmp: need support for UStruct keys in TMap
-		PossessedObjects.Add(ObjectId.ToString(), FActorAnimationObject(PossessedObject.GetOuter(), Component->GetName()));
-		//PossessedObjects.Add(ObjectId, FSequencerPossessedObject(PossessedObject.GetOuter(), ComponentName));
+		return;
+	}
+
+	if (!ActorAnimation)
+	{
+		RemappedObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
+	}
+	else if (bCanRemapBindings && ActorAnimation->DefaultObjectReferences.HasBinding(ObjectId))
+	{
+		RemappedObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
 	}
 	else
 	{
-		// @todo sequencer: gmp: need support for UStruct keys in TMap
-		PossessedObjects.Add(ObjectId.ToString(), FActorAnimationObject(&PossessedObject));
-		//PossessedObjects.Add(ObjectId, FSequencerPossessedObject(Actor));
+		ActorAnimation->DefaultObjectReferences.CreateBinding(ObjectId, &PossessedObject, Context);
 	}
 }
 
-
-bool UActorAnimation::CanPossessObject(UObject& Object) const
+bool UActorAnimationInstance::CanPossessObject(UObject& Object) const
 {
 	return Object.IsA<AActor>() || Object.IsA<UActorComponent>();
 }
 
-
-void UActorAnimation::DestroyAllSpawnedObjects()
+void UActorAnimationInstance::DestroyAllSpawnedObjects()
 {
 	const bool DestroyAll = true;
 	SpawnOrDestroyObjects(DestroyAll);
 	SpawnedActors.Empty();
 }
 
-
-UObject* UActorAnimation::FindObject(const FGuid& ObjectId) const
+UObject* UActorAnimationInstance::FindObject(const FGuid& ObjectId) const
 {
-	// search bindings (possessables)
-	// @todo sequencer: gmp: need support for UStruct keys in TMap
-	const FActorAnimationObject* PossessedObject = PossessedObjects.Find(ObjectId.ToString());
-	//const FSequencerPossessedObject* PossessedObject = PossessedObjects.Find(ObjectId);
-
-	if (PossessedObject != nullptr)
+	// If it's already cached, we can just return that
+	if (auto* WeakCachedObject = CachedObjectBindings.Find(ObjectId))
 	{
-		return PossessedObject->GetObject();
+		if (auto* CachedObj = WeakCachedObject->Get())
+		{
+			return CachedObj;
+		}
 	}
 
-	// search proxies (spawnables)
-	TWeakObjectPtr<AActor> Actor = SpawnedActors.FindRef(ObjectId);
+	// Look up the object from scratch
+	UObject* FoundObject = nullptr;
 
-	if (Actor.IsValid())
+	// Otherwise we need to try and find it
+	UObject* Context = ResolutionContext.Get();
+	if (!FoundObject && Context)
 	{
-		return Actor.Get();
+		if (!FoundObject && bCanRemapBindings)
+		{
+			// Attempt to resolve the object binding through the remapped bindings
+			FoundObject = RemappedObjectReferences.ResolveBinding(ObjectId, Context);
+		}
+		
+		if (ActorAnimation)
+		{
+			// Attempt to resolve the object binding through the defaults
+			FoundObject = ActorAnimation->DefaultObjectReferences.ResolveBinding(ObjectId, Context);
+		}
 	}
 
-	// not found
-	return nullptr;
+	if (!FoundObject)
+	{
+		// Maybe it's a spawnable then?
+		FoundObject = SpawnedActors.FindRef(ObjectId).Get();
+	}
+
+	if (FoundObject)
+	{
+		CachedObjectBindings.Add(ObjectId, FoundObject);
+	}
+
+	return FoundObject;
 }
 
-
-FGuid UActorAnimation::FindObjectId(UObject& Object) const
+FGuid UActorAnimationInstance::FindObjectId(UObject& Object) const
 {
-	// search possessed objects
-	for (auto PossessedObjectPair : PossessedObjects)
+	for (auto& Pair : CachedObjectBindings)
 	{
-		const FActorAnimationObject& PossessedObject = PossessedObjectPair.Value;
-
-		if (PossessedObject.GetObject() == &Object)
+		if (Pair.Value == &Object)
 		{
-			// @todo sequencer: gmp: need support for UStruct keys in TMap
-			FGuid Result; FGuid::Parse(PossessedObjectPair.Key, Result); return Result;
-			//return PossessedObjectsPair.Key;
+			return Pair.Key;
+		}
+	}
+
+	// search possessed objects
+	UObject* Context = ResolutionContext.Get();
+	if (Context)
+	{
+		if (bCanRemapBindings)
+		{
+			// Search instances
+			FGuid ObjectId = RemappedObjectReferences.FindBindingId(&Object, Context);
+			if (ObjectId.IsValid())
+			{
+				return ObjectId;
+			}
+		}
+
+		// Search defaults
+		if (ActorAnimation)
+		{
+			FGuid ObjectId = ActorAnimation->DefaultObjectReferences.FindBindingId(&Object, Context);
+			if (ObjectId.IsValid())
+			{
+				return ObjectId;
+			}
 		}
 	}
 
@@ -120,14 +190,12 @@ FGuid UActorAnimation::FindObjectId(UObject& Object) const
 	return FGuid();
 }
 
-
-UMovieScene* UActorAnimation::GetMovieScene() const
+UMovieScene* UActorAnimationInstance::GetMovieScene() const
 {
-	return MovieScene;
+	return ActorAnimation ? ActorAnimation->MovieScene : nullptr;
 }
 
-
-UObject* UActorAnimation::GetParentObject(UObject* Object) const
+UObject* UActorAnimationInstance::GetParentObject(UObject* Object) const
 {
 	UActorComponent* Component = Cast<UActorComponent>(Object);
 
@@ -139,11 +207,12 @@ UObject* UActorAnimation::GetParentObject(UObject* Object) const
 	return nullptr;
 }
 
-
-void UActorAnimation::SpawnOrDestroyObjects(bool DestroyAll)
+void UActorAnimationInstance::SpawnOrDestroyObjects(bool DestroyAll)
 {
 	bool bAnyLevelActorsChanged = false;
 
+	UMovieScene* MovieScene = GetMovieScene();
+	
 	// remove any proxy actors that we no longer need
 	if (MovieScene != nullptr)
 	{
@@ -271,9 +340,8 @@ void UActorAnimation::SpawnOrDestroyObjects(bool DestroyAll)
 	}
 }
 
-
 #if WITH_EDITOR
-bool UActorAnimation::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
+bool UActorAnimationInstance::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutDisplayName) const
 {
 	UObject* Object = FindObject(ObjectId);
 
@@ -295,19 +363,19 @@ bool UActorAnimation::TryGetObjectDisplayName(const FGuid& ObjectId, FText& OutD
 }
 #endif
 
-
-void UActorAnimation::UnbindPossessableObjects(const FGuid& ObjectId)
+void UActorAnimationInstance::UnbindPossessableObjects(const FGuid& ObjectId)
 {
-	// @todo sequencer: gmp: need support for UStruct keys in TMap
-	PossessedObjects.Remove(ObjectId.ToString());
-	//PossessedObjects.Remove(ObjectId);
+	if (bCanRemapBindings && RemappedObjectReferences.HasBinding(ObjectId))
+	{
+		RemappedObjectReferences.RemoveBinding(ObjectId);
+	}
+	else if (ActorAnimation)
+	{
+		ActorAnimation->DefaultObjectReferences.RemoveBinding(ObjectId);
+	}
 }
 
-
-/* UActorAnimation implementation
- *****************************************************************************/
-
-void UActorAnimation::DeselectAllActors()
+void UActorAnimationInstance::DeselectAllActors()
 {
 	// @todo sequencer: gmp: fix me
 	/*
