@@ -44,16 +44,8 @@ public class CEF3 : ModuleRules
 
                 // There are different versions of the C++ wrapper lib depending on the version of VS we're using
                 string VSVersionFolderName = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
-                string WrapperLibraryPath = Path.Combine(PlatformPath, VSVersionFolderName, "libcef_dll");
+                string WrapperLibraryPath = Path.Combine(PlatformPath, VSVersionFolderName, "libcef_dll", "Release");
 
- 				if (Target.Configuration == UnrealTargetConfiguration.Debug && BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
-				{
-                    WrapperLibraryPath += "/Debug";
-				}
-				else
-				{
-                    WrapperLibraryPath += "/Release";
-				}
                 PublicLibraryPaths.Add(WrapperLibraryPath);
                 PublicAdditionalLibraries.Add("libcef_dll_wrapper.lib");
                 
