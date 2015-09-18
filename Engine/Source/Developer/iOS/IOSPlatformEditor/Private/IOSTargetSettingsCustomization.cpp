@@ -76,6 +76,7 @@ FIOSTargetSettingsCustomization::FIOSTargetSettingsCustomization()
 
 	bShowAllProvisions = false;
 	bShowAllCertificates = false;
+	ProvisionList = MakeShareable(new TArray<ProvisionPtr>());
 }
 
 FIOSTargetSettingsCustomization::~FIOSTargetSettingsCustomization()
@@ -113,7 +114,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 	if (OutputMessage.Len() > 0)
 	{
 		CertificateList.Reset();
-		ProvisionList.Reset();
+		ProvisionList->Reset();
 
 		// Now split up the log into multiple lines
 		TArray<FString> LogLines;
@@ -197,7 +198,12 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 						Prov->bDistribution = Value.Contains(TEXT("DISTRIBUTION"));
 					}
 				}
-				ProvisionList.Add(Prov);
+
+				// check to see if this the one selected in the ini file
+				FString OutString;
+				MobileProvisionProperty->GetValueAsFormattedString(OutString);
+				Prov->bManuallySelected = (OutString == Prov->FileName);
+				ProvisionList->Add(Prov);
 			}
 			else if (Line.Contains(TEXT("MATCHED-"), ESearchCase::CaseSensitive))
 			{
@@ -244,6 +250,9 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 	IDetailCategoryBuilder& DeviceCategory = DetailLayout.EditCategory(TEXT("Devices"));
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
 	IDetailCategoryBuilder& ExtraCategory = DetailLayout.EditCategory(TEXT("Extra PList Data"));
+	MobileProvisionProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, MobileProvision));
+	BuildCategory.AddProperty(MobileProvisionProperty)
+		.Visibility(EVisibility::Hidden);
 
 /*	ProvisionCategory.AddCustomRow(TEXT("Certificate Request"), false)
 		.NameContent()
@@ -341,6 +350,9 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 						.HeaderRow
 						(
 						SNew(SHeaderRow)
+						+ SHeaderRow::Column("Selected")
+						.DefaultLabel(LOCTEXT("ProvisionListNameColumnHeader", ""))
+						.FixedWidth(30.0f)
 						+ SHeaderRow::Column("Name")
 						.DefaultLabel(LOCTEXT("ProvisionListNameColumnHeader", "Provision"))
 						.FillWidth(1.0f)
@@ -1213,7 +1225,19 @@ bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
 TSharedRef<ITableRow> FIOSTargetSettingsCustomization::HandleProvisionListGenerateRow( ProvisionPtr InProvision, const TSharedRef<STableViewBase>& OwnerTable )
 {
 	return SNew(SProvisionListRow, OwnerTable)
-		.Provision(InProvision);
+		.Provision(InProvision)
+		.ProvisionList(ProvisionList)
+		.OnProvisionChanged(this, &FIOSTargetSettingsCustomization::HandleProvisionChanged);
+}
+
+void FIOSTargetSettingsCustomization::HandleProvisionChanged(FString Provision)
+{
+	FText OutText;
+	MobileProvisionProperty->GetValueAsFormattedText(OutText);
+	if (OutText.ToString() != Provision)
+	{
+		MobileProvisionProperty->SetValueFromFormattedString(Provision);
+	}
 }
 
 TSharedRef<ITableRow> FIOSTargetSettingsCustomization::HandleCertificateListGenerateRow( CertificatePtr InCertificate, const TSharedRef<STableViewBase>& OwnerTable )
@@ -1239,23 +1263,23 @@ void FIOSTargetSettingsCustomization::FilterLists()
 	FilteredProvisionList.Reset();
 	FilteredCertificateList.Reset();
 
-	for (int Index = 0; Index < ProvisionList.Num(); ++Index)
+	for (int Index = 0; Index < ProvisionList->Num(); ++Index)
 	{
-		if (SelectedProvision.Contains(ProvisionList[Index]->Name) && SelectedFile.Contains(ProvisionList[Index]->FileName))
+		if (SelectedProvision.Contains((*ProvisionList)[Index]->Name) && SelectedFile.Contains((*ProvisionList)[Index]->FileName))
 		{
-			ProvisionList[Index]->bSelected = true;
+			(*ProvisionList)[Index]->bSelected = true;
 		}
 		else
 		{
-			ProvisionList[Index]->bSelected = false;
+			(*ProvisionList)[Index]->bSelected = false;
 		}
-		if (bShowAllProvisions || ProvisionList[Index]->Status.Contains("VALID"))
+		if (bShowAllProvisions || (*ProvisionList)[Index]->Status.Contains("VALID"))
 		{
-			FilteredProvisionList.Add(ProvisionList[Index]);
+			FilteredProvisionList.Add((*ProvisionList)[Index]);
 		}
 	}
 
-	if (ProvisionList.Num() > 0)
+	if (ProvisionList->Num() > 0)
 	{
 		if (ProvisionInfoSwitcher.IsValid())
 		{
@@ -1263,7 +1287,7 @@ void FIOSTargetSettingsCustomization::FilterLists()
 		}
 		if (FilteredProvisionList.Num() == 0 && !bShowAllProvisions)
 		{
-			FilteredProvisionList.Append(ProvisionList);
+			FilteredProvisionList.Append(*ProvisionList);
 		}
 	}
 	else

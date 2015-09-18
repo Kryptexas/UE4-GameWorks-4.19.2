@@ -51,6 +51,14 @@ namespace iPhonePackager
 				Directory.CreateDirectory(Config.ProvisionDirectory);
 			}
 
+			if (Config.bProvision)
+			{
+				if (File.Exists(Config.ProvisionDirectory + "/" + Config.Provision))
+				{
+					return Config.ProvisionDirectory + "/" + Config.Provision;
+				}
+			}
+
 			#region remove after we provide an install mechanism
 			// copy all of the provisions from the game directory to the library
 			if (!String.IsNullOrEmpty(Config.ProjectFile))

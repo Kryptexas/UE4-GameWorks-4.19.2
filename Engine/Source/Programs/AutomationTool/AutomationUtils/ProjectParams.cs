@@ -405,7 +405,8 @@ namespace AutomationTool
 			bool? FastCook = null,
 			bool? IgnoreCookErrors = null,
 			bool? CodeSign = null,
-			bool? UploadSymbols = null
+			bool? UploadSymbols = null,
+			string Provision = null
 			)
 		{
 			//
@@ -577,6 +578,8 @@ namespace AutomationTool
 			{
 				this.DeviceName = this.Device;
 			}
+
+			this.Provision = ParseParamValueIfNotSpecified(Command, Provision, "provision", String.Empty, true);
 
 			this.ServerDevice = ParseParamValueIfNotSpecified(Command, ServerDevice, "serverdevice", this.Device);
 			this.NullRHI = GetParamValueIfNotSpecified(Command, NullRHI, this.NullRHI, "nullrhi");
@@ -1283,6 +1286,11 @@ namespace AutomationTool
 		/// By default we don't code sign unless it is required or requested
 		/// </summary>
 		public bool bCodeSign = false;
+
+		/// <summary>
+		/// Provision to use
+		/// </summary>
+		public string Provision = null;
 
 		#endregion
 

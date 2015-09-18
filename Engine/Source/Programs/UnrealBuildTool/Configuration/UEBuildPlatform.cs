@@ -946,8 +946,6 @@ namespace UnrealBuildTool
 		{
 		}
 
-		static Dictionary<UnrealTargetPlatform, ConfigCacheIni> EngineIniCache = new Dictionary<UnrealTargetPlatform, ConfigCacheIni>();
-
 		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, DirectoryReference ProjectDirectoryName, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
 		{
 			ConfigCacheIni ProjIni = ConfigCacheIni.CreateConfigCacheIni(Platform, "Engine", ProjectDirectoryName);

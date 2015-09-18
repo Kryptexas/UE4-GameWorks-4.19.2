@@ -3354,7 +3354,7 @@ namespace UnrealBuildTool
 			ModuleRules RulesObject = RulesAssembly.CreateModuleRules(ModuleName, TargetInfo, out ModuleFileName);
 
 			// Reads additional dependencies array for project module from project file and fills PrivateDependencyModuleNames. 
-			if(ProjectDescriptor != null)
+			if(ProjectDescriptor != null && ProjectDescriptor.Modules != null)
 			{
 				ModuleDescriptor Module = ProjectDescriptor.Modules.FirstOrDefault(x => x.Name.Equals(ModuleName, StringComparison.InvariantCultureIgnoreCase));
 				if(Module != null && Module.AdditionalDependencies != null)

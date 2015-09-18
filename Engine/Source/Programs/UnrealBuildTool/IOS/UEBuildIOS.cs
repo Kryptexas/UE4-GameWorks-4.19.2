@@ -9,7 +9,7 @@ using System.Xml;
 
 namespace UnrealBuildTool
 {
-    class IOSPlatform : UEBuildPlatform
+    public class IOSPlatform : UEBuildPlatform
     {
         // by default, use an empty architecture (which is really just a modifer to the platform for some paths/names)
         [XmlConfig]
@@ -32,6 +32,9 @@ namespace UnrealBuildTool
 
 		/** additional linker flags for non-shipping */
 		public static string AdditionalLinkerFlags = "";
+
+		/** mobile provision to use for code signing */
+		public static string MobileProvision = "";
 
 		private bool bInitializedProject = false;
 
@@ -259,6 +262,8 @@ namespace UnrealBuildTool
 
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalLinkerFlags", out AdditionalLinkerFlags);
 				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "AdditionalShippingLinkerFlags", out AdditionalShippingLinkerFlags);
+
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MobileProvision", out MobileProvision);
 
 				bInitializedProject = true;
 			}

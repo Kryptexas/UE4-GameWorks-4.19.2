@@ -286,6 +286,11 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = Online, meta = (EditCondition = "bEnableFacebookSupport"))
 	FString FacebookAppID;
 
+	// Mobile provision to utilize when signing
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = Build)
+	FString MobileProvision;
+
+
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
