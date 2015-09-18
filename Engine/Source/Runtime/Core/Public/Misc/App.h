@@ -134,6 +134,38 @@ public:
 public:
 
 	/**
+	 * Add the specified user to the list of authorized session users.
+	 *
+	 * @param UserName The name of the user to add.
+	 * @see DenyUser, DenyAllUsers, IsAuthorizedUser
+	 */
+	FORCEINLINE static void AuthorizeUser(const FString& UserName)
+	{
+		SessionUsers.AddUnique(UserName);
+	}
+
+	/**
+	 * Removes all authorized users.
+	 *
+	 * @see AuthorizeUser, DenyUser, IsAuthorizedUser
+	 */
+	FORCEINLINE static void DenyAllUsers()
+	{
+		SessionUsers.Empty();
+	}
+
+	/**
+	 * Remove the specified user from the list of authorized session users.
+	 *
+	 * @param UserName The name of the user to remove.
+	 * @see AuthorizeUser, DenyAllUsers, IsAuthorizedUser
+	 */
+	FORCEINLINE static void DenyUser(const FString& UserName)
+	{
+		SessionUsers.Remove(UserName);
+	}
+
+	/**
 	 * Gets the globally unique identifier of this application instance.
 	 *
 	 * Every running instance of the engine has a globally unique instance identifier
@@ -204,6 +236,18 @@ public:
 	 * Initializes the application session.
 	 */
 	static void InitializeSession();
+
+	/**
+	 * Check whether the specified user is authorized to interact with this session.
+	 *
+	 * @param UserName The name of the user to check.
+	 * @return true if the user is authorized, false otherwise.
+	 * @see AuthorizeUser, DenyUser, DenyAllUsers
+	 */
+	FORCEINLINE static bool IsAuthorizedUser(const FString& UserName)
+	{
+		return ((FPlatformProcess::UserName(false) == UserName) || SessionUsers.Contains(UserName));
+	}
 
 	/**
 	 * Checks whether this is a standalone application.
@@ -484,6 +528,9 @@ private:
 
 	/** Holds the name of the user that launched session. */
 	static FString SessionOwner;
+
+	/** List of authorized session users. */
+	static TArray<FString> SessionUsers;
 
 	/** Holds a flag indicating whether this is a standalone session. */
 	static bool Standalone;

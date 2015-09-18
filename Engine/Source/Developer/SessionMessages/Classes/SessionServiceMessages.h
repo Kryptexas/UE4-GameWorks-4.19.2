@@ -15,6 +15,18 @@ USTRUCT()
 struct FSessionServicePing
 {
 	GENERATED_USTRUCT_BODY()
+
+	/** The name of the user who sent this ping. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	FString UserName;
+
+	/** Default constructor. */
+	FSessionServicePing() { }
+
+	/** Creates and initializes a new instance. */
+	FSessionServicePing(const FString& InUserName)
+		: UserName(InUserName)
+	{ }
 };
 
 
@@ -25,6 +37,10 @@ USTRUCT()
 struct FSessionServicePong
 {
 	GENERATED_USTRUCT_BODY()
+
+	/** Indicates whether the pinging user is authorized to interact with this session. */
+	UPROPERTY(EditAnywhere, Category="Message")
+	bool Authorized;
 
 	/** Holds the application's build date. */
 	UPROPERTY(EditAnywhere, Category="Message")
@@ -42,7 +58,7 @@ struct FSessionServicePong
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString InstanceName;
 
-	/** Holds a flag indicating whether the application is running on a console. */
+	/** Indicates whether the application is running on a console. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool IsConsoleBuild;
 
@@ -62,7 +78,7 @@ struct FSessionServicePong
 	UPROPERTY(EditAnywhere, Category="Message")
 	FString SessionOwner;
 
-	/** Holds a flag indicating whether the application is the only one in that session. */
+	/** Indicates whether the application is the only one in that session. */
 	UPROPERTY(EditAnywhere, Category="Message")
 	bool Standalone;
 };
@@ -101,9 +117,7 @@ struct FSessionServiceLog
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
+	/** Default constructor. */
 	FSessionServiceLog() { }
 
 	/**
