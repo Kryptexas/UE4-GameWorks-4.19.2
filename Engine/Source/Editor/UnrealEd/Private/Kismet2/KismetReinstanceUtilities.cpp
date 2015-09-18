@@ -179,11 +179,19 @@ FBlueprintCompileReinstancer::FBlueprintCompileReinstancer(UClass* InClassToRein
 		DuplicatedClass->StaticLink(true);
 
 		// Copy over the ComponentNametoDefaultObjectMap, which tells CopyPropertiesForUnrelatedObjects which components are instanced and which aren't
-		
+
+		// Temporarily suspend the undo buffer; we don't need to record the duplicated CDO until it is fully resolved
+ 		ITransaction* CurrentTransaction = GUndo;
+ 		GUndo = NULL;
 		DuplicatedClass->ClassDefaultObject = GetClassCDODuplicate(ClassToReinstance, DuplicatedClass->GetDefaultObjectName());
 
+		// Restore the undo buffer
+		GUndo = CurrentTransaction;
 		DuplicatedClass->ClassDefaultObject->SetFlags(RF_ClassDefaultObject);
 		DuplicatedClass->ClassDefaultObject->SetClass(DuplicatedClass);
+
+		// The CDO is fully duplicated and ready to be placed in the undo buffer
+		DuplicatedClass->ClassDefaultObject->Modify();
 
 		ClassToReinstance->GetDefaultObject()->SetClass(DuplicatedClass);
 		ObjectsThatShouldUseOldStuff.Add(DuplicatedClass); //CDO of REINST_ class can be used as archetype
