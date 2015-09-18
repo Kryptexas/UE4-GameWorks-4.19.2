@@ -633,16 +633,17 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				, NAME_None
 				, LOCTEXT("SaveDirtyPackages", "Save")
 				, LOCTEXT("SaveDirtyPackagesTooltip", "Saves the current movie scene")
-				//, FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Save"));
 				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.Save"));
+
+			ToolBarBuilder.AddSeparator();
 		}
+
 		ToolBarBuilder.AddComboButton(
-			FUIAction(),
-			FOnGetContent::CreateSP( this, &SSequencer::MakeGeneralMenu ),
-			LOCTEXT( "GeneralOptions", "General Options" ),
-			LOCTEXT( "GeneralOptionsToolTip", "General Options" ),
-			TAttribute<FSlateIcon>(),
-			true );
+			FUIAction()
+			, FOnGetContent::CreateSP( this, &SSequencer::MakeGeneralMenu )
+			, LOCTEXT( "GeneralOptions", "General Options" )
+			, LOCTEXT( "GeneralOptionsToolTip", "General Options" )
+			, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.General") );
 
 		ToolBarBuilder.AddSeparator();
 
@@ -655,7 +656,14 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 				, LOCTEXT("AddObjectTooltip", "Add selected objects")
 				, FSlateIcon(FEditorStyle::GetStyleSetName(), "Sequencer.AddObject"));
 
-			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleKeyAllEnabled );
+			TAttribute<FSlateIcon> KeyAllIcon;
+			KeyAllIcon.Bind(TAttribute<FSlateIcon>::FGetter::CreateLambda([&]{
+				static FSlateIcon KeyAllEnabledIcon(FEditorStyle::GetStyleSetName(), "Sequencer.KeyAllEnabled");
+				static FSlateIcon KeyAllDisabledIcon(FEditorStyle::GetStyleSetName(), "Sequencer.KeyAllDisabled");
+
+				return Sequencer.Pin()->GetKeyAllEnabled() ? KeyAllEnabledIcon : KeyAllDisabledIcon;
+			}));
+			ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleKeyAllEnabled, NAME_None, TAttribute<FText>(), TAttribute<FText>(), KeyAllIcon );
 		}
 
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
@@ -710,6 +718,7 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	ToolBarBuilder.BeginSection("Snapping");
 	{
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleIsSnapEnabled, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
+
 		ToolBarBuilder.AddComboButton(
 			FUIAction(),
 			FOnGetContent::CreateSP( this, &SSequencer::MakeSnapMenu ),
@@ -717,25 +726,35 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 			LOCTEXT( "SnapOptionsToolTip", "Snapping Options" ),
 			TAttribute<FSlateIcon>(),
 			true );
+
+		ToolBarBuilder.AddSeparator();
+
+		ToolBarBuilder.AddWidget(
+			SNew( SImage )
+			.Image(FEditorStyle::GetBrush("Sequencer.Time")) );
+
 		ToolBarBuilder.AddWidget(
 			SNew( SBox )
 			.VAlign( VAlign_Center )
 			[
 				SNew( SNumericDropDown<float> )
 				.DropDownValues( SequencerSnapValues::GetTimeSnapValues() )
-				.LabelText( LOCTEXT( "TimeSnapLabel", "Time" ) )
 				.bShowNamedValue(true)
 				.ToolTipText( LOCTEXT( "TimeSnappingIntervalToolTip", "Time snapping interval" ) )
 				.Value( this, &SSequencer::OnGetTimeSnapInterval )
 				.OnValueChanged( this, &SSequencer::OnTimeSnapIntervalChanged )
 			] );
+
+		ToolBarBuilder.AddWidget(
+			SNew( SImage )
+			.Image(FEditorStyle::GetBrush("Sequencer.Value")) );
+
 		ToolBarBuilder.AddWidget(
 			SNew( SBox )
 			.VAlign( VAlign_Center )
 			[
 				SNew( SNumericDropDown<float> )
 				.DropDownValues( SequencerSnapValues::GetSnapValues() )
-				.LabelText( LOCTEXT( "ValueSnapLabel", "Value" ) )
 				.ToolTipText( LOCTEXT( "ValueSnappingIntervalToolTip", "Curve value snapping interval" ) )
 				.Value( this, &SSequencer::OnGetValueSnapInterval )
 				.OnValueChanged( this, &SSequencer::OnValueSnapIntervalChanged )
