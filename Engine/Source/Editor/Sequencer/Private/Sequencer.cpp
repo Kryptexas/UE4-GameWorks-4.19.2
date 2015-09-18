@@ -710,6 +710,9 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime )
 
 	RootMovieSceneSequenceInstance->Update( ScrubPosition, LastTime, *this );
 
+	// If realtime is off, this needs to be called to update the pivot location when scrubbing.
+	GUnrealEd->UpdatePivotLocationForSelection();
+
 	GEditor->RedrawLevelEditingViewports();
 }
 
