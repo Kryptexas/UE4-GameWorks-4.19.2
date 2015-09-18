@@ -456,26 +456,6 @@ void USceneComponent::PropagateTransformUpdate(bool bTransformChanged, bool bSki
 
 		// Refresh navigation
 		UpdateNavigationData();
-
-		//QUICK_SCOPE_CYCLE_COUNTER(STAT_SceneComponent_PropagateTransformUpdate_AttachmentReplication);
-
-		AActor* Owner = GetOwner();
-		if (Owner && Owner->HasAuthority() && Owner->GetRootComponent() == this)
-		{
-			if (AttachParent)
-			{
-				Owner->AttachmentReplication.AttachParent = AttachParent->GetAttachmentRootActor();
-				Owner->AttachmentReplication.LocationOffset = RelativeLocation;
-				Owner->AttachmentReplication.RotationOffset = RelativeRotation;
-				Owner->AttachmentReplication.RelativeScale3D = RelativeScale3D;
-				Owner->AttachmentReplication.AttachSocket = AttachSocketName;
-				Owner->AttachmentReplication.AttachComponent = AttachParent;
-			}
-			else
-			{
-				Owner->AttachmentReplication.AttachParent = nullptr;
-			}
-		}
 	}
 	else
 	{

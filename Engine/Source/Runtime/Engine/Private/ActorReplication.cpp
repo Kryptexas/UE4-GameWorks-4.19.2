@@ -231,6 +231,8 @@ bool AActor::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget
 
 void AActor::GatherCurrentMovement()
 {
+	AttachmentReplication.AttachParent = nullptr;
+
 	UPrimitiveComponent* RootPrimComp = Cast<UPrimitiveComponent>(GetRootComponent());
 	if (RootPrimComp && RootPrimComp->IsSimulatingPhysics())
 	{
@@ -240,18 +242,21 @@ void AActor::GatherCurrentMovement()
 		ReplicatedMovement.FillFrom(RBState);
 		ReplicatedMovement.bRepPhysics = true;
 	}
-	else if(RootComponent != NULL)
+	else if (RootComponent != nullptr)
 	{
-		// If we are attached, don't replicate absolute position
-		if( RootComponent->AttachParent != NULL )
+		// If we are attached, don't replicate absolute position, use AttachmentReplication instead.
+		if (RootComponent->AttachParent != nullptr)
 		{
 			// Networking for attachments assumes the RootComponent of the AttachParent actor. 
 			// If that's not the case, we can't update this, as the client wouldn't be able to resolve the Component and would detach as a result.
-			if( AttachmentReplication.AttachParent != NULL )
+			AttachmentReplication.AttachParent = RootComponent->AttachParent->GetAttachmentRootActor();
+			if (AttachmentReplication.AttachParent != nullptr)
 			{
 				AttachmentReplication.LocationOffset = RootComponent->RelativeLocation;
 				AttachmentReplication.RotationOffset = RootComponent->RelativeRotation;
 				AttachmentReplication.RelativeScale3D = RootComponent->RelativeScale3D;
+				AttachmentReplication.AttachComponent = RootComponent->AttachParent;
+				AttachmentReplication.AttachSocket = RootComponent->AttachSocketName;
 			}
 		}
 		else

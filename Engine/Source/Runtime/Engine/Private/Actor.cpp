@@ -817,7 +817,10 @@ bool AActor::ShouldTickIfViewportsOnly() const
 
 void AActor::PreReplication( IRepChangedPropertyTracker & ChangedPropertyTracker )
 {
-	if ( bReplicateMovement || AttachmentReplication.AttachParent )
+	// Attachment replication gets filled in by GatherCurrentMovement(), but in the case of a detached root we need to trigger remote detachment.
+	AttachmentReplication.AttachParent = nullptr;
+
+	if ( bReplicateMovement || (RootComponent && RootComponent->AttachParent) )
 	{
 		GatherCurrentMovement();
 	}

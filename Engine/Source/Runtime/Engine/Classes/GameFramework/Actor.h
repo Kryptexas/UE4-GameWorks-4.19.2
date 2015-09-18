@@ -264,9 +264,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, ReplicatedUsing=OnRep_ReplicatedMovement, Category=Replication, AdvancedDisplay)
 	struct FRepMovement ReplicatedMovement;
 
+private:
 	/** Used for replicating attachment of this actor's RootComponent to another actor. */
 	UPROPERTY(Transient, replicatedUsing=OnRep_AttachmentReplication)
 	struct FRepAttachment AttachmentReplication;
+
+public:
+	/** Get read-only access to current AttachmentReplication. */
+	const struct FRepAttachment& GetAttachmentReplication() const { return AttachmentReplication; }
 
 	/** Called on client when updated AttachmentReplication value is received for this actor. */
 	UFUNCTION()
