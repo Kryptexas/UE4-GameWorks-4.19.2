@@ -33,7 +33,9 @@ enum class ESavePackageResult
 	/** [When cooking] Package was not saved because it contained editor-only data */
 	ContainsEditorOnlyData,
 	/** [When cooking] Package was not saved because it was referenced by editor-only properties */
-	ReferencedOnlyByEditorOnlyData
+	ReferencedOnlyByEditorOnlyData, 
+	/** [When cooking] Package was not saved because it contains assets that were converted into native code */
+	ContainsConvertedAssets
 };
 
 /**

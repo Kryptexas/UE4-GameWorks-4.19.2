@@ -1768,3 +1768,135 @@ void FConvertedBlueprintsDependencies::GetAssets(FName ClassName, TArray<FName>&
 		Func(OutPackagePaths);
 	}
 }
+
+#if WITH_EDITOR
+
+struct FConvertibleTypeHelper
+{
+	static FName NameBPGC;
+	static FName NameWidgetBPGC;
+	static FName NameUDS;
+	static FName NameUDE;
+
+	static bool IsConvertible(const UObject* Obj)
+	{
+		const FName ClassName = Obj ? Obj->GetClass()->GetFName() : NAME_None;
+		return (ClassName != NAME_None)
+			&& ((ClassName == NameBPGC)
+			|| (ClassName == NameUDS)
+			|| (ClassName == NameUDE)
+			|| (ClassName == NameWidgetBPGC));
+	}
+};
+
+FName FConvertibleTypeHelper::NameBPGC(TEXT("BlueprintGeneratedClass"));
+FName FConvertibleTypeHelper::NameWidgetBPGC(TEXT("WidgetBlueprintGeneratedClass"));
+FName FConvertibleTypeHelper::NameUDS(TEXT("UserDefinedStruct"));
+FName FConvertibleTypeHelper::NameUDE(TEXT("UserDefinedEnum"));
+
+FReplaceCookedBPGC::FReplaceCookedBPGC()
+	: NativeScriptPackage(nullptr)
+	, bEnabled(false)
+{
+}
+
+FReplaceCookedBPGC& FReplaceCookedBPGC::Get()
+{
+	static FReplaceCookedBPGC ReplaceCookedBPGC;
+	return ReplaceCookedBPGC;
+}
+
+void FReplaceCookedBPGC::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObjects(ReplaceMap);
+	Collector.AddReferencedObject(NativeScriptPackage);
+}
+
+void FReplaceCookedBPGC::AddConvertedPackageName(FName PackageName)
+{
+	ConvertedPackagesNames.Add(PackageName);
+}
+
+void FReplaceCookedBPGC::AddConvertedFieldStub(UObject* Object)
+{
+	if (Object && ensure(CouldBeConverted(Object)))
+	{
+		const FName ClassName = Object->GetClass()->GetFName();
+		if ((ClassName == FConvertibleTypeHelper::NameBPGC) || (ClassName == FConvertibleTypeHelper::NameWidgetBPGC))
+		{
+			AddConvertedFieldStub<UDynamicClass>(Object->GetPathName(), Object->GetFName());
+		}
+		else if (ClassName == FConvertibleTypeHelper::NameUDS)
+		{
+			AddConvertedFieldStub<UScriptStruct>(Object->GetPathName(), Object->GetFName());
+		}
+		else if (ClassName == FConvertibleTypeHelper::NameUDE)
+		{
+			AddConvertedFieldStub<UEnum>(Object->GetPathName(), Object->GetFName());
+		}
+		else
+		{
+			check(false);
+		}
+	}
+}
+
+UObject* FReplaceCookedBPGC::FindReplacementStub(UObject* Object)
+{
+	if (bEnabled && Object && CouldBeConverted(Object))
+	{
+		const FString OriginalPathName = Object->GetPathName();
+		UObject** StubObjPtr = ReplaceMap.Find(OriginalPathName);
+		UObject* StubObj = StubObjPtr ? *StubObjPtr : nullptr;
+		check(!StubObj || StubObj->IsValidLowLevelFast());
+		if (StubObj)
+		{
+			int32 k = 0; k++;
+		}
+		return StubObj;
+	}
+	return nullptr;
+}
+
+bool FReplaceCookedBPGC::CouldBeConverted(const UObject* Object) const
+{
+	if (Object && !Object->HasAnyFlags(RF_ClassDefaultObject) && FConvertibleTypeHelper::IsConvertible(Object))
+	{
+		// TODO: check excluded assets list.
+		return true;
+	}
+	return false;
+	
+}
+
+bool FReplaceCookedBPGC::PackageShouldNotBeSaved(const UPackage* InOuter) const
+{
+	return InOuter && bEnabled && ConvertedPackagesNames.Contains(InOuter->GetFName());
+}
+
+void FReplaceCookedBPGC::Initialize(const FString& NativePackageName)
+{
+	if (ensure(!NativeScriptPackage))
+	{
+		NativeScriptPackage = CreatePackage(nullptr, *NativePackageName);
+	}
+	bEnabled = true;
+}
+
+void DummyClassConstructor(const FObjectInitializer&)
+{
+	check(false);
+}
+
+void FReplaceCookedBPGC::AdditionalStubFieldInitialization(UField* Stub)
+{
+	check(Stub && Stub->IsValidLowLevelFast());
+	if (auto Class = Cast<UClass>(Stub))
+	{
+		Class->ClassConstructor = &DummyClassConstructor;
+		Class->ClassAddReferencedObjects = &UObject::AddReferencedObjects;
+	}
+	Stub->SetFlags(RF_Native);
+}
+
+#endif //WITH_EDITOR

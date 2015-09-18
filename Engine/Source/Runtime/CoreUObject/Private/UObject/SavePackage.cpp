@@ -5,6 +5,7 @@
 #include "Interface.h"
 #include "TargetPlatform.h"
 #include "UObject/UObjectThreadContext.h"
+#include "BlueprintSupport.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSavePackage, Log, All);
 
@@ -304,6 +305,21 @@ public:
 		const FName NameNoNumber(Name, 0);
 		ReferencedNames.Add(NameNoNumber);
 	}
+
+#if WITH_EDITOR
+	void AddReplacementsNames(UObject* Obj)
+	{
+		if (Obj && FReplaceCookedBPGC::Get().IsEnabled())
+		{
+			if (UObject* ReplObj = FReplaceCookedBPGC::Get().FindReplacementStub(Obj))
+			{
+				MarkNameAsReferenced(ReplObj->GetFName());
+				MarkNameAsReferenced(ReplObj->GetClass()->GetFName());
+				MarkNameAsReferenced(ReplObj->GetOuter()->GetFName());
+			}
+		}
+	}
+#endif //WITH_EDITOR
 
 	/** 
 	 * Add the marked names to a linker
@@ -823,6 +839,9 @@ FArchive& FArchiveSaveTagImports::operator<<( UObject*& Obj )
 				if (!bIsEditorOnly)
 				{
 					Obj->Mark(OBJECTMARK_TagImp);
+#if WITH_EDITOR
+					SavePackageState->AddReplacementsNames(Obj);
+#endif //WITH_EDITOR
 				}
 
 				if ( Obj->HasAnyFlags(RF_ClassDefaultObject) )
@@ -3084,6 +3103,52 @@ TMap<UObject*, UObject*> UnmarkExportTagFromDuplicates()
 
 #if WITH_EDITOR
 COREUOBJECT_API extern bool GOutputCookingWarnings;
+
+struct FImportReplacementsHelper
+{
+	TSet<UObject*> UniqueTagImpObjects;
+
+	FImportReplacementsHelper(const TArray<UObject*>& InTagImpObjects)
+	{
+		if (FReplaceCookedBPGC::Get().IsEnabled())
+		{
+			UniqueTagImpObjects = TSet<UObject*>(InTagImpObjects);
+		}
+	}
+
+	UObject* Handle(UObject* Obj, TArray<FObjectImport>& ImportMap)
+	{
+		if (FReplaceCookedBPGC::Get().IsEnabled())
+		{
+			UObject* ReplacedObjectToImport = FReplaceCookedBPGC::Get().FindReplacementStub(Obj);
+			Obj = ReplacedObjectToImport ? ReplacedObjectToImport : Obj;
+			if (ReplacedObjectToImport)
+			{
+				{
+					ensure(ReplacedObjectToImport->GetOuter() == ReplacedObjectToImport->GetOutermost());
+					bool bAlreadyAdded = false;
+					UniqueTagImpObjects.Add(ReplacedObjectToImport->GetOuter(), &bAlreadyAdded);
+					if (!bAlreadyAdded)
+					{
+						new(ImportMap)FObjectImport(ReplacedObjectToImport->GetOuter());
+					}
+				}
+
+									{
+										bool bAlreadyAdded = false;
+										UniqueTagImpObjects.Add(ReplacedObjectToImport->GetClass(), &bAlreadyAdded);
+										if (!bAlreadyAdded)
+										{
+											new(ImportMap)FObjectImport(ReplacedObjectToImport->GetClass());
+										}
+									}
+			}
+		}
+		return Obj;
+	}
+
+};
+
 #endif
 
 ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags TopLevelFlags, const TCHAR* Filename,
@@ -3119,6 +3184,14 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				UE_CLOG(!(SaveFlags & SAVE_NoError), LogSavePackage, Display, TEXT("Package marked as editor-only: %s. Package will not be saved."), *InOuter->GetName());
 				return ESavePackageResult::ReferencedOnlyByEditorOnlyData;
 			}
+#if WITH_EDITOR
+			else if (FReplaceCookedBPGC::Get().PackageShouldNotBeSaved(InOuter))
+			{
+				UE_LOG(LogSavePackage, Display, TEXT("Package %s contains assets, that were converted into native code. Package will not be saved."), *InOuter->GetName());
+				// Or replace with the NativeScriptPackage ?
+				return ESavePackageResult::ContainsConvertedAssets;
+			}
+#endif	// #if WITH_EDITOR
 		}
 #endif
 		// if we are cooking we should be doing it in the editor
@@ -3468,6 +3541,18 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						{
 							UE_LOG(LogSavePackage, Fatal, TEXT("%s"), *FString::Printf( TEXT("Transient object imported: %s"), *Obj->GetFullName() ) );
 						}
+#if WITH_EDITOR
+						if (FReplaceCookedBPGC::Get().IsEnabled())
+						{
+							for (UObject*& Dependency : ImportTagger.Dependencies)
+							{
+								if (UObject* NewDependency = FReplaceCookedBPGC::Get().FindReplacementStub(Dependency))
+								{
+									Dependency = NewDependency;
+								}
+							}
+						}
+#endif //WITH_EDITOR
 
 						// add the list of dependencies to the dependency map
 						ObjectDependencies.Add(Obj, ImportTagger.Dependencies);
@@ -3541,6 +3626,9 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						check(Obj->HasAnyMarks(EObjectMark(OBJECTMARK_TagExp|OBJECTMARK_TagImp)));
 
 						SavePackageState->MarkNameAsReferenced(Obj->GetFName());
+#if WITH_EDITOR
+						SavePackageState->AddReplacementsNames(Obj);
+#endif //WITH_EDITOR
 						if( Obj->GetOuter() )
 						{
 							SavePackageState->MarkNameAsReferenced(Obj->GetOuter()->GetFName());
@@ -3853,11 +3941,17 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 				{
 					TArray<UObject*> TagImpObjects;
 					GetObjectsWithAnyMarks(TagImpObjects, OBJECTMARK_TagImp);
+#if WITH_EDITOR
+					FImportReplacementsHelper ImportReplacementsHelper(TagImpObjects);
+#endif //WITH_EDITOR
 					for(int32 Index = 0; Index < TagImpObjects.Num(); Index++)
 					{
 						UObject* Obj = TagImpObjects[Index];
 						check(Obj->HasAnyMarks(OBJECTMARK_TagImp));
-						new( Linker->ImportMap )FObjectImport( Obj );
+#if WITH_EDITOR
+						Obj = ImportReplacementsHelper.Handle(Obj, Linker->ImportMap);
+#endif //WITH_EDITOR
+						new(Linker->ImportMap)FObjectImport(Obj);
 					}
 				}
 
@@ -4236,9 +4330,20 @@ ESavePackageResult UPackage::Save(UPackage* InOuter, UObject* Base, EObjectFlags
 						{
 							// Set class index.
 							// If this is *exactly* a UClass, store null instead; for anything else, including UClass-derived classes, map it
-							if( Export.Object->GetClass() != UClass::StaticClass() )
+							UClass* ObjClass = Export.Object->GetClass();
+#if WITH_EDITOR
+							if (FReplaceCookedBPGC::Get().IsEnabled())
 							{
-								Export.ClassIndex = Linker->MapObject(Export.Object->GetClass());
+								if (UObject* NewObjClass = FReplaceCookedBPGC::Get().FindReplacementStub(ObjClass))
+								{
+									ObjClass = CastChecked<UClass>(NewObjClass);
+								}
+							}
+#endif	// #if WITH_EDITOR
+
+							if (ObjClass != UClass::StaticClass())
+							{
+								Export.ClassIndex = Linker->MapObject(ObjClass);
 								check(!Export.ClassIndex.IsNull());
 							}
 							else

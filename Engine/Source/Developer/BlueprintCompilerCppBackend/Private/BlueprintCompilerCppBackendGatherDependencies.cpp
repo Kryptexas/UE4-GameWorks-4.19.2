@@ -2,6 +2,7 @@
 
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "BlueprintSupport.h"
 
 FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* InStruct) : OriginalStruct(InStruct)
 {
@@ -12,9 +13,7 @@ FGatherConvertedClassDependencies::FGatherConvertedClassDependencies(UStruct* In
 
 bool FGatherConvertedClassDependencies::WillClassBeConverted(const UBlueprintGeneratedClass* InClass) const
 {
-	// TODO:
-
-	return InClass && !InClass->HasAnyFlags(RF_ClassDefaultObject);
+	return FReplaceCookedBPGC::Get().CouldBeConverted(InClass);
 }
 
 void FGatherConvertedClassDependencies::DependenciesForHeader()

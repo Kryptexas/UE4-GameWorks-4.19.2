@@ -136,6 +136,7 @@ void FLinkerSave::Serialize( void* V, int64 Length )
 FArchive& FLinkerSave::operator<<( FName& InName )
 {
 	int32 Save = MapName(InName);
+	ensure(Save != INDEX_NONE);
 	int32 Number = InName.GetNumber();
 	FArchive& Ar = *this;
 	return Ar << Save << Number;

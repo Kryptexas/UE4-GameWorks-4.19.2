@@ -65,10 +65,14 @@ private:
 };
 
 /**
-* Stores info about BPCG, UDS, UDE, etc,, converted into native code.
-* Native entities (generated from BP items) have "ReplaceConverted" with original object path.
-* This path is used to fix linker.
-*/
+ * Stores info about BPCG, UDS, UDE, etc.. converted into native code.
+ *
+ * Native entities (generated from BP items) have "ReplaceConverted" with original object path.
+ * This path is used to fix linker while loading.
+ * 
+ * This struct is used only when the code converted from BP is compiled in an editor build. 
+ * It's usually only for a test/development purpose.
+ */
 struct COREUOBJECT_API FReplaceConvertedAssetManager : public FGCObject
 {
 private:
@@ -104,6 +108,55 @@ public:
 	UObject* FindReplacement(const FString& OriginalPathName) const;
 
 	static void OnModulesChanged(FName ModuleThatChanged, EModuleChangeReason ReasonForChange);
+};
+
+/**
+ * The struct is used while saving cooked package to find replacements of converted BP assets.
+ */
+struct COREUOBJECT_API FReplaceCookedBPGC : public FGCObject
+{
+private:
+	UPackage* NativeScriptPackage;
+	TMap<FString, UObject*> ReplaceMap;
+	TSet<FName> ConvertedPackagesNames;
+	bool bEnabled;
+
+	FReplaceCookedBPGC();
+
+	void AdditionalStubFieldInitialization(UField* Stub);
+
+public:
+	static FReplaceCookedBPGC& Get();
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+
+	// INITIALIZATION
+	void Initialize(const FString& NativePackageName);
+	void AddConvertedPackageName(FName PackageName);
+	template<typename FieldType>
+	void AddConvertedFieldStub(const FString& OriginalPathName, const FName Name)
+	{
+		UObject*& NativeObj = ReplaceMap.FindOrAdd(OriginalPathName);
+		if (!NativeObj)
+		{
+			check(NativeScriptPackage);
+			FieldType* NewField = NewObject<FieldType>(NativeScriptPackage, Name);
+			AdditionalStubFieldInitialization(NewField);
+			NewField->Bind();
+			NativeObj = NewField;
+		}
+	}
+	void AddConvertedFieldStub(UObject* Object);
+
+	// USAGE
+	bool IsEnabled() const
+	{
+		return bEnabled;
+	}
+	UObject* FindReplacementStub(UObject* Object);
+
+	// The object is of a convertible type, and the object is not listed in excluded assets.
+	bool CouldBeConverted(const UObject* Object) const;
+	bool PackageShouldNotBeSaved(const UPackage* InOuter) const;
 };
 
 #endif //WITH_EDITOR
