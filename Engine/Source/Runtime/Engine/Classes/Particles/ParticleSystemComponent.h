@@ -523,7 +523,7 @@ private:
 	bool bParallelRenderThreadUpdate;
 public:
 
-	const FTransform& GetAsyncComponentToWorld()
+	FORCEINLINE const FTransform& GetAsyncComponentToWorld()
 	{
 		if (!bParallelRenderThreadUpdate && !IsInGameThread())
 		{
@@ -533,7 +533,7 @@ public:
 		return ComponentToWorld;
 	}
 
-	const TArray<struct FParticleSysParam>& GetAsyncInstanceParameters()
+	FORCEINLINE const TArray<struct FParticleSysParam>& GetAsyncInstanceParameters()
 	{
 		if (!bParallelRenderThreadUpdate && !IsInGameThread())
 		{
