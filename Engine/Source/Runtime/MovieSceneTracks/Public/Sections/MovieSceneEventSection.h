@@ -13,9 +13,9 @@ struct FMovieSceneEventSectionKey
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** The name of the event to be triggered. */
+	/** The names of the events to be triggered. */
 	UPROPERTY(EditAnywhere, Category=EventTrackKey)
-	FName EventName;
+	TArray<FName> EventNames;
 
 	/** The time at which the event should be triggered. */
 	UPROPERTY()
@@ -28,9 +28,10 @@ struct FMovieSceneEventSectionKey
 
 	/** Creates and initializes a new instance. */
 	FMovieSceneEventSectionKey(const FName& InEventName, float InTime)
-		: EventName(InEventName)
-		, Time(InTime)
-	{ }
+		: Time(InTime)
+	{
+		EventNames.Add(InEventName);
+	}
 
 	/** Operator less, used to sort the heap based on time until execution. */
 	bool operator<(const FMovieSceneEventSectionKey& Other) const
@@ -72,6 +73,6 @@ public:
 private:
 
 	/** The section's keys. */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category="Audio")
 	TArray<FMovieSceneEventSectionKey> Keys;
 };

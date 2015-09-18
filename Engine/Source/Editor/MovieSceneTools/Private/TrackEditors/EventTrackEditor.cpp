@@ -31,6 +31,17 @@ void FEventTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset
 }
 
 
+void FEventTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
+{
+	if (!ObjectClass->IsChildOf(AActor::StaticClass()))
+	{
+		return;
+	}
+
+
+}
+
+
 TSharedRef<ISequencerSection> FEventTrackEditor::MakeSectionInterface(UMovieSceneSection& SectionObject, UMovieSceneTrack* Track)
 {
 	return MakeShareable(new FEventTrackSection(SectionObject/*, Track->GetTrackName()*/, GetSequencer()));

@@ -9,6 +9,16 @@
 
 void UMovieSceneEventSection::AddKey(float Time, const FName& EventName, FKeyParams KeyParams)
 {
+	for (auto& Key : Keys)
+	{
+		if (Key.Time == Time)
+		{
+			Key.EventNames.AddUnique(EventName);
+
+			return;
+		}
+	}
+
 	Keys.HeapPush(FMovieSceneEventSectionKey(EventName, Time));
 }
 
