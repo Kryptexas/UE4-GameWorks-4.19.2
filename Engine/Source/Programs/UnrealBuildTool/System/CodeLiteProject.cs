@@ -469,8 +469,11 @@ namespace UnrealBuildTool
 							string CookGameCommandLine = "mono AutomationTool.exe BuildCookRun ";
 
 							// Projects filename
-							CookGameCommandLine += "-project=\"" + OnlyGameProject.FullName + "\" ";
-							
+							if (OnlyGameProject != null)
+							{
+								CookGameCommandLine += "-project=\"" + OnlyGameProject.FullName + "\" ";
+							}
+
 							// Disables Perforce functionality 
 							CookGameCommandLine += "-noP4 ";
 							
