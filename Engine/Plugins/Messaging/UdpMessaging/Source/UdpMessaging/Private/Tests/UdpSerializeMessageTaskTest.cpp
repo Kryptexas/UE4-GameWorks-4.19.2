@@ -11,11 +11,11 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FUdpSerializeMessageTaskTest, "System.Core.Mess
 
 namespace UdpSerializeMessageTaskTest
 {
-	const int64 NumMessages = 100000;
+	const int32 NumMessages = 100000;
 	const FTimespan MaxWaitTime(0, 0, 5);
 
-	int64 CompletedMessages = 0;
-	int64 FailedMessages = 0;
+	int32 CompletedMessages = 0;
+	int32 FailedMessages = 0;
 	FUdpSerializedMessagePtr ReferenceMessage;
 }
 
@@ -82,7 +82,7 @@ bool FUdpSerializeMessageTaskTest::RunTest(const FString& Parameters)
 	}
 
 	TestEqual(TEXT("The number of completed messages must equal the total number of messages"), CompletedMessages, NumMessages);
-	TestEqual(TEXT("There must be no failed messages"), FailedMessages, (int64)0);
+	TestEqual(TEXT("There must be no failed messages"), FailedMessages, (int32)0);
 
 	// clean up
 	FMemory::Free(Message);

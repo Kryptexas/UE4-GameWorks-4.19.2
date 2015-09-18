@@ -77,7 +77,7 @@ private:
 
 	TArray<FGuid> DiscoveredNodes;
 	TArray<FGuid> LostNodes;
-	int64 NumReceivedMessages;
+	int32 NumReceivedMessages;
 	FAutomationTestBase& Test;
 	IMessageTransportPtr Transport;
 };
@@ -88,7 +88,7 @@ bool FUdpMessageTransportTest::RunTest(const FString& Parameters)
 	const FIPv4Endpoint MulticastEndpoint(FIPv4Address(231, 0, 0, 1), 7777);
 	const FIPv4Endpoint UnicastEndpoint = FIPv4Endpoint::Any;
 	const uint8 MulticastTimeToLive = 0;
-	const int64 NumTestMessages = 10000;
+	const int32 NumTestMessages = 10000;
 	const int32 MessageSize = 1280;
 
 	// create transports
