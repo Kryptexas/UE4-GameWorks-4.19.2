@@ -407,6 +407,9 @@ public:
 	/** Handles committing a name change */
 	virtual void OnAssetDataChanged() override;
 
+	/** Whether the widget should allow primitive tools to be displayed */
+	bool CanDisplayPrimitiveTools() const { return false; }
+
 private:
 	/** Returns the size of the thumbnail widget */
 	FOptionalSize GetThumbnailBoxSize() const;
@@ -514,6 +517,9 @@ public:
 
 	/** Handles committing a name change */
 	virtual void OnAssetDataChanged() override;
+
+	/** Whether the widget should allow primitive tools to be displayed */
+	bool CanDisplayPrimitiveTools() const { return true; }
 
 protected:
 	/** SAssetViewItem interface */

@@ -174,7 +174,7 @@ TSharedRef<SWidget> FAssetViewItemHelper::CreateListTileItemContents(T* const In
 		ItemContentsOverlay->AddSlot()
 		[
 			SNew(SThumbnailEditModeTools, InTileOrListItem->AssetThumbnail)
-			.SmallView(true)
+			.SmallView(!InTileOrListItem->CanDisplayPrimitiveTools())
 			.Visibility(InTileOrListItem, &T::GetThumbnailEditModeUIVisibility)
 		];
 
