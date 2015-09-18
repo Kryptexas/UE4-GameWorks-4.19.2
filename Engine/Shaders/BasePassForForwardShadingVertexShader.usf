@@ -55,7 +55,7 @@ void Main(
 	Output.BasePassInterpolants.PixelPosition = WorldPosition;
 
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO;
+	Output.BasePassInterpolants.PixelPositionExcludingWPO = WorldPositionExcludingWPO.xyz;
 #endif
 
 #if USE_VERTEX_FOG

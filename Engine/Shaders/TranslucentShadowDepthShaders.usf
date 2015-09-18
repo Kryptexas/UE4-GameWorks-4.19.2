@@ -79,8 +79,8 @@ void MainOpacityPS(
 	out float4 OutColor1 : SV_Target1
 	)
 {
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, Inputs.PixelPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, 1, Inputs.PixelPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, 1);
 	
 	// Evaluate the mask for translucent materials
 	GetMaterialClippingShadowDepth(MaterialParameters);

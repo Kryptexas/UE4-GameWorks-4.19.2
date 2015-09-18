@@ -24,8 +24,8 @@ void Main(
 	)
 {
 	// material parameter inputs
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants,PixelPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, PixelPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
 	
 	// material distortion offset
 	half3 Normal = GetMaterialNormal(MaterialParameters);

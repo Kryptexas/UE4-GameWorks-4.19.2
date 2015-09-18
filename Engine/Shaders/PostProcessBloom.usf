@@ -25,14 +25,15 @@ void MainPostprocessCommonVS(
 }
 
 void VisualizeBloomSetupPS(
-	noperspective float4 UVAndScreenPos : TEXCOORD0
-	, out float4 OutColor : SV_Target0)
+	noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION, 
+	out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 
 	OutColor = 0;
 
-	int2 PixelPos = (int2)ComputePixelPosCenter(UVAndScreenPos.zw, true);
+	int2 PixelPos = (int2)SvPosition.xy;
 
 	int2 ViewportCenter = (int2)(ViewportRect.xy + ViewportSize.xy / 2);
 
@@ -56,11 +57,12 @@ void VisualizeBloomSetupPS(
 }
 
 void VisualizeBloomOverlayPS(
-	noperspective float4 UVAndScreenPos : TEXCOORD0
-	, out float4 OutColor : SV_Target0)
+	noperspective float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
+	out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
-	int2 PixelPos = (int2)ComputePixelPosCenter(UVAndScreenPos.zw, true);
+	int2 PixelPos = (int2)SvPosition.xy;
 
 	int2 ViewportCenter = (int2)(ViewportRect + ViewportSize / 2);
 

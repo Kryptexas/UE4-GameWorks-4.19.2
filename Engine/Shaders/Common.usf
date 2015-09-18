@@ -942,10 +942,26 @@ float ConvertToDeviceZ(float SceneDepth)
 }
 
 /** Returns clip space W, which is world space distance along the View Z axis. */
+float LookupDeviceZ( float2 ScreenUV )
+{
+#if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
+	return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
+#else
+	#if COMPILER_GLSL_ES2
+		return ConvertToDeviceZ(CalcSceneDepth(ScreenUV));
+	#elif METAL_PROFILE
+		return ConvertToDeviceZ(CalcSceneDepth(ScreenUV));
+	#else
+		return Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r;
+	#endif
+#endif
+}
+
+/** Returns clip space W, which is world space distance along the View Z axis. */
 float CalcSceneDepth( float2 ScreenUV )
 {
 #if FEATURE_LEVEL > FEATURE_LEVEL_ES3_1
-	return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+	return ConvertFromDeviceZ(LookupDeviceZ(ScreenUV));
 #else
 	#if COMPILER_GLSL_ES2
 		#if IOS
@@ -960,7 +976,7 @@ float CalcSceneDepth( float2 ScreenUV )
 	#elif METAL_PROFILE
 			return FramebufferFetchES2().w;
 	#else
-		return ConvertFromDeviceZ(Texture2DSampleLevel(SceneDepthTexture, SceneDepthTextureSampler, ScreenUV, 0).r);
+		return ConvertFromDeviceZ(LookupDeviceZ(ScreenUV));
 	#endif
 #endif
 }

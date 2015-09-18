@@ -196,7 +196,7 @@ void MainPixelShader(
 {
 	// Manual clipping here (alpha-test, etc)
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
 	// 2d velocity, includes camera an object motion

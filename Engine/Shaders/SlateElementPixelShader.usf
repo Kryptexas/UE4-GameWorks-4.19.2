@@ -76,7 +76,7 @@ void FillTexCoords( inout FMaterialPixelParameters Parameters, VertexToPixelInte
 float4 GetMaterialColor( VertexToPixelInterpolants InVertex, float2 MeshUV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
-	CalcMaterialParameters( Parameters, InVertex.Position, true, InVertex.Position );
+	CalcMaterialParameters( Parameters, InVertex.Position, true );
 
 	Parameters.VertexColor = InVertex.Color;
 

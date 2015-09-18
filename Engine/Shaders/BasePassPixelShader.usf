@@ -123,9 +123,9 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 		//uint FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
 		uint FrameRandom = (View.FrameNumber & 15) * 1551;
 
-		uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+		uint Morton = MortonCode( (uint)MaterialParameters.SvPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		uint PixelIndex = ReverseBits32( Morton ) >> 28;
-		//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+		//uint PixelIndex = ( (uint)MaterialParameters.SvPosition.x & 3 ) | ( ( (uint)MaterialParameters.SvPosition.y & 3 ) * 2 );
 		//PixelIndex = ( PixelIndex * 1551 ) & 15;
 
 		uint Offset = ( PixelIndex + FrameRandom ) & 15;
@@ -560,9 +560,9 @@ float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
 #endif	// HAS_INVERTED_Z_BUFFER
  		
 		// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
-		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
+		float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SvPosition.xy - View.TemporalAAParams.zw) * View.BufferSizeAndInvSize.zw, 0).r;
 
-		float PixelDeviceZ = MaterialParameters.SVPosition.z;
+		float PixelDeviceZ = MaterialParameters.SvPosition.z;
 
 		// Soft Bias with DeviceZ for best quality
 		const float DeviceDepthFade = 0.00005f;
@@ -649,13 +649,16 @@ void Main(
 	OutCoverage = InCoverage;
 #endif
 
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
-
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, BasePassInterpolants.PixelPosition
-#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-		, BasePassInterpolants.PixelPositionExcludingWPO
-#endif
-	);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
+	
+	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
+		{
+			float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, ComputeWorldWorldPosCamRelative(ScreenPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+		}
+	#else
+		CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
+	#endif
 
 #if USE_EDITOR_COMPOSITING && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || MOBILE_EMULATION)
 	const bool bEditorWeightedZBuffering = true;
@@ -924,7 +927,7 @@ void Main(
 		#endif
 
 		// -0.5 .. 0.5, could be optimzed as lower quality noise would be sufficient
-		float QuantizationBias = PseudoRandom( MaterialParameters.SVPosition.xy ) - 0.5f;
+		float QuantizationBias = PseudoRandom( MaterialParameters.SvPosition.xy ) - 0.5f;
 		EncodeGBuffer(GBuffer, OutGBufferA, OutGBufferB, OutGBufferC, OutGBufferD, OutGBufferE, OutGBufferVelocity, QuantizationBias);
 	#endif 
 

@@ -25,8 +25,8 @@ void Main(
 	,out float4 OutColor		: SV_Target0
 	)
 {
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, PixelPosition);
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, PixelPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
 
 	#if OUTPUT_PIXEL_DEPTH_OFFSET
 		ApplyPixelDepthOffsetToMaterialParameters(MaterialParameters, OutDepth);

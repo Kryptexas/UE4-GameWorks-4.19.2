@@ -158,8 +158,8 @@ void MainPixelShader(
 	out float4 OutColor		: SV_Target0
 	)
 {
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters( FactoryInterpolants, WorldPosition );
-	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, float4(0,0,.00001f,1));
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(FactoryInterpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
 	float2 LightMapUV,LightMapUV1;

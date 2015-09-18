@@ -328,7 +328,7 @@ uint GetStepCountFromQuality()
 //   1: blurred quarter res velocity from MotionBlurSetup
 //   2: half res velocity from MotionBlurSetup
 // half resolution output: RGB: color, A:blend to full res factor
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	// Screen Quad UV 0..1
 	float2 UV = UVAndScreenPos.xy;
@@ -624,7 +624,7 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
 		const int GapBetweenBuffers = 8;
 		const int FadeRegion = 16;
 
-		float2 PixelPos = ComputePixelPosCenter(UVAndScreenPos.zw, true);
+		float2 PixelPos = SvPosition.xy;
 		int2 PixelPosInt = ((uint2)PixelPos - LeftTop) / Scale; 
 
 		// 0  and 1 are valid buffers
@@ -849,7 +849,6 @@ void MainNewPS(
 
 	const uint StepCount = GetStepCountFromQuality() / 2;
 
-	//uint2 PixelPos = uint2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
 	uint2 PixelPos = SvPosition.xy;
 #if 0
 	float2 PosMod = float2( PixelPos & 1 );

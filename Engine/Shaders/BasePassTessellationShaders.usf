@@ -54,12 +54,9 @@ FBasePassVSToPS PassFinalizeTessellationOutput(FBasePassVSToDS Interpolants, flo
 		#endif
 #endif
 	}
-	
-	// Calc position-dependent interps
-	O.BasePassInterpolants.PixelPosition = WorldPosition;
 
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-		O.BasePassInterpolants.PixelPositionExcludingWPO = float4(Interpolants.BasePassInterpolants.WorldPositionExcludingWPO, 1);
+		O.BasePassInterpolants.PixelPositionExcludingWPO = Interpolants.BasePassInterpolants.WorldPositionExcludingWPO;
 	#endif
 
 	return O;

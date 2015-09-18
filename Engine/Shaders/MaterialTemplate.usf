@@ -115,17 +115,14 @@ struct FMaterialPixelParameters
 	/** World space light vector, only valid when rendering a light function. */
 	half3 LightVector;
 
-	/** Post projection position, before the divide by W. */
-	float4 ScreenPosition;
-
 	/**
 	 * Like SV_Position (.xy is pixel position at pixel center, z:DeviceZ, .w:SceneDepth)
-	 * Can be higher or lower quality (depending on HIGHQUALITY_PS_POSITION).
-	 * low quality: reconstructed from interpolated world position
-	 * high quality: using shader generated value SV_POSITION
-	 * Later we can replace "ScreenPosition" with that.
+	 * using shader generated value SV_POSITION
 	 */
-	float4 SVPosition;
+	float4 SvPosition;
+		
+	/** Post projection position reconstructed from SvPosition, before the divide by W. left..top -1..1, bottom..top -1..1  within the viewport, W is the SceneDepth */
+	float4 ScreenPosition;
 
 	half UnMirrored;
 
@@ -228,7 +225,7 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	#if USE_INSTANCING
 	MPP.PerInstanceParams = 0;
 	#endif
-	MPP.SVPosition = 0;
+	MPP.SvPosition = 0;
 #endif
 	MPP.TangentToWorld = float3x3(1,0,0,0,1,0,0,0,1);
 	return MPP;
@@ -1505,11 +1502,11 @@ float3 GetMaterialHemisphereLightTransferFull(float3 DiffuseColor,FMaterialPixel
 	       LowerLighting * LowerColor;
 }
 
-void ClipLODTransition(float2 SVPosition, float DitherFactor)
+void ClipLODTransition(float2 SvPosition, float DitherFactor)
 {
 	if (abs(DitherFactor) > .001)
 	{
-		float RandCos = cos(dot(floor(SVPosition.xy), float2(347.83451793,3343.28371963)));
+		float RandCos = cos(dot(floor(SvPosition.xy), float2(347.83451793,3343.28371963)));
 		float RandomVal = frac(RandCos * 1000.0);
 		half RetVal = (DitherFactor < 0.0) ?
 			(DitherFactor + 1.0 > RandomVal) :
@@ -1520,7 +1517,7 @@ void ClipLODTransition(float2 SVPosition, float DitherFactor)
 
 void ClipLODTransition(FMaterialPixelParameters Parameters, float DitherFactor)
 {
-	ClipLODTransition(Parameters.SVPosition.xy, DitherFactor);
+	ClipLODTransition(Parameters.SvPosition.xy, DitherFactor);
 }
 
 
@@ -1540,18 +1537,18 @@ void ClipLODTransition(FMaterialPixelParameters Parameters)
 		ClipLODTransition(Parameters, NonInstancedDitherLODFactor);
 	}
 }
-void ClipLODTransition(float2 SVPosition)
+void ClipLODTransition(float2 SvPosition)
 {
 	if (NonInstancedDitherLODFactor != 0.0)
 	{
-		ClipLODTransition(SVPosition, NonInstancedDitherLODFactor);
+		ClipLODTransition(SvPosition, NonInstancedDitherLODFactor);
 	}
 }
 #else
 void ClipLODTransition(FMaterialPixelParameters Parameters)
 {
 }
-void ClipLODTransition(float2 SVPosition)
+void ClipLODTransition(float2 SvPosition)
 {
 }
 #endif
@@ -1594,12 +1591,13 @@ void GetMaterialClippingShadowDepth(FMaterialPixelParameters Parameters)
 #endif
 
 /** Initializes the subset of Parameters that was not set in GetMaterialPixelParameters. */
-void CalcMaterialParameters(
+void CalcMaterialParametersEx(
 	in out FMaterialPixelParameters Parameters,
 	float4 SvPosition,
+	float4 ScreenPosition,
 	FIsFrontFace bIsFrontFace,
-	float4 PixelPosition,
-	float4 PixelPositionExcludingShaderOffsets)
+	float3 PixelPosition,
+	float3 PixelPositionExcludingShaderOffsets)
 {
 	// Remove the pre view translation
 	Parameters.WorldPosition_CamRelative = PixelPosition.xyz;
@@ -1608,27 +1606,20 @@ void CalcMaterialParameters(
 	// If the material uses any non-offset world position expressions, calculate those parameters. If not, 
 	// the variables will have been initialised to 0 earlier.
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	Parameters.WorldPosition_NoOffsets_CamRelative = PixelPositionExcludingShaderOffsets.xyz;
-	Parameters.WorldPosition_NoOffsets = PixelPositionExcludingShaderOffsets.xyz - View.PreViewTranslation.xyz;
+	Parameters.WorldPosition_NoOffsets_CamRelative = PixelPositionExcludingShaderOffsets;
+	Parameters.WorldPosition_NoOffsets = PixelPositionExcludingShaderOffsets - View.PreViewTranslation.xyz;
 #endif
 
-	Parameters.SVPosition = SvPosition;
+	Parameters.SvPosition = SvPosition;
+	Parameters.ScreenPosition = ScreenPosition;
 
-	{
-		float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
-		Parameters.ScreenPosition.xy = ( PixelPos * View.ViewSizeAndInvSize.zw - 0.5 ) * float2(2,-2);
-		Parameters.ScreenPosition.zw = SvPosition.zw;
-		Parameters.ScreenPosition.xyz *= Parameters.ScreenPosition.w;
-	}
-
-	// PixelPosition is the world position translated to the camera position, which is just -CameraVector
 #if COMPILER_GLSL_ES2
 	// ES2 normalize isn't done accurately. This seems to fix it.
 	// Originally this was normalize(normalize(PixelPosition.xyz)) but tegra4 appears to optimize that out.
-	Parameters.CameraVector = normalize(-0.01 * PixelPosition.xyz);
+	Parameters.CameraVector = normalize(-0.01 * Parameters.WorldPosition_CamRelative.xyz);
 #else
 	// PixelPosition is the world position translated to the camera position, which is just -CameraVector
-	Parameters.CameraVector = normalize(-PixelPosition.xyz);
+	Parameters.CameraVector = normalize(-Parameters.WorldPosition_CamRelative.xyz);
 #endif
 
 	Parameters.LightVector = 0;
@@ -1669,13 +1660,39 @@ void CalcMaterialParameters(
 #endif // !PARTICLE_SPRITE_FACTORY
 }
 
+float4 ComputeScreenPosition(float4 SvPosition)
+{
+	float4 ScreenPosition;
+
+	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
+	ScreenPosition.xy = ( PixelPos * View.ViewSizeAndInvSize.zw - 0.5 ) * float2(2,-2);
+	// clipspace
+	ScreenPosition.zw = SvPosition.zw;
+	// viewspace
+	ScreenPosition.xyz *= ScreenPosition.w;
+
+	return ScreenPosition;
+}
+
+// this will be optimized to not use ScreenPosition
+float3 ComputeWorldWorldPosCamRelative(float4 ScreenPosition)
+{
+	float4 TranslatedWorld = mul( ScreenPosition, View.ClipToTranslatedWorld );
+
+	return TranslatedWorld.xyz / TranslatedWorld.w;
+}
+
+// convenience function to setup CalcMaterialParameters assuming we don't support PixelPositionExcludingShaderOffsets
+// @param SvPosition from SV_Position when rendering the view, for other projections e.g. shadowmaps this function cannot be used and you need to call CalcMaterialParametersEx()
 void CalcMaterialParameters(
 	in out FMaterialPixelParameters Parameters,
 	float4 SvPosition,
-	FIsFrontFace bIsFrontFace,
-	float4 PixelPosition)
+	FIsFrontFace bIsFrontFace)
 {
-	CalcMaterialParameters(Parameters, SvPosition, bIsFrontFace, PixelPosition, PixelPosition);
+	float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+	float3 PixelPosition = ComputeWorldWorldPosCamRelative(ScreenPosition);
+
+	CalcMaterialParametersEx(Parameters, SvPosition, ScreenPosition, bIsFrontFace, PixelPosition, PixelPosition);
 }
 
 /** Assemble the transform from tangent space into world space */
@@ -1733,7 +1750,7 @@ float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters M
 
 	// Update positions used for shading
 	MaterialParameters.ScreenPosition.w += PixelDepthOffset;
-	MaterialParameters.SVPosition.w = MaterialParameters.ScreenPosition.w;
+	MaterialParameters.SvPosition.w = MaterialParameters.ScreenPosition.w;
 	MaterialParameters.WorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
 
 	OutDepth = MaterialParameters.ScreenPosition.z / MaterialParameters.ScreenPosition.w;

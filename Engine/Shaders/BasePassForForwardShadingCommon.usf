@@ -32,7 +32,7 @@ struct FSharedForwardShadingBasePassInterpolants
 	float4 PixelPosition	: TEXCOORD8; // xyz = world position, w = clip z
 
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	float4 PixelPositionExcludingWPO	: TEXCOORD9;
+	float3 PixelPositionExcludingWPO	: TEXCOORD9;
 #endif
 };
 

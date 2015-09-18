@@ -93,11 +93,11 @@ void ScreenSpaceReflectionsStencilPS(in float4 UVAndScreenPos : TEXCOORD0, out f
 	OutColor = 0;
 }
 
-void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void ScreenSpaceReflectionsPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 	float2 ScreenPos = UVAndScreenPos.zw;
-	int2 PixelPos = int2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);
+	int2 PixelPos = (int2)SvPosition.xy;
 
 	OutColor = 0;
 
@@ -149,7 +149,7 @@ void ScreenSpaceReflectionsPS(in float4 UVAndScreenPos : TEXCOORD0, out float4 O
 	const int NumSteps = 16;
 	
 	{
-		const float2 PixelPos = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw;
+		const float2 PixelPos = SvPosition.xy;
 		const float2 E = float2(PseudoRandom(PixelPos + int2(FrameRandom, 0)), PseudoRandom(PixelPos + int2(0, FrameRandom)));
 		const float StepOffset = PseudoRandom(PixelPos + FrameRandom);
 

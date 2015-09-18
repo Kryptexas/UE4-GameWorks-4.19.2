@@ -500,7 +500,7 @@ float3 ReconstructNormal(float2 In)
 }
 
 // the main pixel shader that computes ambient occlusion
-void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	OutColor = 0;
 
@@ -676,7 +676,7 @@ void MainPS(in noperspective float4 UVAndScreenPos : TEXCOORD0, out float4 OutCo
 		float4 dX = ddx_fine(CenterPixel);
 		float4 dY = ddy_fine(CenterPixel);
 
-		int2 Mod = (uint2)ComputePixelPosCenter(ScreenPos, true) % 2;
+		int2 Mod = (uint2)(SvPosition.xy) % 2;
 
 		float4 PixA = CenterPixel;
 		float4 PixB = CenterPixel - dX * (Mod.x * 2 - 1);

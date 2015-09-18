@@ -25,10 +25,10 @@ struct FSharedBasePassInterpolants
 #endif
 
 #if !PC_D3D && !GL4_PROFILE
-	float4 PixelPosition	: TEXCOORD8;
+	// Note: TEXCOORD8 is unused
 
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	float4 PixelPositionExcludingWPO : TEXCOORD9;
+	float3 PixelPositionExcludingWPO : TEXCOORD9;
 	#endif
 #endif
 
@@ -46,10 +46,10 @@ struct FSharedBasePassInterpolants
 /** Interpolants passed from the vertex shader to the pixel shader. */
 struct FBasePassInterpolantsVSToPS : FSharedBasePassInterpolants
 {
-	float4 PixelPosition	: TEXCOORD8;
+	// Note: TEXCOORD8 is unused
 
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
-	float4 PixelPositionExcludingWPO : TEXCOORD9;
+	float3 PixelPositionExcludingWPO : TEXCOORD9;
 	#endif
 };
 

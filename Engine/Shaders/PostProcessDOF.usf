@@ -135,12 +135,13 @@ float4 DepthOfFieldUVLimit;
 
 // pixel shader to combine the full res scene and the blurred images behind and in front of the the focal plane
 void MainRecombinePS(
-	in float4 UVAndScreenPos : TEXCOORD0,
+	noperspective in float4 UVAndScreenPos : TEXCOORD0,
+	float4 SvPosition : SV_POSITION,
 	out float4 OutColor : SV_Target0
 	)
 {
 	// SceneColor in full res
-	float2 PixelPosCenter = UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f;
+	float2 PixelPosCenter = SvPosition.xy;
 
 	float2 FullResUV = PixelPosCenter * PostprocessInput0Size.zw;
 

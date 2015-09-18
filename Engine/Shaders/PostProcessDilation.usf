@@ -9,12 +9,12 @@
 
 
 // pixel shader
-void MainPS(float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Target0)
+void MainPS(noperspective float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
 	float2 UV = UVAndScreenPos.xy;
 	// screen position in [-1, 1] screen space
 	float2 ScreenSpacePos = UVAndScreenPos.zw;
-	int3 PixelPos = int3((int2)(ScreenSpacePos * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f), 0);
+	int3 PixelPos = int3((int2)(SvPosition.xy), 0);
 
 	OutColor = PostprocessInput0.Load(PixelPos);
 

@@ -342,7 +342,7 @@ void SetUV(inout FVertexFactoryInterpolantsVSToPS Interpolants, int UVIndex, flo
  * @param Interpolants - Attributes interpolated from the vertex shader.
  * @returns per-pixel material parameters.
  */
-FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsVSToPS Interpolants, float4 PixelPosition )
+FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsVSToPS Interpolants, float4 SvPosition )
 {
 	// GetMaterialPixelParameters is responsible for fully initializing the result
 	FMaterialPixelParameters Result = MakeInitializedMaterialPixelParameters();
@@ -374,7 +374,13 @@ FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsV
 #endif
 
 #if USE_SPHERICAL_NORMALS
-	Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition.xyz + View.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+	// can be optimized
+	{
+		float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+		float3 PixelPosition = ComputeWorldWorldPosCamRelative(ScreenPosition);
+
+		Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition + View.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+	}
 #else
 	half3 TangentToWorld0 = Interpolants.TangentToWorld0.xyz;
 	half4 TangentToWorld2 = Interpolants.TangentToWorld2;
