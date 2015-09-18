@@ -4716,21 +4716,27 @@ bool FSlateApplication::ProcessMouseButtonDoubleClickEvent( const TSharedPtr< FG
 	PlatformApplication->SetCapture( PlatformWindow );
 	PressedMouseButtons.Add( InMouseEvent.GetEffectingButton() );
 
-	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse( InMouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows() );
+	if (MouseCaptor.HasCaptureForPointerIndex(InMouseEvent.GetUserIndex(), InMouseEvent.GetPointerIndex()))
+	{
+		// If a widget has mouse capture, we've opted to simply treat this event as a mouse down
+		return ProcessMouseButtonDownEvent(PlatformWindow, InMouseEvent);
+	}
+	
+	FWidgetPath WidgetsUnderCursor = LocateWindowUnderMouse(InMouseEvent.GetScreenSpacePosition(), GetInteractiveTopLevelWindows());
 
 	// Switch worlds widgets in the current path
-	FScopedSwitchWorldHack SwitchWorld( WidgetsUnderCursor );
+	FScopedSwitchWorldHack SwitchWorld(WidgetsUnderCursor);
 
-	FReply Reply = FEventRouter::Route<FReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), InMouseEvent, [](const FArrangedWidget& TargetWidget, const FPointerEvent& Event)
+	FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), InMouseEvent, [](const FArrangedWidget& TargetWidget, const FPointerEvent& Event)
 	{
-		return TargetWidget.Widget->OnMouseButtonDoubleClick( TargetWidget.Geometry, Event );
-	} );
+		return TargetWidget.Widget->OnMouseButtonDoubleClick(TargetWidget.Geometry, Event);
+	});
 
 
-	LOG_EVENT( EEventLog::MouseButtonDoubleClick, Reply );
+	LOG_EVENT(EEventLog::MouseButtonDoubleClick, Reply);
 
 	PointerIndexLastPositionMap.Add(InMouseEvent.GetPointerIndex(), InMouseEvent.GetScreenSpacePosition());
-
+	
 	return Reply.IsEventHandled();
 }
 
