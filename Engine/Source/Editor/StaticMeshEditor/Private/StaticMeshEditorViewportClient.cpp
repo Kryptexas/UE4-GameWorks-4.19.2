@@ -1174,8 +1174,11 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 		);
 
 	ToggleOrbitCamera(bWasOrbit);
-	SetViewLocation(OldCameraLocation);
-	SetViewRotation(OldCameraRotation);
+	if (!GetViewTransform().IsPlaying())
+	{
+		SetViewLocation(OldCameraLocation);
+		SetViewRotation(OldCameraRotation);
+	}
 }
 
 void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)
