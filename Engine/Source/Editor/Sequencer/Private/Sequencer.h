@@ -398,6 +398,11 @@ protected:
 	 */
 	void FindInContentBrowser();
 
+	/**
+	 * Get the asset we're currently editing, if applicable
+	 */
+	UObject* GetCurrentAsset() const;
+
 protected:
 
 	/** Called via UEditorEngine::GetActorRecordingStateEvent to check to see whether we need to record actor state */

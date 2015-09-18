@@ -1340,10 +1340,17 @@ void FSequencer::FindInContentBrowser()
 	if (GetFocusedMovieSceneSequence())
 	{
 		TArray<UObject*> ObjectsToFocus;
-		ObjectsToFocus.Add(GetFocusedMovieSceneSequence());
+		ObjectsToFocus.Add(GetCurrentAsset());
 
 		GEditor->SyncBrowserToObjects(ObjectsToFocus);
 	}
+}
+
+UObject* FSequencer::GetCurrentAsset() const
+{
+	// For now we find the asset by looking at the root movie scene's outer.
+	// @todo: this may need refining if/when we support editing movie scene instances
+	return GetFocusedMovieSceneSequence()->GetMovieScene()->GetOuter();
 }
 
 void FSequencer::VerticalScroll(float ScrollAmountUnits)
@@ -1776,7 +1783,7 @@ void FSequencer::UpdatePreviewLevelViewportClientFromCameraCut( FLevelEditorView
 
 void FSequencer::SaveCurrentMovieScene()
 {
-	UPackage* MovieScenePackage = GetFocusedMovieSceneSequence()->GetOutermost();
+	UPackage* MovieScenePackage = GetCurrentAsset()->GetOutermost();
 
 	TArray<UPackage*> PackagesToSave;
 
