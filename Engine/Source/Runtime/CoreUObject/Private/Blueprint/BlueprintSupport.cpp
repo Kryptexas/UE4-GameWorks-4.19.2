@@ -1862,7 +1862,10 @@ bool FReplaceCookedBPGC::CouldBeConverted(const UObject* Object) const
 {
 	if (Object && !Object->HasAnyFlags(RF_ClassDefaultObject) && FConvertibleTypeHelper::IsConvertible(Object))
 	{
-		// TODO: check excluded assets list.
+		if (IsTargetedForConversionDelegate.IsBound())
+		{
+			return IsTargetedForConversionDelegate.Execute(Object);
+		}
 		return true;
 	}
 	return false;

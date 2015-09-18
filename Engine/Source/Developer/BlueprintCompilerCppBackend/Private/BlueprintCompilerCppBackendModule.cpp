@@ -4,6 +4,7 @@
 #include "IBlueprintCompilerCppBackendModule.h"
 #include "ModuleManager.h"
 #include "BlueprintCompilerCppBackend.h"
+#include "BlueprintCompilerCppBackendUtils.h" // for FEmitHelper::GetBaseFilename()
 
 class FBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendModule
 {
@@ -32,4 +33,10 @@ void FBlueprintCompilerCppBackendModule::ShutdownModule()
 IBlueprintCompilerCppBackend* FBlueprintCompilerCppBackendModule::Create()
 {
 	return new FBlueprintCompilerCppBackend();
+}
+
+FString IBlueprintCompilerCppBackendModule::GetBaseFilename(const UObject* AssetObj)
+{
+	// use the same function that the backend uses for #includes
+	return FEmitHelper::GetBaseFilename(AssetObj);
 }

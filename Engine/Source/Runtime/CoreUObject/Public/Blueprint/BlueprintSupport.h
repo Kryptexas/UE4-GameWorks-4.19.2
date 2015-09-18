@@ -157,6 +157,12 @@ public:
 	// The object is of a convertible type, and the object is not listed in excluded assets.
 	bool CouldBeConverted(const UObject* Object) const;
 	bool PackageShouldNotBeSaved(const UPackage* InOuter) const;
+
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FIsTargetedForConversionQuery, const UObject*);
+	FIsTargetedForConversionQuery& OnQueryIfAssetIsTargetedForConversion() { return IsTargetedForConversionDelegate; }
+
+private: 
+	FIsTargetedForConversionQuery IsTargetedForConversionDelegate;
 };
 
 #endif //WITH_EDITOR

@@ -7,8 +7,10 @@
 /**
  * The public interface to this module
  */
-class IBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendModuleInterface
+class BLUEPRINTCOMPILERCPPBACKEND_API IBlueprintCompilerCppBackendModule : public IBlueprintCompilerCppBackendModuleInterface
 {
+public:
 
+	static FString GetBaseFilename(const UObject* AssetObj);
 };
 

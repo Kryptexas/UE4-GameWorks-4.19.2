@@ -219,6 +219,8 @@ struct FEmitHelper
 	static bool GenerateAutomaticCast(const FEdGraphPinType& LType, const FEdGraphPinType& RType, FString& OutCastBegin, FString& OutCastEnd);
 
 	static FString GenerateReplaceConvertedMD(UObject* Obj);
+
+	static FString GetBaseFilename(const UObject* AssetObj);
 };
 
 struct FEmitDefaultValueHelper

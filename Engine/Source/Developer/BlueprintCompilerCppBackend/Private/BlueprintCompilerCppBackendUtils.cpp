@@ -411,6 +411,13 @@ FString FEmitHelper::GenerateReplaceConvertedMD(UObject* Obj)
 	return Result;
 }
 
+FString FEmitHelper::GetBaseFilename(const UObject* AssetObj)
+{
+	// @TODO: See DanO about properly handling special asset names (w/ unicode, conflicts, etc.)
+	FString PackagePath = AssetObj->GetOutermost()->GetPathName();
+	return FPackageName::GetLongPackageAssetName(PackagePath);
+}
+
 FString FEmitHelper::EmitUFuntion(UFunction* Function, TArray<FString>* AdditinalMetaData)
 {
 	TArray<FString> Tags = FEmitHelper::FunctionFlagsToTags(Function->FunctionFlags);
