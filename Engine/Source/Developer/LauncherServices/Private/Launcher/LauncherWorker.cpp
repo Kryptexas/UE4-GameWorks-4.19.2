@@ -316,9 +316,9 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		*InitialMap);
 
 	// additional commands to be sent to the commandline
-	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"-SessionId=%s -SessionOwner=%s -SessionName='%s'%s\""),
+	FString AdditionalCommandLine = FString::Printf(TEXT(" -addcmdline=\"-SessionId=%s -SessionOwner='%s' -SessionName='%s'%s\""),
 		*SessionId.ToString(),
-		FPlatformProcess::UserName(true),
+		FPlatformProcess::UserName(false),
 		*InProfile->GetName(),
 		*RoleCommands);
 

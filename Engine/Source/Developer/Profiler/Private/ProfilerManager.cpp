@@ -405,7 +405,7 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged(const TSharedPt
 {
 	const ISessionInfoPtr& SelectedSession = SessionManager->GetSelectedSession();
 	const bool SessionIsValid = SelectedSession.IsValid()
-		&& (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(true))
+		&& (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
 		&& (SessionManager->GetSelectedInstances().Num() > 0);
 
 	if( ActiveSession != SelectedSession || FProfilerManager::GetSettings().bSingleInstanceMode )

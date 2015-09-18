@@ -81,7 +81,7 @@ protected:
 		// return name of a launched session
 		if (!SessionName.IsEmpty())
 		{
-			if (SessionInfo->GetSessionOwner() != FPlatformProcess::UserName(true))
+			if (SessionInfo->GetSessionOwner() != FPlatformProcess::UserName(false))
 			{
 				return FText::Format(LOCTEXT("SessionNameFormat", "{0} - {1}"), FText::FromString(SessionName), FText::FromString(SessionOwner));
 			}
@@ -103,7 +103,7 @@ protected:
 			}
 		}
 
-		if (SessionInfo->GetSessionOwner() != FPlatformProcess::UserName(true))
+		if (SessionInfo->GetSessionOwner() != FPlatformProcess::UserName(false))
 		{
 			return FText::Format(LOCTEXT("UnnamedSessionFormat", "Unnamed - {0}"), FText::FromString(SessionOwner));
 		}

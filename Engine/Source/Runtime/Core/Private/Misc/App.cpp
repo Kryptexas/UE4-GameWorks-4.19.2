@@ -113,7 +113,7 @@ void FApp::InitializeSession()
 
 	if (!FParse::Value(FCommandLine::Get(), TEXT("-SessionOwner="), SessionOwner))
 	{
-		SessionOwner = FPlatformProcess::UserName(true);
+		SessionOwner = FPlatformProcess::UserName(false);
 	}
 }
 

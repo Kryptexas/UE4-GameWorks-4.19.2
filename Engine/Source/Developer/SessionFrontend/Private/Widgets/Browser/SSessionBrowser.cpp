@@ -170,7 +170,7 @@ void SSessionBrowser::FilterSessions()
 	for (auto& SessionInfo : AvailableSessions)
 	{
 		// process session
-		bool LocalOwner = SessionInfo->GetSessionOwner() == FPlatformProcess::UserName(true);
+		bool LocalOwner = SessionInfo->GetSessionOwner() == FPlatformProcess::UserName(false);
 
 		if (!SessionInfo->IsStandalone() && !LocalOwner)
 		{
@@ -451,7 +451,7 @@ FReply SSessionBrowser::HandleTerminateSessionButtonClicked()
 
 		if (SelectedSession.IsValid())
 		{
-			if (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(true))
+			if (SelectedSession->GetSessionOwner() == FPlatformProcess::UserName(false))
 			{
 				SelectedSession->Terminate();
 			}

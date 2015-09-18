@@ -680,7 +680,7 @@ TSharedRef< SWidget > FPlayWorldCommands::GenerateLaunchMenuContent( TSharedRef<
 						{
 							LabelArguments.Add(TEXT("HostUser"), LOCTEXT("DisconnectedHint", " [Disconnected]"));
 						}
-						else if (DeviceProxy->GetHostUser() != FPlatformProcess::UserName(true))
+						else if (DeviceProxy->GetHostUser() != FPlatformProcess::UserName(false))
 						{
 							LabelArguments.Add(TEXT("HostUser"), FText::FromString(DeviceProxy->GetHostUser()));
 						}
