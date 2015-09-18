@@ -410,17 +410,20 @@ void SSessionBrowser::HandleSessionTreeViewSelectionChanged(const TSharedPtr<FSe
 	{
 		if (Item.IsValid())
 		{
-			const auto& InstanceInfo = StaticCastSharedPtr<FSessionBrowserInstanceTreeItem>(Item)->GetInstanceInfo();
-
-			if (InstanceInfo.IsValid())
+			if (Item->GetType() == ESessionBrowserTreeNodeType::Instance)
 			{
-				// special handling for local application
-				if (Item->GetParent() == AppGroupItem)
-				{
-					SessionManager->SelectSession(InstanceInfo->GetOwnerSession());
-				}
+				const auto& InstanceInfo = StaticCastSharedPtr<FSessionBrowserInstanceTreeItem>(Item)->GetInstanceInfo();
 
-				SessionManager->SetInstanceSelected(InstanceInfo.ToSharedRef(), true);
+				if (InstanceInfo.IsValid())
+				{
+					// special handling for local application
+					if (Item->GetParent() == AppGroupItem)
+					{
+						SessionManager->SelectSession(InstanceInfo->GetOwnerSession());
+					}
+
+					SessionManager->SetInstanceSelected(InstanceInfo.ToSharedRef(), true);
+				}
 			}
 		}
 		else
