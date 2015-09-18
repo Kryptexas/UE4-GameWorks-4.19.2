@@ -3,8 +3,14 @@
 #include "NetcodeUnitTestPCH.h"
 
 #include "ProcessUnitTest.h"
+#include "UnitTestManager.h"
 
 #include "UnitTestEnvironment.h"
+
+#include "SLogWindow.h"
+#include "SLogWidget.h"
+
+#include "Regex.h"
 
 
 /**

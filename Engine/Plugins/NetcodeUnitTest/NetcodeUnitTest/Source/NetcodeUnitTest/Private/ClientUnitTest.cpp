@@ -17,13 +17,10 @@
 #include "NUTUtilReflection.h"
 
 #include "LogWindowManager.h"
-#include "SLogWindow.h"
-#include "SLogWidget.h"
 
 #include "OnlineBeaconClient.h"
 
 #include "Engine/ActorChannel.h"
-#include "Regex.h"
 
 
 // @todo #JohnBMultiFakeClient: Eventually, move >all< of the minimal/headless client handling code, into a new/separate class,
