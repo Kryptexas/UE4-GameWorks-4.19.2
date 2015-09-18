@@ -183,8 +183,13 @@ void FUdpMessageProcessor::ConsumeInboundSegments()
 		{
 			FNodeInfo& NodeInfo = KnownNodes.FindOrAdd(Header.SenderNodeId);
 
+			if (!NodeInfo.NodeId.IsValid())
+			{
+				NodeInfo.NodeId = Header.SenderNodeId;
+				NodeDiscoveredDelegate.ExecuteIfBound(NodeInfo.NodeId);
+			}
+
 			NodeInfo.Endpoint = Segment.Sender;
-			NodeInfo.NodeId = Header.SenderNodeId;
 
 			switch (Header.SegmentType)
 			{
@@ -232,6 +237,11 @@ void FUdpMessageProcessor::ConsumeOutboundMessages()
 
 	while (OutboundMessages.Dequeue(OutboundMessage))
 	{
+		if (OutboundMessage.SerializedMessage->TotalSize() > 1024 * 65536)
+		{
+			continue;
+		}
+
 		++LastSentMessage;
 
 		FNodeInfo& RecipientNodeInfo = KnownNodes.FindOrAdd(OutboundMessage.RecipientId);

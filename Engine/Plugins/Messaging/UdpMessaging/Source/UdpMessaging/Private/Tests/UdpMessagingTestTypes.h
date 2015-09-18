@@ -11,11 +11,17 @@ struct FUdpMockMessage
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	int32 Foo;
+	TArray<uint8> Data;
 
 	FUdpMockMessage()
-		: Foo(123)
-	{ }
+	{
+		Data.AddUninitialized(64);
+	}
+
+	FUdpMockMessage(int32 DataSize)
+	{
+		Data.AddUninitialized(DataSize);
+	}
 };
 
 
@@ -33,6 +39,19 @@ public:
 		, TypeInfo(FUdpMockMessage::StaticStruct())
 	{
 		FMessageAddress::Parse(TEXT("11111111-22222222-33333333-44444444"), Sender);
+	}
+
+	~FUdpMockMessageContext()
+	{
+		if (Message != nullptr)
+		{
+			if (TypeInfo.IsValid())
+			{
+				TypeInfo->DestroyStruct(Message);
+			}
+
+			FMemory::Free(Message);
+		}
 	}
 
 public:
