@@ -468,6 +468,11 @@ void FSlateBatchData::Merge(FElementBatchMap& InLayerToElementBatches, uint32& V
 							VertexOffset += BatchVertices.Num();
 							IndexOffset += BatchIndices.Num();
 						}
+						else
+						{
+							VertexArrayFreeList.Add(ElementBatch.VertexArrayIndex);
+							IndexArrayFreeList.Add(ElementBatch.IndexArrayIndex);
+						}
 					}
 				}
 			}
