@@ -2,6 +2,7 @@ Availability:Public
 Title: UMG UI Designer
 Crumbs:%ROOT%, Engine
 Description:A guide to using Unreal Motion Graphics to create UI elements. 
+Version: 4.9
 
 [VAR:Topic]
 [OBJECT:Topic]
