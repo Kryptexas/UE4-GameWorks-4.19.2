@@ -7,6 +7,8 @@
 #include "CoreUObjectPrivate.h"
 #include "UObject/UObjectThreadContext.h"
 
+DEFINE_LOG_CATEGORY(LogUObjectThreadContext);
+
 FUObjectThreadContext::FUObjectThreadContext()
 : ImportCount(0)
 , ForcedExportCount(0)

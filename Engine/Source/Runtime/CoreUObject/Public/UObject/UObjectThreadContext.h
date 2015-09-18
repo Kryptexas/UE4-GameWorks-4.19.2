@@ -6,14 +6,57 @@
 
 #pragma once
 
+DECLARE_LOG_CATEGORY_EXTERN(LogUObjectThreadContext, Log, All);
+
 class COREUOBJECT_API FUObjectThreadContext : public TThreadSingleton<FUObjectThreadContext>
 {
 	friend TThreadSingleton<FUObjectThreadContext>;
 
 	FUObjectThreadContext();
 
+	/** Stack of currently used FObjectInitializers for this thread */
+	TArray<FObjectInitializer*> InitializerStack;
+
 public:
 	
+	/**
+	* Remove top element from the stack.
+	*/
+	void PopInitializer()
+	{
+		InitializerStack.Pop(/*bAllowShrinking=*/ false);
+	}
+
+	/**
+	* Push new FObjectInitializer on stack.
+	* @param	Initializer			Object initializer to push.
+	*/
+	void PushInitializer(FObjectInitializer* Initializer)
+	{
+		InitializerStack.Push(Initializer);
+	}
+
+	/**
+	* Retrieve current FObjectInitializer for current thread.
+	* @return Current FObjectInitializer.
+	*/
+	FObjectInitializer* TopInitializer()
+	{
+		return InitializerStack.Num() ? InitializerStack.Last() : nullptr;
+	}
+
+	/**
+	* Retrieves current FObjectInitializer for current thread. Will assert of no ObjectInitializer is currently set.
+	* @return Current FObjectInitializer reference.
+	*/
+	FObjectInitializer& TopInitializerChecked()
+	{
+		FObjectInitializer* ObjectInitializerPtr = TopInitializer();
+		UE_CLOG(!ObjectInitializerPtr, LogUObjectThreadContext, Fatal, TEXT("Tried to get the current ObjectInitializer, but none is set. Please use NewObject or NewNamedObject to construct new UObject-derived classes."));
+		return *ObjectInitializerPtr;
+	}
+
+
 	/** Imports for EndLoad optimization.	*/
 	int32 ImportCount;
 	/** Forced exports for EndLoad optimization. */

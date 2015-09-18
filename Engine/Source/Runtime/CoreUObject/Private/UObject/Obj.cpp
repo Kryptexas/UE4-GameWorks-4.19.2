@@ -13,7 +13,6 @@
 #include "Serialization/ArchiveDescribeReference.h"
 #include "FindStronglyConnected.h"
 #include "HotReloadInterface.h"
-#include "UObject/TlsObjectInitializers.h"
 #include "UObject/UObjectThreadContext.h"
 #include "ExclusiveLoadPackageTimeTracker.h"
 #include "Serialization/DeferredMessageLog.h"
@@ -81,7 +80,7 @@ void UObject::EnsureNotRetrievingVTablePtr() const
 
 UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
 {
-	auto CurrentInitializer = FTlsObjectInitializers::Top();
+	FObjectInitializer* CurrentInitializer = FUObjectThreadContext::Get().TopInitializer();
 	UE_CLOG(!CurrentInitializer, LogObj, Fatal, TEXT("No object initializer found during construction."));
 	UE_CLOG(CurrentInitializer->Obj != this, LogObj, Fatal, TEXT("Using incorrect object initializer."));
 	return CurrentInitializer->CreateDefaultSubobject(this, SubobjectFName, ReturnType, ClassToCreateByDefault, bIsRequired, bAbstract, bIsTransient);
@@ -89,7 +88,7 @@ UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnTyp
 
 UObject* UObject::CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient)
 {
-	auto CurrentInitializer = FTlsObjectInitializers::Top();
+	FObjectInitializer* CurrentInitializer = FUObjectThreadContext::Get().TopInitializer();
 	return CurrentInitializer->CreateEditorOnlyDefaultSubobject(this, SubobjectName, ReturnType, bTransient);
 }
 
