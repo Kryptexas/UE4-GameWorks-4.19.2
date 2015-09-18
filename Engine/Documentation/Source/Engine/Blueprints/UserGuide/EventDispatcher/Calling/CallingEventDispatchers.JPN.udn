@@ -1,8 +1,9 @@
-﻿INTSourceChangelist:2419450
+﻿INTSourceChangelist:2688231
 Availability:Public
-Title:イベント ディスパッチャーを呼び出す
+Title:イベント ディスパッチャーの呼び出し
 Crumbs: %ROOT%, Engine, Engine/Blueprints, Engine/Blueprints/UserGuide, Engine/Blueprints/UserGuide/EventDispatcher
 Description:イベント ディスパッチャーを呼び出すと、イベント リストで現在バインドされているすべてのイベントが実行されます。
+version:4.9
 
 
 
@@ -13,7 +14,7 @@ Description:イベント ディスパッチャーを呼び出すと、イベン�
 
 [EXCERPT:Intro]
 イベント ディスパッチャーを **Call** ノードで呼び出すと、イベント ディスパッチャーに接続しているすべてのイベントが発行されます。各イベント ディスパッチャーに対して 1 つ以上の **Call** ノードを持つことができます。
-また、 _Blueprint クラス_ と _Level ブループリント_ の両方でイベント ディスパッチャーを呼び出すこともできます。
+また、Blueprint クラスと Level ブループリンの両方でイベント ディスパッチャーを呼び出すこともできます。
 [/EXCERPT:Intro]
 
 
@@ -29,18 +30,18 @@ Description:イベント ディスパッチャーを呼び出すと、イベン�
 
 1. グラフを **右クリック** します。
 
-1. コンテキスト メニューが表示されたら、 **[イベントディスパッチャー]** を展開します。
+1. コンテキスト メニューが表示されたら、**[Event Dispatcher (イベントディスパッチャー)]** を展開します。
 
 	![](event_dispatcher_context.png)
 
-1. **[イベントディスパッチャー]** にある **Call [EventDispatcherName]** を選択します。
+1. **[Event Dispatcher]** にある **[Call EventDispacherName (イベントディスパッチャー名を呼び出す)]** を選択します。
 
 	![](event_dispatcher_context_name.png)
 
 
 ## Level ブループリントで呼び出す
 
-1. イベントディスパッチャーを呼ぶレベルのアクタへ [リファレンスを追加](Engine/Blueprints/UserGuide/Types/LevelBlueprint#アクタを参照する) します。
+1. イベントディスパッチャーを呼び出すレベルのアクタへ [リファレンスを追加](Engine/Blueprints/UserGuide/Types/LevelBlueprint#アクタを参照する) します。
 
 	![](target_step1.png)
 
@@ -48,7 +49,7 @@ Description:イベント ディスパッチャーを呼び出すと、イベン�
 
 	![](empty_context_menu.png)
 
-1. コンテキスト メニューから 、 **イベントディスパッチャー > Call [EventDispatcherName]** へ移ります。「Event Call」を検索すると、ただちに適切なエントリが表示されます。
+1. コンテキスト メニューから、**[Event Dispatcher] > [Call [EventDispatcherName]]** へ移ります。「Event Call」を検索すると、ただちに適切なエントリが表示されます。
 
 	![](call_node_level.png)
 
