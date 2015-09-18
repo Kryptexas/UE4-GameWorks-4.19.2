@@ -254,6 +254,9 @@ bool UPlayerInput::InputTouch(uint32 Handle, ETouchType::Type Type, const FVecto
 		break;
 	}
 
+	// store current touch location paired with event id
+	TouchEventLocations.Add(EventCount, Touches[Handle]);
+
 	// accumulate deltas until processed next
 	KeyState.SampleCountAccumulator++;
 	KeyState.RawValueAccumulator = KeyState.Value = KeyState.RawValue = FVector(TouchLocation.X, TouchLocation.Y, 0);
@@ -976,11 +979,12 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 						if (TB.bExecuteWhenPaused || !bGamePaused)
 						{
 							check(EventIndices.Num() > 0);
-							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, Touches[TouchIndex], TouchIndex);
+							FDelegateDispatchDetails TouchInfo(EventIndices[0], NonAxisDelegates.Num(), TB.TouchDelegate, TouchEventLocations[EventIndices[0]], TouchIndex);
 							NonAxisDelegates.Add(TouchInfo);
 							for (int32 EventsIndex = 1; EventsIndex < EventIndices.Num(); ++EventsIndex)
 							{
 								TouchInfo.EventIndex = EventIndices[EventsIndex];
+								TouchInfo.TouchLocation = TouchEventLocations[TouchInfo.EventIndex];
 								NonAxisDelegates.Add(TouchInfo);
 							}
 						}
@@ -1151,6 +1155,7 @@ void UPlayerInput::ProcessInputStack(const TArray<UInputComponent*>& InputCompon
 	AxisDelegates.Reset();
 	VectorAxisDelegates.Reset();
 	NonAxisDelegates.Reset();
+	TouchEventLocations.Reset();
 }
 
 void UPlayerInput::DiscardPlayerInput()
