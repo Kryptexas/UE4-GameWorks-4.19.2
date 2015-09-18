@@ -118,13 +118,25 @@ public:
 		}
 		else if (ColumnName == "Status")
 		{
-			return SNew(SBox)
-				.Padding(FMargin(4.0f, 0.0f))
+			return SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.Padding(FMargin(4.0f, 0.0f, 0.0f, 0.0f))
+				.HAlign(HAlign_Right)
 				.VAlign(VAlign_Center)
 				[
-					SNew(STextBlock)
-						.ColorAndOpacity(this, &SSessionBrowserTreeInstanceRow::HandleTextColorAndOpacity)
-						.Text(this, &SSessionBrowserTreeInstanceRow::HandleStatusColumnText)
+					SNew(SImage)
+						.Image(this, &SSessionBrowserTreeInstanceRow::HandleAuthorizedImage)
+				]
+
+			+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(FMargin(2.0f, 0.0f, 0.0f, 4.0f))
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage)
+						.Image(this, &SSessionBrowserTreeInstanceRow::HandleStatusImage)
 				];
 		}
 		else if (ColumnName == "Type")
@@ -149,6 +161,19 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 private:
+
+	/** Callback for getting the image of the Authorized icon. */
+	const FSlateBrush* HandleAuthorizedImage() const
+	{
+		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
+
+		if (InstanceInfo.IsValid() && !InstanceInfo->IsAuthorized())
+		{
+			return FEditorStyle::GetBrush("SessionBrowser.SessionLocked");
+		}
+
+		return nullptr;
+	}
 
 	/** Callback for getting the text in the 'Device' column. */
 	FText HandleDeviceColumnText() const
@@ -220,8 +245,8 @@ private:
 		return FText::GetEmpty();
 	}
 
-	/** Callback for getting the text in the 'Status' column. */
-	FText HandleStatusColumnText() const
+	/** Callback for getting the image of the Status icon. */
+	const FSlateBrush* HandleStatusImage() const
 	{
 		ISessionInstanceInfoPtr InstanceInfo = Item->GetInstanceInfo();
 
@@ -229,13 +254,13 @@ private:
 		{
 			if (FDateTime::UtcNow() - InstanceInfo->GetLastUpdateTime() < FTimespan::FromSeconds(10.0))
 			{
-				return LOCTEXT("StatusRunning", "Running");
+				return FEditorStyle::GetBrush("SessionBrowser.StatusRunning");
 			}
 
-			return LOCTEXT("StatusTimedOut", "Timed Out");
+			return FEditorStyle::GetBrush("SessionBrowser.StatusTimedOut");
 		}
 
-		return FText::GetEmpty();
+		return nullptr;
 	}
 
 	/** Callback for getting the foreground text color. */
