@@ -825,6 +825,11 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	}
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
+	if (!bHasBeenCreated)
+	{
+		OnComponentCreated();
+	}
+
 	World = InWorld;
 
 	ExecuteRegisterEvents();
