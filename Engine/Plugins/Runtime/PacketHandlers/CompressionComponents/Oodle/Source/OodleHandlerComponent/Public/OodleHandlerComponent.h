@@ -58,6 +58,10 @@ protected:
 	OodleNetwork1UDP_State* CompressorState;
 };
 
+DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Oodle Bytes Raw" ), STAT_Oodle_BytesRaw, STATGROUP_Net, );
+DECLARE_DWORD_COUNTER_STAT_EXTERN( TEXT( "Oodle Bytes Compressed" ), STAT_Oodle_BytesCompressed, STATGROUP_Net, );
+#endif
+
 /* Reliability Module Interface */
 class FOodleComponentModuleInterface : public FPacketHandlerComponentModuleInterface
 {
@@ -66,7 +70,3 @@ public:
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 };
-
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Oodle Bytes Raw"), STAT_Oodle_BytesRaw, STATGROUP_Net, );
-DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Oodle Bytes Compressed"), STAT_Oodle_BytesCompressed, STATGROUP_Net, );
-#endif

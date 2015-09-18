@@ -304,12 +304,26 @@ HandlerComponent* FOodleComponentModuleInterface::CreateComponentInstance()
 
 void FOodleComponentModuleInterface::StartupModule()
 {
-	Oodle_Init_Default(OODLE_HEADER_VERSION,
-		Oodle_Init_GetDefaults_DebugSystems_No,Oodle_Init_GetDefaults_Threads_No);
+	Oodle_Init_Default(OODLE_HEADER_VERSION, Oodle_Init_GetDefaults_DebugSystems_No,Oodle_Init_GetDefaults_Threads_No);
 }
 
 void FOodleComponentModuleInterface::ShutdownModule()
 {
 	Oodle_Shutdown();
+}
+#else
+IMPLEMENT_MODULE( FOodleComponentModuleInterface, OodleHandlerComponent );
+
+HandlerComponent* FOodleComponentModuleInterface::CreateComponentInstance()
+{
+	return nullptr;
+}
+
+void FOodleComponentModuleInterface::StartupModule()
+{
+}
+
+void FOodleComponentModuleInterface::ShutdownModule()
+{
 }
 #endif
