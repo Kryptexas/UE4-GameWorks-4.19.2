@@ -932,7 +932,7 @@ protected:
 	void RemoveObsoleteBindings(const TArray<FName>& NamedSlots);
 	
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
-	void ListenForInputAction( FName ActionName, FOnInputAction Callback );
+	void ListenForInputAction( FName ActionName, bool bConsume, FOnInputAction Callback );
 
 	UFUNCTION( BlueprintCallable, Category = "Input", meta = ( BlueprintProtected = "true" ) )
 	void StopListeningForInputAction( FName ActionName );

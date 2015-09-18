@@ -815,7 +815,7 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 	}
 }
 
-void UUserWidget::ListenForInputAction( FName ActionName, FOnInputAction Callback )
+void UUserWidget::ListenForInputAction( FName ActionName, bool bConsume, FOnInputAction Callback )
 {
 	if ( !InputComponent )
 	{
@@ -835,6 +835,7 @@ void UUserWidget::ListenForInputAction( FName ActionName, FOnInputAction Callbac
 	if ( InputComponent )
 	{
 		FInputActionBinding NewBinding( ActionName, IE_Pressed );
+		NewBinding.bConsumeInput = bConsume;
 		NewBinding.ActionDelegate.GetDelegateForManualSet().BindUObject( this, &ThisClass::OnInputAction, Callback );
 
 		InputComponent->AddActionBinding( NewBinding );
