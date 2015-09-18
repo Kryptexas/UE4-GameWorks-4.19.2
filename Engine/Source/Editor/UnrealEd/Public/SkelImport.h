@@ -125,6 +125,7 @@ struct ExistingSkelMeshData
 	TIndirectArray<FStaticLODModel>			ExistingLODModels;
 	TArray<FSkeletalMeshLODInfo>			ExistingLODInfo;
 	TArray<FMultiSizeIndexContainerData>	ExistingIndexBufferData;
+	TArray<FMultiSizeIndexContainerData>	ExistingAdjacencyIndexBufferData;
 	FReferenceSkeleton						ExistingRefSkeleton;
 	TArray<FSkeletalMaterial>				ExistingMaterials;
 	TArray<UMorphTarget*>					ExistingMorphTargets;

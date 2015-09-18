@@ -729,6 +729,10 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
 				LODModel.MultiSizeIndexContainer.GetIndexBufferData( ExistingData );
 				ExistingMeshDataPtr->ExistingIndexBufferData.Add( ExistingData );
 
+				FMultiSizeIndexContainerData ExistingAdjacencyData;
+				LODModel.AdjacencyMultiSizeIndexContainer.GetIndexBufferData(ExistingAdjacencyData);
+				ExistingMeshDataPtr->ExistingAdjacencyIndexBufferData.Add(ExistingAdjacencyData);
+
 			}
 
 			ExistingMeshDataPtr->ExistingLODInfo = ExistingSkelMesh->LODInfo;
@@ -885,6 +889,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 					FStaticLODModel* NewLODModel = new(SkeletalMesh->GetImportedResource()->LODModels) FStaticLODModel( LODModel );
 			
 					NewLODModel->MultiSizeIndexContainer.RebuildIndexBuffer( MeshData->ExistingIndexBufferData[i] );
+					NewLODModel->AdjacencyMultiSizeIndexContainer.RebuildIndexBuffer( MeshData->ExistingAdjacencyIndexBufferData[i] );
 
 					SkeletalMesh->LODInfo.Add( LODInfo );
 				}
