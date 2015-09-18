@@ -139,15 +139,26 @@ namespace UnrealBuildTool
 
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_TTS=0");
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_SPEECH_RECOGNITION=0");
-			if(!InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
+			if (!InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=0") && !InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("WITH_DATABASE_SUPPORT=1"))
 			{
 				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WITH_DATABASE_SUPPORT=0");
 			}
+			// Needs OS X 10.11 for Metal
+			if (MacToolChain.MacOSSDKVersionFloat >= 10.11f && UEBuildConfiguration.bCompileAgainstEngine)
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=1");
+				InBuildTarget.ExtraModuleNames.Add("MetalRHI");
+			}
+			else
+			{
+				InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("HAS_METAL=0");
+			}
+
 		}
 
 		/**
 		 *	Whether this platform should create debug information or not
-		 *	
+		 *
 		 *	@param	InPlatform			The UnrealTargetPlatform being built
 		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
 		 *	

@@ -199,6 +199,30 @@ namespace CCT
 					OutBackEnd = BE_Metal;
 				}
 			}
+			else if (Switch == "metalmrt" || Switch == "metalsm4")
+			{
+				if (Target != HCT_InvalidTarget)
+				{
+					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -%s!"), *Switch);
+				}
+				else
+				{
+					Target = HCT_FeatureLevelSM4;
+					OutBackEnd = BE_Metal;
+				}
+			}
+			else if (Switch == "metalsm5")
+			{
+				if (Target != HCT_InvalidTarget)
+				{
+					UE_LOG(LogCrossCompilerTool, Warning, TEXT("Ignoring extra command line argument -metalsm5!"));
+				}
+				else
+				{
+					Target = HCT_FeatureLevelSM5;
+					OutBackEnd = BE_Metal;
+				}
+			}
 			else if (Switch == "gl3")
 			{
 				if (Target != HCT_InvalidTarget)

@@ -35,6 +35,22 @@ public:
 			FConfigCacheIni::LoadLocalIniFile(EngineSettings, TEXT("Engine"), true, *this->PlatformName());
 			TextureLODSettings = nullptr;
 			StaticMeshLODSettings.Initialize(EngineSettings);
+		
+			// Get the Target RHIs for this platform, we do not always want all those that are supported.
+			GConfig->GetArray(TEXT("/Script/MacTargetPlatform.MacTargetSettings"), TEXT("TargetedRHIs"), TargetedShaderFormats, GEngineIni);
+			
+			// Gather the list of Target RHIs and filter out any that may be invalid.
+			TArray<FName> PossibleShaderFormats;
+			GetAllPossibleShaderFormats(PossibleShaderFormats);
+			
+			for(int32 ShaderFormatIdx = TargetedShaderFormats.Num()-1; ShaderFormatIdx >= 0; ShaderFormatIdx--)
+			{
+				FString ShaderFormat = TargetedShaderFormats[ShaderFormatIdx];
+				if(PossibleShaderFormats.Contains(FName(*ShaderFormat)) == false)
+				{
+					TargetedShaderFormats.RemoveAt(ShaderFormatIdx);
+				}
+			}
 		#endif
 	}
 
@@ -100,12 +116,19 @@ return TSuper::SupportsFeature(Feature);
 		{
 			static FName NAME_GLSL_150_MAC(TEXT("GLSL_150_MAC"));
 			OutFormats.AddUnique(NAME_GLSL_150_MAC);
+			static FName NAME_SF_METAL_SM4(TEXT("SF_METAL_SM4"));
+			OutFormats.AddUnique(NAME_SF_METAL_SM4);
+			static FName NAME_SF_METAL_SM5(TEXT("SF_METAL_SM5"));
+			OutFormats.AddUnique(NAME_SF_METAL_SM5);
 		}
 	}
 
 	virtual void GetAllTargetedShaderFormats(TArray<FName>& OutFormats) const override
 	{
-		GetAllPossibleShaderFormats( OutFormats );
+		for(const FString& ShaderFormat : TargetedShaderFormats)
+		{
+			OutFormats.AddUnique(FName(*ShaderFormat));
+		}
 	}
 
 
@@ -212,6 +235,9 @@ private:
 
 	// Holds the static mesh LOD settings.
 	FStaticMeshLODSettings StaticMeshLODSettings;
+	
+	// List of shader formats specified as targets
+	TArray<FString> TargetedShaderFormats;
 #endif // WITH_ENGINE
 
 private:

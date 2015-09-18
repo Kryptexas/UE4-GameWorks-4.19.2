@@ -1004,12 +1004,26 @@ void FMacPlatformMisc::NormalizePath(FString& InPath)
 	SCOPED_AUTORELEASE_POOL;
 	if (InPath.Len() > 1)
 	{
+#if WITH_EDITOR
 		const bool bAppendSlash = InPath[InPath.Len() - 1] == '/'; // NSString will remove the trailing slash, if present, so we need to restore it after conversion
 		InPath = [[InPath.GetNSString() stringByStandardizingPath] stringByResolvingSymlinksInPath];
 		if (bAppendSlash)
 		{
 			InPath += TEXT("/");
 		}
+#else
+		InPath.ReplaceInline(TEXT("\\"), TEXT("/"));
+		// This replacement addresses a "bug" where some callers
+		// pass in paths that are badly composed with multiple
+		// subdir separators.
+		InPath.ReplaceInline(TEXT("//"), TEXT("/"));
+		if (!InPath.IsEmpty() && InPath[InPath.Len() - 1] == TEXT('/'))
+		{
+			InPath.LeftChop(1);
+		}
+		// Remove redundant current-dir references.
+		InPath.ReplaceInline(TEXT("/./"), TEXT("/"));
+#endif
 	}
 }
 
@@ -1857,3 +1871,29 @@ void NewReportEnsure( const TCHAR* ErrorMessage )
 	bReentranceGuard = false;
 	EnsureLock.Unlock();
 }
+typedef NSArray* (*MTLCopyAllDevices)(void);
+
+bool FMacPlatformMisc::HasPlatformFeature(const TCHAR* FeatureName)
+{
+	if (FCString::Stricmp(FeatureName, TEXT("Metal")) == 0 && !FParse::Param(FCommandLine::Get(),TEXT("opengl")))
+	{
+		// Find out if there are any Metal devices on the system - some Mac's have none
+		void* DLLHandle = FPlatformProcess::GetDllHandle(TEXT("/System/Library/Frameworks/Metal.framework/Metal"));
+		if(DLLHandle)
+		{
+			// Use the copy all function because we don't want to invoke a GPU switch at this point on dual-GPU Macbooks
+			MTLCopyAllDevices CopyDevicesPtr = (MTLCopyAllDevices)FPlatformProcess::GetDllExport(DLLHandle, TEXT("MTLCopyAllDevices"));
+			if(CopyDevicesPtr)
+			{
+				SCOPED_AUTORELEASE_POOL;
+				NSArray* MetalDevices = CopyDevicesPtr();
+				[MetalDevices autorelease];
+				FPlatformProcess::FreeDllHandle(DLLHandle);
+				return MetalDevices && [MetalDevices count] > 0;
+			}
+		}
+	}
+	
+	return FGenericPlatformMisc::HasPlatformFeature(FeatureName);
+}
+

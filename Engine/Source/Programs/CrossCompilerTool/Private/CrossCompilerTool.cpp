@@ -33,6 +33,8 @@ namespace CCT
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
+		EHlslCompileTarget CompileTarget = RunInfo.Target;
+
 		uint32 Flags = HLSLCC_PackUniforms;
 		Flags |= RunInfo.bValidate ? 0 : HLSLCC_NoValidation;
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
@@ -48,13 +50,14 @@ namespace CCT
 		FGlslLanguageSpec GlslLanguage(RunInfo.Target == HCT_FeatureLevelES2);
 		FGlslCodeBackend GlslBackend(Flags, RunInfo.Target);
 		FMetalLanguageSpec MetalLanguage;
-		FMetalCodeBackend MetalBackend(Flags, RunInfo.Target);
+		FMetalCodeBackend MetalBackend(Flags, CompileTarget);
 
 		switch (RunInfo.BackEnd)
 		{
 		case CCT::FRunInfo::BE_Metal:
 			Language = &MetalLanguage;
 			Backend = &MetalBackend;
+			CompileTarget = HCT_FeatureLevelES3_1;
 			break;
 
 		case CCT::FRunInfo::BE_OpenGL:
@@ -150,7 +153,7 @@ namespace CCT
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
 
-		FHlslCrossCompilerContext Context(Flags, RunInfo.Frequency, RunInfo.Target);
+		FHlslCrossCompilerContext Context(Flags, RunInfo.Frequency, CompileTarget);
 		if (Context.Init(TCHAR_TO_ANSI(*RunInfo.InputFile), Language))
 		{
 			Context.Run(
