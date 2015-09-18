@@ -33,7 +33,7 @@ public:
 	 */
 	virtual TSharedRef<FSlateFontCache> GetFontCache() override { return FontCache.ToSharedRef(); }
 
-	virtual bool IsVertexColorInLinearSpace() const override { return false; }
+	virtual bool IsVertexColorInLinearSpace() const override { return true; }
 
 	/** 
 	 * Initializes resources if needed
