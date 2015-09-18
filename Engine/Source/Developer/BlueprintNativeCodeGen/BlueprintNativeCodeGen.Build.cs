@@ -28,6 +28,7 @@ public class BlueprintNativeCodeGen : ModuleRules
                 "Json",
                 "JsonUtilities",
                 "BlueprintCompilerCppBackend",
+                "GameProjectGeneration"
 			}
 		);
 

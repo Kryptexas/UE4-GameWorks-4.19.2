@@ -5,8 +5,10 @@
 #include "FeedbackContext.h"
 
 // Forward declares
-struct FBlueprintNativeCodeGenCoordinator;
+struct FNativeCodeGenCommandlineParams;
 class  SBuildProgressWidget;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogBlueprintCodeGen, Log, All);
 
 /**  */
 struct FBlueprintNativeCodeGenUtils
@@ -18,7 +20,7 @@ public:
 	 * @param  Coordinator    
 	 * @return 
 	 */
-	static bool GenerateCodeModule(FBlueprintNativeCodeGenCoordinator& Coordinator);
+	static bool GenerateCodeModule(const FNativeCodeGenCommandlineParams& CommandParams);
 
 	/**
 	 * Recompiles the bytecode of a blueprint only. Should only be run for

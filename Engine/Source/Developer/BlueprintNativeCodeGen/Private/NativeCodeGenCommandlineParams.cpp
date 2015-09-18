@@ -40,6 +40,9 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
                         its own). If specified as a relative path, it will be  \n\
                         relative to the target project's root directory.       \n\
 \n\
+    -moduleName=<Name>  Defines the output module's name. If left unset, then  \n\
+                        the module will default to... \n\
+\n\
     -wipe               Will clear out the target directory when specified.    \n\
                         Normally, without this switch, if the target directory \n\
                         contains source from a previous run, it builds atop the\n\
@@ -54,6 +57,8 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
                         unset, then it will default to the module's target     \n\
                         directory.                                             \n\
 \n\
+    -preview            \n\
+\n\
     -help, -h, -?       Display this message and then exit.                    \n\
 \n");
 
@@ -63,7 +68,7 @@ const FString FNativeCodeGenCommandlineParams::HelpMessage = TEXT("\n\
 
 namespace NativeCodeGenCommandlineParamsImpl
 {
-	static const FString DefaultModuleName(TEXT("GeneratedBlueprintCode"));
+	static const FString DefaultModuleName(TEXT("BpCodeGen"));
 	static const FString ParamListDelim(TEXT(","));
 }
  
@@ -75,6 +80,7 @@ namespace NativeCodeGenCommandlineParamsImpl
 FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FString>& CommandlineSwitches)
 	: bHelpRequested(false)
 	, bWipeRequested(false)
+	, bPreviewRequested(false)
 {
 	IFileManager& FileManager = IFileManager::Get();
 	const FString DefaultModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), *NativeCodeGenCommandlineParamsImpl::DefaultModuleName);
@@ -120,6 +126,10 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 		else if (!Switch.Compare(TEXT("wipe"), ESearchCase::IgnoreCase))
 		{
 			bWipeRequested = true;
+		}
+		else if (!Switch.Compare(TEXT("preview"), ESearchCase::IgnoreCase))
+		{
+			bPreviewRequested = true;
 		}
 		else if (!Switch.Compare(TEXT("manifest"), ESearchCase::IgnoreCase))
 		{

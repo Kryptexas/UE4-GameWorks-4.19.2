@@ -8,7 +8,9 @@
 
 // Forward declarations
 struct FNativeCodeGenCommandlineParams;
+struct FConvertedAssetRecord;
 
+/**  */
 UCLASS(config=Editor)
 class UBlueprintNativeCodeGenConfig : public UObject
 {
@@ -25,14 +27,21 @@ struct FBlueprintNativeCodeGenCoordinator
 public:
 	FBlueprintNativeCodeGenCoordinator(const FNativeCodeGenCommandlineParams& CommandlineParams);
 
+	const FBlueprintNativeCodeGenManifest& GetManifest() { return Manifest; }
+
 	bool IsTargetedForConversion(const FString AssetPath);
 	bool IsTargetedForConversion(const UBlueprint* Blueprint);
 	bool IsTargetedForConversion(const UClass* Class);
 	bool IsTargetedForConversion(const UEnum* Enum);
 	bool IsTargetedForConversion(const UStruct* Struct);
 
-public:
+	DECLARE_DELEGATE_RetVal_OneParam(bool, FConversionDelegate, FConvertedAssetRecord&);
+	bool ProcessConversionQueue(const FConversionDelegate& ConversionDelegate);
+
+private:
+	/**  */
 	TArray<FAssetData> ConversionQueue;
+	/**  */
 	FBlueprintNativeCodeGenManifest Manifest;
 };
 

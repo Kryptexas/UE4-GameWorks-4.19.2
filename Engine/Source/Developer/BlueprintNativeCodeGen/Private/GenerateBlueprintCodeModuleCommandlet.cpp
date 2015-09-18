@@ -5,8 +5,8 @@
 #include "NativeCodeGenCommandlineParams.h"
 #include "BlueprintNativeCodeGenCoordinator.h"
 #include "BlueprintNativeCodeGenUtils.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogBlueprintCodeGen, Log, All);
+#include "BlueprintNativeCodeGenManifest.h"
+#include "FileManager.h"
 
 /*******************************************************************************
  * GenerateBlueprintCodeModuleImpl
@@ -14,7 +14,6 @@ DEFINE_LOG_CATEGORY_STATIC(LogBlueprintCodeGen, Log, All);
 
 namespace GenerateBlueprintCodeModuleImpl
 {
-
 }
 
 /*******************************************************************************
@@ -42,11 +41,8 @@ int32 UGenerateBlueprintCodeModuleCommandlet::Main(FString const& Params)
 	}
 
 	FBlueprintNativeCodeGenUtils::FScopedFeedbackContext ScopedErrorTracker;
-	FBlueprintNativeCodeGenCoordinator Coordinator(CommandlineParams);
-
-	if (!ScopedErrorTracker.HasErrors())
 	{
-		FBlueprintNativeCodeGenUtils::GenerateCodeModule(Coordinator);
+		FBlueprintNativeCodeGenUtils::GenerateCodeModule(CommandlineParams);
 	}
 	return ScopedErrorTracker.HasErrors();
 }

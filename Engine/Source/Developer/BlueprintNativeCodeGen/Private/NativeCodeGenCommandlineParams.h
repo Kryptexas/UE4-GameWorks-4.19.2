@@ -16,7 +16,9 @@ public:
 	TArray<FString> WhiteListedAssetPaths;
 	TArray<FString> BlackListedAssetPaths;
 	FString         ModuleOutputDir;
+	FString			ModuleName;
 	FString			ManifestFilePath;
 	bool            bWipeRequested : 1;
+	bool            bPreviewRequested : 1;
 };
 

@@ -10,6 +10,9 @@
 #include "PackageName.h"
 #include "FileManager.h"
 #include "AssetRegistryModule.h"
+#include "BlueprintNativeCodeGenUtils.h"
+#include "BlueprintCompilerCppBackendGatherDependencies.h"
+#include "BlueprintSupport.h"	// for FReplaceCookedBPGC::OnQueryIfAssetIsTargetedForConversion()
 
 /*******************************************************************************
  * UBlueprintNativeCodeGenConfig
@@ -46,11 +49,17 @@ namespace BlueprintNativeCodeGenCoordinatorImpl
 	/**  */
 	static void GatherAssetsToConvert(const FNativeCodeGenCommandlineParams& CommandlineParams, TArray<FAssetData>& ConversionQueueOut);
 
-	/** */
+	/**  */
 	static void GatherParentAssets(const FAssetData& TargetAsset, TArray<FAssetData>& AssetsOut);
 
-	/** */
+	/**  */
 	static void GatherInterfaceAssets(const FAssetData& TargetAsset, TArray<FAssetData>& AssetsOut);
+
+	/**  */
+	static UStruct* GetAssetStruct(UObject* AssetObj);
+
+	/**  */
+	static void GatherInnerDependencies(UObject* AssetObj, TArray<FAssetData>& AssetsOut);
 }
 
 /*******************************************************************************
@@ -183,7 +192,16 @@ void FSpecializedAssetCollector<UBlueprint>::GatherAssets(const FARFilter& Share
 	{
 		BlueprintNativeCodeGenCoordinatorImpl::GatherParentAssets(AssetsOut[BlueprintIndex], AssetsOut);
 		BlueprintNativeCodeGenCoordinatorImpl::GatherInterfaceAssets(AssetsOut[BlueprintIndex], AssetsOut);
-		// @TODO: Collect UserDefinedStructs (maybe enums?)... maybe put off till later, once the BP is loaded?
+
+		// GatherInnerDependencies() will gather other required depenencies 
+		// (like user-defined structs/enums), but we don't want to execute that
+		// quite yet; 
+		//     1) because we'd have to load the asset for that here, and...
+		//     2) we want to do it later, when we're processing the conversion 
+		//        queue, once the CppBackend's 
+		//        OnCheckIsAssetTargetedForConversion() is setup to prevent 
+		//        unwanted Blueprint classes from being converted
+		// 
 	}
 }
 
@@ -230,7 +248,7 @@ static void BlueprintNativeCodeGenCoordinatorImpl::GatherAssetsToConvert(const F
 	SetFilterPackages(ConfigSettings->PackagesToAlwaysConvert);
 	SetFilterPackages(CommandlineParams.WhiteListedAssetPaths);
 
-	// will be utilized if UBlueprint is an entry in TargetAssetTypes (auto registers
+	// will be utilized if UBlueprint is an entry in TargetAssetTypes (auto registers itself as a handler)
 	FSpecializedAssetCollector<UBlueprint> BlueprintAssetCollector;
 
 	const int32 TargetClassCount = sizeof(TargetAssetTypes) / sizeof(TargetAssetTypes[0]);
@@ -316,6 +334,59 @@ static void BlueprintNativeCodeGenCoordinatorImpl::GatherInterfaceAssets(const F
 	}
 }
 
+//------------------------------------------------------------------------------
+static UStruct* BlueprintNativeCodeGenCoordinatorImpl::GetAssetStruct(UObject* AssetObj)
+{
+	if (UStruct* StructAsset = Cast<UStruct>(AssetObj))
+	{
+		return StructAsset;
+	}
+	else if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObj))
+	{
+		return BlueprintAsset->GeneratedClass;
+	}
+	return nullptr;
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintNativeCodeGenCoordinatorImpl::GatherInnerDependencies(UObject* AssetObj, TArray<FAssetData>& AssetsOut)
+{
+	if (UStruct* StructAsset = GetAssetStruct(AssetObj))
+	{
+		IAssetRegistry& AssetRegistry = GetAssetRegistry();
+		auto AddDependencyForConversion = [&AssetsOut, &AssetRegistry](UObject* AssetObj)->bool
+		{
+			ensure(AssetObj->IsAsset());
+			FAssetData AssetInfo = AssetRegistry.GetAssetByObjectPath(*AssetObj->GetPathName());
+
+			const bool bAssetFound = AssetInfo.IsValid();
+			if (bAssetFound)
+			{
+				AssetsOut.AddUnique(AssetInfo);
+			}
+			return bAssetFound;
+		};
+
+		FGatherConvertedClassDependencies AssetDependencies(StructAsset);
+
+		for (UBlueprintGeneratedClass* BlueprintClass : AssetDependencies.ConvertedClasses)
+		{
+			if (UBlueprint* Blueprint = Cast<UBlueprint>(BlueprintClass->ClassGeneratedBy))
+			{
+				AddDependencyForConversion(Blueprint);
+			}
+		}
+		for (UUserDefinedStruct* StructAsset : AssetDependencies.ConvertedStructs)
+		{
+			AddDependencyForConversion(StructAsset);
+		}
+		for (UUserDefinedEnum* EnumAsset : AssetDependencies.ConvertedEnum)
+		{
+			AddDependencyForConversion(EnumAsset);
+		}
+	}
+}
+
 /*******************************************************************************
  * FBlueprintNativeCodeGenCoordinator
 *******************************************************************************/
@@ -330,7 +401,36 @@ FBlueprintNativeCodeGenCoordinator::FBlueprintNativeCodeGenCoordinator(const FNa
 //------------------------------------------------------------------------------
 bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const FString AssetPath)
 {
-	return ensure(false); // @TODO
+	bool bHasBeenConverted = false;
+	if (FConvertedAssetRecord* ConversionRecord = Manifest.FindConversionRecord(AssetPath))
+	{
+		// interfaces don't generate cpp files
+		bHasBeenConverted = !ConversionRecord->GeneratedHeaderPath.IsEmpty() || !ConversionRecord->GeneratedCppPath.IsEmpty();
+		
+		IFileManager& FileManager = IFileManager::Get();
+		bHasBeenConverted &= ConversionRecord->GeneratedHeaderPath.IsEmpty() || FileManager.FileExists(*ConversionRecord->GeneratedHeaderPath);
+		bHasBeenConverted &= ConversionRecord->GeneratedCppPath.IsEmpty()    || FileManager.FileExists(*ConversionRecord->GeneratedCppPath);
+	}
+
+	bool bIsQueuedForConversion = false;
+	if (!bHasBeenConverted)
+	{
+		// @TODO: consider using a map to speed this up
+
+		IAssetRegistry& AssetRegistry = BlueprintNativeCodeGenCoordinatorImpl::GetAssetRegistry();
+		TArray<FAssetData> AssetPackages;
+		AssetRegistry.GetAssetsByPackageName(*AssetPath, AssetPackages);
+
+		// should either be 0 (the asset doesn't exist), or 1 (the package contains a singular asset) 
+		ensure(AssetPackages.Num() <= 1);
+
+		for (const FAssetData& FoundAsset : AssetPackages)
+		{
+			// we shouldn't come up with multiple assets, but if we do... I guess OR the result?
+			bIsQueuedForConversion |= (ConversionQueue.Find(FoundAsset) != INDEX_NONE);
+		}
+	}
+	return bHasBeenConverted || bIsQueuedForConversion;
 }
 
 //------------------------------------------------------------------------------
@@ -371,5 +471,38 @@ bool FBlueprintNativeCodeGenCoordinator::IsTargetedForConversion(const UStruct* 
 		return IsTargetedForConversion(AssetPackage->GetPathName());
 	}
 	return false;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenCoordinator::ProcessConversionQueue(const FConversionDelegate& ConversionDelegate)
+{
+	auto& ConversionQueryDelegate = FReplaceCookedBPGC::Get().OnQueryIfAssetIsTargetedForConversion();
+	auto IsAssetTargetedForConversion = [this](const UObject* AssetObj)->bool
+	{
+		return IsTargetedForConversion(AssetObj->GetOutermost()->GetPathName());
+	};
+	ConversionQueryDelegate.BindLambda(IsAssetTargetedForConversion);
+
+	bool bSuccess = true;
+	for (int32 AssetIndex = 0; AssetIndex < ConversionQueue.Num(); ++AssetIndex)
+	{
+		const FAssetData& AssetInfo = ConversionQueue[AssetIndex];
+		// load asset, add dependencies that can only be gathered from a 
+		// loaded asset (property types, etc.)
+		UObject* AssetObj = AssetInfo.GetAsset();
+		BlueprintNativeCodeGenCoordinatorImpl::GatherInnerDependencies(AssetObj, ConversionQueue);
+
+		FConvertedAssetRecord& ConversionRecord = Manifest.CreateConversionRecord(AssetInfo);
+		bSuccess &= ConversionDelegate.Execute(ConversionRecord);
+
+		if (!bSuccess)
+		{
+			UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to fully convert '%s'"), *AssetInfo.AssetName.ToString());
+			break;
+		}
+	}
+
+	ConversionQueryDelegate.Unbind();
+	return bSuccess;
 }
 

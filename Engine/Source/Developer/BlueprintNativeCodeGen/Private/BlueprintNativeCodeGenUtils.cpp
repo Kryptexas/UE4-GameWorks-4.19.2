@@ -2,6 +2,7 @@
 
 #include "BlueprintNativeCodeGenPCH.h"
 #include "BlueprintNativeCodeGenUtils.h"
+#include "NativeCodeGenCommandlineParams.h"
 #include "BlueprintNativeCodeGenCoordinator.h"
 #include "Kismet2/KismetReinstanceUtilities.h"	// for FBlueprintCompileReinstancer
 #include "Kismet2/CompilerResultsLog.h" 
@@ -11,6 +12,9 @@
 #include "Engine/UserDefinedEnum.h"
 #include "Kismet2/KismetEditorUtilities.h"		// for CompileBlueprint()
 #include "OutputDevice.h"						// for GWarn
+#include "GameProjectUtils.h"					// for GenerateGameModuleBuildFile
+
+DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
 /*******************************************************************************
  * BlueprintNativeCodeGenUtilsImpl
@@ -18,65 +22,28 @@
 
 namespace BlueprintNativeCodeGenUtilsImpl
 {
-	
-}
-
-/*******************************************************************************
- * FScopedFeedbackContext
- ******************************************************************************/
-
-//------------------------------------------------------------------------------
-FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::FScopedFeedbackContext()
-	: OldContext(GWarn)
-	, ErrorCount(0)
-	, WarningCount(0)
-{
-	TreatWarningsAsErrors = GWarn->TreatWarningsAsErrors;
-	GWarn = this;
+	static bool WipeTargetPaths(const TArray<FString>& TargetPaths);
 }
 
 //------------------------------------------------------------------------------
-FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::~FScopedFeedbackContext()
+static bool BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(const TArray<FString>& TargetPaths)
 {
-	GWarn = OldContext;
-}
+	IFileManager& FileManager = IFileManager::Get();
 
-//------------------------------------------------------------------------------
-bool FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::HasErrors()
-{
-	return (ErrorCount > 0) || (TreatWarningsAsErrors && (WarningCount > 0));
-}
-
-//------------------------------------------------------------------------------
-void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category)
-{
-	switch (Verbosity)
+	bool bSuccess = true;
+	for (const FString& Path : TargetPaths)
 	{
-	case ELogVerbosity::Warning:
+		if (FileManager.FileExists(*Path))
 		{
-			++WarningCount;
-		} 
-		break;
-
-	case ELogVerbosity::Error:
-	case ELogVerbosity::Fatal:
+			bSuccess &= FileManager.Delete(*Path);
+		}
+		else if (FileManager.DirectoryExists(*Path))
 		{
-			++ErrorCount;
-		} 
-		break;
-
-	default:
-		break;
+			bSuccess &= FileManager.DeleteDirectory(*Path, /*RequireExists =*/false, /*Tree =*/true);
+		}
 	}
 
-	OldContext->Serialize(V, Verbosity, Category);
-}
-
-//------------------------------------------------------------------------------
-void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Flush()
-{
-	WarningCount = ErrorCount = 0;
-	OldContext->Flush();
+	return bSuccess;
 }
 
 /*******************************************************************************
@@ -84,27 +51,49 @@ void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Flush()
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(FBlueprintNativeCodeGenCoordinator& Coordinator)
+bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenCommandlineParams& CommandParams)
 {
-	FBlueprintNativeCodeGenManifest& Manifest = Coordinator.Manifest;
+	FScopedFeedbackContext ScopedErrorTracker;
+	FBlueprintNativeCodeGenCoordinator Coordinator(CommandParams);
+
+	if (ScopedErrorTracker.HasErrors())
+	{
+		// creating the coordinator/manifest produced an error... do not carry on!
+		return false;
+	}
+	const FBlueprintNativeCodeGenManifest& Manifest = Coordinator.GetManifest();
+
+	if (CommandParams.bWipeRequested && !CommandParams.bPreviewRequested)
+	{
+		TArray<FString> TargetPaths = Manifest.GetTargetPaths();
+		if (!BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(TargetPaths))
+		{
+			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to wipe target files/directories."));
+		}
+	}
 
 	TSharedPtr<FString> HeaderSource(new FString());
-	TSharedPtr<FString> CppSource(   new FString());
+	TSharedPtr<FString> CppSource(new FString());
 
-	bool bSuccess = (Coordinator.ConversionQueue.Num() > 0);
-	for (const FAssetData& Asset : Coordinator.ConversionQueue)
+	auto ConvertSingleAsset = [&Coordinator, &HeaderSource, &CppSource](FConvertedAssetRecord& ConversionRecord)->bool
 	{
 		FScopedFeedbackContext ScopedErrorTracker;
-		FConvertedAssetRecord& ConversionRecord = Manifest.CreateConversionRecord(Asset);
 
-		// loads the object if it is not already loaded
-		UObject* AssetObj = Asset.GetAsset();
-		FBlueprintNativeCodeGenUtils::GenerateCppCode(AssetObj, HeaderSource, CppSource);
+		UObject* AssetObj = ConversionRecord.AssetPtr.Get();
+		if (AssetObj != nullptr)
+		{
+			FBlueprintNativeCodeGenUtils::GenerateCppCode(AssetObj, HeaderSource, CppSource);
+		}
 
-		bSuccess &= !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
+		bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
 		if (!HeaderSource->IsEmpty())
 		{
-			bSuccess &= FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath);
+			if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
+			{
+				bSuccess &= false;
+				ConversionRecord.GeneratedHeaderPath.Empty();
+			}
+			HeaderSource->Empty(HeaderSource->Len());
 		}
 		else
 		{
@@ -113,22 +102,30 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(FBlueprintNativeCodeGenCoo
 
 		if (!CppSource->IsEmpty())
 		{
-			bSuccess &= FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath);
+			if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath))
+			{
+				bSuccess &= false;
+				ConversionRecord.GeneratedCppPath.Empty();
+			}
+			CppSource->Empty(CppSource->Len());
 		}
 		else
 		{
 			ConversionRecord.GeneratedCppPath.Empty();
 		}
+		return bSuccess && !ScopedErrorTracker.HasErrors();
+	};
 
-		if (ScopedErrorTracker.HasErrors())
-		{
-			bSuccess = false;
-			break;
-		}
+	FBlueprintNativeCodeGenCoordinator::FConversionDelegate ConversionDelegate = FBlueprintNativeCodeGenCoordinator::FConversionDelegate::CreateLambda(ConvertSingleAsset);
+	if (CommandParams.bPreviewRequested)
+	{
+		ConversionDelegate.BindLambda([](FConvertedAssetRecord& ConversionRecord){ return true; });
 	}
-	Coordinator.Manifest.Save();
 
-	return bSuccess;
+	const bool bSuccess = Coordinator.ProcessConversionQueue(ConversionDelegate);
+	// save the manifest regardless of success (so we can get an idea of how successful it was)
+	Manifest.Save();
+	return bSuccess & !ScopedErrorTracker.HasErrors();
 }
 
 //------------------------------------------------------------------------------
@@ -187,4 +184,62 @@ void FBlueprintNativeCodeGenUtils::GenerateCppCode(UObject* Obj, TSharedPtr<FStr
 	{
 		ensure(false);
 	}
+}
+
+/*******************************************************************************
+ * FScopedFeedbackContext
+ ******************************************************************************/
+
+//------------------------------------------------------------------------------
+FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::FScopedFeedbackContext()
+	: OldContext(GWarn)
+	, ErrorCount(0)
+	, WarningCount(0)
+{
+	TreatWarningsAsErrors = GWarn->TreatWarningsAsErrors;
+	GWarn = this;
+}
+
+//------------------------------------------------------------------------------
+FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::~FScopedFeedbackContext()
+{
+	GWarn = OldContext;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::HasErrors()
+{
+	return (ErrorCount > 0) || (TreatWarningsAsErrors && (WarningCount > 0));
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Serialize(const TCHAR* V, ELogVerbosity::Type Verbosity, const class FName& Category)
+{
+	switch (Verbosity)
+	{
+	case ELogVerbosity::Warning:
+		{
+			++WarningCount;
+		} 
+		break;
+
+	case ELogVerbosity::Error:
+	case ELogVerbosity::Fatal:
+		{
+			++ErrorCount;
+		} 
+		break;
+
+	default:
+		break;
+	}
+
+	OldContext->Serialize(V, Verbosity, Category);
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenUtils::FScopedFeedbackContext::Flush()
+{
+	WarningCount = ErrorCount = 0;
+	OldContext->Flush();
 }

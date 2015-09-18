@@ -8,6 +8,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
 #include "Serialization/JsonWriter.h"
+#include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
 
 DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenManifest, Log, All);
 
@@ -27,6 +28,8 @@ namespace BlueprintNativeCodeGenManifestImpl
 	/**  */
 	static bool LoadManifest(const FString& FilePath, FBlueprintNativeCodeGenManifest* Manifest);
 
+	static FString GetHeaderSaveDir(const FString& ModulePath);
+	static FString GetCppSaveDir(const FString& ModulePath);
 	static FString GetBaseFilename(const FAssetData& Asset);
 
 	/**  */
@@ -55,28 +58,33 @@ static bool BlueprintNativeCodeGenManifestImpl::LoadManifest(const FString& File
 }
 
 //------------------------------------------------------------------------------
+static FString BlueprintNativeCodeGenManifestImpl::GetHeaderSaveDir(const FString& ModulePath)
+{
+	return FPaths::Combine(*ModulePath, *HeaderSubDir);
+}
+
+//------------------------------------------------------------------------------
+static FString BlueprintNativeCodeGenManifestImpl::GetCppSaveDir(const FString& ModulePath)
+{
+	return FPaths::Combine(*ModulePath, *CppSubDir);
+}
+
+//------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GetBaseFilename(const FAssetData& Asset)
 {
-	// @TODO: Coordinate this with the CppBackend module (so it matches includes)
-	FString Filename = Asset.AssetName.ToString();
-	if ( Asset.GetClass()->IsChildOf(UBlueprint::StaticClass()) )
-	{
-		static const FString BlueprintClassPostfix(TEXT("_C"));
-		Filename += BlueprintClassPostfix;
-	}
-	return Filename;
+	return IBlueprintCompilerCppBackendModule::GetBaseFilename(Asset.GetAsset());
 }
 
 //------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(const FString& ModulePath, const FAssetData& Asset)
 {
-	return FPaths::Combine(*FPaths::Combine(*ModulePath, *HeaderSubDir), *GetBaseFilename(Asset)) + HeaderFileExt;
+	return FPaths::Combine(*GetHeaderSaveDir(ModulePath), *GetBaseFilename(Asset)) + HeaderFileExt;
 }
 
 //------------------------------------------------------------------------------
 static FString BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(const FString& ModulePath, const FAssetData& Asset)
 {
-	return FPaths::Combine(*FPaths::Combine(*ModulePath, *CppSubDir), *GetBaseFilename(Asset)) + CppFileExt;
+	return FPaths::Combine(*GetCppSaveDir(ModulePath), *GetBaseFilename(Asset)) + CppFileExt;
 }
 
 //------------------------------------------------------------------------------
@@ -145,7 +153,7 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 		{
 			ModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("BpCodeGen"));
 		}
-		ManifestPath = FPaths::Combine(*ModulePath, *GetDefaultFilename());
+		ManifestPath = FPaths::Combine(*GetModuleDir(), *GetDefaultFilename());
 	}
 	
 	// incorporate an existing manifest (in case we're only re-converting a 
@@ -163,7 +171,9 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 			else
 			{
 				const FString ExpectedPath = GetComparibleDirPath(CommandlineParams.ModuleOutputDir);
-				const FString TargetPath   = GetComparibleDirPath(GetTargetPath());
+
+				FString TargetPath = GetModuleDir();
+				TargetPath = GetComparibleDirPath(TargetPath);
 
 				if ( !FPaths::IsSamePath(ExpectedPath, TargetPath) )
 				{
@@ -178,45 +188,87 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 		{
 			Clear();
 		}
+		else
+		{
+			MapConvertedAssets();
+		}
 	}
-
-	if (CommandlineParams.bWipeRequested)
-	{
-		const FString TargetPath = GetTargetPath();
-
-		IFileManager& FileManager = IFileManager::Get();
-		FileManager.DeleteDirectory(*FPaths::Combine(*TargetPath, *CppSubDir));
-		FileManager.DeleteDirectory(*FPaths::Combine(*TargetPath, *HeaderSubDir));
-	}
-}
-
-//------------------------------------------------------------------------------
-FString FBlueprintNativeCodeGenManifest::GetTargetPath() const
-{
-	FString TargetPath = ModulePath;
-	if (FPaths::IsRelative(ModulePath))
-	{
-		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir(), ModulePath);
-		TargetPath = FPaths::ConvertRelativePathToFull(TargetPath);
-	}
-	return TargetPath;
 }
 
 //------------------------------------------------------------------------------
 FConvertedAssetRecord& FBlueprintNativeCodeGenManifest::CreateConversionRecord(const FAssetData& AssetInfo)
 {
-	FConvertedAssetRecord NewConversionRecord;
-	NewConversionRecord.AssetType = AssetInfo.GetClass();
-	NewConversionRecord.AssetPath = AssetInfo.PackagePath.ToString();
-	NewConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(GetTargetPath(), AssetInfo);
-	NewConversionRecord.GeneratedCppPath    = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(GetTargetPath(), AssetInfo);
+	const FString AssetPath = AssetInfo.PackageName.ToString();
+	if (FConvertedAssetRecord* ExistingConversionRecord = FindConversionRecord(AssetPath))
+	{
+		return *ExistingConversionRecord;
+	}
 
+	const FString TargetModulePath = GetModuleDir();
+
+	FConvertedAssetRecord NewConversionRecord;
+	NewConversionRecord.AssetPtr  = AssetInfo.GetAsset();
+	NewConversionRecord.AssetType = AssetInfo.GetClass();
+	NewConversionRecord.AssetPath = AssetPath;
+	NewConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(TargetModulePath, AssetInfo);
+	NewConversionRecord.GeneratedCppPath    = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(TargetModulePath, AssetInfo);
+
+	RecordMap.Add(AssetPath, ConvertedAssets.Num());
 	return ConvertedAssets[ ConvertedAssets.Add(NewConversionRecord) ];
 }
 
 //------------------------------------------------------------------------------
-bool FBlueprintNativeCodeGenManifest::Save() const
+FConvertedAssetRecord* FBlueprintNativeCodeGenManifest::FindConversionRecord(const FString& AssetPath, bool bSlowSearch)
 {
+	FConvertedAssetRecord* FoundRecord = nullptr;
+	if (int32* IndexPtr = RecordMap.Find(AssetPath))
+	{
+		check(*IndexPtr < ConvertedAssets.Num());
+		FoundRecord = &ConvertedAssets[*IndexPtr];
+		ensure(FoundRecord->AssetPath == AssetPath);
+	}
+	else if (bSlowSearch)
+	{
+		for (FConvertedAssetRecord& ConversionRecord : ConvertedAssets)
+		{
+			if (ConversionRecord.AssetPath == AssetPath)
+			{
+				FoundRecord = &ConversionRecord;
+			}
+		}
+	}
+	return FoundRecord;
+}
+
+//------------------------------------------------------------------------------
+TArray<FString> FBlueprintNativeCodeGenManifest::GetTargetPaths() const 
+{
+	const FString TargetModulePath = GetModuleDir();
+
+	TArray<FString> DestPaths;
+	DestPaths.Add(ManifestPath);
+	DestPaths.Add(BlueprintNativeCodeGenManifestImpl::GetHeaderSaveDir(TargetModulePath));
+	DestPaths.Add(BlueprintNativeCodeGenManifestImpl::GetCppSaveDir(TargetModulePath));
+	// @TODO: Add *Build.cs file
+
+	return DestPaths;
+}
+
+//------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenManifest::Save(bool bSort) const
+{
+	if (bSort)
+	{
+		ConvertedAssets.Sort([](const FConvertedAssetRecord& Lhs, const FConvertedAssetRecord& Rhs)->bool
+		{ 
+			if (Lhs.AssetType == Rhs.AssetType)
+			{
+				return Lhs.AssetPath < Rhs.AssetPath;
+			}
+			return Lhs.AssetType->GetName() < Rhs.AssetType->GetName();
+		});
+	}
+
 	TSharedRef<FJsonObject> JsonObject = MakeShareable(new FJsonObject());
 
 	if (FJsonObjectConverter::UStructToJsonObject(FBlueprintNativeCodeGenManifest::StaticStruct(), this, JsonObject,
@@ -238,6 +290,39 @@ bool FBlueprintNativeCodeGenManifest::Save() const
 void FBlueprintNativeCodeGenManifest::Clear()
 {
 	ConvertedAssets.Empty();
-	ModuleDependencies.Empty();
+	RecordMap.Empty();
+}
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenManifest::GetModuleDir() const
+{
+	FString TargetPath = ModulePath;
+	if (FPaths::IsRelative(ModulePath))
+	{
+		TargetPath = FPaths::ConvertRelativePathToFull(FPaths::GameDir(), ModulePath);
+		TargetPath = FPaths::ConvertRelativePathToFull(TargetPath);
+	}
+	return TargetPath;
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintNativeCodeGenManifest::MapConvertedAssets()
+{
+	RecordMap.Empty(ConvertedAssets.Num());
+
+	for (int32 RecordIndex = 0; RecordIndex < ConvertedAssets.Num(); ++RecordIndex)
+	{
+		const FConvertedAssetRecord& AssetRecord = ConvertedAssets[RecordIndex];
+		RecordMap.Add(AssetRecord.AssetPath, RecordIndex);
+		
+// 		if (UObject* AssetObj = AssetRecord.AssetPtr.Get())
+// 		{
+//			RecordMap.Add(AssetRecord.AssetPath, RecordIndex);
+// 		}
+// 		else
+// 		{
+// 			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Invalid conversion record found for: %s"), *AssetRecord.AssetPath);
+// 		}
+	}
 }
 

@@ -18,6 +18,8 @@ struct FConvertedAssetRecord
 	GENERATED_USTRUCT_BODY()
 
 public:
+	TWeakObjectPtr<UObject> AssetPtr;
+
 	UPROPERTY()
 	UClass* AssetType;
 
@@ -46,17 +48,50 @@ public:
 	FBlueprintNativeCodeGenManifest(const FString TargetPath = TEXT(""));
 	FBlueprintNativeCodeGenManifest(const FNativeCodeGenCommandlineParams& CommandlineParams);
 
-	FString GetTargetPath() const;
+	/**
+	 * 
+	 * 
+	 * @return 
+	 */
+	TArray<FString> GetTargetPaths() const;
 
-	/**  */
-	bool Save() const;
-
-	/**  */
+	/**
+	 * 
+	 * 
+	 * @param  AssetInfo    
+	 * @return 
+	 */
 	FConvertedAssetRecord& CreateConversionRecord(const FAssetData& AssetInfo);
 
+	/**
+	 * 
+	 * 
+	 * @param  AssetPath    
+	 * @return 
+	 */
+	FConvertedAssetRecord* FindConversionRecord(const FString& AssetPath, bool bSlowSearch = false);
+
+	/**
+	 * 
+	 */
+	bool Save(bool bSort = true) const;
+
 private:
+	/**
+	 * 
+	 */
+	FString GetModuleDir() const;
+
+	/**
+	 * 
+	 */
 	void Clear();
 
+	/**
+	 *
+	 */
+	void MapConvertedAssets();
+	
 	/**  */
 	FString ManifestPath;
 
@@ -64,9 +99,10 @@ private:
 	UPROPERTY()
 	FString ModulePath;
 
+	/** Mutable so Save() can sort the array when requested */
 	UPROPERTY()
-	TArray<FString> ModuleDependencies;
+	mutable TArray<FConvertedAssetRecord> ConvertedAssets;
 
-	UPROPERTY()
-	TArray<FConvertedAssetRecord> ConvertedAssets;
+	/**  */
+	TMap<FString, int32> RecordMap;
 };
