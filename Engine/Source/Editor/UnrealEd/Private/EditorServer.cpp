@@ -6735,7 +6735,9 @@ void UEditorEngine::MoveViewportCamerasToBox(const FBox& BoundingBox, bool bActi
 			for (auto ViewportIt = LevelViewportClients.CreateConstIterator(); ViewportIt; ++ViewportIt)
 			{
 				FLevelEditorViewportClient* LinkedViewportClient = *ViewportIt;
-				LinkedViewportClient->FocusViewportOnBox(BoundingBox);
+				//Dont move camera attach to an actor
+				if (!LinkedViewportClient->IsAnyActorLocked())
+					LinkedViewportClient->FocusViewportOnBox(BoundingBox);
 			}
 		}
 	}
