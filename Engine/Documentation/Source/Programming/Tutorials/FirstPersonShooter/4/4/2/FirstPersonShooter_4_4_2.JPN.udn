@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2664711
+﻿INTSourceChangelist:2672915
 Availability:Docs
 Title:4.4.2 - Idle から Jump Start への遷移を追加
 Crumbs: %ROOT%, Programming, Programming/Tutorials, Programming/Tutorials/FirstPersonShooter, Programming/Tutorials/FirstPersonShooter/4, Programming/Tutorials/FirstPersonShooter/4/4
 Description:First Person Shooter キャラクターのアニメーション ステートマシンに Idle から Jump Start へのステート遷移を追加する方法を学びます。
-スキルレベル:初心者向け
-バージョン：4.9
+SkillLevel:初心者向け
+Version:4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -24,6 +24,18 @@ Description:First Person Shooter キャラクターのアニメーション ス�
 
 %Steps%
 
-<!--TODO:Add tutorial steps here-->
+このステップでは、キャラクターがジャンプ スタートする機能を追加します。
+
+1.	**[Arms State Machine]** グラフへ戻って、 **Idle** ステートから **JumpStart** ステートへワイヤーをドラッグします。
+
+	![](IdletoJumpStart.png)
+
+1.	遷移を **ダブルクリック** して編集します。
+
+1.	**[My Blueprint]** タブで **[IsFalling]** を **コントロールキーを押しながらクリック** してグラフにドラッグして、 **Get Is Falling** ノードを作成します。
+
+1.	**Get Is Falling** ノードの出力 Boolean ピンを、**Result** ノードの **Can Enter Transition** ピンの入力 Boolean に接続します。
+
+	![](IsFallingtoResult.png)
 
 %Steps%
