@@ -222,11 +222,11 @@ FShotSection::~FShotSection()
 	if( ThumbnailPool.IsValid() )
 	{
 		ThumbnailPool.Pin()->RemoveThumbnailsNeedingRedraw(Thumbnails);
-
-		if(InternalViewportClient.IsValid())
-		{
-			InternalViewportClient->Viewport = nullptr;
-		}
+	}
+	
+	if(InternalViewportClient.IsValid())
+	{
+		InternalViewportClient->Viewport = nullptr;
 	}
 }
 
