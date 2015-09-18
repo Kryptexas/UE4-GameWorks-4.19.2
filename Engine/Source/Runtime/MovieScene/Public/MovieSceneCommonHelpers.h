@@ -2,7 +2,6 @@
 
 #pragma once
 
-
 class MOVIESCENE_API MovieSceneHelpers
 {
 public:
@@ -12,28 +11,36 @@ public:
 	static TArray<UMovieSceneSection*> GetTraversedSections( const TArray<UMovieSceneSection*>& Sections, float CurrentTime, float PreviousTime );
 
 	/**
-	* Finds a section that exists at a given time
-	*
-	* @param Time	The time to find a section at
-	* @return The found section or null
-	*/
+	 * Finds a section that exists at a given time
+	 *
+	 * @param Time	The time to find a section at
+	 * @return The found section or null
+	 */
 	static UMovieSceneSection* FindSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
 
 	/**
-	* Finds the nearest section to the given time
-	*
-	* @param Time	The time to find a section at
-	* @return The found section or null
-	*/
+	 * Finds the nearest section to the given time
+	 *
+	 * @param Time	The time to find a section at
+	 * @return The found section or null
+	 */
 	static UMovieSceneSection* FindNearestSectionAtTime( const TArray<UMovieSceneSection*>& Sections, float Time );
 
 	/**
-	* Get the scene component from the runtime object
-	*
-	* @param Object The object to get the scene component for
-	* @return The found scene component
-	*/	
+	 * Get the scene component from the runtime object
+	 *
+	 * @param Object The object to get the scene component for
+	 * @return The found scene component
+	 */	
 	static USceneComponent* SceneComponentFromRuntimeObject(UObject* Object);
+
+	/*
+	 * Set the runtime object movable
+	 *
+	 * @param Object The object to set the mobility for
+	 * @param Mobility The mobility of the runtime object
+	 */
+	static void SetRuntimeObjectMobility(UObject* Object, EComponentMobility::Type ComponentMobility = EComponentMobility::Movable);
 };
 
 /**

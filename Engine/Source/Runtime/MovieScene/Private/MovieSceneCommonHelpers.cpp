@@ -113,6 +113,19 @@ USceneComponent* MovieSceneHelpers::SceneComponentFromRuntimeObject(UObject* Obj
 	return SceneComponent;
 }
 
+void MovieSceneHelpers::SetRuntimeObjectMobility(UObject* Object, EComponentMobility::Type ComponentMobility)
+{
+	USceneComponent* SceneComponent = SceneComponentFromRuntimeObject(Object);
+	if (SceneComponent)
+	{
+		if (SceneComponent->Mobility != ComponentMobility)
+		{
+			SceneComponent->Modify();
+
+			SceneComponent->SetMobility(ComponentMobility);
+		}
+	}
+}
 
 FTrackInstancePropertyBindings::FTrackInstancePropertyBindings( FName InPropertyName, const FString& InPropertyPath, const FName& InFunctionName )
     : PropertyPath( InPropertyPath )

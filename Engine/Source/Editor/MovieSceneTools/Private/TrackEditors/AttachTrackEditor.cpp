@@ -9,6 +9,7 @@
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
+#include "MovieSceneCommonHelpers.h"
 #include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "ActorEditorUtils.h"
@@ -330,6 +331,8 @@ void F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 			FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 			if (ObjectHandle.IsValid())
 			{
+				MovieSceneHelpers::SetRuntimeObjectMobility(Object);
+
 				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DAttachTrack::StaticClass(), FName("Attach"));
 
 				if (ensure(Track))

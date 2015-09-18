@@ -9,6 +9,7 @@
 #include "ISequencerSection.h"
 #include "ISectionLayoutBuilder.h"
 #include "IKeyArea.h"
+#include "MovieSceneCommonHelpers.h"
 #include "MovieSceneToolHelpers.h"
 #include "MovieSceneTrackEditor.h"
 #include "PathTrackEditor.h"
@@ -311,6 +312,8 @@ void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 			FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
 			if (ObjectHandle.IsValid())
 			{
+				MovieSceneHelpers::SetRuntimeObjectMobility(Object);
+
 				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DPathTrack::StaticClass(), FName("Path"));
 
 				if (ensure(Track))

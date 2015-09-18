@@ -3,6 +3,7 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
+#include "MovieSceneCommonHelpers.h"
 #include "MovieSceneSection.h"
 #include "MovieScene3DTransformTrack.h"
 #include "MovieScene3DTransformSection.h"
@@ -312,6 +313,8 @@ void F3DTransformTrackEditor::AddKeyInternal(const FGuid& ObjectGuid, UObject* A
 
 		if( SceneComponent )
 		{
+			MovieSceneHelpers::SetRuntimeObjectMobility(Object);
+
 			// Cache off the existing transform so we can detect which components have changed
 			// and keys only when something has changed
 			FTransformData CurrentTransform( SceneComponent );
