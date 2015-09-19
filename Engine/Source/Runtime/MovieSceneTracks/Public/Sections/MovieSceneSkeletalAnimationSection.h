@@ -28,6 +28,9 @@ public:
 	/** Gets the animation duration, modified by dilation */
 	float GetAnimationDuration() const {return FMath::IsNearlyZero(AnimationDilationFactor) ? 0.f : AnimSequence->SequenceLength / AnimationDilationFactor;}
 
+	/** Gets the animation sequence length, not modified by dilation */
+	float GetAnimationSequenceLength() const {return AnimSequence->SequenceLength;}
+
 	/**
 	 * @return The dilation multiplier of the animation
 	 */
