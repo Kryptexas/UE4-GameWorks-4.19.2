@@ -1733,7 +1733,7 @@ public:
 			}
 			else if (GConsoleSpinModeLatched == 2)
 			{
-				FPlatformProcess::Sleep(0.0f);
+				FPlatformProcess::SleepNoStats(0.0f);
 			}
 		}
 	}
