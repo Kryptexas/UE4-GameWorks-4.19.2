@@ -2347,6 +2347,14 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateSP( this, &FSequencer::FindInContentBrowser ) );
 
 	SequencerCommandBindings->MapAction(
+		Commands.ToggleDetailsView,
+		FExecuteAction::CreateLambda( [this]{
+			Settings->SetDetailsViewVisible( !Settings->GetDetailsViewVisible() );
+		} ),
+		FCanExecuteAction::CreateLambda( []{ return true; } ),
+		FIsActionChecked::CreateLambda( [this]{ return Settings->GetDetailsViewVisible(); } ) );
+
+	SequencerCommandBindings->MapAction(
 		Commands.ToggleCleanView,
 		FExecuteAction::CreateLambda( [this]{
 			Settings->SetIsUsingCleanView( !Settings->GetIsUsingCleanView() );

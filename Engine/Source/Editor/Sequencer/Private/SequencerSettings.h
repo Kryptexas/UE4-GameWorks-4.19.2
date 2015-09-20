@@ -129,6 +129,11 @@ public:
 	/** Sets whether or not to snap curve values to the interval. */
 	void SetSnapCurveValueToInterval(bool InbSnapCurveValueToInterval);
 
+	/** Gets whether or not the details view is visible. */
+	bool GetDetailsViewVisible() const;
+	/** Sets whether or not the details view is visible. */
+	void SetDetailsViewVisible(bool InbDetailsViewVisible);
+
 	/** Gets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
 	bool GetIsUsingCleanView() const;
 	/** Sets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
@@ -206,6 +211,9 @@ protected:
 
 	UPROPERTY( config )
 	bool bSnapCurveValueToInterval;
+
+	UPROPERTY( config )
+	bool bDetailsViewVisible;
 
 	UPROPERTY( config )
 	bool bIsUsingCleanView;

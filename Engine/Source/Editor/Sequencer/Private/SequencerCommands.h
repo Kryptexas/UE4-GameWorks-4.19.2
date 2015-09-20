@@ -114,6 +114,9 @@ public:
 	/** Finds the viewed actor animation in the content browser. */
 	TSharedPtr< FUICommandInfo > FindInContentBrowser;
 
+	/** Toggles whether the details view is enabled in the level editor. */
+	TSharedPtr< FUICommandInfo > ToggleDetailsView;
+	
 	/** Toggles whether the "clean view" is enabled in the level editor. */
 	TSharedPtr< FUICommandInfo > ToggleCleanView;
 	

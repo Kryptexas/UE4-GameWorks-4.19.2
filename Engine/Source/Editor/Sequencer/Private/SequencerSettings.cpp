@@ -22,6 +22,7 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	bSnapPlayTimeToDraggedKey = false;
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
+	bDetailsViewVisible = false;
 	bIsUsingCleanView = false;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
@@ -262,6 +263,20 @@ void USequencerSettings::SetSnapCurveValueToInterval( bool InbSnapCurveValueToIn
 	if ( bSnapCurveValueToInterval != InbSnapCurveValueToInterval )
 	{
 		bSnapCurveValueToInterval = InbSnapCurveValueToInterval;
+		SaveConfig();
+	}
+}
+
+bool USequencerSettings::GetDetailsViewVisible() const
+{
+	return bDetailsViewVisible;
+}
+
+void USequencerSettings::SetDetailsViewVisible(bool InbDetailsViewVisible )
+{
+	if (bDetailsViewVisible != InbDetailsViewVisible)
+	{
+		bDetailsViewVisible = InbDetailsViewVisible;
 		SaveConfig();
 	}
 }

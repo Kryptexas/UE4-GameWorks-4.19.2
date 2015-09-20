@@ -314,7 +314,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 							.Orientation(Orient_Horizontal)
 						
 						+ SSplitter::Slot()
-							.Value(0.8f)
+							.Value(0.85f)
 							[
 								SNew(SBox)
 									.Padding(FMargin(0.0f, 2.0f, 0.0f, 0.0f))
@@ -455,8 +455,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 							]
 
 						+ SSplitter::Slot()
-							.SizeRule(SSplitter::SizeToContent)
-							.Value(0.2f)
+							.Value(0.15f)
 							[
 								DetailsView.ToSharedRef()
 							]
@@ -540,14 +539,15 @@ bool SSequencer::HandleDetailsViewEnabled() const
 
 
 EVisibility SSequencer::HandleDetailsViewVisibility() const
-{/*
-	if (Model->GetSelectedMessage().IsValid())
+{
+	if (Sequencer.Pin()->GetSettings()->GetDetailsViewVisible())
 	{
 		return EVisibility::Visible;
 	}
-
-	return EVisibility::Hidden;*/
-	return EVisibility::Visible;
+	else
+	{
+		return EVisibility::Collapsed;
+	}
 }
 
 
@@ -783,6 +783,7 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 	{
 		if (Sequencer.Pin()->IsLevelEditorSequencer())
 		{
+			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleDetailsView );
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCleanView );
 		}
 
