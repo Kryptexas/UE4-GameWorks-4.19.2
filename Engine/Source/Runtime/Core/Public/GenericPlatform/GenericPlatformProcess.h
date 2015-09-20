@@ -554,11 +554,10 @@ struct CORE_API FGenericPlatformProcess
 	 */
 	static bool Daemonize();
 
-	/** Check to see if we're the first instance */
+	/**
+	 * Checks if we're the first instance. An instance can become first if the previous first instance quits before it.
+	 */
 	static bool IsFirstInstance();
-
-	/** Release process lock file (if any) */
-	static void ReleaseProcessLockFile() { }
 };
 
 

@@ -224,6 +224,9 @@ FSlateFileDlgWindow::FSlateFileDlgWindow(FSlateFileDialogsStyle *InStyleSet)
 bool FSlateFileDlgWindow::OpenFileDialog(const void* ParentWindowHandle, const FString& DialogTitle, const FString& DefaultPath,
 		const FString& DefaultFile, const FString& FileTypes, uint32 Flags, TArray<FString>& OutFilenames, int32& OutFilterIndex)
 {
+	FString StartDirectory = DefaultPath;
+	TrimStartDirectory(StartDirectory);
+
 	TSharedRef<SWindow> ModalWindow = SNew(SWindow)
 		.SupportsMinimize(false)
 		.SupportsMaximize(false)
@@ -237,7 +240,7 @@ bool FSlateFileDlgWindow::OpenFileDialog(const void* ParentWindowHandle, const F
 	DialogWidget = SNew(SSlateFileOpenDlg)
 		.bMultiSelectEnabled(Flags == 1)
 		.ParentWindow(ModalWindow)
-		.CurrentPath(DefaultPath)
+		.CurrentPath(StartDirectory)
 		.Filters(FileTypes)
 		.WindowTitleText(DialogTitle)
 		.StyleSet(StyleSet);
@@ -267,6 +270,9 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 	TArray<FString> TempOut;
 	FString Filters = "";
 
+	FString StartDirectory = DefaultPath;
+	TrimStartDirectory(StartDirectory);
+
 	TSharedRef<SWindow> ModalWindow = SNew(SWindow)
 		.SupportsMinimize(false)
 		.SupportsMaximize(false)
@@ -281,7 +287,7 @@ bool FSlateFileDlgWindow::OpenDirectoryDialog(const void* ParentWindowHandle, co
 		.bMultiSelectEnabled(false)
 		.ParentWindow(ModalWindow)
 		.bDirectoriesOnly(true)
-		.CurrentPath(DefaultPath)
+		.CurrentPath(StartDirectory)
 		.WindowTitleText(DialogTitle)
 		.StyleSet(StyleSet);
 
@@ -311,6 +317,9 @@ bool FSlateFileDlgWindow::SaveFileDialog(const void* ParentWindowHandle, const F
 {
 	int32 DummyIndex;
 
+	FString StartDirectory = DefaultPath;
+	TrimStartDirectory(StartDirectory);
+
 	TSharedRef<SWindow> ModalWindow = SNew(SWindow)
 		.SupportsMinimize(false)
 		.SupportsMaximize(false)
@@ -326,7 +335,7 @@ bool FSlateFileDlgWindow::SaveFileDialog(const void* ParentWindowHandle, const F
 		.ParentWindow(ModalWindow)
 		.bSaveFile(true)
 		.AcceptText(LOCTEXT("SlateFileDialogsSave","Save"))
-		.CurrentPath(DefaultPath)
+		.CurrentPath(StartDirectory)
 		.Filters(FileTypes)
 		.WindowTitleText(DialogTitle)
 		.StyleSet(StyleSet);
@@ -341,7 +350,23 @@ bool FSlateFileDlgWindow::SaveFileDialog(const void* ParentWindowHandle, const F
 	return (DialogWidget->GetResponse() == EResult::Accept && OutFilenames.Num() > 0);
 }
 
+void FSlateFileDlgWindow::TrimStartDirectory(FString &InPath)
+{
+	if (InPath.Len() == 0)
+	{
+		// no path given. nothing to do.
+		return;
+	}
 
+	FPaths::CollapseRelativeDirectories(InPath);
+
+	FString PathPart;
+	FString FileNamePart;
+	FString ExtensionPart;
+
+	FPaths::Split(InPath, PathPart, FileNamePart, ExtensionPart);
+	InPath = PathPart;
+}
 
 //-----------------------------------------------------------------------------
 // custom file dialog widget

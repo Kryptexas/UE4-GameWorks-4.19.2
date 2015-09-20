@@ -1258,64 +1258,58 @@ FString FLinuxPlatformProcess::FProcEnumInfo::GetName() const
 	return FPaths::GetCleanFilename(GetFullPath());
 }
 
+static int GFileLockDescriptor = -1;
+
 bool FLinuxPlatformProcess::IsFirstInstance()
 {
+	// set default return if we are unable to access lock file.
+	static bool bIsFirstInstance = false;
+	static bool bNeverFirst = FParse::Param(FCommandLine::Get(), TEXT("neverfirst"));
+
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-
-	if (GFileLockDescriptor != -1)
+	if (!bIsFirstInstance && !bNeverFirst)	// once we determined that we're first, this can never change until we exit; otherwise, we re-check each time
 	{
-		// attempt to set lock
-		struct flock lock;
-
-		lock.l_type = F_WRLCK;
-		lock.l_start = 0;
-		lock.l_whence = SEEK_SET;
-		lock.l_len = 0;
-
-		if (fcntl(GFileLockDescriptor, F_SETLK, &lock) >= 0)
+		// create the file if it doesn't exist
+		if (GFileLockDescriptor == -1)
 		{
-			// lock file created and successfully locked by this process.
-			printf("we are the first instance\n");
-			GIsFirstInstance = true;
+			FString LockFileName(TEXT("/tmp/"));
+			FString ExecPath(FPlatformProcess::ExecutableName());
+			ExecPath.ReplaceInline(TEXT("/"), TEXT("-"));
+			// [RCL] 2015-09-20: can run out of filename limits (256 bytes) due to a long path, be conservative and assume 4-char UTF-8 name like e.g. Japanese
+			ExecPath = ExecPath.Right(80);
+
+			LockFileName += ExecPath;
+
+			GFileLockDescriptor = open(TCHAR_TO_UTF8(*LockFileName), O_RDWR | O_CREAT, 0666);
 		}
-		else
+
+		if (GFileLockDescriptor != -1)
 		{
-			// we were unable to lock file. so some other process beat us to lock file.
-			printf("we are *NOT* the first instance\n");
-			GIsFirstInstance = false;
+			if (flock(GFileLockDescriptor, LOCK_EX | LOCK_NB) == 0)
+			{
+				// lock file successfully locked by this process - no more checking if we're first!
+				bIsFirstInstance = true;
+			}
+			else
+			{
+				// we were unable to lock file. so some other process beat us to lock file.
+				bIsFirstInstance = false;
+			}
 		}
 	}
-	else
-	{
-		// Should not get here. It means that we were unable to create or open the lock file.
-		// not much we can do other than provide a default return and spit out an error msg.
-		UE_LOG(LogHAL, Warning, TEXT("No process lock file descriptor"));
-		GIsFirstInstance = true;
-	}
-
-	return GIsFirstInstance;
-#elif
-	return true;
 #endif
+	return bIsFirstInstance;
 }
 
-void FLinuxPlatformProcess::ReleaseProcessLockFile()
+void FLinuxPlatformProcess::CeaseBeingFirstInstance()
 {
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
-	printf("*** releasing process lock file\n");
-
 	if (GFileLockDescriptor != -1)
 	{
-		// attempt to release lock
-		struct flock lock;
-
-		lock.l_type = F_UNLCK;
-		lock.l_start = 0;
-		lock.l_whence = SEEK_SET;
-		lock.l_len = 0;
-
-		fcntl(GFileLockDescriptor, F_SETLK, &lock);
+		// may fail if we didn't have the lock
+		flock(GFileLockDescriptor, LOCK_UN | LOCK_NB);
+		close(GFileLockDescriptor);
+		GFileLockDescriptor = -1;
 	}
 #endif
 }
-

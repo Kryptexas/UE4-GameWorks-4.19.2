@@ -283,7 +283,11 @@ struct CORE_API FLinuxPlatformProcess : public FGenericPlatformProcess
 	static void ExploreFolder( const TCHAR* FilePath );
 	static void LaunchFileInDefaultExternalApplication( const TCHAR* FileName, const TCHAR* Parms = NULL, ELaunchVerb::Type Verb = ELaunchVerb::Open );
 	static bool IsFirstInstance();
-	static void ReleaseProcessLockFile();
+
+	/**
+	 * @brief Releases locks that we held for IsFirstInstance check
+	 */
+	static void CeaseBeingFirstInstance();
 };
 
 typedef FLinuxPlatformProcess FPlatformProcess;

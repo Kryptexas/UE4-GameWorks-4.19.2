@@ -72,6 +72,8 @@ private:
 	FString CurrentDirectory;
 
 	FSlateFileDialogsStyle* StyleSet;
+
+	void TrimStartDirectory(FString &Path);
 };
 
 

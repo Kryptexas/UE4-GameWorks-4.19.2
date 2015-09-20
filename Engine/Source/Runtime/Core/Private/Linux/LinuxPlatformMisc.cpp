@@ -14,6 +14,11 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/vfs.h>	// statfs()
+#include <sys/ioctl.h>
+
+#include <ifaddrs.h>	// ethernet mac
+#include <net/if.h>
+#include <net/if_arp.h>
 
 #include "ModuleManager.h"
 
@@ -143,7 +148,11 @@ void FLinuxPlatformMisc::PlatformInit()
 	// install a platform-specific signal handler
 	InstallChildExitedSignalHanlder();
 
+	// do not remove the below check for IsFirstInstance() - it is not just for logging, it actually lays the claim to be first
+	bool bFirstInstance = FPlatformProcess::IsFirstInstance();
+
 	UE_LOG(LogInit, Log, TEXT("Linux hardware info:"));
+	UE_LOG(LogInit, Log, TEXT(" - we are %sthe first instance of this executable"), bFirstInstance ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - machine network name is '%s'"), FPlatformProcess::ComputerName());
@@ -179,7 +188,7 @@ void FLinuxPlatformMisc::PlatformInit()
 		PlatformInitMultimedia();
 	}
 
-	if (FPlatformMisc::HasBeenStartedRemotely())
+	if (FPlatformMisc::HasBeenStartedRemotely() || FPlatformMisc::IsDebuggerPresent())
 	{
 		// print output immediately
 		setvbuf(stdout, NULL, _IONBF, 0);
@@ -238,6 +247,8 @@ void FLinuxPlatformMisc::PlatformTearDown()
 		SDL_Quit();
 		GInitializedSDL = false;
 	}
+
+	FPlatformProcess::CeaseBeingFirstInstance();
 }
 
 GenericApplication* FLinuxPlatformMisc::CreateApplication()
@@ -879,48 +890,47 @@ bool FLinuxPlatformMisc::GetDiskTotalAndFreeSpace(const FString& InPath, uint64&
 
 TArray<uint8> FLinuxPlatformMisc::GetMacAddress()
 {
-	char path[64] = "/sys/class/net/eth0";
-	int eth_idx = strlen(path) - 1;
-	char mac_string[64];
-	uint MAC[6] = {0,0,0,0,0,0};
+	struct ifaddrs *ifap, *ifaptr;
 	TArray<uint8> Result;
 
-	strcat(path, "/address");
-
-	// check to see if eth0-eth9 exist. Use the MAC from the first one we get a hit on
-	for (int i=0; i<=9; i++)
+	if (getifaddrs(&ifap) == 0)
 	{
-		path[eth_idx] = '0' + i;
-
-		int EtherInterface = open(path, O_RDONLY);
-		if (EtherInterface != -1)
+		for (ifaptr = ifap; ifaptr != nullptr; ifaptr = (ifaptr)->ifa_next)
 		{
-			ssize_t ReadBytes = read(EtherInterface, mac_string, 64 - 1);
-			close(EtherInterface);
+			struct ifreq ifr;
 
-			if (ReadBytes < 0)
+			strncpy(ifr.ifr_name, ifaptr->ifa_name, IFNAMSIZ-1);
+
+			int Socket = socket(AF_UNIX, SOCK_DGRAM, 0);
+			if (Socket == -1)
 			{
 				continue;
 			}
 
-			mac_string[ReadBytes] = 0;
-
-			if (ReadBytes > 0)
+			if (ioctl(Socket, SIOCGIFHWADDR, &ifr) == -1)
 			{
-				printf("--- MAC Address: %s\n", mac_string);
-				int rc = sscanf(mac_string,"%x:%x:%x:%x:%x:%x", &MAC[0],&MAC[1],&MAC[2],&MAC[3],&MAC[4],&MAC[5]);
-
-				if (rc == 6)
-				{
-					for (int j=0; j<6; j++)
-					{
-						Result.Add(MAC[j]);
-					}
-
-					break;
-				}
+				close(Socket);
+				continue;
 			}
+
+			close(Socket);
+
+			if (ifr.ifr_hwaddr.sa_family != ARPHRD_ETHER)
+			{
+				continue;
+			}
+
+			const uint8 *MAC = (uint8 *) ifr.ifr_hwaddr.sa_data;
+
+			for (int32 i=0; i < 6; i++)
+			{
+				Result.Add(MAC[i]);
+			}
+
+			break;
 		}
+
+		freeifaddrs(ifap);
 	}
 
 	return Result;
@@ -932,7 +942,7 @@ static bool bIsOnBattery = false;
 
 bool FLinuxPlatformMisc::IsRunningOnBattery()
 {
-	char scratch[8];
+	char Scratch[8];
 	FDateTime Time = FDateTime::Now();
 	int64 Seconds = Time.ToUnixTimestamp();
 
@@ -949,12 +959,12 @@ bool FLinuxPlatformMisc::IsRunningOnBattery()
 	if (State != -1)
 	{
 		// found ACAD device. check its state.
-		ssize_t ReadBytes = read(State, scratch, 1);
+		ssize_t ReadBytes = read(State, Scratch, 1);
 		close(State);
 
 		if (ReadBytes > 0)
 		{
-			bIsOnBattery = (scratch[0] == '0');
+			bIsOnBattery = (Scratch[0] == '0');
 		}
 	}
 

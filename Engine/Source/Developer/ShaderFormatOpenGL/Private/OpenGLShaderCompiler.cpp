@@ -284,7 +284,7 @@ static void _PlatformCreateDummyGLWindow(FPlatformOpenGLContext *OutContext)
 	// Create a dummy window.
 	OutContext->hWnd = SDL_CreateWindow(NULL,
 		0, 0, 1, 1,
-		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN);
+		SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS | SDL_WINDOW_HIDDEN | SDL_WINDOW_SKIP_TASKBAR );
 }
 
 static void _PlatformCreateOpenGLContextCore(FPlatformOpenGLContext* OutContext)

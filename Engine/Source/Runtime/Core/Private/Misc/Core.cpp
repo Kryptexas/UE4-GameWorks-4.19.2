@@ -211,8 +211,9 @@ uint32					GFrameNumberRenderThread		= 1;
 #if !(UE_BUILD_SHIPPING && WITH_EDITOR)
 // We cannot count on this variable to be accurate in a shipped game, so make sure no code tries to use it
 /** Whether we are the first instance of the game running.													*/
+#if !PLATFORM_LINUX
 bool					GIsFirstInstance				= true;
-int32					GFileLockDescriptor				= -1;
+#endif
 #endif
 /** Threshold for a frame to be considered a hitch (in seconds. */
 float GHitchThreshold = 0.075f;
