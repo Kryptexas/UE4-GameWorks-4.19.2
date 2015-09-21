@@ -223,9 +223,15 @@ void FActorAnimationEditorToolkit::HandleAddMenuAddEventTrackExecute()
 }
 
 
+bool FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackCanExecute()
+{
+	return true;
+}
+
+
 void FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackExecute()
 {
-	Sequencer->AddNewShot(FGuid());
+
 }
 
 
@@ -273,7 +279,10 @@ TSharedRef<SWidget> FActorAnimationEditorToolkit::HandleSequencerGetAddMenuConte
 		LOCTEXT("AddShotTrack", "Add Shot Track"),
 		LOCTEXT("AddShotTooltip", "Adds a shot track, as well as a new shot at the current scrubber location if a camera is selected."),
 		FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tracks.Shot"),
-		FUIAction(FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackExecute))
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackExecute),
+			FCanExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackCanExecute)
+		)
 	);
 
 	// add slomo track

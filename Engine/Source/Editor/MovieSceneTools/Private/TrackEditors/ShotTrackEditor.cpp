@@ -580,7 +580,7 @@ void FShotTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, co
 			NSLOCTEXT("FShotTrackEditor", "AddShot", "Add New Shot"),
 			NSLOCTEXT("FShotTrackEditor", "AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(ParentSequencer.Get(), &ISequencer::AddNewShot, ObjectBinding))
+			FUIAction(FExecuteAction::CreateRaw(this, &FShotTrackEditor::HandleAddShotMenuEntryExecute, ObjectBinding))
 			);
 	}
 }
@@ -723,4 +723,10 @@ UFactory* FShotTrackEditor::GetAssetFactoryForNewShot( UClass* SequenceClass )
 	}
 
 	return ShotFactory.Get();
+}
+
+
+void FShotTrackEditor::HandleAddShotMenuEntryExecute(FGuid CameraGuid)
+{
+	AddKey(CameraGuid);
 }

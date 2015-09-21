@@ -44,6 +44,9 @@ private:
 
 	UFactory* GetAssetFactoryForNewShot( UClass* SequenceClass );
 
+	/** Callback for executing the "Add Shot" menu entry. */
+	void HandleAddShotMenuEntryExecute(FGuid CameraGuid);
+
 private:
 	/** The Thumbnail pool which draws all the viewport thumbnails for the director track */
 	TSharedPtr<class FShotThumbnailPool> ThumbnailPool;

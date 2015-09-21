@@ -76,6 +76,9 @@ private:
 	/** Callback for executing the "Add Event Track" menu action. */
 	void HandleAddMenuAddEventTrackExecute();
 
+	/** Callback for checking whether the "Add Shot Track" menu action can execute. */
+	bool HandleAddMenuAddShotTrackCanExecute();
+
 	/** Callback for executing the "Add Shot Track" menu action. */
 	void HandleAddMenuAddShotTrackExecute();
 

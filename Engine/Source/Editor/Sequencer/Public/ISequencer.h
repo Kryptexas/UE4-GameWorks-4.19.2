@@ -111,9 +111,6 @@ public:
 	 */
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) = 0;
 	
-	/** Adds a new shot key with the specified camera guid */
-	virtual void AddNewShot(FGuid CameraGuid) = 0;
-
 	/** Adds a new animation to the specified skeletal mesh object guid */
 	virtual void AddAnimation(FGuid ObjectGuid, UAnimSequence* AnimSequence) = 0;
 

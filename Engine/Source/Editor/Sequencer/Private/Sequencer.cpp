@@ -375,15 +375,6 @@ void FSequencer::PopToMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMov
 	}
 }
 
-void FSequencer::AddNewShot(FGuid CameraGuid)
-{
-	// @todo Sequencer: This should not be needed here.  the track editor could be the entry point
-	if (ShotTrackEditor.IsValid())
-	{
-		ShotTrackEditor.Pin()->AddKey(CameraGuid);
-	}
-}
-
 void FSequencer::AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence)
 {
 	// @todo Sequencer: This should not be needed here.  the track editor could be the entry point
