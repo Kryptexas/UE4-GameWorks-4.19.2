@@ -647,6 +647,10 @@ bool FGameplayEffectSpec::AttemptCalculateDurationFromDef(OUT float& OutDefDurat
 	{
 		OutDefDuration = UGameplayEffect::INSTANT_APPLICATION;
 	}
+	else if (Def->DurationMagnitude.GetMagnitudeCalculationType() == EGameplayEffectMagnitudeCalculation::SetByCaller)
+	{
+		return false;
+	}
 	else
 	{
 		// The last parameters (false, 1.f) are so that if SetByCaller hasn't been set yet, we don't warn and default
