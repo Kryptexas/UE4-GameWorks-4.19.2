@@ -231,7 +231,7 @@ float USplineComponent::GetSegmentLength(const int32 Index, const float Param) c
 	{
 		// Calculate derivative at each Legendre-Gauss sample, and perform a weighted sum
 		const float Alpha = HalfParam * (1.0f + LegendreGaussCoefficient.Abscissa);
-		const FVector Derivative = (Coeff1 * Alpha + Coeff2) * Alpha + Coeff3;
+		const FVector Derivative = ((Coeff1 * Alpha + Coeff2) * Alpha + Coeff3) * ComponentToWorld.GetScale3D();
 		Length += Derivative.Size() * LegendreGaussCoefficient.Weight;
 	}
 	Length *= HalfParam;

@@ -114,6 +114,7 @@ public:
 	void ApplyComponentInstanceData(class FSplineInstanceData* ComponentInstanceData, const bool bPostUCS);
 
 	/** Update the spline tangents and SplineReparamTable */
+	UFUNCTION(BlueprintCallable, Category = Spline)
 	void UpdateSpline();
 
 	/** Get location along spline at the provided input key value */
