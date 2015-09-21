@@ -1061,10 +1061,10 @@ void FFoliageMeshInfo::ReapplyInstancesToComponent()
 			Component->AddInstanceWorldSpace(Instance.GetInstanceWorldTransform());
 		}
 
+		Component->ClearInstanceSelection();
+
 		if (SelectedIndices.Num())
-		{
-			Component->ClearInstanceSelection();
-			
+		{	
 			for (int32 i : SelectedIndices)
 			{
 				Component->SelectInstance(true, i, 1);
