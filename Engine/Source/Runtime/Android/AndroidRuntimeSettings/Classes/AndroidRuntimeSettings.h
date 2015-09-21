@@ -258,6 +258,30 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
 	TEnumAsByte<EAndroidAudio::Type> AndroidAudio;
 	
+	/** Include ETC1 textures when packaging with the Android (Multi) variant. ETC1 will be included if no other formats are selected. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ETC1 textures"))
+	bool bMultiTargetFormat_ETC1;
+
+	/** Include ETC2 textures when packaging with the Android (Multi) variant. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ETC2 textures"))
+	bool bMultiTargetFormat_ETC2;
+
+	/** Include DXT textures when packaging with the Android (Multi) variant. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include DXT textures"))
+	bool bMultiTargetFormat_DXT;
+
+	/** Include PVRTC textures when packaging with the Android (Multi) variant. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include PVRTC textures"))
+	bool bMultiTargetFormat_PVRTC;
+
+	/** Include ATC textures when packaging with the Android (Multi) variant. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ATC textures"))
+	bool bMultiTargetFormat_ATC;
+
+	/** Include ASTC textures when packaging with the Android (Multi) variant. */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = MultiTextureFormats, meta = (DisplayName = "Include ASTC textures"))
+	bool bMultiTargetFormat_ASTC;
+
 	
 #if WITH_EDITOR
 	// UObject interface

@@ -314,6 +314,7 @@ namespace UnrealBuildTool
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
+                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
                         }
 					}
 					else if (ModuleName == "TargetPlatform")
@@ -342,6 +343,7 @@ namespace UnrealBuildTool
 					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
+                        Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
                     }
     
 				    if (bBuildShaderFormats)
