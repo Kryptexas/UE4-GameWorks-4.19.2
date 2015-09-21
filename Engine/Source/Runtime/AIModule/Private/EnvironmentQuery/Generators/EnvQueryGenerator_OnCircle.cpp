@@ -18,11 +18,14 @@ UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const FObjectInitialize
 	ItemType = UEnvQueryItemType_Point::StaticClass();
 	CircleRadius.DefaultValue = 1000.0f;
 	SpaceBetween.DefaultValue = 50.0f;
+	NumberOfPoints.DefaultValue = 8;
+	PointOnCircleSpacingMethod = EPointOnCircleSpacingMethod::BySpaceBetween;
 	ArcDirection.DirMode = EEnvDirection::TwoPoints;
 	ArcDirection.LineFrom = UEnvQueryContext_Querier::StaticClass();
 	ArcDirection.Rotation = UEnvQueryContext_Querier::StaticClass();
 	ArcAngle.DefaultValue = 360.f;
 	AngleRadians = FMath::DegreesToRadians(360.f);
+	bIgnoreAnyContextActorsWhenGeneratingCircle = false;
 
 	TraceData.bCanProjectDown = false;
 	TraceData.bCanDisableTrace = true;
@@ -127,8 +130,13 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	float AngleDegree = ArcAngle.GetValue();
 	float RadiusValue = CircleRadius.GetValue();
 	float ItemSpace = SpaceBetween.GetValue();
+	int32 NumPoints = NumberOfPoints.GetValue();
 
-	if ((AngleDegree <= 0.f) || (AngleDegree > 360.f) || (RadiusValue <= 0.f) || (ItemSpace <= 0.f))
+	if ((AngleDegree <= 0.f) || 
+		(AngleDegree > 360.f) || 
+		(RadiusValue <= 0.f) || 
+		((PointOnCircleSpacingMethod == EPointOnCircleSpacingMethod::BySpaceBetween) && (ItemSpace <= 0.f)) ||
+		((PointOnCircleSpacingMethod == EPointOnCircleSpacingMethod::ByNumberOfPoints) && (NumPoints <= 0)))
 	{
 		return;
 	}
@@ -139,8 +147,33 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	const float CircumferenceLength = 2.f * PI * RadiusValue;
 	const float ArcAnglePercentage = AngleDegree / 360.f;
 	const float ArcLength = CircumferenceLength * ArcAnglePercentage;
-	const int32 StepsCount = FMath::CeilToInt(ArcLength / ItemSpace) + 1;
-	const float AngleStep = AngleDegree / (StepsCount - 1);
+
+	int32 StepsCount;
+	int32 NumStepsBetween;
+	switch (PointOnCircleSpacingMethod)
+	{
+		case EPointOnCircleSpacingMethod::BySpaceBetween:
+		{
+			StepsCount = FMath::CeilToInt(ArcLength / ItemSpace) + 1;
+			NumStepsBetween = StepsCount - 1;
+			break;
+		}
+
+		case EPointOnCircleSpacingMethod::ByNumberOfPoints:
+		{
+			StepsCount = NumPoints;
+			NumStepsBetween = StepsCount;
+			break;
+		}
+
+		default:
+		{
+			ensure(false);
+			return;
+		}
+	}
+
+	const float AngleStep = AngleDegree / NumStepsBetween;
 
 	FVector StartDirection = CalcDirection(QueryInstance);
 	StartDirection = StartDirection.RotateAngleAxis(-AngleDegree/2, FVector::UpVector) * RadiusValue;
@@ -156,10 +189,30 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 		uint8* RawData = ContextData.RawData.GetData();
 		const FVector CircleCenterOffset = FVector(0.f, 0.f, CircleCenterZOffset.GetValue());
 
+		TArray<AActor*> ContextActorsToIgnoreWhenGeneratingCircle;
+		if (bIgnoreAnyContextActorsWhenGeneratingCircle)
+		{
+			UEnvQueryItemType_ActorBase* DefEnvQueryActorBaseItemTypeOb = Cast<UEnvQueryItemType_ActorBase>(ContextData.ValueType->GetDefaultObject());
+			if (DefEnvQueryActorBaseItemTypeOb != nullptr)
+			{
+				uint8* ActorRawData = ContextData.RawData.GetData();
+
+				for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
+				{
+					AActor* Actor = DefEnvQueryActorBaseItemTypeOb->GetActor(ActorRawData);
+					if (Actor)
+					{
+						ContextActorsToIgnoreWhenGeneratingCircle.Add(Actor);
+					}
+					ActorRawData += DefTypeValueSize;
+				}
+			}
+		}
+
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
 			const FVector ContextItemLocation = DefTypeOb->GetItemLocation(RawData) + CircleCenterOffset;
-			GenerateItemsForCircle(RawData, DefTypeOb, ContextItemLocation, StartDirection, StepsCount, AngleStep, QueryInstance);
+			GenerateItemsForCircle(RawData, DefTypeOb, ContextItemLocation, StartDirection, ContextActorsToIgnoreWhenGeneratingCircle, StepsCount, AngleStep, QueryInstance);
 
 			RawData += DefTypeValueSize;
 		}
@@ -168,6 +221,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 
 void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType,
 	const FVector& CenterLocation, const FVector& StartDirection, 
+	const TArray<AActor*>& IgnoredActors,
 	int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const
 {
 	TArray<FNavLocation> ItemCandidates;
@@ -187,20 +241,26 @@ void UEnvQueryGenerator_OnCircle::GenerateItemsForCircle(uint8* ContextRawData, 
 			{
 				FEQSHelpers::RunNavRaycasts(*NavData, TraceData, CenterLocation, ItemCandidates);
 			}
-		}
 			break;
+		}
 
 		case EEnvQueryTrace::Geometry:
-			FEQSHelpers::RunPhysRaycasts(OutQueryInstance.World, TraceData, CenterLocation, ItemCandidates);
+		{
+			FEQSHelpers::RunPhysRaycasts(OutQueryInstance.World, TraceData, CenterLocation, ItemCandidates, IgnoredActors);
 			break;
+		}
 
 		case EEnvQueryTrace::None:
+		{
 			// Just accept the ItemCandidates as they already are (points on a circle), without using navigation OR collision.
 			break;
+		}
 
 		default:
+		{
 			UE_VLOG(Cast<AActor>(OutQueryInstance.Owner.Get()), LogEQS, Warning, TEXT("UEnvQueryGenerator_OnCircle::CalcDirection has invalid value for TraceData.TraceMode.  Query: %s"), *OutQueryInstance.QueryName);
 			break;
+		}
 	}
 
 	ProjectAndFilterNavPoints(ItemCandidates, OutQueryInstance);
