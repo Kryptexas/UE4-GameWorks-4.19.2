@@ -123,21 +123,9 @@ bool UMovieSceneMarginSection::NewKeyIsNewData(float Time, const FMargin& Value,
 		BottomCurve.GetNumKeys() == 0 ||
 		(Eval(Time,Value) != Value);
 
-	if (bHasEmptyKeys)
+	if (bHasEmptyKeys || (KeyParams.bAutoKeying && Eval(Time, Value) != Value))
 	{
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		bool bTopKeyExists = TopCurve.IsKeyHandleValid(TopCurve.FindKey(Time));
-		bool bLeftKeyExists = LeftCurve.IsKeyHandleValid(LeftCurve.FindKey(Time));
-		bool bRightKeyExists = RightCurve.IsKeyHandleValid(RightCurve.FindKey(Time));
-		bool bBottomKeyExists = BottomCurve.IsKeyHandleValid(BottomCurve.FindKey(Time));
-
-		if ( !(!bTopKeyExists && !KeyParams.bAutoKeying && TopCurve.GetNumKeys() > 0) ||
-			 !(!bLeftKeyExists && !KeyParams.bAutoKeying && LeftCurve.GetNumKeys() > 0) ||
-			 !(!bRightKeyExists && !KeyParams.bAutoKeying && RightCurve.GetNumKeys() > 0) ||
-			 !(!bBottomKeyExists && !KeyParams.bAutoKeying && BottomCurve.GetNumKeys() > 0) )
-		{
-			return true;
-		}
+		return true;
 	}
 	return false;
 }

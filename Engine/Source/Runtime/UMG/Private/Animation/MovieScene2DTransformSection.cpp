@@ -141,30 +141,9 @@ bool UMovieScene2DTransformSection::NewKeyIsNewData( float Time, const FWidgetTr
 
 	bHasEmptyKeys |= Rotation.GetNumKeys() == 0;
 
-	if (bHasEmptyKeys || Eval(Time, Transform) != Transform)
+	if (bHasEmptyKeys || (KeyParams.bAutoKeying && Eval(Time, Transform) != Transform))
 	{
-		// Don't add a keyframe if there are existing keys and auto key is not enabled.
-		bool bTxKeyExists = Translation[0].IsKeyHandleValid(Translation[0].FindKey(Time));
-		bool bTyKeyExists = Translation[1].IsKeyHandleValid(Translation[1].FindKey(Time));
-
-		bool bRKeyExists = Rotation.IsKeyHandleValid(Rotation.FindKey(Time));
-
-		bool bHxKeyExists = Shear[0].IsKeyHandleValid(Shear[0].FindKey(Time));
-		bool bHyKeyExists = Shear[1].IsKeyHandleValid(Shear[1].FindKey(Time));
-
-		bool bSxKeyExists = Scale[0].IsKeyHandleValid(Scale[0].FindKey(Time));
-		bool bSyKeyExists = Scale[1].IsKeyHandleValid(Scale[1].FindKey(Time));
-
-		if ( !(!bTxKeyExists && !KeyParams.bAutoKeying && Translation[0].GetNumKeys() > 0) ||
-			 !(!bTyKeyExists && !KeyParams.bAutoKeying && Translation[1].GetNumKeys() > 0) ||
-			 !(!bRKeyExists && !KeyParams.bAutoKeying && Rotation.GetNumKeys() > 0) ||
-			 !(!bHxKeyExists && !KeyParams.bAutoKeying && Shear[0].GetNumKeys() > 0) ||
-			 !(!bHyKeyExists && !KeyParams.bAutoKeying && Shear[1].GetNumKeys() > 0) ||
-			 !(!bSxKeyExists && !KeyParams.bAutoKeying && Scale[0].GetNumKeys() > 0) ||
-			 !(!bSyKeyExists && !KeyParams.bAutoKeying && Scale[1].GetNumKeys() > 0) )
-		{
-			return true;
-		}
+		return true;
 	}
 
 	return false;
