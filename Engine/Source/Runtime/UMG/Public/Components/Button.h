@@ -68,10 +68,10 @@ public:
 	FOnButtonReleasedEvent OnReleased;
 
 	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
-	FOnButtonHoverEvent OnRollOver;
+	FOnButtonHoverEvent OnHovered;
 
 	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
-	FOnButtonHoverEvent OnRollOut;
+	FOnButtonHoverEvent OnUnhovered;
 
 public:
 	
@@ -127,8 +127,8 @@ protected:
 	FReply SlateHandleClicked();
 	void SlateHandlePressed();
 	void SlateHandleReleased();
-	void SlateHandleRollOver();
-	void SlateHandleRollOut();
+	void SlateHandleHovered();
+	void SlateHandleUnhovered();
 
 protected:
 	//~ Begin UWidget Interface

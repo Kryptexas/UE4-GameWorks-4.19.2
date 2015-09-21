@@ -35,8 +35,8 @@ TSharedRef<SWidget> UButton::RebuildWidget()
 		.OnClicked(BIND_UOBJECT_DELEGATE(FOnClicked, SlateHandleClicked))
 		.OnPressed(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandlePressed))
 		.OnReleased(BIND_UOBJECT_DELEGATE(FSimpleDelegate, SlateHandleReleased))
-		.OnRollOver_UObject( this, &ThisClass::SlateHandleRollOver )
-		.OnRollOut_UObject( this, &ThisClass::SlateHandleRollOut )
+		.OnHovered_UObject( this, &ThisClass::SlateHandleHovered )
+		.OnUnhovered_UObject( this, &ThisClass::SlateHandleUnhovered )
 		.ButtonStyle(&WidgetStyle)
 		.ClickMethod(ClickMethod)
 		.TouchMethod(TouchMethod)
@@ -168,14 +168,14 @@ void UButton::SlateHandleReleased()
 	OnReleased.Broadcast();
 }
 
-void UButton::SlateHandleRollOver()
+void UButton::SlateHandleHovered()
 {
-	OnRollOver.Broadcast();
+	OnHovered.Broadcast();
 }
 
-void UButton::SlateHandleRollOut()
+void UButton::SlateHandleUnhovered()
 {
-	OnRollOut.Broadcast();
+	OnUnhovered.Broadcast();
 }
 
 #if WITH_EDITOR

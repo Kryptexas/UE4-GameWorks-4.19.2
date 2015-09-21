@@ -59,9 +59,9 @@ public:
 		/** Called when the button is released */
 		SLATE_EVENT( FSimpleDelegate, OnReleased )
 
-		SLATE_EVENT( FSimpleDelegate, OnRollOver )
+		SLATE_EVENT( FSimpleDelegate, OnHovered )
 
-		SLATE_EVENT( FSimpleDelegate, OnRollOut )
+		SLATE_EVENT( FSimpleDelegate, OnUnhovered )
 
 		/** Sets the rules to use for determining whether the button was clicked.  This is an advanced setting and generally should be left as the default. */
 		SLATE_ARGUMENT( EButtonClickMethod::Type, ClickMethod )
@@ -184,9 +184,9 @@ protected:
 	/** The delegate to execute when the button is released */
 	FSimpleDelegate OnReleased;
 
-	FSimpleDelegate OnRollOver;
+	FSimpleDelegate OnHovered;
 
-	FSimpleDelegate OnRollOut;
+	FSimpleDelegate OnUnhovered;
 
 	/** Style resource for the button */
 	const FButtonStyle* Style;
