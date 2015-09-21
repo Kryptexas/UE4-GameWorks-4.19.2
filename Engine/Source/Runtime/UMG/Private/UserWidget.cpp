@@ -815,7 +815,7 @@ void UUserWidget::TickActionsAndAnimation(const FGeometry& MyGeometry, float InD
 	}
 }
 
-void UUserWidget::ListenForInputAction( FName ActionName, bool bConsume, FOnInputAction Callback )
+void UUserWidget::ListenForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType, bool bConsume, FOnInputAction Callback )
 {
 	if ( !InputComponent )
 	{
@@ -834,7 +834,7 @@ void UUserWidget::ListenForInputAction( FName ActionName, bool bConsume, FOnInpu
 
 	if ( InputComponent )
 	{
-		FInputActionBinding NewBinding( ActionName, IE_Pressed );
+		FInputActionBinding NewBinding( ActionName, EventType.GetValue() );
 		NewBinding.bConsumeInput = bConsume;
 		NewBinding.ActionDelegate.GetDelegateForManualSet().BindUObject( this, &ThisClass::OnInputAction, Callback );
 
@@ -842,14 +842,14 @@ void UUserWidget::ListenForInputAction( FName ActionName, bool bConsume, FOnInpu
 	}
 }
 
-void UUserWidget::StopListeningForInputAction( FName ActionName )
+void UUserWidget::StopListeningForInputAction( FName ActionName, TEnumAsByte< EInputEvent > EventType )
 {
 	if ( InputComponent )
 	{
 		for ( int32 ExistingIndex = InputComponent->GetNumActionBindings() - 1; ExistingIndex >= 0; --ExistingIndex )
 		{
 			const FInputActionBinding& ExistingBind = InputComponent->GetActionBinding( ExistingIndex );
-			if ( ExistingBind.ActionName == ActionName )
+			if ( ExistingBind.ActionName == ActionName && ExistingBind.KeyEvent == EventType )
 			{
 				InputComponent->RemoveActionBinding( ExistingIndex );
 			}
