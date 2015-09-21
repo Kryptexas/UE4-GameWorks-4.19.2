@@ -61,11 +61,27 @@ void FBlueprintCompilerCppBackendBase::DeclareDelegates(UClass* SourceClass, TIn
 			}
 		}
 
+		// remove duplicates, n^2, but n is small:
+		for (int32 I = 0; I < Delegates.Num(); ++I)
+		{
+			UFunction* TargetFn = Delegates[I]->SignatureFunction;
+			for (int32 J = I + 1; J < Delegates.Num(); ++J)
+			{
+				if (TargetFn == Delegates[J]->SignatureFunction)
+				{
+					// swap erase:
+					Delegates[J] = Delegates[Delegates.Num() - 1];
+					Delegates.RemoveAt(Delegates.Num() - 1);
+				}
+			}
+		}
+
 		auto DelegateDeclarations = FEmitHelper::EmitSinglecastDelegateDeclarations(Delegates);
 		FString AllDeclarations;
 		FEmitHelper::ArrayToString(DelegateDeclarations, AllDeclarations, TEXT(";\n"));
 		if (DelegateDeclarations.Num())
 		{
+			Emit(Header, TEXT("\t"));
 			Emit(Header, *AllDeclarations);
 			Emit(Header, TEXT(";\n"));
 		}

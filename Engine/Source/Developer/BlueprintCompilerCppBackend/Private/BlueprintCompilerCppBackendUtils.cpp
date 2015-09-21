@@ -164,7 +164,7 @@ void FEmitHelper::ArrayToString(const TArray<FString>& Array, FString& OutString
 	}
 	for (int32 i = 1; i < Array.Num(); ++i)
 	{
-		OutString += TEXT(", ");
+		OutString += Separator;
 		OutString += Array[i];
 	}
 }
@@ -557,8 +557,11 @@ FString FEmitHelper::LiteralTerm(FEmitterLocalContext& EmitterContext, const FEd
 		auto TypeEnum = Cast<UEnum>(Type.PinSubCategoryObject.Get());
 		if (TypeEnum)
 		{
+			// @note: We have to default to the zeroth entry because there may not be a symbol associated with the 
+			// last element (UHT generates a MAX entry for UEnums, even if the user did not declare them, but UHT 
+			// does not generate a symbol for said entry.
 			return FString::Printf(TEXT("%s::%s"), *FEmitHelper::GetCppName(TypeEnum), CustomValue.IsEmpty()
-				? *TypeEnum->GetEnumName(TypeEnum->NumEnums()-1)
+				? *TypeEnum->GetEnumName(0)
 				: *CustomValue);
 		}
 		else
