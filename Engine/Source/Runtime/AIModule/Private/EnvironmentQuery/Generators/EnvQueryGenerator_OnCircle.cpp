@@ -186,8 +186,6 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ContextData.ValueType->GetDefaultObject();
 		const uint16 DefTypeValueSize = DefTypeOb->GetValueSize();
-		uint8* RawData = ContextData.RawData.GetData();
-		const FVector CircleCenterOffset = FVector(0.f, 0.f, CircleCenterZOffset.GetValue());
 
 		TArray<AActor*> ContextActorsToIgnoreWhenGeneratingCircle;
 		if (bIgnoreAnyContextActorsWhenGeneratingCircle)
@@ -208,6 +206,9 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 				}
 			}
 		}
+
+		uint8* RawData = ContextData.RawData.GetData();
+		const FVector CircleCenterOffset = FVector(0.f, 0.f, CircleCenterZOffset.GetValue());
 
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
