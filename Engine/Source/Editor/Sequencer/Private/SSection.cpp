@@ -864,17 +864,16 @@ FReply SSection::OnMouseButtonDoubleClick( const FGeometry& MyGeometry, const FP
 
 	if( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 	{
-		UMovieSceneSection* SectionObject = SectionInterface->GetSectionObject();
-		if( GetSequencer().IsSectionVisible( SectionObject ) )
+		FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
+
+		if (Reply.IsEventHandled())
 		{
-			FReply Reply = SectionInterface->OnSectionDoubleClicked( MyGeometry, MouseEvent );
-
-			if (Reply.IsEventHandled()) {return Reply;}
-
-			GetSequencer().ZoomToSelectedSections();
-
-			return FReply::Handled();
+			return Reply;
 		}
+
+		GetSequencer().ZoomToSelectedSections();
+
+		return FReply::Handled();
 	}
 
 	return FReply::Unhandled();

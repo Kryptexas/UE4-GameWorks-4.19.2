@@ -191,34 +191,9 @@ public:
 	void ZoomToSelectedSections();
 
 	/**
-	 * Gets all shots that are filtering currently
-	 */
-	const TArray< TWeakObjectPtr<UMovieSceneSection> >& GetFilteringShotSections() const;
-
-	/**
-	 * Checks to see if an object is unfilterable
-	 */
-	bool IsObjectUnfilterable(const FGuid& ObjectGuid) const;
-
-	/**
-	 * Declares an object unfilterable
-	 */
-	void AddUnfilterableObject(const FGuid& ObjectGuid);
-
-	/**
-	 * Checks to see if shot filtering is on
-	 */
-	bool IsShotFilteringOn() const;
-
-	/**
 	 * Gets the overlay fading animation curve lerp
 	 */
 	float GetOverlayFadeCurve() const;
-
-	/**
-	 * Checks if a section is visible, given current shot filtering
-	 */
-	bool IsSectionVisible(UMovieSceneSection* Section) const;
 
 	/** Gets the command bindings for the sequencer */
 	TSharedPtr<FUICommandList> GetCommandBindings() { return SequencerCommandBindings; }
@@ -486,10 +461,6 @@ private:
 	/** List of tools we own */
 	TArray< TSharedPtr<FMovieSceneTrackEditor> > TrackEditors;
 
-	/** The editors we keep track of for special behaviors */
-	TWeakPtr<FMovieSceneTrackEditor> ShotTrackEditor;
-	TWeakPtr<FMovieSceneTrackEditor> SkeletalAnimationTrackEditor;
-
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;
 
@@ -504,15 +475,6 @@ private:
 	
 	/** The asset editor that created this Sequencer if any */
 	TWeakPtr<IToolkitHost> ToolkitHost;
-
-	/** A list of all shots that are acting as filters */
-	TArray< TWeakObjectPtr<class UMovieSceneSection> > FilteringShots;
-
-	/** A list of sections that are considered unfilterable */
-	TArray< TWeakObjectPtr<class UMovieSceneSection> > UnfilterableSections;
-
-	/** A list of object guids that will be visible, regardless of shot filters */
-	TArray<FGuid> UnfilterableObjects;
 
 	/** Stack of movie scenes.  The first element is always the root movie scene.  The last element is the focused movie scene */
 	TArray< TSharedRef<FMovieSceneSequenceInstance> > MovieSceneStack;

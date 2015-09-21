@@ -131,17 +131,6 @@ void FSequencer::InitSequencer(const FSequencerInitParams& InitParams, const TSh
 			check( TrackEditorDelegates[DelegateIndex].IsBound() );
 			// Tools may exist in other modules, call a delegate that will create one for us 
 			TSharedRef<FMovieSceneTrackEditor> TrackEditor = TrackEditorDelegates[DelegateIndex].Execute( SharedThis( this ) );
-
-			// Keep track of certain editors
-			if ( TrackEditor->SupportsType( UMovieSceneShotTrack::StaticClass() ) )
-			{
-				ShotTrackEditor = TrackEditor;
-			}
-			else if ( TrackEditor->SupportsType( UMovieSceneSkeletalAnimationTrack::StaticClass() ) )
-			{
-				SkeletalAnimationTrackEditor = TrackEditor;
-			}
-
 			TrackEditors.Add( TrackEditor );
 		}
 
@@ -304,9 +293,6 @@ void FSequencer::ResetToNewRootSequence(UMovieSceneSequence& NewSequence)
 	//@todo Sequencer - Encapsulate this better
 	MovieSceneStack.Empty();
 	Selection.Empty();
-	FilteringShots.Empty();
-	UnfilterableSections.Empty();
-	UnfilterableObjects.Empty();
 	MovieSceneSectionToInstanceMap.Empty();
 
 	// Focusing the initial movie scene needs to be done before the first time NewSequence or GetRootMovieSceneInstance is used
@@ -559,11 +545,6 @@ void FSequencer::OnActorsDropped( const TArray<TWeakObjectPtr<AActor> >& Actors 
 			OwnerSequence->Modify();
 				
 			const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(Actor->GetActorLabel(), Actor->GetClass());
-
-			if (IsShotFilteringOn())
-			{
-				AddUnfilterableObject(PossessableGuid);
-			}
 
 			OwnerSequence->BindPossessableObject(PossessableGuid, *Actor);
 			bPossessableAdded = true;
@@ -822,12 +803,6 @@ FGuid FSequencer::GetHandleToObject( UObject* Object, bool bCreateHandleIfMissin
 			FocusedMovieScene->Modify();
 
 			ObjectGuid = FocusedMovieScene->AddPossessable(Object->GetName(), Object->GetClass());
-
-			if(IsShotFilteringOn())
-			{
-				AddUnfilterableObject(ObjectGuid);
-			}
-
 			FocusedMovieSceneSequence->BindPossessableObject(ObjectGuid, *Object);
 			bPossessableAdded = true;
 		}
@@ -1152,34 +1127,19 @@ TRange<float> FSequencer::GetTimeBounds() const
 
 	const UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 	const UMovieSceneTrack* AnimatableShot = MovieScene->FindMasterTrack( UMovieSceneShotTrack::StaticClass() );
+
 	if (AnimatableShot)
 	{
-		// try getting filtered shot boundaries
-		TRange<float> Bounds = GetFilteringShotsTimeBounds();
-		if (!Bounds.IsEmpty()) {return Bounds;}
-
 		// try getting the bounds of all shots
-		Bounds = AnimatableShot->GetSectionBoundaries();
-		if (!Bounds.IsEmpty()) {return Bounds;}
+			TRange<float> Bounds = AnimatableShot->GetSectionBoundaries();
+		
+		if (!Bounds.IsEmpty())
+		{
+			return Bounds;
+		}
 	}
 	
 	return MovieScene->GetTimeRange();
-}
-
-TRange<float> FSequencer::GetFilteringShotsTimeBounds() const
-{
-	if (IsShotFilteringOn())
-	{
-		TArray< TRange<float> > Bounds;
-		for (int32 i = 0; i < FilteringShots.Num(); ++i)
-		{
-			Bounds.Add(FilteringShots[i]->GetRange());
-		}
-
-		return TRange<float>::Hull(Bounds);
-	}
-
-	return TRange<float>::Empty();
 }
 
 void FSequencer::OnViewRangeChanged( TRange<float> NewViewRange, EViewRangeInterpolation Interpolation, bool bExpandClampRange )
@@ -1416,11 +1376,6 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 			}
 
 			NewSpawnableGuid = OwnerMovieScene->AddSpawnable( NewSpawnableName, NewBlueprint, CounterpartGamePreviewObject );
-
-			if (IsShotFilteringOn())
-			{
-				AddUnfilterableObject(NewSpawnableGuid);
-			}
 		}
 	
 	}
@@ -1818,12 +1773,6 @@ void FSequencer::AddSelectedObjects()
 		for (auto Actor : SelectedActors)
 		{
 			const FGuid PossessableGuid = OwnerMovieScene->AddPossessable(Actor->GetActorLabel(), Actor->GetClass());
-
-			if (IsShotFilteringOn())
-			{
-				AddUnfilterableObject(PossessableGuid);
-			}
-
 			OwnerSequence->BindPossessableObject(PossessableGuid, *Actor);
 			bPossessableAdded = true;
 		}
@@ -1837,11 +1786,6 @@ void FSequencer::AddSelectedObjects()
 
 void FSequencer::OnSectionSelectionChanged()
 {
-	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
-	{
-		// if we select something, consider it unfilterable until we change shot filters
-		UnfilterableSections.AddUnique(TWeakObjectPtr<UMovieSceneSection>(SelectedSection));
-	}
 }
 
 void FSequencer::OnSelectedOutlinerNodesChanged()
@@ -1910,50 +1854,9 @@ FSequencerSelection& FSequencer::GetSelection()
 	return Selection;
 }
 
-const TArray< TWeakObjectPtr<UMovieSceneSection> >& FSequencer::GetFilteringShotSections() const
-{
-	return FilteringShots;
-}
-
-bool FSequencer::IsObjectUnfilterable(const FGuid& ObjectGuid) const
-{
-	return UnfilterableObjects.Find(ObjectGuid) != INDEX_NONE;
-}
-
-void FSequencer::AddUnfilterableObject(const FGuid& ObjectGuid)
-{
-	UnfilterableObjects.AddUnique(ObjectGuid);
-}
-
-bool FSequencer::IsShotFilteringOn() const
-{
-	return FilteringShots.Num() > 0;
-}
-
 float FSequencer::GetOverlayFadeCurve() const
 {
 	return OverlayCurve.GetLerp();
-}
-
-bool FSequencer::IsSectionVisible(UMovieSceneSection* Section) const
-{
-	// if no shots are being filtered, don't filter at all
-	bool bShowAll = !IsShotFilteringOn();
-
-	bool bIsAShotSection = Section->IsA<UMovieSceneShotSection>();
-
-	bool bIsUnfilterable = UnfilterableSections.Find(Section) != INDEX_NONE;
-
-	// do not draw if not within the filtering shot sections
-	TRange<float> SectionRange = Section->GetRange();
-	bool bIsVisible = bShowAll || bIsAShotSection || bIsUnfilterable;
-	for (int32 i = 0; i < FilteringShots.Num() && !bIsVisible; ++i)
-	{
-		TRange<float> ShotRange = FilteringShots[i]->GetRange();
-		bIsVisible |= SectionRange.Overlaps(ShotRange);
-	}
-
-	return bIsVisible;
 }
 
 void FSequencer::DeleteSelectedItems()

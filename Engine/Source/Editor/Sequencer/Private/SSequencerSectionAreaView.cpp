@@ -110,7 +110,7 @@ void SSequencerSectionAreaView::GenerateSectionWidgets()
 
 EVisibility SSequencerSectionAreaView::GetSectionVisibility( UMovieSceneSection* SectionObject ) const
 {
-	return GetSequencer().IsSectionVisible( SectionObject ) ? EVisibility::Visible : EVisibility::Collapsed;
+	return EVisibility::Visible;
 }
 
 

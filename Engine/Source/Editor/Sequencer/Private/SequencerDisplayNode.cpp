@@ -398,7 +398,7 @@ bool FSequencerDisplayNode::IsHidden() const
 	// If shot filtering is off and clean view is on, but the node isn't pinned
 	return !bCachedShotFilteredVisibility ||
 		(ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared())) ||
-		(!GetSequencer().IsShotFilteringOn() && GetSequencer().GetSettings()->GetIsUsingCleanView() && !bNodeIsPinned);
+		(GetSequencer().GetSettings()->GetIsUsingCleanView() && !bNodeIsPinned);
 }
 
 bool FSequencerDisplayNode::HasVisibleChildren() const
@@ -544,13 +544,7 @@ bool FTrackNode::GetShotFilteredVisibilityToCache() const
 		return AssociatedType->IsVisibleWhenEmpty();
 	}
 
-	// if no child sections are visible, neither is the entire section
-	bool bAnySectionsVisible = false;
-	for (int32 i = 0; i < Sections.Num() && !bAnySectionsVisible; ++i)
-	{
-		bAnySectionsVisible = GetSequencer().IsSectionVisible(Sections[i]->GetSectionObject());
-	}
-	return bAnySectionsVisible;
+	return (Sections.Num() > 0);
 }
 
 void FTrackNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const
@@ -662,7 +656,7 @@ bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 {
 	// if shot filtering is off and we are not unfilterable
 	// always show the object nodes (clean view is handled elsewhere)
-	return !GetSequencer().IsShotFilteringOn() || GetSequencer().IsObjectUnfilterable(ObjectBinding) || HasVisibleChildren();
+	return HasVisibleChildren();
 }
 
 const UClass* FObjectBindingNode::GetClassForObjectBinding()
