@@ -22,9 +22,10 @@ public:
 
 public:
 
-	// FMovieSceneTrackEditor interface
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
+	// ISequencerTrackEditor interface
+
 	virtual TSharedPtr<SWidget> BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track ) override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 
 protected:
 
@@ -69,7 +70,8 @@ public:
 
 public:
 
-	// FMovieSceneTrackEditor interface
+	// ISequencerTrackEditor interface
+
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 
 protected:

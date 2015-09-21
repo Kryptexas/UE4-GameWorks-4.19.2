@@ -31,7 +31,8 @@ public:
 
 public:
 
-	// FMovieSceneTrackEditor interface
+	// ISequencerTrackEditor interface
+
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 
 protected:

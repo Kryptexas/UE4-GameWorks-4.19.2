@@ -94,7 +94,10 @@ public:
 		}
 	}
 
-	/** FMovieSceneTrackEditor Interface */
+public:
+
+	// ISequencerTrackEditor interface
+
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override
 	{
 		return Type == TrackType::StaticClass();
