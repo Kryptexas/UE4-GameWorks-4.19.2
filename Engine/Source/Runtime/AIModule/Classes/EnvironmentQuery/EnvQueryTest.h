@@ -47,7 +47,12 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 	/** The purpose of this test.  Should it be used for filtering possible results, scoring them, or both? */
 	UPROPERTY(EditDefaultsOnly, Category=Test)
 	TEnumAsByte<EEnvTestPurpose::Type> TestPurpose;
-	
+
+	/** Optional comment or explanation about what this test is for.  Useful when the purpose of tests may not be clear,
+	  * especially when there are multiple tests of the same type. */
+	UPROPERTY(EditDefaultsOnly, Category=Test)
+	FString TestComment;
+
 	/** Determines filtering operator when context returns multiple items */
 	UPROPERTY(EditDefaultsOnly, Category=Filter, AdvancedDisplay)
 	TEnumAsByte<EEnvTestFilterOperator::Type> MultipleContextFilterOp;
