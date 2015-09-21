@@ -103,6 +103,7 @@ void FLandscapeToolKit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost)
 
 	MAP_TOOL("Mask");
 	MAP_TOOL("CopyPaste");
+	MAP_TOOL("Mirror");
 
 	MAP_TOOL("Splines");
 #undef MAP_TOOL

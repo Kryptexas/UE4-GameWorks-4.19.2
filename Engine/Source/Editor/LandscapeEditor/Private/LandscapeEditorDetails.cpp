@@ -129,6 +129,7 @@ FText FLandscapeEditorDetails::GetLocalizedName(FString Name)
 
 		LOCTEXT("ToolSet_Mask", "Selection");
 		LOCTEXT("ToolSet_CopyPaste", "Copy/Paste");
+		LOCTEXT("ToolSet_Mirror", "Mirror");
 
 		LOCTEXT("ToolSet_Splines", "Edit Splines");
 
@@ -282,6 +283,7 @@ TSharedRef<SWidget> FLandscapeEditorDetails::GetToolSelector()
 			MenuBuilder.BeginSection(NAME_None, LOCTEXT("RegionToolsTitle", "Region Tools"));
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Mask"), NAME_None, LOCTEXT("Tool.RegionSelect", "Selection"), LOCTEXT("Tool.RegionSelect.Tooltip", "Select a region of landscape to use as a mask for other tools"));
 			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_CopyPaste"), NAME_None, LOCTEXT("Tool.RegionCopyPaste", "Copy/Paste"), LOCTEXT("Tool.RegionCopyPaste.Tooltip", "Copy/Paste areas of the landscape, or import/export a copied area of landscape from disk"));
+			MenuBuilder.AddToolButton(NameToCommandMap.FindChecked("Tool_Mirror"), NAME_None, LOCTEXT("Tool.Mirror", "Mirror"), LOCTEXT("Tool.Mirror.Tooltip", "Copies one side of a landscape to the other, to easily create a mirrored landscape."));
 			MenuBuilder.EndSection();
 		}
 

@@ -178,7 +178,6 @@ FEdModeLandscape::FEdModeLandscape()
 	InitializeTool_Paint();
 	InitializeTool_Smooth();
 	InitializeTool_Flatten();
-	InitializeTool_Ramp();
 	InitializeTool_Erosion();
 	InitializeTool_HydraErosion();
 	InitializeTool_Noise();
@@ -193,6 +192,8 @@ FEdModeLandscape::FEdModeLandscape()
 	InitializeTool_CopyPaste();
 	InitializeTool_Visibility();
 	InitializeTool_Splines();
+	InitializeTool_Ramp();
+	InitializeTool_Mirror();
 
 	CurrentTool = nullptr;
 	CurrentToolIndex = INDEX_NONE;
@@ -269,6 +270,7 @@ void FEdModeLandscape::InitializeToolModes()
 	ToolMode_Sculpt->ValidTools.Add(TEXT("Visibility"));
 	ToolMode_Sculpt->ValidTools.Add(TEXT("Mask"));
 	ToolMode_Sculpt->ValidTools.Add(TEXT("CopyPaste"));
+	ToolMode_Sculpt->ValidTools.Add(TEXT("Mirror"));
 
 	FLandscapeToolMode* ToolMode_Paint = new(LandscapeToolModes)FLandscapeToolMode(TEXT("ToolMode_Paint"), ELandscapeToolTargetTypeMask::Weightmap);
 	ToolMode_Paint->ValidTools.Add(TEXT("Paint"));
