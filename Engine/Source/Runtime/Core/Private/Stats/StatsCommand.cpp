@@ -1316,6 +1316,65 @@ struct FDumpMultiple
 	}
 };
 
+static struct FDumpSpam* DumpSpam = nullptr;
+
+struct FDumpSpam
+{
+	FStatsThreadState& Stats;
+	TMap<FName, int32> Counts;
+	int32 TotalCount;
+	int32 NumPackets;
+	FDelegateHandle NewRawStatPacketDelegateHandle;
+
+	FDumpSpam()
+		: Stats(FStatsThreadState::GetLocalState())
+		, TotalCount(0)
+		, NumPackets(0)
+	{
+		FThreadStats::EnableRawStats();
+		StatsMasterEnableAdd();
+		NewRawStatPacketDelegateHandle = Stats.NewRawStatPacket.AddRaw(this, &FDumpSpam::NewFrame);
+	}
+
+	~FDumpSpam()
+	{
+		FThreadStats::DisableRawStats();
+		StatsMasterEnableSubtract();
+		UE_LOG(LogStats, Log, TEXT("------------------ %d packets, %d total messages ---------------"), NumPackets, TotalCount);
+
+		Counts.ValueSort(TGreater<int32>());
+
+		for (auto& Pair : Counts)
+		{
+			UE_LOG(LogStats, Log, TEXT("%10d      %s"), Pair.Value, *Pair.Key.ToString());
+		}
+
+		Stats.NewRawStatPacket.Remove(NewRawStatPacketDelegateHandle);
+		DumpSpam = NULL;
+	}
+
+	void NewFrame(const FStatPacket* Packet)
+	{
+		NumPackets++;
+		int32 NumMessages = Packet->StatMessages.Num();
+		TotalCount += NumMessages;
+		for( int32 MessageIndex = 0; MessageIndex < NumMessages; ++MessageIndex )
+		{
+			const FStatMessage& Message = Packet->StatMessages[MessageIndex];
+			FName Name = Message.NameAndInfo.GetRawName();
+			int32* Existing = Counts.Find(Name);
+			if (Existing)
+			{
+				(*Existing)++;
+			}
+			else
+			{
+				Counts.Add(Name, 1);
+			}
+		}
+	}
+};
+
 /** Prints stats help to the specified output device. This is queued to be executed on the game thread. */
 static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 {
@@ -1467,6 +1526,16 @@ static void StatCmd(FString InCmd)
 			FParse::Value(Cmd, TEXT("NUM="), DumpMultiple->NumFramesToGo);
 			DumpMultiple->bAverage = false;
 			DumpMultiple->bSum = true;
+		}
+	}
+	else if( FParse::Command(&Cmd,TEXT("DUMPSPAM")) )
+	{
+		bool bIsStart = FString(Cmd).Find(TEXT("-start")) != INDEX_NONE;
+		bool bIsStop = FString(Cmd).Find(TEXT("-stop")) != INDEX_NONE;
+		delete DumpSpam;
+		if (!bIsStop)
+		{
+			DumpSpam = new FDumpSpam();
 		}
 	}
 	else if( FParse::Command(&Cmd,TEXT("DUMPHITCHES")) )
@@ -1686,6 +1755,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		{
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPSUM")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DUMPSPAM")) )
 		{
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPHITCHES")) )

@@ -1877,19 +1877,23 @@ struct FStat_##StatName\
 }
 #define INC_FLOAT_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, double(Amount));\
 }
 #define INC_DWORD_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define INC_DWORD_STAT_FNAME_BY(StatFName, Amount) \
 {\
-	FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(StatFName, EStatOperation::Add, int64(Amount));\
 }
 #define INC_MEMORY_STAT_BY(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Add, int64(Amount));\
 }
 #define DEC_DWORD_STAT(Stat) \
 {\
@@ -1897,19 +1901,23 @@ struct FStat_##StatName\
 }
 #define DEC_FLOAT_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, double(Amount));\
 }
 #define DEC_DWORD_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_DWORD_STAT_FNAME_BY(StatFName,Amount) \
 {\
-	FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+ 		FThreadStats::AddMessage(StatFName, EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_MEMORY_STAT_BY(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(GET_STATFNAME(Stat), EStatOperation::Subtract, int64(Amount));\
 }
 #define SET_MEMORY_STAT(Stat,Value) \
 {\
@@ -1943,15 +1951,18 @@ struct FStat_##StatName\
 }
 #define INC_FLOAT_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, double(Amount));\
 }
 #define INC_DWORD_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
 }
 #define INC_MEMORY_STAT_BY_FName(Stat, Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Add, int64(Amount));\
 }
 #define DEC_DWORD_STAT_FName(Stat) \
 {\
@@ -1959,15 +1970,18 @@ struct FStat_##StatName\
 }
 #define DEC_FLOAT_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, double(Amount));\
+	if (Amount != 0.0f) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, double(Amount));\
 }
 #define DEC_DWORD_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
 }
 #define DEC_MEMORY_STAT_BY_FName(Stat,Amount) \
 {\
-	FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
+	if (Amount != 0) \
+		FThreadStats::AddMessage(Stat, EStatOperation::Subtract, int64(Amount));\
 }
 #define SET_MEMORY_STAT_FName(Stat,Value) \
 {\
