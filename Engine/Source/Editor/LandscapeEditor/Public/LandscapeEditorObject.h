@@ -125,6 +125,15 @@ namespace EColorChannel
 	};
 }
 
+UENUM()
+enum class ELandscapeMirrorOperation : uint8
+{
+	MinusXToPlusX UMETA(DisplayName="-X to +X"),
+	PlusXToMinusX UMETA(DisplayName="+X to -X"),
+	MinusYToPlusY UMETA(DisplayName="-Y to +Y"),
+	PlusYToMinusY UMETA(DisplayName="+Y to -Y"),
+};
+
 USTRUCT()
 struct FGizmoImportLayer
 {
@@ -388,6 +397,15 @@ class ULandscapeEditorObject : public UObject
 
 	TArray<FGizmoHistory> GizmoHistories;
 
+	// Mirror Tool
+
+	// Location of the mirror plane, defaults to the center of the landscape. Doesn't normally need to be changed!
+	UPROPERTY(Category="Tool Settings", EditAnywhere, Transient, meta=(DisplayName="Mirror Point", ShowForTools="Mirror"))
+	FVector2D MirrorPoint;
+
+	// Type of mirroring operation to perform e.g. "Minus X To Plus X" copies and flips the -X half of the landscape onto the +X half
+	UPROPERTY(Category="Tool Settings", EditAnywhere, NonTransactional, meta=(DisplayName="Operation", ShowForTools="Mirror"))
+	ELandscapeMirrorOperation MirrorOp;
 
 	// Resize Landscape Tool
 
