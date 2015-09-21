@@ -72,6 +72,15 @@ public:
 	/** Sets the interp tangent mode for the selected keys to constant */
 	TSharedPtr< FUICommandInfo > SetInterpolationConstant;
 
+	/** Trim section to the left, keeping the right portion */
+	TSharedPtr< FUICommandInfo > TrimSectionLeft;
+
+	/** Trim section to the right, keeping the left portion */
+	TSharedPtr< FUICommandInfo > TrimSectionRight;
+
+	/** Split section */
+	TSharedPtr< FUICommandInfo > SplitSection;
+
 	/** Turns auto keying on and off. */
 	TSharedPtr< FUICommandInfo > ToggleAutoKeyEnabled;
 

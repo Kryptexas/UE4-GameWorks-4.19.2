@@ -24,6 +24,7 @@
 #include "MovieSceneAudioTrack.h"
 #include "MovieSceneSkeletalAnimationTrack.h"
 #include "MovieSceneTrackEditor.h"
+#include "MovieSceneToolHelpers.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "AssetSelection.h"
@@ -2233,6 +2234,24 @@ void FSequencer::SetKey()
 	}
 }
 
+void FSequencer::TrimSection(bool bTrimLeft)
+{
+	FScopedTransaction TrimSectionTransaction( NSLOCTEXT("Sequencer", "TrimSection_Transaction", "Trim Section") );
+
+	MovieSceneToolHelpers::TrimSection(Selection.GetSelectedSections(), GetGlobalTime(), bTrimLeft);
+
+	NotifyMovieSceneDataChanged();
+}
+
+void FSequencer::SplitSection()
+{
+	FScopedTransaction SplitSectionTransaction( NSLOCTEXT("Sequencer", "SplitSection_Transaction", "Split Section") );
+
+	MovieSceneToolHelpers::SplitSection(Selection.GetSelectedSections(), GetGlobalTime());
+
+	NotifyMovieSceneDataChanged();
+}
+
 ISequencerEditTool& FSequencer::GetEditTool()
 {
 	return SequencerWidget->GetEditTool();
@@ -2322,6 +2341,18 @@ void FSequencer::BindSequencerCommands()
 	SequencerCommandBindings->MapAction(
 		Commands.SetInterpolationConstant,
 		FExecuteAction::CreateSP( this, &FSequencer::SetInterpTangentMode, ERichCurveInterpMode::RCIM_Constant, ERichCurveTangentMode::RCTM_Auto ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.TrimSectionLeft,
+		FExecuteAction::CreateSP( this, &FSequencer::TrimSection, true ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.TrimSectionRight,
+		FExecuteAction::CreateSP( this, &FSequencer::TrimSection, false ) );
+
+	SequencerCommandBindings->MapAction(
+		Commands.SplitSection,
+		FExecuteAction::CreateSP( this, &FSequencer::SplitSection ) );
 
 	SequencerCommandBindings->MapAction(
 		Commands.ToggleAutoKeyEnabled,

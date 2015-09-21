@@ -153,6 +153,21 @@ private:
 	 */
 	void SelectAllKeys();
 
+	/*
+	 * Trim section 
+	 */
+	void TrimSection(bool bTrimLeft);
+
+	/*
+	 * Split section
+	 */
+	void SplitSection();
+
+	/*
+	 * Is there a trimmable section?
+	 */
+	bool IsTrimmable() const;
+
 	/**
 	 * Set extrapolation mode
 	 */

@@ -151,3 +151,47 @@ TSharedRef<SWidget> FBoolKeyArea::CreateKeyEditor(ISequencer* Sequencer)
 		.Curve(&Curve);
 };
 
+void MovieSceneToolHelpers::TrimSection(const TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections, float Time, bool bTrimLeft)
+{
+	for (auto Section : Sections)
+	{
+		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
+		{
+			Section->Modify();
+
+			if (bTrimLeft)
+			{
+				Section->SetStartTime(Time);
+			}
+			else
+			{
+				Section->SetEndTime(Time);
+			}
+		}
+	}
+}
+
+void MovieSceneToolHelpers::SplitSection(const TSet<TWeakObjectPtr<UMovieSceneSection>>& Sections, float Time)
+{
+	for (auto Section : Sections)
+	{
+		if (Section.IsValid() && Section->IsTimeWithinSection(Time))
+		{
+			Section->Modify();
+
+			float SectionEndTime = Section->GetEndTime();
+				
+			// Trim off the right
+			Section->SetEndTime(Time);
+
+			// Create a new section
+			UMovieSceneTrack* Track = CastChecked<UMovieSceneTrack>(Section->GetOuter() );
+			Track->Modify();
+
+			UMovieSceneSection* NewSection = DuplicateObject<UMovieSceneSection>(Section.Get(), Track);
+			Track->AddSection(NewSection);
+			NewSection->SetStartTime(Time);
+			NewSection->SetEndTime(SectionEndTime);
+		}
+	}
+}

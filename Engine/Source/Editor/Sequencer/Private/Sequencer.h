@@ -439,6 +439,12 @@ protected:
 	/** Manually sets a key for the selected objects at the current time */
 	void SetKey();
 
+	/** Trim a section to the left or right */
+	void TrimSection(bool bTrimLeft);
+
+	/** Split a section */
+	void SplitSection();
+
 	/** Generates command bindings for UI commands */
 	void BindSequencerCommands();
 

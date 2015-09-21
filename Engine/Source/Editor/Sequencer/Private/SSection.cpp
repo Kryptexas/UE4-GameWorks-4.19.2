@@ -7,6 +7,7 @@
 #include "ISequencerSection.h"
 #include "MovieSceneSection.h"
 #include "MovieSceneShotSection.h"
+#include "MovieSceneToolHelpers.h"
 #include "CommonMovieSceneTools.h"
 #include "SequencerHotspots.h"
 #include "ScopedTransaction.h"
@@ -590,6 +591,33 @@ TSharedPtr<SWidget> SSection::OnSummonContextMenu( const FGeometry& MyGeometry, 
 				FUIAction(FExecuteAction::CreateSP(this, &SSection::SelectAllKeys))
 			);
 
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "TrimSectionLeft", "Trim Left"),
+				NSLOCTEXT("Sequencer", "TrimSectionLeftTooltip", "Trim section at current time to the left"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SSection::TrimSection, true),
+					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "TrimSectionRight", "Trim Right"),
+				NSLOCTEXT("Sequencer", "TrimSectionRightTooltip", "Trim section at current time to the right"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SSection::TrimSection, false),
+					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+			);
+
+			MenuBuilder.AddMenuEntry(
+				NSLOCTEXT("Sequencer", "SplitSection", "Split"),
+				NSLOCTEXT("Sequencer", "SplitSectionTooltip", "Split section at current time"),
+				FSlateIcon(),
+				FUIAction(
+					FExecuteAction::CreateSP(this, &SSection::SplitSection),
+					FCanExecuteAction::CreateSP(this, &SSection::IsTrimmable))
+			);
+
 			MenuBuilder.AddSubMenu(
 				NSLOCTEXT("Sequencer", "SetPreInfinityExtrap", "Pre-Infinity"), 
 				NSLOCTEXT("Sequencer", "SetPreInfinityExtrapTooltip", "Set pre-infinity extrapolation"),
@@ -999,6 +1027,36 @@ void SSection::SelectAllKeys()
 			GetSequencer().GetSelection().AddToSelection(SelectKey);
 		}
 	}
+}
+
+void SSection::TrimSection(bool bTrimLeft)
+{
+	FScopedTransaction TrimSectionTransaction(NSLOCTEXT("Sequencer", "TrimSection_Transaction", "Trim Section"));
+
+	MovieSceneToolHelpers::TrimSection(GetSequencer().GetSelection().GetSelectedSections(), GetSequencer().GetGlobalTime(), bTrimLeft);
+
+	GetSequencer().NotifyMovieSceneDataChanged();
+}
+
+void SSection::SplitSection()
+{
+	FScopedTransaction SplitSectionTransaction(NSLOCTEXT("Sequencer", "SplitSection_Transaction", "Split Section"));
+
+	MovieSceneToolHelpers::SplitSection(GetSequencer().GetSelection().GetSelectedSections(), GetSequencer().GetGlobalTime());
+
+	GetSequencer().NotifyMovieSceneDataChanged();
+}
+
+bool SSection::IsTrimmable() const
+{
+	for (auto Section : GetSequencer().GetSelection().GetSelectedSections())
+	{
+		if (Section.IsValid() && Section->IsTimeWithinSection(GetSequencer().GetGlobalTime()))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void SSection::SetExtrapolationMode(ERichCurveExtrapolation ExtrapMode, bool bPreInfinity)

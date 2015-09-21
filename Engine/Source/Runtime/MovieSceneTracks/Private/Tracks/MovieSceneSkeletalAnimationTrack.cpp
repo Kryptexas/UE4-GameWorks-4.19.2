@@ -45,6 +45,12 @@ bool UMovieSceneSkeletalAnimationTrack::HasSection( UMovieSceneSection* Section 
 }
 
 
+void UMovieSceneSkeletalAnimationTrack::AddSection( UMovieSceneSection* Section)
+{
+	AnimationSections.Add(Section);
+}
+
+
 void UMovieSceneSkeletalAnimationTrack::RemoveSection( UMovieSceneSection* Section )
 {
 	AnimationSections.Remove( Section );
@@ -76,7 +82,7 @@ void UMovieSceneSkeletalAnimationTrack::AddNewAnimation(float KeyTime, UAnimSequ
 	NewSection->SetAnimationStartTime( KeyTime );
 	NewSection->SetAnimSequence(AnimSequence);
 
-	AnimationSections.Add(NewSection);
+	AddSection(NewSection);
 }
 
 
