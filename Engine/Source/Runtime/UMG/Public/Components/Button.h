@@ -9,6 +9,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonClickedEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonPressedEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonReleasedEvent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnButtonHoverEvent);
 
 /**
  * The button is a click-able primitive widget to enable basic interaction, you
@@ -66,6 +67,12 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="Button|Event")
 	FOnButtonReleasedEvent OnReleased;
 
+	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
+	FOnButtonHoverEvent OnRollOver;
+
+	UPROPERTY( BlueprintAssignable, Category = "Button|Event" )
+	FOnButtonHoverEvent OnRollOut;
+
 public:
 	
 	/** Sets the color multiplier for the button background */
@@ -120,6 +127,8 @@ protected:
 	FReply SlateHandleClicked();
 	void SlateHandlePressed();
 	void SlateHandleReleased();
+	void SlateHandleRollOver();
+	void SlateHandleRollOut();
 
 protected:
 	//~ Begin UWidget Interface

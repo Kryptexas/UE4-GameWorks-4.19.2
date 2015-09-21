@@ -55,6 +55,8 @@ void SButton::Construct( const FArguments& InArgs )
 	OnClicked = InArgs._OnClicked;
 	OnPressed = InArgs._OnPressed;
 	OnReleased = InArgs._OnReleased;
+	OnRollOver = InArgs._OnRollOver;
+	OnRollOut = InArgs._OnRollOut;
 
 	ClickMethod = InArgs._ClickMethod;
 	TouchMethod = InArgs._TouchMethod;
@@ -306,6 +308,8 @@ void SButton::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& Mo
 	
 	SBorder::OnMouseEnter( MyGeometry, MouseEvent );
 
+	OnRollOver.ExecuteIfBound();
+
 	Invalidate(EInvalidateWidget::Layout);
 }
 
@@ -320,6 +324,8 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		Release();
 	}
+
+	OnRollOut.ExecuteIfBound();
 
 	Invalidate(EInvalidateWidget::Layout);
 }
