@@ -3,6 +3,7 @@
 #include "BlueprintCompilerCppBackendModulePrivatePCH.h"
 #include "BlueprintCompilerCppBackendBase.h"
 #include "BlueprintCompilerCppBackendUtils.h"
+#include "IBlueprintCompilerCppBackendModule.h" // for GetBaseFilename()
 
 void FBlueprintCompilerCppBackendBase::EmitStructProperties(FStringOutputDevice& Target, UStruct* SourceClass)
 {
@@ -420,15 +421,18 @@ void FBlueprintCompilerCppBackendBase::EmitFileBeginning(const FString& CleanNam
 				check(Field);
 				const bool bWantedType = Field->IsA<UBlueprintGeneratedClass>() || Field->IsA<UUserDefinedEnum>() || Field->IsA<UUserDefinedStruct>();
 
-				// Wanted no-native type, thet will be converted
+				// Wanted no-native type, that will be converted
 				if (bWantedType)
 				{
+					// @TODO: Need to query if this asset will actually be converted
+
 					const FString Name = Field->GetName();
 					bool bAlreadyIncluded = false;
 					AlreadyIncluded.Add(Name, &bAlreadyIncluded);
 					if (!bAlreadyIncluded)
 					{
-						EmitIncludeHeader(Dst, *Name, true);
+						const FString GeneratedFilename = IBlueprintCompilerCppBackendModule::GetBaseFilename(Field);
+						EmitIncludeHeader(Dst, *GeneratedFilename, true);
 					}
 				}
 				// headers for native items
