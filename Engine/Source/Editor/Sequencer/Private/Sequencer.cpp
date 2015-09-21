@@ -923,8 +923,6 @@ void FSequencer::AddReferencedObjects( FReferenceCollector& Collector )
 
 void FSequencer::ResetPerMovieSceneData()
 {
-	FilterToShotSections( TArray< TWeakObjectPtr<UMovieSceneSection> >(), false );
-
 	//@todo Sequencer - We may want to preserve selections when moving between movie scenes
 	Selection.Empty();
 
@@ -1895,79 +1893,6 @@ void FSequencer::ZoomToSelectedSections()
 			OnViewRangeChanged(BoundsHull, EViewRangeInterpolation::Animated, bExpandClampRange);
 		}
 	}
-}
-
-void FSequencer::FilterToShotSections(const TArray< TWeakObjectPtr<class UMovieSceneSection> >& ShotSections, bool bZoomToShotBounds )
-{
-	TArray< TWeakObjectPtr<UMovieSceneSection> > ActualShotSections;
-	for (int32 i = 0; i < ShotSections.Num(); ++i)
-	{
-		if (ShotSections[i]->IsA<UMovieSceneShotSection>())
-		{
-			ActualShotSections.Add(ShotSections[i]);
-		}
-	}
-
-	bool bWasPreviouslyFiltering = IsShotFilteringOn();
-	bool bIsNowFiltering = ActualShotSections.Num() > 0;
-
-	FilteringShots.Empty();
-	UnfilterableSections.Empty();
-	UnfilterableObjects.Empty();
-
-	if (bIsNowFiltering)
-	{
-		for ( int32 ShotSectionIndex = 0; ShotSectionIndex < ActualShotSections.Num(); ++ShotSectionIndex )
-		{
-			FilteringShots.Add( ActualShotSections[ShotSectionIndex] );
-		}
-
-		// populate unfilterable shots - shots that started not filtered
-		TArray< TWeakObjectPtr<class UMovieSceneSection> > TempUnfilterableSections;
-		const TArray<UMovieSceneSection*>& AllSections = GetFocusedMovieSceneSequence()->GetMovieScene()->GetAllSections();
-		for (int32 SectionIndex = 0; SectionIndex < AllSections.Num(); ++SectionIndex)
-		{
-			UMovieSceneSection* Section = AllSections[SectionIndex];
-			if (!Section->IsA<UMovieSceneShotSection>() && IsSectionVisible(Section))
-			{
-				TempUnfilterableSections.Add(Section);
-			}
-		}
-		// wait until after we've collected them all before applying in order to
-		// prevent wastefully searching through UnfilterableSections in IsSectionVisible
-		UnfilterableSections = TempUnfilterableSections;
-	}
-
-	if (!bWasPreviouslyFiltering && bIsNowFiltering)
-	{
-		OverlayAnimation.Play( SequencerWidget.ToSharedRef() );
-	}
-	else if (bWasPreviouslyFiltering && !bIsNowFiltering) 
-	{
-		OverlayAnimation.PlayReverse( SequencerWidget.ToSharedRef() );
-	}
-
-	if( bZoomToShotBounds )
-	{
-		// zoom in
-		bool bExpandClampRange = true;
-		OnViewRangeChanged(GetTimeBounds(), EViewRangeInterpolation::Animated, bExpandClampRange);
-	}
-
-	SequencerWidget->UpdateBreadcrumbs(ActualShotSections);
-}
-
-void FSequencer::FilterToSelectedShotSections(bool bZoomToShotBounds)
-{
-	TArray< TWeakObjectPtr<UMovieSceneSection> > SelectedShotSections;
-	for (TWeakObjectPtr<UMovieSceneSection> SelectedSection : Selection.GetSelectedSections())
-	{
-		if (SelectedSection->IsA<UMovieSceneShotSection>())
-		{
-			SelectedShotSections.Add(SelectedSection);
-		}
-	}
-	FilterToShotSections(SelectedShotSections, bZoomToShotBounds);
 }
 
 bool FSequencer::CanKeyProperty(FCanKeyPropertyParams CanKeyPropertyParams) const

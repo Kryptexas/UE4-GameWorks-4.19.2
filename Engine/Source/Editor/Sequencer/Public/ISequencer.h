@@ -95,23 +95,6 @@ public:
 	virtual bool IsRecordingLive() const = 0;
 
 	/**
-	 * Sets which shot sections need to be filtered to, or none to disable shot filtering.
-	 *
-	 * @param ShotSections The shot sections to filter.
-	 * @param bZoomToShotBounds Whether or not to zoom time to the bounds of the shots.
-	 * @see FilterToSelectedShotSections
-	 */
-	virtual void FilterToShotSections(const TArray<TWeakObjectPtr<UMovieSceneSection>>& ShotSections, bool bZoomToShotBounds = true) = 0;
-	
-	/**
-	 * Sets shot filtering to current selection.
-	 *
-	 * @param bZoomToShotBounds Whether or not to zoom time to the bounds of the shots.
-	 * @see FilterToShotSections
-	 */
-	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) = 0;
-
-	/**
 	 * Gets the current time of the time slider relative to the passed in movie scene
 	 *
 	 * @param MovieScene The movie scene to get the local time for (must exist in this sequencer).

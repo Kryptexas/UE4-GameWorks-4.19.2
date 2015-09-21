@@ -1318,13 +1318,6 @@ void SSequencer::OnCrumbClicked(const FSequencerBreadcrumb& Item)
 		{
 			Sequencer.Pin()->PopToMovieScene( Item.MovieSceneInstance.Pin().ToSharedRef() );
 		}
-
-		Sequencer.Pin()->FilterToShotSections( TArray< TWeakObjectPtr<UMovieSceneSection> >() );
-	}
-	else
-	{
-		// refilter what we already have
-		Sequencer.Pin()->FilterToShotSections(Sequencer.Pin()->GetFilteringShotSections());
 	}
 }
 

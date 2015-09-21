@@ -288,22 +288,6 @@ FReply FShotSection::OnSectionDoubleClicked( const FGeometry& SectionGeometry, c
 	return FReply::Handled();
 }
 
-void FShotSection::BuildSectionContextMenu(FMenuBuilder& MenuBuilder)
-{
-	MenuBuilder.AddMenuEntry(
-		NSLOCTEXT("FShotTrackEditor", "FilterToShots", "Filter To Shots"),
-		NSLOCTEXT("FShotTrackEditor", "FilterToShotsToolTip", "Filters to the selected shot sections"),
-		FSlateIcon(),
-		FUIAction(FExecuteAction::CreateSP(this, &FShotSection::FilterToSelectedShotSections, true))
-		);
-}
-
-
-void FShotSection::FilterToSelectedShotSections(bool bZoomToShotBounds)
-{
-	Sequencer.Pin()->FilterToSelectedShotSections(bZoomToShotBounds);
-}
-
 int32 FShotSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
 	const ESlateDrawEffect::Type DrawEffects = bParentEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect;
