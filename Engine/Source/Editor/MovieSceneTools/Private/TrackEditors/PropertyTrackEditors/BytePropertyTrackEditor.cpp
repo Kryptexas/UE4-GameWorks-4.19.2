@@ -6,22 +6,25 @@
 #include "MovieSceneByteTrack.h"
 #include "MovieSceneSequence.h"
 
-TSharedRef<FMovieSceneTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
+
+TSharedRef<ISequencerTrackEditor> FBytePropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
 {
 	return MakeShareable(new FBytePropertyTrackEditor(OwningSequencer));
 }
+
 
 TSharedRef<ISequencerSection> FBytePropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	return MakeShareable( new FBytePropertySection( SectionObject, Track->GetTrackName(), Cast<UMovieSceneByteTrack>( SectionObject.GetOuter() )->GetEnum() ) );
 }
 
+
 UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerObjectHandle, FName PropertyName, UMovieSceneByteTrack* ByteTrack)
 {
 	
 	UObject* RuntimeObject = Sequencer->GetFocusedMovieSceneSequence()->FindObject(OwnerObjectHandle);
-
 	TSet<UEnum*> PropertyEnums;
+
 	if (RuntimeObject != nullptr)
 	{
 		UProperty* Property = RuntimeObject->GetClass()->FindPropertyByName(PropertyName);
@@ -36,6 +39,7 @@ UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerO
 	}
 
 	UEnum* TrackEnum;
+
 	if (PropertyEnums.Num() == 1)
 	{
 		TrackEnum = PropertyEnums.Array()[0];
@@ -44,15 +48,17 @@ UEnum* GetEnumForByteTrack(TSharedPtr<ISequencer> Sequencer, const FGuid& OwnerO
 	{
 		TrackEnum = nullptr;
 	}
+
 	return TrackEnum;
 }
+
 
 UMovieSceneTrack* FBytePropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName)
 {
 	UMovieSceneTrack* NewTrack = FPropertyTrackEditor::AddTrack(FocusedMovieScene, ObjectHandle, TrackClass, UniqueTypeName);
-	
 	UMovieSceneByteTrack* ByteTrack = Cast<UMovieSceneByteTrack>(NewTrack);
 	UEnum* TrackEnum = GetEnumForByteTrack(GetSequencer(), ObjectHandle, UniqueTypeName, ByteTrack);
+
 	if (TrackEnum != nullptr)
 	{
 		ByteTrack->SetEnum(TrackEnum);
@@ -61,19 +67,24 @@ UMovieSceneTrack* FBytePropertyTrackEditor::AddTrack(UMovieScene* FocusedMovieSc
 	return NewTrack;
 }
 
+
 bool FBytePropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey )
 {
 	OutKey = *PropertyChangedParams.GetPropertyValue<uint8>();
 
-	if (InTrack)
+	if (InTrack == nullptr)
 	{
-		const UMovieSceneByteTrack* ByteTrack = CastChecked<const UMovieSceneByteTrack>( InTrack );
-		if (ByteTrack)
-		{
-			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
-			return ByteTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
-		}
+		return false;
 	}
 
-	return false;
+	const UMovieSceneByteTrack* ByteTrack = CastChecked<const UMovieSceneByteTrack>( InTrack );
+
+	if (ByteTrack == nullptr)
+	{
+		return false;
+	}
+
+	float KeyTime =	GetTimeForKey(GetMovieSceneSequence());
+
+	return ByteTrack->CanKeyTrack(KeyTime, OutKey, PropertyChangedParams.KeyParams);
 }

@@ -8,7 +8,7 @@
 /* FEventTrackEditor static functions
  *****************************************************************************/
 
-TSharedRef<FMovieSceneTrackEditor> FEventTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
+TSharedRef<ISequencerTrackEditor> FEventTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
 	return MakeShareable(new FEventTrackEditor(InSequencer));
 }

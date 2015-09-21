@@ -4,15 +4,18 @@
 #include "FloatPropertyTrackEditor.h"
 #include "FloatPropertySection.h"
 
-TSharedRef<FMovieSceneTrackEditor> FFloatPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
+
+TSharedRef<ISequencerTrackEditor> FFloatPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
 {
 	return MakeShareable(new FFloatPropertyTrackEditor(OwningSequencer));
 }
+
 
 TSharedRef<ISequencerSection> FFloatPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	return MakeShareable(new FFloatPropertySection( SectionObject, Track->GetTrackName() ));
 }
+
 
 bool FFloatPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, float& OutKey )
 {
@@ -21,6 +24,7 @@ bool FFloatPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieS
 	if (InTrack)
 	{
 		const UMovieSceneFloatTrack* FloatTrack = CastChecked<const UMovieSceneFloatTrack>( InTrack );
+
 		if (FloatTrack)
 		{
 			float KeyTime =	GetTimeForKey(GetMovieSceneSequence());

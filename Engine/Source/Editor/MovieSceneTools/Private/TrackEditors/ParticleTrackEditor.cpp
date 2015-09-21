@@ -28,25 +28,28 @@ namespace AnimatableParticleEditorConstants
 }
 
 
-
 FParticleSection::FParticleSection( UMovieSceneSection& InSection )
 	: Section( InSection )
 {
 }
 
+
 FParticleSection::~FParticleSection()
 {
 }
+
 
 UMovieSceneSection* FParticleSection::GetSectionObject()
 { 
 	return &Section;
 }
 
+
 FText FParticleSection::GetDisplayName() const
 {
 	return NSLOCTEXT("FParticleSection", "Emitter", "Emitter");
 }
+
 
 FText FParticleSection::GetSectionTitle() const
 {
@@ -55,10 +58,12 @@ FText FParticleSection::GetSectionTitle() const
 		KeyType == EParticleKey::Trigger ? NSLOCTEXT("FParticleSection", "Trigger", "Trigger") : NSLOCTEXT("FParticleSection", "None", "None");
 }
 
+
 float FParticleSection::GetSectionHeight() const
 {
 	return (float)AnimatableParticleEditorConstants::ParticleTrackHeight;
 }
+
 
 int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const FSlateRect& SectionClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, bool bParentEnabled ) const
 {
@@ -100,11 +105,11 @@ int32 FParticleSection::OnPaintSection( const FGeometry& AllottedGeometry, const
 	return LayerId+1;
 }
 
+
 bool FParticleSection::SectionIsResizable() const
 {
 	return Cast<UMovieSceneParticleSection>(&Section)->GetKeyType() != EParticleKey::Trigger;
 }
-
 
 
 FParticleTrackEditor::FParticleTrackEditor( TSharedRef<ISequencer> InSequencer )
@@ -112,19 +117,23 @@ FParticleTrackEditor::FParticleTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 }
 
+
 FParticleTrackEditor::~FParticleTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> FParticleTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> FParticleTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FParticleTrackEditor( InSequencer ) );
 }
+
 
 bool FParticleTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneParticleTrack::StaticClass();
 }
+
 
 TSharedRef<ISequencerSection> FParticleTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -134,6 +143,7 @@ TSharedRef<ISequencerSection> FParticleTrackEditor::MakeSectionInterface( UMovie
 
 	return NewSection;
 }
+
 
 void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
@@ -156,6 +166,7 @@ void FParticleTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 	}
 }
 
+
 void FParticleTrackEditor::AddParticleKey(const FGuid ObjectGuid, bool bTrigger)
 {
 	TArray<UObject*> OutObjects;
@@ -164,6 +175,7 @@ void FParticleTrackEditor::AddParticleKey(const FGuid ObjectGuid, bool bTrigger)
 	AnimatablePropertyChanged( UMovieSceneParticleTrack::StaticClass(), 
 		FOnKeyProperty::CreateRaw( this, &FParticleTrackEditor::AddKeyInternal, OutObjects, bTrigger) );
 }
+
 
 void FParticleTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, bool bTrigger)
 {

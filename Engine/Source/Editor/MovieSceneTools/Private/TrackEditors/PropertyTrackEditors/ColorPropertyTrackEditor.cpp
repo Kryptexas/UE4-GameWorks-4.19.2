@@ -5,20 +5,24 @@
 #include "ColorPropertyTrackEditor.h"
 #include "ColorPropertySection.h"
 
-TSharedRef<FMovieSceneTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> FColorPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FColorPropertyTrackEditor( InSequencer ) );
 }
+
 
 TSharedRef<ISequencerSection> FColorPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	return MakeShareable(new FColorPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get(), Track ));
 }
 
+
 bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged(  const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FColorKey& OutKey )
 {
 	bool bIsFColor = false, bIsFLinearColor = false, bIsSlateColor = false;
 	const UStructProperty* StructProp = Cast<const UStructProperty>(PropertyChangedParams.PropertyPath.Last());
+
 	if (StructProp && StructProp->Struct)
 	{
 		FName StructName = StructProp->Struct->GetFName();
@@ -36,6 +40,7 @@ bool FColorPropertyTrackEditor::TryGenerateKeyFromPropertyChanged(  const UMovie
 	FName PropertyName = PropertyChangedParams.PropertyPath.Last()->GetFName();
 
 	FLinearColor ColorValue;
+
 	if (bIsFColor)
 	{
 		ColorValue = PropertyChangedParams.GetPropertyValue<FColor>()->ReinterpretAsLinear();

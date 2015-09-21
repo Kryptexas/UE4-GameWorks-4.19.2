@@ -2,11 +2,14 @@
 
 #pragma once
 
+
+class ISequencerTrackEditor;
 class UMovieSceneSection;
 class FSequencerDisplayNode;
 class FObjectBindingNode;
 class UMovieSceneTrack;
 struct FMovieSceneBinding;
+
 
 /**
  * Represents a tree of sequencer display nodes, used to populate the Sequencer UI with MovieScene data
@@ -86,7 +89,7 @@ private:
 	 * @param Track	The type to find an editor for
 	 * @rerturn The editor for the type
 	 */
-	TSharedRef<FMovieSceneTrackEditor> FindOrAddTypeEditor( UMovieSceneTrack& Track );
+	TSharedRef<ISequencerTrackEditor> FindOrAddTypeEditor( UMovieSceneTrack& Track );
 
 	/**
 	 * Makes section interfaces for all sections in a track
@@ -102,7 +105,7 @@ private:
 	TSharedRef<FObjectBindingNode> AddObjectBinding( const FString& ObjectName, const FGuid& ObjectBinding, TMap<FGuid, const FMovieSceneBinding*>& GuidToBindingMap, TArray< TSharedRef<FSequencerDisplayNode> >& OutNodeList );
 private:
 	/** Tools for building movie scene section layouts.  One tool for each track */
-	TMap< class UMovieSceneTrack*, TSharedPtr<FMovieSceneTrackEditor> > EditorMap;
+	TMap< UMovieSceneTrack*, TSharedPtr<ISequencerTrackEditor> > EditorMap;
 	/** Root nodes */
 	TArray< TSharedRef<FSequencerDisplayNode> > RootNodes;
 	/** Mapping of object binding guids to their node (for fast lookup) */

@@ -5,19 +5,23 @@
 #include "VisibilityPropertyTrackEditor.h"
 #include "VisibilityPropertySection.h"
 
-TSharedRef<FMovieSceneTrackEditor> FVisibilityPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
+
+TSharedRef<ISequencerTrackEditor> FVisibilityPropertyTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
 {
 	return MakeShareable(new FVisibilityPropertyTrackEditor(OwningSequencer));
 }
+
 
 TSharedRef<ISequencerSection> FVisibilityPropertyTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	return MakeShareable(new FVisibilityPropertySection( SectionObject, Track->GetTrackName(), GetSequencer().Get() ));
 }
 
+
 bool FVisibilityPropertyTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, bool& OutKey )
 {
 	const UBoolProperty* BoolProperty = Cast<const UBoolProperty>(PropertyChangedParams.PropertyPath.Last());
+
 	if (BoolProperty && PropertyChangedParams.ObjectsThatChanged.Num() != 0)
 	{
 		void* CurrentObject = PropertyChangedParams.ObjectsThatChanged[0];

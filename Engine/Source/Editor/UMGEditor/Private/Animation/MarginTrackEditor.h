@@ -5,19 +5,25 @@
 #include "PropertyTrackEditor.h"
 #include "MovieSceneMarginTrack.h"
 
+
 class UMovieSceneTrack;
 
-class FMarginTrackEditor : public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
+
+class FMarginTrackEditor
+	: public FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>
 {
 public:
+
 	/**
 	 * Constructor
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FMarginTrackEditor( TSharedRef<ISequencer> InSequencer )
 		: FPropertyTrackEditor<UMovieSceneMarginTrack, FMarginKey>( InSequencer, "Margin" )
 	{ }
+
+	/** Virtual destructor. */
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -25,14 +31,16 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
+public:
+
+	// FMovieSceneTrackEditor interface
+
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 
 protected:
+
 	/** FPropertyTrackEditor Interface */
 	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey ) override;
 };
-
-

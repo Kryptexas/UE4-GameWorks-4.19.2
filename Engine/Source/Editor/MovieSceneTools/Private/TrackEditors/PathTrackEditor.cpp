@@ -15,6 +15,7 @@
 #include "PathTrackEditor.h"
 #include "Components/SplineComponent.h"
 
+
 void GetActorsWithSplineComponents(TSet<AActor*>& SelectedActors, TSet<AActor*>& UnselectedActors)
 {
 	if (GEditor->GetEditorWorldContext().World())
@@ -39,10 +40,12 @@ void GetActorsWithSplineComponents(TSet<AActor*>& SelectedActors, TSet<AActor*>&
 	}
 }
 
+
 /**
  * Class that draws a path section in the sequencer
  */
-class F3DPathSection : public ISequencerSection
+class F3DPathSection
+	: public ISequencerSection
 {
 public:
 	F3DPathSection( UMovieSceneSection& InSection, F3DPathTrackEditor* InPathTrackEditor )
@@ -140,6 +143,7 @@ public:
 	}
 
 private:
+
 	/** The section we are visualizing */
 	UMovieSceneSection& Section;
 
@@ -147,25 +151,30 @@ private:
 	F3DPathTrackEditor* PathTrackEditor;
 };
 
+
 F3DPathTrackEditor::F3DPathTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
 }
 
+
 F3DPathTrackEditor::~F3DPathTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> F3DPathTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> F3DPathTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new F3DPathTrackEditor( InSequencer ) );
 }
+
 
 bool F3DPathTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	// We support animatable transforms
 	return Type == UMovieScene3DPathTrack::StaticClass();
 }
+
 
 TSharedRef<ISequencerSection> F3DPathTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -176,10 +185,12 @@ TSharedRef<ISequencerSection> F3DPathTrackEditor::MakeSectionInterface( UMovieSc
 	return NewSection;
 }
 
+
 void F3DPathTrackEditor::AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset )
 {
 	AddPath(ObjectGuid, AdditionalAsset);
 }
+
 
 void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
@@ -210,6 +221,7 @@ void F3DPathTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, 
 		}
 	}
 }
+
 
 void F3DPathTrackEditor::AddPathSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding)
 {
@@ -265,6 +277,7 @@ void F3DPathTrackEditor::AddPathSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectB
 	}
 }
 
+
 void F3DPathTrackEditor::AddPath(FGuid ObjectGuid, UObject* AdditionalAsset)
 {
 	TArray<UObject*> OutObjects;
@@ -273,6 +286,7 @@ void F3DPathTrackEditor::AddPath(FGuid ObjectGuid, UObject* AdditionalAsset)
 	AnimatablePropertyChanged( UMovieScene3DPathTrack::StaticClass(),
 		FOnKeyProperty::CreateRaw( this, &F3DPathTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
 }
+
 
 void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithSplineComponent)
 {
@@ -286,6 +300,7 @@ void F3DPathTrackEditor::SetPath(UMovieSceneSection* Section, AActor* ActorWithS
 		PathSection->SetConstraintId(SplineId);
 	}
 }
+
 
 void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset)
 {
@@ -303,39 +318,41 @@ void F3DPathTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> O
 		SplineId = FindOrCreateHandleToObject(ActorWithSplineComponent);
 	}
 
-	if (SplineId.IsValid())
+	if (!SplineId.IsValid())
 	{
-		for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
+		return;
+	}
+
+	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
+	{
+		UObject* Object = Objects[ObjectIndex];
+
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UObject* Object = Objects[ObjectIndex];
+			MovieSceneHelpers::SetRuntimeObjectMobility(Object);
 
-			FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
-			if (ObjectHandle.IsValid())
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DPathTrack::StaticClass(), FName("Path"));
+
+			if (ensure(Track))
 			{
-				MovieSceneHelpers::SetRuntimeObjectMobility(Object);
-
-				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DPathTrack::StaticClass(), FName("Path"));
-
-				if (ensure(Track))
-				{
-					// Clamp to next path section's start time or the end of the current sequencer view range
-					float PathEndTime = GetSequencer()->GetViewRange().GetUpperBoundValue();
+				// Clamp to next path section's start time or the end of the current sequencer view range
+				float PathEndTime = GetSequencer()->GetViewRange().GetUpperBoundValue();
 	
-					for (int32 PathSectionIndex = 0; PathSectionIndex < Track->GetAllSections().Num(); ++PathSectionIndex)
+				for (int32 PathSectionIndex = 0; PathSectionIndex < Track->GetAllSections().Num(); ++PathSectionIndex)
+				{
+					float StartTime = Track->GetAllSections()[PathSectionIndex]->GetStartTime();
+					float EndTime = Track->GetAllSections()[PathSectionIndex]->GetEndTime();
+					if (KeyTime < StartTime)
 					{
-						float StartTime = Track->GetAllSections()[PathSectionIndex]->GetStartTime();
-						float EndTime = Track->GetAllSections()[PathSectionIndex]->GetEndTime();
-						if (KeyTime < StartTime)
+						if (PathEndTime > StartTime)
 						{
-							if (PathEndTime > StartTime)
-							{
-								PathEndTime = StartTime;
-							}
+							PathEndTime = StartTime;
 						}
 					}
-
-					Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, SplineId );
 				}
+
+				Cast<UMovieScene3DPathTrack>(Track)->AddConstraint( KeyTime, PathEndTime, SplineId );
 			}
 		}
 	}

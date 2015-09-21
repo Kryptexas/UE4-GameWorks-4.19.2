@@ -16,6 +16,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "AttachTrackEditor.h"
 
+
 void GetAttachActors(TSet<AActor*>& SelectedActors, TSet<AActor*>& UnselectedActors, TArray<UObject*> InObjects)
 {
 	if (GEditor->GetEditorWorldContext().World())
@@ -51,17 +52,19 @@ void GetAttachActors(TSet<AActor*>& SelectedActors, TSet<AActor*>& UnselectedAct
 	});
 }
 
+
 /**
  * Class that draws an attach section in the sequencer
  */
-class F3DAttachSection : public ISequencerSection
+class F3DAttachSection
+	: public ISequencerSection
 {
 public:
+
 	F3DAttachSection( UMovieSceneSection& InSection, F3DAttachTrackEditor* InAttachTrackEditor )
 		: Section( InSection )
 		, AttachTrackEditor(InAttachTrackEditor)
-	{
-	}
+	{ }
 
 	/** ISequencerSection interface */
 	virtual UMovieSceneSection* GetSectionObject() override
@@ -153,6 +156,7 @@ public:
 	}
 
 private:
+
 	/** The section we are visualizing */
 	UMovieSceneSection& Section;
 
@@ -160,25 +164,30 @@ private:
 	F3DAttachTrackEditor* AttachTrackEditor;
 };
 
+
 F3DAttachTrackEditor::F3DAttachTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
 }
 
+
 F3DAttachTrackEditor::~F3DAttachTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> F3DAttachTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> F3DAttachTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new F3DAttachTrackEditor( InSequencer ) );
 }
+
 
 bool F3DAttachTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	// We support animatable transforms
 	return Type == UMovieScene3DAttachTrack::StaticClass();
 }
+
 
 TSharedRef<ISequencerSection> F3DAttachTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -189,10 +198,12 @@ TSharedRef<ISequencerSection> F3DAttachTrackEditor::MakeSectionInterface( UMovie
 	return NewSection;
 }
 
+
 void F3DAttachTrackEditor::AddKey( const FGuid& ObjectGuid, UObject* AdditionalAsset )
 {
 	AddAttach(ObjectGuid, AdditionalAsset);
 }
+
 
 void F3DAttachTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
@@ -226,6 +237,7 @@ void F3DAttachTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder
 		}
 	}
 }
+
 
 void F3DAttachTrackEditor::AddAttachSubMenu(FMenuBuilder& MenuBuilder, FGuid ObjectBinding)
 {
@@ -284,6 +296,7 @@ void F3DAttachTrackEditor::AddAttachSubMenu(FMenuBuilder& MenuBuilder, FGuid Obj
 	}
 }
 
+
 void F3DAttachTrackEditor::AddAttach(FGuid ObjectGuid, UObject* AdditionalAsset)
 {
 	TArray<UObject*> OutObjects;
@@ -292,6 +305,7 @@ void F3DAttachTrackEditor::AddAttach(FGuid ObjectGuid, UObject* AdditionalAsset)
 	AnimatablePropertyChanged( UMovieScene3DAttachTrack::StaticClass(),
 		FOnKeyProperty::CreateRaw( this, &F3DAttachTrackEditor::AddKeyInternal, OutObjects, AdditionalAsset) );
 }
+
 
 void F3DAttachTrackEditor::SetAttach(UMovieSceneSection* Section, AActor* Actor)
 {
@@ -305,6 +319,7 @@ void F3DAttachTrackEditor::SetAttach(UMovieSceneSection* Section, AActor* Actor)
 		AttachSection->SetConstraintId(ActorId);
 	}
 }
+
 
 void F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, UObject* AdditionalAsset)
 {
@@ -322,39 +337,41 @@ void F3DAttachTrackEditor::AddKeyInternal( float KeyTime, const TArray<UObject*>
 		ActorId = FindOrCreateHandleToObject(Actor);
 	}
 
-	if (ActorId.IsValid())
+	if (!ActorId.IsValid())
 	{
-		for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
+		return;
+	}
+
+	for( int32 ObjectIndex = 0; ObjectIndex < Objects.Num(); ++ObjectIndex )
+	{
+		UObject* Object = Objects[ObjectIndex];
+
+		FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
+		if (ObjectHandle.IsValid())
 		{
-			UObject* Object = Objects[ObjectIndex];
+			MovieSceneHelpers::SetRuntimeObjectMobility(Object);
 
-			FGuid ObjectHandle = FindOrCreateHandleToObject( Object );
-			if (ObjectHandle.IsValid())
+			UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DAttachTrack::StaticClass(), FName("Attach"));
+
+			if (ensure(Track))
 			{
-				MovieSceneHelpers::SetRuntimeObjectMobility(Object);
-
-				UMovieSceneTrack* Track = GetTrackForObject( ObjectHandle, UMovieScene3DAttachTrack::StaticClass(), FName("Attach"));
-
-				if (ensure(Track))
-				{
-					// Clamp to next attach section's start time or the end of the current sequencer view range
-					float AttachEndTime = GetSequencer()->GetViewRange().GetUpperBoundValue();
+				// Clamp to next attach section's start time or the end of the current sequencer view range
+				float AttachEndTime = GetSequencer()->GetViewRange().GetUpperBoundValue();
 	
-					for (int32 AttachSectionIndex = 0; AttachSectionIndex < Track->GetAllSections().Num(); ++AttachSectionIndex)
+				for (int32 AttachSectionIndex = 0; AttachSectionIndex < Track->GetAllSections().Num(); ++AttachSectionIndex)
+				{
+					float StartTime = Track->GetAllSections()[AttachSectionIndex]->GetStartTime();
+					float EndTime = Track->GetAllSections()[AttachSectionIndex]->GetEndTime();
+					if (KeyTime < StartTime)
 					{
-						float StartTime = Track->GetAllSections()[AttachSectionIndex]->GetStartTime();
-						float EndTime = Track->GetAllSections()[AttachSectionIndex]->GetEndTime();
-						if (KeyTime < StartTime)
+						if (AttachEndTime > StartTime)
 						{
-							if (AttachEndTime > StartTime)
-							{
-								AttachEndTime = StartTime;
-							}
+							AttachEndTime = StartTime;
 						}
 					}
-
-					Cast<UMovieScene3DAttachTrack>(Track)->AddConstraint( KeyTime, AttachEndTime, ActorId );
 				}
+
+				Cast<UMovieScene3DAttachTrack>(Track)->AddConstraint( KeyTime, AttachEndTime, ActorId );
 			}
 		}
 	}

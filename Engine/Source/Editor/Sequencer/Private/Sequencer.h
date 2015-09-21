@@ -147,7 +147,10 @@ public:
 	/**
 	 * @return Movie scene tools used by the sequencer
 	 */
-	const TArray< TSharedPtr<FMovieSceneTrackEditor> >& GetTrackEditors() const { return TrackEditors; }
+	const TArray<TSharedPtr<ISequencerTrackEditor>>& GetTrackEditors() const
+	{
+		return TrackEditors;
+	}
 
 	/**
 	 * Attempts to add a new spawnable to the MovieScene for the specified asset or class
@@ -459,7 +462,7 @@ private:
 	TSharedRef<FUICommandList> SequencerCommandBindings;
 
 	/** List of tools we own */
-	TArray< TSharedPtr<FMovieSceneTrackEditor> > TrackEditors;
+	TArray<TSharedPtr<ISequencerTrackEditor>> TrackEditors;
 
 	/** Listener for object changes being made while this sequencer is open*/
 	TSharedPtr< class ISequencerObjectChangeListener > ObjectChangeListener;

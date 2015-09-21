@@ -6,10 +6,12 @@
 #include "SubMovieSceneSection.h"
 #include "MovieSceneSequence.h"
 
+
 /**
  * A generic implementation for displaying simple property sections
  */
-class FSubMovieSceneSection : public ISequencerSection
+class FSubMovieSceneSection
+	: public ISequencerSection
 {
 public:
 	FSubMovieSceneSection( TSharedPtr<ISequencer> InSequencer, UMovieSceneSection& InSectionObject, FName SectionName )
@@ -77,6 +79,7 @@ private:
 	TWeakPtr<ISequencer> Sequencer;
 };
 
+
 FSubMovieSceneTrackEditor::FSubMovieSceneTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer ) 
 {
@@ -84,10 +87,11 @@ FSubMovieSceneTrackEditor::FSubMovieSceneTrackEditor( TSharedRef<ISequencer> InS
 }
 
 
-TSharedRef<FMovieSceneTrackEditor> FSubMovieSceneTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> FSubMovieSceneTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FSubMovieSceneTrackEditor( InSequencer ) );
 }
+
 
 bool FSubMovieSceneTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
@@ -95,10 +99,12 @@ bool FSubMovieSceneTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type
 	return Type == USubMovieSceneTrack::StaticClass();
 }
 
+
 TSharedRef<ISequencerSection> FSubMovieSceneTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
 	return MakeShareable( new FSubMovieSceneSection( GetSequencer(), SectionObject, Track->GetTrackName() ) );
 }
+
 
 bool FSubMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& TargetObjectGuid)
 {
@@ -112,5 +118,3 @@ bool FSubMovieSceneTrackEditor::HandleAssetAdded(UObject* Asset, const FGuid& Ta
 	}
 	return false;
 }
-
-

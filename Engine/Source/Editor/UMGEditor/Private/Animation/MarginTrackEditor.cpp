@@ -8,7 +8,9 @@
 #include "ISectionLayoutBuilder.h"
 #include "MovieSceneToolHelpers.h"
 
-class FMarginPropertySection : public FPropertySection
+
+class FMarginPropertySection
+	: public FPropertySection
 {
 public:
 	FMarginPropertySection( UMovieSceneSection& InSectionObject, FName SectionName )
@@ -25,10 +27,12 @@ public:
 	}
 };
 
-TSharedRef<FMovieSceneTrackEditor> FMarginTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> FMarginTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FMarginTrackEditor( InSequencer ) );
 }
+
 
 TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -40,6 +44,7 @@ TSharedRef<ISequencerSection> FMarginTrackEditor::MakeSectionInterface( UMovieSc
 
 	return NewSection;
 }
+
 
 bool FMarginTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, FMarginKey& OutKey )
 {

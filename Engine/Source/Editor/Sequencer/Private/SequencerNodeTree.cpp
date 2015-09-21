@@ -3,14 +3,15 @@
 #include "SequencerPrivatePCH.h"
 #include "MovieSceneSequence.h"
 #include "MovieSceneSection.h"
+#include "MovieSceneTrack.h"
 #include "SequencerNodeTree.h"
 #include "Sequencer.h"
 #include "ScopedTransaction.h"
 #include "MovieScene.h"
-#include "MovieSceneTrack.h"
 #include "MovieSceneTrackEditor.h"
 #include "SectionLayoutBuilder.h"
 #include "ISequencerSection.h"
+#include "ISequencerTrackEditor.h"
 
 
 void FSequencerNodeTree::Empty()
@@ -139,17 +140,17 @@ void FSequencerNodeTree::Update()
 	FilterNodes( FilterString );
 }
 
-TSharedRef<FMovieSceneTrackEditor> FSequencerNodeTree::FindOrAddTypeEditor( UMovieSceneTrack& InTrack )
+TSharedRef<ISequencerTrackEditor> FSequencerNodeTree::FindOrAddTypeEditor( UMovieSceneTrack& InTrack )
 {
-	TSharedPtr<FMovieSceneTrackEditor> Editor = EditorMap.FindRef( &InTrack );
+	TSharedPtr<ISequencerTrackEditor> Editor = EditorMap.FindRef( &InTrack );
 
 	if( !Editor.IsValid() )
 	{
-		const TArray< TSharedPtr<FMovieSceneTrackEditor> >& TrackEditors = Sequencer.GetTrackEditors();
+		const TArray< TSharedPtr<ISequencerTrackEditor> >& TrackEditors = Sequencer.GetTrackEditors();
 
 		// Get a tool for each track
 		// @todo Sequencer - Should probably only need to get this once and it shouldnt be done here. It depends on when movie scene tool modules are loaded
-		TSharedPtr<FMovieSceneTrackEditor> SupportedTool;
+		TSharedPtr<ISequencerTrackEditor> SupportedTool;
 		for( int32 EditorIndex = 0; EditorIndex < TrackEditors.Num(); ++EditorIndex )
 		{
 			if( TrackEditors[EditorIndex]->SupportsType( InTrack.GetClass() ) )
@@ -168,7 +169,7 @@ void FSequencerNodeTree::MakeSectionInterfaces( UMovieSceneTrack& Track, TShared
 {
 	const TArray<UMovieSceneSection*>& MovieSceneSections = Track.GetAllSections();
 
-	TSharedRef<FMovieSceneTrackEditor> Editor = FindOrAddTypeEditor( Track );
+	TSharedRef<ISequencerTrackEditor> Editor = FindOrAddTypeEditor( Track );
 
 	for (int32 SectionIndex = 0; SectionIndex < MovieSceneSections.Num(); ++SectionIndex )
 	{

@@ -9,6 +9,7 @@
 
 
 class ISequencerObjectBindingManager;
+class ISequencerTrackEditor;
 class IToolkitHost;
 class UActorAnimation;
 
@@ -20,7 +21,7 @@ namespace SequencerMenuExtensionPoints
 
 
 /** A delegate which will create an auto-key handler. */
-DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<class FMovieSceneTrackEditor>, FOnCreateTrackEditor, TSharedRef<ISequencer>);
+DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<ISequencerTrackEditor>, FOnCreateTrackEditor, TSharedRef<ISequencer>);
 
 /** A delegate that is executed when adding menu content. */
 DECLARE_DELEGATE_RetVal_OneParam(TSharedRef<SWidget>, FOnGetAddMenuContent, TSharedRef<ISequencer>);

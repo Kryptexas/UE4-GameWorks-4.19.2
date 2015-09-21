@@ -6,12 +6,15 @@
 #include "MaterialParameterSection.h"
 #include "MovieSceneMaterialParameterSection.h"
 
+
 #define LOCTEXT_NAMESPACE "MaterialTrackEditor"
+
 
 FMaterialTrackEditor::FMaterialTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMovieSceneTrackEditor( InSequencer )
 {
 }
+
 
 TSharedRef<ISequencerSection> FMaterialTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -19,6 +22,7 @@ TSharedRef<ISequencerSection> FMaterialTrackEditor::MakeSectionInterface( UMovie
 	checkf( ParameterSection != nullptr, TEXT("Unsupported section type.") );
 	return MakeShareable(new FMaterialParameterSection( *ParameterSection, ParameterSection->GetFName()));
 }
+
 
 TSharedPtr<SWidget> FMaterialTrackEditor::BuildOutlinerEditWidget( const FGuid& ObjectBinding, UMovieSceneTrack* Track )
 {
@@ -52,6 +56,7 @@ TSharedPtr<SWidget> FMaterialTrackEditor::BuildOutlinerEditWidget( const FGuid& 
 		];
 }
 
+
 struct FParameterNameAndAction
 {
 	FName ParameterName;
@@ -68,6 +73,7 @@ struct FParameterNameAndAction
 		return ParameterName < Other.ParameterName;
 	}
 };
+
 
 TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
@@ -111,6 +117,7 @@ TSharedRef<SWidget> FMaterialTrackEditor::OnGetAddParameterMenuContent( FGuid Ob
 	return AddParameterMenuBuilder.MakeWidget();
 }
 
+
 UMaterial* FMaterialTrackEditor::GetMaterialForTrack( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
 	UMaterialInterface* MaterialInterface = GetMaterialInterfaceForTrack( ObjectBinding, MaterialTrack );
@@ -133,6 +140,7 @@ UMaterial* FMaterialTrackEditor::GetMaterialForTrack( FGuid ObjectBinding, UMovi
 	return nullptr;
 }
 
+
 void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
 {
 	UMovieSceneSequence* MovieSceneSequence = GetMovieSceneSequence();
@@ -153,6 +161,7 @@ void FMaterialTrackEditor::AddScalarParameter( FGuid ObjectBinding, UMovieSceneM
 	}
 	NotifyMovieSceneDataChanged();
 }
+
 
 void FMaterialTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack, FName ParameterName )
 {
@@ -175,20 +184,24 @@ void FMaterialTrackEditor::AddVectorParameter( FGuid ObjectBinding, UMovieSceneM
 	NotifyMovieSceneDataChanged();
 }
 
+
 FComponentMaterialTrackEditor::FComponentMaterialTrackEditor( TSharedRef<ISequencer> InSequencer )
 	: FMaterialTrackEditor( InSequencer )
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> FComponentMaterialTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
+
+TSharedRef<ISequencerTrackEditor> FComponentMaterialTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer )
 {
 	return MakeShareable( new FComponentMaterialTrackEditor( OwningSequencer ) );
 }
+
 
 bool FComponentMaterialTrackEditor::SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const
 {
 	return Type == UMovieSceneComponentMaterialTrack::StaticClass();
 }
+
 
 UMaterialInterface* FComponentMaterialTrackEditor::GetMaterialInterfaceForTrack( FGuid ObjectBinding, UMovieSceneMaterialTrack* MaterialTrack )
 {
@@ -201,5 +214,6 @@ UMaterialInterface* FComponentMaterialTrackEditor::GetMaterialInterfaceForTrack(
 	}
 	return nullptr;
 }
+
 
 #undef LOCTEXT_NAMESPACE

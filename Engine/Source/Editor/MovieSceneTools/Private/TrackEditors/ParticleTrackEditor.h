@@ -6,47 +6,61 @@
 /**
  * Tools for particle tracks
  */
-class FParticleTrackEditor : public FMovieSceneTrackEditor
+class FParticleTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
+
 	/**
-	 * Constructor
+	 * Constructor.
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool.
 	 */
 	FParticleTrackEditor( TSharedRef<ISequencer> InSequencer );
 	~FParticleTrackEditor();
 
 	/**
-	 * Creates an instance of this class.  Called by a sequencer 
+	 * Creates an instance of this class.  Called by a sequencer.
 	 *
-	 * @param OwningSequencer The sequencer instance to be used by this tool
-	 * @return The new instance of this class
+	 * @param OwningSequencer The sequencer instance to be used by this tool.
+	 * @return The new instance of this class.
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
+public:
+
+	void AddParticleKey(const FGuid ObjectGuid, bool bTrigger);
+
+public:
+
+	// FMovieSceneTrackEditor interface
+
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
 	
-	void AddParticleKey(const FGuid ObjectGuid, bool bTrigger);
-
 private:
-	/** Delegate for AnimatablePropertyChanged in AddKey */
+
+	/** Delegate for AnimatablePropertyChanged in AddKey. */
 	virtual void AddKeyInternal( float KeyTime, const TArray<UObject*> Objects, bool bTrigger);
 };
 
 
-
-/** Class for particle sections */
-class FParticleSection : public ISequencerSection, public TSharedFromThis<FParticleSection>
+/**
+ * Class for particle sections.
+ */
+class FParticleSection
+	: public ISequencerSection
+	, public TSharedFromThis<FParticleSection>
 {
 public:
+
 	FParticleSection( UMovieSceneSection& InSection );
 	~FParticleSection();
 
-	/** ISequencerSection interface */
+public:
+
+	// ISequencerSection interface
 	virtual UMovieSceneSection* GetSectionObject() override;
 	virtual FText GetDisplayName() const override;
 	virtual FText GetSectionTitle() const override;
@@ -56,6 +70,7 @@ public:
 	virtual bool SectionIsResizable() const override;
 
 private:
-	/** The section we are visualizing */
+
+	/** The section we are visualizing. */
 	UMovieSceneSection& Section;
 };

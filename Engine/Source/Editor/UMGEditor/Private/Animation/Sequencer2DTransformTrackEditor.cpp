@@ -8,9 +8,12 @@
 #include "ISectionLayoutBuilder.h"
 #include "MovieSceneToolHelpers.h"
 
-class F2DTransformSection : public FPropertySection
+
+class F2DTransformSection
+	: public FPropertySection
 {
 public:
+
 	F2DTransformSection( UMovieSceneSection& InSectionObject, FName SectionName )
 		: FPropertySection(InSectionObject, SectionName) {}
 
@@ -40,10 +43,12 @@ public:
 	}
 };
 
-TSharedRef<FMovieSceneTrackEditor> F2DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+
+TSharedRef<ISequencerTrackEditor> F2DTransformTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new F2DTransformTrackEditor( InSequencer ) );
 }
+
 
 TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track )
 {
@@ -55,6 +60,7 @@ TSharedRef<ISequencerSection> F2DTransformTrackEditor::MakeSectionInterface( UMo
 
 	return NewSection;
 }
+
 
 bool F2DTransformTrackEditor::TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, F2DTransformKey& OutKey )
 {

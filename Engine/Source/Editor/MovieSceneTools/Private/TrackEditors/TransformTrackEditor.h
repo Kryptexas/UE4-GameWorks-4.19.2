@@ -4,19 +4,24 @@
 
 #include "MovieScene3DTransformTrack.h"
 
+
 /**
  * Tools for animatable transforms
  */
-class F3DTransformTrackEditor : public FMovieSceneTrackEditor
+class F3DTransformTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
+
 	/**
 	 * Constructor
 	 *
 	 * @param InSequencer	The sequencer instance to be used by this tool
 	 */
 	F3DTransformTrackEditor( TSharedRef<ISequencer> InSequencer );
-	~F3DTransformTrackEditor();
+
+	/** Virtual destructor. */
+	virtual ~F3DTransformTrackEditor();
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -24,9 +29,12 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
+public:
+
+	// FMovieSceneTrackEditor interface
+
 	virtual void OnRelease() override;
 	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
@@ -49,14 +57,14 @@ private:
 	/**
 	 * Called before an actor or component transform changes
 	 *
-	 * @param Object	The object whose transform is about to change
+	 * @param Object The object whose transform is about to change
 	 */
 	void OnPreTransformChanged( UObject& InObject );
 
 	/**
 	 * Called when an actor or component transform changes
 	 *
-	 * @param Object	The object whose transform has changed
+	 * @param Object The object whose transform has changed
 	 */
 	void OnTransformChanged( UObject& InObject );
 
@@ -94,8 +102,7 @@ private:
 	void AddTransformKeyInternal(F3DTransformTrackKey::Type KeyType = F3DTransformTrackKey::Key_All);
 
 private:
+
 	/** Mapping of objects to their existing transform data (for comparing against new transform data) */
 	TMap< TWeakObjectPtr<UObject>, FTransformData > ObjectToExistingTransform;
 };
-
-

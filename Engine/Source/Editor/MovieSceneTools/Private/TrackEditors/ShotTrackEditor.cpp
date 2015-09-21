@@ -515,7 +515,7 @@ FShotTrackEditor::~FShotTrackEditor()
 {
 }
 
-TSharedRef<FMovieSceneTrackEditor> FShotTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
+TSharedRef<ISequencerTrackEditor> FShotTrackEditor::CreateTrackEditor( TSharedRef<ISequencer> InSequencer )
 {
 	return MakeShareable( new FShotTrackEditor( InSequencer ) );
 }

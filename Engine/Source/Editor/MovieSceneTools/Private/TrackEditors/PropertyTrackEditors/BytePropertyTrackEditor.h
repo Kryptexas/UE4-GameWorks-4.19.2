@@ -4,20 +4,23 @@
 
 #include "MovieSceneByteTrack.h"
 
+
 /**
 * A property track editor for byte and enums.
 */
-class FBytePropertyTrackEditor : public FPropertyTrackEditor<UMovieSceneByteTrack, uint8>
+class FBytePropertyTrackEditor
+	: public FPropertyTrackEditor<UMovieSceneByteTrack, uint8>
 {
 public:
+
 	/**
-	 * Constructor
+	 * Constructor.
 	 *
-	 * @param InSequencer	The sequencer instance to be used by this tool
+	 * @param InSequencer The sequencer instance to be used by this tool
 	 */
 	FBytePropertyTrackEditor( TSharedRef<ISequencer> InSequencer)
 		: FPropertyTrackEditor( InSequencer, NAME_ByteProperty )
-	{}
+	{ }
 
 	/**
 	 * Creates an instance of this class.  Called by a sequencer 
@@ -25,15 +28,18 @@ public:
 	 * @param OwningSequencer The sequencer instance to be used by this tool
 	 * @return The new instance of this class
 	 */
-	static TSharedRef<FMovieSceneTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
+	static TSharedRef<ISequencerTrackEditor> CreateTrackEditor( TSharedRef<ISequencer> OwningSequencer );
 
-	/** FMovieSceneTrackEditor Interface */
+public:
+
+	// FMovieSceneTrackEditor interface
+
 	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 	virtual UMovieSceneTrack* AddTrack( UMovieScene* FocusedMovieScene, const FGuid& ObjectHandle, TSubclassOf<class UMovieSceneTrack> TrackClass, FName UniqueTypeName ) override;
 
 protected:
-	/** FPropertyTrackEditor Interface */
+
+	// FPropertyTrackEditor interface
+
 	virtual bool TryGenerateKeyFromPropertyChanged( const UMovieSceneTrack* InTrack, const FPropertyChangedParams& PropertyChangedParams, uint8& OutKey ) override;
 };
-
-

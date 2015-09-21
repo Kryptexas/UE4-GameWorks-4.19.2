@@ -249,7 +249,7 @@ TSharedRef<FSectionCategoryNode> FSequencerDisplayNode::AddCategoryNode( FName C
 	return CategoryNode.ToSharedRef();
 }
 
-TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, FMovieSceneTrackEditor& AssociatedEditor )
+TSharedRef<FTrackNode> FSequencerDisplayNode::AddSectionAreaNode( FName SectionName, UMovieSceneTrack& AssociatedTrack, ISequencerTrackEditor& AssociatedEditor )
 {
 	TSharedPtr<FTrackNode> SectionNode;
 
@@ -498,7 +498,7 @@ void FSectionKeyAreaNode::AddKeyArea( TSharedRef< IKeyArea> KeyArea )
 	KeyAreas.Add( KeyArea );
 }
 
-FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, FMovieSceneTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
+FTrackNode::FTrackNode( FName NodeName, UMovieSceneTrack& InAssociatedType, ISequencerTrackEditor& InAssociatedEditor, TSharedPtr<FSequencerDisplayNode> InParentNode, FSequencerNodeTree& InParentTree )
 	: FSequencerDisplayNode( NodeName, InParentNode, InParentTree )
 	, AssociatedType( &InAssociatedType )
 	, AssociatedEditor( InAssociatedEditor )
