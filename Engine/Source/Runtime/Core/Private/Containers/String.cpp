@@ -543,7 +543,7 @@ int32 FString::ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim,
 			{
 				new (OutArray) FString(At-Start,Start);
 			}
-			Start += DelimLength + (At-Start);
+			Start = At + DelimLength;
 		}
 		if (!InCullEmpty || *Start)
 		{

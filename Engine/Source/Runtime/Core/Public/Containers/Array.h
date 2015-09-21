@@ -404,7 +404,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	explicit TArray(const TArray<OtherElementType, OtherAllocator>& Other)
 	{
-		CopyToEmpty(Other);
+		CopyToEmpty(Other, 0, 0);
 	}
 
 	/**
@@ -414,7 +414,7 @@ public:
 	 */
 	TArray(const TArray& Other)
 	{
-		CopyToEmpty(Other);
+		CopyToEmpty(Other, 0, 0);
 	}
 
 	/**
@@ -426,7 +426,7 @@ public:
 	 */
 	TArray(const TArray& Other, int32 ExtraSlack)
 	{
-		CopyToEmpty(Other, ExtraSlack);
+		CopyToEmpty(Other, 0, ExtraSlack);
 	}
 
 	/**
@@ -441,7 +441,7 @@ public:
 	TArray& operator=(const TArray<ElementType, OtherAllocator>& Other)
 	{
 		DestructItems(GetData(), ArrayNum);
-		CopyToEmpty(Other);
+		CopyToEmpty(Other, ArrayMax, 0);
 		return *this;
 	}
 
@@ -456,7 +456,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			CopyToEmpty(Other);
+			CopyToEmpty(Other, ArrayMax, 0);
 		}
 		return *this;
 	}
@@ -471,7 +471,7 @@ private:
 	 * @param FromArray Array to move from.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray)
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
 	{
 		ToArray.AllocatorInstance.MoveToEmpty(FromArray.AllocatorInstance);
 
@@ -479,6 +479,22 @@ private:
 		ToArray  .ArrayMax = FromArray.ArrayMax;
 		FromArray.ArrayNum = 0;
 		FromArray.ArrayMax = 0;
+	}
+
+	/**
+	 * Moves or copies array. Depends on the array type traits.
+	 *
+	 * This override copies.
+	 *
+	 * @param ToArray Array to move into.
+	 * @param FromArray Array to move from.
+	 * @param ExtraSlack Tells how much extra memory should be preallocated
+	 *                   at the end of the array in the number of elements.
+	 */
+	template <typename FromArrayType, typename ToArrayType>
+	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax)
+	{
+		ToArray.CopyToEmpty(FromArray, PrevMax, 0);
 	}
 
 	/**
@@ -492,9 +508,9 @@ private:
 	 *                   at the end of the array in the number of elements.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack)
+	static FORCEINLINE typename TEnableIf<UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
 	{
-		MoveOrCopy(ToArray, FromArray);
+		MoveOrCopy(ToArray, FromArray, PrevMax);
 
 		ToArray.Reserve(ToArray.ArrayNum + ExtraSlack);
 	}
@@ -510,9 +526,9 @@ private:
 	 *                   at the end of the array in the number of elements.
 	 */
 	template <typename FromArrayType, typename ToArrayType>
-	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopy(ToArrayType& ToArray, FromArrayType& FromArray, int32 ExtraSlack = 0)
+	static FORCEINLINE typename TEnableIf<!UE4Array_Private::TCanMoveTArrayPointersBetweenArrayTypes<FromArrayType, ToArrayType>::Value>::Type MoveOrCopyWithSlack(ToArrayType& ToArray, FromArrayType& FromArray, int32 PrevMax, int32 ExtraSlack)
 	{
-		ToArray.CopyToEmpty(FromArray, ExtraSlack);
+		ToArray.CopyToEmpty(FromArray, PrevMax, ExtraSlack);
 	}
 
 public:
@@ -523,7 +539,7 @@ public:
 	 */
 	FORCEINLINE TArray(TArray&& Other)
 	{
-		MoveOrCopy(*this, Other);
+		MoveOrCopy(*this, Other, 0);
 	}
 
 	/**
@@ -534,7 +550,7 @@ public:
 	template <typename OtherElementType, typename OtherAllocator>
 	FORCEINLINE explicit TArray(TArray<OtherElementType, OtherAllocator>&& Other)
 	{
-		MoveOrCopy(*this, Other);
+		MoveOrCopy(*this, Other, 0);
 	}
 
 	/**
@@ -551,7 +567,7 @@ public:
 		// to tell if they're compatible with the current one.  Probably going to be a pretty
 		// rare requirement anyway.
 
-		MoveOrCopy(*this, Other, ExtraSlack);
+		MoveOrCopyWithSlack(*this, Other, 0, ExtraSlack);
 	}
 
 	/**
@@ -564,7 +580,7 @@ public:
 		if (this != &Other)
 		{
 			DestructItems(GetData(), ArrayNum);
-			MoveOrCopy(*this, Other);
+			MoveOrCopy(*this, Other, ArrayMax);
 		}
 		return *this;
 	}
@@ -2275,17 +2291,21 @@ private:
 	 * data in question does not need a constructor.
 	 *
 	 * @param Source The source array to copy
-	 * @param ExtraSlack (Optional) Additional amount of memory to allocate at
+	 * @param PrevMax The previous allocated size
+	 * @param ExtraSlack Additional amount of memory to allocate at
 	 *                   the end of the buffer. Counted in elements. Zero by
 	 *                   default.
 	 */
 	template <typename OtherElementType, typename OtherAllocator>
-	void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 ExtraSlack = 0)
+	void CopyToEmpty(const TArray<OtherElementType, OtherAllocator>& Source, int32 PrevMax, int32 ExtraSlack)
 	{
 		check(ExtraSlack >= 0);
 
 		int32 SourceCount = Source.Num();
-		AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
+		if (SourceCount + ExtraSlack != PrevMax)
+		{
+			AllocatorInstance.ResizeAllocation(0, SourceCount + ExtraSlack, sizeof(ElementType));
+		}
 
 		ConstructItems<ElementType>(GetData(), Source.GetData(), SourceCount);
 

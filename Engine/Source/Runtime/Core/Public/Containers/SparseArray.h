@@ -340,13 +340,16 @@ public:
 	}
 
 	/** Compacts the allocated elements into a contiguous index range. */
-	void Compact()
+	/** Returns true if any elements were relocated, false otherwise. */
+	bool Compact()
 	{
 		int32 NumFree = NumFreeIndices;
 		if (NumFree == 0)
 		{
-			return;
+			return false;
 		}
+
+		bool bResult = false;
 
 		FElementOrFreeListLink* ElementData = Data.GetData();
 
@@ -367,6 +370,8 @@ public:
 
 				RelocateConstructItems<FElementOrFreeListLink>(ElementData + FreeIndex, ElementData + EndIndex, 1);
 				AllocationFlags[FreeIndex] = true;
+
+				bResult = true;
 			}
 
 			FreeIndex = NextFreeIndex;
@@ -377,6 +382,8 @@ public:
 
 		NumFreeIndices = 0;
 		FirstFreeIndex = -1;
+
+		return bResult;
 	}
 
 	/** Sorts the elements using the provided comparison class. */

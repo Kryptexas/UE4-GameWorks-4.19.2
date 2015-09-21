@@ -328,8 +328,10 @@ public:
 	/** Compacts the allocated elements into a contiguous range. */
 	FORCEINLINE void Compact()
 	{
-		Elements.Compact();
-		Rehash();
+		if (Elements.Compact())
+		{
+			Rehash();
+		}
 	}
 
 	/** Preallocates enough memory to contain Number elements */

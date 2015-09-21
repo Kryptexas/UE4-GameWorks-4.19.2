@@ -2,6 +2,7 @@
 
 #pragma once
 #include "ClassMaps.h"
+#include "UniqueObj.h"
 
 extern class FCompilerMetadataManager GScriptHelper;
 
@@ -1316,7 +1317,7 @@ public:
 	static bool TryFindForFunction(UFunction* Function, FFunctionData*& OutData);
 
 private:
-	static TMap<UFunction*, TSharedRef<FFunctionData> > FunctionDataMap;
+	static TMap<UFunction*, TUniqueObj<FFunctionData> > FunctionDataMap;
 };
 
 /**
