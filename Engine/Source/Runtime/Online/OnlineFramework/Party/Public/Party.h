@@ -168,7 +168,7 @@ public:
 	 * @param InPartyDetails credentials for the party to join
 	 * @param InCompletionDelegate delegate called upon completion
 	 */
-	void JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate);
+	virtual void JoinPersistentParty(const FUniqueNetId& InUserId, const FPartyDetails& InPartyDetails, const FOnJoinPartyComplete& InCompletionDelegate);
 
 	/**
 	 * Leave a persistent party, a new one will need to be created for the given user afterward
