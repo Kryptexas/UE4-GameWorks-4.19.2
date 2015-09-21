@@ -51,11 +51,10 @@ half3 FrameBufferDecalBlendOp(half4 Source)
 // decal vertex shader
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
-	out float4 OutScreenPosition : TEXCOORD0,
 	out float4 OutPosition : SV_POSITION
 	)
 {
-	OutPosition = OutScreenPosition = mul(InPosition, FrustumComponentToClip);
+	OutPosition = mul(InPosition, FrustumComponentToClip);
 }
 
 float DistanceFunction(float4 ScreenPosition, float3 Pos)
@@ -135,6 +134,24 @@ float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos, float t)
 }
 
 
+float4 SvPositionToScreenPosition2(float4 SvPosition)
+{
+	// assumed SvPosition.w = 1
+
+	float4 Ret;
+
+	Ret.x = ((SvPosition.x - View.ViewRectMin.x) * View.ViewSizeAndInvSize.z) * 2 - 1;
+	Ret.y = ((SvPosition.y - View.ViewRectMin.y) * View.ViewSizeAndInvSize.w) * -2 + 1;
+	Ret.z = ConvertFromDeviceZ(SvPosition.z);
+	Ret.w = 1;
+
+	Ret.xy *= Ret.z;
+
+	// so .w has the SceneDepth, some mobile code wants that
+//	Ret *= Ret.z;
+
+	return Ret;
+}
 
 // decal pixel shader
 #if DECAL_PROJECTION
@@ -142,9 +159,7 @@ float3 GradientNotNormalized(float4 ScreenPosition, float3 OSPos, float t)
 // EARLYDEPTHSTENCIL for volumetric decals could work here, but only if we are ouside of the decal
 
 void MainPS(
-	in float4 ScreenPosition : TEXCOORD0			// is ClipPosition
-	
-	, in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position
+	in INPUT_POSITION_QUALIFIERS float4 SvPosition : SV_Position		// after all interpolators
 
 #if DECAL_RENDERTARGET_COUNT > 0
 	, out float4 OutTarget0 : SV_Target0
@@ -171,6 +186,14 @@ void MainPS(
 
 	)
 {
+	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
+
+	// make SvPosition appear to be rasterized with the depth from the depth buffer
+	SvPosition.z = LookupDeviceZ(ScreenUV);
+//	SvPosition.w = 1;
+
+	float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
+
 #if DECAL_RENDERTARGET_COUNT > 4
 	// default to no shadows, good for volumetric decals
 	OutTarget4 = 1;
@@ -187,14 +210,14 @@ void MainPS(
 		// LineBoxIntersect want's to clip a long ray so we provide one, this could be done differently as it limites the draw distance and reduces precision 
 		float SceneW = 100000000;
 
-		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);		// is ProjectedClipPosition
-
-		ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
-
-		float4 WorldPosHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
+		float4 SvPositionInDistance = float4(SvPosition.xy, ConvertToDeviceZ(SceneW), 1);
+//		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);		// is ProjectedClipPosition
+//		ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
+//		float4 WorldPosHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
 
 		float3 WSStartRay = View.WorldCameraOrigin;
-		float3 WSEndRay = WorldPosHom.xyz;
+//		float3 WSEndRay = WorldPosHom.xyz;
+		float3 WSEndRay = SvPositionToWorld(SvPositionInDistance);
 
 		// in object/decal space
 		float4 OSStartRayHom = mul(float4(WSStartRay,1), WorldToDecal);
@@ -222,7 +245,9 @@ void MainPS(
 	}
 	else
 	{
-		half SceneW = PreviousDepth(ScreenPosition);
+		// can be optimized further
+
+		half SceneW = CalcSceneDepth(SvPositionToBufferUV(SvPosition));
 		float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);	
 
 		float4 DecalVectorHom = mul(ProjectedScreenPosition, ScreenToDecal);
@@ -233,8 +258,46 @@ void MainPS(
 		clip(OSPosition.xyz + 1.0f);
 		clip(1.0f - OSPosition.xyz);
 
-		float4 WSPositionHom = mul(ProjectedScreenPosition, View.ScreenToWorld);
-		WSPosition = WSPositionHom.xyz / WSPositionHom.w;
+
+
+		// can be optimized
+		
+//		SvPosition.z = CalcSceneDepth(ScreenUV);
+//		SvPosition.w *= SvPosition.z;
+//		SvPosition.z = LookupDeviceZ(ScreenUV);
+//		SvPosition.xy /= SvPosition.w;
+	//	SvPosition.w = 1;
+
+		float4 Clip;
+
+	//	ProjectedScreenPosition = ComputeScreenPosition(SvPosition);
+		Clip.x = ((SvPosition.x-View.ViewRectMin.x) * View.ViewSizeAndInvSize.z) * 2 - 1;
+//		ProjectedScreenPosition.x = SvPosition.x * View.BufferSizeAndInvSize.z;
+		Clip.y = ((SvPosition.y-View.ViewRectMin.y) * View.ViewSizeAndInvSize.w) * -2 + 1;
+//		Clip.z = LookupDeviceZ(ScreenUV);
+
+// test
+		Clip.z = SvPosition.z;
+
+
+//		ProjectedScreenPosition.z = CalcSceneDepth(ScreenUV);
+//		ProjectedScreenPosition.xy*=ProjectedScreenPosition.z;
+//		ProjectedScreenPosition.w = 1;
+
+		Clip.w = 1;
+
+		SvPosition.z = LookupDeviceZ(ScreenUV);
+
+
+//		float4 Hom = mul(Clip, View.ClipToTranslatedWorld);WSPosition = Hom.xyz / Hom.w - View.PreViewTranslation;		// float4(-1..1,1..-1,LookupDeviceZ(ScreenUV), 1)
+//		float4 Hom = mul(ProjectedScreenPosition, View.ScreenToWorld);WSPosition = Hom.xyz / Hom.w;				// float4(-1..1*z,1..-1*z, CalcSceneDepth(ScreenUV),1)
+		float4 Hom = mul(float4(SvPosition.xyz - float3(View.ViewSizeAndInvSize.xy * 0.5f, 0),1), View.SVPositionToTranslatedWorld);WSPosition = Hom.xyz / Hom.w - View.PreViewTranslation;				// float4(PixelX,PixelY,DeviceZ,W)
+//		float4 Hom = mul(float4(SvPosition.xyz, 1), View.SVPositionToTranslatedWorld);WSPosition = Hom.xyz / Hom.w - View.PreViewTranslation;			// float4(PixelX,PixelY,DeviceZ,W)  perfect
+//		float4 Hom = mul(SvPositionToScreenPosition2(SvPosition), View.ScreenToWorld);WSPosition = Hom.xyz / Hom.w;	// works but why
+//		float4 Hom = mul(SvPositionToScreenPosition(SvPosition), View.ScreenToWorld);WSPosition = Hom.xyz / Hom.w;	// to verify SvPositionToScreenPosition, wrong?
+
+//		WSPosition = Hom.xyz / Hom.w - View.PreViewTranslation;
+//		WSPosition  = SvPosition.xyz / SvPosition.w;
 	}
 
 	float3 CameraVector = normalize(View.WorldCameraOrigin - WSPosition);
@@ -257,6 +320,7 @@ void MainPS(
 #endif
 	MaterialParameters.VertexColor = 1;
 	MaterialParameters.CameraVector = CameraVector;
+	MaterialParameters.SvPosition = SvPosition;
 	MaterialParameters.ScreenPosition = ScreenPosition;
 	MaterialParameters.LightVector = SwizzlePos;
 	MaterialParameters.WorldPosition = 

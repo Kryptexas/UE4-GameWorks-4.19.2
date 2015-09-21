@@ -302,7 +302,7 @@ void MainTemporalAAPS(
 	// Note: these are needed to match up with the vertex shader outputs which is FPostProcessTonemapVS, otherwise a d3d debug error is issued
 	in noperspective float4 Unused1 : TEXCOORD2,
 	in noperspective float4 Unused2 : TEXCOORD3,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA
@@ -331,7 +331,7 @@ void MainTemporalAAPS(
 void MainFastTemporalAAPS(
 	in noperspective float4 UVAndScreenPos : TEXCOORD0,
 	in noperspective float3 InExposureScaleVignette : TEXCOORD1,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0 )
 {
 #if ENABLE_TEMPORAL_AA

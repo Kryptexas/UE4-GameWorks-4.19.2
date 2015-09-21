@@ -366,7 +366,7 @@ float4 GetScreenPosition(FMaterialPixelParameters Parameters)
 	 */
 	float2 ComputeDecalUVFromScreenPosition(float4 ScreenPosition)
 	{
-		half SceneW = PreviousDepth(ScreenPosition);
+		half SceneW = CalcSceneDepth(ScreenPositionToBufferUV(ScreenPosition));
 		float4 DecalVector = mul(float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1), ScreenToDecal);
 		DecalVector.xyz /= DecalVector.w;
 		DecalVector = DecalVector * 0.5f + 0.5f;
@@ -817,7 +817,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 		float NearDistance = Parameters.ScreenPosition.w - HemisphericalDistance;
 		float FarDistance = Parameters.ScreenPosition.w + HemisphericalDistance;
 
-		float SceneDepth = PreviousDepth(Parameters.ScreenPosition);
+		float SceneDepth = CalcSceneDepth(ScreenPositionToBufferUV(Parameters.ScreenPosition));
 		FarDistance = min(SceneDepth, FarDistance);
 
 		// Take into account opaque objects intersecting the sphere
@@ -1660,20 +1660,6 @@ void CalcMaterialParametersEx(
 #endif // !PARTICLE_SPRITE_FACTORY
 }
 
-float4 ComputeScreenPosition(float4 SvPosition)
-{
-	float4 ScreenPosition;
-
-	float2 PixelPos = SvPosition.xy - View.ViewRectMin.xy;	
-	ScreenPosition.xy = ( PixelPos * View.ViewSizeAndInvSize.zw - 0.5 ) * float2(2,-2);
-	// clipspace
-	ScreenPosition.zw = SvPosition.zw;
-	// viewspace
-	ScreenPosition.xyz *= ScreenPosition.w;
-
-	return ScreenPosition;
-}
-
 // this will be optimized to not use ScreenPosition
 float3 ComputeWorldWorldPosCamRelative(float4 ScreenPosition)
 {
@@ -1689,7 +1675,7 @@ void CalcMaterialParameters(
 	float4 SvPosition,
 	FIsFrontFace bIsFrontFace)
 {
-	float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+	float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
 	float3 PixelPosition = ComputeWorldWorldPosCamRelative(ScreenPosition);
 
 	CalcMaterialParametersEx(Parameters, SvPosition, ScreenPosition, bIsFrontFace, PixelPosition, PixelPosition);

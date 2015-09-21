@@ -74,7 +74,7 @@ float TranslInvMaxSubjectDepth;
 /** Pixel shader used to accumulate layer opacities in different channels based on the first translucent layer's depth. */
 void MainOpacityPS( 
 	FTranslucencyShadowDepthVSToPS Inputs,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor0 : SV_Target0,
 	out float4 OutColor1 : SV_Target1
 	)

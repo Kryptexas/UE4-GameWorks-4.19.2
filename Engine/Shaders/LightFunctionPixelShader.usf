@@ -15,10 +15,11 @@ float3 LightFunctionParameters2;
 
 void Main(
 	in float4 ScreenPosition : TEXCOORD0,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0
 	)
 {
-	half SceneW = PreviousDepth(ScreenPosition);
+	half SceneW = CalcSceneDepth(SvPositionToBufferUV(SvPosition));
 	float4 ProjectedScreenPosition = float4(ScreenPosition.xy / ScreenPosition.w * SceneW, SceneW, 1);
 	float4 LightVector = mul(ProjectedScreenPosition, ScreenToLight);
 	LightVector.xyz /= LightVector.w;

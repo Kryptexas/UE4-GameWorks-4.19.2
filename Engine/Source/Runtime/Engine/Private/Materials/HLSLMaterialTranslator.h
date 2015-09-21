@@ -1949,7 +1949,7 @@ protected:
 			return Errorf(TEXT("Invalid node used in hull/domain shader input!"));
 		}
 
-		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters)).xy"));		
+		return AddCodeChunk(MCT_Float2,TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));		
 	}
 
 	virtual int32 ParticleMacroUV() override 
@@ -2525,7 +2525,7 @@ protected:
 		}
 		else
 		{
-			FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(GetScreenPosition(Parameters)).xy)"));
+			FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
 			FString CodeString = (UV != INDEX_NONE) ? CoerceParameter(UV,MCT_Float2) : DefaultScreenAligned;
 			return AddInlinedCodeChunk(MCT_Float2, *CodeString );
 		}
@@ -2573,7 +2573,7 @@ protected:
 
 		UseSceneTextureId(SceneTextureId, true);
 
-		FString DefaultScreenAligned(TEXT("MaterialFloat2(ScreenAlignedPosition(GetScreenPosition(Parameters)).xy)"));
+		FString DefaultScreenAligned(TEXT("ScreenAlignedPosition(GetScreenPosition(Parameters))"));
 		FString TexCoordCode((UV != INDEX_NONE) ? CoerceParameter(UV, MCT_Float2) : DefaultScreenAligned);
 
 		return AddCodeChunk(

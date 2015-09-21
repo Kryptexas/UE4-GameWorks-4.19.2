@@ -430,6 +430,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	const FIntPoint BufferSize = SceneContext.GetBufferSizeXY();
 	const float InvBufferSizeX = 1.0f / BufferSize.X;
 	const float InvBufferSizeY = 1.0f / BufferSize.Y;
+	// to bring NDC (-1..1, 1..-1) into 0..1 UV for BufferSize textures
 	const FVector4 ScreenPositionScaleBias(
 		ViewRect.Width() * InvBufferSizeX / +2.0f,
 		ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
@@ -523,6 +524,27 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.PrevPreViewTranslation = PrevViewMatrices.PreViewTranslation;
 	// can be optimized
 	ViewUniformShaderParameters.PrevInvViewProj = PrevViewProjMatrix.Inverse();
+
+	{
+		// setup a matrix to transform float4(SVPosition.xyz,1) directly to TranslatedWorld (quality, performance as we don't need to convert or use interpolator)
+
+		//	new_xy = (xy - ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+		//  transformed into one MAD:  new_xy = xy * ViewSizeAndInvSize.zw * float2(2,-2)      +       (-ViewRectMin.xy) * ViewSizeAndInvSize.zw * float2(2,-2) + float2(-1, 1);
+
+		float Mx = 2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float My = -2.0f * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
+		float Ax = -1.0f - 2.0f * ViewRect.Min.X * ViewUniformShaderParameters.ViewSizeAndInvSize.Z;
+		float Ay = 1.0f + 2.0f * ViewRect.Min.Y * ViewUniformShaderParameters.ViewSizeAndInvSize.W;
+
+		// http://stackoverflow.com/questions/9010546/java-transformation-matrix-operations
+
+		ViewUniformShaderParameters.SVPositionToTranslatedWorld = 
+			FMatrix(FPlane(Mx,  0,  0,   0),
+					FPlane(0,  My,  0,   0),
+					FPlane(0,   0,  1,   0),
+					FPlane(Ax, Ay,  0,   1)) * ViewMatrices.InvTranslatedViewProjectionMatrix;
+	}
 
 	ViewUniformShaderParameters.ScreenToWorld = FMatrix(
 		FPlane(1,0,0,0),

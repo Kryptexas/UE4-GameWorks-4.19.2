@@ -348,7 +348,7 @@ void MainPS_ES2(
 	in float2 InVignette : TEXCOORD3,
 	in float2 InTexCoords[4] : TEXCOORD4,
 	#if USE_32BPP_HDR
-		in float4 SvPosition : SV_Position,
+		in float4 SvPosition : SV_Position,		// after all interpolators
 	#endif
 	out half4 OutColor : SV_Target0
 	)

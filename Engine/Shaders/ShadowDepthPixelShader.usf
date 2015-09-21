@@ -44,7 +44,7 @@ float3 GetMaterialBounceColor(FMaterialPixelParameters MaterialParameters)
 
 void Main( 
 	FShadowDepthVSToPS Inputs,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0
 #if REFLECTIVE_SHADOW_MAP
 	,out float4 OutReflectiveShadowMapDiffuse : SV_Target1
@@ -60,7 +60,7 @@ void Main(
 
 	#if INTERPOLATE_POSITION
 		{
-			float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
 			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, 1, ComputeWorldWorldPosCamRelative(ScreenPosition), SvPosition);
 		}
 	#else

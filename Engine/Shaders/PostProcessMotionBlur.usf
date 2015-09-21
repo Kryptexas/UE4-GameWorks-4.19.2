@@ -834,7 +834,7 @@ float GetVelocityLengthPixels( float2 EncodedVelocity )
 
 void MainNewPS(
 	in float4 UVAndScreenPos : TEXCOORD0,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0
 	)
 {

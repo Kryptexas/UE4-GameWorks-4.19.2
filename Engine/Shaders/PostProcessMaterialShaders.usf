@@ -9,24 +9,21 @@
 
 void MainVS(
 	in float4 InPosition : ATTRIBUTE0,
-	out float4 OutScreenPosition : TEXCOORD0,
 	out float4 OutPosition : SV_POSITION
 	)
 {
 	DrawRectangle(InPosition,  OutPosition);
-	OutScreenPosition = OutPosition;
 }
 
 void MainPS(
-	in float4 ScreenPosition : TEXCOORD0,
-	in float4 SvPosition : SV_Position,
+	in float4 SvPosition : SV_Position,		// after all interpolators
 	out float4 OutColor : SV_Target0
 	)
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
 
 	// can be optimized
-	float2 ScreenUV = ScreenAlignedPosition(ScreenPosition).xy;
+	float2 ScreenUV = SvPositionToBufferUV(SvPosition);
 
 #if NUM_MATERIAL_TEXCOORDS
 	for(int CoordinateIndex = 0;CoordinateIndex < NUM_MATERIAL_TEXCOORDS;CoordinateIndex++)
@@ -38,8 +35,6 @@ void MainPS(
 	Parameters.VertexColor = 1;
 	
 	SvPosition.z = LookupDeviceZ(ScreenUV);
-	// according to MaterialTemplate.usf, not sure about the .w
-	SvPosition.w = ConvertFromDeviceZ(SvPosition.z);
 
 	// fill out other related material parameters
 	CalcMaterialParameters(Parameters, SvPosition, true);

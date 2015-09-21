@@ -376,7 +376,7 @@ FMaterialPixelParameters GetMaterialPixelParameters( FVertexFactoryInterpolantsV
 #if USE_SPHERICAL_NORMALS
 	// can be optimized
 	{
-		float4 ScreenPosition = ComputeScreenPosition(SvPosition);
+		float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
 		float3 PixelPosition = ComputeWorldWorldPosCamRelative(ScreenPosition);
 
 		Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition + View.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
