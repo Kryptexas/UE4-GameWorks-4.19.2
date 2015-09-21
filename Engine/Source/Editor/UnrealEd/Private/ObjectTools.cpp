@@ -1889,6 +1889,12 @@ namespace ObjectTools
 				{
 					UObject* CurrentInstance = *InstanceItr;
 
+					// Don't include derived class CDOs.
+					if(CurrentInstance->HasAnyFlags(RF_ClassDefaultObject))
+					{
+						continue;
+					}
+
 					AActor* CurrentInstanceAsActor = Cast<AActor>( CurrentInstance );
 					UActorComponent* CurrentInstanceAsComponent = Cast<UActorComponent>(CurrentInstance);
 					if ( CurrentInstanceAsActor )
