@@ -16,8 +16,8 @@ USTRUCT(BlueprintType)
 struct FActorAnimationPlaybackSettings
 {
 	FActorAnimationPlaybackSettings()
-		: LoopCount(-1)
-		, PlaySpeed(1.f)
+		: LoopCount(0)
+		, PlayRate(1.f)
 	{}
 
 	GENERATED_BODY()
@@ -26,9 +26,9 @@ struct FActorAnimationPlaybackSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback", meta=(UIMin=-1))
 	int32 LoopCount;
 
-	/** The speed at which to playback the animation */
+	/** The rate at which to playback the animation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback")
-	float PlaySpeed;
+	float PlayRate;
 };
 
 /**
@@ -66,11 +66,18 @@ public:
 	 * @param Settings The desired playback settings
 	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic", meta=(WorldContext="WorldContextObject"))
-	static UActorAnimationPlayer* CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, const FActorAnimationPlaybackSettings& Settings);
+	static UActorAnimationPlayer* CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, FActorAnimationPlaybackSettings Settings);
 
-	/** Start playback from the current time cursor position. */
+	/** Start playback from the current time cursor position, using the current play rate. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void Play();
+
+	/**
+	 * Start playback from the current time cursor position, looping the specified number of times.
+	 * @param NumLoops - The number of loops to play. -1 indicates infinite looping.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void PlayLooping(int32 NumLoops = -1);
 
 	/** Pause playback. */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
@@ -84,7 +91,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	float GetPlaybackPosition() const;
 
-	/** Set the current playback position */
+	/**
+	 * Set the current playback position
+	 * @param NewPlaybackPosition - The new playback position to set.
+	 * If the animation is currently playing, it will continue to do so from the new position
+	 */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	void SetPlaybackPosition(float NewPlaybackPosition);
 
@@ -95,6 +106,17 @@ public:
 	/** Get the length of the sequence */
 	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
 	float GetLength() const;
+
+	/** Get the playback rate of this player. */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	float GetPlayRate() const;
+
+	/**
+	 * Set the playback rate of this player. Negative values will play the animation in reverse.
+	 * @param PlayRate - The new rate of playback for the animation.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Cinematic")
+	void SetPlayRate(float PlayRate);
 
 protected:
 

@@ -16,16 +16,16 @@ public:
 
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Playback")
 	bool bAutoPlay;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Playback", meta=(ShowOnlyInnerProperties))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Playback", meta=(ShowOnlyInnerProperties))
 	FActorAnimationPlaybackSettings PlaybackSettings;
 
 	UPROPERTY(transient, BlueprintReadOnly, Category="Playback")
 	UActorAnimationPlayer* AnimationPlayer;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="General", meta=(AllowedClasses="ActorAnimation"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="General", meta=(AllowedClasses="ActorAnimation"))
 	FStringAssetReference ActorAnimation;
 
 public:

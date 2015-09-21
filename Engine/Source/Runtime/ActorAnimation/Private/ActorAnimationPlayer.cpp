@@ -74,7 +74,7 @@ UActorAnimationPlayer::UActorAnimationPlayer(const FObjectInitializer& ObjectIni
 /* UActorAnimationPlayer interface
  *****************************************************************************/
 
-UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, const FActorAnimationPlaybackSettings& Settings)
+UActorAnimationPlayer* UActorAnimationPlayer::CreateActorAnimationPlayer(UObject* WorldContextObject, UActorAnimation* ActorAnimation, FActorAnimationPlaybackSettings Settings)
 {
 	if (ActorAnimation == nullptr)
 	{
@@ -114,7 +114,7 @@ void UActorAnimationPlayer::Pause()
 void UActorAnimationPlayer::Stop()
 {
 	bIsPlaying = false;
-	TimeCursorPosition = PlaybackSettings.PlaySpeed < 0.f ? GetLength() : 0.f;
+	TimeCursorPosition = PlaybackSettings.PlayRate < 0.f ? GetLength() : 0.f;
 	CurrentNumLoops = 0;
 
 	// todo: Trigger an event?
@@ -133,8 +133,19 @@ void UActorAnimationPlayer::Play()
 	// @odo Sequencer Should we spawn actors here?
 	SpawnActorsForMovie(RootMovieSceneInstance.ToSharedRef());
 	RootMovieSceneInstance->RefreshInstance(*this);
-	
+
 	bIsPlaying = true;
+
+	if (RootMovieSceneInstance.IsValid())
+	{
+		RootMovieSceneInstance->Update(TimeCursorPosition, TimeCursorPosition, *this);
+	}
+}
+
+void UActorAnimationPlayer::PlayLooping(int32 NumLoops)
+{
+	PlaybackSettings.LoopCount = NumLoops;
+	Play();
 }
 
 float UActorAnimationPlayer::GetPlaybackPosition() const
@@ -166,6 +177,17 @@ float UActorAnimationPlayer::GetLength() const
 	return MovieScene ? MovieScene->GetTimeRange().Size<float>() : 0;
 }
 
+float UActorAnimationPlayer::GetPlayRate() const
+{
+	return PlaybackSettings.PlayRate;
+}
+
+void UActorAnimationPlayer::SetPlayRate(float PlayRate)
+{
+	PlaybackSettings.PlayRate = PlayRate;
+}
+
+
 void UActorAnimationPlayer::OnCursorPositionChanged()
 {
 	float Length = GetLength();
@@ -181,8 +203,10 @@ void UActorAnimationPlayer::OnCursorPositionChanged()
 		}
 		else
 		{
-			// Stop playing
-			Stop();
+			// Stop playing without modifying the playback position
+			// @todo: trigger an event?
+			bIsPlaying = false;
+			CurrentNumLoops = 0;
 		}
 	}
 }
@@ -374,7 +398,7 @@ void UActorAnimationPlayer::Update(const float DeltaSeconds)
 
 	if (bIsPlaying)
 	{
-		TimeCursorPosition += DeltaSeconds * PlaybackSettings.PlaySpeed;
+		TimeCursorPosition += DeltaSeconds * PlaybackSettings.PlayRate;
 		OnCursorPositionChanged();
 	}
 
