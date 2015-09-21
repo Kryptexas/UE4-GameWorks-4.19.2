@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2465827
+﻿INTSourceChangelist:2695309
 Availability: Public
 Title:엔진 기능 예제
 Crumbs:%ROOT%, Resources
@@ -51,6 +51,7 @@ Description:특정 기능 또는 난제에 대한 접근법 데모가 되는 씬
 
 [REGION:topics third]
 %Resources/ContentExamples:TopicCompact%
+%Resources/Showcases/Infiltrator:topiccompact%
 %watertopic%
 %featurestopic%
 %Resources/Showcases/MatineeFightScene:topiccompact%

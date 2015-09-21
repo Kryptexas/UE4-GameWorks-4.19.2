@@ -1,10 +1,10 @@
-﻿INTSourceChangelist:2613609
+﻿INTSourceChangelist:2650085
 Availability: Public
 Title:2 - C++ 클래스 생성
 Crumbs:%ROOT%, Programming, Programming/QuickStart
 Description:C++ 클래스를 생성합니다.
 SkillLevel: Beginner
-Version: 4.9
+Version: 4.8
 
 [VAR:Steps]
 [OBJECT:Navigation]
@@ -35,8 +35,6 @@ Version: 4.9
  3. **액터 이름 짓기** 메뉴가 열립니다. 이 예제에서는 이름을 "FloatingActor" 로 한 다음 **클래스 생성** 을 클릭합니다.
  
 	[![](NameActorClass.png)](NameActorClass.png)
-
-----
 
 C++ 클래스를 작성했으니, **Visual Studio** 로 전환하여 프로그래밍을 하면 됩니다. `FloatingActor.cpp` 가 자동으로 열리고, **언리얼 엔진** 은 새 클래스가 포함된 코드를 자동으로 컴파일하고 리로드합니다.
 

@@ -1,4 +1,4 @@
-﻿INTSourceChangelist:2632887
+﻿INTSourceChangelist:2650085
 Availability: Public
 Title:프로그래밍 퀵스타트
 Crumbs:%ROOT%, Programming
@@ -41,8 +41,6 @@ Version: 4.8
 	[/PARAM]
 [/OBJECT]
 [/VAR]
-
-----
 
 [OBJECT:EmbeddedVideo]
 	[PARAMLITERAL:width]
