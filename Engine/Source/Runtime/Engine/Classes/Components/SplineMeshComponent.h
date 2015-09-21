@@ -7,7 +7,7 @@
 
 #include "SplineMeshComponent.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 namespace ESplineMeshAxis
 {
 	enum Type
