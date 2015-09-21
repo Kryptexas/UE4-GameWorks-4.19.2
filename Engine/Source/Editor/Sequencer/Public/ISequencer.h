@@ -110,9 +110,6 @@ public:
 	 * @see FilterToShotSections
 	 */
 	virtual void FilterToSelectedShotSections(bool bZoomToShotBounds = true) = 0;
-	
-	/** Adds a new animation to the specified skeletal mesh object guid */
-	virtual void AddAnimation(FGuid ObjectGuid, UAnimSequence* AnimSequence) = 0;
 
 	/**
 	 * Gets the current time of the time slider relative to the passed in movie scene

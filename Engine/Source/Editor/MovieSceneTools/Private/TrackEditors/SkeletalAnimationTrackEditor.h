@@ -41,6 +41,9 @@ private:
 
 	/** Gets a skeleton from an object guid in the movie scene */
 	class USkeleton* AcquireSkeletonFromObjectGuid(const FGuid& Guid);
+
+	/** Callback for executing the "Add Animation Sequence" menu entry. */
+	void HandleAddAnimSequencerMenuEntryExecute(FGuid ObjectGuid, UAnimSequence* AnimSequence);
 };
 
 

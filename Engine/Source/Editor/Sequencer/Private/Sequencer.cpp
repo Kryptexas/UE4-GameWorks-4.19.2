@@ -375,15 +375,6 @@ void FSequencer::PopToMovieScene( TSharedRef<FMovieSceneSequenceInstance> SubMov
 	}
 }
 
-void FSequencer::AddAnimation(FGuid ObjectGuid, class UAnimSequence* AnimSequence)
-{
-	// @todo Sequencer: This should not be needed here.  the track editor could be the entry point
-	if (SkeletalAnimationTrackEditor.IsValid())
-	{
-		SkeletalAnimationTrackEditor.Pin()->AddKey(ObjectGuid, AnimSequence);
-	}
-}
-
 void FSequencer::DeleteSections(const TSet<TWeakObjectPtr<UMovieSceneSection> >& Sections)
 {
 	UMovieScene* MovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
