@@ -2620,16 +2620,19 @@ partial class GUBP
 
 	public class BuildLocalization : HostPlatformNode
 	{
-		public BuildLocalization()
+		public BuildLocalization(string InLocalizationBranchSuffix)
 			: base(UnrealTargetPlatform.Win64)
 		{
+			LocalizationBranchSuffix = InLocalizationBranchSuffix;
+
 			AddDependency(RootEditorNode.StaticGetFullName(HostPlatform));
 		}
 
 		public override void DoBuild(GUBP bp)
 		{
 			// Run the localise script.
-			//CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise");
+			// todo: Will need to pass along LocalizationBranchSuffix to the commandlet (once this is set up to work for branches other than Main)
+			CommandUtils.RunUAT(CommandUtils.CmdEnv, "Localise");
 
 			// Don't pass on any build products to other build nodes at the moment.
 			BuildProducts = new List<string>();
@@ -2650,6 +2653,8 @@ partial class GUBP
 		{
 			return StaticGetFullName();
 		}
+
+		private string LocalizationBranchSuffix;
 	}
 
     public class GameAggregateNode : HostPlatformAggregateNode

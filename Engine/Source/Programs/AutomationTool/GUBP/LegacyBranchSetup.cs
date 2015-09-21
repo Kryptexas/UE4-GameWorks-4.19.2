@@ -170,6 +170,11 @@ partial class GUBP
             /// If the mapping does not exist for a game, it uses the UE4 folder.
             /// </summary>
             public readonly Dictionary<string, string> GameNameToBuildShareMapping = new Dictionary<string,string>();
+			/// <summary>
+			/// Allows a branch to override the "Localise" commandlet settings.
+			/// </summary>
+			public bool bShouldBuildLocalization = false;
+			public string LocalizationBranchSuffix = "";
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
         {
@@ -1114,9 +1119,9 @@ partial class GUBP
 			}
 		}
 
-		if(HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)))
+		if (HostPlatforms.Contains(UnrealTargetPlatform.Win64) && BranchConfig.HasNode(RootEditorNode.StaticGetFullName(UnrealTargetPlatform.Win64)) && BranchOptions.bShouldBuildLocalization)
 		{
-			BranchConfig.AddNode(new BuildLocalization());
+			BranchConfig.AddNode(new BuildLocalization(BranchOptions.LocalizationBranchSuffix));
 		}
 
         BranchConfig.AddNode(new WaitForTestShared(this));
