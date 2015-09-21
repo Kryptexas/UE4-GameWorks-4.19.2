@@ -173,8 +173,8 @@ FMaterialPixelParameters GetMaterialPixelParameters(FVertexFactoryInterpolantsVS
 		{	
 			// can be optimized
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			float3 PixelPosition = ComputeWorldWorldPosCamRelative(ScreenPosition);
-			Result.TangentToWorld = GetSphericalParticleNormal(PixelPosition + View.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
+			float3 TranslatedWorldPosition = SvPositionToTranslatedWorld(SvPosition);
+			Result.TangentToWorld = GetSphericalParticleNormal(TranslatedWorldPosition + View.WorldCameraOrigin, Interpolants.ParticlePositionAndSize.xyz, Interpolants.ParticlePositionAndSize.w);
 		}
 	#else
 		Result.TangentToWorld = AssembleTangentToWorld(TangentToWorld0.xyz, TangentToWorld2);

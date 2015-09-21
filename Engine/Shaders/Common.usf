@@ -1026,11 +1026,17 @@ float2 SvPositionToBufferUV(float4 SvPosition)
 	return SvPosition.xy * View.BufferSizeAndInvSize.zw;
 }
 	
-float3 SvPositionToWorld(float4 SvPosition)
+float3 SvPositionToTranslatedWorld(float4 SvPosition)
 {
 	float4 HomWorldPos = mul(float4(SvPosition.xyz, 1), View.SVPositionToTranslatedWorld);
 
-	return HomWorldPos.xyz / HomWorldPos.w - View.PreViewTranslation;
+	return HomWorldPos.xyz / HomWorldPos.w;
+}
+
+// prefer to use SvPositionToTranslatedWorld() for better quality
+float3 SvPositionToWorld(float4 SvPosition)
+{
+	return SvPositionToTranslatedWorld(SvPosition) - View.PreViewTranslation;
 }
 
 // investigate: doesn't work for usage with View.ScreenToWorld, see SvPositionToScreenPosition2()

@@ -654,7 +654,7 @@ void Main(
 	#if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		{
 			float4 ScreenPosition = SvPositionToScreenPosition(SvPosition);
-			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, ComputeWorldWorldPosCamRelative(ScreenPosition), BasePassInterpolants.PixelPositionExcludingWPO);
+			CalcMaterialParametersEx(MaterialParameters, SvPosition, ScreenPosition, bIsFrontFace, SvPositionToTranslatedWorld(SvPosition), BasePassInterpolants.PixelPositionExcludingWPO);
 		}
 	#else
 		CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace);
