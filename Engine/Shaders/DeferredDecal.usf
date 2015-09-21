@@ -74,11 +74,11 @@ float DistanceFunction(float4 ScreenPosition, float3 Pos)
 	MaterialParameters.VertexColor = 1;
 	MaterialParameters.ScreenPosition = ScreenPosition;
 	MaterialParameters.LightVector = SwizzlePos * 0.5f + 0.5f;		// to be compatible with decals but *0.5+0.5 seems wrong
-	MaterialParameters.WorldPosition = 
+	MaterialParameters.AbsoluteWorldPosition = 
 	MaterialParameters.WorldPosition_CamRelative = 
 	MaterialParameters.WorldPosition_NoOffsets = 
 	MaterialParameters.WorldPosition_NoOffsets_CamRelative = mul(DecalToWorld, float4(Pos, 1)).xyz;
-	MaterialParameters.CameraVector = normalize(View.WorldCameraOrigin - MaterialParameters.WorldPosition);
+	MaterialParameters.CameraVector = normalize(View.WorldCameraOrigin - MaterialParameters.AbsoluteWorldPosition);
 
 	// the material needs to output the distance from "Opacity" depending on LightVector (in 0..1 range)
 	return GetMaterialMaskInputRaw(MaterialParameters);
@@ -322,7 +322,7 @@ void MainPS(
 	MaterialParameters.SvPosition = SvPosition;
 	MaterialParameters.ScreenPosition = ScreenPosition;
 	MaterialParameters.LightVector = SwizzlePos;
-	MaterialParameters.WorldPosition = 
+	MaterialParameters.AbsoluteWorldPosition = 
 		MaterialParameters.WorldPosition_CamRelative = 
 		MaterialParameters.WorldPosition_NoOffsets = 
 		MaterialParameters.WorldPosition_NoOffsets_CamRelative = WSPosition;

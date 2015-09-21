@@ -105,7 +105,7 @@ void Main(
 
 #if SECONDARY_OCCLUSION || MATERIAL_INJECT_EMISSIVE_INTO_LPV
 	// Optimisation: only add to GV/VPL if the fragment is within the grid
-	float3 grid = WorldToGrid( MaterialParameters.WorldPosition.xyz );
+	float3 grid = WorldToGrid( MaterialParameters.AbsoluteWorldPosition.xyz );
 	float minGrid = min( grid.x, min(grid.y,grid.z ) );
 	float maxGrid = max( grid.x, max(grid.y,grid.z ) );
 
@@ -113,7 +113,7 @@ void Main(
 	if ( minGrid > -0.5f && maxGrid <= 32.5f ) // Account for 0.5 cell offset
 	{
 #if SECONDARY_OCCLUSION && (MATERIALBLENDING_MASKED || MATERIALBLENDING_SOLID) && !MATERIAL_BLOCK_GI
-		float3 GvInjectPosition = MaterialParameters.WorldPosition - normal * LpvWrite.GeometryVolumeInjectionBias;
+		float3 GvInjectPosition = MaterialParameters.AbsoluteWorldPosition - normal * LpvWrite.GeometryVolumeInjectionBias;
 #if LPV_GV_BOOST
 		if ( Primitive.LpvBiasMultiplier < 0.25 ) 
 		{
@@ -129,7 +129,7 @@ void Main(
 #endif
 
 #if MATERIAL_INJECT_EMISSIVE_INTO_LPV && !MATERIAL_BLOCK_GI
-		AddToVplList( MaterialParameters.WorldPosition, emissive * LpvWrite.EmissiveInjectionMultiplier, normal, true );
+		AddToVplList( MaterialParameters.AbsoluteWorldPosition, emissive * LpvWrite.EmissiveInjectionMultiplier, normal, true );
 #endif
 	}
 	else

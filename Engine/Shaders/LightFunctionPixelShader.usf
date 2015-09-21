@@ -25,11 +25,11 @@ void Main(
 	LightVector.xyz /= LightVector.w;
 
 	float4 HomogeneousWorldPosition = mul(ProjectedScreenPosition, View.ScreenToWorld);
-	float3 WorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
+	float3 AbsoluteWorldPosition = HomogeneousWorldPosition.xyz / HomogeneousWorldPosition.w;
 	// Calculate radial view distance for stable fading
-	float ViewDistance = length(View.WorldCameraOrigin - WorldPosition);
+	float ViewDistance = length(View.WorldCameraOrigin - AbsoluteWorldPosition);
 
-	float3 Color = GetLightFunctionColor(LightVector.xyz, WorldPosition);
+	float3 Color = GetLightFunctionColor(LightVector.xyz, AbsoluteWorldPosition);
 
 	float DistanceFadeAlpha = saturate((LightFunctionParameters2.x - ViewDistance) / (LightFunctionParameters2.x * .2f));
 	// Fade to disabled based on LightFunctionFadeDistance

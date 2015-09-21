@@ -135,9 +135,10 @@ struct FMaterialPixelParameters
 	half3x3 TangentToWorld;
 
 	/** 
-	 * Interpolated worldspace position of this pixel 
+	 * Interpolated worldspace position of this pixel
+	 * todo: Make this TranslatedWorldPosition and also rename the VS/DS/HS WorldPosition to be TranslatedWorldPosition
 	 */
-	float3 WorldPosition;
+	float3 AbsoluteWorldPosition;
 
 	/** 
 	 * Interpolated worldspace position of this pixel, centered around the camera
@@ -200,7 +201,7 @@ FMaterialPixelParameters MakeInitializedMaterialPixelParameters()
 	MPP.ScreenPosition = 0;
 	MPP.UnMirrored = 0;
 	MPP.TwoSidedSign = 0;
-	MPP.WorldPosition = 0;
+	MPP.AbsoluteWorldPosition = 0;
 	MPP.WorldPosition_NoOffsets = 0;
 	MPP.WorldPosition_CamRelative = 0;
 	MPP.WorldPosition_NoOffsets_CamRelative = 0;
@@ -323,7 +324,7 @@ float3 GetTranslatedWorldPosition(FMaterialTessellationParameters Parameters)
 
 float3 GetWorldPosition(FMaterialPixelParameters Parameters)
 {
-	return Parameters.WorldPosition;
+	return Parameters.AbsoluteWorldPosition;
 }
 
 float3 GetWorldPosition_NoMaterialOffsets(FMaterialPixelParameters Parameters)
@@ -642,11 +643,11 @@ float3 MaterialExpressionBlackBody( float Temp )
 	return mul( XYZtoRGB, float3( X, Y, Z ) ) * pow( 0.0004 * Temp, 4 );
 }
 
-float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, float3 WorldPosition)
+float4 MaterialExpressionAtmosphericFog(FMaterialPixelParameters Parameters, float3 AbsoluteWorldPosition)
 {
 #if MATERIAL_ATMOSPHERIC_FOG
-	// WorldPosition default value is Parameters.WorldPosition if not overridden by the user
-	float3 ViewVector = WorldPosition - View.WorldCameraOrigin;
+	// WorldPosition default value is Parameters.AbsoluteWorldPosition if not overridden by the user
+	float3 ViewVector = AbsoluteWorldPosition - View.WorldCameraOrigin;
 	float SceneDepth = length(ViewVector);
 	return GetAtmosphericFog(View.WorldCameraOrigin, ViewVector, SceneDepth, float3(0.f, 0.f, 0.f));
 #else
@@ -801,7 +802,7 @@ float GetSphericalParticleOpacity(FMaterialPixelParameters Parameters, float Den
 	float RescaledDensity = Density / ParticleRadius;
 
 	// Distance from point being shaded to particle center
-	float DistanceToParticle = length(Parameters.WorldPosition - ParticlePosition);
+	float DistanceToParticle = length(Parameters.AbsoluteWorldPosition - ParticlePosition);
 
 	FLATTEN
 	if (DistanceToParticle < ParticleRadius) 
@@ -1601,7 +1602,7 @@ void CalcMaterialParametersEx(
 {
 	// Remove the pre view translation
 	Parameters.WorldPosition_CamRelative = PixelPosition.xyz;
-	Parameters.WorldPosition = PixelPosition.xyz - View.PreViewTranslation.xyz;
+	Parameters.AbsoluteWorldPosition = PixelPosition.xyz - View.PreViewTranslation.xyz;
 
 	// If the material uses any non-offset world position expressions, calculate those parameters. If not, 
 	// the variables will have been initialised to 0 earlier.
@@ -1737,7 +1738,7 @@ float ApplyPixelDepthOffsetToMaterialParameters(inout FMaterialPixelParameters M
 	// Update positions used for shading
 	MaterialParameters.ScreenPosition.w += PixelDepthOffset;
 	MaterialParameters.SvPosition.w = MaterialParameters.ScreenPosition.w;
-	MaterialParameters.WorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
+	MaterialParameters.AbsoluteWorldPosition += MaterialParameters.CameraVector * PixelDepthOffset;
 
 	OutDepth = MaterialParameters.ScreenPosition.z / MaterialParameters.ScreenPosition.w;
 

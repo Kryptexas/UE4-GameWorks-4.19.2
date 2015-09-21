@@ -3785,7 +3785,7 @@ protected:
 		bUsesAtmosphericFog = true;
 		if( WorldPosition == INDEX_NONE )
 		{
-			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, Parameters.WorldPosition)"));
+			return AddCodeChunk( MCT_Float4, TEXT("MaterialExpressionAtmosphericFog(Parameters, Parameters.AbsoluteWorldPosition)"));
 		}
 		else
 		{

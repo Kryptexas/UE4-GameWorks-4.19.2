@@ -310,7 +310,7 @@ void Main(
 			for (int i = 0; i < NUM_DYNAMIC_POINT_LIGHTS; i++)
 			{
 			#endif
-				float3 ToLight = LightPositionAndInvRadius[i].xyz - MaterialParameters.WorldPosition;
+				float3 ToLight = LightPositionAndInvRadius[i].xyz - MaterialParameters.AbsoluteWorldPosition;
 				float DistanceSqr = dot(ToLight, ToLight);
 				float3 L = ToLight * rsqrt(DistanceSqr);
 
