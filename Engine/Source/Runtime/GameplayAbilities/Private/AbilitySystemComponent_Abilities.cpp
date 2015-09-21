@@ -2180,7 +2180,12 @@ void UAbilitySystemComponent::AnimMontage_UpdateReplicatedData()
 		if (CurrentSectionID != INDEX_NONE)
 		{
 			int32 NextSectionID = AnimInstance->Montage_GetNextSectionID(LocalAnimMontageInfo.AnimMontage, CurrentSectionID);
-			ensure(NextSectionID < (256 - 1));
+			if (NextSectionID >= (256 - 1))
+			{
+				ABILITY_LOG( Error, TEXT("AnimMontage_UpdateReplicatedData. NextSectionID = %d.  RepAnimMontageInfo.Position: %.2f, CurrentSectionID: %d. LocalAnimMontageInfo.AnimMontage %s"), 
+					NextSectionID, RepAnimMontageInfo.Position, CurrentSectionID, *GetNameSafe(LocalAnimMontageInfo.AnimMontage) );
+				ensure(NextSectionID < (256 - 1));
+			}
 			RepAnimMontageInfo.NextSectionID = uint8(NextSectionID + 1);
 		}
 		else
