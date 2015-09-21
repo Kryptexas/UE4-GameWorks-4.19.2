@@ -179,3 +179,11 @@ struct FAndroid_ES31PlatformProperties : public FAndroidPlatformProperties
 		return "Android_ES31";
 	}
 };
+
+struct FAndroid_MultiPlatformProperties : public FAndroidPlatformProperties
+{
+	static FORCEINLINE const char* PlatformName()
+	{
+		return "Android_Multi";
+	}
+};

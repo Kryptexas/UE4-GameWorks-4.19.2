@@ -320,4 +320,10 @@ namespace PlatformInfo
 	 */
 	DESKTOPPLATFORM_API void UpdatePlatformSDKStatus(FString InPlatformName, EPlatformSDKStatus InStatus);
 
+	/**
+	* Update the display name for a platform
+	* @param InPlatformName - The platform to update
+	* @param InDisplayName - The new display name
+	*/
+	DESKTOPPLATFORM_API void UpdatePlatformDisplayName(FString InPlatformName, FText InDisplayName);
 }
