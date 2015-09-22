@@ -207,7 +207,7 @@ C++ classes can be used as a base for Blueprint classes, and in this way program
 	[PARAM:description]
 	[/PARAM]
 	[PARAM:links]
-		* [](Programming/Animation "%Programming/Animation:description%")
+		* [](Programming/Animation/Nodes "%Programming/Animation/Nodes:description%")
 		* [](Programming/Automation "%Programming/Automation:description%")
 		* [](Engine/Blueprints/TechnicalGuide "%Engine/Blueprints/TechnicalGuide:description%")
 		* [](Programming/Online "%Programming/Online:description%")
