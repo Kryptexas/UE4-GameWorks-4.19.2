@@ -88,14 +88,8 @@ void FActorAnimationEditorToolkit::Initialize( const EToolkitMode::Type Mode, co
 	FAssetEditorToolkit::InitAssetEditor(Mode, InitToolkitHost, SequencerDefs::SequencerAppIdentifier, StandaloneDefaultLayout, bCreateDefaultStandaloneMenu, bCreateDefaultToolbar, ActorAnimationInstance);
 
 	// initialize sequencer
-	FSequencerViewParams ViewParams(TEXT("ActorAnimationEditorViewParams"));
-	{
-		ViewParams.OnGetAddMenuContent = FOnGetAddMenuContent::CreateSP(this, &FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent);
-	}
-
 	FSequencerInitParams SequencerInitParams;
 	{
-		SequencerInitParams.ViewParams = ViewParams;
 		SequencerInitParams.RootSequence = ActorAnimationInstance;
 		SequencerInitParams.bEditWithinLevelEditor = bEditWithinLevelEditor;
 		SequencerInitParams.ToolkitHost = InitToolkitHost;
@@ -217,30 +211,6 @@ void FActorAnimationEditorToolkit::HandleAddComponentMaterialActionExecute( UPri
 }
 
 
-void FActorAnimationEditorToolkit::HandleAddMenuAddEventTrackExecute()
-{
-	
-}
-
-
-bool FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackCanExecute()
-{
-	return true;
-}
-
-
-void FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackExecute()
-{
-
-}
-
-
-void FActorAnimationEditorToolkit::HandleAddMenuAddSlomoTrackExecute()
-{
-
-}
-
-
 void FActorAnimationEditorToolkit::HandleMapChanged(class UWorld* NewWorld, EMapChangeType MapChangeType)
 {
 	ActorAnimationInstance->SetContext(NewWorld);
@@ -259,37 +229,6 @@ TSharedRef<FExtender> FActorAnimationEditorToolkit::HandleMenuExtensibilityGetEx
 		FMenuExtensionDelegate::CreateRaw(this, &FActorAnimationEditorToolkit::HandleTrackMenuExtensionAddTrack, ContextSensitiveObjects));
 
 	return AddTrackMenuExtender;
-}
-
-
-void FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
-{
-	// add event track
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AddEventTrack", "Add Event Track"),
-		LOCTEXT("AddEventTooltip", "Adds a new event track that can trigger events on the timeline."),
-		FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tracks.Event"),
-		FUIAction(FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddEventTrackExecute))
-	);
-
-	// add shot track
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AddShotTrack", "Add Shot Track"),
-		LOCTEXT("AddShotTooltip", "Adds a shot track, as well as a new shot at the current scrubber location if a camera is selected."),
-		FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tracks.Shot"),
-		FUIAction(
-			FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackExecute),
-			FCanExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddShotTrackCanExecute)
-		)
-	);
-
-	// add slomo track
-	MenuBuilder.AddMenuEntry(
-		LOCTEXT("AddSlomoTrack", "Add Slomo Track"),
-		LOCTEXT("AddSlomoTooltip", "Adds a new slomo track that controls the playback speed of the sequence."),
-		FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tracks.Slomo"),
-		FUIAction(FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddSlomoTrackExecute))
-	);
 }
 
 

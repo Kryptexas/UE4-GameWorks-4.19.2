@@ -73,26 +73,11 @@ private:
 	/** Callback for executing the add component material track. */
 	void HandleAddComponentMaterialActionExecute(UPrimitiveComponent* Component, int32 MaterialIndex);
 
-	/** Callback for executing the "Add Event Track" menu action. */
-	void HandleAddMenuAddEventTrackExecute();
-
-	/** Callback for checking whether the "Add Shot Track" menu action can execute. */
-	bool HandleAddMenuAddShotTrackCanExecute();
-
-	/** Callback for executing the "Add Shot Track" menu action. */
-	void HandleAddMenuAddShotTrackExecute();
-
-	/** Callback for executing the "Add Slomo Track" menu action. */
-	void HandleAddMenuAddSlomoTrackExecute();
-
 	/** Callback for map changes. */
 	void HandleMapChanged(UWorld* NewWorld, EMapChangeType MapChangeType);
 
 	/** Callback for the menu extensibility manager. */
 	TSharedRef<FExtender> HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
-
-	/** Callback for getting the sequencer's "Add" menu content. */
-	void HandleSequencerGetAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer);
 
 	/** Callback for spawning tabs. */
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab(const FSpawnTabArgs& Args);	
