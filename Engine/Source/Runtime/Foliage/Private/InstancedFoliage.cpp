@@ -306,6 +306,7 @@ UFoliageType::UFoliageType(const FObjectInitializer& ObjectInitializer)
 
 	bOverrideLightMapRes = false;
 	OverriddenLightMapRes = 8;
+	bUseAsOccluder = false;
 
 	BodyInstance.SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
@@ -826,6 +827,11 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 			Component->OverriddenLightMapRes = FoliageType->OverriddenLightMapRes;
 			bNeedsMarkRenderStateDirty = true;
 			bNeedsInvalidateLightingCache = true;
+		}
+		if (Component->bUseAsOccluder != FoliageType->bUseAsOccluder)
+		{
+			Component->bUseAsOccluder = FoliageType->bUseAsOccluder;
+			bNeedsMarkRenderStateDirty = true;
 		}
 
 		UFoliageInstancedStaticMeshComponent* FoliageComponent = Cast<UFoliageInstancedStaticMeshComponent>(Component);
