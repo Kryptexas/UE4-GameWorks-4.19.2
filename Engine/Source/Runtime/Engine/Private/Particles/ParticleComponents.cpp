@@ -2102,7 +2102,6 @@ void UParticleSystem::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) c
 
 					if (RequiredModule->EmitterLoops == 0)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("ParticleSystem %s has emitter %s that is loop forever"), *this->GetName(), *Emitter->EmitterName.ToString());
 						bAnyEmitterLoopsForever = true;
 						break;
 					}
