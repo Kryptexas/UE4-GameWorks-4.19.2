@@ -19,6 +19,7 @@
 #include "EngineModule.h"
 #include "ContentStreaming.h"
 #include "SceneUtils.h"
+#include "MovieSceneCaptureModule.h"
 #include "NotificationManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogClient, Log, All);
@@ -697,6 +698,16 @@ FViewport::FViewport(FViewportClient* InViewportClient):
 	AppVersionString = FString::Printf( TEXT( "Version: %s" ), *FEngineVersion::Current().ToString() );
 
 	bIsPlayInEditorViewport = false;
+}
+
+FViewport::~FViewport()
+{
+#if WITH_EDITOR
+	if (auto* MovieSceneCapture = GetMovieSceneCapture())
+	{
+		MovieSceneCapture->Close();
+	}
+#endif
 }
 
 bool FViewport::TakeHighResScreenShot()
@@ -1529,6 +1540,15 @@ void FViewport::SetInitialSize( FIntPoint InitialSizeXY )
 	}
 }
 
+IMovieSceneCaptureInterface* FViewport::GetMovieSceneCapture() const
+{
+	if (MovieSceneCaptureHandle.IsValid())
+	{
+		return IMovieSceneCaptureModule::Get().RetrieveMovieSceneInterface(MovieSceneCaptureHandle);
+	}
+
+	return nullptr;
+}
 
 
 ENGINE_API bool GetViewportScreenShot(FViewport* Viewport, TArray<FColor>& Bitmap, const FIntRect& ViewRect /*= FIntRect()*/)

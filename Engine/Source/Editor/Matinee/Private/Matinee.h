@@ -97,9 +97,6 @@ public:
 	/** Stops playing the current sequence. */
 	void StopPlaying() override;
 
-	/** Starts recording the current sequence */
-	void StartRecordingMovie() override;
-
 	/** Handle undo redo events */
 	void OnPostUndoRedo(FUndoSessionContext SessionContext, bool Succeeded);
 

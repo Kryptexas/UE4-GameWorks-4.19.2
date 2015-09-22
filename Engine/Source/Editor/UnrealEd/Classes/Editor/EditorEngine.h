@@ -469,10 +469,6 @@ public:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<class AActor> > ActorsThatWereSelected;
 
-	/** True to start movie capturing right away when launching the game from the editor on PC platform */
-	UPROPERTY()
-	uint32 bStartMovieCapture:1;
-
 	/** Where did the person want to play? Where to play the game - -1 means in editor, 0 or more is an index into the GConsoleSupportContainer	*/
 	UPROPERTY()
 	int32 PlayWorldDestination;
@@ -506,14 +502,6 @@ public:
 	/** When set to anything other than -1, indicates a specific In-Editor viewport index that PIE should use */
 	UPROPERTY()
 	int32 PlayInEditorViewportIndex;
-
-	/** The width resolution that we want to use for the matinee capture */
-	UPROPERTY()
-	int32 MatineeCaptureResolutionX;
-
-	/** The height resolution that we want to use for the matinee capture */
-	UPROPERTY()
-	int32 MatineeCaptureResolutionY;
 
 	/** Play world url string edited by a user. */
 	UPROPERTY()
@@ -1521,9 +1509,8 @@ public:
 	 * @param	DestinationConsole		Where to play the game - -1 means in editor, 0 or more is an index into the GConsoleSupportContainer
 	 * @param	InPlayInViewportIndex	Viewport index to play the game in, or -1 to spawn a standalone PIE window
 	 * @param	bUseMobilePreview		True to enable mobile preview mode (PC platform only)
-	 * @param	bMovieCapture			True to start with movie capture recording (PC platform only)
 	 */
-	virtual void PlayMap( const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, int32 InPlayInViewportIndex = -1, bool bUseMobilePreview = false, bool bMovieCapture = false );
+	virtual void PlayMap( const FVector* StartLocation = NULL, const FRotator* StartRotation = NULL, int32 DestinationConsole = -1, int32 InPlayInViewportIndex = -1, bool bUseMobilePreview = false );
 
 
 
@@ -1638,11 +1625,6 @@ public:
 	virtual void PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor );
 
 	virtual UGameInstance* CreatePIEGameInstance(int32 PIEInstance, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode, bool bPlayNetDedicated, float PIEStartTime);
-
-	/**
-	 * Launches the game in movie capture mode
-	 */
-	virtual void PlayForMovieCapture();
 
 	/**
 	 * Kills the Play From Here session

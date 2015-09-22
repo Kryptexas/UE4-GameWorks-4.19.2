@@ -42,6 +42,7 @@ public class UnrealEd : ModuleRules
                 "MergeActors",
 				"MeshUtilities",
 				"Messaging",
+				"MovieSceneCapture",
 				"NiagaraEditor",
 				"PlacementMode",
 				"Settings",

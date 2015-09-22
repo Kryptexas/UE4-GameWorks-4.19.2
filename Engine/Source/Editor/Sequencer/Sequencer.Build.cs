@@ -21,6 +21,7 @@ public class Sequencer : ModuleRules
 				"MovieScene", 
 				"MovieSceneTracks", 
 				"MovieSceneTools", 
+				"MovieSceneCapture", 
 				"EditorWidgets", 
 				"SequencerWidgets",
 				"BlueprintGraph",
@@ -37,6 +38,7 @@ public class Sequencer : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"PropertyEditor",
+				"LevelEditor",
 				"WorkspaceMenuStructure",
 			}
 		);

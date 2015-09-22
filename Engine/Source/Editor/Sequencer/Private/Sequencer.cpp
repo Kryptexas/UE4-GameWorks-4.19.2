@@ -39,8 +39,11 @@
 #include "GenericCommands.h"
 #include "Engine/BlueprintGeneratedClass.h"
 #include "Engine/Selection.h"
+#include "LevelEditor.h"
 #include "IMenu.h"
 
+#include "MovieSceneCaptureModule.h"
+#include "AutomatedActorAnimationCapture.h"
 
 #define LOCTEXT_NAMESPACE "Sequencer"
 
@@ -2278,6 +2281,31 @@ void FSequencer::BindSequencerCommands()
 		FExecuteAction::CreateLambda( [this]{ Settings->SetShowCurveEditor(!Settings->GetShowCurveEditor()); } ),
 		FCanExecuteAction::CreateLambda( []{ return true; } ),
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetShowCurveEditor(); } ) );
+
+	SequencerCommandBindings->MapAction( Commands.RenderMovie,
+		FExecuteAction::CreateLambda([this]{
+			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+			IMovieSceneCaptureModule& MovieSceneCaptureModule = IMovieSceneCaptureModule::Get();
+
+			// Create a new movie scene capture object for an automated actor animation, and open the tab
+			UAutomatedActorAnimationCapture* MovieSceneCapture = NewObject<UAutomatedActorAnimationCapture>(GetTransientPackage(), UAutomatedActorAnimationCapture::StaticClass(), NAME_None, RF_Transient);
+			MovieSceneCapture->LoadConfig();
+
+			// Set the actor animation asset we want to render
+			MovieSceneCapture->ActorAnimation = GetCurrentAsset()->GetPathName();
+
+			// Set the level we want to render
+			for (const FWorldContext& Context : GEngine->GetWorldContexts())
+			{
+				if (Context.WorldType == EWorldType::Editor)
+				{
+					MovieSceneCapture->Level = Context.World()->GetOutermost()->GetPathName();
+					break;
+				}
+			}
+			MovieSceneCaptureModule.OpenCaptureSettings(LevelEditorModule.GetLevelEditorTabManager().ToSharedRef(), MovieSceneCapture);
+		})
+	);
 
 	SequencerWidget->BindCommands(SequencerCommandBindings);
 

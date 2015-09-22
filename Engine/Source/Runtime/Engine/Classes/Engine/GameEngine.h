@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/Engine.h"
+#include "Runtime/MovieSceneCapture/Public/MovieSceneCaptureHandle.h"
 #include "GameEngine.generated.h"
 
 
@@ -14,10 +15,6 @@ class ENGINE_API UGameEngine
 	: public UEngine
 {
 	GENERATED_UCLASS_BODY()
-
-	/** Check to see if we need to start a movie capture (used on the first tick when we want to record a Matinee) */
-	UPROPERTY(transient)
-	uint32 bCheckForMovieCapture:1;
 
 	/** Maximium delta time the engine uses to populate FApp::DeltaTime. If 0, unbound. */
 	UPROPERTY(config)
@@ -41,6 +38,9 @@ public:
 	
 	/**
 	 * Creates the viewport widget where the games Slate UI is added to.
+	 *
+	 * @param GameViewportClient	The viewport client to use in the game
+	 * @param MovieCapture			Optional Movie capture implementation for this viewport
 	 */
 	void CreateGameViewportWidget( UGameViewportClient* GameViewportClient );
 
@@ -48,6 +48,7 @@ public:
 	 * Creates the game viewport
 	 *
 	 * @param GameViewportClient	The viewport client to use in the game
+	 * @param MovieCapture			Optional Movie capture implementation for this viewport
 	 */
 	void CreateGameViewport( UGameViewportClient* GameViewportClient );
 	
@@ -148,6 +149,9 @@ public:
 protected:
 
 	const FSceneViewport* GetGameSceneViewport(UGameViewportClient* ViewportClient) const;
+
+	/** Handle to a movie capture implementation to create on startup */
+	FMovieSceneCaptureHandle StartupMovieCaptureHandle;
 
 private:
 

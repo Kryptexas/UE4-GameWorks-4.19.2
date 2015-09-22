@@ -36,6 +36,7 @@
 #include "Components/BillboardComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Engine/Selection.h"
+#include "IMovieSceneCapture.h"
 #include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdEngine, Log, All);
@@ -312,12 +313,6 @@ void UUnrealEdEngine::PreExit()
 	// Notify edit modes we're mode at exit
 	FEditorModeRegistry::Get().Shutdown();
 
-	FAVIWriter* AVIWriter = FAVIWriter::GetInstance();
-	if (AVIWriter)
-	{
-		AVIWriter->Close();
-	}
-
 	Super::PreExit();
 }
 
@@ -403,12 +398,6 @@ void UUnrealEdEngine::Tick(float DeltaSeconds, bool bIdleMode)
 
 	// Update lightmass
 	UpdateBuildLighting();
-
-	FAVIWriter* AVIWriter = FAVIWriter::GetInstance();
-	if (AVIWriter)
-	{
-		AVIWriter->Update(DeltaSeconds);
-	}
 	
 	ICrashTrackerModule* CrashTracker = FModuleManager::LoadModulePtr<ICrashTrackerModule>( FName("CrashTracker") );
 	bool bCrashTrackerEnabled = false;

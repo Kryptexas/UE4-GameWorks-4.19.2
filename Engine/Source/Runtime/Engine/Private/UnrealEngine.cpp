@@ -115,6 +115,7 @@
 #include "TypeContainer.h"
 #endif
 
+#include "MovieSceneCaptureModule.h"
 #include "GameFramework/OnlineSession.h"
 #include "ABTesting.h"
 
@@ -918,14 +919,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// Connect the engine analytics provider
 	FEngineAnalytics::Initialize();
 
-#if WITH_EDITOR
-	// register screenshot capture if we are dumping a movie
-	if(GIsDumpingMovie)
-	{
-		HandleScreenshotCapturedDelegateHandle = UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
-	}
-#endif
-
 	//Load the streaming pause rendering module.
 	FModuleManager::LoadModulePtr<IModuleInterface>(TEXT("StreamingPauseRendering"));
 
@@ -1006,10 +999,6 @@ void UEngine::PreExit()
 {
 	ShutdownRenderingCVarsCaching();
 	FEngineAnalytics::Shutdown();
-
-#if WITH_EDITOR
-	UGameViewportClient::OnScreenshotCaptured().Remove(HandleScreenshotCapturedDelegateHandle);
-#endif
 
 	if (ScreenSaverInhibitor)
 	{
@@ -1248,66 +1237,6 @@ void UEngine::ParseCommandline()
 	{
 		bDisableAILogging = false;
 	}
-
-	MatineeScreenshotOptions.bStartWithMatineeCapture = false;
-	MatineeScreenshotOptions.bCompressMatineeCapture = false;
-#if WITH_EDITOR
-	if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEEAVICAPTURE="), MatineeScreenshotOptions.MatineeCaptureName))
-	{
-		MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::AVI;
-		MatineeScreenshotOptions.bStartWithMatineeCapture = true;
-	}
-	else if (!GIsEditor && FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSCAPTURE="), MatineeScreenshotOptions.MatineeCaptureName))
-	{
-		MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::BMP;
-
-		FString MatineeCaptureFormat;
-		if(FParse::Value(FCommandLine::Get(), TEXT("-MATINEESSFORMAT="), MatineeCaptureFormat))
-		{
-			if(MatineeCaptureFormat == TEXT("BMP"))
-			{
-				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::BMP;
-			}
-			else if(MatineeCaptureFormat == TEXT("PNG"))
-			{
-				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::PNG;
-			}
-			else if(MatineeCaptureFormat == TEXT("JPEG"))
-			{
-				MatineeScreenshotOptions.MatineeCaptureType = EMatineeCaptureType::JPEG;
-			}
-		}
-
-		MatineeScreenshotOptions.bStartWithMatineeCapture = true;
-	}
-
-	if( !GIsEditor && MatineeScreenshotOptions.bStartWithMatineeCapture )
-	{
-		GConfig->GetBool( TEXT("MatineeCreateMovieOptions"), TEXT("HideHUD"), MatineeScreenshotOptions.bHideHud, GEditorPerProjectIni );
-	}
-
-	// If we are capturing a matinee movie and we want to dump the buffer visualization shots too, for on all required functionality
-	if (!GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("MATINEEBUFFERVISUALIZATIONDUMP")))
-	{
-		static IConsoleVariable* CVarDumpFrames = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BufferVisualizationDumpFrames"));
-	
-		if (CVarDumpFrames)
-		{
-			CVarDumpFrames->Set(1, ECVF_SetByCommandline);
-		}
-	}
-
-	if (MatineeScreenshotOptions.bStartWithMatineeCapture)
-	{
-		FParse::Value(FCommandLine::Get(), TEXT("-MATINEEPACKAGE="), MatineeScreenshotOptions.MatineePackageCaptureName);
-	}
-
-	if ( !GIsEditor && FParse::Param(FCommandLine::Get(), TEXT("COMPRESSCAPTURE")) )
-	{
-		MatineeScreenshotOptions.bCompressMatineeCapture = true;
-	}
-#endif
-	MatineeScreenshotOptions.MatineeCaptureFPS = 30;
 }
 
 
@@ -2373,11 +2302,11 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleStatCommand(InWorld, GStatProcessingViewportClient, Cmd, Ar);
 	}
-	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && (GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture == true || GIsEditor) )
+	else if( FParse::Command(&Cmd,TEXT("STARTMOVIECAPTURE")) && GIsEditor )
 	{
 		return HandleStartMovieCaptureCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("STOPMOVIECAPTURE")) && (GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture == true || GIsEditor) )
+	else if( FParse::Command(&Cmd,TEXT("STOPMOVIECAPTURE")) && GIsEditor )
 	{
 		return HandleStopMovieCaptureCommand( Cmd, Ar );
 	}
@@ -2724,23 +2653,27 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	return true;
 }
 
+FMovieSceneCaptureHandle GMovieCaptureHandle;
 bool UEngine::HandleStartMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FAVIWriter* AVIWriter = FAVIWriter::GetInstance();
-	if (AVIWriter && !AVIWriter->IsCapturing())
+	if (!GMovieCaptureHandle.IsValid())
 	{
-		AVIWriter->StartCapture();
-		return true;
+		IMovieSceneCaptureInterface* CaptureInterface = IMovieSceneCaptureModule::Get().CreateMovieSceneCapture(GameViewport->Viewport);
+		if (CaptureInterface)
+		{
+			GMovieCaptureHandle = CaptureInterface->GetHandle();
+			return true;
+		}
 	}
 	return false;
 }
 
 bool UEngine::HandleStopMovieCaptureCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	FAVIWriter* AVIWriter = FAVIWriter::GetInstance();
-	if (AVIWriter && AVIWriter->IsCapturing() && !AVIWriter->IsCapturingSlateRenderer())
+	if (GMovieCaptureHandle.IsValid())
 	{
-		AVIWriter->StopCapture();
+		IMovieSceneCaptureModule::Get().DestroyMovieSceneCapture(GMovieCaptureHandle);
+		GMovieCaptureHandle = FMovieSceneCaptureHandle();
 		return true;
 	}
 	return false;
@@ -11049,99 +10982,6 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
 	CVarSystemResolution->Set(*NewValue, ECVF_SetByConsole);
-}
-
-void RemoveAlphaFromColors( TArray<FColor>& Colors )
-{
-	for( FColor& Color : Colors )
-	{
-		Color.A = 255;
-	}
-}
-
-void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Colors)
-{
-#if WITH_EDITOR
-	if(GIsDumpingMovie && Colors.Num() > 0)
-	{
-		struct Local
-		{
-			
-
-			static FString GenerateScreenshotFilename(const FString& Extension)
-			{
-				static const int32 MaxTestScreenShotIndex = 65536;
-				static int32 ScreenShotIndex = 0;
-
-				FString BaseFileName;
-				FScreenshotRequest::CreateViewportScreenShotFilename(BaseFileName);
-
-				for (int32 TestScreenShotIndex = ScreenShotIndex + 1; TestScreenShotIndex < MaxTestScreenShotIndex; ++TestScreenShotIndex)
-				{
-					const FString TestFileName = FString::Printf(TEXT("%s%05i.%s"), *BaseFileName, TestScreenShotIndex, *Extension);
-					if (IFileManager::Get().FileSize(*TestFileName) < 0)
-					{
-						ScreenShotIndex = TestScreenShotIndex;
-						return TestFileName;
-					}
-				}
-
-				UE_LOG(LogEngine, Error, TEXT("Could not generate valid screenshot filename"));
-				return FString();
-			}
-		};
-
-		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>( FName("ImageWrapper") );
-
-		switch(MatineeScreenshotOptions.MatineeCaptureType.GetValue())
-		{
-		default:
-		case EMatineeCaptureType::BMP:
-			{
-				const FString Filename = Local::GenerateScreenshotFilename(TEXT("bmp"));
-				if (Filename.Len() > 0)
-				{
-					FFileHelper::CreateBitmap(*Filename, Width, Height, Colors.GetData());
-				}
-			}
-			break;
-		case EMatineeCaptureType::PNG:
-			{
-				const FString Filename = Local::GenerateScreenshotFilename(TEXT("png"));
-				if (Filename.Len() > 0)
-				{
-					IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-
-					TArray<FColor> FinalColors = Colors;
-					// Matinee PNG export does not support writing alpha values
-					RemoveAlphaFromColors( FinalColors );
-
-					if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&FinalColors[0], FinalColors.Num() * sizeof(FColor), Width, Height, ERGBFormat::BGRA, 8))
-					{
-						FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(), *Filename);
-					}
-				}
-			}
-			break;
-		case EMatineeCaptureType::JPEG:
-			{
-				const FString Filename = Local::GenerateScreenshotFilename(TEXT("jpeg"));
-				if (Filename.Len() > 0)
-				{
-					IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
-					if (ImageWrapper.IsValid() && ImageWrapper->SetRaw(&Colors[0], Colors.Num() * sizeof(FColor), Width, Height, ERGBFormat::BGRA, 8))
-					{
-						FFileHelper::SaveArrayToFile(ImageWrapper->GetCompressed(), *Filename);
-					}
-				}
-			}
-			break;
-		case EMatineeCaptureType::AVI:
-			// Do nothing in this case
-			break;
-		}
-	}
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////////

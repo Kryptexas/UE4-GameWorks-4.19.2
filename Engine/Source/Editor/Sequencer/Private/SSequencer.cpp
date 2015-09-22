@@ -748,6 +748,17 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	{
 		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleShowCurveEditor );
 	}
+	ToolBarBuilder.EndSection();
+
+	if( Sequencer.Pin()->IsLevelEditorSequencer() )
+	{
+		ToolBarBuilder.BeginSection("Render Movie");
+
+		ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().RenderMovie );
+
+		ToolBarBuilder.EndSection();
+	}
+	
 
 	return ToolBarBuilder.MakeWidget();
 }

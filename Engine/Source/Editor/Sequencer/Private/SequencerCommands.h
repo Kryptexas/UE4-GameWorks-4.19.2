@@ -135,8 +135,14 @@ public:
 	/** Toggles whether or not the curve editor should be shown. */
 	TSharedPtr< FUICommandInfo > ToggleShowCurveEditor;
 
+	/** Enable the move tool */
 	TSharedPtr< FUICommandInfo > MoveTool;
+
+	/** Enable the marquee selection tool */
 	TSharedPtr< FUICommandInfo > MarqueeTool;
+
+	/** Open a panel that enables exporting the sequence to a movie */
+	TSharedPtr< FUICommandInfo > RenderMovie;
 
 	/**
 	 * Initialize commands

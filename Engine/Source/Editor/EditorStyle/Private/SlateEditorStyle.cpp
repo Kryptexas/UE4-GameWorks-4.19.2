@@ -1618,6 +1618,7 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "Sequencer.MoveTool.Small", new IMAGE_BRUSH( "Icons/SequencerIcons/icon_Sequencer_Move_24x", Icon16x16 ) );
 		Set( "Sequencer.MarqueeTool_Keys.Small", new IMAGE_BRUSH( "Sequencer/MarqueeTool_Keys_16px", Icon16x16 ) ); //@todo
 		Set( "Sequencer.MarqueeTool_Sections.Small", new IMAGE_BRUSH( "Sequencer/MarqueeTool_Sections_16px", Icon16x16 ) ); //@todo
+		Set( "Sequencer.RenderMovie.Small", new IMAGE_BRUSH( "Sequencer/RenderMovie_16px", Icon16x16 ) );
 		Set( "Sequencer.LockCamera", new IMAGE_BRUSH( "Icons/icon_ToggleActorPilotCameraView_16x", Icon16x16 ) );
 		Set( "Sequencer.UnlockCamera", new IMAGE_BRUSH( "Icons/icon_ToggleActorPilotCameraView_16x", Icon16x16, FLinearColor(1.f, 1.f, 1.f, 0.5f) ) );
 		Set( "Sequencer.Section.SelectionBorder", new BORDER_BRUSH( TEXT("Sequencer/SectionHighlight"), FMargin(7.f/16.f) ) );
