@@ -1269,7 +1269,8 @@ bool IsRichView(const FSceneViewFamily& ViewFamily)
 		ViewFamily.EngineShowFlags.MeshEdges ||
 		ViewFamily.EngineShowFlags.LightInfluences ||
 		ViewFamily.EngineShowFlags.Wireframe ||
-		ViewFamily.EngineShowFlags.LevelColoration)
+		ViewFamily.EngineShowFlags.LevelColoration ||
+		ViewFamily.EngineShowFlags.LODColoration)
 	{
 		return true;
 	}
@@ -1331,6 +1332,24 @@ void ApplyViewModeOverrides(
 			Mesh.bWireframe = true;
 			Mesh.MaterialRenderProxy = WireframeMaterialInstance;
 			Collector.RegisterOneFrameMaterialProxy(WireframeMaterialInstance);
+		}
+	}
+	else if (EngineShowFlags.LODColoration)
+	{
+		if (!Mesh.IsTranslucent(FeatureLevel) && GEngine->LODColorationColors.Num()  > 0)
+		{
+			int32 lodColorationIndex =  FMath::Clamp((int32)Mesh.VisualizeLODIndex, 0, GEngine->LODColorationColors.Num() - 1);
+	
+			bool bLit = Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit;
+			const UMaterial* LODColorationMaterial = (bLit && EngineShowFlags.Lighting) ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
+
+			auto LODColorationMaterialInstance = new FColoredMaterialRenderProxy(
+				LODColorationMaterial->GetRenderProxy( Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered() ),
+				GetSelectionColor(GEngine->LODColorationColors[lodColorationIndex], bSelected, Mesh.MaterialRenderProxy->IsHovered() )
+				);
+
+			Mesh.MaterialRenderProxy = LODColorationMaterialInstance;
+			Collector.RegisterOneFrameMaterialProxy(LODColorationMaterialInstance);
 		}
 	}
 	else if (EngineShowFlags.LightComplexity)

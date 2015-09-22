@@ -291,6 +291,7 @@ private:
 		SetShaderComplexity(false);
 		SetStationaryLightOverlap(false);
 		SetLightMapDensity(false);
+		SetLODColoration(false);
 		SetVisualizeLPV(false);
 		SetStreamingBounds(false);
 		SetConstraints(false);

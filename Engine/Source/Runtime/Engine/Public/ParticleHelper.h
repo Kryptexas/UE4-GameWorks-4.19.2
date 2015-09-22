@@ -2409,7 +2409,10 @@ public:
 	{
 		return MaterialRelevance;
 	}
-	float GetPendingLODDistance()		{	return PendingLODDistance;		}
+	float GetPendingLODDistance() const	{	return PendingLODDistance;		}
+	void SetVisualizeLODIndex(int32 InVisualizeLODIndex) { VisualizeLODIndex = InVisualizeLODIndex; }
+	int32  GetVisualizeLODIndex() const { return VisualizeLODIndex; }
+
 	inline const TUniformBuffer<FPrimitiveUniformShaderParameters>& GetWorldSpacePrimitiveUniformBuffer() const { return WorldSpacePrimitiveUniformBuffer; }
 
 	const FColoredMaterialRenderProxy* GetDeselectedWireframeMatInst() const	{	return &DeselectedWireframeMaterialInstance;	}
@@ -2447,6 +2450,7 @@ protected:
 
 	int32 LODMethod;
 	float PendingLODDistance;
+	int32 VisualizeLODIndex; // Only used in the LODColoration view mode.
 
 	int32 LastFramePreRendered;
 
