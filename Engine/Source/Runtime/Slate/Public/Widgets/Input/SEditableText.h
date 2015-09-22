@@ -652,9 +652,6 @@ private:
 	/** Notification interface object for text input method systems. */
 	TSharedPtr<ITextInputMethodChangeNotifier> TextInputMethodChangeNotifier;
 
-	/** The type of virtual keyboard to use for editing this text on mobile */
-	TAttribute<EKeyboardType> VirtualKeyboardType;
-
 	/** True if the text has been changed by a virtual keyboard */
 	bool bTextChangedByVirtualKeyboard;
 
@@ -666,6 +663,9 @@ private:
 
 	/** Callback delegate to have first chance handling of the OnKeyDown event */
 	FOnKeyDown OnKeyDownHandler;
+
+	/** The type of virtual keyboard to use for editing this text on mobile */
+	TAttribute<EKeyboardType> VirtualKeyboardType;
 
 	/** Keep track of whether we showed the virtual keyboard when focus was received */
 	bool bShowingVirtualKeyboard;

@@ -93,6 +93,9 @@ public:
 		/** Provide a alternative mechanism for error reporting. */
 		SLATE_ARGUMENT( TSharedPtr<class IErrorReportingWidget>, ErrorReporting )
 
+		/** The type of virtual keyboard to use on mobile devices */
+		SLATE_ATTRIBUTE(EKeyboardType, VirtualKeyboardType)
+
 	SLATE_END_ARGS()
 	
 	/**

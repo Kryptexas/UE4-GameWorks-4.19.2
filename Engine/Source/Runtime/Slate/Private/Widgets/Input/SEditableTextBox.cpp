@@ -57,6 +57,7 @@ void SEditableTextBox::Construct( const FArguments& InArgs )
 					.MinDesiredWidth( InArgs._MinDesiredWidth )
 					.SelectAllTextOnCommit( InArgs._SelectAllTextOnCommit )
 					.OnKeyDownHandler( InArgs._OnKeyDownHandler )
+					.VirtualKeyboardType( InArgs._VirtualKeyboardType )
 				]
 			]
 		]

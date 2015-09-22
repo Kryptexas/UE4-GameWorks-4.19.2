@@ -52,7 +52,7 @@ TSharedRef<SWidget> UEditableTextBox::RebuildWidget()
 		.SelectAllTextOnCommit(SelectAllTextOnCommit)
 		.OnTextChanged(BIND_UOBJECT_DELEGATE(FOnTextChanged, HandleOnTextChanged))
 		.OnTextCommitted(BIND_UOBJECT_DELEGATE(FOnTextCommitted, HandleOnTextCommitted))
-		;
+		.VirtualKeyboardType(EVirtualKeyboardType::AsKeyboardType(KeyboardType.GetValue()));
 
 	return MyEditableTextBlock.ToSharedRef();
 }
