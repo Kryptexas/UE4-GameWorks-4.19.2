@@ -925,6 +925,33 @@ namespace AutomationTool
 		/// <summary>
 		/// Wraps P4 describe
 		/// </summary>
+		/// <param name="Changelist">Changelist numbers to query full descriptions for</param>
+		/// <param name="DescribeRecord">Describe record for the given changelist.</param>
+		/// <param name="AllowSpew"></param>
+		/// <returns>True if everything went okay</returns>
+        public bool DescribeChangelist(int Changelist, out DescribeRecord DescribeRecord, bool AllowSpew = true)
+        {
+			List<DescribeRecord> DescribeRecords;
+			if(!DescribeChangelists(new List<int>{ Changelist }, out DescribeRecords, AllowSpew))
+			{
+				DescribeRecord = null;
+				return false;
+			}
+			else if(DescribeRecords.Count != 1)
+			{
+				DescribeRecord = null;
+				return false;
+			}
+			else 
+			{
+				DescribeRecord = DescribeRecords[0];
+				return true;
+			}
+		}
+
+		/// <summary>
+		/// Wraps P4 describe
+		/// </summary>
 		/// <param name="Changelists">List of changelist numbers to query full descriptions for</param>
 		/// <param name="DescribeRecords">List of records we found.  One for each changelist number.  These will be sorted from oldest to newest.</param>
 		/// <param name="AllowSpew"></param>
