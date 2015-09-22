@@ -625,7 +625,7 @@ public:
 
 		SButton::FArguments ButtonArgs;
 		ButtonArgs.Text(InArgs._Label);
-		ButtonArgs.ForegroundColor( this, &SSubMenuButton::InvertOnHover );
+		ButtonArgs.ForegroundColor(FSlateColor::UseForeground());
 		ButtonArgs.HAlign(HAlign_Fill);
 		ButtonArgs.VAlign(VAlign_Fill);
 		ButtonArgs.ContentPadding(FMargin(0,2));
@@ -660,18 +660,6 @@ private:
 		else
 		{
 			return SButton::GetBorder();
-		}
-	}
-
-	FSlateColor InvertOnHover() const
-	{
-		if ( this->IsHovered() || ShouldAppearHovered.Get() )
-		{
-			return FLinearColor::Black;
-		}
-		else
-		{
-			return FSlateColor::UseForeground();
 		}
 	}
 
