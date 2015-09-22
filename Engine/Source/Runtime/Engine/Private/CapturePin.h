@@ -29,6 +29,7 @@ typedef TCHAR* PTCHAR;
 #endif
 
 class FAVIWriter;
+struct FCapturedFrame;
 
 class FCapturePin : public CSourceStream
 {
