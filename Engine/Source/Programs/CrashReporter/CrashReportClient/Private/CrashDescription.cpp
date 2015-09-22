@@ -276,7 +276,7 @@ FCrashWERContext::FCrashWERContext( const FString& WERXMLFilepath )
 	: FPrimaryCrashProperties()
 {
 	ReadXML( WERXMLFilepath );
-	CrashGUID = FPaths::GetCleanFilename( WERXMLFilepath );
+	CrashGUID = FPaths::GetCleanFilename( FPaths::GetPath( WERXMLFilepath ) );
 
 	const bool bIsValid = XmlFile->IsValid();
 	if (bIsValid)
