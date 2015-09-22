@@ -337,8 +337,8 @@ private:
 	uint32 bForceMeshObjectUpdate:1;
 
 public:
-	/** If true, DistanceFactor for this SkinnedMeshComponent will be added to global chart. */
-	UPROPERTY()
+
+	DEPRECATED(4.10, "bChartDistanceFactor is no longer useful, please remove references to it")
 	uint32 bChartDistanceFactor:1;
 
 	/** Whether or not we can highlight selected sections - this should really only be done in the editor */

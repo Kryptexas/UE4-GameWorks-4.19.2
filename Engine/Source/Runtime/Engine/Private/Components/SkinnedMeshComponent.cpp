@@ -1810,14 +1810,6 @@ bool USkinnedMeshComponent::UpdateLODStatus()
 	if(MeshObject)
 	{
 		MaxDistanceFactor = MeshObject->MaxDistanceFactor;
-
-#if CHART_DISTANCE_FACTORS
-		// Only chart DistanceFactor if it was actually rendered recently
-		if(bChartDistanceFactor && ((LastRenderTime > GetWorld()->TimeSeconds - 1.0f) || bUpdateSkelWhenNotRendered))
-		{
-			AddDistanceFactorToChart(MaxDistanceFactor);
-		}
-#endif // CHART_DISTANCE_FACTORS
 	}
 
 	return bLODChanged;
