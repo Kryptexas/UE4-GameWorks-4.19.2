@@ -2,11 +2,11 @@
 
 #pragma once
 
-#include "MovieSceneSlomoTrack.h"
 #include "FloatPropertyTrackEditor.h"
 
 
 class ISequencer;
+class UMovieSceneTrack;
 
 
 /**
@@ -48,4 +48,9 @@ private:
 
 	/** Callback for executing the "Add Event Track" menu entry. */
 	void HandleAddSlomoTrackMenuEntryExecute();
+
+private:
+
+	/** Pointer to the sequence's slomo track, if it exists. */
+	TWeakObjectPtr<UMovieSceneTrack> SlomoTrack;
 };

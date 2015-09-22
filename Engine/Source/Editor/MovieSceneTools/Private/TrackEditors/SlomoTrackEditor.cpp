@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
+#include "MovieSceneSlomoTrack.h"
+#include "MovieSceneTrack.h"
 #include "SlomoTrackEditor.h"
 
 
@@ -51,7 +53,18 @@ bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 {
+	if (SlomoTrack.IsValid())
+	{
+		return;
+	}
 
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
+
+	if (MovieScene != nullptr)
+	{
+		SlomoTrack = MovieScene->AddMasterTrack(UMovieSceneSlomoTrack::StaticClass());
+	}
 }
 
 

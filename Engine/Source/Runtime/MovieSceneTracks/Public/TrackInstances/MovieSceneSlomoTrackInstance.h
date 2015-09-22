@@ -34,7 +34,15 @@ public:
 	virtual void RefreshInstance(const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override { }
 	virtual void RestoreState(const TArray<UObject*>& RuntimeObjects) override { }
 	virtual void SaveState(const TArray<UObject*>& RuntimeObjects) override { }
-//	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override;
+	virtual void Update(float Position, float LastPosition, const TArray<UObject*>& RuntimeObjects, IMovieScenePlayer& Player) override;
+
+protected:
+
+	/** Get the world settings object. */
+	AWorldSettings* GetWorld() const;
+
+	/** Check whether the slow motion should be applied. */
+	bool ShouldBeApplied() const;
 
 private:
 
