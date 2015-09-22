@@ -9,7 +9,7 @@
 /* UMovieSceneFloatTrack overrides
  *****************************************************************************/
 
-bool UMovieSceneSlomoTrack::HasShowableData() const
+bool UMovieSceneSlomoTrack::IsVisibleWhenEmpty() const
 {
 	return true;
 }

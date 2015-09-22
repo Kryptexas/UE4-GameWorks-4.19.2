@@ -19,5 +19,5 @@ public:
 
 	// UMovieSceneFloatTrack overrides
 
-	virtual bool HasShowableData() const override;
+	virtual bool IsVisibleWhenEmpty() const override;
 };
