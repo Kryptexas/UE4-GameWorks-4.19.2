@@ -786,6 +786,7 @@ uint32 FGenericPlatformMisc::GetStandardPrintableKeyMap(uint32* KeyCodes, FStrin
 	ADDKEYMAP( 231, TEXT("C_Cedille") );
 	ADDKEYMAP( 233, TEXT("E_AccentAigu") );
 	ADDKEYMAP( 232, TEXT("E_AccentGrave") );
+	ADDKEYMAP( 167, TEXT("Section") );
 
 	return NumMappings;
 }

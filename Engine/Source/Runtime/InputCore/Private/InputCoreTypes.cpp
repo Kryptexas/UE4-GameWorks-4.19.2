@@ -151,6 +151,7 @@ const FKey EKeys::A_AccentGrave("A_AccentGrave");
 const FKey EKeys::E_AccentGrave("E_AccentGrave");
 const FKey EKeys::E_AccentAigu("E_AccentAigu");
 const FKey EKeys::C_Cedille("C_Cedille");
+const FKey EKeys::Section("Section");
 
 
 // Setup platform specific keys
@@ -507,6 +508,7 @@ void EKeys::Initialize()
 	AddKey(FKeyDetails(EKeys::E_AccentGrave, FText::FromString(FString::Chr(232))));
 	AddKey(FKeyDetails(EKeys::E_AccentAigu, FText::FromString(FString::Chr(233))));
 	AddKey(FKeyDetails(EKeys::C_Cedille, FText::FromString(FString::Chr(231))));
+	AddKey(FKeyDetails(EKeys::Section, FText::FromString(FString::Chr(167))));
 
 
 	// Setup Gamepad keys
