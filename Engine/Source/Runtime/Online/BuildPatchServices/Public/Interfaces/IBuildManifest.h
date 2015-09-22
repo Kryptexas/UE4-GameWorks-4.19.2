@@ -109,10 +109,24 @@ public:
 	virtual int64 GetDownloadSize() const = 0;
 
 	/**
+	 * Get the size of the download of this set of tags
+	 * @param Tags	IN	A list of the tags we want to know the size of
+	 * @return		the download size of the tags in bytes
+	 */
+	virtual int64 GetDownloadSize(const TSet<FString>& Tags) const = 0;
+
+	/**
 	 * Get the size of this build
 	 * @return		the build size in bytes
 	 */
 	virtual int64 GetBuildSize() const = 0;
+
+	/**
+	 * Get the size of the build of this set of tags
+	 * @param Tags	IN	A list of the tags we want to know the size of
+	 * @return		the build size of the tags in bytes
+	 */
+	virtual int64 GetBuildSize(const TSet<FString>& Tags) const = 0;
 
 	/**
 	 * Get the list of files in this build. Filenames are all relative to an install directory

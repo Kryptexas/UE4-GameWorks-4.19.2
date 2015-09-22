@@ -383,7 +383,9 @@ public:
 	virtual const FString& GetPrereqPath() const override;
 	virtual const FString& GetPrereqArgs() const override;
 	virtual int64 GetDownloadSize() const override;
+	virtual int64 GetDownloadSize(const TSet<FString>& Tags) const override;
 	virtual int64 GetBuildSize() const override;
+	virtual int64 GetBuildSize(const TSet<FString>& Tags) const override;
 	virtual TArray<FString> GetBuildFileList() const override;
 	virtual void GetRemovableFiles(IBuildManifestRef OldManifest, TArray< FString >& RemovableFiles) const override;
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const override;
