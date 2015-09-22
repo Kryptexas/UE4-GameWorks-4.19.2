@@ -850,7 +850,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 							{
 								const bool bTwoSided = Material->IsTwoSided() || PrimitiveSceneInfo->Proxy->CastsShadowAsTwoSided();
 								OverrideWithDefaultMaterialForShadowDepth(MaterialRenderProxy, Material, bReflectiveShadowmap, FeatureLevel);
-								SubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
+								StaticSubjectMeshElements.Add(FShadowStaticMeshElement(MaterialRenderProxy, Material, &StaticMesh,bTwoSided));
 							}
 						}
 					}
@@ -859,7 +859,7 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 			else
 			{
 				// Add the primitive to the subject primitive list.
-				SubjectPrimitives.Add(PrimitiveSceneInfo);
+				DynamicSubjectPrimitives.Add(PrimitiveSceneInfo);
 			}
 		}
 
@@ -909,8 +909,8 @@ void FProjectedShadowInfo::AddSubjectPrimitive(FPrimitiveSceneInfo* PrimitiveSce
 
 bool FProjectedShadowInfo::HasSubjectPrims() const
 {
-	return SubjectPrimitives.Num() > 0
-		|| SubjectMeshElements.Num() > 0
+	return DynamicSubjectPrimitives.Num() > 0
+		|| StaticSubjectMeshElements.Num() > 0
 		|| EmissiveOnlyPrimitives.Num() > 0 
 		|| EmissiveOnlyMeshElements.Num() > 0
 		|| GIBlockingMeshElements.Num() > 0
@@ -926,11 +926,11 @@ void FProjectedShadowInfo::AddReceiverPrimitive(FPrimitiveSceneInfo* PrimitiveSc
 static TAutoConsoleVariable<int32> CVarDisableCullShadows(
 	TEXT("foliage.DisableCullShadows"),
 	0,
-	TEXT("First three bits are disable SubjectPrimitives, ReceiverPrimitives, SubjectTranslucentPrimitives"));
+	TEXT("First three bits are disable DynamicSubjectPrimitives, ReceiverPrimitives, SubjectTranslucentPrimitives"));
 
 void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, FVisibleLightInfo& VisibleLightInfo, TArray<const FSceneView*>& ReusedViewsArray)
 {
-	if (SubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
+	if (DynamicSubjectPrimitives.Num() > 0 || ReceiverPrimitives.Num() > 0 || SubjectTranslucentPrimitives.Num() > 0)
 	{
 		// Choose an arbitrary view where this shadow's subject is relevant.
 		FViewInfo* FoundView = NULL;
@@ -975,14 +975,14 @@ void FProjectedShadowInfo::GatherDynamicMeshElements(FSceneRenderer& Renderer, F
 		    {
 			    FoundView->ViewMatrices.PreShadowTranslation = FVector(0,0,0);
 			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CascadeSettings.ShadowBoundsAccurate;
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
 			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
 		    }
 		    else
 		    {
 			    FoundView->ViewMatrices.PreShadowTranslation = PreShadowTranslation;
 			    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 1) ? &NoCull : &CasterFrustum;
-			    GatherDynamicMeshElementsArray(FoundView, Renderer, SubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
+			    GatherDynamicMeshElementsArray(FoundView, Renderer, DynamicSubjectPrimitives, DynamicSubjectMeshElements, ReusedViewsArray);
 		    }
     
 		    FoundView->ViewMatrices.GetDynamicMeshElementsShadowCullFrustum = (Disable & 2) ? &NoCull : &ReceiverFrustum;
@@ -1045,9 +1045,9 @@ void FProjectedShadowInfo::GatherDynamicMeshElementsArray(
 bool FProjectedShadowInfo::SubjectsVisible(const FViewInfo& View) const
 {
 	checkSlow(!IsWholeSceneDirectionalShadow());
-	for(int32 PrimitiveIndex = 0;PrimitiveIndex < SubjectPrimitives.Num();PrimitiveIndex++)
+	for(int32 PrimitiveIndex = 0;PrimitiveIndex < DynamicSubjectPrimitives.Num();PrimitiveIndex++)
 	{
-		const FPrimitiveSceneInfo* SubjectPrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
+		const FPrimitiveSceneInfo* SubjectPrimitiveSceneInfo = DynamicSubjectPrimitives[PrimitiveIndex];
 		if(View.PrimitiveVisibilityMap[SubjectPrimitiveSceneInfo->GetIndex()])
 		{
 			return true;
@@ -1063,9 +1063,9 @@ bool FProjectedShadowInfo::SubjectsVisible(const FViewInfo& View) const
 void FProjectedShadowInfo::ClearTransientArrays()
 {
 	SubjectTranslucentPrimitives.Empty();
-	SubjectPrimitives.Empty();
+	DynamicSubjectPrimitives.Empty();
 	ReceiverPrimitives.Empty();
-	SubjectMeshElements.Empty();
+	StaticSubjectMeshElements.Empty();
 	EmissiveOnlyPrimitives.Empty();
 	EmissiveOnlyMeshElements.Empty();
 	DynamicSubjectMeshElements.Empty();

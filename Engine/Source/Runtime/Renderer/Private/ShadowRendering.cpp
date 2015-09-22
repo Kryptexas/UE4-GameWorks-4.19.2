@@ -1318,7 +1318,7 @@ template <bool bReflectiveShadowmap>
 void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, const FProjectedShadowInfo& ShadowInfo)
 {
 	FShadowDepthDrawingPolicyContext PolicyContext(&ShadowInfo);
-	const FShadowStaticMeshElement& FirstShadowMesh = ShadowInfo.SubjectMeshElements[0];
+	const FShadowStaticMeshElement& FirstShadowMesh = ShadowInfo.StaticSubjectMeshElements[0];
 	const FMaterial* FirstMaterialResource = FirstShadowMesh.MaterialResource;
 	auto FeatureLevel = View.GetFeatureLevel();
 
@@ -1331,10 +1331,10 @@ void DrawShadowMeshElements(FRHICommandList& RHICmdList, const FViewInfo& View, 
 
 	FShadowStaticMeshElement OldState;
 
-	uint32 ElementCount = ShadowInfo.SubjectMeshElements.Num();
+	uint32 ElementCount = ShadowInfo.StaticSubjectMeshElements.Num();
 	for(uint32 ElementIndex = 0; ElementIndex < ElementCount; ++ElementIndex)
 	{
-		const FShadowStaticMeshElement& ShadowMesh = ShadowInfo.SubjectMeshElements[ElementIndex];
+		const FShadowStaticMeshElement& ShadowMesh = ShadowInfo.StaticSubjectMeshElements[ElementIndex];
 
 		if(!View.StaticMeshShadowDepthMap[ShadowMesh.Mesh->Id])
 		{
@@ -1644,14 +1644,14 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 				}
 			}
 			// Draw the subject's static elements using manual state filtering
-			else if (SubjectMeshElements.Num() > 0)
+			else if (StaticSubjectMeshElements.Num() > 0)
 			{
 				FRHICommandList* CmdList = ParallelCommandListSet.NewParallelCommandList();
 
 				FGraphEventRef AnyThreadCompletionEvent = TGraphTask<FDrawShadowMeshElementsThreadTask>::CreateTask(ParallelCommandListSet.GetPrereqs(), ENamedThreads::RenderThread)
 					.ConstructAndDispatchWhenReady(*this, *CmdList, *FoundView, bReflectiveShadowmap && !CascadeSettings.bOnePassPointLightShadow);
 
-				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent, SubjectMeshElements.Num());
+				ParallelCommandListSet.AddParallelCommandList(CmdList, AnyThreadCompletionEvent, StaticSubjectMeshElements.Num());
 			}
 			if (DynamicSubjectMeshElements.Num())
 			{
@@ -1685,7 +1685,7 @@ void FProjectedShadowInfo::RenderDepthInner(FRHICommandList& RHICmdList, FSceneR
 			}
 		}
 		// Draw the subject's static elements using manual state filtering
-		else if (SubjectMeshElements.Num() > 0)
+		else if (StaticSubjectMeshElements.Num() > 0)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_WholeSceneStaticShadowDepthsTime);
 
@@ -1779,8 +1779,8 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	switch(RenderMode)
 	{
 	case ShadowDepthRenderMode_Dynamic:
-		PtrCurrentMeshElements = &SubjectMeshElements;
-		PtrCurrentPrimitives = &SubjectPrimitives;
+		PtrCurrentMeshElements = &StaticSubjectMeshElements;
+		PtrCurrentPrimitives = &DynamicSubjectPrimitives;
 		break;
 	case ShadowDepthRenderMode_EmissiveOnly:
 		PtrCurrentMeshElements = &EmissiveOnlyMeshElements;
@@ -2102,7 +2102,7 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
 		// Note that self-shadow pre-shadows still mask by receiver elements.
-		const PrimitiveArrayType& MaskPrimitives = bPreShadow ? ReceiverPrimitives : SubjectPrimitives;
+		const PrimitiveArrayType& MaskPrimitives = bPreShadow ? ReceiverPrimitives : DynamicSubjectPrimitives;
 
 		for (int32 PrimitiveIndex = 0, PrimitiveCount = MaskPrimitives.Num(); PrimitiveIndex < PrimitiveCount; PrimitiveIndex++)
 		{
@@ -2140,25 +2140,21 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 
 		if (bSelfShadowOnly && !bPreShadow)
 		{
-			for (int32 ElementIndex = 0; ElementIndex < SubjectMeshElements.Num(); ++ElementIndex)
+			for (int32 ElementIndex = 0; ElementIndex < StaticSubjectMeshElements.Num(); ++ElementIndex)
 			{
-				const FStaticMesh& StaticMesh = *SubjectMeshElements[ElementIndex].Mesh;
- 
-				if (View->StaticMeshShadowDepthMap[StaticMesh.Id])
-				{
-					const float DitherValue = View->GetDitheredLODTransitionValue(StaticMesh);
-					FDepthDrawingPolicyFactory::DrawStaticMesh(
-						RHICmdList, 
-						*View,
-						FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
-						StaticMesh,
-						StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
-						true,
-						DitherValue,
-						StaticMesh.PrimitiveSceneInfo->Proxy,
-						StaticMesh.BatchHitProxyId
-						);
-				}
+				const FStaticMesh& StaticMesh = *StaticSubjectMeshElements[ElementIndex].Mesh;
+				const float DitherValue = View->GetDitheredLODTransitionValue(StaticMesh);
+				FDepthDrawingPolicyFactory::DrawStaticMesh(
+					RHICmdList, 
+					*View,
+					FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
+					StaticMesh,
+					StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
+					true,
+					DitherValue,
+					StaticMesh.PrimitiveSceneInfo->Proxy,
+					StaticMesh.BatchHitProxyId
+					);
 			}
 		}
 	}
@@ -2518,9 +2514,9 @@ void FProjectedShadowInfo::RenderFrustumWireframe(FPrimitiveDrawInterface* PDI) 
 {
 	// Find the ID of an arbitrary subject primitive to use to color the shadow frustum.
 	int32 SubjectPrimitiveId = 0;
-	if(SubjectPrimitives.Num())
+	if(DynamicSubjectPrimitives.Num())
 	{
-		SubjectPrimitiveId = SubjectPrimitives[0]->GetIndex();
+		SubjectPrimitiveId = DynamicSubjectPrimitives[0]->GetIndex();
 	}
 
 	const FMatrix InvShadowTransform = (bWholeSceneShadow || bPreShadow) ? SubjectAndReceiverMatrix.InverseFast() : InvReceiverMatrix;
@@ -2769,7 +2765,7 @@ void FProjectedShadowInfo::SortSubjectMeshElements()
 		}
 	};
 
-	SubjectMeshElements.Sort( FCompareFShadowStaticMeshElement() );
+	StaticSubjectMeshElements.Sort( FCompareFShadowStaticMeshElement() );
 }
 
 void FProjectedShadowInfo::GetShadowTypeNameForDrawEvent(FString& TypeName) const

@@ -733,7 +733,7 @@ public:
 		return bWholeSceneShadow && LightSceneInfo->Proxy->GetLightType() == LightType_Point;
 	}
 
-	/** Sorts SubjectMeshElements based on state so that rendering the static elements will set as little state as possible. */
+	/** Sorts StaticSubjectMeshElements based on state so that rendering the static elements will set as little state as possible. */
 	void SortSubjectMeshElements();
 
 	// 0 if Setup...() wasn't called yet
@@ -757,7 +757,7 @@ private:
 	const FPrimitiveSceneInfo* ParentSceneInfo;
 
 	/** dynamic shadow casting elements */
-	PrimitiveArrayType SubjectPrimitives;
+	PrimitiveArrayType DynamicSubjectPrimitives;
 	/** For preshadows, this contains the receiver primitives to mask the projection to. */
 	PrimitiveArrayType ReceiverPrimitives;
 	/** Subject primitives with translucent relevance. */
@@ -774,7 +774,7 @@ private:
 	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> GIBlockingMeshElements;
 
 	/** Static shadow casting elements. */
-	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> SubjectMeshElements;
+	TArray<FShadowStaticMeshElement,SceneRenderingAllocator> StaticSubjectMeshElements;
 
 	/** Dynamic mesh elements for subject primitives. */
 	TArray<FMeshBatchAndRelevance,SceneRenderingAllocator> DynamicSubjectMeshElements;
