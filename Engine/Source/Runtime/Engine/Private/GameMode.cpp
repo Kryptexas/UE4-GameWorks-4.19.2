@@ -21,6 +21,7 @@
 #include "GameFramework/GameMode.h"
 #include "Engine/ChildConnection.h"
 #include "Engine/GameInstance.h"
+#include "IMovieSceneCapture.h"
 #include "MovieSceneCaptureSettings.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
