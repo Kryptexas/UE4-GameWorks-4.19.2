@@ -38,9 +38,20 @@ struct ENGINE_API FCollisionQueryParams
 	/** TArray typedef of components to ignore. */
 	typedef TArray<uint32, TInlineAllocator<NumInlinedActorComponents>> IgnoreComponentsArrayType;
 
-	/** Set of components to ignore during the trace */
-	IgnoreComponentsArrayType IgnoreComponents;
+private:
 
+	/** Tracks whether the IgnoreComponents list is verified unique. */
+	mutable bool bComponentListUnique;
+
+	/** Set of components to ignore during the trace */
+	mutable IgnoreComponentsArrayType IgnoreComponents;
+
+	void Internal_AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent);
+
+public:
+
+	/** Returns set of components to ignore during the trace. */
+	const IgnoreComponentsArrayType& GetIgnoredComponents() const;
 
 	// Constructors
 	FCollisionQueryParams(bool bInTraceComplex=false)
@@ -51,6 +62,7 @@ struct ENGINE_API FCollisionQueryParams
 		bFindInitialOverlaps = true;
 		bReturnFaceIndex = false;
 		bReturnPhysicalMaterial = false;
+		bComponentListUnique = true;
 	}
 
 	FCollisionQueryParams(FName InTraceTag, bool bInTraceComplex=false, const AActor* InIgnoreActor=NULL);
@@ -74,6 +86,12 @@ struct ENGINE_API FCollisionQueryParams
 	
 	/** Variant that uses an array of TWeakObjectPtrs */
 	void AddIgnoredComponents(const TArray<TWeakObjectPtr<UPrimitiveComponent>>& InIgnoreComponents);
+
+	/**
+	 * Special variant that hints that we are likely adding a duplicate of the root component or first ignored component.
+	 * Helps avoid invalidating the potential uniquess of the IgnoreComponents array.
+	 */
+	void AddIgnoredComponent_LikelyDuplicatedRoot(const UPrimitiveComponent* InIgnoreComponent);
 
 	FString ToString() const
 	{

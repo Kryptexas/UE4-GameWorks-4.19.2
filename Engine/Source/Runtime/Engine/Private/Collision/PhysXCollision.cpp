@@ -181,7 +181,7 @@ FRaycastHelperBox2D_Base::EResponse FRaycastHelperBox2D_Base::CalcQueryHitType(b
 		FBodyInstance* OwnerBodyInstance = static_cast<FBodyInstance*>(Fixture->GetBody()->GetUserData());
 		UPrimitiveComponent* OwnerComponent = OwnerBodyInstance->OwnerComponent.Get();
 		
-		if ((OwnerComponent != nullptr) && Params.IgnoreComponents.Contains(OwnerComponent->GetUniqueID()))
+		if ((OwnerComponent != nullptr) && Params.GetIgnoredComponents().Contains(OwnerComponent->GetUniqueID()))
 		{
 			Result = ResponseNone;
 		}
@@ -831,7 +831,7 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxHitFlags();
-			FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
+			FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
 			PQueryCallback.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
 			FPhysScene* PhysScene = World->GetPhysicsScene();
@@ -904,7 +904,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-			FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
+			FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
 			PQueryCallback.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
 			PxVec3 PStart = U2PVector(Start);
@@ -1019,7 +1019,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
+		FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
 
 		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
 		TTypeCompatibleBytes<PxRaycastHit> RawPHits[HIT_BUFFER_SIZE];
@@ -1190,7 +1190,7 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 		PxSceneQueryFlags POutputFlags; 
 
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
 		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
 		PQueryCallbackSweep.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 
@@ -1270,7 +1270,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		//UE_LOG(LogCollision, Log, TEXT("PFilter: %x %x %x %x"), PFilter.word0, PFilter.word1, PFilter.word2, PFilter.word3);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
 		PQueryCallbackSweep.bIgnoreTouches = true; // pre-filter to ignore touches and only get blocking hits.
 		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;	
 
@@ -1366,7 +1366,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 	PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
+	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.GetIgnoredComponents());
 	PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
 
 	const FVector Delta = End - Start;
@@ -1532,7 +1532,7 @@ bool GeomOverlapMultiImp_PhysX(const UWorld* World, const PxGeometry& PGeom, con
 		// Create filter data used to filter collisions
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, InfoType != EQueryInfo::IsAnything);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-		FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
+		FPxQueryFilterCallback PQueryCallback(Params.GetIgnoredComponents());
 		PQueryCallback.bIgnoreTouches = (InfoType == EQueryInfo::IsBlocking); // pre-filter to ignore touches and only get blocking hits, if that's what we're after.
 
 		// Enable scene locks, in case they are required

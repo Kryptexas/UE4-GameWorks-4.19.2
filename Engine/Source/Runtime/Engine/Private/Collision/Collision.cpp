@@ -154,6 +154,7 @@ FCollisionQueryParams::FCollisionQueryParams(FName InTraceTag, bool bInTraceComp
 	bFindInitialOverlaps = true;
 	bReturnFaceIndex = false;
 	bReturnPhysicalMaterial = false;
+	bComponentListUnique = true;
 
 	AddIgnoredActor(InIgnoreActor);
 	if (InIgnoreActor != NULL)
@@ -171,42 +172,53 @@ static FORCEINLINE_DEBUGGABLE bool IsQueryCollisionEnabled(const UPrimitiveCompo
 		|| CollisionEnabled == ECollisionEnabled::QueryOnly;
 }
 
-
-void FCollisionQueryParams::AddIgnoredActor(const AActor* InIgnoreActor)
+static FORCEINLINE_DEBUGGABLE bool CheckForCollision(const AActor* Actor)
 {
 	// Note: This code operates differently in the editor because the actors in the editor can have their collision setting become out of sync with physx.  This happens because even when collision is disabled on an actor, in the editor we 
 	// tell phsx that we still require queries( See FBodyInstance::UpdatePhysicsFilterData).  Doing so allows us to perform editor only traces against objects with collision disabled.  Due to this, we cannot assume that the collision enabled flag here
 	// setting is correct compared to physx and so we still ignore specified components regardless of their collision setting
 #if WITH_EDITOR
-	const bool bCheckForCollision = InIgnoreActor && InIgnoreActor->GetWorld() && InIgnoreActor->GetWorld()->IsGameWorld();
+	const bool bCheckForCollision = Actor && Actor->GetWorld() && Actor->GetWorld()->IsGameWorld();
 #else
 	const bool bCheckForCollision = true;
 #endif
+	return bCheckForCollision;
+}
 
+
+static FORCEINLINE_DEBUGGABLE bool CheckForCollision(const UPrimitiveComponent* PrimComponent)
+{
+	// Note: This code operates differently in the editor because the actors in the editor can have their collision setting become out of sync with physx.  This happens because even when collision is disabled on an actor, in the editor we 
+	// tell phsx that we still require queries( See FBodyInstance::UpdatePhysicsFilterData).  Doing so allows us to perform editor only traces against objects with collision disabled.  Due to this, we cannot assume that the collision enabled flag here
+	// setting is correct compared to physx and so we still ignore specified components regardless of their collision setting
+#if WITH_EDITOR
+	bool bCheckForCollision = PrimComponent && PrimComponent->GetWorld() && PrimComponent->GetWorld()->IsGameWorld();
+#else
+	const bool bCheckForCollision = true;
+#endif
+	return bCheckForCollision;
+}
+
+
+void FCollisionQueryParams::AddIgnoredActor(const AActor* InIgnoreActor)
+{
 	if (InIgnoreActor)
-	{
-		if (IgnoreComponents.Num() == 0)
+	{	
+		const bool bCheckForCollision = CheckForCollision(InIgnoreActor);
+		const int32 InitialCount = IgnoreComponents.Num();
+		for (const UActorComponent* ActorComponent : InIgnoreActor->GetComponents())
 		{
-			// Don't need to AddUnique if we start empty, as GetComponents should never contain duplicate components.
-			for (const UActorComponent* ActorComponent : InIgnoreActor->GetComponents())
+			const UPrimitiveComponent* PrimComponent = Cast<const UPrimitiveComponent>(ActorComponent);
+			if (PrimComponent && (!bCheckForCollision || IsQueryCollisionEnabled(PrimComponent)) )
 			{
-				const UPrimitiveComponent* PrimComponent = Cast<const UPrimitiveComponent>(ActorComponent);
-				if (PrimComponent && (!bCheckForCollision || IsQueryCollisionEnabled(PrimComponent)) )
-				{
-					IgnoreComponents.Add(PrimComponent->GetUniqueID());
-				}
+				IgnoreComponents.Add(PrimComponent->GetUniqueID());
 			}
 		}
-		else
+
+		// If we added entries to a non-empty array, we aren't sure if the list is unique. Assumes GetComponents() above contains no duplicates.
+		if ((InitialCount != 0) && (IgnoreComponents.Num() - InitialCount > 0))
 		{
-			for (const UActorComponent* ActorComponent : InIgnoreActor->GetComponents())
-			{
-				const UPrimitiveComponent* PrimComponent = Cast<const UPrimitiveComponent>(ActorComponent);
-				if (PrimComponent && (!bCheckForCollision || IsQueryCollisionEnabled(PrimComponent)) )
-				{
-					IgnoreComponents.AddUnique(PrimComponent->GetUniqueID());
-				}
-			}
+			bComponentListUnique = false;
 		}
 	}
 }
@@ -215,10 +227,7 @@ void FCollisionQueryParams::AddIgnoredActors(const TArray<AActor*>& InIgnoreActo
 {
 	for (int32 Idx = 0; Idx < InIgnoreActors.Num(); ++Idx)
 	{
-		if (AActor const* const A = InIgnoreActors[Idx])
-		{
-			AddIgnoredActor(A);
-		}
+		AddIgnoredActor(InIgnoreActors[Idx]);
 	}
 }
 
@@ -226,36 +235,29 @@ void FCollisionQueryParams::AddIgnoredActors(const TArray<TWeakObjectPtr<AActor>
 {
 	for (int32 Idx = 0; Idx < InIgnoreActors.Num(); ++Idx)
 	{
-		if (AActor const* const A = InIgnoreActors[Idx].Get())
-		{
-			AddIgnoredActor(A);
-		}
+		AddIgnoredActor(InIgnoreActors[Idx].Get());
 	}
 }
 
+FORCEINLINE_DEBUGGABLE void FCollisionQueryParams::Internal_AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent)
+{
+	if (InIgnoreComponent && (!CheckForCollision(InIgnoreComponent) || IsQueryCollisionEnabled(InIgnoreComponent)))
+	{
+		IgnoreComponents.Add(InIgnoreComponent->GetUniqueID());
+		bComponentListUnique = false;
+	}
+}
 
 void FCollisionQueryParams::AddIgnoredComponent(const UPrimitiveComponent* InIgnoreComponent)
 {
-	// Note: This code operates differently in the editor because the actors in the editor can have their collision setting become out of sync with physx.  This happens because even when collision is disabled on an actor, in the editor we 
-	// tell phsx that we still require queries( See FBodyInstance::UpdatePhysicsFilterData).  Doing so allows us to perform editor only traces against objects with collision disabled.  Due to this, we cannot assume that the collision enabled flag here
-	// setting is correct compared to physx and so we still ignore specified components regardless of their collision setting
-#if WITH_EDITOR
-	const bool bCheckForCollision = InIgnoreComponent && InIgnoreComponent->GetWorld() && InIgnoreComponent->GetWorld()->IsGameWorld();
-#else
-	const bool bCheckForCollision = true;
-#endif
-
-	if (InIgnoreComponent && (!bCheckForCollision || IsQueryCollisionEnabled(InIgnoreComponent)))
-	{
-		IgnoreComponents.AddUnique(InIgnoreComponent->GetUniqueID());
-	}
+	Internal_AddIgnoredComponent(InIgnoreComponent);
 }
 
 void FCollisionQueryParams::AddIgnoredComponents(const TArray<UPrimitiveComponent*>& InIgnoreComponents)
 {
 	for (const UPrimitiveComponent* IgnoreComponent : InIgnoreComponents)
 	{
-		AddIgnoredComponent(IgnoreComponent);
+		Internal_AddIgnoredComponent(IgnoreComponent);
 	}
 }
 
@@ -263,11 +265,52 @@ void FCollisionQueryParams::AddIgnoredComponents(const TArray<TWeakObjectPtr<UPr
 {
 	for (TWeakObjectPtr<UPrimitiveComponent> IgnoreComponent : InIgnoreComponents)
 	{
-		if (IgnoreComponent.IsValid())
+		Internal_AddIgnoredComponent(IgnoreComponent.Get());
+	}
+}
+
+void FCollisionQueryParams::AddIgnoredComponent_LikelyDuplicatedRoot(const UPrimitiveComponent* InIgnoreComponent)
+{
+	if (InIgnoreComponent && (!CheckForCollision(InIgnoreComponent) || IsQueryCollisionEnabled(InIgnoreComponent)))
+	{
+		// Code calling this is usually just making sure they don't add the root component to queries right before the actual query.
+		// We try to avoid invalidating the uniqueness of the array if this is the case.
+		const uint32 ComponentID = InIgnoreComponent->GetUniqueID();
+		if (IgnoreComponents.Num() == 0 || IgnoreComponents[0] != ComponentID)
 		{
-			AddIgnoredComponent(IgnoreComponent.Get());
+			IgnoreComponents.Add(ComponentID);
+			bComponentListUnique = false;
 		}
 	}
+}
+
+const FCollisionQueryParams::IgnoreComponentsArrayType& FCollisionQueryParams::GetIgnoredComponents() const
+{
+	if (!bComponentListUnique)
+	{
+		// Make unique
+		bComponentListUnique = true;
+		if (IgnoreComponents.Num() > 1)
+		{
+			// For adding a collection to ignore it's faster to sort and remove duplicates
+			// than to check for duplicates at each addition.
+			IgnoreComponents.Sort();
+			uint32* U = IgnoreComponents.GetData();
+			uint32* D = U+1;
+			uint32* E = U + IgnoreComponents.Num();
+			while (D != E)
+			{
+				if (*U != *D)
+				{
+					*(++U) = *D;
+				}
+				D += 1;
+			}
+			IgnoreComponents.SetNum(U - IgnoreComponents.GetData() + 1, /*bAllowShrinking=*/ false);
+		}
+	}
+
+	return IgnoreComponents;
 }
 
 //////////////////////////////////////////////////////////////////////////
