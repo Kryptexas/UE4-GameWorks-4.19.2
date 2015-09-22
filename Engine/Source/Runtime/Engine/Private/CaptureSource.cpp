@@ -7,6 +7,7 @@
 
 #include "CapturePin.h"
 #include "CaptureSource.h"
+#include "AVIWriter.h"
 
 
 #if PLATFORM_WINDOWS && !UE_BUILD_MINIMAL

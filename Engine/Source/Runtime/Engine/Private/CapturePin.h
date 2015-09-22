@@ -28,6 +28,7 @@ typedef TCHAR* PTCHAR;
 	#pragma warning(pop)
 #endif
 
+class FAVIWriter;
 
 class FCapturePin : public CSourceStream
 {

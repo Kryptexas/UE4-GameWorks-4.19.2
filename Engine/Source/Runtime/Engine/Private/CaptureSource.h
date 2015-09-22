@@ -16,6 +16,7 @@
 #include "HideWindowsPlatformTypes.h"
 #pragma warning(pop)
 class FCapturePin;
+class FAVIWriter;
 
 // {F817F8A7-DE00-42CF-826A-7A5654602D8E}
 DEFINE_GUID(CLSID_ViewportCaptureSource, 
