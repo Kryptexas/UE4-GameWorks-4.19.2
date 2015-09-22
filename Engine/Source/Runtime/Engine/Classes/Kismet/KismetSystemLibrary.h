@@ -1366,10 +1366,17 @@ class ENGINE_API UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * Will show an ad banner (iAd on iOS, or AdMob on Android) on the top or bottom of screen, on top of the GL view (doesn't resize the view)
 	 * (iOS and Android only)
 	 *
+	 * @param AdIDIndex The index of the ID to select for the add to show
 	 * @param bShowOnBottomOfScreen If true, the iAd will be shown at the bottom of the screen, top otherwise
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Utilities|Platform")
-	static void ShowAdBanner(bool bShowOnBottomOfScreen);
+	static void ShowAdBanner(int32 AdIDIndex, bool bShowOnBottomOfScreen);
+
+	/**
+	* Retrieves the total number of Ad IDs that can be selected between
+	*/
+	UFUNCTION(BlueprintPure, Category = "Utilities|Platform")
+	static int32 GetAdIDCount();
 
 	/**
 	 * Hides the ad banner (iAd on iOS, or AdMob on Android). Will force close the ad if it's open
