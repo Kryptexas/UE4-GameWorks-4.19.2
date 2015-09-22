@@ -135,6 +135,12 @@ public:
 	virtual TArray<FString> GetBuildFileList() const = 0;
 
 	/**
+	 * Get the list of install tags in this manifest
+	 * @param Tags			OUT		Receives the tags referenced.
+	 */
+	virtual void GetFileTagList(TSet<FString>& Tags) const = 0;
+
+	/**
 	 * Gets a list of files that were installed with the Old Manifest, but no longer required by this Manifest.
 	 * @param OldManifest	IN		The Build Manifest that is currently installed.
 	 * @param RemovableFiles	OUT		A list to receive the files that may be removed.
