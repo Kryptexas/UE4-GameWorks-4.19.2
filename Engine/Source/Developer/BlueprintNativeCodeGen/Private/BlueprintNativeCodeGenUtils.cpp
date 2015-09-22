@@ -71,14 +71,14 @@ static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FStri
 
 	for (UPackage* ModulePkg : ModulePackages)
 	{
-		const FString ModuleName = FPackageName::GetLongPackageAssetName(ModulePkg->GetName());
-		if (ModuleManager.ModuleExists(*ModuleName))
+		const FString PkgModuleName = FPackageName::GetLongPackageAssetName(ModulePkg->GetName());
+		if (ModuleManager.ModuleExists(*PkgModuleName))
 		{
-			PrivateDependencies.Add(ModuleName);
+			PrivateDependencies.Add(PkgModuleName);
 		}
 		else
 		{
-			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to find module for package: %s"), *ModuleName);
+			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to find module for package: %s"), *PkgModuleName);
 		}
 	}
 
