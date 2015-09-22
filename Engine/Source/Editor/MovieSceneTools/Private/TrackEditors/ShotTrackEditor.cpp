@@ -22,6 +22,9 @@
 #include "SInlineEditableTextBlock.h"
 
 
+#define LOCTEXT_NAMESPACE "FEventTrackEditor"
+
+
 namespace ShotTrackConstants
 {
 	// @todo Sequencer Perhaps allow this to be customizable
@@ -33,6 +36,7 @@ namespace ShotTrackConstants
 	const FName ShotTrackGripBrushName = FName("Sequencer.ShotTrack.SectionHandle");
 
 }
+
 
 /////////////////////////////////////////////////
 // FShotThumbnailPool
@@ -244,7 +248,7 @@ TSharedRef<SWidget> FShotSection::GenerateSectionWidget()
 		.Padding( FMargin( 15.0f, 7.0f, 0.0f, 0.0f ) )
 		[
 			SNew( SInlineEditableTextBlock )
-			.ToolTipText( NSLOCTEXT("FShotTrackEditor", "RenameShot", "The name of this shot.  Click or hit F2 to rename") )
+			.ToolTipText(LOCTEXT("RenameShot", "The name of this shot.  Click or hit F2 to rename"))
 			.Text( this, &FShotSection::GetShotName )
 			.ShadowOffset( FVector2D(1,1) )
 			.OnTextCommitted(this, &FShotSection::OnRenameShot )
@@ -554,6 +558,19 @@ void FShotTrackEditor::Tick(float DeltaTime)
 	}
 }
 
+void FShotTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddShotTrack", "Add Shot Track"),
+		LOCTEXT("AddShotTooltip", "Adds a shot track, as well as a new shot at the current scrubber location if a camera is selected."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ActorAnimationEditor.Tracks.Shot"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FShotTrackEditor::HandleAddShotTrackMenuEntryExecute),
+			FCanExecuteAction::CreateRaw(this, &FShotTrackEditor::HandleAddShotTrackMenuEntryCanExecute)
+		)
+	);
+}
+
 void FShotTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass)
 {
 	if (ObjectClass->IsChildOf(ACameraActor::StaticClass()))
@@ -561,8 +578,8 @@ void FShotTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, co
 		const TSharedPtr<ISequencer> ParentSequencer = GetSequencer();
 
 		MenuBuilder.AddMenuEntry(
-			NSLOCTEXT("FShotTrackEditor", "AddShot", "Add New Shot"),
-			NSLOCTEXT("FShotTrackEditor", "AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
+			LOCTEXT("AddShot", "Add New Shot"),
+			LOCTEXT("AddShotTooltip", "Adds a new shot using this camera at the scrubber location."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateRaw(this, &FShotTrackEditor::HandleAddShotMenuEntryExecute, ObjectBinding))
 			);
@@ -710,7 +727,44 @@ UFactory* FShotTrackEditor::GetAssetFactoryForNewShot( UClass* SequenceClass )
 }
 
 
+UMovieScene* FShotTrackEditor::GetFocusedMovieScene() const
+{
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+
+	return FocusedSequence->GetMovieScene();
+}
+
+
+bool FShotTrackEditor::HandleAddShotTrackMenuEntryCanExecute() const
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	return ((FocusedMovieScene != nullptr) && (FocusedMovieScene->GetShotTrack() == nullptr));
+}
+
+
+void FShotTrackEditor::HandleAddShotTrackMenuEntryExecute()
+{
+	UMovieScene* FocusedMovieScene = GetFocusedMovieScene();
+
+	if (FocusedMovieScene == nullptr)
+	{
+		return;
+	}
+
+	UMovieSceneTrack* ShotTrack = FocusedMovieScene->GetShotTrack();
+	
+	if (ShotTrack == nullptr)
+	{
+		ShotTrack = FocusedMovieScene->AddShotTrack(UMovieSceneShotTrack::StaticClass());
+	}
+}
+
+
 void FShotTrackEditor::HandleAddShotMenuEntryExecute(FGuid CameraGuid)
 {
 	AddKey(CameraGuid);
 }
+
+
+#undef LOCTEXT_NAMESPACE

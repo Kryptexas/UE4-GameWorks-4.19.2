@@ -5,6 +5,9 @@
 #include "EventTrackSection.h"
 
 
+#define LOCTEXT_NAMESPACE "FEventTrackEditor"
+
+
 /* FEventTrackEditor static functions
  *****************************************************************************/
 
@@ -22,12 +25,25 @@ FEventTrackEditor::FEventTrackEditor(TSharedRef<ISequencer> InSequencer)
 { }
 
 
-/* FMovieSceneTrackEditor interface
+/* ISequencerTrackEditor interface
  *****************************************************************************/
 
 void FEventTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset)
 {
 	// todo gmp: Sequencer: implement event track section
+}
+
+
+void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddEventTrack", "Add Event Track"),
+		LOCTEXT("AddEventTooltip", "Adds a new event track that can trigger events on the timeline."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ActorAnimationEditor.Tracks.Event"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FEventTrackEditor::HandleAddEventTrackMenuEntryExecute)
+		)
+	);
 }
 
 
@@ -37,7 +53,6 @@ void FEventTrackEditor::BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, c
 	{
 		return;
 	}
-
 
 }
 
@@ -52,3 +67,15 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
 	return (Type == UMovieSceneEventTrack::StaticClass());
 }
+
+
+/* FEventTrackEditor callbacks
+ *****************************************************************************/
+
+void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
+{
+
+}
+
+
+#undef LOCTEXT_NAMESPACE

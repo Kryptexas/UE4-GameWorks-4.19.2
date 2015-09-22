@@ -794,15 +794,13 @@ void GetBindableObjects(UWidget* RootWidget, TArray<FObjectAndDisplayName>& Bind
 	}
 }
 
-TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TSharedRef<ISequencer> InSequencer)
+void FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
 	TArray<FObjectAndDisplayName> BindableObjects;
 	{
 		GetBindableObjects(GetPreview()->GetRootWidget(), BindableObjects);
 		BindableObjects.Sort();
 	}
-
-	FMenuBuilder AddMenuBuilder(true, nullptr);
 
 	if (CurrentAnimation.IsValid())
 	{
@@ -812,12 +810,10 @@ TSharedRef<SWidget> FWidgetBlueprintEditor::OnGetAnimationAddMenuContent(TShared
 			if (BoundObjectGuid.IsValid() == false)
 			{
 				FUIAction AddMenuAction(FExecuteAction::CreateSP(this, &FWidgetBlueprintEditor::AddObjectToAnimation, BindableObject.Object));
-				AddMenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
+				MenuBuilder.AddMenuEntry(BindableObject.DisplayName, FText(), FSlateIcon(), AddMenuAction);
 			}
 		}
 	}
-
-	return AddMenuBuilder.MakeWidget();
 }
 
 void FWidgetBlueprintEditor::AddObjectToAnimation(UObject* ObjectToAnimate)

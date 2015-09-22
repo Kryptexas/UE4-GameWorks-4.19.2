@@ -6,7 +6,8 @@
 /**
  * Tools for director tracks
  */
-class FShotTrackEditor : public FMovieSceneTrackEditor
+class FShotTrackEditor
+	: public FMovieSceneTrackEditor
 {
 public:
 
@@ -32,11 +33,21 @@ public:
 
 	// ISequencerTrackEditor interface
 
-	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
-	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
 	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL) override;
-	virtual void Tick(float DeltaTime) override;
+	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) override;
 	virtual void BuildObjectBindingTrackMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass) override;
+	virtual TSharedRef<ISequencerSection> MakeSectionInterface( UMovieSceneSection& SectionObject, UMovieSceneTrack* Track ) override;
+	virtual bool SupportsType( TSubclassOf<UMovieSceneTrack> Type ) const override;
+	virtual void Tick(float DeltaTime) override;
+
+protected:
+
+	/**
+	 * Gets the movie scene of the currently focused sequence.
+	 *
+	 * @return The focused movie scene, or nullptr if no scene is focused.
+	 */
+	UMovieScene* GetFocusedMovieScene() const;
 
 private:
 
@@ -50,6 +61,12 @@ private:
 	int32 FindIndexForNewShot( const TArray<UMovieSceneSection*>& ShotSections, float NewShotTime ) const;
 
 	UFactory* GetAssetFactoryForNewShot( UClass* SequenceClass );
+
+	/** Callback for determining whether the "Add Shot Track" menu entry can execute. */
+	bool HandleAddShotTrackMenuEntryCanExecute() const;
+
+	/** Callback for executing the "Add Shot Track" menu entry. */
+	void HandleAddShotTrackMenuEntryExecute();
 
 	/** Callback for executing the "Add Shot" menu entry. */
 	void HandleAddShotMenuEntryExecute(FGuid CameraGuid);

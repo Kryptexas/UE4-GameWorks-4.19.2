@@ -2287,6 +2287,14 @@ void FSequencer::BindSequencerCommands()
 	}
 }
 
+void FSequencer::BuildAddTrackMenu(class FMenuBuilder& MenuBuilder)
+{
+	for (int32 i = 0; i < TrackEditors.Num(); ++i)
+	{
+		TrackEditors[i]->BuildAddTrackMenu(MenuBuilder);
+	}
+}
+
 void FSequencer::BuildObjectBindingContextMenu(FMenuBuilder& MenuBuilder, const FGuid& ObjectBinding, const UClass* ObjectClass, FObjectBindingNode* ObjectBindingNode)
 {
 	if (IsLevelEditorSequencer())

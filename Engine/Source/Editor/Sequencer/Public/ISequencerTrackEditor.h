@@ -21,7 +21,7 @@ public:
 	 * @param ObjectGuid The Guid of the object that we are adding a key to.
 	 * @param AdditionalAsset An optional asset that can be added with the key.
 	 */
-	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = NULL) = 0;
+	virtual void AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset = nullptr) = 0;
 	
 	/**
 	 * Add a new track to the sequence.
@@ -34,6 +34,13 @@ public:
 	 * @param SequencerCommandBindings The command bindings to map to.
 	*/
 	virtual void BindCommands(TSharedRef<FUICommandList> SequencerCommandBindings) = 0;
+
+	/**
+	 * Builds up the sequencer's "Add Track" menu.
+	 *
+	 * @param MenuBuilder The menu builder to change.
+	 */
+	virtual void BuildAddTrackMenu(FMenuBuilder& MenuBuilder) = 0;
 
 	/**
 	 * Builds up the object binding context menu for the outliner.

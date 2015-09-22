@@ -202,6 +202,13 @@ public:
 	TSharedPtr<FUICommandList> GetCommandBindings() { return SequencerCommandBindings; }
 
 	/**
+	 * Builds up the sequencer's "Add Track" menu.
+	 *
+	 * @param MenuBuilder The menu builder to add things to.
+	 */
+	void BuildAddTrackMenu(class FMenuBuilder& MenuBuilder);
+
+	/**
 	 * Builds up the context menu for object binding nodes in the outliner
 	 * 
 	 * @param MenuBuilder	The context menu builder to add things to

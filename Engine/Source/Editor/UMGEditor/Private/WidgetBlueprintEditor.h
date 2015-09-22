@@ -176,7 +176,7 @@ private:
 	void UpdatePreview(UBlueprint* InBlueprint, bool bInForceFullUpdate);
 
 	/** Populates the sequencer add menu. */
-	TSharedRef<SWidget> OnGetAnimationAddMenuContent(TSharedRef<ISequencer> Sequencer);
+	void OnGetAnimationAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> Sequencer);
 
 	/** Adds the supplied UObject to the current animation. */
 	void AddObjectToAnimation(UObject* ObjectToAnimate);

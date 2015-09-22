@@ -565,49 +565,47 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 	
 	ToolBarBuilder.BeginSection("Base Commands");
 	{
-		if (OnGetAddMenuContent.IsBound())
-		{
-			ToolBarBuilder.AddWidget(
-				SNew(SComboButton)
-				.OnGetMenuContent(this, &SSequencer::MakeAddMenu)
-				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-				.ContentPadding(FMargin(2.0f, 1.0f))
-				.HasDownArrow(false)
-				.ButtonContent()
+		// Add Track menu
+		ToolBarBuilder.AddWidget(
+			SNew(SComboButton)
+			.OnGetMenuContent(this, &SSequencer::MakeAddMenu)
+			.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+			.ContentPadding(FMargin(2.0f, 1.0f))
+			.HasDownArrow(false)
+			.ButtonContent()
+			[
+				SNew(SHorizontalBox)
+
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
 				[
-					SNew(SHorizontalBox)
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+					.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
+				]
 
-					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-						.Text(FText::FromString(FString(TEXT("\xf067"))) /*fa-plus*/)
-					]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(4, 0, 0, 0)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+					.Text(LOCTEXT("AddButton", "Add"))
+				]
 
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(4, 0, 0, 0)
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-						.Text(LOCTEXT("AddButton", "Add"))
-					]
-
-					+ SHorizontalBox::Slot()
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(4, 0, 0, 0)
-					[
-						SNew(STextBlock)
-						.TextStyle(FEditorStyle::Get(), "NormalText.Important")
-						.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
-						.Text(FText::FromString(FString(TEXT("\xf0d7"))) /*fa-caret-down*/)
-					]
-				]);
-		}
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				.Padding(4, 0, 0, 0)
+				[
+					SNew(STextBlock)
+					.TextStyle(FEditorStyle::Get(), "NormalText.Important")
+					.Font(FEditorStyle::Get().GetFontStyle("FontAwesome.10"))
+					.Text(FText::FromString(FString(TEXT("\xf0d7"))) /*fa-caret-down*/)
+				]
+			]);
 
 		// General 
 		if( Sequencer.Pin()->IsLevelEditorSequencer() )
@@ -756,7 +754,21 @@ TSharedRef<SWidget> SSequencer::MakeToolBar()
 
 TSharedRef<SWidget> SSequencer::MakeAddMenu()
 {
-	return OnGetAddMenuContent.Execute(Sequencer.Pin().ToSharedRef());
+	FMenuBuilder MenuBuilder(true, nullptr);
+	{
+		// let toolkits populate the menu
+		OnGetAddMenuContent.ExecuteIfBound(MenuBuilder, Sequencer.Pin().ToSharedRef());
+
+		// let track editors populate the menu
+		TSharedPtr<FSequencer> PinnedSequencer = Sequencer.Pin();
+
+		if (PinnedSequencer.IsValid())
+		{
+			PinnedSequencer->BuildAddTrackMenu(MenuBuilder);
+		}
+	}
+
+	return MenuBuilder.MakeWidget();
 }
 
 TSharedRef<SWidget> SSequencer::MakeGeneralMenu()

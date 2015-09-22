@@ -4,10 +4,13 @@
 #include "SlomoTrackEditor.h"
 
 
+#define LOCTEXT_NAMESPACE "FSlomoTrackEditor"
+
+
 /* FSlomoTrackEditor static functions
  *****************************************************************************/
 
-TSharedRef<FMovieSceneTrackEditor> FSlomoTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
+TSharedRef<ISequencerTrackEditor> FSlomoTrackEditor::CreateTrackEditor(TSharedRef<ISequencer> InSequencer)
 {
 	return MakeShareable(new FSlomoTrackEditor(InSequencer));
 }
@@ -21,10 +24,35 @@ FSlomoTrackEditor::FSlomoTrackEditor(TSharedRef<ISequencer> InSequencer)
 { }
 
 
-/* FMovieSceneTrackEditor interface
+/* ISequencerTrackEditor interface
  *****************************************************************************/
+
+void FSlomoTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
+{
+	MenuBuilder.AddMenuEntry(
+		LOCTEXT("AddSlomoTrack", "Add Slomo Track"),
+		LOCTEXT("AddSlomoTooltip", "Adds a new slomo track that controls the playback speed of the sequence."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ActorAnimationEditor.Tracks.Slomo"),
+		FUIAction(
+			FExecuteAction::CreateRaw(this, &FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute)
+		)
+	);
+}
+
 
 bool FSlomoTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 {
 	return (Type == UMovieSceneSlomoTrack::StaticClass());
 }
+
+
+/* FSlomoTrackEditor callbacks
+ *****************************************************************************/
+
+void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
+{
+
+}
+
+
+#undef LOCTEXT_NAMESPACE
