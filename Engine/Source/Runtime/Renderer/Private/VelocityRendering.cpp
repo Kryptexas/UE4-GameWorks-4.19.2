@@ -736,7 +736,7 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
 
 	FPooledRenderTargetDesc Desc = FVelocityRendering::GetRenderTargetDesc();
-	GRenderTargetPool.FindFreeElement(Desc, VelocityRT, TEXT("Velocity"));
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VelocityRT, TEXT("Velocity"));
 
 	{
 		static const auto MotionBlurDebugVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MotionBlurDebug"));

@@ -1229,8 +1229,8 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 			}
 
-			RHICmdList.CopyToResolveTarget(SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
-				SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			//RHICmdList.CopyToResolveTarget(SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().TargetableTexture,
+				//SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex]->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 	}
 }
@@ -1604,8 +1604,8 @@ static void InjectTranslucentLightArray(FRHICommandListImmediate& RHICmdList, co
 			}
 		}
 
-		RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture, RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-		RHICmdList.CopyToResolveTarget(RT1->GetRenderTargetItem().TargetableTexture, RT1->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		//RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture, RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+		//RHICmdList.CopyToResolveTarget(RT1->GetRenderTargetItem().TargetableTexture, RT1->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 	}
 }
 
@@ -1787,8 +1787,8 @@ void FDeferredShadingSceneRenderer::InjectSimpleTranslucentVolumeLightingArray(F
 				}
 			}
 
-			RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture, RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-			RHICmdList.CopyToResolveTarget(RT1->GetRenderTargetItem().TargetableTexture, RT1->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			//RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture, RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+			//RHICmdList.CopyToResolveTarget(RT1->GetRenderTargetItem().TargetableTexture, RT1->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
 		}
 	}
 }
@@ -1800,6 +1800,7 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering)
 	{
 		FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
+#if 0
 		// textures have to be finalized before reading.
 		for (int32 VolumeCascadeIndex = 0; VolumeCascadeIndex < TVC_MAX; VolumeCascadeIndex++)
 		{
@@ -1810,6 +1811,7 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 			RHICmdList.CopyToResolveTarget(TargetTexture0, TargetTexture0, true, FResolveParams());
 			RHICmdList.CopyToResolveTarget(TargetTexture1, TargetTexture1, true, FResolveParams());
 		}
+#endif
 
 		if (GUseTranslucencyVolumeBlur)
 		{
@@ -1825,12 +1827,28 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 				const IPooledRenderTarget* RT0 = SceneContext.GetTranslucencyVolumeAmbient((ETranslucencyVolumeCascade)VolumeCascadeIndex);
 				const IPooledRenderTarget* RT1 = SceneContext.GetTranslucencyVolumeDirectional((ETranslucencyVolumeCascade)VolumeCascadeIndex);
 
+				const IPooledRenderTarget* Input0 = SceneContext.TranslucencyLightingVolumeAmbient[VolumeCascadeIndex];
+				const IPooledRenderTarget* Input1 = SceneContext.TranslucencyLightingVolumeDirectional[VolumeCascadeIndex];								
+
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT0);
 				GRenderTargetPool.VisualizeTexture.SetCheckPoint(RHICmdList, RT1);
 
 				FTextureRHIParamRef RenderTargets[2];
 				RenderTargets[0] = RT0->GetRenderTargetItem().TargetableTexture;
 				RenderTargets[1] = RT1->GetRenderTargetItem().TargetableTexture;
+
+				FTextureRHIParamRef Inputs[2];
+				Inputs[0] = Input0->GetRenderTargetItem().TargetableTexture;
+				Inputs[1] = Input1->GetRenderTargetItem().TargetableTexture;
+
+				static_assert(TVC_MAX == 2, "Final transition logic should change");
+
+				//the volume textures should still be writable from the injection phase on the first loop.
+				if (VolumeCascadeIndex > 0)
+				{
+					RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, RenderTargets, 2);
+				}
+				RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, Inputs, 2);
 
 				SetRenderTargets(RHICmdList, ARRAY_COUNT(RenderTargets), RenderTargets, FTextureRHIRef(), 0, NULL);
 
@@ -1855,8 +1873,11 @@ void FDeferredShadingSceneRenderer::FilterTranslucentVolumeLighting(FRHICommandL
 
 				RasterizeToVolumeTexture(RHICmdList, VolumeBounds);
 
-				RHICmdList.CopyToResolveTarget(RT0->GetRenderTargetItem().TargetableTexture, RT0->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
-				RHICmdList.CopyToResolveTarget(RT1->GetRenderTargetItem().TargetableTexture, RT1->GetRenderTargetItem().ShaderResourceTexture, true, FResolveParams());
+				//only do readable transition on the final loop since the other ones will do this up front.
+				//if (VolumeCascadeIndex == TVC_MAX - 1)
+				{					
+					RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);
+				}
 			}
 		}
 	}

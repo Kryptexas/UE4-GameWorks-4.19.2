@@ -449,7 +449,7 @@ void AllocateOrReuseLightShaftRenderTarget(FRHICommandListImmediate& RHICmdList,
 		const FIntPoint BufferSize = FSceneRenderTargets::Get(RHICmdList).GetBufferSizeXY();
 		FIntPoint LightShaftSize(FMath::Max<uint32>(BufferSize.X / GetLightShaftDownsampleFactor(), 1), FMath::Max<uint32>(BufferSize.Y / GetLightShaftDownsampleFactor(), 1));
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(LightShaftSize, LightShaftFilterBufferFormat, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
-		GRenderTargetPool.FindFreeElement(Desc, Target, Name);
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Target, Name);
 
 		SetRenderTarget(RHICmdList, Target->GetRenderTargetItem().TargetableTexture, FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
 	}
@@ -542,7 +542,7 @@ void ApplyTemporalAA(
 		{
 			FMemMark Mark(FMemStack::Get());
 			FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-			FPostprocessContext Context(CompositeContext.Graph, View);
+			FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 			// Nodes for input render targets
 			FRenderingCompositePass* LightShaftSetup = Context.Graph.RegisterPass( new(FMemStack::Get()) FRCPassPostProcessInput( LightShaftsSource ) );

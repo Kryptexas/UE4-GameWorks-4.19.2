@@ -593,7 +593,7 @@ public:
 	bool IsDistanceCulled(float DistanceSquared, float MaxDrawDistance, float MinDrawDistance, const FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/** Gets the eye adaptation render target for this view. */
-	IPooledRenderTarget* GetEyeAdaptation() const;
+	IPooledRenderTarget* GetEyeAdaptation(FRHICommandList& RHICmdList) const;
 
 	/** Tells if the eyeadaptation texture exists without attempting to allocate it. */
 	bool HasValidEyeAdaptation() const;

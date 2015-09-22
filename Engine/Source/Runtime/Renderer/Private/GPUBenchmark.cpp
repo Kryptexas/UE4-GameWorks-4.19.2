@@ -314,14 +314,14 @@ void RendererGPUBenchmark(FRHICommandListImmediate& RHICmdList, FSynthBenchmarkR
 	TRefCountPtr<IPooledRenderTarget> RTItems[3];
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(GBenchmarkResolution, GBenchmarkResolution), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false));
-		GRenderTargetPool.FindFreeElement(Desc, RTItems[0], TEXT("Benchmark0"));
-		GRenderTargetPool.FindFreeElement(Desc, RTItems[1], TEXT("Benchmark1"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RTItems[0], TEXT("Benchmark0"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RTItems[1], TEXT("Benchmark1"));
 
 		Desc.Extent = FIntPoint(1, 1);
 		Desc.Flags = TexCreate_CPUReadback;	// needs TexCreate_ResolveTargetable?
 		Desc.TargetableFlags = TexCreate_None;
 
-		GRenderTargetPool.FindFreeElement(Desc, RTItems[2], TEXT("BenchmarkReadback"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, RTItems[2], TEXT("BenchmarkReadback"));
 	}
 
 	// set the state

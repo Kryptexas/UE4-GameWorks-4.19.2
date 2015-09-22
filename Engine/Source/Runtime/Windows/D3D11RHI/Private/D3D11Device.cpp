@@ -42,6 +42,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory1* InDXGIFactory1,D3D_FEATURE_LEV
 	NumSimultaneousRenderTargets(0),
 	NumUAVs(0),
 	SceneFrameCounter(0),
+	PresentCounter(0),
 	ResourceTableFrameCounter(INDEX_NONE),
 	CurrentDSVAccessType(FExclusiveDepthStencil::DepthWrite_StencilWrite),
 	bDiscardSharedConstants(false),

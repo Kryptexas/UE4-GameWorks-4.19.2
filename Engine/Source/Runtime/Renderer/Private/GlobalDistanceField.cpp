@@ -512,7 +512,7 @@ void AddUpdateRegionForPrimitive(const FVector4& Bounds, float MaxSphereQueryRad
 	}
 }
 
-void AllocateClipmapTexture(int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget>& Texture)
+void AllocateClipmapTexture(FRHICommandListImmediate& RHICmdList, int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget>& Texture)
 {
 	const TCHAR* TextureName = TEXT("GlobalDistanceField0");
 
@@ -530,6 +530,7 @@ void AllocateClipmapTexture(int32 ClipmapIndex, TRefCountPtr<IPooledRenderTarget
 	}
 
 	GRenderTargetPool.FindFreeElement(
+		RHICmdList,
 		FPooledRenderTargetDesc(FPooledRenderTargetDesc::CreateVolumeDesc(
 			GAOGlobalDFResolution,
 			GAOGlobalDFResolution,
@@ -571,7 +572,7 @@ float ComputeClipmapExtent(int32 ClipmapIndex)
 	return GAOInnerGlobalDFClipmapDistance * FMath::Pow(GAOGlobalDFClipmapDistanceExponent, ClipmapIndex);
 }
 
-void ComputeUpdateRegionsAndUpdateViewState(const FViewInfo& View, FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 NumClipmaps, const TArray<FVector4>& PrimitiveModifiedBounds, float MaxOcclusionDistance)
+void ComputeUpdateRegionsAndUpdateViewState(FRHICommandListImmediate& RHICmdList, const FViewInfo& View, FGlobalDistanceFieldInfo& GlobalDistanceFieldInfo, int32 NumClipmaps, const TArray<FVector4>& PrimitiveModifiedBounds, float MaxOcclusionDistance)
 {
 	GlobalDistanceFieldInfo.Clipmaps.AddZeroed(NumClipmaps);
 
@@ -593,7 +594,7 @@ void ComputeUpdateRegionsAndUpdateViewState(const FViewInfo& View, FGlobalDistan
 
 			if (!RenderTarget || RenderTarget->GetDesc().Extent.X != GAOGlobalDFResolution)
 			{
-				AllocateClipmapTexture(ClipmapIndex, RenderTarget);
+				AllocateClipmapTexture(RHICmdList, ClipmapIndex, RenderTarget);
 				bReallocated = true;
 			}
 
@@ -715,7 +716,7 @@ void ComputeUpdateRegionsAndUpdateViewState(const FViewInfo& View, FGlobalDistan
 		for (int32 ClipmapIndex = 0; ClipmapIndex < NumClipmaps; ClipmapIndex++)
 		{
 			FGlobalDistanceFieldClipmap& Clipmap = GlobalDistanceFieldInfo.Clipmaps[ClipmapIndex];
-			AllocateClipmapTexture(ClipmapIndex, Clipmap.RenderTarget);
+			AllocateClipmapTexture(RHICmdList, ClipmapIndex, Clipmap.RenderTarget);
 			Clipmap.ScrollOffset = FVector::ZeroVector;
 
 			const float Extent = ComputeClipmapExtent(ClipmapIndex);
@@ -757,7 +758,7 @@ void UpdateGlobalDistanceFieldVolume(
 {
 	if (Scene->DistanceFieldSceneData.NumObjectsInBuffer > 0)
 	{
-		ComputeUpdateRegionsAndUpdateViewState(View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
+		ComputeUpdateRegionsAndUpdateViewState(RHICmdList, View, GlobalDistanceFieldInfo, GMaxGlobalDistanceFieldClipmaps, Scene->DistanceFieldSceneData.PrimitiveModifiedBounds, MaxOcclusionDistance);
 
 		bool bHasUpdateRegions = false;
 

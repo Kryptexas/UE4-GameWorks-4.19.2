@@ -271,7 +271,7 @@ void FMaterialShader::SetParameters(
 	//Use of the eye adaptation texture here is experimental and potentially dangerous as it can introduce a feedback loop. May be removed.
 	if(EyeAdaptation.IsBound())
 	{
-		FTextureRHIRef& EyeAdaptationTex = GetEyeAdaptation(View);
+		FTextureRHIRef& EyeAdaptationTex = GetEyeAdaptation(RHICmdList, View);
 		SetTextureParameter(RHICmdList, ShaderRHI, EyeAdaptation, EyeAdaptationTex);
 	}
 
@@ -355,13 +355,13 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	return bShaderHasOutdatedParameters;
 }
 
-FTextureRHIRef& FMaterialShader::GetEyeAdaptation(const FSceneView& View)
+FTextureRHIRef& FMaterialShader::GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View)
 {
 	IPooledRenderTarget* EyeAdaptationRT = NULL;
 	if( View.bIsViewInfo )
 	{
 		const FViewInfo& ViewInfo = static_cast<const FViewInfo&>(View);
-		EyeAdaptationRT = ViewInfo.GetEyeAdaptation();
+		EyeAdaptationRT = ViewInfo.GetEyeAdaptation(RHICmdList);
 	}
 
 	if( EyeAdaptationRT )

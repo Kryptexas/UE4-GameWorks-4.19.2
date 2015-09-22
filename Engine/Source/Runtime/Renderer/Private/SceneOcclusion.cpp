@@ -520,8 +520,9 @@ void FHZBOcclusionTester::InitDynamicRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_CPUReadback | TexCreate_HideInVisualizeTexture, TexCreate_None, false ) );
-		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureCPU, TEXT("HZBResultsCPU") );
 	}
 }
 
@@ -718,14 +719,14 @@ void FHZBOcclusionTester::Submit(FRHICommandListImmediate& RHICmdList, const FVi
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_Dynamic;
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_A32B32G32R32F, FClearValueBinding::None, Flags, TexCreate_None, false ) );
 
-		GRenderTargetPool.FindFreeElement( Desc, BoundsCenterTexture, TEXT("HZBBoundsCenter") );
-		GRenderTargetPool.FindFreeElement( Desc, BoundsExtentTexture, TEXT("HZBBoundsExtent") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BoundsCenterTexture, TEXT("HZBBoundsCenter") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BoundsExtentTexture, TEXT("HZBBoundsExtent") );
 	}
 
 	TRefCountPtr< IPooledRenderTarget >	ResultsTextureGPU;
 	{
 		FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( FIntPoint( SizeX, SizeY ), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false ) );
-		GRenderTargetPool.FindFreeElement( Desc, ResultsTextureGPU, TEXT("HZBResultsGPU") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ResultsTextureGPU, TEXT("HZBResultsGPU") );
 	}
 
 	{
@@ -988,10 +989,11 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(HZBSize, PF_R16F, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource | TexCreate_NoFastClear, false, NumMips));
 	Desc.Flags |= TexCreate_FastVRAM;
-	GRenderTargetPool.FindFreeElement( Desc, View.HZB, TEXT("HZB") );
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, View.HZB, TEXT("HZB") );
 	
 	FSceneRenderTargetItem& HZBRenderTarget = View.HZB->GetRenderTargetItem();
 	
+	FTextureRHIParamRef HZBRenderTargetRef = HZBRenderTarget.TargetableTexture.GetReference();
 	// Mip 0
 	{
 		SCOPED_DRAW_EVENTF(RHICmdList, BuildHZB, TEXT("HZB SetupMip 0 %dx%d"), HZBSize.X, HZBSize.Y);
@@ -1024,7 +1026,8 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
-		RHICmdList.CopyToResolveTarget(HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, 0));
+		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, &HZBRenderTargetRef, 1);
 	}
 
 	FIntPoint SrcSize = HZBSize;
@@ -1065,10 +1068,11 @@ void BuildHZB( FRHICommandListImmediate& RHICmdList, FViewInfo& View )
 			*VertexShader,
 			EDRF_UseTriangleOptimization);
 
-		RHICmdList.CopyToResolveTarget(HZBRenderTarget.TargetableTexture, HZBRenderTarget.ShaderResourceTexture, false, FResolveParams(FResolveRect(), CubeFace_PosX, MipIndex));
-
 		SrcSize /= 2;
 		DstSize /= 2;
+
+		//Use RWBarrier since we don't transition individual subresources.  Basically treat the whole texture as R/W as we walk down the mip chain.
+		RHICmdList.TransitionResources(EResourceTransitionAccess::ERWBarrier, &HZBRenderTargetRef, 1);
 	}
 
 	GRenderTargetPool.VisualizeTexture.SetCheckPoint( RHICmdList, View.HZB );

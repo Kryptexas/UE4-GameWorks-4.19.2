@@ -348,7 +348,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredLighting(FRHICommandListI
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				Desc.TargetableFlags |= TexCreate_UAV;
 
-				GRenderTargetPool.FindFreeElement( Desc, OutTexture, TEXT("SceneColorTiled") );
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutTexture, TEXT("SceneColorTiled") );
 			}
 
 			{

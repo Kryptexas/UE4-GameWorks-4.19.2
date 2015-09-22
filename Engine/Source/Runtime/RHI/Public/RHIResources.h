@@ -825,6 +825,12 @@ public:
 	{
 		return ExtractStencil() == StencilWrite;
 	}
+
+	inline bool IsAnyWrite() const
+	{
+		return IsDepthWrite() || IsStencilWrite();
+	}
+
 	inline void SetDepthWrite()
 	{
 		Value = (Type)(ExtractStencil() | DepthWrite);

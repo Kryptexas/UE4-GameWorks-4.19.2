@@ -894,6 +894,7 @@ const FSceneRenderTargetItem& FRenderingCompositeOutput::RequestSurface(const FR
 {
 	if(PooledRenderTarget)
 	{
+		Context.RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, PooledRenderTarget->GetRenderTargetItem().TargetableTexture);
 		return PooledRenderTarget->GetRenderTargetItem();
 	}
 
@@ -907,7 +908,7 @@ const FSceneRenderTargetItem& FRenderingCompositeOutput::RequestSurface(const FR
 
 	if(!PooledRenderTarget)
 	{
-		GRenderTargetPool.FindFreeElement(RenderTargetDesc, PooledRenderTarget, RenderTargetDesc.DebugName);
+		GRenderTargetPool.FindFreeElement(Context.RHICmdList, RenderTargetDesc, PooledRenderTarget, RenderTargetDesc.DebugName);
 	}
 
 	check(!PooledRenderTarget->IsFree());

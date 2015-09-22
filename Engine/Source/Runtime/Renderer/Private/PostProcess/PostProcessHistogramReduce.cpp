@@ -60,7 +60,7 @@ public:
 		{
 			if (Context.View.HasValidEyeAdaptation())
 			{
-				IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation();
+				IPooledRenderTarget* EyeAdaptationRT = Context.View.GetEyeAdaptation(Context.RHICmdList);
 				SetTextureParameter(Context.RHICmdList, ShaderRHI, EyeAdaptationTexture, EyeAdaptationRT->GetRenderTargetItem().TargetableTexture);
 			}
 			else

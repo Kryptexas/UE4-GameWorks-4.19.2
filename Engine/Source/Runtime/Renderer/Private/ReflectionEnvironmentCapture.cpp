@@ -667,7 +667,7 @@ int32 FindOrAllocateCubemapIndex(FScene* Scene, const UReflectionCaptureComponen
 void ClearScratchCubemaps(FRHICommandList& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SceneContext.AllocateReflectionTargets();
+	SceneContext.AllocateReflectionTargets(RHICmdList);
 	// Clear scratch render targets to a consistent but noticeable value
 	// This makes debugging capture issues much easier, otherwise the random contents from previous captures is shown
 

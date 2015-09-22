@@ -142,7 +142,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 		Desc.Format = PF_A16B16G16R16;
 	}
 
-	GetRendererModule().RenderTargetPoolFindFreeElement(Desc, GSSProfiles, TEXT("SSProfiles"));
+	GetRendererModule().RenderTargetPoolFindFreeElement(RHICmdList, Desc, GSSProfiles, TEXT("SSProfiles"));
 
 	// Write the contents of the texture.
 	uint32 DestStride;

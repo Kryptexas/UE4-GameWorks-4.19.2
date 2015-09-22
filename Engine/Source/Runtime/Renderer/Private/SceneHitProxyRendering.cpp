@@ -334,7 +334,7 @@ TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& R
 
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	// Allocate the maximum scene render target space for the current view family.
-	SceneContext.Allocate(ViewFamily);
+	SceneContext.Allocate(RHICmdList, ViewFamily);
 
 	TRefCountPtr<IPooledRenderTarget> HitProxyRT;
 
@@ -342,7 +342,7 @@ TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& R
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(SceneContext.GetBufferSizeXY(), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
 		Desc.Flags |= TexCreate_FastVRAM;
-		GRenderTargetPool.FindFreeElement(Desc, HitProxyRT, TEXT("HitProxy"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, HitProxyRT, TEXT("HitProxy"));
 	}
 
 	if (!HitProxyRT)
@@ -351,7 +351,7 @@ TRefCountPtr<IPooledRenderTarget> InitHitProxyRender(FRHICommandListImmediate& R
 		return HitProxyRT;
 	}
 
-	SetRenderTarget(RHICmdList, HitProxyRT->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite);
+	SetRenderTarget(RHICmdList, HitProxyRT->GetRenderTargetItem().TargetableTexture, SceneContext.GetSceneDepthSurface(), ESimpleRenderTargetMode::EExistingColorAndDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
 
 	// Clear color for each view.
 	auto& Views = SceneRenderer->Views;

@@ -65,6 +65,7 @@ FAutoConsoleVariableRef CVarHeightfieldTargetUnitsPerTexel(
 
 void FHeightfieldLightingAtlas::InitDynamicRHI()
 {
+	FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 	if (AtlasSize.GetMin() > 0)
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(
@@ -75,7 +76,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(Desc, Height, TEXT("HeightAtlas"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Height, TEXT("HeightAtlas"));
 
 		FPooledRenderTargetDesc Desc2(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -85,7 +86,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(Desc2, Normal, TEXT("NormalAtlas"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc2, Normal, TEXT("NormalAtlas"));
 
 		FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -95,7 +96,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(Desc3, DiffuseColor, TEXT("DiffuseColorAtlas"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc3, DiffuseColor, TEXT("DiffuseColorAtlas"));
 
 		FPooledRenderTargetDesc Desc4(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -105,7 +106,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(Desc4, DirectionalLightShadowing, TEXT("HeightfieldShadowingAtlas"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc4, DirectionalLightShadowing, TEXT("HeightfieldShadowingAtlas"));
 
 		FPooledRenderTargetDesc Desc5(FPooledRenderTargetDesc::Create2DDesc(
 			AtlasSize,
@@ -115,7 +116,7 @@ void FHeightfieldLightingAtlas::InitDynamicRHI()
 			TexCreate_RenderTargetable,
 			false));
 
-		GRenderTargetPool.FindFreeElement(Desc5, Lighting, TEXT("HeightfieldLightingAtlas"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc5, Lighting, TEXT("HeightfieldLightingAtlas"));
 	}
 }
 

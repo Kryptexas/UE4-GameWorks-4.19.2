@@ -760,7 +760,7 @@ void FCanvas::Flush_GameThread(bool bForce)
 		SCOPED_DRAW_EVENT(RHICmdList, CanvasFlush);
 
 		// Set the RHI render target.
-		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+		::SetRenderTarget(RHICmdList, Parameters.CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 		// disable depth test & writes
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false,CF_Always>::GetRHI());
 
@@ -897,7 +897,7 @@ void FCanvas::Clear(const FLinearColor& LinearColor)
 		SCOPED_DRAW_EVENT(RHICmdList, CanvasClear);
 		if( CanvasRenderTarget )
 		{
-			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef());
+			::SetRenderTarget(RHICmdList, CanvasRenderTarget->GetRenderTargetTexture(), FTextureRHIRef(), true);
 			RHICmdList.SetViewport(0, 0, 0.0f, CanvasRenderTarget->GetSizeXY().X, CanvasRenderTarget->GetSizeXY().Y, 1.0f);
 		}
 		RHICmdList.Clear(true, ClearColor, false, 0.0f, false, 0, FIntRect());

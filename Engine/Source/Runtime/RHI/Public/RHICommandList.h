@@ -788,6 +788,56 @@ struct FRHICommandCopyToResolveTarget : public FRHICommand<FRHICommandCopyToReso
 	RHI_API void Execute(FRHICommandListBase& CmdList);
 };
 
+struct FRHICommandTransitionTextures : public FRHICommand<FRHICommandTransitionTextures>
+{
+	static const int32 MaxTexturesToTransition = 16;
+	int32 NumTextures;
+	FTextureRHIParamRef Textures[MaxTexturesToTransition];
+	EResourceTransitionAccess TransitionType;
+	FORCEINLINE_DEBUGGABLE FRHICommandTransitionTextures(EResourceTransitionAccess InTransitionType, FTextureRHIParamRef* InTextures, int32 InNumTextures)
+		: NumTextures(InNumTextures)
+		, TransitionType(InTransitionType)
+	{
+		for (int32 i = 0; i < NumTextures; ++i)
+		{
+			Textures[i] = InTextures[i];
+		}
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandTransitionTexturesArray : public FRHICommand<FRHICommandTransitionTexturesArray>
+{	
+	TArray<FTextureRHIParamRef>& Textures;
+	EResourceTransitionAccess TransitionType;
+	FORCEINLINE_DEBUGGABLE FRHICommandTransitionTexturesArray(EResourceTransitionAccess InTransitionType, TArray<FTextureRHIParamRef>& InTextures)
+		: Textures(InTextures)
+		, TransitionType(InTransitionType)
+	{		
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
+struct FRHICommandTransitionUAVs : public FRHICommand<FRHICommandTransitionUAVs>
+{
+	static const int32 MaxUAVsToTransition = 16;
+	int32 NumUAVs;
+	FUnorderedAccessViewRHIParamRef UAVs[MaxUAVsToTransition];
+	EResourceTransitionAccess TransitionType;
+	EResourceTransitionPipeline TransitionPipeline;
+	FORCEINLINE_DEBUGGABLE FRHICommandTransitionUAVs(EResourceTransitionAccess InTransitionType, EResourceTransitionPipeline InTransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 InNumUAVs)
+		: NumUAVs(InNumUAVs)
+		, TransitionType(InTransitionType)
+		, TransitionPipeline(InTransitionPipeline)
+	{
+		for (int32 i = 0; i < NumUAVs; ++i)
+		{
+			UAVs[i] = InUAVs[i];
+		}
+	}
+	RHI_API void Execute(FRHICommandListBase& CmdList);
+};
+
 struct FRHICommandClear : public FRHICommand<FRHICommandClear>
 {
 	FLinearColor Color;
@@ -1796,7 +1846,38 @@ public:
 			return;
 		}
 		new (AllocCommand<FRHICommandSubmitCommandsHint>()) FRHICommandSubmitCommandsHint();
-	}	
+	}
+
+	FORCEINLINE_DEBUGGABLE void TransitionResource(EResourceTransitionAccess TransitionType, FTextureRHIParamRef InTexture)
+	{
+		FTextureRHIParamRef Texture = InTexture;
+		if (Bypass())
+		{
+			CMD_CONTEXT(TransitionResources)(TransitionType, &Texture, 1);
+			return;
+		}
+		new (AllocCommand<FRHICommandTransitionTextures>()) FRHICommandTransitionTextures(TransitionType, &Texture, 1);
+	}
+
+	FORCEINLINE_DEBUGGABLE void TransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(TransitionResources)(TransitionType, InTextures, NumTextures);
+			return;
+		}
+		new (AllocCommand<FRHICommandTransitionTextures>()) FRHICommandTransitionTextures(TransitionType, InTextures, NumTextures);
+	}
+
+	FORCEINLINE_DEBUGGABLE void TransitionResourceArrayNoCopy(EResourceTransitionAccess TransitionType, TArray<FTextureRHIParamRef>& InTextures)
+	{
+		if (Bypass())
+		{
+			CMD_CONTEXT(TransitionResources)(TransitionType, &InTextures[0], InTextures.Num());
+			return;
+		}
+		new (AllocCommand<FRHICommandTransitionTexturesArray>()) FRHICommandTransitionTexturesArray(TransitionType, InTextures);
+	}
 
 // These 6 are special in that they must be called on the immediate command list and they force a flush only when we are not doing RHI thread
 	void BeginScene();

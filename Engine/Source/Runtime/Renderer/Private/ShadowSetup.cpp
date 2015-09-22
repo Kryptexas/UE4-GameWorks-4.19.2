@@ -2404,7 +2404,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 				const int32 NumHigh = FMath::Min(((NumWholeSceneShadows - 1) / MaxWide) + 1, MaxHigh);
 
 				const FIntPoint AtlasShadowBufferResolution(ShadowBufferResolution.X * NumWide, ShadowBufferResolution.Y * NumHigh);
-				SceneContext.AllocateForwardShadingShadowDepthTarget(AtlasShadowBufferResolution);
+				SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, AtlasShadowBufferResolution);
 
 				// Allocate atlas shadow texture space to the shadows.
 				FTextureLayout ShadowLayout(1, 1, AtlasShadowBufferResolution.X, AtlasShadowBufferResolution.Y, false, false);
@@ -2428,7 +2428,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 				// Per obj projected shadows are in use. Ensure the shadow depth target is available for modulated shadow use later.
 				FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 				const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
-				SceneContext.AllocateForwardShadingShadowDepthTarget(ShadowBufferResolution);
+				SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, ShadowBufferResolution);
 			}
 		}
 

@@ -163,6 +163,57 @@ public:
 /** The base class of resources that may be bound as shader resources. */
 class FD3D11BaseShaderResource : public IRefCountedObject
 {
+public:
+	FD3D11BaseShaderResource()
+		: CurrentGPUAccess(EResourceTransitionAccess::EReadable)
+		, LastFrameWritten(-1)
+		, bDirty(false)
+	{}
+
+	void SetCurrentGPUAccess(EResourceTransitionAccess Access, uint32 CurrentFrame)
+	{
+		if (Access == EResourceTransitionAccess::EReadable)
+		{
+			bDirty = false;
+		}
+		else
+		{
+			LastFrameWritten = CurrentFrame;
+			bDirty = true;
+		}		
+		CurrentGPUAccess = Access;
+	}
+
+	EResourceTransitionAccess GetCurrentGPUAccess() const
+	{
+		return CurrentGPUAccess;
+	}
+
+	uint32 GetLastFrameWritten() const
+	{
+		return LastFrameWritten;
+	}
+
+	void SetDirty()
+	{
+		bDirty = true;
+	}
+
+	bool IsDirty() const
+	{
+		return bDirty;
+	}
+
+private:
+	
+	/** Whether the current resource is logically GPU readable or writable.  Mostly for validation for newer RHI's*/
+	EResourceTransitionAccess CurrentGPUAccess;
+
+	/** Most recent frame this resource was written to. */
+	uint32 LastFrameWritten;
+
+	/** Resource has been written to without a subsequent read barrier.  Mostly for UAVs */
+	bool bDirty;
 };
 
 /** Texture base class. */
@@ -285,8 +336,7 @@ protected:
 	TRefCountPtr<ID3D11DepthStencilView> DepthStencilViews[FExclusiveDepthStencil::MaxIndex];
 
 	/** Number of Depth Stencil Views - used for fast call tracking. */
-	uint32	NumDepthStencilViews;
-
+	uint32	NumDepthStencilViews;	
 };
 
 /** 2D texture (vanilla, cubemap or 2D array) */
@@ -618,7 +668,8 @@ public:
 
 	/** Cached resources need to retain the associated shader resource for bookkeeping purposes. */
 	struct FResourcePair
-	{
+	{		
+		FName ResourceName;
 		FD3D11BaseShaderResource* ShaderResource;
 		IUnknown* D3D11Resource;
 	};
@@ -699,7 +750,9 @@ public:
 	FD3D11StructuredBuffer(ID3D11Buffer* InResource, uint32 InStride, uint32 InSize, uint32 InUsage)
 	: FRHIStructuredBuffer(InStride,InSize,InUsage)
 	, Resource(InResource)
-	{}
+	{
+		SetCurrentGPUAccess(EResourceTransitionAccess::ERWBarrier, -1);
+	}
 
 	virtual ~FD3D11StructuredBuffer()
 	{
@@ -773,8 +826,8 @@ class FD3D11UnorderedAccessView : public FRHIUnorderedAccessView
 public:
 	
 	TRefCountPtr<ID3D11UnorderedAccessView> View;
-	TRefCountPtr<FD3D11BaseShaderResource> Resource;
-
+	TRefCountPtr<FD3D11BaseShaderResource> Resource;	
+	
 	FD3D11UnorderedAccessView(ID3D11UnorderedAccessView* InView,FD3D11BaseShaderResource* InResource)
 	: View(InView)
 	, Resource(InResource)

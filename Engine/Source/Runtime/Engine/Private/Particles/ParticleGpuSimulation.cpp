@@ -218,6 +218,11 @@ public:
 			VelocityTextureRHI
 			);
 
+		static FName PositionTextureName(TEXT("ParticleStatePosition"));
+		static FName VelocityTextureName(TEXT("ParticleStateVelocity"));
+		PositionTextureTargetRHI->SetName(PositionTextureName);
+		VelocityTextureTargetRHI->SetName(VelocityTextureName);
+
 		bTexturesCleared = false;
 	}
 
@@ -266,6 +271,9 @@ public:
 			TextureTargetRHI,
 			TextureRHI
 			);
+
+		static FName AttributesTextureName(TEXT("ParticleAttributes"));	
+		TextureTargetRHI->SetName(AttributesTextureName);		
 	}
 
 	/**
@@ -4184,6 +4192,38 @@ bool FFXSystem::UsesGlobalDistanceFieldInternal() const
 	return false;
 }
 
+void FFXSystem::PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList)
+{
+	// Grab resources.
+	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+
+	// Setup render states.
+	FTextureRHIParamRef RenderTargets[2] =
+	{
+		CurrentStateTextures.PositionTextureTargetRHI,
+		CurrentStateTextures.VelocityTextureTargetRHI,
+	};
+
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, RenderTargets, 2);
+}
+
+void FFXSystem::FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList)
+{
+	// Grab resources.
+	FParticleStateTextures& CurrentStateTextures = ParticleSimulationResources->GetCurrentStateTextures();
+	FParticleStateTextures& PrevStateTextures = ParticleSimulationResources->GetPreviousStateTextures();
+
+	// Setup render states.
+	FTextureRHIParamRef RenderTargets[2] =
+	{
+		CurrentStateTextures.PositionTextureTargetRHI,
+		CurrentStateTextures.VelocityTextureTargetRHI,
+	};
+	
+	RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, RenderTargets, 2);	
+}
+
 void FFXSystem::SimulateGPUParticles(
 	FRHICommandListImmediate& RHICmdList,
 	EParticleSimulatePhase::Type Phase,
@@ -4410,7 +4450,7 @@ void FFXSystem::SimulateGPUParticles(
 			ParticleSimulationResources->RenderAttributesTexture.TextureTargetRHI,
 			ParticleSimulationResources->SimulationAttributesTexture.TextureTargetRHI
 		};
-		SetRenderTargets(RHICmdList, 4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL);
+		SetRenderTargets(RHICmdList, 4, InjectRenderTargets, FTextureRHIParamRef(), 0, NULL, true);
 		RHICmdList.SetViewport(0, 0, 0.0f, GParticleSimulationTextureSizeX, GParticleSimulationTextureSizeY, 1.0f);
 		RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 		RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());
@@ -4437,10 +4477,6 @@ void FFXSystem::SimulateGPUParticles(
 	SimulationCommands.Reset();
 	TilesToClear.Reset();
 	NewParticles.Reset();
-
-	// Resolve all textures.
-	RHICmdList.CopyToResolveTarget(CurrentStateTextures.PositionTextureTargetRHI, CurrentStateTextures.PositionTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
-	RHICmdList.CopyToResolveTarget(CurrentStateTextures.VelocityTextureTargetRHI, CurrentStateTextures.VelocityTextureRHI, /*bKeepOriginalSurface=*/ false, FResolveParams());
 
 	// Clear render targets so we can safely read from them.
 	SetRenderTarget(RHICmdList, FTextureRHIParamRef(), FTextureRHIParamRef());

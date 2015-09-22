@@ -1113,7 +1113,7 @@ const TArray<FColor>& FViewport::GetRawHitProxyData(FIntRect InRect)
 			{
 			// Set the hit proxy map's render target.
 			// Clear the hit proxy map to white, which is overloaded to mean no hit proxy.
-			SetRenderTarget(RHICmdList, Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth);
+			SetRenderTarget(RHICmdList, Viewport->HitProxyMap.GetRenderTargetTexture(), FTextureRHIRef(), ESimpleRenderTargetMode::EClearColorExistingDepth, FExclusiveDepthStencil::DepthWrite_StencilWrite, true);
 		});
 
 		// Let the viewport client draw its hit proxies.

@@ -916,7 +916,7 @@ static FTranslucencyDrawingPolicyFactory::ContextType GParallelTranslucencyConte
 void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
-	SceneContext.AllocLightAttenuation(); // materials will attempt to get this texture before the deferred command to set it up executes
+	SceneContext.AllocLightAttenuation(RHICmdList); // materials will attempt to get this texture before the deferred command to set it up executes
 	check(IsInRenderingThread());
 
 
@@ -935,7 +935,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 			{
 				FSceneViewState* ViewState = (FSceneViewState*)View.State;
 				// we need to allocate this now so it ends up in the snapshot
-				ViewState->GetSeparateTranslucency(SceneContext.GetBufferSizeXY());
+				ViewState->GetSeparateTranslucency(RHICmdList, SceneContext.GetBufferSizeXY());
 			}
 			FTranslucencyPassParallelCommandListSet ParallelCommandListSet(View, RHICmdList, 
 				CVarRHICmdTranslucencyPassDeferredContexts.GetValueOnRenderThread() > 0, 

@@ -256,7 +256,7 @@ void FCompositionLighting::ProcessBeforeBasePass(FRHICommandListImmediate& RHICm
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 		// Add the passes we want to add to the graph (commenting a line means the pass is not inserted into the graph) ----------
 
@@ -301,7 +301,7 @@ void FCompositionLighting::ProcessAfterBasePass(FRHICommandListImmediate& RHICmd
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 		// Add the passes we want to add to the graph ----------
 		
@@ -356,7 +356,7 @@ void FCompositionLighting::ProcessLpvIndirect(FRHICommandListImmediate& RHICmdLi
 	
 	FMemMark Mark(FMemStack::Get());
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-	FPostprocessContext Context(CompositeContext.Graph, View);
+	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 	if(IsLpvIndirectPassRequired(Context))
 	{
@@ -393,7 +393,7 @@ void FCompositionLighting::ProcessAfterLighting(FRHICommandListImmediate& RHICmd
 	{
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 		FRenderingCompositeOutputRef AmbientOcclusion;
 
 		// Screen Space Subsurface Scattering

@@ -442,7 +442,7 @@ FPooledRenderTargetDesc FRCPassPostProcessScreenSpaceReflections::ComputeOutputD
 void ScreenSpaceReflections(FRHICommandListImmediate& RHICmdList, FViewInfo& View, TRefCountPtr<IPooledRenderTarget>& SSROutput)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);	
-	FPostprocessContext Context( CompositeContext.Graph, View );
+	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View );
 
 	FSceneViewState* ViewState = (FSceneViewState*)Context.View.State;
 

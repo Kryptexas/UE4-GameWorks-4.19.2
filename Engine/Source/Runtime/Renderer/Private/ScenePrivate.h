@@ -665,13 +665,13 @@ public:
 	 */
 	bool IsShadowOccluded(FRHICommandListImmediate& RHICmdList, FPrimitiveComponentId PrimitiveId, const ULightComponent* Light, int32 SplitIndex, bool bTranslucentShadow, int32 NumBufferedFrames) const;
 
-	TRefCountPtr<IPooledRenderTarget>& GetEyeAdaptation()
+	TRefCountPtr<IPooledRenderTarget>& GetEyeAdaptation(FRHICommandList& RHICmdList)
 	{
 		if (!EyeAdaptationRT)
 		{
 			// Create the texture needed for EyeAdaptation
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), PF_R32_FLOAT, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, EyeAdaptationRT, TEXT("EyeAdaptation"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, EyeAdaptationRT, TEXT("EyeAdaptation"));
 		}
 		return EyeAdaptationRT;
 	}
@@ -686,13 +686,13 @@ public:
 		bValidEyeAdaptation = true;
 	}
 
-	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FIntPoint Size)
+	TRefCountPtr<IPooledRenderTarget>& GetSeparateTranslucency(FRHICommandList& RHICmdList, FIntPoint Size)
 	{
 		if (!SeparateTranslucencyRT || SeparateTranslucencyRT->GetDesc().Extent != Size)
 		{
 			// Create the SeparateTranslucency render target (alpha is needed to lerping)
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_FloatRGBA, FClearValueBinding::Black, TexCreate_None, TexCreate_RenderTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SeparateTranslucencyRT, TEXT("SeparateTranslucency"));
 		}
 		return SeparateTranslucencyRT;
 	}

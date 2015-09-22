@@ -30,6 +30,15 @@ DEFINE_STAT(STAT_VertexBufferMemory);
 DEFINE_STAT(STAT_StructuredBufferMemory);
 DEFINE_STAT(STAT_PixelBufferMemory);
 
+const FString FResourceTransitionUtility::ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1] =
+{
+	FString(TEXT("EReadable")),
+	FString(TEXT("EWritable")),	
+	FString(TEXT("ERWBarrier")),
+	FString(TEXT("ERWNoBarrier")),
+	FString(TEXT("EMaxAccess")),
+};
+
 #if STATS
 #include "StatsData.h"
 static void DumpRHIMemory(FOutputDevice& OutputDevice)

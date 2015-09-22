@@ -3647,8 +3647,11 @@ bool FDeferredShadingSceneRenderer::RenderCachedPreshadows(FRHICommandListImmedi
 					bool bPerformClear = true;;
 					auto SetShadowRenderTargets = [this, &bPerformClear, ProjectedShadowInfo, &SceneContext](FRHICommandList& InRHICmdList)
 					{
+						FTextureRHIParamRef PreShadowCacheDepthZ = SceneContext.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture.GetReference();
+						InRHICmdList.TransitionResources(EResourceTransitionAccess::EWritable, &PreShadowCacheDepthZ, 1);
+
 						// Must preserve existing contents as the clear will be scissored
-						SetRenderTarget(InRHICmdList, FTextureRHIRef(), SceneContext.PreShadowCacheDepthZ->GetRenderTargetItem().TargetableTexture, ESimpleRenderTargetMode::EExistingColorAndDepth);
+						SetRenderTarget(InRHICmdList, FTextureRHIRef(), PreShadowCacheDepthZ, ESimpleRenderTargetMode::EExistingColorAndDepth);
 						ProjectedShadowInfo->ClearDepth(InRHICmdList, this, bPerformClear);
 					};					
 					SetShadowRenderTargets(RHICmdList); // run it now, maybe run it later for parallel command lists
@@ -3921,7 +3924,7 @@ void FForwardShadingSceneRenderer::RenderModulatedShadowDepthMaps(FRHICommandLis
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 	TArray<FProjectedShadowInfo*, SceneRenderingAllocator> Shadows;
 	const FIntPoint ShadowBufferResolution = SceneContext.GetShadowDepthTextureResolution();
-	SceneContext.AllocateForwardShadingShadowDepthTarget(ShadowBufferResolution);
+	SceneContext.AllocateForwardShadingShadowDepthTarget(RHICmdList, ShadowBufferResolution);
 	FTextureLayout ShadowLayout(1, 1, ShadowBufferResolution.X, ShadowBufferResolution.Y, false, false);
 	
 	// render shadowmaps for relevant lights.

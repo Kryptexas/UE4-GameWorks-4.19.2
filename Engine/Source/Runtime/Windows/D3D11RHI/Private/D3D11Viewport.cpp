@@ -511,6 +511,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 	if( RenderTarget == NULL )
 	{
 		RenderTarget = Viewport->GetBackBuffer();
+		RHITransitionResources(EResourceTransitionAccess::EWritable, &RenderTarget, 1);
 	}
 	FRHIRenderTargetView View(RenderTarget);
 	RHISetRenderTargets(1,&View,nullptr,0,NULL);
@@ -521,6 +522,7 @@ void FD3D11DynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI,
 
 void FD3D11DynamicRHI::RHIEndDrawingViewport(FViewportRHIParamRef ViewportRHI,bool bPresent,bool bLockToVsync)
 {
+	++PresentCounter;
 	FD3D11Viewport* Viewport = ResourceCast(ViewportRHI);
 
 	SCOPE_CYCLE_COUNTER(STAT_D3D11PresentTime);

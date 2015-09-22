@@ -832,7 +832,7 @@ FLightPropagationVolume::~FLightPropagationVolume()
 /**
 * Sets up the LPV at the beginning of the frame
 */
-void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FSceneView& View)
+void FLightPropagationVolume::InitSettings(FRHICommandListImmediate& RHICmdList, const FSceneView& View)
 {
 	int32 NumFastLpvTextures = 7;
 	int32 NumFastGvTextures = 2;
@@ -865,7 +865,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 			{
 				for ( int j = 0; j < 7; j++ )
 				{
-					GRenderTargetPool.FindFreeElement(Desc, LpvVolumeTextures[i][j], Names[j * 2 + i] );
+					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, LpvVolumeTextures[i][j], Names[j * 2 + i] );
 				}
 			}
 		}
@@ -875,7 +875,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 
 			for ( int i = 0; i < NUM_GV_TEXTURES; i++ )
 			{
-				GRenderTargetPool.FindFreeElement(Desc, GvVolumeTextures[i], Names[i]);
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, GvVolumeTextures[i], Names[i]);
 			}
 		}
 
@@ -890,7 +890,7 @@ void FLightPropagationVolume::InitSettings(FRHICommandList& RHICmdList, const FS
 				TexCreate_ShaderResource | TexCreate_UAV | TexCreate_FastVRAM,
 				false,
 				1));
-			GRenderTargetPool.FindFreeElement(AODesc, AOVolumeTexture, TEXT("LPVAOVolume"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, AODesc, AOVolumeTexture, TEXT("LPVAOVolume"));
 		}
 
 		bInitialized = true;

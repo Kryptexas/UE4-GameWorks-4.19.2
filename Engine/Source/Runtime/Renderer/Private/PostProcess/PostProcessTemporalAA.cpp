@@ -289,7 +289,7 @@ FPooledRenderTargetDesc FRCPassPostProcessSSRTemporalAA::ComputeOutputDesc(EPass
 	FPooledRenderTargetDesc Ret = GetInput(ePId_Input0)->GetOutput()->RenderTargetDesc;
 
 	Ret.DebugName = TEXT("SSRTemporalAA");
-
+	Ret.AutoWritable = false;
 	return Ret;
 }
 
@@ -756,6 +756,7 @@ FPooledRenderTargetDesc FRCPassPostProcessTemporalAA::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	//Ret.Format = PF_FloatRGBA;
 	Ret.DebugName = TEXT("TemporalAA");
+	Ret.AutoWritable = false;
 
 	return Ret;
 }

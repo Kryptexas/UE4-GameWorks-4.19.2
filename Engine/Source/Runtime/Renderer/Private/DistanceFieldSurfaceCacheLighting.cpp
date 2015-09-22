@@ -2344,7 +2344,7 @@ void RenderIrradianceCacheInterpolation(
 		if (bFinalInterpolation && (GAOInterpolationDepthTesting || GAOInterpolationStencilTesting))
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BentNormalInterpolationTarget->GetDesc().Extent, PF_DepthStencil, FClearValueBinding::DepthZero, TexCreate_None, TexCreate_DepthStencilTargetable, false));
-			GRenderTargetPool.FindFreeElement(Desc, SplatDepthStencilBuffer, TEXT("DistanceFieldAOSplatDepthBuffer"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, SplatDepthStencilBuffer, TEXT("DistanceFieldAOSplatDepthBuffer"));
 
 			SetupDepthStencil(RHICmdList, View, SplatDepthStencilBuffer->GetRenderTargetItem(), DistanceFieldNormal, DepthLevel, DestLevelDownsampleFactor);
 
@@ -2735,7 +2735,7 @@ void RenderDistanceFieldAOSurfaceCache(
 		{
 			FIntPoint AOBufferSize = FIntPoint::DivideAndRoundUp(SceneContext.GetBufferSizeXY(), DestLevelDownsampleFactor);
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(AOBufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-			GRenderTargetPool.FindFreeElement(Desc, DistanceFieldAOBentNormalSplat, TEXT("DistanceFieldAOBentNormalSplat"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldAOBentNormalSplat, TEXT("DistanceFieldAOBentNormalSplat"));
 		}
 
 		// Splat / interpolate the surface cache records onto the buffer sized for the current depth level
@@ -2848,11 +2848,11 @@ void RenderDistanceFieldAOSurfaceCache(
 	{
 		FIntPoint BufferSize = GetBufferSizeForAO();
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-		GRenderTargetPool.FindFreeElement(Desc, BentNormalAccumulation, TEXT("BentNormalAccumulation"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, BentNormalAccumulation, TEXT("BentNormalAccumulation"));
 
 		if (bUseDistanceFieldGI)
 		{
-			GRenderTargetPool.FindFreeElement(Desc, IrradianceAccumulation, TEXT("IrradianceAccumulation"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, IrradianceAccumulation, TEXT("IrradianceAccumulation"));
 		}
 	}
 
@@ -2943,7 +2943,7 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::Transparent, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-				GRenderTargetPool.FindFreeElement(Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DistanceFieldNormal, TEXT("DistanceFieldNormal"));
 			}
 
 			ComputeDistanceFieldNormal(RHICmdList, Views, DistanceFieldNormal->GetRenderTargetItem(), Parameters);
@@ -3004,12 +3004,12 @@ bool FDeferredShadingSceneRenderer::RenderDistanceFieldLighting(
 				FPooledRenderTargetDesc Desc = SceneContext.GetSceneColor()->GetDesc();
 				// Make sure we get a signed format
 				Desc.Format = PF_FloatRGBA;
-				GRenderTargetPool.FindFreeElement(Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicBentNormalAO, TEXT("DynamicBentNormalAO"));
 
 				if (bUseDistanceFieldGI)
 				{
 					Desc.Format = PF_FloatRGB;
-					GRenderTargetPool.FindFreeElement(Desc, OutDynamicIrradiance, TEXT("DynamicIrradiance"));
+					GRenderTargetPool.FindFreeElement(RHICmdList, Desc, OutDynamicIrradiance, TEXT("DynamicIrradiance"));
 				}
 
 				FTextureRHIParamRef RenderTargets[2] =
@@ -3429,7 +3429,7 @@ void FDeferredShadingSceneRenderer::RenderMeshDistanceFieldVisualization(FRHICom
 			{
 				const FIntPoint BufferSize = GetBufferSizeForAO();
 				FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(BufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-				GRenderTargetPool.FindFreeElement(Desc, VisualizeResultRT, TEXT("VisualizeDistanceField"));
+				GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VisualizeResultRT, TEXT("VisualizeDistanceField"));
 			}
 
 			{

@@ -112,6 +112,9 @@ public:
 	 */
 	int32 AddSortedGPUSimulation(FParticleSimulationGPU* Simulation, const FVector& ViewOrigin);
 
+	void PrepareGPUSimulation(FRHICommandListImmediate& RHICmdList);
+	void FinalizeGPUSimulation(FRHICommandListImmediate& RHICmdList);
+
 private:
 
 	/*--------------------------------------------------------------------------

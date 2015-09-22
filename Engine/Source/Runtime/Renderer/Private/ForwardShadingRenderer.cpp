@@ -100,7 +100,10 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
 	// Allocate the maximum scene render target space for the current view family.
-	SceneContext.Allocate(ViewFamily);
+	SceneContext.Allocate(RHICmdList, ViewFamily);
+
+	//make sure all the targets we're going to use will be safely writable.
+	GRenderTargetPool.TransitionTargetsWritable(RHICmdList);
 
 	// Find the visible primitives.
 	InitViews(RHICmdList);
@@ -239,7 +242,7 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives)
 {
 	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
-	FPostprocessContext Context(CompositeContext.Graph, View);
+	FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 
 	if (bDoUpscale)
 	{	// simple bilinear upscaling for ES2.

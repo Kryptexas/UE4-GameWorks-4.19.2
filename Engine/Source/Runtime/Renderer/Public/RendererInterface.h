@@ -46,6 +46,7 @@ public:
 		, TargetableFlags(TexCreate_None)
 		, bForceSeparateTargetAndShaderResource(false)
 		, DebugName(TEXT("UnknownTexture"))
+		, AutoWritable(true)
 	{
 		check(!IsValid());
 	}
@@ -175,7 +176,8 @@ public:
 			&& LhsFlags == RhsFlags
 			&& TargetableFlags == rhs.TargetableFlags
 			&& bForceSeparateTargetAndShaderResource == rhs.bForceSeparateTargetAndShaderResource
-			&& ClearValue == rhs.ClearValue;
+			&& ClearValue == rhs.ClearValue
+			&& AutoWritable == AutoWritable;
 	}
 
 	bool IsCubemap() const
@@ -285,6 +287,7 @@ public:
 		NumSamples = 1;
 
 		bForceSeparateTargetAndShaderResource = false;
+		AutoWritable = true;
 
 		// Remove UAV flag for rendertargets that don't need it (some formats are incompatible)
 		TargetableFlags &= (~TexCreate_UAV);
@@ -317,6 +320,8 @@ public:
 	bool bForceSeparateTargetAndShaderResource;
 	/** only set a pointer to memory that never gets released */
 	const TCHAR *DebugName;
+	/** automatically set to writable via barrier during */
+	bool AutoWritable;
 };
 
 
@@ -541,7 +546,7 @@ public:
 	virtual void DrawTileMesh(FRHICommandListImmediate& RHICmdList, const FSceneView& View, const FMeshBatch& Mesh, bool bIsHitTesting, const class FHitProxyId& HitProxyId) = 0;
 
 	/** Render thread side, use TRefCountPtr<IPooledRenderTarget>, allows to use sharing and VisualizeTexture */
-	virtual void RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) = 0;
+	virtual void RenderTargetPoolFindFreeElement(FRHICommandListImmediate& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName) = 0;
 	
 	/** Render thread side, to age the pool elements so they get released at some point */
 	virtual void TickRenderTargetPool() = 0;

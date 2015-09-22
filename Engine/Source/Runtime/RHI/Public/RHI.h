@@ -970,6 +970,29 @@ struct FResolveParams
 	{}
 };
 
+enum class EResourceTransitionAccess
+{
+	EReadable, //transition from write-> read
+	EWritable, //transition from read -> write	
+	ERWBarrier, // Mostly for UAVs.  Transition to read/write state and always insert a resource barrier.
+	ERWNoBarrier, //Mostly UAVs.  Indicates we want R/W access and do not require synchronization for the duration of the RW state.  The initial transition from writable->RWNoBarrier and readable->RWNoBarrier still requires a sync
+	EMaxAccess,
+};
+
+class RHI_API FResourceTransitionUtility
+{
+public:
+	static const FString ResourceTransitionAccessStrings[(int32)EResourceTransitionAccess::EMaxAccess + 1];
+};
+
+enum class EResourceTransitionPipeline
+{
+	EGfxToCompute,
+	EComputeToGfx,
+	EGfxToGfx,
+	EComputeToCompute,	
+};
+
 /** specifies an update region for a texture */
 struct FUpdateTextureRegion2D
 {

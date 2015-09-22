@@ -1110,13 +1110,13 @@ FSceneViewState* FViewInfo::GetEffectiveViewState() const
 	return EffectiveViewState;
 }
 
-IPooledRenderTarget* FViewInfo::GetEyeAdaptation() const
+IPooledRenderTarget* FViewInfo::GetEyeAdaptation(FRHICommandList& RHICmdList) const
 {
 	FSceneViewState* EffectiveViewState = GetEffectiveViewState();
 
 	if (EffectiveViewState)
 	{
-		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = EffectiveViewState->GetEyeAdaptation();
+		TRefCountPtr<IPooledRenderTarget>& EyeAdaptRef = EffectiveViewState->GetEyeAdaptation(RHICmdList);
 		if( IsValidRef(EyeAdaptRef) )
 		{
 			return EyeAdaptRef.GetReference();

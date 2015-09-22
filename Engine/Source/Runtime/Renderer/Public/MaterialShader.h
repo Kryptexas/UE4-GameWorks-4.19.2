@@ -130,7 +130,7 @@ public:
 		bool bDeferredPass, 
 		ESceneRenderTargetsMode::Type TextureMode );
 
-	FTextureRHIRef& GetEyeAdaptation(const FSceneView& View);
+	FTextureRHIRef& GetEyeAdaptation(FRHICommandList& RHICmdList, const FSceneView& View);
 
 	// FShader interface.
 	virtual bool Serialize(FArchive& Ar) override;

@@ -199,12 +199,12 @@ public:
 	 * Checks that scene render targets are ready for rendering a view family of the given dimensions.
 	 * If the allocated render targets are too small, they are reallocated.
 	 */
-	void Allocate(const FSceneViewFamily& ViewFamily);
+	void Allocate(FRHICommandList& RHICmdList, const FSceneViewFamily& ViewFamily);
 
 	/**
 	 * Forward shading can't know how big the optimal atlased shadow buffer will be, so provide a set it up per frame.
 	 */
-	void AllocateForwardShadingShadowDepthTarget(const FIntPoint& ShadowBufferResolution);
+	void AllocateForwardShadingShadowDepthTarget(FRHICommandListImmediate& RHICmdList, const FIntPoint& ShadowBufferResolution);
 
 	/**
 	 *
@@ -217,7 +217,7 @@ public:
 	/**
 	 * Sets the scene color target and restores its contents if necessary
 	 */
-	void BeginRenderingSceneColor(FRHICommandList& RHICmdList, ESimpleRenderTargetMode RenderTargetMode = ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite);
+	void BeginRenderingSceneColor(FRHICommandList& FRHICommandListImmediate, ESimpleRenderTargetMode RenderTargetMode = ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil DepthStencilAccess = FExclusiveDepthStencil::DepthWrite_StencilWrite, bool bTransitionWritable = true);
 	
 	/**
 	 * Called when finished rendering to the scene color surface
@@ -271,7 +271,7 @@ public:
 	void BeginRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 	void FinishRenderingSceneAlphaCopy(FRHICommandListImmediate& RHICmdList);
 
-	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite=false);
+	void BeginRenderingLightAttenuation(FRHICommandList& RHICmdList, bool bClearToWhite = false);
 	void FinishRenderingLightAttenuation(FRHICommandList& RHICmdList);
 
 	/**
@@ -291,13 +291,13 @@ public:
 	 * Gets the editor primitives color target/shader resource.  This may recreate the target
 	 * if the msaa settings dont match
 	 */
-	const FTexture2DRHIRef& GetEditorPrimitivesColor();
+	const FTexture2DRHIRef& GetEditorPrimitivesColor(FRHICommandList& RHICmdList);
 
 	/**
 	 * Gets the editor primitives depth target/shader resource.  This may recreate the target
 	 * if the msaa settings dont match
 	 */
-	const FTexture2DRHIRef& GetEditorPrimitivesDepth();
+	const FTexture2DRHIRef& GetEditorPrimitivesDepth(FRHICommandList& RHICmdList);
 
 
 	// FRenderResource interface.
@@ -408,7 +408,7 @@ public:
 	}
 
 	// @return can be 0 if the feature is disabled
-	IPooledRenderTarget* RequestCustomDepth(bool bPrimitives);
+	IPooledRenderTarget* RequestCustomDepth(FRHICommandListImmediate& RHICmdList, bool bPrimitives);
 
 	bool IsCustomDepthPassWritingStencil() const;
 
@@ -480,15 +480,15 @@ public:
 
 	// allows to release the GBuffer once post process materials no longer need it
 	// @param 1: add a reference, -1: remove a reference
-	void AdjustGBufferRefCount(int Delta);
+	void AdjustGBufferRefCount(FRHICommandList& RHICmdList, int Delta);
 
 	//
 	void PreallocGBufferTargets(bool bShouldRenderVelocities);
-	void AllocGBufferTargets();
+	void AllocGBufferTargets(FRHICommandList& RHICmdList);
 
-	void AllocLightAttenuation();
+	void AllocLightAttenuation(FRHICommandList& RHICmdList);
 
-	void AllocateReflectionTargets();
+	void AllocateReflectionTargets(FRHICommandList& RHICmdList);
 
 	TRefCountPtr<IPooledRenderTarget>& GetReflectionBrightnessTarget();
 
@@ -626,29 +626,29 @@ private:
 	/**
 	 * Initializes the editor primitive color render target
 	 */
-	void InitEditorPrimitivesColor();
+	void InitEditorPrimitivesColor(FRHICommandList& RHICmdList);
 
 	/**
 	 * Initializes the editor primitive depth buffer
 	 */
-	void InitEditorPrimitivesDepth();
+	void InitEditorPrimitivesDepth(FRHICommandList& RHICmdList);
 
 	/** Allocates render targets for use with the forward shading path. */
-	void AllocateForwardShadingPathRenderTargets();	
+	void AllocateForwardShadingPathRenderTargets(FRHICommandList& RHICmdList);
 
 	/** Allocates render targets for use with the deferred shading path. */
-	void AllocateDeferredShadingPathRenderTargets();
+	void AllocateDeferredShadingPathRenderTargets(FRHICommandList& RHICmdList);
 
 	/** Allocates render targets for use with the current shading path. */
-	void AllocateRenderTargets();
+	void AllocateRenderTargets(FRHICommandList& RHICmdList);
 
 	/** Allocates common depth render targets that are used by both forward and deferred rendering paths */
-	void AllocateCommonDepthTargets();
+	void AllocateCommonDepthTargets(FRHICommandList& RHICmdList);
 
 	/** Determine the appropriate render target dimensions. */
 	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily);
 
-	void AllocSceneColor();
+	void AllocSceneColor(FRHICommandList& RHICmdList);
 
 	// internal method, used by AdjustGBufferRefCount()
 	void ReleaseGBufferTargets();

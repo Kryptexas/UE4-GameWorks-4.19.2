@@ -188,10 +188,10 @@ void SetSubsurfaceVisualizeShader(const FRenderingCompositePassContext& Context)
 	VertexShader->SetParameters(Context);
 }
 
-FRCPassPostProcessSubsurfaceVisualize::FRCPassPostProcessSubsurfaceVisualize()
+FRCPassPostProcessSubsurfaceVisualize::FRCPassPostProcessSubsurfaceVisualize(FRHICommandList& RHICmdList)
 {
 	// we need the GBuffer, we release it Process()
-	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+	FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(RHICmdList, 1);
 }
 
 void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassContext& Context)
@@ -296,7 +296,7 @@ void FRCPassPostProcessSubsurfaceVisualize::Process(FRenderingCompositePassConte
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 
 	// we no longer need the GBuffer
-	SceneContext.AdjustGBufferRefCount(-1);
+	SceneContext.AdjustGBufferRefCount(Context.RHICmdList, -1);
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessSubsurfaceVisualize::ComputeOutputDesc(EPassOutputId InPassOutputId) const

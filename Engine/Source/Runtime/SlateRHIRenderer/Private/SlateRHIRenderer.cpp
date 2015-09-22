@@ -427,7 +427,7 @@ void FSlateRHIRenderer::DrawWindow_RenderThread(FRHICommandListImmediate& RHICmd
 
 		RHICmdList.BeginDrawingViewport( ViewportInfo.ViewportRHI, FTextureRHIRef() );
 		RHICmdList.SetViewport(0, 0, 0, ViewportWidth, ViewportHeight, 0.0f);
-
+		RHICmdList.TransitionResource(EResourceTransitionAccess::EWritable, BackBuffer);
 		if( ViewportInfo.bRequiresStencilTest )
 		{
 			check(IsValidRef( ViewportInfo.DepthStencil ));

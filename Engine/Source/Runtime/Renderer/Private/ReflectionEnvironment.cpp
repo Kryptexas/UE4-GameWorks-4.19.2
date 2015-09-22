@@ -89,6 +89,7 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 {
 	if (GetFeatureLevel() >= ERHIFeatureLevel::SM5)
 	{
+
 		const int32 NumReflectionCaptureMips = FMath::CeilLogTwo(GReflectionCaptureSize) + 1;
 
 		ReleaseCubeArray();
@@ -104,9 +105,13 @@ void FReflectionEnvironmentCubemapArray::InitDynamicRHI()
 		// Cubemap array of 1 produces a regular cubemap, so guarantee it will be allocated as an array
 		FMath::Max<uint32>(MaxCubemaps, 2),
 		NumReflectionCaptureMips));
+
+		Desc.AutoWritable = false;
 	
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
+
 		// Allocate TextureCubeArray for the scene's reflection captures
-		GRenderTargetPool.FindFreeElement(Desc, ReflectionEnvs, TEXT("ReflectionEnvs"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, ReflectionEnvs, TEXT("ReflectionEnvs"));
 	}
 }
 
@@ -852,7 +857,7 @@ void FDeferredShadingSceneRenderer::RenderTiledDeferredImageBasedReflections(FRH
 		Desc.ClearValue = FClearValueBinding::None;
 
 		// we don't create a new name to make it easier to use "vis SceneColor" and get the last HDRSceneColor
-		GRenderTargetPool.FindFreeElement( Desc, NewSceneColor, TEXT("SceneColor") );
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, NewSceneColor, TEXT("SceneColor") );
 	}
 
 	// If we are in SM5, use the compute shader gather method
@@ -1080,7 +1085,7 @@ void FDeferredShadingSceneRenderer::RenderStandardDeferredImageBasedReflections(
 			// Apply reflections to screen
 			SCOPED_DRAW_EVENT(RHICmdList, ReflectionApply);
 
-			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite);
+			SceneContext.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EUninitializedColorExistingDepth, FExclusiveDepthStencil::DepthRead_StencilWrite, true);
 
 			RHICmdList.SetViewport(View.ViewRect.Min.X, View.ViewRect.Min.Y, 0.0f, View.ViewRect.Max.X, View.ViewRect.Max.Y, 1.0f);
 			RHICmdList.SetRasterizerState(TStaticRasterizerState<FM_Solid, CM_None>::GetRHI());

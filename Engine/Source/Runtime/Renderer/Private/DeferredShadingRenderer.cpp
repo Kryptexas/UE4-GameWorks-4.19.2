@@ -605,7 +605,7 @@ void FDeferredShadingSceneRenderer::RenderVisualizeTexturePool(FRHICommandListIm
 	};
 
 	FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(TexturePoolVisualizerSizeX, TexturePoolVisualizerSizeY), PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_None, false));
-	GRenderTargetPool.FindFreeElement(Desc, VisualizeTexturePool, TEXT("VisualizeTexturePool"));
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, VisualizeTexturePool, TEXT("VisualizeTexturePool"));
 	
 	uint32 Pitch;
 	FColor* TextureData = (FColor*)RHICmdList.LockTexture2D((FTexture2DRHIRef&)VisualizeTexturePool->GetRenderTargetItem().ShaderResourceTexture, 0, RLM_WriteOnly, Pitch, false);
@@ -788,6 +788,9 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
 	FSceneRenderTargets& SceneContext = FSceneRenderTargets::Get(RHICmdList);
 
+	//make sure all the targets we're going to use will be safely writable.
+	GRenderTargetPool.TransitionTargetsWritable(RHICmdList);
+
 	// this way we make sure the SceneColor format is the correct one and not the one from the end of frame before
 	SceneContext.ReleaseSceneColor();
 
@@ -814,7 +817,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
 		// Allocate the maximum scene render target space for the current view family.
-		SceneContext.Allocate(ViewFamily);
+		SceneContext.Allocate(RHICmdList, ViewFamily);
 	}
 
 	// Find the visible primitives.
@@ -832,7 +835,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		// there are dynamic attempts to get this target during parallel rendering
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
-			Views[ViewIndex].GetEyeAdaptation();
+			Views[ViewIndex].GetEyeAdaptation(RHICmdList);
 		}	
 	}
 
@@ -937,7 +940,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 
 	// Notify the FX system that the scene is about to be rendered.
-	if (Scene->FXSystem)
+	if (Scene->FXSystem && Views.IsValidIndex(0))
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_FXSystem_PreRender);
 		Scene->FXSystem->PreRender(RHICmdList, &Views[0].GlobalDistanceFieldInfo.ParameterData);
@@ -987,7 +990,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	{
 		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
 		SceneContext.PreallocGBufferTargets(bShouldRenderVelocities && bUseVelocityGBuffer);
-		SceneContext.AllocGBufferTargets();
+		SceneContext.AllocGBufferTargets(RHICmdList);
 	}
 	
 	// Clear LPVs for all views
@@ -1036,7 +1039,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	if (bIsWireframe && FSceneRenderer::ShouldCompositeEditorPrimitives(Views[0]))
 	{
 		// In Editor we want wire frame view modes to be MSAA for better quality. Resolve will be done with EditorPrimitives
-		SetRenderTarget(RHICmdList, SceneContext.GetEditorPrimitivesColor(), SceneContext.GetEditorPrimitivesDepth(), ESimpleRenderTargetMode::EClearColorAndDepth);
+		SetRenderTarget(RHICmdList, SceneContext.GetEditorPrimitivesColor(RHICmdList), SceneContext.GetEditorPrimitivesDepth(RHICmdList), ESimpleRenderTargetMode::EClearColorAndDepth);
 	}
 	else if (!bIsGBufferCurrent)
 	{
@@ -1078,19 +1081,29 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 		bRequiresFarZQuadClear = false;
 	}
-	
-	{
-		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
 
-		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_ResolveDepth_After_Basepass);
 		SceneContext.ResolveSceneDepthTexture(RHICmdList);
 		SceneContext.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+	}
+		
+	
 
+	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
+	bool bHZBAfterBasePass = true;
+	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass, bHZBAfterBasePass);
+	ServiceLocalQueue();
+
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
+		SceneContext.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 		SceneContext.FinishRenderingGBuffer(RHICmdList);
 
 		RenderCustomDepthPass(RHICmdList);
 		ServiceLocalQueue();
 	}
+
 	// Notify the FX system that opaque primitives have been rendered and we now have a valid depth buffer.
 	if (Scene->FXSystem && Views.IsValidIndex(0))
 	{
@@ -1103,11 +1116,6 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 			);
 		ServiceLocalQueue();
 	}
-
-	bool bOcclusionAfterBasePass = bIsOcclusionTesting && !bOcclusionBeforeBasePass;
-	bool bHZBAfterBasePass = true;
-	RenderOcclusion(RHICmdList, bOcclusionAfterBasePass, bHZBAfterBasePass);
-	ServiceLocalQueue();
 
 	TRefCountPtr<IPooledRenderTarget> VelocityRT;
 
@@ -1349,7 +1357,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	else
 	{
 		// Release the original reference on the scene render targets
-		SceneContext.AdjustGBufferRefCount(-1);
+		SceneContext.AdjustGBufferRefCount(RHICmdList, -1);
 	}
 
 	//grab the new transform out of the proxies for next frame

@@ -31,6 +31,18 @@ static TAutoConsoleVariable<FString> GProfileGPURootCVar(
 	TEXT("Allows to filter the tree when using ProfileGPU, the pattern match is case sensitive."),
 	ECVF_Default);
 
+static TAutoConsoleVariable<int32> GProfileGPUShowEvents(
+	TEXT("r.ProfileGPU.ShowLeafEvents"),
+	0,
+	TEXT("Allows profileGPU to display event-only leaf nodes with no draws associated."),
+	ECVF_Default);
+
+static TAutoConsoleVariable<int32> GProfileGPUTransitions(
+	TEXT("r.ProfileGPU.ShowTransitions"),
+	0,
+	TEXT("Allows profileGPU to display resource transition events."),
+	ECVF_Default);
+
 struct FNodeStatsCompare
 {
 	/** Sorts nodes by descending durations. */
@@ -77,10 +89,10 @@ static void GatherStatsEventNode(FGPUProfilerEventNode* Node, int32 Depth, TMap<
 }
 
 /** Recursively dumps stats for each node with a depth first traversal. */
-static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, int32 Depth, const FWildcardString& WildcardFilter, bool bParentMatchedFilter, int32& NumNodes, int32& NumDraws)
+static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, int32 Depth, const FWildcardString& WildcardFilter, bool bParentMatchedFilter, int32& NumNodes, int32& NumDraws, bool bDumpEventLeafNodes)
 {
 	NumNodes++;
-	if (Node->NumDraws > 0 || Node->Children.Num() > 0)
+	if (Node->NumDraws > 0 || Node->Children.Num() > 0 || bDumpEventLeafNodes)
 	{
 		NumDraws += Node->NumDraws;
 		// Percent that this node was of the total frame time
@@ -121,8 +133,8 @@ static void DumpStatsEventNode(FGPUProfilerEventNode* Node, float RootResult, in
 			FGPUProfilerEventNode* ChildNode = Node->Children[ChildIndex];
 
 			int32 NumChildDraws = 0;
-			// Traverse children
-			DumpStatsEventNode(Node->Children[ChildIndex], RootResult, Depth + 1, WildcardFilter, bMatchesFilter, NumNodes, NumChildDraws);
+			// Traverse children			
+			DumpStatsEventNode(Node->Children[ChildIndex], RootResult, Depth + 1, WildcardFilter, bMatchesFilter, NumNodes, NumChildDraws, bDumpEventLeafNodes);
 			NumDraws += NumChildDraws;
 
 			TotalChildTime += ChildNode->TimingResult;
@@ -225,9 +237,10 @@ void FGPUProfilerEventNodeFrame::DumpEventTree()
 
 		int32 NumNodes = 0;
 		int32 NumDraws = 0;
+		bool bDumpEventLeafNodes = GProfileGPUShowEvents.GetValueOnRenderThread() != 0;
 		for (int32 BaseNodeIndex = 0; BaseNodeIndex < EventTree.Num(); BaseNodeIndex++)
 		{
-			DumpStatsEventNode(EventTree[BaseNodeIndex], RootResult, 0, RootWildcard, false, NumNodes, NumDraws);
+			DumpStatsEventNode(EventTree[BaseNodeIndex], RootResult, 0, RootWildcard, false, NumNodes, NumDraws, bDumpEventLeafNodes);
 		}
 
 		//@todo - calculate overhead instead of hardcoding

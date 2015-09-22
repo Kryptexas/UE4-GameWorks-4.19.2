@@ -86,9 +86,9 @@ void FRendererModule::DrawTileMesh(FRHICommandListImmediate& RHICmdList, const F
 	}
 }
 
-void FRendererModule::RenderTargetPoolFindFreeElement(const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName)
+void FRendererModule::RenderTargetPoolFindFreeElement(FRHICommandListImmediate& RHICmdList, const FPooledRenderTargetDesc& Desc, TRefCountPtr<IPooledRenderTarget> &Out, const TCHAR* InDebugName)
 {
-	GRenderTargetPool.FindFreeElement(Desc, Out, InDebugName);
+	GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Out, InDebugName);
 }
 
 void FRendererModule::TickRenderTargetPool()

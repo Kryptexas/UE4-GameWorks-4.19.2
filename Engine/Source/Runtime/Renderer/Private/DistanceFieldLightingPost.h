@@ -6,7 +6,7 @@
 
 #pragma once
 
-extern void AllocateOrReuseAORenderTarget(TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, bool bWithAlpha);
+extern void AllocateOrReuseAORenderTarget(FRHICommandList& RHICmdList, TRefCountPtr<IPooledRenderTarget>& Target, const TCHAR* Name, bool bWithAlpha);
 
 extern void UpdateHistory(
 	FRHICommandList& RHICmdList,

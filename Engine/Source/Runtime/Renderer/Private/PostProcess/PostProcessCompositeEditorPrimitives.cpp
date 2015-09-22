@@ -204,8 +204,12 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 	bool bClearIsNeeded = !IsValidRef(SceneContext.EditorPrimitivesColor);
 
 	// Get or create the msaa depth and color buffer
-	FTexture2DRHIRef ColorTarget = SceneContext.GetEditorPrimitivesColor();
-	FTexture2DRHIRef DepthTarget = SceneContext.GetEditorPrimitivesDepth();
+	FTexture2DRHIRef ColorTarget = SceneContext.GetEditorPrimitivesColor(Context.RHICmdList);
+	FTexture2DRHIRef DepthTarget = SceneContext.GetEditorPrimitivesDepth(Context.RHICmdList);
+
+	FTextureRHIParamRef EditorRenderTargets[2];
+	EditorRenderTargets[0] = ColorTarget;
+	EditorRenderTargets[1] = DepthTarget;
 
 	const uint32 MSAASampleCount = SceneContext.EditorPrimitivesColor->GetDesc().NumSamples;
 
@@ -234,6 +238,7 @@ void FRCPassPostProcessCompositeEditorPrimitives::Process(FRenderingCompositePas
 		}
 
 		GRenderTargetPool.VisualizeTexture.SetCheckPoint(Context.RHICmdList, SceneContext.EditorPrimitivesColor);
+		Context.RHICmdList.TransitionResources(EResourceTransitionAccess::EReadable, EditorRenderTargets, 2);
 	}
 
 	//	Context.RHICmdList.CopyToResolveTarget(SceneContext.EditorPrimitivesColor->GetRenderTargetItem().TargetableTexture, SceneContext.EditorPrimitivesColor->GetRenderTargetItem().ShaderResourceTexture, false, FResolveParams());

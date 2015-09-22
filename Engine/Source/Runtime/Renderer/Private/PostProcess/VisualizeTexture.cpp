@@ -347,7 +347,7 @@ void FVisualizeTexture::GenerateContent(FRHICommandListImmediate& RHICmdList, co
 
 	FPooledRenderTargetDesc OutputDesc(FPooledRenderTargetDesc::Create2DDesc(Size, PF_B8G8R8A8, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_ShaderResource, false));
 	
-	GRenderTargetPool.FindFreeElement(OutputDesc, VisualizeTextureContent, TEXT("VisualizeTexture"));
+	GRenderTargetPool.FindFreeElement(RHICmdList, OutputDesc, VisualizeTextureContent, TEXT("VisualizeTexture"));
 
 	if(!VisualizeTextureContent)
 	{

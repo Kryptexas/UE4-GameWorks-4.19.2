@@ -148,8 +148,9 @@ IMPLEMENT_SHADER_TYPE(,FPostProcessVS,TEXT("PostProcessBloom"),TEXT("MainPostpro
 
 // -------------------------------------------------------
 
-FPostprocessContext::FPostprocessContext(class FRenderingCompositionGraph& InGraph, const FViewInfo& InView)
-	: Graph(InGraph)
+FPostprocessContext::FPostprocessContext(FRHICommandListImmediate& InRHICmdList, FRenderingCompositionGraph& InGraph, const FViewInfo& InView)
+: RHICmdList(InRHICmdList)
+	, Graph(InGraph)
 	, View(InView)
 	, SceneColor(0)
 	, SceneDepth(0)
@@ -735,7 +736,7 @@ static FRenderingCompositePass* AddSinglePostProcessMaterial(FPostprocessContext
 		if(Material->NeedsGBuffer())
 		{
 			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(Context.RHICmdList, 1);
 		}
 
 		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface, Context.View.GetFeatureLevel()));
@@ -805,7 +806,7 @@ static void AddPostProcessMaterial(FPostprocessContext& Context, EBlendableLocat
 		if(Material->NeedsGBuffer())
 		{
 			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(Context.RHICmdList, 1);
 		}
 
 		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessMaterial(MaterialInterface,FeatureLevel));
@@ -865,7 +866,7 @@ static void AddHighResScreenshotMask(FPostprocessContext& Context, FRenderingCom
 		if (RendererMaterial->NeedsGBuffer())
 		{
 			// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(Context.RHICmdList, 1);
 		}
 	}
 }
@@ -915,7 +916,7 @@ static void AddGBufferVisualizationOverview(FPostprocessContext& Context, FRende
 					if (Material->NeedsGBuffer())
 					{
 						// AdjustGBufferRefCount(-1) call is done when the pass gets executed
-						FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(1);
+						FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(Context.RHICmdList, 1);
 					}
 
 					if (BaseFilename.Len())
@@ -1034,7 +1035,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 		
 		// not always valid
 		FRenderingCompositeOutputRef HDRColor; 
@@ -1570,7 +1571,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 
 		if (View.Family->EngineShowFlags.GBufferHints && FeatureLevel >= ERHIFeatureLevel::SM4)
 		{
-			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessGBufferHints());
+			FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessGBufferHints(RHICmdList));
 			Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
 			// Ideally without lighting as we want the emissive, we should do that later.
 			Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneColor));
@@ -1587,7 +1588,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		if (View.Family->EngineShowFlags.VisualizeSSS)
 		{
 			// the setup pass also does visualization, based on EngineShowFlags.VisualizeSSS
-			FRenderingCompositePass* PassVisualize = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceVisualize());
+			FRenderingCompositePass* PassVisualize = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSubsurfaceVisualize(RHICmdList));
 			PassVisualize->SetInput(ePId_Input0, Context.FinalOutput);
 			Context.FinalOutput = FRenderingCompositeOutputRef(PassVisualize);
 		}
@@ -1674,7 +1675,7 @@ void FPostProcessing::Process(FRHICommandListImmediate& RHICmdList, FViewInfo& V
 		{
 			// Generally we no longer need the GBuffers, anyone that wants to keep the GBuffers for longer should have called AdjustGBufferRefCount(1) to keep it for longer
 			// and call AdjustGBufferRefCount(-1) once it's consumed. This needs to happen each frame. PostProcessMaterial do that automatically
-			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(-1);
+			FSceneRenderTargets::Get_Todo_PassContext().AdjustGBufferRefCount(RHICmdList, -1);
 		}
 
 		// The graph setup should be finished before this line ----------------------------------------
@@ -1732,7 +1733,7 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 		FMemMark Mark(FMemStack::Get());
 		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-		FPostprocessContext Context(CompositeContext.Graph, View);
+		FPostprocessContext Context(RHICmdList, CompositeContext.Graph, View);
 		FRenderingCompositeOutputRef BloomOutput;
 		FRenderingCompositeOutputRef DofOutput;
 

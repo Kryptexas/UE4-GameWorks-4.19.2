@@ -151,6 +151,7 @@ void FIndirectLightingCache::InitDynamicRHI()
 {
 	if (CanIndirectLightingCacheUseVolumeTexture(GetFeatureLevel()))
 	{
+		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
 		uint32 Flags = TexCreate_ShaderResource | TexCreate_NoTiling;
 
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::CreateVolumeDesc(
@@ -164,9 +165,9 @@ void FIndirectLightingCache::InitDynamicRHI()
 			false, 
 			1));
 
-		GRenderTargetPool.FindFreeElement(Desc, Texture0, TEXT("IndirectLightingCache_0"));
-		GRenderTargetPool.FindFreeElement(Desc, Texture1, TEXT("IndirectLightingCache_1"));
-		GRenderTargetPool.FindFreeElement(Desc, Texture2, TEXT("IndirectLightingCache_2"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Texture0, TEXT("IndirectLightingCache_0"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Texture1, TEXT("IndirectLightingCache_1"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, Texture2, TEXT("IndirectLightingCache_2"));
 	}
 }
 

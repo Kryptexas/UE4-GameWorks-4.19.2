@@ -704,6 +704,42 @@ public:
 	*/
 	virtual void RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture, FTextureRHIParamRef DestTexture, bool bKeepOriginalSurface, const FResolveParams& ResolveParams) = 0;
 
+	/**
+	 * Explicitly transition a texture resource from readable -> writable by the GPU or vice versa.
+	 * We know rendertargets are only used as rendered targets on the Gfx pipeline, so these transitions are assumed to be implemented such
+	 * Gfx->Gfx and Gfx->Compute pipeline transitions are both handled by this call by the RHI implementation.  Hence, no pipeline parameter on this call.
+	 *
+	 * @param TransitionType - direction of the transition	 
+	 * @param InTextures - array of texture objects to transition	 
+	 * @param NumTextures - number of textures to transition
+	 */	
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, FTextureRHIParamRef* InTextures, int32 NumTextures)
+	{
+		if (TransitionType == EResourceTransitionAccess::EReadable)
+		{
+			const FResolveParams ResolveParams;
+			for (int32 i = 0; i < NumTextures; ++i)
+			{
+				RHICopyToResolveTarget(InTextures[i], InTextures[i], true, ResolveParams);
+			}
+		}
+	}
+
+	/**
+	* Explicitly transition a UAV from readable -> writable by the GPU or vice versa.
+	* Also explicitly states which pipeline the UAV can be used on next.  For example, if a Compute job just wrote this UAV for a Pixel shader to read
+	* you would do EResourceTransitionAccess::Readable and EResourceTransitionPipeline::EComputeToGfx
+	*
+	* @param TransitionType - direction of the transition
+	* @param EResourceTransitionPipeline - How this UAV is transitioning between Gfx and Compute, if at all.
+	* @param InUAVs - array of UAV objects to transition
+	* @param NumUAVs - number of UAVs to transition
+	*/
+	virtual void RHITransitionResources(EResourceTransitionAccess TransitionType, EResourceTransitionPipeline TransitionPipeline, FUnorderedAccessViewRHIParamRef* InUAVs, int32 NumUAVs)
+	{		
+	}
+
+
 	virtual void RHIBeginRenderQuery(FRenderQueryRHIParamRef RenderQuery) = 0;
 
 	virtual void RHIEndRenderQuery(FRenderQueryRHIParamRef RenderQuery) = 0;
@@ -827,11 +863,22 @@ public:
 	 * @param NewState			The new sampler state.
 	 */
 	virtual void RHISetShaderSampler(FPixelShaderRHIParamRef PixelShader, uint32 SamplerIndex, FSamplerStateRHIParamRef NewState) = 0;
-
-	/** Sets a compute shader UAV parameter. */
+	
+	/**
+	* Sets a compute shader UAV parameter.
+	* @param ComputeShader	The compute shader to set the UAV for.
+	* @param UAVIndex		The index of the UAVIndex.
+	* @param UAV			The new UAV.	
+	*/
 	virtual void RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV) = 0;
-
-	/** Sets a compute shader UAV parameter and initial count */
+	
+	/**
+	* Sets a compute shader counted UAV parameter and initial count
+	* @param ComputeShader	The compute shader to set the UAV for.
+	* @param UAVIndex		The index of the UAVIndex.
+	* @param UAV			The new UAV.
+	* @param InitialCount	The initial number of items in the UAV.	
+	*/
 	virtual void RHISetUAVParameter(FComputeShaderRHIParamRef ComputeShader, uint32 UAVIndex, FUnorderedAccessViewRHIParamRef UAV, uint32 InitialCount) = 0;
 
 	virtual void RHISetShaderResourceViewParameter(FPixelShaderRHIParamRef PixelShader, uint32 SamplerIndex, FShaderResourceViewRHIParamRef SRV) = 0;

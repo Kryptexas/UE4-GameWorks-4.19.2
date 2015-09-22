@@ -15,7 +15,7 @@
 class FRCPassPostProcessSubsurfaceVisualize : public TRenderingCompositePassBase<1, 1>
 {
 public:
-	FRCPassPostProcessSubsurfaceVisualize();
+	FRCPassPostProcessSubsurfaceVisualize(FRHICommandList& RHICmdList);
 
 	// interface FRenderingCompositePass ---------
 	virtual void Process(FRenderingCompositePassContext& Context) override;

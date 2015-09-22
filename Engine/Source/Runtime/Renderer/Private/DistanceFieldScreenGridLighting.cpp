@@ -625,7 +625,7 @@ IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(false, true);
 IMPLEMENT_AWARE_UPSAMPLE_PS_TYPE(false, false);
 
 void PostProcessBentNormalAOScreenGrid(
-	FRHICommandList& RHICmdList, 
+	FRHICommandListImmediate& RHICmdList, 
 	const FDistanceFieldAOParameters& Parameters, 
 	const FViewInfo& View, 
 	IPooledRenderTarget* VelocityTexture,
@@ -640,11 +640,11 @@ void PostProcessBentNormalAOScreenGrid(
 
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldAOBentNormal;
 	TRefCountPtr<IPooledRenderTarget> DistanceFieldIrradiance;
-	AllocateOrReuseAORenderTarget(DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), true);
+	AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldAOBentNormal, TEXT("DistanceFieldBentNormalAO"), true);
 
 	if (bUseDistanceFieldGI)
 	{
-		AllocateOrReuseAORenderTarget(DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), false);
+		AllocateOrReuseAORenderTarget(RHICmdList, DistanceFieldIrradiance, TEXT("DistanceFieldIrradiance"), false);
 	}
 
 	{
@@ -851,7 +851,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 	{
 		{
 			FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-			GRenderTargetPool.FindFreeElement(Desc, DownsampledIrradiance, TEXT("DownsampledIrradiance"));
+			GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledIrradiance, TEXT("DownsampledIrradiance"));
 		}
 
 		extern void ComputeIrradianceForScreenGrid(
@@ -873,7 +873,7 @@ void FDeferredShadingSceneRenderer::RenderDistanceFieldAOScreenGrid(
 
 	{
 		FPooledRenderTargetDesc Desc(FPooledRenderTargetDesc::Create2DDesc(ConeTraceBufferSize, PF_FloatRGBA, FClearValueBinding::None, TexCreate_None, TexCreate_RenderTargetable | TexCreate_UAV, false));
-		GRenderTargetPool.FindFreeElement(Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
+		GRenderTargetPool.FindFreeElement(RHICmdList, Desc, DownsampledBentNormal, TEXT("DownsampledBentNormal"));
 	}
 
 	{

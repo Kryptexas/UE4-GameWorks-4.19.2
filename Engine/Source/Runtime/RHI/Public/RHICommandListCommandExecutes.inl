@@ -265,6 +265,24 @@ void FRHICommandCopyToResolveTarget::Execute(FRHICommandListBase& CmdList)
 	INTERNAL_DECORATOR(CopyToResolveTarget)(SourceTexture, DestTexture, bKeepOriginalSurface, ResolveParams);
 }
 
+void FRHICommandTransitionTextures::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(TransitionTextures);
+	INTERNAL_DECORATOR(TransitionResources)(TransitionType, &Textures[0], NumTextures);
+}
+
+void FRHICommandTransitionTexturesArray::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(TransitionTextures);
+	INTERNAL_DECORATOR(TransitionResources)(TransitionType, &Textures[0], Textures.Num());
+}
+
+void FRHICommandTransitionUAVs::Execute(FRHICommandListBase& CmdList)
+{
+	RHISTAT(TransitionUAVs);
+	INTERNAL_DECORATOR(TransitionResources)(TransitionType, TransitionPipeline, UAVs, NumUAVs);
+}
+
 void FRHICommandClear::Execute(FRHICommandListBase& CmdList)
 {
 	RHISTAT(Clear);
