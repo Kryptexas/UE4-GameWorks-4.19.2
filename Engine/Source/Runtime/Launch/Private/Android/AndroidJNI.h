@@ -29,6 +29,7 @@ public:
 	static jmethodID AndroidThunkJava_KeepScreenOn;
 	static jmethodID AndroidThunkJava_InitHMDs;
 	static jmethodID AndroidThunkJava_IsGearVRApplication;
+	static jmethodID AndroidThunkJava_DismissSplashScreen;
 
 	// IDs related to google play services
 	static jclass GoogleServicesClassID;

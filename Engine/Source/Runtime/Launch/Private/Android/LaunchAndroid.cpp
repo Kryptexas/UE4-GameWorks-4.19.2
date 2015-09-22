@@ -203,6 +203,8 @@ static void InitCommandLine()
 	}
 }
 
+extern void AndroidThunkCpp_DismissSplashScreen();
+
 //Main function called from the android entry point
 int32 AndroidMain(struct android_app* state)
 {
@@ -308,6 +310,8 @@ int32 AndroidMain(struct android_app* state)
 	GEngineLoop.Init();
 
 	UE_LOG(LogAndroid, Log, TEXT("Passed GEngineLoop.Init()"));
+
+	AndroidThunkCpp_DismissSplashScreen();
 
 	// tick until done
 	while (!GIsRequestingExit)

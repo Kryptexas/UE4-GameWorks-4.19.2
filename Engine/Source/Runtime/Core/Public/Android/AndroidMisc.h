@@ -23,6 +23,7 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static void LocalPrint(const TCHAR *Message);
 	static void PlatformPreInit();
 	static void PlatformInit();
+	static void PlatformPostInit(bool ShowSplashScreen);
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void* GetHardwareWindow();
 	static void SetHardwareWindow(void* InWindow);

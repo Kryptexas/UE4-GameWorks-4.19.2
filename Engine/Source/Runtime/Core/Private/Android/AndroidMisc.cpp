@@ -112,6 +112,16 @@ void FAndroidMisc::PlatformInit()
 	// Display memory info
 }
 
+extern void AndroidThunkCpp_DismissSplashScreen();
+
+void FAndroidMisc::PlatformPostInit(bool ShowSplashScreen)
+{
+	if (!ShowSplashScreen)
+	{
+		AndroidThunkCpp_DismissSplashScreen();
+	}
+}
+
 void FAndroidMisc::GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength)
 {
 	*Result = 0;

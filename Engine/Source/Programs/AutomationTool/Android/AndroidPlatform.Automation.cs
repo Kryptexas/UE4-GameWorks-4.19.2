@@ -802,6 +802,7 @@ public class AndroidPlatform : Platform
 	/** Internal usage for GetPackageName */
 	private static string PackageLine = null;
 	private static Mutex PackageInfoMutex = new Mutex();
+	private static string LaunchableActivityLine = null;
 
 	/** Run an external exe (and capture the output), given the exe path and the commandline. */
 	private static string GetPackageInfo(string ApkName, bool bRetrieveVersionCode)
@@ -817,6 +818,7 @@ public class AndroidPlatform : Platform
 		using (var GameProcess = Process.Start(ExeInfo))
 		{
 			PackageLine = null;
+			LaunchableActivityLine = null;
 			GameProcess.BeginOutputReadLine();
 			GameProcess.OutputDataReceived += ParsePackageName;
 			GameProcess.WaitForExit();
@@ -838,6 +840,22 @@ public class AndroidPlatform : Platform
 		return ReturnValue;
 	}
 
+	/** Returns the launch activity name to launch (must call GetPackageInfo first), returns "com.epicgames.ue4.SplashActivity" default if not found */
+	private static string GetLaunchableActivityName()
+	{
+		string ReturnValue = "com.epicgames.ue4.SplashActivity";
+		if (LaunchableActivityLine != null)
+		{
+			// the line should look like: launchable-activity: name='com.epicgames.ue4.SplashActivity'  label='TappyChicken' icon=''
+			string[] Tokens = LaunchableActivityLine.Split("'".ToCharArray());
+			if (Tokens.Length >= 2)
+			{
+				ReturnValue = Tokens[1];
+			}
+		}
+		return ReturnValue;
+	}
+
 	/** Simple function to pipe output asynchronously */
 	private static void ParsePackageName(object Sender, DataReceivedEventArgs Event)
 	{
@@ -851,6 +869,14 @@ public class AndroidPlatform : Platform
 				if (Line.StartsWith("package:"))
 				{
 					PackageLine = Line;
+				}
+			}
+			if (LaunchableActivityLine == null)
+			{
+				string Line = Event.Data;
+				if (Line.StartsWith("launchable-activity:"))
+				{
+					LaunchableActivityLine = Line;
 				}
 			}
 		}
@@ -1060,7 +1086,7 @@ public class AndroidPlatform : Platform
 		}
 
 		// start the app on device!
-		string CommandLine = "shell am start -n " + PackageName + "/com.epicgames.ue4.GameActivity";
+		string CommandLine = "shell am start -n " + PackageName + "/" + GetLaunchableActivityName();
 		ProcessResult ClientProcess = RunAdbCommand(Params, CommandLine, null, ClientRunFlags);
 
 
