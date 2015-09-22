@@ -957,8 +957,18 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 
 bool AActor::CheckStillInWorld()
 {
+	if (IsPendingKill())
+	{
+		return false;
+	}
+	UWorld* MyWorld = GetWorld();
+	if (!MyWorld)
+	{
+		return false;
+	}
+
 	// check the variations of KillZ
-	AWorldSettings* WorldSettings = GetWorld()->GetWorldSettings( true );
+	AWorldSettings* WorldSettings = MyWorld->GetWorldSettings( true );
 
 	if (!WorldSettings->bEnableWorldBoundsChecks)
 	{

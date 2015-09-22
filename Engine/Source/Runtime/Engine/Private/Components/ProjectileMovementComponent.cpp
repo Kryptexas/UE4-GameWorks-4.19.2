@@ -506,14 +506,21 @@ bool UProjectileMovementComponent::CheckStillInWorld()
 	{
 		return false;
 	}
+
+	const UWorld* MyWorld = GetWorld();
+	if (!MyWorld)
+	{
+		return false;
+	}
+
 	// check the variations of KillZ
-	AWorldSettings* WorldSettings = GetWorld()->GetWorldSettings( true );
+	AWorldSettings* WorldSettings = MyWorld->GetWorldSettings( true );
 	if (!WorldSettings->bEnableWorldBoundsChecks)
 	{
 		return true;
 	}
 	AActor* ActorOwner = UpdatedComponent->GetOwner();
-	if ( !ActorOwner )
+	if (!IsValid(ActorOwner))
 	{
 		return false;
 	}
