@@ -44,6 +44,7 @@ typedef FLinuxPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_NO_EPROCLIM					1
 #define PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL		1
 #define PLATFORM_HAS_BSD_IPV6_SOCKETS				1
+#define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
 
 // SOCK_CLOEXEC is available on Linux since 2.6.27
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,27)

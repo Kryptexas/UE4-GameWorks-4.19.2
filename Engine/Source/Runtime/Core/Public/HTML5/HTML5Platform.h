@@ -51,6 +51,7 @@ typedef FHTML5Types FPlatformTypes;
 #define PLATFORM_SUPPORTS_TBB						0
 #define PLATFORM_ENABLE_VECTORINTRINSICS			0
 #define PLATFORM_USES_ES2							1
+#define PLATFORM_SUPPORTS_STACK_SYMBOLS				1
 
 // Function type macros.
 #if PLATFORM_HTML5_WIN32
