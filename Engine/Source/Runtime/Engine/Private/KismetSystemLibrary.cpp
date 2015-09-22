@@ -3035,11 +3035,11 @@ void UKismetSystemLibrary::CollectGarbage()
 	GEngine->DeferredCommands.Add(TEXT("obj gc"));
 }
 
-void UKismetSystemLibrary::ShowAdBanner(int32 AdIDNum, bool bShowOnBottomOfScreen)
+void UKismetSystemLibrary::ShowAdBanner(int32 AdIdIndex, bool bShowOnBottomOfScreen)
 {
 	if (IAdvertisingProvider* Provider = FAdvertising::Get().GetDefaultProvider())
 	{
-		Provider->ShowAdBanner(bShowOnBottomOfScreen, AdIDNum);
+		Provider->ShowAdBanner(bShowOnBottomOfScreen, AdIdIndex);
 	}
 }
 
