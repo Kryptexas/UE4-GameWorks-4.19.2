@@ -1762,8 +1762,6 @@ void FXmppMultiUserChatJingle::MemberExited(
 	FXmppUserJid MemberJid;
 	FXmppJingle::ConvertToJid(MemberJid, XmppMember->member_jid());
 
-	FScopeLock Lock(&ChatroomsLock);
-
 	FXmppRoomId RoomId(UTF8_TO_TCHAR(RoomModule->chatroom_jid().node().c_str()));
 
 	FScopeLock Lock(&ChatroomsLock);
