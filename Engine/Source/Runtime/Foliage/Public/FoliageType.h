@@ -227,6 +227,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=InstanceSettings, meta=(DisplayName="Light Map Resolution", EditCondition="bOverrideLightMapRes"))
 	int32 OverriddenLightMapRes;
 
+	/**
+	 * If enabled, foliage will render a pre-pass which allows it to occlude other primitives, and also allows 
+	 * it to correctly receive DBuffer decals. Enabling this setting may have a negative performance impact.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = InstanceSettings)
+	uint32 bUseAsOccluder : 1;
+
 	/** Custom collision for foliage */
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta=(HideObjectType=true))
 	struct FBodyInstance BodyInstance;
