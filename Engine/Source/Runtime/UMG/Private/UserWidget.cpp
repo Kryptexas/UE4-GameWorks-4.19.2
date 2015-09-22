@@ -865,10 +865,6 @@ void UUserWidget::StopListeningForAllInputActions()
 		{
 			Controller->PopInputComponent( InputComponent );
 		}
-		else
-		{
-			FMessageLog( "PIE" ).Error( LOCTEXT( "GameNull", "Unable to listen to input actions without a player controller." ) );
-		}
 
 		InputComponent->ClearActionBindings();
 		InputComponent = nullptr;
