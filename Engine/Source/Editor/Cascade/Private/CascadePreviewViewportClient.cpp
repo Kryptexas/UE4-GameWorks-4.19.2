@@ -79,7 +79,7 @@ FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCasca
 	WidgetMM = WMM_Translate;
 	bManipulatingVectorField = false;
 
-	DrawFlags = ParticleCounts;
+	DrawFlags = ParticleCounts | ParticleSystemCompleted;
 	
 	bUsingOrbitCamera = true;
 
@@ -268,7 +268,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	EngineShowFlags = SavedEngineShowFlags;
 	FCanvasTextItem TextItem( FVector2D::ZeroVector, FText::GetEmpty(), GEngine->GetTinyFont(), FLinearColor::White );
-	if (GetDrawElement(ParticleCounts) || GetDrawElement(ParticleTimes) || GetDrawElement(ParticleEvents) || GetDrawElement(ParticleMemory))
+	if (GetDrawElement(ParticleCounts) || GetDrawElement(ParticleTimes) || GetDrawElement(ParticleEvents) || GetDrawElement(ParticleMemory) || GetDrawElement(ParticleSystemCompleted))
 	{
 		// 'Up' from the lower left...
 		FString strOutput;
@@ -278,7 +278,7 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		UParticleSystemComponent* PartComp = CascadePtr.Pin()->GetParticleSystemComponent();
 
 		int32 iWidth, iHeight;
-				
+
 		if (PartComp->EmitterInstances.Num())
 		{
 			for (int32 i = 0; i < PartComp->EmitterInstances.Num(); i++)
@@ -392,6 +392,20 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 				TextItem.SetColor( FLinearColor::White );
 				TextItem.Text = FText::FromString( MemoryOutput );
 				Canvas->DrawItem( TextItem, XPosition - iWidth, YPosition - iHeight );				
+			}
+		}
+
+		if (GetDrawElement(ParticleSystemCompleted))
+		{
+			if (PartComp->HasCompleted())
+			{
+				TextItem.SetColor(FLinearColor::White);
+				TextItem.Text = LOCTEXT("SystemCompleted", "Completed");
+				TextItem.bCentreX = true;
+				TextItem.bCentreY = true;
+				Canvas->DrawItem(TextItem, Viewport->GetSizeXY().X * 0.5f, Viewport->GetSizeXY().Y - 10);
+				TextItem.bCentreX = false;
+				TextItem.bCentreY = false;
 			}
 		}
 	}

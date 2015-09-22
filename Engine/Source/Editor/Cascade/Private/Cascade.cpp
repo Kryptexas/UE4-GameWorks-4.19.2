@@ -2134,6 +2134,12 @@ void FCascade::BindCommands()
 		FIsActionChecked::CreateSP(this, &FCascade::IsViewParticleMemoryChecked));
 
 	ToolkitCommands->MapAction(
+		Commands.View_SystemCompleted,
+		FExecuteAction::CreateSP(this, &FCascade::OnViewSystemCompleted),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &FCascade::IsViewSystemCompletedChecked));
+
+	ToolkitCommands->MapAction(
 		Commands.ToggleGeometry,
 		FExecuteAction::CreateSP(this, &FCascade::OnViewGeometry),
 		FCanExecuteAction(),
@@ -3579,6 +3585,16 @@ void FCascade::OnViewParticleMemory()
 bool FCascade::IsViewParticleMemoryChecked() const
 {
 	return IsDrawOptionEnabled(FCascadeEdPreviewViewportClient::ParticleMemory);
+}
+
+void FCascade::OnViewSystemCompleted()
+{
+	ToggleDrawOption(FCascadeEdPreviewViewportClient::ParticleSystemCompleted);
+}
+
+bool FCascade::IsViewSystemCompletedChecked() const
+{
+	return IsDrawOptionEnabled(FCascadeEdPreviewViewportClient::ParticleSystemCompleted);
 }
 
 void FCascade::OnViewGeometry()

@@ -302,6 +302,8 @@ private:
 	bool IsViewParticleTimesChecked() const;
 	void OnViewParticleMemory();
 	bool IsViewParticleMemoryChecked() const;
+	void OnViewSystemCompleted();
+	bool IsViewSystemCompletedChecked() const;
 	void OnViewGeometry();
 	bool IsViewGeometryChecked() const;
 	void OnViewGeometryProperties();
