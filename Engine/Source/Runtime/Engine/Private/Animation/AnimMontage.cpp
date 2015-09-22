@@ -464,13 +464,13 @@ void UAnimMontage::PostLoad()
 	}
 
 	// fix up blending time deprecated variable
-	if (BlendInTime_DEPRECATED != -1.f)
+	if (BlendInTime_DEPRECATED == -1.f)
 	{
 		BlendIn.SetBlendTime(BlendInTime_DEPRECATED);
 		BlendInTime_DEPRECATED = -1.f;
 	}
 
-	if(BlendOutTime_DEPRECATED != -1.f)
+	if(BlendOutTime_DEPRECATED == -1.f)
 	{
 		BlendOut.SetBlendTime(BlendOutTime_DEPRECATED);
 		BlendOutTime_DEPRECATED = -1.f;
