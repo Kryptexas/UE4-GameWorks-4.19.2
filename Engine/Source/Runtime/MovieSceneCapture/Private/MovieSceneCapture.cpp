@@ -2,7 +2,11 @@
 
 #include "MovieSceneCapturePCH.h"
 #include "MovieSceneCapture.h"
+
+#if WITH_EDITOR
 #include "ImageWrapper.h"
+#endif
+
 #include "MovieSceneCaptureModule.h"
 
 struct FUniqueMovieSceneCaptureHandle : FMovieSceneCaptureHandle
@@ -135,12 +139,14 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 			AVIWriter->DropFrames(NumDroppedFrames);
 			AVIWriter->Update(CurrentTimeSeconds);
 		}
+#if WITH_EDITOR
 		else
 		{
 			TArray<FColor> Data;
 			Viewport->ReadPixels(Data, FReadSurfaceDataFlags());
 			CaptureSnapshot(Data);
 		}
+#endif
 	}
 }
 
@@ -162,6 +168,7 @@ void UMovieSceneCapture::Close()
 	IMovieSceneCaptureModule::Get().OnMovieSceneCaptureFinished(this);
 }
 
+#if WITH_EDITOR
 void UMovieSceneCapture::CaptureSnapshot(const TArray<FColor>& Colors)
 {
 	if (Colors.Num() == 0)
@@ -217,6 +224,7 @@ void UMovieSceneCapture::CaptureSnapshot(const TArray<FColor>& Colors)
 		break;
 	}
 }
+#endif
 
 const TCHAR* UMovieSceneCapture::GetDefaultFileExtension() const
 {

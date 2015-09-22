@@ -14,8 +14,13 @@ FActorAnimationObjectReference::FActorAnimationObjectReference(UObject* InObject
 
 UObject* FActorAnimationObjectReference::Resolve(UObject* InContext) const
 {
+#if WITH_EDITOR
 	int32 PIEInstanceID = InContext->GetOutermost()->PIEInstanceID;
 	FUniqueObjectGuid FixedUpId = PIEInstanceID == -1 ? ObjectId : ObjectId.FixupForPIE(PIEInstanceID);
+#else
+	FUniqueObjectGuid FixedUpId = ObjectId;
+#endif
+	
 
 	FLazyObjectPtr LazyPtr;
 	LazyPtr = FixedUpId;

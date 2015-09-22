@@ -3,10 +3,7 @@
 #include "MovieSceneCapturePCH.h"
 #include "MovieSceneCapture.h"
 #include "MovieSceneCaptureModule.h"
-#include "EditorStyle.h"
 #include "SDockTab.h"
-#include "Editor.h"
-#include "PropertyEditing.h"
 #include "JsonObjectConverter.h"
 #include "INotificationWidget.h"
 #include "SNotificationList.h"
@@ -14,105 +11,112 @@
 
 #include "SlateExtras.h"
 
+#if WITH_EDITOR
+	#include "EditorStyle.h"
+	#include "Editor.h"
+	#include "PropertyEditing.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "MovieSceneCapture"
 
 const FName MovieSceneRenderTabId(TEXT("MovieSceneRenderTab"));
 
 DECLARE_DELEGATE_RetVal_OneParam(FText, FOnStartCapture, UMovieSceneCapture*);
 
-class SRenderMovieSceneSettings : public SCompoundWidget, public FGCObject
-{
-	SLATE_BEGIN_ARGS(SRenderMovieSceneSettings) : _InitialObject(nullptr) {}
-		SLATE_EVENT(FOnStartCapture, OnStartCapture)
-		SLATE_ARGUMENT(UMovieSceneCapture*, InitialObject)
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs)
+#if WITH_EDITOR
+	class SRenderMovieSceneSettings : public SCompoundWidget, public FGCObject
 	{
-		FPropertyEditorModule& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		SLATE_BEGIN_ARGS(SRenderMovieSceneSettings) : _InitialObject(nullptr) {}
+			SLATE_EVENT(FOnStartCapture, OnStartCapture)
+			SLATE_ARGUMENT(UMovieSceneCapture*, InitialObject)
+		SLATE_END_ARGS()
 
-		FDetailsViewArgs DetailsViewArgs;
-		DetailsViewArgs.bUpdatesFromSelection = false;
-		DetailsViewArgs.bLockable = false;
-		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
-		DetailsViewArgs.ViewIdentifier = "RenderMovieScene";
+		void Construct(const FArguments& InArgs)
+		{
+			FPropertyEditorModule& PropertyEditor = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-		DetailView = PropertyEditor.CreateDetailView(DetailsViewArgs);
+			FDetailsViewArgs DetailsViewArgs;
+			DetailsViewArgs.bUpdatesFromSelection = false;
+			DetailsViewArgs.bLockable = false;
+			DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
+			DetailsViewArgs.ViewIdentifier = "RenderMovieScene";
 
-		OnStartCapture = InArgs._OnStartCapture;
+			DetailView = PropertyEditor.CreateDetailView(DetailsViewArgs);
 
-		ChildSlot
-		[
-			SNew(SVerticalBox)
+			OnStartCapture = InArgs._OnStartCapture;
 
-			+ SVerticalBox::Slot()
+			ChildSlot
 			[
-				DetailView.ToSharedRef()
-			]
+				SNew(SVerticalBox)
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			[
-				SAssignNew(ErrorText, STextBlock)
-				.Visibility(EVisibility::Hidden)
-			]
+				+ SVerticalBox::Slot()
+				[
+					DetailView.ToSharedRef()
+				]
 
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Right)
-			.Padding(5.f)
-			[
-				SNew(SButton)
-				.ContentPadding(FMargin(10, 5))
-				.Text(LOCTEXT("Export", "Capture Movie"))
-				.OnClicked(this, &SRenderMovieSceneSettings::OnStartClicked)
-			]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SAssignNew(ErrorText, STextBlock)
+					.Visibility(EVisibility::Hidden)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.HAlign(HAlign_Right)
+				.Padding(5.f)
+				[
+					SNew(SButton)
+					.ContentPadding(FMargin(10, 5))
+					.Text(LOCTEXT("Export", "Capture Movie"))
+					.OnClicked(this, &SRenderMovieSceneSettings::OnStartClicked)
+				]
 			
-		];
+			];
 
-		if (InArgs._InitialObject)
-		{
-			SetObject(InArgs._InitialObject);
-		}
-	}
-
-	void SetObject(UMovieSceneCapture* InMovieSceneCapture)
-	{
-		MovieSceneCapture = InMovieSceneCapture;
-
-		DetailView->SetObject(InMovieSceneCapture);
-
-		ErrorText->SetText(FText());
-		ErrorText->SetVisibility(EVisibility::Hidden);
-	}
-
-	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
-	{
-		Collector.AddReferencedObject(MovieSceneCapture);
-	}
-
-private:
-
-	FReply OnStartClicked()
-	{
-		FText Error;
-		if (OnStartCapture.IsBound())
-		{
-			Error = OnStartCapture.Execute(MovieSceneCapture);
+			if (InArgs._InitialObject)
+			{
+				SetObject(InArgs._InitialObject);
+			}
 		}
 
-		ErrorText->SetText(Error);
-		ErrorText->SetVisibility(Error.IsEmpty() ? EVisibility::Hidden : EVisibility::Visible);
+		void SetObject(UMovieSceneCapture* InMovieSceneCapture)
+		{
+			MovieSceneCapture = InMovieSceneCapture;
 
-		return FReply::Handled();
-	}
+			DetailView->SetObject(InMovieSceneCapture);
 
-	TSharedPtr<IDetailsView> DetailView;
-	TSharedPtr<STextBlock> ErrorText;
-	FOnStartCapture OnStartCapture;
-	UMovieSceneCapture* MovieSceneCapture;
-};
+			ErrorText->SetText(FText());
+			ErrorText->SetVisibility(EVisibility::Hidden);
+		}
 
+		virtual void AddReferencedObjects( FReferenceCollector& Collector ) override
+		{
+			Collector.AddReferencedObject(MovieSceneCapture);
+		}
+
+	private:
+
+		FReply OnStartClicked()
+		{
+			FText Error;
+			if (OnStartCapture.IsBound())
+			{
+				Error = OnStartCapture.Execute(MovieSceneCapture);
+			}
+
+			ErrorText->SetText(Error);
+			ErrorText->SetVisibility(Error.IsEmpty() ? EVisibility::Hidden : EVisibility::Visible);
+
+			return FReply::Handled();
+		}
+
+		TSharedPtr<IDetailsView> DetailView;
+		TSharedPtr<STextBlock> ErrorText;
+		FOnStartCapture OnStartCapture;
+		UMovieSceneCapture* MovieSceneCapture;
+	};
+#endif
 
 
 DECLARE_DELEGATE_OneParam(FOnProcessClosed, int32);
@@ -430,6 +434,7 @@ private:
 
 	virtual void OpenCaptureSettings(const TSharedRef<FTabManager>& TabManager, UMovieSceneCapture* CaptureObject) override
 	{
+#if WITH_EDITOR
 		TSharedPtr<SWindow> ExistingWindow = CaptureSettingsWindow.Pin();
 		if (ExistingWindow.IsValid())
 		{
@@ -463,6 +468,7 @@ private:
 		);
 
 		CaptureSettingsWindow = ExistingWindow;
+#endif
 	}
 
 	void OnNotificationClosed()

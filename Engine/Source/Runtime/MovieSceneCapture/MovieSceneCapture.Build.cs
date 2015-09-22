@@ -12,12 +12,17 @@ public class MovieSceneCapture : ModuleRules
 			}
 		);
 
-		var ExternalModules = new string[] {
-			"PropertyEditor",
-			"ImageWrapper",
-		};
-		PrivateIncludePathModuleNames.AddRange(ExternalModules);
-		DynamicallyLoadedModuleNames.AddRange(ExternalModules);
+		if (UEBuildConfiguration.bBuildDeveloperTools)
+		{
+			PrivateIncludePathModuleNames.Add("ImageWrapper");
+			DynamicallyLoadedModuleNames.Add("ImageWrapper");
+		}
+
+		if (UEBuildConfiguration.bBuildEditor)
+		{
+			PrivateIncludePathModuleNames.Add("PropertyEditor");
+			DynamicallyLoadedModuleNames.Add("PropertyEditor");
+		}
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] {
@@ -29,9 +34,7 @@ public class MovieSceneCapture : ModuleRules
 			new string[] {
 				"Core",
 				"CoreUObject",
-				"EditorStyle",
 				"Engine",
-				"UnrealEd",
 				"InputCore",
 				"Json",
 				"JsonUtilities",
@@ -41,6 +44,14 @@ public class MovieSceneCapture : ModuleRules
 			}
 		);
 
-
+		if (UEBuildConfiguration.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(
+				new string[] {
+					"EditorStyle",
+					"UnrealEd",
+				}
+			);
+		}
 	}
 }

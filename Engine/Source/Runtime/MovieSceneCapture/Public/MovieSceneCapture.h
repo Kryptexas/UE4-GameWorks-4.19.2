@@ -69,8 +69,10 @@ public:
 
 protected:
 
+#if WITH_EDITOR
 	/** Implementation function that saves out a snapshot file from the specified color data */
 	void CaptureSnapshot(const TArray<FColor>& Colors);
+#endif
 
 protected:
 
