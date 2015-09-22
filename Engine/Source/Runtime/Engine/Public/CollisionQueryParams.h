@@ -50,8 +50,21 @@ private:
 
 public:
 
-	/** Returns set of components to ignore during the trace. */
+	/** Returns set of unique components to ignore during the trace. Elements are guaranteed to be unique (they are made so internally if they are not already). */
 	const IgnoreComponentsArrayType& GetIgnoredComponents() const;
+
+	/** Clears the set of components to ignore during the trace. */
+	void ClearIgnoredComponents()
+	{
+		IgnoreComponents.Reset();
+		bComponentListUnique = true;
+	}
+
+	/**
+	 * Set the number of ignored components in the list. Uniqueness is not changed, it operates on the current state (unique or not).
+	 * Useful for temporarily adding some, then restoring to a previous size. NewNum must be <= number of current components for there to be any effect.
+	 */
+	void SetNumIgnoredComponents(int32 NewNum);
 
 	// Constructors
 	FCollisionQueryParams(bool bInTraceComplex=false)

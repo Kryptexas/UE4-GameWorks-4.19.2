@@ -313,6 +313,22 @@ const FCollisionQueryParams::IgnoreComponentsArrayType& FCollisionQueryParams::G
 	return IgnoreComponents;
 }
 
+void FCollisionQueryParams::SetNumIgnoredComponents(int32 NewNum)
+{
+	if (NewNum > 0)
+	{
+		// We can only make it smaller (and uniqueness does not change).
+		if (NewNum < IgnoreComponents.Num())
+		{
+			IgnoreComponents.SetNum(NewNum, /*bAllowShrinking=*/ false);
+		}
+	}
+	else
+	{
+		ClearIgnoredComponents();
+	}
+}
+
 //////////////////////////////////////////////////////////////////////////
 // FSeparatingAxisPointCheck
 
