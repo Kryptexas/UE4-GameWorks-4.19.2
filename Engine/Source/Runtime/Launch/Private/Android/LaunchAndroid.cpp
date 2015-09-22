@@ -295,16 +295,6 @@ int32 AndroidMain(struct android_app* state)
 	// OBBs and APK are found.
 	IPlatformFile::GetPlatformPhysical().Initialize(nullptr, FCommandLine::Get());
 
-#if 0
-	for (int32 i = 0; i < 10; i++)
-	{
-		sleep(1);
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch %d]"), i);
-
-	}
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("[Patch] : Dont Patch \n"));
-#endif
-
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
 
@@ -760,9 +750,10 @@ static void OnAppCommandCB(struct android_app* app, int32_t cmd)
 			UE_LOG(LogAndroid, Log, TEXT("Case APP_CMD_CONFIG_CHANGED"));
 			
 			bool bPortrait = (AConfiguration_getOrientation(app->config) == ACONFIGURATION_ORIENTATION_PORT);
-			FAndroidWindow::OnWindowOrientationChanged(bPortrait);
-
-			FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+			if (FAndroidWindow::OnWindowOrientationChanged(bPortrait))
+			{
+				FAppEventManager::GetInstance()->EnqueueAppEvent(APP_EVENT_STATE_WINDOW_CHANGED, nullptr);
+			}
 		}
 		break;
 	case APP_CMD_LOW_MEMORY:
