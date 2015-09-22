@@ -12,6 +12,7 @@ class AActor;
 class UCanvas;
 class APlayerController;
 class UFont;
+class AHUD;
 
 DECLARE_MULTICAST_DELEGATE_FiveParams(FOnShowDebugInfo, AHUD* /* HUD */, UCanvas* /* Canvas */, const FDebugDisplayInfo& /* DisplayInfo */, float& /* YL */, float& /* YPos */);
 
