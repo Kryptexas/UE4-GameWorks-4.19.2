@@ -18,6 +18,12 @@ struct FConvertedAssetRecord
 	GENERATED_USTRUCT_BODY()
 
 public:
+	FConvertedAssetRecord() {}
+	FConvertedAssetRecord(const FAssetData& AssetInfo, const FString& TargetModulePath);
+
+	bool IsValid();
+
+public:
 	TWeakObjectPtr<UObject> AssetPtr;
 
 	UPROPERTY()
@@ -49,11 +55,16 @@ public:
 	FBlueprintNativeCodeGenManifest(const FNativeCodeGenCommandlineParams& CommandlineParams);
 
 	/**
+	 * A query that retrieves a list of file/directory paths. These paths are 
+	 * the destination targets for files and directories that should/will be 
+	 * generated as part of the conversion process.
 	 * 
-	 * 
-	 * @return 
+	 * @return An array of file/directory paths that serve as destinations for the conversion process.
 	 */
 	TArray<FString> GetTargetPaths() const;
+
+	/**  */
+	FString GetBuildFilePath() const;
 
 	/**
 	 * 
@@ -70,6 +81,12 @@ public:
 	 * @return 
 	 */
 	FConvertedAssetRecord* FindConversionRecord(const FString& AssetPath, bool bSlowSearch = false);
+
+	/**  */
+	bool LogDependencies(const FAssetData& AssetInfo);
+
+	/**  */
+	const TArray<UPackage*>& GetModuleDependencies() const { return ModuleDependencies; }
 
 	/**
 	 * 
@@ -95,9 +112,15 @@ private:
 	/**  */
 	FString ManifestPath;
 
+	UPROPERTY()
+	FString ModuleName;
+
 	/** Relative to the project's directory */
 	UPROPERTY()
 	FString ModulePath;
+
+	UPROPERTY()
+	TArray<UPackage*> ModuleDependencies;
 
 	/** Mutable so Save() can sort the array when requested */
 	UPROPERTY()

@@ -405,7 +405,7 @@ FLinkerLoad* FLinkerLoad::CreateLinker( UPackage* Parent, const TCHAR* Filename,
 /**
  * Looks for an existing linker for the given package, without trying to make one if it doesn't exist
  */
-FLinkerLoad* FLinkerLoad::FindExistingLinkerForPackage(UPackage* Package)
+FLinkerLoad* FLinkerLoad::FindExistingLinkerForPackage(const UPackage* Package)
 {
 	FLinkerLoad* Linker = nullptr;
 	if (Package)

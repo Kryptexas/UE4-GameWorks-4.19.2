@@ -123,6 +123,10 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 				UE_LOG(LogNativeCodeGenCommandline, Warning, TEXT("'%s' doesn't appear to be a valid output directory, defaulting to: '%s'"), *Value, *DefaultModulePath);
 			}
 		}
+		else if (!Switch.Compare(TEXT("moduleName"), ESearchCase::IgnoreCase))
+		{
+			ModuleName = Value;
+		}
 		else if (!Switch.Compare(TEXT("wipe"), ESearchCase::IgnoreCase))
 		{
 			bWipeRequested = true;
@@ -171,9 +175,16 @@ FNativeCodeGenCommandlineParams::FNativeCodeGenCommandlineParams(const TArray<FS
 
 	bool const bUtilizeExistingManifest = !ManifestFilePath.IsEmpty() && !bWipeRequested && FileManager.FileExists(*ManifestFilePath);
 	// an existing manifest would specify where to put the module
-	if (ModuleOutputDir.IsEmpty() && !bUtilizeExistingManifest)
+	if (!bUtilizeExistingManifest)
 	{
-		ModuleOutputDir = DefaultModulePath;
-	}
+		if (ModuleName.IsEmpty())
+		{
+			ModuleName = NativeCodeGenCommandlineParamsImpl::DefaultModuleName;
+		}
+		if (ModuleOutputDir.IsEmpty())
+		{
+			ModuleOutputDir = DefaultModulePath;
+		}
+	}	
 }
 

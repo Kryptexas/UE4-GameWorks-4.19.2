@@ -19,11 +19,13 @@ DEFINE_LOG_CATEGORY_STATIC(LogNativeCodeGenManifest, Log, All);
 namespace BlueprintNativeCodeGenManifestImpl
 {
 	static const int64 CPF_NoFlags = 0x00;
-	static const FString ManifestFileExt = TEXT(".bpgen.manifest");
-	static const FString CppFileExt	     = TEXT(".cpp");
-	static const FString HeaderFileExt   = TEXT(".h");
-	static const FString HeaderSubDir    = TEXT("Public");
-	static const FString CppSubDir       = TEXT("Private");
+	static const FString ManifestFileExt    = TEXT(".bpgen.manifest");
+	static const FString CppFileExt	        = TEXT(".cpp");
+	static const FString HeaderFileExt      = TEXT(".h");
+	static const FString HeaderSubDir       = TEXT("Public");
+	static const FString CppSubDir          = TEXT("Private");
+	static const FString ModuleBuildFileExt = TEXT(".Build.cs");
+	static const FString FallbackModuleName = TEXT("BpCodeGen");
 
 	/**  */
 	static bool LoadManifest(const FString& FilePath, FBlueprintNativeCodeGenManifest* Manifest);
@@ -37,6 +39,8 @@ namespace BlueprintNativeCodeGenManifestImpl
 	static FString GenerateCppSavePath(const FString& ModulePath, const FAssetData& Asset);
 
 	static FString GetComparibleDirPath(const FString& DirectoryPath);
+
+	static bool GatherModuleDependencies(const UObject* AssetObj, TArray<UPackage*>& DependenciesOut);
 }
 
 //------------------------------------------------------------------------------
@@ -110,6 +114,61 @@ static FString BlueprintNativeCodeGenManifestImpl::GetComparibleDirPath(const FS
 	return NormalizedPath;
 }
 
+//------------------------------------------------------------------------------
+static bool BlueprintNativeCodeGenManifestImpl::GatherModuleDependencies(const UObject* AssetObj, TArray<UPackage*>& DependenciesOut)
+{
+	UPackage* AssetPackage = AssetObj->GetOutermost();
+
+	const FLinkerLoad* PkgLinker = FLinkerLoad::FindExistingLinkerForPackage(AssetPackage);
+	const bool bFoundLinker = (PkgLinker != nullptr);
+
+	if (ensure(bFoundLinker))
+	{
+		for (const FObjectImport& PkgImport : PkgLinker->ImportMap)
+		{
+			if (PkgImport.ClassName != NAME_Package)
+			{
+				continue;
+			}
+
+			UPackage* DependentPackage = FindObject<UPackage>(/*Outer =*/nullptr, *PkgImport.ObjectName.ToString(), /*ExactClass =*/true);
+			if (DependentPackage == nullptr)
+			{
+				continue;
+			}
+
+			// we want only native packages, ones that are not editor-only
+			if ((DependentPackage->PackageFlags & (PKG_CompiledIn | PKG_EditorOnly)) == PKG_CompiledIn)
+			{
+				DependenciesOut.AddUnique(DependentPackage);// PkgImport.ObjectName.ToString());
+			}
+		}
+	}
+
+	return bFoundLinker;
+}
+
+/*******************************************************************************
+ * FConvertedAssetRecord
+ ******************************************************************************/
+ 
+//------------------------------------------------------------------------------
+FConvertedAssetRecord::FConvertedAssetRecord(const FAssetData& AssetInfo, const FString& TargetModulePath)
+	: AssetPtr(AssetInfo.GetAsset())
+	, AssetType(AssetInfo.GetClass())
+	, AssetPath(AssetInfo.PackageName.ToString())
+	, GeneratedHeaderPath(BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(TargetModulePath, AssetInfo))
+	, GeneratedCppPath(BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(TargetModulePath, AssetInfo))
+{
+}
+
+//------------------------------------------------------------------------------
+bool FConvertedAssetRecord::IsValid()
+{
+	// every conversion will have a header file (interfaces don't have implementation files)
+	return AssetPtr.IsValid() && !GeneratedHeaderPath.IsEmpty() && (AssetType != nullptr) && !AssetPath.IsEmpty();
+}
+
 /*******************************************************************************
  * FBlueprintNativeCodeGenManifest
  ******************************************************************************/
@@ -137,6 +196,7 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 	using namespace BlueprintNativeCodeGenManifestImpl;
 	bool const bLoadExistingManifest = !CommandlineParams.bWipeRequested || CommandlineParams.ModuleOutputDir.IsEmpty();
 	
+	ModuleName = CommandlineParams.ModuleName;
 	ModulePath = CommandlineParams.ModuleOutputDir;
 	if (FPaths::IsRelative(ModulePath))
 	{
@@ -149,9 +209,13 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 	}
 	else
 	{
+		if (!ensure(!ModuleName.IsEmpty()))
+		{
+			ModuleName = FallbackModuleName;
+		}
 		if (!ensure(!ModulePath.IsEmpty()))
 		{
-			ModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), TEXT("BpCodeGen"));
+			ModulePath = FPaths::Combine(*FPaths::GameIntermediateDir(), *ModuleName);
 		}
 		ManifestPath = FPaths::Combine(*GetModuleDir(), *GetDefaultFilename());
 	}
@@ -183,13 +247,27 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 			}
 		}
 
+		const bool bNewModuleNameRequested = !CommandlineParams.ModuleName.IsEmpty() && (CommandlineParams.ModuleName != ModuleName);
+		if (bNewModuleNameRequested && !CommandlineParams.bPreviewRequested) 
+		{
+			// delete the old module file (if one exists)
+			IFileManager::Get().Delete(*GetBuildFilePath());
+		}
+
 		// if we were only interested in obtaining the module path
 		if (CommandlineParams.bWipeRequested)
 		{
+			ModuleName = CommandlineParams.ModuleName;
 			Clear();
 		}
 		else
 		{
+			if (bNewModuleNameRequested)
+			{
+				UE_LOG(LogNativeCodeGenManifest, Warning, TEXT("The specified module name (%s) doesn't match the existing one (%s). Overridding with the new name."),
+					*CommandlineParams.ModuleName, *ModuleName);
+				ModuleName = CommandlineParams.ModuleName;
+			}
 			MapConvertedAssets();
 		}
 	}
@@ -199,22 +277,43 @@ FBlueprintNativeCodeGenManifest::FBlueprintNativeCodeGenManifest(const FNativeCo
 FConvertedAssetRecord& FBlueprintNativeCodeGenManifest::CreateConversionRecord(const FAssetData& AssetInfo)
 {
 	const FString AssetPath = AssetInfo.PackageName.ToString();
-	if (FConvertedAssetRecord* ExistingConversionRecord = FindConversionRecord(AssetPath))
+	const FString TargetModulePath = GetModuleDir();
+	// load the asset (if it isn't already)
+	const UObject* AssetObj = AssetInfo.GetAsset();
+
+	FConvertedAssetRecord* ConversionRecordPtr = FindConversionRecord(AssetPath);
+	if (ConversionRecordPtr == nullptr)
 	{
-		return *ExistingConversionRecord;
+		ConversionRecordPtr = &ConvertedAssets[ ConvertedAssets.Add(FConvertedAssetRecord(AssetInfo, TargetModulePath)) ];
+	}
+	else if ( !ensure((ConversionRecordPtr->AssetPath == AssetPath) && (ConversionRecordPtr->AssetType == AssetInfo.GetClass())) )
+	{
+		UE_LOG(LogNativeCodeGenManifest, Warning, 
+			TEXT("The existing manifest entery for '%s' doesn't match what was expected (asset path and/or type). Updating it to match the asset."),
+			*AssetPath);
+
+		ConversionRecordPtr->AssetPath = AssetPath;
+		ConversionRecordPtr->AssetType = AssetInfo.GetClass();
+	}
+	
+	FConvertedAssetRecord& ConversionRecord = *ConversionRecordPtr;
+	if (!ConversionRecord.IsValid())
+	{
+		// if this was a manifest entry that was loaded from an existing file, 
+		// then it wouldn't have the asset pointer (which is transient data)
+		if (!ConversionRecord.AssetPtr.IsValid())
+		{
+			ConversionRecord.AssetPtr = AssetObj;
+		}
+		if (ConversionRecord.GeneratedHeaderPath.IsEmpty())
+		{
+			ConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(TargetModulePath, AssetInfo);
+			ConversionRecord.GeneratedCppPath    = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(TargetModulePath, AssetInfo);
+		}
+		ensure(ConversionRecord.IsValid());
 	}
 
-	const FString TargetModulePath = GetModuleDir();
-
-	FConvertedAssetRecord NewConversionRecord;
-	NewConversionRecord.AssetPtr  = AssetInfo.GetAsset();
-	NewConversionRecord.AssetType = AssetInfo.GetClass();
-	NewConversionRecord.AssetPath = AssetPath;
-	NewConversionRecord.GeneratedHeaderPath = BlueprintNativeCodeGenManifestImpl::GenerateHeaderSavePath(TargetModulePath, AssetInfo);
-	NewConversionRecord.GeneratedCppPath    = BlueprintNativeCodeGenManifestImpl::GenerateCppSavePath(TargetModulePath, AssetInfo);
-
-	RecordMap.Add(AssetPath, ConvertedAssets.Num());
-	return ConvertedAssets[ ConvertedAssets.Add(NewConversionRecord) ];
+	return ConversionRecord;
 }
 
 //------------------------------------------------------------------------------
@@ -241,6 +340,15 @@ FConvertedAssetRecord* FBlueprintNativeCodeGenManifest::FindConversionRecord(con
 }
 
 //------------------------------------------------------------------------------
+bool FBlueprintNativeCodeGenManifest::LogDependencies(const FAssetData& AssetInfo)
+{
+	// load the asset (if it isn't already)
+	const UObject* AssetObj = AssetInfo.GetAsset();
+
+	return BlueprintNativeCodeGenManifestImpl::GatherModuleDependencies(AssetObj, ModuleDependencies);
+}
+
+//------------------------------------------------------------------------------
 TArray<FString> FBlueprintNativeCodeGenManifest::GetTargetPaths() const 
 {
 	const FString TargetModulePath = GetModuleDir();
@@ -249,9 +357,15 @@ TArray<FString> FBlueprintNativeCodeGenManifest::GetTargetPaths() const
 	DestPaths.Add(ManifestPath);
 	DestPaths.Add(BlueprintNativeCodeGenManifestImpl::GetHeaderSaveDir(TargetModulePath));
 	DestPaths.Add(BlueprintNativeCodeGenManifestImpl::GetCppSaveDir(TargetModulePath));
-	// @TODO: Add *Build.cs file
+	DestPaths.Add(GetBuildFilePath());
 
 	return DestPaths;
+}
+
+//------------------------------------------------------------------------------
+FString FBlueprintNativeCodeGenManifest::GetBuildFilePath() const
+{
+	return FPaths::Combine(*GetModuleDir(), *ModuleName) + BlueprintNativeCodeGenManifestImpl::ModuleBuildFileExt;
 }
 
 //------------------------------------------------------------------------------
@@ -314,15 +428,6 @@ void FBlueprintNativeCodeGenManifest::MapConvertedAssets()
 	{
 		const FConvertedAssetRecord& AssetRecord = ConvertedAssets[RecordIndex];
 		RecordMap.Add(AssetRecord.AssetPath, RecordIndex);
-		
-// 		if (UObject* AssetObj = AssetRecord.AssetPtr.Get())
-// 		{
-//			RecordMap.Add(AssetRecord.AssetPath, RecordIndex);
-// 		}
-// 		else
-// 		{
-// 			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Invalid conversion record found for: %s"), *AssetRecord.AssetPath);
-// 		}
 	}
 }
 

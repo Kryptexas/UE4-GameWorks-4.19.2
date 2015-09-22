@@ -1662,7 +1662,7 @@ public:
 	/**
 	 * Looks for an existing linker for the given package, without trying to make one if it doesn't exist
 	 */
-	COREUOBJECT_API static FLinkerLoad* FindExistingLinkerForPackage(UPackage* Package);
+	COREUOBJECT_API static FLinkerLoad* FindExistingLinkerForPackage(const UPackage* Package);
 
 	/**
 	 * Replaces OldObject's entry in its linker with NewObject, so that all subsequent loads of OldObject will return NewObject.

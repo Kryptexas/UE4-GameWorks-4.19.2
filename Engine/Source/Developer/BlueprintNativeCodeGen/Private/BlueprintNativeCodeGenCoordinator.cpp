@@ -484,13 +484,32 @@ bool FBlueprintNativeCodeGenCoordinator::ProcessConversionQueue(const FConversio
 	ConversionQueryDelegate.BindLambda(IsAssetTargetedForConversion);
 
 	bool bSuccess = true;
-	for (int32 AssetIndex = 0; AssetIndex < ConversionQueue.Num(); ++AssetIndex)
+	// pre-process the conversion queue (has to happen before converting, 
+	// so we can gather module dependencies in FBlueprintNativeCodeGenManifest::LogDependencies);
+	// if this were to happen in the same loop as converting, then the compilation
+	// of one asset could result in a later asset having its linker/loader reset
+	// (before we processed it... meaning we wouldn't have an easy way to 
+	// determine that later Blueprint's module dependencies)
+	for (int32 AssetIndex = 0; AssetIndex < ConversionQueue.Num() && bSuccess; ++AssetIndex)
 	{
 		const FAssetData& AssetInfo = ConversionQueue[AssetIndex];
+
 		// load asset, add dependencies that can only be gathered from a 
 		// loaded asset (property types, etc.)
 		UObject* AssetObj = AssetInfo.GetAsset();
+		// NOTE: this will most likely grow the ConversionQueue as we iterate through it
 		BlueprintNativeCodeGenCoordinatorImpl::GatherInnerDependencies(AssetObj, ConversionQueue);
+
+		bSuccess &= Manifest.LogDependencies(AssetInfo);
+		if (!bSuccess)
+		{
+			UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to pre-process '%s' for conversion"), *AssetInfo.AssetName.ToString());
+		}
+	}
+
+	for (int32 AssetIndex = 0; AssetIndex < ConversionQueue.Num() && bSuccess; ++AssetIndex)
+	{
+		const FAssetData& AssetInfo = ConversionQueue[AssetIndex];
 
 		FConvertedAssetRecord& ConversionRecord = Manifest.CreateConversionRecord(AssetInfo);
 		bSuccess &= ConversionDelegate.Execute(ConversionRecord);
@@ -498,7 +517,6 @@ bool FBlueprintNativeCodeGenCoordinator::ProcessConversionQueue(const FConversio
 		if (!bSuccess)
 		{
 			UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to fully convert '%s'"), *AssetInfo.AssetName.ToString());
-			break;
 		}
 	}
 

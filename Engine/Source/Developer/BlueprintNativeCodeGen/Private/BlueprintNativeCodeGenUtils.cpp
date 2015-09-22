@@ -13,6 +13,8 @@
 #include "Kismet2/KismetEditorUtilities.h"		// for CompileBlueprint()
 #include "OutputDevice.h"						// for GWarn
 #include "GameProjectUtils.h"					// for GenerateGameModuleBuildFile
+#include "Editor/GameProjectGeneration/Public/GameProjectUtils.h" // for GenerateGameModuleBuildFile()
+#include "App.h"								// for GetGameName()
 
 DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 
@@ -23,6 +25,7 @@ DEFINE_LOG_CATEGORY(LogBlueprintCodeGen)
 namespace BlueprintNativeCodeGenUtilsImpl
 {
 	static bool WipeTargetPaths(const TArray<FString>& TargetPaths);
+	static bool GenerateModuleBuildFile(const FString& ModuleName, const FBlueprintNativeCodeGenManifest& Manifest);
 }
 
 //------------------------------------------------------------------------------
@@ -44,6 +47,50 @@ static bool BlueprintNativeCodeGenUtilsImpl::WipeTargetPaths(const TArray<FStrin
 	}
 
 	return bSuccess;
+}
+
+//------------------------------------------------------------------------------
+static bool BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(const FString& ModuleName, const FBlueprintNativeCodeGenManifest& Manifest)
+{
+	FModuleManager& ModuleManager = FModuleManager::Get();
+	
+	TArray<FString> PublicDependencies;
+	if (GameProjectUtils::ProjectHasCodeFiles()) 
+	{
+		const FString GameModuleName = FApp::GetGameName();
+		if (ModuleManager.ModuleExists(*GameModuleName))
+		{
+			PublicDependencies.Add(GameModuleName);
+		}
+	}
+
+	TArray<FString> PrivateDependencies;
+
+	const TArray<UPackage*>& ModulePackages = Manifest.GetModuleDependencies();
+	PrivateDependencies.Reserve(ModulePackages.Num());
+
+	for (UPackage* ModulePkg : ModulePackages)
+	{
+		const FString ModuleName = FPackageName::GetLongPackageAssetName(ModulePkg->GetName());
+		if (ModuleManager.ModuleExists(*ModuleName))
+		{
+			PrivateDependencies.Add(ModuleName);
+		}
+		else
+		{
+			UE_LOG(LogBlueprintCodeGen, Warning, TEXT("Failed to find module for package: %s"), *ModuleName);
+		}
+	}
+
+	const FString BuildFilePath = Manifest.GetBuildFilePath();
+	FText ErrorMessage;
+	GameProjectUtils::GenerateGameModuleBuildFile(BuildFilePath, ModuleName, PublicDependencies, PrivateDependencies, ErrorMessage);
+
+	if (!ErrorMessage.IsEmpty())
+	{
+		UE_LOG(LogBlueprintCodeGen, Error, TEXT("Failed to generate module build file: %s"), *ErrorMessage.ToString());
+	}
+	return !ErrorMessage.IsEmpty();
 }
 
 /*******************************************************************************
@@ -86,20 +133,8 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 		}
 
 		bool bSuccess = !HeaderSource->IsEmpty() || !CppSource->IsEmpty();
-		if (!HeaderSource->IsEmpty())
-		{
-			if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
-			{
-				bSuccess &= false;
-				ConversionRecord.GeneratedHeaderPath.Empty();
-			}
-			HeaderSource->Empty(HeaderSource->Len());
-		}
-		else
-		{
-			ConversionRecord.GeneratedHeaderPath.Empty();
-		}
-
+		// run the cpp first, because we cue off of the presence of a header for 
+		// a valid conversion record (see FConvertedAssetRecord::IsValid)
 		if (!CppSource->IsEmpty())
 		{
 			if (!FFileHelper::SaveStringToFile(*CppSource, *ConversionRecord.GeneratedCppPath))
@@ -113,6 +148,20 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 		{
 			ConversionRecord.GeneratedCppPath.Empty();
 		}
+
+		if (bSuccess && !HeaderSource->IsEmpty())
+		{
+			if (!FFileHelper::SaveStringToFile(*HeaderSource, *ConversionRecord.GeneratedHeaderPath))
+			{
+				bSuccess &= false;
+				ConversionRecord.GeneratedHeaderPath.Empty();
+			}
+			HeaderSource->Empty(HeaderSource->Len());
+		}
+		else
+		{
+			ConversionRecord.GeneratedHeaderPath.Empty();
+		}
 		return bSuccess && !NestedErrorTracker.HasErrors();
 	};
 
@@ -123,6 +172,11 @@ bool FBlueprintNativeCodeGenUtils::GenerateCodeModule(const FNativeCodeGenComman
 	}
 
 	const bool bSuccess = Coordinator.ProcessConversionQueue(ConversionDelegate);
+	if (bSuccess && !CommandParams.bPreviewRequested)
+	{
+		BlueprintNativeCodeGenUtilsImpl::GenerateModuleBuildFile(CommandParams.ModuleName, Manifest);
+	}
+
 	// save the manifest regardless of success (so we can get an idea of how successful it was)
 	Manifest.Save();
 	return bSuccess & !ScopedErrorTracker.HasErrors();

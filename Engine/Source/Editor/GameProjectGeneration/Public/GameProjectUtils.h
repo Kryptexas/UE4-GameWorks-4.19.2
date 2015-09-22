@@ -217,6 +217,9 @@ public:
 	/** Creates the basic source code for a new project. On failure, OutFailReason will be populated. */
 	static bool GenerateBasicSourceCode(TArray<FString>& OutCreatedFiles, FText& OutFailReason);
 
+	/** Generates a Build.cs file for a game module */
+	static bool GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason);
+
 	/** Returns true if the currently loaded project has code files */
 	static bool ProjectHasCodeFiles();
 
@@ -311,9 +314,6 @@ private:
 
 	/** Generates a cpp file for a UObject class */
 	static bool GenerateClassCPPFile(const FString& NewCPPFileName, const FString UnPrefixedClassName, const FNewClassInfo ParentClassInfo, const TArray<FString>& AdditionalIncludes, const TArray<FString>& PropertyOverrides, const FString& AdditionalMemberDefinitions, FString& OutSyncLocation, const FModuleContextInfo& ModuleInfo, FText& OutFailReason);
-
-	/** Generates a Build.cs file for a game module */
-	static bool GenerateGameModuleBuildFile(const FString& NewBuildFileName, const FString& ModuleName, const TArray<FString>& PublicDependencyModuleNames, const TArray<FString>& PrivateDependencyModuleNames, FText& OutFailReason);
 
 	/** Generates a Target.cs file for a game module */
 	static bool GenerateGameModuleTargetFile(const FString& NewTargetFileName, const FString& ModuleName, const TArray<FString>& ExtraModuleNames, FText& OutFailReason);
