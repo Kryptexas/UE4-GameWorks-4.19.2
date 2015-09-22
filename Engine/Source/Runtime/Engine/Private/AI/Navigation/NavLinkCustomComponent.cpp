@@ -83,7 +83,7 @@ bool UNavLinkCustomComponent::OnLinkMoveStarted(UPathFollowingComponent* PathCom
 
 void UNavLinkCustomComponent::OnLinkMoveFinished(UPathFollowingComponent* PathComp)
 {
-	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
+	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp(PathComp);
 	MovingAgents.Remove(WeakPathComp);
 }
 
