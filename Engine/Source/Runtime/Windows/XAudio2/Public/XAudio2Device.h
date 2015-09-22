@@ -74,28 +74,6 @@ enum ESoundFormat
 	SoundFormat_Streaming
 };
 
-
-/** 
-* Simple async task to destroy an xaudio2 source voice without blocking the main thread.
-*/
-class FAsyncXAudio2SourceDestroyer : public FNonAbandonableTask
-{
-protected:
-	struct IXAudio2SourceVoice* SourceVoice;
-	FXAudio2Device* AudioDevice;
-
-public:
-	FAsyncXAudio2SourceDestroyer(FXAudio2Device* InAudioDevice, struct IXAudio2SourceVoice* InSourceVoice);
-	~FAsyncXAudio2SourceDestroyer();
-	void DoWork();
-
-	FORCEINLINE TStatId GetStatId() const
-	{
-		RETURN_QUICK_DECLARE_CYCLE_STAT(FAsyncXAudio2SourceDestroyer, STATGROUP_ThreadPoolAsyncTasks);
-	}
-};
-
-
 class FXAudio2SoundBuffer;
 class FXAudio2SoundSource;
 class FSpatializationHelper;
@@ -105,7 +83,6 @@ class FSpatializationHelper;
  */
 class FXAudio2Device : public FAudioDevice
 {
-
 	/** Starts up any platform specific hardware/APIs */
 	virtual bool InitializeHardware() override;
 
@@ -166,12 +143,6 @@ class FXAudio2Device : public FAudioDevice
 	 */
 	virtual bool Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
-public:
-	/** 
-	 * Safely destroy an XAudio2 source asynchronously.
-	*/
-	void AsyncDestroyXAudio2Source(struct IXAudio2SourceVoice* Source);
-
 protected:
 
 	/**
@@ -208,7 +179,6 @@ protected:
 
 private:
 	struct FXAudioDeviceProperties* DeviceProperties;
-	FThreadSafeCounter NumSourcesDestroying;
 
 #if PLATFORM_WINDOWS
 	// We need to keep track whether com was successfully initialized so we can clean 

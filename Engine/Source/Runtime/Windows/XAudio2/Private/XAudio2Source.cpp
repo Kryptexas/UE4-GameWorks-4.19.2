@@ -37,6 +37,7 @@ FXMPHelper* FXMPHelper::GetXMPHelper( void )
 FXAudio2SoundSource::FXAudio2SoundSource(FAudioDevice* InAudioDevice)
 	: FSoundSource( InAudioDevice )
 	, Source( NULL )
+	, MaxEffectChainChannels(0)
 	, RealtimeAsyncTask( nullptr )
 	, CurrentBuffer( 0 )
 	, bBuffersToFlush( false )
@@ -93,11 +94,11 @@ void FXAudio2SoundSource::FreeResources( void )
 	}
 
 	// Release voice.
-	if( Source )
+	if (Source)
 	{
 		// Because XAudio2's DestroyVoice source is blocking and can be slow on some processors (e.g. AMD), we're creating
 		// a task that destroys the voice on a separate thread to avoid blocking or hitching.
-		AudioDevice->AsyncDestroyXAudio2Source(Source);
+		AudioDevice->DeviceProperties->ReleaseSourceVoice(Source, XAudio2Buffer->PCM, MaxEffectChainChannels);
 		Source = nullptr;
 	}
 
@@ -364,13 +365,6 @@ bool FXAudio2SoundSource::CreateSource( void )
 #endif	//XAUDIO2_SUPPORTS_SENDLIST
 
 	// Mark the source as music if it is a member of the music group and allow low, band and high pass filters
-	UINT32 Flags = 
-#if XAUDIO2_SUPPORTS_MUSIC
-		( WaveInstance->bIsMusic ? XAUDIO2_VOICE_MUSIC : 0 );
-#else	//XAUDIO2_SUPPORTS_MUSIC
-		0;
-#endif	//XAUDIO2_SUPPORTS_MUSIC
-	Flags |= XAUDIO2_VOICE_USEFILTER;
 
 	// Reset the bUsingSpatializationEffect flag
 	bUsingHRTFSpatialization = false;
@@ -387,23 +381,24 @@ bool FXAudio2SoundSource::CreateSource( void )
 			// going to hear the sound for the duration of this sound.
 			bUsingHRTFSpatialization = true;
 
+			MaxEffectChainChannels = 2;
+
 			XAUDIO2_EFFECT_DESCRIPTOR EffectDescriptor[1];
 			EffectDescriptor[0].pEffect = Effect;
-			EffectDescriptor[0].OutputChannels = 2;
+			EffectDescriptor[0].OutputChannels = MaxEffectChainChannels;
 			EffectDescriptor[0].InitialState = true;
 
 			const XAUDIO2_EFFECT_CHAIN EffectChain = { 1, EffectDescriptor };
+			AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, &EffectChain, MaxEffectChainChannels);
 
-			// All sound formats start with the WAVEFORMATEX structure (PCM, XMA2, XWMA)
-			if (!AudioDevice->ValidateAPICall(TEXT("CreateSourceVoice (mono source)"),
-#if XAUDIO2_SUPPORTS_SENDLIST
-				AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice(&Source, (WAVEFORMATEX*)&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback, &SourceSendList, &EffectChain)))
-#else	//XAUDIO2_SUPPORTS_SENDLIST
-				AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice(&Source, (WAVEFORMATEX*)&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback, nullptr, &EffectChain)))
-#endif	//XAUDIO2_SUPPORTS_SENDLIST
+			if (!Source)
 			{
-				return(false);
+				return false;
 			}
+
+#if XAUDIO2_SUPPORTS_SENDLIST
+			Source->SetOutputVoices(&SourceSendList);
+#endif
 
 			// We succeeded, then return
 			bCreatedWithSpatializationEffect = true;
@@ -414,16 +409,18 @@ bool FXAudio2SoundSource::CreateSource( void )
 	{
 		check(AudioDevice->DeviceProperties != nullptr);
 		check(AudioDevice->DeviceProperties->XAudio2 != nullptr);
-		// All sound formats start with the WAVEFORMATEX structure (PCM, XMA2, XWMA)
-		if (!AudioDevice->ValidateAPICall(TEXT("CreateSourceVoice (source)"),
-#if XAUDIO2_SUPPORTS_SENDLIST
-			AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice(&Source, (WAVEFORMATEX*)&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback, &SourceSendList, nullptr)))
-#else	//XAUDIO2_SUPPORTS_SENDLIST
-			AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice(&Source, (WAVEFORMATEX*)&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback)))
-#endif	//XAUDIO2_SUPPORTS_SENDLIST
+
+		AudioDevice->DeviceProperties->GetFreeSourceVoice(&Source, XAudio2Buffer->PCM, nullptr);
+
+		if (!Source)
 		{
 			return false;
 		}
+
+#if XAUDIO2_SUPPORTS_SENDLIST
+		Source->SetOutputVoices(&SourceSendList);
+#endif
+		Source->SetEffectChain(nullptr);
 	}
 
 	return true;
