@@ -1271,20 +1271,16 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 	bNeedToFlipSpaceBaseBuffers = true;
 
-	// Transforms updated, cached local bounds are now out of date.
-	InvalidateCachedBounds();
-
 	// update physics data from animated data
 	UpdateKinematicBonesToAnim(GetEditableSpaceBases(), ETeleportType::None, true);
 	UpdateRBJointMotors();
 
+	// If we have no physics to blend, we are done
 	if (!ShouldBlendPhysicsBones())
 	{
+		// Flip buffers, update bounds, attachments etc.
 		PostBlendPhysics();
 	}
-
-
-	MarkRenderDynamicDataDirty();
 
 	PrepareCloth();
 }

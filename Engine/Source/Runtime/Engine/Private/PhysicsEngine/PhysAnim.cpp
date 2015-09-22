@@ -342,9 +342,6 @@ void USkeletalMeshComponent::PerformBlendPhysicsBones(const TArray<FBoneIndexTyp
     }
 #endif
 	
-
-	// Transforms updated, cached local bounds are now out of date.
-	InvalidateCachedBounds();
 }
 
 
@@ -423,9 +420,8 @@ void USkeletalMeshComponent::PostBlendPhysics()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
 	
+	// Flip bone buffer and send 'post anim' notification
 	FinalizeBoneTransform();
-
-	UpdateComponentToWorld();
 
 	// Update Child Transform - The above function changes bone transform, so will need to update child transform
 	UpdateChildTransforms();
@@ -433,8 +429,14 @@ void USkeletalMeshComponent::PostBlendPhysics()
 	// animation often change overlap. 
 	UpdateOverlaps();
 
+	// Cached local bounds are now out of date
+	InvalidateCachedBounds();
+
 	// update bounds
 	UpdateBounds();
+
+	// Need to send new bounds to 
+	MarkRenderTransformDirty();
 
 	// New bone positions need to be sent to render thread
 	MarkRenderDynamicDataDirty();
