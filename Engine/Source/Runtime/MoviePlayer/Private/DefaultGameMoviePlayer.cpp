@@ -208,7 +208,10 @@ void FDefaultGameMoviePlayer::StopMovie()
 {
 	LastPlayTime = 0;
 	bUserCalledFinish = true;
-	LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
+	if (LoadingScreenWidgetHolder.IsValid())
+	{
+		LoadingScreenWidgetHolder->SetContent( SNullWidget::NullWidget );
+	}
 }
 
 void FDefaultGameMoviePlayer::WaitForMovieToFinish()
@@ -230,10 +233,11 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		}
 		
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
+		const bool bWaitForManualStop = LoadingScreenAttributes.bWaitForManualStop;
 
 		FSlateApplication& SlateApp = FSlateApplication::Get();
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
-		while ( !bUserCalledFinish && ( !bAutoCompleteWhenLoadingCompletes || ( !IsMovieStreamingFinished() && ( !bEnforceMinimumTime || (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) ) )
+		while ( (bWaitForManualStop && !bUserCalledFinish) || (!bUserCalledFinish && ((!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes) || (bEnforceMinimumTime && (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime))))
 		{
 			if (FSlateApplication::IsInitialized())
 			{

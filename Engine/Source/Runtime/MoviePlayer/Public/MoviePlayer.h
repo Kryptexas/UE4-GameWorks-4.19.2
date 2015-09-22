@@ -76,7 +76,8 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 	FLoadingScreenAttributes()
 		: MinimumLoadingScreenDisplayTime(-1.0f)
 		, bAutoCompleteWhenLoadingCompletes(true)
-		, bMoviesAreSkippable(true) {}
+		, bMoviesAreSkippable(true)
+		, bWaitForManualStop(false) {}
 
 	/** The widget to be displayed on top of the movie or simply standalone if there is no movie. */
 	TSharedPtr<class SWidget> WidgetLoadingScreen;
@@ -92,6 +93,9 @@ struct MOVIEPLAYER_API FLoadingScreenAttributes
 
 	/** If true, movies can be skipped by clicking the loading screen as long as loading is done. */
 	bool bMoviesAreSkippable;
+
+	/** If true, movie playback continues until Stop is called. */
+	bool bWaitForManualStop;
 
 	/** True if there is either a standalone widget or any movie paths or both. */
 	bool IsValid() const;
