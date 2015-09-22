@@ -14,4 +14,10 @@ class UMovieSceneSlomoTrack
 	: public UMovieSceneFloatTrack
 {
 	GENERATED_BODY()
+
+public:
+
+	// UMovieSceneFloatTrack overrides
+
+	virtual bool HasShowableData() const override;
 };

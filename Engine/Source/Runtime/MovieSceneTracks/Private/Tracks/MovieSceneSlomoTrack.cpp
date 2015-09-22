@@ -5,3 +5,11 @@
 #include "MovieSceneSlomoTrack.h"
 #include "MovieSceneSlomoTrackInstance.h"
 
+
+/* UMovieSceneFloatTrack overrides
+ *****************************************************************************/
+
+bool UMovieSceneSlomoTrack::HasShowableData() const
+{
+	return true;
+}
