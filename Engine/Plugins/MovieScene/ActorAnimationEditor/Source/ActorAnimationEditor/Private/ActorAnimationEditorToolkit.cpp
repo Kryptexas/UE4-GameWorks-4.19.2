@@ -262,10 +262,8 @@ TSharedRef<FExtender> FActorAnimationEditorToolkit::HandleMenuExtensibilityGetEx
 }
 
 
-TSharedRef<SWidget> FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent(TSharedRef<ISequencer> InSequencer)
+void FActorAnimationEditorToolkit::HandleSequencerGetAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer)
 {
-	FMenuBuilder MenuBuilder(true, nullptr);
-
 	// add event track
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddEventTrack", "Add Event Track"),
@@ -292,8 +290,6 @@ TSharedRef<SWidget> FActorAnimationEditorToolkit::HandleSequencerGetAddMenuConte
 		FSlateIcon(Style->GetStyleSetName(), "ActorAnimationEditor.Tracks.Slomo"),
 		FUIAction(FExecuteAction::CreateRaw(this, &FActorAnimationEditorToolkit::HandleAddMenuAddSlomoTrackExecute))
 	);
-
-	return MenuBuilder.MakeWidget();
 }
 
 

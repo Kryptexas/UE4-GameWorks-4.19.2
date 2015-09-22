@@ -92,7 +92,7 @@ private:
 	TSharedRef<FExtender> HandleMenuExtensibilityGetExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> ContextSensitiveObjects);
 
 	/** Callback for getting the sequencer's "Add" menu content. */
-	TSharedRef<SWidget> HandleSequencerGetAddMenuContent(TSharedRef<ISequencer> InSequencer);
+	void HandleSequencerGetAddMenuContent(FMenuBuilder& MenuBuilder, TSharedRef<ISequencer> InSequencer);
 
 	/** Callback for spawning tabs. */
 	TSharedRef<SDockTab> HandleTabManagerSpawnTab(const FSpawnTabArgs& Args);	
