@@ -579,10 +579,7 @@ void UDemoNetDriver::TickDispatch(float DeltaSeconds)
 			}
 		}
 
-		if ( World->GetWorldSettings()->Pauser == NULL )
-		{
-			TickDemoPlayback( DeltaSeconds );
-		}
+		TickDemoPlayback( DeltaSeconds );
 	}
 }
 
@@ -1378,8 +1375,11 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		return;
 	}
 
-	// Advance demo time by seconds passed
-	DemoCurrentTime += DeltaSeconds;
+	// Advance demo time by seconds passed if we're not paused
+	if ( World->GetWorldSettings()->Pauser == NULL )
+	{
+		DemoCurrentTime += DeltaSeconds;
+	}
 
 	// Clamp time
 	if ( DemoCurrentTime > DemoTotalTime )
