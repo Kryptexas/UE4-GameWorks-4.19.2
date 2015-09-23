@@ -106,7 +106,7 @@ class ANDROIDRUNTIMESETTINGS_API UAndroidRuntimeSettings : public UObject
 public:
 	GENERATED_UCLASS_BODY()
 
-	// The official name of the product (same as the name you use on the Play Store web site)
+	// The official name of the product (same as the name you use on the Play Store web site). Note: Must have at least 2 sections separated by a period and be unique!
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = APKPackaging, Meta = (DisplayName = "Android Package Name ('com.Company.Project', [PROJECT] is replaced with project name)"))
 	FString PackageName;
 
