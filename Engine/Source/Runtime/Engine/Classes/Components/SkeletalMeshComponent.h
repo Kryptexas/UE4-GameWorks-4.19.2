@@ -1024,13 +1024,6 @@ public:
 
 	void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutChildrenLabels) override;
 
-	/**
-	 * Return Transform Matrix for SkeletalMeshComponent considering root motion setups
-	 * 
-	 * @return Matrix Transform matrix
-	 */
-	FMatrix GetTransformMatrix() const;
-	
 	/** 
 	 * Change whether to force mesh into ref pose (and use cheaper vertex shader) 
 	 *

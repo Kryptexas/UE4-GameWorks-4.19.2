@@ -38,10 +38,6 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
 	bool	bInvertChainBoneAxis;
 
-	/** Limit the amount that a bone can stretch from its ref-pose length. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
-	bool	bLimitStretch;
-
 	/** How quickly we 'relax' the bones to their animated positions. Deprecated. Replaced to TrailRelaxationCurve */
 	UPROPERTY()
 	float	TrailRelaxation_DEPRECATED;
@@ -50,17 +46,25 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail, meta=(CustomizeProperty))
 	FRuntimeFloatCurve TrailRelaxationSpeed;
 
+	/** Limit the amount that a bone can stretch from its ref-pose length. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Limit)
+	bool	bLimitStretch;
+
 	/** If bLimitStretch is true, this indicates how long a bone can stretch beyond its length in the ref-pose. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Limit)
 	float	StretchLimit;
 
 	/** 'Fake' velocity applied to bones. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
 	FVector	FakeVelocity;
 
 	/** Whether 'fake' velocity should be applied in actor or world space. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Trail)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
 	bool	bActorSpaceFakeVel;
+
+	/** Base Joint to calculate velocity from. If none, it will use Component's World Transform. . */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Velocity)
+	FBoneReference BaseJoint;
 
 	/** Internal use - we need the timestep to do the relaxation in CalculateNewBoneTransforms. */
 	float	ThisTimstep;
@@ -72,7 +76,7 @@ struct ANIMGRAPHRUNTIME_API FAnimNode_Trail : public FAnimNode_SkeletalControlBa
 	TArray<FVector>	TrailBoneLocations;
 
 	/** LocalToWorld used last frame, used for building transform between frames. */
-	FMatrix		OldLocalToWorld;
+	FTransform		OldBaseTransform;
 
 	/** Per Joint Trail Set up*/
 	TArray<FPerJointTrailSetup> PerJointTrailData;
@@ -99,5 +103,6 @@ private:
 
 	FVector GetAlignVector(EAxis::Type AxisOption, bool bInvert);
 
-	TArray<FCompactPoseBoneIndex> ChainBoneIndices;
+	// skeleton index
+	TArray<FBoneIndexType> ChainBoneIndices;
 };
