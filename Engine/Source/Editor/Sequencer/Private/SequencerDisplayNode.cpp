@@ -654,9 +654,8 @@ FNodePadding FObjectBindingNode::GetNodePadding() const
 
 bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
 {
-	// if shot filtering is off and we are not unfilterable
-	// always show the object nodes (clean view is handled elsewhere)
-	return HasVisibleChildren();
+	// Clean view is handled elsewhere
+	return true;
 }
 
 const UClass* FObjectBindingNode::GetClassForObjectBinding()
