@@ -82,6 +82,12 @@ void UMovieSceneEventTrack::TriggerEvents(TRange<float> TimeRange, bool Backward
 /* UMovieSceneTrack interface
  *****************************************************************************/
 
+void UMovieSceneEventTrack::AddSection(UMovieSceneSection* Section)
+{
+	Sections.Add(Section);
+}
+
+
 TSharedPtr<IMovieSceneTrackInstance> UMovieSceneEventTrack::CreateInstance()
 {
 	return MakeShareable(new FMovieSceneEventTrackInstance(*this));

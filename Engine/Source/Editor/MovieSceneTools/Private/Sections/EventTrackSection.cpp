@@ -12,7 +12,7 @@
  *****************************************************************************/
 
 FEventTrackSection::FEventTrackSection(UMovieSceneSection& InSection, TSharedPtr<ISequencer> InSequencer)
-	: Section(nullptr/*CastChecked<UMovieSceneEventSection>(&InSection)*/)
+	: Section(&InSection)
 	, Sequencer(InSequencer)
 { }
 

@@ -4,6 +4,15 @@
 #include "MovieSceneEventSection.h"
 
 
+/* UMovieSceneSection structors
+ *****************************************************************************/
+
+UMovieSceneEventSection::UMovieSceneEventSection()
+{
+	SetIsInfinite(true);
+}
+
+
 /* UMovieSceneSection overrides
  *****************************************************************************/
 

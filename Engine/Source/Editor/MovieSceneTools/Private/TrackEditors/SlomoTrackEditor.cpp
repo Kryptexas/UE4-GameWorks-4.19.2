@@ -71,6 +71,8 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 	if (MovieScene != nullptr)
 	{
 		SlomoTrack = MovieScene->AddMasterTrack(UMovieSceneSlomoTrack::StaticClass());
+		SlomoTrack->AddSection(SlomoTrack->CreateNewSection());
+
 		GetSequencer()->NotifyMovieSceneDataChanged();
 	}
 }

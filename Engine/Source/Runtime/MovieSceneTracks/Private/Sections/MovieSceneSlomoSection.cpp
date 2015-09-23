@@ -2,3 +2,13 @@
 
 #include "MovieSceneTracksPrivatePCH.h"
 #include "MovieSceneSlomoSection.h"
+
+
+/* UMovieSceneSlomoSection structors
+ *****************************************************************************/
+
+UMovieSceneSlomoSection::UMovieSceneSlomoSection()
+	: UMovieSceneFloatSection()
+{
+	SetIsInfinite(true);
+}

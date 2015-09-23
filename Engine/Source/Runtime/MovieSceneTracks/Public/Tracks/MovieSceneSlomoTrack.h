@@ -19,5 +19,6 @@ public:
 
 	// UMovieSceneTrack interface
 
+	virtual UMovieSceneSection* CreateNewSection() override;
 	virtual FName GetTrackName() const override;
 };

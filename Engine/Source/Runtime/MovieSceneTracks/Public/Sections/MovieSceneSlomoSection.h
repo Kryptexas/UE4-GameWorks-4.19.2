@@ -15,4 +15,6 @@ class UMovieSceneSlomoSection
 {
 	GENERATED_BODY()
 
+	/** Default constructor. */
+	UMovieSceneSlomoSection();
 };

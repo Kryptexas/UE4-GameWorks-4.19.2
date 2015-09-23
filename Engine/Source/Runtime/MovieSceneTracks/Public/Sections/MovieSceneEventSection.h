@@ -50,6 +50,9 @@ class UMovieSceneEventSection
 {
 	GENERATED_BODY()
 
+	/** Default constructor. */
+	UMovieSceneEventSection();
+
 public:
 
 	/**
