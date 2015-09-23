@@ -45,18 +45,15 @@ FVector2D ClosestPointOnSlateRotatedRect(const FVector2D &Point, const FSlateRot
 	return RetPoint;
 }
 
-
-float DistanceSqToSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
+FORCEINLINE float DistanceSqToSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
 {
 	return FVector2D::DistSquared(ClosestPointOnSlateRotatedRect(Point, RotatedRect), Point);
 }
 
-
-bool IsOverlappingSlateRotatedRect(const FVector2D& Point, const float Radius, const FSlateRotatedRect& RotatedRect)
+FORCEINLINE bool IsOverlappingSlateRotatedRect(const FVector2D& Point, const float Radius, const FSlateRotatedRect& RotatedRect)
 {
 	return DistanceSqToSlateRotatedRect( Point, RotatedRect ) <= (Radius * Radius);
 }
-
 
 bool ContainsInteractableWidget(const TArray<FWidgetAndPointer>& PathToTest)
 {
@@ -70,8 +67,6 @@ bool ContainsInteractableWidget(const TArray<FWidgetAndPointer>& PathToTest)
 	}
 	return false;
 }
-
-
 
 //
 // FHittestGrid
@@ -540,25 +535,11 @@ TSharedPtr<SWidget> FHittestGrid::FindNextFocusableWidget(const FArrangedWidget&
 	return Widget;
 }
 
-
-
 FIntPoint FHittestGrid::GetCellCoordinate(FVector2D Position)
 {
 	return FIntPoint(
 		FMath::Min(FMath::Max(FMath::FloorToInt(Position.X / CellSize.X), 0), NumCells.X - 1),
 		FMath::Min(FMath::Max(FMath::FloorToInt(Position.Y / CellSize.Y), 0), NumCells.Y - 1));
-}
-
-FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y )
-{
-	check( (Y*NumCells.X + X) < Cells.Num() );
-	return Cells[ Y*NumCells.X + X ];
-}
-
-const FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y ) const
-{
-	check( (Y*NumCells.X + X) < Cells.Num() );
-	return Cells[ Y*NumCells.X + X ];
 }
 
 bool FHittestGrid::IsValidCellCoord(const FIntPoint& CellCoord) const

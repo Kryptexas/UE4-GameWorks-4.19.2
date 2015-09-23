@@ -297,7 +297,7 @@ bool FSlateRHIResourceManager::LoadTexture( const FSlateBrush& InBrush, uint32& 
  */
 bool FSlateRHIResourceManager::LoadTexture( const FName& TextureName, const FString& ResourcePath, uint32& Width, uint32& Height, TArray<uint8>& DecodedImage )
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	bool bSucceeded = true;
 	uint32 BytesPerPixel = 4;
@@ -433,7 +433,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::GetShaderResource( const FS
 {
 	SCOPE_CYCLE_COUNTER( STAT_SlateGetResourceTime );
 
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	FSlateShaderResourceProxy* Texture = NULL;
 	if( !InBrush.IsDynamicallyLoaded() && !InBrush.HasUObject() )
@@ -581,7 +581,7 @@ TSharedPtr<FSlateUTextureResource> FSlateRHIResourceManager::MakeDynamicUTexture
 
 FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureResource(const FSlateBrush& InBrush)
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	const FName ResourceName = InBrush.GetResourceName();
 	if ( ResourceName.IsValid() && ResourceName != NAME_None )
@@ -654,7 +654,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 
 FSlateMaterialResource* FSlateRHIResourceManager::GetMaterialResource(const UObject* InMaterial, FVector2D ImageSize, FSlateShaderResource* TextureMask )
 {
-	check(IsThreadSafeForSlateRendering());
+	checkSlow(IsThreadSafeForSlateRendering());
 
 	const UMaterialInterface* Material = CastChecked<UMaterialInterface>(InMaterial);
 
@@ -707,7 +707,7 @@ bool FSlateRHIResourceManager::ContainsTexture( const FName& ResourceName ) cons
 
 void FSlateRHIResourceManager::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
-	check( IsThreadSafeForSlateRendering() )
+	checkSlow( IsThreadSafeForSlateRendering() )
 
 	// Note: Only dynamically loaded or utexture brushes can be dynamically released
 	if( InBrush.HasUObject() || InBrush.IsDynamicallyLoaded() )
@@ -798,7 +798,7 @@ void FSlateRHIResourceManager::UpdateTextureAtlases()
 
 void FSlateRHIResourceManager::ReleaseResources()
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	for( int32 AtlasIndex = 0; AtlasIndex < TextureAtlases.Num(); ++AtlasIndex )
 	{
@@ -845,7 +845,7 @@ void FSlateRHIResourceManager::DeleteResources()
 
 void FSlateRHIResourceManager::ReloadTextures()
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	// Release rendering resources
 	ReleaseResources();

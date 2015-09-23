@@ -80,7 +80,7 @@ FSlateFontAtlasRHI::~FSlateFontAtlasRHI()
 
 void FSlateFontAtlasRHI::ReleaseResources()
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	BeginReleaseResource( FontTexture.Get() );
 }
@@ -101,7 +101,7 @@ void FSlateFontAtlasRHI::ConditionalUpdateTexture()
 		}
 		else
 		{
-			check( IsThreadSafeForSlateRendering() );
+			checkSlow( IsThreadSafeForSlateRendering() );
 
 			BeginInitResource( FontTexture.Get() );
 

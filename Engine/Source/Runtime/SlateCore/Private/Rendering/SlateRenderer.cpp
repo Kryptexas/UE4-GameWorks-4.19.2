@@ -15,7 +15,7 @@ void FSlateRenderer::FlushFontCache( )
 
 bool FSlateRenderer::IsViewportFullscreen( const SWindow& Window ) const
 {
-	check( IsThreadSafeForSlateRendering() );
+	checkSlow( IsThreadSafeForSlateRendering() );
 
 	bool bFullscreen = false;
 

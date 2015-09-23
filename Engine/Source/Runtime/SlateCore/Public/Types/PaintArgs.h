@@ -22,12 +22,26 @@ class SLATECORE_API FPaintArgs
 {
 public:
 	FPaintArgs( const SWidget& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime );
+	
 	FORCEINLINE FPaintArgs WithNewParent(const SWidget* Parent) const
 	{
 		checkSlow(Parent);
 		return WithNewParent(*Parent);
 	}
-	FPaintArgs WithNewParent( const SWidget& Parent ) const;
+
+	FORCEINLINE_DEBUGGABLE FPaintArgs WithNewParent(const SWidget& Parent) const
+	{
+		FPaintArgs Args = FPaintArgs(Parent, this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime);
+		Args.LastHittestIndex = this->LastHittestIndex;
+		Args.LastRecordedVisibility = this->LastRecordedVisibility;
+		Args.LayoutCache = this->LayoutCache;
+		Args.ParentCacheNode = this->ParentCacheNode;
+		Args.bIsCaching = this->bIsCaching;
+		Args.bIsVolatilityPass = this->bIsVolatilityPass;
+
+		return Args;
+	}
+
 	FPaintArgs EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatility) const;
 	FPaintArgs RecordHittestGeometry(const SWidget* Widget, const FGeometry& WidgetGeometry, const FSlateRect& InClippingRect) const;
 	FPaintArgs InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 HitTestIndex ) const;

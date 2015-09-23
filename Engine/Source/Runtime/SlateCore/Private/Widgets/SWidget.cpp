@@ -409,11 +409,6 @@ void SWidget::CacheDesiredSize(float LayoutScaleMultiplier)
 	this->Advanced_SetDesiredSize(this->ComputeDesiredSize(LayoutScaleMultiplier));
 }
 
-const FVector2D& SWidget::GetDesiredSize() const
-{
-	return DesiredSize;
-}
-
 void SWidget::CachePrepass(ILayoutCache* InLayoutCache)
 {
 	if ( bCanHaveChildren )

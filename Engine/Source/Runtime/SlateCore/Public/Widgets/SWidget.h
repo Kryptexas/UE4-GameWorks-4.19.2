@@ -8,6 +8,7 @@
 #include "SlateColor.h"
 #include "WidgetActiveTimerDelegate.h"
 #include "DeclarativeSyntaxSupport.h"
+#include "Layout/LayoutGeometry.h"
 
 class ISlateMetaData;
 class FActiveTimerHandle;
@@ -546,8 +547,9 @@ public:
 	 */
 	void SlatePrepass(float LayoutScaleMultiplier);
 
+	public:
 	/** @return the DesiredSize that was computed the last time CacheDesiredSize() was called. */
-	public:  const FVector2D& GetDesiredSize() const;
+	FORCEINLINE const FVector2D& GetDesiredSize() const { return DesiredSize; }
 
 	/**
 	 * The system calls this method. It performs a breadth-first traversal of every visible widget and asks
@@ -1149,3 +1151,33 @@ private:
 	/** If we're owned by a volatile widget, we need inherit that volatility and use as part of our volatility, but don't cache it. */
 	mutable bool bInheritedVolatility : 1;
 };
+
+//=================================================================
+// FGeometry Arranged Widget Inlined Functions
+//=================================================================
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& LocalSize, const FSlateLayoutTransform& LayoutTransform) const
+{
+	// If there is no render transform set, use the simpler MakeChild call that doesn't bother concatenating the render transforms.
+	// This saves a significant amount of overhead since every widget does this, and most children don't have a render transform.
+	if ( ChildWidget->GetRenderTransform().IsSet() )
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform, ChildWidget->GetRenderTransform().GetValue(), ChildWidget->GetRenderTransformPivot()));
+	}
+	else
+	{
+		return FArrangedWidget(ChildWidget, MakeChild(LocalSize, LayoutTransform));
+	}
+}
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FLayoutGeometry& LayoutGeometry) const
+{
+	return MakeChild(ChildWidget, LayoutGeometry.GetSizeInLocalSpace(), LayoutGeometry.GetLocalToParentTransform());
+}
+
+FORCEINLINE_DEBUGGABLE FArrangedWidget FGeometry::MakeChild(const TSharedRef<SWidget>& ChildWidget, const FVector2D& ChildOffset, const FVector2D& LocalSize, float ChildScale) const
+{
+	// Since ChildOffset is given as a LocalSpaceOffset, we MUST convert this offset into the space of the parent to construct a valid layout transform.
+	// The extra TransformPoint below does this by converting the local offset to an offset in parent space.
+	return MakeChild(ChildWidget, LocalSize, FSlateLayoutTransform(ChildScale, TransformPoint(ChildScale, ChildOffset)));
+}

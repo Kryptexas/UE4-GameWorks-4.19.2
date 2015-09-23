@@ -19,19 +19,6 @@ FPaintArgs::FPaintArgs(const SWidget& Parent, FHittestGrid& InHittestGrid, FVect
 {
 }
 
-FPaintArgs FPaintArgs::WithNewParent( const SWidget& Parent ) const
-{
-	FPaintArgs Args = FPaintArgs(Parent, this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime);
-	Args.LastHittestIndex = this->LastHittestIndex;
-	Args.LastRecordedVisibility = this->LastRecordedVisibility;
-	Args.LayoutCache = this->LayoutCache;
-	Args.ParentCacheNode = this->ParentCacheNode;
-	Args.bIsCaching = this->bIsCaching;
-	Args.bIsVolatilityPass = this->bIsVolatilityPass;
-
-	return Args;
-}
-
 FPaintArgs FPaintArgs::EnableCaching(ILayoutCache* InLayoutCache, FCachedWidgetNode* InParentCacheNode, bool bEnableCaching, bool bEnableVolatile) const
 {
 	FPaintArgs UpdatedArgs(*this);

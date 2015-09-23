@@ -389,7 +389,7 @@ public:
 	 */
 	static FSlateApplicationBase& Get( )
 	{
-		check(IsThreadSafeForSlateRendering());
+		checkSlow(IsThreadSafeForSlateRendering());
 		return *CurrentBaseApplication;
 	}
 
