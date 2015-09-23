@@ -961,6 +961,7 @@ void FRawDistributionFloat::InitLookupTable()
 	// make sure it's up to date
 	if( GIsEditor || (Distribution && Distribution->bIsDirty) )
 	{
+		Distribution->ConditionalPostLoad();
 		Initialize();
 	}
 #endif
