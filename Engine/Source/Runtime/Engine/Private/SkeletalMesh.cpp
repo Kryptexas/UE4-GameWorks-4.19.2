@@ -2430,19 +2430,22 @@ bool USkeletalMesh::IsReadyForFinishDestroy()
 FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex);
 
 
-void BuildApexToUnrealBoneMapping(const USkeletalMesh* SkeletalMesh, FClothingAssetData& ClothingAsset)
+void USkeletalMesh::BuildApexToUnrealBoneMapping()
 {
-	NxClothingAsset* ApexClothingAsset = ClothingAsset.ApexClothingAsset;
-	uint32 NumUsedBones = ClothingAsset.ApexClothingAsset->getNumUsedBones();
-	
-	check(ClothingAsset.ApexToUnrealBoneMapping.Num() == 0);
-	ClothingAsset.ApexToUnrealBoneMapping.AddUninitialized(NumUsedBones);
-
-	for (uint32 Index = 0; Index < NumUsedBones; Index++)
+	for(FClothingAssetData& ClothingAsset : ClothingAssets)
 	{
-		FName BoneName = GetConvertedBoneName(ApexClothingAsset, Index);
-		int32 BoneIndex = SkeletalMesh->RefSkeleton.FindBoneIndex(BoneName);
-		ClothingAsset.ApexToUnrealBoneMapping[Index] = BoneIndex;
+		NxClothingAsset* ApexClothingAsset = ClothingAsset.ApexClothingAsset;
+		uint32 NumUsedBones = ClothingAsset.ApexClothingAsset->getNumUsedBones();
+
+		ClothingAsset.ApexToUnrealBoneMapping.Empty();
+		ClothingAsset.ApexToUnrealBoneMapping.AddUninitialized(NumUsedBones);
+
+		for (uint32 Index = 0; Index < NumUsedBones; Index++)
+		{
+			FName BoneName = GetConvertedBoneName(ApexClothingAsset, Index);
+			int32 BoneIndex = RefSkeleton.FindBoneIndex(BoneName);
+			ClothingAsset.ApexToUnrealBoneMapping[Index] = BoneIndex;
+		}
 	}
 }
 #endif
@@ -2539,13 +2542,14 @@ void USkeletalMesh::Serialize( FArchive& Ar )
 		for( int32 Idx=0;Idx<ClothingAssets.Num();Idx++ )
 		{
 			Ar << ClothingAssets[Idx];
-#if WITH_APEX_CLOTHING
-			if(Ar.IsLoading())
-			{
-				BuildApexToUnrealBoneMapping(this, ClothingAssets[Idx]);
-			}
-#endif
 		}
+
+#if WITH_APEX_CLOTHING
+		if (Ar.IsLoading())
+		{
+			BuildApexToUnrealBoneMapping();
+		}
+#endif
 	}
 
 	if ( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_SKELETALMESH_SHADOWCASTING )
@@ -4801,6 +4805,7 @@ USkinnedMeshComponent::USkinnedMeshComponent(const FObjectInitializer& ObjectIni
 	bNeedToFlipSpaceBaseBuffers = false;
 
 	bCanEverAffectNavigation = false;
+	MasterBoneMapCacheCount = 0;
 }
 
 

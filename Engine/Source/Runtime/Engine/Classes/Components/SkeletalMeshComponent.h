@@ -66,11 +66,16 @@ public:
 	physx::apex::NxClothingAsset*	ParentClothingAsset;
 	/** APEX clothing actor is created from APEX clothing asset for cloth simulation */
 	physx::apex::NxClothingActor*		ApexClothingActor;
+
+	/** The corresponding clothing asset index */
+	int32 ParentClothingAssetIndex;
 };
 
 //The data that cloth needs for simulation prep in parallel. These properties are accessible via double buffer
 struct FClothSimulationContext
 {
+	FClothSimulationContext();
+
 	/** used for pre-computation using TeleportRotationThreshold property */
 	float ClothTeleportCosineThresholdInRad;
 	/** used for pre-computation using tTeleportDistanceThreshold property */
@@ -80,6 +85,10 @@ private:
 	FClothingActor::TeleportMode ClothTeleportMode;
 	/** previous root bone matrix to compare the difference and decide to do clothing teleport  */
 	FMatrix	PrevRootBoneMatrix;
+
+	USkinnedMeshComponent* InMasterPoseComponent;
+	TArray<int32> InMasterBoneMap;
+	int32 InMasterBoneMapCacheCount;
 
 	friend class USkeletalMeshComponent;
 };
@@ -752,7 +761,7 @@ public:
 	void ReleaseAllClothingResources();
 	bool IsExecutingParallelCloth() const;
 
-	bool IsValidClothingActor(int32 ActorIndex) const;
+	bool IsValidClothingActor(const FClothingActor& ClothingActor) const;
 	/** Draws APEX Clothing simulated normals on cloth meshes **/
 	void DrawClothingNormals(FPrimitiveDrawInterface* PDI);
 	/** Draws APEX Clothing Graphical Tangents on cloth meshes **/
@@ -774,7 +783,7 @@ public:
 	/** Loads clothing extra infos dynamically just for Previewing in Editor 
 	 *  such as MaxDistances, Physical mesh wire
 	 **/
-	void LoadClothingVisualizationInfo(int32 AssetIndex);
+	void LoadClothingVisualizationInfo(FClothingAssetData& ClothAssetData);
 	void LoadAllClothingVisualizationInfos();
 
 	/** freezing clothing actor now */
@@ -1135,7 +1144,6 @@ public:
 	void SetClothingLOD(int32 LODIndex);
 	/** check whether clothing teleport is needed or not to avoid a weird simulation result */
 	virtual void CheckClothTeleport(float DeltaTime, FClothSimulationContext& ClothSimulationContext) const;
-
 	/** 
 	* methods for cloth morph targets 
 	*/
@@ -1157,7 +1165,7 @@ public:
 	void UpdateClothTransform();
 
 	/** only check whether there are valid clothing actors or not */
-	bool HasValidClothingActors();
+	bool HasValidClothingActors() const;
 
 	/** get root bone matrix by the root bone index which Apex cloth asset is holding */
 	void GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& OutRootBoneMatrix) const;

@@ -10,7 +10,9 @@ FClothManager::FClothManager(UWorld* InAssociatedWorld)
 {
 }
 
-void FClothManagerData::PrepareCloth(float DeltaTime)
+static TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("Whether to prepare and start cloth sim off the game thread"));
+
+void FClothManagerData::PrepareCloth(float DeltaTime, FTickFunction& TickFunction)
 {
 #if WITH_APEX_CLOTHING
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_FClothManager_PrepareCloth);
@@ -19,10 +21,16 @@ void FClothManagerData::PrepareCloth(float DeltaTime)
 		IsPreparingCloth.AtomicSet(true);
 		for (USkeletalMeshComponent* SkeletalMeshComponent : SkeletalMeshComponents)
 		{
-			SkeletalMeshComponent->SubmitClothSimulationContext();	//make sure user params are passed internally
-
 			FClothSimulationContext& ClothSimulationContext = SkeletalMeshComponent->InternalClothSimulationContext;
-			SkeletalMeshComponent->ParallelTickClothing(DeltaTime, ClothSimulationContext);
+			if(CVarParallelCloth.GetValueOnAnyThread())
+			{
+				SkeletalMeshComponent->ParallelTickClothing(DeltaTime, ClothSimulationContext);
+			}else
+			{
+				check(IsInGameThread());
+				SkeletalMeshComponent->TickClothing(DeltaTime, TickFunction);
+			}
+			
 		}
 
 		IsPreparingCloth.AtomicSet(false);
@@ -39,7 +47,7 @@ void FClothManager::RegisterForPrepareCloth(USkeletalMeshComponent* SkeletalMesh
 void FClothManager::StartCloth(float DeltaTime)
 {
 	//First we must prepare any cloth that waits on physics sim
-	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].PrepareCloth(DeltaTime);
+	PrepareClothDataArray[(int32)PrepareClothSchedule::WaitOnPhysics].PrepareCloth(DeltaTime, StartClothTickFunction);
 
 	//Reset skeletal mesh components
 	bool bNeedSimulateCloth = false;
@@ -61,8 +69,6 @@ void FClothManager::StartCloth(float DeltaTime)
 		}
 	}
 }
-
-static TAutoConsoleVariable<int32> CVarParallelCloth(TEXT("p.ParallelCloth"), 0, TEXT("Whether to prepare and start cloth sim off the game thread"));
 
 void FClothManager::SetupClothTickFunction(bool bTickClothSim)
 {
@@ -117,7 +123,7 @@ void FClothManager::EndCloth()
 
 void FStartIgnorePhysicsClothTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 {
-	Target->PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].PrepareCloth(DeltaTime);
+	Target->PrepareClothDataArray[(int32)PrepareClothSchedule::IgnorePhysics].PrepareCloth(DeltaTime, *this);
 }
 
 FString FStartIgnorePhysicsClothTickFunction::DiagnosticMessage()

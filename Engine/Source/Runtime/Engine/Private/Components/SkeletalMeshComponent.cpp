@@ -1019,6 +1019,8 @@ void USkeletalMeshComponent::UpdateSlaveComponent()
 		}
 	}
 
+	PrepareCloth();
+
 	Super::UpdateSlaveComponent();
 }
 
@@ -1065,6 +1067,13 @@ void USkeletalMeshComponent::SubmitClothSimulationContext()
 	//If the editable teleport mode is non default it means the user has actively written to it since the previous flip. This means we should use it. Otherwise use the internal because the cloth code set it as needed
 	InternalClothSimulationContext.ClothTeleportMode = EditableClothSimulationContext.ClothTeleportMode == FClothingActor::Default ? InternalClothSimulationContext.ClothTeleportMode : EditableClothSimulationContext.ClothTeleportMode;
 	EditableClothSimulationContext.ClothTeleportMode = FClothingActor::Default;	//reset editable teleport mode to default because user has to set it directly
+
+	if(InternalClothSimulationContext.InMasterBoneMapCacheCount != MasterBoneMapCacheCount)
+	{
+		InternalClothSimulationContext.InMasterBoneMapCacheCount = MasterBoneMapCacheCount;
+		InternalClothSimulationContext.InMasterPoseComponent = MasterPoseComponent.Get();
+		InternalClothSimulationContext.InMasterBoneMap = MasterBoneMap;
+	}
 
 	//we intentionally ignore PrevRootBone which is only needed internally, but is still in the Context struct for the sake of const
 }
@@ -1218,10 +1227,23 @@ void USkeletalMeshComponent::PrepareCloth()
 			FClothManager* ClothManager = PhysScene->GetClothManager();
 			bool bClothNeedsPhysics = BodyInstance.bSimulatePhysics || IsAnySimulatingPhysics();	//TODO: this errs on the side of simulating later. We may want to optimize this so that it's only needed when cloth bodies are simulating
 			PrepareClothSchedule PrepareSchedule = bClothNeedsPhysics ? PrepareClothSchedule::WaitOnPhysics : PrepareClothSchedule::IgnorePhysics;
+
+			SubmitClothSimulationContext();	//duplicate needed data for off-thread work
+
 			ClothManager->RegisterForPrepareCloth(this, PrepareSchedule);
 		}
 	}
 #endif
+}
+
+FClothSimulationContext::FClothSimulationContext()
+{
+	ClothTeleportCosineThresholdInRad = 0.f;
+	ClothTeleportDistThresholdSquared = 0.f;
+	ClothTeleportMode = FClothingActor::TeleportMode::Default;
+	
+	USkeletalMeshComponent* InMasterComponent = nullptr;
+	InMasterBoneMapCacheCount = -1;
 }
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
@@ -1281,6 +1303,7 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 		// Flip buffers, update bounds, attachments etc.
 		PostBlendPhysics();
 	}
+
 
 	PrepareCloth();
 }

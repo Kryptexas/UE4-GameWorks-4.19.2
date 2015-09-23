@@ -193,12 +193,18 @@ protected:
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
 	 */
 	TArray< TWeakObjectPtr<USkinnedMeshComponent> > SlavePoseComponents;
-public:
+
 	/**
 	 *	Mapping between bone indices in this component and the parent one. Each element is the index of the bone in the MasterPoseComponent.
 	 *	Size should be the same as USkeletalMesh.RefSkeleton size (ie number of bones in this skeleton).
 	 */
 	TArray<int32> MasterBoneMap;
+
+	/** Incremented every time the master bone map changes. Used to keep in sync with any duplicate data needed by other threads */
+	int32 MasterBoneMapCacheCount;
+public:
+
+	const TArray<int32>& GetMasterBoneMap() const { return MasterBoneMap; }
 
 	/** 
 	 * When true, we will just using the bounds from our MasterPoseComponent.  This is useful for when we have a Mesh Parented

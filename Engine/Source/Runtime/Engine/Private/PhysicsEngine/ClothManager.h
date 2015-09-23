@@ -27,7 +27,7 @@ public:
 	FGraphEventRef PrepareCompletion;
 
 	/** Go through all SkeletalMeshComponents registered for work this frame and call the solver as needed*/
-	void PrepareCloth(float DeltaTime);
+	void PrepareCloth(float DeltaTime, FTickFunction& TickFunction);
 };
 
 struct FStartIgnorePhysicsClothTickFunction : public FTickFunction

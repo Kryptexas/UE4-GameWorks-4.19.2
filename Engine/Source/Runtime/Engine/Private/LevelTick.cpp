@@ -829,20 +829,20 @@ void UWorld::SendAllEndOfFrameUpdates()
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_PostTickComponentUpdate_ForcedGameThread);
 			for (TArray<TWeakObjectPtr<UActorComponent> >::TIterator It(LocalComponentsThatNeedEndOfFrameUpdate_OnGameThread); It; ++It)
-			{
-				UActorComponent* Component = It->Get();
-				if (Component)
-				{
+	{
+		UActorComponent* Component = It->Get();
+		if (Component)
+		{
 					if (Component->IsRegistered() && !Component->IsTemplate())
-					{
-						FScopeCycleCounterUObject ComponentScope(Component);
-						FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);
-						Component->DoDeferredRenderUpdates_Concurrent();
-					}
-					check(Component->GetMarkedForEndOfFrameUpdateState() == EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread);
-					FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
-				}
+			{
+				FScopeCycleCounterUObject ComponentScope(Component);
+				FScopeCycleCounterUObject AdditionalScope(STATS ? Component->AdditionalStatObject() : NULL);
+				Component->DoDeferredRenderUpdates_Concurrent();
 			}
+			check(Component->GetMarkedForEndOfFrameUpdateState() == EComponentMarkedForEndOfFrameUpdateState::MarkedForGameThread);
+			FMarkComponentEndOfFrameUpdateState::Set(Component, EComponentMarkedForEndOfFrameUpdateState::Unmarked);
+		}
+	}
 			LocalComponentsThatNeedEndOfFrameUpdate_OnGameThread.Reset();
 		};
 
@@ -851,11 +851,11 @@ void UWorld::SendAllEndOfFrameUpdates()
 		ParallelForWithPreWork(ComponentsThatNeedEndOfFrameUpdate.Num(), ParallelWork, GTWork);
 	}
 	else
-	{
+					{
 		GTWork();
 		ParallelFor(ComponentsThatNeedEndOfFrameUpdate.Num(), ParallelWork);
-	}
-	ComponentsThatNeedEndOfFrameUpdate.Reset();
+			}
+		ComponentsThatNeedEndOfFrameUpdate.Reset();
 }
 
 

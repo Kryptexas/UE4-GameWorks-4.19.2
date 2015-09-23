@@ -1141,6 +1141,8 @@ void USkinnedMeshComponent::UpdateMasterBoneMap()
 			}
 		}
 	}
+
+	MasterBoneMapCacheCount += 1;
 }
 
 FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const

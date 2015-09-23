@@ -1201,16 +1201,12 @@ NxClothingAsset* ApplyTransform(NxClothingAsset* ApexClothingAsset)
 
 void RestoreAllClothingSections(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 AssetIndex)
 {
-	int32 NumAssets = SkelMesh->ClothingAssets.Num();
-
-	check((int32)AssetIndex < NumAssets);
-
 	TArray<uint32> SectionIndices;
 	SkelMesh->GetOriginSectionIndicesWithCloth(LODIndex, AssetIndex, SectionIndices);
 
 	for(int32 i=0; i < SectionIndices.Num(); i++)
 	{
-		RestoreOriginalClothingSection(SkelMesh, LODIndex, SectionIndices[i]);
+		RestoreOriginalClothingSection(SkelMesh, LODIndex, SectionIndices[i], false);
 	}
 }
 
@@ -1235,12 +1231,15 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 		}
 	}
 
-	// release and make it invalid
-	GPhysCommandHandler->DeferredRelease(SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset);
-	SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset = NULL;
 
-	//this requires to refresh UI layout
-	SkelMesh->ClothingAssets.RemoveAt(AssetIndex);
+	NxClothingAsset* ApexClothingAsset = SkelMesh->ClothingAssets[AssetIndex].ApexClothingAsset;	//Can't delete apex asset until after apex actors so we save this for now and reregister component (which will trigger the actor delete)
+	SkelMesh->ClothingAssets.RemoveAt(AssetIndex);	//have to remove the asset from the array so that new actors are not created for asset pending deleting
+	ReregisterSkelMeshComponents(SkelMesh);
+
+	//Now we can actually delete the asset
+	GPhysCommandHandler->DeferredRelease(ApexClothingAsset);
+	
+
 
 	if(bRecreateSkelMeshComponent)
 	{
@@ -1249,7 +1248,7 @@ void RemoveAssetFromSkeletalMesh(USkeletalMesh* SkelMesh, uint32 AssetIndex, boo
 	}
 }
 
-void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex)
+void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, uint32 SectionIndex, bool bReregisterSkelMeshComponent)
 {
 	FSkeletalMeshResource* ImportedResource= SkelMesh->GetImportedResource();
 	FStaticLODModel& LODModel = ImportedResource->LODModels[LODIndex];
@@ -1313,8 +1312,6 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 
 		LODModel.MultiSizeIndexContainer.CopyIndexBuffer(OutIndexBuffer);
 
-		FClothingAssetData& CorrespondAssetData = SkelMesh->ClothingAssets[ClothChunk.CorrespondClothAssetIndex];
-
 		LODModel.Chunks.RemoveAt(ClothSection.ChunkIndex);
 		LODModel.Sections.RemoveAt(OriginSection.CorrespondClothSectionIndex);
 
@@ -1343,9 +1340,11 @@ void RestoreOriginalClothingSection(USkeletalMesh* SkelMesh, uint32 LODIndex, ui
 		OriginSection.bDisabled = false;
 		OriginSection.CorrespondClothSectionIndex = -1;
 
-		// Cloth chunk is removed so updates Vertex Factories
-		ReregisterSkelMeshComponents(SkelMesh);
-		// Reinitialize the render data
+		if(bReregisterSkelMeshComponent)
+		{
+			ReregisterSkelMeshComponents(SkelMesh);
+		}
+		
 		SkelMesh->PostEditChange();
 	}
 	else
@@ -1548,6 +1547,8 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 	FName AssetName = FName(*FPaths::GetCleanFilename(ApexFile));
 	int32 NumAssets = SkelMesh->ClothingAssets.Num();
 
+	NxClothingAsset* ExistingAsset = nullptr;
+
 	if(!bReimport)
 	{
 		// new asset
@@ -1562,11 +1563,7 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 	{
 		// re-import
 		FClothingAssetData& AssetData = SkelMesh->ClothingAssets[AssetIndex];
-		if (AssetData.ApexClothingAsset)
-		{
-			GPhysCommandHandler->DeferredRelease(AssetData.ApexClothingAsset);
-			AssetData.ApexClothingAsset = NULL;
-		}
+		ExistingAsset = AssetData.ApexClothingAsset;
 		AssetData.ApexClothingAsset = ApexClothingAsset;
 		AssetData.ApexFileName = ApexFile;
 
@@ -1596,14 +1593,22 @@ EClothUtilRetType ImportApexAssetFromApexFile(FString& ApexFile, USkeletalMesh* 
 					if(!ImportClothingSectionFromClothingAsset(SkelMesh, LODIndex, SecIdx, AssetIndex, SubmeshIdx))
 					{
 						// if import is failed, restores original section because sub-mesh might be removed
-						RestoreOriginalClothingSection(SkelMesh, LODIndex, SecIdx);
+						RestoreOriginalClothingSection(SkelMesh, LODIndex, SecIdx, false);
 					}
 				}
 			}
 		}
 	}
 
+	SkelMesh->BuildApexToUnrealBoneMapping();
 	SkelMesh->LoadClothCollisionVolumes(AssetIndex, ApexClothingAsset);
+	ReregisterSkelMeshComponents(SkelMesh);
+
+	//We've recreated the component and the cloth actors so it's now safe to remove the asset.
+	if(ExistingAsset)
+	{
+		GPhysCommandHandler->DeferredRelease(ExistingAsset);
+	}
 
 	return CURT_Ok;
 }
@@ -1864,6 +1869,8 @@ void ReapplyClothingDataToSkeletalMesh( USkeletalMesh* SkelMesh, FClothingBackup
 		);
 
 	}
+
+	SkelMesh->BuildApexToUnrealBoneMapping();
 }
 
 int32 GetNumLODs(NxClothingAsset *InAsset)
