@@ -41,8 +41,10 @@ namespace ESlateShader
 	const Type Border = 1;
 	/** Font shader, same as default except uses an alpha only texture */
 	const Type Font = 2;
-	/** Line segment shader. For drawing anti-aliased lines **/
+	/** Line segment shader. For drawing anti-aliased lines */
 	const Type LineSegment = 3;
+	/** For completely customized materials.  Makes no assumptions on use*/
+	const Type Custom = 4;
 };
 
 /**
@@ -96,7 +98,7 @@ namespace ESlateLineJoinType
  * We provide a ctor that does the work common to slate drawing, but you could technically 
  * create this any way you want.
  */
-struct FSlateRotatedRect
+struct SLATECORE_API FSlateRotatedRect
 {
 	/** Default ctor. */
 	FSlateRotatedRect();
@@ -534,4 +536,84 @@ public:
 	 * @param RenderTarget	handle to the platform specific render target implementation.  Note this is already bound by Slate initially 
 	 */
 	virtual void DrawRenderThread(class FRHICommandListImmediate& RHICmdList, const void* RenderTarget) = 0;
+};
+
+/**
+ * Represents a per instance data buffer for a custom Slate mesh element.
+ * Use FSlateInstanceBufferUpdate to update the per-instance data.
+ *  e.g.
+ *    TSharedRef<FSlateInstanceBufferUpdate> NewUpdate = InstanceBuffer.BeginUpdate();
+ *     NewUpdate.GetData().Add( FVector4(1,1,1,1) )
+ *     FSlateInstanceBufferUpdate::CommitUpdate(NewUpdate);
+ */
+class ISlateUpdatableInstanceBuffer
+{
+public:
+	virtual ~ISlateUpdatableInstanceBuffer(){};
+	friend class FSlateInstanceBufferUpdate;
+
+   /**
+	* Use this method to begin a new update to this instance of the buffer:
+	*/
+	virtual TSharedPtr<class FSlateInstanceBufferUpdate> BeginUpdate() = 0;
+
+	/** How many instances should we draw? */
+	virtual int32 GetNumInstances() const = 0;
+
+private:
+	friend class FSlateInstanceBufferUpdate;
+
+	/** Updates rendering data for the GPU */
+	virtual void UpdateRenderingData(int32 NumInstancesToUse) = 0;
+
+	/** @return an array of instance data that is safe to populate (e.g not in use by the renderer) */
+	virtual TArray<FVector4>& GetBufferData() = 0;
+};
+
+/** Represents an update to the per-instance buffer. */
+class FSlateInstanceBufferUpdate
+{
+public:
+	/** Access the per-instance data for modiciation */
+	FORCEINLINE TArray<FVector4>& GetData(){ return Data; }
+	
+	/** Set number of instances; if it is not set, Data.Num() will be used instead.  */
+	void SetInstanceCount(int32 InCount){ InstanceCount = InCount; }
+	
+	/** Send an update to the render thread */
+	static void CommitUpdate(TSharedPtr<FSlateInstanceBufferUpdate>& UpdateToCommit)
+	{
+		ensure(UpdateToCommit.GetSharedReferenceCount() == 1);
+		UpdateToCommit->CommitUpdate_Internal();
+		UpdateToCommit.Reset();
+	}
+
+	~FSlateInstanceBufferUpdate()
+	{
+		if (!bWasCommitted)
+		{
+			CommitUpdate_Internal();
+		}
+	}
+
+private:
+	friend class FSlateUpdatableInstanceBuffer;
+	FSlateInstanceBufferUpdate(ISlateUpdatableInstanceBuffer& InBuffer)
+		: Buffer(InBuffer)
+		, Data(InBuffer.GetBufferData())
+		, InstanceCount(INDEX_NONE)
+		, bWasCommitted(false)
+	{
+	}
+
+	void CommitUpdate_Internal()
+	{
+		Buffer.UpdateRenderingData(InstanceCount == INDEX_NONE ? Data.Num() : InstanceCount);
+		bWasCommitted = true;
+	}
+
+	ISlateUpdatableInstanceBuffer& Buffer;
+	TArray<FVector4>& Data;
+	int32 InstanceCount;
+	bool bWasCommitted;
 };

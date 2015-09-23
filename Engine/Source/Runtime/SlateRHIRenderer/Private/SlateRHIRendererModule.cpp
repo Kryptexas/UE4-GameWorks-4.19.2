@@ -2,6 +2,7 @@
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "Slate3DRenderer.h"
+#include "SlateUpdatableBuffer.h"
 
 class FSlateRHIFontAtlasFactory : public ISlateFontAtlasFactory
 {
@@ -69,6 +70,11 @@ public:
 	virtual TSharedRef<ISlateFontAtlasFactory> CreateSlateFontAtlasFactory() override
 	{
 		return MakeShareable(new FSlateRHIFontAtlasFactory);
+	}
+
+	virtual TSharedRef<ISlateUpdatableInstanceBuffer> CreateInstanceBuffer( int32 InitialInstanceCount ) override
+	{
+		return MakeShareable( new FSlateUpdatableInstanceBuffer(InitialInstanceCount) );
 	}
 
 	virtual void StartupModule( ) override { }

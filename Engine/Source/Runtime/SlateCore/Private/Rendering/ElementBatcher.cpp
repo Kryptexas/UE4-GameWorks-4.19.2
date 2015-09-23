@@ -108,9 +108,10 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 		FSlateDrawElement::EElementType::ET_Viewport == 6 &&
 		FSlateDrawElement::EElementType::ET_Border == 7 &&
 		FSlateDrawElement::EElementType::ET_Custom == 8 &&
-		FSlateDrawElement::EElementType::ET_CachedBuffer == 9 &&
-		FSlateDrawElement::EElementType::ET_Layer == 10 &&
-		FSlateDrawElement::EElementType::ET_Count == 11,
+		FSlateDrawElement::EElementType::ET_CustomVerts == 9 &&
+		FSlateDrawElement::EElementType::ET_CachedBuffer == 10 &&
+		FSlateDrawElement::EElementType::ET_Layer == 11 &&
+		FSlateDrawElement::EElementType::ET_Count == 12,
 		"If FSlateDrawElement::EElementType is modified, this array must be made to match." );
 
 	static FName ElementFNames[] =
@@ -124,6 +125,7 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 		FName(TEXT("Viewport")),
 		FName(TEXT("Border")),
 		FName(TEXT("Custom")),
+		FName(TEXT("CustomVerts")),
 		FName(TEXT("CachedBuffer")),
 		FName(TEXT("Layer")),
 	};
@@ -164,6 +166,7 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 			switch ( DrawElement.GetElementType() )
 			{
 			case FSlateDrawElement::ET_Custom:
+			case FSlateDrawElement::ET_CustomVerts:
 			case FSlateDrawElement::ET_CachedBuffer:
 			case FSlateDrawElement::ET_Layer:
 				break;
@@ -208,6 +211,9 @@ void FSlateElementBatcher::AddElements(FSlateDrawLayer& InDrawLayer)
 					break;
 				case FSlateDrawElement::ET_Custom:
 					AddCustomElement( DrawElement );
+					break;
+				case FSlateDrawElement::ET_CustomVerts:
+					AddCustomVerts(DrawElement);
 					break;
 				case FSlateDrawElement::ET_CachedBuffer:
 					AddCachedBuffer( DrawElement );
@@ -1556,6 +1562,53 @@ void FSlateElementBatcher::AddCustomElement( const FSlateDrawElement& DrawElemen
 		// Custom elements are not batched together 
 		(*ElementBatches)->Add( FSlateElementBatch( InPayload.CustomDrawer, DrawElement.GetScissorRect() ) );
 	}
+}
+
+void FSlateElementBatcher::AddCustomVerts(const FSlateDrawElement& DrawElement)
+{
+	FElementBatchMap& LayerToElementBatches = DrawLayer->GetElementBatchMap();
+
+	const FSlateDataPayload& InPayload = DrawElement.GetDataPayload();
+	uint32 Layer = DrawElement.GetLayer();
+
+	if (InPayload.CustomVertsData.Num() >0)
+	{
+		// See if the layer already exists.
+		TUniqueObj<FElementBatchArray>* ElementBatches = LayerToElementBatches.Find(Layer);
+		if (!ElementBatches)
+		{
+			// The layer doesn't exist so make it now
+			ElementBatches = &LayerToElementBatches.Add( Layer );
+		}
+		check(ElementBatches);
+
+		FSlateElementBatch NewBatch(
+			InPayload.ResourceProxy != nullptr ? InPayload.ResourceProxy->Resource : nullptr,
+			FShaderParams(),
+			ESlateShader::Custom,
+			ESlateDrawPrimitive::TriangleList,
+			ESlateDrawEffect::None,
+			ESlateBatchDrawFlag::None,
+			DrawElement.GetScissorRect(),
+			InPayload.InstanceData == nullptr ? 1 : InPayload.InstanceData->GetNumInstances(),
+			InPayload.InstanceData
+		);
+
+		int32 Index = (*ElementBatches)->Add(NewBatch);
+		FSlateElementBatch* ElementBatch = &(**ElementBatches)[Index];
+
+		BatchData->AssignVertexArrayToBatch(*ElementBatch);
+		BatchData->AssignIndexArrayToBatch(*ElementBatch);
+
+		TArray<FSlateVertex>& BatchVertices = BatchData->GetBatchVertexList(*ElementBatch);
+		TArray<SlateIndex>& BatchIndices = BatchData->GetBatchIndexList(*ElementBatch);
+
+		// Vertex Buffer since  it is already in slate format it is a straight copy
+		BatchVertices = InPayload.CustomVertsData;
+		BatchIndices = InPayload.CustomVertsIndexData;
+	}
+
+
 }
 
 void FSlateElementBatcher::AddCachedBuffer(const FSlateDrawElement& DrawElement)

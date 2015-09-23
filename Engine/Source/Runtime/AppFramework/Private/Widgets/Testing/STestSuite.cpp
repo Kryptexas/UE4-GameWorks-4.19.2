@@ -467,6 +467,12 @@ public:
 				+ SVerticalBox::Slot()
 				.FillHeight(3)
 				[
+					SNew(SCustomPaintWidget)
+					.OnPaintHandler(this, &SElementTesting::TestCustomVerts)
+				]
+				+ SVerticalBox::Slot()
+				.FillHeight(3)
+				[
 					SNew( SDynamicBrushTest )
 				]
 			]
@@ -695,6 +701,70 @@ private:
 			);
 
 		MakeRotationExample( InParams );
+
+		return InParams.Layer;
+	}
+
+	int32 TestCustomVerts(const FOnPaintHandlerParams& InParams)
+	{
+		const float Radius = FMath::Min(InParams.Geometry.Size.X, InParams.Geometry.Size.Y)*0.5f;
+		const FVector2D Center = InParams.Geometry.AbsolutePosition + InParams.Geometry.Size*0.5f;
+
+		const FSlateBrush* MyBrush = FCoreStyle::Get().GetBrush("ColorWheel.HueValueCircle");
+		FSlateShaderResourceProxy *ResourceProxy = FSlateDataPayload::ResourceManager->GetShaderResource(*MyBrush);
+		FVector2D UVCenter = FVector2D::ZeroVector;
+		FVector2D UVRadius = FVector2D(1,1);
+		if (ResourceProxy != nullptr)
+		{
+			UVRadius = 0.5f*ResourceProxy->SizeUV;
+			UVCenter = ResourceProxy->StartUV + UVRadius;
+		}
+
+		// Make a triangle fan in the area allotted
+		const int NumTris = 12;
+		TArray<FSlateVertex> Verts;
+		Verts.Reserve(NumTris*3);
+
+		// Center Vertex
+		Verts.AddZeroed();
+		{
+			FSlateVertex& NewVert = Verts.Last();
+			NewVert.Position[0] = Center.X;
+			NewVert.Position[1] = Center.Y;
+			NewVert.TexCoords[0] = UVCenter.X;
+			NewVert.TexCoords[1] = UVCenter.Y;
+			NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
+			NewVert.Color = FColor::White;
+			NewVert.ClipRect = FSlateRotatedRect(InParams.ClippingRect);
+		}
+
+		for (int i = 0; i < NumTris; ++i)
+		{
+			Verts.AddZeroed();
+			{
+				const float Angle = (2*PI*i) / NumTris;
+				const FVector2D EdgeDirection(FMath::Cos(Angle), FMath::Sin(Angle));
+				const FVector2D Edge(Radius*EdgeDirection);
+				FSlateVertex& NewVert = Verts.Last();
+				NewVert.Position[0] = Center.X + Edge.X;
+				NewVert.Position[1] = Center.Y + Edge.Y;
+				NewVert.TexCoords[0] = UVCenter.X + UVRadius.X*EdgeDirection.X;
+				NewVert.TexCoords[1] = UVCenter.Y + UVRadius.Y*EdgeDirection.Y;
+				NewVert.TexCoords[2] = NewVert.TexCoords[3] = 1.0f;
+				NewVert.Color = FColor::White;
+				NewVert.ClipRect = FSlateRotatedRect(InParams.ClippingRect);
+			}
+		}
+
+		TArray<SlateIndex> Indexes;
+		for (int i = 1; i <= NumTris; ++i)
+		{
+			Indexes.Add(0);
+			Indexes.Add(i);
+			Indexes.Add( (i+1 > 12) ? (1) : (i+1) );
+		}
+
+		FSlateDrawElement::MakeCustomVerts(InParams.OutDrawElements, InParams.Layer, MyBrush, Verts, Indexes, nullptr);
 
 		return InParams.Layer;
 	}

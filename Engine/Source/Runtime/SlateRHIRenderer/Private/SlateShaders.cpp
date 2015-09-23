@@ -49,6 +49,9 @@ void FSlateVertexDeclaration::InitRHI()
 	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, TopLeft), VET_Float2, 3, Stride));
 	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, ClipRect) + STRUCT_OFFSET(FSlateRotatedClipRectType, ExtentX), VET_Float4, 4, Stride));
 	Elements.Add(FVertexElement(0, STRUCT_OFFSET(FSlateVertex, Color), VET_Color, 5, Stride));
+	
+	static const bool bUseInstanceIndex = true;
+	Elements.Add(FVertexElement(1, 0, VET_Float4, 6, sizeof(FVector4), bUseInstanceIndex));
 
 	VertexDeclarationRHI = RHICreateVertexDeclaration(Elements);
 }

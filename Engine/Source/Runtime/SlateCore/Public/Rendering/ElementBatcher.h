@@ -89,6 +89,8 @@ private:
 	 */
 	void AddCustomElement( const FSlateDrawElement& DrawElement );
 
+	void AddCustomVerts( const FSlateDrawElement& DrawElement );
+
 	void AddCachedBuffer( const FSlateDrawElement& DrawElement );
 
 	void AddLayer(const FSlateDrawElement& DrawElement);

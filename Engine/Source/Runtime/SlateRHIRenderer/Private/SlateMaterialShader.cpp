@@ -153,6 +153,8 @@ IMPLEMENT_SLATE_VERTEXMATERIALSHADER_TYPE(false);
 	typedef TSlateMaterialShaderPS<ESlateShader::ShaderType, bDrawDisabledEffect> TSlateMaterialShaderPS##ShaderType##bDrawDisabledEffect; \
 	IMPLEMENT_MATERIAL_SHADER_TYPE(template<>, TSlateMaterialShaderPS##ShaderType##bDrawDisabledEffect, TEXT("SlateElementPixelShader"), TEXT("Main"), SF_Pixel);
 
+IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Custom, false)
+
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,true);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Default,false);
 IMPLEMENT_SLATE_MATERIALSHADER_TYPE(Border,true);

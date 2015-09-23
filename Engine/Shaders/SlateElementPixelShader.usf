@@ -5,14 +5,11 @@
 #include "GammaCorrectionCommon.usf"
 #include "SlateShaderCommon.usf"
 
-/** Shader types (mirrored from ESlateShader::Type in RenderingCommon.h */
-#define ST_Default		0
-#define ST_Border		1
-#define ST_Font			2
-#define ST_LineSegment	3
 
 /** Enable to debug clipping issues */
 #define DEBUG_CLIPPING 0
+
+#define DO_CLIPPING SHADER_TYPE != ST_Custom
 
 /** Display gamma x:gamma curve adjustment, y:inverse gamma (1/GEngine->DisplayGamma) */
 float2 GammaValues;
@@ -51,7 +48,7 @@ void FillTexCoords( inout FMaterialPixelParameters Parameters, VertexToPixelInte
 		Parameters.TexCoords[1] = InVertex.MaterialTexCoords;
 	#endif
 #else
-	#if NUM_CUSTOMIZED_UVS == 0
+	#if NUM_CUSTOMIZED_UVS == 0 || SHADER_TYPE == ST_Custom
 		#if NUM_MATERIAL_TEXCOORDS == 1
 			Parameters.TexCoords[0] = InDefaultUV;
 		#elif NUM_MATERIAL_TEXCOORDS == 2
@@ -61,6 +58,15 @@ void FillTexCoords( inout FMaterialPixelParameters Parameters, VertexToPixelInte
 			Parameters.TexCoords[0] = InDefaultUV;
 			Parameters.TexCoords[1] = GetUV( InVertex, 0 );
 			Parameters.TexCoords[2] = GetUV( InVertex, 1 );
+		#elif NUM_MATERIAL_TEXCOORDS >= 4
+			Parameters.TexCoords[0] = InDefaultUV;
+			Parameters.TexCoords[1] = GetUV( InVertex, 0 );
+			Parameters.TexCoords[2] = GetUV( InVertex, 1 );
+			UNROLL
+			for( int CoordinateIndex = 3; CoordinateIndex < NUM_MATERIAL_TEXCOORDS; CoordinateIndex++ )
+			{
+				Parameters.TexCoords[CoordinateIndex] = GetUV( InVertex, CoordinateIndex );
+			}
 		#endif
 	#else
 		// Note:  We assume users with customized UVs are overriding behavior and know what they are doing
@@ -118,12 +124,10 @@ float4 GetColor( VertexToPixelInterpolants InVertex, float2 UV )
 	float4 FinalColor;
 	
 #if USE_MATERIALS
-	float4 BaseColor = GetMaterialColor( InVertex, UV );
+	FinalColor = GetMaterialColor( InVertex, UV );
 #else
-	float4 BaseColor = GetTextureColor( InVertex, UV );
+	FinalColor = GetTextureColor( InVertex, UV )*InVertex.Color;
 #endif
-
-	FinalColor = BaseColor*InVertex.Color;
 
 	return FinalColor;
 }
@@ -145,7 +149,7 @@ float4 GetFontElementColor( VertexToPixelInterpolants InVertex )
 }
 #endif
 
-#if SHADER_TYPE == ST_Default
+#if SHADER_TYPE == ST_Default || SHADER_TYPE == ST_Custom
 float4 GetDefaultElementColor( VertexToPixelInterpolants InVertex )
 {
 	return GetColor( InVertex, GetUV( InVertex, 0) * GetUV( InVertex, 1 ) );
@@ -251,18 +255,20 @@ float4 GetLineSegmentElementColor( VertexToPixelInterpolants InVertex )
 
 float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 {
-	// Clip pixels which are outside of the clipping rect
-	float2 ClipOrigin = VIn.ClipOriginAndPos.xy;
-	float2 WindowPos = VIn.ClipOriginAndPos.zw;
-	float4 ClipTest = PointInParallelogram(WindowPos, ClipOrigin, VIn.ClipExtents);
+#if DO_CLIPPING
+		// Clip pixels which are outside of the clipping rect
+		float2 ClipOrigin = VIn.ClipOriginAndPos.xy;
+		float2 WindowPos = VIn.ClipOriginAndPos.zw;
+		float4 ClipTest = PointInParallelogram(WindowPos, ClipOrigin, VIn.ClipExtents);
 	
-#if !DEBUG_CLIPPING
-	// Clip pixels which are outside of the clipping rect
-	clip(ClipTest);
+	#if !DEBUG_CLIPPING
+		// Clip pixels which are outside of the clipping rect
+		clip(ClipTest);
+	#endif
 #endif
 
 	float4 OutColor;
-#if SHADER_TYPE == ST_Default 
+#if SHADER_TYPE == ST_Default || SHADER_TYPE == ST_Custom
 	OutColor = GetDefaultElementColor( VIn );
 #elif SHADER_TYPE == ST_Border
 	OutColor = GetBorderElementColor( VIn );
@@ -286,6 +292,7 @@ float4 Main( VertexToPixelInterpolants VIn ) : SV_Target0
 #if !USE_MATERIALS
 	OutColor = ApplyColorVisionDeficiencyFilter(OutColor);
 #endif
+
 	// gamma correct
 	OutColor.rgb = GammaCorrect(OutColor.rgb);
 

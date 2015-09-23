@@ -15,7 +15,8 @@ VertexToPixelInterpolants Main(
 	in float2 InPosition : ATTRIBUTE2,
 	in float2 InClipOrigin : ATTRIBUTE3,
 	in float4 InClipExtents : ATTRIBUTE4,
-	in float4 InColor : ATTRIBUTE5
+	in float4 InColor : ATTRIBUTE5,
+	in float4 InstanceParam : ATTRIBUTE6
 	)
 {
 	VertexToPixelInterpolants VOut = (VertexToPixelInterpolants)0;
@@ -34,50 +35,64 @@ VertexToPixelInterpolants Main(
 #if USE_MATERIALS
 	FMaterialVertexParameters VertexParameters = (FMaterialVertexParameters)0;
 	VertexParameters.WorldPosition = WorldPosition.xyz;
-	
-	// Todo do not use per-instance parameters
-	/*#if USE_INSTANCING
-		VertexParameters.PerInstanceParams = float4(0,0,0,0);
-	#endif // USE_INSTANCING*/
 
 	VertexParameters.VertexColor = FinalVertexColor;
-	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
-		
-	#if HAS_MATERIAL_TEXCOORDS
-		#if NUM_MATERIAL_TEXCOORDS_VERTEX == 1
-			VertexParameters.TexCoords[0] = InTextureCoordinates.xy;
-		#elif NUM_MATERIAL_TEXCOORDS_VERTEX >= 2
-			VertexParameters.TexCoords[0] = InTextureCoordinates.xy;
-			VertexParameters.TexCoords[1] = InTextureCoordinates.zw;
-		#endif
 
-		float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
-		GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+	#if NUM_MATERIAL_TEXCOORDS_VERTEX
 
-		#if ES2_PROFILE
-			#if NUM_SLATE_TEXCOORDS == 1
-				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
-			#elif NUM_SLATE_TEXCOORDS >= 2
-				VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
-				VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
+		float2 UVArrays[8] = 
+		{
+			InTextureCoordinates.xy,
+			InTextureCoordinates.zw,
+			InstanceParam.xy,
+			InstanceParam.zw,
+			InMaterialTextureCoordinates,
+			InClipOrigin,
+			InClipExtents.xy,
+			InClipExtents.zw
+		};
+
+		UNROLL
+		for( int CoordinateIndex = 0; CoordinateIndex < NUM_MATERIAL_TEXCOORDS_VERTEX; CoordinateIndex++ )
+		{
+			VertexParameters.TexCoords[CoordinateIndex] = UVArrays[CoordinateIndex];
+		}
+
+		#if HAS_MATERIAL_TEXCOORDS
+
+			float2 CustomizedUVs[NUM_SLATE_TEXCOORDS];
+			GetMaterialCustomizedUVs(VertexParameters, CustomizedUVs);
+
+			#if ES2_PROFILE
+				#if NUM_SLATE_TEXCOORDS == 1
+					VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+				#elif NUM_SLATE_TEXCOORDS >= 2
+					VOut.TextureCoordinates[0].xy = CustomizedUVs[0];
+					VOut.TextureCoordinates[0].zw = CustomizedUVs[1];
+				#endif
+			#else
+				UNROLL
+				for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
+				{
+					FLATTEN
+					if (CoordinateIndex % 2)
+					{
+						VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
+					}
+					else
+					{
+						VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
+					}
+				}
 			#endif
-		#else
-			UNROLL
-			for( int CoordinateIndex = 0; CoordinateIndex < NUM_SLATE_TEXCOORDS; CoordinateIndex++ )
-			{
-				FLATTEN
-				if (CoordinateIndex % 2)
-				{
-					VOut.TextureCoordinates[CoordinateIndex / 2].zw = CustomizedUVs[CoordinateIndex];
-				}
-				else
-				{
-					VOut.TextureCoordinates[CoordinateIndex / 2].xy = CustomizedUVs[CoordinateIndex];
-				}
-			}
-		#endif
-	#endif // NUM_MATERIAL_TEXCOORDS
+		#endif // HAS_MATERIAL_TEXCOORDS
+	#endif // NUM_MATERIAL_TEXCOORDS_VERTEX
+
+	WorldPosition.xyz += GetMaterialWorldPositionOffset(VertexParameters);
+
 #endif // USE_MATERIALS
+
+	
 
 	VOut.Position = mul(WorldPosition, ViewProjection);
 

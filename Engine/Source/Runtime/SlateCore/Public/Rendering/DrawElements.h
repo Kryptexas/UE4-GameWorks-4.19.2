@@ -46,6 +46,7 @@ public:
 	// Box Data
 	FVector2D RotationPoint;
 	float Angle;
+	ISlateUpdatableInstanceBuffer* InstanceData;
 
 	// Spline/Line Data
 	float Thickness;
@@ -74,6 +75,10 @@ public:
 	// Custom drawer data
 	TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
 
+	// Custom verts data
+	TArray<FSlateVertex> CustomVertsData;
+	TArray<SlateIndex> CustomVertsIndexData;
+
 	// Cached render data
 	class FSlateRenderDataHandle* CachedRenderData;
 	FVector2D CachedRenderDataOffset;
@@ -92,6 +97,7 @@ public:
 		, BrushResource(nullptr)
 		, ResourceProxy(nullptr)
 		, RotationPoint(FVector2D::ZeroVector)
+		, InstanceData(nullptr)
 		, ImmutableText(nullptr)
 		, ViewportRenderTargetTexture(nullptr)
 		, bViewportTextureAlphaOnly(false)
@@ -101,9 +107,11 @@ public:
 		, CustomDrawer()
 	{ }
 
-	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr )
+	void SetBoxPayloadProperties( const FSlateBrush* InBrush, const FLinearColor& InTint, FSlateShaderResourceProxy* InResourceProxy = nullptr, ISlateUpdatableInstanceBuffer* InInstanceData = nullptr )
 	{
 		Tint = InTint;
+
+		InstanceData = InInstanceData;
 
 		BrushResource = InBrush;
 		if( InResourceProxy )
@@ -170,6 +178,14 @@ public:
 		CustomDrawer = InCustomDrawer;
 	}
 
+	void SetCustomVertsPayloadProperties(const FSlateBrush* InBrush, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData)
+	{
+		ResourceProxy = ResourceManager->GetShaderResource(*InBrush);
+		CustomVertsData = InVerts;
+		CustomVertsIndexData = InIndexes;
+		InstanceData = InInstanceData;
+	}
+
 	void SetCachedBufferPayloadProperties(FSlateRenderDataHandle* InRenderDataHandle, const FVector2D& Offset)
 	{
 		CachedRenderData = InRenderDataHandle;
@@ -202,6 +218,7 @@ public:
 		ET_Viewport,
 		ET_Border,
 		ET_Custom,
+		ET_CustomVerts,
 		ET_CachedBuffer,
 		ET_Layer,
 		ET_Count,
@@ -366,6 +383,8 @@ public:
 	 * @param CustomDrawer		   Interface to a drawer which will be called when Slate renders this element
 	 */
 	SLATECORE_API static void MakeCustom( FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer );
+	
+	SLATECORE_API static void MakeCustomVerts(FSlateWindowElementList& ElementList, uint32 InLayer, const FSlateBrush* InBrush, const TArray<FSlateVertex>& InVerts, const TArray<SlateIndex>& InIndexes, ISlateUpdatableInstanceBuffer* InInstanceData);
 
 	SLATECORE_API static void MakeCachedBuffer(FSlateWindowElementList& ElementList, uint32 InLayer, TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe>& CachedRenderDataHandle, const FVector2D& Offset);
 
@@ -469,8 +488,8 @@ private:
 class FSlateElementBatch
 {
 public: 
-	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect )
-		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect )
+	FSlateElementBatch( const FSlateShaderResource* InShaderResource, const FShaderParams& InShaderParams, ESlateShader::Type ShaderType, ESlateDrawPrimitive::Type PrimitiveType, ESlateDrawEffect::Type DrawEffects, ESlateBatchDrawFlag::Type DrawFlags, const TOptional<FShortRect>& ScissorRect, int32 InstanceCount=1, ISlateUpdatableInstanceBuffer* InstanceData=nullptr )
+		: BatchKey( InShaderParams, ShaderType, PrimitiveType, DrawEffects, DrawFlags, ScissorRect, InstanceCount, InstanceData )
 		, ShaderResource(InShaderResource)
 		, NumElementsInBatch(0)
 		, VertexArrayIndex(INDEX_NONE)
@@ -522,6 +541,9 @@ public:
 	const TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> GetCachedRenderHandle() const { return BatchKey.CachedRenderHandle; }
 	FVector2D GetCachedRenderDataOffset() const { return BatchKey.CachedRenderDataOffset; }
 	const TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> GetLayerHandle() const { return BatchKey.LayerHandle; }
+	int32 GetInstanceCount() const{ return BatchKey.InstanceCount; }
+	const ISlateUpdatableInstanceBuffer* GetInstanceData() const { return BatchKey.InstanceData; }
+
 private:
 	struct FBatchKey
 	{
@@ -535,14 +557,18 @@ private:
 		const ESlateDrawPrimitive::Type DrawPrimitiveType;
 		const ESlateDrawEffect::Type DrawEffects;
 		const TOptional<FShortRect> ScissorRect;
+		const int32 InstanceCount;
+		const ISlateUpdatableInstanceBuffer* InstanceData;
 
-		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect )
+		FBatchKey( const FShaderParams& InShaderParams, ESlateShader::Type InShaderType, ESlateDrawPrimitive::Type InDrawPrimitiveType, ESlateDrawEffect::Type InDrawEffects, ESlateBatchDrawFlag::Type InDrawFlags, const TOptional<FShortRect>& InScissorRect, int32 InInstanceCount, ISlateUpdatableInstanceBuffer* InInstanceBuffer)
 			: ShaderParams( InShaderParams )
 			, DrawFlags( InDrawFlags )
 			, ShaderType( InShaderType )
 			, DrawPrimitiveType( InDrawPrimitiveType )
 			, DrawEffects( InDrawEffects )
 			, ScissorRect( InScissorRect )
+			, InstanceCount( InInstanceCount )
+			, InstanceData( InInstanceBuffer )
 		{
 		}
 
@@ -554,6 +580,7 @@ private:
 			, DrawPrimitiveType( ESlateDrawPrimitive::TriangleList )
 			, DrawEffects( ESlateDrawEffect::None )
 			, ScissorRect( InScissorRect )
+			, InstanceCount(1)
 		{}
 
 		FBatchKey( TSharedPtr<FSlateRenderDataHandle, ESPMode::ThreadSafe> InCachedRenderHandle, FVector2D InCachedRenderDataOffset, const TOptional<FShortRect>& InScissorRect)
@@ -565,6 +592,7 @@ private:
 			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
 			, DrawEffects(ESlateDrawEffect::None)
 			, ScissorRect(InScissorRect)
+			, InstanceCount(1)
 		{}
 
 		FBatchKey(TSharedPtr<FSlateDrawLayerHandle, ESPMode::ThreadSafe> InLayerHandle, const TOptional<FShortRect>& InScissorRect)
@@ -575,6 +603,7 @@ private:
 			, DrawPrimitiveType(ESlateDrawPrimitive::TriangleList)
 			, DrawEffects(ESlateDrawEffect::None)
 			, ScissorRect(InScissorRect)
+			, InstanceCount(1)
 		{}
 
 		bool operator==( const FBatchKey& Other ) const
@@ -588,7 +617,8 @@ private:
 				&& CustomDrawer == Other.CustomDrawer
 				&& CachedRenderHandle == Other.CachedRenderHandle
 				&& LayerHandle == Other.LayerHandle
-				;
+				&& InstanceCount == Other.InstanceCount
+				&& InstanceData == Other.InstanceData;
 		}
 
 		/** Compute an efficient hash for this type for use in hash containers. */
@@ -601,6 +631,9 @@ private:
 			RunningHash = HashCombine(GetTypeHash(InBatchKey.ShaderParams.PixelParams), RunningHash);
 			// NOTE: Assumes this type is 64 bits, no padding.
 			RunningHash = InBatchKey.ScissorRect.IsSet() ? HashCombine(GetTypeHash(*reinterpret_cast<const uint64*>(&InBatchKey.ScissorRect.GetValue())), RunningHash) : RunningHash;
+			RunningHash = InBatchKey.InstanceCount > 1 ? HashCombine( InBatchKey.InstanceCount, RunningHash ) : RunningHash;
+			RunningHash = InBatchKey.InstanceData ? HashCombine( PointerHash(InBatchKey.InstanceData), RunningHash ) : RunningHash;
+
 			return RunningHash;
 			//return FCrc::MemCrc32(&InBatchKey.ShaderParams, sizeof(FShaderParams)) ^ ((InBatchKey.ShaderType << 16) | (InBatchKey.DrawFlags+InBatchKey.ShaderType+InBatchKey.DrawPrimitiveType+InBatchKey.DrawEffects));
 		}
@@ -627,6 +660,8 @@ public:
 		: Layer( InLayer )
 		, ShaderParams( InBatch.GetShaderParams() )
 		, Texture( InBatch.GetShaderResource() )
+		, InstanceData( InBatch.GetInstanceData() )
+		, InstanceCount( InBatch.GetInstanceCount() )
 		, CustomDrawer( InBatch.GetCustomDrawer() )
 		, LayerHandle( InBatch.GetLayerHandle() )
 		, CachedRenderHandle( InRenderHandle )
@@ -654,6 +689,10 @@ public:
 
 	/** Texture to use with this batch.  */
 	const FSlateShaderResource* Texture;
+
+	const ISlateUpdatableInstanceBuffer* InstanceData;
+
+	const int32 InstanceCount;
 
 	const TWeakPtr<ICustomSlateElement, ESPMode::ThreadSafe> CustomDrawer;
 

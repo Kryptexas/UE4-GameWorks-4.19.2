@@ -163,6 +163,8 @@ public:
 		, UVRegion(ForceInit)
 	{ }
 
+	virtual ~FSlateBrush(){}
+
 public:
 
 	/**

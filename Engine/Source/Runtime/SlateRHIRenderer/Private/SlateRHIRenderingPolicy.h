@@ -7,11 +7,6 @@ class FSlateRHIResourceManager;
 
 #include "RenderingPolicy.h"
 
-namespace SlateRHIConstants
-{
-	// Number of vertex and index buffers we swap between when drawing windows
-	const int32 NumBuffers = 3;
-}
 
 /** 
  * Vertex buffer containing all Slate vertices

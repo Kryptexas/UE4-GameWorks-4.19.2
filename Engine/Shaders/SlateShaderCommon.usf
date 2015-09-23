@@ -17,6 +17,14 @@
 	#define NUM_SLATE_TEXCOORDS 1
 #endif
 
+
+/** Shader types (mirrored from ESlateShader::Type in RenderingCommon.h */
+#define ST_Default		0
+#define ST_Border		1
+#define ST_Font			2
+#define ST_LineSegment		3
+#define ST_Custom		4
+
 /** Color Vision Deficiency Types (mirrored in EditorUserSettings.h) */
 #define CVD_NormalVision	0
 #define CVD_Deuteranomly	1
