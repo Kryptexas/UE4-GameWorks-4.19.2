@@ -666,7 +666,7 @@ void FSequencer::SetGlobalTimeDirectly( float NewTime )
 {
 	float LastTime = ScrubPosition;
 
-	if (Settings->GetShowRangeSlider() && Settings->GetLockInOutToStartEndRange())
+	if (!Settings->GetAutoScrollEnabled())
 	{
 		UMovieScene* FocusedMovieScene = GetFocusedMovieSceneSequence()->GetMovieScene();
 		NewTime = FMath::Clamp(NewTime, FocusedMovieScene->InTime, FocusedMovieScene->OutTime);
