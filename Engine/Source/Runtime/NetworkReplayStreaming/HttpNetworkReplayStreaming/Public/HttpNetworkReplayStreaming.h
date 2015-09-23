@@ -47,6 +47,7 @@ namespace EQueuedHttpRequestType
 		RequestEventData,			// We are in the process of requesting the data for a specific event
 		UploadHeader,				// Request to upload header (has to be done after we get info from server)
 		StopStreaming,				// Request to stop streaming
+		KeepReplay,					// Request to keep replay (or cancel keeping replay)
 	};
 
 	inline const TCHAR* ToString( EQueuedHttpRequestType::Type Type )
@@ -89,6 +90,8 @@ namespace EQueuedHttpRequestType
 				return TEXT( "UploadHeader" );
 			case StopStreaming:
 				return TEXT( "StopStreaming" );
+			case KeepReplay:
+				return TEXT( "KeepReplay" );
 		}
 
 		return TEXT( "Unknown EQueuedHttpRequestType type." );
@@ -102,8 +105,37 @@ public:
 	{
 	}
 
+	virtual ~FQueuedHttpRequest()
+	{
+	}
+
 	EQueuedHttpRequestType::Type		Type;
 	TSharedPtr< class IHttpRequest >	Request;
+
+	virtual bool PreProcess( const FString& ServerURL, const FString& SessionName )
+	{
+		return true;
+	}
+};
+
+/**
+* FQueuedHttpRequestAddEvent
+* Custom event so that we can defer the need to knowing SessionName until we actually send it (which we should have it by then, since requests are executed in order)
+*/
+class FQueuedHttpRequestAddEvent : public FQueuedHttpRequest
+{
+public:
+	FQueuedHttpRequestAddEvent( const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest );
+
+	virtual ~FQueuedHttpRequestAddEvent()
+	{
+	}
+
+	virtual bool PreProcess( const FString& ServerURL, const FString& SessionName ) override;
+
+	uint32		TimeInMS;
+	FString		Group;
+	FString		Meta;
 };
 
 /**
@@ -133,10 +165,13 @@ public:
 	virtual bool		IsLive() const override;
 	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
 	virtual void		EnumerateStreams( const FNetworkReplayVersion& ReplayVersion, const FString& UserString, const FString& MetaString, const FOnEnumerateStreamsComplete& Delegate ) override;
+	virtual void		EnumerateEvents( const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate ) override;
+	virtual void		EnumerateEvents( const FString& ReplayName, const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate ) override;
 	virtual void		EnumerateRecentStreams( const FNetworkReplayVersion& ReplayVersion, const FString& RecentViewer, const FOnEnumerateStreamsComplete& Delegate ) override;
 	virtual void		AddUserToReplay(const FString& UserString);
 	virtual void		RequestEventData(const FString& EventId, const FOnRequestEventDataComplete& Delegate) override;
 	virtual void		SearchEvents(const FString& EventGroup, const FOnEnumerateStreamsComplete& Delegate) override;
+	virtual void		KeepReplay( const FString& ReplayName, const bool bKeep ) override;
 	virtual ENetworkReplayError::Type GetLastError() const override;
 
 	/** FHttpNetworkReplayStreamer */
@@ -153,9 +188,9 @@ public:
 	void FlushCheckpointInternal( uint32 TimeInMS );
 	void AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data );
 	void AddRequestToQueue( const EQueuedHttpRequestType::Type Type, TSharedPtr< class IHttpRequest >	Request );
+	void AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request );
 	void EnumerateCheckpoints();
 	void ConditionallyEnumerateCheckpoints();
-	void EnumerateEvents( const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate );
 
 	virtual void ProcessRequestInternal( TSharedPtr< class IHttpRequest > Request );
 
@@ -186,6 +221,7 @@ public:
 	void HttpEnumerateEventsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FEnumerateEventsCompleteDelegate EnumerateEventsDelegate );
 	void HttpAddUserFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpRequestEventDataFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnRequestEventDataComplete RequestEventDataCompleteDelegate );
+	void KeepReplayFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
 	bool ProcessNextHttpRequest();
 	void Tick( const float DeltaTime );

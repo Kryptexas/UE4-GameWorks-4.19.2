@@ -307,6 +307,13 @@ void FHttpNetworkReplayStreamer::AddRequestToQueue( const EQueuedHttpRequestType
 	QueuedHttpRequests.Enqueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequest( Type, Request ) ) );
 }
 
+void FHttpNetworkReplayStreamer::AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest > Request )
+{
+	UE_LOG( LogHttpReplay, Verbose, TEXT( "FHttpNetworkReplayStreamer::AddCustomRequestToQueue. Type: %s" ), EQueuedHttpRequestType::ToString( Request->Type ) );
+
+	QueuedHttpRequests.Enqueue( Request );
+}
+
 void FHttpNetworkReplayStreamer::StopStreaming()
 {
 	if ( StartStreamingDelegate.IsBound() )
@@ -557,7 +564,7 @@ void FHttpNetworkReplayStreamer::RequestEventData(const FString& EventID, const 
 
 void FHttpNetworkReplayStreamer::HttpRequestEventDataFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnRequestEventDataComplete RequestEventDataCompleteDelegate)
 {
-	RequestFinished(EStreamerState::StreamingDown, EQueuedHttpRequestType::RequestEventData, HttpRequest);
+	RequestFinished(StreamerState, EQueuedHttpRequestType::RequestEventData, HttpRequest);
 
 	check(RequestEventDataCompleteDelegate.IsBound());
 
@@ -655,10 +662,36 @@ void FHttpNetworkReplayStreamer::FlushCheckpointInternal( uint32 TimeInMS )
 	AddRequestToQueue( EQueuedHttpRequestType::UploadingCheckpoint, HttpRequest );
 }
 
+FQueuedHttpRequestAddEvent::FQueuedHttpRequestAddEvent( const uint32 InTimeInMS, const FString& InGroup, const FString& InMeta, const TArray<uint8>& InData, TSharedRef< class IHttpRequest > InHttpRequest ) : FQueuedHttpRequest( EQueuedHttpRequestType::UploadingCustomEvent, InHttpRequest )
+{
+	Request->SetVerb( TEXT( "POST" ) );
+	Request->SetHeader( TEXT( "Content-Type" ), TEXT( "application/octet-stream" ) );
+	Request->SetContent( InData );
+
+	TimeInMS	= InTimeInMS;
+	Group		= InGroup;
+	Meta		= InMeta;
+}
+
+bool FQueuedHttpRequestAddEvent::PreProcess( const FString& ServerURL, const FString& SessionName )
+{
+	if ( SessionName.IsEmpty() )
+	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FQueuedHttpRequestAddEvent::PreProcess. SessionName is empty." ) );
+		return false;
+	}
+
+	// Now that we have the session name, we can set the URL
+	Request->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s" ), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *Meta ) );
+
+	return true;
+}
+
 void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString& Group, const FString& Meta, const TArray<uint8>& Data )
 {
-	if (SessionName.IsEmpty() || (StreamerState != EStreamerState::StreamingUp && StreamerState != EStreamerState::StreamingDown))
+	if (StreamerState != EStreamerState::StreamingUp && StreamerState != EStreamerState::StreamingDown)
 	{
+		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::AddEvent. Not streaming." ) );
 		return;
 	}
 
@@ -666,16 +699,12 @@ void FHttpNetworkReplayStreamer::AddEvent( const uint32 TimeInMS, const FString&
 	UE_LOG(LogHttpReplay, Verbose, TEXT("FHttpNetworkReplayStreamer::AddEvent. Size: %i, StreamChunkIndex: %i"), Data.Num(), StreamChunkIndex);
 
 	// Create the Http request and add to pending request list
-	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+	TSharedRef< class IHttpRequest > HttpRequest = FHttpModule::Get().CreateRequest();
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished);
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpUploadCustomEventFinished );
 
-	HttpRequest->SetURL(FString::Printf(TEXT("%sreplay/%s/event?group=%s&time1=%i&time2=%i&meta=%s"), *ServerURL, *SessionName, *Group, TimeInMS, TimeInMS, *Meta));
-	HttpRequest->SetVerb(TEXT("POST"));
-	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/octet-stream"));
-	HttpRequest->SetContent(Data);
-	
-	AddRequestToQueue(EQueuedHttpRequestType::UploadingCustomEvent, HttpRequest);
+	// Add it as a custom event so we can snag the session name at the time of send (which we should have by then)
+	AddCustomRequestToQueue( TSharedPtr< FQueuedHttpRequest >( new FQueuedHttpRequestAddEvent( TimeInMS, Group, Meta, Data, HttpRequest ) ) );
 }
 
 void FHttpNetworkReplayStreamer::DownloadHeader()
@@ -747,6 +776,38 @@ void FHttpNetworkReplayStreamer::ConditionallyDownloadNextChunk()
 	AddRequestToQueue( EQueuedHttpRequestType::DownloadingStream, HttpRequest );
 
 	LastChunkTime = FPlatformTime::Seconds();
+}
+
+void FHttpNetworkReplayStreamer::KeepReplay( const FString& ReplayName, const bool bKeep )
+{
+	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+	// Download the next stream chunk
+	if ( bKeep )
+	{
+		HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s?shouldKeep=true" ), *ServerURL, *ReplayName ) );
+	}
+	else
+	{
+		HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s?shouldKeep=false" ), *ServerURL, *ReplayName ) );
+	}
+
+	HttpRequest->SetVerb( TEXT( "POST" ) );
+	HttpRequest->SetHeader( TEXT( "Content-Type" ), TEXT( "application/json" ) );
+
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::KeepReplayFinished );
+
+	AddRequestToQueue( EQueuedHttpRequestType::KeepReplay, HttpRequest );
+}
+
+void FHttpNetworkReplayStreamer::KeepReplayFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded )
+{
+	RequestFinished( StreamerState, EQueuedHttpRequestType::KeepReplay, HttpRequest );
+
+	if ( !bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::NoContent )
+	{
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::KeepReplayFinished. FAILED, Response code: %d" ), HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0 );
+	}
 }
 
 void FHttpNetworkReplayStreamer::RefreshViewer( const bool bFinal )
@@ -1043,16 +1104,20 @@ void FHttpNetworkReplayStreamer::ConditionallyEnumerateCheckpoints()
 
 void FHttpNetworkReplayStreamer::EnumerateEvents(const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate)
 {
+	EnumerateEvents( SessionName, Group, EnumerationCompleteDelegate );
+}
 
+void FHttpNetworkReplayStreamer::EnumerateEvents( const FString& ReplayName, const FString& Group, const FEnumerateEventsCompleteDelegate& EnumerationCompleteDelegate )
+{
 	TSharedRef<class IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
 
-	// Enumerate all of the sessions
-	HttpRequest->SetURL(FString::Printf(TEXT("%sreplay/%s/event?group=%s"), *ServerURL, *SessionName, *Group));
-	HttpRequest->SetVerb(TEXT("GET"));
+	// Enumerate all of the events
+	HttpRequest->SetURL( FString::Printf( TEXT( "%sreplay/%s/event?group=%s" ), *ServerURL, *ReplayName, *Group ) );
+	HttpRequest->SetVerb( TEXT( "GET" ) );
 
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FHttpNetworkReplayStreamer::HttpEnumerateEventsFinished, EnumerationCompleteDelegate);
+	HttpRequest->OnProcessRequestComplete().BindRaw( this, &FHttpNetworkReplayStreamer::HttpEnumerateEventsFinished, EnumerationCompleteDelegate );
 
-	AddRequestToQueue(EQueuedHttpRequestType::EnumeratingCustomEvent, HttpRequest);
+	AddRequestToQueue( EQueuedHttpRequestType::EnumeratingCustomEvent, HttpRequest );
 }
 
 void FHttpNetworkReplayStreamer::RequestFinished( EStreamerState ExpectedStreamerState, EQueuedHttpRequestType::Type ExpectedType, FHttpRequestPtr HttpRequest )
@@ -1519,7 +1584,7 @@ void FHttpNetworkReplayStreamer::HttpEnumerateCheckpointsFinished( FHttpRequestP
 
 void FHttpNetworkReplayStreamer::HttpEnumerateEventsFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FEnumerateEventsCompleteDelegate EnumerateEventsDelegate)
 {
-	RequestFinished(EStreamerState::StreamingDown, EQueuedHttpRequestType::EnumeratingCustomEvent, HttpRequest);
+	RequestFinished(StreamerState, EQueuedHttpRequestType::EnumeratingCustomEvent, HttpRequest);
 
 	if (bSucceeded && HttpResponse->GetResponseCode() == EHttpResponseCodes::Ok)
 	{
@@ -1595,6 +1660,12 @@ bool FHttpNetworkReplayStreamer::ProcessNextHttpRequest()
 			check( IsStreaming() );
 			StreamerState = EStreamerState::Idle;
 			bStopStreamingCalled = false;
+			return ProcessNextHttpRequest();
+		}
+
+		if ( !QueuedRequest->PreProcess( ServerURL, SessionName ) )
+		{
+			// This request failed, go ahead and process the next request
 			return ProcessNextHttpRequest();
 		}
 
