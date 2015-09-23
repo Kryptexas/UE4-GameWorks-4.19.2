@@ -1356,7 +1356,7 @@ FGuid FSequencer::AddSpawnableForAssetOrClass( UObject* Object, UObject* Counter
 			}
 		}
 
-		if (ensure(NewBlueprint != nullptr))
+		if (NewBlueprint != nullptr)
 		{
 			if ((NewBlueprint->GeneratedClass != nullptr) && FBlueprintEditorUtils::IsActorBased(NewBlueprint))
 			{
