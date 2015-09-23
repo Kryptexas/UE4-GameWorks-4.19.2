@@ -17,6 +17,13 @@ class UMovieSceneEventTrack
 
 public:
 
+	/** Default constructor. */
+	UMovieSceneEventTrack()
+		: TrackName("Events")
+	{ }
+
+public:
+
 	/**
 	 * Adds an event to the appropriate section.
 	 *

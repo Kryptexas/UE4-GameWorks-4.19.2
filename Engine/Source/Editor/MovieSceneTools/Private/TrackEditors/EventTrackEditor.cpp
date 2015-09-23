@@ -87,7 +87,7 @@ void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
 
 	if (MovieScene != nullptr)
 	{
-		MovieScene->AddMasterTrack(UMovieSceneEventTrack::StaticClass(), FName("Events"));
+		MovieScene->AddMasterTrack(UMovieSceneEventTrack::StaticClass());
 		GetSequencer()->NotifyMovieSceneDataChanged();
 	}
 }

@@ -4,3 +4,12 @@
 #include "MovieSceneSlomoSection.h"
 #include "MovieSceneSlomoTrack.h"
 #include "MovieSceneSlomoTrackInstance.h"
+
+
+/* UMovieSceneEventTrack interface
+ *****************************************************************************/
+
+FName UMovieSceneSlomoTrack::GetTrackName() const
+{
+	return FName("Play Rate");
+}
