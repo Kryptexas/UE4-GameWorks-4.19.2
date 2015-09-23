@@ -303,14 +303,14 @@ public:
 
 	static void GetFormatPatternParameters(const FText& Pattern, TArray<FString>& ParameterNames);
 
-	static FText Format(const FText& Pattern, const FFormatNamedArguments& Arguments);
-	static FText Format(const FText& Pattern, const FFormatOrderedArguments& Arguments);
-	static FText Format(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments);
+	static FText Format(FText Pattern, FFormatNamedArguments Arguments);
+	static FText Format(FText Pattern, FFormatOrderedArguments Arguments);
+	static FText Format(FText Pattern, TArray< struct FFormatArgumentData > InArguments);
 
-	static FText Format(const FText& Fmt,const FText& v1);
-	static FText Format(const FText& Fmt,const FText& v1,const FText& v2);
-	static FText Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3);
-	static FText Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3,const FText& v4);
+	static FText Format(FText Fmt, FText v1);
+	static FText Format(FText Fmt, FText v1, FText v2);
+	static FText Format(FText Fmt, FText v1, FText v2, FText v3);
+	static FText Format(FText Fmt, FText v1, FText v2, FText v3, FText v4);
 
 #if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 	/**
@@ -323,7 +323,7 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatNamed( const FText& Fmt, TArguments&&... Args );
+	static FText FormatNamed( FText Fmt, TArguments&&... Args );
 
 	/**
 	 * FormatOrdered allows you to pass a variadic list of types to use for formatting in order desired
@@ -333,7 +333,7 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatOrdered( const FText& Fmt, TArguments&&... Args );
+	static FText FormatOrdered( FText Fmt, TArguments&&... Args );
 #endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
@@ -384,9 +384,9 @@ private:
 	/** Rebuilds the FText under the current culture if needed */
 	void Rebuild() const;
 
-	static FText FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
-	static FText FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource);
-	static FText FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatInternal(FText Pattern, FFormatNamedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource);
+	static FText FormatInternal(FText Pattern, TArray< struct FFormatArgumentData > InArguments, bool bInRebuildText, bool bInRebuildAsSource);
 
 private:
 	template<typename T1, typename T2>
@@ -578,21 +578,21 @@ void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArgume
 } // namespace TextFormatUtil
 
 template < typename... TArguments >
-FText FText::FormatNamed( const FText& Fmt, TArguments&&... Args )
+FText FText::FormatNamed( FText Fmt, TArguments&&... Args )
 {
 	static_assert( sizeof...( TArguments ) % 2 == 0, "FormatNamed requires an even number of Name <-> Value pairs" );
 
 	FFormatNamedArguments FormatArguments;
 	TextFormatUtil::FormatNamed( FormatArguments, Forward< TArguments >( Args )... );
-	return FormatInternal( Fmt, FormatArguments, false, false );
+	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
 }
 
 template < typename... TArguments >
-FText FText::FormatOrdered( const FText& Fmt, TArguments&&... Args )
+FText FText::FormatOrdered( FText Fmt, TArguments&&... Args )
 {
 	FFormatOrderedArguments FormatArguments;
 	TextFormatUtil::FormatOrdered( FormatArguments, Forward< TArguments >( Args )... );
-	return FormatInternal( Fmt, FormatArguments, false, false );
+	return FormatInternal( MoveTemp( Fmt ), MoveTemp( FormatArguments ), false, false );
 }
 #endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 

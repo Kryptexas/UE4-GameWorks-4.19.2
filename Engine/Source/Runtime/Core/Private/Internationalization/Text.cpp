@@ -366,38 +366,38 @@ FText FText::TrimPrecedingAndTrailing( const FText& InText )
 	return NewText;
 }
 
-FText FText::Format(const FText& Fmt,const FText& v1)
+FText FText::Format(FText Fmt, FText v1)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(v1);
-	return FText::Format(Fmt, Arguments);
+	Arguments.Add(MoveTemp(v1));
+	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
 }
 
-FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2)
+FText FText::Format(FText Fmt, FText v1, FText v2)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(v1);
-	Arguments.Add(v2);
-	return FText::Format(Fmt, Arguments);
+	Arguments.Add(MoveTemp(v1));
+	Arguments.Add(MoveTemp(v2));
+	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
 }
 
-FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3)
+FText FText::Format(FText Fmt, FText v1, FText v2, FText v3)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(v1);
-	Arguments.Add(v2);
-	Arguments.Add(v3);
-	return FText::Format(Fmt, Arguments);
+	Arguments.Add(MoveTemp(v1));
+	Arguments.Add(MoveTemp(v2));
+	Arguments.Add(MoveTemp(v3));
+	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
 }
 
-FText FText::Format(const FText& Fmt,const FText& v1,const FText& v2,const FText& v3,const FText& v4)
+FText FText::Format(FText Fmt, FText v1, FText v2, FText v3, FText v4)
 {
 	FFormatOrderedArguments Arguments;
-	Arguments.Add(v1);
-	Arguments.Add(v2);
-	Arguments.Add(v3);
-	Arguments.Add(v4);
-	return FText::Format(Fmt, Arguments);
+	Arguments.Add(MoveTemp(v1));
+	Arguments.Add(MoveTemp(v2));
+	Arguments.Add(MoveTemp(v3));
+	Arguments.Add(MoveTemp(v4));
+	return FText::Format(MoveTemp(Fmt), MoveTemp(Arguments));
 }
 
 class FTextFormatHelper
@@ -741,22 +741,22 @@ void FText::GetFormatPatternParameters(const FText& Pattern, TArray<FString>& Pa
 	FTextFormatHelper::EnumerateParameters(Pattern, ParameterNames);
 }
 
-FText FText::Format(const FText& Pattern, const FFormatNamedArguments& Arguments)
+FText FText::Format(FText Pattern, FFormatNamedArguments Arguments)
 {
-	return FormatInternal(Pattern, Arguments, false, false);
+	return FormatInternal(MoveTemp(Pattern), MoveTemp(Arguments), false, false);
 }
 
-FText FText::Format(const FText& Pattern, const FFormatOrderedArguments& Arguments)
+FText FText::Format(FText Pattern, FFormatOrderedArguments Arguments)
 {
-	return FormatInternal(Pattern, Arguments, false, false);
+	return FormatInternal(MoveTemp(Pattern), MoveTemp(Arguments), false, false);
 }
 
-FText FText::Format(const FText& Pattern, const TArray< FFormatArgumentData > InArguments)
+FText FText::Format(FText Pattern, TArray< FFormatArgumentData > InArguments)
 {
-	return FormatInternal(Pattern, InArguments, false, false);
+	return FormatInternal(MoveTemp(Pattern), MoveTemp(InArguments), false, false);
 }
 
-FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(FText Pattern, FFormatNamedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -774,7 +774,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 
 	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
 	
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_NamedFormat>(MoveTemp(ResultString), FTextHistory_NamedFormat(Pattern, Arguments))));
+	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_NamedFormat>(MoveTemp(ResultString), FTextHistory_NamedFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
 	if (!GIsEditor)
 	{
 		Result.Flags |= ETextFlag::Transient;
@@ -782,7 +782,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatNamedArguments& A
 	return Result;
 }
 
-FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments& Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(FText Pattern, FFormatOrderedArguments Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -809,7 +809,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 
 	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
 
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_OrderedFormat>(MoveTemp(ResultString), FTextHistory_OrderedFormat(Pattern, Arguments))));
+	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_OrderedFormat>(MoveTemp(ResultString), FTextHistory_OrderedFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
 	if (!GIsEditor)
 	{
 		Result.Flags |= ETextFlag::Transient;
@@ -817,7 +817,7 @@ FText FText::FormatInternal(const FText& Pattern, const FFormatOrderedArguments&
 	return Result;
 }
 
-FText FText::FormatInternal(const FText& Pattern, const TArray< struct FFormatArgumentData > Arguments, bool bInRebuildText, bool bInRebuildAsSource)
+FText FText::FormatInternal(FText Pattern, TArray< struct FFormatArgumentData > Arguments, bool bInRebuildText, bool bInRebuildAsSource)
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	//SCOPE_CYCLE_COUNTER( STAT_TextFormat );
@@ -837,7 +837,7 @@ FText FText::FormatInternal(const FText& Pattern, const TArray< struct FFormatAr
 
 	FString ResultString = FTextFormatHelper::Format(Pattern, EstimatedArgumentValuesLength, FTextFormatHelper::FGetArgumentValue::CreateLambda(GetArgumentValue), bInRebuildText, bInRebuildAsSource);
 
-	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_ArgumentDataFormat>(MoveTemp(ResultString), FTextHistory_ArgumentDataFormat(Pattern, Arguments))));
+	FText Result = FText(MakeShareable(new TGeneratedTextData<FTextHistory_ArgumentDataFormat>(MoveTemp(ResultString), FTextHistory_ArgumentDataFormat(MoveTemp(Pattern), MoveTemp(Arguments)))));
 	if (!GIsEditor)
 	{
 		Result.Flags |= ETextFlag::Transient;
