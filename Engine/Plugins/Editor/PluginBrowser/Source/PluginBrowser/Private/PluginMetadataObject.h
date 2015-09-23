@@ -56,6 +56,10 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Details")
 	FString DocsURL;
 
+	/** Marketplace URL string. */
+	UPROPERTY(EditAnywhere, Category = "Details")
+	FString MarketplaceURL;
+
 	/** Support URL/email for this plugin. Email addresses must be prefixed with 'mailto:' */
 	UPROPERTY(EditAnywhere, Category = "Details")
 	FString SupportURL;
