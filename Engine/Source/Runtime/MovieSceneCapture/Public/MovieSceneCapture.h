@@ -23,6 +23,19 @@ struct ICaptureStrategy
 	virtual int32 GetDroppedFrames(double CurrentTimeSeconds, uint32 FrameIndex) const = 0;
 };
 
+/** Structure used to cache various metrics for our capture */
+struct FCachedMetrics
+{
+	FCachedMetrics() : Width(0), Height(0), Frame(0), ElapsedSeconds(0.f) {}
+
+	/** The width/Height of the frame */
+	int32 Width, Height;
+	/** The current frame number */
+	int32 Frame;
+	/** The number of seconds that have elapsed */
+	float ElapsedSeconds;
+};
+
 /** Class responsible for capturing scene data */
 UCLASS(config=EditorSettings)
 class MOVIESCENECAPTURE_API UMovieSceneCapture : public UObject, public IMovieSceneCaptureInterface
@@ -58,6 +71,9 @@ public:
 
 public:
 
+	/** Access this object's cached metrics */
+	const FCachedMetrics& GetMetrics() const { return CachedMetrics; }
+
 	/** Initialize the capture */
 	void StartCapture();
 
@@ -86,17 +102,6 @@ protected:
 	FString ResolveUniqueFilename();
 
 protected:
-
-	/** Structure used to cache various metrics for our capture */
-	struct FCachedMetrics
-	{
-		FCachedMetrics() : Width(0), Height(0), Frame(0) {}
-
-		/** The width/Height of the frame */
-		int32 Width, Height;
-		/** The current frame number */
-		int32 Frame;
-	};
 	
 	/** The viewport we are bound to */
 	FViewport* Viewport;
@@ -104,8 +109,6 @@ protected:
 	FMovieSceneCaptureHandle Handle;
 	/** Cached metrics for this capture operation */
 	FCachedMetrics CachedMetrics;
-	/** The current capture time, in seconds */
-	double CurrentTimeSeconds;
 	/** Optional AVI file writer used when capturing to video */
 	TUniquePtr<FAVIWriter> AVIWriter;
 	/** Strategy used for capture (real-time/fixed-time-step) */

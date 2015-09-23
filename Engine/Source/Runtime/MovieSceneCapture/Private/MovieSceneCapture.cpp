@@ -63,8 +63,6 @@ UMovieSceneCapture::UMovieSceneCapture(const FObjectInitializer& Initializer)
 	AdditionalCommandLineArguments += FParse::Param(FCommandLine::Get(), TEXT("opengl4"))	?	TEXT("-opengl4 ")	: TEXT("");
 
 	Handle = FUniqueMovieSceneCaptureHandle();
-
-	CurrentTimeSeconds = 0;
 }
 
 void UMovieSceneCapture::Initialize(FViewport* InViewport)
@@ -81,7 +79,7 @@ void UMovieSceneCapture::StartCapture()
 
 	CaptureStrategy->OnStart();
 
-	CurrentTimeSeconds = 0;
+	CachedMetrics.ElapsedSeconds = 0;
 
 	if (bBufferVisualizationDumpFrames)
 	{
@@ -94,6 +92,8 @@ void UMovieSceneCapture::StartCapture()
 
 	CachedMetrics.Width = Viewport->GetSizeXY().X;
 	CachedMetrics.Height = Viewport->GetSizeXY().Y;
+
+	Viewport->SetMovieSceneCapture(Handle);
 
 	if (Settings.CaptureType == EMovieCaptureType::AVI)
 	{
@@ -111,10 +111,6 @@ void UMovieSceneCapture::StartCapture()
 		AVIWriter.Reset(FAVIWriter::CreateInstance(Options));
 		AVIWriter->StartCapture(Viewport);
 	}
-	else
-	{
-		Viewport->SetMovieSceneCapture(Handle);
-	}
 }
 
 void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
@@ -124,20 +120,20 @@ void UMovieSceneCapture::CaptureFrame(float DeltaSeconds)
 		return;
 	}
 
-	CurrentTimeSeconds += DeltaSeconds;
+	CachedMetrics.ElapsedSeconds += DeltaSeconds;
 
-	if (CaptureStrategy->ShouldPresent(CurrentTimeSeconds, CachedMetrics.Frame))
+	if (CaptureStrategy->ShouldPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame))
 	{
-		uint32 NumDroppedFrames = CaptureStrategy->GetDroppedFrames(CurrentTimeSeconds, CachedMetrics.Frame);
+		uint32 NumDroppedFrames = CaptureStrategy->GetDroppedFrames(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
 		CachedMetrics.Frame += NumDroppedFrames;
 
-		CaptureStrategy->OnPresent(CurrentTimeSeconds, CachedMetrics.Frame);
+		CaptureStrategy->OnPresent(CachedMetrics.ElapsedSeconds, CachedMetrics.Frame);
 		++CachedMetrics.Frame;
 		
 		if (AVIWriter)
 		{
 			AVIWriter->DropFrames(NumDroppedFrames);
-			AVIWriter->Update(CurrentTimeSeconds);
+			AVIWriter->Update(CachedMetrics.ElapsedSeconds);
 		}
 #if WITH_EDITOR
 		else
@@ -245,7 +241,7 @@ FString UMovieSceneCapture::ResolveFileFormat(const FString& Folder, const FStri
 {
 	TMap<FString, FStringFormatArg> Mappings;
 	Mappings.Add(TEXT("fps"), FString::Printf(TEXT("%d"), Settings.FrameRate));
-	Mappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), CachedMetrics.Frame+1));
+	Mappings.Add(TEXT("frame"), FString::Printf(TEXT("%04d"), CachedMetrics.Frame));
 	Mappings.Add(TEXT("width"), FString::Printf(TEXT("%d"), CachedMetrics.Width));
 	Mappings.Add(TEXT("height"), FString::Printf(TEXT("%d"), CachedMetrics.Height));
 

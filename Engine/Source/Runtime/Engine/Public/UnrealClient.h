@@ -630,7 +630,7 @@ public:
 	bool HasMovieSceneCapture() const { return MovieSceneCaptureHandle.IsValid(); }
 
 	/** Access the current movie scene capture interface, if set. */
-	IMovieSceneCaptureInterface* GetMovieSceneCapture() const;
+	ENGINE_API IMovieSceneCaptureInterface* GetMovieSceneCapture() const;
 
 	/** Set this viewport's capture implementation */
 	void SetMovieSceneCapture(FMovieSceneCaptureHandle Handle) { MovieSceneCaptureHandle = Handle; }
