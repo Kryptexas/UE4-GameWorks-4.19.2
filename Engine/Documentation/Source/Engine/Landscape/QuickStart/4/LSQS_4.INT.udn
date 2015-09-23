@@ -2,6 +2,7 @@ Availability: Public
 Title:4. Creating Landscape Materials
 Crumbs:%ROOT%, GettingStarted, Engine/Landscape/QuickStart
 Description:How to create Materials to be used for your Landscape.
+version: 4.9
 
 [VAR:Steps]
 [OBJECT:Navigation]
