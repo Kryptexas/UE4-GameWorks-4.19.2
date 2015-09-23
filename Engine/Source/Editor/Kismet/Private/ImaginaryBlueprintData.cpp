@@ -76,7 +76,7 @@ FSearchResult FImaginaryFiBData::CreateSearchTree(FSearchResult InParentSearchRe
 	}
 
 	// If the children did not match the search results but this item does, then we will want to return true
-	if (!bValidSearchResults && (InValidSearchResults.Find(InCurrentPointer.Pin().Get()) != INDEX_NONE || InMatchingSearchComponents.Find(InCurrentPointer.Pin().Get())))
+	if (!bValidSearchResults && !InCurrentPointer.Pin()->IsCategory() && (InValidSearchResults.Find(InCurrentPointer.Pin().Get()) != INDEX_NONE || InMatchingSearchComponents.Find(InCurrentPointer.Pin().Get())))
 	{
 		bValidSearchResults = true;
 	}
@@ -98,29 +98,53 @@ FSearchResult FImaginaryFiBData::CreateSearchTree(FSearchResult InParentSearchRe
 	return nullptr;
 }
 
-bool FImaginaryFiBData::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryFiBData::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return true;
 }
 
-bool FImaginaryFiBData::CanCallFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryFiBData::CanCallFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	// Always compatible with the AllFilter
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter;
 }
 
-void FImaginaryFiBData::ParseAllChildData()
+void FImaginaryFiBData::ParseAllChildData(ESearchableValueStatus InSearchabilityOverride/* = ESearchableValueStatus::Searchable*/)
 {
 	if (UnparsedJsonObject.IsValid())
 	{
+		if (InSearchabilityOverride == ESearchableValueStatus::Searchable)
+		{
+			const TSharedPtr< FJsonObject >* MetaDataField;
+			if (UnparsedJsonObject->TryGetObjectField(FFindInBlueprintSearchTags::FiBMetaDataTag.ToString(), MetaDataField))
+			{
+				TSharedPtr<FFiBMetaData> MetaDataFiBInfo = MakeShareable(new FFiBMetaData(*MetaDataField, LookupTablePtr));
+				MetaDataFiBInfo->ParseAllChildData();
+
+				if (MetaDataFiBInfo->IsHidden() && MetaDataFiBInfo->IsExplicit())
+				{
+					InSearchabilityOverride = ESearchableValueStatus::ExplicitySearchableHidden;
+				}
+				else if (MetaDataFiBInfo->IsExplicit())
+				{
+					InSearchabilityOverride = ESearchableValueStatus::ExplicitySearchable;
+				}
+			}
+		}
+
 		for( auto MapValues : UnparsedJsonObject->Values )
 		{
 			TSharedPtr< FJsonValue > JsonValue = MapValues.Value;
 
+			if (MapValues.Key == FFindInBlueprintSearchTags::FiBMetaDataTag.ToString())
+			{
+				// Do not let this be processed again
+				continue;
+			}
 			if (!TrySpecialHandleJsonValue(MapValues.Key, JsonValue))
 			{
 				FText Key = FText::FromString(MapValues.Key);
-				ParseJsonValue(Key, Key, JsonValue);
+				ParseJsonValue(Key, Key, JsonValue, false, InSearchabilityOverride);
 			}
 		}
 	}
@@ -128,15 +152,16 @@ void FImaginaryFiBData::ParseAllChildData()
 	UnparsedJsonObject.Reset();
 }
 
-void FImaginaryFiBData::ParseJsonValue(FText InKey, FText InDisplayKey, TSharedPtr< FJsonValue > InJsonValue)
+void FImaginaryFiBData::ParseJsonValue(FText InKey, FText InDisplayKey, TSharedPtr< FJsonValue > InJsonValue, bool bIsInArray/*=false*/, ESearchableValueStatus InSearchabilityOverride/* = ESearchableValueStatus::Searchable*/)
 {
+	ESearchableValueStatus SearchabilityStatus = (InSearchabilityOverride == ESearchableValueStatus::Searchable)? GetSearchabilityStatus(InKey.ToString()) : InSearchabilityOverride;
 	if( InJsonValue->Type == EJson::String)
 	{
-		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FCString::Atoi(*InJsonValue->AsString()), GetSearchabilityStatus(InKey.ToString())));
+		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FCString::Atoi(*InJsonValue->AsString()), SearchabilityStatus));
 	}
 	else if (InJsonValue->Type == EJson::Boolean)
 	{
-		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FText::FromString(InJsonValue->AsString()), GetSearchabilityStatus(InKey.ToString())));
+		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FText::FromString(InJsonValue->AsString()), SearchabilityStatus));
 	}
 	else if( InJsonValue->Type == EJson::Array)
 	{
@@ -146,19 +171,19 @@ void FImaginaryFiBData::ParseJsonValue(FText InKey, FText InDisplayKey, TSharedP
 		for( int32 ArrayIdx = 0; ArrayIdx < ArrayList.Num(); ++ArrayIdx)
 		{
 			TSharedPtr< FJsonValue > ArrayValue = ArrayList[ArrayIdx];
-			ArrayCategory->ParseJsonValue(InKey, FText::FromString(FString::FromInt(ArrayIdx)), ArrayValue);
+			ArrayCategory->ParseJsonValue(InKey, FText::FromString(FString::FromInt(ArrayIdx)), ArrayValue,/*bIsInArray=*/true, SearchabilityStatus);
 		}		
 	}
 	else if (InJsonValue->Type == EJson::Object)
 	{
-		TSharedPtr< FCategorySectionHelper > SubObjectCategory = MakeShareable(new FCategorySectionHelper(InJsonValue->AsObject(), LookupTablePtr, InDisplayKey, false));
-		SubObjectCategory->ParseAllChildData();
+		TSharedPtr< FCategorySectionHelper > SubObjectCategory = MakeShareable(new FCategorySectionHelper(InJsonValue->AsObject(), LookupTablePtr, InDisplayKey, bIsInArray));
+		SubObjectCategory->ParseAllChildData(SearchabilityStatus);
 		ParsedChildData.Add(SubObjectCategory);
 	}
 	else
 	{
 		// For everything else, there's this. Numbers come here and will be treated as strings
-		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FText::FromString(InJsonValue->AsString()), GetSearchabilityStatus(InKey.ToString())));
+		ParsedTagsAndValues.Add(InKey.ToString(), FSearchableValueInfo(InDisplayKey, FText::FromString(InJsonValue->AsString()), SearchabilityStatus));
 	}
 }
 
@@ -239,6 +264,32 @@ bool FImaginaryFiBData::TestComplexExpression(const FName& InKey, const FTextFil
 }
 
 ///////////////////////////
+// FFiBMetaData
+
+FFiBMetaData::FFiBMetaData(TSharedPtr< FJsonObject > InUnparsedJsonObject, TMap<int32, FText>* InLookupTablePtr)
+	: FImaginaryFiBData(InUnparsedJsonObject, InLookupTablePtr)
+{
+}
+
+bool FFiBMetaData::TrySpecialHandleJsonValue(FString InKey, TSharedPtr< FJsonValue > InJsonValue)
+{
+	bool bResult = false;
+	if(InKey == FFiBMD::FiBSearchableExplicitMD)
+	{
+		bIsExplicit = true;
+		bResult = true;
+	}
+	else if(InKey == FFiBMD::FiBSearchableHiddenExplicitMD)
+	{
+		bIsExplicit = true;
+		bIsHidden = true;
+		bResult = true;
+	}
+	ensure(bResult);
+	return bResult;
+}
+
+///////////////////////////
 // FCategorySectionHelper
 
 FCategorySectionHelper::FCategorySectionHelper(TMap<int32, FText>* InLookupTablePtr, FText InCategoryName, bool bInTagAndValueCategory)
@@ -264,7 +315,7 @@ FCategorySectionHelper::FCategorySectionHelper(TSharedPtr< FJsonObject > InUnpar
 
 }
 
-bool FCategorySectionHelper::CanCallFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FCategorySectionHelper::CanCallFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return true;
 }
@@ -274,7 +325,7 @@ FSearchResult FCategorySectionHelper::CreateSearchResult_Internal(FSearchResult 
 	return FSearchResult(new FFindInBlueprintsResult(CategoryName, InParent));
 }
 
-void FCategorySectionHelper::ParseAllChildData()
+void FCategorySectionHelper::ParseAllChildData(ESearchableValueStatus InSearchabilityOverride/* = ESearchableValueStatus::Searchable*/)
 {
 	if (UnparsedJsonObject.IsValid() && SpecialHandlingCallback.IsBound())
 	{
@@ -283,7 +334,7 @@ void FCategorySectionHelper::ParseAllChildData()
 	}
 	else
 	{
-		FImaginaryFiBData::ParseAllChildData();
+		FImaginaryFiBData::ParseAllChildData(InSearchabilityOverride);
 	}
 }
 
@@ -315,12 +366,12 @@ FSearchResult FImaginaryBlueprint::CreateSearchResult_Internal(FSearchResult InP
 	return FSearchResult(new FFindInBlueprintsResult(ParsedTagsAndValues.Find(FFindInBlueprintSearchTags::FiB_Path.ToString())->GetDisplayText(LookupTable)));
 }
 
-bool FImaginaryBlueprint::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryBlueprint::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter || InSearchQueryFilter == ESearchQueryFilter::BlueprintFilter;
 }
 
-bool FImaginaryBlueprint::CanCallFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryBlueprint::CanCallFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::NodesFilter ||
 		InSearchQueryFilter == ESearchQueryFilter::PinsFilter ||
@@ -422,7 +473,7 @@ FSearchResult FImaginaryGraph::CreateSearchResult_Internal(FSearchResult InParen
 	return FSearchResult(new FFindInBlueprintsGraph(FText::GetEmpty(), InParent, GraphType));
 }
 
-bool FImaginaryGraph::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryGraph::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter || 
 		InSearchQueryFilter == ESearchQueryFilter::GraphsFilter ||
@@ -431,7 +482,7 @@ bool FImaginaryGraph::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFil
 		(GraphType == GT_Macro && InSearchQueryFilter == ESearchQueryFilter::MacrosFilter);
 }
 
-bool FImaginaryGraph::CanCallFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryGraph::CanCallFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::PinsFilter ||
 		InSearchQueryFilter == ESearchQueryFilter::NodesFilter ||
@@ -491,12 +542,12 @@ FSearchResult FImaginaryGraphNode::CreateSearchResult_Internal(FSearchResult InP
 	return FSearchResult(new FFindInBlueprintsGraphNode(FText::GetEmpty(), InParent));
 }
 
-bool FImaginaryGraphNode::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryGraphNode::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter || InSearchQueryFilter == ESearchQueryFilter::NodesFilter;
 }
 
-bool FImaginaryGraphNode::CanCallFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryGraphNode::CanCallFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::PinsFilter ||
 		FImaginaryFiBData::CanCallFilter(InSearchQueryFilter);
@@ -547,7 +598,7 @@ bool FImaginaryGraphNode::TrySpecialHandleJsonValue(FString InKey, TSharedPtr< F
 	return false;
 }
 
-void FImaginaryGraphNode::ParseAllChildData()
+void FImaginaryGraphNode::ParseAllChildData(ESearchableValueStatus InSearchabilityOverride/* = ESearchableValueStatus::Searchable*/)
 {
 	if (UnparsedJsonObject.IsValid())
 	{
@@ -559,7 +610,7 @@ void FImaginaryGraphNode::ParseAllChildData()
 			SchemaName = FindInBlueprintsHelpers::AsFText(SchemaNameValue, *LookupTablePtr).ToString();
 		}
 
-		FImaginaryFiBData::ParseAllChildData();
+		FImaginaryFiBData::ParseAllChildData(InSearchabilityOverride);
 	}
 }
 
@@ -571,7 +622,7 @@ FImaginaryProperty::FImaginaryProperty(TSharedPtr< FJsonObject > InUnparsedJsonO
 {
 }
 
-bool FImaginaryProperty::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryProperty::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter || 
 		InSearchQueryFilter == ESearchQueryFilter::PropertiesFilter || 
@@ -613,7 +664,7 @@ FImaginaryComponent::FImaginaryComponent(TSharedPtr< FJsonObject > InUnparsedJso
 {
 }
 
-bool FImaginaryComponent::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryComponent::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return FImaginaryProperty::IsCompatibleWithFilter(InSearchQueryFilter) || InSearchQueryFilter == ESearchQueryFilter::ComponentsFilter;
 }
@@ -627,7 +678,7 @@ FImaginaryPin::FImaginaryPin(TSharedPtr< FJsonObject > InUnparsedJsonObject, TMa
 {
 }
 
-bool FImaginaryPin::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter)
+bool FImaginaryPin::IsCompatibleWithFilter(ESearchQueryFilter InSearchQueryFilter) const
 {
 	return InSearchQueryFilter == ESearchQueryFilter::AllFilter || InSearchQueryFilter == ESearchQueryFilter::PinsFilter;
 }

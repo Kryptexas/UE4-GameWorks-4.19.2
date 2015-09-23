@@ -24,6 +24,12 @@ void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class U
 	bWasDeprecated = false;
 }
 
+void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass, FGuid& InMemberGuid)
+{
+	SetExternalMember(InMemberName, InMemberParentClass);
+	MemberGuid = InMemberGuid;
+}
+
 void FMemberReference::SetGlobalField(FName InFieldName, UPackage* InParentPackage)
 {
 	MemberName = InFieldName;
@@ -45,6 +51,12 @@ void FMemberReference::SetSelfMember(FName InMemberName)
 	MemberScope.Empty();
 	bSelfContext = true;
 	bWasDeprecated = false;
+}
+
+void FMemberReference::SetSelfMember(FName InMemberName, FGuid& InMemberGuid)
+{
+	SetSelfMember(InMemberName);
+	MemberGuid = InMemberGuid;
 }
 
 void FMemberReference::SetDirect(const FName InMemberName, const FGuid InMemberGuid, TSubclassOf<class UObject> InMemberParentClass, bool bIsConsideredSelfContext)

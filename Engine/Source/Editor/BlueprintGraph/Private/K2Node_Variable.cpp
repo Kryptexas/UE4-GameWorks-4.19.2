@@ -27,14 +27,19 @@ void UK2Node_Variable::Serialize(FArchive& Ar)
 			VariableReference.SetDirect(VariableName_DEPRECATED, FGuid(), VariableSourceClass_DEPRECATED, bSelfContext_DEPRECATED);
 		}
 
-		if(Ar.UE4Ver() < VER_UE4_K2NODE_REFERENCEGUIDS)
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_VAR_REFERENCEGUIDS)
 		{
 			FGuid VarGuid;
 			
-			if (UBlueprint::GetGuidFromClassByFieldName<UProperty>(GetBlueprint()->GeneratedClass, VariableReference.GetMemberName(), VarGuid))
+			// Do not let this code run for local variables
+			if (!VariableReference.IsLocalScope())
 			{
 				const bool bSelf = VariableReference.IsSelfContext();
-				VariableReference.SetDirect(VariableReference.GetMemberName(), VarGuid, (bSelf ? NULL : VariableReference.GetMemberParentClass((UClass*)NULL)), bSelf);
+				UClass* MemberParentClass = VariableReference.GetMemberParentClass(nullptr);
+				if (UBlueprint::GetGuidFromClassByFieldName<UProperty>(bSelf? GetBlueprint()->GeneratedClass : MemberParentClass, VariableReference.GetMemberName(), VarGuid))
+				{
+					VariableReference.SetDirect(VariableReference.GetMemberName(), VarGuid, bSelf ? nullptr : MemberParentClass, bSelf);
+				}
 			}
 		}
 	}
@@ -192,6 +197,28 @@ FLinearColor UK2Node_Variable::GetNodeTitleColor() const
 	}
 
 	return FLinearColor::White;
+}
+
+FString UK2Node_Variable::GetFindReferenceSearchString() const
+{
+	FString ResultSearchString;
+	if (VariableReference.IsLocalScope())
+	{
+		return FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberScope=+%s))"), *VariableReference.GetMemberName().ToString(), *VariableReference.GetMemberScopeName());
+	}
+	else
+	{
+		FGuid Guid = VariableReference.GetMemberGuid();
+		if (Guid.IsValid())
+		{
+			ResultSearchString = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberGuid(A=%i && B=%i && C=%i && D=%i)))"), *VariableReference.GetMemberName().ToString(), Guid.A, Guid.B, Guid.C, Guid.D);
+		}
+		else
+		{
+			ResultSearchString = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s))"), *VariableReference.GetMemberName().ToString());
+		}
+	}
+	return ResultSearchString;
 }
 
 UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEdGraphPin* NewPin, int32 NewPinIndex, const UEdGraphPin* OldPin, int32 OldPinIndex ) const 

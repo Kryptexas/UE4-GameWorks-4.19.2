@@ -164,6 +164,7 @@ public:
 
 	/** Set to a non-'self' member, so must include reference to class owning the member. */
 	ENGINE_API void SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass);
+	ENGINE_API void SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass, FGuid& InMemberGuid);
 
 	/** Set to reference a global field (intended for things like natively defined delegate signatures) */
 	ENGINE_API void SetGlobalField(FName InFieldName, UPackage* InParentPackage);
@@ -173,6 +174,7 @@ public:
 
 	/** Set up this reference to a 'self' member name */
 	ENGINE_API void SetSelfMember(FName InMemberName);
+	ENGINE_API void SetSelfMember(FName InMemberName, FGuid& InMemberGuid);
 
 	/** Set up this reference to a 'self' member name, scoped to a struct */
 	ENGINE_API void SetLocalMember(FName InMemberName, UStruct* InScope, const FGuid InMemberGuid);

@@ -25,7 +25,7 @@ class BLUEPRINTGRAPH_API UK2Node_Variable : public UK2Node
 	GENERATED_UCLASS_BODY()
 
 	/** Reference to variable we want to set/get */
-	UPROPERTY()
+	UPROPERTY(meta=(BlueprintSearchable="true", BlueprintSearchableHiddenExplicit="true"))
 	FMemberReference	VariableReference;
 
 	UPROPERTY()
@@ -57,6 +57,7 @@ public:
 
 	//~ Begin UEdGraphNode Interface
 	virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetFindReferenceSearchString() const override;
 	virtual void ReconstructNode() override;
 	virtual FString GetDocumentationLink() const override;
 	virtual FString GetDocumentationExcerptName() const override;

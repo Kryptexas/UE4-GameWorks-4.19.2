@@ -337,6 +337,9 @@ public:
 	/** Gets the name of this node, shown in title bar */
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
 
+	/** Gets the search string to find references to this node */
+	virtual FString GetFindReferenceSearchString() const;
+
 	/** 
 	 * Gets the draw color of a node's title bar
 	 */

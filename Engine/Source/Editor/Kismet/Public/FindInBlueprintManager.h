@@ -71,6 +71,9 @@ struct KISMET_API FFindInBlueprintSearchTags
 	static const FText FiB_Glyph;
 	/** Glyph icon color tag */
 	static const FText FiB_GlyphColor;
+
+	// Identifier for metadata storage, completely unsearchable tag
+	static const FText FiBMetaDataTag;
 	/** End const values for Find-in-Blueprint */
 };
 
@@ -92,12 +95,16 @@ struct FSearchData
 	/** Interfaces implemented by the Blueprint */
 	TArray<FString> Interfaces;
 
+	/** Version of the data */
+	int32 Version;
+
 	/** Cached to determine if the Blueprint is seen as no longer valid, allows it to be cleared out next save to disk */
 	bool bMarkedForDeletion;
 
 	FSearchData()
 		: Blueprint(nullptr)
 		, bMarkedForDeletion(false)
+		, Version(0)
 	{
 	}
 
@@ -110,6 +117,7 @@ struct FSearchData
 		, ParentClass(MoveTemp(Other.ParentClass))
 		, Interfaces(MoveTemp(Other.Interfaces))
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
+		, Version(0)
 	{
 	}
 
@@ -126,6 +134,7 @@ struct FSearchData
 		bMarkedForDeletion = RHS.bMarkedForDeletion;
 		ParentClass = MoveTemp(RHS.ParentClass);
 		Interfaces = MoveTemp(RHS.Interfaces);
+		Version = RHS.Version;
 		return *this;
 	}
 
@@ -136,6 +145,7 @@ struct FSearchData
 		, ParentClass(Other.ParentClass)
 		, Interfaces(Other.Interfaces)
 		, bMarkedForDeletion(Other.bMarkedForDeletion)
+		, Version(Other.Version)
 	{
 	}
 
@@ -152,6 +162,7 @@ struct FSearchData
 		bMarkedForDeletion = RHS.bMarkedForDeletion;
 		ParentClass = RHS.ParentClass;
 		Interfaces = RHS.Interfaces;
+		Version = RHS.Version;
 		return *this;
 	}
 
@@ -172,6 +183,85 @@ struct FSearchTagDataPair
 	FText Key;
 	FText Value;
 };
+
+enum EFiBVersion
+{
+	FIB_VER_BASE = 0, // All Blueprints prior to versioning will automatically be assumed to be at 0 if they have FiB data collected
+	FIB_VER_VARIABLE_REFERENCE, // Variable references (FMemberReference) is collected in FiB
+
+	// -----<new versions can be added before this line>-------------------------------------------------
+	FIB_VER_PLUS_ONE,
+	FIB_VER_ALL = FIB_VER_PLUS_ONE - 1 // Always the last version, we want Blueprints to be at latest
+};
+
+struct KISMET_API FFiBMD
+{
+	static const FString FiBSearchableMD;
+	static const FString FiBSearchableShallowMD;
+	static const FString FiBSearchableExplicitMD;
+	static const FString FiBSearchableHiddenExplicitMD;
+};
+
+////////////////////////////////////
+// FStreamSearch
+
+/**
+ * Async task for searching Blueprints
+ */
+class FStreamSearch : public FRunnable
+{
+public:
+	/** Constructor */
+	FStreamSearch(const FString& InSearchValue );
+
+	/** Begin FRunnable Interface */
+	virtual bool Init() override;
+
+	virtual uint32 Run() override;
+
+	virtual void Stop() override;
+
+	virtual void Exit() override;
+	/** End FRunnable Interface */
+
+	/** Brings the thread to a safe stop before continuing. */
+	void EnsureCompletion();
+
+	/** Returns TRUE if the thread is done with it's work. */
+	bool IsComplete() const;
+
+	/**
+	 * Appends the items filtered through the search filter to the passed array
+	 *
+	 * @param OutItemsFound		All the items found since last queried
+	 */
+	void GetFilteredItems(TArray<TSharedPtr<class FFindInBlueprintsResult>>& OutItemsFound);
+
+	/** Helper function to query the percent complete this search is */
+	float GetPercentComplete() const;
+
+public:
+	/** Thread to run the cleanup FRunnable on */
+	FRunnableThread* Thread;
+
+	/** A list of items found, cleared whenever the main thread pulls them to display to screen */
+	TArray<TSharedPtr<class FFindInBlueprintsResult>> ItemsFound;
+
+	/** The search value to filter results by */
+	FString SearchValue;
+
+	/** Prevents searching while other threads are pulling search results */
+	FCriticalSection SearchCriticalSection;
+
+	// Whether the thread has finished running
+	bool bThreadCompleted;
+
+	/** > 0 if we've been asked to abort work in progress at the next opportunity */
+	FThreadSafeCounter StopTaskCounter;
+};
+
+////////////////////////////////////
+// FFindInBlueprintSearchManager
 
 /** Singleton manager for handling all Blueprint searches, helps to manage the going progress of Blueprints, and is thread-safe. */
 class KISMET_API FFindInBlueprintSearchManager
@@ -329,6 +419,9 @@ private:
 
 	/** Removes a Blueprint from being managed by the FiB system by passing in the UBlueprint's path */
 	void RemoveBlueprintByPath(FName InPath);
+
+	/** Begins the process of extracting unloaded FiB data */
+	void ExtractUnloadedFiBData(const FAssetData& InAssetData, const FString& InFiBData, bool bIsVersioned);
 
 protected:
 	/** Maps the Blueprint paths to their index in the SearchArray */

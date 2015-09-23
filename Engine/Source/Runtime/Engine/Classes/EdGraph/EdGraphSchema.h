@@ -763,9 +763,6 @@ class ENGINE_API UEdGraphSchema : public UObject
 	/** Returns schema action to create comment from implemention */
 	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateCommentAction() const { return NULL; }
 
-	/** Returns schema action to create documention node from implemention */
-	virtual TSharedPtr<FEdGraphSchemaAction> GetCreateDocumentNodeAction() const { return NULL; }
-
 	/**
 	 * Handle a graph being removed by the user (potentially removing associated bound nodes, etc...)
 	 */

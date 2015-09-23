@@ -570,6 +570,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_DIALOGUE_WAVE_NAMESPACE_AND_CONTEXT_CHANGES,
 	// Renamed MakeRot MakeRotator and rearranged parameters.
 	VER_UE4_MAKE_ROT_RENAME_AND_REORDER,
+	// K2Node_Variable will properly have the VariableReference Guid set if available
+	VER_UE4_K2NODE_VAR_REFERENCEGUIDS,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

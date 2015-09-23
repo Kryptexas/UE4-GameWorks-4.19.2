@@ -7796,21 +7796,20 @@ void FBlueprintEditor::OnFindReferences()
 				if (UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(SelectedNode))
 				{
 					SearchTerm =  CustomEvent->CustomFunctionName.ToString();
-				}
-				else if (UK2Node_Variable* VariableNode = Cast<UK2Node_Variable>(SelectedNode))
-				{
-					SearchTerm = FName::NameToDisplayString(VariableNode->GetVarName().ToString(), VariableNode->GetPropertyForVariable()->IsA(UBoolProperty::StaticClass()) );
+					if (!SearchTerm.IsEmpty())
+					{
+						SummonSearchUI(true, FString::Printf(TEXT("\"%s\""), *SearchTerm));
+					}
 				}
 				else
 				{
-					SearchTerm = SelectedNode->GetNodeTitle(ENodeTitleType::ListView).ToString();
+					SearchTerm = SelectedNode->GetFindReferenceSearchString();
+					if (!SearchTerm.IsEmpty())
+					{
+						SummonSearchUI(true, SearchTerm);
+					}
 				}
 			}
-		}
-
-		if (!SearchTerm.IsEmpty())
-		{
-			SummonSearchUI(true, FString::Printf(TEXT("\"%s\""), *SearchTerm));
 		}
 	}
 }

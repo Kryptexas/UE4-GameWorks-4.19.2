@@ -167,6 +167,7 @@ bool FFiBSearchInstance::DoSearchQuery(const FString& InSearchString, bool bInCo
 	ExpressionEvaluator->AddFunctionTokenCallback( TEXT("Components"), FTokenFunctionHandler::CreateRaw(this, &FFiBSearchInstance::OnFilterFunction, ESearchQueryFilter::ComponentsFilter));
 	ExpressionEvaluator->AddFunctionTokenCallback( TEXT("Nodes"), FTokenFunctionHandler::CreateRaw(this, &FFiBSearchInstance::OnFilterFunction, ESearchQueryFilter::NodesFilter));
 	ExpressionEvaluator->AddFunctionTokenCallback( TEXT("Pins"), FTokenFunctionHandler::CreateRaw(this, &FFiBSearchInstance::OnFilterFunction, ESearchQueryFilter::PinsFilter));
+	ExpressionEvaluator->SetDefaultFunctionHandler(FTokenDefaultFunctionHandler::CreateRaw(this, &FFiBSearchInstance::OnFilterDefaultFunction));
 	ExpressionEvaluator->SetFilterText(FText::FromString(InSearchString));
 
 	for (int SearchableIdx = 0; SearchableIdx < PendingSearchables.Num(); ++SearchableIdx)
@@ -213,6 +214,25 @@ void FFiBSearchInstance::BuildFunctionTargets(TSharedPtr<FImaginaryFiBData> InRo
 	}
 }
 
+void FFiBSearchInstance::BuildFunctionTargetsByName(TSharedPtr<FImaginaryFiBData> InRootData, FString InTagName, TArray< TWeakPtr< FImaginaryFiBData > >& OutTargetPendingSearchables)
+{
+	for (TSharedPtr<FImaginaryFiBData> ChildData : InRootData->GetAllParsedChildData())
+	{
+		if (ChildData->IsCategory())
+		{
+			FCategorySectionHelper* CategoryData = static_cast<FCategorySectionHelper*>(ChildData.Get());
+			if (CategoryData->GetCategoryFunctionName().Equals(InTagName, ESearchCase::IgnoreCase))
+			{
+				OutTargetPendingSearchables.Add(ChildData);
+			}
+			else
+			{
+				BuildFunctionTargetsByName(ChildData, InTagName, OutTargetPendingSearchables);
+			}
+		}
+	}
+}
+
 bool FFiBSearchInstance::OnFilterFunction(const FTextFilterString& A, ESearchQueryFilter InSearchQueryFilter)
 {
 	if (CurrentSearchable.IsValid())
@@ -236,6 +256,40 @@ bool FFiBSearchInstance::OnFilterFunction(const FTextFilterString& A, ESearchQue
 		if (SubSearchInstance->PendingSearchables.Num() > 0)
 		{
 			bSearchSuccess = SubSearchInstance->DoSearchQuery(A.AsString(), InSearchQueryFilter == ESearchQueryFilter::AllFilter);
+			if (bSearchSuccess)
+			{
+				for (auto& MatchesItem : SubSearchInstance->MatchesSearchQuery)
+				{
+					LastFunctionResultMatchesSearchQuery.AddUnique(MatchesItem);
+				}
+
+				for (auto& MatchesItem : SubSearchInstance->MatchingSearchComponents)
+				{
+					LastFunctionMatchingSearchComponents.AddUnique(MatchesItem.Key, MatchesItem.Value);
+				}
+			}
+		}
+		return bSearchSuccess;
+	}
+
+	return false;
+}
+
+bool FFiBSearchInstance::OnFilterDefaultFunction(const FTextFilterString& InFunctionName, const FTextFilterString& InFunctionParams)
+{
+	if (CurrentSearchable.IsValid())
+	{
+		TSharedPtr< FFiBSearchInstance > SubSearchInstance(new FFiBSearchInstance);
+		bool bSearchSuccess = false;
+
+		TSharedPtr< FImaginaryFiBData > CurrentSearchablePinned = CurrentSearchable.Pin();
+		CurrentSearchablePinned->ParseAllChildData();
+		BuildFunctionTargetsByName(CurrentSearchablePinned, InFunctionName.AsString(), SubSearchInstance->PendingSearchables);
+
+		// Proceed to doing a sub-search
+		if (SubSearchInstance->PendingSearchables.Num() > 0)
+		{
+			bSearchSuccess = SubSearchInstance->DoSearchQuery(InFunctionParams.AsString(), true);
 			if (bSearchSuccess)
 			{
 				for (auto& MatchesItem : SubSearchInstance->MatchesSearchQuery)
@@ -701,6 +755,10 @@ void FFindInBlueprintExpressionEvaluator::ConstructExpressionParser()
 		if (FTokenFunctionHandler* FunctionCallback = TokenFunctionHandlers.Find(A.GetString().AsString()))
 		{
 			bResult = FunctionCallback->Execute(B.GetString());
+		}
+		else
+		{
+			bResult = DefaultFunctionHandler.Execute(A.GetString(), B.GetString());
 		}
 		FFiBToken Result(bResult, SearchInstance->LastFunctionResultMatchesSearchQuery);
 		Result.MatchingSearchComponents = SearchInstance->LastFunctionMatchingSearchComponents;

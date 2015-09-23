@@ -308,33 +308,6 @@ struct FEdGraphSchemaAction_K2AddCallOnActor : public FEdGraphSchemaAction_K2New
 };
 
 /*******************************************************************************
-* FEdGraphSchemaAction_K2AddCallOnVariable
-*******************************************************************************/
-
-/** Action to add a 'call function on variable' pair of nodes to the graph */
-USTRUCT()
-struct FEdGraphSchemaAction_K2AddCallOnVariable : public FEdGraphSchemaAction_K2NewNode
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Property name we want to call the function on */
-	UPROPERTY()
-	FName VariableName;
-
-	FEdGraphSchemaAction_K2AddCallOnVariable()
-		: FEdGraphSchemaAction_K2NewNode()
-	{}
-
-	FEdGraphSchemaAction_K2AddCallOnVariable(const FText& InNodeCategory, const FText& InMenuDesc, const FString& InToolTip, const int32 InGrouping)
-		: FEdGraphSchemaAction_K2NewNode(InNodeCategory, InMenuDesc, InToolTip, InGrouping)
-	{}
-
-	// FEdGraphSchemaAction interface
-	virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface	
-};
-
-/*******************************************************************************
 * FEdGraphSchemaAction_K2AddComment
 *******************************************************************************/
 
@@ -358,35 +331,6 @@ struct FEdGraphSchemaAction_K2AddComment : public FEdGraphSchemaAction
 	{
 	}
 
-	// FEdGraphSchemaAction interface
-	BLUEPRINTGRAPH_API virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
-	// End of FEdGraphSchemaAction interface
-};
-
-/*******************************************************************************
-* FEdGraphSchemaAction_K2AddDocumentation
-*******************************************************************************/
-
-/** Action to add a 'documentation' node to the graph */
-USTRUCT()
-struct FEdGraphSchemaAction_K2AddDocumentation : public FEdGraphSchemaAction
-{
-	GENERATED_USTRUCT_BODY()
-
-	// Simple type info
-	static FName StaticGetTypeId() {static FName Type("FEdGraphSchemaAction_K2AddDocumentation"); return Type;}
-	virtual FName GetTypeId() const override { return StaticGetTypeId(); } 
-
-	FEdGraphSchemaAction_K2AddDocumentation()
-		: FEdGraphSchemaAction(FText(), NSLOCTEXT("K2AddDocumentation", "AddDocumentation", "Add Documentation ..."), NSLOCTEXT("K2AddDocumentation", "AddDocumentation_Tooltip", "Creates a Documentation Node.").ToString(), 0)
-	{
-	}
-
-	FEdGraphSchemaAction_K2AddDocumentation(const FString& InDescription, const FString& InToolTip)
-		: FEdGraphSchemaAction(FText(), FText::FromString(InDescription), InToolTip, 0)
-	{
-	}
-	
 	// FEdGraphSchemaAction interface
 	BLUEPRINTGRAPH_API virtual UEdGraphNode* PerformAction(class UEdGraph* ParentGraph, UEdGraphPin* FromPin, const FVector2D Location, bool bSelectNewNode = true) override;
 	// End of FEdGraphSchemaAction interface

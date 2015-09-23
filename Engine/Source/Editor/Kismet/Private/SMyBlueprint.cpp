@@ -2097,6 +2097,7 @@ void SMyBlueprint::ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction)
 
 void SMyBlueprint::OnFindReference()
 {
+	bool bUseQuotes = true;
 	FString SearchTerm;
 	if (FEdGraphSchemaAction_K2Graph* GraphAction = SelectionAsGraph())
 	{
@@ -2104,11 +2105,24 @@ void SMyBlueprint::OnFindReference()
 	}
 	else if (FEdGraphSchemaAction_K2Var* VarAction = SelectionAsVar())
 	{
-		SearchTerm = VarAction->GetFriendlyVariableName();
+		FGuid Guid = FBlueprintEditorUtils::FindMemberVariableGuidByName(Blueprint, VarAction->GetVariableName());
+		if (Guid.IsValid())
+		{
+			FString VariableName = VarAction->GetVariableName().ToString();
+			SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberGuid(A=%i && B=%i && C=%i && D=%i)))"), *VariableName, Guid.A, Guid.B, Guid.C, Guid.D);
+			bUseQuotes = false;
+		}
+		else
+		{
+			FString VariableName = VarAction->GetVariableName().ToString();
+			SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s))"), *VariableName);
+			bUseQuotes = false;
+		}
 	}
 	else if (FEdGraphSchemaAction_K2LocalVar* LocalVarAction = SelectionAsLocalVar())
 	{
-		SearchTerm = LocalVarAction->GetFriendlyVariableName();
+		SearchTerm = FString::Printf(TEXT("Nodes(VariableReference(MemberName=+%s && MemberScope=+%s))"), *LocalVarAction->GetVariableName().ToString(), *LocalVarAction->GetVariableScope()->GetName());
+		bUseQuotes = false;
 	}
 	else if (FEdGraphSchemaAction_K2Delegate* DelegateAction = SelectionAsDelegate())
 	{
@@ -2135,7 +2149,11 @@ void SMyBlueprint::OnFindReference()
 
 	if(!SearchTerm.IsEmpty())
 	{
-		BlueprintEditorPtr.Pin()->SummonSearchUI(true, FString::Printf(TEXT("\"%s\""), *SearchTerm));
+		if (bUseQuotes)
+		{
+			SearchTerm = FString::Printf(TEXT("\"%s\""), *SearchTerm);
+		}
+		BlueprintEditorPtr.Pin()->SummonSearchUI(true, SearchTerm);
 	}
 }
 

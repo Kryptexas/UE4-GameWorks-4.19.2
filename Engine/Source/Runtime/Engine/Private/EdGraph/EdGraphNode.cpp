@@ -359,6 +359,11 @@ FText UEdGraphNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(GetClass()->GetName());
 }
 
+FString UEdGraphNode::GetFindReferenceSearchString() const
+{
+	return GetNodeTitle(ENodeTitleType::ListView).ToString();
+}
+
 UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 {
 	return NULL;

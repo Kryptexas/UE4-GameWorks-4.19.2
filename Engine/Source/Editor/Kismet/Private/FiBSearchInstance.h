@@ -6,6 +6,8 @@
 
 class FFiBSearchInstance;
 
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FTokenDefaultFunctionHandler, const FTextFilterString&, const FTextFilterString&);
+
 /** Evaluates the expression the user submitted to be searched for */
 class FFindInBlueprintExpressionEvaluator : public FTextFilterExpressionEvaluator
 {
@@ -16,6 +18,12 @@ public:
 		, SearchInstance(InSearchInstance)
 	{
 		ConstructExpressionParser();
+	}
+
+	/** Sets the default function handler, which supports generic functions which are categories or other object based on FImaginaryFiBData */
+	void SetDefaultFunctionHandler(FTokenDefaultFunctionHandler InFunctionHandler)
+	{
+		DefaultFunctionHandler = InFunctionHandler;
 	}
 
 protected:
@@ -36,6 +44,9 @@ protected:
 protected:
 	/** Referenced SearchInstance that is powering this search */
 	FFiBSearchInstance* SearchInstance;
+
+	/** Fallback for all functions, Find-in-Blueprints filters into any sub-data using functions */
+	FTokenDefaultFunctionHandler DefaultFunctionHandler;
 };
 
 /** Used to manage searches through imaginary Blueprints */
@@ -70,6 +81,15 @@ public:
 	void BuildFunctionTargets(TSharedPtr<FImaginaryFiBData> InRootData, ESearchQueryFilter InSearchQueryFilter, TArray< TWeakPtr< FImaginaryFiBData > >& OutTargetPendingSearchables);
 
 	/**
+	 * Builds a list of imaginary items, using their names, that can be targeted by a function
+	 *
+	 * @param InRootData						Item to find the child imaginary data that can have be sub-searched for the function
+	 * @param InTagName							The name of objects to find
+	 * @param OutTargetPendingSearchables		List of pending imaginary items that will be sub-searched, this gets filled out by the function
+	 */
+	void BuildFunctionTargetsByName(TSharedPtr<FImaginaryFiBData> InRootData, FString InTagName, TArray< TWeakPtr< FImaginaryFiBData > >& OutTargetPendingSearchables);
+
+	/**
 	 * Callback when a function is called by the evaluator
 	 *
 	 * @param InParameterString		The parameter string to sub-search using
@@ -78,6 +98,15 @@ public:
 	 */
 	bool OnFilterFunction(const FTextFilterString& A, ESearchQueryFilter InSearchQueryFilter);
 
+	/**
+	 * Callback when a default/generic function is called by the evaluator
+	 *
+	 * @param InFunctionName		The function name to call, will query for sub-objects with this name to do a sub-search on
+	 * @param InFunctionParams		The parameter string to sub-search using
+	 * @return						TRUE if the function was successful at finding valid results
+	 */
+	bool OnFilterDefaultFunction(const FTextFilterString& InFunctionName, const FTextFilterString& InFunctionParams);
+public:
 	/** Current item being searched in the Imaginary Blueprint */
 	TWeakPtr< FImaginaryFiBData > CurrentSearchable;
 

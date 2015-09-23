@@ -52,6 +52,108 @@ const FText FFindInBlueprintSearchTags::FiB_IsReference = LOCTEXT("IsReference",
 const FText FFindInBlueprintSearchTags::FiB_Glyph = LOCTEXT("Glyph", "Glyph");
 const FText FFindInBlueprintSearchTags::FiB_GlyphColor = LOCTEXT("GlyphColor", "GlyphColor");
 
+const FText FFindInBlueprintSearchTags::FiBMetaDataTag = LOCTEXT("FiBMetaDataTag", "!!FiBMD");
+
+const FString FFiBMD::FiBSearchableMD = TEXT("BlueprintSearchable");
+const FString FFiBMD::FiBSearchableShallowMD = TEXT("BlueprintSearchableShallow");
+const FString FFiBMD::FiBSearchableExplicitMD = TEXT("BlueprintSearchableExplicit");
+const FString FFiBMD::FiBSearchableHiddenExplicitMD = TEXT("BlueprintSearchableHiddenExplicit");
+
+////////////////////////////////////
+// FStreamSearch
+FStreamSearch::FStreamSearch(const FString& InSearchValue )
+	: SearchValue(InSearchValue)
+	, bThreadCompleted(false)
+	, StopTaskCounter(0)
+{
+	// Add on a Guid to the thread name to ensure the thread is uniquely named.
+	Thread = FRunnableThread::Create( this, *FString::Printf(TEXT("FStreamSearch%s"), *FGuid::NewGuid().ToString()), 0, TPri_BelowNormal );
+}
+
+bool FStreamSearch::Init()
+{
+	return true;
+}
+
+uint32 FStreamSearch::Run()
+{
+	FFindInBlueprintSearchManager::Get().BeginSearchQuery(this);
+
+	TFunction<void(const FSearchResult&)> OnResultReady = [this](const FSearchResult& Result) {
+		FScopeLock ScopeLock(&SearchCriticalSection);
+		ItemsFound.Add(Result);
+	};
+
+	// Searching comes to an end if it is requested using the StopTaskCounter or continuing the search query yields no results
+	FSearchData QueryResult;
+	while (FFindInBlueprintSearchManager::Get().ContinueSearchQuery(this, QueryResult))
+	{
+		// This work cannot be spun off to a use the TaskGraph system for spreading the work over multiple threads/cores as the stack limit is too small for the work being done.
+		if (QueryResult.Value.Len() > 0)
+		{
+			TSharedPtr< FImaginaryBlueprint> ImaginaryBlueprint(new FImaginaryBlueprint(FPaths::GetBaseFilename(QueryResult.BlueprintPath.ToString()), QueryResult.BlueprintPath.ToString(), QueryResult.ParentClass, QueryResult.Interfaces, QueryResult.Value));
+			TSharedPtr< FFiBSearchInstance > SearchInstance(new FFiBSearchInstance);
+			FSearchResult SearchResult = SearchInstance->StartSearchQuery(*SearchValue, ImaginaryBlueprint);
+
+			// If there are children, add the item to the search results
+			if(SearchResult.IsValid() && SearchResult->Children.Num() != 0)
+			{
+				OnResultReady(SearchResult);
+			}
+		}
+
+		if (StopTaskCounter.GetValue())
+		{
+			// Ensure that the FiB Manager knows that we are done searching
+			FFindInBlueprintSearchManager::Get().EnsureSearchQueryEnds(this);
+		}
+	}
+
+	bThreadCompleted = true;
+
+	return 0;
+}
+
+void FStreamSearch::Stop()
+{
+	StopTaskCounter.Increment();
+}
+
+void FStreamSearch::Exit()
+{
+
+}
+
+void FStreamSearch::EnsureCompletion()
+{
+	{
+		FScopeLock CritSectionLock(&SearchCriticalSection);
+		ItemsFound.Empty();
+	}
+
+	Stop();
+	Thread->WaitForCompletion();
+	delete Thread;
+	Thread = NULL;
+}
+
+bool FStreamSearch::IsComplete() const
+{
+	return bThreadCompleted;
+}
+
+void FStreamSearch::GetFilteredItems(TArray<FSearchResult>& OutItemsFound)
+{
+	FScopeLock ScopeLock(&SearchCriticalSection);
+	OutItemsFound.Append(ItemsFound);
+	ItemsFound.Empty();
+}
+
+float FStreamSearch::GetPercentComplete() const
+{
+	return FFindInBlueprintSearchManager::Get().GetPercentComplete(this);
+}
+
 /** Temporarily forces all nodes and pins to use non-friendly names, forces all schema to have nodes clear their cached values so they will re-cache, and then reverts at the end */
 struct FTemporarilyUseFriendlyNodeTitles
 {
@@ -540,6 +642,136 @@ namespace BlueprintSearchMetaDataHelpers
 		InWriter->WriteObjectEnd();
 	}
 
+	/** Helper enum to gather searchable UProperties */
+	enum EGatherSearchableType
+	{
+		SEARCHABLE_AS_DESIRED = 0,
+		SEARCHABLE_FULL,
+		SEARCHABLE_SHALLOW,
+	};
+
+	/**
+	 * Gathers all searchable properties in a UObject and writes them out to Json
+	 *
+	 * @param InWriter				Json writer
+	 * @param InValue				Value of the Object to serialize
+	 * @param InStruct				Struct or class that represent the UObject's layout
+	 * @param InSearchableType		Informs the system how it should examine the properties to determine if they are searchable. All sub-properties of searchable properties are automatically gathered unless marked as not being searchable
+	 */
+	void GatherSearchableProperties(TSharedRef< SearchMetaDataWriter>& InWriter, const void* InValue, UStruct* InStruct, EGatherSearchableType InSearchableType = SEARCHABLE_AS_DESIRED);
+
+	/**
+	 * Examines a searchable property and digs in deeper if it is a UObject, UStruct, or an array, or serializes it straight out to Json
+	 *
+	 * @param InWriter				Json writer
+	 * @param InProperty			Property to examine
+	 * @param InValue				Value to find the property in the UStruct
+	 * @param InStruct				Struct or class that represent the UObject's layout
+	 */
+	void GatherSearchablesFromProperty(TSharedRef< SearchMetaDataWriter>& InWriter, UProperty* InProperty, const void* InValue, UStruct* InStruct)
+	{
+		if (UArrayProperty* ArrayProperty = Cast<UArrayProperty>(InProperty))
+		{
+			FScriptArrayHelper Helper(ArrayProperty, InValue);
+			InWriter->WriteArrayStart(FText::FromString(InProperty->GetName()));
+			for (int32 i=0, n=Helper.Num(); i<n; ++i)
+			{
+				GatherSearchablesFromProperty(InWriter, ArrayProperty->Inner, Helper.GetRawPtr(i), InStruct);
+			}
+			InWriter->WriteArrayEnd();
+		}
+		else if (UStructProperty* StructProperty = Cast<UStructProperty>(InProperty))
+		{
+			if (!InProperty->HasMetaData(*FFiBMD::FiBSearchableMD) || InProperty->GetBoolMetaData(*FFiBMD::FiBSearchableMD))
+			{
+				InWriter->WriteObjectStart(FText::FromString(InProperty->GetName()));
+				GatherSearchableProperties(InWriter, InValue, StructProperty->Struct, SEARCHABLE_FULL);
+				InWriter->WriteObjectEnd();
+			}
+		}
+		else if (UObjectProperty* ObjectProperty = Cast<UObjectProperty>(InProperty))
+		{
+			UObject* SubObject = ObjectProperty->GetObjectPropertyValue(InValue);
+			if (SubObject)
+			{
+				// Objects default to shallow unless they are marked as searchable
+				EGatherSearchableType searchType = SEARCHABLE_SHALLOW;
+
+				// Check if there is any Searchable metadata
+				if (InProperty->HasMetaData(*FFiBMD::FiBSearchableMD))
+				{
+					// Check if that metadata informs us that the property should not be searchable
+					bool bSearchable = InProperty->GetBoolMetaData(*FFiBMD::FiBSearchableMD);
+					if (bSearchable)
+					{
+						InWriter->WriteObjectStart(FText::FromString(InProperty->GetName()));
+						GatherSearchableProperties(InWriter, SubObject, SubObject->GetClass(), SEARCHABLE_FULL);
+						InWriter->WriteObjectEnd();
+					}
+				}
+				else
+				{
+					// Shallow conversion of property to string
+					auto JsonValue = FJsonObjectConverter::UPropertyToJsonValue(InProperty, InValue, 0, 0);
+					FJsonSerializer::Serialize(JsonValue, InProperty->GetName(), StaticCastSharedRef<SearchMetaDataWriterParentClass>(InWriter));
+				}
+			}
+		}
+		else
+		{
+			auto JsonValue = FJsonObjectConverter::UPropertyToJsonValue(InProperty, InValue, 0, 0);
+			FJsonSerializer::Serialize(JsonValue, InProperty->GetName(), StaticCastSharedRef<SearchMetaDataWriterParentClass>(InWriter));
+		}
+	}
+
+	void GatherSearchableProperties(TSharedRef< SearchMetaDataWriter>& InWriter, const void* InValue, UStruct* InStruct, EGatherSearchableType InSearchableType)
+	{
+		if (InValue)
+		{
+			for (TFieldIterator<UProperty> PropIt(InStruct); PropIt; ++PropIt)
+			{
+				UProperty* Property = *PropIt;
+				bool bIsSearchableMD = Property->GetBoolMetaData(*FFiBMD::FiBSearchableMD);
+				bool bIsShallowSearchableMD = Property->GetBoolMetaData(*FFiBMD::FiBSearchableShallowMD);
+				// It only is truly marked as not searchable if it has the metadata set to false, if the metadata is missing then we assume the searchable type that is passed in unless SEARCHABLE_AS_DESIRED
+				bool bIsMarkedNotSearchableMD = Property->HasMetaData(*FFiBMD::FiBSearchableMD) && !bIsSearchableMD;
+
+				if ( (InSearchableType != SEARCHABLE_AS_DESIRED && !bIsMarkedNotSearchableMD) 
+					|| bIsShallowSearchableMD || bIsSearchableMD)
+				{
+					const void* Value = Property->ContainerPtrToValuePtr<uint8>(InValue);
+
+					// Need to store the metadata on the property in a sub-object
+					InWriter->WriteObjectStart(FFindInBlueprintSearchTags::FiBMetaDataTag);
+					{
+						if (Property->GetBoolMetaData(*FFiBMD::FiBSearchableHiddenExplicitMD))
+						{
+							InWriter->WriteValue(FText::FromString(FFiBMD::FiBSearchableHiddenExplicitMD), true);
+						}
+						else if (Property->GetBoolMetaData(*FFiBMD::FiBSearchableExplicitMD))
+						{
+							InWriter->WriteValue(FText::FromString(FFiBMD::FiBSearchableExplicitMD), true);
+						}
+					}
+					InWriter->WriteObjectEnd();
+
+					if (Property->ArrayDim == 1)
+					{
+						GatherSearchablesFromProperty(InWriter, Property, Value, InStruct);
+					}
+					else
+					{
+						TArray< TSharedPtr<FJsonValue> > Array;
+						for (int Index = 0; Index != Property->ArrayDim; ++Index)
+						{
+							GatherSearchablesFromProperty(InWriter, Property, (char*)Value + Index * Property->ElementSize, InStruct);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Gathers all nodes from a specified graph and serializes their searchable data to Json
 	 *
@@ -590,6 +822,9 @@ namespace BlueprintSearchMetaDataHelpers
 						}
 					}
 					InWriter->WriteArrayEnd();
+
+					// Only support this for nodes for now, will gather all searchable properties
+					GatherSearchableProperties(InWriter, Node, Node->GetClass());
 
 					InWriter->WriteObjectEnd();
 				}
@@ -991,40 +1226,11 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 			}
 			else if(const FString* FiBSearchData = InAssetData.TagsAndValues.Find("FiB"))
 			{
-				FSearchData NewSearchData;
-
-				NewSearchData.BlueprintPath = InAssetData.ObjectPath;
-
-				if (const FString* ParentClass = InAssetData.TagsAndValues.Find(TEXT("ParentClass")))
-				{
-					NewSearchData.ParentClass = *ParentClass;
-				}
-
-				const FString* ImplementedInterfaces = InAssetData.TagsAndValues.Find("ImplementedInterfaces");
-				if(ImplementedInterfaces)
-				{
-					FString FullInterface;
-					FString RemainingString;
-					FString InterfaceName;
-					FString CurrentString = *ImplementedInterfaces;
-					while(CurrentString.Split(TEXT(","), &FullInterface, &RemainingString))
-					{
-						if(FullInterface.Split(TEXT("."), &CurrentString, &InterfaceName, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
-						{
-							if(!CurrentString.StartsWith(TEXT("Graphs=(")))
-							{
-								NewSearchData.Interfaces.Add(InterfaceName);
-							}
-						}
-						CurrentString = RemainingString;
-					}
-				}
-
-				NewSearchData.bMarkedForDeletion = false;
-
-				// Since the asset was not loaded, pull out the searchable data stored in the asset
-				NewSearchData.Value = *FiBSearchData;
-				AddSearchDataToDatabase(MoveTemp(NewSearchData));
+				ExtractUnloadedFiBData(InAssetData, *FiBSearchData, false);
+			}
+			else if(const FString* FiBVersionedSearchData = InAssetData.TagsAndValues.Find("FiBData"))
+			{
+				ExtractUnloadedFiBData(InAssetData, *FiBVersionedSearchData, true);
 			}
 			else
 			{
@@ -1033,6 +1239,51 @@ void FFindInBlueprintSearchManager::OnAssetAdded(const FAssetData& InAssetData)
 			}
 		}
 	}
+}
+
+void FFindInBlueprintSearchManager::ExtractUnloadedFiBData(const FAssetData& InAssetData, const FString& InFiBData, bool bIsVersioned)
+{
+	FSearchData NewSearchData;
+
+	NewSearchData.BlueprintPath = InAssetData.ObjectPath;
+
+	if (const FString* ParentClass = InAssetData.TagsAndValues.Find(TEXT("ParentClass")))
+	{
+		NewSearchData.ParentClass = *ParentClass;
+	}
+
+	const FString* ImplementedInterfaces = InAssetData.TagsAndValues.Find("ImplementedInterfaces");
+	if(ImplementedInterfaces)
+	{
+		FString FullInterface;
+		FString RemainingString;
+		FString InterfaceName;
+		FString CurrentString = *ImplementedInterfaces;
+		while(CurrentString.Split(TEXT(","), &FullInterface, &RemainingString))
+		{
+			if(FullInterface.Split(TEXT("."), &CurrentString, &InterfaceName, ESearchCase::CaseSensitive, ESearchDir::FromEnd))
+			{
+				if(!CurrentString.StartsWith(TEXT("Graphs=(")))
+				{
+					NewSearchData.Interfaces.Add(InterfaceName);
+				}
+			}
+			CurrentString = RemainingString;
+		}
+	}
+
+	NewSearchData.bMarkedForDeletion = false;
+	NewSearchData.Value = *InFiBData;
+
+	// Deserialize the version if available
+	if (bIsVersioned)
+	{
+		FBufferReader ReaderStream((void*)*NewSearchData.Value, NewSearchData.Value.Len() * sizeof(TCHAR), false);
+		NewSearchData.Version = FiBSerializationHelpers::Deserialize<int32>(ReaderStream);
+	}
+
+	// Since the asset was not loaded, pull out the searchable data stored in the asset
+	AddSearchDataToDatabase(MoveTemp(NewSearchData));
 }
 
 int32 FFindInBlueprintSearchManager::AddSearchDataToDatabase(FSearchData InSearchData)
@@ -1184,7 +1435,8 @@ FString FFindInBlueprintSearchManager::GatherBlueprintSearchMetadata(const UBlue
 	Writer->WriteObjectEnd();
 	Writer->Close();
 
-	SearchMetaData = Writer->GetSerializedLookupTable() + SearchMetaData;
+	int32 Version = EFiBVersion::FIB_VER_ALL;
+	SearchMetaData = FiBSerializationHelpers::Serialize(Version, false) + Writer->GetSerializedLookupTable() + SearchMetaData;
 	return SearchMetaData;
 }
 
@@ -1633,8 +1885,9 @@ bool FFindInBlueprintSearchManager::IsCacheInProgress() const
 TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObject(FString InJsonString, TMap<int32, FText>& OutFTextLookupTable)
 {
 	/** The searchable data is more complicated than a Json string, the Json being the main searchable body that is parsed. Below is a diagram of the full data:
-	 *  | int32 "Size" | TMap "Lookup Table" | Json String |
+	 *  | int32 "Version" | int32 "Size" | TMap "Lookup Table" | Json String |
 	 *
+	 * Version: Version of the FiB data, which may impact searching
 	 * Size: The size of the TMap in bytes
 	 * Lookup Table: The Json's identifiers and string values are in Hex strings and stored in a TMap, the Json stores these values as ints and uses them as the Key into the TMap
 	 * Json String: The Json string to be deserialized in full
@@ -1645,6 +1898,8 @@ TSharedPtr< FJsonObject > FFindInBlueprintSearchManager::ConvertJsonStringToObje
 	// We want to first extract the size of the TMap we will be serializing
 	int32 SizeOfData;
 	FBufferReader ReaderStream((void*)*InJsonString, InJsonString.Len() * sizeof(TCHAR), false);
+
+	int32 Version = FiBSerializationHelpers::Deserialize<int32>(ReaderStream);
 
  	// Read, as a byte string, the number of characters composing the Lookup Table for the Json.
 	SizeOfData = FiBSerializationHelpers::Deserialize<int32>(ReaderStream);
