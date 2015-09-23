@@ -4,4 +4,3 @@
 #include "MovieSceneSlomoSection.h"
 #include "MovieSceneSlomoTrack.h"
 #include "MovieSceneSlomoTrackInstance.h"
-

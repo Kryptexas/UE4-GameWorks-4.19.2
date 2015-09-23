@@ -70,7 +70,8 @@ void FSlomoTrackEditor::HandleAddSlomoTrackMenuEntryExecute()
 
 	if (MovieScene != nullptr)
 	{
-		SlomoTrack = MovieScene->AddMasterTrack(UMovieSceneSlomoTrack::StaticClass());
+		SlomoTrack = MovieScene->AddMasterTrack(UMovieSceneSlomoTrack::StaticClass(), FName("Play Rate"));
+		GetSequencer()->NotifyMovieSceneDataChanged();
 	}
 }
 

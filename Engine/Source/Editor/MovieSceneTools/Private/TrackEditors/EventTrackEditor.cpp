@@ -3,6 +3,7 @@
 #include "MovieSceneToolsPrivatePCH.h"
 #include "EventTrackEditor.h"
 #include "EventTrackSection.h"
+#include "MovieSceneEventTrack.h"
 
 
 #define LOCTEXT_NAMESPACE "FEventTrackEditor"
@@ -81,7 +82,14 @@ bool FEventTrackEditor::SupportsType(TSubclassOf<UMovieSceneTrack> Type) const
 
 void FEventTrackEditor::HandleAddEventTrackMenuEntryExecute()
 {
+	UMovieSceneSequence* FocusedSequence = GetSequencer()->GetFocusedMovieSceneSequence();
+	UMovieScene* MovieScene = FocusedSequence->GetMovieScene();
 
+	if (MovieScene != nullptr)
+	{
+		MovieScene->AddMasterTrack(UMovieSceneEventTrack::StaticClass(), FName("Events"));
+		GetSequencer()->NotifyMovieSceneDataChanged();
+	}
 }
 
 
