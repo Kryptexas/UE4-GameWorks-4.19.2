@@ -36,6 +36,13 @@ void FEventTrackEditor::AddKey(const FGuid& ObjectGuid, UObject* AdditionalAsset
 
 void FEventTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
+	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
+
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("ActorAnimationInstance")))
+	{
+		return;
+	}
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddEventTrack", "Add Event Track"),
 		LOCTEXT("AddEventTooltip", "Adds a new event track that can trigger events on the timeline."),

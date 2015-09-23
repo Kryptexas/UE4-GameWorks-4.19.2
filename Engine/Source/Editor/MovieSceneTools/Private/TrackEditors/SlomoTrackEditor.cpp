@@ -31,6 +31,13 @@ FSlomoTrackEditor::FSlomoTrackEditor(TSharedRef<ISequencer> InSequencer)
 
 void FSlomoTrackEditor::BuildAddTrackMenu(FMenuBuilder& MenuBuilder)
 {
+	UMovieSceneSequence* RootMovieSceneSequence = GetSequencer()->GetRootMovieSceneSequence();
+
+	if ((RootMovieSceneSequence == nullptr) || (RootMovieSceneSequence->GetClass()->GetName() != TEXT("ActorAnimationInstance")))
+	{
+		return;
+	}
+
 	MenuBuilder.AddMenuEntry(
 		LOCTEXT("AddSlomoTrack", "Add Slomo Track"),
 		LOCTEXT("AddSlomoTooltip", "Adds a new slomo track that controls the playback speed of the sequence."),
