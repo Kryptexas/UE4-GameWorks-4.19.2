@@ -1,23 +1,23 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2601374
 Availability:Public
 Title:Apsalar
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:Apsalar is a a Facebook Mobile Ads analytics service supported in recent versions of Unreal Engine.
+Description:Apsalar 是一项 Facebook 移动广告分析服务，最新版本的虚幻引擎支持此服务。
 
 ![](image00.png)
 
-[Apsalar](http://www.apsalar.com) started as a free analytics service that can perform Facebook advertisement attribution. It recently switched to a fee based model. It's a popular service, 
-since you can measure the return on investment for Facebook Mobile Ads, which only a small number of analytics providers can do. To use their service, you must register at their site, get an
- application key and password that uniquely identifies your app, and download the libraries which get compiled into the Apsalar plugin. See the plugin's corresponding `<PlatformAndName>.Build.cs`
- file to see where the libraries and headers are expected to be placed. 
+[Apsalar](http://www.apsalar.com) 最开始是一项执行 Facebook 广告属性的免费服务。此服务最近转向为付费模型。此服务非常流行， 
+因为您可以衡量 Facebook 移动广告的投资回报。目前只有少数分析服务商可以做到这一点。要使用此服务，您必须在服务商的网站注册，
+ 获得应用程序密钥和唯一识别您的应用程序的密码，然后下载已编译到 Apsalar 插件的库。请查看该插件相应的“<PlatformAndName>.Build.cs”文件，
+ 以了解应将库和标头置于何处。 
  
-## Configuration
+## 配置
 
-Once you have done the prerequisites and have successfully built the plugin for the target platform, you can configure the plugin for your game. As of 4.5, there are five configuration 
-options. The `ApiKey` and `ApiSecret` are used to uniquely identify your application. The `SendInterval` setting controls how often data is sent to the Apsalar servers. `MaxBufferSize` is the
- size of the buffer it keeps before flushing to the service. `ManuallyReportRevenue` controls whether Apsalar listens to in-app purchase receipts or not. If set to false, Apsalar will 
- automatically report revenue for your application. The only required properties are the `ApiKey` and `ApiSecret`. You can leave the others out of your configuration and Apsalar's defaults 
- will be used. The snippet below shows a theoretical configuration for Apsalar. As with all analytics providers, the configuration data goes in your `DefaultEngine.ini` file.
+完成先决条件并且成功为目标平台构建插件后，您便可为游戏配置插件。自 4.5 版本起，有五个配置 
+选项。“ApiKey”和“ApiSecret”用于唯一标识您的应用程序。“SendInterval”设置控制数据发送到 Apsalar 服务器的频率。“MaxBufferSize”是在输出到服务前
+ 所保留的缓存的大小。“ManuallyReportRevenue”控制 Apsalar 是否侦听应用内购买接收。如果设置为 false，则 Apsalar 将会自动 
+ 报告您应用程序的收入。唯有“ApiKey”和“ApiSecret”是必填属性。您可以不配置其他属性，这些属性将使用 Apsalar 的 
+ 预设值。以下代码段显示了一个理论上的 Apsalar 配置。与所有分析服务商一样，配置数据将保存到您的“DefaultEngine.ini”文件。
 
 	[Analytics]
 	ApiKey=MyAppsAnalytics

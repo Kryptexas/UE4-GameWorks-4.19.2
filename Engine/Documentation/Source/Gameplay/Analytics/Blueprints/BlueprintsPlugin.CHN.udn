@@ -1,21 +1,19 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2369991
 Availability:Public
-Title:Blueprint Analytics Plugin
+Title:蓝图分析插件
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:A set of Blueprint nodes provided to allow you to communicate with analytics services
+Description:提供一组蓝图节点，以允许您用来分析服务通讯
 
 [TOC (start:2 end:2)]
  
-The analytics APIs in the engine were designed to have no UObject dependencies. Because of that, you need a translation layer from Blueprints to the C++ code. We supply 
-this translation layer as a Blueprint library plugin. Once you enable this plugin, you can start making analytics API calls from your Blueprints. The plugin translates the calls 
-and sends them to the default analytics provider that you have registered for your project. If no default provider is registered, you will see a warning in your project's log files.
+引擎中的分析 API 专为不依赖 UObject 而设计。因此，您需要将蓝图转换到 C++ 代码的转换层。我们将此转换层作为蓝图库插件提供。启用该插件后，您可以开始从蓝图执行 API 调用。该插件会转换调用并将其发送到您为项目注册的默认分析服务商。如果未注册默认服务商，您将在项目的日志文件中看到警告消息。
 
 ![](analytics_blueprint_plugin.png)
 
 
-## Start Session
+## 开始会话
 
-This starts a new analytics session for the current player. Each play session should be treated as a unique session, so that your analytics data captures how frequently a user plays your game and for how long. If a previous session is underway, most providers will automatically close the previous one and start a new one.
+该操作将为当前玩家开始新的分析会话。每个游戏会话应视作唯一会话，以便您的分析数据捕获用户玩游戏的频率和时长。如果上一个会话还在进行中，则大部分服务商将自动关闭上一个会话并开始新的会话。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -66,14 +64,14 @@ This starts a new analytics session for the current player. Each play session sh
 [/REGION]
 
 
-| Output| 	Description |
+| 输出| 	说明 |
 | ------ | ------------- |
-| **Return Value**	| Whether the default analytics provider was able to create a new session or not. |
+| **Return Value**	| 默认分析服务商是否可以创建新会话。 |
 
 
-## End Session
+## 停止会话
 
-This stops recording events for the given session. Some providers will flush the data to their collector.
+该操作将停止记录指定会话的事件。某些服务商会将数据输出到收集器中。
  
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -114,9 +112,9 @@ This stops recording events for the given session. Some providers will flush the
 
 
 
-## Record Event
+## 记录会话
  
-To record an event that has no associated attributes with it, use the **Record Event** node. These types of events are often used to count how many times a user performs a specific option.
+要记录不含相关属性的事件，请使用 **Record Event** 节点。这些类型的事件通常用于计算用户执行特定选项的次数。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -169,15 +167,15 @@ To record an event that has no associated attributes with it, use the **Record E
     [/OBJECT]
 [/REGION]
 
-| Inputs |	Description |
+| 输入 |	说明 |
 | ------- | ------------|
-| **Event Name** |	The name of the event that is being incremented. |
+| **Event Name** |	正在递增的事件的名称。 |
 
 
-## Record Event With Attribute
+## 记录含单一属性的会话
  
-This records an event by name with a single attribute, so that you can compare the frequency of that event across the unique attributes. For instance, the `Item.Equipped` event below would record 
-how often the user equips a weapon in your game, which will show which items are the most popular with players in your game.
+该操作将按含单一属性的名称记录事件，以便您在唯一属性中比较该事件的频率。例如，下方的“Item.Equipped”事件将记录 
+玩家在游戏中装备武器的频率，并将显示游戏中最受玩家欢迎的道具。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -258,18 +256,18 @@ how often the user equips a weapon in your game, which will show which items are
     [/OBJECT]
 [/REGION]
 
-| Inputs |	Description |
+| 输入 |	说明 |
 | ----- | ------------- |
-| **Event Name**	| The name of the event that is being incremented.|
-| **Attribute Name**	 | The name of the attribute that is customizing this event. |
-| **Attribute Value** | 	The value that is used as the unique portion of the customization of the event.|
+| **Event Name**	| 正在递增的事件的名称。|
+| **Attribute Name**	 | 自定义该事件的属性的名称。 |
+| **Attribute Value** | 	自定义该事件的唯一部分所用的值。|
 
 
-## Record Event With Attributes
+## 记录含多个属性的会话
 
-To provide even more details about your event, you can use **Record Event with Attributes**. This is used when you want to provide multiple attributes as context for the event. 
-In the example below, the attributes describe the item that was crafted, the material used, and the player's preferred damage modifier. This example can show you player 
-preferences for crafting items and also uncover potential balancing issues.
+要提供有关事件的更多详细信息，您可以使用 **Record Event with Attributes**。当您想将多个属性作为事件的上下文时，可以使用该操作。 
+在以下示例中，属性描述合成的道具、使用的材料以及玩家首选的伤害修正值。此示例显示 
+玩家合成道具的偏好并揭示潜在的平衡问题。
 
 [REGION:raw]
  ![](Record_event_with_attributes.png)
@@ -277,29 +275,29 @@ preferences for crafting items and also uncover potential balancing issues.
 
 
 
-|Inputs	| Description |
+|输入	| 说明 |
 |-------| ------------|
-|**Event Name**	|The name of the event that is being incremented.|
-|**Attributes**	|The list of attributes that provide more context on the user's action |
+|**Event Name**	|正在递增的事件的名称。|
+|**Attributes**	|针对用户操作提供更多上下文的属性列表 |
 
 
-## Make AnalyticsEventAttr
+## 创建 AnalyticsEventAttr
 
-This is an easy way to take two strings and turn them into the structure that the analytics API needs.
+该操作轻松简便，取两个字符串，然后将其转换成分析 API 所需的结构。
 
 [REGION:raw]
 ![](make_analyticseventattr.png)
 [/REGION]
 
 
-| Inputs |	Description |
+| 输入 |	说明 |
 | ------ | ------------ |
-| **Attribute Name**	| The name of the attribute being created. |
-| **Attribute Value**	| The value of the attribute being created. |
+| **Attribute Name**	| 正在创建的属性的名称。 |
+| **Attribute Value**	| 正在创建的属性的值。 |
 
-## Flush Events
+## 输出事件
 
-Some providers cache collected analytics data locally until a threshold is met or until a session ends. This call tells the provider to commit whatever data it has cached locally.
+某些服务商会在本地缓存收集的分析数据，直到达到阀值或会话结束。该调用将指示服务商提交其本地缓存的所有数据。
 
  
 [REGION:graph]
@@ -340,11 +338,11 @@ Some providers cache collected analytics data locally until a threshold is met o
 [/REGION]
 
 
-## Record Item Purchase
+## 记录道具购买
  
-This records the purchase of an in-game item using in-game currency. This is not for real world money transactions. Instead it tracks which items are purchased using your in-game 
-currencies. This in-game currency can be earned over time or be purchased directly using real world money. To track real world money purchases of in-game currency, use the
-[Record Currency Purchase](#recordcurrencypurchase) node.
+该操作将记录使用游戏货币购买的游戏道具。这不是指现金交易。但是，该操作可跟踪使用游戏货币购买的 
+道具。此游戏货币可通过游戏渐渐获取或用现金直接购买。要跟踪现金购买的游戏货币，请使用
+[Record Currency Purchase](#recordcurrencypurchase) 节点。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -441,18 +439,18 @@ currencies. This in-game currency can be earned over time or be purchased direct
 
 
 
-|Inputs |	Description |
+|输入 |	说明 |
 | ------ | ------------ |
-| **Item Id**	| This is a unique item descriptor to attribute the purchase to. This ID is used when viewing reports about how popular particular items are.| 
-| **Currency**| 	This is the string that describes which in-game currency was used to purchase the item (gold, chips, gems, etc.)| 
-| **Per Item Cost**	| Indicates how much the item that was purchased costs in the in-game currency.| 
-| **Item Quantity**	| The number of items that were purchased by the player.| 
+| **Item Id**	| 用于确定购买归属的唯一道具描述符。查看有关特定物品受欢迎程度的报告时使用此 ID。| 
+| **Currency**| 	描述购买道具所使用的游戏货币的字符串（金币、筹码、宝石等）| 
+| **Per Item Cost**	| 表示购买道具所花费的游戏货币。| 
+| **Item Quantity**	| 玩家购买的道具数量。| 
 
 
-## Record Currency Given
+## 记录所提供货币
 
-This records when the game grants the player some in-game currency. This can be for completing a quest, selling an item, opening a chest, etc. It is important to record this data, 
-so that you can understand how your in-game economy is performing overall.
+此操作记录游戏何时向玩家提供游戏货币。这可能是在完成任务、卖出道具、打开箱子等时候记录该数据十分重要， 
+有助于您了解游戏货币的整体使用情况。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -521,16 +519,16 @@ so that you can understand how your in-game economy is performing overall.
 
 
 
-|Inputs |	Description |
+|输入 |	说明 |
 | ------ | ------------ |
-|**Game Currency Type**	|This is the string that describes which in-game currency was used awarded to the player (gold, chips, gems, etc.)|
-|**Game Currency Amount**	|The amount of the currency that was granted to the player.|
+|**Game Currency Type**	|描述用于奖励给玩家的游戏货币的字符串（金币、筹码、宝石等）|
+|**Game Currency Amount**	|给予玩家的货币数量。|
 
 
-## Record Currency Purchase
+## 记录货币购买
 
-This records an in-game currency purchase paid for by real world money, a.k.a. an in-app purchase. Some providers will capture this information automatically, e.g. Apsalar. 
-Usually, this behavior can be configured on/off, depending on whether you want to manually capture the information or not.
+该操作记录使用现金支付的游戏货币购买，也称为应用内购买。某些服务商将自动捕获该信息，如 Apsalar。 
+通常，该行为可配置为打开/关闭，具体取决于您是否想要手动捕获此信息。
 
 [REGION:graph]
     [OBJECT:BlueprintNode]
@@ -642,11 +640,10 @@ Usually, this behavior can be configured on/off, depending on whether you want t
 
 
 
-|Inputs |	Description |
+|输入 |	说明 |
 | ------ | ------------ |
-|**Game Currency Type**	|This is the string that describes which in-game currency was purchased by the player (gold, chips, gems, etc.)|
-|**Game Currency Amount**	|The amount of the currency that was granted to the player.|
-|**Real Currency Type**	|This should be the ISO 4217 3 letter abbreviation for the real world currency used to purchase the in-game currency. See the [ISO guides](http://www.iso.org/iso/home/standards/currency_codes.htm) for more information.|
-|**Real Money Cost**	|The amount of real world money used to purchase the in-game currency.|
-|**Payment Provider**	|The provider that fulfilled the purchase (Apple, Google, PayPal, Steam, etc.)|
-
+|**Game Currency Type**	|描述玩家购买的游戏货币的字符串（金币、筹码、宝石等）|
+|**Game Currency Amount**	|给予玩家的货币数量。|
+|**Real Currency Type**	|这是用于购买游戏货币的实际货币的 ISO 4217 3 字母缩写。有关详细信息，请参阅 [ISO 指南](http://www.iso.org/iso/home/standards/currency_codes.htm) 。|
+|**Real Money Cost**	|用于购买游戏货币的现金数量。|
+|**Payment Provider**	|履行购买服务的服务商（Apple、Google、PayPal、Steam 等）|

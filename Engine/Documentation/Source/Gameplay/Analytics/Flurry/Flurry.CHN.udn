@@ -1,21 +1,21 @@
-﻿INTSourceChangelist:0
+﻿INTSourceChangelist:2616593
 Availability:Public
-Title:Blueprint Analytics Plugin
+Title:蓝图分析插件
 Crumbs: %ROOT%, Gameplay, Gameplay/Analytics
-Description:A set of Blueprint nodes provided to allow you to communicate with analytics services
+Description:提供一组蓝图节点，以允许您用分析服务通讯
 
 ![](image00.png)
 
-[Flurry](http://www.flurry.com) is a widely used free analytics service. Because it is so widely used, it can compare your app's data to other applications in the same category. This lets you quickly get a feeling of 
-how your game is doing and areas you might need to do some work. To use their service, you must register at their site, get an application key that uniquely identifies your app, and 
-download the libraries which get compiled into the Flurry plugin. See the plugin's corresponding `<PlatformAndName>.Build.cs` file to see where the libraries and headers are expected to be placed. 
-To get started, go to .
+[Flurry](http://www.flurry.com) 是广泛使用的免费分析服务。由于使用非常广泛，它可以将您的应用程序数据与相同类别中的其他应用程序进行比较。这样可让您快速了解
+游戏的表现以及您可能需要关注的领域。要使用此服务，您必须在服务商的网站注册，获得唯一标识您的应用程序的应用程序密钥， 
+然后下载已编译到 Flurry 插件的库。请查看该插件相应的“<PlatformAndName>.Build.cs”文件，以了解应将库和标头置于何处。 
+要开始，请转到
 
-## Configuration
+## 配置
 
-Once you have done the prerequisites and have successfully built the plugin for the target platform, you can configure the plugin for your game. As of 4.8, there is only one configuration 
-property to set: the key that uniquely identifies your game. The snippet below shows a theoretical configuration for Flurry. As with all analytics providers, the configuration data goes in 
-your `DefaultEngine.ini` file.
+完成先决条件并且成功为目标平台构建插件后，您便可为游戏配置插件。自 4.8 版本起，只有一个要设置的 
+配置属性：唯一识别您游戏的密钥。以下代码段显示了一个理论上的 Flurry 配置。与所有分析服务商一样，配置数据将保存到 
+您的“DefaultEngine.ini”文件。
 
 	[Analytics]
 	FlurryApiKey=RANDOM34LETTERS4511
