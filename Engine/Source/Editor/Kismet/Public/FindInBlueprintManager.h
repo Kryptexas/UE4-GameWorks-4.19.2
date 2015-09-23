@@ -95,11 +95,11 @@ struct FSearchData
 	/** Interfaces implemented by the Blueprint */
 	TArray<FString> Interfaces;
 
-	/** Version of the data */
-	int32 Version;
-
 	/** Cached to determine if the Blueprint is seen as no longer valid, allows it to be cleared out next save to disk */
 	bool bMarkedForDeletion;
+
+	/** Version of the data */
+	int32 Version;
 
 	FSearchData()
 		: Blueprint(nullptr)
