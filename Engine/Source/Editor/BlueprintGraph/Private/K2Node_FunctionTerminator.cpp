@@ -55,10 +55,32 @@ bool UK2Node_FunctionTerminator::HasExternalDependencies(TArray<class UStruct*>*
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 
 	UClass* SourceClass = *SignatureClass;
-	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
+	bool bResult = (SourceClass != nullptr) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
 	{
 		OptionalOutput->AddUnique(SourceClass);
+	}
+
+	// All structures, that are required for the BP compilation, should be gathered
+	for (auto Pin : Pins)
+	{
+		UStruct* DepStruct = Pin ? Cast<UStruct>(Pin->PinType.PinSubCategoryObject.Get()) : nullptr;
+
+		UClass* DepClass = Cast<UClass>(DepStruct);
+		if (DepClass && (DepClass->ClassGeneratedBy == SourceBlueprint))
+		{
+			//Don't include self
+			continue;
+		}
+
+		if (DepStruct && !DepStruct->HasAnyFlags(RF_Native))
+		{
+			if (OptionalOutput)
+			{
+				OptionalOutput->AddUnique(DepStruct);
+			}
+			bResult = true;
+		}
 	}
 
 	const bool bSuperResult = Super::HasExternalDependencies(OptionalOutput);
