@@ -466,7 +466,7 @@ void UAISense_Sight::OnListenerUpdateImpl(const FPerceptionListener& UpdatedList
 	}
 	else
 	{
-		DigestedProperties.FindAndRemoveChecked(ListenerID);
+		DigestedProperties.Remove(ListenerID);
 	}
 }
 
