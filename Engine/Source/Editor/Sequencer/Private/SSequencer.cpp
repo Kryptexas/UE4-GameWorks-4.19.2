@@ -372,6 +372,7 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 												SNew( SBorder )
 													.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
 													.BorderBackgroundColor( FLinearColor(.50f, .50f, .50f, 1.0f ) )
+													.Padding(0)
 													[
 														TopTimeSlider
 													]
