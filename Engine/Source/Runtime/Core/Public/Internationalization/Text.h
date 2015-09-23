@@ -4,12 +4,15 @@
 #include "Internationalization/CulturePointer.h"
 #include "Templates/SharedPointer.h"
 #include "UObject/NameTypes.h"
+#include "ITextData.h"
 #include "TextLocalizationManager.h"
 #include "Optional.h"
 #include "UniquePtr.h"
 
 struct FTimespan;
 struct FDateTime;
+
+class FTextHistory;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
 
@@ -67,33 +70,7 @@ namespace EFormatArgumentType
 	};
 }
 
-struct CORE_API FFormatArgumentValue
-{
-	EFormatArgumentType::Type Type;
-	union
-	{
-		int64 IntValue;
-		uint64 UIntValue;
-		float FloatValue;
-		double DoubleValue;
-		FText* TextValue;
-	};
-
-	FFormatArgumentValue();
-
-	FFormatArgumentValue( const int Value );
-	FFormatArgumentValue( const unsigned int Value );
-	FFormatArgumentValue( const int64 Value );
-	FFormatArgumentValue( const uint64 Value );
-	FFormatArgumentValue( const float Value );
-	FFormatArgumentValue( const double Value );
-	FFormatArgumentValue( const FText& Value );
-	FFormatArgumentValue( const FFormatArgumentValue& Source );
-	~FFormatArgumentValue();
-
-	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value );
-};
-
+class FFormatArgumentValue;
 typedef TMap<FString, FFormatArgumentValue> FFormatNamedArguments;
 typedef TArray<FFormatArgumentValue> FFormatOrderedArguments;
 
@@ -264,10 +241,7 @@ public:
 	/** Deep build of the source string for this FText, climbing the history hierarchy */
 	FString BuildSourceString() const;
 
-	bool IsNumeric() const
-	{
-		return DisplayString.Get().IsNumeric();
-	}
+	bool IsNumeric() const;
 
 	int32 CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel = ETextComparisonLevel::Default ) const;
 	int32 CompareToCaseIgnored( const FText& Other ) const;
@@ -300,10 +274,7 @@ public:
 #endif
 	};
 
-	bool IsEmpty() const
-	{
-		return DisplayString.Get().IsEmpty();
-	}
+	bool IsEmpty() const;
 
 	bool IsEmptyOrWhitespace() const;
 
@@ -352,14 +323,7 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatNamed( const FText& Fmt, TArguments&&... Args )
-	{
-		static_assert( sizeof...( TArguments ) % 2 == 0, "FormatNamed requires an even number of Name <-> Value pairs" );
-
-		FFormatNamedArguments FormatArguments;
-		FormatNamed_Util( FormatArguments, Forward< TArguments >( Args )... );
-		return FormatInternal( Fmt, FormatArguments, false, false );
-	}
+	static FText FormatNamed( const FText& Fmt, TArguments&&... Args );
 
 	/**
 	 * FormatOrdered allows you to pass a variadic list of types to use for formatting in order desired
@@ -369,42 +333,8 @@ public:
 	 * @return a formatted FText
 	 */
 	template < typename... TArguments >
-	static FText FormatOrdered( const FText& Fmt, TArguments&&... Args )
-	{
-		FFormatOrderedArguments FormatArguments;
-		FormatOrdered_Util( FormatArguments, Forward< TArguments >( Args )... );
-		return FormatInternal( Fmt, FormatArguments, false, false );
-	}
-
-private:
-	template < typename TName, typename TValue, typename... TArguments >
-	static void FormatNamed_Util( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
-	{
-		FormatNamed_Util( Result, Name, Value );
-		FormatNamed_Util( Result, Forward< TArguments >( Args )... );
-	}
-
-	template < typename TName, typename TValue >
-	static void FormatNamed_Util( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
-	{
-		Result.Emplace( Name, Value );
-	}
-
-	template < typename TValue, typename... TArguments >
-	static void FormatOrdered_Util( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
-	{
-		FormatOrdered_Util( Result, Value );
-		FormatOrdered_Util( Result, Forward< TArguments >( Args )... );
-	}
-
-	template < typename TValue >
-	static void FormatOrdered_Util( OUT FFormatOrderedArguments& Result, TValue&& Value )
-	{
-		Result.Emplace( Value );
-	}
-
-public:
-#endif
+	static FText FormatOrdered( const FText& Fmt, TArguments&&... Args );
+#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
 
 	static void SetEnableErrorCheckingResults(bool bEnable){bEnableErrorCheckingResults=bEnable;}
 	static bool GetEnableErrorCheckingResults(){return bEnableErrorCheckingResults;}
@@ -412,8 +342,8 @@ public:
 	static void SetSuppressWarnings(bool bSuppress){ bSuppressWarnings = bSuppress; }
 	static bool GetSuppressWarnings(){ return bSuppressWarnings; }
 
-	bool IsTransient() const { return (Flags & ETextFlag::Transient) != 0; }
-	bool IsCultureInvariant() const { return (Flags & ETextFlag::CultureInvariant) != 0; }
+	bool IsTransient() const;
+	bool IsCultureInvariant() const;
 
 	bool ShouldGatherForLocalization() const;
 
@@ -423,9 +353,11 @@ private:
 	enum class EInitToEmptyString : uint8 { Value };
 	explicit FText( EInitToEmptyString );
 
-	FText( FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory );
+	explicit FText( TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData );
 
-	FText( FString InSourceString, FString InNamespace, FString InKey, int32 InFlags=0 );
+	explicit FText( FString InSourceString );
+
+	FText( FString InSourceString, FString InNamespace, FString InKey, uint32 InFlags=0 );
 
 	friend CORE_API FArchive& operator<<( FArchive& Ar, FText& Value );
 
@@ -439,15 +371,15 @@ private:
 	/**
 	 * Generate an FText for a string formatted numerically.
 	 */
-	static FText CreateNumericalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory);
+	static FText CreateNumericalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
 
 	/**
 	 * Generate an FText for a string formatted from a date/time.
 	 */
-	static FText CreateChronologicalText(FString InSourceString, TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> InHistory);
+	static FText CreateChronologicalText(TSharedRef<ITextData, ESPMode::ThreadSafe> InTextData);
 
 	/** Returns the source string of the FText */
-	TSharedPtr< FString, ESPMode::ThreadSafe > GetSourceString() const;
+	const FString& GetSourceString() const;
 
 	/** Rebuilds the FText under the current culture if needed */
 	void Rebuild() const;
@@ -465,14 +397,11 @@ private:
 	static FText AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Options = NULL, const FCulturePtr& TargetCulture = NULL);
 
 private:
-	/** The visible display string for this FText */
-	FTextDisplayStringRef DisplayString;
-
-	/** The FText's history, to allow it to rebuild under a new culture */
-	TSharedPtr<class FTextHistory, ESPMode::ThreadSafe> History;
+	/** The internal shared data for this FText */
+	TSharedRef<ITextData, ESPMode::ThreadSafe> TextData;
 
 	/** Flags with various information on what sort of FText this is */
-	int32 Flags;
+	uint32 Flags;
 
 	static bool bEnableErrorCheckingResults;
 	static bool bSuppressWarnings;
@@ -503,6 +432,170 @@ public:
 	friend class FScopedTextIdentityPreserver;
 };
 
+class CORE_API FFormatArgumentValue
+{
+public:
+	FFormatArgumentValue()
+		: Type(EFormatArgumentType::Int)
+	{
+		IntValue = 0;
+	}
+
+	FFormatArgumentValue(const int32 Value)
+		: Type(EFormatArgumentType::Int)
+	{
+		IntValue = Value;
+	}
+
+	FFormatArgumentValue(const uint32 Value)
+		: Type(EFormatArgumentType::UInt)
+	{
+		UIntValue = Value;
+	}
+
+	FFormatArgumentValue(const int64 Value)
+		: Type(EFormatArgumentType::Int)
+	{
+		IntValue = Value;
+	}
+
+	FFormatArgumentValue(const uint64 Value)
+		: Type(EFormatArgumentType::UInt)
+	{
+		UIntValue = Value;
+	}
+
+	FFormatArgumentValue(const float Value)
+		: Type(EFormatArgumentType::Float)
+	{
+		FloatValue = Value;
+	}
+
+	FFormatArgumentValue(const double Value)
+		: Type(EFormatArgumentType::Double)
+	{
+		DoubleValue = Value;
+	}
+
+	FFormatArgumentValue(FText Value)
+		: Type(EFormatArgumentType::Text)
+		, TextValue(MoveTemp(Value))
+	{
+	}
+
+	friend FArchive& operator<<(FArchive& Ar, FFormatArgumentValue& Value);
+
+	FORCEINLINE EFormatArgumentType::Type GetType() const
+	{
+		return Type;
+	}
+
+	FORCEINLINE int64 GetIntValue() const
+	{
+		check(Type == EFormatArgumentType::Int);
+		return IntValue;
+	}
+
+	FORCEINLINE uint64 GetUIntValue() const
+	{
+		check(Type == EFormatArgumentType::UInt);
+		return UIntValue;
+	}
+
+	FORCEINLINE float GetFloatValue() const
+	{
+		check(Type == EFormatArgumentType::Float);
+		return FloatValue;
+	}
+
+	FORCEINLINE double GetDoubleValue() const
+	{
+		check(Type == EFormatArgumentType::Double);
+		return DoubleValue;
+	}
+
+	FORCEINLINE const FText& GetTextValue() const
+	{
+		check(Type == EFormatArgumentType::Text);
+		return TextValue.GetValue();
+	}
+
+private:
+	EFormatArgumentType::Type Type;
+	union
+	{
+		int64 IntValue;
+		uint64 UIntValue;
+		float FloatValue;
+		double DoubleValue;
+	};
+	TOptional<FText> TextValue;
+};
+
+struct FFormatArgumentData
+{
+	FText ArgumentName;
+	FText ArgumentValue;
+
+	friend inline FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value )
+	{
+		Ar << Value.ArgumentName;
+		Ar << Value.ArgumentValue;
+		return Ar;
+	}
+};
+
+#if PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+namespace TextFormatUtil
+{
+
+template < typename TName, typename TValue >
+void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value )
+{
+	Result.Emplace( Forward< TName >( Name ), Forward< TValue >( Value ) );
+}
+
+template < typename TName, typename TValue, typename... TArguments >
+void FormatNamed( OUT FFormatNamedArguments& Result, TName&& Name, TValue&& Value, TArguments&&... Args )
+{
+	FormatNamed( Result, Forward< TName >( Name ), Forward< TValue >( Value ) );
+	FormatNamed( Result, Forward< TArguments >( Args )... );
+}
+
+template < typename TValue >
+void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value )
+{
+	Result.Emplace( Forward< TValue >( Value ) );
+}
+
+template < typename TValue, typename... TArguments >
+void FormatOrdered( OUT FFormatOrderedArguments& Result, TValue&& Value, TArguments&&... Args )
+{
+	FormatOrdered( Result, Forward< TValue >( Value ) );
+	FormatOrdered( Result, Forward< TArguments >( Args )... );
+}
+
+} // namespace TextFormatUtil
+
+template < typename... TArguments >
+FText FText::FormatNamed( const FText& Fmt, TArguments&&... Args )
+{
+	static_assert( sizeof...( TArguments ) % 2 == 0, "FormatNamed requires an even number of Name <-> Value pairs" );
+
+	FFormatNamedArguments FormatArguments;
+	TextFormatUtil::FormatNamed( FormatArguments, Forward< TArguments >( Args )... );
+	return FormatInternal( Fmt, FormatArguments, false, false );
+}
+
+template < typename... TArguments >
+FText FText::FormatOrdered( const FText& Fmt, TArguments&&... Args )
+{
+	FFormatOrderedArguments FormatArguments;
+	TextFormatUtil::FormatOrdered( FormatArguments, Forward< TArguments >( Args )... );
+	return FormatInternal( Fmt, FormatArguments, false, false );
+}
+#endif // PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES
+
 /** A snapshot of an FText at a point in time that can be used to detect changes in the FText, including live-culture changes */
 class CORE_API FTextSnapshot
 {
@@ -518,14 +611,14 @@ public:
 	bool IsDisplayStringEqualTo(const FText& InText) const;
 
 private:
-	/** A pointer to the visible display string for the FText we took a snapshot of (used for an efficient pointer compare) */
-	FTextDisplayStringPtr DisplayStringPtr;
+	/** A pointer to the text data for the FText that we took a snapshot of (used for an efficient pointer compare) */
+	TWeakPtr<ITextData, ESPMode::ThreadSafe> TextDataPtr;
 
 	/** Revision index of the history of the FText we took a snapshot of, or INDEX_NONE if there was no history */
 	int32 HistoryRevision;
 
 	/** Flags with various information on what sort of FText we took a snapshot of */
-	int32 Flags;
+	uint32 Flags;
 };
 
 class CORE_API FTextInspector
@@ -541,15 +634,7 @@ public:
 	static const FString* GetSourceString(const FText& Text);
 	static const FString& GetDisplayString(const FText& Text);
 	static const FTextDisplayStringRef GetSharedDisplayString(const FText& Text);
-	static int32 GetFlags(const FText& Text);
-};
-
-struct FFormatArgumentData
-{
-	FText ArgumentName;
-	FText ArgumentValue;
-
-	friend FArchive& operator<<( FArchive& Ar, FFormatArgumentData& Value );
+	static uint32 GetFlags(const FText& Text);
 };
 
 class CORE_API FTextBuilder
@@ -660,11 +745,11 @@ public:
 	~FScopedTextIdentityPreserver();
 
 private:
+	FText& TextToPersist;
 	bool HadFoundNamespaceAndKey;
 	FString Namespace;
 	FString Key;
-	int32 Flags;
-	FText& TextToPersist;
+	uint32 Flags;
 };
 
 /**

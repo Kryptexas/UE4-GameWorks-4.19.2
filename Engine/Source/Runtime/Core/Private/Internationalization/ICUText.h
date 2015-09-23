@@ -4,6 +4,7 @@
 
 #include "ICUUtilities.h"
 #include "ICUCulture.h"
+#include "TextData.h"
 #include "TextHistory.h"
 #include "FastDecimalFormat.h"
 #include "unicode/utypes.h"
@@ -36,7 +37,7 @@ FText FText::AsNumberTemplate(T1 Val, const FNumberFormattingOptions* const Opti
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 #endif // EXPERIMENTAL_TEXT_FAST_DECIMAL_FORMAT
 
-	return FText::CreateNumericalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsNumber(Val, Options, TargetCulture)));
+	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsNumber>(MoveTemp(NativeString), FTextHistory_AsNumber(Val, Options, TargetCulture))));
 }
 
 template<typename T1, typename T2>
@@ -62,7 +63,7 @@ FText FText::AsCurrencyTemplate(T1 Val, const FString& CurrencyCode, const FNumb
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 #endif // EXPERIMENTAL_TEXT_FAST_DECIMAL_FORMAT
 
-	return FText::CreateNumericalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsCurrency(Val, CurrencyCode, Options, TargetCulture)));
+	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsCurrency>(MoveTemp(NativeString), FTextHistory_AsCurrency(Val, CurrencyCode, Options, TargetCulture))));
 }
 
 template<typename T1, typename T2>
@@ -88,7 +89,7 @@ FText FText::AsPercentTemplate(T1 Val, const FNumberFormattingOptions* const Opt
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 #endif // EXPERIMENTAL_TEXT_FAST_DECIMAL_FORMAT
 
-	return FText::CreateNumericalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsPercent(Val, Options, TargetCulture)));
+	return FText::CreateNumericalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsPercent>(MoveTemp(NativeString), FTextHistory_AsPercent(Val, Options, TargetCulture))));
 }
 
 #undef EXPERIMENTAL_TEXT_FAST_DECIMAL_FORMAT

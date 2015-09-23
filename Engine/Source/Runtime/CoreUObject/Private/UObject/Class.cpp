@@ -1006,6 +1006,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				FString str;
 				Ar << str;
 				FText Text = FText::FromString(str);
+				Text.TextData->PersistText();
 				Text.Flags |= ETextFlag::ConvertedProperty;
 				CastChecked<UTextProperty>(Property)->SetPropertyValue_InContainer(Data, Text, Tag.ArrayIndex);
 				AdvanceProperty = true;
@@ -1185,6 +1186,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						FString str;
 						Ar << str;
 						FText Text = FText::FromString(str);
+						Text.TextData->PersistText();
 						Text.Flags |= ETextFlag::ConvertedProperty;
 						CastChecked<UTextProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), Text);
 						AdvanceProperty = true;
@@ -1210,6 +1212,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						FName Name;
 						Ar << Name;
 						FText Text = FText::FromName(Name);
+						Text.TextData->PersistText();
 						Text.Flags |= ETextFlag::ConvertedProperty;
 						CastChecked<UTextProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), Text);
 						AdvanceProperty = true;

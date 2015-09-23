@@ -4,6 +4,7 @@
 
 #if UE_ENABLE_ICU
 #include "Text.h"
+#include "TextData.h"
 #include "TextHistory.h"
 #include "ICUCulture.h"
 
@@ -44,7 +45,7 @@ FText FText::AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture)));
+	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsDate>(MoveTemp(NativeString), FTextHistory_AsDate(DateTime, DateStyle, TimeZone, TargetCulture))));
 }
 
 FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle, const FString& TimeZone, const FCulturePtr& TargetCulture)
@@ -64,7 +65,7 @@ FText FText::AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeSt
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture)));
+	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsTime>(MoveTemp(NativeString), FTextHistory_AsTime(DateTime, TimeStyle, TimeZone, TargetCulture))));
 }
 
 FText FText::AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture)
@@ -108,7 +109,7 @@ FText FText::AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type Da
 	FString NativeString;
 	ICUUtilities::ConvertString(FormattedString, NativeString);
 
-	return FText::CreateChronologicalText(MoveTemp(NativeString), MakeShareable(new FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture)));
+	return FText::CreateChronologicalText(MakeShareable(new TGeneratedTextData<FTextHistory_AsDateTime>(MoveTemp(NativeString), FTextHistory_AsDateTime(DateTime, DateStyle, TimeStyle, TimeZone, TargetCulture))));
 }
 
 FText FText::AsMemory(SIZE_T NumBytes, const FNumberFormattingOptions* const Options, const FCulturePtr& TargetCulture)
@@ -143,12 +144,12 @@ int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type Com
 
 	// Create an iterator for 'this' so that we can interface with ICU
 	UCharIterator DisplayStringICUIterator;
-	FICUTextCharacterIterator DisplayStringIterator(&DisplayString.Get());
+	FICUTextCharacterIterator DisplayStringIterator(&TextData->GetDisplayString());
 	uiter_setCharacterIterator(&DisplayStringICUIterator, &DisplayStringIterator);
 
 	// Create an iterator for 'Other' so that we can interface with ICU
 	UCharIterator OtherDisplayStringICUIterator;
-	FICUTextCharacterIterator OtherDisplayStringIterator(&Other.DisplayString.Get());
+	FICUTextCharacterIterator OtherDisplayStringIterator(&Other.TextData->GetDisplayString());
 	uiter_setCharacterIterator(&OtherDisplayStringICUIterator, &OtherDisplayStringIterator);
 
 	UErrorCode ICUStatus = U_ZERO_ERROR;
@@ -185,12 +186,12 @@ public:
 	{
 		// Create an iterator for 'A' so that we can interface with ICU
 		UCharIterator ADisplayStringICUIterator;
-		FICUTextCharacterIterator ADisplayStringIterator(&A.DisplayString.Get());
+		FICUTextCharacterIterator ADisplayStringIterator(&A.TextData->GetDisplayString());
 		uiter_setCharacterIterator(&ADisplayStringICUIterator, &ADisplayStringIterator);
 
 		// Create an iterator for 'B' so that we can interface with ICU
 		UCharIterator BDisplayStringICUIterator;
-		FICUTextCharacterIterator BDisplayStringIterator(&B.DisplayString.Get());
+		FICUTextCharacterIterator BDisplayStringIterator(&B.TextData->GetDisplayString());
 		uiter_setCharacterIterator(&BDisplayStringICUIterator, &BDisplayStringIterator);
 
 		UErrorCode ICUStatus = U_ZERO_ERROR;

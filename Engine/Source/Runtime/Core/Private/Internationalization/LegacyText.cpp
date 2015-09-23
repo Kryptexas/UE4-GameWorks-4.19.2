@@ -4,6 +4,7 @@
 
 #if !UE_ENABLE_ICU
 #include "Text.h"
+#include "TextData.h"
 
 bool FText::IsWhitespace( const TCHAR Char )
 {
@@ -63,17 +64,17 @@ FText FText::AsMemory( SIZE_T NumBytes, const FNumberFormattingOptions* const Op
 
 int32 FText::CompareTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *DisplayString.Get(), *Other.DisplayString.Get() );
+	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
 }
 
 int32 FText::CompareToCaseIgnored( const FText& Other ) const
 {
-	return FCString::Stricmp( *DisplayString.Get(), *Other.DisplayString.Get() );
+	return FCString::Stricmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() );
 }
 
 bool FText::EqualTo( const FText& Other, const ETextComparisonLevel::Type ComparisonLevel ) const
 {
-	return FCString::Strcmp( *DisplayString.Get(), *Other.DisplayString.Get() ) == 0;
+	return FCString::Strcmp( *TextData->GetDisplayString(), *Other.TextData->GetDisplayString() ) == 0;
 }
 
 bool FText::EqualToCaseIgnored( const FText& Other ) const
