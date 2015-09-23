@@ -467,6 +467,7 @@ UFoliageType_InstancedStaticMesh::UFoliageType_InstancedStaticMesh(const FObject
 {
 	Mesh = nullptr;
 	ComponentClass = UFoliageInstancedStaticMeshComponent::StaticClass();
+	CustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
 }
 
 
