@@ -242,9 +242,17 @@ public:
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString AdMobAdUnitID;
 
+	// Identifiers for ads obtained from AdMob
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
+	TArray<FString> AdMobAdUnitIDs;
+
 	// The unique identifier for this application (needed for IAP)
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = GooglePlayServices)
 	FString GooglePlayLicenseKey;
+
+	/** Show the launch image as a startup slash screen */
+	UPROPERTY(GlobalConfig, EditAnywhere, Category = LaunchImages, meta = (DisplayName = "Show launch image"))
+	bool bShowLaunchImage;
 
 	/** Android Audio encoding options */
 	UPROPERTY(GlobalConfig, EditAnywhere, Category = DataCooker, meta = (DisplayName = "Audio encoding"))
@@ -278,6 +286,7 @@ public:
 #if WITH_EDITOR
 	// UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostInitProperties() override;
 	// End of UObject interface
 #endif
 };
