@@ -4501,6 +4501,15 @@ void FSkeletalMeshSceneProxy::GetDynamicElementsSection(const TArray<const FScen
 		return;
 	}
 
+	// If we have a material, make sure it is valid.
+	if (SectionElementInfo.Material)
+	{
+		if (!ensureMsgf(SectionElementInfo.Material->IsValidLowLevelFast(), TEXT("GetDynamicElementsSection with invalid Material. Owner:%s LODIndex:%d UseMaterialIndex:%d"), *GetOwnerName().ToString(), LODIndex, SectionElementInfo.UseMaterialIndex))
+		{
+			return;
+		}
+	}
+
 #if !WITH_EDITOR
 	const bool bIsSelected = false;
 #else // #if !WITH_EDITOR
