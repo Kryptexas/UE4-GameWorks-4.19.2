@@ -109,6 +109,19 @@ public:
 				return *this;
 			}
 
+			/** Positive values offset this cell to be hit-tested and drawn on top of others. Default is 0; i.e. no offset. */
+			FSlot& Layer(int32 Layer)
+			{
+				LayerParam = Layer;
+
+				if (Panel.IsValid())
+				{
+					Panel.Pin()->NotifySlotChanged(this);
+				}
+
+				return *this;
+			}
+
 			/** Offset this slot's content by some amount; positive values offset to lower right */
 			FSlot& Nudge( const FVector2D& Nudge )
 			{
