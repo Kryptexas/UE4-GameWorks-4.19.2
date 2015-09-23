@@ -89,4 +89,5 @@ struct FVelocityRendering
 	static FPooledRenderTargetDesc GetRenderTargetDesc();
 
 	static bool OutputsToGBuffer();
+	static bool OutputsOnlyToGBuffer(bool bSupportsStaticLighting);
 };

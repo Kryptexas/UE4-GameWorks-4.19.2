@@ -67,7 +67,8 @@ public:
 			|| (Material->IsTwoSided() && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			// or if the material modifies meshes
 			|| Material->MaterialMayModifyMeshPosition()))
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !FVelocityRendering::OutputsToGBuffer();
+			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) 
+			&& !FVelocityRendering::OutputsOnlyToGBuffer(VertexFactoryType->SupportsStaticLighting());
 	}
 
 protected:
@@ -155,7 +156,8 @@ public:
 			|| (Material->IsTwoSided() && !IsTranslucentBlendMode(Material->GetBlendMode()))
 			// or if the material modifies meshes
 			|| Material->MaterialMayModifyMeshPosition()))
-			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && !FVelocityRendering::OutputsToGBuffer();
+			&& IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4) && 
+			!FVelocityRendering::OutputsOnlyToGBuffer(VertexFactoryType->SupportsStaticLighting());
 	}
 
 	static void ModifyCompilationEnvironment( EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment )
@@ -411,8 +413,11 @@ void FVelocityDrawingPolicyFactory::AddStaticMesh(FScene* Scene, FStaticMesh* St
 	const FMaterialRenderProxy* MaterialRenderProxy = StaticMesh->MaterialRenderProxy;
 	const FMaterial* Material = MaterialRenderProxy->GetMaterial(FeatureLevel);
 
+	// When selective outputs are enable, only primitive with no static lighting output velocity in GBuffer.
+	const bool bVelocityInGBuffer = FVelocityRendering::OutputsToGBuffer() && (!UseSelectiveBasePassOutputs() || !StaticMesh->PrimitiveSceneInfo->Proxy->HasStaticLighting());
+
 	// Velocity only needs to be directly rendered for movable meshes
-	if (StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable())
+	if (StaticMesh->PrimitiveSceneInfo->Proxy->IsMovable() && !bVelocityInGBuffer)
 	{
 	    EBlendMode BlendMode = Material->GetBlendMode();
 	    if(BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
@@ -749,9 +754,18 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 	{
 		FSceneRenderTargets::Get(RHICmdList).SetVelocityPass(true);
-		GPrevPerBoneMotionBlur.StartAppend(RHICmdList, ViewFamily.bWorldIsPaused);
 
-		BeginVelocityRendering(RHICmdList, VelocityRT, true);
+
+		if (FVelocityRendering::OutputsToGBuffer() && UseSelectiveBasePassOutputs())
+		{
+			// In this case, basepass also outputs some of the velocities, so append is already started, and don't clear the buffer.
+			BeginVelocityRendering(RHICmdList, VelocityRT, false);
+		}
+		else
+		{
+			GPrevPerBoneMotionBlur.StartAppend(RHICmdList, ViewFamily.bWorldIsPaused);
+			BeginVelocityRendering(RHICmdList, VelocityRT, true);
+		}
 
 		if (IsParallelVelocity())
 		{
@@ -785,4 +799,12 @@ FPooledRenderTargetDesc FVelocityRendering::GetRenderTargetDesc()
 bool FVelocityRendering::OutputsToGBuffer()
 {
 	return CVarBasePassOutputsVelocity.GetValueOnAnyThread() == 1;
+}
+
+bool FVelocityRendering::OutputsOnlyToGBuffer(bool bSupportsStaticLighting)
+{
+	// With selective outputs, only primitive that have static lighting are rendered in the velocity pass.
+	// If the vertex factory does not support static lighting, then it must be rendered in the velocity pass.
+	return CVarBasePassOutputsVelocity.GetValueOnAnyThread() == 1 &&
+		   (!UseSelectiveBasePassOutputs() || !bSupportsStaticLighting);
 }

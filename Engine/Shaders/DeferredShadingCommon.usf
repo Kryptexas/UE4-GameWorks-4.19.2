@@ -212,16 +212,30 @@ float Decode71(float Scalar, out uint Mask)
 #define SHADINGMODELID_SUBSURFACE_PROFILE	5
 #define SHADINGMODELID_TWOSIDED_FOLIAGE		6
 #define SHADINGMODELID_HAIR					7
-#define SHADINGMODELID_NUM					8
 
-float EncodeShadingModelId(uint ShadingModelId)
+#define SHADINGMODELID_MASK					0xF					
+
+// The flags are defined so that 0 value has no effect!
+#define SKIP_CUSTOMDATA_MASK			(1 << 4)
+#define SKIP_PRECSHADOW_MASK			(1 << 5)
+#define ZERO_PRECSHADOW_MASK			(1 << 6)
+#define SKIP_VELOCITY_MASK				(1 << 7)
+
+
+float EncodeShadingModelIdAndSelectiveOutputMask(uint ShadingModelId, uint SelectiveOutputMask)
 {
-	return (ShadingModelId + .5f) / (float)SHADINGMODELID_NUM;
+	uint Value = (ShadingModelId & SHADINGMODELID_MASK) | SelectiveOutputMask;
+	return (float)Value / (float)0xFF;
 }
 
 uint DecodeShadingModelId(float InPackedChannel)
 {
-	return (uint)( InPackedChannel * SHADINGMODELID_NUM );
+	return ((uint)round(InPackedChannel * (float)0xFF)) & SHADINGMODELID_MASK;
+}
+
+uint DecodeSelectiveOutputMask(float InPackedChannel)
+{
+	return ((uint)round(InPackedChannel * (float)0xFF)) & ~SHADINGMODELID_MASK;
 }
 
 bool IsSubsurfaceModel(int ShadingModel)
@@ -261,6 +275,8 @@ struct FGBufferData
 	float GBufferAO;
 	// 0..255 
 	uint ShadingModelID;
+	// 0..255 
+	uint SelectiveOutputMask;
 	// 0..1, 2 bits, use HasDistanceFieldRepresentation(GBuffer) or HasHeightfieldRepresentation(GBuffer) to extract
 	float PerObjectGBufferData;
 	// in world units
@@ -360,7 +376,7 @@ void EncodeGBuffer(
 		OutGBufferD = GBuffer.CustomData;
 	}
 
-	OutGBufferB.a = EncodeShadingModelId(GBuffer.ShadingModelID);
+	OutGBufferB.a = EncodeShadingModelIdAndSelectiveOutputMask(GBuffer.ShadingModelID, GBuffer.SelectiveOutputMask);
 
 	OutGBufferE = GBuffer.PrecomputedShadowFactors;
 
@@ -416,11 +432,12 @@ FGBufferData DecodeGBufferData(
 	FGBufferData GBuffer;
 
 	GBuffer.WorldNormal = DecodeNormal( InGBufferA.xyz );
-
 	if(bGetNormalizedNormal)
 	{
 		GBuffer.WorldNormal = normalize(GBuffer.WorldNormal);
 	}
+
+	GBuffer.SelectiveOutputMask = DecodeSelectiveOutputMask(InGBufferB.a);
 
 	GBuffer.PerObjectGBufferData = InGBufferA.a;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
@@ -433,7 +450,8 @@ FGBufferData DecodeGBufferData(
 	GBuffer.Specular = GBuffer.StoredSpecular.g;
 	
 	GBuffer.Roughness = InGBufferB.b;
-	GBuffer.CustomData = InGBufferD;
+	GBuffer.CustomData = !(GBuffer.SelectiveOutputMask & SKIP_CUSTOMDATA_MASK) ? InGBufferD : 0;
+
 #if ALLOW_STATIC_LIGHTING
 	GBuffer.GBufferAO = 1;
 	GBuffer.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
@@ -441,7 +459,8 @@ FGBufferData DecodeGBufferData(
 	GBuffer.GBufferAO = InGBufferC.a;
 	GBuffer.IndirectIrradiance = 1;
 #endif
-	GBuffer.PrecomputedShadowFactors = InGBufferE;
+
+	GBuffer.PrecomputedShadowFactors = !(GBuffer.SelectiveOutputMask & SKIP_PRECSHADOW_MASK) ? InGBufferE :  ((GBuffer.SelectiveOutputMask & ZERO_PRECSHADOW_MASK) ? 0 :  1);
 	GBuffer.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
 	GBuffer.CustomStencil = CustomStencil;
 	GBuffer.Depth = SceneDepth;
@@ -467,7 +486,7 @@ FGBufferData DecodeGBufferData(
 		#endif //USE_DEVELOPMENT_SHADERS
 	}
 
-	GBuffer.Velocity = InGBufferVelocity;
+	GBuffer.Velocity = !(GBuffer.SelectiveOutputMask & SKIP_VELOCITY_MASK) ? InGBufferVelocity : 0;
 
 	return GBuffer;
 }
