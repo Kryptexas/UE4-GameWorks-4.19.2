@@ -157,7 +157,7 @@ public:
 	static void PropagateParentBlueprintDefaults(UClass* ClassToPropagate);
 
 	/** Called on a Blueprint after it has been duplicated */
-	static void PostDuplicateBlueprint(UBlueprint* Blueprint);
+	static void PostDuplicateBlueprint(UBlueprint* Blueprint, bool bDuplicateForPIE);
 
 	/** Consigns the blueprint's generated classes to oblivion */
 	static void RemoveGeneratedClasses(UBlueprint* Blueprint);
