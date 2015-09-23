@@ -727,7 +727,108 @@ public:
 
 typedef TArray<FSlateElementBatch, TInlineAllocator<1>> FElementBatchArray;
 
-typedef TMap<uint32,TUniqueObj<FElementBatchArray>> FElementBatchMap ;
+class FElementBatchMap
+{
+public:
+	FElementBatchMap()
+	{
+		Reset();
+	}
+
+	FORCEINLINE_DEBUGGABLE int32 Num() const { return Layers.Num() + OverflowLayers.Num(); }
+	
+	FORCEINLINE_DEBUGGABLE TUniqueObj<FElementBatchArray>* Find(uint32 Layer)
+	{
+		if ( Layer < (uint32)Layers.Num() )
+		{
+			if ( ActiveLayers[Layer] )
+			{
+				return &Layers[Layer];
+			}
+
+			return nullptr;
+		}
+		else
+		{
+			return OverflowLayers.Find(Layer);
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE TUniqueObj<FElementBatchArray>& Add(uint32 Layer)
+	{
+		if ( Layer < (uint32)Layers.Num() )
+		{
+			MinLayer = FMath::Min(Layer, MinLayer);
+			MaxLayer = FMath::Max(Layer, MaxLayer);
+			ActiveLayers[Layer] = true;
+			return Layers[Layer];
+		}
+		else
+		{
+			return OverflowLayers.Add(Layer);
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE void Sort()
+	{
+		OverflowLayers.KeySort(TLess<uint32>());
+	}
+
+	template <typename TFunc>
+	FORCEINLINE_DEBUGGABLE void ForEachLayer(const TFunc& Process)
+	{
+		if ( MinLayer < (uint32)Layers.Num() )
+		{
+			for ( TBitArray<>::FConstIterator BitIt(ActiveLayers, MinLayer); BitIt; ++BitIt )
+			{
+				if ( BitIt.GetValue() == 0 )
+				{
+					continue;
+				}
+
+				const int32 BitIndex = BitIt.GetIndex();
+				FElementBatchArray& ElementBatches = *Layers[BitIndex];
+
+				if ( ElementBatches.Num() > 0 )
+				{
+					Process(BitIndex, ElementBatches);
+				}
+
+				if ( ((uint32)BitIndex) >= MaxLayer )
+				{
+					break;
+				}
+			}
+		}
+
+		for ( TMap<uint32, TUniqueObj<FElementBatchArray>>::TIterator It(OverflowLayers); It; ++It )
+		{
+			uint32 Layer = It.Key();
+			FElementBatchArray& ElementBatches = *It.Value();
+
+			if ( ElementBatches.Num() > 0 )
+			{
+				Process(Layer, ElementBatches);
+			}
+		}
+	}
+
+	FORCEINLINE_DEBUGGABLE void Reset()
+	{
+		MinLayer = UINT_MAX;
+		MaxLayer = 0;
+		ActiveLayers.Init(false, Layers.Num());
+		OverflowLayers.Reset();
+	}
+
+private:
+	TBitArray<> ActiveLayers;
+	TStaticArray<TUniqueObj<FElementBatchArray>, 256> Layers;
+	TMap<uint32, TUniqueObj<FElementBatchArray>> OverflowLayers;
+	uint32 MinLayer;
+	uint32 MaxLayer;
+};
+
 
 class FSlateBatchData
 {
