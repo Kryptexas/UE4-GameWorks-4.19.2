@@ -134,11 +134,6 @@ public:
 	/** Sets whether or not the details view is visible. */
 	void SetDetailsViewVisible(bool InbDetailsViewVisible);
 
-	/** Gets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
-	bool GetIsUsingCleanView() const;
-	/** Sets whether or not the 'Clean View' is enabled. In 'Clean View' mode only global tracks are displayed when no filter is applied. */
-	void SetIsUsingCleanView(bool InbIsUsingCleanView);
-
 	/** Gets whether or not auto-scroll is enabled. */
 	bool GetAutoScrollEnabled() const;
 	/** Sets whether or not auto-scroll is enabled. */
@@ -214,9 +209,6 @@ protected:
 
 	UPROPERTY( config )
 	bool bDetailsViewVisible;
-
-	UPROPERTY( config )
-	bool bIsUsingCleanView;
 
 	UPROPERTY( config )
 	bool bAutoScrollEnabled;

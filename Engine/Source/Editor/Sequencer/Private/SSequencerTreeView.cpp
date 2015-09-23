@@ -437,8 +437,6 @@ void SSequencerTreeView::OnExpansionChanged(FDisplayNodeRef InItem, bool bIsExpa
 			SetItemExpansion(Child, true);
 		}
 	}
-
-	InItem->UpdateCachedShotFilteredVisibility();
 }
 
 void SSequencerTreeView::OnGetChildren(FDisplayNodeRef InParent, TArray<FDisplayNodeRef>& OutChildren) const

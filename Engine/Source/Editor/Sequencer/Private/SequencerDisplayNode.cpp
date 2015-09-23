@@ -128,8 +128,6 @@ FSequencerDisplayNode::FSequencerDisplayNode( FName InNodeName, TSharedPtr<FSequ
 	, ParentTree( InParentTree )
 	, NodeName( InNodeName )
 	, bExpanded( false )
-	, bCachedShotFilteredVisibility( true )
-	, bNodeIsPinned( false )
 {
 	
 }
@@ -381,51 +379,16 @@ void FSequencerDisplayNode::SetExpansionState(bool bInExpanded)
 
 	// Expansion state has changed, save it to the movie scene now
 	ParentTree.SaveExpansionState( *this, bExpanded );
-
-	UpdateCachedShotFilteredVisibility();
 }
 
 bool FSequencerDisplayNode::IsExpanded() const
 {
-	return ParentTree.HasActiveFilter() ? ParentTree.IsNodeFiltered( AsShared() ) : bExpanded;
+	return ParentTree.HasActiveFilter() ? true : bExpanded;
 }
 
 bool FSequencerDisplayNode::IsHidden() const
 {
-	// Not visible if:
-	// Its cached shot visibility is false OR
-	// There is a search filter, and it's not filtered, OR
-	// If shot filtering is off and clean view is on, but the node isn't pinned
-	return !bCachedShotFilteredVisibility ||
-		(ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared())) ||
-		(GetSequencer().GetSettings()->GetIsUsingCleanView() && !bNodeIsPinned);
-}
-
-bool FSequencerDisplayNode::HasVisibleChildren() const
-{
-	for (int32 i = 0; i < ChildNodes.Num(); ++i)
-	{
-		if (ChildNodes[i]->bCachedShotFilteredVisibility) {return true;}
-	}
-	return false;
-}
-
-void FSequencerDisplayNode::UpdateCachedShotFilteredVisibility()
-{
-	// Tell our children to update their visibility first
-	for( int32 ChildIndex = 0; ChildIndex < ChildNodes.Num(); ++ChildIndex )
-	{
-		ChildNodes[ChildIndex]->UpdateCachedShotFilteredVisibility();
-	}
-	
-	// then cache our visibility
-	// this must be done after the children, because it relies on child cached visibility
-	bCachedShotFilteredVisibility = GetShotFilteredVisibilityToCache();
-}
-
-void FSequencerDisplayNode::PinNode()
-{
-	bNodeIsPinned = true;
+	return ParentTree.HasActiveFilter() && !ParentTree.IsNodeFiltered(AsShared());
 }
 
 TSharedRef<FGroupedKeyArea> FSequencerDisplayNode::GetKeyGrouping(int32 InSectionIndex)
@@ -472,11 +435,6 @@ float FSectionKeyAreaNode::GetNodeHeight() const
 FNodePadding FSectionKeyAreaNode::GetNodePadding() const
 {
 	return FNodePadding(0.f, 1.f);
-}
-
-bool FSectionKeyAreaNode::GetShotFilteredVisibilityToCache() const
-{
-	return true;
 }
 
 TSharedRef<SWidget> FSectionKeyAreaNode::GenerateEditWidgetForOutliner()
@@ -530,21 +488,6 @@ void FTrackNode::SetSectionAsKeyArea( TSharedRef<IKeyArea>& KeyArea )
 	}
 
 	TopLevelKeyNode->AddKeyArea( KeyArea );
-}
-
-bool FTrackNode::GetShotFilteredVisibilityToCache() const
-{
-	if (AssociatedType->HasShowableData() == false)
-	{
-		return false;
-	}
-
-	if ( Sections.Num() == 0 )
-	{
-		return AssociatedType->IsVisibleWhenEmpty();
-	}
-
-	return (Sections.Num() > 0);
 }
 
 void FTrackNode::GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const
@@ -650,12 +593,6 @@ float FObjectBindingNode::GetNodeHeight() const
 FNodePadding FObjectBindingNode::GetNodePadding() const
 {
 	return FNodePadding(SequencerNodeConstants::CommonPadding * 2, 0.f);
-}
-
-bool FObjectBindingNode::GetShotFilteredVisibilityToCache() const
-{
-	// Clean view is handled elsewhere
-	return true;
 }
 
 const UClass* FObjectBindingNode::GetClassForObjectBinding()
@@ -906,12 +843,6 @@ float FSectionCategoryNode::GetNodeHeight() const
 FNodePadding FSectionCategoryNode::GetNodePadding() const
 {
 	return FNodePadding(SequencerNodeConstants::CommonPadding/2);
-}
-
-bool FSectionCategoryNode::GetShotFilteredVisibilityToCache() const
-{
-	// this node is only visible if at least one child node is visible
-	return HasVisibleChildren();
 }
 
 #undef LOCTEXT_NAMESPACE

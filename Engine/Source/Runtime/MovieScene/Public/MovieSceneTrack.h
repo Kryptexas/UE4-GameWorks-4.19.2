@@ -43,16 +43,6 @@ public:
 	 * @return Whether or not this track has any data in it
 	 */
 	virtual bool IsEmpty() const PURE_VIRTUAL( UMovieSceneTrack::IsEmpty, return true; );
-	
-	/**
-	 * @return True if the data of this track show generate display nodes by default
-	 */
-	virtual bool HasShowableData() const {return true;}
-
-	/**
-	 * @returns True if this track should generate a display node even when it's empty.
-	 */
-	virtual bool IsVisibleWhenEmpty() const { return false; }
 
 	/**
 	 * @return Whether or not this track supports multiple row indices

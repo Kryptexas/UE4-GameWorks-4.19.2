@@ -61,8 +61,6 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	virtual bool HasShowableData() const override { return true; }
-	virtual bool IsVisibleWhenEmpty() const override { return true; }
 
 	/**
 	 * Adds a scalar parameter key to the track. 

@@ -234,12 +234,6 @@ public:
 	 */
 	bool IsHidden() const;
 
-	/** Updates the cached shot filtered visibility flag */
-	void UpdateCachedShotFilteredVisibility();
-
-	/** Pins this node, forcing it to the top of the sequencer. Affects visibility */
-	void PinNode();
-
 	/** Initialize this node with expansion states and virtual offsets */
 	void Initialize(float InVirtualTop, float InVirtualBottom);
 
@@ -254,41 +248,6 @@ public:
 
 	/** Get the key grouping for the specified section index */
 	TSharedRef<FGroupedKeyArea> GetKeyGrouping(int32 InSectionIndex);
-
-protected:
-	/**
-	 * Visibility of nodes is a complex situation. There are 7 different factors to account for:
-	 * - Expansion State of Parents
-	 * - Search Filtering
-	 * - Shot Filtering
-	 * - Clean View
-	 * - Pinned Nodes
-	 * - Manually keyed nodes with a single key are not displayed
-	 * - Sub Movie Scene Filtering (maybe, we might just ignore this completely)
-	 *
-	 * It is handled by first caching the shot filtering state in each node.
-	 * Manually keyed nodes with a single key are cached at this point as well.
-	 * This cached state is updated only when shot filtering changes.
-	 * This is done for a) Simplicity, to break things apart
-	 * and b) Efficiency, since that is likely the most expensive visibility flag
-	 * and, most importantly, c) because it is the only pass that is dependent on
-	 * the way the tree structure is laid out (it requires looking at child nodes).
-	 *
-	 * Then, the remaining visibility flags are AND'd together in these groups
-	 * 1) CachedShotFilteringFlag
-	 * 2) Search Filtering, which overrides Expansion State of Parents
-	 * 3) Clean View and Pinned Nodes, which intersects with shot filtering global enabling
-	 * 4) Sub Movie Scenes (not implemented yet)
-	 */
-
-	/**
-	 * Returns visibility, calculating the conditions for which this
-	 * node's shot filtering visibility is cached
-	 */
-	virtual bool GetShotFilteredVisibilityToCache() const = 0;
-	
-	/** Whether this node has visible children, based on cached shot filtering visibility only */
-	bool HasVisibleChildren() const;
 
 protected:
 	/** The virtual offset of this item from the top of the tree, irrespective of expansion states */
@@ -307,10 +266,6 @@ protected:
 	FName NodeName;
 	/** Whether or not the node is expanded */
 	bool bExpanded;
-	/** A cached state of what this node's visibility is based only on shot filtering */
-	bool bCachedShotFilteredVisibility;
-	/** Whether this node is pinned to the top of the sequencer */
-	bool bNodeIsPinned;
 	/** Transient grouped keys for this node */
 	TArray< TSharedPtr<FGroupedKeyArea> > KeyGroupings;
 };
@@ -342,7 +297,6 @@ public:
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
 	/**
@@ -401,7 +355,6 @@ public:
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override;
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 	virtual void GetChildKeyAreaNodesRecursively(TArray< TSharedRef<class FSectionKeyAreaNode> >& OutNodes) const override;
 	virtual TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 
@@ -477,7 +430,6 @@ public:
 	virtual FText GetDisplayName() const override;
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 	TSharedRef<SWidget> GenerateEditWidgetForOutliner() override;
 	
 	/** @return The object binding on this node */
@@ -526,7 +478,6 @@ public:
 	virtual float GetNodeHeight() const override;
 	virtual FNodePadding GetNodePadding() const override;
 	virtual FText GetDisplayName() const override { return DisplayName; }
-	virtual bool GetShotFilteredVisibilityToCache() const override;
 private:
 	/** The display name of the category */
 	FText DisplayName;

@@ -792,7 +792,6 @@ TSharedRef<SWidget> SSequencer::MakeGeneralMenu()
 		if (Sequencer.Pin()->IsLevelEditorSequencer())
 		{
 			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleDetailsView );
-			MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleCleanView );
 		}
 
 		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleAutoScroll );
@@ -939,8 +938,6 @@ void SSequencer::UpdateLayoutTree()
 	// This must come after the selection state has been restored so that the curve editor is populated with the correctly selected nodes
 	CurveEditor->SetSequencerNodeTree(SequencerNodeTree);
 
-	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
-
 	// Continue broadcasting selection changes
 	Sequencer.Pin()->GetSelection().ResumeBroadcast();
 }
@@ -960,8 +957,6 @@ void SSequencer::UpdateBreadcrumbs(const TArray< TWeakObjectPtr<class UMovieScen
 		// The current breadcrumb is not a moviescene so we need to make a new breadcrumb in order return to the parent moviescene later
 		BreadcrumbTrail->PushCrumb( CrumbName, FSequencerBreadcrumb( FocusedMovieSceneInstance ) );
 	}
-
-	SequencerNodeTree->UpdateCachedVisibilityBasedOnShotFiltersChanged();
 }
 
 void SSequencer::ResetBreadcrumbs()

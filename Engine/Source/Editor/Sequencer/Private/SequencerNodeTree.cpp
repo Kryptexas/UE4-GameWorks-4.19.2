@@ -43,8 +43,6 @@ void FSequencerNodeTree::Update()
 		NewRootNodes.Add( SectionNode );
 	
 		MakeSectionInterfaces( TrackRef, SectionNode );
-
-		SectionNode->PinNode();
 	}
 
 
@@ -114,8 +112,6 @@ void FSequencerNodeTree::Update()
 		RootNodes.Add( SectionNode );
 
 		MakeSectionInterfaces( *ShotTrack, SectionNode );
-
-		SectionNode->PinNode();
 	}
 
 	// Add all other nodes after the shot track
@@ -358,13 +354,5 @@ void FSequencerNodeTree::FilterNodes( const FString& InFilter )
 			// Recursively filter all nodes, matching them against the list of filter strings.  All filter strings must be matched
 			FilterNodesRecursive( It.Value().ToSharedRef(), FilterStrings, FilteredNodes );
 		}
-	}
-}
-
-void FSequencerNodeTree::UpdateCachedVisibilityBasedOnShotFiltersChanged()
-{
-	for (int32 i = 0; i < RootNodes.Num(); ++i)
-	{
-		RootNodes[i]->UpdateCachedShotFilteredVisibility();
 	}
 }

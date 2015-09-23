@@ -23,7 +23,6 @@ public:
 	virtual bool IsEmpty() const override;
 	virtual TRange<float> GetSectionBoundaries() const override;
 	virtual const TArray<UMovieSceneSection*>& GetAllSections() const override;
-	virtual bool HasShowableData() const override {return bSectionsAreShowable;}
 	
 	/**
 	 * Sets the property name for this animatable property

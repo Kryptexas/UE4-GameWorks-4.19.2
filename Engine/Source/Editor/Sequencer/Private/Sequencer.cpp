@@ -2199,18 +2199,6 @@ void FSequencer::BindSequencerCommands()
 		FIsActionChecked::CreateLambda( [this]{ return Settings->GetDetailsViewVisible(); } ) );
 
 	SequencerCommandBindings->MapAction(
-		Commands.ToggleCleanView,
-		FExecuteAction::CreateLambda( [this]{
-			Settings->SetIsUsingCleanView( !Settings->GetIsUsingCleanView() );
-			if (SequencerWidget.IsValid())
-			{
-				SequencerWidget->GetTreeView()->Refresh();
-			}
-		} ),
-		FCanExecuteAction::CreateLambda( []{ return true; } ),
-		FIsActionChecked::CreateLambda( [this]{ return Settings->GetIsUsingCleanView(); } ) );
-
-	SequencerCommandBindings->MapAction(
 		Commands.ToggleShowFrameNumbers,
 		FExecuteAction::CreateLambda( [this]{ Settings->SetShowFrameNumbers( !Settings->GetShowFrameNumbers() ); } ),
 		FCanExecuteAction::CreateSP(this, &FSequencer::CanShowFrameNumbers ),

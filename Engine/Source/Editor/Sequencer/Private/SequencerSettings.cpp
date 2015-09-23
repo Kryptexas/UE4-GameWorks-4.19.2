@@ -23,7 +23,6 @@ USequencerSettings::USequencerSettings( const FObjectInitializer& ObjectInitiali
 	CurveValueSnapInterval = 10.0f;
 	bSnapCurveValueToInterval = true;
 	bDetailsViewVisible = false;
-	bIsUsingCleanView = false;
 	bAutoScrollEnabled = false;
 	bShowCurveEditor = false;
 	bShowCurveEditorCurveToolTips = true;
@@ -277,20 +276,6 @@ void USequencerSettings::SetDetailsViewVisible(bool InbDetailsViewVisible )
 	if (bDetailsViewVisible != InbDetailsViewVisible)
 	{
 		bDetailsViewVisible = InbDetailsViewVisible;
-		SaveConfig();
-	}
-}
-
-bool USequencerSettings::GetIsUsingCleanView() const
-{
-	return bIsUsingCleanView;
-}
-
-void USequencerSettings::SetIsUsingCleanView(bool InbIsUsingCleanView )
-{
-	if (bIsUsingCleanView != InbIsUsingCleanView)
-	{
-		bIsUsingCleanView = InbIsUsingCleanView;
 		SaveConfig();
 	}
 }
