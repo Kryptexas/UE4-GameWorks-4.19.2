@@ -49,19 +49,58 @@ FBuildPatchInstaller::FBuildPatchInstaller(FBuildPatchBoolManifestDelegate InOnC
 	, TimePausedAt( 0.0 )
 	, InstallationInfo( InstallationInfoRef )
 {
-	// Start thread!
-	const TCHAR* ThreadName = TEXT( "BuildPatchInstallerThread" );
-	Thread = FRunnableThread::Create(this, ThreadName);
 }
 
 FBuildPatchInstaller::~FBuildPatchInstaller()
 {
-	if( Thread != NULL )
+	if (Thread != nullptr)
 	{
 		Thread->WaitForCompletion();
 		delete Thread;
-		Thread = NULL;
+		Thread = nullptr;
 	}
+}
+
+bool FBuildPatchInstaller::SetRequiredInstallTags(const TSet<FString>& Tags)
+{
+	// We do not yet support changing tags after installing was started
+	if (Thread != nullptr)
+	{
+		return false;
+	}
+
+	// Check provided tags are all valid
+	TSet<FString> ValidTags;
+	NewBuildManifest->GetFileTagList(ValidTags);
+	if (Tags.Difference(ValidTags).Num() > 0)
+	{
+		return false;
+	}
+
+	// Store for use later
+	InstallTags = Tags;
+	return true;
+}
+
+bool FBuildPatchInstaller::StartInstallation()
+{
+	if (Thread == nullptr)
+	{
+		// Pre-process install tags. Doing this logic here means it doesn't need repeating around lower level code
+		// No tags means full installation
+		if (InstallTags.Num() == 0)
+		{
+			NewBuildManifest->GetFileTagList(InstallTags);
+		}
+
+		// Always require the empty tag
+		InstallTags.Add(TEXT(""));
+
+		// Start thread!
+		const TCHAR* ThreadName = TEXT("BuildPatchInstallerThread");
+		Thread = FRunnableThread::Create(this, ThreadName);
+	}
+	return Thread != nullptr;
 }
 
 bool FBuildPatchInstaller::Init()
@@ -127,7 +166,7 @@ uint32 FBuildPatchInstaller::Run()
 		// Backup local changes then move generated files
 		bInstallSuccess = bInstallSuccess && RunBackupAndMove();
 
-		// There is no more potential for initialising
+		// There is no more potential for initializing
 		BuildProgress.SetStateProgress(EBuildPatchProgress::Initializing, 1.0f);
 
 		// Setup file attributes
@@ -285,6 +324,10 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		BuildStats.NumFilesInBuild = NumFilesInBuild;
 	}
 
+	// Get the list of required files, by the tags
+	TaggedFiles.Empty();
+	NewBuildManifest->GetTaggedFileList(InstallTags, TaggedFiles);
+
 	// Check if we should skip out of this process due to existing installation,
 	// that will mean we start with the verification stage
 	bool bFirstTimeRun = CorruptFiles.Num() == 0;
@@ -306,15 +349,17 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		return true;
 	}
 
-	// Get the list of files needing construction
-	TArray< FString > FilesToConstruct;
+	// Get the list of files actually needing construction
+	TArray<FString> FilesToConstruct;
 	if (CorruptFiles.Num() > 0)
 	{
 		FilesToConstruct.Append(CorruptFiles);
 	}
 	else
 	{
-		FBuildPatchAppManifest::GetOutdatedFiles(CurrentBuildManifest, NewBuildManifest, InstallDirectory, FilesToConstruct);
+		TSet<FString> OutdatedFiles;
+		FBuildPatchAppManifest::GetOutdatedFiles(CurrentBuildManifest, NewBuildManifest, InstallDirectory, OutdatedFiles);
+		FilesToConstruct = OutdatedFiles.Intersect(TaggedFiles).Array();
 	}
 	GLog->Logf(TEXT("BuildPatchServices: Requiring %d files"), FilesToConstruct.Num());
 
@@ -325,6 +370,21 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 		{
 			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not create new file due to exceeding maximum path length %s"), *(InstallStagingDir / FileToConstruct));
 			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::PathLengthExceeded);
+			return false;
+		}
+	}
+
+	// Check drive space
+	uint64 TotalSize = 0;
+	uint64 AvailableSpace = 0;
+	if (FPlatformMisc::GetDiskTotalAndFreeSpace(InstallDirectory, TotalSize, AvailableSpace))
+	{
+		const int64 DriveSpace = AvailableSpace;
+		const int64 RequiredSpace = NewBuildManifest->GetFileSize(FilesToConstruct);
+		if (DriveSpace < RequiredSpace)
+		{
+			GWarn->Logf(TEXT("BuildPatchServices: ERROR: Could not begin install due to their not being enough HDD space. Needs %db, Free %db"), RequiredSpace, DriveSpace);
+			FBuildPatchInstallError::SetFatalError(EBuildPatchInstallError::OutOfDiskSpace);
 			return false;
 		}
 	}
@@ -532,6 +592,12 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 			{
 				FBuildPatchAppManifest::GetRemovableFiles(CurrentBuildManifest.ToSharedRef(), NewBuildManifest, FilesToRemove);
 			}
+			// And also files that may no longer be required (removal of tags)
+			TArray<FString> NewBuildFiles;
+			NewBuildManifest->GetFileList(NewBuildFiles);
+			TSet<FString> NewBuildFilesSet(NewBuildFiles);
+			TSet<FString> RemovableBuildFiles = NewBuildFilesSet.Difference(TaggedFiles);
+			FilesToRemove.Append(RemovableBuildFiles.Array());
 			// Add to build stats
 			ThreadLock.Lock();
 			BuildStats.NumFilesToRemove = FilesToRemove.Num();
@@ -673,6 +739,7 @@ bool FBuildPatchInstaller::RunVerification(TArray< FString >& CorruptFiles)
 	auto Verifier = FBuildPatchVerificationFactory::Create(NewBuildManifest, ProgressDelegate, IsPausedDelegate, InstallDirectory, OptionalStageDirectory);
 
 	// Verify the build
+	Verifier->SetRequiredFiles(TaggedFiles.Array());
 	bool bVerifySuccess = Verifier->VerifyAgainstDirectory(CorruptFiles, VerifyPauseTime);
 	VerifyTime = FPlatformTime::Seconds() - VerifyTime - VerifyPauseTime;
 	if (!bVerifySuccess)
