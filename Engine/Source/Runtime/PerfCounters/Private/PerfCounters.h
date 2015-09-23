@@ -7,7 +7,7 @@
 
 class FSocket;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogPerfCounters, Verbose, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogPerfCounters, Log, All);
 
 class FPerfCounters 
 	: public FTickerObjectBase
