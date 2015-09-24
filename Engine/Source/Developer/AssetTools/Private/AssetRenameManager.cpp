@@ -9,6 +9,7 @@
 #include "FileHelpers.h"
 #include "ObjectTools.h"
 #include "MainFrame.h"
+#include "Kismet2/KismetEditorUtilities.h"
 
 #define LOCTEXT_NAMESPACE "AssetRenameManager"
 
@@ -245,6 +246,12 @@ TArray<TWeakObjectPtr<UObject>> FAssetRenameManager::FindCDOReferencedAssets(con
 		UObject* CDO = Cls->ClassDefaultObject;
 
 		if (!CDO || !CDO->HasAllFlags(RF_ClassDefaultObject) || Cls->ClassGeneratedBy != NULL)
+		{
+			continue;
+		}
+
+		// Ignore deprecated and temporary trash classes.
+		if (Cls->HasAnyClassFlags(CLASS_Deprecated | CLASS_NewerVersionExists) || FKismetEditorUtilities::IsClassABlueprintSkeleton(Cls))
 		{
 			continue;
 		}
