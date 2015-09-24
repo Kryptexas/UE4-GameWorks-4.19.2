@@ -101,6 +101,10 @@ enum EPlayOnLaunchConfiguration
 	LaunchConfig_Debug UMETA(DisplayName = "Debug"),
 	/** Launch on device with a Development build configuration. */
 	LaunchConfig_Development UMETA(DisplayName = "Development"),
+	/** Launch on device with a Test build configuration. */
+	LaunchConfig_Test UMETA(DisplayName = "Test"),
+	/** Launch on device with a Shipping build configuration. */
+	LaunchConfig_Shipping UMETA(DisplayName = "Shipping"),
 };
 
 /**

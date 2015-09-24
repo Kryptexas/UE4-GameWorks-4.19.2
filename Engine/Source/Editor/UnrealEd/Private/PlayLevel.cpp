@@ -1692,6 +1692,12 @@ void UEditorEngine::PlayUsingLauncher()
 		case LaunchConfig_Development:
 			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Development);
 			break;
+		case LaunchConfig_Test:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Test);
+			break;
+		case LaunchConfig_Shipping:
+			LauncherProfile->SetBuildConfiguration(EBuildConfigurations::Shipping);
+			break;
 		default:
 			// same as the running editor
 			FString ExeName = FUnrealEdMisc::Get().GetExecutableForCommandlets();
