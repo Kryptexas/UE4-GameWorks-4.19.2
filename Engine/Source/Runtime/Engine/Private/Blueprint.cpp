@@ -418,7 +418,7 @@ void UBlueprint::PostDuplicate(bool bDuplicateForPIE)
 	Super::PostDuplicate(bDuplicateForPIE);
 	if( !bDuplicatingReadOnly )
 	{
-		FBlueprintEditorUtils::PostDuplicateBlueprint(this);
+		FBlueprintEditorUtils::PostDuplicateBlueprint(this, bDuplicateForPIE);
 	}
 }
 
