@@ -109,9 +109,6 @@ namespace HierarchicalLODUtils
 			// it shouldn't even have come here if it didn't have any staticmesh
 			if (ensure(AllComponents.Num() > 0))
 			{
-				FScopedSlowTask SlowTask(LODActor->SubActors.Num(), (LOCTEXT("HierarchicalLODUtils_MergingMeshes", "Merging Static Meshes and creating LODActor")));
-				SlowTask.MakeDialog();
-
 				// In case we don't have outer generated assets should have same path as LOD level
 				const FString AssetsPath = AssetsOuter->GetName() + TEXT("/");
 				AActor* FirstActor = LODActor->SubActors[0];
@@ -124,6 +121,8 @@ namespace HierarchicalLODUtils
 				IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 				// should give unique name, so use level + actor name
 				const FString PackageName = FString::Printf(TEXT("LOD_%s"), *FirstActor->GetName());
+
+				//				
 				if (MeshUtilities.GetMeshMergingInterface() && LODSetup.bSimplifyMesh)
 				{
 					MeshUtilities.CreateProxyMesh(LODActor->SubActors, LODSetup.ProxySetting, AssetsOuter, PackageName, OutAssets, OutProxyLocation);
@@ -152,8 +151,8 @@ namespace HierarchicalLODUtils
 
 				LODActor->SetStaticMesh(MainMesh);
 				LODActor->SetActorLocation(OutProxyLocation);
-				LODActor->SubObjects = OutAssets;				
-		
+				LODActor->SubObjects = OutAssets;
+
 				for (auto& Actor : LODActor->SubActors)
 				{
 					Actor->SetLODParent(LODActor->GetStaticMeshComponent(), LODActor->LODDrawDistance);
@@ -161,7 +160,6 @@ namespace HierarchicalLODUtils
 
 				// Freshly build so mark not dirty
 				LODActor->SetIsDirty(false);
-
 				return true;
 			}
 		}

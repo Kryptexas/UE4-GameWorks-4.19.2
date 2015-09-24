@@ -67,9 +67,9 @@ struct FLODCluster
 	* @param InLevel - Level for which currently the HLODs are being build
 	* @param LODIdx - LOD index to build
 	* @param bCreateMeshes - Whether or not the new StaticMeshes should be created
-	* @return void
+	* @return ALODActor*
 	*/
-	void BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes);
+	ALODActor* BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes);
 
 	/**
 	* Recursively retrieves StaticMeshComponents from a LODActor and its child LODActors 

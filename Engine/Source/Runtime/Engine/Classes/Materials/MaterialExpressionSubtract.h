@@ -5,7 +5,7 @@
 #include "Materials/MaterialExpression.h"
 #include "MaterialExpressionSubtract.generated.h"
 
-UCLASS()
+UCLASS(MinimalAPI)
 class UMaterialExpressionSubtract : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()

@@ -294,10 +294,14 @@ const bool ALODActor::RemoveSubActor(AActor* InActor)
 			NumTrianglesInSubActors -= LODActor->GetNumTrianglesInSubActors();
 		}
 
-		StaticMeshComponent->MarkRenderStateDirty();
-
+		if (StaticMeshComponent)
+		{
+			StaticMeshComponent->MarkRenderStateDirty();
+		}	
+				
 		// In case the user removes an actor while the HLOD system is force viewing one LOD level
 		InActor->SetIsTemporarilyHiddenInEditor(false);
+				
 		return true;
 	}
 
@@ -430,8 +434,8 @@ void ALODActor::SetStaticMesh(class UStaticMesh* InStaticMesh)
 void ALODActor::UpdateSubActorLODParents()
 {
 	for (auto& Actor : SubActors)
-	{
-		Actor->SetLODParent(StaticMeshComponent, LODDrawDistance);
+	{	
+		Actor->SetLODParent(StaticMeshComponent, LODDrawDistance);	
 	}
 }
 

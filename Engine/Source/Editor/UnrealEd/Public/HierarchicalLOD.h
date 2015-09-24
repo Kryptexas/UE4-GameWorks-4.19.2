@@ -128,4 +128,8 @@ private:
 
 	/** Cached array of LODLevel settings */
 	TArray<FHierarchicalSimplification> BuildLODLevelSettings;
+
+
+	TArray<TArray<ALODActor*>> LODLevelLODActors;
+	TArray<AActor*> ValidStaticMeshActorsInLevel;
 };

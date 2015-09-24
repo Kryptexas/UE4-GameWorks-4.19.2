@@ -1570,7 +1570,7 @@ public:
 	 * @param bForcePreload	Whether to explicitly call Preload (serialize) right away instead of being
 	 *						called from EndLoad()
 	 */
-	void LoadAllObjects( bool bForcePreload = false );
+	COREUOBJECT_API void LoadAllObjects(bool bForcePreload = false);
 
 	/**
 	 * Returns the ObjectName associated with the resource indicated.

@@ -237,7 +237,7 @@ namespace HLODOutliner
 			/** Delegate to show all properties */
 			static bool IsPropertyVisible(const FPropertyAndParent& PropertyAndParent, bool bInShouldShowNonEditable)
 			{
-				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "Material"))
+				if (PropertyAndParent.Property.GetName() == "HierarchicalLODSetup" || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MergeSetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "ProxySetting") || (PropertyAndParent.ParentProperty && PropertyAndParent.ParentProperty->GetName() == "MaterialSettings"))
 				{
 					return true;
 				}
@@ -262,7 +262,7 @@ namespace HLODOutliner
 		bool bChangeMade = false;
 
 		// Only deal with 256 at a time
-		const int32 End = FMath::Min(PendingActions.Num(), 256);
+		const int32 End = FMath::Min(PendingActions.Num(), 512);
 		for (int32 Index = 0; Index < End; ++Index)
 		{
 			auto& PendingAction = PendingActions[Index];
@@ -356,8 +356,13 @@ namespace HLODOutliner
 	{
 		if (CurrentWorld)
 		{
+			LODLevelActors.Empty();
 			CurrentWorld->HierarchicalLODBuilder->ClearHLODs();
 		}
+		
+		ResetLODLevelForcing();
+
+
 		FullRefresh();
 		return FReply::Handled();
 	}
@@ -389,6 +394,8 @@ namespace HLODOutliner
 			DestroySelectionActors();
 			CurrentWorld->HierarchicalLODBuilder->BuildMeshesForLODActors();
 		}
+
+		ResetLODLevelForcing();
 
 		FullRefresh();
 		return FReply::Handled();
@@ -533,11 +540,9 @@ namespace HLODOutliner
 
 		if (CurrentWorld)
 		{
-			auto Level = CurrentWorld->GetCurrentLevel();
-			for (auto Actor : Level->Actors)
+			for (auto LevelActors : LODLevelActors)
 			{
-				ALODActor* LODActor = Cast<ALODActor>(Actor);
-				if (LODActor)
+				for (auto LODActor : LevelActors)
 				{
 					if (LODActor->LODLevel == LODLevel + 1)
 					{
@@ -563,10 +568,9 @@ namespace HLODOutliner
 		if (CurrentWorld)
 		{
 			auto Level = CurrentWorld->GetCurrentLevel();
-			for (auto Actor : Level->Actors)
+			for (auto LevelActors : LODLevelActors)
 			{
-				ALODActor* LODActor = Cast<ALODActor>(Actor);
-				if (LODActor)
+				for (auto LODActor : LevelActors )
 				{
 					if (LODActor->LODLevel == LODLevel + 1)
 					{
@@ -580,6 +584,13 @@ namespace HLODOutliner
 			}
 		}
 		ForcedLODLevel = LODLevel;
+	}
+
+	void SHLODOutliner::ResetLODLevelForcing()
+	{
+		RestoreForcedLODLevel(ForcedLODLevel);
+		SetForcedLODLevel(-1);
+		ForcedLODSliderValue = 0.0f;
 	}
 
 	void SHLODOutliner::CreateHierarchicalVolumeForActor(TSharedRef<ITreeItem> Item)
@@ -607,6 +618,8 @@ namespace HLODOutliner
 			{
 				FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
 				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+
+				ResetLODLevelForcing();
 				FullRefresh();
 			}			
 		}
@@ -626,6 +639,8 @@ namespace HLODOutliner
 				FLODLevelItem* LevelItem = (FLODLevelItem*)(Parent.Get());
 				ActorItem->LODActor->SetIsDirty(true);
 				CurrentWorld->HierarchicalLODBuilder->BuildMeshForLODActor(ActorItem->LODActor.Get(), LevelItem->LODLevelIndex);
+
+				ResetLODLevelForcing();
 				FullRefresh();
 			}
 		}
@@ -669,6 +684,10 @@ namespace HLODOutliner
 		{			
 			DestroyLODActor(ParentActor);
 		}
+
+		ResetLODLevelForcing();
+
+		FullRefresh();
 	}
 
 	void SHLODOutliner::RemoveStaticMeshActorFromCluster(TSharedRef<ITreeItem> Item)
@@ -818,8 +837,7 @@ namespace HLODOutliner
 		SelectedNodes = TreeView->GetSelectedItems();
 
 		if (TreeItem.IsValid())
-		{
-			
+		{			
 			StartSelection();
 
 			ITreeItem::TreeItemType Type = TreeItem->GetTreeItemType();
@@ -1035,19 +1053,51 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnLevelSelectionChanged(UObject* Obj)
 	{		
-		AActor* Actor = Cast<AActor>(Obj);
-		if (Actor)
+		USelection* Selection = Cast<USelection>(Obj);
+		AActor* SelectedActor = Cast<AActor>(Obj);
+		if (Selection)
 		{
-			auto Item = TreeItemsMap.Find(Actor);
+			int32 NumSelected = Selection->Num();
+			// QQ changes this for multiple selection support?
+			for (int32 SelectionIndex = 0; SelectionIndex < NumSelected; ++SelectionIndex)
+			{
+				AActor* Actor = Cast<AActor>(Selection->GetSelectedObject(SelectionIndex));
+				if (Actor)
+				{
+					auto Item = TreeItemsMap.Find(Actor);
+					if (Item)
+					{
+						SelectItemInTree(*Item);						
+
+						if (Item->Get()->GetTreeItemType() == ITreeItem::StaticMeshActor)
+						{
+							DestroySelectionActors();
+						}
+					}
+					else
+					{
+						DestroySelectionActors();
+					}
+				}
+			}			
+		}
+		else if (SelectedActor)
+		{
+			auto Item = TreeItemsMap.Find(SelectedActor);
 			if (Item)
 			{
 				SelectItemInTree(*Item);
+
+				if (Item->Get()->GetTreeItemType() == ITreeItem::StaticMeshActor)
+				{
+					DestroySelectionActors();
+				}
 			}	
 			else
 			{
 				DestroySelectionActors();
 			}
-		}
+		}		
 	}
 
 	void SHLODOutliner::OnLevelAdded(ULevel* InLevel, UWorld* InWorld)
@@ -1076,9 +1126,10 @@ namespace HLODOutliner
 			{
 				if (bRemoved)
 					break;
-
+				
 				for (auto& Actor : ActorArray)
 				{
+					Actor->CleanSubActorArray();
 					if (Actor->RemoveSubActor(InActor))
 					{
 						bRemoved = true;
@@ -1104,7 +1155,7 @@ namespace HLODOutliner
 
 	void SHLODOutliner::OnNewCurrentLevel()
 	{
-		FullRefresh();
+		FullRefresh();	
 	}
 
 	void SHLODOutliner::OnHLODActorMovedEvent(const AActor* InActor, const AActor* ParentActor)
@@ -1215,6 +1266,12 @@ namespace HLODOutliner
 			// Update settings view
 			SettingsView->SetObject(CurrentWorld->GetWorldSettings());
 
+			for (auto& ActorArray : LODLevelActors)
+			{
+				ActorArray.Empty();
+			}
+			LODLevelActors.Empty();
+
 			TArray<FTreeItemRef> LevelNodes;
 			AWorldSettings* WorldSettings = CurrentWorld->GetWorldSettings();
 			if (WorldSettings)
@@ -1252,7 +1309,7 @@ namespace HLODOutliner
 						{
 							ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 
-							if (LODActor)
+							if (LODActor && (LODActor->LODLevel - 1) < LevelNodes.Num())
 							{
 								FTreeItemRef Item = MakeShareable(new FLODActorItem(LODActor));
 								AllNodes.Add(Item->AsShared());
@@ -1289,7 +1346,7 @@ namespace HLODOutliner
 				{
 					if (LODLevelActors[LODLevelIndex].Num() == 0)
 					{
-						LODLevelBuildFlags[LODLevelIndex] = false;
+						LODLevelBuildFlags[LODLevelIndex] = true;
 					}
 				}
 			}
@@ -1391,7 +1448,7 @@ namespace HLODOutliner
 			Parent->bIsExpanded = true;
 			Parent = InItem->GetParent();
 		}
-		TreeView->SetSelection(InItem);
+		TreeView->SetItemSelection(InItem, true);
 
 		TreeView->RequestTreeRefresh();
 	}

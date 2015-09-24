@@ -177,6 +177,9 @@ namespace HLODOutliner
 		*/
 		void SetForcedLODLevel(const uint32 LODLevel);
 
+		/** Resets the forced LOD level and the Slider value */
+		void ResetLODLevelForcing();
+
 		/**
 		* Creates a Hierarchical LOD Volume for the given LODActorItem, volume bounds correspond to those of the LODActor's SubActors
 		*

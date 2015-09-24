@@ -2072,52 +2072,101 @@ struct FMeshReductionSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float PercentTriangles;
+		/** Percentage of triangles to keep. 1.0 = no reduction, 0.0 = no triangles. */
+		UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		float PercentTriangles;
 
 	/** The maximum distance in object space by which the reduced mesh may deviate from the original mesh. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float MaxDeviation;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		float MaxDeviation;
 
 	/** Threshold in object space at which vertices are welded together. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float WeldingThreshold;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		float WeldingThreshold;
 
 	/** Angle at which a hard edge is introduced between faces. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	float HardAngleThreshold;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		float HardAngleThreshold;
 
 	/** Higher values minimize change to border edges. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TEnumAsByte<EMeshFeatureImportance::Type> SilhouetteImportance;
 
 	/** Higher values reduce texture stretching. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TEnumAsByte<EMeshFeatureImportance::Type> TextureImportance;
 
 	/** Higher values try to preserve normals better. */
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TEnumAsByte<EMeshFeatureImportance::Type> ShadingImportance;
 
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	bool bRecalculateNormals;
+	/*UPROPERTY(EditAnywhere, Category = ReductionSettings)
+	bool bActive;*/
 
-	UPROPERTY(EditAnywhere, Category=ReductionSettings)
-	int32 BaseLODModel;
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		bool bRecalculateNormals;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		int32 BaseLODModel;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		bool bGenerateUniqueLightmapUVs;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		bool bKeepSymmetry;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		bool bVisibilityAided;
+
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		bool bCullOccluded;
+
+	/** Higher values generates fewer samples*/
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TEnumAsByte<EMeshFeatureImportance::Type> VisibilityAggressiveness;
+
+	/** Higher values minimize change to vertex color data. */
+	UPROPERTY(EditAnywhere, Category = ReductionSettings)
+		TEnumAsByte<EMeshFeatureImportance::Type> VertexColorImportance;
 
 	/** Default settings. */
 	FMeshReductionSettings()
 		: PercentTriangles(1.0f)
 		, MaxDeviation(0.0f)
 		, WeldingThreshold(0.0f)
-		, HardAngleThreshold(45.0f)
+		, HardAngleThreshold(80.0f)
 		, SilhouetteImportance(EMeshFeatureImportance::Normal)
 		, TextureImportance(EMeshFeatureImportance::Normal)
 		, ShadingImportance(EMeshFeatureImportance::Normal)
 		, bRecalculateNormals(false)
 		, BaseLODModel(0)
-	{ }
+		, bGenerateUniqueLightmapUVs(false)
+		, bKeepSymmetry(false)
+		, bVisibilityAided(false)
+		, bCullOccluded(false)
+		, VisibilityAggressiveness(EMeshFeatureImportance::Lowest)
+		, VertexColorImportance(EMeshFeatureImportance::Off)
+	{
+	}
+
+	FMeshReductionSettings(const FMeshReductionSettings& Other)
+		: PercentTriangles(Other.PercentTriangles)
+		, MaxDeviation(Other.MaxDeviation)
+		, WeldingThreshold(Other.WeldingThreshold)
+		, HardAngleThreshold(Other.HardAngleThreshold)
+		, SilhouetteImportance(Other.ShadingImportance)
+		, TextureImportance(Other.TextureImportance)
+		, ShadingImportance(Other.ShadingImportance)
+		, bRecalculateNormals(Other.bRecalculateNormals)
+		, BaseLODModel(Other.BaseLODModel)
+		, bGenerateUniqueLightmapUVs(Other.bGenerateUniqueLightmapUVs)
+		, bKeepSymmetry(Other.bKeepSymmetry)
+		, bVisibilityAided(Other.bVisibilityAided)
+		, bCullOccluded(Other.bCullOccluded)
+		, VisibilityAggressiveness(Other.VisibilityAggressiveness)
+		, VertexColorImportance(Other.VertexColorImportance)
+	{
+	}
 
 	/** Equality operator. */
 	bool operator==(const FMeshReductionSettings& Other) const
@@ -2130,7 +2179,13 @@ struct FMeshReductionSettings
 			&& TextureImportance == Other.TextureImportance
 			&& ShadingImportance == Other.ShadingImportance
 			&& bRecalculateNormals == Other.bRecalculateNormals
-			&& BaseLODModel == Other.BaseLODModel;
+			&& BaseLODModel == Other.BaseLODModel
+			&& bGenerateUniqueLightmapUVs == Other.bGenerateUniqueLightmapUVs
+			&& bKeepSymmetry == Other.bKeepSymmetry
+			&& bVisibilityAided == Other.bVisibilityAided
+			&& bCullOccluded == Other.bCullOccluded
+			&& VisibilityAggressiveness == Other.VisibilityAggressiveness
+			&& VertexColorImportance == Other.VertexColorImportance;
 	}
 
 	/** Inequality. */
@@ -2139,7 +2194,6 @@ struct FMeshReductionSettings
 		return !(*this == Other);
 	}
 };
-
 
 /**
  * Settings applied when building a mesh.
@@ -2346,6 +2400,82 @@ struct FMaterialSimplificationSettings
 	}
 };
 
+
+
+USTRUCT()
+struct FMaterialProxySettings
+{
+	GENERATED_USTRUCT_BODY()
+		
+	// Size of generated BaseColor map
+	UPROPERTY(Category = Material, EditAnywhere)
+	FIntPoint TextureSize;
+
+	// Use automatic texure sizes
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bAutomaticTextureSizes;
+
+	UPROPERTY(Category = Material, EditAnywhere)
+	float GutterSpace;
+
+	// Whether to generate normal map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bNormalMap;
+	
+	// Whether to generate metallic map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bMetallicMap;
+	
+	// Metallic constant
+	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bMetallicMap"))
+	float MetallicConstant;
+
+	// Whether to generate roughness map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bRoughnessMap;
+
+	// Roughness constant
+	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bRoughnessMap"))
+	float RoughnessConstant;
+		
+	// Whether to generate specular map
+	UPROPERTY(Category = Material, EditAnywhere)
+	bool bSpecularMap;	
+
+	// Specular constant
+	UPROPERTY(Category = Material, EditAnywhere, meta = (ClampMin = "0", ClampMax = "1", UIMin = "0", UIMax = "1", editcondition = "!bSpecularMap"))
+	float SpecularConstant;
+
+
+	FMaterialProxySettings()
+		: TextureSize(1024, 1024)
+		, bAutomaticTextureSizes(false)
+		, GutterSpace(4.0f)
+		, bNormalMap(true)
+		, bMetallicMap(false)
+		, MetallicConstant(0.0f)
+		, bRoughnessMap(false)
+		, RoughnessConstant(0.5f)				
+		, bSpecularMap(false)
+		, SpecularConstant(0.5f)
+	{
+	}
+
+	bool operator == (const FMaterialProxySettings& Other) const
+	{
+		return TextureSize == Other.TextureSize
+			&& bAutomaticTextureSizes == Other.bAutomaticTextureSizes
+			&& GutterSpace == Other.GutterSpace
+			&& bNormalMap == Other.bNormalMap
+			&& MetallicConstant == Other.MetallicConstant
+			&& bMetallicMap == Other.bMetallicMap
+			&& RoughnessConstant == Other.RoughnessConstant
+			&& bRoughnessMap == Other.bRoughnessMap
+			&& SpecularConstant == Other.SpecularConstant
+			&& bSpecularMap == Other.bSpecularMap;
+	}
+};
+
 USTRUCT()
 struct FMeshProxySettings
 {
@@ -2353,10 +2483,6 @@ struct FMeshProxySettings
 	/** Screen size of the resulting proxy mesh in pixel size*/
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 ScreenSize;
-
-	/** Material simplification */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	FMaterialSimplificationSettings Material;
 
 	UPROPERTY()
 	int32 TextureWidth_DEPRECATED;
@@ -2375,6 +2501,22 @@ struct FMeshProxySettings
 	UPROPERTY()
 	bool bExportSpecularMap_DEPRECATED;
 
+	/** Material simplification */
+	UPROPERTY()
+	FMaterialSimplificationSettings Material_DEPRECATED;
+
+	/** Distance at which meshes should be merged together */
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	float MergeDistance;
+
+	/** Angle at which a hard edge is introduced between faces */
+	UPROPERTY(EditAnywhere, Category = ProxySettings, meta = (DisplayName = "Hard Edge Angle"))
+	float HardAngleThreshold;
+	
+	/** Material simplification */
+	UPROPERTY(EditAnywhere, Category=ProxySettings)
+	FMaterialProxySettings MaterialSettings;
+
 	/** Lightmap resolution */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	int32 LightMapResolution;
@@ -2382,15 +2524,7 @@ struct FMeshProxySettings
 	/** Whether Simplygon should recalculate normals, otherwise the normals channel will be sampled from the original mesh */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bRecalculateNormals;
-
-	/** Angle at which a hard edge is introduced between faces */
-	UPROPERTY(EditAnywhere, Category=ProxySettings, meta=(DisplayName="Hard Edge Angle"))
-	float HardAngleThreshold;
-
-	/** Set the on-screen merge distance in pixels. Smaller cavities will be removed */
-	UPROPERTY(EditAnywhere, Category=ProxySettings)
-	int32 MergeDistance;
-	
+		
 	/** Set to true to cap the mesh with a ground plane */
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bUseClippingPlane;
@@ -2407,6 +2541,10 @@ struct FMeshProxySettings
 	UPROPERTY(EditAnywhere, Category=ProxySettings)
 	bool bPlaneNegativeHalfspace;
 
+	UPROPERTY(EditAnywhere, Category = ProxySettings)
+	bool bBakeVertexData;
+
+
 	/** Default settings. */
 	FMeshProxySettings()
 		: ScreenSize(300)
@@ -2416,10 +2554,10 @@ struct FMeshProxySettings
 		, bExportMetallicMap_DEPRECATED(false)
 		, bExportRoughnessMap_DEPRECATED(false)
 		, bExportSpecularMap_DEPRECATED(false)
+		, MergeDistance(4)
+		, HardAngleThreshold(80.0f)
 		, LightMapResolution(256)
 		, bRecalculateNormals(true)
-		, HardAngleThreshold(80.0f)
-		, MergeDistance(4)
 		, bUseClippingPlane(false)
 		, ClippingLevel(0.0)
 		, AxisIndex(0)
@@ -2430,7 +2568,7 @@ struct FMeshProxySettings
 	bool operator==(const FMeshProxySettings& Other) const
 	{
 		return ScreenSize == Other.ScreenSize
-			&& Material == Other.Material
+			&& MaterialSettings == Other.MaterialSettings
 			&& bRecalculateNormals == Other.bRecalculateNormals
 			&& HardAngleThreshold == Other.HardAngleThreshold
 			&& MergeDistance == Other.MergeDistance;

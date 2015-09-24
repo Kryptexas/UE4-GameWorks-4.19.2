@@ -14,6 +14,7 @@
 #include "Runtime/Engine/Public/MaterialCompiler.h"
 #include "Runtime/Engine/Classes/Engine/TextureLODSettings.h"
 #include "Runtime/Engine/Classes/DeviceProfiles/DeviceProfileManager.h"
+#include "Runtime/Engine/Classes/Materials/MaterialParameterCollection.h" 
 #include "RendererInterface.h"
 #include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
@@ -38,6 +39,26 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 	{
 		// not used by Lightmass
 		return SF_Pixel;
+	}
+
+	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
+	{
+		return Compiler->WorldPosition(WorldPositionIncludedOffsets);
+	}
+
+	virtual int32 ObjectWorldPosition() override
+	{
+		return Compiler->Constant3(0.0f, 0.0f, 0.0f);
+	}
+
+	virtual int32 DistanceCullFade() override
+	{
+		return Compiler->Constant(1.0f);
+	}
+
+	virtual int32 ActorWorldPosition() override
+	{
+		return Compiler->Constant3(0.0f, 0.0f, 0.0f);
 	}
 
 	virtual int32 ParticleRelativeTime() override
@@ -72,27 +93,94 @@ struct FExportMaterialCompiler : public FProxyMaterialCompiler
 
 	virtual int32 ObjectBounds() override
 	{
-		return Compiler->Constant3(0,0,0);
+		return Compiler->Constant3(0, 0, 0);
 	}
 
 	virtual int32 CameraVector() override
 	{
-		return Compiler->Constant3(0.0f,0.0f,1.0f);
+		return Compiler->Constant3(0.0f, 0.0f, 1.0f);
 	}
-
+	
 	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) override
 	{
-		return Compiler->Constant3(0.0f,0.0f,-1.0f);
+		return Compiler->Constant3(0.0f, 0.0f, -1.0f);
 	}
 
 	virtual int32 VertexColor() override
 	{
-		return Compiler->Constant4(1.0f,1.0f,1.0f,1.0f);
+		return Compiler->VertexColor(); 
+	}
+
+	virtual int32 LightVector() override
+	{
+		return Compiler->Constant3(1.0f, 0.0f, 0.0f);
+	}
+
+	virtual int32 ReflectionVector() override
+	{
+		return Compiler->Constant3(0.0f, 0.0f, -1.0f);
+	}
+
+	virtual int32 AtmosphericFogColor(int32 WorldPosition) override
+	{
+		return INDEX_NONE;
+	}
+
+	virtual int32 PrecomputedAOMask() override 
+	{ 
+		return Compiler->PrecomputedAOMask();
+	}
+
+	virtual int32 AccessCollectionParameter(UMaterialParameterCollection* ParameterCollection, int32 ParameterIndex, int32 ComponentIndex) override
+	{
+		if (!ParameterCollection || ParameterIndex == -1)
+		{
+			return INDEX_NONE;
+		}
+
+		// Collect names of all parameters
+		TArray<FName> ParameterNames;
+		ParameterCollection->GetParameterNames(ParameterNames, /*bVectorParameters=*/ false);
+		int32 NumScalarParameters = ParameterNames.Num();
+		ParameterCollection->GetParameterNames(ParameterNames, /*bVectorParameters=*/ true);
+
+		// Find a parameter corresponding to ParameterIndex/ComponentIndex pair
+		int32 Index;
+		for (Index = 0; Index < ParameterNames.Num(); Index++)
+		{
+			FGuid ParameterId = ParameterCollection->GetParameterId(ParameterNames[Index]);
+			int32 CheckParameterIndex, CheckComponentIndex;
+			ParameterCollection->GetParameterIndex(ParameterId, CheckParameterIndex, CheckComponentIndex);
+			if (CheckParameterIndex == ParameterIndex && CheckComponentIndex == ComponentIndex)
+			{
+				// Found
+				break;
+			}
+		}
+		if (Index >= ParameterNames.Num())
+		{
+			// Not found, should not happen
+			return INDEX_NONE;
+		}
+
+		// Create code for parameter
+		if (Index < NumScalarParameters)
+		{
+			const FCollectionScalarParameter* ScalarParameter = ParameterCollection->GetScalarParameterByName(ParameterNames[Index]);
+			check(ScalarParameter);
+			return Constant(ScalarParameter->DefaultValue);
+		}
+		else
+		{
+			const FCollectionVectorParameter* VectorParameter = ParameterCollection->GetVectorParameterByName(ParameterNames[Index]);
+			check(VectorParameter);
+			const FLinearColor& Color = VectorParameter->DefaultValue;
+			return Constant4(Color.R, Color.G, Color.B, Color.A);
+		}
 	}
 	
-	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Lightmass; }
+	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Realtime; }
 };
-
 
 
 class FExportMaterialProxy : public FMaterial, public FMaterialRenderProxy
@@ -137,6 +225,7 @@ public:
 		case MP_Normal: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportNormal; break;
 		case MP_Metallic: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportMetallic; break;
 		case MP_Roughness: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportRoughness; break;
+		case MP_AmbientOcclusion: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportAO; break;
 		};
 		
 		CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
@@ -210,6 +299,13 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
+		/*TScopedPointer<FMaterialCompiler> CompilerProxyHolder;
+		if (CompilerReplacer != nullptr)
+		{
+			CompilerProxyHolder = CompilerReplacer(Compiler);
+			Compiler = CompilerProxyHolder;
+		}*/
+
 		if (Property == MP_EmissiveColor)
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
@@ -233,6 +329,7 @@ public:
 			case MP_Specular: 
 			case MP_Roughness:
 			case MP_Metallic:
+			case MP_AmbientOcclusion:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
@@ -421,6 +518,7 @@ public:
 				case MP_Normal:			return true;
 				case MP_Metallic:		return true;
 				case MP_Roughness:		return true;
+				case MP_AmbientOcclusion:		return true;
 				}
 			}
 			break;
@@ -928,25 +1026,151 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		MaterialNodeY+= MaterialNodeStepY;
 	}
 
-	// Metallic
-	if (InFlattenMaterial.MetallicSamples.Num() > 1)
-	{
-		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
-		const bool bSRGB = false;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
-		OutGeneratedAssets.Add(Texture);
-			
-		auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
-		MetallicExpression->Texture = Texture;
-		MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
-		MetallicExpression->MaterialExpressionEditorX = -400;
-		MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
-		Material->Expressions.Add(MetallicExpression);
-		Material->Metallic.Expression = MetallicExpression;
+	// Whether or not a material property is baked down
+	const bool bHasMetallic = (InFlattenMaterial.MetallicSamples.Num() > 1);
+	const bool bHasRoughness = (InFlattenMaterial.RoughnessSamples.Num() > 1);
+	const bool bHasSpecular = (InFlattenMaterial.SpecularSamples.Num() > 1);
 
-		MaterialNodeY+= MaterialNodeStepY;
+	// Number of material properties baked down to textures
+	const int BakedMaterialPropertyCount = bHasMetallic + bHasRoughness + bHasSpecular;
+
+	// Check for same texture sizes
+	bool bSameTextureSize = true;	
+	bSameTextureSize &= bHasMetallic ? (InFlattenMaterial.DiffuseSamples.Num() == InFlattenMaterial.MetallicSamples.Num()) : true;
+	bSameTextureSize &= bHasRoughness ? (InFlattenMaterial.DiffuseSamples.Num() == InFlattenMaterial.RoughnessSamples.Num()) : true;
+	bSameTextureSize &= bHasSpecular ? (InFlattenMaterial.DiffuseSamples.Num() == InFlattenMaterial.SpecularSamples.Num()) : true;
+	
+	// Merge values into one texture
+	if (BakedMaterialPropertyCount > 1 && bSameTextureSize)
+	{
+		// Metallic = R, Roughness = G, Specular = B
+		TArray<FColor> MergedSamples;
+		const int32 SampleCount = InFlattenMaterial.DiffuseSamples.Num();
+		MergedSamples.AddZeroed(SampleCount);
+		
+		if (bHasMetallic) for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
+		{
+			MergedSamples[SampleIndex].R = InFlattenMaterial.MetallicSamples[SampleIndex].R;
+		}
+
+		if (bHasRoughness) for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
+		{
+			MergedSamples[SampleIndex].G = InFlattenMaterial.RoughnessSamples[SampleIndex].G;
+		}
+
+		if (bHasSpecular) for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
+		{
+			MergedSamples[SampleIndex].B = InFlattenMaterial.SpecularSamples[SampleIndex].B;
+		}
+
+		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_MRS");
+		const bool bSRGB = false;
+		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.DiffuseSize, MergedSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+		OutGeneratedAssets.Add(Texture);
+
+		auto MergedExpression = NewObject<UMaterialExpressionTextureSample>(Material);
+		MergedExpression->Texture = Texture;
+		MergedExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+		MergedExpression->MaterialExpressionEditorX = -400;
+		MergedExpression->MaterialExpressionEditorY = MaterialNodeY;
+		Material->Expressions.Add(MergedExpression);
+
+		// Metallic
+		if (bHasMetallic)
+		{
+			Material->Metallic.Expression = MergedExpression;
+			Material->Metallic.Mask = Material->Metallic.Expression->GetOutputs()[0].Mask;
+			Material->Metallic.MaskR = 1;
+			Material->Metallic.MaskG = 0;
+			Material->Metallic.MaskB = 0;
+			Material->Metallic.MaskA = 0;
+		}
+
+		// Roughness
+		if (bHasRoughness)
+		{
+			Material->Roughness.Expression = MergedExpression;
+			Material->Roughness.Mask = Material->Roughness.Expression->GetOutputs()[0].Mask;
+			Material->Roughness.MaskR = 0;
+			Material->Roughness.MaskG = 1;
+			Material->Roughness.MaskB = 0;
+			Material->Roughness.MaskA = 0;
+		}
+		
+		// Specular
+		if (bHasSpecular)
+		{
+			Material->Specular.Expression = MergedExpression;
+			Material->Specular.Mask = Material->Specular.Expression->GetOutputs()[0].Mask;
+			Material->Specular.MaskR = 0;
+			Material->Specular.MaskG = 0;
+			Material->Specular.MaskB = 1;
+			Material->Specular.MaskA = 0;
+		}
+
+		MaterialNodeY += MaterialNodeStepY;
 	}
-	else if (InFlattenMaterial.MetallicSamples.Num() == 1)
+	else
+	{
+		// Metallic
+		if (InFlattenMaterial.MetallicSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_M");
+			const bool bSRGB = false;
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.MetallicSize, InFlattenMaterial.MetallicSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
+
+			auto MetallicExpression = NewObject<UMaterialExpressionTextureSample>(Material);
+			MetallicExpression->Texture = Texture;
+			MetallicExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
+			MetallicExpression->MaterialExpressionEditorX = -400;
+			MetallicExpression->MaterialExpressionEditorY = MaterialNodeY;
+			Material->Expressions.Add(MetallicExpression);
+			Material->Metallic.Expression = MetallicExpression;
+
+			MaterialNodeY += MaterialNodeStepY;
+		}
+
+		// Specular
+		if (InFlattenMaterial.SpecularSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
+			const bool bSRGB = false;
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
+
+			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
+			SpecularExpression->Texture = Texture;
+			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
+			SpecularExpression->MaterialExpressionEditorX = -400;
+			SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
+			Material->Expressions.Add(SpecularExpression);
+			Material->Specular.Expression = SpecularExpression;
+
+			MaterialNodeY += MaterialNodeStepY;
+		}
+
+		// Roughness
+		if (InFlattenMaterial.RoughnessSamples.Num() > 1)
+		{
+			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
+			const bool bSRGB = false;
+			UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+			OutGeneratedAssets.Add(Texture);
+
+			auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
+			RoughnessExpression->Texture = Texture;
+			RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
+			RoughnessExpression->MaterialExpressionEditorX = -400;
+			RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
+			Material->Expressions.Add(RoughnessExpression);
+			Material->Roughness.Expression = RoughnessExpression;
+
+			MaterialNodeY += MaterialNodeStepY;
+		}
+	}
+
+	if (InFlattenMaterial.MetallicSamples.Num() == 1)
 	{
 		// Set Metallic to constant
 		float Metallic = *(float*)(&InFlattenMaterial.MetallicSamples[0].DWColor());
@@ -957,28 +1181,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		Material->Expressions.Add(MetallicExpression);
 		Material->Metallic.Expression = MetallicExpression;
 
-		MaterialNodeY+= MaterialNodeStepY;
+		MaterialNodeY += MaterialNodeStepY;
 	}
 
-	// Specular
-	if (InFlattenMaterial.SpecularSamples.Num() > 1)
-	{
-		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
-		const bool bSRGB = false;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
-		OutGeneratedAssets.Add(Texture);
-			
-		auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
-		SpecularExpression->Texture = Texture;
-		SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
-		SpecularExpression->MaterialExpressionEditorX = -400;
-		SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
-		Material->Expressions.Add(SpecularExpression);
-		Material->Specular.Expression = SpecularExpression;
-
-		MaterialNodeY+= MaterialNodeStepY;
-	}
-	else if (InFlattenMaterial.SpecularSamples.Num() == 1)
+	if (InFlattenMaterial.SpecularSamples.Num() == 1)
 	{
 		// Set Specular to constant
 		float Specular = *(float*)(&InFlattenMaterial.SpecularSamples[0].DWColor());
@@ -989,28 +1195,10 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		Material->Expressions.Add(SpecularExpression);
 		Material->Specular.Expression = SpecularExpression;
 
-		MaterialNodeY+= MaterialNodeStepY;
+		MaterialNodeY += MaterialNodeStepY;
 	}
 	
-	// Roughness
-	if (InFlattenMaterial.RoughnessSamples.Num() > 1)
-	{
-		const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_R");
-		const bool bSRGB = false;
-		UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.RoughnessSize, InFlattenMaterial.RoughnessSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
-		OutGeneratedAssets.Add(Texture);
-			
-		auto RoughnessExpression = NewObject<UMaterialExpressionTextureSample>(Material);
-		RoughnessExpression->Texture = Texture;
-		RoughnessExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
-		RoughnessExpression->MaterialExpressionEditorX = -400;
-		RoughnessExpression->MaterialExpressionEditorY = MaterialNodeY;
-		Material->Expressions.Add(RoughnessExpression);
-		Material->Roughness.Expression = RoughnessExpression;
-
-		MaterialNodeY+= MaterialNodeStepY;
-	}
-	else if (InFlattenMaterial.RoughnessSamples.Num() == 1)
+	if (InFlattenMaterial.RoughnessSamples.Num() == 1)
 	{
 		// Set Roughness to constant
 		float Roughness = *(float*)(&InFlattenMaterial.RoughnessSamples[0].DWColor());
@@ -1021,7 +1209,7 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 		Material->Expressions.Add(RoughnessExpression);
 		Material->Roughness.Expression = RoughnessExpression;
 
-		MaterialNodeY+= MaterialNodeStepY;
+		MaterialNodeY += MaterialNodeStepY;
 	}
 
 	// Normal
@@ -1042,6 +1230,25 @@ UMaterial* FMaterialUtilities::CreateMaterial(const FFlattenMaterial& InFlattenM
 
 		MaterialNodeY+= MaterialNodeStepY;
 	}
+
+	// AO
+	/*if (InFlattenMaterial.AOSamples.Num() > 1)
+	{
+	const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_AO");
+	const bool bSRGB = false;
+	UTexture2D* Texture = CreateTexture(InOuter, AssetBasePath + AssetName, InFlattenMaterial.AOSize, InFlattenMaterial.AOSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
+	OutGeneratedAssets.Add(Texture);
+
+	auto AOExpression = NewObject<UMaterialExpressionTextureSample>(Material);
+	AOExpression->Texture = Texture;
+	AOExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
+	AOExpression->MaterialExpressionEditorX = -400;
+	AOExpression->MaterialExpressionEditorY = MaterialNodeY;
+	Material->Expressions.Add(AOExpression);
+	Material->AmbientOcclusion.Expression = AOExpression;
+
+	MaterialNodeY += MaterialNodeStepY;
+	}*/
 							
 	Material->PostEditChange();
 	return Material;
@@ -1113,3 +1320,10 @@ bool FMaterialUtilities::ExportBaseColor(ULandscapeComponent* LandscapeComponent
 	RenderSceneToTexture(Scene, BaseColorName, ViewOrigin, ViewRotationMatrix, ProjectionMatrix, HiddenPrimitives, TargetSize, BaseColorGamma, OutSamples);
 	return true;
 }
+
+FMaterialRenderProxy* FMaterialUtilities::CreateExportMaterialProxy(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty)
+{
+	return new FExportMaterialProxy(InMaterial, InMaterialProperty);
+}
+
+

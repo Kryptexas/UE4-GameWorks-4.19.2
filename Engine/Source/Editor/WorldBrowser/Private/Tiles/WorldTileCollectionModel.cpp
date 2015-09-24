@@ -1956,7 +1956,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 
 			FMeshProxySettings ProxySettings;
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
-			ProxySettings.Material = SimplificationDetails.StaticMeshMaterial;
+			ProxySettings.MaterialSettings = SimplificationDetails.StaticMeshMaterial;
 
 			TArray<UObject*> OutAssets;
 			FVector OutProxyLocation;

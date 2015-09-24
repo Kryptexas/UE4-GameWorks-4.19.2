@@ -25,12 +25,16 @@ struct FFlattenMaterial
 	FIntPoint		MetallicSize;	
 	FIntPoint		RoughnessSize;	
 	FIntPoint		SpecularSize;	
+
+	FIntPoint		AOSize;
 			
 	TArray<FColor>	DiffuseSamples;
 	TArray<FColor>	NormalSamples;
 	TArray<FColor>	MetallicSamples;
 	TArray<FColor>	RoughnessSamples;
 	TArray<FColor>	SpecularSamples;
+	
+	TArray<FColor>	AOSamples;
 };
 
 
@@ -132,4 +136,7 @@ public:
 	* @return						Whether operation was successful
 	*/
 	MATERIALUTILITIES_API static bool ExportBaseColor(ULandscapeComponent* LandscapeComponent, int32 TextureSize, TArray<FColor>& OutSamples);
+
+
+	MATERIALUTILITIES_API static class FMaterialRenderProxy* CreateExportMaterialProxy(UMaterialInterface* InMaterial, EMaterialProperty InMaterialProperty );
 };

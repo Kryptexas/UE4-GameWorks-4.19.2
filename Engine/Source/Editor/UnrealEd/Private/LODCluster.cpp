@@ -260,7 +260,7 @@ void FLODCluster::SubtractCluster(const FLODCluster& Other)
 	}
 }
 
-void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
+ALODActor* FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCreateMeshes)
 {
 	FColor Colours[8] = { FColor::Cyan, FColor::Red, FColor::Green, FColor::Blue, FColor::Yellow, FColor::Magenta, FColor::White, FColor::Black };
 	// do big size
@@ -370,10 +370,14 @@ void FLODCluster::BuildActor(ULevel* InLevel, const int32 LODIdx, const bool bCr
 
 					// Mark dirty according to whether or not this is a preview build
 					NewActor->SetIsDirty(!bCreateMeshes);
+
+					return NewActor;
 				}
 			}
 		}
 	}
+
+	return nullptr;
 }
 
 

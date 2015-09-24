@@ -72,6 +72,10 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 {	
 	SCOPE_LOG_TIME(TEXT("STAT_HLOD_BuildClusters"), nullptr);
 
+
+	LODLevelLODActors.Empty();
+	ValidStaticMeshActorsInLevel.Empty();
+
 	// I'm using stack mem within this scope of the function
 	// so we need this
 	FMemMark Mark(FMemStack::Get());
@@ -82,13 +86,14 @@ void FHierarchicalLODBuilder::BuildClusters(ULevel* InLevel, const bool bCreateM
 	// only build if it's enabled
 	if (InLevel->GetWorld()->GetWorldSettings()->bEnableHierarchicalLODSystem && BuildLODLevelSettings.Num() > 0)
 	{
+		LODLevelLODActors.AddDefaulted(BuildLODLevelSettings.Num());
+
 		// Handle HierachicalLOD volumes first
 		HandleHLODVolumes(InLevel);
 
 		const int32 TotalNumLOD = BuildLODLevelSettings.Num();
 		for(int32 LODId=0; LODId<TotalNumLOD; ++LODId)
-		{
-			
+		{			
 			// we use meter for bound. Otherwise it's very easy to get to overflow and have problem with filling ratio because
 			// bound is too huge
 			const float DesiredBoundRadius = BuildLODLevelSettings[LODId].DesiredBoundRadius * CM_TO_METER;
@@ -178,19 +183,19 @@ void FHierarchicalLODBuilder::InitializeClusters(ULevel* InLevel, const int32 LO
 
 					if (!bAdded)
 					{
-						GenerationActors.Add(Actor);
+						ValidStaticMeshActorsInLevel.Add(Actor);
 					}
 				}
 			}
 			
 			// Create clusters using actor pairs
-			for (int32 ActorId = 0; ActorId<GenerationActors.Num(); ++ActorId)
+			for (int32 ActorId = 0; ActorId<ValidStaticMeshActorsInLevel.Num(); ++ActorId)
 			{
-				AActor* Actor1 = GenerationActors[ActorId];
+				AActor* Actor1 = ValidStaticMeshActorsInLevel[ActorId];
 
-				for (int32 SubActorId = ActorId + 1; SubActorId<GenerationActors.Num(); ++SubActorId)
+				for (int32 SubActorId = ActorId + 1; SubActorId<ValidStaticMeshActorsInLevel.Num(); ++SubActorId)
 				{
-					AActor* Actor2 = GenerationActors[SubActorId];
+					AActor* Actor2 = ValidStaticMeshActorsInLevel[SubActorId];
 
 					FLODCluster NewClusterCandidate = FLODCluster(Actor1, Actor2);
 					float NewClusterCost = NewClusterCandidate.GetCost();
@@ -208,27 +213,31 @@ void FHierarchicalLODBuilder::InitializeClusters(ULevel* InLevel, const int32 LO
 
 			// we filter the LOD index first
 			TArray<AActor*> Actors;
-			for(int32 ActorId=0; ActorId<InLevel->Actors.Num(); ++ActorId)
+
+			Actors.Append(LODLevelLODActors[LODIdx - 1]);
+			Actors.Append(ValidStaticMeshActorsInLevel);
+
+			/*for(int32 ActorId=0; ActorId<InLevel->Actors.Num(); ++ActorId)
 			{
-				AActor* Actor = (InLevel->Actors[ActorId]);
+			AActor* Actor = (InLevel->Actors[ActorId]);
 
-				if (Actor)
-				{
-					if (Actor->IsA(ALODActor::StaticClass()))
-					{
-						ALODActor* LODActor = CastChecked<ALODActor>(Actor);
+			if (Actor)
+			{
+			if (Actor->IsA(ALODActor::StaticClass()))
+			{
+			ALODActor* LODActor = CastChecked<ALODActor>(Actor);
 
-						if (LODActor->LODLevel == LODIdx && ((bPreviewBuild && !LODActor->GetStaticMeshComponent()->StaticMesh) || !bPreviewBuild ))
-						{
-							Actors.Add(Actor);
-						}
-					}
-					else if (ShouldGenerateCluster(Actor, bPreviewBuild))
-					{
-						Actors.Add(Actor);
-					}
-				}				
+			if (LODActor->LODLevel == LODIdx && ((bPreviewBuild && !LODActor->GetStaticMeshComponent()->StaticMesh) || !bPreviewBuild ))
+			{
+			Actors.Add(Actor);
 			}
+			}
+			else if (ShouldGenerateCluster(Actor, bPreviewBuild))
+			{
+			Actors.Add(Actor);
+			}
+			}
+			}*/
 			
 			// first we generate graph with 2 pair nodes
 			// this is very expensive when we have so many actors
@@ -472,17 +481,12 @@ void FHierarchicalLODBuilder::DeleteLODActors(ULevel* InLevel, const bool bPrevi
 
 void FHierarchicalLODBuilder::BuildMeshForLODActor(ALODActor* LODActor, const uint32 LODLevel)
 {
-	FScopedSlowTask SlowTask(100, (LOCTEXT("HierarchicalLOD_BuildLODActorMeshes", "Building LODActor Mesh")));
-	SlowTask.MakeDialog();
-
 	AWorldSettings* WorldSetting = World->GetWorldSettings();
 	BuildLODLevelSettings = WorldSetting->HierarchicalLODSetup;
 	UPackage* AssetsOuter = LODActor->GetLevel()->GetOutermost();
 
 	const bool bResult = HierarchicalLODUtils::BuildStaticMeshForLODActor(LODActor, AssetsOuter, BuildLODLevelSettings[LODLevel], LODLevel);
 	check(bResult);
-
-	SlowTask.EnterProgressFrame(100.0f);
 }
 
 void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const int32 LODIdx, float HighestCost, int32 MinNumActors, const bool bCreateMeshes)
@@ -594,9 +598,19 @@ void FHierarchicalLODBuilder::MergeClustersAndBuildActors(ULevel* InLevel, const
 
 					if (Cluster.Actors.Num() >= MinNumActors)
 					{
-						Cluster.BuildActor(InLevel, LODIdx, bCreateMeshes);
+						ALODActor* LODActor = Cluster.BuildActor(InLevel, LODIdx, bCreateMeshes);
+						if (LODActor)
+						{
+							LODLevelLODActors[LODIdx].Add(LODActor);
+						}
+						 
+						for (auto& RemoveActor : Cluster.Actors)
+						{
+							ValidStaticMeshActorsInLevel.Remove(RemoveActor);
+						}
+						
 					}
-				}
+				}				
 			}
 		}
 	}

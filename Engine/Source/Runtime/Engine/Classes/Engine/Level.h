@@ -245,7 +245,7 @@ struct ENGINE_API FLevelSimplificationDetails
 
 	/** Static mesh material simplification */
 	UPROPERTY(Category=StaticMesh, EditAnywhere)
-	FMaterialSimplificationSettings StaticMeshMaterial;
+	FMaterialProxySettings StaticMeshMaterial;
 
 	UPROPERTY()
 	bool bOverrideLandscapeExportLOD;

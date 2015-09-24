@@ -26,7 +26,7 @@ namespace HLODOutliner
 		virtual void OnDrop(FDragDropPayload& DraggedObjects, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget) override;
 	private:
 		/** Move a static mesh actor to a different LODActor (cluster) */
-		void MoveToCluster(AActor* InActor, ALODActor* NewParentActor);
+		void MoveToCluster(AActor* InActor, ALODActor* OldParentActor, ALODActor* NewParentActor);
 
 		/** Add a static mesh actor to a LODActor (cluster) */
 		void AddToCluster(AActor* InActor, ALODActor* NewParentActor);

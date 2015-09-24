@@ -7,38 +7,42 @@
 void FMeshProxySettings::PostLoadDeprecated()
 {
 	FMeshProxySettings DefaultObject;
-	
-	if (TextureWidth_DEPRECATED != DefaultObject.TextureHeight_DEPRECATED)
+
+	if (TextureWidth_DEPRECATED != DefaultObject.TextureWidth_DEPRECATED)
 	{
-		Material.BaseColorMapSize.X = TextureWidth_DEPRECATED;
-		Material.NormalMapSize.X = TextureWidth_DEPRECATED;
-		Material.MetallicMapSize.X = TextureWidth_DEPRECATED;
-		Material.RoughnessMapSize.X = TextureWidth_DEPRECATED;
-		Material.SpecularMapSize.X = TextureWidth_DEPRECATED;
+		MaterialSettings.TextureSize.X = TextureWidth_DEPRECATED;
 	}
 	if (TextureHeight_DEPRECATED != DefaultObject.TextureHeight_DEPRECATED)
 	{
-		Material.BaseColorMapSize.Y = TextureHeight_DEPRECATED;
-		Material.NormalMapSize.Y = TextureHeight_DEPRECATED;
-		Material.MetallicMapSize.Y = TextureHeight_DEPRECATED;
-		Material.RoughnessMapSize.Y = TextureHeight_DEPRECATED;
-		Material.SpecularMapSize.Y = TextureHeight_DEPRECATED;
+		MaterialSettings.TextureSize.Y = TextureHeight_DEPRECATED;
 	}
 	if (bExportNormalMap_DEPRECATED != DefaultObject.bExportNormalMap_DEPRECATED)
 	{
-		Material.bNormalMap = bExportNormalMap_DEPRECATED;
+		MaterialSettings.bNormalMap = bExportNormalMap_DEPRECATED;
 	}
 	if (bExportMetallicMap_DEPRECATED != DefaultObject.bExportMetallicMap_DEPRECATED)
 	{
-		Material.bMetallicMap = bExportMetallicMap_DEPRECATED;
+		MaterialSettings.bMetallicMap = bExportMetallicMap_DEPRECATED;
 	}
 	if (bExportRoughnessMap_DEPRECATED != DefaultObject.bExportRoughnessMap_DEPRECATED)
 	{
-		Material.bRoughnessMap = bExportRoughnessMap_DEPRECATED;
+		MaterialSettings.bRoughnessMap = bExportRoughnessMap_DEPRECATED;
 	}
 	if (bExportSpecularMap_DEPRECATED != DefaultObject.bExportSpecularMap_DEPRECATED)
 	{
-		Material.bSpecularMap = bExportSpecularMap_DEPRECATED;
+		MaterialSettings.bSpecularMap = bExportSpecularMap_DEPRECATED;
+	}
+
+	if (!(Material_DEPRECATED == DefaultObject.Material_DEPRECATED))
+	{
+		MaterialSettings.TextureSize = Material_DEPRECATED.BaseColorMapSize;
+		MaterialSettings.bNormalMap = Material_DEPRECATED.bNormalMap;
+		MaterialSettings.bMetallicMap = Material_DEPRECATED.bMetallicMap;
+		MaterialSettings.bRoughnessMap = Material_DEPRECATED.bRoughnessMap;
+		MaterialSettings.bSpecularMap = Material_DEPRECATED.bSpecularMap;
+		MaterialSettings.RoughnessConstant = Material_DEPRECATED.RoughnessConstant;
+		MaterialSettings.MetallicConstant = Material_DEPRECATED.MetallicConstant;
+		MaterialSettings.SpecularConstant = Material_DEPRECATED.SpecularConstant;
 	}
 }
 

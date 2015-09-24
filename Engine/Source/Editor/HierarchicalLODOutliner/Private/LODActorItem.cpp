@@ -262,7 +262,7 @@ void HLODOutliner::FLODActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 		for (int32 ActorIndex = 0; ActorIndex < DraggedStaticMeshActors.Num(); ++ActorIndex)
 		{
 			auto Actor = DraggedStaticMeshActors[ActorIndex];
-			MoveToCluster(Actor.Get(), LODActor.Get());
+			MoveToCluster(Actor.Get(), nullptr, LODActor.Get());
 		}
 	}
 	else if (ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_CompatibleAddToCluster || ValidationInfo.TooltipType == FHLODOutlinerDragDropOp::ToolTip_MultipleSelection_CompatibleAddToCluster)
@@ -286,16 +286,16 @@ void HLODOutliner::FLODActorDropTarget::OnDrop(FDragDropPayload& DraggedObjects,
 		for (int32 ActorIndex = 0; ActorIndex < DraggedLODActors.Num(); ++ActorIndex)
 		{
 			auto Actor = DraggedLODActors[ActorIndex];
-			MoveToCluster(Actor.Get(), LODActor.Get());
+			MoveToCluster(Actor.Get(), nullptr, LODActor.Get());
 		}
 	}
 }
 
-void HLODOutliner::FLODActorDropTarget::MoveToCluster(AActor* InActor, ALODActor* NewParentActor)
+void HLODOutliner::FLODActorDropTarget::MoveToCluster(AActor* InActor, ALODActor* OldParentActor, ALODActor* NewParentActor)
 {
 	const FScopedTransaction Transaction(LOCTEXT("UndoAction_MoveActorBetweenClusters", "Move Actor between Clusters"));
 	InActor->Modify();
-	ALODActor* CurrentParentActor = HierarchicalLODUtils::GetParentLODActor(InActor);
+	ALODActor* CurrentParentActor = (OldParentActor) ? OldParentActor : HierarchicalLODUtils::GetParentLODActor(InActor);
 	if (CurrentParentActor)
 	{
 		CurrentParentActor->Modify();
@@ -327,7 +327,7 @@ void HLODOutliner::FLODActorDropTarget::MergeCluster(ALODActor* ToMergeActor)
 	while (ToMergeActor->SubActors.Num())
 	{
 		AActor* SubActor = ToMergeActor->SubActors.Last();
-		MoveToCluster(SubActor, LODActor.Get());
+		MoveToCluster(SubActor, ToMergeActor, LODActor.Get());
 	}
 }
 

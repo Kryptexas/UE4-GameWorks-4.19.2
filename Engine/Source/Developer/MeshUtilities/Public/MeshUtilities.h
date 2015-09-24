@@ -53,12 +53,11 @@ class IMeshMerging
 {
 public:
 	virtual void BuildProxy(
-		const TArray<FRawMesh>& InputMeshes,
-		const TArray<FFlattenMaterial>& InputMaterials,
+		const TArray<UStaticMeshComponent*> InputStaticMeshComponents,
 		const struct FMeshProxySettings& InProxySettings,
 		FRawMesh& OutProxyMesh,
-		FFlattenMaterial& OutMaterial
-		) = 0;
+		FFlattenMaterial& OutMaterial,
+		FBox& OutProxyBox) = 0;
 };
 
 
@@ -265,4 +264,6 @@ public:
 	*/
 	virtual void ExtractMeshDataForGeometryCache(FRawMesh& RawMesh, const FMeshBuildSettings& BuildSettings, TArray<FStaticMeshBuildVertex>& OutVertices, TArray<TArray<uint32> >& OutPerSectionIndices) = 0;
 
+
+	virtual bool PropagatePaintedColorsToRawMesh(UStaticMeshComponent* StaticMeshComponent, int32 LODIndex, FRawMesh& RawMesh) const = 0;
 };

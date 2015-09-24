@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "GameFramework/Actor.h"
 #include "LODActor.generated.h"
 
 /**
@@ -10,6 +11,7 @@
  * @see https://docs.unrealengine.com/latest/INT/Engine/Actors/LODActor/
  * @see UStaticMesh
  */
+
 UCLASS(notplaceable, hidecategories = (Object, Collision, Display, Input, Blueprint, Transform))
 class ENGINE_API ALODActor : public AActor
 {

@@ -17,7 +17,9 @@ public class SimplygonMeshReduction : ModuleRules
 		AddThirdPartyPrivateStaticDependencies(Target, "Simplygon");
 		PrivateDependencyModuleNames.Add("RawMesh");
 		PrivateIncludePathModuleNames.Add("MeshUtilities");
-        PrivateIncludePathModuleNames.Add("MaterialUtilities");
+        PrivateDependencyModuleNames.Add("MaterialUtilities");
         PrivateDependencyModuleNames.Add("MeshBoneReduction");
+        PrivateDependencyModuleNames.Add("RHI");
+        PrivateDependencyModuleNames.Add("SimplygonUtilities");
 	}
 }

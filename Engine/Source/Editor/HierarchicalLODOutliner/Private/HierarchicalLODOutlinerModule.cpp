@@ -16,7 +16,7 @@ void FHierarchicalLODOutlinerModule::ShutdownModule()
 	if (GUnrealEd)
 	{
 		GUnrealEd->OnHLODLevelsArrayChanged().Remove(ArrayChangedDelegate);
-	}	
+	}
 }
 
 void FHierarchicalLODOutlinerModule::OnHLODLevelsArrayChangedEvent()
