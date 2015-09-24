@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 		WinRT_ARM,
 		IOS,
 		HTML5,
-        Linux,
+		Linux,
 	}
 
 	/** The optimization level that may be compilation targets for C++ files. */
@@ -114,8 +114,8 @@ namespace UnrealBuildTool
 
 			public TargetInfo(TargetInfo Target)
 			{
-				Platform      = Target.Platform;
-				Architecture  = Target.Architecture;
+				Platform = Target.Platform;
+				Architecture = Target.Architecture;
 				Configuration = Target.Configuration;
 			}
 		}
@@ -170,7 +170,7 @@ namespace UnrealBuildTool
 		{
 			Target = new TargetInfo(Configuration.Target);
 		}
-		
+
 	}
 
 	/** Encapsulates the configuration of an environment that a C++ file is compiled in. */
@@ -206,8 +206,8 @@ namespace UnrealBuildTool
 		/** Enable buffer security checks.   This should usually be enabled as it prevents severe security risks. */
 		public bool bEnableBufferSecurityChecks = true;
 
-        /** If true and unity builds are enabled, this module will build without unity. */
-        public bool bFasterWithoutUnity = false;
+		/** If true and unity builds are enabled, this module will build without unity. */
+		public bool bFasterWithoutUnity = false;
 
 		/** The number of source files in this module before unity build will be activated for that module.  If set to
 		    anything besides -1, will override the default setting which is controlled by MinGameModuleSourceFilesForUnityBuild */
@@ -252,8 +252,8 @@ namespace UnrealBuildTool
 		/** Full path and file name of .NET framework assemblies we're referencing */
 		public List<string> FrameworkAssemblyDependencies = new List<string>();
 
- 		/** List of private CLR assemblies that, when modified, will force recompilation of any CLR source files */
- 		public List<PrivateAssemblyInfoConfiguration> PrivateAssemblyDependencies = new List<PrivateAssemblyInfoConfiguration>();
+		/** List of private CLR assemblies that, when modified, will force recompilation of any CLR source files */
+		public List<PrivateAssemblyInfoConfiguration> PrivateAssemblyDependencies = new List<PrivateAssemblyInfoConfiguration>();
 
 		/** The C++ preprocessor definitions to use. */
 		public List<string> Definitions = new List<string>();
@@ -270,37 +270,37 @@ namespace UnrealBuildTool
 		}
 
 		/** Copy constructor. */
-		public CPPEnvironmentConfiguration(CPPEnvironmentConfiguration InCopyEnvironment):
+		public CPPEnvironmentConfiguration(CPPEnvironmentConfiguration InCopyEnvironment) :
 			base(InCopyEnvironment)
 		{
-			OutputDirectory                        = InCopyEnvironment.OutputDirectory;
-			LocalShadowDirectory                   = InCopyEnvironment.LocalShadowDirectory;
-			PCHHeaderNameInCode                    = InCopyEnvironment.PCHHeaderNameInCode;
-			PrecompiledHeaderIncludeFilename       = InCopyEnvironment.PrecompiledHeaderIncludeFilename;
-			PrecompiledHeaderAction                = InCopyEnvironment.PrecompiledHeaderAction;
-			bForceIncludePrecompiledHeader         = InCopyEnvironment.bForceIncludePrecompiledHeader;
-			bUseRTTI                               = InCopyEnvironment.bUseRTTI;
-			bUseAVX                                = InCopyEnvironment.bUseAVX;
-			bFasterWithoutUnity                    = InCopyEnvironment.bFasterWithoutUnity;
-			MinSourceFilesForUnityBuildOverride	   = InCopyEnvironment.MinSourceFilesForUnityBuildOverride;
+			OutputDirectory = InCopyEnvironment.OutputDirectory;
+			LocalShadowDirectory = InCopyEnvironment.LocalShadowDirectory;
+			PCHHeaderNameInCode = InCopyEnvironment.PCHHeaderNameInCode;
+			PrecompiledHeaderIncludeFilename = InCopyEnvironment.PrecompiledHeaderIncludeFilename;
+			PrecompiledHeaderAction = InCopyEnvironment.PrecompiledHeaderAction;
+			bForceIncludePrecompiledHeader = InCopyEnvironment.bForceIncludePrecompiledHeader;
+			bUseRTTI = InCopyEnvironment.bUseRTTI;
+			bUseAVX = InCopyEnvironment.bUseAVX;
+			bFasterWithoutUnity = InCopyEnvironment.bFasterWithoutUnity;
+			MinSourceFilesForUnityBuildOverride = InCopyEnvironment.MinSourceFilesForUnityBuildOverride;
 			MinFilesUsingPrecompiledHeaderOverride = InCopyEnvironment.MinFilesUsingPrecompiledHeaderOverride;
-			bBuildLocallyWithSNDBS				   = InCopyEnvironment.bBuildLocallyWithSNDBS;
-			bEnableExceptions                      = InCopyEnvironment.bEnableExceptions;
-			bEnableShadowVariableWarning          = InCopyEnvironment.bEnableShadowVariableWarning;
-			OptimizeCode                           = InCopyEnvironment.OptimizeCode;
-			bCreateDebugInfo                       = InCopyEnvironment.bCreateDebugInfo;
-			bIsBuildingLibrary                     = InCopyEnvironment.bIsBuildingLibrary;
-			bIsBuildingDLL                         = InCopyEnvironment.bIsBuildingDLL;
-			bUseStaticCRT						   = InCopyEnvironment.bUseStaticCRT;
-			CLRMode                                = InCopyEnvironment.CLRMode;
-			CPPIncludeInfo.IncludePaths            .UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
-			CPPIncludeInfo.SystemIncludePaths      .UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
-			SystemDotNetAssemblyPaths    .AddRange(InCopyEnvironment.SystemDotNetAssemblyPaths);
+			bBuildLocallyWithSNDBS = InCopyEnvironment.bBuildLocallyWithSNDBS;
+			bEnableExceptions = InCopyEnvironment.bEnableExceptions;
+			bEnableShadowVariableWarning = InCopyEnvironment.bEnableShadowVariableWarning;
+			OptimizeCode = InCopyEnvironment.OptimizeCode;
+			bCreateDebugInfo = InCopyEnvironment.bCreateDebugInfo;
+			bIsBuildingLibrary = InCopyEnvironment.bIsBuildingLibrary;
+			bIsBuildingDLL = InCopyEnvironment.bIsBuildingDLL;
+			bUseStaticCRT = InCopyEnvironment.bUseStaticCRT;
+			CLRMode = InCopyEnvironment.CLRMode;
+			CPPIncludeInfo.IncludePaths.UnionWith(InCopyEnvironment.CPPIncludeInfo.IncludePaths);
+			CPPIncludeInfo.SystemIncludePaths.UnionWith(InCopyEnvironment.CPPIncludeInfo.SystemIncludePaths);
+			SystemDotNetAssemblyPaths.AddRange(InCopyEnvironment.SystemDotNetAssemblyPaths);
 			FrameworkAssemblyDependencies.AddRange(InCopyEnvironment.FrameworkAssemblyDependencies);
- 			PrivateAssemblyDependencies  .AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
-			Definitions                  .AddRange(InCopyEnvironment.Definitions);
-			AdditionalArguments                    = InCopyEnvironment.AdditionalArguments;
-			AdditionalFrameworks		 .AddRange(InCopyEnvironment.AdditionalFrameworks);
+			PrivateAssemblyDependencies.AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
+			Definitions.AddRange(InCopyEnvironment.Definitions);
+			AdditionalArguments = InCopyEnvironment.AdditionalArguments;
+			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
 		}
 	}
 
@@ -345,15 +345,15 @@ namespace UnrealBuildTool
 
 		/** Default constructor. */
 		public CPPEnvironment()
-		{}
+		{ }
 
 		/** Copy constructor. */
 		protected CPPEnvironment(CPPEnvironment InCopyEnvironment)
 		{
 			PrecompiledHeaderFile = InCopyEnvironment.PrecompiledHeaderFile;
 			PrivateAssemblyDependencies.AddRange(InCopyEnvironment.PrivateAssemblyDependencies);
-			SharedPCHHeaderFiles.AddRange( InCopyEnvironment.SharedPCHHeaderFiles );
-			SharedPCHEnvironments.AddRange( InCopyEnvironment.SharedPCHEnvironments );
+			SharedPCHHeaderFiles.AddRange(InCopyEnvironment.SharedPCHHeaderFiles);
+			SharedPCHEnvironments.AddRange(InCopyEnvironment.SharedPCHEnvironments);
 			bHackHeaderGenerator = InCopyEnvironment.bHackHeaderGenerator;
 
 			Config = new CPPEnvironmentConfiguration(InCopyEnvironment.Config);
@@ -369,11 +369,11 @@ namespace UnrealBuildTool
 			return UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Config.Target.Platform).ShouldUsePCHFiles(Config.Target.Platform, Config.Target.Configuration);
 		}
 
-		public void AddPrivateAssembly( string FilePath )
+		public void AddPrivateAssembly(string FilePath)
 		{
 			PrivateAssemblyInfo NewPrivateAssembly = new PrivateAssemblyInfo();
-			NewPrivateAssembly.FileItem = FileItem.GetItemByPath( FilePath );
-			PrivateAssemblyDependencies.Add( NewPrivateAssembly );
+			NewPrivateAssembly.FileItem = FileItem.GetItemByPath(FilePath);
+			PrivateAssemblyDependencies.Add(NewPrivateAssembly);
 		}
 
 		/// <summary>

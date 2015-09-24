@@ -94,7 +94,7 @@ namespace UnrealBuildTool
 			RulesAssembly EngineRulesAssembly = RulesCompiler.CreateEngineRulesAssembly();
 
 			// Find all modules referenced by the current target
-			List<FileReference> ModuleFileNames = RulesCompiler.FindAllRulesSourceFiles( RulesCompiler.RulesFileType.Module, GameFolders:null, ForeignPlugins:null, AdditionalSearchPaths:null );
+			List<FileReference> ModuleFileNames = RulesCompiler.FindAllRulesSourceFiles(RulesCompiler.RulesFileType.Module, GameFolders: null, ForeignPlugins: null, AdditionalSearchPaths: null);
 			foreach (FileReference ModuleFileName in ModuleFileNames)
 			{
 				string ModuleName = Path.GetFileNameWithoutExtension(ModuleFileName.GetFileNameWithoutExtension());
@@ -112,7 +112,7 @@ namespace UnrealBuildTool
 					}
 				}
 				catch (Exception)
-				{ 
+				{
 					// Ignore, some modules may fail here.
 					UncheckedModules.Add(ModuleName);
 				}

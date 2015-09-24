@@ -216,7 +216,7 @@ namespace UnrealBuildTool
 			//       the environment that UBT is building in.  We'll set these environment variables ourselves!
 			// NOTE: We don't touch 'ExecutablePath' because that would result in Visual Studio clobbering the system "Path"
 			//       environment variable
-			string PathsLines = 
+			string PathsLines =
 				"		<IncludePath />\n" +
 				"		<ReferencePath />\n" +
 				"		<LibraryPath />\n" +
@@ -259,7 +259,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	string				The output manifest section for the project file; Empty string if it doesn't require one
 		 */
-        public virtual string GetVisualStudioOutputManifestSection(UnrealTargetPlatform InPlatform, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath)
+		public virtual string GetVisualStudioOutputManifestSection(UnrealTargetPlatform InPlatform, TargetRules.TargetType TargetType, FileReference TargetRulesPath, FileReference ProjectFilePath)
 		{
 			return "";
 		}

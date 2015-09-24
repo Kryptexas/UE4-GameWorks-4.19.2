@@ -127,7 +127,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">The path to the project file on disk</param>
 		public XcodeProjectFile(FileReference InitFilePath)
-			: base( InitFilePath )
+			: base(InitFilePath)
 		{
 		}
 
@@ -137,10 +137,10 @@ namespace UnrealBuildTool
 			// @todo Mac: Handle more categories
 			switch (Extension)
 			{
-			case ".framework":
-				return "Frameworks";
-			default:
-				return "Sources";
+				case ".framework":
+					return "Frameworks";
+				default:
+					return "Sources";
 			}
 		}
 
@@ -150,21 +150,21 @@ namespace UnrealBuildTool
 			// @todo Mac: Handle more file types
 			switch (Extension)
 			{
-			case ".c":
-			case ".m":
-				return "sourcecode.c.objc";
-			case ".cc":
-			case ".cpp":
-			case ".mm":
-				return "sourcecode.cpp.objcpp";
-			case ".h":
-			case ".inl":
-			case ".pch":
-				return "sourcecode.c.h";
-			case ".framework":
-				return "wrapper.framework";
-			default:
-				return "file.text";
+				case ".c":
+				case ".m":
+					return "sourcecode.c.objc";
+				case ".cc":
+				case ".cpp":
+				case ".mm":
+					return "sourcecode.cpp.objcpp";
+				case ".h":
+				case ".inl":
+				case ".pch":
+					return "sourcecode.c.h";
+				case ".framework":
+					return "wrapper.framework";
+				default:
+					return "file.text";
 			}
 		}
 

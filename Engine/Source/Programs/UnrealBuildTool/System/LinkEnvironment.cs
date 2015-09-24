@@ -113,7 +113,7 @@ namespace UnrealBuildTool
 		}
 
 		/** Copy constructor. */
-		public LinkEnvironmentConfiguration(LinkEnvironmentConfiguration InCopyEnvironment):
+		public LinkEnvironmentConfiguration(LinkEnvironmentConfiguration InCopyEnvironment) :
 			base(InCopyEnvironment)
 		{
 			OutputDirectory = InCopyEnvironment.OutputDirectory;
@@ -124,7 +124,7 @@ namespace UnrealBuildTool
 			ExcludedLibraries.AddRange(InCopyEnvironment.ExcludedLibraries);
 			AdditionalLibraries.AddRange(InCopyEnvironment.AdditionalLibraries);
 			Frameworks.AddRange(InCopyEnvironment.Frameworks);
-			AdditionalShadowFiles.AddRange( InCopyEnvironment.AdditionalShadowFiles );
+			AdditionalShadowFiles.AddRange(InCopyEnvironment.AdditionalShadowFiles);
 			AdditionalFrameworks.AddRange(InCopyEnvironment.AdditionalFrameworks);
 			WeakFrameworks.AddRange(InCopyEnvironment.WeakFrameworks);
 			AdditionalBundleResources.AddRange(InCopyEnvironment.AdditionalBundleResources);
@@ -175,7 +175,7 @@ namespace UnrealBuildTool
 		/// Performs a deep copy of this LinkEnvironment object.
 		/// </summary>
 		/// <returns>Copied new LinkEnvironment object.</returns>
-		public virtual LinkEnvironment DeepCopy ()
+		public virtual LinkEnvironment DeepCopy()
 		{
 			return new LinkEnvironment(this);
 		}

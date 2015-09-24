@@ -37,10 +37,10 @@ namespace UnrealBuildTool
 		[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 		public class ProviderAttribute : Attribute
 		{
-            /// <summary>
-            /// If true, this provider is only created for Epic internal builds.
-            /// </summary>
-            public bool bEpicInternalOnly;
+			/// <summary>
+			/// If true, this provider is only created for Epic internal builds.
+			/// </summary>
+			public bool bEpicInternalOnly;
 		}
 
 		/// <summary>
@@ -64,26 +64,26 @@ namespace UnrealBuildTool
 		public static void Initialize()
 		{
 			var TelemetryInitStartTime = DateTime.UtcNow;
-            
-            // only collect telemetry on Epic builds
-            bool bIsEpicInternal = File.Exists(@"..\Build\NotForLicensees\EpicInternal.txt");
 
-            // reflect over the assembly and find the first eligible provider class.
-            Provider =
-                (from reflectionAssembly in AppDomain.CurrentDomain.GetReferencingAssemblies(Assembly.GetExecutingAssembly())
-                    from T in reflectionAssembly.GetTypes()
-                    // type must implement interface, contain the attribute, be concrete and default constructible.
-                    where T.IsDefined(typeof(ProviderAttribute), true) && T.GetInterfaces().Contains(typeof(IProvider)) && T.IsClass && !T.IsAbstract && T.GetConstructor(Type.EmptyTypes) != null
-                    // if it's an epic internal build, it's ok to use epic internal providers.
-                    where bIsEpicInternal || !T.GetCustomAttribute<ProviderAttribute>().bEpicInternalOnly
-                    // create the instance
-                    select (IProvider)Activator.CreateInstance(T)).FirstOrDefault();
+			// only collect telemetry on Epic builds
+			bool bIsEpicInternal = File.Exists(@"..\Build\NotForLicensees\EpicInternal.txt");
 
-            if (BuildConfiguration.bPrintPerformanceInfo)
-            {
-                var TelemetryInitTime = (DateTime.UtcNow - TelemetryInitStartTime).TotalSeconds;
-                Log.TraceInformation("Telemetry initialization took " + TelemetryInitTime + "s");
-            }
+			// reflect over the assembly and find the first eligible provider class.
+			Provider =
+				(from reflectionAssembly in AppDomain.CurrentDomain.GetReferencingAssemblies(Assembly.GetExecutingAssembly())
+				 from T in reflectionAssembly.GetTypes()
+				 // type must implement interface, contain the attribute, be concrete and default constructible.
+				 where T.IsDefined(typeof(ProviderAttribute), true) && T.GetInterfaces().Contains(typeof(IProvider)) && T.IsClass && !T.IsAbstract && T.GetConstructor(Type.EmptyTypes) != null
+				 // if it's an epic internal build, it's ok to use epic internal providers.
+				 where bIsEpicInternal || !T.GetCustomAttribute<ProviderAttribute>().bEpicInternalOnly
+				 // create the instance
+				 select (IProvider)Activator.CreateInstance(T)).FirstOrDefault();
+
+			if (BuildConfiguration.bPrintPerformanceInfo)
+			{
+				var TelemetryInitTime = (DateTime.UtcNow - TelemetryInitStartTime).TotalSeconds;
+				Log.TraceInformation("Telemetry initialization took " + TelemetryInitTime + "s");
+			}
 		}
 
 		/// <summary>

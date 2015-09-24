@@ -31,10 +31,10 @@ namespace UnrealBuildTool
 		 */
 		bool CanUseDistcc();
 
-        /**
-         * If this platform can be compiled with SN-DBS
-         */
-        bool CanUseSNDBS();
+		/**
+		 * If this platform can be compiled with SN-DBS
+		 */
+		bool CanUseSNDBS();
 
 		/**
 		 * Register the platform with the UEBuildPlatform class
@@ -46,7 +46,7 @@ namespace UnrealBuildTool
 		 */
 		void ManageAndValidateSDK();
 
-        /**
+		/**
 		 * Retrieve the CPPTargetPlatform for the given UnrealTargetPlatform
 		 *
 		 * @param InUnrealTargetPlatform The UnrealTargetPlatform being build
@@ -466,13 +466,13 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-        /**
-         *	If this platform can be compiled with SN-DBS
-         */
-        public virtual bool CanUseSNDBS()
-        {
-            return false;
-        }
+		/**
+		 *	If this platform can be compiled with SN-DBS
+		 */
+		public virtual bool CanUseSNDBS()
+		{
+			return false;
+		}
 
 		/**
 		 *	Register the platform with the UEBuildPlatform class
@@ -953,42 +953,42 @@ namespace UnrealBuildTool
 
 			// look at all bool values
 			if (BoolKeys != null) foreach (string Key in BoolKeys)
-			{
-				bool Default = false, Project = false;
-				DefaultIni.GetBool(Section, Key, out Default);
-				ProjIni.GetBool(Section, Key, out Project);
-				if (Default != Project)
 				{
-					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
-					return false;
+					bool Default = false, Project = false;
+					DefaultIni.GetBool(Section, Key, out Default);
+					ProjIni.GetBool(Section, Key, out Project);
+					if (Default != Project)
+					{
+						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						return false;
+					}
 				}
-			}
 
 			// look at all int values
 			if (IntKeys != null) foreach (string Key in IntKeys)
-			{
-				int Default = 0, Project = 0;
-				DefaultIni.GetInt32(Section, Key, out Default);
-				ProjIni.GetInt32(Section, Key, out Project);
-				if (Default != Project)
 				{
-					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
-					return false;
+					int Default = 0, Project = 0;
+					DefaultIni.GetInt32(Section, Key, out Default);
+					ProjIni.GetInt32(Section, Key, out Project);
+					if (Default != Project)
+					{
+						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						return false;
+					}
 				}
-			}
 
 			// look for all string values
 			if (StringKeys != null) foreach (string Key in StringKeys)
-			{
-				string Default = "", Project = "";
-				DefaultIni.GetString(Section, Key, out Default);
-				ProjIni.GetString(Section, Key, out Project);
-				if (Default != Project)
 				{
-					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
-					return false;
+					string Default = "", Project = "";
+					DefaultIni.GetString(Section, Key, out Default);
+					ProjIni.GetString(Section, Key, out Project);
+					if (Default != Project)
+					{
+						Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
+						return false;
+					}
 				}
-			}
 
 			// if we get here, we match all important settings
 			return true;
@@ -1238,7 +1238,7 @@ namespace UnrealBuildTool
 					{
 						Writer.WriteLine(InstalledSDKVersionString);
 						Writer.WriteLine("ManualSDK");
-					}					
+					}
 				}
 			}
 		}
@@ -1294,7 +1294,7 @@ namespace UnrealBuildTool
 			if (!IsAutoSDKSafe())
 			{
 				Console.ForegroundColor = ConsoleColor.Red;
-				LogAutoSDK( GetSDKTargetPlatformName() + " attempted to run SDK hook which could have damaged manual SDK install!");				
+				LogAutoSDK(GetSDKTargetPlatformName() + " attempted to run SDK hook which could have damaged manual SDK install!");
 				Console.ResetColor();
 
 				return false;
@@ -1307,7 +1307,7 @@ namespace UnrealBuildTool
 				if (File.Exists(HookExe))
 				{
 					LogAutoSDK("Running {0} hook {1}", Hook, HookExe);
-					
+
 					// run it
 					Process HookProcess = new Process();
 					HookProcess.StartInfo.WorkingDirectory = SDKDirectory;
@@ -1441,7 +1441,7 @@ namespace UnrealBuildTool
 						{
 							if (PathVar.IndexOf(PathRemove, StringComparison.OrdinalIgnoreCase) >= 0)
 							{
-								LogAutoSDK("Removing Path: '{0}'", PathVar);								
+								LogAutoSDK("Removing Path: '{0}'", PathVar);
 								ModifiedPathVars.Remove(PathVar);
 							}
 						}
@@ -1455,7 +1455,7 @@ namespace UnrealBuildTool
 						{
 							if (String.Compare(PathAdd, PathVar, true) == 0)
 							{
-								LogAutoSDK("Removing Path: '{0}'", PathVar);								
+								LogAutoSDK("Removing Path: '{0}'", PathVar);
 								ModifiedPathVars.Remove(PathVar);
 							}
 						}
@@ -1466,7 +1466,7 @@ namespace UnrealBuildTool
 					{
 						if (!ModifiedPathVars.Contains(PathAdd))
 						{
-							LogAutoSDK("Adding Path: '{0}'", PathAdd);							
+							LogAutoSDK("Adding Path: '{0}'", PathAdd);
 							ModifiedPathVars.Add(PathAdd);
 						}
 					}

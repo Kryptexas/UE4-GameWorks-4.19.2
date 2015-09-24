@@ -55,12 +55,12 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Cache of plugins under each directory
 		/// </summary>
-		static Dictionary<DirectoryReference, List<PluginInfo>> PluginInfoCache = new Dictionary<DirectoryReference,List<PluginInfo>>();
+		static Dictionary<DirectoryReference, List<PluginInfo>> PluginInfoCache = new Dictionary<DirectoryReference, List<PluginInfo>>();
 
 		/// <summary>
 		/// Cache of plugin filenames under each directory
 		/// </summary>
-		static Dictionary<DirectoryReference, List<FileReference>> PluginFileCache = new Dictionary<DirectoryReference,List<FileReference>>();
+		static Dictionary<DirectoryReference, List<FileReference>> PluginFileCache = new Dictionary<DirectoryReference, List<FileReference>>();
 
 		/// <summary>
 		/// Read all the plugins available to a given project
@@ -77,7 +77,7 @@ namespace UnrealBuildTool
 			Plugins.AddRange(ReadPluginsFromDirectory(EnginePluginsDirectoryName, PluginLoadedFrom.Engine));
 
 			// Read all the project plugins
-			if(ProjectFileName != null)
+			if (ProjectFileName != null)
 			{
 				DirectoryReference ProjectPluginsDir = DirectoryReference.Combine(ProjectFileName.Directory, "Plugins");
 				Plugins.AddRange(ReadPluginsFromDirectory(ProjectPluginsDir, PluginLoadedFrom.GameProject));
@@ -117,10 +117,10 @@ namespace UnrealBuildTool
 		public static IReadOnlyList<PluginInfo> ReadPluginsFromDirectory(DirectoryReference ParentDirectory, PluginLoadedFrom LoadedFrom)
 		{
 			List<PluginInfo> Plugins;
-			if(!PluginInfoCache.TryGetValue(ParentDirectory, out Plugins))
+			if (!PluginInfoCache.TryGetValue(ParentDirectory, out Plugins))
 			{
 				Plugins = new List<PluginInfo>();
-				foreach(FileReference PluginFileName in EnumeratePlugins(ParentDirectory))
+				foreach (FileReference PluginFileName in EnumeratePlugins(ParentDirectory))
 				{
 					PluginInfo Plugin = new PluginInfo(PluginFileName, LoadedFrom);
 					Plugins.Add(Plugin);
@@ -137,10 +137,10 @@ namespace UnrealBuildTool
 		public static IEnumerable<FileReference> EnumeratePlugins(DirectoryReference ParentDirectory)
 		{
 			List<FileReference> FileNames;
-			if(!PluginFileCache.TryGetValue(ParentDirectory, out FileNames))
+			if (!PluginFileCache.TryGetValue(ParentDirectory, out FileNames))
 			{
 				FileNames = new List<FileReference>();
-				if(ParentDirectory.Exists())
+				if (ParentDirectory.Exists())
 				{
 					EnumeratePluginsInternal(ParentDirectory, FileNames);
 				}
@@ -156,14 +156,14 @@ namespace UnrealBuildTool
 		/// <param name="FileNames">List of filenames. Will have all the discovered .uplugin files appended to it.</param>
 		static void EnumeratePluginsInternal(DirectoryReference ParentDirectory, List<FileReference> FileNames)
 		{
-			foreach(DirectoryReference ChildDirectory in ParentDirectory.EnumerateDirectoryReferences())
+			foreach (DirectoryReference ChildDirectory in ParentDirectory.EnumerateDirectoryReferences())
 			{
 				int InitialFileNamesCount = FileNames.Count;
-				foreach(FileReference PluginFile in ChildDirectory.EnumerateFileReferences("*.uplugin"))
+				foreach (FileReference PluginFile in ChildDirectory.EnumerateFileReferences("*.uplugin"))
 				{
 					FileNames.Add(PluginFile);
 				}
-				if(FileNames.Count == InitialFileNamesCount)
+				if (FileNames.Count == InitialFileNamesCount)
 				{
 					EnumeratePluginsInternal(ChildDirectory, FileNames);
 				}

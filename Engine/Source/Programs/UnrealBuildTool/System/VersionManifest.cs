@@ -37,9 +37,9 @@ namespace UnrealBuildTool
 		/// <param name="Other">The manifest to merge in</param>
 		public void Include(VersionManifest Other)
 		{
-			foreach(KeyValuePair<string, string> Pair in Other.ModuleNameToFileName)
+			foreach (KeyValuePair<string, string> Pair in Other.ModuleNameToFileName)
 			{
-				if(!ModuleNameToFileName.ContainsKey(Pair.Key))
+				if (!ModuleNameToFileName.ContainsKey(Pair.Key))
 				{
 					ModuleNameToFileName.Add(Pair.Key, Pair.Value);
 				}
@@ -58,7 +58,7 @@ namespace UnrealBuildTool
 		public static string GetStandardFileName(string AppName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture, bool bIsGameDirectory)
 		{
 			string BaseName = AppName;
-			if(Configuration != UnrealTargetConfiguration.Development && !(Configuration == UnrealTargetConfiguration.DebugGame && !bIsGameDirectory))
+			if (Configuration != UnrealTargetConfiguration.Development && !(Configuration == UnrealTargetConfiguration.DebugGame && !bIsGameDirectory))
 			{
 				BaseName += String.Format("-{0}-{1}", Platform.ToString(), Configuration.ToString());
 			}
@@ -77,7 +77,7 @@ namespace UnrealBuildTool
 			VersionManifest Receipt = new VersionManifest(Object.GetIntegerField("Changelist"), Object.GetStringField("BuildId"));
 
 			JsonObject Modules = Object.GetObjectField("Modules");
-			foreach(string ModuleName in Modules.KeyNames)
+			foreach (string ModuleName in Modules.KeyNames)
 			{
 				Receipt.ModuleNameToFileName.Add(ModuleName, Modules.GetStringField(ModuleName));
 			}
@@ -92,7 +92,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the file was read succesfully.</returns>
 		public static bool TryRead(string FileName, out VersionManifest Result)
 		{
-			if(!File.Exists(FileName))
+			if (!File.Exists(FileName))
 			{
 				Result = null;
 				return false;
@@ -102,7 +102,7 @@ namespace UnrealBuildTool
 				Result = Read(FileName);
 				return true;
 			}
-			catch(Exception)
+			catch (Exception)
 			{
 				Result = null;
 				return false;
@@ -120,7 +120,7 @@ namespace UnrealBuildTool
 		/// <param name="BuildArchitecture">The architecture of the target platform</param>
 		public void Write(string FileName)
 		{
-			using(JsonWriter Writer = new JsonWriter(FileName))
+			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
 				Writer.WriteObjectStart();
 
@@ -128,7 +128,7 @@ namespace UnrealBuildTool
 				Writer.WriteValue("BuildId", BuildId);
 
 				Writer.WriteObjectStart("Modules");
-				foreach(KeyValuePair<string, string> ModuleNameToFileNamePair in ModuleNameToFileName)
+				foreach (KeyValuePair<string, string> ModuleNameToFileNamePair in ModuleNameToFileName)
 				{
 					Writer.WriteValue(ModuleNameToFileNamePair.Key, ModuleNameToFileNamePair.Value);
 				}

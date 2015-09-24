@@ -85,7 +85,7 @@ namespace UnrealBuildTool
 
 				// Deserialize cache from disk if there is one.
 				DependencyCache Result = Load(CacheFile);
-				if(Result != null)
+				if (Result != null)
 				{
 					// Successfully serialize, create the transient variables and return cache.
 					Result.UpdateTimeUtc = DateTime.UtcNow;
@@ -126,7 +126,7 @@ namespace UnrealBuildTool
 
 					using (BinaryReader Reader = new BinaryReader(new FileStream(CacheFile.FullName, FileMode.Open, FileAccess.Read)))
 					{
-						if(Reader.ReadInt32() == FileSignature)
+						if (Reader.ReadInt32() == FileSignature)
 						{
 							Result = DependencyCache.Deserialize(Reader);
 						}
@@ -149,14 +149,14 @@ namespace UnrealBuildTool
 			Writer.Write(BackingFile);
 			Writer.Write(CreationTimeUtc.ToBinary());
 
-			Dictionary<FileReference, int> FileToUniqueId = new Dictionary<FileReference,int>();
+			Dictionary<FileReference, int> FileToUniqueId = new Dictionary<FileReference, int>();
 
 			Writer.Write(DependencyMap.Count);
-			foreach(KeyValuePair<FileReference, List<DependencyInclude>> Pair in DependencyMap)
+			foreach (KeyValuePair<FileReference, List<DependencyInclude>> Pair in DependencyMap)
 			{
 				Writer.Write(Pair.Key);
 				Writer.Write(Pair.Value.Count);
-				foreach(DependencyInclude Include in Pair.Value)
+				foreach (DependencyInclude Include in Pair.Value)
 				{
 					Writer.Write(Include.IncludeName);
 					Writer.Write(Include.HasAttemptedResolve);
@@ -176,17 +176,17 @@ namespace UnrealBuildTool
 			Cache.CreationTimeUtc = DateTime.FromBinary(Reader.ReadInt64());
 
 			int NumEntries = Reader.ReadInt32();
-			Cache.DependencyMap = new Dictionary<FileReference,List<DependencyInclude>>(NumEntries);
+			Cache.DependencyMap = new Dictionary<FileReference, List<DependencyInclude>>(NumEntries);
 
 			List<FileReference> UniqueFiles = new List<FileReference>();
-			for(int Idx = 0; Idx < NumEntries; Idx++)
+			for (int Idx = 0; Idx < NumEntries; Idx++)
 			{
 				FileReference File = Reader.ReadFileReference();
 
 				int NumIncludes = Reader.ReadInt32();
 				List<DependencyInclude> Includes = new List<DependencyInclude>(NumIncludes);
 
-				for(int IncludeIdx = 0; IncludeIdx < NumIncludes; IncludeIdx++)
+				for (int IncludeIdx = 0; IncludeIdx < NumIncludes; IncludeIdx++)
 				{
 					DependencyInclude Include = new DependencyInclude(Reader.ReadString());
 					Include.HasAttemptedResolve = Reader.ReadBoolean();
@@ -234,7 +234,7 @@ namespace UnrealBuildTool
 				try
 				{
 					BackingFile.Directory.CreateDirectory();
-					using(BinaryWriter Writer = new BinaryWriter(new FileStream(BackingFile.FullName, FileMode.Create, FileAccess.Write)))
+					using (BinaryWriter Writer = new BinaryWriter(new FileStream(BackingFile.FullName, FileMode.Create, FileAccess.Write)))
 					{
 						Writer.Write(FileSignature);
 						Serialize(Writer);
@@ -260,7 +260,7 @@ namespace UnrealBuildTool
 			}
 
 			FileReference MutexPath = BackingFile + ".buildmutex";
-			if(MutexPath.Exists())
+			if (MutexPath.Exists())
 			{
 				try
 				{

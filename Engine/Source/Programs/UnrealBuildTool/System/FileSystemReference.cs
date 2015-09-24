@@ -58,16 +58,16 @@ namespace UnrealBuildTool
 		{
 			// Get the initial string to append to, and strip any root directory suffix from it
 			StringBuilder NewFullName = new StringBuilder(BaseDirectory.FullName);
-			if(NewFullName.Length > 0 && NewFullName[NewFullName.Length - 1] == Path.DirectorySeparatorChar)
+			if (NewFullName.Length > 0 && NewFullName[NewFullName.Length - 1] == Path.DirectorySeparatorChar)
 			{
 				NewFullName.Remove(NewFullName.Length - 1, 1);
 			}
 
 			// Scan through the fragments to append, appending them to a string and updating the base length as we go
-			foreach(string Fragment in Fragments)
+			foreach (string Fragment in Fragments)
 			{
 				// Check if this fragment is an absolute path
-				if((Fragment.Length >= 2 && Fragment[1] == ':') || (Fragment.Length >= 1 && (Fragment[0] == Path.DirectorySeparatorChar || Fragment[0] == Path.AltDirectorySeparatorChar)))
+				if ((Fragment.Length >= 2 && Fragment[1] == ':') || (Fragment.Length >= 1 && (Fragment[0] == Path.DirectorySeparatorChar || Fragment[0] == Path.AltDirectorySeparatorChar)))
 				{
 					// It is. Reset the new name to the full version of this path.
 					NewFullName.Clear();
@@ -77,35 +77,35 @@ namespace UnrealBuildTool
 				{
 					// Append all the parts of this fragment to the end of the existing path.
 					int StartIdx = 0;
-					while(StartIdx < Fragment.Length)
+					while (StartIdx < Fragment.Length)
 					{
 						// Find the end of this fragment. We may have been passed multiple paths in the same string.
 						int EndIdx = StartIdx;
-						while(EndIdx < Fragment.Length && Fragment[EndIdx] != Path.DirectorySeparatorChar && Fragment[EndIdx] != Path.AltDirectorySeparatorChar)
+						while (EndIdx < Fragment.Length && Fragment[EndIdx] != Path.DirectorySeparatorChar && Fragment[EndIdx] != Path.AltDirectorySeparatorChar)
 						{
 							EndIdx++;
 						}
 
 						// Ignore any empty sections, like leading or trailing slashes, and '.' directory references.
 						int Length = EndIdx - StartIdx;
-						if(Length == 0)
+						if (Length == 0)
 						{
 							// Multiple directory separators in a row; illegal.
 							throw new ArgumentException("Path fragment '{0}' contains invalid directory separators.");
 						}
-						else if(Length == 2 && Fragment[StartIdx] == '.' && Fragment[StartIdx + 1] == '.')
+						else if (Length == 2 && Fragment[StartIdx] == '.' && Fragment[StartIdx + 1] == '.')
 						{
 							// Remove the last directory name
-							for(int SeparatorIdx = NewFullName.Length - 1; SeparatorIdx >= 0; SeparatorIdx--)
+							for (int SeparatorIdx = NewFullName.Length - 1; SeparatorIdx >= 0; SeparatorIdx--)
 							{
-								if(NewFullName[SeparatorIdx] == Path.DirectorySeparatorChar)
+								if (NewFullName[SeparatorIdx] == Path.DirectorySeparatorChar)
 								{
 									NewFullName.Remove(SeparatorIdx, NewFullName.Length - SeparatorIdx);
 									break;
 								}
 							}
 						}
-						else if(Length != 1 || Fragment[StartIdx] != '.')
+						else if (Length != 1 || Fragment[StartIdx] != '.')
 						{
 							// Append this fragment
 							NewFullName.Append(Path.DirectorySeparatorChar);
@@ -119,11 +119,11 @@ namespace UnrealBuildTool
 			}
 
 			// Append the directory separator
-			if(NewFullName.Length == 0 || (NewFullName.Length == 2 && NewFullName[1] == ':'))
+			if (NewFullName.Length == 0 || (NewFullName.Length == 2 && NewFullName[1] == ':'))
 			{
 				NewFullName.Append(Path.DirectorySeparatorChar);
 			}
-			
+
 			// Set the new path variables
 			return NewFullName.ToString();
 		}
@@ -135,12 +135,12 @@ namespace UnrealBuildTool
 		/// <returns>True if this name has the given extension, false otherwise</returns>
 		public bool HasExtension(string Extension)
 		{
-			if(Extension.Length > 0 && Extension[0] != '.')
+			if (Extension.Length > 0 && Extension[0] != '.')
 			{
 				return HasExtension("." + Extension);
 			}
 			else
-			{ 
+			{
 				return CanonicalName.EndsWith(Extension.ToLowerInvariant());
 			}
 		}
@@ -164,27 +164,27 @@ namespace UnrealBuildTool
 		{
 			// Find how much of the path is common between the two paths. This length does not include a trailing directory separator character.
 			int CommonDirectoryLength = -1;
-			for (int Idx = 0;;Idx++)
+			for (int Idx = 0; ; Idx++)
 			{
-				if(Idx == CanonicalName.Length)
+				if (Idx == CanonicalName.Length)
 				{
 					// The two paths are identical. Just return the "." character.
-					if(Idx == Directory.CanonicalName.Length)
+					if (Idx == Directory.CanonicalName.Length)
 					{
 						return ".";
 					}
 
 					// Check if we're finishing on a complete directory name
-					if(Directory.CanonicalName[Idx] == Path.DirectorySeparatorChar)
+					if (Directory.CanonicalName[Idx] == Path.DirectorySeparatorChar)
 					{
 						CommonDirectoryLength = Idx;
 					}
 					break;
 				}
-				else if(Idx == Directory.CanonicalName.Length)
+				else if (Idx == Directory.CanonicalName.Length)
 				{
 					// Check whether the end of the directory name coincides with a boundary for the current name.
-					if(CanonicalName[Idx] == Path.DirectorySeparatorChar)
+					if (CanonicalName[Idx] == Path.DirectorySeparatorChar)
 					{
 						CommonDirectoryLength = Idx;
 					}
@@ -205,26 +205,26 @@ namespace UnrealBuildTool
 			}
 
 			// If there's no relative path, just return the absolute path
-			if(CommonDirectoryLength == -1)
+			if (CommonDirectoryLength == -1)
 			{
 				return FullName;
 			}
 
 			// Append all the '..' separators to get back to the common directory, then the rest of the string to reach the target item
 			StringBuilder Result = new StringBuilder();
-			for(int Idx = CommonDirectoryLength + 1; Idx < Directory.CanonicalName.Length; Idx++)
+			for (int Idx = CommonDirectoryLength + 1; Idx < Directory.CanonicalName.Length; Idx++)
 			{
 				// Move up a directory
 				Result.Append("..");
 				Result.Append(Path.DirectorySeparatorChar);
 
 				// Scan to the next directory separator
-				while(Idx < Directory.CanonicalName.Length && Directory.CanonicalName[Idx] != Path.DirectorySeparatorChar)
+				while (Idx < Directory.CanonicalName.Length && Directory.CanonicalName[Idx] != Path.DirectorySeparatorChar)
 				{
 					Idx++;
 				}
 			}
-			if(CommonDirectoryLength + 1 < FullName.Length)
+			if (CommonDirectoryLength + 1 < FullName.Length)
 			{
 				Result.Append(FullName, CommonDirectoryLength + 1, FullName.Length - CommonDirectoryLength - 1);
 			}
@@ -341,7 +341,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of file references</returns>
 		public IEnumerable<FileReference> EnumerateFileReferences()
 		{
-			foreach(string FileName in Directory.EnumerateFiles(FullName))
+			foreach (string FileName in Directory.EnumerateFiles(FullName))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -353,7 +353,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of file references</returns>
 		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern)
 		{
-			foreach(string FileName in Directory.EnumerateFiles(FullName, Pattern))
+			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -365,7 +365,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of file references</returns>
 		public IEnumerable<FileReference> EnumerateFileReferences(string Pattern, SearchOption Option)
 		{
-			foreach(string FileName in Directory.EnumerateFiles(FullName, Pattern, Option))
+			foreach (string FileName in Directory.EnumerateFiles(FullName, Pattern, Option))
 			{
 				yield return FileReference.MakeFromNormalizedFullPath(FileName);
 			}
@@ -377,7 +377,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of directory references</returns>
 		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences()
 		{
-			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -389,7 +389,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of directory references</returns>
 		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern)
 		{
-			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -401,7 +401,7 @@ namespace UnrealBuildTool
 		/// <returns>Sequence of directory references</returns>
 		public IEnumerable<DirectoryReference> EnumerateDirectoryReferences(string Pattern, SearchOption Option)
 		{
-			foreach(string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern, Option))
+			foreach (string DirectoryName in Directory.EnumerateDirectories(FullName, Pattern, Option))
 			{
 				yield return DirectoryReference.MakeFromNormalizedFullPath(DirectoryName);
 			}
@@ -436,7 +436,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the names represent the same object, false otherwise</returns>
 		public static bool operator ==(DirectoryReference A, DirectoryReference B)
 		{
-			if((object)A == null)
+			if ((object)A == null)
 			{
 				return (object)B == null;
 			}
@@ -558,7 +558,7 @@ namespace UnrealBuildTool
 			int StartIdx = FullName.LastIndexOf(Path.DirectorySeparatorChar) + 1;
 
 			int EndIdx = FullName.IndexOf('.', StartIdx);
-			if(EndIdx < StartIdx)
+			if (EndIdx < StartIdx)
 			{
 				return FullName.Substring(StartIdx);
 			}
@@ -632,7 +632,7 @@ namespace UnrealBuildTool
 		/// <param name="A">The base file reference</param>
 		/// <param name="B">Suffix to be appended</param>
 		/// <returns>The new file reference</returns>
-		public static FileReference operator+(FileReference A, string B)
+		public static FileReference operator +(FileReference A, string B)
 		{
 			return new FileReference(A.FullName + B, A.CanonicalName + B.ToLowerInvariant());
 		}
@@ -645,7 +645,7 @@ namespace UnrealBuildTool
 		/// <returns>True if the names represent the same object, false otherwise</returns>
 		public static bool operator ==(FileReference A, FileReference B)
 		{
-			if((object)A == null)
+			if ((object)A == null)
 			{
 				return (object)B == null;
 			}
@@ -716,7 +716,7 @@ namespace UnrealBuildTool
 		/// <param name="Writer">Binary writer to write to</param>
 		public static void Write(this BinaryWriter Writer, FileReference File)
 		{
-			Writer.Write((File == null)? String.Empty : File.FullName);
+			Writer.Write((File == null) ? String.Empty : File.FullName);
 		}
 
 		/// <summary>
@@ -728,11 +728,11 @@ namespace UnrealBuildTool
 		public static void Write(this BinaryWriter Writer, FileReference File, Dictionary<FileReference, int> FileToUniqueId)
 		{
 			int UniqueId;
-			if(File == null)
+			if (File == null)
 			{
 				Writer.Write(-1);
 			}
-			else if(FileToUniqueId.TryGetValue(File, out UniqueId))
+			else if (FileToUniqueId.TryGetValue(File, out UniqueId))
 			{
 				Writer.Write(UniqueId);
 			}
@@ -752,7 +752,7 @@ namespace UnrealBuildTool
 		public static FileReference ReadFileReference(this BinaryReader Reader)
 		{
 			string FullName = Reader.ReadString();
-			return (FullName.Length == 0)? null : FileReference.MakeFromNormalizedFullPath(FullName);
+			return (FullName.Length == 0) ? null : FileReference.MakeFromNormalizedFullPath(FullName);
 		}
 
 		/// <summary>
@@ -764,11 +764,11 @@ namespace UnrealBuildTool
 		public static FileReference ReadFileReference(this BinaryReader Reader, List<FileReference> UniqueFiles)
 		{
 			int UniqueId = Reader.ReadInt32();
-			if(UniqueId == -1)
+			if (UniqueId == -1)
 			{
 				return null;
 			}
-			else if(UniqueId < UniqueFiles.Count)
+			else if (UniqueId < UniqueFiles.Count)
 			{
 				return UniqueFiles[UniqueId];
 			}

@@ -113,7 +113,7 @@ namespace UnrealBuildTool
 
 			if (CompileEnvironment.Config.bEnableShadowVariableWarning)
 			{
-				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors? "" : " -Wno-error=shadow");
+				Result += " -Wshadow" + (BuildConfiguration.bShadowVariableErrors ? "" : " -Wno-error=shadow");
 			}
 
 			// @todo: Remove these two when the code is fixed and they're no longer needed
@@ -353,7 +353,7 @@ namespace UnrealBuildTool
 				}
 
 				// Add the C++ source file and its included files to the prerequisite item list.
-				AddPrerequisiteSourceFile( Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems );
+				AddPrerequisiteSourceFile(Target, BuildPlatform, CompileEnvironment, SourceFile, CompileAction.PrerequisiteItems);
 
 				if (CompileEnvironment.Config.PrecompiledHeaderAction == PrecompiledHeaderAction.Create)
 				{
@@ -425,7 +425,7 @@ namespace UnrealBuildTool
 		private int LoadEngineCL()
 		{
 			BuildVersion Version;
-			if(BuildVersion.TryRead("../Build/Build.version", out Version))
+			if (BuildVersion.TryRead("../Build/Build.version", out Version))
 			{
 				return Version.Changelist;
 			}
@@ -461,21 +461,21 @@ namespace UnrealBuildTool
 
 		private string LoadLauncherDisplayVersion()
 		{
-            string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
+			string[] VersionHeader = Utils.ReadAllText("../../Portal/Source/Layers/DataAccess/Public/Version.h").Replace("\r\n", "\n").Replace("\t", " ").Split('\n');
 			string LauncherVersionMajor = "1";
 			string LauncherVersionMinor = "0";
 			string LauncherVersionPatch = "0";
 			foreach (string Line in VersionHeader)
 			{
-                if (Line.StartsWith("#define PORTAL_MAJOR_VERSION "))
+				if (Line.StartsWith("#define PORTAL_MAJOR_VERSION "))
 				{
 					LauncherVersionMajor = Line.Split(' ')[2];
 				}
-                else if (Line.StartsWith("#define PORTAL_MINOR_VERSION "))
+				else if (Line.StartsWith("#define PORTAL_MINOR_VERSION "))
 				{
 					LauncherVersionMinor = Line.Split(' ')[2];
 				}
-                else if (Line.StartsWith("#define PORTAL_PATCH_VERSION "))
+				else if (Line.StartsWith("#define PORTAL_PATCH_VERSION "))
 				{
 					LauncherVersionPatch = Line.Split(' ')[2];
 				}
@@ -519,7 +519,7 @@ namespace UnrealBuildTool
 				bool bFirstApiVersionDefine = true;
 				foreach (string Line in File.ReadAllLines("../Source/Runtime/Core/Public/Modules/ModuleVersion.h"))
 				{
-					string[] Tokens = Line.Split(new char[]{ ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+					string[] Tokens = Line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 					if (Tokens.Length >= 3 && Tokens[0] == "#define" && Tokens[1] == "MODULE_API_VERSION")
 					{
 						if (!bFirstApiVersionDefine || LoadIsLicenseeVersionValue() != 0)
@@ -632,9 +632,9 @@ namespace UnrealBuildTool
 				// Add any frameworks to be shadowed to the remote
 				foreach (string FrameworkPath in LinkEnvironment.Config.Frameworks)
 				{
-					if(FrameworkPath.EndsWith(".framework"))
+					if (FrameworkPath.EndsWith(".framework"))
 					{
-						foreach(string FrameworkFile in Directory.EnumerateFiles(FrameworkPath, "*", SearchOption.AllDirectories))
+						foreach (string FrameworkFile in Directory.EnumerateFiles(FrameworkPath, "*", SearchOption.AllDirectories))
 						{
 							FileItem FrameworkFileItem = FileItem.GetExistingItemByPath(FrameworkFile);
 							QueueFileForBatchUpload(FrameworkFileItem);
@@ -678,8 +678,8 @@ namespace UnrealBuildTool
 						}
 					}
 					else if (Path.GetDirectoryName(AdditionalLibrary) != "" &&
-					         (Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
-					         Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
+							 (Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
+							 Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
 					{
 						// It's an engine or game dylib. Save it for later
 						EngineAndGameLibraries.Add(ConvertPath(Path.GetFullPath(AdditionalLibrary)));
@@ -785,7 +785,7 @@ namespace UnrealBuildTool
 			{
 				// Write the list of input files to a response file, with a tempfilename, on remote machine
 				FileReference ResponsePath = FileReference.Combine(LinkEnvironment.Config.IntermediateDirectory, Path.GetFileName(OutputFile.AbsolutePath) + ".response");
-				
+
 				// Never create response files when we are only generating IntelliSense data
 				if (!ProjectFileGenerator.bGenerateProjectFiles)
 				{
@@ -875,7 +875,7 @@ namespace UnrealBuildTool
 
 			LinkAction.StatusDescription = Path.GetFileName(OutputFile.AbsolutePath);
 			LinkAction.OutputEventHandler = new DataReceivedEventHandler(RemoteOutputReceivedEventHandler);
-			
+
 			LinkAction.ProducedItems.Add(RemoteOutputFile);
 
 			if (!LinkEnvironment.Config.IntermediateDirectory.Exists())
@@ -966,11 +966,11 @@ namespace UnrealBuildTool
 
 					string IconName = "UE4";
 					string BundleVersion = ExeName.StartsWith("EpicGamesLauncher") ? LoadLauncherDisplayVersion() : LoadEngineDisplayVersion();
-                    string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
+					string EngineSourcePath = ConvertPath(Directory.GetCurrentDirectory()).Replace("$", "\\$");
 					FileReference UProjectFilePath;
 					string CustomResourcesPath = "";
 					string CustomBuildPath = "";
-					if(!UProjectInfo.TryGetProjectFileName(GameName, out UProjectFilePath))
+					if (!UProjectInfo.TryGetProjectFileName(GameName, out UProjectFilePath))
 					{
 						string[] TargetFiles = Directory.GetFiles(Directory.GetCurrentDirectory(), GameName + ".Target.cs", SearchOption.AllDirectories);
 						if (TargetFiles.Length == 1)
@@ -985,7 +985,7 @@ namespace UnrealBuildTool
 					}
 					else
 					{
-                        string ResourceParentFolderName = ExeName.StartsWith("EpicGamesLauncher") ? "Application" : GameName;
+						string ResourceParentFolderName = ExeName.StartsWith("EpicGamesLauncher") ? "Application" : GameName;
 						CustomResourcesPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Source/" + ResourceParentFolderName + "/Resources/Mac";
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath.FullName) + "/Build/Mac";
 					}
@@ -1116,14 +1116,14 @@ namespace UnrealBuildTool
 		private static Dictionary<Action, string> DebugOutputMap = new Dictionary<Action, string>();
 		static public void RPCDebugInfoActionHandler(Action Action, out int ExitCode, out string Output)
 		{
-			RPCUtilHelper.RPCActionHandler (Action, out ExitCode, out Output);
-			if (DebugOutputMap.ContainsKey (Action)) 
+			RPCUtilHelper.RPCActionHandler(Action, out ExitCode, out Output);
+			if (DebugOutputMap.ContainsKey(Action))
 			{
-				if (ExitCode == 0) 
+				if (ExitCode == 0)
 				{
-					RPCUtilHelper.CopyDirectory (Action.ProducedItems[0].AbsolutePath, DebugOutputMap[Action], RPCUtilHelper.ECopyOptions.None);
+					RPCUtilHelper.CopyDirectory(Action.ProducedItems[0].AbsolutePath, DebugOutputMap[Action], RPCUtilHelper.ECopyOptions.None);
 				}
-				DebugOutputMap.Remove (Action);
+				DebugOutputMap.Remove(Action);
 			}
 		}
 
@@ -1142,7 +1142,7 @@ namespace UnrealBuildTool
 			FileItem InputFile = LocalToRemoteFileItem(MachOBinary, false);
 
 			// Delete on the local machine
-			if(Directory.Exists(OutputFile.AbsolutePath))
+			if (Directory.Exists(OutputFile.AbsolutePath))
 			{
 				Directory.Delete(OutputFile.AbsolutePath, true);
 			}
@@ -1151,7 +1151,7 @@ namespace UnrealBuildTool
 			Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
-				DebugOutputMap.Add (GenDebugAction, OutputFile.AbsolutePath);
+				DebugOutputMap.Add(GenDebugAction, OutputFile.AbsolutePath);
 				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(MacToolChain.RPCDebugInfoActionHandler);
 			}
 			GenDebugAction.WorkingDirectory = GetMacDevSrcRoot();
@@ -1219,7 +1219,7 @@ namespace UnrealBuildTool
 			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
 
 			FileItem TargetItem;
-			if(BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
 				TargetItem = FileItem.GetItemByPath(TargetPath);
 			}
@@ -1264,7 +1264,7 @@ namespace UnrealBuildTool
 				BundleDependencies.Add(FileItem.GetItemByFileReference(Binary.Config.OutputFilePath));
 			}
 		}
-			
+
 		public override void FixBundleBinariesPaths(UEBuildTarget Target, List<UEBuildBinary> Binaries)
 		{
 			base.FixBundleBinariesPaths(Target, Binaries);
@@ -1295,26 +1295,26 @@ namespace UnrealBuildTool
 
 		static private DirectoryReference BundleContentsDirectory;
 
-        public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
+		public override void ModifyBuildProducts(UEBuildBinary Binary, Dictionary<FileReference, BuildProductType> BuildProducts)
 		{
 			// The cross-platform code adds .dSYMs for static libraries, which is just wrong, so
 			// eliminate them here for now.
 			string DebugExtension = UEBuildPlatform.GetBuildPlatform(Binary.Target.Platform).GetDebugInfoExtension(Binary.Config.Type);
-			if(DebugExtension == ".dSYM")
+			if (DebugExtension == ".dSYM")
 			{
 				KeyValuePair<FileReference, BuildProductType>[] BuildProductsArray = BuildProducts.ToArray();
 
-				foreach(KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
+				foreach (KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
 				{
-					if(BuildProductPair.Key.HasExtension(DebugExtension))
+					if (BuildProductPair.Key.HasExtension(DebugExtension))
 					{
 						BuildProducts.Remove(BuildProductPair.Key);
 					}
 				}
 
-				foreach(KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
+				foreach (KeyValuePair<FileReference, BuildProductType> BuildProductPair in BuildProductsArray)
 				{
-					if(BuildProductPair.Value == BuildProductType.Executable || BuildProductPair.Value == BuildProductType.DynamicLibrary)
+					if (BuildProductPair.Value == BuildProductType.Executable || BuildProductPair.Value == BuildProductType.DynamicLibrary)
 					{
 						BuildProducts.Add(BuildProductPair.Key.ChangeExtension(DebugExtension), BuildProductType.SymbolFile);
 					}
@@ -1332,7 +1332,7 @@ namespace UnrealBuildTool
 			}
 
 			// We need to know what third party dylibs would be copied to the bundle
-			if(Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
+			if (Binary.Config.Type != UEBuildBinaryType.StaticLibrary)
 			{
 				var Modules = Binary.GetAllDependencyModules(bIncludeDynamicallyLoaded: false, bForceCircular: false);
 				var BinaryLinkEnvironment = Binary.Target.GlobalLinkEnvironment.DeepCopy();
@@ -1449,7 +1449,7 @@ namespace UnrealBuildTool
 						IntermediateDirectory = Path.GetFullPath("../../Engine/Intermediate/Build/Mac/" + InTarget.AppName + "/" + InTarget.Configuration);
 					}
 				}
-			
+
 				string FixDylibDepsScript = Path.Combine(IntermediateDirectory, "FixDylibDependencies.sh");
 				string FinalizeAppBundleScript = Path.Combine(IntermediateDirectory, "FinalizeAppBundle.sh");
 
@@ -1501,7 +1501,7 @@ namespace UnrealBuildTool
 					}
 				}
 
-				
+
 				// If it is requested, send the app bundle back to the platform executing these commands.
 				if (BuildConfiguration.bCopyAppBundleBackToDevice)
 				{
@@ -1515,9 +1515,9 @@ namespace UnrealBuildTool
 							BinaryDir = BinaryDir.Replace(InTarget.TargetType.ToString(), "Game");
 						}
 
-						string RemoteBinariesDir = ConvertPath( BinaryDir );
+						string RemoteBinariesDir = ConvertPath(BinaryDir);
 						string LocalBinariesDir = BinaryDir;
-						
+
 						// Get the app bundle's name
 						string AppFullName = InTarget.AppName;
 						if (InTarget.Configuration != InTarget.Rules.UndecoratedConfiguration)
@@ -1581,7 +1581,7 @@ namespace UnrealBuildTool
 					{
 						Log.TraceInformation("Copying binaries back to this device failed.");
 					}
-				}				
+				}
 			}
 
 			base.PostBuildSync(InTarget);

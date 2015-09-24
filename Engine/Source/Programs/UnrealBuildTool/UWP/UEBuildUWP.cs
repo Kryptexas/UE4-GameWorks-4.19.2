@@ -104,7 +104,7 @@ namespace UnrealBuildTool
 		{
 			int VSVersion;
 
-			switch(Compiler)
+			switch (Compiler)
 			{
 				case WindowsCompiler.VisualStudio2015:
 					VSVersion = 14;
@@ -122,17 +122,17 @@ namespace UnrealBuildTool
 
 			string VSPath = null;
 
-			foreach(var PossibleRegPath in PossibleRegPaths)
+			foreach (var PossibleRegPath in PossibleRegPaths)
 			{
-				VSPath = (string) Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
+				VSPath = (string)Registry.GetValue(string.Format(@"HKEY_LOCAL_MACHINE\SOFTWARE\{0}\{1}.0", PossibleRegPath, VSVersion), "InstallDir", null);
 
-				if(VSPath != null)
+				if (VSPath != null)
 				{
 					break;
 				}
 			}
 
-			if(VSPath == null)
+			if (VSPath == null)
 			{
 				return null;
 			}
@@ -180,7 +180,7 @@ namespace UnrealBuildTool
 		{
 			switch (InBinaryType)
 			{
-				case UEBuildBinaryType.DynamicLinkLibrary: 
+				case UEBuildBinaryType.DynamicLinkLibrary:
 					return ".dll";
 				case UEBuildBinaryType.Executable:
 					return ".exe";
@@ -194,15 +194,15 @@ namespace UnrealBuildTool
 			return base.GetBinaryExtension(InBinaryType);
 		}
 
-		
+
 		/// <summary>
 		/// When using a Visual Studio compiler, returns the version name as a string
 		/// </summary>
 		/// <returns>The Visual Studio compiler version name (e.g. "2012")</returns>
 		public static string GetVisualStudioCompilerVersionName()
 		{
-			switch( Compiler )
-			{ 
+			switch (Compiler)
+			{
 				case WindowsCompiler.VisualStudio2015:
 					return "2015";
 				default:
@@ -218,7 +218,7 @@ namespace UnrealBuildTool
 		 *	
 		 *	@return	string				The debug info extension (i.e. 'pdb')
 		 */
-		public override string GetDebugInfoExtension( UEBuildBinaryType InBinaryType )
+		public override string GetDebugInfoExtension(UEBuildBinaryType InBinaryType)
 		{
 			switch (InBinaryType)
 			{
@@ -391,7 +391,7 @@ namespace UnrealBuildTool
 
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("mincore.lib");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("dloadhelper.lib");
-		   
+
 			// Disable Simplygon support if compiling against the NULL RHI.
 			if (InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Contains("USE_NULL_RHI=1"))
 			{
@@ -414,8 +414,8 @@ namespace UnrealBuildTool
 				default:
 				case UnrealTargetConfiguration.Debug:
 					CompileConfiguration = CPPTargetConfiguration.Debug;
-					if( BuildConfiguration.bDebugBuildsActuallyUseDebugCRT )
-					{ 
+					if (BuildConfiguration.bDebugBuildsActuallyUseDebugCRT)
+					{
 						InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_DEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
 					}
 					else
@@ -425,7 +425,7 @@ namespace UnrealBuildTool
 					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("UE_BUILD_DEBUG=1");
 					break;
 				case UnrealTargetConfiguration.DebugGame:
-					// Default to Development; can be overriden by individual modules.
+				// Default to Development; can be overriden by individual modules.
 				case UnrealTargetConfiguration.Development:
 					CompileConfiguration = CPPTargetConfiguration.Development;
 					InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("NDEBUG=1"); // the engine doesn't use this, but lots of 3rd party stuff does
@@ -445,7 +445,7 @@ namespace UnrealBuildTool
 
 			// Set up the global C++ compilation and link environment.
 			InBuildTarget.GlobalCompileEnvironment.Config.Target.Configuration = CompileConfiguration;
-			InBuildTarget.GlobalLinkEnvironment.Config.Target.Configuration    = CompileConfiguration;
+			InBuildTarget.GlobalLinkEnvironment.Config.Target.Configuration = CompileConfiguration;
 
 			// Create debug info based on the heuristics specified by the user.
 			InBuildTarget.GlobalCompileEnvironment.Config.bCreateDebugInfo =
@@ -472,13 +472,13 @@ namespace UnrealBuildTool
 		{
 			switch (Configuration)
 			{
-				case UnrealTargetConfiguration.Development: 
-				case UnrealTargetConfiguration.Shipping: 
-				case UnrealTargetConfiguration.Test: 
+				case UnrealTargetConfiguration.Development:
+				case UnrealTargetConfiguration.Shipping:
+				case UnrealTargetConfiguration.Test:
 					return !BuildConfiguration.bOmitPCDebugInfoInDevelopment;
 				case UnrealTargetConfiguration.DebugGame:
 				case UnrealTargetConfiguration.Debug:
-				default: 
+				default:
 					return true;
 			};
 		}

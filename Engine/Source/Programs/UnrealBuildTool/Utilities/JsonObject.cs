@@ -8,7 +8,8 @@ namespace UnrealBuildTool
 {
 	public class JsonParseException : Exception
 	{
-		public JsonParseException(string Format, params object[] Args) : base(String.Format(Format, Args))
+		public JsonParseException(string Format, params object[] Args)
+			: base(String.Format(Format, Args))
 		{
 		}
 	}
@@ -19,7 +20,7 @@ namespace UnrealBuildTool
 
 		public JsonObject(Dictionary<string, object> InRawObject)
 		{
-			RawObject = new Dictionary<string,object>(InRawObject, StringComparer.InvariantCultureIgnoreCase);
+			RawObject = new Dictionary<string, object>(InRawObject, StringComparer.InvariantCultureIgnoreCase);
 		}
 
 		public static JsonObject Read(string FileName)
@@ -31,7 +32,7 @@ namespace UnrealBuildTool
 
 		public static bool TryRead(string FileName, out JsonObject Result)
 		{
-			if(!File.Exists(FileName))
+			if (!File.Exists(FileName))
 			{
 				Result = null;
 				return false;
@@ -42,7 +43,7 @@ namespace UnrealBuildTool
 				Result = Read(FileName);
 				return true;
 			}
-			catch(Exception)
+			catch (Exception)
 			{
 				Result = null;
 				return false;
@@ -57,7 +58,7 @@ namespace UnrealBuildTool
 		public string GetStringField(string FieldName)
 		{
 			string StringValue;
-			if(!TryGetStringField(FieldName, out StringValue))
+			if (!TryGetStringField(FieldName, out StringValue))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -67,7 +68,7 @@ namespace UnrealBuildTool
 		public bool TryGetStringField(string FieldName, out string Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is string))
+			if (RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is string))
 			{
 				Result = (string)RawValue;
 				return true;
@@ -82,7 +83,7 @@ namespace UnrealBuildTool
 		public string[] GetStringArrayField(string FieldName)
 		{
 			string[] StringValues;
-			if(!TryGetStringArrayField(FieldName, out StringValues))
+			if (!TryGetStringArrayField(FieldName, out StringValues))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -92,7 +93,7 @@ namespace UnrealBuildTool
 		public bool TryGetStringArrayField(string FieldName, out string[] Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is string))
+			if (RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is string))
 			{
 				Result = ((IEnumerable<object>)RawValue).Select(x => (string)x).ToArray();
 				return true;
@@ -107,7 +108,7 @@ namespace UnrealBuildTool
 		public bool GetBoolField(string FieldName)
 		{
 			bool BoolValue;
-			if(!TryGetBoolField(FieldName, out BoolValue))
+			if (!TryGetBoolField(FieldName, out BoolValue))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -117,7 +118,7 @@ namespace UnrealBuildTool
 		public bool TryGetBoolField(string FieldName, out bool Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is Boolean))
+			if (RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is Boolean))
 			{
 				Result = (bool)RawValue;
 				return true;
@@ -132,7 +133,7 @@ namespace UnrealBuildTool
 		public int GetIntegerField(string FieldName)
 		{
 			int IntegerValue;
-			if(!TryGetIntegerField(FieldName, out IntegerValue))
+			if (!TryGetIntegerField(FieldName, out IntegerValue))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -142,7 +143,7 @@ namespace UnrealBuildTool
 		public bool TryGetIntegerField(string FieldName, out int Result)
 		{
 			object RawValue;
-			if(!RawObject.TryGetValue(FieldName, out RawValue) || !int.TryParse(RawValue.ToString(), out Result))
+			if (!RawObject.TryGetValue(FieldName, out RawValue) || !int.TryParse(RawValue.ToString(), out Result))
 			{
 				Result = 0;
 				return false;
@@ -153,7 +154,7 @@ namespace UnrealBuildTool
 		public bool TryGetUnsignedIntegerField(string FieldName, out uint Result)
 		{
 			object RawValue;
-			if(!RawObject.TryGetValue(FieldName, out RawValue) || !uint.TryParse(RawValue.ToString(), out Result))
+			if (!RawObject.TryGetValue(FieldName, out RawValue) || !uint.TryParse(RawValue.ToString(), out Result))
 			{
 				Result = 0;
 				return false;
@@ -164,7 +165,7 @@ namespace UnrealBuildTool
 		public T GetEnumField<T>(string FieldName) where T : struct
 		{
 			T EnumValue;
-			if(!TryGetEnumField(FieldName, out EnumValue))
+			if (!TryGetEnumField(FieldName, out EnumValue))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -174,7 +175,7 @@ namespace UnrealBuildTool
 		public bool TryGetEnumField<T>(string FieldName, out T Result) where T : struct
 		{
 			string StringValue;
-			if(!TryGetStringField(FieldName, out StringValue) || !Enum.TryParse<T>(StringValue, true, out Result))
+			if (!TryGetStringField(FieldName, out StringValue) || !Enum.TryParse<T>(StringValue, true, out Result))
 			{
 				Result = default(T);
 				return false;
@@ -185,16 +186,16 @@ namespace UnrealBuildTool
 		public bool TryGetEnumArrayField<T>(string FieldName, out T[] Result) where T : struct
 		{
 			string[] StringValues;
-			if(!TryGetStringArrayField(FieldName, out StringValues))
+			if (!TryGetStringArrayField(FieldName, out StringValues))
 			{
 				Result = null;
 				return false;
 			}
 
 			T[] EnumValues = new T[StringValues.Length];
-			for(int Idx = 0; Idx < StringValues.Length; Idx++)
+			for (int Idx = 0; Idx < StringValues.Length; Idx++)
 			{
-				if(!Enum.TryParse<T>(StringValues[Idx], true, out EnumValues[Idx]))
+				if (!Enum.TryParse<T>(StringValues[Idx], true, out EnumValues[Idx]))
 				{
 					Result = null;
 					return false;
@@ -208,7 +209,7 @@ namespace UnrealBuildTool
 		public JsonObject GetObjectField(string FieldName)
 		{
 			JsonObject Result;
-			if(!TryGetObjectField(FieldName, out Result))
+			if (!TryGetObjectField(FieldName, out Result))
 			{
 				throw new JsonParseException("Missing or invalid '{0}' field", FieldName);
 			}
@@ -218,7 +219,7 @@ namespace UnrealBuildTool
 		public bool TryGetObjectField(string FieldName, out JsonObject Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is Dictionary<string, object>))
+			if (RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is Dictionary<string, object>))
 			{
 				Result = new JsonObject((Dictionary<string, object>)RawValue);
 				return true;
@@ -233,7 +234,7 @@ namespace UnrealBuildTool
 		public bool TryGetObjectArrayField(string FieldName, out JsonObject[] Result)
 		{
 			object RawValue;
-			if(RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is Dictionary<string, object>))
+			if (RawObject.TryGetValue(FieldName, out RawValue) && (RawValue is IEnumerable<object>) && ((IEnumerable<object>)RawValue).All(x => x is Dictionary<string, object>))
 			{
 				Result = ((IEnumerable<object>)RawValue).Select(x => new JsonObject((Dictionary<string, object>)x)).ToArray();
 				return true;
@@ -338,16 +339,16 @@ namespace UnrealBuildTool
 
 		public void WriteValue(string Name, bool Value)
 		{
-			WriteValueInternal(Name, Value? "true" : "false");
+			WriteValueInternal(Name, Value ? "true" : "false");
 		}
 
 		void WriteCommaNewline()
 		{
-			if(bRequiresComma)
+			if (bRequiresComma)
 			{
 				Writer.WriteLine(",");
 			}
-			else if(Indent.Length > 0)
+			else if (Indent.Length > 0)
 			{
 				Writer.WriteLine();
 			}

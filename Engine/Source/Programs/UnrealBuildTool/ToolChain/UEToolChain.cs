@@ -12,26 +12,26 @@ namespace UnrealBuildTool
 	public interface IUEToolChain
 	{
 		void RegisterToolChain();
-		
+
 		CPPOutput CompileCPPFiles(UEBuildTarget Target, CPPEnvironment CompileEnvironment, List<FileItem> SourceFiles, string ModuleName);
-		
+
 		CPPOutput CompileRCFiles(UEBuildTarget Target, CPPEnvironment Environment, List<FileItem> RCFiles);
-		
+
 		FileItem[] LinkAllFiles(LinkEnvironment LinkEnvironment, bool bBuildImportLibraryOnly);
-		
+
 		void CompileCSharpProject(CSharpEnvironment CompileEnvironment, FileReference ProjectFileName, FileReference DestinationFile);
-		
+
 		/** Converts the passed in path from UBT host to compiler native format. */
 		String ConvertPath(String OriginalPath);
-		
+
 		/// <summary>
 		/// Called immediately after UnrealHeaderTool is executed to generated code for all UObjects modules.  Only is called if UnrealHeaderTool was actually run in this session.
 		/// </summary>
 		/// <param name="Manifest">List of UObject modules we generated code for.</param>
 		void PostCodeGeneration(UHTManifest Manifest);
-		
+
 		void PreBuildSync();
-		
+
 		void PostBuildSync(UEBuildTarget Target);
 
 		ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment);
@@ -110,10 +110,10 @@ namespace UnrealBuildTool
 		/// <param name="LinkEnvironment"></param>
 		/// <param name="OutputFile"></param>
 		/// <returns></returns>
-		public static FileReference GetResponseFileName( LinkEnvironment LinkEnvironment, FileItem OutputFile )
+		public static FileReference GetResponseFileName(LinkEnvironment LinkEnvironment, FileItem OutputFile)
 		{
 			// Construct a relative path for the intermediate response file
-			return FileReference.Combine( LinkEnvironment.Config.IntermediateDirectory, OutputFile.Reference.GetFileName() + ".response" );
+			return FileReference.Combine(LinkEnvironment.Config.IntermediateDirectory, OutputFile.Reference.GetFileName() + ".response");
 		}
 
 		/** Converts the passed in path from UBT host to compiler native format. */
@@ -141,7 +141,7 @@ namespace UnrealBuildTool
 
 		public virtual ICollection<FileItem> PostBuild(FileItem Executable, LinkEnvironment ExecutableLinkEnvironment)
 		{
-			return new List<FileItem> ();
+			return new List<FileItem>();
 		}
 
 		public virtual void SetUpGlobalEnvironment()
@@ -171,32 +171,32 @@ namespace UnrealBuildTool
 			return true;
 		}
 
-		protected void AddPrerequisiteSourceFile( UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems )
+		protected void AddPrerequisiteSourceFile(UEBuildTarget Target, IUEBuildPlatform BuildPlatform, CPPEnvironment CompileEnvironment, FileItem SourceFile, List<FileItem> PrerequisiteItems)
 		{
-			PrerequisiteItems.Add( SourceFile );
+			PrerequisiteItems.Add(SourceFile);
 
 			var RemoteThis = this as RemoteToolChain;
 			bool bAllowUploading = RemoteThis != null && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac;	// Don't use remote features when compiling from a Mac
-			if( bAllowUploading )
+			if (bAllowUploading)
 			{
 				RemoteThis.QueueFileForBatchUpload(SourceFile);
 			}
 
-			if( !BuildConfiguration.bUseUBTMakefiles )	// In fast build iteration mode, we'll gather includes later on
+			if (!BuildConfiguration.bUseUBTMakefiles)	// In fast build iteration mode, we'll gather includes later on
 			{
 				// @todo ubtmake: What if one of the prerequisite files has become missing since it was updated in our cache? (usually, because a coder eliminated the source file)
 				//		-> Two CASES:
 				//				1) NOT WORKING: Non-unity file went away (SourceFile in this context).  That seems like an existing old use case.  Compile params or Response file should have changed?
 				//				2) WORKING: Indirect file went away (unity'd original source file or include).  This would return a file that no longer exists and adds to the prerequiteitems list
-				var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies:BuildConfiguration.bUseUBTMakefiles );
-				if( IncludedFileList != null )
+				var IncludedFileList = CPPEnvironment.FindAndCacheAllIncludedFiles(Target, SourceFile, BuildPlatform, CompileEnvironment.Config.CPPIncludeInfo, bOnlyCachedDependencies: BuildConfiguration.bUseUBTMakefiles);
+				if (IncludedFileList != null)
 				{
 					foreach (FileItem IncludedFile in IncludedFileList)
 					{
-						PrerequisiteItems.Add( IncludedFile );
+						PrerequisiteItems.Add(IncludedFile);
 
-						if( bAllowUploading &&
-							!BuildConfiguration.bUseUBTMakefiles )	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
+						if (bAllowUploading &&
+							!BuildConfiguration.bUseUBTMakefiles)	// With fast dependency scanning, we will not have an exhaustive list of dependencies here.  We rely on PostCodeGeneration() to upload these files.
 						{
 							RemoteThis.QueueFileForBatchUpload(IncludedFile);
 						}

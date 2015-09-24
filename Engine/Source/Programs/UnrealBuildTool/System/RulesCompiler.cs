@@ -33,8 +33,8 @@ namespace UnrealBuildTool
 
 		public TargetInfo(SerializationInfo Info, StreamingContext Context)
 		{
-			Platform      = (UnrealTargetPlatform)Info.GetInt32("pl");
-			Architecture  = Info.GetString("ar");
+			Platform = (UnrealTargetPlatform)Info.GetInt32("pl");
+			Architecture = Info.GetString("ar");
 			Configuration = (UnrealTargetConfiguration)Info.GetInt32("co");
 			if (Info.GetBoolean("t?"))
 			{
@@ -68,7 +68,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitPlatform">Target platform</param>
 		/// <param name="InitConfiguration">Target build configuration</param>
-		public TargetInfo( UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration )
+		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration)
 		{
 			Platform = InitPlatform;
 			Configuration = InitConfiguration;
@@ -85,7 +85,7 @@ namespace UnrealBuildTool
 		/// <param name="InitConfiguration">Target build configuration</param>
 		/// <param name="InitType">Target type</param>
 		/// <param name="bInitIsMonolithic">Whether the target is monolithic</param>
-		public TargetInfo( UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, TargetRules.TargetType InitType, bool bInitIsMonolithic )
+		public TargetInfo(UnrealTargetPlatform InitPlatform, UnrealTargetConfiguration InitConfiguration, TargetRules.TargetType InitType, bool bInitIsMonolithic)
 			: this(InitPlatform, InitConfiguration)
 		{
 			Type = InitType;
@@ -109,21 +109,21 @@ namespace UnrealBuildTool
 			}
 		}
 
-        /// <summary>
-        /// True if the target type is a monolithic binary
-        /// </summary>
-        public bool IsMonolithic
-        {
-            get
-            {
-                if (!bIsMonolithic.HasValue)
-                {
-                    throw new BuildException("Trying to access TargetInfo.IsMonolithic when bIsMonolithic is not set. Make sure IsMonolithic is used only in ModuleRules.");
-                }
-                return bIsMonolithic.Value;
-            }
-        }
-    }
+		/// <summary>
+		/// True if the target type is a monolithic binary
+		/// </summary>
+		public bool IsMonolithic
+		{
+			get
+			{
+				if (!bIsMonolithic.HasValue)
+				{
+					throw new BuildException("Trying to access TargetInfo.IsMonolithic when bIsMonolithic is not set. Make sure IsMonolithic is used only in ModuleRules.");
+				}
+				return bIsMonolithic.Value;
+			}
+		}
+	}
 
 
 	/// <summary>
@@ -283,8 +283,8 @@ namespace UnrealBuildTool
 		/// Addition modules this module may require at run-time 
 		public List<string> DynamicallyLoadedModuleNames = new List<string>();
 
-        /// Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like)
-        public List<string> PlatformSpecificDynamicallyLoadedModuleNames = new List<string>();
+		/// Extra modules this module may require at run time, that are on behalf of another platform (i.e. shader formats and the like)
+		public List<string> PlatformSpecificDynamicallyLoadedModuleNames = new List<string>();
 
 		/// List of files which this module depends on at runtime. These files will be staged along with the target.
 		public List<RuntimeDependency> RuntimeDependencies = new List<RuntimeDependency>();
@@ -356,10 +356,10 @@ namespace UnrealBuildTool
 				Definitions.Add("WITH_APEX=0");
 			}
 
-            if(UEBuildConfiguration.bRuntimePhysicsCooking == true)
-            {
-                Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING");
-            }
+			if (UEBuildConfiguration.bRuntimePhysicsCooking == true)
+			{
+				Definitions.Add("WITH_RUNTIME_PHYSICS_COOKING");
+			}
 		}
 
 		/// <summary>
@@ -375,7 +375,7 @@ namespace UnrealBuildTool
 			}
 
 			bSupported = bSupported && UEBuildConfiguration.bCompileBox2D;
-	
+
 			if (bSupported)
 			{
 				AddThirdPartyPrivateStaticDependencies(Target, "Box2D");
@@ -404,8 +404,8 @@ namespace UnrealBuildTool
 			/// Uncooked modular editor executable and DLLs (UE4Editor.exe, UE4Editor*.dll, GameName*.dll)
 			Editor,
 
-            /// Cooked monolithic game client executable (GameNameClient.exe, but no server code)
-            Client,
+			/// Cooked monolithic game client executable (GameNameClient.exe, but no server code)
+			Client,
 
 			/// Cooked monolithic game server executable (GameNameServer.exe, but no client code)
 			Server,
@@ -414,20 +414,20 @@ namespace UnrealBuildTool
 			Program,
 		}
 
-        /// <summary>
-        /// The name of the game, this is set up by the rules compiler after it compiles and constructs this
-        /// </summary>
-        public string TargetName = null;
+		/// <summary>
+		/// The name of the game, this is set up by the rules compiler after it compiles and constructs this
+		/// </summary>
+		public string TargetName = null;
 
-        /// <summary>
-        /// Whether the target uses Steam (todo: substitute with more generic functionality)
-        /// </summary>
-        public bool bUsesSteam;
+		/// <summary>
+		/// Whether the target uses Steam (todo: substitute with more generic functionality)
+		/// </summary>
+		public bool bUsesSteam;
 
-        /// <summary>
-        /// Whether the target uses CEF3
-        /// </summary>
-        public bool bUsesCEF3;
+		/// <summary>
+		/// Whether the target uses CEF3
+		/// </summary>
+		public bool bUsesCEF3;
 
 		/// <summary>
 		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
@@ -440,27 +440,27 @@ namespace UnrealBuildTool
 		/// </summary>
 		public bool bUsesSlateEditorStyle = false;
 
-        /// <summary>
+		/// <summary>
 		/// Forces linking against the static CRT. This is not supported across the engine due to the need for allocator implementations to be shared (for example), and TPS 
 		/// libraries to be consistent with each other, but can be used for utility programs.
 		/// </summary>
-        public bool bUseStaticCRT = false;
+		public bool bUseStaticCRT = false;
 
-		
-        /// <summary>
+
+		/// <summary>
 		/// Allow a target to specify a preferred sub-platform.
 		/// Can be used to target a build using sub platform specifics.
 		/// </summary>
 		public string PreferredSubPlatform = String.Empty;
 
-        /// <summary>
-        /// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
-        /// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
-        /// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
-        /// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
-        /// so that you can debug your program's code.
-        /// </summary>
-        public bool bDebugBuildsActuallyUseDebugCRT = false;
+		/// <summary>
+		/// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
+		/// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
+		/// our third party library dependencies to also be compiled using the Debug CRT (and often perform more slowly.)  Often
+		/// it can be inconvenient to require a separate copy of the debug versions of third party static libraries simply
+		/// so that you can debug your program's code.
+		/// </summary>
+		public bool bDebugBuildsActuallyUseDebugCRT = false;
 
 		/// <summary>
 		/// Whether the output from this target can be publicly distributed, even if it has
@@ -485,7 +485,7 @@ namespace UnrealBuildTool
 		/// which cannot be disabled, and allows building against specific modules in program targets which do not fit the categories
 		/// in ModuleHostType.
 		/// </summary>
-		public List<string> AdditionalPlugins = new List<string>();		
+		public List<string> AdditionalPlugins = new List<string>();
 
 		/// <summary>
 		/// Is the given type a 'game' type (Game/Editor/Server) wrt building?
@@ -529,17 +529,17 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Type of target
 		/// </summary>
-		public TargetType Type = TargetType.Game;		
+		public TargetType Type = TargetType.Game;
 
 		/// <summary>
 		/// The name of this target's 'configuration' within the development IDE.  No project may have more than one target with the same configuration name.
 		/// If no configuration name is set, then it defaults to the TargetType name
 		/// </summary>
-		public string ConfigurationName 
+		public string ConfigurationName
 		{
 			get
 			{
-				if( String.IsNullOrEmpty( ConfigurationNameVar ) )
+				if (String.IsNullOrEmpty(ConfigurationNameVar))
 				{
 					return Type.ToString();
 				}
@@ -556,20 +556,20 @@ namespace UnrealBuildTool
 		private string ConfigurationNameVar = String.Empty;
 
 
-        /// <summary>
-        /// Allows a Program Target to specify it's own solution folder path
-        /// </summary>
-        public string SolutionDirectory = String.Empty;
+		/// <summary>
+		/// Allows a Program Target to specify it's own solution folder path
+		/// </summary>
+		public string SolutionDirectory = String.Empty;
 
 		/// <summary>
 		/// If true, the built target goes into the Engine/Binaries/<PLATFORM> folder
 		/// </summary>
 		public bool bOutputToEngineBinaries = false;
 
-        /// <summary>
-        /// Sub folder where the built target goes: Engine/Binaries/<PLATFORM>/<SUBDIR>
-        /// </summary>
-        public string ExeBinariesSubFolder = String.Empty;
+		/// <summary>
+		/// Sub folder where the built target goes: Engine/Binaries/<PLATFORM>/<SUBDIR>
+		/// </summary>
+		public string ExeBinariesSubFolder = String.Empty;
 
 		/// <summary>
 		/// Whether this target should be compiled in monolithic mode
@@ -604,12 +604,12 @@ namespace UnrealBuildTool
 		/// <returns>true if successful, false if not</returns>
 		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 		{
-			if(Type == TargetType.Program)
+			if (Type == TargetType.Program)
 			{
 				// By default, all programs are desktop only.
 				return UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
 			}
-			else if(IsEditorType(Type))
+			else if (IsEditorType(Type))
 			{
 				return UnrealBuildTool.GetAllEditorPlatforms(ref OutPlatforms, false);
 			}
@@ -653,13 +653,13 @@ namespace UnrealBuildTool
 					if (Config != UnrealTargetConfiguration.Unknown)
 					{
 						// Some configurations just don't make sense for the editor
-						if( IsEditorType( Type ) && 
-							( Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test ) )
+						if (IsEditorType(Type) &&
+							(Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test))
 						{
 							// We don't currently support a "shipping" editor config
 						}
-						else if( !bIncludeTestAndShippingConfigs && 
-							( Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test ) )
+						else if (!bIncludeTestAndShippingConfigs &&
+							(Config == UnrealTargetConfiguration.Shipping || Config == UnrealTargetConfiguration.Test))
 						{
 							// User doesn't want 'Test' or 'Shipping' configs in their project files
 						}
@@ -726,54 +726,54 @@ namespace UnrealBuildTool
 		{
 		}
 
-        /// <summary>
-        /// Return true if this target should always be built with the base editor. Usually programs like shadercompilerworker.
-        /// </summary>
-        /// <returns>true if this target should always be built with the base editor.</returns>
-        public virtual bool GUBP_AlwaysBuildWithBaseEditor()
-        {
-            return false;
-        }
-        /// <summary>
-        /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
-        /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
-        /// </summary>
-        /// <returns>true if this target should always be built with the base editor.</returns>
-        [Obsolete]
-        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
-        {
-            bInternalToolOnly = false;
-            SeparateNode = false;			
-            return false;
-        }
-        /// <summary>
-        /// Return true if this target should always be built with the tools. Usually programs like unrealpak.
-        /// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
-        /// </summary>
-        /// <returns>true if this target should always be built with the base editor.</returns>        
-        public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
-        {
-            bInternalToolOnly = false;
-            SeparateNode = false;
+		/// <summary>
+		/// Return true if this target should always be built with the base editor. Usually programs like shadercompilerworker.
+		/// </summary>
+		/// <returns>true if this target should always be built with the base editor.</returns>
+		public virtual bool GUBP_AlwaysBuildWithBaseEditor()
+		{
+			return false;
+		}
+		/// <summary>
+		/// Return true if this target should always be built with the tools. Usually programs like unrealpak.
+		/// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
+		/// </summary>
+		/// <returns>true if this target should always be built with the base editor.</returns>
+		[Obsolete]
+		public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode)
+		{
+			bInternalToolOnly = false;
+			SeparateNode = false;
+			return false;
+		}
+		/// <summary>
+		/// Return true if this target should always be built with the tools. Usually programs like unrealpak.
+		/// <param name="SeparateNode">If this is set to true, the program will get its own node</param>
+		/// </summary>
+		/// <returns>true if this target should always be built with the base editor.</returns>        
+		public virtual bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, out bool bInternalToolOnly, out bool SeparateNode, out bool CrossCompile)
+		{
+			bInternalToolOnly = false;
+			SeparateNode = false;
 			CrossCompile = false;
-            return false;
-        }
-        /// <summary>
-        /// Return a list of platforms to build a tool for
-        /// </summary>
-        /// <returns>a list of platforms to build a tool for</returns>
-        public virtual List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
-        {
-            return new List<UnrealTargetPlatform> { InHostPlatform };
-        }
-        /// <summary>
-        /// Return a list of configs to build a tool for
-        /// </summary>
-        /// <returns>a list of configs to build a tool for</returns>
-        public virtual List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
-        {
-            return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
-        }
+			return false;
+		}
+		/// <summary>
+		/// Return a list of platforms to build a tool for
+		/// </summary>
+		/// <returns>a list of platforms to build a tool for</returns>
+		public virtual List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
+		{
+			return new List<UnrealTargetPlatform> { InHostPlatform };
+		}
+		/// <summary>
+		/// Return a list of configs to build a tool for
+		/// </summary>
+		/// <returns>a list of configs to build a tool for</returns>
+		public virtual List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
+		{
+			return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
+		}
 		/// <summary>
 		/// Return true if target should include a NonUnity test
 		/// </summary>
@@ -782,14 +782,14 @@ namespace UnrealBuildTool
 		{
 			return false;
 		}
-        /// <summary>
-        /// Return true if this target should use a platform specific pass
-        /// </summary>
-        /// <returns>true if this target should use a platform specific pass
-        public virtual bool GUBP_NeedsPlatformSpecificDLLs()
-        {
-            return false;
-        }
+		/// <summary>
+		/// Return true if this target should use a platform specific pass
+		/// </summary>
+		/// <returns>true if this target should use a platform specific pass
+		public virtual bool GUBP_NeedsPlatformSpecificDLLs()
+		{
+			return false;
+		}
 
 		///<summary>
 		///Returns true if XP monolithics are required for a game
@@ -800,193 +800,193 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-        /// <summary>
-        /// Return a list of target platforms for the monolithic
-        /// </summary>
-        /// <returns>a list of target platforms for the monolithic</returns>        
-        public virtual List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
-        {
-            var Result = new List<UnrealTargetPlatform>{HostPlatform};
-            // hack to set up the templates without adding anything to their .targets.cs files
-            if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
-            {
+		/// <summary>
+		/// Return a list of target platforms for the monolithic
+		/// </summary>
+		/// <returns>a list of target platforms for the monolithic</returns>        
+		public virtual List<UnrealTargetPlatform> GUBP_GetPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+		{
+			var Result = new List<UnrealTargetPlatform> { HostPlatform };
+			// hack to set up the templates without adding anything to their .targets.cs files
+			if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
+			{
 				if (HostPlatform == UnrealTargetPlatform.Win64)
 				{
 					Result.Add(UnrealTargetPlatform.IOS);
 					Result.Add(UnrealTargetPlatform.Android);
 				}
-                else if (HostPlatform == UnrealTargetPlatform.Mac)
-                {
+				else if (HostPlatform == UnrealTargetPlatform.Mac)
+				{
 					Result.Add(UnrealTargetPlatform.IOS);
 				}
-            }
-            return Result;
-        }
-        /// <summary>
-        /// Return a list of target platforms for the monolithic without cook
-        /// </summary>
-        /// <returns>a list of target platforms for the monolithic without cook</returns>        
-        public virtual List<UnrealTargetPlatform> GUBP_GetBuildOnlyPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
-        {
-            var Result = new List<UnrealTargetPlatform> {};            
-            return Result;
-        }
-        /// <summary>
-        /// Return a list of configs for target platforms for the monolithic
-        /// </summary>
-        /// <returns>a list of configs for a target platforms for the monolithic</returns>        
-        public virtual List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
-        {
-            return new List<UnrealTargetConfiguration>{UnrealTargetConfiguration.Development};
-        }
-        /// <summary>
-        /// Return a list of configs which are precompiled for the given target platform
-        /// </summary>
-        /// <returns>a list of configs for a target platforms for the monolithic</returns>        
-        public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
-        {
-            return new List<UnrealTargetConfiguration>();
-        }
-        /// <summary>
-        /// Return a list of configs for target platforms for formal builds
-        /// </summary>
-        /// <returns>a list of configs for a target platforms for the monolithic</returns>        
-        [Obsolete]
-        public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
-        {
-            return new List<UnrealTargetConfiguration>();
-        }
+			}
+			return Result;
+		}
+		/// <summary>
+		/// Return a list of target platforms for the monolithic without cook
+		/// </summary>
+		/// <returns>a list of target platforms for the monolithic without cook</returns>        
+		public virtual List<UnrealTargetPlatform> GUBP_GetBuildOnlyPlatforms_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+		{
+			var Result = new List<UnrealTargetPlatform> { };
+			return Result;
+		}
+		/// <summary>
+		/// Return a list of configs for target platforms for the monolithic
+		/// </summary>
+		/// <returns>a list of configs for a target platforms for the monolithic</returns>        
+		public virtual List<UnrealTargetConfiguration> GUBP_GetConfigs_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+		{
+			return new List<UnrealTargetConfiguration> { UnrealTargetConfiguration.Development };
+		}
+		/// <summary>
+		/// Return a list of configs which are precompiled for the given target platform
+		/// </summary>
+		/// <returns>a list of configs for a target platforms for the monolithic</returns>        
+		public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForPrecompiledBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+		{
+			return new List<UnrealTargetConfiguration>();
+		}
+		/// <summary>
+		/// Return a list of configs for target platforms for formal builds
+		/// </summary>
+		/// <returns>a list of configs for a target platforms for the monolithic</returns>        
+		[Obsolete]
+		public virtual List<UnrealTargetConfiguration> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform Platform)
+		{
+			return new List<UnrealTargetConfiguration>();
+		}
 
-        public class GUBPFormalBuild
-        {
-            public UnrealTargetPlatform TargetPlatform = UnrealTargetPlatform.Unknown;
-            public UnrealTargetConfiguration TargetConfig = UnrealTargetConfiguration.Unknown;
-            public bool bTest = false;
+		public class GUBPFormalBuild
+		{
+			public UnrealTargetPlatform TargetPlatform = UnrealTargetPlatform.Unknown;
+			public UnrealTargetConfiguration TargetConfig = UnrealTargetConfiguration.Unknown;
+			public bool bTest = false;
 			public bool bBeforeTrigger = false;
-            public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false, bool bInBeforeTrigger = false)
-            {
-                TargetPlatform = InTargetPlatform;
-                TargetConfig = InTargetConfig;
-                bTest = bInTest;
+			public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false, bool bInBeforeTrigger = false)
+			{
+				TargetPlatform = InTargetPlatform;
+				TargetConfig = InTargetConfig;
+				bTest = bInTest;
 				bBeforeTrigger = bInBeforeTrigger;
-            }
-        }
-        /// <summary>
-        /// Return a list of formal builds
-        /// </summary>
-        /// <returns>a list of formal builds</returns>        
-        public virtual List<GUBPFormalBuild> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform)
-        {
-            return new List<GUBPFormalBuild>();
-        }
+			}
+		}
+		/// <summary>
+		/// Return a list of formal builds
+		/// </summary>
+		/// <returns>a list of formal builds</returns>        
+		public virtual List<GUBPFormalBuild> GUBP_GetConfigsForFormalBuilds_MonolithicOnly(UnrealTargetPlatform HostPlatform)
+		{
+			return new List<GUBPFormalBuild>();
+		}
 
 
-        /// <summary>
-        /// Return true if this target should be included in a promotion and indicate shared or not
-        /// </summary>
-        /// <returns>if this target should be included in a promotion.</returns>
-        public class GUBPProjectOptions
-        {
-            public bool bIsPromotable = false;
-            public bool bBuildAnyway = false;
-            public bool bSeparateGamePromotion = false;
-            public bool bTestWithShared = false;
-            public bool bIsMassive = false;
-            public bool bCustomWorkflowForPromotion = false;
+		/// <summary>
+		/// Return true if this target should be included in a promotion and indicate shared or not
+		/// </summary>
+		/// <returns>if this target should be included in a promotion.</returns>
+		public class GUBPProjectOptions
+		{
+			public bool bIsPromotable = false;
+			public bool bBuildAnyway = false;
+			public bool bSeparateGamePromotion = false;
+			public bool bTestWithShared = false;
+			public bool bIsMassive = false;
+			public bool bCustomWorkflowForPromotion = false;
 			public bool bIsNonCode = false;
-            public bool bPromoteEditorOnly = true;
+			public bool bPromoteEditorOnly = true;
 			public string GroupName = null;
 		}
-        public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
-        {
-            var Result = new GUBPProjectOptions();
-            // hack to set up the templates without adding anything to their .targets.cs files
+		public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
+		{
+			var Result = new GUBPProjectOptions();
+			// hack to set up the templates without adding anything to their .targets.cs files
 			// tweaked to include FP_ folders too - which are temporary
-            if (!String.IsNullOrEmpty(TargetName) && ( TargetName.StartsWith("TP_") || TargetName.StartsWith("FP_")) )
-            {
-                Result.bTestWithShared = true;
+			if (!String.IsNullOrEmpty(TargetName) && (TargetName.StartsWith("TP_") || TargetName.StartsWith("FP_")))
+			{
+				Result.bTestWithShared = true;
 				Result.GroupName = "Templates";
-            }
-            return Result;
-        }
-        /// <summary>
-        /// Return a list of the non-code projects to test
-        /// </summary>
-        /// <returns>a list of the non-code projects to build cook and test</returns>
-        public virtual Dictionary<string, List<UnrealTargetPlatform>> GUBP_NonCodeProjects_BaseEditorTypeOnly(UnrealTargetPlatform HostPlatform)
-        {
-            return new Dictionary<string, List<UnrealTargetPlatform>>();
-        }
-        /// <summary>
-        /// Return a list of the non-code projects to make formal builds for
-        /// </summary>
-        /// <returns>a list of the non-code projects to build cook and test</returns>
-        [Obsolete]
-        public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
-        {
-            return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
-        }
-        /// <summary>
-        /// Return a list of the non-code projects to make formal builds for
-        /// </summary>
-        /// <returns>a list of the non-code projects to build cook and test</returns>
-        public virtual Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
-        {
-            return new Dictionary<string, List<GUBPFormalBuild>>();
-        }
-
-        /// <summary>
-        /// Return a list of "test name", "UAT command" pairs for testing the editor
-        /// </summary>
-        public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
-        {
-            var MacOption = HostPlatform == UnrealTargetPlatform.Mac ? " -Mac" : "";
-            var Result = new Dictionary<string, string>();
-            Result.Add("EditorTest", "BuildCookRun -run -editortest -unattended -nullrhi -NoP4" + MacOption);
-            Result.Add("GameTest", "BuildCookRun -run -unattended -nullrhi -NoP4" + MacOption);
-            Result.Add("EditorAutomationTest", "BuildCookRun -run -editortest -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
-            Result.Add("GameAutomationTest", "BuildCookRun -run -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
-            return Result;
-        }
-        /// <summary>
-        /// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
-		/// Obsolete. Included to avoid breaking existing projects.
-        /// </summary>
-        /// <param name="Branch">p4 root of the branch we are running</param>
+			}
+			return Result;
+		}
+		/// <summary>
+		/// Return a list of the non-code projects to test
+		/// </summary>
+		/// <returns>a list of the non-code projects to build cook and test</returns>
+		public virtual Dictionary<string, List<UnrealTargetPlatform>> GUBP_NonCodeProjects_BaseEditorTypeOnly(UnrealTargetPlatform HostPlatform)
+		{
+			return new Dictionary<string, List<UnrealTargetPlatform>>();
+		}
+		/// <summary>
+		/// Return a list of the non-code projects to make formal builds for
+		/// </summary>
+		/// <returns>a list of the non-code projects to build cook and test</returns>
 		[Obsolete]
-        public virtual string GUBP_GetGameFailureEMails_EditorTypeOnly(string Branch)
-        {
-            return "";
-        }
-        /// <summary>
-        /// Allow the Game to set up emails for Promotable and Promotion
-		/// Obsolete. Included to avoid breaking existing projects.
-        /// </summary>
-		[Obsolete]
-        public virtual string GUBP_GetPromotionEMails_EditorTypeOnly(string Branch)
-        {
-            return "";
-        }
+		public virtual Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>> GUBP_NonCodeFormalBuilds_BaseEditorTypeOnly()
+		{
+			return new Dictionary<string, List<KeyValuePair<UnrealTargetPlatform, UnrealTargetConfiguration>>>();
+		}
+		/// <summary>
+		/// Return a list of the non-code projects to make formal builds for
+		/// </summary>
+		/// <returns>a list of the non-code projects to build cook and test</returns>
+		public virtual Dictionary<string, List<GUBPFormalBuild>> GUBP_GetNonCodeFormalBuilds_BaseEditorTypeOnly()
+		{
+			return new Dictionary<string, List<GUBPFormalBuild>>();
+		}
 
-        /// <summary>
-        /// Return a list of "test name", "UAT command" pairs for testing a monolithic
-        /// </summary>
-        public virtual Dictionary<string, string> GUBP_GetGameTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform Platform)
-        {
-            var Result = new Dictionary<string, string>();
-            if ((Platform == HostPlatform || Platform == AltHostPlatform) && Type == TargetType.Game)  // for now, we will only run these for the dev config of the host platform
-            {
-                Result.Add("CookedGameTest", "BuildCookRun -run -skipcook -stage -pak -deploy -unattended -nullrhi -NoP4 -platform=" + Platform.ToString());
-                Result.Add("CookedGameAutomationTest", "BuildCookRun -run -skipcook -stage -pak -deploy -RunAutomationTests -unattended -nullrhi -NoP4 -platform=" + Platform.ToString());
-            }
-            return Result;
-        }
-        /// <summary>
-        /// Return a list of "test name", "UAT command" pairs for testing a monolithic
-        /// </summary>
-        public virtual Dictionary<string, string> GUBP_GetClientServerTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform ServerPlatform, UnrealTargetPlatform ClientPlatform)
-        {
-            var Result = new Dictionary<string, string>();
+		/// <summary>
+		/// Return a list of "test name", "UAT command" pairs for testing the editor
+		/// </summary>
+		public virtual Dictionary<string, string> GUBP_GetEditorTests_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
+		{
+			var MacOption = HostPlatform == UnrealTargetPlatform.Mac ? " -Mac" : "";
+			var Result = new Dictionary<string, string>();
+			Result.Add("EditorTest", "BuildCookRun -run -editortest -unattended -nullrhi -NoP4" + MacOption);
+			Result.Add("GameTest", "BuildCookRun -run -unattended -nullrhi -NoP4" + MacOption);
+			Result.Add("EditorAutomationTest", "BuildCookRun -run -editortest -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
+			Result.Add("GameAutomationTest", "BuildCookRun -run -RunAutomationTests -unattended -nullrhi -NoP4" + MacOption);
+			return Result;
+		}
+		/// <summary>
+		/// Allow the platform to setup emails for the GUBP for folks that care about node failures relating to this platform
+		/// Obsolete. Included to avoid breaking existing projects.
+		/// </summary>
+		/// <param name="Branch">p4 root of the branch we are running</param>
+		[Obsolete]
+		public virtual string GUBP_GetGameFailureEMails_EditorTypeOnly(string Branch)
+		{
+			return "";
+		}
+		/// <summary>
+		/// Allow the Game to set up emails for Promotable and Promotion
+		/// Obsolete. Included to avoid breaking existing projects.
+		/// </summary>
+		[Obsolete]
+		public virtual string GUBP_GetPromotionEMails_EditorTypeOnly(string Branch)
+		{
+			return "";
+		}
+
+		/// <summary>
+		/// Return a list of "test name", "UAT command" pairs for testing a monolithic
+		/// </summary>
+		public virtual Dictionary<string, string> GUBP_GetGameTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform Platform)
+		{
+			var Result = new Dictionary<string, string>();
+			if ((Platform == HostPlatform || Platform == AltHostPlatform) && Type == TargetType.Game)  // for now, we will only run these for the dev config of the host platform
+			{
+				Result.Add("CookedGameTest", "BuildCookRun -run -skipcook -stage -pak -deploy -unattended -nullrhi -NoP4 -platform=" + Platform.ToString());
+				Result.Add("CookedGameAutomationTest", "BuildCookRun -run -skipcook -stage -pak -deploy -RunAutomationTests -unattended -nullrhi -NoP4 -platform=" + Platform.ToString());
+			}
+			return Result;
+		}
+		/// <summary>
+		/// Return a list of "test name", "UAT command" pairs for testing a monolithic
+		/// </summary>
+		public virtual Dictionary<string, string> GUBP_GetClientServerTests_MonolithicOnly(UnrealTargetPlatform HostPlatform, UnrealTargetPlatform AltHostPlatform, UnrealTargetPlatform ServerPlatform, UnrealTargetPlatform ClientPlatform)
+		{
+			var Result = new Dictionary<string, string>();
 #if false // needs work
             if ((ServerPlatform == HostPlatform || ServerPlatform == AltHostPlatform) &&
                 (ClientPlatform == HostPlatform || ClientPlatform == AltHostPlatform) && 
@@ -995,8 +995,8 @@ namespace UnrealBuildTool
                 Result.Add("CookedNetTest", "BuildCookRun -run -skipcook -stage -pak -deploy -unattended -server -nullrhi -NoP4  -addcmdline=\"-nosteam\" -platform=" + ClientPlatform.ToString() + " -serverplatform=" + ServerPlatform.ToString());
             }
 #endif
-            return Result;
-        }
+			return Result;
+		}
 		/// <summary>
 		/// Return additional parameters to cook commandlet
 		/// </summary>
@@ -1088,26 +1088,26 @@ namespace UnrealBuildTool
 			AssemblySourceFiles.AddRange(TargetFiles);
 
 			// Compile the assembly
-			if(AssemblySourceFiles.Count > 0)
+			if (AssemblySourceFiles.Count > 0)
 			{
-				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly( AssemblyFileName, AssemblySourceFiles );
+				CompiledAssembly = DynamicCompilation.CompileAndLoadAssembly(AssemblyFileName, AssemblySourceFiles);
 			}
 
 			// Setup the module map
-			foreach(FileReference ModuleFile in ModuleFiles)
+			foreach (FileReference ModuleFile in ModuleFiles)
 			{
 				string ModuleName = ModuleFile.GetFileNameWithoutAnyExtensions();
-				if(!ModuleNameToModuleFile.ContainsKey(ModuleName))
+				if (!ModuleNameToModuleFile.ContainsKey(ModuleName))
 				{
 					ModuleNameToModuleFile.Add(ModuleName, ModuleFile);
 				}
 			}
 
 			// Setup the target map
-			foreach(FileReference TargetFile in TargetFiles)
+			foreach (FileReference TargetFile in TargetFiles)
 			{
 				string TargetName = TargetFile.GetFileNameWithoutAnyExtensions();
-				if(!TargetNameToTargetFile.ContainsKey(TargetName))
+				if (!TargetNameToTargetFile.ContainsKey(TargetName))
 				{
 					TargetNameToTargetFile.Add(TargetName, TargetFile);
 				}
@@ -1122,21 +1122,21 @@ namespace UnrealBuildTool
 		/// <returns>True if the type was found, false otherwise</returns>
 		public bool TryGetFileNameFromType(Type ExistingType, out FileReference File)
 		{
-			if(ExistingType.Assembly == CompiledAssembly)
+			if (ExistingType.Assembly == CompiledAssembly)
 			{
 				string Name = ExistingType.Name;
-				if(ModuleNameToModuleFile.TryGetValue(Name, out File))
+				if (ModuleNameToModuleFile.TryGetValue(Name, out File))
 				{
 					return true;
 				}
-				if(TargetNameToTargetFile.TryGetValue(Name, out File))
+				if (TargetNameToTargetFile.TryGetValue(Name, out File))
 				{
 					return true;
 				}
 			}
 			else
 			{
-				if(Parent != null && Parent.TryGetFileNameFromType(ExistingType, out File))
+				if (Parent != null && Parent.TryGetFileNameFromType(ExistingType, out File))
 				{
 					return true;
 				}
@@ -1154,13 +1154,13 @@ namespace UnrealBuildTool
 		public FileReference GetModuleFileName(string ModuleName)
 		{
 			FileReference ModuleFile;
-			if(ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFile))
+			if (ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFile))
 			{
 				return ModuleFile;
 			}
 			else
 			{
-				return (Parent == null)? null : Parent.GetModuleFileName(ModuleName);
+				return (Parent == null) ? null : Parent.GetModuleFileName(ModuleName);
 			}
 		}
 
@@ -1172,13 +1172,13 @@ namespace UnrealBuildTool
 		public FileReference GetTargetFileName(string TargetName)
 		{
 			FileReference TargetFile;
-			if(TargetNameToTargetFile.TryGetValue(TargetName, out TargetFile))
+			if (TargetNameToTargetFile.TryGetValue(TargetName, out TargetFile))
 			{
 				return TargetFile;
 			}
 			else
 			{
-				return (Parent == null)? null : Parent.GetTargetFileName(TargetName);
+				return (Parent == null) ? null : Parent.GetTargetFileName(TargetName);
 			}
 		}
 
@@ -1209,7 +1209,7 @@ namespace UnrealBuildTool
 			// Make sure the module file is known to us
 			if (!ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFileName))
 			{
-				if(Parent == null)
+				if (Parent == null)
 				{
 					throw new MissingModuleException(ModuleName);
 				}
@@ -1253,10 +1253,10 @@ namespace UnrealBuildTool
 			foreach (var Dependency in RulesObject.RuntimeDependencies)
 			{
 				const string PluginDirVariable = "$(PluginDir)";
-				if(Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
+				if (Dependency.Path.StartsWith(PluginDirVariable, StringComparison.InvariantCultureIgnoreCase))
 				{
 					PluginInfo Plugin;
-					if(ModuleFileToPluginInfo.TryGetValue(ModuleFileName, out Plugin))
+					if (ModuleFileToPluginInfo.TryGetValue(ModuleFileName, out Plugin))
 					{
 						Dependency.Path = Plugin.Directory + Dependency.Path.Substring(PluginDirVariable.Length);
 					}
@@ -1344,7 +1344,7 @@ namespace UnrealBuildTool
 
 			if (bFoundTargetName == false)
 			{
-				if(Parent == null)
+				if (Parent == null)
 				{
 					//				throw new BuildException("Couldn't find target rules file for target '{0}' in rules assembly '{1}'.", TargetName, RulesAssembly.FullName);
 					string ExceptionMessage = "Couldn't find target rules file for target '";
@@ -1441,7 +1441,7 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public IEnumerable<PluginInfo> EnumeratePlugins()
 		{
-			if(Parent == null)
+			if (Parent == null)
 			{
 				return Plugins;
 			}
@@ -1459,13 +1459,13 @@ namespace UnrealBuildTool
 		/// <returns>True if the module belongs to a plugin</returns>
 		public bool TryGetPluginForModule(FileReference ModuleFile, out PluginInfo Plugin)
 		{
-			if(ModuleFileToPluginInfo.TryGetValue(ModuleFile, out Plugin))
+			if (ModuleFileToPluginInfo.TryGetValue(ModuleFile, out Plugin))
 			{
 				return true;
 			}
 			else
 			{
-				return (Parent == null)? false : Parent.TryGetPluginForModule(ModuleFile, out Plugin);
+				return (Parent == null) ? false : Parent.TryGetPluginForModule(ModuleFile, out Plugin);
 			}
 		}
 
@@ -1477,12 +1477,12 @@ namespace UnrealBuildTool
 		public bool DoesModuleHaveSource(string ModuleName)
 		{
 			FileReference ModuleFile;
-			if(ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFile))
+			if (ModuleNameToModuleFile.TryGetValue(ModuleName, out ModuleFile))
 			{
 				bool HasSource;
-				if(!ModuleHasSource.TryGetValue(ModuleFile, out HasSource))
+				if (!ModuleHasSource.TryGetValue(ModuleFile, out HasSource))
 				{
-					foreach(string FileName in Directory.EnumerateFiles(ModuleFile.Directory.FullName, "*.cpp", SearchOption.AllDirectories))
+					foreach (string FileName in Directory.EnumerateFiles(ModuleFile.Directory.FullName, "*.cpp", SearchOption.AllDirectories))
 					{
 						HasSource = true;
 						break;
@@ -1491,7 +1491,7 @@ namespace UnrealBuildTool
 				}
 				return HasSource;
 			}
-			return (Parent == null)? false : Parent.DoesModuleHaveSource(ModuleName);
+			return (Parent == null) ? false : Parent.DoesModuleHaveSource(ModuleName);
 		}
 	}
 
@@ -1522,12 +1522,12 @@ namespace UnrealBuildTool
 		/// We cache these file names so we can avoid searching for them later on.
 		static Dictionary<DirectoryReference, RulesFileCache> RootFolderToRulesFileCache = new Dictionary<DirectoryReference, RulesFileCache>();
 
-		public static List<FileReference> FindAllRulesSourceFiles( RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true )
+		public static List<FileReference> FindAllRulesSourceFiles(RulesFileType RulesFileType, List<DirectoryReference> GameFolders, List<FileReference> ForeignPlugins, List<DirectoryReference> AdditionalSearchPaths, bool bIncludeEngine = true)
 		{
 			List<DirectoryReference> Folders = new List<DirectoryReference>();
 
 			// Add all engine source (including third party source)
-			if(bIncludeEngine)
+			if (bIncludeEngine)
 			{
 				Folders.Add(UnrealBuildTool.EngineSourceDirectory);
 			}
@@ -1536,38 +1536,38 @@ namespace UnrealBuildTool
 
 			// Get all the root folders for plugins
 			List<DirectoryReference> RootFolders = new List<DirectoryReference>();
-			if(bIncludeEngine)
+			if (bIncludeEngine)
 			{
 				RootFolders.Add(UnrealBuildTool.EngineDirectory);
 			}
-			if(GameFolders != null)
+			if (GameFolders != null)
 			{
 				RootFolders.AddRange(GameFolders);
 			}
 
 			// Find all the plugin source directories
-			foreach(DirectoryReference RootFolder in RootFolders)
+			foreach (DirectoryReference RootFolder in RootFolders)
 			{
 				DirectoryReference PluginsFolder = DirectoryReference.Combine(RootFolder, "Plugins");
-				foreach(FileReference PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
+				foreach (FileReference PluginFile in Plugins.EnumeratePlugins(PluginsFolder))
 				{
 					Folders.Add(DirectoryReference.Combine(PluginFile.Directory, "Source"));
 				}
 			}
 
 			// Add all the extra plugin folders
-			if( ForeignPlugins != null )
+			if (ForeignPlugins != null)
 			{
-				foreach(FileReference ForeignPlugin in ForeignPlugins)
+				foreach (FileReference ForeignPlugin in ForeignPlugins)
 				{
 					Folders.Add(DirectoryReference.Combine(ForeignPlugin.Directory, "Source"));
 				}
 			}
 
 			// Add in the game folders to search
-			if( GameFolders != null )
+			if (GameFolders != null)
 			{
-				foreach( DirectoryReference GameFolder in GameFolders )
+				foreach (DirectoryReference GameFolder in GameFolders)
 				{
 					DirectoryReference GameSourceFolder = DirectoryReference.Combine(GameFolder, "Source");
 					Folders.Add(GameSourceFolder);
@@ -1577,11 +1577,11 @@ namespace UnrealBuildTool
 			}
 
 			// Process the additional search path, if sent in
-			if( AdditionalSearchPaths != null )
+			if (AdditionalSearchPaths != null)
 			{
-				foreach( var AdditionalSearchPath in AdditionalSearchPaths )
+				foreach (var AdditionalSearchPath in AdditionalSearchPaths)
 				{
-					if ( AdditionalSearchPath != null )
+					if (AdditionalSearchPath != null)
 					{
 						if (AdditionalSearchPath.Exists())
 						{
@@ -1589,7 +1589,7 @@ namespace UnrealBuildTool
 						}
 						else
 						{
-							throw new BuildException( "Couldn't find AdditionalSearchPath for rules source files '{0}'", AdditionalSearchPath );
+							throw new BuildException("Couldn't find AdditionalSearchPath for rules source files '{0}'", AdditionalSearchPath);
 						}
 					}
 				}
@@ -1598,12 +1598,12 @@ namespace UnrealBuildTool
 			// Iterate over all the folders to check
 			List<FileReference> SourceFiles = new List<FileReference>();
 			HashSet<FileReference> UniqueSourceFiles = new HashSet<FileReference>();
-			foreach( DirectoryReference Folder in Folders )
+			foreach (DirectoryReference Folder in Folders)
 			{
 				IReadOnlyList<FileReference> SourceFilesForFolder = FindAllRulesFiles(Folder, RulesFileType);
-				foreach(FileReference SourceFile in SourceFilesForFolder)
+				foreach (FileReference SourceFile in SourceFilesForFolder)
 				{
-					if(UniqueSourceFiles.Add(SourceFile))
+					if (UniqueSourceFiles.Add(SourceFile))
 					{
 						SourceFiles.Add(SourceFile);
 					}
@@ -1624,15 +1624,15 @@ namespace UnrealBuildTool
 			}
 
 			// Get the list of files of the type we're looking for
-			if(Type == RulesCompiler.RulesFileType.Module)
+			if (Type == RulesCompiler.RulesFileType.Module)
 			{
 				return Cache.ModuleRules;
 			}
-			else if(Type == RulesCompiler.RulesFileType.Target)
+			else if (Type == RulesCompiler.RulesFileType.Target)
 			{
 				return Cache.TargetRules;
 			}
-			else if(Type == RulesCompiler.RulesFileType.AutomationModule)
+			else if (Type == RulesCompiler.RulesFileType.AutomationModule)
 			{
 				return Cache.AutomationModules;
 			}
@@ -1646,18 +1646,18 @@ namespace UnrealBuildTool
 		{
 			// Scan all the files in this directory
 			bool bSearchSubFolders = true;
-			foreach(FileReference File in DirectoryLookupCache.EnumerateFiles(Directory))
+			foreach (FileReference File in DirectoryLookupCache.EnumerateFiles(Directory))
 			{
-				if(File.HasExtension(".build.cs"))
+				if (File.HasExtension(".build.cs"))
 				{
 					Cache.ModuleRules.Add(File);
 					bSearchSubFolders = false;
 				}
-				else if(File.HasExtension(".target.cs"))
+				else if (File.HasExtension(".target.cs"))
 				{
 					Cache.TargetRules.Add(File);
 				}
-				else if(File.HasExtension(".automation.csproj"))
+				else if (File.HasExtension(".automation.csproj"))
 				{
 					Cache.AutomationModules.Add(File);
 					bSearchSubFolders = false;
@@ -1665,9 +1665,9 @@ namespace UnrealBuildTool
 			}
 
 			// If we didn't find anything to stop the search, search all the subdirectories too
-			if(bSearchSubFolders)
+			if (bSearchSubFolders)
 			{
-				foreach(DirectoryReference SubDirectory in DirectoryLookupCache.EnumerateDirectories(Directory))
+				foreach (DirectoryReference SubDirectory in DirectoryLookupCache.EnumerateDirectories(Directory))
 				{
 					FindAllRulesFilesRecursively(SubDirectory, Cache);
 				}
@@ -1690,7 +1690,7 @@ namespace UnrealBuildTool
 		/// <returns>New rules assembly</returns>
 		public static RulesAssembly CreateEngineRulesAssembly()
 		{
-			if(EngineRulesAssembly == null)
+			if (EngineRulesAssembly == null)
 			{
 				// Find all the rules files
 				List<FileReference> ModuleFiles = new List<FileReference>(FindAllRulesFiles(UnrealBuildTool.EngineSourceDirectory, RulesFileType.Module));
@@ -1698,7 +1698,7 @@ namespace UnrealBuildTool
 
 				// Add all the plugin modules too
 				IReadOnlyList<PluginInfo> EnginePlugins = Plugins.ReadEnginePlugins(UnrealBuildTool.EngineDirectory);
-				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference,PluginInfo>();
+				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
 				FindModuleRulesForPlugins(EnginePlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Create a path to the assembly that we'll either load or compile
@@ -1717,7 +1717,7 @@ namespace UnrealBuildTool
 		{
 			// Check if there's an existing assembly for this project
 			RulesAssembly ProjectRulesAssembly;
-			if(!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
+			if (!LoadedAssemblyMap.TryGetValue(ProjectFileName, out ProjectRulesAssembly))
 			{
 				// Create the engine rules assembly
 				RulesAssembly Parent = CreateEngineRulesAssembly();
@@ -1730,7 +1730,7 @@ namespace UnrealBuildTool
 
 				// Find all the project plugins
 				IReadOnlyList<PluginInfo> ProjectPlugins = Plugins.ReadProjectPlugins(ProjectFileName.Directory);
-				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference,PluginInfo>();
+				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
 				FindModuleRulesForPlugins(ProjectPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Add the games project's intermediate source folder
@@ -1757,7 +1757,7 @@ namespace UnrealBuildTool
 		{
 			// Check if there's an existing assembly for this project
 			RulesAssembly PluginRulesAssembly;
-			if(!LoadedAssemblyMap.TryGetValue(PluginFileName, out PluginRulesAssembly))
+			if (!LoadedAssemblyMap.TryGetValue(PluginFileName, out PluginRulesAssembly))
 			{
 				// Find all the rules source files
 				List<FileReference> ModuleFiles = new List<FileReference>();
@@ -1765,13 +1765,13 @@ namespace UnrealBuildTool
 
 				// Create a list of plugins for this assembly. If it already exists in the parent assembly, just create an empty assembly.
 				List<PluginInfo> ForeignPlugins = new List<PluginInfo>();
-				if(Parent == null || !Parent.EnumeratePlugins().Any(x => x.File == PluginFileName))
+				if (Parent == null || !Parent.EnumeratePlugins().Any(x => x.File == PluginFileName))
 				{
 					ForeignPlugins.Add(new PluginInfo(PluginFileName, PluginLoadedFrom.GameProject));
 				}
 
 				// Find all the modules
-				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference,PluginInfo>();
+				Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo = new Dictionary<FileReference, PluginInfo>();
 				FindModuleRulesForPlugins(ForeignPlugins, ModuleFiles, ModuleFileToPluginInfo);
 
 				// Compile the assembly
@@ -1790,10 +1790,10 @@ namespace UnrealBuildTool
 		/// <param name="ModuleFileToPluginFile">Dictionary which is filled with mappings from the module file to its corresponding plugin file</param>
 		private static void FindModuleRulesForPlugins(IReadOnlyList<PluginInfo> Plugins, List<FileReference> ModuleFiles, Dictionary<FileReference, PluginInfo> ModuleFileToPluginInfo)
 		{
-			foreach(PluginInfo Plugin in Plugins)
+			foreach (PluginInfo Plugin in Plugins)
 			{
 				IReadOnlyList<FileReference> PluginModuleFiles = FindAllRulesFiles(DirectoryReference.Combine(Plugin.Directory, "Source"), RulesFileType.Module);
-				foreach(FileReference ModuleFile in PluginModuleFiles)
+				foreach (FileReference ModuleFile in PluginModuleFiles)
 				{
 					ModuleFiles.Add(ModuleFile);
 					ModuleFileToPluginInfo[ModuleFile] = Plugin;
@@ -1809,13 +1809,13 @@ namespace UnrealBuildTool
 		public static string GetFileNameFromType(Type ExistingType)
 		{
 			FileReference FileName;
-			if(EngineRulesAssembly != null && EngineRulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
+			if (EngineRulesAssembly != null && EngineRulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
 			{
 				return FileName.FullName;
 			}
-			foreach(RulesAssembly RulesAssembly in LoadedAssemblyMap.Values)
+			foreach (RulesAssembly RulesAssembly in LoadedAssemblyMap.Values)
 			{
-				if(RulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
+				if (RulesAssembly.TryGetFileNameFromType(ExistingType, out FileName))
 				{
 					return FileName.FullName;
 				}

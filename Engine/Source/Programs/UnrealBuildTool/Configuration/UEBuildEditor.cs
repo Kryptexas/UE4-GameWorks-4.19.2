@@ -30,19 +30,19 @@ namespace UnrealBuildTool
 
 			{
 				// Make the editor executable.
-				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration( InType: UEBuildBinaryType.Executable,
+				UEBuildBinaryConfiguration Config = new UEBuildBinaryConfiguration(InType: UEBuildBinaryType.Executable,
 																					InOutputFilePaths: OutputPaths,
 																					InIntermediateDirectory: EngineIntermediateDirectory,
 																					bInCreateImportLibrarySeparately: (ShouldCompileMonolithic() ? false : true),
-																					bInAllowExports:!ShouldCompileMonolithic(),
-																					InModuleNames: new List<string>() { "Launch" } );
+																					bInAllowExports: !ShouldCompileMonolithic(),
+																					InModuleNames: new List<string>() { "Launch" });
 
-				if(Platform == UnrealTargetPlatform.Win64 && Configuration != UnrealTargetConfiguration.Shipping)
+				if (Platform == UnrealTargetPlatform.Win64 && Configuration != UnrealTargetConfiguration.Shipping)
 				{
 					Config.bBuildAdditionalConsoleApp = true;
 				}
 
-				AppBinaries.Add( new UEBuildBinaryCPP( this, Config ) );
+				AppBinaries.Add(new UEBuildBinaryCPP(this, Config));
 			}
 
 			// Add the other modules that we want to compile along with the executable.  These aren't necessarily

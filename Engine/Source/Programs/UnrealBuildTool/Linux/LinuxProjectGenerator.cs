@@ -8,11 +8,11 @@ using System.IO;
 
 namespace UnrealBuildTool
 {
-    /**
-     *	Base class for platform-specific project generators 
-     */
-    class LinuxProjectGenerator : UEPlatformProjectGenerator
-    {
+	/**
+	 *	Base class for platform-specific project generators 
+	 */
+	class LinuxProjectGenerator : UEPlatformProjectGenerator
+	{
 		/**
 		 *	Register the platform with the UEPlatformProjectGenerator class
 		 */
@@ -21,7 +21,7 @@ namespace UnrealBuildTool
 			// Register this project generator for both Linux
 			if (BuildConfiguration.bPrintDebugInfo)
 			{
-                Console.WriteLine("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
+				Console.WriteLine("        Registering for {0}", UnrealTargetPlatform.Linux.ToString());
 			}
 			UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.Linux, this);
 		}
@@ -40,6 +40,6 @@ namespace UnrealBuildTool
 		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
 		{
 			return false;
-		}  
-    }
+		}
+	}
 }

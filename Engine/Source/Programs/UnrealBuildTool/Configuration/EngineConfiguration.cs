@@ -15,10 +15,10 @@ namespace UnrealBuildTool
 	{
 		public IniParsingException(string Message)
 			: base(Message)
-		{}
+		{ }
 		public IniParsingException(string Format, params object[] Args)
 			: base(String.Format(Format, Args))
-		{}
+		{ }
 	}
 
 	/// <summary>
@@ -47,7 +47,7 @@ namespace UnrealBuildTool
 		}
 
 		// cached ini files
-		static Dictionary<string, List<Command>> FileCache = new Dictionary<string,List<Command>>();
+		static Dictionary<string, List<Command>> FileCache = new Dictionary<string, List<Command>>();
 		static Dictionary<string, ConfigCacheIni> IniCache = new Dictionary<string, ConfigCacheIni>();
 		static Dictionary<string, ConfigCacheIni> BaseIniCache = new Dictionary<string, ConfigCacheIni>();
 		static List<string> RequiredSections = new List<string>(){"AppxManifest", "CommonSettings", "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "/Script/AndroidPlatformEditor.AndroidSDKSettings",
@@ -66,7 +66,7 @@ namespace UnrealBuildTool
 			// cache base ini for use as the seed for the rest
 			if (!BaseIniCache.ContainsKey(BaseIniName))
 			{
-				BaseIniCache.Add(BaseIniName, new ConfigCacheIni(UnrealTargetPlatform.Unknown, BaseIniName, null, EngineDirectory, EngineOnly:true));
+				BaseIniCache.Add(BaseIniName, new ConfigCacheIni(UnrealTargetPlatform.Unknown, BaseIniName, null, EngineDirectory, EngineOnly: true));
 			}
 
 			// build the new ini and cache it for later re-use
@@ -74,7 +74,7 @@ namespace UnrealBuildTool
 			string Key = GetIniPlatformName(Platform) + BaseIniName + EngineDirectory.FullName + (ProjectDirectory != null ? ProjectDirectory.FullName : "");
 			if (!IniCache.ContainsKey(Key))
 			{
-				IniCache.Add(Key, new ConfigCacheIni(Platform, BaseIniName, ProjectDirectory, EngineDirectory, BaseCache:BaseCache));
+				IniCache.Add(Key, new ConfigCacheIni(Platform, BaseIniName, ProjectDirectory, EngineDirectory, BaseCache: BaseCache));
 			}
 			return IniCache[Key];
 		}
@@ -97,7 +97,7 @@ namespace UnrealBuildTool
 		{
 			public IniSection()
 				: base(StringComparer.InvariantCultureIgnoreCase)
-			{}
+			{ }
 			public override string ToString()
 			{
 				return "IniSection";
@@ -131,7 +131,7 @@ namespace UnrealBuildTool
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
 		public ConfigCacheIni(string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
-			Init(UnrealTargetPlatform.Unknown, BaseIniName, (ProjectDirectory == null)? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null)? null : new DirectoryReference(EngineDirectory));
+			Init(UnrealTargetPlatform.Unknown, BaseIniName, (ProjectDirectory == null) ? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null) ? null : new DirectoryReference(EngineDirectory));
 		}
 
 		/// <summary>
@@ -153,7 +153,7 @@ namespace UnrealBuildTool
 		/// <param name="BaseIniName">Ini name (Engine, Editor, etc)</param>
 		public ConfigCacheIni(UnrealTargetPlatform Platform, string BaseIniName, string ProjectDirectory, string EngineDirectory = null)
 		{
-			Init(Platform, BaseIniName, (ProjectDirectory == null)? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null)? null : new DirectoryReference(EngineDirectory));
+			Init(Platform, BaseIniName, (ProjectDirectory == null) ? null : new DirectoryReference(ProjectDirectory), (EngineDirectory == null) ? null : new DirectoryReference(EngineDirectory));
 		}
 
 		/// <summary>
@@ -190,7 +190,7 @@ namespace UnrealBuildTool
 
 			if (BaseCache != null)
 			{
-				foreach(var Pair in BaseCache.Sections)
+				foreach (var Pair in BaseCache.Sections)
 				{
 					Sections.Add(Pair.Key, Pair.Value);
 				}
@@ -298,7 +298,7 @@ namespace UnrealBuildTool
 		/// <param name="Value">Value associated with the specified key. If the key has more than one value, only the first one is returned</param>
 		/// <returns>True if the key exists</returns>
 		public bool GetBool(string SectionName, string Key, out bool Value)
-		{			
+		{
 			Value = false;
 			string TextValue;
 			bool Result = GetString(SectionName, Key, out TextValue);
@@ -355,35 +355,35 @@ namespace UnrealBuildTool
 			bool Result = GetString(SectionName, Key, out TextValue);
 			if (Result)
 			{
-                string HexString = "";
-                if (TextValue.Contains("A=") && TextValue.Contains("B=") && TextValue.Contains("C=") && TextValue.Contains("D="))
-                {
-                    char[] Separators = new char[] { '(', ')', '=', ',', ' ', 'A', 'B', 'C', 'D' };
-                    string[] ComponentValues = TextValue.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-                    if (ComponentValues.Length == 4)
-                    {
-                        for (int ComponentIndex = 0; ComponentIndex < 4; ComponentIndex++)
-                        {
-                            int IntegerValue;
-                            Result &= Int32.TryParse(ComponentValues[ComponentIndex], out IntegerValue);
-                            HexString += IntegerValue.ToString("X8");
-                        }
-                    }
-                }
-                else
-                {
-                    HexString = TextValue;
-                }
+				string HexString = "";
+				if (TextValue.Contains("A=") && TextValue.Contains("B=") && TextValue.Contains("C=") && TextValue.Contains("D="))
+				{
+					char[] Separators = new char[] { '(', ')', '=', ',', ' ', 'A', 'B', 'C', 'D' };
+					string[] ComponentValues = TextValue.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+					if (ComponentValues.Length == 4)
+					{
+						for (int ComponentIndex = 0; ComponentIndex < 4; ComponentIndex++)
+						{
+							int IntegerValue;
+							Result &= Int32.TryParse(ComponentValues[ComponentIndex], out IntegerValue);
+							HexString += IntegerValue.ToString("X8");
+						}
+					}
+				}
+				else
+				{
+					HexString = TextValue;
+				}
 
-                try
-                {
-                    Value = Guid.ParseExact(HexString, "N");
-                    Result = true;
-                }
-                catch (Exception)
-                {
-                    Result = false;
-                }
+				try
+				{
+					Value = Guid.ParseExact(HexString, "N");
+					Result = true;
+				}
+				catch (Exception)
+				{
+					Result = false;
+				}
 			}
 			return Result;
 		}
@@ -426,38 +426,38 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-        private static bool ExtractPath(string Source, out string Path)
-        {
-            int start = Source.IndexOf('"');
-            int end = Source.LastIndexOf('"');    
-            if(start != 1 && end != -1 && start < end)
-            {
-                ++start;
-                Path = Source.Substring(start, end - start);
-                return true;
-            }
-            else
-            {
-                Path = "";
-            }
+		private static bool ExtractPath(string Source, out string Path)
+		{
+			int start = Source.IndexOf('"');
+			int end = Source.LastIndexOf('"');
+			if (start != 1 && end != -1 && start < end)
+			{
+				++start;
+				Path = Source.Substring(start, end - start);
+				return true;
+			}
+			else
+			{
+				Path = "";
+			}
 
-            return false;
-        }
+			return false;
+		}
 
-        public bool GetPath(string SectionName, string Key, out string Value)
-        {
-            string temp;
-            if(GetString(SectionName, Key, out temp))
-            {
-                return ExtractPath(temp, out Value);
-            }
-            else
-            {
-                Value = "";
-            }
+		public bool GetPath(string SectionName, string Key, out string Value)
+		{
+			string temp;
+			if (GetString(SectionName, Key, out temp))
+			{
+				return ExtractPath(temp, out Value);
+			}
+			else
+			{
+				Value = "";
+			}
 
-            return false;
-        }
+			return false;
+		}
 
 		/// <summary>
 		/// List of actions that can be performed on a single line from ini file
@@ -568,10 +568,10 @@ namespace UnrealBuildTool
 							LastAction = GetActionForLine(ref TrimmedLine);
 							if (LastAction != ParseAction.None)
 							{
-/*								if (CurrentSection == null)
-								{
-									throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
-								}*/
+								/*								if (CurrentSection == null)
+																{
+																	throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
+																}*/
 								ParseKeyValuePair(TrimmedLine, Filename, LineIndex, out Key, out SingleValue);
 							}
 						}
@@ -604,7 +604,7 @@ namespace UnrealBuildTool
 				IniSection CurrentSection = null;
 
 				// run each command
-				for(int Idx = 0; Idx < Commands.Count; ++Idx)
+				for (int Idx = 0; Idx < Commands.Count; ++Idx)
 				{
 					var Command = Commands[Idx];
 					if (Command is SectionCommand)
@@ -623,7 +623,7 @@ namespace UnrealBuildTool
 		/// Splits a line into key and value
 		/// </summary>
 		private static void ParseKeyValuePair(string TrimmedLine, FileReference Filename, int LineIndex, out string Key, out string Value)
-		{			
+		{
 			var AssignIndex = TrimmedLine.IndexOf('=');
 			if (AssignIndex < 0)
 			{
@@ -664,7 +664,7 @@ namespace UnrealBuildTool
 							CurrentSection.Add(Key, Value);
 						}
 						Value.Clear();
-						Value.Add(SingleValue);						
+						Value.Add(SingleValue);
 					}
 					break;
 				case ParseAction.Add:
@@ -759,25 +759,25 @@ namespace UnrealBuildTool
 				// yield return Path.Combine(EngineDirectory, "Config", "NoRedist", "Base" + BaseIniName + ".ini");
 			}
 
-			if(ProjectDirectory != null)
+			if (ProjectDirectory != null)
 			{
 				// Game/Config/Default* ini
 				yield return FileReference.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
-			
+
 				// Game/Config/NotForLicensees/Default* ini
 				yield return FileReference.Combine(ProjectDirectory, "Config", "NotForLicensees", "Default" + BaseIniName + ".ini");
 
 				// Game/Config/NoRedist/Default* ini
 				yield return FileReference.Combine(ProjectDirectory, "Config", "NoRedist", "Default" + BaseIniName + ".ini");
 			}
-			
-			string PlatformName = GetIniPlatformName(Platform);			
+
+			string PlatformName = GetIniPlatformName(Platform);
 			if (Platform != UnrealTargetPlatform.Unknown)
 			{
 				// Engine/Config/Platform/Platform* ini
 				yield return FileReference.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
-				if(ProjectDirectory != null)
+				if (ProjectDirectory != null)
 				{
 					// Game/Config/Platform/Platform* ini
 					yield return FileReference.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
@@ -803,10 +803,10 @@ namespace UnrealBuildTool
 			yield return FileReference.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
 			// <Documents>/UE4/EngineConfig/User* ini
 			yield return FileReference.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
-			
+
 			// Game/Config/User* ini
-            if (ProjectDirectory != null)
-            {
+			if (ProjectDirectory != null)
+			{
 				yield return FileReference.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
 			}
 		}
@@ -816,7 +816,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		private static string GetIniPlatformName(UnrealTargetPlatform TargetPlatform)
 		{
-			if (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.UWP )
+			if (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64 || TargetPlatform == UnrealTargetPlatform.UWP)
 			{
 				return "Windows";
 			}

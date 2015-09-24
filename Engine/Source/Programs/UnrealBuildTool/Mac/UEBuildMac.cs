@@ -11,10 +11,10 @@ namespace UnrealBuildTool
 {
 	class MacPlatform : UEBuildPlatform
 	{
-        public override bool CanUseXGE()
-        {
-            return false;
-        }
+		public override bool CanUseXGE()
+		{
+			return false;
+		}
 
 		public override bool CanUseDistcc()
 		{
@@ -66,7 +66,7 @@ namespace UnrealBuildTool
 		{
 			switch (InBinaryType)
 			{
-				case UEBuildBinaryType.DynamicLinkLibrary: 
+				case UEBuildBinaryType.DynamicLinkLibrary:
 					return ".dylib";
 				case UEBuildBinaryType.Executable:
 					return "";
@@ -96,37 +96,37 @@ namespace UnrealBuildTool
 		{
 			if (Target.Platform == UnrealTargetPlatform.Mac)
 			{
-                bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
+				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 
-                if (!UEBuildConfiguration.bBuildRequiresCookedData)
-                {
-                    if (ModuleName == "TargetPlatform")
-                    {
-                        bBuildShaderFormats = true;
-                    }
-                }
+				if (!UEBuildConfiguration.bBuildRequiresCookedData)
+				{
+					if (ModuleName == "TargetPlatform")
+					{
+						bBuildShaderFormats = true;
+					}
+				}
 
 				// allow standalone tools to use target platform modules, without needing Engine
-				if(ModuleName == "TargetPlatform")
+				if (ModuleName == "TargetPlatform")
 				{
-				    if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-				    {
-					    Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
-					    Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
-					    Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
-					    Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
-					    Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
-				    }
-    
-                    if (bBuildShaderFormats)
-                    {
-					    // Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
-                        Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
-                    }
+					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+					{
+						Rules.DynamicallyLoadedModuleNames.Add("MacTargetPlatform");
+						Rules.DynamicallyLoadedModuleNames.Add("MacNoEditorTargetPlatform");
+						Rules.DynamicallyLoadedModuleNames.Add("MacClientTargetPlatform");
+						Rules.DynamicallyLoadedModuleNames.Add("MacServerTargetPlatform");
+						Rules.DynamicallyLoadedModuleNames.Add("AllDesktopTargetPlatform");
+					}
+
+					if (bBuildShaderFormats)
+					{
+						// Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatD3D");
+						Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
+					}
 				}
 			}
 		}
-		
+
 		/**
 		 *	Setup the target environment for building
 		 *	
@@ -193,14 +193,14 @@ namespace UnrealBuildTool
 			BuildConfiguration.bDeployAfterCompile = true;
 		}
 
-        public override void ValidateUEBuildConfiguration()
-        {
+		public override void ValidateUEBuildConfiguration()
+		{
 			if (ProjectFileGenerator.bGenerateProjectFiles && !ProjectFileGenerator.bGeneratingRocketProjectFiles)
 			{
 				// When generating non-Rocket project files we need intellisense generator to include info from all modules, including editor-only third party libs
 				UEBuildConfiguration.bCompileLeanAndMeanUE = false;
 			}
-        }
+		}
 
 		/**
 		 *	Whether the platform requires the extra UnityCPPWriter

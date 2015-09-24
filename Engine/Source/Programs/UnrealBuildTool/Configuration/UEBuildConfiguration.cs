@@ -7,13 +7,13 @@ namespace UnrealBuildTool
 {
 	public class UEBuildConfiguration
 	{
-        static UEBuildConfiguration()
-        {
-            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
-            {
-                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
-            }
-        }
+		static UEBuildConfiguration()
+		{
+			if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+			{
+				throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+			}
+		}
 
 		/** Whether to include PhysX support */
 		[XmlConfig]
@@ -23,17 +23,17 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileAPEX;
 
-        /** Whether to allow runtime cooking of physics */
-        [XmlConfig]
-        public static bool bRuntimePhysicsCooking;
+		/** Whether to allow runtime cooking of physics */
+		[XmlConfig]
+		public static bool bRuntimePhysicsCooking;
 
 		/** Whether to include Box2D support */
 		[XmlConfig]
 		public static bool bCompileBox2D;
 
-        /** Whether to include ICU unicode/i18n support in core */
+		/** Whether to include ICU unicode/i18n support in core */
 		[XmlConfig]
-        public static bool bCompileICU;
+		public static bool bCompileICU;
 
 		/** Whether to build a stripped down version of the game specifically for dedicated server. */
 		[Obsolete("bBuildDedicatedServer has been deprecated and will be removed in future release. Update your code to use TargetInfo.Type instead or your code will not compile.")]
@@ -67,7 +67,7 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bCompileSimplygon;
 
-        /** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
+		/** Whether we should compile in support for Steam OnlineSubsystem or not. [RCL] FIXME 2014-Apr-17: bCompileSteamOSS means "bHasSteamworksInstalled" for some code, these meanings need to be untangled */
 		[XmlConfig]
 		public static bool bCompileSteamOSS;
 
@@ -116,17 +116,17 @@ namespace UnrealBuildTool
 		public static bool bIncludeADO;
 
 		/** Directory for the third party files/libs */
-        [Obsolete("Use UEThirdPartySourceDirectory instead of UEThirdPartyDirectory.", true)]
+		[Obsolete("Use UEThirdPartySourceDirectory instead of UEThirdPartyDirectory.", true)]
 		[XmlConfig]
 		public static string UEThirdPartyDirectory;
 
-        /** Directory for the third party source */
-        [XmlConfig]
-        public static string UEThirdPartySourceDirectory;
+		/** Directory for the third party source */
+		[XmlConfig]
+		public static string UEThirdPartySourceDirectory;
 
-        /** Directory for the third party binaries */
-        [XmlConfig]
-        public static string UEThirdPartyBinariesDirectory;
+		/** Directory for the third party binaries */
+		[XmlConfig]
+		public static string UEThirdPartyBinariesDirectory;
 
 		/** If true, force header regeneration. Intended for the build machine */
 		[XmlConfig]
@@ -203,7 +203,7 @@ namespace UnrealBuildTool
 			// Currently, WITH_PHYSX is forced to true in Engine.h (as it isn't defined anywhere by the builder)
 			bCompilePhysX = true;
 			bCompileAPEX = true;
-            bRuntimePhysicsCooking = true;
+			bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bCompileICU = true;
 			bBuildEditor = true;
@@ -216,15 +216,15 @@ namespace UnrealBuildTool
 			bCompileLeanAndMeanUE = false;
 			bCompileAgainstEngine = true;
 			bCompileAgainstCoreUObject = true;
-            UEThirdPartySourceDirectory = "ThirdParty/";
-            UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
+			UEThirdPartySourceDirectory = "ThirdParty/";
+			UEThirdPartyBinariesDirectory = "../Binaries/ThirdParty/";
 			bCompileRecast = true;
 			bForceEnableExceptions = false;
 			bWithServerCode = true;
 			bCompileSpeedTree = true;
 			bCompileWithStatsWithoutEngine = false;
 			bCompileWithPluginSupport = false;
-            bUseLoggingInShipping = false;
+			bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
 			bCompilePhysXVehicle = true;

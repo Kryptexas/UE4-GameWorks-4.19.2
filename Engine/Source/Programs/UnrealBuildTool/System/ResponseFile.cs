@@ -16,9 +16,9 @@ namespace UnrealBuildTool
 		/// <param name="Lines">List of lines to write to the response file</param>
 		public static FileReference Create(FileReference TempFileName, List<string> Lines)
 		{
-			FileInfo TempFileInfo = new FileInfo( TempFileName.FullName );
+			FileInfo TempFileInfo = new FileInfo(TempFileName.FullName);
 			// Delete the existing file if it exists
-			if( TempFileInfo.Exists )
+			if (TempFileInfo.Exists)
 			{
 				TempFileInfo.IsReadOnly = false;
 				TempFileInfo.Delete();

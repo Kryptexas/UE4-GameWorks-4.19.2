@@ -51,9 +51,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="Target">The target to create the cache for</param>
 		/// <returns>The new instance</returns>
-		public static FlatCPPIncludeDependencyCache Create( UEBuildTarget Target )
+		public static FlatCPPIncludeDependencyCache Create(UEBuildTarget Target)
 		{
-			FileReference CacheFile = FlatCPPIncludeDependencyCache.GetDependencyCachePathForTarget( Target );;
+			FileReference CacheFile = FlatCPPIncludeDependencyCache.GetDependencyCachePathForTarget(Target); ;
 
 			// See whether the cache file exists.
 			if (CacheFile.Exists())
@@ -78,15 +78,15 @@ namespace UnrealBuildTool
 				}
 			}
 
-			bool bIsBuilding = (ProjectFileGenerator.bGenerateProjectFiles == false ) && (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
-			if( bIsBuilding && !UnrealBuildTool.bNeedsFullCPPIncludeRescan )
-			{ 
+			bool bIsBuilding = (ProjectFileGenerator.bGenerateProjectFiles == false) && (BuildConfiguration.bXGEExport == false) && (UEBuildConfiguration.bGenerateManifest == false) && (UEBuildConfiguration.bGenerateExternalFileList == false) && (UEBuildConfiguration.bCleanProject == false);
+			if (bIsBuilding && !UnrealBuildTool.bNeedsFullCPPIncludeRescan)
+			{
 				UnrealBuildTool.bNeedsFullCPPIncludeRescan = true;
-				Log.TraceInformation( "Performing full C++ include scan (no include cache file)" );
+				Log.TraceInformation("Performing full C++ include scan (no include cache file)");
 			}
 
 			// Fall back to a clean cache on error or non-existence.
-			return new FlatCPPIncludeDependencyCache( CacheFile );
+			return new FlatCPPIncludeDependencyCache(CacheFile);
 		}
 
 		/// <summary>
@@ -114,7 +114,7 @@ namespace UnrealBuildTool
 					{
 						// @todo ubtmake: We can store the cache in a cheaper/smaller way using hash file names and indices into included headers, but it might actually slow down load times
 						// @todo ubtmake: If we can index PCHs here, we can avoid storing all of the PCH's included headers (PCH's action should have been invalidated, so we shouldn't even have to report the PCH's includes as our indirect includes)
-						if(Reader.ReadInt32() == FileSignature)
+						if (Reader.ReadInt32() == FileSignature)
 						{
 							Result = Deserialize(Reader);
 						}
@@ -179,7 +179,7 @@ namespace UnrealBuildTool
 				}
 			}
 
-			if(File.Exists(BackingFile.FullName + ".buildmutex"))
+			if (File.Exists(BackingFile.FullName + ".buildmutex"))
 			{
 				try
 				{
@@ -198,12 +198,12 @@ namespace UnrealBuildTool
 		/// <param name="Writer">Writer to output to</param>
 		void Serialize(BinaryWriter Writer)
 		{
-			Dictionary<FileReference, int> FileToUniqueId = new Dictionary<FileReference,int>();
+			Dictionary<FileReference, int> FileToUniqueId = new Dictionary<FileReference, int>();
 			Writer.Write(BackingFile);
 
 			// Write out all the dependency info objects
 			Writer.Write(DependencyMap.Count);
-			foreach(KeyValuePair<FileReference, FlatCPPIncludeDependencyInfo> Pair in DependencyMap)
+			foreach (KeyValuePair<FileReference, FlatCPPIncludeDependencyInfo> Pair in DependencyMap)
 			{
 				Writer.Write(Pair.Key);
 
@@ -211,7 +211,7 @@ namespace UnrealBuildTool
 				Writer.Write(Info.PCHName, FileToUniqueId);
 
 				Writer.Write(Info.Includes.Count);
-				foreach(FileReference Include in Info.Includes)
+				foreach (FileReference Include in Info.Includes)
 				{
 					Writer.Write(Include, FileToUniqueId);
 				}
@@ -229,11 +229,11 @@ namespace UnrealBuildTool
 
 			// Create the dependency map
 			int NumDependencyMapEntries = Reader.ReadInt32();
-			Cache.DependencyMap = new Dictionary<FileReference,FlatCPPIncludeDependencyInfo>(NumDependencyMapEntries);
+			Cache.DependencyMap = new Dictionary<FileReference, FlatCPPIncludeDependencyInfo>(NumDependencyMapEntries);
 
 			// Read all the dependency map entries
 			List<FileReference> UniqueFiles = new List<FileReference>(NumDependencyMapEntries * 2);
-			for(int Idx = 0; Idx < NumDependencyMapEntries; Idx++)
+			for (int Idx = 0; Idx < NumDependencyMapEntries; Idx++)
 			{
 				FileReference File = Reader.ReadFileReference();
 
@@ -246,7 +246,7 @@ namespace UnrealBuildTool
 				int NumIncludes = Reader.ReadInt32();
 				Info.Includes = new List<FileReference>(NumIncludes);
 
-				for(int IncludeIdx = 0; IncludeIdx < NumIncludes; IncludeIdx++)
+				for (int IncludeIdx = 0; IncludeIdx < NumIncludes; IncludeIdx++)
 				{
 					Info.Includes.Add(Reader.ReadFileReference(UniqueFiles));
 				}
@@ -264,7 +264,7 @@ namespace UnrealBuildTool
 		/// <param name="AbsoluteFilePath">File to set</param>
 		/// <param name="PCHName">The PCH for this file</param>
 		/// <param name="Dependencies">List of source dependencies</param>
-		public void SetDependenciesForFile( FileReference AbsoluteFilePath, FileReference PCHName, List<FileReference> Dependencies )
+		public void SetDependenciesForFile(FileReference AbsoluteFilePath, FileReference PCHName, List<FileReference> Dependencies)
 		{
 			var DependencyInfo = new FlatCPPIncludeDependencyInfo();
 			DependencyInfo.PCHName = PCHName;	// @todo ubtmake: Not actually used yet.  The idea is to use this to reduce the number of indirect includes we need to store in the cache.
@@ -272,7 +272,7 @@ namespace UnrealBuildTool
 			DependencyInfo.IncludeFileItems = null;
 
 			// @todo ubtmake: We could shrink this file by not storing absolute paths (project and engine relative paths only, except for system headers.)  May affect load times.
-			DependencyMap[ AbsoluteFilePath ] = DependencyInfo;
+			DependencyMap[AbsoluteFilePath] = DependencyInfo;
 			bIsDirty = true;
 		}
 
@@ -282,18 +282,18 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="AbsoluteFilePath">Path to the file</param>
 		/// <returns>The list of includes</returns>
-		public List<FileItem> GetDependenciesForFile( FileReference AbsoluteFilePath )
+		public List<FileItem> GetDependenciesForFile(FileReference AbsoluteFilePath)
 		{
 			FlatCPPIncludeDependencyInfo DependencyInfo;
-			if( DependencyMap.TryGetValue( AbsoluteFilePath, out DependencyInfo ) )
+			if (DependencyMap.TryGetValue(AbsoluteFilePath, out DependencyInfo))
 			{
 				// Update our transient cache of FileItems for each of the included files
-				if( DependencyInfo.IncludeFileItems == null )
+				if (DependencyInfo.IncludeFileItems == null)
 				{
-					DependencyInfo.IncludeFileItems = new List<FileItem>( DependencyInfo.Includes.Count );
-					foreach( FileReference Dependency in DependencyInfo.Includes )
+					DependencyInfo.IncludeFileItems = new List<FileItem>(DependencyInfo.Includes.Count);
+					foreach (FileReference Dependency in DependencyInfo.Includes)
 					{
-						DependencyInfo.IncludeFileItems.Add( FileItem.GetItemByFileReference( Dependency ) );
+						DependencyInfo.IncludeFileItems.Add(FileItem.GetItemByFileReference(Dependency));
 					}
 				}
 				return DependencyInfo.IncludeFileItems;
@@ -318,7 +318,7 @@ namespace UnrealBuildTool
 			{
 				PlatformIntermediatePath = new DirectoryReference(BuildConfiguration.PlatformIntermediatePath);
 			}
-			return FileReference.Combine(PlatformIntermediatePath, Target.GetTargetName(), "FlatCPPIncludes.bin" );
+			return FileReference.Combine(PlatformIntermediatePath, Target.GetTargetName(), "FlatCPPIncludes.bin");
 		}
 	}
 }

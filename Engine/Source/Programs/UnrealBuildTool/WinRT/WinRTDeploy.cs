@@ -170,7 +170,7 @@ namespace UnrealBuildTool
 						{
 							try
 							{
-Log.TraceInformation("GameDeployment: Copying {0} to {1}", SourceGameContent, DestGameContent);
+								Log.TraceInformation("GameDeployment: Copying {0} to {1}", SourceGameContent, DestGameContent);
 								// Need to ensure that the dest directory exists...
 								string DirectoryPath = Path.GetDirectoryName(DestGameContent);
 								if (!Directory.Exists(DirectoryPath))
@@ -276,10 +276,10 @@ Log.TraceInformation("GameDeployment: Copying {0} to {1}", SourceGameContent, De
 			CopyFile(WinRTBuildDirectory + BuildRecipeFileName, BinariesDirectory + BuildRecipeFileName, true);
 
 			// Copy the WinRTCmdLine.txt file
- 			Log.TraceInformation("...copying the commandline text file...");
- 			string CmdLineFile = "WinRTCmdLine.txt";
- 			CopyFile(WinRTBuildDirectory + CmdLineFile, BinariesDirectory + CmdLineFile, true);
- 			CopyFile(WinRTBuildDirectory + CmdLineFile, DeployDirectory + CmdLineFile, true);
+			Log.TraceInformation("...copying the commandline text file...");
+			string CmdLineFile = "WinRTCmdLine.txt";
+			CopyFile(WinRTBuildDirectory + CmdLineFile, BinariesDirectory + CmdLineFile, true);
+			CopyFile(WinRTBuildDirectory + CmdLineFile, DeployDirectory + CmdLineFile, true);
 
 			// Copy the assets folder
 			Log.TraceInformation("...copying the asset files...");

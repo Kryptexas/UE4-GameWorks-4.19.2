@@ -15,7 +15,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Constructor
 		/// </summary>
-		public CMakefileFolder( ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName )
+		public CMakefileFolder(ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName)
 			: base(InitOwnerProjectFileGenerator, InitFolderName)
 		{
 		}
@@ -23,7 +23,7 @@ namespace UnrealBuildTool
 
 	public class CMakefileProjectFile : ProjectFile
 	{
-		public CMakefileProjectFile( FileReference InitFilePath )
+		public CMakefileProjectFile(FileReference InitFilePath)
 			: base(InitFilePath)
 		{
 		}
@@ -37,7 +37,8 @@ namespace UnrealBuildTool
 		bool bGenerateIntelliSenseData = false;
 
 		/// Default constructor
-		public CMakefileGenerator(FileReference InOnlyGameProject) : base(InOnlyGameProject)
+		public CMakefileGenerator(FileReference InOnlyGameProject)
+			: base(InOnlyGameProject)
 		{
 		}
 
@@ -56,7 +57,7 @@ namespace UnrealBuildTool
 			}
 		}
 
-		protected override bool WriteMasterProjectFile( ProjectFile UBTProject )
+		protected override bool WriteMasterProjectFile(ProjectFile UBTProject)
 		{
 			bool bSuccess = true;
 			return bSuccess;
@@ -106,7 +107,7 @@ namespace UnrealBuildTool
 				throw new BuildException("ERROR: CMakefileGenerator does not support this platform");
 			}
 
-			if (!String.IsNullOrEmpty (GameProjectName)) 
+			if (!String.IsNullOrEmpty(GameProjectName))
 			{
 				CMakeGameRootPath = "set(GAME_ROOT_PATH \"" + OnlyGameProject.Directory.FullName + "\")\n";
 
@@ -140,12 +141,12 @@ namespace UnrealBuildTool
 			List<String> IncludeDirectories = new List<String>();
 			List<String> PreprocessorDefinitions = new List<String>();
 
-			foreach (var CurProject in GeneratedProjectFiles) 
+			foreach (var CurProject in GeneratedProjectFiles)
 			{
 				foreach (var CurPath in CurProject.IntelliSenseIncludeSearchPaths)
 				{
 					string IncludeDirectory = GetIncludeDirectory(CurPath, Path.GetDirectoryName(CurProject.ProjectFilePath.FullName));
-					if (IncludeDirectory != null && !IncludeDirectories.Contains(IncludeDirectory)) 
+					if (IncludeDirectory != null && !IncludeDirectories.Contains(IncludeDirectory))
 					{
 						IncludeDirectories.Add(IncludeDirectory);
 					}
@@ -177,22 +178,22 @@ namespace UnrealBuildTool
 					string SourceFileRelativeToRoot = CurSourceFile.MakeRelativeTo(UnrealBuildTool.EngineDirectory);
 					// Exclude files/folders on a per-platform basis.
 					if ((bIsLinux && IsLinuxFiltered(SourceFileRelativeToRoot)) || (bIsMac && IsMacFiltered(SourceFileRelativeToRoot))
-						||  (bIsWin64 && IsWinFiltered(SourceFileRelativeToRoot))
-					) 
+						|| (bIsWin64 && IsWinFiltered(SourceFileRelativeToRoot))
+					)
 					{
-						if (SourceFileRelativeToRoot.EndsWith (".cpp"))
+						if (SourceFileRelativeToRoot.EndsWith(".cpp"))
 						{
-							if (!SourceFileRelativeToRoot.StartsWith ("..") && !Path.IsPathRooted (SourceFileRelativeToRoot))
+							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
 								// SourceFileRelativeToRoot = "Engine/" + SourceFileRelativeToRoot;
 								CMakeSourceFilesList += ("\t\"${UE4_ROOT_PATH}/Engine/" + SourceFileRelativeToRoot + "\"\n");
-							} 
-							else 
+							}
+							else
 							{
-								if (String.IsNullOrEmpty (GameProjectName)) 
+								if (String.IsNullOrEmpty(GameProjectName))
 								{
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
-									CMakeSourceFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring (3) + "\"\n");
+									CMakeSourceFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\"\n");
 								}
 								else
 								{
@@ -200,44 +201,44 @@ namespace UnrealBuildTool
 								}
 							}
 						}
-						if (SourceFileRelativeToRoot.EndsWith (".h")) 
+						if (SourceFileRelativeToRoot.EndsWith(".h"))
 						{
-							if (!SourceFileRelativeToRoot.StartsWith ("..") && !Path.IsPathRooted (SourceFileRelativeToRoot)) 
+							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
 								// SourceFileRelativeToRoot = "Engine/" + SourceFileRelativeToRoot;
-								CMakeHeaderFilesList += ("\t\"${UE4_ROOT_PATH}/Engine/" +  SourceFileRelativeToRoot + "\"\n");
-							} 
-							else 
+								CMakeHeaderFilesList += ("\t\"${UE4_ROOT_PATH}/Engine/" + SourceFileRelativeToRoot + "\"\n");
+							}
+							else
 							{
-								if (String.IsNullOrEmpty (GameProjectName)) 
+								if (String.IsNullOrEmpty(GameProjectName))
 								{
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
-									CMakeHeaderFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring (3) + "\"\n");
+									CMakeHeaderFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\"\n");
 								}
 								else
 								{
-									CMakeHeaderFilesList += ("\t\"${GAME_ROOT_PATH}/" + Utils.MakePathRelativeTo (CurSourceFile.FullName, GameProjectPath) + "\"\n");
+									CMakeHeaderFilesList += ("\t\"${GAME_ROOT_PATH}/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\"\n");
 								}
 							}
 						}
-						if (SourceFileRelativeToRoot.EndsWith (".cs"))
+						if (SourceFileRelativeToRoot.EndsWith(".cs"))
 						{
-							if (!SourceFileRelativeToRoot.StartsWith ("..") && !Path.IsPathRooted (SourceFileRelativeToRoot)) 
+							if (!SourceFileRelativeToRoot.StartsWith("..") && !Path.IsPathRooted(SourceFileRelativeToRoot))
 							{
 								// SourceFileRelativeToRoot = "Engine/" + SourceFileRelativeToRoot;
 								CMakeConfigFilesList += ("\t\"${UE4_ROOT_PATH}/Engine/" + SourceFileRelativeToRoot + "\"\n");
 
-							} 
+							}
 							else
 							{
-								if (String.IsNullOrEmpty (GameProjectName)) 
+								if (String.IsNullOrEmpty(GameProjectName))
 								{
 									// SourceFileRelativeToRoot = SourceFileRelativeToRoot.Substring (3);
-									CMakeConfigFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring (3) + "\"\n");
+									CMakeConfigFilesList += ("\t\"" + SourceFileRelativeToRoot.Substring(3) + "\"\n");
 								}
 								else
 								{
-									CMakeConfigFilesList += ("\t\"${GAME_ROOT_PATH}/" + Utils.MakePathRelativeTo (CurSourceFile.FullName, GameProjectPath) + "\"\n");
+									CMakeConfigFilesList += ("\t\"${GAME_ROOT_PATH}/" + Utils.MakePathRelativeTo(CurSourceFile.FullName, GameProjectPath) + "\"\n");
 								};
 							}
 						}
@@ -246,12 +247,12 @@ namespace UnrealBuildTool
 
 			}
 
-			foreach (string IncludeDirectory in IncludeDirectories) 
+			foreach (string IncludeDirectory in IncludeDirectories)
 			{
 				IncludeDirectoriesList += ("\t\"" + IncludeDirectory + "\"\n");
 			}
 
-			foreach (string PreprocessorDefinition in PreprocessorDefinitions) 
+			foreach (string PreprocessorDefinition in PreprocessorDefinitions)
 			{
 				PreprocessorDefinitionsList += ("\t-D" + PreprocessorDefinition + "\n");
 			}
@@ -264,15 +265,15 @@ namespace UnrealBuildTool
 			PreprocessorDefinitionsList += CMakeSectionEnd;
 
 			// Append sections to the CMakeLists.txt file
-			CMakefileContent.Append (CMakeSourceFilesList);
-			CMakefileContent.Append (CMakeHeaderFilesList);
-			CMakefileContent.Append (CMakeConfigFilesList);
-			CMakefileContent.Append (IncludeDirectoriesList);
-			CMakefileContent.Append (PreprocessorDefinitionsList);
+			CMakefileContent.Append(CMakeSourceFilesList);
+			CMakefileContent.Append(CMakeHeaderFilesList);
+			CMakefileContent.Append(CMakeConfigFilesList);
+			CMakefileContent.Append(IncludeDirectoriesList);
+			CMakefileContent.Append(PreprocessorDefinitionsList);
 
 			string CMakeProjectCmdArg = "";
 
-			foreach(var Project in GeneratedProjectFiles)
+			foreach (var Project in GeneratedProjectFiles)
 			{
 				foreach (var TargetFile in Project.ProjectTargets)
 				{
@@ -289,7 +290,7 @@ namespace UnrealBuildTool
 						{
 							if (UnrealBuildTool.IsValidConfiguration(CurConfiguration))
 							{
-								if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+								if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor"))
 								{
 									CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
 								}
@@ -299,13 +300,13 @@ namespace UnrealBuildTool
 						}
 					}
 
-					if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor")) 
+					if (TargetName == GameProjectName || TargetName == (GameProjectName + "Editor"))
 					{
 						CMakeProjectCmdArg = " -project=\"\\\"${GAME_PROJECT_FILE}\\\"\"";
 					}
-					if (HostArchitecture != null) 
+					if (HostArchitecture != null)
 					{
-						CMakefileContent.Append (String.Format ("add_custom_target({0} ${{BUILD}} {1} {0} {2} Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
+						CMakefileContent.Append(String.Format("add_custom_target({0} ${{BUILD}} {1} {0} {2} Development $(ARGS) SOURCES ${{SOURCE_FILES}} ${{HEADER_FILES}} ${{CONFIG_FILES}})\n\n", TargetName, CMakeProjectCmdArg, HostArchitecture));
 					}
 				}
 			}
@@ -314,25 +315,25 @@ namespace UnrealBuildTool
 			return WriteFileIfChanged(FullFileName, CMakefileContent.ToString());
 		}
 
-		private bool IsLinuxFiltered( String SourceFileRelativeToRoot ) 
+		private bool IsLinuxFiltered(String SourceFileRelativeToRoot)
 		{
 			// minimal filtering as it is helpful to be able to look up symbols from other platforms
 			return !SourceFileRelativeToRoot.Contains("Source/ThirdParty/");
 		}
 
-		private bool IsMacFiltered( String SourceFileRelativeToRoot ) 
+		private bool IsMacFiltered(String SourceFileRelativeToRoot)
 		{
-			return !SourceFileRelativeToRoot.Contains ("Source/ThirdParty/") &&
-				!SourceFileRelativeToRoot.Contains ("/Windows/") &&
-				!SourceFileRelativeToRoot.Contains ("/Linux/") &&
-				!SourceFileRelativeToRoot.Contains ("/VisualStudioSourceCodeAccess/") &&
-				!SourceFileRelativeToRoot.Contains ("/WmfMedia/") &&
-				!SourceFileRelativeToRoot.Contains ("/WindowsDeviceProfileSelector/") &&
-				!SourceFileRelativeToRoot.Contains ("/WindowsMoviePlayer/") &&
-				!SourceFileRelativeToRoot.Contains ("/WinRT/");
+			return !SourceFileRelativeToRoot.Contains("Source/ThirdParty/") &&
+				!SourceFileRelativeToRoot.Contains("/Windows/") &&
+				!SourceFileRelativeToRoot.Contains("/Linux/") &&
+				!SourceFileRelativeToRoot.Contains("/VisualStudioSourceCodeAccess/") &&
+				!SourceFileRelativeToRoot.Contains("/WmfMedia/") &&
+				!SourceFileRelativeToRoot.Contains("/WindowsDeviceProfileSelector/") &&
+				!SourceFileRelativeToRoot.Contains("/WindowsMoviePlayer/") &&
+				!SourceFileRelativeToRoot.Contains("/WinRT/");
 		}
 
-		private bool IsWinFiltered( String SourceFileRelativeToRoot ) 
+		private bool IsWinFiltered(String SourceFileRelativeToRoot)
 		{
 			return false;
 		}
@@ -358,15 +359,15 @@ namespace UnrealBuildTool
 
 		/// ProjectFileGenerator interface
 		//protected override bool WriteMasterProjectFile( ProjectFile UBTProject )
-		protected override bool WriteProjectFiles ()
+		protected override bool WriteProjectFiles()
 		{
 			return WriteCMakeLists();
 		}
 
 		/// ProjectFileGenerator interface
-		public override MasterProjectFolder AllocateMasterProjectFolder( ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName )
+		public override MasterProjectFolder AllocateMasterProjectFolder(ProjectFileGenerator InitOwnerProjectFileGenerator, string InitFolderName)
 		{
-			return new CMakefileFolder( InitOwnerProjectFileGenerator, InitFolderName );
+			return new CMakefileFolder(InitOwnerProjectFileGenerator, InitFolderName);
 		}
 
 		/// ProjectFileGenerator interface
@@ -375,9 +376,9 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InitFilePath">Path to the project file</param>
 		/// <returns>The newly allocated project file object</returns>
-		protected override ProjectFile AllocateProjectFile( FileReference InitFilePath )
+		protected override ProjectFile AllocateProjectFile(FileReference InitFilePath)
 		{
-			return new CMakefileProjectFile( InitFilePath );
+			return new CMakefileProjectFile(InitFilePath);
 		}
 
 		/// ProjectFileGenerator interface

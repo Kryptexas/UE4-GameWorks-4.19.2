@@ -18,7 +18,7 @@ namespace UnrealBuildTool
 			Directory = InDirectory;
 			Exists = Directory.Exists();
 
-			if(!Exists)
+			if (!Exists)
 			{
 				Files = new HashSet<FileReference>();
 				Directories = new HashSet<DirectoryReference>();
@@ -27,7 +27,7 @@ namespace UnrealBuildTool
 
 		private void CacheFiles()
 		{
-			if(Files == null)
+			if (Files == null)
 			{
 				Files = new HashSet<FileReference>(Directory.EnumerateFileReferences());
 			}
@@ -47,7 +47,7 @@ namespace UnrealBuildTool
 
 		private void CacheDirectories()
 		{
-			if(Directories == null)
+			if (Directories == null)
 			{
 				Directories = new HashSet<DirectoryReference>(Directory.EnumerateDirectoryReferences());
 			}
@@ -101,11 +101,11 @@ namespace UnrealBuildTool
 		static public IEnumerable<DirectoryReference> EnumerateDirectoriesRecursively(DirectoryReference Directory)
 		{
 			DirectoryCache FoundDirectoryCache = FindOrCreateDirectoryCache(Directory);
-			foreach(DirectoryReference SubDirectory in FoundDirectoryCache.EnumerateDirectories())
+			foreach (DirectoryReference SubDirectory in FoundDirectoryCache.EnumerateDirectories())
 			{
 				yield return SubDirectory;
 
-				foreach(DirectoryReference ChildSubDirectory in EnumerateDirectoriesRecursively(SubDirectory))
+				foreach (DirectoryReference ChildSubDirectory in EnumerateDirectoriesRecursively(SubDirectory))
 				{
 					yield return ChildSubDirectory;
 				}

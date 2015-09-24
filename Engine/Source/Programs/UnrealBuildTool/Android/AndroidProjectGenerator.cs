@@ -36,7 +36,7 @@ namespace UnrealBuildTool
 			string ProgramFilesPath = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
 
 			string PlatformToolsetVersion = VCProjectFileGenerator.ProjectFilePlatformToolsetVersionString;
-			if( String.IsNullOrEmpty( PlatformToolsetVersion ) )
+			if (String.IsNullOrEmpty(PlatformToolsetVersion))
 			{
 				// future maintainer: add toolset version and verify that the rest of the msbuild path, version, and location in ProgramFiles(x86) is still valid
 				Log.TraceInformation("Android project generation needs to be updated for this version of Visual Studio.");
@@ -102,20 +102,20 @@ namespace UnrealBuildTool
 			UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.Android, this);
 		}
 
-        /**
-         *	Whether this build platform has native support for VisualStudio
-         *	
-         *	@param	InPlatform			The UnrealTargetPlatform being built
-         *	@param	InConfiguration		The UnrealTargetConfiguration being built
-         *	
-         *	@return	bool				true if native VisualStudio support (or custom VSI) is available
-         */
-        public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
-        {
-            // Debugging, etc. are dependent on the TADP being installed
+		/**
+		 *	Whether this build platform has native support for VisualStudio
+		 *	
+		 *	@param	InPlatform			The UnrealTargetPlatform being built
+		 *	@param	InConfiguration		The UnrealTargetConfiguration being built
+		 *	
+		 *	@return	bool				true if native VisualStudio support (or custom VSI) is available
+		 */
+		public override bool HasVisualStudioSupport(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
+		{
+			// Debugging, etc. are dependent on the TADP being installed
 			return IsNsightInstalled();
-        }
-	
+		}
+
 		/**
 		 *	Return the VisualStudio platform name for this build platform
 		 *	
@@ -148,7 +148,7 @@ namespace UnrealBuildTool
 				return base.GetAdditionalVisualStudioPropertyGroups(InPlatform);
 			}
 
-			return 	"	<PropertyGroup Label=\"NsightTegraProject\">" + ProjectFileGenerator.NewLine +
+			return "	<PropertyGroup Label=\"NsightTegraProject\">" + ProjectFileGenerator.NewLine +
 					"		<NsightTegraProjectRevisionNumber>" + NsightVersionCode.ToString() + "</NsightTegraProjectRevisionNumber>" + ProjectFileGenerator.NewLine +
 					"	</PropertyGroup>" + ProjectFileGenerator.NewLine;
 		}
@@ -235,7 +235,7 @@ namespace UnrealBuildTool
 			AdditionalLibDirs += ";" + IntermediateDirectoryPath + @"\obj\local\x86";
 			AdditionalLibDirs += @";$(AdditionalLibraryDirectories)";
 
-			string PathsLines = 
+			string PathsLines =
 				"		<IncludePath />" + ProjectFileGenerator.NewLine +
 				"		<ReferencePath />" + ProjectFileGenerator.NewLine +
 				"		<LibraryPath />" + ProjectFileGenerator.NewLine +

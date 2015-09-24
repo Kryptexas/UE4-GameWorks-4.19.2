@@ -24,74 +24,74 @@ namespace UnrealBuildTool
 			return false;
 		}
 
-        protected override bool PlatformSupportsAutoSDKs()
-        {
-            return true;
-        }
+		protected override bool PlatformSupportsAutoSDKs()
+		{
+			return true;
+		}
 
-        public override string GetSDKTargetPlatformName()
-        {
-            return "Android";
-        }
+		public override string GetSDKTargetPlatformName()
+		{
+			return "Android";
+		}
 
-        protected override string GetRequiredSDKString()
-        {
-            return "-19";
-        }
+		protected override string GetRequiredSDKString()
+		{
+			return "-19";
+		}
 
-        protected override String GetRequiredScriptVersionString()
-        {
-            return "3.0";
-        }
+		protected override String GetRequiredScriptVersionString()
+		{
+			return "3.0";
+		}
 
-        // prefer auto sdk on android as correct 'manual' sdk detection isn't great at the moment.
-        protected override bool PreferAutoSDK()
-        {
-            return true;
-        }
+		// prefer auto sdk on android as correct 'manual' sdk detection isn't great at the moment.
+		protected override bool PreferAutoSDK()
+		{
+			return true;
+		}
 
-        /// <summary>
-        /// checks if the sdk is installed or has been synced
-        /// </summary>
-        /// <returns></returns>
-        private bool HasAnySDK()
-        {
-            string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
-            {
-                var configCacheIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (DirectoryReference)null);
-                var AndroidEnv = new Dictionary<string, string>();
+		/// <summary>
+		/// checks if the sdk is installed or has been synced
+		/// </summary>
+		/// <returns></returns>
+		private bool HasAnySDK()
+		{
+			string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+			{
+				var configCacheIni = ConfigCacheIni.CreateConfigCacheIni(UnrealTargetPlatform.Unknown, "Engine", (DirectoryReference)null);
+				var AndroidEnv = new Dictionary<string, string>();
 
-                Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
+				Dictionary<string, string> EnvVarNames = new Dictionary<string, string> { 
                                                          {"ANDROID_HOME", "SDKPath"}, 
                                                          {"NDKROOT", "NDKPath"}, 
                                                          {"ANT_HOME", "ANTPath"},
                                                          {"JAVA_HOME", "JavaPath"}
                                                          };
 
-                string path;
-                foreach(var kvp in EnvVarNames)
-                {
-                    if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
-                    {
-                        AndroidEnv.Add(kvp.Key, path);
-                    }
-                    else
-                    {
-                        var envValue = Environment.GetEnvironmentVariable(kvp.Key);
-                        if(!String.IsNullOrEmpty(envValue))
-                        {
-                            AndroidEnv.Add(kvp.Key, envValue);
-                        }
-                    }
-                }
+				string path;
+				foreach (var kvp in EnvVarNames)
+				{
+					if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
+					{
+						AndroidEnv.Add(kvp.Key, path);
+					}
+					else
+					{
+						var envValue = Environment.GetEnvironmentVariable(kvp.Key);
+						if (!String.IsNullOrEmpty(envValue))
+						{
+							AndroidEnv.Add(kvp.Key, envValue);
+						}
+					}
+				}
 
-                // If we are on Mono and we are still missing a key then go and find it from the .bash_profile
-                if (Utils.IsRunningOnMono && !EnvVarNames.All(s => AndroidEnv.ContainsKey(s.Key)))
-                {
-                    string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
-                    if (File.Exists(BashProfilePath))
-                    {
-                        string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+				// If we are on Mono and we are still missing a key then go and find it from the .bash_profile
+				if (Utils.IsRunningOnMono && !EnvVarNames.All(s => AndroidEnv.ContainsKey(s.Key)))
+				{
+					string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+					if (File.Exists(BashProfilePath))
+					{
+						string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
 
 						// Walk backwards so we keep the last export setting instead of the first
 						for (int LineIndex = BashProfileContents.Length - 1; LineIndex >= 0; --LineIndex)
@@ -110,53 +110,53 @@ namespace UnrealBuildTool
 								}
 							}
 						}
-                    }
-                }
+					}
+				}
 
-                // Set for the process
-                foreach (var kvp in AndroidEnv)
-                {
-                    Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
-                }
+				// Set for the process
+				foreach (var kvp in AndroidEnv)
+				{
+					Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
+				}
 
-                // See if we have an NDK path now...
-                AndroidEnv.TryGetValue("NDKROOT", out NDKPath);
-            }
+				// See if we have an NDK path now...
+				AndroidEnv.TryGetValue("NDKROOT", out NDKPath);
+			}
 
-            // we don't have an NDKROOT specified
-            if (String.IsNullOrEmpty(NDKPath))
-            {
-                return false;
-            }
+			// we don't have an NDKROOT specified
+			if (String.IsNullOrEmpty(NDKPath))
+			{
+				return false;
+			}
 
-            NDKPath = NDKPath.Replace("\"", "");
+			NDKPath = NDKPath.Replace("\"", "");
 
-            // need a supported llvm
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
-				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
+			// need a supported llvm
+			if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.6")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
 				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
-            {
-                return false;
-            }
-            return true;
-        }
+			{
+				return false;
+			}
+			return true;
+		}
 
 
-        protected override SDKStatus HasRequiredManualSDKInternal()
+		protected override SDKStatus HasRequiredManualSDKInternal()
 		{
-            // if any autosdk setup has been done then the local process environment is suspect
-            if (HasSetupAutoSDK())
-            {
-                return SDKStatus.Invalid;
-            }
+			// if any autosdk setup has been done then the local process environment is suspect
+			if (HasSetupAutoSDK())
+			{
+				return SDKStatus.Invalid;
+			}
 
-            if (HasAnySDK())
-            {
-                return SDKStatus.Valid;
-            }
+			if (HasAnySDK())
+			{
+				return SDKStatus.Valid;
+			}
 
-            return SDKStatus.Invalid;            
+			return SDKStatus.Invalid;
 		}
 
 		protected override void RegisterBuildPlatformInternal()
@@ -223,8 +223,8 @@ namespace UnrealBuildTool
 		{
 			ValidateUEBuildConfiguration();
 			//BuildConfiguration.bDeployAfterCompile = true;
-        
-            UEBuildConfiguration.bCompileICU = true;
+
+			UEBuildConfiguration.bCompileICU = true;
 		}
 
 		public override void ValidateUEBuildConfiguration()
@@ -234,7 +234,7 @@ namespace UnrealBuildTool
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 			UEBuildConfiguration.bCompilePhysX = true;
 			UEBuildConfiguration.bCompileAPEX = false;
-            UEBuildConfiguration.bRuntimePhysicsCooking = false;
+			UEBuildConfiguration.bRuntimePhysicsCooking = false;
 
 			UEBuildConfiguration.bBuildEditor = false;
 			UEBuildConfiguration.bBuildDeveloperTools = false;
@@ -247,7 +247,7 @@ namespace UnrealBuildTool
 
 			BuildConfiguration.bUseSharedPCHs = false;
 		}
-			
+
 		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, DirectoryReference ProjectPath)
 		{
 			string[] BoolKeys = new string[] {
@@ -314,8 +314,8 @@ namespace UnrealBuildTool
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
-                            Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
-                        }
+							Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
+						}
 					}
 					else if (ModuleName == "TargetPlatform")
 					{
@@ -332,24 +332,24 @@ namespace UnrealBuildTool
 				}
 
 				// allow standalone tools to use targetplatform modules, without needing Engine
-				if(ModuleName == "TargetPlatform")
+				if (ModuleName == "TargetPlatform")
 				{
-				    if (UEBuildConfiguration.bForceBuildTargetPlatforms)
-				    {
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
-					    Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
-                        Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
-                    }
-    
-				    if (bBuildShaderFormats)
-				    {
-					    //Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
-				    }
+					if (UEBuildConfiguration.bForceBuildTargetPlatforms)
+					{
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
+						Rules.PlatformSpecificDynamicallyLoadedModuleNames.Add("Android_MultiTargetPlatform");
+					}
+
+					if (bBuildShaderFormats)
+					{
+						//Rules.DynamicallyLoadedModuleNames.Add("ShaderFormatAndroid");		//@todo android: ShaderFormatAndroid
+					}
 				}
 			}
 		}
@@ -397,7 +397,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("REQUIRES_ALIGNED_INT_ACCESS");
 
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/include");
-			
+
 			// the toolchain will actually filter these out
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/armeabi-v7a/include");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/cxx-stl/gnu-libstdc++/" + GccVersion + "/libs/arm64-v8a/include");
@@ -412,7 +412,7 @@ namespace UnrealBuildTool
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/native_app_glue");
 			InBuildTarget.GlobalCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.Add("$(NDKROOT)/sources/android/cpufeatures");
 
-            // Add path to statically compiled version of cxa_demangle
+			// Add path to statically compiled version of cxa_demangle
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/armeabi-v7a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/arm64-v8a");
 			InBuildTarget.GlobalLinkEnvironment.Config.LibraryPaths.Add(UEBuildConfiguration.UEThirdPartySourceDirectory + "Android/cxa_demangle/x86");
@@ -426,8 +426,8 @@ namespace UnrealBuildTool
 				//InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("Nvidia_gfx_debugger_stub");
 			}
 
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
-            InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
+			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gnustl_shared");
+			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("gcc");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("z");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("c");
 			InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("m");

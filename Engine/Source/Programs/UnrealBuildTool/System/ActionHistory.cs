@@ -59,7 +59,7 @@ namespace UnrealBuildTool
 		public void Save()
 		{
 			// Only save if we've made changes to it since load.
-			if( bIsDirty )
+			if (bIsDirty)
 			{
 				// Serialize the cache to disk.
 				try
@@ -100,7 +100,7 @@ namespace UnrealBuildTool
 				// Monolithic configs and programs have their Action History stored in their respective project folders
 				// or under engine intermediate folder + program name folder
 				DirectoryReference RootDirectory;
-				if(Target.ProjectFile != null)
+				if (Target.ProjectFile != null)
 				{
 					RootDirectory = Target.ProjectFile.Directory;
 				}

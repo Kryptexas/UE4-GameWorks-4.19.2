@@ -10,7 +10,7 @@ using System.Text;
 namespace UnrealBuildTool
 {
 	public abstract class AppleToolChain : RemoteToolChain
-    {
+	{
 		protected static void SelectXcode(ref string DeveloperDir, bool bVerbose)
 		{
 			string Reason = "hardcoded";

@@ -34,7 +34,7 @@ namespace UnrealBuildTool
 
 		public CPPIncludeInfo(SerializationInfo Info, StreamingContext Context)
 		{
-			IncludePaths       = new HashSet<string>((string[])Info.GetValue("ip", typeof(string[])));
+			IncludePaths = new HashSet<string>((string[])Info.GetValue("ip", typeof(string[])));
 			SystemIncludePaths = new HashSet<string>((string[])Info.GetValue("sp", typeof(string[])));
 		}
 
@@ -50,23 +50,23 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="SourceFile">C++ source file we're going to check #includes for.</param>
 		/// <returns>Ordered list of paths to search</returns>
-		public List<string> GetIncludesPathsToSearch( FileItem SourceFile )
+		public List<string> GetIncludesPathsToSearch(FileItem SourceFile)
 		{
 			// Build a single list of include paths to search.
 			var IncludePathsToSearch = new List<string>();
-			
-			if( SourceFile != null )
-			{ 
-				string SourceFilesDirectory = Path.GetDirectoryName( SourceFile.AbsolutePath );
-				IncludePathsToSearch.Add( SourceFilesDirectory );
+
+			if (SourceFile != null)
+			{
+				string SourceFilesDirectory = Path.GetDirectoryName(SourceFile.AbsolutePath);
+				IncludePathsToSearch.Add(SourceFilesDirectory);
 			}
 
-			IncludePathsToSearch.AddRange( IncludePaths );
-			if( BuildConfiguration.bCheckSystemHeadersForModification )
+			IncludePathsToSearch.AddRange(IncludePaths);
+			if (BuildConfiguration.bCheckSystemHeadersForModification)
 			{
-				IncludePathsToSearch.AddRange( SystemIncludePaths );
+				IncludePathsToSearch.AddRange(SystemIncludePaths);
 			}
-			
+
 			return IncludePathsToSearch;
 		}
 	}
@@ -105,35 +105,35 @@ namespace UnrealBuildTool
 		 * @param bSkipExternalHeader true to skip processing of headers in external path
 		 * @param SourceFilesDirectory - The folder containing the source files we're generating a PCH for
 		 */
-		public static FileItem FindIncludedFile( string RelativeIncludePath, bool bSkipExternalHeader, List<string> IncludePathsToSearch, Dictionary<string, FileItem> IncludeFileSearchDictionary )
+		public static FileItem FindIncludedFile(string RelativeIncludePath, bool bSkipExternalHeader, List<string> IncludePathsToSearch, Dictionary<string, FileItem> IncludeFileSearchDictionary)
 		{
 			FileItem Result = null;
 
-			if( IncludePathsToSearch == null )
+			if (IncludePathsToSearch == null)
 			{
-				throw new BuildException( "Was not expecting IncludePathsToSearch to be empty for file '{0}'!", RelativeIncludePath );
+				throw new BuildException("Was not expecting IncludePathsToSearch to be empty for file '{0}'!", RelativeIncludePath);
 			}
 
 			++TotalFindIncludedFileCalls;
 
 			// Only search for the include file if the result hasn't been cached.
 			string InvariantPath = RelativeIncludePath.ToLowerInvariant();
-			if( !IncludeFileSearchDictionary.TryGetValue( InvariantPath, out Result ) )
+			if (!IncludeFileSearchDictionary.TryGetValue(InvariantPath, out Result))
 			{
 				int SearchAttempts = 0;
-				if( Path.IsPathRooted( RelativeIncludePath ) )
+				if (Path.IsPathRooted(RelativeIncludePath))
 				{
 					FileReference Reference = new FileReference(RelativeIncludePath);
-					if( DirectoryLookupCache.FileExists( Reference ) )
+					if (DirectoryLookupCache.FileExists(Reference))
 					{
-						Result = FileItem.GetItemByFileReference( Reference );
+						Result = FileItem.GetItemByFileReference(Reference);
 					}
 					++SearchAttempts;
 				}
 				else
 				{
 					// Find the first include path that the included file exists in.
-					foreach( string IncludePath in IncludePathsToSearch )
+					foreach (string IncludePath in IncludePathsToSearch)
 					{
 						++SearchAttempts;
 						string RelativeFilePath = "";
@@ -153,9 +153,9 @@ namespace UnrealBuildTool
 						catch (Exception)
 						{
 						}
-						if( FullFilePath != null && DirectoryLookupCache.FileExists( FullFilePath ) )
+						if (FullFilePath != null && DirectoryLookupCache.FileExists(FullFilePath))
 						{
-							Result = FileItem.GetItemByFileReference( FullFilePath );
+							Result = FileItem.GetItemByFileReference(FullFilePath);
 							break;
 						}
 					}
@@ -163,24 +163,24 @@ namespace UnrealBuildTool
 
 				IncludePathSearchAttempts += SearchAttempts;
 
-				if( BuildConfiguration.bPrintPerformanceInfo )
+				if (BuildConfiguration.bPrintPerformanceInfo)
 				{
 					// More than two search attempts indicates:
 					//		- Include path was not relative to the directory that the including file was in
 					//		- Include path was not relative to the project's base
-					if( SearchAttempts > 2 )
+					if (SearchAttempts > 2)
 					{
-						Trace.TraceInformation( "   Cache miss: " + RelativeIncludePath + " found after " + SearchAttempts.ToString() + " attempts: " + ( Result != null ? Result.AbsolutePath : "NOT FOUND!" ) );
+						Trace.TraceInformation("   Cache miss: " + RelativeIncludePath + " found after " + SearchAttempts.ToString() + " attempts: " + (Result != null ? Result.AbsolutePath : "NOT FOUND!"));
 					}
 				}
 
 				// Cache the result of the include path search.
-				IncludeFileSearchDictionary.Add( InvariantPath, Result );
+				IncludeFileSearchDictionary.Add(InvariantPath, Result);
 			}
 
 			// @todo ubtmake: The old UBT tried to skip 'external' (STABLE) headers here.  But it didn't work.  We might want to do this though!  Skip system headers and source/thirdparty headers!
 
-			if( Result != null )
+			if (Result != null)
 			{
 				Log.TraceVerbose("Resolved included file \"{0}\" to: {1}", RelativeIncludePath, Result.AbsolutePath);
 			}
@@ -199,20 +199,20 @@ namespace UnrealBuildTool
 		static Dictionary<FileItem, IncludedFilesSet> OnlyCachedIncludedFilesMap = new Dictionary<FileItem, IncludedFilesSet>();
 
 
-		public static List<FileItem> FindAndCacheAllIncludedFiles( UEBuildTarget Target, FileItem SourceFile, IUEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, bool bOnlyCachedDependencies )
+		public static List<FileItem> FindAndCacheAllIncludedFiles(UEBuildTarget Target, FileItem SourceFile, IUEBuildPlatform BuildPlatform, CPPIncludeInfo CPPIncludeInfo, bool bOnlyCachedDependencies)
 		{
 			List<FileItem> Result = null;
-			
-			if( CPPIncludeInfo.IncludeFileSearchDictionary == null )
+
+			if (CPPIncludeInfo.IncludeFileSearchDictionary == null)
 			{
-				CPPIncludeInfo.IncludeFileSearchDictionary = new Dictionary<string,FileItem>();
+				CPPIncludeInfo.IncludeFileSearchDictionary = new Dictionary<string, FileItem>();
 			}
 
 			bool bUseFlatCPPIncludeDependencyCache = BuildConfiguration.bUseUBTMakefiles && UnrealBuildTool.IsAssemblingBuild;
-			if( bOnlyCachedDependencies && bUseFlatCPPIncludeDependencyCache )
-			{ 
-				Result = FlatCPPIncludeDependencyCache[Target].GetDependenciesForFile( SourceFile.Reference );
-				if( Result == null )
+			if (bOnlyCachedDependencies && bUseFlatCPPIncludeDependencyCache)
+			{
+				Result = FlatCPPIncludeDependencyCache[Target].GetDependenciesForFile(SourceFile.Reference);
+				if (Result == null)
 				{
 					// Nothing cached for this file!  It is new to us.  This is the expected flow when our CPPIncludeDepencencyCache is missing.
 				}
@@ -222,33 +222,33 @@ namespace UnrealBuildTool
 				// @todo ubtmake: HeaderParser.h is missing from the include set for Module.UnrealHeaderTool.cpp (failed to find include using:  FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, IncludePathsToSearch, IncludeFileSearchDictionary );)
 
 				// If we're doing an exhaustive include scan, make sure that we have our include dependency cache loaded and ready
-				if( !bOnlyCachedDependencies )
-				{ 
-					if( !IncludeDependencyCache.ContainsKey( Target ) )
+				if (!bOnlyCachedDependencies)
+				{
+					if (!IncludeDependencyCache.ContainsKey(Target))
 					{
-						IncludeDependencyCache.Add( Target, DependencyCache.Create( DependencyCache.GetDependencyCachePathForTarget( Target ) ) );
+						IncludeDependencyCache.Add(Target, DependencyCache.Create(DependencyCache.GetDependencyCachePathForTarget(Target)));
 					}
 				}
 
 				Result = new List<FileItem>();
 
 				var IncludedFileList = new IncludedFilesSet();
-				CPPEnvironment.FindAndCacheAllIncludedFiles( Target, SourceFile, BuildPlatform, CPPIncludeInfo, ref IncludedFileList, bOnlyCachedDependencies:bOnlyCachedDependencies );
-				foreach( FileItem IncludedFile in IncludedFileList )
+				CPPEnvironment.FindAndCacheAllIncludedFiles(Target, SourceFile, BuildPlatform, CPPIncludeInfo, ref IncludedFileList, bOnlyCachedDependencies: bOnlyCachedDependencies);
+				foreach (FileItem IncludedFile in IncludedFileList)
 				{
-					Result.Add( IncludedFile );
+					Result.Add(IncludedFile);
 				}
-			
+
 				// Update cache
-				if( bUseFlatCPPIncludeDependencyCache && !bOnlyCachedDependencies )
-				{ 
+				if (bUseFlatCPPIncludeDependencyCache && !bOnlyCachedDependencies)
+				{
 					var Dependencies = new List<FileReference>();
-					foreach( var IncludedFile in Result )
+					foreach (var IncludedFile in Result)
 					{
-						Dependencies.Add( IncludedFile.Reference );
+						Dependencies.Add(IncludedFile.Reference);
 					}
 					FileReference PCHName = SourceFile.PrecompiledHeaderIncludeFilename;
-					FlatCPPIncludeDependencyCache[Target].SetDependenciesForFile( SourceFile.Reference, PCHName, Dependencies );
+					FlatCPPIncludeDependencyCache[Target].SetDependenciesForFile(SourceFile.Reference, PCHName, Dependencies);
 				}
 			}
 
@@ -266,7 +266,7 @@ namespace UnrealBuildTool
 		{
 			IncludedFilesSet IncludedFileList;
 			var IncludedFilesMap = bOnlyCachedDependencies ? OnlyCachedIncludedFilesMap : ExhaustiveIncludedFilesMap;
-			if( !IncludedFilesMap.TryGetValue( CPPFile, out IncludedFileList ) )
+			if (!IncludedFilesMap.TryGetValue(CPPFile, out IncludedFileList))
 			{
 				var TimerStartTime = DateTime.UtcNow;
 
@@ -276,7 +276,7 @@ namespace UnrealBuildTool
 				IncludedFilesMap.Add(CPPFile, IncludedFileList);
 
 				// Gather a list of names of files directly included by this C++ file.
-				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies( Target, CPPFile, BuildPlatform, bOnlyCachedDependencies:bOnlyCachedDependencies );
+				List<DependencyInclude> DirectIncludes = GetDirectIncludeDependencies(Target, CPPFile, BuildPlatform, bOnlyCachedDependencies: bOnlyCachedDependencies);
 
 				// Build a list of the unique set of files that are included by this file.
 				var DirectlyIncludedFiles = new HashSet<FileItem>();
@@ -285,7 +285,7 @@ namespace UnrealBuildTool
 				{
 					// Resolve the included file name to an actual file.
 					DependencyInclude DirectInclude = DirectIncludes[DirectlyIncludedFileNameIndex];
-					if (!DirectInclude.HasAttemptedResolve || 
+					if (!DirectInclude.HasAttemptedResolve ||
 						// ignore any preexisting resolve cache if we are not configured to use it.
 						!BuildConfiguration.bUseIncludeDependencyResolveCache ||
 						// if we are testing the resolve cache, we force UBT to resolve every time to look for conflicts
@@ -295,7 +295,7 @@ namespace UnrealBuildTool
 						++TotalDirectIncludeResolveCacheMisses;
 
 						// search the include paths to resolve the file
-						FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, CPPIncludeInfo.GetIncludesPathsToSearch( CPPFile ), CPPIncludeInfo.IncludeFileSearchDictionary );
+						FileItem DirectIncludeResolvedFile = CPPEnvironment.FindIncludedFile(DirectInclude.IncludeName, !BuildConfiguration.bCheckExternalHeadersForModification, CPPIncludeInfo.GetIncludesPathsToSearch(CPPFile), CPPIncludeInfo.IncludeFileSearchDictionary);
 						if (DirectIncludeResolvedFile != null)
 						{
 							DirectlyIncludedFiles.Add(DirectIncludeResolvedFile);
@@ -314,13 +314,13 @@ namespace UnrealBuildTool
 				TotalDirectIncludeResolves += DirectIncludes.Count;
 
 				// Convert the dictionary of files included by this file into a list.
-				foreach( var DirectlyIncludedFile in DirectlyIncludedFiles )
+				foreach (var DirectlyIncludedFile in DirectlyIncludedFiles)
 				{
 					// Add the file we're directly including
-					IncludedFileList.Add( DirectlyIncludedFile );
+					IncludedFileList.Add(DirectlyIncludedFile);
 
 					// Also add all of the indirectly included files!
-					if (FindAndCacheAllIncludedFiles(Target, DirectlyIncludedFile, BuildPlatform, CPPIncludeInfo, ref IncludedFileList, bOnlyCachedDependencies:bOnlyCachedDependencies) == false)
+					if (FindAndCacheAllIncludedFiles(Target, DirectlyIncludedFile, BuildPlatform, CPPIncludeInfo, ref IncludedFileList, bOnlyCachedDependencies: bOnlyCachedDependencies) == false)
 					{
 						// DirectlyIncludedFile is a circular dependency which is still being processed
 						// further down the callstack. Add this file to its circular dependencies list 
@@ -356,11 +356,11 @@ namespace UnrealBuildTool
 			if (IncludedFileList.bIsInitialized)
 			{
 				// Copy the list of files included by this file into the result list.
-				foreach( FileItem IncludedFile in IncludedFileList )
+				foreach (FileItem IncludedFile in IncludedFileList)
 				{
 					// If the result list doesn't contain this file yet, add the file and the files it includes.
 					// NOTE: For some reason in .NET 4, Add() is over twice as fast as calling UnionWith() on the set
-					Result.Add( IncludedFile );
+					Result.Add(IncludedFile);
 				}
 
 				return true;
@@ -383,13 +383,13 @@ namespace UnrealBuildTool
 
 		/** Regex that matches #include statements. */
 		static readonly Regex CPPHeaderRegex = new Regex("(([ \t]*#[ \t]*include[ \t]*[<\"](?<HeaderFile>[^\">]*)[\">][^\n]*\n*)|([^\n]*\n*))*",
-													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture );
+													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
 
 		static readonly Regex MMHeaderRegex = new Regex("(([ \t]*#[ \t]*import[ \t]*[<\"](?<HeaderFile>[^\">]*)[\">][^\n]*\n*)|([^\n]*\n*))*",
-													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture );
+													RegexOptions.Compiled | RegexOptions.Singleline | RegexOptions.ExplicitCapture);
 
 		/** Regex that matches C++ code with UObject declarations which we will need to generated code for. */
-		static readonly Regex UObjectRegex = new Regex("^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Compiled | RegexOptions.Multiline );
+		static readonly Regex UObjectRegex = new Regex("^\\s*U(CLASS|STRUCT|ENUM|INTERFACE|DELEGATE)\\b", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		// Maintains a cache of file contents
 		private static FileContentsCacheType FileContentsCache = new FileContentsCacheType();
@@ -402,17 +402,17 @@ namespace UnrealBuildTool
 		}
 
 		/** Finds the names of files directly included by the given C++ file, and also whether the file contains any UObjects */
-		public static List<DependencyInclude> GetDirectIncludeDependencies( UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies )
+		public static List<DependencyInclude> GetDirectIncludeDependencies(UEBuildTarget Target, FileItem CPPFile, IUEBuildPlatform BuildPlatform, bool bOnlyCachedDependencies)
 		{
 			// Try to fulfill request from cache first.
-			List<DependencyInclude> Info = IncludeDependencyCache[Target].GetCachedDependencyInfo( CPPFile );
-			if( Info != null )
+			List<DependencyInclude> Info = IncludeDependencyCache[Target].GetCachedDependencyInfo(CPPFile);
+			if (Info != null)
 			{
 				return Info;
 			}
 
 			var Result = new List<DependencyInclude>();
-			if( bOnlyCachedDependencies )
+			if (bOnlyCachedDependencies)
 			{
 				return Result;
 			}
@@ -448,10 +448,10 @@ namespace UnrealBuildTool
 				// Mono crashes when running a regex on a string longer than about 5000 characters, so we parse the file in chunks
 				int StartIndex = 0;
 				const int SafeTextLength = 4000;
-				while( StartIndex < FileContents.Length )
+				while (StartIndex < FileContents.Length)
 				{
-					int EndIndex = StartIndex + SafeTextLength < FileContents.Length ? FileContents.IndexOf( "\n", StartIndex + SafeTextLength ) : FileContents.Length;
-					if( EndIndex == -1 )
+					int EndIndex = StartIndex + SafeTextLength < FileContents.Length ? FileContents.IndexOf("\n", StartIndex + SafeTextLength) : FileContents.Length;
+					if (EndIndex == -1)
 					{
 						EndIndex = FileContents.Length;
 					}
@@ -467,9 +467,9 @@ namespace UnrealBuildTool
 			}
 
 			// Populate cache with results.
-			IncludeDependencyCache[Target].SetDependencyInfo( CPPFile, Result );
+			IncludeDependencyCache[Target].SetDependencyInfo(CPPFile, Result);
 
-			CPPEnvironment.DirectIncludeCacheMissesTotalTime += ( DateTime.UtcNow - TimerStartTime ).TotalSeconds;
+			CPPEnvironment.DirectIncludeCacheMissesTotalTime += (DateTime.UtcNow - TimerStartTime).TotalSeconds;
 
 			return Result;
 		}
@@ -494,9 +494,9 @@ namespace UnrealBuildTool
 			{
 				string HeaderValue = C.Value;
 
-				if( HeaderValue.IndexOfAny( Path.GetInvalidPathChars() ) != -1 )
+				if (HeaderValue.IndexOfAny(Path.GetInvalidPathChars()) != -1)
 				{
-					throw new BuildException( "In {0}: An #include statement contains invalid characters.  You might be missing a double-quote character. (\"{1}\")", FileToRead, C.Value );
+					throw new BuildException("In {0}: An #include statement contains invalid characters.  You might be missing a double-quote character. (\"{1}\")", FileToRead, C.Value);
 				}
 
 				//@TODO: The intermediate exclusion is to work around autogenerated absolute paths in Module.SomeGame.cpp style files

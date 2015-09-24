@@ -87,7 +87,7 @@ namespace UnrealBuildTool
 
 		public override string ToString()
 		{
-			return (StagePath == null)? Path : String.Format("{0} -> {1}", Path, StagePath);
+			return (StagePath == null) ? Path : String.Format("{0} -> {1}", Path, StagePath);
 		}
 	}
 
@@ -159,12 +159,12 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="InOther">Receipt to copy from</param>
 		public TargetReceipt(TargetReceipt Other)
-		{ 
-			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
+		{
+			foreach (BuildProduct OtherBuildProduct in Other.BuildProducts)
 			{
 				BuildProducts.Add(new BuildProduct(OtherBuildProduct));
 			}
-			foreach(RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
+			foreach (RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
 			{
 				RuntimeDependencies.Add(new RuntimeDependency(OtherRuntimeDependency));
 			}
@@ -202,13 +202,13 @@ namespace UnrealBuildTool
 		/// <param name="Other">Receipt which should be merged</param>
 		public void Merge(TargetReceipt Other)
 		{
-			foreach(BuildProduct OtherBuildProduct in Other.BuildProducts)
+			foreach (BuildProduct OtherBuildProduct in Other.BuildProducts)
 			{
 				BuildProducts.Add(OtherBuildProduct);
 			}
-			foreach(RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
+			foreach (RuntimeDependency OtherRuntimeDependency in Other.RuntimeDependencies)
 			{
-				if(!RuntimeDependencies.Any(x => x.Path == OtherRuntimeDependency.Path && x.StagePath == OtherRuntimeDependency.StagePath))
+				if (!RuntimeDependencies.Any(x => x.Path == OtherRuntimeDependency.Path && x.StagePath == OtherRuntimeDependency.StagePath))
 				{
 					RuntimeDependencies.Add(OtherRuntimeDependency);
 				}
@@ -238,14 +238,14 @@ namespace UnrealBuildTool
 			Variables["ProjectDir"] = ProjectDir.FullName;
 
 			// Replace all the variables in the paths
-			foreach(BuildProduct BuildProduct in BuildProducts)
+			foreach (BuildProduct BuildProduct in BuildProducts)
 			{
 				BuildProduct.Path = Utils.ExpandVariables(BuildProduct.Path, Variables);
 			}
-			foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
+			foreach (RuntimeDependency RuntimeDependency in RuntimeDependencies)
 			{
 				RuntimeDependency.Path = Utils.ExpandVariables(RuntimeDependency.Path, Variables);
-				if(RuntimeDependency.StagePath != null)
+				if (RuntimeDependency.StagePath != null)
 				{
 					RuntimeDependency.StagePath = Utils.ExpandVariables(RuntimeDependency.StagePath, Variables);
 				}
@@ -262,7 +262,7 @@ namespace UnrealBuildTool
 		public static string InsertPathVariables(string InputPath, DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
 			string Result = InputPath;
-			if(InputPath != null && !InputPath.StartsWith("$("))
+			if (InputPath != null && !InputPath.StartsWith("$("))
 			{
 				Result = InsertPathVariables(new FileReference(InputPath), EngineDir, ProjectDir);
 			}
@@ -278,11 +278,11 @@ namespace UnrealBuildTool
 		/// <returns>Converted path for the file.</returns>
 		public static string InsertPathVariables(FileReference File, DirectoryReference EngineDir, DirectoryReference ProjectDir)
 		{
-			if(File.IsUnderDirectory(EngineDir))
+			if (File.IsUnderDirectory(EngineDir))
 			{
 				return "$(EngineDir)" + Path.DirectorySeparatorChar + File.MakeRelativeTo(EngineDir);
 			}
-			else if(File.IsUnderDirectory(ProjectDir))
+			else if (File.IsUnderDirectory(ProjectDir))
 			{
 				return "$(ProjectDir)" + Path.DirectorySeparatorChar + File.MakeRelativeTo(ProjectDir);
 			}
@@ -302,7 +302,7 @@ namespace UnrealBuildTool
 		/// <returns>Path to the receipt for this target</returns>
 		public static string GetDefaultPath(string BaseDir, string TargetName, UnrealTargetPlatform Platform, UnrealTargetConfiguration Configuration, string BuildArchitecture)
 		{
-			if(String.IsNullOrEmpty(BuildArchitecture) && Configuration == UnrealTargetConfiguration.Development)
+			if (String.IsNullOrEmpty(BuildArchitecture) && Configuration == UnrealTargetConfiguration.Development)
 			{
 				return Path.Combine(BaseDir, "Binaries", Platform.ToString(), String.Format("{0}.target", TargetName));
 			}
@@ -328,7 +328,7 @@ namespace UnrealBuildTool
 
 			// Try to read the build version
 			BuildVersion Version;
-			if(!BuildVersion.TryParse(RawObject.GetObjectField("Version"), out Version))
+			if (!BuildVersion.TryParse(RawObject.GetObjectField("Version"), out Version))
 			{
 				throw new JsonParseException("Invalid 'Version' field");
 			}
@@ -338,13 +338,13 @@ namespace UnrealBuildTool
 
 			// Read the build products
 			JsonObject[] BuildProductObjects;
-			if(RawObject.TryGetObjectArrayField("BuildProducts", out BuildProductObjects))
+			if (RawObject.TryGetObjectArrayField("BuildProducts", out BuildProductObjects))
 			{
-				foreach(JsonObject BuildProductObject in BuildProductObjects)
+				foreach (JsonObject BuildProductObject in BuildProductObjects)
 				{
 					string Path;
 					BuildProductType Type;
-					if(BuildProductObject.TryGetStringField("Path", out Path) && BuildProductObject.TryGetEnumField("Type", out Type))
+					if (BuildProductObject.TryGetStringField("Path", out Path) && BuildProductObject.TryGetEnumField("Type", out Type))
 					{
 						string Module;
 						BuildProductObject.TryGetStringField("Module", out Module);
@@ -352,7 +352,7 @@ namespace UnrealBuildTool
 						BuildProduct NewBuildProduct = Receipt.AddBuildProduct(Path, Type);
 
 						bool IsPrecompiled;
-						if(BuildProductObject.TryGetBoolField("IsPrecompiled", out IsPrecompiled))
+						if (BuildProductObject.TryGetBoolField("IsPrecompiled", out IsPrecompiled))
 						{
 							NewBuildProduct.IsPrecompiled = IsPrecompiled;
 						}
@@ -362,15 +362,15 @@ namespace UnrealBuildTool
 
 			// Read the runtime dependencies
 			JsonObject[] RuntimeDependencyObjects;
-			if(RawObject.TryGetObjectArrayField("RuntimeDependencies", out RuntimeDependencyObjects))
+			if (RawObject.TryGetObjectArrayField("RuntimeDependencies", out RuntimeDependencyObjects))
 			{
-				foreach(JsonObject RuntimeDependencyObject in RuntimeDependencyObjects)
+				foreach (JsonObject RuntimeDependencyObject in RuntimeDependencyObjects)
 				{
 					string Path;
-					if(RuntimeDependencyObject.TryGetStringField("Path", out Path))
+					if (RuntimeDependencyObject.TryGetStringField("Path", out Path))
 					{
 						string StagePath;
-						if(!RuntimeDependencyObject.TryGetStringField("StagePath", out StagePath))
+						if (!RuntimeDependencyObject.TryGetStringField("StagePath", out StagePath))
 						{
 							StagePath = null;
 						}
@@ -388,7 +388,7 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Filename to read from</param>
 		public static bool TryRead(string FileName, out TargetReceipt Receipt)
 		{
-			if(!File.Exists(FileName))
+			if (!File.Exists(FileName))
 			{
 				Receipt = null;
 				return false;
@@ -399,7 +399,7 @@ namespace UnrealBuildTool
 				Receipt = Read(FileName);
 				return true;
 			}
-			catch(Exception)
+			catch (Exception)
 			{
 				Receipt = null;
 				return false;
@@ -412,7 +412,7 @@ namespace UnrealBuildTool
 		/// <param name="FileName">Output filename</param>
 		public void Write(string FileName)
 		{
-			using(JsonWriter Writer = new JsonWriter(FileName))
+			using (JsonWriter Writer = new JsonWriter(FileName))
 			{
 				Writer.WriteObjectStart();
 				Writer.WriteValue("TargetName", TargetName);
@@ -425,12 +425,12 @@ namespace UnrealBuildTool
 				Writer.WriteObjectEnd();
 
 				Writer.WriteArrayStart("BuildProducts");
-				foreach(BuildProduct BuildProduct in BuildProducts)
+				foreach (BuildProduct BuildProduct in BuildProducts)
 				{
 					Writer.WriteObjectStart();
 					Writer.WriteValue("Path", BuildProduct.Path);
 					Writer.WriteValue("Type", BuildProduct.Type.ToString());
-					if(BuildProduct.IsPrecompiled)
+					if (BuildProduct.IsPrecompiled)
 					{
 						Writer.WriteValue("IsPrecompiled", BuildProduct.IsPrecompiled);
 					}
@@ -439,11 +439,11 @@ namespace UnrealBuildTool
 				Writer.WriteArrayEnd();
 
 				Writer.WriteArrayStart("RuntimeDependencies");
-				foreach(RuntimeDependency RuntimeDependency in RuntimeDependencies)
+				foreach (RuntimeDependency RuntimeDependency in RuntimeDependencies)
 				{
 					Writer.WriteObjectStart();
 					Writer.WriteValue("Path", RuntimeDependency.Path);
-					if(RuntimeDependency.StagePath != null)
+					if (RuntimeDependency.StagePath != null)
 					{
 						Writer.WriteValue("StagePath", RuntimeDependency.StagePath);
 					}

@@ -20,11 +20,11 @@ namespace UnrealBuildTool
 		 */
 		public override void RegisterPlatformProjectGenerator()
 		{
-			if( UWPPlatform.bEnableUWPSupport )
-			{ 
+			if (UWPPlatform.bEnableUWPSupport)
+			{
 				// Register this project generator for UWP
 				Log.TraceVerbose("        Registering for {0}", UnrealTargetPlatform.UWP.ToString());
-			
+
 				UEPlatformProjectGenerator.RegisterPlatformProjectGenerator(UnrealTargetPlatform.UWP, this);
 			}
 		}

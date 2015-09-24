@@ -10,24 +10,24 @@ namespace UnrealBuildTool
 {
 	public class BuildConfiguration
 	{
-        static BuildConfiguration()
-        {
-            if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
-            {
-                throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
-            }
-        }
+		static BuildConfiguration()
+		{
+			if (!UnrealBuildTool.bIsSafeToReferenceConfigurationValues)
+			{
+				throw new BuildException("UEBuildConfiguration was referenced before the XmlConfig files could be loaded.");
+			}
+		}
 
 		/// <summary>
 		/// Whether to unify C++ code into larger files for faster compilation.
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseUnityBuild;
-        /// <summary>
-        /// Whether to _force_ unify C++ code into larger files for faster compilation.
-        /// </summary>
+		/// <summary>
+		/// Whether to _force_ unify C++ code into larger files for faster compilation.
+		/// </summary>
 		[XmlConfig]
-        public static bool bForceUnityBuild;
+		public static bool bForceUnityBuild;
 
 		/// <summary>
 		/// An experimental new feature that, when enabled, will try to determine source files that you are actively iteratively changing, 
@@ -58,26 +58,26 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseFastMonoCalls;
 
-        /// <summary>
-        /// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate context
-        /// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
-        /// </summary>
-        [XmlConfig]
-        public static bool bUseFastSemanticsImmediateContext;
+		/// <summary>
+		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the immediate context
+		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseFastSemanticsImmediateContext;
 
-        /// <summary>
-        /// New Xbox driver supports a "fast semantics" context type. This switches it on for the deferred contexts
-        /// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
-        /// </summary>
-        [XmlConfig]
-        public static bool bUseFastSemanticsDeferredContexts;
+		/// <summary>
+		/// New Xbox driver supports a "fast semantics" context type. This switches it on for the deferred contexts
+		/// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseFastSemanticsDeferredContexts;
 
-        /// Async Compute context support. Requires Mono and Fastcalls
-        /// </summary>
-        [XmlConfig]
-        public static bool bUseAsyncComputeContext;
+		/// Async Compute context support. Requires Mono and Fastcalls
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseAsyncComputeContext;
 
-        /// <summary>
+		/// <summary>
 		/// An approximate number of bytes of C++ code to target for inclusion in a single unified C++ file.
 		/// </summary>
 		[XmlConfig]
@@ -125,8 +125,8 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUsePDBFiles;
 
- 		/// <summary>
- 		/// Whether PCH files should be used.
+		/// <summary>
+		/// Whether PCH files should be used.
 		/// </summary>
 		[XmlConfig]
 		public static bool bUsePCHFiles;
@@ -152,17 +152,17 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bForcePrecompiledHeaderForGameModules;
 
-        /// <summary>
+		/// <summary>
 		/// Whether debug info should be written to the console.
-        /// </summary>
-        [XmlConfig]
-        public static bool bPrintDebugInfo;
+		/// </summary>
+		[XmlConfig]
+		public static bool bPrintDebugInfo;
 
-        /// <summary>
-        /// Allows logging to a file
-        /// </summary>
-        [XmlConfig]
-        public static string LogFilename;
+		/// <summary>
+		/// Allows logging to a file
+		/// </summary>
+		[XmlConfig]
+		public static string LogFilename;
 
 		/// <summary>
 		/// Prints performance diagnostics about include dependencies and other bits
@@ -218,11 +218,11 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bAllowRemotelyCompiledPCHs;
 
-        /// <summary>
-        /// Whether SN-DBS may be used.
-        /// </summary>
-        [XmlConfig]
-        public static bool bAllowSNDBS;
+		/// <summary>
+		/// Whether SN-DBS may be used.
+		/// </summary>
+		[XmlConfig]
+		public static bool bAllowSNDBS;
 
 		/// <summary>
 		/// Whether or not to delete outdated produced items.
@@ -400,11 +400,11 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bDebugBuildsActuallyUseDebugCRT;
 
-        /// <summary>
-        /// True if Development and Release builds should use the release configuration of PhysX/APEX.
-        /// </summary>
-        [XmlConfig]
-        public static bool bUseShippingPhysXLibraries;
+		/// <summary>
+		/// True if Development and Release builds should use the release configuration of PhysX/APEX.
+		/// </summary>
+		[XmlConfig]
+		public static bool bUseShippingPhysXLibraries;
 
 		/// <summary>
 		/// Tells the UBT to check if module currently being built is violating EULA.
@@ -441,7 +441,7 @@ namespace UnrealBuildTool
 		/// </summary>
 		[XmlConfig]
 		public static bool bUseUBTMakefiles;
-	
+
 		/// <summary>
 		/// Whether DMUCS/Distcc may be used.
 		/// </summary>
@@ -516,7 +516,7 @@ namespace UnrealBuildTool
 			bAllowLTCG = false;
 			bAllowRemotelyCompiledPCHs = false;
 			bAllowXGE = true;
-            bAllowSNDBS = true;
+			bAllowSNDBS = true;
 
 			// Don't bother to check external (stable) headers for modification.  It slows down UBT's dependency checking.
 			bCheckExternalHeadersForModification = false;
@@ -606,13 +606,13 @@ namespace UnrealBuildTool
 			//IMPORTANT THIS IS THE MAIN SWITCH FOR MONO FAST CALLS
 			//  if this is set to true, then fast calls will be on by default on Dingo, and if false it will be off by default on Dingo.
 			//  This can be overridden by -fastmonocalls  or -nofastmonocalls in the NMAKE params.
-            bUseFastMonoCalls = true;
-            bUseAsyncComputeContext = bUseFastMonoCalls;
+			bUseFastMonoCalls = true;
+			bUseAsyncComputeContext = bUseFastMonoCalls;
 
-            // Switches for fast semantics D3D contexts
-            // EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
-            bUseFastSemanticsImmediateContext = false;
-            bUseFastSemanticsDeferredContexts = false;
+			// Switches for fast semantics D3D contexts
+			// EXPERIMENTAL - WILL CAUSE RENDERING ISSUES AND/OR CRASHES AT PRESENT!
+			bUseFastSemanticsImmediateContext = false;
+			bUseFastSemanticsDeferredContexts = false;
 
 			// By default we use the Release C++ Runtime (CRT), even when compiling Debug builds.  This is because the Debug C++
 			// Runtime isn't very useful when debugging Unreal Engine projects, and linking against the Debug CRT libraries forces
@@ -621,9 +621,9 @@ namespace UnrealBuildTool
 			// so that you can debug your program's code.
 			bDebugBuildsActuallyUseDebugCRT = false;
 
-            // By default we use the Profile PhysX/APEX binaries.
-            // We do this in order to keep all configurations the same for behavior consistency. Profile gives some nice debug tools and warnings so we use it instead of Release
-            bUseShippingPhysXLibraries = false;
+			// By default we use the Profile PhysX/APEX binaries.
+			// We do this in order to keep all configurations the same for behavior consistency. Profile gives some nice debug tools and warnings so we use it instead of Release
+			bUseShippingPhysXLibraries = false;
 
 			// set up some paths
 			BaseIntermediateFolder = "Intermediate/Build/";
@@ -664,12 +664,12 @@ namespace UnrealBuildTool
 				string MacDistccExecutablesPath = UserDir + "/Library/Application Support/Developer/Shared/Xcode/Plug-ins/Distcc 3.2.xcplugin/Contents/usr/bin";
 
 				// But we should use the standard Posix directory when not installed - a build farm would use a static .dmucs hosts file not DistCode.
-				if (System.IO.Directory.Exists (MacDistccExecutablesPath)) 
+				if (System.IO.Directory.Exists(MacDistccExecutablesPath))
 				{
 					DistccExecutablesPath = MacDistccExecutablesPath;
 				}
 
-				if (System.IO.File.Exists (UserDir + "/Library/Preferences/com.marksatt.DistCode.plist"))
+				if (System.IO.File.Exists(UserDir + "/Library/Preferences/com.marksatt.DistCode.plist"))
 				{
 					using (System.Diagnostics.Process DefaultsProcess = new System.Diagnostics.Process())
 					{
@@ -683,7 +683,7 @@ namespace UnrealBuildTool
 							DefaultsProcess.Start();
 							string Output = DefaultsProcess.StandardOutput.ReadToEnd();
 							DefaultsProcess.WaitForExit();
-							if(DefaultsProcess.ExitCode == 0)
+							if (DefaultsProcess.ExitCode == 0)
 							{
 								DMUCSDistProp = Output;
 							}
@@ -709,7 +709,7 @@ namespace UnrealBuildTool
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(Platform);
 
 			// E&C support.
-			if( bSupportEditAndContinue )
+			if (bSupportEditAndContinue)
 			{
 				bUseIncrementalLinking = BuildPlatform.ShouldUseIncrementalLinking(Platform, Configuration);
 			}
@@ -721,10 +721,10 @@ namespace UnrealBuildTool
 			}
 
 			// Detailed stats
-            if (bLogDetailedActionStats && bAllowXGE)
+			if (bLogDetailedActionStats && bAllowXGE)
 			{
-                // Some build machines apparently have this turned on, so if you really want detailed stats, don't run with XGE
-                bLogDetailedActionStats = false;
+				// Some build machines apparently have this turned on, so if you really want detailed stats, don't run with XGE
+				bLogDetailedActionStats = false;
 			}
 
 			// PDB
@@ -745,17 +745,17 @@ namespace UnrealBuildTool
 			// NOTE: This CAN modify the static BuildConfiguration settings!!!!
 			BuildPlatform.ValidateBuildConfiguration(Configuration, Platform, bCreateDebugInfo);
 
-            if (!BuildPlatform.CanUseXGE())
-            {
-                bAllowXGE = false;
-            }
+			if (!BuildPlatform.CanUseXGE())
+			{
+				bAllowXGE = false;
+			}
 
-			if (!BuildPlatform.CanUseDistcc()) 
+			if (!BuildPlatform.CanUseDistcc())
 			{
 				bAllowDistcc = false;
 			}
-			
-			if (!BuildPlatform.CanUseSNDBS()) 
+
+			if (!BuildPlatform.CanUseSNDBS())
 			{
 				bAllowSNDBS = false;
 			}

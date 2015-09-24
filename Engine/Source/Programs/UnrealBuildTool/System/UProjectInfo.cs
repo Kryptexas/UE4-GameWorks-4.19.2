@@ -32,9 +32,9 @@ namespace UnrealBuildTool
 		/** Map of relative or complete project file names to the project info */
 		static Dictionary<FileReference, UProjectInfo> ProjectInfoDictionary = new Dictionary<FileReference, UProjectInfo>();
 		/** Map of short project file names to the relative or complete project file name */
-		static Dictionary<string, FileReference> ShortProjectNameDictionary = new Dictionary<string,FileReference>( StringComparer.InvariantCultureIgnoreCase );
+		static Dictionary<string, FileReference> ShortProjectNameDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 		/** Map of target names to the relative or complete project file name */
-		static Dictionary<string, FileReference> TargetToProjectDictionary = new Dictionary<string,FileReference>( StringComparer.InvariantCultureIgnoreCase );
+		static Dictionary<string, FileReference> TargetToProjectDictionary = new Dictionary<string, FileReference>(StringComparer.InvariantCultureIgnoreCase);
 
 		public static bool FindTargetFilesInFolder(DirectoryReference InTargetFolder)
 		{
@@ -42,11 +42,11 @@ namespace UnrealBuildTool
 			IEnumerable<string> Files;
 			if (!Utils.IsRunningOnMono)
 			{
-				Files = Directory.EnumerateFiles (InTargetFolder.FullName, "*.target.cs", SearchOption.TopDirectoryOnly);
+				Files = Directory.EnumerateFiles(InTargetFolder.FullName, "*.target.cs", SearchOption.TopDirectoryOnly);
 			}
 			else
 			{
-				Files = Directory.GetFiles (InTargetFolder.FullName, "*.Target.cs", SearchOption.TopDirectoryOnly).AsEnumerable();
+				Files = Directory.GetFiles(InTargetFolder.FullName, "*.Target.cs", SearchOption.TopDirectoryOnly).AsEnumerable();
 			}
 			foreach (var TargetFilename in Files)
 			{
@@ -59,7 +59,7 @@ namespace UnrealBuildTool
 					{
 						FileInfo TargetInfo = new FileInfo(TargetFilename);
 						// Strip off the target.cs
-						string TargetName = Utils.GetFilenameWithoutAnyExtensions( TargetInfo.Name );
+						string TargetName = Utils.GetFilenameWithoutAnyExtensions(TargetInfo.Name);
 						if (TargetToProjectDictionary.ContainsKey(TargetName) == false)
 						{
 							TargetToProjectDictionary.Add(TargetName, Entry.Key);
@@ -98,15 +98,15 @@ namespace UnrealBuildTool
 			return bOutFoundTargetFiles;
 		}
 
-		static readonly string RootDirectory = Path.Combine( Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
-		static readonly string EngineSourceDirectory = Path.GetFullPath( Path.Combine(RootDirectory, "Engine", "Source") );
+		static readonly string RootDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
+		static readonly string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
 
 		/// <summary>
 		/// Add a single project to the project info dictionary
 		/// </summary>
 		public static void AddProject(FileReference ProjectFile)
 		{
-			if(!ProjectInfoDictionary.ContainsKey(ProjectFile))
+			if (!ProjectInfoDictionary.ContainsKey(ProjectFile))
 			{
 				DirectoryReference ProjectDirectory = ProjectFile.Directory;
 
@@ -117,7 +117,7 @@ namespace UnrealBuildTool
 
 				// Create the project, and check the name is unique
 				UProjectInfo NewProjectInfo = new UProjectInfo(ProjectFile, bIsCodeProject);
-				if(ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
+				if (ShortProjectNameDictionary.ContainsKey(NewProjectInfo.GameName))
 				{
 					var FirstProject = ProjectInfoDictionary[ShortProjectNameDictionary[NewProjectInfo.GameName]];
 					throw new BuildException("There are multiple projects with name {0}\n\t* {1}\n\t* {2}\nThis is not currently supported.", NewProjectInfo.GameName, FirstProject.FilePath.FullName, NewProjectInfo.FilePath.FullName);
@@ -128,7 +128,7 @@ namespace UnrealBuildTool
 				ShortProjectNameDictionary.Add(NewProjectInfo.GameName, ProjectFile);
 
 				// Find all Target.cs files if it's a code project
-				if(bIsCodeProject)
+				if (bIsCodeProject)
 				{
 					bool bFoundTargetFiles = false;
 					if (SourceFolder.Exists() && !FindTargetFiles(SourceFolder, ref bFoundTargetFiles))
@@ -153,12 +153,12 @@ namespace UnrealBuildTool
 			List<string> DirectoriesToSearch = new List<string>();
 
 			// Find all the .uprojectdirs files contained in the root folder and add their entries to the search array
-			string RootDirectory = Path.Combine( Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
-			string EngineSourceDirectory = Path.GetFullPath( Path.Combine(RootDirectory, "Engine", "Source") );
+			string RootDirectory = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().GetOriginalLocation()), "..", "..", "..");
+			string EngineSourceDirectory = Path.GetFullPath(Path.Combine(RootDirectory, "Engine", "Source"));
 
 			foreach (var File in Directory.EnumerateFiles(RootDirectory, "*.uprojectdirs", SearchOption.TopDirectoryOnly))
 			{
-				string FilePath = Path.GetFullPath (File);
+				string FilePath = Path.GetFullPath(File);
 				Log.TraceVerbose("\tFound uprojectdirs file {0}", FilePath);
 
 				using (StreamReader Reader = new StreamReader(FilePath))
@@ -176,7 +176,7 @@ namespace UnrealBuildTool
 							}
 							else
 							{
-								string DirPath = Path.GetFullPath (Path.Combine (RootDirectory, ProjDirEntry));
+								string DirPath = Path.GetFullPath(Path.Combine(RootDirectory, ProjDirEntry));
 								DirectoriesToSearch.Add(DirPath);
 							}
 						}
@@ -210,7 +210,7 @@ namespace UnrealBuildTool
 
 			DateTime StopTime = DateTime.Now;
 
-			if( BuildConfiguration.bPrintPerformanceInfo )
+			if (BuildConfiguration.bPrintPerformanceInfo)
 			{
 				TimeSpan TotalProjectInfoTime = StopTime - StartTime;
 				Log.TraceInformation("FillProjectInfo took {0} milliseconds", TotalProjectInfoTime.Milliseconds);
@@ -300,11 +300,11 @@ namespace UnrealBuildTool
 		public static bool IsPluginEnabledForProject(PluginInfo Plugin, ProjectDescriptor Project, UnrealTargetPlatform Platform)
 		{
 			bool bEnabled = Plugin.Descriptor.bEnabledByDefault || Plugin.LoadedFrom == PluginLoadedFrom.GameProject;
-			if(Project != null && Project.Plugins != null)
+			if (Project != null && Project.Plugins != null)
 			{
-				foreach(PluginReferenceDescriptor PluginReference in Project.Plugins)
+				foreach (PluginReferenceDescriptor PluginReference in Project.Plugins)
 				{
-					if(String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
+					if (String.Compare(PluginReference.Name, Plugin.Name, true) == 0)
 					{
 						bEnabled = PluginReference.IsEnabledForPlatform(Platform);
 					}

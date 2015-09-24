@@ -55,7 +55,7 @@ namespace UnrealBuildTool
 		 * @param	InFiles			The list of files to process
 		 * @param	OutBadFiles		OUTPUT - List of files that failed the copyright check (and why)
 		 */
-		static void ProcessFileList(List<FileInfo> InFiles, ref Dictionary<string,string> OutBadFiles)
+		static void ProcessFileList(List<FileInfo> InFiles, ref Dictionary<string, string> OutBadFiles)
 		{
 			foreach (FileInfo CheckFile in InFiles)
 			{
