@@ -38,6 +38,11 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual bool GetReferencedContentObjects(TArray<UObject*>& Objects) const override;
+#endif		// WITH_EDITOR
 
 	void InitializePlayer();
 

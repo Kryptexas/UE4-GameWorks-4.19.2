@@ -49,9 +49,45 @@ void AMovieSceneActor::PostInitProperties()
 
 	if (!HasAnyFlags(RF_ClassDefaultObject))
 	{
-		UpdateAnimationInstance();
+		// Make an instance of our asset so that we can keep hard references to actors we are using
+		AnimationInstance = NewObject<UActorAnimationInstance>(this, "AnimationInstance");
 	}
 }
+
+void AMovieSceneActor::PostLoad()
+{
+	Super::PostLoad();
+	
+	UpdateAnimationInstance();
+}
+
+#if WITH_EDITOR
+void AMovieSceneActor::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(AMovieSceneActor, ActorAnimation))
+	{
+		UpdateAnimationInstance();
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+bool AMovieSceneActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
+{
+	if (UObject* Asset = AnimationInstance ? AnimationInstance->GetActorAnimation() : nullptr)
+	{
+		// @todo: Enable editing of animation instances
+		Objects.Add(Asset);
+	}
+
+	Super::GetReferencedContentObjects(Objects);
+
+	return true;
+}
+
+#endif // WITH_EDITOR
 
 void AMovieSceneActor::Tick(float DeltaSeconds)
 {
@@ -89,11 +125,5 @@ void AMovieSceneActor::InitializePlayer()
 void AMovieSceneActor::UpdateAnimationInstance()
 {
 	UActorAnimation* ActorAnimationAsset = Cast<UActorAnimation>(ActorAnimation.TryLoad());
-	if (!AnimationInstance)
-	{
-		// Make an instance of our asset so that we can keep hard references to actors we are using
-		AnimationInstance = NewObject<UActorAnimationInstance>(this, "AnimationInstance");
-	}
-
 	AnimationInstance->Initialize(ActorAnimationAsset, GetWorld(), true);
 }

@@ -68,6 +68,13 @@ public:
 	 */
 	void SetContext(UObject* NewContext);
 
+	/**
+	 * Get the actor animation of which this is an instance
+	 *
+	 * @return this instance's parent actor animation
+	 */
+	UActorAnimation* GetActorAnimation() { return ActorAnimation; }
+
 public:
 
 	// UMovieSceneSequence interface
