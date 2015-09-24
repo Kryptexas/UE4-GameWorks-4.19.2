@@ -181,16 +181,23 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 	if (FPlatformAtomics::InterlockedCompareExchange(&bHasEntered, 1, 0) == 0)
 	{
 		const SIZE_T StackTraceSize = 65535;
-		ANSICHAR* StackTrace = (ANSICHAR*)FMemory::Malloc(StackTraceSize);
+		ANSICHAR StackTrace[StackTraceSize];
 		StackTrace[0] = 0;
 
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, Context.Context);
-		UE_LOG(LogEngine, Error, TEXT("%s"), ANSI_TO_TCHAR(StackTrace));
-		FMemory::Free(StackTrace);
-
-		GError->HandleError();
-		FPlatformMisc::RequestExit(true);
+		UE_LOG(LogEngine, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
+		
+		if (GLog)
+		{
+			GLog->SetCurrentThreadAsMasterThread();
+			GLog->Flush();
+		}
+		
+		if (GWarn)
+		{
+			GWarn->Flush();
+		}
 	}
 }
 
@@ -519,16 +526,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* InJavaVM, void* InReserved)
 	FJavaWrapper::FindClassesAndMethods(Env);
 
 	// hook signals
-#if UE_BUILD_DEBUG
-	if (GAlwaysReportCrash)
-#else
-	if (0)//!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash)
-#endif
+	if (!FPlatformMisc::IsDebuggerPresent() || GAlwaysReportCrash)
 	{
-		// disable crash handler.. getting better stack traces from system logcat for now
-//		FPlatformMisc::SetCrashHandler(EngineCrashHandler);
+		FPlatformMisc::SetCrashHandler(EngineCrashHandler);
 	}
-
+	
 	// Cache path to external storage
 	jclass EnvClass = Env->FindClass("android/os/Environment");
 	jmethodID getExternalStorageDir = Env->GetStaticMethodID(EnvClass, "getExternalStorageDirectory", "()Ljava/io/File;");

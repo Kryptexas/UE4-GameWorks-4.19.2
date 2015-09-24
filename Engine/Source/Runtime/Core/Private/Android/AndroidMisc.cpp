@@ -370,21 +370,50 @@ void DefaultCrashHandler(const FAndroidCrashContext& Context)
 	if (FPlatformAtomics::InterlockedCompareExchange(&bHasEntered, 1, 0) == 0)
 	{
 		const SIZE_T StackTraceSize = 65535;
-		ANSICHAR* StackTrace = (ANSICHAR*)FMemory::Malloc(StackTraceSize);
+		ANSICHAR StackTrace[StackTraceSize];
 		StackTrace[0] = 0;
 
 		// Walk the stack and dump it to the allocated memory.
 		FPlatformStackWalk::StackWalkAndDump(StackTrace, StackTraceSize, 0, Context.Context);
-		UE_LOG(LogEngine, Error, TEXT("%s"), ANSI_TO_TCHAR(StackTrace));
-		FMemory::Free(StackTrace);
+		UE_LOG(LogEngine, Error, TEXT("\n%s\n"), ANSI_TO_TCHAR(StackTrace));
 
-		GError->HandleError();
-		FPlatformMisc::RequestExit(true);
+		if (GLog)
+		{
+			GLog->SetCurrentThreadAsMasterThread();
+			GLog->Flush();
+		}
+		
+		if (GWarn)
+		{
+			GWarn->Flush();
+		}
 	}
 }
 
 /** Global pointer to crash handler */
 void (* GCrashHandlerPointer)(const FGenericCrashContext& Context) = NULL;
+
+const int32 TargetSignals[] = 
+{
+	SIGQUIT, // SIGQUIT is a user-initiated "crash".
+	SIGILL,
+	SIGFPE,
+	SIGBUS,
+	SIGSEGV,
+	SIGSYS
+};
+
+const int32 NumTargetSignals = ARRAY_COUNT(TargetSignals);
+
+struct sigaction PrevActions[NumTargetSignals];
+
+static void RestorePreviousSignalHandlers()
+{
+	for (int32 i = 0; i < NumTargetSignals; ++i)
+	{
+		sigaction(TargetSignals[i],	&PrevActions[i], NULL);
+	}
+}
 
 /** True system-specific crash handler that gets called first */
 void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
@@ -392,8 +421,12 @@ void PlatformCrashHandler(int32 Signal, siginfo* Info, void* Context)
 	// Switch to malloc crash.
 	//FGenericPlatformMallocCrash::Get().SetAsGMalloc(); @todo uncomment after verification
 
-	fprintf(stderr, "Signal %d caught.\n", Signal);
+	//fprintf(stderr, "Signal %d caught.\n", Signal);
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Signal %d caught!"), Signal);
 
+	// Restore system handlers so Android could catch this signal after we are done with crashreport
+	RestorePreviousSignalHandlers();
+	
 	FAndroidCrashContext CrashContext;
 	CrashContext.InitFromSignal(Signal, Info, Context);
 
@@ -412,17 +445,18 @@ void FAndroidMisc::SetCrashHandler(void (* CrashHandler)(const FGenericCrashCont
 {
 	GCrashHandlerPointer = CrashHandler;
 
+	FMemory::Memzero(&PrevActions, sizeof(PrevActions));
+
 	struct sigaction Action;
 	FMemory::Memzero(&Action, sizeof(struct sigaction));
 	Action.sa_sigaction = PlatformCrashHandler;
 	sigemptyset(&Action.sa_mask);
 	Action.sa_flags = SA_SIGINFO | SA_RESTART | SA_ONSTACK;
-	sigaction(SIGQUIT, &Action, NULL);	// SIGQUIT is a user-initiated "crash".
-	sigaction(SIGILL, &Action, NULL);
-	sigaction(SIGFPE, &Action, NULL);
-	sigaction(SIGBUS, &Action, NULL);
-	sigaction(SIGSEGV, &Action, NULL);
-	sigaction(SIGSYS, &Action, NULL);
+
+	for (int32 i = 0; i < NumTargetSignals; ++i)
+	{
+		sigaction(TargetSignals[i],	&Action, &PrevActions[i]);
+	}
 }
 
 bool FAndroidMisc::GetUseVirtualJoysticks()
