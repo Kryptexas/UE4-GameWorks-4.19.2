@@ -1336,6 +1336,19 @@ void FSceneRenderer::CreatePerObjectProjectedShadow(
 	TArray<FPrimitiveSceneInfo*, SceneRenderingAllocator> ShadowGroupPrimitives;
 	PrimitiveSceneInfo->GatherLightingAttachmentGroupPrimitives(ShadowGroupPrimitives);
 
+
+#define TEST_BBOX_NANS_UE_21208
+
+#ifdef TEST_BBOX_NANS_UE_21208
+	// allow for silent failure 
+	if (ShadowGroupPrimitives.Num() == 0)
+	{
+		return;
+	}
+#endif
+
+#undef TEST_BBOX_NANS_UE_21208
+
 	// Compute the composite bounds of this group of shadow primitives.
 	FBoxSphereBounds OriginalBounds = ShadowGroupPrimitives[0]->Proxy->GetBounds();
 
