@@ -4263,4 +4263,4 @@ void GatherAnimSequenceStats(FOutputDevice& Ar)
 	Ar.Logf( TEXT("Approx Key Data Memory: %i bytes"), GlobalApproxKeyDataSize);
 }
 #endif
-
+#undef LOCTEXT_NAMESPACE 
