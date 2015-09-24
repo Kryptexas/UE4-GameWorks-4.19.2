@@ -275,7 +275,7 @@ void FPhysScene::SetKinematicTarget_AssumesLocked(FBodyInstance* BodyInstance, c
 #endif
 		{
 			const PxTransform PNewPose = U2PTransform(TargetTransform);
-			check(PNewPose.isValid());
+			ensure(PNewPose.isValid());
 			PRigidDynamic->setKinematicTarget(PNewPose);
 		}
 	}
